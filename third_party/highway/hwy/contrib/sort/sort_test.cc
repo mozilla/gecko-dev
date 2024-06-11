@@ -13,29 +13,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS  // before inttypes.h
-#endif
-#include <inttypes.h>  // IWYU pragma: keep
 #include <stdio.h>
-#include <string.h>  // memcpy
 
 #include <unordered_map>
 #include <vector>
 
-// clang-format off
+#include "hwy/base.h"
+#include "hwy/detect_compiler_arch.h"
+
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "hwy/contrib/sort/sort_test.cc"
 #include "hwy/foreach_target.h"  // IWYU pragma: keep
-#include "hwy/highway.h"
-#include "hwy/contrib/sort/vqsort.h"
 // After foreach_target
 #include "hwy/contrib/sort/algo-inl.h"
-#include "hwy/contrib/sort/traits128-inl.h"
 #include "hwy/contrib/sort/result-inl.h"
+#include "hwy/contrib/sort/traits128-inl.h"
 #include "hwy/contrib/sort/vqsort-inl.h"  // BaseCase
+#include "hwy/contrib/sort/vqsort.h"
+#include "hwy/highway.h"
+#include "hwy/per_target.h"
 #include "hwy/tests/test_util-inl.h"
-// clang-format on
 
 HWY_BEFORE_NAMESPACE();
 namespace hwy {
@@ -45,6 +42,7 @@ namespace {
 using detail::OrderAscending;
 using detail::SharedTraits;
 using detail::TraitsLane;
+
 #if VQSORT_ENABLED || HWY_IDE
 #if !HAVE_INTEL
 using detail::OrderAscending128;
@@ -55,6 +53,82 @@ using detail::OrderDescendingKV128;
 using detail::OrderDescendingKV64;
 using detail::Traits128;
 #endif
+
+// Verify the corner cases of LargerSortValue/SmallerSortValue, used to
+// implement PrevValue/NextValue.
+struct TestFloatLargerSmaller {
+  template <typename T, class D>
+  HWY_NOINLINE void operator()(T, D d) {
+    const Vec<D> p0 = Zero(d);
+    const Vec<D> p1 = Set(d, ConvertScalarTo<T>(1));
+    const Vec<D> pinf = Inf(d);
+    const Vec<D> peps = Set(d, hwy::Epsilon<T>());
+    const Vec<D> pmax = Set(d, hwy::HighestValue<T>());
+
+    const Vec<D> n0 = Neg(p0);
+    const Vec<D> n1 = Neg(p1);
+    const Vec<D> ninf = Neg(pinf);
+    const Vec<D> neps = Neg(peps);
+    const Vec<D> nmax = Neg(pmax);
+
+    // Larger(0) is the smallest subnormal, typically eps * FLT_MIN.
+    const RebindToUnsigned<D> du;
+    const Vec<D> psub = BitCast(d, Set(du, 1));
+    const Vec<D> nsub = Neg(psub);
+    HWY_ASSERT(AllTrue(d, Lt(psub, peps)));
+    HWY_ASSERT(AllTrue(d, Gt(nsub, neps)));
+
+    // +/-0 moves to +/- smallest subnormal.
+    HWY_ASSERT_VEC_EQ(d, psub, detail::LargerSortValue(d, p0));
+    HWY_ASSERT_VEC_EQ(d, nsub, detail::SmallerSortValue(d, p0));
+    HWY_ASSERT_VEC_EQ(d, psub, detail::LargerSortValue(d, n0));
+    HWY_ASSERT_VEC_EQ(d, nsub, detail::SmallerSortValue(d, n0));
+
+    // The next magnitude larger than 1 is (1 + eps) by definition.
+    HWY_ASSERT_VEC_EQ(d, Add(p1, peps), detail::LargerSortValue(d, p1));
+    HWY_ASSERT_VEC_EQ(d, Add(n1, neps), detail::SmallerSortValue(d, n1));
+    // 1-eps and -1+eps are slightly different, but we can still ensure the
+    // next values are less than 1 / greater than -1.
+    HWY_ASSERT(AllTrue(d, Gt(p1, detail::SmallerSortValue(d, p1))));
+    HWY_ASSERT(AllTrue(d, Lt(n1, detail::LargerSortValue(d, n1))));
+
+    // Even for large (finite) values, we can move toward/away from infinity.
+    HWY_ASSERT_VEC_EQ(d, pinf, detail::LargerSortValue(d, pmax));
+    HWY_ASSERT_VEC_EQ(d, ninf, detail::SmallerSortValue(d, nmax));
+    HWY_ASSERT(AllTrue(d, Gt(pmax, detail::SmallerSortValue(d, pmax))));
+    HWY_ASSERT(AllTrue(d, Lt(nmax, detail::LargerSortValue(d, nmax))));
+
+    // For infinities, results are unchanged or the extremal finite value.
+    HWY_ASSERT_VEC_EQ(d, pinf, detail::LargerSortValue(d, pinf));
+    HWY_ASSERT_VEC_EQ(d, pmax, detail::SmallerSortValue(d, pinf));
+    HWY_ASSERT_VEC_EQ(d, nmax, detail::LargerSortValue(d, ninf));
+    HWY_ASSERT_VEC_EQ(d, ninf, detail::SmallerSortValue(d, ninf));
+  }
+};
+HWY_NOINLINE void TestAllFloatLargerSmaller() {
+  ForFloatTypesDynamic(ForPartialVectors<TestFloatLargerSmaller>());
+}
+
+// Previously, LastValue was the largest normal float, so we injected that
+// value into arrays containing only infinities. Ensure that does not happen.
+struct TestFloatInf {
+  template <typename T, class D>
+  HWY_NOINLINE void operator()(T, D d) {
+    const size_t N = Lanes(d);
+    const size_t num = N * 3;
+    auto in = hwy::AllocateAligned<T>(num);
+    Fill(d, GetLane(Inf(d)), num, in.get());
+    VQSort(in.get(), num, SortAscending());
+    for (size_t i = 0; i < num; i += N) {
+      HWY_ASSERT(AllTrue(d, IsInf(LoadU(d, in.get() + i))));
+    }
+  }
+};
+
+HWY_NOINLINE void TestAllFloatInf() {
+  // TODO(janwas): bfloat16_t not yet supported.
+  ForFloatTypesDynamic(ForPartialVectors<TestFloatInf>());
+}
 
 template <class Traits>
 static HWY_NOINLINE void TestMedian3() {
@@ -227,6 +301,12 @@ HWY_NOINLINE void TestAllBaseCase() {
 #if defined(_MSC_VER)
   return;
 #endif
+// TODO(b/314758657): Compiler bug causes incorrect results
+#ifndef VQSORT_DO_NOT_SKIP
+  if (HWY_COMPILER_CLANG && HWY_ARCH_X86 && HWY_TARGET >= HWY_SSSE3) {
+    return;
+  }
+#endif
   TestBaseCase<TraitsLane<OrderAscending<int32_t> > >();
   TestBaseCase<TraitsLane<OtherOrder<int64_t> > >();
 #if !HAVE_INTEL
@@ -383,6 +463,7 @@ HWY_NOINLINE void TestAllPartition() {
   TestPartition<TraitsLane<OrderAscending<int16_t> > >();
   TestPartition<TraitsLane<OrderAscending<int64_t> > >();
   TestPartition<TraitsLane<OtherOrder<float> > >();
+  // OK to check current target, not using dynamic dispatch here.
 #if HWY_HAVE_FLOAT64
   TestPartition<TraitsLane<OtherOrder<double> > >();
 #endif
@@ -443,6 +524,8 @@ HWY_NOINLINE void TestAllGenerator() {
 }
 
 #else
+static void TestAllFloatLargerSmaller() {}
+static void TestAllFloatInf() {}
 static void TestAllMedian() {}
 static void TestAllBaseCase() {}
 static void TestAllPartition() {}
@@ -458,7 +541,7 @@ class CompareResults {
  public:
   CompareResults(const LaneType* in, size_t num_lanes) {
     copy_.resize(num_lanes);
-    memcpy(copy_.data(), in, num_lanes * sizeof(LaneType));
+    CopyBytes(in, copy_.data(), num_lanes * sizeof(LaneType));
   }
 
   bool Verify(const LaneType* output) {
@@ -470,34 +553,40 @@ class CompareResults {
     SharedState shared;
     using Order = typename Traits::Order;
     const Traits st;
-    const size_t num_keys = copy_.size() / st.LanesPerKey();
+    constexpr size_t kLPK = st.LanesPerKey();
+    const size_t num_keys = copy_.size() / kLPK;
     Run<Order>(reference, reinterpret_cast<KeyType*>(copy_.data()), num_keys,
                shared, /*thread=*/0);
 #if VQSORT_PRINT >= 3
     fprintf(stderr, "\nExpected:\n");
-    for (size_t i = 0; i < copy_.size(); ++i) {
-      PrintValue(copy_[i]);
+    for (size_t i = 0; i < HWY_MIN(40, copy_.size()); i += kLPK) {
+      fprintf(stderr, "\n%03zu: ", i);
+      KeyType key;
+      CopyBytes<sizeof(KeyType)>(&copy_[i], &key);
+      PrintValue(key);
     }
-    fprintf(stderr, "\n");
+
+    fprintf(stderr, "\n\nActual:\n");
+    for (size_t i = 0; i < HWY_MIN(40, copy_.size()); i += kLPK) {
+      fprintf(stderr, "\n%03zu: ", i);
+      KeyType key;
+      CopyBytes<sizeof(KeyType)>(&output[i], &key);
+      PrintValue(key);
+    }
 #endif
-    for (size_t i = 0; i < copy_.size(); ++i) {
-      if (copy_[i] != output[i]) {
-        if (sizeof(KeyType) == 16) {
-          fprintf(stderr,
-                  "%s Asc %d mismatch at %d of %d: %" PRIu64 " %" PRIu64 "\n",
-                  st.KeyString(), Order().IsAscending(), static_cast<int>(i),
-                  static_cast<int>(copy_.size()),
-                  static_cast<uint64_t>(copy_[i]),
-                  static_cast<uint64_t>(output[i]));
-        } else {
-          fprintf(stderr,
-                  "Type %s Asc %d mismatch at %d of %d: ", st.KeyString(),
-                  Order().IsAscending(), static_cast<int>(i),
-                  static_cast<int>(copy_.size()));
-          PrintValue(copy_[i]);
-          PrintValue(output[i]);
-          fprintf(stderr, "\n");
-        }
+    for (size_t i = 0; i < copy_.size(); i += kLPK) {
+      // Results should be equivalent, i.e. neither a < b nor b < a.
+      if (st.Compare1(&copy_[i], &output[i]) ||
+          st.Compare1(&output[i], &copy_[i])) {
+        KeyType expected, actual;
+        CopyBytes<sizeof(KeyType)>(&copy_[i], &expected);
+        CopyBytes<sizeof(KeyType)>(&output[i], &actual);
+        fprintf(stderr, "Type %s Asc %d mismatch at %d of %d: ", st.KeyString(),
+                Order().IsAscending(), static_cast<int>(i),
+                static_cast<int>(copy_.size()));
+        PrintValue(expected);
+        PrintValue(actual);
+        fprintf(stderr, "\n");
         return false;
       }
     }
@@ -522,7 +611,10 @@ std::vector<Algo> AlgoForTest() {
 #if HAVE_SORT512
         Algo::kSort512,
 #endif
-        Algo::kHeap, Algo::kVQSort,
+#if VQSORT_ENABLED
+        Algo::kVQSort,
+#endif
+        Algo::kHeap,
   };
 }
 
@@ -573,10 +665,8 @@ void TestSort(size_t num_lanes) {
         HWY_ASSERT(VerifySort(st, input_stats, lanes, num_lanes, "TestSort"));
 
         // Check red zones
-#if HWY_IS_MSAN
-        __msan_unpoison(aligned.get(), misalign * sizeof(LaneType));
-        __msan_unpoison(lanes + num_lanes, kMaxMisalign * sizeof(LaneType));
-#endif
+        detail::MaybeUnpoison(aligned.get(), misalign);
+        detail::MaybeUnpoison(lanes + num_lanes, kMaxMisalign);
         for (size_t i = 0; i < misalign; ++i) {
           if (aligned[i] != hwy::LowestValue<LaneType>())
             HWY_ABORT("Overrun left at %d\n", static_cast<int>(i));
@@ -591,6 +681,13 @@ void TestSort(size_t num_lanes) {
 }
 
 void TestAllSort() {
+// TODO(b/314758657): Compiler bug causes incorrect results
+#ifndef VQSORT_DO_NOT_SKIP
+  if (HWY_COMPILER_CLANG && HWY_ARCH_X86 && HWY_TARGET >= HWY_SSSE3) {
+    return;
+  }
+#endif
+
   for (int num : {129, 504, 3 * 1000, 34567}) {
     const size_t num_lanes = AdjustedReps(static_cast<size_t>(num));
 #if !HAVE_INTEL
@@ -607,9 +704,16 @@ void TestAllSort() {
     // WARNING: for float types, SIMD comparisons will flush denormals to
     // zero, causing mismatches with scalar sorts. In this test, we avoid
     // generating denormal inputs.
+#if HWY_HAVE_FLOAT16  // #if protects algo-inl's GenerateRandom
+    // Must also check whether the dynamic-dispatch target supports float16_t!
+    if (hwy::HaveFloat16()) {
+      TestSort<TraitsLane<OrderAscending<float16_t> > >(num_lanes);
+    }
+#endif
     TestSort<TraitsLane<OrderAscending<float> > >(num_lanes);
-#if HWY_HAVE_FLOAT64  // protects algo-inl's GenerateRandom
-    if (HWY_HAVE_FLOAT64) {
+#if HWY_HAVE_FLOAT64  // #if protects algo-inl's GenerateRandom
+    // Must also check whether the dynamic-dispatch target supports float64!
+    if (hwy::HaveFloat64()) {
       TestSort<TraitsLane<OtherOrder<double> > >(num_lanes);
     }
 #endif
@@ -639,6 +743,8 @@ HWY_AFTER_NAMESPACE();
 namespace hwy {
 namespace {
 HWY_BEFORE_TEST(SortTest);
+HWY_EXPORT_AND_TEST_P(SortTest, TestAllFloatLargerSmaller);
+HWY_EXPORT_AND_TEST_P(SortTest, TestAllFloatInf);
 HWY_EXPORT_AND_TEST_P(SortTest, TestAllMedian);
 HWY_EXPORT_AND_TEST_P(SortTest, TestAllBaseCase);
 HWY_EXPORT_AND_TEST_P(SortTest, TestAllPartition);
