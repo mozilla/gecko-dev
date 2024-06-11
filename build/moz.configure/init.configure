@@ -1047,7 +1047,6 @@ set_config("MOZILLA_OFFICIAL", mozilla_official)
 set_define("MOZILLA_OFFICIAL", mozilla_official)
 add_old_configure_assignment("MOZILLA_OFFICIAL", mozilla_official)
 
-
 # Allow specifying custom paths to the version files used by the milestone() function below.
 option(
     "--with-version-file-path",
