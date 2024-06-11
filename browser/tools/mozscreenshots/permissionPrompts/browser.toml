@@ -1,9 +1,0 @@
-[DEFAULT]
-subsuite = "screenshots"
-support-files = ["../head.js"]
-prefs = [
-  "signon.testOnlyUserHasInteractedByPrefValue=true",
-  "signon.testOnlyUserHasInteractedWithDocument=true",
-]
-
-["browser_permissionPrompts.js"]

@@ -1,5 +1,0 @@
-. "$topsrcdir/browser/config/mozconfigs/linux64/code-coverage"
-. "$topsrcdir/browser/config/mozconfigs/linux64/nightly-fuzzing-asan"
-
-# Need this to prevent name conflicts with the normal nightly build packages
-export MOZ_PKG_SPECIAL=asan-ccov

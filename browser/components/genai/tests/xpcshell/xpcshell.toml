@@ -1,4 +1,0 @@
-[DEFAULT]
-firefox-appdir = "browser"
-
-["test_build_chat_prompt.js"]

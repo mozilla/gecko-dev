@@ -1,8 +1,0 @@
-{
-  "searchUrl": {
-    "message": "https://www.amazon.cn/s"
-  },
-  "searchUrlGetParams": {
-    "message": "k={searchTerms}"
-  }
-}
