@@ -82,6 +82,9 @@ static ALWAYS_INLINE unsigned dav1d_get_cpu_flags(void) {
 #if defined(__VSX__)
     flags |= DAV1D_PPC_CPU_FLAG_VSX;
 #endif
+#if defined(__POWER9_VECTOR__)
+    flags |= DAV1D_PPC_CPU_FLAG_PWR9;
+#endif
 #elif ARCH_RISCV
 #if defined(__riscv_v)
     flags |= DAV1D_RISCV_CPU_FLAG_V;

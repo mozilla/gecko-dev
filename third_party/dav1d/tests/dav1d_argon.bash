@@ -131,7 +131,7 @@ else
     mapfile -t dirs < <(printf "${ARGON_DIR}/%s\n" "$@" | sort -u)
 fi
 
-ver_info="dav1d $("$DAV1D" -v 2>&1) filmgrain=$FILMGRAIN cpumask=$CPUMASK" || error "Error! Can't run $DAV1D"
+ver_info="dav1d $("$DAV1D" --filmgrain "$FILMGRAIN" --cpumask "$CPUMASK" --threads "$THREADS" -v 2>&1) filmgrain=$FILMGRAIN cpumask=$CPUMASK" || error "Error! Can't run $DAV1D"
 files=()
 
 for d in "${dirs[@]}"; do

@@ -249,6 +249,8 @@ static void loop_filter_v_sb128uv_c(pixel *dst, const ptrdiff_t stride,
 #include "src/arm/loopfilter.h"
 #elif ARCH_LOONGARCH64
 #include "src/loongarch/loopfilter.h"
+#elif ARCH_PPC64LE
+#include "src/ppc/loopfilter.h"
 #elif ARCH_X86
 #include "src/x86/loopfilter.h"
 #endif
@@ -265,6 +267,8 @@ COLD void bitfn(dav1d_loop_filter_dsp_init)(Dav1dLoopFilterDSPContext *const c) 
     loop_filter_dsp_init_arm(c);
 #elif ARCH_LOONGARCH64
     loop_filter_dsp_init_loongarch(c);
+#elif ARCH_PPC64LE
+    loop_filter_dsp_init_ppc(c);
 #elif ARCH_X86
     loop_filter_dsp_init_x86(c);
 #endif

@@ -1162,7 +1162,7 @@ static int decode_b(Dav1dTaskContext *const t,
                                       ts->cdf.m.use_filter_intra[bs]);
             if (is_filter) {
                 b->y_mode = FILTER_PRED;
-                b->y_angle = dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                b->y_angle = dav1d_msac_decode_symbol_adapt8(&ts->msac,
                                  ts->cdf.m.filter_intra, 4);
             }
             if (DEBUG_BLOCK_INFO)

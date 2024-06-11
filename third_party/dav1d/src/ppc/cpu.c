@@ -40,12 +40,16 @@ COLD unsigned dav1d_get_cpu_flags_ppc(void) {
     unsigned flags = 0;
 #if defined(HAVE_GETAUXVAL) && ARCH_PPC64LE
     unsigned long hw_cap = getauxval(AT_HWCAP);
+    unsigned long hw_cap2 = getauxval(AT_HWCAP2);
 #elif defined(HAVE_ELF_AUX_INFO) && ARCH_PPC64LE
     unsigned long hw_cap = 0;
+    unsigned long hw_cap2 = 0;
     elf_aux_info(AT_HWCAP, &hw_cap, sizeof(hw_cap));
+    elf_aux_info(AT_HWCAP2, &hw_cap2, sizeof(hw_cap2));
 #endif
 #ifdef HAVE_AUX
     flags |= (hw_cap & PPC_FEATURE_HAS_VSX) ? DAV1D_PPC_CPU_FLAG_VSX : 0;
+    flags |= (hw_cap2 & PPC_FEATURE2_ARCH_3_00) ? DAV1D_PPC_CPU_FLAG_PWR9 : 0;
 #endif
     return flags;
 }

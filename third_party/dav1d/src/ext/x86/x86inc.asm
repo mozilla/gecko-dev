@@ -232,7 +232,7 @@ DECLARE_REG_TMP_SIZE 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14
 %elif PIC
     call $+5 ; special-cased to not affect the RSB on most CPU:s
     pop %1
-    add %1, (%2)-$+1
+    add %1, -$+1+%2
 %else
     mov %1, %2
 %endif
@@ -864,16 +864,16 @@ BRANCH_INSTR jz, je, jnz, jne, jl, jle, jnl, jnle, jg, jge, jng, jnge, ja, jae, 
 
 %macro cextern 1
     %xdefine %1 mangle(private_prefix %+ _ %+ %1)
-    CAT_XDEFINE cglobaled_, %1, 1
+    CAT_XDEFINE cglobaled_, %1, 2
     extern %1
 %endmacro
 
-; like cextern, but without the prefix
+; Like cextern, but without the prefix. This should be used for symbols from external libraries.
 %macro cextern_naked 1
     %ifdef PREFIX
         %xdefine %1 mangle(%1)
     %endif
-    CAT_XDEFINE cglobaled_, %1, 1
+    CAT_XDEFINE cglobaled_, %1, 3
     extern %1
 %endmacro
 
@@ -1268,12 +1268,27 @@ INIT_XMM
 %endmacro
 %macro call_internal 2
     %xdefine %%i %2
+    %define %%j %%i
     %ifndef cglobaled_%2
         %ifdef cglobaled_%1
             %xdefine %%i %1
         %endif
+    %elif FORMAT_ELF
+        %if ARCH_X86_64
+            %if cglobaled_%2 >= 2
+                ; Always emit PLT relocations when calling external functions,
+                ; the linker will eliminate unnecessary PLT indirections anyway.
+                %define %%j %%i wrt ..plt
+            %endif
+        %elif PIC && cglobaled_%2 == 3
+            ; Go through the GOT for functions declared using cextern_naked with
+            ; PIC, as such functions presumably exists in external libraries.
+            extern _GLOBAL_OFFSET_TABLE_
+            LEA eax, $$+_GLOBAL_OFFSET_TABLE_ wrt ..gotpc
+            %define %%j [eax+%%i wrt ..got]
+        %endif
     %endif
-    call %%i
+    call %%j
     LOAD_MM_PERMUTATION %%i
 %endmacro
 

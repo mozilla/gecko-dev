@@ -92,6 +92,31 @@ JMP_TABLE splat_mv_avx2,      1, 2, 4, 8, 16, 32
 
 JMP_TABLE splat_mv_sse2,      1, 2, 4, 8, 16, 32
 
+struc rf
+    .frm_hdr:         resq 1
+    .iw4:             resd 1
+    .ih4:             resd 1
+    .iw8:             resd 1
+    .ih8:             resd 1
+    .sbsz:            resd 1
+    .use_rf_mvs:      resd 1
+    .sign_bias:       resb 7
+    .mfmv_sign:       resb 7
+    .pocdiff:         resb 7
+    .mfmv_ref:        resb 3
+    .mfmv_ref2cur:    resd 3
+    .mfmv_ref2ref:    resd 3*7
+    .n_mfmvs:         resd 1
+    .n_blocks:        resd 1
+    .rp:              resq 1
+    .rp_ref:          resq 1
+    .rp_proj:         resq 1
+    .rp_stride:       resq 1
+    .r:               resq 1
+    .n_tile_threads:  resd 1
+    .n_frame_threads: resd 1
+endstruc
+
 SECTION .text
 
 %macro movif32 2
@@ -341,16 +366,16 @@ cglobal load_tmvs, 6, 15, 4, -0x50, rf, tridx, xstart, xend, ystart, yend, \
                                     stride, rp_proj, roff, troff, \
                                     xendi, xstarti, iw8, ih8, dst
     xor           r14d, r14d
-    cmp dword [rfq+212], 1          ; n_tile_threads
-    mov           ih8d, [rfq+20]    ; rf->ih8
-    mov           iw8d, [rfq+16]    ; rf->iw8
+    cmp dword [rfq+rf.n_tile_threads], 1
+    mov           ih8d, [rfq+rf.ih8]
+    mov           iw8d, [rfq+rf.iw8]
     mov        xstartd, xstartd
     mov          xendd, xendd
     cmove       tridxd, r14d
     lea       xstartid, [xstartq-8]
     lea         xendid, [xendq+8]
-    mov        strideq, [rfq+184]
-    mov       rp_projq, [rfq+176]
+    mov        strideq, [rfq+rf.rp_stride]
+    mov       rp_projq, [rfq+rf.rp_proj]
     cmp           ih8d, yendd
     mov     [rsp+0x30], strideq
     cmovs        yendd, ih8d
@@ -397,7 +422,7 @@ cglobal load_tmvs, 6, 15, 4, -0x50, rf, tridx, xstart, xend, ystart, yend, \
     jg .init_xloop_start
  DEFINE_ARGS rf, _, xstart, xend, ystart, yend, n7, stride, \
              _, _, xendi, xstarti, stride5, _, n
-    mov           r13d, [rfq+152]   ; rf->n_mfmvs
+    mov           r13d, [rfq+rf.n_mfmvs]
     test          r13d, r13d
     jz .ret
     mov     [rsp+0x0c], r13d
@@ -418,14 +443,14 @@ cglobal load_tmvs, 6, 15, 4, -0x50, rf, tridx, xstart, xend, ystart, yend, \
  DEFINE_ARGS y, off, xstart, xend, ystart, rf, n7, refsign, \
              ref, rp_ref, xendi, xstarti, _, _, n
     mov            rfq, [rsp+0x48]
-    mov           refd, [rfq+56+nq*4]       ; ref2cur
+    mov           refd, [rfq+rf.mfmv_ref2cur+nq*4]
     cmp           refd, 0x80000000
     je .next_n
     mov     [rsp+0x40], refd
     mov           offq, [rsp+0x00]          ; ystart * stride * 5
-    movzx         refd, byte [rfq+53+nq]    ; rf->mfmv_ref[n]
+    movzx         refd, byte [rfq+rf.mfmv_ref+nq]
     lea       refsignq, [refq-4]
-    mov        rp_refq, [rfq+168]
+    mov        rp_refq, [rfq+rf.rp_ref]
     movq            m2, refsignq
     add           offq, [rp_refq+refq*8]    ; r = rp_ref[ref] + row_offset
     mov     [rsp+0x14], nd
@@ -452,8 +477,8 @@ cglobal load_tmvs, 6, 15, 4, -0x50, rf, tridx, xstart, xend, ystart, yend, \
     test          refd, refd
     jz .next_x_bad_ref
     mov            rfq, [rsp+0x48]
-    lea           r14d, [16+n7q+refq]
-    mov       ref2refd, [rfq+r14*4]         ; rf->mfmv_ref2ref[n][b_ref-1]
+    lea       ref2refd, [(rf.mfmv_ref2ref/4)+n7q+refq-1]
+    mov       ref2refd, [rfq+ref2refq*4]    ; rf->mfmv_ref2ref[n][b_ref-1]
     test      ref2refd, ref2refd
     jz .next_x_bad_ref
     lea          fracq, [mv_proj]

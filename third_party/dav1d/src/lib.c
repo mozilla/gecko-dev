@@ -263,7 +263,6 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
         f->c = c;
         f->task_thread.ttd = &c->task_thread;
         f->lf.last_sharpness = -1;
-        dav1d_refmvs_init(&f->rf);
     }
 
     for (unsigned m = 0; m < c->n_tc; m++) {
@@ -664,7 +663,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
         dav1d_free(f->lf.lr_mask);
         dav1d_free(f->lf.tx_lpf_right_edge[0]);
         dav1d_free(f->lf.start_of_tile_row);
-        dav1d_refmvs_clear(&f->rf);
+        dav1d_free_aligned(f->rf.r);
         dav1d_free_aligned(f->lf.cdef_line_buf);
         dav1d_free_aligned(f->lf.lr_line_buf);
     }

@@ -840,100 +840,108 @@ endfunc
 function put_neon, export=1
         adr             x9,  L(put_tbl)
         ldrh            w8,  [x9, x8, lsl #1]
-        sub             x9,  x9,  w8, uxtw
+        sub             x9,  x9,  x8
         br              x9
 
-2:
+20:
         AARCH64_VALID_JUMP_TARGET
-        ld1             {v0.h}[0], [x2], x3
-        ld1             {v1.h}[0], [x2], x3
-        subs            w5,  w5,  #2
-        st1             {v0.h}[0], [x0], x1
-        st1             {v1.h}[0], [x0], x1
+2:
+        ldrh            w9, [x2]
+        ldrh            w10, [x2, x3]
+        add             x2, x2, x3, lsl #1
+        subs            w5, w5, #2
+        strh            w9, [x0]
+        strh            w10, [x0, x1]
+        add             x0, x0, x1, lsl #1
         b.gt            2b
         ret
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
-        ld1             {v0.s}[0], [x2], x3
-        ld1             {v1.s}[0], [x2], x3
-        subs            w5,  w5,  #2
-        st1             {v0.s}[0], [x0], x1
-        st1             {v1.s}[0], [x0], x1
+4:
+        ldr             w9, [x2]
+        ldr             w10, [x2, x3]
+        add             x2, x2, x3, lsl #1
+        subs            w5, w5, #2
+        str             w9, [x0]
+        str             w10, [x0, x1]
+        add             x0, x0, x1, lsl #1
         b.gt            4b
         ret
-8:
+80:
         AARCH64_VALID_JUMP_TARGET
-        ld1             {v0.8b}, [x2], x3
-        ld1             {v1.8b}, [x2], x3
-        subs            w5,  w5,  #2
-        st1             {v0.8b}, [x0], x1
-        st1             {v1.8b}, [x0], x1
+8:
+        ldr             x9, [x2]
+        ldr             x10, [x2, x3]
+        add             x2, x2, x3, lsl #1
+        subs            w5, w5, #2
+        str             x9, [x0]
+        str             x10, [x0, x1]
+        add             x0, x0, x1, lsl #1
         b.gt            8b
         ret
 160:
         AARCH64_VALID_JUMP_TARGET
-        add             x8,  x0,  x1
-        lsl             x1,  x1,  #1
-        add             x9,  x2,  x3
-        lsl             x3,  x3,  #1
 16:
-        ld1             {v0.16b}, [x2], x3
-        ld1             {v1.16b}, [x9], x3
-        subs            w5,  w5,  #2
-        st1             {v0.16b}, [x0], x1
-        st1             {v1.16b}, [x8], x1
+        ldr             q0, [x2]
+        ldr             q1, [x2, x3]
+        add             x2, x2, x3, lsl #1
+        subs            w5, w5, #2
+        str             q0, [x0]
+        str             q1, [x0, x1]
+        add             x0, x0, x1, lsl #1
         b.gt            16b
         ret
-32:
+320:
         AARCH64_VALID_JUMP_TARGET
-        ldp             x6,  x7,  [x2]
-        ldp             x8,  x9,  [x2, #16]
-        stp             x6,  x7,  [x0]
-        subs            w5,  w5,  #1
-        stp             x8,  x9,  [x0, #16]
-        add             x2,  x2,  x3
-        add             x0,  x0,  x1
+32:
+        ldp             q0, q1, [x2]
+        add             x2, x2, x3
+        stp             q0, q1, [x0]
+        add             x0, x0, x1
+        ldp             q2, q3, [x2]
+        add             x2, x2, x3
+        stp             q2, q3, [x0]
+        subs            w5, w5, #2
+        add             x0, x0, x1
         b.gt            32b
         ret
-64:
+640:
         AARCH64_VALID_JUMP_TARGET
-        ldp             x6,  x7,  [x2]
-        ldp             x8,  x9,  [x2, #16]
-        stp             x6,  x7,  [x0]
-        ldp             x10, x11, [x2, #32]
-        stp             x8,  x9,  [x0, #16]
-        subs            w5,  w5,  #1
-        ldp             x12, x13, [x2, #48]
-        stp             x10, x11, [x0, #32]
-        stp             x12, x13, [x0, #48]
-        add             x2,  x2,  x3
-        add             x0,  x0,  x1
+64:
+        ldp             q0, q1, [x2]
+        stp             q0, q1, [x0]
+        ldp             q2, q3, [x2, #32]
+        add             x2, x2, x3
+        stp             q2, q3, [x0, #32]
+        subs            w5, w5, #1
+        add             x0, x0, x1
         b.gt            64b
         ret
-128:
+1280:
         AARCH64_VALID_JUMP_TARGET
-        ldp             q0,  q1,  [x2]
-        ldp             q2,  q3,  [x2, #32]
-        stp             q0,  q1,  [x0]
-        ldp             q4,  q5,  [x2, #64]
-        stp             q2,  q3,  [x0, #32]
-        ldp             q6,  q7,  [x2, #96]
-        subs            w5,  w5,  #1
-        stp             q4,  q5,  [x0, #64]
-        stp             q6,  q7,  [x0, #96]
-        add             x2,  x2,  x3
-        add             x0,  x0,  x1
+128:
+        ldp             q0, q1, [x2]
+        stp             q0, q1, [x0]
+        ldp             q2, q3, [x2, #32]
+        stp             q2, q3, [x0, #32]
+        ldp             q4, q5, [x2, #64]
+        stp             q4, q5, [x0, #64]
+        ldp             q6, q7, [x2, #96]
+        add             x2, x2, x3
+        stp             q6, q7, [x0, #96]
+        subs            w5, w5, #1
+        add             x0, x0, x1
         b.gt            128b
         ret
 
 L(put_tbl):
-        .hword L(put_tbl) - 128b
-        .hword L(put_tbl) -  64b
-        .hword L(put_tbl) -  32b
-        .hword L(put_tbl) - 160b
-        .hword L(put_tbl) -   8b
-        .hword L(put_tbl) -   4b
-        .hword L(put_tbl) -   2b
+        .hword L(put_tbl) - 1280b
+        .hword L(put_tbl) -  640b
+        .hword L(put_tbl) -  320b
+        .hword L(put_tbl) -  160b
+        .hword L(put_tbl) -   80b
+        .hword L(put_tbl) -   40b
+        .hword L(put_tbl) -   20b
 endfunc
 
 
@@ -942,119 +950,146 @@ endfunc
 function prep_neon, export=1
         adr             x9,  L(prep_tbl)
         ldrh            w8,  [x9, x8, lsl #1]
-        sub             x9,  x9,  w8, uxtw
+        movi            v24.16b, #16
+        sub             x9,  x9,  x8
         br              x9
 
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
+4:
         ld1             {v0.s}[0], [x1], x2
+        ld1             {v0.s}[1], [x1], x2
         ld1             {v1.s}[0], [x1], x2
-        subs            w4,  w4,  #2
+        ld1             {v1.s}[1], [x1], x2
         ushll           v0.8h, v0.8b, #4
         ushll           v1.8h, v1.8b, #4
-        st1             {v0.4h, v1.4h}, [x0], #16
+        subs            w4, w4, #4
+        stp             q0, q1, [x0], #32
         b.gt            4b
         ret
-8:
+80:
         AARCH64_VALID_JUMP_TARGET
-        ld1             {v0.8b}, [x1], x2
-        ld1             {v1.8b}, [x1], x2
-        subs            w4,  w4,  #2
+8:
+        ldr             d0, [x1]
+        ldr             d1, [x1, x2]
+        add             x1, x1, x2, lsl #1
+        ldr             d2, [x1]
+        ldr             d3, [x1, x2]
+        add             x1, x1, x2, lsl #1
         ushll           v0.8h, v0.8b, #4
         ushll           v1.8h, v1.8b, #4
-        st1             {v0.8h, v1.8h}, [x0], #32
+        umull           v2.8h, v2.8b, v24.8b
+        umull           v3.8h, v3.8b, v24.8b
+        subs            w4, w4, #4
+        stp             q0, q1, [x0]
+        stp             q2, q3, [x0, #32]
+        add             x0, x0, #64
         b.gt            8b
         ret
 160:
         AARCH64_VALID_JUMP_TARGET
-        add             x9,  x1,  x2
-        lsl             x2,  x2,  #1
 16:
-        ld1             {v0.16b}, [x1], x2
-        ld1             {v1.16b}, [x9], x2
-        subs            w4,  w4,  #2
-        ushll           v4.8h, v0.8b,  #4
-        ushll2          v5.8h, v0.16b, #4
-        ushll           v6.8h, v1.8b,  #4
-        ushll2          v7.8h, v1.16b, #4
-        st1             {v4.8h, v5.8h, v6.8h, v7.8h}, [x0], #64
+        ldr             q1, [x1]
+        ldr             q3, [x1, x2]
+        add             x1, x1, x2, lsl #1
+        ushll           v0.8h, v1.8b, #4
+        ushll2          v1.8h, v1.16b, #4
+        ldr             q5, [x1]
+        ldr             q7, [x1, x2]
+        add             x1, x1, x2, lsl #1
+        umull           v2.8h, v3.8b, v24.8b
+        umull2          v3.8h, v3.16b, v24.16b
+        ushll           v4.8h, v5.8b, #4
+        ushll2          v5.8h, v5.16b, #4
+        umull           v6.8h, v7.8b, v24.8b
+        umull2          v7.8h, v7.16b, v24.16b
+        subs            w4, w4, #4
+        stp             q0, q1, [x0]
+        stp             q2, q3, [x0, #32]
+        stp             q4, q5, [x0, #64]
+        stp             q6, q7, [x0, #96]
+        add             x0, x0, #128
         b.gt            16b
         ret
 320:
         AARCH64_VALID_JUMP_TARGET
-        add             x8,  x0,  w3, uxtw
 32:
-        ld1             {v0.16b, v1.16b},  [x1], x2
-        subs            w4,  w4,  #2
-        ushll           v4.8h,  v0.8b,  #4
-        ushll2          v5.8h,  v0.16b, #4
-        ld1             {v2.16b, v3.16b},  [x1], x2
-        ushll           v6.8h,  v1.8b,  #4
-        ushll2          v7.8h,  v1.16b, #4
-        ushll           v16.8h, v2.8b,  #4
-        st1             {v4.8h,  v5.8h},  [x0], x7
-        ushll2          v17.8h, v2.16b, #4
-        st1             {v6.8h,  v7.8h},  [x8], x7
-        ushll           v18.8h, v3.8b,  #4
-        st1             {v16.8h, v17.8h}, [x0], x7
-        ushll2          v19.8h, v3.16b, #4
-        st1             {v18.8h, v19.8h}, [x8], x7
+        ldp             q4, q5, [x1]
+        add             x1, x1, x2
+        ldp             q6, q7, [x1]
+        add             x1, x1, x2
+        ushll           v0.8h, v4.8b, #4
+        ushll2          v1.8h, v4.16b, #4
+        umull           v2.8h, v5.8b, v24.8b
+        umull2          v3.8h, v5.16b, v24.16b
+        ushll           v4.8h, v6.8b, #4
+        ushll2          v5.8h, v6.16b, #4
+        umull           v6.8h, v7.8b, v24.8b
+        umull2          v7.8h, v7.16b, v24.16b
+        subs            w4, w4, #2
+        stp             q0, q1, [x0]
+        stp             q2, q3, [x0, #32]
+        stp             q4, q5, [x0, #64]
+        stp             q6, q7, [x0, #96]
+        add             x0, x0, #128
         b.gt            32b
         ret
 640:
         AARCH64_VALID_JUMP_TARGET
-        add             x8,  x0,  #32
-        mov             x6,  #64
 64:
-        ldp             q0,  q1,  [x1]
-        subs            w4,  w4,  #1
-        ushll           v4.8h,  v0.8b,  #4
-        ushll2          v5.8h,  v0.16b, #4
-        ldp             q2,  q3,  [x1, #32]
-        ushll           v6.8h,  v1.8b,  #4
-        ushll2          v7.8h,  v1.16b, #4
-        add             x1,  x1,  x2
-        ushll           v16.8h, v2.8b,  #4
-        st1             {v4.8h,  v5.8h},  [x0], x6
-        ushll2          v17.8h, v2.16b, #4
-        ushll           v18.8h, v3.8b,  #4
-        st1             {v6.8h,  v7.8h},  [x8], x6
-        ushll2          v19.8h, v3.16b, #4
-        st1             {v16.8h, v17.8h}, [x0], x6
-        st1             {v18.8h, v19.8h}, [x8], x6
+        ldp             q4, q5, [x1]
+        ldp             q6, q7, [x1, #32]
+        add             x1, x1, x2
+        ushll           v0.8h, v4.8b, #4
+        ushll2          v1.8h, v4.16b, #4
+        umull           v2.8h, v5.8b, v24.8b
+        umull2          v3.8h, v5.16b, v24.16b
+        ushll           v4.8h, v6.8b, #4
+        ushll2          v5.8h, v6.16b, #4
+        umull           v6.8h, v7.8b, v24.8b
+        umull2          v7.8h, v7.16b, v24.16b
+        subs            w4, w4, #1
+        stp             q0, q1, [x0]
+        stp             q2, q3, [x0, #32]
+        stp             q4, q5, [x0, #64]
+        stp             q6, q7, [x0, #96]
+        add             x0, x0, #128
         b.gt            64b
         ret
 1280:
         AARCH64_VALID_JUMP_TARGET
-        add             x8,  x0,  #64
-        mov             x6,  #128
 128:
-        ldp             q0,  q1,  [x1]
-        ldp             q2,  q3,  [x1, #32]
-        ushll           v16.8h,  v0.8b,  #4
-        ushll2          v17.8h,  v0.16b, #4
-        ushll           v18.8h,  v1.8b,  #4
-        ushll2          v19.8h,  v1.16b, #4
-        ushll           v20.8h,  v2.8b,  #4
-        ushll2          v21.8h,  v2.16b, #4
-        ldp             q4,  q5,  [x1, #64]
-        st1             {v16.8h, v17.8h, v18.8h, v19.8h}, [x0], x6
-        ushll           v22.8h,  v3.8b,  #4
-        ushll2          v23.8h,  v3.16b, #4
-        ushll           v24.8h,  v4.8b,  #4
-        ushll2          v25.8h,  v4.16b, #4
-        ushll           v26.8h,  v5.8b,  #4
-        ushll2          v27.8h,  v5.16b, #4
-        ldp             q6,  q7,  [x1, #96]
-        st1             {v20.8h, v21.8h, v22.8h, v23.8h}, [x8], x6
-        ushll           v28.8h,  v6.8b,  #4
-        ushll2          v29.8h,  v6.16b, #4
-        ushll           v30.8h,  v7.8b,  #4
-        ushll2          v31.8h,  v7.16b, #4
-        subs            w4,  w4,  #1
-        add             x1,  x1,  x2
-        st1             {v24.8h, v25.8h, v26.8h, v27.8h}, [x0], x6
-        st1             {v28.8h, v29.8h, v30.8h, v31.8h}, [x8], x6
+        ldp             q28, q29, [x1]
+        ldp             q30, q31, [x1, #32]
+        ushll           v16.8h, v28.8b, #4
+        ushll2          v17.8h, v28.16b, #4
+        umull           v18.8h, v29.8b, v24.8b
+        umull2          v19.8h, v29.16b, v24.16b
+        ushll           v20.8h, v30.8b, #4
+        ushll2          v21.8h, v30.16b, #4
+        umull           v22.8h, v31.8b, v24.8b
+        umull2          v23.8h, v31.16b, v24.16b
+        ldp             q28, q29, [x1, #64]
+        ldp             q30, q31, [x1, #96]
+        add             x1, x1, x2
+        stp             q16, q17, [x0]
+        stp             q18, q19, [x0, #32]
+        stp             q20, q21, [x0, #64]
+        stp             q22, q23, [x0, #96]
+        ushll           v16.8h, v28.8b, #4
+        ushll2          v17.8h, v28.16b, #4
+        umull           v18.8h, v29.8b, v24.8b
+        umull2          v19.8h, v29.16b, v24.16b
+        ushll           v20.8h, v30.8b, #4
+        ushll2          v21.8h, v30.16b, #4
+        umull           v22.8h, v31.8b, v24.8b
+        umull2          v23.8h, v31.16b, v24.16b
+        subs            w4, w4, #1
+        stp             q16, q17, [x0, #128]
+        stp             q18, q19, [x0, #160]
+        stp             q20, q21, [x0, #192]
+        stp             q22, q23, [x0, #224]
+        add             x0, x0, #256
         b.gt            128b
         ret
 
@@ -1063,8 +1098,8 @@ L(prep_tbl):
         .hword L(prep_tbl) -  640b
         .hword L(prep_tbl) -  320b
         .hword L(prep_tbl) -  160b
-        .hword L(prep_tbl) -    8b
-        .hword L(prep_tbl) -    4b
+        .hword L(prep_tbl) -   80b
+        .hword L(prep_tbl) -   40b
 endfunc
 
 

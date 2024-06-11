@@ -38,11 +38,13 @@
 
 #endif
 
+int dav1d_has_compliant_rvv(void);
+
 COLD unsigned dav1d_get_cpu_flags_riscv(void) {
     unsigned flags = 0;
 #if defined(HAVE_GETAUXVAL)
     unsigned long hw_cap = getauxval(AT_HWCAP);
-    flags |= (hw_cap & HWCAP_RVV) ? DAV1D_RISCV_CPU_FLAG_V : 0;
+    flags |= (hw_cap & HWCAP_RVV) && dav1d_has_compliant_rvv() ? DAV1D_RISCV_CPU_FLAG_V : 0;
 #endif
 
     return flags;

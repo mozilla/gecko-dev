@@ -29,7 +29,6 @@
 #include "src/mc.h"
 
 #define decl_fn(type, name) \
-    decl_##type##_fn(BF(name, sse2)); \
     decl_##type##_fn(BF(name, ssse3)); \
     decl_##type##_fn(BF(name, avx2)); \
     decl_##type##_fn(BF(name, avx512icl));
@@ -107,25 +106,6 @@ decl_fn(resize, dav1d_resize);
 
 static ALWAYS_INLINE void mc_dsp_init_x86(Dav1dMCDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
-
-    if(!(flags & DAV1D_X86_CPU_FLAG_SSE2))
-        return;
-
-#if BITDEPTH == 8
-    init_mct_fn(FILTER_2D_BILINEAR,            bilin,               sse2);
-    init_mct_fn(FILTER_2D_8TAP_REGULAR,        8tap_regular,        sse2);
-    init_mct_fn(FILTER_2D_8TAP_REGULAR_SMOOTH, 8tap_regular_smooth, sse2);
-    init_mct_fn(FILTER_2D_8TAP_REGULAR_SHARP,  8tap_regular_sharp,  sse2);
-    init_mct_fn(FILTER_2D_8TAP_SMOOTH_REGULAR, 8tap_smooth_regular, sse2);
-    init_mct_fn(FILTER_2D_8TAP_SMOOTH,         8tap_smooth,         sse2);
-    init_mct_fn(FILTER_2D_8TAP_SMOOTH_SHARP,   8tap_smooth_sharp,   sse2);
-    init_mct_fn(FILTER_2D_8TAP_SHARP_REGULAR,  8tap_sharp_regular,  sse2);
-    init_mct_fn(FILTER_2D_8TAP_SHARP_SMOOTH,   8tap_sharp_smooth,   sse2);
-    init_mct_fn(FILTER_2D_8TAP_SHARP,          8tap_sharp,          sse2);
-
-    c->warp8x8  = BF(dav1d_warp_affine_8x8, sse2);
-    c->warp8x8t = BF(dav1d_warp_affine_8x8t, sse2);
-#endif
 
     if(!(flags & DAV1D_X86_CPU_FLAG_SSSE3))
         return;

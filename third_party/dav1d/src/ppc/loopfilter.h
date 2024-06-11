@@ -1,6 +1,6 @@
 /*
- * Copyright © 2019, VideoLAN and dav1d authors
- * Copyright © 2019, Janne Grunau
+ * Copyright © 2018, VideoLAN and dav1d authors
+ * Copyright © 2018, Two Orioles, LLC
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,14 +25,23 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DAV1D_SRC_PPC_CPU_H
-#define DAV1D_SRC_PPC_CPU_H
+#include "src/cpu.h"
+#include "src/loopfilter.h"
 
-enum CpuFlags {
-    DAV1D_PPC_CPU_FLAG_VSX = 1 << 0,
-    DAV1D_PPC_CPU_FLAG_PWR9 = 1 << 1,
-};
+decl_loopfilter_sb_fn(BF(dav1d_lpf_h_sb_y, pwr9));
+decl_loopfilter_sb_fn(BF(dav1d_lpf_v_sb_y, pwr9));
+decl_loopfilter_sb_fn(BF(dav1d_lpf_h_sb_uv, pwr9));
+decl_loopfilter_sb_fn(BF(dav1d_lpf_v_sb_uv, pwr9));
 
-unsigned dav1d_get_cpu_flags_ppc(void);
+static ALWAYS_INLINE void loop_filter_dsp_init_ppc(Dav1dLoopFilterDSPContext *const c) {
+    const unsigned flags = dav1d_get_cpu_flags();
 
-#endif /* DAV1D_SRC_PPC_CPU_H */
+    if (!(flags & DAV1D_PPC_CPU_FLAG_PWR9)) return;
+
+#if BITDEPTH == 8
+    c->loop_filter_sb[0][0] = BF(dav1d_lpf_h_sb_y, pwr9);
+    c->loop_filter_sb[0][1] = BF(dav1d_lpf_v_sb_y, pwr9);
+    c->loop_filter_sb[1][0] = BF(dav1d_lpf_h_sb_uv, pwr9);
+    c->loop_filter_sb[1][1] = BF(dav1d_lpf_v_sb_uv, pwr9);
+#endif
+}
