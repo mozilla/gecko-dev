@@ -5,6 +5,9 @@ args = [
   "--remote-debugging-port",
   "--remote-allow-origins=null",
 ]
+prefs = [ # Only enable CDP protocol
+  "remote.active-protocols=2",
+]
 support-files = [
   "!/remote/cdp/test/browser/chrome-remote-interface.js",
   "!/remote/cdp/test/browser/head.js",
