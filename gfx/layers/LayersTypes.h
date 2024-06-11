@@ -394,6 +394,43 @@ struct RemoteTextureOwnerId {
   };
 };
 
+struct SurfaceDescriptorRemoteDecoderId {
+  uint64_t mId = 0;
+
+  auto MutTiedFields() { return std::tie(mId); }
+
+  static SurfaceDescriptorRemoteDecoderId GetNext();
+
+  bool IsValid() const { return mId != 0; }
+
+  // Allow explicit cast to a uint64_t for now
+  explicit operator uint64_t() const { return mId; }
+
+  // Implement some operators so this class can be used as a key in
+  // stdlib classes.
+  bool operator<(const SurfaceDescriptorRemoteDecoderId& aOther) const {
+    return mId < aOther.mId;
+  }
+
+  bool operator==(const SurfaceDescriptorRemoteDecoderId& aOther) const {
+    return mId == aOther.mId;
+  }
+
+  bool operator!=(const SurfaceDescriptorRemoteDecoderId& aOther) const {
+    return !(*this == aOther);
+  }
+
+  // Helper struct that allow this class to be used as a key in
+  // std::unordered_map like so:
+  //   std::unordered_map<SurfaceDescriptorRemoteDecoderId, ValueType,
+  //   SurfaceDescriptorRemoteDecoderId::HashFn> myMap;
+  struct HashFn {
+    std::size_t operator()(const SurfaceDescriptorRemoteDecoderId aKey) const {
+      return std::hash<uint64_t>{}(aKey.mId);
+    }
+  };
+};
+
 typedef uint32_t RemoteTextureTxnType;
 typedef uint64_t RemoteTextureTxnId;
 

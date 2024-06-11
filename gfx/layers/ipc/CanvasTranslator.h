@@ -28,6 +28,7 @@ using EventType = gfx::RecordedEvent::EventType;
 class TaskQueue;
 
 namespace gfx {
+class DataSourceSurfaceWrapper;
 class DrawTargetWebgl;
 class SharedContextWebgl;
 }  // namespace gfx
@@ -335,7 +336,9 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   void ClearCachedResources();
 
   already_AddRefed<gfx::DataSourceSurface>
-  MaybeRecycleDataSurfaceForSurfaceDescriptor(TextureHost* aTextureHost);
+  MaybeRecycleDataSurfaceForSurfaceDescriptor(
+      TextureHost* aTextureHost,
+      const SurfaceDescriptorRemoteDecoder& aSurfaceDescriptor);
 
   const RefPtr<TaskQueue> mTranslationTaskQueue;
   const RefPtr<SharedSurfacesHolder> mSharedSurfacesHolder;
@@ -402,6 +405,9 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   bool mDeviceResetInProgress = false;
 
   RefPtr<gfx::DataSourceSurface> mUsedDataSurfaceForSurfaceDescriptor;
+  RefPtr<gfx::DataSourceSurfaceWrapper> mUsedWrapperForSurfaceDescriptor;
+  Maybe<SurfaceDescriptorRemoteDecoder>
+      mUsedSurfaceDescriptorForSurfaceDescriptor;
 };
 
 }  // namespace layers
