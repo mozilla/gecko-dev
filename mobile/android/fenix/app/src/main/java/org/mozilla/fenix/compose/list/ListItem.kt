@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import mozilla.components.ui.colors.PhotonColors
@@ -505,8 +506,9 @@ private fun ListItem(
                 Text(
                     text = description,
                     color = if (enabled) FirefoxTheme.colors.textSecondary else FirefoxTheme.colors.textDisabled,
-                    style = FirefoxTheme.typography.body2,
+                    overflow = TextOverflow.Ellipsis,
                     maxLines = maxDescriptionLines,
+                    style = FirefoxTheme.typography.body2,
                 )
             }
         }
