@@ -491,6 +491,7 @@ class HomeFragment : Fragment() {
             containerView = binding.sessionControlRecyclerView,
             viewLifecycleOwner = viewLifecycleOwner,
             interactor = sessionControlInteractor,
+            fragmentManager = parentFragmentManager,
         )
 
         updateSessionControlView()

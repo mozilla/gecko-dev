@@ -539,7 +539,9 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         }
             .distinctUntilChanged()
             .collect { (shouldShowView) ->
-                updateClipboardSuggestion(shouldShowView)
+                viewLifecycleOwner.lifecycleScope.launch {
+                    updateClipboardSuggestion(shouldShowView)
+                }
             }
     }
 
