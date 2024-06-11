@@ -281,6 +281,7 @@ class WebRenderAPI final {
   void SetBatchingLookback(uint32_t aCount);
   void SetBool(wr::BoolParameter, bool value);
   void SetInt(wr::IntParameter, int32_t value);
+  void SetFloat(wr::FloatParameter, float value);
 
   void SetClearColor(const gfx::DeviceColor& aColor);
   void SetProfilerUI(const nsACString& aUIString);

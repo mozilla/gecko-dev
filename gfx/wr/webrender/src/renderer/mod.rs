@@ -1147,6 +1147,7 @@ impl Renderer {
                 }
                 ResultMsg::SetParameter(ref param) => {
                     self.device.set_parameter(param);
+                    self.profiler.set_parameter(param);
                 }
                 ResultMsg::DebugOutput(output) => match output {
                     #[cfg(feature = "capture")]

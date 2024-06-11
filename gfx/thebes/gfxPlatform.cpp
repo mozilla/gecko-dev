@@ -578,6 +578,11 @@ static void WebRenderDebugPrefChangeCallback(const char* aPrefName, void*) {
                       wr::DebugFlags::SURFACE_PROMOTION_LOGGING)
 #undef GFX_WEBRENDER_DEBUG
   gfx::gfxVars::SetWebRenderDebugFlags(flags._0);
+
+  uint32_t threshold = Preferences::GetFloat(
+      StaticPrefs::GetPrefName_gfx_webrender_debug_slow_cpu_frame_threshold(),
+      10.0);
+  gfx::gfxVars::SetWebRenderSlowCpuFrameThreshold(threshold);
 }
 
 static void WebRenderQualityPrefChangeCallback(const char* aPref, void*) {
