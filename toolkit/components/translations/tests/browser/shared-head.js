@@ -922,6 +922,7 @@ function createRecordsForLanguagePair(fromLang, toLang) {
     filename: `model.${lang}.intgemm.alphas.bin`,
     location: `main-workspace/translations-models/${crypto.randomUUID()}.bin`,
     mimetype: "application/octet-stream",
+    isDownloaded: false,
   };
 
   if (models.length !== FILES_PER_LANGUAGE_PAIR) {
@@ -938,7 +939,7 @@ function createRecordsForLanguagePair(fromLang, toLang) {
       version: TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION + ".0",
       last_modified: Date.now(),
       schema: Date.now(),
-      attachment,
+      attachment: JSON.parse(JSON.stringify(attachment)), // Making a deep copy.
     });
   }
   return records;

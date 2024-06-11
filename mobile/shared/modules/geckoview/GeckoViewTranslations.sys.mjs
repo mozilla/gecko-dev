@@ -359,7 +359,7 @@ export const GeckoViewTranslationsSettings = {
               const recordsResult =
                 lazy.TranslationsParent.getRecordsForTranslatingToAndFromAppLanguage(
                   language.langTag,
-                  false
+                  /* includePivotRecords */ true
                 ).then(
                   async function (records) {
                     return _processLanguageModelData(language, records);
