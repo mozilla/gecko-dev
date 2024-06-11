@@ -67,6 +67,7 @@ const KEYS = {
 const LOG_METHODS = {
   CONSOLE: "console",
   STDOUT: "stdout",
+  PROFILER: "profiler",
 };
 
 function getKey(action) {
@@ -250,6 +251,15 @@ class CommandBar extends Component {
             type: "radio",
             click: () => {
               this.props.setJavascriptTracingLogMethod(LOG_METHODS.CONSOLE);
+            },
+          },
+          {
+            id: "debugger-trace-menu-item-profiler",
+            label: L10N.getStr("traceInProfiler"),
+            checked: this.props.logMethod == LOG_METHODS.PROFILER,
+            type: "radio",
+            click: () => {
+              this.props.setJavascriptTracingLogMethod(LOG_METHODS.PROFILER);
             },
           },
           {
