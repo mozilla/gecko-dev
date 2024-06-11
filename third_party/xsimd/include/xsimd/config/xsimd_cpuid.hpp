@@ -41,7 +41,7 @@ namespace xsimd
 
 #define ARCH_FIELD_EX(arch, field_name) \
     unsigned field_name;                \
-    inline bool has(::xsimd::arch) const { return this->field_name; }
+    XSIMD_INLINE bool has(::xsimd::arch) const { return this->field_name; }
 #define ARCH_FIELD(name) ARCH_FIELD_EX(name, name)
 
             ARCH_FIELD(sse2)
@@ -78,7 +78,7 @@ namespace xsimd
 
 #undef ARCH_FIELD
 
-            inline supported_arch() noexcept
+            XSIMD_INLINE supported_arch() noexcept
             {
                 memset(this, 0, sizeof(supported_arch));
 
@@ -114,6 +114,35 @@ namespace xsimd
 #endif
 
 #elif defined(__x86_64__) || defined(__i386__) || defined(_M_AMD64) || defined(_M_IX86)
+
+                auto get_xcr0_low = []() noexcept
+                {
+                    uint32_t xcr0;
+
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+
+                    xcr0 = (uint32_t)_xgetbv(0);
+
+#elif defined(__GNUC__)
+
+                    __asm__(
+                        "xorl %%ecx, %%ecx\n"
+                        "xgetbv\n"
+                        : "=a"(xcr0)
+                        :
+#if defined(__i386__)
+                        : "ecx", "edx"
+#else
+                        : "rcx", "rdx"
+#endif
+                    );
+
+#else /* _MSC_VER < 1400 */
+#error "_MSC_VER < 1400 is not supported"
+#endif /* _MSC_VER && _MSC_VER >= 1400 */
+                    return xcr0;
+                };
+
                 auto get_cpuid = [](int reg[4], int level, int count = 0) noexcept
                 {
 
@@ -148,19 +177,43 @@ namespace xsimd
 
                 get_cpuid(regs1, 0x1);
 
-                sse2 = regs1[3] >> 26 & 1;
-                sse3 = regs1[2] >> 0 & 1;
-                ssse3 = regs1[2] >> 9 & 1;
-                sse4_1 = regs1[2] >> 19 & 1;
-                sse4_2 = regs1[2] >> 20 & 1;
-                fma3_sse42 = regs1[2] >> 12 & 1;
+                // OS can explicitly disable the usage of SSE/AVX extensions
+                // by setting an appropriate flag in CR0 register
+                //
+                // https://docs.kernel.org/admin-guide/hw-vuln/gather_data_sampling.html
 
-                avx = regs1[2] >> 28 & 1;
+                unsigned sse_state_os_enabled = 1;
+                unsigned avx_state_os_enabled = 1;
+                unsigned avx512_state_os_enabled = 1;
+
+                // OSXSAVE: A value of 1 indicates that the OS has set CR4.OSXSAVE[bit
+                // 18] to enable XSETBV/XGETBV instructions to access XCR0 and
+                // to support processor extended state management using
+                // XSAVE/XRSTOR.
+                bool osxsave = regs1[2] >> 27 & 1;
+                if (osxsave)
+                {
+
+                    uint32_t xcr0 = get_xcr0_low();
+
+                    sse_state_os_enabled = xcr0 >> 1 & 1;
+                    avx_state_os_enabled = xcr0 >> 2 & sse_state_os_enabled;
+                    avx512_state_os_enabled = xcr0 >> 6 & avx_state_os_enabled;
+                }
+
+                sse2 = regs1[3] >> 26 & sse_state_os_enabled;
+                sse3 = regs1[2] >> 0 & sse_state_os_enabled;
+                ssse3 = regs1[2] >> 9 & sse_state_os_enabled;
+                sse4_1 = regs1[2] >> 19 & sse_state_os_enabled;
+                sse4_2 = regs1[2] >> 20 & sse_state_os_enabled;
+                fma3_sse42 = regs1[2] >> 12 & sse_state_os_enabled;
+
+                avx = regs1[2] >> 28 & avx_state_os_enabled;
                 fma3_avx = avx && fma3_sse42;
 
                 int regs8[4];
                 get_cpuid(regs8, 0x80000001);
-                fma4 = regs8[2] >> 16 & 1;
+                fma4 = regs8[2] >> 16 & avx_state_os_enabled;
 
                 // sse4a = regs[2] >> 6 & 1;
 
@@ -168,30 +221,30 @@ namespace xsimd
 
                 int regs7[4];
                 get_cpuid(regs7, 0x7);
-                avx2 = regs7[1] >> 5 & 1;
+                avx2 = regs7[1] >> 5 & avx_state_os_enabled;
 
                 int regs7a[4];
                 get_cpuid(regs7a, 0x7, 0x1);
-                avxvnni = regs7a[0] >> 4 & 1;
+                avxvnni = regs7a[0] >> 4 & avx_state_os_enabled;
 
                 fma3_avx2 = avx2 && fma3_sse42;
 
-                avx512f = regs7[1] >> 16 & 1;
-                avx512cd = regs7[1] >> 28 & 1;
-                avx512dq = regs7[1] >> 17 & 1;
-                avx512bw = regs7[1] >> 30 & 1;
-                avx512er = regs7[1] >> 27 & 1;
-                avx512pf = regs7[1] >> 26 & 1;
-                avx512ifma = regs7[1] >> 21 & 1;
-                avx512vbmi = regs7[2] >> 1 & 1;
-                avx512vnni_bw = regs7[2] >> 11 & 1;
+                avx512f = regs7[1] >> 16 & avx512_state_os_enabled;
+                avx512cd = regs7[1] >> 28 & avx512_state_os_enabled;
+                avx512dq = regs7[1] >> 17 & avx512_state_os_enabled;
+                avx512bw = regs7[1] >> 30 & avx512_state_os_enabled;
+                avx512er = regs7[1] >> 27 & avx512_state_os_enabled;
+                avx512pf = regs7[1] >> 26 & avx512_state_os_enabled;
+                avx512ifma = regs7[1] >> 21 & avx512_state_os_enabled;
+                avx512vbmi = regs7[2] >> 1 & avx512_state_os_enabled;
+                avx512vnni_bw = regs7[2] >> 11 & avx512_state_os_enabled;
                 avx512vnni_vbmi = avx512vbmi && avx512vnni_bw;
 #endif
             }
         };
     } // namespace detail
 
-    inline detail::supported_arch available_architectures() noexcept
+    XSIMD_INLINE detail::supported_arch available_architectures() noexcept
     {
         static detail::supported_arch supported;
         return supported;

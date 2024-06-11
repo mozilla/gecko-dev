@@ -55,7 +55,7 @@ namespace xsimd
             static_assert(N % (8 * sizeof(T)) == 0, "bit width must be a multiple of scalar width");
             using register_type = std::array<T, N / (8 * sizeof(T))>;
             register_type data;
-            inline operator register_type() const noexcept
+            XSIMD_INLINE operator register_type() const noexcept
             {
                 return data;
             }
