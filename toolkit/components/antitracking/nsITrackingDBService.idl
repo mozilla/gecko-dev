@@ -62,4 +62,5 @@ interface nsITrackingDBService : nsISupports
   const unsigned long FINGERPRINTERS_ID = 4;
   const unsigned long SOCIAL_ID = 5;
   const unsigned long SUSPICIOUS_FINGERPRINTERS_ID = 6;
+  const unsigned long BOUNCETRACKERS_ID = 7;
 };

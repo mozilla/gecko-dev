@@ -362,36 +362,40 @@ interface nsIWebProgressListener : nsISupports
    * STATE_BLOCKED_SUSPICIOUS_FINGERPRINTING
    *   Suspicious fingerprinting activity has been blocked by the fingerprinting
    *   protection.
+   *
+   * STATE_PURGED_BOUNCETRACKER
+   *   BounceTrackingProtection purged state for a bounce tracker.
    */
-  const unsigned long STATE_BLOCKED_TRACKING_CONTENT             = 0x00001000;
-  const unsigned long STATE_LOADED_LEVEL_1_TRACKING_CONTENT      = 0x00002000;
-  const unsigned long STATE_LOADED_LEVEL_2_TRACKING_CONTENT      = 0x00100000;
-  const unsigned long STATE_BLOCKED_FINGERPRINTING_CONTENT       = 0x00000040;
-  const unsigned long STATE_LOADED_FINGERPRINTING_CONTENT        = 0x00000400;
-  const unsigned long STATE_REPLACED_FINGERPRINTING_CONTENT      = 0x08000000;
-  const unsigned long STATE_ALLOWED_FINGERPRINTING_CONTENT       = 0x00000200;
-  const unsigned long STATE_BLOCKED_CRYPTOMINING_CONTENT         = 0x00000800;
-  const unsigned long STATE_LOADED_CRYPTOMINING_CONTENT          = 0x00200000;
-  const unsigned long STATE_BLOCKED_UNSAFE_CONTENT               = 0x00004000;
-  const unsigned long STATE_COOKIES_LOADED                       = 0x00008000;
-  const unsigned long STATE_COOKIES_LOADED_TRACKER               = 0x00040000;
-  const unsigned long STATE_COOKIES_LOADED_SOCIALTRACKER         = 0x00080000;
-  const unsigned long STATE_COOKIES_BLOCKED_BY_PERMISSION        = 0x10000000;
-  const unsigned long STATE_COOKIES_BLOCKED_TRACKER              = 0x20000000;
-  const unsigned long STATE_COOKIES_BLOCKED_SOCIALTRACKER        = 0x01000000;
-  const unsigned long STATE_COOKIES_BLOCKED_ALL                  = 0x40000000;
-  const unsigned long STATE_COOKIES_PARTITIONED_FOREIGN          = 0x80000000;
-  const unsigned long STATE_COOKIES_BLOCKED_FOREIGN              = 0x00000080;
-  const unsigned long STATE_BLOCKED_SOCIALTRACKING_CONTENT       = 0x00010000;
-  const unsigned long STATE_LOADED_SOCIALTRACKING_CONTENT        = 0x00020000;
-  const unsigned long STATE_REPLACED_TRACKING_CONTENT            = 0x00000010;
-  const unsigned long STATE_ALLOWED_TRACKING_CONTENT             = 0x00000020;
-  const unsigned long STATE_BLOCKED_EMAILTRACKING_CONTENT        = 0x00400000;
-  const unsigned long STATE_LOADED_EMAILTRACKING_LEVEL_1_CONTENT = 0x00800000;
-  const unsigned long STATE_LOADED_EMAILTRACKING_LEVEL_2_CONTENT = 0x00000100;
-  const unsigned long STATE_ALLOWED_CANVAS_FINGERPRINTING        = 0x02000000;
-  const unsigned long STATE_ALLOWED_FONT_FINGERPRINTING          = 0x04000000;
-  const unsigned long STATE_BLOCKED_SUSPICIOUS_FINGERPRINTING    = 0x00000004;
+  const unsigned long STATE_BLOCKED_TRACKING_CONTENT             = 1 << 12;
+  const unsigned long STATE_LOADED_LEVEL_1_TRACKING_CONTENT      = 1 << 13;
+  const unsigned long STATE_LOADED_LEVEL_2_TRACKING_CONTENT      = 1 << 20;
+  const unsigned long STATE_BLOCKED_FINGERPRINTING_CONTENT       = 1 << 6;
+  const unsigned long STATE_LOADED_FINGERPRINTING_CONTENT        = 1 << 10;
+  const unsigned long STATE_REPLACED_FINGERPRINTING_CONTENT      = 1 << 27;
+  const unsigned long STATE_ALLOWED_FINGERPRINTING_CONTENT       = 1 << 9;
+  const unsigned long STATE_BLOCKED_CRYPTOMINING_CONTENT         = 1 << 11;
+  const unsigned long STATE_LOADED_CRYPTOMINING_CONTENT          = 1 << 21;
+  const unsigned long STATE_BLOCKED_UNSAFE_CONTENT               = 1 << 14;
+  const unsigned long STATE_COOKIES_LOADED                       = 1 << 15;
+  const unsigned long STATE_COOKIES_LOADED_TRACKER               = 1 << 18;
+  const unsigned long STATE_COOKIES_LOADED_SOCIALTRACKER         = 1 << 19;
+  const unsigned long STATE_COOKIES_BLOCKED_BY_PERMISSION        = 1 << 28;
+  const unsigned long STATE_COOKIES_BLOCKED_TRACKER              = 1 << 29;
+  const unsigned long STATE_COOKIES_BLOCKED_SOCIALTRACKER        = 1 << 24;
+  const unsigned long STATE_COOKIES_BLOCKED_ALL                  = 1 << 30;
+  const unsigned long STATE_COOKIES_PARTITIONED_FOREIGN          = 1 << 31;
+  const unsigned long STATE_COOKIES_BLOCKED_FOREIGN              = 1 << 7;
+  const unsigned long STATE_BLOCKED_SOCIALTRACKING_CONTENT       = 1 << 16;
+  const unsigned long STATE_LOADED_SOCIALTRACKING_CONTENT        = 1 << 17;
+  const unsigned long STATE_REPLACED_TRACKING_CONTENT            = 1 << 4;
+  const unsigned long STATE_ALLOWED_TRACKING_CONTENT             = 1 << 5;
+  const unsigned long STATE_BLOCKED_EMAILTRACKING_CONTENT        = 1 << 22;
+  const unsigned long STATE_LOADED_EMAILTRACKING_LEVEL_1_CONTENT = 1 << 23;
+  const unsigned long STATE_LOADED_EMAILTRACKING_LEVEL_2_CONTENT = 1 << 8;
+  const unsigned long STATE_ALLOWED_CANVAS_FINGERPRINTING        = 1 << 25;
+  const unsigned long STATE_ALLOWED_FONT_FINGERPRINTING          = 1 << 26;
+  const unsigned long STATE_BLOCKED_SUSPICIOUS_FINGERPRINTING    = 1 << 2;
+  const unsigned long STATE_PURGED_BOUNCETRACKER                 = 1 << 3;
 
   /**
    * Flags for HTTPS-Only and HTTPS-First Mode upgrades

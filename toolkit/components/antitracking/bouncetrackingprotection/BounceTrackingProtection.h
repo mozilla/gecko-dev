@@ -73,6 +73,11 @@ class BounceTrackingProtection final : public nsIBounceTrackingProtection {
       MozPromise<nsTArray<nsCString>, nsresult, true>;
   RefPtr<PurgeBounceTrackersMozPromise> PurgeBounceTrackers();
 
+  // Report purged trackers to the anti-tracking database via
+  // nsITrackingDBService.
+  static void ReportPurgedTrackersToAntiTrackingDB(
+      const nsTArray<nsCString>& aPurgedSiteHosts);
+
   // Clear state for classified bounce trackers for a specific state global.
   // aClearPromises is populated with promises for each host that is cleared.
   [[nodiscard]] nsresult PurgeBounceTrackersForStateGlobal(

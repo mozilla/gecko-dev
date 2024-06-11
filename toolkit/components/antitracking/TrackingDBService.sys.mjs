@@ -255,6 +255,10 @@ TrackingDBService.prototype = {
           state & Ci.nsIWebProgressListener.STATE_BLOCKED_CRYPTOMINING_CONTENT
         ) {
           result = Ci.nsITrackingDBService.CRYPTOMINERS_ID;
+        } else if (
+          state & Ci.nsIWebProgressListener.STATE_PURGED_BOUNCETRACKER
+        ) {
+          result = Ci.nsITrackingDBService.BOUNCETRACKERS_ID;
         }
       }
     }

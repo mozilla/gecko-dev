@@ -32,6 +32,7 @@
 #include "mozilla/dom/BrowsingContext.h"
 #include "xpcpublic.h"
 #include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/ContentBlockingLog.h"
 
 #define TEST_OBSERVER_MSG_RECORD_BOUNCES_FINISHED "test-record-bounces-finished"
 
@@ -558,23 +559,51 @@ BounceTrackingProtection::PurgeBounceTrackers() {
                     ("%s: Done. Cleared %zu hosts.", __FUNCTION__,
                      aResults.ResolveValue().Length()));
 
+            // Check if any clear call failed.
+            bool anyFailed = false;
+
             nsTArray<nsCString> purgedSiteHosts;
             // If any clear call failed reject.
             for (auto& result : aResults.ResolveValue()) {
               if (result.IsReject()) {
-                mPurgeInProgress = false;
-                return PurgeBounceTrackersMozPromise::CreateAndReject(
-                    NS_ERROR_FAILURE, __func__);
+                anyFailed = true;
+              } else {
+                purgedSiteHosts.AppendElement(result.ResolveValue());
               }
-              purgedSiteHosts.AppendElement(result.ResolveValue());
             }
 
-            // No clearing errors, resolve.
+            // Record successful purges via nsITrackingDBService for tracker
+            // stats.
+            if (purgedSiteHosts.Length() > 0) {
+              ReportPurgedTrackersToAntiTrackingDB(purgedSiteHosts);
+            }
 
             mPurgeInProgress = false;
+            // If any clear call failed reject the promise.
+            if (anyFailed) {
+              return PurgeBounceTrackersMozPromise::CreateAndReject(
+                  NS_ERROR_FAILURE, __func__);
+            }
+
             return PurgeBounceTrackersMozPromise::CreateAndResolve(
                 std::move(purgedSiteHosts), __func__);
           });
+}
+
+// static
+void BounceTrackingProtection::ReportPurgedTrackersToAntiTrackingDB(
+    const nsTArray<nsCString>& aPurgedSiteHosts) {
+  MOZ_ASSERT(!aPurgedSiteHosts.IsEmpty());
+
+  ContentBlockingLog log;
+  for (const nsCString& host : aPurgedSiteHosts) {
+    nsAutoCString origin("https://");
+    origin.Append(host);
+
+    log.RecordLogParent(
+        origin, nsIWebProgressListener::STATE_PURGED_BOUNCETRACKER, true);
+  }
+  log.ReportLog();
 }
 
 nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(

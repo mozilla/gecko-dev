@@ -99,6 +99,7 @@ Maybe<uint32_t> ContentBlockingLog::RecordLogParent(
     case nsIWebProgressListener::STATE_BLOCKED_EMAILTRACKING_CONTENT:
     case nsIWebProgressListener::STATE_LOADED_EMAILTRACKING_LEVEL_1_CONTENT:
     case nsIWebProgressListener::STATE_LOADED_EMAILTRACKING_LEVEL_2_CONTENT:
+    case nsIWebProgressListener::STATE_PURGED_BOUNCETRACKER:
       Unused << RecordLogInternal(aOrigin, aType, blockedValue);
       break;
 
@@ -184,10 +185,9 @@ Maybe<uint32_t> ContentBlockingLog::RecordLogParent(
   return Some(events);
 }
 
-void ContentBlockingLog::ReportLog(nsIPrincipal* aFirstPartyPrincipal) {
+void ContentBlockingLog::ReportLog() {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aFirstPartyPrincipal);
 
   if (!StaticPrefs::browser_contentblocking_database_enabled()) {
     return;
