@@ -16,7 +16,7 @@ const FRAME = `
     <script type="application/javascript">
       let cookie = document.cookie;
       // now reset the cookie for the next test
-      document.cookie = "myKey=;" + "expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      document.cookie = "myKey=; SameSite=None; Partitioned; Secure; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       window.parent.postMessage({result: cookie}, 'http://mochi.test:8888');
     </script>
   </body>
@@ -29,7 +29,7 @@ function handleRequest(request, response) {
   if (request.queryString.includes("setSameSiteCookie")) {
     response.setHeader(
       "Set-Cookie",
-      "myKey=strictSameSiteCookie; samesite=strict",
+      "myKey=strictSameSiteCookie; SameSite=Strict; Partitioned; Secure",
       true
     );
     response.setHeader("Content-Type", "image/png");
@@ -38,7 +38,11 @@ function handleRequest(request, response) {
   }
 
   if (request.queryString.includes("setRegularCookie")) {
-    response.setHeader("Set-Cookie", "myKey=regularCookie;", true);
+    response.setHeader(
+      "Set-Cookie",
+      "myKey=regularCookie; SameSite=None; Partitioned; Secure",
+      true
+    );
     response.setHeader("Content-Type", "image/png");
     response.write(IMG_BYTES);
     return;
