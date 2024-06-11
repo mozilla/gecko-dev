@@ -8,8 +8,8 @@ There are a couple of preferences associated with the Remote Agent:
 
 Defines the remote protocols that are active. Available protocols are,
 WebDriver BiDi (`1`), and CDP (`2`). Multiple protocols can be activated
-at the same time by using bitwise or with the values. Defaults to `3` (WebDriver
-BiDi and CDP).
+at the same time by using bitwise or with the values, such as `3` for
+both protocols. Defaults to `1` (WebDriver BiDi).
 
 ### `remote.experimental.enabled`
 
