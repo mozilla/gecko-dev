@@ -295,6 +295,7 @@ DIRS += [
     "/third_party/libwebrtc/modules/video_coding/encoded_frame_gn",
     "/third_party/libwebrtc/modules/video_coding/frame_dependencies_calculator_gn",
     "/third_party/libwebrtc/modules/video_coding/frame_helpers_gn",
+    "/third_party/libwebrtc/modules/video_coding/h264_sprop_parameter_sets_gn",
     "/third_party/libwebrtc/modules/video_coding/nack_requester_gn",
     "/third_party/libwebrtc/modules/video_coding/packet_buffer_gn",
     "/third_party/libwebrtc/modules/video_coding/svc/scalability_mode_util_gn",
