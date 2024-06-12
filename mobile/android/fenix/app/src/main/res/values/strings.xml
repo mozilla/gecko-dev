@@ -1368,7 +1368,6 @@
     <!-- Text for option five, shown in microsurvey.-->
     <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources">Very Satisfied</string>
 
-
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">Close private tabs?</string>
     <string name="notification_erase_text_android_14">Tap or swipe this notification to close private tabs.</string>
@@ -2610,7 +2609,9 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_5" tools:ignore="UnusedResources">Very Dissatisfied</string>
     <!-- Option for likert scale -->
-    <string name="likert_scale_option_6" tools:ignore="UnusedResources">I don\'t use it</string>
+    <string name="likert_scale_option_6" tools:ignore="UnusedResources">I don't use it</string>
+    <!-- Text shown in prompt for homepage microsurvey. 'Firefox' intentionally hardcoded here- -->
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">How satisfied are you with your Firefox homepage?</string>
     <!-- Accessibility -->
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
     <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources">Open survey</string>
