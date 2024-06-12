@@ -459,7 +459,7 @@ static bool ListDir(JSContext* cx, unsigned argc, Value* vp,
 
   UniqueChars pathname = JS_EncodeStringToUTF8(cx, str);
   if (!pathname) {
-    JS_ReportErrorASCII(cx, "os.file.listDir cannot convert path to Latin1");
+    JS_ReportErrorASCII(cx, "os.file.listDir cannot convert path to UTF8");
     return false;
   }
 
@@ -479,8 +479,8 @@ static bool ListDir(JSContext* cx, unsigned argc, Value* vp,
   {
     DIR* dir = opendir(pathname.get());
     if (!dir) {
-      JS_ReportErrorASCII(cx, "os.file.listDir is unable to open: %s",
-                          pathname.get());
+      JS_ReportErrorUTF8(cx, "os.file.listDir is unable to open: %s",
+                         pathname.get());
       return false;
     }
     auto close = mozilla::MakeScopeExit([&] {
