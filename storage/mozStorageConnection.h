@@ -86,7 +86,7 @@ class Connection final : public mozIStorageConnection,
   Connection(Service* aService, int aFlags,
              ConnectionOperation aSupportedOperations,
              const nsCString& aTelemetryFilename, bool aInterruptible = false,
-             bool aIgnoreLockingMode = false);
+             bool aIgnoreLockingMode = false, bool aOpenNotExclusive = false);
 
   /**
    * Creates the connection to an in-memory database.
@@ -479,6 +479,12 @@ class Connection final : public mozIStorageConnection,
    * Stores whether we should ask sqlite3_open_v2 to ignore locking.
    */
   const bool mIgnoreLockingMode;
+
+  /**
+   * Stores whether we should ask sqlite3_open_v2 to open without an exclusive
+   * lock.
+   */
+  const bool mOpenNotExclusive;
 
   /**
    * Set to true by Close() or AsyncClose() prior to shutdown.

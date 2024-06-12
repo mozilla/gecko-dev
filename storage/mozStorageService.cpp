@@ -547,6 +547,8 @@ Service::OpenAsyncDatabase(nsIVariant* aDatabaseStore, uint32_t aOpenFlags,
   // Specifying ignoreLockingMode will force use of the readOnly flag:
   const bool readOnly =
       ignoreLockingMode || (aOpenFlags & mozIStorageService::OPEN_READONLY);
+  const bool openNotExclusive =
+      aOpenFlags & mozIStorageService::OPEN_NOT_EXCLUSIVE;
   int flags = readOnly ? SQLITE_OPEN_READONLY : SQLITE_OPEN_READWRITE;
 
   nsCOMPtr<nsIFile> storageFile;
@@ -591,9 +593,9 @@ Service::OpenAsyncDatabase(nsIVariant* aDatabaseStore, uint32_t aOpenFlags,
     rv = storageFile->GetNativeLeafName(telemetryFilename);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  RefPtr<Connection> msc =
-      new Connection(this, flags, Connection::ASYNCHRONOUS, telemetryFilename,
-                     /* interruptible */ true, ignoreLockingMode);
+  RefPtr<Connection> msc = new Connection(
+      this, flags, Connection::ASYNCHRONOUS, telemetryFilename,
+      /* interruptible */ true, ignoreLockingMode, openNotExclusive);
   nsCOMPtr<nsIEventTarget> target = msc->getAsyncExecutionTarget();
   MOZ_ASSERT(target,
              "Cannot initialize a connection that has been closed already");

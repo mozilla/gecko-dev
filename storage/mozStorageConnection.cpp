@@ -785,7 +785,7 @@ NS_IMPL_ISUPPORTS_INHERITED(AsyncBackupDatabaseFile, Runnable, nsITimerCallback)
 Connection::Connection(Service* aService, int aFlags,
                        ConnectionOperation aSupportedOperations,
                        const nsCString& aTelemetryFilename, bool aInterruptible,
-                       bool aIgnoreLockingMode)
+                       bool aIgnoreLockingMode, bool aOpenNotExclusive)
     : sharedAsyncExecutionMutex("Connection::sharedAsyncExecutionMutex"),
       sharedDBMutex("Connection::sharedDBMutex"),
       eventTargetOpenedOn(WrapNotNull(GetCurrentSerialEventTarget())),
@@ -801,6 +801,7 @@ Connection::Connection(Service* aService, int aFlags,
       mInterruptible(aSupportedOperations == Connection::ASYNCHRONOUS ||
                      aInterruptible),
       mIgnoreLockingMode(aIgnoreLockingMode),
+      mOpenNotExclusive(aOpenNotExclusive),
       mAsyncExecutionThreadShuttingDown(false),
       mConnectionClosed(false),
       mGrowthChunkSize(0) {
@@ -1086,7 +1087,8 @@ nsresult Connection::initialize(nsIFile* aDatabaseFile) {
   nsresult rv = aDatabaseFile->GetPath(path);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  bool exclusive = StaticPrefs::storage_sqlite_exclusiveLock_enabled();
+  bool exclusive =
+      StaticPrefs::storage_sqlite_exclusiveLock_enabled() && !mOpenNotExclusive;
   int srv;
   if (mIgnoreLockingMode) {
     exclusive = false;
@@ -1170,7 +1172,8 @@ nsresult Connection::initialize(nsIFileURL* aFileURL) {
                          return true;
                        }));
 
-  bool exclusive = StaticPrefs::storage_sqlite_exclusiveLock_enabled();
+  bool exclusive =
+      StaticPrefs::storage_sqlite_exclusiveLock_enabled() && !mOpenNotExclusive;
 
   const char* const vfs = hasKey               ? obfsvfs::GetVFSName()
                           : hasDirectoryLockId ? quotavfs::GetVFSName()
@@ -1927,7 +1930,8 @@ Connection::AsyncClone(bool aReadOnly,
   // The cloned connection will still implement the synchronous API, but throw
   // if any synchronous methods are called on the main thread.
   RefPtr<Connection> clone =
-      new Connection(mStorageService, flags, ASYNCHRONOUS, mTelemetryFilename);
+      new Connection(mStorageService, flags, ASYNCHRONOUS, mTelemetryFilename,
+                     mInterruptible, mIgnoreLockingMode, mOpenNotExclusive);
 
   RefPtr<AsyncInitializeClone> initEvent =
       new AsyncInitializeClone(this, clone, aReadOnly, aCallback);

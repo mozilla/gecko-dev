@@ -1247,6 +1247,9 @@ ConnectionData.prototype = Object.freeze({
  *       return "false positive" corruption errors if other connections write
  *       to the DB at the same time.
  *
+ *   openNotExclusive -- (bool) Whether to open the database without an exclusive
+ *       lock so the database can be accessed from multiple processes.
+ *
  *   vacuumOnIdle -- (bool) Whether to register this connection to be vacuumed
  *       on idle by the VacuumManager component.
  *       If you're vacuum-ing an incremental vacuum database, ensure to also
@@ -1383,6 +1386,9 @@ function openConnection(options) {
     if (options.ignoreLockingMode) {
       dbOpenOptions |= Ci.mozIStorageService.OPEN_IGNORE_LOCKING_MODE;
       dbOpenOptions |= Ci.mozIStorageService.OPEN_READONLY;
+    }
+    if (options.openNotExclusive) {
+      dbOpenOptions |= Ci.mozIStorageService.OPEN_NOT_EXCLUSIVE;
     }
 
     let dbConnectionOptions = Ci.mozIStorageService.CONNECTION_DEFAULT;
