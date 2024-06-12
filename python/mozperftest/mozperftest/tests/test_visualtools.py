@@ -9,9 +9,7 @@ from mozperftest.test.browsertime.visualtools import get_dependencies, xvfb
 from mozperftest.utils import temporary_env
 
 
-@mock.patch(
-    "mozperftest.test.browsertime.visualtools.find_executable", new=lambda name: "Xvfb"
-)
+@mock.patch("mozperftest.test.browsertime.visualtools.which", new=lambda name: "Xvfb")
 def test_xvfb(*mocked):
     with temporary_env(DISPLAY="ME"):
         with mock.patch("subprocess.Popen") as mocked, xvfb():
@@ -19,9 +17,7 @@ def test_xvfb(*mocked):
         assert os.environ["DISPLAY"] == "ME"
 
 
-@mock.patch(
-    "mozperftest.test.browsertime.visualtools.find_executable", new=lambda name: "Xvfb"
-)
+@mock.patch("mozperftest.test.browsertime.visualtools.which", new=lambda name: "Xvfb")
 def test_xvfb_env(*mocked):
     with temporary_env(DISPLAY=None):
         with mock.patch("subprocess.Popen") as mocked, xvfb():
@@ -29,9 +25,7 @@ def test_xvfb_env(*mocked):
         assert "DISPLAY" not in os.environ
 
 
-@mock.patch(
-    "mozperftest.test.browsertime.visualtools.find_executable", new=lambda name: None
-)
+@mock.patch("mozperftest.test.browsertime.visualtools.which", new=lambda name: None)
 def test_xvfb_none(*mocked):
     with pytest.raises(FileNotFoundError), xvfb():
         pass
