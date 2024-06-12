@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // eslint-disable-next-line import/no-unresolved
-import { html } from "lit.all.mjs";
+import { html, ifDefined } from "lit.all.mjs";
 import "chrome://global/content/elements/moz-card.mjs";
 import "./turn-on-scheduled-backups.mjs";
 
@@ -16,15 +16,26 @@ export default {
   argTypes: {},
 };
 
-const Template = ({ backupFilePath }) => html`
+const Template = ({ defaultPath, _newPath, defaultLabel, _newLabel }) => html`
   <moz-card style="width: 27.8rem;">
     <turn-on-scheduled-backups
-      .backupFilePath=${backupFilePath}
+      defaultPath=${defaultPath}
+      _newPath=${ifDefined(_newPath)}
+      defaultLabel=${defaultLabel}
+      _newLabel=${ifDefined(_newLabel)}
     ></turn-on-scheduled-backups>
   </moz-card>
 `;
 
-export const RecommendedFolder = Template.bind({});
-RecommendedFolder.args = {
-  backupFilePath: "Documents",
+export const Default = Template.bind({});
+Default.args = {
+  defaultPath: "/Some/User/Documents",
+  defaultLabel: "Documents",
+};
+
+export const CustomLocation = Template.bind({});
+CustomLocation.args = {
+  ...Default.args,
+  _newPath: "/Some/Test/Custom/Dir",
+  _newLabel: "Dir",
 };

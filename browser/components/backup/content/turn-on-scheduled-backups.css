@@ -53,9 +53,22 @@
       align-items: center;
     }
 
-    #backup-location-filepicker-input {
-      margin: 0;
+    .backup-location-filepicker-input {
       flex: 1;
+      margin-block: var(--space-xsmall);
+      margin-inline-start: 0;
+      padding-inline-start: var(--space-xxlarge);
+      background-repeat: no-repeat;
+      background-size: var(--icon-size-default);
+      background-position: var(--space-small) 50%;
+
+      /* For the placeholder icon */
+      fill: currentColor;
+      -moz-context-properties: fill;
+
+      &:dir(rtl) {
+        background-position: calc(100% - var(--space-small)) 50%;
+      }
     }
   }
 

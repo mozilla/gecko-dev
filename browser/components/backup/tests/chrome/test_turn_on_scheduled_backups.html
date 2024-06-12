@@ -9,6 +9,8 @@
   src="chrome://browser/content/backup/turn-on-scheduled-backups.mjs"
   type="module"
 ></script>
+  <link rel="localization" href="preview/backupSettings.ftl"/>
+  <link rel="localization" href="branding/brand.ftl"/>
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
   <script>
 
@@ -83,6 +85,41 @@
       await turnOnScheduledBackups.updateComplete;
 
       ok(turnOnScheduledBackups.passwordOptionsExpandedEl, "Passwords expanded options should be found");
+    })
+
+    /**
+     * Tests that the dialog displays a default save location for backups and updates to a custom one
+     * if there is one selected.
+     */
+    add_task(async function test_inputs() {
+      let turnOnScheduledBackups = document.getElementById("test-turn-on-scheduled-backups");
+      let inputDefault = turnOnScheduledBackups.filePathInputDefaultEl;
+      ok(inputDefault, "Default input should be found");
+
+      let promise = BrowserTestUtils.waitForCondition(() => inputDefault.value);
+
+      /* Normally we would pass in the default attributes, but for this test, we will
+       * hardcode them since file paths vary across different platforms.
+       */
+      const defaultPathFilename = "testdefaultpath";
+      let defaultPath = PathUtils.join(PathUtils.tempDir, defaultPathFilename);
+      turnOnScheduledBackups.defaultPath = defaultPath;
+      turnOnScheduledBackups.defaultLabel = defaultPathFilename;
+      await turnOnScheduledBackups.updateComplete;
+      await promise;
+
+      is(inputDefault.value, `${defaultPathFilename} (recommended)`, "Default input should not be empty and should contain part of the default path");
+
+      // Now pretend a custom file path was selected
+      const newPathFilename = "testnewpath";
+      let newPath = PathUtils.join(PathUtils.tempDir, newPathFilename);
+      turnOnScheduledBackups._newPath = newPath;
+      turnOnScheduledBackups._newLabel = newPathFilename;
+      await turnOnScheduledBackups.updateComplete;
+
+      let inputCustom = turnOnScheduledBackups.filePathInputCustomEl;
+      ok(inputCustom, "Input should be updated");
+      is(inputCustom.value, newPathFilename, "Input value should be set to the new path");
     })
   </script>
 </head>
