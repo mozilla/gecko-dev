@@ -3821,7 +3821,7 @@ BrowserGlue.prototype = {
   _migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 148;
+    const UI_VERSION = 149;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     if (!Services.prefs.prefHasUserValue("browser.migration.version")) {
@@ -4558,6 +4558,35 @@ BrowserGlue.prototype = {
         }
       }
       addonPromise?.then(addon => addon?.uninstall()).catch(console.error);
+    }
+
+    if (currentUIVersion < 149) {
+      // remove permissions used by deleted nsContentManager
+      [
+        "other",
+        "script",
+        "image",
+        "stylesheet",
+        "object",
+        "document",
+        "subdocument",
+        "refresh",
+        "xbl",
+        "ping",
+        "xmlhttprequest",
+        "objectsubrequest",
+        "dtd",
+        "font",
+        "websocket",
+        "csp_report",
+        "xslt",
+        "beacon",
+        "fetch",
+        "manifest",
+        "speculative",
+      ].forEach(type => {
+        Services.perms.removeByType(type);
+      });
     }
 
     // Update the migration version.

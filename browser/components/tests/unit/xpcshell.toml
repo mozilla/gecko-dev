@@ -15,6 +15,8 @@ skip-if = ["nightly_build", "os == 'linux'"]
 
 ["test_browserGlue_migration_places_xulstore.js"]
 
+["test_browserGlue_migration_removeContentBlockerPerms.js"]
+
 ["test_browserGlue_migration_remove_pref.js"]
 
 ["test_browserGlue_migration_resetDefaults.js"]
