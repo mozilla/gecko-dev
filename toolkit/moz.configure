@@ -13,6 +13,13 @@ project_flag(
     help='used for application.ini\'s "ID" field, and crash reporter server url',
 )
 
+project_flag(
+    env="MOZ_APP_VENDOR",
+    default="",
+    nargs=1,
+    help='used for application.ini\'s "Vendor" field, which also impacts profile location and user-visible fields',
+)
+
 
 # Set the MOZ_CONFIGURE_OPTIONS variable with all the options that
 # were passed somehow (environment, command line, mozconfig)
