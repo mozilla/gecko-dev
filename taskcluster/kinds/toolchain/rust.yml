@@ -91,6 +91,9 @@ linux64-rust-1.78-dev:
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-unknown-linux-gnu',
         ]
+        resources:
+            - build/build-rust/rust-vendor-std.patch
+            - build/build-rust/cargo-vendor-std.patch
         toolchain-alias:
             by-project:
                 toolchains: null
@@ -307,6 +310,9 @@ linux64-rust-nightly-dev:
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-unknown-linux-gnu',
         ]
+        resources:
+            - build/build-rust/rust-vendor-std.patch
+            - build/build-rust/cargo-vendor-std-1.79.patch
         toolchain-alias:
             by-project:
                 toolchains: linux64-rust-dev

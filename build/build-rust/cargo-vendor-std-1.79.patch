@@ -9,7 +9,7 @@ Most of these changes just add/edit tests for the functionality. Only the
 change to src/cargo/core/compiler/standard_lib.rs is important.
 
 diff --git a/src/cargo/core/compiler/standard_lib.rs b/src/cargo/core/compiler/standard_lib.rs
-index 684e4426c..83649cedf 100644
+index 3e387bddd..41be56056 100644
 --- a/src/cargo/core/compiler/standard_lib.rs
 +++ b/src/cargo/core/compiler/standard_lib.rs
 @@ -11,6 +11,7 @@ use crate::ops::{self, Packages};
@@ -20,7 +20,16 @@ index 684e4426c..83649cedf 100644
  use std::path::PathBuf;
  use std::rc::Rc;
  
-@@ -74,27 +75,45 @@ pub fn resolve_std<'gctx>(
+@@ -67,34 +68,54 @@ pub fn resolve_std<'gctx>(
+     build_config: &BuildConfig,
+     crates: &[String],
+ ) -> CargoResult<(PackageSet<'gctx>, Resolve, ResolvedFeatures)> {
++    let gctx = ws.gctx();
+     if build_config.build_plan {
+-        ws.gctx()
++        gctx
+             .shell()
+             .warn("-Zbuild-std does not currently fully support --build-plan")?;
      }
  
      let src_path = detect_sysroot_src_path(target_data)?;
@@ -66,7 +75,8 @@ index 684e4426c..83649cedf 100644
 +                entry.path()
 +            };
 +            let source_path = SourceId::for_path(&path)?;
-+            let dep = Dependency::parse(&name, None, source_path)?;
++            let package = crate::sources::PathSource::new(&path, source_path, gctx).root_package()?;
++            let dep = Dependency::parse(package.name(), None, source_path)?;
              Ok(dep)
          })
          .collect::<CargoResult<Vec<_>>>()?;
@@ -82,6 +92,14 @@ index 684e4426c..83649cedf 100644
      let ws_config = crate::core::WorkspaceConfig::Root(crate::core::WorkspaceRootConfig::new(
          &src_path,
          &Some(members),
+@@ -115,7 +136,6 @@ pub fn resolve_std<'gctx>(
+         None,
+     );
+ 
+-    let gctx = ws.gctx();
+     // This is a delicate hack. In order for features to resolve correctly,
+     // the resolver needs to run a specific "current" member of the workspace.
+     // Thus, in order to set the features for `std`, we need to set `sysroot`
 diff --git a/tests/testsuite/mock-std/library/test/Cargo.toml b/tests/testsuite/mock-std/library/test/Cargo.toml
 index b9f51eda7..fed5f3973 100644
 --- a/tests/testsuite/mock-std/library/test/Cargo.toml
