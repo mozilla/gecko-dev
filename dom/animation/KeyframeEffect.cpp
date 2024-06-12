@@ -28,6 +28,7 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layers.h"
+#include "mozilla/SVGObserverUtils.h"
 #include "nsCSSPropertyID.h"
 #include "nsComputedDOMStyle.h"  // nsComputedDOMStyle::GetComputedStyle
 #include "nsContentUtils.h"
@@ -1373,6 +1374,12 @@ bool KeyframeEffect::CanThrottleIfNotVisible(nsIFrame& aFrame) const {
   PresShell* presShell = GetPresShell();
   if (presShell && !presShell->IsActive()) {
     return true;
+  }
+
+  // The frame may be indirectly rendered as a mask or clipPath or via a use
+  // element.
+  if (SVGObserverUtils::SelfOrAncestorHasRenderingObservers(&aFrame)) {
+    return false;
   }
 
   const bool isVisibilityHidden =
