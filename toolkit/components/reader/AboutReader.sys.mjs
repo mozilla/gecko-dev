@@ -53,8 +53,8 @@ const DEFAULT_TEXT_LAYOUT = {
   fontWeight: "regular",
   contentWidth: 3,
   lineSpacing: 4,
-  characterSpacing: 0,
-  wordSpacing: 0,
+  characterSpacing: 1,
+  wordSpacing: 1,
   textAlignment: "start",
 };
 
@@ -416,7 +416,7 @@ export var AboutReader = function (
 
     let characterSpacing = Services.prefs.getIntPref(
       "reader.character_spacing",
-      0
+      1
     );
     this._setupSlider(
       "character-spacing",
@@ -426,7 +426,7 @@ export var AboutReader = function (
     );
     this._setCharacterSpacing(characterSpacing);
 
-    let wordSpacing = Services.prefs.getIntPref("reader.word_spacing", 0);
+    let wordSpacing = Services.prefs.getIntPref("reader.word_spacing", 1);
     this._setupSlider(
       "word-spacing",
       wordSpacingSliderOptions,

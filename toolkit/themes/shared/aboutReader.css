@@ -43,6 +43,7 @@ body {
   --tooltip-foreground: var(--icon-fill);
   --tooltip-border: transparent;
   --popup-background: #fff;
+  --popup-foreground: var(--main-foreground);
   --popup-border: rgba(0, 0, 0, 0.12);
   --popup-line: var(--grey-30);
   --popup-shadow: rgba(49, 49, 49, 0.3);
@@ -132,6 +133,7 @@ body.custom {
   --main-foreground: var(--custom-theme-foreground);
   --link-foreground: var(--custom-theme-unvisited-links);
   --visited-link-foreground: var(--custom-theme-visited-links);
+  --popup-foreground: var(--light-theme-foreground);
   --popup-button-foreground: var(--light-theme-foreground);
   --popup-button-foreground-hover: var(--light-theme-foreground);
   --tooltip-foreground: var(--light-theme-foreground);
@@ -161,13 +163,14 @@ body.hcm {
   --tooltip-foreground: CanvasText;
   --tooltip-border: CanvasText;
   --popup-background: Canvas;
+  --popup-foreground: CanvasText;
   --popup-border: CanvasText;
   --popup-line: CanvasText;
   --popup-button-background: ButtonFace;
   --popup-button-foreground: ButtonText;
-  --popup-button-background-hover: ButtonText;
-  --popup-button-foreground-hover: ButtonFace;
-  --popup-button-background-active: ButtonText;
+  --popup-button-background-hover: ButtonFace;
+  --popup-button-foreground-hover: SelectedItem;
+  --popup-button-background-active: ButtonFace;
   --popup-button-border: ButtonText;
   --selected-background: Canvas;
   --outline-focus-color: CanvasText;
@@ -517,7 +520,7 @@ button:disabled {
   h2 {
     font-size: var(--font-size-large);
     font-weight: var(--font-weight-bold);
-    color: var(--popup-button-foreground);
+    color: var(--popup-foreground);
     margin-block: var(--space-large);
   }
 
@@ -737,6 +740,14 @@ body.hcm .color-scheme-buttons {
 
   body.hcm & {
     border-color: var(--popup-button-border);
+
+    &:hover {
+      border-color: SelectedItem;
+
+      &:active {
+        border-color: ButtonText;
+      }
+    }
   }
 }
 
@@ -750,7 +761,8 @@ body.hcm .color-scheme-buttons {
 .dropdown-selector {
   display: flex;
   flex-direction: column;
-  width: 100%;
+  flex: 1;
+  max-width: 50%;
   gap: var(--space-xsmall);
 
   > select {
@@ -781,6 +793,14 @@ body.hcm .color-scheme-buttons {
 
     body.hcm & {
       border-color: var(--popup-button-border);
+
+      &:hover {
+        border-color: SelectedItem;
+      }
+
+      &:hover:active {
+        border-color: ButtonText;
+      }
     }
 
     /* Selector chevron should appear on the left for RTL. */
@@ -864,6 +884,14 @@ body.hcm .color-scheme-buttons {
 
     body.hcm & {
       border: 1px solid var(--popup-button-border);
+
+      &:hover:not([checked]) {
+        border-color: SelectedItem;
+      }
+
+      &:hover:active:not([checked]) {
+        border-color: ButtonText;
+      }
     }
   }
 }

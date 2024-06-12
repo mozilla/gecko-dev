@@ -233,7 +233,7 @@ VoiceSelect.prototype = {
       let winHeight = this._win.innerHeight;
       let listbox = this.listbox;
       let listboxTop = listbox.getBoundingClientRect().top;
-      listbox.style.maxHeight = winHeight - listboxTop - 10 + "px";
+      listbox.style.maxHeight = winHeight - listboxTop - 32 + "px";
     };
 
     if (now) {

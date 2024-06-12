@@ -1,0 +1,282 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* Avoid adding ID selector rules in this style sheet, since they could
+ * inadvertently match elements in the article content. */
+
+body {
+  --narrate-word-highlight-color: #ffe087;
+  --narrating-paragraph-background-color: #ffc;
+}
+
+body.sepia {
+  --narrate-word-highlight-color: #bdb5a5;
+  --narrating-paragraph-background-color: #e0d7c5;
+}
+
+body.dark,
+body.contrast {
+  --narrate-word-highlight-color: #6f6f6f;
+  --narrating-paragraph-background-color: #242424;
+}
+
+body.custom {
+  --narrating-paragraph-background-color: var(--custom-theme-selection-highlight);
+}
+
+body.hcm {
+  --narrate-word-highlight-color: SelectedItem;
+  --narrating-paragraph-background-color: Canvas;
+}
+
+.narrating {
+  position: relative;
+  z-index: 1;
+  background-color: var(--narrating-paragraph-background-color);
+}
+
+.narrate-word-highlight {
+  position: absolute;
+  display: none;
+  transform: translate(-50%, calc(-50% - 2px));
+  z-index: -1;
+  border-bottom: 7px solid var(--narrate-word-highlight-color);
+  transition: left 0.1s ease, width 0.1s ease;
+}
+
+body.hcm .narrate-word-highlight {
+  /* Shift the word highlight a bit downwards to not cover the bottom part of characters.
+   * The z-index above is meant to have the highlight appear below the text,
+   * but that's not best practice in HCM so we do this instead. */
+  transform: translate(-50%, calc(-50% + 2px));
+  border-bottom-width: 3px;
+}
+
+.narrating > .narrate-word-highlight {
+  display: inline-block;
+}
+
+.narrate-word-highlight.newline {
+  transition: none;
+}
+
+.narrate-toggle {
+  background-image: url("chrome://global/skin/narrate/headphone.svg");
+
+  .speaking & {
+    /* This shows with an animation. */
+    background-image: url("chrome://global/skin/narrate/headphone-active.svg");
+    fill: var(--toolbar-button-foreground-active);
+  }
+
+  body.hcm .speaking & {
+    background-color: var(--toolbar-button-background-active);
+    border-color: var(--toolbar-button-border-active);
+  }
+
+  body.hcm .speaking:not(.open) &:hover {
+    background-color: var(--toolbar-button-background-hover);
+    border-color: var(--toolbar-button-border-hover);
+    fill: var(--toolbar-button-foreground-hover);
+  }
+}
+
+.narrate-dropdown > .dropdown-popup {
+  padding: 0 var(--space-large);
+
+  button:enabled:hover {
+    background-color: var(--popup-button-background-hover);
+    color: var(--popup-button-foreground-hover);
+    fill: var(--popup-button-foreground-hover);
+
+    body.hcm & {
+      border-color: SelectedItem;
+    }
+  }
+
+  button:enabled:hover:active {
+    background-color: var(--popup-button-background-active);
+
+    body.hcm & {
+      border-color: ButtonText;
+    }
+  }
+
+  button:enabled:focus-visible {
+    outline: 2px solid var(--outline-focus-color);
+    outline-offset: -2px;
+  }
+}
+
+.narrate-row {
+  display: flex;
+  align-items: center;
+  padding-block-end: var(--space-large);
+
+  &:not(.narrate-voices) {
+    direction: ltr;
+  }
+}
+
+/* Control buttons */
+
+.narrate-control {
+  gap: var(--space-xxsmall);
+
+  button {
+    display: flex;
+    flex: 1;
+    min-height: 36px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 20px 20px;
+    background-color: var(--popup-button-background);
+    color: var(--popup-button-foreground);
+    fill: currentColor;
+    -moz-context-properties: fill;
+    border: none;
+
+    &:first-of-type {
+      border-start-start-radius: var(--border-radius-small);
+      border-end-start-radius: var(--border-radius-small);
+    }
+
+    &:last-of-type {
+      border-start-end-radius: var(--border-radius-small);
+      border-end-end-radius: var(--border-radius-small);
+    }
+
+    &.narrate-skip-previous {
+      background-image: url("chrome://global/skin/narrate/skip-backward-20.svg");
+    }
+
+    &.narrate-skip-next {
+      background-image: url("chrome://global/skin/narrate/skip-forward-20.svg");
+    }
+
+    &.narrate-start-stop {
+      background-image: url("chrome://global/skin/media/play-fill.svg");
+
+      .narrate-dropdown.speaking & {
+        background-image: url("chrome://global/skin/media/pause-fill.svg");
+      }
+    }
+
+    body.hcm & {
+      border: 1px solid var(--popup-button-border);
+
+      &:disabled {
+        border-color: var(--icon-disabled-fill);
+      }
+    }
+  }
+}
+
+/* Rate control */
+
+.narrate-rate::before,
+.narrate-rate::after {
+  content: '';
+  width: 48px;
+  height: 40px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 24px auto;
+  -moz-context-properties: fill;
+  fill: var(--popup-foreground);
+}
+
+.narrate-rate::before {
+  background-image: url("chrome://global/skin/narrate/slow.svg");
+}
+
+.narrate-rate::after {
+  background-image: url("chrome://global/skin/narrate/fast.svg");
+}
+
+.narrate-rate-input {
+  width: 200px;
+}
+
+/* Voice selection */
+
+.voiceselect {
+  width: 100%;
+
+  > button.select-toggle,
+  > .options > button.option {
+    appearance: none;
+    width: 100%;
+    min-height: 36px;
+    border: 1px solid transparent;
+    color: var(--popup-button-foreground);
+    font-size: 15px;
+
+    body.hcm & {
+      border-color: var(--popup-button-border);
+    }
+  }
+
+  > button.select-toggle {
+    display: flex;
+    align-items: center;
+    padding-inline: var(--space-medium);
+    border-radius: var(--border-radius-small);
+    background-color: var(--popup-button-background);
+    font-weight: var(--font-weight-bold);
+    -moz-context-properties: fill;
+    fill: currentColor;
+
+    .current-voice {
+      display: flex;
+      width: 100%;
+      padding-inline: var(--space-small);
+    }
+  }
+
+  > button.select-toggle::before,
+  > button.select-toggle::after {
+    content: "";
+    width: 24px;
+    height: var(--icon-size-default);
+    background-repeat: no-repeat;
+    background-size: var(--icon-size-default) auto;
+  }
+
+  > button.select-toggle::before {
+    background-image: url("chrome://global/skin/media/audio.svg");
+  }
+
+  > button.select-toggle::after {
+    background-image: url("chrome://global/skin/icons/arrow-down.svg");
+  }
+
+  &.open > button.select-toggle::after {
+    background-image: url("chrome://global/skin/icons/arrow-up.svg");
+  }
+
+  > .options {
+    display: none;
+    overflow-y: auto;
+
+    > button.option {
+      background-color: transparent;
+      text-align: start;
+      padding-inline-start: var(--space-medium);
+    }
+
+    > button.option::-moz-focus-inner {
+      outline: none;
+      border: 0;
+    }
+
+    &:not(.hovering) > button.option:hover:not(:focus) {
+      background-color: transparent;
+    }
+  }
+
+  &.open > .options {
+    display: block;
+  }
+}
