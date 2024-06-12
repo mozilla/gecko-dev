@@ -1100,8 +1100,9 @@ nsresult nsStandardURL::BuildNormalizedSpec(const char* spec,
   // https://url.spec.whatwg.org/#windows-drive-letter
   if (SegmentIs(buf, mScheme, "file")) {
     char* path = &buf[mPath.mPos];
+    // To account for cases like file:///w|/m and file:///c|
     if (mPath.mLen >= 3 && path[0] == '/' && IsAsciiAlpha(path[1]) &&
-        path[2] == '|') {
+        path[2] == '|' && (mPath.mLen == 3 || path[3] == '/')) {
       buf[mPath.mPos + 2] = ':';
     }
   }

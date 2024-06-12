@@ -499,6 +499,25 @@ add_test(function test_hugeStringThrows() {
   run_next_test();
 });
 
+add_test(function test_verticalBar() {
+  var url = Services.io.newURI("file:///w|m");
+  Assert.equal(url.spec, "file:///w|m");
+
+  url = Services.io.newURI("file:///w||m");
+  Assert.equal(url.spec, "file:///w||m");
+
+  url = Services.io.newURI("file:///w|/m");
+  Assert.equal(url.spec, "file:///w:/m");
+
+  url = Services.io.newURI("file:C|/m/");
+  Assert.equal(url.spec, "file:///C:/m/");
+
+  url = Services.io.newURI("file:C||/m/");
+  Assert.equal(url.spec, "file:///C||/m/");
+
+  run_next_test();
+});
+
 add_test(function test_filterWhitespace() {
   let url = stringToURL(
     " \r\n\th\nt\rt\tp://ex\r\n\tample.com/path\r\n\t/\r\n\tto the/fil\r\n\te.e\r\n\txt?que\r\n\try#ha\r\n\tsh \r\n\t "
