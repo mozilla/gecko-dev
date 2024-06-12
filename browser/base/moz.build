@@ -68,6 +68,7 @@ BROWSER_CHROME_MANIFESTS += [
 
 DIRS += [
     "content/test/performance/",
+    "content/test/fullscreen/",
 ]
 
 PERFTESTS_MANIFESTS += ["content/test/perftest.toml"]

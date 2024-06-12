@@ -38,7 +38,7 @@ add_task(async function test_fullscreen_cross_origin() {
       );
 
       if (aExpect == "allowed") {
-        waitForFullScreenState(browser, false);
+        DOMFullscreenTestUtils.waitForFullScreenState(browser, false);
       }
     });
   }

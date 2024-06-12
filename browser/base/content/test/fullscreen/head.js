@@ -1,57 +1,10 @@
 const TEST_URL =
   "https://example.com/browser/browser/base/content/test/fullscreen/open_and_focus_helper.html";
 
-function waitForFullScreenState(browser, state, actionAfterFSEvent) {
-  return new Promise(resolve => {
-    let eventReceived = false;
-
-    let observe = () => {
-      if (!eventReceived) {
-        return;
-      }
-      Services.obs.removeObserver(observe, "fullscreen-painted");
-      resolve();
-    };
-    Services.obs.addObserver(observe, "fullscreen-painted");
-
-    browser.ownerGlobal.addEventListener(
-      `MozDOMFullscreen:${state ? "Entered" : "Exited"}`,
-      () => {
-        eventReceived = true;
-        if (actionAfterFSEvent) {
-          actionAfterFSEvent();
-        }
-      },
-      { once: true }
-    );
-  });
-}
-
-/**
- * Spawns content task in browser to enter / leave fullscreen
- * @param browser - Browser to use for JS fullscreen requests
- * @param {Boolean} fullscreenState - true to enter fullscreen, false to leave
- * @returns {Promise} - Resolves once fullscreen change is applied
- */
-async function changeFullscreen(browser, fullScreenState) {
-  await new Promise(resolve =>
-    SimpleTest.waitForFocus(resolve, browser.ownerGlobal)
-  );
-  let fullScreenChange = waitForFullScreenState(browser, fullScreenState);
-  SpecialPowers.spawn(browser, [fullScreenState], async state => {
-    // Wait for document focus before requesting full-screen
-    await ContentTaskUtils.waitForCondition(
-      () => content.browsingContext.isActive && content.document.hasFocus(),
-      "Waiting for document focus"
-    );
-    if (state) {
-      content.document.body.requestFullscreen();
-    } else {
-      content.document.exitFullscreen();
-    }
-  });
-  return fullScreenChange;
-}
+const { DOMFullscreenTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/DOMFullscreenTestUtils.sys.mjs"
+);
+DOMFullscreenTestUtils.init(this, window);
 
 async function testExpectFullScreenExit(
   browser,
@@ -59,7 +12,11 @@ async function testExpectFullScreenExit(
   action,
   actionAfterFSEvent
 ) {
-  let fsPromise = waitForFullScreenState(browser, false, actionAfterFSEvent);
+  let fsPromise = DOMFullscreenTestUtils.waitForFullScreenState(
+    browser,
+    false,
+    actionAfterFSEvent
+  );
   if (leaveFS) {
     if (action) {
       await action();
