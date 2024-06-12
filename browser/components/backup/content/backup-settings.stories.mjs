@@ -36,3 +36,12 @@ BackingUpInProgress.args = {
     scheduledBackupsEnabled: false,
   },
 };
+
+export const ScheduledBackupsEnabled = Template.bind({});
+ScheduledBackupsEnabled.args = {
+  backupServiceState: {
+    backupFilePath: "Documents",
+    backupInProgress: false,
+    scheduledBackupsEnabled: true,
+  },
+};

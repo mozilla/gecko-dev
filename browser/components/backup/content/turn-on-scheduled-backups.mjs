@@ -48,7 +48,7 @@ export default class TurnOnScheduledBackups extends MozLitElement {
 
   handleCancel() {
     this.dispatchEvent(
-      new CustomEvent("scheduledBackupsCancel", {
+      new CustomEvent("dialogCancel", {
         bubbles: true,
         composed: true,
       })
@@ -65,7 +65,7 @@ export default class TurnOnScheduledBackups extends MozLitElement {
      * Before confirmation, verify passwords match and FxA format rules (bug 1896772).
      */
     this.dispatchEvent(
-      new CustomEvent("scheduledBackupsConfirm", {
+      new CustomEvent("turnOnScheduledBackups", {
         bubbles: true,
         composed: true,
       })
@@ -163,6 +163,7 @@ export default class TurnOnScheduledBackups extends MozLitElement {
       >
         <h1
           id="backup-turn-on-scheduled-header"
+          class="heading-medium"
           data-l10n-id="turn-on-scheduled-backups-header"
         ></h1>
         <main id="backup-turn-on-scheduled-content">
@@ -171,6 +172,7 @@ export default class TurnOnScheduledBackups extends MozLitElement {
               id="backup-turn-on-scheduled-description-span"
               data-l10n-id="turn-on-scheduled-backups-description"
             ></span>
+            <!--TODO: finalize support page links (bug 1900467)-->
             <a
               id="backup-turn-on-scheduled-learn-more-link"
               is="moz-support-link"

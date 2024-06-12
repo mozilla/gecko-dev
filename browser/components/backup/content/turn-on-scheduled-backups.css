@@ -15,12 +15,9 @@
     "content"
     "button-group";
   grid-template-rows: auto auto auto;
-  line-height: 1.5;
 
   #backup-turn-on-scheduled-header {
     grid-area: header;
-    font-size: var(--font-size-large);
-    font-weight: var(--font-weight);
     margin: 0;
   }
 

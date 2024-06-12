@@ -29,8 +29,8 @@ export class BackupUIChild extends JSWindowActorChild {
     if (event.type == "BackupUI:InitWidget") {
       this.#inittedWidgets.add(event.target);
       this.sendAsyncMessage("RequestState");
-    } else if (event.type == "BackupUI:ScheduledBackupsConfirm") {
-      this.sendAsyncMessage("ScheduledBackupsConfirm");
+    } else if (event.type == "BackupUI:ToggleScheduledBackups") {
+      this.sendAsyncMessage("ToggleScheduledBackups", event.detail);
     }
   }
 
