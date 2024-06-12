@@ -18,7 +18,7 @@ const {
  * document event.
  */
 function keepaliveSimpleRequestTest(method) {
-  for (const evt of ['load', 'unload', 'pagehide']) {
+  for (const evt of ['load', 'pagehide', 'unload']) {
     const desc =
         `[keepalive] simple ${method} request on '${evt}' [no payload]`;
     promise_test(async (test) => {
@@ -30,6 +30,7 @@ function keepaliveSimpleRequestTest(method) {
       if (evt != 'load') {
         iframe.remove();
       }
+      assert_equals(await getTokenFromMessage(), token1);
 
       assertStashedTokenAsync(desc, token1);
     }, `${desc}; setting up`);

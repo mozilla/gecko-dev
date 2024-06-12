@@ -94,7 +94,6 @@ IPCResult FetchParent::RecvFetchOp(FetchOpArgs&& aArgs) {
   }
 
   mRequest = MakeSafeRefPtr<InternalRequest>(std::move(aArgs.request()));
-  mIsWorkerFetch = aArgs.isWorkerRequest();
   mPrincipalInfo = std::move(aArgs.principalInfo());
   mWorkerScript = aArgs.workerScript();
   mClientInfo = Some(ClientInfo(aArgs.clientInfo()));
@@ -168,26 +167,15 @@ IPCResult FetchParent::RecvFetchOp(FetchOpArgs&& aArgs) {
     }
     RefPtr<FetchService> fetchService = FetchService::GetInstance();
     MOZ_ASSERT(fetchService);
-    MOZ_ASSERT(self->mRequest);
     MOZ_ASSERT(!self->mResponsePromises);
-    if (self->mIsWorkerFetch) {
-      self->mResponsePromises =
-          fetchService->Fetch(AsVariant(FetchService::WorkerFetchArgs(
-              {self->mRequest.clonePtr(), self->mPrincipalInfo,
-               self->mWorkerScript, self->mClientInfo, self->mController,
-               self->mCookieJarSettings, self->mNeedOnDataAvailable,
-               self->mCSPEventListener, self->mAssociatedBrowsingContextID,
-               self->mBackgroundEventTarget, self->mID,
-               self->mIsThirdPartyContext})));
-    } else {
-      MOZ_ASSERT(self->mRequest->GetKeepalive());
-      self->mResponsePromises =
-          fetchService->Fetch(AsVariant(FetchService::MainThreadFetchArgs(
-              {self->mRequest.clonePtr(), self->mPrincipalInfo,
-               self->mCookieJarSettings, self->mNeedOnDataAvailable,
-               self->mCSPEventListener, self->mAssociatedBrowsingContextID,
-               self->mBackgroundEventTarget, self->mID})));
-    }
+    self->mResponsePromises =
+        fetchService->Fetch(AsVariant(FetchService::WorkerFetchArgs(
+            {self->mRequest.clonePtr(), self->mPrincipalInfo,
+             self->mWorkerScript, self->mClientInfo, self->mController,
+             self->mCookieJarSettings, self->mNeedOnDataAvailable,
+             self->mCSPEventListener, self->mAssociatedBrowsingContextID,
+             self->mBackgroundEventTarget, self->mID,
+             self->mIsThirdPartyContext})));
 
     self->mResponsePromises->GetResponseEndPromise()->Then(
         GetMainThreadSerialEventTarget(), __func__,
@@ -332,17 +320,9 @@ void FetchParent::ActorDestroy(ActorDestroyReason aReason) {
     entry.Remove();
     FETCH_LOG(("FetchParent::ActorDestroy entry [%p] removed", this));
   }
-  // mRequest can be null when FetchParent has not yet received RecvFetchOp()
-  if (!mRequest) {
-    return;
-  }
   // Force to abort the existing fetch.
   // Actor can be destoried by shutdown when still fetching.
-  if (mRequest->GetKeepalive()) {
-    FETCH_LOG(("Skip aborting fetch as the request is marked keepalive"));
-  } else {
-    RecvAbortFetchOp();
-  }
+  RecvAbortFetchOp();
   // mBackgroundEventTarget = nullptr;
 }
 
