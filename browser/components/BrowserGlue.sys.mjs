@@ -5134,7 +5134,9 @@ var ContentBlockingCategoriesPrefs = {
   setPrefExpectations() {
     // The prefs inside CATEGORY_PREFS are initial values.
     // If the pref remains null, then it will expect the default value.
-    // The "standard" category is defined as expecting all 5 default values.
+    // The "standard" category is defined as expecting default values of the
+    // listed prefs. The "strict" category lists all prefs that will be set
+    // according to the strict feature pref.
     this.CATEGORY_PREFS = {
       strict: {
         "network.cookie.cookieBehavior": null,
@@ -5155,6 +5157,7 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.query_stripping.enabled.pbmode": null,
         "privacy.fingerprintingProtection": null,
         "privacy.fingerprintingProtection.pbmode": null,
+        "network.cookie.cookieBehavior.optInPartitioning": null,
       },
       standard: {
         "network.cookie.cookieBehavior": null,
@@ -5175,6 +5178,7 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.query_stripping.enabled.pbmode": null,
         "privacy.fingerprintingProtection": null,
         "privacy.fingerprintingProtection.pbmode": null,
+        "network.cookie.cookieBehavior.optInPartitioning": null,
       },
     };
     let type = "strict";
@@ -5372,6 +5376,16 @@ var ContentBlockingCategoriesPrefs = {
         case "cookieBehaviorPBM5":
           this.CATEGORY_PREFS[type]["network.cookie.cookieBehavior.pbmode"] =
             Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN;
+          break;
+        case "3pcd":
+          this.CATEGORY_PREFS[type][
+            "network.cookie.cookieBehavior.optInPartitioning"
+          ] = true;
+          break;
+        case "-3pcd":
+          this.CATEGORY_PREFS[type][
+            "network.cookie.cookieBehavior.optInPartitioning"
+          ] = false;
           break;
         default:
           console.error(`Error: Unknown rule observed ${item}`);

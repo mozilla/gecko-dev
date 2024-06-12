@@ -11743,7 +11743,7 @@
 # mode.
 - name: network.cookie.cookieBehavior.optInPartitioning.pbmode
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # Whether to support CHIPS(Cookies Having Independent Partitioned State).
