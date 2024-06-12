@@ -63,9 +63,6 @@ enum class DataChannelReliabilityPolicy {
 class OutgoingMsg {
  public:
   OutgoingMsg(struct sctp_sendv_spa& info, const uint8_t* data, size_t length);
-  OutgoingMsg(OutgoingMsg&& other) = default;
-  OutgoingMsg& operator=(OutgoingMsg&& other) = default;
-  ~OutgoingMsg() = default;
 
   void Advance(size_t offset);
   struct sctp_sendv_spa& GetInfo() const { return *mInfo; };
