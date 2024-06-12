@@ -37,7 +37,7 @@ class ContextMenuSnackbarDelegateTest {
         MockKAnnotations.init(this)
         mockkObject(FenixSnackbar.Companion)
 
-        delegate = ContextMenuSnackbarDelegate(view)
+        delegate = ContextMenuSnackbarDelegate()
         every {
             FenixSnackbar.make(view, LENGTH_SHORT, isDisplayedWithBrowserToolbar = true)
         } returns snackbar
@@ -55,7 +55,7 @@ class ContextMenuSnackbarDelegateTest {
     @Test
     fun `show with no listener nor action`() {
         delegate.show(
-            snackBarParentView = mockk(),
+            snackBarParentView = view,
             text = R.string.app_name,
             duration = 0,
             action = 0,
@@ -70,7 +70,7 @@ class ContextMenuSnackbarDelegateTest {
     @Test
     fun `show with listener but no action`() {
         delegate.show(
-            snackBarParentView = mockk(),
+            snackBarParentView = view,
             text = R.string.app_name,
             duration = 0,
             action = 0,
@@ -85,7 +85,7 @@ class ContextMenuSnackbarDelegateTest {
     @Test
     fun `show with action but no listener`() {
         delegate.show(
-            snackBarParentView = mockk(),
+            snackBarParentView = view,
             text = R.string.app_name,
             duration = 0,
             action = R.string.edit_2,
@@ -101,7 +101,7 @@ class ContextMenuSnackbarDelegateTest {
     fun `show with listener and action`() {
         val listener = mockk<(View) -> Unit>(relaxed = true)
         delegate.show(
-            snackBarParentView = mockk(),
+            snackBarParentView = view,
             text = R.string.app_name,
             duration = 0,
             action = R.string.edit_2,

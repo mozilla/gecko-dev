@@ -274,6 +274,6 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
         context,
         context.components.useCases.contextMenuUseCases,
         view,
-        ContextMenuSnackbarDelegate(view),
+        ContextMenuSnackbarDelegate(),
     )
 }

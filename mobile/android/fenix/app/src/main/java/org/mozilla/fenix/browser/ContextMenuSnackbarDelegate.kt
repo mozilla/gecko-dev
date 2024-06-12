@@ -13,7 +13,7 @@ import org.mozilla.fenix.components.FenixSnackbar
  * An implementation of [SnackbarDelegate] used to override the default snackbar behavior for
  * showing a snackbar from a context menu item.
  */
-class ContextMenuSnackbarDelegate(private val view: View) : SnackbarDelegate {
+class ContextMenuSnackbarDelegate : SnackbarDelegate {
 
     override fun show(
         snackBarParentView: View,
@@ -22,6 +22,7 @@ class ContextMenuSnackbarDelegate(private val view: View) : SnackbarDelegate {
         @StringRes action: Int,
         listener: ((v: View) -> Unit)?,
     ) {
+        val view = snackBarParentView
         val snackbar = FenixSnackbar.make(
             view = view,
             duration = FenixSnackbar.LENGTH_SHORT,
