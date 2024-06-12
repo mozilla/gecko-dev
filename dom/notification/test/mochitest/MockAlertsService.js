@@ -18,30 +18,29 @@ function mockServicesChromeScript() {
   let activeNotifications = Object.create(null);
 
   const mockAlertsService = {
-    showPersistentNotification: function (
-      persistentData,
-      alert,
-      alertListener
-    ) {
+    showPersistentNotification(persistentData, alert, alertListener) {
       this.showAlert(alert, alertListener);
     },
 
-    showAlert: function (alert, listener) {
+    showAlert(alert, listener) {
       activeNotifications[alert.name] = {
-        listener: listener,
+        listener,
         cookie: alert.cookie,
         title: alert.title,
       };
 
       // fake async alert show event
       if (listener) {
-        setTimeout(function () {
+        setTimeout(() => {
           listener.observe(null, "alertshow", alert.cookie);
+          if (this.autoClick) {
+            listener.observe(null, "alertclickcallback", alert.cookie);
+          }
         }, 100);
       }
     },
 
-    showAlertNotification: function (
+    showAlertNotification(
       imageUrl,
       title,
       text,
@@ -52,15 +51,15 @@ function mockServicesChromeScript() {
     ) {
       this.showAlert(
         {
-          name: name,
-          cookie: cookie,
-          title: title,
+          name,
+          cookie,
+          title,
         },
         alertListener
       );
     },
 
-    closeAlert: function (name) {
+    closeAlert(name) {
       let alertNotification = activeNotifications[name];
       if (alertNotification) {
         if (alertNotification.listener) {
@@ -76,9 +75,15 @@ function mockServicesChromeScript() {
 
     QueryInterface: ChromeUtils.generateQI(["nsIAlertsService"]),
 
-    createInstance: function (iid) {
+    createInstance(iid) {
       return this.QueryInterface(iid);
     },
+
+    // Some existing mochitests expect the mock to click the notification.
+    // The state here is specific to each caller as register() uses
+    // SpecialPowers.loadChromeScript that ensures evaluating on each call
+    // without caching objects.
+    autoClick: false,
   };
 
   registrar.registerFactory(
@@ -124,6 +129,14 @@ function mockServicesChromeScript() {
     closeAllNotifications
   );
 
+  addMessageListener("mock-alert-service:close-notification", alertName =>
+    mockAlertsService.closeAlert(alertName)
+  );
+
+  addMessageListener("mock-alert-service:enable-autoclick", () => {
+    mockAlertsService.autoClick = true;
+  });
+
   sendAsyncMessage("mock-alert-service:registered");
 }
 
@@ -135,6 +148,10 @@ const MockAlertsService = {
     this._chromeScript = SpecialPowers.loadChromeScript(
       mockServicesChromeScript
     );
+    // Make sure every registration will unregister automatically at test end
+    SimpleTest.registerCleanupFunction(async () => {
+      await MockAlertsService.unregister();
+    });
     await this._chromeScript.promiseOneMessage("mock-alert-service:registered");
   },
   async unregister() {
@@ -151,21 +168,30 @@ const MockAlertsService = {
   },
   async clickNotifications() {
     // Most implementations of the nsIAlertsService automatically close upon click.
-    await this._chromeScript.sendAsyncMessage(
+    await this._chromeScript.sendQuery(
       "mock-alert-service:click-notifications",
       true
     );
   },
   async clickNotificationsWithoutClose() {
     // The implementation on macOS does not automatically close the notification.
-    await this._chromeScript.sendAsyncMessage(
+    await this._chromeScript.sendQuery(
       "mock-alert-service:click-notifications",
       false
     );
   },
   async closeNotifications() {
-    await this._chromeScript.sendAsyncMessage(
+    await this._chromeScript.sendQuery(
       "mock-alert-service:close-notifications"
     );
+  },
+  async closeNotification(alertName) {
+    await this._chromeScript.sendQuery(
+      "mock-alert-service:close-notification",
+      alertName
+    );
+  },
+  async enableAutoClick() {
+    await this._chromeScript.sendQuery("mock-alert-service:enable-autoclick");
   },
 };

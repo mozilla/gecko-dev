@@ -6,7 +6,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
 <head>
   <title>Bug 1172870 - Test clients.openWindow</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockServices.js"></script>
+  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -20,15 +20,14 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
 <script type="text/javascript">
   SimpleTest.requestFlakyTimeout("Mock alert service dispatches show and click events.");
 
-  function setup(ctx) {
-    MockServices.register();
+  async function setup(ctx) {
+    await MockAlertsService.register();
+    await MockAlertsService.enableAutoClick();
 
-    return navigator.serviceWorker.register("openWindow_worker.js", {scope: "./"})
-      .then(function(swr) {
-        ok(swr, "Registration successful");
-        ctx.registration = swr;
-        return waitForState(swr.installing, 'activated', ctx);
-      });
+    const swr = await navigator.serviceWorker.register("openWindow_worker.js", {scope: "./"});
+    ok(swr, "Registration successful");
+    ctx.registration = swr;
+    return await waitForState(swr.installing, 'activated', ctx);
   }
 
   function setupMessageHandler(ctx) {
@@ -71,13 +70,10 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
     });
   }
 
-  function clear(ctx) {
-    MockServices.unregister();
-
-    return ctx.registration.unregister().then(function(result) {
-      ctx.registration = null;
-      ok(result, "Unregister was successful.");
-    });
+  async function clear(ctx) {
+    const result = await ctx.registration.unregister();
+    ctx.registration = null;
+    ok(result, "Unregister was successful.");
   }
 
   function runTest() {

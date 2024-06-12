@@ -3,7 +3,7 @@
 support-files = [
   "blank.html",
   "create_notification.html",
-  "MockServices.js",
+  "MockAlertsService.js",
   "NotificationTest.js",
 ]
 
