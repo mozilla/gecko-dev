@@ -61,33 +61,30 @@ enum class DataChannelReliabilityPolicy {
 // not copy it.
 class OutgoingMsg {
  public:
-  OutgoingMsg(struct sctp_sendv_spa& info, const uint8_t* data, size_t length);
+  OutgoingMsg(struct sctp_sendv_spa& info, Span<const uint8_t> data);
 
   void Advance(size_t offset);
   struct sctp_sendv_spa& GetInfo() const { return *mInfo; };
-  size_t GetLength() const { return mLength; };
-  size_t GetLeft() const { return mLength - mPos; };
-  const uint8_t* GetData() const { return (const uint8_t*)(mData + mPos); };
+  size_t GetLength() const { return mData.Length(); };
+  Span<const uint8_t> GetRemainingData() const { return mData.From(mPos); }
 
  protected:
-  OutgoingMsg()  // Use this for inheritance only
-      : mLength(0), mData(nullptr), mInfo(nullptr), mPos(0) {};
-  size_t mLength;
-  const uint8_t* mData;
-  struct sctp_sendv_spa* mInfo;
-  size_t mPos;
+  const Span<const uint8_t> mData;
+  struct sctp_sendv_spa* const mInfo;
+  size_t mPos = 0;
 };
 
 // For queuing outgoing messages
 // This class copies data of an outgoing message.
 class BufferedOutgoingMsg : public OutgoingMsg {
  public:
-  explicit BufferedOutgoingMsg(OutgoingMsg& msg);
-  BufferedOutgoingMsg(const BufferedOutgoingMsg& other) = delete;
-  BufferedOutgoingMsg(BufferedOutgoingMsg&& other) = delete;
-  BufferedOutgoingMsg& operator=(const BufferedOutgoingMsg& other) = delete;
-  BufferedOutgoingMsg& operator=(BufferedOutgoingMsg&& other) = delete;
-  ~BufferedOutgoingMsg();
+  static UniquePtr<BufferedOutgoingMsg> CopyFrom(const OutgoingMsg& msg);
+
+ private:
+  BufferedOutgoingMsg(nsTArray<uint8_t>&& data,
+                      UniquePtr<struct sctp_sendv_spa>&& info);
+  const nsTArray<uint8_t> mDataStorage;
+  const UniquePtr<struct sctp_sendv_spa> mInfoStorage;
 };
 
 // for queuing incoming data messages before the Open or
