@@ -21,13 +21,13 @@ import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.FenixSnackbar.Companion.LENGTH_SHORT
 import org.mozilla.fenix.helpers.MockkRetryTestRule
 
-class FenixSnackbarDelegateTest {
+class ContextMenuSnackbarDelegateTest {
 
     @MockK private lateinit var view: View
 
     @MockK(relaxed = true)
     private lateinit var snackbar: FenixSnackbar
-    private lateinit var delegate: FenixSnackbarDelegate
+    private lateinit var delegate: ContextMenuSnackbarDelegate
 
     @get:Rule
     val mockkRule = MockkRetryTestRule()
@@ -37,7 +37,7 @@ class FenixSnackbarDelegateTest {
         MockKAnnotations.init(this)
         mockkObject(FenixSnackbar.Companion)
 
-        delegate = FenixSnackbarDelegate(view)
+        delegate = ContextMenuSnackbarDelegate()
         every {
             FenixSnackbar.make(view, LENGTH_SHORT, isDisplayedWithBrowserToolbar = true)
         } returns snackbar
@@ -55,7 +55,7 @@ class FenixSnackbarDelegateTest {
     @Test
     fun `show with no listener nor action`() {
         delegate.show(
-            snackBarParentView = mockk(),
+            snackBarParentView = view,
             text = R.string.app_name,
             duration = 0,
             action = 0,
@@ -70,7 +70,7 @@ class FenixSnackbarDelegateTest {
     @Test
     fun `show with listener but no action`() {
         delegate.show(
-            snackBarParentView = mockk(),
+            snackBarParentView = view,
             text = R.string.app_name,
             duration = 0,
             action = 0,
@@ -85,7 +85,7 @@ class FenixSnackbarDelegateTest {
     @Test
     fun `show with action but no listener`() {
         delegate.show(
-            snackBarParentView = mockk(),
+            snackBarParentView = view,
             text = R.string.app_name,
             duration = 0,
             action = R.string.edit_2,
@@ -101,7 +101,7 @@ class FenixSnackbarDelegateTest {
     fun `show with listener and action`() {
         val listener = mockk<(View) -> Unit>(relaxed = true)
         delegate.show(
-            snackBarParentView = mockk(),
+            snackBarParentView = view,
             text = R.string.app_name,
             duration = 0,
             action = R.string.edit_2,

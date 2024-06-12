@@ -10,14 +10,14 @@ import mozilla.components.browser.state.state.BrowserState
 internal object CopyInternetResourceStateReducer {
     fun reduce(state: BrowserState, action: CopyInternetResourceAction): BrowserState {
         return when (action) {
-            is CopyInternetResourceAction.AddCopyAction -> updateTheContentState(
+            is CopyInternetResourceAction.AddCopyAction -> updateContentState(
                 state,
                 action.tabId,
             ) {
                 it.copy(copy = action.internetResource)
             }
 
-            is CopyInternetResourceAction.ConsumeCopyAction -> updateTheContentState(
+            is CopyInternetResourceAction.ConsumeCopyAction -> updateContentState(
                 state,
                 action.tabId,
             ) {

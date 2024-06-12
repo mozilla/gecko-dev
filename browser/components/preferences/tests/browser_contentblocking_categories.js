@@ -27,6 +27,8 @@ const QUERY_PARAM_STRIP_PREF = "privacy.query_stripping.enabled";
 const QUERY_PARAM_STRIP_PBM_PREF = "privacy.query_stripping.enabled.pbmode";
 const FPP_PREF = "privacy.fingerprintingProtection";
 const FPP_PBM_PREF = "privacy.fingerprintingProtection.pbmode";
+const THIRD_PARTY_COOKIE_DEPRECATION_PREF =
+  "network.cookie.cookieBehavior.optInPartitioning";
 const STRICT_DEF_PREF = "browser.contentblocking.features.strict";
 
 // Tests that the content blocking standard category definition is based on the default settings of
@@ -109,6 +111,10 @@ add_task(async function testContentBlockingStandardDefinition() {
     !Services.prefs.prefHasUserValue(FPP_PBM_PREF),
     `${FPP_PBM_PREF} pref has the default value`
   );
+  ok(
+    !Services.prefs.prefHasUserValue(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
+    `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} pref has the default value`
+  );
 
   let defaults = Services.prefs.getDefaultBranch("");
   let originalTP = defaults.getBoolPref(TP_PREF);
@@ -130,6 +136,7 @@ add_task(async function testContentBlockingStandardDefinition() {
   );
   let originalFPP = defaults.getBoolPref(FPP_PREF);
   let originalFPPPBM = defaults.getBoolPref(FPP_PBM_PREF);
+  let original3PCD = defaults.getBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF);
 
   let nonDefaultNCB;
   switch (originalNCB) {
@@ -167,6 +174,7 @@ add_task(async function testContentBlockingStandardDefinition() {
   defaults.setBoolPref(QUERY_PARAM_STRIP_PBM_PREF, !originalQueryParamStripPBM);
   defaults.setBoolPref(FPP_PREF, !originalFPP);
   defaults.setBoolPref(FPP_PBM_PREF, !originalFPPPBM);
+  defaults.setBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF, !original3PCD);
 
   ok(
     !Services.prefs.prefHasUserValue(TP_PREF),
@@ -236,6 +244,10 @@ add_task(async function testContentBlockingStandardDefinition() {
     !Services.prefs.prefHasUserValue(FPP_PBM_PREF),
     `${FPP_PBM_PREF} pref has the default value`
   );
+  ok(
+    !Services.prefs.prefHasUserValue(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
+    `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} pref has the default value`
+  );
 
   // cleanup
   defaults.setIntPref(NCB_PREF, originalNCB);
@@ -256,6 +268,7 @@ add_task(async function testContentBlockingStandardDefinition() {
   defaults.setBoolPref(QUERY_PARAM_STRIP_PBM_PREF, originalQueryParamStripPBM);
   defaults.setBoolPref(FPP_PREF, originalFPP);
   defaults.setBoolPref(FPP_PBM_PREF, originalFPPPBM);
+  defaults.setBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF, original3PCD);
 });
 
 // Tests that the content blocking strict category definition changes the behavior
@@ -266,7 +279,7 @@ add_task(async function testContentBlockingStrictDefinition() {
   let originalStrictPref = defaults.getStringPref(STRICT_DEF_PREF);
   defaults.setStringPref(
     STRICT_DEF_PREF,
-    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,emailTP,emailTPPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate"
+    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,emailTP,emailTPPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate,3pcd"
   );
   Services.prefs.setStringPref(CAT_PREF, "strict");
   is(
@@ -281,7 +294,7 @@ add_task(async function testContentBlockingStrictDefinition() {
   );
   is(
     Services.prefs.getStringPref(STRICT_DEF_PREF),
-    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,emailTP,emailTPPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate",
+    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,emailTP,emailTPPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate,3pcd",
     `${STRICT_DEF_PREF} changed to what we set.`
   );
 
@@ -370,6 +383,11 @@ add_task(async function testContentBlockingStrictDefinition() {
     true,
     `${FPP_PBM_PREF} pref has been set to true`
   );
+  is(
+    Services.prefs.getBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
+    true,
+    `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} pref has been set to true`
+  );
 
   // Note, if a pref is not listed it will use the default value, however this is only meant as a
   // backup if a mistake is made. The UI will not respond correctly.
@@ -442,10 +460,14 @@ add_task(async function testContentBlockingStrictDefinition() {
     !Services.prefs.prefHasUserValue(FPP_PBM_PREF),
     `${FPP_PBM_PREF} pref has the default value`
   );
+  ok(
+    !Services.prefs.prefHasUserValue(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
+    `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} pref has the default value`
+  );
 
   defaults.setStringPref(
     STRICT_DEF_PREF,
-    "-tpPrivate,-fp,-cm,-tp,cookieBehavior3,cookieBehaviorPBM2,-stp,-emailTP,-emailTPPrivate,-lvl2,-rp,-ocsp,-qps,-qpsPBM,-fpp,-fppPrivate"
+    "-tpPrivate,-fp,-cm,-tp,cookieBehavior3,cookieBehaviorPBM2,-stp,-emailTP,-emailTPPrivate,-lvl2,-rp,-ocsp,-qps,-qpsPBM,-fpp,-fppPrivate,-3pcd"
   );
   is(
     Services.prefs.getBoolPref(TP_PREF),
@@ -531,6 +553,11 @@ add_task(async function testContentBlockingStrictDefinition() {
     Services.prefs.getBoolPref(FPP_PBM_PREF),
     false,
     `${FPP_PBM_PREF} pref has been set to false`
+  );
+  is(
+    Services.prefs.getBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
+    false,
+    `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} pref has been set to false`
   );
 
   // cleanup

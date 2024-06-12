@@ -40,37 +40,43 @@ add_task(async function test_preferences_visibility() {
 });
 
 /**
- * Tests that the turn on scheduled backups dialog can set
- * browser.backup.scheduled.enabled to true from the settings page.
+ * Tests that the turn off scheduled backups dialog can set
+ * browser.backup.scheduled.enabled to false from the settings page.
  */
-add_task(async function test_turn_on_scheduled_backups_confirm() {
+add_task(async function test_turn_off_scheduled_backups_confirm() {
   await BrowserTestUtils.withNewTab("about:preferences", async browser => {
+    const SCHEDULED_BACKUPS_ENABLED_PREF = "browser.backup.scheduled.enabled";
+
+    await SpecialPowers.pushPrefEnv({
+      set: [[SCHEDULED_BACKUPS_ENABLED_PREF, true]],
+    });
+
     let settings = browser.contentDocument.querySelector("backup-settings");
 
     await settings.updateComplete;
 
-    let turnOnButton = settings.scheduledBackupsButtonEl;
+    let turnOffButton = settings.scheduledBackupsButtonEl;
 
     Assert.ok(
-      turnOnButton,
-      "Button to turn on scheduled backups should be found"
+      turnOffButton,
+      "Button to turn off scheduled backups should be found"
     );
 
-    turnOnButton.click();
+    turnOffButton.click();
 
     await settings.updateComplete;
 
-    let turnOnScheduledBackups = settings.turnOnScheduledBackupsEl;
+    let turnOffScheduledBackups = settings.turnOffScheduledBackupsEl;
 
     Assert.ok(
-      turnOnScheduledBackups,
-      "turn-on-scheduled-backups should be found"
+      turnOffScheduledBackups,
+      "turn-off-scheduled-backups should be found"
     );
 
-    let confirmButton = turnOnScheduledBackups.confirmButtonEl;
+    let confirmButton = turnOffScheduledBackups.confirmButtonEl;
     let promise = BrowserTestUtils.waitForEvent(
       window,
-      "scheduledBackupsConfirm"
+      "turnOffScheduledBackups"
     );
 
     Assert.ok(confirmButton, "Confirm button should be found");
@@ -81,8 +87,10 @@ add_task(async function test_turn_on_scheduled_backups_confirm() {
     await settings.updateComplete;
 
     let scheduledPrefVal = Services.prefs.getBoolPref(
-      "browser.backup.scheduled.enabled"
+      SCHEDULED_BACKUPS_ENABLED_PREF
     );
-    Assert.ok(scheduledPrefVal, "Scheduled backups pref should be true");
+    Assert.ok(!scheduledPrefVal, "Scheduled backups pref should be false");
+
+    await SpecialPowers.popPrefEnv();
   });
 });

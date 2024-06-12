@@ -352,14 +352,14 @@ class DXGITextureHostD3D11 : public TextureHost {
 
   gfx::SurfaceFormat GetFormat() const override { return mFormat; }
 
-  bool LockWithoutCompositor() override;
-  void UnlockWithoutCompositor() override;
-
   gfx::IntSize GetSize() const override { return mSize; }
   gfx::ColorRange GetColorRange() const override { return mColorRange; }
 
   already_AddRefed<gfx::DataSourceSurface> GetAsSurface(
       gfx::DataSourceSurface* aSurface) override;
+
+  already_AddRefed<gfx::DataSourceSurface> GetAsSurfaceWithDevice(
+      ID3D11Device* const aDevice);
 
   void CreateRenderTexture(
       const wr::ExternalImageId& aExternalImageId) override;
@@ -379,34 +379,16 @@ class DXGITextureHostD3D11 : public TextureHost {
 
   bool SupportsExternalCompositing(WebRenderBackend aBackend) override;
 
- protected:
-  bool LockInternal();
-  void UnlockInternal();
-
-  bool EnsureTextureSource();
-
-  RefPtr<ID3D11Device> GetDevice();
-
-  bool EnsureTexture();
-
-  RefPtr<ID3D11Device> mDevice;
-  RefPtr<ID3D11Texture2D> mTexture;
-  Maybe<GpuProcessTextureId> mGpuProcessTextureId;
-  Maybe<GpuProcessQueryId> mGpuProcessQueryId;
-  uint32_t mArrayIndex = 0;
-  RefPtr<DataTextureSourceD3D11> mTextureSource;
-  gfx::IntSize mSize;
   const RefPtr<gfx::FileHandleWrapper> mHandle;
-  gfx::SurfaceFormat mFormat;
-  bool mHasKeyedMutex;
-  gfx::FenceInfo mAcquireFenceInfo;
-
- public:
+  const Maybe<GpuProcessTextureId> mGpuProcessTextureId;
+  const uint32_t mArrayIndex;
+  const Maybe<GpuProcessQueryId> mGpuProcessQueryId;
+  const gfx::IntSize mSize;
+  const gfx::SurfaceFormat mFormat;
+  const bool mHasKeyedMutex;
+  const gfx::FenceInfo mAcquireFenceInfo;
   const gfx::ColorSpace2 mColorSpace;
-
- protected:
   const gfx::ColorRange mColorRange;
-  bool mIsLocked;
 };
 
 class DXGIYCbCrTextureHostD3D11 : public TextureHost {

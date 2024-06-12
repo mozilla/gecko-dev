@@ -16497,6 +16497,950 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 
 
 
+.. dropdown:: vpl-av1
+   :class-container: anchor-id-vpl-av1-c
+
+   **Owner**: :aosmond and the Media Team
+
+   **Description**: Measures AV1 1080p video playback latency.
+
+   * **alert on**: `estimatedFirstFrameLatency <raptor-metrics.html#estimated-frame-latency-(first)>`__, `estimatedAnyFrameLatency <raptor-metrics.html#estimated-frame-latency-(any)>`__
+   * **alert threshold**: 2.0
+   * **apps**: chrome, chrome-m, geckoview, fenix, firefox, safari
+   * **benchmark webserver**: true
+   * **browser cycles**: 20
+   * **expected**: pass
+   * **gecko profile features**: stackwalk,js,cpu,java,processcpu,screenshots,memory
+   * **gecko profile interval**: 1
+   * **gecko profile threads**: BackgroundThreadPool,Compositor,decoder,GeckoMain,gmp,graph,grph,InotifyEventThread,IPDL Background,media,ModuleProcessThread,PacerThread,RemVidChild,RenderBackend,Renderer,SwComposite,TextureUpdate,ImageBridgeChld
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-video-playback-latency.toml#36>`__
+   * **lower is better**: true
+   * **measure**: firstFrame, secondFrame, lastFrame, estimatedFirstFrameLatency, estimatedAnyFrameLatency
+   * **newtab per cycle**: true
+   * **page cycles**: 20
+   * **page timeout**: 20000
+   * **preferences**: media.autoplay.default=0 media.autoplay.ask-permission=false media.autoplay.blocking_policy=0 media.allowed-to-play.enabled=true media.block-autoplay-until-in-foreground=false
+   * **repository**: https://github.com/mozilla/perf-automation
+   * **repository path**: benchmarks/video-playback-latency
+   * **repository revision**: e3d0295c15cfdd6f32e6d4270de0ed5d6c1632cd
+   * **support class**: video_playback_latency.py
+   * **test url**: `<http://\<host\>:\<port\>/av1_1080p.html>`__
+   * **type**: pageload
+   * **unit**: ms
+   * **Test Task**:
+
+   .. list-table:: **test-android-hw-a51-11-0-aarch64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-av1-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-av1-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-android-hw-a51-11-0-aarch64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-chrome-m-vpl-av1-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-av1-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-av1-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-linux1804-64-nightlyasrelease-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-linux1804-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-linux1804-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1015-64-nightlyasrelease-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1015-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1015-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-32-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-32-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-64-nightlyasrelease-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-2009-hw-ref-shippable/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-2009-hw-ref/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+
+.. dropdown:: vpl-h264
+   :class-container: anchor-id-vpl-h264-c
+
+   **Owner**: :aosmond and the Media Team
+
+   **Description**: Measures H264 1080p video playback latency.
+
+   * **alert on**: `estimatedFirstFrameLatency <raptor-metrics.html#estimated-frame-latency-(first)>`__, `estimatedAnyFrameLatency <raptor-metrics.html#estimated-frame-latency-(any)>`__
+   * **alert threshold**: 2.0
+   * **apps**: chrome, chrome-m, geckoview, fenix, firefox, safari
+   * **benchmark webserver**: true
+   * **browser cycles**: 20
+   * **expected**: pass
+   * **gecko profile features**: stackwalk,js,cpu,java,processcpu,screenshots,memory
+   * **gecko profile interval**: 1
+   * **gecko profile threads**: BackgroundThreadPool,Compositor,decoder,GeckoMain,gmp,graph,grph,InotifyEventThread,IPDL Background,media,ModuleProcessThread,PacerThread,RemVidChild,RenderBackend,Renderer,SwComposite,TextureUpdate,ImageBridgeChld
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-video-playback-latency.toml#30>`__
+   * **lower is better**: true
+   * **measure**: firstFrame, secondFrame, lastFrame, estimatedFirstFrameLatency, estimatedAnyFrameLatency
+   * **newtab per cycle**: true
+   * **page cycles**: 20
+   * **page timeout**: 20000
+   * **preferences**: media.autoplay.default=0 media.autoplay.ask-permission=false media.autoplay.blocking_policy=0 media.allowed-to-play.enabled=true media.block-autoplay-until-in-foreground=false
+   * **repository**: https://github.com/mozilla/perf-automation
+   * **repository path**: benchmarks/video-playback-latency
+   * **repository revision**: e3d0295c15cfdd6f32e6d4270de0ed5d6c1632cd
+   * **support class**: video_playback_latency.py
+   * **test url**: `<http://\<host\>:\<port\>/h264_1080p.html>`__
+   * **type**: pageload
+   * **unit**: ms
+   * **Test Task**:
+
+   .. list-table:: **test-android-hw-a51-11-0-aarch64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-h264-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-h264-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-android-hw-a51-11-0-aarch64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-chrome-m-vpl-h264-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-h264-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-h264-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-linux1804-64-nightlyasrelease-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-linux1804-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-linux1804-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1015-64-nightlyasrelease-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1015-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1015-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-safari-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-32-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-32-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-64-nightlyasrelease-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-2009-hw-ref-shippable/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-2009-hw-ref/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+
+.. dropdown:: vpl-vp9
+   :class-container: anchor-id-vpl-vp9-c
+
+   **Owner**: :aosmond and the Media Team
+
+   **Description**: Measures VP9 1080p video playback latency.
+
+   * **alert on**: `estimatedFirstFrameLatency <raptor-metrics.html#estimated-frame-latency-(first)>`__, `estimatedAnyFrameLatency <raptor-metrics.html#estimated-frame-latency-(any)>`__
+   * **alert threshold**: 2.0
+   * **apps**: chrome, chrome-m, geckoview, fenix, firefox, safari
+   * **benchmark webserver**: true
+   * **browser cycles**: 20
+   * **expected**: pass
+   * **gecko profile features**: stackwalk,js,cpu,java,processcpu,screenshots,memory
+   * **gecko profile interval**: 1
+   * **gecko profile threads**: BackgroundThreadPool,Compositor,decoder,GeckoMain,gmp,graph,grph,InotifyEventThread,IPDL Background,media,ModuleProcessThread,PacerThread,RemVidChild,RenderBackend,Renderer,SwComposite,TextureUpdate,ImageBridgeChld
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-video-playback-latency.toml#33>`__
+   * **lower is better**: true
+   * **measure**: firstFrame, secondFrame, lastFrame, estimatedFirstFrameLatency, estimatedAnyFrameLatency
+   * **newtab per cycle**: true
+   * **page cycles**: 20
+   * **page timeout**: 20000
+   * **preferences**: media.autoplay.default=0 media.autoplay.ask-permission=false media.autoplay.blocking_policy=0 media.allowed-to-play.enabled=true media.block-autoplay-until-in-foreground=false
+   * **repository**: https://github.com/mozilla/perf-automation
+   * **repository path**: benchmarks/video-playback-latency
+   * **repository revision**: e3d0295c15cfdd6f32e6d4270de0ed5d6c1632cd
+   * **support class**: video_playback_latency.py
+   * **test url**: `<http://\<host\>:\<port\>/vp9_1080p.html>`__
+   * **type**: pageload
+   * **unit**: ms
+   * **Test Task**:
+
+   .. list-table:: **test-android-hw-a51-11-0-aarch64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-vp9-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-vp9-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-android-hw-a51-11-0-aarch64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-chrome-m-vpl-vp9-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-vp9-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-vp9-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-linux1804-64-nightlyasrelease-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-linux1804-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-linux1804-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1015-64-nightlyasrelease-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1015-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1015-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-32-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-32-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-64-nightlyasrelease-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-2009-hw-ref-shippable/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-chrome-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-2009-hw-ref/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-video-playback-latency-firefox-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+
 .. dropdown:: welcome
    :class-container: anchor-id-welcome-c
 

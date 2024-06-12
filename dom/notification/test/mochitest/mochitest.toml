@@ -3,12 +3,15 @@
 support-files = [
   "blank.html",
   "create_notification.html",
-  "MockServices.js",
+  "MockAlertsService.js",
   "NotificationTest.js",
 ]
 
 ["test_notification_basics.html"]
-skip-if = ["xorigin"] # Bug 1792790
+skip-if = [
+  "xorigin", # Bug 1792790
+  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
+]
 
 ["test_notification_crossorigin_iframe.html"]
 scheme = "https"

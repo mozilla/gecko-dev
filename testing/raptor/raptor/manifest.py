@@ -147,7 +147,9 @@ def validate_test_toml(test_details):
                 "`repository_revision` is required when a `repository` is defined."
             )
             valid_settings = False
-        elif test_details.get("type") not in ("benchmark"):
+        elif test_details.get("type") not in ("benchmark") and not test_details.get(
+            "benchmark_webserver", False
+        ):
             LOG.error("`repository` is only available for benchmark test types.")
             valid_settings = False
 

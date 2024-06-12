@@ -30,19 +30,15 @@
 #  pragma warning(pop)
 #endif
 
-#include "nsServiceManagerUtils.h"
 #include "nsIInputStream.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
-#include "mozilla/Services.h"
 #include "mozilla/Sprintf.h"
 #include "nsProxyRelease.h"
 #include "nsThread.h"
 #include "nsThreadUtils.h"
 #include "nsNetUtil.h"
-#include "nsNetCID.h"
 #include "mozilla/Components.h"
-#include "mozilla/RandomNum.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/Unused.h"
@@ -56,6 +52,7 @@
 #endif
 
 #include "DataChannel.h"
+#include "DataChannelLog.h"
 #include "DataChannelProtocol.h"
 
 // Let us turn on and off important assertions in non-debug builds
@@ -325,35 +322,29 @@ class DataChannelRegistry {
 
 StaticMutex DataChannelRegistry::sInstanceMutex;
 
-OutgoingMsg::OutgoingMsg(struct sctp_sendv_spa& info, const uint8_t* data,
-                         size_t length)
-    : mLength(length), mData(data) {
-  mInfo = &info;
-  mPos = 0;
-}
+OutgoingMsg::OutgoingMsg(struct sctp_sendv_spa& info, Span<const uint8_t> data)
+    : mData(data), mInfo(&info) {}
 
 void OutgoingMsg::Advance(size_t offset) {
   mPos += offset;
-  if (mPos > mLength) {
-    mPos = mLength;
+  if (mPos > mData.Length()) {
+    mPos = mData.Length();
   }
 }
 
-BufferedOutgoingMsg::BufferedOutgoingMsg(OutgoingMsg& msg) {
-  size_t length = msg.GetLeft();
-  auto* tmp = new uint8_t[length];  // infallible malloc!
-  memcpy(tmp, msg.GetData(), length);
-  mLength = length;
-  mData = tmp;
-  mInfo = new sctp_sendv_spa;
-  *mInfo = msg.GetInfo();
-  mPos = 0;
+/* static */
+UniquePtr<BufferedOutgoingMsg> BufferedOutgoingMsg::CopyFrom(
+    const OutgoingMsg& msg) {
+  nsTArray<uint8_t> data(msg.GetRemainingData());
+  auto info = MakeUnique<struct sctp_sendv_spa>(msg.GetInfo());
+  return WrapUnique(new BufferedOutgoingMsg(std::move(data), std::move(info)));
 }
 
-BufferedOutgoingMsg::~BufferedOutgoingMsg() {
-  delete mInfo;
-  delete[] mData;
-}
+BufferedOutgoingMsg::BufferedOutgoingMsg(
+    nsTArray<uint8_t>&& data, UniquePtr<struct sctp_sendv_spa>&& info)
+    : OutgoingMsg(*info, data),
+      mDataStorage(std::move(data)),
+      mInfoStorage(std::move(info)) {}
 
 static int receive_cb(struct socket* sock, union sctp_sockstore addr,
                       void* data, size_t datalen, struct sctp_rcvinfo rcv,
@@ -1194,7 +1185,7 @@ int DataChannelConnection::SendControlMessage(const uint8_t* data, uint32_t len,
     return EMSGSIZE;
   }
 #endif
-  OutgoingMsg msg(info, data, (size_t)len);
+  OutgoingMsg msg(info, Span(data, len));
   bool buffered;
   int error = SendMsgInternalOrBuffer(mBufferedControl, msg, buffered, nullptr);
 
@@ -1301,6 +1292,9 @@ bool DataChannelConnection::SendDeferredMessages() {
   uint32_t end = i;
   do {
     channel = mChannels.Get(i);
+    // Note that `channel->mConnection` is `this`. This is just here to satisfy
+    // the thread safety annotations on DataChannel.
+    channel->mConnection->mLock.AssertCurrentThreadOwns();
     // Should already be cleared if closing/closed
     if (!channel || channel->mBufferedData.IsEmpty()) {
       i = UpdateCurrentStreamIndex();
@@ -1343,11 +1337,11 @@ bool DataChannelConnection::SendDeferredMessages() {
   return blocked;
 }
 
-// Called with mLock locked!
 // buffer MUST have at least one item!
 // returns if we're still blocked (true)
 bool DataChannelConnection::SendBufferedMessages(
     nsTArray<UniquePtr<BufferedOutgoingMsg>>& buffer, size_t* aWritten) {
+  mLock.AssertCurrentThreadOwns();
   do {
     // Re-send message
     int error = SendMsgInternal(*buffer[0], aWritten);
@@ -1493,11 +1487,11 @@ void DataChannelConnection::DeliverQueuedData(uint16_t stream) {
     mLock.AssertCurrentThreadOwns();
     const bool match = dataItem->mStream == stream;
     if (match) {
-      DC_DEBUG(("Delivering queued data for stream %u, length %u", stream,
-                dataItem->mLength));
+      DC_DEBUG(("Delivering queued data for stream %u, length %zu", stream,
+                dataItem->mData.Length()));
       // Deliver the queued data
-      HandleDataMessage(dataItem->mData, dataItem->mLength, dataItem->mPpid,
-                        dataItem->mStream, dataItem->mFlags);
+      HandleDataMessage(dataItem->mData.Elements(), dataItem->mData.Length(),
+                        dataItem->mPpid, dataItem->mStream, dataItem->mFlags);
     }
     return match;
   });
@@ -1600,10 +1594,14 @@ void DataChannelConnection::HandleDataMessage(const void* data, size_t length,
     // data messages to deliver once the channel opens.
     DC_DEBUG(("Queuing data for stream %u, length %u", stream, data_length));
     // Copies data
-    mQueuedData.AppendElement(
-        new QueuedDataMessage(stream, ppid, flags, data, data_length));
+    mQueuedData.AppendElement(new QueuedDataMessage(
+        stream, ppid, flags, static_cast<const uint8_t*>(data), data_length));
     return;
   }
+
+  // Note that `channel->mConnection` is `this`. This is just here to satisfy
+  // the thread safety annotations on DataChannel.
+  channel->mConnection->mLock.AssertCurrentThreadOwns();
 
   // RFC8832: "MUST be sent ordered, ... After the DATA_CHANNEL_ACK **or any
   // other message** has been received on the data channel".
@@ -1827,7 +1825,6 @@ void DataChannelConnection::HandleDCEPMessage(const void* buffer, size_t length,
   mRecvBuffer.Truncate(0);
 }
 
-// Called with mLock locked!
 void DataChannelConnection::HandleMessage(const void* buffer, size_t length,
                                           uint32_t ppid, uint16_t stream,
                                           int flags) {
@@ -2288,7 +2285,6 @@ void DataChannelConnection::HandleStreamChangeEvent(
   }
 }
 
-// Called with mLock locked!
 void DataChannelConnection::HandleNotification(
     const union sctp_notification* notif, size_t n) {
   mLock.AssertCurrentThreadOwns();
@@ -2528,9 +2524,9 @@ request_error_cleanup:
   return nullptr;
 }
 
-// Requires mLock to be locked!
 // Returns a POSIX error code directly instead of setting errno.
 int DataChannelConnection::SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) {
+  mLock.AssertCurrentThreadOwns();
   struct sctp_sndinfo& info = msg.GetInfo().sendv_sndinfo;
   int error;
 
@@ -2538,19 +2534,15 @@ int DataChannelConnection::SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) {
   bool eor_set = (info.snd_flags & SCTP_EOR) != 0;
 
   // Send until buffer is empty
-  size_t left = msg.GetLeft();
+  Span<const uint8_t> toSend = msg.GetRemainingData();
   do {
-    size_t length;
-
     // Carefully chunk the buffer
-    if (left > DATA_CHANNEL_MAX_BINARY_FRAGMENT) {
-      length = DATA_CHANNEL_MAX_BINARY_FRAGMENT;
+    if (toSend.Length() > DATA_CHANNEL_MAX_BINARY_FRAGMENT) {
+      toSend = toSend.To(DATA_CHANNEL_MAX_BINARY_FRAGMENT);
 
       // Unset EOR flag
       info.snd_flags &= ~SCTP_EOR;
     } else {
-      length = left;
-
       // Set EOR flag
       if (eor_set) {
         info.snd_flags |= SCTP_EOR;
@@ -2561,9 +2553,10 @@ int DataChannelConnection::SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) {
     // SCTP will return EMSGSIZE if the message is bigger than the buffer
     // size (or EAGAIN if there isn't space). However, we can avoid EMSGSIZE
     // by carefully crafting small enough message chunks.
-    ssize_t written = usrsctp_sendv(
-        mSocket, msg.GetData(), length, nullptr, 0, (void*)&msg.GetInfo(),
-        (socklen_t)sizeof(struct sctp_sendv_spa), SCTP_SENDV_SPA, 0);
+    ssize_t written = usrsctp_sendv(mSocket, toSend.Elements(), toSend.Length(),
+                                    nullptr, 0, (void*)&msg.GetInfo(),
+                                    (socklen_t)sizeof(struct sctp_sendv_spa),
+                                    SCTP_SENDV_SPA, 0);
 
     if (written < 0) {
       error = errno;
@@ -2574,7 +2567,8 @@ int DataChannelConnection::SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) {
       *aWritten += written;
     }
     DC_DEBUG(("Sent buffer (written=%zu, len=%zu, left=%zu)", (size_t)written,
-              length, left - (size_t)written));
+              toSend.Length(),
+              msg.GetRemainingData().Length() - (size_t)written));
 
     // TODO: Remove once resolved
     // (https://github.com/sctplab/usrsctp/issues/132)
@@ -2586,7 +2580,7 @@ int DataChannelConnection::SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) {
 
     // If not all bytes have been written, this obviously means that usrsctp's
     // buffer is full and we need to try again later.
-    if ((size_t)written < length) {
+    if ((size_t)written < toSend.Length()) {
       msg.Advance((size_t)written);
       error = EAGAIN;
       goto out;
@@ -2596,8 +2590,8 @@ int DataChannelConnection::SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) {
     msg.Advance((size_t)written);
 
     // Get amount of bytes left in the buffer
-    left = msg.GetLeft();
-  } while (left > 0);
+    toSend = msg.GetRemainingData();
+  } while (toSend.Length() > 0);
 
   // Done
   error = 0;
@@ -2611,7 +2605,6 @@ out:
   return error;
 }
 
-// Requires mLock to be locked!
 // Returns a POSIX error code directly instead of setting errno.
 // IMPORTANT: Ensure that the buffer passed is guarded by mLock!
 int DataChannelConnection::SendMsgInternalOrBuffer(
@@ -2662,10 +2655,10 @@ int DataChannelConnection::SendMsgInternalOrBuffer(
   if (need_buffering) {
     // queue data for resend!  And queue any further data for the stream until
     // it is...
-    auto* bufferedMsg = new BufferedOutgoingMsg(msg);  // infallible malloc
-    buffer.AppendElement(bufferedMsg);  // owned by mBufferedData array
+    buffer.EmplaceBack(
+        BufferedOutgoingMsg::CopyFrom(msg));  // owned by mBufferedData array
     DC_DEBUG(("Queued %zu buffers (left=%zu, total=%zu)", buffer.Length(),
-              msg.GetLeft(), msg.GetLength()));
+              buffer.LastElement()->GetLength(), msg.GetLength()));
     buffered = true;
     return 0;
   }
@@ -2680,6 +2673,10 @@ int DataChannelConnection::SendDataMsgInternalOrBuffer(DataChannel& channel,
                                                        const uint8_t* data,
                                                        size_t len,
                                                        uint32_t ppid) {
+  // Note that `channel.mConnection` is `this`. This is just here to satisfy
+  // the thread safety annotations on DataChannel.
+  channel.mConnection->mLock.AssertCurrentThreadOwns();
+
   if (NS_WARN_IF(channel.GetReadyState() != DataChannelState::Open)) {
     return EINVAL;  // TODO: Find a better error code
   }
@@ -2710,7 +2707,7 @@ int DataChannelConnection::SendDataMsgInternalOrBuffer(DataChannel& channel,
   }
 
   // Create message instance and send
-  OutgoingMsg msg(info, data, len);
+  OutgoingMsg msg(info, Span(data, len));
   bool buffered;
   size_t written = 0;
   mDeferSend = true;
@@ -2954,6 +2951,9 @@ void DataChannelConnection::CloseLocked(DataChannel* aChannel) {
   RefPtr<DataChannel> channel(aChannel);  // make sure it doesn't go away on us
 
   mLock.AssertCurrentThreadOwns();
+  // Note that `aChannel->mConnection` is `this`. This is just here to satisfy
+  // the thread safety annotations on DataChannel.
+  aChannel->mConnection->mLock.AssertCurrentThreadOwns();
   DC_DEBUG(("Connection %p/Channel %p: Closing stream %u",
             channel->mConnection.get(), channel.get(), channel->mStream));
 
@@ -3086,6 +3086,31 @@ RefPtr<DataChannel> DataChannelConnection::Channels::GetNextChannel(
   return mChannels[index];
 }
 
+DataChannel::DataChannel(DataChannelConnection* connection, uint16_t stream,
+                         DataChannelState state, const nsACString& label,
+                         const nsACString& protocol,
+                         DataChannelReliabilityPolicy policy, uint32_t value,
+                         bool ordered, bool negotiated,
+                         DataChannelListener* aListener, nsISupports* aContext)
+    : mListener(aListener),
+      mContext(aContext),
+      mConnection(connection),
+      mLabel(label),
+      mProtocol(protocol),
+      mReadyState(state),
+      mStream(stream),
+      mPrPolicy(policy),
+      mPrValue(value),
+      mNegotiated(negotiated),
+      mOrdered(ordered),
+      mIsRecvBinary(false),
+      mBufferedThreshold(0),  // default from spec
+      mBufferedAmount(0),
+      mMainThreadEventTarget(connection->GetNeckoTarget()),
+      mStatsLock("netwer::sctp::DataChannel::mStatsLock") {
+  NS_ASSERTION(mConnection, "NULL connection");
+}
+
 DataChannel::~DataChannel() {
   // NS_ASSERTION since this is more "I think I caught all the cases that
   // can cause this" than a true kill-the-program assertion.  If this is
@@ -3209,7 +3234,11 @@ void DataChannel::AnnounceClosed() {
           mConnection->mListener->NotifyDataChannelClosed(this);
         }
         SetReadyState(DataChannelState::Closed);
+        MOZ_PUSH_IGNORE_THREAD_SAFETY
+        // Ignoring thread safety here because the analysis needs us to lock
+        // mConnection->mLock when mConnection may be null.
         mBufferedData.Clear();
+        MOZ_POP_THREAD_SAFETY
         if (mListener) {
           DC_DEBUG(("%s: sending ON_CHANNEL_CLOSED for %s/%s: %u", __FUNCTION__,
                     mLabel.get(), mProtocol.get(), mStream));
@@ -3308,7 +3337,6 @@ void DataChannel::SetBufferedAmountLowThreshold(uint32_t aThreshold) {
   mBufferedThreshold = aThreshold;
 }
 
-// Called with mLock locked!
 void DataChannel::SendOrQueue(DataChannelOnMessageAvailable* aMessage) {
   nsCOMPtr<nsIRunnable> runnable = aMessage;
   mMainThreadEventTarget->Dispatch(runnable.forget());

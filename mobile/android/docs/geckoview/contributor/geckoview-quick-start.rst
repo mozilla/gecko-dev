@@ -192,7 +192,7 @@ GeckoView follows a deprecation policy you can learn more in this
 `design doc <https://firefox-source-docs.mozilla.org/mobile/android/geckoview/design/breaking-changes.html>`_.
 To deprecate an API, add the deprecation flags with an identifier for a
 deprecation notice, so that all notices with the same identifier will
-be removed at the same time. The version is the major version of when
+be removed at the same time (see below for an example). The version is the major version of when
 we expect to remove the deprecated member attached to the annotation.
 The GeckoView team instituted a deprecation policy which requires each
 backward-incompatible change to keep the old code for 3 releases,
@@ -202,28 +202,30 @@ to the new code without breaking the build.
 ::
 
     @Deprecated
-    @DeprecationSchedule(id = "example-identifier", version = <Current Nightly + 3>)
+    @DeprecationSchedule(id = "<interface_or_class_of_method>-<method_name>", version = <Current Nightly + 3>)
 
-To check whether your patch has altered the API, run the following
-command.
-
-.. code:: bash
-
-   ./mach lint --linter android-api-lint
-
-The output of this command will inform you if any changes you have made
-break the existing API. Review the changes and follow the instructions
-it provides. The first run of the command will tell you if there are API changes,
-if there are changes and they are expected, then follow the next command,
-``./mach gradle geckoview:apiLintWithGeckoBinariesDebug``. This command will generate an
-api.txt file for the changes. Next, run ``./mach lint --linter android-api-lint`` again to
-get the API key to add to the end of the changelog, which is described below.
-
-If the linter asks you to update the changelog, please ensure that you
+Since this is a public API, the changelog must also be updated. Please ensure that you
 follow the correct format for changelog entries. Under the heading for
 the next release version, add a new entry for the changes that you are
 making to the API, along with links to any relevant files, and bug
-number e.g.
+number.
+
+The format should be as follows:
+
+::
+
+   - Summary of changes that should mention the method name, along with the respective class /
+     interface name, the major version and the index, and the bug ID, along with the
+     bugzilla link
+
+   [<major_version>.<index>]: {{javadoc_uri}}/<url_path>
+
+For now, just update the changelog with the summary of changes made to the API (the first line in the example).
+To determine the index, take the next index in the list of
+``[<major_version>.<index>]``. If no list is present, start with ``index = 1``.
+
+
+- **Example for Adding a Method**
 
 ::
 
@@ -232,43 +234,120 @@ number e.g.
      ([bug 1540065]({{bugzilla}}1540065))
 
    [71.12]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#aboutConfigEnabled(boolean)
-   ...
-   [api-version]: <key generated using ./mach lint --linter android-api-lint>
 
-See the section below for more details on how to generate the javadoc locally to confirm links for
-the changelog.
+
+- **Example for Deprecating a Method**
+
+::
+
+   - ⚠️ Deprecated [`GeckoSession.ContentDelegate.onProductUrl`][128.5], will now be removed in v131.
+   ([bug 1898055]({{bugzilla}}1898055))
+
+   [128.5]: {{javadoc_uri}}/GeckoSession.ContentDelegate.html#onProductUrl(org.mozilla.geckoview.GeckoSession)
+
+To check whether your patch has altered the API, run the following
+command:
+
+.. code:: bash
+
+   ./mach lint --linter android-api-lint
+
+The output of this command will inform you if any changes you have made
+break the existing API. The first run of the command will tell you if there are API changes.
+Review the changes and follow the instructions it provides, if there are changes and they are
+expected.
+
+.. code:: bash
+
+    ./mach gradle geckoview:apiLintWithGeckoBinariesDebug
+
+Running the above command should cause the build to fail and the output should contain an API key,
+which should be used to update the ``[api-version]`` field in the changelog. Next, run the command
+again:
+
+.. code:: bash
+
+    ./mach gradle geckoview:apiLintWithGeckoBinariesDebug
+
+The build should pass this time, and an api.txt file will be generated for the changes. Next, follow
+the next command to double check that the changes made do not break the existing API:
+
+.. code:: bash
+
+    ./mach lint --linter android-api-lint
 
 If an API is deprecated, file a follow-up bug or leave the bug open by
 adding the keyword `leave-open` to remove and clean up the deprecated
-API for the version it is to be removed on.
+API for the version it is to be removed on. Also, ensure that running the previous two commands
+has changed the javadoc of the deprecated method to indicate that the method has been scheduled
+for deprecation. If not, ensure to do this manually.
 
 A special situation is when a patch changing the API may need to be uplifted to an earlier
 branch of mozilla-central, for example, to the beta channel. To do this, follow the usual uplift
 steps and make a version of the patch for uplift that is graphed onto the new target branch and
 rerun the API linter commands.
 
+Next, we will create the JavaDoc locally:
+
 Creating JavaDoc Locally
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. note::
+    Make sure that the API version is updated in the changelog and that the summary of changes
+    made to the API in the changelog are made correctly. Otherwise, this step won't work.
 
 GeckoView is a public API, so well maintained javadoc is an important practice. To create the
-javadoc locally, use the following command:––
+javadoc locally, we use the following command, which should have already been done above:
 
 .. code:: bash
 
    ./mach gradle geckoview:javadocWithGeckoBinariesDebug
 
 
-To view the javadoc locally, navigate to:
-``<mozilla-central root>/<build architecture>/gradle/build/mobile/android/geckoview/docs/javadoc/withGeckoBinaries-debug``
+To view the javadoc locally, choose one of the two options:
 
-To launch locally, use any web server, for example:
+- Navigate to
+  ``<mozilla-central root>/<build architecture>/gradle/build/mobile/android/geckoview/docs/javadoc/withGeckoBinaries-debug``
+
+- In your ``mozilla-unified`` directory, type the following command:
+
+  .. code:: bash
+
+     find . -name withGeckoBinaries-debug
+
+  This should return the relative path of the local javadoc.
+
+  As an example, the output could be this:
+
+  .. code:: bash
+
+      mozilla-unified/objdir-frontend/gradle/build/mobile/android/geckoview/docs/javadoc/withGeckoBinaries-debug
+
+  Then, use the following command to go into the directory of the local javadoc:
+
+  .. code:: bash
+
+     cd <path_of_javadoc_from_above>
+
+Now, we want to launch a local web server. To launch locally, use any web server, for example:
 
 .. code:: bash
 
    python3 -m http.server 8000
 
 
-In this example, navigate to the web docs via ``http://localhost:8000/org/mozilla/geckoview/package-summary.html``.
+In this example, navigate to the web docs via ``http://localhost:8000/org/mozilla/geckoview/``.
+
+.. note::
+    If you get a 404 error, please ensure that you have navigated to the correct directory and try
+    launching the web server again.
+
+Then, look for the changed method in the list displayed on the webpage and click into it.
+
+In the changelog, under the list of summaries for the major version, there should be a list of
+URLs for the changed methods. Add a new entry for the next index (keeping the major version
+the same). Then, in the local web server, copy everything after ``.../org/mozilla/geckoview/``.
+Fill in the entry by doing ``{{javadoc_uri}}/<paste_the_copied_text>``. See the example above
+for reference.
 
 Submitting to the ``try`` server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

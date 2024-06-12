@@ -441,7 +441,8 @@ let JSWINDOWACTORS = {
       esModuleURI: "resource:///actors/BackupUIChild.sys.mjs",
       events: {
         "BackupUI:InitWidget": { wantUntrusted: true },
-        "BackupUI:ScheduledBackupsConfirm": { wantUntrusted: true },
+        "BackupUI:ToggleScheduledBackups": { wantUntrusted: true },
+        "BackupUI:ShowFilepicker": { wantUntrusted: true },
       },
     },
     matches: ["about:preferences*", "about:settings*"],
@@ -3821,7 +3822,7 @@ BrowserGlue.prototype = {
   _migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 148;
+    const UI_VERSION = 149;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     if (!Services.prefs.prefHasUserValue("browser.migration.version")) {
@@ -4560,6 +4561,35 @@ BrowserGlue.prototype = {
       addonPromise?.then(addon => addon?.uninstall()).catch(console.error);
     }
 
+    if (currentUIVersion < 149) {
+      // remove permissions used by deleted nsContentManager
+      [
+        "other",
+        "script",
+        "image",
+        "stylesheet",
+        "object",
+        "document",
+        "subdocument",
+        "refresh",
+        "xbl",
+        "ping",
+        "xmlhttprequest",
+        "objectsubrequest",
+        "dtd",
+        "font",
+        "websocket",
+        "csp_report",
+        "xslt",
+        "beacon",
+        "fetch",
+        "manifest",
+        "speculative",
+      ].forEach(type => {
+        Services.perms.removeByType(type);
+      });
+    }
+
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", UI_VERSION);
   },
@@ -5105,7 +5135,9 @@ var ContentBlockingCategoriesPrefs = {
   setPrefExpectations() {
     // The prefs inside CATEGORY_PREFS are initial values.
     // If the pref remains null, then it will expect the default value.
-    // The "standard" category is defined as expecting all 5 default values.
+    // The "standard" category is defined as expecting default values of the
+    // listed prefs. The "strict" category lists all prefs that will be set
+    // according to the strict feature pref.
     this.CATEGORY_PREFS = {
       strict: {
         "network.cookie.cookieBehavior": null,
@@ -5126,6 +5158,7 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.query_stripping.enabled.pbmode": null,
         "privacy.fingerprintingProtection": null,
         "privacy.fingerprintingProtection.pbmode": null,
+        "network.cookie.cookieBehavior.optInPartitioning": null,
       },
       standard: {
         "network.cookie.cookieBehavior": null,
@@ -5146,6 +5179,7 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.query_stripping.enabled.pbmode": null,
         "privacy.fingerprintingProtection": null,
         "privacy.fingerprintingProtection.pbmode": null,
+        "network.cookie.cookieBehavior.optInPartitioning": null,
       },
     };
     let type = "strict";
@@ -5343,6 +5377,16 @@ var ContentBlockingCategoriesPrefs = {
         case "cookieBehaviorPBM5":
           this.CATEGORY_PREFS[type]["network.cookie.cookieBehavior.pbmode"] =
             Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN;
+          break;
+        case "3pcd":
+          this.CATEGORY_PREFS[type][
+            "network.cookie.cookieBehavior.optInPartitioning"
+          ] = true;
+          break;
+        case "-3pcd":
+          this.CATEGORY_PREFS[type][
+            "network.cookie.cookieBehavior.optInPartitioning"
+          ] = false;
           break;
         default:
           console.error(`Error: Unknown rule observed ${item}`);

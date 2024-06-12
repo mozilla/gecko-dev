@@ -11743,7 +11743,7 @@
 # mode.
 - name: network.cookie.cookieBehavior.optInPartitioning.pbmode
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # Whether to support CHIPS(Cookies Having Independent Partitioned State).
@@ -12473,6 +12473,12 @@
 
 # Enable 103 Early Hint status code (RFC 8297)
 - name: network.early-hints.enabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# Enable sending 103 (Early Hints) responses over HTTP/1.1
+- name: network.early-hints.over-http-v1-1.enabled
   type: RelaxedAtomicBool
   value: true
   mirror: always

@@ -41,7 +41,6 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Favicon
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.RadioButton
-import org.mozilla.fenix.compose.button.TextButton
 import org.mozilla.fenix.compose.ext.thenConditional
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -116,11 +115,11 @@ fun TextListItem(
  * an optional [IconButton] at the end.
  *
  * @param label The label in the list item.
+ * @param url Website [url] for which the favicon will be shown.
  * @param modifier [Modifier] to be applied to the layout.
  * @param description An optional description text below the label.
  * @param faviconPainter Optional painter to use when fetching a new favicon is unnecessary.
  * @param onClick Called when the user clicks on the item.
- * @param url Website [url] for which the favicon will be shown.
  * @param iconPainter [Painter] used to display an [IconButton] after the list item.
  * @param iconDescription Content description of the icon.
  * @param onIconClick Called when the user clicks on the icon.
@@ -128,11 +127,11 @@ fun TextListItem(
 @Composable
 fun FaviconListItem(
     label: String,
+    url: String,
     modifier: Modifier = Modifier,
     description: String? = null,
     faviconPainter: Painter? = null,
     onClick: (() -> Unit)? = null,
-    url: String,
     iconPainter: Painter? = null,
     iconDescription: String? = null,
     onIconClick: (() -> Unit)? = null,
@@ -252,68 +251,6 @@ fun IconListItem(
                     contentDescription = afterIconDescription,
                     modifier = Modifier.padding(end = 16.dp),
                     tint = tint,
-                )
-            }
-        },
-    )
-}
-
-/**
- * List item used to display a label and an icon at the beginning with an optional description
- * text and an optional [TextButton] at the end.
- *
- * @param label The label in the list item.
- * @param modifier [Modifier] to be applied to the layout.
- * @param labelTextColor [Color] to be applied to the label.
- * @param description An optional description text below the label.
- * @param enabled Controls the enabled state of the list item. When `false`, the list item will not
- * be clickable.
- * @param onClick Called when the user clicks on the item.
- * @param beforeIconPainter [Painter] used to display an [Icon] before the list item.
- * @param beforeIconDescription Content description of the icon.
- * @param beforeIconTint Tint applied to [beforeIconPainter].
- * @param afterButtonText The button text to be displayed after the list item.
- * @param afterButtonTextColor [Color] to apply to [afterButtonText].
- * @param onAfterButtonClick Called when the user clicks on the text button.
- */
-@Composable
-fun IconListItem(
-    label: String,
-    modifier: Modifier = Modifier,
-    labelTextColor: Color = FirefoxTheme.colors.textPrimary,
-    description: String? = null,
-    enabled: Boolean = true,
-    onClick: (() -> Unit)? = null,
-    beforeIconPainter: Painter,
-    beforeIconDescription: String? = null,
-    beforeIconTint: Color = FirefoxTheme.colors.iconPrimary,
-    afterButtonText: String? = null,
-    afterButtonTextColor: Color = FirefoxTheme.colors.actionPrimary,
-    onAfterButtonClick: (() -> Unit)? = null,
-) {
-    ListItem(
-        label = label,
-        modifier = modifier,
-        labelTextColor = labelTextColor,
-        description = description,
-        enabled = enabled,
-        onClick = onClick,
-        beforeListAction = {
-            Icon(
-                painter = beforeIconPainter,
-                contentDescription = beforeIconDescription,
-                modifier = Modifier.padding(horizontal = 16.dp),
-                tint = if (enabled) beforeIconTint else FirefoxTheme.colors.iconDisabled,
-            )
-        },
-        afterListAction = {
-            if (afterButtonText != null && onAfterButtonClick != null) {
-                TextButton(
-                    text = afterButtonText,
-                    onClick = onAfterButtonClick,
-                    enabled = enabled,
-                    textColor = afterButtonTextColor,
-                    upperCaseText = false,
                 )
             }
         },
@@ -622,15 +559,6 @@ private fun IconListItemWithAfterListActionPreview() {
                 afterIconDescription = "click me",
                 onAfterIconClick = { println("icon click") },
             )
-
-            IconListItem(
-                label = "IconListItem + text button",
-                onClick = { println("list item click") },
-                beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
-                beforeIconDescription = "click me",
-                afterButtonText = "Edit",
-                onAfterButtonClick = { println("text button click") },
-            )
         }
     }
 }
@@ -645,19 +573,19 @@ private fun FaviconListItemPreview() {
         Column(Modifier.background(FirefoxTheme.colors.layer1)) {
             FaviconListItem(
                 label = "Favicon + right icon + clicks",
+                url = "",
                 description = "Description text",
                 onClick = { println("list item click") },
-                url = "",
                 iconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
                 onIconClick = { println("icon click") },
             )
 
             FaviconListItem(
                 label = "Favicon + painter",
+                url = "",
                 description = "Description text",
                 faviconPainter = painterResource(id = R.drawable.mozac_ic_collection_24),
                 onClick = { println("list item click") },
-                url = "",
             )
         }
     }

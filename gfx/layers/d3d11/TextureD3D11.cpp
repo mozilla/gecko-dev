@@ -830,125 +830,121 @@ bool D3D11TextureData::UpdateFromSurface(gfx::SourceSurface* aSurface) {
   return false;
 }
 
+static RefPtr<ID3D11Texture2D> OpenSharedD3D11Texture(
+    ID3D11Device* const aDevice, const HANDLE handle) {
+  MOZ_ASSERT(aDevice);
+
+  RefPtr<ID3D11Device1> device1;
+  aDevice->QueryInterface((ID3D11Device1**)getter_AddRefs(device1));
+  if (!device1) {
+    gfxCriticalNoteOnce << "Failed to get ID3D11Device1";
+    return nullptr;
+  }
+
+  RefPtr<ID3D11Texture2D> tex;
+  auto hr = device1->OpenSharedResource1(
+      (HANDLE)handle, __uuidof(ID3D11Texture2D),
+      (void**)(ID3D11Texture2D**)getter_AddRefs(tex));
+  if (FAILED(hr)) {
+    gfxCriticalNote << "Error code from OpenSharedResource1: " << gfx::hexa(hr);
+    return nullptr;
+  }
+
+  return tex;
+}
+
+static RefPtr<ID3D11Texture2D> OpenSharedD3D11Texture(
+    DXGITextureHostD3D11* aTextureHost, ID3D11Device* const aDevice) {
+  MOZ_ASSERT(aDevice);
+  MOZ_ASSERT(aTextureHost);
+
+  const auto& handle = aTextureHost->mHandle;
+  const auto& gpuProcessTextureId = aTextureHost->mGpuProcessTextureId;
+
+  RefPtr<ID3D11Texture2D> texture;
+  if (gpuProcessTextureId.isSome()) {
+    auto* textureMap = layers::GpuProcessD3D11TextureMap::Get();
+    if (textureMap) {
+      Maybe<HANDLE> handle =
+          textureMap->GetSharedHandleOfCopiedTexture(gpuProcessTextureId.ref());
+      if (handle.isSome()) {
+        texture = OpenSharedD3D11Texture(aDevice, handle.ref());
+      }
+    }
+  } else if (handle) {
+    texture = OpenSharedD3D11Texture(aDevice, handle->GetHandle());
+  }
+
+  if (!texture) {
+    return nullptr;
+  }
+  return texture;
+}
+
 DXGITextureHostD3D11::DXGITextureHostD3D11(
     TextureFlags aFlags, const SurfaceDescriptorD3D10& aDescriptor)
     : TextureHost(TextureHostType::DXGI, aFlags),
-      mGpuProcessTextureId(aDescriptor.gpuProcessTextureId()),
-      mGpuProcessQueryId(aDescriptor.gpuProcessQueryId()),
-      mArrayIndex(aDescriptor.arrayIndex()),
-      mSize(aDescriptor.size()),
       mHandle(aDescriptor.handle()),
+      mGpuProcessTextureId(aDescriptor.gpuProcessTextureId()),
+      mArrayIndex(aDescriptor.arrayIndex()),
+      mGpuProcessQueryId(aDescriptor.gpuProcessQueryId()),
+      mSize(aDescriptor.size()),
       mFormat(aDescriptor.format()),
       mHasKeyedMutex(aDescriptor.hasKeyedMutex()),
       mAcquireFenceInfo(aDescriptor.fenceInfo().isSome()
                             ? aDescriptor.fenceInfo().ref()
                             : gfx::FenceInfo()),
       mColorSpace(aDescriptor.colorSpace()),
-      mColorRange(aDescriptor.colorRange()),
-      mIsLocked(false) {}
-
-bool DXGITextureHostD3D11::EnsureTexture() {
-  if (mGpuProcessTextureId.isSome()) {
-    return false;
-  }
-
-  RefPtr<ID3D11Device> device;
-  if (mTexture) {
-    mTexture->GetDevice(getter_AddRefs(device));
-    if (device == DeviceManagerDx::Get()->GetCompositorDevice()) {
-      NS_WARNING("Incompatible texture.");
-      return true;
-    }
-    mTexture = nullptr;
-  }
-
-  device = GetDevice();
-  if (!device || device != DeviceManagerDx::Get()->GetCompositorDevice()) {
-    NS_WARNING("No device or incompatible device.");
-    return false;
-  }
-
-  RefPtr<ID3D11Device1> device1;
-  device->QueryInterface((ID3D11Device1**)getter_AddRefs(device1));
-  if (!device1) {
-    gfxCriticalNoteOnce << "Failed to get ID3D11Device1";
-    return false;
-  }
-
-  HRESULT hr = device1->OpenSharedResource1(
-      (HANDLE)mHandle.get(), __uuidof(ID3D11Texture2D),
-      (void**)(ID3D11Texture2D**)getter_AddRefs(mTexture));
-  if (FAILED(hr)) {
-    MOZ_ASSERT(false, "Failed to open shared texture");
-    return false;
-  }
-
-  D3D11_TEXTURE2D_DESC desc;
-  mTexture->GetDesc(&desc);
-  mSize = IntSize(desc.Width, desc.Height);
-  return true;
-}
-
-RefPtr<ID3D11Device> DXGITextureHostD3D11::GetDevice() {
-  if (mFlags & TextureFlags::INVALID_COMPOSITOR) {
-    return nullptr;
-  }
-
-  return mDevice;
-}
-
-bool DXGITextureHostD3D11::LockWithoutCompositor() {
-  if (!mDevice) {
-    mDevice = DeviceManagerDx::Get()->GetCompositorDevice();
-  }
-  return LockInternal();
-}
-
-void DXGITextureHostD3D11::UnlockWithoutCompositor() { UnlockInternal(); }
-
-bool DXGITextureHostD3D11::LockInternal() {
-  if (!GetDevice()) {
-    NS_WARNING("trying to lock a TextureHost without a D3D device");
-    return false;
-  }
-
-  if (!EnsureTextureSource()) {
-    return false;
-  }
-
-  mIsLocked = LockD3DTexture(mTextureSource->GetD3D11Texture());
-
-  return mIsLocked;
-}
+      mColorRange(aDescriptor.colorRange()) {}
 
 already_AddRefed<gfx::DataSourceSurface> DXGITextureHostD3D11::GetAsSurface(
     gfx::DataSourceSurface* aSurface) {
-  switch (GetFormat()) {
-    case gfx::SurfaceFormat::R8G8B8X8:
-    case gfx::SurfaceFormat::R8G8B8A8:
-    case gfx::SurfaceFormat::B8G8R8A8:
-    case gfx::SurfaceFormat::B8G8R8X8:
-      break;
-    default: {
-      MOZ_ASSERT_UNREACHABLE("DXGITextureHostD3D11: unsupported format!");
-      return nullptr;
-    }
-  }
+  RefPtr<ID3D11Device> d3d11Device =
+      DeviceManagerDx::Get()->GetCompositorDevice();
+  return GetAsSurfaceWithDevice(d3d11Device);
+}
 
-  AutoLockTextureHostWithoutCompositor autoLock(this);
-  if (autoLock.Failed()) {
-    NS_WARNING("Failed to lock the D3DTexture");
+already_AddRefed<gfx::DataSourceSurface>
+DXGITextureHostD3D11::GetAsSurfaceWithDevice(ID3D11Device* const aDevice) {
+  if (!aDevice) {
     return nullptr;
   }
 
-  RefPtr<ID3D11Device> device;
-  mTexture->GetDevice(getter_AddRefs(device));
+  RefPtr<ID3D11Texture2D> d3dTexture = OpenSharedD3D11Texture(this, aDevice);
+  if (!d3dTexture) {
+    return nullptr;
+  }
+
+  bool isLocked = LockD3DTexture(d3dTexture.get());
+  if (!isLocked) {
+    return nullptr;
+  }
+
+  const auto onExit =
+      mozilla::MakeScopeExit([&]() { UnlockD3DTexture(d3dTexture.get()); });
+
+  bool isRGB = [&]() {
+    switch (mFormat) {
+      case gfx::SurfaceFormat::R8G8B8X8:
+      case gfx::SurfaceFormat::R8G8B8A8:
+      case gfx::SurfaceFormat::B8G8R8A8:
+      case gfx::SurfaceFormat::B8G8R8X8:
+        return true;
+      default:
+        break;
+    }
+    return false;
+  }();
+
+  if (!isRGB) {
+    return nullptr;
+  }
 
   D3D11_TEXTURE2D_DESC textureDesc = {0};
-  mTexture->GetDesc(&textureDesc);
+  d3dTexture->GetDesc(&textureDesc);
 
   RefPtr<ID3D11DeviceContext> context;
-  device->GetImmediateContext(getter_AddRefs(context));
+  aDevice->GetImmediateContext(getter_AddRefs(context));
 
   textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
   textureDesc.Usage = D3D11_USAGE_STAGING;
@@ -956,13 +952,13 @@ already_AddRefed<gfx::DataSourceSurface> DXGITextureHostD3D11::GetAsSurface(
   textureDesc.MiscFlags = 0;
   textureDesc.MipLevels = 1;
   RefPtr<ID3D11Texture2D> cpuTexture;
-  HRESULT hr = device->CreateTexture2D(&textureDesc, nullptr,
-                                       getter_AddRefs(cpuTexture));
+  HRESULT hr = aDevice->CreateTexture2D(&textureDesc, nullptr,
+                                        getter_AddRefs(cpuTexture));
   if (FAILED(hr)) {
     return nullptr;
   }
 
-  context->CopyResource(cpuTexture, mTexture);
+  context->CopyResource(cpuTexture, d3dTexture);
 
   D3D11_MAPPED_SUBRESOURCE mappedSubresource;
   hr = context->Map(cpuTexture, 0, D3D11_MAP_READ, 0, &mappedSubresource);
@@ -975,25 +971,6 @@ already_AddRefed<gfx::DataSourceSurface> DXGITextureHostD3D11::GetAsSurface(
       (uint8_t*)mappedSubresource.pData, mappedSubresource.RowPitch);
   context->Unmap(cpuTexture, 0);
   return surf.forget();
-}
-
-bool DXGITextureHostD3D11::EnsureTextureSource() {
-  if (mTextureSource) {
-    return true;
-  }
-
-  if (!EnsureTexture()) {
-    DeviceManagerDx::Get()->ForceDeviceReset(
-        gfx::ForcedDeviceResetReason::OPENSHAREDHANDLE);
-    return false;
-  }
-
-  mTextureSource = new DataTextureSourceD3D11(mDevice, mFormat, mTexture);
-  return true;
-}
-
-void DXGITextureHostD3D11::UnlockInternal() {
-  UnlockD3DTexture(mTextureSource->GetD3D11Texture());
 }
 
 void DXGITextureHostD3D11::CreateRenderTexture(

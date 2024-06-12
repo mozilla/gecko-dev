@@ -414,6 +414,8 @@ https_first_disabled = true
 
 ["browser_searchHistoryLimit.js"]
 
+["browser_searchModeSwitcher_basic.js"]
+
 ["browser_searchMode_alias_replacement.js"]
 support-files = [
   "searchSuggestionEngine.xml",

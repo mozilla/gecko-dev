@@ -33,6 +33,8 @@ const ISOLATE_UI_PREF =
 const FPI_PREF = "privacy.firstparty.isolate";
 const FPP_PREF = "privacy.fingerprintingProtection";
 const FPP_PBM_PREF = "privacy.fingerprintingProtection.pbmode";
+const THIRD_PARTY_COOKIE_DEPRECATION_PREF =
+  "network.cookie.cookieBehavior.optInPartitioning";
 
 const { EnterprisePolicyTesting, PoliciesPrefTracker } =
   ChromeUtils.importESModule(
@@ -339,6 +341,7 @@ add_task(async function testContentBlockingStandardCategory() {
     [QUERY_PARAM_STRIP_PBM_PREF]: null,
     [FPP_PREF]: null,
     [FPP_PBM_PREF]: null,
+    [THIRD_PARTY_COOKIE_DEPRECATION_PREF]: null,
   };
 
   for (let pref in prefs) {
@@ -404,6 +407,10 @@ add_task(async function testContentBlockingStandardCategory() {
   Services.prefs.setBoolPref(
     FPP_PBM_PREF,
     !Services.prefs.getBoolPref(FPP_PBM_PREF)
+  );
+  Services.prefs.setBoolPref(
+    THIRD_PARTY_COOKIE_DEPRECATION_PREF,
+    !Services.prefs.getBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF)
   );
 
   for (let pref in prefs) {
@@ -483,6 +490,7 @@ add_task(async function testContentBlockingStrictCategory() {
     NCBP_PREF,
     Ci.nsICookieService.BEHAVIOR_LIMIT_FOREIGN
   );
+  Services.prefs.setBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF, false);
   let strict_pref = Services.prefs.getStringPref(STRICT_PREF).split(",");
 
   await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
@@ -791,6 +799,20 @@ add_task(async function testContentBlockingStrictCategory() {
           Services.prefs.getIntPref(NCBP_PREF),
           Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
           `${NCBP_PREF} has been set to ${Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN}`
+        );
+        break;
+      case "3pcd":
+        is(
+          Services.prefs.getBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
+          true,
+          `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} has been set to true`
+        );
+        break;
+      case "-3pcd":
+        is(
+          Services.prefs.getBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
+          false,
+          `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} has been set to false`
         );
         break;
       default:

@@ -103,9 +103,9 @@ fun CollectionItem(
         ) {
             FaviconListItem(
                 label = tab.title,
+                url = tab.url,
                 description = tab.url.toShortUrl(),
                 onClick = onClick,
-                url = tab.url,
                 iconPainter = painterResource(drawable.ic_close),
                 iconDescription = stringResource(string.remove_tab_from_collection),
                 onIconClick = { onRemove(false) },

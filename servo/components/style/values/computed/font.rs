@@ -248,7 +248,6 @@ impl FontWeight {
     PartialEq,
     ToAnimatedZero,
     ToCss,
-    ToResolvedValue,
 )]
 #[cfg_attr(feature = "servo", derive(Serialize, Deserialize))]
 /// The computed value of font-size
@@ -312,6 +311,25 @@ impl ToAnimatedValue for FontSize {
         FontSize {
             computed_size: NonNegative(animated.clamp_to_non_negative()),
             used_size: NonNegative(animated.clamp_to_non_negative()),
+            keyword_info: KeywordInfo::none(),
+        }
+    }
+}
+
+impl ToResolvedValue for FontSize {
+    type ResolvedValue = NonNegativeLength;
+
+    #[inline]
+    fn to_resolved_value(self, context: &ResolvedContext) -> Self::ResolvedValue {
+        self.computed_size.to_resolved_value(context)
+    }
+
+    #[inline]
+    fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
+        let computed_size = NonNegativeLength::from_resolved_value(resolved);
+        Self {
+            computed_size,
+            used_size: computed_size,
             keyword_info: KeywordInfo::none(),
         }
     }

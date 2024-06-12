@@ -575,6 +575,13 @@ class InactivePropertyHelper {
         fixId: "inactive-css-text-wrap-balance-fragmented-fix",
         msgId: "inactive-css-text-wrap-balance-fragmented",
       },
+      // box-sizing used on element ignoring width and height.
+      {
+        invalidProperties: ["box-sizing"],
+        when: () => this.nonReplacedInlineBox,
+        fixId: "learn-more",
+        msgId: "inactive-css-no-width-height",
+      },
     ];
   }
 

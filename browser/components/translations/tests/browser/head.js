@@ -2167,8 +2167,11 @@ class SelectTranslationsTestUtils {
         : [doneButtonSecondary, translateButton]),
     ]);
 
+    const translatablePhasePromise =
+      SelectTranslationsTestUtils.waitForPanelState("translatable");
     click(translateButton);
-    await SelectTranslationsTestUtils.waitForPanelState("translatable");
+    await translatablePhasePromise;
+
     if (downloadHandler) {
       await this.handleDownloads({ downloadHandler, pivotTranslation });
     }
@@ -2213,6 +2216,11 @@ class SelectTranslationsTestUtils {
     logAction();
     const { tryAgainButton } = SelectTranslationsPanel.elements;
     assertVisibility({ visible: { tryAgainButton } });
+
+    const translatablePhasePromise = downloadHandler
+      ? SelectTranslationsTestUtils.waitForPanelState("translatable")
+      : Promise.resolve();
+
     if (SelectTranslationsPanel.phase() === "init-failure") {
       // The try-again button reopens the panel from the "init-failure" phase.
       await SelectTranslationsTestUtils.waitForPanelPopupEvent(
@@ -2223,10 +2231,12 @@ class SelectTranslationsTestUtils {
       // Otherwise the try-again button just attempts to re-translate.
       click(tryAgainButton, "Clicking the try-again button");
     }
+
     if (downloadHandler) {
-      await SelectTranslationsTestUtils.waitForPanelState("translatable");
+      await translatablePhasePromise;
       await this.handleDownloads({ downloadHandler, pivotTranslation });
     }
+
     if (viewAssertion) {
       await viewAssertion();
     }

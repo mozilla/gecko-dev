@@ -328,6 +328,40 @@ class ContentDelegateChildTest : BaseSessionTest() {
 
     @WithDisplay(width = 100, height = 100)
     @Test
+    fun requestContextMenuOnLinkText() {
+        mainSession.loadTestPath(CONTEXT_MENU_LINK_TEXT_HTML_PATH)
+        mainSession.waitForPageStop()
+        sendLongPress(50f, 50f)
+
+        mainSession.waitUntilCalled(object : ContentDelegate {
+            @AssertCalled(count = 1)
+            override fun onContextMenu(
+                session: GeckoSession,
+                screenX: Int,
+                screenY: Int,
+                element: ContextElement,
+            ) {
+                assertThat(
+                    "The element link title should not exceed a maximum of 4096 chars.",
+                    element.title?.length,
+                    equalTo(4096),
+                )
+                assertThat(
+                    "The element link alternative text should not exceed a maximum of 4096 chars.",
+                    element.altText?.length,
+                    equalTo(4096),
+                )
+                assertThat(
+                    "The element link text content should not exceed a maximum of 4096 chars.",
+                    element.textContent?.length,
+                    equalTo(4096),
+                )
+            }
+        })
+    }
+
+    @WithDisplay(width = 100, height = 100)
+    @Test
     fun requestContextMenuOnVideo() {
         // Bug 1700243
         assumeThat(sessionRule.env.isIsolatedProcess, equalTo(false))

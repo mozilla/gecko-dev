@@ -23,7 +23,7 @@ def ts(ctx):
 
 
 @SubCommand("ts", "build", description="Build typelibs.")
-@CommandArgument("lib", choices=["nsresult", "services", "xpcom"])
+@CommandArgument("lib", choices=["dom", "nsresult", "services", "xpcom"])
 def buld(ctx, lib):
     """Command to build one of the typelibs."""
 
@@ -34,7 +34,7 @@ def buld(ctx, lib):
 
     if lib == "nsresult":
         xpc_msg = mozpath.join(ctx.topsrcdir, "js/xpconnect/src/xpc.msg")
-        errors_json = mozpath.join(ctx.topsrcdir, "tools/ts/error_list.json")
+        errors_json = mozpath.join(ctx.topsrcdir, "tools/ts/config/error_list.json")
         return node(ctx, "build_nsresult", lib_dts, xpc_msg, errors_json)
 
     if lib == "services":
@@ -55,6 +55,17 @@ def buld(ctx, lib):
             return build_required(lib, f"*.d.json files in {dir}")
 
         return node(ctx, "build_xpcom", lib_dts, dir, *files)
+
+    if lib == "dom":
+        # Same as above, get all *.webidl files for now.
+        dir = mozpath.join(ctx.topsrcdir, "dom")
+        files = []
+        for subdir in ["webidl", "chrome-webidl"]:
+            for file in os.listdir(mozpath.join(dir, subdir)):
+                if file.endswith(".webidl"):
+                    files.append(subdir + "/" + file)
+
+        return node(ctx, "build_dom", lib_dts, dir, *files)
 
     raise ValueError(f"Unknown typelib: {lib}")
 

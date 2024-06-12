@@ -124,6 +124,7 @@ open class BaseSessionTest(
         const val CONTEXT_MENU_IMAGE_NESTED_HTML_PATH = "/assets/www/context_menu_image_nested.html"
         const val CONTEXT_MENU_IMAGE_HTML_PATH = "/assets/www/context_menu_image.html"
         const val CONTEXT_MENU_LINK_HTML_PATH = "/assets/www/context_menu_link.html"
+        const val CONTEXT_MENU_LINK_TEXT_HTML_PATH = "/assets/www/context_menu_link_text.html"
         const val CONTEXT_MENU_VIDEO_HTML_PATH = "/assets/www/context_menu_video.html"
         const val CONTEXT_MENU_BLOB_FULL_HTML_PATH = "/assets/www/context_menu_blob_full.html"
         const val CONTEXT_MENU_BLOB_BUFFERED_HTML_PATH = "/assets/www/context_menu_blob_buffered.html"

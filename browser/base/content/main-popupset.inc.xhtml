@@ -139,6 +139,19 @@
          noautofocus="true"
          hidden="true" />
 
+  <panel id="searchmode-switcher-popup" noautofocus="true" orient="vertical" type="arrow">
+    <label data-l10n-id="urlbar-searchmode-popup-description" id="searchmode-switcher-popup-description" />
+    <toolbarseparator />
+    <vbox class="panel-subview-body"></vbox>
+    <toolbarseparator />
+    <toolbarbutton oncommand="window.openPreferences('paneSearch');"
+                   class="subviewbutton subviewbutton-iconic"
+                   id="searchmode-switcher-popup-search-settings-button">
+      <image id="searchmode-switcher-popup-search-settings-icon" />
+      <label data-l10n-id="urlbar-searchmode-popup-search-settings" />
+    </toolbarbutton>
+  </panel>
+
   <html:template id="printPreviewStackTemplate">
     <stack class="previewStack" rendering="true" flex="1" previewtype="primary">
       <vbox class="previewRendering" flex="1">

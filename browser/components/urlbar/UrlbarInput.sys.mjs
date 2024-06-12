@@ -1865,6 +1865,7 @@ export class UrlbarInput {
     // Enter search mode if the browser is selected.
     if (browser == this.window.gBrowser.selectedBrowser) {
       this._updateSearchModeUI(searchMode);
+      this.inputField.dispatchEvent(new CustomEvent("searchmodechanged"));
       if (searchMode) {
         // Set userTypedValue to the query string so that it's properly restored
         // when switching back to the current tab and across sessions.

@@ -11,14 +11,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
 
-class InternetResourceReducerUtilsTest {
+class ContentStateReducerTest {
     @Test
-    fun `updateTheContentState will return a new BrowserState with updated ContentState`() {
+    fun `updateContentState will return a new BrowserState with updated ContentState`() {
         val initialContentState = ContentState("emptyStateUrl")
         val browserState =
             BrowserState(tabs = listOf(TabSessionState("tabId", initialContentState)))
 
-        val result = updateTheContentState(browserState, "tabId") { it.copy(url = "updatedUrl") }
+        val result = updateContentState(browserState, "tabId") { it.copy(url = "updatedUrl") }
 
         assertFalse(browserState == result)
         assertEquals("updatedUrl", result.tabs[0].content.url)

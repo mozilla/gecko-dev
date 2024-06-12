@@ -447,7 +447,7 @@ bool StoragePrincipalHelper::GetOriginAttributes(
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
   loadInfo->GetOriginAttributes(&aAttributes);
 
-  bool isPrivate = false;
+  bool isPrivate = aAttributes.mPrivateBrowsingId > 0;
   nsCOMPtr<nsIPrivateBrowsingChannel> pbChannel = do_QueryInterface(aChannel);
   if (pbChannel) {
     nsresult rv = pbChannel->GetIsChannelPrivate(&isPrivate);
@@ -456,7 +456,9 @@ bool StoragePrincipalHelper::GetOriginAttributes(
     // Some channels may not implement nsIPrivateBrowsingChannel
     nsCOMPtr<nsILoadContext> loadContext;
     NS_QueryNotificationCallbacks(aChannel, loadContext);
-    isPrivate = loadContext && loadContext->UsePrivateBrowsing();
+    if (loadContext) {
+      isPrivate = loadContext->UsePrivateBrowsing();
+    }
   }
   aAttributes.SyncAttributesWithPrivateBrowsing(isPrivate);
 

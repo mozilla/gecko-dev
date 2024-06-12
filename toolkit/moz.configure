@@ -3447,7 +3447,7 @@ with only_when(compile_environment):
     set_config("MOZ_TREE_PIXMAN", True, when=in_tree_pixman)
     set_define("MOZ_TREE_PIXMAN", True, when=in_tree_pixman)
 
-    pkg_check_modules("MOZ_PIXMAN", "pixman-1 >= 0.36.0", when="--enable-system-pixman")
+    pkg_check_modules("MOZ_PIXMAN", "pixman-1 >= 0.40.0", when="--enable-system-pixman")
     # Set MOZ_PIXMAN_CFLAGS to an explicit empty value when --enable-system-pixman is *not* used,
     # for layout/style/extra-bindgen-flags
     set_config("MOZ_PIXMAN_CFLAGS", [], when=in_tree_pixman)
@@ -3553,9 +3553,14 @@ with only_when(target_has_linux_kernel & compile_environment):
 
     set_config("MOZ_LINKER", True, when="MOZ_LINKER")
     set_define("MOZ_LINKER", True, when="MOZ_LINKER")
-    add_old_configure_assignment("MOZ_LINKER", True, when="MOZ_LINKER")
 
     moz_linker = depends(when="MOZ_LINKER")(lambda: True)
+
+    # gold emits wrong sysv-style elf hash tables when building both sysv and
+    # GNU style tables. https://sourceware.org/bugzilla/show_bug.cgi?id=13597
+    # Since the linker only understands the sysv ones, no need to build the
+    # GNU style tables anyways.
+    check_and_add_linker_flag("-Wl,--hash-style=sysv", when=moz_linker)
 
 
 # 32-bits ethtool_cmd.speed

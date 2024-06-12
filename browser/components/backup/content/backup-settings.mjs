@@ -7,6 +7,8 @@ import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/backup/turn-on-scheduled-backups.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/backup/turn-off-scheduled-backups.mjs";
 
 /**
  * The widget for managing the BackupService that is embedded within the main
@@ -22,6 +24,8 @@ export default class BackupSettings extends MozLitElement {
       scheduledBackupsButtonEl: "#backup-toggle-scheduled-button",
       turnOnScheduledBackupsDialogEl: "#turn-on-scheduled-backups-dialog",
       turnOnScheduledBackupsEl: "turn-on-scheduled-backups",
+      turnOffScheduledBackupsEl: "turn-off-scheduled-backups",
+      turnOffScheduledBackupsDialogEl: "#turn-off-scheduled-backups-dialog",
     };
   }
 
@@ -32,8 +36,13 @@ export default class BackupSettings extends MozLitElement {
   constructor() {
     super();
     this.backupServiceState = {
-      backupFilePath: "Documents", // TODO: make save location configurable (bug 1895943)
+      backupDirPath: "",
       backupInProgress: false,
+      defaultParent: {
+        fileName: "",
+        path: "",
+        iconURL: "",
+      },
       scheduledBackupsEnabled: false,
     };
   }
@@ -48,23 +57,44 @@ export default class BackupSettings extends MozLitElement {
       new CustomEvent("BackupUI:InitWidget", { bubbles: true })
     );
 
-    this.addEventListener("scheduledBackupsCancel", this);
-    this.addEventListener("scheduledBackupsConfirm", this);
+    this.addEventListener("turnOnScheduledBackups", this);
+    this.addEventListener("turnOffScheduledBackups", this);
+    this.addEventListener("dialogCancel", this);
   }
 
   handleEvent(event) {
     switch (event.type) {
-      case "scheduledBackupsConfirm":
+      case "turnOnScheduledBackups":
         this.turnOnScheduledBackupsDialogEl.close();
         this.dispatchEvent(
-          new CustomEvent("BackupUI:ScheduledBackupsConfirm", {
+          new CustomEvent("BackupUI:ToggleScheduledBackups", {
             bubbles: true,
             composed: true,
+            detail: {
+              ...event.detail,
+              isScheduledBackupsEnabled: true,
+            },
           })
         );
         break;
-      case "scheduledBackupsCancel":
-        this.turnOnScheduledBackupsDialogEl.close();
+      case "turnOffScheduledBackups":
+        this.turnOffScheduledBackupsDialogEl.close();
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:ToggleScheduledBackups", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              isScheduledBackupsEnabled: false,
+            },
+          })
+        );
+        break;
+      case "dialogCancel":
+        if (this.turnOnScheduledBackupsDialogEl.open) {
+          this.turnOnScheduledBackupsDialogEl.close();
+        } else {
+          this.turnOffScheduledBackupsDialogEl.close();
+        }
         break;
     }
   }
@@ -75,14 +105,28 @@ export default class BackupSettings extends MozLitElement {
       this.turnOnScheduledBackupsDialogEl
     ) {
       this.turnOnScheduledBackupsDialogEl.showModal();
+    } else if (
+      this.backupServiceState.scheduledBackupsEnabled &&
+      this.turnOffScheduledBackupsDialogEl
+    ) {
+      this.turnOffScheduledBackupsDialogEl.showModal();
     }
   }
 
   turnOnScheduledBackupsDialogTemplate() {
+    let { fileName, path, iconURL } = this.backupServiceState.defaultParent;
     return html`<dialog id="turn-on-scheduled-backups-dialog">
       <turn-on-scheduled-backups
-        .backupFilePath=${this.backupServiceState.backupFilePath}
+        defaultlabel=${fileName}
+        defaultpath=${path}
+        defaulticonurl=${iconURL}
       ></turn-on-scheduled-backups>
+    </dialog>`;
+  }
+
+  turnOffScheduledBackupsDialogTemplate() {
+    return html`<dialog id="turn-off-scheduled-backups-dialog">
+      <turn-off-scheduled-backups></turn-off-scheduled-backups>
     </dialog>`;
   }
 
@@ -102,6 +146,7 @@ export default class BackupSettings extends MozLitElement {
         </div>
 
         ${this.turnOnScheduledBackupsDialogTemplate()}
+        ${this.turnOffScheduledBackupsDialogTemplate()}
 
         <moz-button
           id="backup-toggle-scheduled-button"

@@ -10,6 +10,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ManifestObtainer: "resource://gre/modules/ManifestObtainer.sys.mjs",
 });
 
+const MAX_TEXT_LENGTH = 4096;
+
 export class ContentDelegateChild extends GeckoViewActorChild {
   notifyParentOfViewportFit() {
     if (this.triggerViewportFitChange) {
@@ -86,15 +88,21 @@ export class ContentDelegateChild extends GeckoViewActorChild {
             // We don't have full zoom on Android, so using CSS coordinates
             // here is fine, since the CSS coordinate spaces match between the
             // child and parent processes.
+            //
+            // TODO(m_kato):
+            // title, alt and textContent should consider surrogate pair and grapheme cluster?
             screenX: aEvent.screenX,
             screenY: aEvent.screenY,
             baseUri: (baseUri && baseUri.displaySpec) || null,
             uri,
-            title,
-            alt,
+            title: (title && title.substring(0, MAX_TEXT_LENGTH)) || null,
+            alt: (alt && alt.substring(0, MAX_TEXT_LENGTH)) || null,
             elementType,
             elementSrc: elementSrc || null,
-            textContent: node.textContent || null,
+            textContent:
+              (node.textContent &&
+                node.textContent.substring(0, MAX_TEXT_LENGTH)) ||
+              null,
           };
 
           this.eventDispatcher.sendRequest(msg);

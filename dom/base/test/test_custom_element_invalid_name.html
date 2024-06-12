@@ -1,0 +1,25 @@
+<head>
+  <title>Test for copy/paste with XHTML</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+  <script>
+    SimpleTest.waitForExplicitFinish();
+
+    let defineMessage;
+    try {
+      customElements.define("invalidName", class extends HTMLElement {});
+    } catch ({ message }) {
+      defineMessage = message;
+    }
+    ok(defineMessage && defineMessage.includes("invalidName"),
+       "customElements.define should throw for invalid names and the message should contain the invalid name.");
+
+    customElements.whenDefined("invalidName").catch(({ message }) => message).then(m => {
+      ok(m && m.includes("invalidName"),
+         "customElements.whenDefined should also throw for invalid names and the message should contain the invalid name.");
+      SimpleTest.finish();
+    });
+  </script>
+</body>

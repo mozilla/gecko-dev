@@ -3749,7 +3749,17 @@ static bool IsSubRangeRequest(nsHttpRequestHead& aRequestHead) {
   if (NS_FAILED(aRequestHead.GetHeader(nsHttp::Range, byteRange))) {
     return false;
   }
-  return !byteRange.EqualsLiteral("bytes=0-");
+
+  if (byteRange.EqualsLiteral("bytes=0-")) {
+#ifndef ANDROID
+    glean::network::byte_range_request.Get("cacheable"_ns).Add(1);
+#endif
+    return false;
+  }
+#ifndef ANDROID
+  glean::network::byte_range_request.Get("not_cacheable"_ns).Add(1);
+#endif
+  return true;
 }
 
 nsresult nsHttpChannel::OpenCacheEntry(bool isHttps) {

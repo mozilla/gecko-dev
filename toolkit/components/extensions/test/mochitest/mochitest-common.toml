@@ -59,7 +59,7 @@ support-files = [
   "file_with_xorigin_frame.html",
   "head.js",
   "head_cookies.js",
-  "head_notifications.js",
+  "!/dom/notification/test/mochitest/MockAlertsService.js",
   "head_unlimitedStorage.js",
   "head_webrequest.js",
   "hsts.sjs",

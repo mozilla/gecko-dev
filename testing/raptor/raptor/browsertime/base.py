@@ -151,7 +151,7 @@ class Browsertime(Perftest):
 
         super(Browsertime, self).run_test_setup(test)
 
-        if test.get("type") == "benchmark":
+        if test.get("type") == "benchmark" or test.get("benchmark_webserver", False):
             # benchmark-type tests require the benchmark test to be served out
             self.benchmark = Benchmark(self.config, test, debug_mode=self.debug_mode)
             test["test_url"] = test["test_url"].replace("<host>", self.benchmark.host)
@@ -936,7 +936,7 @@ class Browsertime(Perftest):
             # Change the timeout for scenarios since they
             # don't output much for a long period of time
             output_timeout = timeout
-        elif self.benchmark:
+        elif test.get("type", "") == "benchmark":
             output_timeout = BROWSERTIME_BENCHMARK_OUTPUT_TIMEOUT
 
         if self.debug_mode:
@@ -1015,7 +1015,7 @@ class Browsertime(Perftest):
 
             proc_timeout = self._compute_process_timeout(test, timeout, cmd)
             output_timeout = BROWSERTIME_PAGELOAD_OUTPUT_TIMEOUT
-            if self.benchmark:
+            if test.get("type", "") == "benchmark":
                 output_timeout = BROWSERTIME_BENCHMARK_OUTPUT_TIMEOUT
             elif test.get("output_timeout", None) is not None:
                 output_timeout = int(test.get("output_timeout"))

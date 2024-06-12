@@ -85,6 +85,9 @@
 ["include:tests/custom/browsertime-welcome.toml"]
 # First-install pageload test
 
+["include:tests/custom/browsertime-video-playback-latency.toml"]
+# Video playback latency tests
+
 ["include:tests/interactive/browsertime-responsiveness.toml"]
 # Interactive raptor-browsertime tests
 

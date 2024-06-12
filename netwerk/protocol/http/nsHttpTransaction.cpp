@@ -2019,7 +2019,9 @@ nsresult nsHttpTransaction::ParseLineSegment(char* segment, uint32_t len) {
     mLineBuf.Truncate();
     // discard this response if it is a 100 continue or other 1xx status.
     uint16_t status = mResponseHead->Status();
-    if (status == 103) {
+    if (status == 103 &&
+        (StaticPrefs::network_early_hints_over_http_v1_1_enabled() ||
+         mResponseHead->Version() != HttpVersion::v1_1)) {
       nsCString linkHeader;
       nsresult rv = mResponseHead->GetHeader(nsHttp::Link, linkHeader);
 

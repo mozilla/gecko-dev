@@ -1899,6 +1899,7 @@ pref("pdfjs.handleOctetStream", true);
 // Is the sidebar positioned ahead of the content browser
 pref("sidebar.position_start", true);
 pref("sidebar.revamp", false);
+pref("sidebar.main.tools", "history,syncedtabs");
 
 pref("browser.ml.chat.enabled", false);
 pref("browser.ml.chat.prompt.prefix", 'I’m on page "%currentTabTitle%" with "%selection|12000%" selected. ');
@@ -2147,8 +2148,15 @@ pref("browser.contentblocking.reject-and-isolate-cookies.preferences.ui.enabled"
 //     "cookieBehaviorPBM3": cookie behaviour BEHAVIOR_LIMIT_FOREIGN
 //     "cookieBehaviorPBM4": cookie behaviour BEHAVIOR_REJECT_TRACKER
 //     "cookieBehaviorPBM5": cookie behaviour BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN
+//   Third-party cookie deprecation behavior:
+//     "3pcd": Third-party cookie deprecation enabled
+//     "-3pcd": Third-party cookie deprecation disabled
 // One value from each section must be included in the browser.contentblocking.features.strict pref.
+#ifdef NIGHTLY_BUILD
+pref("browser.contentblocking.features.strict", "tp,tpPrivate,cookieBehavior5,cookieBehaviorPBM5,cm,fp,stp,emailTP,emailTPPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate,3pcd");
+#else
 pref("browser.contentblocking.features.strict", "tp,tpPrivate,cookieBehavior5,cookieBehaviorPBM5,cm,fp,stp,emailTP,emailTPPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate");
+#endif
 
 // Hide the "Change Block List" link for trackers/tracking content in the custom
 // Content Blocking/ETP panel. By default, it will not be visible. There is also

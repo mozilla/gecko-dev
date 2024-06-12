@@ -24,7 +24,6 @@
 #include "DataChannelProtocol.h"
 #include "DataChannelListener.h"
 #include "mozilla/net/NeckoTargetHolder.h"
-#include "DataChannelLog.h"
 
 #include "transport/sigslot.h"
 #include "transport/transportlayer.h"  // For TransportLayer::State
@@ -62,55 +61,44 @@ enum class DataChannelReliabilityPolicy {
 // not copy it.
 class OutgoingMsg {
  public:
-  OutgoingMsg(struct sctp_sendv_spa& info, const uint8_t* data, size_t length);
-  OutgoingMsg(OutgoingMsg&& other) = default;
-  OutgoingMsg& operator=(OutgoingMsg&& other) = default;
-  ~OutgoingMsg() = default;
+  OutgoingMsg(struct sctp_sendv_spa& info, Span<const uint8_t> data);
 
   void Advance(size_t offset);
   struct sctp_sendv_spa& GetInfo() const { return *mInfo; };
-  size_t GetLength() const { return mLength; };
-  size_t GetLeft() const { return mLength - mPos; };
-  const uint8_t* GetData() const { return (const uint8_t*)(mData + mPos); };
+  size_t GetLength() const { return mData.Length(); };
+  Span<const uint8_t> GetRemainingData() const { return mData.From(mPos); }
 
  protected:
-  OutgoingMsg()  // Use this for inheritance only
-      : mLength(0), mData(nullptr), mInfo(nullptr), mPos(0){};
-  size_t mLength;
-  const uint8_t* mData;
-  struct sctp_sendv_spa* mInfo;
-  size_t mPos;
+  const Span<const uint8_t> mData;
+  struct sctp_sendv_spa* const mInfo;
+  size_t mPos = 0;
 };
 
 // For queuing outgoing messages
 // This class copies data of an outgoing message.
 class BufferedOutgoingMsg : public OutgoingMsg {
  public:
-  explicit BufferedOutgoingMsg(OutgoingMsg& msg);
-  BufferedOutgoingMsg(BufferedOutgoingMsg&& other) = default;
-  BufferedOutgoingMsg& operator=(BufferedOutgoingMsg&& other) = default;
-  ~BufferedOutgoingMsg();
+  static UniquePtr<BufferedOutgoingMsg> CopyFrom(const OutgoingMsg& msg);
+
+ private:
+  BufferedOutgoingMsg(nsTArray<uint8_t>&& data,
+                      UniquePtr<struct sctp_sendv_spa>&& info);
+  const nsTArray<uint8_t> mDataStorage;
+  const UniquePtr<struct sctp_sendv_spa> mInfoStorage;
 };
 
 // for queuing incoming data messages before the Open or
 // external negotiation is indicated to us
 class QueuedDataMessage {
  public:
-  QueuedDataMessage(uint16_t stream, uint32_t ppid, int flags, const void* data,
-                    uint32_t length)
-      : mStream(stream), mPpid(ppid), mFlags(flags), mLength(length) {
-    mData = static_cast<uint8_t*>(moz_xmalloc((size_t)length));  // infallible
-    memcpy(mData, data, (size_t)length);
-  }
-  QueuedDataMessage(QueuedDataMessage&& other) = default;
-  QueuedDataMessage& operator=(QueuedDataMessage&& other) = default;
-  ~QueuedDataMessage() { free(mData); }
+  QueuedDataMessage(uint16_t stream, uint32_t ppid, int flags,
+                    const uint8_t* data, uint32_t length)
+      : mStream(stream), mPpid(ppid), mFlags(flags), mData(data, length) {}
 
-  uint16_t mStream;
-  uint32_t mPpid;
-  int mFlags;
-  uint32_t mLength;
-  uint8_t* mData;
+  const uint16_t mStream;
+  const uint32_t mPpid;
+  const int mFlags;
+  const nsTArray<uint8_t> mData;
 };
 
 // One per PeerConnection
@@ -158,7 +146,9 @@ class DataChannelConnection final : public net::NeckoTargetHolder,
       const uint16_t aNumStreams, const Maybe<uint64_t>& aMaxMessageSize);
 
   DataChannelConnection(const DataChannelConnection&) = delete;
+  DataChannelConnection(DataChannelConnection&&) = delete;
   DataChannelConnection& operator=(const DataChannelConnection&) = delete;
+  DataChannelConnection& operator=(DataChannelConnection&&) = delete;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DataChannelConnection)
 
@@ -234,7 +224,9 @@ class DataChannelConnection final : public net::NeckoTargetHolder,
 
     Channels() : mMutex("DataChannelConnection::Channels::mMutex") {}
     Channels(const Channels&) = delete;
+    Channels(Channels&&) = delete;
     Channels& operator=(const Channels&) = delete;
+    Channels& operator=(Channels&&) = delete;
 
     void Insert(const RefPtr<DataChannel>& aChannel);
     bool Remove(const RefPtr<DataChannel>& aChannel);
@@ -293,8 +285,8 @@ class DataChannelConnection final : public net::NeckoTargetHolder,
                              DataChannelReliabilityPolicy prPolicy,
                              uint32_t prValue) MOZ_REQUIRES(mLock);
   bool SendBufferedMessages(nsTArray<UniquePtr<BufferedOutgoingMsg>>& buffer,
-                            size_t* aWritten);
-  int SendMsgInternal(OutgoingMsg& msg, size_t* aWritten);
+                            size_t* aWritten) MOZ_REQUIRES(mLock);
+  int SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) MOZ_REQUIRES(mLock);
   int SendMsgInternalOrBuffer(nsTArray<UniquePtr<BufferedOutgoingMsg>>& buffer,
                               OutgoingMsg& msg, bool& buffered,
                               size_t* aWritten) MOZ_REQUIRES(mLock);
@@ -432,27 +424,11 @@ class DataChannel {
               DataChannelState state, const nsACString& label,
               const nsACString& protocol, DataChannelReliabilityPolicy policy,
               uint32_t value, bool ordered, bool negotiated,
-              DataChannelListener* aListener, nsISupports* aContext)
-      : mListener(aListener),
-        mContext(aContext),
-        mConnection(connection),
-        mLabel(label),
-        mProtocol(protocol),
-        mReadyState(state),
-        mStream(stream),
-        mPrPolicy(policy),
-        mPrValue(value),
-        mNegotiated(negotiated),
-        mOrdered(ordered),
-        mIsRecvBinary(false),
-        mBufferedThreshold(0),  // default from spec
-        mBufferedAmount(0),
-        mMainThreadEventTarget(connection->GetNeckoTarget()),
-        mStatsLock("netwer::sctp::DataChannel::mStatsLock") {
-    NS_ASSERTION(mConnection, "NULL connection");
-  }
+              DataChannelListener* aListener, nsISupports* aContext);
   DataChannel(const DataChannel&) = delete;
+  DataChannel(DataChannel&&) = delete;
   DataChannel& operator=(const DataChannel&) = delete;
+  DataChannel& operator=(DataChannel&&) = delete;
 
  private:
   ~DataChannel();
@@ -530,7 +506,8 @@ class DataChannel {
   }
   uint16_t GetStream() const { return mStream; }
 
-  void SendOrQueue(DataChannelOnMessageAvailable* aMessage);
+  void SendOrQueue(DataChannelOnMessageAvailable* aMessage)
+      MOZ_REQUIRES(mConnection->mLock);
 
   TrafficCounters GetTrafficCounters() const;
 
@@ -570,8 +547,8 @@ class DataChannel {
   // spec requires us to queue a task for this.
   size_t mBufferedAmount;
   nsCString mRecvBuffer;
-  nsTArray<UniquePtr<BufferedOutgoingMsg>>
-      mBufferedData;  // MOZ_GUARDED_BY(mConnection->mLock)
+  nsTArray<UniquePtr<BufferedOutgoingMsg>> mBufferedData
+      MOZ_GUARDED_BY(mConnection->mLock);
   nsCOMPtr<nsISerialEventTarget> mMainThreadEventTarget;
   mutable Mutex mStatsLock;
   TrafficCounters mTrafficCounters MOZ_GUARDED_BY(mStatsLock);
@@ -623,8 +600,11 @@ class DataChannelOnMessageAvailable : public Runnable {
         mType(aType),
         mConnection(aConnection) {}
   DataChannelOnMessageAvailable(const DataChannelOnMessageAvailable&) = delete;
+  DataChannelOnMessageAvailable(DataChannelOnMessageAvailable&&) = delete;
   DataChannelOnMessageAvailable& operator=(
       const DataChannelOnMessageAvailable&) = delete;
+  DataChannelOnMessageAvailable& operator=(DataChannelOnMessageAvailable&&) =
+      delete;
 
   NS_IMETHOD Run() override;
 

@@ -837,7 +837,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             context.components.useCases.tabsUseCases,
             context.components.useCases.contextMenuUseCases,
             view,
-            FenixSnackbarDelegate(view),
+            ContextMenuSnackbarDelegate(),
         ) + ContextMenuCandidate.createOpenInExternalAppCandidate(
             requireContext(),
             contextMenuCandidateAppLinksUseCases,

@@ -144,6 +144,7 @@ jobs:
           - mozilla-release
           - mozilla-esr128
           - elm
+          - cypress
       # For all non m-c jobs we just run once daily matching the 10 UTC
       # nightly which is designed to align with searchfox's AWS cron
       # jobs (for legacy reasons) rather than trying to align with

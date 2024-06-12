@@ -64,6 +64,20 @@ metrics:
             Similar to SpeedIndex, except that it uses the structural similarity index measure (ssim)
             to determine visual completeness. This technique compares the luminance, contrast, and
             structure of the frames (a given frame vs. a final frame) to determine the completeness.
+    "Estimated Frame Latency (First)":
+        aliases:
+            - estimatedFirstFrameLatency
+        description: >
+            A metric used to denote the latency on displaying the first frame of a video. Calculated
+            by using videos of the pageload from which key frames are identified by matching a given
+            solid RGB color with fuzz.
+    "Estimated Frame Latency (Any)":
+        aliases:
+            - estimatedAnyFrameLatency
+        description: >
+            Similar to estimatedFirstFrameLatency, except that it uses all identified frames during
+            video playback, normalized to be an estimate of when the first frame was displayed by
+            using the expected time offset from the video itself.
 
 suites:
     desktop:
@@ -231,6 +245,9 @@ suites:
                 A pageload benchmark test that quickly runs through a selection of the
                 pages available to produce a single overall metric for fcp, lcp, and
                 loadtime. The metrics from all pages get summarized with the geomean, and mean.
+            vpl-av1: "Measures AV1 1080p video playback latency."
+            vpl-h264: "Measures H264 1080p video playback latency."
+            vpl-vp9: "Measures VP9 1080p video playback latency."
     interactive:
         description: "Browsertime tests that interact with the webpage. Includes responsiveness tests as they make use of this support for navigation. These form of tests allow the specification of browsertime commands through the test manifest."
         tests:

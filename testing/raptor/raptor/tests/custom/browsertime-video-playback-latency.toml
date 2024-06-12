@@ -1,0 +1,37 @@
+[DEFAULT]
+alert_threshold = 2.0
+alert_on = "estimatedFirstFrameLatency, estimatedAnyFrameLatency"
+gecko_profile_interval = 1
+gecko_profile_features = "stackwalk,js,cpu,java,processcpu,screenshots,memory"
+gecko_profile_threads = "BackgroundThreadPool,Compositor,decoder,GeckoMain,gmp,graph,grph,InotifyEventThread,IPDL Background,media,ModuleProcessThread,PacerThread,RemVidChild,RenderBackend,Renderer,SwComposite,TextureUpdate,ImageBridgeChld"
+lower_is_better = true
+newtab_per_cycle = true
+owner = ":aosmond and the Media Team"
+page_cycles = 20
+browser_cycles = 20
+page_timeout = 20000
+apps = "chrome, chrome-m, geckoview, fenix, firefox, safari"
+type = "pageload"
+benchmark_webserver = true
+support_class = "video_playback_latency.py"
+measure = "firstFrame, secondFrame, lastFrame, estimatedFirstFrameLatency, estimatedAnyFrameLatency"
+unit = "ms"
+preferences = [
+  "media.autoplay.default=0",
+  "media.autoplay.ask-permission=false",
+  "media.autoplay.blocking_policy=0",
+  "media.allowed-to-play.enabled=true",
+  "media.block-autoplay-until-in-foreground=false",
+]
+repository = "https://github.com/mozilla/perf-automation"
+repository_revision = "e3d0295c15cfdd6f32e6d4270de0ed5d6c1632cd"
+repository_path = "benchmarks/video-playback-latency"
+
+["vpl-h264"]
+test_url = "http://<host>:<port>/h264_1080p.html"
+
+["vpl-vp9"]
+test_url = "http://<host>:<port>/vp9_1080p.html"
+
+["vpl-av1"]
+test_url = "http://<host>:<port>/av1_1080p.html"

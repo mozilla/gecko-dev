@@ -4,7 +4,7 @@
   <title>Test for notifications</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script src="/tests/SimpleTest/ExtensionTestUtils.js"></script>
-  <script type="text/javascript" src="head_notifications.js"></script>
+  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 </head>
 <body>
@@ -328,10 +328,6 @@ add_task(async function test_notifications_different_contexts() {
   await extension.startup();
   await extension.awaitFinish("notifications");
   await extension.unload();
-});
-
-add_task(async function teardown_mock_alert_service() {
-  await MockAlertsService.unregister();
 });
 
 </script>

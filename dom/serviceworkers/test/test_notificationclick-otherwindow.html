@@ -6,8 +6,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
 <head>
   <title>Bug 1114554 - Test ServiceWorkerGlobalScope.notificationclick event.</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockServices.js"></script>
-  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/NotificationTest.js"></script>
+  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -24,31 +23,33 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
   function testFrame(src) {
     var iframe = document.createElement("iframe");
     iframe.src = src;
-    window.callback = function(result) {
+    window.callback = async function(result) {
       window.callback = null;
       document.body.removeChild(iframe);
       iframe = null;
       ok(result, "Got notificationclick event with correct data.");
-      MockServices.unregister();
-      registration.unregister().then(function() {
-        SimpleTest.finish();
-      });
+      await registration.unregister();
+      SimpleTest.finish();
     };
     document.body.appendChild(iframe);
   }
 
   var registration;
 
-  function runTest() {
-    MockServices.register();
-    navigator.serviceWorker.register("notificationclick.js", { scope: "notificationclick-otherwindow.html" }).then(function(reg) {
-      registration = reg;
-      return waitForState(reg.installing, 'activated');
-    }, function(e) {
+  async function runTest() {
+    try {
+      await MockAlertsService.register();
+      await MockAlertsService.enableAutoClick();
+      registration = await navigator.serviceWorker.register(
+        "notificationclick.js",
+        { scope: "notificationclick-otherwindow.html" }
+      );
+      await waitForState(registration.installing, 'activated');
+    } catch (e) {
       ok(false, "registration should have passed!");
-    }).then(() => {
-      testFrame('notificationclick-otherwindow.html');
-    });
+      SimpleTest.finish();
+    }
+    testFrame('notificationclick-otherwindow.html');
   };
 
   SimpleTest.waitForExplicitFinish();

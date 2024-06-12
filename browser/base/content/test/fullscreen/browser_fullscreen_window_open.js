@@ -15,7 +15,7 @@ const IFRAME_ID = "testIframe";
 async function testWindowOpen(iframeID) {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
   info("Entering full-screen");
-  await changeFullscreen(tab.linkedBrowser, true);
+  await DOMFullscreenTestUtils.changeFullscreen(tab.linkedBrowser, true);
 
   let popup;
   await testExpectFullScreenExit(tab.linkedBrowser, true, async () => {
@@ -36,7 +36,7 @@ async function testWindowOpenExistingWindow(funToOpenExitingWindow, iframeID) {
   await waitForFocus(tab.linkedBrowser);
 
   info("Entering full-screen");
-  await changeFullscreen(tab.linkedBrowser, true);
+  await DOMFullscreenTestUtils.changeFullscreen(tab.linkedBrowser, true);
 
   info("open existing popup window");
   await testExpectFullScreenExit(tab.linkedBrowser, true, async () => {

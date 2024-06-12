@@ -212,6 +212,7 @@ export var UrlbarUtils = {
         icon: "chrome://browser/skin/bookmark.svg",
         pref: "shortcuts.bookmarks",
         telemetryLabel: "bookmarks",
+        uiLabel: "urlbar-searchmode-bookmarks",
       },
       {
         source: UrlbarUtils.RESULT_SOURCE.TABS,
@@ -219,6 +220,7 @@ export var UrlbarUtils = {
         icon: "chrome://browser/skin/tab.svg",
         pref: "shortcuts.tabs",
         telemetryLabel: "tabs",
+        uiLabel: "urlbar-searchmode-tabs",
       },
       {
         source: UrlbarUtils.RESULT_SOURCE.HISTORY,
@@ -226,6 +228,7 @@ export var UrlbarUtils = {
         icon: "chrome://browser/skin/history.svg",
         pref: "shortcuts.history",
         telemetryLabel: "history",
+        uiLabel: "urlbar-searchmode-history",
       },
     ];
   },
