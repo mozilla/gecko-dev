@@ -87,16 +87,6 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
  public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(InternalRequest)
   InternalRequest(const nsACString& aURL, const nsACString& aFragment);
-  InternalRequest(const nsACString& aURL, const nsACString& aFragment,
-                  const nsACString& aMethod,
-                  already_AddRefed<InternalHeaders> aHeaders,
-                  RequestCache aCacheMode, RequestMode aMode,
-                  RequestRedirect aRequestRedirect,
-                  RequestCredentials aRequestCredentials,
-                  const nsACString& aReferrer, ReferrerPolicy aReferrerPolicy,
-                  RequestPriority aPriority,
-                  nsContentPolicyType aContentPolicyType,
-                  const nsAString& aIntegrity);
 
   explicit InternalRequest(const IPCInternalRequest& aIPCRequest);
 

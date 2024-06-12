@@ -322,6 +322,14 @@ Result<IPCInternalRequest, nsresult> GetIPCInternalRequest(
   MOZ_ALWAYS_SUCCEEDS(internalChannel->GetRedirectMode(&redirectMode));
   RequestRedirect requestRedirect = static_cast<RequestRedirect>(redirectMode);
 
+  // request's priority is not copied by the new Request() constructor used by
+  // a fetch() call while request's internal priority is. So let's use the
+  // default, otherwise a fetch(event.request) from a worker on an intercepted
+  // fetch event would adjust priority twice.
+  // https://fetch.spec.whatwg.org/#dom-global-fetch
+  // https://fetch.spec.whatwg.org/#dom-request
+  RequestPriority requestPriority = RequestPriority::Auto;
+
   RequestCredentials requestCredentials =
       InternalRequest::MapChannelToRequestCredentials(underlyingChannel);
 
@@ -411,9 +419,9 @@ Result<IPCInternalRequest, nsresult> GetIPCInternalRequest(
       method, {spec}, ipcHeadersGuard, ipcHeaders, Nothing(), -1,
       alternativeDataType, contentPolicyType, internalPriority, referrer,
       referrerPolicy, environmentReferrerPolicy, requestMode,
-      requestCredentials, cacheMode, requestRedirect, integrity, fragment,
-      principalInfo, interceptionPrincipalInfo, contentPolicyType,
-      redirectChain, isThirdPartyChannel, embedderPolicy);
+      requestCredentials, cacheMode, requestRedirect, requestPriority,
+      integrity, fragment, principalInfo, interceptionPrincipalInfo,
+      contentPolicyType, redirectChain, isThirdPartyChannel, embedderPolicy);
 }
 
 nsresult MaybeStoreStreamForBackgroundThread(nsIInterceptedChannel* aChannel,
