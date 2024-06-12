@@ -309,7 +309,7 @@ JSObject* newDelegate() {
 
 void performIncrementalGC() {
   JSRuntime* rt = cx->runtime();
-  js::SliceBudget budget(js::WorkBudget(1000));
+  JS::SliceBudget budget(JS::WorkBudget(1000));
   rt->gc.startDebugGC(JS::GCOptions::Normal, budget);
 
   // Wait until we've started marking before finishing the GC

@@ -260,6 +260,9 @@ using mozilla::TimeDuration;
 using mozilla::TimeStamp;
 
 using JS::AutoGCRooter;
+using JS::SliceBudget;
+using JS::TimeBudget;
+using JS::WorkBudget;
 
 const AllocKind gc::slotsToThingKind[] = {
     // clang-format off
@@ -4671,7 +4674,7 @@ void GCRuntime::gc(JS::GCOptions options, JS::GCReason reason) {
 }
 
 void GCRuntime::startGC(JS::GCOptions options, JS::GCReason reason,
-                        const js::SliceBudget& budget) {
+                        const SliceBudget& budget) {
   MOZ_ASSERT(!isIncrementalGCInProgress());
   setGCOptions(options);
 
@@ -4688,7 +4691,7 @@ void GCRuntime::setGCOptions(JS::GCOptions options) {
   maybeGcOptions = Some(options);
 }
 
-void GCRuntime::gcSlice(JS::GCReason reason, const js::SliceBudget& budget) {
+void GCRuntime::gcSlice(JS::GCReason reason, const SliceBudget& budget) {
   MOZ_ASSERT(isIncrementalGCInProgress());
   collect(false, budget, reason);
 }

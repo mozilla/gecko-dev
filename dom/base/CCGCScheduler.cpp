@@ -468,7 +468,7 @@ bool CCGCScheduler::GCRunnerFiredDoGC(TimeStamp aDeadline,
 
   MOZ_ASSERT(mActiveIntersliceGCBudget);
   TimeStamp startTimeStamp = TimeStamp::Now();
-  js::SliceBudget budget = ComputeInterSliceGCBudget(aDeadline, startTimeStamp);
+  JS::SliceBudget budget = ComputeInterSliceGCBudget(aDeadline, startTimeStamp);
   nsJSContext::RunIncrementalGCSlice(aStep.mReason, is_shrinking, budget);
 
   // If the GC doesn't have any more work to do on the foreground thread (and
@@ -778,7 +778,7 @@ void CCGCScheduler::KillAllTimersAndRunners() {
   KillGCRunner();
 }
 
-js::SliceBudget CCGCScheduler::ComputeCCSliceBudget(
+JS::SliceBudget CCGCScheduler::ComputeCCSliceBudget(
     TimeStamp aDeadline, TimeStamp aCCBeginTime, TimeStamp aPrevSliceEndTime,
     TimeStamp aNow, bool* aPreferShorterSlices) const {
   *aPreferShorterSlices =
@@ -789,14 +789,14 @@ js::SliceBudget CCGCScheduler::ComputeCCSliceBudget(
 
   if (aPrevSliceEndTime.IsNull()) {
     // The first slice gets the standard slice time.
-    return js::SliceBudget(js::TimeBudget(baseBudget));
+    return JS::SliceBudget(JS::TimeBudget(baseBudget));
   }
 
   // Only run a limited slice if we're within the max running time.
   MOZ_ASSERT(aNow >= aCCBeginTime);
   TimeDuration runningTime = aNow - aCCBeginTime;
   if (runningTime >= kMaxICCDuration) {
-    return js::SliceBudget::unlimited();
+    return JS::SliceBudget::unlimited();
   }
 
   const TimeDuration maxSlice =
@@ -818,7 +818,7 @@ js::SliceBudget CCGCScheduler::ComputeCCSliceBudget(
   // Note: We may have already overshot the deadline, in which case
   // baseBudget will be negative and we will end up returning
   // laterSliceBudget.
-  return js::SliceBudget(js::TimeBudget(
+  return JS::SliceBudget(JS::TimeBudget(
       std::max({delaySliceBudget, laterSliceBudget, baseBudget})));
 }
 
@@ -828,7 +828,7 @@ js::SliceBudget CCGCScheduler::ComputeCCSliceBudget(
 // Inputs are an idle deadline (or null if this is not running in idle time),
 // and a timestamp (probably null) when the CC started being locked out while
 // waiting for the ongoing GC to finish.
-js::SliceBudget CCGCScheduler::ComputeInterSliceGCBudget(TimeStamp aDeadline,
+JS::SliceBudget CCGCScheduler::ComputeInterSliceGCBudget(TimeStamp aDeadline,
                                                          TimeStamp aNow) {
   TimeDuration budget =
       aDeadline.IsNull() ? mActiveIntersliceGCBudget : aDeadline - aNow;
@@ -1110,7 +1110,7 @@ GCRunnerStep CCGCScheduler::GetNextGCRunnerAction(TimeStamp aDeadline) const {
   return {GCRunnerAction::None, JS::GCReason::NO_REASON};
 }
 
-js::SliceBudget CCGCScheduler::ComputeForgetSkippableBudget(
+JS::SliceBudget CCGCScheduler::ComputeForgetSkippableBudget(
     TimeStamp aStartTimeStamp, TimeStamp aDeadline) {
   if (mForgetSkippableFrequencyStartTime.IsNull()) {
     mForgetSkippableFrequencyStartTime = aStartTimeStamp;
@@ -1137,7 +1137,7 @@ js::SliceBudget CCGCScheduler::ComputeForgetSkippableBudget(
 
   TimeDuration budgetTime =
       aDeadline ? (aDeadline - aStartTimeStamp) : kForgetSkippableSliceDuration;
-  return js::SliceBudget(budgetTime);
+  return JS::SliceBudget(budgetTime);
 }
 
 }  // namespace mozilla

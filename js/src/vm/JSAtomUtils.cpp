@@ -168,7 +168,7 @@ bool JSRuntime::initializeAtoms(JSContext* cx) {
    mozilla::HashStringKnownLength("Symbol." #NAME,              \
                                   sizeof("Symbol." #NAME) - 1), \
    "Symbol." #NAME},
-      JS_FOR_EACH_WELL_KNOWN_SYMBOL(COMMON_NAME_INFO)
+    JS_FOR_EACH_WELL_KNOWN_SYMBOL(COMMON_NAME_INFO)
 #undef COMMON_NAME_INFO
   };
 
@@ -343,7 +343,7 @@ void AtomsTable::mergeAtomsAddedWhileSweeping() {
 }
 
 bool AtomsTable::sweepIncrementally(SweepIterator& atomsToSweep,
-                                    SliceBudget& budget) {
+                                    JS::SliceBudget& budget) {
   // Sweep the table incrementally until we run out of work or budget.
   while (!atomsToSweep.empty()) {
     budget.step();

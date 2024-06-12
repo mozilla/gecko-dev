@@ -911,7 +911,7 @@ static void TraceBlackRoots(JSTracer* trc, void* data) {
   TraceRootArrays(trc, gc::MarkColor::Black);
 }
 
-static bool TraceGrayRoots(JSTracer* trc, SliceBudget& budget, void* data) {
+static bool TraceGrayRoots(JSTracer* trc, JS::SliceBudget& budget, void* data) {
   TraceRootArrays(trc, gc::MarkColor::Gray);
   return true;
 }

@@ -1039,7 +1039,7 @@ void nsJSContext::SetLowMemoryState(bool aState) {
 
 static void GarbageCollectImpl(JS::GCReason aReason,
                                nsJSContext::IsShrinking aShrinking,
-                               const js::SliceBudget& aBudget) {
+                               const JS::SliceBudget& aBudget) {
   AUTO_PROFILER_LABEL_DYNAMIC_CSTR_NONSENSITIVE(
       "nsJSContext::GarbageCollectNow", GCCC, JS::ExplainGCReason(aReason));
 
@@ -1085,13 +1085,13 @@ static void GarbageCollectImpl(JS::GCReason aReason,
 // static
 void nsJSContext::GarbageCollectNow(JS::GCReason aReason,
                                     IsShrinking aShrinking) {
-  GarbageCollectImpl(aReason, aShrinking, js::SliceBudget::unlimited());
+  GarbageCollectImpl(aReason, aShrinking, JS::SliceBudget::unlimited());
 }
 
 // static
 void nsJSContext::RunIncrementalGCSlice(JS::GCReason aReason,
                                         IsShrinking aShrinking,
-                                        js::SliceBudget& aBudget) {
+                                        JS::SliceBudget& aBudget) {
   AUTO_PROFILER_LABEL_RELEVANT_FOR_JS("Incremental GC", GCCC);
   GarbageCollectImpl(aReason, aShrinking, aBudget);
 }
@@ -1141,7 +1141,7 @@ static void FireForgetSkippable(bool aRemoveChildless, TimeStamp aDeadline) {
   FinishAnyIncrementalGC();
 
   uint32_t suspectedBefore = nsCycleCollector_suspectedCount();
-  js::SliceBudget budget =
+  JS::SliceBudget budget =
       sScheduler->ComputeForgetSkippableBudget(startTimeStamp, aDeadline);
   bool earlyForgetSkippable = sScheduler->IsEarlyForgetSkippable();
   nsCycleCollector_forgetSkippable(budget, aRemoveChildless,
@@ -1470,12 +1470,12 @@ void nsJSContext::RunCycleCollectorSlice(CCReason aReason,
   // Decide how long we want to budget for this slice.
   if (sIncrementalCC) {
     bool preferShorterSlices;
-    js::SliceBudget budget = sScheduler->ComputeCCSliceBudget(
+    JS::SliceBudget budget = sScheduler->ComputeCCSliceBudget(
         aDeadline, sCCStats.mBeginTime, sCCStats.mEndSliceTime,
         TimeStamp::Now(), &preferShorterSlices);
     nsCycleCollector_collectSlice(budget, aReason, preferShorterSlices);
   } else {
-    js::SliceBudget budget = js::SliceBudget::unlimited();
+    JS::SliceBudget budget = JS::SliceBudget::unlimited();
     nsCycleCollector_collectSlice(budget, aReason, false);
   }
 
@@ -1492,7 +1492,7 @@ void nsJSContext::RunCycleCollectorWorkSlice(int64_t aWorkBudget) {
 
   PrepareForCycleCollectionSlice(CCReason::API, TimeStamp());
 
-  js::SliceBudget budget = js::SliceBudget(js::WorkBudget(aWorkBudget));
+  JS::SliceBudget budget = JS::SliceBudget(JS::WorkBudget(aWorkBudget));
   nsCycleCollector_collectSlice(budget, CCReason::API);
 
   sCCStats.AfterCycleCollectionSlice();
@@ -2067,7 +2067,7 @@ static bool ConsumeStream(JSContext* aCx, JS::Handle<JSObject*> aObj,
                                        nullptr);
 }
 
-static js::SliceBudget CreateGCSliceBudget(JS::GCReason aReason,
+static JS::SliceBudget CreateGCSliceBudget(JS::GCReason aReason,
                                            int64_t aMillis) {
   return sScheduler->CreateGCSliceBudget(
       mozilla::TimeDuration::FromMilliseconds(aMillis), CCGCScheduler::eNotIdle,
