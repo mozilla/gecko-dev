@@ -100,6 +100,26 @@ Similar to SpeedIndex, except that it uses the contentfulness of a frame to dete
      * **Mobile**: `allrecipes <raptor.html#allrecipes-m>`__, `amazon <raptor.html#amazon-m>`__, `amazon-search <raptor.html#amazon-search-m>`__, `bild-de <raptor.html#bild-de-m>`__, `bing <raptor.html#bing-m>`__, `bing-search-restaurants <raptor.html#bing-search-restaurants-m>`__, `booking <raptor.html#booking-m>`__, `cnn <raptor.html#cnn-m>`__, `cnn-ampstories <raptor.html#cnn-ampstories-m>`__, `dailymail <raptor.html#dailymail-m>`__, `ebay-kleinanzeigen <raptor.html#ebay-kleinanzeigen-m>`__, `ebay-kleinanzeigen-search <raptor.html#ebay-kleinanzeigen-search-m>`__, `espn <raptor.html#espn-m>`__, `facebook <raptor.html#facebook-m>`__, `facebook-cristiano <raptor.html#facebook-cristiano-m>`__, `google <raptor.html#google-m>`__, `google-maps <raptor.html#google-maps-m>`__, `google-search-restaurants <raptor.html#google-search-restaurants-m>`__, `imdb <raptor.html#imdb-m>`__, `instagram <raptor.html#instagram-m>`__, `microsoft-support <raptor.html#microsoft-support-m>`__, `reddit <raptor.html#reddit-m>`__, `sina <raptor.html#sina-m>`__, `stackoverflow <raptor.html#stackoverflow-m>`__, `wikipedia <raptor.html#wikipedia-m>`__, `youtube <raptor.html#youtube-m>`__, `youtube-watch <raptor.html#youtube-watch-m>`__
 
 
+Estimated Frame Latency (Any)
+=============================
+Similar to estimatedFirstFrameLatency, except that it uses all identified frames during video playback, normalized to be an estimate of when the first frame was displayed by using the expected time offset from the video itself.
+
+
+  * **Aliases**: estimatedAnyFrameLatency
+  * **Tests using it**:
+     * **Custom**: `vpl-av1 <raptor.html#vpl-av1-c>`__, `vpl-h264 <raptor.html#vpl-h264-c>`__, `vpl-vp9 <raptor.html#vpl-vp9-c>`__
+
+
+Estimated Frame Latency (First)
+===============================
+A metric used to denote the latency on displaying the first frame of a video. Calculated by using videos of the pageload from which key frames are identified by matching a given solid RGB color with fuzz.
+
+
+  * **Aliases**: estimatedFirstFrameLatency
+  * **Tests using it**:
+     * **Custom**: `vpl-av1 <raptor.html#vpl-av1-c>`__, `vpl-h264 <raptor.html#vpl-h264-c>`__, `vpl-vp9 <raptor.html#vpl-vp9-c>`__
+
+
 First Paint
 ===========
 Denotes the first time the browser performs a paint that has content in it (in ms).

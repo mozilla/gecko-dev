@@ -368,6 +368,33 @@ browsertime-tp6m-profiling:
             android-hw-(a51).*aarch64-shippable-qr/opt: [mozilla-central]
             default: []
 
+browsertime-video-playback-latency-mobile:
+    <<: *tp6m-defaults
+    description: Browsertime Video Playback Latency on Android
+    treeherder-symbol: Btime(vpl)
+    run-without-variant: false
+    raptor:
+        apps: [chrome-m, fenix, geckoview]
+        run-visual-metrics: true
+        test: video-playback-latency
+        subtests:
+            - vpl-av1
+            - vpl-h264
+            - vpl-vp9
+    mozharness:
+        extra-options:
+            - --chimera
+            - --browsertime-no-ffwindowrecorder
+            - --extra-profiler-run
+    run-on-projects:
+        by-app:
+            chrome-m: []
+            default:
+                by-test-platform:
+                    android-hw-a51.*shippable.*: [autoland, mozilla-central]
+                    default: []
+    tier: 3
+
 browsertime-benchmark-speedometer-mobile:
     description: Browsertime Speedometer on Android
     run-without-variant: false
