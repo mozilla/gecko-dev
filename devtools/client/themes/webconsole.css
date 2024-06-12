@@ -719,37 +719,6 @@ a.learn-more-link.webconsole-learn-more-link {
   user-select: none;
 }
 
-.webconsole-filterbar-filtered-messages {
-  /* Needed so the bar takes the whole horizontal space when it is wrapped */
-  flex-grow: 1;
-  justify-content: flex-end;
-  color: var(--theme-comment);
-  text-align: end;
-  align-items: center;
-  min-height: var(--primary-toolbar-height);
-  line-height: var(--primary-toolbar-height);
-}
-
-@media (max-width: 965px) {
-  /* This media query will make filtered message element to be displayed in new
-    line. This width is based on greek localized size since it is longer than
-    other localized strings. */
-  .webconsole-filterbar-filtered-messages {
-    grid-row: 2 / 3;
-    grid-column: 1 / -1;
-    justify-self: stretch;
-  }
-}
-
-.webconsole-filterbar-filtered-messages .filter-message-text {
-  font-style: italic;
-  user-select: none;
-}
-
-.webconsole-filterbar-filtered-messages .reset-filters-button {
-  margin-inline-start: 0.5em;
-}
-
 /* Special casing String reps, and warning/error string colors
  * so they are legible */
 .message .message-body > .objectBox-string,
