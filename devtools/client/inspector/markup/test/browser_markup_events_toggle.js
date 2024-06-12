@@ -76,10 +76,21 @@ add_task(async function () {
     eventTooltipBadge.classList.contains("has-disabled-events"),
     "Unchecking an event applied the has-disabled-events class to the badge"
   );
+  ({ onResource: onConsoleInfoMessage } =
+    await resourceCommand.waitForNextResource(
+      resourceCommand.TYPES.CONSOLE_MESSAGE,
+      {
+        ignoreExistingResources: true,
+        predicate(resource) {
+          return resource.message.level == "info";
+        },
+      }
+    ));
   await safeSynthesizeMouseEventAtCenterInContentPage("#target");
   data = await getTargetElementHandledEventData();
   is(data.click, 2, `target handled another "click" event…`);
   is(data.mousedown, 1, `… but not a mousedown one`);
+  await onConsoleInfoMessage;
 
   info(
     "Check that the event badge style is reset when re-enabling all disabled events"
