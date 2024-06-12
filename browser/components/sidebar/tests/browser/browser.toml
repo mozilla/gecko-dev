@@ -7,6 +7,8 @@ support-files = ["head.js"]
 
 ["browser_customize_sidebar.js"]
 
+["browser_domfullscreen_sidebar.js"]
+
 ["browser_extensions_sidebar.js"]
 
 ["browser_hide_sidebar_on_popup.js"]
