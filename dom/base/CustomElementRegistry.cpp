@@ -1238,9 +1238,10 @@ already_AddRefed<Promise> CustomElementRegistry::WhenDefined(
   uint32_t nameSpaceID =
       doc ? doc->GetDefaultNamespaceID() : kNameSpaceID_XHTML;
   if (!nsContentUtils::IsCustomElementName(nameAtom, nameSpaceID)) {
-    return createPromise([](const RefPtr<Promise>& promise) {
-      promise->MaybeReject(NS_ERROR_DOM_SYNTAX_ERR);
-    });
+    aRv.ThrowSyntaxError(
+        nsPrintfCString("'%s' is not a valid custom element name",
+                        NS_ConvertUTF16toUTF8(aName).get()));
+    return nullptr;
   }
 
   if (CustomElementDefinition* definition =

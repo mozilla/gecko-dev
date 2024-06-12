@@ -1205,6 +1205,8 @@ skip-if = [
 
 ["test_custom_element.html"]
 
+["test_custom_element_invalid_name.html"]
+
 ["test_custom_element_reflector.html"]
 
 ["test_data_uri.html"]
