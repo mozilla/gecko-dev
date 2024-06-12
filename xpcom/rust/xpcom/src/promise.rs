@@ -22,6 +22,9 @@ mod ffi {
     }
 }
 
+// As of rustc 1.80, structs that are never constructed are considered dead code, but this is
+// constructed from C++.
+#[allow(dead_code)]
 #[repr(C)]
 pub struct Promise {
     private: [u8; 0],
