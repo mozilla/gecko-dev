@@ -383,6 +383,7 @@ var gBrowserInit = {
     BookmarkingUI.init();
     BrowserSearch.delayedStartupInit();
     SearchUIUtils.init();
+    SearchModeSwitcher.init(window);
     gProtectionsHandler.init();
     HomePage.delayedStartup().catch(console.error);
 

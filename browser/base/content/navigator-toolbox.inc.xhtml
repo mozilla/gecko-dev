@@ -181,7 +181,8 @@
                  collapsed="true">
                 <image id="remote-control-icon"/>
             </box>
-            <box class="chromeclass-toolbar-additional urlbar-search-button"/>
+            <box id="urlbar-search-button"
+                 class="chromeclass-toolbar-additional"/>
             <!-- Use onclick instead of normal popup= syntax since the popup
                  code fires onmousedown, and hence eats our favicon drag events. -->
             <box id="tracking-protection-icon-container" align="center"
@@ -301,6 +302,17 @@
                        data-l10n-id="urlbar-storage-access-anchor"/>
               </box>
             </box>
+            <toolbarbutton id="urlbar-searchmode-switcher"
+                           data-l10n-id="urlbar-searchmode-button"
+                           onmousedown="SearchModeSwitcher.openPanel(this, event)" onkeypress="SearchModeSwitcher.openPanel(this, event)"
+                           align="center" noautofocus="true" tooltip="dynamic-shortcut-tooltip" class="chromeclass-toolbar-additional">
+              <image id="searchmode-switcher-icon" />
+              <label id="searchmode-switcher-title" />
+              <image id="searchmode-switcher-dropmarker" data-l10n-id="urlbar-searchmode-dropmarker"
+                     class="toolbarbutton-icon toolbarbutton-combined-buttons-dropmarker" />
+              <toolbarbutton id="searchmode-switcher-close" noautofocus="true" class="toolbarbutton-icon close-button"
+                             onmousedown="SearchModeSwitcher.exitSearchMode(this, event)" />
+            </toolbarbutton>
             <box id="urlbar-label-box" align="center">
               <label id="urlbar-label-switchtab" class="urlbar-label" data-l10n-id="urlbar-switch-to-tab"/>
               <label id="urlbar-label-extension" class="urlbar-label" data-l10n-id="urlbar-extension"/>

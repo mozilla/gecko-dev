@@ -1092,3 +1092,73 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 .searchbar-engine-one-off-add-engine[image]:hover > .button-box > .button-icon {
   opacity: 1;
 }
+
+#urlbar-searchmode-switcher {
+  /* Hidden until urlbar opens */
+  display: none;
+  margin-inline-end: var(--urlbar-icon-padding);
+  background-color: var(--toolbar-field-background-color);
+  border-radius: var(--toolbarbutton-border-radius);
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") {
+    #urlbar[focused] & {
+      display: flex;
+    }
+  }
+}
+
+#searchmode-switcher-icon {
+  width: calc(var(--urlbar-min-height) - 2px - 2 * var(--urlbar-container-padding));
+  height: calc(var(--urlbar-min-height) - 2px - 2 * var(--urlbar-container-padding));
+  border-radius: var(--urlbar-icon-border-radius);
+  padding: var(--urlbar-icon-padding);
+}
+
+#searchmode-switcher-title {
+  margin-inline-start: 0px;
+
+  &:empty {
+    display: none;
+  }
+}
+
+#searchmode-switcher-close {
+  list-style-image: url("chrome://global/skin/icons/close-12.svg");
+  pointer-events: all;
+  display: none;
+
+  #urlbar[searchmode] & {
+    display: inline-flex;
+  }
+}
+
+#searchmode-switcher-dropmarker {
+  #urlbar[searchmode] & {
+    display: none;
+  }
+  #urlbar-searchmode-switcher[open] & {
+    transform: rotate(180deg);
+  }
+}
+
+#searchmode-switcher-popup {
+  --panel-padding: var(--space-small);
+  --arrowpanel-menuitem-margin: 0;
+}
+
+#searchmode-switcher-popup-description {
+  margin: var(--space-small);
+}
+
+#searchmode-switcher-popup-search-settings-icon {
+  list-style-image: url("chrome://global/skin/icons/settings.svg");
+}
+
+/* stylelint-disable-next-line media-query-no-invalid */
+@media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
+  #urlbar[focused] #identity-box,
+  #urlbar[searchmode] > .urlbar-input-container > #urlbar-search-mode-indicator {
+    display: none;
+  }
+}
