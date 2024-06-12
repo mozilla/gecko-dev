@@ -276,10 +276,10 @@ index 344c8a1531..dcc1b3c6ac 100644
  config("x11_config") {
    if (rtc_use_x11_extensions) {
 diff --git a/webrtc.gni b/webrtc.gni
-index c84464e84a..ad69bf8f8e 100644
+index c435413ce1..4ae7fd7522 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -175,13 +175,13 @@ declare_args() {
+@@ -179,13 +179,13 @@ declare_args() {
  
    # Selects fixed-point code where possible.
    rtc_prefer_fixed_point = false

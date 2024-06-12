@@ -31,7 +31,7 @@ LOCAL_INCLUDES += [
 ]
 
 UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/rtc_base/experiments/rtt_mult_experiment.cc"
+    "/third_party/libwebrtc/modules/video_coding/h26x_packet_buffer.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
@@ -86,6 +86,10 @@ if CONFIG["OS_TARGET"] == "Linux":
     DEFINES["_LARGEFILE_SOURCE"] = True
     DEFINES["__STDC_CONSTANT_MACROS"] = True
     DEFINES["__STDC_FORMAT_MACROS"] = True
+
+    OS_LIBS += [
+        "rt"
+    ]
 
 if CONFIG["OS_TARGET"] == "OpenBSD":
 
@@ -224,4 +228,4 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     DEFINES["_GNU_SOURCE"] = True
 
-Library("rtt_mult_experiment_gn")
+Library("h26x_packet_buffer_gn")

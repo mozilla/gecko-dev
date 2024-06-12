@@ -149,7 +149,7 @@ index 8d88ce23c6..9ee9ed3e76 100644
    return ss.str();
  }
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index a1fc204e7c..01ac7e0ba4 100644
+index afcbcb0531..c190ac7bf5 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -20,6 +20,7 @@
@@ -160,7 +160,7 @@ index a1fc204e7c..01ac7e0ba4 100644
  #include "api/crypto/crypto_options.h"
  #include "api/rtp_headers.h"
  #include "api/rtp_parameters.h"
-@@ -241,6 +242,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
+@@ -251,6 +252,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
        // meta data is expected to be present in generic frame descriptor
        // RTP header extension).
        std::set<int> raw_payload_types;
@@ -170,10 +170,10 @@ index a1fc204e7c..01ac7e0ba4 100644
  
      // Transport for outgoing packets (RTCP).
 diff --git a/modules/rtp_rtcp/include/rtp_rtcp_defines.h b/modules/rtp_rtcp/include/rtp_rtcp_defines.h
-index 249cf835ba..de85abd4ae 100644
+index 37410e2bc3..4635e04d0a 100644
 --- a/modules/rtp_rtcp/include/rtp_rtcp_defines.h
 +++ b/modules/rtp_rtcp/include/rtp_rtcp_defines.h
-@@ -173,6 +173,14 @@ class NetworkLinkRtcpObserver {
+@@ -174,6 +174,14 @@ class NetworkLinkRtcpObserver {
    virtual void OnRttUpdate(Timestamp receive_time, TimeDelta rtt) {}
  };
  
@@ -255,7 +255,7 @@ index 67da5b8700..ea3863bddb 100644
    RtcpLossNotificationObserver* const rtcp_loss_notification_observer_;
    NetworkStateEstimateObserver* const network_state_estimate_observer_;
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-index 0bdd389795..2c56dccd2a 100644
+index e53bfbb58e..68c2b2ab56 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 @@ -74,6 +74,9 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
@@ -266,10 +266,10 @@ index 0bdd389795..2c56dccd2a 100644
 +    RtcpEventObserver* rtcp_event_observer = nullptr;
 +
      NetworkStateEstimateObserver* network_state_estimate_observer = nullptr;
-     TransportFeedbackObserver* transport_feedback_callback = nullptr;
-     VideoBitrateAllocationObserver* bitrate_allocation_observer = nullptr;
+ 
+     // DEPRECATED, transport_feedback_callback is no longer invoked by the RTP
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index ad366d367e..54e64f3309 100644
+index 73fcdf5bc1..e8c13de119 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -83,7 +83,8 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(

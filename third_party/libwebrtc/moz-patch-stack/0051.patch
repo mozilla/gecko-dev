@@ -22,13 +22,13 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0744d68b8c944e699
  8 files changed, 12 insertions(+), 6 deletions(-)
 
 diff --git a/audio/channel_send.cc b/audio/channel_send.cc
-index 9e86ea3f7a..c04dc2ab20 100644
+index a6bbc9f806..f78205663b 100644
 --- a/audio/channel_send.cc
 +++ b/audio/channel_send.cc
-@@ -443,7 +443,7 @@ ChannelSend::ChannelSend(
+@@ -441,7 +441,7 @@ ChannelSend::ChannelSend(
+   configuration.report_block_data_observer = this;
+   configuration.network_link_rtcp_observer =
        transport_controller->GetRtcpObserver();
-   configuration.transport_feedback_callback =
-       transport_controller->transport_feedback_observer();
 -  configuration.clock = (clock ? clock : Clock::GetRealTimeClock());
 +  configuration.clock = clock;
    configuration.audio = true;
