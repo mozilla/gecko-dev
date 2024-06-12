@@ -17,6 +17,7 @@
 #include "nsIChannelEventSink.h"
 #include "nsIInputStream.h"
 #include "nsISupportsImpl.h"
+#include "nsISupportsPriority.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #ifdef DEBUG
 #  include "nsIURLParser.h"
@@ -281,6 +282,11 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
     return MapContentPolicyTypeToRequestDestination(mContentPolicyType);
   }
 
+  int32_t InternalPriority() const { return mInternalPriority; }
+  void SetInternalPriority(int32_t aInternalPriority) {
+    mInternalPriority = aInternalPriority;
+  }
+
   bool UnsafeRequest() const { return mUnsafeRequest; }
 
   void SetUnsafeRequest() { mUnsafeRequest = true; }
@@ -439,6 +445,8 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   nsCString mPreferredAlternativeDataType;
 
   nsContentPolicyType mContentPolicyType;
+
+  int32_t mInternalPriority = nsISupportsPriority::PRIORITY_NORMAL;
 
   // Empty string: no-referrer
   // "about:client": client (default)

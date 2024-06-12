@@ -45,6 +45,7 @@ SafeRefPtr<InternalRequest> InternalRequest::GetRequestConstructorCopy(
   copy->mContentPolicyType = mContentPolicyTypeOverridden
                                  ? mContentPolicyType
                                  : nsIContentPolicy::TYPE_FETCH;
+  copy->mInternalPriority = mInternalPriority;
   copy->mMode = mMode;
   copy->mCredentialsMode = mCredentialsMode;
   copy->mCacheMode = mCacheMode;
@@ -128,6 +129,7 @@ InternalRequest::InternalRequest(const InternalRequest& aOther,
       mHeaders(new InternalHeaders(*aOther.mHeaders)),
       mBodyLength(InternalResponse::UNKNOWN_BODY_SIZE),
       mContentPolicyType(aOther.mContentPolicyType),
+      mInternalPriority(aOther.mInternalPriority),
       mReferrer(aOther.mReferrer),
       mReferrerPolicy(aOther.mReferrerPolicy),
       mEnvironmentReferrerPolicy(aOther.mEnvironmentReferrerPolicy),
@@ -168,6 +170,7 @@ InternalRequest::InternalRequest(const IPCInternalRequest& aIPCRequest)
       mPreferredAlternativeDataType(aIPCRequest.preferredAlternativeDataType()),
       mContentPolicyType(
           static_cast<nsContentPolicyType>(aIPCRequest.contentPolicyType())),
+      mInternalPriority(aIPCRequest.internalPriority()),
       mReferrer(aIPCRequest.referrer()),
       mReferrerPolicy(aIPCRequest.referrerPolicy()),
       mEnvironmentReferrerPolicy(aIPCRequest.environmentReferrerPolicy()),
@@ -216,6 +219,7 @@ void InternalRequest::ToIPCInternalRequest(
   aIPCRequest->bodySize() = mBodyLength;
   aIPCRequest->preferredAlternativeDataType() = mPreferredAlternativeDataType;
   aIPCRequest->contentPolicyType() = mContentPolicyType;
+  aIPCRequest->internalPriority() = mInternalPriority;
   aIPCRequest->referrer() = mReferrer;
   aIPCRequest->referrerPolicy() = mReferrerPolicy;
   aIPCRequest->environmentReferrerPolicy() = mEnvironmentReferrerPolicy;

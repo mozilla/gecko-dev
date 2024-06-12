@@ -62,6 +62,7 @@
 #include "nsIScriptError.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsISupportsImpl.h"
+#include "nsISupportsPriority.h"
 #include "nsIURI.h"
 #include "nsIUploadChannel2.h"
 #include "nsNetUtil.h"
@@ -340,6 +341,11 @@ Result<IPCInternalRequest, nsresult> GetIPCInternalRequest(
   nsCOMPtr<nsILoadInfo> loadInfo = underlyingChannel->LoadInfo();
   nsContentPolicyType contentPolicyType = loadInfo->InternalContentPolicyType();
 
+  int32_t internalPriority = nsISupportsPriority::PRIORITY_NORMAL;
+  if (nsCOMPtr<nsISupportsPriority> p = do_QueryInterface(underlyingChannel)) {
+    p->GetPriority(&internalPriority);
+  }
+
   nsAutoString integrity;
   MOZ_TRY(internalChannel->GetIntegrityMetadata(integrity));
 
@@ -403,11 +409,11 @@ Result<IPCInternalRequest, nsresult> GetIPCInternalRequest(
   // efficient, because there's no move-friendly constructor generated.
   return IPCInternalRequest(
       method, {spec}, ipcHeadersGuard, ipcHeaders, Nothing(), -1,
-      alternativeDataType, contentPolicyType, referrer, referrerPolicy,
-      environmentReferrerPolicy, requestMode, requestCredentials, cacheMode,
-      requestRedirect, integrity, fragment, principalInfo,
-      interceptionPrincipalInfo, contentPolicyType, redirectChain,
-      isThirdPartyChannel, embedderPolicy);
+      alternativeDataType, contentPolicyType, internalPriority, referrer,
+      referrerPolicy, environmentReferrerPolicy, requestMode,
+      requestCredentials, cacheMode, requestRedirect, integrity, fragment,
+      principalInfo, interceptionPrincipalInfo, contentPolicyType,
+      redirectChain, isThirdPartyChannel, embedderPolicy);
 }
 
 nsresult MaybeStoreStreamForBackgroundThread(nsIInterceptedChannel* aChannel,
