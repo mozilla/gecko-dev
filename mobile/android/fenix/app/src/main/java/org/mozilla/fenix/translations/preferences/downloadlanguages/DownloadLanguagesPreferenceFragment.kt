@@ -90,9 +90,21 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                                 downloadLanguageItemPreference.type ==
                                 DownloadLanguageItemTypePreference.AllLanguages
                             ) {
-                                deleteOrDownloadAllLanguagesModel(
-                                    allLanguagesItemPreference = downloadLanguageItemPreference,
-                                    allLanguages = downloadLanguageItemsPreference,
+                                val options = ModelManagementOptions(
+                                    operation = if (
+                                        downloadLanguageItemPreference.languageModel.status ==
+                                        ModelState.NOT_DOWNLOADED
+                                    ) {
+                                        ModelOperation.DOWNLOAD
+                                    } else {
+                                        ModelOperation.DELETE
+                                    },
+                                    operationLevel = OperationLevel.ALL,
+                                )
+                                browserStore.dispatch(
+                                    TranslationsAction.ManageLanguageModelsAction(
+                                        options = options,
+                                    ),
                                 )
                             } else {
                                 deleteOrDownloadModel(downloadLanguageItemPreference)
@@ -137,34 +149,6 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                 options = options,
             ),
         )
-    }
-
-    private fun deleteOrDownloadAllLanguagesModel(
-        allLanguagesItemPreference: DownloadLanguageItemPreference,
-        allLanguages: List<DownloadLanguageItemPreference>,
-    ) {
-        if (allLanguagesItemPreference.languageModel.status == ModelState.DOWNLOADED) {
-            val downloadedItems = allLanguages.filter {
-                it.languageModel.status == ModelState.DOWNLOADED &&
-                    it.type == DownloadLanguageItemTypePreference.GeneralLanguage
-            }
-
-            for (downloadedItem in downloadedItems) {
-                if (!downloadedItem.languageModel.language?.code.equals(Locale.ENGLISH.language)) {
-                    deleteOrDownloadModel(downloadedItem)
-                }
-            }
-        } else {
-            if (allLanguagesItemPreference.languageModel.status == ModelState.NOT_DOWNLOADED) {
-                val notDownloadedItems = allLanguages.filter {
-                    it.languageModel.status == ModelState.NOT_DOWNLOADED &&
-                        it.type == DownloadLanguageItemTypePreference.GeneralLanguage
-                }
-                for (notDownloadedItem in notDownloadedItems) {
-                    deleteOrDownloadModel(notDownloadedItem)
-                }
-            }
-        }
     }
 
     private fun openBrowserAndLoad(learnMoreUrl: String) {
