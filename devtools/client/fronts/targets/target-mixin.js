@@ -595,6 +595,17 @@ function TargetMixin(parentClass) {
       }
       return Promise.resolve();
     }
+
+    /**
+     * The tracer actor emits frames which should be collected per target/thread.
+     * The tracer will emit other resources, refering to the frame indexes in that collected array.
+     * The indexes and this array in general is specific to a given tracer actor instance
+     * and so is specific per thread and target.
+     */
+    #jsTracerCollectedFrames = [];
+    getJsTracerCollectedFramesArray() {
+      return this.#jsTracerCollectedFrames;
+    }
   }
   return Target;
 }

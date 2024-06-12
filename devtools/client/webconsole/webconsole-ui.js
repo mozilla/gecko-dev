@@ -466,6 +466,7 @@ class WebConsoleUI {
     this._watchedResources.push(resourceCommand.TYPES.CSS_MESSAGE);
   }
 
+  // eslint-disable-next-line complexity
   _onResourceAvailable(resources) {
     if (this._destroyed) {
       return;
@@ -510,6 +511,11 @@ class WebConsoleUI {
 
       if (resource.resourceType === TYPES.NETWORK_EVENT_STACKTRACE) {
         this.networkDataProvider?.onStackTraceAvailable(resource);
+        continue;
+      }
+
+      if (resource.resourceType === TYPES.JSTRACER_TRACE) {
+        this.wrapper.dispatchJsTraces(resource);
         continue;
       }
 

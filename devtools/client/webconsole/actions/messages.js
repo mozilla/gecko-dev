@@ -32,12 +32,12 @@ const {
 
 const defaultIdGenerator = new IdGenerator();
 
-function messagesAdd(packets, idGenerator = null, persistLogs = false) {
+function messagesAdd(resources, idGenerator = null, persistLogs = false) {
   if (idGenerator == null) {
     idGenerator = defaultIdGenerator;
   }
-  const messages = packets.map(packet =>
-    prepareMessage(packet, idGenerator, persistLogs)
+  const messages = resources.map(resource =>
+    prepareMessage(resource, idGenerator, persistLogs)
   );
   // Sort the messages by their timestamps.
   messages.sort(getNaturalOrder);

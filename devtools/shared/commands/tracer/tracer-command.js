@@ -33,6 +33,13 @@ class TracerCommand {
         continue;
       }
       this.#isTracing = resource.enabled;
+
+      // Clear the list of collected frames each time we start a new tracer record.
+      // The tracer will reset its frame counter to zero on stop, but on the frontend
+      // we may inspect frames after the tracer is stopped, until we start a new one.
+      if (resource.enabled) {
+        resource.targetFront.getJsTracerCollectedFramesArray().length = 0;
+      }
     }
   };
 
