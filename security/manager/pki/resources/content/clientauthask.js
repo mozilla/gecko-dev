@@ -124,21 +124,22 @@ async function setDetails() {
   );
   let parsedCert = await parse(pemToDER(cert.getBase64DERString()));
   let keyUsages = parsedCert.ext.keyUsages;
-  if (keyUsages && keyUsages.purposes.length) {
-    document.l10n.setAttributes(
-      document.getElementById("clientAuthCertDetailsKeyUsages"),
-      "client-auth-cert-details-key-usages",
-      { keyUsages: keyUsages.purposes.join(", ") }
-    );
-  }
+  let keyUsagesJoined =
+    keyUsages && keyUsages.purposes.length ? keyUsages.purposes.join(", ") : "";
+  document.l10n.setAttributes(
+    document.getElementById("clientAuthCertDetailsKeyUsages"),
+    "client-auth-cert-details-key-usages",
+    { keyUsages: keyUsagesJoined }
+  );
   let emailAddresses = cert.getEmailAddresses();
-  if (emailAddresses.length) {
-    document.l10n.setAttributes(
-      document.getElementById("clientAuthCertDetailsEmailAddresses"),
-      "client-auth-cert-details-email-addresses",
-      { emailAddresses: emailAddresses.join(", ") }
-    );
-  }
+  let emailAddressesJoined = emailAddresses.length
+    ? emailAddresses.join(", ")
+    : "";
+  document.l10n.setAttributes(
+    document.getElementById("clientAuthCertDetailsEmailAddresses"),
+    "client-auth-cert-details-email-addresses",
+    { emailAddresses: emailAddressesJoined }
+  );
   document.l10n.setAttributes(
     document.getElementById("clientAuthCertDetailsIssuedBy"),
     "client-auth-cert-details-issued-by",
