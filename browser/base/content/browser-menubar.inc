@@ -12,6 +12,8 @@
                                                     event.target.parentNode.openedWithKey);"
 #endif
                 >
+            <script src="chrome://browser/content/browser-menubar.js" />
+
             <menu id="file-menu" data-l10n-id="menu-file">
               <menupopup id="menu_FilePopup"
                          onpopupshowing="gFileMenu.onPopupShowing(event);">
@@ -122,7 +124,6 @@
 #ifndef XP_MACOSX
                 <menuseparator/>
                 <menuitem id="menu_preferences"
-                          oncommand="openPreferences(undefined);"
                           data-l10n-id="menu-settings"
                           />
 #endif
@@ -165,10 +166,8 @@
                 <menu id="pageStyleMenu" data-l10n-id="menu-view-page-style-menu">
                   <menupopup onpopupshowing="gPageStyleMenu.fillPopup(this);">
                     <menuitem id="menu_pageStyleNoStyle"
-                              oncommand="gPageStyleMenu.disableStyle();"
                               type="radio" data-l10n-id="menu-view-page-style-no-style"/>
                     <menuitem id="menu_pageStylePersistentOnly"
-                              oncommand="gPageStyleMenu.switchStyleSheet(null);"
                               type="radio"
                               checked="true" data-l10n-id="menu-view-page-basic-style"/>
                     <menuseparator/>
@@ -176,7 +175,6 @@
                 </menu>
                 <menuitem id="repair-text-encoding"
                           disabled="true"
-                          oncommand="BrowserCommands.forceEncodingDetection();"
                           data-l10n-id="menu-view-repair-text-encoding"/>
                 <menuseparator/>
 #ifdef XP_MACOSX
@@ -207,7 +205,7 @@
                 <menuseparator hidden="true" id="documentDirection-separator"/>
                 <menuitem id="documentDirection-swap"
                           hidden="true"
-                          oncommand="gBrowser.selectedBrowser.sendMessageToActor('SwitchDocumentDirection', {}, 'SwitchDocumentDirection', 'roots');" data-l10n-id="menu-view-bidi-switch-page-direction"/>
+                          data-l10n-id="menu-view-bidi-switch-page-direction"/>
               </menupopup>
             </menu>
 
@@ -217,7 +215,6 @@
                          placespopup="true"
                          is="places-popup"
 #endif
-                         oncommand="this.parentNode._placesView._onCommand(event);"
                          onpopupshowing="if (!this.parentNode._placesView)
                                            new HistoryMenu(event);"
                          tooltip="bhTooltip"
@@ -230,12 +227,10 @@
                           command="Tools:Sanitize" data-l10n-id="menu-history-clear-recent-history"/>
                 <menuseparator id="sanitizeSeparator"/>
                 <menuitem id="sync-tabs-menuitem"
-                          oncommand="gSync.openSyncedTabsPanel();"
                           hidden="true" data-l10n-id="menu-history-synced-tabs"/>
                 <menuitem id="historyRestoreLastSession"
                           command="Browser:RestoreLastSession" data-l10n-id="menu-history-restore-last-session"/>
                 <menuitem id="hiddenTabsMenu"
-                          oncommand="gTabsPanel.showHiddenTabsPanel(event, 'hidden-tabs-menuitem');"
                           hidden="true" data-l10n-id="menu-history-hidden-tabs"/>
                 <menuitem id="menu_searchHistory"
                           command="History:SearchHistory"
@@ -369,26 +364,26 @@
               <menuitem id="sync-setup"
                         class="sync-ui-item"
                         hidden="true"
-                        oncommand="gSync.openPrefs('menubar')" data-l10n-id="menu-tools-fxa-sign-in2"/>
+                        data-l10n-id="menu-tools-fxa-sign-in2"/>
               <menuitem id="sync-enable"
                         class="sync-ui-item"
                         hidden="true"
-                        oncommand="gSync.openPrefs('menubar')" data-l10n-id="menu-tools-turn-on-sync2"/>
+                        data-l10n-id="menu-tools-turn-on-sync2"/>
               <menuitem id="sync-unverifieditem"
                         class="sync-ui-item"
                         hidden="true"
-                        oncommand="gSync.openPrefs('menubar')" data-l10n-id="menu-tools-fxa-sign-in2"/>
+                        data-l10n-id="menu-tools-fxa-sign-in2"/>
               <menuitem id="sync-syncnowitem"
                         class="sync-ui-item"
                         hidden="true"
-                        oncommand="gSync.doSync(event);" data-l10n-id="menu-tools-sync-now"/>
+                        data-l10n-id="menu-tools-sync-now"/>
               <menuitem id="sync-reauthitem"
                         class="sync-ui-item"
                         hidden="true"
-                        oncommand="gSync.openSignInAgainPage('menubar');" data-l10n-id="menu-tools-fxa-re-auth"/>
+                        data-l10n-id="menu-tools-fxa-re-auth"/>
 
               <menuitem id="menu_openFirefoxView"
-                        oncommand="FirefoxViewHandler.openTab();" data-l10n-id="menu-tools-firefox-view"/>
+                        data-l10n-id="menu-tools-firefox-view"/>
               <menuseparator id="devToolsSeparator"/>
               <menu id="browserToolsMenu" data-l10n-id="menu-tools-browser-tools">
                 <menupopup id="menuWebDeveloperPopup">
@@ -407,20 +402,17 @@
 #ifndef XP_UNIX
               <menuseparator id="prefSep"/>
               <menuitem id="menu_preferences"
-                        data-l10n-id="menu-settings"
-                        oncommand="openPreferences(undefined);"/>
+                        data-l10n-id="menu-settings"/>
 #endif
 #ifdef MOZ_DEBUG
               <menuitem id="menu_layout_debugger"
-                        data-l10n-id="menu-tools-layout-debugger"
-                        oncommand="toOpenWindowByType('mozapp:layoutdebug',
-                                          'chrome://layoutdebug/content/layoutdebug.xhtml');"/>
+                        data-l10n-id="menu-tools-layout-debugger"/>
 #endif
 #ifdef XP_MACOSX
 <!-- nsMenuBarX hides these and uses them to build the Application menu. -->
               <menuitem id="menu_preferences"
                         data-l10n-id="menu-application-preferences"
-                        key="key_preferencesCmdMac" oncommand="openPreferences(undefined);"/>
+                        key="key_preferencesCmdMac"/>
               <menuitem id="menu_mac_services" data-l10n-id="menu-application-services"/>
               <menuitem id="menu_mac_hide_app" data-l10n-id="menu-application-hide-this" key="key_hideThisAppCmdMac"/>
               <menuitem id="menu_mac_hide_others" data-l10n-id="menu-application-hide-other" key="key_hideOtherAppsCmdMac"/>
@@ -451,7 +443,6 @@
 <!-- Note: Items under here are cloned to the AppMenu Help submenu. The cloned items
      have their strings defined by appmenu-data-l10n-id. -->
                 <menuitem id="menu_openHelp"
-                          oncommand="openHelpLink('firefox-help')"
                           data-l10n-id="menu-get-help"
                           appmenu-data-l10n-id="appmenu-get-help"
 #ifdef XP_MACOSX
@@ -465,48 +456,39 @@
                           hidden="true"
                           appmenu-data-l10n-id="menu-report-broken-site"/>
                 <menuitem id="feedbackPage"
-                          oncommand="openFeedbackPage()"
                           data-l10n-id="menu-help-share-ideas"
                           appmenu-data-l10n-id="appmenu-help-share-ideas"/>
                 <menuitem id="helpSafeMode"
-                          oncommand="safeModeRestart();"
                           data-l10n-id="menu-help-enter-troubleshoot-mode2"
                           appmenu-data-l10n-id="appmenu-help-enter-troubleshoot-mode2"/>
                 <menuitem id="troubleShooting"
-                          oncommand="openTroubleshootingPage()"
                           data-l10n-id="menu-help-more-troubleshooting-info"
                           appmenu-data-l10n-id="appmenu-help-more-troubleshooting-info"/>
                 <menuitem id="help_reportSiteIssue"
-                          oncommand="ReportSiteIssue();"
                           data-l10n-id="menu-help-report-site-issue"
                           appmenu-data-l10n-id="appmenu-help-report-site-issue"
                           hidden="true"/>
                 <menuitem id="menu_HelpPopup_reportPhishingtoolmenu"
                           disabled="true"
-                          oncommand="openUILink(gSafeBrowsing.getReportURL('Phish'), event, {triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({})});"
                           hidden="true"
                           data-l10n-id="menu-help-report-deceptive-site"
                           appmenu-data-l10n-id="appmenu-help-report-deceptive-site"/>
                 <menuitem id="menu_HelpPopup_reportPhishingErrortoolmenu"
                           disabled="true"
-                          oncommand="ReportFalseDeceptiveSite();"
                           data-l10n-id="menu-help-not-deceptive"
                           appmenu-data-l10n-id="appmenu-help-not-deceptive"
                           hidden="true"/>
                 <menuitem id="helpSwitchDevice"
-                          oncommand="openSwitchingDevicesPage();"
                           data-l10n-id="menu-help-switch-device"
                           appmenu-data-l10n-id="appmenu-help-switch-device"/>
                 <menuseparator id="aboutSeparator"/>
                 <menuitem id="aboutName"
-                          oncommand="openAboutDialog();"
                           data-l10n-id="menu-about"
                           appmenu-data-l10n-id="appmenu-about"/>
                 <menuseparator id="helpPolicySeparator"
                           hidden="true"/>
                 <menuitem id="helpPolicySupport"
-                          hidden="true"
-                          oncommand="openTrustedLinkIn(Services.policies.getSupportMenu().URL.href, 'tab');"/>
+                          hidden="true"/>
               </menupopup>
           </menu>
         </menubar>
