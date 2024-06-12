@@ -9,7 +9,6 @@ with Files("**"):
 
 BROWSER_CHROME_MANIFESTS += [
     "test/browser/browser.toml",
-    "test/browser/browser_cdp_only.toml",
     "test/browser/dom/browser.toml",
     "test/browser/emulation/browser.toml",
     "test/browser/fetch/browser.toml",
