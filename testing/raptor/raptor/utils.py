@@ -8,11 +8,11 @@ import inspect
 import os
 import pathlib
 from collections.abc import Iterable
+from distutils.util import strtobool
 
 import yaml
 from base_python_support import BasePythonSupport
 from logger.logger import RaptorLogger
-from mach.util import strtobool
 from mozgeckoprofiler import view_gecko_profile
 
 LOG = RaptorLogger(component="raptor-utils")

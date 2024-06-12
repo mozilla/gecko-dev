@@ -188,7 +188,8 @@ class VirtualenvMixin(object):
             [
                 python,
                 "-c",
-                "from sysconfig; print(sysconfig.get_paths()['purelib'])",
+                "from distutils.sysconfig import get_python_lib; "
+                + "print(get_python_lib())",
             ]
         )
         return self.site_packages_path

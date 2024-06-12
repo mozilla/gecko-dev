@@ -1,26 +1,13 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-import filecmp
 import os
-import shutil
 from collections import defaultdict
+from distutils.dir_util import copy_tree
 from pathlib import Path
 
 from mozperftest.layers import Layer
 from mozperftest.utils import NoPerfMetricsError, temp_dir
-
-
-def copy_tree_update(src_path, dst_path):
-    for src_file in src_path.rglob("*"):
-        dst_file = dst_path / src_file.relative_to(src_path)
-        if src_file.is_dir() and not dst_file.exists():
-            dst_file.mkdir(parents=True)
-        elif not dst_file.exists() or not filecmp.cmp(
-            src_file, dst_file, shallow=False
-        ):
-            dst_file.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src_file, dst_file)
 
 
 class XPCShellTestError(Exception):
@@ -140,7 +127,7 @@ class XPCShell(Layer):
         xre_path = self.get_arg("xre-path")
         if xre_path is not None:
             self.info(f"Copying {xre_path} elements to {binary.parent}")
-            copy_tree_update(Path(xre_path), binary.parent)
+            copy_tree(xre_path, str(binary.parent), update=True)
 
         http3server = binary.parent / "http3server"
         if http3server.exists():
