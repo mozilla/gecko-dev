@@ -16,8 +16,6 @@ def fold_libs(target):
 
 set_config("MOZ_FOLD_LIBS", fold_libs)
 
-imply_option("MOZ_APP_VENDOR", "Mozilla")
-
 
 include("../../build/moz.configure/rust.configure")
 include("../../build/moz.configure/nspr.configure")

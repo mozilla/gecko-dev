@@ -3,6 +3,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+MOZ_APP_VENDOR=Mozilla
+
 if test "$OS_ARCH" = "WINNT"; then
   if ! test "$HAVE_64BIT_BUILD"; then
     if test "$MOZ_UPDATE_CHANNEL" = "nightly" -o \
@@ -33,6 +35,7 @@ BROWSER_CHROME_URL=chrome://browser/content/browser.xhtml
 # For the mozilla-aurora repository, use "aurora".
 MOZ_BRANDING_DIRECTORY=browser/branding/unofficial
 MOZ_OFFICIAL_BRANDING_DIRECTORY=browser/branding/official
+MOZ_APP_ID={ec8030f7-c20a-464f-9b0e-13a3a9e97384}
 
 MOZ_PROFILE_MIGRATOR=1
 
