@@ -112,7 +112,6 @@ support-files = [
   "multi_sharedWorker_frame_nobfcache.html^headers^",
   "multi_sharedWorker_frame_bfcache.html",
   "navigate.html",
-  "!/dom/notification/test/mochitest/MockServices.js",
   "!/dom/xhr/tests/relativeLoad_import.js",
   "!/dom/xhr/tests/relativeLoad_worker.js",
   "!/dom/xhr/tests/relativeLoad_worker2.js",
@@ -279,8 +278,14 @@ support-files = [
 ["test_newError.html"]
 
 ["test_notification.html"]
+skip-if = [
+  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
+]
 
 ["test_notification_child.html"]
+skip-if = [
+  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
+]
 
 ["test_notification_permission.html"]
 
