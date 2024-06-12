@@ -84,7 +84,9 @@ class OutgoingMsg {
 class BufferedOutgoingMsg : public OutgoingMsg {
  public:
   explicit BufferedOutgoingMsg(OutgoingMsg& msg);
+  BufferedOutgoingMsg(const BufferedOutgoingMsg& other) = delete;
   BufferedOutgoingMsg(BufferedOutgoingMsg&& other) = delete;
+  BufferedOutgoingMsg& operator=(const BufferedOutgoingMsg& other) = delete;
   BufferedOutgoingMsg& operator=(BufferedOutgoingMsg&& other) = delete;
   ~BufferedOutgoingMsg();
 };
@@ -99,7 +101,9 @@ class QueuedDataMessage {
     mData = static_cast<uint8_t*>(moz_xmalloc((size_t)length));  // infallible
     memcpy(mData, data, (size_t)length);
   }
+  QueuedDataMessage(const QueuedDataMessage& other) = delete;
   QueuedDataMessage(QueuedDataMessage&& other) = delete;
+  QueuedDataMessage& operator=(const QueuedDataMessage& other) = delete;
   QueuedDataMessage& operator=(QueuedDataMessage&& other) = delete;
   ~QueuedDataMessage() { free(mData); }
 
@@ -155,7 +159,9 @@ class DataChannelConnection final : public net::NeckoTargetHolder,
       const uint16_t aNumStreams, const Maybe<uint64_t>& aMaxMessageSize);
 
   DataChannelConnection(const DataChannelConnection&) = delete;
+  DataChannelConnection(DataChannelConnection&&) = delete;
   DataChannelConnection& operator=(const DataChannelConnection&) = delete;
+  DataChannelConnection& operator=(DataChannelConnection&&) = delete;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DataChannelConnection)
 
@@ -231,7 +237,9 @@ class DataChannelConnection final : public net::NeckoTargetHolder,
 
     Channels() : mMutex("DataChannelConnection::Channels::mMutex") {}
     Channels(const Channels&) = delete;
+    Channels(Channels&&) = delete;
     Channels& operator=(const Channels&) = delete;
+    Channels& operator=(Channels&&) = delete;
 
     void Insert(const RefPtr<DataChannel>& aChannel);
     bool Remove(const RefPtr<DataChannel>& aChannel);
@@ -449,7 +457,9 @@ class DataChannel {
     NS_ASSERTION(mConnection, "NULL connection");
   }
   DataChannel(const DataChannel&) = delete;
+  DataChannel(DataChannel&&) = delete;
   DataChannel& operator=(const DataChannel&) = delete;
+  DataChannel& operator=(DataChannel&&) = delete;
 
  private:
   ~DataChannel();
@@ -620,8 +630,11 @@ class DataChannelOnMessageAvailable : public Runnable {
         mType(aType),
         mConnection(aConnection) {}
   DataChannelOnMessageAvailable(const DataChannelOnMessageAvailable&) = delete;
+  DataChannelOnMessageAvailable(DataChannelOnMessageAvailable&&) = delete;
   DataChannelOnMessageAvailable& operator=(
       const DataChannelOnMessageAvailable&) = delete;
+  DataChannelOnMessageAvailable& operator=(DataChannelOnMessageAvailable&&) =
+      delete;
 
   NS_IMETHOD Run() override;
 
