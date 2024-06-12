@@ -15,6 +15,9 @@ skip-if = ["true"] # Bug 1207012 - Permaorange from an uncaught exception that i
 ["browser_bug1869938.js"]
 support-files = ["helper1869938.html"]
 
+["browser_bug1899180.js"]
+support-files = ["helper1899180.html"]
+
 ["browser_docshell_type_editor.js"]
 
 ["browser_image.js"]
