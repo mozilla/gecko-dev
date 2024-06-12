@@ -198,7 +198,6 @@ support-files = [
   "file_js_cache_syntax_error.js",
   "!/dom/security/test/cors/file_CrossSiteXHR_server.sjs",
   "!/dom/notification/test/mochitest/MockServices.js",
-  "!/dom/notification/test/mochitest/NotificationTest.js",
   "blocking_install_event_worker.js",
   "sw_bad_mime_type.js",
   "sw_bad_mime_type.js^headers^",
