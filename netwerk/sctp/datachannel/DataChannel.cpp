@@ -1292,6 +1292,9 @@ bool DataChannelConnection::SendDeferredMessages() {
   uint32_t end = i;
   do {
     channel = mChannels.Get(i);
+    // Note that `channel->mConnection` is `this`. This is just here to satisfy
+    // the thread safety annotations on DataChannel.
+    channel->mConnection->mLock.AssertCurrentThreadOwns();
     // Should already be cleared if closing/closed
     if (!channel || channel->mBufferedData.IsEmpty()) {
       i = UpdateCurrentStreamIndex();
@@ -1334,11 +1337,11 @@ bool DataChannelConnection::SendDeferredMessages() {
   return blocked;
 }
 
-// Called with mLock locked!
 // buffer MUST have at least one item!
 // returns if we're still blocked (true)
 bool DataChannelConnection::SendBufferedMessages(
     nsTArray<UniquePtr<BufferedOutgoingMsg>>& buffer, size_t* aWritten) {
+  mLock.AssertCurrentThreadOwns();
   do {
     // Re-send message
     int error = SendMsgInternal(*buffer[0], aWritten);
@@ -1596,6 +1599,10 @@ void DataChannelConnection::HandleDataMessage(const void* data, size_t length,
     return;
   }
 
+  // Note that `channel->mConnection` is `this`. This is just here to satisfy
+  // the thread safety annotations on DataChannel.
+  channel->mConnection->mLock.AssertCurrentThreadOwns();
+
   // RFC8832: "MUST be sent ordered, ... After the DATA_CHANNEL_ACK **or any
   // other message** has been received on the data channel".
   // If the channel was opened on this side, and a message is received, this
@@ -1818,7 +1825,6 @@ void DataChannelConnection::HandleDCEPMessage(const void* buffer, size_t length,
   mRecvBuffer.Truncate(0);
 }
 
-// Called with mLock locked!
 void DataChannelConnection::HandleMessage(const void* buffer, size_t length,
                                           uint32_t ppid, uint16_t stream,
                                           int flags) {
@@ -2279,7 +2285,6 @@ void DataChannelConnection::HandleStreamChangeEvent(
   }
 }
 
-// Called with mLock locked!
 void DataChannelConnection::HandleNotification(
     const union sctp_notification* notif, size_t n) {
   mLock.AssertCurrentThreadOwns();
@@ -2519,9 +2524,9 @@ request_error_cleanup:
   return nullptr;
 }
 
-// Requires mLock to be locked!
 // Returns a POSIX error code directly instead of setting errno.
 int DataChannelConnection::SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) {
+  mLock.AssertCurrentThreadOwns();
   struct sctp_sndinfo& info = msg.GetInfo().sendv_sndinfo;
   int error;
 
@@ -2600,7 +2605,6 @@ out:
   return error;
 }
 
-// Requires mLock to be locked!
 // Returns a POSIX error code directly instead of setting errno.
 // IMPORTANT: Ensure that the buffer passed is guarded by mLock!
 int DataChannelConnection::SendMsgInternalOrBuffer(
@@ -2669,6 +2673,10 @@ int DataChannelConnection::SendDataMsgInternalOrBuffer(DataChannel& channel,
                                                        const uint8_t* data,
                                                        size_t len,
                                                        uint32_t ppid) {
+  // Note that `channel.mConnection` is `this`. This is just here to satisfy
+  // the thread safety annotations on DataChannel.
+  channel.mConnection->mLock.AssertCurrentThreadOwns();
+
   if (NS_WARN_IF(channel.GetReadyState() != DataChannelState::Open)) {
     return EINVAL;  // TODO: Find a better error code
   }
@@ -2943,6 +2951,9 @@ void DataChannelConnection::CloseLocked(DataChannel* aChannel) {
   RefPtr<DataChannel> channel(aChannel);  // make sure it doesn't go away on us
 
   mLock.AssertCurrentThreadOwns();
+  // Note that `aChannel->mConnection` is `this`. This is just here to satisfy
+  // the thread safety annotations on DataChannel.
+  aChannel->mConnection->mLock.AssertCurrentThreadOwns();
   DC_DEBUG(("Connection %p/Channel %p: Closing stream %u",
             channel->mConnection.get(), channel.get(), channel->mStream));
 
@@ -3223,7 +3234,11 @@ void DataChannel::AnnounceClosed() {
           mConnection->mListener->NotifyDataChannelClosed(this);
         }
         SetReadyState(DataChannelState::Closed);
+        MOZ_PUSH_IGNORE_THREAD_SAFETY
+        // Ignoring thread safety here because the analysis needs us to lock
+        // mConnection->mLock when mConnection may be null.
         mBufferedData.Clear();
+        MOZ_POP_THREAD_SAFETY
         if (mListener) {
           DC_DEBUG(("%s: sending ON_CHANNEL_CLOSED for %s/%s: %u", __FUNCTION__,
                     mLabel.get(), mProtocol.get(), mStream));
@@ -3322,7 +3337,6 @@ void DataChannel::SetBufferedAmountLowThreshold(uint32_t aThreshold) {
   mBufferedThreshold = aThreshold;
 }
 
-// Called with mLock locked!
 void DataChannel::SendOrQueue(DataChannelOnMessageAvailable* aMessage) {
   nsCOMPtr<nsIRunnable> runnable = aMessage;
   mMainThreadEventTarget->Dispatch(runnable.forget());

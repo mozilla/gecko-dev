@@ -285,8 +285,8 @@ class DataChannelConnection final : public net::NeckoTargetHolder,
                              DataChannelReliabilityPolicy prPolicy,
                              uint32_t prValue) MOZ_REQUIRES(mLock);
   bool SendBufferedMessages(nsTArray<UniquePtr<BufferedOutgoingMsg>>& buffer,
-                            size_t* aWritten);
-  int SendMsgInternal(OutgoingMsg& msg, size_t* aWritten);
+                            size_t* aWritten) MOZ_REQUIRES(mLock);
+  int SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) MOZ_REQUIRES(mLock);
   int SendMsgInternalOrBuffer(nsTArray<UniquePtr<BufferedOutgoingMsg>>& buffer,
                               OutgoingMsg& msg, bool& buffered,
                               size_t* aWritten) MOZ_REQUIRES(mLock);
@@ -506,7 +506,8 @@ class DataChannel {
   }
   uint16_t GetStream() const { return mStream; }
 
-  void SendOrQueue(DataChannelOnMessageAvailable* aMessage);
+  void SendOrQueue(DataChannelOnMessageAvailable* aMessage)
+      MOZ_REQUIRES(mConnection->mLock);
 
   TrafficCounters GetTrafficCounters() const;
 
@@ -546,8 +547,8 @@ class DataChannel {
   // spec requires us to queue a task for this.
   size_t mBufferedAmount;
   nsCString mRecvBuffer;
-  nsTArray<UniquePtr<BufferedOutgoingMsg>>
-      mBufferedData;  // MOZ_GUARDED_BY(mConnection->mLock)
+  nsTArray<UniquePtr<BufferedOutgoingMsg>> mBufferedData
+      MOZ_GUARDED_BY(mConnection->mLock);
   nsCOMPtr<nsISerialEventTarget> mMainThreadEventTarget;
   mutable Mutex mStatsLock;
   TrafficCounters mTrafficCounters MOZ_GUARDED_BY(mStatsLock);
