@@ -44,43 +44,40 @@ function commonDialogOnLoad() {
     root.setAttribute("neediconheader", "true");
   }
   let title = { raw: args.title };
-  let { useTitle, promptPrincipal } = args;
-  if (!useTitle) {
-    if (promptPrincipal) {
-      if (promptPrincipal.isNullPrincipal) {
-        title = { l10nId: "common-dialog-title-null" };
-      } else if (promptPrincipal.isSystemPrincipal) {
-        title = { l10nId: "common-dialog-title-system" };
-        root.style.setProperty(
-          "--icon-url",
-          "url('chrome://branding/content/icon32.png')"
-        );
-      } else if (promptPrincipal.addonPolicy) {
-        title.raw = promptPrincipal.addonPolicy.name;
-      } else if (promptPrincipal.isContentPrincipal) {
-        try {
-          title.raw = promptPrincipal.URI.displayHostPort;
-        } catch (ex) {
-          // hostPort getter can throw, e.g. for about URIs.
-          title.raw = promptPrincipal.originNoSuffix;
-        }
-        // hostPort can be empty for file URIs.
-        if (!title.raw) {
-          title.raw = promptPrincipal.prePath;
-        }
-      } else {
-        title = { l10nId: "common-dialog-title-unknown" };
+  let { promptPrincipal } = args;
+  if (promptPrincipal) {
+    if (promptPrincipal.isNullPrincipal) {
+      title = { l10nId: "common-dialog-title-null" };
+    } else if (promptPrincipal.isSystemPrincipal) {
+      title = { l10nId: "common-dialog-title-system" };
+      root.style.setProperty(
+        "--icon-url",
+        "url('chrome://branding/content/icon32.png')"
+      );
+    } else if (promptPrincipal.addonPolicy) {
+      title.raw = promptPrincipal.addonPolicy.name;
+    } else if (promptPrincipal.isContentPrincipal) {
+      try {
+        title.raw = promptPrincipal.URI.displayHostPort;
+      } catch (ex) {
+        // hostPort getter can throw, e.g. for about URIs.
+        title.raw = promptPrincipal.originNoSuffix;
       }
-    } else if (args.authOrigin) {
-      title = { raw: args.authOrigin };
+      // hostPort can be empty for file URIs.
+      if (!title.raw) {
+        title.raw = promptPrincipal.prePath;
+      }
+    } else {
+      title = { l10nId: "common-dialog-title-unknown" };
     }
+  } else if (args.authOrigin) {
+    title = { raw: args.authOrigin };
   }
   if (args.headerIconURL) {
     root.style.setProperty("--icon-url", `url('${args.headerIconURL}')`);
   }
   // Fade and crop potentially long raw titles, e.g., origins and hostnames.
-  title.shouldUseMaskFade =
-    !useTitle && title.raw && (args.authOrigin || promptPrincipal);
+  title.shouldUseMaskFade = title.raw && (args.authOrigin || promptPrincipal);
   root.setAttribute("headertitle", JSON.stringify(title));
   if (args.isInsecureAuth) {
     dialog.setAttribute("insecureauth", "true");

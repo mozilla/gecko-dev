@@ -63,7 +63,29 @@ export class PromptCollection {
   }
 
   async asyncBeforeUnloadCheck(browsingContext) {
-    const docViewer = browsingContext?.docShell?.docViewer;
+    let title;
+    let message;
+    let leaveLabel;
+    let stayLabel;
+
+    try {
+      title = this.stringBundles.dom.GetStringFromName("OnBeforeUnloadTitle");
+      message = this.stringBundles.dom.GetStringFromName(
+        "OnBeforeUnloadMessage2"
+      );
+      leaveLabel = this.stringBundles.dom.GetStringFromName(
+        "OnBeforeUnloadLeaveButton"
+      );
+      stayLabel = this.stringBundles.dom.GetStringFromName(
+        "OnBeforeUnloadStayButton"
+      );
+    } catch (exception) {
+      console.error("Failed to get strings from dom.properties");
+      return false;
+    }
+
+    let docViewer = browsingContext?.docShell?.docViewer;
+
     if (
       (docViewer && !docViewer.isTabModalPromptAllowed) ||
       !browsingContext.ancestorsAreCurrent
@@ -72,56 +94,14 @@ export class PromptCollection {
       return true;
     }
 
-    const isPDFjs =
-      browsingContext.embedderElement?.contentPrincipal.originNoSuffix ===
-      "resource://pdf.js";
-    let title, message, leaveLabel, stayLabel, buttonFlags;
-    let args = {
-      // Tell the prompt service that this is a permit unload prompt
-      // so that it can set the appropriate flag on the detail object
-      // of the events it dispatches.
-      inPermitUnload: true,
-    };
+    let buttonFlags =
+      Ci.nsIPromptService.BUTTON_POS_0_DEFAULT |
+      (Ci.nsIPromptService.BUTTON_TITLE_IS_STRING *
+        Ci.nsIPromptService.BUTTON_POS_0) |
+      (Ci.nsIPromptService.BUTTON_TITLE_IS_STRING *
+        Ci.nsIPromptService.BUTTON_POS_1);
 
-    try {
-      if (isPDFjs) {
-        title = this.stringBundles.dom.GetStringFromName(
-          "OnBeforeUnloadPDFjsTitle"
-        );
-        message = this.stringBundles.dom.GetStringFromName(
-          "OnBeforeUnloadPDFjsMessage"
-        );
-        buttonFlags =
-          Ci.nsIPromptService.BUTTON_POS_0_DEFAULT |
-          (Ci.nsIPrompt.BUTTON_TITLE_SAVE * Ci.nsIPrompt.BUTTON_POS_0) |
-          (Ci.nsIPrompt.BUTTON_TITLE_CANCEL * Ci.nsIPrompt.BUTTON_POS_1) |
-          (Ci.nsIPrompt.BUTTON_TITLE_DONT_SAVE * Ci.nsIPrompt.BUTTON_POS_2);
-        args.useTitle = true;
-        args.headerIconURL = "chrome://global/skin/icons/document_pdf.svg";
-      } else {
-        title = this.stringBundles.dom.GetStringFromName("OnBeforeUnloadTitle");
-        message = this.stringBundles.dom.GetStringFromName(
-          "OnBeforeUnloadMessage2"
-        );
-        leaveLabel = this.stringBundles.dom.GetStringFromName(
-          "OnBeforeUnloadLeaveButton"
-        );
-        stayLabel = this.stringBundles.dom.GetStringFromName(
-          "OnBeforeUnloadStayButton"
-        );
-        buttonFlags =
-          Ci.nsIPromptService.BUTTON_POS_0_DEFAULT |
-          (Ci.nsIPromptService.BUTTON_TITLE_IS_STRING *
-            Ci.nsIPromptService.BUTTON_POS_0) |
-          (Ci.nsIPromptService.BUTTON_TITLE_IS_STRING *
-            Ci.nsIPromptService.BUTTON_POS_1);
-      }
-    } catch (exception) {
-      console.error("Failed to get strings from dom.properties");
-      return false;
-    }
-
-    const result = await Services.prompt.asyncConfirmEx(
+    let result = await Services.prompt.asyncConfirmEx(
       browsingContext,
       Services.prompt.MODAL_TYPE_CONTENT,
       title,
@@ -132,20 +112,15 @@ export class PromptCollection {
       null,
       null,
       false,
-      args
+      // Tell the prompt service that this is a permit unload prompt
+      // so that it can set the appropriate flag on the detail object
+      // of the events it dispatches.
+      { inPermitUnload: true }
     );
-    const buttonNumClicked = result
-      .QueryInterface(Ci.nsIPropertyBag2)
-      .get("buttonNumClicked");
-    if (isPDFjs) {
-      if (buttonNumClicked === 0) {
-        const actor = browsingContext.currentWindowGlobal.getActor("Pdfjs");
-        await actor.sendQuery("PDFJS:Save");
-      }
-      return buttonNumClicked !== 1;
-    }
 
-    return buttonNumClicked === 0;
+    return (
+      result.QueryInterface(Ci.nsIPropertyBag2).get("buttonNumClicked") == 0
+    );
   }
 
   confirmFolderUpload(browsingContext, directoryName) {
