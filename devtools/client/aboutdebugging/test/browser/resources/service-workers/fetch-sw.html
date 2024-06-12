@@ -12,7 +12,7 @@ let registration;
 
 const registerServiceWorker = async function() {
   try {
-    registration = await navigator.serviceWorker.register("fetch-sw.js");
+    registration = await navigator.serviceWorker.register("fetch-sw.worker.js");
     dump("Empty service worker registered\n");
   } catch (e) {
     dump("Empty service worker not registered: " + e + "\n");

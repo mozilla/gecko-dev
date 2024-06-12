@@ -140,9 +140,8 @@ add_task(async function topSites() {
   );
 
   // There's one top sites result, the page with a lot of visits from init.
-  let resultURL = UrlbarTestUtils.trimURL(
-    "http://example.com/browser_urlbarOneOffs.js/?" + (gMaxResults - 1)
-  );
+  let resultURL =
+    "http://example.com/browser_urlbarOneOffs.js/?" + (gMaxResults - 1);
   Assert.equal(UrlbarTestUtils.getResultCount(window), 1, "Result count");
 
   Assert.equal(
@@ -219,9 +218,7 @@ add_task(async function editedView() {
     assertState(
       i + 1,
       -1,
-      UrlbarTestUtils.trimURL(
-        "http://example.com/browser_urlbarOneOffs.js/?" + (gMaxResults - i - 1)
-      )
+      "http://example.com/browser_urlbarOneOffs.js/?" + (gMaxResults - i - 1)
     );
     Assert.ok(
       !BrowserTestUtils.isVisible(heuristicResult.element.action),
@@ -271,9 +268,7 @@ add_task(async function editedView() {
     assertState(
       i + 1,
       -1,
-      UrlbarTestUtils.trimURL(
-        "http://example.com/browser_urlbarOneOffs.js/?" + (gMaxResults - i - 1)
-      )
+      "http://example.com/browser_urlbarOneOffs.js/?" + (gMaxResults - i - 1)
     );
     Assert.ok(
       !BrowserTestUtils.isVisible(heuristicResult.element.action),

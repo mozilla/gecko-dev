@@ -82,7 +82,7 @@ TypeDefKind RefType::typeDefKind() const {
   MOZ_CRASH("switch is exhaustive");
 }
 
-static bool ToRefType(JSContext* cx, JSLinearString* typeLinearStr,
+static bool ToRefType(JSContext* cx, const JSLinearString* typeLinearStr,
                       RefType* out) {
   if (StringEqualsLiteral(typeLinearStr, "anyfunc") ||
       StringEqualsLiteral(typeLinearStr, "funcref")) {

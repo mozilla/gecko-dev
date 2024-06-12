@@ -4,8 +4,11 @@
 
 package org.mozilla.fenix.home.sessioncontrol
 
+import android.content.Context
 import android.view.View
 import androidx.annotation.VisibleForTesting
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.LifecycleOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -24,6 +27,7 @@ import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.onboarding.HomeCFRPresenter
+import org.mozilla.fenix.search.SearchDialogFragment
 import org.mozilla.fenix.utils.Settings
 
 // This method got a little complex with the addition of the tab tray feature flag
@@ -159,12 +163,13 @@ private fun collectionTabItems(collection: TabCollection) =
  *
  * @param containerView The [View] that is used to initialize the Home recycler view.
  * @param viewLifecycleOwner [LifecycleOwner] for the view.
- * @param interactor [SessionControlInteractor] which will have delegated to all user
- * interactions.
+ * @param fragmentManager The [FragmentManager] of the parent [Fragment].
+ * @param interactor [SessionControlInteractor] which will have delegated to all user interactions.
  */
 class SessionControlView(
     containerView: View,
     viewLifecycleOwner: LifecycleOwner,
+    fragmentManager: FragmentManager,
     private val interactor: SessionControlInteractor,
 ) {
 
@@ -187,11 +192,13 @@ class SessionControlView(
                 override fun onLayoutCompleted(state: RecyclerView.State?) {
                     super.onLayoutCompleted(state)
 
+                    val searchDialogFragment: SearchDialogFragment? =
+                        fragmentManager.fragments.find { it is SearchDialogFragment } as SearchDialogFragment?
+
                     if (!featureRecommended && !context.settings().showHomeOnboardingDialog) {
-                        if (!context.settings().showHomeOnboardingDialog && (
-                                context.settings().showSyncCFR ||
-                                    context.settings().shouldShowJumpBackInCFR
-                                )
+                        if (!context.settings().showHomeOnboardingDialog &&
+                            searchDialogFragment == null &&
+                            context.shouldShowACfr()
                         ) {
                             featureRecommended = HomeCFRPresenter(
                                 context = context,
@@ -221,6 +228,9 @@ class SessionControlView(
             }
         }
     }
+
+    private fun Context.shouldShowACfr() =
+        settings().showSyncCFR || settings().shouldShowJumpBackInCFR
 
     fun update(state: AppState, shouldReportMetrics: Boolean = false) {
         if (shouldReportMetrics) interactor.reportSessionMetrics(state)

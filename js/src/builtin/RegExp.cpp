@@ -2097,7 +2097,7 @@ static MOZ_ALWAYS_INLINE int GetFirstDollarIndexImpl(const TextChar* text,
   return -1;
 }
 
-int32_t js::GetFirstDollarIndexRawFlat(JSLinearString* text) {
+int32_t js::GetFirstDollarIndexRawFlat(const JSLinearString* text) {
   uint32_t len = text->length();
 
   JS::AutoCheckCannotGC nogc;

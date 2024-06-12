@@ -4287,61 +4287,6 @@ struct StateTableEntry {
   ElementState mState;
 };
 
-static constexpr StateTableEntry kManuallyManagedStates[] = {
-    {"autofill", ElementState::AUTOFILL},
-    // :-moz-autofill-preview implies :autofill.
-    {"-moz-autofill-preview",
-     ElementState::AUTOFILL_PREVIEW | ElementState::AUTOFILL},
-    {nullptr, ElementState()},
-};
-
-static_assert(!kManuallyManagedStates[ArrayLength(kManuallyManagedStates) - 1]
-                   .mStateString,
-              "last kManuallyManagedStates entry must be a sentinel with "
-              "mStateString == nullptr");
-
-static ElementState GetEventStateForString(const nsAString& aStateString) {
-  for (const StateTableEntry* entry = kManuallyManagedStates;
-       entry->mStateString; ++entry) {
-    if (aStateString.EqualsASCII(entry->mStateString)) {
-      return entry->mState;
-    }
-  }
-  return ElementState();
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::AddManuallyManagedState(Element* aElement,
-                                          const nsAString& aStateString) {
-  if (!aElement) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  ElementState state = GetEventStateForString(aStateString);
-  if (state.IsEmpty()) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  aElement->AddStates(state);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::RemoveManuallyManagedState(Element* aElement,
-                                             const nsAString& aStateString) {
-  if (!aElement) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  ElementState state = GetEventStateForString(aStateString);
-  if (state.IsEmpty()) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  aElement->RemoveStates(state);
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 nsDOMWindowUtils::GetStorageUsage(Storage* aStorage, int64_t* aRetval) {
   if (!aStorage) {

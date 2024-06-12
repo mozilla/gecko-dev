@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
+import junit.framework.TestCase.fail
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
@@ -409,7 +410,7 @@ class TranslationsTest : BaseSessionTest() {
     @Test
     fun testListModelDownloadStates() {
         // Note: Test endpoint is using a mocked response
-        var modelStatesResult = TranslationsController.RuntimeTranslation.listModelDownloadStates()
+        val modelStatesResult = TranslationsController.RuntimeTranslation.listModelDownloadStates()
         try {
             sessionRule.waitForResult(modelStatesResult)
             assertTrue("Should not be able to list models.", true)
@@ -610,7 +611,7 @@ class TranslationsTest : BaseSessionTest() {
             .build()
         try {
             sessionRule.waitForResult(RuntimeTranslation.manageLanguageModel(missingLanguage))
-            assertTrue("Should not complete requests on an incompatible state.", false)
+            fail("Should not complete requests on an incompatible state.")
         } catch (e: RuntimeException) {
             // Wait call causes a runtime exception too.
             val te = e.cause as TranslationsException
@@ -629,7 +630,7 @@ class TranslationsTest : BaseSessionTest() {
                 .build()
             try {
                 sessionRule.waitForResult(RuntimeTranslation.manageLanguageModel(allDownloadAttempt))
-                assertTrue("Should not complete downloads in automation.", false)
+                fail("Should not complete downloads in automation.")
             } catch (e: RuntimeException) {
                 // Wait call causes a runtime exception too.
                 val te = e.cause as TranslationsException
@@ -645,7 +646,7 @@ class TranslationsTest : BaseSessionTest() {
                 .build()
             try {
                 sessionRule.waitForResult(RuntimeTranslation.manageLanguageModel(allDeleteAttempt))
-                assertTrue("Should not complete deletes in automation.", false)
+                fail("Should not complete deletes in automation.")
             } catch (e: RuntimeException) {
                 // Wait call causes a runtime exception too.
                 val te = e.cause as TranslationsException
@@ -661,7 +662,7 @@ class TranslationsTest : BaseSessionTest() {
                 .build()
             try {
                 sessionRule.waitForResult(RuntimeTranslation.manageLanguageModel(malformedRequest))
-                assertTrue("Should not complete malformed requests in automation.", false)
+                fail("Should not complete malformed requests in automation.")
             } catch (e: RuntimeException) {
                 // Wait call causes a runtime exception too.
                 val te = e.cause as TranslationsException
@@ -670,6 +671,43 @@ class TranslationsTest : BaseSessionTest() {
                     te.code == TranslationsException.ERROR_UNKNOWN,
                 )
             }
+
+            val malformedCacheDownloadingRequest = ModelManagementOptions.Builder()
+                .operation(DOWNLOAD)
+                .operationLevel(RuntimeTranslation.CACHE)
+                .build()
+            try {
+                sessionRule.waitForResult(RuntimeTranslation.manageLanguageModel(malformedCacheDownloadingRequest))
+                fail("Should not complete an invalid request.")
+            } catch (e: RuntimeException) {
+                // Wait call causes a runtime exception too.
+                val te = e.cause as TranslationsException
+                assertTrue(
+                    "Correctly could not download the cache.",
+                    te.code == ERROR_MODEL_COULD_NOT_DOWNLOAD,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun testCacheClearing() {
+        // Test portion for Android Studio, where Remote Settings will be active
+        if (!sessionRule.env.isAutomation) {
+            mainSession.loadTestPath(TRANSLATIONS_EN)
+            mainSession.waitForPageStop()
+            // Will cause a download
+            val translate = sessionRule.session.sessionTranslation!!.translate("en", "es", null)
+            sessionRule.waitForResult(translate)
+
+            // Try to clear the download
+            val clearDownloadCache = ModelManagementOptions.Builder()
+                .operation(DELETE)
+                .operationLevel(RuntimeTranslation.CACHE)
+                .build()
+
+            sessionRule.waitForResult(RuntimeTranslation.manageLanguageModel(clearDownloadCache))
+            assertTrue("Successfully translated and cleared the downloaded file", true)
         }
     }
 

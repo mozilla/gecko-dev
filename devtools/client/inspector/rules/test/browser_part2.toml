@@ -353,7 +353,6 @@ skip-if = ["!fission"]
 ["browser_rules_shadowdom_slot_rules.js"]
 
 ["browser_rules_shapes-toggle_01.js"]
-skip-if = ["a11y_checks"] # Bugs 1849028 and 1858041 for causing intermittent a11y_checks results
 
 ["browser_rules_shapes-toggle_02.js"]
 
@@ -364,13 +363,10 @@ skip-if = ["a11y_checks"] # Bugs 1849028 and 1858041 for causing intermittent a1
 ["browser_rules_shapes-toggle_05.js"]
 
 ["browser_rules_shapes-toggle_06.js"]
-skip-if = ["a11y_checks"] # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
 
 ["browser_rules_shapes-toggle_07.js"]
-fail-if = ["a11y_checks"] # bug 1687723 ruleview-shapeswatch is not accessible
 
 ["browser_rules_shapes-toggle_basic-shapes-default.js"]
-skip-if = ["a11y_checks"] # Bug 1858037 to investigate intermittent a11y_checks results (fails on Autoland, passes on Try)
 
 ["browser_rules_shorthand-overridden-lists.js"]
 

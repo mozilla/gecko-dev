@@ -1620,22 +1620,47 @@ export class TranslationsParent extends JSWindowActorParent {
 
   /**
    * Deletes language files that match a language.
+   * Note, this call doesn't have directionality because it is checking and deleting files
+   * for both sides of the pair that are not involved in a pivot.
    *
-   * @param {string} language The BCP 47 language tag.
+   * @param {string} languageA The BCP 47 language tag.
+   * @param {string} languageB The BCP 47 language tag.
+   * @param {boolean} deletePivots When true, the request may delete files that could be used for another language's pivot to complete a translation.
+   *                               When false, the request will not delete files that could be used in another language's pivot.
    */
-  static async deleteLanguageFiles(language) {
+  static async deleteLanguageFilesToAndFromPair(
+    languageA,
+    languageB,
+    deletePivots
+  ) {
     const client = TranslationsParent.#getTranslationModelsRemoteClient();
-    const isForDeletion = true;
     return Promise.all(
       Array.from(
-        await TranslationsParent.getRecordsForTranslatingToAndFromAppLanguage(
-          language,
-          isForDeletion
+        await TranslationsParent.getRecordsForTranslatingToAndFromPair(
+          languageA,
+          languageB,
+          deletePivots
         )
       ).map(record => {
         lazy.console.log("Deleting record", record);
         return client.attachments.deleteDownloaded(record);
       })
+    );
+  }
+
+  /**
+   * Deletes language files that match a language.
+   * This function operates based on the current app language.
+   *
+   * @param {string} language The BCP 47 language tag.
+   */
+  static async deleteLanguageFiles(language) {
+    const appLanguage = new Intl.Locale(Services.locale.appLocaleAsBCP47)
+      .language;
+    return TranslationsParent.deleteLanguageFilesToAndFromPair(
+      language,
+      appLanguage,
+      /* deletePivots */ false
     );
   }
 
@@ -1650,7 +1675,8 @@ export class TranslationsParent extends JSWindowActorParent {
     const queue = [];
 
     for (const record of await TranslationsParent.getRecordsForTranslatingToAndFromAppLanguage(
-      language
+      language,
+      /* includePivotRecords */ true
     )) {
       const download = () => {
         lazy.console.log("Downloading record", record.name, record.id);
@@ -1702,6 +1728,104 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
+   * Delete all language model files not a part of a complete language package. Also known as
+   * the language model "cache" in the UI.
+   *
+   * Usage is to clean up language models that may be lingering in the file system and are not
+   * a part of a downloaded language model package.
+   *
+   * For example, this deletes models that were acquired via a translation on-the-fly, not
+   * the complete package of language models for a language that has both directions.
+   *
+   * A complete language package for this function is considered both directions, when available,
+   * for example, en->es (downloaded) and es->en (downloaded) is complete and nothing will be deleted.
+   *
+   * When the language is not symmetric, for example nn->en (downloaded), then this is also considered a
+   * complete package and not subject to deletion. (Note, in this example, en->nn is not available.)
+   *
+   * This will delete a downloaded model set when it is incomplete, for example en->es (downloaded) and es->en
+   * (not-downloaded) will delete en->es to clear the lingering one-sided package.
+   *
+   * @returns {Set<string>}  Directional language pairs in the form of "fromLang,toLang" that indicates translation pairs that were deleted.
+   */
+  static async deleteCachedLanguageFiles() {
+    const languagePairs = await TranslationsParent.getLanguagePairs();
+
+    const deletionRequest = [];
+    let deletedPairs = new Set();
+
+    for (const { fromLang, toLang } of languagePairs) {
+      const { downloadedPairs, nonDownloadedPairs } =
+        await TranslationsParent.getDownloadedFileStatusToAndFromPair(
+          fromLang,
+          toLang
+        );
+
+      if (downloadedPairs.size && nonDownloadedPairs.size) {
+        // It is possible that additional pairs are listed, but in general,
+        // this should be parallel with deletion requests.
+        downloadedPairs.forEach(langPair => deletedPairs.add(langPair));
+        deletionRequest.push(
+          TranslationsParent.deleteLanguageFilesToAndFromPair(
+            fromLang,
+            toLang,
+            /* deletePivots */ false
+          )
+        );
+      }
+    }
+    await Promise.all(deletionRequest);
+
+    return deletedPairs;
+  }
+
+  /**
+   * Contains information about what files are downloaded between a language pair.
+   * Note, this call doesn't have directionality because it is checking both sides of the pair.
+   *
+   * @param {string} languageA The BCP 47 language tag.
+   * @param {string} languageB The BCP 47 language tag.
+   *
+   * @returns {object} status The status between the pairs.
+   * @returns {Set<string>} status.downloadedPairs A set of strings that has directionality about what side
+   *                                                is downloaded, in the format "fromLang,toLang".
+   * @returns {Set<string>} status.nonDownloadedPairs A set of strings that has directionality about what side
+   *                                                   is not downloaded, in the format "fromLang,toLang". It is possible to have files both in nonDownloadedFiles
+   *                                                   and downloadedFiles in the case of incomplete downloads.
+   */
+
+  static async getDownloadedFileStatusToAndFromPair(languageA, languageB) {
+    const client = TranslationsParent.#getTranslationModelsRemoteClient();
+    let downloadedPairs = new Set();
+    let nonDownloadedPairs = new Set();
+
+    for (const record of await TranslationsParent.getRecordsForTranslatingToAndFromPair(
+      languageA,
+      languageB,
+      /* includePivotRecords */ true
+    )) {
+      let isDownloaded = false;
+      if (TranslationsParent.isInAutomation()) {
+        isDownloaded = record.attachment.isDownloaded;
+      } else {
+        isDownloaded = await client.attachments.isDownloaded(record);
+      }
+
+      if (isDownloaded) {
+        downloadedPairs.add(
+          TranslationsParent.languagePairKey(record.fromLang, record.toLang)
+        );
+      } else {
+        nonDownloadedPairs.add(
+          TranslationsParent.languagePairKey(record.fromLang, record.toLang)
+        );
+      }
+    }
+
+    return { downloadedPairs, nonDownloadedPairs };
+  }
+
+  /**
    * Only returns true if all language files are present for a requested language.
    * It's possible only half the files exist for a pivot translation into another
    * language, or there was a download error, and we're still missing some files.
@@ -1712,7 +1836,7 @@ export class TranslationsParent extends JSWindowActorParent {
     const client = TranslationsParent.#getTranslationModelsRemoteClient();
     for (const record of await TranslationsParent.getRecordsForTranslatingToAndFromAppLanguage(
       requestedLanguage,
-      true
+      /* includePivotRecords */ true
     )) {
       if (!(await client.attachments.isDownloaded(record))) {
         return false;
@@ -1723,27 +1847,30 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
-   * Get the necessary files for translating to and from the app language and a
-   * requested language. This may require the files for a pivot language translation
+   * Get the necessary files for translating between two given languages.
+   * This may require the files for a pivot language translation
    * if there is no language model for a direct translation.
+   * Note, this call doesn't have directionality because it is checking both sides of the pair.
    *
-   * @param {string} requestedLanguage The BCP 47 language tag.
-   * @param {boolean} isForDeletion - Return a more restrictive set of languages, as
-   *                  these files are marked for deletion. We don't want to remove
-   *                  files that are needed for some other language's pivot translation.
+   * @param {string} languageA The BCP 47 language tag.
+   * @param {string} languageB The BCP 47 language tag.
+   * @param {boolean} includePivotRecords - When true, this will include a list of records with any required pivots.
+   *                                        An example using true would be to determine which files to download to complete a translation.
+   *                                        When false, this will not include the list of pivot records to achieve a translations.
+   *                                        An example using false would be to determine which  records to delete, but wanting to be
+   *                                        cautions to avoid deleting model files used by another language.
    * @returns {Set<TranslationModelRecord>}
    */
-  static async getRecordsForTranslatingToAndFromAppLanguage(
-    requestedLanguage,
-    isForDeletion = false
+  static async getRecordsForTranslatingToAndFromPair(
+    languageA,
+    languageB,
+    includePivotRecords
   ) {
     const records = await TranslationsParent.#getTranslationModelRecords();
-    const appLanguage = new Intl.Locale(Services.locale.appLocaleAsBCP47)
-      .language;
 
     let matchedRecords = new Set();
 
-    if (requestedLanguage === appLanguage) {
+    if (languageA === languageB) {
       // There are no records if the requested language and app language are the same.
       return matchedRecords;
     }
@@ -1761,31 +1888,58 @@ export class TranslationsParent extends JSWindowActorParent {
 
     if (
       // Is there a direct translation?
-      !addLanguagePair(requestedLanguage, appLanguage)
+      !addLanguagePair(languageA, languageB)
     ) {
       // This is no direct translation, get the pivot files.
-      addLanguagePair(requestedLanguage, PIVOT_LANGUAGE);
-      // These files may be required for other pivot translations, so don't remove
+      addLanguagePair(languageA, PIVOT_LANGUAGE);
+      // These files may be required for other pivot translations, so don't list
       // them if we are deleting records.
-      if (!isForDeletion) {
-        addLanguagePair(PIVOT_LANGUAGE, appLanguage);
+      if (includePivotRecords) {
+        addLanguagePair(PIVOT_LANGUAGE, languageB);
       }
     }
 
     if (
       // Is there a direct translation?
-      !addLanguagePair(appLanguage, requestedLanguage)
+      !addLanguagePair(languageB, languageA)
     ) {
       // This is no direct translation, get the pivot files.
-      addLanguagePair(PIVOT_LANGUAGE, requestedLanguage);
-      // These files may be required for other pivot translations, so don't remove
+      addLanguagePair(PIVOT_LANGUAGE, languageA);
+      // These files may be required for other pivot translations, so don't list
       // them if we are deleting records.
-      if (!isForDeletion) {
-        addLanguagePair(appLanguage, PIVOT_LANGUAGE);
+      if (includePivotRecords) {
+        addLanguagePair(languageB, PIVOT_LANGUAGE);
       }
     }
 
     return matchedRecords;
+  }
+
+  /**
+   * Get the necessary files for translating to and from the app language and a
+   * requested language. This may require the files for a pivot language translation
+   * if there is no language model for a direct translation.
+   *
+   * @param {string} requestedLanguage The BCP 47 language tag.
+   * @param {boolean} includePivotRecords - When true, this will include a list of records with any required pivots.
+   *                                        An example using true would be to determine which files to download to complete a translation.
+   *                                        When false, this will not include the list of pivot records to achieve a translations.
+   *                                        An example using false would be to determine which  records to delete, but wanting to be
+   *                                        cautions to avoid deleting model files used by another language.
+   * @returns {Set<TranslationModelRecord>}
+   */
+  static async getRecordsForTranslatingToAndFromAppLanguage(
+    requestedLanguage,
+    includePivotRecords
+  ) {
+    const appLanguage = new Intl.Locale(Services.locale.appLocaleAsBCP47)
+      .language;
+
+    return TranslationsParent.getRecordsForTranslatingToAndFromPair(
+      requestedLanguage,
+      appLanguage,
+      includePivotRecords
+    );
   }
 
   /**

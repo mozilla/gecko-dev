@@ -50,12 +50,14 @@ add_task(async function () {
   clipPathShapeToggle.click();
   await onHighlighterShown;
   ok(highlighters.shapesHighlighterShown, "CSS shapes highlighter is shown.");
-  ok(
-    clipPathShapeToggle.classList.contains("active"),
+  is(
+    clipPathShapeToggle.getAttribute("aria-pressed"),
+    "true",
     "clip-path toggle button is active."
   );
-  ok(
-    !shapeOutsideToggle.classList.contains("active"),
+  is(
+    shapeOutsideToggle.getAttribute("aria-pressed"),
+    "false",
     "shape-outside toggle button is not active."
   );
 
@@ -66,12 +68,14 @@ add_task(async function () {
   shapeOutsideToggle.click();
   await onHighlighterShown;
   ok(highlighters.shapesHighlighterShown, "CSS shapes highlighter is shown.");
-  ok(
-    !clipPathShapeToggle.classList.contains("active"),
+  is(
+    clipPathShapeToggle.getAttribute("aria-pressed"),
+    "false",
     "clip-path toggle button is not active."
   );
-  ok(
-    shapeOutsideToggle.classList.contains("active"),
+  is(
+    shapeOutsideToggle.getAttribute("aria-pressed"),
+    "true",
     "shape-outside toggle button is active."
   );
 
@@ -93,12 +97,14 @@ add_task(async function () {
   shapeOutsideToggle = shapeOutsideContainer.querySelector(
     ".ruleview-shapeswatch"
   );
-  ok(
-    !clipPathShapeToggle.classList.contains("active"),
+  is(
+    clipPathShapeToggle.getAttribute("aria-pressed"),
+    "false",
     "clip-path toggle button is not active."
   );
-  ok(
-    !shapeOutsideToggle.classList.contains("active"),
+  is(
+    shapeOutsideToggle.getAttribute("aria-pressed"),
+    "false",
     "shape-outside toggle button is not active."
   );
 });

@@ -217,23 +217,29 @@ class UntrustedModulesFixture : public TelemetryTestFixture {
   template <typename DataFetcherT>
   void ValidateJSValue(const char16_t* aPattern, size_t aPatternLength,
                        DataFetcherT&& aDataFetcher) {
+    wprintf(L"ValidateJSValue top\n");
     AutoJSContextWithGlobal cx(mCleanGlobal);
     mozilla::Telemetry::UntrustedModulesDataSerializer serializer(
         cx.GetJSContext(), kMaxModulesArrayLen);
+    wprintf(L"ValidateJSValue after create serializer\n");
     EXPECT_TRUE(!!serializer);
     aDataFetcher(serializer);
+    wprintf(L"ValidateJSValue after fetch data\n");
 
     JS::Rooted<JS::Value> jsval(cx.GetJSContext());
     serializer.GetObject(&jsval);
+    wprintf(L"ValidateJSValue after get object\n");
 
     nsAutoString json;
     EXPECT_TRUE(nsContentUtils::StringifyJSON(
         cx.GetJSContext(), jsval, json, dom::UndefinedIsNullStringLiteral));
+    wprintf(L"ValidateJSValue after StringifyJSON\n");
 
     JS::Rooted<JSObject*> re(
         cx.GetJSContext(),
         JS::NewUCRegExpObject(cx.GetJSContext(), aPattern, aPatternLength,
                               JS::RegExpFlag::Global));
+    wprintf(L"ValidateJSValue after create regex\n");
     EXPECT_TRUE(!!re);
 
     JS::Rooted<JS::Value> matchResult(cx.GetJSContext(), JS::NullValue());
@@ -241,6 +247,7 @@ class UntrustedModulesFixture : public TelemetryTestFixture {
     EXPECT_TRUE(JS::ExecuteRegExpNoStatics(cx.GetJSContext(), re, json.get(),
                                            json.Length(), &idx, true,
                                            &matchResult));
+    wprintf(L"ValidateJSValue after execute regex\n");
     // On match, with aOnlyMatch = true, ExecuteRegExpNoStatics returns boolean
     // true.  If no match, ExecuteRegExpNoStatics returns Null.
     EXPECT_TRUE(matchResult.isBoolean() && matchResult.toBoolean());
@@ -249,6 +256,7 @@ class UntrustedModulesFixture : public TelemetryTestFixture {
       wprintf(L"JSON: %s\n", static_cast<const wchar_t*>(json.get()));
       wprintf(L"RE: %s\n", aPattern);
     }
+    wprintf(L"ValidateJSValue bottom\n");
   }
 };
 
@@ -272,16 +280,16 @@ void UntrustedModulesFixture::ValidateUntrustedModules(
     const wchar_t* mName;
     ModuleLoadInfo::Status mStatus;
   } kKnownModules[] = {
-    // Sorted by mName for binary-search
-    {L"TestDllBlocklist_MatchByName.dll", ModuleLoadInfo::Status::Blocked},
-    {L"TestDllBlocklist_MatchByVersion.dll", ModuleLoadInfo::Status::Blocked},
-    {L"TestDllBlocklist_NoOpEntryPoint.dll",
-     ModuleLoadInfo::Status::Redirected},
+      // Sorted by mName for binary-search
+      {L"TestDllBlocklist_MatchByName.dll", ModuleLoadInfo::Status::Blocked},
+      {L"TestDllBlocklist_MatchByVersion.dll", ModuleLoadInfo::Status::Blocked},
+      {L"TestDllBlocklist_NoOpEntryPoint.dll",
+       ModuleLoadInfo::Status::Redirected},
 #if !defined(MOZ_ASAN)
-    // With ASAN, the test uses mozglue's blocklist where
-    // the user blocklist is not used. So only check for this
-    // DLL in the non-ASAN case.
-    {L"TestDllBlocklist_UserBlocked.dll", ModuleLoadInfo::Status::Blocked},
+      // With ASAN, the test uses mozglue's blocklist where
+      // the user blocklist is not used. So only check for this
+      // DLL in the non-ASAN case.
+      {L"TestDllBlocklist_UserBlocked.dll", ModuleLoadInfo::Status::Blocked},
 #endif  // !defined(MOZ_ASAN)
   };
 
@@ -353,28 +361,40 @@ void UntrustedModulesFixture::ValidateUntrustedModules(
 
 BOOL CALLBACK UntrustedModulesFixture::InitialModuleLoadOnce(PINIT_ONCE, void*,
                                                              void**) {
+  wprintf(L"UntrustedModulesFixture::InitialModuleLoadOnce top\n");
   for (int i = 0; i < kLoadCountBeforeDllServices; ++i) {
     for (const auto& mod : kTestModules) {
       LoadAndFree(mod);
     }
   }
+  wprintf(
+      L"UntrustedModulesFixture::InitialModuleLoadOnce after loads before "
+      L"DllServices\n");
 
   RefPtr<DllServices> dllSvc(DllServices::Get());
   dllSvc->StartUntrustedModulesProcessor(true);
 
+  wprintf(
+      L"UntrustedModulesFixture::InitialModuleLoadOnce after starting "
+      L"DllServices\n");
   for (int i = 0; i < kLoadCountAfterDllServices; ++i) {
     for (const auto& mod : kTestModules) {
       LoadAndFree(mod);
     }
   }
 
+  wprintf(
+      L"UntrustedModulesFixture::InitialModuleLoadOnce after loads after "
+      L"DllServices\n");
   ModuleLoadCounter waitForTwo(kTestModules, {kInitLoadCount, kInitLoadCount});
   EXPECT_EQ(sInitLoadDataCollector.Collect(waitForTwo), NS_OK);
   EXPECT_TRUE(waitForTwo.Remains(kTestModules, {0, 0}));
 
+  wprintf(L"UntrustedModulesFixture::InitialModuleLoadOnce before Validate\n");
   for (const auto& event : GetInitLoadData()) {
     ValidateUntrustedModules(event);
   }
+  wprintf(L"UntrustedModulesFixture::InitialModuleLoadOnce after Validate\n");
 
   // Data was removed when retrieved.  No data is retrieved again.
   UntrustedModulesCollector collector;
@@ -382,6 +402,7 @@ BOOL CALLBACK UntrustedModulesFixture::InitialModuleLoadOnce(PINIT_ONCE, void*,
   EXPECT_EQ(collector.Collect(waitOnceForEach), NS_ERROR_ABORT);
   EXPECT_TRUE(waitOnceForEach.Remains(kTestModules, {1, 1}));
 
+  wprintf(L"UntrustedModulesFixture::InitialModuleLoadOnce done\n");
   return TRUE;
 }
 
@@ -401,45 +422,54 @@ BOOL CALLBACK UntrustedModulesFixture::InitialModuleLoadOnce(PINIT_ONCE, void*,
         u"(,\\[(-1|\\d+),\\d+\\])*\\]\\]}}"
 
 TEST_F(UntrustedModulesFixture, Serialize) {
-  // clang-format off
-  const char16_t kPattern[] = u"{\"structVersion\":1,"
-    u"\"modules\":\\[{"
-      u"\"resolvedDllName\":\"TestUntrustedModules_Dll1\\.dll\","
-      u"\"fileVersion\":\"1\\.2\\.3\\.4\","
-      // It would be nice to hard-code this, but this might change with
-      // compiler versions, etc.
-      u"\"debugID\":\"[0-9A-F]{33}\","
-      u"\"companyName\":\"Mozilla Corporation\",\"trustFlags\":0}\\],"
-    u"\"blockedModules\":\\[.*?\\]," // allow for the case where there are some blocked modules
-    u"\"processes\":{"
-      PROCESS_OBJ(u"browser", u"0xabc") u","
-      PROCESS_OBJ(u"browser", u"0x4") u","
-      PROCESS_OBJ(u"rdd", u"0x4")
-  u"}}";
-  // clang-format on
+  MOZ_SEH_TRY {
+    wprintf(L"UntrustedModulesFixture::Serialize top\n");
+    // clang-format off
+    const char16_t kPattern[] = u"{\"structVersion\":1,"
+      u"\"modules\":\\[{"
+        u"\"resolvedDllName\":\"TestUntrustedModules_Dll1\\.dll\","
+        u"\"fileVersion\":\"1\\.2\\.3\\.4\","
+        // It would be nice to hard-code this, but this might change with
+        // compiler versions, etc.
+        u"\"debugID\":\"[0-9A-F]{33}\","
+        u"\"companyName\":\"Mozilla Corporation\",\"trustFlags\":0}\\],"
+      u"\"blockedModules\":\\[.*?\\]," // allow for the case where there are some blocked modules
+      u"\"processes\":{"
+        PROCESS_OBJ(u"browser", u"0xabc") u","
+        PROCESS_OBJ(u"browser", u"0x4") u","
+        PROCESS_OBJ(u"rdd", u"0x4")
+    u"}}";
+    // clang-format on
 
-  UntrustedModulesBackupData backup1, backup2;
-  {
-    UntrustedModulesData data1 = CollectSingleData();
-    UntrustedModulesData data2 = CollectSingleData();
-    UntrustedModulesData data3 = CollectSingleData();
+    UntrustedModulesBackupData backup1, backup2;
+    {
+      UntrustedModulesData data1 = CollectSingleData();
+      UntrustedModulesData data2 = CollectSingleData();
+      UntrustedModulesData data3 = CollectSingleData();
+      wprintf(L"UntrustedModulesFixture::Serialize after CollectSingleData\n");
 
-    data1.mPid = 0xabc;
-    data2.mPid = 0x4;
-    data2.mProcessType = GeckoProcessType_RDD;
-    data3.mPid = 0x4;
+      data1.mPid = 0xabc;
+      data2.mPid = 0x4;
+      data2.mProcessType = GeckoProcessType_RDD;
+      data3.mPid = 0x4;
 
-    backup1.Add(std::move(data1));
-    backup2.Add(std::move(data2));
-    backup1.Add(std::move(data3));
+      backup1.Add(std::move(data1));
+      backup2.Add(std::move(data2));
+      backup1.Add(std::move(data3));
+    }
+
+    wprintf(L"UntrustedModulesFixture::Serialize before ValidateJSValue\n");
+    ValidateJSValue(
+        kPattern, ArrayLength(kPattern) - 1,
+        [&backup1,
+         &backup2](Telemetry::UntrustedModulesDataSerializer& aSerializer) {
+          EXPECT_NS_SUCCEEDED(aSerializer.Add(backup1));
+          EXPECT_NS_SUCCEEDED(aSerializer.Add(backup2));
+        });
+    wprintf(L"UntrustedModulesFixture::Serialize after ValidateJSValue\n");
   }
-
-  ValidateJSValue(kPattern, ArrayLength(kPattern) - 1,
-                  [&backup1, &backup2](
-                      Telemetry::UntrustedModulesDataSerializer& aSerializer) {
-                    EXPECT_NS_SUCCEEDED(aSerializer.Add(backup1));
-                    EXPECT_NS_SUCCEEDED(aSerializer.Add(backup2));
-                  });
+  MOZ_SEH_EXCEPT((MozWalkTheStack(stderr, CallerPC(), /* aMaxFrames */ 0),
+                  EXCEPTION_CONTINUE_SEARCH)) {}
 }
 
 TEST_F(UntrustedModulesFixture, Backup) {

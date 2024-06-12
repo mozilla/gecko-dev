@@ -235,38 +235,41 @@ template void CheckTracedThing<wasm::AnyRef>(JSTracer*, const wasm::AnyRef&);
 
 static inline bool ShouldMarkCrossCompartment(GCMarker* marker, JSObject* src,
                                               Cell* dstCell, const char* name) {
-  MarkColor color = marker->markColor();
-
-  if (!dstCell->isTenured()) {
 #ifdef DEBUG
+  if (src->isMarkedGray() && !dstCell->isTenured()) {
     // Bug 1743098: This shouldn't be possible but it does seem to happen. Log
     // some useful information in debug builds.
-    if (color != MarkColor::Black) {
-      SEprinter printer;
-      printer.printf(
-          "ShouldMarkCrossCompartment: cross compartment edge '%s' from gray "
-          "object to nursery thing\n",
-          name);
-      printer.put("src: ");
-      src->dump(printer);
-      printer.put("dst: ");
-      dstCell->dump(printer);
-    }
+    SEprinter printer;
+    printer.printf(
+        "ShouldMarkCrossCompartment: cross compartment edge '%s' from gray "
+        "object to nursery thing\n",
+        name);
+    printer.put("src: ");
+    src->dump(printer);
+    printer.put("dst: ");
+    dstCell->dump(printer);
+    MOZ_CRASH("Found cross compartment edge from gray object to nursery thing");
+  }
 #endif
-    MOZ_ASSERT(color == MarkColor::Black);
+
+  CellColor targetColor = AsCellColor(marker->markColor());
+  CellColor currentColor = dstCell->color();
+  if (currentColor >= targetColor) {
+    // Cell is already sufficiently marked. Nothing to do.
     return false;
   }
-  TenuredCell& dst = dstCell->asTenured();
 
+  TenuredCell& dst = dstCell->asTenured();
   JS::Zone* dstZone = dst.zone();
   if (!src->zone()->isGCMarking() && !dstZone->isGCMarking()) {
     return false;
   }
 
-  if (color == MarkColor::Black) {
+  if (targetColor == CellColor::Black) {
     // Check our sweep groups are correct: we should never have to
     // mark something in a zone that we have started sweeping.
-    MOZ_ASSERT_IF(!dst.isMarkedBlack(), !dstZone->isGCSweeping());
+    MOZ_ASSERT(currentColor < CellColor::Black);
+    MOZ_ASSERT(!dstZone->isGCSweeping());
 
     /*
      * Having black->gray edges violates our promise to the cycle collector so
@@ -286,7 +289,7 @@ static inline bool ShouldMarkCrossCompartment(GCMarker* marker, JSObject* src,
      * We handle the first case before returning whereas the second case happens
      * as part of normal marking.
      */
-    if (dst.isMarkedGray() && !dstZone->isGCMarking()) {
+    if (currentColor == CellColor::Gray && !dstZone->isGCMarking()) {
       UnmarkGrayGCThingUnchecked(marker,
                                  JS::GCCellPtr(&dst, dst.getTraceKind()));
       return false;
@@ -296,7 +299,8 @@ static inline bool ShouldMarkCrossCompartment(GCMarker* marker, JSObject* src,
   }
 
   // Check our sweep groups are correct as above.
-  MOZ_ASSERT_IF(!dst.isMarkedAny(), !dstZone->isGCSweeping());
+  MOZ_ASSERT(currentColor == CellColor::White);
+  MOZ_ASSERT(!dstZone->isGCSweeping());
 
   if (dstZone->isGCMarkingBlackOnly()) {
     /*
@@ -304,9 +308,7 @@ static inline bool ShouldMarkCrossCompartment(GCMarker* marker, JSObject* src,
      * but it will be later, so record the cell so it can be marked gray
      * at the appropriate time.
      */
-    if (!dst.isMarkedAny()) {
-      DelayCrossCompartmentGrayMarking(marker, src);
-    }
+    DelayCrossCompartmentGrayMarking(marker, src);
     return false;
   }
 

@@ -256,6 +256,8 @@ class Navigator final : public nsISupports, public nsWrapperCache {
 
   already_AddRefed<dom::UserActivation> UserActivation();
 
+  MediaKeySystemAccessManager* GetOrCreateMediaKeySystemAccessManager();
+
  private:
   void ValidateShareData(const ShareData& aData, ErrorResult& aRv);
   RefPtr<MediaKeySystemAccessManager> mMediaKeySystemAccessManager;

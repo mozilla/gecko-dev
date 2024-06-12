@@ -78,7 +78,13 @@ function getShortURLForCurrentSearch() {
 }
 
 class _TopSites {
-  #inited = false;
+  #hasObservers = false;
+  /**
+   * A Promise used to determine if initialization is complete.
+   *
+   * @type {Promise}
+   */
+  #initPromise = null;
   #searchShortcuts = [];
   #sites = [];
 
@@ -107,30 +113,42 @@ class _TopSites {
     this.handlePlacesEvents = this.handlePlacesEvents.bind(this);
   }
 
+  /**
+   * Initializes the TopSites module.
+   *
+   * @returns {Promise}
+   */
   async init() {
-    if (this.#inited) {
-      return;
+    if (this.#initPromise) {
+      return this.#initPromise;
     }
-    this.#inited = true;
-    lazy.log.debug("Initializing TopSites.");
-    this.#addObservers();
-    await this._readDefaults({ isStartup: true });
+    this.#initPromise = (async () => {
+      lazy.log.debug("Initializing TopSites.");
+      this.#addObservers();
+      await this._readDefaults({ isStartup: true });
+      // TopSites was initialized by the store calling the initialization
+      // function and then updating custom search shortcuts. Since
+      // initialization now happens upon the first retrieval of sites, we move
+      // the update custom search shortcuts here.
+      await this.updateCustomSearchShortcuts(true);
+    })();
+    return this.#initPromise;
   }
 
   uninit() {
-    if (!this.#inited) {
-      return;
-    }
     lazy.log.debug("Un-initializing TopSites.");
     this.#removeObservers();
     this.#searchShortcuts = [];
     this.#sites = [];
-    this.#inited = false;
+    this.#initPromise = null;
     this.frecentCache.expire();
     this.pinnedCache.expire();
   }
 
   #addObservers() {
+    if (this.#hasObservers) {
+      return;
+    }
     // If the feed was previously disabled PREFS_INITIAL_VALUES was never received
     Services.obs.addObserver(this, "browser-search-engine-modified");
     Services.obs.addObserver(this, "browser-region-updated");
@@ -146,9 +164,13 @@ class _TopSites {
       ["bookmark-added", "bookmark-removed", "history-cleared", "page-removed"],
       this.handlePlacesEvents
     );
+    this.#hasObservers = true;
   }
 
   #removeObservers() {
+    if (!this.#hasObservers) {
+      return;
+    }
     Services.obs.removeObserver(this, "browser-search-engine-modified");
     Services.obs.removeObserver(this, "browser-region-updated");
     Services.obs.removeObserver(this, "newtab-linkBlocked");
@@ -163,6 +185,7 @@ class _TopSites {
       ["bookmark-added", "bookmark-removed", "history-cleared", "page-removed"],
       this.handlePlacesEvents
     );
+    this.#hasObservers = false;
   }
 
   _reset() {
@@ -296,26 +319,12 @@ class _TopSites {
    *   A list of Top Sites.
    */
   async getSites() {
-    if (!this.#inited) {
-      await this.init();
-      // TopSites was initialized by the store calling the initialization
-      // function and then updating custom search shortcuts. Since
-      // initialization now happens upon the first get, we move the update
-      // custom search shortcuts here.
-      await this.updateCustomSearchShortcuts(true);
-    }
+    await this.init();
     return structuredClone(this.#sites);
   }
 
   async getSearchShortcuts() {
-    if (!this.#inited) {
-      await this.init();
-      // TopSites was initialized by the store calling the initialization
-      // function and then updating custom search shortcuts. Since
-      // initialization now happens upon the first get, we move the update
-      // custom search shortcuts here.
-      await this.updateCustomSearchShortcuts(true);
-    }
+    await this.init();
     return structuredClone(this.#searchShortcuts);
   }
 

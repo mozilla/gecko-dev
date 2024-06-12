@@ -8,9 +8,6 @@ const LARGE_DATA_URL =
 
 // Tests for the caret position after gURLBar.setURI().
 add_task(async function setURI() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.trimHttps", false]],
-  });
   const testData = [
     {
       firstURL: "https://example.com/test",
@@ -77,8 +74,8 @@ add_task(async function setURI() {
       expectedSelectionEnd: 10,
     },
     {
-      firstURL: "https://example.com/test",
-      secondURL: "https://example.org/test",
+      firstURL: "https://example.com/test/more",
+      secondURL: "https://example.org/test/more",
       initialSelectionStart: "https://example.".length,
       initialSelectionEnd: "https://example.c".length,
       expectedSelectionStart: "https://example.c".length,
@@ -212,6 +209,24 @@ add_task(async function setURI() {
     );
     info("Check the caret position after setting second URL");
     gURLBar.setURI(makeURI(data.firstURL));
+
+    // The protocol may be trimmed when the urlbar is blurred, then we must
+    // adjust the expected selection accordingly.
+    let offset =
+      gURLBar.value != gURLBar.untrimmedValue
+        ? BrowserUIUtils.trimURLProtocol.length
+        : 0;
+    data.initialSelectionStart = Math.max(
+      0,
+      data.initialSelectionStart - offset
+    );
+    data.initialSelectionEnd = Math.max(0, data.initialSelectionEnd - offset);
+    data.expectedSelectionStart = Math.max(
+      0,
+      data.expectedSelectionStart - offset
+    );
+    data.expectedSelectionEnd = Math.max(0, data.expectedSelectionEnd - offset);
+
     gURLBar.selectionStart = data.initialSelectionStart;
     gURLBar.selectionEnd = data.initialSelectionEnd;
 

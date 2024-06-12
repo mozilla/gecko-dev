@@ -135,6 +135,69 @@ impl BucketedAtlasAllocator {
         size2(w as i32, h as i32)
     }
 
+    pub fn grow(&mut self, new_size: Size) {
+        assert!(new_size.width < u16::MAX as i32);
+        assert!(new_size.height < u16::MAX as i32);
+
+        let (new_width, new_height) = if self.flip_xy {
+            (new_size.height as u16, new_size.width as u16)
+        } else {
+            (new_size.width as u16, new_size.height as u16)
+        };
+
+        assert!(new_width >= self.width);
+        assert!(new_height >= self.height);
+
+        self.available_height += new_height - self.height;
+        self.width = new_width;
+        self.height = new_height;
+
+        if self.num_columns == 1 {
+            // Add as many new buckets as possible to the existing shelves.
+            let additional_width = self.width - self.column_width;
+
+            let len = self.shelves.len();
+
+            for shelf_index in 0..len {
+                let shelf = &self.shelves[shelf_index];
+                let mut x = self.column_width;
+                let bucket_width = shelf.bucket_width;
+
+                let max_new_buckets = (MAX_BIN_COUNT - self.buckets.len()) as u16;
+                let mut num_buckets_to_add = additional_width / bucket_width;
+                num_buckets_to_add = num_buckets_to_add.min(max_new_buckets);
+
+                let mut bucket_next = shelf.first_bucket;
+
+                for _ in 0..num_buckets_to_add {
+                    let bucket = Bucket {
+                        next: bucket_next,
+                        x,
+                        free_space: bucket_width,
+                        refcount: 0,
+                        shelf: shelf_index as u16,
+                        generation: Wrapping(0),
+                        item_count: 0,
+                    };
+
+                    x += bucket_width;
+
+                    let bucket_index = self.add_bucket(bucket);
+
+                    bucket_next = bucket_index;
+                }
+
+                self.shelves[shelf_index].first_bucket = bucket_next;
+            }
+
+            // Resize the existing column.
+            self.column_width = self.width;
+        } else {
+            // Add as many new columns as possible.
+            self.num_columns = self.width / self.column_width;
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
         self.shelves.is_empty()
     }
@@ -235,7 +298,7 @@ impl BucketedAtlasAllocator {
 
     /// How much space is available for future allocations.
     pub fn free_space(&self) -> i32 {
-        (self.width * self.height) as i32 - self.allocated_space
+        (self.width as i32 * self.height as i32) - self.allocated_space
     }
 
     fn alloc_from_bucket(&mut self, shelf_index: usize, bucket_index: BucketIndex, width: u16) -> Option<Allocation> {
@@ -274,6 +337,22 @@ impl BucketedAtlasAllocator {
         Some(Allocation { id, rectangle })
     }
 
+    fn add_bucket(&mut self, mut bucket: Bucket) -> BucketIndex {
+        let mut bucket_index = self.first_unallocated_bucket;
+
+        if bucket_index == BucketIndex::INVALID {
+            bucket_index = BucketIndex(self.buckets.len() as u16);
+            self.buckets.push(bucket);
+        } else {
+            let idx = bucket_index.to_usize();
+            bucket.generation = self.buckets[idx].generation + Wrapping(1);
+            self.first_unallocated_bucket = self.buckets[idx].next;
+            self.buckets[idx] = bucket;
+        }
+
+        bucket_index
+    }
+
     fn add_shelf(&mut self, width: u16, height: u16) -> usize {
 
         let can_add_column = self.current_column + 1 < self.num_columns;
@@ -304,7 +383,7 @@ impl BucketedAtlasAllocator {
         let mut x = self.current_column * self.column_width;
         let mut bucket_next = BucketIndex::INVALID;
         for _ in 0..num_buckets {
-            let mut bucket = Bucket {
+            let bucket = Bucket {
                 next: bucket_next,
                 x,
                 free_space: bucket_width,
@@ -314,19 +393,9 @@ impl BucketedAtlasAllocator {
                 item_count: 0,
             };
 
-            let mut bucket_index = self.first_unallocated_bucket;
             x += bucket_width;
 
-            if bucket_index == BucketIndex::INVALID {
-                bucket_index = BucketIndex(self.buckets.len() as u16);
-                self.buckets.push(bucket);
-            } else {
-                let idx = bucket_index.to_usize();
-                bucket.generation = self.buckets[idx].generation + Wrapping(1);
-                self.first_unallocated_bucket = self.buckets[idx].next;
-
-                self.buckets[idx] = bucket;
-            }
+            let bucket_index = self.add_bucket(bucket);
 
             bucket_next = bucket_index;
         }
@@ -722,6 +791,94 @@ fn test_coalesce_shelves() {
 
     assert!(atlas.is_empty());
     assert_eq!(atlas.allocated_space(), 0);
+}
+
+#[test]
+fn grow_vertically() {
+    let mut atlas = BucketedAtlasAllocator::new(size2(256, 256));
+
+    // Allocate 7 shelves (leaving 32px of remaining space on top).
+    let mut ids = Vec::new();
+    for _ in 0..7 {
+        for _ in 0..8 {
+            ids.push(atlas.allocate(size2(32, 32)).unwrap().id)
+        }
+    }
+
+    // Free the first shelf.
+    for i in 0..8 {
+        atlas.deallocate(ids[i]);
+    }
+
+    // Free the 3rd and 4th shelf.
+    for i in 16..32 {
+        atlas.deallocate(ids[i]);
+    }
+
+    // Not enough space left in existing shelves and above.
+    // even coalescing is not sufficient.
+    assert!(atlas.allocate(size2(70, 70)).is_none());
+
+    // Grow just enough vertically to fit the previous region
+    atlas.grow(size2(256, 256 + 70 - 32));
+
+    // Allocation should succeed now
+    assert!(atlas.allocate(size2(70, 70)).is_some());
+}
+
+#[test]
+fn grow_horizontally() {
+    let mut atlas = BucketedAtlasAllocator::new(size2(256, 256));
+
+    // Allocate 7 shelves (leaving 32px of remaining space on top).
+    let mut ids = Vec::new();
+    for _ in 0..7 {
+        for _ in 0..8 {
+            ids.push(atlas.allocate(size2(32, 32)).unwrap().id)
+        }
+    }
+
+    // Free the first shelf.
+    for i in 0..8 {
+        atlas.deallocate(ids[i]);
+    }
+
+    // Free the 3rd and 4th shelf.
+    for i in 16..32 {
+        atlas.deallocate(ids[i]);
+    }
+
+    // Not enough space left in existing shelves and above.
+    // even coalescing is not sufficient.
+    assert!(atlas.allocate(size2(512, 32)).is_none());
+
+    // Grow just enough horizontally to add more buckets
+    atlas.grow(size2(256 * 2, 256));
+
+    // Allocation should succeed now
+    assert!(atlas.allocate(size2(512, 32)).is_some());
+}
+
+#[test]
+fn grow_to_fit_allocation() {
+    let mut atlas = BucketedAtlasAllocator::new(size2(32, 32));
+
+    // Allocate a shelve to make sure we have a non-empty atlas to test the update.
+    atlas.allocate(size2(32, 32)).unwrap();
+
+    // Try to make a big allocation that doesn't fit.
+    let big_allocation = size2(256, 256);
+
+    assert!(atlas.allocate(big_allocation).is_none());
+
+    // Grow to make enough space for the wanted allocation plus the original shelf.
+    atlas.grow(size2(256, 32 + 256));
+
+    // Adding to the original shelf should succeed.
+    assert!(atlas.allocate(size2(32, 32)).is_some());
+
+    // Big allocation should also succeed now.
+    assert!(atlas.allocate(big_allocation).is_some());
 }
 
 #[test]

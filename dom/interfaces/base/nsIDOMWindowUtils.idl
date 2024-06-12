@@ -2071,26 +2071,6 @@ interface nsIDOMWindowUtils : nsISupports {
   readonly attribute int32_t gpuProcessPid;
 
   /**
-   * Adds an ElementState bit to the element.
-   *
-   * The state string must be one of the following:
-   *   * (none yet; but for example "higlighted" for ElementState::HIGHLIGHTED)
-   *
-   * The supported state strings are defined in kManuallyManagedStates
-   * in nsDOMWindowUtils.cpp.
-   */
-  void addManuallyManagedState(in Element element,
-                               in AString state);
-
-  /**
-   * Removes the specified ElementState bits from the element.
-   *
-   * See above for the strings that can be passed for |state|.
-   */
-  void removeManuallyManagedState(in Element element,
-                                  in AString state);
-
-  /**
    * Returns usage data for a given storage object.
    *
    * @param aStorage

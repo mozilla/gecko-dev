@@ -59,10 +59,6 @@ export const MockDocument = {
   mockOwnerGlobalProperty(aElement) {
     Object.defineProperty(aElement, "ownerGlobal", {
       value: {
-        windowUtils: {
-          addManuallyManagedState() {},
-          removeManuallyManagedState() {},
-        },
         UIEvent: Event,
         Event,
       },

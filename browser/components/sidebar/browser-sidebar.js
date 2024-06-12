@@ -214,7 +214,7 @@ var SidebarController = {
 
     if (this.sidebarRevampEnabled) {
       await import("chrome://browser/content/sidebar/sidebar-main.mjs");
-      document.getElementById("sidebar-main").hidden = false;
+      document.getElementById("sidebar-main").hidden = !window.toolbar.visible;
       document.getElementById("sidebar-header").hidden = true;
       this._sidebarMain = document.querySelector("sidebar-main");
     } else {
@@ -432,6 +432,12 @@ var SidebarController = {
       return false;
     }
 
+    // If window is a popup, hide the sidebar
+    if (!window.toolbar.visible && this.sidebarRevampEnabled) {
+      document.getElementById("sidebar-main").hidden = true;
+      return false;
+    }
+
     // Set sidebar command even if hidden, so that we keep the same sidebar
     // even if it's currently closed.
     let commandID = sourceController._box.getAttribute("sidebarcommand");
@@ -450,8 +456,7 @@ var SidebarController = {
       return true;
     }
 
-    this._box.style.width =
-      sourceController._box.getBoundingClientRect().width + "px";
+    this._box.style.width = sourceController._box.style.width;
     this.showInitially(commandID);
 
     return true;
@@ -711,6 +716,9 @@ var SidebarController = {
     }
     if (sidebar.menuL10nId) {
       menuitem.dataset.l10nId = sidebar.menuL10nId;
+    }
+    if (!window.toolbar.visible) {
+      menuitem.setAttribute("disabled", "true");
     }
     return menuitem;
   },

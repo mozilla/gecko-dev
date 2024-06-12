@@ -174,7 +174,7 @@ who = "Nicolas Silva <nical@fastmail.com>"
 criteria = "safe-to-deploy"
 user-id = 1281 # Nicolas Silva (nical)
 start = "2020-11-12"
-end = "2024-04-25"
+end = "2025-06-01"
 notes = "I am the author of this crate."
 
 [[wildcard-audits.euclid]]

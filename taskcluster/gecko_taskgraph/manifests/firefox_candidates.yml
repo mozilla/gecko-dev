@@ -130,16 +130,6 @@ mapping:
         description: "Build related information to be consumed by Buildhub service"
         pretty_name: buildhub.json
         checksums_path: ${path_platform}/${locale}/buildhub.json
-    target.common.tests.tar.gz:
-        <<: *default
-        description: "Mixture of reftests, mochitests, UI and others, commonly bundled together in a test suite"
-        pretty_name: firefox-${version}.common.tests.tar.gz
-        checksums_path: ${path_platform}/${locale}/firefox-${version}.common.tests.tar.gz
-    target.cppunittest.tests.tar.gz:
-        <<: *default
-        description: "C++ unittests related in-tree test infrastructure"
-        pretty_name: firefox-${version}.cppunittest.tests.tar.gz
-        checksums_path: ${path_platform}/${locale}/firefox-${version}.cppunittest.tests.tar.gz
     target.crashreporter-symbols.zip:
         <<: *default
         description: "Crashreporter symbols to be consumed by Socorro"
@@ -150,46 +140,11 @@ mapping:
         description: "Various compile and moz_app flags baked together in a json file"
         pretty_name: firefox-${version}.json
         checksums_path: ${path_platform}/${locale}/firefox-${version}.json
-    target.mochitest.tests.tar.gz:
-        <<: *default
-        description: "Results for running the mochitest testing framework via Javascript function calls"
-        pretty_name: firefox-${version}.mochitest.tests.tar.gz
-        checksums_path: ${path_platform}/${locale}/firefox-${version}.mochitest.tests.tar.gz
     target.mozinfo.json:
         <<: *default
         description: "Various compile and moz_app flags baked together in a json file"
         pretty_name: firefox-${version}.mozinfo.json
         checksums_path: ${path_platform}/${locale}/firefox-${version}.mozinfo.json
-    target.reftest.tests.tar.gz:
-        <<: *default
-        description: "Results for running the reftest testing framework via display of two Web pages comparison"
-        pretty_name: firefox-${version}.reftest.tests.tar.gz
-        checksums_path: ${path_platform}/${locale}/firefox-${version}.reftest.tests.tar.gz
-    target.talos.tests.tar.gz:
-        <<: *default
-        description: "Results for running the talos testing framework to measure performance"
-        pretty_name: firefox-${version}.talos.tests.tar.gz
-        checksums_path: ${path_platform}/${locale}/firefox-${version}.talos.tests.tar.gz
-    target.awsy.tests.tar.gz:
-        <<: *default
-        description: "Results for running the awsy testing framework to track memory usage"
-        pretty_name: firefox-${version}.awsy.tests.tar.gz
-        checksums_path: ${path_platform}/${locale}/firefox-${version}.awsy.tests.tar.gz
-    target.test_packages.json:
-        <<: *default
-        description: "File containing metadata about all other files and testing harnesses specifics"
-        pretty_name: firefox-${version}.test_packages.json
-        checksums_path: ${path_platform}/${locale}/firefox-${version}.test_packages.json
-    target.web-platform.tests.tar.gz:
-        <<: *default
-        description: "Results for running the webplatform testing framework to cover standard Web platform features"
-        pretty_name: firefox-${version}.web-platform.tests.tar.gz
-        checksums_path: ${path_platform}/${locale}/firefox-${version}.web-platform.tests.tar.gz
-    target.xpcshell.tests.tar.gz:
-        <<: *default
-        description: "Results for running the xpcshell testing framework to enable XPConnect console application"
-        pretty_name: firefox-${version}.xpcshell.tests.tar.gz
-        checksums_path: ${path_platform}/${locale}/firefox-${version}.xpcshell.tests.tar.gz
     target_info.txt:
         <<: *default
         description: "File containing the buildID"

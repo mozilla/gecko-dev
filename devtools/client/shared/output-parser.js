@@ -865,15 +865,12 @@ class OutputParser {
   #appendHighlighterToggle(text, className) {
     const container = this.#createNode("span", {});
 
-    const toggle = this.#createNode("span", {
+    const toggleButton = this.#createNode("button", {
       class: className,
     });
 
-    const value = this.#createNode("span", {});
-    value.textContent = text;
-
-    container.appendChild(toggle);
-    container.appendChild(value);
+    const value = this.#createNode("span", {}, text);
+    container.append(toggleButton, value);
     this.#parsed.push(container);
   }
 
@@ -909,10 +906,8 @@ class OutputParser {
 
     const container = this.#createNode("span", {});
 
-    const toggle = this.#createNode("span", {
+    const toggleButton = this.#createNode("button", {
       class: options.shapeSwatchClass,
-      tabindex: "0",
-      role: "button",
     });
 
     const lowerCaseShape = shape.toLowerCase();
@@ -924,7 +919,7 @@ class OutputParser {
           class: options.shapeClass,
         });
 
-        container.appendChild(toggle);
+        container.appendChild(toggleButton);
 
         appendText(valContainer, shape.substring(0, coordsBegin));
 

@@ -163,7 +163,7 @@ async function search({
   // Set the input value and move the caret to the end to simulate the user
   // typing. It's important the caret is at the end because otherwise autofill
   // won't happen.
-  gURLBar._setValue(searchString, { allowTrim: false });
+  gURLBar._setValue(searchString);
   gURLBar.inputField.setSelectionRange(
     searchString.length,
     searchString.length

@@ -116,8 +116,8 @@ static void ReportBadKey(JSContext* cx, JSString* key) {
   }
 }
 
-static bool SameOrParentLocale(JSLinearString* locale,
-                               JSLinearString* otherLocale) {
+static bool SameOrParentLocale(const JSLinearString* locale,
+                               const JSLinearString* otherLocale) {
   // Return true if |locale| is the same locale as |otherLocale|.
   if (locale->length() == otherLocale->length()) {
     return EqualStrings(locale, otherLocale);

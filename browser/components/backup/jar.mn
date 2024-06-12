@@ -12,3 +12,4 @@ browser.jar:
   content/browser/backup/backup-settings.mjs                     (content/backup-settings.mjs)
   content/browser/backup/turn-on-scheduled-backups.css           (content/turn-on-scheduled-backups.css)
   content/browser/backup/turn-on-scheduled-backups.mjs           (content/turn-on-scheduled-backups.mjs)
+* content/browser/backup/archive.template.html                   (content/archive.template.html)

@@ -23,6 +23,7 @@ add_setup(async () => {
     Services.prefs.clearUserPref(
       "browser.safebrowsing.provider.mozilla.updateURL"
     );
+    Services.prefs.clearUserPref("browser.safebrowsing.update.enabled");
     Services.prefs.clearUserPref("browser.safebrowsing.provider.google.lists");
     Services.prefs.clearUserPref("browser.safebrowsing.provider.google4.lists");
   });

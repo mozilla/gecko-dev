@@ -74,7 +74,7 @@ struct IndexAndLength {
   size_t index;
   size_t length;
 
-  IndexAndLength(size_t index, size_t length) : index(index), length(length){};
+  IndexAndLength(size_t index, size_t length) : index(index), length(length) {};
 
   template <typename T>
   mozilla::Span<const T> spanOf(const T* ptr) const {
@@ -145,7 +145,7 @@ static LocaleObject* CreateLocaleObject(JSContext* cx, HandleObject prototype,
 }
 
 static inline bool IsValidUnicodeExtensionValue(JSContext* cx,
-                                                JSLinearString* linear,
+                                                const JSLinearString* linear,
                                                 bool* isValid) {
   if (linear->length() == 0) {
     *isValid = false;
@@ -797,8 +797,8 @@ static mozilla::Maybe<IndexAndLength> FindUnicodeExtensionType(
                                       size_t(endType - beginType)});
 }
 
-static inline auto FindUnicodeExtensionType(JSLinearString* unicodeExtension,
-                                            UnicodeKey key) {
+static inline auto FindUnicodeExtensionType(
+    const JSLinearString* unicodeExtension, UnicodeKey key) {
   JS::AutoCheckCannotGC nogc;
   return unicodeExtension->hasLatin1Chars()
              ? FindUnicodeExtensionType(
@@ -918,7 +918,7 @@ static BaseNamePartsResult BaseNameParts(const CharT* baseName, size_t length) {
   return {language, script, region};
 }
 
-static inline auto BaseNameParts(JSLinearString* baseName) {
+static inline auto BaseNameParts(const JSLinearString* baseName) {
   JS::AutoCheckCannotGC nogc;
   return baseName->hasLatin1Chars()
              ? BaseNameParts(

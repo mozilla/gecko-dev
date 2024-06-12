@@ -9,6 +9,29 @@
 Changelog
 =========
 
+13.0.0
+------
+
+    * Most xsimd functions are flagged as always_inline
+
+    * Fix some xsimd scalar version (abs, bitofsign, signbit, bitwise_cast, exp10)
+
+    * Move from batch_constant<batch<T, A>, Csts...> to batch_constant<T, A, Csts...>
+
+    * Move from batch_bool_constant<batch<T, A>, Csts...> to batch_bool_constant<T, A, Csts...>
+
+    * Provide an as_batch() method (resp. as_batch_bool) method for batch_constant (resp. batch_bool_constant)
+
+    * New architecture emulated<N> for batches of N bits emulated using scalar operations.
+
+    * Remove the version method from all architectures
+
+    * Support xsimd::avg and xsimd::avgr vector operation
+
+    * Model i8mm arm extension
+
+    * Fix dispatching mechanism
+
 12.1.1
 ------
 

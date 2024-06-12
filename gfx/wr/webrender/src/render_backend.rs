@@ -552,6 +552,7 @@ impl Document {
         let frame_build_time_ms =
             profiler::ns_to_ms(precise_time_ns() - frame_build_start_time);
         self.profile.set(profiler::FRAME_BUILDING_TIME, frame_build_time_ms);
+        self.profile.start_time(profiler::FRAME_SEND_TIME);
 
         let frame_stats = frame_stats.map(|mut stats| {
             stats.frame_build_time += frame_build_time_ms;
@@ -1354,6 +1355,8 @@ impl RenderBackend {
         has_built_scene: bool,
         start_time: Option<u64>
     ) -> bool {
+        let update_doc_start = precise_time_ns();
+
         let requested_frame = render_frame;
 
         let requires_frame_build = self.requires_frame_build();
@@ -1502,6 +1505,9 @@ impl RenderBackend {
                 },
                 None => {},
             }
+
+            let update_doc_time = profiler::ns_to_ms(precise_time_ns() - update_doc_start);
+            rendered_document.profile.set(profiler::UPDATE_DOCUMENT_TIME, update_doc_time);
 
             let msg = ResultMsg::PublishPipelineInfo(doc.updated_pipeline_info());
             self.result_tx.send(msg).unwrap();

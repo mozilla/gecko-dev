@@ -64,8 +64,13 @@ function stubTopSites(sandbox) {
     TopSites.pinnedCache.clear();
     TopSites.frecentCache.clear();
     TopSites._reset();
+    stub.restore();
     info("Finished cleaning up TopSites.");
   }
+
+  // To avoid having to setup search for each test, we stub this method and
+  // unstub it when the unit test calls for the search shortcuts.
+  let stub = sandbox.stub(TopSites, "updateCustomSearchShortcuts");
 
   TopSites._requestRichIcon = sandbox.stub();
   // Set preferences to match the store state.
@@ -886,6 +891,80 @@ add_task(async function test_init() {
     })
   );
 
+  TopSites.uninit();
+  sandbox.restore();
+  await cleanup();
+});
+
+/**
+ * If multiple callers are attempting to initializing TopSites, we should
+ * initialize only once and wait until its completed.
+ */
+add_task(async function test_multiple_init() {
+  info("Initing TopSites multiple times should call _readDefaults only once.");
+  let sandbox = sinon.createSandbox();
+  sandbox.stub(NimbusFeatures.newtab, "onUpdate");
+  sandbox.stub(TopSites, "_readDefaults");
+  let cleanup = stubTopSites(sandbox);
+
+  Assert.ok(TopSites._readDefaults.notCalled, "Read defaults not called.");
+  for (let i = 0; i < 5; ++i) {
+    await TopSites.init();
+  }
+  Assert.ok(TopSites._readDefaults.calledOnce, "Read defaults called once.");
+
+  sandbox.restore();
+  await cleanup();
+});
+
+add_task(async function test_multiple_init_delay() {
+  TopSites.uninit();
+
+  info(
+    "Initing TopSites multiple times should allow callers " +
+      "only call readDefaults once and wait until its finished."
+  );
+  let sandbox = sinon.createSandbox();
+
+  let resolvePromise;
+  let promise = new Promise(resolve => {
+    resolvePromise = resolve;
+  });
+
+  sandbox.stub(NimbusFeatures.newtab, "onUpdate");
+  sandbox.stub(TopSites, "_readDefaults").returns(promise);
+  let cleanup = stubTopSites(sandbox);
+
+  Assert.ok(TopSites._readDefaults.notCalled, "Read defaults not called.");
+  let finishedPromiseCount = 0;
+  let promises = [];
+  let callInit = async () => {
+    await TopSites.init();
+    ++finishedPromiseCount;
+  };
+  for (let i = 0; i < 5; ++i) {
+    promises.push(callInit());
+  }
+  Assert.equal(
+    finishedPromiseCount,
+    0,
+    "Finished promise count should be equal."
+  );
+  Assert.ok(TopSites._readDefaults.calledOnce, "Read defaults called once.");
+
+  info("Resolve the promises.");
+  resolvePromise();
+  await Promise.all(promises);
+  Assert.equal(
+    finishedPromiseCount,
+    5,
+    "Finished promise count should be equal."
+  );
+  Assert.ok(
+    TopSites._readDefaults.calledOnce,
+    "Read defaults was still only called once."
+  );
+
   sandbox.restore();
   await cleanup();
 });
@@ -909,6 +988,96 @@ add_task(async function test_uninit() {
   Assert.ok(
     TopSites.frecentCache.expire.calledOnce,
     "frecentCache.expire called once"
+  );
+
+  sandbox.restore();
+  await cleanup();
+});
+
+add_task(async function test_get_sites_init() {
+  info("TopSites.getSites should initialize TopSites if its not inited.");
+  let sandbox = sinon.createSandbox();
+
+  let cleanup = stubTopSites(sandbox);
+  sandbox.stub(TopSites, "init");
+
+  Assert.ok(TopSites.init.notCalled, "TopSites.init not called.");
+  await TopSites.getSites();
+  Assert.ok(TopSites.init.calledOnce, "TopSites.init called once.");
+
+  sandbox.restore();
+  await cleanup();
+});
+
+add_task(async function test_get_sites_already_inited() {
+  info(
+    "TopSites.getSites should not call related initialization methods " +
+      "more than once if TopSites is already inited."
+  );
+  let sandbox = sinon.createSandbox();
+
+  let cleanup = stubTopSites(sandbox);
+  sandbox.spy(TopSites, "_readDefaults");
+  await TopSites.init();
+
+  Assert.ok(
+    TopSites._readDefaults.calledOnce,
+    "TopSites._readDefaults called once."
+  );
+  Assert.ok(
+    TopSites.updateCustomSearchShortcuts.calledOnce,
+    "TopSites.updateCustomSearchShortcuts called once."
+  );
+  await TopSites.getSites();
+  Assert.ok(
+    TopSites._readDefaults.calledOnce,
+    "TopSites._readDefaults still only called once."
+  );
+  Assert.ok(
+    TopSites.updateCustomSearchShortcuts.calledOnce,
+    "TopSites.updateCustomSearchShortcuts still only called once."
+  );
+
+  sandbox.restore();
+  await cleanup();
+});
+
+add_task(async function test_get_sites_delayed_init() {
+  info("TopSites.getSites should wait until initialization is done.");
+  let sandbox = sinon.createSandbox();
+
+  let cleanup = stubTopSites(sandbox);
+
+  // Ensure it's not initialized.
+  TopSites.uninit();
+
+  let resolvePromise;
+  let promise = new Promise(resolve => {
+    resolvePromise = resolve;
+  });
+  sandbox.stub(TopSites, "init").returns(promise);
+
+  let promises = [];
+  let finishedPromiseCount = 0;
+  let callGetSites = async () => {
+    await TopSites.getSites();
+    finishedPromiseCount += 1;
+  };
+  for (let i = 0; i < 5; ++i) {
+    promises.push(callGetSites());
+  }
+
+  Assert.equal(
+    finishedPromiseCount,
+    0,
+    "All calls to TopSites.getSites() haven't finished."
+  );
+  resolvePromise();
+  await Promise.all(promises);
+  Assert.equal(
+    finishedPromiseCount,
+    5,
+    "All calls to TopSites.getSites() finished."
   );
 
   sandbox.restore();
@@ -1960,6 +2129,9 @@ add_task(async function test_improvesearch_topSitesSearchShortcuts() {
       "browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts",
       false
     );
+    // stubTopSites stubs updateCustomSearchShortcuts, when we need to add
+    // a spy.
+    TopSites.updateCustomSearchShortcuts.restore();
     sandbox.spy(TopSites, "updateCustomSearchShortcuts");
 
     // turn the experiment on
@@ -2060,6 +2232,9 @@ add_task(async function test_improvesearch_topSitesSearchShortcuts() {
       "browser.newtabpage.activity-stream.improvesearch.noDefaultSearchTile",
       true
     );
+    // stubTopSites stubs updateCustomSearchShortcuts, when in this case, we
+    // want to check the effect of the method.
+    TopSites.updateCustomSearchShortcuts.restore();
     await TopSites.updateCustomSearchShortcuts();
     let searchShortcuts = await TopSites.getSearchShortcuts();
     Assert.deepEqual(searchShortcuts, [

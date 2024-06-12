@@ -4221,7 +4221,7 @@ bool MCompare::tryFoldEqualOperands(bool* result) {
   return true;
 }
 
-static JSType TypeOfName(JSLinearString* str) {
+static JSType TypeOfName(const JSLinearString* str) {
   static constexpr std::array types = {
       JSTYPE_UNDEFINED, JSTYPE_OBJECT,  JSTYPE_FUNCTION, JSTYPE_STRING,
       JSTYPE_NUMBER,    JSTYPE_BOOLEAN, JSTYPE_SYMBOL,   JSTYPE_BIGINT,

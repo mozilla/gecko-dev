@@ -554,9 +554,8 @@ inline void SetProxyReservedSlot(JSObject* obj, size_t n,
 
 inline void SetProxyPrivate(JSObject* obj, const JS::Value& value) {
 #ifdef DEBUG
-  if (gc::detail::ObjectIsMarkedBlack(obj)) {
-    JS::AssertValueIsNotGray(value);
-  }
+  JS::AssertObjectIsNotGray(obj);
+  JS::AssertValueIsNotGray(value);
 #endif
 
   JS::Value* vp = &detail::GetProxyDataLayout(obj)->values()->privateSlot;
@@ -741,14 +740,14 @@ constexpr unsigned CheckProxyFlags() {
   return Flags;
 }
 
-#define PROXY_CLASS_DEF_WITH_CLASS_SPEC(name, flags, classSpec)            \
-  {                                                                        \
-    name,                                                                  \
-        JSClass::NON_NATIVE | JSCLASS_IS_PROXY |                           \
-            JSCLASS_DELAY_METADATA_BUILDER | js::CheckProxyFlags<flags>(), \
-        &js::ProxyClassOps, classSpec, &js::ProxyClassExtension,           \
-        &js::ProxyObjectOps                                                \
-  }
+#define PROXY_CLASS_DEF_WITH_CLASS_SPEC(name, flags, classSpec)              \
+  {name,                                                                     \
+   JSClass::NON_NATIVE | JSCLASS_IS_PROXY | JSCLASS_DELAY_METADATA_BUILDER | \
+       js::CheckProxyFlags<flags>(),                                         \
+   &js::ProxyClassOps,                                                       \
+   classSpec,                                                                \
+   &js::ProxyClassExtension,                                                 \
+   &js::ProxyObjectOps}
 
 #define PROXY_CLASS_DEF(name, flags) \
   PROXY_CLASS_DEF_WITH_CLASS_SPEC(name, flags, JS_NULL_CLASS_SPEC)

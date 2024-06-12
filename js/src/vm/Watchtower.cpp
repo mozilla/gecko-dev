@@ -88,8 +88,8 @@ static bool ReshapeForShadowedProp(JSContext* cx, Handle<NativeObject*> obj,
   return true;
 }
 
-static void InvalidateMegamorphicCache(JSContext* cx,
-                                       Handle<NativeObject*> obj) {
+static void InvalidateMegamorphicCache(JSContext* cx, Handle<NativeObject*> obj,
+                                       bool invalidateGetPropCache = true) {
   // The megamorphic cache only checks the receiver object's shape. We need to
   // invalidate the cache when a prototype object changes its set of properties,
   // to account for cached properties that are deleted, turned into an accessor
@@ -97,7 +97,9 @@ static void InvalidateMegamorphicCache(JSContext* cx,
 
   MOZ_ASSERT(obj->isUsedAsPrototype());
 
-  cx->caches().megamorphicCache.bumpGeneration();
+  if (invalidateGetPropCache) {
+    cx->caches().megamorphicCache.bumpGeneration();
+  }
   cx->caches().megamorphicSetPropCache->bumpGeneration();
 }
 
@@ -392,9 +394,16 @@ template bool Watchtower::watchPropertyModificationSlow<AllowGC::NoGC>(
     typename MaybeRooted<PropertyKey, AllowGC::NoGC>::HandleType id);
 
 // static
-bool Watchtower::watchFreezeOrSealSlow(JSContext* cx,
-                                       Handle<NativeObject*> obj) {
+bool Watchtower::watchFreezeOrSealSlow(JSContext* cx, Handle<NativeObject*> obj,
+                                       IntegrityLevel level) {
   MOZ_ASSERT(watchesFreezeOrSeal(obj));
+
+  // Invalidate the megamorphic set-property cache when freezing a prototype
+  // object. Non-writable prototype properties can't be shadowed (through
+  // SetProp) so this affects the behavior of add-property cache entries.
+  if (level == IntegrityLevel::Frozen && obj->isUsedAsPrototype()) {
+    InvalidateMegamorphicCache(cx, obj, /* invalidateGetPropCache = */ false);
+  }
 
   if (MOZ_UNLIKELY(obj->useWatchtowerTestingLog())) {
     if (!AddToWatchtowerLog(cx, "freeze-or-seal", obj,

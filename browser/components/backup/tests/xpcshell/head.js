@@ -171,3 +171,47 @@ async function maybeRemovePath(path) {
     }
   }
 }
+
+/**
+ * A generator function for deterministically generating a sequence of
+ * pseudo-random numbers between 0 and 255 with a fixed seed. This means we can
+ * generate an arbitrary amount of nonsense information, but that generation
+ * will be consistent between test runs. It's definitely not a cryptographically
+ * secure random number generator! Please don't use it for that!
+ *
+ * @yields {number}
+ *   The next number in the sequence.
+ */
+function* seededRandomNumberGenerator() {
+  // This is a verbatim copy of the public domain-licensed code in
+  // https://github.com/bryc/code/blob/master/jshash/PRNGs.md for the sfc32
+  // PRNG (see https://pracrand.sourceforge.net/RNG_engines.txt)
+  let sfc32 = function (a, b, c, d) {
+    return function () {
+      a |= 0;
+      b |= 0;
+      c |= 0;
+      d |= 0;
+      var t = (((a + b) | 0) + d) | 0;
+      d = (d + 1) | 0;
+      a = b ^ (b >>> 9);
+      b = (c + (c << 3)) | 0;
+      c = (c << 21) | (c >>> 11);
+      c = (c + t) | 0;
+      return (t >>> 0) / 4294967296;
+    };
+  };
+
+  // The seeds don't need to make sense, they just need to be the same from
+  // test run to test run to give us a consistent stream of nonsense.
+  const SEED1 = 123;
+  const SEED2 = 456;
+  const SEED3 = 789;
+  const SEED4 = 101;
+
+  let generator = sfc32(SEED1, SEED2, SEED3, SEED4);
+
+  while (true) {
+    yield Math.round(generator() * 1000) % 255;
+  }
+}

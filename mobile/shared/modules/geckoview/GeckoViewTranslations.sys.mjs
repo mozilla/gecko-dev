@@ -219,6 +219,18 @@ export const GeckoViewTranslationsSettings = {
               }
             );
           }
+          if (operationLevel === "cache") {
+            await lazy.TranslationsParent.deleteCachedLanguageFiles().then(
+              function () {
+                aCallback.onSuccess();
+              },
+              function (error) {
+                aCallback.onError(
+                  `COULD_NOT_DELETE - An issue occurred while deleting the cache: ${error}`
+                );
+              }
+            );
+          }
         } else if (operation === "download") {
           if (operationLevel === "all") {
             lazy.TranslationsParent.downloadAllFiles().then(
@@ -249,6 +261,12 @@ export const GeckoViewTranslationsSettings = {
                   `COULD_NOT_DOWNLOAD - An issue occurred while downloading a language files: ${error}`
                 );
               }
+            );
+          }
+          if (operationLevel === "cache") {
+            aCallback.onError(
+              `COULD_NOT_DOWNLOAD - Downloading the cache is not a valid option. Please check the parameters and try again.
+               Language: ${language}, Operation: ${operation}, Operation Level: ${operationLevel}`
             );
           }
         } else {
@@ -359,7 +377,7 @@ export const GeckoViewTranslationsSettings = {
               const recordsResult =
                 lazy.TranslationsParent.getRecordsForTranslatingToAndFromAppLanguage(
                   language.langTag,
-                  false
+                  /* includePivotRecords */ true
                 ).then(
                   async function (records) {
                     return _processLanguageModelData(language, records);

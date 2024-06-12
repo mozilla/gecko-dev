@@ -624,13 +624,19 @@
 .ruleview-flex,
 .ruleview-grid,
 .ruleview-shapeswatch {
+  background-color: transparent;
+  border: none;
   -moz-context-properties: stroke;
   stroke: var(--theme-icon-color);
+  /* Prevent line break when copy/pasting an entire rule */
+  user-select: auto;
 }
 
-.ruleview-flex.active,
-.ruleview-grid.active,
-.ruleview-shapeswatch.active {
+:is(
+  .ruleview-flex,
+  .ruleview-grid,
+  .ruleview-shapeswatch
+)[aria-pressed="true"] {
   stroke: var(--theme-icon-checked-color);
 }
 
@@ -827,6 +833,7 @@
 .ruleview-rule-ancestor-data  [role="listitem"] :is(button,[role="button"]).open-inspector {
   /* There's a space character after the button, so add a 1ch margin-inline-start to be consistent */
   margin-inline: 1ch 0;
+  user-select: auto;
 }
 
 .ruleview-selectors-container,

@@ -23,54 +23,54 @@ namespace xsimd
 
         // bitwise_and
         template <class A>
-        inline batch<float, A> bitwise_and(batch<float, A> const& self, batch<float, A> const& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<float, A> bitwise_and(batch<float, A> const& self, batch<float, A> const& other, requires_arch<avx512dq>) noexcept
         {
             return _mm512_and_ps(self, other);
         }
         template <class A>
-        inline batch<double, A> bitwise_and(batch<double, A> const& self, batch<double, A> const& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<double, A> bitwise_and(batch<double, A> const& self, batch<double, A> const& other, requires_arch<avx512dq>) noexcept
         {
             return _mm512_and_pd(self, other);
         }
 
         // bitwise_andnot
         template <class A>
-        inline batch<float, A> bitwise_andnot(batch<float, A> const& self, batch<float, A> const& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<float, A> bitwise_andnot(batch<float, A> const& self, batch<float, A> const& other, requires_arch<avx512dq>) noexcept
         {
             return _mm512_andnot_ps(other, self);
         }
         template <class A>
-        inline batch<double, A> bitwise_andnot(batch<double, A> const& self, batch<double, A> const& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<double, A> bitwise_andnot(batch<double, A> const& self, batch<double, A> const& other, requires_arch<avx512dq>) noexcept
         {
             return _mm512_andnot_pd(other, self);
         }
 
         // bitwise_not
         template <class A>
-        inline batch<float, A> bitwise_not(batch<float, A> const& self, requires_arch<avx512f>) noexcept
+        XSIMD_INLINE batch<float, A> bitwise_not(batch<float, A> const& self, requires_arch<avx512f>) noexcept
         {
             return _mm512_xor_ps(self, _mm512_castsi512_ps(_mm512_set1_epi32(-1)));
         }
         template <class A>
-        inline batch<double, A> bitwise_not(batch<double, A> const& self, requires_arch<avx512f>) noexcept
+        XSIMD_INLINE batch<double, A> bitwise_not(batch<double, A> const& self, requires_arch<avx512f>) noexcept
         {
             return _mm512_xor_pd(self, _mm512_castsi512_pd(_mm512_set1_epi32(-1)));
         }
 
         // bitwise_or
         template <class A>
-        inline batch<float, A> bitwise_or(batch<float, A> const& self, batch<float, A> const& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<float, A> bitwise_or(batch<float, A> const& self, batch<float, A> const& other, requires_arch<avx512dq>) noexcept
         {
             return _mm512_or_ps(self, other);
         }
         template <class A>
-        inline batch<double, A> bitwise_or(batch<double, A> const& self, batch<double, A> const& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<double, A> bitwise_or(batch<double, A> const& self, batch<double, A> const& other, requires_arch<avx512dq>) noexcept
         {
             return _mm512_or_pd(self, other);
         }
 
         template <class A, class T>
-        inline batch_bool<T, A> bitwise_or(batch_bool<T, A> const& self, batch_bool<T, A> const& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch_bool<T, A> bitwise_or(batch_bool<T, A> const& self, batch_bool<T, A> const& other, requires_arch<avx512dq>) noexcept
         {
             using register_type = typename batch_bool<T, A>::register_type;
             return register_type(self.data | other.data);
@@ -78,19 +78,19 @@ namespace xsimd
 
         // bitwise_xor
         template <class A>
-        inline batch<float, A> bitwise_xor(batch<float, A> const& self, batch<float, A> const& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<float, A> bitwise_xor(batch<float, A> const& self, batch<float, A> const& other, requires_arch<avx512dq>) noexcept
         {
             return _mm512_xor_ps(self, other);
         }
         template <class A>
-        inline batch<double, A> bitwise_xor(batch<double, A> const& self, batch<double, A> const& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<double, A> bitwise_xor(batch<double, A> const& self, batch<double, A> const& other, requires_arch<avx512dq>) noexcept
         {
             return _mm512_xor_pd(self, other);
         }
 
         // haddp
         template <class A>
-        inline batch<float, A> haddp(batch<float, A> const* row, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<float, A> haddp(batch<float, A> const* row, requires_arch<avx512dq>) noexcept
         {
             // The following folds over the vector once:
             // tmp1 = [a0..8, b0..8]
@@ -152,35 +152,35 @@ namespace xsimd
 
         // ldexp
         template <class A>
-        inline batch<double, A> ldexp(const batch<double, A>& self, const batch<as_integer_t<double>, A>& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<double, A> ldexp(const batch<double, A>& self, const batch<as_integer_t<double>, A>& other, requires_arch<avx512dq>) noexcept
         {
             return _mm512_scalef_pd(self, _mm512_cvtepi64_pd(other));
         }
 
         // mul
         template <class A>
-        inline batch<uint64_t, A> mul(batch<uint64_t, A> const& self, batch<uint64_t, A> const& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<uint64_t, A> mul(batch<uint64_t, A> const& self, batch<uint64_t, A> const& other, requires_arch<avx512dq>) noexcept
         {
             return _mm512_mullo_epi64(self, other);
         }
 
         template <class A>
-        inline batch<int64_t, A> mul(batch<int64_t, A> const& self, batch<int64_t, A> const& other, requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<int64_t, A> mul(batch<int64_t, A> const& self, batch<int64_t, A> const& other, requires_arch<avx512dq>) noexcept
         {
             return _mm512_mullo_epi64(self, other);
         }
 
         // nearbyint_as_int
         template <class A>
-        inline batch<int64_t, A> nearbyint_as_int(batch<double, A> const& self,
-                                                  requires_arch<avx512dq>) noexcept
+        XSIMD_INLINE batch<int64_t, A> nearbyint_as_int(batch<double, A> const& self,
+                                                        requires_arch<avx512dq>) noexcept
         {
             return _mm512_cvtpd_epi64(self);
         }
 
         // reduce_add
         template <class A>
-        inline float reduce_add(batch<float, A> const& rhs, requires_arch<avx512f>) noexcept
+        XSIMD_INLINE float reduce_add(batch<float, A> const& rhs, requires_arch<avx512f>) noexcept
         {
             __m256 tmp1 = _mm512_extractf32x8_ps(rhs, 1);
             __m256 tmp2 = _mm512_extractf32x8_ps(rhs, 0);
@@ -192,13 +192,13 @@ namespace xsimd
         namespace detail
         {
             template <class A>
-            inline batch<double, A> fast_cast(batch<int64_t, A> const& x, batch<double, A> const&, requires_arch<avx512dq>) noexcept
+            XSIMD_INLINE batch<double, A> fast_cast(batch<int64_t, A> const& x, batch<double, A> const&, requires_arch<avx512dq>) noexcept
             {
                 return _mm512_cvtepi64_pd(self);
             }
 
             template <class A>
-            inline batch<int64_t, A> fast_cast(batch<double, A> const& self, batch<int64_t, A> const&, requires_arch<avx512dq>) noexcept
+            XSIMD_INLINE batch<int64_t, A> fast_cast(batch<double, A> const& self, batch<int64_t, A> const&, requires_arch<avx512dq>) noexcept
             {
                 return _mm512_cvttpd_epi64(self);
             }

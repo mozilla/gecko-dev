@@ -264,7 +264,7 @@ function getShapeToggleActive(node) {
       node.classList.contains("ruleview-computed") ||
       node.classList.contains("ruleview-property")
     ) {
-      return node.querySelector(".ruleview-shapeswatch.active");
+      return node.querySelector(`.ruleview-shapeswatch[aria-pressed="true"]`);
     }
 
     node = node.parentNode;

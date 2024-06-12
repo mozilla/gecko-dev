@@ -14,12 +14,30 @@ dictionary MediaConfiguration {
   AudioConfiguration audio;
 };
 
+// https://w3c.github.io/media-capabilities/#dictdef-mediaconfiguration
 dictionary MediaDecodingConfiguration : MediaConfiguration {
   required MediaDecodingType type;
+  MediaCapabilitiesKeySystemConfiguration keySystemConfiguration;
 };
 
 dictionary MediaEncodingConfiguration : MediaConfiguration {
   required MediaEncodingType type;
+};
+
+// https://w3c.github.io/media-capabilities/#mediacapabilitieskeysystemconfiguration
+dictionary MediaCapabilitiesKeySystemConfiguration {
+  required DOMString keySystem;
+  DOMString initDataType = "";
+  MediaKeysRequirement distinctiveIdentifier = "optional";
+  MediaKeysRequirement persistentState = "optional";
+  sequence<DOMString> sessionTypes;
+  KeySystemTrackConfiguration audio;
+  KeySystemTrackConfiguration video;
+};
+
+dictionary KeySystemTrackConfiguration {
+  DOMString robustness = "";
+  DOMString? encryptionScheme = null;
 };
 
 enum MediaDecodingType {
@@ -70,18 +88,23 @@ dictionary AudioConfiguration {
   unsigned long samplerate;
 };
 
-[Exposed=(Window, Worker), Func="mozilla::dom::MediaCapabilities::Enabled",
- HeaderFile="mozilla/dom/MediaCapabilities.h"]
-interface MediaCapabilitiesInfo {
-  readonly attribute boolean supported;
-  readonly attribute boolean smooth;
-  readonly attribute boolean powerEfficient;
+dictionary MediaCapabilitiesInfo {
+  required boolean supported;
+  required boolean smooth;
+  required boolean powerEfficient;
 };
 
-[Exposed=(Window, Worker), Func="mozilla::dom::MediaCapabilities::Enabled"]
+// https://w3c.github.io/media-capabilities/#dictdef-mediacapabilitiesinfo
+dictionary MediaCapabilitiesDecodingInfo : MediaCapabilitiesInfo {
+  // This doesn't match the spec, see https://github.com/w3c/media-capabilities/issues/219
+  required MediaKeySystemAccess? keySystemAccess;
+  // TODO : implement configuration
+};
+
+[Exposed=(Window, Worker)]
 interface MediaCapabilities {
   [NewObject]
-  Promise<MediaCapabilitiesInfo> decodingInfo(MediaDecodingConfiguration configuration);
+  Promise<MediaCapabilitiesDecodingInfo> decodingInfo(MediaDecodingConfiguration configuration);
   [NewObject]
   Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
 };

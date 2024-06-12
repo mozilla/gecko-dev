@@ -5664,13 +5664,21 @@ export var DefaultBrowserCheck = {
     let buttonNumClicked = rv.get("buttonNumClicked");
     let checkboxState = rv.get("checked");
     if (buttonNumClicked == 0) {
+      // We must explicitly await pinning to the taskbar before
+      // trying to set as default. If we fall back to setting
+      // as default through the Windows Settings menu that interferes
+      // with showing the pinning notification as we no longer have
+      // window focus.
+      try {
+        await shellService.pinToTaskbar();
+      } catch (e) {
+        this.log.error("Failed to pin to taskbar", e);
+      }
       try {
         await shellService.setAsDefault();
       } catch (e) {
         this.log.error("Failed to set the default browser", e);
       }
-
-      shellService.pinToTaskbar();
     }
     if (checkboxState) {
       shellService.shouldCheckDefaultBrowser = false;

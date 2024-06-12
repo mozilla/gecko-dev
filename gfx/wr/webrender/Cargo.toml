@@ -51,7 +51,7 @@ glyph_rasterizer = { version = "0.1.0", path = "../wr_glyph_rasterizer", package
 svg_fmt = "0.4"
 tracy-rs = "0.1.2"
 derive_more = { version = "0.99", default-features = false, features = ["add_assign"] }
-etagere = "0.2.6"
+etagere = "0.2.11"
 glean = { version = "60.1.1", optional = true }
 firefox-on-glean = { version = "0.1.0", optional = true }
 swgl = { path = "../swgl", optional = true }

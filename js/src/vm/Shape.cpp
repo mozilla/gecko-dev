@@ -934,7 +934,7 @@ bool NativeObject::freezeOrSealProperties(JSContext* cx,
                                           IntegrityLevel level) {
   AutoCheckShapeConsistency check(obj);
 
-  if (!Watchtower::watchFreezeOrSeal(cx, obj)) {
+  if (!Watchtower::watchFreezeOrSeal(cx, obj, level)) {
     return false;
   }
 

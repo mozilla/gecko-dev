@@ -49,8 +49,9 @@ add_task(async function () {
     !gridToggle.hasAttribute("disabled"),
     "Grid highlighter toggle is not disabled."
   );
-  ok(
-    !gridToggle.classList.contains("active"),
+  is(
+    gridToggle.getAttribute("aria-pressed"),
+    "false",
     "Grid highlighter toggle button is not active."
   );
   ok(!highlighters.gridHighlighters.size, "No CSS grid highlighter is shown.");
@@ -67,8 +68,9 @@ add_task(async function () {
     !gridToggle.hasAttribute("disabled"),
     "Grid highlighter toggle is not disabled."
   );
-  ok(
-    !gridToggle.classList.contains("active"),
+  is(
+    gridToggle.getAttribute("aria-pressed"),
+    "false",
     "Grid highlighter toggle button is not active."
   );
   is(highlighters.gridHighlighters.size, 1, "CSS grid highlighter is shown.");
@@ -97,8 +99,9 @@ add_task(async function () {
     !gridToggle.hasAttribute("disabled"),
     "Grid highlighter toggle is not disabled."
   );
-  ok(
-    !gridToggle.classList.contains("active"),
+  is(
+    gridToggle.getAttribute("aria-pressed"),
+    "false",
     "Grid highlighter toggle button is not active."
   );
   is(highlighters.gridHighlighters.size, 1, "CSS grid highlighter is shown.");
@@ -113,8 +116,9 @@ add_task(async function () {
     !gridToggle.hasAttribute("disabled"),
     "Grid highlighter toggle is not disabled."
   );
-  ok(
-    gridToggle.classList.contains("active"),
+  is(
+    gridToggle.getAttribute("aria-pressed"),
+    "true",
     "Grid highlighter toggle is active."
   );
   is(highlighters.gridHighlighters.size, 2, "CSS grid highlighters are shown.");
@@ -131,8 +135,9 @@ add_task(async function () {
     !gridToggle.hasAttribute("disabled"),
     "Grid highlighter toggle is not disabled."
   );
-  ok(
-    !gridToggle.classList.contains("active"),
+  is(
+    gridToggle.getAttribute("aria-pressed"),
+    "false",
     "Grid highlighter toggle button is not active."
   );
   is(highlighters.gridHighlighters.size, 1, "CSS grid highlighter is shown.");

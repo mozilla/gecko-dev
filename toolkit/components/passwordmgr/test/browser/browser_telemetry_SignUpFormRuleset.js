@@ -34,9 +34,6 @@ async function countEntriesOfChildHistogram(id, expected) {
 }
 
 add_setup(async () => {
-  await SpecialPowers.pushPrefEnv({
-    set: [["signon.signupDetection.enabled", true]],
-  });
   Services.telemetry.getHistogramById(SIGNUP_DETECTION_HISTOGRAM).clear();
 });
 

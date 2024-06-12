@@ -4,7 +4,9 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 128.0 (In Development)
+# 129.0 (In Development)
+
+# 128.0
 
 * **browser-toolbar**
   * Added new data classes `CustomTabsToolbarButtonConfig` and `CustomTabsToolbarListeners` to `CustomTabsToolbarFeature`, see [Bug 1897811](https://bugzilla.mozilla.org/show_bug.cgi?id=1897811).

@@ -44,7 +44,8 @@ class Watchtower {
       JSContext* cx,
       typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
       typename MaybeRooted<PropertyKey, allowGC>::HandleType id);
-  static bool watchFreezeOrSealSlow(JSContext* cx, Handle<NativeObject*> obj);
+  static bool watchFreezeOrSealSlow(JSContext* cx, Handle<NativeObject*> obj,
+                                    IntegrityLevel level);
   static bool watchProtoChangeSlow(JSContext* cx, HandleObject obj);
   static bool watchObjectSwapSlow(JSContext* cx, HandleObject a,
                                   HandleObject b);
@@ -69,7 +70,8 @@ class Watchtower {
         {ObjectFlag::HasFuseProperty, ObjectFlag::UseWatchtowerTestingLog});
   }
   static bool watchesFreezeOrSeal(NativeObject* obj) {
-    return obj->hasAnyFlag({ObjectFlag::UseWatchtowerTestingLog});
+    return obj->hasAnyFlag(
+        {ObjectFlag::IsUsedAsPrototype, ObjectFlag::UseWatchtowerTestingLog});
   }
   static bool watchesProtoChange(JSObject* obj) {
     return obj->hasAnyFlag(
@@ -117,11 +119,12 @@ class Watchtower {
     }
     return watchPropertyModificationSlow<allowGC>(cx, obj, id);
   }
-  static bool watchFreezeOrSeal(JSContext* cx, Handle<NativeObject*> obj) {
+  static bool watchFreezeOrSeal(JSContext* cx, Handle<NativeObject*> obj,
+                                IntegrityLevel level) {
     if (MOZ_LIKELY(!watchesFreezeOrSeal(obj))) {
       return true;
     }
-    return watchFreezeOrSealSlow(cx, obj);
+    return watchFreezeOrSealSlow(cx, obj, level);
   }
   static bool watchProtoChange(JSContext* cx, HandleObject obj) {
     if (MOZ_LIKELY(!watchesProtoChange(obj))) {

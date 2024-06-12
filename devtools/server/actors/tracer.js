@@ -134,6 +134,10 @@ class TracerActor extends Actor {
 
     if (this.logMethod == LOG_METHODS.PROFILER) {
       this.geckoProfileCollector.start();
+
+      // Recording function returns is mandatory when recording profiler output.
+      // Otherwise frames are not closed and mixed up in the profiler frontend.
+      options.traceFunctionReturn = true;
     }
 
     this.tracingListener = {
@@ -486,17 +490,18 @@ class TracerActor extends Actor {
       });
       this.throttleEmitTraces();
     } else if (this.logMethod == LOG_METHODS.PROFILER) {
-      this.geckoProfileCollector.addSample(
-        {
-          // formatedDisplayName has a lambda at the beginning, remove it.
-          name: formatedDisplayName.replace("λ ", ""),
-          url,
-          lineNumber,
-          columnNumber,
-          category: frame.implementation,
-        },
-        depth
-      );
+      if (currentDOMEvent && depth == 0) {
+        this.geckoProfileCollector.logDOMEvent(currentDOMEvent);
+      }
+      this.geckoProfileCollector.onEnterFrame({
+        // formatedDisplayName has a lambda at the beginning, remove it.
+        name: formatedDisplayName.replace("λ ", ""),
+        url,
+        lineNumber,
+        columnNumber,
+        category: frame.implementation,
+        sourceId: script.source.id,
+      });
     }
 
     return false;
@@ -594,7 +599,7 @@ class TracerActor extends Actor {
       });
       this.throttleEmitTraces();
     } else if (this.logMethod == LOG_METHODS.PROFILER) {
-      // For now, the profiler doesn't use this.
+      this.geckoProfileCollector.onFramePop();
     }
 
     return false;

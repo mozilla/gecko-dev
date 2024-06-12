@@ -2053,8 +2053,9 @@ static bool PrepareAndExecuteRegExp(MacroAssembler& masm, Register regexp,
     masm.computeEffectiveAddress(matchPairsAddress, temp3);
 
     masm.PushRegsInMask(volatileRegs);
-    using Fn = RegExpRunStatus (*)(RegExpShared* re, JSLinearString* input,
-                                   size_t start, MatchPairs* matchPairs);
+    using Fn =
+        RegExpRunStatus (*)(RegExpShared* re, const JSLinearString* input,
+                            size_t start, MatchPairs* matchPairs);
     masm.setupUnalignedABICall(temp2);
     masm.passABIArg(regexpReg);
     masm.passABIArg(input);

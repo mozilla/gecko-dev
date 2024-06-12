@@ -17,7 +17,7 @@ const registerServiceWorker = async function() {
   await SpecialPowers.pushPermissions([perm]);
 
   try {
-    registration = await navigator.serviceWorker.register("push-sw.js");
+    registration = await navigator.serviceWorker.register("push-sw.worker.js");
     dump("Push service worker registered\n");
   } catch (e) {
     dump("Push service worker not registered: " + e + "\n");

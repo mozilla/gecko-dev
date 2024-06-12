@@ -5,5 +5,5 @@
 <input value="Autofill">
 <script>
   let input = SpecialPowers.wrap(document.querySelector("input"));
-  SpecialPowers.wrap(window).windowUtils.addManuallyManagedState(input, "autofill");
+  input.autofillState = "autofill";
 </script>

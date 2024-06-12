@@ -10,7 +10,7 @@ Services.scriptloader.loadSubScript(
 );
 
 const SW_TAB_URL = URL_ROOT_SSL + "resources/service-workers/empty-sw.html";
-const SW_URL = URL_ROOT_SSL + "resources/service-workers/empty-sw.js";
+const SW_URL = URL_ROOT_SSL + "resources/service-workers/empty-sw.worker.js";
 
 /**
  * Test that service workers can be started using about:debugging.

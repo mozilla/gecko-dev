@@ -154,23 +154,17 @@ skip-if = [
 ]
 
 ["browser_inspector_highlighter-cssshape_05.js"]
-fail-if = ["a11y_checks"] # bug 1687723 ruleview-shapeswatch is not accessible
 
 ["browser_inspector_highlighter-cssshape_06-scale.js"]
-fail-if = ["a11y_checks"] # bug 1687723 ruleview-shapeswatch is not accessible
 
 ["browser_inspector_highlighter-cssshape_06-translate.js"]
-fail-if = ["a11y_checks"] # bug 1687723 ruleview-shapeswatch is not accessible
 
 ["browser_inspector_highlighter-cssshape_07.js"]
-fail-if = ["a11y_checks"] # bug 1687723 ruleview-shapeswatch is not accessible
 
 ["browser_inspector_highlighter-cssshape_iframe_01.js"]
 skip-if = ["verify && debug"]
-fail-if = ["a11y_checks"] # bug 1687723 ruleview-shapeswatch is not accessible
 
 ["browser_inspector_highlighter-cssshape_offset-path.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_inspector_highlighter-cssshape_percent.js"]
 

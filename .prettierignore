@@ -57,6 +57,7 @@ browser/base/content/macWindow.inc.xhtml
 browser/base/content/main-popupset.inc.xhtml
 browser/base/content/pageinfo/pageInfo.xhtml
 browser/base/content/webext-panels.xhtml
+browser/components/backup/content/archive.template.html
 browser/components/downloads/content/contentAreaDownloadsView.xhtml
 browser/components/places/content/bookmarkProperties.xhtml
 browser/components/places/content/bookmarksSidebar.xhtml

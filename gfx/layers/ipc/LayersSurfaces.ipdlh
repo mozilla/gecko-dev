@@ -32,6 +32,7 @@ using mozilla::layers::GpuProcessTextureId from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::GpuProcessQueryId from "mozilla/layers/LayersTypes.h";
 using mozilla::wr::ExternalImageSource from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::wr::ExternalImageId from "mozilla/webrender/WebRenderTypes.h";
+using mozilla::layers::SurfaceDescriptorRemoteDecoderId from "mozilla/layers/LayersTypes.h";
 
 namespace mozilla {
 namespace layers {
@@ -135,6 +136,7 @@ namespace layers {
   uint64_t handle;
   RemoteDecoderVideoSubDescriptor subdesc;
   MaybeVideoBridgeSource source;
+  SurfaceDescriptorRemoteDecoderId id;
 };
 
 [Comparable] union SurfaceDescriptorGPUVideo {

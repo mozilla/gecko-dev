@@ -47,7 +47,7 @@ class JSONPrinter {
 
   void boolProperty(const char* name, bool value);
 
-  void property(const char* name, JSLinearString* value);
+  void property(const char* name, const JSLinearString* value);
   void property(const char* name, const char* value);
   void property(const char* name, int32_t value);
   void property(const char* name, uint32_t value);
