@@ -2402,14 +2402,6 @@ void MediaFormatReader::Update(TrackType aTrack) {
                 !!mVideo.mIsHardwareAccelerated);
           }
         }
-#ifdef XP_WIN
-        // D3D11_YCBCR_IMAGE images are GPU based, we try to limit the amount
-        // of GPU RAM used.
-        mVideo.mIsHardwareAccelerated =
-            mVideo.mIsHardwareAccelerated ||
-            (videoData->mImage &&
-             videoData->mImage->GetFormat() == ImageFormat::D3D11_YCBCR_IMAGE);
-#endif
       }
     } else if (decoder.HasFatalError()) {
       nsCString mimeType = decoder.GetCurrentInfo()->mMimeType;
