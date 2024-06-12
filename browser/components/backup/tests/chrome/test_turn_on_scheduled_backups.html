@@ -85,13 +85,83 @@
       await turnOnScheduledBackups.updateComplete;
 
       ok(turnOnScheduledBackups.passwordOptionsExpandedEl, "Passwords expanded options should be found");
+
+      // Click again to verify collapse and reset checkbox state for suceeding tests
+      passwordsCheckbox.click();
+      await turnOnScheduledBackups.updateComplete;
+      ok(!turnOnScheduledBackups.passwordOptionsExpandedEl, "Passwords expanded options should be hidden again");
+    })
+
+    /**
+     * Tests that the Confirm button cannot be selected if password settings are shown and
+     * inputted passwords are invalid.
+     */
+     add_task(async function test_passwordValidityConfirmButton() {
+      let turnOnScheduledBackups = document.getElementById("test-turn-on-scheduled-backups");
+      let passwordsCheckbox = turnOnScheduledBackups.passwordOptionsCheckboxEl;
+
+      // First check that the confirm button is not disabled with password options collapsed
+      ok(passwordsCheckbox, "Passwords checkbox should be found");
+      ok(!turnOnScheduledBackups.passwordOptionsExpandedEl, "Passwords expanded options should not be found");
+
+      let confirmButton = turnOnScheduledBackups.confirmButtonEl;
+      ok(confirmButton, "Confirm button should be found");
+      ok(!confirmButton.disabled, "Confirm button should not be disabled since there are no passwords expanded options");
+
+      passwordsCheckbox.click();
+      await turnOnScheduledBackups.updateComplete;
+
+      // Now check that the confirm button is disabled
+      ok(turnOnScheduledBackups.passwordOptionsExpandedEl, "Passwords expanded options should be found");
+      ok(confirmButton.disabled, "Confirm button should now be disabled since there are passwords expanded options");
+
+      let newPasswordInput = turnOnScheduledBackups.inputNewPasswordEl;
+      let repeatPasswordInput = turnOnScheduledBackups.inputRepeatPasswordEl;
+      ok(newPasswordInput, "New password input should be found");
+      ok(repeatPasswordInput, "Repeat password input should be found");
+
+      const mockPassword = "newpass";
+
+      // Pretend we're entering a password in the new password field
+      // We only need to listen for input events in this field once
+      let newPassPromise = new Promise(resolve => {
+        newPasswordInput.addEventListener("input", () => resolve(), { once: true });
+      });
+
+      newPasswordInput.focus();
+      newPasswordInput.value = mockPassword;
+      newPasswordInput.dispatchEvent(new Event("input"));
+      await newPassPromise;
+      ok(confirmButton.disabled, "Confirm button should still be disabled with no repeat password");
+
+      // Pretend we're entering a password in the repeat field
+      let createRepeatPromise = () => new Promise(resolve => {
+        repeatPasswordInput.addEventListener("input", () => resolve(), { once: true });
+      })
+
+      // Passwords do not match
+      let promiseNotMatchPass = createRepeatPromise();
+      const tempPassword = "someOtherPassword";
+      repeatPasswordInput.focus();
+      repeatPasswordInput.value = tempPassword;
+      repeatPasswordInput.dispatchEvent(new Event("input"));
+      await promiseNotMatchPass;
+      ok(confirmButton.disabled, "Confirm button should still be disabled with no matching passwords");
+
+      // Passwords match
+      let promiseMatchPass = createRepeatPromise();
+      repeatPasswordInput.focus();
+      repeatPasswordInput.value = mockPassword;
+      repeatPasswordInput.dispatchEvent(new Event("input"));
+      await promiseMatchPass;
+      ok(!confirmButton.disabled, "Confirm button should no longer be disabled");
     })
 
     /**
      * Tests that the dialog displays a default save location for backups and updates to a custom one
      * if there is one selected.
      */
-    add_task(async function test_inputs() {
+    add_task(async function test_locationInputs() {
       let turnOnScheduledBackups = document.getElementById("test-turn-on-scheduled-backups");
       let inputDefault = turnOnScheduledBackups.filePathInputDefaultEl;
       ok(inputDefault, "Default input should be found");

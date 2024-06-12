@@ -70,10 +70,26 @@ export class BackupUIParent extends JSWindowActorParent {
     if (message.name == "RequestState") {
       this.sendState();
     } else if (message.name == "ToggleScheduledBackups") {
-      let { isScheduledBackupsEnabled, parentDirPath } = message.data;
+      let { isScheduledBackupsEnabled, parentDirPath, password } = message.data;
 
       if (isScheduledBackupsEnabled && parentDirPath) {
         this.#bs.setParentDirPath(parentDirPath);
+        /**
+         * TODO: display an error and do not attempt to toggle scheduled backups if there
+         * is a problem with setting the parent directory (bug 1901308).
+         */
+      }
+
+      if (password) {
+        try {
+          await this.#bs.enableEncryption(password);
+        } catch (e) {
+          /**
+           * TODO: display en error and do not attempt to toggle scheduled backups if there is a
+           * problem with enabling encryption (bug 1901308)
+           */
+          return null;
+        }
       }
 
       this.#bs.setScheduledBackups(isScheduledBackupsEnabled);
@@ -94,7 +110,7 @@ export class BackupUIParent extends JSWindowActorParent {
       let result = await new Promise(resolve => fp.open(resolve));
 
       if (result === Ci.nsIFilePicker.returnCancel) {
-        return false;
+        return null;
       }
 
       let path = fp.file.path;
