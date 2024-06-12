@@ -19,23 +19,6 @@ project_flag(
     help='used for application.ini\'s "Vendor" field, which also impacts profile location and user-visible fields',
 )
 
-project_flag(
-    env="BROWSER_CHROME_URL",
-    nargs=1,
-    set_as_define=True,
-    help="markup for a single browser window",
-)
-set_define(
-    "BROWSER_CHROME_URL_QUOTED", depends_if("BROWSER_CHROME_URL")(lambda v: f'"{v[0]}"')
-)
-
-# External builds (specifically Ubuntu) may drop the hg repo information, so we allow to
-# explicitly set the repository and changeset information in.
-option(env="MOZ_SOURCE_REPO", nargs=1, help="project source repository")
-set_config("MOZ_SOURCE_REPO", depends_if("MOZ_SOURCE_REPO")(lambda src: src[0]))
-option(env="MOZ_SOURCE_CHANGESET", nargs=1, help="source changeset")
-set_config("MOZ_SOURCE_CHANGESET", depends_if("MOZ_SOURCE_CHANGESET")(lambda v: v[0]))
-
 
 # Set the MOZ_CONFIGURE_OPTIONS variable with all the options that
 # were passed somehow (environment, command line, mozconfig)
