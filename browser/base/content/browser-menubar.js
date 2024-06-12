@@ -100,6 +100,97 @@ document.addEventListener(
           break;
       }
     });
+    mainMenuBar.addEventListener("popupshowing", event => {
+      // On macOS, we don't track whether activation of the native menubar happened
+      // with the keyboard.
+      if (AppConstants.platform != "macosx") {
+        // We only set the "openedwithkey" if a specific menu like "Edit" was opened
+        // instead of the general menu bar. (e.g. Alt+E instead of just Alt)
+        if (event.target.parentNode.parentNode == this) {
+          this.setAttribute(
+            "openedwithkey",
+            event.target.parentNode.openedWithKey
+          );
+        }
+      }
+
+      switch (event.target.id) {
+        case "menu_FilePopup":
+          gFileMenu.onPopupShowing(event);
+          break;
+        case "menu_newUserContextPopup":
+          createUserContextMenu(event);
+          break;
+        case "menu_EditPopup":
+          updateEditUIVisibility();
+          break;
+        case "view-menu-popup":
+          onViewToolbarsPopupShowing(event);
+          break;
+        case "viewSidebarMenu":
+          SidebarController.setMegalistMenubarVisibility(event);
+          break;
+        case "pageStyleMenuPopup":
+          gPageStyleMenu.fillPopup(event.target);
+          break;
+        case "historyMenuPopup":
+          if (!event.target.parentNode._placesView) {
+            new HistoryMenu(event);
+          }
+          break;
+        case "historyUndoPopup":
+          document
+            .getElementById("history-menu")
+            ._placesView.populateUndoSubmenu();
+          break;
+        case "historyUndoWindowPopup":
+          document
+            .getElementById("history-menu")
+            ._placesView.populateUndoWindowSubmenu();
+          break;
+        case "bookmarksMenuPopup":
+          BookmarkingUI.onMainMenuPopupShowing(event);
+          if (!event.target.parentNode._placesView) {
+            new PlacesMenu(
+              event,
+              `place:parent=${PlacesUtils.bookmarks.menuGuid}`
+            );
+          }
+          break;
+        case "bookmarksToolbarFolderPopup":
+          if (!event.target.parentNode._placesView) {
+            new PlacesMenu(
+              event,
+              `place:parent=${PlacesUtils.bookmarks.toolbarGuid}`
+            );
+          }
+          break;
+        case "otherBookmarksFolderPopup":
+          if (!event.target.parentNode._placesView) {
+            new PlacesMenu(
+              event,
+              `place:parent=${PlacesUtils.bookmarks.unfiledGuid}`
+            );
+          }
+          break;
+        case "mobileBookmarksFolderPopup":
+          if (!event.target.parentNode._placesView) {
+            new PlacesMenu(
+              event,
+              `place:parent=${PlacesUtils.bookmarks.mobileGuid}`
+            );
+          }
+          break;
+        case "menu_HelpPopup":
+          buildHelpMenu();
+          break;
+      }
+    });
+    document
+      .getElementById("menu_EditPopup")
+      .addEventListener("popuphidden", () => {
+        updateEditUIVisibility();
+      });
   },
   { once: true }
 );
