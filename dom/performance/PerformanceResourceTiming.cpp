@@ -85,8 +85,6 @@ size_t PerformanceResourceTiming::SizeOfExcludingThis(
     mozilla::MallocSizeOf aMallocSizeOf) const {
   return PerformanceEntry::SizeOfExcludingThis(aMallocSizeOf) +
          mInitiatorType.SizeOfExcludingThisIfUnshared(aMallocSizeOf) +
-         mTimingData->ContentType().SizeOfExcludingThisIfUnshared(
-             aMallocSizeOf) +
          mTimingData->NextHopProtocol().SizeOfExcludingThisIfUnshared(
              aMallocSizeOf);
 }
@@ -109,19 +107,6 @@ void PerformanceResourceTiming::GetServerTiming(
     aRetval.AppendElement(
         new PerformanceServerTiming(GetParentObject(), serverTiming));
   }
-}
-
-nsITimedChannel::BodyInfoAccess
-PerformanceResourceTiming::BodyInfoAccessAllowedForCaller(
-    nsIPrincipal& aCaller) const {
-  // If the addon has permission to access the cross-origin resource,
-  // allow it full access to the bodyInfo.
-  if (mOriginalURI &&
-      BasePrincipal::Cast(&aCaller)->AddonAllowsLoad(mOriginalURI)) {
-    return nsITimedChannel::BodyInfoAccess::ALLOW_ALL;
-  }
-
-  return mTimingData->BodyInfoAccessAllowed();
 }
 
 bool PerformanceResourceTiming::TimingAllowedForCaller(

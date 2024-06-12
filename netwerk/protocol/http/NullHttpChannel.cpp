@@ -742,13 +742,6 @@ NullHttpChannel::SetAllRedirectsPassTimingAllowCheck(
 }
 
 NS_IMETHODIMP
-NullHttpChannel::BodyInfoAccessAllowedCheck(nsIPrincipal* aOrigin,
-                                            BodyInfoAccess* _retval) {
-  *_retval = BodyInfoAccess::DISALLOWED;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 NullHttpChannel::TimingAllowCheck(nsIPrincipal* aOrigin, bool* _retval) {
   *_retval = false;
   return NS_OK;

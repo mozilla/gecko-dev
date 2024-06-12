@@ -4,7 +4,6 @@
 
 using class mozilla::TimeStamp from "mozilla/TimeStamp.h";
 using DOMHighResTimeStamp from "nsDOMNavigationTiming.h";
-using nsITimedChannel::BodyInfoAccess from "mozilla/dom/PerformanceTimingIPCUtils.h";
 
 namespace mozilla {
 namespace dom {
@@ -41,11 +40,9 @@ struct IPCPerformanceTimingData {
   uint64_t decodedBodySize;
   uint8_t redirectCount;
   bool renderBlocking;
-  nsString contentType;
   bool allRedirectsSameOrigin;
   bool allRedirectsPassTAO;
   bool secureConnection;
-  BodyInfoAccess bodyInfoAccessAllowed;
   bool timingAllowed;
   bool initialized;
 };
