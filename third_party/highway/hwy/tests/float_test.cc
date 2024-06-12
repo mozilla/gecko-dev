@@ -17,9 +17,9 @@
 
 #include <stdio.h>
 
-#include <cmath>  // std::ceil, std::floor
-
-#include "hwy/base.h"
+#include <algorithm>  // std::copy, std::fill
+#include <cmath>      // std::abs, std::isnan, std::isinf, std::ceil, std::floor
+#include <limits>
 
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "tests/float_test.cc"
@@ -31,84 +31,11 @@ HWY_BEFORE_NAMESPACE();
 namespace hwy {
 namespace HWY_NAMESPACE {
 
-HWY_NOINLINE void TestAllF16FromF32() {
-  const FixedTag<float, 1> d1;
-
-  // +/- 0
-  HWY_ASSERT_EQ(0, BitCastScalar<uint16_t>(hwy::F16FromF32(0.0f)));
-  HWY_ASSERT_EQ(0x8000, BitCastScalar<uint16_t>(hwy::F16FromF32(-0.0f)));
-  // smallest f32 subnormal
-  HWY_ASSERT_EQ(0,
-                BitCastScalar<uint16_t>(hwy::F16FromF32(5.87747175411E-39f)));
-  HWY_ASSERT_EQ(0x8000,
-                BitCastScalar<uint16_t>(hwy::F16FromF32(-5.87747175411E-39f)));
-  // largest f16 subnormal
-  HWY_ASSERT_EQ(0x3FF, BitCastScalar<uint16_t>(hwy::F16FromF32(6.0975552E-5f)));
-  HWY_ASSERT_EQ(0x83FF,
-                BitCastScalar<uint16_t>(hwy::F16FromF32(-6.0975552E-5f)));
-  // smallest normalized f16
-  HWY_ASSERT_EQ(0x400,
-                BitCastScalar<uint16_t>(hwy::F16FromF32(6.103515625E-5f)));
-  HWY_ASSERT_EQ(0x8400,
-                BitCastScalar<uint16_t>(hwy::F16FromF32(-6.103515625E-5f)));
-
-  // rounding to nearest even
-  HWY_ASSERT_EQ((15 << 10) + 0,  // round down to even: 0[10..0] => 0
-                BitCastScalar<uint16_t>(hwy::F16FromF32(1.00048828125f)));
-  HWY_ASSERT_EQ((15 << 10) + 1,  // round up: 0[1..1] => 1
-                BitCastScalar<uint16_t>(hwy::F16FromF32(1.00097644329f)));
-  HWY_ASSERT_EQ((15 << 10) + 2,  // round up to even: 1[10..0] => 10
-                BitCastScalar<uint16_t>(hwy::F16FromF32(1.00146484375f)));
-
-  // greater than f16 max => inf
-  HWY_ASSERT_EQ(0x7C00, BitCastScalar<uint16_t>(hwy::F16FromF32(7E4f)));
-  HWY_ASSERT_EQ(0xFC00, BitCastScalar<uint16_t>(hwy::F16FromF32(-7E4f)));
-  // infinity
-  HWY_ASSERT_EQ(0x7C00,
-                BitCastScalar<uint16_t>(hwy::F16FromF32(GetLane(Inf(d1)))));
-  HWY_ASSERT_EQ(0xFC00,
-                BitCastScalar<uint16_t>(hwy::F16FromF32(-GetLane(Inf(d1)))));
-  // NaN
-  HWY_ASSERT_EQ(0x7FFF,
-                BitCastScalar<uint16_t>(hwy::F16FromF32(GetLane(NaN(d1)))));
-  HWY_ASSERT_EQ(0xFFFF,
-                BitCastScalar<uint16_t>(hwy::F16FromF32(-GetLane(NaN(d1)))));
-}
-
-HWY_NOINLINE void TestAllF32FromF16() {
-  const FixedTag<float, 1> d1;
-
-  // +/- 0
-  HWY_ASSERT_EQ(0.0f, hwy::F32FromF16(BitCastScalar<float16_t>(uint16_t{0})));
-  HWY_ASSERT_EQ(-0.0f,
-                hwy::F32FromF16(BitCastScalar<float16_t>(uint16_t{0x8000})));
-  // largest f16 subnormal
-  HWY_ASSERT_EQ(6.0975552E-5f,
-                hwy::F32FromF16(BitCastScalar<float16_t>(uint16_t{0x3FF})));
-  HWY_ASSERT_EQ(-6.0975552E-5f,
-                hwy::F32FromF16(BitCastScalar<float16_t>(uint16_t{0x83FF})));
-  // smallest normalized f16
-  HWY_ASSERT_EQ(6.103515625E-5f,
-                hwy::F32FromF16(BitCastScalar<float16_t>(uint16_t{0x400})));
-  HWY_ASSERT_EQ(-6.103515625E-5f,
-                hwy::F32FromF16(BitCastScalar<float16_t>(uint16_t{0x8400})));
-  // infinity
-  HWY_ASSERT_EQ(GetLane(Inf(d1)),
-                hwy::F32FromF16(BitCastScalar<float16_t>(uint16_t{0x7C00})));
-  HWY_ASSERT_EQ(-GetLane(Inf(d1)),
-                hwy::F32FromF16(BitCastScalar<float16_t>(uint16_t{0xFC00})));
-  // NaN
-  HWY_ASSERT_EQ(GetLane(NaN(d1)),
-                hwy::F32FromF16(BitCastScalar<float16_t>(uint16_t{0x7FFF})));
-  HWY_ASSERT_EQ(-GetLane(NaN(d1)),
-                hwy::F32FromF16(BitCastScalar<float16_t>(uint16_t{0xFFFF})));
-}
-
 struct TestDiv {
   template <typename T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
-    const auto v = Iota(d, -2);
-    const auto v1 = Set(d, ConvertScalarTo<T>(1));
+    const auto v = Iota(d, T(-2));
+    const auto v1 = Set(d, T(1));
 
     // Unchanged after division by 1.
     HWY_ASSERT_VEC_EQ(d, v, Div(v, v1));
@@ -117,9 +44,9 @@ struct TestDiv {
     auto expected = AllocateAligned<T>(N);
     HWY_ASSERT(expected);
     for (size_t i = 0; i < N; ++i) {
-      expected[i] = ConvertScalarTo<T>((static_cast<double>(i) - 2.0) / 2.0);
+      expected[i] = (T(i) - 2) / T(2);
     }
-    HWY_ASSERT_VEC_EQ(d, expected.get(), Div(v, Set(d, ConvertScalarTo<T>(2))));
+    HWY_ASSERT_VEC_EQ(d, expected.get(), Div(v, Set(d, T(2))));
   }
 };
 
@@ -128,9 +55,8 @@ HWY_NOINLINE void TestAllDiv() { ForFloatTypes(ForPartialVectors<TestDiv>()); }
 struct TestApproximateReciprocal {
   template <typename T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
-    const auto v = Iota(d, -2);
-    const auto nonzero =
-        IfThenElse(Eq(v, Zero(d)), Set(d, ConvertScalarTo<T>(1)), v);
+    const auto v = Iota(d, T(-2));
+    const auto nonzero = IfThenElse(Eq(v, Zero(d)), Set(d, T(1)), v);
     const size_t N = Lanes(d);
     auto input = AllocateAligned<T>(N);
     auto actual = AllocateAligned<T>(N);
@@ -144,14 +70,14 @@ struct TestApproximateReciprocal {
     double worst_actual = 0.0;
     for (size_t i = 0; i < N; ++i) {
       const double expected = 1.0 / input[i];
-      const double l1 = ScalarAbs(expected - actual[i]);
+      const double l1 = std::abs(expected - actual[i]);
       if (l1 > max_l1) {
         max_l1 = l1;
         worst_expected = expected;
         worst_actual = actual[i];
       }
     }
-    const double abs_worst_expected = ScalarAbs(worst_expected);
+    const double abs_worst_expected = std::abs(worst_expected);
     if (abs_worst_expected > 1E-5) {
       const double max_rel = max_l1 / abs_worst_expected;
       fprintf(stderr, "max l1 %f rel %f (%f vs %f)\n", max_l1, max_rel,
@@ -162,7 +88,7 @@ struct TestApproximateReciprocal {
 };
 
 HWY_NOINLINE void TestAllApproximateReciprocal() {
-  ForFloatTypes(ForPartialVectors<TestApproximateReciprocal>());
+  ForPartialVectors<TestApproximateReciprocal>()(float());
 }
 
 struct TestSquareRoot {
@@ -180,74 +106,83 @@ HWY_NOINLINE void TestAllSquareRoot() {
 struct TestReciprocalSquareRoot {
   template <typename T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
-    const Vec<D> v = Set(d, ConvertScalarTo<T>(123.0f));
+    const auto v = Set(d, 123.0f);
     const size_t N = Lanes(d);
     auto lanes = AllocateAligned<T>(N);
     HWY_ASSERT(lanes);
     Store(ApproximateReciprocalSqrt(v), d, lanes.get());
     for (size_t i = 0; i < N; ++i) {
-      T err = ConvertScalarTo<T>(ConvertScalarTo<float>(lanes[i]) - 0.090166f);
-      if (err < ConvertScalarTo<T>(0)) err = -err;
-      if (static_cast<double>(err) >= 4E-4) {
+      float err = lanes[i] - 0.090166f;
+      if (err < 0.0f) err = -err;
+      if (err >= 4E-4f) {
         HWY_ABORT("Lane %d (%d): actual %f err %f\n", static_cast<int>(i),
-                  static_cast<int>(N), static_cast<double>(lanes[i]),
-                  static_cast<double>(err));
+                  static_cast<int>(N), lanes[i], err);
       }
     }
   }
 };
 
 HWY_NOINLINE void TestAllReciprocalSquareRoot() {
-  ForFloatTypes(ForPartialVectors<TestReciprocalSquareRoot>());
+  ForPartialVectors<TestReciprocalSquareRoot>()(float());
 }
 
 template <typename T, class D>
 AlignedFreeUniquePtr<T[]> RoundTestCases(T /*unused*/, D d, size_t& padded) {
-  const T eps = Epsilon<T>();
-  const T huge = ConvertScalarTo<T>(sizeof(T) >= 4 ? 1E34 : 3E4);
+  const T eps = std::numeric_limits<T>::epsilon();
   const T test_cases[] = {
-      // +/- 1
-      ConvertScalarTo<T>(1), ConvertScalarTo<T>(-1),
-      // +/- 0
-      ConvertScalarTo<T>(0), ConvertScalarTo<T>(-0),
-      // near 0
-      ConvertScalarTo<T>(0.4), ConvertScalarTo<T>(-0.4),
-      // +/- integer
-      ConvertScalarTo<T>(4), ConvertScalarTo<T>(-32),
-      // positive near limit
-      ConvertScalarTo<T>(MantissaEnd<T>() - ConvertScalarTo<T>(1.5)),
-      ConvertScalarTo<T>(MantissaEnd<T>() + ConvertScalarTo<T>(1.5)),
-      // negative near limit
-      ConvertScalarTo<T>(-MantissaEnd<T>() - ConvertScalarTo<T>(1.5)),
-      ConvertScalarTo<T>(-MantissaEnd<T>() + ConvertScalarTo<T>(1.5)),
-      // positive tiebreak
-      ConvertScalarTo<T>(1.5), ConvertScalarTo<T>(2.5),
-      // negative tiebreak
-      ConvertScalarTo<T>(-1.5), ConvertScalarTo<T>(-2.5),
-      // positive +/- delta
-      ConvertScalarTo<T>(2.0001), ConvertScalarTo<T>(3.9999),
-      // negative +/- delta
-      ConvertScalarTo<T>(-999.9999), ConvertScalarTo<T>(-998.0001),
-      // positive +/- epsilon
-      ConvertScalarTo<T>(ConvertScalarTo<T>(1) + eps),
-      ConvertScalarTo<T>(ConvertScalarTo<T>(1) - eps),
-      // negative +/- epsilon
-      ConvertScalarTo<T>(ConvertScalarTo<T>(-1) + eps),
-      ConvertScalarTo<T>(ConvertScalarTo<T>(-1) - eps),
-      // +/- huge (but still fits in float)
-      huge, -huge,
-      // +/- infinity
-      GetLane(Inf(d)), GetLane(Neg(Inf(d))),
-      // qNaN
-      GetLane(NaN(d))};
+    // +/- 1
+    T(1),
+    T(-1),
+    // +/- 0
+    T(0),
+    T(-0),
+    // near 0
+    T(0.4),
+    T(-0.4),
+    // +/- integer
+    T(4),
+    T(-32),
+    // positive near limit
+    MantissaEnd<T>() - T(1.5),
+    MantissaEnd<T>() + T(1.5),
+    // negative near limit
+    -MantissaEnd<T>() - T(1.5),
+    -MantissaEnd<T>() + T(1.5),
+    // positive tiebreak
+    T(1.5),
+    T(2.5),
+    // negative tiebreak
+    T(-1.5),
+    T(-2.5),
+    // positive +/- delta
+    T(2.0001),
+    T(3.9999),
+    // negative +/- delta
+    T(-999.9999),
+    T(-998.0001),
+    // positive +/- epsilon
+    T(1) + eps,
+    T(1) - eps,
+    // negative +/- epsilon
+    T(-1) + eps,
+    T(-1) - eps,
+    // +/- huge (but still fits in float)
+    T(1E34),
+    T(-1E35),
+    // +/- infinity
+    std::numeric_limits<T>::infinity(),
+    -std::numeric_limits<T>::infinity(),
+    // qNaN
+    GetLane(NaN(d))
+  };
   const size_t kNumTestCases = sizeof(test_cases) / sizeof(test_cases[0]);
   const size_t N = Lanes(d);
   padded = RoundUpTo(kNumTestCases, N);  // allow loading whole vectors
   auto in = AllocateAligned<T>(padded);
   auto expected = AllocateAligned<T>(padded);
   HWY_ASSERT(in && expected);
-  CopyBytes(test_cases, in.get(), kNumTestCases * sizeof(T));
-  ZeroBytes(in.get() + kNumTestCases, (padded - kNumTestCases) * sizeof(T));
+  std::copy(test_cases, test_cases + kNumTestCases, in.get());
+  std::fill(in.get() + kNumTestCases, in.get() + padded, T(0));
   return in;
 }
 
@@ -260,16 +195,10 @@ struct TestRound {
     HWY_ASSERT(expected);
 
     for (size_t i = 0; i < padded; ++i) {
-// Avoid [std::]round, which does not round to nearest *even*.
-// NOTE: std:: version from C++11 cmath is not defined in RVV GCC, see
-// https://lists.freebsd.org/pipermail/freebsd-current/2014-January/048130.html
-// Cast to f32/64 because nearbyint does not support _Float16.
-#if HWY_HAVE_FLOAT64
-      const double f = ConvertScalarTo<double>(in[i]);
-#else
-      const float f = ConvertScalarTo<float>(in[i]);
-#endif
-      expected[i] = ConvertScalarTo<T>(nearbyint(f));
+      // Avoid [std::]round, which does not round to nearest *even*.
+      // NOTE: std:: version from C++11 cmath is not defined in RVV GCC, see
+      // https://lists.freebsd.org/pipermail/freebsd-current/2014-January/048130.html
+      expected[i] = static_cast<T>(nearbyint(in[i]));
     }
     for (size_t i = 0; i < padded; i += Lanes(d)) {
       HWY_ASSERT_VEC_EQ(d, &expected[i], Round(Load(d, &in[i])));
@@ -292,17 +221,16 @@ struct TestNearestInt {
     auto expected = AllocateAligned<TI>(padded);
     HWY_ASSERT(expected);
 
-    constexpr double kMax = static_cast<double>(LimitsMax<TI>());
+    constexpr double max = static_cast<double>(LimitsMax<TI>());
     for (size_t i = 0; i < padded; ++i) {
-      if (ScalarIsNaN(in[i])) {
+      if (std::isnan(in[i])) {
         // We replace NaN with 0 below (no_nan)
         expected[i] = 0;
-      } else if (ScalarIsInf(in[i]) ||
-                 static_cast<double>(ScalarAbs(in[i])) >= kMax) {
+      } else if (std::isinf(in[i]) || double{std::abs(in[i])} >= max) {
         // Avoid undefined result for lrintf
         expected[i] = std::signbit(in[i]) ? LimitsMin<TI>() : LimitsMax<TI>();
       } else {
-        expected[i] = static_cast<TI>(lrintf(ConvertScalarTo<float>(in[i])));
+        expected[i] = static_cast<TI>(lrintf(in[i]));
       }
     }
     for (size_t i = 0; i < padded; i += Lanes(df)) {
@@ -328,8 +256,7 @@ struct TestTrunc {
     for (size_t i = 0; i < padded; ++i) {
       // NOTE: std:: version from C++11 cmath is not defined in RVV GCC, see
       // https://lists.freebsd.org/pipermail/freebsd-current/2014-January/048130.html
-      // Cast to double because trunc does not support _Float16.
-      expected[i] = ConvertScalarTo<T>(trunc(ConvertScalarTo<double>(in[i])));
+      expected[i] = static_cast<T>(trunc(in[i]));
     }
     for (size_t i = 0; i < padded; i += Lanes(d)) {
       HWY_ASSERT_VEC_EQ(d, &expected[i], Trunc(Load(d, &in[i])));
@@ -350,9 +277,7 @@ struct TestCeil {
     HWY_ASSERT(expected);
 
     for (size_t i = 0; i < padded; ++i) {
-      // Cast to double because ceil does not support _Float16.
-      expected[i] =
-          ConvertScalarTo<T>(std::ceil(ConvertScalarTo<double>(in[i])));
+      expected[i] = std::ceil(in[i]);
     }
     for (size_t i = 0; i < padded; i += Lanes(d)) {
       HWY_ASSERT_VEC_EQ(d, &expected[i], Ceil(Load(d, &in[i])));
@@ -373,9 +298,7 @@ struct TestFloor {
     HWY_ASSERT(expected);
 
     for (size_t i = 0; i < padded; ++i) {
-      // Cast to double because floor does not support _Float16.
-      expected[i] =
-          ConvertScalarTo<T>(std::floor(ConvertScalarTo<double>(in[i])));
+      expected[i] = std::floor(in[i]);
     }
     for (size_t i = 0; i < padded; i += Lanes(d)) {
       HWY_ASSERT_VEC_EQ(d, &expected[i], Floor(Load(d, &in[i])));
@@ -396,10 +319,9 @@ struct TestAbsDiff {
     auto out_lanes = AllocateAligned<T>(N);
     HWY_ASSERT(in_lanes_a && in_lanes_b && out_lanes);
     for (size_t i = 0; i < N; ++i) {
-      in_lanes_a[i] = ConvertScalarTo<T>((i ^ 1u) << i);
-      in_lanes_b[i] = ConvertScalarTo<T>(i << i);
-      out_lanes[i] = ConvertScalarTo<T>(
-          ScalarAbs(ConvertScalarTo<T>(in_lanes_a[i] - in_lanes_b[i])));
+      in_lanes_a[i] = static_cast<T>((i ^ 1u) << i);
+      in_lanes_b[i] = static_cast<T>(i << i);
+      out_lanes[i] = std::abs(in_lanes_a[i] - in_lanes_b[i]);
     }
     const auto a = Load(d, in_lanes_a.get());
     const auto b = Load(d, in_lanes_b.get());
@@ -410,7 +332,7 @@ struct TestAbsDiff {
 };
 
 HWY_NOINLINE void TestAllAbsDiff() {
-  ForFloatTypes(ForPartialVectors<TestAbsDiff>());
+  ForPartialVectors<TestAbsDiff>()(float());
 }
 
 // NOLINTNEXTLINE(google-readability-namespace-comments)
@@ -422,8 +344,6 @@ HWY_AFTER_NAMESPACE();
 
 namespace hwy {
 HWY_BEFORE_TEST(HwyFloatTest);
-HWY_EXPORT_AND_TEST_P(HwyFloatTest, TestAllF16FromF32);
-HWY_EXPORT_AND_TEST_P(HwyFloatTest, TestAllF32FromF16);
 HWY_EXPORT_AND_TEST_P(HwyFloatTest, TestAllDiv);
 HWY_EXPORT_AND_TEST_P(HwyFloatTest, TestAllApproximateReciprocal);
 HWY_EXPORT_AND_TEST_P(HwyFloatTest, TestAllSquareRoot);

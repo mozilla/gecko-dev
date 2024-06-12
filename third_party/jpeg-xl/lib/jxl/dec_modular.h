@@ -29,13 +29,13 @@
 namespace jxl {
 
 struct ModularStreamId {
-  enum class Kind {
-    GlobalData,
-    VarDCTDC,
-    ModularDC,
-    ACMetadata,
-    QuantTable,
-    ModularAC
+  enum Kind {
+    kGlobalData,
+    kVarDCTDC,
+    kModularDC,
+    kACMetadata,
+    kQuantTable,
+    kModularAC
   };
   Kind kind;
   size_t quant_table_id;
@@ -44,46 +44,46 @@ struct ModularStreamId {
   size_t ID(const FrameDimensions& frame_dim) const {
     size_t id = 0;
     switch (kind) {
-      case Kind::GlobalData:
+      case kGlobalData:
         id = 0;
         break;
-      case Kind::VarDCTDC:
+      case kVarDCTDC:
         id = 1 + group_id;
         break;
-      case Kind::ModularDC:
+      case kModularDC:
         id = 1 + frame_dim.num_dc_groups + group_id;
         break;
-      case Kind::ACMetadata:
+      case kACMetadata:
         id = 1 + 2 * frame_dim.num_dc_groups + group_id;
         break;
-      case Kind::QuantTable:
+      case kQuantTable:
         id = 1 + 3 * frame_dim.num_dc_groups + quant_table_id;
         break;
-      case Kind::ModularAC:
-        id = 1 + 3 * frame_dim.num_dc_groups + kNumQuantTables +
+      case kModularAC:
+        id = 1 + 3 * frame_dim.num_dc_groups + DequantMatrices::kNum +
              frame_dim.num_groups * pass_id + group_id;
         break;
     };
     return id;
   }
   static ModularStreamId Global() {
-    return ModularStreamId{Kind::GlobalData, 0, 0, 0};
+    return ModularStreamId{kGlobalData, 0, 0, 0};
   }
   static ModularStreamId VarDCTDC(size_t group_id) {
-    return ModularStreamId{Kind::VarDCTDC, 0, group_id, 0};
+    return ModularStreamId{kVarDCTDC, 0, group_id, 0};
   }
   static ModularStreamId ModularDC(size_t group_id) {
-    return ModularStreamId{Kind::ModularDC, 0, group_id, 0};
+    return ModularStreamId{kModularDC, 0, group_id, 0};
   }
   static ModularStreamId ACMetadata(size_t group_id) {
-    return ModularStreamId{Kind::ACMetadata, 0, group_id, 0};
+    return ModularStreamId{kACMetadata, 0, group_id, 0};
   }
   static ModularStreamId QuantTable(size_t quant_table_id) {
-    JXL_ASSERT(quant_table_id < kNumQuantTables);
-    return ModularStreamId{Kind::QuantTable, quant_table_id, 0, 0};
+    JXL_ASSERT(quant_table_id < DequantMatrices::kNum);
+    return ModularStreamId{kQuantTable, quant_table_id, 0, 0};
   }
   static ModularStreamId ModularAC(size_t group_id, size_t pass_id) {
-    return ModularStreamId{Kind::ModularAC, 0, group_id, pass_id};
+    return ModularStreamId{kModularAC, 0, group_id, pass_id};
   }
   static size_t Num(const FrameDimensions& frame_dim, size_t passes) {
     return ModularAC(0, passes).ID(frame_dim);

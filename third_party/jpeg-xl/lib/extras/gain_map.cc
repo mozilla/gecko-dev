@@ -14,7 +14,6 @@
 #include "lib/jxl/base/common.h"
 #include "lib/jxl/color_encoding_internal.h"
 #include "lib/jxl/dec_bit_reader.h"
-#include "lib/jxl/enc_aux_out.h"
 #include "lib/jxl/enc_bit_writer.h"
 #include "lib/jxl/fields.h"
 #include "lib/jxl/memory_manager_internal.h"
@@ -91,7 +90,7 @@ JXL_BOOL JxlGainMapWriteBundle(const JxlGainMapBundle* map_bundle,
     JXL_RETURN_IF_ERROR(
         internal_color_encoding.FromExternal(map_bundle->color_encoding));
     if (!jxl::Bundle::Write(internal_color_encoding, &color_encoding_writer,
-                            jxl::LayerType::Header, nullptr)) {
+                            /*layer=*/0, nullptr)) {
       return JXL_FALSE;
     }
   }

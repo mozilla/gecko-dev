@@ -40,14 +40,11 @@
 #include <hwy/foreach_target.h>
 
 #include "lib/jxl/base/fast_math-inl.h"
+#include "lib/jxl/base/printf_macros.h"
 #include "lib/jxl/base/rect.h"
 #include "lib/jxl/base/status.h"
 #include "lib/jxl/convolve.h"
 #include "lib/jxl/image_ops.h"
-
-#if BUTTERAUGLI_ENABLE_CHECKS
-#include "lib/jxl/base/printf_macros.h"
-#endif
 
 #ifndef JXL_BUTTERAUGLI_ONCE
 #define JXL_BUTTERAUGLI_ONCE
@@ -104,9 +101,9 @@ void ConvolveBorderColumn(const ImageF& in, const std::vector<float>& kernel,
 }
 
 // Computes a horizontal convolution and transposes the result.
-Status ConvolutionWithTranspose(const ImageF& in,
-                                const std::vector<float>& kernel,
-                                ImageF* BUTTERAUGLI_RESTRICT out) {
+void ConvolutionWithTranspose(const ImageF& in,
+                              const std::vector<float>& kernel,
+                              ImageF* BUTTERAUGLI_RESTRICT out) {
   JXL_CHECK(out->xsize() == in.ysize());
   JXL_CHECK(out->ysize() == in.xsize());
   const size_t len = kernel.size();
@@ -205,8 +202,7 @@ Status ConvolutionWithTranspose(const ImageF& in,
       break;
     }
     default:
-      return JXL_UNREACHABLE("kernel size %d not implemented",
-                             static_cast<int>(len));
+      JXL_UNREACHABLE("Kernel size %" PRIuS " not implemented", len);
   }
   // left border
   for (size_t x = 0; x < border1; ++x) {
@@ -217,7 +213,6 @@ Status ConvolutionWithTranspose(const ImageF& in,
   for (size_t x = border2; x < in.xsize(); ++x) {
     ConvolveBorderColumn(in, kernel, x, out->Row(x));
   }
-  return true;
 }
 
 // A blur somewhat similar to a 2D Gaussian blur.
@@ -254,8 +249,8 @@ Status Blur(const ImageF& in, float sigma, const ButteraugliParams& params,
 
   ImageF* temp_t;
   JXL_RETURN_IF_ERROR(temp->GetTransposed(in, &temp_t));
-  JXL_RETURN_IF_ERROR(ConvolutionWithTranspose(in, kernel, temp_t));
-  JXL_RETURN_IF_ERROR(ConvolutionWithTranspose(*temp_t, kernel, out));
+  ConvolutionWithTranspose(in, kernel, temp_t);
+  ConvolutionWithTranspose(*temp_t, kernel, out);
   return true;
 }
 

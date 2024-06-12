@@ -23,7 +23,6 @@
 namespace jxl {
 
 struct AuxOut;
-enum class LayerType : uint8_t;
 
 #define USE_MULT_BY_RECIPROCAL
 
@@ -103,7 +102,7 @@ float ANSPopulationCost(const ANSHistBin* data, size_t alphabet_size);
 // histogram bistreams in codes.encoded_histograms. Used in streaming mode.
 void EncodeHistograms(const std::vector<uint8_t>& context_map,
                       const EntropyEncodingData& codes, BitWriter* writer,
-                      LayerType layer, AuxOut* aux_out);
+                      size_t layer, AuxOut* aux_out);
 
 // Apply context clustering, compute histograms and encode them. Returns an
 // estimate of the total bits used for encoding the stream. If `writer` ==
@@ -113,13 +112,13 @@ size_t BuildAndEncodeHistograms(
     JxlMemoryManager* memory_manager, const HistogramParams& params,
     size_t num_contexts, std::vector<std::vector<Token>>& tokens,
     EntropyEncodingData* codes, std::vector<uint8_t>* context_map,
-    BitWriter* writer, LayerType layer, AuxOut* aux_out);
+    BitWriter* writer, size_t layer, AuxOut* aux_out);
 
 // Write the tokens to a string.
 void WriteTokens(const std::vector<Token>& tokens,
                  const EntropyEncodingData& codes,
                  const std::vector<uint8_t>& context_map, size_t context_offset,
-                 BitWriter* writer, LayerType layer, AuxOut* aux_out);
+                 BitWriter* writer, size_t layer, AuxOut* aux_out);
 
 // Same as above, but assumes allotment created by caller.
 size_t WriteTokens(const std::vector<Token>& tokens,

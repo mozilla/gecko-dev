@@ -15,10 +15,13 @@
 
 #include "hwy/print.h"
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS  // before inttypes.h
+#endif
+#include <inttypes.h>  // IWYU pragma: keep
 #include <stdio.h>
 
 #include "hwy/base.h"
-#include "hwy/detect_compiler_arch.h"
 
 namespace hwy {
 namespace detail {
@@ -40,35 +43,18 @@ HWY_DLLEXPORT void TypeName(const TypeInfo& info, size_t N, char* string100) {
 HWY_DLLEXPORT void ToString(const TypeInfo& info, const void* ptr,
                             char* string100) {
   if (info.sizeof_t == 1) {
-    if (info.is_signed) {
-      int8_t byte;
-      CopyBytes<1>(ptr, &byte);  // endian-safe: we ensured sizeof(T)=1.
-      snprintf(string100, 100, "%d", byte);  // NOLINT
-    } else {
-      uint8_t byte;
-      CopyBytes<1>(ptr, &byte);  // endian-safe: we ensured sizeof(T)=1.
-      snprintf(string100, 100, "0x%02X", byte);  // NOLINT
-    }
+    uint8_t byte;
+    CopyBytes<1>(ptr, &byte);  // endian-safe: we ensured sizeof(T)=1.
+    snprintf(string100, 100, "0x%02X", byte);  // NOLINT
   } else if (info.sizeof_t == 2) {
-    if (info.is_bf16) {
-      const double value = static_cast<double>(F32FromBF16Mem(ptr));
-      const char* fmt = hwy::ScalarAbs(value) < 1E-3 ? "%.3E" : "%.3f";
-      snprintf(string100, 100, fmt, value);  // NOLINT
-    } else if (info.is_float) {
-      const double value = static_cast<double>(F32FromF16Mem(ptr));
-      const char* fmt = hwy::ScalarAbs(value) < 1E-4 ? "%.4E" : "%.4f";
-      snprintf(string100, 100, fmt, value);  // NOLINT
-    } else {
-      uint16_t bits;
-      CopyBytes<2>(ptr, &bits);
-      snprintf(string100, 100, "0x%04X", bits);  // NOLINT
-    }
+    uint16_t bits;
+    CopyBytes<2>(ptr, &bits);
+    snprintf(string100, 100, "0x%04X", bits);  // NOLINT
   } else if (info.sizeof_t == 4) {
     if (info.is_float) {
       float value;
       CopyBytes<4>(ptr, &value);
-      const char* fmt = hwy::ScalarAbs(value) < 1E-6 ? "%.9E" : "%.9f";
-      snprintf(string100, 100, fmt, static_cast<double>(value));  // NOLINT
+      snprintf(string100, 100, "%g", static_cast<double>(value));  // NOLINT
     } else if (info.is_signed) {
       int32_t value;
       CopyBytes<4>(ptr, &value);
@@ -78,30 +64,21 @@ HWY_DLLEXPORT void ToString(const TypeInfo& info, const void* ptr,
       CopyBytes<4>(ptr, &value);
       snprintf(string100, 100, "%u", value);  // NOLINT
     }
-  } else if (info.sizeof_t == 8) {
+  } else {
+    HWY_ASSERT(info.sizeof_t == 8);
     if (info.is_float) {
       double value;
       CopyBytes<8>(ptr, &value);
-      const char* fmt = hwy::ScalarAbs(value) < 1E-9 ? "%.18E" : "%.18f";
-      snprintf(string100, 100, fmt, value);  // NOLINT
+      snprintf(string100, 100, "%g", value);  // NOLINT
+    } else if (info.is_signed) {
+      int64_t value;
+      CopyBytes<8>(ptr, &value);
+      snprintf(string100, 100, "%" PRIi64 "", value);  // NOLINT
     } else {
-      const uint8_t* ptr8 = reinterpret_cast<const uint8_t*>(ptr);
-      uint32_t lo, hi;
-      CopyBytes<4>(ptr8 + (HWY_IS_LITTLE_ENDIAN ? 0 : 4), &lo);
-      CopyBytes<4>(ptr8 + (HWY_IS_LITTLE_ENDIAN ? 4 : 0), &hi);
-      snprintf(string100, 100, "0x%08x%08x", hi, lo);  // NOLINT
+      uint64_t value;
+      CopyBytes<8>(ptr, &value);
+      snprintf(string100, 100, "%" PRIu64 "", value);  // NOLINT
     }
-  } else if (info.sizeof_t == 16) {
-    HWY_ASSERT(!info.is_float && !info.is_signed && !info.is_bf16);
-    const uint8_t* ptr8 = reinterpret_cast<const uint8_t*>(ptr);
-    uint32_t words[4];
-    CopyBytes<4>(ptr8 + (HWY_IS_LITTLE_ENDIAN ? 0 : 12), &words[0]);
-    CopyBytes<4>(ptr8 + (HWY_IS_LITTLE_ENDIAN ? 4 : 8), &words[1]);
-    CopyBytes<4>(ptr8 + (HWY_IS_LITTLE_ENDIAN ? 8 : 4), &words[2]);
-    CopyBytes<4>(ptr8 + (HWY_IS_LITTLE_ENDIAN ? 12 : 0), &words[3]);
-    // NOLINTNEXTLINE
-    snprintf(string100, 100, "0x%08x%08x_%08x%08x", words[3], words[2],
-             words[1], words[0]);
   }
 }
 
@@ -116,8 +93,8 @@ HWY_DLLEXPORT void PrintArray(const TypeInfo& info, const char* caption,
   const intptr_t lane = intptr_t(lane_u);
   const size_t begin = static_cast<size_t>(HWY_MAX(0, lane - 2));
   const size_t end = HWY_MIN(begin + max_lanes, N);
-  fprintf(stderr, "%s %s [%d+ ->]:\n  ", type_name, caption,
-          static_cast<int>(begin));
+  fprintf(stderr, "%s %s [%" PRIu64 "+ ->]:\n  ", type_name, caption,
+          static_cast<uint64_t>(begin));
   for (size_t i = begin; i < end; ++i) {
     const void* ptr = array_bytes + i * info.sizeof_t;
     char str[100];

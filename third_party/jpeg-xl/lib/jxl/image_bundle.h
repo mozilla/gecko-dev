@@ -197,7 +197,7 @@ class ImageBundle {
 
   const ImageMetadata* metadata() const { return metadata_; }
 
-  Status VerifyMetadata() const;
+  void VerifyMetadata() const;
 
   void SetDecodedBytes(size_t decoded_bytes) { decoded_bytes_ = decoded_bytes; }
   size_t decoded_bytes() const { return decoded_bytes_; }

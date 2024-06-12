@@ -133,7 +133,8 @@ Status PatchDictionary::Decode(JxlMemoryManager* memory_manager, BitReader* br,
       }
       for (size_t j = 0; j < blendings_stride_; j++) {
         uint32_t blend_mode = read_num(kPatchBlendModeContext);
-        if (blend_mode >= kNumPatchBlendModes) {
+        if (blend_mode >=
+            static_cast<uint32_t>(PatchBlendMode::kNumBlendModes)) {
           return JXL_FAILURE("Invalid patch blend mode: %u", blend_mode);
         }
         PatchBlending info;

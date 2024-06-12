@@ -15,6 +15,10 @@
 
 #include "hwy/targets.h"
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS  // before inttypes.h
+#endif
+#include <inttypes.h>  // IWYU pragma: keep (PRIx64)
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>  // abort / exit
@@ -34,7 +38,7 @@
 #include <cpuid.h>
 #endif  // HWY_COMPILER_MSVC
 
-#elif (HWY_ARCH_ARM || HWY_ARCH_PPC || HWY_ARCH_S390X) && HWY_OS_LINUX
+#elif (HWY_ARCH_ARM || HWY_ARCH_PPC) && HWY_OS_LINUX
 // sys/auxv.h does not always include asm/hwcap.h, or define HWCAP*, hence we
 // still include this directly. See #1199.
 #ifndef TOOLCHAIN_MISS_ASM_HWCAP_H
@@ -135,7 +139,6 @@ enum class FeatureIndex : uint32_t {
   kAVX512CD,
   kAVX512DQ,
   kAVX512BW,
-  kAVX512FP16,
 
   kVNNI,
   kVPCLMULQDQ,
@@ -201,8 +204,6 @@ uint64_t FlagsFromCPUID() {
     flags |= IsBitSet(abcd[2], 11) ? Bit(FeatureIndex::kVNNI) : 0;
     flags |= IsBitSet(abcd[2], 12) ? Bit(FeatureIndex::kBITALG) : 0;
     flags |= IsBitSet(abcd[2], 14) ? Bit(FeatureIndex::kPOPCNTDQ) : 0;
-
-    flags |= IsBitSet(abcd[3], 23) ? Bit(FeatureIndex::kAVX512FP16) : 0;
   }
 
   return flags;
@@ -252,9 +253,6 @@ constexpr uint64_t kGroupAVX3_DL =
     Bit(FeatureIndex::kVAES) | Bit(FeatureIndex::kPOPCNTDQ) |
     Bit(FeatureIndex::kBITALG) | Bit(FeatureIndex::kGFNI) | kGroupAVX3;
 
-constexpr uint64_t kGroupAVX3_SPR =
-    Bit(FeatureIndex::kAVX512FP16) | kGroupAVX3_DL;
-
 int64_t DetectTargets() {
   int64_t bits = 0;  // return value of supported targets.
 #if HWY_ARCH_X86_64
@@ -263,9 +261,6 @@ int64_t DetectTargets() {
 
   const uint64_t flags = FlagsFromCPUID();
   // Set target bit(s) if all their group's flags are all set.
-  if ((flags & kGroupAVX3_SPR) == kGroupAVX3_SPR) {
-    bits |= HWY_AVX3_SPR;
-  }
   if ((flags & kGroupAVX3_DL) == kGroupAVX3_DL) {
     bits |= HWY_AVX3_DL;
   }
@@ -294,7 +289,7 @@ int64_t DetectTargets() {
   const bool has_osxsave = IsBitSet(abcd[2], 27);
   if (has_osxsave) {
     const uint32_t xcr0 = ReadXCR0();
-    const int64_t min_avx3 = HWY_AVX3 | HWY_AVX3_DL | HWY_AVX3_SPR;
+    const int64_t min_avx3 = HWY_AVX3 | HWY_AVX3_DL;
     const int64_t min_avx2 = HWY_AVX2 | min_avx3;
     // XMM
     if (!IsBitSet(xcr0, 1)) {
@@ -354,16 +349,12 @@ int64_t DetectTargets() {
   }
 #endif
 
-#ifndef HWCAP2_SVE2
-#define HWCAP2_SVE2 (1 << 1)
-#endif
-#ifndef HWCAP2_SVEAES
-#define HWCAP2_SVEAES (1 << 2)
-#endif
+#if defined(HWCAP2_SVE2) && defined(HWCAP2_SVEAES)
   const CapBits hw2 = getauxval(AT_HWCAP2);
   if ((hw2 & HWCAP2_SVE2) && (hw2 & HWCAP2_SVEAES)) {
     bits |= HWY_SVE2;
   }
+#endif
 
 #else  // !HWY_ARCH_ARM_A64
 
@@ -424,8 +415,6 @@ constexpr CapBits kGroupPPC10 = kGroupPPC9 | PPC_FEATURE2_ARCH_3_1;
 
 int64_t DetectTargets() {
   int64_t bits = 0;  // return value of supported targets.
-
-#if defined(AT_HWCAP) && defined(AT_HWCAP2)
   const CapBits hw = getauxval(AT_HWCAP);
 
   if ((hw & kGroupVSX) == kGroupVSX) {
@@ -440,50 +429,9 @@ int64_t DetectTargets() {
       bits |= HWY_PPC10;
     }
   }  // VSX
-#endif  // defined(AT_HWCAP) && defined(AT_HWCAP2)
-
   return bits;
 }
 }  // namespace ppc
-#elif HWY_ARCH_S390X && HWY_HAVE_RUNTIME_DISPATCH
-namespace s390x {
-
-#ifndef HWCAP_S390_VX
-#define HWCAP_S390_VX 2048
-#endif
-
-#ifndef HWCAP_S390_VXE
-#define HWCAP_S390_VXE 8192
-#endif
-
-#ifndef HWCAP_S390_VXRS_EXT2
-#define HWCAP_S390_VXRS_EXT2 32768
-#endif
-
-using CapBits = unsigned long;  // NOLINT
-
-constexpr CapBits kGroupZ14 = HWCAP_S390_VX | HWCAP_S390_VXE;
-constexpr CapBits kGroupZ15 =
-    HWCAP_S390_VX | HWCAP_S390_VXE | HWCAP_S390_VXRS_EXT2;
-
-int64_t DetectTargets() {
-  int64_t bits = 0;
-
-#if defined(AT_HWCAP)
-  const CapBits hw = getauxval(AT_HWCAP);
-
-  if ((hw & kGroupZ14) == kGroupZ14) {
-    bits |= HWY_Z14;
-  }
-
-  if ((hw & kGroupZ15) == kGroupZ15) {
-    bits |= HWY_Z15;
-  }
-#endif
-
-  return bits;
-}
-}  // namespace s390x
 #endif  // HWY_ARCH_X86
 
 // Returns targets supported by the CPU, independently of DisableTargets.
@@ -500,8 +448,6 @@ int64_t DetectTargets() {
   bits |= arm::DetectTargets();
 #elif HWY_ARCH_PPC && HWY_HAVE_RUNTIME_DISPATCH
   bits |= ppc::DetectTargets();
-#elif HWY_ARCH_S390X && HWY_HAVE_RUNTIME_DISPATCH
-  bits |= s390x::DetectTargets();
 
 #else
   // TODO(janwas): detect support for WASM/RVV.
@@ -512,14 +458,10 @@ int64_t DetectTargets() {
 #endif  // HWY_ARCH_*
 
   if ((bits & HWY_ENABLED_BASELINE) != HWY_ENABLED_BASELINE) {
-    const uint64_t bits_u = static_cast<uint64_t>(bits);
-    const uint64_t enabled = static_cast<uint64_t>(HWY_ENABLED_BASELINE);
     fprintf(stderr,
-            "WARNING: CPU supports 0x%08x%08x, software requires 0x%08x%08x\n",
-            static_cast<uint32_t>(bits_u >> 32),
-            static_cast<uint32_t>(bits_u & 0xFFFFFFFF),
-            static_cast<uint32_t>(enabled >> 32),
-            static_cast<uint32_t>(enabled & 0xFFFFFFFF));
+            "WARNING: CPU supports %" PRIx64 " but software requires %" PRIx64
+            "\n",
+            bits, static_cast<int64_t>(HWY_ENABLED_BASELINE));
   }
 
   return bits;
@@ -529,7 +471,7 @@ int64_t DetectTargets() {
 
 HWY_DLLEXPORT HWY_NORETURN void HWY_FORMAT(3, 4)
     Abort(const char* file, int line, const char* format, ...) {
-  char buf[800];
+  char buf[2000];
   va_list args;
   va_start(args, format);
   vsnprintf(buf, sizeof(buf), format, args);

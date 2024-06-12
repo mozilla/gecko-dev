@@ -10,9 +10,9 @@
 #define LIB_JXL_IMAGE_METADATA_H_
 
 #include <jxl/codestream_header.h>
+#include <stddef.h>
+#include <stdint.h>
 
-#include <cstddef>
-#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -28,7 +28,6 @@
 namespace jxl {
 
 struct AuxOut;
-enum class LayerType : uint8_t;
 
 // EXIF orientation of the image. This field overrides any field present in
 // actual EXIF metadata. The value tells which transformation the decoder must
@@ -374,7 +373,7 @@ Status ReadImageMetadata(BitReader* JXL_RESTRICT reader,
                          ImageMetadata* JXL_RESTRICT metadata);
 
 Status WriteImageMetadata(const ImageMetadata& metadata,
-                          BitWriter* JXL_RESTRICT writer, LayerType layer,
+                          BitWriter* JXL_RESTRICT writer, size_t layer,
                           AuxOut* aux_out);
 
 // All metadata applicable to the entire codestream (dimensions, extra channels,

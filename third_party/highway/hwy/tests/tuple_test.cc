@@ -25,50 +25,29 @@ HWY_BEFORE_NAMESPACE();
 namespace hwy {
 namespace HWY_NAMESPACE {
 
-struct TestCreateAndSet {
+struct TestCreate {
   template <class T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
 #if HWY_HAVE_TUPLE
     const Vec<D> v0 = Zero(d);
-    const Vec<D> vi = Iota(d, 1);
-    const Vec<D> v2 = Set(d, ConvertScalarTo<T>(2));
-    const Vec<D> v3 = Set(d, ConvertScalarTo<T>(3));
+    const Vec<D> vi = Iota(d, T{1});
+    const Vec<D> v2 = Set(d, T{2});
+    const Vec<D> v3 = Set(d, T{3});
 
-    Vec2<D> t2 = Create2(d, v0, vi);
+    const Vec2<D> t2 = Create2(d, v0, vi);
     HWY_ASSERT_VEC_EQ(d, v0, Get2<0>(t2));
     HWY_ASSERT_VEC_EQ(d, vi, Get2<1>(t2));
 
-    t2 = Set2<0>(t2, vi);
-    t2 = Set2<1>(t2, v0);
-    HWY_ASSERT_VEC_EQ(d, vi, Get2<0>(t2));
-    HWY_ASSERT_VEC_EQ(d, v0, Get2<1>(t2));
-
-    Vec3<D> t3 = Create3(d, v0, vi, v2);
+    const Vec3<D> t3 = Create3(d, v0, vi, v2);
     HWY_ASSERT_VEC_EQ(d, v0, Get3<0>(t3));
     HWY_ASSERT_VEC_EQ(d, vi, Get3<1>(t3));
     HWY_ASSERT_VEC_EQ(d, v2, Get3<2>(t3));
 
-    t3 = Set3<0>(t3, v2);
-    t3 = Set3<1>(t3, vi);
-    t3 = Set3<2>(t3, v0);
-    HWY_ASSERT_VEC_EQ(d, v2, Get3<0>(t3));
-    HWY_ASSERT_VEC_EQ(d, vi, Get3<1>(t3));
-    HWY_ASSERT_VEC_EQ(d, v0, Get3<2>(t3));
-
-    Vec4<D> t4 = Create4(d, v0, vi, v2, v3);
+    const Vec4<D> t4 = Create4(d, v0, vi, v2, v3);
     HWY_ASSERT_VEC_EQ(d, v0, Get4<0>(t4));
     HWY_ASSERT_VEC_EQ(d, vi, Get4<1>(t4));
     HWY_ASSERT_VEC_EQ(d, v2, Get4<2>(t4));
     HWY_ASSERT_VEC_EQ(d, v3, Get4<3>(t4));
-
-    t4 = Set4<0>(t4, v3);
-    t4 = Set4<1>(t4, v2);
-    t4 = Set4<2>(t4, vi);
-    t4 = Set4<3>(t4, v0);
-    HWY_ASSERT_VEC_EQ(d, v3, Get4<0>(t4));
-    HWY_ASSERT_VEC_EQ(d, v2, Get4<1>(t4));
-    HWY_ASSERT_VEC_EQ(d, vi, Get4<2>(t4));
-    HWY_ASSERT_VEC_EQ(d, v0, Get4<3>(t4));
 #else
     (void)d;
     fprintf(stderr, "Warning: tuples are disabled for target %s\n",
@@ -78,8 +57,7 @@ struct TestCreateAndSet {
 };
 
 HWY_NOINLINE void TestAllCreate() {
-  // RVV can only do tuples up to LMUL=2.
-  ForAllTypes(ForMaxPow2<TestCreateAndSet>());
+  ForAllTypes(ForPartialVectors<TestCreate>());
 }
 
 // NOLINTNEXTLINE(google-readability-namespace-comments)

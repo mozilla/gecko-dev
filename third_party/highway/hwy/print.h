@@ -34,7 +34,6 @@ struct TypeInfo {
   size_t sizeof_t;
   bool is_float;
   bool is_signed;
-  bool is_bf16;
 };
 
 template <typename T>
@@ -43,7 +42,6 @@ HWY_INLINE TypeInfo MakeTypeInfo() {
   info.sizeof_t = sizeof(T);
   info.is_float = IsFloat<T>();
   info.is_signed = IsSigned<T>();
-  info.is_bf16 = IsSame<T, bfloat16_t>();
   return info;
 }
 

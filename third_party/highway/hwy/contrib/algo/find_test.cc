@@ -43,17 +43,14 @@ HWY_BEFORE_NAMESPACE();
 namespace hwy {
 namespace HWY_NAMESPACE {
 
-// Returns random number in [-8, 8] - we use knowledge of the range to Find()
+// Returns random number in [-8, 8) - we use knowledge of the range to Find()
 // values we know are not present.
 template <typename T>
 T Random(RandomState& rng) {
   const int32_t bits = static_cast<int32_t>(Random32(&rng)) & 1023;
-  double val = (bits - 512) / 64.0;
+  const double val = (bits - 512) / 64.0;
   // Clamp negative to zero for unsigned types.
-  if (!hwy::IsSigned<T>() && val < 0.0) {
-    val = -val;
-  }
-  return ConvertScalarTo<T>(val);
+  return static_cast<T>(HWY_MAX(hwy::LowestValue<T>(), val));
 }
 
 // In C++14, we can instead define these as generic lambdas next to where they
@@ -65,7 +62,7 @@ class GreaterThan {
   GreaterThan(int val) : val_(val) {}
   template <class D, class V>
   Mask<D> operator()(D d, V v) const {
-    return Gt(v, Set(d, ConvertScalarTo<TFromD<D>>(val_)));
+    return Gt(v, Set(d, static_cast<TFromD<D>>(val_)));
   }
 
  private:
@@ -121,15 +118,15 @@ struct TestFind {
       if (!IsEqual(in[pos], in[actual])) {
         fprintf(stderr, "%s count %d, found %.15f at %d but wanted %.15f\n",
                 hwy::TypeName(T(), Lanes(d)).c_str(), static_cast<int>(count),
-                ConvertScalarTo<double>(in[actual]), static_cast<int>(actual),
-                ConvertScalarTo<double>(in[pos]));
+                static_cast<double>(in[actual]), static_cast<int>(actual),
+                static_cast<double>(in[pos]));
         HWY_ASSERT(false);
       }
       for (size_t i = 0; i < actual; ++i) {
         if (IsEqual(in[i], in[pos])) {
           fprintf(stderr, "%s count %d, found %f at %d but Find returned %d\n",
                   hwy::TypeName(T(), Lanes(d)).c_str(), static_cast<int>(count),
-                  ConvertScalarTo<double>(in[i]), static_cast<int>(i),
+                  static_cast<double>(in[i]), static_cast<int>(i),
                   static_cast<int>(actual));
           HWY_ASSERT(false);
         }
@@ -137,8 +134,8 @@ struct TestFind {
     }
 
     // Also search for values we know not to be present (out of range)
-    HWY_ASSERT_EQ(count, Find(d, ConvertScalarTo<T>(9), in, count));
-    HWY_ASSERT_EQ(count, Find(d, ConvertScalarTo<T>(-9), in, count));
+    HWY_ASSERT_EQ(count, Find(d, T{9}, in, count));
+    HWY_ASSERT_EQ(count, Find(d, static_cast<T>(-9), in, count));
   }
 };
 
@@ -158,8 +155,8 @@ struct TestFindIf {
     T* in = storage.get() + misalign;
     for (size_t i = 0; i < count; ++i) {
       in[i] = Random<T>(rng);
-      HWY_ASSERT(ConvertScalarTo<TI>(in[i]) <= 8);
-      HWY_ASSERT(!hwy::IsSigned<T>() || ConvertScalarTo<TI>(in[i]) >= -8);
+      HWY_ASSERT(in[i] < 8);
+      HWY_ASSERT(!hwy::IsSigned<T>() || static_cast<TI>(in[i]) >= -8);
     }
 
     bool found_any = false;
@@ -173,7 +170,7 @@ struct TestFindIf {
     for (int val = min_val; val <= 9; ++val) {
 #if HWY_GENERIC_LAMBDA
       const auto greater = [val](const auto d, const auto v) HWY_ATTR {
-        return Gt(v, Set(d, ConvertScalarTo<T>(val)));
+        return Gt(v, Set(d, static_cast<T>(val)));
       };
 #else
       const GreaterThan greater(val);
@@ -183,7 +180,7 @@ struct TestFindIf {
       not_found_any |= actual == count;
 
       const auto pos = std::find_if(
-          in, in + count, [val](T x) { return x > ConvertScalarTo<T>(val); });
+          in, in + count, [val](T x) { return x > static_cast<T>(val); });
       // Convert returned iterator to index.
       const size_t expected = static_cast<size_t>(pos - in);
       if (expected != actual) {
@@ -200,7 +197,7 @@ struct TestFindIf {
     HWY_ASSERT(not_found_any);
     // We'll find something unless the input is empty or {0} - because 0 > i
     // is false for all i=[0,9].
-    if (count != 0 && in[0] != ConvertScalarTo<T>(0)) {
+    if (count != 0 && in[0] != 0) {
       HWY_ASSERT(found_any);
     }
   }

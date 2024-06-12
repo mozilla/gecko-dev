@@ -13,15 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stddef.h>
-
-// Ensure incompatibilities with Windows macros (e.g. #define StoreFence) are
+// Ensure incompabilities with Windows macros (e.g. #define StoreFence) are
 // detected. Must come before Highway headers.
 #include "hwy/base.h"
-#include "hwy/tests/test_util.h"
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 #endif
+
+#include <algorithm>  // std::fill
 
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "tests/memory_test.cc"
@@ -38,8 +37,8 @@ struct TestLoadStore {
   template <class T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
     const size_t N = Lanes(d);
-    const VFromD<D> hi = IotaForSpecial(d, 1 + N);
-    const VFromD<D> lo = IotaForSpecial(d, 1);
+    const auto hi = Iota(d, static_cast<T>(1 + N));
+    const auto lo = Iota(d, 1);
     auto lanes = AllocateAligned<T>(2 * N);
     auto lanes2 = AllocateAligned<T>(2 * N);
     auto lanes3 = AllocateAligned<T>(N);
@@ -49,7 +48,7 @@ struct TestLoadStore {
     Store(lo, d, &lanes[0]);
 
     // Aligned load
-    const VFromD<D> lo2 = Load(d, &lanes[0]);
+    const auto lo2 = Load(d, &lanes[0]);
     HWY_ASSERT_VEC_EQ(d, lo2, lo);
 
     // Aligned store
@@ -60,10 +59,10 @@ struct TestLoadStore {
     }
 
     // Unaligned load
-    const VFromD<D> vu = LoadU(d, &lanes[1]);
+    const auto vu = LoadU(d, &lanes[1]);
     Store(vu, d, lanes3.get());
     for (size_t i = 0; i < N; ++i) {
-      HWY_ASSERT_EQ(i + 2, lanes3[i]);
+      HWY_ASSERT_EQ(T(i + 2), lanes3[i]);
     }
 
     // Unaligned store
@@ -73,17 +72,17 @@ struct TestLoadStore {
       HWY_ASSERT_EQ(lanes[i], lanes2[i]);
     }
     for (; i < 3 * N / 2; ++i) {
-      HWY_ASSERT_EQ(i - N / 2 + 1, lanes2[i]);
+      HWY_ASSERT_EQ(T(i - N / 2 + 1), lanes2[i]);
     }
     // Subsequent values remain unchanged.
     for (; i < 2 * N; ++i) {
-      HWY_ASSERT_EQ(i + 1, lanes2[i]);
+      HWY_ASSERT_EQ(T(i + 1), lanes2[i]);
     }
   }
 };
 
 HWY_NOINLINE void TestAllLoadStore() {
-  ForAllTypesAndSpecial(ForPartialVectors<TestLoadStore>());
+  ForAllTypes(ForPartialVectors<TestLoadStore>());
 }
 
 struct TestSafeCopyN {
@@ -97,32 +96,32 @@ struct TestSafeCopyN {
     Store(v, d, from.get());
 
     // 0: nothing changes
-    to[0] = ConvertScalarTo<T>(0);
+    to[0] = T();
     SafeCopyN(0, d, from.get(), to.get());
     HWY_ASSERT_EQ(T(), to[0]);
 
     // 1: only first changes
-    to[1] = ConvertScalarTo<T>(0);
+    to[1] = T();
     SafeCopyN(1, d, from.get(), to.get());
-    HWY_ASSERT_EQ(ConvertScalarTo<T>(1), to[0]);
+    HWY_ASSERT_EQ(static_cast<T>(1), to[0]);
     HWY_ASSERT_EQ(T(), to[1]);
 
     // N-1: last does not change
-    to[N - 1] = ConvertScalarTo<T>(0);
+    to[N - 1] = T();
     SafeCopyN(N - 1, d, from.get(), to.get());
     HWY_ASSERT_EQ(T(), to[N - 1]);
     // Also check preceding lanes
-    to[N - 1] = ConvertScalarTo<T>(N);
+    to[N - 1] = static_cast<T>(N);
     HWY_ASSERT_VEC_EQ(d, to.get(), v);
 
     // N: all change
-    to[N] = ConvertScalarTo<T>(0);
+    to[N] = T();
     SafeCopyN(N, d, from.get(), to.get());
     HWY_ASSERT_VEC_EQ(d, to.get(), v);
     HWY_ASSERT_EQ(T(), to[N]);
 
     // N+1: subsequent lane does not change if using masked store
-    to[N + 1] = ConvertScalarTo<T>(0);
+    to[N + 1] = T();
     SafeCopyN(N + 1, d, from.get(), to.get());
     HWY_ASSERT_VEC_EQ(d, to.get(), v);
 #if !HWY_MEM_OPS_MIGHT_FAULT
@@ -143,14 +142,14 @@ struct TestLoadDup128 {
     constexpr size_t N128 = 16 / sizeof(T);
     alignas(16) T lanes[N128];
     for (size_t i = 0; i < N128; ++i) {
-      lanes[i] = ConvertScalarTo<T>(1 + i);
+      lanes[i] = static_cast<T>(1 + i);
     }
 
     const size_t N = Lanes(d);
     auto expected = AllocateAligned<T>(N);
     HWY_ASSERT(expected);
     for (size_t i = 0; i < N; ++i) {
-      expected[i] = ConvertScalarTo<T>(i % N128 + 1);
+      expected[i] = static_cast<T>(i % N128 + 1);
     }
 
     HWY_ASSERT_VEC_EQ(d, expected.get(), LoadDup128(d, lanes));
@@ -167,22 +166,22 @@ HWY_NOINLINE void TestAllLoadDup128() {
 struct TestStream {
   template <class T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
-    const Vec<D> v = Iota(d, 1);
+    const auto v = Iota(d, T(1));
     const size_t affected_bytes =
         (Lanes(d) * sizeof(T) + HWY_STREAM_MULTIPLE - 1) &
         ~size_t(HWY_STREAM_MULTIPLE - 1);
     const size_t affected_lanes = affected_bytes / sizeof(T);
     auto out = AllocateAligned<T>(2 * affected_lanes);
     HWY_ASSERT(out);
-    ZeroBytes(out.get(), 2 * affected_lanes * sizeof(T));
+    std::fill(out.get(), out.get() + 2 * affected_lanes, T(0));
 
     Stream(v, d, out.get());
     FlushStream();
-    const Vec<D> actual = Load(d, out.get());
+    const auto actual = Load(d, out.get());
     HWY_ASSERT_VEC_EQ(d, v, actual);
     // Ensure Stream didn't modify more memory than expected
     for (size_t i = affected_lanes; i < 2 * affected_lanes; ++i) {
-      HWY_ASSERT_EQ(ConvertScalarTo<T>(0), out[i]);
+      HWY_ASSERT_EQ(T(0), out[i]);
     }
   }
 };
@@ -211,29 +210,28 @@ struct TestScatter {
 
     RandomState rng;
 
-    auto values = AllocateAligned<T>(range);
+    auto bytes = AllocateAligned<uint8_t>(max_bytes);
     auto offsets = AllocateAligned<Offset>(N);  // or indices
     // Scatter into these regions, ensure vector results match scalar
     auto expected = AllocateAligned<T>(range);
     auto actual = AllocateAligned<T>(range);
-    HWY_ASSERT(values && offsets && expected && actual);
+    HWY_ASSERT(bytes && offsets && expected && actual);
 
     // Data to be scattered
-    uint8_t* bytes = reinterpret_cast<uint8_t*>(values.get());
     for (size_t i = 0; i < max_bytes; ++i) {
       bytes[i] = static_cast<uint8_t>(Random32(&rng) & 0xFF);
     }
-    const Vec<D> data = Load(d, values.get());
+    const auto data = Load(d, reinterpret_cast<const T*>(bytes.get()));
 
     for (size_t rep = 0; rep < 100; ++rep) {
       // Byte offsets
-      ZeroBytes(expected.get(), range * sizeof(T));
-      ZeroBytes(actual.get(), range * sizeof(T));
+      std::fill(expected.get(), expected.get() + range, T(0));
+      std::fill(actual.get(), actual.get() + range, T(0));
       for (size_t i = 0; i < N; ++i) {
         // Must be aligned
         offsets[i] = static_cast<Offset>((Random32(&rng) % range) * sizeof(T));
         CopyBytes<sizeof(T)>(
-            values.get() + i,
+            bytes.get() + i * sizeof(T),
             reinterpret_cast<uint8_t*>(expected.get()) + offsets[i]);
       }
       const auto voffsets = Load(d_offsets, offsets.get());
@@ -245,11 +243,12 @@ struct TestScatter {
       }
 
       // Indices
-      ZeroBytes(expected.get(), range * sizeof(T));
-      ZeroBytes(actual.get(), range * sizeof(T));
+      std::fill(expected.get(), expected.get() + range, T(0));
+      std::fill(actual.get(), actual.get() + range, T(0));
       for (size_t i = 0; i < N; ++i) {
         offsets[i] = static_cast<Offset>(Random32(&rng) % range);
-        CopyBytes<sizeof(T)>(values.get() + i, &expected[size_t(offsets[i])]);
+        CopyBytes<sizeof(T)>(bytes.get() + i * sizeof(T),
+                             &expected[size_t(offsets[i])]);
       }
       const auto vindices = Load(d_offsets, offsets.get());
       ScatterIndex(data, d, actual.get(), vindices);
@@ -276,14 +275,13 @@ struct TestGather {
     const size_t max_bytes = range * sizeof(T);  // upper bound on offset
 
     RandomState rng;
-    auto values = AllocateAligned<T>(range);
+    auto bytes = AllocateAligned<uint8_t>(max_bytes);
     auto expected = AllocateAligned<T>(N);
     auto offsets = AllocateAligned<Offset>(N);
     auto indices = AllocateAligned<Offset>(N);
-    HWY_ASSERT(values && expected && offsets && indices);
+    HWY_ASSERT(bytes && expected && offsets && indices);
 
     // Data to be gathered from
-    uint8_t* bytes = reinterpret_cast<uint8_t*>(values.get());
     for (size_t i = 0; i < max_bytes; ++i) {
       bytes[i] = static_cast<uint8_t>(Random32(&rng) & 0xFF);
     }
@@ -293,11 +291,11 @@ struct TestGather {
       for (size_t i = 0; i < N; ++i) {
         // Must be aligned
         offsets[i] = static_cast<Offset>((Random32(&rng) % range) * sizeof(T));
-        CopyBytes<sizeof(T)>(bytes + offsets[i], &expected[i]);
+        CopyBytes<sizeof(T)>(bytes.get() + offsets[i], &expected[i]);
       }
 
       const Rebind<Offset, D> d_offset;
-      const T* base = values.get();
+      const T* base = reinterpret_cast<const T*>(bytes.get());
       auto actual = GatherOffset(d, base, Load(d_offset, offsets.get()));
       HWY_ASSERT_VEC_EQ(d, expected.get(), actual);
 
@@ -326,241 +324,6 @@ HWY_NOINLINE void TestAllCache() {
   Pause();
 }
 
-namespace detail {
-template <int kNo, class T, HWY_IF_NOT_FLOAT_NOR_SPECIAL(T)>
-HWY_INLINE T GenerateOtherValue(size_t val) {
-  const T conv_val = static_cast<T>(val);
-  return (conv_val == static_cast<T>(kNo)) ? static_cast<T>(-17) : conv_val;
-}
-template <int kNo, class T, HWY_IF_FLOAT3264(T)>
-HWY_INLINE T GenerateOtherValue(size_t val) {
-  const T flt_val = static_cast<T>(val);
-  return (flt_val == static_cast<T>(kNo) ? static_cast<T>(0.5426808228865735)
-                                         : flt_val);
-}
-template <int kNo, class T, HWY_IF_BF16(T)>
-HWY_INLINE T GenerateOtherValue(size_t val) {
-  return BF16FromF32(GenerateOtherValue<kNo, float>(val));
-}
-template <int kNo, class T, HWY_IF_F16(T)>
-HWY_INLINE T GenerateOtherValue(size_t val) {
-  return F16FromF32(GenerateOtherValue<kNo, float>(val));
-}
-
-}  // namespace detail
-
-struct TestLoadN {
-  template <class T, class D>
-  HWY_NOINLINE void operator()(T /*unused*/, D d) {
-    const size_t N = Lanes(d);
-    constexpr size_t kMaxLanesPerBlock = 16 / sizeof(T);
-    const size_t lpb = HWY_MIN(N, kMaxLanesPerBlock);
-    HWY_ASSERT(lpb >= 1);
-    HWY_ASSERT(N <= (static_cast<size_t>(~size_t(0)) / 4));
-
-    const size_t load_buf_len = (3 * N) + 4;
-
-    auto load_buf = AllocateAligned<T>(load_buf_len);
-    auto expected = AllocateAligned<T>(N);
-    HWY_ASSERT(load_buf && expected);
-
-    for (size_t i = 0; i < load_buf_len; i++) {
-      load_buf[i] = detail::GenerateOtherValue<0, T>(i + 1);
-    }
-
-    ZeroBytes(expected.get(), N * sizeof(T));
-    // Without Load(), the vector type for special floats might not match.
-    HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()), LoadN(d, load_buf.get(), 0));
-
-    for (size_t i = 0; i <= lpb; i++) {
-      CopyBytes(load_buf.get(), expected.get(), i * sizeof(T));
-      const VFromD<D> actual_1 = LoadN(d, load_buf.get(), i);
-      HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()), actual_1);
-
-      CopyBytes(load_buf.get() + 3, expected.get(), i * sizeof(T));
-      const VFromD<D> actual_2 = LoadN(d, load_buf.get() + 3, i);
-      HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()), actual_2);
-    }
-
-    const size_t lplb = HWY_MAX(N / 4, lpb);
-    for (size_t i = HWY_MAX(lpb * 2, lplb); i <= N * 2; i += lplb) {
-      const size_t max_num_of_lanes_to_load = i + (11 & (lpb - 1));
-      const size_t expected_num_of_lanes_loaded =
-          HWY_MIN(max_num_of_lanes_to_load, N);
-
-      CopyBytes(load_buf.get(), expected.get(),
-                expected_num_of_lanes_loaded * sizeof(T));
-      const VFromD<D> actual_1 =
-          LoadN(d, load_buf.get(), max_num_of_lanes_to_load);
-      HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()), actual_1);
-
-      CopyBytes(load_buf.get() + 3, expected.get(),
-                expected_num_of_lanes_loaded * sizeof(T));
-      const VFromD<D> actual_2 =
-          LoadN(d, load_buf.get() + 3, max_num_of_lanes_to_load);
-      HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()), actual_2);
-    }
-
-    load_buf[0] = detail::GenerateOtherValue<0, T>(0);
-    CopyBytes(load_buf.get(), expected.get(), N * sizeof(T));
-    HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()), LoadN(d, load_buf.get(), N));
-  }
-};
-
-HWY_NOINLINE void TestAllLoadN() {
-  ForAllTypesAndSpecial(ForPartialVectors<TestLoadN>());
-}
-
-struct TestLoadNOr {
-  template <class T, class D>
-  HWY_NOINLINE void operator()(T /*unused*/, D d) {
-    constexpr int kNo = 2;
-    const size_t N = Lanes(d);
-    constexpr size_t kMaxLanesPerBlock = 16 / sizeof(T);
-    const size_t lpb = HWY_MIN(N, kMaxLanesPerBlock);
-    HWY_ASSERT(lpb >= 1);
-    HWY_ASSERT(N <= (static_cast<size_t>(~size_t(0)) / 4));
-
-    const size_t load_buf_len = (3 * N) + 4;
-
-    auto load_buf = AllocateAligned<T>(load_buf_len);
-    auto expected = AllocateAligned<T>(N);
-    HWY_ASSERT(load_buf && expected);
-
-    for (size_t i = 0; i < load_buf_len; i++) {
-      load_buf[i] = detail::GenerateOtherValue<kNo, T>(i + 1);
-    }
-    const Vec<D> no = Set(d, ConvertScalarTo<T>(kNo));
-
-    for (size_t i = 0; i < N; ++i) {
-      expected[i] = ConvertScalarTo<T>(kNo);
-    }
-    // Without Load(), the vector type for special floats might not match.
-    HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()),
-                      LoadNOr(no, d, load_buf.get(), 0));
-
-    for (size_t i = 0; i <= lpb; i++) {
-      CopyBytes(load_buf.get(), expected.get(), i * sizeof(T));
-      const VFromD<D> actual_1 = LoadNOr(no, d, load_buf.get(), i);
-      HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()), actual_1);
-
-      CopyBytes(load_buf.get() + 3, expected.get(), i * sizeof(T));
-      const VFromD<D> actual_2 = LoadNOr(no, d, load_buf.get() + 3, i);
-      HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()), actual_2);
-    }
-
-    const size_t lplb = HWY_MAX(N / 4, lpb);
-    for (size_t i = HWY_MAX(lpb * 2, lplb); i <= N * 2; i += lplb) {
-      const size_t max_num_of_lanes_to_load = i + (11 & (lpb - 1));
-      const size_t expected_num_of_lanes_loaded =
-          HWY_MIN(max_num_of_lanes_to_load, N);
-
-      CopyBytes(load_buf.get(), expected.get(),
-                expected_num_of_lanes_loaded * sizeof(T));
-      const VFromD<D> actual_1 =
-          LoadNOr(no, d, load_buf.get(), max_num_of_lanes_to_load);
-      HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()), actual_1);
-
-      CopyBytes(load_buf.get() + 3, expected.get(),
-                expected_num_of_lanes_loaded * sizeof(T));
-      const VFromD<D> actual_2 =
-          LoadNOr(no, d, load_buf.get() + 3, max_num_of_lanes_to_load);
-      HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()), actual_2);
-    }
-
-    load_buf[0] = detail::GenerateOtherValue<kNo, T>(kNo);
-    CopyBytes(load_buf.get(), expected.get(), N * sizeof(T));
-    HWY_ASSERT_VEC_EQ(d, Load(d, expected.get()),
-                      LoadNOr(no, d, load_buf.get(), N));
-  }
-};
-
-HWY_NOINLINE void TestAllLoadNOr() {
-  ForAllTypesAndSpecial(ForPartialVectors<TestLoadNOr>());
-}
-
-class TestStoreN {
- private:
-  template <class T, HWY_IF_FLOAT_OR_SPECIAL(T)>
-  static HWY_INLINE T NegativeFillValue() {
-    return LowestValue<T>();
-  }
-
-  template <class T, HWY_IF_NOT_FLOAT_NOR_SPECIAL(T)>
-  static HWY_INLINE T NegativeFillValue() {
-    return static_cast<T>(-1);
-  }
-
- public:
-  template <class T, class D>
-  HWY_NOINLINE void operator()(T /*unused*/, D d) {
-    const size_t N = Lanes(d);
-    constexpr size_t kMaxLanesPerBlock = 16 / sizeof(T);
-    const size_t lpb = HWY_MIN(N, kMaxLanesPerBlock);
-    HWY_ASSERT(lpb >= 1);
-
-    const size_t full_dvec_N = Lanes(DFromV<Vec<D>>());
-    HWY_ASSERT(N <= full_dvec_N);
-    HWY_ASSERT(full_dvec_N <= (static_cast<size_t>(~size_t(0)) / 8));
-
-    const size_t buf_offset = HWY_MAX(kMaxLanesPerBlock, full_dvec_N);
-    const size_t buf_size = buf_offset + 3 * full_dvec_N + 4;
-    auto expected = AllocateAligned<T>(buf_size);
-    auto actual = AllocateAligned<T>(buf_size);
-    HWY_ASSERT(expected && actual);
-
-    const T neg_fill_val = NegativeFillValue<T>();
-    for (size_t i = 0; i < buf_size; i++) {
-      expected[i] = neg_fill_val;
-      actual[i] = neg_fill_val;
-    }
-
-    const Vec<D> v_neg_fill_val = Set(d, neg_fill_val);
-
-    for (size_t i = 0; i <= lpb; i++) {
-      const Vec<D> v = IotaForSpecial(d, i + 1);
-      const Vec<D> v_expected = IfThenElse(FirstN(d, i), v, v_neg_fill_val);
-
-      Store(v_expected, d, expected.get() + buf_offset);
-      Store(v_neg_fill_val, d, actual.get() + buf_offset);
-      StoreN(v, d, actual.get() + buf_offset, i);
-
-      HWY_ASSERT_ARRAY_EQ(expected.get(), actual.get(), buf_size);
-
-      StoreU(v_expected, d, expected.get() + buf_offset + 3);
-      StoreU(v_neg_fill_val, d, actual.get() + buf_offset + 3);
-      StoreN(v, d, actual.get() + buf_offset + 3, i);
-      HWY_ASSERT_ARRAY_EQ(expected.get(), actual.get(), buf_size);
-    }
-
-    const size_t lplb = HWY_MAX(N / 4, lpb);
-    for (size_t i = HWY_MAX(lpb * 2, lplb); i <= N * 2; i += lplb) {
-      const size_t max_num_of_lanes_to_store = i + (11 & (lpb - 1));
-      const size_t expected_num_of_lanes_written =
-          HWY_MIN(max_num_of_lanes_to_store, N);
-
-      const Vec<D> v = IotaForSpecial(d, max_num_of_lanes_to_store + 1);
-      const Vec<D> v_expected = IfThenElse(
-          FirstN(d, expected_num_of_lanes_written), v, v_neg_fill_val);
-
-      Store(v_expected, d, expected.get() + buf_offset);
-      Store(v_neg_fill_val, d, actual.get() + buf_offset);
-      StoreN(v, d, actual.get() + buf_offset, max_num_of_lanes_to_store);
-
-      HWY_ASSERT_ARRAY_EQ(expected.get(), actual.get(), buf_size);
-
-      StoreU(v_expected, d, expected.get() + buf_offset + 3);
-      StoreU(v_neg_fill_val, d, actual.get() + buf_offset + 3);
-      StoreN(v, d, actual.get() + buf_offset + 3, max_num_of_lanes_to_store);
-      HWY_ASSERT_ARRAY_EQ(expected.get(), actual.get(), buf_size);
-    }
-  }
-};
-
-HWY_NOINLINE void TestAllStoreN() {
-  ForAllTypesAndSpecial(ForPartialVectors<TestStoreN>());
-}
-
 // NOLINTNEXTLINE(google-readability-namespace-comments)
 }  // namespace HWY_NAMESPACE
 }  // namespace hwy
@@ -577,9 +340,6 @@ HWY_EXPORT_AND_TEST_P(HwyMemoryTest, TestAllStream);
 HWY_EXPORT_AND_TEST_P(HwyMemoryTest, TestAllScatter);
 HWY_EXPORT_AND_TEST_P(HwyMemoryTest, TestAllGather);
 HWY_EXPORT_AND_TEST_P(HwyMemoryTest, TestAllCache);
-HWY_EXPORT_AND_TEST_P(HwyMemoryTest, TestAllLoadN);
-HWY_EXPORT_AND_TEST_P(HwyMemoryTest, TestAllLoadNOr);
-HWY_EXPORT_AND_TEST_P(HwyMemoryTest, TestAllStoreN);
 }  // namespace hwy
 
 #endif

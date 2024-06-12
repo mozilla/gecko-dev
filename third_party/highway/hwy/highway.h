@@ -16,6 +16,10 @@
 // Main header required before using vector types.
 
 // IWYU pragma: begin_exports
+// Export does not seem to be recursive, so re-export these (also in base.h)
+#include <stddef.h>
+#include <stdint.h>
+
 #include "hwy/base.h"
 #include "hwy/detect_compiler_arch.h"
 #include "hwy/highway_export.h"
@@ -32,8 +36,8 @@ namespace hwy {
 
 // API version (https://semver.org/); keep in sync with CMakeLists.txt.
 #define HWY_MAJOR 1
-#define HWY_MINOR 1
-#define HWY_PATCH 0
+#define HWY_MINOR 0
+#define HWY_PATCH 4
 
 //------------------------------------------------------------------------------
 // Shorthand for tags (defined in shared-inl.h) used to select overloads.
@@ -98,10 +102,6 @@ namespace hwy {
 #define HWY_STATIC_DISPATCH(FUNC_NAME) N_PPC9::FUNC_NAME
 #elif HWY_STATIC_TARGET == HWY_PPC10
 #define HWY_STATIC_DISPATCH(FUNC_NAME) N_PPC10::FUNC_NAME
-#elif HWY_STATIC_TARGET == HWY_Z14
-#define HWY_STATIC_DISPATCH(FUNC_NAME) N_Z14::FUNC_NAME
-#elif HWY_STATIC_TARGET == HWY_Z15
-#define HWY_STATIC_DISPATCH(FUNC_NAME) N_Z15::FUNC_NAME
 #elif HWY_STATIC_TARGET == HWY_SSE2
 #define HWY_STATIC_DISPATCH(FUNC_NAME) N_SSE2::FUNC_NAME
 #elif HWY_STATIC_TARGET == HWY_SSSE3
@@ -116,8 +116,6 @@ namespace hwy {
 #define HWY_STATIC_DISPATCH(FUNC_NAME) N_AVX3_DL::FUNC_NAME
 #elif HWY_STATIC_TARGET == HWY_AVX3_ZEN4
 #define HWY_STATIC_DISPATCH(FUNC_NAME) N_AVX3_ZEN4::FUNC_NAME
-#elif HWY_STATIC_TARGET == HWY_AVX3_SPR
-#define HWY_STATIC_DISPATCH(FUNC_NAME) N_AVX3_SPR::FUNC_NAME
 #endif
 
 // HWY_CHOOSE_*(FUNC_NAME) expands to the function pointer for that target or
@@ -204,18 +202,6 @@ namespace hwy {
 #define HWY_CHOOSE_PPC10(FUNC_NAME) nullptr
 #endif
 
-#if HWY_TARGETS & HWY_Z14
-#define HWY_CHOOSE_Z14(FUNC_NAME) &N_Z14::FUNC_NAME
-#else
-#define HWY_CHOOSE_Z14(FUNC_NAME) nullptr
-#endif
-
-#if HWY_TARGETS & HWY_Z15
-#define HWY_CHOOSE_Z15(FUNC_NAME) &N_Z15::FUNC_NAME
-#else
-#define HWY_CHOOSE_Z15(FUNC_NAME) nullptr
-#endif
-
 #if HWY_TARGETS & HWY_SSE2
 #define HWY_CHOOSE_SSE2(FUNC_NAME) &N_SSE2::FUNC_NAME
 #else
@@ -256,12 +242,6 @@ namespace hwy {
 #define HWY_CHOOSE_AVX3_ZEN4(FUNC_NAME) &N_AVX3_ZEN4::FUNC_NAME
 #else
 #define HWY_CHOOSE_AVX3_ZEN4(FUNC_NAME) nullptr
-#endif
-
-#if HWY_TARGETS & HWY_AVX3_SPR
-#define HWY_CHOOSE_AVX3_SPR(FUNC_NAME) &N_AVX3_SPR::FUNC_NAME
-#else
-#define HWY_CHOOSE_AVX3_SPR(FUNC_NAME) nullptr
 #endif
 
 // MSVC 2017 workaround: the non-type template parameter to ChooseAndCall
@@ -353,7 +333,6 @@ FunctionCache<RetType, Args...> DeduceFunctionCache(RetType (*)(Args...)) {
   HWY_MAYBE_UNUSED static decltype(&HWY_STATIC_DISPATCH(FUNC_NAME)) const \
   HWY_DISPATCH_TABLE(FUNC_NAME)[1] = {&HWY_STATIC_DISPATCH(FUNC_NAME)}
 #define HWY_DYNAMIC_DISPATCH(FUNC_NAME) HWY_STATIC_DISPATCH(FUNC_NAME)
-#define HWY_DYNAMIC_POINTER(FUNC_NAME) &HWY_STATIC_DISPATCH(FUNC_NAME)
 
 #else
 
@@ -390,8 +369,6 @@ FunctionCache<RetType, Args...> DeduceFunctionCache(RetType (*)(Args...)) {
 
 #define HWY_DYNAMIC_DISPATCH(FUNC_NAME) \
   (*(HWY_DISPATCH_TABLE(FUNC_NAME)[hwy::GetChosenTarget().GetIndex()]))
-#define HWY_DYNAMIC_POINTER(FUNC_NAME) \
-  (HWY_DISPATCH_TABLE(FUNC_NAME)[hwy::GetChosenTarget().GetIndex()])
 
 #endif  // HWY_IDE || ((HWY_TARGETS & (HWY_TARGETS - 1)) == 0)
 
@@ -417,15 +394,15 @@ FunctionCache<RetType, Args...> DeduceFunctionCache(RetType (*)(Args...)) {
 #endif
 
 // These define ops inside namespace hwy::HWY_NAMESPACE.
-#if HWY_TARGET == HWY_SSE2 || HWY_TARGET == HWY_SSSE3 || HWY_TARGET == HWY_SSE4
+#if HWY_TARGET == HWY_SSE2 || HWY_TARGET == HWY_SSSE3 || \
+    HWY_TARGET == HWY_SSE4
 #include "hwy/ops/x86_128-inl.h"
 #elif HWY_TARGET == HWY_AVX2
 #include "hwy/ops/x86_256-inl.h"
 #elif HWY_TARGET == HWY_AVX3 || HWY_TARGET == HWY_AVX3_DL || \
-    HWY_TARGET == HWY_AVX3_ZEN4 || HWY_TARGET == HWY_AVX3_SPR
+    HWY_TARGET == HWY_AVX3_ZEN4
 #include "hwy/ops/x86_512-inl.h"
-#elif HWY_TARGET == HWY_Z14 || HWY_TARGET == HWY_Z15 || \
-    HWY_TARGET == HWY_PPC8 || HWY_TARGET == HWY_PPC9 || \
+#elif HWY_TARGET == HWY_PPC8 || HWY_TARGET == HWY_PPC9 || \
     HWY_TARGET == HWY_PPC10
 #include "hwy/ops/ppc_vsx-inl.h"
 #elif HWY_TARGET == HWY_NEON || HWY_TARGET == HWY_NEON_WITHOUT_AES

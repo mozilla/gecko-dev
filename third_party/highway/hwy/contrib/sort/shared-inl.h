@@ -74,10 +74,9 @@ struct SortConstants {
     // The main loop reads kPartitionUnroll vectors, and first loads from
     // both left and right beforehand, so it requires min = 2 *
     // kPartitionUnroll vectors. To handle smaller amounts (only guaranteed
-    // >= BaseCaseNumLanes), we partition up to that much into a buffer. Add
-    // another N because we increase num_here if less than N, and two more
-    // for the final vectors handled via StoreRightAndBuf.
-    return (2 * kPartitionUnroll + 1 + 2) * N;
+    // >= BaseCaseNumLanes), we partition the right side into a buffer. We need
+    // another vector at the end so CompressStore does not overwrite anything.
+    return (2 * kPartitionUnroll + 1) * N;
   }
 
   // Max across the three buffer usages.
@@ -114,9 +113,8 @@ static_assert(SortConstants::MaxBufBytes<2>(64) <= 1280, "Unexpectedly high");
 #endif  // HIGHWAY_HWY_CONTRIB_SORT_SHARED_INL_H_
 
 // Per-target
-// clang-format off
-#if defined(HIGHWAY_HWY_CONTRIB_SORT_SHARED_TOGGLE) == defined(HWY_TARGET_TOGGLE) // NOLINT
-// clang-format on
+#if defined(HIGHWAY_HWY_CONTRIB_SORT_SHARED_TOGGLE) == \
+    defined(HWY_TARGET_TOGGLE)
 #ifdef HIGHWAY_HWY_CONTRIB_SORT_SHARED_TOGGLE
 #undef HIGHWAY_HWY_CONTRIB_SORT_SHARED_TOGGLE
 #else
@@ -126,13 +124,11 @@ static_assert(SortConstants::MaxBufBytes<2>(64) <= 1280, "Unexpectedly high");
 #include "hwy/highway.h"
 
 // vqsort isn't available on HWY_SCALAR, and builds time out on MSVC opt and
-// Armv7 debug, and Armv8 GCC 11 asan hits an internal compiler error likely
-// due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=97696.
+// Armv7 debug.
 #undef VQSORT_ENABLED
 #if (HWY_TARGET == HWY_SCALAR) ||                 \
     (HWY_COMPILER_MSVC && !HWY_IS_DEBUG_BUILD) || \
-    (HWY_ARCH_ARM_V7 && HWY_IS_DEBUG_BUILD) ||    \
-    (HWY_ARCH_ARM_A64 && HWY_COMPILER_GCC_ACTUAL && HWY_IS_ASAN)
+    (HWY_ARCH_ARM_V7 && HWY_IS_DEBUG_BUILD)
 #define VQSORT_ENABLED 0
 #else
 #define VQSORT_ENABLED 1

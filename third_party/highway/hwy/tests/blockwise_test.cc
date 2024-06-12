@@ -13,8 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stddef.h>
-#include <stdint.h>
+#include <string.h>
+
+#include <algorithm>  // std::fill
 
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "tests/blockwise_test.cc"
@@ -36,17 +37,16 @@ struct TestBroadcastR {
     auto in_lanes = AllocateAligned<T>(N);
     auto expected = AllocateAligned<T>(N);
     HWY_ASSERT(in_lanes && expected);
-    ZeroBytes(in_lanes.get(), N * sizeof(T));
+    std::fill(in_lanes.get(), in_lanes.get() + N, T(0));
     const size_t blockN = HWY_MIN(N * sizeof(T), 16) / sizeof(T);
     // Need to set within each 128-bit block
     for (size_t block = 0; block < N; block += blockN) {
-      in_lanes[block + kLane] = ConvertScalarTo<T>(block + 1);
+      in_lanes[block + kLane] = static_cast<T>(block + 1);
     }
-    PreventElision(in_lanes[0]);  // workaround for f16x1 failure
     const auto in = Load(d, in_lanes.get());
     for (size_t block = 0; block < N; block += blockN) {
       for (size_t i = 0; i < blockN; ++i) {
-        expected[block + i] = ConvertScalarTo<T>(block + 1);
+        expected[block + i] = T(block + 1);
       }
     }
     HWY_ASSERT_VEC_EQ(d, expected.get(), Broadcast<kLane>(in));
@@ -68,7 +68,11 @@ struct TestBroadcast {
 };
 
 HWY_NOINLINE void TestAllBroadcast() {
-  ForAllTypes(ForPartialVectors<TestBroadcast>());
+  const ForPartialVectors<TestBroadcast> test;
+  // No u/i8.
+  test(uint16_t());
+  test(int16_t());
+  ForUIF3264(test);
 }
 
 template <bool kFull>
@@ -97,9 +101,9 @@ struct TestTableLookupBytes {
     const size_t N8 = Lanes(d8);
 
     auto in_bytes = AllocateAligned<uint8_t>(NT8);
-    auto indices = AllocateAligned<T>(N8);
+    auto index_bytes = AllocateAligned<uint8_t>(N8);
     auto expected = AllocateAligned<T>(N);
-    HWY_ASSERT(in_bytes && indices && expected);
+    HWY_ASSERT(in_bytes && index_bytes && expected);
 
     // Random input bytes
     for (size_t i = 0; i < NT8; ++i) {
@@ -115,13 +119,12 @@ struct TestTableLookupBytes {
         11, 10, 3, 4, 5,  8,  7,  6,  14, 13, 12, 15, 2,  1,  2,  0,
         4,  3,  2, 2, 5,  6,  7,  7,  15, 15, 15, 15, 15, 15, 0,  1};
     const size_t max_index = HWY_MIN(NT8, 16) - 1;
-    uint8_t* index_bytes = reinterpret_cast<uint8_t*>(indices.get());
     for (size_t i = 0; i < N8; ++i) {
       index_bytes[i] = (i < 64) ? index_bytes_source[i] : 0;
       // Avoid asan error for partial vectors.
       index_bytes[i] = static_cast<uint8_t>(HWY_MIN(index_bytes[i], max_index));
     }
-    const Vec<D> indices_v = Load(d, indices.get());
+    const auto indices = Load(d, reinterpret_cast<const T*>(index_bytes.get()));
 
     uint8_t* expected_bytes = reinterpret_cast<uint8_t*>(expected.get());
 
@@ -138,7 +141,7 @@ struct TestTableLookupBytes {
             in_bytes[(block + index) % HWY_MIN(NT8, 256)];
       }
     }
-    HWY_ASSERT_VEC_EQ(d, expected.get(), TableLookupBytes(in, indices_v));
+    HWY_ASSERT_VEC_EQ(d, expected.get(), TableLookupBytes(in, indices));
 
     // Individually test zeroing each byte position.
     for (size_t i = 0; i < N8; ++i) {
@@ -150,8 +153,9 @@ struct TestTableLookupBytes {
       HWY_ASSERT(0x80 <= idx && idx < 256);
       index_bytes[i] = static_cast<uint8_t>(idx);
 
-      const Vec<D> indices_v = Load(d, indices.get());
-      HWY_ASSERT_VEC_EQ(d, expected.get(), TableLookupBytesOr0(in, indices_v));
+      const auto indices =
+          Load(d, reinterpret_cast<const T*>(index_bytes.get()));
+      HWY_ASSERT_VEC_EQ(d, expected.get(), TableLookupBytesOr0(in, indices));
       expected_bytes[i] = prev_expected;
       index_bytes[i] = prev_index;
     }
@@ -181,8 +185,8 @@ struct TestInterleaveLower {
     auto expected = AllocateAligned<T>(N);
     HWY_ASSERT(even_lanes && odd_lanes && expected);
     for (size_t i = 0; i < N; ++i) {
-      even_lanes[i] = ConvertScalarTo<T>(2 * i + 0);
-      odd_lanes[i] = ConvertScalarTo<T>(2 * i + 1);
+      even_lanes[i] = static_cast<T>(2 * i + 0);
+      odd_lanes[i] = static_cast<T>(2 * i + 1);
     }
     const auto even = Load(d, even_lanes.get());
     const auto odd = Load(d, odd_lanes.get());
@@ -191,7 +195,7 @@ struct TestInterleaveLower {
     for (size_t i = 0; i < Lanes(d); ++i) {
       const size_t block = i / blockN;
       const size_t index = (i % blockN) + block * 2 * blockN;
-      expected[i] = ConvertScalarTo<T>(index & LimitsMax<TU>());
+      expected[i] = static_cast<T>(index & LimitsMax<TU>());
     }
     HWY_ASSERT_VEC_EQ(d, expected.get(), InterleaveLower(even, odd));
     HWY_ASSERT_VEC_EQ(d, expected.get(), InterleaveLower(d, even, odd));
@@ -208,8 +212,8 @@ struct TestInterleaveUpper {
     auto expected = AllocateAligned<T>(N);
     HWY_ASSERT(even_lanes && odd_lanes && expected);
     for (size_t i = 0; i < N; ++i) {
-      even_lanes[i] = ConvertScalarTo<T>(2 * i + 0);
-      odd_lanes[i] = ConvertScalarTo<T>(2 * i + 1);
+      even_lanes[i] = static_cast<T>(2 * i + 0);
+      odd_lanes[i] = static_cast<T>(2 * i + 1);
     }
     const auto even = Load(d, even_lanes.get());
     const auto odd = Load(d, odd_lanes.get());
@@ -217,8 +221,7 @@ struct TestInterleaveUpper {
     const size_t blockN = HWY_MIN(16 / sizeof(T), N);
     for (size_t i = 0; i < Lanes(d); ++i) {
       const size_t block = i / blockN;
-      expected[i] =
-          ConvertScalarTo<T>((i % blockN) + block * 2 * blockN + blockN);
+      expected[i] = T((i % blockN) + block * 2 * blockN + blockN);
     }
     HWY_ASSERT_VEC_EQ(d, expected.get(), InterleaveUpper(d, even, odd));
   }
@@ -244,8 +247,8 @@ struct TestZipLower {
     HWY_ASSERT(even_lanes && odd_lanes && zip_lanes);
     const T kMaxT = LimitsMax<T>();
     for (size_t i = 0; i < N; ++i) {
-      even_lanes[i] = ConvertScalarTo<T>((2 * i + 0) & kMaxT);
-      odd_lanes[i] = ConvertScalarTo<T>((2 * i + 1) & kMaxT);
+      even_lanes[i] = static_cast<T>((2 * i + 0) & kMaxT);
+      odd_lanes[i] = static_cast<T>((2 * i + 1) & kMaxT);
     }
     const auto even = Load(d, even_lanes.get());
     const auto odd = Load(d, odd_lanes.get());
@@ -272,23 +275,15 @@ struct TestZipLower {
   }
 };
 
-#if HWY_TARGET == HWY_SCALAR
-template <class Test>
-using ForZipToWideVectors = ForPartialVectors<Test>;
-#else
-template <class Test>
-using ForZipToWideVectors = ForShrinkableVectors<Test>;
-#endif
-
 HWY_NOINLINE void TestAllZipLower() {
-  const ForZipToWideVectors<TestZipLower> lower_unsigned;
+  const ForDemoteVectors<TestZipLower> lower_unsigned;
   lower_unsigned(uint8_t());
   lower_unsigned(uint16_t());
 #if HWY_HAVE_INTEGER64
   lower_unsigned(uint32_t());  // generates u64
 #endif
 
-  const ForZipToWideVectors<TestZipLower> lower_signed;
+  const ForDemoteVectors<TestZipLower> lower_signed;
   lower_signed(int8_t());
   lower_signed(int16_t());
 #if HWY_HAVE_INTEGER64
@@ -319,8 +314,8 @@ struct TestZipUpper {
     HWY_ASSERT(even_lanes && odd_lanes && zip_lanes);
     const T kMaxT = LimitsMax<T>();
     for (size_t i = 0; i < N; ++i) {
-      even_lanes[i] = ConvertScalarTo<T>((2 * i + 0) & kMaxT);
-      odd_lanes[i] = ConvertScalarTo<T>((2 * i + 1) & kMaxT);
+      even_lanes[i] = static_cast<T>((2 * i + 0) & kMaxT);
+      odd_lanes[i] = static_cast<T>((2 * i + 1) & kMaxT);
     }
     const auto even = Load(d, even_lanes.get());
     const auto odd = Load(d, odd_lanes.get());
@@ -389,10 +384,10 @@ class TestSpecialShuffle32 {
     auto expected = AllocateAligned<T>(N);
     HWY_ASSERT(expected);
     for (size_t block = 0; block < N; block += kBlockN) {
-      expected[block + 3] = ConvertScalarTo<T>(block + i3);
-      expected[block + 2] = ConvertScalarTo<T>(block + i2);
-      expected[block + 1] = ConvertScalarTo<T>(block + i1);
-      expected[block + 0] = ConvertScalarTo<T>(block + i0);
+      expected[block + 3] = static_cast<T>(block + i3);
+      expected[block + 2] = static_cast<T>(block + i2);
+      expected[block + 1] = static_cast<T>(block + i1);
+      expected[block + 0] = static_cast<T>(block + i0);
     }
     AssertVecEqual(d, expected.get(), actual, filename, line);
   }
@@ -420,8 +415,8 @@ class TestSpecialShuffle64 {
     auto expected = AllocateAligned<T>(N);
     HWY_ASSERT(expected);
     for (size_t block = 0; block < N; block += kBlockN) {
-      expected[block + 1] = ConvertScalarTo<T>(block + i1);
-      expected[block + 0] = ConvertScalarTo<T>(block + i0);
+      expected[block + 1] = static_cast<T>(block + i1);
+      expected[block + 0] = static_cast<T>(block + i0);
     }
     AssertVecEqual(d, expected.get(), actual, filename, line);
   }

@@ -12,7 +12,6 @@
 #include <jxl/memory_manager.h>
 
 #include <cstddef>
-#include <cstdint>
 #include <hwy/aligned_allocator.h>
 
 #include "lib/jxl/ac_strategy.h"
@@ -27,12 +26,10 @@
 namespace jxl {
 
 struct AuxOut;
-enum class LayerType : uint8_t;
 class Quantizer;
 
 void ColorCorrelationEncodeDC(const ColorCorrelation& color_correlation,
-                              BitWriter* writer, LayerType layer,
-                              AuxOut* aux_out);
+                              BitWriter* writer, size_t layer, AuxOut* aux_out);
 
 struct CfLHeuristics {
   Status Init(JxlMemoryManager* memory_manager, const Rect& rect);

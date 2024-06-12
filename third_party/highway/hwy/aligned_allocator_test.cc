@@ -25,8 +25,6 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "hwy/base.h"
-#include "hwy/per_target.h"
 
 namespace {
 
@@ -220,7 +218,7 @@ TEST(AlignedAllocatorTest, AllocMultipleInt) {
   for (size_t i = 0; i < kSize; i++) {
     // Performs a computation using ptr[] to prevent it being optimized away.
     ptr[i] = static_cast<uint32_t>(i);
-    if (i) ret += static_cast<size_t>(ptr[i]) * ptr[i - 1];
+    if (i) ret += ptr[i] * ptr[i - 1];
   }
   EXPECT_NE(0U, ret);
 }
@@ -278,155 +276,5 @@ TEST(AlignedAllocatorTest, DefaultInit) {
   EXPECT_EQ((addr1 >> (kBits - 1)) >> (kBits - 1),
             (addr2 >> (kBits - 1)) >> (kBits - 1));
 }
-
-namespace {
-
-using std::array;
-using std::vector;
-
-template <typename T>
-void CheckEqual(const T& t1, const T& t2) {
-  EXPECT_EQ(t1.size(), t2.size());
-  for (size_t i = 0; i < t1.size(); i++) {
-    EXPECT_EQ(t1[i], t2[i]) << "i=" << i;
-  }
-}
-
-template <typename T>
-void CheckEqual(const AlignedNDArray<T, 1>& a, const vector<T>& v) {
-  const array<size_t, 1> want_shape({v.size()});
-  const array<size_t, 1> got_shape = a.shape();
-  CheckEqual(got_shape, want_shape);
-
-  Span<const T> a_span = a[{}];
-  EXPECT_EQ(a_span.size(), v.size());
-  for (size_t i = 0; i < a_span.size(); i++) {
-    EXPECT_EQ(a_span[i], v[i]) << "i=" << i;
-    EXPECT_EQ(*(a_span.data() + i), v[i]) << "i=" << i;
-  }
-}
-
-template <typename T>
-void CheckEqual(const AlignedNDArray<T, 2>& a, const vector<vector<T>>& v) {
-  const array<size_t, 2> want_shape({v.size(), v[1].size()});
-  for (const vector<T>& row : v) {
-    EXPECT_EQ(row.size(), want_shape[1]);
-  }
-  const std::array<size_t, 2> got_shape = a.shape();
-  CheckEqual(got_shape, want_shape);
-
-  EXPECT_EQ(a.size(), want_shape[0] * want_shape[1]);
-
-  for (size_t row_index = 0; row_index < v.size(); ++row_index) {
-    vector<T> want_row = v[row_index];
-    Span<const T> got_row = a[{row_index}];
-    EXPECT_EQ(got_row.size(), want_row.size()) << "row_index=" << row_index;
-    for (size_t column_index = 0; column_index < got_row.size();
-         column_index++) {
-      EXPECT_EQ(a[{row_index}][column_index], want_row[column_index])
-          << "row_index=" << row_index << ", column_index=" << column_index;
-      EXPECT_EQ(got_row[column_index], want_row[column_index])
-          << "row_index=" << row_index << ", column_index=" << column_index;
-      EXPECT_EQ(*(a[{row_index}].data() + column_index), want_row[column_index])
-          << "row_index=" << row_index << ", column_index=" << column_index;
-    }
-  }
-}
-
-TEST(AlignedAllocatorTest, AlignedNDArray) {
-  AlignedNDArray<float, 1> a1({4});
-  CheckEqual(a1, {0, 0, 0, 0});
-  a1[{}][2] = 3.4f;
-  CheckEqual(a1, {0, 0, 3.4f, 0});
-
-  AlignedNDArray<float, 2> a2({2, 3});
-  CheckEqual(a2, {{0, 0, 0}, {0, 0, 0}});
-  a2[{1}][1] = 5.1f;
-  CheckEqual(a2, {{0, 0, 0}, {0, 5.1f, 0}});
-  float f0[] = {1.0f, 2.0f, 3.0f};
-  float f1[] = {4.0f, 5.0f, 6.0f};
-  hwy::CopyBytes(f0, a2[{0}].data(), 3 * sizeof(float));
-  hwy::CopyBytes(f1, a2[{1}].data(), 3 * sizeof(float));
-  CheckEqual(a2, {{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}});
-}
-
-// Tests that each innermost row in an AlignedNDArray is aligned to the max
-// bytes available for SIMD operations on this architecture.
-TEST(AlignedAllocatorTest, AlignedNDArrayAlignment) {
-  AlignedNDArray<float, 4> a({3, 3, 3, 3});
-  for (size_t d0 = 0; d0 < a.shape()[0]; d0++) {
-    for (size_t d1 = 0; d1 < a.shape()[1]; d1++) {
-      for (size_t d2 = 0; d2 < a.shape()[2]; d2++) {
-        // Check that the address this innermost array starts at is an even
-        // number of VectorBytes(), which is the max bytes available for SIMD
-        // operations.
-        EXPECT_EQ(
-            reinterpret_cast<uintptr_t>(a[{d0, d1, d2}].data()) % VectorBytes(),
-            0);
-      }
-    }
-  }
-}
-
-TEST(AlignedAllocatorTest, SpanCopyAssignment) {
-  AlignedNDArray<float, 2> a({2, 2});
-  CheckEqual(a, {{0.0f, 0.0f}, {0.0f, 0.0f}});
-  a[{0}] = {1.0f, 2.0f};
-  a[{1}] = {3.0f, 4.0f};
-  CheckEqual(a, {{1.0f, 2.0f}, {3.0f, 4.0f}});
-}
-
-TEST(AlignedAllocatorTest, AlignedNDArrayTruncate) {
-  AlignedNDArray<size_t, 4> a({8, 8, 8, 8});
-  const size_t last_axis_memory_shape = a.memory_shape()[3];
-  const auto compute_value = [&](const std::array<size_t, 4>& index) {
-    return index[0] * 8 * 8 * 8 + index[1] * 8 * 8 + index[2] * 8 * 8 +
-           index[3];
-  };
-  for (size_t axis0 = 0; axis0 < a.shape()[0]; ++axis0) {
-    for (size_t axis1 = 0; axis1 < a.shape()[1]; ++axis1) {
-      for (size_t axis2 = 0; axis2 < a.shape()[2]; ++axis2) {
-        for (size_t axis3 = 0; axis3 < a.shape()[3]; ++axis3) {
-          a[{axis0, axis1, axis2}][axis3] =
-              compute_value({axis0, axis1, axis2, axis3});
-        }
-      }
-    }
-  }
-  const auto verify_values = [&](const AlignedNDArray<size_t, 4>& array) {
-    for (size_t axis0 = 0; axis0 < array.shape()[0]; ++axis0) {
-      for (size_t axis1 = 0; axis1 < array.shape()[1]; ++axis1) {
-        for (size_t axis2 = 0; axis2 < array.shape()[2]; ++axis2) {
-          for (size_t axis3 = 0; axis3 < array.shape()[3]; ++axis3) {
-            EXPECT_EQ((array[{axis0, axis1, axis2}][axis3]),
-                      (compute_value({axis0, axis1, axis2, axis3})));
-          }
-        }
-      }
-    }
-  };
-  a.truncate({7, 7, 7, 7});
-  EXPECT_EQ(a.shape()[0], 7);
-  EXPECT_EQ(a.shape()[1], 7);
-  EXPECT_EQ(a.shape()[2], 7);
-  EXPECT_EQ(a.shape()[3], 7);
-  EXPECT_EQ(a.memory_shape()[0], 8);
-  EXPECT_EQ(a.memory_shape()[1], 8);
-  EXPECT_EQ(a.memory_shape()[2], 8);
-  EXPECT_EQ(a.memory_shape()[3], last_axis_memory_shape);
-  verify_values(a);
-  a.truncate({6, 5, 4, 3});
-  EXPECT_EQ(a.shape()[0], 6);
-  EXPECT_EQ(a.shape()[1], 5);
-  EXPECT_EQ(a.shape()[2], 4);
-  EXPECT_EQ(a.shape()[3], 3);
-  EXPECT_EQ(a.memory_shape()[0], 8);
-  EXPECT_EQ(a.memory_shape()[1], 8);
-  EXPECT_EQ(a.memory_shape()[2], 8);
-  EXPECT_EQ(a.memory_shape()[3], last_axis_memory_shape);
-  verify_values(a);
-}
-
-}  // namespace
 
 }  // namespace hwy
