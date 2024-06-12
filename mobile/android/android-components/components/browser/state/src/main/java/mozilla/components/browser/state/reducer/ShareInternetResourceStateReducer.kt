@@ -10,10 +10,10 @@ import mozilla.components.browser.state.state.BrowserState
 internal object ShareInternetResourceStateReducer {
     fun reduce(state: BrowserState, action: ShareInternetResourceAction): BrowserState {
         return when (action) {
-            is ShareInternetResourceAction.AddShareAction -> updateTheContentState(state, action.tabId) {
+            is ShareInternetResourceAction.AddShareAction -> updateContentState(state, action.tabId) {
                 it.copy(share = action.internetResource)
             }
-            is ShareInternetResourceAction.ConsumeShareAction -> updateTheContentState(state, action.tabId) {
+            is ShareInternetResourceAction.ConsumeShareAction -> updateContentState(state, action.tabId) {
                 it.copy(share = null)
             }
         }

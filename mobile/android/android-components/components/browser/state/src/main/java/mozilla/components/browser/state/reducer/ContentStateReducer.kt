@@ -344,7 +344,7 @@ private inline fun updatePermissionHighlightsState(
     }
 }
 
-private inline fun updateContentState(
+internal inline fun updateContentState(
     state: BrowserState,
     tabId: String,
     crossinline update: (ContentState) -> ContentState,
