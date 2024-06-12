@@ -100,6 +100,13 @@ support-files = ["early_hint_preload_test_helper.sys.mjs",]
 ["browser_103_error.js"]
 support-files = ["early_hint_preload_test_helper.sys.mjs",]
 
+["browser_103_http_v1_1_preload.js"]
+support-files = ["early_hint_preload_test_helper.sys.mjs",]
+skip-if = [
+  "http3",
+  "http2",
+]
+
 ["browser_103_no_cancel_on_error.js"]
 support-files = ["early_hint_preload_test_helper.sys.mjs",]
 
@@ -138,6 +145,8 @@ skip-if = [
   "os == 'android'", # MultiInstanceLock doesn't work on Android
   "os == 'mac'", # intermittent TV timeouts on Mac
 ]
+
+["browser_bug968273.js"]
 
 ["browser_bug1535877.js"]
 
@@ -196,5 +205,3 @@ support-files = [
 ]
 
 ["browser_test_offline_tab.js"]
-
-["browser_bug968273.js"]
