@@ -231,6 +231,18 @@ void InternalRequest::ToIPCInternalRequest(
     aIPCRequest->principalInfo() = Some(*mPrincipalInfo);
   }
 
+  if (mInterceptionTriggeringPrincipalInfo) {
+    aIPCRequest->interceptionTriggeringPrincipalInfo() =
+        Some(*mInterceptionTriggeringPrincipalInfo);
+    aIPCRequest->interceptionContentPolicyType() =
+        mInterceptionContentPolicyType;
+    if (!mInterceptionRedirectChain.IsEmpty()) {
+      aIPCRequest->interceptionRedirectChain().Assign(
+          mInterceptionRedirectChain);
+    }
+    aIPCRequest->interceptionFromThirdParty() = mInterceptionFromThirdParty;
+  }
+
   if (mBodyStream) {
     nsCOMPtr<nsIInputStream> body = mBodyStream;
     aIPCRequest->body().emplace(ChildToParentStream());
