@@ -30,19 +30,15 @@
 #  pragma warning(pop)
 #endif
 
-#include "nsServiceManagerUtils.h"
 #include "nsIInputStream.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
-#include "mozilla/Services.h"
 #include "mozilla/Sprintf.h"
 #include "nsProxyRelease.h"
 #include "nsThread.h"
 #include "nsThreadUtils.h"
 #include "nsNetUtil.h"
-#include "nsNetCID.h"
 #include "mozilla/Components.h"
-#include "mozilla/RandomNum.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/Unused.h"
@@ -56,6 +52,7 @@
 #endif
 
 #include "DataChannel.h"
+#include "DataChannelLog.h"
 #include "DataChannelProtocol.h"
 
 // Let us turn on and off important assertions in non-debug builds
@@ -3084,6 +3081,31 @@ RefPtr<DataChannel> DataChannelConnection::Channels::GetNextChannel(
     index = 0;
   }
   return mChannels[index];
+}
+
+DataChannel::DataChannel(DataChannelConnection* connection, uint16_t stream,
+                         DataChannelState state, const nsACString& label,
+                         const nsACString& protocol,
+                         DataChannelReliabilityPolicy policy, uint32_t value,
+                         bool ordered, bool negotiated,
+                         DataChannelListener* aListener, nsISupports* aContext)
+    : mListener(aListener),
+      mContext(aContext),
+      mConnection(connection),
+      mLabel(label),
+      mProtocol(protocol),
+      mReadyState(state),
+      mStream(stream),
+      mPrPolicy(policy),
+      mPrValue(value),
+      mNegotiated(negotiated),
+      mOrdered(ordered),
+      mIsRecvBinary(false),
+      mBufferedThreshold(0),  // default from spec
+      mBufferedAmount(0),
+      mMainThreadEventTarget(connection->GetNeckoTarget()),
+      mStatsLock("netwer::sctp::DataChannel::mStatsLock") {
+  NS_ASSERTION(mConnection, "NULL connection");
 }
 
 DataChannel::~DataChannel() {

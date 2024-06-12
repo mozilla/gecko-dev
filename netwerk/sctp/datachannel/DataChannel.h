@@ -24,7 +24,6 @@
 #include "DataChannelProtocol.h"
 #include "DataChannelListener.h"
 #include "mozilla/net/NeckoTargetHolder.h"
-#include "DataChannelLog.h"
 
 #include "transport/sigslot.h"
 #include "transport/transportlayer.h"  // For TransportLayer::State
@@ -72,7 +71,7 @@ class OutgoingMsg {
 
  protected:
   OutgoingMsg()  // Use this for inheritance only
-      : mLength(0), mData(nullptr), mInfo(nullptr), mPos(0){};
+      : mLength(0), mData(nullptr), mInfo(nullptr), mPos(0) {};
   size_t mLength;
   const uint8_t* mData;
   struct sctp_sendv_spa* mInfo;
@@ -437,25 +436,7 @@ class DataChannel {
               DataChannelState state, const nsACString& label,
               const nsACString& protocol, DataChannelReliabilityPolicy policy,
               uint32_t value, bool ordered, bool negotiated,
-              DataChannelListener* aListener, nsISupports* aContext)
-      : mListener(aListener),
-        mContext(aContext),
-        mConnection(connection),
-        mLabel(label),
-        mProtocol(protocol),
-        mReadyState(state),
-        mStream(stream),
-        mPrPolicy(policy),
-        mPrValue(value),
-        mNegotiated(negotiated),
-        mOrdered(ordered),
-        mIsRecvBinary(false),
-        mBufferedThreshold(0),  // default from spec
-        mBufferedAmount(0),
-        mMainThreadEventTarget(connection->GetNeckoTarget()),
-        mStatsLock("netwer::sctp::DataChannel::mStatsLock") {
-    NS_ASSERTION(mConnection, "NULL connection");
-  }
+              DataChannelListener* aListener, nsISupports* aContext);
   DataChannel(const DataChannel&) = delete;
   DataChannel(DataChannel&&) = delete;
   DataChannel& operator=(const DataChannel&) = delete;
