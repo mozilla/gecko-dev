@@ -14,6 +14,10 @@ add_task(async function test_sidebar_hidden_on_popup() {
   const { document } = win;
 
   const sidebar = document.getElementById("sidebar-main");
+  await BrowserTestUtils.waitForCondition(
+    () => BrowserTestUtils.isVisible(sidebar),
+    "Sidebar is visible"
+  );
   is(sidebar.hidden, false, "Sidebar is shown initially");
 
   let privateTab = win.gBrowser.selectedBrowser;
