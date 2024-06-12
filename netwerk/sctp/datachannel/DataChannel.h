@@ -84,8 +84,8 @@ class OutgoingMsg {
 class BufferedOutgoingMsg : public OutgoingMsg {
  public:
   explicit BufferedOutgoingMsg(OutgoingMsg& msg);
-  BufferedOutgoingMsg(BufferedOutgoingMsg&& other) = default;
-  BufferedOutgoingMsg& operator=(BufferedOutgoingMsg&& other) = default;
+  BufferedOutgoingMsg(BufferedOutgoingMsg&& other) = delete;
+  BufferedOutgoingMsg& operator=(BufferedOutgoingMsg&& other) = delete;
   ~BufferedOutgoingMsg();
 };
 
@@ -99,8 +99,8 @@ class QueuedDataMessage {
     mData = static_cast<uint8_t*>(moz_xmalloc((size_t)length));  // infallible
     memcpy(mData, data, (size_t)length);
   }
-  QueuedDataMessage(QueuedDataMessage&& other) = default;
-  QueuedDataMessage& operator=(QueuedDataMessage&& other) = default;
+  QueuedDataMessage(QueuedDataMessage&& other) = delete;
+  QueuedDataMessage& operator=(QueuedDataMessage&& other) = delete;
   ~QueuedDataMessage() { free(mData); }
 
   uint16_t mStream;
