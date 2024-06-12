@@ -215,11 +215,16 @@ virtualized-list {
 
     &.section {
       font-size: larger;
+      overflow: hidden;
+      display: flex;
+      min-width: 0;
 
       > .label {
         display: inline-block;
         margin: 0;
         color: unset;
+        margin-inline: 8px;
+        align-content: start;
       }
 
       > .value {
@@ -228,6 +233,8 @@ virtualized-list {
         font-size: smaller;
         color: var(--text-color-deemphasized);
         user-select: unset;
+        align-content: end;
+        flex-grow: 1;
       }
     }
   }
