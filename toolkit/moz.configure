@@ -3553,9 +3553,14 @@ with only_when(target_has_linux_kernel & compile_environment):
 
     set_config("MOZ_LINKER", True, when="MOZ_LINKER")
     set_define("MOZ_LINKER", True, when="MOZ_LINKER")
-    add_old_configure_assignment("MOZ_LINKER", True, when="MOZ_LINKER")
 
     moz_linker = depends(when="MOZ_LINKER")(lambda: True)
+
+    # gold emits wrong sysv-style elf hash tables when building both sysv and
+    # GNU style tables. https://sourceware.org/bugzilla/show_bug.cgi?id=13597
+    # Since the linker only understands the sysv ones, no need to build the
+    # GNU style tables anyways.
+    check_and_add_linker_flag("-Wl,--hash-style=sysv", when=moz_linker)
 
 
 # 32-bits ethtool_cmd.speed

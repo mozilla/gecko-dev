@@ -480,14 +480,6 @@ if test "$CC_TYPE" != clang-cl ; then
   TARGET_COMPILER_ABI="${TARGET_COMPILER_ABI-${ARM_ABI_PREFIX}gcc3}"
 fi
 
-if test -n "$MOZ_LINKER"; then
-dnl gold emits wrong sysv-style elf hash tables when building both sysv and
-dnl style tables. https://sourceware.org/bugzilla/show_bug.cgi?id=13597
-dnl Since the linker only understands the sysv ones, no need to build the
-dnl gnu style tables anyways.
-  LDFLAGS="$LDFLAGS -Wl,--hash-style=sysv"
-fi
-
 dnl End of C++ language/feature checks
 AC_LANG_C
 
