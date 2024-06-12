@@ -22,23 +22,17 @@ class ContextMenuSnackbarDelegate(private val view: View) : SnackbarDelegate {
         @StringRes action: Int,
         listener: ((v: View) -> Unit)?,
     ) {
-        if (listener != null && action != 0) {
-            FenixSnackbar.make(
-                view = view,
-                duration = FenixSnackbar.LENGTH_SHORT,
-                isDisplayedWithBrowserToolbar = true,
-            )
-                .setText(view.context.getString(text))
-                .setAction(view.context.getString(action)) { listener.invoke(view) }
-                .show()
-        } else {
-            FenixSnackbar.make(
-                view,
-                duration = FenixSnackbar.LENGTH_SHORT,
-                isDisplayedWithBrowserToolbar = true,
-            )
-                .setText(view.context.getString(text))
-                .show()
+        val snackbar = FenixSnackbar.make(
+            view = view,
+            duration = FenixSnackbar.LENGTH_SHORT,
+            isDisplayedWithBrowserToolbar = true,
+        )
+            .setText(view.context.getString(text))
+
+        if (action != 0 && listener != null) {
+            snackbar.setAction(view.context.getString(action)) { listener.invoke(view) }
         }
+
+        snackbar.show()
     }
 }
