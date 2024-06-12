@@ -150,6 +150,7 @@ import org.mozilla.fenix.messaging.MessagingFeature
 import org.mozilla.fenix.microsurvey.ui.MicrosurveyRequestPrompt
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
+import org.mozilla.fenix.search.SearchDialogFragment
 import org.mozilla.fenix.search.toolbar.DefaultSearchSelectorController
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
 import org.mozilla.fenix.tabstray.Page
@@ -512,7 +513,10 @@ class HomeFragment : Fragment() {
     }
 
     private fun reinitializeNavBar() {
-        initializeNavBar(activity = requireActivity() as HomeActivity)
+        initializeNavBar(
+            activity = requireActivity() as HomeActivity,
+            isConfigChange = true,
+        )
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -556,7 +560,10 @@ class HomeFragment : Fragment() {
         IncompleteRedesignToolbarFeature(context.settings()).isEnabled && !context.isLandscape() && !isTablet()
 
     @Suppress("LongMethod")
-    private fun initializeNavBar(activity: HomeActivity) {
+    private fun initializeNavBar(
+        activity: HomeActivity,
+        isConfigChange: Boolean = false,
+    ) {
         val context = requireContext()
         val isToolbarAtBottom = isToolbarAtBottom(context)
 
@@ -641,7 +648,14 @@ class HomeFragment : Fragment() {
                     }
                 }
             },
-        )
+        ).apply {
+            // When HomeFragment is initializing, SearchDialogFragment might already be visible. Navbar and search
+            // dialog positioned at bottom shouldn't be visible at the same time.
+            val searchFragmentAlreadyAdded = parentFragmentManager.fragments.any { it is SearchDialogFragment }
+            val searchFragmentShouldBeAdded = !isConfigChange && bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR)
+            val shouldShowNavbar = !isToolbarAtBottom || !searchFragmentAlreadyAdded && !searchFragmentShouldBeAdded
+            composeView.isVisible = shouldShowNavbar
+        }
 
         bottomToolbarContainerIntegration.set(
             feature = BottomToolbarContainerIntegration(
