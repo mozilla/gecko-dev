@@ -8,7 +8,6 @@ import sys
 import tempfile
 from abc import ABCMeta, abstractmethod, abstractproperty
 from argparse import SUPPRESS, ArgumentParser
-from distutils.util import strtobool
 from itertools import chain
 from shutil import which
 
@@ -71,6 +70,22 @@ SUPPORTED_FLAVORS = list(
     chain.from_iterable([f["aliases"] for f in ALL_FLAVORS.values()])
 )
 CANONICAL_FLAVORS = sorted([f["aliases"][0] for f in ALL_FLAVORS.values()])
+
+
+def strtobool(value: str):
+    # Copied from `mach.util` since `mach.util` is not guaranteed to be available
+    # Reimplementation of distutils.util.strtobool
+    # https://docs.python.org/3.9/distutils/apiref.html#distutils.util.strtobool
+    true_vals = ("y", "yes", "t", "true", "on", "1")
+    false_vals = ("n", "no", "f", "false", "off", "0")
+
+    value = value.lower()
+    if value in true_vals:
+        return 1
+    if value in false_vals:
+        return 0
+
+    raise ValueError(f'Expected one of: {", ".join(true_vals + false_vals)}')
 
 
 def get_default_valgrind_suppression_files():
