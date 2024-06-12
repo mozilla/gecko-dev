@@ -25,6 +25,8 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   [[nodiscard]] bool prepareForAssignment(Kind kind);
 
+  [[nodiscard]] bool emitEnd();
+
  private:
   bool emitCheckDisposeMethod(JS::SymbolCode hint);
 };

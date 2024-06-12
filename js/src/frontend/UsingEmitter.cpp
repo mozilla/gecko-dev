@@ -145,3 +145,11 @@ bool UsingEmitter::prepareForAssignment(Kind kind) {
 
   return true;
 }
+
+bool UsingEmitter::emitEnd() {
+  MOZ_ASSERT(bce_->innermostEmitterScopeNoCheck()->hasDisposables());
+  if (!bce_->emit1(JSOp::DisposeDisposables)) {
+    return false;
+  }
+  return true;
+}

@@ -10,6 +10,7 @@
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/ModuleSharedContext.h"
 #include "frontend/TDZCheckCache.h"
+#include "frontend/UsingEmitter.h"
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
 #include "vm/EnvironmentObject.h"     // ClassBodyLexicalEnvironmentObject
 
@@ -929,7 +930,8 @@ bool EmitterScope::leave(BytecodeEmitter* bce, bool nonLocal) {
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
       if (hasDisposables()) {
-        if (!bce->emit1(JSOp::DisposeDisposables)) {
+        UsingEmitter ue(bce);
+        if (!ue.emitEnd()) {
           return false;
         }
       }

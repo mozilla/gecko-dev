@@ -2469,7 +2469,8 @@ bool BytecodeEmitter::emitScript(ParseNode* body) {
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
   if (emitterScope.hasDisposables()) {
-    if (!emit1(JSOp::DisposeDisposables)) {
+    UsingEmitter ue(this);
+    if (!ue.emitEnd()) {
       return false;
     }
   }

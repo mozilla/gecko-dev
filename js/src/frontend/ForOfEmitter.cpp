@@ -9,6 +9,7 @@
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/EmitterScope.h"
 #include "frontend/ParserAtom.h"  // TaggedParserAtomIndex
+#include "frontend/UsingEmitter.h"
 #include "vm/Opcodes.h"
 #include "vm/StencilEnums.h"  // TryNoteKind
 
@@ -117,10 +118,8 @@ bool ForOfEmitter::emitInitialize(uint32_t forPos) {
         // There also wouldn't be a dispose operation for the environment
         // object recreated for the last iteration, where it leaves the loop
         // before evaluating the body statement.
-        //
-        // TODO: Move the handling of emitting this bytecode to UsingEmitter
-        // (bug 1900756)
-        if (!bce_->emit1(JSOp::DisposeDisposables)) {
+        UsingEmitter ue(bce_);
+        if (!ue.emitEnd()) {
           return false;
         }
       }
