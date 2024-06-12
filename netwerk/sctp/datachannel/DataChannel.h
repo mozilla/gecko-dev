@@ -91,23 +91,14 @@ class BufferedOutgoingMsg : public OutgoingMsg {
 // external negotiation is indicated to us
 class QueuedDataMessage {
  public:
-  QueuedDataMessage(uint16_t stream, uint32_t ppid, int flags, const void* data,
-                    uint32_t length)
-      : mStream(stream), mPpid(ppid), mFlags(flags), mLength(length) {
-    mData = static_cast<uint8_t*>(moz_xmalloc((size_t)length));  // infallible
-    memcpy(mData, data, (size_t)length);
-  }
-  QueuedDataMessage(const QueuedDataMessage& other) = delete;
-  QueuedDataMessage(QueuedDataMessage&& other) = delete;
-  QueuedDataMessage& operator=(const QueuedDataMessage& other) = delete;
-  QueuedDataMessage& operator=(QueuedDataMessage&& other) = delete;
-  ~QueuedDataMessage() { free(mData); }
+  QueuedDataMessage(uint16_t stream, uint32_t ppid, int flags,
+                    const uint8_t* data, uint32_t length)
+      : mStream(stream), mPpid(ppid), mFlags(flags), mData(data, length) {}
 
-  uint16_t mStream;
-  uint32_t mPpid;
-  int mFlags;
-  uint32_t mLength;
-  uint8_t* mData;
+  const uint16_t mStream;
+  const uint32_t mPpid;
+  const int mFlags;
+  const nsTArray<uint8_t> mData;
 };
 
 // One per PeerConnection

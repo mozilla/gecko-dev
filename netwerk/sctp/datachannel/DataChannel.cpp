@@ -1484,11 +1484,11 @@ void DataChannelConnection::DeliverQueuedData(uint16_t stream) {
     mLock.AssertCurrentThreadOwns();
     const bool match = dataItem->mStream == stream;
     if (match) {
-      DC_DEBUG(("Delivering queued data for stream %u, length %u", stream,
-                dataItem->mLength));
+      DC_DEBUG(("Delivering queued data for stream %u, length %zu", stream,
+                dataItem->mData.Length()));
       // Deliver the queued data
-      HandleDataMessage(dataItem->mData, dataItem->mLength, dataItem->mPpid,
-                        dataItem->mStream, dataItem->mFlags);
+      HandleDataMessage(dataItem->mData.Elements(), dataItem->mData.Length(),
+                        dataItem->mPpid, dataItem->mStream, dataItem->mFlags);
     }
     return match;
   });
@@ -1591,8 +1591,8 @@ void DataChannelConnection::HandleDataMessage(const void* data, size_t length,
     // data messages to deliver once the channel opens.
     DC_DEBUG(("Queuing data for stream %u, length %u", stream, data_length));
     // Copies data
-    mQueuedData.AppendElement(
-        new QueuedDataMessage(stream, ppid, flags, data, data_length));
+    mQueuedData.AppendElement(new QueuedDataMessage(
+        stream, ppid, flags, static_cast<const uint8_t*>(data), data_length));
     return;
   }
 
