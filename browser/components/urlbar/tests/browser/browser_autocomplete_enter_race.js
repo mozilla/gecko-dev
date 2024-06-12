@@ -8,11 +8,9 @@
  */
 
 // The order of these tests matters!
-const IS_UPGRADING_SCHEMELESS = SpecialPowers.getBoolPref(
-  "dom.security.https_first_schemeless"
-);
+
 // eslint-disable-next-line @microsoft/sdl/no-insecure-url
-const DEFAULT_URL_SCHEME = IS_UPGRADING_SCHEMELESS ? "https://" : "http://";
+const DEFAULT_URL_SCHEME = "http://";
 
 add_setup(async function () {
   let bm = await PlacesUtils.bookmarks.insert({
@@ -23,6 +21,12 @@ add_setup(async function () {
   registerCleanupFunction(async function () {
     await PlacesUtils.bookmarks.remove(bm);
     await PlacesUtils.history.clear();
+  });
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["dom.security.https_first", false],
+      ["dom.security.https_first_schemeless", false],
+    ],
   });
   // Needs at least one success.
   ok(true, "Setup complete");

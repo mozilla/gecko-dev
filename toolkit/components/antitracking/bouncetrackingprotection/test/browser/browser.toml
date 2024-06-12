@@ -1,6 +1,7 @@
 [DEFAULT]
 head = "head.js"
 prefs = [
+  "dom.security.https_first=false", # Do not upgrade ORIGIN_TRACKER_B, all other origins are already HTTPS
   "privacy.bounceTrackingProtection.enabled=true",
   "privacy.bounceTrackingProtection.enableTestMode=true",
   "privacy.bounceTrackingProtection.bounceTrackingPurgeTimerPeriodSec=0",
@@ -36,6 +37,6 @@ support-files = [
 ["browser_bouncetracking_telemetry_purge_duration.js"]
 
 ["browser_bouncetracking_webAuthUserActivation.js"]
-support-files = [ "!/dom/webauthn/tests/browser/head.js"]
+support-files = ["!/dom/webauthn/tests/browser/head.js"]
 
 ["browser_bouncetracking_telemetry_purge_count.js"]
