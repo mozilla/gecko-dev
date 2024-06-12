@@ -98,6 +98,9 @@ if CONFIG['MOZ_ENABLE_CAIRO_FT']:
     SOURCES += [
         'cairo-ft-font.c',
     ]
+    # Dates back to at least FreeType 2.1, and used without guards elsewhere
+    # in thebes/moz2d code anyhow.
+    DEFINES['HAVE_FT_LOAD_SFNT_TABLE'] = True
 
 SOURCES += [
     'cairo-bentley-ottmann-rectangular.c', # redefinition of '_cairo_bo_trap'
