@@ -79,6 +79,8 @@ skip-if = ["verify"]
 ["browser_pdfjs_stamp_telemetry.js"]
 support-files = ["moz.png"]
 
+["browser_pdfjs_unload_dialog.js"]
+
 ["browser_pdfjs_views.js"]
 
 ["browser_pdfjs_zoom.js"]
