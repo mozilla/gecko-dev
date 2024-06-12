@@ -85,6 +85,20 @@ interface nsITimedChannel : nsISupports {
     return NS_SUCCEEDED(TimingAllowCheck(aOrigin, &allowed)) && allowed;
   }
   %}
+  // Determines if bodyInfo should be opaque to the given origin
+  cenum BodyInfoAccess : 8 {
+    DISALLOWED  = 0,
+    ALLOW_SIZES = 1,
+    ALLOW_ALL   = 2
+  };
+  [noscript] nsITimedChannel_BodyInfoAccess bodyInfoAccessAllowedCheck(in nsIPrincipal origin);
+  %{C++
+  inline BodyInfoAccess BodyInfoAccessAllowedCheck(nsIPrincipal* aOrigin) {
+    BodyInfoAccess allowed = BodyInfoAccess::DISALLOWED;
+    mozilla::Unused << BodyInfoAccessAllowedCheck(aOrigin, &allowed);
+    return allowed;
+  }
+  %}
 
   // Whether this request is render-blocking:
   // https://w3c.github.io/resource-timing/#dom-renderblockingstatustype

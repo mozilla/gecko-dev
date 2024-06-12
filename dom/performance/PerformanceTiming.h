@@ -63,6 +63,8 @@ class PerformanceTimingData final {
 
   uint64_t DecodedBodySize() const { return mDecodedBodySize; }
 
+  const nsString& ContentType() const { return mContentType; }
+
   /**
    * @param   aStamp
    *          The TimeStamp recorded for a specific event. This TimeStamp can
@@ -159,7 +161,12 @@ class PerformanceTimingData final {
   bool ShouldReportCrossOriginRedirect(
       bool aEnsureSameOriginAndIgnoreTAO) const;
 
-  // Cached result of CheckAllowedOrigin. If false, security sensitive
+  // Cached result of CheckBodyInfoAccessAllowedForOrigin.
+  nsITimedChannel::BodyInfoAccess BodyInfoAccessAllowed() const {
+    return mBodyInfoAccessAllowed;
+  }
+
+  // Cached result of CheckTimingAllowedForOrigin. If false, security sensitive
   // attributes of the resourceTiming object will be set to 0
   bool TimingAllowed() const { return mTimingAllowed; }
 
@@ -170,11 +177,19 @@ class PerformanceTimingData final {
   }
 
  private:
+  // Checks if the bodyInfo for Resource and Navigation Timing should be
+  // kept opaque or exposed, per Fetch spec.
+  nsITimedChannel::BodyInfoAccess CheckBodyInfoAccessAllowedForOrigin(
+      nsIHttpChannel* aResourceChannel, nsITimedChannel* aChannel);
+
+  nsIPrincipal* GetLoadingPrincipalForResourceChannel(
+      nsIHttpChannel* aResourceChannel) const;
+
   // Checks if the resource is either same origin as the page that started
   // the load, or if the response contains the Timing-Allow-Origin header
   // with a value of * or matching the domain of the loading Principal
-  bool CheckAllowedOrigin(nsIHttpChannel* aResourceChannel,
-                          nsITimedChannel* aChannel);
+  bool CheckTimingAllowedForOrigin(nsIHttpChannel* aResourceChannel,
+                                   nsITimedChannel* aChannel);
 
   nsTArray<nsCOMPtr<nsIServerTiming>> mServerTiming;
   nsString mNextHopProtocol;
@@ -214,11 +229,16 @@ class PerformanceTimingData final {
 
   RenderBlockingStatusType mRenderBlockingStatus;
 
+  nsString mContentType;
+
   bool mAllRedirectsSameOrigin = false;
 
   bool mAllRedirectsPassTAO = false;
 
   bool mSecureConnection = false;
+
+  nsITimedChannel::BodyInfoAccess mBodyInfoAccessAllowed =
+      nsITimedChannel::BodyInfoAccess::DISALLOWED;
 
   bool mTimingAllowed = false;
 
@@ -458,9 +478,11 @@ struct IPDLParamTraits<mozilla::dom::PerformanceTimingData> {
     WriteIPDLParam(aWriter, aActor, aParam.mTransferSize);
     WriteIPDLParam(aWriter, aActor, aParam.mDecodedBodySize);
     WriteIPDLParam(aWriter, aActor, aParam.mRedirectCount);
+    WriteIPDLParam(aWriter, aActor, aParam.mContentType);
     WriteIPDLParam(aWriter, aActor, aParam.mAllRedirectsSameOrigin);
     WriteIPDLParam(aWriter, aActor, aParam.mAllRedirectsPassTAO);
     WriteIPDLParam(aWriter, aActor, aParam.mSecureConnection);
+    WriteIPDLParam(aWriter, aActor, aParam.mBodyInfoAccessAllowed);
     WriteIPDLParam(aWriter, aActor, aParam.mTimingAllowed);
     WriteIPDLParam(aWriter, aActor, aParam.mInitialized);
   }
@@ -539,6 +561,9 @@ struct IPDLParamTraits<mozilla::dom::PerformanceTimingData> {
     if (!ReadIPDLParam(aReader, aActor, &aResult->mRedirectCount)) {
       return false;
     }
+    if (!ReadIPDLParam(aReader, aActor, &aResult->mContentType)) {
+      return false;
+    }
     if (!ReadIPDLParam(aReader, aActor, &aResult->mAllRedirectsSameOrigin)) {
       return false;
     }
@@ -546,6 +571,9 @@ struct IPDLParamTraits<mozilla::dom::PerformanceTimingData> {
       return false;
     }
     if (!ReadIPDLParam(aReader, aActor, &aResult->mSecureConnection)) {
+      return false;
+    }
+    if (!ReadIPDLParam(aReader, aActor, &aResult->mBodyInfoAccessAllowed)) {
       return false;
     }
     if (!ReadIPDLParam(aReader, aActor, &aResult->mTimingAllowed)) {

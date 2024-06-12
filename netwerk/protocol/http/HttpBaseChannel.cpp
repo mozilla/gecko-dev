@@ -5460,6 +5460,112 @@ HttpBaseChannel::SetAllRedirectsPassTimingAllowCheck(bool aPassesCheck) {
   return NS_OK;
 }
 
+// https://fetch.spec.whatwg.org/#cors-check
+bool HttpBaseChannel::PerformCORSCheck() {
+  // Step 1
+  // Let origin be the result of getting `Access-Control-Allow-Origin`
+  // from response’s header list.
+  nsAutoCString origin;
+  nsresult rv = GetResponseHeader("Access-Control-Allow-Origin"_ns, origin);
+
+  // Step 2
+  // If origin is null, then return failure. (Note: null, not 'null').
+  if (NS_FAILED(rv) || origin.IsVoid()) {
+    return false;
+  }
+
+  // Step 3
+  // If request’s credentials mode is not "include"
+  // and origin is `*`, then return success.
+  uint32_t cookiePolicy = mLoadInfo->GetCookiePolicy();
+  if (cookiePolicy != nsILoadInfo::SEC_COOKIES_INCLUDE &&
+      origin.EqualsLiteral("*")) {
+    return true;
+  }
+
+  // Step 4
+  // If the result of byte-serializing a request origin
+  // with request is not origin, then return failure.
+  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+  nsCOMPtr<nsIPrincipal> resourcePrincipal;
+  rv = ssm->GetChannelURIPrincipal(this, getter_AddRefs(resourcePrincipal));
+  if (NS_FAILED(rv) || !resourcePrincipal) {
+    return false;
+  }
+  nsAutoCString serializedOrigin;
+  nsContentSecurityManager::GetSerializedOrigin(
+      mLoadInfo->TriggeringPrincipal(), resourcePrincipal, serializedOrigin,
+      mLoadInfo);
+  if (!serializedOrigin.Equals(origin)) {
+    return false;
+  }
+
+  // Step 5
+  // If request’s credentials mode is not "include", then return success.
+  if (cookiePolicy != nsILoadInfo::SEC_COOKIES_INCLUDE) {
+    return true;
+  }
+
+  // Step 6
+  // Let credentials be the result of getting
+  // `Access-Control-Allow-Credentials` from response’s header list.
+  nsAutoCString credentials;
+  rv = GetResponseHeader("Access-Control-Allow-Credentials"_ns, credentials);
+
+  // Step 7 and 8
+  // If credentials is `true`, then return success.
+  // (else) return failure.
+  return NS_SUCCEEDED(rv) && credentials.EqualsLiteral("true");
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::BodyInfoAccessAllowedCheck(nsIPrincipal* aOrigin,
+                                            BodyInfoAccess* _retval) {
+  // Per the Fetch spec, https://fetch.spec.whatwg.org/#response-body-info,
+  // the bodyInfo for Resource Timing and Navigation Timing info consists of
+  // encoded size, decoded size, and content type. It is however made opaque
+  // whenever the response is turned into a network error, which sets its
+  // bodyInfo to its default values (sizes=0, content-type="").
+
+  // Case 1:
+  // "no-cors" -> Upon success, fetch will return an opaque filtered response.
+  // An opaque(-redirect) filtered response is a filtered response
+  //   whose ... body info is a new response body info.
+  auto tainting = mLoadInfo->GetTainting();
+  if (tainting == mozilla::LoadTainting::Opaque) {
+    *_retval = BodyInfoAccess::DISALLOWED;
+    return NS_OK;
+  }
+
+  // Case 2:
+  // If request’s response tainting is "cors" and a CORS check for request
+  // and response returns failure, then return a network error.
+  if (tainting == mozilla::LoadTainting::CORS && !PerformCORSCheck()) {
+    *_retval = BodyInfoAccess::DISALLOWED;
+    return NS_OK;
+  }
+
+  // Otherwise:
+  // The fetch response handover, given a fetch params fetchParams
+  //    and a response response, run these steps:
+  // processResponseEndOfBody:
+  // - If fetchParams’s request’s mode is not "navigate" or response’s
+  //   has-cross-origin-redirects is false:
+  //   - Let mimeType be the result of extracting a MIME type from
+  //     response’s header list.
+  //   - If mimeType is not failure, then set bodyInfo’s content type to the
+  //     result of minimizing a supported MIME type given mimeType.
+  dom::RequestMode requestMode;
+  MOZ_ALWAYS_SUCCEEDS(GetRequestMode(&requestMode));
+  if (requestMode != RequestMode::Navigate || LoadAllRedirectsSameOrigin()) {
+    *_retval = BodyInfoAccess::ALLOW_ALL;
+    return NS_OK;
+  }
+
+  *_retval = BodyInfoAccess::ALLOW_SIZES;
+  return NS_OK;
+}
+
 // https://fetch.spec.whatwg.org/#tao-check
 NS_IMETHODIMP
 HttpBaseChannel::TimingAllowCheck(nsIPrincipal* aOrigin, bool* _retval) {
