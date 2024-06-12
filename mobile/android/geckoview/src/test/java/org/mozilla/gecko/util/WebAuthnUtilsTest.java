@@ -6,7 +6,10 @@ package org.mozilla.gecko.util;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.google.android.gms.fido.common.Transport;
 import java.util.Arrays;
+import java.util.List;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -189,5 +192,29 @@ public class WebAuthnUtilsTest {
     final WebAuthnUtils.GetAssertionResponse response =
         WebAuthnUtils.getGetAssertionResponse(responseJSON);
     assertTrue("Not reached", false);
+  }
+
+  @Test
+  public void transportValue() throws Exception {
+    final byte transports = 31;
+
+    final List<Transport> expectedFidoTransports =
+        Arrays.asList(
+            Transport.USB,
+            Transport.NFC,
+            Transport.BLUETOOTH_LOW_ENERGY,
+            Transport.INTERNAL,
+            Transport.HYBRID);
+    assertEquals(
+        "FIDO2's transport should be matched",
+        WebAuthnUtils.getTransportsForByte(transports),
+        expectedFidoTransports);
+
+    final String[] expectedJsonTransports =
+        new String[] {"usb", "nfc", "ble", "internal", "hybrid"};
+    final JSONArray array = WebAuthnUtils.getJSONTransportsForByte(transports);
+    for (int i = 0; i < 5; i++) {
+      assertEquals("JSON's transport should be matched", array.get(i), expectedJsonTransports[i]);
+    }
   }
 }
