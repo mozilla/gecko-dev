@@ -1,6 +1,5 @@
 // See get_content in priority-dependent-content.py
 
-
 function convertSizeToUrgency(size) {
     return Math.round(size / 10 - 1);
 }
@@ -10,6 +9,11 @@ function convertRectToUrgency(rect) {
         throw "not a square";
     }
     return convertSizeToUrgency(rect.width);
+}
+
+function convertDurationToUrgency(duration) {
+    // Duration is not accurate, but floor gives better result than round.
+    return Math.floor(duration * 100 - 1);
 }
 
 function getElementUrgencyFromSize(id) {
