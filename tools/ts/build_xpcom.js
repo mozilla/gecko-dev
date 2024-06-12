@@ -121,7 +121,7 @@ function ts_link(dir, files) {
   lines.push("");
 
   // Include xpcom builtins.
-  lines.push(fs.readFileSync(`${__dirname}/fixtures/intrinsics.d.ts`, "utf8"));
+  lines.push(fs.readFileSync(`${__dirname}/config/intrinsics.d.ts`, "utf8"));
   return lines;
 }
 

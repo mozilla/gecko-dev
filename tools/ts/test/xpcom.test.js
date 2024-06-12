@@ -8,7 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const { ts_link } = require("../build_xpcom.js");
 
-const test_dts = path.join(__dirname, "../fixtures/xpctest.d.ts");
+const test_dts = path.join(__dirname, "baselines/xpctest.d.ts");
 const dir = path.join(__dirname, "../../../xpcom/idl-parser/xpidl/fixtures/");
 const files = ["xpctest.d.json"];
 
