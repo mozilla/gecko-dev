@@ -374,6 +374,10 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   nsContentPolicyType InterceptionContentPolicyType() const {
     return mInterceptionContentPolicyType;
   }
+  RequestDestination InterceptionDestination() const {
+    return MapContentPolicyTypeToRequestDestination(
+        mInterceptionContentPolicyType);
+  }
   void SetInterceptionContentPolicyType(nsContentPolicyType aContentPolicyType);
 
   const nsTArray<RedirectHistoryEntryInfo>& InterceptionRedirectChain() const {
