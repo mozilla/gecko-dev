@@ -96,6 +96,8 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvShowEvent(
   RemoteAccessible* lastParent = this;
   uint64_t lastParentID = 0;
   for (const auto& accData : aNewTree) {
+    // Avoid repeated hash lookups when there are multiple children of the same
+    // parent.
     RemoteAccessible* parent = accData.ParentID() == lastParentID
                                    ? lastParent
                                    : GetAccessible(accData.ParentID());
@@ -109,6 +111,8 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvShowEvent(
       return IPC_OK();
 #endif
     }
+    lastParent = parent;
+    lastParentID = accData.ParentID();
 
     uint32_t childIdx = accData.IndexInParent();
     if (childIdx > parent->ChildCount()) {
