@@ -1899,7 +1899,6 @@ pref("pdfjs.handleOctetStream", true);
 // Is the sidebar positioned ahead of the content browser
 pref("sidebar.position_start", true);
 pref("sidebar.revamp", false);
-pref("sidebar.main.tools", "history,syncedtabs");
 
 pref("browser.ml.chat.enabled", false);
 pref("browser.ml.chat.prompt.prefix", 'I’m on page "%currentTabTitle%" with "%selection|12000%" selected. ');

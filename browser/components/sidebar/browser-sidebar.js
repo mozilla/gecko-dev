@@ -7,12 +7,6 @@
  * dynamically adding menubar menu items for the View -> Sidebar menu,
  * and provides APIs for sidebar extensions, etc.
  */
-const defaultTools = {
-  viewHistorySidebar: "history",
-  viewTabsSidebar: "syncedtabs",
-  viewBookmarksSidebar: "bookmarks",
-};
-
 var SidebarController = {
   makeSidebar({ elementId, ...rest }) {
     return {
@@ -160,7 +154,6 @@ var SidebarController = {
   },
   POSITION_START_PREF: "sidebar.position_start",
   DEFAULT_SIDEBAR_ID: "viewBookmarksSidebar",
-  TOOLS_PREF: "sidebar.main.tools",
 
   // lastOpenedId is set in show() but unlike currentID it's not cleared out on hide
   // and isn't persisted across windows
@@ -639,14 +632,6 @@ var SidebarController = {
       this.toolsAndExtensions.delete(commandID);
       this.toolsAndExtensions.set(commandID, toggledTool);
     }
-    // Tools are persisted via a pref.
-    if (!Object.hasOwn(toggledTool, "extensionId")) {
-      const tools = new Set(this.sidebarRevampTools.split(","));
-      const updatedTools = tools.has(defaultTools[commandID])
-        ? Array.from(tools).filter(tool => tool != defaultTools[commandID])
-        : [...Array.from(tools), defaultTools[commandID]];
-      Services.prefs.setStringPref(this.TOOLS_PREF, updatedTools.join());
-    }
     window.dispatchEvent(new CustomEvent("SidebarItemChanged"));
   },
 
@@ -818,17 +803,19 @@ var SidebarController = {
    * @returns {Array}
    */
   getTools() {
-    return Object.keys(defaultTools).map(commandID => {
+    const toolIds = [
+      "viewHistorySidebar",
+      "viewTabsSidebar",
+      "viewBookmarksSidebar",
+    ];
+    return toolIds.map(commandID => {
       const sidebar = this.sidebars.get(commandID);
-      const disabled = !this.sidebarRevampTools
-        .split(",")
-        .includes(defaultTools[commandID]);
       return {
         commandID,
         view: commandID,
         iconUrl: sidebar.iconUrl,
         l10nId: sidebar.revampL10nId,
-        disabled,
+        disabled: sidebar.disabled ?? false,
       };
     });
   },
@@ -1057,10 +1044,4 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebarRevampEnabled",
   "sidebar.revamp",
   false
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  SidebarController,
-  "sidebarRevampTools",
-  "sidebar.main.tools",
-  "history, syncedtabs"
 );
