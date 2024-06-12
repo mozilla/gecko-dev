@@ -56,6 +56,7 @@ exports.ANIMATION_TYPE_FOR_LONGHANDS = [
       "direction",
       "dominant-baseline",
       "empty-cells",
+      "field-sizing",
       "fill-rule",
       "flex-direction",
       "flex-wrap",
