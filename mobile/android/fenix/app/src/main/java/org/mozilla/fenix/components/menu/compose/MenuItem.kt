@@ -65,50 +65,6 @@ internal fun MenuItem(
 }
 
 /**
- * An [IconListItem] wrapper for menu items in a [MenuGroup] with an optional text button at the end.
- *
- * @param label The label in the menu item.
- * @param beforeIconPainter [Painter] used to display an [Icon] before the list item.
- * @param beforeIconDescription Content description of the icon.
- * @param description An optional description text below the label.
- * @param state The state of the menu item to display.
- * @param onClick Invoked when the user clicks on the item.
- * @param afterButtonText The button text to be displayed after the list item.
- * @param afterButtonTextColor [Color] to apply to [afterButtonText].
- * @param onAfterButtonClick Called when the user clicks on the text button.
- */
-@Composable
-internal fun MenuItem(
-    label: String,
-    beforeIconPainter: Painter,
-    beforeIconDescription: String? = null,
-    description: String? = null,
-    state: MenuItemState = MenuItemState.ENABLED,
-    onClick: (() -> Unit)? = null,
-    afterButtonText: String? = null,
-    afterButtonTextColor: Color = FirefoxTheme.colors.actionPrimary,
-    onAfterButtonClick: (() -> Unit)? = null,
-) {
-    val labelTextColor = getLabelTextColor(state = state)
-    val iconTint = getIconTint(state = state)
-    val enabled = state != MenuItemState.DISABLED
-
-    IconListItem(
-        label = label,
-        labelTextColor = labelTextColor,
-        description = description,
-        enabled = enabled,
-        onClick = onClick,
-        beforeIconPainter = beforeIconPainter,
-        beforeIconDescription = beforeIconDescription,
-        beforeIconTint = iconTint,
-        afterButtonText = afterButtonText,
-        afterButtonTextColor = afterButtonTextColor,
-        onAfterButtonClick = onAfterButtonClick,
-    )
-}
-
-/**
  * Enum containing all the supported state for the menu item.
  */
 enum class MenuItemState {
@@ -179,19 +135,6 @@ private fun MenuItemPreview() {
                         state = state,
                         onClick = {},
                         afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
-                    )
-
-                    Divider(color = FirefoxTheme.colors.borderSecondary)
-                }
-
-                for (state in MenuItemState.entries) {
-                    MenuItem(
-                        label = stringResource(id = R.string.library_bookmarks),
-                        beforeIconPainter = painterResource(id = R.drawable.mozac_ic_bookmark_tray_fill_24),
-                        state = state,
-                        onClick = {},
-                        afterButtonText = stringResource(id = R.string.browser_menu_edit),
-                        onAfterButtonClick = {},
                     )
 
                     Divider(color = FirefoxTheme.colors.borderSecondary)
