@@ -116,11 +116,11 @@ fun TextListItem(
  * an optional [IconButton] at the end.
  *
  * @param label The label in the list item.
+ * @param url Website [url] for which the favicon will be shown.
  * @param modifier [Modifier] to be applied to the layout.
  * @param description An optional description text below the label.
  * @param faviconPainter Optional painter to use when fetching a new favicon is unnecessary.
  * @param onClick Called when the user clicks on the item.
- * @param url Website [url] for which the favicon will be shown.
  * @param iconPainter [Painter] used to display an [IconButton] after the list item.
  * @param iconDescription Content description of the icon.
  * @param onIconClick Called when the user clicks on the icon.
@@ -128,11 +128,11 @@ fun TextListItem(
 @Composable
 fun FaviconListItem(
     label: String,
+    url: String,
     modifier: Modifier = Modifier,
     description: String? = null,
     faviconPainter: Painter? = null,
     onClick: (() -> Unit)? = null,
-    url: String,
     iconPainter: Painter? = null,
     iconDescription: String? = null,
     onIconClick: (() -> Unit)? = null,
@@ -645,19 +645,19 @@ private fun FaviconListItemPreview() {
         Column(Modifier.background(FirefoxTheme.colors.layer1)) {
             FaviconListItem(
                 label = "Favicon + right icon + clicks",
+                url = "",
                 description = "Description text",
                 onClick = { println("list item click") },
-                url = "",
                 iconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
                 onIconClick = { println("icon click") },
             )
 
             FaviconListItem(
                 label = "Favicon + painter",
+                url = "",
                 description = "Description text",
                 faviconPainter = painterResource(id = R.drawable.mozac_ic_collection_24),
                 onClick = { println("list item click") },
-                url = "",
             )
         }
     }
