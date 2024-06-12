@@ -81,6 +81,8 @@ inactive-css-text-wrap-balance-lines-exceeded =
 
 inactive-css-text-wrap-balance-fragmented = <strong>{ $property }</strong> has no effect on this element because it is fragmented, i.e. its content is split across multiple columns or pages.
 
+inactive-css-no-width-height = <strong>{ $property }</strong> has no effect on this element since its width and height cannot be set.
+
 ## In the Rule View when a CSS property cannot be successfully applied we display
 ## an icon. When this icon is hovered this message is displayed to explain how
 ## the problem can be solved. CSS properties and values in <strong> tags should
