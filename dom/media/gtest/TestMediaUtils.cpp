@@ -153,12 +153,15 @@ void DoCreateTicketAfterAppShutdownOffMain() {
   AppShutdown::AdvanceShutdownPhase(ShutdownPhase::AppShutdownTeardown);
   AppShutdown::AdvanceShutdownPhase(ShutdownPhase::AppShutdown);
 
+  nsCOMPtr<nsISerialEventTarget> bg;
+  MOZ_ALWAYS_SUCCEEDS(
+      NS_CreateBackgroundTaskQueue(__func__, getter_AddRefs(bg)));
   UniquePtr<ShutdownBlockingTicket> ticket;
-  MOZ_ALWAYS_SUCCEEDS(NS_DispatchBackgroundTask(
-      MakeAndAddRef<SyncRunnable>(NS_NewRunnableFunction(__func__, [&] {
+  MOZ_ALWAYS_SUCCEEDS(
+      MakeRefPtr<SyncRunnable>(NS_NewRunnableFunction(__func__, [&] {
         ticket = ShutdownBlockingTicket::Create(
             u"Test"_ns, NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__);
-      }))));
+      }))->DispatchToThread(bg));
 
   EXPECT_FALSE(ticket);
 
