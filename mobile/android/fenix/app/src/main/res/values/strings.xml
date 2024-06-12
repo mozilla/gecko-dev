@@ -2609,7 +2609,7 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_5" tools:ignore="UnusedResources">Very Dissatisfied</string>
     <!-- Option for likert scale -->
-    <string name="likert_scale_option_6" tools:ignore="UnusedResources">I don't use it</string>
+    <string name="likert_scale_option_6" tools:ignore="UnusedResources">I don\'t use it</string>
     <!-- Text shown in prompt for homepage microsurvey. 'Firefox' intentionally hardcoded here- -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">How satisfied are you with your Firefox homepage?</string>
     <!-- Accessibility -->
