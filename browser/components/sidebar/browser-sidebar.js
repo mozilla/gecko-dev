@@ -212,11 +212,17 @@ var SidebarController = {
       }
     }
 
+    let mainResizeObserver = new ResizeObserver(async ([entry]) => {
+      let sidebarBox = document.getElementById("sidebar-box");
+      sidebarBox.style.maxWidth = `calc(75vw - ${entry.contentBoxSize[0].inlineSize}px)`;
+    });
+
     if (this.sidebarRevampEnabled) {
       await import("chrome://browser/content/sidebar/sidebar-main.mjs");
       document.getElementById("sidebar-main").hidden = !window.toolbar.visible;
       document.getElementById("sidebar-header").hidden = true;
       this._sidebarMain = document.querySelector("sidebar-main");
+      mainResizeObserver.observe(this._sidebarMain);
     } else {
       this._switcherTarget.addEventListener("command", () => {
         this.toggleSwitcherPanel();

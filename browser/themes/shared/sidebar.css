@@ -14,6 +14,7 @@
   background-color: var(--sidebar-background-color);
   color: var(--sidebar-text-color);
   text-shadow: none;
+  max-width: 75vw;
 
   :root[lwt-sidebar="light"] & {
     color-scheme: light;
