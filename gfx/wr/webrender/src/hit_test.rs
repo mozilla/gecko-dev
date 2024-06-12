@@ -155,9 +155,6 @@ impl HitTestingSceneStats {
     }
 }
 
-#[derive(MallocSizeOf, Debug, Copy, Clone)]
-pub struct ClipNodeIndex(u32);
-
 /// Defines the immutable part of a hit tester for a given scene.
 /// The hit tester is recreated each time a frame is built, since
 /// it relies on the current values of the spatial tree.

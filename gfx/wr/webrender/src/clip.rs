@@ -92,7 +92,7 @@
 //! [segment.rs]: ../segment/index.html
 //!
 
-use api::{BorderRadius, ClipMode, ComplexClipRegion, ImageMask, ClipId, ClipChainId};
+use api::{BorderRadius, ClipMode, ImageMask, ClipId, ClipChainId};
 use api::{BoxShadowClipMode, FillRule, ImageKey, ImageRendering};
 use api::units::*;
 use crate::image_tiling::{self, Repetition};
@@ -1647,23 +1647,6 @@ impl ClipStore {
         } else {
             &[]
         }
-    }
-}
-
-pub struct ComplexTranslateIter<I> {
-    source: I,
-    offset: LayoutVector2D,
-}
-
-impl<I: Iterator<Item = ComplexClipRegion>> Iterator for ComplexTranslateIter<I> {
-    type Item = ComplexClipRegion;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.source
-            .next()
-            .map(|mut complex| {
-                complex.rect = complex.rect.translate(self.offset);
-                complex
-            })
     }
 }
 

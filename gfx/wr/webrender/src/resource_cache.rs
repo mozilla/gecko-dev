@@ -408,9 +408,6 @@ struct Resources {
 // for internal font instances we should change the hash key accordingly.
 pub type GlyphDimensionsCache = FastHashMap<(FontInstanceKey, GlyphIndex), Option<GlyphDimensions>>;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct BlobImageRasterizerEpoch(usize);
-
 /// Internal information about allocated render targets in the pool
 struct RenderTarget {
     size: DeviceIntSize,
