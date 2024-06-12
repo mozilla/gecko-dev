@@ -30,8 +30,8 @@ import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.ktx.android.arch.lifecycle.addObservers
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BaseBrowserFragment
+import org.mozilla.fenix.browser.ContextMenuSnackbarDelegate
 import org.mozilla.fenix.browser.CustomTabContextMenuCandidate
-import org.mozilla.fenix.browser.FenixSnackbarDelegate
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
@@ -274,6 +274,6 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
         context,
         context.components.useCases.contextMenuUseCases,
         view,
-        FenixSnackbarDelegate(view),
+        ContextMenuSnackbarDelegate(view),
     )
 }

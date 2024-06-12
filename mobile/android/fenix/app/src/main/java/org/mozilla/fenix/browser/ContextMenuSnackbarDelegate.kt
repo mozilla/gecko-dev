@@ -9,7 +9,11 @@ import androidx.annotation.StringRes
 import mozilla.components.ui.widgets.SnackbarDelegate
 import org.mozilla.fenix.components.FenixSnackbar
 
-class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
+/**
+ * An implementation of [SnackbarDelegate] used to override the default snackbar behavior for
+ * showing a snackbar from a context menu item.
+ */
+class ContextMenuSnackbarDelegate(private val view: View) : SnackbarDelegate {
 
     override fun show(
         snackBarParentView: View,

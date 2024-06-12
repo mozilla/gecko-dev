@@ -1072,7 +1072,7 @@ abstract class BaseBrowserFragment :
      */
     private fun showSnackbarForClipboardCopy() {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
-            FenixSnackbarDelegate(binding.dynamicSnackbarContainer).show(
+            ContextMenuSnackbarDelegate(binding.dynamicSnackbarContainer).show(
                 snackBarParentView = binding.dynamicSnackbarContainer,
                 text = R.string.snackbar_copy_image_to_clipboard_confirmation,
                 duration = Snackbar.LENGTH_LONG,

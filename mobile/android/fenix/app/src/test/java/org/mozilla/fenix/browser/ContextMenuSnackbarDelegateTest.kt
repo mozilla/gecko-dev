@@ -21,13 +21,13 @@ import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.FenixSnackbar.Companion.LENGTH_SHORT
 import org.mozilla.fenix.helpers.MockkRetryTestRule
 
-class FenixSnackbarDelegateTest {
+class ContextMenuSnackbarDelegateTest {
 
     @MockK private lateinit var view: View
 
     @MockK(relaxed = true)
     private lateinit var snackbar: FenixSnackbar
-    private lateinit var delegate: FenixSnackbarDelegate
+    private lateinit var delegate: ContextMenuSnackbarDelegate
 
     @get:Rule
     val mockkRule = MockkRetryTestRule()
@@ -37,7 +37,7 @@ class FenixSnackbarDelegateTest {
         MockKAnnotations.init(this)
         mockkObject(FenixSnackbar.Companion)
 
-        delegate = FenixSnackbarDelegate(view)
+        delegate = ContextMenuSnackbarDelegate(view)
         every {
             FenixSnackbar.make(view, LENGTH_SHORT, isDisplayedWithBrowserToolbar = true)
         } returns snackbar
