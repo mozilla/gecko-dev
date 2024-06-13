@@ -1411,7 +1411,9 @@
     Material Symbols Outlined,
     Material Symbols Round,
     Material Symbols Rounded,
-    Material Symbols Sharp
+    Material Symbols Sharp,
+    Google Symbols,
+    FontAwesome
   mirror: never
 
 - name: browser.display.use_system_colors
