@@ -38,7 +38,7 @@
 #include "nsLiteralString.h"         // for NS_LITERAL_STRING
 #include "nsPIDOMWindow.h"           // for nsPIDOMWindowInner, etc.
 #include "nsString.h"                // for nsCString
-#include "nsTArray.h"                // for nsTArray and nsAutoTArray
+#include "nsTArray.h"                // for nsTArray and AutoTArray
 #include "nsWeakReference.h"         // for nsSupportsWeakReference
 #include "nscore.h"                  // for nsresult, nsAString, etc.
 

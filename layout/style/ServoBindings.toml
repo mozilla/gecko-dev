@@ -331,8 +331,6 @@ opaque-types = [
                                   # is available
     "mozilla::detail::PointerType",
     "mozilla::HashSet",
-    "mozilla::Pair",
-    "mozilla::Pair_Base",
     "mozilla::ScrollAxis",  # <- For some reason the alignment of this is 4
                             # for clang.
     "mozilla::SeenPtrs",

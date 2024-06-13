@@ -117,7 +117,6 @@ can put it all together. A few examples:
    struct - ``nsTHashMap<JSContext*, UniquePtr<ContextInfo>>``
 -  A hashset of strings - ``nsTHashSet<nsString>``
 
-.. _nsBaseHashtable_and_friends:_nsDataHashtable.2C_nsInterfaceHashtable.2C_and_nsClassHashtable:
 
 Hashtable API
 -------------
