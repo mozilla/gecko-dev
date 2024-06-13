@@ -572,16 +572,24 @@ class DefaultTabsTrayControllerTest {
     }
 
     @Test
-    fun `WHEN a synced tab is closed THEN a command to close the tab is sent`() {
-        val tab = mockk<Tab>()
-        val entry = mockk<TabEntry>()
+    fun `WHEN a synced tab is closed THEN a command to close the tab is queued AND an undo snackbar is shown`() {
+        var showUndoSnackbarForSyncedTabInvoked = false
+        val controller = createController(
+            showUndoSnackbarForSyncedTab = {
+                showUndoSnackbarForSyncedTabInvoked = true
+            },
+        )
 
-        every { tab.active() }.answers { entry }
-        every { entry.url }.answers { "https://mozilla.org" }
-
-        createController().handleSyncedTabClosed(deviceId = "1234", tab)
+        val tab = Tab(
+            history = listOf(TabEntry(title = "Get Firefox", url = "https://getfirefox.com", iconUrl = null)),
+            active = 0,
+            lastUsed = 0,
+            inactive = false,
+        )
+        controller.handleSyncedTabClosed("1234", tab)
 
         coVerify(exactly = 1) { closeSyncedTabsUseCases.close("1234", any()) }
+        assertTrue(showUndoSnackbarForSyncedTabInvoked)
     }
 
     @Test
@@ -1151,6 +1159,7 @@ class DefaultTabsTrayControllerTest {
         selectTabPosition: (Int, Boolean) -> Unit = { _, _ -> },
         dismissTray: () -> Unit = { },
         showUndoSnackbarForTab: (Boolean) -> Unit = { _ -> },
+        showUndoSnackbarForSyncedTab: (CloseTabsUseCases.UndoableOperation) -> Unit = { _ -> },
         showCancelledDownloadWarning: (Int, String?, String?) -> Unit = { _, _, _ -> },
         showCollectionSnackbar: (Int, Boolean) -> Unit = { _, _ -> },
         showBookmarkSnackbar: (Int) -> Unit = { _ -> },
@@ -1174,6 +1183,7 @@ class DefaultTabsTrayControllerTest {
             selectTabPosition = selectTabPosition,
             dismissTray = dismissTray,
             showUndoSnackbarForTab = showUndoSnackbarForTab,
+            showUndoSnackbarForSyncedTab = showUndoSnackbarForSyncedTab,
             showCancelledDownloadWarning = showCancelledDownloadWarning,
             showCollectionSnackbar = showCollectionSnackbar,
             showBookmarkSnackbar = showBookmarkSnackbar,

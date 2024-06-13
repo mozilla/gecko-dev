@@ -28,10 +28,19 @@ class CloseTabsUseCases(
      *
      * @param deviceId The ID of the device on which the tab is currently open.
      * @param url The URL of the tab to close.
-     * @return Whether the command to close the tab was sent to the device.
+     * @return An object that can be used to undo this operation.
      */
     @WorkerThread
-    suspend fun close(deviceId: String, url: String) {
-        commands.add(deviceId, DeviceCommandOutgoing.CloseTab(listOf(url)))
+    suspend fun close(deviceId: String, url: String): UndoableOperation {
+        val command = DeviceCommandOutgoing.CloseTab(listOf(url))
+        commands.add(deviceId, command)
+        return UndoableOperation { commands.remove(deviceId, command) }
+    }
+
+    /** An operation that can be undone. */
+    fun interface UndoableOperation {
+        /** Undoes the operation. */
+        @WorkerThread
+        suspend fun undo()
     }
 }

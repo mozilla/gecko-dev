@@ -85,6 +85,7 @@ class Components(private val context: Context) {
             core.topSitesStorage,
             core.bookmarksStorage,
             core.historyStorage,
+            backgroundServices.syncedTabsCommands,
             appStore,
             core.client,
             strictMode,

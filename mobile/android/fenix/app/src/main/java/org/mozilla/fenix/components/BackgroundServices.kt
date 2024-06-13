@@ -52,6 +52,15 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.perf.StrictModeManager
 import org.mozilla.fenix.perf.lazyMonitored
 import org.mozilla.fenix.sync.SyncedTabsIntegration
+import org.mozilla.fenix.utils.getUndoDelay
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+
+/**
+ * The additional time to wait after the "undo closed tab" snackbar has
+ * disappeared before triggering a [SyncedTabsCommands] flush.
+ */
+private val DEFAULT_SYNCED_TABS_COMMANDS_EXTRA_FLUSH_DELAY = 5.seconds
 
 /**
  * Component group for background services. These are the components that need to be accessed from within a
@@ -164,7 +173,10 @@ class BackgroundServices(
         }
     }
     val syncedTabsCommandsFlushScheduler by lazyMonitored {
-        SyncedTabsCommandsFlushScheduler(context)
+        SyncedTabsCommandsFlushScheduler(
+            context = context,
+            flushDelay = context.getUndoDelay().milliseconds + DEFAULT_SYNCED_TABS_COMMANDS_EXTRA_FLUSH_DELAY,
+        )
     }
 
     @VisibleForTesting(otherwise = PRIVATE)

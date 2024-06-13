@@ -4,30 +4,30 @@
 
 package mozilla.components.feature.accounts.push
 
+import kotlinx.coroutines.test.runTest
 import mozilla.components.concept.sync.DeviceCommandQueue
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
-import mozilla.components.support.test.rule.MainCoroutineRule
-import mozilla.components.support.test.rule.runTestOnMain
-import mozilla.components.support.test.whenever
-import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mockito.verify
 
 class CloseTabsUseCasesTest {
-    @get:Rule
-    val coroutinesTestRule = MainCoroutineRule()
-
     private val commands: DeviceCommandQueue<DeviceCommandQueue.Type.RemoteTabs> = mock()
     private val useCases = CloseTabsUseCases(commands)
 
     @Test
-    fun `WHEN a tab is closed on another device THEN a command to close the tab is added to the queue`() = runTestOnMain {
-        whenever(commands.add(any(), any())).thenReturn(Unit)
-
+    fun `WHEN a tab is closed on another device THEN a command to close the tab is added to the queue`() = runTest {
         useCases.close("123", "http://example.com")
 
         verify(commands).add(eq("123"), any())
+    }
+
+    @Test
+    fun `GIVEN an operation to close a tab on another device WHEN the operation is undone THEN the command to close the tab is removed from the queue`() = runTest {
+        val closeOperation = useCases.close("123", "http://example.com")
+        closeOperation.undo()
+
+        verify(commands).remove(eq("123"), any())
     }
 }
