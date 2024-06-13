@@ -21,7 +21,6 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
-import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.ThemeManager
@@ -89,6 +88,7 @@ class DefaultToolbarIntegration(
     lifecycleOwner: LifecycleOwner,
     sessionId: String? = null,
     isPrivate: Boolean,
+    isNavBarEnabled: Boolean = false,
     interactor: BrowserToolbarInteractor,
 ) : ToolbarIntegration(
     context = context,
@@ -122,41 +122,49 @@ class DefaultToolbarIntegration(
             DisplayToolbar.Indicators.HIGHLIGHT,
         )
 
-        val tabCounterMenu = FenixTabCounterMenu(
-            context = context,
-            onItemTapped = {
-                interactor.onTabCounterMenuItemTapped(it)
-            },
-            iconColor = if (isPrivate) {
-                ContextCompat.getColor(context, R.color.fx_mobile_private_text_color_primary)
-            } else {
-                null
-            },
-        ).also {
-            it.updateMenu(context.settings().toolbarPosition)
-        }
-
-        val tabsAction = TabCounterToolbarButton(
-            lifecycleOwner = lifecycleOwner,
-            showTabs = {
-                toolbar.hideKeyboard()
-                interactor.onTabCounterClicked()
-            },
-            store = store,
-            menu = tabCounterMenu,
-            showMaskInPrivateMode = context.settings().feltPrivateBrowsingEnabled,
-            visible = { !shouldAddNavigationBar(context) },
-        )
-
-        val tabCount = if (isPrivate) {
-            store.state.privateTabs.size
+        if (isNavBarEnabled) {
+            toolbar.hideMenuButton()
+            toolbar.setDisplayHorizontalPadding(
+                context.resources.getDimensionPixelSize(
+                    R.dimen.browser_fragment_display_toolbar_padding,
+                ),
+            )
         } else {
-            store.state.normalTabs.size
+            val tabCounterMenu = FenixTabCounterMenu(
+                context = context,
+                onItemTapped = {
+                    interactor.onTabCounterMenuItemTapped(it)
+                },
+                iconColor = if (isPrivate) {
+                    ContextCompat.getColor(context, R.color.fx_mobile_private_text_color_primary)
+                } else {
+                    null
+                },
+            ).also {
+                it.updateMenu(context.settings().toolbarPosition)
+            }
+
+            val tabsAction = TabCounterToolbarButton(
+                lifecycleOwner = lifecycleOwner,
+                showTabs = {
+                    toolbar.hideKeyboard()
+                    interactor.onTabCounterClicked()
+                },
+                store = store,
+                menu = tabCounterMenu,
+                showMaskInPrivateMode = context.settings().feltPrivateBrowsingEnabled,
+            )
+
+            val tabCount = if (isPrivate) {
+                store.state.privateTabs.size
+            } else {
+                store.state.normalTabs.size
+            }
+
+            tabsAction.updateCount(tabCount)
+
+            toolbar.addBrowserAction(tabsAction)
         }
-
-        tabsAction.updateCount(tabCount)
-
-        toolbar.addBrowserAction(tabsAction)
     }
 
     override fun start() {
