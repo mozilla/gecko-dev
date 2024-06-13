@@ -70,6 +70,7 @@ struct IPCInternalRequest {
   RequestRedirect requestRedirect;
   RequestPriority requestPriority;
   nsString integrity;
+  bool keepalive;
   nsCString fragment;
   PrincipalInfo? principalInfo;
   PrincipalInfo? interceptionTriggeringPrincipalInfo;

@@ -94,6 +94,7 @@ IPCResult FetchParent::RecvFetchOp(FetchOpArgs&& aArgs) {
   }
 
   mRequest = MakeSafeRefPtr<InternalRequest>(std::move(aArgs.request()));
+  mIsWorkerFetch = aArgs.isWorkerRequest();
   mPrincipalInfo = std::move(aArgs.principalInfo());
   mWorkerScript = aArgs.workerScript();
   mClientInfo = Some(ClientInfo(aArgs.clientInfo()));
@@ -167,15 +168,26 @@ IPCResult FetchParent::RecvFetchOp(FetchOpArgs&& aArgs) {
     }
     RefPtr<FetchService> fetchService = FetchService::GetInstance();
     MOZ_ASSERT(fetchService);
+    MOZ_ASSERT(self->mRequest);
     MOZ_ASSERT(!self->mResponsePromises);
-    self->mResponsePromises =
-        fetchService->Fetch(AsVariant(FetchService::WorkerFetchArgs(
-            {self->mRequest.clonePtr(), self->mPrincipalInfo,
-             self->mWorkerScript, self->mClientInfo, self->mController,
-             self->mCookieJarSettings, self->mNeedOnDataAvailable,
-             self->mCSPEventListener, self->mAssociatedBrowsingContextID,
-             self->mBackgroundEventTarget, self->mID,
-             self->mIsThirdPartyContext})));
+    if (self->mIsWorkerFetch) {
+      self->mResponsePromises =
+          fetchService->Fetch(AsVariant(FetchService::WorkerFetchArgs(
+              {self->mRequest.clonePtr(), self->mPrincipalInfo,
+               self->mWorkerScript, self->mClientInfo, self->mController,
+               self->mCookieJarSettings, self->mNeedOnDataAvailable,
+               self->mCSPEventListener, self->mAssociatedBrowsingContextID,
+               self->mBackgroundEventTarget, self->mID,
+               self->mIsThirdPartyContext})));
+    } else {
+      MOZ_ASSERT(self->mRequest->GetKeepalive());
+      self->mResponsePromises =
+          fetchService->Fetch(AsVariant(FetchService::MainThreadFetchArgs(
+              {self->mRequest.clonePtr(), self->mPrincipalInfo,
+               self->mCookieJarSettings, self->mNeedOnDataAvailable,
+               self->mCSPEventListener, self->mAssociatedBrowsingContextID,
+               self->mBackgroundEventTarget, self->mID})));
+    }
 
     self->mResponsePromises->GetResponseEndPromise()->Then(
         GetMainThreadSerialEventTarget(), __func__,

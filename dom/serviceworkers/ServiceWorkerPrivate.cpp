@@ -420,7 +420,7 @@ Result<IPCInternalRequest, nsresult> GetIPCInternalRequest(
       alternativeDataType, contentPolicyType, internalPriority, referrer,
       referrerPolicy, environmentReferrerPolicy, requestMode,
       requestCredentials, cacheMode, requestRedirect, requestPriority,
-      integrity, fragment, principalInfo, interceptionPrincipalInfo,
+      integrity, false, fragment, principalInfo, interceptionPrincipalInfo,
       contentPolicyType, redirectChain, isThirdPartyChannel, embedderPolicy);
 }
 
