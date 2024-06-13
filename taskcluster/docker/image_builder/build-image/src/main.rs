@@ -75,6 +75,8 @@ fn build_image(
         .arg("--no-push")
         .args(&["--cache=true", "--cache-dir", "/workspace/cache", "--cache-repo", "oci:/workspace/repo"])
         .arg("--single-snapshot")
+         // Compressed caching causes OOM with large images
+        .arg("--compressed-caching=false")
         // FIXME: Generating reproducible layers currently causes OOM.
         // .arg("--reproducible")
         .arg("--ignore-var-run=false")
