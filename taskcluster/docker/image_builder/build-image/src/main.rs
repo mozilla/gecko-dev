@@ -72,7 +72,7 @@ fn build_image(
         .args(&["--context", &format!("tar://{}", context_path)])
         .args(&["--destination", "image"])
         .args(&["--dockerfile", "Dockerfile"])
-        .arg("--no-push")
+        .args(&["--no-push", "--no-push-cache"])
         .args(&["--cache=true", "--cache-dir", "/workspace/cache", "--cache-repo", "oci:/workspace/repo"])
         .arg("--single-snapshot")
          // Compressed caching causes OOM with large images
