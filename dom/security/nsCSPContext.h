@@ -115,8 +115,7 @@ class nsCSPContext : public nsIContentSecurityPolicy {
       const nsAString& aViolatedDirectiveName,
       const nsAString& aViolatedDirectiveNameAndValue,
       const CSPDirective aEffectiveDirective, const nsAString& aObserverSubject,
-      const nsAString& aSourceFile, bool aReportSample,
-      const nsAString& aScriptSample);
+      const nsAString& aSourceFile, bool aReportSample);
 
   // Hands off! Don't call this method unless you know what you
   // are doing. It's only supposed to be called from within

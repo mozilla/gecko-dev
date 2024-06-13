@@ -6,16 +6,40 @@
 
 #include "mozilla/dom/CSPViolationData.h"
 
+#include "nsCharTraits.h"
+#include "nsContentUtils.h"
+#include "mozilla/dom/nsCSPContext.h"
+
 #include <utility>
 
 namespace mozilla::dom {
+
+static nsString MaybeTruncateSample(const nsAString& aSample) {
+  nsString sample{aSample};
+  // Truncate sample string.
+  uint32_t length = sample.Length();
+  if (length > nsCSPContext::ScriptSampleMaxLength()) {
+    uint32_t desiredLength = nsCSPContext::ScriptSampleMaxLength();
+    // Don't cut off right before a low surrogate. Just include it.
+    if (NS_IS_LOW_SURROGATE(sample[desiredLength])) {
+      desiredLength++;
+    }
+    sample.Replace(nsCSPContext::ScriptSampleMaxLength(),
+                   length - desiredLength,
+                   nsContentUtils::GetLocalizedEllipsis());
+  }
+  return sample;
+}
+
 CSPViolationData::CSPViolationData(uint32_t aViolatedPolicyIndex,
                                    Resource&& aResource, uint32_t aLineNumber,
-                                   uint32_t aColumnNumber)
+                                   uint32_t aColumnNumber,
+                                   const nsAString& aSample)
     : mViolatedPolicyIndex{aViolatedPolicyIndex},
       mResource{std::move(aResource)},
       mLineNumber{aLineNumber},
-      mColumnNumber{aColumnNumber} {}
+      mColumnNumber{aColumnNumber},
+      mSample{MaybeTruncateSample(aSample)} {}
 
 auto CSPViolationData::BlockedContentSourceOrUnknown() const
     -> BlockedContentSource {

@@ -9,6 +9,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsIURI.h"
+#include "nsString.h"
 #include "mozilla/Variant.h"
 
 #include <cstdint>
@@ -28,8 +29,10 @@ struct CSPViolationData {
 
   using Resource = mozilla::Variant<nsCOMPtr<nsIURI>, BlockedContentSource>;
 
+  // @param aSample Will be truncated if necessary.
   CSPViolationData(uint32_t aViolatedPolicyIndex, Resource&& aResource,
-                   uint32_t aLineNumber, uint32_t aColumnNumber);
+                   uint32_t aLineNumber, uint32_t aColumnNumber,
+                   const nsAString& aSample);
 
   BlockedContentSource BlockedContentSourceOrUnknown() const;
 
@@ -37,6 +40,7 @@ struct CSPViolationData {
   const Resource mResource;
   const uint32_t mLineNumber;
   const uint32_t mColumnNumber;
+  const nsString mSample;
 };
 }  // namespace mozilla::dom
 
