@@ -61,9 +61,6 @@ imply_option("MOZ_NORMANDY", False)
 imply_option("MOZ_SERVICES_HEALTHREPORT", True)
 imply_option("MOZ_GECKOVIEW_HISTORY", True)
 
-imply_option("MOZ_APP_VENDOR", "Mozilla")
-imply_option("MOZ_APP_ID", "{aa3c5121-dab2-40e2-81ca-7ea25febc110}")
-
 
 @depends(target)
 def check_target(target):
