@@ -106,6 +106,10 @@ class APZUpdater {
    */
   void AssertOnUpdaterThread() const;
 
+  enum class DuringShutdown {
+    No,
+    Yes,
+  };
   /**
    * Runs the given task on the APZ "updater thread" for this APZUpdater. If
    * this function is called from the updater thread itself then the task is
@@ -115,8 +119,12 @@ class APZUpdater {
    * requesting this task to be run. Conceptually each layer tree has a separate
    * task queue, so that if one layer tree is blocked waiting for a scene build
    * then tasks for the other layer trees can still be processed.
+   *
+   * In the case of where |aDuringShutdown| is `Yes` this function doesn't
+   * invoke `WebRenderAPI::WakeSceneBuilder` explicitly.
    */
-  void RunOnUpdaterThread(LayersId aLayersId, already_AddRefed<Runnable> aTask);
+  void RunOnUpdaterThread(LayersId aLayersId, already_AddRefed<Runnable> aTask,
+                          DuringShutdown aDuringShutdown = DuringShutdown::No);
 
   /**
    * Returns true if currently on the APZUpdater's "updater thread".
