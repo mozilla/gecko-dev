@@ -521,6 +521,11 @@ class H264 {
   // Returns the frame type. Returns I_FRAME if the sample is an IDR
   // (Instantaneous Decoding Refresh) Picture.
   static FrameType GetFrameType(const mozilla::MediaRawData* aSample);
+
+  /* From a NAL, extract the SVC temporal id, per H264 spec Annex G, 7.3.1.1 */
+  static Result<int, nsresult> ExtractSVCTemporalId(
+      const uint8_t* aData, size_t aLength);
+
   // Create a dummy extradata, useful to create a decoder and test the
   // capabilities of the decoder.
   static already_AddRefed<mozilla::MediaByteBuffer> CreateExtraData(
@@ -534,6 +539,7 @@ class H264 {
 
  private:
   friend class SPSNAL;
+
   /* Extract RAW BYTE SEQUENCE PAYLOAD from NAL content.
      Returns nullptr if invalid content.
      This is compliant to ITU H.264 7.3.1 Syntax in tabular form NAL unit syntax

@@ -459,6 +459,24 @@ HRESULT MFTEncoder::SetModes(const EncoderConfig& aConfig) {
     }
   }
 
+  switch (aConfig.mScalabilityMode) {
+    case ScalabilityMode::None:
+      var.ulVal = 1;
+      break;
+    case ScalabilityMode::L1T2:
+      var.ulVal = 2;
+      break;
+    case ScalabilityMode::L1T3:
+      var.ulVal = 3;
+      break;
+  }
+
+  bool isIntel = false; // TODO check this
+  if (aConfig.mScalabilityMode != ScalabilityMode::None || isIntel) {
+    hr = mConfig->SetValue(&CODECAPI_AVEncVideoTemporalLayerCount, &var);
+    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+  }
+
   if (SUCCEEDED(mConfig->IsModifiable(&CODECAPI_AVEncAdaptiveMode))) {
     var.ulVal = eAVEncAdaptiveMode_Resolution;
     hr = mConfig->SetValue(&CODECAPI_AVEncAdaptiveMode, &var);

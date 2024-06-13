@@ -11,6 +11,7 @@
 #include "ByteWriter.h"
 #include "MediaInfo.h"
 #include "mozilla/PodOperations.h"
+#include "mozilla/Result.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/Try.h"
 #include <limits>
@@ -381,6 +382,38 @@ class SPSNALIterator {
   bool mEOS = false;
   uint8_t mNumSPS = 0;
 };
+
+/* static */ Result<int, nsresult> H264::ExtractSVCTemporalId(
+    const uint8_t* aData, size_t aLength) {
+
+  nsTArray<AnnexB::NALEntry> paramSets;
+  AnnexB::ParseNALEntries(
+      Span<const uint8_t>(aData, aLength), paramSets);
+
+  BufferReader reader(aData, aLength);
+
+  // Discard what's needed to find the correct NAL.
+  int i = 0;
+  while (paramSets[i].mSize < 4) { i++; }
+  reader.Read(paramSets[i].mOffset);
+
+  uint8_t byte;
+  MOZ_TRY_VAR(byte, reader.ReadU8());
+  uint8_t nalUnitType = byte & 0x1f;
+  if (nalUnitType == H264_NAL_PREFIX || nalUnitType == H264_NAL_SLICE_EXT) {
+    bool svcExtensionFlag = false;
+    MOZ_TRY_VAR(byte, reader.ReadU8());
+      svcExtensionFlag = byte & 0x80;
+      if (svcExtensionFlag) {
+        // Discard the first byte, and find the temporal id in the second byte
+        MOZ_TRY(reader.ReadU8());
+        MOZ_TRY_VAR(byte, reader.ReadU8());
+        int temporalId = (byte & 0xE0) >> 5;
+        return temporalId;
+    }
+  }
+  return 0;
+}
 
 /* static */ already_AddRefed<mozilla::MediaByteBuffer> H264::DecodeNALUnit(
     const uint8_t* aNAL, size_t aLength) {
