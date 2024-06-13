@@ -425,19 +425,39 @@ MFTEncoder::SendMFTMessage(MFT_MESSAGE_TYPE aMsg, ULONG_PTR aData) {
   return mEncoder->ProcessMessage(aMsg, aData);
 }
 
-HRESULT MFTEncoder::SetModes(UINT32 aBitsPerSec) {
+HRESULT MFTEncoder::SetModes(const EncoderConfig& aConfig) {
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
   MOZ_ASSERT(mConfig);
 
   VARIANT var;
   var.vt = VT_UI4;
-  var.ulVal = eAVEncCommonRateControlMode_CBR;
+  switch (aConfig.mBitrateMode) {
+    case BitrateMode::Constant:
+      var.ulVal = eAVEncCommonRateControlMode_CBR;
+      break;
+    case BitrateMode::Variable:
+      if (aConfig.mCodec == CodecType::VP8 ||
+          aConfig.mCodec == CodecType::VP9) {
+        MFT_ENC_LOGE(
+            "Overriding requested VRB bitrate mode, forcing CBR for VP8/VP9 "
+            "encoding.");
+        var.ulVal = eAVEncCommonRateControlMode_CBR;
+      } else {
+        var.ulVal = eAVEncCommonRateControlMode_PeakConstrainedVBR;
+      }
+      break;
+  }
   HRESULT hr = mConfig->SetValue(&CODECAPI_AVEncCommonRateControlMode, &var);
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
-  var.ulVal = aBitsPerSec;
-  hr = mConfig->SetValue(&CODECAPI_AVEncCommonMeanBitRate, &var);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+  if (aConfig.mBitrate) {
+    var.ulVal = aConfig.mBitrate;
+    hr = mConfig->SetValue(&CODECAPI_AVEncCommonMeanBitRate, &var);
+    if (FAILED(hr)) {
+      MFT_ENC_LOGE("Couln't set bitrate to %d", aConfig.mBitrate);
+      return hr;
+    }
+  }
 
   if (SUCCEEDED(mConfig->IsModifiable(&CODECAPI_AVEncAdaptiveMode))) {
     var.ulVal = eAVEncAdaptiveMode_Resolution;
@@ -447,7 +467,7 @@ HRESULT MFTEncoder::SetModes(UINT32 aBitsPerSec) {
 
   if (SUCCEEDED(mConfig->IsModifiable(&CODECAPI_AVLowLatencyMode))) {
     var.vt = VT_BOOL;
-    var.boolVal = VARIANT_TRUE;
+    var.boolVal = aConfig.mUsage == Usage::Realtime ? VARIANT_TRUE : VARIANT_FALSE;
     hr = mConfig->SetValue(&CODECAPI_AVLowLatencyMode, &var);
     NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
   }

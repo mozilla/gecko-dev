@@ -137,18 +137,18 @@ HRESULT WMFMediaDataEncoder::InitMFTEncoder(RefPtr<MFTEncoder>& aEncoder) {
     return hr;
   }
 
-  hr = SetMediaTypes(aEncoder, mConfig);
+  hr = aEncoder->SetModes(mConfig);
   if (FAILED(hr)) {
     _com_error error(hr);
-    WMF_ENC_LOGE("MFTEncoder::SetMediaType: error = 0x%lX, %ls", hr,
+    WMF_ENC_LOGE("MFTEncoder::SetMode: error = 0x%lX, %ls", hr,
                  error.ErrorMessage());
     return hr;
   }
 
-  hr = aEncoder->SetModes(mConfig.mBitrate);
+  hr = SetMediaTypes(aEncoder, mConfig);
   if (FAILED(hr)) {
     _com_error error(hr);
-    WMF_ENC_LOGE("MFTEncoder::SetMode: error = 0x%lX, %ls", hr,
+    WMF_ENC_LOGE("MFTEncoder::SetMediaType: error = 0x%lX, %ls", hr,
                  error.ErrorMessage());
     return hr;
   }
