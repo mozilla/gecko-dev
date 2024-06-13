@@ -658,6 +658,8 @@ class gfxFontEntry {
   };
   RangeFlags mRangeFlags = RangeFlags::eNoFlags;
 
+  inline RangeFlags AutoRangeFlags() const;
+
   bool mFixedPitch : 1;
   bool mIsBadUnderlineFont : 1;
   bool mIsUserFontContainer : 1;  // userfont entry
@@ -903,6 +905,11 @@ class gfxFontEntry {
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(gfxFontEntry::RangeFlags)
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(gfxFontEntry::SpaceFeatures)
 
+inline gfxFontEntry::RangeFlags gfxFontEntry::AutoRangeFlags() const {
+  return mRangeFlags & (RangeFlags::eAutoWeight | RangeFlags::eAutoStretch |
+                        RangeFlags::eAutoSlantStyle);
+}
+
 inline bool gfxFontEntry::SupportsItalic() {
   return SlantStyle().Max().IsItalic() ||
          ((mRangeFlags & RangeFlags::eAutoSlantStyle) ==
@@ -1076,7 +1083,7 @@ class gfxFontFamily {
   // This is a no-op in cases where the family is explicitly populated by other
   // means, rather than being asked to find its faces via system API.
   virtual void FindStyleVariationsLocked(FontInfoData* aFontInfoData = nullptr)
-      MOZ_REQUIRES(mLock){};
+      MOZ_REQUIRES(mLock) {};
   void FindStyleVariations(FontInfoData* aFontInfoData = nullptr) {
     if (mHasStyles) {
       return;

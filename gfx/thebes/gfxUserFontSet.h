@@ -442,7 +442,8 @@ class gfxUserFontSet {
             aKey->mFontEntry->Weight().AsScalar(),
             aKey->mFontEntry->SlantStyle().AsScalar(),
             aKey->mFontEntry->Stretch().AsScalar(),
-            aKey->mFontEntry->mRangeFlags, aKey->mFontEntry->mLanguageOverride);
+            aKey->mFontEntry->AutoRangeFlags(),
+            aKey->mFontEntry->mLanguageOverride);
       }
 
       enum { ALLOW_MEMMOVE = false };

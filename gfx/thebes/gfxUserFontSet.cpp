@@ -1218,7 +1218,7 @@ bool gfxUserFontSet::UserFontCache::Entry::KeyEquals(
   if (mFontEntry->SlantStyle() != fe->SlantStyle() ||
       mFontEntry->Weight() != fe->Weight() ||
       mFontEntry->Stretch() != fe->Stretch() ||
-      mFontEntry->mRangeFlags != fe->mRangeFlags ||
+      mFontEntry->AutoRangeFlags() != fe->AutoRangeFlags() ||
       mFontEntry->mFeatureSettings != fe->mFeatureSettings ||
       mFontEntry->mVariationSettings != fe->mVariationSettings ||
       mFontEntry->mLanguageOverride != fe->mLanguageOverride ||
