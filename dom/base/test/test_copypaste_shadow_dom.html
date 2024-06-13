@@ -19,8 +19,20 @@ to test copy pasting works when the selected contents have shadow trees involved
 <script class="testbody" type="text/javascript">
 
 SimpleTest.waitForExplicitFinish();
+
+SimpleTest.registerCleanupFunction(function() {
+  // SpecialPowers would reset the pref after the
+  // test is done, and this might to lead some
+  // inconsistent behaviours if we keep the selection
+  // there.
+  window.getSelection().removeAllRanges();
+});
+
 addLoadEvent(() => {
   add_task(async function test_copyhtml() {
+    await SpecialPowers.pushPrefEnv({
+      set: [["dom.shadowdom.selection_across_boundary.enabled", true]],
+    });
     await testCopyPasteShadowDOM();
   });
 });
