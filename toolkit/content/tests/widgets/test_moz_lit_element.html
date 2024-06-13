@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MozLitElement Tests</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script>
+    let html, render, renderTarget, defaultTemplate, MozLitElement;
+    var mockL10n;
+
+    add_setup(async function setup() {
+      ({ html, render } = await import(
+        "chrome://global/content/vendor/lit.all.mjs"
+      ));
+      ({ MozLitElement } = await import(
+        "chrome://global/content/lit-utils.mjs"
+      ));
+      renderTarget = document.getElementById("render");
+
+      const l10nReg = new L10nRegistry();
+      const fs = [{
+        path: "/localization/en-US/mock.ftl",
+        source: `
+example-label =
+  .label = Example label!
+  .message = And a message!
+  .tooltiptext = Also a tooltiptext!
+  .rename = Also renamed!
+        `,
+      }];
+      const source = L10nFileSource.createMock("test", "app", ["en-US"], "/localization/{locale}", fs);
+      l10nReg.registerSources([source]);
+      mockL10n = new DOMLocalization(["/mock.ftl"], false, l10nReg, ["en-US"]);
+      mockL10n.addResourceIds(["/mock.ftl"]);
+
+      defaultTemplate = html`
+        <example-element data-l10n-id="example-label"></example-element>
+      `;
+    });
+
+    async function renderTemplate(template = defaultTemplate) {
+      render(template, renderTarget);
+      return renderTarget.firstElementChild;
+    }
+
+    function defineExampleElement() {
+      class ExampleElement extends MozLitElement {
+        static properties = {
+          label: { type: String, fluent: true },
+          message: { type: String, fluent: true },
+          tooltipText: { type: String, fluent: true },
+          renamedAttribute: { type: String, fluent: true, attribute: "rename" },
+        };
+
+        render() {
+          return this.label + this.message + this.tooltipText + this.renamedAttribute;
+        }
+
+        updated(changes) {
+          if (changes.has("label") && this.label) {
+            this.dispatchEvent(new CustomEvent("label-changed"));
+          }
+        }
+      }
+      customElements.define("example-element", ExampleElement);
+    }
+
+    add_task(async function testL10nAttrs() {
+      let el = await renderTemplate();
+      window.el = el;
+      defineExampleElement();
+      is(el.shadowRoot.textContent, "", "There's no text");
+      is(el.dataset.l10nAttrs, "label,message,tooltiptext,rename", "data-l10n-attrs is set");
+      await new Promise(r => el.addEventListener("label-changed", r, { once: true }));
+      is(
+        el.shadowRoot.textContent,
+        "Example label!And a message!Also a tooltiptext!Also renamed!",
+        "Text rendered automatically on upgrade"
+      );
+    });
+  </script>
+</head>
+<body>
+  <div id="render"></div>
+</body>
+</html>
