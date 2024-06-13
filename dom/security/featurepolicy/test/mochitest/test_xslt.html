@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test feature policy - XSLT-transformed child document</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+
+<script class="testbody" type="text/javascript">
+
+SimpleTest.waitForExplicitFinish();
+
+function loadCrossOriginURL(iframe, file) {
+  const url = new URL("file_xslt_outer.html", location.href);
+  url.hostname = "example.com";
+  url.port = null;
+  url.searchParams.set("file", file);
+
+  let { promise, resolve } = Promise.withResolvers();
+  window.addEventListener("message", event => {
+    let { fullscreen, features } = event.data;
+    resolve({ fullscreen, features: [...features].sort((a, b) => a[0].localeCompare(b[0])) });
+  }, { once: true });
+
+  // Need to open this in a separate window for the xorigin variant, otherwise
+  // we'd get a restricted set of policies as this page is loaded in an iframe
+  // for that variant.
+  let win = window.open(url);
+  SimpleTest.registerCleanupFunction(() => {
+    win.close();
+  });
+
+  return promise;
+}
+
+SpecialPowers.pushPrefEnv({
+  set: [
+    ["full-screen-api.enabled", true],
+    ["full-screen-api.allow-trusted-requests-only", false],
+    ["full-screen-api.transition-duration.enter", "0 0"],
+    ["full-screen-api.transition-duration.leave", "0 0"],
+  ],
+}).then(() => {
+  loadCrossOriginURL("expected", "file_xslt.html").then((expected) => {
+    loadCrossOriginURL("actual", "file_xslt.xml").then((actual) => {
+      isDeeply(actual, expected, "Permissions should be coming from the iframe's allow attribute and headers on the source document.");
+
+      SimpleTest.finish();
+    });
+  });
+});
+
+</script>
+</body>
+</html>

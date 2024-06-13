@@ -1,0 +1,10 @@
+<iframe allow="microphone https://example.org" id="ifr"></iframe>
+<script>
+window.addEventListener("message", ({ data }) => { opener.postMessage(data, "*") });
+
+const file = (new URLSearchParams(location.search)).get("file");
+const CROSS_ORIGIN = new URL(file, location.href);
+CROSS_ORIGIN.hostname = "example.org";
+CROSS_ORIGIN.port = null;
+document.getElementById("ifr").src = CROSS_ORIGIN.href;
+</script>

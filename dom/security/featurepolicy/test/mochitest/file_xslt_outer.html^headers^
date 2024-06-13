@@ -1,0 +1,1 @@
+Feature-Policy: camera 'self'; fullscreen *; geolocation *; microphone *; storage-access 'none'

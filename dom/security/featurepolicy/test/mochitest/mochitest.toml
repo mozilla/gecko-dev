@@ -14,3 +14,17 @@ support-files = [
 
 ["test_parser.html"]
 fail-if = ["xorigin"]
+
+["test_xslt.html"]
+support-files = [
+  "file_xslt.js",
+  "file_xslt.html",
+  "file_xslt.html^headers^",
+  "file_xslt.xml",
+  "file_xslt.xml^headers^",
+  "file_xslt.xsl",
+  "file_xslt.xsl^headers^",
+  "file_xslt_outer.html",
+  "file_xslt_outer.html^headers^",
+]
+scheme = "https"
