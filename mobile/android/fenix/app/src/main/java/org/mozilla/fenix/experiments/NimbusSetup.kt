@@ -70,9 +70,6 @@ fun createNimbus(context: Context, urlString: String?): NimbusApi {
         onFetchCallback = {
             context.settings().nimbusExperimentsFetched = true
         }
-        recordedContext = RecordedNimbusContext(
-            isFirstRun = isAppFirstRun,
-        )
     }.build(appInfo).also { nimbusApi ->
         nimbusApi.recordIsReady(FxNimbus.features.nimbusIsReady.value().eventCount)
     }

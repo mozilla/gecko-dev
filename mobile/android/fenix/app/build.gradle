@@ -1,23 +1,6 @@
 import com.android.build.api.variant.FilterConfiguration
 import org.apache.tools.ant.util.StringUtils
 
-buildscript {
-    repositories {
-        gradle.mozconfig.substs.GRADLE_MAVEN_REPOSITORIES.each { repository ->
-            maven {
-                url repository
-                if (gradle.mozconfig.substs.ALLOW_INSECURE_GRADLE_REPOSITORIES) {
-                    allowInsecureProtocol = true
-                }
-            }
-        }
-    }
-
-    dependencies {
-        classpath ComponentsDependencies.plugin_serialization
-    }
-}
-
 plugins {
     id "com.jetbrains.python.envs" version "$python_envs_plugin"
     id "com.google.protobuf" version "$protobuf_plugin"
@@ -33,7 +16,6 @@ apply plugin: 'kotlin-parcelize'
 apply plugin: 'jacoco'
 apply plugin: 'androidx.navigation.safeargs.kotlin'
 apply plugin: 'com.google.android.gms.oss-licenses-plugin'
-apply plugin: 'kotlinx-serialization'
 
 if (findProject(":geckoview") != null) {
     apply from: "${topsrcdir}/mobile/android/gradle/product_flavors.gradle"
@@ -561,8 +543,6 @@ tasks.withType(KotlinCompile).configureEach {
 }
 
 dependencies {
-    implementation ComponentsDependencies.kotlin_json
-
     implementation platform(ComponentsDependencies.androidx_compose_bom)
     androidTestImplementation platform(ComponentsDependencies.androidx_compose_bom)
 
