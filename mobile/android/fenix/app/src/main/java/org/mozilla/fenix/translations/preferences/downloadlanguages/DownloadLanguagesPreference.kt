@@ -376,14 +376,14 @@ private fun downloadLanguageItemContentDescriptionPreference(
     val contentDescription: String
 
     when (item.languageModel.status) {
-        ModelState.DOWNLOADED -> {
+        ModelState.DOWNLOADED, ModelState.ERROR_DELETION -> {
             contentDescription =
                 "$label $itemDescription" + stringResource(
                     id = R.string.download_languages_item_content_description_downloaded_state,
                 )
         }
 
-        ModelState.NOT_DOWNLOADED -> {
+        ModelState.NOT_DOWNLOADED, ModelState.ERROR_DOWNLOAD -> {
             contentDescription =
                 "$label $itemDescription " + stringResource(
                     id = R.string.download_languages_item_content_description_not_downloaded_state,
@@ -405,7 +405,7 @@ private fun IconDownloadLanguageItemPreference(
     item: DownloadLanguageItemPreference,
 ) {
     when (item.languageModel.status) {
-        ModelState.DOWNLOADED -> {
+        ModelState.DOWNLOADED, ModelState.ERROR_DELETION -> {
             if (
                 item.type != DownloadLanguageItemTypePreference.PivotLanguage ||
                 item.enabled
@@ -420,7 +420,7 @@ private fun IconDownloadLanguageItemPreference(
             }
         }
 
-        ModelState.NOT_DOWNLOADED -> {
+        ModelState.NOT_DOWNLOADED, ModelState.ERROR_DOWNLOAD -> {
             Icon(
                 painter = painterResource(
                     id = R.drawable.ic_download,

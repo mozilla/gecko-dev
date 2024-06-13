@@ -954,7 +954,6 @@ class TranslationsMiddleware(
         logger.info("Requesting the translations engine update the language model(s).")
         engine.manageTranslationsLanguageModel(
             options = options,
-
             onSuccess = {
                 // Value was set to a wait state in [TranslationsStateReducer] for
                 // [TranslationsBrowserState.languageModels], so we need to resolve the state.
@@ -988,9 +987,35 @@ class TranslationsMiddleware(
 
             onError = { error ->
                 logger.error("Could not update the language model(s).", error)
-                // The browser store [TranslationsBrowserState.languageModels] is out of sync,
-                // re-request to sync the state.
-                requestLanguageModels(context)
+                // Value was set to a wait state in [TranslationsStateReducer] for
+                // [TranslationsBrowserState.languageModels], so we need to set an error state.
+                val errorState = if (options.operation == ModelOperation.DOWNLOAD) {
+                    ModelState.ERROR_DOWNLOAD
+                } else {
+                    ModelState.ERROR_DELETION
+                }
+                val errorModelState = LanguageModel.determineNewLanguageModelState(
+                    currentLanguageModels = context.store.state.translationEngine.languageModels,
+                    options = options,
+                    newStatus = errorState,
+                )
+
+                if (errorModelState != null) {
+                    context.store.dispatch(
+                        TranslationsAction.SetLanguageModelsAction(
+                            languageModels = errorModelState,
+                        ),
+                    )
+                    logger.info("Successfully set the language model(s) error state.")
+                } else {
+                    logger.warn(
+                        "Unexpectedly could not update error state. " +
+                            "Re-requesting state be retrieved from the engine.",
+                    )
+                    // Unexpectedly lost state, so check with the engine to put it back in-sync.
+                    requestLanguageModels(context)
+                }
+
                 context.store.dispatch(
                     TranslationsAction.EngineExceptionAction(
                         error = TranslationError.LanguageModelUpdateError(error),

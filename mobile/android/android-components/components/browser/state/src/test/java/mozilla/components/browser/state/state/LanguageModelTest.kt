@@ -22,6 +22,8 @@ class LanguageModelTest {
         LanguageModel(language = Language(code = "de"), status = ModelState.NOT_DOWNLOADED, size = 122),
         LanguageModel(language = Language(code = "fr"), status = ModelState.DOWNLOADED, size = 133),
         LanguageModel(language = Language(code = "en"), status = ModelState.DOWNLOADED, size = 144),
+        LanguageModel(language = Language(code = "nn"), status = ModelState.ERROR_DELETION, size = 155),
+        LanguageModel(language = Language(code = "it"), status = ModelState.ERROR_DOWNLOAD, size = 166),
     )
 
     @Test
@@ -46,6 +48,8 @@ class LanguageModelTest {
             mockLanguageModels[1],
             mockLanguageModels[2],
             mockLanguageModels[3],
+            mockLanguageModels[4],
+            mockLanguageModels[5],
         )
 
         assertEquals(expectedModelState, newModelState)
@@ -73,6 +77,36 @@ class LanguageModelTest {
     }
 
     @Test
+    fun `GIVEN a language level model operation that fails THEN set a failure condition`() {
+        val options = ModelManagementOptions(
+            languageToManage = "es",
+            operation = ModelOperation.DOWNLOAD,
+            operationLevel = OperationLevel.LANGUAGE,
+        )
+
+        // Simulated error state
+        val errorState = if (options.operation == ModelOperation.DOWNLOAD) ModelState.ERROR_DOWNLOAD else ModelState.ERROR_DELETION
+
+        val newModelState = LanguageModel.determineNewLanguageModelState(
+            currentLanguageModels = mockLanguageModels,
+            options = options,
+            newStatus = errorState,
+        )
+
+        val expectedModelState = listOf(
+            LanguageModel(language = Language(code = "es"), status = ModelState.ERROR_DOWNLOAD, size = 111),
+            mockLanguageModels[1],
+            mockLanguageModels[2],
+            mockLanguageModels[3],
+            mockLanguageModels[4],
+            mockLanguageModels[5],
+        )
+
+        // Expect the failure state occurs
+        assertEquals(expectedModelState, newModelState)
+    }
+
+    @Test
     fun `GIVEN an all model operation THEN update models that aren't already in that state`() {
         val options = ModelManagementOptions(
             languageToManage = null,
@@ -94,6 +128,8 @@ class LanguageModelTest {
             LanguageModel(language = Language(code = "de"), status = ModelState.DOWNLOAD_IN_PROGRESS, size = 122),
             LanguageModel(language = Language(code = "fr"), status = ModelState.DOWNLOADED, size = 133),
             LanguageModel(language = Language(code = "en"), status = ModelState.DOWNLOADED, size = 144),
+            LanguageModel(language = Language(code = "nn"), status = ModelState.DOWNLOAD_IN_PROGRESS, size = 155),
+            LanguageModel(language = Language(code = "it"), status = ModelState.DOWNLOAD_IN_PROGRESS, size = 166),
         )
         assertEquals(expectedModelState, newModelState)
     }
@@ -136,9 +172,20 @@ class LanguageModelTest {
         assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.DOWNLOAD_IN_PROGRESS, newStatus = ModelState.DELETION_IN_PROGRESS))
         assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.DOWNLOAD_IN_PROGRESS, newStatus = ModelState.DOWNLOADED))
         assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.DOWNLOAD_IN_PROGRESS, newStatus = ModelState.NOT_DOWNLOADED))
+        assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.DOWNLOAD_IN_PROGRESS, newStatus = ModelState.ERROR_DOWNLOAD))
 
         assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.DELETION_IN_PROGRESS, newStatus = ModelState.DOWNLOAD_IN_PROGRESS))
         assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.DELETION_IN_PROGRESS, newStatus = ModelState.DOWNLOADED))
         assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.DELETION_IN_PROGRESS, newStatus = ModelState.NOT_DOWNLOADED))
+        assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.DELETION_IN_PROGRESS, newStatus = ModelState.ERROR_DELETION))
+
+        // Error states should always be operable
+        assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.ERROR_DOWNLOAD, newStatus = ModelState.DOWNLOAD_IN_PROGRESS))
+        assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.ERROR_DOWNLOAD, newStatus = ModelState.DOWNLOADED))
+        assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.ERROR_DOWNLOAD, newStatus = ModelState.NOT_DOWNLOADED))
+
+        assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.ERROR_DELETION, newStatus = ModelState.DELETION_IN_PROGRESS))
+        assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.ERROR_DELETION, newStatus = ModelState.DOWNLOADED))
+        assertTrue(LanguageModel.checkIfOperable(currentStatus = ModelState.ERROR_DELETION, newStatus = ModelState.NOT_DOWNLOADED))
     }
 }

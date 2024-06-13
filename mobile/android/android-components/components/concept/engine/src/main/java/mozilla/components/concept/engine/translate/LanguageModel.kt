@@ -84,6 +84,8 @@ data class LanguageModel(
             ModelState.DOWNLOAD_IN_PROGRESS -> true
             ModelState.DELETION_IN_PROGRESS -> true
             ModelState.DOWNLOADED -> newStatus != ModelState.DOWNLOAD_IN_PROGRESS
+            ModelState.ERROR_DELETION -> true
+            ModelState.ERROR_DOWNLOAD -> true
         }
     }
 }

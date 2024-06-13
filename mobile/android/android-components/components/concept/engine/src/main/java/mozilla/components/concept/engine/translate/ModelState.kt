@@ -27,4 +27,14 @@ enum class ModelState {
      * The language model(s) are downloaded to the device.
      */
     DOWNLOADED,
+
+    /**
+     * An error occurred while deleting the language model.
+     */
+    ERROR_DELETION,
+
+    /**
+     * An error occurred while downloading the language model.
+     */
+    ERROR_DOWNLOAD,
 }
