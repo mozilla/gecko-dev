@@ -11,9 +11,10 @@
 
  */
 
+use crate::gpu_types::UvRectKind;
 use crate::renderer::MAX_VERTEX_TEXTURE_WIDTH;
 use crate::util::ScaleOffset;
-use api::units::{DeviceIntRect, DeviceIntSize, LayoutRect, PictureRect, DeviceRect};
+use api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DeviceRect, LayoutRect, PictureRect};
 use api::{PremultipliedColorF, ImageFormat};
 use crate::device::Texel;
 use crate::render_task_graph::{RenderTaskGraph, RenderTaskId};
@@ -340,7 +341,28 @@ impl<T> GpuBufferBuilderImpl<T> where T: Texel + std::convert::From<DeviceIntRec
         for block in self.deferred.drain(..) {
             let render_task = &render_tasks[block.task_id];
             let target_rect = render_task.get_target_rect();
-            self.data[block.index] = target_rect.into();
+
+            let uv_rect = match render_task.uv_rect_kind() {
+                UvRectKind::Rect => {
+                    target_rect
+                }
+                UvRectKind::Quad { top_left, bottom_right, .. } => {
+                    let size = target_rect.size();
+
+                    DeviceIntRect::new(
+                        DeviceIntPoint::new(
+                            target_rect.min.x + (top_left.x * size.width as f32).round() as i32,
+                            target_rect.min.y + (top_left.y * size.width as f32).round() as i32,
+                        ),
+                        DeviceIntPoint::new(
+                            target_rect.min.x + (bottom_right.x * size.width as f32).round() as i32,
+                            target_rect.min.y + (bottom_right.x * size.width as f32).round() as i32,
+                        ),
+                    )
+                }
+            };
+
+            self.data[block.index] = uv_rect.into();
         }
 
         GpuBuffer {
