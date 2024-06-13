@@ -878,12 +878,13 @@ networking:
       The count of successful TRR requests keyed by regular/private browsing
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1866245
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902190
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1866245
     notification_emails:
       - vgosu@mozilla.com
       - necko@mozilla.com
-    expires: 130
+    expires: 140
     labels:
       - regular
       - private
