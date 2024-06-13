@@ -80,6 +80,8 @@ pub extern crate euclid;
 
 mod bucketed;
 mod allocator;
+#[cfg(feature = "ffi")]
+pub mod ffi;
 
 pub use allocator::*;
 pub use bucketed::*;
