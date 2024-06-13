@@ -16,7 +16,7 @@ RUN /build-kaniko.sh
 # Build the `build-image` command as a static binary using musl
 # The setup is loosely based on a stripped down version of
 # https://github.com/emk/rust-musl-builder/blob/master/Dockerfile
-FROM debian:buster as build-image
+FROM debian:12 as build-image
 
 COPY apt.conf /etc/apt/apt.conf.d/99taskcluster
 COPY setup-build-image.sh /setup-build-image.sh
