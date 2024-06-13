@@ -105,6 +105,10 @@ RefPtr<DecoderAgent::ConfigurePromise> DecoderAgent::Configure(
     params.mOptions += CreateDecoderParams::Option::LowLatency;
   }
 
+  // Always even use the pts that were set on the input samples when returning
+  // decoded video frames.
+  params.mOptions += CreateDecoderParams::Option::KeepOriginalPts;
+
   LOG("DecoderAgent #%d (%p) is creating a decoder - PreferSW: %s, "
       "low-latency: %s",
       mId, this, aPreferSoftwareDecoder ? "yes" : "no",

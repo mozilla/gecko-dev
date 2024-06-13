@@ -54,6 +54,8 @@ enum class Option {
                                 // delivered before initialization data.
   DefaultPlaybackDeviceMono,    // Currently only used by Opus on RDD to avoid
                                 // initialization of audio backends on RDD
+  KeepOriginalPts,  // It can be that the decoder mangles the pts of decoded
+                    // frames, this forces using the input PTS.
 
   SENTINEL  // one past the last valid value
 };
