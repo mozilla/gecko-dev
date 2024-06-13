@@ -19,6 +19,7 @@
 #include "nsString.h"
 #include "mozilla/dom/ContentProcessManager.h"
 #include "mozilla/dom/BrowserParent.h"
+#include "mozilla/StaticPrefs_media.h"
 #include "nsISocketTransportService.h"
 #include "nsICancelable.h"
 #include "nsSocketTransportService2.h"
@@ -465,7 +466,8 @@ nsresult WebrtcTCPSocket::OpenWithHttpProxy() {
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-  rv = httpChannel->SetConnectOnly(false);
+  rv = httpChannel->SetConnectOnly(
+      mozilla::StaticPrefs::media_webrtc_tls_tunnel_for_all_proxy());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
