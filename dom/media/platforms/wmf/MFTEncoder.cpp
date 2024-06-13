@@ -534,12 +534,11 @@ MFTEncoder::CreateInputSample(RefPtr<IMFSample>* aSample, size_t aSize) {
 }
 
 HRESULT
-MFTEncoder::PushInput(RefPtr<IMFSample>&& aInput) {
+MFTEncoder::PushInput(const InputSample& aInput) {
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
   MOZ_ASSERT(mEncoder);
-  MOZ_ASSERT(aInput);
 
-  mPendingInputs.Push(aInput.forget());
+  mPendingInputs.push_back(aInput);
   if (mEventSource.IsSync() && mNumNeedInput == 0) {
     // To step 2 in
     // https://docs.microsoft.com/en-us/windows/win32/medfound/basic-mft-processing-model#process-data
@@ -556,12 +555,19 @@ HRESULT MFTEncoder::ProcessInput() {
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
   MOZ_ASSERT(mEncoder);
 
-  if (mNumNeedInput == 0 || mPendingInputs.GetSize() == 0) {
+  if (mNumNeedInput == 0 || mPendingInputs.empty()) {
     return S_OK;
   }
 
-  RefPtr<IMFSample> input = mPendingInputs.PopFront();
-  HRESULT hr = mEncoder->ProcessInput(mInputStreamID, input, 0);
+  auto input = mPendingInputs.front();
+  mPendingInputs.pop_front();
+
+  HRESULT hr = mEncoder->ProcessInput(mInputStreamID, input.mSample, 0);
+
+  if (input.mKeyFrameRequested) {
+    VARIANT v = {.vt = VT_UI4, .ulVal = 1};
+    mConfig->SetValue(&CODECAPI_AVEncVideoForceKeyFrame, &v);
+  }
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
   --mNumNeedInput;
 
@@ -702,7 +708,7 @@ HRESULT MFTEncoder::Drain(nsTArray<RefPtr<IMFSample>>& aOutput) {
   switch (mDrainState) {
     case DrainState::DRAINABLE:
       // Exhaust pending inputs.
-      while (mPendingInputs.GetSize() > 0) {
+      while (!mPendingInputs.empty()) {
         if (mEventSource.IsSync()) {
           // Step 5 in
           // https://docs.microsoft.com/en-us/windows/win32/medfound/basic-mft-processing-model#process-data

@@ -179,7 +179,10 @@ RefPtr<EncodePromise> WMFMediaDataEncoder::ProcessEncode(
   WMF_ENC_LOGD("ProcessEncode ts=%s", aSample->mTime.ToString().get());
 
   RefPtr<IMFSample> nv12 = ConvertToNV12InputSample(std::move(aSample));
-  if (!nv12 || FAILED(mEncoder->PushInput(std::move(nv12)))) {
+
+  MFTEncoder::InputSample inputSample{nv12, aSample->mKeyframe};
+
+  if (!nv12 || FAILED(mEncoder->PushInput(inputSample))) {
     WMF_ENC_LOGE("failed to process input sample");
     return EncodePromise::CreateAndReject(
         MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,

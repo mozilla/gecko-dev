@@ -10,6 +10,7 @@
 
 #  include <functional>
 #  include <queue>
+#  include <deque>
 #  include "mozilla/RefPtr.h"
 #  include "mozilla/ResultVariant.h"
 #  include "nsISupportsImpl.h"
@@ -21,6 +22,10 @@ namespace mozilla {
 
 class MFTEncoder final {
  public:
+  struct InputSample {
+    RefPtr<IMFSample> mSample{};
+    bool mKeyFrameRequested = false;
+  };
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MFTEncoder)
 
   explicit MFTEncoder(const bool aHardwareNotAllowed)
@@ -33,7 +38,7 @@ class MFTEncoder final {
   HRESULT SetBitrate(UINT32 aBitsPerSec);
 
   HRESULT CreateInputSample(RefPtr<IMFSample>* aSample, size_t aSize);
-  HRESULT PushInput(RefPtr<IMFSample>&& aInput);
+  HRESULT PushInput(const InputSample& aInput);
   HRESULT TakeOutput(nsTArray<RefPtr<IMFSample>>& aOutput);
   HRESULT Drain(nsTArray<RefPtr<IMFSample>>& aOutput);
 
@@ -134,7 +139,7 @@ class MFTEncoder final {
   enum class DrainState { DRAINED, DRAINABLE, DRAINING };
   DrainState mDrainState = DrainState::DRAINABLE;
 
-  nsRefPtrDeque<IMFSample> mPendingInputs;
+  std::deque<InputSample> mPendingInputs;
   nsTArray<RefPtr<IMFSample>> mOutputs;
 
   EventSource mEventSource;
