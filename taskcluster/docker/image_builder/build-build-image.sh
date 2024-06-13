@@ -2,8 +2,17 @@
 
 set -ex
 
+ARCH=$1
 TOOLCHAIN=1.76.0
-TARGET=x86_64-unknown-linux-musl
+if [ "$ARCH" = arm64 ]; then
+    TARGET=aarch64-unknown-linux-musl
+    # there's no aarch64-linux-musl-gcc, use the gnu one
+    CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc
+    CC=aarch64-linux-gnu-gcc
+    export CC CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER
+else
+    TARGET=x86_64-unknown-linux-musl
+fi
 
 # Install our Rust toolchain and the `musl` target.  We patch the
 # command-line we pass to the installer so that it won't attempt to

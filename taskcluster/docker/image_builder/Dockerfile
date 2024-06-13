@@ -3,26 +3,30 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 FROM golang:1.22 as skopeo
+ARG ARCH=amd64
 
 WORKDIR /go/src/
 COPY build-skopeo.sh /build-skopeo.sh
-RUN /build-skopeo.sh
+RUN /build-skopeo.sh $ARCH
 
 FROM golang:1.22 as kaniko
+ARG ARCH=amd64
+
 WORKDIR /go/src/
 COPY build-kaniko.sh /build-kaniko.sh
-RUN /build-kaniko.sh
+RUN /build-kaniko.sh $ARCH
 
 # Build the `build-image` command as a static binary using musl
 # The setup is loosely based on a stripped down version of
 # https://github.com/emk/rust-musl-builder/blob/master/Dockerfile
 FROM debian:12 as build-image
+ARG ARCH=amd64
 
 COPY apt.conf /etc/apt/apt.conf.d/99taskcluster
 COPY setup-build-image.sh /setup-build-image.sh
 COPY build-build-image.sh /build-build-image.sh
 
-RUN /setup-build-image.sh
+RUN /setup-build-image.sh $ARCH
 
 # Run all further code as user `rust`, and create our working directories
 # as the appropriate user.
@@ -34,7 +38,7 @@ WORKDIR /home/rust/src
 # Add our source code.
 ADD --chown=rust:rust build-image/ ./
 
-RUN /build-build-image.sh
+RUN /build-build-image.sh $ARCH
 
 FROM scratch as empty
 

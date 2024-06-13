@@ -20,6 +20,11 @@ transforms:
 tasks:
     image_builder:
         symbol: I(ib)
+    image_builder_arm64:
+        symbol: I(ib-a64)
+        definition: image_builder
+        args:
+            ARCH: arm64
     # Neither the ubuntu1804-*raw nor the ubuntu1804-*packages images can have
     # packages dependencies.
     ubuntu1804-raw:
