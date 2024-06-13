@@ -465,8 +465,6 @@ class HttpChannelChild final : public PHttpChannelChild,
   // Collect telemetry for mixed content.
   void CollectMixedContentTelemetry();
 
-  void RecordChannelCompletionDurationForEarlyHint();
-
   friend class HttpAsyncAborter<HttpChannelChild>;
   friend class InterceptStreamListener;
   friend class InterceptedChannelContent;
