@@ -5,22 +5,13 @@
 FROM golang:1.14 as skopeo
 
 WORKDIR /go/src/
-RUN ["git", "clone", "--no-checkout", "--depth=1", "--branch=v1.1.1", "https://github.com/containers/skopeo", "."]
-RUN ["git", "checkout", "67abbb3cefbdc876447583d5ea45e76bf441eba7"]
-ENV GO111MODULE=on CGO_ENABLED=0
-RUN ["go", "build", \
-	"-mod=vendor", "-o", "out/skopeo", \
-	"-tags", "exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp", \
-	# Set unixTempDirForBigFiles so skopeo will extract in a directory hidden by kaniko
-	# We create the directory below.
-	"-ldflags", " -X github.com/containers/image/v5/internal/tmpdir.unixTempDirForBigFiles=/workspace/tmp -X github.com/containers/image/v5/signature.systemDefaultPolicyPath=/kaniko/containers/policy.json -extldflags \"-static\" -w -s", \
-	"./cmd/skopeo"]
+COPY build-skopeo.sh /build-skopeo.sh
+RUN /build-skopeo.sh
 
 FROM golang:1.14 as kaniko
 WORKDIR /go/src/
-RUN ["git", "clone", "--no-checkout", "--depth=1", "--branch=v1.0.0", "https://github.com/GoogleContainerTools/kaniko", "."]
-RUN ["git", "checkout", "146ec6a9cd6f87b4a12e8119ded575d5edca35ac"]
-RUN ["make"]
+COPY build-kaniko.sh /build-kaniko.sh
+RUN /build-kaniko.sh
 
 # Build the `build-image` command as a static binary using musl
 # The setup is loosely based on a stripped down version of
@@ -28,51 +19,22 @@ RUN ["make"]
 FROM debian:buster as build-image
 
 COPY apt.conf /etc/apt/apt.conf.d/99taskcluster
+COPY setup-build-image.sh /setup-build-image.sh
+COPY build-build-image.sh /build-build-image.sh
 
-RUN apt-get update && \
-    apt-get install \
-        build-essential \
-        ca-certificates \
-        curl \
-        musl-dev \
-        musl-tools \
-        && \
-    useradd rust --user-group --create-home --shell /bin/bash
+RUN /setup-build-image.sh
 
 # Run all further code as user `rust`, and create our working directories
 # as the appropriate user.
 USER rust
 
-# Set up our path with all our binary directories, including those for the
-# musl-gcc toolchain and for our Rust toolchain.
-ENV PATH=/home/rust/.cargo/bin:$PATH
-
-# The Rust toolchain to use when building our image.  Set by `hooks/build`.
-ENV TOOLCHAIN=1.76.0 \
-    TARGET=x86_64-unknown-linux-musl
-
-# Install our Rust toolchain and the `musl` target.  We patch the
-# command-line we pass to the installer so that it won't attempt to
-# interact with the user or fool around with TTYs.  We also set the default
-# `--target` to musl so that our users don't need to keep overriding it
-# manually.
-RUN curl https://sh.rustup.rs -sSf | \
-    sh -s -- -y \
-        --profile minimal \
-        --default-toolchain $TOOLCHAIN \
-        --target $TARGET
-
 # Expect our source code to live in /home/rust/src.  We'll run the build as
 # user `rust`, which will be uid 1000, gid 1000 outside the container.
-RUN mkdir -p /home/rust/src
 WORKDIR /home/rust/src
 # Add our source code.
 ADD --chown=rust:rust build-image/ ./
 
-# --out-dir is not yet stable
-ENV RUSTC_BOOTSTRAP=1
-# Build our application.
-RUN ["cargo", "build", "--target", "x86_64-unknown-linux-musl", "--out-dir=bin", "--release", "-Zunstable-options"]
+RUN /build-build-image.sh
 
 FROM scratch as empty
 
