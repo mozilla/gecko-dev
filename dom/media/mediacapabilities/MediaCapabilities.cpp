@@ -26,6 +26,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DOMMozPromiseRequestHolder.h"
 #include "mozilla/dom/MediaCapabilitiesBinding.h"
+#include "mozilla/dom/MediaKeySystemAccess.h"
 #include "mozilla/dom/MediaSource.h"
 #include "mozilla/dom/Navigator.h"
 #include "mozilla/dom/Promise.h"
@@ -42,6 +43,58 @@ static mozilla::LazyLogModule sMediaCapabilitiesLog("MediaCapabilities");
   DDMOZ_LOG(sMediaCapabilitiesLog, LogLevel::Debug, msg, ##__VA_ARGS__)
 
 namespace mozilla::dom {
+
+static bool
+MediaCapabilitiesKeySystemConfigurationToMediaKeySystemConfiguration(
+    const MediaDecodingConfiguration& aInConfig,
+    MediaKeySystemConfiguration& aOutConfig) {
+  if (!aInConfig.mKeySystemConfiguration.WasPassed()) {
+    return false;
+  }
+
+  const auto& keySystemConfig = aInConfig.mKeySystemConfiguration.Value();
+  if (!keySystemConfig.mInitDataType.IsEmpty()) {
+    if (NS_WARN_IF(!aOutConfig.mInitDataTypes.AppendElement(
+            keySystemConfig.mInitDataType, fallible))) {
+      return false;
+    }
+  }
+  if (keySystemConfig.mSessionTypes.WasPassed() &&
+      !keySystemConfig.mSessionTypes.Value().IsEmpty()) {
+    aOutConfig.mSessionTypes.Construct();
+    for (const auto& type : keySystemConfig.mSessionTypes.Value()) {
+      if (NS_WARN_IF(!aOutConfig.mSessionTypes.Value().AppendElement(
+              type, fallible))) {
+        return false;
+      }
+    }
+  }
+  if (aInConfig.mAudio.WasPassed()) {
+    auto* capabilitiy = aOutConfig.mAudioCapabilities.AppendElement(fallible);
+    if (NS_WARN_IF(!capabilitiy)) {
+      return false;
+    }
+    capabilitiy->mContentType = aInConfig.mAudio.Value().mContentType;
+    if (keySystemConfig.mAudio.WasPassed()) {
+      const auto& config = keySystemConfig.mAudio.Value();
+      capabilitiy->mRobustness = config.mRobustness;
+      capabilitiy->mEncryptionScheme = config.mEncryptionScheme;
+    }
+  }
+  if (aInConfig.mVideo.WasPassed()) {
+    auto* capabilitiy = aOutConfig.mVideoCapabilities.AppendElement(fallible);
+    if (NS_WARN_IF(!capabilitiy)) {
+      return false;
+    }
+    capabilitiy->mContentType = aInConfig.mVideo.Value().mContentType;
+    if (keySystemConfig.mVideo.WasPassed()) {
+      const auto& config = keySystemConfig.mVideo.Value();
+      capabilitiy->mRobustness = config.mRobustness;
+      capabilitiy->mEncryptionScheme = config.mEncryptionScheme;
+    }
+  }
+  return true;
+}
 
 static nsCString VideoConfigurationToStr(const VideoConfiguration* aConfig) {
   if (!aConfig) {
@@ -108,6 +161,18 @@ static nsCString MediaDecodingConfigurationToStr(
   }
   if (aConfig.mAudio.WasPassed()) {
     str += "audio:"_ns + AudioConfigurationToStr(&aConfig.mAudio.Value());
+  }
+  if (aConfig.mKeySystemConfiguration.WasPassed()) {
+    str += "[keySystem:"_ns +
+           NS_ConvertUTF16toUTF8(
+               aConfig.mKeySystemConfiguration.Value().mKeySystem) +
+           ", "_ns;
+    MediaKeySystemConfiguration emeConfig;
+    if (MediaCapabilitiesKeySystemConfigurationToMediaKeySystemConfiguration(
+            aConfig, emeConfig)) {
+      str += MediaKeySystemAccess::ToCString(emeConfig);
+    }
+    str += "]"_ns;
   }
   str += "]"_ns;
   return str;
@@ -612,54 +677,13 @@ MediaCapabilities::CheckEncryptedDecodingSupport(
                                                         __func__);
   }
 
-  const auto& keySystemConfig = aConfiguration.mKeySystemConfiguration.Value();
-  if (!keySystemConfig.mInitDataType.IsEmpty()) {
-    if (NS_WARN_IF(!emeConfig->mInitDataTypes.AppendElement(
-            keySystemConfig.mInitDataType, fallible))) {
-      return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                          __func__);
-    }
+  if (!MediaCapabilitiesKeySystemConfigurationToMediaKeySystemConfiguration(
+          aConfiguration, *emeConfig)) {
+    return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                        __func__);
   }
-  emeConfig->mDistinctiveIdentifier = keySystemConfig.mDistinctiveIdentifier;
-  emeConfig->mPersistentState = keySystemConfig.mPersistentState;
-  if (keySystemConfig.mSessionTypes.WasPassed() &&
-      !keySystemConfig.mSessionTypes.Value().IsEmpty()) {
-    emeConfig->mSessionTypes.Construct();
-    for (const auto& type : keySystemConfig.mSessionTypes.Value()) {
-      if (NS_WARN_IF(!emeConfig->mSessionTypes.Value().AppendElement(
-              type, fallible))) {
-        return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                            __func__);
-      }
-    }
-  }
-  if (aConfiguration.mAudio.WasPassed()) {
-    auto* capabilitiy = emeConfig->mAudioCapabilities.AppendElement(fallible);
-    if (NS_WARN_IF(!capabilitiy)) {
-      return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                          __func__);
-    }
-    capabilitiy->mContentType = aConfiguration.mAudio.Value().mContentType;
-    if (keySystemConfig.mAudio.WasPassed()) {
-      const auto& config = keySystemConfig.mAudio.Value();
-      capabilitiy->mRobustness = config.mRobustness;
-      capabilitiy->mEncryptionScheme = config.mEncryptionScheme;
-    }
-  }
-  if (aConfiguration.mVideo.WasPassed()) {
-    auto* capabilitiy = emeConfig->mVideoCapabilities.AppendElement(fallible);
-    if (NS_WARN_IF(!capabilitiy)) {
-      return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                          __func__);
-    }
-    capabilitiy->mContentType = aConfiguration.mVideo.Value().mContentType;
-    if (keySystemConfig.mVideo.WasPassed()) {
-      const auto& config = keySystemConfig.mVideo.Value();
-      capabilitiy->mRobustness = config.mRobustness;
-      capabilitiy->mEncryptionScheme = config.mEncryptionScheme;
-    }
-  }
-  return manager->Request(keySystemConfig.mKeySystem, configs);
+  return manager->Request(
+      aConfiguration.mKeySystemConfiguration.Value().mKeySystem, configs);
 }
 
 already_AddRefed<Promise> MediaCapabilities::EncodingInfo(
