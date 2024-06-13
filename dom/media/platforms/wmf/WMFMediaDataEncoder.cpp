@@ -176,7 +176,9 @@ RefPtr<EncodePromise> WMFMediaDataEncoder::ProcessEncode(
   MOZ_ASSERT(mEncoder);
   MOZ_ASSERT(aSample);
 
-  WMF_ENC_LOGD("ProcessEncode ts=%s", aSample->mTime.ToString().get());
+  WMF_ENC_LOGD("ProcessEncode ts=%s duration=%s",
+               aSample->mTime.ToString().get(),
+               aSample->mDuration.ToString().get());
 
   RefPtr<IMFSample> nv12 = ConvertToNV12InputSample(std::move(aSample));
 

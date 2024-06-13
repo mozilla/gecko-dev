@@ -78,8 +78,9 @@ RefPtr<MediaDataDecoder::DecodePromise> WMFMediaDataDecoder::ProcessDecode(
     MediaRawData* aSample) {
   MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
   DecodedData results;
-  LOG("ProcessDecode, type=%s, sample=%" PRId64,
-      TrackTypeToStr(mMFTManager->GetType()), aSample->mTime.ToMicroseconds());
+  LOG("ProcessDecode, type=%s, sample=%" PRId64 ", duration=%" PRId64,
+      TrackTypeToStr(mMFTManager->GetType()), aSample->mTime.ToMicroseconds(),
+      aSample->mDuration.ToMicroseconds());
   HRESULT hr = mMFTManager->Input(aSample);
   if (hr == MF_E_NOTACCEPTING) {
     hr = ProcessOutput(results);
