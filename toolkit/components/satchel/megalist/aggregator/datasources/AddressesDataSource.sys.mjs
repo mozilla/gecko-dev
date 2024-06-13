@@ -58,6 +58,8 @@ export class AddressesDataSource extends DataSourceBase {
     super(...args);
     this.localizeStrings({
       headerLabel: "addresses-section-label",
+      expandSection: "addresses-expand-section-tooltip",
+      collapseSection: "addresses-collapse-section-tooltip",
       nameLabel: "address-name-label",
       phoneLabel: "address-phone-label",
       emailLabel: "address-email-label",
@@ -67,7 +69,11 @@ export class AddressesDataSource extends DataSourceBase {
       const editCommand = { id: "Edit", label: "command-edit" };
       const deleteCommand = { id: "Delete", label: "command-delete" };
       this.#addressesDisabledMessage = strings.addressesDisabled;
-      this.#header = this.createHeaderLine(strings.headerLabel);
+      const tooltip = {
+        expand: strings.expandSection,
+        collapse: strings.collapseSection,
+      };
+      this.#header = this.createHeaderLine(strings.headerLabel, tooltip);
       this.#header.commands.push({
         id: "Create",
         label: "addresses-command-create",

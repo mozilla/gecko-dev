@@ -70,6 +70,8 @@ export class BankCardDataSource extends DataSourceBase {
     // Wait for Fluent to provide strings before loading data
     this.localizeStrings({
       headerLabel: "payments-section-label",
+      expandSection: "payments-expand-section-tooltip",
+      collapseSection: "payments-collapse-section-tooltip",
       numberLabel: "card-number-label",
       expirationLabel: "card-expiration-label",
       holderLabel: "card-holder-label",
@@ -83,7 +85,11 @@ export class BankCardDataSource extends DataSourceBase {
         verify: true,
       };
       this.#cardsDisabledMessage = strings.cardsDisabled;
-      this.#header = this.createHeaderLine(strings.headerLabel);
+      const tooltip = {
+        expand: strings.expandSection,
+        collapse: strings.collapseSection,
+      };
+      this.#header = this.createHeaderLine(strings.headerLabel, tooltip);
       this.#header.commands.push({
         id: "Create",
         label: "payments-command-create",

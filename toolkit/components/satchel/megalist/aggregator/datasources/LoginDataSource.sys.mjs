@@ -51,6 +51,8 @@ export class LoginDataSource extends DataSourceBase {
     // Wait for Fluent to provide strings before loading data
     this.localizeStrings({
       headerLabel: "passwords-section-label",
+      expandSection: "passwords-expand-section-tooltip",
+      collapseSection: "passwords-collapse-section-tooltip",
       originLabel: "passwords-origin-label",
       usernameLabel: "passwords-username-label",
       passwordLabel: "passwords-password-label",
@@ -86,8 +88,12 @@ export class LoginDataSource extends DataSourceBase {
       const noPasswordSticker = { type: "error", label: "😾 Missing password" };
       const breachedSticker = { type: "warning", label: "BREACH" };
       const vulnerableSticker = { type: "risk", label: "🤮 Vulnerable" };
+      const tooltip = {
+        expand: strings.expandSection,
+        collapse: strings.collapseSection,
+      };
       this.#loginsDisabledMessage = strings.passwordsDisabled;
-      this.#header = this.createHeaderLine(strings.headerLabel);
+      this.#header = this.createHeaderLine(strings.headerLabel, tooltip);
       this.#header.commands.push(
         { id: "Create", label: "passwords-command-create" },
         {

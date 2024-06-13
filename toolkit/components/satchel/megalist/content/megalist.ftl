@@ -9,6 +9,7 @@ filter-input =
 
 menu-more-options-button = …
   .aria-label = More
+  .title = Open commands menu
 
 more-options-popup =
   .aria-label = More Options
@@ -29,6 +30,9 @@ command-cancel = Cancel
 
 passwords-section-label = Passwords
 passwords-disabled = Passwords are disabled
+
+passwords-expand-section-tooltip = Show Passwords
+passwords-collapse-section-tooltip = Hide Passwords
 
 passwords-dismiss-breach-alert-command = Dismiss breach alert
 passwords-command-create = Add Password
@@ -139,6 +143,9 @@ payments-command-create = Add Payment Method
 payments-section-label = Payment methods
 payments-disabled = Payments methods are disabled
 
+payments-expand-section-tooltip = Show Payments
+payments-collapse-section-tooltip = Hide Payments
+
 # Variables
 #   $count (number) - Number of payment methods
 payments-count =
@@ -166,6 +173,9 @@ addresses-command-create = Add Address
 
 addresses-section-label = Addresses
 addresses-disabled = Addresses are disabled
+
+addresses-expand-section-tooltip = Show Addresses
+addresses-collapse-section-tooltip = Hide Addresses
 
 # Variables
 #   $count (number) - Number of addresses

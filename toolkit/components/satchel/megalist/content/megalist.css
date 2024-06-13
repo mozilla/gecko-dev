@@ -92,12 +92,17 @@ virtualized-list {
 
     > button {
       border: none;
+      border-radius: 4px;
       margin-inline-start: 2px;
       padding: 2px;
       background-color: transparent;
       /* Fix: too lazy to load the svg  */
       width: 32px;
       color: unset;
+
+      &:hover {
+        background-color: var(--in-content-button-background-hover);
+      }
     }
 
     > .menuPopup {
@@ -147,11 +152,16 @@ virtualized-list {
     }
 
     > .icon {
+      border-radius: 4px;
       margin-inline-start: 4px;
       width: 16px;
       height: 16px;
       -moz-context-properties: fill;
       fill: currentColor;
+
+      &:hover {
+        background-color: var(--in-content-button-background-hover);
+      }
     }
 
     > .label {

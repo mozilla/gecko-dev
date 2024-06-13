@@ -188,6 +188,10 @@ export class MegalistView extends MozLitElement {
     const lineContent = template.cloneNode(true);
     lineContent.querySelector(".label").textContent = snapshotData.label;
 
+    const toggleButton = lineContent.querySelector(".icon");
+    if (toggleButton) {
+      toggleButton.setAttribute("title", snapshotData.toggleTooltip);
+    }
     const valueElement = lineContent.querySelector(".value");
     if (valueElement) {
       const valueText = lineContent.querySelector("span");

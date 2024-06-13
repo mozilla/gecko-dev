@@ -183,7 +183,7 @@ export class DataSourceBase {
    * @param {string} label for the section
    * @returns {object} section header line
    */
-  createHeaderLine(label) {
+  createHeaderLine(label, tooltip) {
     const result = {
       label,
       value: "",
@@ -204,6 +204,10 @@ export class DataSourceBase {
       lineIsReady: () => true,
 
       commands: [{ id: "Toggle", label: "command-toggle" }],
+
+      get toggleTooltip() {
+        return this.collapsed ? tooltip.expand : tooltip.collapse;
+      },
 
       executeToggle() {
         this.collapsed = !this.collapsed;
