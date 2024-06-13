@@ -120,6 +120,23 @@ struct MediaEngineTextMarker {
   }
 };
 
+struct VideoSinkRenderMarker {
+  static constexpr Span<const char> MarkerTypeName() {
+    return MakeStringSpan("VideoSinkRender");
+  }
+  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
+                                   int64_t aClockTimeUs) {
+    aWriter.IntProperty("clockTimeUs", aClockTimeUs);
+  }
+  static MarkerSchema MarkerTypeDisplay() {
+    using MS = MarkerSchema;
+    MS schema{MS::Location::MarkerChart, MS::Location::MarkerTable};
+    schema.AddKeyLabelFormat("clockTimeUs", "Clock time",
+                             MS::Format::Microseconds);
+    return schema;
+  }
+};
+
 }  // namespace mozilla::baseprofiler::markers
 
 #endif  // BaseProfilerMarkerTypes_h

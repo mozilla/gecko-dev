@@ -433,6 +433,9 @@ void VideoSink::RenderVideoFrames(int32_t aMaxFrames, int64_t aClockTime,
     return;
   }
 
+  PROFILER_MARKER("VideoSink::RenderVideoFrames", MEDIA_PLAYBACK, {},
+                  VideoSinkRenderMarker, aClockTime);
+
   AutoTArray<ImageContainer::NonOwningImage, 16> images;
   TimeStamp lastFrameTime;
   double playbackRate = mAudioSink->PlaybackRate();

@@ -4095,6 +4095,10 @@ void TestProfiler() {
         "video falling behind", mozilla::baseprofiler::category::OTHER, {},
         mozilla::baseprofiler::markers::VideoFallingBehindMarker{}, 123, 456));
 
+    MOZ_RELEASE_ASSERT(baseprofiler::AddMarker(
+        "video sink render", mozilla::baseprofiler::category::OTHER, {},
+        mozilla::baseprofiler::markers::VideoSinkRenderMarker{}, 123));
+
     printf("Sleep 1s...\n");
     {
       AUTO_BASE_PROFILER_THREAD_SLEEP;
