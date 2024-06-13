@@ -177,6 +177,19 @@ That command looks like:
 
   hg update $MOZ_NEW_CENTRAL
 
+  ERROR_HELP=$"
+Running ./mach bootstrap has failed.  For details, see:
+$LOG_DIR/log-bootstrap.txt
+"
+  echo "Running ./mach bootstrap..."
+  ./mach bootstrap --application=browser --no-system-changes &> $LOG_DIR/log-bootstrap.txt
+  echo "Done running ./mach bootstrap"
+  ERROR_HELP=""
+
+  echo "Running ./mach clobber..."
+  ./mach clobber &> $LOG_DIR/log-sanity-clobber.txt
+  echo "Done running ./mach clobber"
+
   # pre-work is complete, let's write out a temporary config file that allows
   # us to resume
   echo $"export MOZ_BOTTOM_FF=$MOZ_BOTTOM_FF
@@ -317,8 +330,7 @@ echo "Done checking for new mercurial changes in third_party/libwebrtc"
 REMAINING_STEPS=$"
 The rebase process is complete.  The following steps must be completed manually:
 $PATCH_STACK_FIXUP
-  ./mach bootstrap --application=browser --no-system-changes && \\
-  ./mach clobber && ./mach build && \\
+  ./mach build && \\
   hg push -r tip --force && \\
   hg push -B $MOZ_BOOKMARK
 "
