@@ -9,7 +9,7 @@
 // On Linux and OS X linking succeeds anyway.
 // Presumably these symbol declarations don’t need to be resolved
 // as they’re not used in any code called from this crate.
-#![cfg(any(linking_with_gecko, not(windows)))]
+#![cfg(not(windows))]
 
 extern crate euclid;
 extern crate style;
