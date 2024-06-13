@@ -32,7 +32,8 @@ SVGFilterInstance::SVGFilterInstance(
     const StyleFilter& aFilter, SVGFilterFrame* aFilterFrame,
     nsIContent* aTargetContent, const UserSpaceMetrics& aMetrics,
     const gfxRect& aTargetBBox,
-    const MatrixScalesDouble& aUserSpaceToFilterSpaceScale)
+    const MatrixScalesDouble& aUserSpaceToFilterSpaceScale,
+    gfxRect& aFilterSpaceBoundsNotSnapped)
     : mFilter(aFilter),
       mTargetContent(aTargetContent),
       mMetrics(aMetrics),
@@ -54,6 +55,7 @@ SVGFilterInstance::SVGFilterInstance(
   if (!ComputeBounds()) {
     return;
   }
+  aFilterSpaceBoundsNotSnapped = mFilterSpaceBoundsNotSnapped;
 
   mInitialized = true;
 }
@@ -88,6 +90,7 @@ bool SVGFilterInstance::ComputeBounds() {
   // can align them with the pixel boundaries of the offscreen surface.
   // The offscreen surface has the same scale as filter space.
   gfxRect filterSpaceBounds = UserSpaceToFilterSpace(userSpaceBounds);
+  mFilterSpaceBoundsNotSnapped = filterSpaceBounds;
   filterSpaceBounds.RoundOut();
   if (filterSpaceBounds.width <= 0 || filterSpaceBounds.height <= 0) {
     // 0 disables rendering, < 0 is error. dispatch error console warning

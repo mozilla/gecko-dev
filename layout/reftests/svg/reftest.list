@@ -61,7 +61,10 @@ skip == blend-difference-stacking.html blend-difference-stacking-ref.html # bug 
 == active-transform-blend-mode.html active-transform-blend-mode-ref.html
 == active-clip-and-mask.html active-clip-and-mask-ref.html
 
-fuzzy(0-11,0-7155) == blur-inside-clipPath.svg blur-inside-clipPath-ref.svg
+# this test exists to detect if clip paths are erroneously cropped by the
+# unfiltered size of the primitive, which was bug 1459890, so the blur fuzz
+# doesn't matter, as if the error occurs it causes a much more drastic change
+fuzzy(0-20,0-9840) == blur-inside-clipPath.svg blur-inside-clipPath-ref.svg
 
 == border-radius-01.html pass.svg
 == mask-image-filter-transform.html mask-image-filter-transform-ref.html
@@ -177,7 +180,7 @@ fuzzy-if(winWidget,0-3,0-1200) == dynamic-rect-02.svg dynamic-rect-02-ref.svg # 
 == dynamic-stroke-width-01.svg pass.svg
 == dynamic-switch-01.svg pass.svg
 == dynamic-text-01.svg dynamic-text-01-ref.svg
-fuzzy-if(winWidget,0-3,0-12739) == dynamic-text-02.svg dynamic-text-02-ref.svg # bug 776038 for Win7, Win8
+fuzzy-if(winWidget,0-4,0-12739) fuzzy-if(gfxSVGFEGaussianBlur,0-7,0-1000000) == dynamic-text-02.svg dynamic-text-02-ref.svg # bug 776038 for Win7, Win8
 fuzzy-if(winWidget,0-2,0-10539) == dynamic-text-03.svg dynamic-text-03-ref.svg # bug 776038 for Win7
 == dynamic-text-04.svg dynamic-text-04-ref.svg
 == dynamic-text-05.svg pass.svg

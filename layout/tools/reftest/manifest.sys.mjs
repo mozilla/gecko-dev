@@ -641,6 +641,36 @@ function BuildConditionSandbox(aURL) {
   sandbox.swgl = g.windowUtils.layerManagerType.startsWith(
     "WebRender (Software"
   );
+  // These detect if each SVG filter primitive is enabled in WebRender
+  sandbox.gfxSVGFE =
+    Services.prefs.getBoolPref("gfx.webrender.svg-filter-effects") &&
+    !g.useDrawSnapshot;
+  sandbox.gfxSVGFEColorMatrix =
+    Services.prefs.getBoolPref(
+      "gfx.webrender.svg-filter-effects.fecolormatrix"
+    ) && sandbox.gfxSVGFE;
+  sandbox.gfxSVGFEComponentTransfer =
+    Services.prefs.getBoolPref(
+      "gfx.webrender.svg-filter-effects.fecomponenttransfer"
+    ) && sandbox.gfxSVGFE;
+  sandbox.gfxSVGFEComposite =
+    Services.prefs.getBoolPref(
+      "gfx.webrender.svg-filter-effects.fecomposite"
+    ) && sandbox.gfxSVGFE;
+  sandbox.gfxSVGFEDropShadow =
+    Services.prefs.getBoolPref(
+      "gfx.webrender.svg-filter-effects.fedropshadow"
+    ) && sandbox.gfxSVGFE;
+  sandbox.gfxSVGFEFlood =
+    Services.prefs.getBoolPref("gfx.webrender.svg-filter-effects.feflood") &&
+    sandbox.gfxSVGFE;
+  sandbox.gfxSVGFEGaussianBlur =
+    Services.prefs.getBoolPref(
+      "gfx.webrender.svg-filter-effects.fegaussianblur"
+    ) && sandbox.gfxSVGFE;
+  sandbox.gfxSVGFEOffset =
+    Services.prefs.getBoolPref("gfx.webrender.svg-filter-effects.feoffset") &&
+    sandbox.gfxSVGFE;
 
   // Shortcuts for widget toolkits.
   sandbox.Android = Services.appinfo.OS == "Android";

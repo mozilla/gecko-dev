@@ -6,12 +6,12 @@
 == blur-calc.html blur-calc-ref.html
 == blur-calc-negative.html blur-calc-negative-ref.html
 fuzzy-if(cocoaWidget,0-1,0-2) skip-if(winWidget) == blur-cap-large-radius-on-software.html blur-cap-large-radius-on-software-ref.html
-fuzzy-if(!useDrawSnapshot,2-5,4764-8168) fuzzy-if(Android&&device&&!swgl,5-5,8574-8574) == blur-clip-rect.html ../feGaussianBlur-4-ref.svg
+== blur-clip-rect.html ../feGaussianBlur-4-ref.svg
 == blur-em-radius.html blur-em-radius-ref.html
 == blur-invalid-radius.html blur-invalid-radius-ref.html
 == blur-rem-radius.html blur-rem-radius-ref.html
 == blur-zero-radius.html blur-zero-radius-ref.html
-fails-if(useDrawSnapshot) == blur-zoomed-page.html blur-zoomed-page-ref.html
+fails-if(useDrawSnapshot) fuzzy-if(gfxSVGFEGaussianBlur,0-2,0-1000000) == blur-zoomed-page.html blur-zoomed-page-ref.html
 == brightness.html brightness-ref.html
 == brightness-darken.html brightness-darken-ref.html
 == brightness-extreme.html brightness-extreme-ref.html
@@ -25,9 +25,9 @@ fails-if(useDrawSnapshot) == blur-zoomed-page.html blur-zoomed-page-ref.html
 == contrast-percent.html contrast-percent-ref.html
 == contrast-reduce.html contrast-reduce-ref.html
 == contrast-zero.html contrast-zero-ref.html
-== drop-shadow.html drop-shadow-ref.html
-== drop-shadow-default-color.html drop-shadow-default-color-ref.html
-== drop-shadow-negative-offset.html drop-shadow-negative-offset-ref.html
+fuzzy(0-2,0-1000000) == drop-shadow.html drop-shadow-ref.html
+fuzzy(0-2,0-1000000) == drop-shadow-default-color.html drop-shadow-default-color-ref.html
+fuzzy(0-2,0-1000000) == drop-shadow-negative-offset.html drop-shadow-negative-offset-ref.html
 == filter-on-huge-bbox.html pass.svg
 fuzzy(0-1,0-44) fuzzy-if(winWidget,0-1,0-198) == filter-on-outer-svg.html pass.svg
 fuzzy(0-1,0-10000) == grayscale.html grayscale-ref.html

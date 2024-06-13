@@ -6505,6 +6505,117 @@
   mirror: once
 #endif
 
+- name: gfx.webrender.svg-filter-effects
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.also-convert-css-filters
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.also-use-for-docshell-fecolormatrix
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.opacity
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.toalpha
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.feblend
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.fecolormatrix
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.fecomponenttransfer
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.fecomposite
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.feconvolvematrix
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.fediffuselighting
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.fedisplacementmap
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.fedropshadow
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.feflood
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.fegaussianblur
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.feimage
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.femerge
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.femorphology
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+# Disabled for now due to https://bugzilla.mozilla.org/show_bug.cgi?id=1902136
+- name: gfx.webrender.svg-filter-effects.feoffset
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.fespecularlighting
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.fetile
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: gfx.webrender.svg-filter-effects.feturbulence
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 - name: gfx.webrender.svg-images
   type: RelaxedAtomicBool
   value: true

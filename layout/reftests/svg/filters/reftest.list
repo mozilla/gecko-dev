@@ -20,17 +20,17 @@ include svg-filter-chains/reftest.list
 == dynamic-filter-invalidation-03.svg pass.svg
 == dynamic-filter-invalidation-04.svg pass.svg
 
-fuzzy(0-1,0-42500) == feBlend-1.svg feBlend-1-ref.svg
+fuzzy(0-2,0-1000000) == feBlend-1.svg feBlend-1-ref.svg
 == feBlend-2.svg feBlend-2-ref.svg
 
-fuzzy(0-1,0-6400) == feColorMatrix-1.svg feColorMatrix-1-ref.svg
-fuzzy(0-1,0-10000) == feColorMatrix-2.svg feColorMatrix-2-ref.svg
+fuzzy(0-2,0-1000000) == feColorMatrix-1.svg feColorMatrix-1-ref.svg
+fuzzy(0-2,0-1000000) == feColorMatrix-2.svg feColorMatrix-2-ref.svg
 
 == feComponentTransfer-1.svg feComponentTransfer-1-ref.svg
 == feComponentTransfer-2.svg feComponentTransfer-2-ref.svg
 
-fuzzy(0-1,0-9600) == feComposite-1.svg feComposite-1-ref.svg
-fuzzy(0-1,0-10000) == feComposite-2.svg feComposite-2-ref.svg
+fuzzy(0-2,0-1000000) == feComposite-1.svg feComposite-1-ref.svg
+fuzzy(0-2,0-1000000) == feComposite-2.svg feComposite-2-ref.svg
 
 == feConvolveMatrix-1.svg feConvolveMatrix-1-ref.svg
 == feConvolveMatrix-2.svg feConvolveMatrix-2-ref.svg
@@ -38,16 +38,24 @@ fuzzy(0-1,0-10000) == feComposite-2.svg feComposite-2-ref.svg
 == feDisplacementMap-1.svg feDisplacementMap-1-ref.svg
 == feDisplacementMap-2.svg feDisplacementMap-2-ref.svg
 
-fuzzy(0-1,0-1600) == feFlood-1.svg feFlood-1-ref.svg
-skip-if(winWidget) fuzzy(0-1,0-6400) == feFlood-2.svg feFlood-2-ref.svg
+fuzzy(0-2,0-1000000) == feFlood-1.svg feFlood-1-ref.svg
+fuzzy(0-2,0-1000000) == feFlood-2.svg feFlood-2-ref.svg
 
-fuzzy(0-2,0-6404) fuzzy-if(Android&&device&&!swgl,6-6,6400-6400) == feGaussianBlur-1.svg feGaussianBlur-1-ref.svg
-fuzzy(0-2,0-304) == feGaussianBlur-2.svg feGaussianBlur-2-ref.svg
+# NOTE: some of these use multiple fuzzy conditions, each fuzzy condition
+# is simply setting the fuzzy parameters that will be used by the == at the end,
+# so the last fuzzy wins in terms of override order.
+fuzzy(0-2,0-1000000) == feGaussianBlur-1.svg feGaussianBlur-1-ref.svg
+pref(gfx.webrender.svg-filter-effects,true) fuzzy(0-2,0-1000000) == feGaussianBlur-2.svg feGaussianBlur-2-ref.svg
+pref(gfx.webrender.svg-filter-effects,false) fuzzy(0-2,0-304) fuzzy-if(Android&&device&&!swgl,6-6,6400-6400) == feGaussianBlur-2.svg feGaussianBlur-2-ref.svg
 # != feGaussianBlur-3.svg feGaussianBlur-3-ref.svg
-fuzzy-if(!useDrawSnapshot,2-5,4764-8168) fuzzy-if(Android&&device&&!swgl,5-5,8574-8574) == feGaussianBlur-4.svg feGaussianBlur-4-ref.svg
-fuzzy-if(geckoview,0-4,0-200) == feGaussianBlur-5.svg feGaussianBlur-5-ref.svg
-== feGaussianBlur-6.svg feGaussianBlur-6-ref.svg
-skip-if(winWidget) == feGaussianBlur-cap-large-directional-radius-on-software.html feGaussianBlur-cap-large-directional-radius-on-software-ref.html
+pref(gfx.webrender.svg-filter-effects,true) == feGaussianBlur-4.svg feGaussianBlur-4-ref.svg
+pref(gfx.webrender.svg-filter-effects,false) == feGaussianBlur-4.svg feGaussianBlur-4-ref.svg
+fuzzy-if(geckoview,0-4,0-200) fuzzy-if(gfxSVGFEGaussianBlur,0-0,0-0) == feGaussianBlur-5.svg feGaussianBlur-5-ref.svg
+fuzzy(0-2,0-10000) == feGaussianBlur-6.svg feGaussianBlur-6-ref.svg
+# SVGFE implementation deliberately does not cap blur radius (but resolution
+# degrades), the regular WebRender CSS filter also does not need to cap radius
+# for the same reason, so this test is now only relevant to blob fallback
+skip-if(!useDrawSnapshot) == feGaussianBlur-cap-large-directional-radius-on-software.html feGaussianBlur-cap-large-directional-radius-on-software-ref.html
 
 != feImage-1.svg about:blank # (Make sure our image renders at all)
 == feImage-1.svg feImage-1-ref.svg
@@ -67,10 +75,10 @@ skip-if(winWidget) == feGaussianBlur-cap-large-directional-radius-on-software.ht
 
 # no tests for feTurbulence
 
-fuzzy-if(geckoview,0-36,0-220) == filter-clipped-rect-01.svg pass.svg
+== filter-clipped-rect-01.svg pass.svg
 == filter-in-pattern-01.svg pass.svg
 fuzzy(0-5,0-67) != filter-in-pattern-02.svg filter-in-pattern-02-ref.svg
-random-if(winWidget) == filter-in-mask-01.svg pass.svg # bug 1356139
+== filter-in-mask-01.svg pass.svg
 == filter-in-mask-02.svg pass.svg
 == filter-inner-svg-01.svg pass.svg
 == filter-inner-svg-02.svg pass.svg
@@ -99,7 +107,7 @@ fuzzy(0-10,0-1200) == filter-nested-filtering-02.svg pass.svg
 == feComponentTransfer-04.svg pass.svg
 == feComposite-arguments-01.svg pass.svg
 fuzzy-if(winWidget,0-1,0-39600) == feComposite-operator-lighter.svg feComposite-operator-lighter-ref.html
-fuzzy(0-85,0-28600) == feComposite-paint-01.svg feComposite-paint-01-ref.svg
+fuzzy(0-85,0-28600) fuzzy-if(gfxSVGFEComposite,0-2,0-1000000) == feComposite-paint-01.svg feComposite-paint-01-ref.svg
 fuzzy(0-1,0-10000) == feConvolveMatrix-bias-01.svg feConvolveMatrix-bias-01-ref.svg
 == feConvolveMatrix-order-01.svg feConvolveMatrix-order-01-ref.svg
 
@@ -107,11 +115,11 @@ fuzzy(0-1,0-400) == feDisplacementMap-alpha-01.svg pass.svg
 fuzzy(0-2,0-500) == feDisplacementMap-colour-01.svg feDisplacementMap-colour-01-ref.svg
 == feDisplacementMap-scale-01.svg pass.svg
 
-fuzzy-if(winWidget,0-2,0-25) fuzzy-if(!useDrawSnapshot,55-98,14033-16467) == feDropShadow-01.svg feDropShadow-01-ref.svg
+fuzzy-if(winWidget,0-2,0-25) fuzzy-if(!useDrawSnapshot,55-98,14033-16467) fuzzy-if(gfxSVGFEDropShadow&&!gfxSVGFEOffset,97-98,21575-22951) fuzzy-if(gfxSVGFEOffset,0-2,0-1000000) == feDropShadow-01.svg feDropShadow-01-ref.svg
 
 == feFlood-color-01.svg pass.svg
 
-fuzzy-if(!useDrawSnapshot||(winWidget&&isCoverageBuild),20-21,5523-5647) == feGaussianBlur-alpha-01.svg feGaussianBlur-alpha-01-ref.svg
+fuzzy(0-21,0-1000000) == feGaussianBlur-alpha-01.svg feGaussianBlur-alpha-01-ref.svg
 
 == feMorphology-radius-negative-01.svg pass.svg
 == feMorphology-radius-negative-02.svg pass.svg
@@ -135,8 +143,7 @@ fuzzy(0-1,0-10000) == feTurbulence-zero-baseFreq-01.svg feTurbulence-zero-baseFr
 != feTurbulence-zero-baseFreq-02.svg about:blank
 
 == outside-sourcegraphic-1.svg outside-sourcegraphic-ref.svg
-# These failures are caused by bug 1586055
-fails-if(!useDrawSnapshot) == outside-sourcegraphic-2.svg outside-sourcegraphic-ref.svg
-fails-if(!useDrawSnapshot) == outside-sourcegraphic-3.svg outside-sourcegraphic-ref.svg
+== outside-sourcegraphic-2.svg outside-sourcegraphic-ref.svg
+== outside-sourcegraphic-3.svg outside-sourcegraphic-ref.svg
 == nested-filter.html nested-filter-ref.html
 == filter-giant.svg pass.svg
