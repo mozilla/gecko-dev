@@ -710,6 +710,11 @@ struct BarrierMethods<T, EnableIfABOVType<T>> {
   static gc::Cell* asGCThingOrNull(T view) {
     return reinterpret_cast<gc::Cell*>(view.asObjectUnbarriered());
   }
+  static void writeBarriers(T* viewp, T prev, T next) {
+    BarrierMethods<JSObject*>::writeBarriers(viewp->addressOfObject(),
+                                             prev.asObjectUnbarriered(),
+                                             next.asObjectUnbarriered());
+  }
   static void postWriteBarrier(T* viewp, T prev, T next) {
     BarrierMethods<JSObject*>::postWriteBarrier(viewp->addressOfObject(),
                                                 prev.asObjectUnbarriered(),

@@ -205,11 +205,6 @@ namespace JS {
 
 JS_PUBLIC_API void HeapObjectPostWriteBarrier(JSObject** objp, JSObject* prev,
                                               JSObject* next);
-JS_PUBLIC_API void HeapStringPostWriteBarrier(JSString** objp, JSString* prev,
-                                              JSString* next);
-JS_PUBLIC_API void HeapBigIntPostWriteBarrier(JS::BigInt** bip,
-                                              JS::BigInt* prev,
-                                              JS::BigInt* next);
 JS_PUBLIC_API void HeapObjectWriteBarriers(JSObject** objp, JSObject* prev,
                                            JSObject* next);
 JS_PUBLIC_API void HeapStringWriteBarriers(JSString** objp, JSString* prev,
@@ -281,13 +276,9 @@ inline void AssertGCThingIsNotNurseryAllocable(js::gc::Cell* cell) {}
  *
  * Heap<T> implements the following barriers:
  *
+ *  - Pre-write barrier (necessary for incremental GC).
  *  - Post-write barrier (necessary for generational GC).
- *  - Read barrier (necessary for incremental GC and cycle collector
- *    integration).
- *
- * Note Heap<T> does not have a pre-write barrier as used internally in the
- * engine. The read barrier is used to mark anything read from a Heap<T> during
- * an incremental GC.
+ *  - Read barrier (necessary for cycle collector integration).
  *
  * Heap<T> may be moved or destroyed outside of GC finalization and hence may be
  * used in dynamic storage such as a Vector.
@@ -314,7 +305,7 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
                   "Heap<T> must be binary compatible with T.");
   }
   explicit Heap(const T& p) : ptr(p) {
-    postWriteBarrier(SafelyInitialized<T>::create(), ptr);
+    writeBarriers(SafelyInitialized<T>::create(), ptr);
   }
 
   /*
@@ -324,10 +315,10 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
    * though they are equivalent.
    */
   explicit Heap(const Heap<T>& other) : ptr(other.unbarrieredGet()) {
-    postWriteBarrier(SafelyInitialized<T>::create(), ptr);
+    writeBarriers(SafelyInitialized<T>::create(), ptr);
   }
   Heap(Heap<T>&& other) : ptr(other.unbarrieredGet()) {
-    postWriteBarrier(SafelyInitialized<T>::create(), ptr);
+    writeBarriers(SafelyInitialized<T>::create(), ptr);
   }
 
   Heap& operator=(Heap<T>&& other) {
@@ -337,7 +328,7 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
   }
   // Copy constructor defined by DECLARE_POINTER_ASSIGN_OPS.
 
-  ~Heap() { postWriteBarrier(ptr, SafelyInitialized<T>::create()); }
+  ~Heap() { writeBarriers(ptr, SafelyInitialized<T>::create()); }
 
   DECLARE_POINTER_CONSTREF_OPS(T);
   DECLARE_POINTER_ASSIGN_OPS(Heap, T);
@@ -353,7 +344,7 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
   void set(const T& newPtr) {
     T tmp = ptr;
     ptr = newPtr;
-    postWriteBarrier(tmp, ptr);
+    writeBarriers(tmp, ptr);
   }
   void unbarrieredSet(const T& newPtr) { ptr = newPtr; }
 
@@ -365,8 +356,8 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
   }
 
  private:
-  void postWriteBarrier(const T& prev, const T& next) {
-    js::BarrierMethods<T>::postWriteBarrier(&ptr, prev, next);
+  void writeBarriers(const T& prev, const T& next) {
+    js::BarrierMethods<T>::writeBarriers(&ptr, prev, next);
   }
 
   T ptr;
@@ -438,7 +429,7 @@ inline void AssertObjectIsNotGray(const JS::Heap<JSObject*>& obj) {}
  * it has two important differences:
  *
  *  1) Pointers which are statically known to only reference "tenured" objects
- *     can avoid the extra overhead of SpiderMonkey's write barriers.
+ *     can avoid the extra overhead of SpiderMonkey's post write barriers.
  *
  *  2) Objects in the "tenured" heap have stronger alignment restrictions than
  *     those in the "nursery", so it is possible to store flags in the lower
@@ -463,6 +454,9 @@ inline void AssertObjectIsNotGray(const JS::Heap<JSObject*>& obj) {}
  */
 template <typename T>
 class TenuredHeap : public js::HeapOperations<T, TenuredHeap<T>> {
+  static_assert(js::IsHeapConstructibleType<T>::value,
+                "Type T must be a public GC pointer type");
+
  public:
   using ElementType = T;
 
@@ -470,12 +464,29 @@ class TenuredHeap : public js::HeapOperations<T, TenuredHeap<T>> {
     static_assert(sizeof(T) == sizeof(TenuredHeap<T>),
                   "TenuredHeap<T> must be binary compatible with T.");
   }
-  explicit TenuredHeap(T p) : bits(0) { setPtr(p); }
+
+  explicit TenuredHeap(T p) : bits(0) { unbarrieredSetPtr(p); }
   explicit TenuredHeap(const TenuredHeap<T>& p) : bits(0) {
-    setPtr(p.getPtr());
+    unbarrieredSetPtr(p.getPtr());
   }
 
+  TenuredHeap<T>& operator=(T p) {
+    setPtr(p);
+    return *this;
+  }
+  TenuredHeap<T>& operator=(const TenuredHeap<T>& other) {
+    preWriteBarrier();
+    bits = other.bits;
+    return *this;
+  }
+
+  ~TenuredHeap() { preWriteBarrier(); }
+
   void setPtr(T newPtr) {
+    preWriteBarrier();
+    unbarrieredSetPtr(newPtr);
+  }
+  void unbarrieredSetPtr(T newPtr) {
     MOZ_ASSERT((reinterpret_cast<uintptr_t>(newPtr) & flagsMask) == 0);
     MOZ_ASSERT(js::gc::IsCellPointerValidOrNull(newPtr));
     if (newPtr) {
@@ -517,21 +528,17 @@ class TenuredHeap : public js::HeapOperations<T, TenuredHeap<T>> {
     return bool(js::BarrierMethods<T>::asGCThingOrNull(unbarrieredGetPtr()));
   }
 
-  TenuredHeap<T>& operator=(T p) {
-    setPtr(p);
-    return *this;
-  }
-
-  TenuredHeap<T>& operator=(const TenuredHeap<T>& other) {
-    bits = other.bits;
-    return *this;
-  }
-
  private:
   enum {
     maskBits = 3,
     flagsMask = (1 << maskBits) - 1,
   };
+
+  void preWriteBarrier() {
+    if (T prev = unbarrieredGetPtr()) {
+      JS::IncrementalPreWriteBarrier(JS::GCCellPtr(prev));
+    }
+  }
 
   uintptr_t bits;
 };
@@ -770,7 +777,10 @@ struct PtrBarrierMethodsBase {
 
 template <typename T>
 struct BarrierMethods<T*> : public detail::PtrBarrierMethodsBase<T> {
-  static void postWriteBarrier(T** vp, T* prev, T* next) {
+  static void writeBarriers(T** vp, T* prev, T* next) {
+    if (prev) {
+      JS::IncrementalPreWriteBarrier(JS::GCCellPtr(prev));
+    }
     if (next) {
       JS::AssertGCThingIsNotNurseryAllocable(
           reinterpret_cast<js::gc::Cell*>(next));
@@ -781,6 +791,9 @@ struct BarrierMethods<T*> : public detail::PtrBarrierMethodsBase<T> {
 template <>
 struct BarrierMethods<JSObject*>
     : public detail::PtrBarrierMethodsBase<JSObject> {
+  static void writeBarriers(JSObject** vp, JSObject* prev, JSObject* next) {
+    JS::HeapObjectWriteBarriers(vp, prev, next);
+  }
   static void postWriteBarrier(JSObject** vp, JSObject* prev, JSObject* next) {
     JS::HeapObjectPostWriteBarrier(vp, prev, next);
   }
@@ -794,11 +807,11 @@ struct BarrierMethods<JSObject*>
 template <>
 struct BarrierMethods<JSFunction*>
     : public detail::PtrBarrierMethodsBase<JSFunction> {
-  static void postWriteBarrier(JSFunction** vp, JSFunction* prev,
-                               JSFunction* next) {
-    JS::HeapObjectPostWriteBarrier(reinterpret_cast<JSObject**>(vp),
-                                   reinterpret_cast<JSObject*>(prev),
-                                   reinterpret_cast<JSObject*>(next));
+  static void writeBarriers(JSFunction** vp, JSFunction* prev,
+                            JSFunction* next) {
+    JS::HeapObjectWriteBarriers(reinterpret_cast<JSObject**>(vp),
+                                reinterpret_cast<JSObject*>(prev),
+                                reinterpret_cast<JSObject*>(next));
   }
   static void exposeToJS(JSFunction* fun) {
     if (fun) {
@@ -810,17 +823,25 @@ struct BarrierMethods<JSFunction*>
 template <>
 struct BarrierMethods<JSString*>
     : public detail::PtrBarrierMethodsBase<JSString> {
-  static void postWriteBarrier(JSString** vp, JSString* prev, JSString* next) {
-    JS::HeapStringPostWriteBarrier(vp, prev, next);
+  static void writeBarriers(JSString** vp, JSString* prev, JSString* next) {
+    JS::HeapStringWriteBarriers(vp, prev, next);
+  }
+};
+
+template <>
+struct BarrierMethods<JSScript*>
+    : public detail::PtrBarrierMethodsBase<JSScript> {
+  static void writeBarriers(JSScript** vp, JSScript* prev, JSScript* next) {
+    JS::HeapScriptWriteBarriers(vp, prev, next);
   }
 };
 
 template <>
 struct BarrierMethods<JS::BigInt*>
     : public detail::PtrBarrierMethodsBase<JS::BigInt> {
-  static void postWriteBarrier(JS::BigInt** vp, JS::BigInt* prev,
-                               JS::BigInt* next) {
-    JS::HeapBigIntPostWriteBarrier(vp, prev, next);
+  static void writeBarriers(JS::BigInt** vp, JS::BigInt* prev,
+                            JS::BigInt* next) {
+    JS::HeapBigIntWriteBarriers(vp, prev, next);
   }
 };
 

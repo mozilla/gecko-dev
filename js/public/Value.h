@@ -1329,6 +1329,10 @@ struct BarrierMethods<JS::Value> {
   static gc::Cell* asGCThingOrNull(const JS::Value& v) {
     return v.isGCThing() ? v.toGCThing() : nullptr;
   }
+  static void writeBarriers(JS::Value* v, const JS::Value& prev,
+                            const JS::Value& next) {
+    JS::HeapValueWriteBarriers(v, prev, next);
+  }
   static void postWriteBarrier(JS::Value* v, const JS::Value& prev,
                                const JS::Value& next) {
     JS::HeapValuePostWriteBarrier(v, prev, next);
