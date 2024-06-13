@@ -6,6 +6,7 @@
 
 package org.mozilla.fenix.tabstray.inactivetabs
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -97,7 +98,9 @@ fun InactiveTabsList(
         ),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .animateContentSize()
+                .fillMaxWidth(),
         ) {
             InactiveTabsHeader(
                 expanded = expanded,
