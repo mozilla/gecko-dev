@@ -72,5 +72,3 @@ forbid-apartment-region:
         - ipc/mscom/ProcessRuntime.cpp
         - ipc/mscom/ProcessRuntime.h
         - widget/windows/filedialog/WinFileDialogCommands.cpp
-        # These files are existing uses that must eventually be fixed.
-        - widget/windows/LegacyJumpListBuilder.cpp
