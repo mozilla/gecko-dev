@@ -36,21 +36,6 @@
 
 /* ::::: primary toolbar buttons ::::: */
 
-toolbarpaletteitem {
-  -moz-window-dragging: no-drag;
-  justify-content: flex-start;
-
-  &[removable="false"] {
-    opacity: 0.5;
-  }
-
-  @media not (-moz-platform: macos) {
-    &:is([place="palette"], [place="panel"], [place="toolbar"]) {
-      -moz-user-focus: normal;
-    }
-  }
-}
-
 .toolbarbutton-1 {
   :root:not([customizing]) &[disabled] {
     opacity: var(--toolbarbutton-disabled-opacity);
@@ -388,6 +373,8 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   }
 }
 
+/* Toolbarbutton badge */
+
 .toolbarbutton-badge {
   /* The bookmarks toolbar is smaller than the other toolbars, so we
    * need to override the badge position to not be cut off. */
@@ -418,4 +405,25 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
     margin-inline-end: -6px !important;
     background: url(chrome://global/skin/icons/badge-blue.svg);
   }
+}
+
+/* Flexible spacer sizing */
+
+toolbarpaletteitem[place=toolbar][id^=wrapper-customizableui-special-spring],
+toolbarspring {
+  flex: 1;
+  min-width: 28px;
+  max-width: 112px;
+
+  #nav-bar & {
+    flex: 80 80;
+    /* Ensure flexible spacers don't shrink to nothing so they can be
+     * manipulated in customize mode. */
+    min-width: 10px;
+  }
+}
+
+#nav-bar:not([customizing]) toolbarspring {
+  /* Allow flexible spacers to shrink further outside of customize mode. */
+  min-width: 1px;
 }

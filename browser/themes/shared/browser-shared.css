@@ -354,6 +354,13 @@ body {
     border-top-style: none;
   }
 
+  /* The address bar needs to be able to render outside of the toolbar, but as
+   * long as it's within the toolbar's bounds we can clip the toolbar so that the
+   * rendering pipeline doesn't reserve an enormous texture for it. */
+  &:not([urlbar-exceeds-toolbar-bounds]) {
+    overflow: clip;
+  }
+
   :root[sessionrestored][lwtheme] & {
     transition: var(--ext-theme-background-transition);
   }

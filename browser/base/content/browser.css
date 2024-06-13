@@ -46,17 +46,6 @@ panelview:not([visible]) {
   transition: height var(--panelui-subview-transition-duration);
 }
 
-/* The address bar needs to be able to render outside of the toolbar, but as
- * long as it's within the toolbar's bounds we can clip the toolbar so that the
- * rendering pipeline doesn't reserve an enormous texture for it. */
-#nav-bar:not([urlbar-exceeds-toolbar-bounds]),
-/* When customizing, overflowable toolbars move automatically moved items back
- * from the overflow menu, but we still don't want to render them outside of
- * the customization target. */
-toolbar[overflowable][customizing] > .customization-target {
-  overflow: clip;
-}
-
 /* The ids are ugly, but this should be reasonably performant, and
  * using a tagname as the last item would be less so.
  */
@@ -164,31 +153,6 @@ toolbar[overflowable][customizing] > .customization-target {
   margin-inline-start: 0;
 }
 
-/* Flexible spacer sizing (gets overridden in the navbar) */
-toolbarpaletteitem[place=toolbar][id^=wrapper-customizableui-special-spring],
-toolbarspring {
-  flex: 1;
-  min-width: 28px;
-  max-width: 112px;
-}
-
-#nav-bar toolbarpaletteitem[id^=wrapper-customizableui-special-spring],
-#nav-bar toolbarspring {
-  flex: 80 80;
-  /* We shrink the flexible spacers, but not to nothing so they can be
-   * manipulated in customize mode; the next rule shrinks them further
-   * outside customize mode. */
-  min-width: 10px;
-}
-
-#nav-bar:not([customizing]) toolbarspring {
-  min-width: 1px;
-}
-
-#widget-overflow-list > toolbarspring {
-  display: none;
-}
-
 /* ::::: Unified Back-/Forward Button ::::: */
 .unified-nav-current {
   font-weight: bold;
@@ -266,115 +230,6 @@ menupopup[emptyplacesresult="true"] > .hide-if-empty-places-result {
   #PanelUI-historyItems > toolbarbutton > .toolbarbutton-icon {
     image-rendering: -moz-crisp-edges;
   }
-}
-
-#customization-container {
-  flex-direction: row;
-  flex-direction: column;
-  min-height: 0;
-}
-
-#customization-container:not([hidden]) {
-  /* In a separate rule to avoid 'display:flex' causing the node to be
-   * displayed while the container is still hidden. */
-  display: flex;
-}
-
-#customization-content-container {
-  display: flex;
-  flex: 1; /* Grow so there isn't empty space below the footer */
-  min-height: 0; /* Allow this to shrink so the footer doesn't get pushed out. */
-}
-
-#customization-panelHolder {
-  padding-top: 10px;
-  padding-bottom: 10px;
-}
-
-#customization-panelHolder > #widget-overflow-fixed-list {
-  flex: 1; /* Grow within the available space, and allow ourselves to shrink */
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-#customization-panelWrapper,
-#customization-panelWrapper > .panel-arrowcontent,
-#customization-panelHolder {
-  flex-direction: column;
-  display: flex;
-  flex-shrink: 1;
-  min-height: calc(174px + 9em);
-}
-
-#customization-panelWrapper {
-  flex: 1;
-  align-items: end; /* align to the end on the cross-axis (affects arrow) */
-}
-
-#customization-panel-container {
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  flex: none;
-}
-
-toolbarpaletteitem[dragover] {
-  border-inline-color: transparent;
-}
-
-#customization-palette-container {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-#customization-palette:not([hidden]) {
-  display: block;
-  flex: 1 1 auto;
-  overflow: auto;
-  min-height: 3em;
-}
-
-#customization-footer-spacer,
-#customization-spacer {
-  flex: 1 1 auto;
-}
-
-#customization-footer {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-
-toolbarpaletteitem[place="palette"] {
-  flex-direction: column;
-  width: 7em;
-  max-width: 7em;
-  /* icon (16) + margin (9 + 12) + 3 lines of text: */
-  height: calc(39px + 3em);
-  margin-bottom: 5px;
-  margin-inline-end: 24px;
-  overflow: visible;
-  display: inline-flex;
-  vertical-align: top;
-}
-
-toolbarpaletteitem[place="palette"][hidden] {
-  display: none;
-}
-
-toolbarpaletteitem > toolbarbutton,
-toolbarpaletteitem > toolbaritem {
-  /* Prevent children from getting events */
-  pointer-events: none;
-  justify-content: center;
-}
-
-toolbarpaletteitem:not([place="palette"]) > #stop-reload-button {
-  justify-content: inherit;
 }
 
 :root[customizing=true] .addon-banner-item,

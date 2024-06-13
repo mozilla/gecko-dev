@@ -8,10 +8,8 @@
 
 :root {
   --drag-drop-transition-duration: .3s;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  :root {
+  @media (prefers-reduced-motion: reduce) {
     --drag-drop-transition-duration: 0s;
   }
 }
@@ -20,10 +18,25 @@
   min-width: 100px;
 }
 
+/* When customizing, overflowable toolbars move automatically moved items back
+ * from the overflow menu, but we still don't want to render them outside of
+ * the customization target. */
+toolbar[overflowable][customizing] > .customization-target {
+  overflow: clip;
+}
+
 #customization-container {
+  flex-direction: column;
+  min-height: 0;
   background-color: var(--toolbar-non-lwt-bgcolor);
   color: var(--toolbar-color);
   color-scheme: var(--toolbar-color-scheme);
+
+  &:not([hidden]) {
+    /* In a separate rule to avoid 'display:flex' causing the node to be
+     * displayed while the container is still hidden. */
+    display: flex;
+  }
 
   :root[lwtheme] & {
     /* Ensure this displays on top of the non-lwt bgcolor, to make sure it's not
@@ -38,26 +51,38 @@
   }
 }
 
-:root[lwtheme-image] #customization-palette .toolbarbutton-1 {
-  fill: currentColor;
-}
-
-#customization-palette {
-  padding: 5px 20px 20px;
+#customization-content-container {
+  display: flex;
+  flex: 1; /* Grow so there isn't empty space below the footer */
+  min-height: 0; /* Allow this to shrink so the footer doesn't get pushed out. */
 }
 
 #customization-header {
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   font-size: 1.2em;
   margin: 20px 20px 15px;
 }
 
 #customization-panel-container {
   --customization-panel-padding: 20px;
+
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  flex: none;
   padding: 0 var(--customization-panel-padding) 25px;
 }
 
+#customization-footer-spacer,
+#customization-spacer {
+  flex: 1 1 auto;
+}
+
 #customization-footer {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
   border-top: 1px solid rgba(0,0,0,.15);
   padding: 10px;
 
@@ -68,124 +93,182 @@
   }
 }
 
-#widget-overflow-fixed-list > toolbarpaletteitem:not([notransition])[place="panel"],
-toolbarpaletteitem:not([notransition])[place="toolbar"] {
-  transition: border-width var(--drag-drop-transition-duration) ease-in-out;
-}
-
-#widget-overflow-fixed-list > toolbarpaletteitem {
-  flex: none;
-}
-
-toolbarpaletteitem[mousedown] {
-  cursor: -moz-grabbing;
-}
-
-toolbarpaletteitem:not([notransition])[place="palette"],
-toolbarpaletteitem:not([notransition])[place="panel"] {
-  transition: transform var(--drag-drop-transition-duration) ease-in-out;
+#customization-palette-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 #customization-palette {
+  padding: 5px 20px 20px;
   transition: opacity .3s ease-in-out;
   opacity: 0;
+
+  &:not([hidden]) {
+    display: block;
+    flex: 1 1 auto;
+    overflow: auto;
+    min-height: 3em;
+    margin-bottom: 20px;
+  }
+
+  &[showing="true"] {
+    opacity: 1;
+  }
+
+  :root[lwtheme-image] & .toolbarbutton-1 {
+    fill: currentColor;
+  }
 }
 
-#customization-palette[showing="true"] {
-  opacity: 1;
-}
+toolbarpaletteitem {
+  -moz-window-dragging: no-drag;
+  justify-content: flex-start;
 
-toolbarpaletteitem toolbarbutton[disabled] {
-  color: inherit !important;
-}
+  > toolbarbutton,
+  > toolbaritem {
+    /* Prevent children from getting events. */
+    pointer-events: none;
+    justify-content: center;
+  }
 
-#PersonalToolbar toolbarpaletteitem toolbarbutton[checked="true"],
-toolbar toolbarpaletteitem toolbarbutton[checked="true"]
-  > :where(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
-  background-color: revert !important;
-}
+  > toolbarspring {
+    outline: 1px solid;
+    opacity: .6;
+  }
 
-toolbarpaletteitem > toolbarbutton > .toolbarbutton-icon,
-toolbarpaletteitem > toolbarbutton > .toolbarbutton-badge-stack > .toolbarbutton-icon,
-toolbarpaletteitem > #search-container,
-toolbarpaletteitem > toolbaritem.toolbaritem-combined-buttons {
-  transition: transform var(--drag-drop-transition-duration) cubic-bezier(.6, 2, .75, 1.5) !important;
-}
+  toolbarbutton[disabled] {
+    color: inherit !important;
+  }
 
-toolbarpaletteitem[mousedown] > toolbarbutton > .toolbarbutton-icon,
-toolbarpaletteitem[mousedown] > toolbarbutton > .toolbarbutton-badge-stack > .toolbarbutton-icon {
-  transform: scale(1.3);
-}
+  &[removable="false"] {
+    opacity: 0.5;
+  }
 
-toolbarpaletteitem[mousedown] > #search-container,
-toolbarpaletteitem[mousedown] > toolbaritem.toolbaritem-combined-buttons {
-  transform: scale(1.1);
-}
+  &[dragover] {
+    border-inline-color: transparent;
+  }
 
-toolbarpaletteitem[mousedown] > #search-container > #searchbar,
-toolbarpaletteitem[mousedown] > #urlbar-container > #urlbar > #urlbar-background
-{
-  outline: 1px solid color-mix(in srgb, currentColor 60%, transparent);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.13);
-}
+  &[place="palette"] {
+    flex-direction: column;
+    width: 7em;
+    max-width: 7em;
+    /* icon (16) + margin (9 + 12) + 3 lines of text: */
+    height: calc(39px + 3em);
+    margin-bottom: 5px;
+    margin-inline-end: 24px;
+    overflow: visible;
+    display: inline-flex;
+    vertical-align: top;
 
-/* Override the toolkit styling for items being dragged over. */
-toolbarpaletteitem[place="toolbar"] {
-  border-inline-width: 0;
-  margin-inline: 0;
-}
-#widget-overflow-fixed-list > toolbarpaletteitem[place="panel"] {
-  border-block: 0 solid transparent;
-}
+    &[hidden] {
+      display: none;
+    }
 
-#customization-palette:not([hidden]) {
-  margin-bottom: 20px;
-}
+    &::after {
+      content: attr(title);
+      display: block;
+      text-align: center;
+    }
 
+    > toolbarspring {
+      outline-offset: -8px;
+      max-height: 37px;
+    }
+  }
 
-toolbarpaletteitem[place="palette"]:-moz-focusring,
-toolbarpaletteitem[place="panel"]:-moz-focusring,
-toolbarpaletteitem[place="toolbar"]:-moz-focusring {
-  outline-width: 0;
-}
+  &[place="toolbar"] {
+    /* Override the toolkit styling for items being dragged over. */
+    border-inline-width: 0;
+    margin-inline: 0;
 
-toolbarpaletteitem[place="palette"]:not([mousedown="true"]):-moz-focusring,
-toolbarpaletteitem[place="panel"]:not([mousedown="true"]):-moz-focusring,
-toolbarpaletteitem[place="toolbar"]:not([mousedown="true"]):-moz-focusring {
-  /* Delay adding the focusring back until after the transform transition completes. */
-  transition: outline-width .01s linear var(--drag-drop-transition-duration);
-  outline: var(--default-focusring);
-}
+    > toolbarspring {
+      outline-offset: -2px;
+      margin-block: 5px;
+    }
+  }
 
-toolbarpaletteitem[place="toolbar"]:not([mousedown="true"]):-moz-focusring {
-  outline-offset: calc(-1 * var(--default-focusring-width) - 4px);
-}
+  &[place="palette"],
+  &[place="panel"],
+  &[place="toolbar"] {
+    @media not (-moz-platform: macos) {
+      -moz-user-focus: normal;
+    }
 
-toolbarpaletteitem[place=palette]::after {
-  content: attr(title);
-  display: block;
-  text-align: center;
-}
+    &:focus-visible {
+      outline-width: 0;
+    }
 
-toolbarpaletteitem[place=palette] > toolbarspring {
-  width: 7em;
-  min-width: 7em;
-  outline: 1px solid;
-  outline-offset: -8px;
-  opacity: .6;
-  min-height: 37px;
-  max-height: 37px;
-}
+    &:not([mousedown="true"]):focus-visible {
+      /* Delay adding the focusring back until after the transform transition completes. */
+      transition: outline-width .01s linear var(--drag-drop-transition-duration);
+      outline: var(--default-focusring);
+    }
+  }
 
-toolbarpaletteitem[place=toolbar] > toolbarspring {
-  outline: 1px solid;
-  outline-offset: -2px;
-  opacity: .6;
-  margin-block: 5px;
-}
+  &:not([notransition])[place="palette"],
+  &:not([notransition])[place="panel"] {
+    transition: transform var(--drag-drop-transition-duration) ease-in-out;
+  }
 
-toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
-  visibility: hidden; /* Hide searchbar placeholder text in customize mode */
+  #widget-overflow-fixed-list > &:not([notransition])[place="panel"],
+  &:not([notransition])[place="toolbar"] {
+    transition: border-width var(--drag-drop-transition-duration) ease-in-out;
+  }
+
+  #widget-overflow-fixed-list > & {
+    flex: none;
+
+    &[place="panel"] {
+      border-block: 0 solid transparent;
+    }
+  }
+
+  &[place="toolbar"]:not([mousedown="true"]):focus-visible {
+    outline-offset: calc(-1 * var(--default-focusring-width) - 4px);
+  }
+
+  &:not([place="palette"]) > #stop-reload-button {
+    justify-content: inherit;
+  }
+
+  #PersonalToolbar & toolbarbutton[checked="true"],
+  toolbar & toolbarbutton[checked="true"]
+    > :where(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
+    background-color: revert !important;
+  }
+
+  > toolbarbutton > .toolbarbutton-icon,
+  > toolbarbutton > .toolbarbutton-badge-stack > .toolbarbutton-icon,
+  > #search-container,
+  > toolbaritem.toolbaritem-combined-buttons {
+    transition: transform var(--drag-drop-transition-duration) cubic-bezier(.6, 2, .75, 1.5) !important;
+  }
+
+  &[mousedown] {
+    cursor: -moz-grabbing;
+
+    > toolbarbutton > .toolbarbutton-icon,
+    > toolbarbutton > .toolbarbutton-badge-stack > .toolbarbutton-icon {
+      transform: scale(1.3);
+    }
+
+    > #search-container,
+    > toolbaritem.toolbaritem-combined-buttons {
+      transform: scale(1.1);
+    }
+
+    > #search-container > #searchbar,
+    > #urlbar-container > #urlbar > #urlbar-background {
+      outline: 1px solid color-mix(in srgb, currentColor 60%, transparent);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.13);
+    }
+  }
+
+  > #search-container > #searchbar > .searchbar-textbox {
+    /* Hide searchbar placeholder text in customize mode. */
+    visibility: hidden;
+  }
 }
 
 #wrapper-edit-controls > #edit-controls > toolbarbutton > .toolbarbutton-icon {
@@ -277,28 +360,38 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
   transform: scaleX(-1);
 }
 
-#customization-panelWrapper > .panel-arrowcontent {
-  color: var(--arrowpanel-color);
-  background: var(--arrowpanel-background);
-  background-clip: padding-box;
-  max-width: 29em;
+#customization-panelWrapper,
+#customization-panelWrapper > .panel-arrowcontent,
+#customization-panelHolder {
+  flex-direction: column;
+  display: flex;
+  flex-shrink: 1;
+  min-height: calc(174px + 9em);
 }
 
-@media (-moz-platform: macos) {
-  #customization-panelWrapper > .panel-arrowcontent {
-    /* Native styling adds more 'oompf' to the popup box-shadow, so simulate that
-     * as best as we can here: */
-    box-shadow: 0 0 1px hsla(0,0%,0%,.3), 0 4px 10px hsla(0,0%,0%,.3);
-    appearance: none;
-    border-radius: var(--arrowpanel-border-radius);
-  }
-}
+#customization-panelWrapper {
+  flex: 1;
+  align-items: end; /* align to the end on the cross-axis (affects arrow) */
 
-@media not (-moz-platform: macos) {
-  #customization-panelWrapper > .panel-arrowcontent {
-    border: 1px solid var(--arrowpanel-border-color);
-    margin: 0;
-    box-shadow: 0 0 4px hsla(0,0%,0%,.2);
+  > .panel-arrowcontent {
+    color: var(--arrowpanel-color);
+    background: var(--arrowpanel-background);
+    background-clip: padding-box;
+    max-width: 29em;
+
+    @media (-moz-platform: macos) {
+      /* Native styling adds more 'oompf' to the popup box-shadow, so simulate that
+       * as best as we can here: */
+      box-shadow: 0 0 1px hsla(0,0%,0%,.3), 0 4px 10px hsla(0,0%,0%,.3);
+      appearance: none;
+      border-radius: var(--arrowpanel-border-radius);
+    }
+
+    @media not (-moz-platform: macos) {
+      border: 1px solid var(--arrowpanel-border-color);
+      margin: 0;
+      box-shadow: 0 0 4px hsla(0,0%,0%,.2);
+    }
   }
 }
 
@@ -307,28 +400,26 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
   position: relative;
   height: 10px;
   margin-bottom: -1px;
-}
 
-#customization-panelWrapper > .panel-arrowbox > .panel-arrow[side="top"] {
-  list-style-image: url("chrome://global/skin/arrow/panelarrow-vertical.svg");
-  -moz-context-properties: fill, stroke;
-  fill: var(--arrowpanel-background);
-  stroke: var(--arrowpanel-border-color);
-  /* JS code sets --panel-arrow-offset to the distance between the middle of the
-   * overflow button and the end of the window. We subtract the padding of our
-   * container (#customization-panel-container) and half our own width:
-   */
-  margin-inline-end: calc(var(--panel-arrow-offset) - var(--customization-panel-padding) - 10px);
-  vertical-align: top;
-}
+  > .panel-arrow[side="top"] {
+    list-style-image: url("chrome://global/skin/arrow/panelarrow-vertical.svg");
+    -moz-context-properties: fill, stroke;
+    fill: var(--arrowpanel-background);
+    stroke: var(--arrowpanel-border-color);
+    /* JS code sets --panel-arrow-offset to the distance between the middle of the
+     * overflow button and the end of the window. We subtract the padding of our
+     * container (#customization-panel-container) and half our own width:
+     */
+    margin-inline-end: calc(var(--panel-arrow-offset) - var(--customization-panel-padding) - 10px);
+    vertical-align: top;
 
-@media (-moz-platform: macos) {
-  #customization-panelWrapper > .panel-arrowbox > .panel-arrow[side="top"] {
-    /* The OS X image is 2px narrower than the windows/linux one.
-     * Add padding to compensate: */
-    padding: 0 1px;
-    /* specify width for hidpi image to fit correctly */
-    width: 20px;
+    @media (-moz-platform: macos) {
+      /* The OS X image is 2px narrower than the windows/linux one.
+       * Add padding to compensate: */
+      padding: 0 1px;
+      /* specify width for hidpi image to fit correctly */
+      width: 20px;
+    }
   }
 }
 
@@ -345,42 +436,51 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
   margin: 0;
 }
 
-#customization-panelHolder > #widget-overflow-fixed-list {
-  padding-top: 10px;
-}
+#customization-panelHolder {
+  padding-block: 10px;
 
-/**
- * We create a ::before pseudoelement that contains a background image to show the
- * drop dragon. This element fades in and out depending on whether the containing
- * panel list is empty and unhovered, or not.
- */
-#customization-panelHolder > #widget-overflow-fixed-list:not(:empty) {
-  padding-bottom: 50px; /* Make sure there's always space to drop stuff. */
-  border-top: 1px solid var(--panel-separator-color);
-}
+  > #widget-overflow-fixed-list {
+    flex: 1; /* Grow within the available space, and allow ourselves to shrink */
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: 10px;
 
-#customization-panelHolder > #widget-overflow-fixed-list::before {
-  display: block;
-  content: "";
-  background-image: image-set(
-    url("chrome://browser/skin/customizableui/empty-overflow-panel.png"),
-    url("chrome://browser/skin/customizableui/empty-overflow-panel@2x.png") 2x
-  );
-  background-position: center bottom 10px;
-  background-size: 218px 134px;
-  background-repeat: no-repeat;
-  opacity: 0;
-  transition: opacity 300ms ease-out;
-  padding-bottom: 154px; /* 154 = 134 for the image, 10px space on either side. */
-  margin-bottom: -154px; /* don't affect positioning of the actual contents */
-  pointer-events: none;
-}
+    /**
+     * We create a ::before pseudoelement that contains a background image to show the
+     * drop dragon. This element fades in and out depending on whether the containing
+     * panel list is empty and unhovered, or not.
+     */
+    &:not(:empty) {
+      padding-bottom: 50px; /* Make sure there's always space to drop stuff. */
+      border-top: 1px solid var(--panel-separator-color);
+    }
 
-#customization-panelHolder > #widget-overflow-fixed-list:empty::before {
-  opacity: 1;
-}
-#customization-panelHolder > #widget-overflow-fixed-list[draggingover]:empty::before {
-  opacity: 0;
+    &::before {
+      display: block;
+      content: "";
+      background-image: image-set(
+        url("chrome://browser/skin/customizableui/empty-overflow-panel.png"),
+        url("chrome://browser/skin/customizableui/empty-overflow-panel@2x.png") 2x
+      );
+      background-position: center bottom 10px;
+      background-size: 218px 134px;
+      background-repeat: no-repeat;
+      opacity: 0;
+      transition: opacity 300ms ease-out;
+      padding-bottom: 154px; /* 154 = 134 for the image, 10px space on either side. */
+      margin-bottom: -154px; /* don't affect positioning of the actual contents */
+      pointer-events: none;
+    }
+
+    &:empty::before {
+      opacity: 1;
+    }
+    &[draggingover]:empty::before {
+      opacity: 0;
+    }
+  }
 }
 
 #downloads-button-autohide-panel {
@@ -408,15 +508,15 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
   padding: 0;
   min-height: 0;
   max-height: 0;
-}
 
-#customization-palette[whimsypong] > toolbarpaletteitem > toolbarspring {
-  margin: 0 -7px;
-}
+  > toolbarpaletteitem > toolbarspring {
+    margin: 0 -7px;
+  }
 
-@media (-moz-platform: linux) {
-  #customization-palette[whimsypong] > toolbarpaletteitem[id^="wrapper-customizableui-special-spring"] {
-    font-size: 12px;
+  @media (-moz-platform: linux) {
+    > toolbarpaletteitem[id^="wrapper-customizableui-special-spring"] {
+      font-size: 12px;
+    }
   }
 }
 
@@ -466,38 +566,38 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
 
 #wp-score {
   transform: translateX(-4ch);
-}
 
-#wp-score:-moz-locale-dir(rtl) {
-  transform: translateX(4ch);
+  &:-moz-locale-dir(rtl) {
+    transform: translateX(4ch);
+  }
 }
 
 #wp-lives {
   transform: translate(-4ch, 1ch);
-}
 
-#wp-lives:-moz-locale-dir(rtl) {
-  transform: translate(4ch, 1ch);
-}
+  &:-moz-locale-dir(rtl) {
+    transform: translate(4ch, 1ch);
+  }
 
-#wp-lives[lives="5"] {
-  height: 100px;
-}
+  &[lives="5"] {
+    height: 100px;
+  }
 
-#wp-lives[lives="4"] {
-  height: 80px;
-}
+  &[lives="4"] {
+    height: 80px;
+  }
 
-#wp-lives[lives="3"] {
-  height: 60px;
-}
+  &[lives="3"] {
+    height: 60px;
+  }
 
-#wp-lives[lives="2"] {
-  height: 40px;
-}
+  &[lives="2"] {
+    height: 40px;
+  }
 
-#wp-lives[lives="1"] {
-  height: 20px;
+  &[lives="1"] {
+    height: 20px;
+  }
 }
 
 #customization-pong-arena[lives="0"] > #wp-ball {

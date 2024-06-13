@@ -1430,6 +1430,10 @@ toolbarpaletteitem {
   }
 }
 
+#widget-overflow-list > toolbarspring {
+  display: none;
+}
+
 #PanelUI-panicView > .panel-subview-body,
 #PanelUI-panicView {
   overflow: visible;
