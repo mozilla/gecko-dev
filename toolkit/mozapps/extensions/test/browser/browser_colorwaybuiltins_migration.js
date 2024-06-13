@@ -180,7 +180,7 @@ async function test_update_expired_colorways_builtins() {
     ),
     AddonTestUtils.promiseInstallEvent(
       "onInstallEnded",
-      install => install.addon.id === EXPIRED_COLORWAY_THEME_ID1
+      install => install.addon.id === EXPIRED_COLORWAY_THEME_ID2
     ),
   ]);
   // Wait for active theme to also execute the update bootstrap method.
