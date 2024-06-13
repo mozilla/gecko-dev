@@ -4,6 +4,8 @@
 
 MOZ_APP_UA_NAME=Firefox
 
+BROWSER_CHROME_URL=chrome://geckoview/content/geckoview.xhtml
+
 MOZ_BRANDING_DIRECTORY=mobile/android/branding/unofficial
 MOZ_OFFICIAL_BRANDING_DIRECTORY=mobile/android/branding/official
 # MOZ_APP_DISPLAYNAME is set by branding/configure.sh
