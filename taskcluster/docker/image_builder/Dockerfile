@@ -48,7 +48,7 @@ USER rust
 ENV PATH=/home/rust/.cargo/bin:$PATH
 
 # The Rust toolchain to use when building our image.  Set by `hooks/build`.
-ENV TOOLCHAIN=1.42.0 \
+ENV TOOLCHAIN=1.52.0 \
     TARGET=x86_64-unknown-linux-musl
 
 # Install our Rust toolchain and the `musl` target.  We patch the
