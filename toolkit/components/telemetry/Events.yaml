@@ -3455,7 +3455,7 @@ avif:
 mfcdm:
   eme_playback:
     objects: ["gecko"]
-    bug_numbers: [1873394]
+    bug_numbers: [1873394, 1902169]
     description:
       Record the information about the EME playback when using the media engine.
       The value of this event is the key system name.
@@ -3463,7 +3463,7 @@ mfcdm:
       - firefox
     record_in_processes: ["all"]
     release_channel_collection: opt-out
-    expiry_version: "130"
+    expiry_version: "140"
     notification_emails:
       - media-alerts@mozilla.com
     extra_keys:

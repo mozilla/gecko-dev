@@ -46,7 +46,7 @@ mfcdm:
       dropped_frames:
         description: The amount of video frames don't get rendered but dropped
         type: quantity
-    expires: 130
+    expires: 140
     telemetry_mirror: Mfcdm_EmePlayback_Gecko
   error:
     type: event
