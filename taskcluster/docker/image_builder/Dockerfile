@@ -2,13 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-FROM golang:1.14 as skopeo
+FROM golang:1.22 as skopeo
 
 WORKDIR /go/src/
 COPY build-skopeo.sh /build-skopeo.sh
 RUN /build-skopeo.sh
 
-FROM golang:1.14 as kaniko
+FROM golang:1.22 as kaniko
 WORKDIR /go/src/
 COPY build-kaniko.sh /build-kaniko.sh
 RUN /build-kaniko.sh

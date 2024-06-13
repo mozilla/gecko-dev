@@ -73,11 +73,11 @@ fn build_image(
         .args(&["--destination", "image"])
         .args(&["--dockerfile", "Dockerfile"])
         .arg("--no-push")
-        .args(&["--cache-dir", "/workspace/cache"])
+        .args(&["--cache=true", "--cache-dir", "/workspace/cache", "--cache-repo", "oci:/workspace/repo"])
         .arg("--single-snapshot")
         // FIXME: Generating reproducible layers currently causes OOM.
         // .arg("--reproducible")
-        .arg("--whitelist-var-run=false")
+        .arg("--ignore-var-run=false")
         .args(&["--tarPath", dest]);
     if debug {
         command.args(&["-v", "debug"]);
