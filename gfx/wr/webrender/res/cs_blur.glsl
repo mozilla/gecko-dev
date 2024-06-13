@@ -24,6 +24,7 @@ flat varying mediump vec2 vGaussCoefficients;
 PER_INSTANCE in int aBlurRenderTaskAddress;
 PER_INSTANCE in int aBlurSourceTaskAddress;
 PER_INSTANCE in int aBlurDirection;
+PER_INSTANCE in vec3 aBlurParams;
 
 struct BlurTask {
     RectWithEndpoint task_rect;
@@ -32,12 +33,12 @@ struct BlurTask {
 };
 
 BlurTask fetch_blur_task(int address) {
-    RenderTaskData task_data = fetch_render_task_data(address);
+    RectWithEndpoint task_rect = fetch_render_task_rect(address);
 
     BlurTask task = BlurTask(
-        task_data.task_rect,
-        task_data.user_data.x,
-        task_data.user_data.yz
+        task_rect,
+        aBlurParams.x,
+        aBlurParams.yz
     );
 
     return task;

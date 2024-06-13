@@ -396,19 +396,23 @@ impl RenderTarget for ColorRenderTarget {
                     }
                 );
             }
-            RenderTaskKind::VerticalBlur(..) => {
+            RenderTaskKind::VerticalBlur(ref info) => {
                 add_blur_instances(
                     &mut self.vertical_blurs,
                     BlurDirection::Vertical,
+                    info.blur_std_deviation,
+                    info.blur_region,
                     task_id.into(),
                     task.children[0],
                     render_tasks,
                 );
             }
-            RenderTaskKind::HorizontalBlur(..) => {
+            RenderTaskKind::HorizontalBlur(ref info) => {
                 add_blur_instances(
                     &mut self.horizontal_blurs,
                     BlurDirection::Horizontal,
+                    info.blur_std_deviation,
+                    info.blur_region,
                     task_id.into(),
                     task.children[0],
                     render_tasks,
@@ -573,21 +577,25 @@ impl RenderTarget for AlphaRenderTarget {
                 //           prim region with blend disabled.
                 self.one_clears.push(task_id);
             }
-            RenderTaskKind::VerticalBlur(..) => {
+            RenderTaskKind::VerticalBlur(ref info) => {
                 self.zero_clears.push(task_id);
                 add_blur_instances(
                     &mut self.vertical_blurs,
                     BlurDirection::Vertical,
+                    info.blur_std_deviation,
+                    info.blur_region,
                     task_id.into(),
                     task.children[0],
                     render_tasks,
                 );
             }
-            RenderTaskKind::HorizontalBlur(..) => {
+            RenderTaskKind::HorizontalBlur(ref info) => {
                 self.zero_clears.push(task_id);
                 add_blur_instances(
                     &mut self.horizontal_blurs,
                     BlurDirection::Horizontal,
+                    info.blur_std_deviation,
+                    info.blur_region,
                     task_id.into(),
                     task.children[0],
                     render_tasks,
@@ -744,10 +752,12 @@ impl TextureCacheRenderTarget {
                     wavy_line_thickness: info.wavy_line_thickness,
                 });
             }
-            RenderTaskKind::HorizontalBlur(..) => {
+            RenderTaskKind::HorizontalBlur(ref info) => {
                 add_blur_instances(
                     &mut self.horizontal_blurs,
                     BlurDirection::Horizontal,
+                    info.blur_std_deviation,
+                    info.blur_region,
                     task_address,
                     task.children[0],
                     render_tasks,
@@ -817,6 +827,8 @@ impl TextureCacheRenderTarget {
 fn add_blur_instances(
     instances: &mut FastHashMap<TextureSource, Vec<BlurInstance>>,
     blur_direction: BlurDirection,
+    blur_std_deviation: f32,
+    blur_region: DeviceIntSize,
     task_address: RenderTaskAddress,
     src_task_id: RenderTaskId,
     render_tasks: &RenderTaskGraph,
@@ -827,6 +839,8 @@ fn add_blur_instances(
         task_address,
         src_task_address: src_task_id.into(),
         blur_direction: blur_direction.as_int(),
+        blur_std_deviation,
+        blur_region: blur_region.to_f32(),
     };
 
     instances

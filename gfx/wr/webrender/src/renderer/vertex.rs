@@ -61,6 +61,11 @@ pub mod desc {
                 count: 1,
                 kind: VertexAttributeKind::I32,
             },
+            VertexAttribute {
+                name: "aBlurParams",
+                count: 3,
+                kind: VertexAttributeKind::F32,
+            },
         ],
     };
 

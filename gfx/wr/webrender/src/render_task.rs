@@ -774,12 +774,14 @@ impl RenderTaskKind {
                     0.0,
                 ]
             }
-            RenderTaskKind::VerticalBlur(ref task) |
-            RenderTaskKind::HorizontalBlur(ref task) => {
+            RenderTaskKind::VerticalBlur(_) |
+            RenderTaskKind::HorizontalBlur(_) => {
+                // TODO(gw): Make this match Picture tasks so that we can draw
+                //           sub-passes on them to apply box-shadow masks.
                 [
-                    task.blur_std_deviation,
-                    task.blur_region.width as f32,
-                    task.blur_region.height as f32,
+                    0.0,
+                    0.0,
+                    0.0,
                     0.0,
                 ]
             }
