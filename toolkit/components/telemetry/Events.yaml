@@ -3475,7 +3475,7 @@ mfcdm:
       dropped_frames: The amount of video frames don't get rendered but dropped
   error:
     objects: ["gecko"]
-    bug_numbers: [1873394]
+    bug_numbers: [1873394, 1902169]
     description:
       Record the error or crash happened while using the media engine playback.
       The value of this event is the name of error.
@@ -3483,7 +3483,7 @@ mfcdm:
       - firefox
     record_in_processes: ["all"]
     release_channel_collection: opt-out
-    expiry_version: "130"
+    expiry_version: "140"
     notification_emails:
       - media-alerts@mozilla.com
     extra_keys:

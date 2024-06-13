@@ -84,5 +84,5 @@ mfcdm:
       key_system:
         description: The key system was being used when the error or crash happened
         type: string
-    expires: 130
+    expires: 140
     telemetry_mirror: Mfcdm_Error_Gecko
