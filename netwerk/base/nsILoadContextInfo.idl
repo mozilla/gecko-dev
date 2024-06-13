@@ -64,6 +64,12 @@ interface nsILoadContextInfo : nsISupports
     return IsAnonymous() == aOther->IsAnonymous() &&
            *OriginAttributesPtr() == *aOther->OriginAttributesPtr();
   }
+
+  bool EqualsIgnoringFPD(nsILoadContextInfo *aOther)
+  {
+    return IsAnonymous() == aOther->IsAnonymous() &&
+           OriginAttributesPtr()->EqualsIgnoringFPD(*aOther->OriginAttributesPtr());
+  }
 %}
 };
 

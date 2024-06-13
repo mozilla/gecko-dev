@@ -3314,7 +3314,7 @@ nsresult CacheFileIOManager::EvictByContextInternal(
       }
 
       // Filter by LoadContextInfo.
-      if (aLoadContextInfo && !info->Equals(aLoadContextInfo)) {
+      if (aLoadContextInfo && !info->EqualsIgnoringFPD(aLoadContextInfo)) {
         return false;
       }
 
@@ -3333,7 +3333,6 @@ nsresult CacheFileIOManager::EvictByContextInternal(
           return false;
         }
       }
-
       return true;
     }();
 

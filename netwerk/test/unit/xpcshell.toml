@@ -420,6 +420,9 @@ skip-if = ["true"]
 
 ["test_cache2-32-clear-origin.js"]
 
+["test_cache2_clear_with_usercontext_oa.js"]
+run-sequentially = "httpd server"
+
 ["test_cache_204_response.js"]
 
 ["test_cache_jar.js"]
