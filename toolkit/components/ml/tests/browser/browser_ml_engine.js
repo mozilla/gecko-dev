@@ -36,7 +36,7 @@ async function setup({ disabled = false, prefs = [] } = {}) {
   };
 }
 
-const PIPELINE_OPTIONS = new PipelineOptions({ taskName: "echo" });
+const PIPELINE_OPTIONS = new PipelineOptions({ taskName: "moz-echo" });
 
 add_task(async function test_ml_engine_basics() {
   const { cleanup, remoteClients } = await setup();
@@ -226,5 +226,43 @@ add_task(async function test_invalid_task_name() {
     "Invalid task name. Task name should contain only alphanumeric characters and underscores/dashes.",
     "The error is correctly surfaced."
   );
+  await cleanup();
+});
+
+add_task(async function test_ml_generic_pipeline() {
+  const { cleanup, remoteClients } = await setup();
+
+  info("Get the engine process");
+  const mlEngineParent = await EngineProcess.getMLEngineParent();
+
+  info("Get summarizer");
+
+  const options = new PipelineOptions({
+    taskName: "summarization",
+    modelId: "test-echo",
+    modelRevision: "main",
+  });
+
+  const summarizer = mlEngineParent.getEngine(options);
+
+  info("Run the summarizer");
+  const inferencePromise = summarizer.run({ data: "This gets echoed." });
+
+  info("Wait for the pending downloads.");
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  Assert.equal(
+    (await inferencePromise).output,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  await EngineProcess.destroyMLEngine();
+
   await cleanup();
 });

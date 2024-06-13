@@ -104,7 +104,10 @@ export class PdfjsParent extends JSWindowActorParent {
       throw new Error("Invalid service");
     }
     const engineParent = await lazy.EngineProcess.getMLEngineParent();
-    const pipelineOptions = new lazy.PipelineOptions({ taskName: service });
+    // We are using the internal task name prefixed with moz-
+    const pipelineOptions = new lazy.PipelineOptions({
+      taskName: "moz-image-to-text",
+    });
     const engine = engineParent.getEngine(pipelineOptions);
 
     return engine.run(request);

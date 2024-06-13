@@ -184,8 +184,11 @@ export class MLEngineParent extends JSWindowActorParent {
       },
     });
 
+    // if the task name is not in our settings, we just set the onnx runtime filename.
     if (records.length === 0) {
-      throw new Error(`No inference options found for task ${taskName}`);
+      return {
+        runtimeFilename: lazy.getRuntimeWasmFilename(this.browsingContext),
+      };
     }
     const options = records[0];
     return {
