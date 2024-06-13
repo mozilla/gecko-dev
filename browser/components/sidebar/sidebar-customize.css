@@ -4,7 +4,20 @@
 
 .container {
   padding-inline: var(--space-small);
-  font-size: 15px;
+  font: menu;
+
+  > * + * {
+    margin-top: var(--space-xlarge);
+  }
+
+  > .customize-header + * {
+    margin-top: var(--space-medium);
+  }
+}
+
+.customize-header-heading {
+  font-size: 1.467rem; /* Bug 1901872: replace with var(--font-size-xlarge) */
+  margin: 0;
 }
 
 .customize-header {
@@ -31,25 +44,23 @@
   .extensions {
     display: flex;
     flex-direction: column;
-    gap: var(--space-medium);
+    gap: var(--space-large);
+    margin-top: var(--space-small);
   }
 
   .extension-item {
     display: flex;
-    gap: var(--space-medium);
+    gap: var(--space-small);
     align-items: center;
-    font-size: 0.9em;
   }
+}
+
+.customize-extensions-heading {
+  margin: 0;
 }
 
 #manage-settings {
   display: flex;
   align-items: center;
-  gap: var(--space-medium);
-  margin-block-start: var(--space-xxlarge);
-  font-size: 0.9em;
-
-  .icon {
-    background-image: url("chrome://browser/skin/preferences/category-general.svg");
-  }
+  gap: var(--space-small);
 }
