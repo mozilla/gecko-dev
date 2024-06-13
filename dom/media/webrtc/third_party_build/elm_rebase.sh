@@ -294,7 +294,19 @@ for commit in $COMMITS; do
   echo "Done processing $commit"
 done
 
-rm $STATE_DIR/rebase_resume_state
+ERROR_HELP=$"
+Running the sanity build has failed.  For details, see:
+$LOG_DIR/log-sanity-build.txt
+
+Please fix the build, commit the changes (if necessary, the
+patch-stack will be fixed up during steps following the
+build), and then run:
+  bash $0
+"
+echo "Running sanity build..."
+./mach build &> $LOG_DIR/log-sanity-build.txt
+echo "Done running sanity build"
+ERROR_HELP=""
 
 # This is blank in case no changes have been made in third_party/libwebrtc
 # since the previous rebase (or original elm reset).
@@ -327,10 +339,13 @@ echo "Verify vendoring..."
 bash $SCRIPT_DIR/verify_vendoring.sh &> $LOG_DIR/log-verify.txt || PATCH_STACK_FIXUP="$FIXUP_INSTRUCTIONS"
 echo "Done checking for new mercurial changes in third_party/libwebrtc"
 
+# now that we've run all the things that should be fallible, remove the
+# resume state file
+rm $STATE_DIR/rebase_resume_state
+
 REMAINING_STEPS=$"
 The rebase process is complete.  The following steps must be completed manually:
 $PATCH_STACK_FIXUP
-  ./mach build && \\
   hg push -r tip --force && \\
   hg push -B $MOZ_BOOKMARK
 "
