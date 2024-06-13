@@ -9,10 +9,11 @@ import os
 import re
 from datetime import datetime, timedelta
 
+import requests
 from redo import retry
 from taskgraph.parameters import Parameters
 from taskgraph.target_tasks import get_method, register_target_task
-from taskgraph.util.taskcluster import find_task_id
+from taskgraph.util.taskcluster import find_task_id, parse_time
 
 from gecko_taskgraph import GECKO, try_option_syntax
 from gecko_taskgraph.util.attributes import (
@@ -21,6 +22,7 @@ from gecko_taskgraph.util.attributes import (
 )
 from gecko_taskgraph.util.hg import find_hg_revision_push_info, get_hg_commit_message
 from gecko_taskgraph.util.platforms import platform_family
+from gecko_taskgraph.util.taskcluster import find_task
 
 logger = logging.getLogger(__name__)
 
@@ -1092,6 +1094,28 @@ def target_tasks_nightly_all(full_task_graph, parameters, graph_config):
 @register_target_task("searchfox_index")
 def target_tasks_searchfox(full_task_graph, parameters, graph_config):
     """Select tasks required for indexing Firefox for Searchfox web site each day"""
+    index_path = (
+        f"{graph_config['trust-domain']}.v2.{parameters['project']}.revision."
+        f"{parameters['head_rev']}.taskgraph.decision-searchfox-index"
+    )
+    if os.environ.get("MOZ_AUTOMATION"):
+        print(
+            f"Looking for existing index {index_path} to avoid triggering redundant indexing off the same revision..."
+        )
+        try:
+            task = find_task(index_path)
+            print(f"Index {index_path} exists: taskId {task['taskId']}")
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code != 404:
+                raise
+            print(f"Index {index_path} doesn't exist.")
+        else:
+            # Assume expiry of the downstream searchfox tasks is the same as that of the cron decision task
+            expiry = parse_time(task["expires"])
+            if expiry > datetime.utcnow() + timedelta(days=7):
+                print("Skipping index tasks")
+                return []
+
     return [
         "searchfox-linux64-searchfox/debug",
         "searchfox-macosx64-searchfox/debug",

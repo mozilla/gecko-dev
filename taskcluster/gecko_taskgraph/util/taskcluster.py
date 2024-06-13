@@ -126,3 +126,8 @@ def list_task_group_complete_tasks(task_group_id):
                 "status", {}
             ).get("taskId", "")
     return tasks
+
+
+def find_task(index_path, use_proxy=False):
+    response = _do_request(get_index_url(index_path, use_proxy))
+    return response.json()
