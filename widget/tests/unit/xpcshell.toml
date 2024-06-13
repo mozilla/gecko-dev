@@ -10,6 +10,3 @@ run-if = ["os == 'mac'"]
 
 ["test_macwebapputils.js"]
 run-if = ["os == 'mac'"]
-
-["test_taskbar_legacyjumplistitems.js"]
-skip-if = ["os == 'win'"]
