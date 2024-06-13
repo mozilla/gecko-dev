@@ -18,7 +18,6 @@
 #define HIGHWAY_HWY_CONTRIB_SORT_ALGO_INL_H_
 
 #include <stdint.h>
-#include <string.h>  // memcpy
 
 #include <algorithm>   // std::sort, std::min, std::max
 #include <functional>  // std::less, std::greater
@@ -243,8 +242,7 @@ static inline const char* AlgoName(Algo algo) {
 #endif  // HIGHWAY_HWY_CONTRIB_SORT_ALGO_INL_H_
 
 // Per-target
-#if defined(HIGHWAY_HWY_CONTRIB_SORT_ALGO_TOGGLE) == \
-    defined(HWY_TARGET_TOGGLE)
+#if defined(HIGHWAY_HWY_CONTRIB_SORT_ALGO_TOGGLE) == defined(HWY_TARGET_TOGGLE)
 #ifdef HIGHWAY_HWY_CONTRIB_SORT_ALGO_TOGGLE
 #undef HIGHWAY_HWY_CONTRIB_SORT_ALGO_TOGGLE
 #else
@@ -254,7 +252,7 @@ static inline const char* AlgoName(Algo algo) {
 #include "hwy/contrib/sort/traits-inl.h"
 #include "hwy/contrib/sort/traits128-inl.h"
 #include "hwy/contrib/sort/vqsort-inl.h"  // HeapSort
-#include "hwy/tests/test_util-inl.h"
+#include "hwy/aligned_allocator.h"
 
 HWY_BEFORE_NAMESPACE();
 
@@ -268,7 +266,7 @@ HWY_BEFORE_NAMESPACE();
 namespace hwy {
 namespace HWY_NAMESPACE {
 
-#if HAVE_INTEL  // only supports ascending order
+#if HAVE_INTEL || HAVE_VXSORT  // only supports ascending order
 template <typename T>
 using OtherOrder = detail::OrderAscending<T>;
 #else
@@ -385,7 +383,7 @@ InputStats<T> GenerateInput(const Dist dist, T* v, size_t num) {
   if (i < num) {
     const V values = RandomValues(d, s0, s1, mask);
     StoreU(values, d, buf.get());
-    memcpy(v + i, buf.get(), (num - i) * sizeof(T));
+    CopyBytes(buf.get(), v + i, (num - i) * sizeof(T));
   }
 
   InputStats<T> input_stats;
@@ -407,8 +405,8 @@ struct SharedState {
 // non-128-bit keys they are the same:
 template <class Order, typename KeyType, HWY_IF_NOT_T_SIZE(KeyType, 16)>
 void CallHeapSort(KeyType* HWY_RESTRICT keys, const size_t num_keys) {
-  using detail::TraitsLane;
   using detail::SharedTraits;
+  using detail::TraitsLane;
   if (Order().IsAscending()) {
     const SharedTraits<TraitsLane<detail::OrderAscending<KeyType>>> st;
     return detail::HeapSort(st, keys, num_keys);
@@ -448,6 +446,22 @@ void CallHeapSort(K64V64* HWY_RESTRICT keys, const size_t num_keys) {
     return detail::HeapSort(st, lanes, num_lanes);
   }
 }
+
+template <class Order>
+void CallHeapSort(K32V32* HWY_RESTRICT keys, const size_t num_keys) {
+  using detail::SharedTraits;
+  using detail::TraitsLane;
+  uint64_t* lanes = reinterpret_cast<uint64_t*>(keys);
+  const size_t num_lanes = num_keys;
+  if (Order().IsAscending()) {
+    const SharedTraits<TraitsLane<detail::OrderAscendingKV64>> st;
+    return detail::HeapSort(st, lanes, num_lanes);
+  } else {
+    const SharedTraits<TraitsLane<detail::OrderDescendingKV64>> st;
+    return detail::HeapSort(st, lanes, num_lanes);
+  }
+}
+
 #endif  // VQSORT_ENABLED
 
 template <class Order, typename KeyType>
