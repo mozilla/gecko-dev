@@ -28,7 +28,7 @@ fn read_image_digest(path: &str) -> Result<String> {
         .stdout(std::process::Stdio::piped())
         .spawn()?
         .wait_with_output()?;
-    ensure!(output.status.success(), "Could not inspect parent image.");
+    ensure!(output.status.success(), format!("Could not inspect parent image: {}", output.status));
 
     #[derive(Deserialize, Debug)]
     #[serde(rename_all = "PascalCase")]
@@ -86,7 +86,7 @@ fn build_image(
         command.args(&["--build-arg", &format!("{}={}", key, value)]);
     }
     let status = command.status()?;
-    ensure!(status.success(), "Could not build image.");
+    ensure!(status.success(), format!("Could not build image: {}", status));
     Ok(())
 }
 
@@ -97,7 +97,7 @@ fn repack_image(source: &str, dest: &str, image_name: &str) -> Result<()> {
         .arg(format!("docker-archive:{}:{}", dest, image_name))
         .stderr(std::process::Stdio::inherit())
         .status()?;
-    ensure!(status.success(), "Could repack image.");
+    ensure!(status.success(), format!("Could not repack image: {}", status));
     Ok(())
 }
 
