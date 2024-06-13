@@ -51,15 +51,12 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaKeySystemAccess)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-static nsCString ToCString(const MediaKeySystemConfiguration& aConfig);
-
 MediaKeySystemAccess::MediaKeySystemAccess(
     nsPIDOMWindowInner* aParent, const nsAString& aKeySystem,
     const MediaKeySystemConfiguration& aConfig)
     : mParent(aParent), mKeySystem(aKeySystem), mConfig(aConfig) {
   LOG("Created MediaKeySystemAccess for keysystem=%s config=%s",
-      NS_ConvertUTF16toUTF8(mKeySystem).get(),
-      mozilla::dom::ToCString(mConfig).get());
+      NS_ConvertUTF16toUTF8(mKeySystem).get(), ToCString(mConfig).get());
 }
 
 MediaKeySystemAccess::~MediaKeySystemAccess() = default;
@@ -814,7 +811,7 @@ static bool GetSupportedConfig(const KeySystemConfig& aKeySystem,
                                const Document* aDocument) {
   EME_LOG("Compare implementation '%s'\n with request '%s'",
           NS_ConvertUTF16toUTF8(aKeySystem.GetDebugInfo()).get(),
-          ToCString(aCandidate).get());
+          MediaKeySystemAccess::ToCString(aCandidate).get());
   // Let accumulated configuration be a new MediaKeySystemConfiguration
   // dictionary.
   MediaKeySystemConfiguration config;
@@ -1128,7 +1125,7 @@ static nsCString ToCString(const MediaKeySystemMediaCapability& aValue) {
 }
 
 template <class Type>
-static nsCString ToCString(const Sequence<Type>& aSequence) {
+nsCString ToCString(const Sequence<Type>& aSequence) {
   nsCString str;
   str.AppendLiteral("[");
   StringJoinAppend(str, ","_ns, aSequence,
@@ -1139,8 +1136,21 @@ static nsCString ToCString(const Sequence<Type>& aSequence) {
   return str;
 }
 
+template <>
+nsCString ToCString(const Sequence<MediaKeySystemConfiguration>& aSequence) {
+  nsCString str;
+  str.AppendLiteral("[");
+  StringJoinAppend(
+      str, ","_ns, aSequence,
+      [](nsACString& dest, const MediaKeySystemConfiguration& element) {
+        dest.Append(MediaKeySystemAccess::ToCString(element));
+      });
+  str.AppendLiteral("]");
+  return str;
+}
+
 template <class Type>
-static nsCString ToCString(const Optional<Sequence<Type>>& aOptional) {
+nsCString ToCString(const Optional<Sequence<Type>>& aOptional) {
   nsCString str;
   if (aOptional.WasPassed()) {
     str.Append(ToCString(aOptional.Value()));
@@ -1150,28 +1160,42 @@ static nsCString ToCString(const Optional<Sequence<Type>>& aOptional) {
   return str;
 }
 
-static nsCString ToCString(const MediaKeySystemConfiguration& aConfig) {
+template <>
+nsCString ToCString(
+    const Optional<Sequence<MediaKeySystemConfiguration>>& aOptional) {
+  nsCString str;
+  if (aOptional.WasPassed()) {
+    str.Append(MediaKeySystemAccess::ToCString(aOptional.Value()));
+  } else {
+    str.AppendLiteral("[]");
+  }
+  return str;
+}
+
+/* static */
+nsCString MediaKeySystemAccess::ToCString(
+    const MediaKeySystemConfiguration& aConfig) {
   nsCString str;
   str.AppendLiteral("{label=");
-  str.Append(ToCString(aConfig.mLabel));
+  str.Append(mozilla::dom::ToCString(aConfig.mLabel));
 
   str.AppendLiteral(", initDataTypes=");
-  str.Append(ToCString(aConfig.mInitDataTypes));
+  str.Append(mozilla::dom::ToCString(aConfig.mInitDataTypes));
 
   str.AppendLiteral(", audioCapabilities=");
-  str.Append(ToCString(aConfig.mAudioCapabilities));
+  str.Append(mozilla::dom::ToCString(aConfig.mAudioCapabilities));
 
   str.AppendLiteral(", videoCapabilities=");
-  str.Append(ToCString(aConfig.mVideoCapabilities));
+  str.Append(mozilla::dom::ToCString(aConfig.mVideoCapabilities));
 
   str.AppendLiteral(", distinctiveIdentifier=");
-  str.Append(ToCString(aConfig.mDistinctiveIdentifier));
+  str.Append(mozilla::dom::ToCString(aConfig.mDistinctiveIdentifier));
 
   str.AppendLiteral(", persistentState=");
-  str.Append(ToCString(aConfig.mPersistentState));
+  str.Append(mozilla::dom::ToCString(aConfig.mPersistentState));
 
   str.AppendLiteral(", sessionTypes=");
-  str.Append(ToCString(aConfig.mSessionTypes));
+  str.Append(mozilla::dom::ToCString(aConfig.mSessionTypes));
 
   str.AppendLiteral("}");
 

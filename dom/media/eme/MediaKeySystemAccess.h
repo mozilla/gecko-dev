@@ -71,6 +71,8 @@ class MediaKeySystemAccess final : public nsISupports, public nsWrapperCache {
   static nsCString ToCString(
       const Sequence<MediaKeySystemConfiguration>& aConfig);
 
+  static nsCString ToCString(const MediaKeySystemConfiguration& aConfig);
+
  private:
   nsCOMPtr<nsPIDOMWindowInner> mParent;
   const nsString mKeySystem;
