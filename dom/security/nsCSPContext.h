@@ -89,10 +89,6 @@ class nsCSPContext : public nsIContentSecurityPolicy {
    *        name of the file containing the inline script violation
    * @param aScriptSample
    *        a sample of the violating inline script
-   * @param aLineNum
-   *        source line number of the violation (if available)
-   * @param aColumnNum
-   *        source column number of the violation (if available)
    * @param aViolationEventInit
    *        The output
    */
@@ -100,7 +96,6 @@ class nsCSPContext : public nsIContentSecurityPolicy {
       nsIURI* aOriginalURI, const nsAString& aEffectiveDirective,
       const mozilla::dom::CSPViolationData& aCSPViolationData,
       const nsAString& aSourceFile, const nsAString& aScriptSample,
-      uint32_t aLineNum, uint32_t aColumnNum,
       mozilla::dom::SecurityPolicyViolationEventInit& aViolationEventInit);
 
   nsresult SendReports(
@@ -121,7 +116,7 @@ class nsCSPContext : public nsIContentSecurityPolicy {
       const nsAString& aViolatedDirectiveNameAndValue,
       const CSPDirective aEffectiveDirective, const nsAString& aObserverSubject,
       const nsAString& aSourceFile, bool aReportSample,
-      const nsAString& aScriptSample, uint32_t aLineNum, uint32_t aColumnNum);
+      const nsAString& aScriptSample);
 
   // Hands off! Don't call this method unless you know what you
   // are doing. It's only supposed to be called from within

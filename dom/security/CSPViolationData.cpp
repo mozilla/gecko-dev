@@ -10,9 +10,12 @@
 
 namespace mozilla::dom {
 CSPViolationData::CSPViolationData(uint32_t aViolatedPolicyIndex,
-                                   Resource&& aResource)
+                                   Resource&& aResource, uint32_t aLineNumber,
+                                   uint32_t aColumnNumber)
     : mViolatedPolicyIndex{aViolatedPolicyIndex},
-      mResource{std::move(aResource)} {}
+      mResource{std::move(aResource)},
+      mLineNumber{aLineNumber},
+      mColumnNumber{aColumnNumber} {}
 
 auto CSPViolationData::BlockedContentSourceOrUnknown() const
     -> BlockedContentSource {

@@ -28,12 +28,15 @@ struct CSPViolationData {
 
   using Resource = mozilla::Variant<nsCOMPtr<nsIURI>, BlockedContentSource>;
 
-  CSPViolationData(uint32_t aViolatedPolicyIndex, Resource&& aResource);
+  CSPViolationData(uint32_t aViolatedPolicyIndex, Resource&& aResource,
+                   uint32_t aLineNumber, uint32_t aColumnNumber);
 
   BlockedContentSource BlockedContentSourceOrUnknown() const;
 
   const uint32_t mViolatedPolicyIndex;
   const Resource mResource;
+  const uint32_t mLineNumber;
+  const uint32_t mColumnNumber;
 };
 }  // namespace mozilla::dom
 
