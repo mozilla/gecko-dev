@@ -3768,7 +3768,7 @@ HttpBaseChannel::GetOnlyConnect(bool* aOnlyConnect) {
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::SetConnectOnly() {
+HttpBaseChannel::SetConnectOnly(bool aTlsTunnel) {
   ENSURE_CALLED_BEFORE_CONNECT();
 
   if (!mUpgradeProtocolCallback) {
@@ -3776,6 +3776,9 @@ HttpBaseChannel::SetConnectOnly() {
   }
 
   mCaps |= NS_HTTP_CONNECT_ONLY;
+  if (aTlsTunnel) {
+    mCaps |= NS_HTTP_TLS_TUNNEL;
+  }
   mProxyResolveFlags = nsIProtocolProxyService::RESOLVE_PREFER_HTTPS_PROXY |
                        nsIProtocolProxyService::RESOLVE_ALWAYS_TUNNEL;
   return SetLoadFlags(nsIRequest::INHIBIT_CACHING | nsIChannel::LOAD_ANONYMOUS |

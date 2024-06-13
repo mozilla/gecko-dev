@@ -1069,7 +1069,8 @@ void nsHttpConnection::HandleTunnelResponse(uint16_t responseStatus,
     nsresult rv;
     if (isHttps) {
       bool skipSSL = false;
-      if (mConnInfo->UsingHttpsProxy()) {
+      if (mConnInfo->UsingHttpsProxy() ||
+          mTransactionCaps & NS_HTTP_TLS_TUNNEL) {
         LOG(("%p SetupSecondaryTLS %s %d\n", this, mConnInfo->Origin(),
              mConnInfo->OriginPort()));
         SetupSecondaryTLS();

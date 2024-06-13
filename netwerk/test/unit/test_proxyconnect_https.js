@@ -49,7 +49,7 @@ add_task(async function test_connect_only_https() {
   let chan = makeChan(`https://localhost:${server.port()}/test`);
   var internal = chan.QueryInterface(Ci.nsIHttpChannelInternal);
   internal.HTTPUpgrade("webrtc", upgradeListener);
-  internal.setConnectOnly();
+  internal.setConnectOnly(false);
   await new Promise(resolve => {
     chan.asyncOpen(new ChannelListener(resolve, null, CL_ALLOW_UNKNOWN_CL));
   });

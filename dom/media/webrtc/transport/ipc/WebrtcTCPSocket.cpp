@@ -465,7 +465,7 @@ nsresult WebrtcTCPSocket::OpenWithHttpProxy() {
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-  rv = httpChannel->SetConnectOnly();
+  rv = httpChannel->SetConnectOnly(false);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
