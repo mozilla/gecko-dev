@@ -9,7 +9,7 @@
 //! Conic gradients are rendered via cached render tasks and composited with the image brush.
 
 use euclid::vec2;
-use api::{ExtendMode, GradientStop, PremultipliedColorF};
+use api::{ColorF, ExtendMode, GradientStop, PremultipliedColorF};
 use api::units::*;
 use crate::pattern::{Pattern, PatternKind, PatternShaderInput};
 use crate::scene_building::IsVisible;
@@ -433,7 +433,7 @@ pub fn conic_gradient_pattern(
             gradient_address.as_int(),
             stops_address.as_int(),
         ),
-        base_color: PremultipliedColorF::WHITE,
+        base_color: ColorF::WHITE,
         is_opaque,
     }
 }

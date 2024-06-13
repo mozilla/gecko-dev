@@ -9,7 +9,7 @@
 //! Radial gradients are rendered via cached render tasks and composited with the image brush.
 
 use euclid::{vec2, size2};
-use api::{ExtendMode, GradientStop, PremultipliedColorF, ColorU};
+use api::{ColorF, ColorU, ExtendMode, GradientStop, PremultipliedColorF};
 use api::units::*;
 use crate::pattern::{Pattern, PatternKind, PatternShaderInput};
 use crate::scene_building::IsVisible;
@@ -566,7 +566,7 @@ pub fn radial_gradient_pattern(
             gradient_address.as_int(),
             stops_address.as_int(),
         ),
-        base_color: PremultipliedColorF::WHITE,
+        base_color: ColorF::WHITE,
         is_opaque,
     }
 }

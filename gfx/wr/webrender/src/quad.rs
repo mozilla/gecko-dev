@@ -131,7 +131,7 @@ pub fn prepare_quad(
         &mut frame_state.frame_gpu_data.f32,
         *local_rect,
         clip_chain.local_clip_rect,
-        pattern.base_color,
+        pattern.base_color.premultiplied(),
         &[],
         ScaleOffset::identity(),
     );
@@ -654,7 +654,7 @@ fn add_pattern_prim(
         &mut frame_state.frame_gpu_data.f32,
         rect,
         clip_rect,
-        pattern.base_color,
+        pattern.base_color.premultiplied(),
         segments,
         pattern_transform,
     );

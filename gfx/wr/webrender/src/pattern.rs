@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{ColorF, PremultipliedColorF};
+use api::ColorF;
 
 #[repr(u32)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -44,7 +44,7 @@ impl Default for PatternShaderInput {
 pub struct Pattern {
     pub kind: PatternKind,
     pub shader_input: PatternShaderInput,
-    pub base_color: PremultipliedColorF,
+    pub base_color: ColorF,
     pub is_opaque: bool,
 }
 
@@ -53,7 +53,7 @@ impl Pattern {
         Pattern {
             kind: PatternKind::ColorOrTexture,
             shader_input: PatternShaderInput::default(),
-            base_color: color.premultiplied(),
+            base_color: color,
             is_opaque: color.a >= 1.0,
         }
     }
@@ -63,7 +63,7 @@ impl Pattern {
         Pattern {
             kind: PatternKind::ColorOrTexture,
             shader_input: PatternShaderInput::default(),
-            base_color: PremultipliedColorF::WHITE,
+            base_color: ColorF::WHITE,
             is_opaque: false,
         }
     }
