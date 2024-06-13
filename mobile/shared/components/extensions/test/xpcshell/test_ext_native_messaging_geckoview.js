@@ -123,7 +123,7 @@ add_task(async function test_sendNativeMessage_event_page() {
     extension,
     "background-script-reset-idle"
   );
-  await extension.terminateBackground();
+  await extension.terminateBackground({ expectStopped: false });
   info("Wait for 'background-script-reset-idle' event to be emitted");
   await promiseResetIdle;
 
@@ -290,7 +290,7 @@ add_task(async function test_connectNative_event_page() {
     "background-script-reset-idle"
   );
 
-  await extension.terminateBackground();
+  await extension.terminateBackground({ expectStopped: false });
   info("Wait for 'background-script-reset-idle' event to be emitted");
   await promiseResetIdle;
 

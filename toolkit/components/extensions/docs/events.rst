@@ -488,16 +488,24 @@ Follows an example of what has been described previously in a code snippet form:
 Testing Persisted API Event Listeners
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- ``extension.terminateBackground()`` / ``extension.terminateBackground({ disableResetIdleForTest: true})``:
+- ``extension.terminateBackground({ expectStopped: true, disableResetIdleForTest: false } = {})``:
 
   - The wrapper object returned by ``ExtensionTestUtils.loadExtension`` provides
     a ``terminateBackground`` method which can be used to simulate an idle timeout,
-    by explicitly triggering the same idle timeout suspend logic handling the idle timeout.
-  - This method also accept an optional parameter, if set to ``{ disableResetIdleForTest: true}``
-    will forcefully suspend the background extension context and ignore all the
-    conditions that would reset the idle timeout due to some work still pending
-    (e.g. a ``NativeMessaging``'s ``Port`` still open, a ``StreamFilter`` instance
-    still active or a ``Promise`` from an API event listener call not yet resolved)
+    by explicitly triggering the same logic handling the idle timeout.
+  - By default this helper will also implicitly assert that ``extension.backgroundState``
+    is set to ``"stopped"`` once the terminateBackground async logic has been fully executed
+  - This method also accept a few optional parameters:
+
+    - if ``expectStopped`` is set to ``false``, the helper will assert that
+      ``extension.backgroundState`` is set to "running" once the terminateBackground
+      async logic has been fully executed, which is meant to be used in specific tests
+      that covers the reset idle timeout logic and conditions.
+    - if ``disableResetIdleForTest`` is set to ``true``, the helper will ignore
+      all the conditions that would reset the idle timeout due to some work still
+      pending (e.g. a ``NativeMessaging``'s ``Port`` still open, a ``StreamFilter``
+      instance still active or a ``Promise`` from an API event listener call not
+      yet resolved)
 
 - ``ExtensionTestUtils.testAssertions.assertPersistentListeners``:
 

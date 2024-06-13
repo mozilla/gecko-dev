@@ -1012,7 +1012,7 @@ async function expectTerminateBackgroundToResetIdle({ extension, contextId }) {
     extension,
     "background-script-reset-idle"
   );
-  await extension.terminateBackground();
+  await extension.terminateBackground({ expectStopped: false });
   info("Wait for 'background-script-reset-idle' event to be emitted");
   await promiseResetIdle;
   equal(

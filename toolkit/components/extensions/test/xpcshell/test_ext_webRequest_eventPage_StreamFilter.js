@@ -139,7 +139,8 @@ async function test_idletimeout_on_streamfilter({
     assertHistogramEmpty(WEBEXT_EVENTPAGE_IDLE_RESULT_COUNT);
     assertKeyedHistogramEmpty(WEBEXT_EVENTPAGE_IDLE_RESULT_COUNT_BY_ADDONID);
 
-    await extension.terminateBackground();
+    await extension.terminateBackground({ expectStopped: false });
+
     info("Wait for 'background-script-reset-idle' event to be emitted");
     await promiseResetIdle;
     equal(
@@ -320,8 +321,12 @@ async function test_create_new_streamfilter_while_suspending({
   await extension.awaitMessage("webrequest-listener:done");
 
   info("Terminate the background script (simulated idle timeout)");
-
-  extension.terminateBackground({ disableResetIdleForTest: true });
+  // NOTE: we expect this request to terminate the background context to be
+  // cancelled by the "background_script-reset_idle" event emitted below.
+  extension.terminateBackground({
+    expectStopped: false,
+    disableResetIdleForTest: true,
+  });
   await extension.awaitMessage("suspend-listener");
 
   info("Simulated idle timeout canceled");

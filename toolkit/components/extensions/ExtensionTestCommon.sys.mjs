@@ -49,6 +49,102 @@ const { instanceOf } = ExtensionCommon;
 // tasks are taking too long at shutdown.
 const MS_SLOW_TASK_DURATION = 2000;
 
+// Some test assertions to work in both mochitest and xpcshell.  This
+// will be revisited later.
+const ExtensionTestAssertions = {
+  // Used by test extension wrappers terminateBackground methods to assert
+  // that the background page has been terminate and log proper warnings
+  // and failures to make it easier to investigate test failures related
+  // to failing to terminate the background context (See Bug 1899772).
+  assertBackgroundStatusStopped(extWrapper) {
+    let policy = WebExtensionPolicy.getByID(extWrapper.id);
+    const { backgroundState } = policy?.extension || extWrapper.extension;
+    lazy.Assert.equal(
+      backgroundState,
+      "stopped",
+      `Expect "${extWrapper.id}" background page state to be "stopped"`
+    );
+  },
+
+  assertBackgroundStatusRunning(extWrapper) {
+    let policy = WebExtensionPolicy.getByID(extWrapper.id);
+    const { backgroundState } = policy?.extension || extWrapper.extension;
+    lazy.Assert.equal(
+      backgroundState,
+      "running",
+      `Expect "${extWrapper.id}" background page state to be "running"`
+    );
+  },
+
+  getPersistentListeners(extWrapper, apiNs, apiEvent) {
+    let policy = WebExtensionPolicy.getByID(extWrapper.id);
+    const extension = policy?.extension || extWrapper.extension;
+
+    if (!extension || !(extension instanceof lazy.Extension)) {
+      throw new Error(
+        `Unable to retrieve the Extension class instance for ${extWrapper.id}`
+      );
+    }
+
+    const { persistentListeners } = extension;
+    if (
+      !persistentListeners?.size ||
+      !persistentListeners.get(apiNs)?.has(apiEvent)
+    ) {
+      return [];
+    }
+
+    return Array.from(persistentListeners.get(apiNs).get(apiEvent).values());
+  },
+
+  assertPersistentListeners(
+    extWrapper,
+    apiNs,
+    apiEvent,
+    { primed, persisted = true, primedListenersCount }
+  ) {
+    if (primed && !persisted) {
+      throw new Error(
+        "Inconsistent assertion, can't assert a primed listener if it is not persisted"
+      );
+    }
+
+    let listenersInfo = ExtensionTestAssertions.getPersistentListeners(
+      extWrapper,
+      apiNs,
+      apiEvent
+    );
+    lazy.Assert.equal(
+      persisted,
+      !!listenersInfo?.length,
+      `Got a persistent listener for ${apiNs}.${apiEvent}`
+    );
+    for (const info of listenersInfo) {
+      if (primed) {
+        lazy.Assert.ok(
+          info.listeners.some(listener => listener.primed),
+          `${apiNs}.${apiEvent} listener expected to be primed`
+        );
+      } else {
+        lazy.Assert.ok(
+          !info.listeners.some(listener => listener.primed),
+          `${apiNs}.${apiEvent} listener expected to not be primed`
+        );
+      }
+    }
+    if (primed && primedListenersCount > 0) {
+      lazy.Assert.equal(
+        listenersInfo.reduce((acc, info) => {
+          acc += info.listeners.length;
+          return acc;
+        }, 0),
+        primedListenersCount,
+        `Got the expected number of ${apiNs}.${apiEvent} listeners to be primed`
+      );
+    }
+  },
+};
+
 /**
  * ExtensionUninstallTracker should be instantiated before extension shutdown,
  * and can be used to await the completion of the uninstall and post-uninstall
@@ -289,10 +385,14 @@ export class MockExtension {
       });
   }
 
-  terminateBackground(...args) {
-    return this._extensionPromise.then(extension => {
-      return extension.terminateBackground(...args);
-    });
+  async terminateBackground({ expectStopped = true, ...rest } = {}) {
+    const extension = await this._extensionPromise;
+    await extension.terminateBackground(rest);
+    if (expectStopped) {
+      ExtensionTestAssertions.assertBackgroundStatusStopped(this);
+    } else {
+      ExtensionTestAssertions.assertBackgroundStatusRunning(this);
+    }
   }
 
   wakeupBackground() {
@@ -314,78 +414,6 @@ function provide(obj, keys, value, override = false) {
     provide(obj[keys[0]], keys.slice(1), value, override);
   }
 }
-
-// Some test assertions to work in both mochitest and xpcshell.  This
-// will be revisited later.
-const ExtensionTestAssertions = {
-  getPersistentListeners(extWrapper, apiNs, apiEvent) {
-    let policy = WebExtensionPolicy.getByID(extWrapper.id);
-    const extension = policy?.extension || extWrapper.extension;
-
-    if (!extension || !(extension instanceof lazy.Extension)) {
-      throw new Error(
-        `Unable to retrieve the Extension class instance for ${extWrapper.id}`
-      );
-    }
-
-    const { persistentListeners } = extension;
-    if (
-      !persistentListeners?.size ||
-      !persistentListeners.get(apiNs)?.has(apiEvent)
-    ) {
-      return [];
-    }
-
-    return Array.from(persistentListeners.get(apiNs).get(apiEvent).values());
-  },
-
-  assertPersistentListeners(
-    extWrapper,
-    apiNs,
-    apiEvent,
-    { primed, persisted = true, primedListenersCount }
-  ) {
-    if (primed && !persisted) {
-      throw new Error(
-        "Inconsistent assertion, can't assert a primed listener if it is not persisted"
-      );
-    }
-
-    let listenersInfo = ExtensionTestAssertions.getPersistentListeners(
-      extWrapper,
-      apiNs,
-      apiEvent
-    );
-    lazy.Assert.equal(
-      persisted,
-      !!listenersInfo?.length,
-      `Got a persistent listener for ${apiNs}.${apiEvent}`
-    );
-    for (const info of listenersInfo) {
-      if (primed) {
-        lazy.Assert.ok(
-          info.listeners.some(listener => listener.primed),
-          `${apiNs}.${apiEvent} listener expected to be primed`
-        );
-      } else {
-        lazy.Assert.ok(
-          !info.listeners.some(listener => listener.primed),
-          `${apiNs}.${apiEvent} listener expected to not be primed`
-        );
-      }
-    }
-    if (primed && primedListenersCount > 0) {
-      lazy.Assert.equal(
-        listenersInfo.reduce((acc, info) => {
-          acc += info.listeners.length;
-          return acc;
-        }, 0),
-        primedListenersCount,
-        `Got the expected number of ${apiNs}.${apiEvent} listeners to be primed`
-      );
-    }
-  },
-};
 
 export var ExtensionTestCommon = class ExtensionTestCommon {
   static get testAssertions() {
