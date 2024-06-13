@@ -85,7 +85,7 @@
             async function loadFontAndExtractUrgency(priority) {
                 let link = document.createElement("link");
                 if (priority != "default")
-                    link.fetchpriority = priority;
+                    link.fetchPriority = priority;
                 link.rel = "preload";
                 link.as = "font";
                 link.crossOrigin = "";
@@ -104,12 +104,11 @@
             }
             // See kExpectedRequestsOfLinkPreloadFont from link-tests-data.js
             // and nsHttpHandler::UrgencyFromCoSFlags.
-            // FIXME(bug 1900764): Why is the urgency always 2 here?
-            let normalUrgency = 2;
-            assert_equals(await loadFontAndExtractUrgency("low"), normalUrgency);
-            assert_equals(await loadFontAndExtractUrgency("high"), normalUrgency);
-            assert_equals(await loadFontAndExtractUrgency("auto"), normalUrgency);
-            assert_equals(await loadFontAndExtractUrgency("default"), normalUrgency);
+            let normalUrgency = 3;
+            assert_equals(await loadFontAndExtractUrgency("low"), normalUrgency + 1);
+            assert_equals(await loadFontAndExtractUrgency("high"), normalUrgency - 1);
+            assert_equals(await loadFontAndExtractUrgency("auto"), normalUrgency - 1);
+            assert_equals(await loadFontAndExtractUrgency("default"), normalUrgency - 1);
         }, "Adjustment of urgency parameter for fonts");
     }
   </script>
