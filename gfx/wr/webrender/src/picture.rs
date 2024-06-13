@@ -2540,8 +2540,10 @@ impl TileCacheInstance {
             CompositorSurfaceKind::Underlay => {
                 // If a mask is needed, there are some restrictions.
                 if prim_clip_chain.needs_mask {
-                    // Need an opaque backdrop.
-                    if self.backdrop.kind.is_none() {
+                    // Need an opaque region behind this prim. The opaque region doesn't
+                    // need to span the entire visible region of the TileCacheInstance,
+                    // which would set self.backdrop.kind, but that also qualifies.
+                    if !self.backdrop.opaque_rect.contains_box(&pic_coverage_rect) {
                         return Err(UnderlayAlphaBackdrop);
                     }
 
