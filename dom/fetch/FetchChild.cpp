@@ -416,7 +416,7 @@ void FetchChild::Shutdown() {
   mIsShutdown.Flip();
 
   // If mWorkerRef is nullptr here, that means Recv__delete__() must be called
-  if (!mWorkerRef || !mIsKeepAliveRequest) {
+  if (!mWorkerRef) {
     return;
   }
   mPromise = nullptr;
@@ -424,7 +424,23 @@ void FetchChild::Shutdown() {
   Unfollow();
   mSignalImpl = nullptr;
   mCSPEventListener = nullptr;
-  Unused << SendAbortFetchOp();
+  // TODO
+  // For workers we need to skip aborting the fetch requests if keepalive is set
+  // This is just a quick fix for Worker.
+  // Usually, we want FetchChild to get destroyed while FetchParent calls
+  // Senddelete(). When Worker shutdown, FetchChild must call
+  // FetchChild::SendAbortFetchOp() to parent, and let FetchParent decide if
+  // canceling the underlying fetch() or not. But currently, we have no good way
+  // to distinguish whether the abort is intent by script or by Worker/Window
+  // shutdown. So, we provide a quick fix here, which makes
+  // FetchChild/FetchParent live a bit longer, but corresponding resources are
+  // released in FetchChild::Shutdown(), so this quick fix should not cause any
+  // leaking.
+  // And we will fix it in Bug 1901082
+  if (!mIsKeepAliveRequest) {
+    Unused << SendAbortFetchOp();
+  }
+
   mWorkerRef = nullptr;
 }
 
