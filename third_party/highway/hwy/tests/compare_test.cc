@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <stdint.h>
+
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "tests/compare_test.cc"
 #include "hwy/foreach_target.h"  // IWYU pragma: keep
@@ -76,7 +78,8 @@ void EnsureGreater(D d, TFromD<D> a, TFromD<D> b, const char* file, int line) {
 
 // a >= b should be true, verify that for Ge/Le and with swapped args.
 template <class D>
-void EnsureGreaterOrEqual(D d, TFromD<D> a, TFromD<D> b, const char* file, int line) {
+void EnsureGreaterOrEqual(D d, TFromD<D> a, TFromD<D> b, const char* file,
+                          int line) {
   const auto mask_true = MaskTrue(d);
 
   const auto va = Set(d, a);
@@ -85,10 +88,10 @@ void EnsureGreaterOrEqual(D d, TFromD<D> a, TFromD<D> b, const char* file, int l
   const auto mask_eq = Eq(va, vb);
 
   AssertMaskEqual(d, mask_true, Ge(va, vb), file, line);
-  AssertMaskEqual(d, mask_eq,   Le(va, vb), file, line);
+  AssertMaskEqual(d, mask_eq, Le(va, vb), file, line);
 
   // Swapped order
-  AssertMaskEqual(d, mask_eq,   Ge(vb, va), file, line);
+  AssertMaskEqual(d, mask_eq, Ge(vb, va), file, line);
   AssertMaskEqual(d, mask_true, Le(vb, va), file, line);
 
   // va >= va, vb >= vb, va <= va, and vb <= vb should all be true if
@@ -106,10 +109,10 @@ struct TestStrictUnsigned {
   template <typename T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
     const T max = LimitsMax<T>();
-    const auto v0 = Zero(d);
-    const auto v2 = And(Iota(d, T(2)), Set(d, 255));  // 0..255
+    const Vec<D> v0 = Zero(d);
+    const Vec<D> v2 = And(Iota(d, 2), Set(d, 255));  // 0..255
 
-    const auto mask_false = MaskFalse(d);
+    const Mask<D> mask_false = MaskFalse(d);
 
     // Individual values of interest
     HWY_ENSURE_GREATER(d, 2, 1);
@@ -137,11 +140,11 @@ struct TestWeakUnsigned {
   template <typename T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
     const T max = LimitsMax<T>();
-    const auto v0 = Zero(d);
-    const auto v1 = Set(d, T(1));
-    const auto v2 = And(Iota(d, T(2)), Set(d, 255));  // 0..255
+    const Vec<D> v0 = Zero(d);
+    const Vec<D> v1 = Set(d, 1u);
+    const Vec<D> v2 = And(Iota(d, 2), Set(d, 255u));  // 0..255
 
-    const auto mask_true = MaskTrue(d);
+    const Mask<D> mask_true = MaskTrue(d);
 
     // Individual values of interest
     HWY_ENSURE_GREATER_OR_EQUAL(d, 2, 2);
@@ -189,12 +192,12 @@ struct TestStrictInt {
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
     const T min = LimitsMin<T>();
     const T max = LimitsMax<T>();
-    const auto v0 = Zero(d);
-    const auto v2 = And(Iota(d, T(2)), Set(d, 127));  // 0..127
-    const auto vn = Sub(Neg(v2), Set(d, 1));          // -1..-128
+    const Vec<D> v0 = Zero(d);
+    const Vec<D> v2 = And(Iota(d, 2), Set(d, 127));  // 0..127
+    const Vec<D> vn = Sub(Neg(v2), Set(d, 1));       // -1..-128
 
-    const auto mask_false = MaskFalse(d);
-    const auto mask_true = MaskTrue(d);
+    const Mask<D> mask_false = MaskFalse(d);
+    const Mask<D> mask_true = MaskTrue(d);
 
     // Individual values of interest
     HWY_ENSURE_GREATER(d, 2, 1);
@@ -246,10 +249,10 @@ struct TestWeakInt {
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
     const T min = LimitsMin<T>();
     const T max = LimitsMax<T>();
-    const auto v0 = Zero(d);
-    const auto v1 = Set(d, T(1));
-    const auto v2 = And(Iota(d, T(2)), Set(d, 127));  // 0..127
-    const auto vn = Sub(Neg(v2), Set(d, 1));          // -1..-128
+    const Vec<D> v0 = Zero(d);
+    const Vec<D> v1 = Set(d, 1);
+    const Vec<D> v2 = And(Iota(d, 2), Set(d, 127));  // 0..127
+    const Vec<D> vn = Sub(Neg(v2), Set(d, 1));       // -1..-128
 
     const auto mask_false = MaskFalse(d);
     const auto mask_true = MaskTrue(d);
@@ -308,14 +311,14 @@ HWY_NOINLINE void TestAllWeakInt() {
 struct TestStrictFloat {
   template <typename T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
-    const T huge_neg = T(-1E35);
-    const T huge_pos = T(1E36);
-    const auto v0 = Zero(d);
-    const auto v2 = Iota(d, T(2));
-    const auto vn = Neg(v2);
+    const T huge_pos = ConvertScalarTo<T>(sizeof(T) >= 4 ? 1E36 : 1E4);
+    const T huge_neg = -huge_pos;
+    const Vec<D> v0 = Zero(d);
+    const Vec<D> v2 = Iota(d, 2);
+    const Vec<D> vn = Neg(v2);
 
-    const auto mask_false = MaskFalse(d);
-    const auto mask_true = MaskTrue(d);
+    const Mask<D> mask_false = MaskFalse(d);
+    const Mask<D> mask_true = MaskTrue(d);
 
     // Individual values of interest
     HWY_ENSURE_GREATER(d, 2, 1);
@@ -350,11 +353,11 @@ HWY_NOINLINE void TestAllStrictFloat() {
 struct TestWeakFloat {
   template <typename T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
-    const auto v2 = Iota(d, T(2));
-    const auto vn = Iota(d, -T(Lanes(d)));
+    const Vec<D> v2 = Iota(d, 2);
+    const Vec<D> vn = Iota(d, -ConvertScalarTo<T>(Lanes(d)));
 
-    const auto mask_false = MaskFalse(d);
-    const auto mask_true = MaskTrue(d);
+    const Mask<D> mask_false = MaskFalse(d);
+    const Mask<D> mask_true = MaskTrue(d);
 
     HWY_ASSERT_MASK_EQ(d, mask_true, Ge(v2, v2));
     HWY_ASSERT_MASK_EQ(d, mask_true, Le(vn, vn));

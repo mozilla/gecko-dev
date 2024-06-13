@@ -40,7 +40,7 @@ struct TestLoadStoreInterleaved2 {
 
     // Data to be interleaved
     for (size_t i = 0; i < 2 * N; ++i) {
-      bytes[i] = static_cast<T>(Random32(&rng) & 0xFF);
+      bytes[i] = ConvertScalarTo<T>(Random32(&rng) & 0xFF);
     }
     const auto in0 = Load(d, &bytes[0 * N]);
     const auto in1 = Load(d, &bytes[1 * N]);
@@ -78,8 +78,8 @@ HWY_NOINLINE void TestAllLoadStoreInterleaved2() {
 }
 
 // Workaround for build timeout on GCC 12 aarch64, see #776.
-// TODO(janwas): fixed in 2023-02, re-enable after next GCC release.
-#if HWY_COMPILER_GCC_ACTUAL && HWY_ARCH_ARM_A64
+#if HWY_COMPILER_GCC_ACTUAL && HWY_COMPILER_GCC_ACTUAL < 1300 && \
+    HWY_ARCH_ARM_A64
 #define HWY_BROKEN_LOAD34 1
 #else
 #define HWY_BROKEN_LOAD34 0
@@ -102,7 +102,7 @@ struct TestLoadStoreInterleaved3 {
 
     // Data to be interleaved
     for (size_t i = 0; i < 3 * N; ++i) {
-      bytes[i] = static_cast<T>(Random32(&rng) & 0xFF);
+      bytes[i] = ConvertScalarTo<T>(Random32(&rng) & 0xFF);
     }
     const auto in0 = Load(d, &bytes[0 * N]);
     const auto in1 = Load(d, &bytes[1 * N]);
@@ -160,7 +160,7 @@ struct TestLoadStoreInterleaved4 {
     HWY_ASSERT(bytes && expected && actual_aligned);
 
     for (size_t i = 0; i < 4 * N; ++i) {
-      bytes[i] = static_cast<T>(Random32(&rng) & 0xFF);
+      bytes[i] = ConvertScalarTo<T>(Random32(&rng) & 0xFF);
     }
     const auto in0 = Load(d, &bytes[0 * N]);
     const auto in1 = Load(d, &bytes[1 * N]);
