@@ -523,8 +523,8 @@ class H264 {
   static FrameType GetFrameType(const mozilla::MediaRawData* aSample);
 
   /* From a NAL, extract the SVC temporal id, per H264 spec Annex G, 7.3.1.1 */
-  static Result<int, nsresult> ExtractSVCTemporalId(
-      const uint8_t* aData, size_t aLength);
+  static Result<int, nsresult> ExtractSVCTemporalId(const uint8_t* aData,
+                                                    size_t aLength);
 
   // Create a dummy extradata, useful to create a decoder and test the
   // capabilities of the decoder.

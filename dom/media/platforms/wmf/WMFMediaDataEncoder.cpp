@@ -165,9 +165,7 @@ void WMFMediaDataEncoder::FillConfigData() {
   }
 
   mConfigData =
-      header.Length() > 0
-          ? ParseH264Parameters(header, IsAnnexB())
-          : nullptr;
+      header.Length() > 0 ? ParseH264Parameters(header, IsAnnexB()) : nullptr;
 }
 
 RefPtr<EncodePromise> WMFMediaDataEncoder::ProcessEncode(
@@ -364,7 +362,8 @@ already_AddRefed<MediaRawData> WMFMediaDataEncoder::IMFSampleToMediaData(
   auto frame = MakeRefPtr<MediaRawData>();
 
   if (mConfig.mScalabilityMode != ScalabilityMode::None) {
-    auto maybeId = H264::ExtractSVCTemporalId(lockBuffer.Data(), lockBuffer.Length());
+    auto maybeId =
+        H264::ExtractSVCTemporalId(lockBuffer.Data(), lockBuffer.Length());
     frame->mTemporalLayerId = Some(maybeId.unwrapOr(0));
   }
 
@@ -414,8 +413,7 @@ bool WMFMediaDataEncoder::WriteFrameData(RefPtr<MediaRawData>& aDest,
     }
     PodCopy(writer->Data() + prependLength, aSrc.Data(), aSrc.Length());
 
-    if (!IsAnnexB() &&
-        !AnnexB::ConvertSampleToAVCC(aDest, avccHeader)) {
+    if (!IsAnnexB() && !AnnexB::ConvertSampleToAVCC(aDest, avccHeader)) {
       WMF_ENC_LOGE("fail to convert annex-b sample to AVCC");
       return false;
     }

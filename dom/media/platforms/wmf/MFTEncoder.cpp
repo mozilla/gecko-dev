@@ -471,7 +471,7 @@ HRESULT MFTEncoder::SetModes(const EncoderConfig& aConfig) {
       break;
   }
 
-  bool isIntel = false; // TODO check this
+  bool isIntel = false;  // TODO check this
   if (aConfig.mScalabilityMode != ScalabilityMode::None || isIntel) {
     hr = mConfig->SetValue(&CODECAPI_AVEncVideoTemporalLayerCount, &var);
     NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
@@ -485,7 +485,8 @@ HRESULT MFTEncoder::SetModes(const EncoderConfig& aConfig) {
 
   if (SUCCEEDED(mConfig->IsModifiable(&CODECAPI_AVLowLatencyMode))) {
     var.vt = VT_BOOL;
-    var.boolVal = aConfig.mUsage == Usage::Realtime ? VARIANT_TRUE : VARIANT_FALSE;
+    var.boolVal =
+        aConfig.mUsage == Usage::Realtime ? VARIANT_TRUE : VARIANT_FALSE;
     hr = mConfig->SetValue(&CODECAPI_AVLowLatencyMode, &var);
     NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
   }
