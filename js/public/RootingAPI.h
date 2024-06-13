@@ -302,8 +302,6 @@ inline void AssertGCThingIsNotNurseryAllocable(js::gc::Cell* cell) {}
  */
 template <typename T>
 class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
-  // Please note: this can actually also be used by nsXBLMaybeCompiled<T>, for
-  // legacy reasons.
   static_assert(js::IsHeapConstructibleType<T>::value,
                 "Type T must be a public GC pointer type");
 
@@ -325,18 +323,19 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
    * breaks common usage of move semantics, so we need to define both, even
    * though they are equivalent.
    */
-  explicit Heap(const Heap<T>& other) : ptr(other.getWithoutExpose()) {
+  explicit Heap(const Heap<T>& other) : ptr(other.unbarrieredGet()) {
     postWriteBarrier(SafelyInitialized<T>::create(), ptr);
   }
-  Heap(Heap<T>&& other) : ptr(other.getWithoutExpose()) {
+  Heap(Heap<T>&& other) : ptr(other.unbarrieredGet()) {
     postWriteBarrier(SafelyInitialized<T>::create(), ptr);
   }
 
   Heap& operator=(Heap<T>&& other) {
-    set(other.getWithoutExpose());
+    set(other.unbarrieredGet());
     other.set(SafelyInitialized<T>::create());
     return *this;
   }
+  // Copy constructor defined by DECLARE_POINTER_ASSIGN_OPS.
 
   ~Heap() { postWriteBarrier(ptr, SafelyInitialized<T>::create()); }
 
@@ -347,10 +346,6 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
 
   const T& get() const {
     exposeToActiveJS();
-    return ptr;
-  }
-  const T& getWithoutExpose() const {
-    js::BarrierMethods<T>::readBarrier(ptr);
     return ptr;
   }
   const T& unbarrieredGet() const { return ptr; }
