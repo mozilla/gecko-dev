@@ -2299,32 +2299,8 @@ void nsDisplayList::PaintRoot(nsDisplayListBuilder* aBuilder, gfxContext* aCtx,
       gfx::Matrix5x4* colorMatrix =
           nsDocShell::Cast(docShell)->GetColorMatrix();
       if (colorMatrix) {
-        // Note: This color matrix was added here in for accessibility in
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=1431466 , it could be
-        // done with regular SVG in the document as long as it is accelerated,
-        // and it's probably best to do this in linearRGB, now that it is
-        // feasible to do so
-        // TODO(ahale): Make sure to test this works correctly before enabling
-        if (StaticPrefs::gfx_webrender_svg_filter_effects() &&
-            StaticPrefs::
-                gfx_webrender_svg_filter_effects_also_use_for_docshell_fecolormatrix()) {
-          // WebRender SVGFE code needs a valid filter region, so use 1<<30 as
-          // rendering will already be heavily degraded at that range.
-          static constexpr float kExtent = 1024.0f * 1024.0f * 1024.0f;
-          wr::LayoutRect subregion = {{-kExtent, -kExtent}, {kExtent, kExtent}};
-          auto node = wr::FilterOpGraphNode{};
-          node.input.buffer_id = wr::FilterOpGraphPictureBufferId::None();
-          node.input2.buffer_id = wr::FilterOpGraphPictureBufferId::None();
-          node.subregion = subregion;
-          wrFilters.filters.AppendElement(
-              wr::FilterOp::SVGFESourceGraphic(node));
-          node.input.buffer_id = wr::FilterOpGraphPictureBufferId::BufferId(0);
-          wrFilters.filters.AppendElement(
-              wr::FilterOp::SVGFEColorMatrix(node, colorMatrix->components));
-        } else {
-          wrFilters.filters.AppendElement(
-              wr::FilterOp::ColorMatrix(colorMatrix->components));
-        }
+        wrFilters.filters.AppendElement(
+            wr::FilterOp::ColorMatrix(colorMatrix->components));
       }
 
       wrManager->EndTransactionWithoutLayer(this, aBuilder,
@@ -8308,25 +8284,18 @@ bool nsDisplayBackdropFilters::CreateWebRenderCommands(
   WrFiltersHolder wrFilters;
   const ComputedStyle& style = mStyle ? *mStyle : *mFrame->Style();
   auto filterChain = style.StyleEffects()->mBackdropFilters.AsSpan();
-  // Try building a CSS filter chain
-  WrFiltersStatus status = SVGIntegrationUtils::CreateWebRenderCSSFilters(
-      filterChain, mFrame, wrFilters);
-  if (status == WrFiltersStatus::BLOB_FALLBACK) {
-    // If the filters are too complex for CSS filters, try SVG filters
-    auto offsetForSVGFilters =
-        nsLayoutUtils::ComputeOffsetToUserSpace(aDisplayListBuilder, mFrame);
-    status = SVGIntegrationUtils::BuildWebRenderFilters(
-        mFrame, filterChain, StyleFilterType::BackdropFilter, wrFilters,
-        offsetForSVGFilters);
-  }
-
-  if (status == WrFiltersStatus::BLOB_FALLBACK) {
+  bool initialized = true;
+  if (!SVGIntegrationUtils::CreateWebRenderCSSFilters(filterChain, mFrame,
+                                                      wrFilters) &&
+      !SVGIntegrationUtils::BuildWebRenderFilters(
+          mFrame, filterChain, StyleFilterType::BackdropFilter, wrFilters,
+          initialized)) {
     // TODO: If painting backdrop-filters on the content side is implemented,
     // consider returning false to fall back to that.
     wrFilters = {};
   }
 
-  if (status == WrFiltersStatus::UNSUPPORTED) {
+  if (!initialized) {
     wrFilters = {};
   }
 
@@ -8430,47 +8399,32 @@ bool nsDisplayFilters::CreateWebRenderCommands(
   WrFiltersHolder wrFilters;
   const ComputedStyle& style = mStyle ? *mStyle : *mFrame->Style();
   auto filterChain = style.StyleEffects()->mFilters.AsSpan();
-  // Try building a CSS filter chain
-  WrFiltersStatus status = SVGIntegrationUtils::CreateWebRenderCSSFilters(
-      filterChain, mFrame, wrFilters);
-  if (status == WrFiltersStatus::BLOB_FALLBACK) {
-    // Try building an SVG filter graph
-    auto offsetForSVGFilters =
-        nsLayoutUtils::ComputeOffsetToUserSpace(aDisplayListBuilder, mFrame);
-    status = SVGIntegrationUtils::BuildWebRenderFilters(
-        mFrame, filterChain, StyleFilterType::Filter, wrFilters,
-        offsetForSVGFilters);
-    if (status == WrFiltersStatus::BLOB_FALLBACK && mStyle) {
+  bool initialized = true;
+  if (!SVGIntegrationUtils::CreateWebRenderCSSFilters(filterChain, mFrame,
+                                                      wrFilters) &&
+      !SVGIntegrationUtils::BuildWebRenderFilters(mFrame, filterChain,
+                                                  StyleFilterType::Filter,
+                                                  wrFilters, initialized)) {
+    if (mStyle) {
       // TODO(bug 1769223): Support fallback filters in the root code-path,
       // perhaps. For now treat it the same way as invalid filters.
-      status = WrFiltersStatus::UNSUPPORTED;
+      wrFilters = {};
+    } else {
+      // Draw using fallback.
+      return false;
     }
   }
 
-  switch (status) {
-    case WrFiltersStatus::BLOB_FALLBACK:
-      // Draw using fallback.
-      return false;
-    case WrFiltersStatus::UNSUPPORTED:
-      // https://drafts.fxtf.org/filter-effects/#typedef-filter-url:
-      //
-      //   If the filter references a non-existent object or the referenced
-      //   object is not a filter element, then the whole filter chain is
-      //   ignored. No filter is applied to the object.
-      //
-      // Note that other engines have a weird discrepancy between SVG and HTML
-      // content here, but the spec is clear.
-      wrFilters = {};
-      break;
-    case WrFiltersStatus::DISABLED_FOR_PERFORMANCE:
-      // SVG spec allows us to drop the entire filter graph if it contains too
-      // many filters to render or other performance considerations.
-      wrFilters = {};
-      break;
-    case WrFiltersStatus::CHAIN:
-    case WrFiltersStatus::SVGFE:
-      // Filter the image using the wrFilters produced above.
-      break;
+  if (!initialized) {
+    // https://drafts.fxtf.org/filter-effects/#typedef-filter-url:
+    //
+    //   If the filter references a non-existent object or the referenced object
+    //   is not a filter element, then the whole filter chain is ignored. No
+    //   filter is applied to the object.
+    //
+    // Note that other engines have a weird discrepancy between SVG and HTML
+    // content here, but the spec is clear.
+    wrFilters = {};
   }
 
   uint64_t clipChainId;
