@@ -59,7 +59,8 @@ LazyLogModule gMediaDecoderLog("MediaDecoder");
 
 #define NS_DispatchToMainThread(...) CompileError_UseAbstractMainThreadInstead
 
-static const char* ToPlayStateStr(MediaDecoder::PlayState aState) {
+/* static */
+const char* MediaDecoder::ToPlayStateStr(MediaDecoder::PlayState aState) {
   switch (aState) {
     case MediaDecoder::PLAY_STATE_LOADING:
       return "LOADING";

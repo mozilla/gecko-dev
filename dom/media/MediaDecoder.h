@@ -131,6 +131,8 @@ class MediaDecoder : public DecoderDoctorLifeLogger<MediaDecoder> {
     PLAY_STATE_SHUTDOWN
   };
 
+  static const char* ToPlayStateStr(MediaDecoder::PlayState aState);
+
   // Must be called exactly once, on the main thread, during startup.
   static void InitStatics();
 
