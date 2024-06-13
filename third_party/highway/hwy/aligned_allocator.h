@@ -18,25 +18,17 @@
 
 // Memory allocator with support for alignment and offsets.
 
-#include <algorithm>
-#include <array>
-#include <cassert>
-#include <cstring>
-#include <initializer_list>
 #include <memory>
-#include <type_traits>
 #include <utility>
 
 #include "hwy/base.h"
-#include "hwy/per_target.h"
 
 namespace hwy {
 
 // Minimum alignment of allocated memory for use in HWY_ASSUME_ALIGNED, which
-// requires a literal. To prevent false sharing, this should be at least the
-// L1 cache line size, usually 64 bytes. However, Intel's L2 prefetchers may
-// access pairs of lines, and POWER8 also has 128.
-#define HWY_ALIGNMENT 128
+// requires a literal. This matches typical L1 cache line sizes, which prevents
+// false sharing.
+#define HWY_ALIGNMENT 64
 
 // Pointers to functions equivalent to malloc/free with an opaque void* passed
 // to them.
@@ -48,8 +40,7 @@ using FreePtr = void (*)(void* opaque, void* memory);
 // the vector size. Calls `alloc` with the passed `opaque` pointer to obtain
 // memory or malloc() if it is null.
 HWY_DLLEXPORT void* AllocateAlignedBytes(size_t payload_size,
-                                         AllocPtr alloc_ptr = nullptr,
-                                         void* opaque_ptr = nullptr);
+                                         AllocPtr alloc_ptr, void* opaque_ptr);
 
 // Frees all memory. No effect if `aligned_pointer` == nullptr, otherwise it
 // must have been returned from a previous call to `AllocateAlignedBytes`.
@@ -119,7 +110,8 @@ AlignedUniquePtr<T> MakeUniqueAlignedWithAlloc(AllocPtr alloc, FreePtr free,
 // functions.
 template <typename T, typename... Args>
 AlignedUniquePtr<T> MakeUniqueAligned(Args&&... args) {
-  T* ptr = static_cast<T*>(AllocateAlignedBytes(sizeof(T)));
+  T* ptr = static_cast<T*>(AllocateAlignedBytes(
+      sizeof(T), /*alloc_ptr=*/nullptr, /*opaque_ptr=*/nullptr));
   return AlignedUniquePtr<T>(new (ptr) T(std::forward<Args>(args)...),
                              AlignedDeleter());
 }
@@ -214,163 +206,6 @@ template <typename T>
 AlignedFreeUniquePtr<T[]> AllocateAligned(const size_t items) {
   return AllocateAligned<T>(items, nullptr, nullptr, nullptr);
 }
-
-// A simple span containing data and size of data.
-template <typename T>
-class Span {
- public:
-  Span() = default;
-  Span(T* data, size_t size) : size_(size), data_(data) {}
-  template <typename U>
-  MOZ_IMPLICIT Span(U u) : Span(u.data(), u.size()) {}
-  MOZ_IMPLICIT Span(std::initializer_list<const T> v) : Span(v.begin(), v.size()) {}
-
-  // Copies the contents of the initializer list to the span.
-  Span<T>& operator=(std::initializer_list<const T> v) {
-    HWY_DASSERT(size_ == v.size());
-    CopyBytes(v.begin(), data_, sizeof(T) * std::min(size_, v.size()));
-    return *this;
-  }
-
-  // Returns the size of the contained data.
-  size_t size() const { return size_; }
-
-  // Returns a pointer to the contained data.
-  T* data() { return data_; }
-  T* data() const { return data_; }
-
-  // Returns the element at index.
-  T& operator[](size_t index) const { return data_[index]; }
-
-  // Returns an iterator pointing to the first element of this span.
-  T* begin() { return data_; }
-
-  // Returns a const iterator pointing to the first element of this span.
-  constexpr const T* cbegin() const { return data_; }
-
-  // Returns an iterator pointing just beyond the last element at the
-  // end of this span.
-  T* end() { return data_ + size_; }
-
-  // Returns a const iterator pointing just beyond the last element at the
-  // end of this span.
-  constexpr const T* cend() const { return data_ + size_; }
-
- private:
-  size_t size_ = 0;
-  T* data_ = nullptr;
-};
-
-// A multi dimensional array containing an aligned buffer.
-//
-// To maintain alignment, the innermost dimension will be padded to ensure all
-// innermost arrays are aligned.
-template <typename T, size_t axes>
-class AlignedNDArray {
-  static_assert(std::is_trivial<T>::value,
-                "AlignedNDArray can only contain trivial types");
-
- public:
-  AlignedNDArray(AlignedNDArray&& other) = default;
-  AlignedNDArray& operator=(AlignedNDArray&& other) = default;
-
-  // Constructs an array of the provided shape and fills it with zeros.
-  explicit AlignedNDArray(std::array<size_t, axes> shape) : shape_(shape) {
-    sizes_ = ComputeSizes(shape_);
-    memory_shape_ = shape_;
-    // Round the innermost dimension up to the number of bytes available for
-    // SIMD operations on this architecture to make sure that each innermost
-    // array is aligned from the first element.
-    memory_shape_[axes - 1] = RoundUpTo(memory_shape_[axes - 1], VectorBytes());
-    memory_sizes_ = ComputeSizes(memory_shape_);
-    buffer_ = hwy::AllocateAligned<T>(memory_size());
-    hwy::ZeroBytes(buffer_.get(), memory_size() * sizeof(T));
-  }
-
-  // Returns a span containing the innermost array at the provided indices.
-  Span<T> operator[](std::array<const size_t, axes - 1> indices) {
-    return Span<T>(buffer_.get() + Offset(indices), sizes_[indices.size()]);
-  }
-
-  // Returns a const span containing the innermost array at the provided
-  // indices.
-  Span<const T> operator[](std::array<const size_t, axes - 1> indices) const {
-    return Span<const T>(buffer_.get() + Offset(indices),
-                         sizes_[indices.size()]);
-  }
-
-  // Returns the shape of the array, which might be smaller than the allocated
-  // buffer after padding the last axis to alignment.
-  const std::array<size_t, axes>& shape() const { return shape_; }
-
-  // Returns the shape of the allocated buffer, which might be larger than the
-  // used size of the array after padding to alignment.
-  const std::array<size_t, axes>& memory_shape() const { return memory_shape_; }
-
-  // Returns the size of the array, which might be smaller than the allocated
-  // buffer after padding the last axis to alignment.
-  size_t size() const { return sizes_[0]; }
-
-  // Returns the size of the allocated buffer, which might be larger than the
-  // used size of the array after padding to alignment.
-  size_t memory_size() const { return memory_sizes_[0]; }
-
-  // Returns a pointer to the allocated buffer.
-  T* data() { return buffer_.get(); }
-
-  // Returns a const pointer to the buffer.
-  const T* data() const { return buffer_.get(); }
-
-  // Truncates the array by updating its shape.
-  //
-  // The new shape must be equal to or less than the old shape in all axes.
-  //
-  // Doesn't modify underlying memory.
-  void truncate(const std::array<size_t, axes>& new_shape) {
-#if HWY_IS_DEBUG_BUILD
-    for (size_t axis_index = 0; axis_index < axes; ++axis_index) {
-      HWY_ASSERT(new_shape[axis_index] <= shape_[axis_index]);
-    }
-#endif
-    shape_ = new_shape;
-    sizes_ = ComputeSizes(shape_);
-  }
-
- private:
-  std::array<size_t, axes> shape_;
-  std::array<size_t, axes> memory_shape_;
-  std::array<size_t, axes + 1> sizes_;
-  std::array<size_t, axes + 1> memory_sizes_;
-  hwy::AlignedFreeUniquePtr<T[]> buffer_;
-
-  // Computes offset in the buffer based on the provided indices.
-  size_t Offset(std::array<const size_t, axes - 1> indices) const {
-    size_t offset = 0;
-    size_t shape_index = 0;
-    for (const size_t axis_index : indices) {
-      offset += memory_sizes_[shape_index + 1] * axis_index;
-      shape_index++;
-    }
-    return offset;
-  }
-
-  // Computes the sizes of all sub arrays based on the sizes of each axis.
-  //
-  // Does this by multiplying the size of each axis with the previous one in
-  // reverse order, starting with the conceptual axis of size 1 containing the
-  // actual elements in the array.
-  static std::array<size_t, axes + 1> ComputeSizes(
-      std::array<size_t, axes> shape) {
-    std::array<size_t, axes + 1> sizes;
-    size_t axis = shape.size();
-    sizes[axis] = 1;
-    while (axis > 0) {
-      --axis;
-      sizes[axis] = sizes[axis + 1] * shape[axis];
-    }
-    return sizes;
-  }
-};
 
 }  // namespace hwy
 #endif  // HIGHWAY_HWY_ALIGNED_ALLOCATOR_H_

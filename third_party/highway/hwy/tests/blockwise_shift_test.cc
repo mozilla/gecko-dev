@@ -13,8 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stddef.h>
-#include <stdint.h>
+#include <string.h>  // memcpy
+
+#include <algorithm>  // std::fill
 
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "tests/blockwise_shift_test.cc"
@@ -47,7 +48,7 @@ struct TestShiftBytes {
     HWY_ASSERT(bytes && in && expected);
 
     // Zero after shifting out the high/low byte
-    ZeroBytes(bytes.get(), N8);
+    std::fill(bytes.get(), bytes.get() + N8, 0);
     bytes[N8 - 1] = 0x7F;
     const auto vhi = BitCast(d, Load(du8, bytes.get()));
     bytes[N8 - 1] = 0;
@@ -67,13 +68,13 @@ struct TestShiftBytes {
     const size_t block_size = HWY_MIN(N8, 16);
     for (size_t block = 0; block < N8; block += block_size) {
       expected_bytes[block] = 0;
-      CopyBytes(in_bytes + block, expected_bytes + block + 1, block_size - 1);
+      memcpy(expected_bytes + block + 1, in_bytes + block, block_size - 1);
     }
     HWY_ASSERT_VEC_EQ(d, expected.get(), ShiftLeftBytes<1>(v));
     HWY_ASSERT_VEC_EQ(d, expected.get(), ShiftLeftBytes<1>(d, v));
 
     for (size_t block = 0; block < N8; block += block_size) {
-      CopyBytes(in_bytes + block + 1, expected_bytes + block, block_size - 1);
+      memcpy(expected_bytes + block, in_bytes + block + 1, block_size - 1);
       expected_bytes[block + block_size - 1] = 0;
     }
     HWY_ASSERT_VEC_EQ(d, expected.get(), ShiftRightBytes<1>(d, v));
@@ -92,7 +93,7 @@ struct TestShiftLeftLanes {
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
     // Scalar does not define Shift*Lanes.
 #if HWY_TARGET != HWY_SCALAR || HWY_IDE
-    const auto v = Iota(d, 1);
+    const auto v = Iota(d, T(1));
     const size_t N = Lanes(d);
     if (N == 1) return;
     auto expected = AllocateAligned<T>(N);
@@ -104,7 +105,7 @@ struct TestShiftLeftLanes {
     constexpr size_t kLanesPerBlock = 16 / sizeof(T);
 
     for (size_t i = 0; i < N; ++i) {
-      expected[i] = ConvertScalarTo<T>((i % kLanesPerBlock) == 0 ? 0 : i);
+      expected[i] = (i % kLanesPerBlock) == 0 ? T(0) : T(i);
     }
     HWY_ASSERT_VEC_EQ(d, expected.get(), ShiftLeftLanes<1>(v));
     HWY_ASSERT_VEC_EQ(d, expected.get(), ShiftLeftLanes<1>(d, v));
@@ -119,7 +120,7 @@ struct TestShiftRightLanes {
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
     // Scalar does not define Shift*Lanes.
 #if HWY_TARGET != HWY_SCALAR || HWY_IDE
-    const auto v = Iota(d, 1);
+    const auto v = Iota(d, T(1));
     const size_t N = Lanes(d);
     if (N == 1) return;
     auto expected = AllocateAligned<T>(N);
@@ -131,8 +132,7 @@ struct TestShiftRightLanes {
 
     for (size_t i = 0; i < N; ++i) {
       const size_t mod = i % kLanesPerBlock;
-      expected[i] = ConvertScalarTo<T>(
-          ((mod == kLanesPerBlock - 1) || (i >= N - 1)) ? 0 : (2 + i));
+      expected[i] = mod == (kLanesPerBlock - 1) || i >= N - 1 ? T(0) : T(2 + i);
     }
     HWY_ASSERT_VEC_EQ(d, expected.get(), ShiftRightLanes<1>(d, v));
 #else

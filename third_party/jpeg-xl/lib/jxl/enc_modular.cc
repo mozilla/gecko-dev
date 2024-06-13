@@ -650,8 +650,8 @@ Status ModularFrameEncoder::ComputeEncodingData(
     JXL_RETURN_IF_ERROR(FindBestPatchDictionary(
         *color, enc_state, cms, nullptr, aux_out,
         cparams_.color_transform == ColorTransform::kXYB));
-    JXL_RETURN_IF_ERROR(PatchDictionaryEncoder::SubtractFrom(
-        enc_state->shared.image_features.patches, color));
+    PatchDictionaryEncoder::SubtractFrom(
+        enc_state->shared.image_features.patches, color);
   }
 
   if (cparams_.custom_splines.HasAny()) {
@@ -1169,8 +1169,7 @@ Status ModularFrameEncoder::ComputeTree(ThreadPool* pool) {
           for (size_t i = start; i < stop; i++) {
             JXL_CHECK(ModularGenericCompress(
                 stream_images_[i], stream_options_[i], /*writer=*/nullptr,
-                /*aux_out=*/nullptr, LayerType::Header, i, &tree_samples,
-                &total_pixels));
+                /*aux_out=*/nullptr, 0, i, &tree_samples, &total_pixels));
           }
 
           // TODO(veluca): parallelize more.
@@ -1233,7 +1232,7 @@ Status ModularFrameEncoder::ComputeTokens(ThreadPool* pool) {
         tokens_[stream_id].clear();
         JXL_CHECK(ModularGenericCompress(
             stream_images_[stream_id], stream_options_[stream_id],
-            /*writer=*/nullptr, &my_aux_out, LayerType::Header, stream_id,
+            /*writer=*/nullptr, &my_aux_out, 0, stream_id,
             /*tree_samples=*/nullptr,
             /*total_pixels=*/nullptr,
             /*tree=*/&tree_, /*header=*/&stream_headers_[stream_id],
@@ -1252,11 +1251,11 @@ Status ModularFrameEncoder::EncodeGlobalInfo(bool streaming_mode,
   // If we are using brotli, or not using modular mode.
   if (tree_tokens_.empty() || tree_tokens_[0].empty()) {
     writer->Write(1, 0);
-    allotment.ReclaimAndCharge(writer, LayerType::ModularTree, aux_out);
+    allotment.ReclaimAndCharge(writer, kLayerModularTree, aux_out);
     return true;
   }
   writer->Write(1, 1);
-  allotment.ReclaimAndCharge(writer, LayerType::ModularTree, aux_out);
+  allotment.ReclaimAndCharge(writer, kLayerModularTree, aux_out);
 
   // Write tree
   HistogramParams params =
@@ -1266,9 +1265,9 @@ Status ModularFrameEncoder::EncodeGlobalInfo(bool streaming_mode,
     std::vector<uint8_t> tree_context_map;
     BuildAndEncodeHistograms(memory_manager, params, kNumTreeContexts,
                              tree_tokens_, &tree_code, &tree_context_map,
-                             writer, LayerType::ModularTree, aux_out);
+                             writer, kLayerModularTree, aux_out);
     WriteTokens(tree_tokens_[0], tree_code, tree_context_map, 0, writer,
-                LayerType::ModularTree, aux_out);
+                kLayerModularTree, aux_out);
   }
   params.streaming_mode = streaming_mode;
   params.add_missing_symbols = streaming_mode;
@@ -1276,12 +1275,12 @@ Status ModularFrameEncoder::EncodeGlobalInfo(bool streaming_mode,
   // Write histograms.
   BuildAndEncodeHistograms(memory_manager, params, (tree_.size() + 1) / 2,
                            tokens_, &code_, &context_map_, writer,
-                           LayerType::ModularGlobal, aux_out);
+                           kLayerModularGlobal, aux_out);
   return true;
 }
 
 Status ModularFrameEncoder::EncodeStream(BitWriter* writer, AuxOut* aux_out,
-                                         LayerType layer,
+                                         size_t layer,
                                          const ModularStreamId& stream) {
   size_t stream_id = stream.ID(frame_dim_);
   if (stream_images_[stream_id].channel.empty()) {
@@ -1720,13 +1719,12 @@ Status ModularFrameEncoder::EncodeQuantTable(
     JxlMemoryManager* memory_manager, size_t size_x, size_t size_y,
     BitWriter* writer, const QuantEncoding& encoding, size_t idx,
     ModularFrameEncoder* modular_frame_encoder) {
-  JXL_ASSERT(encoding.qraw.qtable);
+  JXL_ASSERT(encoding.qraw.qtable != nullptr);
   JXL_ASSERT(size_x * size_y * 3 == encoding.qraw.qtable->size());
-  int* qtable = encoding.qraw.qtable->data();
   JXL_CHECK(F16Coder::Write(encoding.qraw.qtable_den, writer));
   if (modular_frame_encoder) {
     JXL_CHECK(modular_frame_encoder->EncodeStream(
-        writer, nullptr, LayerType::Header, ModularStreamId::QuantTable(idx)));
+        writer, nullptr, 0, ModularStreamId::QuantTable(idx)));
     return true;
   }
   JXL_ASSIGN_OR_RETURN(Image image,
@@ -1735,7 +1733,7 @@ Status ModularFrameEncoder::EncodeQuantTable(
     for (size_t y = 0; y < size_y; y++) {
       int32_t* JXL_RESTRICT row = image.channel[c].Row(y);
       for (size_t x = 0; x < size_x; x++) {
-        row[x] = qtable[c * size_x * size_y + y * size_x + x];
+        row[x] = (*encoding.qraw.qtable)[c * size_x * size_y + y * size_x + x];
       }
     }
   }
@@ -1748,9 +1746,8 @@ Status ModularFrameEncoder::AddQuantTable(size_t size_x, size_t size_y,
                                           const QuantEncoding& encoding,
                                           size_t idx) {
   size_t stream_id = ModularStreamId::QuantTable(idx).ID(frame_dim_);
-  JXL_ASSERT(encoding.qraw.qtable);
+  JXL_ASSERT(encoding.qraw.qtable != nullptr);
   JXL_ASSERT(size_x * size_y * 3 == encoding.qraw.qtable->size());
-  int* qtable = encoding.qraw.qtable->data();
   Image& image = stream_images_[stream_id];
   JxlMemoryManager* memory_manager = image.memory_manager();
   JXL_ASSIGN_OR_RETURN(image,
@@ -1759,7 +1756,7 @@ Status ModularFrameEncoder::AddQuantTable(size_t size_x, size_t size_y,
     for (size_t y = 0; y < size_y; y++) {
       int32_t* JXL_RESTRICT row = image.channel[c].Row(y);
       for (size_t x = 0; x < size_x; x++) {
-        row[x] = qtable[c * size_x * size_y + y * size_x + x];
+        row[x] = (*encoding.qraw.qtable)[c * size_x * size_y + y * size_x + x];
       }
     }
   }

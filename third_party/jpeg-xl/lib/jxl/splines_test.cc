@@ -170,8 +170,7 @@ TEST(SplinesTest, Serialization) {
   }
 
   BitWriter writer{memory_manager};
-  EncodeSplines(splines, &writer, LayerType::Splines, HistogramParams(),
-                nullptr);
+  EncodeSplines(splines, &writer, kLayerSplines, HistogramParams(), nullptr);
   writer.ZeroPadToByte();
   const size_t bits_written = writer.BitsWritten();
 
@@ -236,7 +235,7 @@ TEST(SplinesTest, TooManySplinesTest) {
   Splines splines(kQuantizationAdjustment, std::move(quantized_splines),
                   std::move(starting_points));
   BitWriter writer{memory_manager};
-  EncodeSplines(splines, &writer, LayerType::Splines,
+  EncodeSplines(splines, &writer, kLayerSplines,
                 HistogramParams(SpeedTier::kFalcon, 1), nullptr);
   writer.ZeroPadToByte();
   // Re-read splines.

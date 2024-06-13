@@ -29,7 +29,6 @@
 namespace jxl {
 
 struct AuxOut;
-enum class LayerType : uint8_t;
 
 constexpr size_t kMaxPatchSize = 32;
 
@@ -79,7 +78,7 @@ class PatchDictionaryEncoder {
  public:
   // Only call if HasAny().
   static void Encode(const PatchDictionary& pdic, BitWriter* writer,
-                     LayerType layer, AuxOut* aux_out);
+                     size_t layer, AuxOut* aux_out);
 
   static void SetPositions(PatchDictionary* pdic,
                            std::vector<PatchPosition> positions,
@@ -93,7 +92,7 @@ class PatchDictionaryEncoder {
     pdic->ComputePatchTree();
   }
 
-  static Status SubtractFrom(const PatchDictionary& pdic, Image3F* opsin);
+  static void SubtractFrom(const PatchDictionary& pdic, Image3F* opsin);
 };
 
 Status FindBestPatchDictionary(const Image3F& opsin,

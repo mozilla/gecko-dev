@@ -22,11 +22,10 @@
 #define HIGHWAY_HWY_CONTRIB_SORT_TRAITS128_TOGGLE
 #endif
 
-#include <stddef.h>
-#include <stdint.h>
+#include <string>
 
-#include "hwy/contrib/sort/order.h"  // SortDescending
 #include "hwy/contrib/sort/shared-inl.h"
+#include "hwy/contrib/sort/vqsort.h"  // SortDescending
 #include "hwy/highway.h"
 
 HWY_BEFORE_NAMESPACE();
@@ -179,9 +178,8 @@ struct Key128 : public KeyAny128 {
 // we are anyway going to specialize at a higher level.
 struct OrderAscending128 : public Key128 {
   using Order = SortAscending;
-  using OrderForSortingNetwork = OrderAscending128;
 
-  HWY_INLINE bool Compare1(const LaneType* a, const LaneType* b) const {
+  HWY_INLINE bool Compare1(const LaneType* a, const LaneType* b) {
     return (a[1] == b[1]) ? a[0] < b[0] : a[1] < b[1];
   }
 
@@ -230,9 +228,8 @@ struct OrderAscending128 : public Key128 {
 
 struct OrderDescending128 : public Key128 {
   using Order = SortDescending;
-  using OrderForSortingNetwork = OrderDescending128;
 
-  HWY_INLINE bool Compare1(const LaneType* a, const LaneType* b) const {
+  HWY_INLINE bool Compare1(const LaneType* a, const LaneType* b) {
     return (a[1] == b[1]) ? b[0] < a[0] : b[1] < a[1];
   }
 
@@ -288,7 +285,7 @@ struct KeyValue128 : public KeyAny128 {
   // What type to pass to VQSort.
   using KeyType = K64V64;
 
-  const char* KeyString() const { return "k+v=128"; }
+  const char* KeyString() const { return "KV128"; }
 
   template <class D>
   HWY_INLINE Mask<D> EqualKeys(D d, Vec<D> a, Vec<D> b) const {
@@ -326,9 +323,8 @@ struct KeyValue128 : public KeyAny128 {
 
 struct OrderAscendingKV128 : public KeyValue128 {
   using Order = SortAscending;
-  using OrderForSortingNetwork = OrderAscending128;
 
-  HWY_INLINE bool Compare1(const LaneType* a, const LaneType* b) const {
+  HWY_INLINE bool Compare1(const LaneType* a, const LaneType* b) {
     return a[1] < b[1];
   }
 
@@ -373,9 +369,8 @@ struct OrderAscendingKV128 : public KeyValue128 {
 
 struct OrderDescendingKV128 : public KeyValue128 {
   using Order = SortDescending;
-  using OrderForSortingNetwork = OrderDescending128;
 
-  HWY_INLINE bool Compare1(const LaneType* a, const LaneType* b) const {
+  HWY_INLINE bool Compare1(const LaneType* a, const LaneType* b) {
     return b[1] < a[1];
   }
 
@@ -443,9 +438,10 @@ HWY_INLINE V ReplicateTop4x(V v) {
 #if HWY_TARGET == HWY_SVE_256
   return svdup_lane_u64(v, 3);
 #else
-  HWY_ALIGN static constexpr uint64_t kIndices[8] = {3, 3, 3, 3, 7, 7, 7, 7};
-  const ScalableTag<uint64_t> d;
-  return TableLookupLanes(v, SetTableIndices(d, kIndices));
+    alignas(64) static constexpr uint64_t kIndices[8] = {3, 3, 3, 3,
+                                                         7, 7, 7, 7};
+    const ScalableTag<uint64_t> d;
+    return TableLookupLanes(v, SetTableIndices(d, kIndices));
 #endif
 }
 
@@ -454,9 +450,6 @@ HWY_INLINE V ReplicateTop4x(V v) {
 // Shared code that depends on Order.
 template <class Base>
 struct Traits128 : public Base {
-  using TraitsForSortingNetwork =
-      Traits128<typename Base::OrderForSortingNetwork>;
-
   template <class D>
   HWY_INLINE Vec<D> FirstOfLanes(D d, Vec<D> v,
                                  TFromD<D>* HWY_RESTRICT buf) const {
@@ -512,7 +505,7 @@ struct Traits128 : public Base {
     const Vec<D> cmpHx = base->template CompareTop<Base>(d, v, swapped);
     // Similar to ReplicateTop4x, we want to gang together 2 comparison results
     // (4 lanes). They are not contiguous, so use permute to replicate 4x.
-    HWY_ALIGN uint64_t kIndices[8] = {7, 7, 5, 5, 5, 5, 7, 7};
+    alignas(64) uint64_t kIndices[8] = {7, 7, 5, 5, 5, 5, 7, 7};
     const Vec<D> select = TableLookupLanes(cmpHx, SetTableIndices(d, kIndices));
     return IfVecThenElse(select, swapped, v);
   }

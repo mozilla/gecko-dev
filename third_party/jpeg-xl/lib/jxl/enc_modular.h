@@ -35,7 +35,6 @@
 namespace jxl {
 
 struct AuxOut;
-enum class LayerType : uint8_t;
 
 class ModularFrameEncoder {
  public:
@@ -56,7 +55,7 @@ class ModularFrameEncoder {
                           AuxOut* aux_out);
   // Encodes a specific modular image (identified by `stream`) in the `writer`,
   // assigning bits to the provided `layer`.
-  Status EncodeStream(BitWriter* writer, AuxOut* aux_out, LayerType layer,
+  Status EncodeStream(BitWriter* writer, AuxOut* aux_out, size_t layer,
                       const ModularStreamId& stream);
 
   void ClearStreamData(const ModularStreamId& stream);

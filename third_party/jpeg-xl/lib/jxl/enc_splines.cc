@@ -3,8 +3,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-#include <cstdint>
-
 #include "lib/jxl/base/status.h"
 #include "lib/jxl/enc_ans.h"
 #include "lib/jxl/pack_signed.h"
@@ -13,7 +11,6 @@
 namespace jxl {
 
 struct AuxOut;
-enum class LayerType : uint8_t;
 
 class QuantizedSplineEncoder {
  public:
@@ -62,8 +59,8 @@ void EncodeAllStartingPoints(const std::vector<Spline::Point>& points,
 }  // namespace
 
 void EncodeSplines(const Splines& splines, BitWriter* writer,
-                   const LayerType layer,
-                   const HistogramParams& histogram_params, AuxOut* aux_out) {
+                   const size_t layer, const HistogramParams& histogram_params,
+                   AuxOut* aux_out) {
   JXL_ASSERT(splines.HasAny());
 
   const std::vector<QuantizedSpline>& quantized_splines =

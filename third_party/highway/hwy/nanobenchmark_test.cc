@@ -15,8 +15,14 @@
 
 #include "hwy/nanobenchmark.h"
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS  // before inttypes.h
+#endif
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
+
+#include <random>
 
 #include "hwy/tests/test_util-inl.h"
 
@@ -44,13 +50,13 @@ void MeasureDiv(const FuncInput (&inputs)[N]) {
   params.max_evals = kMaxEvals;
   const size_t num_results = Measure(&Div, nullptr, inputs, N, results, params);
   for (size_t i = 0; i < num_results; ++i) {
-    printf("%5d: %6.2f ticks; MAD=%4.2f%%\n",
-           static_cast<int>(results[i].input), results[i].ticks,
+    printf("%5" PRIu64 ": %6.2f ticks; MAD=%4.2f%%\n",
+           static_cast<uint64_t>(results[i].input), results[i].ticks,
            results[i].variability * 100.0);
   }
 }
 
-RandomState rng;
+std::mt19937 rng;
 
 // A function whose runtime depends on rng.
 FuncOutput Random(const void* /*arg*/, FuncInput in) {

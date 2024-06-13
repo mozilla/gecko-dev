@@ -73,9 +73,7 @@
 // https://github.com/simd-everywhere/simde/blob/47d6e603de9d04ee05cdfbc57cf282a02be1bf2a/simde/simde-detect-clang.h#L59.
 // Please send updates below to them as well, thanks!
 #if defined(__apple_build_version__) || __clang_major__ >= 999
-#if __has_attribute(unsafe_buffer_usage)  // no new warnings in 17.0
-#define HWY_COMPILER_CLANG 1700
-#elif __has_attribute(nouwtable)  // no new warnings in 16.0
+#if __has_attribute(nouwtable)  // no new warnings in 16.0
 #define HWY_COMPILER_CLANG 1600
 #elif __has_warning("-Warray-parameter")
 #define HWY_COMPILER_CLANG 1500
@@ -115,7 +113,7 @@
 #define HWY_COMPILER3_CLANG 0
 #endif
 
-#if HWY_COMPILER_GCC && !HWY_COMPILER_CLANG && !HWY_COMPILER_ICC
+#if HWY_COMPILER_GCC && !HWY_COMPILER_CLANG
 #define HWY_COMPILER_GCC_ACTUAL HWY_COMPILER_GCC
 #else
 #define HWY_COMPILER_GCC_ACTUAL 0
@@ -189,12 +187,6 @@
 #define HWY_ARCH_PPC 0
 #endif
 
-#if defined(__powerpc64__) || (HWY_ARCH_PPC && defined(__64BIT__))
-#define HWY_ARCH_PPC_64 1
-#else
-#define HWY_ARCH_PPC_64 0
-#endif
-
 // aarch32 is currently not supported; please raise an issue if you want it.
 #if defined(__ARM_ARCH_ISA_A64) || defined(__aarch64__) || defined(_M_ARM64)
 #define HWY_ARCH_ARM_A64 1
@@ -238,16 +230,10 @@
 #define HWY_ARCH_RVV 0
 #endif
 
-#if defined(__s390x__)
-#define HWY_ARCH_S390X 1
-#else
-#define HWY_ARCH_S390X 0
-#endif
-
 // It is an error to detect multiple architectures at the same time, but OK to
 // detect none of the above.
 #if (HWY_ARCH_X86 + HWY_ARCH_PPC + HWY_ARCH_ARM + HWY_ARCH_ARM_OLD + \
-     HWY_ARCH_WASM + HWY_ARCH_RVV + HWY_ARCH_S390X) > 1
+     HWY_ARCH_WASM + HWY_ARCH_RVV) > 1
 #error "Must not detect more than one architecture"
 #endif
 
@@ -261,13 +247,6 @@
 #define HWY_OS_LINUX 1
 #else
 #define HWY_OS_LINUX 0
-#endif
-
-// iOS or Mac
-#if defined(__APPLE__)
-#define HWY_OS_APPLE 1
-#else
-#define HWY_OS_APPLE 0
 #endif
 
 //------------------------------------------------------------------------------

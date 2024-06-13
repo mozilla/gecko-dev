@@ -26,7 +26,6 @@
 #define HWY_TARGET_INCLUDE "hwy/contrib/bit_pack/bit_pack_test.cc"  // NOLINT
 #include "hwy/foreach_target.h"  // IWYU pragma: keep
 #include "hwy/highway.h"
-#include "hwy/timer.h"
 #include "hwy/contrib/bit_pack/bit_pack-inl.h"
 #include "hwy/tests/test_util-inl.h"
 // clang-format on
@@ -51,7 +50,7 @@ namespace HWY_NAMESPACE {
 
 template <size_t kBits, typename T>
 T Random(RandomState& rng) {
-  return ConvertScalarTo<T>(Random32(&rng) & kBits);
+  return static_cast<T>(Random32(&rng) & kBits);
 }
 
 template <typename T>
@@ -64,8 +63,8 @@ class Checker {
     if (raw_[num_verified_] != raw) {
       HWY_ABORT("%zu bits: pos %zu of %zu, expected %.0f actual %.0f\n", bits,
                 num_verified_, raw_.size(),
-                ConvertScalarTo<double>(raw_[num_verified_]),
-                ConvertScalarTo<double>(raw));
+                static_cast<double>(raw_[num_verified_]),
+                static_cast<double>(raw));
     }
     ++num_verified_;
   }

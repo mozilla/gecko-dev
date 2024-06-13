@@ -5,8 +5,6 @@
 
 #include "lib/jxl/render_pipeline/stage_from_linear.h"
 
-#include "lib/jxl/base/status.h"
-
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "lib/jxl/render_pipeline/stage_from_linear.cc"
 #include <hwy/foreach_target.h>
@@ -174,8 +172,7 @@ std::unique_ptr<RenderPipelineStage> GetFromLinearStage(
         MakePerChannelOp(OpGamma{output_encoding_info.inverse_gamma}));
   } else {
     // This is a programming error.
-    JXL_DEBUG_ABORT("Invalid target encoding");
-    return nullptr;
+    JXL_UNREACHABLE("Invalid target encoding");
   }
 }
 

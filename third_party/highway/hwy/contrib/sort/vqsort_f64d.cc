@@ -13,13 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "hwy/contrib/sort/vqsort.h"  // VQSort
+#include "hwy/contrib/sort/vqsort.h"
 
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "hwy/contrib/sort/vqsort_f64d.cc"
 #include "hwy/foreach_target.h"  // IWYU pragma: keep
 
 // After foreach_target
+#include "hwy/contrib/sort/traits-inl.h"
 #include "hwy/contrib/sort/vqsort-inl.h"
 
 HWY_BEFORE_NAMESPACE();
@@ -28,7 +29,9 @@ namespace HWY_NAMESPACE {
 
 void SortF64Desc(double* HWY_RESTRICT keys, size_t num) {
 #if HWY_HAVE_FLOAT64
-  return VQSortStatic(keys, num, SortDescending());
+  SortTag<double> d;
+  detail::SharedTraits<detail::TraitsLane<detail::OrderDescending<double>>> st;
+  Sort(d, st, keys, num);
 #else
   (void)keys;
   (void)num;

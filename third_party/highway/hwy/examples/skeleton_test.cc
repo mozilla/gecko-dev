@@ -17,7 +17,6 @@
 
 #include "hwy/examples/skeleton.h"
 
-#include <stdint.h>
 #include <stdio.h>
 
 #undef HWY_TARGET_INCLUDE
@@ -26,7 +25,6 @@
 
 // Must come after foreach_target.h to avoid redefinition errors.
 #include "hwy/highway.h"
-#include "hwy/nanobenchmark.h"  // Unpredictable1
 #include "hwy/tests/test_util-inl.h"
 
 // Optional: factor out parts of the implementation into *-inl.h
@@ -60,17 +58,6 @@ struct TestFloorLog2 {
       HWY_ASSERT_EQ(expected[i], out[i]);
       sum += out[i];
     }
-
-    for (size_t i = 0; i < count; ++i) {
-      out[i] = static_cast<uint8_t>(hwy::Unpredictable1());
-    }
-
-    SavedCallFloorLog2(in.get(), count, out.get());
-    for (size_t i = 0; i < count; ++i) {
-      HWY_ASSERT_EQ(expected[i], out[i]);
-      sum += out[i];
-    }
-
     hwy::PreventElision(sum);
   }
 };
@@ -90,36 +77,17 @@ struct TestSumMulAdd {
     auto x = hwy::AllocateAligned<T>(count);
     auto add = hwy::AllocateAligned<T>(count);
     for (size_t i = 0; i < count; ++i) {
-      mul[i] = hwy::ConvertScalarTo<T>(Random32(&rng) & 0xF);
-      x[i] = hwy::ConvertScalarTo<T>(Random32(&rng) & 0xFF);
-      add[i] = hwy::ConvertScalarTo<T>(Random32(&rng) & 0xFF);
+      mul[i] = static_cast<T>(Random32(&rng) & 0xF);
+      x[i] = static_cast<T>(Random32(&rng) & 0xFF);
+      add[i] = static_cast<T>(Random32(&rng) & 0xFF);
     }
     double expected_sum = 0.0;
     for (size_t i = 0; i < count; ++i) {
-      expected_sum += hwy::ConvertScalarTo<double>(mul[i]) *
-                          hwy::ConvertScalarTo<double>(x[i]) +
-                      hwy::ConvertScalarTo<double>(add[i]);
+      expected_sum += mul[i] * x[i] + add[i];
     }
 
     MulAddLoop(d, mul.get(), add.get(), count, x.get());
-    double vector_sum = 0.0;
-    for (size_t i = 0; i < count; ++i) {
-      vector_sum += x[i];
-    }
-
-    if (hwy::IsSame<T, hwy::float16_t>()) {
-      // The expected value for float16 will vary based on the underlying
-      // implementation (compiler emulation, ARM ACLE __fp16 vs _Float16, etc).
-      // In some cases the scalar and vector paths will have different results;
-      // we check them against known values where possible, else we ignore them.
-#if HWY_COMPILER_CLANG && HWY_NEON_HAVE_F16C
-      HWY_ASSERT_EQ(4344240.0, expected_sum);  // Full-width float
-      HWY_ASSERT_EQ(4344235.0, vector_sum);    // __fp16
-#endif
-      return;
-    }
     HWY_ASSERT_EQ(4344240.0, expected_sum);
-    HWY_ASSERT_EQ(expected_sum, vector_sum);
   }
 };
 
