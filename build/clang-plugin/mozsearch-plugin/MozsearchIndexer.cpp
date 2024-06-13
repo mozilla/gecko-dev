@@ -2216,6 +2216,9 @@ public:
   // with an identical string representation (which is a good reason to have
   // this helper, as it ensures identical representations).
   void visitHeuristicResult(SourceLocation Loc, const NamedDecl *ND) {
+    if (const UsingShadowDecl *USD = dyn_cast<UsingShadowDecl>(ND)) {
+      ND = USD->getTargetDecl();
+    }
     if (const TemplateDecl *TD = dyn_cast<TemplateDecl>(ND)) {
       ND = TD->getTemplatedDecl();
     }
