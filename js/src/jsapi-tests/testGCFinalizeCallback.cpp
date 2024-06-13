@@ -6,7 +6,6 @@
 #include "jsapi-tests/tests.h"
 
 using namespace js;
-using namespace JS;
 
 static const unsigned BufSize = 20;
 static unsigned FinalizeCalls = 0;

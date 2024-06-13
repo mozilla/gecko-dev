@@ -37,8 +37,6 @@ using mozilla::Maybe;
 using mozilla::TimeDuration;
 using mozilla::TimeStamp;
 
-using JS::SliceBudget;
-
 static const size_t BYTES_PER_MB = 1024 * 1024;
 
 /*

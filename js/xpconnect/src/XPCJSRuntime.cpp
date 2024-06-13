@@ -154,7 +154,7 @@ class AsyncFreeSnowWhite : public Runnable {
 
     TimeStamp start = TimeStamp::Now();
     // 2 ms budget, given that kICCSliceBudget is only 3 ms
-    SliceBudget budget = SliceBudget(TimeBudget(2));
+    js::SliceBudget budget = js::SliceBudget(js::TimeBudget(2));
     bool hadSnowWhiteObjects =
         nsCycleCollector_doDeferredDeletionWithBudget(budget);
     Telemetry::Accumulate(

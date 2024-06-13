@@ -161,10 +161,8 @@ using mozilla::Span;
 
 using JS::AutoStableStringChars;
 using JS::CompileOptions;
-using JS::SliceBudget;
 using JS::SourceOwnership;
 using JS::SourceText;
-using JS::WorkBudget;
 
 // If fuzzingSafe is set, remove functionality that could cause problems with
 // fuzzers. Set this via the environment variable MOZ_FUZZING_SAFE.

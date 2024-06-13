@@ -35,7 +35,6 @@ using namespace js;
 using namespace js::gc;
 
 using JS::MapTypeToTraceKind;
-using JS::SliceBudget;
 
 using mozilla::DebugOnly;
 using mozilla::IntegerRange;

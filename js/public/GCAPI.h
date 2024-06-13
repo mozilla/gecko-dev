@@ -28,14 +28,13 @@ namespace js {
 namespace gc {
 class GCRuntime;
 }  // namespace gc
+class JS_PUBLIC_API SliceBudget;
 namespace gcstats {
 struct Statistics;
 }  // namespace gcstats
 }  // namespace js
 
 namespace JS {
-
-class JS_PUBLIC_API SliceBudget;
 
 // Options used when starting a GC.
 enum class GCOptions : uint32_t {
@@ -506,7 +505,7 @@ typedef void (*JSTraceDataOp)(JSTracer* trc, void* data);
  * While tracing this should check the budget and return false if it has been
  * exceeded. When passed an unlimited budget it should always return true.
  */
-typedef bool (*JSGrayRootsTracer)(JSTracer* trc, JS::SliceBudget& budget,
+typedef bool (*JSGrayRootsTracer)(JSTracer* trc, js::SliceBudget& budget,
                                   void* data);
 
 typedef enum JSGCStatus { JSGC_BEGIN, JSGC_END } JSGCStatus;
@@ -779,7 +778,7 @@ extern JS_PUBLIC_API void NonIncrementalGC(JSContext* cx, JS::GCOptions options,
 extern JS_PUBLIC_API void StartIncrementalGC(JSContext* cx,
                                              JS::GCOptions options,
                                              GCReason reason,
-                                             const JS::SliceBudget& budget);
+                                             const js::SliceBudget& budget);
 
 /**
  * Perform a slice of an ongoing incremental collection. When this function
@@ -790,7 +789,7 @@ extern JS_PUBLIC_API void StartIncrementalGC(JSContext* cx,
  *       shorter than the requested interval.
  */
 extern JS_PUBLIC_API void IncrementalGCSlice(JSContext* cx, GCReason reason,
-                                             const JS::SliceBudget& budget);
+                                             const js::SliceBudget& budget);
 
 /**
  * Return whether an incremental GC has work to do on the foreground thread and
@@ -958,7 +957,7 @@ typedef void (*DoCycleCollectionCallback)(JSContext* cx);
 extern JS_PUBLIC_API DoCycleCollectionCallback
 SetDoCycleCollectionCallback(JSContext* cx, DoCycleCollectionCallback callback);
 
-using CreateSliceBudgetCallback = JS::SliceBudget (*)(JS::GCReason reason,
+using CreateSliceBudgetCallback = js::SliceBudget (*)(JS::GCReason reason,
                                                       int64_t millis);
 
 /**

@@ -36,8 +36,6 @@ using namespace js::gc;
 
 using mozilla::Maybe;
 
-using JS::SliceBudget;
-
 bool GCRuntime::canRelocateZone(Zone* zone) const {
   return !zone->isAtomsZone();
 }

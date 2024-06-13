@@ -272,7 +272,7 @@ class CycleCollectedJSRuntime {
 
   // Trace gray JS roots until budget is exceeded and return whether we
   // finished.
-  static bool TraceGrayJS(JSTracer* aTracer, JS::SliceBudget& budget,
+  static bool TraceGrayJS(JSTracer* aTracer, js::SliceBudget& budget,
                           void* aData);
 
   static void GCCallback(JSContext* aContext, JSGCStatus aStatus,
@@ -296,9 +296,9 @@ class CycleCollectedJSRuntime {
 #endif
 
   bool TraceNativeGrayRoots(JSTracer* aTracer, JSHolderMap::WhichHolders aWhich,
-                            JS::SliceBudget& aBudget);
+                            js::SliceBudget& aBudget);
   bool TraceJSHolders(JSTracer* aTracer, JSHolderMap::Iter& aIter,
-                      JS::SliceBudget& aBudget);
+                      js::SliceBudget& aBudget);
 
  public:
   enum DeferredFinalizeType {

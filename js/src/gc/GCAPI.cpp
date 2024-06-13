@@ -302,7 +302,7 @@ JS_PUBLIC_API void JS::NonIncrementalGC(JSContext* cx, JS::GCOptions options,
 
 JS_PUBLIC_API void JS::StartIncrementalGC(JSContext* cx, JS::GCOptions options,
                                           GCReason reason,
-                                          const JS::SliceBudget& budget) {
+                                          const js::SliceBudget& budget) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
   CheckGCOptions(options);
@@ -311,7 +311,7 @@ JS_PUBLIC_API void JS::StartIncrementalGC(JSContext* cx, JS::GCOptions options,
 }
 
 JS_PUBLIC_API void JS::IncrementalGCSlice(JSContext* cx, GCReason reason,
-                                          const JS::SliceBudget& budget) {
+                                          const js::SliceBudget& budget) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
 

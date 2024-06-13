@@ -58,7 +58,7 @@ void TestGC::Run(int aNumSlices) {
   for (int slice = 0; slice < aNumSlices; slice++) {
     EXPECT_TRUE(mScheduler.InIncrementalGC());
     TimeStamp idleDeadline = Now() + kTenthSecond;
-    JS::SliceBudget budget =
+    js::SliceBudget budget =
         mScheduler.ComputeInterSliceGCBudget(idleDeadline, Now());
     TimeDuration budgetDuration =
         TimeDuration::FromMilliseconds(budget.timeBudget());
@@ -154,7 +154,7 @@ void TestCC::TimerFires(int aNumSlices) {
 void TestCC::ForgetSkippable() {
   uint32_t suspectedBefore = sSuspected;
   // ...ForgetSkippable would happen here...
-  JS::SliceBudget budget =
+  js::SliceBudget budget =
       mScheduler.ComputeForgetSkippableBudget(Now(), Now() + kTenthSecond);
   EXPECT_NEAR(budget.timeBudget(), kTenthSecond.ToMilliseconds(), 1);
   AdvanceTime(kTenthSecond);
@@ -213,7 +213,7 @@ void TestIdleCC::RunSlice(TimeStamp aCCStartTime, TimeStamp aPrevSliceEnd,
 
   EXPECT_FALSE(mScheduler.InIncrementalGC());
   bool preferShorter;
-  JS::SliceBudget budget = mScheduler.ComputeCCSliceBudget(
+  js::SliceBudget budget = mScheduler.ComputeCCSliceBudget(
       idleDeadline, aCCStartTime, aPrevSliceEnd, Now(), &preferShorter);
   // The scheduler will set the budget to our deadline (0.1sec in the future).
   EXPECT_NEAR(budget.timeBudget(), kTenthSecond.ToMilliseconds(), 1);
@@ -252,7 +252,7 @@ void TestNonIdleCC::RunSlice(TimeStamp aCCStartTime, TimeStamp aPrevSliceEnd,
   EXPECT_FALSE(mScheduler.InIncrementalGC());
 
   bool preferShorter;
-  JS::SliceBudget budget = mScheduler.ComputeCCSliceBudget(
+  js::SliceBudget budget = mScheduler.ComputeCCSliceBudget(
       nullDeadline, aCCStartTime, aPrevSliceEnd, Now(), &preferShorter);
   if (aSliceNum == 0) {
     // First slice of the CC, so always use the baseBudget which is
