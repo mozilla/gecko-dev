@@ -615,7 +615,7 @@ void nsXPCWrappedJS::SystemIsBeingShutDown() {
   // containing mJSObj, which may have been freed at this point. This is safe
   // if we are not currently running an incremental GC.
   MOZ_ASSERT(!JS::IsIncrementalGCInProgress(xpc_GetSafeJSContext()));
-  *mJSObj.unsafeGet() = nullptr;
+  mJSObj.unbarrieredSet(nullptr);
   if (isInList()) {
     remove();
   }

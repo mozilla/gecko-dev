@@ -195,7 +195,7 @@ class NativeThenHandler<ResolveCallback, RejectCallback, std::tuple<Args...>,
   template <typename T>
   static JS::Handle<T> GetJSArgHandleForCall(JS::Heap<T>& aArg) {
     aArg.exposeToActiveJS();
-    return JS::Handle<T>::fromMarkedLocation(aArg.address());
+    return JS::Handle<T>::fromMarkedLocation(aArg.unsafeAddress());
   }
 
   template <typename TCallback, size_t... Indices, size_t... JSIndices>

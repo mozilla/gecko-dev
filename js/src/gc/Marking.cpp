@@ -2607,7 +2607,7 @@ namespace js::gc {
 
 template <typename T>
 JS_PUBLIC_API bool TraceWeakEdge(JSTracer* trc, JS::Heap<T>* thingp) {
-  return TraceEdgeInternal(trc, gc::ConvertToBase(thingp->unsafeGet()),
+  return TraceEdgeInternal(trc, gc::ConvertToBase(thingp->unsafeAddress()),
                            "JS::Heap edge");
 }
 

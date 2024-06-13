@@ -343,8 +343,6 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
   DECLARE_POINTER_CONSTREF_OPS(T);
   DECLARE_POINTER_ASSIGN_OPS(Heap, T);
 
-  const T* address() const { return &ptr; }
-
   void exposeToActiveJS() const { js::BarrierMethods<T>::exposeToJS(ptr); }
 
   const T& get() const {
@@ -362,15 +360,12 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
     ptr = newPtr;
     postWriteBarrier(tmp, ptr);
   }
-
-  T* unsafeGet() { return &ptr; }
-
   void unbarrieredSet(const T& newPtr) { ptr = newPtr; }
 
+  T* unsafeAddress() { return &ptr; }
+  const T* unsafeAddress() const { return &ptr; }
+
   explicit operator bool() const {
-    return bool(js::BarrierMethods<T>::asGCThingOrNull(ptr));
-  }
-  explicit operator bool() {
     return bool(js::BarrierMethods<T>::asGCThingOrNull(ptr));
   }
 
@@ -524,9 +519,6 @@ class TenuredHeap : public js::HeapOperations<T, TenuredHeap<T>> {
   T operator->() const { return getPtr(); }
 
   explicit operator bool() const {
-    return bool(js::BarrierMethods<T>::asGCThingOrNull(unbarrieredGetPtr()));
-  }
-  explicit operator bool() {
     return bool(js::BarrierMethods<T>::asGCThingOrNull(unbarrieredGetPtr()));
   }
 

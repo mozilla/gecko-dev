@@ -348,7 +348,7 @@ template <typename T>
 inline void TraceEdge(JSTracer* trc, JS::Heap<T>* thingp, const char* name) {
   MOZ_ASSERT(thingp);
   if (*thingp) {
-    js::gc::TraceExternalEdge(trc, thingp->unsafeGet(), name);
+    js::gc::TraceExternalEdge(trc, thingp->unsafeAddress(), name);
   }
 }
 
