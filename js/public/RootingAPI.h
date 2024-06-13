@@ -239,8 +239,8 @@ struct SafelyInitialized {
     // doesn't offer a type trait indicating whether a class's constructor is
     // user-defined, which better approximates our desired semantics.)
     constexpr bool IsNonTriviallyDefaultConstructibleClassOrUnion =
-        (std::is_class_v<T> ||
-         std::is_union_v<T>)&&!std::is_trivially_default_constructible_v<T>;
+        (std::is_class_v<T> || std::is_union_v<T>) &&
+        !std::is_trivially_default_constructible_v<T>;
 
     static_assert(IsPointer || IsNonTriviallyDefaultConstructibleClassOrUnion,
                   "T() must evaluate to a safely-initialized T");
