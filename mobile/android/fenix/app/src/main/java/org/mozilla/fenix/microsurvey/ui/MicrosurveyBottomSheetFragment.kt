@@ -9,8 +9,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import org.mozilla.fenix.R
@@ -59,6 +62,7 @@ class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
                     question = "How satisfied are you with printing in Firefox?", // todo get value from messaging
                     icon = R.drawable.ic_print, // todo get value from messaging
                     answers = answers, // todo get value from messaging
+                    modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection()),
                 )
             }
         }

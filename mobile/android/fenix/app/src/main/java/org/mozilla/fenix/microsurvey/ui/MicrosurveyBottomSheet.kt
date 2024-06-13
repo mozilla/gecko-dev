@@ -21,6 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
@@ -40,17 +42,20 @@ private val bottomSheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.
  * @param question The question text.
  * @param answers The answer text options available for the given [question].
  * @param icon The icon that represents the feature for the given [question].
+ * @param modifier [Modifier] to be applied to the layout.
  */
 @Composable
 fun MicrosurveyBottomSheet(
     question: String,
     answers: List<String>,
     @DrawableRes icon: Int = R.drawable.ic_print, // todo currently unknown if default is used FXDROID-1921.
+    modifier: Modifier,
 ) {
     var selectedAnswer by remember { mutableStateOf<String?>(null) }
     var isSubmitted by remember { mutableStateOf(false) }
 
     Surface(
+        modifier = modifier,
         color = FirefoxTheme.colors.layer1,
         shape = bottomSheetShape,
     ) {
@@ -108,6 +113,7 @@ fun MicrosurveyBottomSheet(
 private fun MicroSurveyBottomSheetPreview() {
     FirefoxTheme {
         MicrosurveyBottomSheet(
+            modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection()),
             question = "How satisfied are you with printing in Firefox?",
             icon = R.drawable.ic_print,
             answers = listOf(
