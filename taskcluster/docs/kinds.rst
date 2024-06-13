@@ -878,3 +878,7 @@ Push Focus and Fenix AABs to Google Play.
 android-l10n
 ------------
 Update android string resources from android-l10n repo.
+
+release-update-product-channel-version
+------------
+Update the product channel version in Ship-It.
