@@ -508,6 +508,8 @@ WMFVideoMFTManager::Input(MediaRawData* aSample) {
   }
   mLastDuration = aSample->mDuration;
 
+  mPTSQueue.InsertElementSorted(aSample->mTime.ToMicroseconds());
+
   // Forward sample data to the decoder.
   return mDecoder->Input(inputSample);
 }
@@ -925,6 +927,15 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset, RefPtr<MediaData>& aOutData) {
   MOZ_ASSERT((frame != nullptr) == SUCCEEDED(hr));
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
   NS_ENSURE_TRUE(frame, E_FAIL);
+
+  MOZ_ASSERT(!mPTSQueue.IsEmpty());
+  int64_t originalPts = mPTSQueue[0];
+  mPTSQueue.RemoveElementAt(0);
+  if (frame->mTime.ToMicroseconds() != originalPts) {
+    LOG("Overriding decoded pts of %s with original pts of %" PRId64,
+        frame->mTime.ToString().get(), originalPts);
+    frame->mTime = TimeUnit::FromMicroseconds(originalPts);
+  }
 
   aOutData = frame;
 

@@ -126,6 +126,9 @@ class WMFVideoMFTManager : public MFTManager {
 
   PerformanceRecorderMulti<DecodeStage> mPerformanceRecorder;
   const Maybe<TrackingId> mTrackingId;
+  // Sorted array of pts of input frames, from the encoded input packets, for
+  // error recovery.
+  nsTArray<int64_t> mPTSQueue;
 };
 
 }  // namespace mozilla
