@@ -1746,6 +1746,19 @@ void RuntimeService::CancelWorkersForWindow(const nsPIDOMWindowInner& aWindow) {
   }
 }
 
+void RuntimeService::UpdateWorkersBackgroundState(
+    const nsPIDOMWindowInner& aWindow, bool aIsBackground) {
+  AssertIsOnMainThread();
+  for (WorkerPrivate* const worker : GetWorkersForWindow(aWindow)) {
+    MOZ_ASSERT(!worker->IsSharedWorker());
+    if (aIsBackground) {
+      worker->SetIsRunningInBackground();
+    } else {
+      worker->SetIsRunningInForeground();
+    }
+  }
+}
+
 void RuntimeService::FreezeWorkersForWindow(const nsPIDOMWindowInner& aWindow) {
   AssertIsOnMainThread();
 
@@ -2266,6 +2279,15 @@ void CancelWorkersForWindow(const nsPIDOMWindowInner& aWindow) {
   RuntimeService* runtime = RuntimeService::GetService();
   if (runtime) {
     runtime->CancelWorkersForWindow(aWindow);
+  }
+}
+
+void UpdateWorkersBackgroundState(const nsPIDOMWindowInner& aWindow,
+                                  bool aIsBackground) {
+  // AssertIsOnMainThread();
+  RuntimeService* runtime = RuntimeService::GetService();
+  if (runtime) {
+    runtime->UpdateWorkersBackgroundState(aWindow, aIsBackground);
   }
 }
 
