@@ -37,6 +37,13 @@ set_define(
     "BROWSER_CHROME_URL_QUOTED", depends_if("BROWSER_CHROME_URL")(lambda v: f'"{v[0]}"')
 )
 
+# External builds (specifically Ubuntu) may drop the hg repo information, so we allow to
+# explicitly set the repository and changeset information in.
+option(env="MOZ_SOURCE_REPO", nargs=1, help="project source repository")
+set_config("MOZ_SOURCE_REPO", depends_if("MOZ_SOURCE_REPO")(lambda src: src[0]))
+option(env="MOZ_SOURCE_CHANGESET", nargs=1, help="source changeset")
+set_config("MOZ_SOURCE_CHANGESET", depends_if("MOZ_SOURCE_CHANGESET")(lambda v: v[0]))
+
 
 @depends("MOZ_APP_VENDOR", build_project)
 def check_moz_app_vendor(moz_app_vendor, build_project):
