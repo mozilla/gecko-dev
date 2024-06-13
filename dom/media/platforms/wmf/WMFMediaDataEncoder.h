@@ -81,13 +81,15 @@ class WMFMediaDataEncoder final : public MediaDataEncoder {
   bool WriteFrameData(RefPtr<MediaRawData>& aDest, LockBuffer& aSrc,
                       bool aIsKeyframe);
 
+  bool IsAnnexB() const;
+
   void AssertOnTaskQueue() { MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn()); }
 
   EncoderConfig mConfig;
   const RefPtr<TaskQueue> mTaskQueue;
   const bool mHardwareNotAllowed;
   RefPtr<MFTEncoder> mEncoder;
-  // SPS/PPS NALUs for realtime usage, avcC otherwise.
+  // SPS/PPS NALUs when encoding in AnnexB usage, avcC otherwise.
   RefPtr<MediaByteBuffer> mConfigData;
 };
 

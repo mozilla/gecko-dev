@@ -160,9 +160,13 @@ void WMFMediaDataEncoder::FillConfigData() {
   nsTArray<UINT8> header;
   NS_ENSURE_TRUE_VOID(SUCCEEDED(mEncoder->GetMPEGSequenceHeader(header)));
 
+  if (mConfig.mCodec != CodecType::H264) {
+    return;
+  }
+
   mConfigData =
       header.Length() > 0
-          ? ParseH264Parameters(header, mConfig.mUsage == Usage::Realtime)
+          ? ParseH264Parameters(header, IsAnnexB())
           : nullptr;
 }
 
@@ -366,13 +370,22 @@ already_AddRefed<MediaRawData> WMFMediaDataEncoder::IMFSampleToMediaData(
   return frame.forget();
 }
 
+bool WMFMediaDataEncoder::IsAnnexB() const {
+  MOZ_ASSERT(mConfig.mCodec == CodecType::H264);
+  return mConfig.mCodecSpecific->as<H264Specific>().mFormat ==
+         H264BitStreamFormat::ANNEXB;
+}
+
 bool WMFMediaDataEncoder::WriteFrameData(RefPtr<MediaRawData>& aDest,
                                          LockBuffer& aSrc, bool aIsKeyframe) {
+  // From raw encoded data, write in avCC or AnnexB format depending on the
+  // config.
+
   if (mConfig.mCodec == CodecType::H264) {
     size_t prependLength = 0;
     RefPtr<MediaByteBuffer> avccHeader;
     if (aIsKeyframe && mConfigData) {
-      if (mConfig.mUsage == Usage::Realtime) {
+      if (IsAnnexB()) {
         prependLength = mConfigData->Length();
       } else {
         avccHeader = mConfigData;
@@ -390,7 +403,7 @@ bool WMFMediaDataEncoder::WriteFrameData(RefPtr<MediaRawData>& aDest,
     }
     PodCopy(writer->Data() + prependLength, aSrc.Data(), aSrc.Length());
 
-    if (mConfig.mUsage != Usage::Realtime &&
+    if (!IsAnnexB() &&
         !AnnexB::ConvertSampleToAVCC(aDest, avccHeader)) {
       WMF_ENC_LOGE("fail to convert annex-b sample to AVCC");
       return false;
