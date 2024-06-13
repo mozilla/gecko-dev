@@ -5424,7 +5424,11 @@ export class CheckerService {
       // Set MitM pref.
       try {
         let secInfo = request.channel.securityInfo;
-        if (secInfo.serverCert && secInfo.serverCert.issuerName) {
+        if (
+          secInfo.errorCodeString == "SEC_ERROR_UNKNOWN_ISSUER" &&
+          secInfo.serverCert &&
+          secInfo.serverCert.issuerName
+        ) {
           Services.prefs.setStringPref(
             "security.pki.mitm_canary_issuer",
             secInfo.serverCert.issuerName
