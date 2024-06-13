@@ -51,6 +51,10 @@ interface PerformanceResourceTiming : PerformanceEntry
   [NeedsSubjectPrincipal]
   readonly attribute unsigned long long decodedBodySize;
 
+  // https://w3c.github.io/server-timing/#extension-to-the-performanceresourcetiming-interface
+  [NeedsSubjectPrincipal]
+  readonly attribute DOMString contentType;
+
   // TODO: Use FrozenArray once available. (Bug 1236777)
   // readonly attribute FrozenArray<PerformanceServerTiming> serverTiming;
   [SecureContext, Frozen, Cached, Pure, NeedsSubjectPrincipal]

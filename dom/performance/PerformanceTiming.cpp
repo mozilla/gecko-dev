@@ -239,9 +239,11 @@ PerformanceTimingData::PerformanceTimingData(
       mRenderBlockingStatus(aIPCData.renderBlocking()
                                 ? RenderBlockingStatusType::Blocking
                                 : RenderBlockingStatusType::Non_blocking),
+      mContentType(aIPCData.contentType()),
       mAllRedirectsSameOrigin(aIPCData.allRedirectsSameOrigin()),
       mAllRedirectsPassTAO(aIPCData.allRedirectsPassTAO()),
       mSecureConnection(aIPCData.secureConnection()),
+      mBodyInfoAccessAllowed(aIPCData.bodyInfoAccessAllowed()),
       mTimingAllowed(aIPCData.timingAllowed()),
       mInitialized(aIPCData.initialized()) {
   for (const auto& serverTimingData : aIPCData.serverTiming()) {
@@ -273,8 +275,9 @@ IPCPerformanceTimingData PerformanceTimingData::ToIPC() {
       mCacheReadStart, mResponseEnd, mCacheReadEnd, mWorkerStart,
       mWorkerRequestStart, mWorkerResponseEnd, mZeroTime, mFetchStart,
       mEncodedBodySize, mTransferSize, mDecodedBodySize, mRedirectCount,
-      renderBlocking, mAllRedirectsSameOrigin, mAllRedirectsPassTAO,
-      mSecureConnection, mTimingAllowed, mInitialized);
+      renderBlocking, mContentType, mAllRedirectsSameOrigin,
+      mAllRedirectsPassTAO, mSecureConnection, mBodyInfoAccessAllowed,
+      mTimingAllowed, mInitialized);
 }
 
 void PerformanceTimingData::SetPropertiesFromHttpChannel(
@@ -292,7 +295,13 @@ void PerformanceTimingData::SetPropertiesFromHttpChannel(
     mDecodedBodySize = mEncodedBodySize;
   }
 
-  mTimingAllowed = CheckAllowedOrigin(aHttpChannel, aChannel);
+  nsAutoCString contentType;
+  Unused << aHttpChannel->GetContentType(contentType);
+  CopyUTF8toUTF16(contentType, mContentType);
+
+  mBodyInfoAccessAllowed =
+      CheckBodyInfoAccessAllowedForOrigin(aHttpChannel, aChannel);
+  mTimingAllowed = CheckTimingAllowedForOrigin(aHttpChannel, aChannel);
   aChannel->GetAllRedirectsPassTimingAllowCheck(&mAllRedirectsPassTAO);
 
   aChannel->GetNativeServerTiming(mServerTiming);
@@ -328,13 +337,46 @@ DOMTimeMilliSec PerformanceTiming::FetchStart() {
   return static_cast<int64_t>(mTimingData->FetchStartHighRes(mPerformance));
 }
 
-bool PerformanceTimingData::CheckAllowedOrigin(nsIHttpChannel* aResourceChannel,
-                                               nsITimedChannel* aChannel) {
+nsITimedChannel::BodyInfoAccess
+PerformanceTimingData::CheckBodyInfoAccessAllowedForOrigin(
+    nsIHttpChannel* aResourceChannel, nsITimedChannel* aChannel) {
+  // Check if the resource is either same origin as the page that started
+  // the load, or if the response contains an Access-Control-Allow-Origin
+  // header with the domain of the page that started the load.
+  MOZ_ASSERT(aChannel);
+
+  if (!IsInitialized()) {
+    return nsITimedChannel::BodyInfoAccess::DISALLOWED;
+  }
+
+  // Check that the current document passes the check.
+  nsCOMPtr<nsILoadInfo> loadInfo = aResourceChannel->LoadInfo();
+
+  // TYPE_DOCUMENT loads have no loadingPrincipal.
+  if (loadInfo->GetExternalContentPolicyType() ==
+      ExtContentPolicy::TYPE_DOCUMENT) {
+    return nsITimedChannel::BodyInfoAccess::ALLOW_ALL;
+  }
+
+  nsCOMPtr<nsIPrincipal> principal = loadInfo->GetLoadingPrincipal();
+  if (!principal) {
+    return nsITimedChannel::BodyInfoAccess::DISALLOWED;
+  }
+  return aChannel->BodyInfoAccessAllowedCheck(principal);
+}
+
+bool PerformanceTimingData::CheckTimingAllowedForOrigin(
+    nsIHttpChannel* aResourceChannel, nsITimedChannel* aChannel) {
+  // Check if the resource is either same origin as the page that started
+  // the load, or if the response contains the proper Timing-Allow-Origin
+  // header with the domain of the page that started the load.
+  MOZ_ASSERT(aChannel);
+
   if (!IsInitialized()) {
     return false;
   }
 
-  // Check that the current document passes the ckeck.
+  // Check that the current document passes the check.
   nsCOMPtr<nsILoadInfo> loadInfo = aResourceChannel->LoadInfo();
 
   // TYPE_DOCUMENT loads have no loadingPrincipal.
@@ -344,11 +386,7 @@ bool PerformanceTimingData::CheckAllowedOrigin(nsIHttpChannel* aResourceChannel,
   }
 
   nsCOMPtr<nsIPrincipal> principal = loadInfo->GetLoadingPrincipal();
-
-  // Check if the resource is either same origin as the page that started
-  // the load, or if the response contains the proper Timing-Allow-Origin
-  // header with the domain of the page that started the load.
-  return aChannel->TimingAllowCheck(principal);
+  return principal && aChannel->TimingAllowCheck(principal);
 }
 
 uint8_t PerformanceTimingData::GetRedirectCount() const {

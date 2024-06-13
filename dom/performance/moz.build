@@ -27,6 +27,7 @@ EXPORTS.mozilla.dom += [
     "PerformanceStorage.h",
     "PerformanceStorageWorker.h",
     "PerformanceTiming.h",
+    "PerformanceTimingIPCUtils.h",
     "PerformanceWorker.h",
 ]
 
