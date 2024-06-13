@@ -20,6 +20,7 @@ import org.mozilla.fenix.GleanMetrics.PullToRefreshInBrowser
 import org.mozilla.fenix.GleanMetrics.ToolbarSettings
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
+import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
@@ -64,9 +65,20 @@ class CustomizationFragment : PreferenceFragmentCompat() {
         } else {
             setupToolbarCategory()
         }
+        val isNavBarEnabled = IncompleteRedesignToolbarFeature(requireContext().settings()).isEnabled
+        if (isNavBarEnabled) {
+            setupNavBarEnabledSettingsUpdates()
+        }
         // if tab strip is enabled, swipe toolbar to switch tabs should not be enabled so the
         // preference is not shown
         setupGesturesCategory(isSwipeToolbarToSwitchTabsVisible = !tabletAndTabStripEnabled)
+    }
+
+    // Changes to some settings page copy for when the Toolbar(NavBar) is enabled
+    private fun setupNavBarEnabledSettingsUpdates() {
+        val scrollToEnable: SwitchPreference =
+            requirePreference(R.string.pref_key_dynamic_toolbar)
+        scrollToEnable.setTitle(R.string.preference_gestures_dynamic_toolbar_2)
     }
 
     private fun setupRadioGroups() {

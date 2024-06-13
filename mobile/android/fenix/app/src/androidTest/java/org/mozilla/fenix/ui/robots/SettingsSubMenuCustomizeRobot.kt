@@ -161,7 +161,7 @@ private fun deviceModeToggle(): ViewInteraction {
 }
 
 private fun swipeToolbarToggle() =
-    onView(withText(getStringResource(R.string.preference_gestures_swipe_toolbar_switch_tabs)))
+    onView(withText(getStringResource(R.string.preference_gestures_swipe_toolbar_switch_tabs_2)))
 
 private fun pullToRefreshToggle() =
     onView(withText(getStringResource(R.string.preference_gestures_website_pull_to_refresh)))

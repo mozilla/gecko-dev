@@ -214,7 +214,7 @@ fun settingsAccessibility() = onView(withText(R.string.preferences_accessibility
 
 fun settingDefaultBrowser() = onView(withText(R.string.preferences_set_as_default_browser)).click()
 
-fun settingsToolbar() = onView(withText(R.string.preferences_toolbar)).click()
+fun settingsToolbar() = onView(withText(R.string.preferences_toolbar_2)).click()
 
 fun settingsTP() = onView(withText(R.string.preference_enhanced_tracking_protection)).click()
 

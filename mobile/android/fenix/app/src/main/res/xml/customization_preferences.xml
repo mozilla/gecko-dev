@@ -34,7 +34,7 @@
 
     <androidx.preference.PreferenceCategory
         android:layout="@layout/preference_cat_style"
-        android:title="@string/preferences_toolbar"
+        android:title="@string/preferences_toolbar_2"
         android:key="@string/pref_key_customization_category_toolbar"
         app:iconSpaceReserved="false">
         <org.mozilla.fenix.settings.RadioButtonPreference
@@ -58,7 +58,7 @@
             android:title="@string/preference_gestures_dynamic_toolbar" />
         <androidx.preference.SwitchPreference
             android:key="@string/pref_key_swipe_toolbar_switch_tabs"
-            android:title="@string/preference_gestures_swipe_toolbar_switch_tabs" />
+            android:title="@string/preference_gestures_swipe_toolbar_switch_tabs_2" />
         <androidx.preference.SwitchPreference
             android:key="@string/pref_key_swipe_toolbar_show_tabs"
             android:title="@string/preference_gestures_swipe_toolbar_show_tabs"
