@@ -6493,7 +6493,12 @@ bool HTMLInputElement::IsHTMLFocusable(IsFocusableFlags aFlags,
   nsAutoString name;
   GetAttr(nsGkAtoms::name, name);
 
-  if (container->GetCurrentRadioButton(name) ||
+  // If there is a selected radio button but it is disabled or hidden, it
+  // shouldn't be considered as selected for this check. Otherwise, the entire
+  // group will be unreachable with the tab key.
+  HTMLInputElement* selectedRadio = container->GetCurrentRadioButton(name);
+  if ((selectedRadio && !selectedRadio->Disabled() &&
+       selectedRadio->GetPrimaryFrame()) ||
       container->GetFirstRadioButton(name) != this) {
     *aTabIndex = -1;
   }

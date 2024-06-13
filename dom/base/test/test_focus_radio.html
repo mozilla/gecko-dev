@@ -54,6 +54,21 @@
   <label><input id="g3" type="radio" name="g" class="dispNone">g3</label>
   <label><input id="g4" type="radio" name="g">g4</label>
 </fieldset>
+<fieldset>
+  <legend>h</legend>
+  <label><input id="h1" type="radio" name="h" disabled checked>h1</label>
+  <label><input id="h2" type="radio" name="h">h2</label>
+</fieldset>
+<fieldset>
+  <legend>i</legend>
+  <label><input id="i1" type="radio" name="i" hidden checked>i1</label>
+  <label><input id="i2" type="radio" name="i">i2</label>
+</fieldset>
+<fieldset>
+  <legend>j</legend>
+  <label><input id="j1" type="radio" name="j">j1</label>
+  <label><input id="j2" type="radio" name="j" disabled checked>j2</label>
+</fieldset>
 <button id="after">after</button>
 
 <script>
@@ -85,8 +100,17 @@
     expectFocusAfterKey("Tab", "f2");
     // g1 is hidden, so g2 should get focus.
     expectFocusAfterKey("Tab", "g2");
+    // h1 is checked but disabled, so h2 should get focus.
+    expectFocusAfterKey("Tab", "h2");
+    // i1 is checked but hidden, so i2 should get focus.
+    expectFocusAfterKey("Tab", "i2");
+    // j2 is checked but disabled, so j1 should get focus.
+    expectFocusAfterKey("Tab", "j1");
     expectFocusAfterKey("Tab", "after");
 
+    expectFocusAfterKey("Shift+Tab", "j1");
+    expectFocusAfterKey("Shift+Tab", "i2");
+    expectFocusAfterKey("Shift+Tab", "h2");
     expectFocusAfterKey("Shift+Tab", "g2");
     expectFocusAfterKey("Shift+Tab", "f2");
     expectFocusAfterKey("Shift+Tab", "e2");
