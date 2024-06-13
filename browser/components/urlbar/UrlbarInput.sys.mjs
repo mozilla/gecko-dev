@@ -3192,8 +3192,13 @@ export class UrlbarInput {
 
   /**
    * Restores the untrimmed value in the urlbar.
+   *
+   * @param {object} [options]
+   *  Options for untrimming.
+   * @param {boolean} [options.moveCursorToStart]
+   *  Whether the cursor should be moved at position 0 after untrimming.
    */
-  #maybeUntrimUrl() {
+  #maybeUntrimUrl({ moveCursorToStart = false } = {}) {
     // Check if we can untrim the current value.
     if (
       !lazy.UrlbarPrefs.get("untrimOnUserInteraction.featureGate") ||
@@ -3214,6 +3219,14 @@ export class UrlbarInput {
     if (this._autofillPlaceholder) {
       this._autofillPlaceholder.selectionStart += offset;
       this._autofillPlaceholder.selectionEnd += offset;
+    }
+
+    if (moveCursorToStart) {
+      this._setValue(this._untrimmedValue, {
+        valueIsTyped: this.valueIsTyped,
+      });
+      this.setSelectionRange(0, 0);
+      return;
     }
 
     if (selectionStart == selectionEnd) {
@@ -4111,6 +4124,8 @@ export class UrlbarInput {
 
   _on_keydown(event) {
     this.#allTextSelectedOnKeyDown = this.#allTextSelected;
+    this._isKeyDownWithMetaAndLeft =
+      event.keyCode == KeyEvent.DOM_VK_LEFT && event.metaKey;
     if (event.keyCode === KeyEvent.DOM_VK_RETURN) {
       if (this._keyDownEnterDeferred) {
         this._keyDownEnterDeferred.reject();
@@ -4139,7 +4154,17 @@ export class UrlbarInput {
 
   async _on_keyup(event) {
     if (this.#allTextSelectedOnKeyDown) {
-      this.#maybeUntrimUrl();
+      let moveCursorToStart = this.#isHomeKeyUpEvent(event);
+      // We must set the selection immediately because:
+      //  - on Mac Fn + Left is not handled properly as Home
+      //  - untrim depends on text not being fully selected.
+      if (moveCursorToStart) {
+        this.selectionStart = this.selectionEnd = 0;
+      }
+      this.#maybeUntrimUrl({ moveCursorToStart });
+    }
+    if (event.keyCode === KeyEvent.DOM_VK_META) {
+      this._isKeyDownWithMetaAndLeft = false;
     }
     if (event.keyCode === KeyEvent.DOM_VK_CONTROL) {
       this._isKeyDownWithCtrl = false;
@@ -4358,6 +4383,32 @@ export class UrlbarInput {
       Ci.nsIDocumentEncoder.OutputPreformatted |
         Ci.nsIDocumentEncoder.OutputRaw,
       0
+    );
+  }
+
+  /**
+   * Check whether a key event has a similar effect as the Home key.
+   *
+   * @param {nsIEvent} event A Keyboard event
+   * @returns {boolean} Whether the even will act like the Home key.
+   */
+  #isHomeKeyUpEvent(event) {
+    let isMac = AppConstants.platform === "macosx";
+    return (
+      // On MacOS this can be generated with Fn + Left.
+      event.keyCode == KeyEvent.DOM_VK_HOME ||
+      // Windows and Linux also support Ctrl + Left.
+      (!isMac && event.keyCode == KeyboardEvent.DOM_VK_LEFT && event.ctrlKey) ||
+      // MacOS supports other combos to move cursor at the start of the line.
+      // For example Ctrl + A.
+      (isMac && event.keyCode == KeyboardEvent.DOM_VK_A && event.ctrlKey) ||
+      // And also Cmd (Meta) + Left.
+      // Unfortunately on MacOS it's not possible to detect combos with the meta
+      // key during the keyup event, due to how the OS handles events. Thus we
+      // record the combo on keydown, and check for it here.
+      (isMac &&
+        event.keyCode == KeyEvent.DOM_VK_META &&
+        this._isKeyDownWithMetaAndLeft)
     );
   }
 }
