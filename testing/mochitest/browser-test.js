@@ -636,6 +636,12 @@ Tester.prototype = {
         continue;
       }
 
+      // Ignore ScrollFrameActivityTracker, it's a 4s timer which could begin
+      // shortly after the end of a test and cause failure. See bug 1878627.
+      if (name == "ScrollFrameActivityTracker") {
+        continue;
+      }
+
       // Ignore nsHttpConnectionMgr timers which show up on browser mochitests
       // running with http3. See Bug 1829841.
       if (name == "nsHttpConnectionMgr") {
