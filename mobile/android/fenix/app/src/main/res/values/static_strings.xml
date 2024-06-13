@@ -76,6 +76,8 @@
     <string name="preferences_debug_settings_tabs_tray_to_compose" translatable="false">Enable Tabs Tray to Compose rewrite</string>
     <!-- Label for enabling the Compose Top Sites -->
     <string name="preferences_debug_settings_compose_top_sites" translatable="false">Enable Compose Top Sites</string>
+    <!-- Label for enabling the Compose Homepage -->
+    <string name="preferences_debug_settings_compose_homepage" translatable="false">Enable Compose Homepage</string>
     <!-- Label for enabling the menu redesign -->
     <string name="preferences_debug_settings_menu_redesign" translatable="false">Enable Menu Redesign</string>
     <!-- Label for enabling Toolbar Redesign incomplete portions -->
