@@ -668,7 +668,10 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
   b.mColorRange = mColorRange;
 
   TimeUnit pts = GetSampleTime(aSample);
-  NS_ENSURE_TRUE(pts.IsValid(), E_FAIL);
+  if (!pts.IsValid()) {
+    LOG("Couldn't get pts from IMFSample, falling back on container pts");
+    pts = TimeUnit::Zero();
+  }
   TimeUnit duration = GetSampleDurationOrLastKnownDuration(aSample);
   NS_ENSURE_TRUE(duration.IsValid(), E_FAIL);
   gfx::IntRect pictureRegion = mVideoInfo.ScaledImageRect(
@@ -749,6 +752,10 @@ WMFVideoMFTManager::CreateD3DVideoFrame(IMFSample* aSample,
   gfx::IntSize size = image->GetSize();
 
   TimeUnit pts = GetSampleTime(aSample);
+  if (!pts.IsValid()) {
+    LOG("Couldn't get pts from IMFSample, falling back on container pts");
+    pts = TimeUnit::Zero();
+  }
   NS_ENSURE_TRUE(pts.IsValid(), E_FAIL);
   TimeUnit duration = GetSampleDurationOrLastKnownDuration(aSample);
   NS_ENSURE_TRUE(duration.IsValid(), E_FAIL);
@@ -881,6 +888,10 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset, RefPtr<MediaData>& aOutData) {
         continue;
       }
       TimeUnit pts = GetSampleTime(sample);
+      if (!pts.IsValid()) {
+        LOG("Couldn't get pts from IMFSample, falling back on container pts");
+        pts = TimeUnit::Zero();
+      }
       TimeUnit duration = GetSampleDurationOrLastKnownDuration(sample);
 
       // AV1 MFT fix: Sample duration after seeking is always equal to the
