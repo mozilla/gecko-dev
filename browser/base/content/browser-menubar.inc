@@ -3,16 +3,24 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-       <menubar id="main-menubar">
-          <script src="chrome://browser/content/browser-menubar.js" />
+       <menubar id="main-menubar"
+# On macOS, we don't track whether activation of the native menubar happened
+# with the keyboard.
+#ifndef XP_MACOSX
+                onpopupshowing="if (event.target.parentNode.parentNode == this)
+                                  this.setAttribute('openedwithkey',
+                                                    event.target.parentNode.openedWithKey);"
+#endif
+                >
             <menu id="file-menu" data-l10n-id="menu-file">
-              <menupopup id="menu_FilePopup">
+              <menupopup id="menu_FilePopup"
+                         onpopupshowing="gFileMenu.onPopupShowing(event);">
                 <menuitem id="menu_newNavigatorTab"
                           command="cmd_newNavigatorTab"
                           key="key_newNavigatorTab" data-l10n-id="menu-file-new-tab"/>
                 <menu id="menu_newUserContext"
                       hidden="true" data-l10n-id="menu-file-new-container-tab">
-                  <menupopup id="menu_newUserContextPopup" />
+                  <menupopup onpopupshowing="return createUserContextMenu(event);" />
                 </menu>
                 <menuitem id="menu_newNavigator"
                           key="key_newNavigator"
@@ -71,7 +79,9 @@
             </menu>
 
             <menu id="edit-menu" data-l10n-id="menu-edit">
-              <menupopup id="menu_EditPopup">
+              <menupopup id="menu_EditPopup"
+                         onpopupshowing="updateEditUIVisibility()"
+                         onpopuphidden="updateEditUIVisibility()">
                 <menuitem id="menu_undo"
                           key="key_undo"
                           command="cmd_undo" data-l10n-id="text-action-undo"/>
@@ -112,6 +122,7 @@
 #ifndef XP_MACOSX
                 <menuseparator/>
                 <menuitem id="menu_preferences"
+                          oncommand="openPreferences(undefined);"
                           data-l10n-id="menu-settings"
                           />
 #endif
@@ -122,7 +133,7 @@
             <menu id="view-menu" data-l10n-id="menu-view">
               <menupopup id="menu_viewPopup">
                 <menu id="viewToolbarsMenu" data-l10n-id="menu-view-toolbars-menu">
-                  <menupopup id="view-menu-popup">
+                  <menupopup id="view-menu-popup" onpopupshowing="onViewToolbarsPopupShowing(event);">
                     <menuseparator/>
                     <menuitem id="menu_customizeToolbars"
                               command="cmd_CustomizeToolbars" data-l10n-id="menu-view-customize-toolbar2"/>
@@ -152,10 +163,12 @@
                   </menupopup>
                 </menu>
                 <menu id="pageStyleMenu" data-l10n-id="menu-view-page-style-menu">
-                  <menupopup id="pageStyleMenuPopup">
+                  <menupopup onpopupshowing="gPageStyleMenu.fillPopup(this);">
                     <menuitem id="menu_pageStyleNoStyle"
+                              oncommand="gPageStyleMenu.disableStyle();"
                               type="radio" data-l10n-id="menu-view-page-style-no-style"/>
                     <menuitem id="menu_pageStylePersistentOnly"
+                              oncommand="gPageStyleMenu.switchStyleSheet(null);"
                               type="radio"
                               checked="true" data-l10n-id="menu-view-page-basic-style"/>
                     <menuseparator/>
@@ -163,6 +176,7 @@
                 </menu>
                 <menuitem id="repair-text-encoding"
                           disabled="true"
+                          oncommand="BrowserCommands.forceEncodingDetection();"
                           data-l10n-id="menu-view-repair-text-encoding"/>
                 <menuseparator/>
 #ifdef XP_MACOSX
@@ -193,7 +207,7 @@
                 <menuseparator hidden="true" id="documentDirection-separator"/>
                 <menuitem id="documentDirection-swap"
                           hidden="true"
-                          data-l10n-id="menu-view-bidi-switch-page-direction"/>
+                          oncommand="gBrowser.selectedBrowser.sendMessageToActor('SwitchDocumentDirection', {}, 'SwitchDocumentDirection', 'roots');" data-l10n-id="menu-view-bidi-switch-page-direction"/>
               </menupopup>
             </menu>
 
@@ -203,6 +217,9 @@
                          placespopup="true"
                          is="places-popup"
 #endif
+                         oncommand="this.parentNode._placesView._onCommand(event);"
+                         onpopupshowing="if (!this.parentNode._placesView)
+                                           new HistoryMenu(event);"
                          tooltip="bhTooltip"
                          popupsinherittooltip="true">
                 <menuitem id="menu_showAllHistory"
@@ -213,10 +230,12 @@
                           command="Tools:Sanitize" data-l10n-id="menu-history-clear-recent-history"/>
                 <menuseparator id="sanitizeSeparator"/>
                 <menuitem id="sync-tabs-menuitem"
+                          oncommand="gSync.openSyncedTabsPanel();"
                           hidden="true" data-l10n-id="menu-history-synced-tabs"/>
                 <menuitem id="historyRestoreLastSession"
                           command="Browser:RestoreLastSession" data-l10n-id="menu-history-restore-last-session"/>
                 <menuitem id="hiddenTabsMenu"
+                          oncommand="gTabsPanel.showHiddenTabsPanel(event, 'hidden-tabs-menuitem');"
                           hidden="true" data-l10n-id="menu-history-hidden-tabs"/>
                 <menuitem id="menu_searchHistory"
                           command="History:SearchHistory"
@@ -228,7 +247,7 @@
                              placespopup="true"
                              is="places-popup"
 #endif
-                  />
+                             onpopupshowing="document.getElementById('history-menu')._placesView.populateUndoSubmenu();"/>
                 </menu>
                 <menu id="historyUndoWindowMenu"
                       disabled="true" data-l10n-id="menu-history-undo-window-menu">
@@ -237,7 +256,7 @@
                              placespopup="true"
                              is="places-popup"
 #endif
-                  >
+                             onpopupshowing="document.getElementById('history-menu')._placesView.populateUndoWindowSubmenu();">
 #ifdef HIDDEN_WINDOW
 # This entry is never visible. It's here to make the cmd-shift-n
 # shortcut work in the hidden window when the last window is closed.
@@ -270,6 +289,9 @@
                onmouseup="BookmarksEventHandler.onMouseUp(event);"
                oncommand="BookmarksEventHandler.onCommand(event);"
                onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
+               onpopupshowing="BookmarkingUI.onMainMenuPopupShowing(event);
+                               if (!this.parentNode._placesView)
+                                 new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.menuGuid}`);"
                tooltip="bhTooltip" popupsinherittooltip="true">
       <menuitem id="bookmarksShowAll"
                 command="Browser:ShowAllBookmarks"
@@ -298,7 +320,9 @@
                    placespopup="true"
                    is="places-popup"
 #endif
-                   context="placesContext"/>
+                   context="placesContext"
+                   onpopupshowing="if (!this.parentNode._placesView)
+                                     new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.toolbarGuid}`);"/>
       </menu>
       <menu id="menu_unsortedBookmarks"
             class="menu-iconic bookmark-item"
@@ -309,7 +333,9 @@
                    placespopup="true"
                    is="places-popup"
 #endif
-                   context="placesContext"/>
+                   context="placesContext"
+                   onpopupshowing="if (!this.parentNode._placesView)
+                                     new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.unfiledGuid}`);"/>
       </menu>
       <menu id="menu_mobileBookmarks"
             class="menu-iconic bookmark-item"
@@ -321,7 +347,9 @@
                    placespopup="true"
                    is="places-popup"
 #endif
-                   context="placesContext"/>
+                   context="placesContext"
+                   onpopupshowing="if (!this.parentNode._placesView)
+                                     new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.mobileGuid}`);"/>
       </menu>
       <menuseparator id="bookmarksMenuItemsSeparator"/>
       <!-- Bookmarks menu items -->
@@ -341,26 +369,26 @@
               <menuitem id="sync-setup"
                         class="sync-ui-item"
                         hidden="true"
-                        data-l10n-id="menu-tools-fxa-sign-in2"/>
+                        oncommand="gSync.openPrefs('menubar')" data-l10n-id="menu-tools-fxa-sign-in2"/>
               <menuitem id="sync-enable"
                         class="sync-ui-item"
                         hidden="true"
-                        data-l10n-id="menu-tools-turn-on-sync2"/>
+                        oncommand="gSync.openPrefs('menubar')" data-l10n-id="menu-tools-turn-on-sync2"/>
               <menuitem id="sync-unverifieditem"
                         class="sync-ui-item"
                         hidden="true"
-                        data-l10n-id="menu-tools-fxa-sign-in2"/>
+                        oncommand="gSync.openPrefs('menubar')" data-l10n-id="menu-tools-fxa-sign-in2"/>
               <menuitem id="sync-syncnowitem"
                         class="sync-ui-item"
                         hidden="true"
-                        data-l10n-id="menu-tools-sync-now"/>
+                        oncommand="gSync.doSync(event);" data-l10n-id="menu-tools-sync-now"/>
               <menuitem id="sync-reauthitem"
                         class="sync-ui-item"
                         hidden="true"
-                        data-l10n-id="menu-tools-fxa-re-auth"/>
+                        oncommand="gSync.openSignInAgainPage('menubar');" data-l10n-id="menu-tools-fxa-re-auth"/>
 
               <menuitem id="menu_openFirefoxView"
-                        data-l10n-id="menu-tools-firefox-view"/>
+                        oncommand="FirefoxViewHandler.openTab();" data-l10n-id="menu-tools-firefox-view"/>
               <menuseparator id="devToolsSeparator"/>
               <menu id="browserToolsMenu" data-l10n-id="menu-tools-browser-tools">
                 <menupopup id="menuWebDeveloperPopup">
@@ -379,17 +407,20 @@
 #ifndef XP_UNIX
               <menuseparator id="prefSep"/>
               <menuitem id="menu_preferences"
-                        data-l10n-id="menu-settings"/>
+                        data-l10n-id="menu-settings"
+                        oncommand="openPreferences(undefined);"/>
 #endif
 #ifdef MOZ_DEBUG
               <menuitem id="menu_layout_debugger"
-                        data-l10n-id="menu-tools-layout-debugger"/>
+                        data-l10n-id="menu-tools-layout-debugger"
+                        oncommand="toOpenWindowByType('mozapp:layoutdebug',
+                                          'chrome://layoutdebug/content/layoutdebug.xhtml');"/>
 #endif
 #ifdef XP_MACOSX
 <!-- nsMenuBarX hides these and uses them to build the Application menu. -->
               <menuitem id="menu_preferences"
                         data-l10n-id="menu-application-preferences"
-                        key="key_preferencesCmdMac"/>
+                        key="key_preferencesCmdMac" oncommand="openPreferences(undefined);"/>
               <menuitem id="menu_mac_services" data-l10n-id="menu-application-services"/>
               <menuitem id="menu_mac_hide_app" data-l10n-id="menu-application-hide-this" key="key_hideThisAppCmdMac"/>
               <menuitem id="menu_mac_hide_others" data-l10n-id="menu-application-hide-other" key="key_hideOtherAppsCmdMac"/>
@@ -416,10 +447,11 @@
             </menu>
 #endif
             <menu id="helpMenu" data-l10n-id="menu-help">
-              <menupopup id="menu_HelpPopup">
+              <menupopup id="menu_HelpPopup" onpopupshowing="buildHelpMenu();">
 <!-- Note: Items under here are cloned to the AppMenu Help submenu. The cloned items
      have their strings defined by appmenu-data-l10n-id. -->
                 <menuitem id="menu_openHelp"
+                          oncommand="openHelpLink('firefox-help')"
                           data-l10n-id="menu-get-help"
                           appmenu-data-l10n-id="appmenu-get-help"
 #ifdef XP_MACOSX
@@ -433,39 +465,48 @@
                           hidden="true"
                           appmenu-data-l10n-id="menu-report-broken-site"/>
                 <menuitem id="feedbackPage"
+                          oncommand="openFeedbackPage()"
                           data-l10n-id="menu-help-share-ideas"
                           appmenu-data-l10n-id="appmenu-help-share-ideas"/>
                 <menuitem id="helpSafeMode"
+                          oncommand="safeModeRestart();"
                           data-l10n-id="menu-help-enter-troubleshoot-mode2"
                           appmenu-data-l10n-id="appmenu-help-enter-troubleshoot-mode2"/>
                 <menuitem id="troubleShooting"
+                          oncommand="openTroubleshootingPage()"
                           data-l10n-id="menu-help-more-troubleshooting-info"
                           appmenu-data-l10n-id="appmenu-help-more-troubleshooting-info"/>
                 <menuitem id="help_reportSiteIssue"
+                          oncommand="ReportSiteIssue();"
                           data-l10n-id="menu-help-report-site-issue"
                           appmenu-data-l10n-id="appmenu-help-report-site-issue"
                           hidden="true"/>
                 <menuitem id="menu_HelpPopup_reportPhishingtoolmenu"
                           disabled="true"
+                          oncommand="openUILink(gSafeBrowsing.getReportURL('Phish'), event, {triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({})});"
                           hidden="true"
                           data-l10n-id="menu-help-report-deceptive-site"
                           appmenu-data-l10n-id="appmenu-help-report-deceptive-site"/>
                 <menuitem id="menu_HelpPopup_reportPhishingErrortoolmenu"
                           disabled="true"
+                          oncommand="ReportFalseDeceptiveSite();"
                           data-l10n-id="menu-help-not-deceptive"
                           appmenu-data-l10n-id="appmenu-help-not-deceptive"
                           hidden="true"/>
                 <menuitem id="helpSwitchDevice"
+                          oncommand="openSwitchingDevicesPage();"
                           data-l10n-id="menu-help-switch-device"
                           appmenu-data-l10n-id="appmenu-help-switch-device"/>
                 <menuseparator id="aboutSeparator"/>
                 <menuitem id="aboutName"
+                          oncommand="openAboutDialog();"
                           data-l10n-id="menu-about"
                           appmenu-data-l10n-id="appmenu-about"/>
                 <menuseparator id="helpPolicySeparator"
                           hidden="true"/>
                 <menuitem id="helpPolicySupport"
-                          hidden="true"/>
+                          hidden="true"
+                          oncommand="openTrustedLinkIn(Services.policies.getSupportMenu().URL.href, 'tab');"/>
               </menupopup>
           </menu>
         </menubar>
