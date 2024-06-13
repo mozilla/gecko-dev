@@ -1,0 +1,30 @@
+From a79eb8b6e192b36ded8f7b5b6757326b3d6753bd Mon Sep 17 00:00:00 2001
+From: Mike Hommey <mh@glandium.org>
+Date: Thu, 13 Jun 2024 15:02:45 +0900
+Subject: [PATCH] Revert "[Support] Resolve symlinks in `getMainExecutable()`
+ on Windows (#76304)"
+
+This reverts commit f11b056c02cca28fe0b82ec44c59537035100e67.
+---
+ llvm/lib/Support/Windows/Path.inc | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/llvm/lib/Support/Windows/Path.inc b/llvm/lib/Support/Windows/Path.inc
+index 3e4c1f74161c..2c490848a006 100644
+--- a/llvm/lib/Support/Windows/Path.inc
++++ b/llvm/lib/Support/Windows/Path.inc
+@@ -154,10 +154,7 @@ std::string getMainExecutable(const char *argv0, void *MainExecAddr) {
+     return "";
+ 
+   llvm::sys::path::make_preferred(PathNameUTF8);
+-
+-  SmallString<256> RealPath;
+-  sys::fs::real_path(PathNameUTF8, RealPath);
+-  return std::string(RealPath);
++  return std::string(PathNameUTF8.data());
+ }
+ 
+ UniqueID file_status::getUniqueID() const {
+-- 
+2.45.1.2.gf9b0626531
+

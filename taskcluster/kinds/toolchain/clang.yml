@@ -453,11 +453,13 @@ win64-clang-18-raw:
             - 'build/build-clang/clang-18.json'
             - 'build/build-clang/skip-stage-1-win64.json'
             - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/llvm-config.json'
         resources:
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-18.json'
             - 'build/build-clang/skip-stage-1-win64.json'
             - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/llvm-config.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
