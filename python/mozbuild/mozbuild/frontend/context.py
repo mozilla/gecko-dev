@@ -349,22 +349,22 @@ class HostCompileFlags(BaseCompileFlags):
             (
                 "HOST_CXXFLAGS",
                 context.config.substs.get("HOST_CXXFLAGS"),
-                ("HOST_CXXFLAGS", "HOST_CXX_LDFLAGS"),
+                ("HOST_CXXFLAGS",),
             ),
             (
                 "HOST_CFLAGS",
                 context.config.substs.get("HOST_CFLAGS"),
-                ("HOST_CFLAGS", "HOST_C_LDFLAGS"),
+                ("HOST_CFLAGS",),
             ),
             (
                 "HOST_OPTIMIZE",
                 self._optimize_flags(),
-                ("HOST_CFLAGS", "HOST_CXXFLAGS", "HOST_C_LDFLAGS", "HOST_CXX_LDFLAGS"),
+                ("HOST_CFLAGS", "HOST_CXXFLAGS"),
             ),
-            ("RTL", None, ("HOST_CFLAGS", "HOST_C_LDFLAGS")),
+            ("RTL", None, ("HOST_CFLAGS",)),
             ("HOST_DEFINES", None, ("HOST_CFLAGS", "HOST_CXXFLAGS")),
-            ("MOZBUILD_HOST_CFLAGS", [], ("HOST_CFLAGS", "HOST_C_LDFLAGS")),
-            ("MOZBUILD_HOST_CXXFLAGS", [], ("HOST_CXXFLAGS", "HOST_CXX_LDFLAGS")),
+            ("MOZBUILD_HOST_CFLAGS", [], ("HOST_CFLAGS",)),
+            ("MOZBUILD_HOST_CXXFLAGS", [], ("HOST_CXXFLAGS",)),
             (
                 "BASE_INCLUDES",
                 ["-I%s" % main_src_dir, "-I%s" % context.objdir],
