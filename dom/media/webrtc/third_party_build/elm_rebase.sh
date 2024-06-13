@@ -308,6 +308,33 @@ echo "Running sanity build..."
 echo "Done running sanity build"
 ERROR_HELP=""
 
+# In case any changes were made to fix the build after the rebase,
+# we'll check for changes since the last patch-stack update in
+# third_party/libwebrtc/moz-patch-stack.
+# TODO: this is copied from verify_vendoring.sh.  We should make
+# make this reusable.
+# we grab the entire firstline description for convenient logging
+LAST_PATCHSTACK_UPDATE_COMMIT=`hg log -r ::. --template "{node|short} {desc|firstline}\n" \
+    --include "third_party/libwebrtc/moz-patch-stack/*.patch" | tail -1`
+echo "LAST_PATCHSTACK_UPDATE_COMMIT: $LAST_PATCHSTACK_UPDATE_COMMIT"
+
+LAST_PATCHSTACK_UPDATE_COMMIT_SHA=`echo $LAST_PATCHSTACK_UPDATE_COMMIT \
+    | awk '{ print $1; }'`
+echo "LAST_PATCHSTACK_UPDATE_COMMIT_SHA: $LAST_PATCHSTACK_UPDATE_COMMIT_SHA"
+
+# grab the oldest, non "Vendor from libwebrtc" line
+CANDIDATE_COMMITS=`hg log --template "{node|short} {desc|firstline}\n" \
+    -r "children($LAST_PATCHSTACK_UPDATE_COMMIT_SHA)::. - desc('re:(Vendor libwebrtc)')" \
+    --include "third_party/libwebrtc/" | awk 'BEGIN { ORS=" " }; { print $1; }'`
+echo "CANDIDATE_COMMITS:"
+echo "$CANDIDATE_COMMITS"
+
+EXTRACT_COMMIT_RANGE=""
+if [ "x$CANDIDATE_COMMITS" != "x" ]; then
+  EXTRACT_COMMIT_RANGE="$CANDIDATE_COMMITS"
+  echo "EXTRACT_COMMIT_RANGE: $EXTRACT_COMMIT_RANGE"
+fi
+
 # This is blank in case no changes have been made in third_party/libwebrtc
 # since the previous rebase (or original elm reset).
 PATCH_STACK_FIXUP=""
@@ -316,9 +343,10 @@ echo "Checking for new mercurial changes in third_party/libwebrtc"
 FIXUP_INSTRUCTIONS=$"
 Mercurial changes in third_party/libwebrtc since the last rebase have been
 detected (using the verify_vendoring.sh script).  Running the following
-commands should remedy the situation:
+commands should help remedy the situation:
 
-  ./mach python $SCRIPT_DIR/extract-for-git.py $MOZ_OLD_CENTRAL::$MOZ_NEW_CENTRAL
+  ./mach python $SCRIPT_DIR/extract-for-git.py \\
+         $MOZ_OLD_CENTRAL::$MOZ_NEW_CENTRAL $EXTRACT_COMMIT_RANGE
   mv mailbox.patch $MOZ_LIBWEBRTC_SRC
   (cd $MOZ_LIBWEBRTC_SRC && \\
    git am mailbox.patch)
