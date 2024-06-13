@@ -51,6 +51,28 @@ export function getETLD(host) {
 }
 
 /**
+ * shortHostname - Creates a short version of a hostname, used for display purposes
+ *            e.g. "www.foosite.com"  =>  "foosite"
+ *
+ * @param {string} hostname The full hostname
+ * @returns {string} The shortened hostname
+ */
+export function shortHostname(hostname) {
+  if (!hostname) {
+    return "";
+  }
+
+  const newHostname = hostname.replace(/^www\./i, "").toLowerCase();
+
+  // Remove the eTLD (e.g., com, net) and the preceding period from the hostname
+  const eTLD = getETLD(newHostname);
+  const eTLDExtra =
+    eTLD.length && newHostname.endsWith(eTLD) ? -(eTLD.length + 1) : Infinity;
+
+  return handleIDNHost(newHostname.slice(0, eTLDExtra) || newHostname);
+}
+
+/**
  * shortURL - Creates a short version of a link's url, used for display purposes
  *            e.g. {url: http://www.foosite.com}  =>  "foosite"
  *
@@ -72,17 +94,6 @@ export function shortURL({ url }) {
     return url;
   }
 
-  // Clean up the url (lowercase hostname via URL and remove www.)
-  const hostname = parsed.hostname.replace(/^www\./i, "");
-
-  // Remove the eTLD (e.g., com, net) and the preceding period from the hostname
-  const eTLD = getETLD(hostname);
-  const eTLDExtra = eTLD.length ? -(eTLD.length + 1) : Infinity;
-
   // Ideally get the short eTLD-less host but fall back to longer url parts
-  return (
-    handleIDNHost(hostname.slice(0, eTLDExtra) || hostname) ||
-    parsed.pathname ||
-    parsed.href
-  );
+  return shortHostname(parsed.hostname) || parsed.pathname || parsed.href;
 }

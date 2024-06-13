@@ -94,7 +94,7 @@ function getTopSitesFeedForTest(sandbox) {
 add_setup(async () => {
   let sandbox = sinon.createSandbox();
   sandbox.stub(SearchService.prototype, "defaultEngine").get(() => {
-    return { identifier: "ddg", searchForm: "https://duckduckgo.com" };
+    return { identifier: "ddg", searchUrlDomain: "duckduckgo.com" };
   });
 
   gGetTopSitesStub = sandbox

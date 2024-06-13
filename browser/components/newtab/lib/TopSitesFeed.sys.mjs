@@ -12,7 +12,10 @@ import {
   TOP_SITES_MAX_SITES_PER_ROW,
 } from "resource://activity-stream/common/Reducers.sys.mjs";
 import { Dedupe } from "resource://activity-stream/common/Dedupe.sys.mjs";
-import { shortURL } from "resource://activity-stream/lib/ShortURL.sys.mjs";
+import {
+  shortURL,
+  shortHostname,
+} from "resource://activity-stream/lib/ShortURL.sys.mjs";
 import { getDefaultOptions } from "resource://activity-stream/lib/ActivityStreamStorage.sys.mjs";
 
 import {
@@ -22,7 +25,6 @@ import {
   SEARCH_SHORTCUTS_HAVE_PINNED_PREF,
   checkHasSearchEngine,
   getSearchProvider,
-  getSearchFormURL,
 } from "resource://activity-stream/lib/SearchShortcuts.sys.mjs";
 
 const lazy = {};
@@ -130,9 +132,8 @@ const DISPLAY_FAIL_REASON_OVERSOLD = "oversold";
 const DISPLAY_FAIL_REASON_DISMISSED = "dismissed";
 const DISPLAY_FAIL_REASON_UNRESOLVED = "unresolved";
 
-function getShortURLForCurrentSearch() {
-  const url = shortURL({ url: Services.search.defaultEngine.searchForm });
-  return url;
+function getShortHostnameForCurrentSearch() {
+  return shortHostname(Services.search.defaultEngine.searchUrlDomain);
 }
 
 class TopSitesTelemetry {
@@ -555,7 +556,7 @@ export class TopSitesFeed {
     ChromeUtils.defineLazyGetter(
       this,
       "_currentSearchHostname",
-      getShortURLForCurrentSearch
+      getShortHostnameForCurrentSearch
     );
     this.dedupe = new Dedupe(this._dedupeKey);
     this.frecentCache = new lazy.LinksCache(
@@ -625,7 +626,7 @@ export class TopSitesFeed {
           this.store.getState().Prefs.values[FILTER_DEFAULT_SEARCH_PREF]
         ) {
           delete this._currentSearchHostname;
-          this._currentSearchHostname = getShortURLForCurrentSearch();
+          this._currentSearchHostname = getShortHostnameForCurrentSearch();
         }
         this.refresh({ broadcast: true });
         break;
@@ -1302,7 +1303,7 @@ export class TopSitesFeed {
         if (link.customScreenshotURL) {
           this._fetchScreenshot(link, link.customScreenshotURL, isStartup);
         } else if (link.searchTopSite && !link.isDefault) {
-          await this._attachTippyTopIconForSearchShortcut(link, link.label);
+          this._tippyTopProvider.processSite(link);
         } else {
           this._fetchIcon(link, isStartup);
         }
@@ -1435,30 +1436,6 @@ export class TopSitesFeed {
   }
 
   /**
-   * Attach TippyTop icon to the given search shortcut
-   *
-   * Note that it queries the search form URL from search service For Yandex,
-   * and uses it to choose the best icon for its shortcut variants.
-   *
-   * @param {Object} link A link object with a `url` property
-   * @param {string} keyword Search keyword
-   */
-  async _attachTippyTopIconForSearchShortcut(link, keyword) {
-    if (
-      ["@\u044F\u043D\u0434\u0435\u043A\u0441", "@yandex"].includes(keyword)
-    ) {
-      let site = { url: link.url };
-      site.url = (await getSearchFormURL(keyword)) || site.url;
-      this._tippyTopProvider.processSite(site);
-      link.tippyTopIcon = site.tippyTopIcon;
-      link.smallFavicon = site.smallFavicon;
-      link.backgroundColor = site.backgroundColor;
-    } else {
-      this._tippyTopProvider.processSite(link);
-    }
-  }
-
-  /**
    * Refresh the top sites data for content.
    * @param {bool} options.broadcast Should the update be broadcasted.
    * @param {bool} options.isStartup Being called while TopSitesFeed is initting.
@@ -1554,7 +1531,7 @@ export class TopSitesFeed {
       );
       if (shortcut) {
         let clone = { ...shortcut };
-        await this._attachTippyTopIconForSearchShortcut(clone, clone.keyword);
+        this._tippyTopProvider.processSite(clone);
         searchShortcuts.push(clone);
       }
     }
