@@ -70,6 +70,15 @@ fi
 # * o pipefail: All stages of all pipes should succeed.
 set -eEuo pipefail
 
+# always make sure the repo is clean before doing the rebase
+CHANGED_FILE_CNT=`hg status | wc -l | tr -d " "`
+if [ "x$CHANGED_FILE_CNT" != "x0" ]; then
+  echo "There are modified or untracked files in the repo."
+  echo "Please cleanup the repo before running"
+  echo "$0"
+  exit 1
+fi
+
 if [ -f $STATE_DIR/rebase_resume_state ]; then
   source $STATE_DIR/rebase_resume_state
 else
