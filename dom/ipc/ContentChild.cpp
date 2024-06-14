@@ -1715,6 +1715,8 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
         ContentProcessSandboxParams::ForThisProcess(aBroker));
   }
 #  elif defined(XP_WIN)
+  // Library required for timely audio processing.
+  ::LoadLibraryW(L"avrt.dll");
   mozilla::SandboxTarget::Instance()->StartSandbox();
 #  elif defined(XP_MACOSX)
   sandboxEnabled = (GetEffectiveContentSandboxLevel() >= 1);
