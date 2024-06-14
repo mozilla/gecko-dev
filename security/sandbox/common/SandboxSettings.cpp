@@ -11,6 +11,7 @@
 #include "mozilla/Components.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/StaticPrefs_webgl.h"
 
@@ -20,6 +21,7 @@
 #  include "mozilla/gfx/gfxVars.h"
 #  include "mozilla/WindowsVersion.h"
 #  include "nsExceptionHandler.h"
+#  include "PDMFactory.h"
 #endif  // XP_WIN
 
 using namespace mozilla;
@@ -149,6 +151,17 @@ int GetEffectiveContentSandboxLevel() {
   // Level 4 and up will break direct access to audio.
   if (level > 3 && !StaticPrefs::media_cubeb_sandbox()) {
     level = 3;
+  }
+#endif
+#if defined(XP_WIN)
+  // Sandbox level 8, which uses a USER_RESTRICTED access token level, breaks if
+  // prefs moving processing out of the content process are not the default.
+  if (level >= 8 &&
+      (!StaticPrefs::webgl_out_of_process() ||
+       !PDMFactory::AllDecodersAreRemote() ||
+       !StaticPrefs::network_process_enabled() ||
+       !Preferences::GetBool("media.peerconnection.mtransport_process"))) {
+    level = 7;
   }
 #endif
 
