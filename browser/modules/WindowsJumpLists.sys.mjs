@@ -289,69 +289,6 @@ var Builder = class {
   }
 
   /**
-   * Jump list item creation helpers
-   */
-
-  _getHandlerAppItem(name, description, args, iconIndex, faviconPageUri) {
-    var file = Services.dirsvc.get("XREExeF", Ci.nsIFile);
-
-    var handlerApp = Cc[
-      "@mozilla.org/uriloader/local-handler-app;1"
-    ].createInstance(Ci.nsILocalHandlerApp);
-    handlerApp.executable = file;
-    // handlers default to the leaf name if a name is not specified
-    if (name && name.length) {
-      handlerApp.name = name;
-    }
-    handlerApp.detailedDescription = description;
-    handlerApp.appendParameter(args);
-
-    var item = Cc[
-      "@mozilla.org/windows-legacyjumplistshortcut;1"
-    ].createInstance(Ci.nsILegacyJumpListShortcut);
-    item.app = handlerApp;
-    item.iconIndex = iconIndex;
-    item.faviconPageUri = faviconPageUri;
-    return item;
-  }
-
-  /**
-   * Nav history helpers
-   */
-
-  _getHistoryResults(aSortingMode, aLimit, aCallback, aScope) {
-    var options = lazy.PlacesUtils.history.getNewQueryOptions();
-    options.maxResults = aLimit;
-    options.sortingMode = aSortingMode;
-    var query = lazy.PlacesUtils.history.getNewQuery();
-
-    // Return the pending statement to the caller, to allow cancelation.
-    return lazy.PlacesUtils.history.asyncExecuteLegacyQuery(query, options, {
-      handleResult(aResultSet) {
-        for (let row; (row = aResultSet.getNextRow()); ) {
-          try {
-            aCallback.call(aScope, {
-              uri: row.getResultByIndex(1),
-              title: row.getResultByIndex(2),
-            });
-          } catch (e) {}
-        }
-      },
-      handleError(aError) {
-        console.error(
-          "Async execution error (",
-          aError.result,
-          "): ",
-          aError.message
-        );
-      },
-      handleCompletion() {
-        aCallback.call(aScope, null);
-      },
-    });
-  }
-
-  /**
    * Removes URLs from history in Places that the user has requested to clear
    * from their Jump List. We must do this before recomputing which history
    * to put into the Jump List, because if we ever include items that have
