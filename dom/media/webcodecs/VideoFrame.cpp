@@ -941,7 +941,7 @@ static Result<RefPtr<VideoFrame>, nsCString> CreateVideoFrameFromBuffer(
         // data is 2 x 2 RGBA buffer (2 x 2 x 4 bytes), it pass the above check.
         // In this case, we can crop it to a 1 x 1-codedSize image (Bug
         // 1782128).
-        if (aData.Length() < format.SampleCount(codedSize)) {  // 1 byte/sample
+        if (aData.Length() < format.ByteCount(codedSize)) {
           return Err(nsCString("data is too small"));
         }
 
@@ -2189,31 +2189,25 @@ bool VideoFrame::Format::IsValidSize(const gfx::IntSize& aSize) const {
   return false;
 }
 
-size_t VideoFrame::Format::SampleCount(const gfx::IntSize& aSize) const {
+size_t VideoFrame::Format::ByteCount(const gfx::IntSize& aSize) const {
   MOZ_ASSERT(IsValidSize(aSize));
 
-  CheckedInt<size_t> count(aSize.Width());
-  count *= aSize.Height();
+  CheckedInt<size_t> bytes;
 
-  switch (mFormat) {
-    case VideoPixelFormat::I420:
-    case VideoPixelFormat::NV12:
-      return (count + count / 2).value();
-    case VideoPixelFormat::I420A:
-      return (count * 2 + count / 2).value();
-    case VideoPixelFormat::I422:
-      return (count * 2).value();
-    case VideoPixelFormat::I444:
-      return (count * 3).value();
-    case VideoPixelFormat::RGBA:
-    case VideoPixelFormat::RGBX:
-    case VideoPixelFormat::BGRA:
-    case VideoPixelFormat::BGRX:
-      return (count * 4).value();
+  for (const Format::Plane& p : Planes()) {
+    const gfx::IntSize factor = SampleSize(p);
+
+    gfx::IntSize planeSize{aSize.Width() / factor.Width(),
+                           aSize.Height() / factor.Height()};
+
+    CheckedInt<size_t> planeBytes(planeSize.Width());
+    planeBytes *= planeSize.Height();
+    planeBytes *= SampleBytes(p);
+
+    bytes += planeBytes;
   }
 
-  MOZ_ASSERT_UNREACHABLE("unsupported format");
-  return 0;
+  return bytes.value();
 }
 
 bool VideoFrame::Format::IsYUV() const { return IsYUVFormat(mFormat); }
