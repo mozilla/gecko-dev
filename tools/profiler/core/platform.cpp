@@ -42,6 +42,7 @@
 #include "ProfilerIOInterposeObserver.h"
 #include "ProfilerParent.h"
 #include "ProfilerNativeStack.h"
+#include "ProfilerStackWalk.h"
 #include "ProfilerRustBindings.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Maybe.h"
@@ -2834,6 +2835,61 @@ static void DoNativeBacktrace(
 #  else
 #    error "Invalid configuration"
 #  endif
+}
+
+void DoNativeBacktraceDirect(const void* stackTop, NativeStack& aNativeStack,
+                             StackWalkControl* aStackWalkControlIfSupported) {
+#  if defined(USE_FRAME_POINTER_STACK_WALK) || defined(USE_MOZ_STACK_WALK)
+  // StackWalkCallback(/* frameNum */ 0, aRegs.mPC, aRegs.mSP, &aNativeStack);
+  void* previousResumeSp = nullptr;
+  for (;;) {
+    MozStackWalk(StackWalkCallback, stackTop,
+                 uint32_t(MAX_NATIVE_FRAMES - aNativeStack.mCount),
+                 &aNativeStack);
+    if constexpr (!StackWalkControl::scIsSupported) {
+      break;
+    } else {
+      if (aNativeStack.mCount >= MAX_NATIVE_FRAMES) {
+        // No room to add more frames.
+        break;
+      }
+      if (!aStackWalkControlIfSupported ||
+          aStackWalkControlIfSupported->ResumePointCount() == 0) {
+        // No resume information.
+        break;
+      }
+      void* lastSP = aNativeStack.mSPs[aNativeStack.mCount - 1];
+      if (previousResumeSp &&
+          ((uintptr_t)lastSP <= (uintptr_t)previousResumeSp)) {
+        // No progress after the previous resume point.
+        break;
+      }
+      const StackWalkControl::ResumePoint* resumePoint =
+          aStackWalkControlIfSupported->GetResumePointCallingSp(lastSP);
+      if (!resumePoint) {
+        break;
+      }
+      void* sp = resumePoint->resumeSp;
+      if (!sp) {
+        // Null SP in a resume point means we stop here.
+        break;
+      }
+      void* pc = resumePoint->resumePc;
+      StackWalkCallback(/* frameNum */ aNativeStack.mCount, pc, sp,
+                        &aNativeStack);
+      ++aNativeStack.mCount;
+      if (aNativeStack.mCount >= MAX_NATIVE_FRAMES) {
+        break;
+      }
+      previousResumeSp = sp;
+    }
+  }
+#  else  // defined(USE_FRAME_POINTER_STACK_WALK) || defined(USE_MOZ_STACK_WALK)
+  MOZ_CRASH(
+      "Cannot call DoNativeBacktraceDirect without either "
+      "USE_FRAME_POINTER_STACK_WALK USE_MOZ_STACK_WALK");
+#  endif  // defined(USE_FRAME_POINTER_STACK_WALK) ||
+          // defined(USE_MOZ_STACK_WALK)
 }
 #endif
 
@@ -7489,6 +7545,45 @@ bool profiler_capture_backtrace_into(ProfileChunkedBuffer& aChunkedBuffer,
         DoSyncSample(*maybeFeatures,
                      aOnThreadRef.UnlockedReaderAndAtomicRWOnThreadCRef(),
                      TimeStamp::Now(), regs, profileBuffer, aCaptureOptions);
+
+        return true;
+      },
+      // If this was called from a non-registered thread, return false and do no
+      // more work. This can happen from a memory hook.
+      false);
+}
+
+bool profiler_backtrace_into_buffer(ProfileChunkedBuffer& aChunkedBuffer,
+                                    NativeStack& aNativeStack) {
+  MOZ_RELEASE_ASSERT(CorePS::Exists());
+
+  return ThreadRegistration::WithOnThreadRefOr(
+      [&](ThreadRegistration::OnThreadRef aOnThreadRef) {
+        mozilla::Maybe<uint32_t> maybeFeatures =
+            RacyFeatures::FeaturesIfActiveAndUnpaused();
+        if (!maybeFeatures) {
+          return false;
+        }
+
+        ProfileBuffer profileBuffer(aChunkedBuffer);
+        const uint64_t bufferRangeStart = profileBuffer.BufferRangeStart();
+        const uint64_t samplePos = profileBuffer.AddThreadIdEntry(
+            aOnThreadRef.UnlockedReaderAndAtomicRWOnThreadCRef()
+                .Info()
+                .ThreadId());
+
+        TimeDuration delta = TimeStamp::Now() - CorePS::ProcessStartTime();
+        profileBuffer.AddEntry(
+            ProfileBufferEntry::Time(delta.ToMilliseconds()));
+
+        ProfileBufferCollector collector(profileBuffer, samplePos,
+                                         bufferRangeStart);
+
+        for (int nativeIndex = (int)(aNativeStack.mCount); nativeIndex >= 0;
+             --nativeIndex) {
+          collector.CollectNativeLeafAddr(
+              (void*)aNativeStack.mPCs[nativeIndex]);
+        }
 
         return true;
       },

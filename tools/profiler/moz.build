@@ -179,6 +179,7 @@ EXPORTS += [
     "public/ProfilerNativeStack.h",
     "public/ProfilerParent.h",
     "public/ProfilerRustBindings.h",
+    "public/ProfilerStackWalk.h",
     "public/shared-libraries.h",
 ]
 
