@@ -76,11 +76,11 @@ def DisableCompilerWarnings():
 
 
 @template
-def RustLibrary(name, features=None, output_category=None, is_gkrust=False):
-    """Template for Rust libraries."""
-    Library(name)
-
-    IS_RUST_LIBRARY = True
+def DisableWarningsForRust():
+    """Template to disable warnings when compiling rust (rust build scripts
+    compile C/C++ sources which we can't control easily). Meant to be used by
+    other templates.
+    """
     # Some Rust build scripts compile C/C++ sources, don't error on warnings for them.
     AllowCompilerWarnings()
 
@@ -88,6 +88,16 @@ def RustLibrary(name, features=None, output_category=None, is_gkrust=False):
     # the Compiler Warnings build metric
     # <https://developer.mozilla.org/en-US/docs/Mozilla/Performance/Automated_Performance_Testing_and_Sheriffing/Build_Metrics#compiler_warnings>.
     DisableCompilerWarnings()
+
+
+@template
+def RustLibrary(name, features=None, output_category=None, is_gkrust=False):
+    """Template for Rust libraries."""
+    Library(name)
+
+    IS_RUST_LIBRARY = True
+
+    DisableWarningsForRust()
 
     if features:
         RUST_LIBRARY_FEATURES = features
@@ -97,6 +107,13 @@ def RustLibrary(name, features=None, output_category=None, is_gkrust=False):
 
     if is_gkrust:
         IS_GKRUST = True
+
+
+@template
+def RustProgram(name):
+    """Template for Rust programs."""
+    RUST_PROGRAMS += [name]
+    DisableWarningsForRust()
 
 
 @template
