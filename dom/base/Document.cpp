@@ -13089,49 +13089,31 @@ void Document::ScrollToRef() {
   if (!presShell) {
     return;
   }
-
-  // XXX(:jjaschke): Document policy integration should happen here
-  // as soon as https://bugzil.la/1860915 lands.
-  // XXX(:jjaschke): Same goes for User Activation and security aspects,
-  // tracked in https://bugzil.la/1888756.
-
-  // https://wicg.github.io/scroll-to-text-fragment/#invoking-text-directives
-  // Monkeypatching HTML § 7.4.6.3 Scrolling to a fragment:
-  // 1. Let text directives be the document's pending text directives.
-  const RefPtr fragmentDirective = FragmentDirective();
-  const nsTArray<RefPtr<nsRange>> textDirectives =
-      fragmentDirective->FindTextFragmentsInDocument();
-  // 2. If ranges is non-empty, then:
-  // 2.1 Let firstRange be the first item of ranges
-  RefPtr<nsRange> firstRange =
-      !textDirectives.IsEmpty() ? textDirectives.ElementAt(0) : nullptr;
-  // 2.2 Visually indicate each range in ranges in an implementation-defined
-  // way. The indication must not be observable from author script. See § 3.7
-  // Indicating The Text Match.
-  fragmentDirective->HighlightTextDirectives(textDirectives);
-
-  // In a subsequent call to `ScrollToRef()` during page load, `textDirectives`
-  // would only contain text directives that were not found in the previous
-  // runs. If an earlier call during the same page load already found a text
-  // directive to scroll to, only highlighting of the text directives needs to
-  // be done.
-  // This is indicated by `mScrolledToRefAlready`.
   if (mScrolledToRefAlready) {
     presShell->ScrollToAnchor();
     return;
   }
+
+  // If text directives is non-null, then highlight the text directives and
+  // scroll to the last one.
+  // XXX(:jjaschke): Document policy integration should happen here
+  // as soon as https://bugzil.la/1860915 lands.
+  // XXX(:jjaschke): Same goes for User Activation and security aspects,
+  // tracked in https://bugzil.la/1888756.
+  const bool didScrollToTextFragment =
+      presShell->HighlightAndGoToTextFragment(true);
+
+  FragmentDirective()->ClearUninvokedDirectives();
+
   // 2. If fragment is the empty string and no text directives have been
   // scrolled to, then return the special value top of the document.
-  if (textDirectives.IsEmpty() && mScrollToRef.IsEmpty()) {
+  if (didScrollToTextFragment || mScrollToRef.IsEmpty()) {
     return;
   }
   // 3. Let potentialIndicatedElement be the result of finding a potential
   // indicated element given document and fragment.
   NS_ConvertUTF8toUTF16 ref(mScrollToRef);
-  // This also covers 2.3 of the Monkeypatch for text fragments mentioned above:
-  // 2.3 Set firstRange as document's indicated part, return.
-  auto rv = presShell->GoToAnchor(ref, firstRange,
-                                  mChangeScrollPosWhenScrollingToRef);
+  auto rv = presShell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
 
   // 4. If potentialIndicatedElement is not null, then return
   // potentialIndicatedElement.
@@ -13159,7 +13141,7 @@ void Document::ScrollToRef() {
 
   // 7. Set potentialIndicatedElement to the result of finding a potential
   // indicated element given document and decodedFragment.
-  rv = presShell->GoToAnchor(decodedFragment, nullptr,
+  rv = presShell->GoToAnchor(decodedFragment,
                              mChangeScrollPosWhenScrollingToRef);
   if (NS_SUCCEEDED(rv)) {
     mScrolledToRefAlready = true;

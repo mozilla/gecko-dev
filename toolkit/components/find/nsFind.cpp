@@ -480,13 +480,13 @@ NS_IMETHODIMP
 nsFind::GetEntireWord(bool* aEntireWord) {
   if (!aEntireWord) return NS_ERROR_NULL_POINTER;
 
-  *aEntireWord = mWordStartBounded && mWordEndBounded;
+  *aEntireWord = mEntireWord;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsFind::SetEntireWord(bool aEntireWord) {
-  mWordStartBounded = mWordEndBounded = aEntireWord;
+  mEntireWord = aEntireWord;
   return NS_OK;
 }
 
@@ -861,7 +861,7 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
     // Figure whether the previous char is a word-breaking one,
     // if we care about word boundaries.
     bool wordBreakPrev = true;
-    if (mWordStartBounded && prevChar) {
+    if (mEntireWord && prevChar) {
       if (prevChar == NBSP_CHARCODE) {
         prevChar = CHAR_TO_UNICHAR(' ');
       }
@@ -874,8 +874,7 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
     // b) a match has already been stored
     // c) the previous character is a different "class" than the current
     // character.
-    if ((c == patc && (!(mWordStartBounded || mWordEndBounded) ||
-                       matchAnchorNode || wordBreakPrev)) ||
+    if ((c == patc && (!mEntireWord || matchAnchorNode || wordBreakPrev)) ||
         (inWhitespace && IsSpace(c))) {
       prevCharInMatch = c;
       if (inWhitespace) {
@@ -902,7 +901,7 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
 
         // Make the range:
         // Check for word break (if necessary)
-        if (mWordEndBounded || inWhitespace) {
+        if (mEntireWord || inWhitespace) {
           int32_t nextfindex = findex + incr;
 
           char32_t nextChar;
@@ -923,7 +922,7 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
           }
 
           // If a word break isn't there when it needs to be, reset search.
-          if (mWordEndBounded && nextChar && !BreakInBetween(c, nextChar)) {
+          if (mEntireWord && nextChar && !BreakInBetween(c, nextChar)) {
             matchAnchorNode = nullptr;
             continue;
           }

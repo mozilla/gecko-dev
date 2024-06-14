@@ -10736,12 +10736,11 @@ nsresult nsDocShell::ScrollToAnchor(bool aCurHasRef, bool aNewHasRef,
   // `Document::ScrollToRef()` is (presumably) the second "async" call mentioned
   // in sec. 7.4.2.3.3 in the HTML spec, "Fragment navigations":
   // https://html.spec.whatwg.org/#scroll-to-fragid:~:text=This%20algorithm%20will%20be%20called%20twice
-
-  const RefPtr fragmentDirective = GetDocument()->FragmentDirective();
-  const nsTArray<RefPtr<nsRange>> textDirectives =
-      fragmentDirective->FindTextFragmentsInDocument();
-  const bool hasTextDirectives = !textDirectives.IsEmpty();
-  fragmentDirective->HighlightTextDirectives(textDirectives);
+  const bool hasScrolledToTextFragment =
+      presShell->HighlightAndGoToTextFragment(scroll);
+  if (hasScrolledToTextFragment) {
+    return NS_OK;
+  }
 
   // If we have no new anchor, we do not want to scroll, unless there is a
   // current anchor and we are doing a history load.  So return if we have no
@@ -10754,12 +10753,12 @@ nsresult nsDocShell::ScrollToAnchor(bool aCurHasRef, bool aNewHasRef,
   // Both the new and current URIs refer to the same page. We can now
   // browse to the hash stored in the new URI.
 
-  if (aNewHash.IsEmpty() && !hasTextDirectives) {
+  if (aNewHash.IsEmpty()) {
     // 2. If fragment is the empty string, then return the special value top of
     // the document.
     //
     // Tell the shell it's at an anchor without scrolling.
-    presShell->GoToAnchor(u""_ns, nullptr, false);
+    presShell->GoToAnchor(u""_ns, false);
 
     if (scroll) {
       // Scroll to the top of the page. Ignore the return value; failure to
@@ -10774,10 +10773,7 @@ nsresult nsDocShell::ScrollToAnchor(bool aCurHasRef, bool aNewHasRef,
   // 3. Let potentialIndicatedElement be the result of finding a potential
   // indicated element given document and fragment.
   NS_ConvertUTF8toUTF16 uStr(aNewHash);
-  RefPtr<nsRange> range =
-      !textDirectives.IsEmpty() ? textDirectives[0] : nullptr;
-  auto rv =
-      presShell->GoToAnchor(uStr, range, scroll, ScrollFlags::ScrollSmoothAuto);
+  auto rv = presShell->GoToAnchor(uStr, scroll, ScrollFlags::ScrollSmoothAuto);
 
   // 4. If potentialIndicatedElement is not null, then return
   // potentialIndicatedElement.
@@ -10798,7 +10794,7 @@ nsresult nsDocShell::ScrollToAnchor(bool aCurHasRef, bool aNewHasRef,
   if (fragmentBytes.IsEmpty()) {
     // When aNewHash contains "%00", the unescaped string may be empty, and
     // GoToAnchor asserts if we ask it to scroll to an empty ref.
-    presShell->GoToAnchor(u""_ns, nullptr, false);
+    presShell->GoToAnchor(u""_ns, false);
     return NS_OK;
   }
 
@@ -10815,8 +10811,7 @@ nsresult nsDocShell::ScrollToAnchor(bool aCurHasRef, bool aNewHasRef,
   // there is no such anchor in the document, which is actually a success
   // condition for us (we want to update the session history with the new URI no
   // matter whether we actually scrolled somewhere).
-  presShell->GoToAnchor(decodedFragment, nullptr, scroll,
-                        ScrollFlags::ScrollSmoothAuto);
+  presShell->GoToAnchor(decodedFragment, scroll, ScrollFlags::ScrollSmoothAuto);
 
   return NS_OK;
 }

@@ -75,11 +75,6 @@ class FragmentDirective final : public nsISupports, public nsWrapperCache {
   /** Clears all uninvoked directives. */
   void ClearUninvokedDirectives() { mUninvokedTextDirectives.Clear(); }
 
-  /** Inserts all text directive ranges into a `eTargetText` `Selection`. */
-  MOZ_CAN_RUN_SCRIPT
-  void HighlightTextDirectives(
-      const nsTArray<RefPtr<nsRange>>& aTextDirectiveRanges);
-
   /** Searches for the current uninvoked text directives and creates a range for
    * each one that is found.
    *

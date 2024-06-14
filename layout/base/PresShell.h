@@ -1563,7 +1563,7 @@ class PresShell final : public nsStubDocumentObserver,
 
   /**
    * Informs the pres shell that the document is now at the anchor with
-   * the given name or range.  If |aScroll| is true, scrolls the view of the
+   * the given name.  If |aScroll| is true, scrolls the view of the
    * document so that the anchor with the specified name is displayed at
    * the top of the window.  If |aAnchorName| is empty, then this informs
    * the pres shell that there is no current target, and |aScroll| must
@@ -1571,8 +1571,7 @@ class PresShell final : public nsStubDocumentObserver,
    * and |aScroll| is true, the scrolling may be performed with an animation.
    */
   MOZ_CAN_RUN_SCRIPT
-  nsresult GoToAnchor(const nsAString& aAnchorName,
-                      const nsRange* aFirstTextDirective, bool aScroll,
+  nsresult GoToAnchor(const nsAString& aAnchorName, bool aScroll,
                       ScrollFlags aAdditionalScrollFlags = ScrollFlags::None);
 
   /**
@@ -1584,6 +1583,18 @@ class PresShell final : public nsStubDocumentObserver,
    * if it's removed from the DOM), so don't call this more than once.
    */
   MOZ_CAN_RUN_SCRIPT nsresult ScrollToAnchor();
+
+  /**
+   * Finds text fragments ranes in the document, highlights the ranges and
+   * scrolls to the last text fragment range on the page if
+   * `aScrollToTextFragment` is true.
+   *
+   * @param aScrollToTextFragment If true, scrolls the view to the last text
+   *                              fragment.
+   * @return True if scrolling happened.
+   */
+  MOZ_CAN_RUN_SCRIPT bool HighlightAndGoToTextFragment(
+      bool aScrollToTextFragment);
 
   /**
    * When scroll anchoring adjusts positions in the root frame during page load,

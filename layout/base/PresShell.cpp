@@ -3062,8 +3062,7 @@ UniquePtr<gfxContext> PresShell::CreateReferenceRenderingContext() {
 }
 
 // https://html.spec.whatwg.org/#scroll-to-the-fragment-identifier
-nsresult PresShell::GoToAnchor(const nsAString& aAnchorName,
-                               const nsRange* aFirstTextDirective, bool aScroll,
+nsresult PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll,
                                ScrollFlags aAdditionalScrollFlags) {
   if (!mDocument) {
     return NS_ERROR_FAILURE;
@@ -3082,31 +3081,12 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName,
   // Hold a reference to the ESM in case event dispatch tears us down.
   RefPtr<EventStateManager> esm = mPresContext->EventStateManager();
 
-  // https://wicg.github.io/scroll-to-text-fragment/#invoking-text-directives
-  // From "Monkeypatching HTML § 7.4.6.3 Scrolling to a fragment:"
-  // 3.4. If target is a range, then:
-  // 3.4.1 Set target to be the first common ancestor of target's start node and
-  //       end node.
-  // 3.4.2 While target is non-null and is not an element, set target to
-  //       target's parent.
-  Element* textFragmentTargetElement = [&aFirstTextDirective]() -> Element* {
-    nsINode* node =
-        aFirstTextDirective
-            ? aFirstTextDirective->GetClosestCommonInclusiveAncestor()
-            : nullptr;
-    while (node && !node->IsElement()) {
-      node = node->GetParent();
-    }
-    return Element::FromNodeOrNull(node);
-  }();
-  const bool thereIsATextFragment = !!textFragmentTargetElement;
-
   // 1. If there is no indicated part of the document, set the Document's target
   //    element to null.
   //
   // FIXME(emilio): Per spec empty fragment string should take the same
   // code-path as "top"!
-  if (aAnchorName.IsEmpty() && !thereIsATextFragment) {
+  if (aAnchorName.IsEmpty()) {
     NS_ASSERTION(!aScroll, "can't scroll to empty anchor name");
     esm->SetContentState(nullptr, ElementState::URLTARGET);
     return NS_OK;
@@ -3120,10 +3100,8 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName,
   //
   // https://html.spec.whatwg.org/#target-element
   // https://html.spec.whatwg.org/#find-a-potential-indicated-element
-  RefPtr<Element> target = textFragmentTargetElement;
-  if (!target) {
-    target = nsContentUtils::GetTargetElement(mDocument, aAnchorName);
-  }
+  RefPtr<Element> target =
+      nsContentUtils::GetTargetElement(mDocument, aAnchorName);
 
   // 1. If there is no indicated part of the document, set the Document's
   //    target element to null.
@@ -3142,12 +3120,6 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName,
 
   if (target) {
     if (aScroll) {
-      // https://wicg.github.io/scroll-to-text-fragment/#invoking-text-directives
-      // From "Monkeypatching HTML § 7.4.6.3 Scrolling to a fragment:"
-      // 3.9 Let blockPosition be "center" if scrollTarget is a range, "start"
-      //     otherwise.
-      const auto verticalScrollPosition = WhereToScroll(
-          thereIsATextFragment ? WhereToScroll::Center : WhereToScroll::Start);
       // 3.3. TODO: Run the ancestor details revealing algorithm on target.
       // 3.4. Scroll target into view, with behavior set to "auto", block set to
       //      "start", and inline set to "nearest".
@@ -3155,7 +3127,7 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName,
       // smooth scroll for `top` regardless below, so maybe they should!).
       ScrollingInteractionContext scrollToAnchorContext(true);
       MOZ_TRY(ScrollContentIntoView(
-          target, ScrollAxis(verticalScrollPosition, WhenToScroll::Always),
+          target, ScrollAxis(WhereToScroll::Start, WhenToScroll::Always),
           ScrollAxis(),
           ScrollFlags::AnchorScrollFlags | aAdditionalScrollFlags));
 
@@ -3271,6 +3243,46 @@ nsresult PresShell::ScrollToAnchor() {
   return ScrollContentIntoView(
       lastAnchor, ScrollAxis(WhereToScroll::Start, WhenToScroll::Always),
       ScrollAxis(), ScrollFlags::AnchorScrollFlags);
+}
+
+bool PresShell::HighlightAndGoToTextFragment(bool aScrollToTextFragment) {
+  MOZ_ASSERT(mDocument);
+  if (!StaticPrefs::dom_text_fragments_enabled()) {
+    return false;
+  }
+  const RefPtr<FragmentDirective> fragmentDirective =
+      mDocument->FragmentDirective();
+
+  nsTArray<RefPtr<nsRange>> textDirectiveRanges =
+      fragmentDirective->FindTextFragmentsInDocument();
+  if (textDirectiveRanges.IsEmpty()) {
+    return false;
+  }
+
+  const RefPtr<Selection> targetTextSelection =
+      GetCurrentSelection(SelectionType::eTargetText);
+  if (!targetTextSelection) {
+    return false;
+  }
+  for (RefPtr<nsRange> range : textDirectiveRanges) {
+    targetTextSelection->AddRangeAndSelectFramesAndNotifyListeners(
+        *range, IgnoreErrors());
+  }
+  if (!aScrollToTextFragment) {
+    return false;
+  }
+
+  // Scroll the last text directive into view.
+  nsRange* lastRange = textDirectiveRanges.LastElement();
+  MOZ_ASSERT(lastRange);
+  if (RefPtr<nsIContent> lastRangeStartContent =
+          nsIContent::FromNode(lastRange->GetStartContainer())) {
+    return ScrollContentIntoView(
+               lastRangeStartContent,
+               ScrollAxis(WhereToScroll::Center, WhenToScroll::Always),
+               ScrollAxis(), ScrollFlags::AnchorScrollFlags) == NS_OK;
+  }
+  return false;
 }
 
 /*
