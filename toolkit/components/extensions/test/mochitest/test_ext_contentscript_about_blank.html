@@ -174,16 +174,13 @@ add_task(async function test_contentscript_about_blank() {
   await extension.unload();
 });
 
-async function top_level_about_blank({
-  legacyBehavior = false,
-  run_at = "document_end",
-} = {}) {
+async function top_level_about_blank({ legacyBehavior = false } = {}) {
   const content_scripts = [
     {
       match_about_blank: true,
       matches: ["*://*/*"],
       js: ["1.matches_any_url_and_blank.js"],
-      run_at,
+      run_at: "document_end",
     },
     {
       // Note: interestingly, if one only wants to match top-level about:blank
@@ -193,25 +190,25 @@ async function top_level_about_blank({
       exclude_matches: ["<all_urls>"],
       exclude_globs: ["*"],
       js: ["2.does_not_care_about_exclude_matches_globs.js"],
-      run_at,
+      run_at: "document_end",
     },
     {
       match_about_blank: true,
       matches: ["*://*/*"],
       include_globs: ["*"],
       js: ["3.should_not_run_because_include_globs_is_set.js"],
-      run_at,
+      run_at: "document_end",
     },
     {
       matches: ["*://*/*"],
       js: ["4.should_not_run_because_no_matchAboutBlank.js"],
-      run_at,
+      run_at: "document_end",
     },
     {
       match_about_blank: true,
       matches: ["*://non.matching.example/*"],
       js: ["5.should_not_run_because_matches_does_not_match_all_urls.js"],
-      run_at,
+      run_at: "document_end",
     },
   ];
   const files = {
@@ -227,14 +224,6 @@ async function top_level_about_blank({
       globalThis.seenScripts ??= [];
       globalThis.seenScripts.push("${filename}");
     `;
-
-    if (filename === "2.does_not_care_about_exclude_matches_globs.js") {
-      files[filename] += `
-        // In an initial document, readyState = "uninitialized".
-        dump("${filename} ran at readyState " + document.readyState + "\\n");
-        browser.test.sendMessage("seen_content_script");
-      `;
-    }
   }
   for (let { js } of content_scripts) {
     for (let filename of js) {
@@ -355,12 +344,6 @@ async function top_level_about_blank({
       "Any content script with match_about_blank:true should (legacy behavior)"
     );
 
-    // We should receive only one such message; if we get more, odds are that we
-    // unexpectedly executed in the initial about:blank that preceeds the final
-    // about:blank (which is not supported - bug 1415539), or that we executed
-    // in an unrelated about:blank document (as seen in bug 1901894).
-    await extension.awaitMessage("seen_content_script");
-
     await closeAboutBlankTab();
     await extension.unload();
     await SpecialPowers.popPrefEnv();
@@ -391,21 +374,11 @@ async function top_level_about_blank({
     "Only content content scripts that match all URLs and matchAboutBlank should run"
   );
 
-  // We should receive only one such message; if we get more, odds are that we
-  // unexpectedly executed in the initial about:blank that preceeds the final
-  // about:blank (which is not supported - bug 1415539), or that we executed
-  // in an unrelated about:blank document (as seen in bug 1901894).
-  await extension.awaitMessage("seen_content_script");
-
   await closeAboutBlankTab();
   await extension.unload();
   // TODO bug 1856071: Remove this popPrefEnv call when the pref is removed.
   await SpecialPowers.popPrefEnv();
 }
-
-add_task(async function test_toplevel_aboutblank_at_document_start() {
-  await top_level_about_blank({ run_at: "document_start" });
-});
 
 add_task(async function test_toplevel_aboutblank_match_with_permissions() {
   await top_level_about_blank({ legacyBehavior: false });

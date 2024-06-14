@@ -57,7 +57,6 @@ support-files = [
   "file_with_iframe_sandbox.html",
   "file_with_subframes_and_embed.html",
   "file_with_xorigin_frame.html",
-  "file_with_same_origin_frame.html",
   "head.js",
   "head_cookies.js",
   "!/dom/notification/test/mochitest/MockAlertsService.js",
@@ -388,8 +387,6 @@ skip-if = [
 ]
 
 ["test_ext_scripting_executeScript_null_principal.html"]
-
-["test_ext_scripting_executeScript_slow_frame.html"]
 
 ["test_ext_scripting_executeScript_world.html"]
 
