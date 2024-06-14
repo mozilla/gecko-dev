@@ -28,6 +28,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
+  CloseRemoteTab: "resource://gre/modules/FxAccountsCommands.sys.mjs",
   ContentRelevancyManager:
     "resource://gre/modules/ContentRelevancyManager.sys.mjs",
   ContextualIdentityService:
@@ -135,7 +136,7 @@ XPCOMUtils.defineLazyServiceGetters(lazy, {
 ChromeUtils.defineLazyGetter(
   lazy,
   "accountsL10n",
-  () => new Localization(["browser/accounts.ftl"], true)
+  () => new Localization(["browser/accounts.ftl", "branding/brand.ftl"], true)
 );
 
 if (AppConstants.ENABLE_WEBDRIVER) {
@@ -4985,6 +4986,64 @@ BrowserGlue.prototype = {
       if (!urisToClose.length) {
         break;
       }
+    }
+
+    let clickCallback = async (subject, topic) => {
+      if (topic == "alertshow") {
+        // Keep track of the fact that we showed the notification to
+        // the user at least once
+        lazy.CloseRemoteTab.hasPendingCloseTabNotification = true;
+      }
+
+      // The notification is either turned off or dismissed by user
+      if (topic == "alertfinished") {
+        // Reset the notification pending flag
+        lazy.CloseRemoteTab.hasPendingCloseTabNotification = false;
+      }
+
+      if (topic != "alertclickcallback") {
+        return;
+      }
+      let win =
+        lazy.BrowserWindowTracker.getTopWindow({ private: false }) ??
+        (await lazy.BrowserWindowTracker.promiseOpenWindow());
+      // We don't want to open a new tab, instead use the handler
+      // to switch to the existing view
+      if (win) {
+        win.FirefoxViewHandler.openTab("recentlyclosed");
+      }
+    };
+
+    let imageURL;
+    if (AppConstants.platform == "win") {
+      imageURL = "chrome://branding/content/icon64.png";
+    }
+
+    // Reset the count only if there are no pending notifications
+    if (!lazy.CloseRemoteTab.hasPendingCloseTabNotification) {
+      lazy.CloseRemoteTab.closeTabNotificationCount = 0;
+    }
+    lazy.CloseRemoteTab.closeTabNotificationCount += urls.length;
+    const [title, body] = await lazy.accountsL10n.formatValues([
+      {
+        id: "account-tabs-closed-remotely",
+        args: { closedCount: lazy.CloseRemoteTab.closeTabNotificationCount },
+      },
+      { id: "account-view-recently-closed-tabs" },
+    ]);
+
+    try {
+      this.AlertsService.showAlertNotification(
+        imageURL,
+        title,
+        body,
+        true,
+        null,
+        clickCallback,
+        "closed-tab-notification"
+      );
+    } catch (ex) {
+      console.error("Error notifying user of closed tab(s) ", ex);
     }
   },
 
