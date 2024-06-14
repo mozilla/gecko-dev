@@ -17,8 +17,8 @@ import androidx.core.view.updateLayoutParams
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
-import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.toolbar.ToolbarInteractor
@@ -60,9 +60,9 @@ class ToolbarView(
     }
 
     private fun updateLayout(view: View) {
-        val redesignEnabled = IncompleteRedesignToolbarFeature(context.settings()).isEnabled
-        binding.menuButton.isVisible = !redesignEnabled
-        binding.tabButton.isVisible = !redesignEnabled
+        val showBrowserActionButtonsAndMenu = !shouldAddNavigationBar(context)
+        binding.menuButton.isVisible = showBrowserActionButtonsAndMenu
+        binding.tabButton.isVisible = showBrowserActionButtonsAndMenu
 
         when (context.settings().toolbarPosition) {
             ToolbarPosition.TOP -> {
