@@ -128,11 +128,10 @@ const PanelUI = {
       this.panel.addEventListener(event, this);
     }
 
+    let helpView = PanelMultiView.getViewNode(document, "PanelUI-helpView");
+    helpView.addEventListener("ViewShowing", this._onHelpViewShow);
+    helpView.addEventListener("command", this._onHelpCommand);
     this._onLibraryCommand = this._onLibraryCommand.bind(this);
-    PanelMultiView.getViewNode(document, "PanelUI-helpView").addEventListener(
-      "ViewShowing",
-      this._onHelpViewShow
-    );
     PanelMultiView.getViewNode(
       document,
       "appMenu-libraryView"
@@ -145,10 +144,9 @@ const PanelUI = {
     for (let event of this.kEvents) {
       this.panel.removeEventListener(event, this);
     }
-    PanelMultiView.getViewNode(
-      document,
-      "PanelUI-helpView"
-    ).removeEventListener("ViewShowing", this._onHelpViewShow);
+    let helpView = PanelMultiView.getViewNode(document, "PanelUI-helpView");
+    helpView.removeEventListener("ViewShowing", this._onHelpViewShow);
+    helpView.removeEventListener("command", this._onHelpCommand);
     PanelMultiView.getViewNode(
       document,
       "appMenu-libraryView"
@@ -627,15 +625,7 @@ const PanelUI = {
 
     let helpMenu = document.getElementById("menu_HelpPopup");
     let items = this.getElementsByTagName("vbox")[0];
-    let attrs = [
-      "command",
-      "oncommand",
-      "onclick",
-      "key",
-      "disabled",
-      "accesskey",
-      "label",
-    ];
+    let attrs = ["command", "onclick", "key", "disabled", "accesskey", "label"];
 
     // Remove all buttons from the view
     while (items.firstChild) {
@@ -689,6 +679,50 @@ const PanelUI = {
     }
 
     items.appendChild(fragment);
+  },
+
+  _onHelpCommand(aEvent) {
+    switch (aEvent.target.id) {
+      case "appMenu_menu_openHelp":
+        openHelpLink("firefox-help");
+        break;
+      case "appMenu_menu_layout_debugger":
+        toOpenWindowByType(
+          "mozapp:layoutdebug",
+          "chrome://layoutdebug/content/layoutdebug.xhtml"
+        );
+        break;
+      case "appMenu_feedbackPage":
+        openFeedbackPage();
+        break;
+      case "appMenu_helpSafeMode":
+        safeModeRestart();
+        break;
+      case "appMenu_troubleShooting":
+        openTroubleshootingPage();
+        break;
+      case "appMenu_help_reportSiteIssue":
+        ReportSiteIssue();
+        break;
+      case "appMenu_menu_HelpPopup_reportPhishingtoolmenu":
+        openUILink(gSafeBrowsing.getReportURL("Phish"), aEvent, {
+          triggeringPrincipal:
+            Services.scriptSecurityManager.createNullPrincipal({}),
+        });
+        break;
+      case "appMenu_menu_HelpPopup_reportPhishingErrortoolmenu":
+        ReportFalseDeceptiveSite();
+        break;
+      case "appMenu_helpSwitchDevice":
+        openSwitchingDevicesPage();
+        break;
+      case "appMenu_aboutName":
+        openAboutDialog();
+        break;
+      case "appMenu_helpPolicySupport":
+        openTrustedLinkIn(Services.policies.getSupportMenu().URL.href, "tab");
+        break;
+    }
   },
 
   _onLibraryCommand(aEvent) {
