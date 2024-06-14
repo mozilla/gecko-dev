@@ -162,20 +162,22 @@ DWORD CreateRestrictedToken(HANDLE effective_token,
     }
     case USER_RESTRICTED: {
       privilege_exceptions.push_back(SE_CHANGE_NOTIFY_NAME);
-      restricted_token.AddUserSidForDenyOnly();
       if (use_restricting_sids) {
         restricted_token.AddRestrictingSid(WinRestrictedCodeSid);
         if (unique_restricted_sid)
           restricted_token.AddRestrictingSid(Sid(unique_restricted_sid));
+      } else {
+        restricted_token.AddUserSidForDenyOnly();
       }
       break;
     }
     case USER_LOCKDOWN: {
-      restricted_token.AddUserSidForDenyOnly();
       if (use_restricting_sids) {
         restricted_token.AddRestrictingSid(WinNullSid);
         if (unique_restricted_sid)
           restricted_token.AddRestrictingSid(Sid(unique_restricted_sid));
+      } else {
+        restricted_token.AddUserSidForDenyOnly();
       }
       break;
     }

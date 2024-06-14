@@ -1,0 +1,54 @@
+# HG changeset patch
+# User Bob Owen <bobowencode@gmail.com>
+# Date 1712929924 -3600
+#      Fri Apr 12 14:52:04 2024 +0100
+# Node ID e2057018f4bf1f27533ec7867ee90c28fd0d1d5a
+# Parent  9d97e69d2cf50f9600f85b2d0ea9585915cbc7df
+Bug 1696387: Don't add user's SID as deny only for restricted tokens. r=handyman!
+
+The DirectWrite cache opens our process under impersonation.
+While the access check for this passes for the restricted SIDs list, it fails
+for the non-resticted SIDs.
+Not adding the user's SID as deny only means it passes for both and the overall
+access check works.
+This shouldn't weaken the sandbox, because the user's SID is not in the
+restricted list and both checks have to pass.
+
+diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
+--- a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
++++ b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
+@@ -157,30 +157,32 @@ DWORD CreateRestrictedToken(HANDLE effec
+         restricted_token.AddRestrictingSidLogonSession();
+       } else {
+         restricted_token.AddUserSidForDenyOnly();
+       }
+       break;
+     }
+     case USER_RESTRICTED: {
+       privilege_exceptions.push_back(SE_CHANGE_NOTIFY_NAME);
+-      restricted_token.AddUserSidForDenyOnly();
+       if (use_restricting_sids) {
+         restricted_token.AddRestrictingSid(WinRestrictedCodeSid);
+         if (unique_restricted_sid)
+           restricted_token.AddRestrictingSid(Sid(unique_restricted_sid));
++      } else {
++        restricted_token.AddUserSidForDenyOnly();
+       }
+       break;
+     }
+     case USER_LOCKDOWN: {
+-      restricted_token.AddUserSidForDenyOnly();
+       if (use_restricting_sids) {
+         restricted_token.AddRestrictingSid(WinNullSid);
+         if (unique_restricted_sid)
+           restricted_token.AddRestrictingSid(Sid(unique_restricted_sid));
++      } else {
++        restricted_token.AddUserSidForDenyOnly();
+       }
+       break;
+     }
+     default: { return ERROR_BAD_ARGUMENTS; }
+   }
+ 
+   DWORD err_code = ERROR_SUCCESS;
+   if (deny_sids) {
