@@ -144,12 +144,14 @@ import org.mozilla.fenix.home.toolbar.DefaultToolbarController
 import org.mozilla.fenix.home.toolbar.SearchSelectorBinding
 import org.mozilla.fenix.home.toolbar.SearchSelectorMenuBinding
 import org.mozilla.fenix.home.topsites.DefaultTopSitesView
+import org.mozilla.fenix.home.ui.Homepage
 import org.mozilla.fenix.messaging.DefaultMessageController
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.messaging.MessagingFeature
 import org.mozilla.fenix.microsurvey.ui.MicrosurveyRequestPrompt
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
+import org.mozilla.fenix.perf.StartupTimeline
 import org.mozilla.fenix.search.SearchDialogFragment
 import org.mozilla.fenix.search.toolbar.DefaultSearchSelectorController
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
@@ -488,14 +490,18 @@ class HomeFragment : Fragment() {
             listenForMicrosurveyMessage(requireContext())
         }
 
-        sessionControlView = SessionControlView(
-            containerView = binding.sessionControlRecyclerView,
-            viewLifecycleOwner = viewLifecycleOwner,
-            interactor = sessionControlInteractor,
-            fragmentManager = parentFragmentManager,
-        )
+        if (requireContext().settings().enableComposeHomepage) {
+            initHomepage()
+        } else {
+            sessionControlView = SessionControlView(
+                containerView = binding.sessionControlRecyclerView,
+                viewLifecycleOwner = viewLifecycleOwner,
+                interactor = sessionControlInteractor,
+                fragmentManager = parentFragmentManager,
+            )
 
-        updateSessionControlView()
+            updateSessionControlView()
+        }
 
         disableAppBarDragging()
 
@@ -953,6 +959,26 @@ class HomeFragment : Fragment() {
             profilerStartTime,
             "HomeFragment.onViewCreated",
         )
+    }
+
+    private fun initHomepage() {
+        binding.homeAppBar.isVisible = false
+        binding.homepageView.isVisible = true
+
+        binding.homepageView.apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+
+            setContent {
+                FirefoxTheme {
+                    Homepage(
+                        interactor = sessionControlInteractor,
+                        onTopSitesItemBound = {
+                            StartupTimeline.onTopSitesItemBound(activity = (requireActivity() as HomeActivity))
+                        },
+                    )
+                }
+            }
+        }
     }
 
     private fun initTabStrip() {
