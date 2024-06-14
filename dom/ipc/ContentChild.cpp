@@ -1720,6 +1720,8 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
   // Libraries required by Network Security Services (NSS).
   ::LoadLibraryW(L"freebl3.dll");
   ::LoadLibraryW(L"softokn3.dll");
+  // Library required by DirectWrite in some fall-back scenarios.
+  ::LoadLibraryW(L"textshaping.dll");
   mozilla::SandboxTarget::Instance()->StartSandbox();
 #  elif defined(XP_MACOSX)
   sandboxEnabled = (GetEffectiveContentSandboxLevel() >= 1);
