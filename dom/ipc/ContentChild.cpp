@@ -1722,6 +1722,10 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
   ::LoadLibraryW(L"softokn3.dll");
   // Library required by DirectWrite in some fall-back scenarios.
   ::LoadLibraryW(L"textshaping.dll");
+#    if defined(DEBUG)
+  // Library used in some debug testing.
+  ::LoadLibraryW(L"dbghelp.dll");
+#    endif
   mozilla::SandboxTarget::Instance()->StartSandbox();
 #  elif defined(XP_MACOSX)
   sandboxEnabled = (GetEffectiveContentSandboxLevel() >= 1);
