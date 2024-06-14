@@ -1724,13 +1724,13 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
   }
 
   CombinedBufferLayout layout;
-  auto r1 = ParseVideoFrameCopyToOptions(aOptions, mVisibleRect, mCodedSize,
-                                         mResource->mFormat.ref());
-  if (r1.isErr()) {
-    p->MaybeRejectWithTypeError(r1.unwrapErr());
+  auto r = ParseVideoFrameCopyToOptions(aOptions, mVisibleRect, mCodedSize,
+                                        mResource->mFormat.ref());
+  if (r.isErr()) {
+    p->MaybeRejectWithTypeError(r.unwrapErr());
     return p.forget();
   }
-  layout = r1.unwrap();
+  layout = r.unwrap();
 
   return ProcessTypedArraysFixed(aDestination, [&](const Span<uint8_t>& aData) {
     if (aData.size_bytes() < layout.mAllocationSize) {
