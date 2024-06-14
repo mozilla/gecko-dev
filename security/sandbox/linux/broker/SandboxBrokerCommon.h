@@ -8,6 +8,7 @@
 #define mozilla_SandboxBrokerCommon_h
 
 #include <sys/types.h>
+#include <stdint.h>
 
 struct iovec;
 
@@ -48,6 +49,8 @@ class SandboxBrokerCommon {
     // For open, flags; for access, "mode"; for stat, O_NOFOLLOW for lstat.
     // For connect, the socket type.
     int mFlags;
+    // ID to match child/parent requests in profiler
+    uint64_t mId;
     // Size of return value buffer, if any
     size_t mBufSize;
     // The rest of the packet is the pathname.

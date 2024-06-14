@@ -6,7 +6,10 @@
 
 #include "SandboxBroker.h"
 #include "SandboxInfo.h"
+
+#include "SandboxProfilerParent.h"
 #include "SandboxLogging.h"
+
 #include "SandboxBrokerUtils.h"
 
 #include <dirent.h>
@@ -40,6 +43,12 @@ namespace mozilla {
 
 // Default/fallback temporary directory
 static const nsLiteralCString tempDirPrefix("/tmp");
+
+// kernel level limit defined at
+// https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h#L301
+// used at
+// https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h#L1087
+static const int kThreadNameMaxSize = 16;
 
 // This constructor signals failure by setting mFileDesc and aClientFd to -1.
 SandboxBroker::SandboxBroker(UniquePtr<const Policy> aPolicy, int aChildPid,
@@ -656,7 +665,10 @@ void SandboxBroker::ThreadMain(void) {
   // with the thread manager.
   (void)NS_GetCurrentThread();
 
-  char threadName[16];
+  char threadName[kThreadNameMaxSize];
+  // mChildPid can be max 7 digits because of the previous string size,
+  // and 'FSBroker' is 8 bytes. The maximum thread size is 16 with the null byte
+  // included. That leaves us 7 digits.
   SprintfLiteral(threadName, "FSBroker%d", mChildPid);
   PlatformThread::SetName(threadName);
 
@@ -1075,8 +1087,8 @@ void SandboxBroker::ThreadMain(void) {
   }
 }
 
-void SandboxBroker::AuditPermissive(int aOp, int aFlags, int aPerms,
-                                    const char* aPath) {
+void SandboxBroker::AuditPermissive(int aOp, int aFlags, uint64_t aId,
+                                    int aPerms, const char* aPath) {
   MOZ_RELEASE_ASSERT(SandboxInfo::Get().Test(SandboxInfo::kPermissive));
 
   struct stat statBuf;
@@ -1090,15 +1102,21 @@ void SandboxBroker::AuditPermissive(int aOp, int aFlags, int aPerms,
       "SandboxBroker: would have denied op=%s rflags=%o perms=%d path=%s for "
       "pid=%d permissive=1; real status",
       OperationDescription[aOp], aFlags, aPerms, aPath, mChildPid);
+  SandboxProfiler::ReportAudit("SandboxBroker::AuditPermissive",
+                               OperationDescription[aOp], aFlags, aId, aPerms,
+                               aPath, mChildPid);
 }
 
-void SandboxBroker::AuditDenial(int aOp, int aFlags, int aPerms,
+void SandboxBroker::AuditDenial(int aOp, int aFlags, uint64_t aId, int aPerms,
                                 const char* aPath) {
   if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
     SANDBOX_LOG(
         "SandboxBroker: denied op=%s rflags=%o perms=%d path=%s for pid=%d",
         OperationDescription[aOp], aFlags, aPerms, aPath, mChildPid);
   }
+  SandboxProfiler::ReportAudit("SandboxBroker::AuditDenial",
+                               OperationDescription[aOp], aFlags, aId, aPerms,
+                               aPath, mChildPid);
 }
 
 }  // namespace mozilla

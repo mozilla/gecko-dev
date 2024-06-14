@@ -24,6 +24,7 @@ EXPORTS.mozilla += [
     "Sandbox.h",
     "SandboxInfo.h",
     "SandboxProfiler.h",
+    "SandboxProfilerObserver.h",
 ]
 
 UNIFIED_SOURCES += [

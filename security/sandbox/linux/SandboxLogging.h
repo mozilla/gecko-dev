@@ -33,6 +33,8 @@
 
 #include <errno.h>
 
+#include "SandboxProfiler.h"
+
 namespace mozilla {
 // Logs the formatted string (marked with "error" severity, if supported).
 void SandboxLogError(const char* aMessage);
@@ -60,6 +62,7 @@ ssize_t GetLibcErrorName(char* aBuf, size_t aSize, int aErr);
     char _sandboxLogBuf[SANDBOX_LOG_LEN];                      \
     ::base::strings::SafeSPrintf(_sandboxLogBuf, fmt, ##args); \
     ::mozilla::SandboxLogError(_sandboxLogBuf);                \
+    ::mozilla::SandboxProfiler::ReportLog(_sandboxLogBuf);     \
   } while (0)
 
 #define SANDBOX_LOG_WITH_ERROR(errnum, fmt, args...)                       \
@@ -73,6 +76,7 @@ ssize_t GetLibcErrorName(char* aBuf, size_t aSize, int aErr);
                                   errnum);                                 \
     }                                                                      \
     ::mozilla::SandboxLogError(_sandboxLogBuf);                            \
+    ::mozilla::SandboxProfiler::ReportLog(_sandboxLogBuf);                 \
   } while (0)
 
 #define SANDBOX_LOG_ERRNO(fmt, args...) \

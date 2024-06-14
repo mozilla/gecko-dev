@@ -11,9 +11,11 @@
 #include "SandboxChrootProto.h"
 #include "SandboxFilter.h"
 #include "SandboxInternal.h"
-#include "SandboxLogging.h"
 #include "SandboxOpenedFiles.h"
 #include "SandboxReporterClient.h"
+
+#include "SandboxProfilerChild.h"
+#include "SandboxLogging.h"
 
 #include <dirent.h>
 #ifdef NIGHTLY_BUILD
@@ -574,6 +576,33 @@ static void SandboxLateInit() {
   }
 
   RunGlibcLazyInitializers();
+
+  // This will run on main thread before  it is in a signal-handler context, to
+  // make sure rprofiler pointers are properly initialized (and send a marker
+  // with a stack if the profiler is already running) on the main thread for
+  // later use (read-only) on other threads.
+  //
+  // If profiler is already started (e.g., MOZ_PROFILER_STARTUP=1) the following
+  // will be instantiated, but if the profiler is not yet started, then it is a
+  // no-op and rely on "profiler-started" observer from
+  // RegisterProfilerObserversForSandboxProfiler:
+  //
+  // This will create:
+  //  - pointers to uprofiler to make use of the profiler
+  //  - a SandboxProfiler
+  //  - a MPSCQueue
+  //  - a std::thread
+  //
+  // So that later usage of uprofiler under SIGSYS context can:
+  //  - safely (i.e., no alloc etc.) take a stack
+  //  - copy it over to the queue
+  //  - thread polling from the queue in a more favorable context will be able
+  //    to do what is required to finish sending to the profiler
+
+  // If the profiler is not running those are no-op
+  SandboxProfiler::Create();
+  const void* top = CallerPC();
+  SandboxProfiler::ReportInit(top);
 }
 
 // Common code for sandbox startup.
@@ -813,5 +842,9 @@ bool SetSandboxCrashOnError(bool aValue) {
   gSandboxCrashOnError = aValue;
   return oldValue;
 }
+
+void DestroySandboxProfiler() { SandboxProfiler::Shutdown(); }
+
+void CreateSandboxProfiler() { SandboxProfiler::Create(); }
 
 }  // namespace mozilla

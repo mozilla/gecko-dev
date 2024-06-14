@@ -71,6 +71,12 @@ MOZ_EXPORT void SetUtilitySandbox(int aBroker, ipc::SandboxingKind aKind);
 // This will return current value and set the aValue we pass
 MOZ_EXPORT bool SetSandboxCrashOnError(bool aValue);
 
+// Call SandboxProfiler::Create to make sure SandboxProfiler exists if it should
+// exists, i.e., profiler symbols were found and the profiler is running
+MOZ_EXPORT void CreateSandboxProfiler();
+
+MOZ_EXPORT void DestroySandboxProfiler();
+
 }  // namespace mozilla
 
 #endif  // mozilla_Sandbox_h
