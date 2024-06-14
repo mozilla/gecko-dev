@@ -117,7 +117,6 @@ import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.kotlin.getOrigin
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import mozilla.components.support.locale.ActivityContextWrapper
-import mozilla.components.support.utils.ext.isLandscape
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.FeatureFlags
@@ -157,6 +156,7 @@ import org.mozilla.fenix.components.toolbar.navbar.BottomToolbarContainerView
 import org.mozilla.fenix.components.toolbar.navbar.BrowserNavBar
 import org.mozilla.fenix.components.toolbar.navbar.EngineViewClippingBehavior
 import org.mozilla.fenix.components.toolbar.navbar.ToolbarContainerView
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.crashes.CrashContentIntegration
 import org.mozilla.fenix.customtabs.ExternalAppBrowserActivity
@@ -1294,12 +1294,6 @@ abstract class BaseBrowserFragment :
             swipeRefreshParams.bottomMargin = bottomToolbarHeight
         }
     }
-
-    /**
-     * We don't show the navigation bar for tablets and in landscape mode.
-     */
-    private fun shouldAddNavigationBar(context: Context) =
-        IncompleteRedesignToolbarFeature(context.settings()).isEnabled && !context.isLandscape() && !isTablet()
 
     @Suppress("LongMethod")
     private fun initializeNavBar(
