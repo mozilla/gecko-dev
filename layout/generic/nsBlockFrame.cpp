@@ -6368,7 +6368,7 @@ void nsBlockFrame::RemoveFloat(nsIFrame* aFloat) {
     MOZ_ASSERT(
         (GetOverflowOutOfFlows() &&
          GetOverflowOutOfFlows()->ContainsFrame(aFloat)) ||
-            (GetPushedFloats() && GetPushedFloats()->ContainsFrame(aFloat)),
+            (HasPushedFloats() && GetPushedFloats()->ContainsFrame(aFloat)),
         "aFloat is not our child or on an unexpected frame list");
   }
 #endif
@@ -6379,13 +6379,9 @@ void nsBlockFrame::RemoveFloat(nsIFrame* aFloat) {
 
   nsFrameList* list = GetPushedFloats();
   if (list && list->ContinueRemoveFrame(aFloat)) {
-#if 0
-    // XXXmats not yet - need to investigate BlockReflowState::mPushedFloats
-    // first so we don't leave it pointing to a deleted list.
     if (list->IsEmpty()) {
-      delete RemovePushedFloats();
+      StealPushedFloats()->Delete(PresShell());
     }
-#endif
     return;
   }
 
@@ -7388,14 +7384,8 @@ bool nsBlockFrame::HasPushedFloatsFromPrevContinuation() const {
   }
 #endif
 
-  // We may have a pending push of pushed floats too:
-  if (HasPushedFloats()) {
-    // XXX we can return 'true' here once we make HasPushedFloats
-    // not lie.  (see nsBlockFrame::RemoveFloat)
-    auto* pushedFloats = GetPushedFloats();
-    return pushedFloats && !pushedFloats->IsEmpty();
-  }
-  return false;
+  // We may have a pending push of pushed floats, too.
+  return HasPushedFloats();
 }
 
 //////////////////////////////////////////////////////////////////////
