@@ -114,8 +114,7 @@ struct UprofilerFuncPtrs {
 static void register_thread_noop(const char* aName, void* aGuessStackTop) {
   /* no-op */
 }
-static void unregister_thread_noop() { /* no-op */
-}
+static void unregister_thread_noop() { /* no-op */ }
 static void simple_event_marker_noop(const char* name, const char category,
                                      char phase, int num_args,
                                      const char** arg_names,
@@ -144,12 +143,9 @@ static bool backtrace_into_buffer_noop(NativeStack* stack,
 }
 
 static void native_backtrace_noop(const void* top,
-                                  NativeStack* stack) { /* no-op */
-}
+                                  NativeStack* stack) { /* no-op */ }
 
-static bool is_active_noop() { /* no-op */
-  return false;
-}
+static bool is_active_noop() { /* no-op */ return false; }
 
 #pragma GCC diagnostic pop
 
