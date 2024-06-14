@@ -2158,9 +2158,23 @@ gfx::SurfaceFormat VideoFrame::Format::ToSurfaceFormat() const {
   gfx::SurfaceFormat format = gfx::SurfaceFormat::UNKNOWN;
   switch (mFormat) {
     case VideoPixelFormat::I420:
+    case VideoPixelFormat::I420P10:
+    case VideoPixelFormat::I420P12:
     case VideoPixelFormat::I420A:
+    case VideoPixelFormat::I420AP10:
+    case VideoPixelFormat::I420AP12:
     case VideoPixelFormat::I422:
+    case VideoPixelFormat::I422P10:
+    case VideoPixelFormat::I422P12:
+    case VideoPixelFormat::I422A:
+    case VideoPixelFormat::I422AP10:
+    case VideoPixelFormat::I422AP12:
     case VideoPixelFormat::I444:
+    case VideoPixelFormat::I444P10:
+    case VideoPixelFormat::I444P12:
+    case VideoPixelFormat::I444A:
+    case VideoPixelFormat::I444AP10:
+    case VideoPixelFormat::I444AP12:
     case VideoPixelFormat::NV12:
       // Not yet support for now.
       break;
