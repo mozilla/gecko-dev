@@ -11,9 +11,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.navigation.NavController
-import io.mockk.Runs
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.mockkStatic
@@ -379,7 +377,6 @@ class BrowserFragmentTest {
         browserFragment.leadingAction = leadingAction
         browserFragment._browserToolbarView = browserToolbarView
         every { browserFragment.browserToolbarView.view } returns browserToolbar
-        every { browserFragment.browserToolbarView.updateMenuVisibility(any()) } just Runs
 
         mockkObject(ThemeManager.Companion)
         every { ThemeManager.resolveAttribute(any(), context) } returns mockk(relaxed = true)
@@ -407,7 +404,6 @@ class BrowserFragmentTest {
         browserFragment.leadingAction = leadingAction
         browserFragment._browserToolbarView = browserToolbarView
         every { browserFragment.browserToolbarView.view } returns browserToolbar
-        every { browserFragment.browserToolbarView.updateMenuVisibility(any()) } just Runs
 
         mockkObject(ThemeManager.Companion)
         every { ThemeManager.resolveAttribute(any(), context) } returns mockk(relaxed = true)
@@ -434,7 +430,6 @@ class BrowserFragmentTest {
         browserFragment.leadingAction = leadingAction
         browserFragment._browserToolbarView = browserToolbarView
         every { browserFragment.browserToolbarView.view } returns browserToolbar
-        every { browserFragment.browserToolbarView.updateMenuVisibility(any()) } just Runs
 
         mockkObject(ThemeManager.Companion)
         every { ThemeManager.resolveAttribute(any(), context) } returns mockk(relaxed = true)

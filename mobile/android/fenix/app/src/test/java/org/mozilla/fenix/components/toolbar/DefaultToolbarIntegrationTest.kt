@@ -43,6 +43,7 @@ class DefaultToolbarIntegrationTest {
             sessionId = null,
             isPrivate = false,
             interactor = mockk(),
+            isNavBarEnabled = false,
         )
     }
 

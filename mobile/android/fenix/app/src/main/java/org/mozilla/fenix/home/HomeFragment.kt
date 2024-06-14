@@ -84,6 +84,7 @@ import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
+import mozilla.components.support.utils.ext.isLandscape
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.FeatureFlags
@@ -110,7 +111,6 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.BottomToolbarContainerIntegration
 import org.mozilla.fenix.components.toolbar.navbar.BottomToolbarContainerView
 import org.mozilla.fenix.components.toolbar.navbar.HomeNavBar
-import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.components
@@ -552,6 +552,12 @@ class HomeFragment : Fragment() {
             orientation = newConfig.orientation,
         )
     }
+
+    /**
+     * We don't show the navigation bar for tablets and in landscape mode.
+     */
+    private fun shouldAddNavigationBar(context: Context) =
+        IncompleteRedesignToolbarFeature(context.settings()).isEnabled && !context.isLandscape() && !isTablet()
 
     @Suppress("LongMethod")
     private fun initializeNavBar(
