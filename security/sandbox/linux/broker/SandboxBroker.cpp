@@ -856,7 +856,7 @@ void SandboxBroker::ThreadMain(void) {
     } else if (permissive || perms & MAY_ACCESS) {
       // If the operation was only allowed because of permissive mode, log it.
       if (permissive && !(perms & MAY_ACCESS)) {
-        AuditPermissive(req.mOp, req.mFlags, perms, pathBuf);
+        AuditPermissive(req.mOp, req.mFlags, req.mId, perms, pathBuf);
       }
 
       switch (req.mOp) {
@@ -873,7 +873,7 @@ void SandboxBroker::ThreadMain(void) {
               resp.mError = -errno;
             }
           } else {
-            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+            AuditDenial(req.mOp, req.mFlags, req.mId, perms, pathBuf);
           }
           break;
 
@@ -885,7 +885,7 @@ void SandboxBroker::ThreadMain(void) {
               resp.mError = -errno;
             }
           } else {
-            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+            AuditDenial(req.mOp, req.mFlags, req.mId, perms, pathBuf);
           }
           break;
 
@@ -908,7 +908,7 @@ void SandboxBroker::ThreadMain(void) {
               resp.mError = -errno;
             }
           } else {
-            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+            AuditDenial(req.mOp, req.mFlags, req.mId, perms, pathBuf);
           }
           break;
 
@@ -921,7 +921,7 @@ void SandboxBroker::ThreadMain(void) {
               resp.mError = -errno;
             }
           } else {
-            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+            AuditDenial(req.mOp, req.mFlags, req.mId, perms, pathBuf);
           }
           break;
 
@@ -933,7 +933,7 @@ void SandboxBroker::ThreadMain(void) {
               resp.mError = -errno;
             }
           } else {
-            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+            AuditDenial(req.mOp, req.mFlags, req.mId, perms, pathBuf);
           }
           break;
 
@@ -951,7 +951,7 @@ void SandboxBroker::ThreadMain(void) {
             if (lstat(pathBuf, &sb) == 0) {
               resp.mError = -EEXIST;
             } else {
-              AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+              AuditDenial(req.mOp, req.mFlags, req.mId, perms, pathBuf);
             }
           }
           break;
@@ -964,7 +964,7 @@ void SandboxBroker::ThreadMain(void) {
               resp.mError = -errno;
             }
           } else {
-            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+            AuditDenial(req.mOp, req.mFlags, req.mId, perms, pathBuf);
           }
           break;
 
@@ -976,7 +976,7 @@ void SandboxBroker::ThreadMain(void) {
               resp.mError = -errno;
             }
           } else {
-            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+            AuditDenial(req.mOp, req.mFlags, req.mId, perms, pathBuf);
           }
           break;
 
@@ -1028,7 +1028,7 @@ void SandboxBroker::ThreadMain(void) {
               resp.mError = -errno;
             }
           } else {
-            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+            AuditDenial(req.mOp, req.mFlags, req.mId, perms, pathBuf);
           }
           break;
 
@@ -1043,13 +1043,13 @@ void SandboxBroker::ThreadMain(void) {
               resp.mError = -errno;
             }
           } else {
-            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+            AuditDenial(req.mOp, req.mFlags, req.mId, perms, pathBuf);
           }
           break;
       }
     } else {
       MOZ_ASSERT(perms == 0);
-      AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+      AuditDenial(req.mOp, req.mFlags, req.mId, perms, pathBuf);
     }
 
     const size_t numIO = ios[1].iov_len > 0 ? 2 : 1;
