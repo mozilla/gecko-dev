@@ -148,7 +148,6 @@ const BITS_IDLE_POLL_RATE_MS = 1000;
 const BITS_ACTIVE_POLL_RATE_MS = 200;
 
 // The values below used by this code are from common/updatererrors.h
-const OK = 0;
 const WRITE_ERROR = 7;
 const ELEVATION_CANCELED = 9;
 const SERVICE_UPDATER_COULD_NOT_BE_STARTED = 24;
@@ -1608,13 +1607,7 @@ function readStringFromFile(file) {
  * returned and AUS.currentState will be transitioned.
  */
 function handleUpdateFailure(update) {
-  // Only fall back if we haven't tried installing without service
-  if (
-    WRITE_ERRORS.includes(update.errorCode) &&
-    update.selectedPatch
-      .QueryInterface(Ci.nsIWritablePropertyBag)
-      .getProperty("installResultNoService") == null
-  ) {
+  if (WRITE_ERRORS.includes(update.errorCode)) {
     LOG(
       "handleUpdateFailure - Failure is a write error. Setting state to pending"
     );
@@ -2894,15 +2887,6 @@ export class UpdateService {
       return;
     }
 
-    let serviceUsed = false;
-    if (
-      lazy.UM.internal.readyUpdate &&
-      (lazy.UM.internal.readyUpdate.state == STATE_APPLIED_SERVICE ||
-        lazy.UM.internal.readyUpdate.state == STATE_PENDING_SERVICE)
-    ) {
-      serviceUsed = true;
-    }
-
     let channelChanged = updates => {
       for (let update of updates) {
         if (update.channel != lazy.UpdateUtils.UpdateChannel) {
@@ -3127,18 +3111,6 @@ export class UpdateService {
     }
 
     if (status != STATE_SUCCEEDED) {
-      // Record whether service is used to install this update
-      let installResult = update.errorCode ?? INVALID_UPDATER_STATE_CODE;
-
-      if (serviceUsed) {
-        update.selectedPatch
-          .QueryInterface(Ci.nsIWritablePropertyBag)
-          .setProperty("installResultWithService", installResult);
-      } else {
-        update.selectedPatch
-          .QueryInterface(Ci.nsIWritablePropertyBag)
-          .setProperty("installResultNoService", installResult);
-      }
       // Rotate the update logs so the update log isn't removed. By passing
       // false the patch directory won't be removed.
       cleanUpReadyUpdateDir(false);
@@ -3150,16 +3122,6 @@ export class UpdateService {
       }
       update.statusText =
         lazy.gUpdateBundle.GetStringFromName("installSuccess");
-
-      if (serviceUsed) {
-        update.selectedPatch
-          .QueryInterface(Ci.nsIWritablePropertyBag)
-          .setProperty("installResultWithService", OK);
-      } else {
-        update.selectedPatch
-          .QueryInterface(Ci.nsIWritablePropertyBag)
-          .setProperty("installResultNoService", OK);
-      }
 
       // The only time that update is not a reference to readyUpdate is when
       // readyUpdate is null.
