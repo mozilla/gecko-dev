@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
+  --panelui-subview-transition-duration: 150ms;
+
   --panel-item-hover-bgcolor: var(--button-hover-bgcolor);
   --panel-item-active-bgcolor: var(--button-active-bgcolor);
   --panel-banner-item-color: var(--button-color);
@@ -170,9 +172,23 @@ menupopup {
   font: menu;
 }
 
+panelmultiview {
+  align-items: flex-start;
+  min-width: 0;
+  min-height: 0;
+
+  &[transitioning] {
+    pointer-events: none;
+  }
+}
+
 panelview {
   flex-direction: column;
   padding: 0;
+
+  &:not([visible]) {
+    visibility: collapse;
+  }
 
   /* Prevent a scrollbar from appearing while the animation for transitioning from
     one view to another runs, which would otherwise happen if the new view has
@@ -181,6 +197,30 @@ panelview {
   &[transitioning] > .panel-viewcontainer > .panel-viewstack > panelview > .panel-subview-body {
     overflow-y: hidden;
   }
+}
+
+.panel-viewcontainer {
+  overflow: hidden;
+  flex-shrink: 0;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+
+  &[panelopen] {
+    transition-property: height;
+    transition-timing-function: var(--animation-easing-function);
+    transition-duration: var(--panelui-subview-transition-duration);
+    will-change: height;
+  }
+
+  &.offscreen {
+    display: block;
+  }
+}
+
+.panel-viewstack {
+  overflow: visible;
+  transition: height var(--panelui-subview-transition-duration);
 }
 
 .panel-subview-body {
@@ -233,6 +273,11 @@ panelview {
     fill: currentColor;
     padding: var(--arrowpanel-header-info-icon-padding);
   }
+}
+
+#widget-overflow-list:empty + #widget-overflow-fixed-separator,
+#widget-overflow:not([hasfixeditems]) #widget-overflow-fixed-separator {
+  display: none;
 }
 
 #wrapper-edit-controls:is([place="palette"],[place="panel"]) > #edit-controls,

@@ -4,56 +4,6 @@
 
 @namespace html url("http://www.w3.org/1999/xhtml");
 
-panelmultiview {
-  align-items: flex-start;
-  min-width: 0;
-  min-height: 0;
-}
-
-panelmultiview[transitioning] {
-  pointer-events: none;
-}
-
-panelview {
-  flex-direction: column;
-}
-
-panelview:not([visible]) {
-  visibility: collapse;
-}
-
-.panel-viewcontainer {
-  overflow: hidden;
-  flex-shrink: 0;
-  min-width: 0;
-  min-height: 0;
-  max-height: 100%;
-}
-
-.panel-viewcontainer[panelopen] {
-  transition-property: height;
-  transition-timing-function: var(--animation-easing-function);
-  transition-duration: var(--panelui-subview-transition-duration);
-  will-change: height;
-}
-
-.panel-viewcontainer.offscreen {
-  display: block;
-}
-
-.panel-viewstack {
-  overflow: visible;
-  transition: height var(--panelui-subview-transition-duration);
-}
-
-/* The ids are ugly, but this should be reasonably performant, and
- * using a tagname as the last item would be less so.
- */
-#widget-overflow-list:empty + #widget-overflow-fixed-separator,
-#widget-overflow:not([hasfixeditems]) #widget-overflow-fixed-separator {
-  display: none;
-}
-
 /* Rules to help integrate WebExtension buttons */
 
 .webextension-browser-action > .toolbarbutton-badge-stack > .toolbarbutton-icon {
