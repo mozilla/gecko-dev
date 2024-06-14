@@ -1940,7 +1940,18 @@ void VideoFrame::CloseIfNeeded() {
  *  V: V1    V2      => 1/2 Y's width, 1/2 Y's height
  *
  * If Y plane's (width, height) is (640, 480), then both U and V planes' size is
- * (320, 240).
+ * (320, 240), and the total bytes of Y plane and U/V planes are 640 x 480 and
+ * 320 x 240 respectively
+ *
+ * High bit-depth variants:
+ * 1) I420P10: 10-bit YUV 4:2:0 Planar, 10 bits per channel, but often stored in
+ *    16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of Y plane and U/V planes are 640 x 480 x 2 and 320 x 240 x 2
+ *    respectively
+ * 2) I420P12: 12-bit YUV 4:2:0 Planar, 12 bits per channel, but often stored in
+ *    16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of Y plane and U/V planes are 640 x 480 x 2 and 320 x 240 x 2
+ *    respectively
  *
  * NV12 - 2 planes: Y, UV (YUV 4:2:0 with interleaved UV)
  * ------
@@ -1964,7 +1975,17 @@ void VideoFrame::CloseIfNeeded() {
  *     A5 A6 A7 A8
  *
  * If Y plane's (width, height) is (640, 480), then A plane's size is (640,
- * 480), and both U and V planes' size is (320, 240).
+ * 480), and both U and V planes' size is (320, 240)
+ *
+ * High bit-depth variants:
+ * 1) I420AP10: 10-bit YUV 4:2:0 Planar with Alpha, 10 bits per channel, but
+ *    often stored in 16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of Y/A plane and U/V planes are 640 x 480 x 2 and 320 x 240 x
+ *    2 respectively
+ * 2) I420AP12: 12-bit YUV 4:2:0 Planar with Alpha, 12 bits per channel, but
+ *    often stored in 16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of Y/A plane and U/V planes are 640 x 480 x 2 and 320 x 240 x
+ *    2 respectively
  *
  * I422 - 3 planes: Y, U, V (YUV 4:2:2)
  * ------
@@ -1977,7 +1998,41 @@ void VideoFrame::CloseIfNeeded() {
  *     V3    V4
  *
  * If Y plane's (width, height) is (640, 480), then both U and V planes' size is
- * (320, 480).
+ * (320, 480), and the total bytes of Y plane and U/V planes are 640 x 480 and
+ * 320 x 480 respectively
+ *
+ * High bit-depth variants:
+ * 1) I422P10: 10-bit YUV 4:2:2 Planar, 10 bits per channel, but often stored in
+ *    16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of Y plane and U/V planes are 640 x 480 x 2 and 320 x 480 x 2
+ *    respectively
+ * 2) I422P12: 12-bit YUV 4:2:2 Planar, 12 bits per channel, but often stored in
+ *    16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of Y plane and U/V planes are 640 x 480 x 2 and 320 x 480 x 2
+ *    respectively
+ *
+ * I422A - 4 planes: Y, U, V, A (YUV 4:2:2 with Alpha)
+ * ------
+ *     <- width ->
+ *  Y: Y1 Y2 Y3 Y4 ^ height
+ *     Y5 Y6 Y7 Y8 v
+ *  U: U1    U2      => 1/2 Y's width, Y's height
+ *  V: V1    V2      => 1/2 Y's width, Y's height
+ *  A: A1 A2 A3 A4   => Y's width, Y's height
+ *     A5 A6 A7 A8
+ *
+ * If Y plane's (width, height) is (640, 480), then A plane's size is (640,
+ * 480), and both U and V planes' size is (320, 480)
+ *
+ * High bit-depth variants:
+ * 1) I422AP10: 10-bit YUV 4:2:2 Planar with Alpha, 10 bits per channel, but
+ *    often stored in 16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of Y/A plane and U/V planes are 640 x 480 x 2 and 320 x 480 x
+ *    2 respectively
+ * 2) I422AP12: 12-bit YUV 4:2:2 Planar with Alpha, 12 bits per channel, but
+ *    often stored in 16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of Y/A plane and U/V planes are 640 x 480 x 2 and 320 x 480 x
+ *    2 respectively
  *
  * I444 - 3 planes: Y, U, V (YUV 4:4:4)
  * ------
@@ -1990,7 +2045,38 @@ void VideoFrame::CloseIfNeeded() {
  *     V5 V6 V7 V8
  *
  * If Y plane's (width, height) is (640, 480), then both U and V planes' size is
- * (640, 480).
+ * (640, 480), and the total bytes of Y plane and U/V planes are 640 x 480 each
+ *
+ * High bit-depth variants:
+ * 1) I444P10: 10-bit YUV 4:4:4 Planar, 10 bits per channel, but often stored in
+ *    16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of all planes are 640 x 480 x 2
+ * 2) I444P12: 12-bit YUV 4:4:4 Planar, 12 bits per channel, but often stored in
+ *    16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of all planes are 640 x 480 x 2
+ *
+ * I444A - 4 planes: Y, U, V, A (YUV 4:4:4 with Alpha)
+ * ------
+ *     <- width ->
+ *  Y: Y1 Y2 Y3 Y4 ^ height
+ *     Y5 Y6 Y7 Y8 v
+ *  U: U1 U2 U3 U4   => Y's width, Y's height
+ *     U5 U6 U7 U8
+ *  V: V1 V2 V3 V4   => Y's width, Y's height
+ *     V5 V6 V7 V8
+ *  A: A1 A2 A3 A4   => Y's width, Y's height
+ *     A5 A6 A7 A8
+ *
+ * If Y plane's (width, height) is (640, 480), then A plane's size is (640,
+ * 480), and both U and V planes' size is (640, 480).
+ *
+ * High bit-depth variants:
+ * 1) I444AP10: 10-bit YUV 4:4:4 Planar with Alpha, 10 bits per channel, but
+ *    often stored in 16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of all planes are 640 x 480 x 2
+ * 2) I444AP12: 12-bit YUV 4:4:4 Planar with Alpha, 12 bits per channel, but
+ *    often stored in 16-bit (2-byte) containers for alignment purposes
+ *    Total bytes of all planes are 640 x 480 x 2
  *
  * RGBA - 1 plane encoding 3 colors: Red, Green, Blue, and an Alpha value
  * ------
