@@ -1256,6 +1256,7 @@ Family* FontList::FindFamily(const nsCString& aName, bool aPrimaryNameOnly) {
       // to this code, and return.
       pfl->mAliasTable.Clear();
       pfl->mLocalNameTable.Clear();
+      mFaceNamesRead.Clear();
       return nullptr;
     }
 
@@ -1278,8 +1279,15 @@ Family* FontList::FindFamily(const nsCString& aName, bool aPrimaryNameOnly) {
       return nullptr;
     }
     nsAutoCString base(Substring(aName, 0, index));
-    if (BinarySearchIf(families, 0, header.mFamilyCount,
+    auto familyCount = header.mFamilyCount;
+    if (BinarySearchIf(families, 0, familyCount,
                        FamilyNameComparator(this, base), &match)) {
+      // Check to see if we have already read the face names for this base
+      // family. Note: EnsureLengthAtLeast will default new entries to false.
+      mFaceNamesRead.EnsureLengthAtLeast(familyCount);
+      if (mFaceNamesRead[match]) {
+        return nullptr;
+      }
       // This may be a possible base family to satisfy the search; call
       // ReadFaceNamesForFamily and see if the desired name ends up in
       // mAliasTable.
@@ -1290,6 +1298,7 @@ Family* FontList::FindFamily(const nsCString& aName, bool aPrimaryNameOnly) {
       // alias list is ready, then discarded.
       Family* baseFamily = &families[match];
       pfl->ReadFaceNamesForFamily(baseFamily, false);
+      mFaceNamesRead[match] = true;
       if (auto lookup = pfl->mAliasTable.Lookup(aName)) {
         if (lookup.Data()->mFaces.Length() != baseFamily->NumFaces()) {
           // If the alias family doesn't have all the faces of the base family,
