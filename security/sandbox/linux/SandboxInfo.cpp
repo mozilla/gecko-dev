@@ -210,6 +210,9 @@ SandboxInfo::SandboxInfo() {
   if (getenv("MOZ_SANDBOX_LOGGING")) {
     flags |= kVerbose;
   }
+  if (getenv("MOZ_SANDBOX_LOGGING_FOR_TESTS")) {
+    flags |= kVerboseTests;
+  }
 
   mFlags = static_cast<Flags>(flags);
 }
