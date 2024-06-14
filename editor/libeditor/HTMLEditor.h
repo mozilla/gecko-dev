@@ -4501,8 +4501,8 @@ class HTMLEditor final : public EditorBase,
   ManualNACPtr mRemoveRowButton;
   ManualNACPtr mAddRowAfterButton;
 
-  void AddMouseClickListener(Element* aElement);
-  void RemoveMouseClickListener(Element* aElement);
+  void AddPointerClickListener(Element* aElement);
+  void RemovePointerClickListener(Element* aElement);
 
   bool mDisabledLinkHandling = false;
   bool mOldLinkHandlingEnabled = false;
