@@ -96,6 +96,11 @@ child:
 
   async RestoreTabContent(nullable SessionStoreRestoreData aData) returns (bool success);
 
+  // This notifies a window that a credential that is effective for its most recent
+  // call to NotifyPendingIdentityCredentialDiscovery has been stored, so it can
+  // resolve a pending Promise for getting that credential.
+  async NotifyStoredIdentityCredential(IPCIdentityCredential aIdentityCredential);
+
 both:
   async RawMessage(JSActorMessageMeta aMetadata, ClonedMessageData? aData,
                    ClonedMessageData? aStack);
@@ -213,6 +218,14 @@ parent:
   async CollectIdentityCredentialFromCredentialStore(IdentityCredentialRequestOptions aOptions)
       returns (IPCIdentityCredential[] identityCredential);
   async StoreIdentityCredential(IPCIdentityCredential aCredential)
+      returns (nsresult rv);
+
+  // This notifies the main process that this window is going to open a window to try to
+  // get the user logged into an account for this identity credential request.
+  // The main process only returns when it has stored this credential request information
+  // so that it can tell the client process when a credential that works for this request
+  // is stored via NotifyStoredIdentityCredential.
+  async NotifyPendingIdentityCredentialDiscovery(IdentityCredentialRequestOptions aOptions)
       returns (nsresult rv);
 
   async GetStorageAccessPermission() returns(uint32_t permission_action);
