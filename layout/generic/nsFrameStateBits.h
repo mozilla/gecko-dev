@@ -577,15 +577,15 @@ FRAME_STATE_BIT(Block, 60, NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS)
 // appropriate lines dirty.
 FRAME_STATE_BIT(Block, 61, NS_BLOCK_LOOK_FOR_DIRTY_FRAMES)
 
-// Are our cached intrinsic widths intrinsic widths for font size
-// inflation?  i.e., what was the current state of
-// GetPresContext()->mInflationDisabledForShrinkWrap at the time they
-// were computed?
-// nsBlockFrame is the only thing that caches intrinsic widths that
-// needs to track this because it's the only thing that caches intrinsic
-// widths that lives inside of things (form controls) that do intrinsic
-// sizing with font inflation enabled.
-FRAME_STATE_BIT(Block, 62, NS_BLOCK_FRAME_INTRINSICS_INFLATED)
+// Are our cached intrinsic inline sizes for font size inflation? i.e., what was
+// the current state of GetPresContext()->mInflationDisabledForShrinkWrap at the
+// time they were computed?
+//
+// nsBlockFrame is the only thing that caches intrinsic inline sizes that needs
+// to track this because it's the only thing that caches intrinsic inline sizes
+// that lives inside of things (form controls) that do intrinsic sizing with
+// font inflation enabled.
+FRAME_STATE_BIT(Block, 62, NS_BLOCK_INTRINSICS_INFLATED)
 
 // NS_BLOCK_HAS_FIRST_LETTER_CHILD means that there is an inflow first-letter
 // frame among the block's descendants. If there is a floating first-letter
