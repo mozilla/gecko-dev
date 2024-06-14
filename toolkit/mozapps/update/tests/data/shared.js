@@ -18,6 +18,8 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 ChromeUtils.defineESModuleGetters(this, {
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
   ctypes: "resource://gre/modules/ctypes.sys.mjs",
+  TelemetryArchiveTesting:
+    "resource://testing-common/TelemetryArchiveTesting.sys.mjs",
 });
 
 const PREF_APP_UPDATE_AUTO = "app.update.auto";
@@ -932,4 +934,25 @@ async function continueFileHandler(leafName) {
         continueFile.path
     );
   });
+}
+
+async function waitForUpdatePing(archiveChecker, expectedProperties) {
+  // We cannot control when the ping will be generated/archived after we trigger
+  // an update, so let's make sure to have one before moving on with validation.
+  let updatePing;
+  await TestUtils.waitForCondition(
+    async function () {
+      // Check that the ping made it into the Telemetry archive.
+      // The test data is defined in ../data/sharedUpdateXML.js
+      updatePing = await archiveChecker.promiseFindPing(
+        "update",
+        expectedProperties
+      );
+      return !!updatePing;
+    },
+    "Wait for Update Ping to be generated",
+    500,
+    100
+  );
+  return updatePing;
 }

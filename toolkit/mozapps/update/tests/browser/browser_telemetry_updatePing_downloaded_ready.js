@@ -3,10 +3,6 @@
 
 "use strict";
 
-const { TelemetryArchiveTesting } = ChromeUtils.importESModule(
-  "resource://testing-common/TelemetryArchiveTesting.sys.mjs"
-);
-
 /**
  * Test that UpdatePing telemetry with a payload reason of ready is sent for a
  * staged update.
@@ -25,23 +21,10 @@ add_task(async function telemetry_updatePing_ready() {
   let updateParams = "";
   await runTelemetryUpdateTest(updateParams, "update-downloaded");
 
-  // We cannot control when the ping will be generated/archived after we trigger
-  // an update, so let's make sure to have one before moving on with validation.
-  let updatePing;
-  await TestUtils.waitForCondition(
-    async function () {
-      // Check that the ping made it into the Telemetry archive.
-      // The test data is defined in ../data/sharedUpdateXML.js
-      updatePing = await archiveChecker.promiseFindPing("update", [
-        [["payload", "reason"], "ready"],
-        [["payload", "targetBuildId"], "20080811053724"],
-      ]);
-      return !!updatePing;
-    },
-    "Make sure the ping is generated before trying to validate it.",
-    500,
-    100
-  );
+  const updatePing = await waitForUpdatePing(archiveChecker, [
+    [["payload", "reason"], "ready"],
+    [["payload", "targetBuildId"], "20080811053724"],
+  ]);
 
   ok(updatePing, "The 'update' ping must be correctly sent.");
 
