@@ -2674,6 +2674,17 @@ nsStandardURL::Resolve(const nsACString& in, nsACString& out) {
   scheme.mPos = schemePos;
   scheme.mLen = schemeLen;
 
+  // Bug 1873976: For cases involving file:c: against file:
+  if (NS_SUCCEEDED(rv) && protocol == "file"_ns && baseProtocol == "file"_ns) {
+    const char* path = buf.get() + scheme.mPos + scheme.mLen;
+    // For instance: file:c:\foo\bar.html against file:///tmp/mock/path
+    if (path[0] == ':' && IsAsciiAlpha(path[1]) &&
+        (path[2] == ':' || path[2] == '|')) {
+      out = buf;
+      return NS_OK;
+    }
+  }
+
   protocol.Assign(Segment(scheme));
 
   // We need to do backslash replacement for the following cases:
@@ -2768,7 +2779,13 @@ nsStandardURL::Resolve(const nsACString& in, nsACString& out) {
         }
         break;
       default:
-        if (coalesceFlag & NET_COALESCE_DOUBLE_SLASH_IS_ROOT) {
+        if (protocol.IsEmpty() && Scheme() == "file" &&
+            IsAsciiAlpha(realrelpath[0]) && realrelpath[1] == '|') {
+          // For instance, <C|/foo/bar> against <file:///tmp/mock/path>
+          // Treat tmp/mock/C|/foo/bar as /C|/foo/bar
+          // + 1 should account for '/' at the beginning
+          len = mAuthority.mPos + mAuthority.mLen + 1;
+        } else if (coalesceFlag & NET_COALESCE_DOUBLE_SLASH_IS_ROOT) {
           if (Filename().Equals("%2F"_ns, nsCaseInsensitiveCStringComparator)) {
             // if ftp URL ends with %2F then simply
             // append relative part because %2F also
@@ -2792,7 +2809,21 @@ nsStandardURL::Resolve(const nsACString& in, nsACString& out) {
   }
 
   if (resultPath) {
-    net_CoalesceDirs(coalesceFlag, resultPath);
+    constexpr uint32_t slashDriveSpecifierLength = sizeof("/C:") - 1;
+    // starting with file:C:/*
+    // We need to ignore file:C: and begin from /
+    // Note that file:C://* is already handled
+    if (protocol.IsEmpty() && Scheme() == "file") {
+      if (resultPath[0] == '/' && IsAsciiAlpha(resultPath[1]) &&
+          (resultPath[2] == ':' || resultPath[2] == '|')) {
+        resultPath += slashDriveSpecifierLength;
+      }
+    }
+
+    // Edge case: <C|> against <file:///tmp/mock/path>
+    if (resultPath && resultPath[0] == '/') {
+      net_CoalesceDirs(coalesceFlag, resultPath);
+    }
   } else {
     // locate result path
     resultPath = strstr(result, "://");

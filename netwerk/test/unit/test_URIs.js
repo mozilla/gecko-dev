@@ -1047,3 +1047,37 @@ add_task(async function test_bug1843717() {
   uri = Services.io.newURI("foo\\bar#", null, base);
   Assert.equal(uri.spec, "file:///abc/def/foo/bar#");
 });
+
+add_task(async function test_bug1874118() {
+  let base = Services.io.newURI("file:///tmp/mock/path");
+  let uri = Services.io.newURI("file:c:\\\\foo\\\\bar.html", null, base);
+  Assert.equal(uri.spec, "file:///c://foo//bar.html");
+
+  base = Services.io.newURI("file:///tmp/mock/path");
+  uri = Services.io.newURI("file:c|\\\\foo\\\\bar.html", null, base);
+  Assert.equal(uri.spec, "file:///c://foo//bar.html");
+
+  base = Services.io.newURI("file:///C:/");
+  uri = Services.io.newURI("..", null, base);
+  Assert.equal(uri.spec, "file:///C:/");
+
+  base = Services.io.newURI("file:///");
+  uri = Services.io.newURI("C|/hello/../../", null, base);
+  Assert.equal(uri.spec, "file:///C:/");
+
+  base = Services.io.newURI("file:///");
+  uri = Services.io.newURI("/C:/../../", null, base);
+  Assert.equal(uri.spec, "file:///C:/");
+
+  base = Services.io.newURI("file:///");
+  uri = Services.io.newURI("/C://../../", null, base);
+  Assert.equal(uri.spec, "file:///C:/");
+
+  base = Services.io.newURI("file:///tmp/mock/path");
+  uri = Services.io.newURI("C|/foo/bar", null, base);
+  Assert.equal(uri.spec, "file:///C:/foo/bar");
+
+  base = Services.io.newURI("file:///tmp/mock/path");
+  uri = Services.io.newURI("/C|/foo/bar", null, base);
+  Assert.equal(uri.spec, "file:///C:/foo/bar");
+});
