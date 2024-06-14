@@ -1,0 +1,36 @@
+<!doctype html>
+<head>
+<title>Helper to create 'identity' credentials for discovery</title>
+</head>
+<script>
+'use strict';
+
+async function createCredentials() {
+  const queryString = window.location.search;
+  const params = new URLSearchParams(queryString);
+  let identityData = {
+    id: params.get("id"),
+  }
+  if (params.get("origin")) {
+    identityData.effectiveOrigins = [params.get("origin")]
+  }
+  if (params.get("url") == "cors") {
+    identityData.effectiveQueryURL = "https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/cors.py";
+  } else if (params.get("url") == "no-cors") {
+    identityData.effectiveQueryURL = "https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/no-cors.py";
+  }
+  await navigator.credentials.store(await navigator.credentials.create({
+    identity: identityData
+  })).then(() => {
+    if (params.has("postMessage")) {
+      window.opener.postMessage("created", "*");
+    }
+  });
+}
+
+createCredentials().then(() => {
+  window.close();
+})
+
+
+</script>

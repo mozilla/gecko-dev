@@ -1,0 +1,117 @@
+<!doctype html>
+<head>
+<title>Test discovery of 'identity' credentials</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support/helpers.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+  let id = "basic-discovered";
+
+  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, id);
+  SpecialPowers.wrap(document).notifyUserGestureActivation();
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?id=${id}&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}`, loginTarget : "popup"}]}});
+  credentialGotten = await getCredentialPromise;
+  assert_not_equals(credentialGotten, null, "A discovered credential is returned from the CredentialContainer.");
+
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", id);
+}, "Cross-origin identity credential discovery works");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+  let id = "discovered-infer-origin";
+
+  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, id);
+  SpecialPowers.wrap(document).notifyUserGestureActivation();
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?id=${id}&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}`, loginTarget : "popup"}]}});
+  credentialGotten = await getCredentialPromise;
+  assert_not_equals(credentialGotten, null, "A discovered credential is returned from the CredentialContainer.");
+
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", id);
+}, "Origin inferred from loginURL for discovery");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+  let id = "basic-discovered-url";
+
+  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, id);
+  SpecialPowers.wrap(document).notifyUserGestureActivation();
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?id=${id}&url=cors`, loginTarget : "popup", effectiveQueryURL: "https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/cors.py"}]}});
+  credentialGotten = await getCredentialPromise;
+  assert_not_equals(credentialGotten, null, "A discovered credential is returned from the CredentialContainer.");
+
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", id);
+}, "Cross-origin identity credential discovery works using the effectiveQueryURL");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+  let id = "ineffective-right";
+
+  let createdPromise = new Promise((resolve) => {
+    window.addEventListener(
+      "message",
+      (event) => {
+        if (event.data == "created") {
+          resolve();
+        }
+      }
+    );
+  });
+
+  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, id);
+  SpecialPowers.wrap(document).notifyUserGestureActivation();
+  let state = "pending";
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?id=${id}&postMessage&origin=${encodeURIComponent("https://{{hosts[alt][]}}:{{ports[https][0]}}/")}`, loginTarget : "popup"}]}});
+  getCredentialPromise.finally(() => {state = "fulfilled"});
+  await createdPromise;
+  assert_equals(state, "pending", "promise is not fulfilled during discovery window by get.");
+
+  window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?id=force-resolve&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}`);
+  credentialGotten = await getCredentialPromise;
+
+  assert_equals(credentialGotten, null, "Resolved with null because the wrong credential was in the chooser.");
+
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "force-resolve");
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", id);
+}, "Cross-origin identity credential discovery does not resolve with ineffective store from the right origin");
+
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+  let id = "effective-wrong";
+
+  let createdPromise = new Promise((resolve) => {
+    window.addEventListener(
+      "message",
+      (event) => {
+        if (event.data == "created") {
+          resolve();
+        }
+      }
+    );
+  });
+
+  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, id);
+  SpecialPowers.wrap(document).notifyUserGestureActivation();
+  let state = "pending";
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][www]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?id=${id}&postMessage&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}`, loginTarget : "popup"}]}});
+  getCredentialPromise.finally(() => {state = "fulfilled"});
+  await createdPromise;
+  assert_equals(state, "pending", "promise is not fulfilled during discovery window by get.");
+
+  window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?id=force-resolve&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}")}`);
+  credentialGotten = await getCredentialPromise;
+
+  assert_equals(credentialGotten, null, "Resolved with null because the wrong credential was in the chooser.");
+
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "force-resolve");
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", id);
+}, "Cross-origin identity credential discovery does not resolve with effective store from the wrong origin");
+
+</script>
