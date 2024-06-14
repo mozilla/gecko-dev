@@ -37,7 +37,6 @@ class BlockReflowState {
           mHasLineAdjacentToTop(false),
           mBlockNeedsFloatManager(false),
           mIsLineLayoutEmpty(false),
-          mIsFloatListInBlockPropertyTable(false),
           mCanHaveOverflowMarkers(false) {}
 
     // Set in the BlockReflowState constructor when reflowing a "block margin
@@ -85,9 +84,6 @@ class BlockReflowState {
     // Set when nsLineLayout::LineIsEmpty was true at the end of reflowing
     // the current line.
     bool mIsLineLayoutEmpty : 1;
-
-    // Set when our mPushedFloats list is stored on the block's property table.
-    bool mIsFloatListInBlockPropertyTable : 1;
 
     // Set when we need text-overflow or -webkit-line-clamp processing.
     bool mCanHaveOverflowMarkers : 1;
@@ -322,19 +318,12 @@ class BlockReflowState {
   nsSize mContainerSize;
   const nsSize& ContainerSize() const { return mContainerSize; }
 
-  // Continuation out-of-flow float frames that need to move to our
-  // next in flow are placed here during reflow.  It's a pointer to
-  // a frame list stored in the block's property table.
-  nsFrameList* mPushedFloats;
-  // This method makes sure pushed floats are accessible to
-  // StealFrame. Call it before adding any frames to mPushedFloats.
-  void SetupPushedFloatList();
   /**
-   * Append aFloatCont and its next-in-flows within the same block to
-   * mPushedFloats.  aFloatCont should not be on any child list when
-   * making this call.  Its next-in-flows will be removed from
-   * mBlock using StealFrame() before being added to mPushedFloats.
-   * All appended frames will be marked NS_FRAME_IS_PUSHED_FLOAT.
+   * Append aFloatCont and its next-in-flows within the same block to mBlock's
+   * pushed floats list. aFloatCont should not be on any child list when making
+   * this call. Its next-in-flows will be removed from mBlock using StealFrame()
+   * before being added to mBlock's pushed floats list. All appended frames will
+   * be marked NS_FRAME_IS_PUSHED_FLOAT.
    */
   void AppendPushedFloatChain(nsIFrame* aFloatCont);
 

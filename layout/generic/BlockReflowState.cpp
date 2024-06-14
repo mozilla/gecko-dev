@@ -38,7 +38,6 @@ BlockReflowState::BlockReflowState(
       mContentArea(aReflowInput.GetWritingMode()),
       mInsetForBalance(aInset),
       mContainerSize(aReflowInput.ComputedSizeAsContainerIfConstrained()),
-      mPushedFloats(nullptr),
       mOverflowTracker(nullptr),
       mBorderPadding(
           mReflowInput
@@ -406,27 +405,11 @@ void BlockReflowState::ReconstructMarginBefore(nsLineList::iterator aLine) {
   }
 }
 
-void BlockReflowState::SetupPushedFloatList() {
-  MOZ_ASSERT(!mFlags.mIsFloatListInBlockPropertyTable == !mPushedFloats,
-             "flag mismatch");
-  if (!mFlags.mIsFloatListInBlockPropertyTable) {
-    // If we're being re-Reflow'd without our next-in-flow having been
-    // reflowed, some pushed floats from our previous reflow might
-    // still be on our pushed floats list.  However, that's
-    // actually fine, since they'll all end up being stolen and
-    // reordered into the correct order again.
-    // (nsBlockFrame::ReflowDirtyLines ensures that any lines with
-    // pushed floats are reflowed.)
-    mPushedFloats = mBlock->EnsurePushedFloats();
-    mFlags.mIsFloatListInBlockPropertyTable = true;
-  }
-}
-
 void BlockReflowState::AppendPushedFloatChain(nsIFrame* aFloatCont) {
-  SetupPushedFloatList();
+  nsFrameList* pushedFloats = mBlock->EnsurePushedFloats();
   while (true) {
     aFloatCont->AddStateBits(NS_FRAME_IS_PUSHED_FLOAT);
-    mPushedFloats->AppendFrame(mBlock, aFloatCont);
+    pushedFloats->AppendFrame(mBlock, aFloatCont);
     aFloatCont = aFloatCont->GetNextInFlow();
     if (!aFloatCont || aFloatCont->GetParent() != mBlock) {
       break;
