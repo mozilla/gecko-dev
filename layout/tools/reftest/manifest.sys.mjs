@@ -31,9 +31,6 @@ const {
 import { NetUtil } from "resource://gre/modules/NetUtil.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
-const NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX =
-  "@mozilla.org/network/protocol;1?name=";
-
 const RE_PROTOCOL = /^\w+:/;
 const RE_PREF_ITEM = /^(|test-|ref-)pref\((.+?),(.*)\)$/;
 
@@ -612,9 +609,30 @@ function getStreamContent(inputStream) {
 // Build the sandbox for fails-if(), etc., condition evaluation.
 function BuildConditionSandbox(aURL) {
   var sandbox = new Cu.Sandbox(aURL.spec);
-  sandbox.isDebugBuild = g.debug.isDebugBuild;
-  sandbox.isCoverageBuild = g.isCoverageBuild;
+  sandbox.mozinfo = Services.prefs.getStringPref("sandbox.mozinfo", {});
+  let mozinfo = JSON.parse(sandbox.mozinfo);
 
+  sandbox.isDebugBuild = mozinfo.debug;
+  sandbox.isCoverageBuild = mozinfo.ccov;
+
+  // Shortcuts for widget toolkits.
+  sandbox.Android = mozinfo.os == "android";
+  sandbox.cocoaWidget = mozinfo.toolkit == "cocoa";
+  sandbox.gtkWidget = mozinfo.toolkit == "gtk";
+  sandbox.winWidget = mozinfo.toolkit == "windows";
+
+  sandbox.is64Bit = mozinfo.bits == "64";
+  sandbox.AddressSanitizer = mozinfo.asan;
+  sandbox.ThreadSanitizer = mozinfo.tsan;
+
+  sandbox.release_or_beta = mozinfo.release_or_beta;
+
+  // config specific prefs
+  sandbox.appleSilicon = mozinfo.appleSilicon;
+  sandbox.os_version = mozinfo.os_version;
+  sandbox.wayland = mozinfo.display == "wayland";
+
+  // data not using mozinfo
   sandbox.xulRuntime = {};
 
   var gfxInfo =
@@ -627,28 +645,9 @@ function BuildConditionSandbox(aURL) {
     return obj[key];
   };
 
-  try {
-    var windowProtocol = readGfxInfo(gfxInfo, "windowProtocol");
-    sandbox.wayland = windowProtocol == "wayland";
-  } catch (e) {
-    sandbox.wayland = false;
-  }
-
-  sandbox.mozinfo = Services.prefs.getStringPref("sandbox.mozinfo", null);
-  sandbox.os_version = sandbox.mozinfo.os_version;
-
-  sandbox.d3d11 = g.windowUtils.layerManagerType == "Direct3D 11";
   sandbox.swgl = g.windowUtils.layerManagerType.startsWith(
     "WebRender (Software"
   );
-
-  // Shortcuts for widget toolkits.
-  sandbox.Android = Services.appinfo.OS == "Android";
-  sandbox.cocoaWidget = Services.appinfo.widgetToolkit == "cocoa";
-  sandbox.gtkWidget = Services.appinfo.widgetToolkit == "gtk";
-  sandbox.winWidget = Services.appinfo.widgetToolkit == "windows";
-
-  sandbox.is64Bit = Services.appinfo.is64Bit;
 
   // Use this to annotate reftests that fail in drawSnapshot, but
   // the reason hasn't been investigated (or fixed) yet.
@@ -670,30 +669,8 @@ function BuildConditionSandbox(aURL) {
   // Some reftests need extra fuzz on the Android 13 Pixel 5 devices.
   sandbox.Android13 = sandbox.AndroidVersion == "33";
 
-  sandbox.AddressSanitizer = AppConstants.ASAN;
-  sandbox.ThreadSanitizer = AppConstants.TSAN;
+  // always true except for windows mingwclang builds
   sandbox.webrtc = AppConstants.MOZ_WEBRTC;
-
-  sandbox.release_or_beta = AppConstants.RELEASE_OR_BETA;
-
-  var hh = Cc[NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX + "http"].getService(
-    Ci.nsIHttpProtocolHandler
-  );
-
-  // Set OSX to be the Mac OS X version, as an integer, or undefined
-  // for other platforms.  The integer is formed by 100 times the
-  // major version plus the minor version, so 1006 for 10.6, 1010 for
-  // 10.10, etc.
-  var osxmatch = /Mac OS X (\d+).(\d+)$/.exec(hh.oscpu);
-  sandbox.OSX = osxmatch
-    ? parseInt(osxmatch[1]) * 100 + parseInt(osxmatch[2])
-    : undefined;
-
-  // config specific prefs
-  sandbox.appleSilicon = Services.prefs.getBoolPref(
-    "sandbox.apple_silicon",
-    false
-  );
 
   sandbox.prefs = Cu.cloneInto(
     {
@@ -707,9 +684,6 @@ function BuildConditionSandbox(aURL) {
     sandbox,
     { cloneFunctions: true }
   );
-
-  // Running in a test-verify session?
-  sandbox.verify = Services.prefs.getBoolPref("reftest.verify", false);
 
   // Running with a variant enabled?
   sandbox.fission = Services.appinfo.fissionAutostart;

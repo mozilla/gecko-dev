@@ -469,13 +469,8 @@ class RefTest(object):
         prefs["gfx.bundled-fonts.activate"] = 1
         # Disable dark scrollbars because it's semi-transparent.
         prefs["widget.disable-dark-scrollbar"] = True
-        prefs["reftest.isCoverageBuild"] = mozinfo.info.get("ccov", False)
-
-        # config specific flags
-        prefs["sandbox.apple_silicon"] = mozinfo.info.get("apple_silicon", False)
 
         prefs["sandbox.mozinfo"] = json.dumps(mozinfo.info)
-        prefs["sandbox.os_version"] = mozinfo.info.get("os_version", "")
 
         # Set tests to run or manifests to parse.
         if tests:
