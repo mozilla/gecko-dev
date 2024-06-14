@@ -2469,9 +2469,23 @@ uint32_t VideoFrame::Resource::Stride(const Format::Plane& aPlane) const {
     case Format::Plane::A:
       switch (mFormat->PixelFormat()) {
         case VideoPixelFormat::I420:
+        case VideoPixelFormat::I420P10:
+        case VideoPixelFormat::I420P12:
         case VideoPixelFormat::I420A:
+        case VideoPixelFormat::I420AP10:
+        case VideoPixelFormat::I420AP12:
         case VideoPixelFormat::I422:
+        case VideoPixelFormat::I422P10:
+        case VideoPixelFormat::I422P12:
+        case VideoPixelFormat::I422A:
+        case VideoPixelFormat::I422AP10:
+        case VideoPixelFormat::I422AP12:
         case VideoPixelFormat::I444:
+        case VideoPixelFormat::I444P10:
+        case VideoPixelFormat::I444P12:
+        case VideoPixelFormat::I444A:
+        case VideoPixelFormat::I444AP10:
+        case VideoPixelFormat::I444AP12:
         case VideoPixelFormat::NV12:
         case VideoPixelFormat::RGBA:
         case VideoPixelFormat::RGBX:
@@ -2484,11 +2498,25 @@ uint32_t VideoFrame::Resource::Stride(const Format::Plane& aPlane) const {
     case Format::Plane::V:
       switch (mFormat->PixelFormat()) {
         case VideoPixelFormat::I420:
+        case VideoPixelFormat::I420P10:
+        case VideoPixelFormat::I420P12:
         case VideoPixelFormat::I420A:
+        case VideoPixelFormat::I420AP10:
+        case VideoPixelFormat::I420AP12:
         case VideoPixelFormat::I422:
+        case VideoPixelFormat::I422P10:
+        case VideoPixelFormat::I422P12:
+        case VideoPixelFormat::I422A:
+        case VideoPixelFormat::I422AP10:
+        case VideoPixelFormat::I422AP12:
         case VideoPixelFormat::NV12:
           return (((width + 1) / 2) * mFormat->SampleBytes(aPlane)).value();
         case VideoPixelFormat::I444:
+        case VideoPixelFormat::I444P10:
+        case VideoPixelFormat::I444P12:
+        case VideoPixelFormat::I444A:
+        case VideoPixelFormat::I444AP10:
+        case VideoPixelFormat::I444AP12:
           return (width * mFormat->SampleBytes(aPlane)).value();
         case VideoPixelFormat::RGBA:
         case VideoPixelFormat::RGBX:
