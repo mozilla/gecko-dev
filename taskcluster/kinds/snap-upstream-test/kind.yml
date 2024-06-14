@@ -23,6 +23,9 @@ task-defaults:
     treeherder:
         kind: test
         tier: 2
+    scopes:
+        - generic-worker:os-group:gecko-t/t-linux-2204-wayland-snap/snap_sudo
+    worker-type: t-linux-wayland-snap
     run:
         using: run-task
         checkout: false
@@ -30,17 +33,19 @@ task-defaults:
         max-run-time: 900
         env:
             WAYLAND_DISPLAY: 'wayland-0'
+            MOZ_ENABLE_WAYLAND: '1'
         artifacts:
             - name: public/build
               type: directory
               path: builds/worker/artifacts/
+        os-groups:
+            - snap_sudo
 
 tasks:
     basic:
         from-deps:
             group-by: single-with-filters
         description: Runs basic tests on a Firefox Snap package
-        worker-type: t-linux-wayland-vm
         run:
             command: >-
               export TASKCLUSTER_ROOT_DIR=$PWD && cd $MOZ_FETCHES_DIR/ && ./tests.sh --basic
@@ -58,7 +63,6 @@ tasks:
         from-deps:
             group-by: single-with-filters
         description: Runs some QA tests on a Firefox Snap package
-        worker-type: t-linux-wayland-vm
         run:
             command: >-
               export TASKCLUSTER_ROOT_DIR=$PWD && cd $MOZ_FETCHES_DIR/ && ./tests.sh --qa
