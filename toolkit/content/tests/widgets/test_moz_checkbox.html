@@ -11,9 +11,9 @@
 <body>
 <p id="display"></p>
 <div id="content" style="max-width: fit-content;color: black;">
-  <moz-checkbox id="moz-checkbox-1" label="test label 1"></moz-checkbox>
-  <moz-checkbox id="moz-checkbox-2" label="test label 2" checked=""></moz-checkbox>
-  <moz-checkbox id="moz-checkbox-3" label="test label 3" disabled></moz-checkbox>
+  <moz-checkbox id="moz-checkbox-1" label="test label 1" value="one"></moz-checkbox>
+  <moz-checkbox id="moz-checkbox-2" label="test label 2" checked="" name="checkbox-2" value="two"></moz-checkbox>
+  <moz-checkbox id="moz-checkbox-3" label="test label 3" disabled value="three"></moz-checkbox>
 </div>
 <pre id="test">
   <script class="testbody" type="application/javascript">
@@ -68,6 +68,14 @@
         !mozCheckbox3.checkboxEl.checked,
         "inner checkbox of moz-checkbox-3 should not be checked on initial render"
       );
+
+      // Ensure name propagates
+      is(mozCheckbox2.checkboxEl.name, "checkbox-2", "name gets set on input");
+
+      // Ensure value propagates
+      is(mozCheckbox1.checkboxEl.value, "one", "value gets set on input 1");
+      is(mozCheckbox2.checkboxEl.value, "two", "value gets set on input 2");
+      is(mozCheckbox3.checkboxEl.value, "three", "value gets set on input 3");
 
       // Ensure disabled attribute is set on moz-checkbox and inner checkbox
       ok(
@@ -204,6 +212,10 @@
         mozCheckbox1.checked,
         "Activating the Space key on the inner checkbox should toggle the checked attribute"
       );
+
+      // Ensure click() toggle the checkbox.
+      mozCheckbox1.click();
+      ok(!mozCheckbox1.checked, "click() toggled the checkbox");
 
       // Reset seen events.
       seenEvents = [];
