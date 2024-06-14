@@ -20,6 +20,19 @@ def check_moz_app_id(moz_app_id, build_project):
         die(f"No value for MOZ_APP_ID in project '{build_project}'")
 
 
+project_flag(
+    env="MOZ_APP_VENDOR",
+    nargs=1,
+    help='used for application.ini\'s "Vendor" field, which also impacts profile location and user-visible fields',
+)
+
+
+@depends("MOZ_APP_VENDOR", build_project)
+def check_moz_app_vendor(moz_app_vendor, build_project):
+    if not moz_app_vendor:
+        die(f"No value for MOZ_APP_VENDOR in project '{build_project}'")
+
+
 # Set the MOZ_CONFIGURE_OPTIONS variable with all the options that
 # were passed somehow (environment, command line, mozconfig)
 @dependable
