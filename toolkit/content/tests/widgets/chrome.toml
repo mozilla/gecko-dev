@@ -36,6 +36,8 @@ skip-if = ["os == 'mac'"]
 
 ["test_moz_label.html"]
 
+["test_moz_lit_element.html"]
+
 ["test_moz_message_bar.html"]
 
 ["test_moz_page_nav.html"]
