@@ -98,12 +98,32 @@ void FragmentDirective::ParseAndRemoveFragmentDirectiveFromFragment(
 nsTArray<RefPtr<nsRange>> FragmentDirective::FindTextFragmentsInDocument() {
   MOZ_ASSERT(mDocument);
   mDocument->FlushPendingNotifications(FlushType::Frames);
+  // https://wicg.github.io/scroll-to-text-fragment/#invoke-text-directives
+  // To invoke text directives, given as input a list of text directives text
+  // directives and a Document document, run these steps:
+  // 1. Let ranges be a list of ranges, initially empty.
   nsTArray<RefPtr<nsRange>> textDirectiveRanges;
-  for (const TextDirective& textDirective : mUninvokedTextDirectives) {
+
+  // Additionally (not mentioned in the spec), remove all text directives from
+  // the input list to keep only the ones that are not found.
+  // This code runs repeatedly during a page load, so it is possible that the
+  // match for a text directive has not been parsed yet.
+  nsTArray<TextDirective> uninvokedTextDirectives(
+      mUninvokedTextDirectives.Length());
+
+  // 2. For each text directive directive of text directives:
+  for (TextDirective& textDirective : mUninvokedTextDirectives) {
+    // 2.1 If the result of running find a range from a text directive given
+    //     directive and document is non-null, then append it to ranges.
     if (RefPtr<nsRange> range = FindRangeForTextDirective(textDirective)) {
       textDirectiveRanges.AppendElement(range);
+    } else {
+      uninvokedTextDirectives.AppendElement(std::move(textDirective));
     }
   }
+  mUninvokedTextDirectives = std::move(uninvokedTextDirectives);
+
+  // 3. Return ranges.
   return textDirectiveRanges;
 }
 
