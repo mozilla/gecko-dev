@@ -1004,6 +1004,39 @@ void SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
         LOG_E("Failed (ResultCode %d) to add read access to: %S", result,
               fontsStr.c_str());
       }
+
+      // Read access for MF Media Source Activate and subkeys/values.
+      result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_REGISTRY,
+                                sandbox::TargetPolicy::REG_ALLOW_READONLY,
+                                L"HKEY_LOCAL_MACHINE\\Software\\Classes\\CLSID"
+                                L"\\{e79167d7-1b85-4d78-b603-798e0e1a4c67}*");
+      if (sandbox::SBOX_ALL_OK != result) {
+        NS_ERROR("Failed to add rule for MFStartup CLSID.");
+        LOG_E("Failed (ResultCode %d) to add rule for MFStartup CLSID.",
+              result);
+      }
+
+      // Read access for other Media Foundation Classes.
+      result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_REGISTRY,
+                                sandbox::TargetPolicy::REG_ALLOW_READONLY,
+                                L"HKEY_LOCAL_MACHINE\\"
+                                L"Software\\Classes\\MediaFoundation\\*");
+      if (sandbox::SBOX_ALL_OK != result) {
+        NS_ERROR("Failed to add rule for MFStartup CLSID.");
+        LOG_E("Failed (ResultCode %d) to add rule for MFStartup CLSID.",
+              result);
+      }
+
+      // Read access for MF H264 Encoder and subkeys/values.
+      result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_REGISTRY,
+                                sandbox::TargetPolicy::REG_ALLOW_READONLY,
+                                L"HKEY_LOCAL_MACHINE\\Software\\Classes\\CLSID"
+                                L"\\{6CA50344-051A-4DED-9779-A43305165E35}*");
+      if (sandbox::SBOX_ALL_OK != result) {
+        NS_ERROR("Failed to add rule for MF H264 Encoder CLSID.");
+        LOG_E("Failed (ResultCode %d) to add rule for MF H264 Encoder CLSID.",
+              result);
+      }
     }
 
     // We still currently create IPC named pipes in the content process.
