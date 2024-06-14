@@ -65,6 +65,14 @@ function waitForRemoteMouseEvent(aType, aBrowser) {
   });
 }
 
+function executeSoonRemote(aBrowser) {
+  return SpecialPowers.spawn(aBrowser, [], () => {
+    return new Promise(resolve => {
+      SpecialPowers.executeSoon(resolve);
+    });
+  });
+}
+
 function synthesizeMouseAtCenter(aRect) {
   EventUtils.synthesizeMouseAtPoint(
     aRect.left + aRect.width / 2,
@@ -122,17 +130,17 @@ add_task(async function test_mouseout_content() {
   await BrowserTestUtils.withNewTab("about:blank", async browser => {
     info(`Generate mousemove event on content`);
     let mousemovePromise = waitForRemoteMouseEvent("mousemove", browser);
-    SimpleTest.executeSoon(() => {
-      synthesizeMouseAtCenter(notificationRect);
-    });
+    // Ensure the event listener is registered in remote before synthesizing mouse event.
+    await executeSoonRemote(browser);
+    synthesizeMouseAtCenter(notificationRect);
     let mousemoveCoordinate = await mousemovePromise;
     info(`mousemove event on content: ${JSON.stringify(mousemoveCoordinate)}`);
 
     info(`Showing notification should generate mouseout event on content`);
     let mouseoutPromise = waitForRemoteMouseEvent("mouseout", browser);
-    SimpleTest.executeSoon(async () => {
-      showNotification(browser, "Test#Content");
-    });
+    // Ensure the event listener is registered in remote before showing notification.
+    await executeSoonRemote(browser);
+    showNotification(browser, "Test#Content");
     let mouseoutCoordinate = await mouseoutPromise;
     info(`remote mouseout event: ${JSON.stringify(mouseoutCoordinate)}`);
 
