@@ -541,8 +541,7 @@ def check_compiler(configure_cache, compiler, language, target, android_version)
             # MSVC headers include C++17 features, but don't guard them
             # with appropriate checks.
             if info.type == "clang-cl":
-                flags.append("-Xclang")
-                flags.append("-std=c++17")
+                flags.append("-std:c++17")
             else:
                 flags.append("-std=gnu++17")
 

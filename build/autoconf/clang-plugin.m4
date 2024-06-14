@@ -22,10 +22,6 @@ if test -n "$ENABLE_CLANG_PLUGIN"; then
             LLVM_REPLACE_CXXFLAGS="$LLVM_REPLACE_CXXFLAGS $arg"
         done
         LLVM_CXXFLAGS="$LLVM_REPLACE_CXXFLAGS"
-        dnl We'll also want to replace `-std:` with `-Xclang -std=` so that
-        dnl LLVM_CXXFLAGS can correctly override the `-Xclang -std=` set by
-        dnl toolchain.configure.
-        LLVM_CXXFLAGS=`echo "$LLVM_CXXFLAGS"|sed -e 's/ \(-Xclang \|\)-std[[:=]]/ -Xclang -std=/'`
 
         LLVM_REPLACE_LDFLAGS=''
         for arg in $LLVM_LDFLAGS; do

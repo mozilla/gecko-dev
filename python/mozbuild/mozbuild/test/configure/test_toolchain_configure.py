@@ -42,11 +42,17 @@ SUPPORTS_GNUXX11 = {"-std=gnu++11": DEFAULT_CXX_11}
 
 SUPPORTS_GNUXX14 = {"-std=gnu++14": DEFAULT_CXX_14}
 
-SUPPORTS_CXX14 = {"-std=c++14": DEFAULT_CXX_14}
+SUPPORTS_CXX14 = {
+    "-std=c++14": DEFAULT_CXX_14,
+    "-std:c++14": DEFAULT_CXX_14,
+}
 
 SUPPORTS_GNUXX17 = {"-std=gnu++17": DEFAULT_CXX_17}
 
-SUPPORTS_CXX17 = {"-std=c++17": DEFAULT_CXX_17}
+SUPPORTS_CXX17 = {
+    "-std=c++17": DEFAULT_CXX_17,
+    "-std:c++17": DEFAULT_CXX_17,
+}
 
 
 @memoize
@@ -996,7 +1002,7 @@ class MingwToolchainTest(BaseToolchainTest):
     )
     CLANGXX_CL_9_0_RESULT = CompilerResult(
         version="9.0.0",
-        flags=["-Xclang", "-std=c++17"],
+        flags=["-std:c++17"],
         type="clang-cl",
         compiler="/usr/bin/clang-cl",
         language="C++",
