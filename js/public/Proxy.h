@@ -100,6 +100,10 @@ class JS_PUBLIC_API Wrapper;
  * organized in the following hierarchy:
  *
  *     BaseProxyHandler
+ *     |  |
+ *     |  NurseryAllocableProxyHandler
+ *     |                         // allocated in the nursery; disallows
+ *     |                         // overriding finalize method
  *     |
  *     ForwardingProxyHandler    // has a target and forwards internal methods
  *     |
@@ -376,6 +380,17 @@ class JS_PUBLIC_API BaseProxyHandler {
                            ElementAdder* adder) const;
 
   virtual bool isScripted() const { return false; }
+};
+
+class JS_PUBLIC_API NurseryAllocableProxyHandler : public BaseProxyHandler {
+  using BaseProxyHandler::BaseProxyHandler;
+
+  // Don't allow overriding the default finalize method.
+  void finalize(JS::GCContext* gcx, JSObject* proxy) const final {
+    BaseProxyHandler::finalize(gcx, proxy);
+  }
+  // Can allocate in the nursery as long as we use the default finalize method.
+  bool canNurseryAllocate() const override { return true; }
 };
 
 extern JS_PUBLIC_DATA const JSClass ProxyClass;
