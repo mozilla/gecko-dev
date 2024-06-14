@@ -8918,7 +8918,7 @@ nsresult PresShell::EventHandler::DispatchEventToDOM(
           eventTarget, presContext, browserParent, aEvent->AsCompositionEvent(),
           aEventStatus, eventCBPtr);
     } else {
-      if (aEvent->mClass == eMouseEventClass) {
+      if (aEvent->IsMouseEventClassOrHasClickRelatedPointerEvent()) {
         PresShell::sMouseButtons = aEvent->AsMouseEvent()->mButtons;
       }
       RefPtr<nsPresContext> presContext = GetPresContext();

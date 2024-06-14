@@ -396,6 +396,11 @@ nsEventStatus AccessibleCaretEventHub::HandleEvent(WidgetEvent* aEvent) {
   MOZ_ASSERT(mRefCnt.get() > 1, "Expect caller holds us as well!");
 
   switch (aEvent->mClass) {
+    case ePointerEventClass:
+      if (!IsPointerEventMessageOriginallyMouseEventMessage(aEvent->mMessage)) {
+        break;
+      }
+      [[fallthrough]];
     case eMouseEventClass:
       status = HandleMouseEvent(aEvent->AsMouseEvent());
       break;

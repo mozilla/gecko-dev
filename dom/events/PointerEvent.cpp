@@ -35,8 +35,12 @@ PointerEvent::PointerEvent(EventTarget* aOwner, nsPresContext* aPresContext,
     mouseEvent->mInputSource = MouseEvent_Binding::MOZ_SOURCE_UNKNOWN;
   }
   // 5.2 Pointer Event types, for all pointer events, |detail| attribute SHOULD
-  // be 0.
-  mDetail = 0;
+  // be 0.  However, UI Events defines that it should be click count if the
+  // event type is "click".
+  mDetail =
+      IsPointerEventMessageOriginallyMouseEventMessage(mouseEvent->mMessage)
+          ? mouseEvent->mClickCount
+          : 0;
 }
 
 JSObject* PointerEvent::WrapObjectInternal(JSContext* aCx,

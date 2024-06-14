@@ -9,9 +9,19 @@ const META_KEY = AppConstants.platform == "macosx" ? "metaKey" : "ctrlKey";
 const ENTER = new KeyboardEvent("keydown", {});
 const ALT_ENTER = new KeyboardEvent("keydown", { altKey: true });
 const ALTGR_ENTER = new KeyboardEvent("keydown", { modifierAltGraph: true });
-const CLICK = new MouseEvent("click", { button: 0 });
-const META_CLICK = new MouseEvent("click", { button: 0, [META_KEY]: true });
-const MIDDLE_CLICK = new MouseEvent("click", { button: 1 });
+
+const ClickEventConstructor = Services.prefs.getBoolPref(
+  "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
+)
+  ? PointerEvent
+  : MouseEvent;
+
+const CLICK = new ClickEventConstructor("click", { button: 0 });
+const META_CLICK = new ClickEventConstructor("click", {
+  button: 0,
+  [META_KEY]: true,
+});
+const MIDDLE_CLICK = new ClickEventConstructor("click", { button: 1 });
 
 let old_openintab = Preferences.get("browser.urlbar.openintab");
 registerCleanupFunction(async function () {

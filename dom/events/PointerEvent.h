@@ -38,6 +38,8 @@ class PointerEvent : public MouseEvent {
       EventTarget* aOwner, const nsAString& aType,
       const PointerEventInit& aParam);
 
+  PointerEvent* AsPointerEvent() final { return this; }
+
   int32_t PointerId();
   int32_t Width();
   int32_t Height();

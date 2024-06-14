@@ -2008,7 +2008,7 @@ void mozInlineSpellChecker::OnBlur(Event& aEvent) {
 }
 
 void mozInlineSpellChecker::OnPointerClick(Event& aPointerEvent) {
-  MouseEvent* mouseEvent = aPointerEvent.AsMouseEvent();
+  MouseEvent* const mouseEvent = aPointerEvent.AsMouseEvent();
   if (MOZ_UNLIKELY(!mouseEvent)) {
     return;
   }

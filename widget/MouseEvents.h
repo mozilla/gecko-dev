@@ -290,6 +290,7 @@ class WidgetMouseEvent : public WidgetMouseEventBase,
         mClickCount(0),
         mIgnoreRootScrollFrame(false),
         mClickEventPrevented(false) {
+    MOZ_ASSERT_IF(aIsTrusted, !IsPointerEventMessage(mMessage));
     if (aMessage == eContextMenu) {
       mButton = (mContextMenuTrigger == eNormal) ? MouseButton::eSecondary
                                                  : MouseButton::ePrimary;

@@ -4817,7 +4817,12 @@ export var CustomizableUI = {
         let item = menuChild;
         if (!item.hasAttribute("onclick")) {
           subviewItem.addEventListener("click", event => {
-            let newEvent = new doc.defaultView.MouseEvent(event.type, event);
+            const ClickEventConstructor = Services.prefs.getBoolPref(
+              "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
+            )
+              ? doc.ownerGlobal.PointerEvent
+              : doc.ownerGlobal.MouseEvent;
+            let newEvent = new ClickEventConstructor("click", event);
 
             // Telemetry should only pay attention to the original event.
             lazy.BrowserUsageTelemetry.ignoreEvent(newEvent);

@@ -266,50 +266,49 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
     aTarget = aWindow.document.getElementById(aTarget);
   }
 
-  var event = aWindow.document.createEvent("MouseEvent");
+  let dict = {
+    bubbles: true,
+    cancelable: true,
+    view: aWindow,
+    detail:
+      aEvent.detail ||
+      // eslint-disable-next-line no-nested-ternary
+      (aEvent.type == "click" ||
+      aEvent.type == "mousedown" ||
+      aEvent.type == "mouseup"
+        ? 1
+        : aEvent.type == "dblclick"
+        ? 2
+        : 0),
+    screenX: aEvent.screenX || 0,
+    screenY: aEvent.screenY || 0,
+    clientX: aEvent.clientX || 0,
+    clientY: aEvent.clientY || 0,
+    ctrlKey: aEvent.ctrlKey || false,
+    altKey: aEvent.altKey || false,
+    shiftKey: aEvent.shiftKey || false,
+    metaKey: aEvent.metaKey || false,
+    button: computeButton(aEvent),
+    // FIXME: Set buttons
+    relatedTarget: aEvent.relatedTarget || null,
+  };
 
-  var typeArg = aEvent.type;
-  var canBubbleArg = true;
-  var cancelableArg = true;
-  var viewArg = aWindow;
-  var detailArg =
-    aEvent.detail ||
-    // eslint-disable-next-line no-nested-ternary
-    (aEvent.type == "click" ||
-    aEvent.type == "mousedown" ||
-    aEvent.type == "mouseup"
-      ? 1
-      : aEvent.type == "dblclick"
-      ? 2
-      : 0);
-  var screenXArg = aEvent.screenX || 0;
-  var screenYArg = aEvent.screenY || 0;
-  var clientXArg = aEvent.clientX || 0;
-  var clientYArg = aEvent.clientY || 0;
-  var ctrlKeyArg = aEvent.ctrlKey || false;
-  var altKeyArg = aEvent.altKey || false;
-  var shiftKeyArg = aEvent.shiftKey || false;
-  var metaKeyArg = aEvent.metaKey || false;
-  var buttonArg = computeButton(aEvent);
-  var relatedTargetArg = aEvent.relatedTarget || null;
+  const clickAsPointer = (function () {
+    // Services.prefs or SpecialPowers should available.
+    try {
+      return Services.prefs.getBoolPref(
+        "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
+      );
+    } catch (e) {}
+    return SpecialPowers.getBoolPref(
+      "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
+    );
+  })();
 
-  event.initMouseEvent(
-    typeArg,
-    canBubbleArg,
-    cancelableArg,
-    viewArg,
-    detailArg,
-    screenXArg,
-    screenYArg,
-    clientXArg,
-    clientYArg,
-    ctrlKeyArg,
-    altKeyArg,
-    shiftKeyArg,
-    metaKeyArg,
-    buttonArg,
-    relatedTargetArg
-  );
+  let event =
+    clickAsPointer && aEvent.type == "click"
+      ? new aWindow.PointerEvent(aEvent.type, dict)
+      : new aWindow.MouseEvent(aEvent.type, dict);
 
   // If documentURIObject exists or `window` is a stub object, we're in
   // a chrome scope, so don't bother trying to go through SpecialPowers.

@@ -4604,6 +4604,13 @@
   value: @IS_NIGHTLY_BUILD@
   mirror: always
 
+# Whether `click`, `auxclick` and `contextmenu` events are dispatched as a
+# PointerEvent or MouseEvent.
+- name: dom.w3c_pointer_events.dispatch_click_as_pointer_event
+  type: bool
+  value: true
+  mirror: always
+
 # In case Touch API is enabled, this pref controls whether to support
 # ontouch* event handlers, document.createTouch, document.createTouchList and
 # document.createEvent("TouchEvent").

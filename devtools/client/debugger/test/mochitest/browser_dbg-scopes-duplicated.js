@@ -154,7 +154,10 @@ add_task(async function () {
   const originalNodesCount = nodes.length;
   const targetNodeIndex = nodes.indexOf("target");
   Assert.greater(targetNodeIndex, -1, "Found the target node");
-  await toggleScopeNode(dbg, targetNodeIndex);
+  // toggleScopeNode looks for the target with `querySelector` with `:nth-child`
+  // selector.  Therefore, the index starts from 1, not 0.  So, we need to
+  // increment the index.
+  await toggleScopeNode(dbg, targetNodeIndex + 1);
   nodes = getAllLabels(dbg);
   Assert.greater(
     nodes.length,

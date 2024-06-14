@@ -1901,6 +1901,8 @@ void EventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
     // process.
   }
 
+  MOZ_ASSERT(aEvent->mMessage != ePointerClick);
+
   // SendReal* will transform the coordinate to the child process coordinate
   // space. So restore the coordinate after the event has been dispatched to the
   // child process to avoid using the transformed coordinate afterward.
@@ -5883,19 +5885,29 @@ nsresult EventStateManager::InitAndDispatchClickEvent(
   MOZ_ASSERT(EventCausesClickEvents(*aMouseUpEvent));
   MOZ_ASSERT(aMouseUpContent || aCurrentTarget || aOverrideClickTarget);
 
-  WidgetMouseEvent event(aMouseUpEvent->IsTrusted(), aMessage,
-                         aMouseUpEvent->mWidget, WidgetMouseEvent::eReal);
+  Maybe<WidgetPointerEvent> pointerEvent;
+  Maybe<WidgetMouseEvent> mouseEvent;
+  if (IsPointerEventMessage(aMessage)) {
+    pointerEvent.emplace(aMouseUpEvent->IsTrusted(), aMessage,
+                         aMouseUpEvent->mWidget);
+  } else {
+    mouseEvent.emplace(aMouseUpEvent->IsTrusted(), aMessage,
+                       aMouseUpEvent->mWidget, WidgetMouseEvent::eReal);
+  }
 
-  event.mRefPoint = aMouseUpEvent->mRefPoint;
-  event.mClickCount = aMouseUpEvent->mClickCount;
-  event.mModifiers = aMouseUpEvent->mModifiers;
-  event.mButtons = aMouseUpEvent->mButtons;
-  event.mTimeStamp = aMouseUpEvent->mTimeStamp;
-  event.mFlags.mOnlyChromeDispatch = aNoContentDispatch;
-  event.mFlags.mNoContentDispatch = aNoContentDispatch;
-  event.mButton = aMouseUpEvent->mButton;
-  event.pointerId = aMouseUpEvent->pointerId;
-  event.mInputSource = aMouseUpEvent->mInputSource;
+  WidgetMouseEvent& mouseOrPointerEvent =
+      pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
+
+  mouseOrPointerEvent.mRefPoint = aMouseUpEvent->mRefPoint;
+  mouseOrPointerEvent.mClickCount = aMouseUpEvent->mClickCount;
+  mouseOrPointerEvent.mModifiers = aMouseUpEvent->mModifiers;
+  mouseOrPointerEvent.mButtons = aMouseUpEvent->mButtons;
+  mouseOrPointerEvent.mTimeStamp = aMouseUpEvent->mTimeStamp;
+  mouseOrPointerEvent.mFlags.mOnlyChromeDispatch = aNoContentDispatch;
+  mouseOrPointerEvent.mFlags.mNoContentDispatch = aNoContentDispatch;
+  mouseOrPointerEvent.mButton = aMouseUpEvent->mButton;
+  mouseOrPointerEvent.pointerId = aMouseUpEvent->pointerId;
+  mouseOrPointerEvent.mInputSource = aMouseUpEvent->mInputSource;
   nsIContent* target = aMouseUpContent;
   nsIFrame* targetFrame = aCurrentTarget;
   if (aOverrideClickTarget) {
@@ -5912,14 +5924,14 @@ nsresult EventStateManager::InitAndDispatchClickEvent(
   // an event means that previous event status will be ignored.
   nsEventStatus status = nsEventStatus_eIgnore;
   nsresult rv = aPresShell->HandleEventWithTarget(
-      &event, targetFrame, MOZ_KnownLive(target), &status);
+      &mouseOrPointerEvent, targetFrame, MOZ_KnownLive(target), &status);
 
   // Copy mMultipleActionsPrevented flag from a click event to the mouseup
   // event only when it's set to true.  It may be set to true if an editor has
   // already handled it.  This is important to avoid two or more default
   // actions handled here.
   aMouseUpEvent->mFlags.mMultipleActionsPrevented |=
-      event.mFlags.mMultipleActionsPrevented;
+      mouseOrPointerEvent.mFlags.mMultipleActionsPrevented;
   // If current status is nsEventStatus_eConsumeNoDefault, we don't need to
   // overwrite it.
   if (*aStatus == nsEventStatus_eConsumeNoDefault) {

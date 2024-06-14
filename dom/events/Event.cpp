@@ -21,6 +21,7 @@
 #include "mozilla/PointerLockManager.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/ViewportUtils.h"
@@ -479,8 +480,18 @@ void Event::UpdateDefaultPreventedOnContentForDragEvent() {
 void Event::SetEventType(const nsAString& aEventTypeArg) {
   mEvent->mSpecifiedEventTypeString.Truncate();
   if (mIsMainThreadEvent) {
+    EventClassID classID = mEvent->mClass;
+    if (classID == eMouseEventClass &&
+        StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
+      // Some pointer event types were changed from MouseEvent.  For backward
+      // compatibility, we need to handle untrusted events of them created with
+      // MouseEvent instance in some places.
+      if (aEventTypeArg.EqualsLiteral(u"click")) {
+        classID = ePointerEventClass;
+      }
+    }
     mEvent->mSpecifiedEventType = nsContentUtils::GetEventMessageAndAtom(
-        aEventTypeArg, mEvent->mClass, &(mEvent->mMessage));
+        aEventTypeArg, classID, &(mEvent->mMessage));
     mEvent->SetDefaultComposed();
   } else {
     mEvent->mSpecifiedEventType = NS_Atomize(u"on"_ns + aEventTypeArg);

@@ -43,19 +43,25 @@ add_task(async function test() {
   container.addEventListener("TabOpen", tabAdded);
 
   BrowserTestUtils.addTab(gBrowser, "about:blank");
+  const ClickEventConstructor = Services.prefs.getBoolPref(
+    "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
+  )
+    ? PointerEvent
+    : MouseEvent;
+
   BrowserSearch.loadSearchFromContext(
     "mozilla",
     false,
     Services.scriptSecurityManager.getSystemPrincipal(),
     Services.scriptSecurityManager.getSystemPrincipal().csp,
-    new MouseEvent("click")
+    new ClickEventConstructor("click")
   );
   BrowserSearch.loadSearchFromContext(
     "firefox",
     false,
     Services.scriptSecurityManager.getSystemPrincipal(),
     Services.scriptSecurityManager.getSystemPrincipal().csp,
-    new MouseEvent("click")
+    new ClickEventConstructor("click")
   );
 
   // Wait for all the tabs to open.

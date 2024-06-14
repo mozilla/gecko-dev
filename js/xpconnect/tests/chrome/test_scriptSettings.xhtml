@@ -94,7 +94,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=937317
       let d = Promise.withResolvers();
       let body = iwin.document.body;
       body.addEventListener('click', Cu.getIncumbentGlobal.bind(Cu, makeCallback(window, d, "cross-global event listener")));
-      body.dispatchEvent(new iwin.MouseEvent('click'));
+      const ClickEventConstructor = Services.prefs.getBoolPref(
+        "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
+      )
+        ? iwin.PointerEvent
+        : iwin.MouseEvent;
+      body.dispatchEvent(new ClickEventConstructor('click'));
       return d.promise;
 
     }).then(function() {

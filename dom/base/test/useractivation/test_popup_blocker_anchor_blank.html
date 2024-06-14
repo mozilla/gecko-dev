@@ -19,13 +19,21 @@ add_task(async function() {
   SpecialPowers.wrap(document).notifyUserGestureActivation();
   let button = document.querySelector("button");
 
+  const ClickEventConstructor = SpecialPowers.getBoolPref(
+    "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
+  )
+    ? PointerEvent
+    : MouseEvent;
+
   const promise = new Promise(resolve => {
     button.addEventListener("click", () => {
-      document.querySelector("a").dispatchEvent(new MouseEvent("click", {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-      }));
+      document.querySelector("a").dispatchEvent(
+        new ClickEventConstructor("click", {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        })
+      );
 
       BrowserTestUtils.waitForNewTab(gBrowser, null, true).then(function(aNewTab) {
         ok(true, "A new tab was opened");
@@ -35,7 +43,7 @@ add_task(async function() {
     });
   });
 
-  button.dispatchEvent(new MouseEvent("click", {
+  button.dispatchEvent(new ClickEventConstructor("click", {
     bubbles: true,
     cancelable: true,
     view: window,

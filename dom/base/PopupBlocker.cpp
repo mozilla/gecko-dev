@@ -275,10 +275,8 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
               }
               break;
             case ePointerClick:
-              /* Click events get special treatment because of their
-                 historical status as a more legitimate event handler. If
-                 click popups are enabled in the prefs, clear the popup
-                 status completely. */
+              // TODO: Delete this case when we remove the
+              // dom.w3c_pointer_events.dispatch_click_as_pointer_event pref.
               if (PopupAllowedForEvent("click")) {
                 abuse = PopupBlocker::openAllowed;
               }
@@ -317,6 +315,14 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
           (aEvent->AsPointerEvent()->mButton == MouseButton::ePrimary ||
            aEvent->AsPointerEvent()->mButton == MouseButton::eMiddle)) {
         switch (aEvent->mMessage) {
+          case ePointerClick:
+            // Click events get special treatment because of their historical
+            // status as a more legitimate event handler. If click popups are
+            // enabled in the prefs, clear the popup status completely.
+            if (PopupAllowedForEvent("click")) {
+              abuse = PopupBlocker::openAllowed;
+            }
+            break;
           case ePointerUp:
             if (PopupAllowedForEvent("pointerup")) {
               abuse = PopupBlocker::openControlled;

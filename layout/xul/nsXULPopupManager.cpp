@@ -140,7 +140,7 @@ void PendingPopup::InitMousePoint() {
 
     nsIFrame* rootDocumentRootFrame =
         rootDocPresContext->PresShell()->GetRootFrame();
-    if ((event->mClass == eMouseEventClass ||
+    if ((event->IsMouseEventClassOrHasClickRelatedPointerEvent() ||
          event->mClass == eMouseScrollEventClass ||
          event->mClass == eWheelEventClass) &&
         !event->AsGUIEvent()->mWidget) {
