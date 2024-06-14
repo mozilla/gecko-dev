@@ -2125,6 +2125,9 @@ class UtilitySandboxPolicy : public SandboxPolicyCommon {
                 PR_GET_PDEATHSIG),  // PGO profiling, cf
                                     // https://reviews.llvm.org/D29954
                Allow())
+        .CASES((PR_CAPBSET_READ),  // libcap.so.2 loaded by libpulse.so.0
+                                   // queries for capabilities
+               Error(EINVAL))
         .Default(InvalidSyscall());
   }
 

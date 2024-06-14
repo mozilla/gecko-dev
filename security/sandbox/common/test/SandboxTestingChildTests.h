@@ -926,6 +926,12 @@ void RunTestsUtilityAudioDecoder(SandboxTestingChild* child,
     long rv = syscall(SYS_set_mempolicy, 0, NULL, 0);
     return rv;
   });
+
+  child->ErrnoValueTest("prctl_capbtest_read_blocked"_ns, EINVAL, [] {
+    int rv = prctl(PR_CAPBSET_READ, 0, 0, 0, 0);
+    return rv;
+  });
+
 #  elif XP_MACOSX  // XP_LINUX
   RunMacTestLaunchProcess(child);
   RunMacTestWindowServer(child);
