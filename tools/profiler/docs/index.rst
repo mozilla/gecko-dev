@@ -26,6 +26,7 @@ while the profiler.firefox.com interface is documented at `profiler.firefox.com/
    instrumenting-android
    markers-guide
    memory
+   sandbox
 
 The following areas still need documentation:
 
