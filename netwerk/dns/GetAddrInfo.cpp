@@ -422,7 +422,6 @@ bool FindHTTPSRecordOverride(const nsACString& aHost,
 
   DNSPacket packet;
   nsAutoCString host(aHost);
-  nsAutoCString cname;
 
   LOG("resolving %s\n", host.get());
   // Perform the query
@@ -486,6 +485,65 @@ nsresult ResolveHTTPSRecord(const nsACString& aHost, uint16_t aFlags,
   }
 
   return ResolveHTTPSRecordImpl(aHost, aFlags, aResult, aTTL);
+}
+
+nsresult CreateAndResolveMockHTTPSRecord(const nsACString& aHost,
+                                         uint16_t aFlags,
+                                         TypeRecordResultType& aResult,
+                                         uint32_t& aTTL) {
+  nsCString buffer;
+  buffer += '\0';
+  buffer += '\0';  // 16 bit id
+  buffer += 0x80;
+  buffer += '\0';  // Flags
+  buffer += '\0';
+  buffer += '\0';  // Question count
+  buffer += '\0';
+  buffer += 0x1;  // Answer count
+  buffer += '\0';
+  buffer += '\0';
+  buffer += '\0';
+  buffer += '\0';
+
+  nsresult rv = DNSPacket::EncodeHost(buffer, aHost);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  buffer += '\0';
+  buffer += 0x41;  // TYPE 65
+
+  buffer += '\0';
+  buffer += 0x1;  // Class
+
+  buffer += '\0';
+  buffer += '\0';
+  buffer += '\0';
+  buffer += 0xFF;  // TTL
+  buffer += '\0';
+  buffer += 0x03;  // RDLENGTH
+  buffer += '\0';
+  buffer += 0x01;  // SvcPriority
+  buffer += '\0';
+
+  DNSPacket packet;
+  nsAutoCString host(aHost);
+
+  LOG("resolving %s\n", host.get());
+  // Perform the query
+  rv = packet.FillBuffer(
+      [&](unsigned char response[DNSPacket::MAX_SIZE]) -> int {
+        if (buffer.Length() > DNSPacket::MAX_SIZE) {
+          return -1;
+        }
+        memcpy(response, buffer.BeginReading(), buffer.Length());
+        return buffer.Length();
+      });
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  return ParseHTTPSRecord(host, packet, aResult, aTTL);
 }
 
 // static

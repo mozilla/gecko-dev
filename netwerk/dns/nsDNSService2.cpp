@@ -60,6 +60,8 @@ static const char kPrefDnsLocalDomains[] = "network.dns.localDomains";
 static const char kPrefDnsForceResolve[] = "network.dns.forceResolve";
 static const char kPrefDnsOfflineLocalhost[] = "network.dns.offline-localhost";
 static const char kPrefDnsNotifyResolution[] = "network.dns.notifyResolution";
+static const char kPrefDnsMockHTTPSRRDomain[] =
+    "network.dns.mock_HTTPS_RR_domain";
 
 //-----------------------------------------------------------------------------
 
@@ -825,6 +827,17 @@ void nsDNSService::ReadPrefs(const char* name) {
     Preferences::GetCString(kPrefDnsForceResolve, mForceResolve);
     mForceResolveOn = !mForceResolve.IsEmpty();
   }
+  if (!name || !strcmp(name, kPrefDnsMockHTTPSRRDomain)) {
+    nsCString mockHTTPSRRDomain;
+    Preferences::GetCString(kPrefDnsMockHTTPSRRDomain, mockHTTPSRRDomain);
+    if (mockHTTPSRRDomain.IsEmpty()) {
+      mHasMockHTTPSRRDomainSet = false;
+    } else {
+      mHasMockHTTPSRRDomainSet = true;
+      MutexAutoLock lock(mLock);
+      mMockHTTPSRRDomain = mockHTTPSRRDomain;
+    }
+  }
 }
 
 NS_IMETHODIMP
@@ -863,6 +876,7 @@ nsDNSService::Init() {
     prefs->AddObserver(kPrefDnsOfflineLocalhost, this, false);
     prefs->AddObserver(kPrefBlockDotOnion, this, false);
     prefs->AddObserver(kPrefDnsNotifyResolution, this, false);
+    prefs->AddObserver(kPrefDnsMockHTTPSRRDomain, this, false);
     AddPrefObserver(prefs);
   }
 
@@ -1059,6 +1073,13 @@ nsresult nsDNSService::AsyncResolveInternal(
                             aOriginAttributes, listener, flags, af);
   if (!req) {
     return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  if (type == RESOLVE_TYPE_HTTPSSVC && mHasMockHTTPSRRDomainSet) {
+    MutexAutoLock lock(mLock);
+    if (req->mHost == mMockHTTPSRRDomain) {
+      flags |= nsIDNSService::RESOLVE_CREATE_MOCK_HTTPS_RR;
+    }
   }
 
   rv = res->ResolveHost(req->mHost, DNSAdditionalInfo::URL(aInfo),

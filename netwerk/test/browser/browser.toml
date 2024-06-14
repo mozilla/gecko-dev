@@ -205,3 +205,10 @@ support-files = [
 ]
 
 ["browser_test_offline_tab.js"]
+
+["browser_mock_https_rr.js"]
+skip-if = [
+  "http3",
+  "http2",
+  "socketprocess_networking",
+]
