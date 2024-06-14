@@ -1954,8 +1954,10 @@ void VideoFrame::CloseIfNeeded() {
  *     <- width ->
  *  Y: Y1 Y2 Y3 Y4 ^ height
  *     Y5 Y6 Y7 Y8 v
- *  U: U1 U2 U3 U4 => Y's width, 1/2 Y's height
- *  V: V1 V2 V3 V4 => Y's width, 1/2 Y's height
+ *  U: U1    U2      => 1/2 Y's width, Y's height
+ *     U3    U4
+ *  V: V1    V2      => 1/2 Y's width, Y's height
+ *     V3    V4
  *
  * I444 - 3 planes: Y, U, V
  * ------
