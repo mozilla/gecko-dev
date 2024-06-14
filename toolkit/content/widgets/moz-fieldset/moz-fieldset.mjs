@@ -14,9 +14,14 @@ import { MozLitElement } from "../lit-utils.mjs";
  */
 export default class MozFieldset extends MozLitElement {
   static properties = {
-    label: { type: String, fluent: true },
+    label: { type: String },
     description: { type: String },
   };
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.dataset.l10nAttrs = "label, description";
+  }
 
   render() {
     return html`

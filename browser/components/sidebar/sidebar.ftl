@@ -25,8 +25,7 @@ sidebar-history-date-prev-month =
 sidebar-search-results-header =
   .heading = Search results for “{ $query }”
 
-sidebar-customize-firefox-tools =
-  .label = { -brand-product-name } tools
+sidebar-customize-firefox-tools = { -brand-product-name } tools
 sidebar-customize-firefox-settings = Manage { -brand-short-name } settings
 
 ## Labels for sidebar context menu items
@@ -43,21 +42,18 @@ sidebar-customize-extensions = Sidebar extensions
 
 ## Labels for sidebar menu items.
 
-sidebar-menu-history-label =
-  .label = History
-sidebar-menu-synced-tabs-label =
-  .label = Tabs from other devices
-sidebar-menu-bookmarks-label =
-  .label = Bookmarks
+sidebar-menu-history-label = History
+sidebar-menu-synced-tabs-label = Tabs from other devices
+sidebar-menu-bookmarks-label = Bookmarks
 sidebar-menu-customize-label = Customize sidebar
 
 ## Tooltips for sidebar menu items.
 
 sidebar-menu-history-item = {""}
-  .title = History
+  .title = { sidebar-menu-history-label }
 sidebar-menu-synced-tabs-item = {""}
-  .title = Tabs from other devices
+  .title = { sidebar-menu-synced-tabs-label }
 sidebar-menu-bookmarks-item = {""}
-  .title = Bookmarks
+  .title = { sidebar-menu-bookmarks-label }
 sidebar-menu-customize-item = {""}
   .title = { sidebar-menu-customize-label }

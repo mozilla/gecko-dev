@@ -49,7 +49,7 @@ export class MozRadioGroup extends MozLitElement {
 
   static properties = {
     disabled: { type: Boolean, reflect: true },
-    label: { type: String, fluent: true },
+    label: { type: String },
     name: { type: String },
   };
 
@@ -84,6 +84,11 @@ export class MozRadioGroup extends MozLitElement {
     super();
     this.disabled = false;
     this.addEventListener("keydown", e => this.handleKeydown(e));
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.dataset.l10nAttrs = "label";
   }
 
   firstUpdated() {
@@ -228,7 +233,7 @@ export class MozRadio extends MozLitElement {
     checked: { type: Boolean, reflect: true },
     disabled: { type: Boolean, reflect: true },
     iconSrc: { type: String },
-    label: { type: String, fluent: true },
+    label: { type: String },
     name: { type: String, attribute: false },
     inputTabIndex: { type: Number, state: true },
     value: { type: String },
@@ -248,6 +253,7 @@ export class MozRadio extends MozLitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this.dataset.l10nAttrs = "label";
 
     let hostRadioGroup = this.parentElement || this.getRootNode().host;
     if (!(hostRadioGroup instanceof MozRadioGroup)) {

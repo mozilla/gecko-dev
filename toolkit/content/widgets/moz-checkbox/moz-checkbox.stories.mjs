@@ -18,25 +18,19 @@ moz-checkbox-label =
   },
 };
 
-const Template = opts => {
-  let { l10nId, checked, label, disabled, value, iconSrc } = opts;
-  return html`
-    <moz-checkbox
-      name=${ifDefined(opts.name)}
-      value=${ifDefined(value)}
-      ?checked=${checked}
-      .label=${label}
-      data-l10n-id=${ifDefined(l10nId)}
-      .iconSrc=${iconSrc}
-      ?disabled=${disabled}
-    ></moz-checkbox>
-  `;
-};
+const Template = ({ l10nId, checked, label, disabled, iconSrc }) => html`
+  <moz-checkbox
+    ?checked=${checked}
+    .label=${label}
+    data-l10n-id=${ifDefined(l10nId)}
+    data-l10n-attrs="label"
+    .iconSrc=${iconSrc}
+    ?disabled=${disabled}
+  ></moz-checkbox>
+`;
 
 export const Default = Template.bind({});
 Default.args = {
-  name: "example-moz-checkbox",
-  value: "example-value",
   l10nId: "moz-checkbox-label",
   checked: false,
   label: "",

@@ -5,6 +5,8 @@
 import { html, when } from "chrome://global/content/vendor/lit.all.mjs";
 
 import { SidebarPage } from "./sidebar-page.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-button.mjs";
 
 const l10nMap = new Map([
   ["viewHistorySidebar", "sidebar-menu-history-label"],
@@ -23,7 +25,7 @@ export class SidebarCustomize extends SidebarPage {
   };
 
   static queries = {
-    toolInputs: { all: ".customize-firefox-tools moz-checkbox" },
+    toolInputs: { all: ".customize-firefox-tools input" },
     extensionLinks: { all: ".extension-link" },
   };
 
@@ -81,17 +83,19 @@ export class SidebarCustomize extends SidebarPage {
   }
 
   inputTemplate(tool) {
-    return html`
-      <moz-checkbox
+    return html`<div class="input-wrapper">
+      <input
         type="checkbox"
         id=${tool.view}
         name=${tool.view}
-        iconsrc=${tool.iconUrl}
-        data-l10n-id=${this.getInputL10nId(tool.view)}
         @change=${this.onToggleInput}
         ?checked=${!tool.disabled}
       />
-    `;
+      <label for=${tool.view}>
+        <img src=${tool.iconUrl} class="icon" role="presentation" />
+        <span data-l10n-id=${this.getInputL10nId(tool.view)} />
+      </label>
+    </div>`;
   }
 
   async manageAddon(extensionId) {
@@ -155,28 +159,28 @@ export class SidebarCustomize extends SidebarPage {
       <link rel="stylesheet" href="chrome://browser/content/sidebar/sidebar-customize.css"></link>
       <div class="container">
         <div class="customize-header">
-          <h2 class="customize-header-heading" data-l10n-id="sidebar-menu-customize-label"></h2>
+          <h2 data-l10n-id="sidebar-menu-customize-label"></h2>
           <moz-button
             class="customize-close-button"
             @click=${this.closeCustomizeView}
             view="viewCustomizeSidebar"
-            size="small"
+            size="default"
             type="icon ghost"
           >
           </moz-button>
         </div>
-        <moz-fieldset class="customize-firefox-tools" data-l10n-id="sidebar-customize-firefox-tools">
+        <div class="customize-firefox-tools">
+          <h5 data-l10n-id="sidebar-customize-firefox-tools"></h5>
+          <div class="inputs">
           ${this.getWindow()
             .SidebarController.getTools()
             .map(tool => this.inputTemplate(tool))}
-        </moz-fieldset>
+          </div>
+        </div>
         ${when(
           extensions.length,
           () => html`<div class="customize-extensions">
-            <h5
-              class="heading-medium customize-extensions-heading"
-              data-l10n-id="sidebar-customize-extensions"
-            ></h5>
+            <h5 data-l10n-id="sidebar-customize-extensions"></h5>
             <div role="list" class="extensions">
               ${extensions.map((extension, index) =>
                 this.extensionTemplate(extension, index)
@@ -185,7 +189,7 @@ export class SidebarCustomize extends SidebarPage {
           </div>`
         )}
         <div id="manage-settings">
-          <img src="chrome://browser/skin/preferences/category-general.svg" class="icon" role="presentation" />
+          <span class="icon ghost-icon" role="presentation"></span>
           <a
             href="about:preferences"
             @click=${this.openFirefoxSettings}
