@@ -155,12 +155,12 @@ export class SidebarCustomize extends SidebarPage {
       <link rel="stylesheet" href="chrome://browser/content/sidebar/sidebar-customize.css"></link>
       <div class="container">
         <div class="customize-header">
-          <h2 data-l10n-id="sidebar-menu-customize-label"></h2>
+          <h2 class="customize-header-heading" data-l10n-id="sidebar-menu-customize-label"></h2>
           <moz-button
             class="customize-close-button"
             @click=${this.closeCustomizeView}
             view="viewCustomizeSidebar"
-            size="default"
+            size="small"
             type="icon ghost"
           >
           </moz-button>
@@ -173,7 +173,10 @@ export class SidebarCustomize extends SidebarPage {
         ${when(
           extensions.length,
           () => html`<div class="customize-extensions">
-            <h5 data-l10n-id="sidebar-customize-extensions"></h5>
+            <h5
+              class="heading-medium customize-extensions-heading"
+              data-l10n-id="sidebar-customize-extensions"
+            ></h5>
             <div role="list" class="extensions">
               ${extensions.map((extension, index) =>
                 this.extensionTemplate(extension, index)
@@ -182,7 +185,7 @@ export class SidebarCustomize extends SidebarPage {
           </div>`
         )}
         <div id="manage-settings">
-          <span class="icon ghost-icon" role="presentation"></span>
+          <img src="chrome://browser/skin/preferences/category-general.svg" class="icon" role="presentation" />
           <a
             href="about:preferences"
             @click=${this.openFirefoxSettings}
