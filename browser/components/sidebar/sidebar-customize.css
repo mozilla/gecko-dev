@@ -20,31 +20,6 @@
   }
 }
 
-.customize-firefox-tools {
-  .inputs {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-medium);
-  }
-
-  .input-wrapper {
-    display: flex;
-    align-items: center;
-    gap: var(--space-small);
-
-    > input {
-      margin-inline-start: 0;
-    }
-
-    > label {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-small);
-      font-size: 0.9em;
-    }
-  }
-}
-
 .icon {
   -moz-context-properties: fill;
   fill: currentColor;

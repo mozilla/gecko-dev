@@ -5,8 +5,6 @@
 import { html, when } from "chrome://global/content/vendor/lit.all.mjs";
 
 import { SidebarPage } from "./sidebar-page.mjs";
-// eslint-disable-next-line import/no-unassigned-import
-import "chrome://global/content/elements/moz-button.mjs";
 
 const l10nMap = new Map([
   ["viewHistorySidebar", "sidebar-menu-history-label"],
@@ -25,7 +23,7 @@ export class SidebarCustomize extends SidebarPage {
   };
 
   static queries = {
-    toolInputs: { all: ".customize-firefox-tools input" },
+    toolInputs: { all: ".customize-firefox-tools moz-checkbox" },
     extensionLinks: { all: ".extension-link" },
   };
 
@@ -83,19 +81,17 @@ export class SidebarCustomize extends SidebarPage {
   }
 
   inputTemplate(tool) {
-    return html`<div class="input-wrapper">
-      <input
+    return html`
+      <moz-checkbox
         type="checkbox"
         id=${tool.view}
         name=${tool.view}
+        iconsrc=${tool.iconUrl}
+        data-l10n-id=${this.getInputL10nId(tool.view)}
         @change=${this.onToggleInput}
         ?checked=${!tool.disabled}
       />
-      <label for=${tool.view}>
-        <img src=${tool.iconUrl} class="icon" role="presentation" />
-        <span data-l10n-id=${this.getInputL10nId(tool.view)} />
-      </label>
-    </div>`;
+    `;
   }
 
   async manageAddon(extensionId) {
@@ -169,14 +165,11 @@ export class SidebarCustomize extends SidebarPage {
           >
           </moz-button>
         </div>
-        <div class="customize-firefox-tools">
-          <h5 data-l10n-id="sidebar-customize-firefox-tools"></h5>
-          <div class="inputs">
+        <moz-fieldset class="customize-firefox-tools" data-l10n-id="sidebar-customize-firefox-tools">
           ${this.getWindow()
             .SidebarController.getTools()
             .map(tool => this.inputTemplate(tool))}
-          </div>
-        </div>
+        </moz-fieldset>
         ${when(
           extensions.length,
           () => html`<div class="customize-extensions">
