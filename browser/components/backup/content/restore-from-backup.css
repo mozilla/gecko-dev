@@ -1,0 +1,97 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this
+* file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+@import url("chrome://global/skin/in-content/common.css");
+
+#restore-from-backup-wrapper {
+  display: grid;
+  grid-template-areas:
+    "header"
+    "content"
+    "button-group";
+  grid-template-rows: auto auto auto;
+
+  #restore-from-backup-header {
+    grid-area: header;
+    margin: 0;
+  }
+
+  & fieldset {
+    border: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  #restore-from-backup-content {
+    display: flex;
+    flex-direction: column;
+    grid-area: content;
+    margin-block-start: var(--space-small);
+    margin-block-end: var(--space-large);
+    row-gap: var(--space-large);
+
+    & > #restore-from-backup-description {
+      width: 400px;
+    }
+  }
+
+  #backup-restore-controls {
+    display: flex;
+    flex-direction: column;
+    row-gap: var(--space-xlarge);
+  }
+
+  #backup-filepicker-controls {
+    display: flex;
+    flex-direction: column;
+    row-gap: var(--space-xsmall);
+
+    #backup-filepicker {
+      display: flex;
+      column-gap: var(--space-small);
+      align-items: center;
+    }
+
+    #backup-filepicker-input {
+      flex: 1;
+      margin-block: var(--space-xsmall);
+      margin-inline-start: 0;
+      padding-inline-start: var(--space-xxlarge);
+      background-repeat: no-repeat;
+      background-size: var(--icon-size-default);
+      background-position: var(--space-small) 50%;
+
+      /* For the placeholder icon */
+      fill: currentColor;
+      -moz-context-properties: fill;
+
+      &:dir(rtl) {
+        background-position: calc(100% - var(--space-small)) 50%;
+      }
+    }
+  }
+
+  #backup-password {
+    display: flex;
+    flex-direction: column;
+
+    & > #backup-password-label {
+      display: flex;
+      flex-direction: column;
+    }
+
+    & > #backup-password-label > input {
+      margin-inline-start: 0px;
+    }
+
+    & > #backup-password-description {
+      color: var(--text-color-deemphasized);
+      font-size: var(--font-size-small);
+    }
+  }
+
+  #restore-from-backup-button-group {
+    grid-area: button-group;
+  }
+}

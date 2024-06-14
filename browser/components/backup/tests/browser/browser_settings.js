@@ -3,6 +3,15 @@
 
 "use strict";
 
+const { MockFilePicker } = SpecialPowers;
+
+add_setup(async () => {
+  MockFilePicker.init(window.browsingContext);
+  registerCleanupFunction(() => {
+    MockFilePicker.cleanup();
+  });
+});
+
 /**
  * Tests that the section for controlling backup in about:preferences is
  * visible, but can also be hidden via a pref.
@@ -92,5 +101,91 @@ add_task(async function test_turn_off_scheduled_backups_confirm() {
     Assert.ok(!scheduledPrefVal, "Scheduled backups pref should be false");
 
     await SpecialPowers.popPrefEnv();
+  });
+});
+
+/**
+ * Tests that the a backup file can be restored from the settings page.
+ */
+add_task(async function test_restore_from_backup() {
+  await BrowserTestUtils.withNewTab("about:preferences", async browser => {
+    const mockBackupFilePath = await IOUtils.createUniqueFile(
+      PathUtils.tempDir,
+      "backup.html"
+    );
+    const mockBackupFile = Cc["@mozilla.org/file/local;1"].createInstance(
+      Ci.nsIFile
+    );
+    mockBackupFile.initWithPath(mockBackupFilePath);
+
+    let filePickerShownPromise = new Promise(resolve => {
+      MockFilePicker.showCallback = async () => {
+        Assert.ok(true, "Filepicker shown");
+        MockFilePicker.setFiles([mockBackupFile]);
+        resolve();
+      };
+    });
+    MockFilePicker.returnValue = MockFilePicker.returnOK;
+
+    let settings = browser.contentDocument.querySelector("backup-settings");
+
+    await settings.updateComplete;
+
+    Assert.ok(
+      settings.restoreFromBackupButtonEl,
+      "Button to restore backups should be found"
+    );
+
+    settings.restoreFromBackupButtonEl.click();
+
+    await settings.updateComplete;
+
+    let restoreFromBackup = settings.restoreFromBackupEl;
+
+    Assert.ok(restoreFromBackup, "restore-from-backup should be found");
+
+    let infoPromise = BrowserTestUtils.waitForEvent(
+      window,
+      "getBackupFileInfo"
+    );
+
+    restoreFromBackup.chooseButtonEl.click();
+    await filePickerShownPromise;
+
+    await infoPromise;
+    // Set mock file info
+    restoreFromBackup.backupFileInfo = {
+      date: new Date(),
+      isEncrypted: true,
+    };
+    await restoreFromBackup.updateComplete;
+
+    // Set password for file
+    restoreFromBackup.passwordInput.value = "h-*@Vfge3_hGxdpwqr@w";
+
+    let restorePromise = BrowserTestUtils.waitForEvent(
+      window,
+      "restoreFromBackupConfirm"
+    );
+
+    Assert.ok(
+      restoreFromBackup.confirmButtonEl,
+      "Confirm button should be found"
+    );
+
+    await restoreFromBackup.updateComplete;
+    restoreFromBackup.confirmButtonEl.click();
+
+    await restorePromise.then(e => {
+      let mockEvent = {
+        backupFile: mockBackupFile.path,
+        backupPassword: "h-*@Vfge3_hGxdpwqr@w",
+      };
+      Assert.deepEqual(
+        e.detail,
+        mockEvent,
+        "Event should contain the file and password"
+      );
+    });
   });
 });

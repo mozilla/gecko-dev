@@ -1,0 +1,137 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tests for the restore-from-backup component</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <script
+  src="chrome://browser/content/backup/restore-from-backup.mjs"
+  type="module"
+  ></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script>
+
+    const { BrowserTestUtils } = ChromeUtils.importESModule(
+      "resource://testing-common/BrowserTestUtils.sys.mjs"
+    );
+
+    /**
+     * Tests that adding a restore-from-backup element to the DOM causes it to
+     * fire a BackupUI:InitWidget event.
+     */
+    add_task(async function test_initWidget() {
+      let restoreFromBackup = document.createElement("restore-from-backup");
+      let content = document.getElementById("content");
+
+      let sawInitWidget = BrowserTestUtils.waitForEvent(content, "BackupUI:InitWidget");
+      content.appendChild(restoreFromBackup);
+      await sawInitWidget;
+      ok(true, "Saw BackupUI:InitWidget");
+
+      restoreFromBackup.remove();
+    });
+
+    /**
+     * Tests that pressing the restore and restart button will dispatch the expected events.
+     */
+    add_task(async function test_restore() {
+      let restoreFromBackup = document.getElementById("test-restore-from-backup");
+      let confirmButton = restoreFromBackup.confirmButtonEl;
+
+      ok(confirmButton, "Restore button should be found");
+
+      restoreFromBackup.backupFileToRestore = "/Some/User/Documents/Firefox Backup/backup.html";
+      await restoreFromBackup.updateComplete;
+
+      let content = document.getElementById("content");
+      let promise = BrowserTestUtils.waitForEvent(content, "restoreFromBackupConfirm");
+
+      confirmButton.click();
+
+      await promise;
+
+      ok(true, "Detected event after pressing the restore button");
+    });
+
+    /**
+     * Tests that pressing the cancel button will dispatch the expected events.
+     */
+    add_task(async function test_cancel() {
+      let restoreFromBackup = document.getElementById("test-restore-from-backup");
+      let cancelButton = restoreFromBackup.cancelButtonEl;
+
+      ok(cancelButton, "Cancel button should be found");
+
+      let content = document.getElementById("content");
+      let promise = BrowserTestUtils.waitForEvent(content, "dialogCancel");
+
+      cancelButton.click();
+
+      await promise;
+      ok(true, "Detected event after pressing the cancel button");
+    });
+
+    /**
+     * Tests that pressing the choose button will dispatch the expected events.
+     */
+     add_task(async function test_choose() {
+      let restoreFromBackup = document.getElementById("test-restore-from-backup");
+
+      ok(restoreFromBackup.chooseButtonEl, "Choose button should be found");
+
+      let content = document.getElementById("content");
+      let promise = BrowserTestUtils.waitForEvent(content, "BackupUI:ShowFilepicker");
+
+      restoreFromBackup.chooseButtonEl.click();
+
+      await promise;
+      ok(true, "Detected event after pressing the choose button");
+    });
+
+    /**
+     * Tests that changing backup files will dispatch the expected events.
+     */
+     add_task(async function test_restore() {
+      let restoreFromBackup = document.getElementById("test-restore-from-backup");
+
+      let content = document.getElementById("content");
+      let promise = BrowserTestUtils.waitForEvent(content, "getBackupFileInfo");
+
+      restoreFromBackup.backupFileToRestore = "/Some/User/Documents/Firefox Backup/backup-default.html";
+      await restoreFromBackup.updateComplete;
+
+      await promise;
+      ok(true, "Detected event after changing files to restore");
+    });
+
+    /**
+     * Tests that the password input will shown when a file is encrypted.
+     */
+     add_task(async function test_show_password() {
+      let restoreFromBackup = document.getElementById("test-restore-from-backup");
+
+      ok(!restoreFromBackup.passwordInput, "Password input should not be present");
+
+      let date = new Date();
+      restoreFromBackup.backupFileInfo = {
+        date,
+        isEncrypted: true,
+      };
+
+      await restoreFromBackup.updateComplete;
+
+      ok(restoreFromBackup.passwordInput, "Password input should be present");
+    });
+
+
+  </script>
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="display: none">
+  <restore-from-backup id="test-restore-from-backup"></restore-from-backup>
+</div>
+<pre id="test"></pre>
+</body>
+</html>

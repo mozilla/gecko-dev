@@ -35,6 +35,8 @@ export class BackupUIChild extends JSWindowActorChild {
       let targetNodeName = event.target.nodeName;
       let { path, filename, iconURL } = await this.sendQuery("ShowFilepicker", {
         win: event.detail?.win,
+        filter: event.detail?.filter,
+        displayDirectoryPath: event.detail?.displayDirectoryPath,
       });
 
       let widgets = ChromeUtils.nondeterministicGetWeakSetKeys(
@@ -56,6 +58,19 @@ export class BackupUIChild extends JSWindowActorChild {
           break;
         }
       }
+    } else if (event.type == "BackupUI:GetBackupFileInfo") {
+      let { backupFile } = event.detail;
+      this.sendAsyncMessage("GetBackupFileInfo", {
+        backupFile,
+      });
+    } else if (event.type == "BackupUI:RestoreFromBackupFile") {
+      let { backupFile, backupPassword } = event.detail;
+      this.sendAsyncMessage("RestoreFromBackupFile", {
+        backupFile,
+        backupPassword,
+      });
+    } else if (event.type == "BackupUI:RestoreFromBackupChooseFile") {
+      this.sendAsyncMessage("RestoreFromBackupChooseFile");
     }
   }
 

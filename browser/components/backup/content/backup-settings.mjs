@@ -9,6 +9,8 @@ import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import "chrome://browser/content/backup/turn-on-scheduled-backups.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/backup/turn-off-scheduled-backups.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/backup/restore-from-backup.mjs";
 
 /**
  * The widget for managing the BackupService that is embedded within the main
@@ -26,6 +28,9 @@ export default class BackupSettings extends MozLitElement {
       turnOnScheduledBackupsEl: "turn-on-scheduled-backups",
       turnOffScheduledBackupsEl: "turn-off-scheduled-backups",
       turnOffScheduledBackupsDialogEl: "#turn-off-scheduled-backups-dialog",
+      restoreFromBackupEl: "restore-from-backup",
+      restoreFromBackupButtonEl: "#backup-toggle-restore-button",
+      restoreFromBackupDialogEl: "#restore-from-backup-dialog",
     };
   }
 
@@ -37,6 +42,8 @@ export default class BackupSettings extends MozLitElement {
     super();
     this.backupServiceState = {
       backupDirPath: "",
+      backupFileToRestore: null,
+      backupFileInfo: null,
       backupInProgress: false,
       defaultParent: {
         fileName: "",
@@ -60,6 +67,9 @@ export default class BackupSettings extends MozLitElement {
     this.addEventListener("turnOnScheduledBackups", this);
     this.addEventListener("turnOffScheduledBackups", this);
     this.addEventListener("dialogCancel", this);
+    this.addEventListener("restoreFromBackupConfirm", this);
+    this.addEventListener("restoreFromBackupChooseFile", this);
+    this.addEventListener("getBackupFileInfo", this);
   }
 
   handleEvent(event) {
@@ -92,9 +102,43 @@ export default class BackupSettings extends MozLitElement {
       case "dialogCancel":
         if (this.turnOnScheduledBackupsDialogEl.open) {
           this.turnOnScheduledBackupsDialogEl.close();
-        } else {
+        } else if (this.turnOffScheduledBackupsDialogEl.open) {
           this.turnOffScheduledBackupsDialogEl.close();
+        } else if (this.restoreFromBackupDialogEl.open) {
+          this.restoreFromBackupDialogEl.close();
         }
+        break;
+      case "restoreFromBackupConfirm":
+        this.restoreFromBackupDialogEl.close();
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:RestoreFromBackupFile", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              backupFile: event.detail.backupFile,
+            },
+          })
+        );
+        break;
+      case "restoreFromBackupChooseFile":
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:RestoreFromBackupChooseFile", {
+            bubbles: true,
+            composed: true,
+          })
+        );
+        break;
+      case "getBackupFileInfo":
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:GetBackupFileInfo", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              backupFile: event.detail.backupFile,
+              backupPassword: event.detail.backupPassword,
+            },
+          })
+        );
         break;
     }
   }
@@ -130,6 +174,36 @@ export default class BackupSettings extends MozLitElement {
     </dialog>`;
   }
 
+  restoreFromBackupDialogTemplate() {
+    let { backupFilePath, backupFileToRestore, backupFileInfo } =
+      this.backupServiceState;
+    return html`<dialog id="restore-from-backup-dialog">
+      <restore-from-backup
+        .backupFilePath=${backupFilePath}
+        .backupFileToRestore=${backupFileToRestore}
+        .backupFileInfo=${backupFileInfo}
+      ></restore-from-backup>
+    </dialog>`;
+  }
+
+  restoreFromBackupTemplate() {
+    return html`<div id="restore-from-backup">
+      ${this.restoreFromBackupDialogTemplate()}
+
+      <moz-button
+        id="backup-toggle-restore-button"
+        @click=${this.handleShowRestoreDialog}
+        data-l10n-id="settings-data-backup-restore-choose"
+      ></moz-button>
+    </div>`;
+  }
+
+  handleShowRestoreDialog() {
+    if (this.restoreFromBackupDialogEl) {
+      this.restoreFromBackupDialogEl.showModal();
+    }
+  }
+
   render() {
     return html`<link
         rel="stylesheet"
@@ -153,7 +227,9 @@ export default class BackupSettings extends MozLitElement {
           @click=${this.handleShowScheduledBackups}
           data-l10n-id="settings-data-backup-toggle"
         ></moz-button>
-      </div>`;
+
+        ${this.restoreFromBackupTemplate()}
+      </div> `;
   }
 }
 

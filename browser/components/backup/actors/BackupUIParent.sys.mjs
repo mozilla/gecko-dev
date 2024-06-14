@@ -103,10 +103,30 @@ export class BackupUIParent extends JSWindowActorParent {
        * Bug 1897498.
        */
     } else if (message.name == "ShowFilepicker") {
-      let { win } = message.data;
+      let { win, filter, displayDirectoryPath } = message.data;
 
       let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-      fp.init(win, "", Ci.nsIFilePicker.modeGetFolder);
+
+      let mode = filter
+        ? Ci.nsIFilePicker.modeOpen
+        : Ci.nsIFilePicker.modeGetFolder;
+      fp.init(win, "", mode);
+
+      if (filter) {
+        fp.appendFilters(Ci.nsIFilePicker[filter]);
+      }
+
+      if (displayDirectoryPath) {
+        try {
+          let exists = await IOUtils.exists(displayDirectoryPath);
+          if (exists) {
+            fp.displayDirectory = await IOUtils.getFile(displayDirectoryPath);
+          }
+        } catch (_) {
+          // If the file can not be found we will skip setting the displayDirectory.
+        }
+      }
+
       let result = await new Promise(resolve => fp.open(resolve));
 
       if (result === Ci.nsIFilePicker.returnCancel) {
@@ -122,6 +142,15 @@ export class BackupUIParent extends JSWindowActorParent {
         filename,
         iconURL,
       };
+    } else if (message.name == "GetBackupFileInfo") {
+      // TODO: Call sampleArchive method in BackupService
+      // once it is implemented in Bug 1901132 and pass date and isEncrypted.
+    } else if (message.name == "RestoreFromBackupChooseFile") {
+      const window = this.browsingContext.topChromeWindow;
+      this.#bs.filePickerForRestore(window);
+    } else if (message.name == "RestoreFromBackupFile") {
+      // TODO: Call restore from single-file archive method
+      // in BackupService once it is implemented in Bug 1890322.
     }
 
     return null;

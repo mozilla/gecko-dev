@@ -6,6 +6,8 @@ skip-if = ["os == 'android'"]
 
 ["test_backup_settings.html"]
 
+["test_restore_from_backup.html"]
+
 ["test_turn_off_scheduled_backups.html"]
 
 ["test_turn_on_scheduled_backups.html"]
