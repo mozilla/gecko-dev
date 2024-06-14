@@ -66,25 +66,11 @@ class MyCustomElement extends MozLitElement {
 
 `MozLitElement` differs from `LitElement` in a few important ways:
 
-#### It provides automatic Fluent support for the shadow DOM
+#### 1. It provides automatic Fluent support for the shadow DOM
 
 When working with Fluent in the shadow DOM an element's `shadowRoot` must be connected before Fluent can be used. `MozLitElement` handles this by extending `LitElement`'s `connectedCallback` to [call](https://searchfox.org/mozilla-central/source/toolkit/content/widgets/lit-utils.mjs#84) `document.l10n.connectRoot` if needed. `MozLitElement` also automatically calls `document.l10n.translateFragment` on the renderRoot anytime an element updates. The net result of these modifications is that you can use Fluent in your Lit based components just like you would in any other markup in `mozilla-central`.
 
-#### It provides automatic Fluent support for localized Reactive Properties
-
-Fluent requires that attributes be marked as safe if they don't fall into the default list of [allowed attributes](https://searchfox.org/mozilla-central/rev/4c8627a76e2e0a9b49c2b673424da478e08715ad/dom/l10n/L10nOverlays.cpp#44-95). By setting `fluent: true` in your Reactive Property's definition `MozLitElement` will automatically populate the `data-l10n-attrs` in `connectedCallback()` to mark the attribute as safe for Fluent.
-
-```js
-class MyCustomElement extends MozLitElement {
-    static properties = {
-        label: { type: String, fluent: true },
-        description: { type: String, fluent: true },
-        value: { type: String },
-    };
-}
-```
-
-#### It implements support for Lit's `@query` and `@queryAll` decorators
+#### 2. It implements support for Lit's `@query` and `@queryAll` decorators
 
 The Lit library includes `@query` and `@queryAll` [decorators](https://lit.dev/docs/components/shadow-dom/#@query-@queryall-and-@queryasync-decorators) that provide an easy way of finding elements within the internal component DOM. These do not work in `mozilla-central` as we do not have support for JavaScript decorators. Instead, `MozLitElement` provides equivalent [DOM querying functionality](https://searchfox.org/mozilla-central/source/toolkit/content/widgets/lit-utils.mjs#87-99) via defining a static `queries` property on the subclass. For example the following Lit code that queries the component's DOM for certain selectors and assigns the results to different class properties:
 
@@ -129,7 +115,7 @@ class MyCustomElement extends MozLitElement {
 }
 ```
 
-#### It adds a `dispatchOnUpdateComplete` method
+#### 3. It adds a `dispatchOnUpdateComplete` method
 
 The `dispatchOnUpdateComplete` method provides an easy way to communicate to test code or other element consumers that a reactive property change has taken effect. It leverages Lit's [updateComplete](https://lit.dev/docs/components/lifecycle/#updatecomplete) promise to emit an event after all updates have been applied and the component's DOM is ready to be queried. It has the potential to be particularly useful when you need to query the DOM in test code, for example:
 

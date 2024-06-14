@@ -7,8 +7,6 @@ import { MozLitElement } from "../lit-utils.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-button.mjs";
 
-window.MozXULElement?.insertFTLIfNeeded("toolkit/global/mozMessageBar.ftl");
-
 const messageTypeToIconData = {
   info: {
     iconSrc: "chrome://global/skin/icons/info-filled.svg",
@@ -68,6 +66,7 @@ export default class MozMessageBar extends MozLitElement {
 
   constructor() {
     super();
+    window.MozXULElement?.insertFTLIfNeeded("toolkit/global/mozMessageBar.ftl");
     this.type = "info";
     this.dismissable = false;
   }

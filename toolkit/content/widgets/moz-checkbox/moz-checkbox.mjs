@@ -13,19 +13,13 @@ import "chrome://global/content/elements/moz-label.mjs";
  *
  * @tagname moz-checkbox
  * @property {string} label - The text of the label element
- * @property {string} name - The name of the checkbox input control
- * @property {string} value - The value of the checkbox input control
  * @property {boolean} checked - The state of the checkbox element,
  *  also controls whether the checkbox is initially rendered as
  *  being checked
- * @property {boolean} disabled - The disabled state of the checkbox input
- * @property {string} iconSrc - The src for an optional icon
  */
 export default class MozCheckbox extends MozLitElement {
   static properties = {
-    label: { type: String, fluent: true },
-    name: { type: String },
-    value: { type: String },
+    label: { type: String },
     iconSrc: { type: String },
     checked: { type: Boolean, reflect: true },
     disabled: { type: Boolean, reflect: true },
@@ -45,8 +39,9 @@ export default class MozCheckbox extends MozLitElement {
     this.disabled = false;
   }
 
-  click() {
-    this.checkboxEl.click();
+  connectedCallback() {
+    super.connectedCallback();
+    this.dataset.l10nAttrs = "label";
   }
 
   focus() {
@@ -92,8 +87,6 @@ export default class MozCheckbox extends MozLitElement {
         <input
           id="moz-checkbox"
           type="checkbox"
-          name=${this.name}
-          value=${this.value}
           .checked=${this.checked}
           @click=${this.handleStateChange}
           @change=${this.redispatchEvent}

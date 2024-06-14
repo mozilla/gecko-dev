@@ -4,20 +4,7 @@
 
 .container {
   padding-inline: var(--space-small);
-  font: menu;
-
-  > * + * {
-    margin-top: var(--space-xlarge);
-  }
-
-  > .customize-header + * {
-    margin-top: var(--space-medium);
-  }
-}
-
-.customize-header-heading {
-  font-size: 1.467rem; /* Bug 1901872: replace with var(--font-size-xlarge) */
-  margin: 0;
+  font-size: 15px;
 }
 
 .customize-header {
@@ -33,6 +20,31 @@
   }
 }
 
+.customize-firefox-tools {
+  .inputs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-medium);
+  }
+
+  .input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-small);
+
+    > input {
+      margin-inline-start: 0;
+    }
+
+    > label {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-small);
+      font-size: 0.9em;
+    }
+  }
+}
+
 .icon {
   -moz-context-properties: fill;
   fill: currentColor;
@@ -44,23 +56,25 @@
   .extensions {
     display: flex;
     flex-direction: column;
-    gap: var(--space-large);
-    margin-top: var(--space-small);
+    gap: var(--space-medium);
   }
 
   .extension-item {
     display: flex;
-    gap: var(--space-small);
+    gap: var(--space-medium);
     align-items: center;
+    font-size: 0.9em;
   }
-}
-
-.customize-extensions-heading {
-  margin: 0;
 }
 
 #manage-settings {
   display: flex;
   align-items: center;
-  gap: var(--space-small);
+  gap: var(--space-medium);
+  margin-block-start: var(--space-xxlarge);
+  font-size: 0.9em;
+
+  .icon {
+    background-image: url("chrome://browser/skin/preferences/category-general.svg");
+  }
 }

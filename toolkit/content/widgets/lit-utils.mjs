@@ -55,14 +55,6 @@ function queryAll(el, selector) {
  *
  *******
  *
- * Automatic Fluent support for localized Reactive Properties
- *
- * When a Reactive Property can be set by fluent, set `fluent: true` in its
- * property definition and it will automatically be added to the data-l10n-attrs
- * attribute so that fluent will allow setting the attribute.
- *
- *******
- *
  * Test helper for sending events after a change: `dispatchOnUpdateComplete`
  *
  * When some async stuff is going on and you want to wait for it in a test, you
@@ -90,22 +82,6 @@ function queryAll(el, selector) {
  * });
  */
 export class MozLitElement extends LitElement {
-  #l10nObj;
-  #l10nRootConnected = false;
-
-  static _finalizeFluentProperties() {
-    if (!this.fluentProperties) {
-      this.fluentProperties = [];
-      for (let [propName, attributes] of this.elementProperties.entries()) {
-        if (attributes.fluent) {
-          this.fluentProperties.push(
-            attributes.attribute || propName.toLowerCase()
-          );
-        }
-      }
-    }
-  }
-
   constructor() {
     super();
     let { queries } = this.constructor;
@@ -122,25 +98,17 @@ export class MozLitElement extends LitElement {
         }
       }
     }
-    this.constructor._finalizeFluentProperties();
   }
 
   connectedCallback() {
     super.connectedCallback();
     if (
       this.renderRoot == this.shadowRoot &&
-      !this.#l10nRootConnected &&
-      this.#l10n
+      !this._l10nRootConnected &&
+      document.l10n
     ) {
-      this.#l10n.connectRoot(this.renderRoot);
-      this.#l10nRootConnected = true;
-
-      if (this.constructor.fluentProperties.length) {
-        this.dataset.l10nAttrs = this.constructor.fluentProperties.join(",");
-        if (this.dataset.l10nId) {
-          this.#l10n.translateElements([this]);
-        }
-      }
+      document.l10n.connectRoot(this.renderRoot);
+      this._l10nRootConnected = true;
     }
   }
 
@@ -148,20 +116,12 @@ export class MozLitElement extends LitElement {
     super.disconnectedCallback();
     if (
       this.renderRoot == this.shadowRoot &&
-      this.#l10nRootConnected &&
-      this.#l10n
+      this._l10nRootConnected &&
+      document.l10n
     ) {
-      this.#l10n.disconnectRoot(this.renderRoot);
-      this.#l10nRootConnected = false;
+      document.l10n.disconnectRoot(this.renderRoot);
+      this._l10nRootConnected = false;
     }
-  }
-
-  get #l10n() {
-    if (!this.#l10nObj) {
-      this.#l10nObj =
-        (window.Cu?.isInAutomation && window.mockL10n) || document.l10n;
-    }
-    return this.#l10nObj;
   }
 
   async dispatchOnUpdateComplete(event) {
@@ -171,8 +131,8 @@ export class MozLitElement extends LitElement {
 
   update() {
     super.update();
-    if (this.#l10n) {
-      this.#l10n.translateFragment(this.renderRoot);
+    if (document.l10n) {
+      document.l10n.translateFragment(this.renderRoot);
     }
   }
 }
