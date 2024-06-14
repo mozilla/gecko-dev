@@ -2987,7 +2987,8 @@ void HTMLInputElement::MaybeSubmitForm(nsPresContext* aPresContext) {
   // Get the default submit element
   if (RefPtr<nsGenericHTMLFormElement> submitContent =
           mForm->GetDefaultSubmitElement()) {
-    WidgetMouseEvent event(true, eMouseClick, nullptr, WidgetMouseEvent::eReal);
+    WidgetMouseEvent event(true, ePointerClick, nullptr,
+                           WidgetMouseEvent::eReal);
     nsEventStatus status = nsEventStatus_eIgnore;
     presShell->HandleDOMEventWithTarget(submitContent, &event, &status);
   } else if (!mForm->ImplicitSubmissionIsDisabled()) {
@@ -3982,7 +3983,7 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
           break;
         }
 #endif
-        case eMouseClick: {
+        case ePointerClick: {
           if (!aVisitor.mEvent->DefaultPrevented() &&
               aVisitor.mEvent->IsTrusted() &&
               aVisitor.mEvent->AsMouseEvent()->mButton ==

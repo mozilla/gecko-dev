@@ -2419,8 +2419,8 @@ void APZCTreeManager::UpdateWheelTransaction(
     case eMouseUp:
     case eMouseDown:
     case eMouseDoubleClick:
-    case eMouseAuxClick:
-    case eMouseClick:
+    case ePointerAuxClick:
+    case ePointerClick:
     case eContextMenu:
     case eDrop:
       txn->EndTransaction();

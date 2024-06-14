@@ -421,7 +421,7 @@ NS_IMETHODIMP EditorEventListener::HandleEvent(Event* aEvent) {
       // has not received the preceding mousedown event of this mouseup event.
       // So, mMouseDownOrUpConsumedByIME may be invalid here.  However,
       // this is not a matter because mMouseDownOrUpConsumedByIME is referred
-      // only by eMouseClick case but click event is fired only in case #1.
+      // only by ePointerClick case but click event is fired only in case #1.
       // So, before a click event is fired, mMouseDownOrUpConsumedByIME is
       // always initialized in the eMouseDown case if it's referred.
       if (NotifyIMEOfMouseButtonEvent(internalEvent->AsMouseEvent())) {
@@ -440,7 +440,7 @@ NS_IMETHODIMP EditorEventListener::HandleEvent(Event* aEvent) {
       return rv;
     }
     // click
-    case eMouseClick: {
+    case ePointerClick: {
       WidgetMouseEvent* widgetMouseEvent = internalEvent->AsMouseEvent();
       // Don't handle non-primary click events
       if (widgetMouseEvent->mButton != MouseButton::ePrimary) {
@@ -449,7 +449,7 @@ NS_IMETHODIMP EditorEventListener::HandleEvent(Event* aEvent) {
       [[fallthrough]];
     }
     // auxclick
-    case eMouseAuxClick: {
+    case ePointerAuxClick: {
       WidgetMouseEvent* widgetMouseEvent = internalEvent->AsMouseEvent();
       if (NS_WARN_IF(!widgetMouseEvent)) {
         return NS_OK;

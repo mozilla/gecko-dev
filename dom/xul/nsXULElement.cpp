@@ -866,9 +866,9 @@ void nsXULElement::List(FILE* out, int32_t aIndent) const {
 bool nsXULElement::IsEventStoppedFromAnonymousScrollbar(EventMessage aMessage) {
   return (IsRootOfNativeAnonymousSubtree() &&
           IsAnyOfXULElements(nsGkAtoms::scrollbar, nsGkAtoms::scrollcorner) &&
-          (aMessage == eMouseClick || aMessage == eMouseDoubleClick ||
+          (aMessage == ePointerClick || aMessage == eMouseDoubleClick ||
            aMessage == eXULCommand || aMessage == eContextMenu ||
-           aMessage == eDragStart || aMessage == eMouseAuxClick));
+           aMessage == eDragStart || aMessage == ePointerAuxClick));
 }
 
 nsresult nsXULElement::DispatchXULCommand(const EventChainVisitor& aVisitor,
@@ -990,7 +990,7 @@ void nsXULElement::ClickWithInputSource(uint16_t aInputSource,
       // This helps to avoid commands being dispatched from
       // XULButtonElement::PostHandleEventForMenu.
       eventUp.mFlags.mMultipleActionsPrevented = true;
-      WidgetMouseEvent eventClick(aIsTrustedEvent, eMouseClick, nullptr,
+      WidgetMouseEvent eventClick(aIsTrustedEvent, ePointerClick, nullptr,
                                   WidgetMouseEvent::eReal);
       eventDown.mInputSource = eventUp.mInputSource = eventClick.mInputSource =
           aInputSource;

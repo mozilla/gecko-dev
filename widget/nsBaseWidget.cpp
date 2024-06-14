@@ -3326,10 +3326,10 @@ nsAutoString nsBaseWidget::debug_GuiEventToString(WidgetGUIEvent* aGuiEvent) {
     _ASSIGN_eventName(eMouseExitFromWidget, "eMouseExitFromWidget");
     _ASSIGN_eventName(eMouseDown, "eMouseDown");
     _ASSIGN_eventName(eMouseUp, "eMouseUp");
-    _ASSIGN_eventName(eMouseClick, "eMouseClick");
-    _ASSIGN_eventName(eMouseAuxClick, "eMouseAuxClick");
     _ASSIGN_eventName(eMouseDoubleClick, "eMouseDoubleClick");
     _ASSIGN_eventName(eMouseMove, "eMouseMove");
+    _ASSIGN_eventName(ePointerClick, "ePointerClick");
+    _ASSIGN_eventName(ePointerAuxClick, "ePointerAuxClick");
     _ASSIGN_eventName(eLoad, "eLoad");
     _ASSIGN_eventName(ePopState, "ePopState");
     _ASSIGN_eventName(eBeforeScriptExecute, "eBeforeScriptExecute");

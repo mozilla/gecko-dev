@@ -601,7 +601,7 @@ nsresult XULButtonElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
       break;
     }
 
-    case eMouseClick: {
+    case ePointerClick: {
       WidgetMouseEvent* mouseEvent = event->AsMouseEvent();
       if (mouseEvent->IsLeftClickEvent()) {
         if (MouseClicked(*mouseEvent)) {

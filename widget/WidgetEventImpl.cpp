@@ -314,9 +314,7 @@ bool WidgetEvent::HasMouseEventMessage() const {
   switch (mMessage) {
     case eMouseDown:
     case eMouseUp:
-    case eMouseClick:
     case eMouseDoubleClick:
-    case eMouseAuxClick:
     case eMouseEnterIntoWidget:
     case eMouseExitFromWidget:
     case eMouseActivate:
@@ -324,6 +322,10 @@ bool WidgetEvent::HasMouseEventMessage() const {
     case eMouseOut:
     case eMouseHitTest:
     case eMouseMove:
+      return true;
+    // TODO: Perhaps, we should rename this method.
+    case ePointerClick:
+    case ePointerAuxClick:
       return true;
     default:
       return false;

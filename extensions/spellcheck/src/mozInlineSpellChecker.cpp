@@ -1990,7 +1990,7 @@ NS_IMETHODIMP mozInlineSpellChecker::HandleEvent(Event* aEvent) {
     case eBlur:
       OnBlur(*aEvent);
       return NS_OK;
-    case eMouseClick:
+    case ePointerClick:
       OnMouseClick(*aEvent);
       return NS_OK;
     case eKeyDown:

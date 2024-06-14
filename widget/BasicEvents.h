@@ -886,8 +886,8 @@ class WidgetEvent : public WidgetEventTime {
         break;
       case eMouseEventClass:
         mFlags.mComposed =
-            mMessage == eMouseClick || mMessage == eMouseDoubleClick ||
-            mMessage == eMouseAuxClick || mMessage == eMouseDown ||
+            mMessage == ePointerClick || mMessage == eMouseDoubleClick ||
+            mMessage == ePointerAuxClick || mMessage == eMouseDown ||
             mMessage == eMouseUp || mMessage == eMouseOver ||
             mMessage == eMouseOut || mMessage == eMouseMove ||
             mMessage == eContextMenu || mMessage == eXULPopupShowing ||

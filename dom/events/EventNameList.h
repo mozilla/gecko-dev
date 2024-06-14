@@ -158,8 +158,8 @@ EVENT(CheckboxStateChange, eFormCheckboxStateChange, EventNameType_None,
       eBasicEventClass)
 EVENT(RadioStateChange, eFormRadioStateChange, EventNameType_None,
       eBasicEventClass)
-EVENT(auxclick, eMouseAuxClick, EventNameType_All, eMouseEventClass)
-EVENT(click, eMouseClick, EventNameType_All, eMouseEventClass)
+EVENT(auxclick, ePointerAuxClick, EventNameType_All, eMouseEventClass)
+EVENT(click, ePointerClick, EventNameType_All, eMouseEventClass)
 EVENT(close, eClose, EventNameType_HTMLXUL, eBasicEventClass)
 EVENT(contextmenu, eContextMenu,
       EventNameType_HTMLXUL | EventNameType_SVGGraphic, eMouseEventClass)

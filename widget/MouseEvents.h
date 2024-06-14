@@ -165,7 +165,7 @@ class WidgetMouseEventBase : public WidgetInputEvent {
    * Returns true if left click event.
    */
   bool IsLeftClickEvent() const {
-    return mMessage == eMouseClick && mButton == MouseButton::ePrimary;
+    return mMessage == ePointerClick && mButton == MouseButton::ePrimary;
   }
 
   /**
@@ -332,7 +332,7 @@ class WidgetMouseEvent : public WidgetMouseEventBase,
   Maybe<ExitFrom> mExitFrom;
 
   // mClickCount may be non-zero value when mMessage is eMouseDown, eMouseUp,
-  // eMouseClick or eMouseDoubleClick. The number is count of mouse clicks.
+  // ePointerClick or eMouseDoubleClick. The number is count of mouse clicks.
   // Otherwise, this must be 0.
   uint32_t mClickCount;
 

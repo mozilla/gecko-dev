@@ -754,8 +754,8 @@ void EventStateManager::TryToFlushPendingNotificationsToIME() {
 
 static bool IsMessageMouseUserActivity(EventMessage aMessage) {
   return aMessage == eMouseMove || aMessage == eMouseUp ||
-         aMessage == eMouseDown || aMessage == eMouseAuxClick ||
-         aMessage == eMouseDoubleClick || aMessage == eMouseClick ||
+         aMessage == eMouseDown || aMessage == ePointerAuxClick ||
+         aMessage == eMouseDoubleClick || aMessage == ePointerClick ||
          aMessage == eMouseActivate || aMessage == eMouseLongTap;
 }
 
@@ -6014,7 +6014,7 @@ nsresult EventStateManager::DispatchClickEvents(
 
   AutoWeakFrame currentTarget = aClickTarget->GetPrimaryFrame();
   nsresult rv = InitAndDispatchClickEvent(
-      aMouseUpEvent, aStatus, eMouseClick, aPresShell, aClickTarget,
+      aMouseUpEvent, aStatus, ePointerClick, aPresShell, aClickTarget,
       currentTarget, notDispatchToContents, aOverrideClickTarget);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -6023,10 +6023,11 @@ nsresult EventStateManager::DispatchClickEvents(
   // Fire auxclick event if necessary.
   if (fireAuxClick && *aStatus != nsEventStatus_eConsumeNoDefault &&
       aClickTarget && aClickTarget->IsInComposedDoc()) {
-    rv = InitAndDispatchClickEvent(aMouseUpEvent, aStatus, eMouseAuxClick,
+    rv = InitAndDispatchClickEvent(aMouseUpEvent, aStatus, ePointerAuxClick,
                                    aPresShell, aClickTarget, currentTarget,
                                    false, aOverrideClickTarget);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to dispatch eMouseAuxClick");
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "Failed to dispatch ePointerAuxClick");
   }
 
   // Fire double click event if click count is 2.
@@ -6048,7 +6049,7 @@ nsresult EventStateManager::HandleMiddleClickPaste(
     nsEventStatus* aStatus, EditorBase* aEditorBase) {
   MOZ_ASSERT(aPresShell);
   MOZ_ASSERT(aMouseEvent);
-  MOZ_ASSERT((aMouseEvent->mMessage == eMouseAuxClick &&
+  MOZ_ASSERT((aMouseEvent->mMessage == ePointerAuxClick &&
               aMouseEvent->mButton == MouseButton::eMiddle) ||
              EventCausesClickEvents(*aMouseEvent));
   MOZ_ASSERT(aStatus);

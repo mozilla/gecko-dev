@@ -2303,7 +2303,7 @@ void nsGenericHTMLElement::Click(CallerType aCallerType) {
   SetHandlingClick();
 
   // Mark this event trusted if Click() is called from system code.
-  WidgetMouseEvent event(aCallerType == CallerType::System, eMouseClick,
+  WidgetMouseEvent event(aCallerType == CallerType::System, ePointerClick,
                          nullptr, WidgetMouseEvent::eReal);
   event.mFlags.mIsPositionless = true;
   event.mInputSource = MouseEvent_Binding::MOZ_SOURCE_UNKNOWN;
@@ -2459,7 +2459,7 @@ void nsGenericHTMLElement::HandleKeyboardActivation(
 nsresult nsGenericHTMLElement::DispatchSimulatedClick(
     nsGenericHTMLElement* aElement, bool aIsTrusted,
     nsPresContext* aPresContext) {
-  WidgetMouseEvent event(aIsTrusted, eMouseClick, nullptr,
+  WidgetMouseEvent event(aIsTrusted, ePointerClick, nullptr,
                          WidgetMouseEvent::eReal);
   event.mInputSource = MouseEvent_Binding::MOZ_SOURCE_KEYBOARD;
   event.mFlags.mIsPositionless = true;

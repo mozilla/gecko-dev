@@ -1114,7 +1114,7 @@ nsresult EventDispatcher::Dispatch(EventTarget* aTarget,
         RefPtr<nsRefreshDriver> refreshDriver;
         if (aEvent->IsTrusted() &&
             (aEvent->mMessage == eKeyPress ||
-             aEvent->mMessage == eMouseClick) &&
+             aEvent->mMessage == ePointerClick) &&
             aPresContext && aPresContext->GetRootPresContext()) {
           refreshDriver = aPresContext->GetRootPresContext()->RefreshDriver();
           if (refreshDriver) {
@@ -1225,7 +1225,7 @@ nsresult EventDispatcher::Dispatch(EventTarget* aTarget,
 
         if (aEvent->IsTrusted() &&
             (aEvent->mMessage == eKeyPress ||
-             aEvent->mMessage == eMouseClick) &&
+             aEvent->mMessage == ePointerClick) &&
             aPresContext && aPresContext->GetRootPresContext()) {
           nsRefreshDriver* driver =
               aPresContext->GetRootPresContext()->RefreshDriver();
@@ -1236,7 +1236,7 @@ nsresult EventDispatcher::Dispatch(EventTarget* aTarget,
                     {layers::CompositionPayloadType::eKeyPress,
                      aEvent->mTimeStamp});
                 break;
-              case eMouseClick: {
+              case ePointerClick: {
                 if (aEvent->AsMouseEvent()->mInputSource ==
                         MouseEvent_Binding::MOZ_SOURCE_MOUSE ||
                     aEvent->AsMouseEvent()->mInputSource ==

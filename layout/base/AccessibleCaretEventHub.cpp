@@ -430,7 +430,7 @@ nsEventStatus AccessibleCaretEventHub::HandleMouseEvent(
   nsPoint point = GetMouseEventPosition(aEvent);
 
   if (aEvent->mMessage == eMouseDown || aEvent->mMessage == eMouseUp ||
-      aEvent->mMessage == eMouseClick ||
+      aEvent->mMessage == ePointerClick ||
       aEvent->mMessage == eMouseDoubleClick ||
       aEvent->mMessage == eMouseLongTap) {
     // Don't reset the source on mouse movement since that can

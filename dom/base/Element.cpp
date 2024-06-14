@@ -2363,7 +2363,7 @@ nsresult Element::DispatchClickEvent(nsPresContext* aPresContext,
   MOZ_ASSERT(aSourceEvent, "Must have source event");
   MOZ_ASSERT(aStatus, "Null out param?");
 
-  WidgetMouseEvent event(aSourceEvent->IsTrusted(), eMouseClick,
+  WidgetMouseEvent event(aSourceEvent->IsTrusted(), ePointerClick,
                          aSourceEvent->mWidget, WidgetMouseEvent::eReal);
   event.mRefPoint = aSourceEvent->mRefPoint;
   uint32_t clickCount = 1;
@@ -3194,7 +3194,7 @@ bool Element::CheckHandleEventForLinksPrecondition(
   }
   if (aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault ||
       (!aVisitor.mEvent->IsTrusted() &&
-       (aVisitor.mEvent->mMessage != eMouseClick) &&
+       (aVisitor.mEvent->mMessage != ePointerClick) &&
        (aVisitor.mEvent->mMessage != eKeyPress) &&
        (aVisitor.mEvent->mMessage != eLegacyDOMActivate)) ||
       aVisitor.mEvent->mFlags.mMultipleActionsPrevented) {
@@ -3273,8 +3273,8 @@ void Element::GetEventTargetParentForLinks(EventChainPreVisitor& aVisitor) {
 // Only supported for click or auxclick events.
 void Element::DispatchChromeOnlyLinkClickEvent(
     EventChainPostVisitor& aVisitor) {
-  MOZ_ASSERT(aVisitor.mEvent->mMessage == eMouseAuxClick ||
-                 aVisitor.mEvent->mMessage == eMouseClick,
+  MOZ_ASSERT(aVisitor.mEvent->mMessage == ePointerAuxClick ||
+                 aVisitor.mEvent->mMessage == ePointerClick,
              "DispatchChromeOnlyLinkClickEvent supports only click and "
              "auxclick source events");
   Document* doc = OwnerDoc();
@@ -3310,8 +3310,8 @@ nsresult Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor) {
   // IMPORTANT: this switch and the switch below it must be kept in sync!
   switch (aVisitor.mEvent->mMessage) {
     case eMouseDown:
-    case eMouseClick:
-    case eMouseAuxClick:
+    case ePointerClick:
+    case ePointerAuxClick:
     case eLegacyDOMActivate:
     case eKeyPress:
       break;
@@ -3377,7 +3377,7 @@ nsresult Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor) {
       }
     } break;
 
-    case eMouseClick: {
+    case ePointerClick: {
       WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
       if (mouseEvent->IsLeftClickEvent()) {
         if (!mouseEvent->IsControl() && !mouseEvent->IsMeta() &&
@@ -3416,13 +3416,13 @@ nsresult Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor) {
       }
       break;
     }
-    case eMouseAuxClick: {
+    case ePointerAuxClick: {
       DispatchChromeOnlyLinkClickEvent(aVisitor);
       break;
     }
     case eLegacyDOMActivate: {
       // If you modify this code, tweak also the code handling
-      // eMouseClick.
+      // ePointerClick.
       if (aVisitor.mEvent->mOriginalTarget == this) {
         if (nsCOMPtr<nsIURI> absURI = GetHrefURI()) {
           nsAutoString target;

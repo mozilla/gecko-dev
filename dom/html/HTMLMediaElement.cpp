@@ -4766,7 +4766,7 @@ void HTMLMediaElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
     // content, since we always do that for touchstart.
     case eTouchMove:
     case eTouchStart:
-    case eMouseClick:
+    case ePointerClick:
     case eMouseDoubleClick:
     case eMouseDown:
     case eMouseUp:

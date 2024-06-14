@@ -74,8 +74,6 @@ PerformanceEventTiming::TryGenerateEventTiming(const EventTarget* aTarget,
   }
 
   switch (aEvent->mMessage) {
-    case eMouseAuxClick:
-    case eMouseClick:
     case eContextMenu:
     case eMouseDoubleClick:
     case eMouseDown:
@@ -84,6 +82,8 @@ PerformanceEventTiming::TryGenerateEventTiming(const EventTarget* aTarget,
     case eMouseOut:
     case eMouseOver:
     case eMouseUp:
+    case ePointerAuxClick:
+    case ePointerClick:
     case ePointerOver:
     case ePointerEnter:
     case ePointerDown:

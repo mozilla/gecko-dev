@@ -214,7 +214,7 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
         uint32_t key = aEvent->AsKeyboardEvent()->mKeyCode;
         switch (aEvent->mMessage) {
           case eKeyPress:
-            // return key on focused button. see note at eMouseClick.
+            // return key on focused button. see note at ePointerClick.
             if (key == NS_VK_RETURN) {
               abuse = PopupBlocker::openAllowed;
             } else if (PopupAllowedForEvent("keypress")) {
@@ -222,7 +222,7 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
             }
             break;
           case eKeyUp:
-            // space key on focused button. see note at eMouseClick.
+            // space key on focused button. see note at ePointerClick.
             if (key == NS_VK_SPACE) {
               abuse = PopupBlocker::openAllowed;
             } else if (PopupAllowedForEvent("keyup")) {
@@ -274,7 +274,7 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
                 abuse = PopupBlocker::openControlled;
               }
               break;
-            case eMouseClick:
+            case ePointerClick:
               /* Click events get special treatment because of their
                  historical status as a more legitimate event handler. If
                  click popups are enabled in the prefs, clear the popup
@@ -291,7 +291,7 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
             default:
               break;
           }
-        } else if (aEvent->mMessage == eMouseAuxClick) {
+        } else if (aEvent->mMessage == ePointerAuxClick) {
           // Not eLeftButton
           // There's not a strong reason to ignore other events (eg eMouseUp)
           // for non-primary clicks as far as we know, so we could add them if

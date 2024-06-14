@@ -318,7 +318,7 @@ void PerformanceMainThread::DispatchPendingEventTimingEntries() {
           }
           break;
         }
-        case eMouseClick:
+        case ePointerClick:
         case eKeyDown:
         case eMouseDown: {
           mFirstInputEvent = entry->Clone();
