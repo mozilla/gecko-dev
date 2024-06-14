@@ -17,6 +17,9 @@ macro_rules! nonidl {
     ($name:ident, $iid:expr) => {
         /// This interface is referenced from idl files, but not defined in
         /// them. It exports no methods to rust code.
+        // As of rustc 1.80, structs that are never constructed are considered dead code,
+        // but this is constructed from C++. Somehow these aren't caught before 1.81.
+        #[allow(dead_code)]
         #[repr(C)]
         pub struct $name {
             _vtable: *const $crate::interfaces::nsISupportsVTable,
