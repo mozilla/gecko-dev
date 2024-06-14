@@ -150,6 +150,9 @@ perftools-presets-networking-description = Preset for investigating networking b
 perftools-presets-power-label = Power
 perftools-presets-power-description = Preset for investigating power use bugs in { -brand-shorter-name }, with low overhead.
 
+perftools-presets-debug-label = Debug
+perftools-presets-debug-description = Preset for debugging in { -brand-shorter-name }. High overhead, do not use for performance work but use for focusing on understanding browser behavior.
+
 perftools-presets-custom-label = Custom
 
 ##

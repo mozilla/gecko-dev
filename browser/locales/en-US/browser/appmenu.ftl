@@ -226,6 +226,10 @@ profiler-popup-presets-power-description = Preset for investigating power use bu
 profiler-popup-presets-power-label =
   .label = Power
 
+profiler-popup-presets-debug-description = Preset for debugging in { -brand-shorter-name }. High overhead, do not use for performance work but use for focusing on understanding browser behavior.
+profiler-popup-presets-debug-label =
+  .label = Debug
+
 profiler-popup-presets-custom-label =
   .label = Custom
 
