@@ -12,6 +12,7 @@
 
 #include "ImageContainer.h"
 #include "ImageConversion.h"
+#include "MediaResult.h"
 #include "VideoColorSpace.h"
 #include "WebCodecsUtils.h"
 #include "js/StructuredClone.h"
@@ -709,7 +710,7 @@ ValidateVideoFrameInit(const VideoFrameInit& aInit,
  * The followings are helpers to create a VideoFrame from a given buffer
  */
 
-static Result<RefPtr<gfx::DataSourceSurface>, nsCString> AllocateBGRASurface(
+static Result<RefPtr<gfx::DataSourceSurface>, MediaResult> AllocateBGRASurface(
     gfx::DataSourceSurface* aSurface) {
   MOZ_ASSERT(aSurface);
 
@@ -719,7 +720,8 @@ static Result<RefPtr<gfx::DataSourceSurface>, nsCString> AllocateBGRASurface(
   gfx::DataSourceSurface::ScopedMap surfaceMap(aSurface,
                                                gfx::DataSourceSurface::READ);
   if (!surfaceMap.IsMapped()) {
-    return Err("The source surface is not readable"_ns);
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "The source surface is not readable"_ns));
   }
 
   RefPtr<gfx::DataSourceSurface> bgraSurface =
@@ -727,13 +729,15 @@ static Result<RefPtr<gfx::DataSourceSurface>, nsCString> AllocateBGRASurface(
           aSurface->GetSize(), gfx::SurfaceFormat::B8G8R8A8,
           surfaceMap.GetStride());
   if (!bgraSurface) {
-    return Err("Failed to allocate a BGRA surface"_ns);
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "Failed to allocate a BGRA surface"_ns));
   }
 
   gfx::DataSourceSurface::ScopedMap bgraMap(bgraSurface,
                                             gfx::DataSourceSurface::WRITE);
   if (!bgraMap.IsMapped()) {
-    return Err("The allocated BGRA surface is not writable"_ns);
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "The allocated BGRA surface is not writable"_ns));
   }
 
   gfx::SwizzleData(surfaceMap.GetData(), surfaceMap.GetStride(),
@@ -744,7 +748,7 @@ static Result<RefPtr<gfx::DataSourceSurface>, nsCString> AllocateBGRASurface(
   return bgraSurface;
 }
 
-static Result<RefPtr<layers::Image>, nsCString> CreateImageFromRawData(
+static Result<RefPtr<layers::Image>, MediaResult> CreateImageFromRawData(
     const gfx::IntSize& aSize, int32_t aStride, gfx::SurfaceFormat aFormat,
     const Span<uint8_t>& aBuffer) {
   MOZ_ASSERT(!aSize.IsEmpty());
@@ -754,7 +758,8 @@ static Result<RefPtr<layers::Image>, nsCString> CreateImageFromRawData(
       gfx::Factory::CreateWrappingDataSourceSurface(aBuffer.data(), aStride,
                                                     aSize, aFormat);
   if (!surface) {
-    return Err("Failed to wrap the raw data into a surface"_ns);
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "Failed to wrap the raw data into a surface"_ns));
   }
 
   // Gecko favors BGRA so we convert surface into BGRA format first.
@@ -766,7 +771,7 @@ static Result<RefPtr<layers::Image>, nsCString> CreateImageFromRawData(
       new layers::SourceSurfaceImage(bgraSurface.get()));
 }
 
-static Result<RefPtr<layers::Image>, nsCString> CreateRGBAImageFromBuffer(
+static Result<RefPtr<layers::Image>, MediaResult> CreateRGBAImageFromBuffer(
     const VideoFrame::Format& aFormat, const gfx::IntSize& aSize,
     const Span<uint8_t>& aBuffer) {
   const gfx::SurfaceFormat format = aFormat.ToSurfaceFormat();
@@ -778,12 +783,13 @@ static Result<RefPtr<layers::Image>, nsCString> CreateRGBAImageFromBuffer(
   CheckedInt<int32_t> stride(BytesPerPixel(format));
   stride *= aSize.Width();
   if (!stride.isValid()) {
-    return Err("Image size exceeds implementation's limit"_ns);
+    return Err(MediaResult(NS_ERROR_INVALID_ARG,
+                           "Image size exceeds implementation's limit"_ns));
   }
   return CreateImageFromRawData(aSize, stride.value(), format, aBuffer);
 }
 
-static Result<RefPtr<layers::Image>, nsCString> CreateYUVImageFromBuffer(
+static Result<RefPtr<layers::Image>, MediaResult> CreateYUVImageFromBuffer(
     const VideoFrame::Format& aFormat, const VideoColorSpaceInit& aColorSpace,
     const gfx::IntSize& aSize, const Span<uint8_t>& aBuffer) {
   if (aFormat.PixelFormat() == VideoPixelFormat::I420 ||
@@ -839,10 +845,13 @@ static Result<RefPtr<layers::Image>, nsCString> CreateYUVImageFromBuffer(
 
     RefPtr<layers::PlanarYCbCrImage> image =
         new layers::RecyclingPlanarYCbCrImage(new layers::BufferRecycleBin());
-    if (NS_FAILED(image->CopyData(data))) {
-      return Err(nsPrintfCString(
-          "Failed to create I420%s image",
-          (aFormat.PixelFormat() == VideoPixelFormat::I420A ? "A" : "")));
+    nsresult r = image->CopyData(data);
+    if (NS_FAILED(r)) {
+      return Err(MediaResult(
+          r,
+          nsPrintfCString(
+              "Failed to create I420%s image",
+              (aFormat.PixelFormat() == VideoPixelFormat::I420A ? "A" : ""))));
     }
     // Manually cast type to make Result work.
     return RefPtr<layers::Image>(image.forget());
@@ -882,17 +891,21 @@ static Result<RefPtr<layers::Image>, nsCString> CreateYUVImageFromBuffer(
     }
 
     RefPtr<layers::NVImage> image = new layers::NVImage();
-    if (NS_FAILED(image->SetData(data))) {
-      return Err("Failed to create NV12 image"_ns);
+    nsresult r = image->SetData(data);
+    if (NS_FAILED(r)) {
+      return Err(MediaResult(r, "Failed to create NV12 image"_ns));
     }
     // Manually cast type to make Result work.
     return RefPtr<layers::Image>(image.forget());
   }
 
-  return Err("Unsupported image format"_ns);
+  return Err(MediaResult(
+      NS_ERROR_DOM_NOT_SUPPORTED_ERR,
+      nsPrintfCString("%s is unsupported",
+                      dom::GetEnumString(aFormat.PixelFormat()).get())));
 }
 
-static Result<RefPtr<layers::Image>, nsCString> CreateImageFromBuffer(
+static Result<RefPtr<layers::Image>, MediaResult> CreateImageFromBuffer(
     const VideoFrame::Format& aFormat, const VideoColorSpaceInit& aColorSpace,
     const gfx::IntSize& aSize, const Span<uint8_t>& aBuffer) {
   switch (aFormat.PixelFormat()) {
@@ -924,23 +937,30 @@ static Result<RefPtr<layers::Image>, nsCString> CreateImageFromBuffer(
     case VideoPixelFormat::BGRX:
       return CreateRGBAImageFromBuffer(aFormat, aSize, aBuffer);
   }
-  return Err("Invalid image format"_ns);
+  return Err(MediaResult(
+      NS_ERROR_DOM_NOT_SUPPORTED_ERR,
+      nsPrintfCString("%s is unsupported",
+                      dom::GetEnumString(aFormat.PixelFormat()).get())));
 }
 
 // https://w3c.github.io/webcodecs/#dom-videoframe-videoframe-data-init
 template <class T>
-static Result<RefPtr<VideoFrame>, nsCString> CreateVideoFrameFromBuffer(
+static Result<RefPtr<VideoFrame>, MediaResult> CreateVideoFrameFromBuffer(
     nsIGlobalObject* aGlobal, const T& aBuffer,
     const VideoFrameBufferInit& aInit) {
   if (aInit.mColorSpace.WasPassed() &&
       !aInit.mColorSpace.Value().mTransfer.IsNull() &&
       aInit.mColorSpace.Value().mTransfer.Value() ==
           VideoTransferCharacteristics::Linear) {
-    return Err("linear RGB is not supported"_ns);
+    return Err(MediaResult(NS_ERROR_DOM_NOT_SUPPORTED_ERR,
+                           "linear RGB is not supported"_ns));
   }
 
   std::tuple<gfx::IntSize, Maybe<gfx::IntRect>, Maybe<gfx::IntSize>> init;
-  MOZ_TRY_VAR(init, ValidateVideoFrameBufferInit(aInit));
+  MOZ_TRY_VAR(init,
+              ValidateVideoFrameBufferInit(aInit).mapErr([](nsCString error) {
+                return MediaResult(NS_ERROR_INVALID_ARG, error);
+              }));
   gfx::IntSize codedSize = std::get<0>(init);
   Maybe<gfx::IntRect> visibleRect = std::get<1>(init);
   Maybe<gfx::IntSize> displaySize = std::get<2>(init);
@@ -950,18 +970,25 @@ static Result<RefPtr<VideoFrame>, nsCString> CreateVideoFrameFromBuffer(
   // https://github.com/w3c/webcodecs/issues/512
   // This comment should be removed once the issue is resolved.
   if (!format.IsValidSize(codedSize)) {
-    return Err("coded width and/or height is invalid"_ns);
+    return Err(MediaResult(NS_ERROR_INVALID_ARG,
+                           "coded width and/or height is invalid"_ns));
   }
 
   gfx::IntRect parsedRect;
   MOZ_TRY_VAR(parsedRect, ParseVisibleRect(gfx::IntRect({0, 0}, codedSize),
-                                           visibleRect, codedSize, format));
+                                           visibleRect, codedSize, format)
+                              .mapErr([](nsCString error) {
+                                return MediaResult(NS_ERROR_INVALID_ARG, error);
+                              }));
 
   const Sequence<PlaneLayout>* optLayout = OptionalToPointer(aInit.mLayout);
 
   CombinedBufferLayout combinedLayout;
   MOZ_TRY_VAR(combinedLayout,
-              ComputeLayoutAndAllocationSize(parsedRect, format, optLayout));
+              ComputeLayoutAndAllocationSize(parsedRect, format, optLayout)
+                  .mapErr([](nsCString error) {
+                    return MediaResult(NS_ERROR_INVALID_ARG, error);
+                  }));
 
   Maybe<uint64_t> duration = OptionalToMaybe(aInit.mDuration);
 
@@ -971,23 +998,26 @@ static Result<RefPtr<VideoFrame>, nsCString> CreateVideoFrameFromBuffer(
   RefPtr<layers::Image> data;
   MOZ_TRY_VAR(
       data,
-      aBuffer.ProcessFixedData([&](const Span<uint8_t>& aData)
-                                   -> Result<RefPtr<layers::Image>, nsCString> {
-        if (aData.Length() <
-            static_cast<size_t>(combinedLayout.mAllocationSize)) {
-          return Err("data is too small"_ns);
-        }
+      aBuffer.ProcessFixedData(
+          [&](const Span<uint8_t>& aData)
+              -> Result<RefPtr<layers::Image>, MediaResult> {
+            if (aData.Length() <
+                static_cast<size_t>(combinedLayout.mAllocationSize)) {
+              return Err(
+                  MediaResult(NS_ERROR_INVALID_ARG, "data is too small"_ns));
+            }
 
-        // TODO: If codedSize is (3, 3) and visibleRect is (0, 0, 1, 1) but the
-        // data is 2 x 2 RGBA buffer (2 x 2 x 4 bytes), it pass the above check.
-        // In this case, we can crop it to a 1 x 1-codedSize image (Bug
-        // 1782128).
-        if (aData.Length() < format.ByteCount(codedSize)) {
-          return Err("data is too small"_ns);
-        }
+            // TODO: If codedSize is (3, 3) and visibleRect is (0, 0, 1, 1) but
+            // the data is 2 x 2 RGBA buffer (2 x 2 x 4 bytes), it pass the
+            // above check. In this case, we can crop it to a 1 x 1-codedSize
+            // image (Bug 1782128).
+            if (aData.Length() < format.ByteCount(codedSize)) {
+              return Err(
+                  MediaResult(NS_ERROR_INVALID_ARG, "data is too small"_ns));
+            }
 
-        return CreateImageFromBuffer(format, colorSpace, codedSize, aData);
-      }));
+            return CreateImageFromBuffer(format, colorSpace, codedSize, aData);
+          }));
 
   MOZ_ASSERT(data);
   MOZ_ASSERT(data->GetSize() == codedSize);
@@ -1017,7 +1047,12 @@ static already_AddRefed<VideoFrame> CreateVideoFrameFromBuffer(
 
   auto r = CreateVideoFrameFromBuffer(global, aBuffer, aInit);
   if (r.isErr()) {
-    aRv.ThrowTypeError(r.unwrapErr());
+    MediaResult err = r.unwrapErr();
+    if (err.Code() == NS_ERROR_DOM_NOT_SUPPORTED_ERR) {
+      aRv.ThrowNotSupportedError(err.Message());
+    } else {
+      aRv.ThrowTypeError(err.Message());
+    }
     return nullptr;
   }
   return r.unwrap().forget();
