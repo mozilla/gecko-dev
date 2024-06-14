@@ -208,4 +208,16 @@ static bool is_active_noop() { /* no-op */
   }                                                               \
   UPROFILER_VISIT()
 
+#define UPROFILER_GET(var)                            \
+  uprofiler_getter var = nullptr;                     \
+  void* handle = UPROFILER_OPENLIB();                 \
+  if (!handle) {                                      \
+    UPROFILER_PRINT_ERROR(UPROFILER_OPENLIB);         \
+  } else {                                            \
+    (var) = UPROFILER_GET_SYM(handle, uprofiler_get); \
+    if (!(var)) {                                     \
+      UPROFILER_PRINT_ERROR(uprofiler_get);           \
+    }                                                 \
+  }
+
 #endif  // MICRO_GECKO_PROFILER

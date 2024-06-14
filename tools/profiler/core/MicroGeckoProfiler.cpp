@@ -299,3 +299,22 @@ void uprofiler_native_backtrace(const void* top, NativeStack* nativeStack) {
 }
 
 bool uprofiler_is_active() { return profiler_is_active(); }
+
+bool uprofiler_get(struct UprofilerFuncPtrs* aFuncPtrs) {
+  if (!aFuncPtrs) {
+    return false;
+  }
+
+  aFuncPtrs->register_thread = uprofiler_register_thread;
+  aFuncPtrs->unregister_thread = uprofiler_unregister_thread;
+  aFuncPtrs->simple_event_marker = uprofiler_simple_event_marker;
+  aFuncPtrs->simple_event_marker_capture_stack =
+      uprofiler_simple_event_marker_capture_stack;
+  aFuncPtrs->simple_event_marker_with_stack =
+      uprofiler_simple_event_marker_with_stack;
+  aFuncPtrs->backtrace_into_buffer = uprofiler_backtrace_into_buffer;
+  aFuncPtrs->native_backtrace = uprofiler_native_backtrace;
+  aFuncPtrs->is_active = uprofiler_is_active;
+
+  return true;
+}
