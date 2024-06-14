@@ -539,13 +539,6 @@ export class CloseRemoteTab {
   // The timer ID if we have one scheduled, otherwise null
   #timer = null;
 
-  // Since we only ever show one notification to the user
-  // we keep track of how many tabs have actually been closed
-  // and update the count, user dismissing the notification will
-  // reset the count
-  closeTabNotificationCount = 0;
-  hasPendingCloseTabNotification = false;
-
   constructor(commands, fxAccountsInternal) {
     this._commands = commands;
     this._fxai = fxAccountsInternal;

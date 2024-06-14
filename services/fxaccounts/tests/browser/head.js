@@ -67,39 +67,6 @@ function setupMockAlertsService() {
   );
 }
 
-// Similar to setupMockAlertsService
-// but modified to be able to pass in an "expected" object
-function setupMockAlertsServiceWithExp(expectedObj) {
-  const alertsService = {
-    showAlertNotification: (
-      image,
-      title,
-      body,
-      clickable,
-      cookie,
-      clickCallback
-    ) => {
-      // We need to invoke the event handler ourselves.
-      clickCallback(null, "alertshow", null);
-
-      // check the expectations, if passed in
-      expectedObj.title && Assert.equal(title, expectedObj.title);
-      expectedObj.body && Assert.equal(body, expectedObj.body);
-
-      clickCallback(null, "alertclickcallback", null);
-      clickCallback(null, "alertfinished", null);
-    },
-  };
-  const gBrowserGlue = Cc["@mozilla.org/browser/browserglue;1"].getService(
-    Ci.nsIObserver
-  );
-  gBrowserGlue.observe(
-    { wrappedJSObject: alertsService },
-    "browser-glue-test",
-    "mock-alerts-service"
-  );
-}
-
 // Keep a set of progress listeners for waitForDocLoadComplete() to make sure
 // they're not GC'ed before we saw the page load.
 waitForDocLoadComplete.listeners = new Set();
