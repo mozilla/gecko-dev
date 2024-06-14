@@ -2199,15 +2199,45 @@ void VideoFrame::Format::MakeOpaque() {
     case VideoPixelFormat::I420A:
       mFormat = VideoPixelFormat::I420;
       return;
+    case VideoPixelFormat::I420AP10:
+      mFormat = VideoPixelFormat::I420P10;
+      return;
+    case VideoPixelFormat::I420AP12:
+      mFormat = VideoPixelFormat::I420P12;
+      return;
     case VideoPixelFormat::RGBA:
       mFormat = VideoPixelFormat::RGBX;
       return;
     case VideoPixelFormat::BGRA:
       mFormat = VideoPixelFormat::BGRX;
       return;
+    case VideoPixelFormat::I422A:
+      mFormat = VideoPixelFormat::I422;
+      return;
+    case VideoPixelFormat::I422AP10:
+      mFormat = VideoPixelFormat::I422P10;
+      return;
+    case VideoPixelFormat::I422AP12:
+      mFormat = VideoPixelFormat::I422P12;
+      return;
+    case VideoPixelFormat::I444A:
+      mFormat = VideoPixelFormat::I444;
+      return;
+    case VideoPixelFormat::I444AP10:
+      mFormat = VideoPixelFormat::I444P10;
+      return;
+    case VideoPixelFormat::I444AP12:
+      mFormat = VideoPixelFormat::I444P12;
+      return;
     case VideoPixelFormat::I420:
+    case VideoPixelFormat::I420P10:
+    case VideoPixelFormat::I420P12:
     case VideoPixelFormat::I422:
+    case VideoPixelFormat::I422P10:
+    case VideoPixelFormat::I422P12:
     case VideoPixelFormat::I444:
+    case VideoPixelFormat::I444P10:
+    case VideoPixelFormat::I444P12:
     case VideoPixelFormat::NV12:
     case VideoPixelFormat::RGBX:
     case VideoPixelFormat::BGRX:
