@@ -6,6 +6,9 @@ permalink: /changelog/
 
 # 129.0 (In Development)
 
+* **browser-engine-gecko**
+    * Added `WebExtensionInstallException.AdminInstallOnly` to handle the `ERROR_ADMIN_INSTALL_ONLY` error returned by Gecko when the add-on can only be installed via Enterprise Policies.
+
 # 128.0
 
 * **browser-toolbar**

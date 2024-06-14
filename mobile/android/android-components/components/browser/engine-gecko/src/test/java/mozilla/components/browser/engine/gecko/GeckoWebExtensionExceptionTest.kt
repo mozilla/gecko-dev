@@ -13,6 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.WebExtension
+import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_ADMIN_INSTALL_ONLY
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_BLOCKLISTED
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_CORRUPT_FILE
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_INCOMPATIBLE
@@ -112,5 +113,18 @@ class GeckoWebExtensionExceptionTest {
         val webExtensionException = GeckoWebExtensionException.createWebExtensionException(geckoException)
 
         assertTrue(webExtensionException is WebExtensionInstallException.UnsupportedAddonType)
+    }
+
+    @Test
+    fun `Handles an AdminInstallOnly exception`() {
+        val geckoException = mock<WebExtension.InstallException>()
+        ReflectionUtils.setField(
+            geckoException,
+            "code",
+            ERROR_ADMIN_INSTALL_ONLY,
+        )
+        val webExtensionException = GeckoWebExtensionException.createWebExtensionException(geckoException)
+
+        assertTrue(webExtensionException is WebExtensionInstallException.AdminInstallOnly)
     }
 }

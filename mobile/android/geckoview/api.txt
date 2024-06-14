@@ -2606,6 +2606,7 @@ package org.mozilla.geckoview {
 
   public static class WebExtension.InstallException.ErrorCodes {
     ctor protected ErrorCodes();
+    field public static final int ERROR_ADMIN_INSTALL_ONLY = -13;
     field public static final int ERROR_BLOCKLISTED = -10;
     field public static final int ERROR_CORRUPT_FILE = -3;
     field public static final int ERROR_FILE_ACCESS = -4;

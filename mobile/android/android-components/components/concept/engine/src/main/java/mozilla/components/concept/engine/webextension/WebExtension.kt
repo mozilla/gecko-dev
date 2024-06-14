@@ -675,4 +675,10 @@ sealed class WebExtensionInstallException(
      */
     class UnsupportedAddonType(override val extensionName: String? = null, throwable: Throwable) :
         WebExtensionInstallException(throwable = throwable)
+
+    /**
+     * The extension can only be installed via Enterprise Policies.
+     */
+    class AdminInstallOnly(override val extensionName: String? = null, throwable: Throwable) :
+        WebExtensionInstallException(throwable = throwable)
 }

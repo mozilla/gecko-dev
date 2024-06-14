@@ -7,6 +7,7 @@ package mozilla.components.browser.engine.gecko.webextension
 import mozilla.components.concept.engine.webextension.WebExtensionException
 import mozilla.components.concept.engine.webextension.WebExtensionInstallException
 import org.mozilla.geckoview.WebExtension.InstallException
+import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_ADMIN_INSTALL_ONLY
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_BLOCKLISTED
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_CORRUPT_FILE
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_INCOMPATIBLE
@@ -55,6 +56,11 @@ class GeckoWebExtensionException(throwable: Throwable) : WebExtensionException(t
                     )
 
                     ERROR_UNSUPPORTED_ADDON_TYPE -> WebExtensionInstallException.UnsupportedAddonType(
+                        extensionName = throwable.extensionName,
+                        throwable,
+                    )
+
+                    ERROR_ADMIN_INSTALL_ONLY -> WebExtensionInstallException.AdminInstallOnly(
                         extensionName = throwable.extensionName,
                         throwable,
                     )

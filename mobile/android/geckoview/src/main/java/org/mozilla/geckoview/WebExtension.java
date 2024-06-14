@@ -1574,6 +1574,9 @@ public class WebExtension {
       /** The extension type is not supported by the platform. */
       public static final int ERROR_UNSUPPORTED_ADDON_TYPE = -12;
 
+      /** The extension can only be installed via Enterprise Policies. */
+      public static final int ERROR_ADMIN_INSTALL_ONLY = -13;
+
       /** The extension install was canceled. */
       public static final int ERROR_USER_CANCELED = -100;
 
@@ -1628,6 +1631,7 @@ public class WebExtension {
           ErrorCodes.ERROR_USER_CANCELED,
           ErrorCodes.ERROR_POSTPONED,
           ErrorCodes.ERROR_UNSUPPORTED_ADDON_TYPE,
+          ErrorCodes.ERROR_ADMIN_INSTALL_ONLY,
         })
     public @interface Codes {}
 
