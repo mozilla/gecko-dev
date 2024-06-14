@@ -204,11 +204,32 @@ raptorEnabled
 If you're making changes to these projects and want to test them in Fenix, auto-publication workflow is the fastest, most reliable
 way to do that.
 
-In `local.properties`, specify a relative path to your local `glean` and/or `application-services` projects. E.g.:
-- `autoPublish.glean.dir=../glean`
-- `autoPublish.application-services.dir=../application-services`
+Add the `autoPublish.application-services.dir` property with the path to your checkout of Application Services, and/or `autoPublish.glean.dir` with the path to your checkout of Glean.
+These paths can be absolute, or relative to the local.properties file itself.
 
-Once these flags are set, your Fenix builds will include any local modifications present in these projects.
+This can be done from project-specific (Fenix, A-C, or Focus) `local.properties` files, or you can create a top-level `local.properties` file from the root of your checkout which will apply the substitution to all of the projects.
+If autopublish properties are set in both project-specific and top-level `local.properties` files, the project-specific version will override the top-level for that project.
+
+The local publish flow works when building with Gradle directly or building
+Android Components, Fenix, or Focus from their respective
+project directories with Android Studio.
+
+For example, if you have the following setup:
+```
+// M-C checkout in ~/central
+// application-services checkout in ~/application-services
+// different application services checkout in ~/application-services-two
+
+// ~/central/local.properties
+autoPublish.application-services.dir=../application-services
+
+// ~/central/mobile/android/fenix/local.properties
+autoPublish.application-services.dir=/Users/me/application-services-two
+```
+
+Here, the local application-services in `~/application-services` will be used for every project except Fenix, which will use `~/application-services-two`.
+
+Once these flags are set, your builds will include any local modifications present in these projects.
 
 See a [demo of auto-publication workflow in action](https://www.youtube.com/watch?v=qZKlBzVvQGc).
 
