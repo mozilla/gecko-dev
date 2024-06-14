@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Components.h"
+#include "mozilla/CredentialChosenCallback.h"
 #include "mozilla/dom/Credential.h"
 #include "mozilla/dom/CredentialsContainer.h"
 #include "mozilla/dom/FeaturePolicyUtils.h"
@@ -18,10 +19,11 @@
 #include "nsContentUtils.h"
 #include "nsFocusManager.h"
 #include "nsICredentialChooserService.h"
-#include "nsICredentialChosenCallback.h"
 #include "nsIDocShell.h"
 
 namespace mozilla::dom {
+
+using mozilla::CredentialChosenCallback;
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(CredentialsContainer, mParent, mManager)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(CredentialsContainer)
@@ -152,44 +154,6 @@ JSObject* CredentialsContainer::WrapObject(JSContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return CredentialsContainer_Binding::Wrap(aCx, this, aGivenProto);
 }
-
-class CredentialChosenCallback final : public nsICredentialChosenCallback,
-                                       public nsINamed {
- public:
-  CredentialChosenCallback(Promise* aPromise, CredentialsContainer* aContainer)
-      : mPromise(aPromise), mContainer(aContainer) {
-    MOZ_ASSERT(NS_IsMainThread());
-  }
-
-  NS_IMETHOD
-  Notify(Credential* aCredential) override {
-    MOZ_ASSERT(NS_IsMainThread());
-    if (aCredential) {
-      mPromise->MaybeResolve(aCredential);
-    } else {
-      mPromise->MaybeResolve(JS::NullValue());
-    }
-
-    mContainer->mActiveIdentityRequest = false;
-    return NS_OK;
-  }
-
-  NS_IMETHOD
-  GetName(nsACString& aName) override {
-    aName.AssignLiteral("CredentialChosenCallback");
-    return NS_OK;
-  }
-
-  NS_DECL_ISUPPORTS
-
- private:
-  ~CredentialChosenCallback() = default;
-  RefPtr<Promise> mPromise;
-  RefPtr<CredentialsContainer> mContainer;
-};
-
-NS_IMPL_ISUPPORTS(CredentialChosenCallback, nsICredentialChosenCallback,
-                  nsINamed)
 
 already_AddRefed<Promise> CredentialsContainer::Get(
     const CredentialRequestOptions& aOptions, ErrorResult& aRv) {

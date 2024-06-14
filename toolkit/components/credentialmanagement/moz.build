@@ -8,10 +8,12 @@ with Files("**"):
     BUG_COMPONENT = ("Core", "DOM: Credential Management")
 
 EXPORTS.mozilla += [
+    "CredentialChosenCallback.h",
     "IdentityCredentialStorageService.h",
 ]
 
 UNIFIED_SOURCES += [
+    "CredentialChosenCallback.cpp",
     "IdentityCredentialStorageService.cpp",
 ]
 
