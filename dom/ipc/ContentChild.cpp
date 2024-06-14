@@ -142,6 +142,7 @@
 #  include "mozilla/SandboxSettings.h"
 #  if defined(XP_WIN)
 #    include "mozilla/sandboxTarget.h"
+#    include "mozilla/ProcInfo.h"
 #  elif defined(XP_LINUX)
 #    include "CubebUtils.h"
 #    include "mozilla/Sandbox.h"
@@ -1722,6 +1723,8 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
   ::LoadLibraryW(L"softokn3.dll");
   // Library required by DirectWrite in some fall-back scenarios.
   ::LoadLibraryW(L"textshaping.dll");
+  // Cache value that is retrieved from a registry entry.
+  Unused << GetCpuFrequencyMHz();
 #    if defined(DEBUG)
   // Library used in some debug testing.
   ::LoadLibraryW(L"dbghelp.dll");
