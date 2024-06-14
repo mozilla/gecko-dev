@@ -161,7 +161,6 @@ class WebExtensionPromptFeature(
                 return
             }
 
-            is WebExtensionInstallException.AdminInstallOnly,
             is WebExtensionInstallException.UnsupportedAddonType,
             is WebExtensionInstallException.Unknown,
             -> {
@@ -174,6 +173,10 @@ class WebExtensionPromptFeature(
                 } else {
                     context.getString(R.string.mozac_feature_addons_extension_failed_to_install)
                 }
+            }
+
+            is WebExtensionInstallException.AdminInstallOnly -> {
+                context.getString(R.string.mozac_feature_addons_admin_install_only, addonName)
             }
 
             is WebExtensionInstallException.NetworkFailure -> {

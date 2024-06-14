@@ -203,6 +203,8 @@
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s could not be installed because it is not compatible with %2$s %3$s.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_blocklisted_1">%1$s could not be installed because it has a high risk of causing stability or security problems.</string>
+    <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_admin_install_only">%1$s could not be installed because it can only be installed by an organization using enterprise policies, which isn‘t supported on this platform.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">Successfully enabled %1$s</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->

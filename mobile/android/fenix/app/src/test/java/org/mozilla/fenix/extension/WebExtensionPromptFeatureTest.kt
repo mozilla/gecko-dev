@@ -328,14 +328,15 @@ class WebExtensionPromptFeatureTest {
 
     @Test
     fun `WHEN calling handleInstallationFailedRequest with AdminInstallOnly error THEN showDialog with the correct message`() {
-        val expectedTitle = ""
+        val expectedTitle =
+            testContext.getString(R.string.mozac_feature_addons_failed_to_install, "")
         val extensionName = "extensionName"
         val exception = WebExtensionInstallException.AdminInstallOnly(
             extensionName = extensionName,
             throwable = Exception(),
         )
         val expectedMessage =
-            testContext.getString(R.string.mozac_feature_addons_failed_to_install, extensionName)
+            testContext.getString(R.string.mozac_feature_addons_admin_install_only, extensionName)
 
         webExtensionPromptFeature.handleInstallationFailedRequest(
             exception = exception,
