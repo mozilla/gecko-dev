@@ -6,6 +6,17 @@ include $(topsrcdir)/config/config.mk
 
 HOST_LDFLAGS += $(LLVM_LDFLAGS) $(CLANG_LDFLAGS)
 
+ifeq ($(HOST_OS_ARCH),Darwin)
+# We need to make sure that we use the symbols coming from the clang
+# binary. In order to do this, we need to pass -flat_namespace and
+# -undefined suppress to the linker. This makes sure that we link the
+# symbols into the flat namespace provided by clang, and thus get
+# access to all of the symbols which are undefined in our dylib as we
+# are building it right now, and also that we don't fail the build
+# due to undefined symbols (which will be provided by clang).
+HOST_LDFLAGS += -Wl,-flat_namespace -Wl,-undefined,suppress
+endif
+
 ifeq ($(HOST_OS_ARCH),WINNT)
 # clang-plugin.dll needs to be deterministic for sccache hashes
 HOST_LDFLAGS += -brepro

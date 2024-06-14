@@ -10,17 +10,9 @@ if test -n "$ENABLE_CLANG_PLUGIN"; then
     LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags | tr '\n' ' '`
 
     if test "${HOST_OS_ARCH}" = "Darwin"; then
-        dnl We need to make sure that we use the symbols coming from the clang
-        dnl binary. In order to do this, we need to pass -flat_namespace and
-        dnl -undefined suppress to the linker. This makes sure that we link the
-        dnl symbols into the flat namespace provided by clang, and thus get
-        dnl access to all of the symbols which are undefined in our dylib as we
-        dnl are building it right now, and also that we don't fail the build
-        dnl due to undefined symbols (which will be provided by clang).
-        CLANG_LDFLAGS="-Wl,-flat_namespace -Wl,-undefined,suppress"
         dnl We are loaded into clang, so we don't need to link to very many things,
         dnl we just need to link to clangASTMatchers because it is not used by clang
-        CLANG_LDFLAGS="$CLANG_LDFLAGS `$LLVM_CONFIG --prefix`/lib/libclangASTMatchers.a"
+        CLANG_LDFLAGS="`$LLVM_CONFIG --prefix`/lib/libclangASTMatchers.a"
     elif test "${HOST_OS_ARCH}" = "WINNT"; then
         CLANG_LDFLAGS="clangASTMatchers.lib clang.lib"
     else
