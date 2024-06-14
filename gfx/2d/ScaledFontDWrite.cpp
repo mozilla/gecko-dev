@@ -326,29 +326,29 @@ static bool GetFontFileName(RefPtr<IDWriteFontFace> aFontFace,
     gfxDebug() << "Failed getting path for WR font";
     return false;
   }
-  DWORD attribs = GetFileAttributesW(aFileName.data());
-  if (attribs == INVALID_FILE_ATTRIBUTES) {
-    gfxDebug() << "Invalid file \"" << aFileName.data() << "\" for WR font";
-    return false;
-  }
+
   // We leave the null terminator at the end of the returned file name.
   return true;
 }
 
 bool UnscaledFontDWrite::GetFontDescriptor(FontDescriptorOutput aCb,
                                            void* aBaton) {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (!mFont) {
     return false;
   }
 
-  std::vector<WCHAR> fileName;
-  if (!GetFontFileName(mFontFace, fileName)) {
-    return false;
+  // We cache the font file name as it involves multiple DirectWrite calls.
+  if (mFontFileName.empty()) {
+    if (!GetFontFileName(mFontFace, mFontFileName)) {
+      return false;
+    }
   }
   uint32_t index = mFontFace->GetIndex();
 
-  aCb(reinterpret_cast<const uint8_t*>(fileName.data()),
-      fileName.size() * sizeof(WCHAR), index, aBaton);
+  aCb(reinterpret_cast<const uint8_t*>(mFontFileName.data()),
+      mFontFileName.size() * sizeof(WCHAR), index, aBaton);
   return true;
 }
 
