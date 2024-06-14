@@ -498,6 +498,26 @@ already_AddRefed<nsHostRecord> nsHostResolver::InitLoopbackRecord(
   return rec.forget();
 }
 
+already_AddRefed<nsHostRecord> nsHostResolver::InitMockHTTPSRecord(
+    const nsHostKey& key) {
+  MOZ_ASSERT(IS_OTHER_TYPE(key.type));
+  RefPtr<nsHostRecord> rec = InitRecord(key);
+  LOG(("InitMockHTTPSRecord host=%s\n", rec->host.get()));
+
+  TypeRecordResultType result = AsVariant(mozilla::Nothing());
+  uint32_t ttl = UINT32_MAX;
+  nsresult rv =
+      CreateAndResolveMockHTTPSRecord(rec->host, rec->flags, result, ttl);
+  if (NS_FAILED(rv)) {
+    return nullptr;
+  }
+
+  RefPtr<TypeHostRecord> typeRec = do_QueryObject(rec);
+  typeRec->mResults = result;
+  typeRec->negative = false;
+  return rec.forget();
+}
+
 // static
 bool nsHostResolver::IsNativeHTTPSEnabled() {
   if (!StaticPrefs::network_dns_native_https_query()) {
@@ -594,6 +614,13 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
       }
       MOZ_ASSERT(result);
       aCallback->OnResolveHostComplete(this, result, NS_OK);
+      return NS_OK;
+    }
+
+    if (flags & nsIDNSService::RESOLVE_CREATE_MOCK_HTTPS_RR) {
+      RefPtr<nsHostRecord> result = InitMockHTTPSRecord(key);
+      aCallback->OnResolveHostComplete(this, result,
+                                       result ? NS_OK : NS_ERROR_UNKNOWN_HOST);
       return NS_OK;
     }
 
