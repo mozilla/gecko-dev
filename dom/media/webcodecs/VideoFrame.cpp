@@ -1939,6 +1939,15 @@ void VideoFrame::CloseIfNeeded() {
  *  U: U1    U2      => 1/2 Y's width, 1/2 Y's height
  *  V: V1    V2      => 1/2 Y's width, 1/2 Y's height
  *
+ * NV12 - 2 planes: Y, UV
+ * It's a specific YUV format that also uses 4:2:0 chroma subsampling, but in an
+ * interleaved layout for the U, V components.
+ * ------
+ *     <- width ->
+ *  Y: Y1 Y2 Y3 Y4 ^ height
+ *     Y5 Y6 Y7 Y8 v
+ * UV: U1,V1 U2,V2 => 1/2 Y's width, 1/2 Y's height
+ *
  * I420A - 4 planes: Y, U, V, A
  * ------
  *     <- width ->
@@ -1968,13 +1977,6 @@ void VideoFrame::CloseIfNeeded() {
  *     U5 U6 U7 U8
  *  V: V1 V2 V3 V4   => Y's width, Y's height
  *     V5 V6 V7 B8
- *
- * NV12 - 2 planes: Y, UV
- * ------
- *     <- width ->
- *  Y: Y1 Y2 Y3 Y4 ^ height
- *     Y5 Y6 Y7 Y8 v
- * UV: U1 V1 U2 V2 => Y's width, 1/2 Y's height
  *
  * RGBA - 1 plane encoding 3 colors: Red, Green, Blue, and an Alpha value
  * ------
