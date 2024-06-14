@@ -894,7 +894,13 @@ class HomeFragment : Fragment() {
         tabCounterView?.update(requireComponents.core.store.state)
 
         if (bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR)) {
-            sessionControlInteractor.onNavigateSearch()
+            // If the fragment gets recreated by the activity, the search fragment might get recreated as well. Changing
+            // between browsing modes triggers activity recreation, so when changing modes goes together with navigating
+            // home, we should avoid navigating to search twice.
+            val searchFragmentAlreadyAdded = parentFragmentManager.fragments.any { it is SearchDialogFragment }
+            if (!searchFragmentAlreadyAdded) {
+                sessionControlInteractor.onNavigateSearch()
+            }
         } else if (bundleArgs.getBoolean(SCROLL_TO_COLLECTION)) {
             MainScope().launch {
                 delay(ANIM_SCROLL_DELAY)
