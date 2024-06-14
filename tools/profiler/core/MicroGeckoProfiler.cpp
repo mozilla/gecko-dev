@@ -42,6 +42,8 @@ Maybe<MarkerTiming> ToTiming(char phase) {
 
 MarkerCategory ToCategory(const char category) {
   switch (category) {
+    case 'S':
+      return geckoprofiler::category::SANDBOX;
     case 'M':
       return geckoprofiler::category::MEDIA_RT;
     default:
