@@ -471,6 +471,11 @@ if CONFIG["ENABLE_RECORD_TUPLE"]:
         "vm/TupleType.cpp",
     ]
 
+if CONFIG["ENABLE_EXPLICIT_RESOURCE_MANAGEMENT"]:
+    UNIFIED_SOURCES += [
+        "vm/DisposableRecord.cpp",
+    ]
+
 if CONFIG["JS_HAS_INTL_API"]:
     UNIFIED_SOURCES += [
         "builtin/intl/Collator.cpp",

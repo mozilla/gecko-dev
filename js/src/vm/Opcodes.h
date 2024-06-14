@@ -3391,7 +3391,7 @@
      * Append the object on the stack as a disposable to be disposed on
      * to the current lexical environment object.
      *
-     * Implements: [AddDisposableResource ( disposeCapability, V, hint [ , method ] )][1], step 3
+     * Implements: [AddDisposableResource ( disposeCapability, V, hint [ , method ] )][1], step 1, 3-4.
      *
      * [1] https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-adddisposableresource
      *
