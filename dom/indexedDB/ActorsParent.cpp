@@ -125,6 +125,7 @@
 #include "mozilla/dom/quota/ClientImpl.h"
 #include "mozilla/dom/quota/DebugOnlyMacro.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
+#include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/DecryptingInputStream_impl.h"
 #include "mozilla/dom/quota/EncryptingOutputStream_impl.h"
 #include "mozilla/dom/quota/FileStreams.h"
@@ -5152,21 +5153,22 @@ class DatabaseMaintenance final : public Runnable {
   DataMutex<nsCOMPtr<mozIStorageConnection>> mSharedStorageConnection;
 
  public:
-  DatabaseMaintenance(Maintenance* aMaintenance, DirectoryLock* aDirectoryLock,
+  DatabaseMaintenance(Maintenance* aMaintenance,
+                      RefPtr<DirectoryLock> aDirectoryLock,
                       PersistenceType aPersistenceType,
                       const OriginMetadata& aOriginMetadata,
                       const nsAString& aDatabasePath,
                       const Maybe<CipherKey>& aMaybeKey)
       : Runnable("dom::indexedDB::DatabaseMaintenance"),
         mMaintenance(aMaintenance),
-        mDirectoryLock(aDirectoryLock),
+        mDirectoryLock(std::move(aDirectoryLock)),
         mOriginMetadata(aOriginMetadata),
         mDatabasePath(aDatabasePath),
         mPersistenceType(aPersistenceType),
         mMaybeKey{aMaybeKey},
         mAborted(false),
         mSharedStorageConnection("sharedStorageConnection") {
-    MOZ_ASSERT(aDirectoryLock);
+    MOZ_ASSERT(mDirectoryLock);
 
     MOZ_ASSERT(mDirectoryLock->Id() >= 0);
     mDirectoryLockId = mDirectoryLock->Id();
@@ -9382,7 +9384,7 @@ void Database::ConnectionClosedCallback() {
   MOZ_ASSERT(mClosed);
   MOZ_ASSERT(!mTransactions.Count());
 
-  mDirectoryLock = nullptr;
+  DropDirectoryLock(mDirectoryLock);
 
   CleanupMetadata();
 
@@ -12724,7 +12726,8 @@ void DeleteFilesRunnable::UnblockOpen() {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(mState == State_UnblockingOpen);
 
-  mDirectoryLock = nullptr;
+  SafeDropDirectoryLock(mDirectoryLock);
+
   MOZ_ASSERT(mDEBUGCountsAsPending);
   sPendingRunnables--;
   DEBUGONLY(mDEBUGCountsAsPending = false);
@@ -12791,7 +12794,8 @@ void Maintenance::Abort() {
   }
 
   // mDirectoryLock must be cleared before transition to finished state
-  mDirectoryLock = nullptr;
+  SafeDropDirectoryLock(mDirectoryLock);
+
   mAborted = true;
 }
 
@@ -13261,22 +13265,19 @@ nsresult Maintenance::BeginDatabaseMaintenance() {
   RefPtr<nsThreadPool> threadPool;
 
   for (DirectoryInfo& directoryInfo : mDirectoryInfos) {
-    RefPtr<DirectoryLock> directoryLock;
-
     for (const nsAString& databasePath : *directoryInfo.mDatabasePaths) {
       if (Helper::IsSafeToRunMaintenance(databasePath)) {
-        if (!directoryLock) {
-          directoryLock = mDirectoryLock->SpecializeForClient(
-              directoryInfo.mPersistenceType, *directoryInfo.mOriginMetadata,
-              Client::IDB);
-          MOZ_ASSERT(directoryLock);
-        }
+        RefPtr<DirectoryLock> directoryLock =
+            mDirectoryLock->SpecializeForClient(directoryInfo.mPersistenceType,
+                                                *directoryInfo.mOriginMetadata,
+                                                Client::IDB);
+        MOZ_ASSERT(directoryLock);
 
         // No key needs to be passed here, because we skip encrypted databases
         // in DoDirectoryWork as long as they are only used in private browsing
         // mode.
         const auto databaseMaintenance = MakeRefPtr<DatabaseMaintenance>(
-            this, directoryLock, directoryInfo.mPersistenceType,
+            this, std::move(directoryLock), directoryInfo.mPersistenceType,
             *directoryInfo.mOriginMetadata, databasePath, Nothing{});
 
         if (!threadPool) {
@@ -13300,7 +13301,7 @@ nsresult Maintenance::BeginDatabaseMaintenance() {
 
   mDirectoryInfos.Clear();
 
-  mDirectoryLock = nullptr;
+  DropDirectoryLock(mDirectoryLock);
 
   if (mDatabaseMaintenances.Count()) {
     mState = State::WaitingForDatabaseMaintenancesToComplete;
@@ -13790,7 +13791,7 @@ void DatabaseMaintenance::FullVacuum(mozIStorageConnection& aConnection,
 void DatabaseMaintenance::RunOnOwningThread() {
   AssertIsOnBackgroundThread();
 
-  mDirectoryLock = nullptr;
+  DropDirectoryLock(mDirectoryLock);
 
   if (mCompleteCallback) {
     MOZ_ALWAYS_SUCCEEDS(NS_DispatchToCurrentThread(mCompleteCallback.forget()));
@@ -15797,7 +15798,7 @@ void OpenDatabaseOp::ConnectionClosedCallback() {
   MOZ_ASSERT(HasFailed());
   MOZ_ASSERT(mDirectoryLock);
 
-  mDirectoryLock = nullptr;
+  DropDirectoryLock(mDirectoryLock);
 
   CleanupMetadata();
 }
@@ -16379,7 +16380,7 @@ void DeleteDatabaseOp::SendResults() {
                                                                  response);
   }
 
-  mDirectoryLock = nullptr;
+  SafeDropDirectoryLock(mDirectoryLock);
 
   CleanupMetadata();
 
@@ -16736,7 +16737,7 @@ void GetDatabasesOp::SendResults() {
 
   mResolver(mDatabaseMetadataArray);
 
-  mDirectoryLock = nullptr;
+  DropDirectoryLock(mDirectoryLock);
 
   CleanupMetadata();
 

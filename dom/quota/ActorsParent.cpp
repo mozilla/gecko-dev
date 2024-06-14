@@ -95,6 +95,7 @@
 #include "mozilla/dom/quota/Config.h"
 #include "mozilla/dom/quota/Constants.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
+#include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/FileUtils.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "mozilla/dom/quota/QuotaManagerService.h"
@@ -4981,6 +4982,8 @@ RefPtr<BoolPromise> QuotaManager::InitializeStorage(
   MOZ_ASSERT(aDirectoryLock);
 
   if (mStorageInitialized && !mShutdownStorageOpCount) {
+    DropDirectoryLock(aDirectoryLock);
+
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 
@@ -5156,6 +5159,8 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
               storageDirectoryLock = std::move(storageDirectoryLock)](
                  const BoolPromise::ResolveOrRejectValue& aValue) mutable {
                if (aValue.IsReject()) {
+                 SafeDropDirectoryLockIfNotDropped(storageDirectoryLock);
+
                  return BoolPromise::CreateAndReject(aValue.RejectValue(),
                                                      __func__);
                }
@@ -5181,6 +5186,8 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
              [universalDirectoryLock = std::move(universalDirectoryLock)](
                  const BoolPromise::ResolveOrRejectValue& aValue) mutable {
                if (aValue.IsReject()) {
+                 DropDirectoryLockIfNotDropped(universalDirectoryLock);
+
                  return UniversalDirectoryLockPromise::CreateAndReject(
                      aValue.RejectValue(), __func__);
                }
@@ -5219,22 +5226,35 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
   return BoolPromise::All(GetCurrentSerialEventTarget(), promises)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr(this),
-           storageDirectoryLock = std::move(storageDirectoryLock)](
-              const CopyableTArray<bool>& aResolveValues) mutable {
-            if (!storageDirectoryLock) {
-              return BoolPromise::CreateAndResolve(true, __func__);
-            }
-
-            return self->InitializeStorage(std::move(storageDirectoryLock));
+          [](const CopyableTArray<bool>& aResolveValues) {
+            return BoolPromise::CreateAndResolve(true, __func__);
           },
           [](nsresult aRejectValue) {
             return BoolPromise::CreateAndReject(aRejectValue, __func__);
           })
       ->Then(GetCurrentSerialEventTarget(), __func__,
+             [self = RefPtr(this),
+              storageDirectoryLock = std::move(storageDirectoryLock)](
+                 const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+               if (aValue.IsReject()) {
+                 SafeDropDirectoryLockIfNotDropped(storageDirectoryLock);
+
+                 return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                     __func__);
+               }
+
+               if (!storageDirectoryLock) {
+                 return BoolPromise::CreateAndResolve(true, __func__);
+               }
+
+               return self->InitializeStorage(std::move(storageDirectoryLock));
+             })
+      ->Then(GetCurrentSerialEventTarget(), __func__,
              [clientDirectoryLock = std::move(clientDirectoryLock)](
                  const BoolPromise::ResolveOrRejectValue& aValue) mutable {
                if (aValue.IsReject()) {
+                 DropDirectoryLockIfNotDropped(clientDirectoryLock);
+
                  return ClientDirectoryLockPromise::CreateAndReject(
                      aValue.RejectValue(), __func__);
                }
@@ -5485,6 +5505,8 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryStorage(
   MOZ_ASSERT(aDirectoryLock);
 
   if (mTemporaryStorageInitialized && !mShutdownStorageOpCount) {
+    DropDirectoryLock(aDirectoryLock);
+
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 

@@ -291,10 +291,9 @@ class QuotaManager final : public BackgroundThreadObject {
   // is resolved, there are no longer other strong references except the one
   // held by the resolve value itself. So it's up to client to add a new
   // reference in order to keep the lock alive.
-  // Unlocking is simply done by dropping all references to the lock object.
-  // In other words, protection which the lock represents dies with the lock
-  // object itself (Note that it's now possible to release directory locks
-  // sooner by calling newly added Drop method).
+  // Unlocking is simply done by calling lock object's Drop method. Unlocking
+  // must be always done explicitly before the lock object is destroyed (when
+  // the last strong reference is removed).
   RefPtr<ClientDirectoryLockPromise> OpenClientDirectory(
       const ClientMetadata& aClientMetadata,
       Maybe<RefPtr<ClientDirectoryLock>&> aPendingDirectoryLockOut = Nothing());

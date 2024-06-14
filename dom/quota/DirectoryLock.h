@@ -97,6 +97,18 @@ class UniversalDirectoryLock : public DirectoryLock {
       Client::Type aClientType) const = 0;
 };
 
+template <typename T>
+constexpr void SafeDropDirectoryLock(RefPtr<T>& aDirectoryLock);
+
+template <typename T>
+constexpr void DropDirectoryLock(RefPtr<T>& aDirectoryLock);
+
+template <typename T>
+constexpr void SafeDropDirectoryLockIfNotDropped(RefPtr<T>& aDirectoryLock);
+
+template <typename T>
+constexpr void DropDirectoryLockIfNotDropped(RefPtr<T>& aDirectoryLock);
+
 }  // namespace mozilla::dom::quota
 
 #endif  // DOM_QUOTA_DIRECTORYLOCK_H_

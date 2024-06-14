@@ -218,7 +218,7 @@ TEST_F(TestFileOutputStream, extendFileStreamWithSetEOF) {
 
     PerformOnIOThread(std::move(ioTask));
 
-    directoryLock = nullptr;
+    DropDirectoryLock(directoryLock);
   };
 
   PerformOnBackgroundThread(std::move(backgroundTask));

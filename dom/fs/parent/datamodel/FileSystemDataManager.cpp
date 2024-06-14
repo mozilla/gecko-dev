@@ -26,6 +26,7 @@
 #include "mozilla/dom/QMResult.h"
 #include "mozilla/dom/quota/ClientImpl.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
+#include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
@@ -657,7 +658,7 @@ RefPtr<BoolPromise> FileSystemDataManager::BeginClose() {
       ->Then(MutableBackgroundTargetPtr(), __func__,
              [self = RefPtr<FileSystemDataManager>(this)](
                  const ShutdownPromise::ResolveOrRejectValue&) {
-               self->mDirectoryLock = nullptr;
+               SafeDropDirectoryLock(self->mDirectoryLock);
 
                RemoveFileSystemDataManager(self->mOriginMetadata.mOrigin);
 
