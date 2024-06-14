@@ -235,31 +235,17 @@ class nsBlockFrame : public nsContainerFrame {
   // not 'none', and no 'content'?
   bool MarkerIsEmpty() const;
 
-  /**
-   * Return true if this frame has a ::marker frame.
-   */
+  // Return true if this frame has a ::marker frame.
   bool HasMarker() const { return HasOutsideMarker() || HasInsideMarker(); }
 
-  /**
-   * @return true if this frame has an inside ::marker frame.
-   */
+  // Return true if this frame has an inside ::marker frame.
   bool HasInsideMarker() const {
-    return HasAnyStateBits(NS_BLOCK_FRAME_HAS_INSIDE_MARKER);
+    return HasAnyStateBits(NS_BLOCK_HAS_INSIDE_MARKER);
   }
 
-  /**
-   * @return true if this frame has an outside ::marker frame.
-   */
+  // Return true if this frame has an outside ::marker frame.
   bool HasOutsideMarker() const {
-    return HasAnyStateBits(NS_BLOCK_FRAME_HAS_OUTSIDE_MARKER);
-  }
-
-  /**
-   * @return the ::marker frame or nullptr if we don't have one.
-   */
-  nsIFrame* GetMarker() const {
-    nsIFrame* outside = GetOutsideMarker();
-    return outside ? outside : GetInsideMarker();
+    return HasAnyStateBits(NS_BLOCK_HAS_OUTSIDE_MARKER);
   }
 
   /**
@@ -977,19 +963,19 @@ class nsBlockFrame : public nsContainerFrame {
   // This takes ownership of the frames in aList.
   void SetOverflowOutOfFlows(nsFrameList&& aList, nsFrameList* aPropValue);
 
-  /**
-   * @return the inside ::marker frame or nullptr if we don't have one.
-   */
+  // Return the ::marker frame or nullptr if we don't have one.
+  nsIFrame* GetMarker() const {
+    nsIFrame* outside = GetOutsideMarker();
+    return outside ? outside : GetInsideMarker();
+  }
+
+  // Return the inside ::marker frame or nullptr if we don't have one.
   nsIFrame* GetInsideMarker() const;
 
-  /**
-   * @return the outside ::marker frame or nullptr if we don't have one.
-   */
+  //  Return the outside ::marker frame or nullptr if we don't have one.
   nsIFrame* GetOutsideMarker() const;
 
-  /**
-   * @return the outside ::marker frame list frame property.
-   */
+  // Return the outside ::marker frame list frame property.
   nsFrameList* GetOutsideMarkerList() const;
 
   /**
