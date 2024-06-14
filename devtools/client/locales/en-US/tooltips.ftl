@@ -63,7 +63,7 @@ inactive-scroll-padding-when-not-scroll-container = <strong>{ $property }</stron
 
 inactive-css-border-image = <strong>{ $property }</strong> has no effect on this element since it cannot be applied to internal table elements where <strong>border-collapse</strong> is set to <strong>collapse</strong> on the parent table element.
 
-inactive-css-resize = <strong>{ $property }</strong> has no effect on this element since it can only be applied to elements with an overflow value other than visible and on certain replaced elements, such as textareas.
+inactive-css-resize = <strong>{ $property }</strong> has no effect on this element since it can only be applied to elements with an overflow value other than visible, and to certain replaced elements, such as textareas.
 
 inactive-css-ruby-element = <strong>{ $property }</strong> has no effect on this element since it is a ruby element. Its size is determined by the font size of the ruby text.
 
@@ -134,7 +134,7 @@ inactive-scroll-padding-when-not-scroll-container-fix = Try adding <strong>overf
 
 inactive-css-border-image-fix = On the parent table element, remove the property or change the value of <strong>border-collapse</strong> to a value other than <strong>collapse</strong>. { learn-more }
 
-inactive-css-resize-fix = Try setting <strong>overflow</strong> to a value other than <strong>visible</strong> or to a replaced element supporting it. { learn-more }
+inactive-css-resize-fix = Try setting <strong>overflow</strong> to a value other than <strong>visible</strong> or targeting a replaced element supporting it. { learn-more }
 
 inactive-css-ruby-element-fix = Try changing the <strong>font-size</strong> of the ruby text. { learn-more }
 
