@@ -817,10 +817,7 @@ bool MozDocumentMatcher::Matches(const DocInfo& aDoc,
   // a match pattern (they have a null principal instead). To allow extensions
   // that intend to run scripts "everywhere", consider the document matched if
   // the match pattern describe a very broad pattern (such as "<all_urls>").
-  if (mMatchAboutBlank && aDoc.IsTopLevel() &&
-      (aDoc.URL().Spec().EqualsLiteral("about:blank") ||
-       aDoc.URL().Scheme() == nsGkAtoms::data) &&
-      aDoc.Principal() && aDoc.Principal()->GetIsNullPrincipal()) {
+  if (mMatchAboutBlank && aDoc.IsTopLevelOpaqueAboutBlank()) {
     if (StaticPrefs::extensions_script_about_blank_without_permission()) {
       return true;
     }
@@ -1038,6 +1035,48 @@ bool DocInfo::IsTopLevel() const {
     mIsTopLevel.emplace(mObj.match(Matcher()));
   }
   return mIsTopLevel.ref();
+}
+
+bool DocInfo::IsTopLevelOpaqueAboutBlank() const {
+  if (mIsTopLevelOpaqueAboutBlank.isNothing()) {
+    struct Matcher {
+      explicit Matcher(const DocInfo& aThis) : mThis(aThis) {}
+      const DocInfo& mThis;
+
+      bool operator()(Window aWin) {
+        if (!mThis.IsTopLevel()) {
+          return false;
+        }
+
+        bool isFinalAboutBlankDoc =
+            mThis.URL().Scheme() == nsGkAtoms::about &&
+            mThis.URL().Spec().EqualsLiteral("about:blank") &&
+            // Exclude initial about:blank to avoid matching initial about:blank
+            // of pending loads in the parent process, see bug 1901894.
+            !aWin->GetDoc()->IsInitialDocument();
+
+        // Principal() is expected to never be nullptr given a Window.
+        MOZ_ASSERT(mThis.Principal());
+
+        return (isFinalAboutBlankDoc ||
+                // TODO bug 1902635: drop support for toplevel data: here.
+                mThis.URL().Scheme() == nsGkAtoms::data) &&
+               mThis.Principal()->GetIsNullPrincipal();
+      }
+      bool operator()(LoadInfo aLoadInfo) {
+        // This code path is only triggered for preloading, but we don't ever
+        // expect to reach this for about:blank or data:. This behavior is
+        // documented at DocInfo::PrincipalURL() and covered by tests
+        // test_preload_at_about_blank_iframe and test_preload_at_data_url in
+        // toolkit/components/extensions/test/xpcshell/test_ext_contentscript_preloading.js
+        MOZ_ASSERT(!mThis.URL().Spec().EqualsLiteral("about:blank"));
+        MOZ_ASSERT(mThis.URL().Scheme() != nsGkAtoms::data);
+        return false;
+      }
+    };
+    mIsTopLevelOpaqueAboutBlank.emplace(mObj.match(Matcher(*this)));
+  }
+  return mIsTopLevelOpaqueAboutBlank.ref();
 }
 
 bool WindowShouldMatchActiveTab(nsPIDOMWindowOuter* aWin) {
