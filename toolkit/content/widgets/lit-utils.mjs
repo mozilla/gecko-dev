@@ -98,7 +98,9 @@ export class MozLitElement extends LitElement {
       this.fluentProperties = [];
       for (let [propName, attributes] of this.elementProperties.entries()) {
         if (attributes.fluent) {
-          this.fluentProperties.push(attributes.attribute || propName.toLowerCase());
+          this.fluentProperties.push(
+            attributes.attribute || propName.toLowerCase()
+          );
         }
       }
     }
@@ -156,7 +158,8 @@ export class MozLitElement extends LitElement {
 
   get #l10n() {
     if (!this.#l10nObj) {
-      this.#l10nObj = (window.Cu?.isInAutomation && window.mockL10n) || document.l10n;
+      this.#l10nObj =
+        (window.Cu?.isInAutomation && window.mockL10n) || document.l10n;
     }
     return this.#l10nObj;
   }
