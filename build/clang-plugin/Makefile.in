@@ -4,7 +4,7 @@
 
 include $(topsrcdir)/config/config.mk
 
-HOST_LDFLAGS += $(LLVM_LDFLAGS) $(CLANG_LDFLAGS)
+HOST_LDFLAGS += $(LLVM_LDFLAGS)
 
 ifeq ($(HOST_OS_ARCH),Darwin)
 # We need to make sure that we use the symbols coming from the clang

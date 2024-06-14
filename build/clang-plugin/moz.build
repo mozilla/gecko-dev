@@ -127,3 +127,7 @@ if CONFIG["LLVM_CXXFLAGS"]:
 # Avoid -DDEBUG=1 on the command line, which conflicts with a #define
 # DEBUG(...) in llvm headers.
 DEFINES["DEBUG"] = False
+
+HOST_OS_LIBS += ["clangASTMatchers"]
+if CONFIG["HOST_OS_ARCH"] == "WINNT":
+    HOST_OS_LIBS += ["clang"]

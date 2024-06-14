@@ -9,16 +9,6 @@ if test -n "$ENABLE_CLANG_PLUGIN"; then
 
     LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags | tr '\n' ' '`
 
-    if test "${HOST_OS_ARCH}" = "Darwin"; then
-        dnl We are loaded into clang, so we don't need to link to very many things,
-        dnl we just need to link to clangASTMatchers because it is not used by clang
-        CLANG_LDFLAGS="`$LLVM_CONFIG --prefix`/lib/libclangASTMatchers.a"
-    elif test "${HOST_OS_ARCH}" = "WINNT"; then
-        CLANG_LDFLAGS="clangASTMatchers.lib clang.lib"
-    else
-        CLANG_LDFLAGS="-lclangASTMatchers"
-    fi
-
     if test "$CC_TYPE" = clang-cl ; then
         dnl The llvm-config coming with clang-cl may give us arguments in the
         dnl /ARG form, which in msys will be interpreted as a path name.  So we
@@ -45,15 +35,6 @@ if test -n "$ENABLE_CLANG_PLUGIN"; then
             LLVM_REPLACE_LDFLAGS="$LLVM_REPLACE_LDFLAGS $arg"
         done
         LLVM_LDFLAGS="$LLVM_REPLACE_LDFLAGS"
-
-        CLANG_REPLACE_LDFLAGS=''
-        for arg in $CLANG_LDFLAGS; do
-            dnl The following expression replaces a leading slash with a dash.
-            dnl Also replace any backslashes with forward slash.
-            arg=`echo "$arg"|sed -e 's/^\//-/' -e 's/\\\\/\//g'`
-            CLANG_REPLACE_LDFLAGS="$CLANG_REPLACE_LDFLAGS $arg"
-        done
-        CLANG_LDFLAGS="$CLANG_REPLACE_LDFLAGS"
     fi
 
     CLANG_PLUGIN_FLAGS="-Xclang -load -Xclang $CLANG_PLUGIN -Xclang -add-plugin -Xclang moz-check"
@@ -79,7 +60,6 @@ fi
 AC_SUBST_LIST(CLANG_PLUGIN_FLAGS)
 AC_SUBST_LIST(LLVM_CXXFLAGS)
 AC_SUBST_LIST(LLVM_LDFLAGS)
-AC_SUBST_LIST(CLANG_LDFLAGS)
 
 AC_SUBST(ENABLE_CLANG_PLUGIN)
 AC_SUBST(ENABLE_CLANG_PLUGIN_ALPHA)
