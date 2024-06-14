@@ -6,6 +6,4 @@
 namespace WorkerTestUtils {
   [Throws]
   unsigned long currentTimerNestingLevel();
-  [Throws]
-  boolean IsRunningInBackground();
 };
