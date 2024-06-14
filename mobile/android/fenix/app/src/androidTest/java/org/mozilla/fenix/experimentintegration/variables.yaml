@@ -5,7 +5,7 @@
 urls:
   stage_server: "https://stage.experimenter.nonprod.dataops.mozgcp.net"
   prod_server: "https://experimenter.services.mozilla.com"
-  telemetry_server: "http://172.25.58.187:5000"
+  telemetry_server: "http://127.0.0.1:5000"
 smoke_tests:
   - AddressAutofillTest
   - BookmarksTest

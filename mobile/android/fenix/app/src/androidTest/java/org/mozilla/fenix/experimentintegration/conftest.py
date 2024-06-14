@@ -5,6 +5,7 @@
 import json
 import logging
 import os
+import random
 import subprocess
 import time
 from pathlib import Path
@@ -184,30 +185,19 @@ def fixture_ping_server():
     process.terminate()
 
 
-@pytest.fixture(name="set_env_variables", autouse=True)
-def fixture_set_env_variables(experiment_data):
-    """Set any env variables XCUITests might need"""
-    os.environ["EXPERIMENT_NAME"] = experiment_data[0]["userFacingName"]
+@pytest.fixture(name="delete_telemetry_pings")
+def fixture_delete_telemetry_pings(variables):
+    def runner():
+        requests.delete(f"{variables['urls']['telemetry_server']}/pings")
+
+    return runner
 
 
 @pytest.fixture(name="start_app")
-def fixture_start_app():
+def fixture_start_app(run_nimbus_cli_command):
     def _():
         command = "nimbus-cli --app fenix --channel developer open"
-        try:
-            out = subprocess.check_output(
-                command,
-                cwd=os.path.join(here, os.pardir),
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-                shell=True,
-            )
-        except subprocess.CalledProcessError as e:
-            out = e.output
-            raise
-        finally:
-            with open(gradlewbuild_log, "w") as f:
-                f.write(out)
+        run_nimbus_cli_command(command)
         time.sleep(
             15
         )  # Wait a while as there's no real way to know when the app has started
@@ -269,37 +259,18 @@ def fixture_check_ping_for_experiment(experiment_slug, variables):
 
 
 @pytest.fixture(name="open_app")
-def fixture_open_app():
+def fixture_open_app(run_nimbus_cli_command):
     def _():
         command = "nimbus-cli --app fenix --channel developer open"
-        try:
-            subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError as e:
-            e.output
-            raise
-        else:
-            logging.info("Opening app to allow for testing")
-        finally:
-            time.sleep(5)
+        run_nimbus_cli_command(command)
+        time.sleep(5)
 
     return _
 
 
-@pytest.fixture(name="setup_experiment")
-def fixture_setup_experiment(
-    experiment_slug,
-    json_data,
-    gradlewbuild_log,
-    variables,
-    experiment_branch,
-    nimbus_cli_args,
-):
-    def _():
-        # requests.delete(f"{variables['urls']['telemetry_server']}/pings")
-        logging.info(
-            f"Testing experiment {experiment_slug}, BRANCH: {experiment_branch}"
-        )
-        command = f"nimbus-cli --app fenix --channel developer enroll {experiment_slug} --branch {experiment_branch} --file {json_data} --reset-app {nimbus_cli_args}"
+@pytest.fixture(name="run_nimbus_cli_command")
+def fixture_run_nimbus_cli_command(gradlewbuild_log):
+    def _run_nimbus_cli_command(command):
         logging.info(f"Running command {command}")
         try:
             out = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
@@ -309,6 +280,34 @@ def fixture_setup_experiment(
         finally:
             with open(gradlewbuild_log, "w") as f:
                 f.write(f"{out}")
+
+    return _run_nimbus_cli_command
+
+
+@pytest.fixture(name="set_experiment_test_name")
+def fixture_set_experiment_test_name(experiment_data):
+    # Get a random word from the experiments userFacingName attribute.
+    exp_name = experiment_data[0]["userFacingName"].split()
+    os.environ["EXP_NAME"] = exp_name[random.randint(0, len(exp_name))]
+
+
+@pytest.fixture(name="setup_experiment")
+def fixture_setup_experiment(
+    experiment_slug,
+    json_data,
+    experiment_branch,
+    nimbus_cli_args,
+    run_nimbus_cli_command,
+    set_experiment_test_name,
+    delete_telemetry_pings,
+):
+    def _():
+        delete_telemetry_pings()
+        logging.info(
+            f"Testing experiment {experiment_slug}, BRANCH: {experiment_branch}"
+        )
+        command = f"nimbus-cli --app fenix --channel developer enroll {experiment_slug} --branch {experiment_branch} --file {json_data} --reset-app {nimbus_cli_args}"
+        run_nimbus_cli_command(command)
         time.sleep(
             15
         )  # Wait a while as there's no real way to know when the app has started
