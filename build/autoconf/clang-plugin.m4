@@ -28,10 +28,6 @@ if test -n "$ENABLE_CLANG_PLUGIN"; then
         dnl We are loaded into clang, so we don't need to link to very many things,
         dnl we just need to link to clangASTMatchers because it is not used by clang
         CLANG_LDFLAGS="$CLANG_LDFLAGS `$LLVM_CONFIG --prefix`/lib/libclangASTMatchers.a"
-        dnl We need to remove -L/path/to/clang/lib from LDFLAGS to ensure that we
-        dnl don't accidentally link against the libc++ there which is a newer
-        dnl version that what our build machines have installed.
-        LLVM_LDFLAGS=`echo "$LLVM_LDFLAGS" | sed -E 's/-L[[^ ]]+\/clang\/lib//'`
     elif test "${HOST_OS_ARCH}" = "WINNT"; then
         CLANG_LDFLAGS="clangASTMatchers.lib clang.lib"
     else
