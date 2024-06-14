@@ -1268,23 +1268,6 @@ def build_push_msix_payload(config, task, task_def):
 
 
 @payload_builder(
-    "shipit-update-product-channel-version",
-    schema={
-        Required("product"): str,
-        Required("channel"): str,
-        Required("version"): str,
-    },
-)
-def build_ship_it_update_product_channel_version_payload(config, task, task_def):
-    worker = task["worker"]
-    task_def["payload"] = {
-        "product": worker["product"],
-        "version": worker["version"],
-        "channel": worker["channel"],
-    }
-
-
-@payload_builder(
     "shipit-shipped",
     schema={
         Required("release-name"): str,
