@@ -2263,9 +2263,10 @@ uint32_t VideoFrame::Resource::Stride(const Format::Plane& aPlane) const {
         case VideoPixelFormat::I420:
         case VideoPixelFormat::I420A:
         case VideoPixelFormat::I422:
-        case VideoPixelFormat::I444:
         case VideoPixelFormat::NV12:
           return (((width + 1) / 2) * mFormat->SampleBytes(aPlane)).value();
+        case VideoPixelFormat::I444:
+          return (width * mFormat->SampleBytes(aPlane)).value();
         case VideoPixelFormat::RGBA:
         case VideoPixelFormat::RGBX:
         case VideoPixelFormat::BGRA:
