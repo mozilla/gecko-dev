@@ -73,7 +73,9 @@ CanvasTranslator::CanvasTranslator(
       mSharedSurfacesHolder(aSharedSurfacesHolder),
       mMaxSpinCount(StaticPrefs::gfx_canvas_remote_max_spin_count()),
       mContentId(aContentId),
-      mManagerId(aManagerId) {
+      mManagerId(aManagerId),
+      mCanvasTranslatorEventsLock(
+          "CanvasTranslator::mCanvasTranslatorEventsLock") {
   mNextEventTimeout = TimeDuration::FromMilliseconds(
       StaticPrefs::gfx_canvas_remote_event_timeout_ms());
 
@@ -210,9 +212,16 @@ mozilla::ipc::IPCResult CanvasTranslator::RecvInitTranslator(
     mCanvasShmems.emplace(std::move(newShmem));
   }
 
-  DispatchToTaskQueue(NewRunnableMethod("CanvasTranslator::TranslateRecording",
-                                        this,
-                                        &CanvasTranslator::TranslateRecording));
+  if (UsePendingCanvasTranslatorEvents()) {
+    MutexAutoLock lock(mCanvasTranslatorEventsLock);
+    mPendingCanvasTranslatorEvents.push_back(
+        CanvasTranslatorEvent::TranslateRecording());
+    PostCanvasTranslatorEvents(lock);
+  } else {
+    DispatchToTaskQueue(
+        NewRunnableMethod("CanvasTranslator::TranslateRecording", this,
+                          &CanvasTranslator::TranslateRecording));
+  }
   return IPC_OK();
 }
 
@@ -222,9 +231,16 @@ ipc::IPCResult CanvasTranslator::RecvRestartTranslation() {
     return IPC_OK();
   }
 
-  DispatchToTaskQueue(NewRunnableMethod("CanvasTranslator::TranslateRecording",
-                                        this,
-                                        &CanvasTranslator::TranslateRecording));
+  if (UsePendingCanvasTranslatorEvents()) {
+    MutexAutoLock lock(mCanvasTranslatorEventsLock);
+    mPendingCanvasTranslatorEvents.push_back(
+        CanvasTranslatorEvent::TranslateRecording());
+    PostCanvasTranslatorEvents(lock);
+  } else {
+    DispatchToTaskQueue(
+        NewRunnableMethod("CanvasTranslator::TranslateRecording", this,
+                          &CanvasTranslator::TranslateRecording));
+  }
 
   return IPC_OK();
 }
@@ -236,20 +252,27 @@ ipc::IPCResult CanvasTranslator::RecvAddBuffer(
     return IPC_OK();
   }
 
-  DispatchToTaskQueue(
-      NewRunnableMethod<ipc::SharedMemoryBasic::Handle&&, size_t>(
-          "CanvasTranslator::AddBuffer", this, &CanvasTranslator::AddBuffer,
-          std::move(aBufferHandle), aBufferSize));
+  if (UsePendingCanvasTranslatorEvents()) {
+    MutexAutoLock lock(mCanvasTranslatorEventsLock);
+    mPendingCanvasTranslatorEvents.push_back(CanvasTranslatorEvent::AddBuffer(
+        std::move(aBufferHandle), aBufferSize));
+    PostCanvasTranslatorEvents(lock);
+  } else {
+    DispatchToTaskQueue(
+        NewRunnableMethod<ipc::SharedMemoryBasic::Handle&&, size_t>(
+            "CanvasTranslator::AddBuffer", this, &CanvasTranslator::AddBuffer,
+            std::move(aBufferHandle), aBufferSize));
+  }
 
   return IPC_OK();
 }
 
-void CanvasTranslator::AddBuffer(ipc::SharedMemoryBasic::Handle&& aBufferHandle,
+bool CanvasTranslator::AddBuffer(ipc::SharedMemoryBasic::Handle&& aBufferHandle,
                                  size_t aBufferSize) {
   MOZ_ASSERT(IsInTaskQueue());
   if (mHeader->readerState == State::Failed) {
     // We failed before we got to the pause event.
-    return;
+    return false;
   }
 
   if (mHeader->readerState != State::Paused) {
@@ -257,7 +280,7 @@ void CanvasTranslator::AddBuffer(ipc::SharedMemoryBasic::Handle&& aBufferHandle,
                     << uint32_t(State(mHeader->readerState));
     MOZ_DIAGNOSTIC_ASSERT(false, "mHeader->readerState == State::Paused");
     Deactivate();
-    return;
+    return false;
   }
 
   MOZ_ASSERT(mDefaultBufferSize != 0);
@@ -274,13 +297,13 @@ void CanvasTranslator::AddBuffer(ipc::SharedMemoryBasic::Handle&& aBufferHandle,
   CanvasShmem newShmem;
   if (!CreateAndMapShmem(newShmem.shmem, std::move(aBufferHandle),
                          ipc::SharedMemory::RightsReadOnly, aBufferSize)) {
-    return;
+    return false;
   }
 
   mCurrentShmem = std::move(newShmem);
   mCurrentMemReader = mCurrentShmem.CreateMemReader();
 
-  TranslateRecording();
+  return TranslateRecording();
 }
 
 ipc::IPCResult CanvasTranslator::RecvSetDataSurfaceBuffer(
@@ -290,21 +313,29 @@ ipc::IPCResult CanvasTranslator::RecvSetDataSurfaceBuffer(
     return IPC_OK();
   }
 
-  DispatchToTaskQueue(
-      NewRunnableMethod<ipc::SharedMemoryBasic::Handle&&, size_t>(
-          "CanvasTranslator::SetDataSurfaceBuffer", this,
-          &CanvasTranslator::SetDataSurfaceBuffer, std::move(aBufferHandle),
-          aBufferSize));
+  if (UsePendingCanvasTranslatorEvents()) {
+    MutexAutoLock lock(mCanvasTranslatorEventsLock);
+    mPendingCanvasTranslatorEvents.push_back(
+        CanvasTranslatorEvent::SetDataSurfaceBuffer(std::move(aBufferHandle),
+                                                    aBufferSize));
+    PostCanvasTranslatorEvents(lock);
+  } else {
+    DispatchToTaskQueue(
+        NewRunnableMethod<ipc::SharedMemoryBasic::Handle&&, size_t>(
+            "CanvasTranslator::SetDataSurfaceBuffer", this,
+            &CanvasTranslator::SetDataSurfaceBuffer, std::move(aBufferHandle),
+            aBufferSize));
+  }
 
   return IPC_OK();
 }
 
-void CanvasTranslator::SetDataSurfaceBuffer(
+bool CanvasTranslator::SetDataSurfaceBuffer(
     ipc::SharedMemoryBasic::Handle&& aBufferHandle, size_t aBufferSize) {
   MOZ_ASSERT(IsInTaskQueue());
   if (mHeader->readerState == State::Failed) {
     // We failed before we got to the pause event.
-    return;
+    return false;
   }
 
   if (mHeader->readerState != State::Paused) {
@@ -312,15 +343,15 @@ void CanvasTranslator::SetDataSurfaceBuffer(
                     << uint32_t(State(mHeader->readerState));
     MOZ_DIAGNOSTIC_ASSERT(false, "mHeader->readerState == State::Paused");
     Deactivate();
-    return;
+    return false;
   }
 
   if (!CreateAndMapShmem(mDataSurfaceShmem, std::move(aBufferHandle),
                          ipc::SharedMemory::RightsReadWrite, aBufferSize)) {
-    return;
+    return false;
   }
 
-  TranslateRecording();
+  return TranslateRecording();
 }
 
 void CanvasTranslator::GetDataSurface(uint64_t aSurfaceRef) {
@@ -386,6 +417,11 @@ void CanvasTranslator::ActorDestroy(ActorDestroyReason why) {
   // Since we might need to access the actor status off the owning IPDL thread,
   // we need to cache it here.
   mIPDLClosed = true;
+
+  {
+    MutexAutoLock lock(mCanvasTranslatorEventsLock);
+    mPendingCanvasTranslatorEvents.clear();
+  }
 
   DispatchToTaskQueue(NewRunnableMethod("CanvasTranslator::ClearTextureInfo",
                                         this,
@@ -559,6 +595,7 @@ bool CanvasTranslator::ReadNextEvent(EventType& aEventType) {
   // events from the content process. We don't want to wait for too long in case
   // other content processes are waiting for events to process.
   mHeader->readerState = State::Waiting;
+
   if (mReaderSemaphore->Wait(Some(mNextEventTimeout))) {
     MOZ_RELEASE_ASSERT(HasPendingEvent());
     MOZ_RELEASE_ASSERT(mHeader->readerState == State::Processing);
@@ -578,7 +615,7 @@ bool CanvasTranslator::ReadNextEvent(EventType& aEventType) {
   return false;
 }
 
-void CanvasTranslator::TranslateRecording() {
+bool CanvasTranslator::TranslateRecording() {
   MOZ_ASSERT(IsInTaskQueue());
 
   if (mSharedContext && EnsureSharedContextWebgl()) {
@@ -590,6 +627,7 @@ void CanvasTranslator::TranslateRecording() {
     }
   });
 
+  auto start = TimeStamp::Now();
   mHeader->readerState = State::Processing;
   EventType eventType = EventType::INVALID;
   while (ReadNextEvent(eventType)) {
@@ -615,7 +653,7 @@ void CanvasTranslator::TranslateRecording() {
 
     // Check the stream is good here or we will log the issue twice.
     if (!mCurrentMemReader.good()) {
-      return;
+      return false;
     }
 
     if (!success && !HandleExtensionEvent(eventType)) {
@@ -630,6 +668,123 @@ void CanvasTranslator::TranslateRecording() {
     }
 
     mHeader->processedCount++;
+
+    const auto maxDurationMs = 100;
+    const auto now = TimeStamp::Now();
+    const auto waitDurationMs =
+        static_cast<uint32_t>((now - start).ToMilliseconds());
+
+    if (UsePendingCanvasTranslatorEvents() && waitDurationMs > maxDurationMs &&
+        mHeader->readerState != State::Paused) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool CanvasTranslator::UsePendingCanvasTranslatorEvents() {
+  // XXX remove !mTranslationTaskQueue check.
+  return StaticPrefs::
+             gfx_canvas_remote_use_canvas_translator_event_AtStartup() &&
+         !mTranslationTaskQueue;
+}
+
+void CanvasTranslator::PostCanvasTranslatorEvents(
+    const MutexAutoLock& aProofOfLock) {
+  if (mIPDLClosed) {
+    return;
+  }
+
+  // Runnable has already been triggered.
+  if (mCanvasTranslatorEventsRunnable) {
+    return;
+  }
+
+  RefPtr<nsIRunnable> runnable =
+      NewRunnableMethod("CanvasTranslator::HandleCanvasTranslatorEvents", this,
+                        &CanvasTranslator::HandleCanvasTranslatorEvents);
+  mCanvasTranslatorEventsRunnable = runnable;
+
+  // Runnable has not been triggered yet.
+  DispatchToTaskQueue(runnable.forget());
+}
+
+void CanvasTranslator::HandleCanvasTranslatorEvents() {
+  MOZ_ASSERT(IsInTaskQueue());
+
+  UniquePtr<CanvasTranslatorEvent> event;
+  {
+    MutexAutoLock lock(mCanvasTranslatorEventsLock);
+    MOZ_ASSERT_IF(mIPDLClosed, mPendingCanvasTranslatorEvents.empty());
+    if (mPendingCanvasTranslatorEvents.empty()) {
+      mCanvasTranslatorEventsRunnable = nullptr;
+      return;
+    }
+    auto& front = mPendingCanvasTranslatorEvents.front();
+    event = std::move(front);
+    mPendingCanvasTranslatorEvents.pop_front();
+  }
+
+  MOZ_RELEASE_ASSERT(event.get());
+
+  bool dispatchTranslate = false;
+  while (!dispatchTranslate && event) {
+    switch (event->mTag) {
+      case CanvasTranslatorEvent::Tag::TranslateRecording:
+        dispatchTranslate = TranslateRecording();
+        break;
+      case CanvasTranslatorEvent::Tag::AddBuffer:
+        dispatchTranslate =
+            AddBuffer(event->TakeBufferHandle(), event->BufferSize());
+        break;
+      case CanvasTranslatorEvent::Tag::SetDataSurfaceBuffer:
+        dispatchTranslate = SetDataSurfaceBuffer(event->TakeBufferHandle(),
+                                                 event->BufferSize());
+        break;
+      case CanvasTranslatorEvent::Tag::ClearCachedResources:
+        ClearCachedResources();
+        break;
+    }
+
+    event.reset(nullptr);
+
+    {
+      MutexAutoLock lock(mCanvasTranslatorEventsLock);
+      MOZ_ASSERT_IF(mIPDLClosed, mPendingCanvasTranslatorEvents.empty());
+      if (mIPDLClosed) {
+        return;
+      }
+      if (!mIPDLClosed && !dispatchTranslate &&
+          !mPendingCanvasTranslatorEvents.empty()) {
+        auto& front = mPendingCanvasTranslatorEvents.front();
+        event = std::move(front);
+        mPendingCanvasTranslatorEvents.pop_front();
+      }
+    }
+  }
+
+  MOZ_ASSERT(!event);
+
+  {
+    MutexAutoLock lock(mCanvasTranslatorEventsLock);
+    mCanvasTranslatorEventsRunnable = nullptr;
+
+    MOZ_ASSERT_IF(mIPDLClosed, mPendingCanvasTranslatorEvents.empty());
+    if (mIPDLClosed) {
+      return;
+    }
+
+    if (dispatchTranslate) {
+      // Handle TranslateRecording at first in next
+      // HandleCanvasTranslatorEvents().
+      mPendingCanvasTranslatorEvents.push_front(
+          CanvasTranslatorEvent::TranslateRecording());
+    }
+
+    if (!mPendingCanvasTranslatorEvents.empty()) {
+      PostCanvasTranslatorEvents(lock);
+    }
   }
 }
 
@@ -890,9 +1045,16 @@ ipc::IPCResult CanvasTranslator::RecvClearCachedResources() {
     return IPC_OK();
   }
 
-  DispatchToTaskQueue(
-      NewRunnableMethod("CanvasTranslator::ClearCachedResources", this,
-                        &CanvasTranslator::ClearCachedResources));
+  if (UsePendingCanvasTranslatorEvents()) {
+    MutexAutoLock lock(mCanvasTranslatorEventsLock);
+    mPendingCanvasTranslatorEvents.emplace_back(
+        CanvasTranslatorEvent::ClearCachedResources());
+    PostCanvasTranslatorEvents(lock);
+  } else {
+    DispatchToTaskQueue(
+        NewRunnableMethod("CanvasTranslator::ClearCachedResources", this,
+                          &CanvasTranslator::ClearCachedResources));
+  }
   return IPC_OK();
 }
 

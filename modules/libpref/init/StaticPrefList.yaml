@@ -5898,6 +5898,11 @@
   value: true
   mirror: always
 
+- name: gfx.canvas.remote.use-canvas-translator-event
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: once
+
 - name: gfx.canvas.willreadfrequently.enabled
   type: bool
 #if defined(XP_WIN)
