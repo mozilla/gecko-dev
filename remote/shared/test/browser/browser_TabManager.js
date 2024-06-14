@@ -3,15 +3,33 @@
 
 "use strict";
 
+const { PromptTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PromptTestUtils.sys.mjs"
+);
+
 const { TabManager } = ChromeUtils.importESModule(
   "chrome://remote/content/shared/TabManager.sys.mjs"
 );
 
+const BUILDER_URL = "https://example.com/document-builder.sjs?html=";
+
+const BEFOREUNLOAD_MARKUP = `
+<html>
+<head>
+  <script>
+    window.onbeforeunload = function() {
+      return true;
+    };
+  </script>
+</head>
+<body>TEST PAGE</body>
+</html>
+`;
+const BEFOREUNLOAD_URL = BUILDER_URL + encodeURI(BEFOREUNLOAD_MARKUP);
+
 const FRAME_URL = "https://example.com/document-builder.sjs?html=frame";
 const FRAME_MARKUP = `<iframe src="${encodeURI(FRAME_URL)}"></iframe>`;
-const TEST_URL = `https://example.com/document-builder.sjs?html=${encodeURI(
-  FRAME_MARKUP
-)}`;
+const TEST_URL = BUILDER_URL + encodeURI(FRAME_MARKUP);
 
 add_task(async function test_getBrowsingContextById() {
   const browser = gBrowser.selectedBrowser;
@@ -172,6 +190,62 @@ add_task(async function test_getTabForBrowsingContext() {
     is(TabManager.getTabForBrowsingContext(contexts[0]), tab);
     is(TabManager.getTabForBrowsingContext(contexts[1]), tab);
     is(TabManager.getTabForBrowsingContext(null), null);
+  } finally {
+    gBrowser.removeTab(tab);
+  }
+});
+
+add_task(async function test_removeTab_skipPermitUnload() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.require_user_interaction_for_beforeunload", false]],
+  });
+
+  let tab;
+
+  // Test that unload prompts are shown
+  for (const skipPermitUnload of [undefined, false]) {
+    info(`Test with skipPermitUnload as ${skipPermitUnload}`);
+
+    tab = await TabManager.addTab();
+    try {
+      const browser = tab.linkedBrowser;
+      await loadURL(browser, BEFOREUNLOAD_URL);
+
+      const unloadDialogPromise = PromptTestUtils.handleNextPrompt(
+        browser,
+        {
+          modalType: Ci.nsIPrompt.MODAL_TYPE_CONTENT,
+          promptType: "confirmEx",
+        },
+        // Click the ok button.
+        { buttonNumClick: 0 }
+      );
+
+      const options = {};
+      if (skipPermitUnload !== undefined) {
+        options.skipPermitUnload = skipPermitUnload;
+      }
+
+      await TabManager.removeTab(tab, options);
+      await unloadDialogPromise;
+
+      Assert.equal(gBrowser.tabs.length, 1, "Should have left one tab open");
+    } finally {
+      gBrowser.removeTab(tab);
+    }
+  }
+
+  // Test that skipping the unload prompt works
+  tab = await TabManager.addTab();
+  try {
+    const browser = tab.linkedBrowser;
+    await loadURL(browser, BEFOREUNLOAD_URL);
+
+    let closePromise = BrowserTestUtils.waitForTabClosing(tab);
+    await TabManager.removeTab(tab, { skipPermitUnload: true });
+    await closePromise;
+
+    Assert.equal(gBrowser.tabs.length, 1, "Should have left one tab open");
   } finally {
     gBrowser.removeTab(tab);
   }

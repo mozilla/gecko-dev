@@ -400,6 +400,9 @@ class BrowsingContextModule extends Module {
    * @param {object=} options
    * @param {string} options.context
    *     Id of the browsing context to close.
+   * @param {boolean=} options.promptUnload
+   *     Flag to indicate if a potential beforeunload prompt should be shown
+   *     when closing the browsing context. Defaults to false.
    *
    * @throws {NoSuchFrameError}
    *     If the browsing context cannot be found.
@@ -407,11 +410,16 @@ class BrowsingContextModule extends Module {
    *     If the browsing context is not a top-level one.
    */
   async close(options = {}) {
-    const { context: contextId } = options;
+    const { context: contextId, promptUnload = false } = options;
 
     lazy.assert.string(
       contextId,
       `Expected "context" to be a string, got ${contextId}`
+    );
+
+    lazy.assert.boolean(
+      promptUnload,
+      `Expected "promptUnload" to be a boolean, got ${promptUnload}`
     );
 
     const context = lazy.TabManager.getBrowsingContextById(contextId);
@@ -435,7 +443,7 @@ class BrowsingContextModule extends Module {
     }
 
     const tab = lazy.TabManager.getTabForBrowsingContext(context);
-    await lazy.TabManager.removeTab(tab);
+    await lazy.TabManager.removeTab(tab, { skipPermitUnload: !promptUnload });
   }
 
   /**

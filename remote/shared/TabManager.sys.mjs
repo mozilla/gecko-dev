@@ -389,15 +389,24 @@ class TabManagerClass {
    *
    * @param {Tab} tab
    *     Tab to remove.
+   * @param {object=} options
+   * @param {boolean=} options.skipPermitUnload
+   *     Flag to indicate if a potential beforeunload prompt should be skipped
+   *     when closing the tab. Defaults to false.
+
    */
-  async removeTab(tab) {
+  async removeTab(tab, options = {}) {
+    const { skipPermitUnload = false } = options;
+
     if (!tab) {
       return;
     }
 
     const ownerWindow = this.getWindowForTab(tab);
     const tabBrowser = this.getTabBrowser(ownerWindow);
-    await tabBrowser.removeTab(tab);
+    await tabBrowser.removeTab(tab, {
+      skipPermitUnload,
+    });
   }
 
   /**
