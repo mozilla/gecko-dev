@@ -30,7 +30,7 @@
       </box>
       <spacer part="overflow-end-indicator"/>
       <toolbarbutton id="scrollbutton-down" part="scrollbutton-down" keyNav="false" data-l10n-id="overflow-scroll-button-forwards"/>
-    `;
+      `;
     }
 
     constructor() {
@@ -131,6 +131,8 @@
     }
 
     connectedCallback() {
+      this.removeAttribute("overflowing");
+
       if (this.hasConnected) {
         return;
       }
@@ -145,7 +147,6 @@
         );
       }
 
-      this.removeAttribute("overflowing");
       this.initializeAttributeInheritance();
       this._updateScrollButtonsDisabledState();
     }
