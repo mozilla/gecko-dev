@@ -13100,20 +13100,25 @@ void Document::ScrollToRef() {
   // as soon as https://bugzil.la/1860915 lands.
   // XXX(:jjaschke): Same goes for User Activation and security aspects,
   // tracked in https://bugzil.la/1888756.
-  const bool didScrollToTextFragment =
-      presShell->HighlightAndGoToTextFragment(true);
 
-  FragmentDirective()->ClearUninvokedDirectives();
+  const RefPtr fragmentDirective = FragmentDirective();
+  const nsTArray<RefPtr<nsRange>> textDirectives =
+      fragmentDirective->FindTextFragmentsInDocument();
+  fragmentDirective->HighlightTextDirectives(textDirectives);
+  fragmentDirective->ClearUninvokedDirectives();
 
   // 2. If fragment is the empty string and no text directives have been
   // scrolled to, then return the special value top of the document.
-  if (didScrollToTextFragment || mScrollToRef.IsEmpty()) {
+  if (textDirectives.IsEmpty() && mScrollToRef.IsEmpty()) {
     return;
   }
   // 3. Let potentialIndicatedElement be the result of finding a potential
   // indicated element given document and fragment.
   NS_ConvertUTF8toUTF16 ref(mScrollToRef);
-  auto rv = presShell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
+  RefPtr<nsRange> range =
+      !textDirectives.IsEmpty() ? textDirectives.ElementAt(0) : nullptr;
+  auto rv =
+      presShell->GoToAnchor(ref, range, mChangeScrollPosWhenScrollingToRef);
 
   // 4. If potentialIndicatedElement is not null, then return
   // potentialIndicatedElement.
@@ -13141,7 +13146,7 @@ void Document::ScrollToRef() {
 
   // 7. Set potentialIndicatedElement to the result of finding a potential
   // indicated element given document and decodedFragment.
-  rv = presShell->GoToAnchor(decodedFragment,
+  rv = presShell->GoToAnchor(decodedFragment, nullptr,
                              mChangeScrollPosWhenScrollingToRef);
   if (NS_SUCCEEDED(rv)) {
     mScrolledToRefAlready = true;
