@@ -176,6 +176,7 @@ EXPORTS += [
     "public/ProfileAdditionalInformation.h",
     "public/ProfilerBindings.h",
     "public/ProfilerControl.h",
+    "public/ProfilerNativeStack.h",
     "public/ProfilerParent.h",
     "public/ProfilerRustBindings.h",
     "public/shared-libraries.h",
