@@ -622,7 +622,7 @@
 #    define MOZ_INTERNAL_UPROFILER_SIMPLE_EVENT(phase, category_enabled, name, \
                                                 id, num_args, arg_names,       \
                                                 arg_types, arg_values, flags)  \
-      uprofiler_simple_event_marker(name, phase, num_args, arg_names,          \
+      uprofiler_simple_event_marker(name, 'M', phase, num_args, arg_names,     \
                                     arg_types, arg_values);
 #  else
 #    define MOZ_INTERNAL_UPROFILER_SIMPLE_EVENT(phase, category_enabled, name, \

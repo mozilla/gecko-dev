@@ -26,18 +26,46 @@ extern "C" {
 #  include <dlfcn.h>
 #endif
 
+#include "ProfilerNativeStack.h"
+
+#if !defined(CallerPC)
+#  define CallerPC() __builtin_extract_return_addr(__builtin_return_address(0))
+#endif  // !defined(CallerPC)
+
 extern MOZ_EXPORT void uprofiler_register_thread(const char* aName,
                                                  void* aGuessStackTop);
 
 extern MOZ_EXPORT void uprofiler_unregister_thread();
 
 extern MOZ_EXPORT void uprofiler_simple_event_marker(
-    const char* name, char phase, int num_args, const char** arg_names,
-    const unsigned char* arg_types, const unsigned long long* arg_values);
+    const char* name, const char category, char phase, int num_args,
+    const char** arg_names, const unsigned char* arg_types,
+    const unsigned long long* arg_values);
+
+extern MOZ_EXPORT void uprofiler_simple_event_marker_capture_stack(
+    const char* name, const char category, char phase, int num_args,
+    const char** arg_names, const unsigned char* arg_types,
+    const unsigned long long* arg_values);
 
 extern MOZ_EXPORT void uprofiler_simple_event_marker_with_stack(
-    const char* name, char phase, int num_args, const char** arg_names,
-    const unsigned char* arg_types, const unsigned long long* arg_values);
+    const char* name, const char category, char phase, int num_args,
+    const char** arg_names, const unsigned char* arg_types,
+    const unsigned long long* arg_values, void* provided_stack);
+
+extern MOZ_EXPORT bool uprofiler_backtrace_into_buffer(NativeStack* stack,
+                                                       void* aBuffer);
+
+extern MOZ_EXPORT void uprofiler_native_backtrace(const void* top,
+                                                  NativeStack* stack);
+
+extern MOZ_EXPORT bool uprofiler_is_active();
+
+extern MOZ_EXPORT bool uprofiler_get(struct UprofilerFuncPtrs* aFuncPtrs);
+
+/* NOLINT because we want to stick to C here */
+// NOLINTBEGIN(modernize-use-using)
+typedef bool (*uprofiler_getter)(struct UprofilerFuncPtrs* aFuncPtrs);
+// NOLINTEND(modernize-use-using)
 #ifdef __cplusplus
 }
 
@@ -52,7 +80,8 @@ struct AutoRegisterProfiler {
 };
 #endif  // __cplusplus
 
-void uprofiler_simple_event_marker(const char* name, char phase, int num_args,
+void uprofiler_simple_event_marker(const char* name, const char category,
+                                   char phase, int num_args,
                                    const char** arg_names,
                                    const unsigned char* arg_types,
                                    const unsigned long long* arg_values);
@@ -60,14 +89,23 @@ void uprofiler_simple_event_marker(const char* name, char phase, int num_args,
 struct UprofilerFuncPtrs {
   void (*register_thread)(const char* aName, void* aGuessStackTop);
   void (*unregister_thread)();
-  void (*simple_event_marker)(const char* name, char phase, int num_args,
-                              const char** arg_names,
+  void (*simple_event_marker)(const char* name, const char category, char phase,
+                              int num_args, const char** arg_names,
                               const unsigned char* arg_types,
                               const unsigned long long* arg_values);
-  void (*simple_event_marker_with_stack)(const char* name, char phase,
-                                         int num_args, const char** arg_names,
+  void (*simple_event_marker_capture_stack)(
+      const char* name, const char category, char phase, int num_args,
+      const char** arg_names, const unsigned char* arg_types,
+      const unsigned long long* arg_values);
+  void (*simple_event_marker_with_stack)(const char* name, const char category,
+                                         char phase, int num_args,
+                                         const char** arg_names,
                                          const unsigned char* arg_types,
-                                         const unsigned long long* arg_values);
+                                         const unsigned long long* arg_values,
+                                         void* provided_stack);
+  bool (*backtrace_into_buffer)(NativeStack* stack, void* aBuffer);
+  void (*native_backtrace)(const void* top, NativeStack* stack);
+  bool (*is_active)();
 };
 
 #pragma GCC diagnostic push
@@ -78,17 +116,39 @@ static void register_thread_noop(const char* aName, void* aGuessStackTop) {
 }
 static void unregister_thread_noop() { /* no-op */
 }
-static void simple_event_marker_noop(const char* name, char phase, int num_args,
+static void simple_event_marker_noop(const char* name, const char category,
+                                     char phase, int num_args,
                                      const char** arg_names,
                                      const unsigned char* arg_types,
                                      const unsigned long long* arg_values) {
   /* no-op */
 }
 
-static void simple_event_marker_with_stack_noop(
-    const char* name, char phase, int num_args, const char** arg_names,
-    const unsigned char* arg_types, const unsigned long long* arg_values) {
+static void simple_event_marker_capture_stack_noop(
+    const char* name, const char category, char phase, int num_args,
+    const char** arg_names, const unsigned char* arg_types,
+    const unsigned long long* arg_values) {
   /* no-op */
+}
+
+static void simple_event_marker_with_stack_noop(
+    const char* name, const char category, char phase, int num_args,
+    const char** arg_names, const unsigned char* arg_types,
+    const unsigned long long* arg_values, void* provided_stack) {
+  /* no-op */
+}
+
+static bool backtrace_into_buffer_noop(NativeStack* stack,
+                                       void* aBuffer) { /* no-op */
+  return false;
+}
+
+static void native_backtrace_noop(const void* top,
+                                  NativeStack* stack) { /* no-op */
+}
+
+static bool is_active_noop() { /* no-op */
+  return false;
 }
 
 #pragma GCC diagnostic pop
@@ -119,23 +179,33 @@ static void simple_event_marker_with_stack_noop(
     uprofiler.func = func##_noop;                               \
   }
 
-#define UPROFILER_VISIT()    \
-  FETCH(register_thread)     \
-  FETCH(unregister_thread)   \
-  FETCH(simple_event_marker) \
-  FETCH(simple_event_marker_with_stack)
+#define UPROFILER_VISIT()                  \
+  FETCH(register_thread)                   \
+  FETCH(unregister_thread)                 \
+  FETCH(simple_event_marker)               \
+  FETCH(simple_event_marker_capture_stack) \
+  FETCH(simple_event_marker_with_stack)    \
+  FETCH(backtrace_into_buffer)             \
+  FETCH(native_backtrace)                  \
+  FETCH(is_active)
 
 // Assumes that a variable of type UprofilerFuncPtrs, named uprofiler
 // is accessible in the scope
-#define UPROFILER_GET_FUNCTIONS()                                            \
-  void* handle = UPROFILER_OPENLIB();                                        \
-  if (!handle) {                                                             \
-    UPROFILER_PRINT_ERROR(UPROFILER_OPENLIB);                                \
-    uprofiler.register_thread = register_thread_noop;                        \
-    uprofiler.unregister_thread = unregister_thread_noop;                    \
-    uprofiler.simple_event_marker = simple_event_marker_noop;                \
-    uprofiler.simple_event_marker_with_stack = simple_event_with_stack_noop; \
-  }                                                                          \
+#define UPROFILER_GET_FUNCTIONS()                                 \
+  void* handle = UPROFILER_OPENLIB();                             \
+  if (!handle) {                                                  \
+    UPROFILER_PRINT_ERROR(UPROFILER_OPENLIB);                     \
+    uprofiler.register_thread = register_thread_noop;             \
+    uprofiler.unregister_thread = unregister_thread_noop;         \
+    uprofiler.simple_event_marker = simple_event_marker_noop;     \
+    uprofiler.simple_event_marker_capture_stack =                 \
+        simple_event_marker_capture_stack_noop;                   \
+    uprofiler.simple_event_marker_with_stack =                    \
+        simple_event_marker_with_stack_noop;                      \
+    uprofiler.backtrace_into_buffer = backtrace_into_buffer_noop; \
+    uprofiler.native_backtrace = native_backtrace_noop;           \
+    uprofiler.is_active = is_active_noop;                         \
+  }                                                               \
   UPROFILER_VISIT()
 
 #endif  // MICRO_GECKO_PROFILER
