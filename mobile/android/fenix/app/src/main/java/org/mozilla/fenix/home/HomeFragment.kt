@@ -598,10 +598,12 @@ class HomeFragment : Fragment() {
                     Column {
                         if (currentlyDisplayedMessage != null) {
                             MicrosurveyRequestPrompt()
+                            binding.bottomBarShadow.visibility = View.GONE
+                        } else {
+                            binding.bottomBarShadow.visibility = View.VISIBLE
                         }
 
                         if (isToolbarAtBottom) {
-                            // TODO android bottom bar shadow causing gap FXDROID-2056
                             AndroidView(factory = { _ -> binding.toolbarLayout })
                         } else {
                             Divider()
@@ -702,10 +704,10 @@ class HomeFragment : Fragment() {
                     Column {
                         if (currentlyDisplayedMessage != null) {
                             MicrosurveyRequestPrompt()
+                            binding.bottomBarShadow.visibility = View.GONE
                         }
 
                         if (isToolbarAtTheBottom) {
-                            // TODO android bottom bar shadow causing gap FXDROID-2056
                             AndroidView(factory = { _ -> binding.toolbarLayout })
                         } else {
                             Divider()
