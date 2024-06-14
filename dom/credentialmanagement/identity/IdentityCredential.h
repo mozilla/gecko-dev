@@ -22,7 +22,6 @@ namespace mozilla::dom {
 // perform operations that are used in constructing the credential.
 class IdentityCredential final : public Credential {
   friend class mozilla::IdentityCredentialStorageService;
-  friend class WindowGlobalChild;
 
  public:
   // These are promise types, all used to support the async implementation of
@@ -125,10 +124,9 @@ class IdentityCredential final : public Credential {
   // This is the main static function called when a credential needs to be
   // fetched from the IDP. Called in the content process.
   // This is mostly a passthrough to `DiscoverFromExternalSourceInMainProcess`.
-  static void DiscoverFromExternalSource(
-      nsPIDOMWindowInner* aParent,
-      const IdentityCredentialRequestOptions& aOptions,
-      bool aSameOriginWithAncestors, const RefPtr<Promise>& aPromise);
+  static RefPtr<GetIdentityCredentialPromise> DiscoverFromExternalSource(
+      nsPIDOMWindowInner* aParent, const CredentialRequestOptions& aOptions,
+      bool aSameOriginWithAncestors);
 
   // Start the FedCM flow. This will start the timeout timer, fire initial
   // network requests, prompt the user, and call into CreateCredential.
@@ -340,8 +338,8 @@ class IdentityCredential final : public Credential {
 
   // Identity credential requests can either be heavyweight or lighweight in
   // their browser UI. The heavyweight ones are "traditional" FedCM
-  enum RequestType { INVALID, LIGHTWEIGHT, HEAVYWEIGHT, NONE };
-  static RequestType DetermineRequestDiscoveryType(
+  enum RequestType { INVALID, LIGHTWEIGHT, HEAVYWEIGHT };
+  static RequestType DetermineRequestType(
       const IdentityCredentialRequestOptions& aOptions);
 };
 

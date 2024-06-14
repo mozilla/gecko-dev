@@ -3641,25 +3641,6 @@ bool nsGlobalWindowInner::GetFullScreen() {
   return fullscreen;
 }
 
-void nsGlobalWindowInner::MaybeResolvePendingCredentialPromise(
-    const RefPtr<mozilla::dom::Credential>& aCredential) {
-  if (!mPendingCredential) {
-    // If we don't have a pending promise, that is okay.
-    return;
-  }
-  mPendingCredential->MaybeResolve(aCredential);
-  mPendingCredential = nullptr;
-}
-
-nsresult nsGlobalWindowInner::SetPendingCredentialPromise(
-    const RefPtr<mozilla::dom::Promise>& aPromise) {
-  if (mPendingCredential) {
-    return nsresult::NS_ERROR_DOM_INVALID_STATE_ERR;
-  }
-  mPendingCredential = aPromise;
-  return NS_OK;
-}
-
 void nsGlobalWindowInner::Dump(const nsAString& aStr) {
   if (!nsJSUtils::DumpEnabled()) {
     return;

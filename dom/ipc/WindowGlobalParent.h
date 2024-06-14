@@ -329,10 +329,6 @@ class WindowGlobalParent final : public WindowContext,
       const IPCIdentityCredential& aCredential,
       const StoreIdentityCredentialResolver& aResolver);
 
-  mozilla::ipc::IPCResult RecvNotifyPendingIdentityCredentialDiscovery(
-      const IdentityCredentialRequestOptions& aOptions,
-      const NotifyPendingIdentityCredentialDiscoveryResolver& aResolver);
-
   mozilla::ipc::IPCResult RecvGetStorageAccessPermission(
       GetStorageAccessPermissionResolver&& aResolve);
 

@@ -22,8 +22,6 @@ dictionary IdentityCredentialRequestOptions {
  sequence<IdentityProviderConfig> providers;
 };
 
-enum IdentityLoginTargetType { "redirect", "popup" };
-
 [GenerateConversionToJS]
 dictionary IdentityProviderConfig {
  UTF8String configURL;
@@ -34,7 +32,7 @@ dictionary IdentityProviderConfig {
  [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
  UTF8String loginURL;
  [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
- IdentityLoginTargetType loginTarget;
+ UTF8String loginTarget;
  [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
  UTF8String effectiveQueryURL;
  [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]

@@ -16,7 +16,6 @@
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/BrowserBridgeChild.h"
 #include "mozilla/dom/ContentParent.h"
-#include "mozilla/dom/IdentityCredential.h"
 #include "mozilla/dom/SecurityPolicyViolationEvent.h"
 #include "mozilla/dom/SessionStoreRestoreData.h"
 #include "mozilla/dom/WindowGlobalActorsBinding.h"
@@ -571,14 +570,6 @@ IPCResult WindowGlobalChild::RecvNotifyPermissionChange(const nsCString& aType,
       aPermission != nsIPermissionManager::ALLOW_ACTION) {
     this->GetWindowGlobal()->SaveStorageAccessPermissionRevoked();
   }
-  return IPC_OK();
-}
-
-IPCResult WindowGlobalChild::RecvNotifyStoredIdentityCredential(
-    const IPCIdentityCredential& aCredential) {
-  RefPtr<IdentityCredential> credential =
-      new IdentityCredential(this->GetWindowGlobal(), aCredential);
-  this->GetWindowGlobal()->MaybeResolvePendingCredentialPromise(credential);
   return IPC_OK();
 }
 

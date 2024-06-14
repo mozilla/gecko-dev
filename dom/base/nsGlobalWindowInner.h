@@ -31,11 +31,9 @@
 #include "prclist.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/ChromeMessageBroadcaster.h"
-#include "mozilla/dom/Credential.h"
 #include "mozilla/dom/DebuggerNotificationManager.h"
 #include "mozilla/dom/GamepadHandle.h"
 #include "mozilla/dom/Location.h"
-#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/StorageEvent.h"
 #include "mozilla/CallState.h"
 #include "mozilla/Attributes.h"
@@ -861,11 +859,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   bool DidFireDocElemInserted() const { return mDidFireDocElemInserted; }
   void SetDidFireDocElemInserted() { mDidFireDocElemInserted = true; }
 
-  void MaybeResolvePendingCredentialPromise(
-      const RefPtr<mozilla::dom::Credential>& aCredential);
-  nsresult SetPendingCredentialPromise(
-      const RefPtr<mozilla::dom::Promise>& aPromise);
-
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> OpenDialog(
       JSContext* aCx, const nsAString& aUrl, const nsAString& aName,
       const nsAString& aOptions,
@@ -1385,8 +1378,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   RefPtr<mozilla::dom::CustomElementRegistry> mCustomElements;
 
   nsTObserverArray<RefPtr<mozilla::dom::SharedWorker>> mSharedWorkers;
-
-  RefPtr<mozilla::dom::Promise> mPendingCredential;
 
   RefPtr<mozilla::dom::VisualViewport> mVisualViewport;
 
