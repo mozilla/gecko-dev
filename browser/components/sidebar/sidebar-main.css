@@ -7,8 +7,7 @@
   grid-template-rows: auto 1fr;
   box-sizing: border-box;
   height: 100%;
-  min-width: 50px;
-  padding-inline-start: var(--space-medium);
+  padding: var(--space-medium);
   border-inline-end: 1px solid var(--chrome-content-separator-color);
   background-color: var(--sidebar-background-color);
   color: var(--sidebar-text-color);

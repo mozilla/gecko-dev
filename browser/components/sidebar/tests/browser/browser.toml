@@ -1,9 +1,9 @@
 [DEFAULT]
 support-files = ["head.js"]
 
-["browser_a11y_sidebar.js"]
-
 ["browser_adopt_sidebar_from_opener.js"]
+
+["browser_a11y_sidebar.js"]
 
 ["browser_customize_sidebar.js"]
 
@@ -22,7 +22,5 @@ support-files = ["head.js"]
 ["browser_sidebar_prefs.js"]
 
 ["browser_toolbar_sidebar_button.js"]
-
-["browser_vertical_tabs.js"]
 
 ["browser_view_sidebar_menu.js"]

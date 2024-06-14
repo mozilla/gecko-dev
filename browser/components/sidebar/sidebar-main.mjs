@@ -20,7 +20,7 @@ import "chrome://global/content/elements/moz-button.mjs";
 export default class SidebarMain extends MozLitElement {
   static properties = {
     bottomActions: { type: Array },
-    expanded: { type: Boolean, reflect: true },
+    expanded: { type: Boolean },
     selectedView: { type: String },
     sidebarItems: { type: Array },
     open: { type: Boolean },
@@ -87,13 +87,9 @@ export default class SidebarMain extends MozLitElement {
     // Store the context menu target which holds the id required for managing sidebar items
     this.contextMenuTarget =
       event.explicitOriginalTarget.flattenedTreeParentNode;
-    if (
-      this.contextMenuTarget.getAttribute("extensionId") ||
-      this.contextMenuTarget.className.includes("tab")
-    ) {
-      return;
+    if (!this.contextMenuTarget.getAttribute("extensionId")) {
+      event.preventDefault();
     }
-    event.preventDefault();
   }
 
   async manageExtension() {
@@ -223,7 +219,6 @@ export default class SidebarMain extends MozLitElement {
         href="chrome://browser/content/sidebar/sidebar-main.css"
       />
       <div class="wrapper">
-        <slot name="tabstrip"></slot>
         <button-group
           class="tools-and-extensions actions-list"
           orientation="vertical"

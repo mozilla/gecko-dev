@@ -500,7 +500,7 @@
   list-style-image: url(chrome://global/skin/icons/close-12.svg);
 
   &[pinned],
-  #tabbrowser-tabs[closebuttons="activetab"]:not([orient="vertical"]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab > .tab-stack > .tab-content > &:not([selected]) {
+  #tabbrowser-tabs[closebuttons="activetab"] > #tabbrowser-arrowscrollbox > .tabbrowser-tab > .tab-stack > .tab-content > &:not([selected]) {
     display: none;
   }
 }
@@ -718,41 +718,6 @@
     background-color: var(--toolbarbutton-active-background);
     color: inherit;
   }
-}
-
-/* Vertical tabs styling */
-#tabbrowser-arrowscrollbox[orient="vertical"] {
-  overflow-y: auto;
-
-  &::part(scrollbutton-up),
-  &::part(scrollbutton-down) {
-    display: none;
-  }
-
-  &::part(scrollbox-clip) {
-    min-height: inherit;
-  }
-}
-
-#vertical-tabs {
-  overflow-y: hidden;
-  scrollbar-width: thin;
-  display: none;
-
-  &[activated] {
-    display: flex;
-  }
-}
-
-sidebar-main:not([expanded]) > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
-  /* TODO look into handlings this by setting --tab-min-width in tabs.js in bug 1899336. */
-  min-width: inherit;
-  width: inherit;
-}
-
-sidebar-main:not([expanded]) > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tab-close-button,
-sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tab-close-button:not([selected]) {
-  display: none;
 }
 
 /* Tab drag and drop */

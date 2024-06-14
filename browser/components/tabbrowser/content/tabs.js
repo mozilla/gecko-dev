@@ -1182,8 +1182,7 @@
         // - for vertical orientation
         if (
           event.originalTarget != arrowScrollbox.scrollbox ||
-          event.detail == 0 ||
-          event.originalTarget.getAttribute("orient") == "vertical"
+          event.detail == 0
         ) {
           return;
         }
