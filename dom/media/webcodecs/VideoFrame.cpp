@@ -2388,12 +2388,26 @@ gfx::IntSize VideoFrame::Format::SampleSize(const Plane& aPlane) const {
 bool VideoFrame::Format::IsValidSize(const gfx::IntSize& aSize) const {
   switch (mFormat) {
     case VideoPixelFormat::I420:
+    case VideoPixelFormat::I420P10:
+    case VideoPixelFormat::I420P12:
     case VideoPixelFormat::I420A:
+    case VideoPixelFormat::I420AP10:
+    case VideoPixelFormat::I420AP12:
     case VideoPixelFormat::NV12:
       return (aSize.Width() % 2 == 0) && (aSize.Height() % 2 == 0);
     case VideoPixelFormat::I422:
+    case VideoPixelFormat::I422P10:
+    case VideoPixelFormat::I422P12:
+    case VideoPixelFormat::I422A:
+    case VideoPixelFormat::I422AP10:
+    case VideoPixelFormat::I422AP12:
       return aSize.Height() % 2 == 0;
     case VideoPixelFormat::I444:
+    case VideoPixelFormat::I444P10:
+    case VideoPixelFormat::I444P12:
+    case VideoPixelFormat::I444A:
+    case VideoPixelFormat::I444AP10:
+    case VideoPixelFormat::I444AP12:
     case VideoPixelFormat::RGBA:
     case VideoPixelFormat::RGBX:
     case VideoPixelFormat::BGRA:
