@@ -134,6 +134,10 @@ MOZ_NEVER_INLINE static void SigSysHandler(int nr, siginfo_t* info,
     return;
   }
 
+#if defined(DEBUG)
+  AutoForbidSignalContext sigContext;
+#endif  // defined(DEBUG)
+
   // Save a copy of the context before invoking the trap handler,
   // which will overwrite one or more registers with the return value.
   ucontext_t savedCtx = *ctx;

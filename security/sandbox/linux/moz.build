@@ -23,6 +23,7 @@ OS_LIBS += CONFIG["DL_LIBS"]
 EXPORTS.mozilla += [
     "Sandbox.h",
     "SandboxInfo.h",
+    "SandboxProfiler.h",
 ]
 
 UNIFIED_SOURCES += [
@@ -76,6 +77,7 @@ UNIFIED_SOURCES += [
     "SandboxInfo.cpp",
     "SandboxLogging.cpp",
     "SandboxOpenedFiles.cpp",
+    "SandboxProfiler.cpp",
     "SandboxReporterClient.cpp",
 ]
 

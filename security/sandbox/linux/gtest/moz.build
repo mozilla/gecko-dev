@@ -8,6 +8,7 @@ Library("sandboxtest")
 
 UNIFIED_SOURCES = [
     "../SandboxBrokerClient.cpp",
+    "SandboxProfiler.cpp",
     "TestBroker.cpp",
     "TestBrokerPolicy.cpp",
     "TestLogging.cpp",
