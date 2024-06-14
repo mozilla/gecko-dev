@@ -535,9 +535,6 @@ with Files("tests/generic-sensor/**"):
 with Files("tests/geolocation-sensor/**"):
     BUG_COMPONENT = ("Core", "DOM: Geolocation")
 
-with Files("tests/geolocation-API/**"):
-    BUG_COMPONENT = ("Core", "DOM: Geolocation")
-
 with Files("tests/graphics-aam/**"):
     BUG_COMPONENT = ("Core", "Disability Access APIs")
 
