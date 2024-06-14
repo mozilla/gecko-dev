@@ -88,7 +88,7 @@ this location depending on your operating system:
 
 * Windows : ``%APPDATA%\Mozilla\Firefox\Crash Reports\submitted\``
 * macOS : ``~/Library/Application Support/Firefox/Crash Reports/submitted/``
-* Linux : ``~/.mozilla/firefox/Crash Reports/submitted/``
+* Linux : ``~/.mozilla/firefox/Crash Reports/submitted/`` or ``$XDG_CONFIG_HOME/mozilla/firefox/Crash Reports/submitted/``
 
 Each file in this folder contains one submitted crash report ID. You can
 check the modified or creation time for each file to discern which crash
