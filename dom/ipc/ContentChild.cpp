@@ -1717,6 +1717,9 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
 #  elif defined(XP_WIN)
   // Library required for timely audio processing.
   ::LoadLibraryW(L"avrt.dll");
+  // Libraries required by Network Security Services (NSS).
+  ::LoadLibraryW(L"freebl3.dll");
+  ::LoadLibraryW(L"softokn3.dll");
   mozilla::SandboxTarget::Instance()->StartSandbox();
 #  elif defined(XP_MACOSX)
   sandboxEnabled = (GetEffectiveContentSandboxLevel() >= 1);
