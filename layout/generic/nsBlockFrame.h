@@ -978,9 +978,7 @@ class nsBlockFrame : public nsContainerFrame {
   // Return the outside ::marker frame list frame property.
   nsFrameList* GetOutsideMarkerList() const;
 
-  /**
-   * @return true if this frame has pushed floats.
-   */
+  // Return true if this frame has pushed floats.
   bool HasPushedFloats() const {
     return HasAnyStateBits(NS_BLOCK_HAS_PUSHED_FLOATS);
   }
@@ -989,11 +987,16 @@ class nsBlockFrame : public nsContainerFrame {
   // of floats during reflow, between when we decide they don't fit in
   // this block until our next continuation takes them.
   nsFrameList* GetPushedFloats() const;
+
   // Get the pushed floats list, or if there is not currently one,
   // make a new empty one.
   nsFrameList* EnsurePushedFloats();
-  // Remove and return the pushed floats list.
-  nsFrameList* RemovePushedFloats();
+
+  // Get the pushed float list and remove the property from this frame.
+  //
+  // The caller is responsible for deleting the returned list and managing the
+  // ownership of all frames in the list.
+  [[nodiscard]] nsFrameList* StealPushedFloats();
 
 #ifdef DEBUG
   void VerifyLines(bool aFinalCheckOK);

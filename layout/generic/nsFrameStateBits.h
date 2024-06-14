@@ -526,6 +526,7 @@ FRAME_STATE_GROUP(Block, nsBlockFrame)
 // continuation chain or none of them.
 FRAME_STATE_BIT(Block, 20, NS_BLOCK_NEEDS_BIDI_RESOLUTION)
 
+// NS_BLOCK_HAS_PUSHED_FLOATS indicates that the block has a pushed float list.
 FRAME_STATE_BIT(Block, 21, NS_BLOCK_HAS_PUSHED_FLOATS)
 
 // This indicates that the frame establishes a block formatting context i.e.
