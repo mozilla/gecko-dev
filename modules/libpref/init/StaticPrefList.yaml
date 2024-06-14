@@ -13483,12 +13483,6 @@
   value: false
   mirror: always
 
-# Only used for testing
-- name: network.dns.mock_HTTPS_RR_domain
-  type: String
-  value: ""
-  mirror: never
-
 # Whether to add additional record IPs to the cache
 - name: network.trr.add_additional_records
   type: RelaxedAtomicBool

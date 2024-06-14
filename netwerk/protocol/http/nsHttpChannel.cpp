@@ -643,14 +643,6 @@ nsresult nsHttpChannel::OnBeforeConnect() {
 // When TRR is enabled, we always return true, as resolving HTTPS
 // records don't depend on the network.
 static bool canUseHTTPSRRonNetwork(bool* aTRREnabled = nullptr) {
-  // Respect the pref.
-  if (StaticPrefs::network_dns_force_use_https_rr()) {
-    if (aTRREnabled) {
-      *aTRREnabled = true;
-    }
-    return true;
-  }
-
   if (nsCOMPtr<nsIDNSService> dns = mozilla::components::DNS::Service()) {
     nsIDNSService::ResolverMode mode;
     // If the browser is currently using TRR/DoH, then it can
@@ -6461,9 +6453,7 @@ uint16_t nsHttpChannel::GetProxyDNSStrategy() {
   // This function currently only supports returning DNS_PREFETCH_ORIGIN.
   // Support for the rest of the DNS_* flags will be added later.
 
-  // When network_dns_force_use_https_rr is true, return DNS_PREFETCH_ORIGIN.
-  // This ensures that we always perform HTTPS RR query.
-  if (!mProxyInfo || StaticPrefs::network_dns_force_use_https_rr()) {
+  if (!mProxyInfo) {
     return DNS_PREFETCH_ORIGIN;
   }
 

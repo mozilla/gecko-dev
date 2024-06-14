@@ -17,7 +17,6 @@
 #include "nsString.h"
 #include "nsTHashSet.h"
 #include "nsHashKeys.h"
-#include "mozilla/Atomics.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Attributes.h"
 #include "TRRService.h"
@@ -110,8 +109,8 @@ class nsDNSService final : public mozilla::net::DNSServiceBase,
   RefPtr<nsHostResolver> mResolver;
   nsCOMPtr<nsIIDNService> mIDN;
 
-  // mLock protects access to mResolver, mLocalDomains, mIPv4OnlyDomains,
-  // mFailedSVCDomainNames, and mMockHTTPSRRDomain.
+  // mLock protects access to mResolver, mLocalDomains, mIPv4OnlyDomains and
+  // mFailedSVCDomainNames
   mozilla::Mutex mLock MOZ_UNANNOTATED{"nsDNSServer.mLock"};
 
   // mIPv4OnlyDomains is a comma-separated list of domains for which only
@@ -119,8 +118,6 @@ class nsDNSService final : public mozilla::net::DNSServiceBase,
   // a per-domain basis and work around broken DNS servers. See bug 68796.
   nsCString mIPv4OnlyDomains;
   nsCString mForceResolve;
-  nsCString mMockHTTPSRRDomain;
-  mozilla::Atomic<bool, mozilla::Relaxed> mHasMockHTTPSRRDomainSet{false};
   bool mBlockDotOnion = false;
   bool mNotifyResolution = false;
   bool mOfflineLocalhost = false;

@@ -327,12 +327,33 @@ nsresult DNSPacket::OnDataAvailable(nsIRequest* aRequest,
 
 const uint8_t kDNS_CLASS_IN = 1;
 
-// static
-nsresult DNSPacket::EncodeHost(nsCString& aBody, const nsACString& aHost) {
+nsresult DNSPacket::EncodeRequest(nsCString& aBody, const nsACString& aHost,
+                                  uint16_t aType, bool aDisableECS) {
+  aBody.Truncate();
+  // Header
+  aBody += '\0';
+  aBody += '\0';  // 16 bit id
+  aBody += 0x01;  // |QR|   Opcode  |AA|TC|RD| Set the RD bit
+  aBody += '\0';  // |RA|   Z    |   RCODE   |
+  aBody += '\0';
+  aBody += 1;  // QDCOUNT (number of entries in the question section)
+  aBody += '\0';
+  aBody += '\0';  // ANCOUNT
+  aBody += '\0';
+  aBody += '\0';  // NSCOUNT
+
+  char additionalRecords =
+      (aDisableECS || StaticPrefs::network_trr_padding()) ? 1 : 0;
+  aBody += '\0';               // ARCOUNT
+  aBody += additionalRecords;  // ARCOUNT low byte for EDNS(0)
+
+  // Question
+
   // The input host name should be converted to a sequence of labels, where
   // each label consists of a length octet followed by that number of
   // octets.  The domain name terminates with the zero length octet for the
   // null label of the root.
+  // Followed by 16 bit QTYPE and 16 bit QCLASS
 
   int32_t index = 0;
   int32_t offset = 0;
@@ -362,37 +383,6 @@ nsresult DNSPacket::EncodeHost(nsCString& aBody, const nsACString& aHost) {
     offset += labelLength + 1;  // move over label and dot
   } while (true);
 
-  return NS_OK;
-}
-
-nsresult DNSPacket::EncodeRequest(nsCString& aBody, const nsACString& aHost,
-                                  uint16_t aType, bool aDisableECS) {
-  aBody.Truncate();
-  // Header
-  aBody += '\0';
-  aBody += '\0';  // 16 bit id
-  aBody += 0x01;  // |QR|   Opcode  |AA|TC|RD| Set the RD bit
-  aBody += '\0';  // |RA|   Z    |   RCODE   |
-  aBody += '\0';
-  aBody += 1;  // QDCOUNT (number of entries in the question section)
-  aBody += '\0';
-  aBody += '\0';  // ANCOUNT
-  aBody += '\0';
-  aBody += '\0';  // NSCOUNT
-
-  char additionalRecords =
-      (aDisableECS || StaticPrefs::network_trr_padding()) ? 1 : 0;
-  aBody += '\0';               // ARCOUNT
-  aBody += additionalRecords;  // ARCOUNT low byte for EDNS(0)
-
-  // Question
-
-  nsresult rv = EncodeHost(aBody, aHost);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  // Followed by 16 bit QTYPE and 16 bit QCLASS
   aBody += static_cast<uint8_t>(aType >> 8);  // upper 8 bit TYPE
   aBody += static_cast<uint8_t>(aType);
   aBody += '\0';           // upper 8 bit CLASS

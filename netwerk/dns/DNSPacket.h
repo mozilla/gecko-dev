@@ -52,8 +52,6 @@ class DNSPacket {
   nsresult OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aInputStream,
                            uint64_t aOffset, const uint32_t aCount);
 
-  // Encode the input host name into a sequence of labels.
-  static nsresult EncodeHost(nsCString& aBody, const nsACString& aHost);
   // Encodes the name request into a buffer that represents a DNS packet
   virtual nsresult EncodeRequest(nsCString& aBody, const nsACString& aHost,
                                  uint16_t aType, bool aDisableECS);
