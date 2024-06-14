@@ -87,12 +87,27 @@ add_task(async function sidebar_initial_install() {
     document.getElementById("sidebar-box").hidden,
     "sidebar box is not visible"
   );
-  let extension = ExtensionTestUtils.loadExtension(getExtData());
+  let extData = getExtData({
+    browser_specific_settings: { gecko: { id: "@sidebar" } },
+    version: "1.0",
+  });
+  extData.useAddonManager = "permanent";
+
+  let extension = ExtensionTestUtils.loadExtension(extData);
   await extension.startup();
   await extension.awaitMessage("sidebar");
 
   // Test sidebar is opened on install
   ok(!document.getElementById("sidebar-box").hidden, "sidebar box is visible");
+
+  extData.manifest.version = "1.1";
+  let updatedExt = ExtensionTestUtils.loadExtension(extData);
+  await updatedExt.startup();
+  await updatedExt.awaitMessage("sidebar");
+
+  // Test sidebar is still opened after update.
+  ok(!document.getElementById("sidebar-box").hidden, "sidebar still visible");
+  await updatedExt.unload();
 
   await extension.unload();
   // Test that the sidebar was closed on unload.
@@ -103,17 +118,27 @@ add_task(async function sidebar_initial_install() {
 });
 
 add_task(async function sidebar__install_closed() {
-  ok(
-    document.getElementById("sidebar-box").hidden,
-    "sidebar box is not visible"
-  );
+  let sidebarBox = document.getElementById("sidebar-box");
+  ok(sidebarBox.hidden, "sidebar box is not visible");
   let tempExtData = getExtData();
   tempExtData.manifest.sidebar_action.open_at_install = false;
   let extension = ExtensionTestUtils.loadExtension(tempExtData);
   await extension.startup();
 
   // Test sidebar is closed on install
-  ok(document.getElementById("sidebar-box").hidden, "sidebar box is hidden");
+  ok(sidebarBox.hidden, "sidebar box is hidden");
+
+  SidebarController.show(`${makeWidgetId(extension.id)}-sidebar-action`);
+  ok(!sidebarBox.hidden, "Opened by the user.");
+
+  SidebarController.hide();
+  ok(sidebarBox.hidden, "Hidden by the user.");
+
+  info("Reloading to verify the sidebar stays closed.");
+  let addon = await AddonManager.getAddonByID(extension.id);
+  await addon.reload();
+
+  ok(sidebarBox.hidden, "Hidden after reload.");
 
   await extension.unload();
   // This is the default value

@@ -109,8 +109,8 @@ this.sidebarAction = class extends ExtensionAPI {
       this.updateWindow(window);
       let { SidebarController } = window;
       if (
-        (install && this.extension.manifest.sidebar_action.open_at_install) ||
-        SidebarController.lastOpenedId == this.id
+        (install || SidebarController.lastOpenedId == this.id) &&
+        this.extension.manifest.sidebar_action.open_at_install
       ) {
         SidebarController.show(this.id);
       }
