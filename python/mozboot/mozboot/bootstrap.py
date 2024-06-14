@@ -523,53 +523,41 @@ class Bootstrapper(object):
         print("Checking for Dev Drive...")
 
         try:
-            ver_output = subprocess.run(
-                ["cmd.exe", "/c", "ver"], capture_output=True, text=True, check=True
-            ).stdout
+            ver_output = subprocess.check_output(["cmd.exe", "/c", "ver"], text=True)
             current_windows_version = extract_windows_version_number(ver_output)
 
             if current_windows_version < DEV_DRIVE_MINIMUM_VERSION:
                 return
 
-            topsrcdir_drive_letter = Path(topsrcdir).drive[0]
-
-            volume_info = subprocess.run(
+            file_system_info = subprocess.check_output(
                 [
                     "powershell",
-                    "-command",
+                    "Get-Item",
+                    "-Path",
+                    topsrcdir,
+                    "|",
                     "Get-Volume",
-                    "-DriveLetter",
-                    topsrcdir_drive_letter,
+                    "|",
+                    "Select-Object",
+                    "FileSystem",
                 ],
-                capture_output=True,
                 text=True,
-                check=True,
-            ).stdout
-            volume_info = volume_info.lstrip().rstrip().split("\n")
-            type_index = volume_info[0].find("FileSystemType")
-            file_system_type = volume_info[2][type_index : type_index + 4]
-            drive_letter_index = volume_info[0].find("DriveLetter")
-            drive_letter = volume_info[2][drive_letter_index]
+            )
 
-            if topsrcdir_drive_letter == drive_letter:
-                if file_system_type == "ReFS":
-                    print(" The Firefox source repository is on a Dev Drive.")
-                else:
-                    print(
-                        DEV_DRIVE_SUGGESTION.format(
-                            topsrcdir, file_system_type, current_windows_version
-                        )
-                    )
-                    if self.instance.no_interactive:
-                        pass
-                    else:
-                        input("\nPress enter to continue.")
+            file_system_type = file_system_info.strip().split("\n")[2]
+
+            if file_system_type == "ReFS":
+                print(" The Firefox source repository is on a Dev Drive.")
             else:
                 print(
-                    DEV_DRIVE_DETECTION_ERROR.format(
-                        "Drive letter mismatch. Did 'Get-Volume' output change?"
+                    DEV_DRIVE_SUGGESTION.format(
+                        topsrcdir, file_system_type, current_windows_version
                     )
                 )
+                if self.instance.no_interactive:
+                    pass
+                else:
+                    input("\nPress enter to continue.")
 
         except subprocess.CalledProcessError as error:
             print(
