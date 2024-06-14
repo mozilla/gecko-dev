@@ -856,6 +856,7 @@ crash_submission:
   success:
     type: counter
     description: >
+      Number of successfull crash report submissions
     notification_emails:
       - crash-reporting-wg@mozilla.org
       - stability@mozilla.org
@@ -869,6 +870,7 @@ crash_submission:
   failure:
     type: counter
     description: >
+      Number of failed crash report submissions
     notification_emails:
       - crash-reporting-wg@mozilla.org
       - stability@mozilla.org
@@ -882,6 +884,7 @@ crash_submission:
   pending:
     type: counter
     description: >
+      Number of pending crash report submissions
     notification_emails:
       - crash-reporting-wg@mozilla.org
       - stability@mozilla.org
@@ -895,6 +898,7 @@ crash_submission:
   collector_errors:
     type: labeled_counter
     description: >
+      Amount and error name reported when performing crash submission.
     notification_emails:
       - crash-reporting-wg@mozilla.org
       - stability@mozilla.org

@@ -207,7 +207,9 @@ Submitter.prototype = {
           };
           let err = xhrStatus(xhr.status);
           if (err.length && err.startsWith("Discarded=")) {
-            const errMsg = err.split("Discarded=")[1];
+            // Place the error code after, otherwise JS will complain we start
+            // with a number when dealing with the telemetry value on JS side
+            const errMsg = `${err.split("Discarded=")[1]}_${xhr.status}`;
             Glean.crashSubmission.collectorErrors[errMsg].add();
           }
         }

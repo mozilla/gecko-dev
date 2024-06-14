@@ -160,8 +160,14 @@ function handleRequest(request, response) {
       formData.Comments.startsWith("fail-me://")
     ) {
       dump("*** crashreport.sjs: Malformed request on purpose\n");
-      const error_to_report = formData.Comments.split("fail-me://")[1];
-      response.setStatusLine(request.httpVersion, 400, "Bad Request");
+      const reporting_data = formData.Comments.split("fail-me://")[1];
+      const code_to_report = reporting_data.split(":")[0];
+      const error_to_report = reporting_data.split(":")[1];
+      response.setStatusLine(
+        request.httpVersion,
+        code_to_report,
+        "Bad Request"
+      );
       response.write(`Discarded=${error_to_report}`);
       return;
     }

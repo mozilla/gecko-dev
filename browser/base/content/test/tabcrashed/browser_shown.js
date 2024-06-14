@@ -179,16 +179,16 @@ add_task(async function test_send_error() {
     Glean.crashSubmission.collectorErrors.unknown_error.testGetValue()
   );
   let invalidAnnotation =
-    Glean.crashSubmission.collectorErrors.malformed_invalid_annotation_value.testGetValue();
+    Glean.crashSubmission.collectorErrors.malformed_invalid_annotation_value_400.testGetValue();
 
   await crashTabTestHelper(
     {
       SubmittedFrom: "CrashedTab",
       Throttleable: "0",
-      comments: "fail-me://malformed_invalid_annotation_value",
+      comments: "fail-me://400:malformed_invalid_annotation_value",
     },
     {
-      Comments: "fail-me://malformed_invalid_annotation_value",
+      Comments: "fail-me://400:malformed_invalid_annotation_value",
     },
     /* shouldFail */ true
   );
@@ -201,6 +201,32 @@ add_task(async function test_send_error() {
   );
   Assert.equal(
     invalidAnnotation + 1,
-    Glean.crashSubmission.collectorErrors.malformed_invalid_annotation_value.testGetValue()
+    Glean.crashSubmission.collectorErrors.malformed_invalid_annotation_value_400.testGetValue()
+  );
+});
+
+add_task(async function test_send_error_server() {
+  let successBefore = Glean.crashSubmission.success.testGetValue();
+  let failureBefore = Glean.crashSubmission.failure.testGetValue();
+  let unknownError503 =
+    Glean.crashSubmission.collectorErrors.unknown_error_503.testGetValue();
+
+  await crashTabTestHelper(
+    {
+      SubmittedFrom: "CrashedTab",
+      Throttleable: "0",
+      comments: "fail-me://503:should_get_unkown_error",
+    },
+    {
+      Comments: "fail-me://503:should_get_unkown_error",
+    },
+    /* shouldFail */ true
+  );
+  Assert.equal(successBefore, Glean.crashSubmission.success.testGetValue());
+  Assert.equal(failureBefore + 1, Glean.crashSubmission.failure.testGetValue());
+
+  Assert.equal(
+    unknownError503 + 1,
+    Glean.crashSubmission.collectorErrors.unknown_error_503.testGetValue()
   );
 });
