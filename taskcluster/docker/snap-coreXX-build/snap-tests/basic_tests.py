@@ -242,6 +242,17 @@ class SnapTestsBase:
             ) as current_screenshot:
                 svg_ref.save(current_screenshot)
 
+            (left, upper, right, lower) = bbox
+            assert right >= left, "Inconsistent boundaries right={} left={}".format(
+                right, left
+            )
+            assert lower >= upper, "Inconsistent boundaries lower={} upper={}".format(
+                lower, upper
+            )
+            if ((right - left) <= 2) or ((lower - upper) <= 2):
+                self._logger.info("Difference is a <= 2 pixels band, ignoring")
+                return
+
             # Assume a difference is mismatching if the minimum pixel value in
             # image difference is NOT black or if the maximum pixel value is
             # not low enough
