@@ -1048,7 +1048,7 @@ uint32_t NVImage::GetBufferSize() const { return mBufferSize; }
 
 NVImage* NVImage::AsNVImage() { return this; };
 
-bool NVImage::SetData(const Data& aData) {
+nsresult NVImage::SetData(const Data& aData) {
   MOZ_ASSERT(aData.mCbSkip == 1 && aData.mCrSkip == 1);
   MOZ_ASSERT((int)std::abs(aData.mCbChannel - aData.mCrChannel) == 1);
 
@@ -1058,14 +1058,16 @@ bool NVImage::SetData(const Data& aData) {
       CheckedInt<uint32_t>(aData.YDataSize().height) * aData.mYStride +
       CheckedInt<uint32_t>(aData.CbCrDataSize().height) * aData.mCbCrStride;
 
-  if (!checkedSize.isValid()) return false;
+  if (!checkedSize.isValid()) {
+    return NS_ERROR_INVALID_ARG;
+  }
 
   const auto size = checkedSize.value();
 
   // Allocate a new buffer.
   mBuffer = AllocateBuffer(size);
   if (!mBuffer) {
-    return false;
+    return NS_ERROR_OUT_OF_MEMORY;
   }
 
   // Update mBufferSize.
@@ -1084,7 +1086,7 @@ bool NVImage::SetData(const Data& aData) {
   // This copies the y-channel and the interleaving CbCr-channel.
   memcpy(mData.mYChannel, aData.mYChannel, mBufferSize);
 
-  return true;
+  return NS_OK;
 }
 
 const NVImage::Data* NVImage::GetData() const { return &mData; }

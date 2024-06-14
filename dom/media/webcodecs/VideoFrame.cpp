@@ -882,7 +882,7 @@ static Result<RefPtr<layers::Image>, nsCString> CreateYUVImageFromBuffer(
     }
 
     RefPtr<layers::NVImage> image = new layers::NVImage();
-    if (!image->SetData(data)) {
+    if (NS_FAILED(image->SetData(data))) {
       return Err("Failed to create NV12 image"_ns);
     }
     // Manually cast type to make Result work.

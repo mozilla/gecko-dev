@@ -909,7 +909,7 @@ class NVImage final : public Image {
   NVImage* AsNVImage() override;
 
   // Methods mimic layers::PlanarYCbCrImage.
-  bool SetData(const Data& aData);
+  nsresult SetData(const Data& aData);
   const Data* GetData() const;
   uint32_t GetBufferSize() const;
 
