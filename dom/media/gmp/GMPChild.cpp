@@ -12,7 +12,10 @@
 #include "GeckoProfiler.h"
 #ifdef XP_LINUX
 #  include "dlfcn.h"
-#endif
+#  if defined(MOZ_SANDBOX)
+#    include "mozilla/Sandbox.h"
+#  endif  // defined(MOZ_SANDBOX)
+#endif    // defined (XP_LINUX)
 #include "gmp-video-decode.h"
 #include "gmp-video-encode.h"
 #include "GMPContentChild.h"
@@ -566,6 +569,10 @@ MessageLoop* GMPChild::GMPMessageLoop() { return mGMPMessageLoop; }
 
 void GMPChild::ActorDestroy(ActorDestroyReason aWhy) {
   GMP_CHILD_LOG_DEBUG("%s reason=%d", __FUNCTION__, aWhy);
+
+#if defined(XP_LINUX) && defined(MOZ_SANDBOX)
+  DestroySandboxProfiler();
+#endif
 
   for (uint32_t i = mGMPContentChildren.Length(); i > 0; i--) {
     MOZ_ASSERT_IF(aWhy == NormalShutdown,

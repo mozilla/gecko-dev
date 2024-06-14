@@ -20,6 +20,7 @@
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
 #  include "mozilla/Sandbox.h"
 #  include "mozilla/SandboxInfo.h"
+#  include "mozilla/SandboxProfilerObserver.h"
 #endif
 
 #include <string>
@@ -179,6 +180,7 @@ class LinuxSandboxStarter : public mozilla::gmp::SandboxStarter {
     return nullptr;
   }
   bool Start(const char* aLibPath) override {
+    RegisterProfilerObserversForSandboxProfiler();
     mozilla::SetMediaPluginSandbox(aLibPath);
     return true;
   }

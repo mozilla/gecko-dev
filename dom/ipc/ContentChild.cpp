@@ -146,6 +146,7 @@
 #    include "CubebUtils.h"
 #    include "mozilla/Sandbox.h"
 #    include "mozilla/SandboxInfo.h"
+#    include "mozilla/SandboxProfilerObserver.h"
 #  elif defined(XP_MACOSX)
 #    include <CoreGraphics/CGError.h>
 #    include "mozilla/Sandbox.h"
@@ -1709,6 +1710,7 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
   }
 
   if (sandboxEnabled) {
+    RegisterProfilerObserversForSandboxProfiler();
     sandboxEnabled = SetContentProcessSandbox(
         ContentProcessSandboxParams::ForThisProcess(aBroker));
   }
@@ -2151,6 +2153,10 @@ mozilla::ipc::IPCResult ContentChild::RecvSetTRRMode(
 }
 
 void ContentChild::ActorDestroy(ActorDestroyReason why) {
+#if defined(XP_LINUX) && defined(MOZ_SANDBOX)
+  DestroySandboxProfiler();
+#endif
+
   if (mForceKillTimer) {
     mForceKillTimer->Cancel();
     mForceKillTimer = nullptr;
