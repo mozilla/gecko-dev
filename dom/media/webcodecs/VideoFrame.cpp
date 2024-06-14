@@ -242,16 +242,16 @@ static Result<gfx::IntRect, nsCString> ToIntRect(const DOMRectInit& aRectInit) {
   constexpr double MIN = static_cast<double>(
       std::numeric_limits<decltype(gfx::IntRect::x)>::min());
   if (GT(aRectInit.mX, MAX) || GT(MIN, aRectInit.mX)) {
-    return Err(nsCString("x is out of the valid range"));
+    return Err("x is out of the valid range"_ns);
   }
   if (GT(aRectInit.mY, MAX) || GT(MIN, aRectInit.mY)) {
-    return Err(nsCString("y is out of the valid range"));
+    return Err("y is out of the valid range"_ns);
   }
   if (GT(aRectInit.mWidth, MAX) || GT(MIN, aRectInit.mWidth)) {
-    return Err(nsCString("width is out of the valid range"));
+    return Err("width is out of the valid range"_ns);
   }
   if (GT(aRectInit.mHeight, MAX) || GT(MIN, aRectInit.mHeight)) {
-    return Err(nsCString("height is out of the valid range"));
+    return Err("height is out of the valid range"_ns);
   }
 
   gfx::IntRect rect(
@@ -261,16 +261,16 @@ static Result<gfx::IntRect, nsCString> ToIntRect(const DOMRectInit& aRectInit) {
       static_cast<decltype(gfx::IntRect::height)>(aRectInit.mHeight));
   // Check the spec's valid range.
   if (rect.X() < 0) {
-    return Err(nsCString("x must be non-negative"));
+    return Err("x must be non-negative"_ns);
   }
   if (rect.Y() < 0) {
-    return Err(nsCString("y must be non-negative"));
+    return Err("y must be non-negative"_ns);
   }
   if (rect.Width() <= 0) {
-    return Err(nsCString("width must be positive"));
+    return Err("width must be positive"_ns);
   }
   if (rect.Height() <= 0) {
-    return Err(nsCString("height must be positive"));
+    return Err("height must be positive"_ns);
   }
 
   return rect;
@@ -284,20 +284,20 @@ static Result<gfx::IntSize, nsCString> ToIntSize(const uint32_t& aWidth,
   constexpr uint32_t MAX = static_cast<uint32_t>(
       std::numeric_limits<decltype(gfx::IntRect::width)>::max());
   if (aWidth > MAX) {
-    return Err(nsCString("Width exceeds the implementation's range"));
+    return Err("Width exceeds the implementation's range"_ns);
   }
   if (aHeight > MAX) {
-    return Err(nsCString("Height exceeds the implementation's range"));
+    return Err("Height exceeds the implementation's range"_ns);
   }
 
   gfx::IntSize size(static_cast<decltype(gfx::IntRect::width)>(aWidth),
                     static_cast<decltype(gfx::IntRect::height)>(aHeight));
   // Check the spec's valid range.
   if (size.Width() <= 0) {
-    return Err(nsCString("Width must be positive"));
+    return Err("Width must be positive"_ns);
   }
   if (size.Height() <= 0) {
-    return Err(nsCString("Height must be positive"));
+    return Err("Height must be positive"_ns);
   }
   return size;
 }
@@ -312,15 +312,14 @@ static Result<Ok, nsCString> ValidateVisibility(
 
   const auto w = CheckedInt<uint32_t>(aVisibleRect.Width()) + aVisibleRect.X();
   if (w.value() > static_cast<uint32_t>(aPicSize.Width())) {
-    return Err(nsCString(
-        "Sum of visible rectangle's x and width exceeds the picture's width"));
+    return Err(
+        "Sum of visible rectangle's x and width exceeds the picture's width"_ns);
   }
 
   const auto h = CheckedInt<uint32_t>(aVisibleRect.Height()) + aVisibleRect.Y();
   if (h.value() > static_cast<uint32_t>(aPicSize.Height())) {
     return Err(
-        nsCString("Sum of visible rectangle's y and height exceeds the "
-                  "picture's height"));
+        "Sum of visible rectangle's y and height exceeds the picture's height"_ns);
   }
 
   return Ok();
@@ -332,8 +331,8 @@ template <class T>
 static Result<Maybe<gfx::IntSize>, nsCString> MaybeGetDisplaySize(
     const T& aInit) {
   if (aInit.mDisplayWidth.WasPassed() != aInit.mDisplayHeight.WasPassed()) {
-    return Err(nsCString(
-        "displayWidth and displayHeight cannot be set without the other"));
+    return Err(
+        "displayWidth and displayHeight cannot be set without the other"_ns);
   }
 
   Maybe<gfx::IntSize> displaySize;
@@ -388,11 +387,11 @@ static Result<Ok, nsCString> VerifyRectOffsetAlignment(
   for (const VideoFrame::Format::Plane& p : aFormat->Planes()) {
     const gfx::IntSize sample = aFormat->SampleSize(p);
     if (aRect.X() % sample.Width() != 0) {
-      return Err(nsCString("Mismatch between format and given left offset"));
+      return Err("Mismatch between format and given left offset"_ns);
     }
 
     if (aRect.Y() % sample.Height() != 0) {
-      return Err(nsCString("Mismatch between format and given top offset"));
+      return Err("Mismatch between format and given top offset"_ns);
     }
   }
   return Ok();
@@ -452,7 +451,7 @@ static Result<CombinedBufferLayout, nsCString> ComputeLayoutAndAllocationSize(
   nsTArray<VideoFrame::Format::Plane> planes = aFormat.Planes();
 
   if (aPlaneLayouts && aPlaneLayouts->Length() != planes.Length()) {
-    return Err(nsCString("Mismatch between format and layout"));
+    return Err("Mismatch between format and layout"_ns);
   }
 
   uint32_t minAllocationSize = 0;
@@ -520,11 +519,11 @@ static Result<CombinedBufferLayout, nsCString> ComputeLayoutAndAllocationSize(
     const CheckedInt<uint32_t> planeSize =
         CheckedInt<uint32_t>(layout.mDestinationStride) * layout.mSourceHeight;
     if (!planeSize.isValid()) {
-      return Err(nsCString("Invalid layout with an over-sized plane"));
+      return Err("Invalid layout with an over-sized plane"_ns);
     }
     const CheckedInt<uint32_t> planeEnd = planeSize + layout.mDestinationOffset;
     if (!planeEnd.isValid()) {
-      return Err(nsCString("Invalid layout with the out-out-bound offset"));
+      return Err("Invalid layout with the out-out-bound offset"_ns);
     }
     endOffsets.AppendElement(planeEnd.value());
 
@@ -537,7 +536,7 @@ static Result<CombinedBufferLayout, nsCString> ComputeLayoutAndAllocationSize(
       // one's head, then they do not overlap. Otherwise, they do.
       if (endOffsets[i] > earlier.mDestinationOffset &&
           endOffsets[j] > layout.mDestinationOffset) {
-        return Err(nsCString("Invalid layout with the overlapped planes"));
+        return Err("Invalid layout with the overlapped planes"_ns);
       }
     }
     layouts.AppendElement(layout);
@@ -552,11 +551,11 @@ static Result<Ok, nsCString> VerifyRectSizeAlignment(
   for (const VideoFrame::Format::Plane& p : aFormat.Planes()) {
     const gfx::IntSize sample = aFormat.SampleSize(p);
     if (aRect.Width() % sample.Width() != 0) {
-      return Err(nsCString("Mismatch between format and given rect's width"));
+      return Err("Mismatch between format and given rect's width"_ns);
     }
 
     if (aRect.Height() % sample.Height() != 0) {
-      return Err(nsCString("Mismatch between format and given rect's height"));
+      return Err("Mismatch between format and given rect's height"_ns);
     }
   }
   return Ok();
@@ -683,7 +682,7 @@ ValidateVideoFrameInit(const VideoFrameInit& aInit,
                        const Maybe<VideoFrame::Format>& aFormat,
                        const gfx::IntSize& aCodedSize) {
   if (aCodedSize.Width() <= 0 || aCodedSize.Height() <= 0) {
-    return Err(nsCString("codedWidth and codedHeight must be positive"));
+    return Err("codedWidth and codedHeight must be positive"_ns);
   }
 
   Maybe<gfx::IntRect> visibleRect;
@@ -720,7 +719,7 @@ static Result<RefPtr<gfx::DataSourceSurface>, nsCString> AllocateBGRASurface(
   gfx::DataSourceSurface::ScopedMap surfaceMap(aSurface,
                                                gfx::DataSourceSurface::READ);
   if (!surfaceMap.IsMapped()) {
-    return Err(nsCString("The source surface is not readable"));
+    return Err("The source surface is not readable"_ns);
   }
 
   RefPtr<gfx::DataSourceSurface> bgraSurface =
@@ -728,13 +727,13 @@ static Result<RefPtr<gfx::DataSourceSurface>, nsCString> AllocateBGRASurface(
           aSurface->GetSize(), gfx::SurfaceFormat::B8G8R8A8,
           surfaceMap.GetStride());
   if (!bgraSurface) {
-    return Err(nsCString("Failed to allocate a BGRA surface"));
+    return Err("Failed to allocate a BGRA surface"_ns);
   }
 
   gfx::DataSourceSurface::ScopedMap bgraMap(bgraSurface,
                                             gfx::DataSourceSurface::WRITE);
   if (!bgraMap.IsMapped()) {
-    return Err(nsCString("The allocated BGRA surface is not writable"));
+    return Err("The allocated BGRA surface is not writable"_ns);
   }
 
   gfx::SwizzleData(surfaceMap.GetData(), surfaceMap.GetStride(),
@@ -755,7 +754,7 @@ static Result<RefPtr<layers::Image>, nsCString> CreateImageFromRawData(
       gfx::Factory::CreateWrappingDataSourceSurface(aBuffer.data(), aStride,
                                                     aSize, aFormat);
   if (!surface) {
-    return Err(nsCString("Failed to wrap the raw data into a surface"));
+    return Err("Failed to wrap the raw data into a surface"_ns);
   }
 
   // Gecko favors BGRA so we convert surface into BGRA format first.
@@ -779,7 +778,7 @@ static Result<RefPtr<layers::Image>, nsCString> CreateRGBAImageFromBuffer(
   CheckedInt<int32_t> stride(BytesPerPixel(format));
   stride *= aSize.Width();
   if (!stride.isValid()) {
-    return Err(nsCString("Image size exceeds implementation's limit"));
+    return Err("Image size exceeds implementation's limit"_ns);
   }
   return CreateImageFromRawData(aSize, stride.value(), format, aBuffer);
 }
@@ -884,13 +883,13 @@ static Result<RefPtr<layers::Image>, nsCString> CreateYUVImageFromBuffer(
 
     RefPtr<layers::NVImage> image = new layers::NVImage();
     if (!image->SetData(data)) {
-      return Err(nsCString("Failed to create NV12 image"));
+      return Err("Failed to create NV12 image"_ns);
     }
     // Manually cast type to make Result work.
     return RefPtr<layers::Image>(image.forget());
   }
 
-  return Err(nsCString("Unsupported image format"));
+  return Err("Unsupported image format"_ns);
 }
 
 static Result<RefPtr<layers::Image>, nsCString> CreateImageFromBuffer(
@@ -925,7 +924,7 @@ static Result<RefPtr<layers::Image>, nsCString> CreateImageFromBuffer(
     case VideoPixelFormat::BGRX:
       return CreateRGBAImageFromBuffer(aFormat, aSize, aBuffer);
   }
-  return Err(nsCString("Invalid image format"));
+  return Err("Invalid image format"_ns);
 }
 
 // https://w3c.github.io/webcodecs/#dom-videoframe-videoframe-data-init
@@ -937,7 +936,7 @@ static Result<RefPtr<VideoFrame>, nsCString> CreateVideoFrameFromBuffer(
       !aInit.mColorSpace.Value().mTransfer.IsNull() &&
       aInit.mColorSpace.Value().mTransfer.Value() ==
           VideoTransferCharacteristics::Linear) {
-    return Err(nsCString("linear RGB is not supported"));
+    return Err("linear RGB is not supported"_ns);
   }
 
   std::tuple<gfx::IntSize, Maybe<gfx::IntRect>, Maybe<gfx::IntSize>> init;
@@ -951,7 +950,7 @@ static Result<RefPtr<VideoFrame>, nsCString> CreateVideoFrameFromBuffer(
   // https://github.com/w3c/webcodecs/issues/512
   // This comment should be removed once the issue is resolved.
   if (!format.IsValidSize(codedSize)) {
-    return Err(nsCString("coded width and/or height is invalid"));
+    return Err("coded width and/or height is invalid"_ns);
   }
 
   gfx::IntRect parsedRect;
@@ -976,7 +975,7 @@ static Result<RefPtr<VideoFrame>, nsCString> CreateVideoFrameFromBuffer(
                                    -> Result<RefPtr<layers::Image>, nsCString> {
         if (aData.Length() <
             static_cast<size_t>(combinedLayout.mAllocationSize)) {
-          return Err(nsCString("data is too small"));
+          return Err("data is too small"_ns);
         }
 
         // TODO: If codedSize is (3, 3) and visibleRect is (0, 0, 1, 1) but the
@@ -984,7 +983,7 @@ static Result<RefPtr<VideoFrame>, nsCString> CreateVideoFrameFromBuffer(
         // In this case, we can crop it to a 1 x 1-codedSize image (Bug
         // 1782128).
         if (aData.Length() < format.ByteCount(codedSize)) {
-          return Err(nsCString("data is too small"));
+          return Err("data is too small"_ns);
         }
 
         return CreateImageFromBuffer(format, colorSpace, codedSize, aData);
