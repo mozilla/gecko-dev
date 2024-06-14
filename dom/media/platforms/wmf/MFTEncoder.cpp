@@ -8,6 +8,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/WindowsProcessMitigations.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/mscom/COMWrappers.h"
 #include "mozilla/mscom/Utils.h"
 #include "WMFUtils.h"
 #include <comdef.h>
@@ -166,7 +167,7 @@ static void PopulateEncoderInfo(const GUID& aSubtype,
     activates[i]->Release();
     activates[i] = nullptr;
   }
-  CoTaskMemFree(activates);
+  mscom::wrapped::CoTaskMemFree(activates);
 }
 
 Maybe<MFTEncoder::Info> MFTEncoder::GetInfo(const GUID& aSubtype) {
@@ -221,7 +222,7 @@ already_AddRefed<IMFActivate> MFTEncoder::CreateFactory(const GUID& aSubtype) {
     activates[i]->Release();
     activates[i] = nullptr;
   }
-  CoTaskMemFree(activates);
+  mscom::wrapped::CoTaskMemFree(activates);
 
   return factory.forget();
 }

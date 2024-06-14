@@ -33,6 +33,8 @@ HRESULT CoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 
 HRESULT CoCreateGuid(GUID* pguid);
 
+void CoTaskMemFree(LPVOID pv);
+
 }  // namespace mozilla::mscom::wrapped
 
 #endif  // mozilla_mscom_COMWrappers_h

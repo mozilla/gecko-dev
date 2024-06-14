@@ -98,4 +98,14 @@ HRESULT CoCreateGuid(GUID* pguid) {
   return pCoCreateGuid(pguid);
 }
 
+void CoTaskMemFree(LPVOID pv) {
+  static const StaticDynamicallyLinkedFunctionPtr<decltype(&::CoTaskMemFree)>
+      pCoTaskMemFree(L"combase.dll", "CoTaskMemFree");
+  if (!pCoTaskMemFree) {
+    return ::CoTaskMemFree(pv);
+  }
+
+  return pCoTaskMemFree(pv);
+}
+
 }  // namespace mozilla::mscom::wrapped
