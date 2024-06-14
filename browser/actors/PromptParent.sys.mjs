@@ -278,8 +278,8 @@ export class PromptParent extends JSWindowActorParent {
     let details =
       args.modalType === Services.prompt.MODAL_TYPE_CONTENT
         ? {
-            wasPermitUnload: args.inPermitUnload,
             areLeaving: args.ok,
+            promptType: args.inPermitUnload ? "beforeunload" : args.promptType,
             // If a prompt was not accepted, do not return the prompt value.
             value: args.ok ? args.value : null,
           }

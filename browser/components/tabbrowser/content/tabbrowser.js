@@ -6301,7 +6301,7 @@
         "DOMModalDialogClosed",
         event => {
           if (
-            !event.detail?.wasPermitUnload ||
+            event.detail?.promptType != "beforeunload" ||
             event.detail.areLeaving ||
             event.target.nodeName != "browser"
           ) {
