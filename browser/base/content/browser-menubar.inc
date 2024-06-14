@@ -3,26 +3,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-       <menubar id="main-menubar"
-# On macOS, we don't track whether activation of the native menubar happened
-# with the keyboard.
-#ifndef XP_MACOSX
-                onpopupshowing="if (event.target.parentNode.parentNode == this)
-                                  this.setAttribute('openedwithkey',
-                                                    event.target.parentNode.openedWithKey);"
-#endif
-                >
-            <script src="chrome://browser/content/browser-menubar.js" />
-
+       <menubar id="main-menubar">
+          <script src="chrome://browser/content/browser-menubar.js" />
             <menu id="file-menu" data-l10n-id="menu-file">
-              <menupopup id="menu_FilePopup"
-                         onpopupshowing="gFileMenu.onPopupShowing(event);">
+              <menupopup id="menu_FilePopup">
                 <menuitem id="menu_newNavigatorTab"
                           command="cmd_newNavigatorTab"
                           key="key_newNavigatorTab" data-l10n-id="menu-file-new-tab"/>
                 <menu id="menu_newUserContext"
                       hidden="true" data-l10n-id="menu-file-new-container-tab">
-                  <menupopup onpopupshowing="return createUserContextMenu(event);" />
+                  <menupopup id="menu_newUserContextPopup" />
                 </menu>
                 <menuitem id="menu_newNavigator"
                           key="key_newNavigator"
@@ -81,9 +71,7 @@
             </menu>
 
             <menu id="edit-menu" data-l10n-id="menu-edit">
-              <menupopup id="menu_EditPopup"
-                         onpopupshowing="updateEditUIVisibility()"
-                         onpopuphidden="updateEditUIVisibility()">
+              <menupopup id="menu_EditPopup">
                 <menuitem id="menu_undo"
                           key="key_undo"
                           command="cmd_undo" data-l10n-id="text-action-undo"/>
@@ -134,7 +122,7 @@
             <menu id="view-menu" data-l10n-id="menu-view">
               <menupopup id="menu_viewPopup">
                 <menu id="viewToolbarsMenu" data-l10n-id="menu-view-toolbars-menu">
-                  <menupopup id="view-menu-popup" onpopupshowing="onViewToolbarsPopupShowing(event);">
+                  <menupopup id="view-menu-popup">
                     <menuseparator/>
                     <menuitem id="menu_customizeToolbars"
                               command="cmd_CustomizeToolbars" data-l10n-id="menu-view-customize-toolbar2"/>
@@ -164,7 +152,7 @@
                   </menupopup>
                 </menu>
                 <menu id="pageStyleMenu" data-l10n-id="menu-view-page-style-menu">
-                  <menupopup onpopupshowing="gPageStyleMenu.fillPopup(this);">
+                  <menupopup id="pageStyleMenuPopup">
                     <menuitem id="menu_pageStyleNoStyle"
                               type="radio" data-l10n-id="menu-view-page-style-no-style"/>
                     <menuitem id="menu_pageStylePersistentOnly"
@@ -215,8 +203,6 @@
                          placespopup="true"
                          is="places-popup"
 #endif
-                         onpopupshowing="if (!this.parentNode._placesView)
-                                           new HistoryMenu(event);"
                          tooltip="bhTooltip"
                          popupsinherittooltip="true">
                 <menuitem id="menu_showAllHistory"
@@ -242,7 +228,7 @@
                              placespopup="true"
                              is="places-popup"
 #endif
-                             onpopupshowing="document.getElementById('history-menu')._placesView.populateUndoSubmenu();"/>
+                  />
                 </menu>
                 <menu id="historyUndoWindowMenu"
                       disabled="true" data-l10n-id="menu-history-undo-window-menu">
@@ -251,7 +237,7 @@
                              placespopup="true"
                              is="places-popup"
 #endif
-                             onpopupshowing="document.getElementById('history-menu')._placesView.populateUndoWindowSubmenu();">
+                  >
 #ifdef HIDDEN_WINDOW
 # This entry is never visible. It's here to make the cmd-shift-n
 # shortcut work in the hidden window when the last window is closed.
@@ -284,9 +270,6 @@
                onmouseup="BookmarksEventHandler.onMouseUp(event);"
                oncommand="BookmarksEventHandler.onCommand(event);"
                onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
-               onpopupshowing="BookmarkingUI.onMainMenuPopupShowing(event);
-                               if (!this.parentNode._placesView)
-                                 new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.menuGuid}`);"
                tooltip="bhTooltip" popupsinherittooltip="true">
       <menuitem id="bookmarksShowAll"
                 command="Browser:ShowAllBookmarks"
@@ -315,9 +298,7 @@
                    placespopup="true"
                    is="places-popup"
 #endif
-                   context="placesContext"
-                   onpopupshowing="if (!this.parentNode._placesView)
-                                     new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.toolbarGuid}`);"/>
+                   context="placesContext"/>
       </menu>
       <menu id="menu_unsortedBookmarks"
             class="menu-iconic bookmark-item"
@@ -328,9 +309,7 @@
                    placespopup="true"
                    is="places-popup"
 #endif
-                   context="placesContext"
-                   onpopupshowing="if (!this.parentNode._placesView)
-                                     new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.unfiledGuid}`);"/>
+                   context="placesContext"/>
       </menu>
       <menu id="menu_mobileBookmarks"
             class="menu-iconic bookmark-item"
@@ -342,9 +321,7 @@
                    placespopup="true"
                    is="places-popup"
 #endif
-                   context="placesContext"
-                   onpopupshowing="if (!this.parentNode._placesView)
-                                     new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.mobileGuid}`);"/>
+                   context="placesContext"/>
       </menu>
       <menuseparator id="bookmarksMenuItemsSeparator"/>
       <!-- Bookmarks menu items -->
@@ -439,7 +416,7 @@
             </menu>
 #endif
             <menu id="helpMenu" data-l10n-id="menu-help">
-              <menupopup id="menu_HelpPopup" onpopupshowing="buildHelpMenu();">
+              <menupopup id="menu_HelpPopup">
 <!-- Note: Items under here are cloned to the AppMenu Help submenu. The cloned items
      have their strings defined by appmenu-data-l10n-id. -->
                 <menuitem id="menu_openHelp"
