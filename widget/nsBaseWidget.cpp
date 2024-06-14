@@ -1177,6 +1177,26 @@ class DispatchEventOnMainThread : public Runnable {
   APZEventResult mAPZResult;
 };
 
+template <>
+NS_IMETHODIMP DispatchEventOnMainThread<MouseInput, WidgetMouseEvent>::Run() {
+  MOZ_ASSERT(
+      !mInput.IsPointerEventType(),
+      "Please use DispatchEventOnMainThread<MouseInput, WidgetPointerEvent>");
+  WidgetMouseEvent event = mInput.ToWidgetEvent<WidgetMouseEvent>(mWidget);
+  mWidget->ProcessUntransformedAPZEvent(&event, mAPZResult);
+  return NS_OK;
+}
+
+template <>
+NS_IMETHODIMP DispatchEventOnMainThread<MouseInput, WidgetPointerEvent>::Run() {
+  MOZ_ASSERT(
+      mInput.IsPointerEventType(),
+      "Please use DispatchEventOnMainThread<MouseInput, WidgetMouseEvent>");
+  WidgetPointerEvent event = mInput.ToWidgetEvent<WidgetPointerEvent>(mWidget);
+  mWidget->ProcessUntransformedAPZEvent(&event, mAPZResult);
+  return NS_OK;
+}
+
 template <class InputType, class EventType>
 class DispatchInputOnControllerThread : public Runnable {
  public:
@@ -1299,6 +1319,15 @@ nsIWidget::ContentAndAPZEventStatus nsBaseWidget::DispatchInputEvent(
             new DispatchInputOnControllerThread<ScrollWheelInput,
                                                 WidgetWheelEvent>(*wheelEvent,
                                                                   mAPZC, this);
+        APZThreadUtils::RunOnControllerThread(std::move(r));
+        status.mContentStatus = nsEventStatus_eConsumeDoDefault;
+        return status;
+      }
+      if (WidgetPointerEvent* pointerEvent = aEvent->AsPointerEvent()) {
+        MOZ_ASSERT(aEvent->mMessage == eContextMenu);
+        RefPtr<Runnable> r =
+            new DispatchInputOnControllerThread<MouseInput, WidgetPointerEvent>(
+                *pointerEvent, mAPZC, this);
         APZThreadUtils::RunOnControllerThread(std::move(r));
         status.mContentStatus = nsEventStatus_eConsumeDoDefault;
         return status;

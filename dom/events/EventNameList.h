@@ -168,7 +168,10 @@ EVENT(click, ePointerClick, EventNameType_All,
           : eMouseEventClass)
 EVENT(close, eClose, EventNameType_HTMLXUL, eBasicEventClass)
 EVENT(contextmenu, eContextMenu,
-      EventNameType_HTMLXUL | EventNameType_SVGGraphic, eMouseEventClass)
+      EventNameType_HTMLXUL | EventNameType_SVGGraphic,
+      StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()
+          ? ePointerEventClass
+          : eMouseEventClass)
 NON_IDL_EVENT(mouselongtap, eMouseLongTap, EventNameType_HTMLXUL,
               eMouseEventClass)
 EVENT(cuechange, eCueChange, EventNameType_All, eBasicEventClass)

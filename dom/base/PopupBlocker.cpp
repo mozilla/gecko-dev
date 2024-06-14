@@ -298,6 +298,8 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
           }
         }
 
+        // TODO: Delete this switch when we remove the
+        // dom.w3c_pointer_events.dispatch_click_as_pointer_event pref.
         switch (aEvent->mMessage) {
           case eContextMenu:
             if (PopupAllowedForEvent("contextmenu")) {
@@ -344,6 +346,15 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
           // for non-primary clicks as far as we know, so we could add them if
           // it becomes a compat issue
           if (PopupAllowedForEvent("auxclick")) {
+            abuse = PopupBlocker::openControlled;
+          }
+        }
+
+        // XXX However, `contextmenu` event is handled even if the button is the
+        // primary button which may occur if the context menu is opened by
+        // keyboard.
+        if (aEvent->mMessage == eContextMenu) {
+          if (PopupAllowedForEvent("contextmenu")) {
             abuse = PopupBlocker::openControlled;
           }
         }

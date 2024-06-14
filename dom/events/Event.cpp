@@ -487,7 +487,8 @@ void Event::SetEventType(const nsAString& aEventTypeArg) {
       // compatibility, we need to handle untrusted events of them created with
       // MouseEvent instance in some places.
       if (aEventTypeArg.EqualsLiteral(u"click") ||
-          aEventTypeArg.EqualsLiteral(u"auxclick")) {
+          aEventTypeArg.EqualsLiteral(u"auxclick") ||
+          aEventTypeArg.EqualsLiteral(u"contextmenu")) {
         classID = ePointerEventClass;
       }
     }

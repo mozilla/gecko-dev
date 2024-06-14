@@ -75,6 +75,7 @@ bool IsPointerEventMessage(EventMessage aMessage) {
       return true;
     case ePointerClick:
     case ePointerAuxClick:
+    case eContextMenu:
       return StaticPrefs::
           dom_w3c_pointer_events_dispatch_click_as_pointer_event();
     default:
@@ -85,7 +86,8 @@ bool IsPointerEventMessage(EventMessage aMessage) {
 bool IsPointerEventMessageOriginallyMouseEventMessage(EventMessage aMessage) {
   return StaticPrefs::
              dom_w3c_pointer_events_dispatch_click_as_pointer_event() &&
-         (aMessage == ePointerClick || aMessage == ePointerAuxClick);
+         (aMessage == ePointerClick || aMessage == ePointerAuxClick ||
+          aMessage == eContextMenu);
 }
 
 const char* ToChar(EventClassID aEventClassID) {

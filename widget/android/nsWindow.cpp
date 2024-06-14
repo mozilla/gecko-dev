@@ -651,7 +651,8 @@ class NPZCSupport final
 
     PostInputEvent([input = std::move(input), result,
                     clickCount = sLastClickCount](nsWindow* window) {
-      WidgetMouseEvent mouseEvent = input.ToWidgetEvent(window);
+      WidgetMouseEvent mouseEvent =
+          input.ToWidgetEvent<WidgetMouseEvent>(window);
       mouseEvent.mClickCount = clickCount;
       window->ProcessUntransformedAPZEvent(&mouseEvent, result);
       if (MouseInput::SECONDARY_BUTTON == input.mButtonType) {
@@ -666,8 +667,15 @@ class NPZCSupport final
           // dispatch it on APZ thread. It may cause a race condition.
           contextMenu.mType = MouseInput::MOUSE_CONTEXTMENU;
 
-          WidgetMouseEvent contextMenuEvent = contextMenu.ToWidgetEvent(window);
-          window->ProcessUntransformedAPZEvent(&contextMenuEvent, result);
+          if (contextMenu.IsPointerEventType()) {
+            WidgetPointerEvent contextMenuEvent =
+                contextMenu.ToWidgetEvent<WidgetPointerEvent>(window);
+            window->ProcessUntransformedAPZEvent(&contextMenuEvent, result);
+          } else {
+            WidgetMouseEvent contextMenuEvent =
+                contextMenu.ToWidgetEvent<WidgetMouseEvent>(window);
+            window->ProcessUntransformedAPZEvent(&contextMenuEvent, result);
+          }
         }
       }
     });

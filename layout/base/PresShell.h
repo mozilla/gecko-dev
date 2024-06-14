@@ -1982,6 +1982,11 @@ class PresShell final : public nsStubDocumentObserver,
     explicit DelayedMouseEvent(WidgetMouseEvent* aEvent);
   };
 
+  class DelayedPointerEvent : public DelayedInputEvent {
+   public:
+    explicit DelayedPointerEvent(WidgetPointerEvent* aEvent);
+  };
+
   class DelayedKeyEvent : public DelayedInputEvent {
    public:
     explicit DelayedKeyEvent(WidgetKeyboardEvent* aEvent);

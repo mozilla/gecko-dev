@@ -1428,28 +1428,35 @@ export var PictureInPicture = {
 
     // We synthesize a new MouseEvent to propagate the inputSource to the
     // subsequently triggered popupshowing event.
-    let newEvent = document.createEvent("MouseEvent");
-    let screenX = data.screenXDevPx / window.devicePixelRatio;
-    let screenY = data.screenYDevPx / window.devicePixelRatio;
-    newEvent.initNSMouseEvent(
-      "contextmenu",
-      true,
-      true,
-      null,
-      0,
-      screenX,
-      screenY,
-      0,
-      0,
-      false,
-      false,
-      false,
-      false,
-      0,
-      null,
-      0,
-      data.inputSource
-    );
+    const ContextMenuEventConstructor = Services.prefs.getBoolPref(
+      "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
+    )
+      ? PointerEvent
+      : MouseEvent;
+    let newEvent = new ContextMenuEventConstructor("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      screenX: data.screenXDevPx / window.devicePixelRatio,
+      screenY: data.screenYDevPx / window.devicePixelRatio,
+      pointerType: (() => {
+        switch (data.inputSource) {
+          case MouseEvent.MOZ_SOURCE_MOUSE:
+            return "mouse";
+          case MouseEvent.MOZ_SOURCE_PEN:
+            return "pen";
+          case MouseEvent.MOZ_SOURCE_ERASER:
+            return "eraser";
+          case MouseEvent.MOZ_SOURCE_CURSOR:
+            return "cursor";
+          case MouseEvent.MOZ_SOURCE_TOUCH:
+            return "touch";
+          case MouseEvent.MOZ_SOURCE_KEYBOARD:
+            return "keyboard";
+          default:
+            return "";
+        }
+      })(),
+    });
     popup.openPopupAtScreen(newEvent.screenX, newEvent.screenY, true, newEvent);
   },
 

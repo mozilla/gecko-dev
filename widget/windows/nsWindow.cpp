@@ -4221,18 +4221,29 @@ bool nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
 
   }  // switch
 
-  WidgetMouseEvent event(true, aEventMessage, this, WidgetMouseEvent::eReal,
+  Maybe<WidgetPointerEvent> pointerEvent;
+  Maybe<WidgetMouseEvent> mouseEvent;
+  if (IsPointerEventMessage(aEventMessage)) {
+    pointerEvent.emplace(true, aEventMessage, this,
                          aIsContextMenuKey ? WidgetMouseEvent::eContextMenuKey
                                            : WidgetMouseEvent::eNormal);
+  } else {
+    mouseEvent.emplace(true, aEventMessage, this, WidgetMouseEvent::eReal,
+                       aIsContextMenuKey ? WidgetMouseEvent::eContextMenuKey
+                                         : WidgetMouseEvent::eNormal);
+  }
+  WidgetMouseEvent& mouseOrPointerEvent =
+      pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
+
   if (aEventMessage == eContextMenu && aIsContextMenuKey) {
     LayoutDeviceIntPoint zero(0, 0);
-    InitEvent(event, &zero);
+    InitEvent(mouseOrPointerEvent, &zero);
   } else {
-    InitEvent(event, &eventPoint);
+    InitEvent(mouseOrPointerEvent, &eventPoint);
   }
 
   ModifierKeyState modifierKeyState;
-  modifierKeyState.InitInputEvent(event);
+  modifierKeyState.InitInputEvent(mouseOrPointerEvent);
 
   // eContextMenu with Shift state is special.  It won't fire "contextmenu"
   // event in the web content for blocking web content to prevent its default.
@@ -4241,25 +4252,26 @@ bool nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
   // behave same as ContextMenu key without Shift key.
   // XXX Should we allow to block web page to prevent its default with
   //     Ctrl+Shift+F10 or Alt+Shift+F10 instead?
-  if (aEventMessage == eContextMenu && aIsContextMenuKey && event.IsShift() &&
+  if (aEventMessage == eContextMenu && aIsContextMenuKey &&
+      mouseOrPointerEvent.IsShift() &&
       NativeKey::LastKeyOrCharMSG().message == WM_SYSKEYDOWN &&
       NativeKey::LastKeyOrCharMSG().wParam == VK_F10) {
-    event.mModifiers &= ~MODIFIER_SHIFT;
+    mouseOrPointerEvent.mModifiers &= ~MODIFIER_SHIFT;
   }
 
-  event.mButton = aButton;
-  event.mInputSource = aInputSource;
+  mouseOrPointerEvent.mButton = aButton;
+  mouseOrPointerEvent.mInputSource = aInputSource;
   if (aPointerInfo) {
     // Mouse events from Windows WM_POINTER*. Fill more information in
     // WidgetMouseEvent.
-    event.AssignPointerHelperData(*aPointerInfo);
-    event.mPressure = aPointerInfo->mPressure;
-    event.mButtons = aPointerInfo->mButtons;
+    mouseOrPointerEvent.AssignPointerHelperData(*aPointerInfo);
+    mouseOrPointerEvent.mPressure = aPointerInfo->mPressure;
+    mouseOrPointerEvent.mButtons = aPointerInfo->mButtons;
   } else {
     // If we get here the mouse events must be from non-touch sources, so
     // convert it to pointer events as well
-    event.convertToPointer = true;
-    event.pointerId = pointerId;
+    mouseOrPointerEvent.convertToPointer = true;
+    mouseOrPointerEvent.pointerId = pointerId;
   }
 
   // Static variables used to distinguish simple-, double- and triple-clicks.
@@ -4296,8 +4308,8 @@ bool nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
 
   switch (aEventMessage) {
     case eMouseDoubleClick:
-      event.mMessage = eMouseDown;
-      event.mButton = aButton;
+      mouseOrPointerEvent.mMessage = eMouseDown;
+      mouseOrPointerEvent.mButton = aButton;
       sLastClickCount = 2;
       sLastMouseDownTime = curMsgTime;
       break;
@@ -4325,18 +4337,19 @@ bool nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
       }
       break;
     case eMouseExitFromWidget:
-      event.mExitFrom =
+      mouseOrPointerEvent.mExitFrom =
           Some(IsTopLevelMouseExit(mWnd) ? WidgetMouseEvent::ePlatformTopLevel
                                          : WidgetMouseEvent::ePlatformChild);
       break;
     default:
       break;
   }
-  event.mClickCount = sLastClickCount;
+  mouseOrPointerEvent.mClickCount = sLastClickCount;
 
 #ifdef NS_DEBUG_XX
   MOZ_LOG(gWindowsLog, LogLevel::Info,
-          ("Msg Time: %d Click Count: %d\n", curMsgTime, event.mClickCount));
+          ("Msg Time: %d Click Count: %d\n", curMsgTime,
+           mouseOrPointerEvent.mClickCount));
 #endif
 
   // call the event callback
@@ -4345,7 +4358,7 @@ bool nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
       LayoutDeviceIntRect rect = GetBounds();
       rect.MoveTo(0, 0);
 
-      if (rect.Contains(event.mRefPoint)) {
+      if (rect.Contains(mouseOrPointerEvent.mRefPoint)) {
         if (sCurrentWindow == nullptr || sCurrentWindow != this) {
           if ((nullptr != sCurrentWindow) && (!sCurrentWindow->mInDtor)) {
             LPARAM pos = sCurrentWindow->lParamToClient(lParamToScreen(lParam));
@@ -4369,8 +4382,8 @@ bool nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
     }
 
     nsIWidget::ContentAndAPZEventStatus eventStatus =
-        DispatchInputEvent(&event);
-    contextMenuPreventer.Update(event, eventStatus);
+        DispatchInputEvent(&mouseOrPointerEvent);
+    contextMenuPreventer.Update(mouseOrPointerEvent, eventStatus);
     return ConvertStatus(eventStatus.mContentStatus);
   }
 

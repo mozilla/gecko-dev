@@ -307,6 +307,13 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
       const mozilla::WidgetMouseEvent& aEvent, const ScrollableLayerGuid& aGuid,
       const uint64_t& aInputBlockId);
 
+  mozilla::ipc::IPCResult RecvRealPointerButtonEvent(
+      const mozilla::WidgetPointerEvent& aEvent,
+      const ScrollableLayerGuid& aGuid, const uint64_t& aInputBlockId);
+  mozilla::ipc::IPCResult RecvNormalPriorityRealPointerButtonEvent(
+      const mozilla::WidgetPointerEvent& aEvent,
+      const ScrollableLayerGuid& aGuid, const uint64_t& aInputBlockId);
+
   mozilla::ipc::IPCResult RecvRealMouseEnterExitWidgetEvent(
       const mozilla::WidgetMouseEvent& aEvent, const ScrollableLayerGuid& aGuid,
       const uint64_t& aInputBlockId);

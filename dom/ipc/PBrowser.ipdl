@@ -73,6 +73,7 @@ using class mozilla::WidgetKeyboardEvent from "ipc/nsGUIEventIPC.h";
 using class mozilla::WidgetMouseEvent from "ipc/nsGUIEventIPC.h";
 using class mozilla::WidgetWheelEvent from "ipc/nsGUIEventIPC.h";
 using class mozilla::WidgetDragEvent from "ipc/nsGUIEventIPC.h";
+using class mozilla::WidgetPointerEvent from "ipc/nsGUIEventIPC.h";
 using struct nsRect from "nsRect.h";
 using class mozilla::WidgetSelectionEvent from "ipc/nsGUIEventIPC.h";
 using class mozilla::WidgetTouchEvent from "ipc/nsGUIEventIPC.h";
@@ -754,6 +755,14 @@ child:
     async NormalPriorityRealMouseButtonEvent(WidgetMouseEvent event,
                                              ScrollableLayerGuid aGuid,
                                              uint64_t aInputBlockId);
+
+    [Priority=input]
+    async RealPointerButtonEvent(WidgetPointerEvent event,
+                                 ScrollableLayerGuid aGuid,
+                                 uint64_t aInputBlockId);
+    async NormalPriorityRealPointerButtonEvent(WidgetPointerEvent event,
+                                               ScrollableLayerGuid aGuid,
+                                               uint64_t aInputBlockId);
 
     [Priority=input]
     async RealMouseEnterExitWidgetEvent(WidgetMouseEvent event,

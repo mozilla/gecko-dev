@@ -93,6 +93,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_general.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_ui.h"
@@ -1190,8 +1191,7 @@ static void blinkRect(Rect* r) {
   ::ClipRect(r);
   ::InvertRect(r);
   UInt32 end = ::TickCount() + 5;
-  while (::TickCount() < end)
-    ;
+  while (::TickCount() < end);
   ::InvertRect(r);
 
   if (oldClip != NULL) ::SetClip(oldClip);
@@ -1204,8 +1204,7 @@ static void blinkRgn(RgnHandle rgn) {
   ::SetClip(rgn);
   ::InvertRgn(rgn);
   UInt32 end = ::TickCount() + 5;
-  while (::TickCount() < end)
-    ;
+  while (::TickCount() < end);
   ::InvertRgn(rgn);
 
   if (oldClip != NULL) ::SetClip(oldClip);
@@ -3310,8 +3309,16 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
     if (!mGeckoChild) return nil;
   }
 
-  WidgetMouseEvent geckoEvent(true, eContextMenu, mGeckoChild,
-                              WidgetMouseEvent::eReal);
+  Maybe<WidgetPointerEvent> pointerEvent;
+  Maybe<WidgetMouseEvent> mouseEvent;
+  if (StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
+    pointerEvent.emplace(true, eContextMenu, mGeckoChild);
+  } else {
+    mouseEvent.emplace(true, eContextMenu, mGeckoChild,
+                       WidgetMouseEvent::eReal);
+  }
+  WidgetMouseEvent& geckoEvent =
+      pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
   [self convertCocoaMouseEvent:theEvent toGeckoEvent:&geckoEvent];
   if (StaticPrefs::dom_event_treat_ctrl_click_as_right_click_disabled() &&
       [theEvent type] == NSEventTypeLeftMouseDown) {

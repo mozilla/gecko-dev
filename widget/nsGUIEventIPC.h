@@ -292,6 +292,7 @@ struct ParamTraits<mozilla::WidgetPointerEvent> {
     WriteParam(aWriter, aParam.mWidth);
     WriteParam(aWriter, aParam.mHeight);
     WriteParam(aWriter, aParam.mIsPrimary);
+    WriteParam(aWriter, aParam.mFromTouchEvent);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
@@ -299,7 +300,8 @@ struct ParamTraits<mozilla::WidgetPointerEvent> {
         ReadParam(aReader, static_cast<mozilla::WidgetMouseEvent*>(aResult)) &&
         ReadParam(aReader, &aResult->mWidth) &&
         ReadParam(aReader, &aResult->mHeight) &&
-        ReadParam(aReader, &aResult->mIsPrimary);
+        ReadParam(aReader, &aResult->mIsPrimary) &&
+        ReadParam(aReader, &aResult->mFromTouchEvent);
     return rv;
   }
 };

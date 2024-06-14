@@ -896,25 +896,26 @@ class WidgetEvent : public WidgetEventTime {
             mMessage == eMouseDoubleClick || mMessage == eMouseDown ||
             mMessage == eMouseUp || mMessage == eMouseOver ||
             mMessage == eMouseOut || mMessage == eMouseMove ||
-            mMessage == eContextMenu || mMessage == eXULPopupShowing ||
-            mMessage == eXULPopupHiding || mMessage == eXULPopupShown ||
-            mMessage == eXULPopupHidden ||
-            // `click` event and `auxclick` event should be created as a
-            // PointerEvent, but they were MouseEvent before.  Additionally, we
-            // support dispatching untrusted these events to some elements may
-            // cause a default action of it even if they are created with
-            // MouseEvent.  Therefore, we need to allow these event messages
-            // here.
-            mMessage == ePointerClick || mMessage == ePointerAuxClick;
+            mMessage == eXULPopupShowing || mMessage == eXULPopupHiding ||
+            mMessage == eXULPopupShown || mMessage == eXULPopupHidden ||
+            // `click` event, `auxclick` event and `contextmenu` event should be
+            // created as a PointerEvent, but they were MouseEvent before.
+            // Additionally, we support dispatching untrusted these events to
+            // some elements may cause a default action of it even if they are
+            // created with MouseEvent.  Therefore, we need to allow these event
+            // messages here.
+            mMessage == ePointerClick || mMessage == ePointerAuxClick ||
+            mMessage == eContextMenu;
         break;
       case ePointerEventClass:
         // All pointer events are composed
         mFlags.mComposed =
             mMessage == ePointerClick || mMessage == ePointerAuxClick ||
-            mMessage == ePointerDown || mMessage == ePointerMove ||
-            mMessage == ePointerUp || mMessage == ePointerCancel ||
-            mMessage == ePointerOver || mMessage == ePointerOut ||
-            mMessage == ePointerGotCapture || mMessage == ePointerLostCapture;
+            mMessage == eContextMenu || mMessage == ePointerDown ||
+            mMessage == ePointerMove || mMessage == ePointerUp ||
+            mMessage == ePointerCancel || mMessage == ePointerOver ||
+            mMessage == ePointerOut || mMessage == ePointerGotCapture ||
+            mMessage == ePointerLostCapture;
         break;
       case eTouchEventClass:
         // All touch events are composed

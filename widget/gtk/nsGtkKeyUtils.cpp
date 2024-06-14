@@ -32,7 +32,9 @@
 #include "nsWindow.h"
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
 
@@ -1449,9 +1451,17 @@ bool KeymapWrapper::MaybeDispatchContextMenuEvent(nsWindow* aWindow,
     return false;
   }
 
-  WidgetMouseEvent contextMenuEvent(true, eContextMenu, aWindow,
-                                    WidgetMouseEvent::eReal,
-                                    WidgetMouseEvent::eContextMenuKey);
+  Maybe<WidgetPointerEvent> pointerEvent;
+  Maybe<WidgetMouseEvent> mouseEvent;
+  if (StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
+    pointerEvent.emplace(true, eContextMenu, aWindow,
+                         WidgetMouseEvent::eContextMenuKey);
+  } else {
+    mouseEvent.emplace(true, eContextMenu, aWindow, WidgetMouseEvent::eReal,
+                       WidgetMouseEvent::eContextMenuKey);
+  }
+  WidgetMouseEvent& contextMenuEvent =
+      pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
 
   contextMenuEvent.mRefPoint = LayoutDeviceIntPoint(0, 0);
   contextMenuEvent.AssignEventTime(aWindow->GetWidgetEventTime(aEvent->time));

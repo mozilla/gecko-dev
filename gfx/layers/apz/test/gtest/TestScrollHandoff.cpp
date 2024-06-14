@@ -746,7 +746,8 @@ TEST_F(APZScrollHandoffTesterMock, WheelHandoffNonscrollable) {
   MouseInput mouseInput(MouseInput::MOUSE_MOVE,
                         MouseInput::ButtonType::PRIMARY_BUTTON, 0, 0,
                         scrollableLocation, mcc->Time(), 0);
-  WidgetMouseEvent mouseEvent = mouseInput.ToWidgetEvent(nullptr);
+  WidgetMouseEvent mouseEvent =
+      mouseInput.ToWidgetEvent<WidgetMouseEvent>(nullptr);
   QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID + 1);
   ((APZInputBridge*)manager.get())->ReceiveInputEvent(mouseEvent);
 

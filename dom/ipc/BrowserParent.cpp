@@ -1581,7 +1581,13 @@ void BrowserParent::SendRealMouseEvent(WidgetMouseEvent& aEvent) {
 
   DebugOnly<bool> ret =
       isInputPriorityEventEnabled
-          ? SendRealMouseButtonEvent(aEvent, guid, blockId)
+          ? aEvent.mClass == ePointerEventClass
+                ? SendRealPointerButtonEvent(*aEvent.AsPointerEvent(), guid,
+                                             blockId)
+                : SendRealMouseButtonEvent(aEvent, guid, blockId)
+      : aEvent.mClass == ePointerEventClass
+          ? SendNormalPriorityRealPointerButtonEvent(*aEvent.AsPointerEvent(),
+                                                     guid, blockId)
           : SendNormalPriorityRealMouseButtonEvent(aEvent, guid, blockId);
   NS_WARNING_ASSERTION(ret, "SendRealMouseButtonEvent() failed");
   MOZ_ASSERT(!ret || aEvent.HasBeenPostedToRemoteProcess());

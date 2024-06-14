@@ -8,18 +8,23 @@
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/Touch.h"
 #include "mozilla/dom/WheelEventBinding.h"
+#include "mozilla/MouseEvents.h"
+#include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/SwipeTracker.h"
 #include "mozilla/TextEvents.h"
+#include "mozilla/TouchEvents.h"
 #include "nsContentUtils.h"
 #include "nsDebug.h"
 #include "nsThreadUtils.h"
-#include "mozilla/MouseEvents.h"
-#include "mozilla/TouchEvents.h"
-#include "mozilla/SwipeTracker.h"
 #include "UnitTransforms.h"
+#include <type_traits>
 
 namespace mozilla {
 
 using namespace dom;
+
+template WidgetMouseEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const;
+template WidgetPointerEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const;
 
 InputData::~InputData() = default;
 
@@ -329,9 +334,25 @@ bool MouseInput::TransformToLocal(
   return true;
 }
 
-WidgetMouseEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const {
+bool MouseInput::IsPointerEventType() const {
+  return StaticPrefs::
+             dom_w3c_pointer_events_dispatch_click_as_pointer_event() &&
+         mType == MOUSE_CONTEXTMENU;
+}
+
+template <class WidgetMouseOrPointerEvent>
+WidgetMouseOrPointerEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const {
   MOZ_ASSERT(NS_IsMainThread(),
              "Can only convert To WidgetTouchEvent on main thread");
+
+  const DebugOnly<bool> isPointerEvent =
+      std::is_same<WidgetMouseOrPointerEvent, WidgetPointerEvent>::value;
+  const DebugOnly<bool> isMouseEvent =
+      std::is_same<WidgetMouseOrPointerEvent, WidgetMouseEvent>::value;
+  MOZ_ASSERT(!IsPointerEventType() || isPointerEvent,
+             "Please use ToWidgetEvent<WidgetPointerEvent>() for the instance");
+  MOZ_ASSERT(IsPointerEventType() || isMouseEvent,
+             "Please use ToWidgetEvent<WidgetMouseEvent>() for the instance");
 
   EventMessage msg = eVoidEvent;
   uint32_t clickCount = 0;
@@ -369,6 +390,7 @@ WidgetMouseEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const {
       break;
     case MOUSE_CONTEXTMENU:
       msg = eContextMenu;
+      MOZ_ASSERT(mButtonType == MouseInput::SECONDARY_BUTTON);
       break;
     default:
       MOZ_ASSERT_UNREACHABLE(
@@ -376,8 +398,7 @@ WidgetMouseEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const {
       break;
   }
 
-  WidgetMouseEvent event(true, msg, aWidget, WidgetMouseEvent::eReal,
-                         WidgetMouseEvent::eNormal);
+  WidgetMouseOrPointerEvent event(true, msg, aWidget);
 
   if (msg == eVoidEvent) {
     return event;

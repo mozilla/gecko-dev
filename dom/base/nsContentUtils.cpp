@@ -8863,30 +8863,48 @@ nsresult nsContentUtils::SendMouseEvent(
     aInputSourceArg = MouseEvent_Binding::MOZ_SOURCE_MOUSE;
   }
 
-  WidgetMouseEvent event(true, msg, widget,
-                         aIsWidgetEventSynthesized
-                             ? WidgetMouseEvent::eSynthesized
-                             : WidgetMouseEvent::eReal,
+  Maybe<WidgetPointerEvent> pointerEvent;
+  Maybe<WidgetMouseEvent> mouseEvent;
+  if (IsPointerEventMessage(msg)) {
+    MOZ_ASSERT(!aIsWidgetEventSynthesized,
+               "The event shouldn't be dispatched as a synthesized event");
+    if (MOZ_UNLIKELY(aIsWidgetEventSynthesized)) {
+      // `click`, `auxclick` nor `contextmenu` should not be dispatched as a
+      // synthesized event.
+      return NS_ERROR_INVALID_ARG;
+    }
+    pointerEvent.emplace(true, msg, widget,
                          contextMenuKey ? WidgetMouseEvent::eContextMenuKey
                                         : WidgetMouseEvent::eNormal);
-  event.pointerId = aIdentifier;
-  event.mModifiers = GetWidgetModifiers(aModifiers);
-  event.mButton = aButton;
-  event.mButtons = aButtons != nsIDOMWindowUtils::MOUSE_BUTTONS_NOT_SPECIFIED
-                       ? aButtons
-                   : msg == eMouseUp ? 0
-                                     : GetButtonsFlagForButton(aButton);
-  event.mPressure = aPressure;
-  event.mInputSource = aInputSourceArg;
-  event.mClickCount = aClickCount;
-  event.mFlags.mIsSynthesizedForTests = aIsDOMEventSynthesized;
-  event.mExitFrom = exitFrom;
+  } else {
+    mouseEvent.emplace(true, msg, widget,
+                       aIsWidgetEventSynthesized
+                           ? WidgetMouseEvent::eSynthesized
+                           : WidgetMouseEvent::eReal,
+                       contextMenuKey ? WidgetMouseEvent::eContextMenuKey
+                                      : WidgetMouseEvent::eNormal);
+  }
+  WidgetMouseEvent& mouseOrPointerEvent =
+      pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
+  mouseOrPointerEvent.pointerId = aIdentifier;
+  mouseOrPointerEvent.mModifiers = GetWidgetModifiers(aModifiers);
+  mouseOrPointerEvent.mButton = aButton;
+  mouseOrPointerEvent.mButtons =
+      aButtons != nsIDOMWindowUtils::MOUSE_BUTTONS_NOT_SPECIFIED ? aButtons
+      : msg == eMouseUp                                          ? 0
+                        : GetButtonsFlagForButton(aButton);
+  mouseOrPointerEvent.mPressure = aPressure;
+  mouseOrPointerEvent.mInputSource = aInputSourceArg;
+  mouseOrPointerEvent.mClickCount = aClickCount;
+  mouseOrPointerEvent.mFlags.mIsSynthesizedForTests = aIsDOMEventSynthesized;
+  mouseOrPointerEvent.mExitFrom = exitFrom;
 
   nsPresContext* presContext = aPresShell->GetPresContext();
   if (!presContext) return NS_ERROR_FAILURE;
 
-  event.mRefPoint = ToWidgetPoint(CSSPoint(aX, aY), offset, presContext);
-  event.mIgnoreRootScrollFrame = aIgnoreRootScrollFrame;
+  mouseOrPointerEvent.mRefPoint =
+      ToWidgetPoint(CSSPoint(aX, aY), offset, presContext);
+  mouseOrPointerEvent.mIgnoreRootScrollFrame = aIgnoreRootScrollFrame;
 
   nsEventStatus status = nsEventStatus_eIgnore;
   if (aToWindow) {
@@ -8896,17 +8914,18 @@ nsresult nsContentUtils::SendMouseEvent(
     if (!presShell || !view) {
       return NS_ERROR_FAILURE;
     }
-    return presShell->HandleEvent(view->GetFrame(), &event, false, &status);
+    return presShell->HandleEvent(view->GetFrame(), &mouseOrPointerEvent, false,
+                                  &status);
   }
   if (StaticPrefs::test_events_async_enabled()) {
-    status = widget->DispatchInputEvent(&event).mContentStatus;
+    status = widget->DispatchInputEvent(&mouseOrPointerEvent).mContentStatus;
   } else {
-    nsresult rv = widget->DispatchEvent(&event, status);
+    nsresult rv = widget->DispatchEvent(&mouseOrPointerEvent, status);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   if (aPreventDefault) {
     if (status == nsEventStatus_eConsumeNoDefault) {
-      if (event.mFlags.mDefaultPreventedByContent) {
+      if (mouseOrPointerEvent.mFlags.mDefaultPreventedByContent) {
         *aPreventDefault = PreventDefaultResult::ByContent;
       } else {
         *aPreventDefault = PreventDefaultResult::ByChrome;

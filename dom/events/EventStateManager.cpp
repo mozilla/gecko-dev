@@ -1909,6 +1909,9 @@ void EventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
   // child process to avoid using the transformed coordinate afterward.
   AutoRestore<LayoutDeviceIntPoint> restore(aEvent->mRefPoint);
   switch (aEvent->mClass) {
+    case ePointerEventClass:
+      MOZ_ASSERT(aEvent->mMessage == eContextMenu);
+      [[fallthrough]];
     case eMouseEventClass: {
       BrowserParent* oldRemote = BrowserParent::GetLastMouseRemoteTarget();
 
@@ -2272,8 +2275,17 @@ void EventStateManager::FireContextClick() {
 
     if (allowedToDispatch) {
       // init the event while mCurrentTarget is still good
-      WidgetMouseEvent event(true, eContextMenu, targetWidget,
-                             WidgetMouseEvent::eReal);
+      Maybe<WidgetPointerEvent> pointerEvent;
+      Maybe<WidgetMouseEvent> mouseEvent;
+      if (StaticPrefs::
+              dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
+        pointerEvent.emplace(true, eContextMenu, targetWidget);
+      } else {
+        mouseEvent.emplace(true, eContextMenu, targetWidget,
+                           WidgetMouseEvent::eReal);
+      }
+      WidgetMouseEvent& event =
+          pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
       event.mClickCount = 1;
       FillInEventFromGestureDown(&event);
 

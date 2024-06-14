@@ -306,7 +306,7 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
   })();
 
   let event =
-    clickAsPointer && aEvent.type == "click"
+    clickAsPointer && (aEvent.type == "click" || aEvent.type == "contextmenu")
       ? new aWindow.PointerEvent(aEvent.type, dict)
       : new aWindow.MouseEvent(aEvent.type, dict);
 
