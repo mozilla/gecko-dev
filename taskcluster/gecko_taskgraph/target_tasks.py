@@ -1218,35 +1218,7 @@ def target_tasks_bouncer_check(full_task_graph, parameters, graph_config):
     return [l for l, t in full_task_graph.tasks.items() if filter(t)]
 
 
-@register_target_task("staging_release_builds")
-def target_tasks_staging_release(full_task_graph, parameters, graph_config):
-    """
-    Select all builds that are part of releases.
-    """
-
-    def filter(task):
-        if not task.attributes.get("shipping_product"):
-            return False
-        if parameters["release_type"].startswith(
-            "esr"
-        ) and "android" in task.attributes.get("build_platform", ""):
-            return False
-        if parameters["release_type"] != "beta" and "devedition" in task.attributes.get(
-            "build_platform", ""
-        ):
-            return False
-        if task.attributes.get("shipping_phase") == "build":
-            return True
-        return False
-
-    return [l for l, t in full_task_graph.tasks.items() if filter(t)]
-
-
-@register_target_task("release_simulation")
-def target_tasks_release_simulation(full_task_graph, parameters, graph_config):
-    """
-    Select builds that would run on push on a release branch.
-    """
+def _filter_by_release_project(parameters):
     project_by_release = {
         "nightly": "mozilla-central",
         "beta": "mozilla-beta",
@@ -1262,12 +1234,38 @@ def target_tasks_release_simulation(full_task_graph, parameters, graph_config):
         run_on_projects = set(task.attributes.get("run_on_projects", []))
         return match_run_on_projects(target_project, run_on_projects)
 
-    def filter_out_android_on_esr(task):
-        if parameters["release_type"].startswith(
-            "esr"
-        ) and "android" in task.attributes.get("build_platform", ""):
-            return False
-        return True
+    return filter_for_target_project
+
+
+def filter_out_android_on_esr(parameters, task):
+    return not parameters["release_type"].startswith(
+        "esr"
+    ) or "android" not in task.attributes.get("build_platform", "")
+
+
+@register_target_task("staging_release_builds")
+def target_tasks_staging_release(full_task_graph, parameters, graph_config):
+    """
+    Select all builds that are part of releases.
+    """
+    filter_for_target_project = _filter_by_release_project(parameters)
+
+    return [
+        l
+        for l, t in full_task_graph.tasks.items()
+        if t.attributes.get("shipping_product")
+        and filter_out_android_on_esr(parameters, t)
+        and filter_for_target_project(t)
+        and t.attributes.get("shipping_phase") == "build"
+    ]
+
+
+@register_target_task("release_simulation")
+def target_tasks_release_simulation(full_task_graph, parameters, graph_config):
+    """
+    Select tasks that would run on push on a release branch.
+    """
+    filter_for_target_project = _filter_by_release_project(parameters)
 
     return [
         l
