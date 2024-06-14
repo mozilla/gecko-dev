@@ -114,10 +114,11 @@ export class PromptListener {
     // At the moment the event details are present for GeckoView and on desktop
     // only for Services.prompt.MODAL_TYPE_CONTENT prompts.
     if (event.detail) {
-      const { areLeaving, value } = event.detail;
+      const { areLeaving, promptType, value } = event.detail;
       // `areLeaving` returns undefined for alerts, for confirms and prompts
       // it returns true if a user prompt was accepted and false if it was dismissed.
       detail.accepted = areLeaving === undefined ? true : areLeaving;
+      detail.promptType = promptType;
       if (value) {
         detail.userText = value;
       }
@@ -170,6 +171,7 @@ export class PromptListener {
             }
           }
         }
+
         this.emit("opened", {
           contentBrowser: curBrowser.contentBrowser,
           prompt: new lazy.modal.Dialog(subject),

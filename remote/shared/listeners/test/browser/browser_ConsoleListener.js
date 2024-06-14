@@ -56,7 +56,7 @@ add_task(async function test_stacktrace() {
     stacktrace[3],
     "chrome://mochitests/content/browser/remote/shared/listeners/test/browser/head.js",
     "",
-    34,
+    53,
     29
   );
 

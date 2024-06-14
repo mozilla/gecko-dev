@@ -1851,7 +1851,8 @@ class BrowsingContextModule extends Module {
 
       const params = {
         context: contextId,
-        ...detail,
+        accepted: detail.accepted,
+        userText: detail.userText,
       };
 
       this.emitEvent("browsingContext.userPromptClosed", params, contextInfo);

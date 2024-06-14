@@ -123,13 +123,7 @@ modal.Dialog = class {
   }
 
   get promptType() {
-    const promptType = this.args.promptType;
-
-    if (promptType === "confirmEx" && this.args.inPermitUnload) {
-      return "beforeunload";
-    }
-
-    return promptType;
+    return this.args.inPermitUnload ? "beforeunload" : this.args.promptType;
   }
 
   get ui() {
