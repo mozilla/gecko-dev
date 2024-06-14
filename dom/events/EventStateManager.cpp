@@ -1902,6 +1902,7 @@ void EventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
   }
 
   MOZ_ASSERT(aEvent->mMessage != ePointerClick);
+  MOZ_ASSERT(aEvent->mMessage != ePointerAuxClick);
 
   // SendReal* will transform the coordinate to the child process coordinate
   // space. So restore the coordinate after the event has been dispatched to the

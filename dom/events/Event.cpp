@@ -486,7 +486,8 @@ void Event::SetEventType(const nsAString& aEventTypeArg) {
       // Some pointer event types were changed from MouseEvent.  For backward
       // compatibility, we need to handle untrusted events of them created with
       // MouseEvent instance in some places.
-      if (aEventTypeArg.EqualsLiteral(u"click")) {
+      if (aEventTypeArg.EqualsLiteral(u"click") ||
+          aEventTypeArg.EqualsLiteral(u"auxclick")) {
         classID = ePointerEventClass;
       }
     }

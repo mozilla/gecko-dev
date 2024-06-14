@@ -4,17 +4,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/Components.h"
 #include "mozilla/dom/PopupBlocker.h"
 #include "mozilla/dom/UserActivation.h"
-#include "mozilla/BasePrincipal.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TimeStamp.h"
-#include "nsXULPopupManager.h"
 #include "nsIPermissionManager.h"
+#include "nsXULPopupManager.h"
 
 namespace mozilla::dom {
 
@@ -290,10 +291,8 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
               break;
           }
         } else if (aEvent->mMessage == ePointerAuxClick) {
-          // Not eLeftButton
-          // There's not a strong reason to ignore other events (eg eMouseUp)
-          // for non-primary clicks as far as we know, so we could add them if
-          // it becomes a compat issue
+          // TODO: Delete this else-if block when we remove the
+          // dom.w3c_pointer_events.dispatch_click_as_pointer_event pref.
           if (PopupAllowedForEvent("auxclick")) {
             abuse = PopupBlocker::openControlled;
           }
@@ -311,30 +310,42 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
       }
       break;
     case ePointerEventClass:
-      if (aEvent->IsTrusted() &&
-          (aEvent->AsPointerEvent()->mButton == MouseButton::ePrimary ||
-           aEvent->AsPointerEvent()->mButton == MouseButton::eMiddle)) {
-        switch (aEvent->mMessage) {
-          case ePointerClick:
-            // Click events get special treatment because of their historical
-            // status as a more legitimate event handler. If click popups are
-            // enabled in the prefs, clear the popup status completely.
-            if (PopupAllowedForEvent("click")) {
-              abuse = PopupBlocker::openAllowed;
-            }
-            break;
-          case ePointerUp:
-            if (PopupAllowedForEvent("pointerup")) {
-              abuse = PopupBlocker::openControlled;
-            }
-            break;
-          case ePointerDown:
-            if (PopupAllowedForEvent("pointerdown")) {
-              abuse = PopupBlocker::openControlled;
-            }
-            break;
-          default:
-            break;
+      if (aEvent->IsTrusted()) {
+        if ((aEvent->AsPointerEvent()->mButton == MouseButton::ePrimary ||
+             aEvent->AsPointerEvent()->mButton == MouseButton::eMiddle)) {
+          switch (aEvent->mMessage) {
+            case ePointerClick:
+              /* Click events get special treatment because of their
+                 historical status as a more legitimate event handler. If
+                 click popups are enabled in the prefs, clear the popup
+                 status completely. */
+              if (PopupAllowedForEvent("click")) {
+                abuse = PopupBlocker::openAllowed;
+              }
+              break;
+            case ePointerUp:
+              if (PopupAllowedForEvent("pointerup")) {
+                abuse = PopupBlocker::openControlled;
+              }
+              break;
+            case ePointerDown:
+              if (PopupAllowedForEvent("pointerdown")) {
+                abuse = PopupBlocker::openControlled;
+              }
+              break;
+            default:
+              break;
+          }
+        }
+        // XXX Why don't we handle auxclick if the button is the middle button?
+        else if (aEvent->mMessage == ePointerAuxClick) {
+          // Not MouseButton::ePrimary:
+          // There's not a strong reason to ignore other events (eg eMouseUp)
+          // for non-primary clicks as far as we know, so we could add them if
+          // it becomes a compat issue
+          if (PopupAllowedForEvent("auxclick")) {
+            abuse = PopupBlocker::openControlled;
+          }
         }
       }
       break;

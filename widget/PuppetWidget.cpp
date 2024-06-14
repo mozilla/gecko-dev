@@ -365,6 +365,7 @@ nsIWidget::ContentAndAPZEventStatus PuppetWidget::DispatchInputEvent(
   }
 
   MOZ_ASSERT(aEvent->mMessage != ePointerClick);
+  MOZ_ASSERT(aEvent->mMessage != ePointerAuxClick);
 
   switch (aEvent->mClass) {
     case eWheelEventClass:

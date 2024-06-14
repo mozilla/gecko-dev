@@ -158,7 +158,10 @@ EVENT(CheckboxStateChange, eFormCheckboxStateChange, EventNameType_None,
       eBasicEventClass)
 EVENT(RadioStateChange, eFormRadioStateChange, EventNameType_None,
       eBasicEventClass)
-EVENT(auxclick, ePointerAuxClick, EventNameType_All, eMouseEventClass)
+EVENT(auxclick, ePointerAuxClick, EventNameType_All,
+      StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()
+          ? ePointerEventClass
+          : eMouseEventClass)
 EVENT(click, ePointerClick, EventNameType_All,
       StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()
           ? ePointerEventClass
