@@ -659,6 +659,8 @@ std::string SeekTestParamToString(
       case nsISeekableStream::NS_SEEK_END:
         ss << "End";
         break;
+      default:
+        MOZ_CRASH("Unknown whence");
     };
     switch (seekOp.second) {
       case SeekOffset::Zero:
@@ -716,11 +718,11 @@ TEST_P(ParametrizedSeekCryptTest, DummyCipherStrategy_Seek) {
         case SeekOffset::MinusHalfDataSize:
           return -static_cast<int64_t>(dataSize) / 2;
         case SeekOffset::PlusHalfDataSize:
-          return dataSize / 2;
+          return static_cast<int64_t>(dataSize) / 2;
         case SeekOffset::MinusDataSize:
           return -static_cast<int64_t>(dataSize);
         case SeekOffset::PlusDataSize:
-          return dataSize;
+          return static_cast<int64_t>(dataSize);
       }
       MOZ_CRASH("Unknown SeekOffset");
     }();
@@ -734,6 +736,8 @@ TEST_P(ParametrizedSeekCryptTest, DummyCipherStrategy_Seek) {
       case nsISeekableStream::NS_SEEK_END:
         accumulatedOffset = testParams.mDataSize + offset;
         break;
+      default:
+        MOZ_CRASH("Unknown whence");
     }
     EXPECT_EQ(NS_OK, inStream->Seek(seekOp.first, offset));
   }
