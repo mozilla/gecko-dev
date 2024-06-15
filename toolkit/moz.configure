@@ -27,6 +27,14 @@ project_flag(
 )
 
 project_flag(
+    env="MOZ_DEVTOOLS",
+    default="server",
+    choices=("all", "server"),
+    nargs=1,
+    help="which devtools version should be built",
+)
+
+project_flag(
     env="BROWSER_CHROME_URL",
     default="",
     nargs=1,

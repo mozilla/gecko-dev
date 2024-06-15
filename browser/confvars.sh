@@ -33,6 +33,3 @@ MOZ_BRANDING_DIRECTORY=browser/branding/unofficial
 MOZ_OFFICIAL_BRANDING_DIRECTORY=browser/branding/official
 
 MOZ_PROFILE_MIGRATOR=1
-
-# Include the DevTools client, not just the server (which is the default)
-MOZ_DEVTOOLS=all
