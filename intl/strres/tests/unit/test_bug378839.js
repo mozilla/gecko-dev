@@ -14,7 +14,7 @@ const name_edit = "edit";
 const value_edit = "Edit"; // tests literal leading spaces are stripped
 
 const name_view = "view";
-const value_view = "View"; // tests literal trailing spaces are stripped
+const value_view = "View "; // tests literal trailing spaces are not stripped
 
 const name_go = "go";
 const value_go = " Go"; // tests escaped leading spaces are not stripped
