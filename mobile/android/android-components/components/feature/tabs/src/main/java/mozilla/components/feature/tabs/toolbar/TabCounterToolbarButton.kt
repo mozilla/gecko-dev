@@ -27,6 +27,7 @@ import java.lang.ref.WeakReference
  */
 open class TabCounterToolbarButton(
     private val lifecycleOwner: LifecycleOwner,
+    override val visible: () -> Boolean = { true },
     private val countBasedOnSelectedTabType: Boolean = true,
     private val showTabs: () -> Unit,
     private val store: BrowserStore,
