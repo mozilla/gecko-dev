@@ -19,6 +19,4 @@ interface GeolocationCoordinates {
   readonly attribute double? altitudeAccuracy;
   readonly attribute double? heading;
   readonly attribute double? speed;
-
-  [Default] object toJSON();
 };

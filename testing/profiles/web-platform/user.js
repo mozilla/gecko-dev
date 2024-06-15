@@ -96,5 +96,3 @@ user_pref("network.captive-portal-service.enabled", false);
 user_pref("network.http.http2.websockets", true);
 // Turn off update
 user_pref("app.update.disabledForTesting", true);
-// Use dummy server for geolocation
-user_pref("geo.provider.network.url", "https://web-platform.test:8444/_mozilla/geolocation-API/dummy.py");
