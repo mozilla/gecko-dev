@@ -1273,7 +1273,7 @@ def target_tasks_release_simulation(full_task_graph, parameters, graph_config):
         if filter_release_tasks(t, parameters)
         and filter_out_cron(t, parameters)
         and filter_for_target_project(t)
-        and filter_out_android_on_esr(t)
+        and filter_out_android_on_esr(parameters, t)
     ]
 
 
