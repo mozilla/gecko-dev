@@ -55,3 +55,51 @@ add_task(async function test_menu_enabled() {
     await hideContextMenu();
   });
 });
+
+/**
+ * Check tab behavior of chat menu items without sidebar pref
+ */
+add_task(async function test_open_tab() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.chat.enabled", true],
+      ["browser.ml.chat.provider", "http://localhost:8080"],
+      ["browser.ml.chat.sidebar", false],
+    ],
+  });
+  await BrowserTestUtils.withNewTab("about:blank", async () => {
+    const origTabs = gBrowser.tabs.length;
+    await openContextMenu();
+    await BrowserTestUtils.switchTab(gBrowser, () =>
+      document.getElementById("context-ask-chat").getItemAtIndex(0).click()
+    );
+    await hideContextMenu();
+
+    Assert.equal(gBrowser.tabs.length, origTabs + 1, "Chat opened tabs");
+    Assert.ok(!SidebarController.isOpen, "Chat did not open sidebar");
+    gBrowser.removeTab(gBrowser.selectedTab);
+  });
+});
+
+/**
+ * Check sidebar behavior of chat menu items with sidebar pref
+ */
+add_task(async function test_open_sidebar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.chat.enabled", true],
+      ["browser.ml.chat.provider", "http://localhost:8080"],
+      ["browser.ml.chat.sidebar", true],
+    ],
+  });
+  await BrowserTestUtils.withNewTab("about:blank", async () => {
+    const origTabs = gBrowser.tabs.length;
+    await openContextMenu();
+    document.getElementById("context-ask-chat").getItemAtIndex(0).click();
+    await hideContextMenu();
+
+    Assert.equal(gBrowser.tabs.length, origTabs, "Chat did not open tab");
+    Assert.ok(SidebarController.isOpen, "Chat opened sidebar");
+    SidebarController.hide();
+  });
+});

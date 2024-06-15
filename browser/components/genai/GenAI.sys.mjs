@@ -22,8 +22,15 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "chatProvider",
   "browser.ml.chat.provider"
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "chatSidebar",
+  "browser.ml.chat.sidebar"
+);
 
 export const GenAI = {
+  chatProviders: new Map(),
+
   /**
    * Build prompts menu to ask chat for context menu or popup.
    *
@@ -45,7 +52,9 @@ export const GenAI = {
         try {
           prompt = JSON.parse(prompt);
         } catch (ex) {}
-        menu.appendItem(prompt.label ?? prompt, prompt.value ?? "");
+        menu
+          .appendItem(prompt.label ?? prompt, prompt.value ?? "")
+          .addEventListener("command", this.handleAskChat.bind(this));
       } catch (ex) {
         console.error("Failed to add menu item for " + pref, ex);
       }
@@ -78,7 +87,7 @@ export const GenAI = {
    *
    * @param {Event} event from menu command
    */
-  handleAskChat({ target }) {
+  async handleAskChat({ target }) {
     const win = target.ownerGlobal;
     const { selectedTab } = win.gBrowser;
     const url = new URL(lazy.chatProvider);
@@ -90,7 +99,12 @@ export const GenAI = {
         selection: target.closest("menu").context.selectionInfo.fullText ?? "",
       })
     );
-    win.openWebLinkIn(url + "", "tab", { relatedToCurrent: true });
+    if (lazy.chatSidebar) {
+      await win.SidebarController.show("viewGenaiChatSidebar");
+      win.SidebarController.browser.contentWindow.request(url);
+    } else {
+      win.openWebLinkIn(url + "", "tab", { relatedToCurrent: true });
+    }
   },
 
   /**

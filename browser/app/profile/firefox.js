@@ -1910,6 +1910,7 @@ pref("browser.ml.chat.prompts.0", '{"label":"Summarize","value":"Please summariz
 pref("browser.ml.chat.prompts.1", '{"label":"Simplify language","value":"Please rewrite the selection in plain, clear language suitable for a general audience without specialized knowledge. Use all of the following tactics: simple vocabulary; short sentences; active voice; examples where applicable to make explanations clearer; explanations for jargon and technical terms; headers and bulleted lists for scannability. Maintain factual accuracy while simplifying."}');
 pref("browser.ml.chat.prompts.2", '{"label":"Quiz me","value":"Please create questions related to the selection. Ask the questions one by one. Wait for my response before moving on to the next question. Evaluate each response. Ask a variety of types of questions, like multiple choice, true or false and short answer."}');
 pref("browser.ml.chat.provider", "");
+pref("browser.ml.chat.sidebar", true);
 
 pref("security.protectionspopup.recordEventTelemetry", true);
 pref("security.app_menu.recordEventTelemetry", true);
