@@ -722,7 +722,6 @@ AC_SUBST(MOZ_EME_PROCESS_BUNDLEID)
 # builds (e.g. Aurora for Firefox).
 # - MOZ_APP_PROFILE: When set, used for application.ini's
 # "Profile" field, which controls profile location.
-# - MOZ_PROFILE_MIGRATOR: When set, enables profile migrator.
 
 # The following environment variables used to have an effect, but don't anymore:
 # - MOZ_APP_VERSION: Defines the application version number. This was replaced with
@@ -755,7 +754,6 @@ AC_SUBST(MOZ_APP_DISPLAYNAME)
 AC_SUBST(MOZ_APP_PROFILE)
 AC_SUBST(MAR_CHANNEL_ID)
 AC_SUBST(ACCEPTED_MAR_CHANNEL_IDS)
-AC_SUBST(MOZ_PROFILE_MIGRATOR)
 AC_DEFINE_UNQUOTED(MOZ_APP_UA_NAME, "$MOZ_APP_UA_NAME")
 AC_SUBST(MOZ_APP_UA_NAME)
 AC_DEFINE_UNQUOTED(MOZ_APP_UA_VERSION, "$MOZ_APP_VERSION")

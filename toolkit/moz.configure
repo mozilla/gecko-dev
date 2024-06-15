@@ -35,6 +35,11 @@ project_flag(
 )
 
 project_flag(
+    env="MOZ_PROFILE_MIGRATOR",
+    help="enable profile migrator",
+)
+
+project_flag(
     env="BROWSER_CHROME_URL",
     default="",
     nargs=1,
