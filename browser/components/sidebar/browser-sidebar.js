@@ -109,6 +109,20 @@ var SidebarController = {
       ],
     ]);
 
+    this.registerPrefSidebar(
+      "browser.ml.chat.enabled",
+      "viewGenaiChatSidebar",
+      {
+        elementId: "sidebar-switcher-genai-chat",
+        url: "chrome://browser/content/genai/chat.html",
+        menuId: "menu_genaiChatSidebar",
+        menuL10nId: "menu-view-genai-chat",
+        // Bug 1900915 to expose as conditional tool
+        revampL10nId: "sidebar-menu-genai-chat",
+        iconUrl: "chrome://mozapps/skin/extensions/category-discover.svg",
+      }
+    );
+
     if (!this.sidebarRevampEnabled) {
       this.registerPrefSidebar(
         "browser.megalist.enabled",

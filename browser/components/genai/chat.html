@@ -1,0 +1,25 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this file,
+   - You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" role="document">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src resource: chrome:; object-src 'none'; img-src data: chrome:;"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="localization" href="preview/genai.ftl" />
+    <link
+      rel="stylesheet"
+      href="chrome://browser/content/sidebar/sidebar.css"
+    />
+    <script src="chrome://browser/content/contentTheme.js"></script>
+  </head>
+  <body>
+    <div>
+      <select id="provider"></select>
+    </div>
+  </body>
+</html>

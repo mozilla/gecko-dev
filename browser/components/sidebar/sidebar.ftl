@@ -2,8 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-sidebar-main-insights =
-    .title = Insights
+menu-view-genai-chat =
+  .label = AI Chatbot
 
 ## Variables:
 ##   $date (string) - Date to be formatted based on locale
@@ -42,6 +42,7 @@ sidebar-customize-extensions = Sidebar extensions
 
 ## Labels for sidebar menu items.
 
+sidebar-menu-genai-chat-label = AI chatbot
 sidebar-menu-history-label = History
 sidebar-menu-synced-tabs-label = Tabs from other devices
 sidebar-menu-bookmarks-label = Bookmarks
@@ -49,6 +50,8 @@ sidebar-menu-customize-label = Customize sidebar
 
 ## Tooltips for sidebar menu items.
 
+sidebar-menu-genai-chat-item = {""}
+  .title = { sidebar-menu-genai-chat-label }
 sidebar-menu-history-item = {""}
   .title = { sidebar-menu-history-label }
 sidebar-menu-synced-tabs-item = {""}

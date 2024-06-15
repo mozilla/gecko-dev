@@ -11,4 +11,6 @@ EXTRA_JS_MODULES += [
     "GenAI.sys.mjs",
 ]
 
+JAR_MANIFESTS += ["jar.mn"]
+
 XPCSHELL_TESTS_MANIFESTS += ["tests/xpcshell/xpcshell.toml"]
