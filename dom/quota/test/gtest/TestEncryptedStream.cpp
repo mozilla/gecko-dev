@@ -461,6 +461,23 @@ TEST_P(ParametrizedCryptTest, NSSCipherStrategy) {
       keyOrErr.unwrap(), testParams.FlushMode());
 }
 
+TEST_P(ParametrizedCryptTest, NSSCipherStrategy_Available) {
+  using CipherStrategy = NSSCipherStrategy;
+  const TestParams& testParams = GetParam();
+
+  DoRoundtripTest<CipherStrategy>(
+      testParams.DataSize(), testParams.EffectiveWriteChunkSize(),
+      testParams.EffectiveReadChunkSize(), testParams.BlockSize(),
+      CipherStrategy::KeyType{}, testParams.FlushMode(),
+      [](auto& inStream, Span<const uint8_t> expectedData,
+         Span<const uint8_t> remainder) {
+        // Check that Available tells the right remainder.
+        uint64_t available;
+        EXPECT_EQ(NS_OK, inStream.Available(&available));
+        EXPECT_EQ(remainder.Length(), available);
+      });
+}
+
 TEST_P(ParametrizedCryptTest, DummyCipherStrategy_CheckOutput) {
   using CipherStrategy = DummyCipherStrategy;
   const TestParams& testParams = GetParam();
@@ -685,86 +702,115 @@ std::string SeekTestParamToString(
 
 class ParametrizedSeekCryptTest
     : public DOM_Quota_EncryptedStream,
-      public testing::WithParamInterface<PackedSeekTestParams> {};
+      public testing::WithParamInterface<PackedSeekTestParams> {
+ public:
+  template <typename CipherStrategy>
+  void DoSeekTest() {
+    const SeekTestParams& testParams = GetParam();
+
+    const auto baseOutputStream = WrapNotNull(
+        RefPtr<FixedBufferOutputStream>{FixedBufferOutputStream::Create(2048)});
+
+    const auto data = MakeTestData(testParams.mDataSize);
+
+    WriteTestData<CipherStrategy>(
+        nsCOMPtr<nsIOutputStream>{baseOutputStream.get()}, Span{data},
+        testParams.mDataSize, testParams.mBlockSize,
+        typename CipherStrategy::KeyType{}, FlushMode::Never);
+
+    const auto baseInputStream =
+        MakeRefPtr<ArrayBufferInputStream>(baseOutputStream->WrittenData());
+
+    const auto inStream = MakeSafeRefPtr<DecryptingInputStream<CipherStrategy>>(
+        WrapNotNull(nsCOMPtr<nsIInputStream>{baseInputStream}),
+        testParams.mBlockSize, typename CipherStrategy::KeyType{});
+
+    uint32_t accumulatedOffset = 0;
+    for (const auto& seekOp : testParams.mSeekOps) {
+      const auto offset = [offsetKind = seekOp.second,
+                           dataSize = testParams.mDataSize]() -> int64_t {
+        switch (offsetKind) {
+          case SeekOffset::Zero:
+            return 0;
+          case SeekOffset::MinusHalfDataSize:
+            return -static_cast<int64_t>(dataSize) / 2;
+          case SeekOffset::PlusHalfDataSize:
+            return static_cast<int64_t>(dataSize) / 2;
+          case SeekOffset::MinusDataSize:
+            return -static_cast<int64_t>(dataSize);
+          case SeekOffset::PlusDataSize:
+            return static_cast<int64_t>(dataSize);
+        }
+        MOZ_CRASH("Unknown SeekOffset");
+      }();
+      switch (seekOp.first) {
+        case nsISeekableStream::NS_SEEK_SET:
+          accumulatedOffset = offset;
+          break;
+        case nsISeekableStream::NS_SEEK_CUR:
+          accumulatedOffset += offset;
+          break;
+        case nsISeekableStream::NS_SEEK_END:
+          accumulatedOffset = testParams.mDataSize + offset;
+          break;
+        default:
+          MOZ_CRASH("Unknown whence");
+      }
+      EXPECT_EQ(NS_OK, inStream->Seek(seekOp.first, offset));
+    }
+
+    {
+      int64_t actualOffset;
+      EXPECT_EQ(NS_OK, inStream->Tell(&actualOffset));
+
+      EXPECT_EQ(actualOffset, accumulatedOffset);
+    }
+
+    auto readData = nsTArray<uint8_t>();
+    readData.SetLength(data.Length());
+    uint32_t read;
+    EXPECT_EQ(NS_OK,
+              inStream->Read(reinterpret_cast<char*>(readData.Elements()),
+                             readData.Length(), &read));
+    // XXX Or should 'read' indicate the actual number of bytes read,
+    // including the encryption overhead?
+    EXPECT_EQ(testParams.mDataSize - accumulatedOffset, read);
+    EXPECT_EQ(Span{data}.SplitAt(accumulatedOffset).second,
+              Span{readData}.First(read).AsConst());
+  }
+};
 
 TEST_P(ParametrizedSeekCryptTest, DummyCipherStrategy_Seek) {
-  using CipherStrategy = DummyCipherStrategy;
-  const SeekTestParams& testParams = GetParam();
-
-  const auto baseOutputStream = WrapNotNull(
-      RefPtr<FixedBufferOutputStream>{FixedBufferOutputStream::Create(2048)});
-
-  const auto data = MakeTestData(testParams.mDataSize);
-
-  WriteTestData<CipherStrategy>(
-      nsCOMPtr<nsIOutputStream>{baseOutputStream.get()}, Span{data},
-      testParams.mDataSize, testParams.mBlockSize, CipherStrategy::KeyType{},
-      FlushMode::Never);
-
-  const auto baseInputStream =
-      MakeRefPtr<ArrayBufferInputStream>(baseOutputStream->WrittenData());
-
-  const auto inStream = MakeSafeRefPtr<DecryptingInputStream<CipherStrategy>>(
-      WrapNotNull(nsCOMPtr<nsIInputStream>{baseInputStream}),
-      testParams.mBlockSize, CipherStrategy::KeyType{});
-
-  uint32_t accumulatedOffset = 0;
-  for (const auto& seekOp : testParams.mSeekOps) {
-    const auto offset = [offsetKind = seekOp.second,
-                         dataSize = testParams.mDataSize]() -> int64_t {
-      switch (offsetKind) {
-        case SeekOffset::Zero:
-          return 0;
-        case SeekOffset::MinusHalfDataSize:
-          return -static_cast<int64_t>(dataSize) / 2;
-        case SeekOffset::PlusHalfDataSize:
-          return static_cast<int64_t>(dataSize) / 2;
-        case SeekOffset::MinusDataSize:
-          return -static_cast<int64_t>(dataSize);
-        case SeekOffset::PlusDataSize:
-          return static_cast<int64_t>(dataSize);
-      }
-      MOZ_CRASH("Unknown SeekOffset");
-    }();
-    switch (seekOp.first) {
-      case nsISeekableStream::NS_SEEK_SET:
-        accumulatedOffset = offset;
-        break;
-      case nsISeekableStream::NS_SEEK_CUR:
-        accumulatedOffset += offset;
-        break;
-      case nsISeekableStream::NS_SEEK_END:
-        accumulatedOffset = testParams.mDataSize + offset;
-        break;
-      default:
-        MOZ_CRASH("Unknown whence");
-    }
-    EXPECT_EQ(NS_OK, inStream->Seek(seekOp.first, offset));
-  }
-
-  {
-    int64_t actualOffset;
-    EXPECT_EQ(NS_OK, inStream->Tell(&actualOffset));
-
-    EXPECT_EQ(actualOffset, accumulatedOffset);
-  }
-
-  auto readData = nsTArray<uint8_t>();
-  readData.SetLength(data.Length());
-  uint32_t read;
-  EXPECT_EQ(NS_OK, inStream->Read(reinterpret_cast<char*>(readData.Elements()),
-                                  readData.Length(), &read));
-  // XXX Or should 'read' indicate the actual number of bytes read,
-  // including the encryption overhead?
-  EXPECT_EQ(testParams.mDataSize - accumulatedOffset, read);
-  EXPECT_EQ(Span{data}.SplitAt(accumulatedOffset).second,
-            Span{readData}.First(read).AsConst());
+  DoSeekTest<DummyCipherStrategy>();
 }
+
+TEST_P(ParametrizedSeekCryptTest, NSSCipherStrategy_Seek) {
+  DoSeekTest<NSSCipherStrategy>();
+}
+
+// The data size 244 has been calculated as 256 (block size) minus 8
+// (DummyCipherStrategy::BlockPrefixLength) minus 4
+// (DummyCipherStrategy::BasicBlockSize).
+// The data size 1012 has been calculated as 1024 (block size) minus 8
+// (DummyCipherStrategy::BlockPrefixLength) minus 4
+// (DummyCipherStrategy::BasicBlockSize).
+static_assert(DummyCipherStrategy::BlockPrefixLength == 8);
+static_assert(DummyCipherStrategy::BasicBlockSize == 4);
+
+// The data size 208 has been calculated as 256 (block size) minus 32
+// (NSSCipherStrategy::BlockPrefixLength) minus 16
+// (NSSCipherStrategy::BasicBlockSize).
+// The data size 976 has been calculated as 1024 (block size) minus 32
+// (NSSCipherStrategy::BlockPrefixLength) minus 16
+// (NSSCipherStrategy::BasicBlockSize).
+static_assert(NSSCipherStrategy::BlockPrefixLength == 32);
+static_assert(NSSCipherStrategy::BasicBlockSize == 16);
 
 INSTANTIATE_TEST_SUITE_P(
     DOM_Quota_EncryptedStream_Parametrized, ParametrizedCryptTest,
     testing::Combine(
-        /* dataSize */ testing::Values(0u, 16u, 256u, 512u, 513u),
+        /* dataSize */ testing::Values(0u, 16u, 208u, 244u, 256u, 512u, 513u,
+                                       976u, 1012u),
         /* writeChunkSize */
         testing::Values(ChunkSize::SingleByte, ChunkSize::Unaligned,
                         ChunkSize::DataSize),
@@ -779,7 +825,8 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     DOM_IndexedDB_EncryptedStream_ParametrizedSeek, ParametrizedSeekCryptTest,
     testing::Combine(
-        /* dataSize */ testing::Values(0u, 16u, 256u, 512u, 513u),
+        /* dataSize */ testing::Values(0u, 16u, 208u, 244u, 256u, 512u, 513u,
+                                       976u, 1012u),
         /* blockSize */ testing::Values(256u, 1024u /*, 8192u*/),
         /* seekOperations */
         testing::Values(/* NS_SEEK_SET only, single ops */

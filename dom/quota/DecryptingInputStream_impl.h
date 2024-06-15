@@ -419,6 +419,13 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
   // We positioned after the last block, we must read that to know its size.
   // XXX We could know earlier if we positioned us after the last block.
   if (!readBytes) {
+    // XXX It seems that this check was added to prevent seeking before the
+    // start of the base stream during the Seek call below. However, it also
+    // looks like a check for not allowing seeking past the end of the stream
+    // (by returning NS_ERROR_ILLEGAL_VALUE), but it does that only for one
+    // special case when the stream is empty. In any case, proper checks for
+    // not allowing seeking past the end of the stream should be added
+    // somewhere after the aWhence switch instead of doing it partially here.
     if (baseBlocksOffset == 0) {
       // The stream is empty.
       return aOffset == 0 ? NS_OK : NS_ERROR_ILLEGAL_VALUE;
@@ -434,6 +441,16 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
       // XXX Do we need to do more here? Restore any previous state?
       return rv;
     }
+
+    // XXX Investigate if we can actually remove the extra Seek and
+    // ParseNextChecck above given we don't use readBytes anymore. It seems
+    // this code was added in
+    // https://phabricator.services.mozilla.com/D74669?vs=276120&id=276956#toc
+    // and then there was another revision
+    // https://phabricator.services.mozilla.com/D74669?vs=293270&id=294180#toc
+    // which properly fixed Tell implementation and the Seek and ParseNextCunk
+    // were somehow forgotten to be removed here.
+    readBytes = 0;
   }
 
   mPlainBytes = readBytes;
