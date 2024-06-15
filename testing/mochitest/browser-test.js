@@ -1267,7 +1267,6 @@ Tester.prototype = {
           err
             ? {
                 name: err.message,
-                ex: err.stack,
                 stack: err.stack,
                 allowFailure: currentTest.allowFailure,
               }
