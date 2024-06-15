@@ -358,6 +358,7 @@ class DXGITextureHostD3D11 : public TextureHost {
   already_AddRefed<gfx::DataSourceSurface> GetAsSurface(
       gfx::DataSourceSurface* aSurface) override;
 
+  // Return DataSourceSurface using aDevice withou readback to CPU.
   already_AddRefed<gfx::DataSourceSurface> GetAsSurfaceWithDevice(
       ID3D11Device* const aDevice);
 
@@ -378,6 +379,8 @@ class DXGITextureHostD3D11 : public TextureHost {
                         PushDisplayItemFlagSet aFlags) override;
 
   bool SupportsExternalCompositing(WebRenderBackend aBackend) override;
+
+  DXGITextureHostD3D11* AsDXGITextureHostD3D11() override { return this; }
 
   const RefPtr<gfx::FileHandleWrapper> mHandle;
   const Maybe<GpuProcessTextureId> mGpuProcessTextureId;

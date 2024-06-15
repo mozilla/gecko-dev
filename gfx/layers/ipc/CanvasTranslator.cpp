@@ -1378,7 +1378,8 @@ static bool SDIsSupportedRemoteDecoder(const SurfaceDescriptor& sd) {
 
   if (subdescType == RemoteDecoderVideoSubDescriptor::Tnull_t ||
       subdescType ==
-          RemoteDecoderVideoSubDescriptor::TSurfaceDescriptorMacIOSurface) {
+          RemoteDecoderVideoSubDescriptor::TSurfaceDescriptorMacIOSurface ||
+      subdescType == RemoteDecoderVideoSubDescriptor::TSurfaceDescriptorD3D10) {
     return true;
   }
 
@@ -1467,6 +1468,37 @@ CanvasTranslator::LookupSourceSurfaceFromSurfaceDescriptor(
     gfxCriticalNote << "TexUnpackSurface failed to get TextureHost";
     return nullptr;
   }
+
+#if defined(XP_WIN)
+  if (subdescType == RemoteDecoderVideoSubDescriptor::TSurfaceDescriptorD3D10) {
+    auto* textureHostD3D11 = texture->AsDXGITextureHostD3D11();
+    if (!textureHostD3D11) {
+      MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+      return nullptr;
+    }
+    auto& usedSurf = mUsedDataSurfaceForSurfaceDescriptor;
+    auto& usedDescriptor = mUsedSurfaceDescriptorForSurfaceDescriptor;
+
+    if (usedDescriptor.isSome() && usedDescriptor.ref() == sdrd) {
+      MOZ_ASSERT(usedSurf);
+      MOZ_ASSERT(texture->GetSize() == usedSurf->GetSize());
+
+      // Since the data is the same as before, the DataSourceSurfaceWrapper can
+      // be reused.
+      return do_AddRef(usedSurf);
+    }
+
+    usedSurf = textureHostD3D11->GetAsSurfaceWithDevice(mDevice);
+    if (!usedSurf) {
+      MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+      usedDescriptor = Nothing();
+      return nullptr;
+    }
+    usedDescriptor = Some(sdrd);
+
+    return do_AddRef(usedSurf);
+  }
+#endif
 
   if (subdescType ==
       RemoteDecoderVideoSubDescriptor::TSurfaceDescriptorMacIOSurface) {
