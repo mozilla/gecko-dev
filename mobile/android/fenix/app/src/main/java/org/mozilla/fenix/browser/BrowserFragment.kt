@@ -47,6 +47,7 @@ import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
@@ -118,6 +119,8 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
             feltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
         )
+
+        updateBrowserToolbarMenuVisibility()
 
         val readerModeAction =
             BrowserToolbar.ToggleButton(
@@ -498,6 +501,12 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         browserToolbarView.view.invalidateActions()
     }
 
+    private fun updateBrowserToolbarMenuVisibility() {
+        browserToolbarView.updateMenuVisibility(
+            isVisible = !requireContext().shouldAddNavigationBar(),
+        )
+    }
+
     @VisibleForTesting
     internal fun updateAddressBarLeadingAction(
         redesignEnabled: Boolean,
@@ -542,6 +551,8 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
             feltPrivateBrowsingEnabled = requireContext().settings().feltPrivateBrowsingEnabled,
         )
+
+        updateBrowserToolbarMenuVisibility()
     }
 
     @VisibleForTesting

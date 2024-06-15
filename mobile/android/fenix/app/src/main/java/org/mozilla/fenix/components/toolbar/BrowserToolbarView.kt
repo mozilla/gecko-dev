@@ -210,7 +210,6 @@ class BrowserToolbarView(
                     lifecycleOwner,
                     sessionId = null,
                     isPrivate = components.core.store.state.selectedTab?.content?.private ?: false,
-                    isNavBarEnabled = isNavBarEnabled,
                     interactor = interactor,
                 )
             }
@@ -249,6 +248,23 @@ class BrowserToolbarView(
 
     fun dismissMenu() {
         view.dismissMenu()
+    }
+
+    /**
+     * Updates the visibility of the menu in the toolbar.
+     */
+    fun updateMenuVisibility(isVisible: Boolean) {
+        with(view) {
+            if (isVisible) {
+                showMenuButton()
+                setDisplayHorizontalPadding(
+                    context.resources.getDimensionPixelSize(R.dimen.browser_fragment_display_toolbar_padding),
+                )
+            } else {
+                hideMenuButton()
+                setDisplayHorizontalPadding(0)
+            }
+        }
     }
 
     /**

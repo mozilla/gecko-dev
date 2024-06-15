@@ -89,7 +89,6 @@ class DefaultToolbarIntegration(
     lifecycleOwner: LifecycleOwner,
     sessionId: String? = null,
     isPrivate: Boolean,
-    isNavBarEnabled: Boolean = false,
     interactor: BrowserToolbarInteractor,
 ) : ToolbarIntegration(
     context = context,
@@ -122,15 +121,6 @@ class DefaultToolbarIntegration(
             DisplayToolbar.Indicators.EMPTY,
             DisplayToolbar.Indicators.HIGHLIGHT,
         )
-
-        if (isNavBarEnabled) {
-            toolbar.hideMenuButton()
-            toolbar.setDisplayHorizontalPadding(
-                context.resources.getDimensionPixelSize(
-                    R.dimen.browser_fragment_display_toolbar_padding,
-                ),
-            )
-        }
 
         val tabCounterMenu = FenixTabCounterMenu(
             context = context,
