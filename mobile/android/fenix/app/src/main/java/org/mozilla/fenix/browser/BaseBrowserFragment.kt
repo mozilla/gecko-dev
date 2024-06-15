@@ -369,6 +369,14 @@ abstract class BaseBrowserFragment :
 
         requireContext().accessibilityManager.addAccessibilityStateChangeListener(this)
 
+        requireComponents.backgroundServices.closeSyncedTabsCommandReceiver.register(
+            observer = CloseLastSyncedTabObserver(
+                scope = viewLifecycleOwner.lifecycleScope,
+                navController = findNavController(),
+            ),
+            view = view,
+        )
+
         // DO NOT MOVE ANYTHING BELOW THIS addMarker CALL!
         requireComponents.core.engine.profiler?.addMarker(
             MarkersFragmentLifecycleCallbacks.MARKER_NAME,

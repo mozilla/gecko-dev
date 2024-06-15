@@ -7,9 +7,6 @@ package mozilla.components.feature.accounts.push
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import mozilla.components.browser.state.action.TabListAction
-import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.sync.AccountEvent
 import mozilla.components.concept.sync.AccountEventsObserver
 import mozilla.components.concept.sync.Device
@@ -26,27 +23,21 @@ import mozilla.components.service.fxa.manager.FxaAccountManager
  * See [CloseTabsUseCases] for the ability to close tabs that are open on
  * other devices from this device.
  *
- * @param browserStore The [BrowserStore] that holds the currently open tabs.
+ * @param receiver A [CloseTabsCommandReceiver] to process the received commands.
  * @param accountManager The account manager.
  * @param owner The Android lifecycle owner for the observers. Defaults to
  * the [ProcessLifecycleOwner].
  * @param autoPause Whether or not the observer should automatically be
  * paused/resumed with the bound lifecycle.
- * @param onTabsClosed The callback invoked when one or more tabs are closed.
  */
 class CloseTabsFeature(
-    private val browserStore: BrowserStore,
+    private val receiver: CloseTabsCommandReceiver,
     private val accountManager: FxaAccountManager,
     private val owner: LifecycleOwner = ProcessLifecycleOwner.get(),
     private val autoPause: Boolean = false,
-    onTabsClosed: (Device?, List<String>) -> Unit,
 ) {
     @VisibleForTesting internal val observer = TabsClosedEventsObserver { device, urls ->
-        val tabsToRemove = getTabsToRemove(urls)
-        if (tabsToRemove.isNotEmpty()) {
-            browserStore.dispatch(TabListAction.RemoveTabsAction(tabsToRemove.map { it.id }))
-            onTabsClosed(device, tabsToRemove.map { it.content.url })
-        }
+        receiver.receive(DeviceCommandIncoming.TabsClosed(device, urls))
     }
 
     /**
@@ -54,23 +45,6 @@ class CloseTabsFeature(
      */
     fun observe() {
         accountManager.registerForAccountEvents(observer, owner, autoPause)
-    }
-
-    private fun getTabsToRemove(remotelyClosedUrls: List<String>): List<TabSessionState> {
-        // The user might have the same URL open in multiple tabs on this device, and might want
-        // to remotely close some or all of those tabs. Synced tabs don't carry enough
-        // information to know which duplicates the user meant to close, so we use a heuristic:
-        // if a URL appears N times in the remotely closed URLs list, we'll close up to
-        // N instances of that URL.
-        val countsByUrl = remotelyClosedUrls.groupingBy { it }.eachCount()
-        return browserStore.state.tabs
-            .groupBy { it.content.url }
-            .asSequence()
-            .mapNotNull { (url, tabs) ->
-                countsByUrl[url]?.let { count -> tabs.take(count) }
-            }
-            .flatten()
-            .toList()
     }
 }
 

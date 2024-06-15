@@ -20,6 +20,7 @@ import mozilla.components.concept.sync.DeviceCommandQueue
 import mozilla.components.concept.sync.DeviceConfig
 import mozilla.components.concept.sync.DeviceType
 import mozilla.components.concept.sync.OAuthAccount
+import mozilla.components.feature.accounts.push.CloseTabsCommandReceiver
 import mozilla.components.feature.accounts.push.CloseTabsFeature
 import mozilla.components.feature.accounts.push.FxaPushSupportFeature
 import mozilla.components.feature.accounts.push.SendTabFeature
@@ -178,6 +179,11 @@ class BackgroundServices(
             flushDelay = context.getUndoDelay().milliseconds + DEFAULT_SYNCED_TABS_COMMANDS_EXTRA_FLUSH_DELAY,
         )
     }
+    val closeSyncedTabsCommandReceiver by lazyMonitored {
+        CloseTabsCommandReceiver(context.components.core.store).apply {
+            register(SyncedTabsClosedNotificationObserver(context, notificationManager))
+        }
+    }
 
     @VisibleForTesting(otherwise = PRIVATE)
     fun makeAccountManager(
@@ -224,9 +230,7 @@ class BackgroundServices(
         }
 
         if (context.settings().enableCloseSyncedTabs) {
-            CloseTabsFeature(context.components.core.store, accountManager) { _, remotelyClosedUrls ->
-                notificationManager.showSyncedTabsClosed(context, remotelyClosedUrls.size)
-            }.observe()
+            CloseTabsFeature(closeSyncedTabsCommandReceiver, accountManager).observe()
         }
 
         SyncedTabsIntegration(context, accountManager).launch()
@@ -312,4 +316,17 @@ internal class SyncedTabsCommandsObserver(
     // If the queue is empty when the worker runs, that's OK; the worker
     // won't do anything, and won't run again until the next call to `onAdded`.
     override fun onRemoved() = Unit
+}
+
+/**
+ * A [CloseTabsCommandReceiver.Observer] that shows a status bar notification
+ * when the user closes one or more tabs on this device from another device.
+ */
+internal class SyncedTabsClosedNotificationObserver(
+    private val context: Context,
+    private val notificationManager: NotificationManager,
+) : CloseTabsCommandReceiver.Observer {
+    override fun onTabsClosed(urls: List<String>) {
+        notificationManager.showSyncedTabsClosed(context, urls.size)
+    }
 }
