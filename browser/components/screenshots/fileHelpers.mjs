@@ -12,10 +12,10 @@ const lazy = {};
 // MAX_PATH_LENGTH_WINDOWS - downloadDir length - null terminator character
 // in the function getMaxFilenameLength below.
 export const MAX_PATH_LENGTH_WINDOWS = 259;
+// Windows allows 255 character filenames in the filepicker
 // macOS has a max filename length of 255 characters
 // Linux has a max filename length of 255 bytes
 export const MAX_FILENAME_LENGTH = 255;
-export const FALLBACK_MAX_FILENAME_LENGTH = 64;
 
 ChromeUtils.defineESModuleGetters(lazy, {
   Downloads: "resource://gre/modules/Downloads.sys.mjs",
@@ -28,22 +28,18 @@ ChromeUtils.defineESModuleGetters(lazy, {
 /**
  * macOS and Linux have a max filename of 255.
  * Windows allows 259 as the total path length so we have to calculate the max
- * filename length if the download directory exists. Otherwise we just return a
- * fallback filename length.
+ * filename length if the download directory exists. Otherwise, Windows allows
+ * 255 character filenames in the filepicker.
  *
  * @param {string} downloadDir The current download directory or null
  * @returns {number} The max filename length
  */
 export function getMaxFilenameLength(downloadDir = null) {
-  if (AppConstants.platform !== "win") {
+  if (!downloadDir || AppConstants.platform !== "win") {
     return MAX_FILENAME_LENGTH;
   }
 
-  if (downloadDir) {
-    return MAX_PATH_LENGTH_WINDOWS - downloadDir.length - 1;
-  }
-
-  return FALLBACK_MAX_FILENAME_LENGTH;
+  return MAX_PATH_LENGTH_WINDOWS - downloadDir.length - 1;
 }
 
 /**
