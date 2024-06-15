@@ -23,8 +23,6 @@ if test "$OS_ARCH" = "WINNT"; then
   fi
 fi
 
-BROWSER_CHROME_URL=chrome://browser/content/browser.xhtml
-
 # MOZ_APP_DISPLAYNAME will be set by branding/configure.sh
 # MOZ_BRANDING_DIRECTORY is the default branding directory used when none is
 # specified. It should never point to the "official" branding directory.

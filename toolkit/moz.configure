@@ -26,6 +26,18 @@ project_flag(
     help='used for application.ini\'s "Vendor" field, which also impacts profile location and user-visible fields',
 )
 
+project_flag(
+    env="BROWSER_CHROME_URL",
+    default="",
+    nargs=1,
+    set_as_define=True,
+    help="markup for a single browser window",
+)
+set_define(
+    "BROWSER_CHROME_URL_QUOTED",
+    depends("BROWSER_CHROME_URL")(lambda v: f'"{v[0]}"' if v else ""),
+)
+
 
 @depends("MOZ_APP_VENDOR", build_project)
 def check_moz_app_vendor(moz_app_vendor, build_project):
