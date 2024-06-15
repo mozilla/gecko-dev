@@ -728,6 +728,10 @@ const defaultOptions = {
     value: "",
     kind: OptionKind.API
   },
+  enableHWA: {
+    value: false,
+    kind: OptionKind.API + OptionKind.VIEWER + OptionKind.PREFERENCE
+  },
   enableXfa: {
     value: true,
     kind: OptionKind.API + OptionKind.PREFERENCE
@@ -1397,6 +1401,7 @@ class BasePreferences {
     disableFontFace: false,
     disableRange: false,
     disableStream: false,
+    enableHWA: false,
     enableXfa: true
   });
   #prefs = Object.create(null);
@@ -1581,13 +1586,6 @@ class FirefoxCom {
 }
 class DownloadManager {
   #openBlobUrls = new WeakMap();
-  downloadUrl(url, filename, options = {}) {
-    FirefoxCom.request("download", {
-      originalUrl: url,
-      filename,
-      options
-    });
-  }
   downloadData(data, filename, contentType) {
     const blobUrl = URL.createObjectURL(new Blob([data], {
       type: contentType
@@ -1627,9 +1625,9 @@ class DownloadManager {
     return false;
   }
   download(data, url, filename, options = {}) {
-    const blobUrl = URL.createObjectURL(new Blob([data], {
+    const blobUrl = data ? URL.createObjectURL(new Blob([data], {
       type: "application/pdf"
-    }));
+    })) : null;
     FirefoxCom.request("download", {
       blobUrl,
       originalUrl: url,
@@ -4910,13 +4908,6 @@ class TextLayerBuilder {
     this.div.tabIndex = 0;
     this.div.className = "textLayer";
   }
-  #finishRendering() {
-    this.#renderingDone = true;
-    const endOfContent = document.createElement("div");
-    endOfContent.className = "endOfContent";
-    this.div.append(endOfContent);
-    this.#bindMouse(endOfContent);
-  }
   async render(viewport, textContentParams = null) {
     if (this.#renderingDone && this.#textLayer) {
       this.#textLayer.update({
@@ -4942,7 +4933,11 @@ class TextLayerBuilder {
     this.highlighter?.setTextMapping(textDivs, textContentItemsStr);
     this.accessibilityManager?.setTextMapping(textDivs);
     await this.#textLayer.render();
-    this.#finishRendering();
+    this.#renderingDone = true;
+    const endOfContent = document.createElement("div");
+    endOfContent.className = "endOfContent";
+    this.div.append(endOfContent);
+    this.#bindMouse(endOfContent);
     this.#onAppend?.(this.div);
     this.highlighter?.enable();
     this.accessibilityManager?.enable();
@@ -5053,6 +5048,7 @@ const DEFAULT_LAYER_PROPERTIES = null;
 const LAYERS_ORDER = new Map([["canvasWrapper", 0], ["textLayer", 1], ["annotationLayer", 2], ["annotationEditorLayer", 3], ["xfaLayer", 3]]);
 class PDFPageView {
   #annotationMode = AnnotationMode.ENABLE_FORMS;
+  #enableHWA = false;
   #hasRestrictedScaling = false;
   #layerProperties = null;
   #loadingId = null;
@@ -5085,6 +5081,7 @@ class PDFPageView {
     this.imageResourcesPath = options.imageResourcesPath || "";
     this.maxCanvasPixels = options.maxCanvasPixels ?? AppOptions.get("maxCanvasPixels");
     this.pageColors = options.pageColors || null;
+    this.#enableHWA = options.enableHWA || false;
     this.eventBus = options.eventBus;
     this.renderingQueue = options.renderingQueue;
     this.l10n = options.l10n;
@@ -5666,7 +5663,8 @@ class PDFPageView {
     canvasWrapper.append(canvas);
     this.canvas = canvas;
     const ctx = canvas.getContext("2d", {
-      alpha: false
+      alpha: false,
+      willReadFrequently: !this.#enableHWA
     });
     const outputScale = this.outputScale = new OutputScale();
     if (this.maxCanvasPixels > 0) {
@@ -5855,6 +5853,7 @@ class PDFViewer {
   #annotationEditorUIManager = null;
   #annotationMode = AnnotationMode.ENABLE_FORMS;
   #containerTopLeft = null;
+  #enableHWA = false;
   #enableHighlightFloatingButton = false;
   #enablePermissions = false;
   #eventAbortController = null;
@@ -5868,7 +5867,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.4.16";
+    const viewerVersion = "4.4.34";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -5896,6 +5895,7 @@ class PDFViewer {
     this.#enablePermissions = options.enablePermissions || false;
     this.pageColors = options.pageColors || null;
     this.#mlManager = options.mlManager || null;
+    this.#enableHWA = options.enableHWA || false;
     this.defaultRenderingQueue = !options.renderingQueue;
     this.renderingQueue = options.renderingQueue;
     const {
@@ -6313,7 +6313,8 @@ class PDFViewer {
           maxCanvasPixels: this.maxCanvasPixels,
           pageColors,
           l10n: this.l10n,
-          layerProperties: this._layerProperties
+          layerProperties: this._layerProperties,
+          enableHWA: this.#enableHWA
         });
         this._pages.push(pageView);
       }
@@ -7626,6 +7627,7 @@ const PDFViewerApplication = {
       foreground: AppOptions.get("pageColorsForeground")
     } : null;
     const altTextManager = appConfig.altTextDialog ? new AltTextManager(appConfig.altTextDialog, container, this.overlayManager, eventBus) : null;
+    const enableHWA = AppOptions.get("enableHWA");
     const pdfViewer = new PDFViewer({
       container,
       viewer,
@@ -7648,7 +7650,8 @@ const PDFViewerApplication = {
       enablePermissions: AppOptions.get("enablePermissions"),
       pageColors,
       mlManager: this.mlManager,
-      abortSignal: this._globalAbortController.signal
+      abortSignal: this._globalAbortController.signal,
+      enableHWA
     });
     this.pdfViewer = pdfViewer;
     pdfRenderingQueue.setViewer(pdfViewer);
@@ -7661,7 +7664,8 @@ const PDFViewerApplication = {
         renderingQueue: pdfRenderingQueue,
         linkService: pdfLinkService,
         pageColors,
-        abortSignal: this._globalAbortController.signal
+        abortSignal: this._globalAbortController.signal,
+        enableHWA
       });
       pdfRenderingQueue.setThumbnailViewer(this.pdfThumbnailViewer);
     }
@@ -8000,15 +8004,12 @@ const PDFViewerApplication = {
     throw new Error("PDF document not downloaded.");
   },
   async download(options = {}) {
-    const url = this._downloadUrl,
-      filename = this._docFilename;
+    let data;
     try {
       this._ensureDownloadComplete();
-      const data = await this.pdfDocument.getData();
-      this.downloadManager.download(data, url, filename, options);
-    } catch {
-      this.downloadManager.downloadUrl(url, filename, options);
-    }
+      data = await this.pdfDocument.getData();
+    } catch {}
+    this.downloadManager.download(data, this._downloadUrl, this._docFilename, options);
   },
   async save(options = {}) {
     if (this._saveInProgress) {
@@ -8016,12 +8017,10 @@ const PDFViewerApplication = {
     }
     this._saveInProgress = true;
     await this.pdfScriptingManager.dispatchWillSave();
-    const url = this._downloadUrl,
-      filename = this._docFilename;
     try {
       this._ensureDownloadComplete();
       const data = await this.pdfDocument.saveDocument();
-      this.downloadManager.download(data, url, filename, options);
+      this.downloadManager.download(data, this._downloadUrl, this._docFilename, options);
     } catch (reason) {
       console.error(`Error when saving the document: ${reason.message}`);
       await this.download(options);
@@ -8039,12 +8038,13 @@ const PDFViewerApplication = {
       });
     }
   },
-  downloadOrSave(options = {}) {
-    if (this.pdfDocument?.annotationStorage.size > 0) {
-      this.save(options);
-    } else {
-      this.download(options);
-    }
+  async downloadOrSave(options = {}) {
+    const {
+      classList
+    } = this.appConfig.appContainer;
+    classList.add("wait");
+    await (this.pdfDocument?.annotationStorage.size > 0 ? this.save(options) : this.download(options));
+    classList.remove("wait");
   },
   async _documentError(key, moreInfo = null) {
     this._unblockDocumentLoadEvent();
@@ -9509,8 +9509,8 @@ function webViewerReportTelemetry({
 
 
 
-const pdfjsVersion = "4.4.16";
-const pdfjsBuild = "593ce9683";
+const pdfjsVersion = "4.4.34";
+const pdfjsBuild = "e3caa3c6e";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

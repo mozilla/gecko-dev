@@ -840,10 +840,14 @@ class BaseFilterFactory {
   destroy(keepHCM = false) {}
 }
 class BaseCanvasFactory {
-  constructor() {
+  #enableHWA = false;
+  constructor({
+    enableHWA = false
+  } = {}) {
     if (this.constructor === BaseCanvasFactory) {
       unreachable("Cannot initialize BaseCanvasFactory.");
     }
+    this.#enableHWA = enableHWA;
   }
   create(width, height) {
     if (width <= 0 || height <= 0) {
@@ -852,7 +856,9 @@ class BaseCanvasFactory {
     const canvas = this._createCanvas(width, height);
     return {
       canvas,
-      context: canvas.getContext("2d")
+      context: canvas.getContext("2d", {
+        willReadFrequently: !this.#enableHWA
+      })
     };
   }
   reset(canvasAndContext, width, height) {
@@ -1278,9 +1284,12 @@ class DOMFilterFactory extends BaseFilterFactory {
 }
 class DOMCanvasFactory extends BaseCanvasFactory {
   constructor({
-    ownerDocument = globalThis.document
+    ownerDocument = globalThis.document,
+    enableHWA = false
   } = {}) {
-    super();
+    super({
+      enableHWA
+    });
     this._document = ownerDocument;
   }
   _createCanvas(width, height) {
@@ -1836,7 +1845,9 @@ class ImageManager {
   static get _isSVGFittingCanvas() {
     const svg = `data:image/svg+xml;charset=UTF-8,<svg viewBox="0 0 1 1" width="1" height="1" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" style="fill:red;"/></svg>`;
     const canvas = new OffscreenCanvas(1, 3);
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", {
+      willReadFrequently: true
+    });
     const image = new Image();
     image.src = svg;
     const promise = image.decode().then(() => {
@@ -2175,6 +2186,8 @@ class AnnotationEditorUIManager {
   #boundFocus = this.focus.bind(this);
   #boundCopy = this.copy.bind(this);
   #boundCut = this.cut.bind(this);
+  #boundDragOver = this.dragOver.bind(this);
+  #boundDrop = this.drop.bind(this);
   #boundPaste = this.paste.bind(this);
   #boundKeydown = this.keydown.bind(this);
   #boundKeyup = this.keyup.bind(this);
@@ -2265,6 +2278,7 @@ class AnnotationEditorUIManager {
     this._eventBus._on("scalechanging", this.#boundOnScaleChanging);
     this._eventBus._on("rotationchanging", this.#boundOnRotationChanging);
     this.#addSelectionListener();
+    this.#addDragAndDropListeners();
     this.#addKeyboardManager();
     this.#annotationStorage = pdfDocument.annotationStorage;
     this.#filterFactory = pdfDocument.filterFactory;
@@ -2279,6 +2293,7 @@ class AnnotationEditorUIManager {
     this.isShiftKeyDown = false;
   }
   destroy() {
+    this.#removeDragAndDropListeners();
     this.#removeKeyboardManager();
     this.#removeFocusManager();
     this._eventBus._off("editingaction", this.#boundOnEditingAction);
@@ -2574,6 +2589,14 @@ class AnnotationEditorUIManager {
     document.removeEventListener("cut", this.#boundCut);
     document.removeEventListener("paste", this.#boundPaste);
   }
+  #addDragAndDropListeners() {
+    document.addEventListener("dragover", this.#boundDragOver);
+    document.addEventListener("drop", this.#boundDrop);
+  }
+  #removeDragAndDropListeners() {
+    document.removeEventListener("dragover", this.#boundDragOver);
+    document.removeEventListener("drop", this.#boundDrop);
+  }
   addEditListeners() {
     this.#addKeyboardManager();
     this.#addCopyPasteListeners();
@@ -2581,6 +2604,30 @@ class AnnotationEditorUIManager {
   removeEditListeners() {
     this.#removeKeyboardManager();
     this.#removeCopyPasteListeners();
+  }
+  dragOver(event) {
+    for (const {
+      type
+    } of event.dataTransfer.items) {
+      for (const editorType of this.#editorTypes) {
+        if (editorType.isHandlingMimeForPasting(type)) {
+          event.dataTransfer.dropEffect = "copy";
+          event.preventDefault();
+          return;
+        }
+      }
+    }
+  }
+  drop(event) {
+    for (const item of event.dataTransfer.items) {
+      for (const editorType of this.#editorTypes) {
+        if (editorType.isHandlingMimeForPasting(item.type)) {
+          editorType.paste(item, this.currentLayer);
+          event.preventDefault();
+          return;
+        }
+      }
+    }
   }
   copy(event) {
     event.preventDefault();
@@ -9137,7 +9184,8 @@ class TextLayer {
       canvas.lang = lang;
       document.body.append(canvas);
       canvasContext = canvas.getContext("2d", {
-        alpha: false
+        alpha: false,
+        willReadFrequently: true
       });
       this.#canvasContexts.set(lang, canvasContext);
     }
@@ -9299,11 +9347,13 @@ function getDocument(src) {
   const disableStream = src.disableStream === true;
   const disableAutoFetch = src.disableAutoFetch === true;
   const pdfBug = src.pdfBug === true;
+  const enableHWA = src.enableHWA === true;
   const length = rangeTransport ? rangeTransport.length : src.length ?? NaN;
   const useSystemFonts = typeof src.useSystemFonts === "boolean" ? src.useSystemFonts : !isNodeJS && !disableFontFace;
   const useWorkerFetch = typeof src.useWorkerFetch === "boolean" ? src.useWorkerFetch : true;
   const canvasFactory = src.canvasFactory || new DefaultCanvasFactory({
-    ownerDocument
+    ownerDocument,
+    enableHWA
   });
   const filterFactory = src.filterFactory || new DefaultFilterFactory({
     docId,
@@ -9334,7 +9384,7 @@ function getDocument(src) {
   }
   const docParams = {
     docId,
-    apiVersion: "4.4.16",
+    apiVersion: "4.4.34",
     data,
     password,
     disableAutoFetch,
@@ -10989,8 +11039,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "4.4.16";
-const build = "593ce9683";
+const version = "4.4.34";
+const build = "e3caa3c6e";
 
 ;// CONCATENATED MODULE: ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -17872,8 +17922,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "4.4.16";
-const pdfjsBuild = "593ce9683";
+const pdfjsVersion = "4.4.34";
+const pdfjsBuild = "e3caa3c6e";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;
