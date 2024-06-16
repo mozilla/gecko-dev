@@ -639,7 +639,8 @@ enum struct SeekOffset {
   MinusHalfDataSize,
   PlusHalfDataSize,
   PlusDataSize,
-  MinusDataSize
+  MinusDataSize,
+  PlusOne
 };
 using SeekOp = std::tuple<int32_t, SeekOffset, nsresult>;
 
@@ -695,6 +696,9 @@ std::string SeekTestParamToString(
       case SeekOffset::PlusDataSize:
         ss << "PlusDataSize";
         break;
+      case SeekOffset::PlusOne:
+        ss << "PlusOne";
+        break;
     };
   }
   return ss.str();
@@ -740,25 +744,49 @@ class ParametrizedSeekCryptTest
             return -static_cast<int64_t>(dataSize);
           case SeekOffset::PlusDataSize:
             return static_cast<int64_t>(dataSize);
+          case SeekOffset::PlusOne:
+            return 1;
         }
         MOZ_CRASH("Unknown SeekOffset");
       }();
-      switch (std::get<0>(seekOp)) {
-        case nsISeekableStream::NS_SEEK_SET:
-          accumulatedOffset = offset;
-          break;
-        case nsISeekableStream::NS_SEEK_CUR:
-          accumulatedOffset += offset;
-          break;
-        case nsISeekableStream::NS_SEEK_END:
-          accumulatedOffset = testParams.mDataSize + offset;
-          break;
-        default:
-          MOZ_CRASH("Unknown whence");
-      }
       nsresult rv = inStream->Seek(std::get<0>(seekOp), offset);
-      EXPECT_EQ(std::get<2>(seekOp), rv);
-      EXPECT_EQ(NS_OK, rv);
+      // XXX Need special handling of the result value for this specific case
+      // for now.
+      if (std::get<0>(seekOp) == nsISeekableStream::NS_SEEK_END &&
+          std::get<1>(seekOp) == SeekOffset::PlusOne &&
+          testParams.mDataSize != 0) {
+        // XXX We check seeking past the end of the stream only for zero sized
+        // streams!
+        // XXX Seeking past the end of the stream is allowed for other data
+        // sizes!
+        EXPECT_EQ(NS_OK, rv);
+      } else {
+        EXPECT_EQ(std::get<2>(seekOp), rv);
+      }
+      // XXX Need to skip remaining checks for this specific case for now.
+      if (std::get<0>(seekOp) == nsISeekableStream::NS_SEEK_END &&
+          std::get<1>(seekOp) == SeekOffset::PlusOne &&
+          testParams.mDataSize != 0) {
+        // XXX The seek operation leaves invalid state after positioning past
+        // the end of the stream (despite returning NS_OK), other checks must
+        // be skipped because of that!
+        return;
+      }
+      if (NS_SUCCEEDED(rv)) {
+        switch (std::get<0>(seekOp)) {
+          case nsISeekableStream::NS_SEEK_SET:
+            accumulatedOffset = offset;
+            break;
+          case nsISeekableStream::NS_SEEK_CUR:
+            accumulatedOffset += offset;
+            break;
+          case nsISeekableStream::NS_SEEK_END:
+            accumulatedOffset = testParams.mDataSize + offset;
+            break;
+          default:
+            MOZ_CRASH("Unknown whence");
+        }
+      }
     }
 
     {
@@ -858,5 +886,8 @@ INSTANTIATE_TEST_SUITE_P(
                                              SeekOffset::MinusDataSize, NS_OK}},
                         std::vector<SeekOp>{{nsISeekableStream::NS_SEEK_END,
                                              SeekOffset::MinusHalfDataSize,
-                                             NS_OK}})),
+                                             NS_OK}},
+                        std::vector<SeekOp>{{nsISeekableStream::NS_SEEK_END,
+                                             SeekOffset::PlusOne,
+                                             NS_ERROR_ILLEGAL_VALUE}})),
     SeekTestParamToString);
