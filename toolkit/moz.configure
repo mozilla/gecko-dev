@@ -1522,7 +1522,6 @@ option(
     help="{Enable|Disable} support for RAW media",
 )
 
-set_config("MOZ_RAW", depends_if("--enable-raw")(lambda _: True))
 set_define("MOZ_RAW", depends_if("--enable-raw")(lambda _: True))
 
 

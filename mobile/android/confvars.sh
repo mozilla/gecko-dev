@@ -5,5 +5,3 @@
 MOZ_BRANDING_DIRECTORY=mobile/android/branding/unofficial
 MOZ_OFFICIAL_BRANDING_DIRECTORY=mobile/android/branding/official
 # MOZ_APP_DISPLAYNAME is set by branding/configure.sh
-
-MOZ_RAW=1
