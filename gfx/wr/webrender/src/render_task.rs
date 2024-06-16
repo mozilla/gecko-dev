@@ -196,7 +196,6 @@ pub struct PrimTask {
     pub transform_id: TransformPaletteId,
     pub edge_flags: EdgeAaSegmentMask,
     pub quad_flags: QuadFlags,
-    pub clip_node_range: ClipNodeRange,
     pub prim_needs_scissor_rect: bool,
 }
 
@@ -544,7 +543,6 @@ impl RenderTaskKind {
         transform_id: TransformPaletteId,
         edge_flags: EdgeAaSegmentMask,
         quad_flags: QuadFlags,
-        clip_node_range: ClipNodeRange,
         prim_needs_scissor_rect: bool,
     ) -> Self {
         RenderTaskKind::Prim(PrimTask {
@@ -557,7 +555,6 @@ impl RenderTaskKind {
             transform_id,
             edge_flags,
             quad_flags,
-            clip_node_range,
             prim_needs_scissor_rect,
         })
     }

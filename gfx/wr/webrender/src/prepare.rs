@@ -120,10 +120,6 @@ fn can_use_clip_chain_for_quad_path(
         let clip_node = &data_stores.clip[clip_instance.handle];
 
         match clip_node.item.kind {
-            ClipItemKind::Rectangle { mode: ClipMode::ClipOut, .. } |
-            ClipItemKind::RoundedRectangle { mode: ClipMode::ClipOut, .. } => {
-                return false;
-            }
             ClipItemKind::RoundedRectangle { .. } | ClipItemKind::Rectangle { .. } => {}
             ClipItemKind::BoxShadow { .. } => {
                 // legacy path for box-shadows for now (move them to a separate primitive next)

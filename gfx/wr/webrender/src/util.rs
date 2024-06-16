@@ -349,6 +349,13 @@ impl ScaleOffset {
         )
     }
 
+    pub fn map_size<F, T>(&self, size: &Size2D<f32, F>) -> Size2D<f32, T> {
+        Size2D::new(
+            size.width * self.scale.x,
+            size.height * self.scale.y,
+        )
+    }
+
     pub fn unmap_vector<F, T>(&self, vector: &Vector2D<f32, F>) -> Vector2D<f32, T> {
         Vector2D::new(
             vector.x / self.scale.x,
@@ -675,6 +682,17 @@ pub fn extract_inner_rect_safe<U>(
     // value of `k==1.0` is used for extraction of the corner rectangles
     // see `SEGMENT_CORNER_*` in `clip_shared.glsl`
     extract_inner_rect_impl(rect, radii, 1.0)
+}
+
+/// Return an aligned rectangle that is inside the clip region and doesn't intersect
+/// any of the bounding rectangles of the rounded corners, with a specific k factor
+/// to control how much of the rounded corner is included.
+pub fn extract_inner_rect_k<U>(
+    rect: &Box2D<f32, U>,
+    radii: &BorderRadius,
+    k: f32,
+) -> Option<Box2D<f32, U>> {
+    extract_inner_rect_impl(rect, radii, k)
 }
 
 #[cfg(test)]
