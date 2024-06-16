@@ -27,6 +27,13 @@ project_flag(
 )
 
 project_flag(
+    env="MOZ_APP_UA_NAME",
+    default="",
+    nargs=1,
+    help="application name in the User Agent string",
+)
+
+project_flag(
     env="MOZ_DEVTOOLS",
     default="server",
     choices=("all", "server"),
