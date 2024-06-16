@@ -624,6 +624,7 @@ input:checked + .slider::before {
   cursor: default;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Ubuntu", "Helvetica Neue", sans-serif;
   font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
   user-select: none;
   width: 16ch;
   grid-area: timestamp;
