@@ -50,7 +50,6 @@ describe("ASRouter", () => {
   let FakeToolbarBadgeHub;
   let FakeMomentsPageHub;
   let ASRouterTargeting;
-  let gBrowser;
   let screenImpressions;
 
   function setMessageProviderPref(value) {
@@ -172,12 +171,6 @@ describe("ASRouter", () => {
         userId: "adsf",
       },
     };
-    gBrowser = {
-      selectedBrowser: {
-        constructor: { name: "MozBrowser" },
-        getTabBrowser: () => gBrowser,
-      },
-    };
 
     ASRouterPreferences.specialConditions = {
       someCondition: true,
@@ -243,7 +236,7 @@ describe("ASRouter", () => {
       ASRouterTargeting,
       ASRouterTriggerListeners,
       QueryCache,
-      gBrowser,
+      gBrowser: { selectedBrowser: {} },
       gURLBar: {},
       isSeparateAboutWelcome: true,
       AttributionCode: fakeAttributionCode,
@@ -1598,7 +1591,7 @@ describe("ASRouter", () => {
 
       await Router.sendTriggerMessage({
         tabId: 0,
-        browser: gBrowser.selectedBrowser,
+        browser: {},
         id: "firstRun",
       });
 
@@ -1608,7 +1601,7 @@ describe("ASRouter", () => {
         {
           id: "firstRun",
           param: undefined,
-          context: { browserIsSelected: true },
+          context: undefined,
         }
       );
     });
