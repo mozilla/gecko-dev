@@ -313,94 +313,94 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
+  // Can't call this just in NS_SEEK_CUR case, because getting the decrypted
+  // size below changes the current position.
+  int64_t current;
+  nsresult rv = Tell(&current);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  // XXX The size of the stream could also be queried and stored once only.
+  auto decryptedStreamSizeOrErr = [this]() -> Result<int64_t, nsresult> {
+    nsresult rv = (*mBaseSeekableStream)->Seek(NS_SEEK_SET, 0);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return Err(rv);
+    }
+
+    uint64_t baseStreamSize;
+    rv = (*mBaseStream)->Available(&baseStreamSize);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return Err(rv);
+    }
+
+    if (!baseStreamSize) {
+      return 0;
+    }
+
+    rv = (*mBaseSeekableStream)
+             ->Seek(NS_SEEK_END, -static_cast<int64_t>(*mBlockSize));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return Err(rv);
+    }
+
+    mNextByte = 0;
+    mPlainBytes = 0;
+
+    uint32_t bytesRead;
+    rv = ParseNextChunk(&bytesRead);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return Err(rv);
+    }
+    MOZ_ASSERT(bytesRead);
+
+    // XXX Shouldn't ParseNextChunk better update mPlainBytes?
+    mPlainBytes = bytesRead;
+
+    mNextByte = bytesRead;
+
+    int64_t current;
+    rv = Tell(&current);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return Err(rv);
+    }
+
+    return current;
+  }();
+
+  if (decryptedStreamSizeOrErr.isErr()) {
+    return decryptedStreamSizeOrErr.unwrapErr();
+  }
+
   int64_t baseBlocksOffset;
   int64_t nextByteOffset;
   switch (aWhence) {
     case NS_SEEK_CUR:
       // XXX Simplify this without using Tell.
-      {
-        int64_t current;
-        nsresult rv = Tell(&current);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-          return rv;
-        }
-
-        aOffset += current;
-      }
+      aOffset += current;
       break;
+
     case NS_SEEK_SET:
       break;
 
     case NS_SEEK_END:
       // XXX Simplify this without using Seek/Tell.
-      {
-        // XXX The size of the stream could also be queried and stored once
-        // only.
-        nsresult rv = (*mBaseSeekableStream)->Seek(NS_SEEK_SET, 0);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-          return rv;
-        }
-
-        uint64_t baseStreamSize;
-        rv = (*mBaseStream)->Available(&baseStreamSize);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-          return rv;
-        }
-
-        auto decryptedStreamSizeOrErr = [baseStreamSize,
-                                         this]() -> Result<int64_t, nsresult> {
-          if (!baseStreamSize) {
-            return 0;
-          }
-
-          nsresult rv =
-              (*mBaseSeekableStream)
-                  ->Seek(NS_SEEK_END, -static_cast<int64_t>(*mBlockSize));
-          if (NS_WARN_IF(NS_FAILED(rv))) {
-            return Err(rv);
-          }
-
-          mNextByte = 0;
-          mPlainBytes = 0;
-
-          uint32_t bytesRead;
-          rv = ParseNextChunk(&bytesRead);
-          if (NS_WARN_IF(NS_FAILED(rv))) {
-            return Err(rv);
-          }
-          MOZ_ASSERT(bytesRead);
-
-          // XXX Shouldn't ParseNextChunk better update mPlainBytes?
-          mPlainBytes = bytesRead;
-
-          mNextByte = bytesRead;
-
-          int64_t current;
-          rv = Tell(&current);
-          if (NS_WARN_IF(NS_FAILED(rv))) {
-            return Err(rv);
-          }
-
-          return current;
-        }();
-
-        if (decryptedStreamSizeOrErr.isErr()) {
-          return decryptedStreamSizeOrErr.unwrapErr();
-        }
-
-        aOffset += decryptedStreamSizeOrErr.unwrap();
-      }
+      aOffset += decryptedStreamSizeOrErr.inspect();
       break;
 
     default:
       return NS_ERROR_ILLEGAL_VALUE;
   }
 
+  if (aOffset < 0 || aOffset > decryptedStreamSizeOrErr.inspect()) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
+
   baseBlocksOffset = aOffset / mEncryptedBlock->MaxPayloadLength();
   nextByteOffset = aOffset % mEncryptedBlock->MaxPayloadLength();
 
   // XXX If we remain in the same block as before, we can skip this.
-  nsresult rv =
+  rv =
       (*mBaseSeekableStream)->Seek(NS_SEEK_SET, baseBlocksOffset * *mBlockSize);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -420,15 +420,10 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
   // XXX We could know earlier if we positioned us after the last block.
   if (!readBytes) {
     // XXX It seems that this check was added to prevent seeking before the
-    // start of the base stream during the Seek call below. However, it also
-    // looks like a check for not allowing seeking past the end of the stream
-    // (by returning NS_ERROR_ILLEGAL_VALUE), but it does that only for one
-    // special case when the stream is empty. In any case, proper checks for
-    // not allowing seeking past the end of the stream should be added
-    // somewhere after the aWhence switch instead of doing it partially here.
+    // start of the base stream during the Seek call below.
     if (baseBlocksOffset == 0) {
       // The stream is empty.
-      return aOffset == 0 ? NS_OK : NS_ERROR_ILLEGAL_VALUE;
+      return NS_OK;
     }
 
     nsresult rv = (*mBaseSeekableStream)->Seek(NS_SEEK_CUR, -*mBlockSize);

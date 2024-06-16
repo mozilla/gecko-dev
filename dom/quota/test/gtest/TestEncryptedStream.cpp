@@ -762,26 +762,23 @@ class ParametrizedSeekCryptTest
         MOZ_CRASH("Unknown SeekOffset");
       }();
       nsresult rv = inStream->Seek(std::get<0>(seekOp), offset);
-      // XXX Need special handling of the result value for this specific case
-      // for now.
-      if (std::get<0>(seekOp) == nsISeekableStream::NS_SEEK_END &&
-          std::get<1>(seekOp) == SeekOffset::PlusOne &&
-          testParams.mDataSize != 0) {
-        // XXX We check seeking past the end of the stream only for zero sized
-        // streams!
-        // XXX Seeking past the end of the stream is allowed for other data
-        // sizes!
-        EXPECT_EQ(NS_OK, rv);
-      } else {
-        EXPECT_EQ(std::get<2>(seekOp), rv);
-      }
+      EXPECT_EQ(std::get<2>(seekOp), rv);
       // XXX Need to skip remaining checks for this specific case for now.
       if (std::get<0>(seekOp) == nsISeekableStream::NS_SEEK_END &&
           std::get<1>(seekOp) == SeekOffset::PlusOne &&
           testParams.mDataSize != 0) {
-        // XXX The seek operation leaves invalid state after positioning past
-        // the end of the stream (despite returning NS_OK), other checks must
-        // be skipped because of that!
+        // XXX The seek operation leaves invalid state after trying to position
+        // past the end of the stream, other checks must be skipped because of
+        // that!
+        return;
+      }
+      // XXX Need to skip remaining checks for this specific case for now.
+      if (std::get<0>(seekOp) == nsISeekableStream::NS_SEEK_CUR &&
+          std::get<1>(seekOp) == SeekOffset::MinusOne &&
+          testParams.mDataSize != 0) {
+        // XXX The seek operation leaves invalid state after trying to position
+        // before the start of the stream, other checks must be skipped because
+        // of that!
         return;
       }
       // XXX Need to skip remaining checks for this specific case for now.
