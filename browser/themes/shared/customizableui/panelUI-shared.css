@@ -189,14 +189,6 @@ panelview {
   &:not([visible]) {
     visibility: collapse;
   }
-
-  /* Prevent a scrollbar from appearing while the animation for transitioning from
-    one view to another runs, which would otherwise happen if the new view has
-    more height than the old one because that would mean that during the
-    animation the height of the multiview will be too short for the new view. */
-  &[transitioning] > .panel-viewcontainer > .panel-viewstack > panelview > .panel-subview-body {
-    overflow-y: hidden;
-  }
 }
 
 .panel-viewcontainer {
