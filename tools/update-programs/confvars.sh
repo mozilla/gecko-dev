@@ -4,6 +4,3 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 MOZ_BRANDING_DIRECTORY=browser/branding/unofficial
-
-# Build the updater by default.  Use --disable-updater to not.
-MOZ_UPDATER=1
