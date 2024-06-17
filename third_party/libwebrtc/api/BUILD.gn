@@ -79,6 +79,7 @@ if (!build_with_chromium && !build_with_mozilla) {
     ]
     deps = [
       ":enable_media",
+      ":field_trials_view",
       ":libjingle_peerconnection_api",
       ":scoped_refptr",
       "../api/rtc_event_log:rtc_event_log_factory",
@@ -87,6 +88,7 @@ if (!build_with_chromium && !build_with_mozilla) {
       "../pc:peer_connection_factory",
       "../pc:webrtc_sdp",
       "../rtc_base:threading",
+      "../rtc_base/system:rtc_export",
       "../stats:rtc_stats",
       "audio:audio_mixer_api",
       "audio_codecs:audio_codecs_api",

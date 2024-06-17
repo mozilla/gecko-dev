@@ -16,10 +16,12 @@
 #include "api/audio/audio_mixer.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
 #include "api/audio_codecs/audio_encoder_factory.h"
+#include "api/field_trials_view.h"
 #include "api/peer_connection_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/video_codecs/video_decoder_factory.h"
 #include "api/video_codecs/video_encoder_factory.h"
+#include "rtc_base/system/rtc_export.h"
 
 namespace rtc {
 // TODO(bugs.webrtc.org/9987): Move rtc::Thread to api/ or expose a better
