@@ -8,7 +8,7 @@
   font-size: 12px;
   line-height: 1.5;
   background-color: var(--theme-body-alternate-emphasized-background);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: system-ui;
   border-block-end: 1px solid var(--theme-toolbar-separator);
 }
 

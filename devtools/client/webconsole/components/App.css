@@ -489,7 +489,7 @@ body {
   padding: 8px 16px;
   background-color: var(--theme-body-alternate-emphasized-background);
   grid-gap: 0 14px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: system-ui;
   font-size: 12px;
   line-height: 1.5;
 }
