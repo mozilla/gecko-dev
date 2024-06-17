@@ -11,6 +11,7 @@ pub mod ffi {
     use crate::locale::ffi::ICU4XLocale;
     use crate::provider::ffi::ICU4XDataProvider;
     use alloc::boxed::Box;
+    use icu_calendar::types::IsoWeekday;
     use icu_calendar::week::{RelativeUnit, WeekCalculator};
 
     #[diplomat::rust_link(icu::calendar::week::RelativeUnit, Enum)]
@@ -22,6 +23,7 @@ pub mod ffi {
     }
 
     #[diplomat::rust_link(icu::calendar::week::WeekOf, Struct)]
+    #[diplomat::out]
     pub struct ICU4XWeekOf {
         pub week: u16,
         pub unit: ICU4XWeekRelativeUnit,
@@ -34,6 +36,7 @@ pub mod ffi {
     impl ICU4XWeekCalculator {
         /// Creates a new [`ICU4XWeekCalculator`] from locale data.
         #[diplomat::rust_link(icu::calendar::week::WeekCalculator::try_new, FnInStruct)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors), constructor)]
         pub fn create(
             provider: &ICU4XDataProvider,
             locale: &ICU4XLocale,
@@ -59,6 +62,7 @@ pub mod ffi {
             StructField,
             compact
         )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "from_first_day_of_week_and_min_week_days")]
         pub fn create_from_first_day_of_week_and_min_week_days(
             first_weekday: ICU4XIsoWeekday,
             min_week_days: u8,
@@ -71,15 +75,48 @@ pub mod ffi {
 
         /// Returns the weekday that starts the week for this object's locale
         #[diplomat::rust_link(icu::calendar::week::WeekCalculator::first_weekday, StructField)]
+        #[diplomat::attr(supports = accessors, getter)]
         pub fn first_weekday(&self) -> ICU4XIsoWeekday {
             self.0.first_weekday.into()
         }
         /// The minimum number of days overlapping a year required for a week to be
         /// considered part of that year
         #[diplomat::rust_link(icu::calendar::week::WeekCalculator::min_week_days, StructField)]
+        #[diplomat::attr(supports = accessors, getter)]
         pub fn min_week_days(&self) -> u8 {
             self.0.min_week_days
         }
+
+        #[diplomat::rust_link(icu::calendar::week::WeekCalculator::weekend, FnInStruct)]
+        #[diplomat::attr(supports = accessors, getter)]
+        pub fn weekend(&self) -> ICU4XWeekendContainsDay {
+            let mut contains = ICU4XWeekendContainsDay::default();
+            for day in self.0.weekend() {
+                match day {
+                    IsoWeekday::Monday => contains.monday = true,
+                    IsoWeekday::Tuesday => contains.tuesday = true,
+                    IsoWeekday::Wednesday => contains.wednesday = true,
+                    IsoWeekday::Thursday => contains.thursday = true,
+                    IsoWeekday::Friday => contains.friday = true,
+                    IsoWeekday::Saturday => contains.saturday = true,
+                    IsoWeekday::Sunday => contains.sunday = true,
+                }
+            }
+            contains
+        }
+    }
+
+    /// Documents which days of the week are considered to be a part of the weekend
+    #[diplomat::rust_link(icu::calendar::week::WeekCalculator::weekend, FnInStruct)]
+    #[derive(Default)]
+    pub struct ICU4XWeekendContainsDay {
+        pub monday: bool,
+        pub tuesday: bool,
+        pub wednesday: bool,
+        pub thursday: bool,
+        pub friday: bool,
+        pub saturday: bool,
+        pub sunday: bool,
     }
 }
 

@@ -13,12 +13,11 @@
 edition = "2021"
 rust-version = "1.67"
 name = "icu_capi"
-version = "1.4.0"
+version = "1.5.0"
 authors = ["The ICU4X Project Developers"]
 include = [
-    "js/**/*",
-    "c/**/*",
-    "cpp/**/*",
+    "bindings/**/*",
+    "!bindings/dart/**/*",
     "src/**/*",
     "tests/**/*",
     "Cargo.toml",
@@ -29,7 +28,7 @@ description = "C interface to ICU4X"
 homepage = "https://icu4x.unicode.org"
 readme = "README.md"
 categories = ["internationalization"]
-license-file = "LICENSE"
+license = "Unicode-3.0"
 repository = "https://github.com/unicode-org/icu4x"
 
 [package.metadata.cargo-all-features]
@@ -45,126 +44,127 @@ max_combination_size = 2
 all-features = true
 
 [dependencies.diplomat]
-version = "0.7"
+version = "0.8"
 
 [dependencies.diplomat-runtime]
-version = "0.7"
+version = "0.8"
 
 [dependencies.fixed_decimal]
-version = "0.5.5"
+version = "0.5.6"
 features = ["ryu"]
 optional = true
 default-features = false
 
 [dependencies.icu_calendar]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.icu_casemap]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.icu_collator]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.icu_collections]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.icu_datetime]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.icu_decimal]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
-[dependencies.icu_displaynames]
-version = "0.11.2"
+[dependencies.icu_experimental]
+version = "~0.1.0"
 optional = true
 default-features = false
 
 [dependencies.icu_list]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.icu_locid]
-version = "~1.4.0"
+version = "~1.5.0"
 default-features = false
 
 [dependencies.icu_locid_transform]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.icu_normalizer]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.icu_plurals]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.icu_properties]
-version = "~1.4.0"
+version = "~1.5.0"
 features = ["bidi"]
 optional = true
 default-features = false
 
 [dependencies.icu_provider]
-version = "~1.4.0"
+version = "~1.5.0"
 default-features = false
 
 [dependencies.icu_provider_adapters]
-version = "~1.4.0"
+version = "~1.5.0"
 default-features = false
 
 [dependencies.icu_provider_blob]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.icu_segmenter]
-version = "~1.4.0"
+version = "~1.5.0"
 features = ["auto"]
 optional = true
 default-features = false
 
 [dependencies.icu_timezone]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.log]
-version = "0.4"
+version = "0.4.17"
 optional = true
+default-features = false
 
 [dependencies.serde]
-version = "1.0"
+version = "1.0.110"
 optional = true
 default-features = false
 
 [dependencies.tinystr]
-version = "0.7.4"
+version = "0.7.5"
 default-features = false
 
 [dependencies.unicode-bidi]
-version = "0.3.13"
+version = "0.3.11"
 optional = true
 default-features = false
 
 [dependencies.writeable]
-version = "0.5.4"
+version = "0.5.5"
 default-features = false
 
 [features]
@@ -177,7 +177,6 @@ buffer_provider = [
     "icu_collator?/serde",
     "icu_datetime?/serde",
     "icu_decimal?/serde",
-    "icu_displaynames?/serde",
     "icu_list?/serde",
     "icu_locid_transform?/serde",
     "icu_locid/serde",
@@ -188,8 +187,10 @@ buffer_provider = [
     "icu_provider_adapters/serde",
     "icu_segmenter?/serde",
     "icu_timezone?/serde",
+    "icu_experimental?/serde",
 ]
 compiled_data = [
+    "icu_properties?/compiled_data",
     "icu_segmenter?/compiled_data",
 ]
 cpp_default = ["logging"]
@@ -198,6 +199,7 @@ default = [
     "default_components",
     "logging",
     "simple_logger",
+    "std",
 ]
 default_components = [
     "icu_calendar",
@@ -213,6 +215,7 @@ default_components = [
     "icu_segmenter",
     "icu_timezone",
 ]
+experimental_components = ["dep:icu_experimental"]
 icu_calendar = ["dep:icu_calendar"]
 icu_casemap = ["dep:icu_casemap"]
 icu_collator = ["dep:icu_collator"]
@@ -227,7 +230,6 @@ icu_decimal = [
     "dep:icu_decimal",
     "dep:fixed_decimal",
 ]
-icu_displaynames = ["dep:icu_displaynames"]
 icu_list = ["dep:icu_list"]
 icu_locid_transform = ["dep:icu_locid_transform"]
 icu_normalizer = ["dep:icu_normalizer"]
@@ -245,27 +247,38 @@ icu_timezone = [
     "dep:icu_timezone",
     "dep:icu_calendar",
 ]
+libc_alloc = ["dep:libc_alloc"]
 logging = [
     "icu_provider/logging",
     "dep:log",
     "diplomat-runtime/log",
+    "std",
 ]
+looping_panic_handler = []
 provider_fs = [
     "dep:icu_provider_fs",
     "buffer_provider",
+    "std",
 ]
 provider_test = ["compiled_data"]
 simple_logger = [
     "dep:simple_logger",
     "logging",
 ]
+std = []
 wasm_default = ["logging"]
 
 [target."cfg(not(any(target_arch = \"wasm32\", target_os = \"none\")))".dependencies.icu_provider_fs]
-version = "~1.4.0"
+version = "~1.5.0"
+optional = true
+default-features = false
+
+[target."cfg(not(any(target_arch = \"wasm32\", target_os = \"none\")))".dependencies.libc_alloc]
+version = "1.0.6"
+features = ["global"]
 optional = true
 default-features = false
 
 [target."cfg(not(target_arch = \"wasm32\"))".dependencies.simple_logger]
-version = "4.1.0"
+version = "4.0.0"
 optional = true

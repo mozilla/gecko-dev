@@ -14,6 +14,7 @@ pub mod ffi {
     /// and `done` will be true if the iterator has already finished. The last contentful
     /// iteration will NOT produce a range done=true, in other words `start` and `end` are useful
     /// values if and only if `done=false`.
+    #[diplomat::out]
     pub struct CodePointRangeIteratorResult {
         pub start: u32,
         pub end: u32,
@@ -29,7 +30,6 @@ pub mod ffi {
         /// Advance the iterator by one and return the next range.
         ///
         /// If the iterator is out of items, `done` will be true
-        #[allow(clippy::should_implement_trait)] // Rust isn't calling this code
         pub fn next(&mut self) -> CodePointRangeIteratorResult {
             self.0
                 .next()

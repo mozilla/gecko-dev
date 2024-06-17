@@ -18,6 +18,8 @@ use icu_collator::CollatorError;
 use icu_datetime::DateTimeError;
 #[cfg(any(feature = "icu_decimal", feature = "icu_datetime"))]
 use icu_decimal::DecimalError;
+#[cfg(feature = "experimental_components")]
+use icu_experimental::units::ConversionError;
 #[cfg(feature = "icu_list")]
 use icu_list::ListError;
 use icu_locid::ParserError;
@@ -34,13 +36,12 @@ use icu_provider::{DataError, DataErrorKind};
 use icu_segmenter::SegmenterError;
 #[cfg(any(feature = "icu_timezone", feature = "icu_datetime"))]
 use icu_timezone::TimeZoneError;
-use tinystr::TinyStrError;
 
 #[diplomat::bridge]
 pub mod ffi {
     use alloc::boxed::Box;
 
-    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq)]
     #[repr(C)]
     /// A common enum for errors that ICU4X may return, organized by API
     ///
@@ -49,6 +50,7 @@ pub mod ffi {
     #[diplomat::rust_link(icu::calendar::CalendarError, Enum, compact)]
     #[diplomat::rust_link(icu::collator::CollatorError, Enum, compact)]
     #[diplomat::rust_link(icu::datetime::DateTimeError, Enum, compact)]
+    #[diplomat::rust_link(icu::datetime::MismatchedCalendarError, Struct, hidden)]
     #[diplomat::rust_link(icu::decimal::DecimalError, Enum, compact)]
     #[diplomat::rust_link(icu::list::ListError, Enum, compact)]
     #[diplomat::rust_link(icu::locid::ParserError, Enum, compact)]
@@ -60,6 +62,7 @@ pub mod ffi {
     #[diplomat::rust_link(icu::provider::DataErrorKind, Enum, compact)]
     #[diplomat::rust_link(icu::segmenter::SegmenterError, Enum, compact)]
     #[diplomat::rust_link(icu::timezone::TimeZoneError, Enum, compact)]
+    #[diplomat::rust_link(icu_experimental::units::ConversionError, Enum, compact)]
     pub enum ICU4XError {
         // general errors
         /// The error is not currently categorized as ICU4XError.
@@ -69,8 +72,10 @@ pub mod ffi {
         /// Typically found when not enough space is allocated
         /// Most APIs that return a string may return this error
         WriteableError = 0x01,
-        // Some input was out of bounds
+        /// Some input was out of bounds
         OutOfBoundsError = 0x02,
+        /// Input expected to be UTF-8 was ill-formed
+        Utf8Error = 0x03,
 
         // general data errors
         // See DataError
@@ -135,6 +140,7 @@ pub mod ffi {
         DateTimeFixedDecimalError = 0x8_07,
         DateTimeMismatchedCalendarError = 0x8_08,
 
+        // dead
         // tinystr errors
         TinyStrTooLargeError = 0x9_00,
         TinyStrContainsNullError = 0x9_01,
@@ -149,6 +155,10 @@ pub mod ffi {
         // normalizer errors
         NormalizerFutureExtensionError = 0xB_00,
         NormalizerValidationError = 0xB_01,
+
+        // Units errors
+        #[cfg(feature = "experimental_components")]
+        InvalidCldrUnitIdentifierError = 0x0C_00,
     }
 }
 
@@ -204,6 +214,12 @@ impl From<DataError> for ICU4XError {
             _ => ICU4XError::UnknownError,
         }
         .log_original(&e)
+    }
+}
+
+impl From<core::str::Utf8Error> for ICU4XError {
+    fn from(_: core::str::Utf8Error) -> Self {
+        ICU4XError::Utf8Error
     }
 }
 
@@ -362,18 +378,7 @@ impl From<ParserError> for ICU4XError {
             ParserError::InvalidLanguage => ICU4XError::LocaleParserLanguageError,
             ParserError::InvalidSubtag => ICU4XError::LocaleParserSubtagError,
             ParserError::InvalidExtension => ICU4XError::LocaleParserExtensionError,
-            _ => ICU4XError::UnknownError,
-        }
-        .log_original(&e)
-    }
-}
-
-impl From<TinyStrError> for ICU4XError {
-    fn from(e: TinyStrError) -> Self {
-        match e {
-            TinyStrError::TooLarge { .. } => ICU4XError::TinyStrTooLargeError,
-            TinyStrError::ContainsNull => ICU4XError::TinyStrContainsNullError,
-            TinyStrError::NonAscii => ICU4XError::TinyStrNonAsciiError,
+            ParserError::DuplicatedExtension => ICU4XError::LocaleParserExtensionError,
             _ => ICU4XError::UnknownError,
         }
         .log_original(&e)
@@ -403,5 +408,15 @@ impl From<NormalizerError> for ICU4XError {
             _ => ICU4XError::UnknownError,
         }
         .log_original(&e)
+    }
+}
+
+#[cfg(feature = "experimental_components")]
+impl From<ConversionError> for ICU4XError {
+    fn from(value: ConversionError) -> Self {
+        match value {
+            ConversionError::InvalidUnit => ICU4XError::InvalidCldrUnitIdentifierError,
+            _ => ICU4XError::UnknownError,
+        }
     }
 }

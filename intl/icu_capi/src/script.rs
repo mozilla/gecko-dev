@@ -33,6 +33,7 @@ pub mod ffi {
 
     impl ICU4XScriptWithExtensions {
         #[diplomat::rust_link(icu::properties::script::script_with_extensions, Fn)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors), constructor)]
         pub fn create(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XScriptWithExtensions>, ICU4XError> {
@@ -67,6 +68,7 @@ pub mod ffi {
             icu::properties::script::ScriptWithExtensions::as_borrowed,
             FnInStruct
         )]
+        #[diplomat::attr(supports = accessors, getter)]
         pub fn as_borrowed<'a>(&'a self) -> Box<ICU4XScriptWithExtensionsBorrowed<'a>> {
             Box::new(ICU4XScriptWithExtensionsBorrowed(self.0.as_borrowed()))
         }
@@ -143,14 +145,15 @@ pub mod ffi {
 
         /// Get the number of scripts contained in here
         #[diplomat::rust_link(icu::properties::script::ScriptExtensionsSet::iter, FnInStruct)]
+        #[diplomat::attr(supports = accessors, getter)]
         pub fn count(&self) -> usize {
             self.0.array_len()
         }
 
-        /// Get script at index, returning an error if out of bounds
+        /// Get script at index
         #[diplomat::rust_link(icu::properties::script::ScriptExtensionsSet::iter, FnInStruct)]
-        pub fn script_at(&self, index: usize) -> Result<u16, ()> {
-            self.0.array_get(index).map(|x| x.0).ok_or(())
+        pub fn script_at(&self, index: usize) -> Option<u16> {
+            self.0.array_get(index).map(|x| x.0)
         }
     }
 }

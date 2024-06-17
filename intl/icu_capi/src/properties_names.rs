@@ -8,8 +8,8 @@ pub mod ffi {
     use alloc::boxed::Box;
     use icu_properties::{
         names::PropertyValueNameToEnumMapper, BidiClass, EastAsianWidth, GeneralCategory,
-        GeneralCategoryGroup, GraphemeClusterBreak, IndicSyllabicCategory, LineBreak, Script,
-        SentenceBreak, WordBreak,
+        GeneralCategoryGroup, GraphemeClusterBreak, HangulSyllableType, IndicSyllabicCategory,
+        LineBreak, Script, SentenceBreak, WordBreak,
     };
 
     use crate::errors::ffi::ICU4XError;
@@ -38,12 +38,14 @@ pub mod ffi {
             FnInStruct,
             hidden
         )]
-        pub fn get_strict(&self, name: &str) -> i16 {
-            self.0
-                .as_borrowed()
-                .get_strict(name)
-                .map(|x| x as i16)
-                .unwrap_or(-1)
+        pub fn get_strict(&self, name: &DiplomatStr) -> i16 {
+            if let Ok(name) = core::str::from_utf8(name) {
+                self.0.as_borrowed().get_strict(name)
+            } else {
+                None
+            }
+            .map(|u_16| u_16 as i16)
+            .unwrap_or(-1)
         }
 
         /// Get the property value matching the given name, using loose matching
@@ -58,18 +60,23 @@ pub mod ffi {
             FnInStruct,
             hidden
         )]
-        pub fn get_loose(&self, name: &str) -> i16 {
-            self.0
-                .as_borrowed()
-                .get_loose(name)
-                .map(|x| x as i16)
-                .unwrap_or(-1)
+        pub fn get_loose(&self, name: &DiplomatStr) -> i16 {
+            if let Ok(name) = core::str::from_utf8(name) {
+                self.0.as_borrowed().get_loose(name)
+            } else {
+                None
+            }
+            .map(|u_16| u_16 as i16)
+            .unwrap_or(-1)
         }
 
+        #[diplomat::rust_link(icu::properties::GeneralCategory::name_to_enum_mapper, FnInStruct)]
         #[diplomat::rust_link(
             icu::properties::GeneralCategory::get_name_to_enum_mapper,
-            FnInStruct
+            FnInStruct,
+            hidden
         )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "general_category")]
         pub fn load_general_category(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XPropertyValueNameToEnumMapper>, ICU4XError> {
@@ -83,14 +90,20 @@ pub mod ffi {
             )))
         }
 
-        #[diplomat::rust_link(icu::properties::BidiClass::name_to_enum_mapper, FnInStruct)]
-        pub fn load_bidi_class(
+        #[diplomat::rust_link(icu::properties::HangulSyllableType::name_to_enum_mapper, FnInStruct)]
+        #[diplomat::rust_link(
+            icu::properties::HangulSyllableType::get_name_to_enum_mapper,
+            FnInStruct,
+            hidden
+        )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "hangul_syllable_type")]
+        pub fn load_hangul_syllable_type(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XPropertyValueNameToEnumMapper>, ICU4XError> {
             Ok(Box::new(ICU4XPropertyValueNameToEnumMapper(
                 call_constructor_unstable!(
-                    BidiClass::name_to_enum_mapper [r => Ok(r.static_to_owned())],
-                    BidiClass::get_name_to_enum_mapper,
+                    HangulSyllableType::name_to_enum_mapper [r => Ok(r.static_to_owned())],
+                    HangulSyllableType::get_name_to_enum_mapper,
                     provider,
                 )?
                 .erase(),
@@ -98,6 +111,12 @@ pub mod ffi {
         }
 
         #[diplomat::rust_link(icu::properties::EastAsianWidth::name_to_enum_mapper, FnInStruct)]
+        #[diplomat::rust_link(
+            icu::properties::EastAsianWidth::get_name_to_enum_mapper,
+            FnInStruct,
+            hidden
+        )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "east_asian_width")]
         pub fn load_east_asian_width(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XPropertyValueNameToEnumMapper>, ICU4XError> {
@@ -111,10 +130,36 @@ pub mod ffi {
             )))
         }
 
+        #[diplomat::rust_link(icu::properties::BidiClass::name_to_enum_mapper, FnInStruct)]
+        #[diplomat::rust_link(
+            icu::properties::BidiClass::get_name_to_enum_mapper,
+            FnInStruct,
+            hidden
+        )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "bidi_class")]
+        pub fn load_bidi_class(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XPropertyValueNameToEnumMapper>, ICU4XError> {
+            Ok(Box::new(ICU4XPropertyValueNameToEnumMapper(
+                call_constructor_unstable!(
+                    BidiClass::name_to_enum_mapper [r => Ok(r.static_to_owned())],
+                    BidiClass::get_name_to_enum_mapper,
+                    provider,
+                )?
+                .erase(),
+            )))
+        }
+
         #[diplomat::rust_link(
             icu::properties::IndicSyllabicCategory::name_to_enum_mapper,
             FnInStruct
         )]
+        #[diplomat::rust_link(
+            icu::properties::IndicSyllabicCategory::get_name_to_enum_mapper,
+            FnInStruct,
+            hidden
+        )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "indic_syllabic_category")]
         pub fn load_indic_syllabic_category(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XPropertyValueNameToEnumMapper>, ICU4XError> {
@@ -129,6 +174,12 @@ pub mod ffi {
         }
 
         #[diplomat::rust_link(icu::properties::LineBreak::name_to_enum_mapper, FnInStruct)]
+        #[diplomat::rust_link(
+            icu::properties::LineBreak::get_name_to_enum_mapper,
+            FnInStruct,
+            hidden
+        )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "line_break")]
         pub fn load_line_break(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XPropertyValueNameToEnumMapper>, ICU4XError> {
@@ -143,9 +194,15 @@ pub mod ffi {
         }
 
         #[diplomat::rust_link(
-            icu::properties::GraphemeClusterBreak::get_name_to_enum_mapper,
+            icu::properties::GraphemeClusterBreak::name_to_enum_mapper,
             FnInStruct
         )]
+        #[diplomat::rust_link(
+            icu::properties::GraphemeClusterBreak::get_name_to_enum_mapper,
+            FnInStruct,
+            hidden
+        )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "grapheme_cluster_break")]
         pub fn load_grapheme_cluster_break(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XPropertyValueNameToEnumMapper>, ICU4XError> {
@@ -160,6 +217,12 @@ pub mod ffi {
         }
 
         #[diplomat::rust_link(icu::properties::WordBreak::name_to_enum_mapper, FnInStruct)]
+        #[diplomat::rust_link(
+            icu::properties::WordBreak::get_name_to_enum_mapper,
+            FnInStruct,
+            hidden
+        )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "word_break")]
         pub fn load_word_break(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XPropertyValueNameToEnumMapper>, ICU4XError> {
@@ -174,6 +237,12 @@ pub mod ffi {
         }
 
         #[diplomat::rust_link(icu::properties::SentenceBreak::name_to_enum_mapper, FnInStruct)]
+        #[diplomat::rust_link(
+            icu::properties::SentenceBreak::get_name_to_enum_mapper,
+            FnInStruct,
+            hidden
+        )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "sentence_break")]
         pub fn load_sentence_break(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XPropertyValueNameToEnumMapper>, ICU4XError> {
@@ -188,6 +257,8 @@ pub mod ffi {
         }
 
         #[diplomat::rust_link(icu::properties::Script::name_to_enum_mapper, FnInStruct)]
+        #[diplomat::rust_link(icu::properties::Script::get_name_to_enum_mapper, FnInStruct, hidden)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "script")]
         pub fn load_script(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XPropertyValueNameToEnumMapper>, ICU4XError> {
@@ -204,9 +275,11 @@ pub mod ffi {
 
     /// A type capable of looking up General Category mask values from a string name.
     #[diplomat::opaque]
+    #[diplomat::rust_link(icu::properties::GeneralCategoryGroup::name_to_enum_mapper, FnInStruct)]
     #[diplomat::rust_link(
         icu::properties::GeneralCategoryGroup::get_name_to_enum_mapper,
-        FnInStruct
+        FnInStruct,
+        hidden
     )]
     #[diplomat::rust_link(icu::properties::names::PropertyValueNameToEnumMapper, Struct)]
     pub struct ICU4XGeneralCategoryNameToMaskMapper(
@@ -219,12 +292,14 @@ pub mod ffi {
         /// Returns 0 if the name is unknown for this property
         // #[diplomat::rust_link(icu::properties::maps::PropertyValueNameToEnumMapperBorrowed::get_strict, FnInStruct)]
         // #[diplomat::rust_link(icu::properties::maps::PropertyValueNameToEnumMapperBorrowed::get_strict_u16, FnInStruct, hidden)]
-        pub fn get_strict(&self, name: &str) -> u32 {
-            self.0
-                .as_borrowed()
-                .get_strict(name)
-                .map(Into::into)
-                .unwrap_or(0)
+        pub fn get_strict(&self, name: &DiplomatStr) -> u32 {
+            if let Ok(name) = core::str::from_utf8(name) {
+                self.0.as_borrowed().get_strict(name)
+            } else {
+                None
+            }
+            .map(Into::into)
+            .unwrap_or_default()
         }
 
         /// Get the mask value matching the given name, using loose matching
@@ -232,18 +307,26 @@ pub mod ffi {
         /// Returns 0 if the name is unknown for this property
         // #[diplomat::rust_link(icu::properties::maps::PropertyValueNameToEnumMapperBorrowed::get_loose, FnInStruct)]
         // #[diplomat::rust_link(icu::properties::maps::PropertyValueNameToEnumMapperBorrowed::get_loose_u16, FnInStruct, hidden)]
-        pub fn get_loose(&self, name: &str) -> u32 {
-            self.0
-                .as_borrowed()
-                .get_loose(name)
-                .map(Into::into)
-                .unwrap_or(0)
+        pub fn get_loose(&self, name: &DiplomatStr) -> u32 {
+            if let Ok(name) = core::str::from_utf8(name) {
+                self.0.as_borrowed().get_loose(name)
+            } else {
+                None
+            }
+            .map(Into::into)
+            .unwrap_or_default()
         }
 
         #[diplomat::rust_link(
-            icu::properties::GeneralCategoryGroup::get_name_to_enum_mapper,
+            icu::properties::GeneralCategoryGroup::name_to_enum_mapper,
             FnInStruct
         )]
+        #[diplomat::rust_link(
+            icu::properties::GeneralCategoryGroup::get_name_to_enum_mapper,
+            FnInStruct,
+            hidden
+        )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors), constructor)]
         pub fn load(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XGeneralCategoryNameToMaskMapper>, ICU4XError> {

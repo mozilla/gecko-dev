@@ -22,6 +22,7 @@ pub mod ffi {
     #[diplomat::opaque]
     /// An ICU4X Fixed Decimal Format object, capable of formatting a [`ICU4XFixedDecimal`] as a string.
     #[diplomat::rust_link(icu::decimal::FixedDecimalFormatter, Struct)]
+    #[diplomat::rust_link(icu::datetime::FormattedFixedDecimal, Struct, hidden)]
     pub struct ICU4XFixedDecimalFormatter(pub FixedDecimalFormatter);
 
     #[diplomat::rust_link(icu::decimal::options::GroupingStrategy, Enum)]
@@ -35,6 +36,7 @@ pub mod ffi {
     impl ICU4XFixedDecimalFormatter {
         /// Creates a new [`ICU4XFixedDecimalFormatter`] from locale data.
         #[diplomat::rust_link(icu::decimal::FixedDecimalFormatter::try_new, FnInStruct)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "with_grouping_strategy")]
         pub fn create_with_grouping_strategy(
             provider: &ICU4XDataProvider,
             locale: &ICU4XLocale,
@@ -65,7 +67,7 @@ pub mod ffi {
         ///
         /// The contents of the data struct will be consumed: if you wish to use the struct again it will have to be reconstructed.
         /// Passing a consumed struct to this method will return an error.
-        #[diplomat::attr(dart, disable)]
+        #[diplomat::attr(*, disable)]
         pub fn create_with_decimal_symbols_v1(
             data_struct: &ICU4XDataStruct,
             grouping_strategy: ICU4XFixedDecimalGroupingStrategy,
@@ -97,6 +99,8 @@ pub mod ffi {
             FnInStruct,
             hidden
         )]
+        #[diplomat::rust_link(icu::decimal::FormattedFixedDecimal, Struct, hidden)]
+        #[diplomat::rust_link(icu::decimal::FormattedFixedDecimal::write_to, FnInStruct, hidden)]
         pub fn format(
             &self,
             value: &ICU4XFixedDecimal,

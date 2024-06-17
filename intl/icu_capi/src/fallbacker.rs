@@ -62,7 +62,7 @@ pub mod ffi {
         /// Choice of priority mode.
         pub priority: ICU4XLocaleFallbackPriority,
         /// An empty string is considered `None`.
-        pub extension_key: &'a str,
+        pub extension_key: &'a DiplomatStr,
         /// Fallback supplement data key to customize fallback rules.
         pub fallback_supplement: ICU4XLocaleFallbackSupplement,
     }
@@ -81,6 +81,7 @@ pub mod ffi {
     impl ICU4XLocaleFallbacker {
         /// Creates a new `ICU4XLocaleFallbacker` from a data provider.
         #[diplomat::rust_link(icu::locid_transform::fallback::LocaleFallbacker::new, FnInStruct)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors), constructor)]
         pub fn create(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XLocaleFallbacker>, ICU4XError> {
@@ -97,6 +98,7 @@ pub mod ffi {
             icu::locid_transform::fallback::LocaleFallbacker::new_without_data,
             FnInStruct
         )]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "without_data")]
         pub fn create_without_data() -> Box<ICU4XLocaleFallbacker> {
             Box::new(ICU4XLocaleFallbacker(LocaleFallbacker::new_without_data()))
         }
@@ -158,6 +160,7 @@ pub mod ffi {
             FnInStruct,
             hidden
         )]
+        #[diplomat::attr(*, disable)]
         pub fn get(&self) -> Box<ICU4XLocale> {
             Box::new(ICU4XLocale(self.0.get().clone().into_locale()))
         }
@@ -167,8 +170,23 @@ pub mod ffi {
             icu::locid_transform::fallback::LocaleFallbackIterator::step,
             FnInStruct
         )]
+        #[diplomat::attr(*, disable)]
         pub fn step(&mut self) {
             self.0.step();
+        }
+
+        /// A combination of `get` and `step`. Returns the value that `get` would return
+        /// and advances the iterator until hitting `und`.
+        #[diplomat::attr(supports = iterators, iterator)]
+        #[diplomat::skip_if_ast]
+        pub fn next(&mut self) -> Option<Box<ICU4XLocale>> {
+            let current = self.get();
+            if current.0 == icu_locid::Locale::UND {
+                None
+            } else {
+                self.step();
+                Some(current)
+            }
         }
     }
 }
@@ -181,8 +199,8 @@ impl TryFrom<ffi::ICU4XLocaleFallbackConfig<'_>>
         let mut result = Self::default();
         result.priority = other.priority.into();
         result.extension_key = match other.extension_key {
-            "" => None,
-            s => Some(s.parse()?),
+            b"" => None,
+            s => Some(icu_locid::extensions::unicode::Key::try_from_bytes(s)?),
         };
         result.fallback_supplement = match other.fallback_supplement {
             ffi::ICU4XLocaleFallbackSupplement::None => None,

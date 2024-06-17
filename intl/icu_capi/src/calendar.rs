@@ -59,18 +59,16 @@ pub mod ffi {
     impl ICU4XAnyCalendarKind {
         /// Read the calendar type off of the -u-ca- extension on a locale.
         ///
-        /// Errors if there is no calendar on the locale or if the locale's calendar
+        /// Returns nothing if there is no calendar on the locale or if the locale's calendar
         /// is not known or supported.
         #[diplomat::rust_link(icu::calendar::AnyCalendarKind::get_for_locale, FnInEnum)]
-        pub fn get_for_locale(locale: &ICU4XLocale) -> Result<ICU4XAnyCalendarKind, ()> {
-            AnyCalendarKind::get_for_locale(&locale.0)
-                .map(Into::into)
-                .ok_or(())
+        pub fn get_for_locale(locale: &ICU4XLocale) -> Option<ICU4XAnyCalendarKind> {
+            AnyCalendarKind::get_for_locale(&locale.0).map(Into::into)
         }
 
         /// Obtain the calendar type given a BCP-47 -u-ca- extension string.
         ///
-        /// Errors if the calendar is not known or supported.
+        /// Returns nothing if the calendar is not known or supported.
         #[diplomat::rust_link(icu::calendar::AnyCalendarKind::get_for_bcp47_value, FnInEnum)]
         #[diplomat::rust_link(
             icu::calendar::AnyCalendarKind::get_for_bcp47_string,
@@ -82,16 +80,14 @@ pub mod ffi {
             FnInEnum,
             hidden
         )]
-        pub fn get_for_bcp47(s: &str) -> Result<ICU4XAnyCalendarKind, ()> {
-            let s = s.as_bytes(); // #2520
-            AnyCalendarKind::get_for_bcp47_bytes(s)
-                .map(Into::into)
-                .ok_or(())
+        pub fn get_for_bcp47(s: &DiplomatStr) -> Option<ICU4XAnyCalendarKind> {
+            AnyCalendarKind::get_for_bcp47_bytes(s).map(Into::into)
         }
 
         /// Obtain the string suitable for use in the -u-ca- extension in a BCP47 locale.
         #[diplomat::rust_link(icu::calendar::AnyCalendarKind::as_bcp47_string, FnInEnum)]
         #[diplomat::rust_link(icu::calendar::AnyCalendarKind::as_bcp47_value, FnInEnum, hidden)]
+        #[diplomat::attr(supports = accessors, getter)]
         pub fn bcp47(
             self,
             write: &mut diplomat_runtime::DiplomatWriteable,
@@ -109,6 +105,7 @@ pub mod ffi {
     impl ICU4XCalendar {
         /// Creates a new [`ICU4XCalendar`] from the specified date and time.
         #[diplomat::rust_link(icu::calendar::AnyCalendar::new_for_locale, FnInEnum)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "for_locale")]
         pub fn create_for_locale(
             provider: &ICU4XDataProvider,
             locale: &ICU4XLocale,
@@ -126,6 +123,7 @@ pub mod ffi {
 
         /// Creates a new [`ICU4XCalendar`] from the specified date and time.
         #[diplomat::rust_link(icu::calendar::AnyCalendar::new, FnInEnum)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "for_kind")]
         pub fn create_for_kind(
             provider: &ICU4XDataProvider,
             kind: ICU4XAnyCalendarKind,
@@ -141,6 +139,7 @@ pub mod ffi {
 
         /// Returns the kind of this calendar
         #[diplomat::rust_link(icu::calendar::AnyCalendar::kind, FnInEnum)]
+        #[diplomat::attr(supports = accessors, getter)]
         pub fn kind(&self) -> ICU4XAnyCalendarKind {
             self.0.kind().into()
         }

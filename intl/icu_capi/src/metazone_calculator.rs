@@ -20,6 +20,7 @@ pub mod ffi {
 
     impl ICU4XMetazoneCalculator {
         #[diplomat::rust_link(icu::timezone::MetazoneCalculator::new, FnInStruct)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors), constructor)]
         pub fn create(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XMetazoneCalculator>, ICU4XError> {

@@ -7,7 +7,7 @@
 edition = "2021"
 rust-version = "1.67"
 name = "icu_segmenter_data"
-version = "1.4.0"
+version = "1.5.0"
 authors = ["The ICU4X Project Developers"]
 include = [
     "data/**/*",

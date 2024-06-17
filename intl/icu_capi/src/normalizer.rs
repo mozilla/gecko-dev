@@ -6,7 +6,6 @@
 pub mod ffi {
     use crate::{errors::ffi::ICU4XError, provider::ffi::ICU4XDataProvider};
     use alloc::boxed::Box;
-    use diplomat_runtime::DiplomatWriteable;
     use icu_normalizer::{ComposingNormalizer, DecomposingNormalizer};
 
     #[diplomat::opaque]
@@ -16,6 +15,7 @@ pub mod ffi {
     impl ICU4XComposingNormalizer {
         /// Construct a new ICU4XComposingNormalizer instance for NFC
         #[diplomat::rust_link(icu::normalizer::ComposingNormalizer::new_nfc, FnInStruct)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "nfc")]
         pub fn create_nfc(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XComposingNormalizer>, ICU4XError> {
@@ -29,6 +29,7 @@ pub mod ffi {
 
         /// Construct a new ICU4XComposingNormalizer instance for NFKC
         #[diplomat::rust_link(icu::normalizer::ComposingNormalizer::new_nfkc, FnInStruct)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "nfkc")]
         pub fn create_nfkc(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XComposingNormalizer>, ICU4XError> {
@@ -40,9 +41,10 @@ pub mod ffi {
             )?)))
         }
 
-        /// Normalize a (potentially ill-formed) UTF8 string
+        /// Normalize a string
         ///
-        /// Errors are mapped to REPLACEMENT CHARACTER
+        /// Ill-formed input is treated as if errors had been replaced with REPLACEMENT CHARACTERs according
+        /// to the WHATWG Encoding Standard.
         #[diplomat::rust_link(icu::normalizer::ComposingNormalizer::normalize_utf8, FnInStruct)]
         #[diplomat::rust_link(icu::normalizer::ComposingNormalizer::normalize, FnInStruct, hidden)]
         #[diplomat::rust_link(
@@ -55,23 +57,26 @@ pub mod ffi {
             FnInStruct,
             hidden
         )]
-        pub fn normalize(&self, s: &str, write: &mut DiplomatWriteable) -> Result<(), ICU4XError> {
-            let s = s.as_bytes(); // #2520
+        pub fn normalize(
+            &self,
+            s: &DiplomatStr,
+            write: &mut DiplomatWriteable,
+        ) -> Result<(), ICU4XError> {
             self.0.normalize_utf8_to(s, write)?;
             Ok(())
         }
 
-        /// Check if a (potentially ill-formed) UTF8 string is normalized
+        /// Check if a string is normalized
         ///
-        /// Errors are mapped to REPLACEMENT CHARACTER
+        /// Ill-formed input is treated as if errors had been replaced with REPLACEMENT CHARACTERs according
+        /// to the WHATWG Encoding Standard.
         #[diplomat::rust_link(icu::normalizer::ComposingNormalizer::is_normalized_utf8, FnInStruct)]
         #[diplomat::rust_link(
             icu::normalizer::ComposingNormalizer::is_normalized,
             FnInStruct,
             hidden
         )]
-        pub fn is_normalized(&self, s: &str) -> bool {
-            let s = s.as_bytes(); // #2520
+        pub fn is_normalized(&self, s: &DiplomatStr) -> bool {
             self.0.is_normalized_utf8(s)
         }
     }
@@ -83,6 +88,7 @@ pub mod ffi {
     impl ICU4XDecomposingNormalizer {
         /// Construct a new ICU4XDecomposingNormalizer instance for NFC
         #[diplomat::rust_link(icu::normalizer::DecomposingNormalizer::new_nfd, FnInStruct)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "nfd")]
         pub fn create_nfd(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XDecomposingNormalizer>, ICU4XError> {
@@ -96,6 +102,7 @@ pub mod ffi {
 
         /// Construct a new ICU4XDecomposingNormalizer instance for NFKC
         #[diplomat::rust_link(icu::normalizer::DecomposingNormalizer::new_nfkd, FnInStruct)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "nfkd")]
         pub fn create_nfkd(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XDecomposingNormalizer>, ICU4XError> {
@@ -107,9 +114,10 @@ pub mod ffi {
             )?)))
         }
 
-        /// Normalize a (potentially ill-formed) UTF8 string
+        /// Normalize a string
         ///
-        /// Errors are mapped to REPLACEMENT CHARACTER
+        /// Ill-formed input is treated as if errors had been replaced with REPLACEMENT CHARACTERs according
+        /// to the WHATWG Encoding Standard.
         #[diplomat::rust_link(icu::normalizer::DecomposingNormalizer::normalize_utf8, FnInStruct)]
         #[diplomat::rust_link(
             icu::normalizer::DecomposingNormalizer::normalize,
@@ -126,15 +134,19 @@ pub mod ffi {
             FnInStruct,
             hidden
         )]
-        pub fn normalize(&self, s: &str, write: &mut DiplomatWriteable) -> Result<(), ICU4XError> {
-            let s = s.as_bytes(); // #2520
+        pub fn normalize(
+            &self,
+            s: &DiplomatStr,
+            write: &mut DiplomatWriteable,
+        ) -> Result<(), ICU4XError> {
             self.0.normalize_utf8_to(s, write)?;
             Ok(())
         }
 
-        /// Check if a (potentially ill-formed) UTF8 string is normalized
+        /// Check if a string is normalized
         ///
-        /// Errors are mapped to REPLACEMENT CHARACTER
+        /// Ill-formed input is treated as if errors had been replaced with REPLACEMENT CHARACTERs according
+        /// to the WHATWG Encoding Standard.
         #[diplomat::rust_link(
             icu::normalizer::DecomposingNormalizer::is_normalized_utf8,
             FnInStruct
@@ -144,8 +156,7 @@ pub mod ffi {
             FnInStruct,
             hidden
         )]
-        pub fn is_normalized(&self, s: &str) -> bool {
-            let s = s.as_bytes(); // #2520
+        pub fn is_normalized(&self, s: &DiplomatStr) -> bool {
             self.0.is_normalized_utf8(s)
         }
     }
