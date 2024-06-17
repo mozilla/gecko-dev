@@ -1594,6 +1594,57 @@ void nsWindow::Show(bool bState) {
         // top level windows:
         syncInvalidate = true;
 
+        // Cloak (or uncloak) the window.
+        //
+        // (DWMWA_CLOAK is effectively orthogonal to any cloaking done by the
+        // shell to implement virtual desktops; we don't have to worry about
+        // accidentally forcing something on another desktop to become visible.)
+        constexpr static const auto CloakWindow = [](HWND hwnd, BOOL state) {
+          ::DwmSetWindowAttribute(hwnd, DWMWA_CLOAK, &state, sizeof(state));
+        };
+
+        // Clear the window using a theme-appropriate color.
+        constexpr static const auto ClearWindow = [](HWND hwnd) {
+          // default background color from current theme
+          auto const bgcolor = LookAndFeel::Color(
+              StyleSystemColor::Window, PreferenceSheet::ColorSchemeForChrome(),
+              LookAndFeel::UseStandins::No, NS_RGB(0, 0, 0));
+
+          HBRUSH brush = ::CreateSolidBrush(NSRGB_2_COLOREF(bgcolor));
+          if (NS_WARN_IF(!brush)) {
+            // GDI object cap hit, possibly?
+            return;
+          }
+          auto const _releaseBrush =
+              MakeScopeExit([&] { ::DeleteObject(brush); });
+
+          HDC hdc = ::GetWindowDC(hwnd);
+          MOZ_ASSERT(hdc);
+          auto const _cleanupDC =
+              MakeScopeExit([&] { ::ReleaseDC(hwnd, hdc); });
+
+          RECT rect;
+          ::GetWindowRect(hwnd, &rect);  // includes non-client area
+          ::MapWindowPoints(HWND_DESKTOP, hwnd, (LPPOINT)&rect, 2);
+          ::FillRect(hdc, &rect, brush);
+        };
+
+        if (!mHasBeenShown) {
+          // On creation, the window's content is not specified; in practice,
+          // it's observed to usually be full of bright white, regardless of any
+          // window-class options. DWM will happily render that unspecified
+          // content to the screen before we get a chance to process a
+          // WM_ERASEBKGND event (or, indeed, anything else). To avoid dark-mode
+          // users being assaulted with a bright white flash, we need to draw
+          // something on top of that at least once before showing the window.
+          //
+          // Unfortunately, there's a bit of a catch-22 here: until the window
+          // has been set "visible" at least once, it doesn't have a backing
+          // surface, so we can't draw anything to it! To work around this, we
+          // cloak the window before "showing" it.
+          CloakWindow(mWnd, TRUE);
+        }
+
         // Set the cursor before showing the window to avoid the default wait
         // cursor.
         SetCursor(Cursor{eCursor_standard});
@@ -1620,6 +1671,16 @@ void nsWindow::Show(bool bState) {
             }
             break;
         }
+
+        if (!mHasBeenShown) {
+          // Now that ::ShowWindow() has been called once, the window surface
+          // actually exists, so we can draw to it. Fill it with the theme's
+          // background color before uncloaking it to complete the Show().
+          ClearWindow(mWnd);
+          CloakWindow(mWnd, FALSE);
+          mHasBeenShown = false;
+        }
+
       } else {
         DWORD flags = SWP_NOSIZE | SWP_NOMOVE | SWP_SHOWWINDOW;
         if (wasVisible) {
@@ -5244,7 +5305,7 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
     } break;
 
     // Say we've dealt with erasing the background. (This is actually handled in
-    // WM_PAINT, where necessary.)
+    // WM_PAINT or at window-creation time, as necessary.)
     case WM_ERASEBKGND: {
       *aRetValue = 1;
       result = true;

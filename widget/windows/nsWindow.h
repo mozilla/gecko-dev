@@ -740,6 +740,7 @@ class nsWindow final : public nsBaseWidget {
   bool mIsEarlyBlankWindow = false;
   bool mIsShowingPreXULSkeletonUI = false;
   bool mResizable = false;
+  bool mHasBeenShown = false;
   // Whether we're an alert window. Alert windows don't have taskbar icons and
   // don't steal focus from other windows when opened. They're also expected to
   // be of type WindowType::Dialog.
