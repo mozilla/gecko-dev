@@ -7186,29 +7186,29 @@ nsresult nsIFrame::AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
   return NS_OK;
 }
 
-// Flow member functions
-
 nsIFrame* nsIFrame::GetPrevContinuation() const { return nullptr; }
 
-void nsIFrame::SetPrevContinuation(nsIFrame* aPrevContinuation) {
-  MOZ_ASSERT(false, "not splittable");
+void nsIFrame::SetPrevContinuation(nsIFrame*) {
+  MOZ_ASSERT_UNREACHABLE("Not splittable!");
 }
 
 nsIFrame* nsIFrame::GetNextContinuation() const { return nullptr; }
 
 void nsIFrame::SetNextContinuation(nsIFrame*) {
-  MOZ_ASSERT(false, "not splittable");
+  MOZ_ASSERT_UNREACHABLE("Not splittable!");
 }
 
 nsIFrame* nsIFrame::GetPrevInFlow() const { return nullptr; }
 
-void nsIFrame::SetPrevInFlow(nsIFrame* aPrevInFlow) {
-  MOZ_ASSERT(false, "not splittable");
+void nsIFrame::SetPrevInFlow(nsIFrame*) {
+  MOZ_ASSERT_UNREACHABLE("Not splittable!");
 }
 
 nsIFrame* nsIFrame::GetNextInFlow() const { return nullptr; }
 
-void nsIFrame::SetNextInFlow(nsIFrame*) { MOZ_ASSERT(false, "not splittable"); }
+void nsIFrame::SetNextInFlow(nsIFrame*) {
+  MOZ_ASSERT_UNREACHABLE("Not splittable!");
+}
 
 nsIFrame* nsIFrame::GetTailContinuation() {
   nsIFrame* frame = this;
@@ -11276,7 +11276,9 @@ void nsIFrame::DoUpdateStyleOfOwnedAnonBoxes(ServoRestyleState& aRestyleState) {
 /* virtual */
 void nsIFrame::AppendDirectlyOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult) {
   MOZ_ASSERT(!HasAnyStateBits(NS_FRAME_OWNS_ANON_BOXES));
-  MOZ_ASSERT(false, "Why did this get called?");
+  MOZ_ASSERT_UNREACHABLE(
+      "Subclasses that have directly owned anonymous boxes should override "
+      "this method!");
 }
 
 void nsIFrame::DoAppendOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult) {
