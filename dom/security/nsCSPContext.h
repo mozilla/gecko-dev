@@ -107,7 +107,6 @@ class nsCSPContext : public nsIContentSecurityPolicy {
           aViolationEventInit);
 
   nsresult AsyncReportViolation(
-      mozilla::dom::Element* aTriggeringElement,
       nsICSPEventListener* aCSPEventListener,
       mozilla::dom::CSPViolationData&& aCSPViolationData, nsIURI* aOriginalURI,
       const nsAString& aViolatedDirectiveName,

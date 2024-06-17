@@ -10,6 +10,7 @@
 #include "nsCOMPtr.h"
 #include "nsIURI.h"
 #include "nsString.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/Variant.h"
 
 #include <cstdint>
@@ -17,6 +18,8 @@
 class nsIURI;
 
 namespace mozilla::dom {
+class Element;
+
 // Represents parts of <https://w3c.github.io/webappsec-csp/#violation>.
 struct CSPViolationData {
   enum class BlockedContentSource {
@@ -32,7 +35,10 @@ struct CSPViolationData {
   // @param aSample Will be truncated if necessary.
   CSPViolationData(uint32_t aViolatedPolicyIndex, Resource&& aResource,
                    const nsAString& aSourceFile, uint32_t aLineNumber,
-                   uint32_t aColumnNumber, const nsAString& aSample);
+                   uint32_t aColumnNumber, Element* aElement,
+                   const nsAString& aSample);
+
+  ~CSPViolationData();
 
   BlockedContentSource BlockedContentSourceOrUnknown() const;
 
@@ -42,6 +48,7 @@ struct CSPViolationData {
   const nsString mSourceFile;
   const uint32_t mLineNumber;
   const uint32_t mColumnNumber;
+  RefPtr<Element> mElement;
   const nsString mSample;
 };
 }  // namespace mozilla::dom
