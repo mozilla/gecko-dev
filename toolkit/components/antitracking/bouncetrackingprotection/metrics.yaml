@@ -30,7 +30,7 @@ bounce.tracking.protection:
       - pbz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 130
+    expires: 134
   purge_count:
     type: labeled_counter
     description: >
@@ -67,7 +67,7 @@ bounce.tracking.protection:
       - pbz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: never
+    expires: 134
   enabled_dry_run_mode_at_startup:
     type: boolean
     description: >
@@ -83,7 +83,7 @@ bounce.tracking.protection:
       - pbz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: never
+    expires: 134
   purge_count_classified_tracker:
     type: counter
     description: >
