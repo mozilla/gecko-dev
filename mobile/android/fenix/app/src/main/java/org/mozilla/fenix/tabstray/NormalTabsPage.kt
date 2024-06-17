@@ -12,7 +12,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.tabstray.inactivetabs.InactiveTabsList
@@ -21,7 +20,6 @@ import org.mozilla.fenix.tabstray.inactivetabs.InactiveTabsList
 @Suppress("LongParameterList")
 internal fun NormalTabsPage(
     appStore: AppStore,
-    browserStore: BrowserStore,
     tabsTrayStore: TabsTrayStore,
     displayTabsInGrid: Boolean,
     onTabClose: (TabSessionState) -> Unit,
@@ -45,8 +43,8 @@ internal fun NormalTabsPage(
     val inactiveTabsExpanded by appStore.observeAsState(
         initialValue = appStore.state.inactiveTabsExpanded,
     ) { state -> state.inactiveTabsExpanded }
-    val selectedTabId by browserStore.observeAsState(
-        initialValue = browserStore.state.selectedTabId,
+    val selectedTabId by tabsTrayStore.observeAsState(
+        initialValue = tabsTrayStore.state.selectedTabId,
     ) { state -> state.selectedTabId }
     val normalTabs by tabsTrayStore.observeAsState(
         initialValue = tabsTrayStore.state.normalTabs,

@@ -137,4 +137,16 @@ class TabsTrayStoreTest {
 
         assertFalse(store.state.syncing)
     }
+
+    @Test
+    fun `WHEN the selected tab has changed THEN the selected tab Id should be updated`() {
+        val expected = "New tab ID"
+        val store = TabsTrayStore(initialState = TabsTrayState(selectedTabId = null))
+
+        store.dispatch(TabsTrayAction.UpdateSelectedTabId(tabId = expected))
+
+        store.waitUntilIdle()
+
+        assertEquals(expected, store.state.selectedTabId)
+    }
 }
