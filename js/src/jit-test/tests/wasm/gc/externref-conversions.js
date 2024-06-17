@@ -54,6 +54,9 @@ for (let value of WasmExternrefValues) {
 	assertEq(value, roundtripThroughAny(value));
 }
 
+assertEq(MaxI31refValue*100, roundtripThroughAny(MaxI31refValue*100));
+assertEq(MinI31refValue*100, roundtripThroughAny(MinI31refValue*100));
+
 // Can round trip GC objects through externref and get the same thing back
 let {testStruct, testArray} = wasmEvalText(`(module
 	(type $struct (struct))

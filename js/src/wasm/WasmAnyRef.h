@@ -226,8 +226,22 @@ class AnyRef {
     // Left shift the value by 1, truncating the high bit.
     uintptr_t shiftedValue = wideValue << 1;
     uintptr_t taggedValue = shiftedValue | (uintptr_t)AnyRefTag::I31;
+#ifdef JS_64BIT
+    debugAssertCanonicalInt32(taggedValue);
+#endif
     return AnyRef(taggedValue);
   }
+
+#ifdef JS_64BIT
+  // Ensure the value fits into a 32-bits integer on 64-bits platforms.
+  static void debugAssertCanonicalInt32(uintptr_t value) {
+#  ifdef DEBUG
+#    if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64)
+    MOZ_ASSERT(value <= UINT32_MAX);
+#    endif
+#  endif
+  }
+#endif
 
   static bool int32NeedsBoxing(int32_t value) {
     // We can represent every signed 31-bit number without boxing
@@ -316,6 +330,9 @@ class AnyRef {
   // Unpack an i31, interpreting the integer as signed.
   int32_t toI31() const {
     MOZ_ASSERT(isI31());
+#ifdef JS_64BIT
+    debugAssertCanonicalInt32(value_);
+#endif
     // On 64-bit targets, we only care about the low 4-bytes.
     uint32_t truncatedValue = *reinterpret_cast<const uint32_t*>(&value_);
     // Perform a right arithmetic shift (see AnyRef::fromI31 for more details),
