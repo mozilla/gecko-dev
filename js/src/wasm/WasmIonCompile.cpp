@@ -1988,6 +1988,8 @@ class FunctionCompiler {
   // Do not call this directly.  Call one of the passArg() variants instead.
   [[nodiscard]] bool passArgWorker(MDefinition* argDef, MIRType type,
                                    CallCompileState* call) {
+    MOZ_ASSERT(argDef->type() == type);
+
     ABIArg arg = call->abi_.next(type);
     switch (arg.kind()) {
 #ifdef JS_CODEGEN_REGISTER_PAIR
@@ -2083,7 +2085,7 @@ class FunctionCompiler {
     curBlock_->add(stackResultArea);
     MDefinition* def = call->returnCall ? (MDefinition*)stackResultPointer_
                                         : (MDefinition*)stackResultArea;
-    if (!passArg(def, MIRType::Pointer, call)) {
+    if (!passArg(def, MIRType::StackResults, call)) {
       return false;
     }
     call->stackResultArea_ = stackResultArea;
