@@ -18,7 +18,6 @@ import mozilla.appservices.suggest.Suggestion
 import mozilla.appservices.suggest.SuggestionQuery
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.support.base.log.logger.Logger
-import java.io.File
 
 /**
  * A coroutine-aware wrapper around the synchronous [SuggestStore] interface.
@@ -33,7 +32,6 @@ class FxSuggestStorage(context: Context) {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val store: Lazy<SuggestStore> = lazy {
         SuggestStoreBuilder()
-            .cachePath(File(context.cacheDir, CACHE_DATABASE_NAME).absolutePath)
             .dataPath(context.getDatabasePath(DATABASE_NAME).absolutePath)
             .build()
     }
@@ -118,11 +116,6 @@ class FxSuggestStorage(context: Context) {
     }
 
     internal companion object {
-        /**
-         * The database file name for cached data.
-         */
-        const val CACHE_DATABASE_NAME = "suggest.sqlite"
-
         /**
          * The database file name for permanent data.
          */
