@@ -17,6 +17,9 @@ vars = {
   # the gn arg 'use_clang_coverage').
   'checkout_clang_coverage_tools': False,
 
+  # Fetch clangd into the same bin/ directory as our clang binary.
+  'checkout_clangd': False,
+
   'chromium_git': 'https://chromium.googlesource.com',
 
   # Keep the Chromium default of generating location tags.
@@ -2424,6 +2427,15 @@ hooks = [
     'condition': 'checkout_clang_coverage_tools',
     'action': ['python3', 'src/tools/clang/scripts/update.py',
                '--package=coverage_tools'],
+  },
+  {
+    # This is also supposed to support the same set of platforms as 'clang'
+    # above. LLVM ToT support isn't provided at the moment.
+    'name': 'clangd',
+    'pattern': '.',
+    'condition': 'checkout_clangd',
+    'action': ['vpython3', 'src/tools/clang/scripts/update.py',
+               '--package=clangd'],
   },
   {
     # Update LASTCHANGE.
