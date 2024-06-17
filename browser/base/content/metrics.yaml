@@ -22,7 +22,7 @@ privacy.sanitize:
     notification_emails:
       - hsohaney@mozilla.com
       - pbz@mozilla.com
-    expires: 130
+    expires: 134
     extra_keys:
       context:
         description: >
@@ -40,7 +40,7 @@ privacy.sanitize:
     notification_emails:
       - hsohaney@mozilla.com
       - pbz@mozilla.com
-    expires: 130
+    expires: 134
     extra_keys:
       context:
         description: >
@@ -70,7 +70,7 @@ privacy.sanitize:
     notification_emails:
       - hsohaney@mozilla.com
       - pbz@mozilla.com
-    expires: 130
+    expires: 134
     extra_keys:
       time_span:
         description: The timespan that was selected corresponding to one of Sanitizer.TIMESPAN_*'s value
@@ -89,4 +89,4 @@ privacy.sanitize:
       - hsohaney@mozilla.com
       - pbz@mozilla.com
     expires:
-      130
+      134
