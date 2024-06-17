@@ -313,13 +313,31 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
+  int64_t baseCurrent;
+  nsresult rv = (*mBaseSeekableStream)->Tell(&baseCurrent);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return Err(rv);
+  }
+
   // Can't call this just in NS_SEEK_CUR case, because getting the decrypted
   // size below changes the current position.
   int64_t current;
-  nsresult rv = Tell(&current);
+  rv = Tell(&current);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
+
+  // If there's a failure we need to restore any previous state.
+  auto autoRestorePreviousState =
+      MakeScopeExit([baseSeekableStream = *mBaseSeekableStream,
+                     savedBaseCurrent = baseCurrent,
+                     savedPlainBytes = mPlainBytes, savedNextByte = mNextByte,
+                     &plainBytes = mPlainBytes, &nextByte = mNextByte] {
+        nsresult rv = baseSeekableStream->Seek(NS_SEEK_SET, savedBaseCurrent);
+        Unused << NS_WARN_IF(NS_FAILED(rv));
+        plainBytes = savedPlainBytes;
+        nextByte = savedNextByte;
+      });
 
   // XXX The size of the stream could also be queried and stored once only.
   auto decryptedStreamSizeOrErr = [this]() -> Result<int64_t, nsresult> {
@@ -412,7 +430,6 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
   uint32_t readBytes;
   rv = ParseNextChunk(&readBytes);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    // XXX Do we need to do more here? Restore any previous state?
     return rv;
   }
 
@@ -433,7 +450,6 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
 
     rv = ParseNextChunk(&readBytes);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      // XXX Do we need to do more here? Restore any previous state?
       return rv;
     }
 
@@ -450,6 +466,8 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
 
   mPlainBytes = readBytes;
   mNextByte = nextByteOffset;
+
+  autoRestorePreviousState.release();
 
   return NS_OK;
 }

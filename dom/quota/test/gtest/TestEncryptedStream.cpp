@@ -763,33 +763,6 @@ class ParametrizedSeekCryptTest
       }();
       nsresult rv = inStream->Seek(std::get<0>(seekOp), offset);
       EXPECT_EQ(std::get<2>(seekOp), rv);
-      // XXX Need to skip remaining checks for this specific case for now.
-      if (std::get<0>(seekOp) == nsISeekableStream::NS_SEEK_END &&
-          std::get<1>(seekOp) == SeekOffset::PlusOne &&
-          testParams.mDataSize != 0) {
-        // XXX The seek operation leaves invalid state after trying to position
-        // past the end of the stream, other checks must be skipped because of
-        // that!
-        return;
-      }
-      // XXX Need to skip remaining checks for this specific case for now.
-      if (std::get<0>(seekOp) == nsISeekableStream::NS_SEEK_CUR &&
-          std::get<1>(seekOp) == SeekOffset::MinusOne &&
-          testParams.mDataSize != 0) {
-        // XXX The seek operation leaves invalid state after trying to position
-        // before the start of the stream, other checks must be skipped because
-        // of that!
-        return;
-      }
-      // XXX Need to skip remaining checks for this specific case for now.
-      if (std::get<0>(seekOp) == nsISeekableStream::NS_SEEK_END &&
-          std::get<1>(seekOp) == SeekOffset::MinusDataSizeAndOne &&
-          testParams.mDataSize != 0) {
-        // XXX The seek operation leaves invalid state after trying to position
-        // before the start of the stream, other checks must be skipped because
-        // of that!
-        return;
-      }
       if (NS_SUCCEEDED(rv)) {
         switch (std::get<0>(seekOp)) {
           case nsISeekableStream::NS_SEEK_SET:
