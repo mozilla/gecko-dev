@@ -591,6 +591,14 @@ main section {
 .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
   background: var(--newtab-element-hover-color);
 }
+.lightWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover), .darkWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
+  background-color: var(--newtab-weather-background-color);
+}
+@media (prefers-contrast) {
+  .lightWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover), .darkWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
+    background-color: var(--background-color-box);
+  }
+}
 @media (max-width: 610px) {
   .top-sites-list > :nth-child(2n+1) .context-menu {
     margin-inline-end: auto;
@@ -2154,10 +2162,20 @@ main section {
   color: var(--text-color-error);
   display: flex;
   align-items: center;
+  border-radius: var(--border-radius-medium);
+  padding: var(--space-small);
 }
 .weatherNotAvailable .icon {
   fill: var(--icon-color-critical);
   -moz-context-properties: fill;
+}
+.lightWallpaper .weatherNotAvailable, .darkWallpaper .weatherNotAvailable {
+  background-color: var(--newtab-weather-background-color);
+}
+@media (prefers-contrast) {
+  .lightWallpaper .weatherNotAvailable, .darkWallpaper .weatherNotAvailable {
+    background-color: var(--background-color-box);
+  }
 }
 
 .weatherCard {
@@ -2459,7 +2477,7 @@ main section {
   background-color: light-dark(var(--color-white), var(--newtab-background-color-secondary));
   color: var(--newtab-text-primary-color);
   border-radius: var(--border-radius-medium);
-  padding: 8px;
+  padding: var(--space-small);
   position: relative;
 }
 .lightWallpaper .location-input-wrapper, .darkWallpaper .location-input-wrapper {

@@ -25,6 +25,16 @@ $letter-fallback-color: $white;
   &:not(.dnd-active) {
     .top-site-outer:is(.active, :focus, :hover) {
       background: var(--newtab-element-hover-color);
+
+      // Contrast fix for users who have wallpapers set
+      .lightWallpaper &,
+      .darkWallpaper & {
+        background-color: var(--newtab-weather-background-color);
+
+        @media (prefers-contrast) {
+          background-color: var(--background-color-box);
+        }
+      }
     }
   }
 

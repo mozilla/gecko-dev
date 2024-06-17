@@ -18,10 +18,22 @@
   color: var(--text-color-error);
   display: flex;
   align-items: center;
+  border-radius: var(--border-radius-medium);
+  padding: var(--space-small);
 
   .icon {
     fill: var(--icon-color-critical);
     -moz-context-properties: fill;
+  }
+
+  // Contrast fix for users who have wallpapers set
+  .lightWallpaper &,
+  .darkWallpaper & {
+    background-color: var(--newtab-weather-background-color);
+
+    @media (prefers-contrast) {
+      background-color: var(--background-color-box);
+    }
   }
 }
 
@@ -382,7 +394,7 @@
   background-color: light-dark(var(--color-white), var(--newtab-background-color-secondary));
   color: var(--newtab-text-primary-color);
   border-radius: var(--border-radius-medium);
-  padding: 8px;
+  padding: var(--space-small);
   position: relative;
 
   // Contrast fix for users who have wallpapers set
