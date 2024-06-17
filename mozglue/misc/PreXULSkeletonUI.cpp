@@ -124,46 +124,29 @@ static uint32_t sToolbarForegroundColor;
 
 static ThemeMode sTheme = ThemeMode::Invalid;
 
-typedef BOOL(WINAPI* EnableNonClientDpiScalingProc)(HWND);
-static EnableNonClientDpiScalingProc sEnableNonClientDpiScaling = NULL;
-typedef int(WINAPI* GetSystemMetricsForDpiProc)(int, UINT);
-GetSystemMetricsForDpiProc sGetSystemMetricsForDpi = NULL;
-typedef UINT(WINAPI* GetDpiForWindowProc)(HWND);
-GetDpiForWindowProc sGetDpiForWindow = NULL;
-typedef ATOM(WINAPI* RegisterClassWProc)(const WNDCLASSW*);
-RegisterClassWProc sRegisterClassW = NULL;
-typedef HICON(WINAPI* LoadIconWProc)(HINSTANCE, LPCWSTR);
-LoadIconWProc sLoadIconW = NULL;
-typedef HICON(WINAPI* LoadCursorWProc)(HINSTANCE, LPCWSTR);
-LoadCursorWProc sLoadCursorW = NULL;
-typedef HWND(WINAPI* CreateWindowExWProc)(DWORD, LPCWSTR, LPCWSTR, DWORD, int,
-                                          int, int, int, HWND, HMENU, HINSTANCE,
-                                          LPVOID);
-CreateWindowExWProc sCreateWindowExW = NULL;
-typedef BOOL(WINAPI* ShowWindowProc)(HWND, int);
-ShowWindowProc sShowWindow = NULL;
-typedef BOOL(WINAPI* SetWindowPosProc)(HWND, HWND, int, int, int, int, UINT);
-SetWindowPosProc sSetWindowPos = NULL;
-typedef HDC(WINAPI* GetWindowDCProc)(HWND);
-GetWindowDCProc sGetWindowDC = NULL;
-typedef int(WINAPI* FillRectProc)(HDC, const RECT*, HBRUSH);
-FillRectProc sFillRect = NULL;
-typedef BOOL(WINAPI* DeleteObjectProc)(HGDIOBJ);
-DeleteObjectProc sDeleteObject = NULL;
-typedef int(WINAPI* ReleaseDCProc)(HWND, HDC);
-ReleaseDCProc sReleaseDC = NULL;
-typedef HMONITOR(WINAPI* MonitorFromWindowProc)(HWND, DWORD);
-MonitorFromWindowProc sMonitorFromWindow = NULL;
-typedef BOOL(WINAPI* GetMonitorInfoWProc)(HMONITOR, LPMONITORINFO);
-GetMonitorInfoWProc sGetMonitorInfoW = NULL;
-typedef LONG_PTR(WINAPI* SetWindowLongPtrWProc)(HWND, int, LONG_PTR);
-SetWindowLongPtrWProc sSetWindowLongPtrW = NULL;
-typedef int(WINAPI* StretchDIBitsProc)(HDC, int, int, int, int, int, int, int,
-                                       int, const VOID*, const BITMAPINFO*,
-                                       UINT, DWORD);
-StretchDIBitsProc sStretchDIBits = NULL;
-typedef HBRUSH(WINAPI* CreateSolidBrushProc)(COLORREF);
-CreateSolidBrushProc sCreateSolidBrush = NULL;
+#define MOZ_DECL_IMPORTED_WIN32_FN(name) \
+  static decltype(&::name) s##name = nullptr
+MOZ_DECL_IMPORTED_WIN32_FN(EnableNonClientDpiScaling);
+MOZ_DECL_IMPORTED_WIN32_FN(GetSystemMetricsForDpi);
+MOZ_DECL_IMPORTED_WIN32_FN(GetDpiForWindow);
+MOZ_DECL_IMPORTED_WIN32_FN(RegisterClassW);
+MOZ_DECL_IMPORTED_WIN32_FN(LoadIconW);
+MOZ_DECL_IMPORTED_WIN32_FN(LoadCursorW);
+MOZ_DECL_IMPORTED_WIN32_FN(CreateWindowExW);
+MOZ_DECL_IMPORTED_WIN32_FN(ShowWindow);
+MOZ_DECL_IMPORTED_WIN32_FN(SetWindowPos);
+MOZ_DECL_IMPORTED_WIN32_FN(GetWindowDC);
+MOZ_DECL_IMPORTED_WIN32_FN(GetWindowRect);
+MOZ_DECL_IMPORTED_WIN32_FN(MapWindowPoints);
+MOZ_DECL_IMPORTED_WIN32_FN(FillRect);
+MOZ_DECL_IMPORTED_WIN32_FN(DeleteObject);
+MOZ_DECL_IMPORTED_WIN32_FN(ReleaseDC);
+MOZ_DECL_IMPORTED_WIN32_FN(MonitorFromWindow);
+MOZ_DECL_IMPORTED_WIN32_FN(GetMonitorInfoW);
+MOZ_DECL_IMPORTED_WIN32_FN(SetWindowLongPtrW);
+MOZ_DECL_IMPORTED_WIN32_FN(StretchDIBits);
+MOZ_DECL_IMPORTED_WIN32_FN(CreateSolidBrush);
+#undef MOZ_DECL_IMPORTED_WIN32_FN
 
 static int sWindowWidth;
 static int sWindowHeight;
@@ -1393,6 +1376,14 @@ Result<Ok, PreXULSkeletonUIError> LoadGdi32AndUser32Procedures() {
     return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
   }
 
+#define MOZ_LOAD_OR_FAIL(dll_handle, name)                            \
+  do {                                                                \
+    s##name = (decltype(&::name))::GetProcAddress(dll_handle, #name); \
+    if (!s##name) {                                                   \
+      return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);   \
+    }                                                                 \
+  } while (0)
+
   auto getThreadDpiAwarenessContext =
       (decltype(GetThreadDpiAwarenessContext)*)::GetProcAddress(
           user32Dll, "GetThreadDpiAwarenessContext");
@@ -1402,89 +1393,33 @@ Result<Ok, PreXULSkeletonUIError> LoadGdi32AndUser32Procedures() {
   if (getThreadDpiAwarenessContext && areDpiAwarenessContextsEqual &&
       areDpiAwarenessContextsEqual(getThreadDpiAwarenessContext(),
                                    DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)) {
-    // EnableNonClientDpiScaling is optional - we can handle not having it.
-    sEnableNonClientDpiScaling =
-        (EnableNonClientDpiScalingProc)::GetProcAddress(
-            user32Dll, "EnableNonClientDpiScaling");
+    // EnableNonClientDpiScaling is first available in Win10 Build 1607, but
+    // it's optional - we can handle not having it.
+    Unused << [&]() -> Result<Ok, PreXULSkeletonUIError> {
+      MOZ_LOAD_OR_FAIL(user32Dll, EnableNonClientDpiScaling);
+      return Ok{};
+    }();
   }
 
-  sGetSystemMetricsForDpi = (GetSystemMetricsForDpiProc)::GetProcAddress(
-      user32Dll, "GetSystemMetricsForDpi");
-  if (!sGetSystemMetricsForDpi) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sGetDpiForWindow =
-      (GetDpiForWindowProc)::GetProcAddress(user32Dll, "GetDpiForWindow");
-  if (!sGetDpiForWindow) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sRegisterClassW =
-      (RegisterClassWProc)::GetProcAddress(user32Dll, "RegisterClassW");
-  if (!sRegisterClassW) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sCreateWindowExW =
-      (CreateWindowExWProc)::GetProcAddress(user32Dll, "CreateWindowExW");
-  if (!sCreateWindowExW) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sShowWindow = (ShowWindowProc)::GetProcAddress(user32Dll, "ShowWindow");
-  if (!sShowWindow) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sSetWindowPos = (SetWindowPosProc)::GetProcAddress(user32Dll, "SetWindowPos");
-  if (!sSetWindowPos) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sGetWindowDC = (GetWindowDCProc)::GetProcAddress(user32Dll, "GetWindowDC");
-  if (!sGetWindowDC) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sFillRect = (FillRectProc)::GetProcAddress(user32Dll, "FillRect");
-  if (!sFillRect) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sReleaseDC = (ReleaseDCProc)::GetProcAddress(user32Dll, "ReleaseDC");
-  if (!sReleaseDC) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sLoadIconW = (LoadIconWProc)::GetProcAddress(user32Dll, "LoadIconW");
-  if (!sLoadIconW) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sLoadCursorW = (LoadCursorWProc)::GetProcAddress(user32Dll, "LoadCursorW");
-  if (!sLoadCursorW) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sMonitorFromWindow =
-      (MonitorFromWindowProc)::GetProcAddress(user32Dll, "MonitorFromWindow");
-  if (!sMonitorFromWindow) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sGetMonitorInfoW =
-      (GetMonitorInfoWProc)::GetProcAddress(user32Dll, "GetMonitorInfoW");
-  if (!sGetMonitorInfoW) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sSetWindowLongPtrW =
-      (SetWindowLongPtrWProc)::GetProcAddress(user32Dll, "SetWindowLongPtrW");
-  if (!sSetWindowLongPtrW) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sStretchDIBits =
-      (StretchDIBitsProc)::GetProcAddress(gdi32Dll, "StretchDIBits");
-  if (!sStretchDIBits) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sCreateSolidBrush =
-      (CreateSolidBrushProc)::GetProcAddress(gdi32Dll, "CreateSolidBrush");
-  if (!sCreateSolidBrush) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
-  sDeleteObject = (DeleteObjectProc)::GetProcAddress(gdi32Dll, "DeleteObject");
-  if (!sDeleteObject) {
-    return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
-  }
+  MOZ_LOAD_OR_FAIL(user32Dll, GetSystemMetricsForDpi);
+  MOZ_LOAD_OR_FAIL(user32Dll, GetDpiForWindow);
+  MOZ_LOAD_OR_FAIL(user32Dll, RegisterClassW);
+  MOZ_LOAD_OR_FAIL(user32Dll, CreateWindowExW);
+  MOZ_LOAD_OR_FAIL(user32Dll, ShowWindow);
+  MOZ_LOAD_OR_FAIL(user32Dll, SetWindowPos);
+  MOZ_LOAD_OR_FAIL(user32Dll, GetWindowDC);
+  MOZ_LOAD_OR_FAIL(user32Dll, FillRect);
+  MOZ_LOAD_OR_FAIL(user32Dll, ReleaseDC);
+  MOZ_LOAD_OR_FAIL(user32Dll, LoadIconW);
+  MOZ_LOAD_OR_FAIL(user32Dll, LoadCursorW);
+  MOZ_LOAD_OR_FAIL(user32Dll, MonitorFromWindow);
+  MOZ_LOAD_OR_FAIL(user32Dll, GetMonitorInfoW);
+  MOZ_LOAD_OR_FAIL(user32Dll, SetWindowLongPtrW);
+  MOZ_LOAD_OR_FAIL(gdi32Dll, StretchDIBits);
+  MOZ_LOAD_OR_FAIL(gdi32Dll, CreateSolidBrush);
+  MOZ_LOAD_OR_FAIL(gdi32Dll, DeleteObject);
+
+#undef MOZ_LOAD_OR_FAIL
 
   return Ok();
 }
