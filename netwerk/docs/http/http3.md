@@ -65,11 +65,9 @@ The function is called when necko has performed some action on neqo, e.g. new HT
 - Process (HTTP and WebTransport) streams that have data to write.
 - ProcessOutput - look if there are new packets to be sent after streams have supplied data to neqo.
 
-
 **Http3Session::ProcessOutputAndEvents** performed the  following steps:
 - ProcessOutput - after a timeout most probably neqo will have data to retransmit or it will send a ping
 - ProcessEvents - look if the state of the connection has changed, i.e. the connection timed out
-
 
 ## HTTP and WebTransport Streams Reading Data
 
@@ -94,7 +92,7 @@ flowchart TD
 When there is a new packet carrying a stream data arriving on a QUIC connection nsUDPSocket::OnSocketReady will be called which will call Http3Session::RecvData. Http3Session::RecvData and ProcessInput will read the new packet from the socket and give it to neqo for processing. In the next step, ProcessEvent will be called which will have a DataReadable event and Http3Stream::WriteSegments will be called.
 Http3Stream::WriteSegments calls nsHttpTransaction::WriteSegmentsAgain repeatedly until all data are read from the QUIC stream or until the pipe cannot accept more data. The latter can happen when listeners of an HTTP transaction or WebTransport stream are slow and are not able to read all data available on an HTTP3/WebTransport stream fast enough.
 
-When the pipe cannot accept more data nsHttpTransaction will call nsPipeOutputStream::AsyncWait and wait for the nsHttpTransaction::OnOutputStreamReady callback. When nsHttpTransaction::OnOutputStreamReady is called,  Http3Stream/Session::TransactionHasDataToRecv is is executed with the following actions:
+When the pipe cannot accept more data nsHttpTransaction will call nsPipeOutputStream::AsyncWait and wait for the nsHttpTransaction::OnOutputStreamReady callback. When nsHttpTransaction::OnOutputStreamReady is called,  Http3Stream/Session::TransactionHasDataToRecv is executed with the following actions:
 - the corresponding stream to a list(mSlowConsumersReadyForRead) and
 - nsHttpConnection::ResumeRecv is called (i.e. it forces the same code path as when a socket has data to receive so that errors can be properly handled as explained previously).
 
@@ -135,7 +133,6 @@ For **HeaderReady** and **DataReadable** the Http3Stream::WriteSegments function
 **RequestsCreatable** events are posted when a QUIC connection could not accept new streams due to the flow control in the past and the stream flow control is increased and the streams are creatable again. Http3Session::ProcessPendingProcessPending will trigger the activation of the queued streams.
 
 **AuthenticationNeeded** and **EchFallbackAuthenticationNeeded** are posted when a certificate verification is needed.
-
 
 **ZeroRttRejected** is posted when zero RTT data was rejected.
 
