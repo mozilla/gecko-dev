@@ -62,6 +62,7 @@ class MOZ_RAII IRGenerator {
   JSContext* cx_;
   HandleScript script_;
   jsbytecode* pc_;
+  BaselineFrame* maybeFrame_;
   CacheKind cacheKind_;
   ICState::Mode mode_;
   bool isFirstStub_;
@@ -98,11 +99,14 @@ class MOZ_RAII IRGenerator {
   void emitOptimisticClassGuard(ObjOperandId objId, JSObject* obj,
                                 GuardClassKind kind);
 
+  gc::AllocSite* maybeCreateAllocSite();
+
   friend class CacheIRSpewer;
 
  public:
   explicit IRGenerator(JSContext* cx, HandleScript script, jsbytecode* pc,
-                       CacheKind cacheKind, ICState state);
+                       CacheKind cacheKind, ICState state,
+                       BaselineFrame* maybeFrame = nullptr);
 
   const CacheIRWriter& writerRef() const { return writer; }
   CacheKind cacheKind() const { return cacheKind_; }
@@ -915,7 +919,6 @@ class MOZ_RAII NewArrayIRGenerator : public IRGenerator {
   JSOp op_;
 #endif
   HandleObject templateObject_;
-  BaselineFrame* frame_;
 
   void trackAttached(const char* name /* must be a C string literal */);
 
@@ -933,7 +936,6 @@ class MOZ_RAII NewObjectIRGenerator : public IRGenerator {
   JSOp op_;
 #endif
   HandleObject templateObject_;
-  BaselineFrame* frame_;
 
   void trackAttached(const char* name /* must be a C string literal */);
 
