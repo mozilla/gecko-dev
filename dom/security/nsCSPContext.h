@@ -111,8 +111,7 @@ class nsCSPContext : public nsIContentSecurityPolicy {
       mozilla::dom::CSPViolationData&& aCSPViolationData, nsIURI* aOriginalURI,
       const nsAString& aViolatedDirectiveName,
       const nsAString& aViolatedDirectiveNameAndValue,
-      const CSPDirective aEffectiveDirective, const nsAString& aObserverSubject,
-      bool aReportSample);
+      const nsAString& aObserverSubject, bool aReportSample);
 
   // Hands off! Don't call this method unless you know what you
   // are doing. It's only supposed to be called from within

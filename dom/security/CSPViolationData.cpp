@@ -34,11 +34,13 @@ static nsString MaybeTruncateSample(const nsAString& aSample) {
 
 CSPViolationData::CSPViolationData(uint32_t aViolatedPolicyIndex,
                                    Resource&& aResource,
+                                   const CSPDirective aEffectiveDirective,
                                    const nsAString& aSourceFile,
                                    uint32_t aLineNumber, uint32_t aColumnNumber,
                                    Element* aElement, const nsAString& aSample)
     : mViolatedPolicyIndex{aViolatedPolicyIndex},
       mResource{std::move(aResource)},
+      mEffectiveDirective{aEffectiveDirective},
       mSourceFile{aSourceFile},
       mLineNumber{aLineNumber},
       mColumnNumber{aColumnNumber},
