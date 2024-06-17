@@ -42,7 +42,7 @@ class AdjustedRating extends MozLitElement {
         ></moz-five-star>
         <div slot="content">
           <span
-            data-l10n-id="shopping-adjusted-rating-unreliable-reviews"
+            data-l10n-id="shopping-adjusted-rating-based-reliable-reviews"
           ></span>
         </div>
       </shopping-card>
