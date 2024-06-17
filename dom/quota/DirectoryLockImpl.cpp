@@ -54,7 +54,7 @@ DirectoryLockImpl::DirectoryLockImpl(
 
 DirectoryLockImpl::~DirectoryLockImpl() {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(!mRegistered);
+  MOZ_DIAGNOSTIC_ASSERT(!mRegistered);
 }
 
 #ifdef DEBUG
