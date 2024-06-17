@@ -12,7 +12,11 @@
 // Setting MAX_NATIVE_FRAMES too high risks the unwinder wasting a lot of time
 // looping on corrupted stacks.
 
+#ifdef __cplusplus
 static const size_t MAX_NATIVE_FRAMES = 1024;
+#else
+#  define MAX_NATIVE_FRAMES 1024
+#endif
 
 struct NativeStack {
   void* mPCs[MAX_NATIVE_FRAMES];
