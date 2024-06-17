@@ -41,6 +41,14 @@ project_flag(
     help="which devtools version should be built",
 )
 
+
+option(
+    env="MOZ_STUB_INSTALLER",
+    help="produce a stub installer",
+)
+set_config("MOZ_STUB_INSTALLER", True, when="MOZ_STUB_INSTALLER")
+
+
 project_flag(
     env="MOZ_PROFILE_MIGRATOR",
     help="enable profile migrator",

@@ -625,8 +625,6 @@ dnl ========================================================
 AC_SUBST_LIST(ASFLAGS)
 AC_SUBST_LIST(MOZ_DEBUG_LDFLAGS)
 
-AC_SUBST(MOZ_STUB_INSTALLER)
-
 AC_SUBST_LIST(MOZ_FIX_LINK_PATHS)
 
 dnl ========================================================
