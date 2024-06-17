@@ -2839,7 +2839,8 @@ static void DoNativeBacktrace(
 
 void DoNativeBacktraceDirect(const void* stackTop, NativeStack& aNativeStack,
                              StackWalkControl* aStackWalkControlIfSupported) {
-#  if defined(USE_FRAME_POINTER_STACK_WALK) || defined(USE_MOZ_STACK_WALK)
+#  if defined(MOZ_PROFILING)
+#    if defined(USE_FRAME_POINTER_STACK_WALK) || defined(USE_MOZ_STACK_WALK)
   // StackWalkCallback(/* frameNum */ 0, aRegs.mPC, aRegs.mSP, &aNativeStack);
   void* previousResumeSp = nullptr;
   for (;;) {
@@ -2884,12 +2885,16 @@ void DoNativeBacktraceDirect(const void* stackTop, NativeStack& aNativeStack,
       previousResumeSp = sp;
     }
   }
-#  else  // defined(USE_FRAME_POINTER_STACK_WALK) || defined(USE_MOZ_STACK_WALK)
+#    else   // defined(USE_FRAME_POINTER_STACK_WALK) ||
+            // defined(USE_MOZ_STACK_WALK)
   MOZ_CRASH(
       "Cannot call DoNativeBacktraceDirect without either "
       "USE_FRAME_POINTER_STACK_WALK USE_MOZ_STACK_WALK");
-#  endif  // defined(USE_FRAME_POINTER_STACK_WALK) ||
-          // defined(USE_MOZ_STACK_WALK)
+#    endif  // defined(USE_FRAME_POINTER_STACK_WALK) ||
+            // defined(USE_MOZ_STACK_WALK)
+#  else
+  aNativeStack.mCount = 0;
+#  endif
 }
 #endif
 

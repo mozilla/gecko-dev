@@ -17,6 +17,9 @@ We manage to capture the call stack on the child process and pass that to the
 profiler, so hopefully any thread in our child process will report a stack
 explaining why the syscall was made.
 
+Capturing the stack might require either a nightly build (opt or debug), or a
+beta/release build with debug enabled.
+
 We report markers on the `SandboxProfilerEmitterSyscalls` thread for syscalls
 and `SandboxProfilerEmitterLogs` for `SANDBOX_LOG` entries.
 
