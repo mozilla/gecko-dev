@@ -48,12 +48,12 @@ class nsSplittableFrame : public nsIFrame {
   nsIFrame* GetNextContinuation() const final;
 
   // Set a previous non-fluid continuation.
-  void SetPrevContinuation(nsIFrame*) final;
-
-  // Set a next non-fluid continuation.
   //
   // WARNING: this method updates caches for next-continuations, so it has O(n)
   // time complexity over the length of next-continuations in the chain.
+  void SetPrevContinuation(nsIFrame*) final;
+
+  // Set a next non-fluid continuation.
   void SetNextContinuation(nsIFrame*) final;
 
   // Get the first/last continuation for this frame.
@@ -71,12 +71,12 @@ class nsSplittableFrame : public nsIFrame {
   nsIFrame* GetNextInFlow() const final;
 
   // Set a previous fluid continuation.
-  void SetPrevInFlow(nsIFrame*) final;
-
-  // Set a next fluid continuation.
   //
   // WARNING: this method updates caches for next-continuations, so it has O(n)
   // time complexity over the length of next-continuations in the chain.
+  void SetPrevInFlow(nsIFrame*) final;
+
+  // Set a next fluid continuation.
   void SetNextInFlow(nsIFrame*) final;
 
   // Get the first/last frame in the current flow.
