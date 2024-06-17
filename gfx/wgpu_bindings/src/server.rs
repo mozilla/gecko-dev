@@ -717,6 +717,7 @@ impl Global {
                             )
                         };
                         if ret != true {
+                            gfx_select!(self_id => self.create_texture_error(Some(id), desc.label));
                             error_buf.init(ErrMsg {
                                 message: "Failed to create external texture",
                                 r#type: ErrorBufferType::Internal,
@@ -734,10 +735,12 @@ impl Global {
                         let handle =
                             unsafe { wgpu_server_get_external_texture_handle(self.owner, id) };
                         if handle.is_null() {
+                            gfx_select!(self_id => self.create_texture_error(Some(id), desc.label));
                             error_buf.init(ErrMsg {
                                 message: "Failed to get external texture handle",
                                 r#type: ErrorBufferType::Internal,
                             });
+                            return;
                         }
                         let mut resource = d3d12::Resource::null();
                         let hr = unsafe {
@@ -748,10 +751,12 @@ impl Global {
                             )
                         };
                         if hr != 0 {
+                            gfx_select!(self_id => self.create_texture_error(Some(id), desc.label));
                             error_buf.init(ErrMsg {
                                 message: "Failed to open shared handle",
                                 r#type: ErrorBufferType::Internal,
                             });
+                            return;
                         }
 
                         let hal_texture = unsafe {
