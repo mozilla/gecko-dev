@@ -32,11 +32,13 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * Initial microsurvey prompt displayed to the user to request completion of feedback.
  *
  * @param title The prompt header title.
+ * @param onStartSurveyClicked Handles the on click event of the start survey button.
  */
 @Composable
 fun MicrosurveyRequestPrompt(
     // todo this is the message title FXDROID-1966).
     title: String = "Help make printing in Firefox better. It only takes a sec.",
+    onStartSurveyClicked: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -47,7 +49,9 @@ fun MicrosurveyRequestPrompt(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        PrimaryButton(text = stringResource(id = R.string.micro_survey_continue_button_label)) {}
+        PrimaryButton(text = stringResource(id = R.string.micro_survey_continue_button_label)) {
+            onStartSurveyClicked()
+        }
     }
 }
 
