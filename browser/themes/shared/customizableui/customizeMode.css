@@ -116,8 +116,24 @@ toolbar[overflowable][customizing] > .customization-target {
     opacity: 1;
   }
 
-  :root[lwtheme-image] & .toolbarbutton-1 {
-    fill: currentColor;
+  .toolbarbutton-1 {
+    appearance: none;
+    flex-direction: column;
+    padding: 12px 0 9px;
+    margin: 0;
+
+    :root[lwtheme-image] & {
+      fill: currentColor;
+    }
+
+    > .toolbarbutton-badge-stack > .toolbarbutton-icon {
+      width: var(--panel-and-palette-icon-size);
+      height: var(--panel-and-palette-icon-size);
+      min-width: var(--panel-and-palette-icon-size);
+      min-height: var(--panel-and-palette-icon-size);
+      margin: 0;
+      padding: 0;
+    }
   }
 }
 
@@ -171,8 +187,22 @@ toolbarpaletteitem {
       text-align: center;
     }
 
+    /* Webextension buttons */
+    > toolbarbutton[constrain-size="true"] > .toolbarbutton-icon,
+    > toolbarbutton[constrain-size="true"] > .toolbarbutton-badge-stack > .toolbarbutton-icon {
+      height: var(--panel-and-palette-icon-size);
+      width: var(--panel-and-palette-icon-size);
+    }
+
     > toolbarspring {
       outline-offset: -8px;
+      max-height: 37px;
+    }
+
+    > #search-container {
+      min-width: 7em;
+      width: 7em;
+      min-height: 37px;
       max-height: 37px;
     }
   }
@@ -185,6 +215,15 @@ toolbarpaletteitem {
     > toolbarspring {
       outline-offset: -2px;
       margin-block: 5px;
+    }
+  }
+
+  &[place="panel"] {
+    border-block: 0 solid transparent;
+
+    > .toolbarbutton-1,
+    > toolbaritem {
+      flex: 1;
     }
   }
 
@@ -203,29 +242,22 @@ toolbarpaletteitem {
       /* Delay adding the focusring back until after the transform transition completes. */
       transition: outline-width .01s linear var(--drag-drop-transition-duration);
       outline: var(--default-focusring);
+
+      &[place="toolbar"] {
+        outline-offset: calc(-1 * var(--default-focusring-width) - 4px);
+      }
     }
   }
 
-  &:not([notransition])[place="palette"],
-  &:not([notransition])[place="panel"] {
-    transition: transform var(--drag-drop-transition-duration) ease-in-out;
-  }
-
-  #widget-overflow-fixed-list > &:not([notransition])[place="panel"],
-  &:not([notransition])[place="toolbar"] {
-    transition: border-width var(--drag-drop-transition-duration) ease-in-out;
-  }
-
-  #widget-overflow-fixed-list > & {
-    flex: none;
-
-    &[place="panel"] {
-      border-block: 0 solid transparent;
+  &:not([notransition]) {
+    &[place="palette"] {
+      transition: transform var(--drag-drop-transition-duration) ease-in-out;
     }
-  }
 
-  &[place="toolbar"]:not([mousedown="true"]):focus-visible {
-    outline-offset: calc(-1 * var(--default-focusring-width) - 4px);
+    &[place="panel"],
+    &[place="toolbar"] {
+      transition: border-width var(--drag-drop-transition-duration) ease-in-out;
+    }
   }
 
   &:not([place="palette"]) > #stop-reload-button {
