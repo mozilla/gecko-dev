@@ -515,6 +515,24 @@ class TranslationsActionTest {
     }
 
     @Test
+    fun `WHEN a SetTranslateProcessingAction is dispatched THEN set isTranslateProcessing`() {
+        // Initial
+        assertFalse(tabState().translationsState.isTranslateProcessing)
+
+        // Action started
+        val isProcessing = true
+        store.dispatch(
+            TranslationsAction.SetTranslateProcessingAction(
+                tabId = tab.id,
+                isProcessing = isProcessing,
+            ),
+        ).joinBlocking()
+
+        // Action success
+        assertEquals(isProcessing, tabState().translationsState.isTranslateProcessing)
+    }
+
+    @Test
     fun `WHEN a SetTranslationDownloadSize is dispatched THEN set translationSize is set`() {
         // Initial
         assertNull(tabState().translationsState.translationDownloadSize)

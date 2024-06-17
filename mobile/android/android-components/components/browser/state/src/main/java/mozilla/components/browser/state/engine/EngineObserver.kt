@@ -172,6 +172,10 @@ internal class EngineObserver(
         store.dispatch(ContentAction.UpdateProductUrlStateAction(tabId, isProductUrl))
     }
 
+    override fun onTranslatePageChange() {
+        store.dispatch(TranslationsAction.SetTranslateProcessingAction(tabId, isProcessing = false))
+    }
+
     override fun onLongPress(hitResult: HitResult) {
         store.dispatch(
             ContentAction.UpdateHitResultAction(tabId, hitResult),

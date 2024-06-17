@@ -78,6 +78,12 @@ abstract class EngineSession(
         fun onProductUrlChange(isProductUrl: Boolean) = Unit
 
         /**
+         * Event to indicate that a page change is occurring, which will invalidate the page's
+         * translations state.
+         */
+        fun onTranslatePageChange() = Unit
+
+        /**
          * Event to indicate that a url was loaded to this session.
          */
         fun onLoadUrl() = Unit

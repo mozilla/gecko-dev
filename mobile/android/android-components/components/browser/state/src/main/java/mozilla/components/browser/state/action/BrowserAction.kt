@@ -1041,6 +1041,19 @@ sealed class TranslationsAction : BrowserAction() {
     ) : TranslationsAction(), ActionWithTab
 
     /**
+     * Indicates the translation processing state on the given [tabId].
+     *
+     * A translation is processing when the engine is actively working on performing the translation.
+     *
+     * @property tabId The ID of the tab the [EngineSession] should be linked to.
+     * @property isProcessing Whether the translation is processing or not.
+     */
+    data class SetTranslateProcessingAction(
+        override val tabId: String,
+        val isProcessing: Boolean,
+    ) : TranslationsAction(), ActionWithTab
+
+    /**
      * Updates the specified page setting operation on the translation engine and ensures the final
      * state on the given [tabId]'s store remains in-sync.
      *

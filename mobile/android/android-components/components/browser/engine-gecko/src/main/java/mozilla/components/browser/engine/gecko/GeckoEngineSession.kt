@@ -1140,6 +1140,8 @@ class GeckoEngineSession(
             }
             // Reset the status of current page being product or not when user navigates away.
             notifyObservers { onProductUrlChange(false) }
+            // Reset the status of the translation state for the page
+            notifyObservers { onTranslatePageChange() }
             notifyObservers { onLocationChange(url, hasUserGesture) }
         }
 

@@ -295,6 +295,13 @@ internal object TranslationsStateReducer {
                 )
             }
 
+        is TranslationsAction.SetTranslateProcessingAction ->
+            state.copyWithTranslationsState(action.tabId) {
+                it.copy(
+                    isTranslateProcessing = action.isProcessing,
+                )
+            }
+
         is TranslationsAction.SetNeverTranslateSitesAction ->
             state.copy(
                 translationEngine = state.translationEngine.copy(

@@ -450,6 +450,21 @@ class EngineObserverTest {
     }
 
     @Test
+    fun `WHEN onTranslatePageChange is called THEN dispatch a TranslationsAction SetTranslateProcessingAction`() {
+        val store: BrowserStore = mock()
+        val observer = EngineObserver("mozilla", store)
+
+        observer.onTranslatePageChange()
+
+        verify(store).dispatch(
+            TranslationsAction.SetTranslateProcessingAction(
+                "mozilla",
+                false,
+            ),
+        )
+    }
+
+    @Test
     fun `WHEN onTranslateComplete is called THEN dispatch a TranslationsAction TranslateSuccessAction`() {
         val store: BrowserStore = mock()
         val observer = EngineObserver("mozilla", store)
