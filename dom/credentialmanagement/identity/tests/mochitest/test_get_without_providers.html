@@ -15,7 +15,11 @@
           }
         });
       }
-    ).then(() => {
+    ).then((x) => {
+      if (!x) {
+        ok(true, "correctly got null");
+        return;
+      }
       ok(false, "incorrectly got a credential");
     }).catch(() => {
       ok(true, "correctly got an error");
