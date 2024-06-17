@@ -217,8 +217,8 @@ nsresult AppWindow::Initialize(nsIAppWindow* aParent, nsIAppWindow* aOpener,
   NS_ENSURE_SUCCESS(rv, rv);
 
   LayoutDeviceIntRect r = mWindow->GetClientBounds();
-  // Match the default background color of content. Important on windows
-  // since we no longer use content child widgets.
+  // Match the default background color of content. Previously important on
+  // Windows, but no longer has any effect there.
   mWindow->SetBackgroundColor(NS_RGB(255, 255, 255));
 
   // All Chrome BCs exist within the same BrowsingContextGroup, so we don't need

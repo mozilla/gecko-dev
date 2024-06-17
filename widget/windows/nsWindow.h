@@ -190,7 +190,6 @@ class nsWindow final : public nsBaseWidget {
   [[nodiscard]] nsresult GetRestoredBounds(LayoutDeviceIntRect& aRect) override;
   LayoutDeviceIntRect GetClientBounds() override;
   LayoutDeviceIntPoint GetClientOffset() override;
-  void SetBackgroundColor(const nscolor& aColor) override;
   void SetCursor(const Cursor&) override;
   bool PrepareForFullscreenTransition(nsISupports** aData) override;
   void PerformFullscreenTransition(FullscreenTransitionStage aStage,
@@ -723,7 +722,6 @@ class nsWindow final : public nsBaseWidget {
   HWND mWnd = nullptr;
   HWND mTransitionWnd = nullptr;
   mozilla::Maybe<WNDPROC> mPrevWndProc;
-  HBRUSH mBrush;
   IMEContext mDefaultIMC;
   HDEVNOTIFY mDeviceNotifyHandle = nullptr;
   bool mIsTopWidgetWindow = false;
