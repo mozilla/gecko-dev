@@ -698,7 +698,8 @@ nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(
 
     RefPtr<ClearDataMozPromise::Private> clearPromise =
         new ClearDataMozPromise::Private(__func__);
-    RefPtr<ClearDataCallback> cb = new ClearDataCallback(clearPromise, host);
+    RefPtr<ClearDataCallback> cb =
+        new ClearDataCallback(clearPromise, host, bounceTime);
 
     MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Info,
             ("%s: Purging bounce tracker. siteHost: %s, bounceTime: %" PRIu64

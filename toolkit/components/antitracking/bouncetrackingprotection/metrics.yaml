@@ -53,6 +53,37 @@ bounce.tracking.protection:
       - success
       - failure
       - dry
+  purge_action:
+    type: event
+    description: >
+      Dispatched whenever a bounce tracker site is purged. Only collected in
+      early Beta and Nightly.
+    bugs:
+      - https://bugzilla.mozilla.org/1889444
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1889444#c16
+    data_sensitivity:
+      - stored_content
+    notification_emails:
+      - pbz@mozilla.com
+      - bvandersloot@mozilla.com
+      - manuel@mozilla.com
+    send_in_pings:
+      - bounce-tracking-protection
+    expires: 134
+    extra_keys:
+      site_host:
+        description: The site host of which the data has been purged.
+        type: string
+      bounce_time:
+        description: Timestamp (seconds since epoch) of the last detected bounce.
+        type: quantity
+      is_dry_run:
+        description: Whether we just pretended to purge since the client is in dry-run mode.
+        type: boolean
+      success:
+        description: Whether the purge data call was successful. false indicates an error in ClearDataService.
+        type: boolean
   enabled_at_startup:
     type: boolean
     description: >
