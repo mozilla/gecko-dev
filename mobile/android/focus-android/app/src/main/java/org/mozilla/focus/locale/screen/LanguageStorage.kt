@@ -7,52 +7,58 @@ package org.mozilla.focus.locale.screen
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
-import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.focus.R
 import org.mozilla.focus.locale.LocaleManager
-import java.util.Arrays
 
 class LanguageStorage(private val context: Context) {
+    private val sharedPref: SharedPreferences =
+        PreferenceManager.getDefaultSharedPreferences(context)
 
-    /**
-     * Returns the current selected Language object or System default Language if nothing is selected
-     */
-    fun getSelectedLanguageTag(): Language {
-        val sharedConfig: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val languageTag = sharedConfig.getString(
-            context.resources.getString(R.string.pref_key_locale),
+    private val localePrefKey: String by lazy {
+        context.resources.getString(R.string.pref_key_locale)
+    }
+
+    internal val languages: List<Language> by lazy {
+        getLanguageList()
+    }
+
+    private val systemDefaultLanguage: Language by lazy {
+        Language(
+            context.getString(R.string.preference_language_systemdefault),
             LOCALE_SYSTEM_DEFAULT,
-        ) ?: LOCALE_SYSTEM_DEFAULT
-        for (language in getLanguages()) {
-            if (languageTag == language.tag) {
-                return language
-            }
-        }
-        return Language(context.getString(R.string.preference_language_systemdefault), LOCALE_SYSTEM_DEFAULT, 0)
+            0,
+        )
     }
 
     /**
-     * Returns The full list of languages available.System default Language  will be the first item in the list .
+     * The current selected Language or System default Language if nothing is selected
      */
-    fun getLanguages(): List<Language> {
-        val listLocaleNameAndTag = ArrayList<Language>()
-        val descriptors = getUsableLocales()
-        listLocaleNameAndTag.add(
-            Language(
-                context.getString(
-                    R.string.preference_language_systemdefault,
-                ),
-                LOCALE_SYSTEM_DEFAULT,
-                0,
-            ),
-        )
-        descriptors.indices.forEach { i ->
-            val displayName = descriptors[i]!!.getNativeName()
-            val tag = descriptors[i]!!.getTag()
-            Logger.info("$displayName => $tag ")
-            listLocaleNameAndTag.add(Language(displayName = displayName, tag = tag, index = i + 1))
+    internal val selectedLanguage: Language
+        get() {
+            val savedLanguageTag =
+                sharedPref.getString(localePrefKey, LOCALE_SYSTEM_DEFAULT) ?: LOCALE_SYSTEM_DEFAULT
+
+            val matchingLanguage = languages.firstOrNull { it.tag == savedLanguageTag }
+
+            return matchingLanguage ?: systemDefaultLanguage
         }
-        return listLocaleNameAndTag
+
+    /**
+     * The full list of available languages.
+     * System default Language will be the first item in the list.
+     */
+    private fun getLanguageList(): List<Language> {
+        return listOf(
+            systemDefaultLanguage,
+        ) + getUsableLocales().mapIndexedNotNull { i, descriptor ->
+            descriptor?.let {
+                Language(
+                    displayName = descriptor.getNativeName(),
+                    tag = it.getTag(),
+                    index = i + 1,
+                )
+            }
+        }
     }
 
     /**
@@ -61,9 +67,8 @@ class LanguageStorage(private val context: Context) {
      * @property languageTag the tag of the language
      */
     fun saveCurrentLanguageInSharePref(languageTag: String) {
-        val sharedPref = PreferenceManager.getDefaultSharedPreferences(context)
         with(sharedPref.edit()) {
-            putString(context.getString(R.string.pref_key_locale), languageTag)
+            putString(localePrefKey, languageTag)
             apply()
         }
     }
@@ -72,16 +77,9 @@ class LanguageStorage(private val context: Context) {
      * This method generates the descriptor array.
      */
     private fun getUsableLocales(): Array<LocaleDescriptor?> {
-        val shippingLocales = LocaleManager.packagedLocaleTags
-        val initialCount: Int = shippingLocales.size
-        val locales: MutableSet<LocaleDescriptor> = HashSet(initialCount)
-        for (tag in shippingLocales) {
-            locales.add(LocaleDescriptor(tag))
-        }
-        val usableCount = locales.size
-        val descriptors: Array<LocaleDescriptor?> = locales.toTypedArray()
-        Arrays.sort(descriptors, 0, usableCount)
-        return descriptors
+        return LocaleManager.packagedLocaleTags.map {
+            LocaleDescriptor(it)
+        }.sorted().toTypedArray()
     }
 
     companion object {
