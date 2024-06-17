@@ -19,10 +19,10 @@
 #define MEM_SRCDST_SUPPORTED 1
 
 /* Use accelerated SIMD routines. */
-#if defined(__sparc__) || defined(__loongarch__)
-#undef  WITH_SIMD
-#else
+#ifdef MOZ_WITH_SIMD
 #define WITH_SIMD 1
+#else
+#undef  WITH_SIMD
 #endif
 
 /* This version of libjpeg-turbo supports run-time selection of data precision,
