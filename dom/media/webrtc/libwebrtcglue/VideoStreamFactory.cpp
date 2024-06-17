@@ -196,6 +196,7 @@ void VideoStreamFactory::SelectMaxFramerate(
 }
 
 std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
+    const webrtc::FieldTrialsView& field_trials,
     int aWidth, int aHeight, const webrtc::VideoEncoderConfig& aConfig) {
   // We only allow one layer when screensharing
   const size_t streamCount =
