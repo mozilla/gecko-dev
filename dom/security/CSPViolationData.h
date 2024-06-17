@@ -31,13 +31,15 @@ struct CSPViolationData {
 
   // @param aSample Will be truncated if necessary.
   CSPViolationData(uint32_t aViolatedPolicyIndex, Resource&& aResource,
-                   uint32_t aLineNumber, uint32_t aColumnNumber,
-                   const nsAString& aSample);
+                   const nsAString& aSourceFile, uint32_t aLineNumber,
+                   uint32_t aColumnNumber, const nsAString& aSample);
 
   BlockedContentSource BlockedContentSourceOrUnknown() const;
 
   const uint32_t mViolatedPolicyIndex;
   const Resource mResource;
+  // String representation of the URL. The empty string represents a null-URL.
+  const nsString mSourceFile;
   const uint32_t mLineNumber;
   const uint32_t mColumnNumber;
   const nsString mSample;

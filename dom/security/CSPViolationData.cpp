@@ -32,11 +32,13 @@ static nsString MaybeTruncateSample(const nsAString& aSample) {
 }
 
 CSPViolationData::CSPViolationData(uint32_t aViolatedPolicyIndex,
-                                   Resource&& aResource, uint32_t aLineNumber,
-                                   uint32_t aColumnNumber,
+                                   Resource&& aResource,
+                                   const nsAString& aSourceFile,
+                                   uint32_t aLineNumber, uint32_t aColumnNumber,
                                    const nsAString& aSample)
     : mViolatedPolicyIndex{aViolatedPolicyIndex},
       mResource{std::move(aResource)},
+      mSourceFile{aSourceFile},
       mLineNumber{aLineNumber},
       mColumnNumber{aColumnNumber},
       mSample{MaybeTruncateSample(aSample)} {}
