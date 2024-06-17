@@ -1,0 +1,50 @@
+From: Jan Grulich <jgrulich@redhat.com>
+Date: Sat, 15 Jun 2024 11:27:00 +0000
+Subject: Bug 1902615 - WebRTC backport: PipeWire camera - check for node
+ existence before adding it to the list r=pehrsons,webrtc-reviewers
+
+This is a simple backport of an WebRTC upstream change.
+
+Upstream commit: 633a41ff8edec405cefa109ac3c8f9662a020cc1
+
+Differential Revision: https://phabricator.services.mozilla.com/D213749
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/dc5e463eb0f570b9b89aef8cddd47f6659bdd16e
+---
+ modules/video_capture/linux/pipewire_session.cc | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index 4d1b200aca..90ac4a3bdd 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -354,6 +354,13 @@ void PipeWireSession::OnRegistryGlobal(void* data,
+                                        const spa_dict* props) {
+   PipeWireSession* that = static_cast<PipeWireSession*>(data);
+ 
++  // Skip already added nodes to avoid duplicate camera entries
++  if (std::find_if(that->nodes_.begin(), that->nodes_.end(),
++                   [id](const PipeWireNode& node) {
++                     return node.id() == id;
++                   }) != that->nodes_.end())
++    return;
++
+   if (type != absl::string_view(PW_TYPE_INTERFACE_Node))
+     return;
+ 
+@@ -372,12 +379,10 @@ void PipeWireSession::OnRegistryGlobal(void* data,
+ void PipeWireSession::OnRegistryGlobalRemove(void* data, uint32_t id) {
+   PipeWireSession* that = static_cast<PipeWireSession*>(data);
+ 
+-  for (auto it = that->nodes_.begin(); it != that->nodes().end(); ++it) {
+-    if ((*it).id() == id) {
+-      that->nodes_.erase(it);
+-      break;
+-    }
+-  }
++  auto it = std::remove_if(
++      that->nodes_.begin(), that->nodes_.end(),
++      [id](const PipeWireNode& node) { return node.id() == id; });
++  that->nodes_.erase(it, that->nodes_.end());
+ }
+ 
+ void PipeWireSession::Finish(VideoCaptureOptions::Status status) {

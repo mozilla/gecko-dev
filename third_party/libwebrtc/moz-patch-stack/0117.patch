@@ -1,0 +1,57 @@
+From: Jan Grulich <jgrulich@redhat.com>
+Date: Sat, 15 Jun 2024 11:27:00 +0000
+Subject: Bug 1901767 - WebRTC backport: PipeWire camera - add support for
+ BGRA/RGBA formats r=pehrsons,webrtc-reviewers
+
+This is a simple backport of an WebRTC upstream change.
+
+Upstream commit: c3aeffd776a22050aff43c81e4a61da3492fa821.
+
+Differential Revision: https://phabricator.services.mozilla.com/D213750
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/07e9c5a3c7f97652c8a586986365bf626e605820
+---
+ modules/video_capture/linux/pipewire_session.cc       | 4 ++++
+ modules/video_capture/linux/video_capture_pipewire.cc | 8 ++++++++
+ 2 files changed, 12 insertions(+)
+
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index 90ac4a3bdd..d52d6aacc8 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -37,6 +37,10 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
+       return VideoType::kUYVY;
+     case SPA_VIDEO_FORMAT_RGB:
+       return VideoType::kRGB24;
++    case SPA_VIDEO_FORMAT_BGRA:
++      return VideoType::kARGB;
++    case SPA_VIDEO_FORMAT_RGBA:
++      return VideoType::kABGR;
+     default:
+       return VideoType::kUnknown;
+   }
+diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
+index 319824d3c5..21cb83a160 100644
+--- a/modules/video_capture/linux/video_capture_pipewire.cc
++++ b/modules/video_capture/linux/video_capture_pipewire.cc
+@@ -33,6 +33,10 @@ struct {
+     {SPA_VIDEO_FORMAT_NV12, VideoType::kNV12},
+     {SPA_VIDEO_FORMAT_YUY2, VideoType::kYUY2},
+     {SPA_VIDEO_FORMAT_UYVY, VideoType::kUYVY},
++    // PipeWire is big-endian for the formats, while libyuv is little-endian
++    // This means that BGRA == ARGB and RGBA == ABGR
++    {SPA_VIDEO_FORMAT_BGRA, VideoType::kARGB},
++    {SPA_VIDEO_FORMAT_RGBA, VideoType::kABGR},
+     {SPA_VIDEO_FORMAT_RGB, VideoType::kRGB24},
+ };
+ 
+@@ -303,6 +307,10 @@ void VideoCaptureModulePipeWire::OnFormatChanged(const struct spa_pod* format) {
+       case VideoType::kRGB24:
+         stride = configured_capability_.width * 3;
+         break;
++      case VideoType::kARGB:
++      case VideoType::kABGR:
++        stride = configured_capability_.width * 4;
++        break;
+       default:
+         RTC_LOG(LS_ERROR) << "Unsupported video format.";
+         return;

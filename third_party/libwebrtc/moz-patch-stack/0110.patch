@@ -1,31 +1,23 @@
-From: Nico Grunbaum <na-g@nostrum.com>
-Date: Thu, 23 May 2024 17:28:00 +0000
-Subject: Bug 1897459 - P0 - for BSD do not build physical_socket_server in
- libwebrtc;r=mjf,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Fri, 17 May 2024 22:30:00 -0500
+Subject: Bug 1897501 - (fix-09bb4f09e1) keep default python intepreter as
+ python3
 
-libwebrtc added the use of several non-portable socket options in this code.
-Firefox does not use any of the code in this file, but there is a header dependency chain leading from code that is used.
-
-Differential Revision: https://phabricator.services.mozilla.com/D210858
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4e7b3c485e549e7e35b227b517acadbbad957004
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b21ca84c8b2620a98515624de0e43a237698726c
 ---
- rtc_base/BUILD.gn | 6 ++++++
- 1 file changed, 6 insertions(+)
+ .gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 12c3d0ac53..8d3d749c30 100644
---- a/rtc_base/BUILD.gn
-+++ b/rtc_base/BUILD.gn
-@@ -1023,6 +1023,12 @@ rtc_library("threading") {
-     "thread.cc",
-     "thread.h",
-   ]
-+  if (is_bsd && build_with_mozilla) {
-+    sources -= [
-+      "physical_socket_server.cc",
-+      "physical_socket_server.h",
-+    ]
-+  }
-   absl_deps = [
-     "//third_party/abseil-cpp/absl/algorithm:container",
-     "//third_party/abseil-cpp/absl/base:core_headers",
+diff --git a/.gn b/.gn
+index 5796d30b7b..23da4f21b9 100644
+--- a/.gn
++++ b/.gn
+@@ -13,7 +13,7 @@ buildconfig = "//build/config/BUILDCONFIG.gn"
+ 
+ # The python interpreter to use by default. On Windows, this will look
+ # for vpython3.exe and vpython3.bat.
+-script_executable = "vpython3"
++script_executable = "python3"
+ 
+ # The secondary source root is a parallel directory tree where
+ # GN build files are placed when they can not be placed directly

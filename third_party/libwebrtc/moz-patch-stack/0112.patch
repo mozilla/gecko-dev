@@ -1,72 +1,31 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Wed, 5 Jun 2024 08:18:00 +0000
-Subject: Bug 1900057 - WebRTC backport: Video capture PipeWire: always capture
- latest processed buffer r=pehrsons,webrtc-reviewers
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Thu, 23 May 2024 17:28:00 +0000
+Subject: Bug 1897459 - P0 - for BSD do not build physical_socket_server in
+ libwebrtc;r=mjf,webrtc-reviewers
 
-This is a simple backport of an WebRTC upstream change.
+libwebrtc added the use of several non-portable socket options in this code.
+Firefox does not use any of the code in this file, but there is a header dependency chain leading from code that is used.
 
-Upstream commit: 848980198ebdc7fd9257ff64faace33eada44798
-
-Differential Revision: https://phabricator.services.mozilla.com/D212281
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c49870c644509b14e9de0e0ab9bb0bbc8e01e93b
+Differential Revision: https://phabricator.services.mozilla.com/D210858
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4e7b3c485e549e7e35b227b517acadbbad957004
 ---
- .../linux/wayland/shared_screencast_stream.cc  | 18 +++++++++++++++---
- 1 file changed, 15 insertions(+), 3 deletions(-)
+ rtc_base/BUILD.gn | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-index dbd0f83e64..e321956ef7 100644
---- a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-+++ b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-@@ -90,6 +90,9 @@ class SharedScreenCastStreamPrivate {
-   webrtc::Mutex queue_lock_;
-   ScreenCaptureFrameQueue<SharedDesktopFrame> queue_
-       RTC_GUARDED_BY(&queue_lock_);
-+  webrtc::Mutex latest_frame_lock_;
-+  SharedDesktopFrame* latest_available_frame_
-+      RTC_GUARDED_BY(&latest_frame_lock_) = nullptr;
-   std::unique_ptr<MouseCursor> mouse_cursor_;
-   DesktopVector mouse_cursor_position_ = DesktopVector(-1, -1);
- 
-@@ -613,13 +616,13 @@ void SharedScreenCastStreamPrivate::StopAndCleanupStream() {
- 
- std::unique_ptr<SharedDesktopFrame>
- SharedScreenCastStreamPrivate::CaptureFrame() {
--  webrtc::MutexLock lock(&queue_lock_);
-+  webrtc::MutexLock latest_frame_lock(&latest_frame_lock_);
- 
--  if (!pw_stream_ || !queue_.current_frame()) {
-+  if (!pw_stream_ || !latest_available_frame_) {
-     return std::unique_ptr<SharedDesktopFrame>{};
-   }
- 
--  std::unique_ptr<SharedDesktopFrame> frame = queue_.current_frame()->Share();
-+  std::unique_ptr<SharedDesktopFrame> frame = latest_available_frame_->Share();
-   if (use_damage_region_) {
-     frame->mutable_updated_region()->Swap(&damage_region_);
-     damage_region_.Clear();
-@@ -852,6 +855,8 @@ void SharedScreenCastStreamPrivate::ProcessBuffer(pw_buffer* buffer) {
-     if (observer_) {
-       observer_->OnFailedToProcessBuffer();
-     }
-+    webrtc::MutexLock latest_frame_lock(&latest_frame_lock_);
-+    latest_available_frame_ = nullptr;
-     return;
-   }
- 
-@@ -870,9 +875,16 @@ void SharedScreenCastStreamPrivate::ProcessBuffer(pw_buffer* buffer) {
-     observer_->OnDesktopFrameChanged();
-   }
- 
-+  // We have to hold the lock over the latest_frame here already, since
-+  // we are going to update damage region, which corresponds to the latest
-+  // frame and is accessed in CaptureFrame()
-+  webrtc::MutexLock latest_frame_lock(&latest_frame_lock_);
-+
-   UpdateFrameUpdatedRegions(spa_buffer, *queue_.current_frame());
-   queue_.current_frame()->set_may_contain_cursor(is_cursor_embedded_);
- 
-+  latest_available_frame_ = queue_.current_frame();
-+
-   if (callback_) {
-     std::unique_ptr<SharedDesktopFrame> frame = queue_.current_frame()->Share();
-     frame->set_capturer_id(DesktopCapturerId::kWaylandCapturerLinux);
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index 12c3d0ac53..8d3d749c30 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1023,6 +1023,12 @@ rtc_library("threading") {
+     "thread.cc",
+     "thread.h",
+   ]
++  if (is_bsd && build_with_mozilla) {
++    sources -= [
++      "physical_socket_server.cc",
++      "physical_socket_server.h",
++    ]
++  }
+   absl_deps = [
+     "//third_party/abseil-cpp/absl/algorithm:container",
+     "//third_party/abseil-cpp/absl/base:core_headers",

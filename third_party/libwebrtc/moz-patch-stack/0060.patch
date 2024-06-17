@@ -1,26 +1,22 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Tue, 21 Jun 2022 11:17:46 -0500
-Subject: Bug 1772380 - to upstream - ref count this in lambda capture
+Date: Wed, 1 Jun 2022 12:47:00 -0500
+Subject: Bug 1766646 - (fix-f137b75a4d) specify default constructor on
+ config.emplace(...)
 
-Bug 1876843 - (fix-23cecc1d43) drop rtc:: prefix on scoped_ptr
-
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2e4867d8cc9813869bd80f5201d3f7d84afcd412
 ---
- modules/video_capture/linux/video_capture_v4l2.cc | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ modules/congestion_controller/goog_cc/loss_based_bwe_v2.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
-index a2e362bb94..6d8a5e463f 100644
---- a/modules/video_capture/linux/video_capture_v4l2.cc
-+++ b/modules/video_capture/linux/video_capture_v4l2.cc
-@@ -303,8 +303,8 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-   if (_captureThread.empty()) {
-     quit_ = false;
-     _captureThread = rtc::PlatformThread::SpawnJoinable(
--        [this] {
--          while (CaptureProcess()) {
-+        [self = scoped_refptr(this)] {
-+          while (self->CaptureProcess()) {
-           }
-         },
-         "CaptureThread",
+diff --git a/modules/congestion_controller/goog_cc/loss_based_bwe_v2.cc b/modules/congestion_controller/goog_cc/loss_based_bwe_v2.cc
+index 7deeb7ad64..2f47ee0f18 100644
+--- a/modules/congestion_controller/goog_cc/loss_based_bwe_v2.cc
++++ b/modules/congestion_controller/goog_cc/loss_based_bwe_v2.cc
+@@ -549,7 +549,7 @@ absl::optional<LossBasedBweV2::Config> LossBasedBweV2::CreateConfig(
+   if (!enabled.Get()) {
+     return config;
+   }
+-  config.emplace();
++  config.emplace(Config());
+   config->bandwidth_rampup_upper_bound_factor =
+       bandwidth_rampup_upper_bound_factor.Get();
+   config->bandwidth_rampup_upper_bound_factor_in_hold =
