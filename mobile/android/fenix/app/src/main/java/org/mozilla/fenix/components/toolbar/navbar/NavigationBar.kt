@@ -110,6 +110,7 @@ fun BrowserNavBar(
         TabsButton(
             onTabsButtonClick = onTabsButtonClick,
             tabCount = tabCount,
+            isPrivateMode = isPrivateMode,
         )
 
         MenuButton(
@@ -181,6 +182,7 @@ fun HomeNavBar(
         TabsButton(
             onTabsButtonClick = onTabsButtonClick,
             tabCount = tabCount,
+            isPrivateMode = isPrivateMode,
         )
 
         MenuButton(
@@ -365,10 +367,14 @@ private fun MenuButton(
 private fun TabsButton(
     onTabsButtonClick: () -> Unit,
     tabCount: Int,
+    isPrivateMode: Boolean,
 ) {
     CompositionLocalProvider(LocalContentColor provides FirefoxTheme.colors.iconPrimary) {
         IconButton(onClick = { onTabsButtonClick() }) {
-            TabCounter(tabCount = tabCount)
+            TabCounter(
+                tabCount = tabCount,
+                showPrivacyBadge = isPrivateMode && components.settings.feltPrivateBrowsingEnabled,
+            )
         }
     }
 }
