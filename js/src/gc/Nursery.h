@@ -646,6 +646,11 @@ class Nursery {
   // Report how many strings were deduplicated.
   bool reportDeduplications_;
 
+#ifdef JS_GC_ZEAL
+  // Report on the kinds of things promoted.
+  bool reportPromotion_;
+#endif
+
   // Whether to report information on pretenuring, and if so the allocation
   // threshold at which to report details of each allocation site.
   gc::AllocSiteFilter pretenuringReportFilter_;

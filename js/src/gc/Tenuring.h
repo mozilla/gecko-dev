@@ -7,11 +7,14 @@
 #ifndef gc_Tenuring_h
 #define gc_Tenuring_h
 
+#include "mozilla/EnumeratedArray.h"
+#include "mozilla/HashTable.h"
 #include "mozilla/Maybe.h"
 
 #include "gc/AllocKind.h"
 #include "js/GCAPI.h"
 #include "js/TracingAPI.h"
+#include "js/UniquePtr.h"
 #include "util/Text.h"
 
 namespace js {
@@ -30,6 +33,9 @@ class AllocSite;
 class ArenaCellSet;
 class RelocationOverlay;
 class StringRelocationOverlay;
+#ifdef JS_GC_ZEAL
+class PromotionStats;
+#endif
 
 template <typename Key>
 struct DeduplicationStringHasher {
@@ -68,10 +74,21 @@ class TenuringTracer final : public JSTracer {
   // edge to the remembered set during nursery collection.
   bool promotedToNursery = false;
 
+#ifdef JS_GC_ZEAL
+  UniquePtr<PromotionStats> promotionStats;
+#endif
+
  public:
   TenuringTracer(JSRuntime* rt, Nursery* nursery, bool tenureEverything);
+  ~TenuringTracer();
 
   Nursery& nursery() { return nursery_; }
+
+#ifdef JS_GC_ZEAL
+  void initPromotionReport();
+  void printPromotionReport(JSContext* cx, JS::GCReason reason,
+                            const JS::AutoRequireNoGC& nogc) const;
+#endif
 
   // Promote all live objects and everything they can reach. Called after all
   // roots have been traced.
