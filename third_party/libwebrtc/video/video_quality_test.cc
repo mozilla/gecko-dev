@@ -1045,6 +1045,10 @@ VideoQualityTest::CreateFrameGenerator(size_t video_idx) {
         kWidth, kHeight,
         params_.screenshare[video_idx].slide_change_interval *
             params_.video[video_idx].fps);
+  } else if (!params_.video[video_idx].clip_path.empty()) {
+    frame_generator = test::CreateFromYuvFileFrameGenerator(
+        {params_.video[video_idx].clip_path}, params_.video[video_idx].width,
+        params_.video[video_idx].height, 1);
   } else {
     std::vector<std::string> slides = params_.screenshare[video_idx].slides;
     if (slides.empty()) {
