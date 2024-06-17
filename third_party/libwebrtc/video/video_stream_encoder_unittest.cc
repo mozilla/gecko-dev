@@ -9701,9 +9701,7 @@ TEST(VideoStreamEncoderFrameCadenceTest,
       factory.GetTimeController()->GetTaskQueueFactory()->CreateTaskQueue(
           "EncoderQueue", TaskQueueFactory::Priority::NORMAL);
 
-  // Enables zero-hertz mode.
-  test::ScopedKeyValueConfig field_trials(
-      "WebRTC-ZeroHertzScreenshare/Enabled/");
+  test::ScopedKeyValueConfig field_trials;
   auto adapter = FrameCadenceAdapterInterface::Create(
       factory.GetTimeController()->GetClock(), encoder_queue.get(),
       /*metronome=*/nullptr, /*worker_queue=*/nullptr, field_trials);
