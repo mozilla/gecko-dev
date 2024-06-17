@@ -19,7 +19,6 @@ rtc_library("streams_config") {
   deps = [
     ":encoder_config",
     "../../api:field_trials_view",
-    "../../api/transport:field_trial_based_config",
     "../../api/units:data_rate",
     "../../api/video:video_codec_constants",
     "../../api/video_codecs:video_codecs_api",
@@ -50,6 +49,7 @@ rtc_library("encoder_config") {
   ]
 
   deps = [
+    "../../api:field_trials_view",
     "../../api:scoped_refptr",
     "../../api/video:resolution",
     "../../api/video_codecs:scalability_mode",

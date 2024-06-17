@@ -1018,19 +1018,19 @@ void VideoStreamEncoder::ReconfigureEncoder() {
   if (encoder_config_.video_stream_factory) {
     // Note: only tests set their own EncoderStreamFactory...
     streams = encoder_config_.video_stream_factory->CreateEncoderStreams(
-        last_frame_info_->width, last_frame_info_->height, encoder_config_);
+        env_.field_trials(), last_frame_info_->width, last_frame_info_->height,
+        encoder_config_);
   } else {
-    rtc::scoped_refptr<VideoEncoderConfig::VideoStreamFactoryInterface>
-        factory = rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-            encoder_config_.video_format.name, encoder_config_.max_qp,
-            encoder_config_.content_type ==
-                webrtc::VideoEncoderConfig::ContentType::kScreen,
-            encoder_config_.legacy_conference_mode, encoder_->GetEncoderInfo(),
-            MergeRestrictions({latest_restrictions_, animate_restrictions_}),
-            &env_.field_trials());
+    auto factory = rtc::make_ref_counted<cricket::EncoderStreamFactory>(
+        encoder_config_.video_format.name, encoder_config_.max_qp,
+        encoder_config_.content_type ==
+            webrtc::VideoEncoderConfig::ContentType::kScreen,
+        encoder_config_.legacy_conference_mode, encoder_->GetEncoderInfo(),
+        MergeRestrictions({latest_restrictions_, animate_restrictions_}));
 
     streams = factory->CreateEncoderStreams(
-        last_frame_info_->width, last_frame_info_->height, encoder_config_);
+        env_.field_trials(), last_frame_info_->width, last_frame_info_->height,
+        encoder_config_);
   }
 
   // TODO(webrtc:14451) : Move AlignmentAdjuster into EncoderStreamFactory
