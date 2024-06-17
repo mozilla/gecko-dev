@@ -52,11 +52,11 @@ extern MOZ_EXPORT void uprofiler_simple_event_marker_with_stack(
     const char** arg_names, const unsigned char* arg_types,
     const unsigned long long* arg_values, void* provided_stack);
 
-extern MOZ_EXPORT bool uprofiler_backtrace_into_buffer(NativeStack* stack,
-                                                       void* aBuffer);
+extern MOZ_EXPORT bool uprofiler_backtrace_into_buffer(
+    struct NativeStack* stack, void* aBuffer);
 
 extern MOZ_EXPORT void uprofiler_native_backtrace(const void* top,
-                                                  NativeStack* stack);
+                                                  struct NativeStack* stack);
 
 extern MOZ_EXPORT bool uprofiler_is_active();
 
@@ -103,8 +103,8 @@ struct UprofilerFuncPtrs {
                                          const unsigned char* arg_types,
                                          const unsigned long long* arg_values,
                                          void* provided_stack);
-  bool (*backtrace_into_buffer)(NativeStack* stack, void* aBuffer);
-  void (*native_backtrace)(const void* top, NativeStack* stack);
+  bool (*backtrace_into_buffer)(struct NativeStack* stack, void* aBuffer);
+  void (*native_backtrace)(const void* top, struct NativeStack* stack);
   bool (*is_active)();
 };
 
@@ -137,13 +137,13 @@ static void simple_event_marker_with_stack_noop(
   /* no-op */
 }
 
-static bool backtrace_into_buffer_noop(NativeStack* stack,
+static bool backtrace_into_buffer_noop(struct NativeStack* stack,
                                        void* aBuffer) { /* no-op */
   return false;
 }
 
 static void native_backtrace_noop(const void* top,
-                                  NativeStack* stack) { /* no-op */ }
+                                  struct NativeStack* stack) { /* no-op */ }
 
 static bool is_active_noop() { /* no-op */ return false; }
 
