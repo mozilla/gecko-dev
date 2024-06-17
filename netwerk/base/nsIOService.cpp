@@ -884,22 +884,14 @@ nsresult nsIOService::AsyncOnChannelRedirect(
     nsAutoCString scheme;
     newURI->GetScheme(scheme);
     MOZ_ASSERT(!scheme.IsEmpty());
-#ifndef ANDROID
-    if (oldChan->IsDocument()) {
-      Telemetry::AccumulateCategoricalKeyed(
-          scheme, Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::topLevel);
-      mozilla::glean::networking::http_redirect_to_scheme_top_level.Get(scheme)
-          .Add(1);
-    } else {
-      Telemetry::AccumulateCategoricalKeyed(
-          scheme,
-          Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::subresource);
-      mozilla::glean::networking::http_redirect_to_scheme_subresource
-          .Get(scheme)
-          .Add(1);
-    }
+
+    Telemetry::AccumulateCategoricalKeyed(
+        scheme,
+        oldChan->IsDocument()
+            ? Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::topLevel
+            : Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::subresource);
   }
-#endif
+
   return NS_OK;
 }
 
