@@ -14,9 +14,12 @@
 #include "mozilla/dom/Request.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/Components.h"
+#include "mozilla/CredentialChosenCallback.h"
 #include "mozilla/ExpandedPrincipal.h"
+#include "mozilla/IdentityCredentialRequestManager.h"
 #include "mozilla/NullPrincipal.h"
 #include "nsEffectiveTLDService.h"
+#include "nsICredentialChooserService.h"
 #include "nsIGlobalObject.h"
 #include "nsIIdentityCredentialPromptService.h"
 #include "nsIIdentityCredentialStorageService.h"
@@ -472,6 +475,13 @@ RefPtr<GenericPromise> IdentityCredential::StoreInMainProcess(
     return GenericPromise::CreateAndReject(error, __func__);
   }
 
+  IdentityCredentialRequestManager* icrm =
+      IdentityCredentialRequestManager::GetInstance();
+  if (!icrm) {
+    return GenericPromise::CreateAndReject(NS_ERROR_NOT_AVAILABLE, __func__);
+  }
+  icrm->NotifyOfStoredCredential(aCredential.identityProvider(), aCredential);
+
   return GenericPromise::CreateAndReject(nsresult::NS_ERROR_FAILURE, __func__);
 }
 
@@ -494,54 +504,201 @@ IdentityCredential::Create(nsPIDOMWindowInner* aParent,
                                                         __func__);
 }
 
+// Helper function to navigate to the identity provider's login page, based
+// on the contents of the config for the identity provider provided in
+// navigator.credentials.get. Returns the result of a outer window Open.
+nsresult OpenIdentityProviderDialog(
+    const RefPtr<WindowGlobalChild>& aWgc,
+    const IdentityProviderConfig& aProviderConfig) {
+  MOZ_ASSERT(aProviderConfig.mLoginURL.WasPassed());
+  AutoJSAPI jsapi;
+  MOZ_ASSERT(aWgc);
+  if (!jsapi.Init(aWgc->GetWindowGlobal())) {
+    return NS_ERROR_FAILURE;
+  }
+  MOZ_ASSERT(aWgc->WindowContext()->TopWindowContext());
+  nsGlobalWindowOuter* outer = nsGlobalWindowOuter::GetOuterWindowWithId(
+      aWgc->WindowContext()->TopWindowContext()->OuterWindowId());
+  bool popup =
+      aProviderConfig.mLoginTarget.WasPassed() &&
+      aProviderConfig.mLoginTarget.Value() == IdentityLoginTargetType::Popup;
+  RefPtr<BrowsingContext> newBC;
+  if (popup) {
+    return outer->OpenJS(
+        NS_ConvertUTF8toUTF16(aProviderConfig.mLoginURL.Value()), u"_blank"_ns,
+        u"popup"_ns, getter_AddRefs(newBC));
+  }
+  return outer->OpenJS(NS_ConvertUTF8toUTF16(aProviderConfig.mLoginURL.Value()),
+                       u"_top"_ns, u""_ns, getter_AddRefs(newBC));
+}
+
+// Helper function to add the appropriate callbacks for when the main process
+// lets us know we have an effective credential for our pending request.
+// There are two promise args, so don't get confused. First is
+// aNotificationPromise, which resolves if/when the main process sends us a
+// credential that should work for our needs. Second is aProvidedPromise that we
+// must fulfill with that credential after we show some UI
+void AddCallbacksForEffectiveLightweightCredentialNotifiedFromMainProcess(
+    Promise* aNotificationPromise, nsPIDOMWindowInner* aParent,
+    const RefPtr<Promise>& aProvidedPromise) {
+  MOZ_ASSERT(aParent);
+  RefPtr<BrowsingContext> top = aParent->GetBrowsingContext()->Top();
+  aNotificationPromise->AddCallbacksWithCycleCollectedArgs(
+      [aProvidedPromise, top](JSContext* aCx, JS::Handle<JS::Value> aValue,
+                              ErrorResult&) {
+        // If the main process tells us we have something to resolve, we need to
+        // show UI first But to show UI we need to get the native object out of
+        // the JS::Value and get the credential chooser service. So we do that
+        // here.
+        if (NS_WARN_IF(!aValue.isObject())) {
+          aProvidedPromise->MaybeRejectWithUnknownError(
+              "Incorrect object returned internally.");
+          return;
+        }
+        JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+        MOZ_ASSERT(obj);
+        RefPtr<IdentityCredential> credential = nullptr;
+        if (NS_WARN_IF(NS_FAILED(
+                UNWRAP_OBJECT(IdentityCredential, &obj, credential)))) {
+          aProvidedPromise->MaybeRejectWithUnknownError(
+              "Incorrect object returned internally.");
+          return;
+        }
+        nsresult rv;
+        nsCOMPtr<nsICredentialChooserService> ccService =
+            mozilla::components::CredentialChooserService::Service(&rv);
+        if (NS_WARN_IF(!ccService)) {
+          aProvidedPromise->MaybeRejectWithUnknownError(
+              "Could not show user interface.");
+          return;
+        }
+
+        // Show the credential chooser with only the credential we got from the
+        // main process as an option and resolve the consumed promise with
+        // whatever the credential chooser picked.
+        nsTArray<RefPtr<mozilla::dom::Credential>> options;
+        options.AppendElement(credential);
+        RefPtr<CredentialChosenCallback> callback =
+            new CredentialChosenCallback(aProvidedPromise);
+        ccService->ShowCredentialChooser(top, options, callback);
+      },
+      [aProvidedPromise](JSContext*, JS::Handle<JS::Value> aValue,
+                         ErrorResult&) {
+        // Forward any rejection to the next promise
+        aProvidedPromise->MaybeReject(aValue);
+      });
+}
+
 // static
-RefPtr<IdentityCredential::GetIdentityCredentialPromise>
-IdentityCredential::DiscoverFromExternalSource(
-    nsPIDOMWindowInner* aParent, const CredentialRequestOptions& aOptions,
-    bool aSameOriginWithAncestors) {
+void IdentityCredential::DiscoverFromExternalSource(
+    nsPIDOMWindowInner* aParent,
+    const IdentityCredentialRequestOptions& aOptions,
+    bool aSameOriginWithAncestors, const RefPtr<Promise>& aPromise) {
   MOZ_ASSERT(XRE_IsContentProcess());
   MOZ_ASSERT(aParent);
+  MOZ_ASSERT(aPromise);
+
   // Prevent origin confusion by requiring no cross domain iframes
   // in this one's ancestry
   if (!aSameOriginWithAncestors) {
-    return IdentityCredential::GetIdentityCredentialPromise::CreateAndReject(
-        NS_ERROR_DOM_NOT_ALLOWED_ERR, __func__);
+    aPromise->MaybeRejectWithNotAllowedError(
+        "Must have same origin ancestors.");
+    return;
   }
 
-  Document* parentDocument = aParent->GetExtantDoc();
-  if (!parentDocument) {
-    return IdentityCredential::GetIdentityCredentialPromise::CreateAndReject(
-        NS_ERROR_FAILURE, __func__);
+  RequestType requestType = DetermineRequestDiscoveryType(aOptions);
+
+  // Discovery cannot proceed, return Null to the document.
+  if (requestType == NONE || requestType == INVALID) {
+    aPromise->MaybeResolve(JS::NullValue());
+    return;
   }
 
-  // Kick the request off to the main process and translate the result to the
-  // expected type when we get a result.
-  MOZ_ASSERT(aOptions.mIdentity.WasPassed());
-  RefPtr<WindowGlobalChild> wgc = aParent->GetWindowGlobalChild();
-  MOZ_ASSERT(wgc);
-  RefPtr<IdentityCredential> credential = new IdentityCredential(aParent);
-  return wgc
-      ->SendDiscoverIdentityCredentialFromExternalSource(
-          aOptions.mIdentity.Value())
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [credential](const WindowGlobalChild::
-                           DiscoverIdentityCredentialFromExternalSourcePromise::
-                               ResolveValueType& aResult) {
-            if (aResult.isSome()) {
-              credential->CopyValuesFrom(aResult.value());
-              return IdentityCredential::GetIdentityCredentialPromise::
-                  CreateAndResolve(credential, __func__);
-            }
-            return IdentityCredential::GetIdentityCredentialPromise::
-                CreateAndReject(NS_ERROR_DOM_UNKNOWN_ERR, __func__);
-          },
-          [](const WindowGlobalChild::
-                 DiscoverIdentityCredentialFromExternalSourcePromise::
-                     RejectValueType& aResult) {
-            return IdentityCredential::GetIdentityCredentialPromise::
-                CreateAndReject(NS_ERROR_DOM_UNKNOWN_ERR, __func__);
-          });
+  if (requestType == LIGHTWEIGHT &&
+      StaticPrefs::
+          dom_security_credentialmanagement_identity_lightweight_enabled()) {
+    // Lightweight credential discovery takes a few async steps that must happen
+    // in a particular order. To handle this we need another promise, so we
+    // build that here.
+    ErrorResult error;
+    MOZ_ASSERT(aParent);
+    RefPtr<Promise> internalPromise =
+        Promise::Create(aParent->AsGlobal(), error);
+    if (NS_WARN_IF(error.Failed())) {
+      aPromise->MaybeReject(std::move(error));
+      return;
+    }
+
+    // First, we add a callback to that intermediate promise. When it fires, we
+    // will give the user a chance to pick that credential (or forward the
+    // error) and then forward the result onto aPromise
+    AddCallbacksForEffectiveLightweightCredentialNotifiedFromMainProcess(
+        internalPromise, aParent, aPromise);
+
+    // Second, we tell our window to resolve our internal promise when an
+    // effective credential has been stored.
+    aParent->GetWindowContext()->GetInnerWindow()->SetPendingCredentialPromise(
+        internalPromise);
+
+    // Third, we notifty the main process that this credential request is
+    // pending a stored credential that would work.
+    RefPtr<WindowGlobalChild> wgc = aParent->GetWindowGlobalChild();
+    if (NS_WARN_IF(!wgc || !aOptions.mProviders.WasPassed() ||
+                   aOptions.mProviders.Value().Length() < 1)) {
+      // All of these should be true, but let's be safe and bail out if they
+      // aren't
+      return;
+    }
+    IdentityProviderConfig provider(aOptions.mProviders.Value().ElementAt(0));
+    wgc->SendNotifyPendingIdentityCredentialDiscovery(aOptions)->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [provider = std::move(provider), aPromise, wgc](nsresult aRv) {
+          // Fourth, and finally, *AFTER* we have confirmation that the pending
+          // request is stored in the main process, we perform a navigation to
+          // the login page.
+          if (NS_FAILED(aRv)) {
+            aPromise->MaybeRejectWithUnknownError(
+                "Failed to get credential from the identitiy provider.");
+          }
+          nsresult rv = OpenIdentityProviderDialog(wgc, provider);
+          if (NS_FAILED(rv)) {
+            aPromise->MaybeRejectWithUnknownError("Failed to navigate.");
+          }
+        },
+        [aPromise](mozilla::ipc::ResponseRejectReason _rv) {
+          aPromise->MaybeRejectWithUnknownError(
+              "Failed to notify pending request.");
+        });
+    return;
+  }
+  if (requestType == HEAVYWEIGHT &&
+      StaticPrefs::
+          dom_security_credentialmanagement_identity_heavyweight_enabled()) {
+    // Kick the request off to the main process and translate the result to the
+    // expected type when we get a result.
+    RefPtr<WindowGlobalChild> wgc = aParent->GetWindowGlobalChild();
+    MOZ_ASSERT(wgc);
+    RefPtr<IdentityCredential> credential = new IdentityCredential(aParent);
+    wgc->SendDiscoverIdentityCredentialFromExternalSource(aOptions)->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [credential,
+         aPromise](const WindowGlobalChild::
+                       DiscoverIdentityCredentialFromExternalSourcePromise::
+                           ResolveValueType& aResult) {
+          if (aResult.isSome()) {
+            credential->CopyValuesFrom(aResult.value());
+            aPromise->MaybeResolve(credential);
+          }
+          aPromise->MaybeRejectWithUnknownError("Internal browser error.");
+        },
+        [aPromise](const WindowGlobalChild::
+                       DiscoverIdentityCredentialFromExternalSourcePromise::
+                           RejectValueType& aResult) {
+          aPromise->MaybeRejectWithUnknownError("Internal browser error.");
+        });
+    return;
+  }
+  aPromise->MaybeResolve(JS::NullValue());
 }
 
 // static
@@ -560,17 +717,14 @@ IdentityCredential::DiscoverFromExternalSourceInMainProcess(
         NS_ERROR_DOM_NOT_ALLOWED_ERR, __func__);
   }
 
-  // Make sure we support the set of features needed for this request
-  RequestType requestType = DetermineRequestType(aOptions);
-  if ((!StaticPrefs::
-           dom_security_credentialmanagement_identity_heavyweight_enabled() &&
-       requestType == HEAVYWEIGHT) ||
-      (!StaticPrefs::
-           dom_security_credentialmanagement_identity_lightweight_enabled() &&
-       requestType == LIGHTWEIGHT) ||
-      requestType == INVALID) {
+  // This request has to be a heavyweight request that we have a preference on
+  // for.
+  RequestType requestType = DetermineRequestDiscoveryType(aOptions);
+  if (!(StaticPrefs::
+            dom_security_credentialmanagement_identity_heavyweight_enabled() &&
+        requestType == HEAVYWEIGHT)) {
     return IdentityCredential::GetIPCIdentityCredentialPromise::CreateAndReject(
-        NS_ERROR_DOM_NOT_ALLOWED_ERR, __func__);
+        NS_ERROR_FAILURE, __func__);
   }
 
   RefPtr<IdentityCredential::GetIPCIdentityCredentialPromise::Private> result =
@@ -1493,20 +1647,27 @@ void IdentityCredential::CloseUserInterface(BrowsingContext* aBrowsingContext) {
 }
 
 // static
-IdentityCredential::RequestType IdentityCredential::DetermineRequestType(
+IdentityCredential::RequestType
+IdentityCredential::DetermineRequestDiscoveryType(
     const IdentityCredentialRequestOptions& aOptions) {
   if (!aOptions.mProviders.WasPassed()) {
-    return INVALID;
+    return NONE;
   }
-  for (const IdentityProviderConfig& provider : aOptions.mProviders.Value()) {
+  for (const auto& provider : aOptions.mProviders.Value()) {
+    if (provider.mConfigURL.WasPassed() && provider.mLoginURL.WasPassed()) {
+      return INVALID;
+    }
     if (provider.mConfigURL.WasPassed()) {
       return HEAVYWEIGHT;
     }
-    if (!provider.mOrigin.WasPassed() && !provider.mLoginURL.WasPassed()) {
-      return INVALID;
+    if (provider.mLoginURL.WasPassed()) {
+      if (aOptions.mProviders.Value().Length() > 1) {
+        return INVALID;
+      }
+      return LIGHTWEIGHT;
     }
   }
-  return LIGHTWEIGHT;
+  return NONE;
 }
 
 }  // namespace mozilla::dom
