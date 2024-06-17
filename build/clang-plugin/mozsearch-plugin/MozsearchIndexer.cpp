@@ -1201,9 +1201,14 @@ public:
       J.objectBegin();
       J.attribute("pretty", getQualifiedName(&Field));
       J.attribute("sym", getMangledName(CurMangleContext, &Field));
+
       QualType FieldType = Field.getType();
       QualType CanonicalFieldType = FieldType.getCanonicalType();
-      J.attribute("type", CanonicalFieldType.getAsString());
+      LangOptions langOptions;
+      PrintingPolicy Policy(langOptions);
+      Policy.PrintCanonicalTypes = true;
+      J.attribute("type", CanonicalFieldType.getAsString(Policy));
+
       const TagDecl *tagDecl = CanonicalFieldType->getAsTagDecl();
       if (!tagDecl) {
         // Try again piercing any pointers/references involved.  Note that our
