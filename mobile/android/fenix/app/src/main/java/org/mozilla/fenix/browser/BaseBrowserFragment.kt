@@ -27,6 +27,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -1931,6 +1932,10 @@ abstract class BaseBrowserFragment :
             (view as? SwipeGestureLayout)?.isSwipeEnabled = false
             browserToolbarView.collapse()
             browserToolbarView.gone()
+            _bottomToolbarContainerView?.toolbarContainerView?.apply {
+                collapse()
+                isVisible = false
+            }
             val browserEngine = binding.swipeRefresh.layoutParams as CoordinatorLayout.LayoutParams
             browserEngine.bottomMargin = 0
             browserEngine.topMargin = 0
@@ -1952,6 +1957,7 @@ abstract class BaseBrowserFragment :
             }
             if (webAppToolbarShouldBeVisible) {
                 browserToolbarView.visible()
+                _bottomToolbarContainerView?.toolbarContainerView?.isVisible = true
                 initializeEngineView(
                     topToolbarHeight = requireContext().settings().getTopToolbarHeight(
                         includeTabStrip = customTabSessionId == null && requireContext().isTabStripEnabled(),
@@ -1959,6 +1965,7 @@ abstract class BaseBrowserFragment :
                     bottomToolbarHeight = requireContext().settings().getBottomToolbarHeight(),
                 )
                 browserToolbarView.expand()
+                _bottomToolbarContainerView?.toolbarContainerView?.expand()
             }
         }
 
