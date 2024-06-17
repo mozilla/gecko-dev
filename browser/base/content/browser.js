@@ -881,14 +881,24 @@ function SetClickAndHoldHandlers() {
   // Prevent the back/forward buttons' context attributes from being inherited.
   popup.setAttribute("context", "");
 
+  function backForwardMenuCommand(event) {
+    BrowserCommands.gotoHistoryIndex(event);
+    // event.stopPropagation is here for the cloned version
+    // to prevent already-handled clicks on menu items from
+    // propagating to the back or forward button.
+    event.stopPropagation();
+  }
+
   let backButton = document.getElementById("back-button");
   backButton.setAttribute("type", "menu");
+  popup.addEventListener("command", backForwardMenuCommand);
   backButton.prepend(popup);
   gClickAndHoldListenersOnElement.add(backButton);
 
   let forwardButton = document.getElementById("forward-button");
   popup = popup.cloneNode(true);
   forwardButton.setAttribute("type", "menu");
+  popup.addEventListener("command", backForwardMenuCommand);
   forwardButton.prepend(popup);
   gClickAndHoldListenersOnElement.add(forwardButton);
 }
