@@ -44,8 +44,6 @@ class RTC_EXPORT BasicPacketSocketFactory : public PacketSocketFactory {
   AsyncPacketSocket* CreateClientTcpSocket(
       const SocketAddress& local_address,
       const SocketAddress& remote_address,
-      const ProxyInfo& proxy_info,
-      const std::string& user_agent,
       const PacketSocketTcpOptions& tcp_options) override;
 
   std::unique_ptr<webrtc::AsyncDnsResolverInterface> CreateAsyncDnsResolver()
