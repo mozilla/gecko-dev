@@ -17,11 +17,12 @@ kind-dependencies:
 
 task-defaults:
     worker-type: b-linux-gcp
+    description: Python Fuzzing Smoke Tests
     worker:
-        max-run-time: 3600
-        docker-image: {in-tree: debian12-amd64-build}
+        max-run-time: 1800
     use-python: default
     treeherder:
+        symbol: fuzzing-python
         kind: test
         tier: 3
     task-context:
@@ -32,6 +33,7 @@ task-defaults:
 tasks:
     simple:
         platform: linux64/opt
+        worker-type: b-linux-gcp
         require-build:
             linux64/opt: build-linux64/opt
         description: Simple Fuzzing Test
@@ -42,6 +44,7 @@ tasks:
                 - target.jsshell.zip
                 - target.fuzztest.tests.tar.gz
         worker:
+            docker-image: {in-tree: debian12-amd64-build}
             env:
                 LD_LIBRARY_PATH: /builds/worker/fetches
                 JSSHELL: ./js
@@ -51,19 +54,204 @@ tasks:
                 cd $MOZ_FETCHES_DIR &&
                 python3 tools/fuzzing/smoke/smoke.py
 
-    python:
-        platform: linux64-asan-fuzzing/opt
+    grizzly-linux32-opt:
+        platform: linux32/asan
+        worker-type: t-linux-xlarge-source
+        worker:
+            docker-image: {in-tree: ubuntu1804-test}
+            env:
+                GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox"
+                ASAN_OPTIONS: "malloc_context_size=20:rss_limit_heap_profile=false:max_malloc_fill_size=4096:quarantine_size_mb=64"
         require-build:
-            linux64-asan-fuzzing/opt: build-linux64-asan-fuzzing/opt
-        description: Python Fuzzing Smoke Tests
-        treeherder:
-            symbol: fuzzing-python
+            linux32/asan: build-linux-asan-fuzzing/opt
+        run:
+            using: python-test
+            subsuite: fuzzing
         fetches:
             build:
                 - target.tar.bz2
+
+    grizzly-linux32-debug:
+        platform: linux32/debug
+        worker-type: t-linux-xlarge-source
+        worker:
+            docker-image: {in-tree: ubuntu1804-test}
+            env:
+                GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox"
+                ASAN_OPTIONS: "malloc_context_size=20:rss_limit_heap_profile=false:max_malloc_fill_size=4096:quarantine_size_mb=64"
+        require-build:
+            linux32/debug: build-linux-fuzzing/debug
         run:
-            using: run-task
-            cwd: '{checkout}'
-            command: >
-                export GECKO_BINARY_PATH=$MOZ_FETCHES_DIR/firefox/firefox &&
-                ./mach python-test --subsuite fuzzing
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.tar.bz2
+
+    grizzly-linux64-opt:
+        platform: linux64/asan
+        worker-type: b-linux-gcp
+        worker:
+            docker-image: {in-tree: debian12-amd64-build}
+            env:
+                GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox"
+        require-build:
+            linux64/asan: build-linux64-asan-fuzzing/opt
+        run:
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.tar.bz2
+
+    grizzly-linux64-debug:
+        platform: linux64/debug
+        worker-type: b-linux-gcp
+        worker:
+            docker-image: {in-tree: debian12-amd64-build}
+            env:
+                GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox"
+        require-build:
+            linux64/debug: build-linux64-fuzzing/debug
+        run:
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.tar.bz2
+
+    grizzly-linux64-tsan:
+        platform: linux64/tsan
+        worker-type: b-linux-gcp
+        worker:
+            docker-image: {in-tree: debian12-amd64-build}
+            env:
+                GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox"
+        require-build:
+            linux64/tsan: build-linux64-tsan-fuzzing/opt
+        run:
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.tar.bz2
+
+    grizzly-windows-debug:
+        platform: windows2012-32/debug
+        worker-type: win11-64-2009-source
+        worker:
+            env:
+                GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox.exe"
+        require-build:
+            windows2012-32/debug: build-win32-fuzzing/debug
+        run:
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.zip
+
+    grizzly-windows64-opt:
+        platform: windows2012-64/asan
+        worker-type: win11-64-2009-source
+        worker:
+            env:
+                GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox.exe"
+        require-build:
+            windows2012-64/asan: build-win64-asan-fuzzing/opt
+        run:
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.zip
+
+    grizzly-windows64-debug:
+        platform: windows2012-64/debug
+        worker-type: win11-64-2009-source
+        worker:
+            env:
+                GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox.exe"
+        require-build:
+            windows2012-64/debug: build-win64-fuzzing/debug
+        run:
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.zip
+
+    grizzly-windows64-ccov:
+        platform: windows2012-64/ccov
+        worker-type: win11-64-2009-source
+        worker:
+            env:
+                GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox.exe"
+        require-build:
+            windows2012-64/ccov: build-win64-fuzzing-ccov/opt
+        run:
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.zip
+
+    grizzly-osx-opt:
+        platform: osx-cross/asan
+        worker-type: t-osx-1015-r8
+        worker:
+            env:
+                GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/Nightly.app/Contents/MacOS/firefox"
+        require-build:
+            osx-cross/asan: build-macosx64-asan-fuzzing/opt
+        run:
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.dmg
+
+    grizzly-osx-debug:
+        platform: osx-cross/debug
+        worker-type: t-osx-1015-r8
+        worker:
+            env:
+                GECKO_BINARY_PATH: '"$MOZ_FETCHES_DIR/Firefox NightlyDebug.app/Contents/MacOS/firefox"'
+        require-build:
+            osx-cross/debug: build-macosx64-fuzzing/debug
+        run:
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.dmg
+
+    grizzly-osx-aarch64-opt:
+        platform: osx-cross-aarch64/asan
+        worker-type: t-osx-1100-m1
+        worker:
+            env:
+                GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/Nightly.app/Contents/MacOS/firefox"
+        require-build:
+            osx-cross-aarch64/asan: build-macosx64-aarch64-asan-fuzzing/opt
+        run:
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.dmg
+
+    grizzly-osx-aarch64-debug:
+        platform: osx-cross-aarch64/debug
+        worker-type: t-osx-1100-m1
+        worker:
+            env:
+                GECKO_BINARY_PATH: '"$MOZ_FETCHES_DIR/Firefox NightlyDebug.app/Contents/MacOS/firefox"'
+        require-build:
+            osx-cross-aarch64/debug: build-macosx64-aarch64-fuzzing/debug
+        run:
+            using: python-test
+            subsuite: fuzzing
+        fetches:
+            build:
+                - target.dmg
