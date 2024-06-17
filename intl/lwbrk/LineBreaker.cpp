@@ -1113,8 +1113,8 @@ void LineBreaker::ComputeBreakPositions(
         UseDefaultLineSegmenter(aWordBreak, aLevel, aIsChineseOrJapanese);
     capi::ICU4XLineSegmenter* lineSegmenter =
         GetLineSegmenter(useDefault, aWordBreak, aLevel, aIsChineseOrJapanese);
-    ICU4XLineBreakIteratorUtf16 iterator(capi::ICU4XLineSegmenter_segment_utf16(
-        lineSegmenter, (const uint16_t*)aChars, aLength));
+    ICU4XLineBreakIteratorUtf16 iterator(
+        capi::ICU4XLineSegmenter_segment_utf16(lineSegmenter, aChars, aLength));
 
     while (true) {
       const int32_t nextPos = iterator.next();

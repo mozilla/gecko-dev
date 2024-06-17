@@ -44,7 +44,7 @@ else:
 
 if CONFIG["JS_HAS_INTL_API"] and CONFIG["MOZ_ICU4X"]:
     LOCAL_INCLUDES += [
-        "/intl/icu_capi/cpp/include",
+        "/intl/icu_capi/bindings/cpp",
     ]
     # Disable warnings when including C++ headers of ICU4X.
     # - https://github.com/rust-diplomat/diplomat/issues/277

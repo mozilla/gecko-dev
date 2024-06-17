@@ -54,7 +54,7 @@ LineBreakIteratorUtf16::LineBreakIteratorUtf16(Span<const char16_t> aText,
   MOZ_RELEASE_ASSERT(result.is_ok);
   mSegmenter = result.ok;
   mIterator = capi::ICU4XLineSegmenter_segment_utf16(
-      mSegmenter, (const uint16_t*)mText.Elements(), mText.Length());
+      mSegmenter, mText.Elements(), mText.Length());
 #endif
 }
 
@@ -128,7 +128,7 @@ WordBreakIteratorUtf16::WordBreakIteratorUtf16(Span<const char16_t> aText)
   MOZ_RELEASE_ASSERT(result.is_ok);
   mSegmenter = result.ok;
   mIterator = capi::ICU4XWordSegmenter_segment_utf16(
-      mSegmenter, (const uint16_t*)mText.Elements(), mText.Length());
+      mSegmenter, mText.Elements(), mText.Length());
 #endif
 }
 
@@ -222,7 +222,7 @@ GraphemeClusterBreakIteratorUtf16::GraphemeClusterBreakIteratorUtf16(
 
   MOZ_RELEASE_ASSERT(sSegmenter);
   mIterator = capi::ICU4XGraphemeClusterSegmenter_segment_utf16(
-      sSegmenter, (const uint16_t*)mText.Elements(), mText.Length());
+      sSegmenter, mText.Elements(), mText.Length());
 #endif
 }
 
@@ -455,7 +455,7 @@ SentenceBreakIteratorUtf16::SentenceBreakIteratorUtf16(
   MOZ_RELEASE_ASSERT(result.is_ok);
   mSegmenter = result.ok;
   mIterator = capi::ICU4XSentenceSegmenter_segment_utf16(
-      mSegmenter, (const uint16_t*)mText.Elements(), mText.Length());
+      mSegmenter, mText.Elements(), mText.Length());
 }
 
 SentenceBreakIteratorUtf16::~SentenceBreakIteratorUtf16() {

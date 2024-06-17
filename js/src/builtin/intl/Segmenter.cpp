@@ -749,11 +749,8 @@ static auto* CreateBreakIterator(Handle<T*> segments) {
 
   size_t length = segments->getString()->length();
 
-  using Unsigned = typename mozilla::UnsignedStdintTypeForSize<sizeof(
-      typename Interface::Char)>::Type;
-
   auto* seg = static_cast<const typename Interface::Segmenter*>(segmenter);
-  auto* ch = static_cast<const Unsigned*>(chars);
+  auto* ch = static_cast<const typename Interface::Char*>(chars);
   return Interface::create(seg, ch, length);
 }
 

@@ -16,6 +16,8 @@ trojan-source:
         - third_party/rust/clap_builder/src/output/textwrap/core.rs
         - third_party/rust/textwrap/src/core.rs
         - third_party/rust/icu_provider/src/hello_world.rs
+        - third_party/rust/icu_segmenter/src/grapheme.rs
+        - third_party/rust/icu_segmenter/src/line.rs
         - third_party/rust/error-chain/tests/tests.rs
         - third_party/rust/unicode-width/src/tests.rs
         - security/nss/gtests/mozpkix_gtest/pkixnames_tests.cpp
