@@ -2,7 +2,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 extern crate firefox_on_glean;
-use firefox_on_glean::{metrics, pings};
+use firefox_on_glean::metrics;
 
 extern crate nsstring;
 use nsstring::nsString;
