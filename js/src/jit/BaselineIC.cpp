@@ -1619,7 +1619,7 @@ bool DoCallFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
   // allowed to attach stubs.
   if (canAttachStub) {
     HandleValueArray args = HandleValueArray::fromMarkedLocation(argc, vp + 2);
-    CallIRGenerator gen(cx, script, pc, op, stub->state(), argc, callee,
+    CallIRGenerator gen(cx, script, pc, op, stub->state(), frame, argc, callee,
                         callArgs.thisv(), newTarget, args);
     switch (gen.tryAttachStub()) {
       case AttachDecision::NoAction:
@@ -1710,8 +1710,8 @@ bool DoSpreadCallFallback(JSContext* cx, BaselineFrame* frame,
 
     HandleValueArray args = HandleValueArray::fromMarkedLocation(
         aobj->length(), aobj->getDenseElements());
-    CallIRGenerator gen(cx, script, pc, op, stub->state(), 1, callee, thisv,
-                        newTarget, args);
+    CallIRGenerator gen(cx, script, pc, op, stub->state(), frame, 1, callee,
+                        thisv, newTarget, args);
     switch (gen.tryAttachStub()) {
       case AttachDecision::NoAction:
         break;

@@ -6282,10 +6282,10 @@ void OptimizeSpreadCallIRGenerator::trackAttached(const char* name) {
 
 CallIRGenerator::CallIRGenerator(JSContext* cx, HandleScript script,
                                  jsbytecode* pc, JSOp op, ICState state,
-                                 uint32_t argc, HandleValue callee,
-                                 HandleValue thisval, HandleValue newTarget,
-                                 HandleValueArray args)
-    : IRGenerator(cx, script, pc, CacheKind::Call, state),
+                                 BaselineFrame* frame, uint32_t argc,
+                                 HandleValue callee, HandleValue thisval,
+                                 HandleValue newTarget, HandleValueArray args)
+    : IRGenerator(cx, script, pc, CacheKind::Call, state, frame),
       op_(op),
       argc_(argc),
       callee_(callee),
@@ -10904,10 +10904,10 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectConstructor() {
   emitNativeCalleeGuard();
 
   if (argc_ == 0) {
-    // TODO: Support pre-tenuring.
-    gc::AllocSite* site =
-        script()->zone()->unknownAllocSite(JS::TraceKind::Object);
-    MOZ_ASSERT(site);
+    gc::AllocSite* site = generator_.maybeCreateAllocSite();
+    if (!site) {
+      return AttachDecision::NoAction;
+    }
 
     uint32_t numFixedSlots = templateObj->numUsedFixedSlots();
     uint32_t numDynamicSlots = templateObj->numDynamicSlots();

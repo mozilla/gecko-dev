@@ -28,3 +28,7 @@ check(() => { return {}; });
 
 // Array allocation.
 check(() => { return []; });
+
+// Object construction.
+check(() => { return new Object(); });
+check(() => { return Object(); });

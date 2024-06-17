@@ -574,9 +574,9 @@ class MOZ_RAII CallIRGenerator : public IRGenerator {
 
  public:
   CallIRGenerator(JSContext* cx, HandleScript script, jsbytecode* pc, JSOp op,
-                  ICState state, uint32_t argc, HandleValue callee,
-                  HandleValue thisval, HandleValue newTarget,
-                  HandleValueArray args);
+                  ICState state, BaselineFrame* frame, uint32_t argc,
+                  HandleValue callee, HandleValue thisval,
+                  HandleValue newTarget, HandleValueArray args);
 
   AttachDecision tryAttachStub();
 };
@@ -949,7 +949,9 @@ class MOZ_RAII NewObjectIRGenerator : public IRGenerator {
 };
 
 inline bool BytecodeOpCanHaveAllocSite(JSOp op) {
-  return op == JSOp::NewArray || op == JSOp::NewObject || op == JSOp::NewInit;
+  return op == JSOp::Call || op == JSOp::CallIgnoresRv || op == JSOp::New ||
+         op == JSOp::NewArray || op == JSOp::NewObject || op == JSOp::NewInit ||
+         op == JSOp::NewContent;
 }
 
 class MOZ_RAII CloseIterIRGenerator : public IRGenerator {
