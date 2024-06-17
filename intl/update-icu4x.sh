@@ -7,20 +7,20 @@ set -e
 
 # Update the icu4x binary data for a given release:
 #   Usage: update-icu4x.sh <URL of ICU GIT> <release tag name> <CLDR version> <ICU release tag name> <ICU4X version of icu_capi>
-#   update-icu4x.sh https://github.com/unicode-org/icu4x.git icu@1.4.0 44.0.0 release-74-1 1.4.0
+#   update-icu4x.sh https://github.com/unicode-org/icu4x.git icu@1.5.0 45.0.0 release-75-1 1.5.0
 #
 # Update to the main branch:
 #   Usage: update-icu4x.sh <URL of ICU GIT> <branch> <CLDR version> <ICU release tag name> <ICU4X version of icu_capi>
-#   update-icu4x.sh https://github.com/unicode-org/icu4x.git main 44.0.0 release-74-1 1.4.0
+#   update-icu4x.sh https://github.com/unicode-org/icu4x.git main 45.0.0 release-75-1 1.5.0
 
 # default
-cldr=${3:-44.0.0}
-icuexport=${4:-release-74-1}
-icu4x_version=${5:-1.4.0}
+cldr=${3:-45.0.0}
+icuexport=${4:-release-75-1}
+icu4x_version=${5:-1.5.0}
 
 if [ $# -lt 2 ]; then
   echo "Usage: update-icu4x.sh <URL of ICU4X GIT> <ICU4X release tag name> <CLDR version> <ICU release tag name> <ICU4X version for icu_capi>"
-  echo "Example: update-icu4x.sh https://github.com/unicode-org/icu4x.git icu@1.4.0 44.0.0 release-74-1 1.4.0"
+  echo "Example: update-icu4x.sh https://github.com/unicode-org/icu4x.git icu@1.5.0 45.0.0 release-75-1 1.5.0"
   exit 1
 fi
 
@@ -71,10 +71,6 @@ log "Change the directory to the cloned repo"
 log ${tmpclonedir}
 cd ${tmpclonedir}
 
-log "Patching line segmenter data to fix https://github.com/unicode-org/icu4x/pull/4389"
-# This manually patch can be removed once we upgrade to ICU4X 1.5
-wget --unlink -q -O ${tmpclonedir}/provider/datagen/data/segmenter/line.toml https://raw.githubusercontent.com/unicode-org/icu4x/e080ecd12e38d6aecc99cd0cfe8c21595c4ce6ff/provider/datagen/data/segmenter/line.toml
-
 log "Copy icu_capi crate to local since we need a patched version"
 rm -rf ${top_src_dir}/intl/icu_capi
 wget -O icu_capi.tar.gz https://crates.io/api/v1/crates/icu_capi/${icu4x_version}/download
@@ -85,9 +81,7 @@ rm -rf icu_capi_tar.gz
 log "Patching icu_capi"
 for patch in \
     001-Cargo.toml.patch \
-    002-GH4109.patch \
-    003-explicit.patch \
-    004-dead-code.patch \
+    002-dead-code.patch \
 ; do
     patch -d ${top_src_dir} -p1 --no-backup-if-mismatch < ${top_src_dir}/intl/icu4x-patches/$patch
 done
