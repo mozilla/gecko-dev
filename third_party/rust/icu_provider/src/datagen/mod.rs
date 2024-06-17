@@ -87,6 +87,45 @@ pub trait DataExporter: Sync {
     }
 }
 
+impl DataExporter for Box<dyn DataExporter> {
+    fn put_payload(
+        &self,
+        key: DataKey,
+        locale: &DataLocale,
+        payload: &DataPayload<ExportMarker>,
+    ) -> Result<(), DataError> {
+        (**self).put_payload(key, locale, payload)
+    }
+
+    fn flush_singleton(
+        &self,
+        key: DataKey,
+        payload: &DataPayload<ExportMarker>,
+    ) -> Result<(), DataError> {
+        (**self).flush_singleton(key, payload)
+    }
+
+    fn flush_with_built_in_fallback(
+        &self,
+        key: DataKey,
+        fallback_mode: BuiltInFallbackMode,
+    ) -> Result<(), DataError> {
+        (**self).flush_with_built_in_fallback(key, fallback_mode)
+    }
+
+    fn flush(&self, key: DataKey) -> Result<(), DataError> {
+        (**self).flush(key)
+    }
+
+    fn close(&mut self) -> Result<(), DataError> {
+        (**self).close()
+    }
+
+    fn supports_built_in_fallback(&self) -> bool {
+        (**self).supports_built_in_fallback()
+    }
+}
+
 /// A [`DynamicDataProvider`] that can be used for exporting data.
 ///
 /// Use [`make_exportable_provider`](crate::make_exportable_provider) to implement this.

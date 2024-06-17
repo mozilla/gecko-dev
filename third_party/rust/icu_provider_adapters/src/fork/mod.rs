@@ -59,7 +59,7 @@ use predicates::MissingDataKeyPredicate;
 /// Normal usage:
 ///
 /// ```
-/// use icu_locid::locale;
+/// use icu_locid::langid;
 /// use icu_provider::hello_world::*;
 /// use icu_provider::prelude::*;
 /// use icu_provider_adapters::fork::ForkByKeyProvider;
@@ -84,7 +84,7 @@ use predicates::MissingDataKeyPredicate;
 ///
 /// let german_hello_world: DataPayload<HelloWorldV1Marker> = provider
 ///     .load(DataRequest {
-///         locale: &locale!("de").into(),
+///         locale: &langid!("de").into(),
 ///         metadata: Default::default(),
 ///     })
 ///     .expect("Loading should succeed")
@@ -97,7 +97,7 @@ use predicates::MissingDataKeyPredicate;
 /// Stops at the first provider supporting a key, even if the locale is not supported:
 ///
 /// ```
-/// use icu_locid::{subtags::language, locale};
+/// use icu_locid::{subtags::language, langid};
 /// use icu_provider::hello_world::*;
 /// use icu_provider::prelude::*;
 /// use icu_provider_adapters::filter::Filterable;
@@ -120,7 +120,7 @@ use predicates::MissingDataKeyPredicate;
 /// // Chinese is the first provider, so this succeeds
 /// let chinese_hello_world = provider
 ///     .load(DataRequest {
-///         locale: &locale!("zh").into(),
+///         locale: &langid!("zh").into(),
 ///         metadata: Default::default(),
 ///     })
 ///     .expect("Loading should succeed")
@@ -132,7 +132,7 @@ use predicates::MissingDataKeyPredicate;
 /// // German is shadowed by Chinese, so this fails
 /// provider
 ///     .load(DataRequest {
-///         locale: &locale!("de").into(),
+///         locale: &langid!("de").into(),
 ///         metadata: Default::default(),
 ///     })
 ///     .expect_err("Should stop at the first provider, even though the second has data");
@@ -166,7 +166,7 @@ impl<P0, P1> ForkByKeyProvider<P0, P1> {
 /// # Examples
 ///
 /// ```
-/// use icu_locid::{subtags::language, locale};
+/// use icu_locid::{subtags::language, langid};
 /// use icu_provider::hello_world::*;
 /// use icu_provider::prelude::*;
 /// use icu_provider_adapters::filter::Filterable;
@@ -191,7 +191,7 @@ impl<P0, P1> ForkByKeyProvider<P0, P1> {
 /// // Chinese is the first provider, so this succeeds
 /// let chinese_hello_world = provider
 ///     .load(DataRequest {
-///         locale: &locale!("zh").into(),
+///         locale: &langid!("zh").into(),
 ///         metadata: Default::default(),
 ///     })
 ///     .expect("Loading should succeed")
@@ -203,7 +203,7 @@ impl<P0, P1> ForkByKeyProvider<P0, P1> {
 /// // German is shadowed by Chinese, so this fails
 /// provider
 ///     .load(DataRequest {
-///         locale: &locale!("de").into(),
+///         locale: &langid!("de").into(),
 ///         metadata: Default::default(),
 ///     })
 ///     .expect_err("Should stop at the first provider, even though the second has data");

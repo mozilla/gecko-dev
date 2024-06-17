@@ -55,7 +55,7 @@ unsafe impl<'a> Yokeable<'a> for Bar<'static> {
     where
         F: 'static + FnOnce(&'a mut Self::Output),
     {
-        unsafe { f(mem::transmute(self)) }
+        unsafe { f(mem::transmute::<&mut Bar<'_>, &mut Bar<'a>>(self)) }
     }
 }
 

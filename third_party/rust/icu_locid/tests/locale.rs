@@ -3,7 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 mod fixtures;
-mod helpers;
 
 use std::convert::TryInto;
 use writeable::*;
@@ -41,16 +40,16 @@ fn test_langid_fixtures(tests: Vec<fixtures::LocaleTest>) {
 
 #[test]
 fn test_locale_parsing() {
-    let path = "./tests/fixtures/locale.json";
-    let data = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data = serde_json::from_str(include_str!("fixtures/locale.json"))
+        .expect("Failed to read a fixture");
 
     test_langid_fixtures(data);
 }
 
 #[test]
 fn test_langid_invalid() {
-    let path = "./tests/fixtures/invalid-extensions.json";
-    let data = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data = serde_json::from_str(include_str!("fixtures/invalid-extensions.json"))
+        .expect("Failed to read a fixture");
 
     test_langid_fixtures(data);
 }
@@ -72,17 +71,17 @@ fn test_locale_conversions() {
 
 #[test]
 fn test_locale_canonicalize() {
-    let path = "./tests/fixtures/canonicalize.json";
-    let data = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data = serde_json::from_str(include_str!("fixtures/canonicalize.json"))
+        .expect("Failed to read a fixture");
 
     test_langid_fixtures(data);
 }
 
 #[test]
 fn test_locale_normalizing_eq_str() {
-    let path = "./tests/fixtures/locale.json";
     let tests: Vec<fixtures::LocaleTest> =
-        helpers::read_fixture(path).expect("Failed to read a fixture");
+        serde_json::from_str(include_str!("fixtures/locale.json"))
+            .expect("Failed to read a fixture");
     for test in tests {
         let parsed: Locale = test.input.try_into().expect("Parsing failed.");
         assert!(parsed.normalizing_eq(&parsed.write_to_string()));
@@ -95,9 +94,9 @@ fn test_locale_normalizing_eq_str() {
 
 #[test]
 fn test_locale_strict_cmp() {
-    let path = "./tests/fixtures/locale.json";
     let tests: Vec<fixtures::LocaleTest> =
-        helpers::read_fixture(path).expect("Failed to read a fixture");
+        serde_json::from_str(include_str!("fixtures/locale.json"))
+            .expect("Failed to read a fixture");
     let bcp47_strings = tests
         .iter()
         .map(|t| match t.input {

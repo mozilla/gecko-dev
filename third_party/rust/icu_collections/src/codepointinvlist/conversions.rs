@@ -79,7 +79,7 @@ impl FromIterator<RangeInclusive<u32>> for CodePointInversionList<'_> {
     fn from_iter<I: IntoIterator<Item = RangeInclusive<u32>>>(iter: I) -> Self {
         let mut builder = CodePointInversionListBuilder::new();
         for range in iter {
-            builder.add_range_u32(&range);
+            builder.add_range32(&range);
         }
         builder.build()
     }

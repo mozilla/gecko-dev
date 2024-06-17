@@ -1,17 +1,20 @@
 //! Types that can be exposed in Diplomat APIs.
 
+use super::lifetimes::{Lifetime, MaybeStatic};
 use super::{
-    EnumPath, Everywhere, MaybeStatic, NonOptional, OpaquePath, Optional, OutputOnly,
-    PrimitiveType, StructPath, TyPosition, TypeContext, TypeLifetime,
+    EnumPath, Everywhere, NonOptional, OpaqueOwner, OpaquePath, Optional, OutputOnly,
+    PrimitiveType, StructPath, StructPathLike, TyPosition, TypeContext, TypeId,
 };
 use crate::ast;
 pub use ast::Mutability;
+pub use ast::StringEncoding;
+use either::Either;
 
 /// Type that can only be used as an output.
 pub type OutType = Type<OutputOnly>;
 
 /// Type that may be used as input or output.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum Type<P: TyPosition = Everywhere> {
     Primitive(PrimitiveType),
@@ -33,11 +36,29 @@ pub enum SelfType {
 #[derive(Copy, Clone, Debug)]
 #[non_exhaustive]
 pub enum Slice {
-    /// A string slice, e.g. `&str`.
-    Str(MaybeStatic<TypeLifetime>),
+    /// A string slice, e.g. `&DiplomatStr` or `Box<DiplomatStr>`.
+    ///
+    /// Owned slices are useful for garbage-collected languages that have to
+    /// reallocate into non-gc memory anyway. For example for Dart it's more
+    /// efficient to accept `Box<str>` than to accept `&str` and then
+    /// allocate in Rust, as Dart will have to create the `Box<str`> to
+    /// pass `&str` anyway.
+    Str(Option<MaybeStatic<Lifetime>>, StringEncoding),
 
-    /// A primitive slice, e.g. `&mut [u8]`.
-    Primitive(Borrow, PrimitiveType),
+    /// A primitive slice, e.g. `&mut [u8]` or `Box<[usize]>`.
+    ///
+    /// Owned slices are useful for garbage-collected languages that have to
+    /// reallocate into non-gc memory anyway. For example for Dart it's more
+    /// efficient to accept `Box<[bool]>` than to accept `&[bool]` and then
+    /// allocate in Rust, as Dart will have to create the `Box<[bool]`> to
+    /// pass `&[bool]` anyway.
+    Primitive(Option<Borrow>, PrimitiveType),
+
+    /// A `&[&DiplomatStr]]`. This type of slice always needs to be
+    /// allocated before passing it into Rust, as it has to conform to the
+    /// Rust ABI. In other languages this is the idiomatic list of string
+    /// views, i.e. `std::span<std::string_view>` or `core.List<core.String>`.
+    Strs(StringEncoding),
 }
 
 // For now, the lifetime in not optional. This is because when you have references
@@ -51,7 +72,7 @@ pub enum Slice {
 #[derive(Copy, Clone, Debug)]
 #[non_exhaustive]
 pub struct Borrow {
-    pub lifetime: MaybeStatic<TypeLifetime>,
+    pub lifetime: MaybeStatic<Lifetime>,
     pub mutability: Mutability,
 }
 
@@ -72,6 +93,40 @@ impl Type {
     }
 }
 
+impl<P: TyPosition> Type<P> {
+    /// Get all lifetimes "contained" in this type
+    pub fn lifetimes(&self) -> impl Iterator<Item = MaybeStatic<Lifetime>> + '_ {
+        match self {
+            Type::Opaque(opaque) => Either::Right(
+                opaque
+                    .lifetimes
+                    .as_slice()
+                    .iter()
+                    .copied()
+                    .chain(opaque.owner.lifetime()),
+            ),
+            Type::Struct(struct_) => Either::Left(struct_.lifetimes().as_slice().iter().copied()),
+            Type::Slice(slice) => Either::Left(
+                slice
+                    .lifetime()
+                    .map(|lt| std::slice::from_ref(lt).iter().copied())
+                    .unwrap_or([].iter().copied()),
+            ),
+            _ => Either::Left([].iter().copied()),
+        }
+    }
+
+    // For custom types, get the type id
+    pub fn id(&self) -> Option<TypeId> {
+        Some(match self {
+            Self::Opaque(p) => TypeId::Opaque(p.tcx_id),
+            Self::Enum(p) => TypeId::Enum(p.tcx_id),
+            Self::Struct(p) => p.id(),
+            _ => return None,
+        })
+    }
+}
+
 impl SelfType {
     /// Returns whether the self parameter is borrowed immutably.
     ///
@@ -85,18 +140,23 @@ impl SelfType {
 }
 
 impl Slice {
-    /// Returns the [`TypeLifetime`] contained in either the `Str` or `Primitive`
+    /// Returns the [`Lifetime`] contained in either the `Str` or `Primitive`
     /// variant.
-    pub fn lifetime(&self) -> &MaybeStatic<TypeLifetime> {
+    pub fn lifetime(&self) -> Option<&MaybeStatic<Lifetime>> {
         match self {
-            Slice::Str(lifetime) => lifetime,
-            Slice::Primitive(reference, _) => &reference.lifetime,
+            Slice::Str(lifetime, ..) => lifetime.as_ref(),
+            Slice::Primitive(Some(reference), ..) => Some(&reference.lifetime),
+            Slice::Primitive(..) => None,
+            Slice::Strs(..) => Some({
+                const X: MaybeStatic<Lifetime> = MaybeStatic::NonStatic(Lifetime::new(usize::MAX));
+                &X
+            }),
         }
     }
 }
 
 impl Borrow {
-    pub(super) fn new(lifetime: MaybeStatic<TypeLifetime>, mutability: Mutability) -> Self {
+    pub(super) fn new(lifetime: MaybeStatic<Lifetime>, mutability: Mutability) -> Self {
         Self {
             lifetime,
             mutability,

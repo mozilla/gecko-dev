@@ -4,7 +4,7 @@
 
 #![allow(unused)]
 
-use std::borrow::Cow;
+use std::{borrow::Cow, marker::PhantomData};
 use yoke::{Yoke, Yokeable};
 use zerovec::{maps::ZeroMapKV, ule::AsULE, VarZeroVec, ZeroMap, ZeroVec};
 
@@ -67,6 +67,25 @@ pub struct ZeroMapGenericExample<'a, T: for<'b> ZeroMapKV<'b> + ?Sized> {
     map: ZeroMap<'a, str, T>,
 }
 
+#[derive(Yokeable)]
+pub struct MaybeSizedWrap<T, Q: ?Sized, U: ?Sized> {
+    x: T,
+    y: Option<T>,
+    ignored: PhantomData<U>,
+    q: Q,
+}
+
+// TODO(#4119): Make this example compile
+/*
+#[derive(Yokeable)]
+pub struct MaybeSizedWrapWithLifetime<'a, T, Q: ?Sized, U: ?Sized> {
+    x: T,
+    y: Option<T>,
+    ignored: &'a U,
+    q: Q,
+}
+*/
+
 pub struct AssertYokeable {
     string: Yoke<StringExample, Box<[u8]>>,
     int: Yoke<IntExample, Box<[u8]>>,
@@ -81,6 +100,9 @@ pub struct AssertYokeable {
     map: Yoke<ZeroMapExample<'static>, Box<[u8]>>,
     map_gen1: Yoke<ZeroMapGenericExample<'static, u32>, Box<[u8]>>,
     map_gen2: Yoke<ZeroMapGenericExample<'static, str>, Box<[u8]>>,
+    maybe_sized_wrap: Yoke<MaybeSizedWrap<usize, usize, str>, Box<[u8]>>,
+    // TODO(#4119): Make this example compile
+    // maybe_sized_wrap_with_lt: Yoke<MaybeSizedWrapWithLifetime<'static, usize, usize, str>, Box<[u8]>>,
 }
 
 fn main() {}

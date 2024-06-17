@@ -38,6 +38,7 @@ derive_usize_iterator_with_type!(WordBreakIterator);
 #[non_exhaustive]
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u8)]
+#[zerovec::make_ule(WordTypeULE)]
 pub enum WordType {
     /// No category tag.
     None = 0,
@@ -47,21 +48,33 @@ pub enum WordType {
     Letter = 2,
 }
 
+impl WordType {
+    /// Whether the segment is word-like; word-like segments include numbers, as
+    /// well as segments made up of letters (including CJKV ideographs).
+    pub fn is_word_like(&self) -> bool {
+        self != &WordType::None
+    }
+}
+
 impl<'l, 's, Y: RuleBreakType<'l, 's> + ?Sized> WordBreakIterator<'l, 's, Y> {
     /// Returns the word type of the segment preceding the current boundary.
     #[inline]
     pub fn word_type(&self) -> WordType {
-        match self.0.rule_status() {
-            RuleStatusType::None => WordType::None,
-            RuleStatusType::Number => WordType::Number,
-            RuleStatusType::Letter => WordType::Letter,
-        }
+        self.0.word_type()
     }
+
+    /// Returns an iterator over pairs of boundary position and word type.
+    pub fn iter_with_word_type<'i: 'l + 's>(
+        &'i mut self,
+    ) -> impl Iterator<Item = (usize, WordType)> + '_ {
+        core::iter::from_fn(move || self.next().map(|i| (i, self.word_type())))
+    }
+
     /// Returns `true` when the segment preceding the current boundary is word-like,
-    /// such as letter, number, or CJK.
+    /// such as letters, numbers, or CJKV ideographs.
     #[inline]
     pub fn is_word_like(&self) -> bool {
-        self.0.is_word_like()
+        self.word_type().is_word_like()
     }
 }
 
@@ -94,7 +107,7 @@ pub type WordBreakIteratorUtf16<'l, 's> = WordBreakIterator<'l, 's, WordBreakTyp
 /// Segment a string:
 ///
 /// ```rust
-/// use icu_segmenter::WordSegmenter;
+/// use icu::segmenter::WordSegmenter;
 /// let segmenter = WordSegmenter::new_auto();
 ///
 /// let breakpoints: Vec<usize> =
@@ -105,7 +118,7 @@ pub type WordBreakIteratorUtf16<'l, 's> = WordBreakIterator<'l, 's, WordBreakTyp
 /// Segment a Latin1 byte string:
 ///
 /// ```rust
-/// use icu_segmenter::WordSegmenter;
+/// use icu::segmenter::WordSegmenter;
 /// let segmenter = WordSegmenter::new_auto();
 ///
 /// let breakpoints: Vec<usize> =
@@ -118,7 +131,7 @@ pub type WordBreakIteratorUtf16<'l, 's> = WordBreakIterator<'l, 's, WordBreakTyp
 /// length of the segmented text in code units.
 ///
 /// ```rust
-/// # use icu_segmenter::WordSegmenter;
+/// # use icu::segmenter::WordSegmenter;
 /// # let segmenter = WordSegmenter::new_auto();
 /// use itertools::Itertools;
 /// let text = "Mark’d ye his words?";
@@ -136,20 +149,20 @@ pub type WordBreakIteratorUtf16<'l, 's> = WordBreakIterator<'l, 's, WordBreakTyp
 /// Not all segments delimited by word boundaries are words; some are interword
 /// segments such as spaces and punctuation.
 /// The [`WordBreakIterator::word_type()`] of a boundary can be used to
-/// classify the preceding segment.
+/// classify the preceding segment; [`WordBreakIterator::iter_with_word_type()`]
+/// associates each boundary with its status.
 /// ```rust
 /// # use itertools::Itertools;
-/// # use icu_segmenter::{WordType, WordSegmenter};
+/// # use icu::segmenter::{WordType, WordSegmenter};
 /// # let segmenter = WordSegmenter::new_auto();
 /// # let text = "Mark’d ye his words?";
-/// let words: Vec<&str> = {
-///     let mut it = segmenter.segment_str(text);
-///     std::iter::from_fn(move || it.next().map(|i| (i, it.word_type())))
-///         .tuple_windows()
-///         .filter(|(_, (_, status))| *status == WordType::Letter)
-///         .map(|((i, _), (j, _))| &text[i..j])
-///         .collect()
-/// };
+/// let words: Vec<&str> = segmenter
+///     .segment_str(text)
+///     .iter_with_word_type()
+///     .tuple_windows()
+///     .filter(|(_, (_, segment_type))| segment_type.is_word_like())
+///     .map(|((i, _), (j, _))| &text[i..j])
+///     .collect();
 /// assert_eq!(&words, &["Mark’d", "ye", "his", "words"]);
 /// ```
 #[derive(Debug)]

@@ -5,27 +5,22 @@
 use displaydoc::Display;
 use icu_provider::DataError;
 
-#[cfg(doc)]
-use crate::GeneralCategoryGroup;
-#[cfg(doc)]
-use crate::Script;
-
 #[cfg(feature = "std")]
 impl std::error::Error for PropertiesError {}
 
 /// A list of error outcomes for various operations in this module.
 ///
 /// Re-exported as [`Error`](crate::Error).
-#[derive(Display, Debug, Copy, Clone)]
+#[derive(Display, Debug, Copy, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum PropertiesError {
     /// An error occurred while loading data
     #[displaydoc("{0}")]
     PropDataLoad(DataError),
-    /// An unknown value was used for the [`Script`](crate::Script) property
+    /// An unknown value was used for the [`Script`](super::Script) property
     #[displaydoc("Unknown script id: {0}")]
     UnknownScriptId(u16),
-    /// An unknown value was used for the [`GeneralCategoryGroup`](crate::GeneralCategoryGroup) property
+    /// An unknown value was used for the [`GeneralCategoryGroup`](super::GeneralCategoryGroup) property
     #[displaydoc("Unknown general category group: {0}")]
     UnknownGeneralCategoryGroup(u32),
     /// An unknown or unexpected property name was used for an API dealing with properties specified as strings at runtime

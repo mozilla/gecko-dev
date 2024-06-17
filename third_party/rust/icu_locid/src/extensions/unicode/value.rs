@@ -2,8 +2,8 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::helpers::ShortSlice;
 use crate::parser::{ParserError, SubtagIterator};
+use crate::shortvec::ShortBoxSlice;
 use core::ops::RangeInclusive;
 use core::str::FromStr;
 use tinystr::TinyAsciiStr;
@@ -32,7 +32,7 @@ use tinystr::TinyAsciiStr;
 /// assert_eq!(value!("true").to_string(), "");
 /// ```
 #[derive(Debug, PartialEq, Eq, Clone, Hash, PartialOrd, Ord, Default)]
-pub struct Value(ShortSlice<TinyAsciiStr<{ *VALUE_LENGTH.end() }>>);
+pub struct Value(ShortBoxSlice<TinyAsciiStr<{ *VALUE_LENGTH.end() }>>);
 
 const VALUE_LENGTH: RangeInclusive<usize> = 3..=8;
 const TRUE_VALUE: TinyAsciiStr<8> = tinystr::tinystr!(8, "true");
@@ -49,7 +49,7 @@ impl Value {
     /// Value::try_from_bytes(b"buddhist").expect("Parsing failed.");
     /// ```
     pub fn try_from_bytes(input: &[u8]) -> Result<Self, ParserError> {
-        let mut v = ShortSlice::new();
+        let mut v = ShortBoxSlice::new();
 
         if !input.is_empty() {
             for subtag in SubtagIterator::new(input) {
@@ -93,16 +93,16 @@ impl Value {
     #[doc(hidden)]
     pub const fn from_tinystr(subtag: Option<TinyAsciiStr<8>>) -> Self {
         match subtag {
-            None => Self(ShortSlice::new()),
+            None => Self(ShortBoxSlice::new()),
             Some(val) => {
                 debug_assert!(val.is_ascii_alphanumeric());
                 debug_assert!(!matches!(val, TRUE_VALUE));
-                Self(ShortSlice::new_single(val))
+                Self(ShortBoxSlice::new_single(val))
             }
         }
     }
 
-    pub(crate) fn from_short_slice_unchecked(input: ShortSlice<TinyAsciiStr<8>>) -> Self {
+    pub(crate) fn from_short_slice_unchecked(input: ShortBoxSlice<TinyAsciiStr<8>>) -> Self {
         Self(input)
     }
 

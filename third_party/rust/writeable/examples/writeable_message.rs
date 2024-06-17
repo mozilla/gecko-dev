@@ -47,7 +47,8 @@ impl<V: Writeable> fmt::Display for WriteableMessage<V> {
 fn main() {
     icu_benchmark_macros::main_setup!();
 
-    let (string, parts) = writeable_to_parts_for_test(&WriteableMessage("world")).unwrap();
+    let (string, parts) =
+        writeable::_internal::writeable_to_parts_for_test(&WriteableMessage("world"));
 
     assert_eq!(string, "Hello world 😅");
 

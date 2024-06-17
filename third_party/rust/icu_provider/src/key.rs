@@ -173,10 +173,10 @@ impl DataKeyPath {
     pub const fn get(self) -> &'static str {
         unsafe {
             // Safe due to invariant that self.path is tagged correctly
-            core::str::from_utf8_unchecked(core::mem::transmute((
+            core::str::from_utf8_unchecked(core::slice::from_raw_parts(
                 self.tagged.as_ptr().add(leading_tag!().len()),
                 self.tagged.len() - trailing_tag!().len() - leading_tag!().len(),
-            )))
+            ))
         }
     }
 }

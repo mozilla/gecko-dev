@@ -26,7 +26,7 @@ base64 = "0.21"
 chrono = "0.4.6"
 clap = { version = "4", default-features = false, features = ["cargo", "std", "suggestions", "wrap_help", "string"] }
 hyper = "0.14"
-icu_segmenter = { version = "1.4", default-features = false, features = ["auto", "compiled_data"] }
+icu_segmenter = { version = "1.5", default-features = false, features = ["auto", "compiled_data"] }
 lazy_static = "1.0"
 log = { version = "0.4", features = ["std"] }
 marionette = { path = "./marionette", version="0.5.0" }

@@ -21,9 +21,9 @@
 
 mod subtag;
 
-use crate::helpers::ShortSlice;
 use crate::parser::ParserError;
 use crate::parser::SubtagIterator;
+use crate::shortvec::ShortBoxSlice;
 use alloc::vec::Vec;
 #[doc(inline)]
 pub use subtag::{subtag, Subtag};
@@ -51,7 +51,7 @@ pub use subtag::{subtag, Subtag};
 #[derive(Clone, PartialEq, Eq, Debug, Default, Hash, PartialOrd, Ord)]
 pub struct Other {
     ext: u8,
-    keys: ShortSlice<Subtag>,
+    keys: ShortBoxSlice<Subtag>,
 }
 
 impl Other {
@@ -76,7 +76,7 @@ impl Other {
         Self::from_short_slice_unchecked(ext, keys.into())
     }
 
-    pub(crate) fn from_short_slice_unchecked(ext: u8, keys: ShortSlice<Subtag>) -> Self {
+    pub(crate) fn from_short_slice_unchecked(ext: u8, keys: ShortBoxSlice<Subtag>) -> Self {
         assert!(ext.is_ascii_alphabetic());
         Self { ext, keys }
     }
@@ -84,7 +84,7 @@ impl Other {
     pub(crate) fn try_from_iter(ext: u8, iter: &mut SubtagIterator) -> Result<Self, ParserError> {
         debug_assert!(ext.is_ascii_alphabetic());
 
-        let mut keys = ShortSlice::new();
+        let mut keys = ShortBoxSlice::new();
         while let Some(subtag) = iter.peek() {
             if !Subtag::valid_key(subtag) {
                 break;

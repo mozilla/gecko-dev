@@ -256,10 +256,10 @@ where
     /// assert_eq!(map.get(&1), Some(&"one"));
     /// assert_eq!(map.get(&3), None);
     /// ```
-    pub fn get<Q: ?Sized>(&self, key: &Q) -> Option<&V>
+    pub fn get<Q>(&self, key: &Q) -> Option<&V>
     where
         K: Borrow<Q>,
-        Q: Ord,
+        Q: Ord + ?Sized,
     {
         match self.find_index(key) {
             #[allow(clippy::unwrap_used)] // find_index returns a valid index
@@ -285,10 +285,10 @@ where
     /// assert!(map.contains_key(&1));
     /// assert!(!map.contains_key(&3));
     /// ```
-    pub fn contains_key<Q: ?Sized>(&self, key: &Q) -> bool
+    pub fn contains_key<Q>(&self, key: &Q) -> bool
     where
         K: Borrow<Q>,
-        Q: Ord,
+        Q: Ord + ?Sized,
     {
         self.find_index(key).is_ok()
     }
@@ -301,10 +301,10 @@ where
     /// The indices returned can be used with [`Self::get_indexed()`]. Prefer using
     /// [`Self::get()`] directly where possible.
     #[inline]
-    pub fn find_index<Q: ?Sized>(&self, key: &Q) -> Result<usize, usize>
+    pub fn find_index<Q>(&self, key: &Q) -> Result<usize, usize>
     where
         K: Borrow<Q>,
-        Q: Ord,
+        Q: Ord + ?Sized,
     {
         self.values.lm_binary_search_by(|k| k.borrow().cmp(key))
     }
@@ -548,10 +548,10 @@ where
     /// }
     /// assert_eq!(map.get(&1), Some(&"uno"));
     /// ```
-    pub fn get_mut<Q: ?Sized>(&mut self, key: &Q) -> Option<&mut V>
+    pub fn get_mut<Q>(&mut self, key: &Q) -> Option<&mut V>
     where
         K: Borrow<Q>,
-        Q: Ord,
+        Q: Ord + ?Sized,
     {
         match self.find_index(key) {
             #[allow(clippy::unwrap_used)] // find_index returns a valid index
@@ -732,10 +732,10 @@ where
     /// assert_eq!(map.remove(&1), Some("one"));
     /// assert_eq!(map.get(&1), None);
     /// ```
-    pub fn remove<Q: ?Sized>(&mut self, key: &Q) -> Option<V>
+    pub fn remove<Q>(&mut self, key: &Q) -> Option<V>
     where
         K: Borrow<Q>,
-        Q: Ord,
+        Q: Ord + ?Sized,
     {
         match self.values.lm_binary_search_by(|k| k.borrow().cmp(key)) {
             Ok(found) => Some(self.values.lm_remove(found).1),
@@ -747,7 +747,7 @@ where
 impl<'a, K: 'a, V: 'a, S> LiteMap<K, V, S>
 where
     K: Ord,
-    S: StoreIterableMut<'a, K, V> + StoreFromIterator<K, V>,
+    S: StoreIntoIterator<K, V> + StoreFromIterator<K, V>,
 {
     /// Insert all elements from `other` into this `LiteMap`.
     ///
@@ -895,6 +895,18 @@ where
     /// Produce an ordered mutable iterator over key-value pairs
     pub fn iter_mut(&'a mut self) -> impl DoubleEndedIterator<Item = (&'a K, &'a mut V)> {
         self.values.lm_iter_mut()
+    }
+}
+
+impl<K, V, S> IntoIterator for LiteMap<K, V, S>
+where
+    S: StoreIntoIterator<K, V>,
+{
+    type Item = (K, V);
+    type IntoIter = S::KeyValueIntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.values.lm_into_iter()
     }
 }
 
@@ -1244,5 +1256,19 @@ mod test {
                 assert_eq!(a.cmp(b), const_cmp_bytes(a, b));
             }
         }
+    }
+
+    #[test]
+    fn into_iterator() {
+        let mut map = LiteMap::<_, _, Vec<(_, _)>>::new();
+        map.insert(4, "four");
+        map.insert(6, "six");
+        let mut reference = vec![(6, "six"), (4, "four")];
+
+        for i in map {
+            let r = reference.pop().unwrap();
+            assert_eq!(r, i);
+        }
+        assert!(reference.is_empty());
     }
 }

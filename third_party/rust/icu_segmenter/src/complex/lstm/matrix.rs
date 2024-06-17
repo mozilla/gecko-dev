@@ -37,7 +37,7 @@ impl<const D: usize> MatrixOwned<D> {
         }
     }
 
-    /// Returns the tighly packed submatrix at _index_, or `None` if _index_ is out of range.
+    /// Returns the tightly packed submatrix at _index_, or `None` if _index_ is out of range.
     ///
     /// For example, if the matrix is 5x4x3, this function returns a matrix sized 4x3. If the
     /// matrix is 4x3, then this function returns a linear matrix of length 3.

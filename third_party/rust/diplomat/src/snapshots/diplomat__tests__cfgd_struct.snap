@@ -11,6 +11,7 @@ mod ffi {
             unimplemented!()
         }
     }
+    use diplomat_runtime::*;
     #[no_mangle]
     #[cfg(feature = "foo")]
     extern "C" fn Foo_bar(s: u8) {

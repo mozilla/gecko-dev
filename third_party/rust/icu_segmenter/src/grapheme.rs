@@ -64,7 +64,7 @@ pub type GraphemeClusterBreakIteratorUtf16<'l, 's> =
 /// Segment a string:
 ///
 /// ```rust
-/// use icu_segmenter::GraphemeClusterSegmenter;
+/// use icu::segmenter::GraphemeClusterSegmenter;
 /// let segmenter = GraphemeClusterSegmenter::new();
 ///
 /// let breakpoints: Vec<usize> = segmenter.segment_str("Hello 🗺").collect();
@@ -75,7 +75,7 @@ pub type GraphemeClusterBreakIteratorUtf16<'l, 's> =
 /// Segment a Latin1 byte string:
 ///
 /// ```rust
-/// use icu_segmenter::GraphemeClusterSegmenter;
+/// use icu::segmenter::GraphemeClusterSegmenter;
 /// let segmenter = GraphemeClusterSegmenter::new();
 ///
 /// let breakpoints: Vec<usize> =
@@ -88,7 +88,7 @@ pub type GraphemeClusterBreakIteratorUtf16<'l, 's> =
 /// length of the segmented text in code units.
 ///
 /// ```rust
-/// # use icu_segmenter::GraphemeClusterSegmenter;
+/// # use icu::segmenter::GraphemeClusterSegmenter;
 /// # let segmenter =
 /// #     GraphemeClusterSegmenter::new();
 /// use itertools::Itertools;
@@ -116,7 +116,7 @@ pub type GraphemeClusterBreakIteratorUtf16<'l, 's> =
 /// [Sample_GC]: https://www.unicode.org/reports/tr29/#Table_Sample_Grapheme_Clusters
 ///
 /// ```rust
-/// use icu_segmenter::GraphemeClusterSegmenter;
+/// use icu::segmenter::GraphemeClusterSegmenter;
 /// let segmenter =
 ///     GraphemeClusterSegmenter::new();
 ///
@@ -267,4 +267,12 @@ fn empty_string() {
     let segmenter = GraphemeClusterSegmenter::new();
     let breaks: Vec<usize> = segmenter.segment_str("").collect();
     assert_eq!(breaks, [0]);
+}
+
+#[test]
+fn emoji_flags() {
+    // https://github.com/unicode-org/icu4x/issues/4780
+    let segmenter = GraphemeClusterSegmenter::new();
+    let breaks: Vec<usize> = segmenter.segment_str("🇺🇸🏴󠁧󠁢󠁥󠁮󠁧󠁿").collect();
+    assert_eq!(breaks, [0, 8, 36]);
 }

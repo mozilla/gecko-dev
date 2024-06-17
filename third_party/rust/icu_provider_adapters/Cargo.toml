@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.67"
 name = "icu_provider_adapters"
-version = "1.4.0"
+version = "1.5.0"
 authors = ["The ICU4X Project Developers"]
 include = [
     "data/**/*",
@@ -29,31 +29,31 @@ description = "Adapters for composing and manipulating data providers."
 homepage = "https://icu4x.unicode.org"
 readme = "README.md"
 categories = ["internationalization"]
-license-file = "LICENSE"
+license = "Unicode-3.0"
 repository = "https://github.com/unicode-org/icu4x"
 
 [dependencies.databake]
-version = "0.1.7"
+version = "0.1.8"
 features = ["derive"]
 optional = true
 default-features = false
 
 [dependencies.icu_locid]
-version = "~1.4.0"
+version = "~1.5.0"
 features = ["zerovec"]
 default-features = false
 
 [dependencies.icu_locid_transform]
-version = "~1.4.0"
+version = "~1.5.0"
 default-features = false
 
 [dependencies.icu_provider]
-version = "~1.4.0"
+version = "~1.5.0"
 features = ["macros"]
 default-features = false
 
 [dependencies.serde]
-version = "1.0"
+version = "1.0.110"
 features = [
     "derive",
     "alloc",
@@ -62,12 +62,12 @@ optional = true
 default-features = false
 
 [dependencies.tinystr]
-version = "0.7.4"
+version = "0.7.5"
 features = ["zerovec"]
 default-features = false
 
 [dependencies.zerovec]
-version = "0.10.1"
+version = "0.10.2"
 features = ["yoke"]
 default-features = false
 

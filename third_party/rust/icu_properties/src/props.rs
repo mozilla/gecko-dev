@@ -80,7 +80,7 @@ pub struct PropertyValueNameToEnumMapper<T> {
 
 /// A borrowed wrapper around property value name-to-enum data, returned by
 /// [`PropertyValueNameToEnumMapper::as_borrowed()`]. More efficient to query.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct PropertyValueNameToEnumMapperBorrowed<'a, T> {
     map: &'a PropertyValueNameToEnumMapV1<'a>,
     markers: PhantomData<fn() -> T>,
@@ -125,7 +125,7 @@ impl<T: TrieValue> PropertyValueNameToEnumMapperBorrowed<'_, T> {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::GeneralCategory;
+    /// use icu::properties::GeneralCategory;
     ///
     /// let lookup = GeneralCategory::name_to_enum_mapper();
     /// assert_eq!(
@@ -150,7 +150,7 @@ impl<T: TrieValue> PropertyValueNameToEnumMapperBorrowed<'_, T> {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::GeneralCategory;
+    /// use icu::properties::GeneralCategory;
     ///
     /// let lookup = GeneralCategory::name_to_enum_mapper();
     /// assert_eq!(
@@ -176,7 +176,7 @@ impl<T: TrieValue> PropertyValueNameToEnumMapperBorrowed<'_, T> {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::GeneralCategory;
+    /// use icu::properties::GeneralCategory;
     ///
     /// let lookup = GeneralCategory::name_to_enum_mapper();
     /// assert_eq!(
@@ -205,7 +205,7 @@ impl<T: TrieValue> PropertyValueNameToEnumMapperBorrowed<'_, T> {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::GeneralCategory;
+    /// use icu::properties::GeneralCategory;
     ///
     /// let lookup = GeneralCategory::name_to_enum_mapper();
     /// assert_eq!(
@@ -229,7 +229,10 @@ impl<T: TrieValue> PropertyValueNameToEnumMapperBorrowed<'_, T> {
 }
 
 impl<T: TrieValue> PropertyValueNameToEnumMapperBorrowed<'static, T> {
-    /// Cheaply converts a `PropertyValueNameToEnumMapperBorrowed<'static>` into a `PropertyValueNameToEnumMapper`.
+    /// Cheaply converts a [`PropertyValueNameToEnumMapperBorrowed<'static>`] into a [`PropertyValueNameToEnumMapper`].
+    ///
+    /// Note: Due to branching and indirection, using [`PropertyValueNameToEnumMapper`] might inhibit some
+    /// compile-time optimizations that are possible with [`PropertyValueNameToEnumMapperBorrowed`].
     pub const fn static_to_owned(self) -> PropertyValueNameToEnumMapper<T> {
         PropertyValueNameToEnumMapper {
             map: DataPayload::from_static_ref(self.map),
@@ -295,7 +298,7 @@ pub struct PropertyEnumToValueNameSparseMapper<T> {
 
 /// A borrowed wrapper around property value name-to-enum data, returned by
 /// [`PropertyEnumToValueNameSparseMapper::as_borrowed()`]. More efficient to query.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct PropertyEnumToValueNameSparseMapperBorrowed<'a, T> {
     map: &'a PropertyEnumToValueNameSparseMapV1<'a>,
     markers: PhantomData<fn(T) -> ()>,
@@ -355,7 +358,10 @@ impl<T: TrieValue> PropertyEnumToValueNameSparseMapperBorrowed<'_, T> {
 }
 
 impl<T: TrieValue> PropertyEnumToValueNameSparseMapperBorrowed<'static, T> {
-    /// Cheaply converts a `PropertyEnumToValueNameSparseMapperBorrowed<'static>` into a `PropertyEnumToValueNameSparseMapper`.
+    /// Cheaply converts a [`PropertyEnumToValueNameSparseMapperBorrowed<'static>`] into a [`PropertyEnumToValueNameSparseMapper`].
+    ///
+    /// Note: Due to branching and indirection, using [`PropertyEnumToValueNameSparseMapper`] might inhibit some
+    /// compile-time optimizations that are possible with [`PropertyEnumToValueNameSparseMapperBorrowed`].
     pub const fn static_to_owned(self) -> PropertyEnumToValueNameSparseMapper<T> {
         PropertyEnumToValueNameSparseMapper {
             map: DataPayload::from_static_ref(self.map),
@@ -405,7 +411,7 @@ pub struct PropertyEnumToValueNameLinearMapper<T> {
 
 /// A borrowed wrapper around property value name-to-enum data, returned by
 /// [`PropertyEnumToValueNameLinearMapper::as_borrowed()`]. More efficient to query.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct PropertyEnumToValueNameLinearMapperBorrowed<'a, T> {
     map: &'a PropertyEnumToValueNameLinearMapV1<'a>,
     markers: PhantomData<fn(T) -> ()>,
@@ -459,7 +465,10 @@ impl<T: TrieValue> PropertyEnumToValueNameLinearMapperBorrowed<'_, T> {
 }
 
 impl<T: TrieValue> PropertyEnumToValueNameLinearMapperBorrowed<'static, T> {
-    /// Cheaply converts a `PropertyEnumToValueNameLinearMapperBorrowed<'static>` into a `PropertyEnumToValueNameLinearMapper`.
+    /// Cheaply converts a [`PropertyEnumToValueNameLinearMapperBorrowed<'static>`] into a [`PropertyEnumToValueNameLinearMapper`].
+    ///
+    /// Note: Due to branching and indirection, using [`PropertyEnumToValueNameLinearMapper`] might inhibit some
+    /// compile-time optimizations that are possible with [`PropertyEnumToValueNameLinearMapperBorrowed`].
     pub const fn static_to_owned(self) -> PropertyEnumToValueNameLinearMapper<T> {
         PropertyEnumToValueNameLinearMapper {
             map: DataPayload::from_static_ref(self.map),
@@ -502,7 +511,7 @@ pub struct PropertyEnumToValueNameLinearTiny4Mapper<T> {
 
 /// A borrowed wrapper around property value name-to-enum data, returned by
 /// [`PropertyEnumToValueNameLinearTiny4Mapper::as_borrowed()`]. More efficient to query.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct PropertyEnumToValueNameLinearTiny4MapperBorrowed<'a, T> {
     map: &'a PropertyEnumToValueNameLinearTiny4MapV1<'a>,
     markers: PhantomData<fn(T) -> ()>,
@@ -557,7 +566,10 @@ impl<T: TrieValue> PropertyEnumToValueNameLinearTiny4MapperBorrowed<'_, T> {
 }
 
 impl<T: TrieValue> PropertyEnumToValueNameLinearTiny4MapperBorrowed<'static, T> {
-    /// Cheaply converts a `PropertyEnumToValueNameLinearTiny4MapperBorrowed<'static>` into a `PropertyEnumToValueNameLinearTiny4Mapper`.
+    /// Cheaply converts a [`PropertyEnumToValueNameLinearTiny4MapperBorrowed<'static>`] into a [`PropertyEnumToValueNameLinearTiny4Mapper`].
+    ///
+    /// Note: Due to branching and indirection, using [`PropertyEnumToValueNameLinearTiny4Mapper`] might inhibit some
+    /// compile-time optimizations that are possible with [`PropertyEnumToValueNameLinearTiny4MapperBorrowed`].
     pub const fn static_to_owned(self) -> PropertyEnumToValueNameLinearTiny4Mapper<T> {
         PropertyEnumToValueNameLinearTiny4Mapper {
             map: DataPayload::from_static_ref(self.map),
@@ -585,7 +597,7 @@ macro_rules! impl_value_getter {
         impl $ty {
             $(#[$attr_n2e])*
             #[cfg(feature = "compiled_data")]
-            $vis_n2e fn $cname_n2e() -> PropertyValueNameToEnumMapperBorrowed<'static, $ty> {
+            $vis_n2e const fn $cname_n2e() -> PropertyValueNameToEnumMapperBorrowed<'static, $ty> {
                 PropertyValueNameToEnumMapperBorrowed {
                     map: crate::provider::Baked::$singleton_n2e,
                     markers: PhantomData,
@@ -604,7 +616,7 @@ macro_rules! impl_value_getter {
             $(
                 $(#[$attr_e2sn])*
                 #[cfg(feature = "compiled_data")]
-                $vis_e2sn fn $cname_e2sn() -> $mapper_e2snb<'static, $ty> {
+                $vis_e2sn const fn $cname_e2sn() -> $mapper_e2snb<'static, $ty> {
                     $mapper_e2snb {
                         map: crate::provider::Baked::$singleton_e2sn,
                         markers: PhantomData,
@@ -622,7 +634,7 @@ macro_rules! impl_value_getter {
 
                 $(#[$attr_e2ln])*
                 #[cfg(feature = "compiled_data")]
-                $vis_e2ln fn $cname_e2ln() -> $mapper_e2lnb<'static, $ty> {
+                $vis_e2ln const fn $cname_e2ln() -> $mapper_e2lnb<'static, $ty> {
                     $mapper_e2lnb {
                         map: crate::provider::Baked::$singleton_e2ln,
                         markers: PhantomData,
@@ -642,12 +654,45 @@ macro_rules! impl_value_getter {
     }
 }
 
+/// See [`test_enumerated_property_completeness`] for usage.
+/// Example input:
+/// ```ignore
+/// impl EastAsianWidth {
+///     pub const Neutral: EastAsianWidth = EastAsianWidth(0);
+///     pub const Ambiguous: EastAsianWidth = EastAsianWidth(1);
+///     ...
+/// }
+/// ```
+/// Produces `const ALL_CONSTS = &[("Neutral", 0u16), ...];` by
+/// explicitly casting first field of the struct to u16.
+macro_rules! create_const_array {
+    (
+        $ ( #[$meta:meta] )*
+        impl $enum_ty:ident {
+            $( $(#[$const_meta:meta])* $v:vis const $i:ident: $t:ty = $e:expr; )*
+        }
+    ) => {
+        $( #[$meta] )*
+        impl $enum_ty {
+            $(
+                $(#[$const_meta])*
+                $v const $i: $t = $e;
+            )*
+
+            #[cfg(test)]
+            const ALL_CONSTS: &'static [(&'static str, u16)] = &[
+                $((stringify!($i), $enum_ty::$i.0 as u16)),*
+            ];
+        }
+    }
+}
+
 /// Enumerated property Bidi_Class
 ///
 /// These are the categories required by the Unicode Bidirectional Algorithm.
 /// For the property values, see [Bidirectional Class Values](https://unicode.org/reports/tr44/#Bidi_Class_Values).
 /// For more information, see [Unicode Standard Annex #9](https://unicode.org/reports/tr41/tr41-28.html#UAX9).
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "datagen", derive(databake::Bake))]
 #[cfg_attr(feature = "datagen", databake(path = icu_properties))]
@@ -656,6 +701,7 @@ macro_rules! impl_value_getter {
 #[zerovec::make_ule(BidiClassULE)]
 pub struct BidiClass(pub u8);
 
+create_const_array! {
 #[allow(non_upper_case_globals)]
 impl BidiClass {
     /// (`L`) any strong left-to-right character
@@ -704,6 +750,7 @@ impl BidiClass {
     pub const RightToLeftIsolate: BidiClass = BidiClass(21);
     /// (`PDI`) U+2069: terminates an isolate control
     pub const PopDirectionalIsolate: BidiClass = BidiClass(22);
+}
 }
 
 impl_value_getter! {
@@ -781,7 +828,7 @@ impl_value_getter! {
 ///
 /// GeneralCategory only supports specific subcategories (eg `UppercaseLetter`).
 /// It does not support grouped categories (eg `Letter`). For grouped categories, use [`GeneralCategoryGroup`].
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Ord, PartialOrd)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "datagen", derive(databake::Bake))]
 #[cfg_attr(feature = "datagen", databake(path = icu_properties))]
@@ -1079,7 +1126,6 @@ impl GeneralCategoryGroup {
     ///
     /// ```
     /// use icu::properties::{maps, GeneralCategory, GeneralCategoryGroup};
-    /// use icu_collections::codepointtrie::CodePointTrie;
     ///
     /// let gc = maps::general_category();
     ///
@@ -1285,7 +1331,7 @@ impl From<GeneralCategoryGroup> for u32 {
 ///
 /// For more information, see UAX #24: <http://www.unicode.org/reports/tr24/>.
 /// See `UScriptCode` in ICU4C.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "datagen", derive(databake::Bake))]
 #[cfg_attr(feature = "datagen", databake(path = icu_properties))]
@@ -1396,6 +1442,7 @@ impl Script {
     pub const Nabataean: Script = Script(143);
     pub const NagMundari: Script = Script(199);
     pub const Nandinagari: Script = Script(187);
+    pub const Nastaliq: Script = Script(200);
     pub const NewTaiLue: Script = Script(59);
     pub const Newa: Script = Script(170);
     pub const Nko: Script = Script(87);
@@ -1531,13 +1578,113 @@ impl_value_getter! {
     }
 }
 
+/// Enumerated property Hangul_Syllable_Type
+///
+/// The Unicode standard provides both precomposed Hangul syllables and conjoining Jamo to compose
+/// arbitrary Hangul syllables. This property provies that ontology of Hangul code points.
+///
+/// For more information, see the [Unicode Korean FAQ](https://www.unicode.org/faq/korean.html).
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "datagen", derive(databake::Bake))]
+#[cfg_attr(feature = "datagen", databake(path = icu_properties))]
+#[allow(clippy::exhaustive_structs)] // newtype
+#[repr(transparent)]
+#[zerovec::make_ule(HangulSyllableTypeULE)]
+pub struct HangulSyllableType(pub u8);
+
+create_const_array! {
+#[allow(non_upper_case_globals)]
+impl HangulSyllableType {
+    /// (`NA`) not applicable (e.g. not a Hangul code point).
+    pub const NotApplicable: HangulSyllableType = HangulSyllableType(0);
+    /// (`L`) a conjoining leading consonant Jamo.
+    pub const LeadingJamo: HangulSyllableType = HangulSyllableType(1);
+    /// (`V`) a conjoining vowel Jamo.
+    pub const VowelJamo: HangulSyllableType = HangulSyllableType(2);
+    /// (`T`) a conjoining trailing consonent Jamo.
+    pub const TrailingJamo: HangulSyllableType = HangulSyllableType(3);
+    /// (`LV`) a precomposed syllable with a leading consonant and a vowel.
+    pub const LeadingVowelSyllable: HangulSyllableType = HangulSyllableType(4);
+    /// (`LVT`) a precomposed syllable with a leading consonant, a vowel, and a trailing consonant.
+    pub const LeadingVowelTrailingSyllable: HangulSyllableType = HangulSyllableType(5);
+}
+}
+
+impl_value_getter! {
+    markers: HangulSyllableTypeNameToValueV1Marker / SINGLETON_PROPNAMES_FROM_HST_V1, HangulSyllableTypeValueToShortNameV1Marker / SINGLETON_PROPNAMES_TO_SHORT_LINEAR_HST_V1, HangulSyllableTypeValueToLongNameV1Marker / SINGLETON_PROPNAMES_TO_LONG_LINEAR_HST_V1;
+    impl HangulSyllableType {
+        /// Return a [`PropertyValueNameToEnumMapper`], capable of looking up values
+        /// from strings for the `Bidi_Class` enumerated property
+        ///
+        /// ✨ *Enabled with the `compiled_data` Cargo feature.*
+        ///
+        /// [📚 Help choosing a constructor](icu_provider::constructors)
+        ///
+        /// # Example
+        ///
+        /// ```
+        /// use icu::properties::HangulSyllableType;
+        ///
+        /// let lookup = HangulSyllableType::name_to_enum_mapper();
+        /// // short name for value
+        /// assert_eq!(lookup.get_strict("L"), Some(HangulSyllableType::LeadingJamo));
+        /// assert_eq!(lookup.get_strict("LV"), Some(HangulSyllableType::LeadingVowelSyllable));
+        /// // long name for value
+        /// assert_eq!(lookup.get_strict("Leading_Jamo"), Some(HangulSyllableType::LeadingJamo));
+        /// assert_eq!(lookup.get_strict("LV_Syllable"), Some(HangulSyllableType::LeadingVowelSyllable));
+        /// // name has incorrect casing
+        /// assert_eq!(lookup.get_strict("lv"), None);
+        /// // loose matching of name
+        /// assert_eq!(lookup.get_loose("lv"), Some(HangulSyllableType::LeadingVowelSyllable));
+        /// // fake property
+        /// assert_eq!(lookup.get_strict("LT_Syllable"), None);
+        /// ```
+        pub fn get_name_to_enum_mapper() / name_to_enum_mapper();
+        /// Return a [`PropertyEnumToValueNameLinearMapper`], capable of looking up short names
+        /// for values of the `Bidi_Class` enumerated property
+        ///
+        /// ✨ *Enabled with the `compiled_data` Cargo feature.*
+        ///
+        /// [📚 Help choosing a constructor](icu_provider::constructors)
+        ///
+        /// # Example
+        ///
+        /// ```
+        /// use icu::properties::HangulSyllableType;
+        ///
+        /// let lookup = HangulSyllableType::enum_to_short_name_mapper();
+        /// assert_eq!(lookup.get(HangulSyllableType::LeadingJamo), Some("L"));
+        /// assert_eq!(lookup.get(HangulSyllableType::LeadingVowelSyllable), Some("LV"));
+        /// ```
+        pub fn get_enum_to_short_name_mapper() / enum_to_short_name_mapper() -> PropertyEnumToValueNameLinearMapper / PropertyEnumToValueNameLinearMapperBorrowed;
+        /// Return a [`PropertyEnumToValueNameLinearMapper`], capable of looking up long names
+        /// for values of the `Bidi_Class` enumerated property
+        ///
+        /// ✨ *Enabled with the `compiled_data` Cargo feature.*
+        ///
+        /// [📚 Help choosing a constructor](icu_provider::constructors)
+        ///
+        /// # Example
+        ///
+        /// ```
+        /// use icu::properties::HangulSyllableType;
+        ///
+        /// let lookup = HangulSyllableType::enum_to_long_name_mapper();
+        /// assert_eq!(lookup.get(HangulSyllableType::LeadingJamo), Some("Leading_Jamo"));
+        /// assert_eq!(lookup.get(HangulSyllableType::LeadingVowelSyllable), Some("LV_Syllable"));
+        /// ```
+        pub fn get_enum_to_long_name_mapper() / enum_to_long_name_mapper() -> PropertyEnumToValueNameLinearMapper / PropertyEnumToValueNameLinearMapperBorrowed;
+    }
+}
+
 /// Enumerated property East_Asian_Width.
 ///
 /// See "Definition" in UAX #11 for the summary of each property value:
 /// <https://www.unicode.org/reports/tr11/#Definitions>
 ///
 /// The numeric value is compatible with `UEastAsianWidth` in ICU4C.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "datagen", derive(databake::Bake))]
 #[cfg_attr(feature = "datagen", databake(path = icu_properties))]
@@ -1546,6 +1693,7 @@ impl_value_getter! {
 #[zerovec::make_ule(EastAsianWidthULE)]
 pub struct EastAsianWidth(pub u8);
 
+create_const_array! {
 #[allow(missing_docs)] // These constants don't need individual documentation.
 #[allow(non_upper_case_globals)]
 impl EastAsianWidth {
@@ -1555,6 +1703,7 @@ impl EastAsianWidth {
     pub const Fullwidth: EastAsianWidth = EastAsianWidth(3); //name="F"
     pub const Narrow: EastAsianWidth = EastAsianWidth(4); //name="Na"
     pub const Wide: EastAsianWidth = EastAsianWidth(5); //name="W"
+}
 }
 
 impl_value_getter! {
@@ -1630,7 +1779,7 @@ impl_value_getter! {
 /// value: <https://www.unicode.org/reports/tr14/#Properties>
 ///
 /// The numeric value is compatible with `ULineBreak` in ICU4C.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "datagen", derive(databake::Bake))]
 #[cfg_attr(feature = "datagen", databake(path = icu_properties))]
@@ -1768,7 +1917,7 @@ impl_value_getter! {
 /// <https://www.unicode.org/reports/tr29/#Default_Grapheme_Cluster_Table>
 ///
 /// The numeric value is compatible with `UGraphemeClusterBreak` in ICU4C.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "datagen", derive(databake::Bake))]
 #[cfg_attr(feature = "datagen", databake(path = icu_properties))]
@@ -1878,7 +2027,7 @@ impl_value_getter! {
 /// <https://www.unicode.org/reports/tr29/#Default_Word_Boundaries>.
 ///
 /// The numeric value is compatible with `UWordBreakValues` in ICU4C.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "datagen", derive(databake::Bake))]
 #[cfg_attr(feature = "datagen", databake(path = icu_properties))]
@@ -1887,6 +2036,7 @@ impl_value_getter! {
 #[zerovec::make_ule(WordBreakULE)]
 pub struct WordBreak(pub u8);
 
+create_const_array! {
 #[allow(missing_docs)] // These constants don't need individual documentation.
 #[allow(non_upper_case_globals)]
 impl WordBreak {
@@ -1917,6 +2067,7 @@ impl WordBreak {
     pub const GlueAfterZwj: WordBreak = WordBreak(20); // name="GAZ"
     pub const ZWJ: WordBreak = WordBreak(21); // name="ZWJ"
     pub const WSegSpace: WordBreak = WordBreak(22); // name="WSegSpace"
+}
 }
 
 impl_value_getter! {
@@ -1995,7 +2146,7 @@ impl_value_getter! {
 /// <https://www.unicode.org/reports/tr29/#Default_Word_Boundaries>.
 ///
 /// The numeric value is compatible with `USentenceBreak` in ICU4C.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "datagen", derive(databake::Bake))]
 #[cfg_attr(feature = "datagen", databake(path = icu_properties))]
@@ -2004,6 +2155,7 @@ impl_value_getter! {
 #[zerovec::make_ule(SentenceBreakULE)]
 pub struct SentenceBreak(pub u8);
 
+create_const_array! {
 #[allow(missing_docs)] // These constants don't need individual documentation.
 #[allow(non_upper_case_globals)]
 impl SentenceBreak {
@@ -2022,6 +2174,7 @@ impl SentenceBreak {
     pub const Extend: SentenceBreak = SentenceBreak(12); // name="EX"
     pub const LF: SentenceBreak = SentenceBreak(13); // name="LF"
     pub const SContinue: SentenceBreak = SentenceBreak(14); // name="SC"
+}
 }
 
 impl_value_getter! {
@@ -2095,14 +2248,14 @@ impl_value_getter! {
 /// See UAX #15:
 /// <https://www.unicode.org/reports/tr15/>.
 ///
-/// See `icu_normalizer::properties::CanonicalCombiningClassMap` for the API
+/// See `icu::normalizer::properties::CanonicalCombiningClassMap` for the API
 /// to look up the Canonical_Combining_Class property by scalar value.
 //
 // NOTE: The Pernosco debugger has special knowledge
 // of this struct. Please do not change the bit layout
 // or the crate-module-qualified name of this struct
 // without coordination.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "datagen", derive(databake::Bake))]
 #[cfg_attr(feature = "datagen", databake(path = icu_properties))]
@@ -2111,6 +2264,7 @@ impl_value_getter! {
 #[zerovec::make_ule(CanonicalCombiningClassULE)]
 pub struct CanonicalCombiningClass(pub u8);
 
+create_const_array! {
 // These constant names come from PropertyValueAliases.txt
 #[allow(missing_docs)] // These constants don't need individual documentation.
 #[allow(non_upper_case_globals)]
@@ -2173,6 +2327,7 @@ impl CanonicalCombiningClass {
     pub const DoubleBelow: CanonicalCombiningClass = CanonicalCombiningClass(233); // name="DB"
     pub const DoubleAbove: CanonicalCombiningClass = CanonicalCombiningClass(234); // name="DA"
     pub const IotaSubscript: CanonicalCombiningClass = CanonicalCombiningClass(240); // name="IS"
+}
 }
 
 impl_value_getter! {
@@ -2250,7 +2405,7 @@ impl_value_getter! {
 /// <https://www.unicode.org/reports/tr44/#Indic_Syllabic_Category>.
 ///
 /// The numeric value is compatible with `UIndicSyllabicCategory` in ICU4C.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "datagen", derive(databake::Bake))]
 #[cfg_attr(feature = "datagen", databake(path = icu_properties))]
@@ -2259,6 +2414,7 @@ impl_value_getter! {
 #[zerovec::make_ule(IndicSyllabicCategoryULE)]
 pub struct IndicSyllabicCategory(pub u8);
 
+create_const_array! {
 #[allow(missing_docs)] // These constants don't need individual documentation.
 #[allow(non_upper_case_globals)]
 impl IndicSyllabicCategory {
@@ -2298,6 +2454,7 @@ impl IndicSyllabicCategory {
     pub const Vowel: IndicSyllabicCategory = IndicSyllabicCategory(33);
     pub const VowelDependent: IndicSyllabicCategory = IndicSyllabicCategory(34);
     pub const VowelIndependent: IndicSyllabicCategory = IndicSyllabicCategory(35);
+}
 }
 
 impl_value_getter! {
@@ -2361,5 +2518,210 @@ impl_value_getter! {
         /// assert_eq!(lookup.get(IndicSyllabicCategory::VowelIndependent), Some("Vowel_Independent"));
         /// ```
         pub fn get_enum_to_long_name_mapper() / enum_to_long_name_mapper() -> PropertyEnumToValueNameLinearMapper / PropertyEnumToValueNameLinearMapperBorrowed;
+    }
+}
+/// Enumerated property Joining_Type.
+/// See Section 9.2, Arabic Cursive Joining in The Unicode Standard for the summary of
+/// each property value.
+///
+/// The numeric value is compatible with `UJoiningType` in ICU4C.
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "datagen", derive(databake::Bake))]
+#[cfg_attr(feature = "datagen", databake(path = icu_properties))]
+#[allow(clippy::exhaustive_structs)] // newtype
+#[repr(transparent)]
+#[zerovec::make_ule(JoiningTypeULE)]
+pub struct JoiningType(pub u8);
+
+create_const_array! {
+#[allow(missing_docs)] // These constants don't need individual documentation.
+#[allow(non_upper_case_globals)]
+impl JoiningType {
+    pub const NonJoining: JoiningType = JoiningType(0); // name="U"
+    pub const JoinCausing: JoiningType = JoiningType(1); // name="C"
+    pub const DualJoining: JoiningType = JoiningType(2); // name="D"
+    pub const LeftJoining: JoiningType = JoiningType(3); // name="L"
+    pub const RightJoining: JoiningType = JoiningType(4); // name="R"
+    pub const Transparent: JoiningType = JoiningType(5); // name="T"
+}
+}
+
+impl_value_getter! {
+    markers: JoiningTypeNameToValueV1Marker / SINGLETON_PROPNAMES_FROM_JT_V1, JoiningTypeValueToShortNameV1Marker / SINGLETON_PROPNAMES_TO_SHORT_LINEAR_JT_V1, JoiningTypeValueToLongNameV1Marker / SINGLETON_PROPNAMES_TO_LONG_LINEAR_JT_V1;
+    impl JoiningType {
+        /// Return a [`PropertyValueNameToEnumMapper`], capable of looking up values
+        /// from strings for the `Joining_Type` enumerated property.
+        ///
+        /// ✨ *Enabled with the `compiled_data` Cargo feature.*
+        ///
+        /// [📚 Help choosing a constructor](icu_provider::constructors)
+        ///
+        /// # Example
+        ///
+        /// ```
+        /// use icu::properties::JoiningType;
+        ///
+        /// let lookup = JoiningType::name_to_enum_mapper();
+        /// // short name for value
+        /// assert_eq!(lookup.get_strict("T"), Some(JoiningType::Transparent));
+        /// assert_eq!(lookup.get_strict("D"), Some(JoiningType::DualJoining));
+        /// // long name for value
+        /// assert_eq!(lookup.get_strict("Join_Causing"), Some(JoiningType::JoinCausing));
+        /// assert_eq!(lookup.get_strict("Non_Joining"), Some(JoiningType::NonJoining));
+        /// // name has incorrect casing
+        /// assert_eq!(lookup.get_strict("LEFT_JOINING"), None);
+        /// // loose matching of name
+        /// assert_eq!(lookup.get_loose("LEFT_JOINING"), Some(JoiningType::LeftJoining));
+        /// // fake property
+        /// assert_eq!(lookup.get_strict("Inner_Joining"), None);
+        /// ```
+        pub fn get_name_to_enum_mapper() / name_to_enum_mapper();
+        /// Return a [`PropertyEnumToValueNameLinearMapper`], capable of looking up short names
+        /// for values of the `Joining_Type` enumerated property.
+        ///
+        /// ✨ *Enabled with the `compiled_data` Cargo feature.*
+        ///
+        /// [📚 Help choosing a constructor](icu_provider::constructors)
+        ///
+        /// # Example
+        ///
+        /// ```
+        /// use icu::properties::JoiningType;
+        ///
+        /// let lookup = JoiningType::enum_to_short_name_mapper();
+        /// assert_eq!(lookup.get(JoiningType::JoinCausing), Some("C"));
+        /// assert_eq!(lookup.get(JoiningType::LeftJoining), Some("L"));
+        /// ```
+        pub fn get_enum_to_short_name_mapper() / enum_to_short_name_mapper() -> PropertyEnumToValueNameLinearMapper / PropertyEnumToValueNameLinearMapperBorrowed;
+        /// Return a [`PropertyEnumToValueNameLinearMapper`], capable of looking up long names
+        /// for values of the `Joining_Type` enumerated property.
+        ///
+        /// ✨ *Enabled with the `compiled_data` Cargo feature.*
+        ///
+        /// [📚 Help choosing a constructor](icu_provider::constructors)
+        ///
+        /// # Example
+        ///
+        /// ```
+        /// use icu::properties::JoiningType;
+        ///
+        /// let lookup = JoiningType::enum_to_long_name_mapper();
+        /// assert_eq!(lookup.get(JoiningType::Transparent), Some("Transparent"));
+        /// assert_eq!(lookup.get(JoiningType::NonJoining), Some("Non_Joining"));
+        /// assert_eq!(lookup.get(JoiningType::RightJoining), Some("Right_Joining"));
+        /// ```
+        pub fn get_enum_to_long_name_mapper() / enum_to_long_name_mapper() -> PropertyEnumToValueNameLinearMapper / PropertyEnumToValueNameLinearMapperBorrowed;
+    }
+}
+#[cfg(test)]
+mod test_enumerated_property_completeness {
+    use super::*;
+    use alloc::collections::BTreeMap;
+
+    fn check_enum<'a>(
+        lookup: &PropertyValueNameToEnumMapV1<'static>,
+        consts: impl IntoIterator<Item = &'a (&'static str, u16)>,
+    ) {
+        let mut data: BTreeMap<_, _> = lookup
+            .map
+            .iter_copied_values()
+            .map(|(name, value)| {
+                (
+                    value,
+                    (
+                        String::from_utf8(name.as_byte_slice().to_vec()).unwrap(),
+                        "Data",
+                    ),
+                )
+            })
+            .collect();
+
+        let consts = consts
+            .into_iter()
+            .map(|(name, value)| (*value, (name.to_string(), "Consts")));
+
+        let mut diff = Vec::new();
+        for t @ (value, _) in consts {
+            if data.remove(&value).is_none() {
+                diff.push(t);
+            }
+        }
+        diff.extend(data);
+
+        let mut fmt_diff = String::new();
+        for (value, (name, source)) in diff {
+            fmt_diff.push_str(&format!("{source}:\t{name} = {value:?}\n"));
+        }
+
+        assert!(
+            fmt_diff.is_empty(),
+            "Values defined in data do not match values defined in consts. Difference:\n{}",
+            fmt_diff
+        );
+    }
+
+    #[test]
+    fn test_ea() {
+        check_enum(
+            crate::provider::Baked::SINGLETON_PROPNAMES_FROM_EA_V1,
+            EastAsianWidth::ALL_CONSTS,
+        );
+    }
+
+    #[test]
+    fn test_ccc() {
+        check_enum(
+            crate::provider::Baked::SINGLETON_PROPNAMES_FROM_CCC_V1,
+            CanonicalCombiningClass::ALL_CONSTS,
+        );
+    }
+
+    #[test]
+    fn test_jt() {
+        check_enum(
+            crate::provider::Baked::SINGLETON_PROPNAMES_FROM_JT_V1,
+            JoiningType::ALL_CONSTS,
+        );
+    }
+
+    #[test]
+    fn test_insc() {
+        check_enum(
+            crate::provider::Baked::SINGLETON_PROPNAMES_FROM_INSC_V1,
+            IndicSyllabicCategory::ALL_CONSTS,
+        );
+    }
+
+    #[test]
+    fn test_sb() {
+        check_enum(
+            crate::provider::Baked::SINGLETON_PROPNAMES_FROM_SB_V1,
+            SentenceBreak::ALL_CONSTS,
+        );
+    }
+
+    #[test]
+    fn test_wb() {
+        check_enum(
+            crate::provider::Baked::SINGLETON_PROPNAMES_FROM_WB_V1,
+            WordBreak::ALL_CONSTS,
+        );
+    }
+
+    #[test]
+    fn test_bc() {
+        check_enum(
+            crate::provider::Baked::SINGLETON_PROPNAMES_FROM_BC_V1,
+            BidiClass::ALL_CONSTS,
+        );
+    }
+
+    #[test]
+    fn test_hst() {
+        check_enum(
+            crate::provider::Baked::SINGLETON_PROPNAMES_FROM_HST_V1,
+            HangulSyllableType::ALL_CONSTS,
+        );
     }
 }

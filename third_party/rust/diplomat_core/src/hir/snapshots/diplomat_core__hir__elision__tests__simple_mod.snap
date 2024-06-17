@@ -19,10 +19,10 @@ TypeContext {
                     name: "inner",
                     ty: Opaque(
                         OpaquePath {
-                            lifetimes: TypeLifetimes {
+                            lifetimes: Lifetimes {
                                 indices: [
                                     NonStatic(
-                                        TypeLifetime(
+                                        Lifetime(
                                             0,
                                         ),
                                     ),
@@ -48,7 +48,7 @@ TypeContext {
                     name: "new",
                     lifetime_env: LifetimeEnv {
                         nodes: [
-                            Lifetime {
+                            BoundedLifetime {
                                 ident: "a",
                                 longer: [],
                                 shorter: [],
@@ -62,48 +62,78 @@ TypeContext {
                             name: "s",
                             ty: Slice(
                                 Str(
-                                    NonStatic(
-                                        TypeLifetime(
-                                            0,
+                                    Some(
+                                        NonStatic(
+                                            Lifetime(
+                                                0,
+                                            ),
                                         ),
                                     ),
+                                    UnvalidatedUtf8,
                                 ),
                             ),
                         },
                     ],
                     output: Infallible(
-                        Some(
-                            OutType(
-                                Struct(
-                                    OutStruct(
-                                        StructPath {
-                                            lifetimes: TypeLifetimes {
-                                                indices: [
-                                                    NonStatic(
-                                                        TypeLifetime(
-                                                            0,
-                                                        ),
+                        OutType(
+                            Struct(
+                                OutStruct(
+                                    StructPath {
+                                        lifetimes: Lifetimes {
+                                            indices: [
+                                                NonStatic(
+                                                    Lifetime(
+                                                        0,
                                                     ),
-                                                ],
-                                            },
-                                            tcx_id: OutStructId(
-                                                0,
-                                            ),
+                                                ),
+                                            ],
                                         },
-                                    ),
+                                        tcx_id: OutStructId(
+                                            0,
+                                        ),
+                                    },
                                 ),
                             ),
                         ),
                     ),
                     attrs: Attrs {
                         disable: false,
-                        rename: None,
+                        namespace: None,
+                        rename: RenameAttr {
+                            pattern: None,
+                        },
+                        abi_rename: RenameAttr {
+                            pattern: None,
+                        },
+                        special_method: None,
                     },
                 },
             ],
             attrs: Attrs {
                 disable: false,
-                rename: None,
+                namespace: None,
+                rename: RenameAttr {
+                    pattern: None,
+                },
+                abi_rename: RenameAttr {
+                    pattern: None,
+                },
+                special_method: None,
+            },
+            lifetimes: LifetimeEnv {
+                nodes: [
+                    BoundedLifetime {
+                        ident: "a",
+                        longer: [],
+                        shorter: [],
+                    },
+                ],
+                num_lifetimes: 1,
+            },
+            special_method_presence: SpecialMethodPresence {
+                comparator: false,
+                iterator: None,
+                iterable: None,
             },
         },
     ],
@@ -123,11 +153,14 @@ TypeContext {
                     name: "s",
                     ty: Slice(
                         Str(
-                            NonStatic(
-                                TypeLifetime(
-                                    0,
+                            Some(
+                                NonStatic(
+                                    Lifetime(
+                                        0,
+                                    ),
                                 ),
                             ),
+                            UnvalidatedUtf8,
                         ),
                     ),
                 },
@@ -141,7 +174,7 @@ TypeContext {
                     name: "rustc_elision",
                     lifetime_env: LifetimeEnv {
                         nodes: [
-                            Lifetime {
+                            BoundedLifetime {
                                 ident: "a",
                                 longer: [],
                                 shorter: [],
@@ -153,10 +186,10 @@ TypeContext {
                         ParamSelf {
                             ty: Struct(
                                 StructPath {
-                                    lifetimes: TypeLifetimes {
+                                    lifetimes: Lifetimes {
                                         indices: [
                                             NonStatic(
-                                                TypeLifetime(
+                                                Lifetime(
                                                     0,
                                                 ),
                                             ),
@@ -174,39 +207,72 @@ TypeContext {
                             name: "s",
                             ty: Slice(
                                 Str(
-                                    NonStatic(
-                                        TypeLifetime(
-                                            1,
+                                    Some(
+                                        NonStatic(
+                                            Lifetime(
+                                                1,
+                                            ),
                                         ),
                                     ),
+                                    UnvalidatedUtf8,
                                 ),
                             ),
                         },
                     ],
                     output: Infallible(
-                        Some(
-                            OutType(
-                                Slice(
-                                    Str(
+                        OutType(
+                            Slice(
+                                Str(
+                                    Some(
                                         NonStatic(
-                                            TypeLifetime(
+                                            Lifetime(
                                                 1,
                                             ),
                                         ),
                                     ),
+                                    UnvalidatedUtf8,
                                 ),
                             ),
                         ),
                     ),
                     attrs: Attrs {
                         disable: false,
-                        rename: None,
+                        namespace: None,
+                        rename: RenameAttr {
+                            pattern: None,
+                        },
+                        abi_rename: RenameAttr {
+                            pattern: None,
+                        },
+                        special_method: None,
                     },
                 },
             ],
             attrs: Attrs {
                 disable: false,
-                rename: None,
+                namespace: None,
+                rename: RenameAttr {
+                    pattern: None,
+                },
+                abi_rename: RenameAttr {
+                    pattern: None,
+                },
+                special_method: None,
+            },
+            lifetimes: LifetimeEnv {
+                nodes: [
+                    BoundedLifetime {
+                        ident: "a",
+                        longer: [],
+                        shorter: [],
+                    },
+                ],
+                num_lifetimes: 1,
+            },
+            special_method_presence: SpecialMethodPresence {
+                comparator: false,
+                iterator: None,
+                iterable: None,
             },
         },
     ],
@@ -220,7 +286,29 @@ TypeContext {
             methods: [],
             attrs: Attrs {
                 disable: false,
-                rename: None,
+                namespace: None,
+                rename: RenameAttr {
+                    pattern: None,
+                },
+                abi_rename: RenameAttr {
+                    pattern: None,
+                },
+                special_method: None,
+            },
+            lifetimes: LifetimeEnv {
+                nodes: [
+                    BoundedLifetime {
+                        ident: "a",
+                        longer: [],
+                        shorter: [],
+                    },
+                ],
+                num_lifetimes: 1,
+            },
+            special_method_presence: SpecialMethodPresence {
+                comparator: false,
+                iterator: None,
+                iterable: None,
             },
         },
     ],

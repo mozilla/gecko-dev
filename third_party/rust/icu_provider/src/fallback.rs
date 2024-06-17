@@ -62,10 +62,10 @@ pub struct LocaleFallbackConfig {
     /// Retain the language and script subtags until the final step:
     ///
     /// ```
-    /// use icu_locid::locale;
-    /// use icu_locid_transform::fallback::LocaleFallbackConfig;
-    /// use icu_locid_transform::fallback::LocaleFallbackPriority;
-    /// use icu_locid_transform::LocaleFallbacker;
+    /// use icu::locid::locale;
+    /// use icu::locid_transform::fallback::LocaleFallbackConfig;
+    /// use icu::locid_transform::fallback::LocaleFallbackPriority;
+    /// use icu::locid_transform::LocaleFallbacker;
     ///
     /// // Set up the fallback iterator.
     /// let fallbacker = LocaleFallbacker::new();
@@ -90,10 +90,10 @@ pub struct LocaleFallbackConfig {
     /// Retain the region subtag until the final step:
     ///
     /// ```
-    /// use icu_locid::locale;
-    /// use icu_locid_transform::fallback::LocaleFallbackConfig;
-    /// use icu_locid_transform::fallback::LocaleFallbackPriority;
-    /// use icu_locid_transform::LocaleFallbacker;
+    /// use icu::locid::locale;
+    /// use icu::locid_transform::fallback::LocaleFallbackConfig;
+    /// use icu::locid_transform::fallback::LocaleFallbackPriority;
+    /// use icu::locid_transform::LocaleFallbacker;
     ///
     /// // Set up the fallback iterator.
     /// let fallbacker = LocaleFallbacker::new();
@@ -120,14 +120,14 @@ pub struct LocaleFallbackConfig {
     /// # Examples
     ///
     /// ```
-    /// use icu_locid::locale;
-    /// use icu_locid_transform::fallback::LocaleFallbackConfig;
-    /// use icu_locid_transform::LocaleFallbacker;
+    /// use icu::locid::locale;
+    /// use icu::locid_transform::fallback::LocaleFallbackConfig;
+    /// use icu::locid_transform::LocaleFallbacker;
     ///
     /// // Set up the fallback iterator.
     /// let fallbacker = LocaleFallbacker::new();
     /// let mut config = LocaleFallbackConfig::default();
-    /// config.extension_key = Some(icu_locid::extensions::unicode::key!("nu"));
+    /// config.extension_key = Some(icu::locid::extensions::unicode::key!("nu"));
     /// let mut fallback_iterator = fallbacker
     ///     .for_config(config)
     ///     .fallback_for(locale!("ar-EG-u-nu-latn").into());
@@ -155,11 +155,11 @@ pub struct LocaleFallbackConfig {
     /// # Examples
     ///
     /// ```
-    /// use icu_locid::locale;
-    /// use icu_locid_transform::fallback::LocaleFallbackConfig;
-    /// use icu_locid_transform::fallback::LocaleFallbackPriority;
-    /// use icu_locid_transform::fallback::LocaleFallbackSupplement;
-    /// use icu_locid_transform::LocaleFallbacker;
+    /// use icu::locid::locale;
+    /// use icu::locid_transform::fallback::LocaleFallbackConfig;
+    /// use icu::locid_transform::fallback::LocaleFallbackPriority;
+    /// use icu::locid_transform::fallback::LocaleFallbackSupplement;
+    /// use icu::locid_transform::LocaleFallbacker;
     ///
     /// // Set up the fallback iterator.
     /// let fallbacker = LocaleFallbacker::new();
@@ -171,12 +171,13 @@ pub struct LocaleFallbackConfig {
     ///     .fallback_for(locale!("yue-HK").into());
     ///
     /// // Run the algorithm and check the results.
-    /// // TODO(#1964): add "zh" as a target.
     /// assert_eq!(fallback_iterator.get(), &locale!("yue-HK").into());
     /// fallback_iterator.step();
     /// assert_eq!(fallback_iterator.get(), &locale!("yue").into());
     /// fallback_iterator.step();
     /// assert_eq!(fallback_iterator.get(), &locale!("zh-Hant").into());
+    /// fallback_iterator.step();
+    /// assert_eq!(fallback_iterator.get(), &locale!("zh").into());
     /// fallback_iterator.step();
     /// assert_eq!(fallback_iterator.get(), &locale!("und").into());
     /// ```

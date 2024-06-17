@@ -35,9 +35,9 @@ use core::ops::Deref;
 #[doc(inline)]
 pub use other::{subtag, Subtag};
 
-use crate::helpers::ShortSlice;
 use crate::parser::ParserError;
 use crate::parser::SubtagIterator;
+use crate::shortvec::ShortBoxSlice;
 
 /// A list of [`Private Use Extensions`] as defined in [`Unicode Locale
 /// Identifier`] specification.
@@ -60,7 +60,7 @@ use crate::parser::SubtagIterator;
 /// [`Private Use Extensions`]: https://unicode.org/reports/tr35/#pu_extensions
 /// [`Unicode Locale Identifier`]: https://unicode.org/reports/tr35/#Unicode_locale_identifier
 #[derive(Clone, PartialEq, Eq, Debug, Default, Hash, PartialOrd, Ord)]
-pub struct Private(ShortSlice<Subtag>);
+pub struct Private(ShortBoxSlice<Subtag>);
 
 impl Private {
     /// Returns a new empty list of private-use extensions. Same as [`default()`](Default::default()), but is `const`.
@@ -74,7 +74,7 @@ impl Private {
     /// ```
     #[inline]
     pub const fn new() -> Self {
-        Self(ShortSlice::new())
+        Self(ShortBoxSlice::new())
     }
 
     /// A constructor which takes a pre-sorted list of [`Subtag`].
@@ -107,7 +107,7 @@ impl Private {
     /// assert_eq!(&private.to_string(), "x-foo");
     /// ```
     pub const fn new_single(input: Subtag) -> Self {
-        Self(ShortSlice::new_single(input))
+        Self(ShortBoxSlice::new_single(input))
     }
 
     /// Empties the [`Private`] list.
@@ -134,7 +134,7 @@ impl Private {
     pub(crate) fn try_from_iter(iter: &mut SubtagIterator) -> Result<Self, ParserError> {
         let keys = iter
             .map(Subtag::try_from_bytes)
-            .collect::<Result<ShortSlice<_>, _>>()?;
+            .collect::<Result<ShortBoxSlice<_>, _>>()?;
 
         Ok(Self(keys))
     }

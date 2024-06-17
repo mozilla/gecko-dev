@@ -181,7 +181,7 @@ pub struct ScriptExtensionsSet<'a> {
     values: &'a ZeroSlice<Script>,
 }
 
-impl ScriptExtensionsSet<'_> {
+impl<'a> ScriptExtensionsSet<'a> {
     /// Returns whether this set contains the given script.
     ///
     /// # Example
@@ -213,7 +213,7 @@ impl ScriptExtensionsSet<'_> {
     ///     vec![Script::Tamil, Script::Grantha]
     /// );
     /// ```
-    pub fn iter(&self) -> impl DoubleEndedIterator<Item = Script> + '_ {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = Script> + 'a {
         ZeroSlice::iter(self.values)
     }
 
@@ -550,7 +550,10 @@ impl<'a> ScriptWithExtensionsBorrowed<'a> {
 }
 
 impl ScriptWithExtensionsBorrowed<'static> {
-    /// Cheaply converts a `ScriptWithExtensionsBorrowed<'static>` into a `ScriptWithExtensions`.
+    /// Cheaply converts a [`ScriptWithExtensionsBorrowed<'static>`] into a [`ScriptWithExtensions`].
+    ///
+    /// Note: Due to branching and indirection, using [`ScriptWithExtensions`] might inhibit some
+    /// compile-time optimizations that are possible with [`ScriptWithExtensionsBorrowed`].
     pub const fn static_to_owned(self) -> ScriptWithExtensions {
         ScriptWithExtensions {
             data: DataPayload::from_static_ref(self.data),

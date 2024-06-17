@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "yoke-derive"
-version = "0.7.3"
+version = "0.7.4"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 description = "Custom derive for the yoke crate"
 readme = "README.md"
@@ -29,7 +29,7 @@ categories = [
     "caching",
     "no-std",
 ]
-license-file = "LICENSE"
+license = "Unicode-3.0"
 repository = "https://github.com/unicode-org/icu4x"
 
 [package.metadata.workspaces]
@@ -37,22 +37,19 @@ independent = true
 
 [lib]
 path = "src/lib.rs"
-proc_macro = true
+proc-macro = true
 
 [dependencies.proc-macro2]
-version = "1.0.27"
+version = "1.0.61"
 
 [dependencies.quote]
-version = "1.0.9"
+version = "1.0.28"
 
 [dependencies.syn]
-version = "2"
-features = [
-    "derive",
-    "fold",
-]
+version = "2.0.21"
+features = ["fold"]
 
 [dependencies.synstructure]
-version = "0.13"
+version = "0.13.0"
 
 [dev-dependencies]

@@ -29,6 +29,7 @@
 //! Code that does not compile ([playground](https://play.rust-lang.org/?version=beta&mode=debug&edition=2018&gist=ebbda5b15a398d648bdff9e439b27dc0)):
 //!
 //! ```compile_fail
+//! # this compiles in 1.78+, so this text will make it fail
 //! use yoke::*;
 //!
 //! trait MiniDataMarker {

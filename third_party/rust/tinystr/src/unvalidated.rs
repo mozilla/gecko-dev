@@ -4,6 +4,7 @@
 
 use crate::TinyAsciiStr;
 use crate::TinyStrError;
+use core::fmt;
 
 /// A fixed-length bytes array that is expected to be an ASCII string but does not enforce that invariant.
 ///
@@ -12,8 +13,18 @@ use crate::TinyStrError;
 ///
 /// The main advantage of this type over `[u8; N]` is that it serializes as a string in
 /// human-readable formats like JSON.
-#[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
+#[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
 pub struct UnvalidatedTinyAsciiStr<const N: usize>(pub(crate) [u8; N]);
+
+impl<const N: usize> fmt::Debug for UnvalidatedTinyAsciiStr<N> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Debug as a string if possible
+        match self.try_into_tinystr() {
+            Ok(s) => fmt::Debug::fmt(&s, f),
+            Err(_) => fmt::Debug::fmt(&self.0, f),
+        }
+    }
+}
 
 impl<const N: usize> UnvalidatedTinyAsciiStr<N> {
     #[inline]
@@ -33,6 +44,12 @@ impl<const N: usize> TinyAsciiStr<N> {
     // Converts into a [`UnvalidatedTinyAsciiStr`]
     pub const fn to_unvalidated(self) -> UnvalidatedTinyAsciiStr<N> {
         UnvalidatedTinyAsciiStr(*self.all_bytes())
+    }
+}
+
+impl<const N: usize> From<TinyAsciiStr<N>> for UnvalidatedTinyAsciiStr<N> {
+    fn from(other: TinyAsciiStr<N>) -> Self {
+        other.to_unvalidated()
     }
 }
 

@@ -18,7 +18,7 @@ pub struct Struct {
 
 impl Struct {
     /// Extract a [`Struct`] metadata value from an AST node.
-    pub fn new(strct: &syn::ItemStruct, output_only: bool) -> Self {
+    pub fn new(strct: &syn::ItemStruct, output_only: bool, parent_attrs: &Attrs) -> Self {
         let self_path_type = PathType::extract_self_type(strct);
         let fields: Vec<_> = strct
             .fields
@@ -38,7 +38,8 @@ impl Struct {
             .collect();
 
         let lifetimes = LifetimeEnv::from_struct_item(strct, &fields[..]);
-
+        let mut attrs = parent_attrs.clone();
+        attrs.add_attrs(&strct.attrs);
         Struct {
             name: (&strct.ident).into(),
             docs: Docs::from_attrs(&strct.attrs),
@@ -46,7 +47,7 @@ impl Struct {
             fields,
             methods: vec![],
             output_only,
-            attrs: (&*strct.attrs).into(),
+            attrs,
         }
     }
 }
@@ -67,14 +68,16 @@ pub struct OpaqueStruct {
 
 impl OpaqueStruct {
     /// Extract a [`OpaqueStruct`] metadata value from an AST node.
-    pub fn new(strct: &syn::ItemStruct, mutability: Mutability) -> Self {
+    pub fn new(strct: &syn::ItemStruct, mutability: Mutability, parent_attrs: &Attrs) -> Self {
+        let mut attrs = parent_attrs.clone();
+        attrs.add_attrs(&strct.attrs);
         OpaqueStruct {
             name: Ident::from(&strct.ident),
             docs: Docs::from_attrs(&strct.attrs),
             lifetimes: LifetimeEnv::from_struct_item(strct, &[]),
             methods: vec![],
             mutability,
-            attrs: (&*strct.attrs).into(),
+            attrs,
         }
     }
 }
@@ -102,7 +105,8 @@ mod tests {
                         b: Box<MyLocalStruct>
                     }
                 },
-                true
+                true,
+                &Default::default()
             ));
         });
     }

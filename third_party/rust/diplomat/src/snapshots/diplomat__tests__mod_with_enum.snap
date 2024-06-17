@@ -4,6 +4,7 @@ expression: "rustfmt_code(&gen_bridge(parse_quote! {\n                          
 ---
 mod ffi {
     #[repr(C)]
+    #[derive(Clone, Copy)]
     enum Abc {
         A,
         B = 123,
@@ -13,6 +14,7 @@ mod ffi {
             unimplemented!()
         }
     }
+    use diplomat_runtime::*;
     #[no_mangle]
     extern "C" fn Abc_do_something(this: &Abc) {
         this.do_something()

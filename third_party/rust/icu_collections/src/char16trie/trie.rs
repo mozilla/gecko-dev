@@ -176,7 +176,7 @@ impl<'a> Char16TrieIterator<'a> {
     /// # Examples
     ///
     /// ```
-    /// use icu_collections::char16trie::{Char16Trie, TrieResult};
+    /// use icu::collections::char16trie::{Char16Trie, TrieResult};
     /// use zerovec::ZeroVec;
     ///
     /// // A Char16Trie containing the ASCII characters 'a' and 'b'.
@@ -209,7 +209,7 @@ impl<'a> Char16TrieIterator<'a> {
     /// # Examples
     ///
     /// ```
-    /// use icu_collections::char16trie::{Char16Trie, TrieResult};
+    /// use icu::collections::char16trie::{Char16Trie, TrieResult};
     /// use zerovec::ZeroVec;
     ///
     /// // A Char16Trie containing the ASCII characters 'a' and 'b'.
@@ -242,7 +242,7 @@ impl<'a> Char16TrieIterator<'a> {
     /// # Examples
     ///
     /// ```
-    /// use icu_collections::char16trie::{Char16Trie, TrieResult};
+    /// use icu::collections::char16trie::{Char16Trie, TrieResult};
     /// use zerovec::ZeroVec;
     ///
     /// // A Char16Trie containing the ASCII characters 'a' and 'b'.

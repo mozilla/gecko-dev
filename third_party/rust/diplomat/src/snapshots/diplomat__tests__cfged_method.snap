@@ -4,6 +4,7 @@ expression: "rustfmt_code(&gen_bridge(parse_quote! {\n                          
 ---
 mod ffi {
     #[repr(C)]
+    #[derive(Clone, Copy)]
     struct Foo {}
     impl Foo {
         #[cfg(feature = "foo")]
@@ -11,6 +12,7 @@ mod ffi {
             unimplemented!()
         }
     }
+    use diplomat_runtime::*;
     #[no_mangle]
     #[cfg(feature = "foo")]
     extern "C" fn Foo_bar(s: u8) {

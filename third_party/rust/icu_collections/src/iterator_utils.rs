@@ -72,11 +72,11 @@ mod tests {
         let mut builder_complement = CodePointInversionListBuilder::new();
 
         for range in data.iter_ranges() {
-            builder.add_range_u32(&range)
+            builder.add_range32(&range)
         }
 
         for range in data.iter_ranges_complemented() {
-            builder_complement.add_range_u32(&range)
+            builder_complement.add_range32(&range)
         }
 
         builder.complement();
@@ -94,11 +94,11 @@ mod tests {
         let mut builder_complement = CodePointInversionListBuilder::new();
 
         for range in data.iter_ranges_for_value(value) {
-            builder.add_range_u32(&range)
+            builder.add_range32(&range)
         }
 
         for range in data.iter_ranges_for_value_complemented(value) {
-            builder_complement.add_range_u32(&range)
+            builder_complement.add_range32(&range)
         }
 
         builder.complement();

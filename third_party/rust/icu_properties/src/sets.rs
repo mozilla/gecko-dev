@@ -107,7 +107,10 @@ pub struct CodePointSetDataBorrowed<'a> {
 }
 
 impl CodePointSetDataBorrowed<'static> {
-    /// Cheaply converts a `CodePointSetDataBorrowed<'static>` into a `CodePointSetData`.
+    /// Cheaply converts a [`CodePointSetDataBorrowed<'static>`] into a [`CodePointSetData`].
+    ///
+    /// Note: Due to branching and indirection, using [`CodePointSetData`] might inhibit some
+    /// compile-time optimizations that are possible with [`CodePointSetDataBorrowed`].
     pub const fn static_to_owned(self) -> CodePointSetData {
         CodePointSetData {
             data: DataPayload::from_static_ref(self.set),
@@ -119,7 +122,7 @@ impl<'a> CodePointSetDataBorrowed<'a> {
     /// Check if the set contains a character
     ///
     /// ```rust
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let alphabetic = sets::alphabetic();
     ///
@@ -136,7 +139,7 @@ impl<'a> CodePointSetDataBorrowed<'a> {
     /// Check if the set contains a character as a UTF32 code unit
     ///
     /// ```rust
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let alphabetic = sets::alphabetic();
     ///
@@ -158,7 +161,7 @@ impl<'a> CodePointSetDataBorrowed<'a> {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let alphabetic = sets::alphabetic();
     /// let mut ranges = alphabetic.iter_ranges();
@@ -181,7 +184,7 @@ impl<'a> CodePointSetDataBorrowed<'a> {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let alphabetic = sets::alphabetic();
     /// let mut ranges = alphabetic.iter_ranges();
@@ -304,7 +307,10 @@ impl<'a> UnicodeSetDataBorrowed<'a> {
 }
 
 impl UnicodeSetDataBorrowed<'static> {
-    /// Cheaply converts a `UnicodeSetDataBorrowed<'static>` into a `UnicodeSetData`.
+    /// Cheaply converts a [`UnicodeSetDataBorrowed<'static>`] into a [`UnicodeSetData`].
+    ///
+    /// Note: Due to branching and indirection, using [`UnicodeSetData`] might inhibit some
+    /// compile-time optimizations that are possible with [`UnicodeSetDataBorrowed`].
     pub const fn static_to_owned(self) -> UnicodeSetData {
         UnicodeSetData {
             data: DataPayload::from_static_ref(self.set),
@@ -374,7 +380,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let ascii_hex_digit = sets::ascii_hex_digit();
     ///
@@ -413,7 +419,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let alphabetic = sets::alphabetic();
     ///
@@ -442,7 +448,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let bidi_control = sets::bidi_control();
     ///
@@ -468,7 +474,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let bidi_mirrored = sets::bidi_mirrored();
     ///
@@ -507,7 +513,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let cased = sets::cased();
     ///
@@ -533,7 +539,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let case_ignorable = sets::case_ignorable();
     ///
@@ -571,7 +577,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let changes_when_casefolded = sets::changes_when_casefolded();
     ///
@@ -608,7 +614,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let changes_when_nfkc_casefolded = sets::changes_when_nfkc_casefolded();
     ///
@@ -634,7 +640,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let changes_when_lowercased = sets::changes_when_lowercased();
     ///
@@ -660,7 +666,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let changes_when_titlecased = sets::changes_when_titlecased();
     ///
@@ -686,7 +692,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let changes_when_uppercased = sets::changes_when_uppercased();
     ///
@@ -713,7 +719,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let dash = sets::dash();
     ///
@@ -741,7 +747,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let deprecated = sets::deprecated();
     ///
@@ -770,7 +776,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let default_ignorable_code_point = sets::default_ignorable_code_point();
     ///
@@ -796,7 +802,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let diacritic = sets::diacritic();
     ///
@@ -822,7 +828,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let emoji_modifier_base = sets::emoji_modifier_base();
     ///
@@ -849,7 +855,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let emoji_component = sets::emoji_component();
     ///
@@ -877,7 +883,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let emoji_modifier = sets::emoji_modifier();
     ///
@@ -903,7 +909,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let emoji = sets::emoji();
     ///
@@ -929,7 +935,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let emoji_presentation = sets::emoji_presentation();
     ///
@@ -956,7 +962,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let extender = sets::extender();
     ///
@@ -984,7 +990,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let extended_pictographic = sets::extended_pictographic();
     ///
@@ -1023,7 +1029,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let grapheme_base = sets::grapheme_base();
     ///
@@ -1051,7 +1057,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let grapheme_extend = sets::grapheme_extend();
     ///
@@ -1091,7 +1097,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let hex_digit = sets::hex_digit();
     ///
@@ -1136,7 +1142,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let id_continue = sets::id_continue();
     ///
@@ -1167,7 +1173,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let ideographic = sets::ideographic();
     ///
@@ -1195,7 +1201,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let id_start = sets::id_start();
     ///
@@ -1225,7 +1231,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let ids_binary_operator = sets::ids_binary_operator();
     ///
@@ -1251,7 +1257,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let ids_trinary_operator = sets::ids_trinary_operator();
     ///
@@ -1281,7 +1287,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let join_control = sets::join_control();
     ///
@@ -1308,7 +1314,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let logical_order_exception = sets::logical_order_exception();
     ///
@@ -1334,7 +1340,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let lowercase = sets::lowercase();
     ///
@@ -1360,7 +1366,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let math = sets::math();
     ///
@@ -1390,7 +1396,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let noncharacter_code_point = sets::noncharacter_code_point();
     ///
@@ -1463,7 +1469,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let pattern_syntax = sets::pattern_syntax();
     ///
@@ -1492,7 +1498,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let pattern_white_space = sets::pattern_white_space();
     ///
@@ -1544,7 +1550,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let quotation_mark = sets::quotation_mark();
     ///
@@ -1571,7 +1577,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let radical = sets::radical();
     ///
@@ -1597,7 +1603,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let regional_indicator = sets::regional_indicator();
     ///
@@ -1625,7 +1631,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let soft_dotted = sets::soft_dotted();
     ///
@@ -1675,7 +1681,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let sentence_terminal = sets::sentence_terminal();
     ///
@@ -1704,7 +1710,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let terminal_punctuation = sets::terminal_punctuation();
     ///
@@ -1733,7 +1739,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let unified_ideograph = sets::unified_ideograph();
     ///
@@ -1760,7 +1766,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let uppercase = sets::uppercase();
     ///
@@ -1786,7 +1792,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let variation_selector = sets::variation_selector();
     ///
@@ -1816,7 +1822,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let white_space = sets::white_space();
     ///
@@ -1857,7 +1863,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let xid_continue = sets::xid_continue();
     ///
@@ -1889,7 +1895,7 @@ make_code_point_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let xid_start = sets::xid_start();
     ///
@@ -1954,7 +1960,7 @@ make_unicode_set_property! {
     /// # Example
     ///
     /// ```
-    /// use icu_properties::sets;
+    /// use icu::properties::sets;
     ///
     /// let basic_emoji = sets::basic_emoji();
     ///
@@ -2285,7 +2291,7 @@ mod tests {
                 let gc_set_data = &maps::general_category().get_set_for_value(*subcategory);
                 let gc_set = gc_set_data.as_borrowed();
                 for range in gc_set.iter_ranges() {
-                    builder.add_range_u32(&range);
+                    builder.add_range32(&range);
                 }
             }
             let combined_set = builder.build();

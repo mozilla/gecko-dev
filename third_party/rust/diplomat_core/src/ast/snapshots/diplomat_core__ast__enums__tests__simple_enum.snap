@@ -1,6 +1,6 @@
 ---
 source: core/src/ast/enums.rs
-expression: "Enum::from(&syn::parse_quote! {\n                /// Some docs.\n                #[diplomat :: rust_link(foo :: Bar, Enum)] enum MyLocalEnum\n                {\n                    Abc, /// Some more docs.\n                    Def\n                }\n            })"
+expression: "Enum::new(&syn::parse_quote! {\n                /// Some docs.\n                #[diplomat :: rust_link(foo :: Bar, Enum)] enum MyLocalEnum\n                {\n                    Abc, /// Some more docs.\n                    Def\n                }\n            }, &Default::default())"
 ---
 name: MyLocalEnum
 docs:
@@ -16,13 +16,12 @@ variants:
     - 0
     - - ""
       - []
-    - cfg: []
+    - {}
   - - Def
     - 1
     - - Some more docs.
       - []
-    - cfg: []
+    - {}
 methods: []
-attrs:
-  cfg: []
+attrs: {}
 

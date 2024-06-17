@@ -1,6 +1,7 @@
+use super::lifetimes::{Lifetimes, LinkedLifetimes};
 use super::{
     Borrow, EnumDef, EnumId, Everywhere, OpaqueDef, OpaqueId, OpaqueOwner, OutStructDef,
-    OutputOnly, ReturnableStructDef, StructDef, TyPosition, TypeContext, TypeLifetimes,
+    OutputOnly, ReturnableStructDef, StructDef, TyPosition, TypeContext,
 };
 
 /// Path to a struct that may appear as an output.
@@ -18,7 +19,7 @@ pub type OutStructPath = StructPath<OutputOnly>;
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct StructPath<P: TyPosition = Everywhere> {
-    pub lifetimes: TypeLifetimes,
+    pub lifetimes: Lifetimes,
     pub tcx_id: P::StructId,
 }
 
@@ -39,7 +40,7 @@ pub struct StructPath<P: TyPosition = Everywhere> {
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct OpaquePath<Opt, Owner> {
-    pub lifetimes: TypeLifetimes,
+    pub lifetimes: Lifetimes,
     pub optional: Opt,
     pub owner: Owner,
     pub tcx_id: OpaqueId,
@@ -116,11 +117,18 @@ impl ReturnableStructPath {
             }
         }
     }
+
+    pub(crate) fn lifetimes(&self) -> &Lifetimes {
+        match self {
+            Self::Struct(p) => &p.lifetimes,
+            Self::OutStruct(p) => &p.lifetimes,
+        }
+    }
 }
 
 impl<P: TyPosition> StructPath<P> {
     /// Returns a new [`EnumPath`].
-    pub(super) fn new(lifetimes: TypeLifetimes, tcx_id: P::StructId) -> Self {
+    pub(super) fn new(lifetimes: Lifetimes, tcx_id: P::StructId) -> Self {
         Self { lifetimes, tcx_id }
     }
 }
@@ -136,16 +144,22 @@ impl OutStructPath {
     pub fn resolve<'tcx>(&self, tcx: &'tcx TypeContext) -> &'tcx OutStructDef {
         tcx.resolve_out_struct(self.tcx_id)
     }
+
+    /// Get a map of lifetimes used on this path to lifetimes as named in the def site. See [`LinkedLifetimes`]
+    /// for more information.
+    pub fn link_lifetimes<'def, 'tcx>(
+        &'def self,
+        tcx: &'tcx TypeContext,
+    ) -> LinkedLifetimes<'def, 'tcx> {
+        let struc = self.resolve(tcx);
+        let env = &struc.lifetimes;
+        LinkedLifetimes::new(env, None, &self.lifetimes)
+    }
 }
 
 impl<Opt, Owner> OpaquePath<Opt, Owner> {
     /// Returns a new [`EnumPath`].
-    pub(super) fn new(
-        lifetimes: TypeLifetimes,
-        optional: Opt,
-        owner: Owner,
-        tcx_id: OpaqueId,
-    ) -> Self {
+    pub(super) fn new(lifetimes: Lifetimes, optional: Opt, owner: Owner, tcx_id: OpaqueId) -> Self {
         Self {
             lifetimes,
             optional,
@@ -157,6 +171,19 @@ impl<Opt, Owner> OpaquePath<Opt, Owner> {
     /// Returns the [`OpaqueDef`] that this path references.
     pub fn resolve<'tcx>(&self, tcx: &'tcx TypeContext) -> &'tcx OpaqueDef {
         tcx.resolve_opaque(self.tcx_id)
+    }
+}
+
+impl<Opt, Owner: OpaqueOwner> OpaquePath<Opt, Owner> {
+    /// Get a map of lifetimes used on this path to lifetimes as named in the def site. See [`LinkedLifetimes`]
+    /// for more information.
+    pub fn link_lifetimes<'def, 'tcx>(
+        &'def self,
+        tcx: &'tcx TypeContext,
+    ) -> LinkedLifetimes<'def, 'tcx> {
+        let opaque = self.resolve(tcx);
+        let env = &opaque.lifetimes;
+        LinkedLifetimes::new(env, self.owner.lifetime(), &self.lifetimes)
     }
 }
 

@@ -5,7 +5,6 @@
 use crate::complex::*;
 use crate::indices::*;
 use crate::provider::*;
-use crate::symbols::*;
 use crate::SegmenterError;
 use alloc::string::String;
 use alloc::vec;
@@ -14,6 +13,104 @@ use core::char;
 use core::str::CharIndices;
 use icu_provider::prelude::*;
 use utf8_iter::Utf8CharIndices;
+
+// TODO(#1637): These constants should be data driven.
+#[allow(dead_code)]
+const UNKNOWN: u8 = 0;
+#[allow(dead_code)]
+const AI: u8 = 1;
+#[allow(dead_code)]
+const AL: u8 = 2;
+#[allow(dead_code)]
+const B2: u8 = 3;
+#[allow(dead_code)]
+const BA: u8 = 4;
+#[allow(dead_code)]
+const BB: u8 = 5;
+#[allow(dead_code)]
+const BK: u8 = 6;
+#[allow(dead_code)]
+const CB: u8 = 7;
+#[allow(dead_code)]
+const CJ: u8 = 8;
+#[allow(dead_code)]
+const CL: u8 = 9;
+#[allow(dead_code)]
+const CM: u8 = 10;
+#[allow(dead_code)]
+const CP: u8 = 11;
+#[allow(dead_code)]
+const CR: u8 = 12;
+#[allow(dead_code)]
+const EB: u8 = 13;
+#[allow(dead_code)]
+const EM: u8 = 14;
+#[allow(dead_code)]
+const EX: u8 = 15;
+#[allow(dead_code)]
+const GL: u8 = 16;
+#[allow(dead_code)]
+const H2: u8 = 17;
+#[allow(dead_code)]
+const H3: u8 = 18;
+#[allow(dead_code)]
+const HL: u8 = 19;
+#[allow(dead_code)]
+const HY: u8 = 20;
+#[allow(dead_code)]
+const ID: u8 = 21;
+#[allow(dead_code)]
+const ID_CN: u8 = 22;
+#[allow(dead_code)]
+const IN: u8 = 23;
+#[allow(dead_code)]
+const IS: u8 = 24;
+#[allow(dead_code)]
+const JL: u8 = 25;
+#[allow(dead_code)]
+const JT: u8 = 26;
+#[allow(dead_code)]
+const JV: u8 = 27;
+#[allow(dead_code)]
+const LF: u8 = 28;
+#[allow(dead_code)]
+const NL: u8 = 29;
+#[allow(dead_code)]
+const NS: u8 = 30;
+#[allow(dead_code)]
+const NU: u8 = 31;
+#[allow(dead_code)]
+const OP_EA: u8 = 32;
+#[allow(dead_code)]
+const OP_OP30: u8 = 33;
+#[allow(dead_code)]
+const PO: u8 = 34;
+#[allow(dead_code)]
+const PO_EAW: u8 = 35;
+#[allow(dead_code)]
+const PR: u8 = 36;
+#[allow(dead_code)]
+const PR_EAW: u8 = 37;
+#[allow(dead_code)]
+const QU: u8 = 38;
+#[allow(dead_code)]
+const RI: u8 = 39;
+#[allow(dead_code)]
+const SA: u8 = 40;
+#[allow(dead_code)]
+const SG: u8 = 41;
+#[allow(dead_code)]
+const SP: u8 = 42;
+#[allow(dead_code)]
+const SY: u8 = 43;
+#[allow(dead_code)]
+const WJ: u8 = 44;
+#[allow(dead_code)]
+const XX: u8 = 45;
+#[allow(dead_code)]
+const ZW: u8 = 46;
+#[allow(dead_code)]
+const ZWJ: u8 = 47;
 
 /// An enum specifies the strictness of line-breaking rules. It can be passed as
 /// an argument when creating a line segmenter.
@@ -73,7 +170,7 @@ pub enum LineBreakWordOption {
 
 /// Options to tailor line-breaking behavior.
 #[non_exhaustive]
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct LineBreakOptions {
     /// Strictness of line-breaking rules. See [`LineBreakStrictness`].
     pub strictness: LineBreakStrictness,
@@ -143,7 +240,7 @@ pub type LineBreakIteratorUtf16<'l, 's> = LineBreakIterator<'l, 's, LineBreakTyp
 /// [LB5]: https://www.unicode.org/reports/tr14/#LB5
 ///
 /// ```rust
-/// # use icu_segmenter::LineSegmenter;
+/// # use icu::segmenter::LineSegmenter;
 /// #
 /// # let segmenter = LineSegmenter::new_auto();
 /// #
@@ -151,6 +248,21 @@ pub type LineBreakIteratorUtf16<'l, 's> = LineBreakIterator<'l, 's, LineBreakTyp
 /// let breakpoints: Vec<usize> = segmenter.segment_str(text).collect();
 /// // 9 and 22 are mandatory breaks, 14 is a line break opportunity.
 /// assert_eq!(&breakpoints, &[0, 9, 14, 22]);
+///
+/// // There is a break opportunity between emoji, but not within the ZWJ sequence 🏳️‍🌈.
+/// let flag_equation = "🏳️➕🌈🟰🏳️\u{200D}🌈";
+/// let possible_first_lines: Vec<&str> =
+///     segmenter.segment_str(flag_equation).skip(1).map(|i| &flag_equation[..i]).collect();
+/// assert_eq!(
+///     &possible_first_lines,
+///     &[
+///         "🏳️",
+///         "🏳️➕",
+///         "🏳️➕🌈",
+///         "🏳️➕🌈🟰",
+///         "🏳️➕🌈🟰🏳️‍🌈"
+///     ]
+/// );
 /// ```
 ///
 /// # Examples
@@ -158,7 +270,7 @@ pub type LineBreakIteratorUtf16<'l, 's> = LineBreakIterator<'l, 's, LineBreakTyp
 /// Segment a string with default options:
 ///
 /// ```rust
-/// use icu_segmenter::LineSegmenter;
+/// use icu::segmenter::LineSegmenter;
 ///
 /// let segmenter = LineSegmenter::new_auto();
 ///
@@ -170,7 +282,7 @@ pub type LineBreakIteratorUtf16<'l, 's> = LineBreakIterator<'l, 's, LineBreakTyp
 /// Segment a string with CSS option overrides:
 ///
 /// ```rust
-/// use icu_segmenter::{
+/// use icu::segmenter::{
 ///     LineBreakOptions, LineBreakStrictness, LineBreakWordOption,
 ///     LineSegmenter,
 /// };
@@ -189,7 +301,7 @@ pub type LineBreakIteratorUtf16<'l, 's> = LineBreakIterator<'l, 's, LineBreakTyp
 /// Segment a Latin1 byte string:
 ///
 /// ```rust
-/// use icu_segmenter::LineSegmenter;
+/// use icu::segmenter::LineSegmenter;
 ///
 /// let segmenter = LineSegmenter::new_auto();
 ///
@@ -202,7 +314,7 @@ pub type LineBreakIteratorUtf16<'l, 's> = LineBreakIterator<'l, 's, LineBreakTyp
 ///
 /// ```rust
 /// use icu::properties::{maps, LineBreak};
-/// use icu_segmenter::LineSegmenter;
+/// use icu::segmenter::LineSegmenter;
 ///
 /// # let segmenter = LineSegmenter::new_auto();
 /// #
@@ -594,57 +706,47 @@ impl LineSegmenter {
     }
 }
 
-fn get_linebreak_property_utf32_with_rule(
-    property_table: &RuleBreakPropertyTable<'_>,
-    codepoint: u32,
-    strictness: LineBreakStrictness,
-    word_option: LineBreakWordOption,
-) -> u8 {
-    // Note: Default value is 0 == UNKNOWN
-    let prop = property_table.0.get32(codepoint);
+impl RuleBreakDataV1<'_> {
+    fn get_linebreak_property_utf32_with_rule(
+        &self,
+        codepoint: u32,
+        strictness: LineBreakStrictness,
+        word_option: LineBreakWordOption,
+    ) -> u8 {
+        // Note: Default value is 0 == UNKNOWN
+        let prop = self.property_table.get32(codepoint);
 
-    if word_option == LineBreakWordOption::BreakAll
-        || strictness == LineBreakStrictness::Loose
-        || strictness == LineBreakStrictness::Normal
-    {
-        return match prop {
-            CJ => ID, // All CJ's General_Category is Other_Letter (Lo).
-            _ => prop,
-        };
+        if word_option == LineBreakWordOption::BreakAll
+            || strictness == LineBreakStrictness::Loose
+            || strictness == LineBreakStrictness::Normal
+        {
+            return match prop {
+                CJ => ID, // All CJ's General_Category is Other_Letter (Lo).
+                _ => prop,
+            };
+        }
+
+        // CJ is treated as NS by default, yielding strict line breaking.
+        // https://www.unicode.org/reports/tr14/#CJ
+        prop
     }
 
-    // CJ is treated as NS by default, yielding strict line breaking.
-    // https://www.unicode.org/reports/tr14/#CJ
-    prop
-}
+    #[inline]
+    fn get_break_state_from_table(&self, left: u8, right: u8) -> BreakState {
+        let idx = (left as usize) * (self.property_count as usize) + (right as usize);
+        // We use unwrap_or to fall back to the base case and prevent panics on bad data.
+        self.break_state_table.get(idx).unwrap_or(BreakState::Keep)
+    }
 
-#[inline]
-fn get_linebreak_property_latin1(property_table: &RuleBreakPropertyTable<'_>, codepoint: u8) -> u8 {
-    // Note: Default value is 0 == UNKNOWN
-    property_table.0.get32(codepoint as u32)
-}
+    #[inline]
+    fn use_complex_breaking_utf32(&self, codepoint: u32) -> bool {
+        let line_break_property = self.get_linebreak_property_utf32_with_rule(
+            codepoint,
+            LineBreakStrictness::Strict,
+            LineBreakWordOption::Normal,
+        );
 
-#[inline]
-fn get_linebreak_property_with_rule(
-    property_table: &RuleBreakPropertyTable<'_>,
-    codepoint: char,
-    linebreak_rule: LineBreakStrictness,
-    wordbreak_rule: LineBreakWordOption,
-) -> u8 {
-    get_linebreak_property_utf32_with_rule(
-        property_table,
-        codepoint as u32,
-        linebreak_rule,
-        wordbreak_rule,
-    )
-}
-
-#[inline]
-fn is_break_utf32_by_normal(codepoint: u32, ja_zh: bool) -> bool {
-    match codepoint {
-        0x301C => ja_zh,
-        0x30A0 => ja_zh,
-        _ => false,
+        line_break_property == SA
     }
 }
 
@@ -709,83 +811,6 @@ fn is_break_utf32_by_loose(
     }
     None
 }
-
-#[inline]
-fn is_break_from_table(
-    break_state_table: &RuleBreakStateTable<'_>,
-    property_count: u8,
-    left: u8,
-    right: u8,
-) -> bool {
-    let rule = get_break_state_from_table(break_state_table, property_count, left, right);
-    if rule == KEEP_RULE {
-        return false;
-    }
-    if rule >= 0 {
-        // need additional next characters to get break rule.
-        return false;
-    }
-    true
-}
-
-#[inline]
-fn is_non_break_by_keepall(left: u8, right: u8) -> bool {
-    //  typographic letter units shouldn't be break
-    (left == AI
-        || left == AL
-        || left == ID
-        || left == NU
-        || left == HY
-        || left == H2
-        || left == H3
-        || left == JL
-        || left == JV
-        || left == JT
-        || left == CJ)
-        && (right == AI
-            || right == AL
-            || right == ID
-            || right == NU
-            || right == HY
-            || right == H2
-            || right == H3
-            || right == JL
-            || right == JV
-            || right == JT
-            || right == CJ)
-}
-
-#[inline]
-fn get_break_state_from_table(
-    break_state_table: &RuleBreakStateTable<'_>,
-    property_count: u8,
-    left: u8,
-    right: u8,
-) -> i8 {
-    let idx = (left as usize) * (property_count as usize) + (right as usize);
-    // We use unwrap_or to fall back to the base case and prevent panics on bad data.
-    break_state_table.0.get(idx).unwrap_or(KEEP_RULE)
-}
-
-#[inline]
-fn use_complex_breaking_utf32(property_table: &RuleBreakPropertyTable<'_>, codepoint: u32) -> bool {
-    let line_break_property = get_linebreak_property_utf32_with_rule(
-        property_table,
-        codepoint,
-        LineBreakStrictness::Strict,
-        LineBreakWordOption::Normal,
-    );
-
-    line_break_property == SA
-}
-
-/*
-#[inline]
-fn use_complex_breaking_utf32(codepoint: u32) -> bool {
-    // Thai, Lao and Khmer
-    (codepoint >= 0xe01 && codepoint <= 0xeff) || (codepoint >= 0x1780 && codepoint <= 0x17ff)
-}
-*/
 
 /// A trait allowing for LineBreakIterator to be generalized to multiple string iteration methods.
 ///
@@ -862,7 +887,7 @@ impl<'l, 's, Y: LineBreakType<'l, 's>> Iterator for LineBreakIterator<'l, 's, Y>
             }
         }
 
-        loop {
+        'a: loop {
             debug_assert!(!self.is_eof());
             let left_codepoint = self.get_current_codepoint()?;
             let mut left_prop = self.get_linebreak_property(left_codepoint);
@@ -874,19 +899,17 @@ impl<'l, 's, Y: LineBreakType<'l, 's>> Iterator for LineBreakIterator<'l, 's, Y>
             let right_prop = self.get_linebreak_property(right_codepoint);
 
             // CSS word-break property handling
-            match self.options.word_option {
-                LineBreakWordOption::BreakAll => {
-                    left_prop = match left_prop {
-                        AL => ID,
-                        NU => ID,
-                        SA => ID,
-                        _ => left_prop,
-                    };
+            match (self.options.word_option, left_prop, right_prop) {
+                (LineBreakWordOption::BreakAll, AL | NU | SA, _) => {
+                    left_prop = ID;
                 }
-                LineBreakWordOption::KeepAll => {
-                    if is_non_break_by_keepall(left_prop, right_prop) {
-                        continue;
-                    }
+                //  typographic letter units shouldn't be break
+                (
+                    LineBreakWordOption::KeepAll,
+                    AI | AL | ID | NU | HY | H2 | H3 | JL | JV | JT | CJ,
+                    AI | AL | ID | NU | HY | H2 | H3 | JL | JV | JT | CJ,
+                ) => {
+                    continue;
                 }
                 _ => (),
             }
@@ -930,48 +953,54 @@ impl<'l, 's, Y: LineBreakType<'l, 's>> Iterator for LineBreakIterator<'l, 's, Y>
             }
 
             // If break_state is equals or grater than 0, it is alias of property.
-            let mut break_state = self.get_break_state_from_table(left_prop, right_prop);
-            if break_state >= 0_i8 {
-                let mut previous_iter = self.iter.clone();
-                let mut previous_pos_data = self.current_pos_data;
+            let mut index = match self.data.get_break_state_from_table(left_prop, right_prop) {
+                BreakState::Index(index) => index,
+                // Line break uses more that 64 states, so they spill over into the intermediate range,
+                // and we cannot change that at the moment
+                BreakState::Intermediate(index) => index + 64,
+                BreakState::Break | BreakState::NoMatch => return self.get_current_position(),
+                BreakState::Keep => continue,
+            };
 
-                loop {
-                    self.advance_iter();
+            let mut previous_iter = self.iter.clone();
+            let mut previous_pos_data = self.current_pos_data;
 
-                    let Some(prop) = self.get_current_linebreak_property() else {
-                        // Reached EOF. But we are analyzing multiple characters now, so next break may be previous point.
-                        let break_state = self
-                            .get_break_state_from_table(break_state as u8, self.data.eot_property);
-                        if break_state == NOT_MATCH_RULE {
-                            self.iter = previous_iter;
-                            self.current_pos_data = previous_pos_data;
-                            return self.get_current_position();
-                        }
-                        // EOF
-                        return Some(self.len);
-                    };
+            loop {
+                self.advance_iter();
 
-                    break_state = self.get_break_state_from_table(break_state as u8, prop);
-                    if break_state < 0 {
-                        break;
+                let Some(prop) = self.get_current_linebreak_property() else {
+                    // Reached EOF. But we are analyzing multiple characters now, so next break may be previous point.
+                    let break_state = self
+                        .data
+                        .get_break_state_from_table(index, self.data.eot_property);
+                    if break_state == BreakState::NoMatch {
+                        self.iter = previous_iter;
+                        self.current_pos_data = previous_pos_data;
+                        return self.get_current_position();
                     }
+                    // EOF
+                    return Some(self.len);
+                };
 
-                    previous_iter = self.iter.clone();
-                    previous_pos_data = self.current_pos_data;
+                match self.data.get_break_state_from_table(index, prop) {
+                    BreakState::Keep => continue 'a,
+                    BreakState::NoMatch => {
+                        self.iter = previous_iter;
+                        self.current_pos_data = previous_pos_data;
+                        return self.get_current_position();
+                    }
+                    BreakState::Break => return self.get_current_position(),
+                    BreakState::Index(i) => {
+                        index = i;
+                        previous_iter = self.iter.clone();
+                        previous_pos_data = self.current_pos_data;
+                    }
+                    BreakState::Intermediate(i) => {
+                        index = i + 64;
+                        previous_iter = self.iter.clone();
+                        previous_pos_data = self.current_pos_data;
+                    }
                 }
-                if break_state == KEEP_RULE {
-                    continue;
-                }
-                if break_state == NOT_MATCH_RULE {
-                    self.iter = previous_iter;
-                    self.current_pos_data = previous_pos_data;
-                    return self.get_current_position();
-                }
-                return self.get_current_position();
-            }
-
-            if self.is_break_from_table(left_prop, right_prop) {
-                return self.get_current_position();
             }
         }
     }
@@ -1032,25 +1061,10 @@ impl<'l, 's, Y: LineBreakType<'l, 's>> LineBreakIterator<'l, 's, Y> {
     }
 
     fn is_break_by_normal(&self, codepoint: Y::CharType) -> bool {
-        is_break_utf32_by_normal(codepoint.into(), self.options.ja_zh)
-    }
-
-    fn get_break_state_from_table(&self, left: u8, right: u8) -> i8 {
-        get_break_state_from_table(
-            &self.data.break_state_table,
-            self.data.property_count,
-            left,
-            right,
-        )
-    }
-
-    fn is_break_from_table(&self, left: u8, right: u8) -> bool {
-        is_break_from_table(
-            &self.data.break_state_table,
-            self.data.property_count,
-            left,
-            right,
-        )
+        match codepoint.into() {
+            0x301C | 0x30A0 => self.options.ja_zh,
+            _ => false,
+        }
     }
 }
 
@@ -1062,9 +1076,8 @@ impl<'l, 's> LineBreakType<'l, 's> for LineBreakTypeUtf8 {
     type CharType = char;
 
     fn get_linebreak_property_with_rule(iterator: &LineBreakIterator<Self>, c: char) -> u8 {
-        get_linebreak_property_with_rule(
-            &iterator.data.property_table,
-            c,
+        iterator.data.get_linebreak_property_utf32_with_rule(
+            c as u32,
             iterator.options.strictness,
             iterator.options.word_option,
         )
@@ -1072,7 +1085,7 @@ impl<'l, 's> LineBreakType<'l, 's> for LineBreakTypeUtf8 {
 
     #[inline]
     fn use_complex_breaking(iterator: &LineBreakIterator<Self>, c: char) -> bool {
-        use_complex_breaking_utf32(&iterator.data.property_table, c as u32)
+        iterator.data.use_complex_breaking_utf32(c as u32)
     }
 
     fn get_current_position_character_len(iterator: &LineBreakIterator<Self>) -> usize {
@@ -1095,9 +1108,8 @@ impl<'l, 's> LineBreakType<'l, 's> for LineBreakTypePotentiallyIllFormedUtf8 {
     type CharType = char;
 
     fn get_linebreak_property_with_rule(iterator: &LineBreakIterator<Self>, c: char) -> u8 {
-        get_linebreak_property_with_rule(
-            &iterator.data.property_table,
-            c,
+        iterator.data.get_linebreak_property_utf32_with_rule(
+            c as u32,
             iterator.options.strictness,
             iterator.options.word_option,
         )
@@ -1105,7 +1117,7 @@ impl<'l, 's> LineBreakType<'l, 's> for LineBreakTypePotentiallyIllFormedUtf8 {
 
     #[inline]
     fn use_complex_breaking(iterator: &LineBreakIterator<Self>, c: char) -> bool {
-        use_complex_breaking_utf32(&iterator.data.property_table, c as u32)
+        iterator.data.use_complex_breaking_utf32(c as u32)
     }
 
     fn get_current_position_character_len(iterator: &LineBreakIterator<Self>) -> usize {
@@ -1182,7 +1194,8 @@ impl<'l, 's> LineBreakType<'l, 's> for LineBreakTypeLatin1 {
 
     fn get_linebreak_property_with_rule(iterator: &LineBreakIterator<Self>, c: u8) -> u8 {
         // No CJ on Latin1
-        get_linebreak_property_latin1(&iterator.data.property_table, c)
+        // Note: Default value is 0 == UNKNOWN
+        iterator.data.property_table.get32(c as u32)
     }
 
     #[inline]
@@ -1210,8 +1223,7 @@ impl<'l, 's> LineBreakType<'l, 's> for LineBreakTypeUtf16 {
     type CharType = u32;
 
     fn get_linebreak_property_with_rule(iterator: &LineBreakIterator<Self>, c: u32) -> u8 {
-        get_linebreak_property_utf32_with_rule(
-            &iterator.data.property_table,
+        iterator.data.get_linebreak_property_utf32_with_rule(
             c,
             iterator.options.strictness,
             iterator.options.word_option,
@@ -1220,7 +1232,7 @@ impl<'l, 's> LineBreakType<'l, 's> for LineBreakTypeUtf16 {
 
     #[inline]
     fn use_complex_breaking(iterator: &LineBreakIterator<Self>, c: u32) -> bool {
-        use_complex_breaking_utf32(&iterator.data.property_table, c)
+        iterator.data.use_complex_breaking_utf32(c)
     }
 
     fn get_current_position_character_len(iterator: &LineBreakIterator<Self>) -> usize {
@@ -1304,9 +1316,8 @@ mod tests {
         .expect("Data should be present!");
 
         let get_linebreak_property = |codepoint| {
-            get_linebreak_property_with_rule(
-                &payload.get().property_table,
-                codepoint,
+            payload.get().get_linebreak_property_utf32_with_rule(
+                codepoint as u32,
                 LineBreakStrictness::Strict,
                 LineBreakWordOption::Normal,
             )
@@ -1341,11 +1352,9 @@ mod tests {
         let lb_data: &RuleBreakDataV1 = payload.get();
 
         let is_break = |left, right| {
-            is_break_from_table(
-                &lb_data.break_state_table,
-                lb_data.property_count,
-                left,
-                right,
+            matches!(
+                lb_data.get_break_state_from_table(left, right),
+                BreakState::Break | BreakState::NoMatch
             )
         };
 

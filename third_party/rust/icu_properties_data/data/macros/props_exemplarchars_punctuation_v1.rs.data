@@ -410,13 +410,6 @@ macro_rules! __impl_props_exemplarchars_punctuation_v1 {
                     },
                     zerovec::VarZeroVec::new(),
                 ));
-                static TOK: <icu::properties::provider::ExemplarCharactersPunctuationV1Marker as icu_provider::DataMarker>::Yokeable = icu::properties::provider::PropertyUnicodeSetV1::CPInversionListStrList(icu::collections::codepointinvliststringlist::CodePointInversionListAndStringList::from_parts_unchecked(
-                    unsafe {
-                        #[allow(unused_unsafe)]
-                        icu::collections::codepointinvlist::CodePointInversionList::from_parts_unchecked(unsafe { zerovec::ZeroVec::from_bytes_unchecked(b"!\0\0\0$\0\0\0'\0\0\0+\0\0\0,\0\0\x000\0\0\0:\0\0\0<\0\0\0?\0\0\0A\0\0\0[\0\0\0\\\0\0\0]\0\0\0^\0\0\0\x11 \0\0\x12 \0\0\x18 \0\0\x1A \0\0\x1C \0\0\x1E \0\0") }, 22u32)
-                    },
-                    zerovec::VarZeroVec::new(),
-                ));
                 static HI: <icu::properties::provider::ExemplarCharactersPunctuationV1Marker as icu_provider::DataMarker>::Yokeable = icu::properties::provider::PropertyUnicodeSetV1::CPInversionListStrList(icu::collections::codepointinvliststringlist::CodePointInversionListAndStringList::from_parts_unchecked(
                     unsafe {
                         #[allow(unused_unsafe)]
@@ -578,8 +571,8 @@ macro_rules! __impl_props_exemplarchars_punctuation_v1 {
                     },
                     zerovec::VarZeroVec::new(),
                 ));
-                static VALUES: [&<icu::properties::provider::ExemplarCharactersPunctuationV1Marker as icu_provider::DataMarker>::Yokeable; 148usize] = [&AF, &AM, &AR, &AS, &AST, &AF, &BE, &BG, &BGC, &AF, &BLO, &AF, &AF, &BS, &AST, &CEB, &AF, &CS, &CV, &AF, &DA, &CV, &DOI, &DSB, &EL, &AF, &EO, &AST, &ET, &AF, &FA, &FF_ADLM, &FI, &FIL, &DA, &FR, &AF, &AF, &GD, &AST, &AF, &HA, &HE, &HI, &HR, &DSB, &HU, &HY, &AF, &AF, &IE, &IG, &IS, &IT, &JA, &KA, &KEA, &AF, &KK, &KM, &KN, &KO, &AF, &AF, &AF, &AF, &AF, &AF, &AF, &AF, &CV, &CV, &FR, &IT, &AF, &LT, &LV, &MAI, &MK, &AF, &AF, &AF, &KN, &AF, &MT, &MY, &CV, &AF, &NE, &AF, &NO, &NQO, &OC, &OC_ES, &AF, &PA, &AF, &PL, &LT, &PS, &AF, &PT_PT, &AF, &RAJ, &RO, &CV, &MAI, &SAH, &SC, &SD, &AF, &AF, &CS, &SL, &AF, &SQ, &SR, &SR, &AF, &AF, &SW, &SYR, &PL, &AF, &MT, &TG, &TH, &TK, &AF, &TOK, &AF, &TT, &UK, &UND, &UR, &AF, &VEC, &AF, &VMW, &AF, &XNR, &YO, &AST, &YUE, &YUE_HANS, &AF, &YUE_HANS, &YUE];
-                static KEYS: [&str; 148usize] = ["af", "am", "ar", "as", "ast", "az", "be", "bg", "bgc", "bho", "blo", "bn", "brx", "bs", "ca", "ceb", "chr", "cs", "cv", "cy", "da", "de", "doi", "dsb", "el", "en", "eo", "es", "et", "eu", "fa", "ff-Adlm", "fi", "fil", "fo", "fr", "fy", "ga", "gd", "gl", "gu", "ha", "he", "hi", "hr", "hsb", "hu", "hy", "ia", "id", "ie", "ig", "is", "it", "ja", "ka", "kea", "kgp", "kk", "km", "kn", "ko", "kok", "ks", "ks-Deva", "ku", "kxv", "kxv-Deva", "kxv-Orya", "kxv-Telu", "ky", "lb", "lij", "lmo", "lo", "lt", "lv", "mai", "mk", "ml", "mn", "mni", "mr", "ms", "mt", "my", "nds", "nds-NL", "ne", "nl", "no", "nqo", "oc", "oc-ES", "or", "pa", "pcm", "pl", "prg", "ps", "pt", "pt-PT", "qu", "raj", "ro", "ru", "sa", "sah", "sc", "sd", "sd-Deva", "si", "sk", "sl", "so", "sq", "sr", "sr-Latn", "su", "sv", "sw", "syr", "szl", "ta", "te", "tg", "th", "tk", "to", "tok", "tr", "tt", "uk", "und", "ur", "uz", "vec", "vi", "vmw", "xh", "xnr", "yo", "yrl", "yue", "yue-Hans", "za", "zh", "zh-Hant"];
+                static VALUES: [&<icu::properties::provider::ExemplarCharactersPunctuationV1Marker as icu_provider::DataMarker>::Yokeable; 147usize] = [&AF, &AM, &AR, &AS, &AST, &AF, &BE, &BG, &BGC, &AF, &BLO, &AF, &AF, &BS, &AST, &CEB, &AF, &CS, &CV, &AF, &DA, &CV, &DOI, &DSB, &EL, &AF, &EO, &AST, &ET, &AF, &FA, &FF_ADLM, &FI, &FIL, &DA, &FR, &AF, &AF, &GD, &AST, &AF, &HA, &HE, &HI, &HR, &DSB, &HU, &HY, &AF, &AF, &IE, &IG, &IS, &IT, &JA, &KA, &KEA, &AF, &KK, &KM, &KN, &KO, &AF, &AF, &AF, &AF, &AF, &AF, &AF, &AF, &CV, &CV, &FR, &IT, &AF, &LT, &LV, &MAI, &MK, &AF, &AF, &AF, &KN, &AF, &MT, &MY, &CV, &AF, &NE, &AF, &NO, &NQO, &OC, &OC_ES, &AF, &PA, &AF, &PL, &LT, &PS, &AF, &PT_PT, &AF, &RAJ, &RO, &CV, &MAI, &SAH, &SC, &SD, &AF, &AF, &CS, &SL, &AF, &SQ, &SR, &SR, &AF, &AF, &SW, &SYR, &PL, &AF, &MT, &TG, &TH, &TK, &AF, &AF, &TT, &UK, &UND, &UR, &AF, &VEC, &AF, &VMW, &AF, &XNR, &YO, &AST, &YUE, &YUE_HANS, &AF, &YUE_HANS, &YUE];
+                static KEYS: [&str; 147usize] = ["af", "am", "ar", "as", "ast", "az", "be", "bg", "bgc", "bho", "blo", "bn", "brx", "bs", "ca", "ceb", "chr", "cs", "cv", "cy", "da", "de", "doi", "dsb", "el", "en", "eo", "es", "et", "eu", "fa", "ff-Adlm", "fi", "fil", "fo", "fr", "fy", "ga", "gd", "gl", "gu", "ha", "he", "hi", "hr", "hsb", "hu", "hy", "ia", "id", "ie", "ig", "is", "it", "ja", "ka", "kea", "kgp", "kk", "km", "kn", "ko", "kok", "ks", "ks-Deva", "ku", "kxv", "kxv-Deva", "kxv-Orya", "kxv-Telu", "ky", "lb", "lij", "lmo", "lo", "lt", "lv", "mai", "mk", "ml", "mn", "mni", "mr", "ms", "mt", "my", "nds", "nds-NL", "ne", "nl", "no", "nqo", "oc", "oc-ES", "or", "pa", "pcm", "pl", "prg", "ps", "pt", "pt-PT", "qu", "raj", "ro", "ru", "sa", "sah", "sc", "sd", "sd-Deva", "si", "sk", "sl", "so", "sq", "sr", "sr-Latn", "su", "sv", "sw", "syr", "szl", "ta", "te", "tg", "th", "tk", "to", "tr", "tt", "uk", "und", "ur", "uz", "vec", "vi", "vmw", "xh", "xnr", "yo", "yrl", "yue", "yue-Hans", "za", "zh", "zh-Hant"];
                 let mut metadata = icu_provider::DataResponseMetadata::default();
                 let payload = if let Ok(payload) = KEYS.binary_search_by(|k| req.locale.strict_cmp(k.as_bytes()).reverse()).map(|i| *unsafe { VALUES.get_unchecked(i) }) {
                     payload
@@ -591,10 +584,28 @@ macro_rules! __impl_props_exemplarchars_punctuation_v1 {
                             metadata.locale = Some(fallback_iterator.take());
                             break payload;
                         }
+                        if fallback_iterator.get().is_und() {
+                            return Err(icu_provider::DataErrorKind::MissingLocale.with_req(<icu::properties::provider::ExemplarCharactersPunctuationV1Marker as icu_provider::KeyedDataMarker>::KEY, req));
+                        }
                         fallback_iterator.step();
                     }
                 };
                 Ok(icu_provider::DataResponse { payload: Some(icu_provider::DataPayload::from_static_ref(payload)), metadata })
+            }
+        }
+    };
+}
+/// Implement `IterableDataProvider<ExemplarCharactersPunctuationV1Marker>` on the given struct using the data
+/// hardcoded in this file. This allows the struct to be used with
+/// `DatagenDriver` for this key.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __impliterable_props_exemplarchars_punctuation_v1 {
+    ($ provider : ty) => {
+        #[clippy::msrv = "1.67"]
+        impl icu_provider::datagen::IterableDataProvider<icu::properties::provider::ExemplarCharactersPunctuationV1Marker> for $provider {
+            fn supported_locales(&self) -> Result<alloc::vec::Vec<icu_provider::DataLocale>, icu_provider::DataError> {
+                Ok(["af", "am", "ar", "as", "ast", "az", "be", "bg", "bgc", "bho", "blo", "bn", "brx", "bs", "ca", "ceb", "chr", "cs", "cv", "cy", "da", "de", "doi", "dsb", "el", "en", "eo", "es", "et", "eu", "fa", "ff-Adlm", "fi", "fil", "fo", "fr", "fy", "ga", "gd", "gl", "gu", "ha", "he", "hi", "hr", "hsb", "hu", "hy", "ia", "id", "ie", "ig", "is", "it", "ja", "ka", "kea", "kgp", "kk", "km", "kn", "ko", "kok", "ks", "ks-Deva", "ku", "kxv", "kxv-Deva", "kxv-Orya", "kxv-Telu", "ky", "lb", "lij", "lmo", "lo", "lt", "lv", "mai", "mk", "ml", "mn", "mni", "mr", "ms", "mt", "my", "nds", "nds-NL", "ne", "nl", "no", "nqo", "oc", "oc-ES", "or", "pa", "pcm", "pl", "prg", "ps", "pt", "pt-PT", "qu", "raj", "ro", "ru", "sa", "sah", "sc", "sd", "sd-Deva", "si", "sk", "sl", "so", "sq", "sr", "sr-Latn", "su", "sv", "sw", "syr", "szl", "ta", "te", "tg", "th", "tk", "to", "tr", "tt", "uk", "und", "ur", "uz", "vec", "vi", "vmw", "xh", "xnr", "yo", "yrl", "yue", "yue-Hans", "za", "zh", "zh-Hant"].into_iter().map(|s| <icu_provider::DataLocale as core::str::FromStr>::from_str(s).unwrap()).collect())
             }
         }
     };

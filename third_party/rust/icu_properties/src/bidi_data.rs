@@ -97,7 +97,7 @@ impl<'a> BidiAuxiliaryPropertiesBorrowed<'a> {
     ///
     /// # Examples
     /// ```
-    /// use icu_properties::{bidi_data, bidi_data::BidiMirroringProperties};
+    /// use icu::properties::bidi_data;
     ///
     /// let bidi_data = bidi_data::bidi_auxiliary_properties();
     ///
@@ -132,7 +132,7 @@ impl<'a> BidiAuxiliaryPropertiesBorrowed<'a> {
     ///
     /// # Examples
     /// ```
-    /// use icu_properties::{bidi_data, bidi_data::BidiPairingProperties};
+    /// use icu::properties::{bidi_data, bidi_data::BidiPairingProperties};
     ///
     /// let bidi_data = bidi_data::bidi_auxiliary_properties();
     ///
@@ -160,7 +160,10 @@ impl<'a> BidiAuxiliaryPropertiesBorrowed<'a> {
 }
 
 impl BidiAuxiliaryPropertiesBorrowed<'static> {
-    /// Cheaply converts a `BidiAuxiliaryPropertiesBorrowed<'static>` into a `BidiAuxiliaryProperties`.
+    /// Cheaply converts a [`BidiAuxiliaryPropertiesBorrowed<'static>`] into a [`BidiAuxiliaryProperties`].
+    ///
+    /// Note: Due to branching and indirection, using [`BidiAuxiliaryProperties`] might inhibit some
+    /// compile-time optimizations that are possible with [`BidiAuxiliaryPropertiesBorrowed`].
     pub const fn static_to_owned(self) -> BidiAuxiliaryProperties {
         BidiAuxiliaryProperties {
             data: DataPayload::from_static_ref(self.data),
@@ -177,7 +180,7 @@ impl BidiAuxiliaryPropertiesBorrowed<'static> {
 ///
 /// # Examples
 /// ```
-/// use icu_properties::{bidi_data, bidi_data::BidiMirroringProperties};
+/// use icu::properties::bidi_data;
 ///
 /// let bidi_data = bidi_data::bidi_auxiliary_properties();
 ///

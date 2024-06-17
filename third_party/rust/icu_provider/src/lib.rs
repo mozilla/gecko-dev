@@ -115,7 +115,7 @@
 //! [`BlobDataProvider`]: ../icu_provider_blob/struct.BlobDataProvider.html
 //! [`icu_datagen`]: ../icu_datagen/index.html
 
-// https://github.com/unicode-org/icu4x/blob/main/docs/process/boilerplate.md#library-annotations
+// https://github.com/unicode-org/icu4x/blob/main/documents/process/boilerplate.md#library-annotations
 #![cfg_attr(not(any(test, feature = "std")), no_std)]
 #![cfg_attr(
     not(test),
@@ -153,7 +153,9 @@ pub mod marker;
 pub mod serde;
 
 // Types from private modules
+pub use crate::data_provider::BoundDataProvider;
 pub use crate::data_provider::DataProvider;
+pub use crate::data_provider::DataProviderWithKey;
 pub use crate::data_provider::DynamicDataProvider;
 pub use crate::error::DataError;
 pub use crate::error::DataErrorKind;
@@ -168,6 +170,7 @@ pub use crate::request::DataRequest;
 pub use crate::request::DataRequestMetadata;
 pub use crate::response::Cart;
 pub use crate::response::DataPayload;
+pub use crate::response::DataPayloadOr;
 pub use crate::response::DataResponse;
 pub use crate::response::DataResponseMetadata;
 #[cfg(feature = "macros")]
@@ -185,6 +188,7 @@ pub use crate::buf::BufferMarker;
 pub use crate::buf::BufferProvider;
 pub use crate::marker::DataMarker;
 pub use crate::marker::KeyedDataMarker;
+pub use crate::marker::NeverMarker;
 #[cfg(feature = "serde")]
 pub use crate::serde::AsDeserializingBufferProvider;
 
@@ -210,6 +214,8 @@ pub mod prelude {
     #[doc(no_inline)]
     #[cfg(feature = "experimental")]
     pub use crate::AuxiliaryKeys;
+    #[doc(no_inline)]
+    pub use crate::BoundDataProvider;
     #[doc(no_inline)]
     pub use crate::BufferMarker;
     #[doc(no_inline)]
@@ -264,4 +270,38 @@ pub use zerofrom;
 pub mod _internal {
     pub use super::fallback::{LocaleFallbackPriority, LocaleFallbackSupplement};
     pub use icu_locid as locid;
+
+    #[cfg(feature = "logging")]
+    pub use log;
+
+    #[cfg(all(not(feature = "logging"), debug_assertions, feature = "std"))]
+    pub mod log {
+        pub use std::eprintln as error;
+        pub use std::eprintln as warn;
+        pub use std::eprintln as info;
+        pub use std::eprintln as debug;
+        pub use std::eprintln as trace;
+    }
+
+    #[cfg(all(
+        not(feature = "logging"),
+        any(not(debug_assertions), not(feature = "std"))
+    ))]
+    pub mod log {
+        #[macro_export]
+        macro_rules! _internal_noop_log {
+            ($($t:expr),*) => {};
+        }
+        pub use crate::_internal_noop_log as error;
+        pub use crate::_internal_noop_log as warn;
+        pub use crate::_internal_noop_log as info;
+        pub use crate::_internal_noop_log as debug;
+        pub use crate::_internal_noop_log as trace;
+    }
+}
+
+#[test]
+fn test_logging() {
+    // This should compile on all combinations of features
+    crate::_internal::log::info!("Hello World");
 }

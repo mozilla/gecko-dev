@@ -3,7 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 mod fixtures;
-mod helpers;
 
 use std::convert::TryInto;
 use writeable::*;
@@ -45,32 +44,32 @@ fn test_langid_fixtures(tests: Vec<fixtures::LocaleTest>) {
 
 #[test]
 fn test_langid_parsing() {
-    let path = "./tests/fixtures/langid.json";
-    let data = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data = serde_json::from_str(include_str!("fixtures/langid.json"))
+        .expect("Failed to read a fixture");
 
     test_langid_fixtures(data);
 }
 
 #[test]
 fn test_langid_invalid() {
-    let path = "./tests/fixtures/invalid.json";
-    let data = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data = serde_json::from_str(include_str!("fixtures/invalid.json"))
+        .expect("Failed to read a fixture");
 
     test_langid_fixtures(data);
 }
 
 #[test]
 fn test_langid_canonicalize() {
-    let path = "./tests/fixtures/canonicalize.json";
-    let data = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data = serde_json::from_str(include_str!("fixtures/canonicalize.json"))
+        .expect("Failed to read a fixture");
 
     test_langid_fixtures(data);
 }
 
 #[test]
 fn test_langid_from_locale() {
-    let path = "./tests/fixtures/locale.json";
-    let data = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data = serde_json::from_str(include_str!("fixtures/locale.json"))
+        .expect("Failed to read a fixture");
 
     test_langid_fixtures(data);
 }
@@ -112,16 +111,16 @@ fn test_langid_subtag_variant() {
 fn test_langid_subtag_variants() {
     let variant: subtags::Variant = "macos".parse().expect("Failed to parse a variant.");
     let mut variants = subtags::Variants::from_vec_unchecked(vec![variant]);
-    assert_eq!(variants.get(0), Some(&variant));
+    assert_eq!(variants.first(), Some(&variant));
     variants.clear();
     assert_eq!(variants.len(), 0);
 }
 
 #[test]
 fn test_langid_normalizing_eq_str() {
-    let path = "./tests/fixtures/langid.json";
     let tests: Vec<fixtures::LocaleTest> =
-        helpers::read_fixture(path).expect("Failed to read a fixture");
+        serde_json::from_str(include_str!("fixtures/langid.json"))
+            .expect("Failed to read a fixture");
     for test in tests {
         let parsed: LanguageIdentifier = test.input.try_into().expect("Parsing failed.");
         assert!(parsed.normalizing_eq(&parsed.write_to_string()));
@@ -134,9 +133,9 @@ fn test_langid_normalizing_eq_str() {
 
 #[test]
 fn test_langid_strict_cmp() {
-    let path = "./tests/fixtures/langid.json";
     let tests: Vec<fixtures::LocaleTest> =
-        helpers::read_fixture(path).expect("Failed to read a fixture");
+        serde_json::from_str(include_str!("fixtures/langid.json"))
+            .expect("Failed to read a fixture");
     let bcp47_strings = tests
         .iter()
         .map(|t| match t.input {

@@ -4,23 +4,21 @@
 
 //! Custom error type(s) for the parent module.
 
-#[cfg(doc)]
-use crate::codepointtrie::CodePointTrie;
 use displaydoc::Display;
 
-/// A custom error type for [`CodePointTrie`].
+/// A custom error type for [`CodePointTrie`](super::CodePointTrie).
 ///
 /// Re-exported as [Error][super::Error].
 #[derive(Copy, Clone, Display, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum Error {
-    /// Could not construct CodePointTrie from deserialized values
+    /// Could not construct [`CodePointTrie`](super::CodePointTrie) from deserialized values
     #[displaydoc("Could not construct CodePointTrie from deserialized values: {reason}")]
     FromDeserialized {
         /// Reason for inability to deserialize values.
         reason: &'static str,
     },
-    /// CodePointTrie must be constructed from data vector with at least one element
+    /// [`CodePointTrie`](super::CodePointTrie) must be constructed from data vector with at least one element
     #[displaydoc("CodePointTrie must be constructed from data vector with at least one element")]
     EmptyDataVector,
 }

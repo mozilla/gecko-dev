@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "diplomat-runtime"
-version = "0.7.0"
+version = "0.8.0"
 authors = [
     "Shadaj Laddad <shadaj@users.noreply.github.com>",
     "Manish Goregaokar <manishsmail@gmail.com>",

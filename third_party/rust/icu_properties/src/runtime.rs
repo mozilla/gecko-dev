@@ -12,7 +12,7 @@
 //! with properties at runtime tailored for the use case of ECMA262-compatible regex engines.
 
 #[cfg(doc)]
-use crate::{maps, script, GeneralCategory, GeneralCategoryGroup, Script};
+use super::{maps, script, GeneralCategory, GeneralCategoryGroup, Script};
 
 /// This type can represent any Unicode property.
 ///

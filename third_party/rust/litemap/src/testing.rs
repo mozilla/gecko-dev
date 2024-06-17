@@ -48,12 +48,12 @@ where
 
 // Test code
 #[allow(clippy::expect_used)]
-fn check_into_iter_equivalence<'a, K, V, S0, S1>(a: S0, b: S1)
+fn check_into_iter_equivalence<K, V, S0, S1>(a: S0, b: S1)
 where
-    K: Ord + Debug + PartialEq + 'a,
-    V: Debug + PartialEq + 'a,
-    S0: StoreIterableMut<'a, K, V>,
-    S1: StoreIterableMut<'a, K, V>,
+    K: Ord + Debug + PartialEq,
+    V: Debug + PartialEq,
+    S0: StoreIntoIterator<K, V>,
+    S1: StoreIntoIterator<K, V>,
 {
     let a_vec = a.lm_into_iter().collect::<Vec<_>>();
     let b_vec = b.lm_into_iter().collect::<Vec<_>>();
@@ -175,6 +175,7 @@ pub fn check_store_full<'a, S>()
 where
     S: StoreConstEmpty<u32, u64>
         + StoreIterableMut<'a, u32, u64>
+        + StoreIntoIterator<u32, u64>
         + StoreFromIterator<u32, u64>
         + Clone
         + Debug

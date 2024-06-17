@@ -1,6 +1,6 @@
 ---
 source: core/src/ast/enums.rs
-expression: "Enum::from(&syn::parse_quote! {\n                /// Some docs.\n                #[diplomat :: rust_link(foo :: Bar, Enum)] enum\n                DiscriminantedEnum { Abc = - 1, Def = 0, Ghi = 1, Jkl = 2, }\n            })"
+expression: "Enum::new(&syn::parse_quote! {\n                /// Some docs.\n                #[diplomat :: rust_link(foo :: Bar, Enum)] enum\n                DiscriminantedEnum { Abc = - 1, Def = 0, Ghi = 1, Jkl = 2, }\n            }, &Default::default())"
 ---
 name: DiscriminantedEnum
 docs:
@@ -16,23 +16,22 @@ variants:
     - -1
     - - ""
       - []
-    - cfg: []
+    - {}
   - - Def
     - 0
     - - ""
       - []
-    - cfg: []
+    - {}
   - - Ghi
     - 1
     - - ""
       - []
-    - cfg: []
+    - {}
   - - Jkl
     - 2
     - - ""
       - []
-    - cfg: []
+    - {}
 methods: []
-attrs:
-  cfg: []
+attrs: {}
 

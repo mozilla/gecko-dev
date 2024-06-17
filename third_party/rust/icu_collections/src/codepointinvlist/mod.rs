@@ -15,12 +15,12 @@
 //!
 //! ## Creating a `CodePointInversionList`
 //!
-//! CodePointSets are created from either serialized [`CodePointSets`](CodePointInversionList),
+//! `CodePointSets` are created from either serialized [`CodePointSets`](CodePointInversionList),
 //! represented by [inversion lists](http://userguide.icu-project.org/strings/properties),
 //! the [`CodePointInversionListBuilder`], or from the Properties API.
 //!
 //! ```
-//! use icu_collections::codepointinvlist::{
+//! use icu::collections::codepointinvlist::{
 //!     CodePointInversionList, CodePointInversionListBuilder,
 //! };
 //!
@@ -36,7 +36,7 @@
 //! Currently, you can check if a character/range of characters exists in the [`CodePointInversionList`], or iterate through the characters.
 //!
 //! ```
-//! use icu_collections::codepointinvlist::{
+//! use icu::collections::codepointinvlist::{
 //!     CodePointInversionList, CodePointInversionListBuilder,
 //! };
 //!
@@ -64,7 +64,6 @@ mod utils;
 use alloc::vec::Vec;
 
 pub use builder::CodePointInversionListBuilder;
-pub use conversions::*;
 pub use cpinvlist::CodePointInversionList;
 pub use cpinvlist::CodePointInversionListULE;
 use displaydoc::Display;

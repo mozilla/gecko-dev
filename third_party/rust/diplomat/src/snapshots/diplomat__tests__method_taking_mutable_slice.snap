@@ -4,15 +4,21 @@ expression: "rustfmt_code(&gen_bridge(parse_quote! {\n                          
 ---
 mod ffi {
     #[repr(C)]
+    #[derive(Clone, Copy)]
     struct Foo {}
     impl Foo {
         pub fn fill_slice(s: &mut [f64]) {
             unimplemented!()
         }
     }
+    use diplomat_runtime::*;
     #[no_mangle]
     extern "C" fn Foo_fill_slice(s_diplomat_data: *mut f64, s_diplomat_len: usize) {
-        Foo::fill_slice(unsafe { core::slice::from_raw_parts_mut(s_diplomat_data, s_diplomat_len) })
+        Foo::fill_slice(if s_diplomat_len == 0 {
+            &mut []
+        } else {
+            unsafe { core::slice::from_raw_parts_mut(s_diplomat_data, s_diplomat_len) }
+        })
     }
     #[no_mangle]
     extern "C" fn Foo_destroy(this: Box<Foo>) {}

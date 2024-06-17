@@ -22,6 +22,10 @@ pub trait IterableDynamicDataProvider<M: DataMarker>: DynamicDataProvider<M> {
 pub trait IterableDataProvider<M: KeyedDataMarker>: DataProvider<M> {
     /// Returns a list of [`DataLocale`].
     fn supported_locales(&self) -> Result<Vec<DataLocale>, DataError>;
+    /// Returns whether a [`DataLocale`] is in the supported locales list.
+    fn supports_locale(&self, locale: &DataLocale) -> Result<bool, DataError> {
+        self.supported_locales().map(|v| v.contains(locale))
+    }
 }
 
 impl<M, P> IterableDynamicDataProvider<M> for Box<P>

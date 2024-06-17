@@ -1,20 +1,23 @@
 ---
 source: macro/src/lib.rs
-expression: "rustfmt_code(&gen_bridge(parse_quote! {\n                            mod ffi\n                            {\n                                struct Foo {} impl Foo\n                                { pub fn from_str(s : & str) { unimplemented! () } }\n                            }\n                        }).to_token_stream().to_string())"
+expression: "rustfmt_code(&gen_bridge(parse_quote! {\n                            mod ffi\n                            {\n                                struct Foo {} impl Foo\n                                { pub fn from_str(s : & DiplomatStr) { unimplemented! () } }\n                            }\n                        }).to_token_stream().to_string())"
 ---
 mod ffi {
     #[repr(C)]
+    #[derive(Clone, Copy)]
     struct Foo {}
     impl Foo {
-        pub fn from_str(s: &str) {
+        pub fn from_str(s: &DiplomatStr) {
             unimplemented!()
         }
     }
+    use diplomat_runtime::*;
     #[no_mangle]
     extern "C" fn Foo_from_str(s_diplomat_data: *const u8, s_diplomat_len: usize) {
-        Foo::from_str(unsafe {
-            core::str::from_utf8(core::slice::from_raw_parts(s_diplomat_data, s_diplomat_len))
-                .unwrap()
+        Foo::from_str(if s_diplomat_len == 0 {
+            Default::default()
+        } else {
+            unsafe { core::slice::from_raw_parts(s_diplomat_data, s_diplomat_len) }
         })
     }
     #[no_mangle]

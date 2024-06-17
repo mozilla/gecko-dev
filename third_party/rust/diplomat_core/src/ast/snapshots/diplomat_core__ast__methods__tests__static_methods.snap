@@ -27,6 +27,5 @@ params:
         lifetimes: []
 return_type: ~
 lifetime_env: {}
-attrs:
-  cfg: []
+attrs: {}
 

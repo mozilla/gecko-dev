@@ -1,0 +1,30 @@
+---
+source: macro/src/lib.rs
+expression: "rustfmt_code(&gen_bridge(parse_quote! {\n                            mod ffi\n                            {\n                                struct Foo {} impl Foo\n                                {\n                                    pub fn something_with_str(s : Box < str >)\n                                    { unimplemented! () }\n                                }\n                            }\n                        }).to_token_stream().to_string())"
+---
+mod ffi {
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct Foo {}
+    impl Foo {
+        pub fn something_with_str(s: Box<str>) {
+            unimplemented!()
+        }
+    }
+    use diplomat_runtime::*;
+    #[no_mangle]
+    extern "C" fn Foo_something_with_str(s_diplomat_data: *mut u8, s_diplomat_len: usize) {
+        Foo::something_with_str(if s_diplomat_len == 0 {
+            Default::default()
+        } else {
+            unsafe {
+                core::str::from_boxed_utf8_unchecked(alloc::boxed::Box::from_raw(
+                    core::ptr::slice_from_raw_parts_mut(s_diplomat_data, s_diplomat_len),
+                ))
+            }
+        })
+    }
+    #[no_mangle]
+    extern "C" fn Foo_destroy(this: Box<Foo>) {}
+}
+

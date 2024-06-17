@@ -45,6 +45,9 @@ pub enum FloatType {
 pub enum PrimitiveType {
     Bool,
     Char,
+    /// a primitive byte that is not meant to be interpreted numerically
+    /// in languages that don't have fine-grained integer types
+    Byte,
     Int(IntType),
     IntSize(IntSizeType),
     Int128(Int128Type),
@@ -116,6 +119,7 @@ impl PrimitiveType {
             ast::PrimitiveType::f64 => PrimitiveType::Float(FloatType::F64),
             ast::PrimitiveType::bool => PrimitiveType::Bool,
             ast::PrimitiveType::char => PrimitiveType::Char,
+            ast::PrimitiveType::byte => PrimitiveType::Byte,
         }
     }
 
@@ -124,6 +128,7 @@ impl PrimitiveType {
         match self {
             PrimitiveType::Bool => "bool",
             PrimitiveType::Char => "char",
+            PrimitiveType::Byte => "byte",
             PrimitiveType::Int(ty) => ty.as_str(),
             PrimitiveType::IntSize(ty) => ty.as_str(),
             PrimitiveType::Int128(ty) => ty.as_str(),

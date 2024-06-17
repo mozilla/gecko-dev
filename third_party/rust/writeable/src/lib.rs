@@ -2,7 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-// https://github.com/unicode-org/icu4x/blob/main/docs/process/boilerplate.md#library-annotations
+// https://github.com/unicode-org/icu4x/blob/main/documents/process/boilerplate.md#library-annotations
 #![cfg_attr(all(not(test), not(doc)), no_std)]
 #![cfg_attr(
     not(test),
@@ -66,13 +66,35 @@
 
 extern crate alloc;
 
+mod cmp;
+#[cfg(feature = "either")]
+mod either;
 mod impls;
 mod ops;
+mod parts_write_adapter;
+mod testing;
+mod try_writeable;
 
 use alloc::borrow::Cow;
 use alloc::string::String;
-use alloc::vec::Vec;
 use core::fmt;
+
+pub use try_writeable::TryWriteable;
+
+/// Helper types for trait impls.
+pub mod adapters {
+    use super::*;
+
+    pub use parts_write_adapter::CoreWriteAsPartsWrite;
+    pub use try_writeable::TryWriteableInfallibleAsWriteable;
+    pub use try_writeable::WriteableAsTryWriteableInfallible;
+}
+
+#[doc(hidden)]
+pub mod _internal {
+    pub use super::testing::try_writeable_to_parts_for_test;
+    pub use super::testing::writeable_to_parts_for_test;
+}
 
 /// A hint to help consumers of `Writeable` pre-allocate bytes before they call
 /// [`write_to`](Writeable::write_to).
@@ -165,6 +187,16 @@ pub struct Part {
     pub value: &'static str,
 }
 
+impl Part {
+    /// A part that should annotate error segments in [`TryWriteable`] output.
+    ///
+    /// For an example, see [`TryWriteable`].
+    pub const ERROR: Part = Part {
+        category: "writeable",
+        value: "error",
+    };
+}
+
 /// A sink that supports annotating parts of the string with `Part`s.
 pub trait PartsWrite: fmt::Write {
     type SubPartsWrite: PartsWrite + ?Sized;
@@ -182,30 +214,7 @@ pub trait Writeable {
     /// The default implementation delegates to `write_to_parts`, and discards any
     /// `Part` annotations.
     fn write_to<W: fmt::Write + ?Sized>(&self, sink: &mut W) -> fmt::Result {
-        struct CoreWriteAsPartsWrite<W: fmt::Write + ?Sized>(W);
-        impl<W: fmt::Write + ?Sized> fmt::Write for CoreWriteAsPartsWrite<W> {
-            fn write_str(&mut self, s: &str) -> fmt::Result {
-                self.0.write_str(s)
-            }
-
-            fn write_char(&mut self, c: char) -> fmt::Result {
-                self.0.write_char(c)
-            }
-        }
-
-        impl<W: fmt::Write + ?Sized> PartsWrite for CoreWriteAsPartsWrite<W> {
-            type SubPartsWrite = CoreWriteAsPartsWrite<W>;
-
-            fn with_part(
-                &mut self,
-                _part: Part,
-                mut f: impl FnMut(&mut Self::SubPartsWrite) -> fmt::Result,
-            ) -> fmt::Result {
-                f(self)
-            }
-        }
-
-        self.write_to_parts(&mut CoreWriteAsPartsWrite(sink))
+        self.write_to_parts(&mut parts_write_adapter::CoreWriteAsPartsWrite(sink))
     }
 
     /// Write bytes and `Part` annotations to the given sink. Errors from the
@@ -270,6 +279,51 @@ pub trait Writeable {
         let _ = self.write_to(&mut output);
         Cow::Owned(output)
     }
+
+    /// Compares the contents of this `Writeable` to the given bytes
+    /// without allocating a String to hold the `Writeable` contents.
+    ///
+    /// This returns a lexicographical comparison, the same as if the Writeable
+    /// were first converted to a String and then compared with `Ord`. For a
+    /// locale-sensitive string ordering, use an ICU4X Collator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use core::cmp::Ordering;
+    /// use core::fmt;
+    /// use writeable::Writeable;
+    ///
+    /// struct WelcomeMessage<'s> {
+    ///     pub name: &'s str,
+    /// }
+    ///
+    /// impl<'s> Writeable for WelcomeMessage<'s> {
+    ///     // see impl in Writeable docs
+    /// #    fn write_to<W: fmt::Write + ?Sized>(&self, sink: &mut W) -> fmt::Result {
+    /// #        sink.write_str("Hello, ")?;
+    /// #        sink.write_str(self.name)?;
+    /// #        sink.write_char('!')?;
+    /// #        Ok(())
+    /// #    }
+    /// }
+    ///
+    /// let message = WelcomeMessage { name: "Alice" };
+    /// let message_str = message.write_to_string();
+    ///
+    /// assert_eq!(Ordering::Equal, message.writeable_cmp_bytes(b"Hello, Alice!"));
+    ///
+    /// assert_eq!(Ordering::Greater, message.writeable_cmp_bytes(b"Alice!"));
+    /// assert_eq!(Ordering::Greater, (*message_str).cmp("Alice!"));
+    ///
+    /// assert_eq!(Ordering::Less, message.writeable_cmp_bytes(b"Hello, Bob!"));
+    /// assert_eq!(Ordering::Less, (*message_str).cmp("Hello, Bob!"));
+    /// ```
+    fn writeable_cmp_bytes(&self, other: &[u8]) -> core::cmp::Ordering {
+        let mut wc = cmp::WriteComparator::new(other);
+        let _ = self.write_to(&mut wc);
+        wc.finish().reverse()
+    }
 }
 
 /// Implements [`Display`](core::fmt::Display) for types that implement [`Writeable`].
@@ -291,12 +345,22 @@ macro_rules! impl_display_with_writeable {
     };
 }
 
-/// Testing macros for types implementing Writeable. The first argument should be a
-/// `Writeable`, the second argument a string, and the third argument (*_parts_eq only)
-/// a list of parts (`[(usize, usize, Part)]`).
+/// Testing macros for types implementing [`Writeable`].
 ///
-/// The macros tests for equality of string content, parts (*_parts_eq only), and
-/// verify the size hint.
+/// Arguments, in order:
+///
+/// 1. The [`Writeable`] under test
+/// 2. The expected string value
+/// 3. [`*_parts_eq`] only: a list of parts (`[(start, end, Part)]`)
+///
+/// Any remaining arguments get passed to `format!`
+///
+/// The macros tests the following:
+///
+/// - Equality of string content
+/// - Equality of parts ([`*_parts_eq`] only)
+/// - Validity of size hint
+/// - Reflexivity of `cmp_bytes` and order against largest and smallest strings
 ///
 /// # Examples
 ///
@@ -340,30 +404,46 @@ macro_rules! impl_display_with_writeable {
 ///     "Hello World"
 /// );
 /// ```
+///
+/// [`*_parts_eq`]: assert_writeable_parts_eq
 #[macro_export]
 macro_rules! assert_writeable_eq {
     ($actual_writeable:expr, $expected_str:expr $(,)?) => {
-        $crate::assert_writeable_eq!($actual_writeable, $expected_str, "");
+        $crate::assert_writeable_eq!($actual_writeable, $expected_str, "")
     };
     ($actual_writeable:expr, $expected_str:expr, $($arg:tt)+) => {{
+        $crate::assert_writeable_eq!(@internal, $actual_writeable, $expected_str, $($arg)*);
+    }};
+    (@internal, $actual_writeable:expr, $expected_str:expr, $($arg:tt)+) => {{
         let actual_writeable = &$actual_writeable;
-        let (actual_str, _) = $crate::writeable_to_parts_for_test(actual_writeable).unwrap();
+        let (actual_str, actual_parts) = $crate::_internal::writeable_to_parts_for_test(actual_writeable);
+        let actual_len = actual_str.len();
         assert_eq!(actual_str, $expected_str, $($arg)*);
         assert_eq!(actual_str, $crate::Writeable::write_to_string(actual_writeable), $($arg)+);
         let length_hint = $crate::Writeable::writeable_length_hint(actual_writeable);
+        let lower = length_hint.0;
         assert!(
-            length_hint.0 <= actual_str.len(),
-            "hint lower bound {} larger than actual length {}: {}",
-            length_hint.0, actual_str.len(), format!($($arg)*),
+            lower <= actual_len,
+            "hint lower bound {lower} larger than actual length {actual_len}: {}",
+            format!($($arg)*),
         );
         if let Some(upper) = length_hint.1 {
             assert!(
-                actual_str.len() <= upper,
-                "hint upper bound {} smaller than actual length {}: {}",
-                length_hint.0, actual_str.len(), format!($($arg)*),
+                actual_len <= upper,
+                "hint upper bound {upper} smaller than actual length {actual_len}: {}",
+                format!($($arg)*),
             );
         }
         assert_eq!(actual_writeable.to_string(), $expected_str);
+        let ordering = $crate::Writeable::writeable_cmp_bytes(actual_writeable, $expected_str.as_bytes());
+        assert_eq!(ordering, core::cmp::Ordering::Equal, $($arg)*);
+        let ordering = $crate::Writeable::writeable_cmp_bytes(actual_writeable, "\u{10FFFF}".as_bytes());
+        assert_eq!(ordering, core::cmp::Ordering::Less, $($arg)*);
+        if $expected_str != "" {
+            let ordering = $crate::Writeable::writeable_cmp_bytes(actual_writeable, "".as_bytes());
+            assert_eq!(ordering, core::cmp::Ordering::Greater, $($arg)*);
+        }
+        actual_parts // return for assert_writeable_parts_eq
     }};
 }
 
@@ -371,68 +451,10 @@ macro_rules! assert_writeable_eq {
 #[macro_export]
 macro_rules! assert_writeable_parts_eq {
     ($actual_writeable:expr, $expected_str:expr, $expected_parts:expr $(,)?) => {
-        $crate::assert_writeable_parts_eq!($actual_writeable, $expected_str, $expected_parts, "");
+        $crate::assert_writeable_parts_eq!($actual_writeable, $expected_str, $expected_parts, "")
     };
     ($actual_writeable:expr, $expected_str:expr, $expected_parts:expr, $($arg:tt)+) => {{
-        let actual_writeable = &$actual_writeable;
-        let (actual_str, actual_parts) = $crate::writeable_to_parts_for_test(actual_writeable).unwrap();
-        assert_eq!(actual_str, $expected_str, $($arg)+);
-        assert_eq!(actual_str, $crate::Writeable::write_to_string(actual_writeable), $($arg)+);
+        let actual_parts = $crate::assert_writeable_eq!(@internal, $actual_writeable, $expected_str, $($arg)*);
         assert_eq!(actual_parts, $expected_parts, $($arg)+);
-        let length_hint = $crate::Writeable::writeable_length_hint(actual_writeable);
-        assert!(length_hint.0 <= actual_str.len(), $($arg)+);
-        if let Some(upper) = length_hint.1 {
-            assert!(actual_str.len() <= upper, $($arg)+);
-        }
-        assert_eq!(actual_writeable.to_string(), $expected_str);
     }};
-}
-
-#[doc(hidden)]
-#[allow(clippy::type_complexity)]
-pub fn writeable_to_parts_for_test<W: Writeable>(
-    writeable: &W,
-) -> Result<(String, Vec<(usize, usize, Part)>), fmt::Error> {
-    struct State {
-        string: alloc::string::String,
-        parts: Vec<(usize, usize, Part)>,
-    }
-
-    impl fmt::Write for State {
-        fn write_str(&mut self, s: &str) -> fmt::Result {
-            self.string.write_str(s)
-        }
-        fn write_char(&mut self, c: char) -> fmt::Result {
-            self.string.write_char(c)
-        }
-    }
-
-    impl PartsWrite for State {
-        type SubPartsWrite = Self;
-        fn with_part(
-            &mut self,
-            part: Part,
-            mut f: impl FnMut(&mut Self::SubPartsWrite) -> fmt::Result,
-        ) -> fmt::Result {
-            let start = self.string.len();
-            f(self)?;
-            let end = self.string.len();
-            if start < end {
-                self.parts.push((start, end, part));
-            }
-            Ok(())
-        }
-    }
-
-    let mut state = State {
-        string: alloc::string::String::new(),
-        parts: Vec::new(),
-    };
-    writeable.write_to_parts(&mut state)?;
-
-    // Sort by first open and last closed
-    state
-        .parts
-        .sort_unstable_by_key(|(begin, end, _)| (*begin, end.wrapping_neg()));
-    Ok((state.string, state.parts))
 }

@@ -2,10 +2,7 @@ use serde::Serialize;
 use std::ops::ControlFlow;
 
 use super::docs::Docs;
-use super::{
-    Attrs, Ident, Lifetime, LifetimeEnv, Mutability, Path, PathType, TypeName, ValidityError,
-};
-use crate::Env;
+use super::{Attrs, Ident, Lifetime, LifetimeEnv, Mutability, PathType, TypeName};
 
 /// A method declared in the `impl` associated with an FFI struct.
 /// Includes both static and non-static methods, which can be distinguished
@@ -49,10 +46,14 @@ impl Method {
         impl_generics: Option<&syn::Generics>,
         impl_attrs: &Attrs,
     ) -> Method {
+        let mut attrs = impl_attrs.clone();
+        attrs.add_attrs(&m.attrs);
+
         let self_ident = self_path_type.path.elements.last().unwrap();
         let method_ident = &m.sig.ident;
+        let concat_method_ident = format!("{self_ident}_{method_ident}");
         let extern_ident = syn::Ident::new(
-            format!("{self_ident}_{method_ident}").as_str(),
+            &attrs.abi_rename.apply(concat_method_ident.into()),
             m.sig.ident.span(),
         );
 
@@ -90,9 +91,6 @@ impl Method {
             &all_params[..],
             return_ty.as_ref(),
         );
-
-        let mut attrs: Attrs = (&*m.attrs).into();
-        attrs.merge_parent_attrs(impl_attrs);
 
         Method {
             name: Ident::from(method_ident),
@@ -182,29 +180,6 @@ impl Method {
             BorrowedParams(held_self_param, held_params)
         } else {
             BorrowedParams(None, vec![])
-        }
-    }
-
-    /// Performs type-specific validity checks (see [TypeName::check_validity()])
-    pub fn check_validity<'a>(
-        &'a self,
-        in_path: &Path,
-        env: &Env,
-        errors: &mut Vec<ValidityError>,
-    ) {
-        // validity check that if the self type is nonopaque, that it is
-        // behind a reference
-        if let Some(ref self_param) = self.self_param {
-            self_param
-                .to_typename()
-                .check_validity(in_path, env, errors);
-        }
-        for m in self.params.iter() {
-            // Do we need to check the validity of the input types?
-            m.ty.check_validity(in_path, env, errors);
-        }
-        if let Some(ref t) = self.return_type {
-            t.check_return_type_validity(in_path, env, errors);
         }
     }
 
@@ -383,9 +358,7 @@ mod tests {
 
     use syn;
 
-    use crate::ast::Ident;
-
-    use super::{Attrs, Method, Path, PathType};
+    use crate::ast::{Attrs, Ident, Method, Path, PathType};
 
     #[test]
     fn static_methods() {

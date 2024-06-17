@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 unicode-bidi = { version = "0.3.15", features = ["smallvec"] }
-icu_properties = { version = "1.4.0", features = ["bidi"] }
+icu_properties = { version = "1.5.0", features = ["bidi"] }

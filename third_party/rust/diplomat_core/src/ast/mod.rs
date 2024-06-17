@@ -3,6 +3,7 @@
 /// types such as opaque structs, [`Box`], and [`Result`] with utilities
 /// for handling such types.
 pub mod attrs;
+pub(crate) use attrs::AttrInheritContext;
 pub use attrs::Attrs;
 
 mod methods;
@@ -19,10 +20,11 @@ pub use enums::Enum;
 
 mod types;
 pub use types::{
-    CustomType, LifetimeOrigin, ModSymbol, Mutability, PathType, PrimitiveType, TypeName,
+    CustomType, LifetimeOrigin, ModSymbol, Mutability, PathType, PrimitiveType, StringEncoding,
+    TypeName,
 };
 
-mod lifetimes;
+pub(crate) mod lifetimes;
 pub use lifetimes::{Lifetime, LifetimeEnv, LifetimeTransitivity, NamedLifetime};
 
 mod paths;
@@ -33,6 +35,3 @@ pub use idents::Ident;
 
 mod docs;
 pub use docs::{DocType, Docs, DocsUrlGenerator, MarkdownStyle, RustLink, RustLinkDisplay};
-
-mod validity;
-pub use validity::ValidityError;

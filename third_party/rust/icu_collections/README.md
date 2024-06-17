@@ -7,7 +7,7 @@ Efficient collections for Unicode data.
 This module is published as its own crate ([`icu_collections`](https://docs.rs/icu_collections/latest/icu_collections/))
 and as part of the [`icu`](https://docs.rs/icu/latest/icu/) crate. See the latter for more details on the ICU4X project.
 
-ICU4X `CodePointTrie` provides a read-only view of CodePointTrie data that is exported
+ICU4X `CodePointTrie` provides a read-only view of `CodePointTrie` data that is exported
 from ICU4C. Detailed information about the design of the data structure can be found in the documentation
 for the `CodePointTrie` struct.
 

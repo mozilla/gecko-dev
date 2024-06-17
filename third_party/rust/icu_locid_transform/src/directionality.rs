@@ -25,8 +25,8 @@ pub enum Direction {
 /// # Examples
 ///
 /// ```
-/// use icu_locid::locale;
-/// use icu_locid_transform::{Direction, LocaleDirectionality};
+/// use icu::locid::locale;
+/// use icu::locid_transform::{Direction, LocaleDirectionality};
 ///
 /// let ld = LocaleDirectionality::new();
 ///
@@ -36,6 +36,13 @@ pub enum Direction {
 pub struct LocaleDirectionality {
     script_direction: DataPayload<ScriptDirectionV1Marker>,
     expander: LocaleExpander,
+}
+
+#[cfg(feature = "compiled_data")]
+impl Default for LocaleDirectionality {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LocaleDirectionality {
@@ -85,8 +92,8 @@ impl LocaleDirectionality {
     /// # Examples
     ///
     /// ```
-    /// use icu_locid::locale;
-    /// use icu_locid_transform::{
+    /// use icu::locid::locale;
+    /// use icu::locid_transform::{
     ///     Direction, LocaleDirectionality, LocaleExpander,
     /// };
     ///
@@ -145,8 +152,8 @@ impl LocaleDirectionality {
     /// Using an existing locale:
     ///
     /// ```
-    /// use icu_locid::locale;
-    /// use icu_locid_transform::{Direction, LocaleDirectionality};
+    /// use icu::locid::locale;
+    /// use icu::locid_transform::{Direction, LocaleDirectionality};
     ///
     /// let ld = LocaleDirectionality::new();
     ///
@@ -162,9 +169,9 @@ impl LocaleDirectionality {
     /// Using a script directly:
     ///
     /// ```
-    /// use icu_locid::subtags::script;
-    /// use icu_locid::Locale;
-    /// use icu_locid_transform::{Direction, LocaleDirectionality};
+    /// use icu::locid::subtags::script;
+    /// use icu::locid::Locale;
+    /// use icu::locid_transform::{Direction, LocaleDirectionality};
     ///
     /// let ld = LocaleDirectionality::new();
     ///

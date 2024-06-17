@@ -34,15 +34,17 @@ mod fields;
 mod key;
 mod value;
 
+use core::cmp::Ordering;
+
 pub use fields::Fields;
 #[doc(inline)]
 pub use key::{key, Key};
 pub use value::Value;
 
-use crate::helpers::ShortSlice;
 use crate::parser::SubtagIterator;
 use crate::parser::{parse_language_identifier_from_iter, ParserError, ParserMode};
-use crate::subtags::Language;
+use crate::shortvec::ShortBoxSlice;
+use crate::subtags::{self, Language};
 use crate::LanguageIdentifier;
 use litemap::LiteMap;
 
@@ -131,6 +133,31 @@ impl Transform {
         self.fields.clear();
     }
 
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn as_tuple(
+        &self,
+    ) -> (
+        Option<(
+            subtags::Language,
+            Option<subtags::Script>,
+            Option<subtags::Region>,
+            &subtags::Variants,
+        )>,
+        &Fields,
+    ) {
+        (self.lang.as_ref().map(|l| l.as_tuple()), &self.fields)
+    }
+
+    /// Returns an ordering suitable for use in [`BTreeSet`].
+    ///
+    /// The ordering may or may not be equivalent to string ordering, and it
+    /// may or may not be stable across ICU4X releases.
+    ///
+    /// [`BTreeSet`]: alloc::collections::BTreeSet
+    pub fn total_cmp(&self, other: &Self) -> Ordering {
+        self.as_tuple().cmp(&other.as_tuple())
+    }
+
     pub(crate) fn try_from_iter(iter: &mut SubtagIterator) -> Result<Self, ParserError> {
         let mut tlang = None;
         let mut tfields = LiteMap::new();
@@ -145,7 +172,7 @@ impl Transform {
         }
 
         let mut current_tkey = None;
-        let mut current_tvalue = ShortSlice::new();
+        let mut current_tvalue = ShortBoxSlice::new();
         let mut has_current_tvalue = false;
 
         while let Some(subtag) = iter.peek() {
@@ -161,7 +188,7 @@ impl Transform {
                     }
                     tfields.try_insert(tkey, Value::from_short_slice_unchecked(current_tvalue));
                     current_tkey = None;
-                    current_tvalue = ShortSlice::new();
+                    current_tvalue = ShortBoxSlice::new();
                     has_current_tvalue = false;
                     continue;
                 }

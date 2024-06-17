@@ -180,7 +180,7 @@ impl<'data> LstmDataFloat32<'data> {
     }
 
     #[cfg(any(feature = "serde", feature = "datagen"))]
-    /// Creates a LstmDataFloat32 with the given data. Fails if the matrix dimensions are inconsisent.
+    /// Creates a LstmDataFloat32 with the given data. Fails if the matrix dimensions are inconsistent.
     #[allow(clippy::too_many_arguments)] // constructor
     pub fn try_from_parts(
         model: ModelType,
@@ -349,10 +349,4 @@ pub enum LstmDataV1<'data> {
     // new variants should go BELOW existing ones
     // Serde serializes based on variant name and index in the enum
     // https://docs.rs/serde/latest/serde/trait.Serializer.html#tymethod.serialize_unit_variant
-}
-
-pub(crate) struct LstmDataV1Marker;
-
-impl DataMarker for LstmDataV1Marker {
-    type Yokeable = LstmDataV1<'static>;
 }

@@ -11,6 +11,7 @@ use core::convert::TryFrom;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use core::ops::Deref;
+use yoke::cartable_ptr::CartableOptionPointer;
 use yoke::trait_hack::YokeTraitHack;
 use yoke::*;
 
@@ -73,15 +74,100 @@ pub struct DataResponseMetadata {
 /// ```
 pub struct DataPayload<M: DataMarker>(pub(crate) DataPayloadInner<M>);
 
+/// A container for data payloads with storage for something else.
+///
+/// The type parameter `O` is stored as part of the interior enum, leading to
+/// better stack size optimization. `O` can be as large as the [`DataPayload`]
+/// minus two words without impacting stack size.
+///
+/// # Examples
+///
+/// Create and use DataPayloadOr:
+///
+/// ```
+/// use icu_provider::hello_world::*;
+/// use icu_provider::prelude::*;
+/// use icu_provider::DataPayloadOr;
+///
+/// let payload: DataPayload<HelloWorldV1Marker> = HelloWorldProvider
+///     .load(DataRequest {
+///         locale: &"de".parse().unwrap(),
+///         metadata: Default::default(),
+///     })
+///     .expect("Loading should succeed")
+///     .take_payload()
+///     .expect("Data should be present");
+///
+/// let payload_some =
+///     DataPayloadOr::<HelloWorldV1Marker, ()>::from_payload(payload);
+/// let payload_none = DataPayloadOr::<HelloWorldV1Marker, ()>::from_other(());
+///
+/// assert_eq!(
+///     payload_some.get(),
+///     Ok(&HelloWorldV1 {
+///         message: "Hallo Welt".into()
+///     })
+/// );
+/// assert_eq!(payload_none.get(), Err(&()));
+/// ```
+///
+/// Stack size comparison:
+///
+/// ```
+/// use core::mem::size_of;
+/// use icu_provider::prelude::*;
+/// use icu_provider::DataPayloadOr;
+///
+/// const W: usize = size_of::<usize>();
+///
+/// // SampleStruct is 3 words:
+/// # #[icu_provider::data_struct(SampleStructMarker)]
+/// # pub struct SampleStruct<'data>(usize, usize, &'data ());
+/// assert_eq!(W * 3, size_of::<SampleStruct>());
+///
+/// // DataPayload adds a word for a total of 4 words:
+/// assert_eq!(W * 4, size_of::<DataPayload<SampleStructMarker>>());
+///
+/// // Option<DataPayload> balloons to 5 words:
+/// assert_eq!(W * 5, size_of::<Option<DataPayload<SampleStructMarker>>>());
+///
+/// // But, using DataPayloadOr is the same size as DataPayload:
+/// assert_eq!(W * 4, size_of::<DataPayloadOr<SampleStructMarker, ()>>());
+///
+/// // The largest optimized Other type is two words smaller than the DataPayload:
+/// assert_eq!(W * 4, size_of::<DataPayloadOr<SampleStructMarker, [usize; 1]>>());
+/// assert_eq!(W * 4, size_of::<DataPayloadOr<SampleStructMarker, [usize; 2]>>());
+/// assert_eq!(W * 5, size_of::<DataPayloadOr<SampleStructMarker, [usize; 3]>>());
+/// ```
+#[doc(hidden)] // TODO(#4467): establish this as an internal API
+pub struct DataPayloadOr<M: DataMarker, O>(pub(crate) DataPayloadOrInner<M, O>);
+
 pub(crate) enum DataPayloadInner<M: DataMarker> {
-    Yoke(Yoke<M::Yokeable, Option<Cart>>),
+    Yoke(Yoke<M::Yokeable, CartableOptionPointer<CartInner>>),
     StaticRef(&'static M::Yokeable),
 }
 
-/// The type of the "cart" that is used by `DataPayload`.
+pub(crate) enum DataPayloadOrInner<M: DataMarker, O> {
+    Yoke(Yoke<M::Yokeable, CartableOptionPointer<CartInner>>),
+    Inner(DataPayloadOrInnerInner<M, O>),
+}
+
+pub(crate) enum DataPayloadOrInnerInner<M: DataMarker, O> {
+    StaticRef(&'static M::Yokeable),
+    Other(O),
+}
+
+/// The type of the "cart" that is used by [`DataPayload`].
+///
+/// This type is public but the inner cart type is private. To create a
+/// [`Yoke`] with this cart, use [`Cart::try_make_yoke`]. Then, convert
+/// it to a [`DataPayload`] with [`DataPayload::from_yoked_buffer`].
 #[derive(Clone, Debug)]
 #[allow(clippy::redundant_allocation)] // false positive, it's cheaper to wrap an existing Box in an Rc than to reallocate a huge Rc
-pub struct Cart(SelectedRc<Box<[u8]>>);
+pub struct Cart(CartInner);
+
+/// The actual cart type (private typedef).
+pub(crate) type CartInner = SelectedRc<Box<[u8]>>;
 
 impl Deref for Cart {
     type Target = Box<[u8]>;
@@ -106,6 +192,17 @@ impl Cart {
             .map(|yoke| unsafe { yoke.replace_cart(Cart) })
             .map(Yoke::wrap_cart_in_option)
     }
+
+    /// Helper function to convert `Yoke<Y, Option<Cart>>` to `Yoke<Y, Option<CartInner>>`.
+    #[inline]
+    pub(crate) fn unwrap_cart<Y>(yoke: Yoke<Y, Option<Cart>>) -> Yoke<Y, Option<CartInner>>
+    where
+        for<'a> Y: Yokeable<'a>,
+    {
+        // Safety: `Cart` has one field and we are removing it from the newtype,
+        // and we are preserving it in the new cart, unwrapping it from the newtype.
+        unsafe { yoke.replace_cart(|option_cart| option_cart.map(|cart| cart.0)) }
+    }
 }
 
 impl<M> Debug for DataPayload<M>
@@ -115,6 +212,19 @@ where
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.get().fmt(f)
+    }
+}
+
+impl<M, O> Debug for DataPayloadOr<M, O>
+where
+    M: DataMarker,
+    for<'a> &'a <M::Yokeable as Yokeable<'a>>::Output: Debug,
+    O: Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.get()
+            .map(|v| Debug::fmt(&v, f))
+            .unwrap_or_else(|v| Debug::fmt(v, f))
     }
 }
 
@@ -143,6 +253,25 @@ where
     }
 }
 
+impl<M, O> Clone for DataPayloadOr<M, O>
+where
+    M: DataMarker,
+    for<'a> YokeTraitHack<<M::Yokeable as Yokeable<'a>>::Output>: Clone,
+    O: Clone,
+{
+    fn clone(&self) -> Self {
+        Self(match &self.0 {
+            DataPayloadOrInner::Yoke(yoke) => DataPayloadOrInner::Yoke(yoke.clone()),
+            DataPayloadOrInner::Inner(DataPayloadOrInnerInner::StaticRef(r)) => {
+                DataPayloadOrInner::Inner(DataPayloadOrInnerInner::StaticRef(*r))
+            }
+            DataPayloadOrInner::Inner(DataPayloadOrInnerInner::Other(o)) => {
+                DataPayloadOrInner::Inner(DataPayloadOrInnerInner::Other(o.clone()))
+            }
+        })
+    }
+}
+
 impl<M> PartialEq for DataPayload<M>
 where
     M: DataMarker,
@@ -153,10 +282,33 @@ where
     }
 }
 
+impl<M, O> PartialEq for DataPayloadOr<M, O>
+where
+    M: DataMarker,
+    for<'a> YokeTraitHack<<M::Yokeable as Yokeable<'a>>::Output>: PartialEq,
+    O: Eq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        match (self.get(), other.get()) {
+            (Ok(x), Ok(y)) => YokeTraitHack(x).into_ref() == YokeTraitHack(y).into_ref(),
+            (Err(x), Err(y)) => x == y,
+            _ => false,
+        }
+    }
+}
+
 impl<M> Eq for DataPayload<M>
 where
     M: DataMarker,
     for<'a> YokeTraitHack<<M::Yokeable as Yokeable<'a>>::Output>: Eq,
+{
+}
+
+impl<M, O> Eq for DataPayloadOr<M, O>
+where
+    M: DataMarker,
+    for<'a> YokeTraitHack<<M::Yokeable as Yokeable<'a>>::Output>: Eq,
+    O: Eq,
 {
 }
 
@@ -167,6 +319,27 @@ fn test_clone_eq() {
     #[allow(clippy::redundant_clone)]
     let p2 = p1.clone();
     assert_eq!(p1, p2);
+
+    let p1 = DataPayloadOr::<HelloWorldV1Marker, usize>::from_payload(p1);
+    #[allow(clippy::redundant_clone)]
+    let p2 = p1.clone();
+    assert_eq!(p1, p2);
+
+    let p3 = DataPayloadOr::<HelloWorldV1Marker, usize>::from_other(555);
+    #[allow(clippy::redundant_clone)]
+    let p4 = p3.clone();
+    assert_eq!(p3, p4);
+
+    let p5 = DataPayloadOr::<HelloWorldV1Marker, usize>::from_other(666);
+    assert_ne!(p3, p5);
+    assert_ne!(p4, p5);
+
+    assert_ne!(p1, p3);
+    assert_ne!(p1, p4);
+    assert_ne!(p1, p5);
+    assert_ne!(p2, p3);
+    assert_ne!(p2, p4);
+    assert_ne!(p2, p5);
 }
 
 impl<M> DataPayload<M>
@@ -194,8 +367,10 @@ where
     /// assert_eq!(payload.get(), &local_struct);
     /// ```
     #[inline]
-    pub const fn from_owned(data: M::Yokeable) -> Self {
-        Self(DataPayloadInner::Yoke(Yoke::new_owned(data)))
+    pub fn from_owned(data: M::Yokeable) -> Self {
+        Self(DataPayloadInner::Yoke(
+            Yoke::new_owned(data).convert_cart_into_option_pointer(),
+        ))
     }
 
     #[doc(hidden)]
@@ -255,7 +430,10 @@ where
         M::Yokeable: zerofrom::ZeroFrom<'static, M::Yokeable>,
     {
         if let DataPayloadInner::StaticRef(r) = self.0 {
-            self.0 = DataPayloadInner::Yoke(Yoke::new_owned(zerofrom::ZeroFrom::zero_from(r)));
+            self.0 = DataPayloadInner::Yoke(
+                Yoke::new_owned(zerofrom::ZeroFrom::zero_from(r))
+                    .convert_cart_into_option_pointer(),
+            );
         }
         match &mut self.0 {
             DataPayloadInner::Yoke(yoke) => yoke.with_mut(f),
@@ -341,7 +519,8 @@ where
         DataPayload(DataPayloadInner::Yoke(
             match self.0 {
                 DataPayloadInner::Yoke(yoke) => yoke,
-                DataPayloadInner::StaticRef(r) => Yoke::new_owned(zerofrom::ZeroFrom::zero_from(r)),
+                DataPayloadInner::StaticRef(r) => Yoke::new_owned(zerofrom::ZeroFrom::zero_from(r))
+                    .convert_cart_into_option_pointer(),
             }
             .map_project(f),
         ))
@@ -394,7 +573,7 @@ where
                 // we're going from 'static to 'static, however in a generic context it's not
                 // clear to the compiler that that is the case. We have to use the unsafe make API to do this.
                 let yokeable: M2::Yokeable = unsafe { M2::Yokeable::make(output) };
-                Yoke::new_owned(yokeable)
+                Yoke::new_owned(yokeable).convert_cart_into_option_pointer()
             }
         }))
     }
@@ -448,7 +627,8 @@ where
         Ok(DataPayload(DataPayloadInner::Yoke(
             match self.0 {
                 DataPayloadInner::Yoke(yoke) => yoke,
-                DataPayloadInner::StaticRef(r) => Yoke::new_owned(zerofrom::ZeroFrom::zero_from(r)),
+                DataPayloadInner::StaticRef(r) => Yoke::new_owned(zerofrom::ZeroFrom::zero_from(r))
+                    .convert_cart_into_option_pointer(),
             }
             .try_map_project(f)?,
         )))
@@ -509,6 +689,7 @@ where
                     f(Yokeable::transform(*r), PhantomData)?;
                 // Safety: <M2::Yokeable as Yokeable<'static>>::Output is the same type as M2::Yokeable
                 Yoke::new_owned(unsafe { M2::Yokeable::make(output) })
+                    .convert_cart_into_option_pointer()
             }
         })))
     }
@@ -526,7 +707,6 @@ where
     /// # Examples
     ///
     /// ```no_run
-    /// use icu_locid::locale;
     /// use icu_provider::hello_world::*;
     /// use icu_provider::prelude::*;
     ///
@@ -619,20 +799,25 @@ where
 impl DataPayload<BufferMarker> {
     /// Converts an owned byte buffer into a `DataPayload<BufferMarker>`.
     pub fn from_owned_buffer(buffer: Box<[u8]>) -> Self {
-        let yoke = Yoke::attach_to_cart(SelectedRc::new(buffer), |b| &**b);
-        // Safe because cart is wrapped
-        let yoke = unsafe { yoke.replace_cart(|b| Some(Cart(b))) };
+        let yoke = Yoke::attach_to_cart(SelectedRc::new(buffer), |b| &**b)
+            .wrap_cart_in_option()
+            .convert_cart_into_option_pointer();
         Self(DataPayloadInner::Yoke(yoke))
     }
 
     /// Converts a yoked byte buffer into a `DataPayload<BufferMarker>`.
     pub fn from_yoked_buffer(yoke: Yoke<&'static [u8], Option<Cart>>) -> Self {
-        Self(DataPayloadInner::Yoke(yoke))
+        let yoke = Cart::unwrap_cart(yoke);
+        Self(DataPayloadInner::Yoke(
+            yoke.convert_cart_into_option_pointer(),
+        ))
     }
 
     /// Converts a static byte buffer into a `DataPayload<BufferMarker>`.
     pub fn from_static_buffer(buffer: &'static [u8]) -> Self {
-        Self(DataPayloadInner::Yoke(Yoke::new_owned(buffer)))
+        Self(DataPayloadInner::Yoke(
+            Yoke::new_owned(buffer).convert_cart_into_option_pointer(),
+        ))
     }
 }
 
@@ -643,6 +828,56 @@ where
 {
     fn default() -> Self {
         Self::from_owned(Default::default())
+    }
+}
+
+impl<M, O> DataPayloadOr<M, O>
+where
+    M: DataMarker,
+{
+    /// Creates a [`DataPayloadOr`] from a [`DataPayload`].
+    #[inline]
+    pub fn from_payload(payload: DataPayload<M>) -> Self {
+        match payload.0 {
+            DataPayloadInner::Yoke(yoke) => Self(DataPayloadOrInner::Yoke(yoke)),
+            DataPayloadInner::StaticRef(r) => Self(DataPayloadOrInner::Inner(
+                DataPayloadOrInnerInner::StaticRef(r),
+            )),
+        }
+    }
+
+    /// Creates a [`DataPayloadOr`] from the other type `O`.
+    #[inline]
+    pub fn from_other(other: O) -> Self {
+        Self(DataPayloadOrInner::Inner(DataPayloadOrInnerInner::Other(
+            other,
+        )))
+    }
+
+    /// Gets the value from this [`DataPayload`] as `Ok` or the other type as `Err`.
+    #[allow(clippy::needless_lifetimes)]
+    #[inline]
+    pub fn get<'a>(&'a self) -> Result<&'a <M::Yokeable as Yokeable<'a>>::Output, &'a O> {
+        match &self.0 {
+            DataPayloadOrInner::Yoke(yoke) => Ok(yoke.get()),
+            DataPayloadOrInner::Inner(DataPayloadOrInnerInner::StaticRef(r)) => {
+                Ok(Yokeable::transform(*r))
+            }
+            DataPayloadOrInner::Inner(DataPayloadOrInnerInner::Other(o)) => Err(o),
+        }
+    }
+
+    /// Consumes this [`DataPayloadOr`], returning either the wrapped
+    /// [`DataPayload`] or the other type.
+    #[inline]
+    pub fn into_inner(self) -> Result<DataPayload<M>, O> {
+        match self.0 {
+            DataPayloadOrInner::Yoke(yoke) => Ok(DataPayload(DataPayloadInner::Yoke(yoke))),
+            DataPayloadOrInner::Inner(DataPayloadOrInnerInner::StaticRef(r)) => {
+                Ok(DataPayload(DataPayloadInner::StaticRef(r)))
+            }
+            DataPayloadOrInner::Inner(DataPayloadOrInnerInner::Other(o)) => Err(o),
+        }
     }
 }
 
@@ -681,6 +916,32 @@ where
             self.payload
                 .ok_or_else(|| DataErrorKind::MissingPayload.with_type_context::<M>())?,
         ))
+    }
+
+    /// Convert between two [`DataMarker`] types that are compatible with each other
+    /// with compile-time type checking.
+    ///
+    /// This happens if they both have the same [`DataMarker::Yokeable`] type.
+    ///
+    /// Can be used to erase the key of a data payload in cases where multiple keys correspond
+    /// to the same data struct.
+    ///
+    /// For runtime dynamic casting, use [`DataPayload::dynamic_cast_mut()`].
+    #[inline]
+    pub fn cast<M2>(self) -> DataResponse<M2>
+    where
+        M2: DataMarker<Yokeable = M::Yokeable>,
+    {
+        match self.payload {
+            Some(payload) => DataResponse {
+                metadata: self.metadata,
+                payload: Some(payload.cast()),
+            },
+            None => DataResponse {
+                metadata: self.metadata,
+                payload: None,
+            },
+        }
     }
 }
 

@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+#[allow(deprecated)]
 use crate::ordering::SubtagOrderingResult;
 use crate::parser::{
     parse_locale, parse_locale_with_single_variant_single_keyword_unicode_keyword_extension,
@@ -27,7 +28,7 @@ use writeable::Writeable;
 /// # Examples
 ///
 /// ```
-/// use icu_locid::{
+/// use icu::locid::{
 ///     extensions::unicode::{key, value},
 ///     locale,
 ///     subtags::{language, region},
@@ -192,7 +193,48 @@ impl Locale {
     /// }
     /// ```
     pub fn strict_cmp(&self, other: &[u8]) -> Ordering {
-        self.strict_cmp_iter(other.split(|b| *b == b'-')).end()
+        self.writeable_cmp_bytes(other)
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn as_tuple(
+        &self,
+    ) -> (
+        (
+            subtags::Language,
+            Option<subtags::Script>,
+            Option<subtags::Region>,
+            &subtags::Variants,
+        ),
+        (
+            (
+                &extensions::unicode::Attributes,
+                &extensions::unicode::Keywords,
+            ),
+            (
+                Option<(
+                    subtags::Language,
+                    Option<subtags::Script>,
+                    Option<subtags::Region>,
+                    &subtags::Variants,
+                )>,
+                &extensions::transform::Fields,
+            ),
+            &extensions::private::Private,
+            &[extensions::other::Other],
+        ),
+    ) {
+        (self.id.as_tuple(), self.extensions.as_tuple())
+    }
+
+    /// Returns an ordering suitable for use in [`BTreeSet`].
+    ///
+    /// The ordering may or may not be equivalent to string ordering, and it
+    /// may or may not be stable across ICU4X releases.
+    ///
+    /// [`BTreeSet`]: alloc::collections::BTreeSet
+    pub fn total_cmp(&self, other: &Self) -> Ordering {
+        self.as_tuple().cmp(&other.as_tuple())
     }
 
     /// Compare this [`Locale`] with an iterator of BCP-47 subtags.
@@ -229,6 +271,8 @@ impl Locale {
     ///     loc.strict_cmp_iter(subtags.iter().copied()).end()
     /// );
     /// ```
+    #[deprecated(since = "1.5.0", note = "if you need this, please file an issue")]
+    #[allow(deprecated)]
     pub fn strict_cmp_iter<'l, I>(&self, mut subtags: I) -> SubtagOrderingResult<I>
     where
         I: Iterator<Item = &'l [u8]>,
@@ -258,7 +302,6 @@ impl Locale {
     ///
     /// ```
     /// use icu::locid::Locale;
-    /// use std::cmp::Ordering;
     ///
     /// let bcp47_strings: &[&str] = &[
     ///     "pl-LaTn-pL",
@@ -371,6 +414,7 @@ impl From<Locale> for LanguageIdentifier {
 }
 
 impl AsRef<LanguageIdentifier> for Locale {
+    #[inline(always)]
     fn as_ref(&self) -> &LanguageIdentifier {
         &self.id
     }

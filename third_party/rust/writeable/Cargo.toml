@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.67"
 name = "writeable"
-version = "0.5.4"
+version = "0.5.5"
 authors = ["The ICU4X Project Developers"]
 include = [
     "data/**/*",
@@ -27,7 +27,7 @@ include = [
 ]
 description = "A more efficient alternative to fmt::Display"
 readme = "README.md"
-license-file = "LICENSE"
+license = "Unicode-3.0"
 repository = "https://github.com/unicode-org/icu4x"
 
 [package.metadata.cargo-all-features]
@@ -46,12 +46,18 @@ bench = false
 name = "writeable"
 harness = false
 
+[dependencies.either]
+version = "1.9.0"
+optional = true
+default-features = false
+
 [dev-dependencies.rand]
 version = "0.8"
 features = ["small_rng"]
 
 [features]
 bench = []
+either = ["dep:either"]
 
 [target."cfg(not(target_arch = \"wasm32\"))".dev-dependencies.criterion]
-version = "0.4"
+version = "0.5.0"

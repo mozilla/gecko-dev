@@ -7,7 +7,7 @@
 //! This module is published as its own crate ([`icu_collections`](https://docs.rs/icu_collections/latest/icu_collections/))
 //! and as part of the [`icu`](https://docs.rs/icu/latest/icu/) crate. See the latter for more details on the ICU4X project.
 //!
-//! ICU4X [`CodePointTrie`](crate::codepointtrie::CodePointTrie) provides a read-only view of CodePointTrie data that is exported
+//! ICU4X [`CodePointTrie`](crate::codepointtrie::CodePointTrie) provides a read-only view of `CodePointTrie` data that is exported
 //! from ICU4C. Detailed information about the design of the data structure can be found in the documentation
 //! for the [`CodePointTrie`](crate::codepointtrie::CodePointTrie) struct.
 //!
@@ -20,7 +20,7 @@
 //! It is an implementation of the existing [ICU4C UCharsTrie](https://unicode-org.github.io/icu-docs/apidoc/released/icu4c/classicu_1_1UCharsTrie.html)
 //! / [ICU4J CharsTrie](https://unicode-org.github.io/icu-docs/apidoc/released/icu4j/com/ibm/icu/util/CharsTrie.html) API.
 
-// https://github.com/unicode-org/icu4x/blob/main/docs/process/boilerplate.md#library-annotations
+// https://github.com/unicode-org/icu4x/blob/main/documents/process/boilerplate.md#library-annotations
 #![cfg_attr(not(any(test, feature = "std")), no_std)]
 #![cfg_attr(
     not(test),

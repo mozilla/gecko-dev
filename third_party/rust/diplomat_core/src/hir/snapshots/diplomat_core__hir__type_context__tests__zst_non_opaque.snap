@@ -1,0 +1,6 @@
+---
+source: core/src/hir/type_context.rs
+expression: output
+---
+Lowering error in OpaqueStruct: struct `OpaqueStruct` is a ZST because it has no fields
+

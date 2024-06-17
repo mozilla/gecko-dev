@@ -4,12 +4,14 @@ expression: "rustfmt_code(&gen_bridge(parse_quote! {\n                          
 ---
 mod ffi {
     #[repr(C)]
+    #[derive(Clone, Copy)]
     struct Foo {}
     impl Foo {
         pub fn to_string(&self, to: &mut DiplomatWriteable) -> Result<(), ()> {
             unimplemented!()
         }
     }
+    use diplomat_runtime::*;
     #[no_mangle]
     extern "C" fn Foo_to_string(
         this: &Foo,

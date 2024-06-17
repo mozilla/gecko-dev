@@ -10,8 +10,8 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use icu_locid::Locale;
 
 fn locale_benches(c: &mut Criterion) {
-    let path = "./benches/fixtures/locale.json";
-    let data: fixtures::LocaleList = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data = serde_json::from_str::<fixtures::LocaleList>(include_str!("fixtures/locale.json"))
+        .expect("Failed to read a fixture");
 
     // Overview
     {

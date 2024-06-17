@@ -25,7 +25,7 @@ pub use ty_position::*;
 pub use type_context::*;
 pub use types::*;
 
-pub use lowering::LoweringError;
+pub use lowering::{ErrorAndContext, ErrorContext, LoweringError};
 
 pub use crate::ast::Docs;
 pub use strck_ident::rust::{Ident, IdentBuf};

@@ -6,9 +6,9 @@ union DiplomatResultValue<T, E> {
     err: ManuallyDrop<E>,
 }
 
-/// A `Result`-like type that can be passed across the FFI boundary
-/// as a value. Use this type when returning a result from an FFI
-/// function instead of `Result`.
+/// A [`Result`]-like type that can be passed across the FFI boundary
+/// as a value. Used internally to return [`Result`]s and [`Option`]s
+/// from functions.
 #[repr(C)]
 pub struct DiplomatResult<T, E> {
     value: DiplomatResultValue<T, E>,

@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "diplomat_core"
-version = "0.7.0"
+version = "0.8.0"
 authors = [
     "Shadaj Laddad <shadaj@users.noreply.github.com>",
     "Manish Goregaokar <manishsmail@gmail.com>",
@@ -38,6 +38,11 @@ path = "src/lib.rs"
 [dependencies.displaydoc]
 version = "0.2"
 optional = true
+
+[dependencies.either]
+version = "1.9.0"
+optional = true
+default_features = false
 
 [dependencies.lazy_static]
 version = "1.4.0"
@@ -70,4 +75,4 @@ features = [
 version = "1.7.1"
 
 [features]
-hir = []
+hir = ["either"]

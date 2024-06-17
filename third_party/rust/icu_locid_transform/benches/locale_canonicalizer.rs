@@ -2,8 +2,6 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-mod helpers;
-
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use icu_locid::Locale;
 use icu_locid_transform::LocaleCanonicalizer;
@@ -14,8 +12,9 @@ fn canonicalize_bench(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("uncanonicalized");
 
-    let path = "./benches/fixtures/uncanonicalized-locales.json";
-    let data: Vec<String> = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data: Vec<String> =
+        serde_json::from_str(include_str!("fixtures/uncanonicalized-locales.json"))
+            .expect("Failed to read a fixture");
     let locales: Vec<Locale> = data.iter().map(|s| s.parse().unwrap()).collect();
 
     group.bench_function("clone", |b| {
@@ -45,8 +44,8 @@ fn canonicalize_noop_bench(c: &mut Criterion) {
 
     // None of these locales require canonicalization, so this measures the cost of calling
     // the canonicalizer on locales that will not be modified.
-    let path = "./benches/fixtures/locales.json";
-    let data: Vec<String> = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data: Vec<String> = serde_json::from_str(include_str!("fixtures/locales.json"))
+        .expect("Failed to read a fixture");
     let locales: Vec<Locale> = data.iter().map(|s| s.parse().unwrap()).collect();
 
     group.bench_function("clone", |b| {
@@ -74,8 +73,8 @@ fn maximize_bench(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("likelysubtags");
 
-    let path = "./benches/fixtures/locales.json";
-    let data: Vec<String> = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data: Vec<String> = serde_json::from_str(include_str!("fixtures/locales.json"))
+        .expect("Failed to read a fixture");
     let locales: Vec<Locale> = data.iter().map(|s| s.parse().unwrap()).collect();
 
     group.bench_function("maximize", |b| {
@@ -83,6 +82,15 @@ fn maximize_bench(c: &mut Criterion) {
             for locale in &locales {
                 let mut locale = locale.clone();
                 lc.maximize(black_box(&mut locale));
+            }
+        })
+    });
+
+    group.bench_function("minimize", |b| {
+        b.iter(|| {
+            for locale in &locales {
+                let mut locale = locale.clone();
+                lc.minimize(black_box(&mut locale));
             }
         })
     });

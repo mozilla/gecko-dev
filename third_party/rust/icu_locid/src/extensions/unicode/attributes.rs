@@ -4,7 +4,7 @@
 
 use super::Attribute;
 
-use crate::helpers::ShortSlice;
+use crate::shortvec::ShortBoxSlice;
 use alloc::vec::Vec;
 use core::ops::Deref;
 
@@ -31,7 +31,7 @@ use core::ops::Deref;
 /// assert_eq!(attributes.to_string(), "foobar-testing");
 /// ```
 #[derive(Default, Debug, PartialEq, Eq, Clone, Hash, PartialOrd, Ord)]
-pub struct Attributes(ShortSlice<Attribute>);
+pub struct Attributes(ShortBoxSlice<Attribute>);
 
 impl Attributes {
     /// Returns a new empty set of attributes. Same as [`default()`](Default::default()), but is `const`.
@@ -45,7 +45,7 @@ impl Attributes {
     /// ```
     #[inline]
     pub const fn new() -> Self {
-        Self(ShortSlice::new())
+        Self(ShortBoxSlice::new())
     }
 
     /// A constructor which takes a pre-sorted list of [`Attribute`] elements.
@@ -72,7 +72,7 @@ impl Attributes {
         Self(input.into())
     }
 
-    pub(crate) fn from_short_slice_unchecked(input: ShortSlice<Attribute>) -> Self {
+    pub(crate) fn from_short_slice_unchecked(input: ShortBoxSlice<Attribute>) -> Self {
         Self(input)
     }
 
@@ -83,7 +83,7 @@ impl Attributes {
     /// # Examples
     ///
     /// ```
-    /// use icu::locid::extensions::unicode::{attribute, Attribute, Attributes};
+    /// use icu::locid::extensions::unicode::{attribute, Attributes};
     /// use writeable::assert_writeable_eq;
     ///
     /// let mut attributes = Attributes::from_vec_unchecked(vec![

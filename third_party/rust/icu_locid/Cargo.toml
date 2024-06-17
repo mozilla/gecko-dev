@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.67"
 name = "icu_locid"
-version = "1.4.0"
+version = "1.5.0"
 authors = ["The ICU4X Project Developers"]
 include = [
     "data/**/*",
@@ -29,7 +29,7 @@ description = "API for managing Unicode Language and Locale Identifiers"
 homepage = "https://icu4x.unicode.org"
 readme = "README.md"
 categories = ["internationalization"]
-license-file = "LICENSE"
+license = "Unicode-3.0"
 repository = "https://github.com/unicode-org/icu4x"
 
 [package.metadata.cargo-all-features]
@@ -68,7 +68,7 @@ harness = false
 required-features = ["bench"]
 
 [dependencies.databake]
-version = "0.1.7"
+version = "0.1.8"
 features = ["derive"]
 optional = true
 default-features = false
@@ -78,12 +78,12 @@ version = "0.2.3"
 default-features = false
 
 [dependencies.litemap]
-version = "0.7.2"
+version = "0.7.3"
 features = ["alloc"]
 default-features = false
 
 [dependencies.serde]
-version = "1.0"
+version = "1.0.110"
 features = [
     "alloc",
     "derive",
@@ -92,16 +92,16 @@ optional = true
 default-features = false
 
 [dependencies.tinystr]
-version = "0.7.4"
+version = "0.7.5"
 features = ["alloc"]
 default-features = false
 
 [dependencies.writeable]
-version = "0.5.4"
+version = "0.5.5"
 default-features = false
 
 [dependencies.zerovec]
-version = "0.10.1"
+version = "0.10.2"
 optional = true
 default-features = false
 
@@ -109,16 +109,17 @@ default-features = false
 version = "0.1.1"
 
 [dev-dependencies.postcard]
-version = "1.0.0"
+version = "1.0.1"
 features = ["use-std"]
 default-features = false
 
 [dev-dependencies.serde]
-version = "1.0"
+version = "1.0.110"
 features = ["derive"]
+default-features = false
 
 [dev-dependencies.serde_json]
-version = "1.0"
+version = "1.0.45"
 
 [features]
 bench = ["serde"]
@@ -131,4 +132,4 @@ std = []
 zerovec = ["dep:zerovec"]
 
 [target."cfg(not(target_arch = \"wasm32\"))".dev-dependencies.criterion]
-version = "0.4"
+version = "0.5.0"

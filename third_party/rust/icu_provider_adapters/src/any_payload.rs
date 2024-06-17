@@ -31,7 +31,7 @@ use zerofrom::ZeroFrom;
 /// // Check that it works:
 /// let formatter = HelloWorldFormatter::try_new_with_any_provider(
 ///     &provider,
-///     &icu_locid::Locale::UND.into(),
+///     &Default::default(),
 /// )
 /// .expect("key matches");
 /// assert_writeable_eq!(formatter.format(), "custom hello world");

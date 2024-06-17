@@ -49,6 +49,8 @@ pub mod private;
 pub mod transform;
 pub mod unicode;
 
+use core::cmp::Ordering;
+
 use other::Other;
 use private::Private;
 use transform::Transform;
@@ -58,6 +60,7 @@ use alloc::vec::Vec;
 
 use crate::parser::ParserError;
 use crate::parser::SubtagIterator;
+use crate::subtags;
 
 /// Defines the type of extension.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, PartialOrd, Ord, Copy)]
@@ -162,6 +165,41 @@ impl Extensions {
             && self.transform.is_empty()
             && self.private.is_empty()
             && self.other.is_empty()
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn as_tuple(
+        &self,
+    ) -> (
+        (&unicode::Attributes, &unicode::Keywords),
+        (
+            Option<(
+                subtags::Language,
+                Option<subtags::Script>,
+                Option<subtags::Region>,
+                &subtags::Variants,
+            )>,
+            &transform::Fields,
+        ),
+        &private::Private,
+        &[other::Other],
+    ) {
+        (
+            self.unicode.as_tuple(),
+            self.transform.as_tuple(),
+            &self.private,
+            &self.other,
+        )
+    }
+
+    /// Returns an ordering suitable for use in [`BTreeSet`].
+    ///
+    /// The ordering may or may not be equivalent to string ordering, and it
+    /// may or may not be stable across ICU4X releases.
+    ///
+    /// [`BTreeSet`]: alloc::collections::BTreeSet
+    pub fn total_cmp(&self, other: &Self) -> Ordering {
+        self.as_tuple().cmp(&other.as_tuple())
     }
 
     /// Retains the specified extension types, clearing all others.

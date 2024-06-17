@@ -21,7 +21,7 @@ pub use icu_provider::fallback::LocaleFallbackConfig;
 /// # Examples
 ///
 /// ```
-/// use icu_locid::locale;
+/// use icu_locid::langid;
 /// use icu_provider::prelude::*;
 /// use icu_provider::hello_world::*;
 /// use icu_provider_adapters::fallback::LocaleFallbackProvider;
@@ -30,7 +30,7 @@ pub use icu_provider::fallback::LocaleFallbackConfig;
 /// # let provider = provider.as_deserializing();
 ///
 /// let req = DataRequest {
-///     locale: &locale!("ja-JP").into(),
+///     locale: &langid!("ja-JP").into(),
 ///     metadata: Default::default(),
 /// };
 ///
@@ -47,7 +47,7 @@ pub use icu_provider::fallback::LocaleFallbackConfig;
 ///
 /// assert_eq!(
 ///     response.metadata.locale.unwrap(),
-///     locale!("ja").into(),
+///     langid!("ja").into(),
 /// );
 /// assert_eq!(
 ///     response.payload.unwrap().get().message,
@@ -125,7 +125,7 @@ impl<P> LocaleFallbackProvider<P> {
     /// # Examples
     ///
     /// ```
-    /// use icu_locid::locale;
+    /// use icu_locid::langid;
     /// use icu_locid_transform::LocaleFallbacker;
     /// use icu_provider::hello_world::*;
     /// use icu_provider::prelude::*;
@@ -134,7 +134,7 @@ impl<P> LocaleFallbackProvider<P> {
     /// let provider = HelloWorldProvider;
     ///
     /// let req = DataRequest {
-    ///     locale: &locale!("de-CH").into(),
+    ///     locale: &langid!("de-CH").into(),
     ///     metadata: Default::default(),
     /// };
     ///

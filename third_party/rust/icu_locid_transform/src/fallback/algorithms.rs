@@ -215,9 +215,31 @@ impl<'a> LocaleFallbackIteratorInner<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use icu_locid::Locale;
-    use std::str::FromStr;
     use writeable::Writeable;
+
+    /// Unicode extension keywords take part in fallback, but [auxiliary keys] are not modified.
+    ///
+    /// [auxiliary keys]: icu_provider::AuxiliaryKeys
+    #[test]
+    fn test_aux_key_fallback() {
+        use super::LocaleFallbacker;
+
+        let fallbacker = LocaleFallbacker::new();
+        let mut fallback_iterator = fallbacker
+            .for_config(Default::default())
+            .fallback_for("en-US-u-sd-usca-x-aux".parse().unwrap());
+
+        assert_eq!(fallback_iterator.get().to_string(), "en-US-u-sd-usca-x-aux");
+        fallback_iterator.step();
+        assert_eq!(fallback_iterator.get().to_string(), "en-US-x-aux");
+        fallback_iterator.step();
+        assert_eq!(fallback_iterator.get().to_string(), "en-u-sd-usca-x-aux");
+        fallback_iterator.step();
+        assert_eq!(fallback_iterator.get().to_string(), "en-x-aux");
+        fallback_iterator.step();
+        assert_eq!(fallback_iterator.get().to_string(), "und-x-aux");
+        assert!(fallback_iterator.get().is_und());
+    }
 
     struct TestCase {
         input: &'static str,
@@ -298,7 +320,7 @@ mod tests {
             expected_region_chain: &["en-US-u-sd-usca", "en-US", "und-US-u-sd-usca", "und-US"],
         },
         TestCase {
-            // NOTE: -u-rg is not yet supported; when it is, this test should be updated
+            // TODO(#4413): -u-rg is not yet supported; when it is, this test should be updated
             input: "en-u-rg-gbxxxx",
             requires_data: false,
             extension_key: None,
@@ -433,8 +455,7 @@ mod tests {
             requires_data: true,
             extension_key: None,
             fallback_supplement: Some(LocaleFallbackSupplement::Collation),
-            // TODO(#1964): add "zh" as a target.
-            expected_language_chain: &["yue-HK", "yue", "zh-Hant"],
+            expected_language_chain: &["yue-HK", "yue", "zh-Hant", "zh"],
             expected_region_chain: &["yue-HK", "und-HK"],
         },
     ];
@@ -463,7 +484,7 @@ mod tests {
                 };
                 let mut it = fallbacker
                     .for_config(config)
-                    .fallback_for(Locale::from_str(cas.input).unwrap().into());
+                    .fallback_for(cas.input.parse().unwrap());
                 for &expected in expected_chain {
                     assert_eq!(
                         expected,

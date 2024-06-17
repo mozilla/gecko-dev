@@ -45,7 +45,7 @@ use zerovec::{maps::ZeroMapKV, VarZeroSlice, VarZeroVec, ZeroMap, ZeroVec};
 /// Using a [`NormalizedPropertyNameStr`] as the key of a [`ZeroMap`]:
 ///
 /// ```
-/// use icu_properties::provider::names::NormalizedPropertyNameStr;
+/// use icu::properties::provider::names::NormalizedPropertyNameStr;
 /// use zerovec::ZeroMap;
 ///
 /// let map: ZeroMap<NormalizedPropertyNameStr, usize> = [
@@ -73,7 +73,7 @@ use zerovec::{maps::ZeroMapKV, VarZeroSlice, VarZeroVec, ZeroMap, ZeroVec};
 #[repr(transparent)]
 pub struct NormalizedPropertyNameStr(UnvalidatedStr);
 
-/// This impl requires enabling the optional `serde` Cargo feature of the `icu_properties` crate
+/// This impl requires enabling the optional `serde` Cargo feature of the `icu::properties` crate
 #[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Box<NormalizedPropertyNameStr> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -84,7 +84,7 @@ impl<'de> serde::Deserialize<'de> for Box<NormalizedPropertyNameStr> {
     }
 }
 
-/// This impl requires enabling the optional `serde` Cargo feature of the `icu_properties` crate
+/// This impl requires enabling the optional `serde` Cargo feature of the `icu::properties` crate
 #[cfg(feature = "serde")]
 impl<'de, 'a> serde::Deserialize<'de> for &'a NormalizedPropertyNameStr
 where

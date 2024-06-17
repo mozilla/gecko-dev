@@ -138,8 +138,8 @@ impl<'data> CodePointInversionListAndStringList<'data> {
     ///
     /// # Examples
     /// ```
-    /// use icu_collections::codepointinvlist::CodePointInversionList;
-    /// use icu_collections::codepointinvliststringlist::CodePointInversionListAndStringList;
+    /// use icu::collections::codepointinvlist::CodePointInversionList;
+    /// use icu::collections::codepointinvliststringlist::CodePointInversionListAndStringList;
     /// use zerovec::VarZeroVec;
     ///
     /// let cp_slice = &[0, 0x1_0000, 0x10_FFFF, 0x11_0000];
@@ -169,8 +169,8 @@ impl<'data> CodePointInversionListAndStringList<'data> {
     ///
     /// # Examples
     /// ```
-    /// use icu_collections::codepointinvlist::CodePointInversionList;
-    /// use icu_collections::codepointinvliststringlist::CodePointInversionListAndStringList;
+    /// use icu::collections::codepointinvlist::CodePointInversionList;
+    /// use icu::collections::codepointinvliststringlist::CodePointInversionListAndStringList;
     /// use zerovec::VarZeroVec;
     ///
     /// let cp_slice = &[0, 0x80, 0xFFFF, 0x1_0000, 0x10_FFFF, 0x11_0000];
@@ -192,8 +192,8 @@ impl<'data> CodePointInversionListAndStringList<'data> {
     ///
     /// # Examples
     /// ```
-    /// use icu_collections::codepointinvlist::CodePointInversionList;
-    /// use icu_collections::codepointinvliststringlist::CodePointInversionListAndStringList;
+    /// use icu::collections::codepointinvlist::CodePointInversionList;
+    /// use icu::collections::codepointinvliststringlist::CodePointInversionListAndStringList;
     /// use zerovec::VarZeroVec;
     ///
     /// let cp_slice = &[0, 0x1_0000, 0x10_FFFF, 0x11_0000];

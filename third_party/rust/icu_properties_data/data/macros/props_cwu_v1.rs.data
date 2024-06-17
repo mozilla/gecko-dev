@@ -28,3 +28,18 @@ macro_rules! __impl_props_cwu_v1 {
         }
     };
 }
+/// Implement `IterableDataProvider<ChangesWhenUppercasedV1Marker>` on the given struct using the data
+/// hardcoded in this file. This allows the struct to be used with
+/// `DatagenDriver` for this key.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __impliterable_props_cwu_v1 {
+    ($ provider : ty) => {
+        #[clippy::msrv = "1.67"]
+        impl icu_provider::datagen::IterableDataProvider<icu::properties::provider::ChangesWhenUppercasedV1Marker> for $provider {
+            fn supported_locales(&self) -> Result<alloc::vec::Vec<icu_provider::DataLocale>, icu_provider::DataError> {
+                Ok([icu_provider::DataLocale::default()].into())
+            }
+        }
+    };
+}

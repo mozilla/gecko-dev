@@ -59,7 +59,7 @@ pub type SentenceBreakIteratorUtf16<'l, 's> = SentenceBreakIterator<'l, 's, Rule
 /// Segment a string:
 ///
 /// ```rust
-/// use icu_segmenter::SentenceSegmenter;
+/// use icu::segmenter::SentenceSegmenter;
 /// let segmenter = SentenceSegmenter::new();
 ///
 /// let breakpoints: Vec<usize> =
@@ -70,7 +70,7 @@ pub type SentenceBreakIteratorUtf16<'l, 's> = SentenceBreakIterator<'l, 's, Rule
 /// Segment a Latin1 byte string:
 ///
 /// ```rust
-/// use icu_segmenter::SentenceSegmenter;
+/// use icu::segmenter::SentenceSegmenter;
 /// let segmenter = SentenceSegmenter::new();
 ///
 /// let breakpoints: Vec<usize> =
@@ -83,7 +83,7 @@ pub type SentenceBreakIteratorUtf16<'l, 's> = SentenceBreakIterator<'l, 's, Rule
 /// length of the segmented text in code units.
 ///
 /// ```rust
-/// # use icu_segmenter::SentenceSegmenter;
+/// # use icu::segmenter::SentenceSegmenter;
 /// # let segmenter = SentenceSegmenter::new();
 /// use itertools::Itertools;
 /// let text = "Ceci tuera cela. Le livre tuera l’édifice.";

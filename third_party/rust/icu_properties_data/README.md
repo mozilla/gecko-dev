@@ -2,7 +2,10 @@
 
 <!-- cargo-rdme start -->
 
-Data for the icu_properties crate
+Data for the `icu_properties` crate
+
+This data was generated with CLDR version 45.0.0, ICU version icu4x/2024-05-16/75.x, and
+LSTM segmenter version v0.1.0.
 
 <!-- cargo-rdme end -->
 

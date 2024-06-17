@@ -145,10 +145,13 @@ pub trait StoreIterable<'a, K: 'a + ?Sized, V: 'a + ?Sized>: Store<K, V> {
 
 pub trait StoreIterableMut<'a, K: 'a, V: 'a>: StoreMut<K, V> + StoreIterable<'a, K, V> {
     type KeyValueIterMut: Iterator<Item = (&'a K, &'a mut V)> + DoubleEndedIterator + 'a;
-    type KeyValueIntoIter: Iterator<Item = (K, V)>;
 
     /// Returns an iterator over key/value pairs, with a mutable value.
     fn lm_iter_mut(&'a mut self) -> Self::KeyValueIterMut;
+}
+
+pub trait StoreIntoIterator<K, V>: StoreMut<K, V> {
+    type KeyValueIntoIter: Iterator<Item = (K, V)>;
 
     /// Returns an iterator that moves every item from this store.
     fn lm_into_iter(self) -> Self::KeyValueIntoIter;

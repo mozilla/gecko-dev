@@ -320,14 +320,12 @@ fn compute_hc<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use icu_locid::locale;
+    use icu_locid::langid;
     use icu_provider::prelude::*;
     use serde::Deserialize;
-    use std::fs::File;
-    use std::io::BufReader;
 
     /// `TestCase` is a struct used to store a single test case.
-    /// Each test case has two attributs: `unseg` which denots the unsegmented line, and `true_bies` which indicates the Bies
+    /// Each test case has two attributes: `unseg` which denotes the unsegmented line, and `true_bies` which indicates the Bies
     /// sequence representing the true segmentation.
     #[derive(PartialEq, Debug, Deserialize)]
     struct TestCase {
@@ -347,17 +345,11 @@ mod tests {
         data: TestTextData,
     }
 
-    fn load_test_text(filename: &str) -> TestTextData {
-        let file = File::open(filename).expect("File should be present");
-        let reader = BufReader::new(file);
-        serde_json::from_reader(reader).expect("JSON syntax error")
-    }
-
     #[test]
     fn segment_file_by_lstm() {
         let lstm: DataPayload<LstmForWordLineAutoV1Marker> = crate::provider::Baked
             .load(DataRequest {
-                locale: &locale!("th").into(),
+                locale: &langid!("th").into(),
                 metadata: Default::default(),
             })
             .unwrap()
@@ -369,14 +361,12 @@ mod tests {
         );
 
         // Importing the test data
-        let test_text_data = load_test_text(&format!(
-            "tests/testdata/test_text_{}.json",
-            if lstm.grapheme.is_some() {
-                "grapheme"
-            } else {
-                "codepoints"
-            }
-        ));
+        let test_text_data = serde_json::from_str(if lstm.grapheme.is_some() {
+            include_str!("../../../tests/testdata/test_text_graphclust.json")
+        } else {
+            include_str!("../../../tests/testdata/test_text_codepoints.json")
+        })
+        .expect("JSON syntax error");
         let test_text = TestText {
             data: test_text_data,
         };

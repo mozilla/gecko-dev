@@ -4,7 +4,7 @@
 
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct CanonicalizationTest {
     pub input: String,
     pub output: String,

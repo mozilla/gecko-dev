@@ -11,8 +11,8 @@
 //! # Examples
 //!
 //!```
-//! use icu_properties::bidi::BidiClassAdapter;
-//! use icu_properties::maps;
+//! use icu::properties::bidi::BidiClassAdapter;
+//! use icu::properties::maps;
 //! use unicode_bidi::BidiInfo;
 //! // This example text is defined using `concat!` because some browsers
 //! // and text editors have trouble displaying bidi strings.
@@ -64,9 +64,9 @@ use unicode_bidi::BidiClass as DataSourceBidiClass;
 /// # Example
 ///
 /// ```
-/// use icu_collections::codepointtrie::CodePointTrie;
-/// use icu_properties::bidi::BidiClassAdapter;
-/// use icu_properties::{maps, BidiClass};
+/// use icu::collections::codepointtrie::CodePointTrie;
+/// use icu::properties::bidi::BidiClassAdapter;
+/// use icu::properties::{maps, BidiClass};
 /// use unicode_bidi::BidiClass as DataSourceBidiClass;
 /// use unicode_bidi::BidiDataSource;
 ///
@@ -81,7 +81,7 @@ pub struct BidiClassAdapter<'a> {
 
 impl<'a> BidiClassAdapter<'a> {
     /// Creates new instance of `BidiClassAdapter`.
-    pub fn new(data: CodePointMapDataBorrowed<'a, BidiClass>) -> BidiClassAdapter<'a> {
+    pub const fn new(data: CodePointMapDataBorrowed<'a, BidiClass>) -> BidiClassAdapter<'a> {
         BidiClassAdapter { data }
     }
 }
@@ -92,9 +92,9 @@ impl<'a> BidiDataSource for BidiClassAdapter<'a> {
     /// # Example
     ///
     /// ```
-    /// use icu_collections::codepointtrie::CodePointTrie;
-    /// use icu_properties::bidi::BidiClassAdapter;
-    /// use icu_properties::{maps, BidiClass};
+    /// use icu::collections::codepointtrie::CodePointTrie;
+    /// use icu::properties::bidi::BidiClassAdapter;
+    /// use icu::properties::{maps, BidiClass};
     /// use unicode_bidi::BidiClass as DataSourceBidiClass;
     /// use unicode_bidi::BidiDataSource;
     ///
@@ -102,7 +102,7 @@ impl<'a> BidiDataSource for BidiClassAdapter<'a> {
     /// assert_eq!(adapter.bidi_class('a'), DataSourceBidiClass::L);
     /// ```
     ///
-    /// [`CodePointTrie`]: icu_collections::codepointtrie::CodePointTrie
+    /// [`CodePointTrie`]: icu::collections::codepointtrie::CodePointTrie
     fn bidi_class(&self, c: char) -> DataSourceBidiClass {
         let bidi_class = self.data.get(c);
         match bidi_class {

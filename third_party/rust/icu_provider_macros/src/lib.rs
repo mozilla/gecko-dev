@@ -2,7 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-// https://github.com/unicode-org/icu4x/blob/main/docs/process/boilerplate.md#library-annotations
+// https://github.com/unicode-org/icu4x/blob/main/documents/process/boilerplate.md#library-annotations
 #![cfg_attr(
     not(test),
     deny(
@@ -57,14 +57,16 @@ mod tests;
 /// # pub mod icu {
 /// #   pub mod locid_transform {
 /// #     pub mod fallback {
-/// #       pub use icu_provider::_internal::{LocaleFallbackPriority, LocaleFallbackSupplement};
+/// #       pub use icu_provider::_internal::LocaleFallbackPriority;
 /// #     }
 /// #   }
 /// #   pub use icu_provider::_internal::locid;
 /// # }
-/// use icu::locid_transform::fallback::*;
 /// use icu::locid::extensions::unicode::key;
-/// use icu_provider::prelude::*;
+/// use icu::locid_transform::fallback::*;
+/// use icu_provider::yoke;
+/// use icu_provider::zerofrom;
+/// use icu_provider::KeyedDataMarker;
 /// use std::borrow::Cow;
 ///
 /// #[icu_provider::data_struct(
@@ -96,10 +98,7 @@ mod tests;
 ///     BazV1Marker::KEY.metadata().fallback_priority,
 ///     LocaleFallbackPriority::Region
 /// );
-/// assert_eq!(
-///     BazV1Marker::KEY.metadata().extension_key,
-///     Some(key!("ca"))
-/// );
+/// assert_eq!(BazV1Marker::KEY.metadata().extension_key, Some(key!("ca")));
 /// ```
 ///
 /// If the `#[databake(path = ...)]` attribute is present on the data struct, this will also
@@ -293,7 +292,7 @@ fn data_struct_impl(attr: DataStructArgs, input: DeriveInput) -> TokenStream2 {
 
     let name = &input.ident;
 
-    let name_with_lt = if lifetimes.get(0).is_some() {
+    let name_with_lt = if !lifetimes.is_empty() {
         quote!(#name<'static>)
     } else {
         quote!(#name)

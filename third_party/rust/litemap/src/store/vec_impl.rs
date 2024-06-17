@@ -150,12 +150,15 @@ impl<'a, K: 'a, V: 'a> StoreIterable<'a, K, V> for Vec<(K, V)> {
 
 impl<'a, K: 'a, V: 'a> StoreIterableMut<'a, K, V> for Vec<(K, V)> {
     type KeyValueIterMut = core::iter::Map<core::slice::IterMut<'a, (K, V)>, MapFMut<K, V>>;
-    type KeyValueIntoIter = alloc::vec::IntoIter<(K, V)>;
 
     #[inline]
     fn lm_iter_mut(&'a mut self) -> Self::KeyValueIterMut {
         self.as_mut_slice().iter_mut().map(map_f_mut)
     }
+}
+
+impl<K, V> StoreIntoIterator<K, V> for Vec<(K, V)> {
+    type KeyValueIntoIter = alloc::vec::IntoIter<(K, V)>;
 
     #[inline]
     fn lm_into_iter(self) -> Self::KeyValueIntoIter {

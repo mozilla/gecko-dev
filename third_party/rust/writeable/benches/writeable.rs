@@ -35,6 +35,36 @@ impl fmt::Display for DisplayMessage<'_> {
     }
 }
 
+/// A sample type that contains multiple fields
+struct ComplexWriteable<'a> {
+    prefix: &'a str,
+    n0: usize,
+    infix: &'a str,
+    n1: usize,
+    suffix: &'a str,
+}
+
+impl Writeable for ComplexWriteable<'_> {
+    fn write_to<W: fmt::Write + ?Sized>(&self, sink: &mut W) -> fmt::Result {
+        self.prefix.write_to(sink)?;
+        self.n0.write_to(sink)?;
+        self.infix.write_to(sink)?;
+        self.n1.write_to(sink)?;
+        self.suffix.write_to(sink)?;
+        Ok(())
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        self.prefix.writeable_length_hint()
+            + self.n0.writeable_length_hint()
+            + self.infix.writeable_length_hint()
+            + self.n1.writeable_length_hint()
+            + self.suffix.writeable_length_hint()
+    }
+}
+
+writeable::impl_display_with_writeable!(ComplexWriteable<'_>);
+
 const SHORT_STR: &str = "short";
 const MEDIUM_STR: &str = "this is a medium-length string";
 const LONG_STR: &str = "this string is very very very very very very very very very very very very very very very very very very very very very very very very long";
@@ -63,6 +93,7 @@ fn overview_bench(c: &mut Criterion) {
         writeable_benches(c);
         writeable_dyn_benches(c);
         display_benches(c);
+        complex_benches(c);
     }
 }
 
@@ -155,6 +186,27 @@ fn display_benches(c: &mut Criterion) {
             }
             .to_string()
         });
+    });
+}
+
+#[cfg(feature = "bench")]
+fn complex_benches(c: &mut Criterion) {
+    const COMPLEX_WRITEABLE_MEDIUM: ComplexWriteable = ComplexWriteable {
+        prefix: "There are ",
+        n0: 55,
+        infix: " apples and ",
+        n1: 8124,
+        suffix: " oranges",
+    };
+    c.bench_function("complex/write_to_string/medium", |b| {
+        b.iter(|| {
+            black_box(COMPLEX_WRITEABLE_MEDIUM)
+                .write_to_string()
+                .into_owned()
+        });
+    });
+    c.bench_function("complex/display_to_string/medium", |b| {
+        b.iter(|| black_box(COMPLEX_WRITEABLE_MEDIUM).to_string());
     });
 }
 

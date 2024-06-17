@@ -8,7 +8,8 @@ use crate::provider::bidi_data::{
 use crate::script::ScriptWithExt;
 use crate::{
     BidiClass, CanonicalCombiningClass, EastAsianWidth, GeneralCategory, GeneralCategoryGroup,
-    GraphemeClusterBreak, IndicSyllabicCategory, LineBreak, Script, SentenceBreak, WordBreak,
+    GraphemeClusterBreak, HangulSyllableType, IndicSyllabicCategory, JoiningType, LineBreak,
+    Script, SentenceBreak, WordBreak,
 };
 use core::convert::TryInto;
 use core::num::TryFromIntError;
@@ -61,6 +62,18 @@ impl TrieValue for Script {
 
     fn try_from_u32(i: u32) -> Result<Self, Self::TryFromU32Error> {
         u16::try_from(i).map(Script)
+    }
+
+    fn to_u32(self) -> u32 {
+        u32::from(self.0)
+    }
+}
+
+impl TrieValue for HangulSyllableType {
+    type TryFromU32Error = TryFromIntError;
+
+    fn try_from_u32(i: u32) -> Result<Self, Self::TryFromU32Error> {
+        u8::try_from(i).map(Self)
     }
 
     fn to_u32(self) -> u32 {
@@ -244,5 +257,17 @@ impl TrieValue for MirroredPairedBracketData {
 
     fn try_from_u32(i: u32) -> Result<Self, Self::TryFromU32Error> {
         Self::try_from(i)
+    }
+}
+
+impl TrieValue for JoiningType {
+    type TryFromU32Error = TryFromIntError;
+
+    fn try_from_u32(i: u32) -> Result<Self, Self::TryFromU32Error> {
+        u8::try_from(i).map(Self)
+    }
+
+    fn to_u32(self) -> u32 {
+        u32::from(self.0)
     }
 }

@@ -26,8 +26,8 @@ macro_rules! subtag_bench {
 }
 
 fn subtags_bench(c: &mut Criterion) {
-    let path = "./benches/fixtures/subtags.json";
-    let data: fixtures::Subtags = helpers::read_fixture(path).expect("Failed to read a fixture");
+    let data = serde_json::from_str::<fixtures::Subtags>(include_str!("fixtures/subtags.json"))
+        .expect("Failed to read a fixture");
 
     subtag_bench!(c, "language", Language, data.language);
     subtag_bench!(c, "script", Script, data.script);

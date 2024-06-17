@@ -11,14 +11,14 @@
 //!
 //! ## Architecture
 //!
-//! ICU4X [`Char16Trie`] is designed to provide a read-only view of UCharsTrie data that is exported from ICU4C.
+//! ICU4X [`Char16Trie`] is designed to provide a read-only view of `UCharsTrie` data that is exported from ICU4C.
 //!
 //! ## Examples
 //!
 //! ### Querying a `Char16Trie`
 //!
 //! ```rust
-//! use icu_collections::char16trie::{Char16Trie, TrieResult};
+//! use icu::collections::char16trie::{Char16Trie, TrieResult};
 //! use zerovec::ZeroVec;
 //!
 //! // A Char16Trie containing the ASCII characters mapping 'a' to 1 and 'ab'

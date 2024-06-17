@@ -176,7 +176,39 @@
     "output": "zh-Hant-TW-u-hc-h24-nu-chinese"
   },
   {
+    "input": "und-001",
+    "output": "en-Latn-001"
+  },
+  {
+    "input": "und-150",
+    "output": "en-Latn-150"
+  },
+  {
+    "input": "und-419",
+    "output": "es-Latn-419"
+  },
+  {
     "input": "und-latn-AQ",
     "output": "en-Latn-AQ"
+  },
+  {
+    "input": "und-Arab-AF",
+    "output": "fa-Arab-AF"
+  },
+  {
+    "input": "qaa",
+    "output": "qaa"
+  },
+  {
+    "input": "qaa-CH",
+    "output": "qaa-CH"
+  },
+  {
+    "input": "qaa-Cyrl",
+    "output": "qaa-Cyrl"
+  },
+  {
+    "input": "qaa-Cyrl-CH",
+    "output": "qaa-Cyrl-CH"
   }
 ]

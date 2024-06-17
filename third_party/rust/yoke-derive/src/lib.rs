@@ -60,7 +60,7 @@ fn yokeable_derive_impl(input: &DeriveInput) -> TokenStream2 {
         let name = &input.ident;
         quote! {
             // This is safe because there are no lifetime parameters.
-            unsafe impl<'a, #(#tybounds),*> yoke::Yokeable<'a> for #name<#(#typarams),*> where #(#static_bounds),* {
+            unsafe impl<'a, #(#tybounds),*> yoke::Yokeable<'a> for #name<#(#typarams),*> where #(#static_bounds,)* Self: Sized {
                 type Output = Self;
                 #[inline]
                 fn transform(&self) -> &Self::Output {
@@ -220,7 +220,7 @@ fn yokeable_derive_impl(input: &DeriveInput) -> TokenStream2 {
             //
             // This custom derive can be improved to handle this case when
             // necessary
-            unsafe impl<'a, #(#tybounds),*> yoke::Yokeable<'a> for #name<'static, #(#typarams),*> where #(#static_bounds),* {
+            unsafe impl<'a, #(#tybounds),*> yoke::Yokeable<'a> for #name<'static, #(#typarams),*> where #(#static_bounds,)* {
                 type Output = #name<'a, #(#typarams),*>;
                 #[inline]
                 fn transform(&'a self) -> &'a Self::Output {
