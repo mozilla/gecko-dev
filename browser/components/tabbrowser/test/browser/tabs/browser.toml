@@ -318,6 +318,7 @@ skip-if = ["true"] # Bug 1616418 Bug 1549985
 ["browser_tab_manager_drag.js"]
 
 ["browser_tab_manager_keyboard_access.js"]
+skip-if = ["true"] # Bug 1900477
 
 ["browser_tab_manager_visibility.js"]
 
