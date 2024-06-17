@@ -113,14 +113,6 @@ bool ReadBweLossExperimentParameters(float* low_loss_threshold,
 }
 }  // namespace
 
-LinkCapacityTracker::LinkCapacityTracker()
-    : tracking_rate("rate", TimeDelta::Seconds(10)) {
-  ParseFieldTrial({&tracking_rate},
-                  field_trial::FindFullName("WebRTC-Bwe-LinkCapacity"));
-}
-
-LinkCapacityTracker::~LinkCapacityTracker() {}
-
 void LinkCapacityTracker::UpdateDelayBasedEstimate(
     Timestamp at_time,
     DataRate delay_based_bitrate) {
@@ -145,7 +137,8 @@ void LinkCapacityTracker::OnRateUpdate(absl::optional<DataRate> acknowledged,
   DataRate acknowledged_target = std::min(*acknowledged, target);
   if (acknowledged_target.bps() > capacity_estimate_bps_) {
     TimeDelta delta = at_time - last_link_capacity_update_;
-    double alpha = delta.IsFinite() ? exp(-(delta / tracking_rate.Get())) : 0;
+    double alpha =
+        delta.IsFinite() ? exp(-(delta / TimeDelta::Seconds(10))) : 0;
     capacity_estimate_bps_ = alpha * capacity_estimate_bps_ +
                              (1 - alpha) * acknowledged_target.bps<double>();
   }
