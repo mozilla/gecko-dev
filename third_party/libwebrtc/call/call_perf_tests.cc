@@ -808,9 +808,9 @@ TEST_F(CallPerfTest, MAYBE_KeepsHighBitrateWhenReconfiguringSender) {
 
   class BitrateObserver : public test::EndToEndTest, public test::FakeEncoder {
    public:
-    explicit BitrateObserver(TaskQueueBase* task_queue)
+    explicit BitrateObserver(const Environment& env, TaskQueueBase* task_queue)
         : EndToEndTest(test::VideoTestConstants::kDefaultTimeout),
-          FakeEncoder(Clock::GetRealTimeClock()),
+          FakeEncoder(env),
           encoder_inits_(0),
           last_set_bitrate_kbps_(0),
           send_stream_(nullptr),
@@ -910,7 +910,7 @@ TEST_F(CallPerfTest, MAYBE_KeepsHighBitrateWhenReconfiguringSender) {
     std::unique_ptr<VideoBitrateAllocatorFactory> bitrate_allocator_factory_;
     VideoEncoderConfig encoder_config_;
     TaskQueueBase* task_queue_;
-  } test(task_queue());
+  } test(env(), task_queue());
 
   RunBaseTest(&test);
 }

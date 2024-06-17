@@ -317,9 +317,10 @@ TEST_F(BandwidthEndToEndTest, ReportsSetEncoderRates) {
   class EncoderRateStatsTest : public test::EndToEndTest,
                                public test::FakeEncoder {
    public:
-    explicit EncoderRateStatsTest(TaskQueueBase* task_queue)
+    explicit EncoderRateStatsTest(const Environment& env,
+                                  TaskQueueBase* task_queue)
         : EndToEndTest(test::VideoTestConstants::kDefaultTimeout),
-          FakeEncoder(Clock::GetRealTimeClock()),
+          FakeEncoder(env),
           task_queue_(task_queue),
           send_stream_(nullptr),
           encoder_factory_(this),
@@ -398,7 +399,7 @@ TEST_F(BandwidthEndToEndTest, ReportsSetEncoderRates) {
     test::VideoEncoderProxyFactory encoder_factory_;
     std::unique_ptr<VideoBitrateAllocatorFactory> bitrate_allocator_factory_;
     uint32_t bitrate_kbps_ RTC_GUARDED_BY(mutex_);
-  } test(task_queue());
+  } test(env(), task_queue());
 
   RunBaseTest(&test);
 }

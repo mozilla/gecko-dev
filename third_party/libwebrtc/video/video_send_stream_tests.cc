@@ -2039,8 +2039,8 @@ TEST_F(VideoSendStreamTest,
        EncoderReconfigureOnResolutionChangeWhenNotSending) {
   class EncoderObserver : public test::FakeEncoder {
    public:
-    EncoderObserver()
-        : FakeEncoder(Clock::GetRealTimeClock()),
+    explicit EncoderObserver(const Environment& env)
+        : FakeEncoder(env),
           last_initialized_frame_width_(0),
           last_initialized_frame_height_(0) {}
 
@@ -2085,7 +2085,7 @@ TEST_F(VideoSendStreamTest,
   };
 
   test::NullTransport transport;
-  EncoderObserver encoder;
+  EncoderObserver encoder(env());
   test::VideoEncoderProxyFactory encoder_factory(&encoder);
 
   SendTask(task_queue(), [this, &transport, &encoder_factory]() {
@@ -2120,8 +2120,8 @@ TEST_F(VideoSendStreamTest,
 TEST_F(VideoSendStreamTest, CanReconfigureToUseStartBitrateAbovePreviousMax) {
   class StartBitrateObserver : public test::FakeEncoder {
    public:
-    StartBitrateObserver()
-        : FakeEncoder(Clock::GetRealTimeClock()), start_bitrate_kbps_(0) {}
+    explicit StartBitrateObserver(const Environment& env)
+        : FakeEncoder(env), start_bitrate_kbps_(0) {}
     int32_t InitEncode(const VideoCodec* config,
                        const Settings& settings) override {
       MutexLock lock(&mutex_);
@@ -2164,7 +2164,7 @@ TEST_F(VideoSendStreamTest, CanReconfigureToUseStartBitrateAbovePreviousMax) {
   sender_call_->GetTransportControllerSend()->SetSdpBitrateParameters(
       bitrate_config);
 
-  StartBitrateObserver encoder;
+  StartBitrateObserver encoder(env());
   test::VideoEncoderProxyFactory encoder_factory(&encoder);
   GetVideoSendConfig()->encoder_settings.encoder_factory = &encoder_factory;
 
@@ -2204,52 +2204,6 @@ TEST_F(VideoSendStreamTest, CanReconfigureToUseStartBitrateAbovePreviousMax) {
 
   DestroyStreams();
 }
-
-class StartStopBitrateObserver : public test::FakeEncoder {
- public:
-  StartStopBitrateObserver() : FakeEncoder(Clock::GetRealTimeClock()) {}
-  int32_t InitEncode(const VideoCodec* config,
-                     const Settings& settings) override {
-    MutexLock lock(&mutex_);
-    encoder_init_.Set();
-    return FakeEncoder::InitEncode(config, settings);
-  }
-
-  void SetRates(const RateControlParameters& parameters) override {
-    MutexLock lock(&mutex_);
-    bitrate_kbps_ = parameters.bitrate.get_sum_kbps();
-    bitrate_changed_.Set();
-    FakeEncoder::SetRates(parameters);
-  }
-
-  bool WaitForEncoderInit() {
-    return encoder_init_.Wait(test::VideoTestConstants::kDefaultTimeout);
-  }
-
-  bool WaitBitrateChanged(WaitUntil until) {
-    do {
-      absl::optional<int> bitrate_kbps;
-      {
-        MutexLock lock(&mutex_);
-        bitrate_kbps = bitrate_kbps_;
-      }
-      if (!bitrate_kbps)
-        continue;
-
-      if ((until == WaitUntil::kNonZero && *bitrate_kbps > 0) ||
-          (until == WaitUntil::kZero && *bitrate_kbps == 0)) {
-        return true;
-      }
-    } while (bitrate_changed_.Wait(test::VideoTestConstants::kDefaultTimeout));
-    return false;
-  }
-
- private:
-  Mutex mutex_;
-  rtc::Event encoder_init_;
-  rtc::Event bitrate_changed_;
-  absl::optional<int> bitrate_kbps_ RTC_GUARDED_BY(mutex_);
-};
 
 TEST_F(VideoSendStreamTest, EncoderIsProperlyInitializedAndDestroyed) {
   class EncoderStateObserver : public test::SendTest, public VideoEncoder {
@@ -2386,10 +2340,11 @@ template <typename T>
 class VideoCodecConfigObserver : public test::SendTest,
                                  public test::FakeEncoder {
  public:
-  VideoCodecConfigObserver(VideoCodecType video_codec_type,
+  VideoCodecConfigObserver(const Environment& env,
+                           VideoCodecType video_codec_type,
                            TaskQueueBase* task_queue)
       : SendTest(test::VideoTestConstants::kDefaultTimeout),
-        FakeEncoder(Clock::GetRealTimeClock()),
+        FakeEncoder(env),
         video_codec_type_(video_codec_type),
         stream_(nullptr),
         encoder_factory_(this),
@@ -2566,12 +2521,14 @@ VideoCodecConfigObserver<VideoCodecVP9>::GetEncoderSpecificSettings() const {
 }
 
 TEST_F(VideoSendStreamTest, EncoderSetupPropagatesVp8Config) {
-  VideoCodecConfigObserver<VideoCodecVP8> test(kVideoCodecVP8, task_queue());
+  VideoCodecConfigObserver<VideoCodecVP8> test(env(), kVideoCodecVP8,
+                                               task_queue());
   RunBaseTest(&test);
 }
 
 TEST_F(VideoSendStreamTest, EncoderSetupPropagatesVp9Config) {
-  VideoCodecConfigObserver<VideoCodecVP9> test(kVideoCodecVP9, task_queue());
+  VideoCodecConfigObserver<VideoCodecVP9> test(env(), kVideoCodecVP9,
+                                               task_queue());
   RunBaseTest(&test);
 }
 
@@ -2583,7 +2540,8 @@ TEST_F(VideoSendStreamTest, EncoderSetupPropagatesVp9Config) {
 #define MAYBE_EncoderSetupPropagatesH264Config EncoderSetupPropagatesH264Config
 #endif
 TEST_F(VideoSendStreamTest, MAYBE_EncoderSetupPropagatesH264Config) {
-  VideoCodecConfigObserver<VideoCodecH264> test(kVideoCodecH264, task_queue());
+  VideoCodecConfigObserver<VideoCodecH264> test(env(), kVideoCodecH264,
+                                                task_queue());
   RunBaseTest(&test);
 }
 
@@ -2665,9 +2623,9 @@ TEST_F(VideoSendStreamTest, TranslatesTwoLayerScreencastToTargetBitrate) {
   class ScreencastTargetBitrateTest : public test::SendTest,
                                       public test::FakeEncoder {
    public:
-    ScreencastTargetBitrateTest()
+    explicit ScreencastTargetBitrateTest(const Environment& env)
         : SendTest(test::VideoTestConstants::kDefaultTimeout),
-          test::FakeEncoder(Clock::GetRealTimeClock()),
+          test::FakeEncoder(env),
           encoder_factory_(this) {}
 
    private:
@@ -2699,7 +2657,7 @@ TEST_F(VideoSendStreamTest, TranslatesTwoLayerScreencastToTargetBitrate) {
           << "Timed out while waiting for the encoder to be initialized.";
     }
     test::VideoEncoderProxyFactory encoder_factory_;
-  } test;
+  } test(env());
 
   RunBaseTest(&test);
 }
@@ -2723,9 +2681,10 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
                                           public VideoBitrateAllocatorFactory,
                                           public test::FakeEncoder {
    public:
-    explicit EncoderBitrateThresholdObserver(TaskQueueBase* task_queue)
+    explicit EncoderBitrateThresholdObserver(const Environment& env,
+                                             TaskQueueBase* task_queue)
         : SendTest(test::VideoTestConstants::kDefaultTimeout),
-          FakeEncoder(Clock::GetRealTimeClock()),
+          FakeEncoder(env),
           task_queue_(task_queue),
           target_bitrate_(0),
           num_rate_allocator_creations_(0),
@@ -2909,7 +2868,7 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
     test::VideoEncoderProxyFactory encoder_factory_;
     std::unique_ptr<VideoBitrateAllocatorFactory> bitrate_allocator_factory_;
     webrtc::VideoEncoderConfig encoder_config_;
-  } test(task_queue());
+  } test(env(), task_queue());
 
   RunBaseTest(&test);
 }
@@ -2924,9 +2883,10 @@ TEST_F(VideoSendStreamTest, ReportsSentResolution) {
   class ScreencastTargetBitrateTest : public test::SendTest,
                                       public test::FakeEncoder {
    public:
-    explicit ScreencastTargetBitrateTest(TaskQueueBase* task_queue)
+    explicit ScreencastTargetBitrateTest(const Environment& env,
+                                         TaskQueueBase* task_queue)
         : SendTest(test::VideoTestConstants::kDefaultTimeout),
-          test::FakeEncoder(Clock::GetRealTimeClock()),
+          test::FakeEncoder(env),
           send_stream_(nullptr),
           encoder_factory_(this),
           task_queue_(task_queue) {}
@@ -3003,7 +2963,7 @@ TEST_F(VideoSendStreamTest, ReportsSentResolution) {
     VideoSendStream* send_stream_;
     test::VideoEncoderProxyFactory encoder_factory_;
     TaskQueueBase* const task_queue_;
-  } test(task_queue());
+  } test(env(), task_queue());
 
   RunBaseTest(&test);
 }
@@ -3735,9 +3695,10 @@ TEST_F(VideoSendStreamTest, RemoveOverheadFromBandwidth) {
   class RemoveOverheadFromBandwidthTest : public test::EndToEndTest,
                                           public test::FakeEncoder {
    public:
-    explicit RemoveOverheadFromBandwidthTest(TaskQueueBase* task_queue)
+    explicit RemoveOverheadFromBandwidthTest(const Environment& env,
+                                             TaskQueueBase* task_queue)
         : EndToEndTest(test::VideoTestConstants::kDefaultTimeout),
-          FakeEncoder(Clock::GetRealTimeClock()),
+          FakeEncoder(env),
           task_queue_(task_queue),
           encoder_factory_(this),
           call_(nullptr),
@@ -3807,7 +3768,7 @@ TEST_F(VideoSendStreamTest, RemoveOverheadFromBandwidth) {
     uint32_t max_bitrate_bps_ RTC_GUARDED_BY(&mutex_);
     bool first_packet_sent_ RTC_GUARDED_BY(&mutex_);
     rtc::Event bitrate_changed_event_;
-  } test(task_queue());
+  } test(env(), task_queue());
   RunBaseTest(&test);
 }
 

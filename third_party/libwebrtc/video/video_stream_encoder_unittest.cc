@@ -767,8 +767,10 @@ class SimpleVideoStreamEncoderFactory {
 
   test::ScopedKeyValueConfig field_trials_;
   GlobalSimulatedTimeController time_controller_{Timestamp::Zero()};
-  std::unique_ptr<TaskQueueFactory> task_queue_factory_{
-      time_controller_.CreateTaskQueueFactory()};
+  Environment env_ =
+      CreateEnvironment(&field_trials_,
+                        time_controller_.GetClock(),
+                        time_controller_.CreateTaskQueueFactory());
   std::unique_ptr<MockableSendStatisticsProxy> stats_proxy_ =
       std::make_unique<MockableSendStatisticsProxy>(
           time_controller_.GetClock(),
@@ -779,7 +781,7 @@ class SimpleVideoStreamEncoderFactory {
       CreateBuiltinVideoBitrateAllocatorFactory();
   VideoStreamEncoderSettings encoder_settings_{
       VideoEncoder::Capabilities(/*loss_notification=*/false)};
-  MockFakeEncoder mock_fake_encoder_{time_controller_.GetClock()};
+  MockFakeEncoder mock_fake_encoder_{env_};
   test::VideoEncoderProxyFactory encoder_factory_{&mock_fake_encoder_};
   NullEncoderSink sink_;
 };
@@ -851,7 +853,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
         codec_width_(320),
         codec_height_(240),
         max_framerate_(kDefaultFramerate),
-        fake_encoder_(&time_controller_),
+        fake_encoder_(env_),
         encoder_factory_(&fake_encoder_),
         stats_proxy_(new MockableSendStatisticsProxy(
             time_controller_.GetClock(),
@@ -1063,11 +1065,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
 
   class TestEncoder : public test::FakeEncoder {
    public:
-    explicit TestEncoder(TimeController* time_controller)
-        : FakeEncoder(time_controller->GetClock()),
-          time_controller_(time_controller) {
-      RTC_DCHECK(time_controller_);
-    }
+    explicit TestEncoder(const Environment& env) : FakeEncoder(env) {}
 
     VideoEncoder::EncoderInfo GetEncoderInfo() const override {
       MutexLock lock(&local_mutex_);
@@ -1343,7 +1341,6 @@ class VideoStreamEncoderTest : public ::testing::Test {
       FakeEncoder::SetRates(adjusted_paramters);
     }
 
-    TimeController* const time_controller_;
     mutable Mutex local_mutex_;
     enum class EncoderState {
       kUninitialized,
@@ -9410,8 +9407,7 @@ TEST(VideoStreamEncoderSimpleTest, CreateDestroy) {
       &env.clock(), VideoSendStream::Config(nullptr),
       webrtc::VideoEncoderConfig::ContentType::kRealtimeVideo,
       env.field_trials());
-  SimpleVideoStreamEncoderFactory::MockFakeEncoder mock_fake_encoder(
-      time_controller.GetClock());
+  SimpleVideoStreamEncoderFactory::MockFakeEncoder mock_fake_encoder(env);
   test::VideoEncoderProxyFactory encoder_factory(&mock_fake_encoder);
   std::unique_ptr<VideoBitrateAllocatorFactory> bitrate_allocator_factory =
       CreateBuiltinVideoBitrateAllocatorFactory();
