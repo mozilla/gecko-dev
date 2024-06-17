@@ -1340,6 +1340,15 @@ panelview .toolbarbutton-1 {
   min-width: 0;
 }
 
+.PanelUI-tabitem-container {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+
+  &.tabitem-removed {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
 .PanelUI-tabitem-container > toolbarbutton[itemtype="tab"] {
   flex: 1;
   min-width: 0;
