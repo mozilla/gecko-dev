@@ -65,8 +65,31 @@ window.onload = function () {
     ok($(".devtools-searchinput-clear").hidden, "Clear button was hidden");
   }
 
+  async function testSearchBoxWithSummary() {
+    const { $ } = await createComponentTest(SearchBox, {
+      summary: "my summary",
+      summaryId: "my-summary-id",
+      summaryTooltip: "my summary tooltip",
+    });
+
+    const summaryEl = $(".devtools-searchinput-summary");
+    is(summaryEl.textContent, "my summary", "Summary has expected content");
+    is(
+      summaryEl.getAttribute("title"),
+      "my summary tooltip",
+      "Summary has expected title attribute"
+    );
+    is(summaryEl.id, "my-summary-id", "Summary has expected id");
+    is(
+      $(".devtools-searchinput").getAttribute("aria-describedby"),
+      "my-summary-id",
+     "input aria-describedby attribute is the summary element id"
+    );
+  }
+
   add_task(async function () {
     await testSimpleSearchBox();
+    await testSearchBoxWithSummary();
   });
 };
 </script>

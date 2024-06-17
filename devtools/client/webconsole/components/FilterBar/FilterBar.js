@@ -300,23 +300,18 @@ class FilterBar extends Component {
   renderSearchBox() {
     const { dispatch, filteredMessagesCount } = this.props;
 
-    let searchBoxSummary;
-    let searchBoxSummaryTooltip;
-    if (filteredMessagesCount.text > 0) {
-      searchBoxSummary = l10n.getStr("webconsole.filteredMessagesByText.label");
-      searchBoxSummary = PluralForm.get(
-        filteredMessagesCount.text,
-        searchBoxSummary
-      ).replace("#1", filteredMessagesCount.text);
+    // We want the summary to always be announced to screen reader, even if there are
+    // no filtered out messages.
+    // We'll hide the "0 hidden" summary when the input field is not focused.
+    const searchBoxSummary = PluralForm.get(
+      filteredMessagesCount.text,
+      l10n.getStr("webconsole.filteredMessagesByText.label")
+    ).replace("#1", filteredMessagesCount.text);
 
-      searchBoxSummaryTooltip = l10n.getStr(
-        "webconsole.filteredMessagesByText.tooltip"
-      );
-      searchBoxSummaryTooltip = PluralForm.get(
-        filteredMessagesCount.text,
-        searchBoxSummaryTooltip
-      ).replace("#1", filteredMessagesCount.text);
-    }
+    const searchBoxSummaryTooltip = PluralForm.get(
+      filteredMessagesCount.text,
+      l10n.getStr("webconsole.filteredMessagesByText.tooltip")
+    ).replace("#1", filteredMessagesCount.text);
 
     return SearchBox({
       type: "filter",
@@ -325,6 +320,7 @@ class FilterBar extends Component {
       onChange: text => dispatch(actions.filterTextSet(text)),
       summary: searchBoxSummary,
       summaryTooltip: searchBoxSummaryTooltip,
+      summaryId: "devtools-console-output-filter-summary",
     });
   }
 
@@ -373,7 +369,8 @@ class FilterBar extends Component {
   }
 
   render() {
-    const { closeButtonVisible, displayMode } = this.props;
+    const { closeButtonVisible, displayMode, filteredMessagesCount } =
+      this.props;
 
     const isNarrow = displayMode === FILTERBAR_DISPLAY_MODES.NARROW;
     const isWide = displayMode === FILTERBAR_DISPLAY_MODES.WIDE;
@@ -390,6 +387,7 @@ class FilterBar extends Component {
           className:
             "devtools-toolbar devtools-input-toolbar webconsole-filterbar-primary",
           key: "primary-bar",
+          "data-has-filtered-by-text": filteredMessagesCount.text > 0,
         },
         clearButton,
         separator,

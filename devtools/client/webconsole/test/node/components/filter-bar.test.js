@@ -79,8 +79,14 @@ describe("FilterBar component:", () => {
     expect(textFilter.attr("type")).toBe("search");
     expect(textFilter.attr("value")).toBe("");
 
+    // Text filter input summary element
+    const textFilterSummary = textInput.children().eq(1);
+    expect(textFilterSummary.attr("class")).toBe(
+      "devtools-searchinput-summary"
+    );
+
     // Text filter input clear button
-    const textFilterClearButton = textInput.children().eq(1);
+    const textFilterClearButton = textInput.children().eq(2);
     expect(textFilterClearButton.attr("class")).toBe(
       "devtools-searchinput-clear"
     );
@@ -139,15 +145,6 @@ describe("FilterBar component:", () => {
     const message = wrapper.find(".devtools-searchinput-summary");
     expect(message.text()).toBe("3 hidden");
     expect(message.prop("title")).toBe("3 items hidden by text filter");
-  });
-
-  it("does not display the number of hidden messages when there are no messages", () => {
-    const store = setupStore();
-    store.dispatch(actions.filterTextSet("qwerty"));
-    const wrapper = mount(Provider({ store }, getFilterBar()));
-
-    const toolbar = wrapper.find(".devtools-searchinput-summary");
-    expect(toolbar.exists()).toBeFalsy();
   });
 
   it("Displays a filter buttons bar on its own element in narrow displayMode", () => {

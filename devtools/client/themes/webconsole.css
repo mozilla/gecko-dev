@@ -711,6 +711,15 @@ a.learn-more-link.webconsole-learn-more-link {
   min-width: 150px;
 }
 
+/* We always render the "X hidden" element in the filter bar for accessibility.
+   But when the filter input is not focused, or empty, and there is no filtered messages,
+   we don't want to display it as it provides little value
+*/
+.webconsole-filterbar-primary[data-has-filtered-by-text="false"]
+  .devtools-searchbox input:is(:not(:focus),:empty) ~ #devtools-console-output-filter-summary {
+  display: none;
+}
+
 
 /* Special casing String reps, and warning/error string colors
  * so they are legible */

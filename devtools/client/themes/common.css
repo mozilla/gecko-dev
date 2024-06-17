@@ -475,6 +475,8 @@ iframe {
 .devtools-searchbox {
   display: inline-flex;
   flex-grow: 1;
+  gap: 4px;
+  padding-inline-end: 4px;
   position: relative;
   border: 1px solid transparent;
   height: 100%;
@@ -515,7 +517,7 @@ iframe {
 .devtools-searchinput-clear {
   flex: 0 0 auto;
   align-self: center;
-  margin: 0 4px;
+  margin: 0;
   padding: 0;
   border: 0;
   width: 16px;
