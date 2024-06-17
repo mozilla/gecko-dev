@@ -622,7 +622,7 @@ input:checked + .slider::before {
   align-self: center;
   color: #FFFFFF;
   cursor: default;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Ubuntu", "Helvetica Neue", sans-serif;
+  font-family: system-ui;
   font-size: 0.9em;
   font-variant-numeric: tabular-nums;
   user-select: none;

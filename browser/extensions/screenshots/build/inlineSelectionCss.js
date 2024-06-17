@@ -468,7 +468,7 @@ window.inlineSelectionCss = `
   position: absolute;
   pointer-events: none;
   font-weight: bold;
-  font-family: -apple-system, BlinkMacSystemFont, "segoe ui", "helvetica neue", helvetica, ubuntu, roboto, noto, arial, sans-serif;
+  font-family: system-ui;
   font-size: 70%;
   color: #000;
   text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; }
@@ -579,7 +579,7 @@ window.inlineSelectionCss = `
   justify-content: center;
   animation: pulse 125mm cubic-bezier(0.07, 0.95, 0, 1);
   color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "segoe ui", "helvetica neue", helvetica, ubuntu, roboto, noto, arial, sans-serif;
+  font-family: system-ui;
   font-size: 24px;
   line-height: 32px;
   text-align: center;
@@ -595,7 +595,7 @@ window.inlineSelectionCss = `
   border: 1px #9b9b9b solid;
   color: #fff;
   cursor: pointer;
-  font-family: -apple-system, BlinkMacSystemFont, "segoe ui", "helvetica neue", helvetica, ubuntu, roboto, noto, arial, sans-serif;
+  font-family: system-ui;
   font-size: 16px;
   margin-top: 40px;
   padding: 10px 25px;

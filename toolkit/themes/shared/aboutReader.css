@@ -367,7 +367,7 @@ blockquote {
    */
   margin-inline-start: max(calc(50% - 17px - var(--inline-padding)), calc(100% - 96px - 34px - 2 * var(--inline-padding)));
 
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, "Helvetica Neue", sans-serif;
+  font-family: system-ui;
   list-style: none;
   user-select: none;
 
