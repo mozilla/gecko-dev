@@ -50,13 +50,18 @@ nsIFrame* nsSplittableFrame::GetPrevContinuation() const {
   return mPrevContinuation;
 }
 
-void nsSplittableFrame::SetPrevContinuation(nsIFrame* aFrame) {
+void nsSplittableFrame::SetPrevContinuationWithoutUpdatingCache(
+    nsIFrame* aFrame) {
   NS_ASSERTION(!aFrame || Type() == aFrame->Type(),
                "setting a prev continuation with incorrect type!");
   NS_ASSERTION(!IsInPrevContinuationChain(aFrame, this),
                "creating a loop in continuation chain!");
   mPrevContinuation = aFrame;
   RemoveStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+}
+
+void nsSplittableFrame::SetPrevContinuation(nsIFrame* aFrame) {
+  SetPrevContinuationWithoutUpdatingCache(aFrame);
   UpdateFirstContinuationAndFirstInFlowCache();
 }
 
@@ -133,13 +138,17 @@ nsIFrame* nsSplittableFrame::GetPrevInFlow() const {
                                                          : nullptr;
 }
 
-void nsSplittableFrame::SetPrevInFlow(nsIFrame* aFrame) {
+void nsSplittableFrame::SetPrevInFlowWithoutUpdatingCache(nsIFrame* aFrame) {
   NS_ASSERTION(!aFrame || Type() == aFrame->Type(),
                "setting a prev in flow with incorrect type!");
   NS_ASSERTION(!IsInPrevContinuationChain(aFrame, this),
                "creating a loop in continuation chain!");
   mPrevContinuation = aFrame;
   AddStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+}
+
+void nsSplittableFrame::SetPrevInFlow(nsIFrame* aFrame) {
+  SetPrevInFlowWithoutUpdatingCache(aFrame);
   UpdateFirstContinuationAndFirstInFlowCache();
 }
 
@@ -186,7 +195,6 @@ nsIFrame* nsSplittableFrame::LastInFlow() const {
   return lastInFlow;
 }
 
-// Remove this frame from the flow. Connects prev in flow and next in flow
 void nsSplittableFrame::RemoveFromFlow(nsIFrame* aFrame) {
   nsIFrame* prevContinuation = aFrame->GetPrevContinuation();
   nsIFrame* nextContinuation = aFrame->GetNextContinuation();
@@ -198,23 +206,20 @@ void nsSplittableFrame::RemoveFromFlow(nsIFrame* aFrame) {
       prevContinuation->SetNextInFlow(nextContinuation);
     }
     if (nextContinuation) {
-      nextContinuation->SetPrevInFlow(prevContinuation);
+      nextContinuation->SetPrevInFlowWithoutUpdatingCache(prevContinuation);
     }
   } else {
     if (prevContinuation) {
       prevContinuation->SetNextContinuation(nextContinuation);
     }
     if (nextContinuation) {
-      nextContinuation->SetPrevContinuation(prevContinuation);
+      nextContinuation->SetPrevContinuationWithoutUpdatingCache(
+          prevContinuation);
     }
   }
 
-  // **Note: it is important here that we clear the Next link from aFrame
-  // BEFORE clearing its Prev link, because in nsContinuingTextFrame,
-  // SetPrevInFlow() would follow the Next pointers, wiping out the cached
-  // mFirstContinuation field from each following frame in the list.
   aFrame->SetNextInFlow(nullptr);
-  aFrame->SetPrevInFlow(nullptr);
+  aFrame->SetPrevInFlowWithoutUpdatingCache(nullptr);
 }
 
 void nsSplittableFrame::UpdateFirstContinuationAndFirstInFlowCache() {

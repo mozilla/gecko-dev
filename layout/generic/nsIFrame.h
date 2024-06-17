@@ -2529,6 +2529,23 @@ class nsIFrame : public nsQueryFrame {
   virtual nsIFrame* LastInFlow() const { return const_cast<nsIFrame*>(this); }
 
   /**
+   * SetPrevContinuationWithoutUpdatingCache() and
+   * SetPrevInFlowWithoutUpdatingCache() are designed for performance
+   * optimization during frame destruction. Normal operations should use
+   * SetPrevContinuation() and SetPrevInFlow().
+   *
+   * Subclasses that implement a first continuation cache can override these two
+   * methods to set the prev-continuation and prev-in-flow without updating the
+   * cache.
+   *
+   * WARNING: Calling these two methods can result in a stale cache in later
+   * continuations. Therefore, they should only be called during frame
+   * destruction where any stale cache is acceptable.
+   */
+  virtual void SetPrevContinuationWithoutUpdatingCache(nsIFrame*);
+  virtual void SetPrevInFlowWithoutUpdatingCache(nsIFrame*);
+
+  /**
    * Mark any stored intrinsic inline size information as dirty (requiring
    * re-calculation).  Note that this should generally not be called
    * directly; PresShell::FrameNeedsReflow() will call it instead.
