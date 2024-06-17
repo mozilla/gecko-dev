@@ -68,10 +68,10 @@ index 46470d6b5d..258a3a4350 100644
  
    // TODO(srte): Use BitrateAllocationLimits here.
 diff --git a/call/rtp_transport_controller_send.cc b/call/rtp_transport_controller_send.cc
-index a997593492..a10d75d2e0 100644
+index d739ed1ddd..0ee6751035 100644
 --- a/call/rtp_transport_controller_send.cc
 +++ b/call/rtp_transport_controller_send.cc
-@@ -262,11 +262,6 @@ void RtpTransportControllerSend::ReconfigureBandwidthEstimation(
+@@ -263,11 +263,6 @@ void RtpTransportControllerSend::ReconfigureBandwidthEstimation(
    RTC_DCHECK_RUN_ON(&sequence_checker_);
    bwe_settings_ = settings;
  
@@ -83,7 +83,7 @@ index a997593492..a10d75d2e0 100644
    if (controller_) {
      // Recreate the controller and handler.
      control_handler_ = nullptr;
-@@ -280,6 +275,9 @@ void RtpTransportControllerSend::ReconfigureBandwidthEstimation(
+@@ -281,6 +276,9 @@ void RtpTransportControllerSend::ReconfigureBandwidthEstimation(
        UpdateNetworkAvailability();
      }
    }
