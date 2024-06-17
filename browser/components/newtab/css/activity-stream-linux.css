@@ -2540,7 +2540,7 @@ main section {
   background-clip: padding-box;
   background-color: var(--newtab-button-background);
   background-image: url("chrome://global/skin/icons/more.svg");
-  background-position: 55%;
+  background-position: 50.1%;
   border: 0;
   outline: 1px solid var(--newtab-border-color);
   outline-width: 0;
@@ -4171,7 +4171,7 @@ main section {
   background-clip: padding-box;
   background-color: var(--newtab-button-background);
   background-image: url("chrome://global/skin/icons/more.svg");
-  background-position: 55%;
+  background-position: 50.1%;
   border: 0;
   outline: 1px solid var(--newtab-border-color);
   outline-width: 0;
