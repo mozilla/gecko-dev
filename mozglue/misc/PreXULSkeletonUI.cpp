@@ -7,6 +7,7 @@
 #include "PreXULSkeletonUI.h"
 
 #include <algorithm>
+#include <dwmapi.h>
 #include <math.h>
 #include <limits.h>
 #include <cmath>
@@ -146,6 +147,8 @@ MOZ_DECL_IMPORTED_WIN32_FN(GetMonitorInfoW);
 MOZ_DECL_IMPORTED_WIN32_FN(SetWindowLongPtrW);
 MOZ_DECL_IMPORTED_WIN32_FN(StretchDIBits);
 MOZ_DECL_IMPORTED_WIN32_FN(CreateSolidBrush);
+MOZ_DECL_IMPORTED_WIN32_FN(DwmGetWindowAttribute);
+MOZ_DECL_IMPORTED_WIN32_FN(DwmSetWindowAttribute);
 #undef MOZ_DECL_IMPORTED_WIN32_FN
 
 static int sWindowWidth;
@@ -653,6 +656,17 @@ bool RasterizeAnimatedRect(const ColorRect& colorRect,
   return true;
 }
 
+bool FillRectWithColor(HDC hdc, LPCRECT rect, uint32_t mozColor) {
+  HBRUSH brush = sCreateSolidBrush(RGB((mozColor & 0xff0000) >> 16,
+                                       (mozColor & 0x00ff00) >> 8,
+                                       (mozColor & 0x0000ff) >> 0));
+  int fillRectResult = sFillRect(hdc, rect, brush);
+
+  sDeleteObject(brush);
+
+  return !!fillRectResult;
+}
+
 Result<Ok, PreXULSkeletonUIError> DrawSkeletonUI(
     HWND hWnd, CSSPixelSpan urlbarCSSSpan, CSSPixelSpan searchbarCSSSpan,
     Vector<CSSPixelSpan>& springs, const ThemeColors& currentTheme,
@@ -1063,15 +1077,10 @@ Result<Ok, PreXULSkeletonUIError> DrawSkeletonUI(
 
   // Then, we just fill the rest with FillRect
   RECT rect = {0, sTotalChromeHeight, sWindowWidth, sWindowHeight};
-  HBRUSH brush =
-      sCreateSolidBrush(RGB((currentTheme.backgroundColor & 0xff0000) >> 16,
-                            (currentTheme.backgroundColor & 0x00ff00) >> 8,
-                            (currentTheme.backgroundColor & 0x0000ff) >> 0));
-  int fillRectResult = sFillRect(hdc, &rect, brush);
+  bool const fillRectOk =
+      FillRectWithColor(hdc, &rect, currentTheme.backgroundColor);
 
-  sDeleteObject(brush);
-
-  if (fillRectResult == 0) {
+  if (!fillRectOk) {
     return Err(PreXULSkeletonUIError::FailedFillingBottomRect);
   }
 
@@ -1371,8 +1380,9 @@ Result<HKEY, PreXULSkeletonUIError> OpenPreXULSkeletonUIRegKey() {
 Result<Ok, PreXULSkeletonUIError> LoadGdi32AndUser32Procedures() {
   HMODULE user32Dll = ::LoadLibraryW(L"user32");
   HMODULE gdi32Dll = ::LoadLibraryW(L"gdi32");
+  HMODULE dwmapiDll = ::LoadLibraryW(L"dwmapi.dll");
 
-  if (!user32Dll || !gdi32Dll) {
+  if (!user32Dll || !gdi32Dll || !dwmapiDll) {
     return Err(PreXULSkeletonUIError::FailedLoadingDynamicProcs);
   }
 
@@ -1408,6 +1418,8 @@ Result<Ok, PreXULSkeletonUIError> LoadGdi32AndUser32Procedures() {
   MOZ_LOAD_OR_FAIL(user32Dll, ShowWindow);
   MOZ_LOAD_OR_FAIL(user32Dll, SetWindowPos);
   MOZ_LOAD_OR_FAIL(user32Dll, GetWindowDC);
+  MOZ_LOAD_OR_FAIL(user32Dll, GetWindowRect);
+  MOZ_LOAD_OR_FAIL(user32Dll, MapWindowPoints);
   MOZ_LOAD_OR_FAIL(user32Dll, FillRect);
   MOZ_LOAD_OR_FAIL(user32Dll, ReleaseDC);
   MOZ_LOAD_OR_FAIL(user32Dll, LoadIconW);
@@ -1418,6 +1430,8 @@ Result<Ok, PreXULSkeletonUIError> LoadGdi32AndUser32Procedures() {
   MOZ_LOAD_OR_FAIL(gdi32Dll, StretchDIBits);
   MOZ_LOAD_OR_FAIL(gdi32Dll, CreateSolidBrush);
   MOZ_LOAD_OR_FAIL(gdi32Dll, DeleteObject);
+  MOZ_LOAD_OR_FAIL(dwmapiDll, DwmGetWindowAttribute);
+  MOZ_LOAD_OR_FAIL(dwmapiDll, DwmSetWindowAttribute);
 
 #undef MOZ_LOAD_OR_FAIL
 
@@ -1913,7 +1927,33 @@ static Result<Ok, PreXULSkeletonUIError> CreateAndStorePreXULSkeletonUIImpl(
     return Err(PreXULSkeletonUIError::CreateWindowFailed);
   }
 
-  sShowWindow(sPreXULSkeletonUIWindow, showCmd);
+  // DWM displays garbage immediately on Show(), and that garbage is usually
+  // mostly #FFFFFF. To avoid a bright flash when the window is first created,
+  // cloak the window while showing it, and fill it with the appropriate
+  // background color before uncloaking it.
+  if (sDwmGetWindowAttribute != nullptr) {
+    constexpr static auto const CloakWindow = [](HWND hwnd, BOOL state) {
+      sDwmSetWindowAttribute(sPreXULSkeletonUIWindow, DWMWA_CLOAK, &state,
+                             sizeof(state));
+    };
+
+    CloakWindow(sPreXULSkeletonUIWindow, TRUE);
+    auto const _uncloak =
+        MakeScopeExit([&]() { CloakWindow(sPreXULSkeletonUIWindow, FALSE); });
+    sShowWindow(sPreXULSkeletonUIWindow, showCmd);
+
+    HDC hdc = sGetWindowDC(sPreXULSkeletonUIWindow);
+    if (!hdc) {
+      return Err(PreXULSkeletonUIError::FailedGettingDC);
+    }
+    auto const _cleanupDC =
+        MakeScopeExit([&] { sReleaseDC(sPreXULSkeletonUIWindow, hdc); });
+
+    RECT rect;
+    sGetWindowRect(sPreXULSkeletonUIWindow, &rect);  // includes non-client area
+    sMapWindowPoints(HWND_DESKTOP, sPreXULSkeletonUIWindow, (LPPOINT)&rect, 2);
+    FillRectWithColor(hdc, &rect, currentTheme.backgroundColor);
+  }
 
   sDpi = sGetDpiForWindow(sPreXULSkeletonUIWindow);
   sNonClientHorizontalMargins =
