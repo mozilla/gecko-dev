@@ -32,13 +32,13 @@ import org.mozilla.fenix.theme.FirefoxTheme
 
 private const val MAX_VISIBLE_TABS = 99
 private const val SO_MANY_TABS_OPEN = "∞"
-private val NORMAL_TABS_BOTTOM_PADDING = 0.5.dp
+private val NORMAL_TABS_BOTTOM_PADDING = 0.dp
 private const val ONE_DIGIT_SIZE_RATIO = 0.5f
 private const val TWO_DIGITS_SIZE_RATIO = 0.4f
 private const val MIN_SINGLE_DIGIT = 0
 private const val MAX_SINGLE_DIGIT = 9
 private const val TWO_DIGIT_THRESHOLD = 10
-private const val TAB_TEXT_BOTTOM_PADDING_RATIO = 4
+private const val TAB_TEXT_BOTTOM_PADDING_RATIO = 6
 
 /**
  * UI for displaying the number of opened tabs.
