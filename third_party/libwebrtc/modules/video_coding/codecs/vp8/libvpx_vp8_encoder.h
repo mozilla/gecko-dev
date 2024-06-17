@@ -31,7 +31,6 @@
 #include "modules/video_coding/include/video_codec_interface.h"
 #include "modules/video_coding/utility/framerate_controller_deprecated.h"
 #include "modules/video_coding/utility/vp8_constants.h"
-#include "rtc_base/experiments/cpu_speed_experiment.h"
 #include "rtc_base/experiments/encoder_info_settings.h"
 #include "rtc_base/experiments/rate_control_settings.h"
 #include "vpx/vp8cx.h"
@@ -114,7 +113,6 @@ class LibvpxVp8Encoder : public VideoEncoder {
   const Environment env_;
   const std::unique_ptr<LibvpxInterface> libvpx_;
 
-  const CpuSpeedExperiment experimental_cpu_speed_config_arm_;
   const RateControlSettings rate_control_settings_;
 
   EncodedImageCallback* encoded_complete_callback_ = nullptr;

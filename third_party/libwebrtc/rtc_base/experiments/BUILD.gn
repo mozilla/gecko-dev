@@ -137,19 +137,6 @@ rtc_library("balanced_degradation_settings") {
   absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
 
-rtc_library("cpu_speed_experiment") {
-  sources = [
-    "cpu_speed_experiment.cc",
-    "cpu_speed_experiment.h",
-  ]
-  deps = [
-    ":field_trial_parser",
-    "..:logging",
-    "../../system_wrappers:field_trial",
-  ]
-  absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
-}
-
 rtc_library("encoder_info_settings") {
   sources = [
     "encoder_info_settings.cc",
@@ -238,7 +225,6 @@ if (rtc_include_tests && !build_with_chromium) {
     sources = [
       "balanced_degradation_settings_unittest.cc",
       "bandwidth_quality_scaler_settings_unittest.cc",
-      "cpu_speed_experiment_unittest.cc",
       "encoder_info_settings_unittest.cc",
       "field_trial_list_unittest.cc",
       "field_trial_parser_unittest.cc",
@@ -256,7 +242,6 @@ if (rtc_include_tests && !build_with_chromium) {
     deps = [
       ":balanced_degradation_settings",
       ":bandwidth_quality_scaler_settings",
-      ":cpu_speed_experiment",
       ":encoder_info_settings",
       ":field_trial_parser",
       ":keyframe_interval_settings_experiment",
