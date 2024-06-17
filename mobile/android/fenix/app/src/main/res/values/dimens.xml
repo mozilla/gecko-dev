@@ -71,6 +71,7 @@
     <!-- Browser Toolbar -->
     <dimen name="browser_toolbar_height">56dp</dimen>
     <dimen name="browser_navbar_height">48dp</dimen>
+    <dimen name="browser_microsurvey_height">104dp</dimen>
     <dimen name="tab_strip_height">0dp</dimen>
 
     <!-- Bookmark Edit Fragment  -->

@@ -2043,6 +2043,21 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         }
     }
 
+    fun getBottomToolbarContainerHeight(): Int {
+        val isNavBarEnabled = enableIncompleteToolbarRedesign
+        val isMicrosurveyEnabled = shouldShowMicrosurveyPrompt
+        val navbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
+        val microsurveyHeight =
+            appContext.resources.getDimensionPixelSize(R.dimen.browser_microsurvey_height)
+
+        return when {
+            isNavBarEnabled && isMicrosurveyEnabled -> navbarHeight + microsurveyHeight
+            isNavBarEnabled -> navbarHeight
+            isMicrosurveyEnabled -> microsurveyHeight
+            else -> 0
+        }
+    }
+
     /**
      * Indicates if the user is shown incomplete new redesigned Toolbar UI components and behaviors.
      */
