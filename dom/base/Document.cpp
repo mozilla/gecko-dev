@@ -1637,6 +1637,14 @@ void Document::GetNetErrorInfo(NetErrorInfo& aInfo, ErrorResult& aRv) {
     return;
   }
   aInfo.mErrorCodeString.Assign(errorCodeString);
+
+  nsresult channelStatus;
+  rv = mFailedChannel->GetStatus(&channelStatus);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aRv.Throw(rv);
+    return;
+  }
+  aInfo.mChannelStatus = static_cast<uint32_t>(channelStatus);
 }
 
 bool Document::CallerIsTrustedAboutCertError(JSContext* aCx,
@@ -1707,6 +1715,14 @@ void Document::GetFailedCertSecurityInfo(FailedCertSecurityInfo& aInfo,
     return;
   }
   aInfo.mErrorCodeString.Assign(errorCodeString);
+
+  nsresult channelStatus;
+  rv = mFailedChannel->GetStatus(&channelStatus);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aRv.Throw(rv);
+    return;
+  }
+  aInfo.mChannelStatus = static_cast<uint32_t>(channelStatus);
 
   nsITransportSecurityInfo::OverridableErrorCategory errorCategory;
   rv = tsi->GetOverridableErrorCategory(&errorCategory);

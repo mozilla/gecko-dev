@@ -25,6 +25,17 @@ function resetPrefs() {
   Services.prefs.clearUserPref("browser.fixup.alternate.enabled");
 }
 
+const SSL_ERROR_BASE = -0x3000;
+const SSL_ERROR_NO_CYPHER_OVERLAP = SSL_ERROR_BASE + 2;
+const SSL_ERROR_PROTOCOL_VERSION_ALERT = SSL_ERROR_BASE + 98;
+
+function nssErrorToNSErrorAsString(nssError) {
+  let nssErrorsService = Cc["@mozilla.org/nss_errors_service;1"].getService(
+    Ci.nsINSSErrorsService
+  );
+  return nssErrorsService.getXPCOMFromNSSError(nssError).toString();
+}
+
 async function resetTelemetry() {
   Services.telemetry.clearEvents();
   await TestUtils.waitForCondition(() => {
@@ -37,7 +48,7 @@ async function resetTelemetry() {
   Services.telemetry.setEventRecordingEnabled("security.ui.tlserror", true);
 }
 
-async function checkTelemetry(errorString) {
+async function checkTelemetry(errorString, nssError) {
   let loadEvent = await TestUtils.waitForCondition(() => {
     let events = Services.telemetry.snapshotEvents(
       Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
@@ -53,6 +64,7 @@ async function checkTelemetry(errorString) {
     errorString,
     {
       is_frame: "false",
+      channel_status: nssErrorToNSErrorAsString(nssError),
     },
   ]);
 }
@@ -83,7 +95,10 @@ add_task(async function resetToDefaultConfig() {
   info("Loading and waiting for the net error");
   await pageLoaded;
 
-  await checkTelemetry("SSL_ERROR_PROTOCOL_VERSION_ALERT");
+  await checkTelemetry(
+    "SSL_ERROR_PROTOCOL_VERSION_ALERT",
+    SSL_ERROR_PROTOCOL_VERSION_ALERT
+  );
 
   // Setup an observer for the target page.
   const finalLoadComplete = BrowserTestUtils.browserLoaded(
@@ -145,7 +160,10 @@ add_task(async function checkLearnMoreLink() {
   info("Loading and waiting for the net error");
   await pageLoaded;
 
-  await checkTelemetry("SSL_ERROR_PROTOCOL_VERSION_ALERT");
+  await checkTelemetry(
+    "SSL_ERROR_PROTOCOL_VERSION_ALERT",
+    SSL_ERROR_PROTOCOL_VERSION_ALERT
+  );
 
   const baseURL = Services.urlFormatter.formatURLPref("app.support.baseURL");
 
@@ -257,7 +275,10 @@ add_task(async function onlyAllow3DESWithDeprecatedTLS() {
     }
   );
 
-  await checkTelemetry("SSL_ERROR_NO_CYPHER_OVERLAP");
+  await checkTelemetry(
+    "SSL_ERROR_NO_CYPHER_OVERLAP",
+    SSL_ERROR_NO_CYPHER_OVERLAP
+  );
 
   // Enabling deprecated TLS should also enable 3DES.
   Services.prefs.setBoolPref("security.tls.version.enable-deprecated", true);
