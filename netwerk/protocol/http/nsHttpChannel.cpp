@@ -162,6 +162,19 @@ namespace {
 
 static NS_DEFINE_CID(kStreamListenerTeeCID, NS_STREAMLISTENERTEE_CID);
 
+enum ChannelDisposition {
+  kHttpCanceled = 0,
+  kHttpDisk = 1,
+  kHttpNetOK = 2,
+  kHttpNetEarlyFail = 3,
+  kHttpNetLateFail = 4,
+  kHttpsCanceled = 8,
+  kHttpsDisk = 9,
+  kHttpsNetOK = 10,
+  kHttpsNetEarlyFail = 11,
+  kHttpsNetLateFail = 12
+};
+
 void AccumulateCacheHitTelemetry(CacheDisposition hitOrMiss,
                                  nsIChannel* aChannel) {
   nsCString key("UNKNOWN");
@@ -7378,6 +7391,10 @@ void nsHttpChannel::RecordOnStartTelemetry(nsresult aStatus,
   Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_ONSTART_SUCCESS,
                         NS_SUCCEEDED(aStatus));
 
+  mozilla::glean::networking::http_channel_onstart_status
+      .Get(NS_SUCCEEDED(aStatus) ? "successful"_ns : "fail"_ns)
+      .Add(1);
+
   if (mTransaction) {
     Telemetry::Accumulate(
         Telemetry::HTTP3_CHANNEL_ONSTART_SUCCESS,
@@ -7819,6 +7836,87 @@ static nsLiteralCString ContentTypeToTelemetryLabel(nsHttpChannel* aChannel) {
   return "other"_ns;
 }
 
+static void RecordHttpChanDispositionGlean(ChannelDisposition chanDisposition) {
+  switch (chanDisposition) {
+    case kHttpCanceled:
+      mozilla::glean::networking::http_channel_disposition
+          .Get("http_cancelled"_ns)
+          .Add(1);
+      break;
+    case kHttpDisk:
+      mozilla::glean::networking::http_channel_disposition.Get("http_disk"_ns)
+          .Add(1);
+      break;
+    case kHttpNetOK:
+      mozilla::glean::networking::http_channel_disposition.Get("http_net_ok"_ns)
+          .Add(1);
+      break;
+    case kHttpNetEarlyFail:
+      mozilla::glean::networking::http_channel_disposition
+          .Get("http_net_early_fail"_ns)
+          .Add(1);
+      break;
+    case kHttpNetLateFail:
+      mozilla::glean::networking::http_channel_disposition
+          .Get("http_net_late_fail"_ns)
+          .Add(1);
+      break;
+    case kHttpsCanceled:
+      mozilla::glean::networking::http_channel_disposition
+          .Get("https_cancelled"_ns)
+          .Add(1);
+      break;
+    case kHttpsDisk:
+      mozilla::glean::networking::http_channel_disposition.Get("http_disk"_ns)
+          .Add(1);
+      break;
+    case kHttpsNetOK:
+      mozilla::glean::networking::http_channel_disposition
+          .Get("https_net_ok"_ns)
+          .Add(1);
+      break;
+    case kHttpsNetEarlyFail:
+      mozilla::glean::networking::http_channel_disposition
+          .Get("https_net_early_fail"_ns)
+          .Add(1);
+      break;
+    case kHttpsNetLateFail:
+      mozilla::glean::networking::http_channel_disposition
+          .Get("https_net_late_fail"_ns)
+          .Add(1);
+      break;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unknown value for chanDisposition");
+  }
+}
+
+static nsLiteralCString HttpChanDispositionToTelemetryLabel(
+    Telemetry::LABELS_HTTP_CHANNEL_DISPOSITION_UPGRADE upgradeChanDisposition) {
+  if (upgradeChanDisposition ==
+      Telemetry::LABELS_HTTP_CHANNEL_DISPOSITION_UPGRADE::cancel) {
+    return "cancel"_ns;
+  }
+  if (upgradeChanDisposition ==
+      Telemetry::LABELS_HTTP_CHANNEL_DISPOSITION_UPGRADE::disk) {
+    return "disk"_ns;
+  }
+  if (upgradeChanDisposition ==
+      Telemetry::LABELS_HTTP_CHANNEL_DISPOSITION_UPGRADE::netOk) {
+    return "net_ok"_ns;
+  }
+  if (upgradeChanDisposition ==
+      Telemetry::LABELS_HTTP_CHANNEL_DISPOSITION_UPGRADE::netEarlyFail) {
+    return "net_early_fail"_ns;
+  }
+  if (upgradeChanDisposition ==
+      Telemetry::LABELS_HTTP_CHANNEL_DISPOSITION_UPGRADE::netLateFail) {
+    return "net_late_fail"_ns;
+  }
+
+  MOZ_ASSERT_UNREACHABLE("Unknown value for upgradeChanDecomposition");
+  return "other"_ns;
+}
+
 nsresult nsHttpChannel::LogConsoleError(const char* aTag) {
   nsCOMPtr<nsIConsoleService> console(mozilla::components::Console::Service());
   NS_ENSURE_TRUE(console, NS_ERROR_OUT_OF_MEMORY);
@@ -8155,18 +8253,7 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
        this, static_cast<uint32_t>(aStatus), aIsFromNet));
 
   // HTTP_CHANNEL_DISPOSITION TELEMETRY
-  enum ChannelDisposition {
-    kHttpCanceled = 0,
-    kHttpDisk = 1,
-    kHttpNetOK = 2,
-    kHttpNetEarlyFail = 3,
-    kHttpNetLateFail = 4,
-    kHttpsCanceled = 8,
-    kHttpsDisk = 9,
-    kHttpsNetOK = 10,
-    kHttpsNetEarlyFail = 11,
-    kHttpsNetLateFail = 12
-  } chanDisposition = kHttpCanceled;
+  ChannelDisposition chanDisposition = kHttpCanceled;
   // HTTP_CHANNEL_DISPOSITION_UPGRADE TELEMETRY
   Telemetry::LABELS_HTTP_CHANNEL_DISPOSITION_UPGRADE upgradeChanDisposition =
       Telemetry::LABELS_HTTP_CHANNEL_DISPOSITION_UPGRADE::cancel;
@@ -8200,6 +8287,8 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
   // Browser upgrading only happens on HTTPS pages for mixed passive content
   // when upgrading is enabled.
   nsCString upgradeKey;
+  nsLiteralCString upgradeChanDispositionLabel =
+      HttpChanDispositionToTelemetryLabel(upgradeChanDisposition);
   if (IsHTTPS()) {
     // Browser upgrading is disabled and the content is already HTTPS
     upgradeKey = "disabledNoReason"_ns;
@@ -8207,11 +8296,21 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
     if (StaticPrefs::security_mixed_content_upgrade_display_content()) {
       if (mLoadInfo->GetBrowserUpgradeInsecureRequests()) {
         // HTTP content the browser has upgraded to HTTPS
+        mozilla::glean::networking::http_channel_disposition_enabled_upgrade
+            .Get(upgradeChanDispositionLabel)
+            .Add(1);
         upgradeKey = "enabledUpgrade"_ns;
       } else {
         // Content wasn't upgraded but is already HTTPS
+        mozilla::glean::networking::http_channel_disposition_enabled_no_reason
+            .Get(upgradeChanDispositionLabel)
+            .Add(1);
         upgradeKey = "enabledNoReason"_ns;
       }
+    } else {
+      mozilla::glean::networking::http_channel_disposition_disabled_no_reason
+          .Get(upgradeChanDispositionLabel)
+          .Add(1);
     }
     // shift http to https disposition enums
     chanDisposition =
@@ -8219,17 +8318,29 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
   } else if (mLoadInfo->GetBrowserWouldUpgradeInsecureRequests()) {
     // HTTP content the browser would upgrade to HTTPS if upgrading was
     // enabled
+    mozilla::glean::networking::http_channel_disposition_disabled_upgrade
+        .Get(upgradeChanDispositionLabel)
+        .Add(1);
     upgradeKey = "disabledUpgrade"_ns;
-  } else {
+  } else if (StaticPrefs::security_mixed_content_upgrade_display_content()) {
     // HTTP content that wouldn't upgrade
-    upgradeKey = StaticPrefs::security_mixed_content_upgrade_display_content()
-                     ? "enabledWont"_ns
-                     : "disabledWont"_ns;
+    mozilla::glean::networking::http_channel_disposition_enabled_wont
+        .Get(upgradeChanDispositionLabel)
+        .Add(1);
+    upgradeKey = "enabledWont"_ns;
+  } else {
+    mozilla::glean::networking::http_channel_disposition_disabled_wont
+        .Get(upgradeChanDispositionLabel)
+        .Add(1);
+    upgradeKey = "disabledWont"_ns;
   }
+
   Telemetry::AccumulateCategoricalKeyed(upgradeKey, upgradeChanDisposition);
+
   LOG(("  nsHttpChannel::OnStopRequest ChannelDisposition %d\n",
        chanDisposition));
   Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_DISPOSITION, chanDisposition);
+  RecordHttpChanDispositionGlean(chanDisposition);
 
   // Collect specific telemetry for measuring image, video, audio
   // success/failure rates in regular browsing mode and when auto upgrading of

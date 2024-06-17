@@ -957,6 +957,93 @@ networking:
       - success_ech_used
       - failure_ech_used
 
+  http_channel_disposition:
+    type: labeled_counter
+    description: >
+      Channel Disposition for HTTP and HTTPS:
+      cancel, disk, net_ok, net_early_fail, and net_late_fail
+    bugs:
+      - https://bugzilla.mozilla.org/1341128
+      - https://bugzilla.mozilla.org/1898248
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898248
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    labels:
+      - http_cancelled
+      - http_disk
+      - http_net_ok
+      - http_net_early_fail
+      - http_net_late_fail
+      - https_cancelled
+      - https_disk
+      - https_net_ok
+      - https_net_early_fail
+      - https_net_late_fail
+
+  http_channel_disposition_enabled_upgrade: &http_channel_disposition_enabled_upgrade
+    type: labeled_counter
+    description: >
+      Upgrading display content Channel Disposition (key: enable_upgrade)
+    bugs:
+      - https://bugzilla.mozilla.org/1440701
+      - https://bugzilla.mozilla.org/1898248
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898248
+    notification_emails:
+      - necko@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    labels:
+      - cancel
+      - disk
+      - net_ok
+      - net_early_fail
+      - net_late_fail
+
+  http_channel_disposition_enabled_no_reason:
+    <<: *http_channel_disposition_enabled_upgrade
+    description: >
+      Upgrading display content Channel Disposition (key: enabled_no_reason)
+
+  http_channel_disposition_enabled_wont:
+    <<: *http_channel_disposition_enabled_upgrade
+    description: >
+      Upgrading display content Channel Disposition (key: enabled_wont)
+
+  http_channel_disposition_disabled_upgrade:
+    <<: *http_channel_disposition_enabled_upgrade
+    description: >
+      Upgrading display content Channel Disposition (key: disable_upgrade)
+
+  http_channel_disposition_disabled_no_reason:
+    <<: *http_channel_disposition_enabled_upgrade
+    description: >
+      Upgrading display content Channel Disposition (key: disabled_no_reason)
+
+  http_channel_disposition_disabled_wont:
+    <<: *http_channel_disposition_enabled_upgrade
+    description: >
+      Upgrading display content Channel Disposition (key: disabled_wont)
+
+  http_channel_onstart_status:
+    type: labeled_counter
+    description: >
+      Whether successfully started HTTP channels
+    bugs:
+      - https://bugzilla.mozilla.org/1473333
+      - https://bugzilla.mozilla.org/1587226
+      - https://bugzilla.mozilla.org/1898248
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898248
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    labels:
+      - successful
+      - fail
+
   http_channel_page_open_to_first_sent:
     type: timing_distribution
     time_unit: millisecond
