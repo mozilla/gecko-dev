@@ -811,9 +811,6 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
     FieldTrial('WebRTC-VP8IosMaxNumberOfThread',
                'webrtc:10005',
                date(2024, 4, 1)),
-    FieldTrial('WebRTC-VP8VariableFramerateScreenshare',
-               'webrtc:10310',
-               date(2024, 4, 1)),
     FieldTrial('WebRTC-VP9-GetEncoderInfoOverride',
                '',
                date(2024, 4, 1)),
@@ -902,7 +899,7 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
 ])  # yapf: disable
 
 POLICY_EXEMPT_FIELD_TRIALS_DIGEST: str = \
-    '4b765e142d10eccf80ec58cc9e994463c092cca0'
+    '785cfbd78860c15c840e509f4859e2b20bf8f250'
 
 REGISTERED_FIELD_TRIALS: FrozenSet[FieldTrial] = ACTIVE_FIELD_TRIALS.union(
     POLICY_EXEMPT_FIELD_TRIALS)
@@ -1012,7 +1009,7 @@ def validate_field_trials(
         invalid.append(
             'POLICY_EXEMPT_FIELD_TRIALS has been modified. Please note that '
             'you must not add any new entries there. If you removed an entry '
-            'you should also update POLICY_EXEMPT_FIELD_TRIALS_DIGEST. The'
+            'you should also update POLICY_EXEMPT_FIELD_TRIALS_DIGEST. The '
             f'new digest is "{sha1.hexdigest()}".')
 
     for trial in field_trials:

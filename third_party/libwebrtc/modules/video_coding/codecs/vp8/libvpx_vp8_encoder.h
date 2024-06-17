@@ -138,20 +138,6 @@ class LibvpxVp8Encoder : public VideoEncoder {
   std::vector<vpx_rational_t> downsampling_factors_;
   std::vector<Timestamp> last_encoder_output_time_;
 
-  // Variable frame-rate screencast related fields and methods.
-  const struct VariableFramerateExperiment {
-    bool enabled = false;
-    // Framerate is limited to this value in steady state.
-    float framerate_limit = 5.0;
-    // This qp or below is considered a steady state.
-    int steady_state_qp = kVp8SteadyStateQpThreshold;
-    // Frames of at least this percentage below ideal for configured bitrate are
-    // considered in a steady state.
-    int steady_state_undershoot_percentage = 30;
-  } variable_framerate_experiment_;
-  static VariableFramerateExperiment ParseVariableFramerateConfig(
-      const FieldTrialsView& field_trials,
-      absl::string_view group_name);
   FramerateControllerDeprecated framerate_controller_;
   int num_steady_state_frames_ = 0;
 
