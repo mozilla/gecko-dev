@@ -68,11 +68,6 @@ class TenuringTracer final : public JSTracer {
   // edge to the remembered set during nursery collection.
   bool promotedToNursery = false;
 
-#define DEFINE_ON_EDGE_METHOD(name, type, _1, _2) \
-  void on##name##Edge(type** thingp, const char* name) override;
-  JS_FOR_EACH_TRACEKIND(DEFINE_ON_EDGE_METHOD)
-#undef DEFINE_ON_EDGE_METHOD
-
  public:
   TenuringTracer(JSRuntime* rt, Nursery* nursery, bool tenureEverything);
 
@@ -113,9 +108,10 @@ class TenuringTracer final : public JSTracer {
   class AutoPromotedAnyToNursery;
 
  private:
-  MOZ_ALWAYS_INLINE JSObject* onNonForwardedNurseryObject(JSObject* obj);
-  MOZ_ALWAYS_INLINE JSString* onNonForwardedNurseryString(JSString* str);
-  MOZ_ALWAYS_INLINE JS::BigInt* onNonForwardedNurseryBigInt(JS::BigInt* bi);
+#define DEFINE_ON_EDGE_METHOD(name, type, _1, _2) \
+  void on##name##Edge(type** thingp, const char* name) override;
+  JS_FOR_EACH_TRACEKIND(DEFINE_ON_EDGE_METHOD)
+#undef DEFINE_ON_EDGE_METHOD
 
   // The dependent string chars needs to be relocated if the base which it's
   // using chars from has been deduplicated.
@@ -138,6 +134,7 @@ class TenuringTracer final : public JSTracer {
 
   bool shouldTenure(Zone* zone, JS::TraceKind traceKind, Cell* cell);
 
+  MOZ_ALWAYS_INLINE JSObject* promoteObject(JSObject* obj);
   inline JSObject* promotePlainObject(PlainObject* src);
   JSObject* promoteObjectSlow(JSObject* src);
   JSString* promoteString(JSString* src);

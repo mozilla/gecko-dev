@@ -83,10 +83,10 @@ JSObject* TenuringTracer::promoteOrForward(JSObject* obj) {
     return obj;
   }
 
-  return onNonForwardedNurseryObject(obj);
+  return promoteObject(obj);
 }
 
-JSObject* TenuringTracer::onNonForwardedNurseryObject(JSObject* obj) {
+JSObject* TenuringTracer::promoteObject(JSObject* obj) {
   MOZ_ASSERT(IsInsideNursery(obj));
   MOZ_ASSERT(!obj->isForwarded());
 
@@ -120,13 +120,6 @@ JSString* TenuringTracer::promoteOrForward(JSString* str) {
     return str;
   }
 
-  return onNonForwardedNurseryString(str);
-}
-
-JSString* TenuringTracer::onNonForwardedNurseryString(JSString* str) {
-  MOZ_ASSERT(IsInsideNursery(str));
-  MOZ_ASSERT(!str->isForwarded());
-
   return promoteString(str);
 }
 
@@ -150,13 +143,6 @@ JS::BigInt* TenuringTracer::promoteOrForward(JS::BigInt* bi) {
     }
     return bi;
   }
-
-  return onNonForwardedNurseryBigInt(bi);
-}
-
-JS::BigInt* TenuringTracer::onNonForwardedNurseryBigInt(JS::BigInt* bi) {
-  MOZ_ASSERT(IsInsideNursery(bi));
-  MOZ_ASSERT(!bi->isForwarded());
 
   return promoteBigInt(bi);
 }
@@ -201,27 +187,27 @@ void TenuringTracer::traverse(JS::Value* thingp) {
   // We only care about a few kinds of GC thing here and this generates much
   // tighter code than using MapGCThingTyped.
   if (value.isObject()) {
-    JSObject* obj = onNonForwardedNurseryObject(&value.toObject());
+    JSObject* obj = promoteObject(&value.toObject());
     MOZ_ASSERT(obj != &value.toObject());
     *thingp = JS::ObjectValue(*obj);
     return;
   }
 #ifdef ENABLE_RECORD_TUPLE
   if (value.isExtendedPrimitive()) {
-    JSObject* obj = onNonForwardedNurseryObject(&value.toExtendedPrimitive());
+    JSObject* obj = promoteObject(&value.toExtendedPrimitive());
     MOZ_ASSERT(obj != &value.toExtendedPrimitive());
     *thingp = JS::ExtendedPrimitiveValue(*obj);
     return;
   }
 #endif
   if (value.isString()) {
-    JSString* str = onNonForwardedNurseryString(value.toString());
+    JSString* str = promoteString(value.toString());
     MOZ_ASSERT(str != value.toString());
     *thingp = JS::StringValue(str);
     return;
   }
   MOZ_ASSERT(value.isBigInt());
-  JS::BigInt* bi = onNonForwardedNurseryBigInt(value.toBigInt());
+  JS::BigInt* bi = promoteBigInt(value.toBigInt());
   MOZ_ASSERT(bi != value.toBigInt());
   *thingp = JS::BigIntValue(bi);
 }
@@ -921,6 +907,7 @@ inline void js::gc::TenuringTracer::insertIntoStringFixupList(
 
 JSString* js::gc::TenuringTracer::promoteString(JSString* src) {
   MOZ_ASSERT(IsInsideNursery(src));
+  MOZ_ASSERT(!src->isForwarded());
   MOZ_ASSERT(!src->isExternal());
 
   AllocKind dstKind = src->getAllocKind();
@@ -1091,6 +1078,7 @@ void js::gc::TenuringTracer::relocateDependentStringChars(
 
 JS::BigInt* js::gc::TenuringTracer::promoteBigInt(JS::BigInt* src) {
   MOZ_ASSERT(IsInsideNursery(src));
+  MOZ_ASSERT(!src->isForwarded());
 
   AllocKind dstKind = src->getAllocKind();
   Zone* zone = src->nurseryZone();
