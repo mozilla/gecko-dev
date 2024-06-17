@@ -628,7 +628,7 @@ function BuildConditionSandbox(aURL) {
   sandbox.release_or_beta = mozinfo.release_or_beta;
 
   // config specific prefs
-  sandbox.appleSilicon = mozinfo.appleSilicon;
+  sandbox.appleSilicon = mozinfo.apple_silicon;
   sandbox.os_version = mozinfo.os_version;
   sandbox.wayland = mozinfo.display == "wayland";
 
