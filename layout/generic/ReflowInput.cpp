@@ -13,7 +13,6 @@
 #include "CounterStyleManager.h"
 #include "LayoutLogging.h"
 #include "mozilla/dom/HTMLInputElement.h"
-#include "mozilla/ScrollContainerFrame.h"
 #include "mozilla/WritingModes.h"
 #include "nsBlockFrame.h"
 #include "nsFlexContainerFrame.h"
@@ -1091,9 +1090,9 @@ nsIFrame* ReflowInput::GetHypotheticalBoxContainer(nsIFrame* aFrame,
 
 struct nsHypotheticalPosition {
   // offset from inline-start edge of containing block (which is a padding edge)
-  nscoord mIStart = 0;
+  nscoord mIStart;
   // offset from block-start edge of containing block (which is a padding edge)
-  nscoord mBStart = 0;
+  nscoord mBStart;
   WritingMode mWritingMode;
 };
 
@@ -1212,12 +1211,19 @@ static bool BlockPolarityFlipped(WritingMode aThisWm, WritingMode aOtherWm) {
   return AxisPolarityFlipped(LogicalAxis::Block, aThisWm, aOtherWm);
 }
 
-// In the code below, |aCBReflowInput->mFrame| is the absolute containing block,
+// Calculate the position of the hypothetical box that the element would have
+// if it were in the flow.
+// The values returned are relative to the padding edge of the absolute
+// containing block. The writing-mode of the hypothetical box position will
+// have the same block direction as the absolute containing block, but may
+// differ in inline-bidi direction.
+// In the code below, |aCBReflowInput->frame| is the absolute containing block,
 // while |containingBlock| is the nearest block container of the placeholder
 // frame, which may be different from the absolute containing block.
 void ReflowInput::CalculateHypotheticalPosition(
-    nsPlaceholderFrame* aPlaceholderFrame, const ReflowInput* aCBReflowInput,
-    nsHypotheticalPosition& aHypotheticalPos) const {
+    nsPresContext* aPresContext, nsPlaceholderFrame* aPlaceholderFrame,
+    const ReflowInput* aCBReflowInput, nsHypotheticalPosition& aHypotheticalPos,
+    LayoutFrameType aFrameType) const {
   NS_ASSERTION(mStyleDisplay->mOriginalDisplay != StyleDisplay::None,
                "mOriginalDisplay has not been properly initialized");
 
@@ -1354,9 +1360,9 @@ void ReflowInput::CalculateHypotheticalPosition(
             aPlaceholderFrame->SetLineIsEmptySoFar(true);
             allEmpty = true;
           } else {
-            auto* prev = aPlaceholderFrame->GetPrevSibling();
+            auto prev = aPlaceholderFrame->GetPrevSibling();
             if (prev && prev->IsPlaceholderFrame()) {
-              auto* ph = static_cast<nsPlaceholderFrame*>(prev);
+              auto ph = static_cast<nsPlaceholderFrame*>(prev);
               if (ph->GetLineIsEmptySoFar(&allEmpty)) {
                 aPlaceholderFrame->SetLineIsEmptySoFar(allEmpty);
               }
@@ -1416,24 +1422,8 @@ void ReflowInput::CalculateHypotheticalPosition(
   // The current coordinate space is that of the nearest block to the
   // placeholder. Convert to the coordinate space of the absolute containing
   // block.
-  const nsIFrame* cbFrame = aCBReflowInput->mFrame;
-  nsPoint cbOffset = containingBlock->GetOffsetToIgnoringScrolling(cbFrame);
-  if (cbFrame->IsViewportFrame()) {
-    // When the containing block is the ViewportFrame, i.e. we are calculating
-    // the static position for a fixed-positioned frame, we need to adjust the
-    // origin to exclude the scrollbar or scrollbar-gutter area. The
-    // ViewportFrame's containing block rect is passed into
-    // nsAbsoluteContainingBlock::ReflowAbsoluteFrame(), and it will add the
-    // rect's origin to the fixed-positioned frame's final position if needed.
-    //
-    // Note: The origin of the containing block rect is adjusted in
-    // ViewportFrame::AdjustReflowInputForScrollbars(). Ensure the code there
-    // remains in sync with the logic here.
-    if (ScrollContainerFrame* sf = cbFrame->GetScrollTargetFrame()) {
-      const nsMargin scrollbarSizes = sf->GetActualScrollbarSizes();
-      cbOffset.MoveBy(-scrollbarSizes.left, -scrollbarSizes.top);
-    }
-  }
+  nsPoint cbOffset =
+      containingBlock->GetOffsetToIgnoringScrolling(aCBReflowInput->mFrame);
 
   nsSize reflowSize = aCBReflowInput->ComputedSizeAsContainerIfConstrained();
   LogicalPoint logCBOffs(wm, cbOffset, reflowSize - containerSize);
@@ -1620,14 +1610,16 @@ LogicalSize ReflowInput::CalculateAbsoluteSizeWithResolvedAutoBlockSize(
   return resultSize;
 }
 
-void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
-                                          const LogicalSize& aCBSize) {
+void ReflowInput::InitAbsoluteConstraints(nsPresContext* aPresContext,
+                                          const ReflowInput* aCBReflowInput,
+                                          const LogicalSize& aCBSize,
+                                          LayoutFrameType aFrameType) {
   WritingMode wm = GetWritingMode();
   WritingMode cbwm = aCBReflowInput->GetWritingMode();
   NS_WARNING_ASSERTION(aCBSize.BSize(cbwm) != NS_UNCONSTRAINEDSIZE,
                        "containing block bsize must be constrained");
 
-  NS_ASSERTION(!mFrame->IsTableFrame(),
+  NS_ASSERTION(aFrameType != LayoutFrameType::Table,
                "InitAbsoluteConstraints should not be called on table frames");
   NS_ASSERTION(mFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW),
                "Why are we here?");
@@ -1638,9 +1630,9 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   bool bStartIsAuto = styleOffset.GetBStart(cbwm).IsAuto();
   bool bEndIsAuto = styleOffset.GetBEnd(cbwm).IsAuto();
 
-  // If both 'inline-start' and 'inline-end' are 'auto' or both 'block-start'
-  // and 'block-end' are 'auto', then compute the hypothetical box position;
-  // i.e. where the element would be, if it were in-flow.
+  // If both 'left' and 'right' are 'auto' or both 'top' and 'bottom' are
+  // 'auto', then compute the hypothetical box position where the element would
+  // have been if it had been in the flow
   nsHypotheticalPosition hypotheticalPos;
   if ((iStartIsAuto && iEndIsAuto) || (bStartIsAuto && bEndIsAuto)) {
     nsPlaceholderFrame* placeholderFrame = mFrame->GetPlaceholderFrame();
@@ -1681,8 +1673,9 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
       }
     } else {
       // XXXmats all this is broken for orthogonal writing-modes: bug 1521988.
-      CalculateHypotheticalPosition(placeholderFrame, aCBReflowInput,
-                                    hypotheticalPos);
+      CalculateHypotheticalPosition(aPresContext, placeholderFrame,
+                                    aCBReflowInput, hypotheticalPos,
+                                    aFrameType);
       if (aCBReflowInput->mFrame->IsGridContainerFrame()) {
         // 'hypotheticalPos' is relative to the padding rect of the CB *frame*.
         // In grid layout the CB is the grid area rectangle, so we translate
@@ -1704,9 +1697,12 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
     }
   }
 
+  // Initialize the 'left' and 'right' computed offsets
+  // XXX Handle new 'static-position' value...
+
   // Size of the containing block in its writing mode
   LogicalSize cbSize = aCBSize;
-  LogicalMargin offsets(cbwm);
+  LogicalMargin offsets = ComputedLogicalOffsets(cbwm);
 
   if (iStartIsAuto) {
     offsets.IStart(cbwm) = 0;
@@ -2326,8 +2322,9 @@ void ReflowInput::InitConstraints(
                // XXXfr hack for making frames behave properly when in overflow
                // container lists, see bug 154892; need to revisit later
                !mFrame->GetPrevInFlow()) {
-      InitAbsoluteConstraints(cbri,
-                              cbSize.ConvertTo(cbri->GetWritingMode(), wm));
+      InitAbsoluteConstraints(aPresContext, cbri,
+                              cbSize.ConvertTo(cbri->GetWritingMode(), wm),
+                              aFrameType);
     } else {
       AutoMaybeDisableFontInflation an(mFrame);
 

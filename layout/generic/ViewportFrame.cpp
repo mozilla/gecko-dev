@@ -285,10 +285,10 @@ nscoord ViewportFrame::GetPrefISize(gfxContext* aRenderingContext) {
 
 nsPoint ViewportFrame::AdjustReflowInputForScrollbars(
     ReflowInput* aReflowInput) const {
-  if (ScrollContainerFrame* scrollContainerFrame = GetScrollTargetFrame()) {
-    // Note: In ReflowInput::CalculateHypotheticalPosition(), we exclude the
-    // scrollbar or scrollbar-gutter area when computing the offset to
-    // ViewportFrame. Ensure the code there remains in sync with the logic here.
+  // Get our prinicpal child frame and see if we're scrollable
+  nsIFrame* kidFrame = mFrames.FirstChild();
+
+  if (ScrollContainerFrame* scrollContainerFrame = do_QueryFrame(kidFrame)) {
     WritingMode wm = aReflowInput->GetWritingMode();
     LogicalMargin scrollbars(wm,
                              scrollContainerFrame->GetActualScrollbarSizes());
@@ -415,10 +415,6 @@ void ViewportFrame::Reflow(nsPresContext* aPresContext,
   FinishAndStoreOverflow(&aDesiredSize);
 
   NS_FRAME_TRACE_REFLOW_OUT("ViewportFrame::Reflow", aStatus);
-}
-
-ScrollContainerFrame* ViewportFrame::GetScrollTargetFrame() const {
-  return do_QueryFrame(mFrames.FirstChild());
 }
 
 void ViewportFrame::UpdateStyle(ServoRestyleState& aRestyleState) {

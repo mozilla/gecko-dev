@@ -907,17 +907,16 @@ struct ReflowInput : public SizeComputationInput {
                                         nscoord& aCBIStartEdge,
                                         mozilla::LogicalSize& aCBSize) const;
 
-  // Calculate the position of the hypothetical box that the placeholder frame
-  // (for a position:fixed/absolute element) would be if it were in-flow (i.e.,
-  // positioned statically).
-  //
-  // The position of the hypothetical box is relative to the padding edge of the
-  // absolute containing block (aCBReflowInput->mFrame). The writing mode of the
-  // hypothetical box will have the same block direction as the absolute
-  // containing block, but it may differ in the inline direction.
-  void CalculateHypotheticalPosition(
-      nsPlaceholderFrame* aPlaceholderFrame, const ReflowInput* aCBReflowInput,
-      nsHypotheticalPosition& aHypotheticalPos) const;
+  // Calculate a "hypothetical box" position where the placeholder frame
+  // (for a position:fixed/absolute element) would have been placed if it were
+  // positioned statically. The hypothetical box position will have a writing
+  // mode with the same block direction as the absolute containing block
+  // (aCBReflowInput->frame), though it may differ in inline direction.
+  void CalculateHypotheticalPosition(nsPresContext* aPresContext,
+                                     nsPlaceholderFrame* aPlaceholderFrame,
+                                     const ReflowInput* aCBReflowInput,
+                                     nsHypotheticalPosition& aHypotheticalPos,
+                                     mozilla::LayoutFrameType aFrameType) const;
 
   // Check if we can use the resolved auto block size (by insets) to compute
   // the inline size through aspect-ratio on absolute-positioned elements.
@@ -931,8 +930,10 @@ struct ReflowInput : public SizeComputationInput {
   LogicalSize CalculateAbsoluteSizeWithResolvedAutoBlockSize(
       nscoord aAutoBSize, const LogicalSize& aTentativeComputedSize);
 
-  void InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
-                               const LogicalSize& aCBSize);
+  void InitAbsoluteConstraints(nsPresContext* aPresContext,
+                               const ReflowInput* aCBReflowInput,
+                               const mozilla::LogicalSize& aContainingBlockSize,
+                               mozilla::LayoutFrameType aFrameType);
 
   // Calculates the computed values for the 'min-inline-size',
   // 'max-inline-size', 'min-block-size', and 'max-block-size' properties, and
