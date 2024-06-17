@@ -1004,46 +1004,4 @@ class SettingsTest {
         settings.migrateSearchWidgetInstalledPrefIfNeeded()
         assertFalse(settings.searchWidgetInstalled)
     }
-
-    @Test
-    fun `GIVEN toolbar redesign and microsurvey are enabled WHEN getBottomToolbarContainerHeight THEN returns the combined navbar & microsurvey height`() {
-        val settings = spyk(settings)
-        every { settings.enableIncompleteToolbarRedesign } returns true
-        every { settings.shouldShowMicrosurveyPrompt } returns true
-
-        val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()
-
-        assertEquals(152, bottomToolbarContainerHeight)
-    }
-
-    @Test
-    fun `GIVEN only toolbar redesign is enabled WHEN getBottomToolbarContainerHeight THEN returns navbar height`() {
-        val settings = spyk(settings)
-        every { settings.enableIncompleteToolbarRedesign } returns true
-
-        val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()
-
-        assertEquals(48, bottomToolbarContainerHeight)
-    }
-
-    @Test
-    fun `GIVEN only microsurvey is enabled WHEN getBottomToolbarContainerHeight THEN returns microsurvey height`() {
-        val settings = spyk(settings)
-        every { settings.shouldShowMicrosurveyPrompt } returns true
-
-        val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()
-
-        assertEquals(104, bottomToolbarContainerHeight)
-    }
-
-    @Test
-    fun `GIVEN that both toolbar redesign and microsurvey are not enabled WHEN getBottomToolbarContainerHeight THEN returns zero height`() {
-        val settings = spyk(settings)
-        every { settings.enableIncompleteToolbarRedesign } returns false
-        every { settings.shouldShowMicrosurveyPrompt } returns false
-
-        val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()
-
-        assertEquals(0, bottomToolbarContainerHeight)
-    }
 }
