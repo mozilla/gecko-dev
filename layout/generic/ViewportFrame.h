@@ -61,6 +61,9 @@ class ViewportFrame : public nsContainerFrame {
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;
 
+  // Get the root scroll container frame, if any.
+  ScrollContainerFrame* GetScrollTargetFrame() const override;
+
   bool ComputeCustomOverflow(mozilla::OverflowAreas&) override { return false; }
 
   /**

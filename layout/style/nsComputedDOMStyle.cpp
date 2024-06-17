@@ -2011,17 +2011,14 @@ nscoord nsComputedDOMStyle::GetUsedAbsoluteOffset(mozilla::Side aSide) {
     // _not_ include the scrollbars.  For fixed positioned frames,
     // the containing block is the viewport, which _does_ include
     // scrollbars.  We have to do some extra work.
-    // the first child in the default frame list is what we want
-    nsIFrame* scrollingChild = container->PrincipalChildList().FirstChild();
-    ScrollContainerFrame* scrollContainerFrame = do_QueryFrame(scrollingChild);
-    if (scrollContainerFrame) {
+    if (ScrollContainerFrame* scrollContainerFrame =
+            container->GetScrollTargetFrame()) {
       scrollbarSizes = scrollContainerFrame->GetActualScrollbarSizes();
     }
 
     // The viewport size might have been expanded by the visual viewport or
     // the minimum-scale size.
-    const ViewportFrame* viewportFrame = do_QueryFrame(container);
-    MOZ_ASSERT(viewportFrame);
+    auto* viewportFrame = static_cast<ViewportFrame*>(container);
     containerRect.SizeTo(
         viewportFrame->AdjustViewportSizeForFixedPosition(containerRect));
   } else if (container->IsGridContainerFrame() &&
