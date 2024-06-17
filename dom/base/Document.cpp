@@ -13733,6 +13733,7 @@ void Document::DoUpdateSVGUseElementShadowTrees() {
   MOZ_ASSERT(!mSVGUseElementsNeedingShadowTreeUpdate.IsEmpty());
 
   MOZ_ASSERT(!mCloningForSVGUse);
+  nsAutoScriptBlocker blocker;
   mCloningForSVGUse = true;
 
   do {
