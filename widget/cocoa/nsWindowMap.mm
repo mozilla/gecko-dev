@@ -237,7 +237,7 @@
   id delegate = window.delegate;
   if (!delegate || ![delegate isKindOfClass:[WindowDelegate class]]) {
     [TopLevelWindowData activateInWindowViews:window];
-  } else if (window.isSheet || NSApp.modalWindow) {
+  } else if (window.isSheet || window.isMainWindow) {
     [TopLevelWindowData activateInWindow:window];
   }
 }
@@ -248,7 +248,7 @@
   id delegate = window.delegate;
   if (!delegate || ![delegate isKindOfClass:[WindowDelegate class]]) {
     [TopLevelWindowData deactivateInWindowViews:window];
-  } else if (window.isSheet || NSApp.modalWindow) {
+  } else if (window.isSheet || window.isMainWindow) {
     [TopLevelWindowData deactivateInWindow:window];
   }
 }
@@ -263,7 +263,7 @@
   // above it -- as far as Gecko is concerned, it's inactive, and stays so until
   // the sheet/modal-window closes.
   if (delegate && [delegate isKindOfClass:[WindowDelegate class]] &&
-      !window.attachedSheet && !NSApp.modalWindow) {
+      !window.attachedSheet && window.isKeyWindow) {
     [TopLevelWindowData activateInWindow:window];
   }
 }
