@@ -97,14 +97,6 @@ function assertIsSegmentDataObject(obj) {
   // The non-word parts in the samples are either punctuators or space separators.
   let expectedWordLike = !/^(\p{gc=P}|\p{gc=Zs})+$/u.test(obj.segment);
 
-  // ICU4X incorrectly marks the last segment as non-word like for Thai.
-  // https://github.com/unicode-org/icu4x/issues/4446
-  let isThai = /^\p{sc=Thai}+$/u.test(obj.segment);
-  let isLastSegment = obj.index + obj.segment.length === obj.input.length;
-  if (isThai && isLastSegment) {
-    expectedWordLike = false;
-  }
-
   assertEq(obj.isWordLike, expectedWordLike, obj.segment);
 }
 

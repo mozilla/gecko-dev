@@ -144,15 +144,8 @@ for (let string of [
   assertSegments(string + "\xAD", [string + "\xAD"]);
   assertSegments("\xAD" + string, ["\xAD", string]);
 
-  if (string === "a.b") {
-    // ICU4X incorrectly splits the result into three words.
-    // https://github.com/unicode-org/icu4x/issues/4417
-    assertSegments(string.split("").join("\xAD"), ["a\xAD", ".\xAD", "b"]);
-    assertSegments(string.split("").join("\xAD\xAD"), ["a\xAD\xAD", ".\xAD\xAD", "b"]);
-  } else {
-    assertSegments(string.split("").join("\xAD"), [string.split("").join("\xAD")]);
-    assertSegments(string.split("").join("\xAD\xAD"), [string.split("").join("\xAD\xAD")]);
-  }
+  assertSegments(string.split("").join("\xAD"), [string.split("").join("\xAD")]);
+  assertSegments(string.split("").join("\xAD\xAD"), [string.split("").join("\xAD\xAD")]);
 }
 
 assertSegments("?\xAD?", ["?\xAD", "?"]);

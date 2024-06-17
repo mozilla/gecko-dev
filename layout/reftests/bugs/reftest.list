@@ -1277,7 +1277,7 @@ skip-if(Android) random-if(winWidget) == chrome://reftest/content/bugs/478377-1.
 == 481024-1e.html 481024-1-ref.html
 != 481948-1.html 481948-1-ref.html
 != 481948-2.html 481948-2-ref.html
-fails-if(Android||gtkWidget) random-if(winWidget||cocoaWidget) == 481948-3.html 481948-3-ref.html # questionable test, see bug 488364
+== 481948-3.html 481948-3-ref.html
 == 482398-1.html 482398-1-ref.html
 random-if(winWidget) == 482592-1a-shadow.xhtml 482592-1-ref.html # bug 586771
 random-if(winWidget) == 482592-1b-shadow.xhtml 482592-1-ref.html # bug 586771
