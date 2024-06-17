@@ -187,6 +187,10 @@ add_task(async function test_hsts_request() {
 
 // This test makes a priming request and adds the STS header, then tests the upgrade.
 add_task(async function test_hsts_header() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.security.https_first", false]],
+  });
+
   const testPath = "test1.example.org/tests/toolkit/components/extensions/test/mochitest";
 
   let extension = getExtension();

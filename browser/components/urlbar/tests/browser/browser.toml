@@ -624,6 +624,7 @@ https_first_disabled = true
 https_first_disabled = true
 
 ["browser_urlbar_annotation.js"]
+https_first_disabled = true
 support-files = ["redirect_to.sjs"]
 
 ["browser_urlbar_selection.js"]
