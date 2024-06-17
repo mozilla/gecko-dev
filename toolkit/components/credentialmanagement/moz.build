@@ -9,11 +9,13 @@ with Files("**"):
 
 EXPORTS.mozilla += [
     "CredentialChosenCallback.h",
+    "IdentityCredentialRequestManager.h",
     "IdentityCredentialStorageService.h",
 ]
 
 UNIFIED_SOURCES += [
     "CredentialChosenCallback.cpp",
+    "IdentityCredentialRequestManager.cpp",
     "IdentityCredentialStorageService.cpp",
 ]
 
