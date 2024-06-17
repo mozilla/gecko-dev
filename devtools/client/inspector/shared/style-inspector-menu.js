@@ -117,7 +117,11 @@ StyleInspectorMenu.prototype = {
       click: () => {
         this._onCopyRule();
       },
-      visible: this.isRuleView,
+      visible:
+        // `_onCopyRule` calls `getRuleFromNode`, which retrieves the target closest
+        // ancestor element with a data-rule-id attribute. If there's no such element,
+        // we're not inside a rule and we shouldn't display this context menu item.
+        this.isRuleView && !!target.closest(".ruleview-rule[data-rule-id]"),
     });
     const copyColorAccessKey = "styleinspector.contextmenu.copyColor.accessKey";
     const menuitemCopyColor = new MenuItem({
@@ -471,6 +475,10 @@ StyleInspectorMenu.prototype = {
   _onCopyRule() {
     const node = this._getClickedNode();
     const rule = getRuleFromNode(node, this.view._elementStyle);
+    if (!rule) {
+      console.error("Can't copy rule, no rule found for node", node);
+      return;
+    }
     clipboardHelper.copyString(rule.stringifyRule());
   },
 
