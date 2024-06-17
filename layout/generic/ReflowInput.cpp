@@ -13,6 +13,7 @@
 #include "CounterStyleManager.h"
 #include "LayoutLogging.h"
 #include "mozilla/dom/HTMLInputElement.h"
+#include "mozilla/ScrollContainerFrame.h"
 #include "mozilla/WritingModes.h"
 #include "nsBlockFrame.h"
 #include "nsFlexContainerFrame.h"
@@ -1415,8 +1416,24 @@ void ReflowInput::CalculateHypotheticalPosition(
   // The current coordinate space is that of the nearest block to the
   // placeholder. Convert to the coordinate space of the absolute containing
   // block.
-  nsPoint cbOffset =
-      containingBlock->GetOffsetToIgnoringScrolling(aCBReflowInput->mFrame);
+  const nsIFrame* cbFrame = aCBReflowInput->mFrame;
+  nsPoint cbOffset = containingBlock->GetOffsetToIgnoringScrolling(cbFrame);
+  if (cbFrame->IsViewportFrame()) {
+    // When the containing block is the ViewportFrame, i.e. we are calculating
+    // the static position for a fixed-positioned frame, we need to adjust the
+    // origin to exclude the scrollbar or scrollbar-gutter area. The
+    // ViewportFrame's containing block rect is passed into
+    // nsAbsoluteContainingBlock::ReflowAbsoluteFrame(), and it will add the
+    // rect's origin to the fixed-positioned frame's final position if needed.
+    //
+    // Note: The origin of the containing block rect is adjusted in
+    // ViewportFrame::AdjustReflowInputForScrollbars(). Ensure the code there
+    // remains in sync with the logic here.
+    if (ScrollContainerFrame* sf = cbFrame->GetScrollTargetFrame()) {
+      const nsMargin scrollbarSizes = sf->GetActualScrollbarSizes();
+      cbOffset.MoveBy(-scrollbarSizes.left, -scrollbarSizes.top);
+    }
+  }
 
   nsSize reflowSize = aCBReflowInput->ComputedSizeAsContainerIfConstrained();
   LogicalPoint logCBOffs(wm, cbOffset, reflowSize - containerSize);
