@@ -98,7 +98,7 @@ std::vector<PCFullStackTestParams> ParameterizedTestParams() {
           // Use the worker thread for sending packets.
           // https://bugs.chromium.org/p/webrtc/issues/detail?id=14502
           {.use_network_thread_as_worker_thread = true,
-           .field_trials = "WebRTC-SendPacketsOnWorkerThread/Enabled/",
+           .field_trials = "",
            .test_case_name_postfix = "_ReducedThreads"}};
 }
 
