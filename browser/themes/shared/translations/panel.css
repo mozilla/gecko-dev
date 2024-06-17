@@ -117,10 +117,6 @@ h1.translations-panel-header-wrapper {
   padding: 12px;
 }
 
-#select-translations-panel-a11y-document-wrapper {
-  padding-block: var(--space-medium);
-}
-
 .select-translations-panel-content {
   margin-block: var(--space-xsmall);
   padding-inline: var(--arrowpanel-padding);
