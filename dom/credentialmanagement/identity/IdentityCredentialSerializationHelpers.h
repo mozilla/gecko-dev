@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_identitycredentialserializationhelpers_h__
 #define mozilla_dom_identitycredentialserializationhelpers_h__
 
+#include "mozilla/dom/BindingIPCUtils.h"
 #include "mozilla/dom/IdentityCredential.h"
 #include "mozilla/dom/IdentityCredentialBinding.h"
 
@@ -36,6 +37,11 @@ struct ParamTraits<mozilla::dom::IdentityProviderConfig> {
            ReadParam(aReader, &aResult->mEffectiveQueryURL);
   }
 };
+
+template <>
+struct ParamTraits<mozilla::dom::IdentityLoginTargetType>
+    : public mozilla::dom::WebIDLEnumSerializer<
+          mozilla::dom::IdentityLoginTargetType> {};
 
 template <>
 struct ParamTraits<mozilla::dom::IdentityCredentialRequestOptions> {
