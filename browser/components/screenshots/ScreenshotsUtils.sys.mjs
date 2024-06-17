@@ -984,21 +984,19 @@ export var ScreenshotsUtils = {
   },
 
   /**
-   * Open and add screenshot-ui to the dialog box and then take the screenshot
+   * Take the screenshot, then open and add the screenshot-ui element to the
+   * dialog box.
    * @param browser The current browser.
    * @param type The type of screenshot taken.
    */
-  async doScreenshot(browser, type) {
+  async takeScreenshot(browser, type) {
     this.closePanel(browser);
-    this.closeOverlay(browser, { doNotResetMethods: true });
+    this.closeOverlay(browser, {
+      doNotResetMethods: true,
+      highlightRegions: true,
+    });
 
-    let dialog = await this.openPreviewDialog(browser);
-    await dialog._dialogReady;
-    let screenshotsPreviewEl = dialog._frame.contentDocument.querySelector(
-      "screenshots-preview"
-    );
-
-    screenshotsPreviewEl.focusButton(lazy.SCREENSHOTS_LAST_SAVED_METHOD);
+    Services.focus.setFocus(browser, 0);
 
     let rect;
     let lastUsedMethod;
@@ -1010,30 +1008,24 @@ export var ScreenshotsUtils = {
       lastUsedMethod = "visible";
     }
 
+    let canvas = await this.createCanvas(rect, browser);
+    let url = canvas.toDataURL();
+
+    let dialog = await this.openPreviewDialog(browser);
+    await dialog._dialogReady;
+    let screenshotsPreviewEl = dialog._frame.contentDocument.querySelector(
+      "screenshots-preview"
+    );
+
+    screenshotsPreviewEl.previewImg.src = url;
+    screenshotsPreviewEl.focusButton(lazy.SCREENSHOTS_LAST_SAVED_METHOD);
+
     Services.prefs.setStringPref(
       SCREENSHOTS_LAST_SCREENSHOT_METHOD_PREF,
       lastUsedMethod
     );
     this.methodsUsed[lastUsedMethod] += 1;
     this.recordTelemetryEvent("selected", type, {});
-    return this.takeScreenshot(browser, dialog, rect);
-  },
-
-  /**
-   * Take the screenshot and add the image to the dialog box
-   * @param browser The current browser.
-   * @param dialog The dialog box to show the screenshot preview.
-   * @param rect DOMRect containing bounds of the screenshot.
-   */
-  async takeScreenshot(browser, dialog, rect) {
-    let canvas = await this.createCanvas(rect, browser);
-
-    let url = canvas.toDataURL();
-    let screenshotsPreviewEl = dialog._frame.contentDocument.querySelector(
-      "screenshots-preview"
-    );
-
-    screenshotsPreviewEl.previewImg.src = url;
 
     if (Cu.isInAutomation) {
       Services.obs.notifyObservers(null, "screenshots-preview-ready");
