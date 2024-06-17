@@ -758,13 +758,6 @@ AC_DEFINE_UNQUOTED(MOZ_APP_UA_VERSION, "$MOZ_APP_VERSION")
 
 AC_SUBST(MOZ_APP_MAXVERSION)
 
-if test "$MOZILLA_OFFICIAL"; then
-    # Build revisions should always be present in official builds
-    MOZ_INCLUDE_SOURCE_INFO=1
-fi
-
-AC_SUBST(MOZ_INCLUDE_SOURCE_INFO)
-
 dnl Echo the CFLAGS to remove extra whitespace.
 CFLAGS=`echo \
     $_COMPILATION_CFLAGS \
