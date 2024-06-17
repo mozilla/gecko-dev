@@ -101,15 +101,15 @@ int64_t GetSocketRecvTimestamp(int socket) {
 typedef char* SockOptArg;
 #endif
 
-#if defined(WEBRTC_USE_EPOLL)
+#if defined(WEBRTC_LINUX)
 // POLLRDHUP / EPOLLRDHUP are only defined starting with Linux 2.6.17.
 #if !defined(POLLRDHUP)
 #define POLLRDHUP 0x2000
-#endif
+#endif  // !defined(POLLRDHUP)
 #if !defined(EPOLLRDHUP)
 #define EPOLLRDHUP 0x2000
-#endif
-#endif
+#endif  // !defined(EPOLLRDHUP)
+#endif  // defined(WEBRTC_LINUX)
 
 namespace {
 
@@ -1492,7 +1492,15 @@ static void ProcessEvents(Dispatcher* dispatcher,
 static void ProcessPollEvents(Dispatcher* dispatcher, const pollfd& pfd) {
   bool readable = (pfd.revents & (POLLIN | POLLPRI));
   bool writable = (pfd.revents & POLLOUT);
-  bool error = (pfd.revents & (POLLRDHUP | POLLERR | POLLHUP));
+
+  // Linux and Fuchsia define POLLRDHUP, which is set when the peer has
+  // disconnected. On other platforms, we only check for POLLHUP.
+#if defined(WEBRTC_LINUX) || defined(WEBRTC_FUCHSIA)
+  constexpr short kEvents = POLLRDHUP | POLLERR | POLLHUP;
+#else
+  constexpr short kEvents = POLLERR | POLLHUP;
+#endif
+  bool error = (pfd.revents & kEvents);
 
   ProcessEvents(dispatcher, readable, writable, error, error);
 }
