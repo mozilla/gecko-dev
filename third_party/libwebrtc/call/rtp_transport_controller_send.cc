@@ -263,6 +263,11 @@ void RtpTransportControllerSend::ReconfigureBandwidthEstimation(
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   bwe_settings_ = settings;
 
+  bool allow_probe_without_media = bwe_settings_.allow_probe_without_media &&
+                                   packet_router_.SupportsRtxPayloadPadding();
+  streams_config_.initial_probe_to_max_bitrate = allow_probe_without_media;
+  pacer_.SetAllowProbeWithoutMediaPacket(allow_probe_without_media);
+
   if (controller_) {
     // Recreate the controller and handler.
     control_handler_ = nullptr;
@@ -276,9 +281,6 @@ void RtpTransportControllerSend::ReconfigureBandwidthEstimation(
       UpdateNetworkAvailability();
     }
   }
-  pacer_.SetAllowProbeWithoutMediaPacket(
-      bwe_settings_.allow_probe_without_media &&
-      packet_router_.SupportsRtxPayloadPadding());
 }
 
 void RtpTransportControllerSend::RegisterTargetTransferRateObserver(

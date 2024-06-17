@@ -121,6 +121,9 @@ class ProbeController {
       Timestamp at_time);
 
   void EnablePeriodicAlrProbing(bool enable);
+  // The first initial probe ignores allocated bitrate constraints and probe up
+  // to max configured bitrate configured via SetBitrates.
+  void SetFirstProbeToMaxBitrate(bool first_probe_to_max_bitrate);
 
   void SetAlrStartTimeMs(absl::optional<int64_t> alr_start_time);
   void SetAlrEndedTimeMs(int64_t alr_end_time);
@@ -148,6 +151,7 @@ class ProbeController {
     kProbingComplete,
   };
 
+  void UpdateState(State new_state);
   ABSL_MUST_USE_RESULT std::vector<ProbeClusterConfig>
   InitiateExponentialProbing(Timestamp at_time);
   ABSL_MUST_USE_RESULT std::vector<ProbeClusterConfig> InitiateProbing(
@@ -158,6 +162,8 @@ class ProbeController {
   bool TimeForNetworkStateProbe(Timestamp at_time) const;
 
   bool network_available_;
+  bool waiting_for_initial_probe_result_ = false;
+  bool first_probe_to_max_bitrate_ = false;
   BandwidthLimitedCause bandwidth_limited_cause_ =
       BandwidthLimitedCause::kDelayBasedLimited;
   State state_;

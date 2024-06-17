@@ -218,6 +218,10 @@ NetworkControlUpdate GoogCcNetworkController::OnProcessInterval(
       probe_controller_->EnablePeriodicAlrProbing(
           *initial_config_->stream_based_config.requests_alr_probing);
     }
+    if (initial_config_->stream_based_config.initial_probe_to_max_bitrate) {
+      probe_controller_->SetFirstProbeToMaxBitrate(
+          *initial_config_->stream_based_config.initial_probe_to_max_bitrate);
+    }
     absl::optional<DataRate> total_bitrate =
         initial_config_->stream_based_config.max_total_allocated_bitrate;
     if (total_bitrate) {
