@@ -27,6 +27,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{env, mem, ptr, slice};
 use thin_vec::ThinVec;
+use webrender::glyph_rasterizer::GlyphRasterThread;
 
 use euclid::SideOffsets2D;
 use moz2d_renderer::Moz2dBlobImageHandler;
@@ -1535,6 +1536,35 @@ impl PartialPresentCompositor for WrPartialPresentCompositor {
 /// A wrapper around a strong reference to a Shaders object.
 pub struct WrShaders(SharedShaders);
 
+pub struct WrGlyphRasterThread(GlyphRasterThread);
+
+#[no_mangle]
+pub extern "C" fn wr_glyph_raster_thread_new() -> *mut WrGlyphRasterThread {
+    let thread = GlyphRasterThread::new(
+        || {
+            gecko_profiler::register_thread("WrGlyphRasterizer");
+        },
+        || {
+            gecko_profiler::unregister_thread();
+        },
+    );
+
+    match thread {
+        Ok(thread) => {
+            return Box::into_raw(Box::new(WrGlyphRasterThread(thread)));
+        },
+        Err(..) => {
+            return std::ptr::null_mut();
+        },
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn wr_glyph_raster_thread_delete(thread: *mut WrGlyphRasterThread) {
+    let thread = unsafe { Box::from_raw(thread) };
+    thread.0.shut_down();
+}
+
 // Call MakeCurrent before this.
 #[no_mangle]
 pub extern "C" fn wr_window_new(
@@ -1553,6 +1583,7 @@ pub extern "C" fn wr_window_new(
     shaders: Option<&mut WrShaders>,
     thread_pool: *mut WrThreadPool,
     thread_pool_low_priority: *mut WrThreadPool,
+    glyph_raster_thread: Option<&WrGlyphRasterThread>,
     size_of_op: VoidPtrToSizeFn,
     enclosing_size_of_op: VoidPtrToSizeFn,
     document_id: u32,
@@ -1685,6 +1716,7 @@ pub extern "C" fn wr_window_new(
         ))),
         crash_annotator: Some(Box::new(MozCrashAnnotator)),
         workers: Some(workers),
+        dedicated_glyph_raster_thread: glyph_raster_thread.map(|grt| grt.0.clone()),
         size_of_op: Some(size_of_op),
         enclosing_size_of_op: Some(enclosing_size_of_op),
         cached_programs,

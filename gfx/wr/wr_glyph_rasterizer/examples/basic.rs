@@ -72,7 +72,7 @@ fn load_glyphs() -> Vec<RasterizedGlyph> {
             .build();
         Arc::new(worker.unwrap())
     };
-    let mut glyph_rasterizer = GlyphRasterizer::new(workers, false);
+    let mut glyph_rasterizer = GlyphRasterizer::new(workers, None, false);
 
     glyph_rasterizer.add_font(
         shared_font_key,

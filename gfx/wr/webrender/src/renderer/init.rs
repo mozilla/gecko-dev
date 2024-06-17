@@ -16,7 +16,7 @@ use crate::device::{
 };
 use crate::frame_builder::FrameBuilderConfig;
 use crate::glyph_cache::GlyphCache;
-use glyph_rasterizer::{GlyphRasterizer, SharedFontResources};
+use glyph_rasterizer::{GlyphRasterThread, GlyphRasterizer, SharedFontResources};
 use crate::gpu_types::PrimitiveInstanceData;
 use crate::internal_types::{FastHashMap, FastHashSet, FrameId};
 use crate::picture;
@@ -130,6 +130,7 @@ pub struct WebRenderOptions {
     pub upload_pbo_default_size: usize,
     pub batched_upload_threshold: i32,
     pub workers: Option<Arc<ThreadPool>>,
+    pub dedicated_glyph_raster_thread: Option<GlyphRasterThread>,
     pub enable_multithreading: bool,
     pub blob_image_handler: Option<Box<dyn BlobImageHandler>>,
     pub crash_annotator: Option<Box<dyn CrashAnnotator>>,
@@ -228,6 +229,7 @@ impl Default for WebRenderOptions {
             upload_pbo_default_size: 512 * 512 * 4,
             batched_upload_threshold: 512 * 512,
             workers: None,
+            dedicated_glyph_raster_thread: None,
             enable_multithreading: true,
             blob_image_handler: None,
             crash_annotator: None,
@@ -576,7 +578,12 @@ pub fn create_webrender_instance(
     let rb_thread_name = format!("WRRenderBackend#{}", options.renderer_id.unwrap_or(0));
     let scene_thread_name = format!("WRSceneBuilder#{}", options.renderer_id.unwrap_or(0));
     let lp_scene_thread_name = format!("WRSceneBuilderLP#{}", options.renderer_id.unwrap_or(0));
-    let glyph_rasterizer = GlyphRasterizer::new(workers, device.get_capabilities().supports_r8_texture_upload);
+
+    let glyph_rasterizer = GlyphRasterizer::new(
+        workers,
+        options.dedicated_glyph_raster_thread,
+        device.get_capabilities().supports_r8_texture_upload,
+    );
 
     let (scene_builder_channels, scene_tx) =
         SceneBuilderThreadChannels::new(api_tx.clone());

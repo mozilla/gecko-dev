@@ -70,6 +70,22 @@ class WebRenderThreadPool {
   wr::WrThreadPool* mThreadPool;
 };
 
+/// An optional dedicated thread for glyph rasterization shared by all WebRender
+/// instances within a process.
+class MaybeWebRenderGlyphRasterThread {
+ public:
+  explicit MaybeWebRenderGlyphRasterThread(bool aEnabled);
+
+  ~MaybeWebRenderGlyphRasterThread();
+
+  bool IsEnabled() const { return mThread != nullptr; }
+
+  const wr::WrGlyphRasterThread* Raw() { return mThread; }
+
+ protected:
+  wr::WrGlyphRasterThread* mThread;
+};
+
 class WebRenderProgramCache final {
  public:
   explicit WebRenderProgramCache(wr::WrThreadPool* aThreadPool);
@@ -250,6 +266,12 @@ class RenderThread final {
   /// Can be called from any thread.
   WebRenderThreadPool& ThreadPoolLP() { return mThreadPoolLP; }
 
+  /// Optional global glyph raster thread.
+  /// Can be called from any thread.
+  MaybeWebRenderGlyphRasterThread& GlyphRasterThread() {
+    return mGlyphRasterThread;
+  }
+
   /// Returns the cache used to serialize shader programs to disk, if enabled.
   ///
   /// Can only be called from the render thread.
@@ -429,6 +451,7 @@ class RenderThread final {
 
   WebRenderThreadPool mThreadPool;
   WebRenderThreadPool mThreadPoolLP;
+  MaybeWebRenderGlyphRasterThread mGlyphRasterThread;
 
   UniquePtr<WebRenderProgramCache> mProgramCache;
   UniquePtr<WebRenderShaders> mShaders;
