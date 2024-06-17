@@ -11,6 +11,9 @@
 #ifndef MODULES_VIDEO_CODING_INCLUDE_VIDEO_CODING_H_
 #define MODULES_VIDEO_CODING_INCLUDE_VIDEO_CODING_H_
 
+#include <memory>
+
+#include "api/environment/environment.h"
 #include "api/field_trials_view.h"
 #include "api/video/video_frame.h"
 #include "api/video_codecs/video_decoder.h"
@@ -27,10 +30,11 @@ struct CodecSpecificInfo;
 
 class VideoCodingModule {
  public:
-  // DEPRECATED.
-  static VideoCodingModule* Create(
+  [[deprecated]] static VideoCodingModule* Create(
       Clock* clock,
       const FieldTrialsView* field_trials = nullptr);
+  [[deprecated]] static std::unique_ptr<VideoCodingModule> CreateDeprecated(
+      const Environment& env);
 
   virtual ~VideoCodingModule() = default;
 

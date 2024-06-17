@@ -251,4 +251,10 @@ VideoCodingModule* VideoCodingModule::Create(
   return new VideoCodingModuleImpl(clock, field_trials);
 }
 
+std::unique_ptr<VideoCodingModule> VideoCodingModule::CreateDeprecated(
+    const Environment& env) {
+  return std::make_unique<VideoCodingModuleImpl>(&env.clock(),
+                                                 &env.field_trials());
+}
+
 }  // namespace webrtc
