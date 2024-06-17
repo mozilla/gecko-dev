@@ -634,7 +634,6 @@ rtc_library("webrtc_vp8_temporal_layers") {
     "../../rtc_base:rate_statistics",
     "../../rtc_base:rtc_numerics",
     "../../rtc_base:timeutils",
-    "../../system_wrappers:field_trial",
     "../../system_wrappers:metrics",
   ]
   absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]

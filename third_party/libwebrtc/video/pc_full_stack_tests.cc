@@ -914,58 +914,6 @@ TEST(PCFullStackTest, ConferenceMotionHd4TLModerateLimits) {
   fixture->RunWithAnalyzer(conf_motion_hd);
 }
 
-// TODO(bugs.webrtc.org/10639) requires simulcast/SVC support in PC framework
-TEST(PCFullStackTest, ConferenceMotionHd3TLModerateLimitsAltTLPattern) {
-  test::ScopedFieldTrials field_trial(
-      AppendFieldTrials("WebRTC-UseShortVP8TL3Pattern/Enabled/"));
-  auto fixture = CreateVideoQualityTestFixture();
-  ParamsWithLogging conf_motion_hd;
-  conf_motion_hd.call.send_side_bwe = true;
-  conf_motion_hd.video[0] = {
-      true,    1280,
-      720,     50,
-      30000,   3000000,
-      3000000, false,
-      "VP8",   3,
-      -1,      0,
-      false,   false,
-      false,   ClipNameToClipPath("ConferenceMotion_1280_720_50")};
-  conf_motion_hd.analyzer = {"conference_motion_hd_3tl_alt_moderate_limits",
-                             0.0, 0.0, kTestDurationSec};
-  conf_motion_hd.config->queue_length_packets = 50;
-  conf_motion_hd.config->loss_percent = 3;
-  conf_motion_hd.config->queue_delay_ms = 100;
-  conf_motion_hd.config->link_capacity_kbps = 2000;
-  fixture->RunWithAnalyzer(conf_motion_hd);
-}
-
-// TODO(bugs.webrtc.org/10639) requires simulcast/SVC support in PC framework
-TEST(PCFullStackTest,
-     ConferenceMotionHd3TLModerateLimitsAltTLPatternAndBaseHeavyTLAllocation) {
-  auto fixture = CreateVideoQualityTestFixture();
-  test::ScopedFieldTrials field_trial(
-      AppendFieldTrials("WebRTC-UseShortVP8TL3Pattern/Enabled/"
-                        "WebRTC-UseBaseHeavyVP8TL3RateAllocation/Enabled/"));
-  ParamsWithLogging conf_motion_hd;
-  conf_motion_hd.call.send_side_bwe = true;
-  conf_motion_hd.video[0] = {
-      true,    1280,
-      720,     50,
-      30000,   3000000,
-      3000000, false,
-      "VP8",   3,
-      -1,      0,
-      false,   false,
-      false,   ClipNameToClipPath("ConferenceMotion_1280_720_50")};
-  conf_motion_hd.analyzer = {
-      "conference_motion_hd_3tl_alt_heavy_moderate_limits", 0.0, 0.0,
-      kTestDurationSec};
-  conf_motion_hd.config->queue_length_packets = 50;
-  conf_motion_hd.config->loss_percent = 3;
-  conf_motion_hd.config->queue_delay_ms = 100;
-  conf_motion_hd.config->link_capacity_kbps = 2000;
-  fixture->RunWithAnalyzer(conf_motion_hd);
-}
 */
 
 #if defined(RTC_ENABLE_VP9)
