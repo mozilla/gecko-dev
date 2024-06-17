@@ -6769,7 +6769,7 @@ void MacroAssembler::convertValueToWasmAnyRef(ValueOperand src, Register dest,
   branch32(Assembler::LessThan, dest, Imm32(wasm::AnyRef::MinI31Value),
            oolConvert);
   lshiftPtr(Imm32(1), dest);
-  orPtr(Imm32((int32_t)wasm::AnyRefTag::I31), dest);
+  or32(Imm32((int32_t)wasm::AnyRefTag::I31), dest);
   jump(&done);
 
   bind(&int32Value);
@@ -6778,8 +6778,7 @@ void MacroAssembler::convertValueToWasmAnyRef(ValueOperand src, Register dest,
            oolConvert);
   branch32(Assembler::LessThan, dest, Imm32(wasm::AnyRef::MinI31Value),
            oolConvert);
-  lshiftPtr(Imm32(1), dest);
-  orPtr(Imm32((int32_t)wasm::AnyRefTag::I31), dest);
+  truncate32ToWasmI31Ref(dest, dest);
   jump(&done);
 
   bind(&nullValue);
