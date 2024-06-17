@@ -488,6 +488,8 @@ Result<MediaDataEncoder::EncodedData, nsresult> FFmpegVideoEncoder<
   mFrame->format = ffmpeg::FFMPEG_PIX_FMT_YUV420P;
   mFrame->width = static_cast<int>(sample->mImage->GetSize().width);
   mFrame->height = static_cast<int>(sample->mImage->GetSize().height);
+  mFrame->pict_type =
+      sample->mKeyframe ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_NONE;
 
   // Allocate AVFrame data.
   if (int ret = mLib->av_frame_get_buffer(mFrame, 0); ret < 0) {
