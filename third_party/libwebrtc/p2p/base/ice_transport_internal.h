@@ -306,15 +306,11 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
 
   // Signal Exposed for backwards compatibility.
   sigslot::signal1<IceTransportInternal*> SignalGatheringState;
+  // Note: These calls must not be inlined in order to avoid linking issues.
   void AddGatheringStateCallback(
       const void* removal_tag,
-      absl::AnyInvocable<void(IceTransportInternal*)> callback) {
-    gathering_state_callback_list_.AddReceiver(removal_tag,
-                                               std::move(callback));
-  }
-  void RemoveGatheringStateCallback(const void* removal_tag) {
-    gathering_state_callback_list_.RemoveReceivers(removal_tag);
-  }
+      absl::AnyInvocable<void(IceTransportInternal*)> callback);
+  void RemoveGatheringStateCallback(const void* removal_tag);
 
   // Handles sending and receiving of candidates.
   sigslot::signal2<IceTransportInternal*, const Candidate&>
