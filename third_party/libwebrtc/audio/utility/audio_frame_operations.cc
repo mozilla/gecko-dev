@@ -72,22 +72,6 @@ void AudioFrameOperations::Add(const AudioFrame& frame_to_add,
   }
 }
 
-int AudioFrameOperations::MonoToStereo(AudioFrame* frame) {
-  if (frame->num_channels_ != 1) {
-    return -1;
-  }
-  UpmixChannels(2, frame);
-  return 0;
-}
-
-int AudioFrameOperations::StereoToMono(AudioFrame* frame) {
-  if (frame->num_channels_ != 2) {
-    return -1;
-  }
-  DownmixChannels(1, frame);
-  return frame->num_channels_ == 1 ? 0 : -1;
-}
-
 void AudioFrameOperations::QuadToStereo(const int16_t* src_audio,
                                         size_t samples_per_channel,
                                         int16_t* dst_audio) {

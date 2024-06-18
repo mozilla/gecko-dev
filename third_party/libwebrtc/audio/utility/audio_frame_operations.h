@@ -33,18 +33,6 @@ class AudioFrameOperations {
   // `result_frame` is empty.
   static void Add(const AudioFrame& frame_to_add, AudioFrame* result_frame);
 
-  // `frame.num_channels_` will be updated. This version checks for sufficient
-  // buffer size and that `num_channels_` is mono. Use UpmixChannels
-  // instead. TODO(bugs.webrtc.org/8649): remove.
-  ABSL_DEPRECATED("bugs.webrtc.org/8649")
-  static int MonoToStereo(AudioFrame* frame);
-
-  // `frame.num_channels_` will be updated. This version checks that
-  // `num_channels_` is stereo. Use DownmixChannels
-  // instead. TODO(bugs.webrtc.org/8649): remove.
-  ABSL_DEPRECATED("bugs.webrtc.org/8649")
-  static int StereoToMono(AudioFrame* frame);
-
   // Downmixes 4 channels `src_audio` to stereo `dst_audio`. This is an in-place
   // operation, meaning `src_audio` and `dst_audio` may point to the same
   // buffer.
