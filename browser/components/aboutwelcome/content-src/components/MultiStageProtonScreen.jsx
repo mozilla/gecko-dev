@@ -360,13 +360,20 @@ export class ProtonScreen extends React.PureComponent {
   }
 
   renderStepsIndicator() {
-    const currentStep = (this.props.order ?? 0) + 1;
-    const previousStep = (this.props.previousOrder ?? -1) + 1;
-    const { content, totalNumberOfScreens: total } = this.props;
+    const {
+      order,
+      previousOrder,
+      content,
+      totalNumberOfScreens: total,
+      aboveButtonStepsIndicator,
+    } = this.props;
+    const currentStep = (order ?? 0) + 1;
+    const previousStep = (previousOrder ?? -1) + 1;
     return (
       <div
         id="steps"
         className={`steps${content.progress_bar ? " progress-bar" : ""}`}
+        above-button={aboveButtonStepsIndicator ? "" : null}
         data-l10n-id={
           content.steps_indicator?.string_id ||
           "onboarding-welcome-steps-indicator-label"
@@ -388,10 +395,7 @@ export class ProtonScreen extends React.PureComponent {
             totalNumberOfScreens={total}
           />
         ) : (
-          <StepsIndicator
-            order={this.props.order}
-            totalNumberOfScreens={total}
-          />
+          <StepsIndicator order={order} totalNumberOfScreens={total} />
         )}
       </div>
     );

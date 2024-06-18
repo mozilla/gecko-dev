@@ -793,7 +793,7 @@ panel#feature-callout[arrow-position=inline-start-bottom] {
 }
 @media (prefers-contrast: no-preference) and (prefers-color-scheme: dark) {
   .onboardingContainer.shopping .screen[pos=split] .section-main .main-content {
-    background-color: #52525E;
+    background-color: #42414D;
   }
 }
 .onboardingContainer.shopping .screen[pos=split] .section-main .main-content.no-steps {
@@ -862,6 +862,14 @@ panel#feature-callout[arrow-position=inline-start-bottom] {
   text-decoration: underline;
 }
 
+.onboardingContainer.shopping .screen[pos=split][layout=survey] {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+@media (prefers-contrast: no-preference) and (prefers-color-scheme: dark) {
+  .onboardingContainer.shopping .screen[pos=split][layout=survey] {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+}
 .onboardingContainer.shopping .screen[pos=split][layout=survey] .main-content {
   padding: 12px;
 }
@@ -2644,7 +2652,8 @@ html {
 .onboardingContainer .dialog-initial .secondary-cta,
 .onboardingContainer .dialog-initial .steps,
 .onboardingContainer .dialog-initial .cta-link,
-.onboardingContainer .dialog-initial .legal-paragraph {
+.onboardingContainer .dialog-initial .legal-paragraph,
+.onboardingContainer .dialog-initial .steps[above-button]:not(.progress-bar) {
   transition-delay: 1s;
 }
 .onboardingContainer .screen:not(.dialog-initial) .tiles-theme-section,
@@ -2655,7 +2664,8 @@ html {
 .onboardingContainer .screen:not(.dialog-initial) .secondary,
 .onboardingContainer .screen:not(.dialog-initial) .secondary-cta,
 .onboardingContainer .screen:not(.dialog-initial) .cta-link,
-.onboardingContainer .screen:not(.dialog-initial) .legal-paragraph {
+.onboardingContainer .screen:not(.dialog-initial) .legal-paragraph,
+.onboardingContainer .screen:not(.dialog-initial) .steps[above-button]:not(.progress-bar) {
   transition-delay: 0.4s;
 }
 .onboardingContainer .screen-2 .section-main {
@@ -2712,11 +2722,12 @@ html {
 .onboardingContainer.transition-in .screen .secondary-cta:not(.top),
 .onboardingContainer.transition-in .screen .cta-link,
 .onboardingContainer.transition-in .screen .legal-paragraph,
-.onboardingContainer.transition-in .screen migration-wizard {
+.onboardingContainer.transition-in .screen migration-wizard,
+.onboardingContainer.transition-in .screen .steps[above-button]:not(.progress-bar) {
   opacity: 0;
   translate: 0 calc(-1 * var(--translate));
 }
-.onboardingContainer.transition-in .screen:not(.dialog-initial) .steps:not(.progress-bar) {
+.onboardingContainer.transition-in .screen:not(.dialog-initial) .steps:not(.progress-bar, [above-button]) {
   opacity: 0.2;
 }
 .onboardingContainer.transition-out .noodle {
@@ -2745,12 +2756,13 @@ html {
 .onboardingContainer.transition-out .screen:not(.dialog-last) .secondary,
 .onboardingContainer.transition-out .screen:not(.dialog-last) .secondary-cta:not(.top),
 .onboardingContainer.transition-out .screen:not(.dialog-last) .cta-link,
-.onboardingContainer.transition-out .screen:not(.dialog-last) .legal-paragraph {
+.onboardingContainer.transition-out .screen:not(.dialog-last) .legal-paragraph,
+.onboardingContainer.transition-out .screen:not(.dialog-last) .steps[above-button]:not(.progress-bar) {
   opacity: 0;
   translate: 0 var(--translate);
   transition-delay: 0.3s;
 }
-.onboardingContainer.transition-out .screen:not(.dialog-last) .steps:not(.progress-bar) {
+.onboardingContainer.transition-out .screen:not(.dialog-last) .steps:not(.progress-bar, [above-button]) {
   opacity: 0.2;
   transition-delay: 0.5s;
 }

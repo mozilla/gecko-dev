@@ -2040,7 +2040,8 @@ html {
     .secondary-cta,
     .steps,
     .cta-link,
-    .legal-paragraph {
+    .legal-paragraph,
+    .steps[above-button]:not(.progress-bar) {
       transition-delay: 1s;
     }
   }
@@ -2057,7 +2058,8 @@ html {
     .secondary,
     .secondary-cta,
     .cta-link,
-    .legal-paragraph {
+    .legal-paragraph,
+    .steps[above-button]:not(.progress-bar) {
       transition-delay: 0.4s;
     }
   }
@@ -2131,13 +2133,14 @@ html {
       .secondary-cta:not(.top),
       .cta-link,
       .legal-paragraph,
-      migration-wizard {
+      migration-wizard,
+      .steps[above-button]:not(.progress-bar) {
         opacity: 0;
         translate: 0 calc(-1 * var(--translate));
       }
 
       &:not(.dialog-initial) {
-        .steps:not(.progress-bar) {
+        .steps:not(.progress-bar, [above-button]) {
           opacity: 0.2;
         }
       }
@@ -2178,13 +2181,14 @@ html {
       .secondary,
       .secondary-cta:not(.top),
       .cta-link,
-      .legal-paragraph {
+      .legal-paragraph,
+      .steps[above-button]:not(.progress-bar) {
         opacity: 0;
         translate: 0 var(--translate);
         transition-delay: 0.3s;
       }
 
-      .steps:not(.progress-bar) {
+      .steps:not(.progress-bar, [above-button]) {
         opacity: 0.2;
         transition-delay: 0.5s;
       }
