@@ -36,6 +36,10 @@
 #include "wasm/WasmGcObject-inl.h"
 #include "wasm/WasmInstance-inl.h"
 
+#ifdef JS_CODEGEN_ARM64
+#  include "jit/arm64/vixl/Simulator-vixl.h"
+#endif
+
 #ifdef XP_WIN
 #  include "util/WindowsWrapper.h"
 #endif
@@ -75,6 +79,26 @@ void SuspenderObjectData::restoreTIBStackFields() {
   _NT_TIB* tib = reinterpret_cast<_NT_TIB*>(::NtCurrentTeb());
   tib->StackBase = savedStackBase_;
   tib->StackLimit = savedStackLimit_;
+}
+#  endif
+
+#  ifdef JS_SIMULATOR_ARM64
+void SuspenderObjectData::switchSimulatorToMain() {
+  auto* sim = Simulator::Current();
+  suspendableSP_ = (void*)sim->xreg(Registers::sp, vixl::Reg31IsStackPointer);
+  suspendableFP_ = (void*)sim->xreg(Registers::fp);
+  sim->set_xreg(Registers::sp, (int64_t)mainSP_, vixl::Debugger::LogRegWrites,
+                vixl::Reg31IsStackPointer);
+  sim->set_xreg(Registers::fp, (int64_t)mainFP_);
+}
+
+void SuspenderObjectData::switchSimulatorToSuspendable() {
+  auto* sim = Simulator::Current();
+  mainSP_ = (void*)sim->xreg(Registers::sp, vixl::Reg31IsStackPointer);
+  mainFP_ = (void*)sim->xreg(Registers::fp);
+  sim->set_xreg(Registers::sp, (int64_t)suspendableSP_,
+                vixl::Debugger::LogRegWrites, vixl::Reg31IsStackPointer);
+  sim->set_xreg(Registers::fp, (int64_t)suspendableFP_);
 }
 #  endif
 
@@ -397,16 +421,28 @@ bool CallImportOnMainThread(JSContext* cx, Instance* instance,
   MOZ_ASSERT(suspender->state() == SuspenderState::Active);
   suspender->setSuspended(cx);
 
+#  ifdef JS_SIMULATOR
+#    ifdef JS_SIMULATOR_ARM64
+  // The simulator is using its own stack, however switching is needed for
+  // virtual registers.
+  stacks->switchSimulatorToMain();
+  bool res = CallImportData::Call(&data);
+  stacks->switchSimulatorToSuspendable();
+#    else
+#      error "not supported"
+#    endif
+#  else
   // The platform specific code below inserts offsets as strings into inline
   // assembly. CHECK_OFFSETS verifies the specified literals in macros below.
-#  define CHECK_OFFSETS(MAIN_FP_OFFSET, MAIN_SP_OFFSET, SUSPENDABLE_FP_OFFSET, \
-                        SUSPENDABLE_SP_OFFSET)                                 \
-    static_assert((MAIN_FP_OFFSET) == SuspenderObjectData::offsetOfMainFP() && \
-                  (MAIN_SP_OFFSET) == SuspenderObjectData::offsetOfMainSP() && \
-                  (SUSPENDABLE_FP_OFFSET) ==                                   \
-                      SuspenderObjectData::offsetOfSuspendableFP() &&          \
-                  (SUSPENDABLE_SP_OFFSET) ==                                   \
-                      SuspenderObjectData::offsetOfSuspendableSP());
+#    define CHECK_OFFSETS(MAIN_FP_OFFSET, MAIN_SP_OFFSET,               \
+                          SUSPENDABLE_FP_OFFSET, SUSPENDABLE_SP_OFFSET) \
+      static_assert(                                                    \
+          (MAIN_FP_OFFSET) == SuspenderObjectData::offsetOfMainFP() &&  \
+          (MAIN_SP_OFFSET) == SuspenderObjectData::offsetOfMainSP() &&  \
+          (SUSPENDABLE_FP_OFFSET) ==                                    \
+              SuspenderObjectData::offsetOfSuspendableFP() &&           \
+          (SUSPENDABLE_SP_OFFSET) ==                                    \
+              SuspenderObjectData::offsetOfSuspendableSP());
 
   // The following assembly code temporarily switches FP/SP pointers to be on
   // main stack, while maintaining frames linking.  After
@@ -532,6 +568,7 @@ bool CallImportOnMainThread(JSContext* cx, Instance* instance,
   MOZ_CRASH("Not supported for this platform");
 #  endif
   // clang-format on
+#  endif
 
   bool ok = res;
   suspender->setActive(cx);

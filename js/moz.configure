@@ -800,7 +800,7 @@ def default_wasm_jspi(
     tail_calls,
     target,
 ):
-    if not jit_enabled or simulator:
+    if not jit_enabled:
         return
 
     if not gc or not tail_calls:
@@ -808,6 +808,9 @@ def default_wasm_jspi(
 
     if not is_nightly:
         return
+
+    if simulator and (simulator[0] == "arm64"):
+        return True
 
     if target.cpu in ("x86_64", "aarch64"):
         return True
@@ -842,8 +845,8 @@ def wasm_jspi(value, jit_enabled, simulator, gc, tail_calls, no_experimental, ta
     if not tail_calls:
         die("--enable-wasm-jspi requires --enable-wasm-tail-calls")
 
-    if simulator:
-        die("--enable-wasm-jspi is not supported for simulators")
+    if simulator and (simulator[0] != "arm64"):
+        die("--enable-wasm-jspi is only supported for arm64 simulator")
 
     if target.cpu in ("x86_64", "aarch64"):
         return True
