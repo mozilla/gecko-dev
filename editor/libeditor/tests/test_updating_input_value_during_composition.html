@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+<script>
+SimpleTest.waitForExplicitFinish();
+SimpleTest.waitForFocus(() => {
+  const input = document.querySelector("input");
+  input.focus();
+
+  let lastValue = input.value;
+  input.addEventListener("input", () => {
+    let selStart = input.selectionStart || 0;
+    const formattedValue = (() => {
+      const rawNumber = input.value.replace(/-/g, "");
+      const tel1 = rawNumber.substring(0, 3);
+      const tel2 = rawNumber.substring(3, 7);
+      const tel3 = rawNumber.substring(7, 11);
+      return [tel1, tel2, tel3].filter((t => Boolean(t))).join("-");
+    })();
+    let compositionEnded = false;
+    input.addEventListener("compositionend", () => {
+      ok(
+        !document.execCommand("insertText", false, "5"),
+        "execCommand call from compositionend listener during setting value should be ignored"
+      );
+      compositionEnded = true;
+    }, {once: true});
+    input.value = formattedValue;
+    // compositionend event should be fired to notify web app of ending the composition.
+    ok(compositionEnded, "Setting value during composition should cause a compositionend event");
+    const prevChar = formattedValue[selStart - 1];
+    if (formattedValue.length > lastValue.length && prevChar === "-") {
+      selStart++;
+    }
+    input.setSelectionRange(selStart, selStart);
+    lastValue = formattedValue;
+  });
+
+  synthesizeCompositionChange({
+    composition: {
+      string: "1234",
+      clauses: [
+        {length: 4, attr: COMPOSITION_ATTR_RAW_CLAUSE },
+      ]
+    },
+    caret: {
+      start: 4,
+      length: 0,
+    },
+    key: {
+      key: "4",
+    }
+  });
+
+  is(input.value, "123-4", "text should be written in the phone number format");
+  is(input.selectionStart, 5, "selection should be collapsed at end of the formatted value");
+
+  SimpleTest.finish();
+});
+</script>
+</head>
+<body>
+  <input>
+</body>
+</html>
