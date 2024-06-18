@@ -1856,8 +1856,8 @@ nsDOMWindowUtils::TransformRectLayoutToVisual(float aX, float aY, float aWidth,
   return NS_OK;
 }
 
-Result<mozilla::ScreenRect, nsresult> nsDOMWindowUtils::ConvertToScreenRect(
-    float aX, float aY, float aWidth, float aHeight) {
+Result<mozilla::LayoutDeviceRect, nsresult> nsDOMWindowUtils::ConvertTo(
+    float aX, float aY, float aWidth, float aHeight, CoordsType aCoordsType) {
   nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryReferent(mWindow);
   if (!window) {
     return Err(NS_ERROR_NOT_AVAILABLE);
@@ -1894,24 +1894,27 @@ Result<mozilla::ScreenRect, nsresult> nsDOMWindowUtils::ConvertToScreenRect(
   LayoutDeviceRect devPixelsRect = LayoutDeviceRect::FromAppUnits(
       appUnitsRect, presContext->AppUnitsPerDevPixel());
   devPixelsRect =
-      widget->WidgetToTopLevelWidgetTransform().TransformBounds(devPixelsRect) +
-      widget->TopLevelWidgetToScreenOffset();
+      widget->WidgetToTopLevelWidgetTransform().TransformBounds(devPixelsRect);
 
-  return ViewAs<ScreenPixel>(
-      devPixelsRect, PixelCastJustification::ScreenIsParentLayerForRoot);
+  switch (aCoordsType) {
+    case CoordsType::Screen:
+      devPixelsRect += widget->TopLevelWidgetToScreenOffset();
+      break;
+    case CoordsType::TopLevelWidget:
+      // There's nothing to do.
+      break;
+  }
+  return devPixelsRect;
 }
 
 NS_IMETHODIMP
 nsDOMWindowUtils::ToScreenRectInCSSUnits(float aX, float aY, float aWidth,
                                          float aHeight, DOMRect** aResult) {
-  ScreenRect rect;
-  MOZ_TRY_VAR(rect, ConvertToScreenRect(aX, aY, aWidth, aHeight));
+  LayoutDeviceRect devRect;
+  MOZ_TRY_VAR(devRect, ConvertTo(aX, aY, aWidth, aHeight, CoordsType::Screen));
 
   nsPresContext* presContext = GetPresContext();
   MOZ_ASSERT(presContext);
-
-  const auto devRect = ViewAs<LayoutDevicePixel>(
-      rect, PixelCastJustification::ScreenIsParentLayerForRoot);
 
   // We want to return the screen rect in CSS units of the browser chrome.
   //
@@ -1931,8 +1934,25 @@ nsDOMWindowUtils::ToScreenRectInCSSUnits(float aX, float aY, float aWidth,
 NS_IMETHODIMP
 nsDOMWindowUtils::ToScreenRect(float aX, float aY, float aWidth, float aHeight,
                                DOMRect** aResult) {
-  ScreenRect rect;
-  MOZ_TRY_VAR(rect, ConvertToScreenRect(aX, aY, aWidth, aHeight));
+  LayoutDeviceRect devPixelsRect;
+  MOZ_TRY_VAR(devPixelsRect,
+              ConvertTo(aX, aY, aWidth, aHeight, CoordsType::Screen));
+
+  ScreenRect rect = ViewAs<ScreenPixel>(
+      devPixelsRect, PixelCastJustification::ScreenIsParentLayerForRoot);
+
+  RefPtr<DOMRect> outRect = new DOMRect(mWindow);
+  outRect->SetRect(rect.x, rect.y, rect.width, rect.height);
+  outRect.forget(aResult);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::ToTopLevelWidgetRect(float aX, float aY, float aWidth,
+                                       float aHeight, DOMRect** aResult) {
+  LayoutDeviceRect rect;
+  MOZ_TRY_VAR(rect,
+              ConvertTo(aX, aY, aWidth, aHeight, CoordsType::TopLevelWidget));
 
   RefPtr<DOMRect> outRect = new DOMRect(mWindow);
   outRect->SetRect(rect.x, rect.y, rect.width, rect.height);
