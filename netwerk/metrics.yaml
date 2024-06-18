@@ -425,14 +425,16 @@ networking:
       The time between dispatching OnStartRequest from the socket thread and processing it on the main thread (content process).
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1857926
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1857926#c
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - rjesup@mozilla.com
-    expires: 130
+    expires: 136
 
   http_content_onstop_delay:
     type: timing_distribution
@@ -441,14 +443,16 @@ networking:
       The time between dispatching OnStopRequest from the socket thread and processing it on the main thread (content process).
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1857926
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1857926#c
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - rjesup@mozilla.com
-    expires: 130
+    expires: 136
 
   http_content_ondatafinished_delay:
     type: timing_distribution
@@ -457,14 +461,16 @@ networking:
       The time between dispatching OnDataFinished from the socket thread and processing it.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1857615
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1857615#c
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - rjesup@mozilla.com
-    expires: 130
+    expires: 136
 
   http_content_ondatafinished_to_onstop_delay:
     type: timing_distribution
@@ -473,14 +479,16 @@ networking:
       The time between processing OnDataFinished and processing OnStopRequest (if OnDataFinished comes first)
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1857615
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1857615#c
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - rjesup@mozilla.com
-    expires: 130
+    expires: 136
 
   http_content_html5parser_ondatafinished_to_onstop_delay:
     type: timing_distribution
@@ -489,14 +497,16 @@ networking:
       The time between processing OnDataFinished and processing OnStopRequest (if OnDataFinished comes first)
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1857926
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1857926
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - rjesup@mozilla.com
-    expires: 130
+    expires: 136
 
   http_content_cssloader_ondatafinished_to_onstop_delay:
     type: timing_distribution
