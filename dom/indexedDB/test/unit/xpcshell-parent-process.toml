@@ -61,6 +61,8 @@ skip-if = ["os == 'android'"]
 
 ["test_idle_maintenance.js"]
 
+["test_idle_maintenance_and_databases.js"]
+
 ["test_invalidate.js"]
 # disabled for the moment.
 skip-if = ["true"]
