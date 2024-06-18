@@ -2987,11 +2987,6 @@ bool JSStructuredCloneReader::startRead(MutableHandleValue vp,
   uint32_t tag, data;
   bool alreadAppended = false;
 
-  AutoCheckRecursionLimit recursion(in.context());
-  if (!recursion.check(in.context())) {
-    return false;
-  }
-
   if (!in.readPair(&tag, &data)) {
     return false;
   }
