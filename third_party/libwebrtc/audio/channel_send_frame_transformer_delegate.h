@@ -36,7 +36,8 @@ class ChannelSendFrameTransformerDelegate : public TransformedFrameCallback {
                             uint32_t rtp_timestamp_with_offset,
                             rtc::ArrayView<const uint8_t> payload,
                             int64_t absolute_capture_timestamp_ms,
-                            rtc::ArrayView<const uint32_t> csrcs)>;
+                            rtc::ArrayView<const uint32_t> csrcs,
+                            absl::optional<uint8_t> audio_level_dbov)>;
   ChannelSendFrameTransformerDelegate(
       SendFrameCallback send_frame_callback,
       rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
@@ -60,7 +61,8 @@ class ChannelSendFrameTransformerDelegate : public TransformedFrameCallback {
                  size_t payload_size,
                  int64_t absolute_capture_timestamp_ms,
                  uint32_t ssrc,
-                 const std::string& codec_mime_type);
+                 const std::string& codec_mime_type,
+                 absl::optional<uint8_t> audio_level_dbov);
 
   // Implements TransformedFrameCallback. Can be called on any thread.
   void OnTransformedFrame(

@@ -83,6 +83,11 @@ class TransformableAudioFrameInterface : public TransformableFrameInterface {
   // TODO(crbug.com/1456628): Change this to pure virtual after it
   // is implemented everywhere.
   virtual FrameType Type() const { return FrameType::kEmptyFrame; }
+
+  // Audio level in -dBov. Values range from 0 to 127, representing 0 to -127
+  // dBov. 127 represents digital silence. Only present on remote frames if
+  // the audio level header extension was included.
+  virtual absl::optional<uint8_t> AudioLevel() const = 0;
 };
 
 // Objects implement this interface to be notified with the transformed frame.

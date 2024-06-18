@@ -28,6 +28,7 @@ using ::testing::_;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::NiceMock;
+using ::testing::Optional;
 using ::testing::Return;
 using ::testing::SaveArg;
 
@@ -45,21 +46,24 @@ class MockChannelSend {
                uint32_t rtp_timestamp,
                rtc::ArrayView<const uint8_t> payload,
                int64_t absolute_capture_timestamp_ms,
-               rtc::ArrayView<const uint32_t> csrcs));
+               rtc::ArrayView<const uint32_t> csrcs,
+               absl::optional<uint8_t> audio_level_dbov));
 
   ChannelSendFrameTransformerDelegate::SendFrameCallback callback() {
     return [this](AudioFrameType frameType, uint8_t payloadType,
                   uint32_t rtp_timestamp, rtc::ArrayView<const uint8_t> payload,
                   int64_t absolute_capture_timestamp_ms,
-                  rtc::ArrayView<const uint32_t> csrcs) {
+                  rtc::ArrayView<const uint32_t> csrcs,
+                  absl::optional<uint8_t> audio_level_dbov) {
       return SendFrame(frameType, payloadType, rtp_timestamp, payload,
-                       absolute_capture_timestamp_ms, csrcs);
+                       absolute_capture_timestamp_ms, csrcs, audio_level_dbov);
     };
   }
 };
 
 std::unique_ptr<TransformableAudioFrameInterface> CreateMockReceiverFrame(
-    const std::vector<uint32_t>& csrcs) {
+    const std::vector<uint32_t>& csrcs,
+    absl::optional<uint8_t> audio_level_dbov) {
   std::unique_ptr<MockTransformableAudioFrame> mock_frame =
       std::make_unique<NiceMock<MockTransformableAudioFrame>>();
   rtc::ArrayView<const uint8_t> payload(mock_data);
@@ -69,6 +73,7 @@ std::unique_ptr<TransformableAudioFrameInterface> CreateMockReceiverFrame(
       .WillByDefault(Return(TransformableFrameInterface::Direction::kReceiver));
   ON_CALL(*mock_frame, GetContributingSources).WillByDefault(Return(csrcs));
   ON_CALL(*mock_frame, SequenceNumber).WillByDefault(Return(987654321));
+  ON_CALL(*mock_frame, AudioLevel).WillByDefault(Return(audio_level_dbov));
   return mock_frame;
 }
 
@@ -88,9 +93,9 @@ std::unique_ptr<TransformableAudioFrameInterface> CreateFrame() {
               std::unique_ptr<TransformableFrameInterface> transform_frame) {
             frame = std::move(transform_frame);
           });
-  delegate->Transform(AudioFrameType::kEmptyFrame, 0, 0, mock_data,
-                      sizeof(mock_data), 0,
-                      /*ssrc=*/0, /*mimeType=*/"audio/opus");
+  delegate->Transform(
+      AudioFrameType::kEmptyFrame, 0, 0, mock_data, sizeof(mock_data), 0,
+      /*ssrc=*/0, /*mimeType=*/"audio/opus", /*audio_level_dbov=*/123);
   return absl::WrapUnique(
       static_cast<webrtc::TransformableAudioFrameInterface*>(frame.release()));
 }
@@ -147,7 +152,8 @@ TEST(ChannelSendFrameTransformerDelegateTest,
             callback->OnTransformedFrame(std::move(frame));
           });
   delegate->Transform(AudioFrameType::kEmptyFrame, 0, 0, data, sizeof(data), 0,
-                      /*ssrc=*/0, /*mimeType=*/"audio/opus");
+                      /*ssrc=*/0, /*mimeType=*/"audio/opus",
+                      /*audio_level_dbov=*/31);
   channel_queue.WaitForPreviouslyPostedTasks();
 }
 
@@ -169,16 +175,20 @@ TEST(ChannelSendFrameTransformerDelegateTest,
   ASSERT_TRUE(callback);
 
   const std::vector<uint32_t> csrcs = {123, 234, 345, 456};
+  const uint8_t audio_level_dbov = 17;
   EXPECT_CALL(mock_channel, SendFrame).Times(0);
-  EXPECT_CALL(mock_channel, SendFrame(_, 0, 0, ElementsAreArray(mock_data), _,
-                                      ElementsAreArray(csrcs)));
+  EXPECT_CALL(mock_channel,
+              SendFrame(_, 0, 0, ElementsAreArray(mock_data), _,
+                        ElementsAreArray(csrcs), Optional(audio_level_dbov)));
   ON_CALL(*mock_frame_transformer, Transform)
       .WillByDefault([&](std::unique_ptr<TransformableFrameInterface> frame) {
-        callback->OnTransformedFrame(CreateMockReceiverFrame(csrcs));
+        callback->OnTransformedFrame(CreateMockReceiverFrame(
+            csrcs, absl::optional<uint8_t>(audio_level_dbov)));
       });
   delegate->Transform(AudioFrameType::kEmptyFrame, 0, 0, mock_data,
                       sizeof(mock_data), 0,
-                      /*ssrc=*/0, /*mimeType=*/"audio/opus");
+                      /*ssrc=*/0, /*mimeType=*/"audio/opus",
+                      /*audio_level_dbov=*/absl::nullopt);
   channel_queue.WaitForPreviouslyPostedTasks();
 }
 
@@ -218,7 +228,8 @@ TEST(ChannelSendFrameTransformerDelegateTest, ShortCircuitingSkipsTransform) {
   EXPECT_CALL(mock_channel, SendFrame);
   const uint8_t data[] = {1, 2, 3, 4};
   delegate->Transform(AudioFrameType::kEmptyFrame, 0, 0, data, sizeof(data), 0,
-                      /*ssrc=*/0, /*mimeType=*/"audio/opus");
+                      /*ssrc=*/0, /*mimeType=*/"audio/opus",
+                      /*audio_level_dbov=*/absl::nullopt);
 }
 
 TEST(ChannelSendFrameTransformerDelegateTest,
@@ -234,11 +245,13 @@ TEST(ChannelSendFrameTransformerDelegateTest,
   EXPECT_EQ(cloned_frame->GetMimeType(), frame->GetMimeType());
   EXPECT_THAT(cloned_frame->GetContributingSources(),
               ElementsAreArray(frame->GetContributingSources()));
+  EXPECT_EQ(cloned_frame->AudioLevel(), frame->AudioLevel());
 }
 
 TEST(ChannelSendFrameTransformerDelegateTest, CloningReceiverFrameWithCsrcs) {
   std::unique_ptr<TransformableAudioFrameInterface> frame =
-      CreateMockReceiverFrame(/*csrcs=*/{123, 234, 345});
+      CreateMockReceiverFrame(/*csrcs=*/{123, 234, 345},
+                              absl::optional<uint8_t>(72));
   std::unique_ptr<TransformableAudioFrameInterface> cloned_frame =
       CloneSenderAudioFrame(frame.get());
 
@@ -254,6 +267,7 @@ TEST(ChannelSendFrameTransformerDelegateTest, CloningReceiverFrameWithCsrcs) {
   EXPECT_THAT(cloned_frame->GetContributingSources(),
               ElementsAreArray(frame->GetContributingSources()));
   EXPECT_EQ(cloned_frame->SequenceNumber(), frame->SequenceNumber());
+  EXPECT_EQ(cloned_frame->AudioLevel(), frame->AudioLevel());
 }
 
 }  // namespace

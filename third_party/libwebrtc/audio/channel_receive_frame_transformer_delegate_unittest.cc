@@ -174,5 +174,76 @@ TEST(ChannelReceiveFrameTransformerDelegateTest,
   delegate->Transform(packet, header, /*ssrc=*/1111, /*mimeType=*/"audio/opus");
 }
 
+TEST(ChannelReceiveFrameTransformerDelegateTest,
+     AudioLevelAbsentWithoutExtension) {
+  rtc::AutoThread main_thread;
+  rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
+      rtc::make_ref_counted<NiceMock<MockFrameTransformer>>();
+  rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate =
+      rtc::make_ref_counted<ChannelReceiveFrameTransformerDelegate>(
+          /*receive_frame_callback=*/nullptr, mock_frame_transformer,
+          rtc::Thread::Current());
+  rtc::scoped_refptr<TransformedFrameCallback> callback;
+  EXPECT_CALL(*mock_frame_transformer, RegisterTransformedFrameCallback)
+      .WillOnce(SaveArg<0>(&callback));
+  delegate->Init();
+  ASSERT_TRUE(callback);
+
+  const uint8_t data[] = {1, 2, 3, 4};
+  rtc::ArrayView<const uint8_t> packet(data, sizeof(data));
+  RTPHeader header;
+  std::unique_ptr<TransformableFrameInterface> frame;
+  ON_CALL(*mock_frame_transformer, Transform)
+      .WillByDefault(
+          [&](std::unique_ptr<TransformableFrameInterface> transform_frame) {
+            frame = std::move(transform_frame);
+          });
+  delegate->Transform(packet, header, /*ssrc=*/1111, /*mimeType=*/"audio/opus");
+
+  EXPECT_TRUE(frame);
+  auto* audio_frame =
+      static_cast<TransformableAudioFrameInterface*>(frame.get());
+  EXPECT_FALSE(audio_frame->AudioLevel());
+  EXPECT_EQ(audio_frame->Type(),
+            TransformableAudioFrameInterface::FrameType::kAudioFrameCN);
+}
+
+TEST(ChannelReceiveFrameTransformerDelegateTest,
+     AudioLevelPresentWithExtension) {
+  rtc::AutoThread main_thread;
+  rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
+      rtc::make_ref_counted<NiceMock<MockFrameTransformer>>();
+  rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate =
+      rtc::make_ref_counted<ChannelReceiveFrameTransformerDelegate>(
+          /*receive_frame_callback=*/nullptr, mock_frame_transformer,
+          rtc::Thread::Current());
+  rtc::scoped_refptr<TransformedFrameCallback> callback;
+  EXPECT_CALL(*mock_frame_transformer, RegisterTransformedFrameCallback)
+      .WillOnce(SaveArg<0>(&callback));
+  delegate->Init();
+  ASSERT_TRUE(callback);
+
+  const uint8_t data[] = {1, 2, 3, 4};
+  rtc::ArrayView<const uint8_t> packet(data, sizeof(data));
+  RTPHeader header;
+  uint8_t audio_level_dbov = 67;
+  AudioLevel audio_level(/*voice_activity=*/true, audio_level_dbov);
+  header.extension.set_audio_level(audio_level);
+  std::unique_ptr<TransformableFrameInterface> frame;
+  ON_CALL(*mock_frame_transformer, Transform)
+      .WillByDefault(
+          [&](std::unique_ptr<TransformableFrameInterface> transform_frame) {
+            frame = std::move(transform_frame);
+          });
+  delegate->Transform(packet, header, /*ssrc=*/1111, /*mimeType=*/"audio/opus");
+
+  EXPECT_TRUE(frame);
+  auto* audio_frame =
+      static_cast<TransformableAudioFrameInterface*>(frame.get());
+  EXPECT_EQ(*audio_frame->AudioLevel(), audio_level_dbov);
+  EXPECT_EQ(audio_frame->Type(),
+            TransformableAudioFrameInterface::FrameType::kAudioFrameSpeech);
+}
+
 }  // namespace
 }  // namespace webrtc

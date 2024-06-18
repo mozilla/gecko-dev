@@ -47,6 +47,7 @@ class MockTransformableAudioFrame : public TransformableAudioFrameInterface {
               Type,
               (),
               (const, override));
+  MOCK_METHOD(absl::optional<uint8_t>, AudioLevel, (), (const, override));
 };
 
 }  // namespace webrtc

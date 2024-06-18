@@ -70,6 +70,13 @@ class TransformableIncomingAudioFrame
                : FrameType::kAudioFrameCN;
   }
 
+  absl::optional<uint8_t> AudioLevel() const override {
+    if (header_.extension.audio_level()) {
+      return header_.extension.audio_level()->level();
+    }
+    return absl::nullopt;
+  }
+
  private:
   rtc::Buffer payload_;
   RTPHeader header_;
