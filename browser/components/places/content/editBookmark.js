@@ -64,23 +64,12 @@ var gEditItemOverlay = {
           ? node.query.tags[0]
           : node.title;
     }
-
     let isURI = node && PlacesUtils.nodeIsURI(node);
     let uri = isURI || isTag ? Services.io.newURI(node.uri) : null;
     let title = node ? node.title : null;
     let isBookmark = isItem && isURI;
-
-    let addedMultipleBookmarks = aInitInfo.addedMultipleBookmarks;
-    let bulkTagging = false;
-    let uris = null;
-    if (!node) {
-      bulkTagging = true;
-      uris = aInitInfo.uris;
-    } else if (addedMultipleBookmarks) {
-      bulkTagging = true;
-      uris = node.children.map(c => c.url);
-    }
-
+    let bulkTagging = !node;
+    let uris = bulkTagging ? aInitInfo.uris : null;
     let visibleRows = new Set();
     let isParentReadOnly = false;
     let postData = aInitInfo.postData;
@@ -111,7 +100,6 @@ var gEditItemOverlay = {
       title,
       isBookmark,
       isFolderShortcut,
-      addedMultipleBookmarks,
       isParentReadOnly,
       bulkTagging,
       uris,
@@ -189,7 +177,7 @@ var gEditItemOverlay = {
   _firstEditedField: "",
 
   _initNamePicker() {
-    if (this._paneInfo.bulkTagging && !this._paneInfo.addedMultipleBookmarks) {
+    if (this._paneInfo.bulkTagging) {
       throw new Error("_initNamePicker called unexpectedly");
     }
 
@@ -300,7 +288,6 @@ var gEditItemOverlay = {
         isItem,
         isURI,
         isBookmark,
-        addedMultipleBookmarks,
         bulkTagging,
         uris,
         visibleRows,
@@ -341,13 +328,7 @@ var gEditItemOverlay = {
         return visible;
       };
 
-      if (
-        showOrCollapse(
-          "nameRow",
-          !bulkTagging || addedMultipleBookmarks,
-          "name"
-        )
-      ) {
+      if (showOrCollapse("nameRow", !bulkTagging, "name")) {
         this._initNamePicker();
         this._namePicker.readOnly = this.readOnly;
       }

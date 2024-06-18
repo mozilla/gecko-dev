@@ -409,30 +409,12 @@ class BookmarkState {
    * @returns {string} The folder's GUID.
    */
   async _createFolder() {
-    let transactions = [
-      lazy.PlacesTransactions.NewFolder({
-        parentGuid: this.parentGuid,
-        title: this._newState.title ?? this._originalState.title,
-        children: this._children,
-        index: this._originalState.index,
-        tags: this._newState.tags,
-      }),
-    ];
-
-    if (this._bulkTaggingUrls) {
-      this._appendTagsTransactions({
-        transactions,
-        newTags: this._newState.tags,
-        originalTags: this._originalState.tags,
-        urls: this._bulkTaggingUrls,
-      });
-    }
-
-    let results = await lazy.PlacesTransactions.batch(
-      transactions,
-      "BookmarkState::save::createFolder"
-    );
-    this._guid = results[0];
+    this._guid = await lazy.PlacesTransactions.NewFolder({
+      parentGuid: this.parentGuid,
+      title: this._newState.title ?? this._originalState.title,
+      children: this._children,
+      index: this._originalState.index,
+    }).transact();
     return this._guid;
   }
 
@@ -487,12 +469,28 @@ class BookmarkState {
           );
           break;
         case "tags": {
-          this._appendTagsTransactions({
-            transactions,
-            newTags: value,
-            originalTags: this._originalState.tags,
-            urls: this._bulkTaggingUrls || [url],
-          });
+          const newTags = value.filter(
+            tag => !this._originalState.tags.includes(tag)
+          );
+          const removedTags = this._originalState.tags.filter(
+            tag => !value.includes(tag)
+          );
+          if (newTags.length) {
+            transactions.push(
+              lazy.PlacesTransactions.Tag({
+                urls: this._bulkTaggingUrls || [url],
+                tags: newTags,
+              })
+            );
+          }
+          if (removedTags.length) {
+            transactions.push(
+              lazy.PlacesTransactions.Untag({
+                urls: this._bulkTaggingUrls || [url],
+                tags: removedTags,
+              })
+            );
+          }
           break;
         }
         case "keyword":
@@ -522,41 +520,6 @@ class BookmarkState {
     this._originalState = { ...this._originalState, ...this._newState };
     this._newState = {};
     return this._guid;
-  }
-
-  /**
-   * Append transactions to update tags by given information.
-   *
-   * @param {object} parameters
-   *   The parameters object containing:
-   * @param {object[]} parameters.transactions
-   *   Array that transactions will be appended to.
-   * @param {string[]} parameters.newTags
-   *   Tags that will be appended to the given urls.
-   * @param {string[]} parameters.originalTags
-   *   Tags that had been appended to the given urls.
-   * @param {string[]} parameters.urls
-   *   URLs that will be updated.
-   */
-  _appendTagsTransactions({ transactions, newTags, originalTags, urls }) {
-    const addedTags = newTags.filter(tag => !originalTags.includes(tag));
-    const removedTags = originalTags.filter(tag => !newTags.includes(tag));
-    if (addedTags.length) {
-      transactions.push(
-        lazy.PlacesTransactions.Tag({
-          urls,
-          tags: addedTags,
-        })
-      );
-    }
-    if (removedTags.length) {
-      transactions.push(
-        lazy.PlacesTransactions.Untag({
-          urls,
-          tags: removedTags,
-        })
-      );
-    }
   }
 }
 

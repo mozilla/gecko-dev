@@ -11,11 +11,6 @@ add_task(async function bookmark_all_tabs() {
     for (let tab of tabs) {
       BrowserTestUtils.removeTab(tab);
     }
-
-    for (const url of TEST_URLS) {
-      PlacesUtils.tagging.untagURI(Services.io.newURI(url), null);
-    }
-
     await PlacesUtils.bookmarks.eraseEverything();
   });
 
@@ -39,12 +34,8 @@ add_task(async function bookmark_all_tabs() {
 
       let promiseBookmarkAdded =
         PlacesTestUtils.waitForNotification("bookmark-added");
-      let promiseTagsChanged = PlacesTestUtils.waitForNotification(
-        "bookmark-tags-changed"
-      );
 
       fillBookmarkTextField("editBMPanel_namePicker", "folder", dialog);
-      fillBookmarkTextField("editBMPanel_tagsField", "tag1,tag2,tag3", dialog);
 
       let folderPicker = dialog.document.getElementById(
         "editBMPanel_folderMenuList"
@@ -58,8 +49,7 @@ add_task(async function bookmark_all_tabs() {
       );
 
       EventUtils.synthesizeKey("VK_RETURN", {}, dialog);
-
-      await Promise.all([promiseBookmarkAdded, promiseTagsChanged]);
+      await promiseBookmarkAdded;
       for (const url of TEST_URLS) {
         const { parentGuid } = await PlacesUtils.bookmarks.fetch({ url });
         const folder = await PlacesUtils.bookmarks.fetch({
@@ -69,13 +59,6 @@ add_task(async function bookmark_all_tabs() {
           folder.title,
           "folder",
           "Should have created the bookmark in the right folder."
-        );
-
-        const tags = PlacesUtils.tagging.getTagsForURI(Services.io.newURI(url));
-        Assert.deepEqual(
-          tags,
-          ["tag1", "tag2", "tag3"],
-          "Found the expected tags"
         );
       }
     }
