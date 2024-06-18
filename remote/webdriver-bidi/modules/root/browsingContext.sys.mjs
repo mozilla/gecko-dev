@@ -17,6 +17,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   EventPromise: "chrome://remote/content/shared/Sync.sys.mjs",
   getTimeoutMultiplier: "chrome://remote/content/shared/AppInfo.sys.mjs",
+  Log: "chrome://remote/content/shared/Log.sys.mjs",
   modal: "chrome://remote/content/shared/Prompt.sys.mjs",
   registerNavigationId:
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
@@ -39,6 +40,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/messagehandler/WindowGlobalMessageHandler.sys.mjs",
   windowManager: "chrome://remote/content/shared/WindowManager.sys.mjs",
 });
+
+ChromeUtils.defineLazyGetter(lazy, "logger", () =>
+  lazy.Log.get(lazy.Log.TYPES.WEBDRIVER_BIDI)
+);
 
 // Maximal window dimension allowed when emulating a viewport.
 const MAX_WINDOW_SIZE = 10000000;
@@ -771,11 +776,12 @@ class BrowsingContextModule extends Module {
 
     if (dialog && dialog.isOpen) {
       switch (dialog.promptType) {
-        case UserPromptType.alert: {
+        case UserPromptType.alert:
           await closePrompt(() => dialog.accept());
           return;
-        }
-        case UserPromptType.confirm: {
+
+        case UserPromptType.beforeunload:
+        case UserPromptType.confirm:
           await closePrompt(() => {
             if (accept) {
               dialog.accept();
@@ -785,8 +791,8 @@ class BrowsingContextModule extends Module {
           });
 
           return;
-        }
-        case UserPromptType.prompt: {
+
+        case UserPromptType.prompt:
           await closePrompt(() => {
             if (accept) {
               dialog.text = userText;
@@ -797,13 +803,11 @@ class BrowsingContextModule extends Module {
           });
 
           return;
-        }
-        case UserPromptType.beforeunload: {
-          // TODO: Bug 1824220. Implement support for "beforeunload" prompts.
+
+        default:
           throw new lazy.error.UnsupportedOperationError(
-            '"beforeunload" prompts are not supported yet.'
+            `Prompts of type "${dialog.promptType}" are not supported`
           );
-        }
       }
     }
 
@@ -1860,6 +1864,7 @@ class BrowsingContextModule extends Module {
       const params = {
         context: contextId,
         accepted: detail.accepted,
+        type: detail.promptType,
         userText: detail.userText,
       };
 
@@ -1873,6 +1878,7 @@ class BrowsingContextModule extends Module {
 
       // Do not send opened event for unsupported prompt types.
       if (!(prompt.promptType in UserPromptType)) {
+        lazy.logger.trace(`Prompt type "${prompt.promptType}" not supported`);
         return;
       }
 

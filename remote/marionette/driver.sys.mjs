@@ -37,6 +37,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/webdriver/UserPromptHandler.sys.mjs",
   PromptListener:
     "chrome://remote/content/shared/listeners/PromptListener.sys.mjs",
+  PromptTypes:
+    "chrome://remote/content/shared/webdriver/UserPromptHandler.sys.mjs",
   quit: "chrome://remote/content/shared/Browser.sys.mjs",
   reftest: "chrome://remote/content/marionette/reftest.sys.mjs",
   registerCommandsActor:
@@ -219,7 +221,8 @@ GeckoDriver.prototype.handleClosedModalDialog = function () {
 GeckoDriver.prototype.handleOpenModalDialog = function (eventName, data) {
   this.dialog = data.prompt;
 
-  if (this.dialog.promptType === "beforeunload") {
+  if (this.dialog.promptType === "beforeunload" && !this.currentSession?.bidi) {
+    // Only implicitly accept the prompt when its not a BiDi session.
     lazy.logger.trace(`Implicitly accepted "beforeunload" prompt`);
     this.dialog.accept();
     return;
@@ -2299,16 +2302,17 @@ GeckoDriver.prototype.newWindow = async function (cmd) {
   let contentBrowser;
 
   switch (type) {
-    case "window":
+    case "window": {
       let win = await this.curBrowser.openBrowserWindow(focus, isPrivate);
       contentBrowser = lazy.TabManager.getTabBrowser(win).selectedBrowser;
       break;
-
-    default:
+    }
+    default: {
       // To not fail if a new type gets added in the future, make opening
       // a new tab the default action.
       let tab = await this.curBrowser.openTab(focus);
       contentBrowser = lazy.TabManager.getBrowserForTab(tab);
+    }
   }
 
   // Actors need the new window to be loaded to safely execute queries.
@@ -2836,26 +2840,38 @@ GeckoDriver.prototype._handleUserPrompts = async function () {
     return;
   }
 
-  const textContent = await this.dialog.getText();
   const promptType = this.dialog.promptType;
+  const textContent = await this.dialog.getText();
 
-  if (promptType === "beforeunload") {
-    // Auto-accepting the prompt happens asynchronously. That means that there
-    // can still be a situation when its not closed yet (eg. for slow builds).
+  if (promptType === "beforeunload" && !this.currentSession.bidi) {
+    // In an HTTP-only session, this prompt will be automatically accepted.
+    // Since this occurs asynchronously, we need to wait until it closes
+    // to prevent race conditions, particularly in slow builds.
     await lazy.PollPromise((resolve, reject) => {
       this.dialog?.isOpen ? reject() : resolve();
     });
     return;
   }
 
-  let type = "default";
-  if (["alert", "confirm", "prompt"].includes(this.dialog.promptType)) {
-    type = promptType;
+  let type = lazy.PromptTypes.Default;
+  switch (promptType) {
+    case "alert":
+      type = lazy.PromptTypes.Alert;
+      break;
+    case "beforeunload":
+      type = lazy.PromptTypes.BeforeUnload;
+      break;
+    case "confirm":
+      type = lazy.PromptTypes.Confirm;
+      break;
+    case "prompt":
+      type = lazy.PromptTypes.Prompt;
+      break;
   }
 
   const userPromptHandler = this.currentSession.userPromptHandler;
-
   const handler = userPromptHandler.getPromptHandler(type);
+
   switch (handler.handler) {
     case lazy.PromptHandlers.Accept:
       await this.acceptDialog();
