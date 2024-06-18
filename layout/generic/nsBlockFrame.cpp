@@ -1224,6 +1224,18 @@ bool nsBlockFrame::IsInLineClampContext() const {
   return false;
 }
 
+bool nsBlockFrame::MaybeHasFloats() const {
+  if (!mFloats.IsEmpty()) {
+    return true;
+  }
+  if (HasPushedFloats()) {
+    return true;
+  }
+  // For the OverflowOutOfFlowsProperty I think we do enforce that, but it's
+  // a mix of out-of-flow frames, so that's why the method name has "Maybe".
+  return HasAnyStateBits(NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS);
+}
+
 /**
  * Iterator over all descendant inline line boxes, except for those that are
  * under an independent formatting context.
