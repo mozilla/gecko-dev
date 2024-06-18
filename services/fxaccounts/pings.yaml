@@ -1,0 +1,23 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+---
+$schema: moz://mozilla.org/schemas/glean/pings/2-0-0
+
+fx-accounts:
+  description: |
+    A ping for information about Mozilla Account usage. Sent at the same cadence
+    as the baseline ping.
+  include_client_id: true
+  send_if_empty: false
+  bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1889123
+  data_reviews:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1889123
+  notification_emails:
+    - mreid@mozilla.com
+    - mconley@mozilla.com
+  metadata:
+    ping_schedule:
+      - baseline

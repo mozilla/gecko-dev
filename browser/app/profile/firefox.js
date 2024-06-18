@@ -1995,6 +1995,10 @@ pref("identity.fxaccounts.commands.missed.fetch_interval", 86400);
 // commands from other FxA clients
 pref("identity.fxaccounts.commands.remoteTabManagement.enabled", false);
 
+// Controls whether or not the client association ping has values set on it
+// when the sync-ui-state:update notification fires.
+pref("identity.fxaccounts.telemetry.clientAssociationPing.enabled", false);
+
 // Note: when media.gmp-*.visible is true, provided we're running on a
 // supported platform/OS version, the corresponding CDM appears in the
 // plugins list, Firefox will download the GMP/CDM if enabled, and our

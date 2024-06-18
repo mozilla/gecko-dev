@@ -28,6 +28,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
+  ClientID: "resource://gre/modules/ClientID.sys.mjs",
   CloseRemoteTab: "resource://gre/modules/FxAccountsCommands.sys.mjs",
   ContentRelevancyManager:
     "resource://gre/modules/ContentRelevancyManager.sys.mjs",
@@ -157,6 +158,13 @@ if (AppConstants.ENABLE_WEBDRIVER) {
   lazy.Marionette = { running: false };
   lazy.RemoteAgent = { running: false };
 }
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "CLIENT_ASSOCIATION_PING_ENABLED",
+  "identity.fxaccounts.telemetry.clientAssociationPing.enabled",
+  false
+);
 
 const PREF_PDFJS_ISDEFAULT_CACHE_STATE = "pdfjs.enabledCache.state";
 
@@ -1280,9 +1288,20 @@ BrowserGlue.prototype = {
         }
         break;
       }
-      case "sync-ui-state:update":
+      case "sync-ui-state:update": {
         this._updateFxaBadges(lazy.BrowserWindowTracker.getTopWindow());
+
+        if (lazy.CLIENT_ASSOCIATION_PING_ENABLED) {
+          let fxaState = lazy.UIState.get();
+          if (fxaState.status == lazy.UIState.STATUS_SIGNED_IN) {
+            Glean.clientAssociation.uid.set(fxaState.uid);
+            Glean.clientAssociation.legacyClientId.set(
+              lazy.ClientID.getCachedClientID()
+            );
+          }
+        }
         break;
+      }
       case "handlersvc-store-initialized":
         // Initialize PdfJs when running in-process and remote. This only
         // happens once since PdfJs registers global hooks. If the PdfJs
