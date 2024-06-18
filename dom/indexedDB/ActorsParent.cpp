@@ -16737,7 +16737,7 @@ void GetDatabasesOp::SendResults() {
 
   mResolver(mDatabaseMetadataArray);
 
-  DropDirectoryLock(mDirectoryLock);
+  SafeDropDirectoryLock(mDirectoryLock);
 
   CleanupMetadata();
 
