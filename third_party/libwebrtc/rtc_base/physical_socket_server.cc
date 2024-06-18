@@ -151,12 +151,6 @@ class ScopedSetTrue {
   bool* value_;
 };
 
-// Returns true if the experiement "WebRTC-SCM-Timestamp" is explicitly
-// disabled.
-bool IsScmTimeStampExperimentDisabled() {
-  return webrtc::field_trial::IsDisabled("WebRTC-SCM-Timestamp");
-}
-
 }  // namespace
 
 namespace rtc {
@@ -166,8 +160,7 @@ PhysicalSocket::PhysicalSocket(PhysicalSocketServer* ss, SOCKET s)
       s_(s),
       error_(0),
       state_((s == INVALID_SOCKET) ? CS_CLOSED : CS_CONNECTED),
-      resolver_(nullptr),
-      read_scm_timestamp_experiment_(!IsScmTimeStampExperimentDisabled()) {
+      resolver_(nullptr) {
   if (s_ != INVALID_SOCKET) {
     SetEnabledEvents(DE_READ | DE_WRITE);
 
@@ -526,14 +519,13 @@ int PhysicalSocket::DoReadFromSocket(void* buffer,
 
 #if defined(WEBRTC_POSIX)
   int received = 0;
-  if (read_scm_timestamp_experiment_) {
-    iovec iov = {.iov_base = buffer, .iov_len = length};
-    msghdr msg = {.msg_name = nullptr, .msg_namelen = 0, .msg_iov = &iov, .msg_iovlen = 1};
-    if (out_addr) {
-      out_addr->Clear();
-      msg.msg_name = addr;
-      msg.msg_namelen = addr_len;
-    }
+  iovec iov = {.iov_base = buffer, .iov_len = length};
+  msghdr msg = {.msg_name = nullptr, .msg_namelen = 0, .msg_iov = &iov, .msg_iovlen = 1};
+  if (out_addr) {
+    out_addr->Clear();
+    msg.msg_name = addr;
+    msg.msg_namelen = addr_len;
+  }
     // TODO(bugs.webrtc.org/15368): What size is needed? IPV6_TCLASS is supposed
     // to be an int. Why is a larger size needed?
     char control[CMSG_SPACE(sizeof(struct timeval) + 5 * sizeof(int))] = {};
@@ -570,19 +562,6 @@ int PhysicalSocket::DoReadFromSocket(void* buffer,
     if (out_addr) {
       SocketAddressFromSockAddrStorage(addr_storage, out_addr);
     }
-  } else {  // !read_scm_timestamp_experiment_
-    if (out_addr) {
-      received = ::recvfrom(s_, static_cast<char*>(buffer),
-                            static_cast<int>(length), 0, addr, &addr_len);
-      SocketAddressFromSockAddrStorage(addr_storage, out_addr);
-    } else {
-      received =
-          ::recv(s_, static_cast<char*>(buffer), static_cast<int>(length), 0);
-    }
-    if (timestamp) {
-      *timestamp = GetSocketRecvTimestamp(s_);
-    }
-  }
   return received;
 
 #else
@@ -855,13 +834,10 @@ bool SocketDispatcher::Initialize() {
   ioctlsocket(s_, FIONBIO, &argp);
 #elif defined(WEBRTC_POSIX)
   fcntl(s_, F_SETFL, fcntl(s_, F_GETFL, 0) | O_NONBLOCK);
-  if (!IsScmTimeStampExperimentDisabled()) {
-    int value = 1;
-    // Attempt to get receive packet timestamp from the socket.
-    if (::setsockopt(s_, SOL_SOCKET, SO_TIMESTAMP, &value, sizeof(value)) !=
-        0) {
-      RTC_DLOG(LS_ERROR) << "::setsockopt failed. errno: " << LAST_SYSTEM_ERROR;
-    }
+  int value = 1;
+  // Attempt to get receive packet timestamp from the socket.
+  if (::setsockopt(s_, SOL_SOCKET, SO_TIMESTAMP, &value, sizeof(value)) != 0) {
+    RTC_DLOG(LS_ERROR) << "::setsockopt failed. errno: " << LAST_SYSTEM_ERROR;
   }
 #endif
 
@@ -871,10 +847,11 @@ bool SocketDispatcher::Initialize() {
   // we attempt to write to such a socket, SIGPIPE will be raised, which by
   // default will terminate the process, which we don't want. By specifying
   // this socket option, SIGPIPE will be disabled for the socket.
-  int value = 1;
+  value = 1;
   if (::setsockopt(s_, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value)) != 0) {
     RTC_DLOG(LS_ERROR) << "::setsockopt failed. errno: " << LAST_SYSTEM_ERROR;
   }
+
 #endif
   ss_->Add(this);
   return true;
