@@ -2346,14 +2346,6 @@ PermissionManager::TestExactPermanentPermission(nsIPrincipal* aPrincipal,
                               false);
 }
 
-nsresult PermissionManager::LegacyTestPermissionFromURI(
-    nsIURI* aURI, const OriginAttributes* aOriginAttributes,
-    const nsACString& aType, uint32_t* aPermission) {
-  return CommonTestPermission(aURI, aOriginAttributes, -1, aType, aPermission,
-                              nsIPermissionManager::UNKNOWN_ACTION, false,
-                              false, true);
-}
-
 NS_IMETHODIMP
 PermissionManager::TestPermissionFromPrincipal(nsIPrincipal* aPrincipal,
                                                const nsACString& aType,
