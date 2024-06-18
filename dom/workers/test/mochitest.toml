@@ -120,6 +120,8 @@ support-files = [
   "!/dom/xhr/tests/subdir/relativeLoad_sub_worker2.js",
   "!/dom/xhr/tests/subdir/relativeLoad_sub_import.js",
   "!/dom/events/test/event_leak_utils.js",
+  "test_worker_in_background.js",
+  "test_worker_in_background_child.js",
 ]
 
 ["test_404.html"]
@@ -370,6 +372,8 @@ skip-if = [
   "http3",
   "http2",
 ]
+
+["test_worker_in_background.html"]
 
 ["test_worker_interfaces_secureContext.html"]
 scheme = "https"

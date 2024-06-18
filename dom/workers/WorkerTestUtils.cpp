@@ -18,4 +18,11 @@ uint32_t WorkerTestUtils::CurrentTimerNestingLevel(const GlobalObject& aGlobal,
   return worker->GetCurrentTimerNestingLevel();
 }
 
+bool WorkerTestUtils::IsRunningInBackground(const GlobalObject&,
+                                            ErrorResult& aErr) {
+  MOZ_ASSERT(!NS_IsMainThread());
+  WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
+  MOZ_ASSERT(worker);
+  return worker->IsRunningInBackground();
+}
 }  // namespace mozilla::dom
