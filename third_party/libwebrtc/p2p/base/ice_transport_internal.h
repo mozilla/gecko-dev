@@ -306,10 +306,14 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
 
   // Signal Exposed for backwards compatibility.
   sigslot::signal1<IceTransportInternal*> SignalGatheringState;
-  void SetGatheringStateCallback(
+  void AddGatheringStateCallback(
+      const void* removal_tag,
       absl::AnyInvocable<void(IceTransportInternal*)> callback) {
-    RTC_DCHECK(!gathering_state_callback_);
-    gathering_state_callback_ = std::move(callback);
+    gathering_state_callback_list_.AddReceiver(removal_tag,
+                                               std::move(callback));
+  }
+  void RemoveGatheringStateCallback(const void* removal_tag) {
+    gathering_state_callback_list_.RemoveReceivers(removal_tag);
   }
 
   // Handles sending and receiving of candidates.
@@ -393,7 +397,7 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
   webrtc::CallbackList<IceTransportInternal*, const StunDictionaryWriter&>
       dictionary_writer_synced_callback_list_;
 
-  absl::AnyInvocable<void(IceTransportInternal*)> gathering_state_callback_;
+  webrtc::CallbackList<IceTransportInternal*> gathering_state_callback_list_;
 
   absl::AnyInvocable<void(IceTransportInternal*, const IceCandidateErrorEvent&)>
       candidate_error_callback_;
@@ -407,9 +411,7 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
  private:
   // TODO(bugs.webrtc.org/11943): remove when removing Signal
   void SignalGatheringStateFired(IceTransportInternal* transport) {
-    if (gathering_state_callback_) {
-      gathering_state_callback_(transport);
-    }
+    gathering_state_callback_list_.Send(transport);
   }
 };
 
