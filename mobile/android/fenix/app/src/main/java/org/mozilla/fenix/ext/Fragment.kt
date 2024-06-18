@@ -170,12 +170,14 @@ fun Fragment.isTablet(): Boolean {
  * @param toolbarView [View] responsible for showing the AddressBar.
  * @param bottomToolbarContainerView The [ToolbarContainerView] hosting the NavBar.
  * @param reinitializeNavBar lambda for re-initializing the NavBar inside the host [Fragment].
+ * @param reinitializeMicrosurveyPrompt lambda for re-initializing the microsurvey prompt inside the host [Fragment].
  */
 fun Fragment.updateNavBarForConfigurationChange(
     parent: ViewGroup,
     toolbarView: View,
     bottomToolbarContainerView: ToolbarContainerView?,
     reinitializeNavBar: () -> Unit,
+    reinitializeMicrosurveyPrompt: () -> Unit,
 ) {
     if (requireContext().isLandscape()) {
         // In landscape mode we want to remove the navigation bar.
@@ -192,6 +194,7 @@ fun Fragment.updateNavBarForConfigurationChange(
         if (isToolbarAtBottom && !hasParent) {
             parent.addView(toolbarView)
         }
+        reinitializeMicrosurveyPrompt()
     } else {
         // Already having a bottomContainer after switching back to portrait mode will happen when address bar is
         // positioned at bottom and also as an edge case if configurationChange is called after onCreateView with the

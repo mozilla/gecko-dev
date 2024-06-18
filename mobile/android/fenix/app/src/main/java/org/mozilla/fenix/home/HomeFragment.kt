@@ -539,6 +539,7 @@ class HomeFragment : Fragment() {
                 toolbarView = binding.toolbarLayout,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
                 reinitializeNavBar = ::reinitializeNavBar,
+                reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt(requireContext()) },
             )
         }
 

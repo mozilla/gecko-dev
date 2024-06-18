@@ -2027,6 +2027,7 @@ abstract class BaseBrowserFragment :
                 toolbarView = browserToolbarView.view,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
                 reinitializeNavBar = ::reinitializeNavBar,
+                reinitializeMicrosurveyPrompt = ::reinitializeMicrosurveyPrompt,
             )
         }
 
