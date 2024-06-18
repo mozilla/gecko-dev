@@ -4730,23 +4730,23 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
   int32_t numRows = GetRowCount();
   int32_t numCols = GetColCount();
 
-  int32_t dStartX = aArea.StartCol();
-  int32_t dEndX = aArea.EndCol() - 1;
-  int32_t dStartY = aArea.StartRow();
-  int32_t dEndY = aArea.EndRow() - 1;
+  int32_t firstColIdx = aArea.StartCol();
+  int32_t lastColIdx = aArea.EndCol() - 1;
+  int32_t startRowIdx = aArea.StartRow();
+  int32_t endRowIdx = aArea.EndRow() - 1;
 
   // expand the damage area in each direction
-  if (dStartX > 0) {
-    dStartX--;
+  if (firstColIdx > 0) {
+    firstColIdx--;
   }
-  if (dEndX < (numCols - 1)) {
-    dEndX++;
+  if (lastColIdx < (numCols - 1)) {
+    lastColIdx++;
   }
-  if (dStartY > 0) {
-    dStartY--;
+  if (startRowIdx > 0) {
+    startRowIdx--;
   }
-  if (dEndY < (numRows - 1)) {
-    dEndY++;
+  if (endRowIdx < (numRows - 1)) {
+    endRowIdx++;
   }
   // Check the damage area so that there are no cells spanning in or out. If
   // there are any then make the damage area as big as the table, similarly to
@@ -4755,8 +4755,8 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
   // it may not be worth the effort in general, and it would need to be done in
   // the cell map as well.
   bool haveSpanner = false;
-  if ((dStartX > 0) || (dEndX < (numCols - 1)) || (dStartY > 0) ||
-      (dEndY < (numRows - 1))) {
+  if ((firstColIdx > 0) || (lastColIdx < (numCols - 1)) || (startRowIdx > 0) ||
+      (endRowIdx < (numRows - 1))) {
     nsTableCellMap* tableCellMap = GetCellMap();
     if (!tableCellMap) ABORT0();
     // Get the ordered row groups
@@ -4768,27 +4768,29 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
       nsTableRowGroupFrame* rgFrame = rowGroups[rgIdx];
       int32_t rgStartY = rgFrame->GetStartRowIndex();
       int32_t rgEndY = rgStartY + rgFrame->GetRowCount() - 1;
-      if (dEndY < rgStartY) break;
+      if (endRowIdx < rgStartY) break;
       cellMap = tableCellMap->GetMapFor(rgFrame, cellMap);
       if (!cellMap) ABORT0();
       // check for spanners from above and below
-      if ((dStartY > 0) && (dStartY >= rgStartY) && (dStartY <= rgEndY)) {
-        if (uint32_t(dStartY - rgStartY) >= cellMap->mRows.Length()) ABORT0();
+      if ((startRowIdx > 0) && (startRowIdx >= rgStartY) &&
+          (startRowIdx <= rgEndY)) {
+        if (uint32_t(startRowIdx - rgStartY) >= cellMap->mRows.Length())
+          ABORT0();
         const nsCellMap::CellDataArray& row =
-            cellMap->mRows[dStartY - rgStartY];
-        for (int32_t x = dStartX; x <= dEndX; x++) {
+            cellMap->mRows[startRowIdx - rgStartY];
+        for (int32_t x = firstColIdx; x <= lastColIdx; x++) {
           CellData* cellData = row.SafeElementAt(x);
           if (cellData && (cellData->IsRowSpan())) {
             haveSpanner = true;
             break;
           }
         }
-        if (dEndY < rgEndY) {
-          if (uint32_t(dEndY + 1 - rgStartY) >= cellMap->mRows.Length())
+        if (endRowIdx < rgEndY) {
+          if (uint32_t(endRowIdx + 1 - rgStartY) >= cellMap->mRows.Length())
             ABORT0();
           const nsCellMap::CellDataArray& row2 =
-              cellMap->mRows[dEndY + 1 - rgStartY];
-          for (int32_t x = dStartX; x <= dEndX; x++) {
+              cellMap->mRows[endRowIdx + 1 - rgStartY];
+          for (int32_t x = firstColIdx; x <= lastColIdx; x++) {
             CellData* cellData = row2.SafeElementAt(x);
             if (cellData && (cellData->IsRowSpan())) {
               haveSpanner = true;
@@ -4800,15 +4802,15 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
       // check for spanners on the left and right
       int32_t iterStartY;
       int32_t iterEndY;
-      if ((dStartY >= rgStartY) && (dStartY <= rgEndY)) {
+      if ((startRowIdx >= rgStartY) && (startRowIdx <= rgEndY)) {
         // the damage area starts in the row group
-        iterStartY = dStartY;
-        iterEndY = std::min(dEndY, rgEndY);
-      } else if ((dEndY >= rgStartY) && (dEndY <= rgEndY)) {
+        iterStartY = startRowIdx;
+        iterEndY = std::min(endRowIdx, rgEndY);
+      } else if ((endRowIdx >= rgStartY) && (endRowIdx <= rgEndY)) {
         // the damage area ends in the row group
         iterStartY = rgStartY;
-        iterEndY = dEndY;
-      } else if ((rgStartY >= dStartY) && (rgEndY <= dEndY)) {
+        iterEndY = endRowIdx;
+      } else if ((rgStartY >= startRowIdx) && (rgEndY <= endRowIdx)) {
         // the damage area contains the row group
         iterStartY = rgStartY;
         iterEndY = rgEndY;
@@ -4821,13 +4823,13 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
       for (int32_t y = iterStartY; y <= iterEndY; y++) {
         if (uint32_t(y - rgStartY) >= cellMap->mRows.Length()) ABORT0();
         const nsCellMap::CellDataArray& row = cellMap->mRows[y - rgStartY];
-        CellData* cellData = row.SafeElementAt(dStartX);
+        CellData* cellData = row.SafeElementAt(firstColIdx);
         if (cellData && (cellData->IsColSpan())) {
           haveSpanner = true;
           break;
         }
-        if (dEndX < (numCols - 1)) {
-          cellData = row.SafeElementAt(dEndX + 1);
+        if (lastColIdx < (numCols - 1)) {
+          cellData = row.SafeElementAt(lastColIdx + 1);
           if (cellData && (cellData->IsColSpan())) {
             haveSpanner = true;
             break;
@@ -4836,17 +4838,26 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
       }
     }
   }
-  if (haveSpanner) {
-    // make the damage area the whole table
+
+  // If the damage area includes the edge of the table, we have to expand
+  // the damage area across that whole edge. This is because table-edge
+  // borders take the maximum border width among all cells on that edge.
+  // i.e. If the first row is damaged, then we consider all the cols to
+  // be damaged, and vice versa.
+  if (haveSpanner || startRowIdx == 0 || endRowIdx == numRows - 1) {
     aArea.StartCol() = 0;
-    aArea.StartRow() = 0;
     aArea.ColCount() = numCols;
+  } else {
+    aArea.StartCol() = firstColIdx;
+    aArea.ColCount() = 1 + lastColIdx - firstColIdx;
+  }
+
+  if (haveSpanner || firstColIdx == 0 || lastColIdx == numCols - 1) {
+    aArea.StartRow() = 0;
     aArea.RowCount() = numRows;
   } else {
-    aArea.StartCol() = dStartX;
-    aArea.StartRow() = dStartY;
-    aArea.ColCount() = 1 + dEndX - dStartX;
-    aArea.RowCount() = 1 + dEndY - dStartY;
+    aArea.StartRow() = startRowIdx;
+    aArea.RowCount() = 1 + endRowIdx - startRowIdx;
   }
 }
 
