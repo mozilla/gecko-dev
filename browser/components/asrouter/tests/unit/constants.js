@@ -42,11 +42,6 @@ export const FAKE_LOCAL_MESSAGES = [
     template: "fancy_template",
     content: { text: "Foo" },
   },
-  {
-    id: "experimentL10n",
-    template: "fancy_template",
-    content: { text: { $l10n: { text: "UniqueText" } } },
-  },
 ];
 export const FAKE_LOCAL_PROVIDER = {
   id: "onboarding",
