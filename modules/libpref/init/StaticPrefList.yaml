@@ -10765,6 +10765,17 @@
     value: false
     mirror: always
 
+# Enable origin filter for MFCDM support
+# 0 : disabled, 1 : enabled allowed list, 2 : enabled blocked list
+-   name: media.eme.mfcdm.origin-filter.enabled
+    type: RelaxedAtomicUint32
+#if defined(NIGHTLY_BUILD)
+    value: 0
+#else
+    value: 1
+#endif
+    mirror: always
+
 #endif  # MOZ_WMF
 
 - name: media.decoder-doctor.testing

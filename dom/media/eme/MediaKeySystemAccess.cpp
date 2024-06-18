@@ -1053,6 +1053,14 @@ MediaKeySystemAccess::GetSupportedConfig(MediaKeySystemAccessRequest* aRequest,
       CheckIfHarewareDRMConfigExists(aRequest->mConfigs) ||
       DoesKeySystemSupportHardwareDecryption(aRequest->mKeySystem);
 
+#ifdef MOZ_WMF_CDM
+  if (ShouldBlockMFCDMSupportByOrigin(aRequest->mKeySystem, aIsPrivateBrowsing,
+                                      aDocument)) {
+    return KeySystemConfig::KeySystemConfigPromise::CreateAndReject(false,
+                                                                    __func__);
+  }
+#endif
+
   RefPtr<KeySystemConfig::KeySystemConfigPromise::Private> promise =
       new KeySystemConfig::KeySystemConfigPromise::Private(__func__);
   GetSupportedKeySystemConfigs(aRequest->mKeySystem,
@@ -1079,6 +1087,87 @@ MediaKeySystemAccess::GetSupportedConfig(MediaKeySystemAccessRequest* aRequest,
              });
   return promise.forget();
 }
+
+#ifdef MOZ_WMF_CDM
+/*static */
+bool MediaKeySystemAccess::ShouldBlockMFCDMSupportByOrigin(
+    const nsString& aKeySystem, bool aIsHardwareDecryptionRequest,
+    const Document* aDocument) {
+  // 0 : disabled, 1 : enabled allowed list, 2 : enabled blocked list
+  enum Filer : uint32_t {
+    eDisable = 0,
+    eAllowedListEnabled = 1,
+    eBlockedListEnabled = 2,
+  };
+  const auto prefValue = StaticPrefs::media_eme_mfcdm_origin_filter_enabled();
+  if (prefValue == Filer::eDisable) {
+    return false;
+  }
+
+  // If the requested key system is not the one which MFCDM supports, then we
+  // don't need do anything.
+  const bool isMFCDMKeySystem =
+      IsPlayReadyKeySystemAndSupported(aKeySystem) ||
+      IsWidevineExperimentKeySystemAndSupported(aKeySystem) ||
+      (IsWidevineKeySystem(aKeySystem) && aIsHardwareDecryptionRequest) ||
+      IsWMFClearKeySystemAndSupported(aKeySystem);
+  if (!isMFCDMKeySystem) {
+    return false;
+  }
+
+  // Check if origin is allowed to use MFCDM.
+  nsCOMPtr<nsIScriptObjectPrincipal> sop =
+      do_QueryInterface(aDocument->GetInnerWindow());
+  if (!sop) {
+    return false;
+  }
+  auto* principal = sop->GetPrincipal();
+  nsAutoCString origin;
+  nsresult rv = principal->GetOrigin(origin);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  if (prefValue == Filer::eAllowedListEnabled) {
+    static nsTArray<nsCString> kAllowedOrigins({
+        "https://www.netflix.com"_ns,
+    });
+    for (const auto& allowedOrigin : kAllowedOrigins) {
+      if (origin.Equals(allowedOrigin)) {
+        EME_LOG(
+            "MediaKeySystemAccess::ShouldBlockMFCDMSupportByOrigin, origin "
+            "(%s) is ALLOWED to use MFCDM",
+            origin.get());
+        return false;
+      }
+    }
+    EME_LOG(
+        "MediaKeySystemAccess::ShouldBlockMFCDMSupportByOrigin, origin (%s) is "
+        "not allowed to use MFCDM",
+        origin.get());
+    return true;
+  }
+
+  MOZ_ASSERT(prefValue == Filer::eBlockedListEnabled);
+  static nsTArray<nsCString> kBlockedOrigins({
+      "https://on.orf.at"_ns,
+  });
+  for (const auto& blockedOrigin : kBlockedOrigins) {
+    if (origin.Equals(blockedOrigin)) {
+      EME_LOG(
+          "MediaKeySystemAccess::ShouldBlockMFCDMSupportByOrigin, origin (%s) "
+          "is BLOCKED to use MFCDM",
+          origin.get());
+      return true;
+    }
+  }
+  EME_LOG(
+      "MediaKeySystemAccess::ShouldBlockMFCDMSupportByOrigin, origin (%s) "
+      "is allowed to use MFCDM",
+      origin.get());
+  return false;
+}
+#endif
 
 /* static */
 void MediaKeySystemAccess::NotifyObservers(nsPIDOMWindowInner* aWindow,
