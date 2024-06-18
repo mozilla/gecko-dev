@@ -304,9 +304,6 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
     return absl::nullopt;
   }
 
-  // Signal Exposed for backwards compatibility.
-  sigslot::signal1<IceTransportInternal*> SignalGatheringState;
-  // Note: These calls must not be inlined in order to avoid linking issues.
   void AddGatheringStateCallback(
       const void* removal_tag,
       absl::AnyInvocable<void(IceTransportInternal*)> callback);
@@ -384,7 +381,9 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
   }
 
  protected:
-  void SendGatheringStateEvent() { SignalGatheringState(this); }
+  void SendGatheringStateEvent() {
+    gathering_state_callback_list_.Send(this);
+  }
 
   webrtc::CallbackList<IceTransportInternal*,
                        const StunDictionaryView&,
@@ -403,12 +402,6 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
 
   absl::AnyInvocable<void(const cricket::CandidatePairChangeEvent&)>
       candidate_pair_change_callback_;
-
- private:
-  // TODO(bugs.webrtc.org/11943): remove when removing Signal
-  void SignalGatheringStateFired(IceTransportInternal* transport) {
-    gathering_state_callback_list_.Send(transport);
-  }
 };
 
 }  // namespace cricket
