@@ -904,8 +904,8 @@ WindowRenderer* nsCocoaWindow::GetWindowRenderer() {
 TransparencyMode nsCocoaWindow::GetTransparencyMode() {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
-  return !mWindow || mWindow.isOpaque ? TransparencyMode::Opaque
-                                      : TransparencyMode::Transparent;
+  return mWindow.isOpaque ? TransparencyMode::Opaque
+                          : TransparencyMode::Transparent;
 
   NS_OBJC_END_TRY_BLOCK_RETURN(TransparencyMode::Opaque);
 }
