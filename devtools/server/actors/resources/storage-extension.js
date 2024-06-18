@@ -4,10 +4,6 @@
 
 "use strict";
 
-const {
-  TYPES: { EXTENSION_STORAGE },
-} = require("resource://devtools/server/actors/resources/index.js");
-
 const ParentProcessStorage = require("resource://devtools/server/actors/resources/utils/parent-process-storage.js");
 const {
   ExtensionStorageActor,
@@ -15,7 +11,7 @@ const {
 
 class ExtensionStorageWatcher extends ParentProcessStorage {
   constructor() {
-    super(ExtensionStorageActor, "extensionStorage", EXTENSION_STORAGE);
+    super(ExtensionStorageActor, "extensionStorage");
   }
   async watch(watcherActor, { onAvailable }) {
     if (watcherActor.sessionContext.type != "webextension") {

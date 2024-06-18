@@ -90,7 +90,7 @@ add_task(async () => {
   is(topTarget.url, TEST_URL);
 
   // Similarly to watchTarget, the next call to watchResources will emit new resources right away as well as later.
-  const onConsoleMessages = client.once("resource-available-form");
+  const onConsoleMessages = client.once("resources-available-array");
 
   // If you want to observe anything, you have to use Watcher Actor's watchrResources API.
   // The list of all available resources is here:
@@ -119,9 +119,22 @@ add_task(async () => {
   });
 
   // Wait for the related console-message resource
-  const { resources } = await onConsoleMessages;
+  const { type, array } = await onConsoleMessages;
 
-  // Note that resource-available-form comes with a "resources" attribute which is an array of resources
+  // The resources are encapsulated into a RDP event packet, with an "array" attribute
+  is(type, "resources-available-array");
+  is(
+    array.length,
+    1,
+    "The top array has only one array, as only one resourceType is notified"
+  );
+  // This array attribute is an array of arrays with two elements each.
+  // These two elements are a resourceType string and a resources array.
+  is(array[0].length, 2);
+  const [resourceType, resources] = array[0];
+  is(resourceType, "console-message");
+  is(resources.length, 1, "Received only one console-message resource");
+  // Note that resources-available-array comes with a "array" attribute which is an array of resources
   // which may contain various resource types.
   is(resources[0].message.arguments[0], "42");
 

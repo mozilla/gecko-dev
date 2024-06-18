@@ -303,7 +303,6 @@ class NetworkEventWatcher {
       browsingContextID: resource.browsingContextID,
       innerWindowId: resource.innerWindowId,
       resourceId: resource.resourceId,
-      resourceType: resource.resourceType,
       isBlocked,
       isFileRequest: resource.isFileRequest,
       receivedUpdates: [],
@@ -398,7 +397,6 @@ class NetworkEventWatcher {
   _emitUpdate(networkEvent) {
     this.onNetworkEventUpdated([
       {
-        resourceType: networkEvent.resourceType,
         resourceId: networkEvent.resourceId,
         resourceUpdates: networkEvent.resourceUpdates,
         browsingContextID: networkEvent.browsingContextID,

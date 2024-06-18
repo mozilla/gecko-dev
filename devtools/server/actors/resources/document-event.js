@@ -5,9 +5,6 @@
 "use strict";
 
 const {
-  TYPES: { DOCUMENT_EVENT },
-} = require("resource://devtools/server/actors/resources/index.js");
-const {
   DocumentEventsListener,
 } = require("resource://devtools/server/actors/webconsole/listeners/document-events.js");
 
@@ -50,7 +47,6 @@ class DocumentEventWatcher {
       }
       onAvailable([
         {
-          resourceType: DOCUMENT_EVENT,
           name,
           time,
           isFrameSwitching,

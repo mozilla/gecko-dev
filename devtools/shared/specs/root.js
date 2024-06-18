@@ -122,6 +122,8 @@ const rootSpecPrototype = {
       type: "processListChanged",
     },
 
+    // @backward-compat { version 129 } Once Fx129 is release, resource-*-form event won't be used anymore,
+    //                                  only the resources-*-array will be still used.
     "resource-available-form": {
       type: "resource-available-form",
       resources: Arg(0, "array:json"),
@@ -129,6 +131,15 @@ const rootSpecPrototype = {
     "resource-destroyed-form": {
       type: "resource-destroyed-form",
       resources: Arg(0, "array:json"),
+    },
+
+    "resources-available-array": {
+      type: "resources-available-array",
+      array: Arg(0, "array:json"),
+    },
+    "resources-destroyed-array": {
+      type: "resources-destroyed-array",
+      array: Arg(0, "array:json"),
     },
   },
 };

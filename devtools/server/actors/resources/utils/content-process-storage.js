@@ -39,10 +39,9 @@ function getFilteredStorageEvents(updates, storageType) {
 }
 
 class ContentProcessStorage {
-  constructor(ActorConstructor, storageKey, storageType) {
+  constructor(ActorConstructor, storageKey) {
     this.ActorConstructor = ActorConstructor;
     this.storageKey = storageKey;
-    this.storageType = storageType;
 
     this.onStoresUpdate = this.onStoresUpdate.bind(this);
     this.onStoresCleared = this.onStoresCleared.bind(this);
@@ -58,7 +57,7 @@ class ContentProcessStorage {
 
     // We have to manage the actor manually, because ResourceCommand doesn't
     // use the protocol.js specification.
-    // resource-available-form is typed as "json"
+    // resources-available-array is typed as "json"
     // So that we have to manually handle stuff that would normally be
     // automagically done by procotol.js
     // 1) Manage the actor in order to have an actorID on it
@@ -69,10 +68,9 @@ class ContentProcessStorage {
     // NOTE: this is hoisted, so the `update` method above may use it.
     const storage = form;
 
-    // All resources should have a resourceType, resourceId and resourceKey
+    // All resources should have a resourceId and resourceKey
     // attributes, so available/updated/destroyed callbacks work properly.
-    storage.resourceType = this.storageType;
-    storage.resourceId = this.storageType;
+    storage.resourceId = this.storageKey;
     storage.resourceKey = this.storageKey;
 
     onAvailable([storage]);

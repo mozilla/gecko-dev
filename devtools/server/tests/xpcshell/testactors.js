@@ -266,7 +266,7 @@ class TestTargetActor extends BaseTargetActor {
     delete this._extraActors[name];
   }
 
-  notifyResources(updateType, resources) {
-    this.emit(`resource-${updateType}-form`, resources);
+  notifyResources(updateType, resourceType, resources) {
+    this.emit(`resources-${updateType}-array`, [[resourceType, resources]]);
   }
 }

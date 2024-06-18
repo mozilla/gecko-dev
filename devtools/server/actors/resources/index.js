@@ -342,15 +342,18 @@ async function watchResources(rootOrWatcherOrTargetActor, resourceTypes) {
       watcher.watch(rootOrWatcherOrTargetActor, {
         onAvailable: rootOrWatcherOrTargetActor.notifyResources.bind(
           rootOrWatcherOrTargetActor,
-          "available"
+          "available",
+          resourceType
         ),
         onUpdated: rootOrWatcherOrTargetActor.notifyResources.bind(
           rootOrWatcherOrTargetActor,
-          "updated"
+          "updated",
+          resourceType
         ),
         onDestroyed: rootOrWatcherOrTargetActor.notifyResources.bind(
           rootOrWatcherOrTargetActor,
-          "destroyed"
+          "destroyed",
+          resourceType
         ),
       })
     );

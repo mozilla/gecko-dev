@@ -213,6 +213,8 @@ class ResourceCommand {
       this._listenerRegistered = true;
       // Resources watched from the parent process will be emitted on the Watcher Actor.
       // So that we also have to listen for this event on it, in addition to all targets.
+      // @backward-compat { version 129 } Once Fx129 is release, resource-*-form event won't be used anymore,
+      //                                  only the resources-*-array will be still used.
       this.watcherFront.on(
         "resource-available-form",
         this._onResourceAvailable.bind(this, {
@@ -226,6 +228,24 @@ class ResourceCommand {
       this.watcherFront.on(
         "resource-destroyed-form",
         this._onResourceDestroyed.bind(this, {
+          watcherFront: this.watcherFront,
+        })
+      );
+      this.watcherFront.on(
+        "resources-available-array",
+        this._onResourceAvailableArray.bind(this, {
+          watcherFront: this.watcherFront,
+        })
+      );
+      this.watcherFront.on(
+        "resources-updated-array",
+        this._onResourceUpdatedArray.bind(this, {
+          watcherFront: this.watcherFront,
+        })
+      );
+      this.watcherFront.on(
+        "resources-destroyed-array",
+        this._onResourceDestroyedArray.bind(this, {
           watcherFront: this.watcherFront,
         })
       );
@@ -535,12 +555,27 @@ class ResourceCommand {
       "resource-destroyed-form",
       this._onResourceDestroyed.bind(this, { targetFront })
     );
+    const offResourceAvailableArray = targetFront.on(
+      "resources-available-array",
+      this._onResourceAvailableArray.bind(this, { targetFront })
+    );
+    const offResourceUpdatedArray = targetFront.on(
+      "resources-updated-array",
+      this._onResourceUpdatedArray.bind(this, { targetFront })
+    );
+    const offResourceDestroyedArray = targetFront.on(
+      "resources-destroyed-array",
+      this._onResourceDestroyedArray.bind(this, { targetFront })
+    );
 
     const offList = this._offTargetFrontListeners.get(targetFront) || [];
     offList.push(
       offResourceAvailable,
       offResourceUpdated,
-      offResourceDestroyed
+      offResourceDestroyed,
+      offResourceAvailableArray,
+      offResourceUpdatedArray,
+      offResourceDestroyedArray
     );
 
     if (isTargetSwitching) {
@@ -641,6 +676,38 @@ class ResourceCommand {
         }
       }
     }
+  }
+
+  async _onResourceAvailableArray({ targetFront, watcherFront }, array) {
+    for (const [resourceType, resources] of array) {
+      for (const resource of resources) {
+        if (!("resourceType" in resource)) {
+          resource.resourceType = resourceType;
+        }
+      }
+      await this._onResourceAvailable({ targetFront, watcherFront }, resources);
+    }
+  }
+
+  async _onResourceUpdatedArray(context, array) {
+    for (const [resourceType, resources] of array) {
+      for (const resource of resources) {
+        if (!("resourceType" in resource)) {
+          resource.resourceType = resourceType;
+        }
+      }
+      await this._onResourceUpdated(context, resources);
+    }
+  }
+
+  async _onResourceDestroyedArray(context, array) {
+    const resources = [];
+    for (const [resourceType, resourceIds] of array) {
+      for (const resourceId of resourceIds) {
+        resources.push({ resourceType, resourceId });
+      }
+    }
+    await this._onResourceDestroyed(context, resources);
   }
 
   /**

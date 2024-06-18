@@ -4,9 +4,6 @@
 
 "use strict";
 
-const {
-  TYPES: { CONSOLE_MESSAGE },
-} = require("devtools/server/actors/resources/index");
 const Targets = require("devtools/server/actors/targets/index");
 
 const consoleAPIListenerModule = isWorker
@@ -49,7 +46,6 @@ class ConsoleMessageWatcher {
     const onConsoleAPICall = message => {
       onAvailable([
         {
-          resourceType: CONSOLE_MESSAGE,
           message: prepareConsoleMessageForRemote(targetActor, message),
         },
       ]);
@@ -105,7 +101,6 @@ class ConsoleMessageWatcher {
         continue;
       }
       messages.push({
-        resourceType: CONSOLE_MESSAGE,
         message: prepareConsoleMessageForRemote(targetActor, message),
       });
     }
@@ -143,7 +138,6 @@ class ConsoleMessageWatcher {
         }
 
         return {
-          resourceType: CONSOLE_MESSAGE,
           message: prepareConsoleMessageForRemote(this.targetActor, message),
         };
       })

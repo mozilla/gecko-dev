@@ -7,10 +7,6 @@
 const nsIConsoleListenerWatcher = require("resource://devtools/server/actors/resources/utils/nsi-console-listener-watcher.js");
 
 const {
-  TYPES: { PLATFORM_MESSAGE },
-} = require("resource://devtools/server/actors/resources/index.js");
-
-const {
   createStringGrip,
 } = require("resource://devtools/server/actors/object/utils.js");
 
@@ -53,7 +49,6 @@ class PlatformMessageWatcher extends nsIConsoleListenerWatcher {
     return {
       message: createStringGrip(targetActor, message.message),
       timeStamp: message.microSecondTimeStamp / 1000,
-      resourceType: PLATFORM_MESSAGE,
     };
   }
 }

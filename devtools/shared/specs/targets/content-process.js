@@ -37,6 +37,8 @@ const contentProcessTargetSpec = generateActorSpec({
     workerListChanged: {
       type: "workerListChanged",
     },
+    // @backward-compat { version 129 } Once Fx129 is release, resource-*-form event won't be used anymore,
+    //                                  only the resources-*-array will be still used.
     "resource-available-form": {
       type: "resource-available-form",
       resources: Arg(0, "array:json"),
@@ -48,6 +50,18 @@ const contentProcessTargetSpec = generateActorSpec({
     "resource-updated-form": {
       type: "resource-updated-form",
       resources: Arg(0, "array:json"),
+    },
+    "resources-available-array": {
+      type: "resources-available-array",
+      array: Arg(0, "array:json"),
+    },
+    "resources-destroyed-array": {
+      type: "resources-destroyed-array",
+      array: Arg(0, "array:json"),
+    },
+    "resources-updated-array": {
+      type: "resources-updated-array",
+      array: Arg(0, "array:json"),
     },
   },
 });

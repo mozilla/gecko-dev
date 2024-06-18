@@ -52,10 +52,10 @@ Target Actors are exposing many other important actors, like Inspector, WebConso
 
 Once you started watching for some target types, you can use `WatcherActor.watchResources(Array<String> resourceTypes)` method to be notified about resources for each active Target/Debuggable context.
 This method will only resolve after having been notified of all the existing resources.
-Resources aren't returned by the watchResources method. Instead they are notified to the client via `resource-available-form` RDP events emitted, either on the Watcher Actor or one of the many Target Actors.
+Resources aren't returned by the watchResources method. Instead they are notified to the client via `resources-available-array` RDP events emitted, either on the Watcher Actor or one of the many Target Actors.
 Some resources may also support:
- * a `resource-updated-form` RDP event, when any resource gets updated (like stylesheets or network events),
- * a `resource-destroyed-form` RDP event, when any resource gets destroyed (like stylesheets).
+ * a `resources-updated-array` RDP event, when any resource gets updated (like stylesheets or network events),
+ * a `resources-destroyed-array` RDP event, when any resource gets destroyed (like stylesheets).
 
 The resources can be:
 

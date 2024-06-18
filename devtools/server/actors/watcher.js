@@ -65,7 +65,7 @@ exports.WatcherActor = class WatcherActor extends Actor {
    *   target-available-form/target-destroyed-form events.
    * - observe resources related to the observed targets.
    *   This is done via watchResources/unwatchResources methods, and
-   *   resource-available-form/resource-updated-form/resource-destroyed-form events.
+   *   resources-available-array/resources-updated-array/resources-destroyed-array events.
    *   Note that these events are also emited on both the watcher actor,
    *   for resources observed from the parent process, as well as on the
    *   target actors, when the resources are observed from the target's process or thread.
@@ -463,11 +463,13 @@ exports.WatcherActor = class WatcherActor extends Actor {
    *
    * @param String updateType
    *        Can be "available", "updated" or "destroyed"
+   * @param String resourceType
+   *        The type of resources to be notified about.
    * @param Array<json> resources
    *        List of all resource's form. A resource is a JSON object piped over to the client.
    *        It can contain actor IDs, actor forms, to be manually marshalled by the client.
    */
-  notifyResources(updateType, resources) {
+  notifyResources(updateType, resourceType, resources) {
     if (resources.length === 0) {
       // Don't try to emit if the resources array is empty.
       return;
@@ -477,7 +479,7 @@ exports.WatcherActor = class WatcherActor extends Actor {
       this._overrideResourceBrowsingContextForWebExtension(resources);
     }
 
-    this.emit(`resource-${updateType}-form`, resources);
+    this.emit(`resources-${updateType}-array`, [[resourceType, resources]]);
   }
 
   /**
@@ -541,7 +543,7 @@ exports.WatcherActor = class WatcherActor extends Actor {
   /**
    * Start watching for a list of resource types.
    * This should only resolve once all "already existing" resources of these types
-   * are notified to the client via resource-available-form event on related target actors.
+   * are notified to the client via resources-available-array event on related target actors.
    *
    * @param {Array<string>} resourceTypes
    *        List of all types to listen to.

@@ -4,10 +4,6 @@
 
 "use strict";
 
-const {
-  TYPES: { LOCAL_STORAGE },
-} = require("resource://devtools/server/actors/resources/index.js");
-
 const ContentProcessStorage = require("resource://devtools/server/actors/resources/utils/content-process-storage.js");
 const {
   LocalStorageActor,
@@ -15,7 +11,7 @@ const {
 
 class LocalStorageWatcher extends ContentProcessStorage {
   constructor() {
-    super(LocalStorageActor, "localStorage", LOCAL_STORAGE);
+    super(LocalStorageActor, "localStorage");
   }
 }
 

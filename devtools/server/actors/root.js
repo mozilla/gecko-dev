@@ -575,13 +575,15 @@ class RootActor extends Actor {
    *
    * @param String updateType
    *        Can be "available", "updated" or "destroyed"
+   * @param String resourceType
+   *        The type of resources to be notified about.
    * @param Array<json> resources
    *        List of all resources. A resource is a JSON object piped over to the client.
    *        It can contain actor IDs.
    *        It can also be or contain an actor form, to be manually marshalled by the client.
    *        (i.e. the frontend would have to manually instantiate a Front for the given actor form)
    */
-  notifyResources(updateType, resources) {
+  notifyResources(updateType, resourceType, resources) {
     if (resources.length === 0) {
       // Don't try to emit if the resources array is empty.
       return;
@@ -589,13 +591,13 @@ class RootActor extends Actor {
 
     switch (updateType) {
       case "available":
-        this.emit(`resource-available-form`, resources);
+        this.emit(`resources-available-array`, [[resourceType, resources]]);
         break;
       case "updated":
-        this.emit(`resource-updated-form`, resources);
+        this.emit(`resources-updated-array`, [[resourceType, resources]]);
         break;
       case "destroyed":
-        this.emit(`resource-destroyed-form`, resources);
+        this.emit(`resources-destroyed-array`, [[resourceType, resources]]);
         break;
       default:
         throw new Error("Unsupported update type: " + updateType);

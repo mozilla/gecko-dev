@@ -4,9 +4,6 @@
 
 "use strict";
 
-const {
-  TYPES: { CSS_CHANGE },
-} = require("resource://devtools/server/actors/resources/index.js");
 const TrackChangeEmitter = require("resource://devtools/server/actors/utils/track-change-emitter.js");
 
 /**
@@ -30,7 +27,6 @@ class CSSChangeWatcher {
   }
 
   onTrackChange(change) {
-    change.resourceType = CSS_CHANGE;
     this.onAvailable([change]);
   }
 

@@ -4,10 +4,6 @@
 
 "use strict";
 
-const {
-  TYPES: { INDEXED_DB },
-} = require("resource://devtools/server/actors/resources/index.js");
-
 const ParentProcessStorage = require("resource://devtools/server/actors/resources/utils/parent-process-storage.js");
 const {
   IndexedDBStorageActor,
@@ -15,7 +11,7 @@ const {
 
 class IndexedDBWatcher extends ParentProcessStorage {
   constructor() {
-    super(IndexedDBStorageActor, "indexedDB", INDEXED_DB);
+    super(IndexedDBStorageActor, "indexedDB");
   }
 }
 

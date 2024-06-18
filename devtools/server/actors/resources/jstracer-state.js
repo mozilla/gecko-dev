@@ -4,10 +4,6 @@
 
 "use strict";
 
-const {
-  TYPES: { JSTRACER_STATE },
-} = require("resource://devtools/server/actors/resources/index.js");
-
 const { JSTracer } = ChromeUtils.importESModule(
   "resource://devtools/server/tracer/tracer.sys.mjs",
   { global: "contextual" }
@@ -76,7 +72,6 @@ class TracingStateWatcher {
 
     this.onAvailable([
       {
-        resourceType: JSTRACER_STATE,
         enabled,
         logMethod,
         profile:

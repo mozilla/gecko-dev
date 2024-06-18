@@ -4,10 +4,6 @@
 
 "use strict";
 
-const {
-  TYPES: { STYLESHEET },
-} = require("resource://devtools/server/actors/resources/index.js");
-
 loader.lazyRequireGetter(
   this,
   "CssLogic",
@@ -48,16 +44,34 @@ class StyleSheetWatcher {
     });
   }
 
-  _onApplicableStylesheetAdded(styleSheetData) {
-    return this._notifyResourcesAvailable([styleSheetData]);
+  async _onApplicableStylesheetAdded(styleSheetData) {
+    const { resourceId, styleSheet, creationData } = styleSheetData;
+    const resource = await this._toResource(styleSheet, {
+      resourceId,
+      isCreatedByDevTools: creationData?.isCreatedByDevTools,
+      fileName: creationData?.fileName,
+    });
+
+    this._onAvailable([resource]);
   }
 
   _onStylesheetUpdated({ resourceId, updateKind, updates = {} }) {
-    this._notifyResourceUpdated(resourceId, updateKind, updates);
+    const { resourceUpdates, nestedResourceUpdates, event } = updates;
+    this._onUpdated([
+      {
+        browsingContextID: this._targetActor.browsingContextID,
+        innerWindowId: this._targetActor.innerWindowId,
+        resourceId,
+        updateType: updateKind,
+        resourceUpdates,
+        nestedResourceUpdates,
+        event,
+      },
+    ]);
   }
 
   _onStylesheetRemoved({ resourceId }) {
-    return this._notifyResourcesDestroyed(resourceId);
+    return this._onDestroyed([resourceId]);
   }
 
   async _toResource(
@@ -69,7 +83,6 @@ class StyleSheetWatcher {
 
     const resource = {
       resourceId,
-      resourceType: STYLESHEET,
       disabled: styleSheet.disabled,
       constructed: styleSheet.constructed,
       fileName,
@@ -87,50 +100,6 @@ class StyleSheetWatcher {
     };
 
     return resource;
-  }
-
-  async _notifyResourcesAvailable(styleSheets) {
-    const resources = await Promise.all(
-      styleSheets.map(async ({ resourceId, styleSheet, creationData }) => {
-        const resource = await this._toResource(styleSheet, {
-          resourceId,
-          isCreatedByDevTools: creationData?.isCreatedByDevTools,
-          fileName: creationData?.fileName,
-        });
-
-        return resource;
-      })
-    );
-
-    this._onAvailable(resources);
-  }
-
-  _notifyResourceUpdated(
-    resourceId,
-    updateType,
-    { resourceUpdates, nestedResourceUpdates, event }
-  ) {
-    this._onUpdated([
-      {
-        browsingContextID: this._targetActor.browsingContextID,
-        innerWindowId: this._targetActor.innerWindowId,
-        resourceType: STYLESHEET,
-        resourceId,
-        updateType,
-        resourceUpdates,
-        nestedResourceUpdates,
-        event,
-      },
-    ]);
-  }
-
-  _notifyResourcesDestroyed(resourceId) {
-    this._onDestroyed([
-      {
-        resourceType: STYLESHEET,
-        resourceId,
-      },
-    ]);
   }
 
   destroy() {

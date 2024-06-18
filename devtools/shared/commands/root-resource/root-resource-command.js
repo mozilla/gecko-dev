@@ -34,6 +34,8 @@ class RootResourceCommand {
 
     this._onResourceAvailable = this._onResourceAvailable.bind(this);
     this._onResourceDestroyed = this._onResourceDestroyed.bind(this);
+    this._onResourceAvailableArray = this._onResourceAvailableArray.bind(this);
+    this._onResourceDestroyedArray = this._onResourceDestroyedArray.bind(this);
 
     this._watchers = [];
 
@@ -88,8 +90,18 @@ class RootResourceCommand {
 
     if (!this._listenerRegistered) {
       this._listenerRegistered = true;
+      // @backward-compat { version 129 } Once Fx129 is release, resource-*-form event won't be used anymore,
+      //                                  only the resources-*-array will be still used.
       this.rootFront.on("resource-available-form", this._onResourceAvailable);
       this.rootFront.on("resource-destroyed-form", this._onResourceDestroyed);
+      this.rootFront.on(
+        "resources-available-array",
+        this._onResourceAvailableArray
+      );
+      this.rootFront.on(
+        "resources-destroyed-array",
+        this._onResourceDestroyedArray
+      );
     }
 
     const promises = [];
@@ -198,7 +210,29 @@ class RootResourceCommand {
     return { onResource: promise };
   }
 
-  async _onResourceAvailable(resources) {
+  async _onResourceAvailableArray(array) {
+    for (const [resourceType, resources] of array) {
+      for (const resource of resources) {
+        if (!("resourceType" in resource)) {
+          resource.resourceType = resourceType;
+        }
+      }
+      this._onResourceAvailable(resources);
+    }
+  }
+
+  async _onResourceDestroyedArray(context, array) {
+    for (const [resourceType, resources] of array) {
+      for (const resource of resources) {
+        if (!("resourceType" in resource)) {
+          resource.resourceType = resourceType;
+        }
+      }
+      this._onResourceDestroyed(resources);
+    }
+  }
+
+  _onResourceAvailable(resources) {
     for (const resource of resources) {
       const { resourceType } = resource;
 
@@ -213,7 +247,7 @@ class RootResourceCommand {
     this._throttledNotifyWatchers();
   }
 
-  async _onResourceDestroyed(resources) {
+  _onResourceDestroyed(resources) {
     for (const resource of resources) {
       const { resourceType, resourceId } = resource;
 

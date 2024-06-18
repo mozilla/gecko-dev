@@ -147,7 +147,7 @@ class ParentProcessStorage {
 
     // We have to manage the actor manually, because ResourceCommand doesn't
     // use the protocol.js specification.
-    // resource-available-form is typed as "json"
+    // resources-available-array is typed as "json"
     // So that we have to manually handle stuff that would normally be
     // automagically done by procotol.js
     // 1) Manage the actor in order to have an actorID on it
@@ -155,10 +155,9 @@ class ParentProcessStorage {
     // 2) Convert to JSON "form"
     const storage = this.actor.form();
 
-    // All resources should have a resourceType, resourceId and resourceKey
+    // All resources should have a resourceId and resourceKey
     // attributes, so available/updated/destroyed callbacks work properly.
-    storage.resourceType = this.storageType;
-    storage.resourceId = `${this.storageType}-${innerWindowId}`;
+    storage.resourceId = `${this.storageKey}-${innerWindowId}`;
     storage.resourceKey = this.storageKey;
     // NOTE: the resource command needs this attribute
     storage.browsingContextID = browsingContextID;

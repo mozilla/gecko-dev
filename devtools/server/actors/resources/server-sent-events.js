@@ -8,10 +8,6 @@ const {
   LongStringActor,
 } = require("resource://devtools/server/actors/string.js");
 
-const {
-  TYPES: { SERVER_SENT_EVENT },
-} = require("resource://devtools/server/actors/resources/index.js");
-
 const eventSourceEventService = Cc[
   "@mozilla.org/eventsourceevent/service;1"
 ].getService(Ci.nsIEventSourceEventService);
@@ -50,7 +46,6 @@ class ServerSentEventWatcher {
 
   static createResource(messageType, eventParams) {
     return {
-      resourceType: SERVER_SENT_EVENT,
       messageType,
       ...eventParams,
     };

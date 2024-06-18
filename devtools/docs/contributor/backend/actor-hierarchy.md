@@ -145,7 +145,7 @@ which is scoped to the debuggable context of the descriptor.
 This actor is about observing things.
 It will notify you about:
 * target actors via target-available-form and target-destroyed-form,
-* resources via resource-available-form, resource-updated-form and resource-destroyed-form.
+* resources via resources-available-array, resources-updated-array and resources-destroyed-array.
 
 ## Resources
 

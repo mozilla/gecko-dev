@@ -4,10 +4,6 @@
 
 "use strict";
 
-const {
-  TYPES: { COOKIE },
-} = require("resource://devtools/server/actors/resources/index.js");
-
 const ParentProcessStorage = require("resource://devtools/server/actors/resources/utils/parent-process-storage.js");
 const {
   CookiesStorageActor,
@@ -15,7 +11,7 @@ const {
 
 class CookiesWatcher extends ParentProcessStorage {
   constructor() {
-    super(CookiesStorageActor, "cookies", COOKIE);
+    super(CookiesStorageActor, "cookies");
   }
 }
 

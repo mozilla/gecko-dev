@@ -98,11 +98,16 @@ class BaseTargetActor extends Actor {
    *
    * @param String updateType
    *        Can be "available", "updated" or "destroyed"
-   * @param Array<json> resources
-   *        List of all resource's form. A resource is a JSON object piped over to the client.
+   * @param String resourceType
+   *        The type of resources to be notified about.
+   * @param Array<json|string> resources
+   *        For "available", the array will be a list of new resource JSON objects sent as-is to the client.
    *        It can contain actor IDs, actor forms, to be manually marshalled by the client.
+   *        For "updated", the array will contain a list of objects with the attributes documented in
+   *        `ResourceCommand._onResourceUpdated` jsdoc.
+   *        For "destroyed", the array will contain a list of resource IDs (strings).
    */
-  notifyResources(updateType, resources) {
+  notifyResources(updateType, resourceType, resources) {
     if (resources.length === 0 || this.isDestroyed()) {
       // Don't try to emit if the resources array is empty or the actor was
       // destroyed.
@@ -113,16 +118,27 @@ class BaseTargetActor extends Actor {
       this.overrideResourceBrowsingContextForWebExtension(resources);
     }
 
-    const shouldEmitSynchronously = resources.some(
-      resource =>
-        (resource.resourceType == DOCUMENT_EVENT &&
-          resource.name == "will-navigate") ||
-        resource.resourceType == NETWORK_EVENT_STACKTRACE
-    );
-    this.#throttledResources[updateType].push.apply(
-      this.#throttledResources[updateType],
-      resources
-    );
+    const shouldEmitSynchronously =
+      resourceType == NETWORK_EVENT_STACKTRACE ||
+      (resourceType == DOCUMENT_EVENT &&
+        resources.some(resource => resource.name == "will-navigate"));
+
+    // If the last throttled resources were of the same resource type,
+    // augment the resources array with the new resources
+    const lastResourceInThrottleCache =
+      this.#throttledResources[updateType].at(-1);
+    if (
+      lastResourceInThrottleCache &&
+      lastResourceInThrottleCache[0] === resourceType
+    ) {
+      lastResourceInThrottleCache[1].push.apply(
+        lastResourceInThrottleCache[1],
+        resources
+      );
+    } else {
+      // Otherwise, add a new item in the throttle queue with the resource type
+      this.#throttledResources[updateType].push([resourceType, resources]);
+    }
 
     // Force firing resources immediately when:
     // * we receive DOCUMENT_EVENT's will-navigate
@@ -153,7 +169,7 @@ class BaseTargetActor extends Actor {
         continue;
       }
       this.#throttledResources[updateType] = [];
-      this.emit(`resource-${updateType}-form`, resources);
+      this.emit(`resources-${updateType}-array`, resources);
     }
   }
 

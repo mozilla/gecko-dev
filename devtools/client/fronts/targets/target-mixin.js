@@ -54,7 +54,7 @@ function TargetMixin(parentClass) {
       // [typeName:string => Front instance]
       this.fronts = new Map();
 
-      // `resource-available-form` and `resource-updated-form` events can be emitted
+      // `resources-available-array` and `resources-updated-array` events can be emitted
       // by target actors before the ResourceCommand could add event listeners.
       // The target front will cache those events until the ResourceCommand has
       // added the listeners.
@@ -62,6 +62,8 @@ function TargetMixin(parentClass) {
 
       // In order to avoid destroying the `_resourceCache[event]`, we need to call `super.on()`
       // instead of `this.on()`.
+      // @backward-compat { version 129 } Once Fx129 is release, resource-*-form event won't be used anymore,
+      //                                  only the resources-*-array will be still used.
       const offResourceAvailable = super.on(
         "resource-available-form",
         this._onResourceEvent.bind(this, "resource-available-form")
@@ -71,9 +73,20 @@ function TargetMixin(parentClass) {
         this._onResourceEvent.bind(this, "resource-updated-form")
       );
 
+      const offResourceAvailableArray = super.on(
+        "resources-available-array",
+        this._onResourceEventArray.bind(this, "resources-available-array")
+      );
+      const offResourceUpdatedArray = super.on(
+        "resources-updated-array",
+        this._onResourceEventArray.bind(this, "resources-updated-array")
+      );
+
       this._offResourceEvent = new Map([
         ["resource-available-form", offResourceAvailable],
         ["resource-updated-form", offResourceUpdated],
+        ["resources-available-array", offResourceAvailableArray],
+        ["resources-updated-array", offResourceUpdatedArray],
       ]);
 
       // Expose a promise that is resolved once the target front is usable
@@ -85,7 +98,7 @@ function TargetMixin(parentClass) {
 
     on(eventName, listener) {
       if (this._offResourceEvent && this._offResourceEvent.has(eventName)) {
-        // If a callsite sets an event listener for resource-(available|update)-form:
+        // If a callsite sets an event listener for resource-(available|update)-(form|array):
 
         // we want to remove the listener we set here in the constructor…
         const off = this._offResourceEvent.get(eventName);
@@ -549,6 +562,13 @@ function TargetMixin(parentClass) {
         this._resourceCache[eventName] = [];
       }
       this._resourceCache[eventName].push(resources);
+    }
+
+    _onResourceEventArray(eventName, array) {
+      if (!this._resourceCache[eventName]) {
+        this._resourceCache[eventName] = [];
+      }
+      this._resourceCache[eventName].push(array);
     }
 
     toString() {

@@ -8,10 +8,6 @@ const {
   LongStringActor,
 } = require("resource://devtools/server/actors/string.js");
 
-const {
-  TYPES: { WEBSOCKET },
-} = require("resource://devtools/server/actors/resources/index.js");
-
 const webSocketEventService = Cc[
   "@mozilla.org/websocketevent/service;1"
 ].getService(Ci.nsIWebSocketEventService);
@@ -29,7 +25,6 @@ class WebSocketWatcher {
 
   static createResource(wsMessageType, eventParams) {
     return {
-      resourceType: WEBSOCKET,
       wsMessageType,
       ...eventParams,
     };
