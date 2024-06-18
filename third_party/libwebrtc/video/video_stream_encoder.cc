@@ -2021,8 +2021,9 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
       << send_codec_.height << " received a too small frame "
       << out_frame.width() << "x" << out_frame.height();
 
-  TRACE_EVENT1("webrtc", "VCMGenericEncoder::Encode", "timestamp",
-               out_frame.rtp_timestamp());
+  TRACE_EVENT2("webrtc", "webrtc::VideoEncoder::Encode", "rtp_timestamp",
+               out_frame.rtp_timestamp(), "storage_representation",
+               out_frame.video_frame_buffer()->storage_representation());
 
   frame_encode_metadata_writer_.OnEncodeStarted(out_frame);
 

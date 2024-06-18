@@ -11,7 +11,8 @@
 #ifndef API_VIDEO_VIDEO_FRAME_BUFFER_H_
 #define API_VIDEO_VIDEO_FRAME_BUFFER_H_
 
-#include <stdint.h>
+#include <cstdint>
+#include <string>
 
 #include "api/array_view.h"
 #include "api/ref_count.h"
@@ -124,6 +125,10 @@ class RTC_EXPORT VideoFrameBuffer : public webrtc::RefCountInterface {
   // frame has not implemented this method. Only callable if type() is kNative.
   virtual rtc::scoped_refptr<VideoFrameBuffer> GetMappedFrameBuffer(
       rtc::ArrayView<Type> types);
+
+  // For logging: returns a textual representation of the storage.
+  // TODO(b/328533258): Make pure virtual once downstream adapts.
+  virtual std::string storage_representation() const;
 
  protected:
   ~VideoFrameBuffer() override {}
