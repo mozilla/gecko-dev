@@ -174,6 +174,9 @@ export class UserContextManagerClass {
   /**
    * Removes a user context and closes all related container tabs.
    *
+   * Note: When closing the related container tabs possible "beforeunload"
+   * prompts will be ignored.
+   *
    * @param {string} userContextId
    *     The id of the user context to remove.
    * @param {object=} options
@@ -190,7 +193,9 @@ export class UserContextManagerClass {
 
     const internalId = this.getInternalIdById(userContextId);
     if (closeContextTabs) {
-      lazy.ContextualIdentityService.closeContainerTabs(internalId);
+      lazy.ContextualIdentityService.closeContainerTabs(internalId, {
+        skipPermitUnload: true,
+      });
     }
     lazy.ContextualIdentityService.remove(internalId);
   }
