@@ -1,80 +1,122 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Tue, 18 Jun 2024 10:18:56 -0500
-Subject: (tmp-cherry-pick) Revert "Remove unused
- WebRTC-Bwe-InjectedCongestionController" (81eca8306b)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Date: Tue, 18 Jun 2024 10:22:18 -0500
+Subject: (tmp-cherry-pick) Revert "Convert P2PTransportChannel Candidate Pair
+ Change to CallbackList" (c869266b10)
 
-This reverts commit c95cb6bd3e221cd54d3060654abf91abc9a2fac5.
+This reverts commit dc43cb24bd8ee85d6a8224c5928ceaf90de729b6.
 
-Reason for revert: Breaks downstream project
+Reason for revert: Converted the wrong signal, should have been GatheringState.
 
 Original change's description:
-> Remove unused WebRTC-Bwe-InjectedCongestionController
+> Convert P2PTransportChannel Candidate Pair Change to CallbackList
 >
-> Instead, PeerConnectionFactoryDependencies.network_controller_factory is
-> used if it exists.
+> Earlier attempts have shown that this signal is multiply listened to.
 >
-> Bug: webrtc:8415
-> Change-Id: I37d5cc7325072bf1d87993e53949f1b97c277f55
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/347860
-> Reviewed-by: Björn Terelius <terelius@webrtc.org>
-> Commit-Queue: Per Kjellander <perkj@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42120}
+> Bug: webrtc:11943
+> Change-Id: If9130a7f4c70714b5afda5aca0469b66c8e2612f
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/347981
+> Reviewed-by: Tomas Gunnarsson <tommi@webrtc.org>
+> Commit-Queue: Harald Alvestrand <hta@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#42124}
 
-Bug: webrtc:8415
-Change-Id: I3800ce1a65e7ef40313d67308a24d5daa6d3a028
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/349560
+Bug: webrtc:11943
+Change-Id: I73d5d815ced8d7aef4df765c9cf54d7637c6769d
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/348220
+Commit-Queue: Harald Alvestrand <hta@webrtc.org>
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Commit-Queue: Qingsi Wang <qingsi@google.com>
-Reviewed-by: Per Kjellander <perkj@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#42213}
+Cr-Commit-Position: refs/heads/main@{#42129}
 ---
- experiments/field_trials.py   | 5 ++++-
- pc/peer_connection_factory.cc | 3 ++-
- 2 files changed, 6 insertions(+), 2 deletions(-)
+ p2p/base/ice_transport_internal.h          | 16 +++++++---------
+ p2p/base/p2p_transport_channel.cc          |  4 +++-
+ p2p/base/p2p_transport_channel_unittest.cc |  4 ++--
+ pc/jsep_transport_controller.cc            |  4 ++--
+ 4 files changed, 14 insertions(+), 14 deletions(-)
 
-diff --git a/experiments/field_trials.py b/experiments/field_trials.py
-index 468b94eff1..9bdcb58a5c 100755
---- a/experiments/field_trials.py
-+++ b/experiments/field_trials.py
-@@ -502,6 +502,9 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
-     FieldTrial('WebRTC-Bwe-InitialProbing',
-                'webrtc:10394',
-                date(2024, 4, 1)),
-+    FieldTrial('WebRTC-Bwe-InjectedCongestionController',
-+               'webrtc:8415',
-+               INDEFINITE),
-     FieldTrial('WebRTC-Bwe-LimitProbesLowerThanThroughputEstimate',
-                'webrtc:11498',
-                date(2024, 4, 1)),
-@@ -881,7 +884,7 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
- ])  # yapf: disable
+diff --git a/p2p/base/ice_transport_internal.h b/p2p/base/ice_transport_internal.h
+index fecae48b12..38b6bfe303 100644
+--- a/p2p/base/ice_transport_internal.h
++++ b/p2p/base/ice_transport_internal.h
+@@ -338,15 +338,11 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
+   // SignalNetworkRouteChanged.
+   sigslot::signal2<IceTransportInternal*, const Candidate&> SignalRouteChange;
  
- POLICY_EXEMPT_FIELD_TRIALS_DIGEST: str = \
--    '0b9e14e036ffd4b96ef5e4d6a6aa67b6a1eff11f'
-+    '263c7a29291a7c4472ff60c7c3b2520f6dd5cea8'
- 
- REGISTERED_FIELD_TRIALS: FrozenSet[FieldTrial] = ACTIVE_FIELD_TRIALS.union(
-     POLICY_EXEMPT_FIELD_TRIALS)
-diff --git a/pc/peer_connection_factory.cc b/pc/peer_connection_factory.cc
-index 92fdfc8026..6bf0ef944a 100644
---- a/pc/peer_connection_factory.cc
-+++ b/pc/peer_connection_factory.cc
-@@ -335,13 +335,14 @@ std::unique_ptr<Call> PeerConnectionFactory::CreateCall_w(
-       network_state_predictor_factory_.get();
-   call_config.neteq_factory = neteq_factory_.get();
- 
--  if (injected_network_controller_factory_) {
-+  if (IsTrialEnabled("WebRTC-Bwe-InjectedCongestionController")) {
-     RTC_LOG(LS_INFO) << "Using injected network controller factory";
-     call_config.network_controller_factory =
-         injected_network_controller_factory_.get();
-   } else {
-     RTC_LOG(LS_INFO) << "Using default network controller factory";
+-  void AddCandidatePairChangeCallback(
+-      const void* removal_tag,
++  void SetCandidatePairChangeCallback(
+       absl::AnyInvocable<void(const cricket::CandidatePairChangeEvent&)>
+           callback) {
+-    candidate_pair_change_callback_list_.AddReceiver(removal_tag,
+-                                                     std::move(callback));
+-  }
+-  void RemoveCandidatePairChangeCallback(const void* removal_tag) {
+-    candidate_pair_change_callback_list_.RemoveReceivers(removal_tag);
++    RTC_DCHECK(!candidate_pair_change_callback_);
++    candidate_pair_change_callback_ = std::move(callback);
    }
+ 
+   // Invoked when there is conflict in the ICE role between local and remote
+@@ -389,8 +385,7 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
+ 
+  protected:
+   void SendGatheringStateEvent() { SignalGatheringState(this); }
+-  webrtc::CallbackList<const cricket::CandidatePairChangeEvent&>
+-      candidate_pair_change_callback_list_;
 +
-   call_config.rtp_transport_controller_send_factory =
-       transport_controller_send_factory_.get();
-   call_config.decode_metronome = decode_metronome_.get();
+   webrtc::CallbackList<IceTransportInternal*,
+                        const StunDictionaryView&,
+                        rtc::ArrayView<uint16_t>>
+@@ -406,6 +401,9 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
+   absl::AnyInvocable<void(IceTransportInternal*, const Candidates&)>
+       candidates_removed_callback_;
+ 
++  absl::AnyInvocable<void(const cricket::CandidatePairChangeEvent&)>
++      candidate_pair_change_callback_;
++
+  private:
+   // TODO(bugs.webrtc.org/11943): remove when removing Signal
+   void SignalGatheringStateFired(IceTransportInternal* transport) {
+diff --git a/p2p/base/p2p_transport_channel.cc b/p2p/base/p2p_transport_channel.cc
+index 068e0f392b..241b423be8 100644
+--- a/p2p/base/p2p_transport_channel.cc
++++ b/p2p/base/p2p_transport_channel.cc
+@@ -1838,7 +1838,9 @@ void P2PTransportChannel::SwitchSelectedConnectionInternal(
+     } else {
+       pair_change.estimated_disconnected_time_ms = 0;
+     }
+-    candidate_pair_change_callback_list_.Send(pair_change);
++    if (candidate_pair_change_callback_) {
++      candidate_pair_change_callback_(pair_change);
++    }
+   }
+ 
+   ++selected_candidate_pair_changes_;
+diff --git a/p2p/base/p2p_transport_channel_unittest.cc b/p2p/base/p2p_transport_channel_unittest.cc
+index ad4b43bfd3..79ca2a5f26 100644
+--- a/p2p/base/p2p_transport_channel_unittest.cc
++++ b/p2p/base/p2p_transport_channel_unittest.cc
+@@ -3326,8 +3326,8 @@ class P2PTransportChannelPingTest : public ::testing::Test,
+                                   &P2PTransportChannelPingTest::OnReadyToSend);
+     ch->SignalStateChanged.connect(
+         this, &P2PTransportChannelPingTest::OnChannelStateChanged);
+-    ch->AddCandidatePairChangeCallback(
+-        this, [this](const cricket::CandidatePairChangeEvent& event) {
++    ch->SetCandidatePairChangeCallback(
++        [this](const cricket::CandidatePairChangeEvent& event) {
+           OnCandidatePairChanged(event);
+         });
+   }
+diff --git a/pc/jsep_transport_controller.cc b/pc/jsep_transport_controller.cc
+index 268f5ffff7..dae7060658 100644
+--- a/pc/jsep_transport_controller.cc
++++ b/pc/jsep_transport_controller.cc
+@@ -464,8 +464,8 @@ JsepTransportController::CreateDtlsTransport(
+       this, &JsepTransportController::OnTransportStateChanged_n);
+   dtls->ice_transport()->SignalIceTransportStateChanged.connect(
+       this, &JsepTransportController::OnTransportStateChanged_n);
+-  dtls->ice_transport()->AddCandidatePairChangeCallback(
+-      this, [this](const cricket::CandidatePairChangeEvent& event) {
++  dtls->ice_transport()->SetCandidatePairChangeCallback(
++      [this](const cricket::CandidatePairChangeEvent& event) {
+         RTC_DCHECK_RUN_ON(network_thread_);
+         OnTransportCandidatePairChanged_n(event);
+       });
