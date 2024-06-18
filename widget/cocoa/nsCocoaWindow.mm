@@ -1547,6 +1547,11 @@ void nsCocoaWindow::ProcessTransitions() {
 
   mInProcessTransitions = true;
 
+  if (mProcessTransitionsPending) {
+    mProcessTransitionsPending->Cancel();
+    mProcessTransitionsPending = nullptr;
+  }
+
   // Start a loop that will continue as long as we have transitions to process
   // and we aren't waiting on an asynchronous transition to complete. Any
   // transition that starts something async will `continue` this loop to exit.
@@ -1726,6 +1731,10 @@ void nsCocoaWindow::CancelAllTransitions() {
   // ProcessTransitions().
   mTransitionCurrent.reset();
   mIsTransitionCurrentAdded = false;
+  if (mProcessTransitionsPending) {
+    mProcessTransitionsPending->Cancel();
+    mProcessTransitionsPending = nullptr;
+  }
   std::queue<TransitionType>().swap(mTransitionsPending);
 }
 
@@ -1751,9 +1760,11 @@ void nsCocoaWindow::FinishCurrentTransitionIfMatching(
     // ProcessTransitions on the next event loop. Doing this will ensure that
     // any async native transition methods we call (like toggleFullScreen) will
     // succeed.
-    if (!mTransitionsPending.empty()) {
-      NS_DispatchToCurrentThread(NewRunnableMethod(
-          "FinishCurrentTransition", this, &nsCocoaWindow::ProcessTransitions));
+    if (!mTransitionsPending.empty() && !mProcessTransitionsPending) {
+      mProcessTransitionsPending = NS_NewCancelableRunnableFunction(
+          "ProcessTransitionsPending",
+          [self = RefPtr{this}] { self->ProcessTransitions(); });
+      NS_DispatchToCurrentThread(mProcessTransitionsPending);
     }
   }
 }
