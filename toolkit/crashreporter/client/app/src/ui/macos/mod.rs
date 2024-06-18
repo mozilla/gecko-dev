@@ -10,11 +10,11 @@
 //! * not all controls handle all Property variants (e.g. Checkbox doesn't handle ReadOnly, Text
 //!   doesn't handle Binding, etc).
 //!
-//! The rendering ignores `ElementStyle::margin` entirely, because
-//! * `NSView` doesn't support margins (so working them into constraints would be a bit annoying),
-//!   and
-//! * `NSView.layoutMarginsGuide` results in a layout almost identical to what the margins (at the
-//!   time of this writing) in the UI layouts are achieving.
+//! The rendering only uses `ElementStyle::margin` partially because `NSView` doesn't support
+//! margins, so we work them in as offsets in the layout constraints (they are applied based on the
+//! alignment). Once we no longer support OSX 10.15, we could use `NSView.layoutMarginsGuide`
+//! instead as it results in a layout almost identical to what the margins in the UI layouts are
+//! achieving.
 //!
 //! In a few cases, init or creation functions are called which _could_ return nil and are wrapped
 //! in their type wrapper (as those functions return `instancetype`/`id`). We consider this safe
@@ -28,14 +28,14 @@ use super::model::{self, Alignment, Application, Element, TypedElement};
 use crate::data::Property;
 use cocoa::{
     INSApplication, INSBox, INSButton, INSColor, INSControl, INSFont, INSLayoutAnchor,
-    INSLayoutConstraint, INSLayoutDimension, INSLayoutGuide, INSMenu, INSMenuItem,
-    INSMutableParagraphStyle, INSObject, INSProcessInfo, INSProgressIndicator, INSRunLoop,
-    INSScrollView, INSStackView, INSText, INSTextContainer, INSTextField, INSTextView, INSView,
-    INSWindow, NSArray_NSArrayCreation, NSAttributedString_NSExtendedAttributedString,
+    INSLayoutConstraint, INSLayoutDimension, INSMenu, INSMenuItem, INSMutableParagraphStyle,
+    INSObject, INSProcessInfo, INSProgressIndicator, INSRunLoop, INSScrollView, INSStackView,
+    INSText, INSTextContainer, INSTextField, INSTextView, INSView, INSWindow,
+    NSArray_NSArrayCreation, NSAttributedString_NSExtendedAttributedString,
     NSDictionary_NSDictionaryCreation, NSRunLoop_NSRunLoopConveniences,
     NSStackView_NSStackViewGravityAreas, NSString_NSStringExtensionMethods,
     NSTextField_NSTextFieldConvenience, NSView_NSConstraintBasedLayoutInstallingConstraints,
-    NSView_NSConstraintBasedLayoutLayering, NSView_NSSafeAreas, PNSObject,
+    NSView_NSConstraintBasedLayoutLayering, PNSObject,
 };
 use once_cell::sync::Lazy;
 
@@ -511,14 +511,14 @@ impl IntoNSLayoutAnchor for cocoa::NSLayoutYAxisAnchor {
     }
 }
 
-unsafe fn constraint_equal<T, O>(anchor: T, to: O)
+unsafe fn constraint_equal<T, O>(anchor: T, to: O, margin: u32)
 where
     T: INSLayoutAnchor<()> + std::ops::Deref,
     T::Target: Message + Sized,
     O: IntoNSLayoutAnchor,
 {
     anchor
-        .constraintEqualToAnchor_(to.into_layout_anchor())
+        .constraintEqualToAnchor_constant_(to.into_layout_anchor(), margin as f64)
         .setActive_(runtime::YES);
 }
 
@@ -736,7 +736,9 @@ impl ViewRenderer {
             }
         }
 
-        let lmg = unsafe { self.parent.layoutMarginsGuide() };
+        // TODO: potentially use NSView layoutMarginsGuide when we no longer need to support macOS
+        // 10.15.
+        let outer = self.parent;
 
         if !matches!(style.horizontal_alignment, Alignment::Fill) {
             if let Some(size) = style.horizontal_size_request {
@@ -752,27 +754,27 @@ impl ViewRenderer {
             unsafe {
                 let la = view.leadingAnchor();
                 let ta = view.trailingAnchor();
-                let pla = lmg.leadingAnchor();
-                let pta = lmg.trailingAnchor();
+                let pla = outer.leadingAnchor();
+                let pta = outer.trailingAnchor();
                 match style.horizontal_alignment {
                     Alignment::Fill => {
-                        constraint_equal(la, pla);
-                        constraint_equal(ta, pta);
+                        constraint_equal(la, pla, style.margin.start);
+                        constraint_equal(ta, pta, style.margin.end);
                         // Without the autoresizing mask set, Text within Scroll doesn't display
                         // properly (it shrinks to 0-width, likely due to some specific interaction
                         // of NSScrollView with autolayout).
                         view.setAutoresizingMask_(cocoa::NSViewWidthSizable);
                     }
                     Alignment::Start => {
-                        constraint_equal(la, pla);
+                        constraint_equal(la, pla, style.margin.start);
                     }
                     Alignment::Center => {
                         let ca = view.centerXAnchor();
-                        let pca = lmg.centerXAnchor();
-                        constraint_equal(ca, pca);
+                        let pca = outer.centerXAnchor();
+                        constraint_equal(ca, pca, 0);
                     }
                     Alignment::End => {
-                        constraint_equal(ta, pta);
+                        constraint_equal(ta, pta, style.margin.end);
                     }
                 }
             }
@@ -792,26 +794,26 @@ impl ViewRenderer {
             unsafe {
                 let ta = view.topAnchor();
                 let ba = view.bottomAnchor();
-                let pta = lmg.topAnchor();
-                let pba = lmg.bottomAnchor();
+                let pta = outer.topAnchor();
+                let pba = outer.bottomAnchor();
                 match style.vertical_alignment {
                     Alignment::Fill => {
-                        constraint_equal(ta, pta);
-                        constraint_equal(ba, pba);
+                        constraint_equal(ta, pta, style.margin.top);
+                        constraint_equal(ba, pba, style.margin.bottom);
                         // Set the autoresizing mask to be consistent with the horizontal settings
                         // (see the comment there as to why it's necessary).
                         view.setAutoresizingMask_(cocoa::NSViewHeightSizable);
                     }
                     Alignment::Start => {
-                        constraint_equal(ta, pta);
+                        constraint_equal(ta, pta, style.margin.top);
                     }
                     Alignment::Center => {
                         let ca = view.centerYAnchor();
-                        let pca = lmg.centerYAnchor();
-                        constraint_equal(ca, pca);
+                        let pca = outer.centerYAnchor();
+                        constraint_equal(ca, pca, 0);
                     }
                     Alignment::End => {
-                        constraint_equal(ba, pba);
+                        constraint_equal(ba, pba, style.margin.bottom);
                     }
                 }
             }
