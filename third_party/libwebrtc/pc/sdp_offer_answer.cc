@@ -3576,10 +3576,9 @@ RTCError SdpOfferAnswerHandler::ValidateSessionDescription(
     return error;
   }
 
-  // TODO(crbug.com/1459124): remove killswitch after rollout.
+  // Validate the SSRC groups.
   error = ValidateSsrcGroups(*sdesc->description());
-  if (!error.ok() &&
-      !pc_->trials().IsDisabled("WebRTC-PreventSsrcGroupsWithUnexpectedSize")) {
+  if (!error.ok()) {
     return error;
   }
 
