@@ -6,8 +6,45 @@
 
 /* UI Tour */
 
+@keyframes uitour-wobble {
+  from {
+    transform: rotate(0deg) translateX(3px) rotate(0deg);
+  }
+  50% {
+    transform: rotate(360deg) translateX(3px) rotate(-360deg);
+  }
+  to {
+    transform: rotate(720deg) translateX(0px) rotate(-720deg);
+  }
+}
+
+@keyframes uitour-zoom {
+  from {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.0);
+  }
+  to {
+    transform: scale(0.8);
+  }
+}
+
+@keyframes uitour-color {
+  from {
+    border-color: #5B9CD9;
+  }
+  50% {
+    border-color: #FF0000;
+  }
+  to {
+    border-color: #5B9CD9;
+  }
+}
+
 #UITourHighlightContainer {
   appearance: none;
+  pointer-events: none;
 
   /* Resets the native styles in windows and macOS */
   border: none;
@@ -27,10 +64,34 @@
   background-color: rgba(0, 200, 215, 0.3);
   min-height: 24px;
   min-width: 24px;
-}
 
-#UITourHighlight.rounded-highlight {
-  border-radius: 4px;
+  &.rounded-highlight {
+    border-radius: 4px;
+  }
+
+  &[active] {
+    animation-delay: 2s;
+    animation-fill-mode: forwards;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+  }
+
+  &[active="wobble"] {
+    animation-name: uitour-wobble;
+    animation-delay: 0s;
+    animation-duration: 1.5s;
+    animation-iteration-count: 1;
+  }
+
+  &[active="zoom"] {
+    animation-name: uitour-zoom;
+    animation-duration: 1s;
+  }
+
+  &[active="color"] {
+    animation-name: uitour-color;
+    animation-duration: 2s;
+  }
 }
 
 #UITourTooltipBody {
