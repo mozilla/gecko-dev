@@ -877,11 +877,6 @@ class GitRepository(Repository):
         try:
             cmd = (
                 str(self._tool),
-                "-c",
-                # Never store git-cinnabar metadata for pushes to try.
-                # Normally git-cinnabar asks the server what the phase of what it pushed
-                # is, and figures on its own, but that request takes a long time on try.
-                "cinnabar.data=never",
                 "push",
                 "hg::ssh://hg.mozilla.org/try",
                 "+HEAD:refs/heads/branches/default/tip",
