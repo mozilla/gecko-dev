@@ -1141,7 +1141,7 @@ PeerConnection::AddTransceiver(
         "Attempted to set an unimplemented parameter of RtpParameters.");
   }
 
-  std::vector<cricket::VideoCodec> codecs;
+  std::vector<cricket::Codec> codecs;
   // Gather the current codec capabilities to allow checking scalabilityMode and
   // codec selection against supported values.
   if (media_type == cricket::MEDIA_TYPE_VIDEO) {

@@ -1029,15 +1029,15 @@ bool VideoChannel::SetLocalContent_w(const MediaContentDescription* content,
   // instead.
   bool needs_send_params_update = false;
   if (type == SdpType::kAnswer || type == SdpType::kPrAnswer) {
-    webrtc::flat_set<const VideoCodec*> matched_codecs;
-    for (VideoCodec& send_codec : send_params.codecs) {
-      if (absl::c_any_of(matched_codecs, [&](const VideoCodec* c) {
+    webrtc::flat_set<const Codec*> matched_codecs;
+    for (Codec& send_codec : send_params.codecs) {
+      if (absl::c_any_of(matched_codecs, [&](const Codec* c) {
             return send_codec.Matches(*c);
           })) {
         continue;
       }
 
-      std::vector<const VideoCodec*> recv_codecs =
+      std::vector<const Codec*> recv_codecs =
           FindAllMatchingCodecs(recv_params.codecs, send_codec);
       if (recv_codecs.empty()) {
         continue;
@@ -1045,7 +1045,7 @@ bool VideoChannel::SetLocalContent_w(const MediaContentDescription* content,
 
       bool may_ignore_packetization = false;
       bool has_matching_packetization = false;
-      for (const VideoCodec* recv_codec : recv_codecs) {
+      for (const Codec* recv_codec : recv_codecs) {
         if (!recv_codec->packetization.has_value() &&
             send_codec.packetization.has_value()) {
           may_ignore_packetization = true;

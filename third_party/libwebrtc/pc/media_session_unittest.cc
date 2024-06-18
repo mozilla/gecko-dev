@@ -78,42 +78,42 @@ using ::webrtc::RtpTransceiverDirection;
 
 using Candidates = std::vector<Candidate>;
 
-AudioCodec CreateRedAudioCodec(absl::string_view encoding_id) {
-  AudioCodec red = CreateAudioCodec(63, "red", 48000, 2);
+Codec CreateRedAudioCodec(absl::string_view encoding_id) {
+  Codec red = CreateAudioCodec(63, "red", 48000, 2);
   red.SetParam(kCodecParamNotInNameValueFormat,
                std::string(encoding_id) + '/' + std::string(encoding_id));
   return red;
 }
 
-const AudioCodec kAudioCodecs1[] = {CreateAudioCodec(111, "opus", 48000, 2),
-                                    CreateRedAudioCodec("111"),
-                                    CreateAudioCodec(102, "iLBC", 8000, 1),
-                                    CreateAudioCodec(0, "PCMU", 8000, 1),
-                                    CreateAudioCodec(8, "PCMA", 8000, 1),
-                                    CreateAudioCodec(117, "red", 8000, 1),
-                                    CreateAudioCodec(107, "CN", 48000, 1)};
+const Codec kAudioCodecs1[] = {CreateAudioCodec(111, "opus", 48000, 2),
+                               CreateRedAudioCodec("111"),
+                               CreateAudioCodec(102, "iLBC", 8000, 1),
+                               CreateAudioCodec(0, "PCMU", 8000, 1),
+                               CreateAudioCodec(8, "PCMA", 8000, 1),
+                               CreateAudioCodec(117, "red", 8000, 1),
+                               CreateAudioCodec(107, "CN", 48000, 1)};
 
-const AudioCodec kAudioCodecs2[] = {
+const Codec kAudioCodecs2[] = {
     CreateAudioCodec(126, "foo", 16000, 1),
     CreateAudioCodec(0, "PCMU", 8000, 1),
     CreateAudioCodec(127, "iLBC", 8000, 1),
 };
 
-const AudioCodec kAudioCodecsAnswer[] = {
+const Codec kAudioCodecsAnswer[] = {
     CreateAudioCodec(102, "iLBC", 8000, 1),
     CreateAudioCodec(0, "PCMU", 8000, 1),
 };
 
-const VideoCodec kVideoCodecs1[] = {CreateVideoCodec(96, "H264-SVC"),
-                                    CreateVideoCodec(97, "H264")};
+const Codec kVideoCodecs1[] = {CreateVideoCodec(96, "H264-SVC"),
+                               CreateVideoCodec(97, "H264")};
 
-const VideoCodec kVideoCodecs1Reverse[] = {CreateVideoCodec(97, "H264"),
-                                           CreateVideoCodec(96, "H264-SVC")};
+const Codec kVideoCodecs1Reverse[] = {CreateVideoCodec(97, "H264"),
+                                      CreateVideoCodec(96, "H264-SVC")};
 
-const VideoCodec kVideoCodecs2[] = {CreateVideoCodec(126, "H264"),
-                                    CreateVideoCodec(127, "H263")};
+const Codec kVideoCodecs2[] = {CreateVideoCodec(126, "H264"),
+                               CreateVideoCodec(127, "H263")};
 
-const VideoCodec kVideoCodecsAnswer[] = {CreateVideoCodec(97, "H264")};
+const Codec kVideoCodecsAnswer[] = {CreateVideoCodec(97, "H264")};
 
 const RtpExtension kAudioRtpExtension1[] = {
     RtpExtension("urn:ietf:params:rtp-hdrext:ssrc-audio-level", 8),
@@ -264,7 +264,7 @@ RtpTransceiverDirection GetMediaDirection(const ContentInfo* content) {
   return content->media_description()->direction();
 }
 
-void AddRtxCodec(const VideoCodec& rtx_codec, std::vector<VideoCodec>* codecs) {
+void AddRtxCodec(const Codec& rtx_codec, std::vector<Codec>* codecs) {
   ASSERT_FALSE(FindCodecById(*codecs, rtx_codec.id));
   codecs->push_back(rtx_codec);
 }
@@ -744,8 +744,8 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestCreateVideoOffer) {
 // RTP playlod type. The test verifies that the offer don't contain the
 // duplicate RTP payload types.
 TEST_F(MediaSessionDescriptionFactoryTest, TestBundleOfferWithSameCodecPlType) {
-  const VideoCodec& offered_video_codec = f2_.video_sendrecv_codecs()[0];
-  const AudioCodec& offered_audio_codec = f2_.audio_sendrecv_codecs()[0];
+  const Codec& offered_video_codec = f2_.video_sendrecv_codecs()[0];
+  const Codec& offered_audio_codec = f2_.audio_sendrecv_codecs()[0];
   ASSERT_EQ(offered_video_codec.id, offered_audio_codec.id);
 
   MediaSessionOptions opts;
@@ -2705,7 +2705,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   // preference order.
   // TODO(wu): `updated_offer` should not include the codec
   // (i.e. `kAudioCodecs2[0]`) the other side doesn't support.
-  const AudioCodec kUpdatedAudioCodecOffer[] = {
+  const Codec kUpdatedAudioCodecOffer[] = {
       kAudioCodecsAnswer[0],
       kAudioCodecsAnswer[1],
       kAudioCodecs2[0],
@@ -2714,7 +2714,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   // The expected video codecs are the common video codecs from the first
   // offer/answer exchange plus the video codecs only `f2_` offer, sorted in
   // preference order.
-  const VideoCodec kUpdatedVideoCodecOffer[] = {
+  const Codec kUpdatedVideoCodecOffer[] = {
       kVideoCodecsAnswer[0],
       kVideoCodecs2[1],
   };
@@ -2856,12 +2856,12 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
                              RtpTransceiverDirection::kRecvOnly, kActive,
                              &opts);
-  std::vector<VideoCodec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
+  std::vector<Codec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
   // This creates rtx for H264 with the payload type `f1_` uses.
   AddRtxCodec(CreateVideoRtxCodec(126, kVideoCodecs1[1].id), &f1_codecs);
   f1_.set_video_codecs(f1_codecs, f1_codecs);
 
-  std::vector<VideoCodec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
+  std::vector<Codec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
   // This creates rtx for H264 with the payload type `f2_` uses.
   AddRtxCodec(CreateVideoRtxCodec(125, kVideoCodecs2[0].id), &f2_codecs);
   f2_.set_video_codecs(f2_codecs, f2_codecs);
@@ -2875,7 +2875,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   const VideoContentDescription* vcd =
       GetFirstVideoContentDescription(answer.get());
 
-  std::vector<VideoCodec> expected_codecs = MAKE_VECTOR(kVideoCodecsAnswer);
+  std::vector<Codec> expected_codecs = MAKE_VECTOR(kVideoCodecsAnswer);
   AddRtxCodec(CreateVideoRtxCodec(126, kVideoCodecs1[1].id), &expected_codecs);
 
   EXPECT_EQ(expected_codecs, vcd->codecs());
@@ -2909,22 +2909,21 @@ TEST_F(MediaSessionDescriptionFactoryTest,
                              &opts);
   // We specifically choose different preferred payload types for VP8 to
   // trigger the issue.
-  VideoCodec vp8_offerer = CreateVideoCodec(100, "VP8");
-  VideoCodec vp8_offerer_rtx = CreateVideoRtxCodec(101, vp8_offerer.id);
-  VideoCodec vp8_answerer = CreateVideoCodec(110, "VP8");
-  VideoCodec vp8_answerer_rtx = CreateVideoRtxCodec(111, vp8_answerer.id);
-  VideoCodec vp9 = CreateVideoCodec(120, "VP9");
-  VideoCodec vp9_rtx = CreateVideoRtxCodec(121, vp9.id);
+  Codec vp8_offerer = CreateVideoCodec(100, "VP8");
+  Codec vp8_offerer_rtx = CreateVideoRtxCodec(101, vp8_offerer.id);
+  Codec vp8_answerer = CreateVideoCodec(110, "VP8");
+  Codec vp8_answerer_rtx = CreateVideoRtxCodec(111, vp8_answerer.id);
+  Codec vp9 = CreateVideoCodec(120, "VP9");
+  Codec vp9_rtx = CreateVideoRtxCodec(121, vp9.id);
 
-  std::vector<VideoCodec> f1_codecs = {vp8_offerer, vp8_offerer_rtx};
+  std::vector<Codec> f1_codecs = {vp8_offerer, vp8_offerer_rtx};
   // We also specifically cause the answerer to prefer VP9, such that if it
   // *doesn't* honor the existing preferred codec (VP8) we'll notice.
-  std::vector<VideoCodec> f2_codecs = {vp9, vp9_rtx, vp8_answerer,
-                                       vp8_answerer_rtx};
+  std::vector<Codec> f2_codecs = {vp9, vp9_rtx, vp8_answerer, vp8_answerer_rtx};
 
   f1_.set_video_codecs(f1_codecs, f1_codecs);
   f2_.set_video_codecs(f2_codecs, f2_codecs);
-  std::vector<AudioCodec> audio_codecs;
+  std::vector<Codec> audio_codecs;
   f1_.set_audio_codecs(audio_codecs, audio_codecs);
   f2_.set_audio_codecs(audio_codecs, audio_codecs);
 
@@ -2942,7 +2941,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
 
   const VideoContentDescription* vcd =
       GetFirstVideoContentDescription(updated_offer.get());
-  std::vector<VideoCodec> codecs = vcd->codecs();
+  std::vector<Codec> codecs = vcd->codecs();
   ASSERT_EQ(4u, codecs.size());
   EXPECT_EQ(vp8_offerer, codecs[0]);
   EXPECT_EQ(vp8_offerer_rtx, codecs[1]);
@@ -2956,7 +2955,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
 // use, the added codecs payload types are changed.
 TEST_F(MediaSessionDescriptionFactoryTest,
        RespondentCreatesOfferWithVideoAndRtxAfterCreatingAudioAnswer) {
-  std::vector<VideoCodec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
+  std::vector<Codec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
   // This creates rtx for H264 with the payload type `f1_` uses.
   AddRtxCodec(CreateVideoRtxCodec(126, kVideoCodecs1[1].id), &f1_codecs);
   f1_.set_video_codecs(f1_codecs, f1_codecs);
@@ -2981,7 +2980,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   opts.media_description_options.clear();
   AddAudioVideoSections(RtpTransceiverDirection::kRecvOnly, &opts);
 
-  std::vector<VideoCodec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
+  std::vector<Codec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
   int used_pl_type = acd->codecs()[0].id;
   f2_codecs[0].id = used_pl_type;  // Set the payload type for H264.
   AddRtxCodec(CreateVideoRtxCodec(125, used_pl_type), &f2_codecs);
@@ -3005,7 +3004,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   ASSERT_EQ(kRtxCodecName, updated_vcd->codecs()[1].name);
   int new_h264_pl_type = updated_vcd->codecs()[0].id;
   EXPECT_NE(used_pl_type, new_h264_pl_type);
-  VideoCodec rtx = updated_vcd->codecs()[1];
+  Codec rtx = updated_vcd->codecs()[1];
   int pt_referenced_by_rtx =
       rtc::FromString<int>(rtx.params[kCodecParamAssociatedPayloadType]);
   EXPECT_EQ(new_h264_pl_type, pt_referenced_by_rtx);
@@ -3019,7 +3018,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   MediaSessionOptions opts;
   AddAudioVideoSections(RtpTransceiverDirection::kRecvOnly, &opts);
 
-  std::vector<VideoCodec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
+  std::vector<Codec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
   // This creates rtx for H264 with the payload type `f2_` uses.
   AddRtxCodec(CreateVideoRtxCodec(125, kVideoCodecs2[0].id), &f2_codecs);
   f2_.set_video_codecs(f2_codecs, f2_codecs);
@@ -3033,7 +3032,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   const VideoContentDescription* vcd =
       GetFirstVideoContentDescription(answer.get());
 
-  std::vector<VideoCodec> expected_codecs = MAKE_VECTOR(kVideoCodecsAnswer);
+  std::vector<Codec> expected_codecs = MAKE_VECTOR(kVideoCodecsAnswer);
   EXPECT_EQ(expected_codecs, vcd->codecs());
 
   // Now, ensure that the RTX codec is created correctly when `f2_` creates an
@@ -3058,12 +3057,12 @@ TEST_F(MediaSessionDescriptionFactoryTest, RtxWithoutApt) {
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
                              RtpTransceiverDirection::kRecvOnly, kActive,
                              &opts);
-  std::vector<VideoCodec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
+  std::vector<Codec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
   // This creates RTX without associated payload type parameter.
   AddRtxCodec(CreateVideoCodec(126, kRtxCodecName), &f1_codecs);
   f1_.set_video_codecs(f1_codecs, f1_codecs);
 
-  std::vector<VideoCodec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
+  std::vector<Codec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
   // This creates RTX for H264 with the payload type `f2_` uses.
   AddRtxCodec(CreateVideoRtxCodec(125, kVideoCodecs2[0].id), &f2_codecs);
   f2_.set_video_codecs(f2_codecs, f2_codecs);
@@ -3101,12 +3100,12 @@ TEST_F(MediaSessionDescriptionFactoryTest, FilterOutRtxIfAptDoesntMatch) {
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
                              RtpTransceiverDirection::kRecvOnly, kActive,
                              &opts);
-  std::vector<VideoCodec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
+  std::vector<Codec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
   // This creates RTX for H264 in sender.
   AddRtxCodec(CreateVideoRtxCodec(126, kVideoCodecs1[1].id), &f1_codecs);
   f1_.set_video_codecs(f1_codecs, f1_codecs);
 
-  std::vector<VideoCodec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
+  std::vector<Codec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
   // This creates RTX for H263 in receiver.
   AddRtxCodec(CreateVideoRtxCodec(125, kVideoCodecs2[1].id), &f2_codecs);
   f2_.set_video_codecs(f2_codecs, f2_codecs);
@@ -3132,7 +3131,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
                              RtpTransceiverDirection::kRecvOnly, kActive,
                              &opts);
-  std::vector<VideoCodec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
+  std::vector<Codec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
   // This creates RTX for H264-SVC in sender.
   AddRtxCodec(CreateVideoRtxCodec(125, kVideoCodecs1[0].id), &f1_codecs);
   f1_.set_video_codecs(f1_codecs, f1_codecs);
@@ -3141,7 +3140,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   AddRtxCodec(CreateVideoRtxCodec(126, kVideoCodecs1[1].id), &f1_codecs);
   f1_.set_video_codecs(f1_codecs, f1_codecs);
 
-  std::vector<VideoCodec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
+  std::vector<Codec> f2_codecs = MAKE_VECTOR(kVideoCodecs2);
   // This creates RTX for H264 in receiver.
   AddRtxCodec(CreateVideoRtxCodec(124, kVideoCodecs2[0].id), &f2_codecs);
   f2_.set_video_codecs(f2_codecs, f1_codecs);
@@ -3155,7 +3154,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
       f2_.CreateAnswerOrError(offer.get(), opts, nullptr).MoveValue();
   const VideoContentDescription* vcd =
       GetFirstVideoContentDescription(answer.get());
-  std::vector<VideoCodec> expected_codecs = MAKE_VECTOR(kVideoCodecsAnswer);
+  std::vector<Codec> expected_codecs = MAKE_VECTOR(kVideoCodecsAnswer);
   AddRtxCodec(CreateVideoRtxCodec(126, kVideoCodecs1[1].id), &expected_codecs);
 
   EXPECT_EQ(expected_codecs, vcd->codecs());
@@ -3168,7 +3167,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, AddSecondRtxInNewOffer) {
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
                              RtpTransceiverDirection::kRecvOnly, kActive,
                              &opts);
-  std::vector<VideoCodec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
+  std::vector<Codec> f1_codecs = MAKE_VECTOR(kVideoCodecs1);
   // This creates RTX for H264 for the offerer.
   AddRtxCodec(CreateVideoRtxCodec(126, kVideoCodecs1[1].id), &f1_codecs);
   f1_.set_video_codecs(f1_codecs, f1_codecs);
@@ -3179,7 +3178,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, AddSecondRtxInNewOffer) {
   const VideoContentDescription* vcd =
       GetFirstVideoContentDescription(offer.get());
 
-  std::vector<VideoCodec> expected_codecs = MAKE_VECTOR(kVideoCodecs1);
+  std::vector<Codec> expected_codecs = MAKE_VECTOR(kVideoCodecs1);
   AddRtxCodec(CreateVideoRtxCodec(126, kVideoCodecs1[1].id), &expected_codecs);
   EXPECT_EQ(expected_codecs, vcd->codecs());
 
@@ -3208,7 +3207,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, SimSsrcsGenerateMultipleRtxSsrcs) {
                                         {"stream1label"}, 3, &opts);
 
   // Use a single real codec, and then add RTX for it.
-  std::vector<VideoCodec> f1_codecs;
+  std::vector<Codec> f1_codecs;
   f1_codecs.push_back(CreateVideoCodec(97, "H264"));
   AddRtxCodec(CreateVideoRtxCodec(125, 97), &f1_codecs);
   f1_.set_video_codecs(f1_codecs, f1_codecs);
@@ -3252,7 +3251,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, GenerateFlexfecSsrc) {
                                         {"stream1label"}, 1, &opts);
 
   // Use a single real codec, and then add FlexFEC for it.
-  std::vector<VideoCodec> f1_codecs;
+  std::vector<Codec> f1_codecs;
   f1_codecs.push_back(CreateVideoCodec(97, "H264"));
   f1_codecs.push_back(CreateVideoCodec(118, "flexfec-03"));
   f1_.set_video_codecs(f1_codecs, f1_codecs);
@@ -3295,7 +3294,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, SimSsrcsGenerateNoFlexfecSsrcs) {
                                         {"stream1label"}, 3, &opts);
 
   // Use a single real codec, and then add FlexFEC for it.
-  std::vector<VideoCodec> f1_codecs;
+  std::vector<Codec> f1_codecs;
   f1_codecs.push_back(CreateVideoCodec(97, "H264"));
   f1_codecs.push_back(CreateVideoCodec(118, "flexfec-03"));
   f1_.set_video_codecs(f1_codecs, f1_codecs);
@@ -4276,10 +4275,10 @@ TEST_F(MediaSessionDescriptionFactoryTest,
        H264MatchCriteriaIncludesPacketizationMode) {
   // Create two H264 codecs with the same profile level ID and different
   // packetization modes.
-  VideoCodec h264_pm0 = CreateVideoCodec(96, "H264");
+  Codec h264_pm0 = CreateVideoCodec(96, "H264");
   h264_pm0.params[kH264FmtpProfileLevelId] = "42c01f";
   h264_pm0.params[kH264FmtpPacketizationMode] = "0";
-  VideoCodec h264_pm1 = CreateVideoCodec(97, "H264");
+  Codec h264_pm1 = CreateVideoCodec(97, "H264");
   h264_pm1.params[kH264FmtpProfileLevelId] = "42c01f";
   h264_pm1.params[kH264FmtpPacketizationMode] = "1";
 
@@ -4380,17 +4379,16 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestSetAudioCodecs) {
 
   UniqueRandomIdGenerator ssrc_generator;
   MediaSessionDescriptionFactory sf(nullptr, false, &ssrc_generator, &tdf);
-  std::vector<AudioCodec> send_codecs = MAKE_VECTOR(kAudioCodecs1);
-  std::vector<AudioCodec> recv_codecs = MAKE_VECTOR(kAudioCodecs2);
+  std::vector<Codec> send_codecs = MAKE_VECTOR(kAudioCodecs1);
+  std::vector<Codec> recv_codecs = MAKE_VECTOR(kAudioCodecs2);
 
   // The merged list of codecs should contain any send codecs that are also
   // nominally in the receive codecs list. Payload types should be picked from
   // the send codecs and a number-of-channels of 0 and 1 should be equivalent
   // (set to 1). This equals what happens when the send codecs are used in an
   // offer and the receive codecs are used in the following answer.
-  const std::vector<AudioCodec> sendrecv_codecs =
-      MAKE_VECTOR(kAudioCodecsAnswer);
-  const std::vector<AudioCodec> no_codecs;
+  const std::vector<Codec> sendrecv_codecs = MAKE_VECTOR(kAudioCodecsAnswer);
+  const std::vector<Codec> no_codecs;
 
   RTC_CHECK_EQ(send_codecs[2].name, "iLBC")
       << "Please don't change shared test data!";
@@ -4452,10 +4450,9 @@ void TestAudioCodecsOffer(RtpTransceiverDirection direction) {
 
   UniqueRandomIdGenerator ssrc_generator;
   MediaSessionDescriptionFactory sf(nullptr, false, &ssrc_generator, &tdf);
-  const std::vector<AudioCodec> send_codecs = MAKE_VECTOR(kAudioCodecs1);
-  const std::vector<AudioCodec> recv_codecs = MAKE_VECTOR(kAudioCodecs2);
-  const std::vector<AudioCodec> sendrecv_codecs =
-      MAKE_VECTOR(kAudioCodecsAnswer);
+  const std::vector<Codec> send_codecs = MAKE_VECTOR(kAudioCodecs1);
+  const std::vector<Codec> recv_codecs = MAKE_VECTOR(kAudioCodecs2);
+  const std::vector<Codec> sendrecv_codecs = MAKE_VECTOR(kAudioCodecsAnswer);
   sf.set_audio_codecs(send_codecs, recv_codecs);
 
   MediaSessionOptions opts;
@@ -4493,14 +4490,13 @@ void TestAudioCodecsOffer(RtpTransceiverDirection direction) {
   }
 }
 
-const AudioCodec kOfferAnswerCodecs[] = {
-    CreateAudioCodec(0, "codec0", 16000, 1),
-    CreateAudioCodec(1, "codec1", 8000, 1),
-    CreateAudioCodec(2, "codec2", 8000, 1),
-    CreateAudioCodec(3, "codec3", 8000, 1),
-    CreateAudioCodec(4, "codec4", 8000, 2),
-    CreateAudioCodec(5, "codec5", 32000, 1),
-    CreateAudioCodec(6, "codec6", 48000, 1)};
+const Codec kOfferAnswerCodecs[] = {CreateAudioCodec(0, "codec0", 16000, 1),
+                                    CreateAudioCodec(1, "codec1", 8000, 1),
+                                    CreateAudioCodec(2, "codec2", 8000, 1),
+                                    CreateAudioCodec(3, "codec3", 8000, 1),
+                                    CreateAudioCodec(4, "codec4", 8000, 2),
+                                    CreateAudioCodec(5, "codec5", 32000, 1),
+                                    CreateAudioCodec(6, "codec6", 48000, 1)};
 
 /* The codecs groups below are chosen as per the matrix below. The objective
  * is to have different sets of codecs in the inputs, to get unique sets of
@@ -4604,7 +4600,7 @@ void TestAudioCodecsAnswer(RtpTransceiverDirection offer_direction,
     ASSERT_EQ(MEDIA_TYPE_AUDIO, ac->media_description()->type());
     const MediaContentDescription* acd = ac->media_description();
 
-    std::vector<AudioCodec> target_codecs;
+    std::vector<Codec> target_codecs;
     // For offers with sendrecv or inactive, we should never reply with more
     // codecs than offered, with these codec sets.
     switch (offer_direction) {
@@ -4637,7 +4633,7 @@ void TestAudioCodecsAnswer(RtpTransceiverDirection offer_direction,
         RTC_DCHECK_NOTREACHED();
     }
 
-    auto format_codecs = [](const std::vector<AudioCodec>& codecs) {
+    auto format_codecs = [](const std::vector<Codec>& codecs) {
       rtc::StringBuilder os;
       bool first = true;
       os << "{";

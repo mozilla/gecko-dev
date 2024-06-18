@@ -134,14 +134,14 @@ RtpCapabilities PeerConnectionFactory::GetRtpSenderCapabilities(
   RTC_DCHECK_RUN_ON(signaling_thread());
   switch (kind) {
     case cricket::MEDIA_TYPE_AUDIO: {
-      cricket::AudioCodecs cricket_codecs;
+      cricket::Codecs cricket_codecs;
       cricket_codecs = media_engine()->voice().send_codecs();
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->voice());
       return ToRtpCapabilities(cricket_codecs, extensions);
     }
     case cricket::MEDIA_TYPE_VIDEO: {
-      cricket::VideoCodecs cricket_codecs;
+      cricket::Codecs cricket_codecs;
       cricket_codecs = media_engine()->video().send_codecs(context_->use_rtx());
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->video());
@@ -161,14 +161,14 @@ RtpCapabilities PeerConnectionFactory::GetRtpReceiverCapabilities(
   RTC_DCHECK_RUN_ON(signaling_thread());
   switch (kind) {
     case cricket::MEDIA_TYPE_AUDIO: {
-      cricket::AudioCodecs cricket_codecs;
+      cricket::Codecs cricket_codecs;
       cricket_codecs = media_engine()->voice().recv_codecs();
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->voice());
       return ToRtpCapabilities(cricket_codecs, extensions);
     }
     case cricket::MEDIA_TYPE_VIDEO: {
-      cricket::VideoCodecs cricket_codecs =
+      cricket::Codecs cricket_codecs =
           media_engine()->video().recv_codecs(context_->use_rtx());
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->video());

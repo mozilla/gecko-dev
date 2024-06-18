@@ -2573,7 +2573,7 @@ TEST_P(PeerConnectionIntegrationTest, CodecNamesAreCaseInsensitive) {
     ASSERT_NE(nullptr, audio);
     auto audio_codecs = audio->codecs();
     audio_codecs.erase(std::remove_if(audio_codecs.begin(), audio_codecs.end(),
-                                      [](const cricket::AudioCodec& codec) {
+                                      [](const cricket::Codec& codec) {
                                         return codec.name != "opus";
                                       }),
                        audio_codecs.end());
@@ -2586,7 +2586,7 @@ TEST_P(PeerConnectionIntegrationTest, CodecNamesAreCaseInsensitive) {
     ASSERT_NE(nullptr, video);
     auto video_codecs = video->codecs();
     video_codecs.erase(std::remove_if(video_codecs.begin(), video_codecs.end(),
-                                      [](const cricket::VideoCodec& codec) {
+                                      [](const cricket::Codec& codec) {
                                         return codec.name != "VP8";
                                       }),
                        video_codecs.end());

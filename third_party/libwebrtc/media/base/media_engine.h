@@ -118,8 +118,8 @@ class VoiceEngineInterface : public RtpHeaderExtensionQueryInterface {
     return nullptr;
   }
 
-  virtual const std::vector<AudioCodec>& send_codecs() const = 0;
-  virtual const std::vector<AudioCodec>& recv_codecs() const = 0;
+  virtual const std::vector<Codec>& send_codecs() const = 0;
+  virtual const std::vector<Codec>& recv_codecs() const = 0;
 
   // Starts AEC dump using existing file, a maximum file size in bytes can be
   // specified. Logging is stopped just before the size limit is exceeded.
@@ -164,16 +164,16 @@ class VideoEngineInterface : public RtpHeaderExtensionQueryInterface {
   }
 
   // Retrieve list of supported codecs.
-  virtual std::vector<VideoCodec> send_codecs() const = 0;
-  virtual std::vector<VideoCodec> recv_codecs() const = 0;
+  virtual std::vector<Codec> send_codecs() const = 0;
+  virtual std::vector<Codec> recv_codecs() const = 0;
   // As above, but if include_rtx is false, don't include RTX codecs.
   // TODO(bugs.webrtc.org/13931): Remove default implementation once
   // upstream subclasses have converted.
-  virtual std::vector<VideoCodec> send_codecs(bool include_rtx) const {
+  virtual std::vector<Codec> send_codecs(bool include_rtx) const {
     RTC_DCHECK(include_rtx);
     return send_codecs();
   }
-  virtual std::vector<VideoCodec> recv_codecs(bool include_rtx) const {
+  virtual std::vector<Codec> recv_codecs(bool include_rtx) const {
     RTC_DCHECK(include_rtx);
     return recv_codecs();
   }
