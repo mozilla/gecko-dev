@@ -173,8 +173,6 @@ static constexpr uint16_t ToUsrsctpValue(DataChannelReliabilityPolicy type) {
 
 class DataChannelRegistry {
  public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DataChannelRegistry)
-
   static uintptr_t Register(DataChannelConnection* aConnection) {
     StaticMutexAutoLock lock(sInstanceMutex);
     uintptr_t result = EnsureInstance()->RegisterImpl(aConnection);
@@ -184,7 +182,7 @@ class DataChannelRegistry {
   }
 
   static void Deregister(uintptr_t aId) {
-    RefPtr<DataChannelRegistry> maybeTrash;
+    std::unique_ptr<DataChannelRegistry> maybeTrash;
 
     {
       StaticMutexAutoLock lock(sInstanceMutex);
@@ -197,7 +195,7 @@ class DataChannelRegistry {
         // Unset singleton inside mutex lock, but don't call Shutdown until we
         // unlock, since that involves calling into libusrsctp, which invites
         // deadlock.
-        maybeTrash = Instance().forget();
+        maybeTrash = std::move(Instance());
       }
     }
   }
@@ -210,38 +208,53 @@ class DataChannelRegistry {
     return Instance()->LookupImpl(aId);
   }
 
+  virtual ~DataChannelRegistry() {
+    MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+
+    if (NS_WARN_IF(!mConnections.empty())) {
+      MOZ_DIAGNOSTIC_ASSERT(false);
+      mConnections.clear();
+    }
+
+    MOZ_DIAGNOSTIC_ASSERT(!Instance());
+    DeinitUsrSctp();
+  }
+
  private:
   // This is a singleton class, so don't let just anyone create one of these
   DataChannelRegistry() {
-    ASSERT_WEBRTC(NS_IsMainThread());
+    MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
     mShutdownBlocker = media::ShutdownBlockingTicket::Create(
         u"DataChannelRegistry::mShutdownBlocker"_ns,
         NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__);
+    MOZ_DIAGNOSTIC_ASSERT(!Instance());
     InitUsrSctp();
   }
 
-  static RefPtr<DataChannelRegistry>& Instance() {
-    static RefPtr<DataChannelRegistry> sRegistry;
+  static std::unique_ptr<DataChannelRegistry>& Instance() {
+    static std::unique_ptr<DataChannelRegistry> sRegistry;
     return sRegistry;
   }
 
-  static RefPtr<DataChannelRegistry>& EnsureInstance() {
-    ASSERT_WEBRTC(NS_IsMainThread());
+  static std::unique_ptr<DataChannelRegistry>& EnsureInstance() {
+    MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
     if (!Instance()) {
-      Instance() = new DataChannelRegistry();
+      Instance().reset(new DataChannelRegistry());
     }
     return Instance();
   }
 
   uintptr_t RegisterImpl(DataChannelConnection* aConnection) {
-    ASSERT_WEBRTC(NS_IsMainThread());
+    MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
     mConnections.emplace(mNextId, aConnection);
     return mNextId++;
   }
 
   void DeregisterImpl(uintptr_t aId) {
-    ASSERT_WEBRTC(NS_IsMainThread());
-    mConnections.erase(aId);
+    MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+    size_t removed = mConnections.erase(aId);
+    mozilla::Unused << removed;
+    MOZ_DIAGNOSTIC_ASSERT(removed);
   }
 
   bool Empty() const { return mConnections.empty(); }
@@ -255,17 +268,6 @@ class DataChannelRegistry {
     return it->second;
   }
 
-  virtual ~DataChannelRegistry() {
-    ASSERT_WEBRTC(NS_IsMainThread());
-
-    if (NS_WARN_IF(!mConnections.empty())) {
-      MOZ_ASSERT(false);
-      mConnections.clear();
-    }
-
-    DeinitUsrSctp();
-  }
-
   static int SctpDtlsOutput(void* addr, void* buffer, size_t length,
                             uint8_t tos, uint8_t set_df) {
     uintptr_t id = reinterpret_cast<uintptr_t>(addr);
@@ -277,13 +279,16 @@ class DataChannelRegistry {
   }
 
   void InitUsrSctp() {
+    MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
 #ifndef MOZ_PEERCONNECTION
     MOZ_CRASH("Trying to use SCTP/DTLS without dom/media/webrtc/transport");
 #endif
 
     DC_DEBUG(("Calling usrsctp_init %p", this));
 
+    MOZ_DIAGNOSTIC_ASSERT(!sInitted);
     usrsctp_init(0, DataChannelRegistry::SctpDtlsOutput, debug_printf);
+    sInitted = true;
 
     // Set logging to SCTP:LogLevel::Debug to get SCTP debugs
     if (MOZ_LOG_TEST(gSCTPLog, LogLevel::Debug)) {
@@ -310,15 +315,21 @@ class DataChannelRegistry {
   }
 
   void DeinitUsrSctp() {
+    MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+    MOZ_DIAGNOSTIC_ASSERT(sInitted);
     DC_DEBUG(("Calling usrsctp_finish %p", this));
     usrsctp_finish();
+    sInitted = false;
   }
 
   uintptr_t mNextId = 1;
   std::map<uintptr_t, RefPtr<DataChannelConnection>> mConnections;
   UniquePtr<media::ShutdownBlockingTicket> mShutdownBlocker;
   static StaticMutex sInstanceMutex MOZ_UNANNOTATED;
+  static bool sInitted;
 };
+
+bool DataChannelRegistry::sInitted = false;
 
 StaticMutex DataChannelRegistry::sInstanceMutex;
 
@@ -440,8 +451,12 @@ void DataChannelConnection::Destroy() {
   // we can deregister this DataChannelConnection without leaking.
   ClearResets();
 
-  MOZ_ASSERT(mSTS);
-  ASSERT_WEBRTC(NS_IsMainThread());
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  MOZ_DIAGNOSTIC_ASSERT(mSTS);
+  auto self = DataChannelRegistry::Lookup(mId);
+  MOZ_DIAGNOSTIC_ASSERT(self);
+  MOZ_DIAGNOSTIC_ASSERT(this == self.get());
+#endif
   mListener = nullptr;
   // Finish Destroy on STS thread to avoid bug 876167 - once that's fixed,
   // the usrsctp_close() calls can move back here (and just proxy the
@@ -542,16 +557,16 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   mSTS = mozilla::components::SocketTransport::Service(&rv);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
+  socklen_t buf_size = 1024 * 1024;
+
   // Open sctp with a callback
   if ((mMasterSocket =
            usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, receive_cb,
                           &DataChannelConnection::OnThresholdEvent,
                           usrsctp_sysctl_get_sctp_sendspace() / 2,
                           reinterpret_cast<void*>(mId))) == nullptr) {
-    return false;
+    goto error_cleanup;
   }
-
-  int buf_size = 1024 * 1024;
 
   if (usrsctp_setsockopt(mMasterSocket, SOL_SOCKET, SO_RCVBUF,
                          (const void*)&buf_size, sizeof(buf_size)) < 0) {
@@ -673,6 +688,7 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   return true;
 
 error_cleanup:
+  DataChannelRegistry::Deregister(mId);
   usrsctp_close(mMasterSocket);
   mMasterSocket = nullptr;
   return false;
