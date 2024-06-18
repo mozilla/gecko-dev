@@ -426,6 +426,7 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
 
   mNextByte = 0;
   mPlainBytes = 0;
+  mLastBlockLength = 0;
 
   uint32_t readBytes;
   rv = ParseNextChunk(&readBytes);
@@ -435,6 +436,12 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
 
   mPlainBytes = readBytes;
   mNextByte = nextByteOffset;
+
+  if (mNextByte == mPlainBytes) {
+    mNextByte = 0;
+    mLastBlockLength = mPlainBytes;
+    mPlainBytes = 0;
+  }
 
   autoRestorePreviousState.release();
 
