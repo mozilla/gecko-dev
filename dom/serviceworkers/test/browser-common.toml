@@ -61,4 +61,3 @@ skip-if = ["true"] # Crashes: @ mozilla::dom::ServiceWorkerManagerService::Propa
 ["browser_unregister_with_containers.js"]
 
 ["browser_userContextId_openWindow.js"]
-skip-if = ["true"] # See bug 1769437.

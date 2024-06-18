@@ -134,7 +134,7 @@ add_task(async function test() {
 
   is(
     newTab.getAttribute("usercontextid"),
-    USER_CONTEXT_ID,
+    USER_CONTEXT_ID.toString(),
     "New tab has UCI equal " + USER_CONTEXT_ID
   );
 
