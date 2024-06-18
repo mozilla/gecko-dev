@@ -13,12 +13,12 @@
 
 #include "absl/base/nullability.h"
 #include "absl/memory/memory.h"
+#include "api/audio/audio_processing.h"
 #include "api/audio/echo_canceller3_factory.h"
 #include "api/audio/echo_detector_creator.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "api/task_queue/task_queue_base.h"
 #include "modules/audio_processing/aec_dump/aec_dump_factory.h"
-#include "modules/audio_processing/include/audio_processing.h"
 #include "modules/audio_processing/test/audio_processing_builder_for_testing.h"
 #include "rtc_base/arraysize.h"
 #include "rtc_base/numerics/safe_minmax.h"

@@ -20,6 +20,7 @@
 
 #include "absl/types/optional.h"
 #include "api/audio/audio_mixer.h"
+#include "api/audio/audio_processing.h"
 #include "api/candidate.h"
 #include "api/ice_transport_interface.h"
 #include "api/jsep.h"
@@ -28,7 +29,6 @@
 #include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
 #include "modules/audio_device/include/audio_device.h"
-#include "modules/audio_processing/include/audio_processing.h"
 #include "p2p/base/fake_port_allocator.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"

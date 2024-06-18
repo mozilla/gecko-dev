@@ -16,6 +16,7 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/types/optional.h"
+#include "api/audio/audio_processing_statistics.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/candidate.h"
 #include "api/data_channel_interface.h"
@@ -25,7 +26,6 @@
 #include "api/scoped_refptr.h"
 #include "call/call.h"
 #include "media/base/media_channel.h"
-#include "modules/audio_processing/include/audio_processing_statistics.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "pc/media_stream.h"
 #include "pc/rtp_receiver.h"

@@ -49,6 +49,7 @@ specific_include_rules = {
   ],
 
   ".*\.h": [
+    "+rtc_base/arraysize.h",
     "+rtc_base/checks.h",
     "+rtc_base/system/rtc_export.h",
     "+rtc_base/system/rtc_export_template.h",
@@ -93,10 +94,6 @@ specific_include_rules = {
 
   "fec_controller\.h": [
     "+modules/include/module_fec_types.h",
-  ],
-
-  "media_stream_interface\.h": [
-    "+modules/audio_processing/include/audio_processing_statistics.h",
   ],
 
   "packet_socket_factory\.h": [
@@ -149,14 +146,6 @@ specific_include_rules = {
 
   "audio_encoder\.h": [
     "+rtc_base/buffer.h",
-  ],
-
-  "audioproc_float\.h": [
-    "+modules/audio_processing/include/audio_processing.h",
-  ],
-
-  "echo_detector_creator\.h": [
-    "+modules/audio_processing/include/audio_processing.h",
   ],
 
   "make_ref_counted\.h": [

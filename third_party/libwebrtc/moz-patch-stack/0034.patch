@@ -15,7 +15,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d380a43d59f4f7cbc
  4 files changed, 35 insertions(+)
 
 diff --git a/audio/audio_send_stream.cc b/audio/audio_send_stream.cc
-index 59b0ea5b5e..64bc15ab4e 100644
+index 27c733f203..2bb552ba0b 100644
 --- a/audio/audio_send_stream.cc
 +++ b/audio/audio_send_stream.cc
 @@ -427,6 +427,7 @@ webrtc::AudioSendStream::Stats AudioSendStream::GetStats(
@@ -109,12 +109,12 @@ index b6a6a37bf5..f36085c1fa 100644
    // Within this list, the sender-source SSRC pair is unique and per-pair the
    // ReportBlockData represents the latest Report Block that was received for
 diff --git a/call/audio_send_stream.h b/call/audio_send_stream.h
-index f9e49db574..5f4f871bf0 100644
+index f9b6a25a44..cfdee13a58 100644
 --- a/call/audio_send_stream.h
 +++ b/call/audio_send_stream.h
 @@ -31,6 +31,7 @@
+ #include "call/audio_sender.h"
  #include "call/rtp_config.h"
- #include "modules/audio_processing/include/audio_processing_statistics.h"
  #include "modules/rtp_rtcp/include/report_block_data.h"
 +#include "modules/rtp_rtcp/include/rtcp_statistics.h"
  

@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "modules/audio_processing/include/audio_processing_statistics.h"
+#include "api/audio/audio_processing_statistics.h"
 
 namespace webrtc {
 

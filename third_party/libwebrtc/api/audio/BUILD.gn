@@ -42,6 +42,44 @@ rtc_source_set("audio_mixer_api") {
   ]
 }
 
+rtc_source_set("audio_processing") {
+  visibility = [ "*" ]
+  sources = [
+    "audio_processing.cc",
+    "audio_processing.h",
+  ]
+  deps = [
+    ":aec3_config",
+    ":audio_processing_statistics",
+    ":echo_control",
+    "..:array_view",
+    "..:ref_count",
+    "..:scoped_refptr",
+    "../../rtc_base:checks",
+    "../../rtc_base:macromagic",
+    "../../rtc_base:stringutils",
+    "../../rtc_base/system:arch",
+    "../../rtc_base/system:file_wrapper",
+    "../../rtc_base/system:rtc_export",
+    "../task_queue",
+  ]
+  absl_deps = [
+    "//third_party/abseil-cpp/absl/base:nullability",
+    "//third_party/abseil-cpp/absl/strings:string_view",
+    "//third_party/abseil-cpp/absl/types:optional",
+  ]
+}
+
+rtc_source_set("audio_processing_statistics") {
+  visibility = [ "*" ]
+  sources = [
+    "audio_processing_statistics.cc",
+    "audio_processing_statistics.h",
+  ]
+  deps = [ "../../rtc_base/system:rtc_export" ]
+  absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
+}
+
 rtc_library("aec3_config") {
   visibility = [ "*" ]
   sources = [
@@ -85,9 +123,9 @@ rtc_source_set("echo_detector_creator") {
     "echo_detector_creator.h",
   ]
   deps = [
+    ":audio_processing",
     "..:make_ref_counted",
     "../../api:scoped_refptr",
-    "../../modules/audio_processing:api",
     "../../modules/audio_processing:residual_echo_detector",
   ]
 }

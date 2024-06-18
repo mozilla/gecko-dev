@@ -23,6 +23,7 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/functional/any_invocable.h"
+#include "api/audio/audio_processing.h"
 #include "api/call/audio_sink.h"
 #include "api/media_types.h"
 #include "media/base/audio_source.h"
@@ -32,7 +33,6 @@
 #include "media/base/rtp_utils.h"
 #include "media/base/stream_params.h"
 #include "media/engine/webrtc_video_engine.h"
-#include "modules/audio_processing/include/audio_processing.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/network_route.h"

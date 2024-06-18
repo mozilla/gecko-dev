@@ -41,8 +41,8 @@ rtc_library("voip_engine_factory") {
     "..:scoped_refptr",
     "../../audio/voip:voip_core",
     "../../modules/audio_device:audio_device_api",
-    "../../modules/audio_processing:api",
     "../../rtc_base:logging",
+    "../audio:audio_processing",
     "../audio_codecs:audio_codecs_api",
     "../task_queue",
   ]

@@ -17,6 +17,7 @@
 
 #include "api/async_dns_resolver.h"
 #include "api/audio/audio_mixer.h"
+#include "api/audio/audio_processing.h"
 #include "api/fec_controller.h"
 #include "api/field_trials_view.h"
 #include "api/rtc_event_log/rtc_event_log_factory_interface.h"
@@ -24,7 +25,6 @@
 #include "api/transport/network_control.h"
 #include "api/video_codecs/video_decoder_factory.h"
 #include "api/video_codecs/video_encoder_factory.h"
-#include "modules/audio_processing/include/audio_processing.h"
 #include "p2p/base/port_allocator.h"
 #include "rtc_base/network.h"
 #include "rtc_base/rtc_certificate_generator.h"

@@ -639,8 +639,8 @@ if (rtc_include_tests) {
         sources = [ "audioproc_f/audioproc_float_main.cc" ]
         deps = [
           "../api:audioproc_f_api",
+          "../api/audio:audio_processing",
           "../modules/audio_processing",
-          "../modules/audio_processing:api",
         ]
       }
 

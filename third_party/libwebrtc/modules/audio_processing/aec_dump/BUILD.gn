@@ -47,9 +47,9 @@ if (rtc_include_tests) {
 
     deps = [
       ":mock_aec_dump",
-      "..:api",
       "..:audioproc_test_utils",
       "../",
+      "../../../api/audio:audio_processing",
       "//testing/gtest",
     ]
   }

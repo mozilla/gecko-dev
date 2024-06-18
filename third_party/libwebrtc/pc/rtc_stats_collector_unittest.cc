@@ -24,6 +24,7 @@
 
 #include "absl/strings/str_replace.h"
 #include "absl/types/optional.h"
+#include "api/audio/audio_processing_statistics.h"
 #include "api/candidate.h"
 #include "api/dtls_transport_interface.h"
 #include "api/media_stream_interface.h"
@@ -46,7 +47,6 @@
 #include "common_video/include/quality_limitation_reason.h"
 #include "media/base/media_channel.h"
 #include "modules/audio_device/include/audio_device.h"
-#include "modules/audio_processing/include/audio_processing_statistics.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "p2p/base/connection_info.h"

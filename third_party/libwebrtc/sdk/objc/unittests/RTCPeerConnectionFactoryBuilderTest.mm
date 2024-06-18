@@ -21,12 +21,12 @@ extern "C" {
 #import "api/peerconnection/RTCPeerConnectionFactoryBuilder+DefaultComponents.h"
 #import "api/peerconnection/RTCPeerConnectionFactoryBuilder.h"
 
+#include "api/audio/audio_processing.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/video_codecs/video_decoder_factory.h"
 #include "api/video_codecs/video_encoder_factory.h"
 #include "modules/audio_device/include/audio_device.h"
-#include "modules/audio_processing/include/audio_processing.h"
 
 #include "rtc_base/gunit.h"
 #include "rtc_base/system/unused.h"

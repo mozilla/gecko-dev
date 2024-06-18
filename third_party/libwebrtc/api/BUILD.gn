@@ -59,8 +59,8 @@ rtc_source_set("enable_media_with_defaults") {
   deps = [
     ":enable_media",
     ":libjingle_peerconnection_api",
-    "../modules/audio_processing:api",
     "../rtc_base/system:rtc_export",
+    "audio:audio_processing",
     "audio_codecs:builtin_audio_decoder_factory",
     "audio_codecs:builtin_audio_encoder_factory",
     "task_queue:default_task_queue_factory",
@@ -84,13 +84,13 @@ if (!build_with_chromium && !build_with_mozilla) {
       ":scoped_refptr",
       "../api/rtc_event_log:rtc_event_log_factory",
       "../modules/audio_device:audio_device_api",
-      "../modules/audio_processing:api",
       "../pc:peer_connection_factory",
       "../pc:webrtc_sdp",
       "../rtc_base:threading",
       "../rtc_base/system:rtc_export",
       "../stats:rtc_stats",
       "audio:audio_mixer_api",
+      "audio:audio_processing",
       "audio_codecs:audio_codecs_api",
       "task_queue:default_task_queue_factory",
       "transport:field_trial_based_config",
@@ -167,10 +167,10 @@ rtc_library("media_stream_interface") {
     ":scoped_refptr",
     ":sequence_checker",
     ":video_track_source_constraints",
-    "../modules/audio_processing:audio_processing_statistics",
     "../rtc_base:checks",
     "../rtc_base/system:no_unique_address",
     "../rtc_base/system:rtc_export",
+    "audio:audio_processing_statistics",
     "video:recordable_encoded_frame",
     "video:video_frame",
   ]
@@ -404,7 +404,6 @@ if (!build_with_mozilla) {
     # targets like pnacl. API should not depend on anything outside of this
     # file, really. All these should arguably go away in time.
     "../media:rtc_media_config",
-    "../modules/audio_processing:audio_processing_statistics",
     "../rtc_base:checks",
     "../rtc_base:ip_address",
     "../rtc_base:socket_address",
@@ -616,7 +615,6 @@ if (!build_with_mozilla) {
     ":track_id_stream_info_map",
     ":video_quality_analyzer_api",
     "../media:media_constants",
-    "../modules/audio_processing:api",
     "../rtc_base:checks",
     "../rtc_base:network",
     "../rtc_base:rtc_certificate_generator",
@@ -625,6 +623,7 @@ if (!build_with_mozilla) {
     "../rtc_base:threading",
     "../test:fileutils",
     "audio:audio_mixer_api",
+    "audio:audio_processing",
     "rtc_event_log",
     "task_queue",
     "test/pclf:media_configuration",
@@ -1029,8 +1028,8 @@ if (rtc_include_tests) {
 
       deps = [
         "../modules/audio_processing",
-        "../modules/audio_processing:api",
         "../modules/audio_processing:audioproc_f_impl",
+        "audio:audio_processing",
       ]
     }
 

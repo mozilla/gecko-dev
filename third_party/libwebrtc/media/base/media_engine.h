@@ -32,7 +32,6 @@
 namespace webrtc {
 class AudioDeviceModule;
 class AudioMixer;
-class AudioProcessing;
 class Call;
 }  // namespace webrtc
 

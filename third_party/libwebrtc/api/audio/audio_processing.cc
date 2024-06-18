@@ -8,10 +8,11 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "modules/audio_processing/include/audio_processing.h"
+#include "api/audio/audio_processing.h"
+#include <string>
 
+#include "rtc_base/checks.h"
 #include "rtc_base/strings/string_builder.h"
-#include "rtc_base/system/arch.h"
 
 namespace webrtc {
 namespace {

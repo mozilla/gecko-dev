@@ -206,7 +206,7 @@ index 571049f3e4..f393179bbb 100644
      } else {
        deps += [
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index 709d24207f..c424d1db0a 100644
+index 67d463db8b..7ec0bc92d1 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -40,6 +40,9 @@ rtc_source_set("enable_media") {
@@ -290,7 +290,7 @@ index 709d24207f..c424d1db0a 100644
    visibility = [ "*" ]
    cflags = []
    sources = [
-@@ -393,6 +420,7 @@ rtc_library("libjingle_peerconnection_api") {
+@@ -392,6 +419,7 @@ rtc_library("libjingle_peerconnection_api") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -298,7 +298,7 @@ index 709d24207f..c424d1db0a 100644
  
  rtc_source_set("frame_transformer_interface") {
    visibility = [ "*" ]
-@@ -566,6 +594,7 @@ rtc_source_set("peer_network_dependencies") {
+@@ -565,6 +593,7 @@ rtc_source_set("peer_network_dependencies") {
  }
  
  rtc_source_set("peer_connection_quality_test_fixture_api") {
@@ -306,7 +306,7 @@ index 709d24207f..c424d1db0a 100644
    visibility = [ "*" ]
    testonly = true
    sources = [ "test/peerconnection_quality_test_fixture.h" ]
-@@ -614,6 +643,7 @@ rtc_source_set("peer_connection_quality_test_fixture_api") {
+@@ -613,6 +642,7 @@ rtc_source_set("peer_connection_quality_test_fixture_api") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -314,7 +314,7 @@ index 709d24207f..c424d1db0a 100644
  
  rtc_source_set("frame_generator_api") {
    visibility = [ "*" ]
-@@ -739,6 +769,7 @@ rtc_library("create_frame_generator") {
+@@ -738,6 +768,7 @@ rtc_library("create_frame_generator") {
    ]
  }
  
@@ -322,7 +322,7 @@ index 709d24207f..c424d1db0a 100644
  rtc_library("create_peer_connection_quality_test_frame_generator") {
    visibility = [ "*" ]
    testonly = true
-@@ -755,6 +786,7 @@ rtc_library("create_peer_connection_quality_test_frame_generator") {
+@@ -754,6 +785,7 @@ rtc_library("create_peer_connection_quality_test_frame_generator") {
    ]
    absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
  }
@@ -330,7 +330,7 @@ index 709d24207f..c424d1db0a 100644
  
  rtc_source_set("libjingle_logging_api") {
    visibility = [ "*" ]
-@@ -934,6 +966,7 @@ rtc_source_set("refcountedbase") {
+@@ -933,6 +965,7 @@ rtc_source_set("refcountedbase") {
    ]
  }
  
@@ -338,7 +338,7 @@ index 709d24207f..c424d1db0a 100644
  rtc_library("ice_transport_factory") {
    visibility = [ "*" ]
    sources = [
-@@ -957,6 +990,7 @@ rtc_library("ice_transport_factory") {
+@@ -956,6 +989,7 @@ rtc_library("ice_transport_factory") {
      "rtc_event_log:rtc_event_log",
    ]
  }
@@ -470,7 +470,7 @@ index 9f89df5d80..0f8ffce027 100644
  if (rtc_include_tests) {
    rtc_source_set("test_feedback_generator_interface") {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 71d3e1becc..f38b81f26c 100644
+index d46c7f33c5..c81a012660 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -44,7 +44,7 @@ rtc_library("call_interfaces") {
@@ -509,10 +509,10 @@ index 71d3e1becc..f38b81f26c 100644
      "../api:transport_api",
      "../api/adaptation:resource_adaptation_api",
 diff --git a/call/audio_send_stream.h b/call/audio_send_stream.h
-index 9c2fad652f..f9e49db574 100644
+index 798b1cdb9f..f9b6a25a44 100644
 --- a/call/audio_send_stream.h
 +++ b/call/audio_send_stream.h
-@@ -25,7 +25,7 @@
+@@ -26,7 +26,7 @@
  #include "api/crypto/frame_encryptor_interface.h"
  #include "api/frame_transformer_interface.h"
  #include "api/rtp_parameters.h"
@@ -581,7 +581,7 @@ index 0000000000..f6ff7f218f
 +  #endif
 +#endif
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 6568944cd3..f0fc1a4a67 100644
+index 6a13f78c97..c652100a09 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -79,7 +79,7 @@ rtc_library("rtc_media_base") {
@@ -593,7 +593,7 @@ index 6568944cd3..f0fc1a4a67 100644
      "../api:scoped_refptr",
      "../api:sequence_checker",
      "../api:transport_api",
-@@ -137,6 +137,12 @@ rtc_library("rtc_media_base") {
+@@ -136,6 +136,12 @@ rtc_library("rtc_media_base") {
      "//third_party/abseil-cpp/absl/strings",
      "//third_party/abseil-cpp/absl/types:optional",
    ]
@@ -606,7 +606,7 @@ index 6568944cd3..f0fc1a4a67 100644
  }
  
  rtc_library("adapted_video_track_source") {
-@@ -162,6 +168,9 @@ rtc_library("adapted_video_track_source") {
+@@ -161,6 +167,9 @@ rtc_library("adapted_video_track_source") {
  
  rtc_source_set("audio_source") {
    sources = [ "base/audio_source.h" ]
@@ -616,7 +616,7 @@ index 6568944cd3..f0fc1a4a67 100644
    absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
    deps = []
  }
-@@ -260,9 +269,16 @@ rtc_library("media_engine") {
+@@ -259,9 +268,16 @@ rtc_library("media_engine") {
      "../rtc_base/system:file_wrapper",
    ]
    absl_deps = [ "//third_party/abseil-cpp/absl/algorithm:container" ]
@@ -633,7 +633,7 @@ index 6568944cd3..f0fc1a4a67 100644
    sources = [
      "base/media_channel_impl.cc",
      "base/media_channel_impl.h",
-@@ -312,6 +328,7 @@ rtc_library("media_channel_impl") {
+@@ -311,6 +327,7 @@ rtc_library("media_channel_impl") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -641,7 +641,7 @@ index 6568944cd3..f0fc1a4a67 100644
  
  rtc_source_set("media_channel") {
    sources = [ "base/media_channel.h" ]
-@@ -389,6 +406,7 @@ rtc_library("codec") {
+@@ -388,6 +405,7 @@ rtc_library("codec") {
  }
  
  rtc_library("rtp_utils") {
@@ -649,7 +649,7 @@ index 6568944cd3..f0fc1a4a67 100644
    sources = [
      "base/rtp_utils.cc",
      "base/rtp_utils.h",
-@@ -405,8 +423,10 @@ rtc_library("rtp_utils") {
+@@ -404,8 +422,10 @@ rtc_library("rtp_utils") {
    ]
    absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
  }
@@ -660,7 +660,7 @@ index 6568944cd3..f0fc1a4a67 100644
    sources = [
      "base/stream_params.cc",
      "base/stream_params.h",
-@@ -419,6 +439,7 @@ rtc_library("stream_params") {
+@@ -418,6 +438,7 @@ rtc_library("stream_params") {
    ]
    absl_deps = [ "//third_party/abseil-cpp/absl/algorithm:container" ]
  }
@@ -668,7 +668,7 @@ index 6568944cd3..f0fc1a4a67 100644
  
  rtc_library("media_constants") {
    sources = [
-@@ -429,6 +450,7 @@ rtc_library("media_constants") {
+@@ -428,6 +449,7 @@ rtc_library("media_constants") {
  }
  
  rtc_library("turn_utils") {
@@ -676,7 +676,7 @@ index 6568944cd3..f0fc1a4a67 100644
    sources = [
      "base/turn_utils.cc",
      "base/turn_utils.h",
-@@ -439,14 +461,17 @@ rtc_library("turn_utils") {
+@@ -438,14 +460,17 @@ rtc_library("turn_utils") {
      "../rtc_base/system:rtc_export",
    ]
  }
@@ -694,7 +694,7 @@ index 6568944cd3..f0fc1a4a67 100644
  
  rtc_library("rtc_simulcast_encoder_adapter") {
    visibility = [ "*" ]
-@@ -521,6 +546,11 @@ rtc_library("rtc_internal_video_codecs") {
+@@ -520,6 +545,11 @@ rtc_library("rtc_internal_video_codecs") {
      "../system_wrappers:field_trial",
      "../test:fake_video_codecs",
    ]
@@ -706,7 +706,7 @@ index 6568944cd3..f0fc1a4a67 100644
  
    if (enable_libaom) {
      defines += [ "RTC_USE_LIBAOM_AV1_ENCODER" ]
-@@ -544,6 +574,13 @@ rtc_library("rtc_internal_video_codecs") {
+@@ -543,6 +573,13 @@ rtc_library("rtc_internal_video_codecs") {
      "engine/internal_encoder_factory.cc",
      "engine/internal_encoder_factory.h",
    ]
@@ -721,7 +721,7 @@ index 6568944cd3..f0fc1a4a67 100644
  
  rtc_library("rtc_audio_video") {
 diff --git a/media/base/media_channel.h b/media/base/media_channel.h
-index 124f68c6ff..bf7a3cbbd7 100644
+index 3721e5f3b1..a2cf599b7c 100644
 --- a/media/base/media_channel.h
 +++ b/media/base/media_channel.h
 @@ -65,10 +65,6 @@ class Timing;

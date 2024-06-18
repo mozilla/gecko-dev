@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 
+#include "api/audio/audio_processing_statistics.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "api/test/mock_frame_encryptor.h"
 #include "audio/audio_state.h"
@@ -27,7 +28,6 @@
 #include "modules/audio_device/include/mock_audio_device.h"
 #include "modules/audio_mixer/audio_mixer_impl.h"
 #include "modules/audio_mixer/sine_wave_generator.h"
-#include "modules/audio_processing/include/audio_processing_statistics.h"
 #include "modules/audio_processing/include/mock_audio_processing.h"
 #include "modules/rtp_rtcp/mocks/mock_network_link_rtcp_observer.h"
 #include "modules/rtp_rtcp/mocks/mock_rtp_rtcp.h"

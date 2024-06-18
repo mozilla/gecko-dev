@@ -15,10 +15,10 @@
 
 #include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
+#include "api/audio/audio_processing.h"
+#include "api/audio/audio_processing_statistics.h"
 #include "api/task_queue/task_queue_base.h"
 #include "modules/audio_processing/include/aec_dump.h"
-#include "modules/audio_processing/include/audio_processing.h"
-#include "modules/audio_processing/include/audio_processing_statistics.h"
 #include "test/gmock.h"
 
 namespace webrtc {
