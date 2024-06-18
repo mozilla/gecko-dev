@@ -134,7 +134,6 @@ if (rtc_include_tests) {
       "../api/audio:audio_device",
       "../api/task_queue",
       "../call:fake_network",
-      "../call:simulated_network",
       "../modules/audio_device:test_audio_device_module",
       "../system_wrappers",
       "../test:test_common",

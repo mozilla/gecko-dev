@@ -897,7 +897,7 @@ rtc_source_set("network_emulation_manager_api") {
     ":peer_network_dependencies",
     ":simulated_network_api",
     ":time_controller",
-    "../call:simulated_network",
+    "..//test/network:simulated_network",
     "../rtc_base:checks",
     "../rtc_base:network",
     "../rtc_base:network_constants",

@@ -340,6 +340,7 @@ rtc_library("call") {
     "../system_wrappers",
     "../system_wrappers:field_trial",
     "../system_wrappers:metrics",
+    "../test/network:simulated_network",
     "../video",
     "../video:decode_synchronizer",
     "../video/config:encoder_config",
@@ -413,24 +414,9 @@ rtc_library("video_stream_api") {
 }
 
 rtc_library("simulated_network") {
-  sources = [
-    "simulated_network.cc",
-    "simulated_network.h",
-  ]
-  deps = [
-    "../api:sequence_checker",
-    "../api:simulated_network_api",
-    "../api/units:data_rate",
-    "../api/units:data_size",
-    "../api/units:time_delta",
-    "../api/units:timestamp",
-    "../rtc_base:checks",
-    "../rtc_base:macromagic",
-    "../rtc_base:race_checker",
-    "../rtc_base:random",
-    "../rtc_base/synchronization:mutex",
-  ]
-  absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
+  # TODO(bugs.webrtc.org/14525): Remove target and directly depend on test/network:simulated_network.
+  sources = [ "simulated_network.h" ]
+  deps = [ "../test/network:simulated_network" ]
 }
 
 rtc_source_set("simulated_packet_receiver") {
@@ -448,7 +434,6 @@ rtc_library("fake_network") {
   ]
   deps = [
     ":call_interfaces",
-    ":simulated_network",
     ":simulated_packet_receiver",
     "../api:rtp_parameters",
     "../api:sequence_checker",
@@ -461,6 +446,7 @@ rtc_library("fake_network") {
     "../rtc_base:macromagic",
     "../rtc_base/synchronization:mutex",
     "../system_wrappers",
+    "../test/network:simulated_network",
   ]
 }
 
@@ -620,6 +606,7 @@ if (rtc_include_tests) {
         "../test:test_support",
         "../test:video_test_common",
         "../test:video_test_constants",
+        "../test/network:simulated_network",
         "../video",
         "../video/config:encoder_config",
         "//testing/gtest",
@@ -677,13 +664,9 @@ if (rtc_include_tests) {
   rtc_library("fake_network_pipe_unittests") {
     testonly = true
 
-    sources = [
-      "fake_network_pipe_unittest.cc",
-      "simulated_network_unittest.cc",
-    ]
+    sources = [ "fake_network_pipe_unittest.cc" ]
     deps = [
       ":fake_network",
-      ":simulated_network",
       "../api:simulated_network_api",
       "../api/units:data_rate",
       "../api/units:time_delta",
@@ -692,6 +675,7 @@ if (rtc_include_tests) {
       "../rtc_base:checks",
       "../system_wrappers",
       "../test:test_support",
+      "../test/network:simulated_network",
       "//testing/gtest",
     ]
     absl_deps = [ "//third_party/abseil-cpp/absl/algorithm:container" ]

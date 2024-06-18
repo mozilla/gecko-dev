@@ -11,8 +11,8 @@
 
 #include <utility>
 
-#include "call/simulated_network.h"
 #include "rtc_base/checks.h"
+#include "test/network/simulated_network.h"
 
 namespace webrtc {
 

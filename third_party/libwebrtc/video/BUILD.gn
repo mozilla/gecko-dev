@@ -513,6 +513,7 @@ if (rtc_include_tests) {
       ]
       deps = [
         ":frame_dumping_decoder",
+        "..//test/network:simulated_network",
         "../api:create_frame_generator",
         "../api:fec_controller_api",
         "../api:frame_generator_api",
@@ -534,7 +535,6 @@ if (rtc_include_tests) {
         "../api/video:video_rtp_headers",
         "../api/video_codecs:video_codecs_api",
         "../call:fake_network",
-        "../call:simulated_network",
         "../common_video",
         "../media:media_constants",
         "../media:rtc_audio_video",
@@ -623,6 +623,7 @@ if (rtc_include_tests) {
 
       sources = [ "pc_full_stack_tests.cc" ]
       deps = [
+        "..//test/network:simulated_network",
         "../api:create_network_emulation_manager",
         "../api:create_peer_connection_quality_test_frame_generator",
         "../api:create_peerconnection_quality_test_fixture",
@@ -637,7 +638,6 @@ if (rtc_include_tests) {
         "../api/test/pclf:media_quality_test_params",
         "../api/test/pclf:peer_configurer",
         "../api/video_codecs:video_codecs_api",
-        "../call:simulated_network",
         "../modules/video_coding:webrtc_vp9",
         "../system_wrappers:field_trial",
         "../test:field_trial",
@@ -820,6 +820,7 @@ if (rtc_include_tests) {
       ":video_stream_buffer_controller",
       ":video_stream_encoder_impl",
       ":video_stream_encoder_interface",
+      "..//test/network:simulated_network",
       "../api:array_view",
       "../api:bitrate_allocation",
       "../api:create_frame_generator",
@@ -879,7 +880,6 @@ if (rtc_include_tests) {
       "../call:rtp_interfaces",
       "../call:rtp_receiver",
       "../call:rtp_sender",
-      "../call:simulated_network",
       "../call:simulated_packet_receiver",
       "../call:video_stream_api",
       "../call/adaptation:resource_adaptation",

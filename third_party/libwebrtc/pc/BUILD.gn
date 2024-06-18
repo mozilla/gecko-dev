@@ -2833,6 +2833,7 @@ if (rtc_include_tests && !build_with_chromium) {
     sources = [ "test/svc_e2e_tests.cc" ]
     data = svc_tests_resources
     deps = [
+      "..//test/network:simulated_network",
       "../api:create_network_emulation_manager",
       "../api:create_peer_connection_quality_test_frame_generator",
       "../api:create_peerconnection_quality_test_fixture",
@@ -2848,7 +2849,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "../api/test/pclf:media_quality_test_params",
       "../api/test/pclf:peer_configurer",
       "../api/video_codecs:video_codecs_api",
-      "../call:simulated_network",
       "../modules/video_coding:webrtc_vp9",
       "../modules/video_coding/svc:scalability_mode_util",
       "../rtc_base/containers:flat_map",

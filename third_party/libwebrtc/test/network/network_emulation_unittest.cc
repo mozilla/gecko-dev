@@ -16,7 +16,6 @@
 
 #include "api/test/simulated_network.h"
 #include "api/units/time_delta.h"
-#include "call/simulated_network.h"
 #include "rtc_base/event.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/synchronization/mutex.h"
@@ -24,6 +23,7 @@
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/network/network_emulation_manager.h"
+#include "test/network/simulated_network.h"
 
 namespace webrtc {
 namespace test {

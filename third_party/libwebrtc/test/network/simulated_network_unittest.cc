@@ -7,7 +7,7 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#include "call/simulated_network.h"
+#include "test/network/simulated_network.h"
 
 #include <algorithm>
 #include <map>
