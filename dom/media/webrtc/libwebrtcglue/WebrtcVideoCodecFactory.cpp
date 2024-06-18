@@ -156,7 +156,7 @@ WebrtcVideoEncoderFactory::InternalFactory::Create(
       platformEncoder = createPlatformEncoder();
       encoder = createWebRTCEncoder();
       if (encoder && platformEncoder) {
-        return webrtc::CreateVideoEncoderSoftwareFallbackWrapper(
+        return webrtc::CreateVideoEncoderSoftwareFallbackWrapper(aEnv,
             std::move(encoder), std::move(platformEncoder), false);
       }
       if (platformEncoder) {
