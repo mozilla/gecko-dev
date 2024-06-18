@@ -7,7 +7,6 @@ package org.mozilla.fenix.downloads
 import android.content.Context
 import android.text.method.ScrollingMovementMethod
 import android.view.View
-import android.view.ViewGroup
 import android.webkit.MimeTypeMap
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import mozilla.components.browser.state.state.content.DownloadState
@@ -33,9 +32,6 @@ class DynamicDownloadDialog(
     private val bottomToolbarHeight: Int,
     private val onDismiss: () -> Unit,
 ) {
-
-    private val settings = context.settings()
-
     init {
         setupDownloadDialog()
     }
@@ -53,12 +49,6 @@ class DynamicDownloadDialog(
                         )
                 }
             }
-        }
-
-        if (settings.shouldUseBottomToolbar) {
-            val params: ViewGroup.MarginLayoutParams =
-                binding.root.layoutParams as ViewGroup.MarginLayoutParams
-            params.bottomMargin = bottomToolbarHeight
         }
 
         if (didFail) {
