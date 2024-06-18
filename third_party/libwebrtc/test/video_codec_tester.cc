@@ -574,6 +574,10 @@ class VideoCodecAnalyzer : public VideoCodecTester::VideoCodecStats {
     }
 
     int num_encoded_frames = stream.frame_size_bytes.NumSamples();
+    if (num_encoded_frames == 0) {
+      return stream;
+    }
+
     const Frame& first_frame = frames.front();
 
     Filter filter_all_layers{.min_timestamp_rtp = filter.min_timestamp_rtp,
