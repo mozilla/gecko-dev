@@ -375,17 +375,15 @@ class ProviderTabToSearch extends UrlbarProvider {
         partialMatchEnginesByHost.set(engine.searchUrlDomain, engine);
         // Don't continue here, we are looking for more partial matches.
       }
-      // We also try to match the searchForm domain, because otherwise for an
-      // engine like ebay, we'd check rover.ebay.com, when the user is likely
-      // to visit ebay.LANG. The searchForm URL often points to the main host.
-      let searchFormHost;
-      try {
-        searchFormHost = new URL(engine.searchForm).host;
-      } catch (ex) {
-        // Invalid url or no searchForm.
-      }
-      if (searchFormHost?.includes("." + searchStr)) {
-        partialMatchEnginesByHost.set(searchFormHost, engine);
+      // We also try to match the base domain of the searchUrlDomain,
+      // because otherwise for an engine like rakuten, we'd check pt.afl.rakuten.co.jp
+      // which redirects and is thus not saved in the history resulting in a low score.
+
+      let baseDomain = Services.eTLD.getBaseDomainFromHost(
+        engine.searchUrlDomain
+      );
+      if (baseDomain.startsWith(searchStr)) {
+        partialMatchEnginesByHost.set(baseDomain, engine);
       }
     }
     if (partialMatchEnginesByHost.size) {
