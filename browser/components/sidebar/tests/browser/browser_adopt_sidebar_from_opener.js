@@ -16,16 +16,8 @@ add_task(async function test_adopt_from_window() {
   const { document } = win;
   const sidebar = document.querySelector("sidebar-main");
   ok(sidebar, "Sidebar is shown.");
-  await BrowserTestUtils.waitForCondition(
-    async () => (await sidebar.updateComplete) && sidebar.customizeButton,
-    `The sidebar-main component has fully rendered, and the customize button is present.`
-  );
-
-  // Open customize sidebar
-  const button = sidebar.customizeButton;
-  const promiseFocused = BrowserTestUtils.waitForEvent(win, "SidebarFocused");
-  button.click();
-  await promiseFocused;
+  await sidebar.updateComplete;
+  await toggleSidebarPanel(win, "viewCustomizeSidebar");
 
   // Set width
   let sidebarBox = document.getElementById("sidebar-box");

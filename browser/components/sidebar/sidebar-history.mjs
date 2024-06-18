@@ -169,6 +169,12 @@ export class SidebarHistory extends SidebarPage {
     return html`
       ${this.stylesheet()}
       <div class="container">
+        <sidebar-panel-header
+          data-l10n-id="sidebar-menu-history-header"
+          data-l10n-attrs="heading"
+          view="viewHistorySidebar"
+        >
+        </sidebar-panel-header>
         <div class="history-sort-option">
           <div class="history-sort-option">
             <fxview-search-textbox

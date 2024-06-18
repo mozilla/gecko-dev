@@ -41,10 +41,8 @@
 
 input {
   border: none;
-  padding-block-start: 8px;
-  padding-block-end: 8px;
-  padding-inline-start: 32px;
-  padding-inline-end: 32px;
+  padding: 8px 32px;
+  width: 100%;
 }
 
 .clear-icon {

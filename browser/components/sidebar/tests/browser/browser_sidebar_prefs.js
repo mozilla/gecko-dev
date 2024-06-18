@@ -14,10 +14,7 @@ add_task(async function test_tools_prefs() {
   const { document } = win;
   const sidebar = document.querySelector("sidebar-main");
   ok(sidebar, "Sidebar is shown.");
-  await BrowserTestUtils.waitForCondition(
-    async () => (await sidebar.updateComplete) && sidebar.customizeButton,
-    `The sidebar-main component has fully rendered, and the customize button is present.`
-  );
+  await sidebar.updateComplete;
 
   is(
     Services.prefs.getStringPref("sidebar.main.tools"),
@@ -26,10 +23,7 @@ add_task(async function test_tools_prefs() {
   );
 
   // Open customize sidebar
-  let button = sidebar.customizeButton;
-  let promiseFocused = BrowserTestUtils.waitForEvent(win, "SidebarFocused");
-  button.click();
-  await promiseFocused;
+  await toggleSidebarPanel(win, "viewCustomizeSidebar");
 
   // Set tools
   let customizeDocument = win.SidebarController.browser.contentDocument;
@@ -91,13 +85,7 @@ add_task(async function test_tools_prefs() {
 
   // TO DO: opening the customize category can be removed once bug 1898613 is resolved.
   // Open customize sidebar
-  let newbutton = newSidebar.customizeButton;
-  let newPromiseFocused = BrowserTestUtils.waitForEvent(
-    newWin,
-    "SidebarFocused"
-  );
-  newbutton.click();
-  await newPromiseFocused;
+  await toggleSidebarPanel(newWin, "viewCustomizeSidebar");
 
   let newCustomizeDocument = newWin.SidebarController.browser.contentDocument;
   let newCustomizeComponent =

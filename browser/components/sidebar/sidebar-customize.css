@@ -3,21 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 .container {
-  padding-inline: var(--space-small);
   font-size: 15px;
-}
-
-.customize-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  -moz-context-properties: fill;
-  fill: currentColor;
-  color: currentColor;
-
-  .customize-close-button::part(button) {
-    background-image: url("chrome://global/skin/icons/close-12.svg");
-  }
 }
 
 .customize-firefox-tools {
