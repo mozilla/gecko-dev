@@ -1,209 +1,31 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Tue, 21 May 2024 06:27:00 +0000
-Subject: Bug 1896575 - WebRTC backport: Video capture PipeWire: drop corrupted
- PipeWire buffers r=pehrsons,webrtc-reviewers
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Thu, 23 May 2024 17:28:00 +0000
+Subject: Bug 1897459 - P0 - for BSD do not build physical_socket_server in
+ libwebrtc;r=mjf,webrtc-reviewers
 
-This is a simple backport of an WebRTC upstream change.
+libwebrtc added the use of several non-portable socket options in this code.
+Firefox does not use any of the code in this file, but there is a header dependency chain leading from code that is used.
 
-Upstream commit: cfbd6b0884db2eab893831e7bde5cfe640fe52db
-
-Differential Revision: https://phabricator.services.mozilla.com/D210268
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4efa281b9b917b3b4790ef9ab8bff24fe2f1fd7b
+Differential Revision: https://phabricator.services.mozilla.com/D210858
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4e7b3c485e549e7e35b227b517acadbbad957004
 ---
- .../linux/wayland/shared_screencast_stream.cc | 28 ++++++++++++++-
- .../linux/wayland/shared_screencast_stream.h  |  3 ++
- .../shared_screencast_stream_unittest.cc      | 34 ++++++++++++++++++-
- .../test/test_screencast_stream_provider.cc   | 29 ++++++++++++----
- .../test/test_screencast_stream_provider.h    |  4 ++-
- 5 files changed, 88 insertions(+), 10 deletions(-)
+ rtc_base/BUILD.gn | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-index 473f913466..dbd0f83e64 100644
---- a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-+++ b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-@@ -330,6 +330,19 @@ void SharedScreenCastStreamPrivate::OnStreamProcess(void* data) {
-     return;
-   }
- 
-+  struct spa_meta_header* header =
-+      static_cast<spa_meta_header*>(spa_buffer_find_meta_data(
-+          buffer->buffer, SPA_META_Header, sizeof(*header)));
-+  if (header && (header->flags & SPA_META_HEADER_FLAG_CORRUPTED)) {
-+    RTC_LOG(LS_INFO) << "Dropping corrupted buffer";
-+    if (that->observer_) {
-+      that->observer_->OnBufferCorruptedMetadata();
-+    }
-+    // Queue buffer for reuse; it will not be processed further.
-+    pw_stream_queue_buffer(that->pw_stream_, buffer);
-+    return;
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index ae8b129624..aea7d619b8 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1033,6 +1033,12 @@ rtc_library("threading") {
+     "thread.cc",
+     "thread.h",
+   ]
++  if (is_bsd && build_with_mozilla) {
++    sources -= [
++      "physical_socket_server.cc",
++      "physical_socket_server.h",
++    ]
 +  }
-+
-   that->ProcessBuffer(buffer);
- 
-   pw_stream_queue_buffer(that->pw_stream_, buffer);
-@@ -719,7 +732,20 @@ void SharedScreenCastStreamPrivate::ProcessBuffer(pw_buffer* buffer) {
-     }
-   }
- 
--  if (spa_buffer->datas[0].chunk->size == 0) {
-+  if (spa_buffer->datas[0].chunk->flags & SPA_CHUNK_FLAG_CORRUPTED) {
-+    RTC_LOG(LS_INFO) << "Dropping buffer with corrupted or missing data";
-+    if (observer_) {
-+      observer_->OnBufferCorruptedData();
-+    }
-+    return;
-+  }
-+
-+  if (spa_buffer->datas[0].type == SPA_DATA_MemFd &&
-+      spa_buffer->datas[0].chunk->size == 0) {
-+    RTC_LOG(LS_INFO) << "Dropping buffer with empty data";
-+    if (observer_) {
-+      observer_->OnEmptyBuffer();
-+    }
-     return;
-   }
- 
-diff --git a/modules/desktop_capture/linux/wayland/shared_screencast_stream.h b/modules/desktop_capture/linux/wayland/shared_screencast_stream.h
-index f57e22cb69..1b00e27476 100644
---- a/modules/desktop_capture/linux/wayland/shared_screencast_stream.h
-+++ b/modules/desktop_capture/linux/wayland/shared_screencast_stream.h
-@@ -35,6 +35,9 @@ class RTC_EXPORT SharedScreenCastStream
-     virtual void OnCursorShapeChanged() = 0;
-     virtual void OnDesktopFrameChanged() = 0;
-     virtual void OnFailedToProcessBuffer() = 0;
-+    virtual void OnBufferCorruptedMetadata() = 0;
-+    virtual void OnBufferCorruptedData() = 0;
-+    virtual void OnEmptyBuffer() = 0;
-     virtual void OnStreamConfigured() = 0;
-     virtual void OnFrameRateChanged(uint32_t frame_rate) = 0;
- 
-diff --git a/modules/desktop_capture/linux/wayland/shared_screencast_stream_unittest.cc b/modules/desktop_capture/linux/wayland/shared_screencast_stream_unittest.cc
-index 6a72edd025..72ce01eb26 100644
---- a/modules/desktop_capture/linux/wayland/shared_screencast_stream_unittest.cc
-+++ b/modules/desktop_capture/linux/wayland/shared_screencast_stream_unittest.cc
-@@ -55,6 +55,9 @@ class PipeWireStreamTest : public ::testing::Test,
-   MOCK_METHOD(void, OnCursorShapeChanged, (), (override));
-   MOCK_METHOD(void, OnDesktopFrameChanged, (), (override));
-   MOCK_METHOD(void, OnFailedToProcessBuffer, (), (override));
-+  MOCK_METHOD(void, OnBufferCorruptedMetadata, (), (override));
-+  MOCK_METHOD(void, OnBufferCorruptedData, (), (override));
-+  MOCK_METHOD(void, OnEmptyBuffer, (), (override));
-   MOCK_METHOD(void, OnStreamConfigured, (), (override));
-   MOCK_METHOD(void, OnFrameRateChanged, (uint32_t), (override));
- 
-@@ -103,8 +106,9 @@ TEST_F(PipeWireStreamTest, TestPipeWire) {
-   waitStartStreamingEvent.Wait(kShortWait);
- 
-   rtc::Event frameRetrievedEvent;
--  EXPECT_CALL(*this, OnFrameRecorded).Times(3);
-+  EXPECT_CALL(*this, OnFrameRecorded).Times(6);
-   EXPECT_CALL(*this, OnDesktopFrameChanged)
-+      .Times(3)
-       .WillRepeatedly([&frameRetrievedEvent] { frameRetrievedEvent.Set(); });
- 
-   // Record a frame in FakePipeWireStream
-@@ -156,6 +160,34 @@ TEST_F(PipeWireStreamTest, TestPipeWire) {
-   frameRetrievedEvent.Wait(kShortWait);
-   EXPECT_EQ(RgbaColor(frame->data()), blue_color);
- 
-+  // Check we don't process faulty buffers
-+  rtc::Event corruptedMetadataFrameEvent;
-+  EXPECT_CALL(*this, OnBufferCorruptedMetadata)
-+      .WillOnce([&corruptedMetadataFrameEvent] {
-+        corruptedMetadataFrameEvent.Set();
-+      });
-+
-+  test_screencast_stream_provider_->RecordFrame(
-+      blue_color, TestScreenCastStreamProvider::CorruptedMetadata);
-+  corruptedMetadataFrameEvent.Wait(kShortWait);
-+
-+  rtc::Event corruptedDataFrameEvent;
-+  EXPECT_CALL(*this, OnBufferCorruptedData)
-+      .WillOnce([&corruptedDataFrameEvent] { corruptedDataFrameEvent.Set(); });
-+
-+  test_screencast_stream_provider_->RecordFrame(
-+      blue_color, TestScreenCastStreamProvider::CorruptedData);
-+  corruptedDataFrameEvent.Wait(kShortWait);
-+
-+  rtc::Event emptyFrameEvent;
-+  EXPECT_CALL(*this, OnEmptyBuffer).WillOnce([&emptyFrameEvent] {
-+    emptyFrameEvent.Set();
-+  });
-+
-+  test_screencast_stream_provider_->RecordFrame(
-+      blue_color, TestScreenCastStreamProvider::EmptyData);
-+  emptyFrameEvent.Wait(kShortWait);
-+
-   // Update stream parameters.
-   EXPECT_CALL(*this, OnFrameRateChanged(0))
-       .Times(1)
-diff --git a/modules/desktop_capture/linux/wayland/test/test_screencast_stream_provider.cc b/modules/desktop_capture/linux/wayland/test/test_screencast_stream_provider.cc
-index ee5c17e7d7..10551047a9 100644
---- a/modules/desktop_capture/linux/wayland/test/test_screencast_stream_provider.cc
-+++ b/modules/desktop_capture/linux/wayland/test/test_screencast_stream_provider.cc
-@@ -131,7 +131,8 @@ TestScreenCastStreamProvider::~TestScreenCastStreamProvider() {
-   }
- }
- 
--void TestScreenCastStreamProvider::RecordFrame(RgbaColor rgba_color) {
-+void TestScreenCastStreamProvider::RecordFrame(RgbaColor rgba_color,
-+                                               FrameDefect frame_defect) {
-   const char* error;
-   if (pw_stream_get_state(pw_stream_, &error) != PW_STREAM_STATE_STREAMING) {
-     if (error) {
-@@ -163,13 +164,27 @@ void TestScreenCastStreamProvider::RecordFrame(RgbaColor rgba_color) {
-   spa_data->chunk->size = height_ * stride;
-   spa_data->chunk->stride = stride;
- 
--  uint32_t color = rgba_color.ToUInt32();
--  for (uint32_t i = 0; i < height_; i++) {
--    uint32_t* column = reinterpret_cast<uint32_t*>(data);
--    for (uint32_t j = 0; j < width_; j++) {
--      column[j] = color;
-+  // Produce a frame with given defect
-+  if (frame_defect == EmptyData) {
-+    spa_data->chunk->size = 0;
-+  } else if (frame_defect == CorruptedData) {
-+    spa_data->chunk->flags = SPA_CHUNK_FLAG_CORRUPTED;
-+  } else if (frame_defect == CorruptedMetadata) {
-+    struct spa_meta_header* spa_header =
-+        static_cast<spa_meta_header*>(spa_buffer_find_meta_data(
-+            spa_buffer, SPA_META_Header, sizeof(spa_meta_header)));
-+    if (spa_header) {
-+      spa_header->flags = SPA_META_HEADER_FLAG_CORRUPTED;
-+    }
-+  } else {
-+    uint32_t color = rgba_color.ToUInt32();
-+    for (uint32_t i = 0; i < height_; i++) {
-+      uint32_t* column = reinterpret_cast<uint32_t*>(data);
-+      for (uint32_t j = 0; j < width_; j++) {
-+        column[j] = color;
-+      }
-+      data += stride;
-     }
--    data += stride;
-   }
- 
-   pw_stream_queue_buffer(pw_stream_, buffer);
-diff --git a/modules/desktop_capture/linux/wayland/test/test_screencast_stream_provider.h b/modules/desktop_capture/linux/wayland/test/test_screencast_stream_provider.h
-index d893aa63ab..f63a2e647c 100644
---- a/modules/desktop_capture/linux/wayland/test/test_screencast_stream_provider.h
-+++ b/modules/desktop_capture/linux/wayland/test/test_screencast_stream_provider.h
-@@ -35,6 +35,8 @@ class TestScreenCastStreamProvider {
-     virtual ~Observer() = default;
-   };
- 
-+  enum FrameDefect { None, EmptyData, CorruptedData, CorruptedMetadata };
-+
-   explicit TestScreenCastStreamProvider(Observer* observer,
-                                         uint32_t width,
-                                         uint32_t height);
-@@ -42,7 +44,7 @@ class TestScreenCastStreamProvider {
- 
-   uint32_t PipeWireNodeId();
- 
--  void RecordFrame(RgbaColor rgba_color);
-+  void RecordFrame(RgbaColor rgba_color, FrameDefect frame_defect = None);
-   void StartStreaming();
-   void StopStreaming();
- 
+   absl_deps = [
+     "//third_party/abseil-cpp/absl/algorithm:container",
+     "//third_party/abseil-cpp/absl/base:core_headers",
