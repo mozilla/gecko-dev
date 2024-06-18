@@ -9705,6 +9705,11 @@ static bool StartSerializingShadowDOM(
   }
 
   aBuilder.Append(u">");
+
+  if (!shadow->HasChildren()) {
+    aBuilder.Append(u"</template>");
+    return false;
+  }
   return true;
 }
 
