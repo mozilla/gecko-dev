@@ -766,7 +766,6 @@ void LibaomAv1Encoder::Encode(
         result.bitstream_data = EncodedImageBuffer::Create(
             static_cast<uint8_t*>(pkt->data.frame.buf), pkt->data.frame.sz);
         result.spatial_id = sid;
-        result.referenced_buffers = settings.reference_buffers;
         break;
       }
     }

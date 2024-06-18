@@ -200,7 +200,7 @@ void SimpleEncoderWrapper::Encode(
         res.frame_type = data->frame_type;
         res.bitstream_data = std::move(data->bitstream_data);
         res.generic_frame_info = infos[data->spatial_id];
-        if (data->referenced_buffers.empty()) {
+        if (res.frame_type == FrameType::kKeyframe) {
           // Keyframe
           res.dependency_structure = ds;
         }
