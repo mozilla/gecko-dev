@@ -15,6 +15,7 @@ add_setup(async function () {
     set: [
       ["extensions.formautofill.addresses.capture.enabled", true],
       ["extensions.formautofill.addresses.supported", "on"],
+      ["extensions.formautofill.addresses.capture.requiredFields", ""],
     ],
   });
 });
@@ -235,102 +236,5 @@ add_task(
 
     await expectSavedAddresses(2);
     await removeAllRecords();
-  }
-);
-
-add_task(
-  async function test_doorhanger_shown_when_contain_all_required_fields() {
-    await SpecialPowers.pushPrefEnv({
-      set: [
-        [
-          "extensions.formautofill.addresses.capture.requiredFields",
-          "street-address,postal-code,address-level1,address-level2",
-        ],
-      ],
-    });
-
-    await BrowserTestUtils.withNewTab(
-      { gBrowser, url: ADDRESS_FORM_URL },
-      async function (browser) {
-        let onPopupShown = waitForPopupShown();
-
-        await focusUpdateSubmitForm(browser, {
-          focusSelector: "#street-address",
-          newValues: {
-            "#street-address": "32 Vassar Street\nMIT Room 32-G524",
-            "#postal-code": "02139",
-            "#address-level2": "Cambridge",
-            "#address-level1": "MA",
-          },
-        });
-
-        await onPopupShown;
-        await clickDoorhangerButton(MAIN_BUTTON, 0);
-      }
-    );
-
-    await expectSavedAddresses(1);
-    await SpecialPowers.popPrefEnv();
-  }
-);
-
-add_task(
-  async function test_doorhanger_not_shown_when_contain_required_invalid_fields() {
-    await SpecialPowers.pushPrefEnv({
-      set: [
-        [
-          "extensions.formautofill.addresses.capture.requiredFields",
-          "street-address,postal-code,address-level1,address-level2",
-        ],
-      ],
-    });
-
-    await BrowserTestUtils.withNewTab(
-      { gBrowser, url: ADDRESS_FORM_URL },
-      async function (browser) {
-        await focusUpdateSubmitForm(browser, {
-          focusSelector: "#street-address",
-          newValues: {
-            "#street-address": "32 Vassar Street\nMIT Room 32-G524",
-            "#postal-code": "000", // postal-code is invalid
-            "#address-level2": "Cambridge",
-            "#address-level1": "MA",
-          },
-        });
-
-        is(PopupNotifications.panel.state, "closed", "Doorhanger is hidden");
-      }
-    );
-  }
-);
-
-add_task(
-  async function test_doorhanger_not_shown_when_not_contain_all_required_fields() {
-    await SpecialPowers.pushPrefEnv({
-      set: [
-        [
-          "extensions.formautofill.addresses.capture.requiredFields",
-          "street-address,postal-code,address-level1,address-level2",
-        ],
-      ],
-    });
-
-    await BrowserTestUtils.withNewTab(
-      { gBrowser, url: ADDRESS_FORM_URL },
-      async function (browser) {
-        await focusUpdateSubmitForm(browser, {
-          focusSelector: "#street-address",
-          newValues: {
-            "#given-name": "John",
-            "#family-name": "Doe",
-            "#postal-code": "02139",
-            "#address-level2": "Cambridge",
-            "#address-level1": "MA",
-          },
-        });
-
-        is(PopupNotifications.panel.state, "closed", "Doorhanger is hidden");
-      }
-    );
   }
 );

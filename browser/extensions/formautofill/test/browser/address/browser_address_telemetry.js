@@ -260,6 +260,7 @@ add_setup(async function () {
       [ENABLED_AUTOFILL_ADDRESSES_PREF, true],
       [AUTOFILL_ADDRESSES_AVAILABLE_PREF, "on"],
       ["extensions.formautofill.addresses.capture.enabled", true],
+      ["extensions.formautofill.addresses.capture.requiredFields", ""],
     ],
   });
 

@@ -9,6 +9,10 @@ add_setup(async function () {
       ["extensions.formautofill.addresses.capture.enabled", true],
       ["extensions.formautofill.addresses.supported", "detect"],
       ["extensions.formautofill.addresses.supportedCountries", "US,CA"],
+      [
+        "extensions.formautofill.addresses.capture.requiredFields",
+        "street-address",
+      ],
     ],
   });
 });

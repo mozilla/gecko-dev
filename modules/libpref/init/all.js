@@ -4134,8 +4134,6 @@ pref("extensions.formautofill.addresses.capture.enabled", true);
   // Whether address autofill is enabled or not ( this is set via Nimbus )
   pref("extensions.formautofill.addresses.experiments.enabled", false);
 #endif
-// Defies the required address form fields to trigger the display of the address capture doorhanger
-pref("extensions.formautofill.addresses.capture.requiredFields", "street-address,postal-code,address-level1,address-level2");
 pref("extensions.formautofill.addresses.ignoreAutocompleteOff", true);
 // Supported countries need to follow ISO 3166-1 to align with "browser.search.region"
 pref("extensions.formautofill.addresses.supportedCountries", "US,CA");

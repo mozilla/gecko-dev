@@ -69,6 +69,7 @@ add_setup(async function () {
     set: [
       ["extensions.formautofill.addresses.capture.enabled", true],
       ["extensions.formautofill.addresses.supported", "on"],
+      ["extensions.formautofill.addresses.capture.requiredFields", ""],
     ],
   });
 });
