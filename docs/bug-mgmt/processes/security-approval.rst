@@ -101,10 +101,10 @@ explicit approval if:
 
 If it meets the above criteria, developers do not need to ask for sec-approval.
 
-In all other cases, developers should ask for sec-approval.
-Set the sec-approval flag to '?' on the patch when it is ready to be landed.
-You will find these flags in Bugzilla using the "Details" links in the
-Bugzilla attachment table (not directly on phabricator at time of writing).
+In all other cases, developers should ask for sec-approval. When a patch is
+ready to be landed, click on the "Details" link for it in the Bugzilla
+attachment table (not directly on phabricator at time of writing), then set the
+sec-approval flag to '?'.
 
 If developers are unsure about a bug and it has a patch ready, just
 request sec-approval anyway and move on. Don't overthink it!
