@@ -211,6 +211,7 @@ serp:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1816730
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1816735
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1849371
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901839
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1814773
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1816730
@@ -243,11 +244,15 @@ serp:
           `ad_link`,
           `ad_sidebar`,
           `ad_sitelink`,
+          `ad_uncategorized` (added in Firefox 129),
           `cookie_banner`,
           `incontent_searchbox`,
           `non_ads_link`,
           `refined_search_buttons`,
           `shopping_tab`.
+          `ad_uncategorized` are likely the result of an engagement with an ad
+          loaded after the page was categorized for components (e.g. infinite
+          scrolling).
         type: string
 
   ad_impression:

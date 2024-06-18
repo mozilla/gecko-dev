@@ -109,6 +109,7 @@ export const SearchSERPTelemetryUtils = {
     AD_LINK: "ad_link",
     AD_SIDEBAR: "ad_sidebar",
     AD_SITELINK: "ad_sitelink",
+    AD_UNCATEGORIZED: "ad_uncategorized",
     COOKIE_BANNER: "cookie_banner",
     INCONTENT_SEARCHBOX: "incontent_searchbox",
     NON_ADS_LINK: "non_ads_link",
@@ -136,6 +137,7 @@ const AD_COMPONENTS = [
   SearchSERPTelemetryUtils.COMPONENTS.AD_LINK,
   SearchSERPTelemetryUtils.COMPONENTS.AD_SIDEBAR,
   SearchSERPTelemetryUtils.COMPONENTS.AD_SITELINK,
+  SearchSERPTelemetryUtils.COMPONENTS.AD_UNCATEGORIZED,
 ];
 
 /**
@@ -1559,10 +1561,13 @@ class ContentHandler {
           "Find component for URL"
         );
 
-        // Default value for URLs that don't match any components categorized
-        // on the page.
+        // If no component was found, it's possible the link was added after
+        // components were categorized.
         if (!type) {
-          type = SearchSERPTelemetryUtils.COMPONENTS.NON_ADS_LINK;
+          let isAd = info.extraAdServersRegexps?.some(regex => regex.test(url));
+          type = isAd
+            ? SearchSERPTelemetryUtils.COMPONENTS.AD_UNCATEGORIZED
+            : SearchSERPTelemetryUtils.COMPONENTS.NON_ADS_LINK;
         }
 
         if (
