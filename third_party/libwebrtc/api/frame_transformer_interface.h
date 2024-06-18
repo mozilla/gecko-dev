@@ -121,6 +121,18 @@ class FrameTransformerInterface : public rtc::RefCountInterface {
   ~FrameTransformerInterface() override = default;
 };
 
+// An interface implemented by classes that can host a transform.
+// Currently this is implemented by the RTCRtpSender and RTCRtpReceiver.
+class FrameTransformerHost {
+ public:
+  virtual ~FrameTransformerHost() {}
+  virtual void SetFrameTransformer(
+      rtc::scoped_refptr<FrameTransformerInterface> frame_transformer) = 0;
+  // TODO: bugs.webrtc.org/15929 - To be added:
+  // virtual AddIncomingMediaType(RtpCodec codec) = 0;
+  // virtual AddOutgoingMediaType(RtpCodec codec) = 0;
+};
+
 }  // namespace webrtc
 
 #endif  // API_FRAME_TRANSFORMER_INTERFACE_H_

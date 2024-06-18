@@ -85,7 +85,7 @@ class MockRtpSenderInternal : public RtpSenderInternal {
               (),
               (const, override));
   MOCK_METHOD(void,
-              SetEncoderToPacketizerFrameTransformer,
+              SetFrameTransformer,
               (rtc::scoped_refptr<FrameTransformerInterface>),
               (override));
   MOCK_METHOD(void,
