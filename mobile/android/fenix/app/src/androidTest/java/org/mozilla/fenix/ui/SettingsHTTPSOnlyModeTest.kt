@@ -6,7 +6,6 @@ package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -35,11 +34,6 @@ class SettingsHTTPSOnlyModeTest : TestSetup() {
         AndroidComposeTestRule(
             HomeActivityIntentTestRule.withDefaultSettingsOverrides(),
         ) { it.activity }
-
-    @Before
-    fun setup() {
-        appContext.settings().preferences.edit().putInt("dom.security.https_first", false).apply()
-    }
 
     // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1724825
     @Test

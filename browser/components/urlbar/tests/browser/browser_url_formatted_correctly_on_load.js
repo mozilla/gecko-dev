@@ -28,10 +28,8 @@ add_task(async function test_url_formatted_correctly_on_page_load() {
 
   let onValueChangeCalledAtLeastOnce = false;
   let onValueChanged = _ => {
-    if (gURLBar.value !== "") {
-      is(gURLBar.value, DECODED_PAGE, "Value is decoded.");
-      onValueChangeCalledAtLeastOnce = true;
-    }
+    is(gURLBar.value, DECODED_PAGE, "Value is decoded.");
+    onValueChangeCalledAtLeastOnce = true;
   };
 
   gURLBar.inputField.addEventListener("ValueChange", onValueChanged);
@@ -39,17 +37,18 @@ add_task(async function test_url_formatted_correctly_on_page_load() {
     gURLBar.inputField.removeEventListener("ValueChange", onValueChanged);
   });
 
-  await BrowserTestUtils.withNewTab("about:blank", async function (browser) {
-    BrowserTestUtils.startLoadingURIString(browser, PUNYCODE_PAGE);
-    // Check that whenever the value of the urlbar is changed, the correct
-    // decoded punycode url is used.
-    await BrowserTestUtils.browserLoaded(browser, false, null, true);
+  BrowserTestUtils.startLoadingURIString(gBrowser, PUNYCODE_PAGE);
+  // Check that whenever the value of the urlbar is changed, the correct
+  // decoded punycode url is used.
+  await BrowserTestUtils.browserLoaded(gBrowser, false, null, true);
 
-    ok(
-      onValueChangeCalledAtLeastOnce,
-      "OnValueChanged of UrlbarInput was called at least once."
-    );
-    // Check that the final value is decoded punycode as well.
-    is(gURLBar.value, DECODED_PAGE, "Final Urlbar value is correct");
-  });
+  ok(
+    onValueChangeCalledAtLeastOnce,
+    "OnValueChanged of UrlbarInput was called at least once."
+  );
+  // Check that the final value is decoded punycode as well.
+  is(gURLBar.value, DECODED_PAGE, "Final Urlbar value is correct");
+
+  // Cleanup.
+  SpecialPowers.popPrefEnv();
 });

@@ -13,11 +13,10 @@
 "use strict";
 
 add_setup(async () => {
+  // TODO bug 1799344: remove this when the pref is true by default.
   await SpecialPowers.pushPrefEnv({
     "set": [
-      // TODO bug 1799344: remove this when the pref is true by default.
       ["extensions.openPopupWithoutUserGesture.enabled", true],
-      ["dom.security.https_first", false]
     ],
   });
 });

@@ -11,7 +11,6 @@ import android.view.View
 import androidx.test.filters.MediumTest
 import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
 import org.junit.Assume.assumeThat
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -45,15 +44,6 @@ class AutofillDelegateTest : BaseSessionTest() {
             "#oop" -> createTestUrl(FORMS_XORIGIN_HTML_PATH)
             else -> throw IllegalStateException()
         }
-    }
-
-    @Before
-    fun setup() {
-        sessionRule.setPrefsUntilTestEnd(
-            mapOf(
-                "dom.security.https_first" to false,
-            ),
-        )
     }
 
     @Test fun autofillCommit() {

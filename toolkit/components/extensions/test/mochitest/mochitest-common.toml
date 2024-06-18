@@ -595,7 +595,6 @@ https_first_disabled = true
 skip-if = ["os == 'android'"] # Bug 1845906 (skip-if added for Fennec)
 
 ["test_ext_webrequest_worker.html"]
-https_first_disabled = true
 
 ["test_ext_window_postMessage.html"]
 skip-if = [
