@@ -1026,6 +1026,11 @@ nscoord nsListControlFrame::CalcFallbackRowBSize(float aFontSizeInflation) {
 
 nscoord nsListControlFrame::CalcIntrinsicBSize(nscoord aBSizeOfARow,
                                                int32_t aNumberOfOptions) {
+  if (Style()->StyleUIReset()->mFieldSizing == StyleFieldSizing::Content) {
+    int32_t length = GetNumberOfRows();
+    return length * aBSizeOfARow;
+  }
+
   mNumDisplayRows = Select().Size();
   if (mNumDisplayRows < 1) {
     mNumDisplayRows = 4;
