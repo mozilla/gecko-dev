@@ -22,7 +22,6 @@
 #include "api/environment/environment.h"
 #include "api/fec_controller_override.h"
 #include "api/field_trials_view.h"
-#include "api/transport/field_trial_based_config.h"
 #include "api/video/i420_buffer.h"
 #include "api/video/video_bitrate_allocation.h"
 #include "api/video/video_frame.h"
@@ -549,15 +548,6 @@ std::unique_ptr<VideoEncoder> CreateVideoEncoderSoftwareFallbackWrapper(
   return std::make_unique<VideoEncoderSoftwareFallbackWrapper>(
       env.field_trials(), std::move(sw_fallback_encoder), std::move(hw_encoder),
       prefer_temporal_support);
-}
-
-std::unique_ptr<VideoEncoder> CreateVideoEncoderSoftwareFallbackWrapper(
-    std::unique_ptr<VideoEncoder> sw_fallback_encoder,
-    std::unique_ptr<VideoEncoder> hw_encoder,
-    bool prefer_temporal_support) {
-  return std::make_unique<VideoEncoderSoftwareFallbackWrapper>(
-      FieldTrialBasedConfig(), std::move(sw_fallback_encoder),
-      std::move(hw_encoder), prefer_temporal_support);
 }
 
 }  // namespace webrtc

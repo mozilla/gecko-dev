@@ -26,13 +26,6 @@ namespace webrtc {
 // |bool prefer_temporal_support| indicates that if the software fallback
 // encoder supports temporal layers but the hardware encoder does not, a
 // fallback should be forced even if the encoder otherwise works.
-// TODO: bugs.webrtc.org/15860 - Delete after 2024-04-22.
-[[deprecated]] RTC_EXPORT std::unique_ptr<VideoEncoder>
-CreateVideoEncoderSoftwareFallbackWrapper(
-    std::unique_ptr<VideoEncoder> sw_fallback_encoder,
-    std::unique_ptr<VideoEncoder> hw_encoder,
-    bool prefer_temporal_support);
-
 RTC_EXPORT std::unique_ptr<VideoEncoder>
 CreateVideoEncoderSoftwareFallbackWrapper(
     const Environment& env,
