@@ -16,10 +16,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/9314046d89ebc0836
  2 files changed, 4 insertions(+), 3 deletions(-)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_mac.mm b/modules/desktop_capture/mac/screen_capturer_mac.mm
-index a2370ed695..785a15dfa4 100644
+index 3b4edd230b..c734d72c75 100644
 --- a/modules/desktop_capture/mac/screen_capturer_mac.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_mac.mm
-@@ -276,7 +276,8 @@ bool ScreenCapturerMac::GetSourceList(SourceList* screens) {
+@@ -279,7 +279,8 @@ bool ScreenCapturerMac::GetSourceList(SourceList* screens) {
    for (MacDisplayConfigurations::iterator it = desktop_config_.displays.begin();
         it != desktop_config_.displays.end();
         ++it) {
