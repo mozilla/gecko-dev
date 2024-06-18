@@ -102,6 +102,7 @@ def old_configure_options(*options):
     "--libdir",
     "--prefix",
     "--with-branding",
+    "--with-distribution-id",
     "--x-includes",
     "--x-libraries",
 )
