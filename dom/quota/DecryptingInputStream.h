@@ -85,8 +85,6 @@ class DecryptingInputStreamBase : public nsIInputStream,
   size_t mNextByte = 0;
 
   LazyInitializedOnceNotNull<const size_t> mBlockSize;
-
-  size_t mLastBlockLength = 0;
 };
 
 // Wraps another nsIInputStream which contains data written using
@@ -126,8 +124,7 @@ class DecryptingInputStream final : public DecryptingInputStreamBase {
   ~DecryptingInputStream();
 
   // Parse the next chunk of data.  This populates mPlainBuffer (until the
-  // stream position is at EOF).  This should not be called when mPlainBuffer
-  // already contains data.
+  // stream position is at EOF).
   nsresult ParseNextChunk(uint32_t* aBytesReadOut);
 
   // Convenience routine to Read() from the base stream until we get
