@@ -321,7 +321,7 @@ class SSLAdapterTestDummyServer : public sigslot::has_slots<> {
     DoHandshake(server_socket_->Accept(nullptr));
   }
 
-  void OnSSLStreamAdapterEvent(rtc::StreamInterface* stream, int sig, int err) {
+  void OnSSLStreamAdapterEvent(int sig, int err) {
     if (sig & rtc::SE_READ) {
       uint8_t buffer[4096] = "";
       size_t read;
@@ -329,7 +329,7 @@ class SSLAdapterTestDummyServer : public sigslot::has_slots<> {
 
       // Read data received from the client and store it in our internal
       // buffer.
-      rtc::StreamResult r = stream->Read(buffer, read, error);
+      rtc::StreamResult r = ssl_stream_adapter_->Read(buffer, read, error);
       if (r == rtc::SR_SUCCESS) {
         buffer[read] = '\0';
         // Here we assume that the buffer is interpretable as string.
@@ -365,8 +365,8 @@ class SSLAdapterTestDummyServer : public sigslot::has_slots<> {
 
     ssl_stream_adapter_->StartSSL();
 
-    ssl_stream_adapter_->SignalEvent.connect(
-        this, &SSLAdapterTestDummyServer::OnSSLStreamAdapterEvent);
+    ssl_stream_adapter_->SetEventCallback(
+        [this](int events, int err) { OnSSLStreamAdapterEvent(events, err); });
   }
 
   const rtc::SSLMode ssl_mode_;

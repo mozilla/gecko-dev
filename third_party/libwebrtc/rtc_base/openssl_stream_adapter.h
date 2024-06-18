@@ -148,7 +148,7 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter,
     SSL_CLOSED       // Clean close
   };
 
-  void OnEvent(StreamInterface* stream, int events, int err);
+  void OnEvent(int events, int err);
 
   void PostEvent(int events, int err);
   void SetTimeout(int delay_ms);

@@ -296,7 +296,8 @@ OpenSSLStreamAdapter::OpenSSLStreamAdapter(
 #endif
       ssl_mode_(SSL_MODE_TLS),
       ssl_max_version_(SSL_PROTOCOL_TLS_12) {
-  stream_->SignalEvent.connect(this, &OpenSSLStreamAdapter::OnEvent);
+  stream_->SetEventCallback(
+      [this](int events, int err) { OnEvent(events, err); });
 }
 
 OpenSSLStreamAdapter::~OpenSSLStreamAdapter() {
@@ -741,13 +742,10 @@ StreamState OpenSSLStreamAdapter::GetState() const {
   // not reached
 }
 
-void OpenSSLStreamAdapter::OnEvent(StreamInterface* stream,
-                                   int events,
-                                   int err) {
+void OpenSSLStreamAdapter::OnEvent(int events, int err) {
   RTC_DCHECK_RUN_ON(&callback_sequence_);
   int events_to_signal = 0;
   int signal_error = 0;
-  RTC_DCHECK(stream == stream_.get());
 
   if ((events & SE_OPEN)) {
     RTC_DLOG(LS_VERBOSE) << "OpenSSLStreamAdapter::OnEvent SE_OPEN";

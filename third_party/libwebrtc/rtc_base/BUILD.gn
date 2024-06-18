@@ -1500,6 +1500,8 @@ rtc_library("stream") {
     "system:rtc_export",
     "third_party/sigslot",
   ]
+
+  absl_deps = [ "//third_party/abseil-cpp/absl/functional:any_invocable" ]
 }
 
 rtc_library("rtc_certificate_generator") {
@@ -2171,6 +2173,7 @@ if (rtc_include_tests) {
           "ssl_identity_unittest.cc",
           "ssl_stream_adapter_unittest.cc",
         ]
+        deps += [ ":callback_list" ]
       }
       absl_deps = [
         "//third_party/abseil-cpp/absl/algorithm:container",

@@ -1050,7 +1050,7 @@ index b8345841fa..7289dbe0a8 100644
          "/config/external/nspr",
          "/nsprpub/lib/ds",
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index eb089fc8c2..5c83ceb4e6 100644
+index fd94cff373..45ed15e39a 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -334,6 +334,7 @@ rtc_library("sample_counter") {
@@ -1181,7 +1181,7 @@ index eb089fc8c2..5c83ceb4e6 100644
  
  rtc_library("crc32") {
    sources = [
-@@ -1473,6 +1493,7 @@ rtc_library("stream") {
+@@ -1475,6 +1495,7 @@ rtc_library("stream") {
  }
  
  rtc_library("rtc_certificate_generator") {
@@ -1189,7 +1189,7 @@ index eb089fc8c2..5c83ceb4e6 100644
    visibility = [ "*" ]
    sources = [
      "rtc_certificate_generator.cc",
-@@ -1490,8 +1511,10 @@ rtc_library("rtc_certificate_generator") {
+@@ -1492,8 +1513,10 @@ rtc_library("rtc_certificate_generator") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -1200,7 +1200,7 @@ index eb089fc8c2..5c83ceb4e6 100644
    visibility = [ "*" ]
    sources = [
      "helpers.cc",
-@@ -1592,6 +1615,7 @@ rtc_library("ssl") {
+@@ -1594,6 +1617,7 @@ rtc_library("ssl") {
      deps += [ ":win32" ]
    }
  }
@@ -1208,7 +1208,7 @@ index eb089fc8c2..5c83ceb4e6 100644
  
  rtc_library("crypt_string") {
    sources = [
-@@ -2158,7 +2182,7 @@ if (rtc_include_tests) {
+@@ -2161,7 +2185,7 @@ if (rtc_include_tests) {
    }
  }
  
