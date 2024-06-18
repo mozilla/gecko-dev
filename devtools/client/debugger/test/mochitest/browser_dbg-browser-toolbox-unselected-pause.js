@@ -41,7 +41,7 @@ add_task(async function () {
     this.selectors = _selectors;
   });
 
-  addTab("data:text/html,<script>debugger;</script>");
+  const onTabOpened = addTab("data:text/html,<script>debugger;</script>");
 
   // The debugger should automatically be selected.
   await ToolboxTask.spawn(null, async () => {
@@ -64,4 +64,7 @@ add_task(async function () {
   ok(true, "Paused in new tab");
 
   await ToolboxTask.destroy();
+
+  // Wait for the tab to resume and finish loading after the browser toolbox is closed
+  await onTabOpened;
 });
