@@ -543,6 +543,21 @@ fi
 AC_SUBST(MOZ_BRANDING_DIRECTORY)
 
 dnl ========================================================
+dnl = Distribution ID
+dnl ========================================================
+MOZ_ARG_WITH_STRING(distribution-id,
+[  --with-distribution-id=ID
+                          Set distribution-specific id (default=org.mozilla)],
+[ val=`echo $withval`
+    MOZ_DISTRIBUTION_ID="$val"])
+
+if test -z "$MOZ_DISTRIBUTION_ID"; then
+   MOZ_DISTRIBUTION_ID="org.mozilla"
+fi
+
+AC_SUBST(MOZ_DISTRIBUTION_ID)
+
+dnl ========================================================
 dnl = Enable code optimization. ON by default.
 dnl ========================================================
 
