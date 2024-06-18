@@ -28,7 +28,6 @@
 #include "net/dcsctp/packet/data.h"
 #include "net/dcsctp/packet/parameter/outgoing_ssn_reset_request_parameter.h"
 #include "net/dcsctp/packet/parameter/reconfiguration_response_parameter.h"
-#include "net/dcsctp/public/dcsctp_handover_state.h"
 #include "net/dcsctp/public/dcsctp_message.h"
 #include "net/dcsctp/rx/reassembly_streams.h"
 #include "rtc_base/containers/flat_set.h"
@@ -153,10 +152,6 @@ class ReassemblyQueue {
 
   // If present, "deferred reset processing" mode is active.
   absl::optional<DeferredResetStreams> deferred_reset_streams_;
-
-  // Contains the last request sequence number of the
-  // OutgoingSSNResetRequestParameter that was performed.
-  ReconfigRequestSN last_completed_reset_req_seq_nbr_;
 
   // The number of "payload bytes" that are in this queue, in total.
   size_t queued_bytes_ = 0;
