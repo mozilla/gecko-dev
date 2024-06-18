@@ -645,6 +645,7 @@ if (rtc_include_tests) {
       "../api/crypto:options",
       "../api/transport:bitrate_settings",
       "../modules/pacing",
+      "../modules/rtp_rtcp",
       "../rtc_base:network_route",
       "../rtc_base:rate_limiter",
       "../rtc_base/network:sent_packet",
