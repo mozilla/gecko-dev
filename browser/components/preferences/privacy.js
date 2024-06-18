@@ -843,6 +843,13 @@ var gPrivacyPane = {
       }
     }
 
+    // Bug 1900672
+    // When the mode is set to 5, clear the pref to ensure that
+    // network.trr.uri is set to fallbackProviderURIwhen the mode is set to 2 or 3 afterwards
+    if (value == Ci.nsIDNSService.MODE_TRROFF) {
+      Services.prefs.clearUserPref("network.trr.uri");
+    }
+
     gPrivacyPane.updateDoHStatus();
   },
 

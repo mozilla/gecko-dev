@@ -729,32 +729,32 @@ let testVariations = [
   // Attempt to select NextDNS with DoH not enabled
   // from mode 5 to 3
   {
-    name: "Select NextDNS as TRR provider in mode 5_2",
-    [TRR_MODE_PREF]: 5,
-    selectResolver: SECOND_RESOLVER_VALUE,
-    expectedFinalUriPref: SECOND_RESOLVER_VALUE,
-  },
-  // should maintain the uri pref set
-  {
-    name: "maintain NextDNS mode 3 from mode 5",
-    [TRR_MODE_PREF]: 3,
-    [TRR_URI_PREF]: SECOND_RESOLVER_VALUE,
-    expectedResolverListValue: SECOND_RESOLVER_VALUE,
-    expectedFinalUriPref: SECOND_RESOLVER_VALUE,
-  },
-  {
     name: "Select NextDNS as TRR provider in mode 5",
     [TRR_MODE_PREF]: 5,
     selectResolver: SECOND_RESOLVER_VALUE,
     expectedFinalUriPref: SECOND_RESOLVER_VALUE,
   },
-  // should maintain the uri pref set
   {
-    name: "maintain NextDNS mode 2 from mode 5",
+    name: "return to default from NextDNS_2",
     [TRR_MODE_PREF]: 2,
     [TRR_URI_PREF]: SECOND_RESOLVER_VALUE,
     expectedResolverListValue: SECOND_RESOLVER_VALUE,
+    selectResolver: DEFAULT_RESOLVER_VALUE,
+    expectedFinalUriPref: FIRST_RESOLVER_VALUE,
+  },
+  {
+    name: "Select NextDNS as TRR provider in mode 5_2",
+    [TRR_MODE_PREF]: 5,
+    selectResolver: SECOND_RESOLVER_VALUE,
     expectedFinalUriPref: SECOND_RESOLVER_VALUE,
+  },
+  {
+    name: "return to default from NextDNS_3",
+    [TRR_MODE_PREF]: 2,
+    [TRR_URI_PREF]: SECOND_RESOLVER_VALUE,
+    expectedResolverListValue: SECOND_RESOLVER_VALUE,
+    selectResolver: DEFAULT_RESOLVER_VALUE,
+    expectedFinalUriPref: FIRST_RESOLVER_VALUE,
   },
   // test that selecting Custom, when we have a TRR_CUSTOM_URI_PREF subsequently changes TRR_URI_PREF
   {
