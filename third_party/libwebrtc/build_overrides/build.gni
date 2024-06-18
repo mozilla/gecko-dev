@@ -59,6 +59,8 @@ declare_args() {
   # purposes. In any case, it doesn't depend on //third_party/perfetto which
   # is used for base tracing, so this feature is disabled.
   enable_base_tracing = false
+
+  # TODO(b/336718643): Remove use_perfetto_client_library_flag.
   use_perfetto_client_library = false
   use_perfetto_trace_processor = false
 
