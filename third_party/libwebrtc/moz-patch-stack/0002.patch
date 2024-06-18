@@ -790,10 +790,10 @@ index de68885519..099b0be1a3 100644
    method_ = new_method;
  }
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.cc b/modules/rtp_rtcp/source/rtp_header_extensions.cc
-index b77c293d6e..5ade66d83b 100644
+index 43770a728a..bcdc9a036b 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.cc
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.cc
-@@ -440,6 +440,45 @@ bool PlayoutDelayLimits::Write(rtc::ArrayView<uint8_t> data,
+@@ -423,6 +423,45 @@ bool PlayoutDelayLimits::Write(rtc::ArrayView<uint8_t> data,
    return true;
  }
  
@@ -840,10 +840,10 @@ index b77c293d6e..5ade66d83b 100644
  //
  // E.g. default video or screenshare.
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
-index 941b79a536..1ca9c7fc08 100644
+index 23a0aec558..88f002a7b7 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.h
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
-@@ -314,6 +314,21 @@ class ColorSpaceExtension {
+@@ -302,6 +302,21 @@ class ColorSpaceExtension {
    static size_t WriteLuminance(uint8_t* data, float f, int denominator);
  };
  

@@ -96,18 +96,6 @@ class AudioLevelExtension {
     return kValueSizeBytes;
   }
   static bool Write(rtc::ArrayView<uint8_t> data, const AudioLevel& extension);
-
-  [[deprecated("Use AudioLevel struct")]] static bool Parse(
-      rtc::ArrayView<const uint8_t> data,
-      bool* voice_activity,
-      uint8_t* audio_level);
-  [[deprecated("Use AudioLevel struct")]] static size_t ValueSize(
-      bool voice_activity,
-      uint8_t audio_level) {
-    return kValueSizeBytes;
-  }
-  [[deprecated("Use AudioLevel struct")]] static bool
-  Write(rtc::ArrayView<uint8_t> data, bool voice_activity, uint8_t audio_level);
 };
 
 #if !defined(WEBRTC_MOZILLA_BUILD)
