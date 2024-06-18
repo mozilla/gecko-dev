@@ -21,13 +21,18 @@ function setupObserver() {
 
     observe: function observe(subject, topic) {
       switch (topic) {
-        case "data-channel-opened":
+        case "data-channel-opened": {
+          ok(
+            subject instanceof Ci.nsIDataChannel,
+            "Channel should be a nsIDataChannel instance"
+          );
           let channelURI = subject.QueryInterface(Ci.nsIChannel).URI.spec;
           if (channelURI === TEST_URI) {
             Services.obs.removeObserver(observer, "data-channel-opened");
             created = true;
           }
           break;
+        }
       }
     },
   };

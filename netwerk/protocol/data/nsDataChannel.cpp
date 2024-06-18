@@ -12,11 +12,14 @@
 #include "nsDataHandler.h"
 #include "nsIInputStream.h"
 #include "nsEscape.h"
+#include "nsISupports.h"
 #include "nsStringStream.h"
 #include "nsIObserverService.h"
 #include "mozilla/dom/ContentParent.h"
 
 using namespace mozilla;
+
+NS_IMPL_ISUPPORTS_INHERITED(nsDataChannel, nsBaseChannel, nsIDataChannel)
 
 /**
  * Helper for performing a fallible unescape.

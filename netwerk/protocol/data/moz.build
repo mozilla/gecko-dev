@@ -9,6 +9,12 @@ EXPORTS.mozilla.net += [
     "DataChannelParent.h",
 ]
 
+XPIDL_SOURCES += [
+    "nsIDataChannel.idl",
+]
+
+XPIDL_MODULE = "necko_http"
+
 EXPORTS += [
     "nsDataChannel.h",
     "nsDataHandler.h",
