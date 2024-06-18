@@ -18,10 +18,13 @@
 
 class JSRope;
 
+namespace JS {
+class SliceBudget;
+}
+
 namespace js {
 
 class GCMarker;
-class SliceBudget;
 class WeakMapBase;
 
 #ifdef DEBUG
@@ -371,7 +374,7 @@ class GCMarker {
   void reset();
 
   [[nodiscard]] bool markUntilBudgetExhausted(
-      SliceBudget& budget,
+      JS::SliceBudget& budget,
       gc::ShouldReportMarkTime reportTime = gc::ReportMarkTime);
 
   void setRootMarkingMode(bool newState);
@@ -397,10 +400,10 @@ class GCMarker {
   bool markOneObjectForTest(JSObject* obj);
 #endif
 
-  bool markCurrentColorInParallel(SliceBudget& budget);
+  bool markCurrentColorInParallel(JS::SliceBudget& budget);
 
   template <uint32_t markingOptions, gc::MarkColor>
-  bool markOneColor(SliceBudget& budget);
+  bool markOneColor(JS::SliceBudget& budget);
 
   static void moveWork(GCMarker* dst, GCMarker* src);
 
@@ -449,7 +452,7 @@ class GCMarker {
   friend class gc::AutoUpdateMarkStackRanges;
 
   template <uint32_t markingOptions>
-  bool processMarkStackTop(SliceBudget& budget);
+  bool processMarkStackTop(JS::SliceBudget& budget);
   friend class gc::GCRuntime;
 
   // Helper methods that coerce their second argument to the base pointer
@@ -534,7 +537,7 @@ class GCMarker {
 #endif
 
   template <uint32_t markingOptions>
-  bool doMarking(SliceBudget& budget, gc::ShouldReportMarkTime reportTime);
+  bool doMarking(JS::SliceBudget& budget, gc::ShouldReportMarkTime reportTime);
 
   void delayMarkingChildrenOnOOM(gc::Cell* cell);
 

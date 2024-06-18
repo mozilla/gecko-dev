@@ -178,7 +178,7 @@ struct Statistics {
   void resumePhases();
 
   void beginSlice(const ZoneGCStats& zoneStats, JS::GCOptions options,
-                  const SliceBudget& budget, JS::GCReason reason,
+                  const JS::SliceBudget& budget, JS::GCReason reason,
                   bool budgetWasIncreased);
   void endSlice();
 
@@ -253,11 +253,11 @@ struct Statistics {
   static const size_t MAX_SUSPENDED_PHASES = MAX_PHASE_NESTING * 3;
 
   struct SliceData {
-    SliceData(const SliceBudget& budget, mozilla::Maybe<Trigger> trigger,
+    SliceData(const JS::SliceBudget& budget, mozilla::Maybe<Trigger> trigger,
               JS::GCReason reason, TimeStamp start, size_t startFaults,
               gc::State initialState);
 
-    SliceBudget budget;
+    JS::SliceBudget budget;
     JS::GCReason reason = JS::GCReason::NO_REASON;
     mozilla::Maybe<Trigger> trigger;
     gc::State initialState = gc::State::NotActive;
@@ -503,7 +503,7 @@ struct Statistics {
 
 struct MOZ_RAII AutoGCSlice {
   AutoGCSlice(Statistics& stats, const ZoneGCStats& zoneStats,
-              JS::GCOptions options, const SliceBudget& budget,
+              JS::GCOptions options, const JS::SliceBudget& budget,
               JS::GCReason reason, bool budgetWasIncreased)
       : stats(stats) {
     stats.beginSlice(zoneStats, options, budget, reason, budgetWasIncreased);

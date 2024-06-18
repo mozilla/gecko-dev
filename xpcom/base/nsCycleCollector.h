@@ -16,7 +16,7 @@ struct already_AddRefed;
 #include <cstdint>
 #include "mozilla/Attributes.h"
 
-namespace js {
+namespace JS {
 class SliceBudget;
 }
 
@@ -35,7 +35,7 @@ typedef void (*CC_ForgetSkippableCallback)(void);
 void nsCycleCollector_setForgetSkippableCallback(
     CC_ForgetSkippableCallback aCB);
 
-void nsCycleCollector_forgetSkippable(js::SliceBudget& aBudget,
+void nsCycleCollector_forgetSkippable(JS::SliceBudget& aBudget,
                                       bool aRemoveChildlessNodes = false,
                                       bool aAsyncSnowWhiteFreeing = false);
 
@@ -47,7 +47,7 @@ void nsCycleCollector_finishAnyCurrentCollection();
 void nsCycleCollector_dispatchDeferredDeletion(bool aContinuation = false,
                                                bool aPurge = false);
 bool nsCycleCollector_doDeferredDeletion();
-bool nsCycleCollector_doDeferredDeletionWithBudget(js::SliceBudget& aBudget);
+bool nsCycleCollector_doDeferredDeletionWithBudget(JS::SliceBudget& aBudget);
 
 already_AddRefed<nsICycleCollectorLogSink> nsCycleCollector_createLogSink(
     bool aLogGC);
@@ -57,7 +57,7 @@ already_AddRefed<nsICycleCollectorListener> nsCycleCollector_createLogger();
 bool nsCycleCollector_collect(mozilla::CCReason aReason,
                               nsICycleCollectorListener* aManualListener);
 
-void nsCycleCollector_collectSlice(js::SliceBudget& budget,
+void nsCycleCollector_collectSlice(JS::SliceBudget& budget,
                                    mozilla::CCReason aReason,
                                    bool aPreferShorterSlices = false);
 

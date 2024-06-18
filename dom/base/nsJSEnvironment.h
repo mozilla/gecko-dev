@@ -67,7 +67,7 @@ class nsJSContext : public nsIScriptContext {
 
   static void RunIncrementalGCSlice(JS::GCReason aReason,
                                     IsShrinking aShrinking,
-                                    js::SliceBudget& aBudget);
+                                    JS::SliceBudget& aBudget);
 
   static void CycleCollectNow(mozilla::CCReason aReason,
                               nsICycleCollectorListener* aListener = nullptr);
