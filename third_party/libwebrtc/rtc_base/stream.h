@@ -14,7 +14,9 @@
 #include <memory>
 
 #include "api/array_view.h"
+#include "api/sequence_checker.h"
 #include "rtc_base/buffer.h"
+#include "rtc_base/system/no_unique_address.h"
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
@@ -121,6 +123,16 @@ class RTC_EXPORT StreamInterface {
 
  protected:
   StreamInterface();
+
+  // Utility function for derived classes.
+  void FireEvent(int stream_events, int err) RTC_RUN_ON(&callback_sequence_) {
+    // TODO(tommi): This is for backwards compatibility only while `SignalEvent`
+    // is being replaced by `SetEventHandler`.
+    SignalEvent(this, stream_events, err);
+  }
+
+  RTC_NO_UNIQUE_ADDRESS webrtc::SequenceChecker callback_sequence_{
+      webrtc::SequenceChecker::kDetached};
 };
 
 }  // namespace rtc

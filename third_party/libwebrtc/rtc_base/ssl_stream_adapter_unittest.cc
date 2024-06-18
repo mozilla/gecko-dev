@@ -223,7 +223,8 @@ class SSLDummyStreamBase : public rtc::StreamInterface,
  private:
   void PostEvent(int events, int err) {
     thread_->PostTask(SafeTask(task_safety_.flag(), [this, events, err]() {
-      SignalEvent(this, events, err);
+      RTC_DCHECK_RUN_ON(&callback_sequence_);
+      FireEvent(events, err);
     }));
   }
 
@@ -293,7 +294,8 @@ class BufferQueueStream : public rtc::StreamInterface {
  private:
   void PostEvent(int events, int err) {
     thread_->PostTask(SafeTask(task_safety_.flag(), [this, events, err]() {
-      SignalEvent(this, events, err);
+      RTC_DCHECK_RUN_ON(&callback_sequence_);
+      FireEvent(events, err);
     }));
   }
 

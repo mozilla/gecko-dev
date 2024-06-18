@@ -744,6 +744,7 @@ StreamState OpenSSLStreamAdapter::GetState() const {
 void OpenSSLStreamAdapter::OnEvent(StreamInterface* stream,
                                    int events,
                                    int err) {
+  RTC_DCHECK_RUN_ON(&callback_sequence_);
   int events_to_signal = 0;
   int signal_error = 0;
   RTC_DCHECK(stream == stream_.get());
@@ -800,13 +801,14 @@ void OpenSSLStreamAdapter::OnEvent(StreamInterface* stream,
   if (events_to_signal) {
     // Note that the adapter presents itself as the origin of the stream events,
     // since users of the adapter may not recognize the adapted object.
-    SignalEvent(this, events_to_signal, signal_error);
+    FireEvent(events_to_signal, signal_error);
   }
 }
 
 void OpenSSLStreamAdapter::PostEvent(int events, int err) {
   owner_->PostTask(SafeTask(task_safety_.flag(), [this, events, err]() {
-    SignalEvent(this, events, err);
+    RTC_DCHECK_RUN_ON(&callback_sequence_);
+    FireEvent(events, err);
   }));
 }
 
@@ -885,8 +887,9 @@ int OpenSSLStreamAdapter::BeginSSL() {
 }
 
 int OpenSSLStreamAdapter::ContinueSSL() {
+  RTC_DCHECK_RUN_ON(&callback_sequence_);
   RTC_DLOG(LS_VERBOSE) << "ContinueSSL";
-  RTC_DCHECK(state_ == SSL_CONNECTING);
+  RTC_DCHECK_EQ(state_, SSL_CONNECTING);
 
   // Clear the DTLS timer
   timeout_task_.Stop();
@@ -911,7 +914,7 @@ int OpenSSLStreamAdapter::ContinueSSL() {
         // The caller of ContinueSSL may be the same object listening for these
         // events and may not be prepared for reentrancy.
         // PostEvent(SE_OPEN | SE_READ | SE_WRITE, 0);
-        SignalEvent(this, SE_OPEN | SE_READ | SE_WRITE, 0);
+        FireEvent(SE_OPEN | SE_READ | SE_WRITE, 0);
       }
       break;
 
@@ -950,13 +953,14 @@ void OpenSSLStreamAdapter::Error(absl::string_view context,
                                  int err,
                                  uint8_t alert,
                                  bool signal) {
+  RTC_DCHECK_RUN_ON(&callback_sequence_);
   RTC_LOG(LS_WARNING) << "OpenSSLStreamAdapter::Error(" << context << ", "
                       << err << ", " << static_cast<int>(alert) << ")";
   state_ = SSL_ERROR;
   ssl_error_code_ = err;
   Cleanup(alert);
   if (signal) {
-    SignalEvent(this, SE_CLOSE, err);
+    FireEvent(SE_CLOSE, err);
   }
 }
 

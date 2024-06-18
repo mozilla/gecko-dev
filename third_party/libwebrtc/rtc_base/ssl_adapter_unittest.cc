@@ -216,21 +216,25 @@ class SocketStream : public rtc::StreamInterface, public sigslot::has_slots<> {
 
  private:
   void OnConnectEvent(rtc::Socket* socket) {
+    RTC_DCHECK_RUN_ON(&callback_sequence_);
     RTC_DCHECK_EQ(socket, socket_.get());
-    SignalEvent(this, rtc::SE_OPEN | rtc::SE_READ | rtc::SE_WRITE, 0);
+    FireEvent(rtc::SE_OPEN | rtc::SE_READ | rtc::SE_WRITE, 0);
   }
 
   void OnReadEvent(rtc::Socket* socket) {
+    RTC_DCHECK_RUN_ON(&callback_sequence_);
     RTC_DCHECK_EQ(socket, socket_.get());
-    SignalEvent(this, rtc::SE_READ, 0);
+    FireEvent(rtc::SE_READ, 0);
   }
   void OnWriteEvent(rtc::Socket* socket) {
+    RTC_DCHECK_RUN_ON(&callback_sequence_);
     RTC_DCHECK_EQ(socket, socket_.get());
-    SignalEvent(this, rtc::SE_WRITE, 0);
+    FireEvent(rtc::SE_WRITE, 0);
   }
   void OnCloseEvent(rtc::Socket* socket, int err) {
+    RTC_DCHECK_RUN_ON(&callback_sequence_);
     RTC_DCHECK_EQ(socket, socket_.get());
-    SignalEvent(this, rtc::SE_CLOSE, err);
+    FireEvent(rtc::SE_CLOSE, err);
   }
 
   std::unique_ptr<rtc::Socket> socket_;

@@ -1482,8 +1482,11 @@ rtc_library("stream") {
   deps = [
     ":buffer",
     ":checks",
+    ":logging",
     ":threading",
     "../api:array_view",
+    "../api:sequence_checker",
+    "system:no_unique_address",
     "system:rtc_export",
     "third_party/sigslot",
   ]
