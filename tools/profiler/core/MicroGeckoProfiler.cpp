@@ -292,12 +292,18 @@ void uprofiler_simple_event_marker(const char* name, const char category,
 }
 
 bool uprofiler_backtrace_into_buffer(NativeStack* aNativeStack, void* aBuffer) {
+#if defined(MOZ_GECKO_PROFILER)
   return profiler_backtrace_into_buffer(
       *(static_cast<mozilla::ProfileChunkedBuffer*>(aBuffer)), *aNativeStack);
+#else
+  return false;
+#endif
 }
 
 void uprofiler_native_backtrace(const void* top, NativeStack* nativeStack) {
+#if defined(MOZ_GECKO_PROFILER)
   DoNativeBacktraceDirect(top, *nativeStack, nullptr);
+#endif
 }
 
 bool uprofiler_is_active() { return profiler_is_active(); }
