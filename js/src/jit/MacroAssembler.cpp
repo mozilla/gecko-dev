@@ -6684,9 +6684,15 @@ void MacroAssembler::truncate32ToWasmI31Ref(Register src, Register dest) {
   lshift32(Imm32(1), dest);
   // Add the i31 tag to the integer.
   orPtr(Imm32(int32_t(wasm::AnyRefTag::I31)), dest);
+#ifdef JS_64BIT
+  debugAssertCanonicalInt32(dest);
+#endif
 }
 
 void MacroAssembler::convertWasmI31RefTo32Signed(Register src, Register dest) {
+#ifdef JS_64BIT
+  debugAssertCanonicalInt32(src);
+#endif
   // This will either zero-extend or sign-extend the high 32-bits on 64-bit
   // platforms (see comments on invariants in MacroAssembler.h). Either case
   // is fine, as we won't use this bits.
@@ -6698,6 +6704,9 @@ void MacroAssembler::convertWasmI31RefTo32Signed(Register src, Register dest) {
 
 void MacroAssembler::convertWasmI31RefTo32Unsigned(Register src,
                                                    Register dest) {
+#ifdef JS_64BIT
+  debugAssertCanonicalInt32(src);
+#endif
   // This will either zero-extend or sign-extend the high 32-bits on 64-bit
   // platforms (see comments on invariants in MacroAssembler.h). Either case
   // is fine, as we won't use this bits.
@@ -6769,7 +6778,7 @@ void MacroAssembler::convertValueToWasmAnyRef(ValueOperand src, Register dest,
   branch32(Assembler::LessThan, dest, Imm32(wasm::AnyRef::MinI31Value),
            oolConvert);
   lshiftPtr(Imm32(1), dest);
-  orPtr(Imm32((int32_t)wasm::AnyRefTag::I31), dest);
+  or32(Imm32((int32_t)wasm::AnyRefTag::I31), dest);
   jump(&done);
 
   bind(&int32Value);
@@ -6778,8 +6787,7 @@ void MacroAssembler::convertValueToWasmAnyRef(ValueOperand src, Register dest,
            oolConvert);
   branch32(Assembler::LessThan, dest, Imm32(wasm::AnyRef::MinI31Value),
            oolConvert);
-  lshiftPtr(Imm32(1), dest);
-  orPtr(Imm32((int32_t)wasm::AnyRefTag::I31), dest);
+  truncate32ToWasmI31Ref(dest, dest);
   jump(&done);
 
   bind(&nullValue);

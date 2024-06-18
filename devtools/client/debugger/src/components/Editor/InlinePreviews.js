@@ -18,6 +18,7 @@ import {
 } from "../../selectors/index";
 
 import { features } from "../../utils/prefs";
+import { markerTypes } from "../../constants";
 
 function hasPreviews(previews) {
   return !!previews && !!Object.keys(previews).length;
@@ -66,11 +67,11 @@ class InlinePreviews extends Component {
       selectedFrame.location.source.id !== selectedSource.id ||
       !hasPreviews(previews)
     ) {
-      editor.removeLineContentMarker("inline-preview-marker");
+      editor.removeLineContentMarker(markerTypes.INLINE_PREVIEW_MARKER);
       return;
     }
     editor.setLineContentMarker({
-      id: "inline-preview-marker",
+      id: markerTypes.INLINE_PREVIEW_MARKER,
       condition: line => {
         // CM6 line is 1-based unlike CM5 which is 0-based.
         return !!previews[line - 1];
@@ -106,7 +107,9 @@ class InlinePreviews extends Component {
     if (!features.codemirrorNext) {
       return;
     }
-    this.props.editor.removeLineContentMarker("inline-preview-marker");
+    this.props.editor.removeLineContentMarker(
+      markerTypes.INLINE_PREVIEW_MARKER
+    );
   }
 
   render() {

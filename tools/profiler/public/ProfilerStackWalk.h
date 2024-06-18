@@ -16,7 +16,6 @@
 #ifndef ProfilerStackWalk_h
 #define ProfilerStackWalk_h
 
-#include "PlatformMacros.h"
 #include "ProfilerNativeStack.h"
 
 #include "mozilla/ProfileChunkedBuffer.h"

@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !WasmHelpers.isSingleStepPropfilingEnabled
+// |jit-test| skip-if: !WasmHelpers.isSingleStepProfilingEnabled
 
 const Module = WebAssembly.Module;
 const Instance = WebAssembly.Instance;
@@ -48,20 +48,20 @@ test(
     (export "" (func $foo))
 )`,
 {},
-["", ">", "0,>", "1,0,>", "0,>", ">", ""]);
+["", ">", "foo,>", "bar,foo,>", "foo,>", ">", ""]);
 
 test(
 `(module
-    (import $foo "" "foo")
+    (import "" "foo" (func $foo))
     (table funcref (elem $foo))
     (func $bar (call_indirect (type 0) (i32.const 0)))
     (export "" (func $bar))
 )`,
 {"":{foo:()=>{}}},
-["", ">", "1,>", "0,1,>", "<,0,1,>", "0,1,>", "1,>", ">", ""]);
+["", ">", "bar,>", "foo,bar,>", "<,foo,bar,>", "foo,bar,>", "bar,>", ">", ""]);
 
 test(`(module
-    (import $f32 "Math" "sin" (param f32) (result f32))
+    (import "Math" "sin" (func $f32 (param f32) (result f32)))
     (func (export "") (param f32) (result f32)
         local.get 0
         call $f32
@@ -96,7 +96,7 @@ test(`(module
     )
 )`,
 this,
-["", ">", "0,>", "<,0,>", "memory.size,0,>", "<,0,>", "0,>", ">", ""],
+["", ">", "0,>", "<,0,>", "memory.size m32,0,>", "<,0,>", "0,>", ">", ""],
 );
 
 // memory.grow is a callout.
@@ -108,7 +108,7 @@ test(`(module
     )
 )`,
 this,
-["", ">", "0,>", "<,0,>", "memory.grow,0,>", "<,0,>", "0,>", ">", ""],
+["", ">", "0,>", "<,0,>", "memory.grow m32,0,>", "<,0,>", "0,>", ">", ""],
 );
 
 // A few math builtins.
@@ -143,7 +143,7 @@ for (let type of ['f32', 'f64']) {
         (func (export "") (call $foo))
     )`,
     WebAssembly.RuntimeError,
-    ["", ">", "1,>", "0,1,>", "1,>", "", ">", ""]);
+    ["", ">", "1,>", "foo,1,>", "1,>", "", ">", ""]);
 
     testError(
     `(module
@@ -155,7 +155,7 @@ for (let type of ['f32', 'f64']) {
         (export "" (func $foo))
     )`,
     WebAssembly.RuntimeError,
-    ["", ">", "0,>", "1,0,>", ">", "", ">", ""]);
+    ["", ">", "foo,>", "bar,foo,>", ">", "", ">", ""]);
 })();
 
 (function() {
@@ -176,7 +176,7 @@ for (let type of ['f32', 'f64']) {
     enableGeckoProfiling();
     enableSingleStepProfiling();
     assertEq(e.tbl.get(0)(), 42);
-    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "0,>", ">", ""]);
+    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "foo,>", ">", ""]);
     disableGeckoProfiling();
 
     assertEq(e.foo(), 42);
@@ -186,7 +186,7 @@ for (let type of ['f32', 'f64']) {
     enableGeckoProfiling();
     enableSingleStepProfiling();
     assertEq(e.tbl.get(1)(), 13);
-    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "1,>", ">", ""]);
+    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "bar,>", ">", ""]);
     disableGeckoProfiling();
 
     assertEq(e.tbl.get(0)(), 42);
@@ -197,7 +197,7 @@ for (let type of ['f32', 'f64']) {
     enableSingleStepProfiling();
     assertEq(e.foo(), 42);
     assertEq(e.tbl.get(1)(), 13);
-    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "0,>", ">", "", ">", "1,>", ">", ""]);
+    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "foo,>", ">", "", ">", "bar,>", ">", ""]);
     disableGeckoProfiling();
 
     var e2 = wasmEvalText(`
@@ -213,19 +213,19 @@ for (let type of ['f32', 'f64']) {
     enableGeckoProfiling();
     enableSingleStepProfiling();
     assertEq(e2.baz(0), 42);
-    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "1,>", "0,1,>", "1,>", ">", ""]);
+    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "baz,>", "foo,baz,>", "baz,>", ">", ""]);
     disableGeckoProfiling();
 
     enableGeckoProfiling();
     enableSingleStepProfiling();
     assertEq(e2.baz(1), 13);
-    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "1,>", "1,1,>", "1,>", ">", ""]);
+    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "baz,>", "bar,baz,>", "baz,>", ">", ""]);
     disableGeckoProfiling();
 
     enableGeckoProfiling();
     enableSingleStepProfiling();
     assertEq(e2.baz(2), 99);
-    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "1,>", "0,1,>", "1,>", ">", ""]);
+    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "baz,>", "bar,baz,>", "baz,>", ">", ""]);
     disableGeckoProfiling();
 })();
 
@@ -236,7 +236,7 @@ for (let type of ['f32', 'f64']) {
         (export "foo" (func $foo))
     )`));
     var m2 = new Module(wasmTextToBinary(`(module
-        (import $foo "a" "foo" (result i32))
+        (import "a" "foo" (func $foo (result i32)))
         (func $bar (result i32) (call $foo))
         (export "bar" (func $bar))
     )`));
@@ -247,7 +247,7 @@ for (let type of ['f32', 'f64']) {
     enableGeckoProfiling();
     enableSingleStepProfiling();
     assertEq(e2.bar(), 42);
-    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "1,>", "0,1,>", "1,>", ">", ""]);
+    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "bar,>", "foo,bar,>", "bar,>", ">", ""]);
     disableGeckoProfiling();
     assertEq(e2.bar(), 42);
 
@@ -257,7 +257,7 @@ for (let type of ['f32', 'f64']) {
     var e4 = new Instance(m2, {a:e3}).exports;
     enableSingleStepProfiling();
     assertEq(e4.bar(), 42);
-    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "1,>", "0,1,>", "1,>", ">", ""]);
+    assertEqImpreciseStacks(disableSingleStepProfiling(), ["", ">", "bar,>", "foo,bar,>", "bar,>", ">", ""]);
     disableGeckoProfiling();
     assertEq(e4.bar(), 42);
 })();
@@ -276,9 +276,9 @@ for (let type of ['f32', 'f64']) {
     enableGeckoProfiling();
 
     var m = new Module(wasmTextToBinary(`(module
-        (import $ffi "a" "ffi" (param i32) (result i32))
+        (import "a" "ffi" (func $ffi (param i32) (result i32)))
 
-        (import $missingOneArg "a" "sumTwo" (param i32) (result i32))
+        (import "a" "sumTwo" (func $missingOneArg (param i32) (result i32)))
 
         (func (export "foo") (param i32) (result i32)
          local.get 0
@@ -369,9 +369,11 @@ for (let type of ['f32', 'f64']) {
 
 // Make sure it's possible to single-step through call through debug-enabled code.
 (function() {
+ if (wasmCompileMode().includes("ion")) return;
+
  enableGeckoProfiling();
 
- let g = newGlobal('');
+ let g = newGlobal({newCompartment: true});
  let dbg = new Debugger(g);
  dbg.onEnterFrame = () => {};
  enableSingleStepProfiling();
@@ -387,12 +389,12 @@ for (let type of ['f32', 'f64']) {
 
 // Ion->wasm calls.
 let func = wasmEvalText(`(module
-    (func $inner (result i32) (param i32) (param i32)
+    (func $inner (param i32) (param i32) (result i32)
         local.get 0
         local.get 1
         i32.add
     )
-    (func (export "add") (result i32) (param i32) (param i32)
+    (func (export "add") (param i32) (param i32) (result i32)
      local.get 0
      local.get 1
      call $inner
@@ -406,9 +408,9 @@ let func = wasmEvalText(`(module
         enableSingleStepProfiling();
         let res = func(i - 1, i + 1);
         assertEqPreciseStacks(disableSingleStepProfiling(), [
-            ['', '>', '1,>', '0,1,>' , '1,>', '>', ''],      // slow entry
-            ['', '!>', '1,!>', '0,1,!>' , '1,!>', '!>', ''], // fast entry
-            ['', '1', '0,1' , '1', ''],                      // inlined jit call
+            ['', '>', '1,>', 'inner,1,>' , '1,>', '>', ''],      // slow entry
+            ['', '!>', '1,!>', 'inner,1,!>' , '1,!>', '!>', ''], // fast entry
+            ['', '1', 'inner,1' , '1', ''],                      // inlined jit call
         ]);
         assertEq(res, i+i);
     }

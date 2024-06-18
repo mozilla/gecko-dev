@@ -587,6 +587,14 @@ main section {
 .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
   background: var(--newtab-element-hover-color);
 }
+.lightWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover), .darkWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
+  background-color: var(--newtab-weather-background-color);
+}
+@media (prefers-contrast) {
+  .lightWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover), .darkWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
+    background-color: var(--background-color-box);
+  }
+}
 @media (max-width: 610px) {
   .top-sites-list > :nth-child(2n+1) .context-menu {
     margin-inline-end: auto;
@@ -1985,10 +1993,13 @@ main section {
   cursor: pointer;
   font-size: 16px;
   margin-bottom: 25px;
-  padding-left: 24px;
+  padding-inline-start: 24px;
   -moz-context-properties: fill;
   fill: currentColor;
   min-height: 1rem;
+}
+.arrow-button:dir(rtl) {
+  background: url("chrome://global/skin/icons/arrow-right.svg") no-repeat right center;
 }
 
 .wallpaper-input {
@@ -2071,11 +2082,15 @@ main section {
   grid-auto-rows: unset;
   grid-template-columns: unset;
   height: 100%;
-  left: 25px;
+  inset-inline-start: 25px;
   position: absolute;
   top: 0;
   width: 380px;
   z-index: 2;
+  transform: translateX(100%);
+}
+.wallpaper-list.category:dir(rtl) {
+  transform: translateX(-100%);
 }
 .wallpaper-list.category fieldset {
   border: none;
@@ -2085,20 +2100,12 @@ main section {
   grid-template-columns: 1fr 1fr 1fr;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .wallpaper-list.category.wallpaper-list-enter {
-    transform: translateX(100%);
-  }
-  .wallpaper-list.category.wallpaper-list-enter-active {
-    transform: translateX(0);
+  .wallpaper-list.category.wallpaper-list-enter, .wallpaper-list.category.wallpaper-list-exit, .wallpaper-list.category.wallpaper-list-enter-done, .wallpaper-list.category.wallpaper-list-exit-done {
     transition: transform 300ms;
   }
-  .wallpaper-list.category.wallpaper-list-exit {
-    transform: translateX(0);
-  }
-  .wallpaper-list.category.wallpaper-list-exit-active {
-    transform: translateX(100%);
-    transition: transform 300ms;
-  }
+}
+.wallpaper-list.category.wallpaper-list-enter-done, .wallpaper-list.category.wallpaper-list-enter-active {
+  transform: translateX(0);
 }
 .wallpaper-list:not(.ignore-color-mode) .wallpaper-input.theme-light, .wallpaper-list:not(.ignore-color-mode) .sr-only.theme-light {
   display: inline-block;
@@ -2141,7 +2148,7 @@ main section {
 .weather {
   font-size: var(--font-size-root);
   position: absolute;
-  left: var(--space-xlarge);
+  inset-inline-start: var(--space-xlarge);
   top: var(--space-xlarge);
   z-index: 1;
 }
@@ -2151,10 +2158,20 @@ main section {
   color: var(--text-color-error);
   display: flex;
   align-items: center;
+  border-radius: var(--border-radius-medium);
+  padding: var(--space-small);
 }
 .weatherNotAvailable .icon {
   fill: var(--icon-color-critical);
   -moz-context-properties: fill;
+}
+.lightWallpaper .weatherNotAvailable, .darkWallpaper .weatherNotAvailable {
+  background-color: var(--newtab-weather-background-color);
+}
+@media (prefers-contrast) {
+  .lightWallpaper .weatherNotAvailable, .darkWallpaper .weatherNotAvailable {
+    background-color: var(--background-color-box);
+  }
 }
 
 .weatherCard {
@@ -2232,7 +2249,10 @@ main section {
   display: flex;
   gap: var(--space-medium);
   padding: var(--space-small) var(--space-medium);
-  border-radius: var(--border-radius-medium) 0 0 var(--border-radius-medium);
+  border-start-start-radius: var(--border-radius-medium);
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+  border-end-start-radius: var(--border-radius-medium);
   text-decoration: none;
   color: var(--text-color);
   min-width: 130px;
@@ -2257,7 +2277,10 @@ main section {
 .weatherButtonContextMenuWrapper {
   position: relative;
   cursor: pointer;
-  border-radius: 0 var(--border-radius-medium) var(--border-radius-medium) 0;
+  border-start-start-radius: 0;
+  border-start-end-radius: var(--border-radius-medium);
+  border-end-end-radius: var(--border-radius-medium);
+  border-end-start-radius: 0;
   display: flex;
   align-items: stretch;
   width: 50px;
@@ -2265,7 +2288,7 @@ main section {
 }
 .weatherButtonContextMenuWrapper::after {
   content: "";
-  left: 0;
+  inset-inline-start: 0;
   top: 10px;
   height: calc(100% - 20px);
   width: 1px;
@@ -2450,7 +2473,7 @@ main section {
   background-color: light-dark(var(--color-white), var(--newtab-background-color-secondary));
   color: var(--newtab-text-primary-color);
   border-radius: var(--border-radius-medium);
-  padding: 8px;
+  padding: var(--space-small);
   position: relative;
 }
 .lightWallpaper .location-input-wrapper, .darkWallpaper .location-input-wrapper {
@@ -2517,7 +2540,7 @@ main section {
   background-clip: padding-box;
   background-color: var(--newtab-button-background);
   background-image: url("chrome://global/skin/icons/more.svg");
-  background-position: 55%;
+  background-position: 50.1%;
   border: 0;
   outline: 1px solid var(--newtab-border-color);
   outline-width: 0;
@@ -4148,7 +4171,7 @@ main section {
   background-clip: padding-box;
   background-color: var(--newtab-button-background);
   background-image: url("chrome://global/skin/icons/more.svg");
-  background-position: 55%;
+  background-position: 50.1%;
   border: 0;
   outline: 1px solid var(--newtab-border-color);
   outline-width: 0;

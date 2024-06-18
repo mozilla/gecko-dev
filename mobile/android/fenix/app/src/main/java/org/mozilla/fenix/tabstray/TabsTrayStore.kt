@@ -23,6 +23,7 @@ import org.mozilla.fenix.tabstray.syncedtabs.SyncedTabsListItem
  * @property privateTabs The list of tabs that are [ContentState.private].
  * @property syncedTabs The list of synced tabs.
  * @property syncing Whether the Synced Tabs feature should fetch the latest tabs from paired devices.
+ * @property selectedTabId The ID of the currently selected (active) tab.
  */
 data class TabsTrayState(
     val selectedPage: Page = Page.NormalTabs,
@@ -32,6 +33,7 @@ data class TabsTrayState(
     val privateTabs: List<TabSessionState> = emptyList(),
     val syncedTabs: List<SyncedTabsListItem> = emptyList(),
     val syncing: Boolean = false,
+    val selectedTabId: String? = null,
 ) : State {
 
     /**
@@ -150,6 +152,13 @@ sealed class TabsTrayAction : Action {
      * Updates the list of synced tabs in [TabsTrayState.syncedTabs].
      */
     data class UpdateSyncedTabs(val tabs: List<SyncedTabsListItem>) : TabsTrayAction()
+
+    /**
+     * Updates the selected tab id.
+     *
+     * @property tabId The ID of the tab that is currently selected.
+     */
+    data class UpdateSelectedTabId(val tabId: String?) : TabsTrayAction()
 }
 
 /**
@@ -188,6 +197,8 @@ internal object TabsTrayReducer {
                 state.copy(privateTabs = action.tabs)
             is TabsTrayAction.UpdateSyncedTabs ->
                 state.copy(syncedTabs = action.tabs)
+            is TabsTrayAction.UpdateSelectedTabId ->
+                state.copy(selectedTabId = action.tabId)
         }
     }
 }

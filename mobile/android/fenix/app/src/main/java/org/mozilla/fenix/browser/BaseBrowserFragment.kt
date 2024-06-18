@@ -1342,7 +1342,12 @@ abstract class BaseBrowserFragment :
                 FirefoxTheme {
                     Column {
                         if (currentlyDisplayedMessage != null) {
-                            MicrosurveyRequestPrompt()
+                            MicrosurveyRequestPrompt {
+                                findNavController().nav(
+                                    R.id.homeFragment,
+                                    BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
+                                )
+                            }
                         }
 
                         if (isToolbarAtBottom) {
@@ -1464,7 +1469,12 @@ abstract class BaseBrowserFragment :
                 FirefoxTheme {
                     Column {
                         if (currentlyDisplayedMessage != null) {
-                            MicrosurveyRequestPrompt()
+                            MicrosurveyRequestPrompt {
+                                findNavController().nav(
+                                    R.id.homeFragment,
+                                    BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
+                                )
+                            }
                         }
 
                         if (isToolbarAtBottom) {

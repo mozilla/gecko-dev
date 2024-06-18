@@ -9,13 +9,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.lib.state.ext.observeAsState
 
 @Composable
-@Suppress("LongParameterList")
 internal fun PrivateTabsPage(
-    browserStore: BrowserStore,
     tabsTrayStore: TabsTrayStore,
     displayTabsInGrid: Boolean,
     onTabClose: (TabSessionState) -> Unit,
@@ -24,8 +21,8 @@ internal fun PrivateTabsPage(
     onTabLongClick: (TabSessionState) -> Unit,
     onMove: (String, String?, Boolean) -> Unit,
 ) {
-    val selectedTabId by browserStore.observeAsState(
-        initialValue = browserStore.state.selectedTabId,
+    val selectedTabId by tabsTrayStore.observeAsState(
+        initialValue = tabsTrayStore.state.selectedTabId,
     ) { state -> state.selectedTabId }
     val privateTabs by tabsTrayStore.observeAsState(
         initialValue = tabsTrayStore.state.privateTabs,

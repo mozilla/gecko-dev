@@ -383,10 +383,21 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
     closeBtn.addEventListener("click", e => {
       e.stopPropagation();
 
-      let undoBtn = closeBtn.parentNode.querySelector(
-        ".undo-icon.remotetabs-icon"
-      );
+      let tabContainer = closeBtn.parentNode;
+      let tabList = tabContainer.parentNode;
 
+      let undoBtn = tabContainer.querySelector(".undo-icon.remotetabs-icon");
+
+      let prevClose = tabList.querySelector(
+        ".undo-icon.remotetabs-icon:not([hidden])"
+      );
+      if (prevClose) {
+        let prevCloseContainer = prevClose.parentNode;
+        prevCloseContainer.classList.add("tabitem-removed");
+        prevCloseContainer.addEventListener("transitionend", () => {
+          prevCloseContainer.remove();
+        });
+      }
       closeBtn.hidden = true;
       undoBtn.hidden = false;
       // The user could be hitting multiple tabs across multiple devices, with a few

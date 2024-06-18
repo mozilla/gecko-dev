@@ -811,7 +811,10 @@ normandy:
       changedPref: >
         For preference_study or nimbus_experiment, the preference that was
         detected to change that caused the unenrollment.
-    bug_numbers: [1443560, 1843126]
+      conflictingSlug: >
+        For nimbus_experiment, if reason == "prefFlips-conflict", the conflicting
+        experiment that caused the unenrollment.
+    bug_numbers: [1443560, 1843126, 1896718]
     notification_emails: ["normandy-notifications@mozilla.com"]
     products:
       - "firefox"
@@ -3234,6 +3237,7 @@ security.ui.certerror:
     extra_keys:
       is_frame: If the error page is loaded in an iframe.
       has_sts: If the error page is for a site with HSTS headers or with a pinned key.
+      channel_status: The status of the failed channel, as an nsresult.
   click:
     objects: [
       "advanced_button",
@@ -3284,6 +3288,7 @@ security.ui.tlserror:
     record_in_processes: ["content"]
     extra_keys:
       is_frame: If the error page is loaded in an iframe.
+      channel_status: The status of the failed channel, as an nsresult.
 
 slow_script_warning:
   shown:

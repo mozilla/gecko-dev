@@ -121,4 +121,32 @@ class TabSorterTest {
         assertEquals(tabsTrayStore.state.inactiveTabs.size, 0)
         assertEquals(tabsTrayStore.state.normalTabs.size, 4)
     }
+
+    @Test
+    fun `WHEN the selected tab has changed THEN the selected tab Id should be updated`() {
+        val tabSorter = TabSorter(settings, tabsTrayStore)
+        val expected = "tab4"
+
+        tabSorter.updateTabs(
+            listOf(
+                createTab(
+                    url = "url",
+                    id = "tab1",
+                    lastAccess = System.currentTimeMillis(),
+                ),
+                createTab(
+                    url = "url",
+                    id = expected,
+                    lastAccess = System.currentTimeMillis(),
+                    searchTerms = "mozilla",
+                ),
+            ),
+            tabPartition = null,
+            selectedTabId = "tab4",
+        )
+
+        tabsTrayStore.waitUntilIdle()
+
+        assertEquals(expected, tabsTrayStore.state.selectedTabId)
+    }
 }

@@ -4115,7 +4115,7 @@ void nsTextFrame::Destroy(DestroyContext& aContext) {
   // type might be changing.  Not clear whether it's worth it.
   ClearTextRuns();
   if (mNextContinuation) {
-    mNextContinuation->SetPrevInFlow(nullptr);
+    mNextContinuation->SetPrevInFlowWithoutUpdatingCache(nullptr);
   }
   // Let the base class destroy the frame
   nsIFrame::Destroy(aContext);
@@ -4164,7 +4164,8 @@ class nsContinuingTextFrame final : public nsTextFrame {
 
   nsTextFrame* GetPrevContinuation() const final { return mPrevContinuation; }
 
-  void SetPrevContinuation(nsIFrame* aPrevContinuation) final {
+  void SetPrevContinuationWithoutUpdatingCache(
+      nsIFrame* aPrevContinuation) final {
     NS_ASSERTION(!aPrevContinuation || Type() == aPrevContinuation->Type(),
                  "setting a prev continuation with incorrect type!");
     NS_ASSERTION(
@@ -4172,6 +4173,10 @@ class nsContinuingTextFrame final : public nsTextFrame {
         "creating a loop in continuation chain!");
     mPrevContinuation = static_cast<nsTextFrame*>(aPrevContinuation);
     RemoveStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+  }
+
+  void SetPrevContinuation(nsIFrame* aPrevContinuation) final {
+    SetPrevContinuationWithoutUpdatingCache(aPrevContinuation);
     UpdateCachedContinuations();
   }
 
@@ -4180,7 +4185,7 @@ class nsContinuingTextFrame final : public nsTextFrame {
                                                            : nullptr;
   }
 
-  void SetPrevInFlow(nsIFrame* aPrevInFlow) final {
+  void SetPrevInFlowWithoutUpdatingCache(nsIFrame* aPrevInFlow) final {
     NS_ASSERTION(!aPrevInFlow || Type() == aPrevInFlow->Type(),
                  "setting a prev in flow with incorrect type!");
     NS_ASSERTION(
@@ -4188,6 +4193,10 @@ class nsContinuingTextFrame final : public nsTextFrame {
         "creating a loop in continuation chain!");
     mPrevContinuation = static_cast<nsTextFrame*>(aPrevInFlow);
     AddStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+  }
+
+  void SetPrevInFlow(nsIFrame* aPrevInFlow) final {
+    SetPrevInFlowWithoutUpdatingCache(aPrevInFlow);
     UpdateCachedContinuations();
   }
 
@@ -9188,13 +9197,11 @@ static void RemoveEmptyInFlows(nsTextFrame* aFrame,
   prevContinuation->SetNextInFlow(aFirstToNotRemove);
   aFirstToNotRemove->SetPrevInFlow(prevContinuation);
 
-  // **Note: it is important here that we clear the Next link from lastRemoved
-  // BEFORE clearing the Prev link from aFrame, because SetPrevInFlow() will
-  // follow the Next pointers, wiping out the cached mFirstContinuation field
-  // from each following frame in the list. We need this to stop when it
-  // reaches lastRemoved!
+  // We are going to remove aFrame and all its later continuations up to
+  // lastRemoved. Therefore, it is OK to not update first continuation cache for
+  // them.
   lastRemoved->SetNextInFlow(nullptr);
-  aFrame->SetPrevInFlow(nullptr);
+  aFrame->SetPrevInFlowWithoutUpdatingCache(nullptr);
 
   nsContainerFrame* parent = aFrame->GetParent();
   nsIFrame::DestroyContext context(aFrame->PresShell());

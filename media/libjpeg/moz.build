@@ -110,6 +110,7 @@ if CONFIG['LIBJPEG_TURBO_USE_NASM']:
     USE_NASM = True
 
 if CONFIG['LIBJPEG_TURBO_SIMD_FLAGS']:
+    DEFINES['MOZ_WITH_SIMD'] = 1
     if CONFIG['TARGET_CPU'] == 'arm':
         LOCAL_INCLUDES += [
             '/media/libjpeg/simd/arm',
@@ -298,6 +299,7 @@ if CONFIG['LIBJPEG_TURBO_SIMD_FLAGS']:
             'simd/i386/jsimdcpu.asm',
         ]
 elif CONFIG['TARGET_CPU'].startswith('ppc'):
+    DEFINES['MOZ_WITH_SIMD'] = 1
     # PowerPC has no assembly files, but still needs its own headers.
     LOCAL_INCLUDES += ['/media/libjpeg/simd/powerpc']
 

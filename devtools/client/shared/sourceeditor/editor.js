@@ -1730,6 +1730,7 @@ class Editor extends EventEmitter {
     if (this.config.cm6) {
       cm.dispatch({
         changes: { from: 0, to: cm.state.doc.length, insert: value },
+        selection: { anchor: 0 },
       });
     } else {
       cm.setValue(value);

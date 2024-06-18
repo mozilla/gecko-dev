@@ -43,3 +43,11 @@ tasks:
             phase: ship_devedition
         treeherder:
             platform: devedition-release/opt
+
+    firefox-android:
+        name: maybe-release-firefox-android
+        shipping-product: firefox-android
+        worker:
+            phase: promote_android
+        treeherder:
+            platform: fenix-android-all/opt

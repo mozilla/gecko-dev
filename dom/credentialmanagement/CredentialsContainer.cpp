@@ -5,11 +5,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Components.h"
+#include "mozilla/CredentialChosenCallback.h"
 #include "mozilla/dom/Credential.h"
 #include "mozilla/dom/CredentialsContainer.h"
 #include "mozilla/dom/FeaturePolicyUtils.h"
 #include "mozilla/dom/IdentityCredential.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/Promise-inl.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/dom/WebAuthnManager.h"
@@ -18,10 +20,11 @@
 #include "nsContentUtils.h"
 #include "nsFocusManager.h"
 #include "nsICredentialChooserService.h"
-#include "nsICredentialChosenCallback.h"
 #include "nsIDocShell.h"
 
 namespace mozilla::dom {
+
+using mozilla::CredentialChosenCallback;
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(CredentialsContainer, mParent, mManager)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(CredentialsContainer)
@@ -153,44 +156,6 @@ JSObject* CredentialsContainer::WrapObject(JSContext* aCx,
   return CredentialsContainer_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-class CredentialChosenCallback final : public nsICredentialChosenCallback,
-                                       public nsINamed {
- public:
-  CredentialChosenCallback(Promise* aPromise, CredentialsContainer* aContainer)
-      : mPromise(aPromise), mContainer(aContainer) {
-    MOZ_ASSERT(NS_IsMainThread());
-  }
-
-  NS_IMETHOD
-  Notify(Credential* aCredential) override {
-    MOZ_ASSERT(NS_IsMainThread());
-    if (aCredential) {
-      mPromise->MaybeResolve(aCredential);
-    } else {
-      mPromise->MaybeResolve(JS::NullValue());
-    }
-
-    mContainer->mActiveIdentityRequest = false;
-    return NS_OK;
-  }
-
-  NS_IMETHOD
-  GetName(nsACString& aName) override {
-    aName.AssignLiteral("CredentialChosenCallback");
-    return NS_OK;
-  }
-
-  NS_DECL_ISUPPORTS
-
- private:
-  ~CredentialChosenCallback() = default;
-  RefPtr<Promise> mPromise;
-  RefPtr<CredentialsContainer> mContainer;
-};
-
-NS_IMPL_ISUPPORTS(CredentialChosenCallback, nsICredentialChosenCallback,
-                  nsINamed)
-
 already_AddRefed<Promise> CredentialsContainer::Get(
     const CredentialRequestOptions& aOptions, ErrorResult& aRv) {
   uint64_t totalOptions = 0;
@@ -255,29 +220,42 @@ already_AddRefed<Promise> CredentialsContainer::Get(
 
     RefPtr<CredentialsContainer> self = this;
 
+    promise->AddCallbacksWithCycleCollectedArgs(
+        [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+           const RefPtr<CredentialsContainer>& aContainer) {
+          aContainer->mActiveIdentityRequest = false;
+        },
+        [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+           const RefPtr<CredentialsContainer>& aContainer) {
+          aContainer->mActiveIdentityRequest = false;
+        },
+        self);
+
+    IdentityCredentialRequestOptions options(aOptions.mIdentity.Value());
+
     if (StaticPrefs::
             dom_security_credentialmanagement_identity_lightweight_enabled()) {
       IdentityCredential::CollectFromCredentialStore(
           mParent, aOptions, IsSameOriginWithAncestors(mParent))
           ->Then(
               GetCurrentSerialEventTarget(), __func__,
-              [self, promise](
+              [self, promise, options = std::move(options)](
                   const nsTArray<RefPtr<IdentityCredential>>& credentials) {
                 if (credentials.Length() == 0) {
-                  self->mActiveIdentityRequest = false;
-                  promise->MaybeResolve(JS::NullValue());
+                  IdentityCredential::DiscoverFromExternalSource(
+                      self->mParent, options,
+                      IsSameOriginWithAncestors(self->mParent), promise);
                 } else {
                   nsresult rv;
                   nsCOMPtr<nsICredentialChooserService> ccService =
                       mozilla::components::CredentialChooserService::Service(
                           &rv);
                   if (NS_WARN_IF(!ccService)) {
-                    self->mActiveIdentityRequest = false;
                     promise->MaybeReject(rv);
                     return;
                   }
                   RefPtr<CredentialChosenCallback> callback =
-                      new CredentialChosenCallback(promise, self);
+                      new CredentialChosenCallback(promise);
                   nsTArray<RefPtr<Credential>> argumentCredential;
                   for (const RefPtr<IdentityCredential>& cred : credentials) {
                     argumentCredential.AppendElement(cred);
@@ -286,33 +264,18 @@ already_AddRefed<Promise> CredentialsContainer::Get(
                       self->mParent->GetBrowsingContext()->Top(),
                       argumentCredential, callback);
                   if (NS_FAILED(rv)) {
-                    self->mActiveIdentityRequest = false;
                     promise->MaybeReject(rv);
                     return;
                   }
                 }
               },
-              [self, promise](nsresult rv) {
-                self->mActiveIdentityRequest = false;
-                promise->MaybeReject(rv);
-              });
+              [self, promise](nsresult rv) { promise->MaybeReject(rv); });
 
       return promise.forget();
     }
 
     IdentityCredential::DiscoverFromExternalSource(
-        mParent, aOptions, IsSameOriginWithAncestors(mParent))
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [self, promise](const RefPtr<IdentityCredential>& credential) {
-              self->mActiveIdentityRequest = false;
-              promise->MaybeResolve(credential);
-            },
-            [self, promise](nsresult error) {
-              self->mActiveIdentityRequest = false;
-              promise->MaybeReject(error);
-            });
-
+        mParent, options, IsSameOriginWithAncestors(mParent), promise);
     return promise.forget();
   }
 

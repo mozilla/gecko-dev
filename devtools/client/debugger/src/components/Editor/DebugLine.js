@@ -16,6 +16,7 @@ import {
 import { isException } from "../../utils/pause/index";
 import { getIndentation } from "../../utils/indentation";
 import { connect } from "devtools/client/shared/vendor/react-redux";
+import { markerTypes } from "../../constants";
 import {
   getVisibleSelectedFrame,
   getPauseReason,
@@ -72,12 +73,12 @@ export class DebugLine extends PureComponent {
       // Remove the debug line marker when no longer paused, or the selected source
       // is no longer the source where the pause occured.
       if (!location || location.source.id !== selectedSource.id) {
-        editor.removeLineContentMarker("debug-line-marker");
-        editor.removePositionContentMarker("debug-position-marker");
+        editor.removeLineContentMarker(markerTypes.DEBUG_LINE_MARKER);
+        editor.removePositionContentMarker(markerTypes.DEBUG_POSITION_MARKER);
       } else {
         const isSourceWasm = isWasm(selectedSource.id);
         editor.setLineContentMarker({
-          id: "debug-line-marker",
+          id: markerTypes.DEBUG_LINE_MARKER,
           lineClassName: lineClass,
           condition(line) {
             const lineNumber = fromEditorLine(
@@ -91,7 +92,7 @@ export class DebugLine extends PureComponent {
         });
         const editorLocation = toEditorPosition(location);
         editor.setPositionContentMarker({
-          id: "debug-position-marker",
+          id: markerTypes.DEBUG_POSITION_MARKER,
           positionClassName: markTextClass,
           positions: [editorLocation],
         });

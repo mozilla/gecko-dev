@@ -12,6 +12,7 @@ import {
   getDocument,
 } from "../../utils/editor/index";
 import { createLocation } from "../../utils/location";
+import { markerTypes } from "../../constants";
 
 import { features } from "../../utils/prefs";
 
@@ -39,13 +40,13 @@ class Exceptions extends Component {
     }
 
     if (!selectedSource || !editor || !exceptions.length) {
-      editor.removeLineContentMarker("line-exception-marker");
-      editor.removePositionContentMarker("exception-position-marker");
+      editor.removeLineContentMarker(markerTypes.LINE_EXCEPTION_MARKER);
+      editor.removePositionContentMarker(markerTypes.EXCEPTION_POSITION_MARKER);
       return;
     }
 
     editor.setLineContentMarker({
-      id: "line-exception-marker",
+      id: markerTypes.LINE_EXCEPTION_MARKER,
       lineClassName: "line-exception",
       condition: line => {
         const lineNumber = fromEditorLine(selectedSource.id, line);
@@ -67,7 +68,7 @@ class Exceptions extends Component {
     });
 
     editor.setPositionContentMarker({
-      id: "exception-position-marker",
+      id: markerTypes.EXCEPTION_POSITION_MARKER,
       positionClassName: "mark-text-exception",
       positions: exceptions.map(e => ({
         line: e.lineNumber,

@@ -2688,12 +2688,14 @@ void EditorBase::DispatchInputEvent() {
     return;
   }
   RefPtr<DataTransfer> dataTransfer = GetInputEventDataTransfer();
+  mEditActionData->WillDispatchInputEvent();
   DebugOnly<nsresult> rvIgnored = nsContentUtils::DispatchInputEvent(
       targetElement, eEditorInput, ToInputType(GetEditAction()), this,
       dataTransfer ? InputEventOptions(dataTransfer,
                                        InputEventOptions::NeverCancelable::No)
                    : InputEventOptions(GetInputEventData(),
                                        InputEventOptions::NeverCancelable::No));
+  mEditActionData->DidDispatchInputEvent();
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rvIgnored),
       "nsContentUtils::DispatchInputEvent() failed, but ignored");
@@ -6739,6 +6741,7 @@ nsresult EditorBase::AutoEditActionDataSetter::MaybeDispatchBeforeInputEvent(
       mMakeBeforeInputEventNonCancelable
           ? InputEventOptions::NeverCancelable::Yes
           : InputEventOptions::NeverCancelable::No;
+  WillDispatchInputEvent();
   nsresult rv = nsContentUtils::DispatchInputEvent(
       targetElement, eEditorBeforeInput, inputType, editorBase,
       mDataTransfer
@@ -6746,6 +6749,7 @@ nsresult EditorBase::AutoEditActionDataSetter::MaybeDispatchBeforeInputEvent(
                               neverCancelable)
           : InputEventOptions(mData, std::move(mTargetRanges), neverCancelable),
       &status);
+  DidDispatchInputEvent();
   if (NS_WARN_IF(mEditorBase.Destroyed())) {
     return NS_ERROR_EDITOR_DESTROYED;
   }

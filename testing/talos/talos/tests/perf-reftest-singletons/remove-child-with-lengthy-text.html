@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="util.js"></script>
+
+<pre><code id="code"></code></pre>
+
+<script>
+onload = function() {
+  const kLineCount = 5000;
+  let line = "The quick brown fox jumps over the lazy dog\n";
+  code.textContent = line.repeat(kLineCount);
+
+  flush_layout();
+  perf_start();
+  code.remove();
+  flush_layout();
+  perf_finish();
+};
+</script>

@@ -2529,18 +2529,29 @@ class nsIFrame : public nsQueryFrame {
   virtual nsIFrame* LastInFlow() const { return const_cast<nsIFrame*>(this); }
 
   /**
-   * Note: "width" in the names and comments on the following methods
-   * means inline-size, which could be height in vertical layout
+   * SetPrevContinuationWithoutUpdatingCache() and
+   * SetPrevInFlowWithoutUpdatingCache() are designed for performance
+   * optimization during frame destruction. Normal operations should use
+   * SetPrevContinuation() and SetPrevInFlow().
+   *
+   * Subclasses that implement a first continuation cache can override these two
+   * methods to set the prev-continuation and prev-in-flow without updating the
+   * cache.
+   *
+   * WARNING: Calling these two methods can result in a stale cache in later
+   * continuations. Therefore, they should only be called during frame
+   * destruction where any stale cache is acceptable.
    */
+  virtual void SetPrevContinuationWithoutUpdatingCache(nsIFrame*);
+  virtual void SetPrevInFlowWithoutUpdatingCache(nsIFrame*);
 
   /**
-   * Mark any stored intrinsic width information as dirty (requiring
+   * Mark any stored intrinsic inline size information as dirty (requiring
    * re-calculation).  Note that this should generally not be called
    * directly; PresShell::FrameNeedsReflow() will call it instead.
    */
   virtual void MarkIntrinsicISizesDirty();
 
- public:
   /**
    * Make this frame and all descendants dirty (if not already).
    * Exceptions: TableColGroupFrame children.
@@ -2579,8 +2590,8 @@ class nsIFrame : public nsQueryFrame {
   virtual nscoord GetPrefISize(gfxContext* aRenderingContext);
 
   /**
-   * |InlineIntrinsicISize| represents the intrinsic width information
-   * in inline layout.  Code that determines the intrinsic width of a
+   * |InlineIntrinsicISize| represents the intrinsic inline size information
+   * in inline layout.  Code that determines the intrinsic inline size of a
    * region of inline layout accumulates the result into this structure.
    * This pattern is needed because we need to maintain state
    * information about whitespace (for both collapsing and trimming).

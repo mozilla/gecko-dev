@@ -2044,6 +2044,27 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     }
 
     /**
+     * Returns the height of the bottom toolbar container.
+     *
+     * The bottom toolbar container can consist of a navigation bar, the microsurvey prompt
+     * a combination of a navigation and microsurvey prompt, or be absent.
+     */
+    fun getBottomToolbarContainerHeight(): Int {
+        val isNavBarEnabled = enableIncompleteToolbarRedesign
+        val isMicrosurveyEnabled = shouldShowMicrosurveyPrompt
+        val navbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
+        val microsurveyHeight =
+            appContext.resources.getDimensionPixelSize(R.dimen.browser_microsurvey_height)
+
+        return when {
+            isNavBarEnabled && isMicrosurveyEnabled -> navbarHeight + microsurveyHeight
+            isNavBarEnabled -> navbarHeight
+            isMicrosurveyEnabled -> microsurveyHeight
+            else -> 0
+        }
+    }
+
+    /**
      * Indicates if the user is shown incomplete new redesigned Toolbar UI components and behaviors.
      */
     var enableIncompleteToolbarRedesign by lazyFeatureFlagPreference(

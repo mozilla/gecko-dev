@@ -14,6 +14,7 @@ import { createLocation } from "./../../utils/location";
 import { getIndentation } from "../../utils/indentation";
 import { isWasm } from "../../utils/wasm";
 import { features } from "../../utils/prefs";
+import { markerTypes } from "../../constants";
 
 import {
   getActiveSearch,
@@ -314,7 +315,7 @@ class Editor extends PureComponent {
       if (shouldUpdateBreakableLines) {
         editor.setLineGutterMarkers([
           {
-            id: "empty-line-marker",
+            id: markerTypes.EMPTY_LINE_MARKER,
             lineClassName: "empty-line",
             condition: line => {
               const lineNumber = fromEditorLine(
@@ -340,13 +341,13 @@ class Editor extends PureComponent {
 
       editor.setLineGutterMarkers([
         {
-          id: "blackboxed-line-gutter-marker",
+          id: markerTypes.BLACKBOX_LINE_GUTTER_MARKER,
           lineClassName: "blackboxed-line",
           condition,
         },
       ]);
       editor.setLineContentMarker({
-        id: "blackboxed-line-marker",
+        id: markerTypes.BLACKBOX_LINE_MARKER,
         lineClassName: "blackboxed-line",
         condition,
       });

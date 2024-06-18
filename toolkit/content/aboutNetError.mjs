@@ -436,16 +436,14 @@ function initPage() {
     case "nssFailure2": {
       learnMore.hidden = false;
 
-      const errorCode = document.getNetErrorInfo().errorCodeString;
-      RPMRecordTelemetryEvent(
+      const netErrorInfo = document.getNetErrorInfo();
+      recordSecurityUITelemetry(
         "security.ui.tlserror",
         "load",
         "abouttlserror",
-        errorCode,
-        {
-          is_frame: (window.parent != window).toString(),
-        }
+        netErrorInfo
       );
+      const errorCode = netErrorInfo.errorCodeString;
       switch (errorCode) {
         case "SSL_ERROR_UNSUPPORTED_VERSION":
         case "SSL_ERROR_PROTOCOL_VERSION_ALERT": {
@@ -997,39 +995,41 @@ function initPageCertError() {
   }
 
   const failedCertInfo = document.getFailedCertSecurityInfo();
-  // Truncate the error code to avoid going over the allowed
-  // string size limit for telemetry events.
-  const errorCode = failedCertInfo.errorCodeString.substring(0, 40);
-  RPMRecordTelemetryEvent(
+  recordSecurityUITelemetry(
     "security.ui.certerror",
     "load",
     "aboutcerterror",
-    errorCode,
-    {
-      has_sts: gHasSts.toString(),
-      is_frame: (window.parent != window).toString(),
-    }
+    failedCertInfo
   );
 
   setCertErrorDetails();
+}
+
+function recordSecurityUITelemetry(category, evt, objectName, errorInfo) {
+  // Truncate the error code to avoid going over the allowed
+  // string size limit for telemetry events.
+  let errorCode = errorInfo.errorCodeString.substring(0, 40);
+  let extraKeys = {
+    is_frame: (window.parent != window).toString(),
+  };
+  if (category == "security.ui.certerror") {
+    extraKeys.has_sts = gHasSts.toString();
+  }
+  if (evt == "load") {
+    extraKeys.channel_status = errorInfo.channelStatus.toString();
+  }
+  RPMRecordTelemetryEvent(category, evt, objectName, errorCode, extraKeys);
 }
 
 function recordClickTelemetry(e) {
   let target = e.originalTarget;
   let telemetryId = target.dataset.telemetryId;
   let failedCertInfo = document.getFailedCertSecurityInfo();
-  // Truncate the error code to avoid going over the allowed
-  // string size limit for telemetry events.
-  let errorCode = failedCertInfo.errorCodeString.substring(0, 40);
-  RPMRecordTelemetryEvent(
+  recordSecurityUITelemetry(
     "security.ui.certerror",
     "click",
     telemetryId,
-    errorCode,
-    {
-      has_sts: gHasSts.toString(),
-      is_frame: (window.parent != window).toString(),
-    }
+    failedCertInfo
   );
 }
 

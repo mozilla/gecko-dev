@@ -64,6 +64,8 @@ class SVGAnimationElement : public SVGAnimationElementBase, public SVGTests {
   // Utility methods for within SVG
   void ActivateByHyperlink();
 
+  bool IsDisabled();
+
   // WebIDL
   SVGElement* GetTargetElement();
   float GetStartTime(ErrorResult& rv);

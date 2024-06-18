@@ -45,6 +45,50 @@ using mozilla::PodCopy;
 
 constexpr size_t MAX_DEDUPLICATABLE_STRING_LENGTH = 500;
 
+#ifdef JS_GC_ZEAL
+class js::gc::PromotionStats {
+  static constexpr size_t AttentionThreshold = 100;
+
+  size_t objectCount = 0;
+  size_t stringCount = 0;
+  size_t bigIntCount = 0;
+
+  using BaseShapeCountMap =
+      HashMap<BaseShape*, size_t, PointerHasher<BaseShape*>, SystemAllocPolicy>;
+  BaseShapeCountMap objectCountByBaseShape;
+
+  using AllocKindCountArray =
+      mozilla::EnumeratedArray<AllocKind, size_t, size_t(AllocKind::LIMIT)>;
+  AllocKindCountArray stringCountByKind;
+
+  bool hadOOM = false;
+
+  struct LabelAndCount {
+    char label[32] = {'\0'};
+    size_t count = 0;
+  };
+  using CountsVector = Vector<LabelAndCount, 0, SystemAllocPolicy>;
+
+ public:
+  void notePromotedObject(JSObject* obj);
+  void notePromotedString(JSString* str);
+  void notePromotedBigInt(JS::BigInt* bi);
+
+  bool shouldPrintReport() const;
+  void printReport(JSContext* cx, const JS::AutoRequireNoGC& nogc);
+
+ private:
+  void printObjectCounts(JSContext* cx, const JS::AutoRequireNoGC& nogc);
+  void printStringCounts();
+
+  void printCounts(CountsVector& counts, size_t total);
+  void printLine(const char* name, size_t count, size_t total);
+
+  UniqueChars getConstructorName(JSContext* cx, BaseShape* baseShape,
+                                 const JS::AutoRequireNoGC& nogc);
+};
+#endif  // JS_GC_ZEAL
+
 TenuringTracer::TenuringTracer(JSRuntime* rt, Nursery* nursery,
                                bool tenureEverything)
     : JSTracer(rt, JS::TracerKind::Tenuring,
@@ -53,6 +97,8 @@ TenuringTracer::TenuringTracer(JSRuntime* rt, Nursery* nursery,
       tenureEverything(tenureEverything) {
   stringDeDupSet.emplace();
 }
+
+TenuringTracer::~TenuringTracer() = default;
 
 size_t TenuringTracer::getPromotedSize() const {
   return promotedSize + promotedCells * sizeof(NurseryCellHeader);
@@ -83,12 +129,18 @@ JSObject* TenuringTracer::promoteOrForward(JSObject* obj) {
     return obj;
   }
 
-  return onNonForwardedNurseryObject(obj);
+  return promoteObject(obj);
 }
 
-JSObject* TenuringTracer::onNonForwardedNurseryObject(JSObject* obj) {
+JSObject* TenuringTracer::promoteObject(JSObject* obj) {
   MOZ_ASSERT(IsInsideNursery(obj));
   MOZ_ASSERT(!obj->isForwarded());
+
+#ifdef JS_GC_ZEAL
+  if (promotionStats) {
+    promotionStats->notePromotedObject(obj);
+  }
+#endif
 
   // Take a fast path for promoting a plain object as this is by far the most
   // common case.
@@ -120,13 +172,6 @@ JSString* TenuringTracer::promoteOrForward(JSString* str) {
     return str;
   }
 
-  return onNonForwardedNurseryString(str);
-}
-
-JSString* TenuringTracer::onNonForwardedNurseryString(JSString* str) {
-  MOZ_ASSERT(IsInsideNursery(str));
-  MOZ_ASSERT(!str->isForwarded());
-
   return promoteString(str);
 }
 
@@ -150,13 +195,6 @@ JS::BigInt* TenuringTracer::promoteOrForward(JS::BigInt* bi) {
     }
     return bi;
   }
-
-  return onNonForwardedNurseryBigInt(bi);
-}
-
-JS::BigInt* TenuringTracer::onNonForwardedNurseryBigInt(JS::BigInt* bi) {
-  MOZ_ASSERT(IsInsideNursery(bi));
-  MOZ_ASSERT(!bi->isForwarded());
 
   return promoteBigInt(bi);
 }
@@ -201,27 +239,27 @@ void TenuringTracer::traverse(JS::Value* thingp) {
   // We only care about a few kinds of GC thing here and this generates much
   // tighter code than using MapGCThingTyped.
   if (value.isObject()) {
-    JSObject* obj = onNonForwardedNurseryObject(&value.toObject());
+    JSObject* obj = promoteObject(&value.toObject());
     MOZ_ASSERT(obj != &value.toObject());
     *thingp = JS::ObjectValue(*obj);
     return;
   }
 #ifdef ENABLE_RECORD_TUPLE
   if (value.isExtendedPrimitive()) {
-    JSObject* obj = onNonForwardedNurseryObject(&value.toExtendedPrimitive());
+    JSObject* obj = promoteObject(&value.toExtendedPrimitive());
     MOZ_ASSERT(obj != &value.toExtendedPrimitive());
     *thingp = JS::ExtendedPrimitiveValue(*obj);
     return;
   }
 #endif
   if (value.isString()) {
-    JSString* str = onNonForwardedNurseryString(value.toString());
+    JSString* str = promoteString(value.toString());
     MOZ_ASSERT(str != value.toString());
     *thingp = JS::StringValue(str);
     return;
   }
   MOZ_ASSERT(value.isBigInt());
-  JS::BigInt* bi = onNonForwardedNurseryBigInt(value.toBigInt());
+  JS::BigInt* bi = promoteBigInt(value.toBigInt());
   MOZ_ASSERT(bi != value.toBigInt());
   *thingp = JS::BigIntValue(bi);
 }
@@ -921,7 +959,14 @@ inline void js::gc::TenuringTracer::insertIntoStringFixupList(
 
 JSString* js::gc::TenuringTracer::promoteString(JSString* src) {
   MOZ_ASSERT(IsInsideNursery(src));
+  MOZ_ASSERT(!src->isForwarded());
   MOZ_ASSERT(!src->isExternal());
+
+#ifdef JS_GC_ZEAL
+  if (promotionStats) {
+    promotionStats->notePromotedString(src);
+  }
+#endif
 
   AllocKind dstKind = src->getAllocKind();
   Zone* zone = src->nurseryZone();
@@ -1091,6 +1136,13 @@ void js::gc::TenuringTracer::relocateDependentStringChars(
 
 JS::BigInt* js::gc::TenuringTracer::promoteBigInt(JS::BigInt* src) {
   MOZ_ASSERT(IsInsideNursery(src));
+  MOZ_ASSERT(!src->isForwarded());
+
+#ifdef JS_GC_ZEAL
+  if (promotionStats) {
+    promotionStats->notePromotedBigInt(src);
+  }
+#endif
 
   AllocKind dstKind = src->getAllocKind();
   Zone* zone = src->nurseryZone();
@@ -1304,6 +1356,186 @@ MOZ_ALWAYS_INLINE bool DeduplicationStringHasher<Key>::match(
   return EqualChars(key->asLinear().twoByteChars(nogc),
                     lookup->asLinear().twoByteChars(nogc), lookup->length());
 }
+
+#ifdef JS_GC_ZEAL
+
+void TenuringTracer::initPromotionReport() {
+  MOZ_ASSERT(!promotionStats);
+  promotionStats = MakeUnique<PromotionStats>();
+  // Ignore OOM.
+}
+
+void TenuringTracer::printPromotionReport(
+    JSContext* cx, JS::GCReason reason, const JS::AutoRequireNoGC& nogc) const {
+  if (!promotionStats || !promotionStats->shouldPrintReport()) {
+    return;
+  }
+
+  size_t minorGCCount = runtime()->gc.minorGCCount();
+  double usedBytes = double(nursery_.previousGC.nurseryUsedBytes);
+  double capacityBytes = double(nursery_.previousGC.nurseryCapacity);
+  double fractionPromoted = double(getPromotedSize()) / usedBytes;
+  double usedMB = usedBytes / (1024 * 1024);
+  double capacityMB = capacityBytes / (1024 * 1024);
+  fprintf(stderr, "Promotion stats for minor GC %zu:\n", minorGCCount);
+  fprintf(stderr, "  Reason: %s\n", ExplainGCReason(reason));
+  fprintf(stderr, "  Nursery size: %4.1f MB used of %4.1f MB\n", usedMB,
+          capacityMB);
+  fprintf(stderr, "  Promotion rate: %5.1f%%\n", fractionPromoted);
+
+  promotionStats->printReport(cx, nogc);
+}
+
+void PromotionStats::notePromotedObject(JSObject* obj) {
+  objectCount++;
+
+  BaseShape* baseShape = obj->shape()->base();
+  auto ptr = objectCountByBaseShape.lookupForAdd(baseShape);
+  if (!ptr) {
+    if (!objectCountByBaseShape.add(ptr, baseShape, 0)) {
+      hadOOM = true;
+      return;
+    }
+  }
+  ptr->value()++;
+}
+
+void PromotionStats::notePromotedString(JSString* str) {
+  stringCount++;
+
+  AllocKind kind = str->getAllocKind();
+  stringCountByKind[kind]++;
+}
+
+void PromotionStats::notePromotedBigInt(JS::BigInt* bi) { bigIntCount++; }
+
+bool PromotionStats::shouldPrintReport() const {
+  if (hadOOM) {
+    return false;
+  }
+
+  return objectCount || stringCount || bigIntCount;
+}
+
+void PromotionStats::printReport(JSContext* cx,
+                                 const JS::AutoRequireNoGC& nogc) {
+  if (objectCount) {
+    fprintf(stderr, "  Objects promoted: %zu\n", objectCount);
+    printObjectCounts(cx, nogc);
+  }
+
+  if (stringCount) {
+    fprintf(stderr, "  Strings promoted: %zu\n", stringCount);
+    printStringCounts();
+  }
+
+  if (bigIntCount) {
+    fprintf(stderr, "  BigInts promoted: %zu\n", bigIntCount);
+  }
+}
+
+void PromotionStats::printObjectCounts(JSContext* cx,
+                                       const JS::AutoRequireNoGC& nogc) {
+  CountsVector counts;
+
+  for (auto r = objectCountByBaseShape.all(); !r.empty(); r.popFront()) {
+    size_t count = r.front().value();
+    if (count < AttentionThreshold) {
+      continue;
+    }
+
+    BaseShape* baseShape = r.front().key();
+
+    const char* className = baseShape->clasp()->name;
+
+    UniqueChars constructorName = getConstructorName(cx, baseShape, nogc);
+    const char* constructorChars = constructorName ? constructorName.get() : "";
+
+    LabelAndCount entry;
+    snprintf(entry.label, sizeof(entry.label), "%s %s", className,
+             constructorChars);
+    entry.count = count;
+    if (!counts.append(entry)) {
+      return;
+    }
+  }
+
+  printCounts(counts, objectCount);
+}
+
+UniqueChars PromotionStats::getConstructorName(
+    JSContext* cx, BaseShape* baseShape, const JS::AutoRequireNoGC& nogc) {
+  TaggedProto taggedProto = baseShape->proto();
+  if (taggedProto.isDynamic()) {
+    return nullptr;
+  }
+
+  JSObject* proto = taggedProto.toObjectOrNull();
+  if (!proto) {
+    return nullptr;
+  }
+
+  MOZ_ASSERT(!proto->isForwarded());
+
+  AutoRealm ar(cx, proto);
+  bool found;
+  Value value;
+  if (!GetOwnPropertyPure(cx, proto, NameToId(cx->names().constructor), &value,
+                          &found)) {
+    return nullptr;
+  }
+
+  if (!found || !value.isObject()) {
+    return nullptr;
+  }
+
+  JSFunction* constructor = &value.toObject().as<JSFunction>();
+  JSAtom* atom = constructor->maybePartialDisplayAtom();
+  if (!atom) {
+    return nullptr;
+  }
+
+  return EncodeAscii(cx, atom);
+}
+
+void PromotionStats::printStringCounts() {
+  CountsVector counts;
+  for (AllocKind kind : AllAllocKinds()) {
+    size_t count = stringCountByKind[kind];
+    if (count < AttentionThreshold) {
+      continue;
+    }
+
+    const char* name = AllocKindName(kind);
+    LabelAndCount entry;
+    strncpy(entry.label, name, sizeof(entry.label));
+    entry.label[sizeof(entry.label) - 1] = 0;
+    entry.count = count;
+    if (!counts.append(entry)) {
+      return;
+    }
+  }
+
+  printCounts(counts, stringCount);
+}
+
+void PromotionStats::printCounts(CountsVector& counts, size_t total) {
+  std::sort(counts.begin(), counts.end(),
+            [](const auto& a, const auto& b) { return a.count > b.count; });
+
+  size_t max = std::min(counts.length(), size_t(10));
+  for (size_t i = 0; i < max; i++) {
+    const auto& entry = counts[i];
+    printLine(entry.label, entry.count, total);
+  }
+}
+
+void PromotionStats::printLine(const char* name, size_t count, size_t total) {
+  double percent = 100.0 * double(count) / double(total);
+  fprintf(stderr, "    %5.1f%%: %s\n", percent, name);
+}
+
+#endif
 
 MinorSweepingTracer::MinorSweepingTracer(JSRuntime* rt)
     : GenericTracerImpl(rt, JS::TracerKind::MinorSweeping,

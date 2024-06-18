@@ -136,8 +136,6 @@ struct TableBCData final {
   nscoord mIEndBorderWidth = 0;
   nscoord mBEndBorderWidth = 0;
   nscoord mIStartBorderWidth = 0;
-  nscoord mIStartCellBorderWidth = 0;
-  nscoord mIEndCellBorderWidth = 0;
 };
 
 }  // namespace mozilla
@@ -1376,7 +1374,7 @@ nsTableFrame::IntrinsicISizeOffsets(nscoord aPercentageBasis) {
     result.padding = 0;
 
     WritingMode wm = GetWritingMode();
-    LogicalMargin outerBC = GetIncludedOuterBCBorder(wm);
+    LogicalMargin outerBC = GetOuterBCBorder(wm);
     result.border = outerBC.IStartEnd(wm);
   }
 
@@ -1816,12 +1814,6 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
   // make sure the table overflow area does include the table rect.
   nsRect tableRect(0, 0, aDesiredSize.Width(), aDesiredSize.Height());
 
-  if (ShouldApplyOverflowClipping(aReflowInput.mStyleDisplay) !=
-      kPhysicalAxesBoth) {
-    // collapsed border may leak out
-    LogicalMargin bcMargin = GetExcludedOuterBCBorder(wm);
-    tableRect.Inflate(bcMargin.GetPhysicalMargin(wm));
-  }
   aDesiredSize.mOverflowAreas.UnionAllWith(tableRect);
 
   FinishAndStoreOverflow(&aDesiredSize);
@@ -1888,16 +1880,6 @@ void nsTableFrame::FixupPositionedTableParts(nsPresContext* aPresContext,
 }
 
 bool nsTableFrame::ComputeCustomOverflow(OverflowAreas& aOverflowAreas) {
-  // As above in Reflow, make sure the table overflow area includes the table
-  // rect, and check for collapsed borders leaking out.
-  if (ShouldApplyOverflowClipping(StyleDisplay()) != kPhysicalAxesBoth) {
-    nsRect bounds(nsPoint(0, 0), GetSize());
-    WritingMode wm = GetWritingMode();
-    LogicalMargin bcMargin = GetExcludedOuterBCBorder(wm);
-    bounds.Inflate(bcMargin.GetPhysicalMargin(wm));
-
-    aOverflowAreas.UnionAllWith(bounds);
-  }
   return nsContainerFrame::ComputeCustomOverflow(aOverflowAreas);
 }
 
@@ -2374,7 +2356,7 @@ nsMargin nsTableFrame::GetUsedBorder() const {
   if (!IsBorderCollapse()) return nsContainerFrame::GetUsedBorder();
 
   WritingMode wm = GetWritingMode();
-  return GetIncludedOuterBCBorder(wm).GetPhysicalMargin(wm);
+  return GetOuterBCBorder(wm).GetPhysicalMargin(wm);
 }
 
 /* virtual */
@@ -2434,35 +2416,13 @@ LogicalMargin nsTableFrame::GetOuterBCBorder(const WritingMode aWM) const {
   return LogicalMargin(aWM);
 }
 
-LogicalMargin nsTableFrame::GetIncludedOuterBCBorder(
-    const WritingMode aWM) const {
-  if (NeedToCalcBCBorders()) {
-    const_cast<nsTableFrame*>(this)->CalcBCBorders();
-  }
-
-  TableBCData* propData = GetTableBCData();
-  if (propData) {
-    return LogicalMargin(
-        aWM, BC_BORDER_START_HALF(propData->mBStartBorderWidth),
-        BC_BORDER_END_HALF(propData->mIEndCellBorderWidth),
-        BC_BORDER_END_HALF(propData->mBEndBorderWidth),
-        BC_BORDER_START_HALF(propData->mIStartCellBorderWidth));
-  }
-  return LogicalMargin(aWM);
-}
-
-LogicalMargin nsTableFrame::GetExcludedOuterBCBorder(
-    const WritingMode aWM) const {
-  return GetOuterBCBorder(aWM) - GetIncludedOuterBCBorder(aWM);
-}
-
 void nsTableFrame::GetCollapsedBorderPadding(
     Maybe<LogicalMargin>& aBorder, Maybe<LogicalMargin>& aPadding) const {
   if (IsBorderCollapse()) {
     // Border-collapsed tables don't use any of their padding, and only part of
     // their border.
     const auto wm = GetWritingMode();
-    aBorder.emplace(GetIncludedOuterBCBorder(wm));
+    aBorder.emplace(GetOuterBCBorder(wm));
     aPadding.emplace(wm);
   }
 }
@@ -3949,8 +3909,8 @@ struct BCMapTableInfo final {
 
   void ResetTableBEndBorderWidth() { mTableBCData->mBEndBorderWidth = 0; }
 
-  void SetTableIStartBorderWidth(int32_t aRowB, nscoord aWidth);
-  void SetTableIEndBorderWidth(int32_t aRowB, nscoord aWidth);
+  void SetTableIStartBorderWidth(nscoord aWidth);
+  void SetTableIEndBorderWidth(nscoord aWidth);
   void SetTableBStartBorderWidth(nscoord aWidth);
   void SetTableBEndBorderWidth(nscoord aWidth);
 
@@ -4770,23 +4730,23 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
   int32_t numRows = GetRowCount();
   int32_t numCols = GetColCount();
 
-  int32_t dStartX = aArea.StartCol();
-  int32_t dEndX = aArea.EndCol() - 1;
-  int32_t dStartY = aArea.StartRow();
-  int32_t dEndY = aArea.EndRow() - 1;
+  int32_t firstColIdx = aArea.StartCol();
+  int32_t lastColIdx = aArea.EndCol() - 1;
+  int32_t startRowIdx = aArea.StartRow();
+  int32_t endRowIdx = aArea.EndRow() - 1;
 
   // expand the damage area in each direction
-  if (dStartX > 0) {
-    dStartX--;
+  if (firstColIdx > 0) {
+    firstColIdx--;
   }
-  if (dEndX < (numCols - 1)) {
-    dEndX++;
+  if (lastColIdx < (numCols - 1)) {
+    lastColIdx++;
   }
-  if (dStartY > 0) {
-    dStartY--;
+  if (startRowIdx > 0) {
+    startRowIdx--;
   }
-  if (dEndY < (numRows - 1)) {
-    dEndY++;
+  if (endRowIdx < (numRows - 1)) {
+    endRowIdx++;
   }
   // Check the damage area so that there are no cells spanning in or out. If
   // there are any then make the damage area as big as the table, similarly to
@@ -4795,8 +4755,8 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
   // it may not be worth the effort in general, and it would need to be done in
   // the cell map as well.
   bool haveSpanner = false;
-  if ((dStartX > 0) || (dEndX < (numCols - 1)) || (dStartY > 0) ||
-      (dEndY < (numRows - 1))) {
+  if ((firstColIdx > 0) || (lastColIdx < (numCols - 1)) || (startRowIdx > 0) ||
+      (endRowIdx < (numRows - 1))) {
     nsTableCellMap* tableCellMap = GetCellMap();
     if (!tableCellMap) ABORT0();
     // Get the ordered row groups
@@ -4808,27 +4768,29 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
       nsTableRowGroupFrame* rgFrame = rowGroups[rgIdx];
       int32_t rgStartY = rgFrame->GetStartRowIndex();
       int32_t rgEndY = rgStartY + rgFrame->GetRowCount() - 1;
-      if (dEndY < rgStartY) break;
+      if (endRowIdx < rgStartY) break;
       cellMap = tableCellMap->GetMapFor(rgFrame, cellMap);
       if (!cellMap) ABORT0();
       // check for spanners from above and below
-      if ((dStartY > 0) && (dStartY >= rgStartY) && (dStartY <= rgEndY)) {
-        if (uint32_t(dStartY - rgStartY) >= cellMap->mRows.Length()) ABORT0();
+      if ((startRowIdx > 0) && (startRowIdx >= rgStartY) &&
+          (startRowIdx <= rgEndY)) {
+        if (uint32_t(startRowIdx - rgStartY) >= cellMap->mRows.Length())
+          ABORT0();
         const nsCellMap::CellDataArray& row =
-            cellMap->mRows[dStartY - rgStartY];
-        for (int32_t x = dStartX; x <= dEndX; x++) {
+            cellMap->mRows[startRowIdx - rgStartY];
+        for (int32_t x = firstColIdx; x <= lastColIdx; x++) {
           CellData* cellData = row.SafeElementAt(x);
           if (cellData && (cellData->IsRowSpan())) {
             haveSpanner = true;
             break;
           }
         }
-        if (dEndY < rgEndY) {
-          if (uint32_t(dEndY + 1 - rgStartY) >= cellMap->mRows.Length())
+        if (endRowIdx < rgEndY) {
+          if (uint32_t(endRowIdx + 1 - rgStartY) >= cellMap->mRows.Length())
             ABORT0();
           const nsCellMap::CellDataArray& row2 =
-              cellMap->mRows[dEndY + 1 - rgStartY];
-          for (int32_t x = dStartX; x <= dEndX; x++) {
+              cellMap->mRows[endRowIdx + 1 - rgStartY];
+          for (int32_t x = firstColIdx; x <= lastColIdx; x++) {
             CellData* cellData = row2.SafeElementAt(x);
             if (cellData && (cellData->IsRowSpan())) {
               haveSpanner = true;
@@ -4840,15 +4802,15 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
       // check for spanners on the left and right
       int32_t iterStartY;
       int32_t iterEndY;
-      if ((dStartY >= rgStartY) && (dStartY <= rgEndY)) {
+      if ((startRowIdx >= rgStartY) && (startRowIdx <= rgEndY)) {
         // the damage area starts in the row group
-        iterStartY = dStartY;
-        iterEndY = std::min(dEndY, rgEndY);
-      } else if ((dEndY >= rgStartY) && (dEndY <= rgEndY)) {
+        iterStartY = startRowIdx;
+        iterEndY = std::min(endRowIdx, rgEndY);
+      } else if ((endRowIdx >= rgStartY) && (endRowIdx <= rgEndY)) {
         // the damage area ends in the row group
         iterStartY = rgStartY;
-        iterEndY = dEndY;
-      } else if ((rgStartY >= dStartY) && (rgEndY <= dEndY)) {
+        iterEndY = endRowIdx;
+      } else if ((rgStartY >= startRowIdx) && (rgEndY <= endRowIdx)) {
         // the damage area contains the row group
         iterStartY = rgStartY;
         iterEndY = rgEndY;
@@ -4861,13 +4823,13 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
       for (int32_t y = iterStartY; y <= iterEndY; y++) {
         if (uint32_t(y - rgStartY) >= cellMap->mRows.Length()) ABORT0();
         const nsCellMap::CellDataArray& row = cellMap->mRows[y - rgStartY];
-        CellData* cellData = row.SafeElementAt(dStartX);
+        CellData* cellData = row.SafeElementAt(firstColIdx);
         if (cellData && (cellData->IsColSpan())) {
           haveSpanner = true;
           break;
         }
-        if (dEndX < (numCols - 1)) {
-          cellData = row.SafeElementAt(dEndX + 1);
+        if (lastColIdx < (numCols - 1)) {
+          cellData = row.SafeElementAt(lastColIdx + 1);
           if (cellData && (cellData->IsColSpan())) {
             haveSpanner = true;
             break;
@@ -4876,37 +4838,38 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
       }
     }
   }
-  if (haveSpanner) {
-    // make the damage area the whole table
+
+  // If the damage area includes the edge of the table, we have to expand
+  // the damage area across that whole edge. This is because table-edge
+  // borders take the maximum border width among all cells on that edge.
+  // i.e. If the first row is damaged, then we consider all the cols to
+  // be damaged, and vice versa.
+  if (haveSpanner || startRowIdx == 0 || endRowIdx == numRows - 1) {
     aArea.StartCol() = 0;
-    aArea.StartRow() = 0;
     aArea.ColCount() = numCols;
+  } else {
+    aArea.StartCol() = firstColIdx;
+    aArea.ColCount() = 1 + lastColIdx - firstColIdx;
+  }
+
+  if (haveSpanner || firstColIdx == 0 || lastColIdx == numCols - 1) {
+    aArea.StartRow() = 0;
     aArea.RowCount() = numRows;
   } else {
-    aArea.StartCol() = dStartX;
-    aArea.StartRow() = dStartY;
-    aArea.ColCount() = 1 + dEndX - dStartX;
-    aArea.RowCount() = 1 + dEndY - dStartY;
+    aArea.StartRow() = startRowIdx;
+    aArea.RowCount() = 1 + endRowIdx - startRowIdx;
   }
 }
 
 #define ADJACENT true
 #define INLINE_DIR true
 
-void BCMapTableInfo::SetTableIStartBorderWidth(int32_t aRowB, nscoord aWidth) {
-  // update the iStart first cell border
-  if (aRowB == 0) {
-    mTableBCData->mIStartCellBorderWidth = aWidth;
-  }
+void BCMapTableInfo::SetTableIStartBorderWidth(nscoord aWidth) {
   mTableBCData->mIStartBorderWidth =
       std::max(mTableBCData->mIStartBorderWidth, aWidth);
 }
 
-void BCMapTableInfo::SetTableIEndBorderWidth(int32_t aRowB, nscoord aWidth) {
-  // update the iEnd first cell border
-  if (aRowB == 0) {
-    mTableBCData->mIEndCellBorderWidth = aWidth;
-  }
+void BCMapTableInfo::SetTableIEndBorderWidth(nscoord aWidth) {
   mTableBCData->mIEndBorderWidth =
       std::max(mTableBCData->mIEndBorderWidth, aWidth);
 }
@@ -5334,7 +5297,7 @@ void nsTableFrame::CalcBCBorders() {
                                       currentBorder.width, startSeg);
         // Set border width at inline-start (table-wide and for the cell), but
         // only if it's the largest we've encountered.
-        tableInfo.SetTableIStartBorderWidth(rowB, currentBorder.width);
+        tableInfo.SetTableIStartBorderWidth(currentBorder.width);
         if (!reset) {
           info.ResetIStartBorderWidths();
           reset = true;
@@ -5386,7 +5349,7 @@ void nsTableFrame::CalcBCBorders() {
             currentBorder.width, startSeg);
         // Set border width at inline-end (table-wide and for the cell), but
         // only if it's the largest we've encountered.
-        tableInfo.SetTableIEndBorderWidth(rowB, currentBorder.width);
+        tableInfo.SetTableIEndBorderWidth(currentBorder.width);
         if (!reset) {
           info.ResetIEndBorderWidths();
           reset = true;
@@ -6026,7 +5989,7 @@ BCPaintBorderIterator::BCPaintBorderIterator(nsTableFrame* aTable)
   MOZ_ASSERT(mTable->IsBorderCollapse(),
              "Why are we here if the table is not border-collapsed?");
 
-  const LogicalMargin bp = mTable->GetIncludedOuterBCBorder(mTableWM);
+  const LogicalMargin bp = mTable->GetOuterBCBorder(mTableWM);
   // block position of first row in damage area
   mInitialOffsetB = mTable->GetPrevInFlow() ? 0 : bp.BStart(mTableWM);
   mNumTableRows = mTable->GetRowCount();
@@ -6095,7 +6058,7 @@ bool BCPaintBorderIterator::SetDamageArea(const nsRect& aDirtyRect) {
   haveIntersect = false;
   if (0 == mNumTableCols) return false;
 
-  LogicalMargin bp = mTable->GetIncludedOuterBCBorder(mTableWM);
+  LogicalMargin bp = mTable->GetOuterBCBorder(mTableWM);
 
   // inline position of first col in damage area
   mInitialOffsetI = bp.IStart(mTableWM);

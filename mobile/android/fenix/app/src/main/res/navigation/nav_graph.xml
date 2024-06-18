@@ -49,6 +49,11 @@
         app:popUpTo="@id/homeFragment" />
 
     <action
+        android:id="@+id/action_global_microsurvey_dialog"
+        app:destination="@id/microsurveyDialogFragment"
+        app:popUpTo="@id/homeFragment" />
+
+    <action
         android:id="@+id/action_global_search_dialog"
         app:destination="@id/searchDialogFragment"
         app:popUpTo="@id/searchDialogFragment"
@@ -249,6 +254,10 @@
     <dialog
         android:id="@+id/wallpaperOnboardingDialogFragment"
         android:name="org.mozilla.fenix.onboarding.WallpaperOnboardingDialogFragment" />
+
+    <dialog
+        android:id="@+id/microsurveyDialogFragment"
+        android:name="org.mozilla.fenix.microsurvey.ui.MicrosurveyBottomSheetFragment" />
 
     <dialog
         android:id="@+id/searchDialogFragment"

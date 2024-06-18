@@ -651,10 +651,14 @@ impl DataStorageInner {
     where
         F: FnMut(&Entry, DataType),
     {
-        for entry in &self.persistent_slots {
+        for entry in self
+            .persistent_slots
+            .iter()
+            .filter(|entry| !entry.is_empty())
+        {
             f(entry, DataType::Persistent);
         }
-        for entry in &self.private_slots {
+        for entry in self.private_slots.iter().filter(|entry| !entry.is_empty()) {
             f(entry, DataType::Private);
         }
     }

@@ -626,3 +626,5 @@ skip-if = ["os == 'android'"]
 ["test_undo_redo_stack_after_setting_value.html"]
 
 ["test_undo_with_editingui.html"]
+
+["test_updating_input_value_during_composition.html"]

@@ -35,6 +35,7 @@
 #include "nsIController.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/InputEventOptions.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/NativeKeyBindingsType.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ScrollContainerFrame.h"
@@ -2674,10 +2675,20 @@ bool TextControlState::SetValue(const nsAString& aValue,
       AutoTextControlHandlingState handlingCommitComposition(
           *this, TextControlAction::CommitComposition);
       if (nsContentUtils::IsSafeToRunScript()) {
-        // WARNING: During this call, compositionupdate, compositionend, input
-        // events will be fired.  Therefore, everything can occur.  E.g., the
-        // document may be unloaded.
-        RefPtr<TextEditor> textEditor = mTextEditor;
+        // While we're committing composition, we don't want TextEditor
+        // dispatches nested `beforeinput`/`input` events if this is called by a
+        // `beforeinput`/`input` event listener since the commit value will be
+        // completely overwritten by the new value soon and the web app do not
+        // need to handle the committing composition which is caused by updating
+        // the value.
+        // Note that `compositionupdate` and `compositionend` will be fired.
+        // Therefore, everything could occur during a the following call.
+        // I.e., the document may be unloaded by the web app itself.
+        Maybe<AutoInputEventSuppresser> preventInputEventsDuringCommit;
+        if (mTextEditor->IsDispatchingInputEvent()) {
+          preventInputEventsDuringCommit.emplace(mTextEditor);
+        }
+        OwningNonNull<TextEditor> textEditor(*mTextEditor);
         nsresult rv = textEditor->CommitComposition();
         if (handlingCommitComposition.IsTextControlStateDestroyed()) {
           return true;

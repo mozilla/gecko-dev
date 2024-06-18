@@ -61,7 +61,7 @@ bool SVGTests::IsConditionalProcessingAttribute(
 
 // Find the best match from aAvailLangs for the users accept-languages,
 // returning the index in the aAvailLangs list, or -1 if no match.
-int32_t FindBestLanguage(const nsTArray<nsCString>& aAvailLangs) {
+static int32_t FindBestLanguage(const nsTArray<nsCString>& aAvailLangs) {
   AutoTArray<nsCString, 16> reqLangs;
   nsCString acceptLangs;
   Preferences::GetLocalizedCString("intl.accept_languages", acceptLangs);

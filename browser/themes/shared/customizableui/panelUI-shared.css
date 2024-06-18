@@ -534,38 +534,11 @@ panelview[id^=PanelUI-webext-] {
   }
 }
 
-toolbarpaletteitem {
-  &[place="panel"] > .toolbarbutton-1 {
-    flex: 1;
-  }
-}
-
-/* Help webextension buttons fit in. */
-toolbarpaletteitem[place="palette"] > toolbarbutton[constrain-size="true"] > .toolbarbutton-icon,
-toolbarpaletteitem[place="palette"] > toolbarbutton[constrain-size="true"] > .toolbarbutton-badge-stack > .toolbarbutton-icon,
+/* Webextension buttons */
 toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-icon,
 toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badge-stack > .toolbarbutton-icon {
   height: var(--panel-and-palette-icon-size);
   width: var(--panel-and-palette-icon-size);
-}
-
-#customization-palette .toolbarbutton-1 {
-  appearance: none;
-  flex-direction: column;
-  padding: 12px 0 9px;
-  margin: 0;
-}
-
-/* above we treat the container as the icon for the margins, that is so the
-/* badge itself is positioned correctly. Here we make sure that the icon itself
-/* has the minimum size we want, but no padding/margin. */
-.customization-palette .toolbarbutton-1 > .toolbarbutton-badge-stack > .toolbarbutton-icon {
-  width: var(--panel-and-palette-icon-size);
-  height: var(--panel-and-palette-icon-size);
-  min-width: var(--panel-and-palette-icon-size);
-  min-height: var(--panel-and-palette-icon-size);
-  margin: 0;
-  padding: 0;
 }
 
 #zoom-in-button > .toolbarbutton-text,
@@ -1367,6 +1340,15 @@ panelview .toolbarbutton-1 {
   min-width: 0;
 }
 
+.PanelUI-tabitem-container {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+
+  &.tabitem-removed {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
 .PanelUI-tabitem-container > toolbarbutton[itemtype="tab"] {
   flex: 1;
   min-width: 0;
@@ -1380,24 +1362,6 @@ panelview .toolbarbutton-1 {
 
 #PanelUI-fxa-menu-account-settings-button > .toolbarbutton-icon {
   border-radius: 50%;
-}
-
-toolbarpaletteitem {
-  &[place="palette"] > #search-container {
-    min-width: 7em;
-    width: 7em;
-    min-height: 37px;
-    max-height: 37px;
-  }
-
-  &[place="panel"],
-  &[place="panel"] > toolbaritem {
-    flex: 1;
-  }
-
-  &[place="menu-panel"] > .subviewbutton-nav::after {
-    opacity: 0.5;
-  }
 }
 
 .toolbaritem-combined-buttons {
