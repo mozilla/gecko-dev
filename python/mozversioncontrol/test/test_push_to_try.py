@@ -44,6 +44,8 @@ def test_push_to_try(repo, monkeypatch):
             ),
             (
                 str(tool),
+                "-c",
+                "cinnabar.data=never",
                 "push",
                 "hg::ssh://hg.mozilla.org/try",
                 "+HEAD:refs/heads/branches/default/tip",
