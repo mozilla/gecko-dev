@@ -591,6 +591,7 @@ panel#feature-callout::part(content) {
   background: transparent;
   outline: 1px solid var(--fc-border);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  -moz-window-shadow: none;
 }
 #feature-callout .background-arrow-box {
   z-index: 1;
