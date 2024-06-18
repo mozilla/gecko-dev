@@ -84,7 +84,7 @@ function waitForOriginalStyleSheetEditorSelection(toolbox) {
 async function verifyStyleSheetLink(view, fileName, lineNumber) {
   const expectedLocation = `${fileName}:${lineNumber}`;
   const expectedUrl = URL_ROOT_SSL + fileName;
-  const expectedTitle = URL_ROOT_SSL + expectedLocation;
+  const expectedTitle = `View source in Style Editor → ${URL_ROOT_SSL}${expectedLocation}`;
 
   info("Verifying that the rule-view stylesheet link is " + expectedLocation);
   const label = getRuleViewLinkByIndex(view, 1).querySelector(

@@ -233,6 +233,12 @@
   user-select: none;
   margin-bottom: 2px;
   margin-left: 1ch;
+
+  /* Because of the overflow hidden, the outline that would be set on the child link
+     would not be visible, so we need to set it here */
+  &:focus-within:has(a:focus-visible) {
+    outline: var(--theme-focus-outline);
+  }
 }
 
 .ruleview-rule-source-label {
@@ -243,7 +249,22 @@
   /* Create an LTR embed to avoid special characters being shifted to the start due to the
      parent node direction: rtl; */
   direction: ltr;
-  unicode-bidi: embed
+  unicode-bidi: embed;
+
+  /* We don't always have a link (e.g. for inline style, it's a simple span), and in such
+     case, we shouldn't set the color the same as link color */
+  &:is(a) {
+    color: var(--theme-internal-link-color);
+
+    /* The outline is set on ruleview-rule-source */
+    &:focus-visible {
+      outline: none;
+    }
+
+    &:visited {
+      color: var(--theme-internal-link-color);
+    }
+  }
 }
 
 .ruleview-rule-source.disabled > .ruleview-rule-source-label,

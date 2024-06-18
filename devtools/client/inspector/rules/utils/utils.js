@@ -207,7 +207,7 @@ function getNodeInfo(node, elementStyle) {
       ? node
       : node.querySelector(".ruleview-rule-source-label");
     value =
-      sourceLabelEl.getAttribute("data-url") || rule.sheet?.href || rule.title;
+      sourceLabelEl.getAttribute("href") || rule.sheet?.href || rule.title;
   } else {
     return null;
   }
