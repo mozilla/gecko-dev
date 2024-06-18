@@ -2332,8 +2332,6 @@ void nsMenuPopupFrame::CreatePopupView() {
 
   // Create a view
   nsView* view = viewManager->CreateView(GetRect(), parentView, visibility);
-  auto zIndex = ZIndex();
-  viewManager->SetViewZIndex(view, zIndex.isNothing(), zIndex.valueOr(0));
   // XXX put view last in document order until we can do better
   viewManager->InsertChild(parentView, view, nullptr, true);
 

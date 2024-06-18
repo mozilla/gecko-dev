@@ -1491,10 +1491,6 @@ void nsIFrame::SyncFrameViewProperties(nsView* aView) {
                                      ? ViewVisibility::Show
                                      : ViewVisibility::Hide);
   }
-
-  const auto zIndex = ZIndex();
-  const bool autoZIndex = !zIndex;
-  vm->SetViewZIndex(aView, autoZIndex, zIndex.valueOr(0));
 }
 
 void nsIFrame::CreateView() {

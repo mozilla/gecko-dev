@@ -98,9 +98,6 @@ enum class ViewVisibility : uint8_t { Hide = 0, Show = 1 };
 
 // Public view flags
 
-// Indicates that the view is using auto z-indexing
-#define NS_VIEW_FLAG_AUTO_ZINDEX 0x0004
-
 // Indicates that the view is a floating view.
 #define NS_VIEW_FLAG_FLOATING 0x0008
 
@@ -405,22 +402,6 @@ class nsView final : public nsIWidgetListener {
    * @param y new y position
    */
   void SetPosition(nscoord aX, nscoord aY);
-
-  /**
-   * Called to indicate that the z-index of a view has been changed.
-   * The z-index is relative to all siblings of the view.
-   * @param aAuto Indicate that the z-index of a view is "auto". An "auto"
-   *              z-index means that the view does not define a new stacking
-   *              context, which means that the z-indicies of the view's
-   *              children are relative to the view's siblings.
-   * @param zindex new z depth
-   */
-  void SetZIndex(bool aAuto, int32_t aZIndex);
-  bool GetZIndexIsAuto() const {
-    return (mVFlags & NS_VIEW_FLAG_AUTO_ZINDEX) != 0;
-  }
-  int32_t GetZIndex() const { return mZIndex; }
-
   void SetParent(nsView* aParent) { mParent = aParent; }
   void SetNextSibling(nsView* aSibling) {
     NS_ASSERTION(aSibling != this, "Can't be our own sibling!");
@@ -541,7 +522,6 @@ class nsView final : public nsIWidgetListener {
   nsView* mFirstChild;
   nsIFrame* mFrame;
   mozilla::UniquePtr<nsRegion> mDirtyRegion;
-  int32_t mZIndex;
   ViewVisibility mVis;
   // position relative our parent view origin but in our appunits
   nscoord mPosX, mPosY;

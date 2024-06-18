@@ -117,8 +117,6 @@ void nsViewManager::SetRootView(nsView* aView) {
     } else {
       InvalidateHierarchy();
     }
-
-    mRootView->SetZIndex(false, 0);
   }
   // Else don't touch mRootViewManager
 }
@@ -806,7 +804,7 @@ void nsViewManager::ResizeView(nsView* aView, const nsRect& aRect) {
 }
 
 void nsViewManager::SetViewFloating(nsView* aView, bool aFloating) {
-  NS_ASSERTION(!(nullptr == aView), "no view");
+  NS_ASSERTION(aView, "no view");
 
   aView->SetFloating(aFloating);
 }
@@ -834,24 +832,6 @@ bool nsViewManager::IsViewInserted(nsView* aView) {
     view = view->GetNextSibling();
   }
   return false;
-}
-
-void nsViewManager::SetViewZIndex(nsView* aView, bool aAutoZIndex,
-                                  int32_t aZIndex) {
-  NS_ASSERTION((aView != nullptr), "no view");
-
-  // don't allow the root view's z-index to be changed. It should always be
-  // zero. This could be removed and replaced with a style rule, or just removed
-  // altogether, with interesting consequences
-  if (aView == mRootView) {
-    return;
-  }
-
-  if (aAutoZIndex) {
-    aZIndex = 0;
-  }
-
-  aView->SetZIndex(aAutoZIndex, aZIndex);
 }
 
 nsViewManager* nsViewManager::IncrementDisableRefreshCount() {
