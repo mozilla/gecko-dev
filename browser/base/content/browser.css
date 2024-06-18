@@ -245,22 +245,6 @@ printpreview-pagination:focus-within,
   max-height: 0;
 }
 
-
-#sidebar-box {
-  min-width: 14em;
-  max-width: 36em;
-  width: 18em;
-}
-
-/* WebExtension Sidebars */
-#sidebar-box[sidebarcommand$="-sidebar-action"] > #sidebar-header > #sidebar-switcher-target > #sidebar-icon {
-  list-style-image: var(--webextension-menuitem-image, inherit);
-  -moz-context-properties: fill;
-  fill: currentColor;
-  width: 16px;
-  height: 16px;
-}
-
 toolbar[keyNav=true]:not([collapsed=true], [customizing=true]) toolbartabstop {
   -moz-user-focus: normal;
 }

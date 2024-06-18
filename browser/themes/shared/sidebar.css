@@ -15,6 +15,8 @@
   color: var(--sidebar-text-color);
   text-shadow: none;
   max-width: 75vw;
+  min-width: 14em;
+  width: 18em;
 
   :root[lwt-sidebar="light"] & {
     color-scheme: light;
@@ -137,4 +139,13 @@ menuseparator + #sidebar-extensions-separator {
   -moz-context-properties: fill;
   fill: currentColor;
   opacity: 0.8;
+}
+
+/* WebExtension Sidebars */
+#sidebar-box[sidebarcommand$="-sidebar-action"] > #sidebar-header > #sidebar-switcher-target > #sidebar-icon {
+  list-style-image: var(--webextension-menuitem-image, inherit);
+  -moz-context-properties: fill;
+  fill: currentColor;
+  width: 16px;
+  height: 16px;
 }
