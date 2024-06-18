@@ -315,6 +315,10 @@ extern "C" const char* __tsan_default_suppressions() {
          // suppression cannot be used.
          "race:libvulkan_lvp.so\n"
 
+         // Bug 1894073 - false positive
+         // TSan isn't aware of IPC; see bug for detailed explanation.
+         "race:LaunchAppWithForkServer\n"
+
       // End of suppressions.
       ;  // Please keep this semicolon.
 }
