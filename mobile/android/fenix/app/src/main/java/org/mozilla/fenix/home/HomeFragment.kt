@@ -735,8 +735,8 @@ class HomeFragment : Fragment() {
      * Listens for the microsurvey message and initializes the microsurvey prompt if one is available.
      */
     private fun listenForMicrosurveyMessage(context: Context) {
-        binding.root.consumeFrom(context.components.appStore, viewLifecycleOwner) {
-            it.messaging.messageToShow[FenixMessageSurfaceId.MICROSURVEY]?.let { message ->
+        binding.root.consumeFrom(context.components.appStore, viewLifecycleOwner) { state ->
+            state.messaging.messageToShow[FenixMessageSurfaceId.MICROSURVEY]?.let { message ->
                 if (message.id != currentlyDisplayedMessage?.id) {
                     context.components.settings.shouldShowMicrosurveyPrompt = true
                     currentlyDisplayedMessage = message
