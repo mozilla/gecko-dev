@@ -497,9 +497,9 @@ describe("ASRouter", () => {
       );
     });
     describe("lazily loading local test providers", () => {
-      afterEach(() => {
-        Router.uninit();
-      });
+      let justIdAndContent = ({ id, content }) => ({ id, content });
+      afterEach(() => Router.uninit());
+
       it("should add the local test providers on init if devtools are enabled", async () => {
         sandbox.stub(ASRouterPreferences, "devtoolsEnabled").get(() => true);
 
@@ -513,6 +513,38 @@ describe("ASRouter", () => {
         await createRouterAndInit();
 
         assert.notProperty(Router._localProviders, "PanelTestProvider");
+      });
+      it("should flatten experiment translated messages from local test providers if devtools are enabled...", async () => {
+        sandbox.stub(ASRouterPreferences, "devtoolsEnabled").get(() => true);
+
+        await createRouterAndInit();
+
+        assert.property(Router._localProviders, "PanelTestProvider");
+
+        expect(
+          Router.state.messages.map(justIdAndContent)
+        ).to.deep.include.members([
+          { id: "experimentL10n", content: { text: "UniqueText" } },
+        ]);
+      });
+      it("...but not if devtools are disabled", async () => {
+        sandbox.stub(ASRouterPreferences, "devtoolsEnabled").get(() => false);
+
+        await createRouterAndInit();
+
+        assert.notProperty(Router._localProviders, "PanelTestProvider");
+
+        let justIdAndContentMessages =
+          Router.state.messages.map(justIdAndContent);
+        expect(justIdAndContentMessages).not.to.deep.include.members([
+          { id: "experimentL10n", content: { text: "UniqueText" } },
+        ]);
+        expect(justIdAndContentMessages).to.deep.include.members([
+          {
+            id: "experimentL10n",
+            content: { text: { $l10n: { text: "UniqueText" } } },
+          },
+        ]);
       });
     });
   });

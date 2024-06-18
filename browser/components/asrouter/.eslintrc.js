@@ -50,6 +50,7 @@ module.exports = {
       },
       globals: {
         assert: true,
+        expect: true,
         chai: true,
         sinon: true,
       },
