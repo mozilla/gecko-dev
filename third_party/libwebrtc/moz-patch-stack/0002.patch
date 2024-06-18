@@ -349,10 +349,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  39 files changed, 573 insertions(+), 85 deletions(-)
 
 diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
-index b45bf40e54..77ea5fc2a5 100644
+index 8813e0f4c2..b5e08cea2c 100644
 --- a/api/rtp_headers.cc
 +++ b/api/rtp_headers.cc
-@@ -34,7 +34,8 @@ RTPHeaderExtension::RTPHeaderExtension()
+@@ -31,7 +31,8 @@ RTPHeaderExtension::RTPHeaderExtension()
        videoRotation(kVideoRotation_0),
        hasVideoContentType(false),
        videoContentType(VideoContentType::UNSPECIFIED),
@@ -363,7 +363,7 @@ index b45bf40e54..77ea5fc2a5 100644
  RTPHeaderExtension::RTPHeaderExtension(const RTPHeaderExtension& other) =
      default;
 diff --git a/api/rtp_headers.h b/api/rtp_headers.h
-index 3ea643d37e..ef423d3bfb 100644
+index 7ededb94fc..bf1660d934 100644
 --- a/api/rtp_headers.h
 +++ b/api/rtp_headers.h
 @@ -112,6 +112,19 @@ inline bool operator!=(const AbsoluteCaptureTime& lhs,
@@ -386,18 +386,21 @@ index 3ea643d37e..ef423d3bfb 100644
  struct RTPHeaderExtension {
    RTPHeaderExtension();
    RTPHeaderExtension(const RTPHeaderExtension& other);
-@@ -173,9 +186,9 @@ struct RTPHeaderExtension {
-   std::string mid;
+@@ -170,12 +183,12 @@ struct RTPHeaderExtension {
  
    absl::optional<ColorSpace> color_space;
--};
+ 
++  CsrcAudioLevelList csrcAudioLevels;
++
+  private:
+   absl::optional<AudioLevel> audio_level_;
+ };
  
 -enum { kRtpCsrcSize = 15 };  // RFC 3550 page 13
-+  CsrcAudioLevelList csrcAudioLevels;
-+};
- 
+-
  struct RTC_EXPORT RTPHeader {
    RTPHeader();
+   RTPHeader(const RTPHeader& other);
 diff --git a/api/rtp_parameters.cc b/api/rtp_parameters.cc
 index 3ff4b58a2e..ad0f3c9396 100644
 --- a/api/rtp_parameters.cc

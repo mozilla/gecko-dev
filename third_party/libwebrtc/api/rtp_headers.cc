@@ -27,9 +27,6 @@ RTPHeaderExtension::RTPHeaderExtension()
       absoluteSendTime(0),
       hasTransportSequenceNumber(false),
       transportSequenceNumber(0),
-      hasAudioLevel(false),
-      voiceActivity(false),
-      audioLevel(0),
       hasVideoRotation(false),
       videoRotation(kVideoRotation_0),
       hasVideoContentType(false),
@@ -42,24 +39,6 @@ RTPHeaderExtension::RTPHeaderExtension(const RTPHeaderExtension& other) =
 
 RTPHeaderExtension& RTPHeaderExtension::operator=(
     const RTPHeaderExtension& other) = default;
-
-absl::optional<AudioLevel> RTPHeaderExtension::audio_level() const {
-  if (!hasAudioLevel) {
-    return absl::nullopt;
-  }
-  return AudioLevel(voiceActivity, audioLevel);
-}
-
-void RTPHeaderExtension::set_audio_level(
-    absl::optional<AudioLevel> audio_level) {
-  if (audio_level) {
-    hasAudioLevel = true;
-    voiceActivity = audio_level->voice_activity();
-    audioLevel = audio_level->level();
-  } else {
-    hasAudioLevel = false;
-  }
-}
 
 RTPHeader::RTPHeader()
     : markerBit(false),
