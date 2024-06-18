@@ -65,7 +65,7 @@ class DecryptingInputStreamBase : public nsIInputStream,
             size_t aBlockSize);
 
   // Convenience routine to determine how many bytes of plain data
-  // we currently have in our buffer.
+  // we currently have in our plain buffer.
   size_t PlainLength() const;
 
   size_t EncryptedBufferLength() const;
@@ -78,10 +78,10 @@ class DecryptingInputStreamBase : public nsIInputStream,
   LazyInitializedOnce<const NotNull<nsIIPCSerializableInputStream*>>
       mBaseIPCSerializableInputStream;
 
-  // Number of bytes of plain data in mBuffer.
+  // Number of bytes of plain data in mPlainBuffer.
   size_t mPlainBytes = 0;
 
-  // Next byte of mBuffer to return in ReadSegments().
+  // Next byte of mPlainBuffer to return in ReadSegments().
   size_t mNextByte = 0;
 
   LazyInitializedOnceNotNull<const size_t> mBlockSize;
@@ -90,7 +90,7 @@ class DecryptingInputStreamBase : public nsIInputStream,
 };
 
 // Wraps another nsIInputStream which contains data written using
-// EncryptingInputStream with a compatible CipherStategy and key. See the
+// EncryptingOutputStream with a compatible CipherStategy and key. See the
 // remarks on EncryptingOutputStream.
 template <typename CipherStrategy>
 class DecryptingInputStream final : public DecryptingInputStreamBase {
@@ -125,9 +125,9 @@ class DecryptingInputStream final : public DecryptingInputStreamBase {
  private:
   ~DecryptingInputStream();
 
-  // Parse the next chunk of data.  This may populate mBuffer and set
-  // mBufferFillSize.  This should not be called when mBuffer already
-  // contains data.
+  // Parse the next chunk of data.  This populates mPlainBuffer (until the
+  // stream position is at EOF).  This should not be called when mPlainBuffer
+  // already contains data.
   nsresult ParseNextChunk(uint32_t* aBytesReadOut);
 
   // Convenience routine to Read() from the base stream until we get

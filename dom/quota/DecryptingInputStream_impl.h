@@ -163,8 +163,8 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::ReadSegments(
       continue;
     }
 
-    // Otherwise decrypt the next chunk and loop.  Any resulting data
-    // will set mPlainBytes which we check at the top of the loop.
+    // Otherwise decrypt the next chunk and loop.  Any resulting data will set
+    // mPlainBytes which we check at the top of the loop.
     uint32_t bytesRead;
     rv = ParseNextChunk(&bytesRead);
     if (NS_FAILED(rv)) {
