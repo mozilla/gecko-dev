@@ -33,12 +33,14 @@
 #include "xpcpublic.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/ContentBlockingLog.h"
+#include "mozilla/glean/GleanPings.h"
 
 #define TEST_OBSERVER_MSG_RECORD_BOUNCES_FINISHED "test-record-bounces-finished"
 
 namespace mozilla {
 
-NS_IMPL_ISUPPORTS(BounceTrackingProtection, nsIBounceTrackingProtection);
+NS_IMPL_ISUPPORTS(BounceTrackingProtection, nsIObserver,
+                  nsIBounceTrackingProtection);
 
 LazyLogModule gBounceTrackingProtectionLog("BounceTrackingProtection");
 
@@ -314,6 +316,21 @@ nsresult BounceTrackingProtection::RecordUserActivation(
   // aActivationTime defaults to current time if no value is provided.
   return globalState->RecordUserActivation(siteHost,
                                            aActivationTime.valueOr(PR_Now()));
+}
+
+NS_IMETHODIMP
+BounceTrackingProtection::Observe(nsISupports* aSubject, const char* aTopic,
+                                  const char16_t* aData) {
+  MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
+          ("%s: aTopic: %s", __FUNCTION__, aTopic));
+
+  if (!strcmp(aTopic, "idle-daily")) {
+#if defined(EARLY_BETA_OR_EARLIER)
+    // Submit custom telemetry ping.
+    glean_pings::BounceTrackingProtection.Submit();
+#endif  // defined(EARLY_BETA_OR_EARLIER)
+  }
+  return NS_OK;
 }
 
 NS_IMETHODIMP
