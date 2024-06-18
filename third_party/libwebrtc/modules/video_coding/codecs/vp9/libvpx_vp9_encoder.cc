@@ -63,6 +63,13 @@ uint8_t kUpdBufIdx[4] = {0, 0, 1, 0};
 // Maximum allowed PID difference for differnet per-layer frame-rate case.
 const int kMaxAllowedPidDiff = 30;
 
+namespace variable_framerate_screenshare {
+constexpr double kMinFps = 5.0;
+constexpr int kMinQP = 32;
+constexpr int kUndershootPct = 30;
+constexpr int kFramesBeforeSteadyState = 5;
+}  // namespace variable_framerate_screenshare
+
 // TODO(ilink): Tune these thresholds further.
 // Selected using ConverenceMotion_1280_720_50.yuv clip.
 // No toggling observed on any link capacity from 100-2000kbps.
@@ -251,10 +258,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
       force_all_active_layers_(false),
       num_cores_(0),
       is_flexible_mode_(false),
-      variable_framerate_experiment_(
-          ParseVariableFramerateConfig(env.field_trials())),
-      variable_framerate_controller_(
-          variable_framerate_experiment_.framerate_limit),
+      variable_framerate_controller_(variable_framerate_screenshare::kMinFps),
       quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
       external_ref_ctrl_(
           !env.field_trials().IsDisabled("WebRTC-Vp9ExternalRefCtrl")),
@@ -1035,10 +1039,9 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
       // interfere, they must be queried in order of increasing limit.
 
       bool use_steady_state_limiter =
-          variable_framerate_experiment_.enabled &&
           input_image.update_rect().IsEmpty() &&
           num_steady_state_frames_ >=
-              variable_framerate_experiment_.frames_before_steady_state;
+              variable_framerate_screenshare::kFramesBeforeSteadyState;
 
       // Need to check all frame limiters, even if lower layers are disabled,
       // because variable frame-rate limiter should be checked after the first
@@ -1049,7 +1052,7 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
             framerate_controller_[layer_id.spatial_layer_id].GetTargetRate();
         // Use steady state rate-limiter at the correct place.
         if (use_steady_state_limiter &&
-            layer_fps > variable_framerate_experiment_.framerate_limit - 1e-9) {
+            layer_fps > variable_framerate_screenshare::kMinFps - 1e-9) {
           if (variable_framerate_controller_.DropFrame(frame_timestamp_ms)) {
             layer_id.spatial_layer_id = num_active_spatial_layers_;
           }
@@ -1846,9 +1849,8 @@ void LibvpxVp9Encoder::DeliverBufferedFrame(bool end_of_picture) {
       // Only frames on spatial layers, which may be limited in a steady state
       // are considered for steady state detection.
       if (framerate_controller_[spatial_idx].GetTargetRate() >
-          variable_framerate_experiment_.framerate_limit + 1e-9) {
-        if (encoded_image_.qp_ <=
-                variable_framerate_experiment_.steady_state_qp &&
+          variable_framerate_screenshare::kMinFps + 1e-9) {
+        if (encoded_image_.qp_ <= variable_framerate_screenshare::kMinQP &&
             encoded_image_.size() <= steady_state_size) {
           ++num_steady_state_frames_;
         } else {
@@ -1928,32 +1930,8 @@ size_t LibvpxVp9Encoder::SteadyStateSize(int sid, int tid) {
                         : codec_.maxFramerate;
   return static_cast<size_t>(
       bitrate_bps / (8 * fps) *
-          (100 -
-           variable_framerate_experiment_.steady_state_undershoot_percentage) /
-          100 +
+          (100 - variable_framerate_screenshare::kUndershootPct) / 100 +
       0.5);
-}
-
-// static
-LibvpxVp9Encoder::VariableFramerateExperiment
-LibvpxVp9Encoder::ParseVariableFramerateConfig(const FieldTrialsView& trials) {
-  FieldTrialFlag enabled = FieldTrialFlag("Enabled");
-  FieldTrialParameter<double> framerate_limit("min_fps", 5.0);
-  FieldTrialParameter<int> qp("min_qp", 32);
-  FieldTrialParameter<int> undershoot_percentage("undershoot", 30);
-  FieldTrialParameter<int> frames_before_steady_state(
-      "frames_before_steady_state", 5);
-  ParseFieldTrial({&enabled, &framerate_limit, &qp, &undershoot_percentage,
-                   &frames_before_steady_state},
-                  trials.Lookup("WebRTC-VP9VariableFramerateScreenshare"));
-  VariableFramerateExperiment config;
-  config.enabled = enabled.Get();
-  config.framerate_limit = framerate_limit.Get();
-  config.steady_state_qp = qp.Get();
-  config.steady_state_undershoot_percentage = undershoot_percentage.Get();
-  config.frames_before_steady_state = frames_before_steady_state.Get();
-
-  return config;
 }
 
 // static
