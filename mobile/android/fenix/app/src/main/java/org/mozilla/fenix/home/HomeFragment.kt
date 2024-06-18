@@ -118,6 +118,7 @@ import org.mozilla.fenix.ext.containsQueryParameters
 import org.mozilla.fenix.ext.hideToolbar
 import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.ext.recordEventInNimbus
 import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.scaleToBottomOfView
@@ -282,7 +283,6 @@ class HomeFragment : Fragment() {
         )
     }
 
-    // TODO replace repeated uses of requireContent() FXDROID-2055
     @Suppress("LongMethod")
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -847,6 +847,13 @@ class HomeFragment : Fragment() {
 
         super.onViewCreated(view, savedInstanceState)
         HomeScreen.homeScreenDisplayed.record(NoExtras())
+
+        with(requireContext()) {
+            if (settings().isExperimentationEnabled) {
+                recordEventInNimbus("home_screen_displayed")
+            }
+        }
+
         HomeScreen.homeScreenViewCount.add()
         if (!browsingModeManager.mode.isPrivate) {
             HomeScreen.standardHomepageViewCount.add()

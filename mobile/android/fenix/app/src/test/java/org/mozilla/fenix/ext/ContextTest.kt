@@ -15,6 +15,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import mozilla.components.support.locale.LocaleManager
 import mozilla.components.support.locale.LocaleManager.getSystemDefault
 import mozilla.components.support.test.robolectric.testContext
@@ -24,6 +25,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.experiments.nimbus.NimbusEventStore
 import org.mozilla.fenix.FenixApplication
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
@@ -165,5 +167,16 @@ class ContextTest {
         val comparisonStr = testContext.getString(R.string.private_browsing_common_myths)
         val actualStr = testContext.getPreferenceKey(R.string.private_browsing_common_myths)
         assertEquals(comparisonStr, actualStr)
+    }
+
+    @Test
+    fun `recordEventInNimbus records the given event to the Nimbus event store`() {
+        val eventStore = mockk<NimbusEventStore>(relaxed = true)
+        every { mockContext.components.nimbus.events } returns eventStore
+
+        val eventId = "test event"
+        mockContext.recordEventInNimbus(eventId)
+
+        verify { eventStore.recordEvent(eventId) }
     }
 }

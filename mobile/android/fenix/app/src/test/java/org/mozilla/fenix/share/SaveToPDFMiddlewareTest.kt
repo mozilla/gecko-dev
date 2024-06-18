@@ -4,7 +4,9 @@
 
 package org.mozilla.fenix.share
 
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
 import mozilla.components.browser.state.action.EngineAction
@@ -23,13 +25,13 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.experiments.nimbus.NimbusEventStore
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.StandardSnackbarError
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.recordEventInNimbus
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.geckoview.GeckoSession
 import java.io.IOException
@@ -45,17 +47,14 @@ class SaveToPDFMiddlewareTest {
     val mainCoroutineTestRule = MainCoroutineRule()
 
     // Only ERROR_PRINT_SETTINGS_SERVICE_NOT_AVAILABLE is available for testing
-    class MockGeckoPrintException() : GeckoSession.GeckoPrintException()
+    class MockGeckoPrintException : GeckoSession.GeckoPrintException()
 
     private lateinit var middleware: SaveToPDFMiddleware
 
-    private lateinit var eventStore: NimbusEventStore
-
     @Before
     fun setup() {
-        eventStore = mockk(relaxed = true)
-        middleware =
-            SaveToPDFMiddleware(context = testContext, nimbusEventStore = eventStore)
+        every { testContext.recordEventInNimbus(any()) } just Runs
+        middleware = SaveToPDFMiddleware(context = testContext)
         appStore = mockk(relaxed = true)
         every { testContext.components.appStore } returns appStore
     }
@@ -414,8 +413,6 @@ class SaveToPDFMiddlewareTest {
         assertNotNull(response)
         val source = response?.firstOrNull()?.extra?.get("source")
         assertEquals("non-pdf", source)
-        verify {
-            eventStore.recordEvent("print_tapped")
-        }
+        verify { testContext.recordEventInNimbus("print_tapped") }
     }
 }

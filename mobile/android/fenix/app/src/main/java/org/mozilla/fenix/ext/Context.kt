@@ -151,3 +151,8 @@ fun Context.tabClosedUndoMessage(private: Boolean): String =
  */
 fun Context.isTablet(): Boolean =
     resources.getBoolean(R.bool.tablet)
+
+/**
+ *  This will record an event in the Nimbus internal event store. Used for behavioral targeting.
+ */
+fun Context.recordEventInNimbus(eventId: String) = components.nimbus.events.recordEvent(eventId)
