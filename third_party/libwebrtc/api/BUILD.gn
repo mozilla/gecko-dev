@@ -457,7 +457,6 @@ rtc_source_set("packet_socket_factory") {
   deps = [
     ":async_dns_resolver",
     "../rtc_base:async_packet_socket",
-    "../rtc_base:proxy_info",
     "../rtc_base:socket_address",
     "../rtc_base/system:rtc_export",
   ]

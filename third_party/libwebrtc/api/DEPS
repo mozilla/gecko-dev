@@ -97,7 +97,6 @@ specific_include_rules = {
   ],
 
   "packet_socket_factory\.h": [
-    "+rtc_base/proxy_info.h",
     "+rtc_base/async_packet_socket.h",
   ],
 
