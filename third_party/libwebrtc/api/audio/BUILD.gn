@@ -8,6 +8,22 @@
 
 import("../../webrtc.gni")
 
+rtc_source_set("audio_device") {
+  visibility = [ "*" ]
+  sources = [
+    "audio_device.h",
+    "audio_device_defines.h",
+  ]
+  deps = [
+    "..:ref_count",
+    "..:scoped_refptr",
+    "../../rtc_base:checks",
+    "../../rtc_base:stringutils",
+    "../task_queue",
+  ]
+  absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
+}
+
 rtc_library("audio_frame_api") {
   visibility = [ "*" ]
   sources = [

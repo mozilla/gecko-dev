@@ -30,7 +30,6 @@
 #include "rtc_base/system/file_wrapper.h"
 
 namespace webrtc {
-class AudioDeviceModule;
 class AudioMixer;
 class Call;
 }  // namespace webrtc

@@ -619,6 +619,7 @@ rtc_library("rtc_audio_video") {
     "../api:scoped_refptr",
     "../api:sequence_checker",
     "../api:transport_api",
+    "../api/audio:audio_device",
     "../api/audio:audio_frame_api",
     "../api/audio:audio_frame_processor",
     "../api/audio:audio_mixer_api",

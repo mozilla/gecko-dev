@@ -75,6 +75,10 @@ specific_include_rules = {
     "+rtc_base/socket_address.h",
   ],
 
+  "audio_device_defines\.h": [
+    "+rtc_base/strings/string_builder.h",
+  ],
+
   "candidate\.h": [
     "+rtc_base/network_constants.h",
     "+rtc_base/socket_address.h",

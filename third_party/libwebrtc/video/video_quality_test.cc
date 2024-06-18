@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "api/audio/audio_device.h"
 #include "api/fec_controller_override.h"
 #include "api/rtc_event_log_output_file.h"
 #include "api/task_queue/default_task_queue_factory.h"
@@ -37,7 +38,6 @@
 #include "media/engine/internal_encoder_factory.h"
 #include "media/engine/simulcast_encoder_adapter.h"
 #include "media/engine/webrtc_video_engine.h"
-#include "modules/audio_device/include/audio_device.h"
 #include "modules/audio_mixer/audio_mixer_impl.h"
 #include "modules/video_coding/codecs/h264/include/h264.h"
 #include "modules/video_coding/codecs/vp8/include/vp8.h"

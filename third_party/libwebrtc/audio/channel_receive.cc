@@ -17,6 +17,7 @@
 #include <utility>
 #include <vector>
 
+#include "api/audio/audio_device.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/frame_transformer_interface.h"
 #include "api/rtc_event_log/rtc_event_log.h"
@@ -32,7 +33,6 @@
 #include "logging/rtc_event_log/events/rtc_event_neteq_set_minimum_delay.h"
 #include "modules/audio_coding/acm2/acm_receiver.h"
 #include "modules/audio_coding/audio_network_adaptor/include/audio_network_adaptor_config.h"
-#include "modules/audio_device/include/audio_device.h"
 #include "modules/pacing/packet_router.h"
 #include "modules/rtp_rtcp/include/receive_statistics.h"
 #include "modules/rtp_rtcp/include/remote_ntp_time_estimator.h"

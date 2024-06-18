@@ -13,6 +13,7 @@
 
 #include <memory>
 
+#include "api/audio/audio_device.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
@@ -33,7 +34,6 @@ class Thread;
 
 namespace webrtc {
 
-class AudioDeviceModule;
 class AudioFrameProcessor;
 
 // Create a new instance of PeerConnectionFactoryInterface with optional video

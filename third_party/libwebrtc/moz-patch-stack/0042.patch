@@ -43,7 +43,7 @@ index 415ad0640a..1e8cff5441 100644
  }  // namespace
  
 diff --git a/audio/channel_receive.cc b/audio/channel_receive.cc
-index 17cf859ed8..b743b550ba 100644
+index dc34d187a9..1bcd0fcb8d 100644
 --- a/audio/channel_receive.cc
 +++ b/audio/channel_receive.cc
 @@ -105,7 +105,8 @@ class ChannelReceive : public ChannelReceiveInterface,

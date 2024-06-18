@@ -17,6 +17,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "api/audio/audio_device.h"
 #include "api/audio/audio_processing.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
 #include "api/audio_codecs/audio_encoder_factory.h"
@@ -31,7 +32,6 @@
 #include "api/voip/voip_volume_control.h"
 #include "audio/audio_transport_impl.h"
 #include "audio/voip/audio_channel.h"
-#include "modules/audio_device/include/audio_device.h"
 #include "modules/audio_mixer/audio_mixer_impl.h"
 #include "rtc_base/synchronization/mutex.h"
 

@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "api/audio/audio_device.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
@@ -46,7 +47,6 @@
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp9_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
 #include "media/base/stream_params.h"
-#include "modules/audio_device/include/audio_device.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"

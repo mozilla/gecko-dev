@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <memory>
 
+#include "api/audio/audio_device.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/environment/environment.h"
@@ -23,7 +24,6 @@
 #include "call/fake_network_pipe.h"
 #include "call/packet_receiver.h"
 #include "call/simulated_network.h"
-#include "modules/audio_device/include/audio_device.h"
 #include "modules/audio_device/include/test_audio_device.h"
 #include "modules/audio_mixer/audio_mixer_impl.h"
 #include "rtc_base/checks.h"

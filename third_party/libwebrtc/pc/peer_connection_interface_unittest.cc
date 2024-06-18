@@ -19,6 +19,7 @@
 
 #include "absl/strings/str_replace.h"
 #include "absl/types/optional.h"
+#include "api/audio/audio_device.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
@@ -55,7 +56,6 @@
 #include "media/base/stream_params.h"
 #include "media/engine/webrtc_media_engine.h"
 #include "media/sctp/sctp_transport_internal.h"
-#include "modules/audio_device/include/audio_device.h"
 #include "p2p/base/fake_port_allocator.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port.h"

@@ -15,6 +15,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/strings/string_view.h"
+#include "api/audio/audio_device.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/numerics/samples_stats_counter.h"
 #include "api/rtc_event_log/rtc_event_log.h"
@@ -32,7 +33,6 @@
 #include "media/engine/internal_encoder_factory.h"
 #include "media/engine/simulcast_encoder_adapter.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
-#include "modules/audio_device/include/audio_device.h"
 #include "modules/audio_device/include/test_audio_device.h"
 #include "modules/audio_mixer/audio_mixer_impl.h"
 #include "modules/rtp_rtcp/source/rtp_packet.h"
