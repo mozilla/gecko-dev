@@ -344,7 +344,7 @@ already_AddRefed<PerformanceMark> Performance::Mark(
 
   InsertUserEntry(performanceMark);
 
-  if (profiler_is_collecting_markers()) {
+  if (profiler_thread_is_being_profiled_for_markers()) {
     Maybe<uint64_t> innerWindowId;
     if (GetOwner()) {
       innerWindowId = Some(GetOwner()->WindowID());
@@ -790,7 +790,7 @@ already_AddRefed<PerformanceMeasure> Performance::Measure(
 
   MaybeEmitExternalProfilerMarker(aName, options, startMark, aEndMark);
 
-  if (profiler_is_collecting_markers()) {
+  if (profiler_thread_is_being_profiled_for_markers()) {
     auto [startTimeStamp, endTimeStamp] =
         GetTimeStampsForMarker(startMark, aEndMark, options, aRv);
 
