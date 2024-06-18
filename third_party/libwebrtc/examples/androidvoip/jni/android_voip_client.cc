@@ -185,7 +185,8 @@ void AndroidVoipClient::GetSupportedCodecs(JNIEnv* env) {
   webrtc::ScopedJavaLocalRef<jstring> (*convert_function)(
       JNIEnv*, const std::string&) = &webrtc::NativeToJavaString;
   Java_VoipClient_onGetSupportedCodecsCompleted(
-      env_, j_voip_client_, NativeToJavaList(env_, names, convert_function));
+      env_, j_voip_client_,
+      webrtc::NativeToJavaList(env_, names, convert_function));
 }
 
 void AndroidVoipClient::GetLocalIPAddress(JNIEnv* env) {
