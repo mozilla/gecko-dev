@@ -39,6 +39,7 @@ struct IPCPerformanceTimingData {
   uint64_t encodedBodySize;
   uint64_t transferSize;
   uint64_t decodedBodySize;
+  uint16_t responseStatus;
   uint8_t redirectCount;
   bool renderBlocking;
   nsString contentType;

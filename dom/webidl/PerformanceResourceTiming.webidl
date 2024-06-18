@@ -51,6 +51,10 @@ interface PerformanceResourceTiming : PerformanceEntry
   [NeedsSubjectPrincipal]
   readonly attribute unsigned long long decodedBodySize;
 
+  // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responsestatus
+  [NeedsSubjectPrincipal]
+  readonly attribute unsigned short responseStatus;
+
   // https://w3c.github.io/server-timing/#extension-to-the-performanceresourcetiming-interface
   [NeedsSubjectPrincipal]
   readonly attribute DOMString contentType;

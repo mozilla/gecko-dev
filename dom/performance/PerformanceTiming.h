@@ -63,6 +63,8 @@ class PerformanceTimingData final {
 
   uint64_t DecodedBodySize() const { return mDecodedBodySize; }
 
+  uint16_t ResponseStatus() const { return mResponseStatus; }
+
   const nsString& ContentType() const { return mContentType; }
 
   /**
@@ -221,6 +223,8 @@ class PerformanceTimingData final {
   uint64_t mEncodedBodySize = 0;
   uint64_t mTransferSize = 0;
   uint64_t mDecodedBodySize = 0;
+
+  uint16_t mResponseStatus = 0;
 
   uint8_t mRedirectCount = 0;
 
@@ -474,6 +478,7 @@ struct IPDLParamTraits<mozilla::dom::PerformanceTimingData> {
     WriteIPDLParam(aWriter, aActor, aParam.mEncodedBodySize);
     WriteIPDLParam(aWriter, aActor, aParam.mTransferSize);
     WriteIPDLParam(aWriter, aActor, aParam.mDecodedBodySize);
+    WriteIPDLParam(aWriter, aActor, aParam.mResponseStatus);
     WriteIPDLParam(aWriter, aActor, aParam.mRedirectCount);
     WriteIPDLParam(aWriter, aActor, aParam.mContentType);
     WriteIPDLParam(aWriter, aActor, aParam.mAllRedirectsSameOrigin);
@@ -553,6 +558,9 @@ struct IPDLParamTraits<mozilla::dom::PerformanceTimingData> {
       return false;
     }
     if (!ReadIPDLParam(aReader, aActor, &aResult->mDecodedBodySize)) {
+      return false;
+    }
+    if (!ReadIPDLParam(aReader, aActor, &aResult->mResponseStatus)) {
       return false;
     }
     if (!ReadIPDLParam(aReader, aActor, &aResult->mRedirectCount)) {

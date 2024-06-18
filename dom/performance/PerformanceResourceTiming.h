@@ -33,14 +33,12 @@ enum class RenderBlockingStatusType : uint8_t;
     return allowed ? mTimingData->name() : 0;                               \
   }
 
-#define IMPL_RESOURCE_TIMING_CORS_PROTECTED_SIZE_PROP(name)           \
-  uint64_t name(nsIPrincipal& aSubjectPrincipal) const {              \
-    bool allowed = BodyInfoAccessAllowedForCaller(aSubjectPrincipal); \
-    if (!allowed && mTimingData->RedirectCountReal()) {               \
-      ReportRedirectForCaller(aSubjectPrincipal, true);               \
-      return 0;                                                       \
-    }                                                                 \
-    return allowed ? mTimingData->name() : 0;                         \
+#define IMPL_RESOURCE_TIMING_CORS_PROTECTED_SIZE_PROP(name)  \
+  uint64_t name(nsIPrincipal& aSubjectPrincipal) const {     \
+    if (BodyInfoAccessAllowedForCaller(aSubjectPrincipal)) { \
+      return mTimingData->name();                            \
+    }                                                        \
+    return 0;                                                \
   }
 
 // http://www.w3.org/TR/resource-timing/#performanceresourcetiming
@@ -167,13 +165,18 @@ class PerformanceResourceTiming : public PerformanceEntry {
     return encodedBodySize + 300;
   }
 
+  uint16_t ResponseStatus(nsIPrincipal& aSubjectPrincipal) const {
+    if (BodyInfoAccessAllowedForCaller(aSubjectPrincipal)) {
+      return mTimingData->ResponseStatus();
+    }
+    return 0;
+  }
+
   void GetContentType(nsAString& aContentType,
                       nsIPrincipal& aSubjectPrincipal) const {
     if (BodyInfoAccessAllowedForCaller(aSubjectPrincipal) ==
         nsITimedChannel::BodyInfoAccess::ALLOW_ALL) {
       aContentType = mTimingData->ContentType();
-    } else if (mTimingData->RedirectCountReal()) {
-      ReportRedirectForCaller(aSubjectPrincipal, true);
     }
   }
 

@@ -105,6 +105,7 @@ PerformanceTimingData::PerformanceTimingData(nsITimedChannel* aChannel,
       mEncodedBodySize(0),
       mTransferSize(0),
       mDecodedBodySize(0),
+      mResponseStatus(0),
       mRedirectCount(0),
       mAllRedirectsSameOrigin(true),
       mAllRedirectsPassTAO(true),
@@ -235,6 +236,7 @@ PerformanceTimingData::PerformanceTimingData(
       mEncodedBodySize(aIPCData.encodedBodySize()),
       mTransferSize(aIPCData.transferSize()),
       mDecodedBodySize(aIPCData.decodedBodySize()),
+      mResponseStatus(aIPCData.responseStatus()),
       mRedirectCount(aIPCData.redirectCount()),
       mRenderBlockingStatus(aIPCData.renderBlocking()
                                 ? RenderBlockingStatusType::Blocking
@@ -274,8 +276,8 @@ IPCPerformanceTimingData PerformanceTimingData::ToIPC() {
       mSecureConnectionStart, mConnectEnd, mRequestStart, mResponseStart,
       mCacheReadStart, mResponseEnd, mCacheReadEnd, mWorkerStart,
       mWorkerRequestStart, mWorkerResponseEnd, mZeroTime, mFetchStart,
-      mEncodedBodySize, mTransferSize, mDecodedBodySize, mRedirectCount,
-      renderBlocking, mContentType, mAllRedirectsSameOrigin,
+      mEncodedBodySize, mTransferSize, mDecodedBodySize, mResponseStatus,
+      mRedirectCount, renderBlocking, mContentType, mAllRedirectsSameOrigin,
       mAllRedirectsPassTAO, mSecureConnection, mBodyInfoAccessAllowed,
       mTimingAllowed, mInitialized);
 }
@@ -294,6 +296,10 @@ void PerformanceTimingData::SetPropertiesFromHttpChannel(
   if (mDecodedBodySize == 0) {
     mDecodedBodySize = mEncodedBodySize;
   }
+
+  uint32_t responseStatus;
+  Unused << aHttpChannel->GetResponseStatus(&responseStatus);
+  mResponseStatus = static_cast<uint16_t>(responseStatus);
 
   nsAutoCString contentType;
   Unused << aHttpChannel->GetContentType(contentType);
