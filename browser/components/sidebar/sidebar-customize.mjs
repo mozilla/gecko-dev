@@ -50,12 +50,6 @@ export class SidebarCustomize extends SidebarPage {
     return window.browsingContext.embedderWindowGlobal.browsingContext.window;
   }
 
-  closeCustomizeView(e) {
-    e.preventDefault();
-    let view = e.target.getAttribute("view");
-    this.getWindow().SidebarController.toggle(view);
-  }
-
   handleEvent(e) {
     switch (e.type) {
       case "SidebarItemAdded":
@@ -158,17 +152,8 @@ export class SidebarCustomize extends SidebarPage {
       ${this.stylesheet()}
       <link rel="stylesheet" href="chrome://browser/content/sidebar/sidebar-customize.css"></link>
       <div class="container">
-        <div class="customize-header">
-          <h2 data-l10n-id="sidebar-menu-customize-label"></h2>
-          <moz-button
-            class="customize-close-button"
-            @click=${this.closeCustomizeView}
-            view="viewCustomizeSidebar"
-            size="default"
-            type="icon ghost"
-          >
-          </moz-button>
-        </div>
+        <sidebar-panel-header data-l10n-id="sidebar-menu-customize-header" data-l10n-attrs="heading" view="viewCustomizeSidebar">
+        </sidebar-panel-header>
         <div class="customize-firefox-tools">
           <h5 data-l10n-id="sidebar-customize-firefox-tools"></h5>
           <div class="inputs">

@@ -7,7 +7,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SyncedTabsController: "resource:///modules/SyncedTabsController.sys.mjs",
 });
 
-import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
+import {
+  html,
+  ifDefined,
+  when,
+} from "chrome://global/content/vendor/lit.all.mjs";
 import {
   escapeHtmlEntities,
   navigateToLink,
@@ -167,18 +171,27 @@ class SyncedTabsInSidebar extends SidebarPage {
 
   render() {
     const messageCard = this.controller.getMessageCard();
-    if (messageCard) {
-      return [this.stylesheet(), this.messageCardTemplate(messageCard)];
-    }
     return html`
       ${this.stylesheet()}
-      <fxview-search-textbox
-        data-l10n-id="firefoxview-search-text-box-syncedtabs"
-        data-l10n-attrs="placeholder"
-        @fxview-search-textbox-query=${this.onSearchQuery}
-        size="15"
-      ></fxview-search-textbox>
-      ${this.deviceListTemplate()}
+      <div class="container">
+        <sidebar-panel-header
+          data-l10n-id="sidebar-menu-syncedtabs-header"
+          data-l10n-attrs="heading"
+          view="viewTabsSidebar"
+        >
+        </sidebar-panel-header>
+        ${when(
+          messageCard,
+          () => this.messageCardTemplate(messageCard),
+          () => html`<fxview-search-textbox
+              data-l10n-id="firefoxview-search-text-box-syncedtabs"
+              data-l10n-attrs="placeholder"
+              @fxview-search-textbox-query=${this.onSearchQuery}
+              size="15"
+            ></fxview-search-textbox>
+            ${this.deviceListTemplate()}`
+        )}
+      </div>
     `;
   }
 
