@@ -7,7 +7,6 @@ package org.mozilla.fenix.downloads
 import android.content.Context
 import android.text.method.ScrollingMovementMethod
 import android.view.View
-import android.view.ViewGroup
 import android.webkit.MimeTypeMap
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import mozilla.components.browser.state.state.content.DownloadState
@@ -15,7 +14,6 @@ import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.downloads.toMegabyteOrKilobyteString
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
-import org.mozilla.fenix.ext.settings
 
 /**
  * [DynamicDownloadDialog] is used to show a view in the current tab to the user, triggered when
@@ -33,9 +31,6 @@ class DynamicDownloadDialog(
     private val bottomToolbarHeight: Int,
     private val onDismiss: () -> Unit,
 ) {
-
-    private val settings = context.settings()
-
     init {
         setupDownloadDialog()
     }
@@ -53,12 +48,6 @@ class DynamicDownloadDialog(
                         )
                 }
             }
-        }
-
-        if (settings.shouldUseBottomToolbar) {
-            val params: ViewGroup.MarginLayoutParams =
-                binding.root.layoutParams as ViewGroup.MarginLayoutParams
-            params.bottomMargin = bottomToolbarHeight
         }
 
         if (didFail) {

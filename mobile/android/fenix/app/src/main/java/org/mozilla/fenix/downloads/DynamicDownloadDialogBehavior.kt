@@ -156,7 +156,7 @@ class DynamicDownloadDialogBehavior<V : View>(
         setFloatValues(
             child.translationY,
             if (direction == SnapDirection.UP) {
-                0f
+                -bottomToolbarHeight
             } else {
                 child.height.toFloat() + bottomToolbarHeight
             },
