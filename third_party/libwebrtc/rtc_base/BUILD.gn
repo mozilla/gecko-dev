@@ -827,6 +827,7 @@ rtc_library("rtc_numerics") {
     "numerics/moving_average.h",
     "numerics/moving_percentile_filter.h",
     "numerics/percentile_filter.h",
+    "numerics/rational.h",
     "numerics/running_statistics.h",
     "numerics/sequence_number_unwrapper.h",
     "numerics/sequence_number_util.h",

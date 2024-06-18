@@ -205,6 +205,19 @@ specific_include_rules = {
     "+modules/video_coding",
   ],
 
+  "video_encoder_factory_interface\.h": [
+    "+rtc_base/numerics",
+  ],
+
+  "video_encoder_interface\.h": [
+    "+rtc_base/numerics",
+  ],
+
+  "simple_encoder_wrapper\.h": [
+    "+common_video",
+    "+modules",
+  ],
+
   "video_decoder_factory_template.*\.h": [
     "+modules/video_coding",
   ],

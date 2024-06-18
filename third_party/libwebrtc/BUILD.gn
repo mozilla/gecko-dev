@@ -671,6 +671,16 @@ if (use_libfuzzer || use_afl) {
 }
 
 if (rtc_include_tests && !build_with_chromium) {
+  rtc_unittests_resources = [ "resources/reference_video_640x360_30fps.y4m" ]
+
+  if (is_ios) {
+    bundle_data("rtc_unittests_bundle_data") {
+      testonly = true
+      sources = rtc_unittests_resources
+      outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
+    }
+  }
+
   rtc_test("rtc_unittests") {
     testonly = true
 
@@ -684,6 +694,8 @@ if (rtc_include_tests && !build_with_chromium) {
       "api/test/metrics:metrics_unittests",
       "api/transport:stun_unittest",
       "api/video/test:rtc_api_video_unittests",
+      "api/video_codecs:libaom_av1_encoder_factory_test",
+      "api/video_codecs:simple_encoder_wrapper_unittests",
       "api/video_codecs/test:video_codecs_api_unittests",
       "api/voip:compile_all_headers",
       "call:fake_network_pipe_unittests",
@@ -712,8 +724,14 @@ if (rtc_include_tests && !build_with_chromium) {
       "test/network:network_emulation_unittests",
     ]
 
+    data = rtc_unittests_resources
+
     if (rtc_enable_protobuf) {
       deps += [ "logging:rtc_event_log_tests" ]
+    }
+
+    if (is_ios) {
+      deps += [ ":rtc_unittests_bundle_data" ]
     }
 
     if (is_android) {
