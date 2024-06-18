@@ -215,6 +215,13 @@ rtc_library("event_tracer") {
     "system:rtc_export",
   ]
   absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
+  if (rtc_use_perfetto) {
+    sources += [
+      "trace_categories.cc",
+      "trace_categories.h",
+    ]
+    deps += [ "..:tracing" ]
+  }
 }
 
 rtc_library("histogram_percentile_counter") {

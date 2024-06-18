@@ -275,6 +275,9 @@ declare_args() {
   # WebRTC does not declare its public dependencies. See webrtc:8603. Instead
   # WebRTC is using a global common dependencies.
   rtc_common_public_deps = []  # no-presubmit-check TODO(webrtc:8603)
+
+  # When true, include the Perfetto library.
+  rtc_use_perfetto = false
 }
 
 if (!build_with_mozilla) {
@@ -394,6 +397,9 @@ if (is_mac || is_ios) {
                      [ "//build/config/compiler:enable_arc" ]) == []) {
     rtc_common_configs += [ "//build/config/compiler:enable_arc" ]
   }
+}
+if (rtc_use_perfetto) {
+  rtc_common_configs += [ "//third_party/perfetto/gn:public_config" ]
 }
 
 # Global public configuration that should be applied to all WebRTC targets. You

@@ -635,6 +635,9 @@ if (rtc_include_tests) {
       if (is_win) {
         deps += [ "../rtc_base:win32_socket_init" ]
       }
+      if (rtc_use_perfetto) {
+        deps += [ "//third_party/perfetto/src/tracing:client_api" ]
+      }
     }
 
     rtc_library("test_main") {

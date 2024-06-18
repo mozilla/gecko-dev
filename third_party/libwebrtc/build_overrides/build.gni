@@ -34,6 +34,9 @@ ubsan_vptr_ignorelist_path =
 # so we just ignore that assert. See https://crbug.com/648948 for more info.
 ignore_elf32_limitations = true
 
+perfetto_build_with_embedder = true
+enable_perfetto_trace_processor = true
+
 # Use bundled hermetic Xcode installation maintainted by Chromium,
 # except for local iOS builds where it's unsupported.
 # Allow for mac cross compile on linux machines.

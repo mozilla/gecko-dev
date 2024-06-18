@@ -2668,6 +2668,10 @@ include_rules = [
 
   # Abseil flags are allowed in tests and tools.
   "+absl/flags",
+
+  # Perfetto
+  '+third_party/perfetto/include/perfetto/tracing',
+  '+third_party/perfetto/include/perfetto/test',
 ]
 
 specific_include_rules = {
