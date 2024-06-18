@@ -127,9 +127,3 @@ function openAndWaitForContextMenu(popup, button, onShown, onHidden) {
 function isActiveElement(el) {
   return el.getRootNode().activeElement == el;
 }
-
-async function toggleSidebarPanel(win, commandID) {
-  const promiseFocused = BrowserTestUtils.waitForEvent(win, "SidebarFocused");
-  win.SidebarController.toggle(commandID);
-  await promiseFocused;
-}

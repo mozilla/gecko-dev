@@ -19,8 +19,6 @@ support-files = ["head.js"]
 
 ["browser_sidebar_max_width.js"]
 
-["browser_sidebar_panel_header.js"]
-
 ["browser_sidebar_prefs.js"]
 
 ["browser_toolbar_sidebar_button.js"]

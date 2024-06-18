@@ -25,7 +25,3 @@ moz-card {
     background-image: url('chrome://browser/skin/device-tablet.svg');
   }
 }
-
-.container {
-  padding-inline: var(--space-small);
-}

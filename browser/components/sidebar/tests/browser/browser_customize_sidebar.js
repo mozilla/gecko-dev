@@ -8,11 +8,19 @@ add_setup(() => SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] }));
 add_task(async function test_customize_sidebar_actions() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { document } = win;
-  await toggleSidebarPanel(win, "viewCustomizeSidebar");
+  const sidebar = document.querySelector("sidebar-main");
+  ok(sidebar, "Sidebar is shown.");
+  await BrowserTestUtils.waitForCondition(
+    async () => (await sidebar.updateComplete) && sidebar.customizeButton,
+    `The sidebar-main component has fully rendered, and the customize button is present.`
+  );
+  const button = sidebar.customizeButton;
+  const promiseFocused = BrowserTestUtils.waitForEvent(win, "SidebarFocused");
+  button.click();
+  await promiseFocused;
   let customizeDocument = win.SidebarController.browser.contentDocument;
   const customizeComponent =
     customizeDocument.querySelector("sidebar-customize");
-  const sidebar = document.querySelector("sidebar-main");
   let toolEntrypointsCount = sidebar.toolButtons.length;
   let checkedInputs = Array.from(customizeComponent.toolInputs).filter(
     input => input.checked
@@ -107,12 +115,18 @@ add_task(async function test_customize_not_added_in_menubar() {
 
 add_task(async function test_manage_preferences_navigation() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
-  const { SidebarController } = win;
+  const { document, SidebarController } = win;
   const { contentWindow } = SidebarController.browser;
   const sidebar = document.querySelector("sidebar-main");
   ok(sidebar, "Sidebar is shown.");
-  await sidebar.updateComplete;
-  await toggleSidebarPanel(win, "viewCustomizeSidebar");
+  await BrowserTestUtils.waitForCondition(
+    async () => (await sidebar.updateComplete) && sidebar.customizeButton,
+    `The sidebar-main component has fully rendered, and the customize button is present.`
+  );
+  const button = sidebar.customizeButton;
+  const promiseFocused = BrowserTestUtils.waitForEvent(win, "SidebarFocused");
+  button.click();
+  await promiseFocused;
   let customizeDocument = win.SidebarController.browser.contentDocument;
   const customizeComponent =
     customizeDocument.querySelector("sidebar-customize");

@@ -11,8 +11,14 @@ add_task(async function test_customize_sidebar_actions() {
   const { document } = win;
   const sidebar = document.querySelector("sidebar-main");
   ok(sidebar, "Sidebar is shown.");
-  await sidebar.updateComplete;
-  await toggleSidebarPanel(win, "viewCustomizeSidebar");
+  await BrowserTestUtils.waitForCondition(
+    async () => (await sidebar.updateComplete) && sidebar.customizeButton,
+    `The sidebar-main component has fully rendered, and the customize button is present.`
+  );
+  const customizeButton = sidebar.customizeButton;
+  const promiseFocused = BrowserTestUtils.waitForEvent(win, "SidebarFocused");
+  customizeButton.click();
+  await promiseFocused;
 
   const initialViewportOuterWidth = win.outerWidth;
   const initialViewportOuterHeight = win.outerHeight;

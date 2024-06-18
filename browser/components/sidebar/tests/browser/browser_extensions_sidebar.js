@@ -170,7 +170,6 @@ add_task(async function test_customize_sidebar_extensions() {
   const { document } = win;
   const sidebar = document.querySelector("sidebar-main");
   ok(sidebar, "Sidebar is shown.");
-  await sidebar.updateComplete;
 
   const extension = ExtensionTestUtils.loadExtension({ ...extData });
   await extension.startup();
@@ -178,7 +177,10 @@ add_task(async function test_customize_sidebar_extensions() {
   await extension.awaitMessage("sidebar");
   is(sidebar.extensionButtons.length, 1, "Extension is shown in the sidebar.");
 
-  await toggleSidebarPanel(win, "viewCustomizeSidebar");
+  const button = sidebar.customizeButton;
+  const promiseFocused = BrowserTestUtils.waitForEvent(win, "SidebarFocused");
+  button.click();
+  await promiseFocused;
   let customizeDocument = win.SidebarController.browser.contentDocument;
   const customizeComponent =
     customizeDocument.querySelector("sidebar-customize");
@@ -221,6 +223,7 @@ add_task(async function test_extensions_keyboard_navigation() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { document } = win;
   const sidebar = document.querySelector("sidebar-main");
+  ok(sidebar, "Sidebar is shown.");
 
   const extension = ExtensionTestUtils.loadExtension({ ...extData });
   await extension.startup();
@@ -237,7 +240,10 @@ add_task(async function test_extensions_keyboard_navigation() {
     "Two extensions are shown in the sidebar."
   );
 
-  await toggleSidebarPanel(win, "viewCustomizeSidebar");
+  const button = sidebar.customizeButton;
+  const promiseFocused = BrowserTestUtils.waitForEvent(win, "SidebarFocused");
+  button.click();
+  await promiseFocused;
   let customizeDocument = win.SidebarController.browser.contentDocument;
   const customizeComponent =
     customizeDocument.querySelector("sidebar-customize");

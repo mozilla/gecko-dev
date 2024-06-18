@@ -4,8 +4,6 @@
 
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
-// eslint-disable-next-line import/no-unassigned-import
-import "./sidebar-panel-header.mjs";
 
 export class SidebarPage extends MozLitElement {
   constructor() {

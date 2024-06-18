@@ -60,12 +60,3 @@ sidebar-menu-bookmarks-item = {""}
   .title = { sidebar-menu-bookmarks-label }
 sidebar-menu-customize-item = {""}
   .title = { sidebar-menu-customize-label }
-
-## Headings for sidebar menu panels.
-
-sidebar-menu-customize-header =
-  .heading = Customize sidebar
-sidebar-menu-history-header =
-  .heading = History
-sidebar-menu-syncedtabs-header =
-  .heading = Tabs from other devices
