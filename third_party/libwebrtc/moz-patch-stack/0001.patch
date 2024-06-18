@@ -1,80 +1,44 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Tue, 18 Jun 2024 10:18:56 -0500
-Subject: (tmp-cherry-pick) Revert "Remove unused
- WebRTC-Bwe-InjectedCongestionController" (81eca8306b)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Date: Tue, 18 Jun 2024 17:34:08 -0500
+Subject: (tmp-cherry-pick) Revert "lets try again" (cfddbfeae0)
 
-This reverts commit c95cb6bd3e221cd54d3060654abf91abc9a2fac5.
+This reverts commit f03b06e3ac225a2b4fabd7c9e85bf844d065581f.
 
-Reason for revert: Breaks downstream project
+Reason for revert: Testing again
 
 Original change's description:
-> Remove unused WebRTC-Bwe-InjectedCongestionController
+> lets try again
 >
-> Instead, PeerConnectionFactoryDependencies.network_controller_factory is
-> used if it exists.
->
-> Bug: webrtc:8415
-> Change-Id: I37d5cc7325072bf1d87993e53949f1b97c277f55
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/347860
-> Reviewed-by: Björn Terelius <terelius@webrtc.org>
-> Commit-Queue: Per Kjellander <perkj@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42120}
+> No-Try: True
+> Bug: webrtc:337093715, webrtc:337095649, b:337172394
+> Change-Id: Id8afe5e0aba6f64314527fe14a3631566cbc34ee
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/349261
+> Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
+> Owners-Override: Mirko Bonadei <mbonadei@webrtc.org>
+> Commit-Queue: Christoffer Dewerin <jansson@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#42180}
 
-Bug: webrtc:8415
-Change-Id: I3800ce1a65e7ef40313d67308a24d5daa6d3a028
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/349560
+Bug: webrtc:337093715, webrtc:337095649, b:337172394
+Change-Id: If94f5b9d2747d4c77606445dcfc03cc6f67a6cf8
+No-Presubmit: true
+No-Tree-Checks: true
+No-Try: true
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/349262
+Commit-Queue: Christoffer Dewerin <jansson@webrtc.org>
+Owners-Override: Christoffer Dewerin <jansson@webrtc.org>
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Commit-Queue: Qingsi Wang <qingsi@google.com>
-Reviewed-by: Per Kjellander <perkj@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#42213}
+Auto-Submit: Christoffer Dewerin <jansson@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#42181}
 ---
- experiments/field_trials.py   | 5 ++++-
- pc/peer_connection_factory.cc | 3 ++-
- 2 files changed, 6 insertions(+), 2 deletions(-)
+ whitespace.txt | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/experiments/field_trials.py b/experiments/field_trials.py
-index 2ffcbeb89d..ed1cb8899c 100755
---- a/experiments/field_trials.py
-+++ b/experiments/field_trials.py
-@@ -496,6 +496,9 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
-     FieldTrial('WebRTC-Bwe-InitialProbing',
-                'webrtc:10394',
-                date(2024, 4, 1)),
-+    FieldTrial('WebRTC-Bwe-InjectedCongestionController',
-+               'webrtc:8415',
-+               INDEFINITE),
-     FieldTrial('WebRTC-Bwe-LimitProbesLowerThanThroughputEstimate',
-                'webrtc:11498',
-                date(2024, 4, 1)),
-@@ -875,7 +878,7 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
- ])  # yapf: disable
- 
- POLICY_EXEMPT_FIELD_TRIALS_DIGEST: str = \
--    '0b9e14e036ffd4b96ef5e4d6a6aa67b6a1eff11f'
-+    '263c7a29291a7c4472ff60c7c3b2520f6dd5cea8'
- 
- REGISTERED_FIELD_TRIALS: FrozenSet[FieldTrial] = ACTIVE_FIELD_TRIALS.union(
-     POLICY_EXEMPT_FIELD_TRIALS)
-diff --git a/pc/peer_connection_factory.cc b/pc/peer_connection_factory.cc
-index 92fdfc8026..6bf0ef944a 100644
---- a/pc/peer_connection_factory.cc
-+++ b/pc/peer_connection_factory.cc
-@@ -335,13 +335,14 @@ std::unique_ptr<Call> PeerConnectionFactory::CreateCall_w(
-       network_state_predictor_factory_.get();
-   call_config.neteq_factory = neteq_factory_.get();
- 
--  if (injected_network_controller_factory_) {
-+  if (IsTrialEnabled("WebRTC-Bwe-InjectedCongestionController")) {
-     RTC_LOG(LS_INFO) << "Using injected network controller factory";
-     call_config.network_controller_factory =
-         injected_network_controller_factory_.get();
-   } else {
-     RTC_LOG(LS_INFO) << "Using default network controller factory";
-   }
-+
-   call_config.rtp_transport_controller_send_factory =
-       transport_controller_send_factory_.get();
-   call_config.decode_metronome = decode_metronome_.get();
+diff --git a/whitespace.txt b/whitespace.txt
+index 35eb19d4bc..389c15fecc 100644
+--- a/whitespace.txt
++++ b/whitespace.txt
+@@ -6,4 +6,3 @@ Once upon a time there was a white elephant in Stockholm.
+ Why did the elephant get kicked out of the Swedish Parliament?
+ Because it kept making trunk calls!
+ Migration is done, we are now testing!
+-Let's try again!
