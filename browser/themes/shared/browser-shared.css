@@ -526,7 +526,11 @@ menupopup::part(drop-indicator) {
   pointer-events: none;
 }
 
-/* Back / Forward context menu */
+/* Back / Forward buttons context menu */
+
+.unified-nav-current {
+  font-weight: var(--font-weight-bold);
+}
 
 .unified-nav-back,
 .unified-nav-forward {

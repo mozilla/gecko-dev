@@ -61,11 +61,6 @@
   display: none;
 }
 
-/* ::::: Unified Back-/Forward Button ::::: */
-.unified-nav-current {
-  font-weight: bold;
-}
-
 .bookmark-item > label {
   /* ensure we use the direction of the bookmarks label instead of the
    * browser locale */
