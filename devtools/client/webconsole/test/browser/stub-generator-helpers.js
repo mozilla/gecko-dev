@@ -70,54 +70,53 @@ function getCleanedPacket(key, packet) {
     res.resultID = existingPacket.resultID;
   }
 
-  if (res.message) {
-    if (res.message.timer) {
-      // Clean timer properties on the message.
-      // Those properties are found on console.time, timeLog and timeEnd calls,
-      // and those time can vary, which is why we need to clean them.
-      if ("duration" in res.message.timer) {
-        res.message.timer.duration = existingPacket.message.timer.duration;
+  if (res.timer) {
+    // Clean timer properties on the message.
+    // Those properties are found on console.time, timeLog and timeEnd calls,
+    // and those time can vary, which is why we need to clean them.
+    if ("duration" in res.timer) {
+      res.timer.duration = existingPacket.timer.duration;
+    }
+  }
+
+  // Clean innerWindowId on the message prop.
+  if (existingPacket.innerWindowID) {
+    res.innerWindowID = existingPacket.innerWindowID;
+  }
+
+  if (Array.isArray(res.arguments)) {
+    res.arguments = res.arguments.map((argument, i) => {
+      if (!argument || typeof argument !== "object") {
+        return argument;
       }
-    }
-    // Clean innerWindowId on the message prop.
-    if (existingPacket.message.innerWindowID) {
-      res.message.innerWindowID = existingPacket.message.innerWindowID;
-    }
 
-    if (Array.isArray(res.message.arguments)) {
-      res.message.arguments = res.message.arguments.map((argument, i) => {
-        if (!argument || typeof argument !== "object") {
-          return argument;
+      const newArgument = Object.assign({}, argument);
+      const existingArgument = existingPacket.arguments[i];
+
+      if (existingArgument && newArgument._grip) {
+        // `window`'s properties count can vary from OS to OS, so we
+        // clean the `ownPropertyLength` property from the grip.
+        if (newArgument._grip.class === "Window") {
+          newArgument._grip.ownPropertyLength =
+            existingArgument._grip.ownPropertyLength;
         }
+      }
+      return newArgument;
+    });
+  }
 
-        const newArgument = Object.assign({}, argument);
-        const existingArgument = existingPacket.message.arguments[i];
+  if (res.sourceId) {
+    res.sourceId = existingPacket.sourceId;
+  }
 
-        if (existingArgument && newArgument._grip) {
-          // `window`'s properties count can vary from OS to OS, so we
-          // clean the `ownPropertyLength` property from the grip.
-          if (newArgument._grip.class === "Window") {
-            newArgument._grip.ownPropertyLength =
-              existingArgument._grip.ownPropertyLength;
-          }
-        }
-        return newArgument;
-      });
-    }
-
-    if (res.message.sourceId) {
-      res.message.sourceId = existingPacket.message.sourceId;
-    }
-
-    if (Array.isArray(res.message.stacktrace)) {
-      res.message.stacktrace = res.message.stacktrace.map((frame, i) => {
-        const existingFrame = existingPacket.message.stacktrace[i];
-        if (frame && existingFrame && frame.sourceId) {
-          frame.sourceId = existingFrame.sourceId;
-        }
-        return frame;
-      });
-    }
+  if (Array.isArray(res.stacktrace)) {
+    res.stacktrace = res.stacktrace.map((frame, i) => {
+      const existingFrame = existingPacket.stacktrace[i];
+      if (frame && existingFrame && frame.sourceId) {
+        frame.sourceId = existingFrame.sourceId;
+      }
+      return frame;
+    });
   }
 
   if (res.eventActor) {
@@ -215,8 +214,8 @@ function cleanTimeStamp(packet) {
     packet.startTime = uniqueTimeStamp;
   }
 
-  if (packet?.message?.timeStamp) {
-    packet.message.timeStamp = uniqueTimeStamp;
+  if (packet?.timeStamp) {
+    packet.timeStamp = uniqueTimeStamp;
   }
 
   if (packet?.result?._grip?.preview?.timestamp) {

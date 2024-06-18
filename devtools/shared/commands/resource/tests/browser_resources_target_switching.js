@@ -34,7 +34,7 @@ add_task(async function () {
 
   is(availableResources.length, 1, "Got the page message");
   is(
-    availableResources[0].message.arguments[0],
+    availableResources[0].arguments[0],
     "foo",
     "Got the expected page message"
   );

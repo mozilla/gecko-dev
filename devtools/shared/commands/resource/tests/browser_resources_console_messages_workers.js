@@ -62,11 +62,11 @@ add_task(async function () {
 
   is(resources.length, 2, "Got the expected number of existing messages");
   const startLogFromWorkerInMainPage = resources.find(
-    ({ message }) =>
+    message =>
       message.arguments[1] === `${URL_ROOT_SSL}${WORKER_FILE}#simple-worker`
   );
   const startLogFromWorkerInIframe = resources.find(
-    ({ message }) =>
+    message =>
       message.arguments[1] ===
       `${URL_ROOT_ORG_SSL}${WORKER_FILE}#simple-worker-in-iframe`
   );
@@ -97,10 +97,10 @@ add_task(async function () {
   // Wait until the 2 new logs are available
   await waitUntil(() => resources.length === messageCount + 2);
   const liveMessageFromWorkerInMainPage = resources.find(
-    ({ message }) => message.arguments[1] === "live message from main page"
+    message => message.arguments[1] === "live message from main page"
   );
   const liveMessageFromWorkerInIframe = resources.find(
-    ({ message }) => message.arguments[1] === "live message from iframe"
+    message => message.arguments[1] === "live message from iframe"
   );
 
   checkLogInWorkerMessage(
@@ -150,20 +150,20 @@ add_task(async function () {
     }, got ${resources.length})`
   );
   const startLogFromSpawnedWorkerInMainPage = resources.find(
-    ({ message }) =>
+    message =>
       message.arguments[1] === `${URL_ROOT_SSL}${WORKER_FILE}#spawned-worker`
   );
   const startLogFromSpawnedWorkerInIframe = resources.find(
-    ({ message }) =>
+    message =>
       message.arguments[1] ===
       `${URL_ROOT_ORG_SSL}${WORKER_FILE}#spawned-worker-in-iframe`
   );
   const liveMessageFromSpawnedWorkerInMainPage = resources.find(
-    ({ message }) =>
+    message =>
       message.arguments[1] === "live message in spawned worker from main page"
   );
   const liveMessageFromSpawnedWorkerInIframe = resources.find(
-    ({ message }) =>
+    message =>
       message.arguments[1] === "live message in spawned worker from iframe"
   );
 
@@ -223,8 +223,7 @@ function checkStartWorkerLogMessage(
   resource,
   { expectedUrl, isAlreadyExistingResource = false }
 ) {
-  const { message } = resource;
-  const [firstArg, secondArg, thirdArg] = message.arguments;
+  const [firstArg, secondArg, thirdArg] = resource.arguments;
   is(firstArg, "[WORKER] started", "Got the expected first argument");
   is(secondArg, expectedUrl, "expected url was logged");
   is(
@@ -240,8 +239,7 @@ function checkStartWorkerLogMessage(
 }
 
 function checkLogInWorkerMessage(resource, expectedMessage) {
-  const { message } = resource;
-  const [firstArg, secondArg, thirdArg] = message.arguments;
+  const [firstArg, secondArg, thirdArg] = resource.arguments;
   is(firstArg, "[WORKER]", "Got the expected first argument");
   is(secondArg, expectedMessage, "expected message was logged");
   is(

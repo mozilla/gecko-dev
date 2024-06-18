@@ -27,8 +27,8 @@ rawPackets.set(`GET request`, {
   "url": "https://example.com/inexistent.html",
   "isXHR": false,
   "cause": {
-    "type": "img",
     "loadingDocumentUri": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
+    "type": "img",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
@@ -66,8 +66,8 @@ rawPackets.set(`GET request update`, {
   "url": "https://example.com/inexistent.html",
   "isXHR": false,
   "cause": {
-    "type": "img",
     "loadingDocumentUri": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
+    "type": "img",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
@@ -99,14 +99,14 @@ rawPackets.set(`GET request update`, {
 rawPackets.set(`XHR GET request`, {
   "resourceType": "network-event",
   "timeStamp": 1572867483805,
-  "actor": "server0.conn0.netEvent23",
+  "actor": "server0.conn0.netEvent6",
   "startedDateTime": "2020-07-07T14:41:14.612Z",
   "method": "GET",
   "url": "https://example.com/inexistent.html",
   "isXHR": true,
   "cause": {
-    "type": "xhr",
     "loadingDocumentUri": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
+    "type": "xhr",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
@@ -138,13 +138,13 @@ rawPackets.set(`XHR GET request`, {
 rawPackets.set(`XHR GET request update`, {
   "resourceType": "network-event",
   "timeStamp": 1572867483805,
-  "actor": "server0.conn0.netEvent23",
+  "actor": "server0.conn0.netEvent6",
   "method": "GET",
   "url": "https://example.com/inexistent.html",
   "isXHR": true,
   "cause": {
-    "type": "xhr",
     "loadingDocumentUri": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
+    "type": "xhr",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
@@ -176,14 +176,14 @@ rawPackets.set(`XHR GET request update`, {
 rawPackets.set(`XHR POST request`, {
   "resourceType": "network-event",
   "timeStamp": 1572867483805,
-  "actor": "server0.conn0.netEvent42",
+  "actor": "server0.conn0.netEvent8",
   "startedDateTime": "2019-11-04T11:06:35.007Z",
   "method": "POST",
   "url": "https://example.com/inexistent.html",
   "isXHR": true,
   "cause": {
-    "type": "xhr",
     "loadingDocumentUri": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
+    "type": "xhr",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
@@ -215,13 +215,13 @@ rawPackets.set(`XHR POST request`, {
 rawPackets.set(`XHR POST request update`, {
   "resourceType": "network-event",
   "timeStamp": 1572867483805,
-  "actor": "server0.conn0.netEvent42",
+  "actor": "server0.conn0.netEvent8",
   "method": "POST",
   "url": "https://example.com/inexistent.html",
   "isXHR": true,
   "cause": {
-    "type": "xhr",
     "loadingDocumentUri": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
+    "type": "xhr",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",

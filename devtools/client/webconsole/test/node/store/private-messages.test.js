@@ -228,8 +228,8 @@ describe("private messages", () => {
     );
     const privatePacket = getPrivatePacket("console.log('mymap')");
 
-    publicPacket.message.arguments[1].release = mockFrontRelease;
-    privatePacket.message.arguments[1].release = mockFrontRelease;
+    publicPacket.arguments[1].release = mockFrontRelease;
+    privatePacket.arguments[1].release = mockFrontRelease;
 
     // Add a log message.
     dispatch(actions.messagesAdd([publicPacket, privatePacket]));

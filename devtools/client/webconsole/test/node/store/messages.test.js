@@ -63,8 +63,8 @@ describe("Message reducer:", () => {
       const packet2 = clonePacket(packet);
 
       // Repeat ID must be the same even if the timestamp is different.
-      packet.message.timeStamp = 1;
-      packet2.message.timeStamp = 2;
+      packet.timeStamp = 1;
+      packet2.timeStamp = 2;
       dispatch(actions.messagesAdd([packet, packet2]));
 
       const messages = getMutableMessagesById(getState());
@@ -84,11 +84,11 @@ describe("Message reducer:", () => {
       dispatch(actions.messagesAdd([packet]));
 
       // Dispatch same packet with modified column number.
-      packet.message.columnNumber = packet.message.columnNumber + 1;
+      packet.columnNumber = packet.columnNumber + 1;
       dispatch(actions.messagesAdd([packet]));
 
       // Dispatch same packet with modified line number.
-      packet.message.lineNumber = packet.message.lineNumber + 1;
+      packet.lineNumber = packet.lineNumber + 1;
       dispatch(actions.messagesAdd([packet]));
 
       const messages = getMutableMessagesById(getState());
@@ -375,7 +375,7 @@ describe("Message reducer:", () => {
       const packet = clonePacket(stubPackets.get("console.log(undefined)"));
 
       for (let i = 1; i <= logLimit + 2; i++) {
-        packet.message.arguments = [`message num ${i}`];
+        packet.arguments = [`message num ${i}`];
         dispatch(actions.messagesAdd([packet]));
       }
 
@@ -402,15 +402,15 @@ describe("Message reducer:", () => {
       const packetGroup = clonePacket(stubPackets.get("console.group('bar')"));
       const packetGroupEnd = clonePacket(stubPackets.get("console.groupEnd()"));
 
-      packetGroup.message.arguments = [`group-1`];
+      packetGroup.arguments = [`group-1`];
       dispatch(actions.messagesAdd([packetGroup]));
-      packetGroup.message.arguments = [`group-1-1`];
+      packetGroup.arguments = [`group-1-1`];
       dispatch(actions.messagesAdd([packetGroup]));
-      packetGroup.message.arguments = [`group-1-1-1`];
+      packetGroup.arguments = [`group-1-1-1`];
       dispatch(actions.messagesAdd([packetGroup]));
-      packet.message.arguments = [`message-in-group-1`];
+      packet.arguments = [`message-in-group-1`];
       dispatch(actions.messagesAdd([packet]));
-      packet.message.arguments = [`message-in-group-2`];
+      packet.arguments = [`message-in-group-2`];
       dispatch(actions.messagesAdd([packet]));
       // Closing group-1-1-1
       dispatch(actions.messagesAdd([packetGroupEnd]));
@@ -420,7 +420,7 @@ describe("Message reducer:", () => {
       dispatch(actions.messagesAdd([packetGroupEnd]));
 
       for (let i = 0; i < logLimit; i++) {
-        packet.message.arguments = [`message-${i}`];
+        packet.arguments = [`message-${i}`];
         dispatch(actions.messagesAdd([packet]));
       }
 
@@ -454,9 +454,9 @@ describe("Message reducer:", () => {
 
       for (let i = 0; i < logLimit + 2; i++) {
         dispatch(actions.messagesAdd([packetGroup]));
-        packet.message.arguments = [`message-${i}-a`];
+        packet.arguments = [`message-${i}-a`];
         dispatch(actions.messagesAdd([packet]));
-        packet.message.arguments = [`message-${i}-b`];
+        packet.arguments = [`message-${i}-b`];
         dispatch(actions.messagesAdd([packet]));
         dispatch(actions.messagesAdd([packetGroupEnd]));
       }
@@ -491,11 +491,11 @@ describe("Message reducer:", () => {
       const packetGroupEnd = clonePacket(stubPackets.get("console.groupEnd()"));
 
       for (let i = 0; i < logLimit + 2; i++) {
-        packetGroupCollapsed.message.arguments = [`group-${i}`];
+        packetGroupCollapsed.arguments = [`group-${i}`];
         dispatch(actions.messagesAdd([packetGroupCollapsed]));
-        packet.message.arguments = [`message-${i}-a`];
+        packet.arguments = [`message-${i}-a`];
         dispatch(actions.messagesAdd([packet]));
-        packet.message.arguments = [`message-${i}-b`];
+        packet.arguments = [`message-${i}-b`];
         dispatch(actions.messagesAdd([packet]));
         dispatch(actions.messagesAdd([packetGroupEnd]));
       }
@@ -648,7 +648,7 @@ describe("Message reducer:", () => {
       const packet = clonePacket(stubPackets.get(`console.count('bar')`));
 
       // Remove counter information to mimick packet we receive in the browser console.
-      delete packet.message.counter;
+      delete packet.counter;
 
       dispatch(actions.messagesAdd([packet]));
       // The message should not be added to the state.
@@ -680,14 +680,14 @@ describe("Message reducer:", () => {
       // Add a message that has a shorter timestamp than the previous one, and thus, should
       // be displayed before
       const nullPacket = clonePacket(stubPackets.get("console.log(null)"));
-      nullPacket.message.timeStamp = naNpacket.message.timeStamp - 10;
+      nullPacket.timeStamp = naNpacket.timeStamp - 10;
       dispatch(actions.messagesAdd([nullPacket]));
 
       // Add a message that should be display between the 2 previous messages
       const undefinedPacket = clonePacket(
         stubPackets.get("console.log(undefined)")
       );
-      undefinedPacket.message.timeStamp = naNpacket.message.timeStamp - 5;
+      undefinedPacket.timeStamp = naNpacket.timeStamp - 5;
       dispatch(actions.messagesAdd([undefinedPacket]));
 
       const { mutableMessagesOrder } = getState().messages;
@@ -1200,9 +1200,9 @@ describe("Message reducer:", () => {
       const packet3 = clonePacket(stubPackets.get(key1));
 
       // Repeat ID must be the same even if the timestamp is different.
-      packet1.message.timeStamp = packet1.message.timeStamp + 1;
-      packet2.message.timeStamp = packet2.message.timeStamp + 2;
-      packet3.message.timeStamp = packet3.message.timeStamp + 3;
+      packet1.timeStamp = packet1.timeStamp + 1;
+      packet2.timeStamp = packet2.timeStamp + 2;
+      packet3.timeStamp = packet3.timeStamp + 3;
       dispatch(actions.messagesAdd([packet1, packet2, packet3]));
 
       // There is still only two messages being logged,

@@ -136,7 +136,7 @@ add_task(async () => {
   is(resources.length, 1, "Received only one console-message resource");
   // Note that resources-available-array comes with a "array" attribute which is an array of resources
   // which may contain various resource types.
-  is(resources[0].message.arguments[0], "42");
+  is(resources[0].arguments[0], "42");
 
   await client.close();
 });

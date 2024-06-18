@@ -4701,7 +4701,9 @@ Toolbox.prototype = {
       }
 
       if (resourceType === TYPES.CONSOLE_MESSAGE) {
-        const { level } = resource.message;
+        // @backward-compat { version 129 } Once Fx129 is release, CONSOLE_MESSAGE resource
+        // are no longer encapsulated into a sub "message" attribute.
+        const { level } = resource.message || resource;
         if (level === "error" || level === "exception" || level === "assert") {
           errors++;
         }

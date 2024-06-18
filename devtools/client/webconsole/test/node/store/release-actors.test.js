@@ -62,10 +62,10 @@ describe("Release actor enhancer:", () => {
       const assertPacket = stubPackets.get(
         "console.assert(false, {message: 'foobar'})"
       );
-      const thirdMessageActor = assertPacket.message.arguments[0].actorID;
+      const thirdMessageActor = assertPacket.arguments[0].actorID;
 
       for (let i = 1; i <= logCount; i++) {
-        assertPacket.message.arguments.push(`message num ${i}`);
+        assertPacket.arguments.push(`message num ${i}`);
         dispatch(actions.messagesAdd([assertPacket]));
       }
 
@@ -115,7 +115,7 @@ describe("Release actor enhancer:", () => {
         "console.assert(false, {message: 'foobar'})"
       );
       dispatch(actions.messagesAdd([assertPacket]));
-      const thirdMessageActor = assertPacket.message.arguments[0].actorID;
+      const thirdMessageActor = assertPacket.arguments[0].actorID;
 
       // Add ${logLimit} messages so we prune the ones we added before.
       const packets = [];
@@ -169,7 +169,7 @@ describe("Release actor enhancer:", () => {
         "console.assert(false, {message: 'foobar'})"
       );
       dispatch(actions.messagesAdd([assertPacket]));
-      const secondMessageActor = assertPacket.message.arguments[0].actorID;
+      const secondMessageActor = assertPacket.arguments[0].actorID;
 
       // Add an evaluation result message (see Bug 1408321).
       const evaluationResultPacket = stubPackets.get("new Date(0)");

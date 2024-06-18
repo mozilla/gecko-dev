@@ -83,7 +83,7 @@ add_task(async function () {
       `Didn't receive the expected number of resources. Got ${
         resources.length
       }, expected ${messages.length} - ${resources
-        .map(r => r.message.arguments.join(" | "))
+        .map(r => r.arguments.join(" | "))
         .join(" - ")}`
     );
   }

@@ -13,9 +13,18 @@ loader.lazyRequireGetter(
 );
 
 module.exports = function ({ resource, targetFront }) {
-  if (Array.isArray(resource.message.arguments)) {
-    // We might need to create fronts for each of the message arguments.
-    resource.message.arguments = resource.message.arguments.map(arg =>
+  // We might need to create fronts for each of the message arguments.
+  // @backward-compat { version 129 } Once Fx129 is release, CONSOLE_MESSAGE resource
+  // are no longer encapsulated into a sub "message" attribute.
+  // (we can remove the `if (resource.message)` branch)
+  if (resource.message) {
+    if (Array.isArray(resource.message.arguments)) {
+      resource.message.arguments = resource.message.arguments.map(arg =>
+        getAdHocFrontOrPrimitiveGrip(arg, targetFront)
+      );
+    }
+  } else if (Array.isArray(resource.arguments)) {
+    resource.arguments = resource.arguments.map(arg =>
       getAdHocFrontOrPrimitiveGrip(arg, targetFront)
     );
   }

@@ -29,7 +29,7 @@ add_task(async function () {
     resourceCommand.TYPES.CONSOLE_MESSAGE,
     {
       ignoreExistingResources: false,
-      predicate({ message }) {
+      predicate(message) {
         return message.arguments[0] === CACHED_MESSAGE_TEXT;
       },
     }
@@ -47,7 +47,7 @@ add_task(async function () {
       resourceCommand.TYPES.CONSOLE_MESSAGE,
       {
         ignoreExistingResources: false,
-        predicate({ message }) {
+        predicate(message) {
           return message.arguments[0] === LIVE_MESSAGE_TEXT;
         },
       }
@@ -67,7 +67,7 @@ add_task(async function () {
     resourceCommand.TYPES.CONSOLE_MESSAGE,
     {
       ignoreExistingResources: true,
-      predicate({ message }) {
+      predicate(message) {
         return message.arguments[0] === "early-page-log";
       },
     }

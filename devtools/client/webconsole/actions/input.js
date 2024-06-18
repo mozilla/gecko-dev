@@ -197,11 +197,9 @@ function handleHelperResult(response) {
           dispatch(
             messagesActions.messagesAdd([
               {
-                message: {
-                  level: "error",
-                  arguments: [helperResult.message],
-                  chromeContext: true,
-                },
+                level: "error",
+                arguments: [helperResult.message],
+                chromeContext: true,
                 resourceType: ResourceCommand.TYPES.CONSOLE_MESSAGE,
               },
             ])
@@ -288,11 +286,9 @@ function handleHelperResult(response) {
             dispatch(
               messagesActions.messagesAdd(
                 screenshotMessages.map(message => ({
-                  message: {
-                    level: message.level || "log",
-                    arguments: [message.text],
-                    chromeContext: true,
-                  },
+                  level: message.level || "log",
+                  arguments: [message.text],
+                  chromeContext: true,
                   resourceType: ResourceCommand.TYPES.CONSOLE_MESSAGE,
                 }))
               )

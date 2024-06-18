@@ -43,7 +43,7 @@ add_task(async function () {
   );
   await waitUntil(() =>
     receivedMessages.find(
-      resource => resource.message.arguments[0] === "test from data-url"
+      resource => resource.arguments[0] === "test from data-url"
     )
   );
 
@@ -59,7 +59,7 @@ add_task(async function () {
   );
   await waitUntil(() =>
     receivedMessages.find(
-      resource => resource.message.arguments[0] === "test-from-example-com"
+      resource => resource.arguments[0] === "test-from-example-com"
     )
   );
 
@@ -79,7 +79,7 @@ add_task(async function () {
   );
   await waitUntil(() =>
     receivedMessages.find(
-      resource => resource.message.arguments[0] === "test-from-example-org"
+      resource => resource.arguments[0] === "test-from-example-org"
     )
   );
 
@@ -92,9 +92,7 @@ add_task(async function () {
   await wait(1000);
 
   is(
-    receivedMessages.find(
-      resource => resource.message.arguments[0] === "test-again"
-    ),
+    receivedMessages.find(resource => resource.arguments[0] === "test-again"),
     undefined,
     "The resource command should not watch CONSOLE_MESSAGE anymore"
   );

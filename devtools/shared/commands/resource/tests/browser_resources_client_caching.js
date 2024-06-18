@@ -314,7 +314,7 @@ add_task(async function () {
   is(availableResources.length, 1, "availableResources array has one item");
   is(onAvailableCallCount, 1, "onAvailable was called only once");
   is(
-    availableResources[0].message.arguments[0],
+    availableResources[0].arguments[0],
     "expected message",
     "onAvailable was called with the expected resource"
   );
@@ -335,7 +335,7 @@ function assertContents(resources, expectedMessages) {
 
   for (let i = 0; i < expectedMessages.length; i++) {
     const resource = resources[i];
-    const message = resource.message.arguments[0];
+    const message = resource.arguments[0];
     const expectedMessage = expectedMessages[i];
     is(message, expectedMessage, `The ${i}th content is correct`);
   }

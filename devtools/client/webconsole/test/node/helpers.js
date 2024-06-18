@@ -127,9 +127,8 @@ function clearPrefs() {
 
 function getPrivatePacket(key) {
   const packet = clonePacket(stubPackets.get(key));
-  if (packet.message) {
-    packet.message.private = true;
-  } else if (packet.pageError) {
+  packet.private = true;
+  if (packet.pageError) {
     packet.pageError.private = true;
   }
   if (Object.getOwnPropertyNames(packet).includes("private")) {

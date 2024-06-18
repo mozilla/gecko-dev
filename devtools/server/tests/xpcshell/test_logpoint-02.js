@@ -28,7 +28,7 @@ add_task(
       "resources-available-array",
       ([[resourceType, resources]]) => {
         if (resourceType == Resources.TYPES.CONSOLE_MESSAGE) {
-          lastMessage = resources[0].message;
+          lastMessage = resources[0];
         }
       }
     );

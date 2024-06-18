@@ -27,7 +27,7 @@ add_task(async function () {
       {
         ignoreExistingResources: true,
         predicate(resource) {
-          return resource.message.level == "info";
+          return resource.level == "info";
         },
       }
     );
@@ -82,7 +82,7 @@ add_task(async function () {
       {
         ignoreExistingResources: true,
         predicate(resource) {
-          return resource.message.level == "info";
+          return resource.level == "info";
         },
       }
     ));
@@ -130,7 +130,7 @@ add_task(async function () {
       {
         ignoreExistingResources: true,
         predicate(resource) {
-          return resource.message.level == "info";
+          return resource.level == "info";
         },
       }
     ));
@@ -155,7 +155,7 @@ add_task(async function () {
       {
         ignoreExistingResources: true,
         predicate(resource) {
-          return resource.message.level == "info";
+          return resource.level == "info";
         },
       }
     ));
@@ -221,7 +221,7 @@ add_task(async function () {
       {
         ignoreExistingResources: true,
         predicate(resource) {
-          return resource.message.level == "info";
+          return resource.level == "info";
         },
       }
     ));
