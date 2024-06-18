@@ -19,6 +19,7 @@ import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.SessionSuggestionProvider
 import mozilla.components.feature.contextmenu.facts.ContextMenuFacts
 import mozilla.components.feature.media.facts.MediaFacts
+import mozilla.components.feature.prompts.dialog.GeneratedPasswordFacts
 import mozilla.components.feature.prompts.dialog.LoginDialogFacts
 import mozilla.components.feature.prompts.facts.CreditCardAutofillDialogFacts
 import mozilla.components.feature.pwa.ProgressiveWebAppFacts
@@ -46,6 +47,7 @@ import org.mozilla.fenix.GleanMetrics.Awesomebar
 import org.mozilla.fenix.GleanMetrics.BrowserSearch
 import org.mozilla.fenix.GleanMetrics.ContextualMenu
 import org.mozilla.fenix.GleanMetrics.CreditCards
+import org.mozilla.fenix.GleanMetrics.GeneratedPasswordDialog
 import org.mozilla.fenix.GleanMetrics.LoginDialog
 import org.mozilla.fenix.GleanMetrics.MediaNotification
 import org.mozilla.fenix.GleanMetrics.PerfAwesomebar
@@ -408,6 +410,30 @@ class MetricControllerTest {
         assertNotNull(LoginDialog.saved.testGetValue())
         assertEquals(1, LoginDialog.saved.testGetValue()!!.size)
         assertNull(LoginDialog.saved.testGetValue()!!.single().extra)
+
+        // Verify generated password shown interaction
+        assertNull(GeneratedPasswordDialog.shown.testGetValue())
+        fact = Fact(Component.FEATURE_PROMPTS, action, GeneratedPasswordFacts.Items.SHOWN)
+
+        controller.run {
+            fact.process()
+        }
+
+        assertNotNull(GeneratedPasswordDialog.shown.testGetValue())
+        assertEquals(1, GeneratedPasswordDialog.shown.testGetValue()!!.size)
+        assertNull(GeneratedPasswordDialog.shown.testGetValue()!!.single().extra)
+
+        // Verify generated password filled interaction
+        assertNull(GeneratedPasswordDialog.filled.testGetValue())
+        fact = Fact(Component.FEATURE_PROMPTS, action, GeneratedPasswordFacts.Items.FILLED)
+
+        controller.run {
+            fact.process()
+        }
+
+        assertNotNull(GeneratedPasswordDialog.filled.testGetValue())
+        assertEquals(1, GeneratedPasswordDialog.filled.testGetValue()!!.size)
+        assertNull(GeneratedPasswordDialog.filled.testGetValue()!!.single().extra)
     }
 
     @Test

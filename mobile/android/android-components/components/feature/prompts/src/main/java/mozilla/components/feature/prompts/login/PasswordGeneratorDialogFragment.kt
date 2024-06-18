@@ -24,6 +24,7 @@ import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.dialog.KEY_PROMPT_UID
 import mozilla.components.feature.prompts.dialog.KEY_SESSION_ID
 import mozilla.components.feature.prompts.dialog.PromptDialogFragment
+import mozilla.components.feature.prompts.dialog.emitGeneratedPasswordFilledFact
 import mozilla.components.support.utils.ext.getParcelableCompat
 
 private const val GENERATED_PASSWORD = "GENERATED_PASSWORD"
@@ -101,6 +102,7 @@ internal class PasswordGeneratorDialogFragment : PromptDialogFragment() {
             password = generatedPassword,
         )
         feature?.onConfirm(sessionId, promptRequestUID, login)
+        emitGeneratedPasswordFilledFact()
         dismiss()
 
         onSavedGeneratedPassword.invoke()
