@@ -798,6 +798,13 @@ class ParametrizedSeekCryptTest
     EXPECT_EQ(testParams.mDataSize - accumulatedOffset, read);
     EXPECT_EQ(Span{data}.SplitAt(accumulatedOffset).second,
               Span{readData}.First(read).AsConst());
+
+    {
+      int64_t actualOffset;
+      EXPECT_EQ(NS_OK, inStream->Tell(&actualOffset));
+
+      EXPECT_EQ(static_cast<uint64_t>(actualOffset), data.Length());
+    }
   }
 };
 
