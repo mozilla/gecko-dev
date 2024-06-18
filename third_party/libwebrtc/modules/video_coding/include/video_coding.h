@@ -14,7 +14,6 @@
 #include <memory>
 
 #include "api/environment/environment.h"
-#include "api/field_trials_view.h"
 #include "api/video/video_frame.h"
 #include "api/video_codecs/video_decoder.h"
 #include "modules/rtp_rtcp/source/rtp_video_header.h"
@@ -22,17 +21,8 @@
 
 namespace webrtc {
 
-class Clock;
-class EncodedImageCallback;
-class VideoDecoder;
-class VideoEncoder;
-struct CodecSpecificInfo;
-
 class VideoCodingModule {
  public:
-  [[deprecated]] static VideoCodingModule* Create(
-      Clock* clock,
-      const FieldTrialsView* field_trials = nullptr);
   [[deprecated]] static std::unique_ptr<VideoCodingModule> CreateDeprecated(
       const Environment& env);
 
