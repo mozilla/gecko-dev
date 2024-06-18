@@ -81,7 +81,7 @@ export function NarrateControls(win, languagePromise) {
   if (improvedTextMenuEnabled) {
     let hr = win.document.createElement("hr");
     let voiceHeader = win.document.createElement("h2");
-    voiceHeader.id = "narrate-header";
+    voiceHeader.id = "voice-header";
     voiceHeader.textContent = gStrings.GetStringFromName("select-voice-header");
     dropdownList.appendChild(hr);
     dropdownList.appendChild(voiceHeader);
@@ -131,7 +131,22 @@ export function NarrateControls(win, languagePromise) {
   narrateRateInput.setAttribute("max", "100");
   narrateRateInput.setAttribute("min", "-100");
   narrateRateInput.setAttribute("type", "range");
+  narrateRateInput.setAttribute(
+    "aria-label",
+    "Choose a narration speed from -100 to 100, where 0 is the default speed."
+  );
+
+  let narrateRateSlowIcon = win.document.createElement("span");
+  narrateRateSlowIcon.className = "narrate-rate-icon slow";
+  narrateRateSlowIcon.title = gStrings.GetStringFromName("slow-speed-label");
+
+  let narrateRateFastIcon = win.document.createElement("span");
+  narrateRateFastIcon.className = "narrate-rate-icon fast";
+  narrateRateFastIcon.title = gStrings.GetStringFromName("fast-speed-label");
+
+  narrateRate.appendChild(narrateRateSlowIcon);
   narrateRate.appendChild(narrateRateInput);
+  narrateRate.appendChild(narrateRateFastIcon);
 
   function setShortcutAttribute(
     keyShortcut,
@@ -180,6 +195,7 @@ export function NarrateControls(win, languagePromise) {
   this.voiceSelect = new VoiceSelect(win, selectLabel);
   this.voiceSelect.element.addEventListener("change", this);
   this.voiceSelect.element.classList.add("voice-select");
+  this.voiceSelect.selectToggle.setAttribute("aria-labelledby", "voice-header");
   win.speechSynthesis.addEventListener("voiceschanged", this);
   dropdown
     .querySelector(".narrate-voices")

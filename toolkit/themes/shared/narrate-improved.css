@@ -175,8 +175,7 @@ body.hcm .narrate-word-highlight {
 
 /* Rate control */
 
-.narrate-rate::before,
-.narrate-rate::after {
+.narrate-rate-icon {
   content: '';
   width: 48px;
   height: 40px;
@@ -185,14 +184,14 @@ body.hcm .narrate-word-highlight {
   background-size: 24px auto;
   -moz-context-properties: fill;
   fill: var(--popup-foreground);
-}
 
-.narrate-rate::before {
-  background-image: url("chrome://global/skin/narrate/slow.svg");
-}
+  &.slow {
+    background-image: url("chrome://global/skin/narrate/slow.svg");
+  }
 
-.narrate-rate::after {
-  background-image: url("chrome://global/skin/narrate/fast.svg");
+  &.fast {
+    background-image: url("chrome://global/skin/narrate/fast.svg");
+  }
 }
 
 .narrate-rate-input {

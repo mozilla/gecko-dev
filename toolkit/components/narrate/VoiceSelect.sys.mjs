@@ -7,8 +7,9 @@ export function VoiceSelect(win, label) {
 
   let element = win.document.createElement("div");
   element.classList.add("voiceselect");
+  // TODO: remove unused .label span with Bug 1903156.
   // eslint-disable-next-line no-unsanitized/property
-  element.innerHTML = `<button class="select-toggle" aria-controls="voice-options">
+  element.innerHTML = `<button class="select-toggle" aria-controls="voice-options" aria-expanded="false" role="combobox">
       <span class="label">${label}</span> <span class="current-voice"></span>
     </button>
     <div class="options" id="voice-options" role="listbox"></div>`;
@@ -66,14 +67,14 @@ VoiceSelect.prototype = {
       }
 
       this._updateDropdownHeight(true);
-      this.listbox.setAttribute("aria-expanded", true);
+      this.selectToggle.setAttribute("aria-expanded", true);
       this._win.addEventListener("focus", this, true);
     } else {
       if (focus) {
         this.element.querySelector(".select-toggle").focus();
       }
 
-      this.listbox.setAttribute("aria-expanded", false);
+      this.selectToggle.setAttribute("aria-expanded", false);
       this._win.removeEventListener("focus", this, true);
     }
   },
