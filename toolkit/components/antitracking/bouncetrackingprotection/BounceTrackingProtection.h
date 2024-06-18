@@ -24,10 +24,8 @@ class OriginAttributes;
 
 extern LazyLogModule gBounceTrackingProtectionLog;
 
-class BounceTrackingProtection final : public nsIObserver,
-                                       public nsIBounceTrackingProtection {
+class BounceTrackingProtection final : public nsIBounceTrackingProtection {
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
   NS_DECL_NSIBOUNCETRACKINGPROTECTION
 
  public:

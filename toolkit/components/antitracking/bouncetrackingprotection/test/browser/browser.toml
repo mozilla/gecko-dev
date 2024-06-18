@@ -33,11 +33,9 @@ support-files = [
 
 ["browser_bouncetracking_stateful_web_worker.js"]
 
-["browser_bouncetracking_telemetry_purge_count.js"]
-
 ["browser_bouncetracking_telemetry_purge_duration.js"]
 
-["browser_bouncetracking_telemetry_purge_events.js"]
-
 ["browser_bouncetracking_webAuthUserActivation.js"]
-support-files = ["!/dom/webauthn/tests/browser/head.js"]
+support-files = [ "!/dom/webauthn/tests/browser/head.js"]
+
+["browser_bouncetracking_telemetry_purge_count.js"]
