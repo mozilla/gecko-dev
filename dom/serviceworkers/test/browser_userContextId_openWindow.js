@@ -64,7 +64,6 @@ add_setup(async function () {
       ["dom.serviceWorkers.exemptFromPerDomainMax", true],
       ["dom.serviceWorkers.enabled", true],
       ["dom.serviceWorkers.testing.enabled", true],
-      ["notification.prompt.testing", true],
       ["dom.serviceWorkers.disable_open_click_delay", 1000],
       ["dom.serviceWorkers.idle_timeout", 299999],
       ["dom.serviceWorkers.idle_extended_timeout", 299999],
@@ -99,32 +98,35 @@ add_task(async function test() {
 
   // here the test.
   /* eslint-disable no-shadow */
-  let uci = await SpecialPowers.spawn(browser, [URI], uri => {
+  let uci = await SpecialPowers.spawn(browser, [], async uri => {
     let uci = content.document.nodePrincipal.userContextId;
 
+    await SpecialPowers.pushPermissions([
+      {
+        type: "desktop-notification",
+        allow: SpecialPowers.Services.perms.ALLOW_ACTION,
+        context: content.document,
+      },
+    ]);
+
     // Registration of the SW
-    return (
-      content.navigator.serviceWorker
-        .register("file_userContextId_openWindow.js")
-
-        // Activation
-        .then(swr => {
-          return new content.window.Promise(resolve => {
-            let worker = swr.installing;
-            worker.addEventListener("statechange", () => {
-              if (worker.state === "activated") {
-                resolve(swr);
-              }
-            });
-          });
-        })
-
-        // Ask for an openWindow.
-        .then(swr => {
-          swr.showNotification("testPopup");
-          return uci;
-        })
+    const swr = await content.navigator.serviceWorker.register(
+      "file_userContextId_openWindow.js"
     );
+
+    // Activation
+    await new content.window.Promise(resolve => {
+      let worker = swr.installing;
+      worker.addEventListener("statechange", () => {
+        if (worker.state === "activated") {
+          resolve(swr);
+        }
+      });
+    });
+
+    // Ask for an openWindow.
+    swr.showNotification("testPopup");
+    return uci;
   });
   /* eslint-enable no-shadow */
 

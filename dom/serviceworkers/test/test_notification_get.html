@@ -4,6 +4,7 @@
   <title>ServiceWorkerRegistration.getNotifications() on main thread and worker thread.</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
+  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/NotificationTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -71,9 +72,9 @@
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.serviceWorkers.enabled", true],
     ["dom.serviceWorkers.testing.enabled", true],
-    ["notification.prompt.testing", true],
   ]}, function() {
     registerSW()
+      .then(NotificationTest.allowNotifications)
       .then(() => MockAlertsService.register())
       .then(testGetWorker)
       .then(testDismiss)

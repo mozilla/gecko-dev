@@ -7,6 +7,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
   <title>Bug 1172870 - Test clients.openWindow</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
+  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/NotificationTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -76,17 +77,21 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
     ok(result, "Unregister was successful.");
   }
 
-  function runTest() {
-    setup({})
+  async function runTest() {
+    try {
+      const ctx = await setup({});
       // Permission to allow popups persists for some time after a notification
       // click event, so the order here is important.
-      .then(testPopupNotAllowed)
-      .then(testPopupAllowed)
-      .then(checkNumberOfWindows)
-      .then(clear)
-      .catch(function(e) {
-        ok(false, "Some test failed with error " + e);
-      }).then(SimpleTest.finish);
+      await NotificationTest.allowNotifications();
+      await testPopupNotAllowed(ctx);
+      await testPopupAllowed(ctx);
+      await checkNumberOfWindows(ctx);
+      await clear(ctx);
+    } catch (e) {
+      ok(false, "Some test failed with error " + e);
+    } finally {
+      SimpleTest.finish();
+    }
   }
 
   SimpleTest.waitForExplicitFinish();
@@ -94,7 +99,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.serviceWorkers.enabled", true],
     ["dom.serviceWorkers.testing.enabled", true],
-    ["notification.prompt.testing", true],
     ["dom.serviceWorkers.disable_open_click_delay", 1000],
     ["dom.serviceWorkers.idle_timeout", 299999],
     ["dom.serviceWorkers.idle_extended_timeout", 299999],

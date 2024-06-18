@@ -8,6 +8,7 @@ support-files = [
 ]
 
 ["test_notification_basics.html"]
+scheme = "https" # requestPermission requires HTTPS
 skip-if = [
   "xorigin", # Bug 1792790
   "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android

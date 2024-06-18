@@ -4,13 +4,17 @@
   <title>Create a notification</title>
 </head>
 <body>
+<script src="NotificationTest.js"></script>
 <script>
-
-var notification = new Notification("This is a title", {
+// Can't use top level await because of eslint limitation
+// https://github.com/BenoitZugmeyer/eslint-plugin-html/issues/139
+(async () => {
+  await NotificationTest.allowNotifications();
+  new Notification("This is a title", {
     body: "This is a notification body",
     tag: "sometag",
   });
-
+})();
 </script>
 </body>
 </html>

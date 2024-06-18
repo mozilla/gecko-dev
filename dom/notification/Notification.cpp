@@ -1609,15 +1609,6 @@ NotificationPermission Notification::GetPermissionInternal(
     }
   }
 
-  // We also allow notifications is they are pref'ed on.
-  if (Preferences::GetBool("notification.prompt.testing", false)) {
-    if (Preferences::GetBool("notification.prompt.testing.allow", true)) {
-      return NotificationPermission::Granted;
-    } else {
-      return NotificationPermission::Denied;
-    }
-  }
-
   return TestPermission(aPrincipal);
 }
 

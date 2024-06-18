@@ -7,6 +7,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
   <title>Bug 1144660 - Test client.focus() permissions on notification click</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
+  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/NotificationTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -38,6 +39,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
 
   async function runTest() {
     try {
+      await NotificationTest.allowNotifications();
       await MockAlertsService.register();
       await MockAlertsService.enableAutoClick();
       registration = await navigator.serviceWorker.register(
@@ -57,7 +59,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.serviceWorkers.enabled", true],
     ["dom.serviceWorkers.testing.enabled", true],
-    ["notification.prompt.testing", true],
     ["dom.serviceWorkers.disable_open_click_delay", 1000],
   ]}, runTest);
 </script>

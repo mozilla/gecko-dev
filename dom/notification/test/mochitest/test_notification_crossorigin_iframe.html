@@ -20,16 +20,21 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1560741
   const kBlankURL = "https://example.org/tests/dom/notification/test/mochitest/blank.html";
 
   (async function runTest() {
-    await SpecialPowers.pushPrefEnv({"set": [
-      ["notification.prompt.testing", true],
-      ["notification.prompt.testing.allow", true],
-    ]});
-
     let iframe = document.createElement("iframe");
     iframe.src = kBlankURL;
     document.body.appendChild(iframe);
     await new Promise(resolve => {
       iframe.onload = resolve;
+    });
+
+    await SpecialPowers.spawn(iframe, [], async () => {
+      await SpecialPowers.pushPermissions([
+        {
+          type: "desktop-notification",
+          allow: SpecialPowers.Services.perms.ALLOW_ACTION,
+          context: content.document,
+        },
+      ]);
     });
 
     let checkRequest = async (expectedResponse, msg) => {

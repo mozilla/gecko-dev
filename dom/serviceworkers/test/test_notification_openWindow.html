@@ -5,6 +5,7 @@
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script src="utils.js"></script>
   <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
+  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/NotificationTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -18,12 +19,12 @@ add_task(async function setup() {
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.serviceWorkers.enabled", true],
     ["dom.serviceWorkers.testing.enabled", true],
-    ["notification.prompt.testing", true],
     ["dom.serviceWorkers.disable_open_click_delay", 1000],
     ["dom.serviceWorkers.idle_timeout", 299999],
     ["dom.serviceWorkers.idle_extended_timeout", 299999]
   ]});
 
+  await NotificationTest.allowNotifications();
   await MockAlertsService.register();
   await MockAlertsService.enableAutoClick();
 });
