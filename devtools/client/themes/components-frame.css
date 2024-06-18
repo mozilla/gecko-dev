@@ -9,12 +9,10 @@
 
 .theme-light {
   --frame-link-line-color: var(--theme-link-color);
-  --frame-link-source: var(--theme-highlight-purple);
 }
 
 .theme-dark {
   --frame-link-line-color: hsl(210, 40%, 60%);
-  --frame-link-source: var(--blue-40);
 }
 
 .stack-trace {
@@ -36,7 +34,7 @@
 }
 
 .frame-link .frame-link-source {
-  color: var(--frame-link-source);
+  color: var(--theme-internal-link-color);
 }
 
 .frame-link a.frame-link-source {

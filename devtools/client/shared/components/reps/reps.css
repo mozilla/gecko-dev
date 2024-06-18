@@ -118,7 +118,7 @@
 }
 
 .objectBox-stackTrace-location {
-  color: var(--frame-link-source, currentColor);
+  color: var(--theme-internal-link-color, currentColor);
   direction: rtl;
   white-space: nowrap;
   overflow: hidden;

@@ -360,7 +360,7 @@
 .message-location {
   max-width: 40%;
   flex-shrink: 0;
-  color: var(--frame-link-source);
+  color: var(--theme-internal-link-color);
   margin-left: 1ch;
   /* Makes the file name truncated (and ellipsis shown) on the left side */
   direction: rtl;
