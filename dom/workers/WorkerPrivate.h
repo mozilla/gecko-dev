@@ -11,7 +11,6 @@
 #include "MainThreadUtils.h"
 #include "ScriptLoader.h"
 #include "js/ContextOptions.h"
-#include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/BasePrincipal.h"
@@ -294,17 +293,6 @@ class WorkerPrivate final
 
     mCondVar.Notify();
   }
-
-  // Mark worker private as running in the background tab
-  // for further throttling
-  void SetIsRunningInBackground();
-
-  void SetIsRunningInForeground();
-
-  bool ChangeBackgroundStateInternal(bool aIsBackground);
-
-  // returns true, if worker is running in the background tab
-  bool IsRunningInBackground() const { return mIsInBackground; }
 
   void WaitForIsDebuggerRegistered(bool aDebuggerRegistered) {
     AssertIsOnParentThread();
@@ -1609,7 +1597,6 @@ class WorkerPrivate final
   const bool mIsSecureContext;
 
   bool mDebuggerRegistered MOZ_GUARDED_BY(mMutex);
-  mozilla::Atomic<bool> mIsInBackground;
 
   // During registration, this worker may be marked as not being ready to
   // execute debuggee runnables or content.
