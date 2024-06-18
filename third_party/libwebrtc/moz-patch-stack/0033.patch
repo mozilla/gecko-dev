@@ -27,7 +27,7 @@ index 27c733f203..2bb552ba0b 100644
    stats.header_and_padding_bytes_sent =
        call_stats.header_and_padding_bytes_sent;
 diff --git a/audio/channel_send.cc b/audio/channel_send.cc
-index 4a2700177b..a6bbc9f806 100644
+index e8eaa3111e..389af0e3ca 100644
 --- a/audio/channel_send.cc
 +++ b/audio/channel_send.cc
 @@ -56,6 +56,31 @@ constexpr int64_t kMinRetransmissionWindowMs = 30;
@@ -88,7 +88,7 @@ index 4a2700177b..a6bbc9f806 100644
    if (field_trials.IsDisabled("WebRTC-DisableRtxRateLimiter")) {
      configuration.retransmission_rate_limiter =
          retransmission_rate_limiter_.get();
-@@ -689,6 +719,7 @@ CallSendStatistics ChannelSend::GetRTCPStatistics() const {
+@@ -690,6 +720,7 @@ CallSendStatistics ChannelSend::GetRTCPStatistics() const {
    RTC_DCHECK_RUN_ON(&worker_thread_checker_);
    CallSendStatistics stats = {0};
    stats.rttMs = GetRTT();

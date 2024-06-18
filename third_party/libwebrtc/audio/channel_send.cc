@@ -464,6 +464,7 @@ ChannelSend::ChannelSend(
   configuration.rtcp_packet_type_counter_observer = this;
 
   configuration.local_media_ssrc = ssrc;
+  configuration.field_trials = &field_trials;
 
   rtp_rtcp_ = ModuleRtpRtcpImpl2::Create(configuration);
   rtp_rtcp_->SetSendingMediaStatus(false);

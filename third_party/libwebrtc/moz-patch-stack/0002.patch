@@ -840,10 +840,10 @@ index 43770a728a..bcdc9a036b 100644
  //
  // E.g. default video or screenshare.
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
-index 23a0aec558..88f002a7b7 100644
+index 02a1543e00..05e771a56d 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.h
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
-@@ -302,6 +302,21 @@ class ColorSpaceExtension {
+@@ -308,6 +308,21 @@ class ColorSpaceExtension {
    static size_t WriteLuminance(uint8_t* data, float f, int denominator);
  };
  
