@@ -343,7 +343,7 @@ void AtomsTable::mergeAtomsAddedWhileSweeping() {
 }
 
 bool AtomsTable::sweepIncrementally(SweepIterator& atomsToSweep,
-                                    JS::SliceBudget& budget) {
+                                    SliceBudget& budget) {
   // Sweep the table incrementally until we run out of work or budget.
   while (!atomsToSweep.empty()) {
     budget.step();

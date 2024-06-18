@@ -184,7 +184,7 @@ class AtomsTable {
   bool startIncrementalSweep(mozilla::Maybe<SweepIterator>& atomsToSweepOut);
 
   // Sweep some atoms incrementally and return whether we finished.
-  bool sweepIncrementally(SweepIterator& atomsToSweep, JS::SliceBudget& budget);
+  bool sweepIncrementally(SweepIterator& atomsToSweep, SliceBudget& budget);
 
   size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 

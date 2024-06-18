@@ -19,8 +19,6 @@ using mozilla::Maybe;
 using mozilla::TimeDuration;
 using mozilla::TimeStamp;
 
-using JS::SliceBudget;
-
 class AutoAddTimeDuration {
   TimeStamp start;
   TimeDuration& result;

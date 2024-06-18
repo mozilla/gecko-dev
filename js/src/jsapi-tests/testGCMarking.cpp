@@ -375,7 +375,7 @@ BEGIN_TEST(testIncrementalRoots) {
   // Do the root marking slice. This should mark 'root' and a bunch of its
   // descendants. It shouldn't make it all the way through (it gets a budget
   // of 1000, and the graph is about 3000 objects deep).
-  JS::SliceBudget budget(JS::WorkBudget(1000));
+  js::SliceBudget budget(js::WorkBudget(1000));
   AutoGCParameter param(cx, JSGC_INCREMENTAL_GC_ENABLED, true);
   rt->gc.startDebugGC(JS::GCOptions::Normal, budget);
   while (rt->gc.state() != gc::State::Mark) {
@@ -436,7 +436,7 @@ BEGIN_TEST(testIncrementalRoots) {
   }
 
   // Finish the GC using an unlimited budget.
-  auto unlimited = JS::SliceBudget::unlimited();
+  auto unlimited = js::SliceBudget::unlimited();
   rt->gc.debugGCSlice(unlimited);
 
   // Access the leaf object to try to trigger a crash if it is dead.

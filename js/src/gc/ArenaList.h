@@ -18,13 +18,10 @@
 #include "js/TypeDecls.h"
 #include "threading/ProtectedData.h"
 
-namespace JS {
-class SliceBudget;
-}
-
 namespace js {
 
 class Nursery;
+class SliceBudget;
 
 namespace gcstats {
 struct Statistics;
@@ -137,7 +134,7 @@ class ArenaList {
   Arena* removeRemainingArenas(Arena** arenap);
   Arena** pickArenasToRelocate(size_t& arenaTotalOut, size_t& relocTotalOut);
   Arena* relocateArenas(Arena* toRelocate, Arena* relocated,
-                        JS::SliceBudget& sliceBudget,
+                        js::SliceBudget& sliceBudget,
                         gcstats::Statistics& stats);
 
 #ifdef DEBUG
@@ -345,7 +342,7 @@ class ArenaLists {
   void checkEmptyArenaList(AllocKind kind);
 
   bool relocateArenas(Arena*& relocatedListOut, JS::GCReason reason,
-                      JS::SliceBudget& sliceBudget, gcstats::Statistics& stats);
+                      js::SliceBudget& sliceBudget, gcstats::Statistics& stats);
 
   void queueForegroundObjectsForSweep(JS::GCContext* gcx);
   void queueForegroundThingsForSweep();

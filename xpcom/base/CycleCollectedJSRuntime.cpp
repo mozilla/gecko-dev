@@ -993,7 +993,7 @@ void CycleCollectedJSRuntime::TraceBlackJS(JSTracer* aTracer, void* aData) {
 
 /* static */
 bool CycleCollectedJSRuntime::TraceGrayJS(JSTracer* aTracer,
-                                          JS::SliceBudget& budget,
+                                          js::SliceBudget& budget,
                                           void* aData) {
   CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData);
 
@@ -1366,7 +1366,7 @@ static inline bool ShouldCheckSingleZoneHolders() {
 #ifdef NS_BUILD_REFCNT_LOGGING
 void CycleCollectedJSRuntime::TraceAllNativeGrayRoots(JSTracer* aTracer) {
   MOZ_RELEASE_ASSERT(mHolderIter.isNothing());
-  JS::SliceBudget budget = JS::SliceBudget::unlimited();
+  js::SliceBudget budget = js::SliceBudget::unlimited();
   MOZ_ALWAYS_TRUE(
       TraceNativeGrayRoots(aTracer, JSHolderMap::AllHolders, budget));
 }
@@ -1374,7 +1374,7 @@ void CycleCollectedJSRuntime::TraceAllNativeGrayRoots(JSTracer* aTracer) {
 
 bool CycleCollectedJSRuntime::TraceNativeGrayRoots(
     JSTracer* aTracer, JSHolderMap::WhichHolders aWhich,
-    JS::SliceBudget& aBudget) {
+    js::SliceBudget& aBudget) {
   if (!mHolderIter) {
     // NB: This is here just to preserve the existing XPConnect order. I doubt
     // it would hurt to do this after the JS holders.
@@ -1398,7 +1398,7 @@ bool CycleCollectedJSRuntime::TraceNativeGrayRoots(
 
 bool CycleCollectedJSRuntime::TraceJSHolders(JSTracer* aTracer,
                                              JSHolderMap::Iter& aIter,
-                                             JS::SliceBudget& aBudget) {
+                                             js::SliceBudget& aBudget) {
   bool checkSingleZoneHolders = ShouldCheckSingleZoneHolders();
 
   while (!aIter.Done() && !aBudget.isOverBudget()) {

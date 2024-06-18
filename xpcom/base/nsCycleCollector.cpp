@@ -198,8 +198,6 @@
 
 using namespace mozilla;
 
-using JS::SliceBudget;
-
 struct NurseryPurpleBufferEntry {
   void* mPtr;
   nsCycleCollectionParticipant* mParticipant;
@@ -1051,7 +1049,7 @@ struct nsPurpleBuffer {
   // (4) If aRemoveChildlessNodes is true, then any nodes in the purple buffer
   //     that will have no children in the cycle collector graph will also be
   //     removed. CanSkip() may be run on these children.
-  void RemoveSkippable(nsCycleCollector* aCollector, SliceBudget& aBudget,
+  void RemoveSkippable(nsCycleCollector* aCollector, js::SliceBudget& aBudget,
                        bool aRemoveChildlessNodes, bool aAsyncSnowWhiteFreeing,
                        CC_ForgetSkippableCallback aCb);
 
@@ -1121,6 +1119,8 @@ enum ccIsManual { CCIsNotManual = false, CCIsManual = true };
 // Top level structure for the cycle collector.
 ////////////////////////////////////////////////////////////////////////
 
+using js::SliceBudget;
+
 class JSPurpleBuffer;
 
 class nsCycleCollector : public nsIMemoryReporter {
@@ -1186,10 +1186,10 @@ class nsCycleCollector : public nsIMemoryReporter {
                nsCycleCollectingAutoRefCnt* aRefCnt);
   void SuspectNurseryEntries();
   uint32_t SuspectedCount();
-  void ForgetSkippable(SliceBudget& aBudget, bool aRemoveChildlessNodes,
+  void ForgetSkippable(js::SliceBudget& aBudget, bool aRemoveChildlessNodes,
                        bool aAsyncSnowWhiteFreeing);
   bool FreeSnowWhite(bool aUntilNoSWInPurpleBuffer);
-  bool FreeSnowWhiteWithBudget(SliceBudget& aBudget);
+  bool FreeSnowWhiteWithBudget(js::SliceBudget& aBudget);
 
   // This method assumes its argument is already canonicalized.
   void RemoveObjectFromGraph(void* aPtr);
@@ -2482,7 +2482,7 @@ class SnowWhiteKiller : public TraceCallbacks {
       ObjectsVector;
 
  public:
-  SnowWhiteKiller(nsCycleCollector* aCollector, SliceBudget* aBudget)
+  SnowWhiteKiller(nsCycleCollector* aCollector, js::SliceBudget* aBudget)
       : mCollector(aCollector),
         mObjects(kSegmentSize),
         mBudget(aBudget),
@@ -2590,13 +2590,13 @@ class SnowWhiteKiller : public TraceCallbacks {
  private:
   RefPtr<nsCycleCollector> mCollector;
   ObjectsVector mObjects;
-  SliceBudget* mBudget;
+  js::SliceBudget* mBudget;
   bool mSawSnowWhiteObjects;
 };
 
 class RemoveSkippableVisitor : public SnowWhiteKiller {
  public:
-  RemoveSkippableVisitor(nsCycleCollector* aCollector, SliceBudget& aBudget,
+  RemoveSkippableVisitor(nsCycleCollector* aCollector, js::SliceBudget& aBudget,
                          bool aRemoveChildlessNodes,
                          bool aAsyncSnowWhiteFreeing,
                          CC_ForgetSkippableCallback aCb)
@@ -2649,7 +2649,7 @@ class RemoveSkippableVisitor : public SnowWhiteKiller {
   }
 
  private:
-  SliceBudget& mBudget;
+  js::SliceBudget& mBudget;
   bool mRemoveChildlessNodes;
   bool mAsyncSnowWhiteFreeing;
   bool mDispatchedDeferredDeletion;
@@ -2657,7 +2657,7 @@ class RemoveSkippableVisitor : public SnowWhiteKiller {
 };
 
 void nsPurpleBuffer::RemoveSkippable(nsCycleCollector* aCollector,
-                                     SliceBudget& aBudget,
+                                     js::SliceBudget& aBudget,
                                      bool aRemoveChildlessNodes,
                                      bool aAsyncSnowWhiteFreeing,
                                      CC_ForgetSkippableCallback aCb) {
@@ -2690,7 +2690,7 @@ bool nsCycleCollector::FreeSnowWhite(bool aUntilNoSWInPurpleBuffer) {
   return hadSnowWhiteObjects;
 }
 
-bool nsCycleCollector::FreeSnowWhiteWithBudget(SliceBudget& aBudget) {
+bool nsCycleCollector::FreeSnowWhiteWithBudget(js::SliceBudget& aBudget) {
   CheckThreadSafety();
 
   if (mFreeingSnowWhite) {
@@ -2707,7 +2707,7 @@ bool nsCycleCollector::FreeSnowWhiteWithBudget(SliceBudget& aBudget) {
   ;
 }
 
-void nsCycleCollector::ForgetSkippable(SliceBudget& aBudget,
+void nsCycleCollector::ForgetSkippable(js::SliceBudget& aBudget,
                                        bool aRemoveChildlessNodes,
                                        bool aAsyncSnowWhiteFreeing) {
   CheckThreadSafety();
@@ -3950,7 +3950,7 @@ void nsCycleCollector_setForgetSkippableCallback(
   data->mCollector->SetForgetSkippableCallback(aCB);
 }
 
-void nsCycleCollector_forgetSkippable(SliceBudget& aBudget,
+void nsCycleCollector_forgetSkippable(js::SliceBudget& aBudget,
                                       bool aRemoveChildlessNodes,
                                       bool aAsyncSnowWhiteFreeing) {
   CollectorData* data = sCollectorData.get();
@@ -3984,7 +3984,7 @@ bool nsCycleCollector_doDeferredDeletion() {
   return data->mCollector->FreeSnowWhite(false);
 }
 
-bool nsCycleCollector_doDeferredDeletionWithBudget(SliceBudget& aBudget) {
+bool nsCycleCollector_doDeferredDeletionWithBudget(js::SliceBudget& aBudget) {
   CollectorData* data = sCollectorData.get();
 
   // We should have started the cycle collector by now.

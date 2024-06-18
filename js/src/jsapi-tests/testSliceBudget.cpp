@@ -9,9 +9,6 @@
 #include "jsapi-tests/tests.h"
 
 using namespace js;
-using JS::SliceBudget;
-using JS::TimeBudget;
-using JS::WorkBudget;
 
 BEGIN_TEST(testSliceBudgetUnlimited) {
   SliceBudget budget = SliceBudget::unlimited();
