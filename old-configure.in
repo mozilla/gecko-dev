@@ -146,10 +146,6 @@ case "$target" in
 esac
 
 if test -n "$_WIN32_MSVC"; then
-    SKIP_PATH_CHECKS=1
-    SKIP_COMPILER_CHECKS=1
-    SKIP_LIBRARY_CHECKS=1
-
     # Since we're skipping compiler and library checks, hard-code
     # some facts here.
     AC_DEFINE(HAVE_IO_H)
@@ -440,14 +436,8 @@ if test -z "$MOZ_OPTIMIZE_FLAGS"; then
 fi
 
 
-if test -z "$COMPILE_ENVIRONMENT"; then
-    SKIP_COMPILER_CHECKS=1
-    SKIP_LIBRARY_CHECKS=1
-else
+if test -n "$COMPILE_ENVIRONMENT"; then
     MOZ_COMPILER_OPTS
-fi # COMPILE_ENVIRONMENT
-
-if test -z "$SKIP_COMPILER_CHECKS"; then
 
 dnl ========================================================
 dnl Put your C++ language/feature checks below
@@ -483,7 +473,7 @@ fi
 dnl End of C++ language/feature checks
 AC_LANG_C
 
-fi # ! SKIP_COMPILER_CHECKS
+fi # COMPILE_ENVIRONMENT
 
 TARGET_XPCOM_ABI=
 if test -n "${TARGET_CPU}" -a -n "${TARGET_COMPILER_ABI}"; then
