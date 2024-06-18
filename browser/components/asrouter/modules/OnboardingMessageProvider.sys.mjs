@@ -1126,8 +1126,15 @@ const BASE_MESSAGES = () => [
     frequency: {
       lifetime: 2,
     },
-    targeting:
-      "source == 'startup' && !isMajorUpgrade && !activeNotifications && !isDefaultBrowser && !willShowDefaultPrompt && 'browser.shell.checkDefaultBrowser'|preferenceValue && (currentDate|date - profileAgeCreated|date) / 86400000 >= 28 && userPrefs.cfrFeatures == true",
+    targeting: `source == 'startup'
+    && !isMajorUpgrade
+    && !activeNotifications
+    && !isDefaultBrowser
+    && !willShowDefaultPrompt
+    && 'browser.shell.checkDefaultBrowser'|preferenceValue
+    && (currentDate|date - profileAgeCreated|date) / 86400000 >= 28
+    && previousSessionEnd
+    && userPrefs.cfrFeatures == true`,
     trigger: {
       id: "defaultBrowserCheck",
     },
@@ -1202,8 +1209,16 @@ const BASE_MESSAGES = () => [
     frequency: {
       lifetime: 1,
     },
-    targeting:
-      "source == 'startup' && !isMajorUpgrade && !activeNotifications && !isDefaultBrowser && !willShowDefaultPrompt && 'browser.shell.checkDefaultBrowser'|preferenceValue && (currentDate|date - profileAgeCreated|date) / 86400000 <= 28 && (currentDate|date - profileAgeCreated|date) / 86400000 >= 7 && userPrefs.cfrFeatures == true",
+    targeting: `source == 'startup'
+    && !isMajorUpgrade
+    && !activeNotifications
+    && !isDefaultBrowser
+    && !willShowDefaultPrompt
+    && 'browser.shell.checkDefaultBrowser'|preferenceValue
+    && (currentDate|date - profileAgeCreated|date) / 86400000 <= 28
+    && (currentDate|date - profileAgeCreated|date) / 86400000 >= 7
+    && previousSessionEnd
+    && userPrefs.cfrFeatures == true`,
     trigger: {
       id: "defaultBrowserCheck",
     },

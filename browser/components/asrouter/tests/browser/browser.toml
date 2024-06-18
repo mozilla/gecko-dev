@@ -49,3 +49,5 @@ skip-if = [
 
 ["browser_trigger_listeners.js"]
 https_first_disabled = true
+
+["browser_spotlight_default_messages.js"]
