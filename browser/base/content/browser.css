@@ -61,48 +61,6 @@
   display: none;
 }
 
-#PopupAutoComplete > richlistbox > richlistitem[originaltype="loginsFooter"] {
-  justify-content: center;
-  color: FieldText;
-  min-height: 2.6666em;
-  border-top: 1px solid rgba(38,38,38,.15);
-  background-color: hsla(0,0%,80%,.35); /* match arrowpanel-dimmed */;
-}
-
-#PopupAutoComplete > richlistbox > richlistitem[originaltype="loginsFooter"]:hover,
-#PopupAutoComplete > richlistbox > richlistitem[originaltype="loginsFooter"][selected] {
-  background-color: hsla(0,0%,80%,.5); /* match arrowpanel-dimmed-further */
-}
-
-/* Define the minimum width based on the style of result rows.
-   The order of the min-width rules below must be in increasing order. */
-#PopupAutoComplete:is([resultstyles~="loginsFooter"], [resultstyles~="insecureWarning"])::part(content) {
-  min-width: 17em;
-}
-
-#PopupAutoComplete:is([resultstyles~="importableLogins"], [resultstyles~="generatedPassword"])::part(content) {
-  min-width: 22em;
-}
-
-#PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"] {
-  height: auto;
-}
-
-#PopupAutoComplete > richlistbox > richlistitem[originaltype="loginWithOrigin"] > .ac-site-icon,
-#PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"] > .ac-site-icon {
-  margin-inline-start: 0;
-  display: initial;
-}
-
-#PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"] > .ac-title > .ac-text-overflow-container > .ac-title-text {
-  text-overflow: initial;
-  white-space: initial;
-}
-
-#PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"] > .ac-title > label {
-  margin-inline-start: 0;
-}
-
 /* ::::: Unified Back-/Forward Button ::::: */
 .unified-nav-current {
   font-weight: bold;

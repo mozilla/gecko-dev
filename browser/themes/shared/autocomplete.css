@@ -10,6 +10,16 @@
   padding: 0;
 }
 
+/* Define the minimum width based on the style of result rows.
+   The order of the min-width rules below must be in increasing order. */
+#PopupAutoComplete:is([resultstyles~="loginsFooter"], [resultstyles~="insecureWarning"])::part(content) {
+  min-width: 17em;
+}
+
+#PopupAutoComplete:is([resultstyles~="importableLogins"], [resultstyles~="generatedPassword"])::part(content) {
+  min-width: 22em;
+}
+
 #PopupAutoComplete > richlistbox > richlistitem {
   min-height: 20px;
   border: 0;
@@ -55,6 +65,38 @@
   &[originaltype="importableLearnMore"] {
     padding-bottom: 2px;
     padding-inline-start: 21px;
+  }
+
+  &[originaltype="loginsFooter"] {
+    justify-content: center;
+    color: FieldText;
+    min-height: 2.6666em;
+    border-top: 1px solid rgba(38,38,38,.15);
+    background-color: hsla(0,0%,80%,.35); /* match arrowpanel-dimmed */
+
+    &:hover,
+    &[selected] {
+      background-color: hsla(0,0%,80%,.5); /* match arrowpanel-dimmed-further */
+    }
+  }
+
+  &[originaltype="insecureWarning"] {
+    height: auto;
+
+    & > .ac-title > .ac-text-overflow-container > .ac-title-text {
+      text-overflow: initial;
+      white-space: initial;
+    }
+
+    & > .ac-title > label {
+      margin-inline-start: 0;
+    }
+  }
+
+  &[originaltype="loginWithOrigin"] > .ac-site-icon,
+  &[originaltype="insecureWarning"] > .ac-site-icon {
+    margin-inline-start: 0;
+    display: initial;
   }
 
   &[originaltype="login"] > .ac-site-icon,
