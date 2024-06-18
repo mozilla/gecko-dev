@@ -374,6 +374,7 @@ rtc_library("libaom_av1_encoder_factory") {
     ":video_encoder_interface",
     "../../api/units:time_delta",
     "../../rtc_base:logging",
+    "../../rtc_base:stringutils",
     "//third_party/libaom",
   ]
 
