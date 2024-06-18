@@ -977,7 +977,7 @@ class nsBlockFrame : public nsContainerFrame {
 
   // Get the pushed floats list, or if there is not currently one,
   // make a new empty one.
-  nsFrameList* EnsurePushedFloats();
+  nsFrameList* EnsurePushedFloats() MOZ_NONNULL_RETURN;
 
   // Get the pushed float list and remove the property from this frame.
   //
