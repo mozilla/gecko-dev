@@ -4,6 +4,8 @@ support-files = [
   "../../../../dom/security/test/csp/dummy.pdf",
 ]
 
+["browser_browserGlue_client_association_ping.js"]
+
 ["browser_browserGlue_os_auth.js"]
 skip-if = ["os == 'linux'"]
 

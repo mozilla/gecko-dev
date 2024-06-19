@@ -21,3 +21,10 @@ fx-accounts:
   metadata:
     ping_schedule:
       - baseline
+  reasons:
+    active: |
+      The baseline ping is being sent on active.
+    dirty_startup: |
+      The baseline ping is being sent on dirty startup.
+    inactive: |
+      The baseline ping is being sent on inactive.
