@@ -1391,6 +1391,7 @@ export var UrlbarTestUtils = {
       "popupshown"
     );
     let button = win.document.getElementById("urlbar-searchmode-switcher");
+    this.Assert.ok(lazy.BrowserTestUtils.isVisible(button));
     await this.EventUtils.promiseElementReadyForUserInput(button, win);
     this.EventUtils.synthesizeMouseAtCenter(button, {}, win);
     return promiseMenuOpen;

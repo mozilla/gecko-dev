@@ -3,7 +3,7 @@
 
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.searchModeSwitcher.featureGate", true]],
+    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
   });
 });
 
