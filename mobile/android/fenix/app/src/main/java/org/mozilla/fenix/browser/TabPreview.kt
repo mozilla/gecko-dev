@@ -22,7 +22,6 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.thumbnails.loader.ThumbnailLoader
 import mozilla.components.concept.base.images.ImageLoadRequest
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.BottomToolbarContainerView
 import org.mozilla.fenix.components.toolbar.navbar.BrowserNavBar
@@ -61,7 +60,7 @@ class TabPreview @JvmOverloads constructor(
             )
         }
 
-        val isNavBarEnabled = IncompleteRedesignToolbarFeature(context.settings()).isEnabled
+        val isNavBarEnabled = context.settings().navigationToolbarEnabled
         binding.tabButton.isVisible = !isNavBarEnabled
         binding.menuButton.isVisible = !isNavBarEnabled
 

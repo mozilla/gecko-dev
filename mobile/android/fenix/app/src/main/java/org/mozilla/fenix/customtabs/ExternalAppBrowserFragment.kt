@@ -33,7 +33,6 @@ import org.mozilla.fenix.browser.BaseBrowserFragment
 import org.mozilla.fenix.browser.ContextMenuSnackbarDelegate
 import org.mozilla.fenix.browser.CustomTabContextMenuCandidate
 import org.mozilla.fenix.components.menu.MenuAccessPoint
-import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.CustomTabNavBar
@@ -70,7 +69,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
             requireComponents.core.webAppManifestStorage.getManifestCache(url)
         }
 
-        val isNavBarEnabled = IncompleteRedesignToolbarFeature(requireContext().settings()).isEnabled
+        val isNavBarEnabled = requireContext().settings().navigationToolbarEnabled
 
         // Updating the contents of the bottomToolbarContainer with CustomTabNavBar. The container gets initialized
         // during the super.initializeUI call with BrowserNavBar.

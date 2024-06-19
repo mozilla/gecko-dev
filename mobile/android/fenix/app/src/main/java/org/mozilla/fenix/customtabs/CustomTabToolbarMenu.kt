@@ -22,7 +22,6 @@ import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.store.BrowserStore
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getStringWithArgSafe
@@ -56,7 +55,7 @@ class CustomTabToolbarMenu(
     internal val session: CustomTabSessionState? get() = sessionId?.let { store.state.findCustomTab(it) }
 
     private val appName = context.getString(R.string.app_name)
-    private val isNavBarEnabled = IncompleteRedesignToolbarFeature(context.settings()).isEnabled
+    private val isNavBarEnabled = context.settings().navigationToolbarEnabled
     private val shouldShowMenuToolbar = !isNavBarEnabled
 
     override val menuToolbar by lazy {
