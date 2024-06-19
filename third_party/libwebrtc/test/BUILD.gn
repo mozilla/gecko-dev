@@ -624,6 +624,7 @@ if (rtc_include_tests) {
         "../rtc_base:threading",
         "../system_wrappers:field_trial",
         "../system_wrappers:metrics",
+        "//third_party/perfetto/include/perfetto/tracing",
       ]
       absl_deps = [
         "//third_party/abseil-cpp/absl/flags:flag",

@@ -404,10 +404,6 @@ if (build_with_chromium && use_perfetto_client_library) {
   rtc_use_perfetto = true
 }
 
-if (rtc_use_perfetto) {
-  rtc_common_configs += [ "//third_party/perfetto/gn:public_config" ]
-}
-
 # Global public configuration that should be applied to all WebRTC targets. You
 # normally shouldn't need to include this in your target as it's automatically
 # included when using the rtc_* templates. It set the defines, include paths and

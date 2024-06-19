@@ -5,14 +5,14 @@ Subject: Bug 1714577 - Part 6 - Copy WebRTC's trace_event.h to Gecko,
 
 Differential Revision: https://phabricator.services.mozilla.com/D116843
 ---
- rtc_base/trace_event.h | 807 +----------------------------------------
- 1 file changed, 3 insertions(+), 804 deletions(-)
+ rtc_base/trace_event.h | 825 +----------------------------------------
+ 1 file changed, 3 insertions(+), 822 deletions(-)
 
 diff --git a/rtc_base/trace_event.h b/rtc_base/trace_event.h
-index ab628022ef..b34df0c93f 100644
+index 4a2d234a67..b34df0c93f 100644
 --- a/rtc_base/trace_event.h
 +++ b/rtc_base/trace_event.h
-@@ -1,804 +1,3 @@
+@@ -1,822 +1,3 @@
 -/*
 - *  Copyright (c) 2024 The WebRTC project authors. All Rights Reserved.
 - *
@@ -32,9 +32,16 @@ index ab628022ef..b34df0c93f 100644
 -#define RTC_TRACE_EVENTS_ENABLED 1
 -#endif
 -
+-// IWYU pragma: begin_exports
 -#if defined(RTC_USE_PERFETTO)
+-#include "rtc_base/trace_categories.h"
+-#endif
+-#include "third_party/perfetto/include/perfetto/tracing/event_context.h"
+-#include "third_party/perfetto/include/perfetto/tracing/track.h"
+-#include "third_party/perfetto/include/perfetto/tracing/track_event_args.h"
+-// IWYU pragma: end_exports
 -
--#include "rtc_base/trace_categories.h"  // IWYU pragma: export
+-#if defined(RTC_USE_PERFETTO)
 -
 -// TODO(webrtc:15917): Replace these events.
 -#define TRACE_EVENT_ASYNC_STEP0(category_group, name, id, step) \
@@ -49,6 +56,21 @@ index ab628022ef..b34df0c93f 100644
 -#include <string>
 -
 -#include "rtc_base/event_tracer.h"
+-#include "third_party/perfetto/include/perfetto/tracing/event_context.h"
+-#include "third_party/perfetto/include/perfetto/tracing/track.h"
+-#include "third_party/perfetto/include/perfetto/tracing/track_event_args.h"
+-
+-#define RTC_NOOP() \
+-  do {             \
+-  } while (0)
+-
+-// TODO(b/42226290): Add implementation for these events with Perfetto.
+-#define TRACE_EVENT_BEGIN(category, name, ...) RTC_NOOP();
+-#define TRACE_EVENT_END(category, ...) RTC_NOOP();
+-#define TRACE_EVENT(category, name, ...) RTC_NOOP();
+-#define TRACE_EVENT_INSTANT(category, name, ...) RTC_NOOP();
+-#define TRACE_EVENT_CATEGORY_ENABLED(category) RTC_NOOP();
+-#define TRACE_COUNTER(category, track, ...) RTC_NOOP();
 -
 -// Type values for identifying types in the TraceValue union.
 -#define TRACE_VALUE_TYPE_BOOL (static_cast<unsigned char>(1))
@@ -745,10 +767,6 @@ index ab628022ef..b34df0c93f 100644
 -////////////////////////////////////////////////////////////////////////////////
 -// This section defines no-op alternatives to the tracing macros when
 -// RTC_DISABLE_TRACE_EVENTS is defined.
--
--#define RTC_NOOP() \
--  do {             \
--  } while (0)
 -
 -#define TRACE_DISABLED_BY_DEFAULT(name) "disabled-by-default-" name
 -

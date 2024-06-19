@@ -50,8 +50,7 @@ specific_include_rules = {
     "+p2p/base/stun.h",
   ],
   ".*test_main_lib\.cc": [
-    "+perfetto/tracing",
-    "+protos/perfetto/config",
+    "+third_party/perfetto",
   ],
   ".*test_main\.cc": [
     "+absl/debugging/failure_signal_handler.h",

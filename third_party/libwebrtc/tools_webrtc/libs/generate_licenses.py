@@ -79,6 +79,7 @@ LIB_TO_LICENSES_DICT = {
     'kotlin_stdlib': ['third_party/kotlin_stdlib/LICENSE'],
     'jni_zero': ['third_party/jni_zero/LICENSE'],
     'protobuf-javascript': ['third_party/protobuf-javascript/LICENSE'],
+    'perfetto': ['third_party/perfetto/LICENSE'],
     # TODO(bugs.webrtc.org/1110): Remove this hack. This is not a lib.
     # For some reason it is listed as so in _get_third_party_libraries.
     'android_deps': [],

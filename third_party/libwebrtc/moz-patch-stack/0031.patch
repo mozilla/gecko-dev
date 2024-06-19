@@ -118,7 +118,7 @@ index 5de968946f..5796d30b7b 100644
    # TODO(https://bugs.webrtc.org/14437):  Remove this section if general
    # Chromium fix resolves the problem.
 diff --git a/BUILD.gn b/BUILD.gn
-index eb9ad83547..5762b1817b 100644
+index f090f16120..7533507619 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -33,7 +33,7 @@ if (is_android) {
@@ -141,7 +141,7 @@ index eb9ad83547..5762b1817b 100644
    if (!rtc_builtin_ssl_root_certificates) {
      defines += [ "WEBRTC_EXCLUDE_BUILT_IN_SSL_ROOT_CERTS" ]
    }
-@@ -510,9 +514,11 @@ config("common_config") {
+@@ -513,9 +517,11 @@ config("common_config") {
    }
  }
  
@@ -153,7 +153,7 @@ index eb9ad83547..5762b1817b 100644
  
  if (!build_with_chromium) {
    # Target to build all the WebRTC production code.
-@@ -563,6 +569,34 @@ if (!build_with_chromium) {
+@@ -566,6 +572,34 @@ if (!build_with_chromium) {
        "sdk",
        "video",
      ]
@@ -188,7 +188,7 @@ index eb9ad83547..5762b1817b 100644
  
      if (rtc_include_builtin_audio_codecs) {
        deps += [
-@@ -575,6 +609,16 @@ if (!build_with_chromium) {
+@@ -578,6 +612,16 @@ if (!build_with_chromium) {
        deps += [
          "api/video:video_frame",
          "api/video:video_rtp_headers",
@@ -1050,7 +1050,7 @@ index b8345841fa..7289dbe0a8 100644
          "/config/external/nspr",
          "/nsprpub/lib/ds",
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index fd94cff373..45ed15e39a 100644
+index db328d51c6..27bac96ba1 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -334,6 +334,7 @@ rtc_library("sample_counter") {
@@ -1231,7 +1231,7 @@ index 77f5139a2f..486b37590c 100644
      deps += [
        "..:logging",
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index aeb51465dc..b9d8358d79 100644
+index 180297f5c2..9580174f3f 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
 @@ -243,6 +243,7 @@ rtc_library("audio_test_common") {
@@ -1273,7 +1273,7 @@ index aeb51465dc..b9d8358d79 100644
      sources += [ "testsupport/jpeg_frame_writer.cc" ]
    } else {
      sources += [ "testsupport/jpeg_frame_writer_ios.cc" ]
-@@ -1319,6 +1327,7 @@ if (!build_with_chromium) {
+@@ -1320,6 +1328,7 @@ if (!build_with_chromium) {
    }
  }
  
@@ -1281,7 +1281,7 @@ index aeb51465dc..b9d8358d79 100644
  if (!build_with_chromium && is_android) {
    rtc_android_library("native_test_java") {
      testonly = true
-@@ -1332,6 +1341,7 @@ if (!build_with_chromium && is_android) {
+@@ -1333,6 +1342,7 @@ if (!build_with_chromium && is_android) {
      ]
    }
  }
@@ -1312,7 +1312,7 @@ index c6c67301b5..508432e50e 100644
      "../api/adaptation:resource_adaptation_api",
      "../api/environment",
 diff --git a/webrtc.gni b/webrtc.gni
-index 497ca49968..2d3323d76e 100644
+index 857f6e469b..40f834e152 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -35,6 +35,11 @@ if (is_mac) {
@@ -1412,7 +1412,7 @@ index 497ca49968..2d3323d76e 100644
  # Make it possible to provide custom locations for some libraries (move these
  # up into declare_args should we need to actually use them for the GN build).
  rtc_libvpx_dir = "//third_party/libvpx"
-@@ -1166,7 +1176,7 @@ if (is_mac || is_ios) {
+@@ -1162,7 +1172,7 @@ if (is_mac || is_ios) {
    }
  }
  

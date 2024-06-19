@@ -210,6 +210,7 @@ rtc_library("event_tracer") {
     ":platform_thread_types",
     ":rtc_event",
     ":timeutils",
+    "..:tracing",
     "../api:sequence_checker",
     "synchronization:mutex",
     "system:rtc_export",
@@ -220,7 +221,6 @@ rtc_library("event_tracer") {
       "trace_categories.cc",
       "trace_categories.h",
     ]
-    deps += [ "..:tracing" ]
   }
 }
 

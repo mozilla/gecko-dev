@@ -13,9 +13,12 @@ specific_include_rules = {
     "+testing/base/public/gunit.h"
   ],
   "trace_categories\.h": [
-    "+perfetto",
+    "+third_party/perfetto",
   ],
   "event_tracer\.cc": [
-    "+perfetto",
+    "+third_party/perfetto",
+  ],
+  "trace_event\.h": [
+    "+third_party/perfetto",
   ]
 }
