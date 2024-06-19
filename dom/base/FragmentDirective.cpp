@@ -19,6 +19,7 @@
 #include "nsComputedDOMStyle.h"
 #include "nsContentUtils.h"
 #include "nsDOMAttributeMap.h"
+#include "nsFind.h"
 #include "nsGkAtoms.h"
 #include "nsICSSDeclaration.h"
 #include "nsIFrame.h"
@@ -29,6 +30,10 @@
 
 namespace mozilla::dom {
 static LazyLogModule sFragmentDirectiveLog("FragmentDirective");
+
+#define DBG(msg, ...)                             \
+  MOZ_LOG(sFragmentDirectiveLog, LogLevel::Debug, \
+          ("%s(): " msg, __FUNCTION__, ##__VA_ARGS__))
 
 /** Converts a `TextDirective` into a percent-encoded string. */
 nsCString ToString(const TextDirective& aTextDirective) {
@@ -421,9 +426,7 @@ RangeBoundary MoveRangeBoundaryOneWord(const RangeBoundary& aRangeBoundary,
 
 RefPtr<nsRange> FragmentDirective::FindRangeForTextDirective(
     const TextDirective& aTextDirective) {
-  MOZ_LOG(sFragmentDirectiveLog, LogLevel::Info,
-          ("FragmentDirective::%s(): Find range for text directive '%s'.",
-           __FUNCTION__, ToString(aTextDirective).Data()));
+  DBG("Find range for text directive '%s'.", ToString(aTextDirective).Data());
   // 1. Let searchRange be a range with start (document, 0) and end (document,
   // document’s length)
   ErrorResult rv;
@@ -445,8 +448,14 @@ RefPtr<nsRange> FragmentDirective::FindRangeForTextDirective(
           FindStringInRange(searchRange, aTextDirective.prefix, true, false);
       // 2.2.2. If prefixMatch is null, return null.
       if (!prefixMatch) {
+        DBG("Did not find prefix '%s'. The text directive does not exist "
+            "in the document.",
+            NS_ConvertUTF16toUTF8(aTextDirective.prefix).Data());
         return nullptr;
       }
+      DBG("Did find prefix '%s'.",
+          NS_ConvertUTF16toUTF8(aTextDirective.prefix).Data());
+
       // 2.2.3. Set searchRange’s start to the first boundary point after
       // prefixMatch’s start
       const RangeBoundary boundaryPoint = MoveRangeBoundaryOneWord(
@@ -492,14 +501,21 @@ RefPtr<nsRange> FragmentDirective::FindRangeForTextDirective(
                                          false, mustEndAtWordBoundary);
       // 2.2.10. If potentialMatch is null, return null.
       if (!potentialMatch) {
+        DBG("Did not find start '%s'. The text directive does not exist "
+            "in the document.",
+            NS_ConvertUTF16toUTF8(aTextDirective.start).Data());
         return nullptr;
       }
+      DBG("Did find start '%s'.",
+          NS_ConvertUTF16toUTF8(aTextDirective.start).Data());
       // 2.2.11. If potentialMatch’s start is not matchRange’s start, then
       // continue.
       // (In this case, we found a prefix but it was followed by something other
       // than a matching text so we’ll continue searching for the next instance
       // of prefix.)
       if (potentialMatch->StartRef() != matchRange->StartRef()) {
+        DBG("The prefix is not directly followed by the start element. "
+            "Discarding this attempt.");
         continue;
       }
     }
@@ -516,6 +532,9 @@ RefPtr<nsRange> FragmentDirective::FindRangeForTextDirective(
                                          true, mustEndAtWordBoundary);
       // 2.3.3. If potentialMatch is null, return null.
       if (!potentialMatch) {
+        DBG("Did not find start '%s'. The text directive does not exist "
+            "in the document.",
+            NS_ConvertUTF16toUTF8(aTextDirective.start).Data());
         return nullptr;
       }
       // 2.3.4. Set searchRange’s start to the first boundary point after
@@ -555,6 +574,9 @@ RefPtr<nsRange> FragmentDirective::FindRangeForTextDirective(
                               mustEndAtWordBoundary);
         // 2.5.1.3. If endMatch is null then return null.
         if (!endMatch) {
+          DBG("Did not find end '%s'. The text directive does not exist "
+              "in the document.",
+              NS_ConvertUTF16toUTF8(aTextDirective.end).Data());
           return nullptr;
         }
         // 2.5.1.4. Set potentialMatch’s end to endMatch’s end.
@@ -567,6 +589,7 @@ RefPtr<nsRange> FragmentDirective::FindRangeForTextDirective(
 
       // 2.5.3. If parsedValues’s suffix is null, return potentialMatch.
       if (aTextDirective.suffix.IsEmpty()) {
+        DBG("Did find a match.");
         return potentialMatch;
       }
       // 2.5.4. Let suffixRange be a range with start equal to potentialMatch’s
@@ -590,6 +613,9 @@ RefPtr<nsRange> FragmentDirective::FindRangeForTextDirective(
       // (If the suffix doesn't appear in the remaining text of the document,
       // there's no possible way to make a match.)
       if (!suffixMatch) {
+        DBG("Did not find suffix '%s'. The text directive does not exist "
+            "in the document.",
+            NS_ConvertUTF16toUTF8(aTextDirective.suffix).Data());
         return nullptr;
       }
       // 2.5.8. If suffixMatch's start is suffixRange's start, return
@@ -597,6 +623,7 @@ RefPtr<nsRange> FragmentDirective::FindRangeForTextDirective(
       if (suffixMatch->GetStartContainer() ==
               suffixRange->GetStartContainer() &&
           suffixMatch->StartOffset() == suffixRange->StartOffset()) {
+        DBG("Did find a match.");
         return potentialMatch;
       }
       // 2.5.9. If parsedValue's end item is null then break;
@@ -622,11 +649,29 @@ RefPtr<nsRange> FragmentDirective::FindRangeForTextDirective(
       // matches in step 9 of the above loop. If we couldn’t find a valid
       // rangeEnd+suffix pair anywhere in the doc then there’s no possible way
       // to make a match.)
-      // XXX(:jjaschke): should this really assert?
-      MOZ_ASSERT(!aTextDirective.end.IsEmpty());
+      // ----
+      // XXX(:jjaschke): Not too sure about this. If a text directive is only
+      // defined by a (prefix +) start element, and the start element happens to
+      // be at the end of the document, `rangeEndSearchRange` could be
+      // collapsed. Therefore, the loop in section 2.5 does not run. Also,
+      // if there would be either an `end` and/or a `suffix`, this would assert
+      // instead of returning `nullptr`, indicating that there's no match.
+      // Instead, the following would make the algorithm more safe:
+      // if there is no end or suffix, the potential match is actually a match,
+      // so return it. Otherwise, the text directive can't be in the document,
+      // therefore return nullptr.
+      if (aTextDirective.end.IsEmpty() && aTextDirective.suffix.IsEmpty()) {
+        DBG("rangeEndSearchRange was collapsed, no end or suffix "
+            "present. Returning a match");
+        return potentialMatch;
+      }
+      DBG("rangeEndSearchRange was collapsed, there is an end or "
+          "suffix. There can't be a match.");
+      return nullptr;
     }
   }
   // 3. Return null.
+  DBG("Did not find a match.");
   return nullptr;
 }
 
@@ -792,111 +837,29 @@ RefPtr<nsRange> FragmentDirective::FindStringInRange(nsRange* aSearchRange,
                                                      bool aWordStartBounded,
                                                      bool aWordEndBounded) {
   MOZ_ASSERT(aSearchRange);
-  RefPtr<nsRange> searchRange = aSearchRange->CloneRange();
-  // 1. While searchRange is not collapsed
-  while (searchRange && !searchRange->Collapsed()) {
-    // 1.1. Let curNode be searchRange’s start node.
-    RefPtr<nsINode> curNode = searchRange->GetStartContainer();
-
-    // 1.2. If curNode is part of a non-searchable subtree:
-    if (NodeIsPartOfNonSearchableSubTree(*curNode)) {
-      // 1.2.1. Set searchRange’s start node to the next node, in
-      // shadow-including tree order, that isn’t a shadow-including descendant
-      // of curNode.
-      RefPtr<nsINode> next = curNode;
-      while ((next = next->GetNextNode())) {
-        if (!next->IsShadowIncludingInclusiveDescendantOf(curNode)) {
-          break;
-        }
-      }
-      if (!next) {
-        return nullptr;
-      }
-      // 1.2.2. Set `searchRange`s `start offset` to 0
-      searchRange->SetStart(next, 0);
-      // 1.2.3. continue.
-      continue;
-    }
-    // 1.3. If curNode is not a visible TextNode:
-    if (!NodeIsVisibleTextNode(*curNode)) {
-      // 1.3.1. Set searchRange’s start node to the next node, in
-      // shadow-including tree order, that is not a doctype.
-      RefPtr<nsINode> next = curNode;
-      while ((next = next->GetNextNode())) {
-        if (next->NodeType() != Node_Binding::DOCUMENT_TYPE_NODE) {
-          break;
-        }
-      }
-      if (!next) {
-        return nullptr;
-      }
-      // 1.3.2. Set searchRange’s start offset to 0.
-      searchRange->SetStart(next, 0);
-      // 1.3.3. continue.
-      continue;
-    }
-    // 1.4. Let blockAncestor be the nearest block ancestor of `curNode`
-    RefPtr<nsINode> blockAncestor = GetBlockAncestorForNode(curNode);
-
-    // 1.5. Let textNodeList be a list of Text nodes, initially empty.
-    nsTArray<RefPtr<Text>> textNodeList;
-    // 1.6. While curNode is a shadow-including descendant of blockAncestor and
-    // the position of the boundary point (curNode,0) is not after searchRange's
-    // end:
-    while (curNode &&
-           curNode->IsShadowIncludingInclusiveDescendantOf(blockAncestor)) {
-      Maybe<int32_t> comp = nsContentUtils::ComparePoints(
-          curNode, 0, searchRange->GetEndContainer(), searchRange->EndOffset());
-      if (comp) {
-        if (*comp >= 0) {
-          break;
-        }
-      } else {
-        // This means that the compared nodes are disconnected.
-        return nullptr;
-      }
-      // 1.6.1. If curNode has block-level display, then break.
-      if (NodeHasBlockLevelDisplay(*curNode)) {
-        break;
-      }
-      // 1.6.2. If curNode is search invisible:
-      if (NodeIsSearchInvisible(*curNode)) {
-        // 1.6.2.1. Set curNode to the next node, in shadow-including tree
-        // order, that isn't a shadow-including descendant of curNode.
-        curNode = curNode->GetNextNode();
-        // 1.6.2.2. Continue.
-        continue;
-      }
-      // 1.6.3. If curNode is a visible text node then append it to
-      // textNodeList.
-      if (NodeIsVisibleTextNode(*curNode)) {
-        textNodeList.AppendElement(curNode->AsText());
-      }
-      // 1.6.4. Set curNode to the next node in shadow-including
-      // tree order.
-      curNode = curNode->GetNextNode();
-    }
-    // 1.7. Run the find a range from a node list steps given
-    // query, searchRange, textNodeList, wordStartBounded, wordEndBounded as
-    // input. If the resulting Range is not null, then  return it.
-    if (RefPtr<nsRange> range =
-            FindRangeFromNodeList(searchRange, aQuery, textNodeList,
-                                  aWordStartBounded, aWordEndBounded)) {
-      return range;
-    }
-
-    // 1.8. If curNode is null, then break.
-    if (!curNode) {
-      break;
-    }
-
-    // 1.9. Assert: curNode follows searchRange's start node.
-
-    // 1.10. Set searchRange's start to the boundary point (curNode,0).
-    searchRange->SetStart(curNode, 0);
+  DBG("query='%s', wordStartBounded='%d', wordEndBounded='%d'.\n",
+      NS_ConvertUTF16toUTF8(aQuery).Data(), aWordStartBounded, aWordEndBounded);
+  RefPtr<nsFind> finder = new nsFind();
+  finder->SetWordStartBounded(aWordStartBounded);
+  finder->SetWordEndBounded(aWordEndBounded);
+  finder->SetCaseSensitive(false);
+  RefPtr<nsRange> searchRangeStart = nsRange::Create(
+      aSearchRange->StartRef(), aSearchRange->StartRef(), IgnoreErrors());
+  RefPtr<nsRange> searchRangeEnd = nsRange::Create(
+      aSearchRange->EndRef(), aSearchRange->EndRef(), IgnoreErrors());
+  RefPtr<nsRange> result;
+  Unused << finder->Find(aQuery, aSearchRange, searchRangeStart, searchRangeEnd,
+                         getter_AddRefs(result));
+  if (!result || result->Collapsed()) {
+    DBG("Did not find query '%s'", NS_ConvertUTF16toUTF8(aQuery).Data());
+  } else {
+    auto rangeToString = [](nsRange* range) -> nsCString {
+      nsString rangeString;
+      range->ToString(rangeString, IgnoreErrors());
+      return NS_ConvertUTF16toUTF8(rangeString);
+    };
+    DBG("find returned '%s'", rangeToString(result).Data());
   }
-
-  // 2. Return null.
-  return nullptr;
+  return result;
 }
 }  // namespace mozilla::dom

@@ -28,6 +28,19 @@ class nsFind : public nsIFind {
   NS_DECL_NSIFIND
   NS_DECL_CYCLE_COLLECTION_CLASS(nsFind)
 
+  // The IDL interface allows to toggle the "find entire words" search mode
+  // by calling `SetEntireWord()`.
+  // Internally, it is possible to specify word boundaries at the beginning
+  // and/or the end of the search pattern.
+  // `GetEntireWord()` returns true if `mWordStartBounded` and `mWordEndBounded`
+  // are true.
+  void SetWordStartBounded(bool aWordStartBounded) {
+    mWordStartBounded = aWordStartBounded;
+  }
+  void SetWordEndBounded(bool aWordEndBounded) {
+    mWordEndBounded = aWordEndBounded;
+  }
+
  protected:
   virtual ~nsFind() = default;
 
@@ -36,9 +49,8 @@ class nsFind : public nsIFind {
   bool mCaseSensitive = false;
   bool mMatchDiacritics = false;
 
-  // Use "find entire words" mode by setting mEntireWord to true; or false to
-  // disable "entire words" mode.
-  bool mEntireWord = false;
+  bool mWordStartBounded = false;
+  bool mWordEndBounded = false;
 
   struct State;
   class StateRestorer;
