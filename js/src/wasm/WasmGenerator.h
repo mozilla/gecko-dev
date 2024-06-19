@@ -133,7 +133,7 @@ struct CompileTaskState {
 // helper thread as well as, eventually, the results of compilation.
 
 struct CompileTask : public HelperThreadTask {
-  const ModuleMetadata& moduleMeta;
+  const CodeMetadata& codeMeta;
   const CompilerEnvironment& compilerEnv;
 
   CompileTaskState& state;
@@ -141,10 +141,10 @@ struct CompileTask : public HelperThreadTask {
   FuncCompileInputVector inputs;
   CompiledCode output;
 
-  CompileTask(const ModuleMetadata& moduleMeta,
+  CompileTask(const CodeMetadata& codeMeta,
               const CompilerEnvironment& compilerEnv, CompileTaskState& state,
               size_t defaultChunkSize)
-      : moduleMeta(moduleMeta),
+      : codeMeta(codeMeta),
         compilerEnv(compilerEnv),
         state(state),
         lifo(defaultChunkSize) {}
@@ -178,6 +178,8 @@ class MOZ_STACK_CLASS ModuleGenerator {
   UniqueChars* const error_;
   UniqueCharsVector* const warnings_;
   const Atomic<bool>* const cancelled_;
+  CodeMetadata* const codeMeta_;
+  // FIXME check that `moduleMeta_` can be null for tier2
   ModuleMetadata* const moduleMeta_;
   CompilerEnvironment* const compilerEnv_;
 
@@ -223,7 +225,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   UniqueCodeTier finishCodeTier();
   SharedMetadata finishMetadata(const Bytes& bytecode);
 
-  bool isAsmJS() const { return moduleMeta_->isAsmJS(); }
+  bool isAsmJS() const { return codeMeta_->isAsmJS(); }
   Tier tier() const { return compilerEnv_->tier(); }
   CompileMode mode() const { return compilerEnv_->mode(); }
   bool debugEnabled() const { return compilerEnv_->debugEnabled(); }
@@ -231,8 +233,8 @@ class MOZ_STACK_CLASS ModuleGenerator {
   void warnf(const char* msg, ...) MOZ_FORMAT_PRINTF(2, 3);
 
  public:
-  ModuleGenerator(const CompileArgs& args, ModuleMetadata* moduleMeta,
-                  CompilerEnvironment* compilerEnv,
+  ModuleGenerator(const CompileArgs& args, CodeMetadata* codeMeta,
+                  ModuleMetadata* moduleMeta, CompilerEnvironment* compilerEnv,
                   const Atomic<bool>* cancelled, UniqueChars* error,
                   UniqueCharsVector* warnings);
   ~ModuleGenerator();

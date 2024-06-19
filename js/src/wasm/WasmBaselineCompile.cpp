@@ -403,7 +403,7 @@ bool BaseCompiler::beginFunction() {
   }
 
   GenerateFunctionPrologue(
-      masm, CallIndirectId::forFunc(moduleMeta_, func_.index),
+      masm, CallIndirectId::forFunc(codeMeta_, func_.index),
       compilerEnv_.mode() == CompileMode::Tier1 ? Some(func_.index) : Nothing(),
       &offsets_);
 
@@ -1618,16 +1618,16 @@ bool BaseCompiler::callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
                                 bool tailCall, CodeOffset* fastCallOffset,
                                 CodeOffset* slowCallOffset) {
   CallIndirectId callIndirectId =
-      CallIndirectId::forFuncType(moduleMeta_, funcTypeIndex);
+      CallIndirectId::forFuncType(codeMeta_, funcTypeIndex);
   MOZ_ASSERT(callIndirectId.kind() != CallIndirectIdKind::AsmJS);
 
-  const TableDesc& table = moduleMeta_.tables[tableIndex];
+  const TableDesc& table = codeMeta_.tables[tableIndex];
 
   loadI32(indexVal, RegI32(WasmTableCallIndexReg));
 
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Indirect);
   CalleeDesc callee =
-      CalleeDesc::wasmTable(moduleMeta_, table, tableIndex, callIndirectId);
+      CalleeDesc::wasmTable(codeMeta_, table, tableIndex, callIndirectId);
   OutOfLineCode* oob = addOutOfLineCode(
       new (alloc_) OutOfLineAbortingTrap(Trap::OutOfBounds, bytecodeOffset()));
   if (!oob) {
@@ -1648,7 +1648,7 @@ bool BaseCompiler::callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
   } else {
 #ifdef ENABLE_WASM_TAIL_CALLS
     ReturnCallAdjustmentInfo retCallInfo = BuildReturnCallAdjustmentInfo(
-        this->funcType(), (*moduleMeta_.types)[funcTypeIndex].funcType());
+        this->funcType(), (*codeMeta_.types)[funcTypeIndex].funcType());
     masm.wasmReturnCallIndirect(desc, callee, oob->entry(), nullCheckFailed,
                                 mozilla::Nothing(), retCallInfo);
 #else
@@ -1738,7 +1738,7 @@ bool BaseCompiler::throwFrom(RegRef exn) {
 
 void BaseCompiler::loadTag(RegPtr instance, uint32_t tagIndex, RegRef tagDst) {
   size_t offset =
-      Instance::offsetInData(moduleMeta_.offsetOfTagInstanceData(tagIndex));
+      Instance::offsetInData(codeMeta_.offsetOfTagInstanceData(tagIndex));
   masm.loadPtr(Address(instance, offset), tagDst);
 }
 
@@ -2297,7 +2297,7 @@ Address BaseCompiler::addressOfTableField(uint32_t tableIndex,
                                           uint32_t fieldOffset,
                                           RegPtr instance) {
   uint32_t tableToInstanceOffset = wasm::Instance::offsetInData(
-      moduleMeta_.offsetOfTableInstanceData(tableIndex) + fieldOffset);
+      codeMeta_.offsetOfTableInstanceData(tableIndex) + fieldOffset);
   return Address(instance, tableToInstanceOffset);
 }
 
@@ -4156,7 +4156,7 @@ bool BaseCompiler::emitTryTable() {
     }
 
     // This is a `catch $t`, load the tag type we're trying to match
-    const TagType& tagType = *moduleMeta_.tags[tryTableCatch.tagIndex].type;
+    const TagType& tagType = *codeMeta_.tags[tryTableCatch.tagIndex].type;
     const TagOffsetVector& tagOffsets = tagType.argOffsets();
     ResultType tagParams = tagType.resultType();
 
@@ -4375,7 +4375,7 @@ bool BaseCompiler::emitCatch() {
   masm.bind(&tryCatch.catchInfos.back().label);
 
   // Extract the arguments in the exception package and push them.
-  const SharedTagType& tagType = moduleMeta_.tags[tagIndex].type;
+  const SharedTagType& tagType = codeMeta_.tags[tagIndex].type;
   const ValTypeVector& params = tagType->argTypes();
   const TagOffsetVector& offsets = tagType->argOffsets();
 
@@ -4670,7 +4670,7 @@ bool BaseCompiler::emitThrow() {
     return true;
   }
 
-  const TagDesc& tagDesc = moduleMeta_.tags[tagIndex];
+  const TagDesc& tagDesc = codeMeta_.tags[tagIndex];
   const ResultType& params = tagDesc.type->resultType();
   const TagOffsetVector& offsets = tagDesc.type->argOffsets();
 
@@ -5019,8 +5019,8 @@ bool BaseCompiler::emitCall() {
 
   sync();
 
-  const FuncType& funcType = *moduleMeta_.funcs[funcIndex].type;
-  bool import = moduleMeta_.funcIsImport(funcIndex);
+  const FuncType& funcType = *codeMeta_.funcs[funcIndex].type;
+  bool import = codeMeta_.funcIsImport(funcIndex);
 
   uint32_t numArgs = funcType.args().length();
   size_t stackArgBytes = stackConsumed(numArgs);
@@ -5043,7 +5043,7 @@ bool BaseCompiler::emitCall() {
 
   CodeOffset raOffset;
   if (import) {
-    raOffset = callImport(moduleMeta_.offsetOfFuncImportInstanceData(funcIndex),
+    raOffset = callImport(codeMeta_.offsetOfFuncImportInstanceData(funcIndex),
                           baselineCall);
   } else {
     raOffset = callDefinition(funcIndex, baselineCall);
@@ -5080,8 +5080,8 @@ bool BaseCompiler::emitReturnCall() {
     return false;
   }
 
-  const FuncType& funcType = *moduleMeta_.funcs[funcIndex].type;
-  bool import = moduleMeta_.funcIsImport(funcIndex);
+  const FuncType& funcType = *codeMeta_.funcs[funcIndex].type;
+  bool import = codeMeta_.funcIsImport(funcIndex);
 
   uint32_t numArgs = funcType.args().length();
 
@@ -5100,8 +5100,8 @@ bool BaseCompiler::emitReturnCall() {
 
   if (import) {
     CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Import);
-    CalleeDesc callee = CalleeDesc::import(
-        moduleMeta_.offsetOfFuncImportInstanceData(funcIndex));
+    CalleeDesc callee =
+        CalleeDesc::import(codeMeta_.offsetOfFuncImportInstanceData(funcIndex));
     masm.wasmReturnCallImport(desc, callee, retCallInfo);
   } else {
     CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::ReturnFunc);
@@ -5133,7 +5133,7 @@ bool BaseCompiler::emitCallIndirect() {
 
   sync();
 
-  const FuncType& funcType = (*moduleMeta_.types)[funcTypeIndex].funcType();
+  const FuncType& funcType = (*codeMeta_.types)[funcTypeIndex].funcType();
 
   // Stack: ... arg1 .. argn callee
 
@@ -5200,7 +5200,7 @@ bool BaseCompiler::emitReturnCallIndirect() {
     return false;
   }
 
-  const FuncType& funcType = (*moduleMeta_.types)[funcTypeIndex].funcType();
+  const FuncType& funcType = (*codeMeta_.types)[funcTypeIndex].funcType();
 
   // Stack: ... arg1 .. argn callee
 
@@ -5707,7 +5707,7 @@ bool BaseCompiler::emitGetGlobal() {
     return true;
   }
 
-  const GlobalDesc& global = moduleMeta_.globals[id];
+  const GlobalDesc& global = codeMeta_.globals[id];
 
   if (global.isConstant()) {
     LitVal value = global.constantValue();
@@ -5801,7 +5801,7 @@ bool BaseCompiler::emitSetGlobal() {
     return true;
   }
 
-  const GlobalDesc& global = moduleMeta_.globals[id];
+  const GlobalDesc& global = codeMeta_.globals[id];
 
   switch (global.type().kind()) {
     case ValType::I32: {
@@ -6461,8 +6461,8 @@ bool BaseCompiler::memCopyCall(uint32_t dstMemIndex, uint32_t srcMemIndex) {
   // memories. This works by moving everything to the lowest-common denominator.
   // i32 indices are promoted to i64, and non-shared memories are treated as
   // shared.
-  IndexType dstIndexType = moduleMeta_.memories[dstMemIndex].indexType();
-  IndexType srcIndexType = moduleMeta_.memories[srcMemIndex].indexType();
+  IndexType dstIndexType = codeMeta_.memories[dstMemIndex].indexType();
+  IndexType srcIndexType = codeMeta_.memories[srcMemIndex].indexType();
   IndexType lenIndexType =
       (dstIndexType == IndexType::I32 || srcIndexType == IndexType::I32)
           ? IndexType::I32
@@ -6615,7 +6615,7 @@ bool BaseCompiler::emitTableGet() {
   if (deadCode_) {
     return true;
   }
-  if (moduleMeta_.tables[tableIndex].elemType.tableRepr() == TableRepr::Ref) {
+  if (codeMeta_.tables[tableIndex].elemType.tableRepr() == TableRepr::Ref) {
     return emitTableGetAnyRef(tableIndex);
   }
   pushI32(tableIndex);
@@ -6641,7 +6641,7 @@ bool BaseCompiler::emitTableSet() {
   if (deadCode_) {
     return true;
   }
-  if (moduleMeta_.tables[tableIndex].elemType.tableRepr() == TableRepr::Ref) {
+  if (codeMeta_.tables[tableIndex].elemType.tableRepr() == TableRepr::Ref) {
     return emitTableSetAnyRef(tableIndex);
   }
   pushI32(tableIndex);
@@ -6898,9 +6898,8 @@ RegPtr BaseCompiler::loadTypeDefInstanceData(uint32_t typeIndex) {
   instance = RegPtr(InstanceReg);
 #  endif
   masm.computeEffectiveAddress(
-      Address(instance,
-              Instance::offsetInData(
-                  moduleMeta_.offsetOfTypeDefInstanceData(typeIndex))),
+      Address(instance, Instance::offsetInData(
+                            codeMeta_.offsetOfTypeDefInstanceData(typeIndex))),
       rp);
   return rp;
 }
@@ -6919,7 +6918,7 @@ RegPtr BaseCompiler::loadSuperTypeVector(uint32_t typeIndex) {
 #  endif
   masm.loadPtr(
       Address(instance, Instance::offsetInData(
-                            moduleMeta_.offsetOfSuperTypeVector(typeIndex))),
+                            codeMeta_.offsetOfSuperTypeVector(typeIndex))),
       rp);
   return rp;
 }
@@ -7206,7 +7205,7 @@ bool BaseCompiler::emitGcArraySet(RegRef object, RegPtr data, RegI32 index,
 template <bool ZeroFields>
 bool BaseCompiler::emitStructAlloc(uint32_t typeIndex, RegRef* object,
                                    bool* isOutlineStruct, RegPtr* outlineBase) {
-  const TypeDef& typeDef = (*moduleMeta_.types)[typeIndex];
+  const TypeDef& typeDef = (*codeMeta_.types)[typeIndex];
   const StructType& structType = typeDef.structType();
   gc::AllocKind allocKind = WasmStructObject::allocKindForTypeDef(&typeDef);
 
@@ -7288,7 +7287,7 @@ bool BaseCompiler::emitStructNew() {
     return true;
   }
 
-  const TypeDef& typeDef = (*moduleMeta_.types)[typeIndex];
+  const TypeDef& typeDef = (*codeMeta_.types)[typeIndex];
   const StructType& structType = typeDef.structType();
 
   RegRef object;
@@ -7403,7 +7402,7 @@ bool BaseCompiler::emitStructGet(FieldWideningOp wideningOp) {
     return true;
   }
 
-  const StructType& structType = (*moduleMeta_.types)[typeIndex].structType();
+  const StructType& structType = (*codeMeta_.types)[typeIndex].structType();
 
   // Decide whether we're accessing inline or outline, and at what offset
   StorageType fieldType = structType.fields_[fieldIndex].type;
@@ -7447,7 +7446,7 @@ bool BaseCompiler::emitStructSet() {
     return true;
   }
 
-  const StructType& structType = (*moduleMeta_.types)[typeIndex].structType();
+  const StructType& structType = (*codeMeta_.types)[typeIndex].structType();
   const StructField& structField = structType.fields_[fieldIndex];
 
   // Decide whether we're accessing inline or outline, and at what offset
@@ -7623,7 +7622,7 @@ bool BaseCompiler::emitArrayNew() {
     return true;
   }
 
-  const ArrayType& arrayType = (*moduleMeta_.types)[typeIndex].arrayType();
+  const ArrayType& arrayType = (*codeMeta_.types)[typeIndex].arrayType();
 
   // Reserve this register early if we will need it so that it is not taken by
   // any register used in this function.
@@ -7691,7 +7690,7 @@ bool BaseCompiler::emitArrayNewFixed() {
     return true;
   }
 
-  const ArrayType& arrayType = (*moduleMeta_.types)[typeIndex].arrayType();
+  const ArrayType& arrayType = (*codeMeta_.types)[typeIndex].arrayType();
 
   // Reserve this register early if we will need it so that it is not taken by
   // any register used in this function.
@@ -7760,7 +7759,7 @@ bool BaseCompiler::emitArrayNewDefault() {
     return true;
   }
 
-  const ArrayType& arrayType = (*moduleMeta_.types)[typeIndex].arrayType();
+  const ArrayType& arrayType = (*codeMeta_.types)[typeIndex].arrayType();
 
   RegRef object = needRef();
   RegI32 numElements = popI32();
@@ -7866,7 +7865,7 @@ bool BaseCompiler::emitArrayGet(FieldWideningOp wideningOp) {
     return true;
   }
 
-  const ArrayType& arrayType = (*moduleMeta_.types)[typeIndex].arrayType();
+  const ArrayType& arrayType = (*codeMeta_.types)[typeIndex].arrayType();
 
   RegI32 index = popI32();
   RegRef rp = popRef();
@@ -7911,7 +7910,7 @@ bool BaseCompiler::emitArraySet() {
     return true;
   }
 
-  const ArrayType& arrayType = (*moduleMeta_.types)[typeIndex].arrayType();
+  const ArrayType& arrayType = (*codeMeta_.types)[typeIndex].arrayType();
 
   // Reserve this register early if we will need it so that it is not taken by
   // any register used in this function.
@@ -8009,7 +8008,7 @@ bool BaseCompiler::emitArrayFill() {
     return true;
   }
 
-  const TypeDef& typeDef = moduleMeta_.types->type(typeIndex);
+  const TypeDef& typeDef = codeMeta_.types->type(typeIndex);
   const ArrayType& arrayType = typeDef.arrayType();
   StorageType elementType = arrayType.elementType_;
 
@@ -8306,7 +8305,7 @@ BranchIfRefSubtypeRegisters BaseCompiler::allocRegistersForBranchIfRefSubtype(
   return BranchIfRefSubtypeRegisters{
       .superSTV = needs.needSuperSTV
                       ? loadSuperTypeVector(
-                            moduleMeta_.types->indexOf(*destType.typeDef()))
+                            codeMeta_.types->indexOf(*destType.typeDef()))
                       : RegPtr::Invalid(),
       .scratch1 = needs.needScratch1 ? needI32() : RegI32::Invalid(),
       .scratch2 = needs.needScratch2 ? needI32() : RegI32::Invalid(),
@@ -9952,12 +9951,12 @@ bool BaseCompiler::emitBody() {
       case uint16_t(Op::Rethrow):
         CHECK_NEXT(emitRethrow());
       case uint16_t(Op::ThrowRef):
-        if (!moduleMeta_.exnrefEnabled()) {
+        if (!codeMeta_.exnrefEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(emitThrowRef());
       case uint16_t(Op::TryTable):
-        if (!moduleMeta_.exnrefEnabled()) {
+        if (!codeMeta_.exnrefEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(emitTryTable());
@@ -9984,25 +9983,25 @@ bool BaseCompiler::emitBody() {
         CHECK_NEXT(emitCallIndirect());
 #ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCall):
-        if (!moduleMeta_.tailCallsEnabled()) {
+        if (!codeMeta_.tailCallsEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(emitReturnCall());
       case uint16_t(Op::ReturnCallIndirect):
-        if (!moduleMeta_.tailCallsEnabled()) {
+        if (!codeMeta_.tailCallsEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(emitReturnCallIndirect());
 #endif
 #ifdef ENABLE_WASM_GC
       case uint16_t(Op::CallRef):
-        if (!moduleMeta_.gcEnabled()) {
+        if (!codeMeta_.gcEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(emitCallRef());
 #  ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCallRef):
-        if (!moduleMeta_.gcEnabled() || !moduleMeta_.tailCallsEnabled()) {
+        if (!codeMeta_.gcEnabled() || !codeMeta_.tailCallsEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(emitReturnCallRef());
@@ -10541,24 +10540,24 @@ bool BaseCompiler::emitBody() {
 
 #ifdef ENABLE_WASM_GC
       case uint16_t(Op::RefAsNonNull):
-        if (!moduleMeta_.gcEnabled()) {
+        if (!codeMeta_.gcEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(emitRefAsNonNull());
       case uint16_t(Op::BrOnNull):
-        if (!moduleMeta_.gcEnabled()) {
+        if (!codeMeta_.gcEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(emitBrOnNull());
       case uint16_t(Op::BrOnNonNull):
-        if (!moduleMeta_.gcEnabled()) {
+        if (!codeMeta_.gcEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(emitBrOnNonNull());
 #endif
 #ifdef ENABLE_WASM_GC
       case uint16_t(Op::RefEq):
-        if (!moduleMeta_.gcEnabled()) {
+        if (!codeMeta_.gcEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(dispatchComparison0(emitCompareRef, RefType::eq(),
@@ -10577,7 +10576,7 @@ bool BaseCompiler::emitBody() {
 #ifdef ENABLE_WASM_GC
       // "GC" operations
       case uint16_t(Op::GcPrefix): {
-        if (!moduleMeta_.gcEnabled()) {
+        if (!codeMeta_.gcEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         switch (op.b1) {
@@ -10654,7 +10653,7 @@ bool BaseCompiler::emitBody() {
       // SIMD operations
       case uint16_t(Op::SimdPrefix): {
         uint32_t laneIndex;
-        if (!moduleMeta_.simdAvailable()) {
+        if (!codeMeta_.simdAvailable()) {
           return iter_.unrecognizedOpcode(&op);
         }
         switch (op.b1) {
@@ -11170,22 +11169,22 @@ bool BaseCompiler::emitBody() {
             CHECK_NEXT(emitStoreLane(8));
 #  ifdef ENABLE_WASM_RELAXED_SIMD
           case uint32_t(SimdOp::F32x4RelaxedMadd):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchTernary2(RelaxedMaddF32x4, ValType::V128));
           case uint32_t(SimdOp::F32x4RelaxedNmadd):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchTernary2(RelaxedNmaddF32x4, ValType::V128));
           case uint32_t(SimdOp::F64x2RelaxedMadd):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchTernary2(RelaxedMaddF64x2, ValType::V128));
           case uint32_t(SimdOp::F64x2RelaxedNmadd):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchTernary2(RelaxedNmaddF64x2, ValType::V128));
@@ -11194,67 +11193,67 @@ bool BaseCompiler::emitBody() {
           case uint32_t(SimdOp::I16x8RelaxedLaneSelect):
           case uint32_t(SimdOp::I32x4RelaxedLaneSelect):
           case uint32_t(SimdOp::I64x2RelaxedLaneSelect):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(emitVectorLaneSelect());
           case uint32_t(SimdOp::F32x4RelaxedMin):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorBinary(RelaxedMinF32x4));
           case uint32_t(SimdOp::F32x4RelaxedMax):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorBinary(RelaxedMaxF32x4));
           case uint32_t(SimdOp::F64x2RelaxedMin):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorBinary(RelaxedMinF64x2));
           case uint32_t(SimdOp::F64x2RelaxedMax):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorBinary(RelaxedMaxF64x2));
           case uint32_t(SimdOp::I32x4RelaxedTruncF32x4S):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorUnary(RelaxedConvertF32x4ToI32x4));
           case uint32_t(SimdOp::I32x4RelaxedTruncF32x4U):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorUnary(RelaxedConvertF32x4ToUI32x4));
           case uint32_t(SimdOp::I32x4RelaxedTruncF64x2SZero):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorUnary(RelaxedConvertF64x2ToI32x4));
           case uint32_t(SimdOp::I32x4RelaxedTruncF64x2UZero):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorUnary(RelaxedConvertF64x2ToUI32x4));
           case uint32_t(SimdOp::I8x16RelaxedSwizzle):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorBinary(RelaxedSwizzle));
           case uint32_t(SimdOp::I16x8RelaxedQ15MulrS):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorBinary(RelaxedQ15MulrS));
           case uint32_t(SimdOp::I16x8DotI8x16I7x16S):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorBinary(DotI8x16I7x16S));
           case uint32_t(SimdOp::I32x4DotI8x16I7x16AddS):
-            if (!moduleMeta_.v128RelaxedEnabled()) {
+            if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchTernary0(emitDotI8x16I7x16AddS, ValType::V128));
@@ -11337,7 +11336,7 @@ bool BaseCompiler::emitBody() {
             CHECK_NEXT(emitMemFill());
 #ifdef ENABLE_WASM_MEMORY_CONTROL
           case uint32_t(MiscOp::MemoryDiscard): {
-            if (!moduleMeta_.memoryControlEnabled()) {
+            if (!codeMeta_.memoryControlEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(emitMemDiscard());
@@ -11368,7 +11367,7 @@ bool BaseCompiler::emitBody() {
         // Though thread ops can be used on nonshared memories, we make them
         // unavailable if shared memory has been disabled in the prefs, for
         // maximum predictability and safety and consistency with JS.
-        if (moduleMeta_.sharedMemoryEnabled() == Shareable::False) {
+        if (codeMeta_.sharedMemoryEnabled() == Shareable::False) {
           return iter_.unrecognizedOpcode(&op);
         }
         switch (op.b1) {
@@ -11561,7 +11560,7 @@ bool BaseCompiler::emitBody() {
       // asm.js and other private operations
       case uint16_t(Op::MozPrefix): {
         if (op.b1 != uint32_t(MozOp::CallBuiltinModuleFunc) ||
-            !moduleMeta_.isBuiltinModule()) {
+            !codeMeta_.isBuiltinModule()) {
           return iter_.unrecognizedOpcode(&op);
         }
         // Call a private builtin module func
@@ -11756,7 +11755,7 @@ bool BaseCompiler::emitFunction() {
   return endFunction();
 }
 
-BaseCompiler::BaseCompiler(const ModuleMetadata& moduleMeta,
+BaseCompiler::BaseCompiler(const CodeMetadata& codeMeta,
                            const CompilerEnvironment& compilerEnv,
                            const FuncCompileInput& func,
                            const ValTypeVector& locals,
@@ -11765,7 +11764,7 @@ BaseCompiler::BaseCompiler(const ModuleMetadata& moduleMeta,
                            StkVector& stkSource, TempAllocator* alloc,
                            MacroAssembler* masm, StackMaps* stackMaps)
     :  // Environment
-      moduleMeta_(moduleMeta),
+      codeMeta_(codeMeta),
       compilerEnv_(compilerEnv),
       func_(func),
       locals_(locals),
@@ -11776,7 +11775,7 @@ BaseCompiler::BaseCompiler(const ModuleMetadata& moduleMeta,
       masm(*masm),
       // Compilation state
       decoder_(decoder),
-      iter_(moduleMeta, decoder),
+      iter_(codeMeta, decoder),
       fr(*masm),
       stackMapGenerator_(stackMaps, trapExitLayout, trapExitLayoutNumWords,
                          *masm),
@@ -11811,13 +11810,13 @@ BaseCompiler::~BaseCompiler() {
 
 bool BaseCompiler::init() {
   // We may lift this restriction in the future.
-  for (uint32_t memoryIndex = 0; memoryIndex < moduleMeta_.memories.length();
+  for (uint32_t memoryIndex = 0; memoryIndex < codeMeta_.memories.length();
        memoryIndex++) {
     MOZ_ASSERT_IF(isMem64(memoryIndex),
-                  !moduleMeta_.hugeMemoryEnabled(memoryIndex));
+                  !codeMeta_.hugeMemoryEnabled(memoryIndex));
   }
   // asm.js is not supported in baseline
-  MOZ_ASSERT(!moduleMeta_.isAsmJS());
+  MOZ_ASSERT(!codeMeta_.isAsmJS());
   // Only asm.js modules have call site line numbers
   MOZ_ASSERT(func_.callSiteLineNums.empty());
 
@@ -11870,14 +11869,14 @@ bool js::wasm::BaselinePlatformSupport() {
 #endif
 }
 
-bool js::wasm::BaselineCompileFunctions(const ModuleMetadata& moduleMeta,
+bool js::wasm::BaselineCompileFunctions(const CodeMetadata& codeMeta,
                                         const CompilerEnvironment& compilerEnv,
                                         LifoAlloc& lifo,
                                         const FuncCompileInputVector& inputs,
                                         CompiledCode* code,
                                         UniqueChars* error) {
   MOZ_ASSERT(compilerEnv.tier() == Tier::Baseline);
-  MOZ_ASSERT(moduleMeta.kind == ModuleKind::Wasm);
+  MOZ_ASSERT(codeMeta.kind == ModuleKind::Wasm);
 
   // The MacroAssembler will sometimes access the jitContext.
 
@@ -11911,7 +11910,7 @@ bool js::wasm::BaselineCompileFunctions(const ModuleMetadata& moduleMeta,
     // Build the local types vector.
 
     ValTypeVector locals;
-    if (!DecodeLocalEntriesWithParams(d, moduleMeta, func.index, &locals)) {
+    if (!DecodeLocalEntriesWithParams(d, codeMeta, func.index, &locals)) {
       return false;
     }
 
@@ -11919,7 +11918,7 @@ bool js::wasm::BaselineCompileFunctions(const ModuleMetadata& moduleMeta,
 
     // One-pass baseline compilation.
 
-    BaseCompiler f(moduleMeta, compilerEnv, func, locals, trapExitLayout,
+    BaseCompiler f(codeMeta, compilerEnv, func, locals, trapExitLayout,
                    trapExitLayoutNumWords, d, stk, &alloc, &masm,
                    &code->stackMaps);
     if (!f.init()) {

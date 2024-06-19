@@ -762,10 +762,10 @@ static bool DecodeFunctionBody(DecoderT& d, ModuleGeneratorT& mg,
 }
 
 template <class DecoderT, class ModuleGeneratorT>
-static bool DecodeCodeSection(const ModuleMetadata& moduleMeta, DecoderT& d,
+static bool DecodeCodeSection(const CodeMetadata& codeMeta, DecoderT& d,
                               ModuleGeneratorT& mg) {
-  if (!moduleMeta.codeSection) {
-    if (moduleMeta.numFuncDefs() != 0) {
+  if (!codeMeta.codeSection) {
+    if (codeMeta.numFuncDefs() != 0) {
       return d.fail("expected code section");
     }
 
@@ -777,18 +777,18 @@ static bool DecodeCodeSection(const ModuleMetadata& moduleMeta, DecoderT& d,
     return d.fail("expected function body count");
   }
 
-  if (numFuncDefs != moduleMeta.numFuncDefs()) {
+  if (numFuncDefs != codeMeta.numFuncDefs()) {
     return d.fail(
         "function body count does not match function signature count");
   }
 
   for (uint32_t funcDefIndex = 0; funcDefIndex < numFuncDefs; funcDefIndex++) {
-    if (!DecodeFunctionBody(d, mg, moduleMeta.numFuncImports + funcDefIndex)) {
+    if (!DecodeFunctionBody(d, mg, codeMeta.numFuncImports + funcDefIndex)) {
       return false;
     }
   }
 
-  if (!d.finishSection(*moduleMeta.codeSection, "code")) {
+  if (!d.finishSection(*codeMeta.codeSection, "code")) {
     return false;
   }
 
@@ -802,23 +802,25 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
                                  JS::OptimizedEncodingListener* listener) {
   Decoder d(bytecode.bytes, 0, error, warnings);
 
-  ModuleMetadata moduleMeta(args.features);
-  if (!moduleMeta.init() || !DecodeModuleEnvironment(d, &moduleMeta)) {
+  CodeMetadata codeMeta(args.features);
+  ModuleMetadata moduleMeta;
+  if (!codeMeta.init() || !DecodeModuleEnvironment(d, &codeMeta, &moduleMeta)) {
     return nullptr;
   }
   CompilerEnvironment compilerEnv(args);
   compilerEnv.computeParameters(d);
 
-  ModuleGenerator mg(args, &moduleMeta, &compilerEnv, nullptr, error, warnings);
+  ModuleGenerator mg(args, &codeMeta, &moduleMeta, &compilerEnv, nullptr, error,
+                     warnings);
   if (!mg.init(nullptr)) {
     return nullptr;
   }
 
-  if (!DecodeCodeSection(moduleMeta, d, mg)) {
+  if (!DecodeCodeSection(codeMeta, d, mg)) {
     return nullptr;
   }
 
-  if (!DecodeModuleTail(d, &moduleMeta)) {
+  if (!DecodeModuleTail(d, &codeMeta, &moduleMeta)) {
     return nullptr;
   }
 
@@ -830,25 +832,26 @@ bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
                         UniqueCharsVector* warnings, Atomic<bool>* cancelled) {
   Decoder d(bytecode, 0, error);
 
-  ModuleMetadata moduleMeta(args.features);
-  if (!moduleMeta.init() || !DecodeModuleEnvironment(d, &moduleMeta)) {
+  CodeMetadata codeMeta(args.features);
+  ModuleMetadata moduleMeta;  // FIXME this shouldn't be needed!
+  if (!codeMeta.init() || !DecodeModuleEnvironment(d, &codeMeta, &moduleMeta)) {
     return false;
   }
   CompilerEnvironment compilerEnv(CompileMode::Tier2, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters(d);
 
-  ModuleGenerator mg(args, &moduleMeta, &compilerEnv, cancelled, error,
-                     warnings);
+  ModuleGenerator mg(args, &codeMeta, &moduleMeta, &compilerEnv, cancelled,
+                     error, warnings);
   if (!mg.init(nullptr)) {
     return false;
   }
 
-  if (!DecodeCodeSection(moduleMeta, d, mg)) {
+  if (!DecodeCodeSection(codeMeta, d, mg)) {
     return false;
   }
 
-  if (!DecodeModuleTail(d, &moduleMeta)) {
+  if (!DecodeModuleTail(d, &codeMeta, &moduleMeta)) {
     return false;
   }
 
@@ -861,11 +864,11 @@ class StreamingDecoder {
   const Atomic<bool>& cancelled_;
 
  public:
-  StreamingDecoder(const ModuleMetadata& moduleMeta, const Bytes& begin,
+  StreamingDecoder(const CodeMetadata& codeMeta, const Bytes& begin,
                    const ExclusiveBytesPtr& codeBytesEnd,
                    const Atomic<bool>& cancelled, UniqueChars* error,
                    UniqueCharsVector* warnings)
-      : d_(begin, moduleMeta.codeSection->start, error, warnings),
+      : d_(begin, codeMeta.codeSection->start, error, warnings),
         codeBytesEnd_(codeBytesEnd),
         cancelled_(cancelled) {}
 
@@ -937,39 +940,40 @@ SharedModule wasm::CompileStreaming(
     const Atomic<bool>& cancelled, UniqueChars* error,
     UniqueCharsVector* warnings) {
   CompilerEnvironment compilerEnv(args);
-  ModuleMetadata moduleMeta(args.features);
-  if (!moduleMeta.init()) {
+  CodeMetadata codeMeta(args.features);
+  ModuleMetadata moduleMeta;
+  if (!codeMeta.init()) {
     return nullptr;
   }
 
   {
     Decoder d(envBytes, 0, error, warnings);
 
-    if (!DecodeModuleEnvironment(d, &moduleMeta)) {
+    if (!DecodeModuleEnvironment(d, &codeMeta, &moduleMeta)) {
       return nullptr;
     }
     compilerEnv.computeParameters(d);
 
-    if (!moduleMeta.codeSection) {
+    if (!codeMeta.codeSection) {
       d.fail("unknown section before code section");
       return nullptr;
     }
 
-    MOZ_RELEASE_ASSERT(moduleMeta.codeSection->size == codeBytes.length());
+    MOZ_RELEASE_ASSERT(codeMeta.codeSection->size == codeBytes.length());
     MOZ_RELEASE_ASSERT(d.done());
   }
 
-  ModuleGenerator mg(args, &moduleMeta, &compilerEnv, &cancelled, error,
-                     warnings);
+  ModuleGenerator mg(args, &codeMeta, &moduleMeta, &compilerEnv, &cancelled,
+                     error, warnings);
   if (!mg.init(nullptr)) {
     return nullptr;
   }
 
   {
-    StreamingDecoder d(moduleMeta, codeBytes, codeBytesEnd, cancelled, error,
+    StreamingDecoder d(codeMeta, codeBytes, codeBytesEnd, cancelled, error,
                        warnings);
 
-    if (!DecodeCodeSection(moduleMeta, d, mg)) {
+    if (!DecodeCodeSection(codeMeta, d, mg)) {
       return nullptr;
     }
 
@@ -990,9 +994,9 @@ SharedModule wasm::CompileStreaming(
   const Bytes& tailBytes = *streamEnd.tailBytes;
 
   {
-    Decoder d(tailBytes, moduleMeta.codeSection->end(), error, warnings);
+    Decoder d(tailBytes, codeMeta.codeSection->end(), error, warnings);
 
-    if (!DecodeModuleTail(d, &moduleMeta)) {
+    if (!DecodeModuleTail(d, &codeMeta, &moduleMeta)) {
       return nullptr;
     }
 
@@ -1009,17 +1013,17 @@ SharedModule wasm::CompileStreaming(
 
 class DumpIonModuleGenerator {
  private:
-  ModuleMetadata& moduleMeta_;
+  CodeMetadata& codeMeta_;
   uint32_t targetFuncIndex_;
   IonDumpContents contents_;
   GenericPrinter& out_;
   UniqueChars* error_;
 
  public:
-  DumpIonModuleGenerator(ModuleMetadata& moduleMeta, uint32_t targetFuncIndex,
+  DumpIonModuleGenerator(CodeMetadata& codeMeta, uint32_t targetFuncIndex,
                          IonDumpContents contents, GenericPrinter& out,
                          UniqueChars* error)
-      : moduleMeta_(moduleMeta),
+      : codeMeta_(codeMeta),
         targetFuncIndex_(targetFuncIndex),
         contents_(contents),
         out_(out),
@@ -1034,7 +1038,7 @@ class DumpIonModuleGenerator {
 
     FuncCompileInput input(funcIndex, lineOrBytecode, begin, end,
                            Uint32Vector());
-    return IonDumpFunction(moduleMeta_, input, contents_, out_, error_);
+    return IonDumpFunction(codeMeta_, input, contents_, out_, error_);
   }
 };
 
@@ -1044,8 +1048,10 @@ bool wasm::DumpIonFunctionInModule(const ShareableBytes& bytecode,
                                    GenericPrinter& out, UniqueChars* error) {
   UniqueCharsVector warnings;
   Decoder d(bytecode.bytes, 0, error, &warnings);
-  ModuleMetadata moduleMeta(FeatureArgs::allEnabled());
-  DumpIonModuleGenerator mg(moduleMeta, targetFuncIndex, contents, out, error);
-  return moduleMeta.init() && DecodeModuleEnvironment(d, &moduleMeta) &&
-         DecodeCodeSection(moduleMeta, d, mg);
+  CodeMetadata codeMeta(FeatureArgs::allEnabled());
+  ModuleMetadata moduleMeta;
+  DumpIonModuleGenerator mg(codeMeta, targetFuncIndex, contents, out, error);
+  return codeMeta.init() &&
+         DecodeModuleEnvironment(d, &codeMeta, &moduleMeta) &&
+         DecodeCodeSection(codeMeta, d, mg);
 }

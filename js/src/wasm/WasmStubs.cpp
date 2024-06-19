@@ -1975,7 +1975,7 @@ static bool GenerateImportFunction(jit::MacroAssembler& masm,
 
 static const unsigned STUBS_LIFO_DEFAULT_CHUNK_SIZE = 4 * 1024;
 
-bool wasm::GenerateImportFunctions(const ModuleMetadata& moduleMeta,
+bool wasm::GenerateImportFunctions(const CodeMetadata& codeMeta,
                                    const FuncImportVector& imports,
                                    CompiledCode* code) {
   LifoAlloc lifo(STUBS_LIFO_DEFAULT_CHUNK_SIZE);
@@ -1984,9 +1984,9 @@ bool wasm::GenerateImportFunctions(const ModuleMetadata& moduleMeta,
 
   for (uint32_t funcIndex = 0; funcIndex < imports.length(); funcIndex++) {
     const FuncImport& fi = imports[funcIndex];
-    const FuncType& funcType = *moduleMeta.funcs[funcIndex].type;
+    const FuncType& funcType = *codeMeta.funcs[funcIndex].type;
     CallIndirectId callIndirectId =
-        CallIndirectId::forFunc(moduleMeta, funcIndex);
+        CallIndirectId::forFunc(codeMeta, funcIndex);
 
     FuncOffsets offsets;
     if (!GenerateImportFunction(masm, fi, funcType, callIndirectId, &offsets,
@@ -2982,7 +2982,7 @@ bool wasm::GenerateProvisionalLazyJitEntryStub(MacroAssembler& masm,
   return FinishOffsets(masm, offsets);
 }
 
-bool wasm::GenerateStubs(const ModuleMetadata& moduleMeta,
+bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
                          const FuncImportVector& imports,
                          const FuncExportVector& exports, CompiledCode* code) {
   LifoAlloc lifo(STUBS_LIFO_DEFAULT_CHUNK_SIZE);
@@ -3002,7 +3002,7 @@ bool wasm::GenerateStubs(const ModuleMetadata& moduleMeta,
 
   for (uint32_t funcIndex = 0; funcIndex < imports.length(); funcIndex++) {
     const FuncImport& fi = imports[funcIndex];
-    const FuncType& funcType = *moduleMeta.funcs[funcIndex].type;
+    const FuncType& funcType = *codeMeta.funcs[funcIndex].type;
 
     CallableOffsets interpOffsets;
     if (!GenerateImportInterpExit(masm, fi, funcType, funcIndex, &throwLabel,
@@ -3036,12 +3036,12 @@ bool wasm::GenerateStubs(const ModuleMetadata& moduleMeta,
   Maybe<ImmPtr> noAbsolute;
   for (size_t i = 0; i < exports.length(); i++) {
     const FuncExport& fe = exports[i];
-    const FuncType& funcType = (*moduleMeta.types)[fe.typeIndex()].funcType();
+    const FuncType& funcType = (*codeMeta.types)[fe.typeIndex()].funcType();
     if (!fe.hasEagerStubs()) {
       continue;
     }
     if (!GenerateEntryStubs(masm, i, fe, funcType, noAbsolute,
-                            moduleMeta.isAsmJS(), &code->codeRanges)) {
+                            codeMeta.isAsmJS(), &code->codeRanges)) {
       return false;
     }
   }

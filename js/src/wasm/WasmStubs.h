@@ -251,11 +251,11 @@ extern bool GenerateBuiltinThunk(jit::MacroAssembler& masm,
                                  ExitReason exitReason, void* funcPtr,
                                  CallableOffsets* offsets);
 
-extern bool GenerateImportFunctions(const ModuleMetadata& moduleMeta,
+extern bool GenerateImportFunctions(const CodeMetadata& codeMeta,
                                     const FuncImportVector& imports,
                                     CompiledCode* code);
 
-extern bool GenerateStubs(const ModuleMetadata& moduleMeta,
+extern bool GenerateStubs(const CodeMetadata& codeMeta,
                           const FuncImportVector& imports,
                           const FuncExportVector& exports, CompiledCode* code);
 
