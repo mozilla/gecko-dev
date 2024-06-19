@@ -88,8 +88,8 @@ struct ModuleMetadata {
   uint32_t tagsOffsetStart;
 
   // Fields decoded as part of the wasm module tail:
-  DataSegmentEnvVector dataSegments;
-  CustomSectionEnvVector customSections;
+  DataSegmentRangeVector dataSegmentRanges;
+  CustomSectionRangeVector customSectionRanges;
   Maybe<uint32_t> nameCustomSectionIndex;
   Maybe<Name> moduleName;
   NameVector funcNames;

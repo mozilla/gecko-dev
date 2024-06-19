@@ -89,7 +89,7 @@ bool Decoder::startSection(SectionId id, ModuleMetadata* moduleMeta,
   // section 'id'.
   const uint8_t* const initialCur = cur_;
   const size_t initialCustomSectionsLength =
-      moduleMeta->customSections.length();
+      moduleMeta->customSectionRanges.length();
 
   // Maintain a pointer to the current section that gets updated as custom
   // sections are skipped.
@@ -139,7 +139,7 @@ bool Decoder::startSection(SectionId id, ModuleMetadata* moduleMeta,
 
 rewind:
   cur_ = initialCur;
-  moduleMeta->customSections.shrinkTo(initialCustomSectionsLength);
+  moduleMeta->customSectionRanges.shrinkTo(initialCustomSectionsLength);
   return true;
 
 fail:
@@ -165,7 +165,7 @@ bool Decoder::startCustomSection(const char* expected, size_t expectedLength,
   // section 'id'.
   const uint8_t* const initialCur = cur_;
   const size_t initialCustomSectionsLength =
-      moduleMeta->customSections.length();
+      moduleMeta->customSectionRanges.length();
 
   while (true) {
     // Try to start a custom section. If we can't, rewind to the beginning
@@ -182,33 +182,34 @@ bool Decoder::startCustomSection(const char* expected, size_t expectedLength,
       goto fail;
     }
 
-    CustomSectionEnv sec;
-    if (!readVarU32(&sec.nameLength) || sec.nameLength > bytesRemain()) {
+    CustomSectionRange secRange;
+    if (!readVarU32(&secRange.nameLength) ||
+        secRange.nameLength > bytesRemain()) {
       goto fail;
     }
 
-    sec.nameOffset = currentOffset();
-    sec.payloadOffset = sec.nameOffset + sec.nameLength;
+    secRange.nameOffset = currentOffset();
+    secRange.payloadOffset = secRange.nameOffset + secRange.nameLength;
 
     uint32_t payloadEnd = (*range)->start + (*range)->size;
-    if (sec.payloadOffset > payloadEnd) {
+    if (secRange.payloadOffset > payloadEnd) {
       goto fail;
     }
 
-    sec.payloadLength = payloadEnd - sec.payloadOffset;
+    secRange.payloadLength = payloadEnd - secRange.payloadOffset;
 
     // Now that we have a valid custom section, record its offsets in the
     // metadata which can be queried by the user via Module.customSections.
     // Note: after an entry is appended, it may be popped if this loop or
     // the loop in startSection needs to rewind.
-    if (!moduleMeta->customSections.append(sec)) {
+    if (!moduleMeta->customSectionRanges.append(secRange)) {
       return false;
     }
 
     // If this is the expected custom section, we're done.
-    if (!expected || (expectedLength == sec.nameLength &&
-                      !memcmp(cur_, expected, sec.nameLength))) {
-      cur_ += sec.nameLength;
+    if (!expected || (expectedLength == secRange.nameLength &&
+                      !memcmp(cur_, expected, secRange.nameLength))) {
+      cur_ += secRange.nameLength;
       return true;
     }
 
@@ -220,7 +221,7 @@ bool Decoder::startCustomSection(const char* expected, size_t expectedLength,
 
 rewind:
   cur_ = initialCur;
-  moduleMeta->customSections.shrinkTo(initialCustomSectionsLength);
+  moduleMeta->customSectionRanges.shrinkTo(initialCustomSectionsLength);
   return true;
 
 fail:

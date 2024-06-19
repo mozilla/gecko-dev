@@ -3199,47 +3199,47 @@ static bool DecodeDataSection(Decoder& d, ModuleMetadata* moduleMeta) {
       return d.fail("active data segment requires a memory section");
     }
 
-    DataSegmentEnv seg;
+    DataSegmentRange segRange;
     if (initializerKind == DataSegmentKind::ActiveWithMemoryIndex) {
-      if (!d.readVarU32(&seg.memoryIndex)) {
+      if (!d.readVarU32(&segRange.memoryIndex)) {
         return d.fail("expected memory index");
       }
     } else if (initializerKind == DataSegmentKind::Active) {
-      seg.memoryIndex = 0;
+      segRange.memoryIndex = 0;
     } else {
-      seg.memoryIndex = InvalidMemoryIndex;
+      segRange.memoryIndex = InvalidMemoryIndex;
     }
 
     if (initializerKind == DataSegmentKind::Active ||
         initializerKind == DataSegmentKind::ActiveWithMemoryIndex) {
-      if (seg.memoryIndex >= moduleMeta->numMemories()) {
+      if (segRange.memoryIndex >= moduleMeta->numMemories()) {
         return d.fail("invalid memory index");
       }
 
       InitExpr segOffset;
       ValType exprType =
-          ToValType(moduleMeta->memories[seg.memoryIndex].indexType());
+          ToValType(moduleMeta->memories[segRange.memoryIndex].indexType());
       if (!InitExpr::decodeAndValidate(d, moduleMeta, exprType, &segOffset)) {
         return false;
       }
-      seg.offsetIfActive.emplace(std::move(segOffset));
+      segRange.offsetIfActive.emplace(std::move(segOffset));
     }
 
-    if (!d.readVarU32(&seg.length)) {
+    if (!d.readVarU32(&segRange.length)) {
       return d.fail("expected segment size");
     }
 
-    if (seg.length > MaxDataSegmentLengthPages * PageSize) {
+    if (segRange.length > MaxDataSegmentLengthPages * PageSize) {
       return d.fail("segment size too big");
     }
 
-    seg.bytecodeOffset = d.currentOffset();
+    segRange.bytecodeOffset = d.currentOffset();
 
-    if (!d.readBytes(seg.length)) {
+    if (!d.readBytes(segRange.length)) {
       return d.fail("data segment shorter than declared");
     }
 
-    if (!moduleMeta->dataSegments.append(std::move(seg))) {
+    if (!moduleMeta->dataSegmentRanges.append(std::move(segRange))) {
       return false;
     }
   }
@@ -3248,7 +3248,7 @@ static bool DecodeDataSection(Decoder& d, ModuleMetadata* moduleMeta) {
 }
 
 static bool DecodeModuleNameSubsection(Decoder& d,
-                                       const CustomSectionEnv& nameSection,
+                                       const CustomSectionRange& nameSection,
                                        ModuleMetadata* moduleMeta) {
   Maybe<uint32_t> endOffset;
   if (!d.startNameSubsection(NameType::Module, &endOffset)) {
@@ -3282,7 +3282,7 @@ static bool DecodeModuleNameSubsection(Decoder& d,
 }
 
 static bool DecodeFunctionNameSubsection(Decoder& d,
-                                         const CustomSectionEnv& nameSection,
+                                         const CustomSectionRange& nameSection,
                                          ModuleMetadata* moduleMeta) {
   Maybe<uint32_t> endOffset;
   if (!d.startNameSubsection(NameType::Function, &endOffset)) {
@@ -3355,8 +3355,9 @@ static bool DecodeNameSection(Decoder& d, ModuleMetadata* moduleMeta) {
   }
 
   moduleMeta->nameCustomSectionIndex =
-      Some(moduleMeta->customSections.length() - 1);
-  const CustomSectionEnv& nameSection = moduleMeta->customSections.back();
+      Some(moduleMeta->customSectionRanges.length() - 1);
+  const CustomSectionRange& nameSection =
+      moduleMeta->customSectionRanges.back();
 
   // Once started, custom sections do not report validation errors.
 
