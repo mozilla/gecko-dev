@@ -97,4 +97,9 @@ object FeatureFlags {
      * Enables the Compose Homepage.
      */
     const val composeHomepage = false
+
+    /**
+     * Enables Homepage as a New Tab.
+     */
+    const val homepageAsNewTab = false
 }

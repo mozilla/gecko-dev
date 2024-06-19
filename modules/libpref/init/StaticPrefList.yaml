@@ -15166,6 +15166,12 @@
   mirror: always
   rust: true
 
+- name: security.tls.client_hello.send_p256_keyshare
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+  rust: true
+
 - name: security.tls.enable_certificate_compression_zlib
   type: RelaxedAtomicBool
   value: @IS_NIGHTLY_BUILD@

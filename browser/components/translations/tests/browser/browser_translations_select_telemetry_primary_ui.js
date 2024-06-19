@@ -46,6 +46,7 @@ add_task(
           from_language: "es",
           to_language: "en",
           top_preferred_language: "en",
+          text_source: "selection",
         },
       }
     );
@@ -86,6 +87,17 @@ add_task(
       downloadHandler: resolveDownloads,
       onChangeLanguage: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
+    await TestTranslationsTelemetry.assertEvent(
+      Glean.translationsSelectTranslationsPanel.changeFromLanguage,
+      {
+        expectedEventCount: 1,
+        assertForMostRecentEvent: {
+          language: "fi",
+          previous_language: "es",
+          document_language: "es",
+        },
+      }
+    );
     await TestTranslationsTelemetry.assertLabeledCounter(
       Glean.translations.requestCount,
       [
@@ -150,6 +162,7 @@ add_task(
           from_language: "es",
           to_language: "en",
           top_preferred_language: "en",
+          text_source: "selection",
         },
       }
     );
@@ -183,6 +196,15 @@ add_task(
       downloadHandler: resolveDownloads,
       onChangeLanguage: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
+    await TestTranslationsTelemetry.assertEvent(
+      Glean.translationsSelectTranslationsPanel.changeToLanguage,
+      {
+        expectedEventCount: 1,
+        assertForMostRecentEvent: {
+          language: "fa",
+        },
+      }
+    );
     await TestTranslationsTelemetry.assertLabeledCounter(
       Glean.translations.requestCount,
       [

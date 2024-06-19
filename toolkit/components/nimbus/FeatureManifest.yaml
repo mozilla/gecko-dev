@@ -3127,6 +3127,13 @@ pqcrypto:
         pref: network.http.http3.enable_kyber
       description: >-
         Whether to enable Xyber768 for H3/QUIC.
+    sendP256:
+      type: boolean
+      setPref:
+        branch: default
+        pref: security.tls.client_hello.send_p256_keyshare
+      description: >-
+        Whether to send a P256 share in the client hello in QUIC and TLS.
 
 dtlsWebRTC:
   description: Pref that controls the use of DTLS.

@@ -89,6 +89,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
+        requirePreference<SwitchPreference>(R.string.pref_key_enable_homepage_as_new_tab).apply {
+            isVisible = Config.channel.isNightlyOrDebug
+            isChecked = context.settings().enableHomepageAsNewTab
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreference>(R.string.pref_key_enable_fxsuggest).apply {
             isVisible = FeatureFlags.fxSuggest
             isChecked = context.settings().enableFxSuggest

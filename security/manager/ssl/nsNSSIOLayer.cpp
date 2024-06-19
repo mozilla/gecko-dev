@@ -1553,9 +1553,11 @@ static nsresult nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
     }
   }
 
-  // Include a modest set of named groups.
-  // Please change getKeaGroupName in nsNSSCallbacks.cpp when changing the lists
-  // here.
+  // Include a modest set of named groups in supported_groups and determine how
+  // many key shares to send. Please change getKeaGroupName in
+  // nsNSSCallbacks.cpp when changing the lists here.
+  unsigned int additional_shares =
+      StaticPrefs::security_tls_client_hello_send_p256_keyshare();
   if (StaticPrefs::security_tls_enable_kyber() &&
       range.max >= SSL_LIBRARY_VERSION_TLS_1_3 &&
       !(infoObject->GetProviderFlags() &
@@ -1568,11 +1570,7 @@ static nsresult nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
                                            mozilla::ArrayLength(namedGroups))) {
       return NS_ERROR_FAILURE;
     }
-    // This ensures that we send key shares for Xyber768D00, X25519, and P-256
-    // in TLS 1.3, so that servers are less likely to use HelloRetryRequest.
-    if (SECSuccess != SSL_SendAdditionalKeyShares(fd, 2)) {
-      return NS_ERROR_FAILURE;
-    }
+    additional_shares += 1;
     infoObject->WillSendXyberShare();
   } else {
     const SSLNamedGroup namedGroups[] = {
@@ -1583,11 +1581,13 @@ static nsresult nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
                                            mozilla::ArrayLength(namedGroups))) {
       return NS_ERROR_FAILURE;
     }
-    // This ensures that we send key shares for X25519 and P-256 in TLS 1.3, so
-    // that servers are less likely to use HelloRetryRequest.
-    if (SECSuccess != SSL_SendAdditionalKeyShares(fd, 1)) {
-      return NS_ERROR_FAILURE;
-    }
+  }
+
+  // If additional_shares == 2, send Xyber768D00, X25519, and P-256.
+  // If additional_shares == 1, send {Xyber768D00, X25519} or {X25519, P-256}.
+  // If additional_shares == 0, send X25519.
+  if (SECSuccess != SSL_SendAdditionalKeyShares(fd, additional_shares)) {
+    return NS_ERROR_FAILURE;
   }
 
   // Enabling Certificate Compression Decoding mechanisms.

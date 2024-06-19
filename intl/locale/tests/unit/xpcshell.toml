@@ -18,4 +18,3 @@ skip-if = ["os == 'android'"] # bug 1309447
 ["test_localeService_negotiateLanguages.js"]
 
 ["test_osPreferences.js"]
-skip-if = ["os == 'android'"] # bug 1344596

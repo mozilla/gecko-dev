@@ -1891,6 +1891,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if the Homepage as a New Tab is enabled.
+     */
+    var enableHomepageAsNewTab by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_homepage_as_new_tab),
+        default = FeatureFlags.homepageAsNewTab,
+    )
+
+    /**
      * Adjust Activated User sent
      */
     var growthUserActivatedSent by booleanPreference(

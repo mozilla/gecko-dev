@@ -7594,6 +7594,8 @@ void PrepareDatastoreOp::DirectoryLockAcquired(DirectoryLock* aLock) {
 
   mPendingDirectoryLock = nullptr;
 
+  mDirectoryLock = aLock;
+
   if (NS_WARN_IF(QuotaClient::IsShuttingDownOnBackgroundThread()) ||
       !MayProceed()) {
     MaybeSetFailureCode(NS_ERROR_ABORT);
@@ -7602,8 +7604,6 @@ void PrepareDatastoreOp::DirectoryLockAcquired(DirectoryLock* aLock) {
 
     return;
   }
-
-  mDirectoryLock = aLock;
 
   SendToIOThread();
 }

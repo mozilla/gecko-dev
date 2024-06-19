@@ -78,6 +78,8 @@
     <string name="preferences_debug_settings_compose_top_sites" translatable="false">Enable Compose Top Sites</string>
     <!-- Label for enabling the Compose Homepage -->
     <string name="preferences_debug_settings_compose_homepage" translatable="false">Enable Compose Homepage</string>
+    <!-- Label for enabling Homepage as a New Tab -->
+    <string name="preferences_debug_settings_homepage_as_new_tab" translatable="false">Enable Homepage as a New Tab</string>
     <!-- Label for enabling the menu redesign -->
     <string name="preferences_debug_settings_menu_redesign" translatable="false">Enable Menu Redesign</string>
     <!-- Label for enabling Firefox Suggest -->

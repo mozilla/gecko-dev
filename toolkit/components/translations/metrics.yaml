@@ -242,7 +242,7 @@ translations.panel:
       Triggers when the from-language selected value is changed.
     extra_keys:
       flow_id: *flow_id
-      language:
+      language: &language
         type: string
         description: >
           - The BCP47 language tag.
@@ -300,10 +300,7 @@ translations.panel:
       Triggers when the to-language selected value is changed.
     extra_keys:
       flow_id: *flow_id
-      language:
-        type: string
-        description: >
-          - The BCP47 language tag.
+      language: *language
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1845428
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1861319
@@ -488,10 +485,7 @@ translations.panel:
       Triggers when the always-translate-language menuitem is invoked in the full-page translations panel settings.
     extra_keys:
       flow_id: *flow_id
-      language:
-        type: string
-        description: >
-          - The BCP47 language tag.
+      language: *language
       toggled_on:
         type: boolean
         description: >
@@ -514,10 +508,7 @@ translations.panel:
       Triggers when the never-translate-language menuitem is invoked in the full-page translations panel settings.
     extra_keys:
       flow_id: *flow_id
-      language:
-        type: string
-        description: >
-          - The BCP47 language tag.
+      language: *language
       toggled_on:
         type: boolean
         description: >
@@ -621,10 +612,15 @@ translations.select_translations_panel:
       from_language: *from_language
       to_language: *to_language
       top_preferred_language: *top_preferred_language
+      text_source:
+        type: string
+        description: The source that the text was pulled from, either "selection" or "hyperlink".
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1870367
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903393
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1870367
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903393
     data_sensitivity:
       - interaction
     notification_emails:
@@ -701,10 +697,17 @@ translations.select_translations_panel:
       Triggers when the translate button is invoked in the select translations panel.
     extra_keys:
       flow_id: *flow_id
+      from_language: *from_language
+      to_language: *to_language
+      detected_language: &detected_language
+        type: string
+        description: The detected language of the selected text to be translated.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1870367
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903392
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1870367
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903392
     data_sensitivity:
       - interaction
     notification_emails:
@@ -737,6 +740,45 @@ translations.select_translations_panel:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1870367
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1870367
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - translations-telemetry-alerts@mozilla.com
+    expires: never
+
+  change_from_language:
+    type: event
+    description: >
+      Triggers when the from-language selected value is changed.
+    extra_keys:
+      flow_id: *flow_id
+      language: *language
+      document_language: *language
+      previous_language:
+        type: string
+        description: >
+          - The BCP47 language tag of the previously selected language.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903391
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903391
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - translations-telemetry-alerts@mozilla.com
+    expires: never
+
+  change_to_language:
+    type: event
+    description: >
+      Triggers when the to-language selected value is changed.
+    extra_keys:
+      flow_id: *flow_id
+      language: *language
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903391
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903391
     data_sensitivity:
       - interaction
     notification_emails:
@@ -832,9 +874,7 @@ translations.select_translations_panel:
     extra_keys:
       flow_id: *flow_id
       document_language: *document_language
-      detected_language:
-        type: string
-        description: The detected language of the selected text to be translated.
+      detected_language: *detected_language
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1870367
     data_reviews:

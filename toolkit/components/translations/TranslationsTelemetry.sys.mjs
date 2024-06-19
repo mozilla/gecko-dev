@@ -409,6 +409,7 @@ class SelectTranslationsPanelTelemetry {
    * @param {string} data.fromLanguage
    * @param {string} data.toLanguage
    * @param {string} data.topPreferredLanguage
+   * @param {string} data.textSource
    */
   static onOpen(data) {
     Glean.translationsSelectTranslationsPanel.open.record({
@@ -419,6 +420,7 @@ class SelectTranslationsPanelTelemetry {
       from_language: data.fromLanguage,
       to_language: data.toLanguage,
       top_preferred_language: data.topPreferredLanguage,
+      text_source: data.textSource,
     });
     TranslationsTelemetry.logEventToConsole(
       SelectTranslationsPanelTelemetry.onOpen,
@@ -462,12 +464,20 @@ class SelectTranslationsPanelTelemetry {
     );
   }
 
-  static onTranslateButton() {
+  static onTranslateButton({ detectedLanguage, fromLanguage, toLanguage }) {
     Glean.translationsSelectTranslationsPanel.translateButton.record({
       flow_id: TranslationsTelemetry.getOrCreateFlowId(),
+      detected_language: detectedLanguage,
+      from_language: fromLanguage,
+      to_language: toLanguage,
     });
     TranslationsTelemetry.logEventToConsole(
-      SelectTranslationsPanelTelemetry.onTranslateButton
+      SelectTranslationsPanelTelemetry.onTranslateButton,
+      {
+        detectedLanguage,
+        fromLanguage,
+        toLanguage,
+      }
     );
   }
 
@@ -486,6 +496,30 @@ class SelectTranslationsPanelTelemetry {
     });
     TranslationsTelemetry.logEventToConsole(
       SelectTranslationsPanelTelemetry.onTryAgainButton
+    );
+  }
+
+  static onChangeFromLanguage({ previousLangTag, currentLangTag, docLangTag }) {
+    Glean.translationsSelectTranslationsPanel.changeFromLanguage.record({
+      flow_id: TranslationsTelemetry.getOrCreateFlowId(),
+      document_language: docLangTag,
+      previous_language: previousLangTag,
+      language: currentLangTag,
+    });
+    TranslationsTelemetry.logEventToConsole(
+      SelectTranslationsPanelTelemetry.onChangeFromLanguage,
+      { previousLangTag, currentLangTag, docLangTag }
+    );
+  }
+
+  static onChangeToLanguage(langTag) {
+    Glean.translationsSelectTranslationsPanel.changeToLanguage.record({
+      flow_id: TranslationsTelemetry.getOrCreateFlowId(),
+      language: langTag,
+    });
+    TranslationsTelemetry.logEventToConsole(
+      SelectTranslationsPanelTelemetry.onChangeToLanguage,
+      { langTag }
     );
   }
 
