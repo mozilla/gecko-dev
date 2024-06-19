@@ -46,6 +46,17 @@ Logging output
 
    (`:trace --logMethod console`)
 
+ * Profiler record
+
+   The JS Tracer will log all JS function calls in the background. When you stop tracing,
+   the traces will be shown in a new tab loading the `Firefox Profiler <https://profiler.firefox.com>`_ UI.
+   From there, you can see the traces via the Stack Chart panel,
+   and also upload the traces in order to share it with someone.
+
+   |image4|
+
+   (`:trace --logMethod profiler`)
+
  * Stdout
 
    The JS Tracer will log all JS function calls in your terminal (assuming you launched Firefox from a terminal).
@@ -71,6 +82,10 @@ Logging output
 
 .. |image2| image:: console-trace.png
   :class: border
+  :alt: The JS Traces displayed in the Web Console
+.. |image4| image:: profiler-trace.png
+  :class: border
+  :alt: The JS Traces displayed in the Firefox Profiler UI
 
 Delayed start
 -------------
@@ -103,6 +118,9 @@ Tracing function returns
 You may optionally log function returns, i.e. the precise execution ordering when a function ends and returns.
 This is disabled by default as it doubles the output of the tracer.
 
+Note that this option is enabled by default for the profiler output, without any major performance hit,
+in order to properly record each function call duration.
+
 .. image:: trace-returns.png
 
 (`:trace --returns`)
@@ -112,6 +130,8 @@ Tracing values
 
 You may optionally display all function call arguments as well as function return values (if enabled).
 This is disabled by default as it complexify the output of the tracer, making it slower and less readable.
+
+Note that the profiler output doesn't support this feature.
 
 .. image:: trace-returns-with-values.png
 
