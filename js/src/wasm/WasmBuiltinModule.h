@@ -125,15 +125,13 @@ Maybe<const BuiltinModuleFunc*> ImportMatchesBuiltinModuleFunc(
 
 // Compile and return the builtin module for a particular
 // builtin module.
-[[nodiscard]] bool CompileBuiltinModule(
-    JSContext* cx, BuiltinModuleId module,
-    MutableHandle<WasmModuleObject*> result);
+bool CompileBuiltinModule(JSContext* cx, BuiltinModuleId module,
+                          MutableHandle<WasmModuleObject*> result);
 
 // Compile, instantiate and return the builtin module instance for a particular
 // builtin module.
-[[nodiscard]] bool InstantiateBuiltinModule(JSContext* cx,
-                                            BuiltinModuleId module,
-                                            MutableHandle<JSObject*> result);
+bool InstantiateBuiltinModule(JSContext* cx, BuiltinModuleId module,
+                              MutableHandle<JSObject*> result);
 
 }  // namespace wasm
 }  // namespace js

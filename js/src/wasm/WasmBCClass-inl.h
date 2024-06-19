@@ -26,15 +26,15 @@ namespace js {
 namespace wasm {
 
 const FuncType& BaseCompiler::funcType() const {
-  return *codeMeta_.funcs[func_.index].type;
+  return *moduleEnv_.funcs[func_.index].type;
 }
 
 bool BaseCompiler::usesMemory() const {
-  return codeMeta_.memories.length() > 0;
+  return moduleEnv_.memories.length() > 0;
 }
 
 bool BaseCompiler::usesSharedMemory(uint32_t memoryIndex) const {
-  return codeMeta_.usesSharedMemory(memoryIndex);
+  return moduleEnv_.usesSharedMemory(memoryIndex);
 }
 
 const Local& BaseCompiler::localFromSlot(uint32_t slot, MIRType type) {
@@ -47,15 +47,15 @@ BytecodeOffset BaseCompiler::bytecodeOffset() const {
 }
 
 bool BaseCompiler::isMem32(uint32_t memoryIndex) const {
-  return codeMeta_.memories[memoryIndex].indexType() == IndexType::I32;
+  return moduleEnv_.memories[memoryIndex].indexType() == IndexType::I32;
 }
 
 bool BaseCompiler::isMem64(uint32_t memoryIndex) const {
-  return codeMeta_.memories[memoryIndex].indexType() == IndexType::I64;
+  return moduleEnv_.memories[memoryIndex].indexType() == IndexType::I64;
 }
 
 bool BaseCompiler::hugeMemoryEnabled(uint32_t memoryIndex) const {
-  return codeMeta_.hugeMemoryEnabled(memoryIndex);
+  return moduleEnv_.hugeMemoryEnabled(memoryIndex);
 }
 
 uint32_t BaseCompiler::instanceOffsetOfMemoryBase(uint32_t memoryIndex) const {
@@ -63,7 +63,7 @@ uint32_t BaseCompiler::instanceOffsetOfMemoryBase(uint32_t memoryIndex) const {
     return Instance::offsetOfMemory0Base();
   }
   return Instance::offsetInData(
-      codeMeta_.offsetOfMemoryInstanceData(memoryIndex) +
+      moduleEnv_.offsetOfMemoryInstanceData(memoryIndex) +
       offsetof(MemoryInstanceData, base));
 }
 
@@ -73,7 +73,7 @@ uint32_t BaseCompiler::instanceOffsetOfBoundsCheckLimit(
     return Instance::offsetOfMemory0BoundsCheckLimit();
   }
   return Instance::offsetInData(
-      codeMeta_.offsetOfMemoryInstanceData(memoryIndex) +
+      moduleEnv_.offsetOfMemoryInstanceData(memoryIndex) +
       offsetof(MemoryInstanceData, boundsCheckLimit));
 }
 

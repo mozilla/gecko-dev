@@ -146,12 +146,11 @@ static bool IsWasmSuspendingWrapper(const Value& v) {
 
 bool js::wasm::GetImports(JSContext* cx, const Module& module,
                           HandleObject importObj, ImportValues* imports) {
-  const ModuleMetadata& moduleMeta = module.moduleMeta();
-  const CodeMetadata& codeMeta = module.codeMeta();
-
-  if (!moduleMeta.imports.empty() && !importObj) {
+  if (!module.imports().empty() && !importObj) {
     return ThrowBadImportArg(cx);
   }
+
+  const Metadata& metadata = module.metadata();
 
   BuiltinModuleInstances builtinInstances(cx);
   RootedValue importModuleValue(cx);
@@ -159,14 +158,14 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
   RootedValue importFieldValue(cx);
 
   uint32_t tagIndex = 0;
-  const TagDescVector& tags = codeMeta.tags;
+  const TagDescVector& tags = metadata.tags;
   uint32_t globalIndex = 0;
-  const GlobalDescVector& globals = codeMeta.globals;
+  const GlobalDescVector& globals = metadata.globals;
   uint32_t tableIndex = 0;
-  const TableDescVector& tables = codeMeta.tables;
-  for (const Import& import : moduleMeta.imports) {
+  const TableDescVector& tables = metadata.tables;
+  for (const Import& import : module.imports()) {
     Maybe<BuiltinModuleId> builtinModule = ImportMatchesBuiltinModule(
-        import.module.utf8Bytes(), codeMeta.features.builtinModules);
+        import.module.utf8Bytes(), metadata.builtinModules);
     if (builtinModule) {
       MutableHandle<JSObject*> builtinInstance =
           builtinInstances[*builtinModule];
@@ -1117,15 +1116,13 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  const ModuleMetadata& moduleMeta = module->moduleMeta();
-
   RootedValueVector elems(cx);
-  if (!elems.reserve(moduleMeta.imports.length())) {
+  if (!elems.reserve(module->imports().length())) {
     return false;
   }
 
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
-  const CodeMetadata& codeMeta = module->codeMeta();
+  const Metadata& metadata = module->metadata();
   const MetadataTier& metadataTier =
       module->metadata(module->code().stableTier());
 
@@ -1136,7 +1133,7 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
   size_t numTagImport = 0;
 #endif  // ENABLE_WASM_TYPE_REFLECTIONS
 
-  for (const Import& import : moduleMeta.imports) {
+  for (const Import& import : module->imports()) {
     Rooted<IdValueVector> props(cx, IdValueVector(cx));
     if (!props.reserve(3)) {
       return false;
@@ -1169,20 +1166,20 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
       case DefinitionKind::Function: {
         size_t funcIndex = numFuncImport++;
         const FuncType& funcType =
-            codeMeta.getFuncImportType(metadataTier.funcImports[funcIndex]);
+            metadata.getFuncImportType(metadataTier.funcImports[funcIndex]);
         typeObj = FuncTypeToObject(cx, funcType);
         break;
       }
       case DefinitionKind::Table: {
         size_t tableIndex = numTableImport++;
-        const TableDesc& table = codeMeta.tables[tableIndex];
+        const TableDesc& table = metadata.tables[tableIndex];
         typeObj = TableTypeToObject(cx, table.elemType, table.initialLength,
                                     table.maximumLength);
         break;
       }
       case DefinitionKind::Memory: {
         size_t memoryIndex = numMemoryImport++;
-        const MemoryDesc& memory = codeMeta.memories[memoryIndex];
+        const MemoryDesc& memory = metadata.memories[memoryIndex];
         typeObj =
             MemoryTypeToObject(cx, memory.isShared(), memory.indexType(),
                                memory.initialPages(), memory.maximumPages());
@@ -1190,13 +1187,13 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
       }
       case DefinitionKind::Global: {
         size_t globalIndex = numGlobalImport++;
-        const GlobalDesc& global = codeMeta.globals[globalIndex];
+        const GlobalDesc& global = metadata.globals[globalIndex];
         typeObj = GlobalTypeToObject(cx, global.type(), global.isMutable());
         break;
       }
       case DefinitionKind::Tag: {
         size_t tagIndex = numTagImport++;
-        const TagDesc& tag = codeMeta.tags[tagIndex];
+        const TagDesc& tag = metadata.tags[tagIndex];
         typeObj = TagTypeToObject(cx, tag.type->argTypes());
         break;
       }
@@ -1240,20 +1237,18 @@ bool WasmModuleObject::exports(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  const ModuleMetadata& moduleMeta = module->moduleMeta();
-
   RootedValueVector elems(cx);
-  if (!elems.reserve(moduleMeta.exports.length())) {
+  if (!elems.reserve(module->exports().length())) {
     return false;
   }
 
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
-  const CodeMetadata& codeMeta = module->codeMeta();
+  const Metadata& metadata = module->metadata();
   const MetadataTier& metadataTier =
       module->metadata(module->code().stableTier());
 #endif  // ENABLE_WASM_TYPE_REFLECTIONS
 
-  for (const Export& exp : moduleMeta.exports) {
+  for (const Export& exp : module->exports()) {
     Rooted<IdValueVector> props(cx, IdValueVector(cx));
     if (!props.reserve(2)) {
       return false;
@@ -1278,30 +1273,30 @@ bool WasmModuleObject::exports(JSContext* cx, unsigned argc, Value* vp) {
     switch (exp.kind()) {
       case DefinitionKind::Function: {
         const FuncExport& fe = metadataTier.lookupFuncExport(exp.funcIndex());
-        const FuncType& funcType = codeMeta.getFuncExportType(fe);
+        const FuncType& funcType = metadata.getFuncExportType(fe);
         typeObj = FuncTypeToObject(cx, funcType);
         break;
       }
       case DefinitionKind::Table: {
-        const TableDesc& table = codeMeta.tables[exp.tableIndex()];
+        const TableDesc& table = metadata.tables[exp.tableIndex()];
         typeObj = TableTypeToObject(cx, table.elemType, table.initialLength,
                                     table.maximumLength);
         break;
       }
       case DefinitionKind::Memory: {
-        const MemoryDesc& memory = codeMeta.memories[exp.memoryIndex()];
+        const MemoryDesc& memory = metadata.memories[exp.memoryIndex()];
         typeObj =
             MemoryTypeToObject(cx, memory.isShared(), memory.indexType(),
                                memory.initialPages(), memory.maximumPages());
         break;
       }
       case DefinitionKind::Global: {
-        const GlobalDesc& global = codeMeta.globals[exp.globalIndex()];
+        const GlobalDesc& global = metadata.globals[exp.globalIndex()];
         typeObj = GlobalTypeToObject(cx, global.type(), global.isMutable());
         break;
       }
       case DefinitionKind::Tag: {
-        const TagDesc& tag = codeMeta.tags[exp.tagIndex()];
+        const TagDesc& tag = metadata.tags[exp.tagIndex()];
         typeObj = TagTypeToObject(cx, tag.type->argTypes());
         break;
       }
@@ -2125,7 +2120,7 @@ bool WasmInstanceObject::getExportedFunction(
   const FuncExport& funcExport =
       instance.metadata(instance.code().bestTier()).lookupFuncExport(funcIndex);
   const TypeDef& funcTypeDef =
-      instance.codeMeta().getFuncExportTypeDef(funcExport);
+      instance.metadata().getFuncExportTypeDef(funcExport);
   unsigned numArgs = funcTypeDef.funcType().args().length();
 
   if (instance.isAsmJS()) {
@@ -4093,7 +4088,7 @@ bool WasmFunctionTypeImpl(JSContext* cx, const CallArgs& args) {
   Instance& instance = instanceObj->instance();
   const FuncExport& fe =
       instance.metadata(instance.code().bestTier()).lookupFuncExport(funcIndex);
-  const FuncType& funcType = instance.codeMeta().getFuncExportType(fe);
+  const FuncType& funcType = instance.metadata().getFuncExportType(fe);
   RootedObject typeObj(cx, FuncTypeToObject(cx, funcType));
   if (!typeObj) {
     return false;
@@ -4127,47 +4122,39 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
     return nullptr;
   }
 
-  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta) {
-    return nullptr;
-  }
-  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(compileArgs->features);
-  if (!codeMeta) {
-    return nullptr;
-  }
+  ModuleEnvironment moduleEnv(compileArgs->features);
   CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters();
 
-  if (!codeMeta->init()) {
+  if (!moduleEnv.init()) {
     return nullptr;
   }
 
   FuncType funcType = FuncType(std::move(params), std::move(results));
-  if (!codeMeta->types->addType(std::move(funcType))) {
+  if (!moduleEnv.types->addType(std::move(funcType))) {
     return nullptr;
   }
 
   // Add an (import (func ...))
-  FuncDesc funcDesc = FuncDesc(&(*codeMeta->types)[0].funcType(), 0);
-  if (!codeMeta->funcs.append(funcDesc)) {
+  FuncDesc funcDesc = FuncDesc(&(*moduleEnv.types)[0].funcType(), 0);
+  if (!moduleEnv.funcs.append(funcDesc)) {
     return nullptr;
   }
-  codeMeta->numFuncImports = 1;
+  moduleEnv.numFuncImports = 1;
 
   // Add an (export (func 0))
-  codeMeta->declareFuncExported(0, /* eager */ true,
-                                /* canRefFunc */ true);
+  moduleEnv.declareFuncExported(0, /* eager */ true, /* canRefFunc */ true);
 
   // We will be looking up and using the function in the future by index so the
   // name doesn't matter.
   CacheableName fieldName;
-  if (!moduleMeta->exports.emplaceBack(std::move(fieldName), 0,
-                                       DefinitionKind::Function)) {
+  if (!moduleEnv.exports.emplaceBack(std::move(fieldName), 0,
+                                     DefinitionKind::Function)) {
     return nullptr;
   }
 
-  ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv, nullptr, nullptr,
+  ModuleGenerator mg(*compileArgs, &moduleEnv, &compilerEnv, nullptr, nullptr,
                      nullptr);
   if (!mg.init(nullptr)) {
     return nullptr;
@@ -4180,8 +4167,7 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
   if (!shareableBytes) {
     return nullptr;
   }
-  SharedModule module = mg.finishModule(*shareableBytes, moduleMeta,
-                                        /*maybeTier2Listener=*/nullptr);
+  SharedModule module = mg.finishModule(*shareableBytes);
   if (!module) {
     return nullptr;
   }

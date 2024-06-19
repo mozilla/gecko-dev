@@ -11466,7 +11466,7 @@ AttachDecision CallIRGenerator::tryAttachWasmCall(HandleFunction calleeFunc) {
   auto bestTier = inst.code().bestTier();
   const wasm::FuncExport& funcExport =
       inst.metadata(bestTier).lookupFuncExport(funcIndex);
-  const wasm::FuncType& sig = inst.codeMeta().getFuncExportType(funcExport);
+  const wasm::FuncType& sig = inst.metadata().getFuncExportType(funcExport);
 
   MOZ_ASSERT(!IsInsideNursery(inst.object()));
   MOZ_ASSERT(sig.canHaveJitEntry(), "Function should allow a Wasm JitEntry");

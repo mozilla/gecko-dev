@@ -48,15 +48,13 @@ using WasmGlobalObjectVector =
     GCVector<WasmGlobalObject*, 0, SystemAllocPolicy>;
 using WasmTagObjectVector = GCVector<WasmTagObject*, 0, SystemAllocPolicy>;
 
-struct CodeMetadataForAsmJS;
-
 namespace wasm {
 
-struct ModuleMetadata;
-struct CodeMetadata;
+struct ModuleEnvironment;
 class CodeRange;
 class CodeTier;
 class ModuleSegment;
+struct Metadata;
 struct MetadataTier;
 class Decoder;
 class GeneratedSourceMap;

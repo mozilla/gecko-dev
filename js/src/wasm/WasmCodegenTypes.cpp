@@ -237,29 +237,29 @@ CallIndirectId CallIndirectId::forAsmJSFunc() {
   return CallIndirectId(CallIndirectIdKind::AsmJS);
 }
 
-CallIndirectId CallIndirectId::forFunc(const CodeMetadata& codeMeta,
+CallIndirectId CallIndirectId::forFunc(const ModuleEnvironment& moduleEnv,
                                        uint32_t funcIndex) {
   // asm.js tables are homogenous and don't require a signature check
-  if (codeMeta.isAsmJS()) {
+  if (moduleEnv.isAsmJS()) {
     return CallIndirectId::forAsmJSFunc();
   }
 
-  FuncDesc func = codeMeta.funcs[funcIndex];
+  FuncDesc func = moduleEnv.funcs[funcIndex];
   if (!func.canRefFunc()) {
     return CallIndirectId();
   }
-  return CallIndirectId::forFuncType(codeMeta,
-                                     codeMeta.funcs[funcIndex].typeIndex);
+  return CallIndirectId::forFuncType(moduleEnv,
+                                     moduleEnv.funcs[funcIndex].typeIndex);
 }
 
-CallIndirectId CallIndirectId::forFuncType(const CodeMetadata& codeMeta,
+CallIndirectId CallIndirectId::forFuncType(const ModuleEnvironment& moduleEnv,
                                            uint32_t funcTypeIndex) {
   // asm.js tables are homogenous and don't require a signature check
-  if (codeMeta.isAsmJS()) {
+  if (moduleEnv.isAsmJS()) {
     return CallIndirectId::forAsmJSFunc();
   }
 
-  const TypeDef& typeDef = codeMeta.types->type(funcTypeIndex);
+  const TypeDef& typeDef = moduleEnv.types->type(funcTypeIndex);
   const FuncType& funcType = typeDef.funcType();
   CallIndirectId callIndirectId;
   if (funcType.hasImmediateTypeId()) {
@@ -268,7 +268,7 @@ CallIndirectId CallIndirectId::forFuncType(const CodeMetadata& codeMeta,
   } else {
     callIndirectId.kind_ = CallIndirectIdKind::Global;
     callIndirectId.global_.instanceDataOffset_ =
-        codeMeta.offsetOfTypeDef(funcTypeIndex);
+        moduleEnv.offsetOfTypeDef(funcTypeIndex);
     callIndirectId.global_.hasSuperType_ = typeDef.superTypeDef() != nullptr;
   }
   return callIndirectId;
@@ -286,24 +286,24 @@ CalleeDesc CalleeDesc::import(uint32_t instanceDataOffset) {
   c.u.import.instanceDataOffset_ = instanceDataOffset;
   return c;
 }
-CalleeDesc CalleeDesc::wasmTable(const CodeMetadata& codeMeta,
+CalleeDesc CalleeDesc::wasmTable(const ModuleEnvironment& moduleEnv,
                                  const TableDesc& desc, uint32_t tableIndex,
                                  CallIndirectId callIndirectId) {
   CalleeDesc c;
   c.which_ = WasmTable;
   c.u.table.instanceDataOffset_ =
-      codeMeta.offsetOfTableInstanceData(tableIndex);
+      moduleEnv.offsetOfTableInstanceData(tableIndex);
   c.u.table.minLength_ = desc.initialLength;
   c.u.table.maxLength_ = desc.maximumLength;
   c.u.table.callIndirectId_ = callIndirectId;
   return c;
 }
-CalleeDesc CalleeDesc::asmJSTable(const CodeMetadata& codeMeta,
+CalleeDesc CalleeDesc::asmJSTable(const ModuleEnvironment& moduleEnv,
                                   uint32_t tableIndex) {
   CalleeDesc c;
   c.which_ = AsmJSTable;
   c.u.table.instanceDataOffset_ =
-      codeMeta.offsetOfTableInstanceData(tableIndex);
+      moduleEnv.offsetOfTableInstanceData(tableIndex);
   return c;
 }
 CalleeDesc CalleeDesc::builtin(SymbolicAddress callee) {

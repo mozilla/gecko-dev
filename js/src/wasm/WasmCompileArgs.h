@@ -117,8 +117,7 @@ struct FeatureArgs {
 #undef WASM_FEATURE
             sharedMemory(Shareable::False),
         simd(false),
-        isBuiltinModule(false),
-        builtinModules() {
+        isBuiltinModule(false) {
   }
   FeatureArgs(const FeatureArgs&) = default;
   FeatureArgs& operator=(const FeatureArgs&) = default;
@@ -135,10 +134,7 @@ struct FeatureArgs {
     return args;
   }
 
-#define WASM_FEATURE(NAME, LOWER_NAME, ...) \
-  bool LOWER_NAME;                          \
-  WASM_CHECK_CACHEABLE_POD(LOWER_NAME);
-  //
+#define WASM_FEATURE(NAME, LOWER_NAME, ...) bool LOWER_NAME;
   JS_FOR_WASM_FEATURES(WASM_FEATURE)
 #undef WASM_FEATURE
 
@@ -149,11 +145,7 @@ struct FeatureArgs {
   bool isBuiltinModule;
   // The set of builtin modules that are imported by this module.
   BuiltinModuleIds builtinModules;
-
-  WASM_CHECK_CACHEABLE_POD(sharedMemory, simd, isBuiltinModule, builtinModules);
 };
-
-WASM_DECLARE_CACHEABLE_POD(FeatureArgs);
 
 // Observed feature usage for a compiled module. Intended to be used for use
 // counters.

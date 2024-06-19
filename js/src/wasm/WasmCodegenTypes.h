@@ -44,7 +44,7 @@ namespace wasm {
 
 using mozilla::EnumeratedArray;
 
-struct CodeMetadata;
+struct ModuleEnvironment;
 struct TableDesc;
 struct V128;
 
@@ -864,11 +864,11 @@ class CallIndirectId {
   static CallIndirectId forAsmJSFunc();
 
   // Get the CallIndirectId for a function in a specific module.
-  static CallIndirectId forFunc(const CodeMetadata& codeMeta,
+  static CallIndirectId forFunc(const ModuleEnvironment& moduleEnv,
                                 uint32_t funcIndex);
 
   // Get the CallIndirectId for a function type in a specific module.
-  static CallIndirectId forFuncType(const CodeMetadata& codeMeta,
+  static CallIndirectId forFuncType(const ModuleEnvironment& moduleEnv,
                                     uint32_t funcTypeIndex);
 
   CallIndirectIdKind kind() const { return kind_; }
@@ -947,10 +947,10 @@ class CalleeDesc {
   CalleeDesc() = default;
   static CalleeDesc function(uint32_t funcIndex);
   static CalleeDesc import(uint32_t instanceDataOffset);
-  static CalleeDesc wasmTable(const CodeMetadata& codeMeta,
+  static CalleeDesc wasmTable(const ModuleEnvironment& moduleEnv,
                               const TableDesc& desc, uint32_t tableIndex,
                               CallIndirectId callIndirectId);
-  static CalleeDesc asmJSTable(const CodeMetadata& codeMeta,
+  static CalleeDesc asmJSTable(const ModuleEnvironment& moduleEnv,
                                uint32_t tableIndex);
   static CalleeDesc builtin(SymbolicAddress callee);
   static CalleeDesc builtinInstanceMethod(SymbolicAddress callee);

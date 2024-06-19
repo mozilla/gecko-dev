@@ -178,8 +178,7 @@ struct StatsClosure {
   RuntimeStats* rtStats;
   ObjectPrivateVisitor* opv;
   SourceSet seenSources;
-  wasm::CodeMetadata::SeenSet wasmSeenCodeMetadata;
-  js::CodeMetadataForAsmJS::SeenSet wasmSeenCodeMetadataForAsmJS;
+  wasm::Metadata::SeenSet wasmSeenMetadata;
   wasm::Code::SeenSet wasmSeenCode;
   wasm::Table::SeenSet wasmSeenTables;
   bool anonymize;
@@ -346,30 +345,22 @@ static void StatsCellCallback(JSRuntime* rt, void* data, JS::GCCellPtr cellptr,
       // we must be careful not to report twice.
       if (obj->is<WasmModuleObject>()) {
         const wasm::Module& module = obj->as<WasmModuleObject>().module();
-        ScriptSource* ss = module.codeMetaForAsmJS()
-                               ? module.codeMetaForAsmJS()->maybeScriptSource()
-                               : nullptr;
-        if (ss) {
+        if (ScriptSource* ss = module.metadata().maybeScriptSource()) {
           CollectScriptSourceStats<granularity>(closure, ss);
         }
-        module.addSizeOfMisc(
-            rtStats->mallocSizeOf_, &closure->wasmSeenCodeMetadata,
-            &closure->wasmSeenCodeMetadataForAsmJS, &closure->wasmSeenCode,
-            &info.objectsNonHeapCodeWasm, &info.objectsMallocHeapMisc);
+        module.addSizeOfMisc(rtStats->mallocSizeOf_, &closure->wasmSeenMetadata,
+                             &closure->wasmSeenCode,
+                             &info.objectsNonHeapCodeWasm,
+                             &info.objectsMallocHeapMisc);
       } else if (obj->is<WasmInstanceObject>()) {
         wasm::Instance& instance = obj->as<WasmInstanceObject>().instance();
-        ScriptSource* ss =
-            instance.codeMetaForAsmJS()
-                ? instance.codeMetaForAsmJS()->maybeScriptSource()
-                : nullptr;
-        if (ss) {
+        if (ScriptSource* ss = instance.metadata().maybeScriptSource()) {
           CollectScriptSourceStats<granularity>(closure, ss);
         }
         instance.addSizeOfMisc(
-            rtStats->mallocSizeOf_, &closure->wasmSeenCodeMetadata,
-            &closure->wasmSeenCodeMetadataForAsmJS, &closure->wasmSeenCode,
-            &closure->wasmSeenTables, &info.objectsNonHeapCodeWasm,
-            &info.objectsMallocHeapMisc);
+            rtStats->mallocSizeOf_, &closure->wasmSeenMetadata,
+            &closure->wasmSeenCode, &closure->wasmSeenTables,
+            &info.objectsNonHeapCodeWasm, &info.objectsMallocHeapMisc);
       }
 
       realmStats.classInfo.add(info);

@@ -1354,7 +1354,7 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
                                      Register scratch, uint32_t* callOffset) {
   MOZ_ASSERT(!IsCompilingWasm());
 
-  const FuncType& funcType = inst.codeMeta().getFuncExportType(fe);
+  const FuncType& funcType = inst.metadata().getFuncExportType(fe);
 
   size_t framePushedAtStart = masm.framePushed();
 
@@ -1975,18 +1975,17 @@ static bool GenerateImportFunction(jit::MacroAssembler& masm,
 
 static const unsigned STUBS_LIFO_DEFAULT_CHUNK_SIZE = 4 * 1024;
 
-bool wasm::GenerateImportFunctions(const CodeMetadata& codeMeta,
+bool wasm::GenerateImportFunctions(const ModuleEnvironment& env,
                                    const FuncImportVector& imports,
                                    CompiledCode* code) {
   LifoAlloc lifo(STUBS_LIFO_DEFAULT_CHUNK_SIZE);
   TempAllocator alloc(&lifo);
-  WasmMacroAssembler masm(alloc);
+  WasmMacroAssembler masm(alloc, env);
 
   for (uint32_t funcIndex = 0; funcIndex < imports.length(); funcIndex++) {
     const FuncImport& fi = imports[funcIndex];
-    const FuncType& funcType = *codeMeta.funcs[funcIndex].type;
-    CallIndirectId callIndirectId =
-        CallIndirectId::forFunc(codeMeta, funcIndex);
+    const FuncType& funcType = *env.funcs[funcIndex].type;
+    CallIndirectId callIndirectId = CallIndirectId::forFunc(env, funcIndex);
 
     FuncOffsets offsets;
     if (!GenerateImportFunction(masm, fi, funcType, callIndirectId, &offsets,
@@ -2982,13 +2981,13 @@ bool wasm::GenerateProvisionalLazyJitEntryStub(MacroAssembler& masm,
   return FinishOffsets(masm, offsets);
 }
 
-bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
+bool wasm::GenerateStubs(const ModuleEnvironment& env,
                          const FuncImportVector& imports,
                          const FuncExportVector& exports, CompiledCode* code) {
   LifoAlloc lifo(STUBS_LIFO_DEFAULT_CHUNK_SIZE);
   TempAllocator alloc(&lifo);
   JitContext jcx;
-  WasmMacroAssembler masm(alloc);
+  WasmMacroAssembler masm(alloc, env);
   AutoCreatedBy acb(masm, "wasm::GenerateStubs");
 
   // Swap in already-allocated empty vectors to avoid malloc/free.
@@ -3002,7 +3001,7 @@ bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
 
   for (uint32_t funcIndex = 0; funcIndex < imports.length(); funcIndex++) {
     const FuncImport& fi = imports[funcIndex];
-    const FuncType& funcType = *codeMeta.funcs[funcIndex].type;
+    const FuncType& funcType = *env.funcs[funcIndex].type;
 
     CallableOffsets interpOffsets;
     if (!GenerateImportInterpExit(masm, fi, funcType, funcIndex, &throwLabel,
@@ -3036,12 +3035,12 @@ bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
   Maybe<ImmPtr> noAbsolute;
   for (size_t i = 0; i < exports.length(); i++) {
     const FuncExport& fe = exports[i];
-    const FuncType& funcType = (*codeMeta.types)[fe.typeIndex()].funcType();
+    const FuncType& funcType = (*env.types)[fe.typeIndex()].funcType();
     if (!fe.hasEagerStubs()) {
       continue;
     }
-    if (!GenerateEntryStubs(masm, i, fe, funcType, noAbsolute,
-                            codeMeta.isAsmJS(), &code->codeRanges)) {
+    if (!GenerateEntryStubs(masm, i, fe, funcType, noAbsolute, env.isAsmJS(),
+                            &code->codeRanges)) {
       return false;
     }
   }

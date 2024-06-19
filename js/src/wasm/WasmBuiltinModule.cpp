@@ -142,14 +142,9 @@ bool CompileBuiltinModule(JSContext* cx,
       DebugEnabled::False);
   compilerEnv.computeParameters();
 
-  // Build a module metadata struct
-  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(compileArgs->features);
-  if (!codeMeta || !codeMeta->init()) {
+  // Build a module environment
+  ModuleEnvironment moduleEnv(compileArgs->features);
+  if (!moduleEnv.init()) {
     ReportOutOfMemory(cx);
     return false;
   }
@@ -162,13 +157,13 @@ bool CompileBuiltinModule(JSContext* cx,
       ReportOutOfMemory(cx);
       return false;
     }
-    if (!moduleMeta->imports.append(Import(std::move(emptyString),
-                                           std::move(memoryString),
-                                           DefinitionKind::Memory))) {
+    if (!moduleEnv.imports.append(Import(std::move(emptyString),
+                                         std::move(memoryString),
+                                         DefinitionKind::Memory))) {
       ReportOutOfMemory(cx);
       return false;
     }
-    if (!codeMeta->memories.append(MemoryDesc(Limits(0, Nothing(), *memory)))) {
+    if (!moduleEnv.memories.append(MemoryDesc(Limits(0, Nothing(), *memory)))) {
       ReportOutOfMemory(cx);
       return false;
     }
@@ -183,7 +178,7 @@ bool CompileBuiltinModule(JSContext* cx,
 
     SharedRecGroup recGroup = builtinModuleFunc.recGroup();
     MOZ_ASSERT(recGroup->numTypes() == 1);
-    if (!codeMeta->types->addRecGroup(recGroup)) {
+    if (!moduleEnv.types->addRecGroup(recGroup)) {
       ReportOutOfMemory(cx);
       return false;
     }
@@ -193,12 +188,12 @@ bool CompileBuiltinModule(JSContext* cx,
   // as the function declaration metadata uses pointers into the type vectors
   // that must be stable.
   for (uint32_t funcIndex = 0; funcIndex < ids.size(); funcIndex++) {
-    FuncDesc decl(&(*codeMeta->types)[funcIndex].funcType(), funcIndex);
-    if (!codeMeta->funcs.append(decl)) {
+    FuncDesc decl(&(*moduleEnv.types)[funcIndex].funcType(), funcIndex);
+    if (!moduleEnv.funcs.append(decl)) {
       ReportOutOfMemory(cx);
       return false;
     }
-    codeMeta->declareFuncExported(funcIndex, true, false);
+    moduleEnv.declareFuncExported(funcIndex, true, false);
   }
 
   // Add (export "$name" (func $i)) declarations.
@@ -209,8 +204,8 @@ bool CompileBuiltinModule(JSContext* cx,
     CacheableName exportName;
     if (!CacheableName::fromUTF8Chars(builtinModuleFunc.exportName(),
                                       &exportName) ||
-        !moduleMeta->exports.append(Export(std::move(exportName), funcIndex,
-                                           DefinitionKind::Function))) {
+        !moduleEnv.exports.append(Export(std::move(exportName), funcIndex,
+                                         DefinitionKind::Function))) {
       ReportOutOfMemory(cx);
       return false;
     }
@@ -218,7 +213,7 @@ bool CompileBuiltinModule(JSContext* cx,
 
   // Compile the module functions
   UniqueChars error;
-  ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv, nullptr, &error,
+  ModuleGenerator mg(*compileArgs, &moduleEnv, &compilerEnv, nullptr, &error,
                      nullptr);
   if (!mg.init(nullptr)) {
     ReportOutOfMemory(cx);
@@ -269,8 +264,7 @@ bool CompileBuiltinModule(JSContext* cx,
   }
 
   // Finish the module
-  SharedModule module = mg.finishModule(*bytecode, moduleMeta,
-                                        /*maybeTier2Listener=*/nullptr);
+  SharedModule module = mg.finishModule(*bytecode, nullptr);
   if (!module) {
     ReportOutOfMemory(cx);
     return false;

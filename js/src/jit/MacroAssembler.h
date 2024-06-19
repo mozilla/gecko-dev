@@ -49,6 +49,8 @@
 #include "vm/FunctionFlags.h"
 #include "vm/Opcodes.h"
 #include "vm/RealmFuses.h"
+#include "wasm/WasmCodegenTypes.h"
+#include "wasm/WasmFrame.h"
 
 // [SMDOC] MacroAssembler multi-platform overview
 //
@@ -240,6 +242,8 @@ class CalleeDesc;
 class CallSiteDesc;
 class BytecodeOffset;
 class MemoryAccessDesc;
+
+struct ModuleEnvironment;
 
 enum class FailureMode : uint8_t;
 enum class SimdOp;
@@ -5970,6 +5974,9 @@ class MOZ_RAII StackMacroAssembler : public MacroAssembler {
 class MOZ_RAII WasmMacroAssembler : public MacroAssembler {
  public:
   explicit WasmMacroAssembler(TempAllocator& alloc, bool limitedSize = true);
+  explicit WasmMacroAssembler(TempAllocator& alloc,
+                              const wasm::ModuleEnvironment& env,
+                              bool limitedSize = true);
   ~WasmMacroAssembler() { assertNoGCThings(); }
 };
 

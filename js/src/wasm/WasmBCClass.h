@@ -204,7 +204,7 @@ struct BaseCompiler final {
   // Read-only and write-once members.
 
   // Static compilation environment.
-  const CodeMetadata& codeMeta_;
+  const ModuleEnvironment& moduleEnv_;
   const CompilerEnvironment& compilerEnv_;
   const FuncCompileInput& func_;
   const ValTypeVector& locals_;
@@ -331,7 +331,7 @@ struct BaseCompiler final {
   // A client will create a compiler object, and then call init(),
   // emitFunction(), and finish() in that order.
 
-  BaseCompiler(const CodeMetadata& codeMetadata,
+  BaseCompiler(const ModuleEnvironment& moduleEnv,
                const CompilerEnvironment& compilerEnv,
                const FuncCompileInput& func, const ValTypeVector& locals,
                const RegisterOffsets& trapExitLayout,

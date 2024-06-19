@@ -59,7 +59,7 @@ bool CompileTier2(const CompileArgs& args, const Bytes& bytecode,
 
 // Compile the given WebAssembly module which has been broken into three
 // partitions:
-//  - envBytes contains a complete ModuleMetadata that has already been
+//  - envBytes contains a complete ModuleEnvironment that has already been
 //    copied in from the stream.
 //  - codeBytes is pre-sized to hold the complete code section when the stream
 //    completes.

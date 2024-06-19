@@ -21,7 +21,6 @@
 
 #include "js/ColumnNumber.h"  // JS::LimitedColumnNumberOneOrigin
 #include "js/HashTable.h"
-#include "wasm/AsmJS.h"  // CodeMetadataForAsmJS::SeenSet
 #include "wasm/WasmCode.h"
 #include "wasm/WasmCodegenTypes.h"
 #include "wasm/WasmConstants.h"
@@ -164,10 +163,7 @@ class DebugState {
   // Accessors for commonly used elements of linked structures.
 
   const MetadataTier& metadata(Tier t) const { return code_->metadata(t); }
-  const CodeMetadata& codeMeta() const { return code_->codeMeta(); }
-  const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
-    return code_->codeMetaForAsmJS();
-  }
+  const Metadata& metadata() const { return code_->metadata(); }
   const CodeRangeVector& codeRanges(Tier t) const {
     return metadata(t).codeRanges;
   }
@@ -181,9 +177,7 @@ class DebugState {
 
   // about:memory reporting:
 
-  void addSizeOfMisc(MallocSizeOf mallocSizeOf,
-                     CodeMetadata::SeenSet* seenCodeMeta,
-                     CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
+  void addSizeOfMisc(MallocSizeOf mallocSizeOf, Metadata::SeenSet* seenMetadata,
                      Code::SeenSet* seenCode, size_t* code, size_t* data) const;
 };
 

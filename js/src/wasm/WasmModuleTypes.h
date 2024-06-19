@@ -425,8 +425,6 @@ struct TagDesc {
 using TagDescVector = Vector<TagDesc, 0, SystemAllocPolicy>;
 using ElemExprOffsetVector = Vector<size_t, 0, SystemAllocPolicy>;
 
-// This holds info about elem segments that is needed for instantiation.  It
-// can be dropped when the associated wasm::Module is dropped.
 struct ModuleElemSegment {
   enum class Kind {
     Active,
@@ -484,33 +482,28 @@ using InstanceElemSegment = GCVector<HeapPtr<AnyRef>, 0, SystemAllocPolicy>;
 using InstanceElemSegmentVector =
     GCVector<InstanceElemSegment, 0, SystemAllocPolicy>;
 
-// DataSegmentRange holds the initial results of decoding a data segment from
-// the bytecode and is stored in the ModuleMetadata during compilation.  It
-// contains the bytecode bounds of the data segment, and some auxiliary
-// information, but not the segment contents itself.
+// DataSegmentEnv holds the initial results of decoding a data segment from the
+// bytecode and is stored in the ModuleEnvironment during compilation. When
+// compilation completes, (non-Env) DataSegments are created and stored in
+// the wasm::Module which contain copies of the data segment payload. This
+// allows non-compilation uses of wasm validation to avoid expensive copies.
 //
-// When compilation completes, each DataSegmentRange is transformed into a
-// DataSegment, which are then transferred to the wasm::Module.  DataSegment
-// contains the same information as DataSegmentRange but additionally contains
-// the segment contents itself.  This allows non-compilation uses of wasm
-// validation to avoid expensive copies.
-//
-// A DataSegment that is "passive" is shared between a wasm::Module and its
-// wasm::Instances.  To allow each segment to be released as soon as the last
+// When a DataSegment is "passive" it is shared between a wasm::Module and its
+// wasm::Instances. To allow each segment to be released as soon as the last
 // Instance mem.drops it and the Module is destroyed, each DataSegment is
 // individually atomically ref-counted.
 
 constexpr uint32_t InvalidMemoryIndex = UINT32_MAX;
 static_assert(InvalidMemoryIndex > MaxMemories, "Invariant");
 
-struct DataSegmentRange {
+struct DataSegmentEnv {
   uint32_t memoryIndex;
   Maybe<InitExpr> offsetIfActive;
   uint32_t bytecodeOffset;
   uint32_t length;
 };
 
-using DataSegmentRangeVector = Vector<DataSegmentRange, 0, SystemAllocPolicy>;
+using DataSegmentEnvVector = Vector<DataSegmentEnv, 0, SystemAllocPolicy>;
 
 struct DataSegment : AtomicRefCounted<DataSegment> {
   uint32_t memoryIndex;
@@ -524,7 +517,7 @@ struct DataSegment : AtomicRefCounted<DataSegment> {
   const InitExpr& offset() const { return *offsetIfActive; }
 
   [[nodiscard]] bool init(const ShareableBytes& bytecode,
-                          const DataSegmentRange& src) {
+                          const DataSegmentEnv& src) {
     memoryIndex = src.memoryIndex;
     if (src.offsetIfActive) {
       offsetIfActive.emplace();
@@ -542,20 +535,18 @@ using MutableDataSegment = RefPtr<DataSegment>;
 using SharedDataSegment = RefPtr<const DataSegment>;
 using DataSegmentVector = Vector<SharedDataSegment, 0, SystemAllocPolicy>;
 
-// CustomSectionRange and CustomSection are related in the same way that
-// DataSegmentRange and DataSegment are: the CustomSectionRanges are stored in
-// the ModuleMetadata, and are transformed into CustomSections at the end of
-// compilation and stored in wasm::Module.
+// The CustomSection(Env) structs are like DataSegment(Env): CustomSectionEnv is
+// stored in the ModuleEnvironment and CustomSection holds a copy of the payload
+// and is stored in the wasm::Module.
 
-struct CustomSectionRange {
+struct CustomSectionEnv {
   uint32_t nameOffset;
   uint32_t nameLength;
   uint32_t payloadOffset;
   uint32_t payloadLength;
 };
 
-using CustomSectionRangeVector =
-    Vector<CustomSectionRange, 0, SystemAllocPolicy>;
+using CustomSectionEnvVector = Vector<CustomSectionEnv, 0, SystemAllocPolicy>;
 
 struct CustomSection {
   Bytes name;

@@ -42,7 +42,7 @@ DebugState::DebugState(const Code& code, const Module& module)
       module_(&module),
       enterFrameTrapsEnabled_(false),
       enterAndLeaveFrameTrapsCounter_(0) {
-  MOZ_RELEASE_ASSERT(code.codeMeta().debugEnabled);
+  MOZ_RELEASE_ASSERT(code.metadata().debugEnabled);
   MOZ_RELEASE_ASSERT(code.hasTier(Tier::Debug));
 }
 
@@ -319,9 +319,8 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
     return;
   }
 
-  MOZ_RELEASE_ASSERT(&instance->codeMeta() == &codeMeta());
-  MOZ_RELEASE_ASSERT(instance->codeMetaForAsmJS() == codeMetaForAsmJS());
-  uint32_t numFuncs = codeMeta().debugNumFuncs();
+  MOZ_RELEASE_ASSERT(&instance->metadata() == &metadata());
+  uint32_t numFuncs = metadata().debugNumFuncs();
   if (enabled) {
     MOZ_ASSERT(enterAndLeaveFrameTrapsCounter_ > 0);
     for (uint32_t funcIdx = 0; funcIdx < numFuncs; funcIdx++) {
@@ -375,8 +374,8 @@ void DebugState::ensureEnterFrameTrapsState(JSContext* cx, Instance* instance,
 bool DebugState::debugGetLocalTypes(uint32_t funcIndex, ValTypeVector* locals,
                                     size_t* argsLength,
                                     StackResults* stackResults) {
-  const TypeContext& types = *codeMeta().types;
-  const FuncType& funcType = codeMeta().debugFuncType(funcIndex);
+  const TypeContext& types = *metadata().types;
+  const FuncType& funcType = metadata().debugFuncType(funcIndex);
   const ValTypeVector& args = funcType.args();
   const ValTypeVector& results = funcType.results();
   ResultType resultType(ResultType::Vector(results));
@@ -401,7 +400,7 @@ bool DebugState::debugGetLocalTypes(uint32_t funcIndex, ValTypeVector* locals,
 
 bool DebugState::getGlobal(Instance& instance, uint32_t globalIndex,
                            MutableHandleValue vp) {
-  const GlobalDesc& global = codeMeta().globals[globalIndex];
+  const GlobalDesc& global = metadata().globals[globalIndex];
 
   if (global.isConstant()) {
     LitVal value = global.constantValue();
@@ -509,7 +508,7 @@ bool DebugState::getSourceMappingURL(JSContext* cx,
   }
 
   // Check presence of "SourceMap:" HTTP response header.
-  char* sourceMapURL = codeMeta().sourceMapURL.get();
+  char* sourceMapURL = metadata().sourceMapURL.get();
   if (sourceMapURL && strlen(sourceMapURL)) {
     JS::UTF8Chars utf8Chars(sourceMapURL, strlen(sourceMapURL));
     JSString* str = JS_NewStringCopyUTF8N(cx, utf8Chars);
@@ -521,12 +520,11 @@ bool DebugState::getSourceMappingURL(JSContext* cx,
   return true;
 }
 
-void DebugState::addSizeOfMisc(
-    MallocSizeOf mallocSizeOf, CodeMetadata::SeenSet* seenCodeMeta,
-    CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
-    Code::SeenSet* seenCode, size_t* code, size_t* data) const {
-  code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenCodeMeta,
-                                seenCodeMetaForAsmJS, seenCode, code, data);
-  module_->addSizeOfMisc(mallocSizeOf, seenCodeMeta, seenCodeMetaForAsmJS,
-                         seenCode, code, data);
+void DebugState::addSizeOfMisc(MallocSizeOf mallocSizeOf,
+                               Metadata::SeenSet* seenMetadata,
+                               Code::SeenSet* seenCode, size_t* code,
+                               size_t* data) const {
+  code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenMetadata, seenCode, code,
+                                data);
+  module_->addSizeOfMisc(mallocSizeOf, seenMetadata, seenCode, code, data);
 }
