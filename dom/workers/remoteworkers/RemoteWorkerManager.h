@@ -61,19 +61,24 @@ class RemoteWorkerManager final {
   RemoteWorkerManager();
   ~RemoteWorkerManager();
 
-  RemoteWorkerServiceParent* SelectTargetActor(const RemoteWorkerData& aData,
-                                               base::ProcessId aProcessId);
+  struct TargetActorAndKeepAlive {
+    RefPtr<RemoteWorkerServiceParent> mActor;
+    UniqueThreadsafeContentParentKeepAlive mKeepAlive;
+  };
 
-  RemoteWorkerServiceParent* SelectTargetActorInternal(
+  TargetActorAndKeepAlive SelectTargetActor(const RemoteWorkerData& aData,
+                                            base::ProcessId aProcessId);
+
+  TargetActorAndKeepAlive SelectTargetActorInternal(
       const RemoteWorkerData& aData, base::ProcessId aProcessId) const;
 
   void LaunchInternal(RemoteWorkerController* aController,
                       RemoteWorkerServiceParent* aTargetActor,
-                      const RemoteWorkerData& aData,
-                      bool aRemoteWorkerAlreadyRegistered = false);
+                      UniqueThreadsafeContentParentKeepAlive aKeepAlive,
+                      const RemoteWorkerData& aData);
 
   using LaunchProcessPromise =
-      MozPromise<RefPtr<RemoteWorkerServiceParent>, nsresult, true>;
+      MozPromise<TargetActorAndKeepAlive, nsresult, true>;
   RefPtr<LaunchProcessPromise> LaunchNewContentProcess(
       const RemoteWorkerData& aData);
 
