@@ -130,6 +130,7 @@ add_task(async function testInteractionBetweenDebuggerAndConsole() {
   await waitForState(dbg, () => {
     return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
   });
+  await hasConsoleMessage(dbg, "Started tracing to Web Console");
 
   invokeInTab("foo");
 
