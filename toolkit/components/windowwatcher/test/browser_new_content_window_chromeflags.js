@@ -37,18 +37,6 @@ const DISALLOWED = {
   // "remote":
   //   checked manually, since its default value will
   //   depend on whether or not e10s is enabled by default.
-  alwaysLowered: {
-    flag: Ci.nsIWebBrowserChrome.CHROME_WINDOW_LOWERED,
-    defaults_to: false,
-  },
-  "z-lock": {
-    flag: Ci.nsIWebBrowserChrome.CHROME_WINDOW_LOWERED, // Renamed to alwaysLowered
-    defaults_to: false,
-  },
-  alwaysRaised: {
-    flag: Ci.nsIWebBrowserChrome.CHROME_WINDOW_RAISED,
-    defaults_to: false,
-  },
   alwaysOnTop: {
     flag: Ci.nsIWebBrowserChrome.CHROME_ALWAYS_ON_TOP,
     defaults_to: false,

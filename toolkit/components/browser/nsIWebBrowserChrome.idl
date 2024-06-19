@@ -78,8 +78,8 @@ interface nsIWebBrowserChrome : nsISupports
     // ignored for Linux.
     const unsigned long CHROME_SUPPRESS_ANIMATION     = 1 << 24;
 
-    const unsigned long CHROME_WINDOW_RAISED          = 1 << 25;
-    const unsigned long CHROME_WINDOW_LOWERED         = 1 << 26;
+    // Two bits are free here.
+
     const unsigned long CHROME_CENTER_SCREEN          = 1 << 27;
 
     // Make the new window dependent on the parent.  This flag is only

@@ -83,20 +83,16 @@ add_task(async function testRestoredWindowFeatures() {
     {
       chrome: true,
       url: "http://example.com/browser/" + DUMMY_PAGE,
-      features: "chrome,all,dialog=no,alwayslowered,centerscreen",
+      features: "chrome,all,dialog=no,centerscreen",
       barprops: ALL_BARPROPS,
-      chromeFlags:
-        Ci.nsIWebBrowserChrome.CHROME_WINDOW_LOWERED |
-        Ci.nsIWebBrowserChrome.CHROME_CENTER_SCREEN,
+      chromeFlags: Ci.nsIWebBrowserChrome.CHROME_CENTER_SCREEN,
     },
     {
       chrome: true,
       url: "http://example.com/browser/" + DUMMY_PAGE,
-      features: "chrome,all,dialog=no,alwaysraised,dependent",
+      features: "chrome,all,dialog=no,dependent",
       barprops: ALL_BARPROPS,
-      chromeFlags:
-        Ci.nsIWebBrowserChrome.CHROME_WINDOW_RAISED |
-        Ci.nsIWebBrowserChrome.CHROME_DEPENDENT,
+      chromeFlags: Ci.nsIWebBrowserChrome.CHROME_DEPENDENT,
     },
   ];
   const TEST_URL_CHROME = "chrome://mochitests/content/browser/" + DUMMY_PAGE;

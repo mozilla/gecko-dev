@@ -187,7 +187,7 @@ add_task(async function test_timezone_exmpt_browser() {
     null,
     AppConstants.BROWSER_CHROME_URL,
     "_blank",
-    "chrome,dialog=no,all,alwaysRaised",
+    "chrome,dialog=no,all",
     null
   );
 

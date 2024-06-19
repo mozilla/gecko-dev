@@ -1994,14 +1994,6 @@ uint32_t nsWindowWatcher::CalculateChromeFlagsForSystem(
   /* Finally, once all the above normal chrome has been divined, deal
      with the features that are more operating hints than appearance
      instructions. (Note modality implies dependence.) */
-
-  if (aFeatures.GetBoolWithDefault("alwayslowered", false) ||
-      aFeatures.GetBoolWithDefault("z-lock", false)) {
-    chromeFlags |= nsIWebBrowserChrome::CHROME_WINDOW_LOWERED;
-  } else if (aFeatures.GetBoolWithDefault("alwaysraised", false)) {
-    chromeFlags |= nsIWebBrowserChrome::CHROME_WINDOW_RAISED;
-  }
-
   if (aFeatures.GetBoolWithDefault("suppressanimation", false)) {
     chromeFlags |= nsIWebBrowserChrome::CHROME_SUPPRESS_ANIMATION;
   }

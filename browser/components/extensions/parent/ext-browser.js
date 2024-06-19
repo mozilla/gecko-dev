@@ -996,7 +996,8 @@ class Window extends WindowBase {
   }
 
   get alwaysOnTop() {
-    return this.appWindow.zLevel >= Ci.nsIAppWindow.raisedZ;
+    // We never create alwaysOnTop browser windows.
+    return false;
   }
 
   get isLastFocused() {

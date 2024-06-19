@@ -11,33 +11,32 @@ async function verifyTitle(win, test, desc) {
 }
 
 add_task(async function testWindowGetAll() {
-  let raisedWin = Services.ww.openWindow(
+  let secondWin = Services.ww.openWindow(
     null,
     AppConstants.BROWSER_CHROME_URL,
     "_blank",
-    "chrome,dialog=no,all,alwaysRaised",
+    "chrome,dialog=no,all",
     null
   );
 
   await TestUtils.topicObserved(
     "browser-delayed-startup-finished",
-    subject => subject == raisedWin
+    subject => subject == secondWin,
   );
 
   let extension = ExtensionTestUtils.loadExtension({
     background: async function () {
       let wins = await browser.windows.getAll();
       browser.test.assertEq(2, wins.length, "Expect two windows");
-
       browser.test.assertEq(
         false,
         wins[0].alwaysOnTop,
         "Expect first window not to be always on top"
       );
       browser.test.assertEq(
-        true,
+        false,
         wins[1].alwaysOnTop,
-        "Expect first window to be always on top"
+        "Expect second window not to be always on top"
       );
 
       let win = await browser.windows.create({
@@ -70,7 +69,7 @@ add_task(async function testWindowGetAll() {
   await extension.awaitFinish("getAll");
   await extension.unload();
 
-  await BrowserTestUtils.closeWindow(raisedWin);
+  await BrowserTestUtils.closeWindow(secondWin);
 });
 
 add_task(async function testWindowTitle() {

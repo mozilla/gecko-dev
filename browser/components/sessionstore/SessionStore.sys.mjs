@@ -80,8 +80,6 @@ const CHROME_FLAGS_MAP = [
   // Do not inherit remoteness and fissionness from the previous session.
   //[Ci.nsIWebBrowserChrome.CHROME_REMOTE_WINDOW, "remote", "non-remote"],
   //[Ci.nsIWebBrowserChrome.CHROME_FISSION_WINDOW, "fission", "non-fission"],
-  [Ci.nsIWebBrowserChrome.CHROME_WINDOW_LOWERED, "alwayslowered"],
-  [Ci.nsIWebBrowserChrome.CHROME_WINDOW_RAISED, "alwaysraised"],
   // "chrome" and "suppressanimation" are always set.
   //[Ci.nsIWebBrowserChrome.CHROME_SUPPRESS_ANIMATION, "suppressanimation"],
   [Ci.nsIWebBrowserChrome.CHROME_ALWAYS_ON_TOP, "alwaysontop"],
