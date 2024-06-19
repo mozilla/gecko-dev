@@ -94,11 +94,6 @@ menupopup[emptyplacesresult="true"] > .hide-if-empty-places-result {
   }
 }
 
-:root[customizing=true] .addon-banner-item,
-:root[customizing=true] .panel-banner-item {
-  display: none;
-}
-
 /* Firefox View */
 :root[firefoxviewhidden] #wrapper-firefox-view-button,
 :root[firefoxviewhidden] #firefox-view-button {
