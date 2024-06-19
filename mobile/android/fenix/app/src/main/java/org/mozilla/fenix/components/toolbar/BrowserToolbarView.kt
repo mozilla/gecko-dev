@@ -257,12 +257,12 @@ class BrowserToolbarView(
         with(view) {
             if (isVisible) {
                 showMenuButton()
+                setDisplayHorizontalPadding(0)
+            } else {
+                hideMenuButton()
                 setDisplayHorizontalPadding(
                     context.resources.getDimensionPixelSize(R.dimen.browser_fragment_display_toolbar_padding),
                 )
-            } else {
-                hideMenuButton()
-                setDisplayHorizontalPadding(0)
             }
         }
     }
