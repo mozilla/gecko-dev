@@ -168,7 +168,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   nsIWidgetListener* GetWidgetListener() const override;
   void SetWidgetListener(nsIWidgetListener* alistener) override;
   void Destroy() override;
-  void SetParent(nsIWidget* aNewParent) override{};
+  void SetParent(nsIWidget* aNewParent) override {};
   nsIWidget* GetParent() override;
   nsIWidget* GetTopLevelWidget() override;
   nsIWidget* GetSheetWindowParent(void) override;
@@ -260,7 +260,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   [[nodiscard]] nsresult GetRestoredBounds(LayoutDeviceIntRect& aRect) override;
   nsresult SetNonClientMargins(const LayoutDeviceIntMargin&) override;
   LayoutDeviceIntPoint GetClientOffset() override;
-  void EnableDragDrop(bool aEnable) override{};
+  void EnableDragDrop(bool aEnable) override {};
   nsresult AsyncEnableDragDrop(bool aEnable) override;
   void SetResizeMargin(mozilla::LayoutDeviceIntCoord aResizeMargin) override;
   [[nodiscard]] nsresult GetAttention(int32_t aCycleCount) override {
@@ -417,9 +417,9 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 #if defined(MOZ_WIDGET_ANDROID)
   void RecvToolbarAnimatorMessageFromCompositor(int32_t) override{};
   void UpdateRootFrameMetrics(const ScreenPoint& aScrollOffset,
-                              const CSSToScreenScale& aZoom) override{};
+                              const CSSToScreenScale& aZoom) override {};
   void RecvScreenPixels(mozilla::ipc::Shmem&& aMem, const ScreenIntSize& aSize,
-                        bool aNeedsYFlip) override{};
+                        bool aNeedsYFlip) override {};
 #endif
 
   virtual void LocalesChanged() {}

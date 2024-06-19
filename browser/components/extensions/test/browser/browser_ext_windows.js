@@ -21,7 +21,7 @@ add_task(async function testWindowGetAll() {
 
   await TestUtils.topicObserved(
     "browser-delayed-startup-finished",
-    subject => subject == secondWin,
+    subject => subject == secondWin
   );
 
   let extension = ExtensionTestUtils.loadExtension({
