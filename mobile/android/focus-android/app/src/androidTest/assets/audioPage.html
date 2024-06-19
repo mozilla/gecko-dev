@@ -17,7 +17,7 @@
       const audio = document.querySelector("audio");
       var showPlayingAlert = true;
 
-      audio.addEventListener("playing", event => {
+      audio.addEventListener("playing", _event => {
         <!--document.querySelector('.playbackState').innerText="Media file is playing"-->
         <!--Need this hack to verify that the video is playing,-->
         <!--the test cannot currently verify the text displayed on the page-->
@@ -27,7 +27,7 @@
         }
       });
 
-      audio.addEventListener("pause", event => {
+      audio.addEventListener("pause", _event => {
         <!--document.querySelector('.playbackState').innerText="Media file is paused"-->
         alert("Media file is paused");
       });

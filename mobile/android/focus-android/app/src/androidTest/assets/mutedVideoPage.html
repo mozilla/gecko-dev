@@ -33,7 +33,7 @@
 
       var showPlayAlert = true;
 
-      mutedVideo.addEventListener("playing", event => {
+      mutedVideo.addEventListener("playing", _event => {
         <!-- document.querySelector('.playbackState').innerHTML="Media file is playing";-->
         <!-- Need this hack to verify that the video is playing, -->
         <!-- the test cannot currently verify the text displayed on the page-->
@@ -43,7 +43,7 @@
         }
       });
 
-      mutedVideo.addEventListener("pause", event => {
+      mutedVideo.addEventListener("pause", _event => {
         // document.querySelector('.playbackState').innerHTML="Media file is paused";
         alert("Media file is paused");
       });

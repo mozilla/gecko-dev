@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* eslint-env webextensions */
+/* import-globals-from readability/readability-readerable-0.4.2.js */
+
 // This script is injected into content to determine whether or not a
 // page is readerable, and to open a reader view extension page via
 // the background script.
@@ -46,7 +49,7 @@ function connectNativePort() {
   let port = browser.runtime.connectNative("mozacReaderview");
   port.onMessage.addListener(message => {
     switch (message.action) {
-      case "cachePage":
+      case "cachePage": {
         let serializedDoc = new XMLSerializer().serializeToString(document);
         browser.runtime.sendMessage({
           action: "addSerializedDoc",
@@ -54,6 +57,7 @@ function connectNativePort() {
           id: message.id,
         });
         break;
+      }
       case "checkReaderState":
         port.postMessage({
           type: "checkReaderState",
@@ -75,11 +79,11 @@ let port = connectNativePort();
 // do want to connect a new native port to trigger a new readerable check and
 // apply the same logic (as on page load) in our feature class (e.g. updating the
 // toolbar etc.)
-window.addEventListener("pageshow", event => {
+window.addEventListener("pageshow", _event => {
   port = port != null ? port : connectNativePort();
 });
 
-window.addEventListener("pagehide", event => {
+window.addEventListener("pagehide", _event => {
   port.disconnect();
   port = null;
 });

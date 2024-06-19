@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* eslint-disable no-unsanitized/property */ /* bug 1889942 */
+
 /**
  * Handles the parsing of the ErrorPages URI and then passes them to injectValues
  */

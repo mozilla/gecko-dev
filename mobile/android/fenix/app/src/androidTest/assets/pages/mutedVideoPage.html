@@ -37,12 +37,12 @@
         mutedVideo.requestFullscreen();
       }
 
-      mutedVideo.addEventListener("playing", event => {
+      mutedVideo.addEventListener("playing", _event => {
         document.querySelector(".playbackState").innerHTML =
           "Media file is playing";
       });
 
-      mutedVideo.addEventListener("pause", event => {
+      mutedVideo.addEventListener("pause", _event => {
         document.querySelector(".playbackState").innerHTML =
           "Media file is paused";
       });
