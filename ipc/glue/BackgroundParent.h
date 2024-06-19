@@ -60,6 +60,12 @@ class BackgroundParent final {
       mozilla::dom::ThreadsafeContentParentHandle;
 
  public:
+  // Get the nsISerialEventTarget used to handle messages from BackgroundParent
+  // actors, if it is running.
+  //
+  // This function may only be called on the background or main thread.
+  static already_AddRefed<nsISerialEventTarget> GetBackgroundThread();
+
   // This function allows the caller to determine if the given parent actor
   // corresponds to a child actor from another process or a child actor from a
   // different thread in the same process.
