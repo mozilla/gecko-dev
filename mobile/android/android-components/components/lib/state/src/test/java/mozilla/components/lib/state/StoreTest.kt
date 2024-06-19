@@ -289,23 +289,3 @@ class StoreTest {
         assertTrue(caughtException is IOException)
     }
 }
-
-fun reducer(state: TestState, action: TestAction): TestState = when (action) {
-    is TestAction.IncrementAction -> state.copy(counter = state.counter + 1)
-    is TestAction.DecrementAction -> state.copy(counter = state.counter - 1)
-    is TestAction.SetValueAction -> state.copy(counter = action.value)
-    is TestAction.DoubleAction -> state.copy(counter = state.counter * 2)
-    is TestAction.DoNothingAction -> state
-}
-
-data class TestState(
-    val counter: Int,
-) : State
-
-sealed class TestAction : Action {
-    object IncrementAction : TestAction()
-    object DecrementAction : TestAction()
-    object DoNothingAction : TestAction()
-    object DoubleAction : TestAction()
-    data class SetValueAction(val value: Int) : TestAction()
-}

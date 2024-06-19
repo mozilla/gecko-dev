@@ -14,7 +14,7 @@ import java.util.concurrent.ThreadFactory
  * that allows asserting whether a caller is on the created thread.
  *
  * For usage with [Executors.newSingleThreadExecutor]: Only the last created thread is kept and
- * compared when [assertOnThread] is called.
+ * compared when [StoreDispatcher.assertOnThread] is called with [threadId].
  *
  * @param threadNamePrefix Optional prefix with which to name threads for the [Store]. If not provided,
  * the naming scheme will be deferred to [Executors.defaultThreadFactory]
@@ -31,28 +31,12 @@ internal class StoreThreadFactory(
         Executors.defaultThreadFactory()
     }
 
+    val threadId: Long?
+        get() = thread?.id
+
     override fun newThread(r: Runnable): Thread {
         return actualFactory.newThread(r).also {
             thread = it
         }
-    }
-
-    /**
-     * Asserts that the calling thread is the thread of this [StoreDispatcher]. Otherwise throws an
-     * [IllegalThreadStateException].
-     */
-    fun assertOnThread() {
-        val currentThread = Thread.currentThread()
-        val currentThreadId = currentThread.id
-        val expectedThreadId = thread?.id
-
-        if (currentThreadId == expectedThreadId) {
-            return
-        }
-
-        throw IllegalThreadStateException(
-            "Expected `store` thread, but running on thread `${currentThread.name}`. " +
-                "Leaked MiddlewareContext or did you mean to use `MiddlewareContext.store.dispatch`?",
-        )
     }
 }

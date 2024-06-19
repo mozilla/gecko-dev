@@ -14,6 +14,10 @@ permalink: /changelog/
   * 🆕 New `CloseTabsCommandReceiver` class for processing "close synced tabs" commands received from other devices.
   * ⚠️ **Breaking change**: `CloseTabsFeature()` now takes a `CloseTabsCommandReceiver` instead of an `onTabsClosed` callback.
 
+* **lib-state**
+  * Introduce a `UiStore` that is similar to a regular `Store` but all the actions are dispatched and processed _immediately_ on the Main thread.
+    * ⚠️ **Note:** Using a `UiStore` means that long running work will block the main thread like any other long running UI work would. Ensure you are dispatching async work to an appropriate background dispatcher.
+
 # 128.0
 
 * **browser-toolbar**
