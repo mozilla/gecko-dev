@@ -82,8 +82,8 @@ bool GleanPings::NameIsEnumerable(const nsAString& aName) { return false; }
 void GleanPings::GetSupportedNames(nsTArray<nsString>& aNames) {
   JOG::GetPingNames(aNames);
   if (!JOG::AreRuntimeMetricsComprehensive()) {
-    for (uint8_t idx : sPingByNameLookupEntries) {
-      const char* pingName = GetPingName(idx);
+    for (ping_entry_t entry : sPingByNameLookupEntries) {
+      const char* pingName = GetPingName(entry);
       aNames.AppendElement()->AssignASCII(pingName);
     }
   }
