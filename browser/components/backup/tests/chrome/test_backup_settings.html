@@ -75,7 +75,7 @@
      * Tests that the dialog for turning off scheduled backups can be displayed
      * from settings, or hidden if cancelled.
      */
-     add_task(async function test_turnOffScheduledBackupsDialog() {
+    add_task(async function test_turnOffScheduledBackupsDialog() {
       let settings = document.getElementById("test-backup-settings");
       const testDefaultName = "test-default-path";
       settings.backupServiceState = {
@@ -103,6 +103,47 @@
       ok(turnOffScheduledBackups, "turn-off-scheduled-backups should be found");
 
       let cancelButton = turnOffScheduledBackups.shadowRoot.getElementById("backup-turn-off-scheduled-cancel-button");
+      ok(cancelButton, "Cancel button should be found");
+
+      cancelButton.click();
+      await settings.updateComplete;
+
+      ok(!dialog.open, "Dialog should not be open");
+    });
+
+    /**
+     * Tests that the dialog for turning off scheduled backups can be displayed
+     * from settings, or hidden if cancelled.
+     */
+    add_task(async function test_disableBackupEncryptionDialog() {
+      let settings = document.getElementById("test-backup-settings");
+      const testDefaultName = "test-default-path";
+      settings.backupServiceState = {
+        defaultParent: {
+          path: PathUtils.join(PathUtils.tempDir, testDefaultName),
+          fileName: testDefaultName,
+        },
+        scheduledBackupsEnabled: true,
+        encryptionEnabled: true,
+      }
+
+      await settings.updateComplete;
+
+      let sensitiveDataCheckboxInput = settings.sensitiveDataCheckboxInputEl;
+      let dialog = settings.disableBackupEncryptionDialogEl;
+
+      ok(sensitiveDataCheckboxInput, "Checkbox for toggling encryption should be found");
+      ok(!dialog.open, "Dialog should not be open");
+
+      sensitiveDataCheckboxInput.click();
+      await settings.updateComplete;
+
+      ok(dialog?.open, "Dialog should be open");
+
+      let disableBackupEncryption = dialog.querySelector("disable-backup-encryption");
+      ok(disableBackupEncryption, "disable-backup-encryption should be found");
+
+      let cancelButton = disableBackupEncryption.shadowRoot.getElementById("backup-disable-encryption-cancel-button");
       ok(cancelButton, "Cancel button should be found");
 
       cancelButton.click();

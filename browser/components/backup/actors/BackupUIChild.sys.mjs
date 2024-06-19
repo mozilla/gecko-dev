@@ -71,6 +71,8 @@ export class BackupUIChild extends JSWindowActorChild {
       });
     } else if (event.type == "BackupUI:RestoreFromBackupChooseFile") {
       this.sendAsyncMessage("RestoreFromBackupChooseFile");
+    } else if (event.type == "BackupUI:ToggleEncryption") {
+      this.sendAsyncMessage("ToggleEncryption", event.detail);
     }
   }
 

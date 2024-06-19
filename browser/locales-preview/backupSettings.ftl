@@ -14,6 +14,10 @@ settings-data-backup-restore-header = Restore your data
 settings-data-backup-restore-description = Use a { -brand-short-name } backup from another device to restore your data.
 settings-data-backup-restore-choose = Choose your file…
 
+settings-data-toggle-encryption-label = Back up your sensitive data
+settings-data-toggle-encryption-description = Back up your passwords, payment methods, and cookies with encryption.
+settings-data-toggle-encryption-support-link = Learn more
+
 ## These strings are displayed in a modal when users want to turn on scheduled backups.
 
 turn-on-scheduled-backups-header = Turn on backup
@@ -70,3 +74,14 @@ restore-from-backup-password-description = This unlocks your encrypted backup.
 
 restore-from-backup-cancel-button = Cancel
 restore-from-backup-confirm-button = Restore and restart
+
+## These strings are displayed in a modal when users want to disable encryption for an existing backup.
+
+disable-backup-encryption-header = Remove password protection
+disable-backup-encryption-description = Your saved passwords, payment methods, and cookies will no longer be backed up.
+disable-backup-encryption-support-link = What will be backed up?
+
+disable-backup-encryption-cancel-button = Cancel
+disable-backup-encryption-confirm-button = Remove password
+
+##

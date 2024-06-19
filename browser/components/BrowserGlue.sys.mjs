@@ -456,6 +456,7 @@ let JSWINDOWACTORS = {
         "BackupUI:GetBackupFileInfo": { wantUntrusted: true },
         "BackupUI:RestoreFromBackupFile": { wantUntrusted: true },
         "BackupUI:RestoreFromBackupChooseFile": { wantUntrusted: true },
+        "BackupUI:ToggleEncryption": { wantUntrusted: true },
       },
     },
     matches: ["about:preferences*", "about:settings*"],

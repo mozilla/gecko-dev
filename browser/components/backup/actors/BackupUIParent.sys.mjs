@@ -151,6 +151,26 @@ export class BackupUIParent extends JSWindowActorParent {
     } else if (message.name == "RestoreFromBackupFile") {
       // TODO: Call restore from single-file archive method
       // in BackupService once it is implemented in Bug 1890322.
+    } else if (message.name == "ToggleEncryption") {
+      let { isEncryptionEnabled } = message.data;
+
+      if (!isEncryptionEnabled) {
+        try {
+          this.#bs.disableEncryption();
+          /**
+           * TODO: (Bug 1901640) after disabling encryption, recreate the backup,
+           * this time without sensitive data.
+           */
+        } catch (e) {
+          /**
+           * TODO: (Bug 1901308) maybe display an error if there is a problem with
+           * disabling encryption.
+           */
+          return null;
+        }
+
+        return true;
+      }
     }
 
     return null;

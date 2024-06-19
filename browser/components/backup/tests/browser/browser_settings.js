@@ -3,8 +3,6 @@
 
 "use strict";
 
-const { MockFilePicker } = SpecialPowers;
-
 add_setup(async () => {
   MockFilePicker.init(window.browsingContext);
   registerCleanupFunction(() => {
@@ -46,6 +44,67 @@ add_task(async function test_preferences_visibility() {
   });
 
   await SpecialPowers.popPrefEnv();
+});
+
+/**
+ * Tests that the disable-backup-encryption dialog can disable encryption
+ * from the settings page.
+ */
+add_task(async function test_disable_backup_encryption_confirm() {
+  await BrowserTestUtils.withNewTab("about:preferences", async browser => {
+    let sandbox = sinon.createSandbox();
+    let disableEncryptionStub = sandbox
+      .stub(BackupService.prototype, "disableEncryption")
+      .resolves(true);
+
+    let settings = browser.contentDocument.querySelector("backup-settings");
+
+    /**
+     * For this test, we can pretend that browser-settings receives a backupServiceState
+     * with encryptionEnable set to true. Normally, Lit only detects reactive property updates if a
+     * property's reference changes (ex. completely replace backupServiceState with a new object),
+     * which we actually do after calling BackupService.stateUpdate() and BackupUIParent.sendState().
+     *
+     * Since we only care about encryptionEnabled, we can just call Lit's requestUpdate() to force
+     * the update explicitly.
+     */
+    settings.backupServiceState.encryptionEnabled = true;
+
+    await settings.requestUpdate();
+    await settings.updateComplete;
+
+    let sensitiveDataCheckbox = settings.sensitiveDataCheckboxInputEl;
+
+    Assert.ok(sensitiveDataCheckbox, "Sensitive data checkbox should be found");
+
+    Assert.ok(
+      sensitiveDataCheckbox.checked,
+      "Sensitive data checkbox should be checked"
+    );
+
+    let disableBackupEncryption = settings.disableBackupEncryptionEl;
+
+    Assert.ok(
+      disableBackupEncryption,
+      "disable-backup-encryption should be found"
+    );
+
+    let confirmButton = disableBackupEncryption.confirmButtonEl;
+    let promise = BrowserTestUtils.waitForEvent(window, "disableEncryption");
+
+    Assert.ok(confirmButton, "Confirm button should be found");
+
+    confirmButton.click();
+
+    await promise;
+    await settings.updateComplete;
+
+    Assert.ok(
+      disableEncryptionStub.calledOnce,
+      "BackupService was called to disable encryption"
+    );
+    sandbox.restore();
+  });
 });
 
 /**

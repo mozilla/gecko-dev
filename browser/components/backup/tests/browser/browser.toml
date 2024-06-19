@@ -4,6 +4,9 @@ prefs = [
   "browser.backup.preferences.ui.enabled=true",
   "browser.backup.scheduled.enabled=false",
 ]
+support-files = [
+  "head.js",
+]
 
 ["browser_settings.js"]
 

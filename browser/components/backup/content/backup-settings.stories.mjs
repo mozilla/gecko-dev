@@ -57,3 +57,17 @@ ScheduledBackupsEnabled.args = {
     scheduledBackupsEnabled: true,
   },
 };
+
+export const EncryptionEnabled = Template.bind({});
+EncryptionEnabled.args = {
+  backupServiceState: {
+    backupDirPath: "/Some/User/Documents",
+    backupInProgress: false,
+    defaultParent: {
+      path: "/Some/User/Documents",
+      fileName: "Documents",
+    },
+    scheduledBackupsEnabled: true,
+    encryptionEnabled: true,
+  },
+};

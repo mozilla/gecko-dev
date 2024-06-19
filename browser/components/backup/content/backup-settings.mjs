@@ -11,6 +11,8 @@ import "chrome://browser/content/backup/turn-on-scheduled-backups.mjs";
 import "chrome://browser/content/backup/turn-off-scheduled-backups.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/backup/restore-from-backup.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/backup/disable-backup-encryption.mjs";
 
 /**
  * The widget for managing the BackupService that is embedded within the main
@@ -24,6 +26,8 @@ export default class BackupSettings extends MozLitElement {
   static get queries() {
     return {
       scheduledBackupsButtonEl: "#backup-toggle-scheduled-button",
+      disableBackupEncryptionEl: "disable-backup-encryption",
+      disableBackupEncryptionDialogEl: "#disable-backup-encryption-dialog",
       turnOnScheduledBackupsDialogEl: "#turn-on-scheduled-backups-dialog",
       turnOnScheduledBackupsEl: "turn-on-scheduled-backups",
       turnOffScheduledBackupsEl: "turn-off-scheduled-backups",
@@ -31,6 +35,7 @@ export default class BackupSettings extends MozLitElement {
       restoreFromBackupEl: "restore-from-backup",
       restoreFromBackupButtonEl: "#backup-toggle-restore-button",
       restoreFromBackupDialogEl: "#restore-from-backup-dialog",
+      sensitiveDataCheckboxInputEl: "#backup-sensitive-data-checkbox-input",
     };
   }
 
@@ -50,6 +55,7 @@ export default class BackupSettings extends MozLitElement {
         path: "",
         iconURL: "",
       },
+      encryptionEnabled: false,
       scheduledBackupsEnabled: false,
     };
   }
@@ -67,9 +73,10 @@ export default class BackupSettings extends MozLitElement {
     this.addEventListener("turnOnScheduledBackups", this);
     this.addEventListener("turnOffScheduledBackups", this);
     this.addEventListener("dialogCancel", this);
+    this.addEventListener("getBackupFileInfo", this);
+    this.addEventListener("disableEncryption", this);
     this.addEventListener("restoreFromBackupConfirm", this);
     this.addEventListener("restoreFromBackupChooseFile", this);
-    this.addEventListener("getBackupFileInfo", this);
   }
 
   handleEvent(event) {
@@ -106,6 +113,8 @@ export default class BackupSettings extends MozLitElement {
           this.turnOffScheduledBackupsDialogEl.close();
         } else if (this.restoreFromBackupDialogEl.open) {
           this.restoreFromBackupDialogEl.close();
+        } else if (this.disableBackupEncryptionDialogEl.open) {
+          this.disableBackupEncryptionDialogEl.close();
         }
         break;
       case "restoreFromBackupConfirm":
@@ -140,6 +149,18 @@ export default class BackupSettings extends MozLitElement {
           })
         );
         break;
+      case "disableEncryption":
+        this.disableBackupEncryptionDialogEl.close();
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:ToggleEncryption", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              isEncryptionEnabled: false,
+            },
+          })
+        );
+        break;
     }
   }
 
@@ -155,6 +176,19 @@ export default class BackupSettings extends MozLitElement {
     ) {
       this.turnOffScheduledBackupsDialogEl.showModal();
     }
+  }
+
+  handleToggleBackupEncryption(event) {
+    event.preventDefault();
+
+    // Checkbox was unchecked, meaning encryption is already enabled and should be disabled.
+    let toggledToDisable =
+      !event.target.checked && this.backupServiceState.encryptionEnabled;
+
+    if (toggledToDisable && this.disableBackupEncryptionDialogEl) {
+      this.disableBackupEncryptionDialogEl.showModal();
+    }
+    // TODO: else, show enable encryption dialog (bug 1893295)
   }
 
   turnOnScheduledBackupsDialogTemplate() {
@@ -204,6 +238,12 @@ export default class BackupSettings extends MozLitElement {
     }
   }
 
+  disableBackupEncryptionDialogTemplate() {
+    return html`<dialog id="disable-backup-encryption-dialog">
+      <disable-backup-encryption></disable-backup-encryption>
+    </dialog>`;
+  }
+
   render() {
     return html`<link
         rel="stylesheet"
@@ -221,6 +261,7 @@ export default class BackupSettings extends MozLitElement {
 
         ${this.turnOnScheduledBackupsDialogTemplate()}
         ${this.turnOffScheduledBackupsDialogTemplate()}
+        ${this.disableBackupEncryptionDialogTemplate()}
 
         <moz-button
           id="backup-toggle-scheduled-button"
@@ -229,7 +270,42 @@ export default class BackupSettings extends MozLitElement {
         ></moz-button>
 
         ${this.restoreFromBackupTemplate()}
-      </div> `;
+
+        <!-- TODO: we can use the moz-checkbox reusable component once it is ready (bug 1901635)-->
+        <div id="backup-sensitive-data-checkbox">
+          <label
+            id="backup-sensitive-data-checkbox-label"
+            for="backup-sensitive-data-checkbox-input"
+          >
+            <input
+              id="backup-sensitive-data-checkbox-input"
+              @click=${this.handleToggleBackupEncryption}
+              type="checkbox"
+              .checked=${this.backupServiceState.encryptionEnabled}
+            />
+            <span
+              id="backup-sensitive-data-checkbox-span"
+              data-l10n-id="settings-data-toggle-encryption-label"
+            ></span>
+          </label>
+          <div
+            id="backup-sensitive-data-checkbox-description"
+            class="text-deemphasized"
+          >
+            <span
+              id="backup-sensitive-data-checkbox-description-span"
+              data-l10n-id="settings-data-toggle-encryption-description"
+            ></span>
+            <!--TODO: finalize support page links (bug 1900467)-->
+            <a
+              id="settings-data-toggle-encryption-learn-more-link"
+              is="moz-support-link"
+              support-page="todo-backup"
+              data-l10n-id="settings-data-toggle-encryption-support-link"
+            ></a>
+          </div>
+        </div>
+      </div>`;
   }
 }
 
