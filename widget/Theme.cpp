@@ -87,8 +87,9 @@ static const CSSCoord kRangeHeight = 6.0f;
 static const CSSCoord kProgressbarHeight = 6.0f;
 static const CSSCoord kMeterHeight = 12.0f;
 
+// nsCheckboxRadioFrame takes the bottom of the content box as the baseline.
+// This border-width makes its baseline 2px under the bottom, which is nice.
 static constexpr CSSCoord kCheckboxRadioBorderWidth = 2.0f;
-static constexpr CSSCoord kCheckboxRadioSize = 14.0f;
 
 static constexpr sRGBColor sTransparent = sRGBColor::White(0.0);
 
@@ -530,17 +531,22 @@ void Theme::PaintCheckboxControl(DrawTarget& aDrawTarget,
   }
 }
 
+constexpr CSSCoord kCheckboxRadioContentBoxSize = 10.0f;
+constexpr CSSCoord kCheckboxRadioBorderBoxSize =
+    kCheckboxRadioContentBoxSize + kCheckboxRadioBorderWidth * 2.0f;
+
 void Theme::PaintCheckMark(DrawTarget& aDrawTarget,
                            const LayoutDeviceRect& aRect,
                            const sRGBColor& aColor) {
-  // Points come from the coordinates on a 14X14 (kCheckboxRadioSize)
+  // Points come from the coordinates on a 14X14 (kCheckboxRadioBorderBoxSize)
   // unit box centered at 0,0
   const float checkPolygonX[] = {-4.5f, -1.5f, -0.5f, 5.0f, 4.75f,
                                  3.5f,  -0.5f, -1.5f, -3.5f};
   const float checkPolygonY[] = {0.5f,  4.0f, 4.0f,  -2.5f, -4.0f,
                                  -4.0f, 1.0f, 1.25f, -1.0f};
   const int32_t checkNumPoints = sizeof(checkPolygonX) / sizeof(float);
-  const float scale = ThemeDrawing::ScaleToFillRect(aRect, kCheckboxRadioSize);
+  const float scale =
+      ThemeDrawing::ScaleToFillRect(aRect, kCheckboxRadioBorderBoxSize);
   auto center = aRect.Center().ToUnknownPoint();
 
   RefPtr<PathBuilder> builder = aDrawTarget.CreatePathBuilder();
@@ -558,8 +564,10 @@ void Theme::PaintCheckMark(DrawTarget& aDrawTarget,
 void Theme::PaintIndeterminateMark(DrawTarget& aDrawTarget,
                                    const LayoutDeviceRect& aRect,
                                    const sRGBColor& aColor) {
-  const CSSCoord borderWidth = kCheckboxRadioBorderWidth;
-  const float scale = ThemeDrawing::ScaleToFillRect(aRect, kCheckboxRadioSize);
+  const CSSCoord borderWidth = 2.0f;
+  const float scale =
+      ThemeDrawing::ScaleToFillRect(aRect, kCheckboxRadioBorderBoxSize);
+
   Rect rect = aRect.ToUnknownRect();
   rect.y += (rect.height / 2) - (borderWidth * scale / 2);
   rect.height = borderWidth * scale;
@@ -1438,6 +1446,13 @@ LayoutDeviceIntMargin Theme::GetWidgetBorder(nsDeviceContext* aContext,
                  aFrame->StyleBorder()->GetComputedBorder(),
                  aFrame->PresContext()->AppUnitsPerDevPixel())
           .Rounded();
+    case StyleAppearance::Checkbox:
+    case StyleAppearance::Radio: {
+      DPIRatio dpiRatio = GetDPIRatio(aFrame, aAppearance);
+      LayoutDeviceIntCoord w =
+          ThemeDrawing::SnapBorderWidth(kCheckboxRadioBorderWidth, dpiRatio);
+      return LayoutDeviceIntMargin(w, w, w, w);
+    }
     default:
       return LayoutDeviceIntMargin();
   }
@@ -1509,7 +1524,7 @@ LayoutDeviceIntCoord Theme::GetScrollbarSize(const nsPresContext* aPresContext,
 }
 
 nscoord Theme::GetCheckboxRadioPrefSize() {
-  return CSSPixel::ToAppUnits(kCheckboxRadioSize);
+  return CSSPixel::ToAppUnits(kCheckboxRadioContentBoxSize);
 }
 
 /* static */
