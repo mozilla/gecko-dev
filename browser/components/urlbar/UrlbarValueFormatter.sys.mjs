@@ -86,46 +86,40 @@ export class UrlbarValueFormatter {
     // Apply new formatting.  Formatter methods should return true if they
     // successfully formatted the value and false if not.  We apply only
     // one formatter at a time, so we stop at the first successful one.
-    this._formattingApplied = this._formatURL() || this._formatSearchAlias();
+    this.window.requestAnimationFrame(() => {
+      if (this._updateInstance != instance) {
+        return;
+      }
+      this._formattingApplied = this._formatURL() || this._formatSearchAlias();
+    });
   }
 
-  _ensureFormattedHostVisible(urlMetaData) {
-    // Used to avoid re-entrance in the requestAnimationFrame callback.
-    let instance = (this._formatURLInstance = {});
-
+  #ensureFormattedHostVisible(urlMetaData) {
     // Make sure the host is always visible. Since it is aligned on
     // the first strong directional character, we set scrollLeft
     // appropriately to ensure the domain stays visible in case of an
     // overflow.
-    this.window.requestAnimationFrame(() => {
-      // Check for re-entrance. On focus change this formatting code is
-      // invoked regardless, thus this should be enough.
-      if (this._formatURLInstance != instance) {
-        return;
-      }
-
-      // In the future, for example in bug 525831, we may add a forceRTL
-      // char just after the domain, and in such a case we should not
-      // scroll to the left.
-      urlMetaData = urlMetaData || this._getUrlMetaData();
-      if (!urlMetaData) {
-        this.urlbarInput.removeAttribute("domaindir");
-        return;
-      }
-      let { url, preDomain, domain } = urlMetaData;
-      let directionality = this.window.windowUtils.getDirectionFromText(domain);
-      if (
-        directionality == this.window.windowUtils.DIRECTION_RTL &&
-        url[preDomain.length + domain.length] != "\u200E"
-      ) {
-        this.urlbarInput.setAttribute("domaindir", "rtl");
-        this.inputField.scrollLeft = this.inputField.scrollLeftMax;
-      } else {
-        this.urlbarInput.setAttribute("domaindir", "ltr");
-        this.inputField.scrollLeft = 0;
-      }
-      this.urlbarInput.updateTextOverflow();
-    });
+    // In the future, for example in bug 525831, we may add a forceRTL
+    // char just after the domain, and in such a case we should not
+    // scroll to the left.
+    urlMetaData = urlMetaData || this._getUrlMetaData();
+    if (!urlMetaData) {
+      this.urlbarInput.removeAttribute("domaindir");
+      return;
+    }
+    let { url, preDomain, domain } = urlMetaData;
+    let directionality = this.window.windowUtils.getDirectionFromText(domain);
+    if (
+      directionality == this.window.windowUtils.DIRECTION_RTL &&
+      url[preDomain.length + domain.length] != "\u200E"
+    ) {
+      this.urlbarInput.setAttribute("domaindir", "rtl");
+      this.inputField.scrollLeft = this.inputField.scrollLeftMax;
+    } else {
+      this.urlbarInput.setAttribute("domaindir", "ltr");
+      this.inputField.scrollLeft = 0;
+    }
+    this.urlbarInput.updateTextOverflow();
   }
 
   _getUrlMetaData() {
@@ -270,6 +264,36 @@ export class UrlbarValueFormatter {
   }
 
   /**
+   * Whether formatting is enabled.
+   *
+   * @returns {boolean}
+   */
+  get formattingEnabled() {
+    return lazy.UrlbarPrefs.get("formatting.enabled");
+  }
+
+  /**
+   * Whether value would show strike-through mixed content protocol.
+   *
+   * @param {string} val The value to evaluate. It should normally be the
+   *   input field value, otherwise this returns false.
+   * @returns {boolean}
+   */
+  willShowFormattedMixedContentProtocol(val) {
+    let shownUrlIsMixedContentLoadedPage =
+      this.urlbarInput.getAttribute("pageproxystate") == "valid" &&
+      this.window.gBrowser.securityUI.state &
+        Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT;
+    return (
+      this.formattingEnabled &&
+      !lazy.UrlbarPrefs.get("security.insecure_connection_text.enabled") &&
+      val.startsWith("https://") &&
+      val == this.urlbarInput.value &&
+      shownUrlIsMixedContentLoadedPage
+    );
+  }
+
+  /**
    * If the input value is a URL and the input is not focused, this
    * formatter method highlights the domain, and if mixed content is present,
    * it crosses out the https scheme.  It also ensures that the host is
@@ -287,14 +311,9 @@ export class UrlbarValueFormatter {
     let { domain, origin, preDomain, schemeWSlashes, trimmedLength, url } =
       urlMetaData;
 
-    let isMixedContent =
-      schemeWSlashes == "https://" &&
-      this.urlbarInput.value.startsWith("https://") &&
-      this.urlbarInput.getAttribute("pageproxystate") == "valid" &&
-      this.window.gBrowser.securityUI.state &
-        Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT;
-    let isUnformattedMixedContent =
-      isMixedContent && !lazy.UrlbarPrefs.get("formatting.enabled");
+    let showMixedContentProtocol = this.willShowFormattedMixedContentProtocol(
+      this.urlbarInput.value
+    );
 
     // When RTL domains cause the address bar to overflow to the left, the
     // protocol may get hidden, if it was not trimmed. We then set the
@@ -306,8 +325,8 @@ export class UrlbarValueFormatter {
     //  - The insecure label is active. The label is a sufficient indicator.
     if (
       this.urlbarInput.value.startsWith(schemeWSlashes) &&
-      !isUnformattedMixedContent &&
-      !lazy.UrlbarPrefs.get("security.insecure_connection_text.enabled")
+      showMixedContentProtocol &&
+      this.formattingEnabled
     ) {
       this.scheme.value = schemeWSlashes;
       this.inputField.style.setProperty(
@@ -316,9 +335,9 @@ export class UrlbarValueFormatter {
       );
     }
 
-    this._ensureFormattedHostVisible(urlMetaData);
+    this.#ensureFormattedHostVisible(urlMetaData);
 
-    if (!lazy.UrlbarPrefs.get("formatting.enabled")) {
+    if (!this.formattingEnabled) {
       return false;
     }
 
@@ -329,9 +348,9 @@ export class UrlbarValueFormatter {
 
     let textNode = editor.rootElement.firstChild;
 
-    // Strike out the "https" part if mixed active content is loaded and https
-    // is not trimmed.
-    if (isMixedContent) {
+    // Strike out the "https" part if mixed active content status should be
+    // shown.
+    if (showMixedContentProtocol) {
       let range = this.document.createRange();
       range.setStart(textNode, 0);
       range.setEnd(textNode, 5);
@@ -411,7 +430,7 @@ export class UrlbarValueFormatter {
    *   True if formatting was applied and false if not.
    */
   _formatSearchAlias() {
-    if (!lazy.UrlbarPrefs.get("formatting.enabled")) {
+    if (!this.formattingEnabled) {
       return false;
     }
 
@@ -535,7 +554,12 @@ export class UrlbarValueFormatter {
     }
     this._resizeThrottleTimeout = this.window.setTimeout(() => {
       this._resizeThrottleTimeout = null;
-      this._ensureFormattedHostVisible();
+      let instance = (this._resizeInstance = {});
+      this.window.requestAnimationFrame(() => {
+        if (instance == this._resizeInstance) {
+          this.#ensureFormattedHostVisible();
+        }
+      });
     }, 100);
   }
 }

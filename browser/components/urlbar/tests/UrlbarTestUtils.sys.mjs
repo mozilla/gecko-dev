@@ -1351,7 +1351,7 @@ export var UrlbarTestUtils = {
    * @param {int} [options.selectionType]
    *   The selectionType for which the input should be checked.
    */
-  checkFormatting(
+  async checkFormatting(
     win,
     urlFormatString,
     {
@@ -1360,6 +1360,7 @@ export var UrlbarTestUtils = {
       selectionType = Ci.nsISelectionController.SELECTION_URLSECONDARY,
     } = {}
   ) {
+    await new Promise(resolve => win.requestAnimationFrame(resolve));
     let selectionController = win.gURLBar.editor.selectionController;
     let selection = selectionController.getSelection(selectionType);
     let value = win.gURLBar.editor.rootElement.textContent;

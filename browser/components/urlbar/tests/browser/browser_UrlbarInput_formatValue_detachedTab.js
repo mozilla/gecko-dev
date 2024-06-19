@@ -45,13 +45,13 @@ add_task(async function detach() {
 
   let win = await detachTab(tabToDetach);
 
-  UrlbarTestUtils.checkFormatting(
+  await UrlbarTestUtils.checkFormatting(
     win,
     UrlbarTestUtils.trimURL("<https://>example.com</detach>")
   );
   await BrowserTestUtils.closeWindow(win);
 
-  UrlbarTestUtils.checkFormatting(
+  await UrlbarTestUtils.checkFormatting(
     window,
     UrlbarTestUtils.trimURL("<https://>example.com</original-tab>")
   );
@@ -84,7 +84,7 @@ add_task(async function detach_emptyTab() {
   await focusPromise;
 
   ok(!gURLBar.focused, "urlbar is not focused");
-  UrlbarTestUtils.checkFormatting(
+  await UrlbarTestUtils.checkFormatting(
     window,
     UrlbarTestUtils.trimURL("<https://>example.com</original-tab>")
   );

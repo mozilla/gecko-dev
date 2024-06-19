@@ -26,7 +26,7 @@ async function testVal(urlFormatString, clobberedURLString = null) {
   info("Setting the value property directly");
   gURLBar.value = str;
   gBrowser.selectedBrowser.focus();
-  UrlbarTestUtils.checkFormatting(window, urlFormatString, {
+  await UrlbarTestUtils.checkFormatting(window, urlFormatString, {
     clobberedURLString,
     selectionType: Ci.nsISelectionController.SELECTION_URLSTRIKEOUT,
   });
@@ -36,11 +36,12 @@ add_task(async function test_strikeout_on_no_https_trimming() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.urlbar.trimHttps", false],
+      ["security.insecure_connection_text.enabled", false],
       ["security.mixed_content.block_active_content", false],
     ],
   });
-  await BrowserTestUtils.withNewTab(TEST_URL, function () {
-    testVal("<https>://example.com/mixed_active.html");
+  await BrowserTestUtils.withNewTab(TEST_URL, async function () {
+    await testVal("<https>://example.com/mixed_active.html");
   });
   await SpecialPowers.popPrefEnv();
 });
@@ -49,11 +50,12 @@ add_task(async function test_no_strikeout_on_https_trimming() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.urlbar.trimHttps", true],
+      ["security.insecure_connection_text.enabled", false],
       ["security.mixed_content.block_active_content", false],
     ],
   });
-  await BrowserTestUtils.withNewTab(TEST_URL, function () {
-    testVal(
+  await BrowserTestUtils.withNewTab(TEST_URL, async function () {
+    await testVal(
       "https://example.com/mixed_active.html",
       "example.com/mixed_active.html"
     );

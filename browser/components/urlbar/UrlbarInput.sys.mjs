@@ -2523,12 +2523,11 @@ export class UrlbarInput {
       // Check overflow again to ensure it didn't change in the meanwhile.
       let input = this.inputField;
       if (input && this._overflowing) {
-        // Normally we would overflow at the final side of text direction,
-        // though RTL domains may cause us to overflow at the opposite side.
-        // This happens dynamically as a consequence of the input field contents
-        // and the call to _ensureFormattedHostVisible, this code only reports
-        // the final state of all that scrolling into an attribute, because
-        // there's no other way to capture this in css.
+        // Normally we overflow at the end side of the text direction, though
+        // RTL domains may cause us to overflow at the opposite side.
+        // The outcome differs depending on the input field contents and applied
+        // formatting, and reports the final state of all the scrolling into an
+        // attribute available to css rules.
         // Note it's also possible to scroll an unfocused input field using
         // SHIFT + mousewheel on Windows, or with just the mousewheel / touchpad
         // scroll (without modifiers) on Mac.
@@ -2738,8 +2737,10 @@ export class UrlbarInput {
     let trimmedValue = lazy.UrlbarPrefs.get("trimURLs")
       ? lazy.BrowserUIUtils.trimURL(val)
       : val;
-    // Only trim value if the directionality doesn't change to RTL.
-    return lazy.UrlbarUtils.isTextDirectionRTL(trimmedValue, this.window)
+    // Only trim value if the directionality doesn't change to RTL and we're not
+    // showing a strikeout https protocol.
+    return lazy.UrlbarUtils.isTextDirectionRTL(trimmedValue, this.window) ||
+      this.valueFormatter.willShowFormattedMixedContentProtocol(val)
       ? val
       : trimmedValue;
   }
