@@ -36,18 +36,18 @@ namespace wasm {
 
 using mozilla::Some;
 
-// ModuleEnvironment contains all the state necessary to process or render
+// ModuleMetadata contains all the state necessary to process or render
 // functions, and all of the state necessary to validate all aspects of the
 // functions.
 //
-// A ModuleEnvironment is created by decoding all the sections before the wasm
+// A ModuleMetadata is created by decoding all the sections before the wasm
 // code section and then used immutably during. When compiling a module using a
-// ModuleGenerator, the ModuleEnvironment holds state shared between the
+// ModuleGenerator, the ModuleMetadata holds state shared between the
 // ModuleGenerator thread and background compile threads. All the threads
-// are given a read-only view of the ModuleEnvironment, thus preventing race
+// are given a read-only view of the ModuleMetadata, thus preventing race
 // conditions.
 
-struct ModuleEnvironment {
+struct ModuleMetadata {
   // Constant parameters for the entire compilation:
   const ModuleKind kind;
   const FeatureArgs features;
@@ -97,8 +97,8 @@ struct ModuleEnvironment {
   // Indicates whether the branch hint section was successfully parsed.
   bool parsedBranchHints;
 
-  explicit ModuleEnvironment(FeatureArgs features,
-                             ModuleKind kind = ModuleKind::Wasm)
+  explicit ModuleMetadata(FeatureArgs features,
+                          ModuleKind kind = ModuleKind::Wasm)
       : kind(kind),
         features(features),
         numFuncImports(0),
@@ -283,7 +283,8 @@ using ValidatingOpIter = OpIter<ValidatingPolicy>;
 
 // Shared subtyping function across validation.
 
-[[nodiscard]] bool CheckIsSubtypeOf(Decoder& d, const ModuleEnvironment& env,
+[[nodiscard]] bool CheckIsSubtypeOf(Decoder& d,
+                                    const ModuleMetadata& moduleMeta,
                                     size_t opcodeOffset, StorageType subType,
                                     StorageType superType);
 
@@ -302,10 +303,9 @@ using ValidatingOpIter = OpIter<ValidatingPolicy>;
 // This validates the entries. Function params are inserted before the locals
 // to generate the full local entries for use in validation
 
-[[nodiscard]] bool DecodeLocalEntriesWithParams(Decoder& d,
-                                                const ModuleEnvironment& env,
-                                                uint32_t funcIndex,
-                                                ValTypeVector* locals);
+[[nodiscard]] bool DecodeLocalEntriesWithParams(
+    Decoder& d, const ModuleMetadata& moduleMeta, uint32_t funcIndex,
+    ValTypeVector* locals);
 
 // Returns whether the given [begin, end) prefix of a module's bytecode starts a
 // code section and, if so, returns the SectionRange of that code section.
@@ -323,13 +323,14 @@ using ValidatingOpIter = OpIter<ValidatingPolicy>;
 // and finally call DecodeModuleTail to decode all remaining sections after the
 // code section (again, performing full validation).
 
-[[nodiscard]] bool DecodeModuleEnvironment(Decoder& d, ModuleEnvironment* env);
+[[nodiscard]] bool DecodeModuleEnvironment(Decoder& d,
+                                           ModuleMetadata* moduleMeta);
 
-[[nodiscard]] bool ValidateFunctionBody(const ModuleEnvironment& env,
+[[nodiscard]] bool ValidateFunctionBody(const ModuleMetadata& moduleMeta,
                                         uint32_t funcIndex, uint32_t bodySize,
                                         Decoder& d);
 
-[[nodiscard]] bool DecodeModuleTail(Decoder& d, ModuleEnvironment* env);
+[[nodiscard]] bool DecodeModuleTail(Decoder& d, ModuleMetadata* moduleMeta);
 
 // Validate an entire module, returning true if the module was validated
 // successfully. If Validate returns false:

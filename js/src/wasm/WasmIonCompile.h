@@ -32,13 +32,13 @@ namespace wasm {
 [[nodiscard]] bool IonPlatformSupport();
 
 // Generates very fast code at the expense of compilation time.
-[[nodiscard]] bool IonCompileFunctions(const ModuleEnvironment& moduleEnv,
+[[nodiscard]] bool IonCompileFunctions(const ModuleMetadata& moduleMeta,
                                        const CompilerEnvironment& compilerEnv,
                                        LifoAlloc& lifo,
                                        const FuncCompileInputVector& inputs,
                                        CompiledCode* code, UniqueChars* error);
 
-[[nodiscard]] bool IonDumpFunction(const ModuleEnvironment& moduleEnv,
+[[nodiscard]] bool IonDumpFunction(const ModuleMetadata& moduleMeta,
                                    const FuncCompileInput& func,
                                    IonDumpContents contents,
                                    GenericPrinter& out, UniqueChars* error);

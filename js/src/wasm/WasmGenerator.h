@@ -133,7 +133,7 @@ struct CompileTaskState {
 // helper thread as well as, eventually, the results of compilation.
 
 struct CompileTask : public HelperThreadTask {
-  const ModuleEnvironment& moduleEnv;
+  const ModuleMetadata& moduleMeta;
   const CompilerEnvironment& compilerEnv;
 
   CompileTaskState& state;
@@ -141,10 +141,10 @@ struct CompileTask : public HelperThreadTask {
   FuncCompileInputVector inputs;
   CompiledCode output;
 
-  CompileTask(const ModuleEnvironment& moduleEnv,
+  CompileTask(const ModuleMetadata& moduleMeta,
               const CompilerEnvironment& compilerEnv, CompileTaskState& state,
               size_t defaultChunkSize)
-      : moduleEnv(moduleEnv),
+      : moduleMeta(moduleMeta),
         compilerEnv(compilerEnv),
         state(state),
         lifo(defaultChunkSize) {}
@@ -178,7 +178,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   UniqueChars* const error_;
   UniqueCharsVector* const warnings_;
   const Atomic<bool>* const cancelled_;
-  ModuleEnvironment* const moduleEnv_;
+  ModuleMetadata* const moduleMeta_;
   CompilerEnvironment* const compilerEnv_;
 
   // Data that is moved into the result of finish()
@@ -228,7 +228,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   UniqueCodeTier finishCodeTier();
   SharedMetadata finishMetadata(const Bytes& bytecode);
 
-  bool isAsmJS() const { return moduleEnv_->isAsmJS(); }
+  bool isAsmJS() const { return moduleMeta_->isAsmJS(); }
   Tier tier() const { return compilerEnv_->tier(); }
   CompileMode mode() const { return compilerEnv_->mode(); }
   bool debugEnabled() const { return compilerEnv_->debugEnabled(); }
@@ -236,7 +236,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   void warnf(const char* msg, ...) MOZ_FORMAT_PRINTF(2, 3);
 
  public:
-  ModuleGenerator(const CompileArgs& args, ModuleEnvironment* moduleEnv,
+  ModuleGenerator(const CompileArgs& args, ModuleMetadata* moduleMeta,
                   CompilerEnvironment* compilerEnv,
                   const Atomic<bool>* cancelled, UniqueChars* error,
                   UniqueCharsVector* warnings);

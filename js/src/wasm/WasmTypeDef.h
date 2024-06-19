@@ -253,7 +253,7 @@ class FuncType {
 
 // The Module owns a dense array of StructType values that represent the
 // structure types that the module knows about.  It is created from the sparse
-// array of types in the ModuleEnvironment when the Module is created.
+// array of types in the ModuleMetadata when the Module is created.
 
 struct StructField {
   StorageType type;

@@ -41,11 +41,11 @@ BEGIN_TEST(testWasmEncodeBasic) {
   SharedCompileArgs compileArgs =
       CompileArgs::buildAndReport(cx, std::move(scriptedCaller), options);
 
-  ModuleEnvironment moduleEnv(compileArgs->features);
+  ModuleMetadata moduleMeta(compileArgs->features);
   CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters();
-  MOZ_ALWAYS_TRUE(moduleEnv.init());
+  MOZ_ALWAYS_TRUE(moduleMeta.init());
 
   ValTypeVector paramsImp, resultsImp;
   MOZ_ALWAYS_TRUE(paramsImp.emplaceBack(ValType::F64) &&
@@ -54,19 +54,19 @@ BEGIN_TEST(testWasmEncodeBasic) {
   CacheableName ns;
   CacheableName impName;
   MOZ_ALWAYS_TRUE(CacheableName::fromUTF8Chars("t", &impName));
-  MOZ_ALWAYS_TRUE(moduleEnv.addImportedFunc(std::move(paramsImp),
-                                            std::move(resultsImp),
-                                            std::move(ns), std::move(impName)));
+  MOZ_ALWAYS_TRUE(
+      moduleMeta.addImportedFunc(std::move(paramsImp), std::move(resultsImp),
+                                 std::move(ns), std::move(impName)));
 
   ValTypeVector params, results;
   MOZ_ALWAYS_TRUE(results.emplaceBack(ValType::I32));
   CacheableName expName;
   MOZ_ALWAYS_TRUE(CacheableName::fromUTF8Chars("r", &expName));
-  MOZ_ALWAYS_TRUE(moduleEnv.addDefinedFunc(std::move(params),
-                                           std::move(results), true,
-                                           mozilla::Some(std::move(expName))));
+  MOZ_ALWAYS_TRUE(moduleMeta.addDefinedFunc(std::move(params),
+                                            std::move(results), true,
+                                            mozilla::Some(std::move(expName))));
 
-  ModuleGenerator mg(*compileArgs, &moduleEnv, &compilerEnv, nullptr, nullptr,
+  ModuleGenerator mg(*compileArgs, &moduleMeta, &compilerEnv, nullptr, nullptr,
                      nullptr);
   MOZ_ALWAYS_TRUE(mg.init(nullptr));
 

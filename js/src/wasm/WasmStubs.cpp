@@ -1975,17 +1975,18 @@ static bool GenerateImportFunction(jit::MacroAssembler& masm,
 
 static const unsigned STUBS_LIFO_DEFAULT_CHUNK_SIZE = 4 * 1024;
 
-bool wasm::GenerateImportFunctions(const ModuleEnvironment& env,
+bool wasm::GenerateImportFunctions(const ModuleMetadata& moduleMeta,
                                    const FuncImportVector& imports,
                                    CompiledCode* code) {
   LifoAlloc lifo(STUBS_LIFO_DEFAULT_CHUNK_SIZE);
   TempAllocator alloc(&lifo);
-  WasmMacroAssembler masm(alloc, env);
+  WasmMacroAssembler masm(alloc, moduleMeta);
 
   for (uint32_t funcIndex = 0; funcIndex < imports.length(); funcIndex++) {
     const FuncImport& fi = imports[funcIndex];
-    const FuncType& funcType = *env.funcs[funcIndex].type;
-    CallIndirectId callIndirectId = CallIndirectId::forFunc(env, funcIndex);
+    const FuncType& funcType = *moduleMeta.funcs[funcIndex].type;
+    CallIndirectId callIndirectId =
+        CallIndirectId::forFunc(moduleMeta, funcIndex);
 
     FuncOffsets offsets;
     if (!GenerateImportFunction(masm, fi, funcType, callIndirectId, &offsets,
@@ -2981,13 +2982,13 @@ bool wasm::GenerateProvisionalLazyJitEntryStub(MacroAssembler& masm,
   return FinishOffsets(masm, offsets);
 }
 
-bool wasm::GenerateStubs(const ModuleEnvironment& env,
+bool wasm::GenerateStubs(const ModuleMetadata& moduleMeta,
                          const FuncImportVector& imports,
                          const FuncExportVector& exports, CompiledCode* code) {
   LifoAlloc lifo(STUBS_LIFO_DEFAULT_CHUNK_SIZE);
   TempAllocator alloc(&lifo);
   JitContext jcx;
-  WasmMacroAssembler masm(alloc, env);
+  WasmMacroAssembler masm(alloc, moduleMeta);
   AutoCreatedBy acb(masm, "wasm::GenerateStubs");
 
   // Swap in already-allocated empty vectors to avoid malloc/free.
@@ -3001,7 +3002,7 @@ bool wasm::GenerateStubs(const ModuleEnvironment& env,
 
   for (uint32_t funcIndex = 0; funcIndex < imports.length(); funcIndex++) {
     const FuncImport& fi = imports[funcIndex];
-    const FuncType& funcType = *env.funcs[funcIndex].type;
+    const FuncType& funcType = *moduleMeta.funcs[funcIndex].type;
 
     CallableOffsets interpOffsets;
     if (!GenerateImportInterpExit(masm, fi, funcType, funcIndex, &throwLabel,
@@ -3035,12 +3036,12 @@ bool wasm::GenerateStubs(const ModuleEnvironment& env,
   Maybe<ImmPtr> noAbsolute;
   for (size_t i = 0; i < exports.length(); i++) {
     const FuncExport& fe = exports[i];
-    const FuncType& funcType = (*env.types)[fe.typeIndex()].funcType();
+    const FuncType& funcType = (*moduleMeta.types)[fe.typeIndex()].funcType();
     if (!fe.hasEagerStubs()) {
       continue;
     }
-    if (!GenerateEntryStubs(masm, i, fe, funcType, noAbsolute, env.isAsmJS(),
-                            &code->codeRanges)) {
+    if (!GenerateEntryStubs(masm, i, fe, funcType, noAbsolute,
+                            moduleMeta.isAsmJS(), &code->codeRanges)) {
       return false;
     }
   }
