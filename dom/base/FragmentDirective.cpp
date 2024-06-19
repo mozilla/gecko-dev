@@ -12,8 +12,10 @@
 #include "mozilla/dom/FragmentDirectiveBinding.h"
 #include "mozilla/dom/FragmentOrElement.h"
 #include "mozilla/dom/NodeBinding.h"
+#include "mozilla/dom/Selection.h"
 #include "mozilla/dom/Text.h"
 #include "mozilla/intl/WordBreaker.h"
+#include "mozilla/PresShell.h"
 #include "nsComputedDOMStyle.h"
 #include "nsContentUtils.h"
 #include "nsDOMAttributeMap.h"
@@ -98,6 +100,34 @@ nsTArray<RefPtr<nsRange>> FragmentDirective::FindTextFragmentsInDocument() {
     }
   }
   return textDirectiveRanges;
+}
+
+void FragmentDirective::HighlightTextDirectives(
+    const nsTArray<RefPtr<nsRange>>& aTextDirectiveRanges) {
+  MOZ_ASSERT(mDocument);
+  if (aTextDirectiveRanges.IsEmpty()) {
+    return;
+  }
+  if (!StaticPrefs::dom_text_fragments_enabled()) {
+    return;
+  }
+
+  const RefPtr<Selection> targetTextSelection =
+      [doc = this->mDocument]() -> Selection* {
+    if (auto* presShell = doc->GetPresShell()) {
+      return presShell->GetCurrentSelection(SelectionType::eTargetText);
+    }
+    return nullptr;
+  }();
+  if (!targetTextSelection) {
+    return;
+  }
+  for (const RefPtr<nsRange>& range : aTextDirectiveRanges) {
+    // Script won't be able to manipulate `aTextDirectiveRanges`,
+    // therefore we can mark `range` as known live.
+    targetTextSelection->AddRangeAndSelectFramesAndNotifyListeners(
+        MOZ_KnownLive(*range), IgnoreErrors());
+  }
 }
 
 /**
