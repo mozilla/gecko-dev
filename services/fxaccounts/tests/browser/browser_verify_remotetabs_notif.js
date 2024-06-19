@@ -6,11 +6,6 @@ const { Observers } = ChromeUtils.importESModule(
   "resource://services-common/observers.sys.mjs"
 );
 
-// Since we show the brand name (Nightly, Beta) in the notification
-// we need to fetch the localization so the test doesn't break when going
-// through the trains
-const l10n = new Localization(["branding/brand.ftl", "browser/accounts.ftl"]);
-
 // URL that opens up when a user clicks the "close tab" notification
 const NOTIFICATION_CLICKED_URL = "about:firefoxview#recentlyclosed";
 
@@ -26,20 +21,11 @@ add_task(async function test_closetab_notification() {
   ];
   info("Test verify receiving a close tab command will show a notification");
 
-  // Get the expected notification text we'll show the user
-  const [expectedTitle, expectedBody] = await l10n.formatValues([
-    {
-      id: "account-tabs-closed-remotely",
-      args: { closedCount: 1 },
-    },
-    { id: "account-view-recently-closed-tabs" },
-  ]);
-
   // This will also immediately invoke the "alertclickcallback" in addition to
   // the usual alertshow and alertfinished
   setupMockAlertsService({
-    title: expectedTitle,
-    body: expectedBody,
+    title: "1 Nightly tab closed",
+    body: "View recently closed tabs",
   });
 
   // Open a tab with the same url we'll be expecting from the close tab command payload
@@ -81,20 +67,11 @@ add_task(async function test_closetab_multiple_urls_notification() {
     "Test verify receiving multiple close tabs command will show the proper notification"
   );
 
-  // Get the expected notification text we'll show the user
-  const [expectedTitle, expectedBody] = await l10n.formatValues([
-    {
-      id: "account-tabs-closed-remotely",
-      args: { closedCount: 2 },
-    },
-    { id: "account-view-recently-closed-tabs" },
-  ]);
-
   // This will also immediately invoke the "alertclickcallback" in addition to
   // the usual alertshow and alertfinished
   setupMockAlertsService({
-    title: expectedTitle,
-    body: expectedBody,
+    title: "2 Nightly tabs closed",
+    body: "View recently closed tabs",
   });
   // Open multiple tabs to test we can close both and have the correct
   // notification text
