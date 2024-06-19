@@ -209,11 +209,6 @@ class MOZ_STACK_CLASS ModuleGenerator {
   // Assertions
   DebugOnly<bool> finishedFuncDefs_;
 
-  bool allocateInstanceDataBytes(uint32_t bytes, uint32_t align,
-                                 uint32_t* instanceDataOffset);
-  bool allocateInstanceDataBytesN(uint32_t bytes, uint32_t align,
-                                  uint32_t count, uint32_t* instanceDataOffset);
-
   bool funcIsCompiled(uint32_t funcIndex) const;
   const CodeRange& funcCodeRange(uint32_t funcIndex) const;
   bool linkCallSites();
