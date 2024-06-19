@@ -696,20 +696,12 @@ bool nsStandardURL::ValidIPv6orHostname(const char* host, uint32_t length) {
 }
 
 void nsStandardURL::CoalescePath(netCoalesceFlags coalesceFlag, char* path) {
-  auto resultCoalesceDirs = net_CoalesceDirs(coalesceFlag, path);
+  net_CoalesceDirs(coalesceFlag, path);
   int32_t newLen = strlen(path);
-  if (newLen < mPath.mLen && resultCoalesceDirs) {
-    // Obtain indicies for the last slash and end of basename
-    uint32_t lastSlash = resultCoalesceDirs->first();
-    uint32_t endOfBasename = resultCoalesceDirs->second();
-
+  if (newLen < mPath.mLen) {
     int32_t diff = newLen - mPath.mLen;
     mPath.mLen = newLen;
-    // directory length is until and upto the last slash
-    mDirectory.mLen = static_cast<int32_t>(lastSlash) + 1;
-    // basename length includes everything after the last slash until hash,
-    // query, or the null char
-    mBasename.mLen = static_cast<int32_t>(endOfBasename - mDirectory.mLen);
+    mDirectory.mLen += diff;
     mFilepath.mLen += diff;
     ShiftFromBasename(diff);
   }

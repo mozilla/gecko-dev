@@ -443,84 +443,33 @@ TEST(TestStandardURL, ParseIPv4Num)
 
 TEST(TestStandardURL, CoalescePath)
 {
-  auto testCoalescing = [](const char* input, const char* expected,
-                           uint32_t lastSlash, uint32_t endOfBasename) {
+  auto testCoalescing = [](const char* input, const char* expected) {
     nsAutoCString buf(input);
-    auto resultCoalesceDirs =
-        net_CoalesceDirs(NET_COALESCE_NORMAL, buf.BeginWriting());
-
+    net_CoalesceDirs(NET_COALESCE_NORMAL, buf.BeginWriting());
     ASSERT_EQ(nsCString(buf.get()), nsCString(expected));
-    ASSERT_EQ(resultCoalesceDirs->first(), lastSlash);
-    ASSERT_EQ(resultCoalesceDirs->second(), endOfBasename);
   };
 
 #ifndef DEBUG
   // invalid input
-  testCoalescing("", "", 0, 0);
+  testCoalescing("", "");
 #endif
-  // end of basename is the null character's index
-  testCoalescing("/", "/", 0, 1);
-  testCoalescing("/.", "/", 0, 1);
-  testCoalescing("/..", "/", 0, 1);
-  testCoalescing("/foo/foo1/.", "/foo/foo1/", 9, 10);
-  testCoalescing("/foo/../foo1", "/foo1", 0, 5);
-  testCoalescing("/foo/./foo1", "/foo/foo1", 4, 9);
-  testCoalescing("/foo/foo1/..", "/foo/", 4, 5);
+
+  testCoalescing("/", "/");
+  testCoalescing("/.", "/");
+  testCoalescing("/..", "/");
+  testCoalescing("/foo/foo1/.", "/foo/foo1/");
+  testCoalescing("/foo/../foo1", "/foo1");
+  testCoalescing("/foo/./foo1", "/foo/foo1");
+  testCoalescing("/foo/foo1/..", "/foo/");
 
   // Bug 1890346
-  testCoalescing("/..?/..", "/?/..", 0, 1);
+  testCoalescing("/..?/..", "/?/..");
 
-  testCoalescing("/.?/..", "/?/..", 0, 1);
-  testCoalescing("/./../?", "/?", 0, 1);
-  testCoalescing("/.abc", "/.abc", 0, 5);
-  testCoalescing("//", "//", 1, 2);
-  testCoalescing("/../", "/", 0, 1);
-  testCoalescing("/./", "/", 0, 1);
-  testCoalescing("/.../", "/.../", 4, 5);
-
-  // Bug 1873915
-  testCoalescing("/hello/%2e%2e/foo", "/foo", 0, 4);
-  testCoalescing("/hello/%2e%2E/foo", "/foo", 0, 4);
-  testCoalescing("/hello/%2E%2e/foo", "/foo", 0, 4);
-  testCoalescing("/hello/%2E%2E/foo", "/foo", 0, 4);
-  testCoalescing("/hello/%2e./foo", "/foo", 0, 4);
-  testCoalescing("/hello/.%2e/foo", "/foo", 0, 4);
-  testCoalescing("/hello/%2E./foo", "/foo", 0, 4);
-  testCoalescing("/hello/.%2E/foo", "/foo", 0, 4);
-  testCoalescing("/hello/%2e%2E/%2e", "/", 0, 1);
-  testCoalescing("/hello/%2e/%2e%2e", "/", 0, 1);
-  testCoalescing("/hello/%2e%2E/%#", "/%#", 0, 2);
-  testCoalescing("/hello/%2e%2E/%?", "/%?", 0, 2);
-  testCoalescing("/hello/%2e", "/hello/", 6, 7);
-  testCoalescing("/hello/%2E", "/hello/", 6, 7);
-  testCoalescing("/hello/%2e/", "/hello/", 6, 7);
-  testCoalescing("/hello/%2E/", "/hello/", 6, 7);
-  testCoalescing("/hello/%2e.", "/", 0, 1);
-  testCoalescing("/hello/.%2e", "/", 0, 1);
-  testCoalescing("/hello/%2E.", "/", 0, 1);
-  testCoalescing("/hello/.%2E", "/", 0, 1);
-  testCoalescing("/hello/%2E%2e/%2e/./../.", "/", 0, 1);
-  testCoalescing("/test/%2e%2e/dir/%2E%2e/file", "/file", 0, 5);
-
-  // should not convert as a character is present
-  testCoalescing("/hello/%2E%2ea", "/hello/%2E%2ea", 6, 14);
-  testCoalescing("/hello/a%2E%2e", "/hello/a%2E%2e", 6, 14);
-  testCoalescing("/hello/a%2E%2ea", "/hello/a%2E%2ea", 6, 15);
-
-  // Encoded sequences followed by special characters
-  testCoalescing("/foo/%2e%2e/%2e%23/file.txt", "/%2e%23/file.txt", 7, 16);
-  testCoalescing("/foo/%2e%2e/%2e%3f/file.txt", "/%2e%3f/file.txt", 7, 16);
-
-  // Query strings and fragments with encoded sequences
-  testCoalescing("/query/%2e%2e/path?p=%2e", "/path?p=%2e", 0, 5);
-  testCoalescing("/frag/%2e%2e/path#q=%2e", "/path#q=%2e", 0, 5);
-
-  // 3 or more "%2e" repeating should not convert to "."
-  testCoalescing("/hello/%2E%2e%2E", "/hello/%2E%2e%2E", 6, 16);
-  testCoalescing("/hello/%2E%2e%2E%2e", "/hello/%2E%2e%2E%2e", 6, 19);
-  testCoalescing("/hello/%2E%2e%2E%2e.", "/hello/%2E%2e%2E%2e.", 6, 20);
-
-  // Relatively long inputs
-  testCoalescing("/foo/bar/foo/bar/foo/bar/foo/bar/foo?query#frag",
-                 "/foo/bar/foo/bar/foo/bar/foo/bar/foo?query#frag", 32, 36);
+  testCoalescing("/.?/..", "/?/..");
+  testCoalescing("/./../?", "/?");
+  testCoalescing("/.abc", "/.abc");
+  testCoalescing("//", "//");
+  testCoalescing("/../", "/");
+  testCoalescing("/./", "/");
+  testCoalescing("/.../", "/.../");
 }
