@@ -12,6 +12,7 @@
 namespace mozilla::dom {
 
 class RemoteWorkerController;
+class RemoteWorkerServiceParent;
 
 /**
  * PBackground-managed parent actor that is mutually associated with a single
@@ -31,6 +32,8 @@ class RemoteWorkerParent final : public PRemoteWorkerParent {
   void SetController(RemoteWorkerController* aController);
 
   void MaybeSendDelete();
+
+  RemoteWorkerServiceParent* Manager() const;
 
  private:
   ~RemoteWorkerParent();

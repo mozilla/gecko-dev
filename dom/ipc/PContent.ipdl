@@ -40,6 +40,7 @@ include protocol PURLClassifier;
 include protocol PURLClassifierLocal;
 include protocol PVRManager;
 include protocol PRemoteDecoderManager;
+include protocol PRemoteWorkerService;
 include protocol PProfiler;
 include protocol PScriptCache;
 include protocol PSessionStorageObserver;
@@ -770,6 +771,11 @@ child:
      * Send the remote type associated with the content process.
      */
     async RemoteType(nsCString aRemoteType, nsCString aProfile);
+
+    /**
+     * Initialize the RemoteWorkerService thread in the content process.
+     */
+    async InitRemoteWorkerService(Endpoint<PRemoteWorkerServiceChild> aEndpoint);
 
     /**
      * Send BlobURLRegistrationData to child process.
