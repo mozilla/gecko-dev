@@ -25,6 +25,7 @@
 
 #include "jstypes.h"      // JS_PUBLIC_API
 #include "js/CallArgs.h"  // JSNative
+#include "wasm/WasmShareable.h"  // ShareableBase
 
 struct JS_PUBLIC_API JSContext;
 class JS_PUBLIC_API JSFunction;
@@ -41,6 +42,7 @@ class Handle;
 namespace js {
 
 class FrontendContext;
+class ScriptSource;
 
 namespace frontend {
 
@@ -110,6 +112,30 @@ extern JSString* AsmJSModuleToString(JSContext* cx, JS::Handle<JSFunction*> fun,
 // asm.js heap:
 
 extern bool IsValidAsmJSHeapLength(size_t length);
+
+// Minimally expose wasm::Code-lifetime state in AsmJS.cpp to ModuleGenerator
+// and friends.
+
+struct AsmJSMetadata;
+
+struct Metadata : public wasm::ShareableBase<Metadata> {
+  Metadata() {};
+  virtual ~Metadata() = default;
+
+  virtual const AsmJSMetadata& asAsmJS() const = 0;
+
+  virtual bool mutedErrors() const = 0;
+  virtual const char16_t* displayURL() const = 0;
+  virtual ScriptSource* maybeScriptSource() const = 0;
+  virtual bool getFuncNameForAsmJS(uint32_t funcIndex,
+                                   wasm::UTF8Bytes* name) const = 0;
+
+  virtual size_t sizeOfExcludingThis(
+      mozilla::MallocSizeOf mallocSizeOf) const = 0;
+};
+
+using MutableMetadata = RefPtr<Metadata>;
+using SharedMetadata = RefPtr<const Metadata>;
 
 }  // namespace js
 

@@ -1050,19 +1050,6 @@ CoderResult CodeMetadataTier(Coder<mode>& coder,
   return Ok();
 }
 
-// Note this is called CodeMetadata_, not CodeMetadata.  It is the "Code"
-// operation for Metadata, but the name CodeMetadata conflicts with the struct
-// of the same name.  This workaround is temporary because struct Metadata --
-// and hence the "Code" operation CodeMetadata -- will disappear in a later
-// patch in this series, hence removing the name conflict.
-template <CoderMode mode>
-CoderResult CodeMetadata_(Coder<mode>& coder,
-                          CoderArg<mode, wasm::Metadata> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Metadata, 16);
-  MOZ_TRY(Magic(coder, Marker::Metadata));
-  return Ok();
-}
-
 template <CoderMode mode>
 CoderResult CodeCodeMetadata(Coder<mode>& coder,
                              CoderArg<mode, wasm::CodeMetadata> item) {
@@ -1155,8 +1142,6 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
   UniqueCodeTier codeTier;
   MOZ_TRY((CodeRefPtr<MODE_DECODE, CodeMetadata, &CodeCodeMetadata>(
       coder, &codeMeta)));
-  MOZ_TRY(
-      (CodeRefPtr<MODE_DECODE, Metadata, &CodeMetadata_>(coder, &metadata)));
   MOZ_TRY(CodeCodeTier(coder, &codeTier, linkData));
 
   // Initialize metadata's name payload from the custom section
@@ -1176,8 +1161,8 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
   }
 
   // Create and initialize the code
-  MutableCode code = js_new<Code>(std::move(codeTier), *metadata, *codeMeta,
-                                  std::move(jumpTables));
+  MutableCode code = js_new<Code>(std::move(codeTier), nullptr /*metadata*/,
+                                  *codeMeta, std::move(jumpTables));
   if (!code || !code->initialize(linkData)) {
     return Err(OutOfMemory());
   }
@@ -1193,8 +1178,6 @@ CoderResult CodeSharedCode(Coder<mode>& coder,
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY((CodeRefPtr<mode, const CodeMetadata, &CodeCodeMetadata>(
       coder, &(*item)->codeMeta_)));
-  MOZ_TRY((CodeRefPtr<mode, const Metadata, &CodeMetadata_>(
-      coder, &(*item)->metadata_)));
   MOZ_TRY(CodeCodeTier(coder, &(*item)->codeTier(Tier::Serialized), linkData));
   return Ok();
 }

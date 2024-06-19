@@ -178,7 +178,7 @@ struct StatsClosure {
   RuntimeStats* rtStats;
   ObjectPrivateVisitor* opv;
   SourceSet seenSources;
-  wasm::Metadata::SeenSet wasmSeenMetadata;
+  js::Metadata::SeenSet wasmSeenMetadata;
   wasm::CodeMetadata::SeenSet wasmSeenCodeMetadata;
   wasm::Code::SeenSet wasmSeenCode;
   wasm::Table::SeenSet wasmSeenTables;
@@ -346,7 +346,10 @@ static void StatsCellCallback(JSRuntime* rt, void* data, JS::GCCellPtr cellptr,
       // we must be careful not to report twice.
       if (obj->is<WasmModuleObject>()) {
         const wasm::Module& module = obj->as<WasmModuleObject>().module();
-        if (ScriptSource* ss = module.metadata().maybeScriptSource()) {
+        ScriptSource* ss = module.metadata()
+                               ? module.metadata()->maybeScriptSource()
+                               : nullptr;
+        if (ss) {
           CollectScriptSourceStats<granularity>(closure, ss);
         }
         module.addSizeOfMisc(
@@ -355,7 +358,10 @@ static void StatsCellCallback(JSRuntime* rt, void* data, JS::GCCellPtr cellptr,
             &info.objectsNonHeapCodeWasm, &info.objectsMallocHeapMisc);
       } else if (obj->is<WasmInstanceObject>()) {
         wasm::Instance& instance = obj->as<WasmInstanceObject>().instance();
-        if (ScriptSource* ss = instance.metadata().maybeScriptSource()) {
+        ScriptSource* ss = instance.metadata()
+                               ? instance.metadata()->maybeScriptSource()
+                               : nullptr;
+        if (ss) {
           CollectScriptSourceStats<granularity>(closure, ss);
         }
         instance.addSizeOfMisc(

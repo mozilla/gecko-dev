@@ -319,7 +319,8 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
     return;
   }
 
-  MOZ_RELEASE_ASSERT(&instance->metadata() == &metadata());
+  MOZ_RELEASE_ASSERT(&instance->codeMeta() == &codeMeta());
+  MOZ_RELEASE_ASSERT(instance->metadata() == metadata());
   uint32_t numFuncs = codeMeta().debugNumFuncs();
   if (enabled) {
     MOZ_ASSERT(enterAndLeaveFrameTrapsCounter_ > 0);

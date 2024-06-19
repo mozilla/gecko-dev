@@ -45,6 +45,7 @@
 #include "threading/ExclusiveData.h"
 #include "util/Memory.h"
 #include "vm/MutexIDs.h"
+#include "wasm/AsmJS.h"  // CodeMetadataForAsmJS::SeenSet
 #include "wasm/WasmBuiltinModule.h"
 #include "wasm/WasmBuiltins.h"
 #include "wasm/WasmCodegenConstants.h"
@@ -62,13 +63,12 @@
 #include "wasm/WasmTypeDef.h"
 #include "wasm/WasmValType.h"
 
+using js::Metadata;
+
 struct JS_PUBLIC_API JSContext;
 class JSFunction;
 
 namespace js {
-
-struct AsmJSMetadata;
-class ScriptSource;
 
 namespace jit {
 class MacroAssembler;
@@ -77,7 +77,6 @@ class MacroAssembler;
 namespace wasm {
 
 struct MetadataTier;
-struct Metadata;
 
 // LinkData contains all the metadata necessary to patch all the locations
 // that depend on the absolute address of a ModuleSegment. This happens in a
@@ -229,7 +228,7 @@ class ModuleSegment : public CodeSegment {
                                     const LinkData& linkData);
 
   bool initialize(const CodeTier& codeTier, const LinkData& linkData,
-                  const Metadata& metadata, const CodeMetadata& codeMeta,
+                  const Metadata* metadata, const CodeMetadata& codeMeta,
                   const MetadataTier& metadataTier);
 
   Tier tier() const { return tier_; }
@@ -252,7 +251,22 @@ extern UniqueCodeBytes AllocateCodeBytes(
 extern bool StaticallyLink(const ModuleSegment& ms, const LinkData& linkData);
 extern void StaticallyUnlink(uint8_t* base, const LinkData& linkData);
 
-// FIXME: update/remove the following old comment
+// ==== Printing of names
+
+// The Developer-Facing Display Conventions section of the WebAssembly Web
+// API spec defines two cases for displaying a wasm function name:
+//  1. the function name stands alone
+//  2. the function name precedes the location
+
+enum class NameContext { Standalone, BeforeLocation };
+
+// This gets names for wasm only.
+// For asm.js, see CodeMetadataForAsmJS::getFuncNameForAsmJS.
+bool GetFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
+                        SharedBytes namePayload, const Maybe<Name>& moduleName,
+                        const NameVector& funcNames, UTF8Bytes* name);
+
+// FIXME: update/remove/rehome the following old comment.
 //
 // Metadata holds all the data that is needed to describe compiled wasm code
 // at runtime (as opposed to data that is only used to statically link or
@@ -265,60 +279,6 @@ extern void StaticallyUnlink(uint8_t* base, const LinkData& linkData);
 // the former points to instances of the latter.  Additionally, the asm.js
 // subsystem subclasses the Metadata, adding more tier-invariant data, some of
 // which is serialized.  See AsmJS.cpp.
-
-struct Metadata : public ShareableBase<Metadata> {
-  explicit Metadata() {}
-  virtual ~Metadata() = default;
-
-  // AsmJSMetadata derives Metadata iff isAsmJS(). Mostly this distinction is
-  // encapsulated within AsmJS.cpp, but the additional virtual functions allow
-  // asm.js to override wasm behavior in the handful of cases that can't be
-  // easily encapsulated by AsmJS.cpp.
-
-  const AsmJSMetadata& asAsmJS() const {
-    // FIXME: commenting this out seems a bit dubious, but presumably Metadata
-    // will completely disappear at some point and so AsmJSMetadata will
-    // become stand-alone at that point.
-    // MOZ_ASSERT(isAsmJS());
-    return *(const AsmJSMetadata*)this;
-  }
-  virtual bool mutedErrors() const { return false; }
-  virtual const char16_t* displayURL() const { return nullptr; }
-  virtual ScriptSource* maybeScriptSource() const { return nullptr; }
-
-  // The Developer-Facing Display Conventions section of the WebAssembly Web
-  // API spec defines two cases for displaying a wasm function name:
-  //  1. the function name stands alone
-  //  2. the function name precedes the location
-
-  enum NameContext { Standalone, BeforeLocation };
-
-  virtual bool getFuncName(NameContext ctx, uint32_t funcIndex,
-                           SharedBytes namePayload,
-                           const Maybe<Name>& moduleName,
-                           const NameVector& funcNames, UTF8Bytes* name) const;
-
-  bool getFuncNameStandalone(uint32_t funcIndex, SharedBytes namePayload,
-                             const Maybe<Name>& moduleName,
-                             const NameVector& funcNames,
-                             UTF8Bytes* name) const {
-    return getFuncName(NameContext::Standalone, funcIndex, namePayload,
-                       moduleName, funcNames, name);
-  }
-  bool getFuncNameBeforeLocation(uint32_t funcIndex, SharedBytes namePayload,
-                                 const Maybe<Name>& moduleName,
-                                 const NameVector& funcNames,
-                                 UTF8Bytes* name) const {
-    return getFuncName(NameContext::BeforeLocation, funcIndex, namePayload,
-                       moduleName, funcNames, name);
-  }
-
-  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
-  WASM_DECLARE_FRIEND_SERIALIZE(Metadata);
-};
-
-using MutableMetadata = RefPtr<Metadata>;
-using SharedMetadata = RefPtr<const Metadata>;
 
 struct MetadataTier {
   explicit MetadataTier(Tier tier = Tier::Serialized)
@@ -492,7 +452,7 @@ class CodeTier {
 
   bool initialized() const { return !!code_ && segment_->initialized(); }
   bool initialize(const Code& code, const LinkData& linkData,
-                  const Metadata& metadata, const CodeMetadata& codeMeta);
+                  const Metadata* metadata, const CodeMetadata& codeMeta);
 
   Tier tier() const { return segment_->tier(); }
   const RWExclusiveData<LazyStubTier>& lazyStubs() const { return lazyStubs_; }
@@ -643,7 +603,7 @@ class Code : public ShareableBase<Code> {
   JumpTables jumpTables_;
 
  public:
-  Code(UniqueCodeTier tier1, const Metadata& metadata,
+  Code(UniqueCodeTier tier1, const Metadata* metadata,
        const CodeMetadata& codeMeta, JumpTables&& maybeJumpTables);
   bool initialized() const { return tier1_->initialized(); }
 
@@ -682,7 +642,7 @@ class Code : public ShareableBase<Code> {
       const;  // This may transition from Baseline -> Ion at any time
 
   const CodeTier& codeTier(Tier tier) const;
-  const Metadata& metadata() const { return *metadata_; }
+  const Metadata* metadata() const { return metadata_; }
   const CodeMetadata& codeMeta() const { return *codeMeta_; }
 
   const ModuleSegment& segment(Tier iter) const {
