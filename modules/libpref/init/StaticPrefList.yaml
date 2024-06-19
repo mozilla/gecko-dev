@@ -7708,39 +7708,46 @@
   set_spidermonkey_pref: startup
 
 # Support for Object.groupBy/Map.groupBy in JavaScript.
--  name: javascript.options.array_grouping
-   type: bool
-   value: true
-   mirror: always
-   set_spidermonkey_pref: startup
+- name: javascript.options.array_grouping
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: startup
 
 # Experimental support for ArrayBuffer.prototype.transfer{,ToFixedLength}() in JavaScript.
--   name: javascript.options.arraybuffer_transfer
-    type: bool
-    value: true
-    mirror: always
-    set_spidermonkey_pref: startup
+- name: javascript.options.arraybuffer_transfer
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: startup
 
 # Experimental support for New Set methods
--   name: javascript.options.experimental.new_set_methods
-    type: bool
-    value: true
-    mirror: always
-    set_spidermonkey_pref: startup
+- name: javascript.options.experimental.new_set_methods
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: startup
 
-  # Experimental support for resizable ArrayBuffers in JavaScript.
--   name: javascript.options.experimental.arraybuffer_resizable
-    type: bool
-    value: true
-    mirror: always
-    set_spidermonkey_pref: startup
+# Experimental support for resizable ArrayBuffers in JavaScript.
+- name: javascript.options.experimental.arraybuffer_resizable
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: startup
 
-  # Experimental support for growable SharedArrayBuffers in JavaScript.
--   name: javascript.options.experimental.sharedarraybuffer_growable
-    type: bool
-    value: true
-    mirror: always
-    set_spidermonkey_pref: startup
+# Experimental support for growable SharedArrayBuffers in JavaScript.
+- name: javascript.options.experimental.sharedarraybuffer_growable
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: startup
+
+# Experimental support for Duplicate Named Capture Groups in JavaScript.
+- name: javascript.options.experimental.regexp_duplicate_named_groups
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: startup
 
 #ifdef NIGHTLY_BUILD
   # Experimental support for Iterator Helpers in JavaScript.
@@ -7773,13 +7780,6 @@
 
   # Experimental support for Float16Array in JavaScript.
 -   name: javascript.options.experimental.float16array
-    type: bool
-    value: false
-    mirror: always
-    set_spidermonkey_pref: startup
-
-  # Experimental support for Duplicate Named Capture Groups in JavaScript.
--   name: javascript.options.experimental.regexp_duplicate_named_groups
     type: bool
     value: false
     mirror: always

@@ -12553,6 +12553,9 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
     JS::Prefs::setAtStartup_experimental_arraybuffer_resizable(true);
     JS::Prefs::setAtStartup_experimental_sharedarraybuffer_growable(true);
   }
+  if (op.getBoolOption("enable-regexp-duplicate-named-groups")) {
+    JS::Prefs::setAtStartup_experimental_regexp_duplicate_named_groups(true);
+  }
 #ifdef NIGHTLY_BUILD
   if (op.getBoolOption("enable-iterator-helpers")) {
     JS::Prefs::setAtStartup_experimental_iterator_helpers(true);
@@ -12571,9 +12574,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("enable-float16array")) {
     JS::Prefs::setAtStartup_experimental_float16array(true);
-  }
-  if (op.getBoolOption("enable-regexp-duplicate-named-groups")) {
-    JS::Prefs::setAtStartup_experimental_regexp_duplicate_named_groups(true);
   }
 #endif
 #ifdef ENABLE_JSON_PARSE_WITH_SOURCE
@@ -13386,11 +13386,10 @@ bool SetContextJITOptions(JSContext* cx, const OptionParser& op) {
 #  endif
 #endif
 
-#ifdef NIGHTLY_BUILD
   if (op.getBoolOption("enable-regexp-duplicate-named-groups")) {
     jit::JitOptions.js_regexp_duplicate_named_groups = true;
   }
-#endif
+
   return true;
 }
 
