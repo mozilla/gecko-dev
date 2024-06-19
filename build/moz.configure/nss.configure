@@ -31,3 +31,10 @@ def nss_config(nss_pkg, build_env):
 
 set_config("NSS_CFLAGS", nss_config.cflags)
 set_config("NSS_LIBS", nss_config.libs)
+
+# Used specifically by Thunderbird
+project_flag(
+    env="NSS_EXTRA_SYMBOLS_FILE",
+    nargs=1,
+    help="Path to a file containing extra symbols to export from NSS.",
+)
