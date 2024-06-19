@@ -6,15 +6,11 @@
 
 #include "nsCheckboxRadioFrame.h"
 
-#include "nsGkAtoms.h"
 #include "nsLayoutUtils.h"
-#include "mozilla/dom/HTMLInputElement.h"
 #include "mozilla/PresShell.h"
 #include "nsIContent.h"
-#include "nsStyleConsts.h"
 
 using namespace mozilla;
-using mozilla::dom::HTMLInputElement;
 
 // #define FCF_NOISY
 
@@ -40,7 +36,7 @@ nscoord nsCheckboxRadioFrame::DefaultSize() {
   if (StyleDisplay()->HasAppearance()) {
     return PresContext()->Theme()->GetCheckboxRadioPrefSize();
   }
-  return CSSPixel::ToAppUnits(9);
+  return CSSPixel::ToAppUnits(13);
 }
 
 /* virtual */
@@ -95,18 +91,18 @@ Maybe<nscoord> nsCheckboxRadioFrame::GetNaturalBaselineBOffset(
   }
 
   if (aWM.IsCentralBaseline()) {
-    return Some(GetLogicalUsedBorderAndPadding(aWM).BStart(aWM) +
-                ContentBSize(aWM) / 2);
+    return Some(BSize(aWM) / 2);
   }
+
   // This is for compatibility with Chrome, Safari and Edge (Dec 2016).
   // Treat radio buttons and checkboxes as having an intrinsic baseline
   // at the block-end of the control (use the block-end content edge rather
   // than the margin edge).
   // For "inverted" lines (typically in writing-mode:vertical-lr), use the
   // block-start end instead.
-  return Some(aWM.IsLineInverted()
-                  ? GetLogicalUsedBorderAndPadding(aWM).BStart(aWM)
-                  : BSize(aWM) - GetLogicalUsedBorderAndPadding(aWM).BEnd(aWM));
+  auto bp = CSSPixel::ToAppUnits(2);  // See kCheckboxRadioBorderWidth in Theme
+  return Some(aWM.IsLineInverted() ? std::min(bp, BSize(aWM))
+                                   : std::max(0, BSize(aWM) - bp));
 }
 
 void nsCheckboxRadioFrame::Reflow(nsPresContext* aPresContext,
@@ -122,11 +118,11 @@ void nsCheckboxRadioFrame::Reflow(nsPresContext* aPresContext,
        aReflowInput.AvailableWidth(), aReflowInput.AvailableHeight()));
 
   const auto wm = aReflowInput.GetWritingMode();
+  MOZ_ASSERT(aReflowInput.ComputedLogicalBorderPadding(wm).IsAllZero());
+
   const auto contentBoxSize =
       aReflowInput.ComputedSizeWithBSizeFallback([&] { return DefaultSize(); });
-  aDesiredSize.SetSize(
-      wm,
-      contentBoxSize + aReflowInput.ComputedLogicalBorderPadding(wm).Size(wm));
+  aDesiredSize.SetSize(wm, contentBoxSize);
   if (nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
     const float inflation = nsLayoutUtils::FontSizeInflationFor(this);
     aDesiredSize.Width() *= inflation;
