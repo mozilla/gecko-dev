@@ -7,8 +7,10 @@
 #include "mozilla/dom/TrustedTypePolicyFactory.h"
 
 #include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/ErrorResult.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/TrustedTypePolicy.h"
+#include "mozilla/dom/nsCSPUtils.h"
 
 namespace mozilla::dom {
 
@@ -19,10 +21,52 @@ JSObject* TrustedTypePolicyFactory::WrapObject(
   return TrustedTypePolicyFactory_Binding::Wrap(aCx, this, aGivenProto);
 }
 
+static constexpr auto kWildcard = u"*"_ns;
+
+bool TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
+    const nsAString& aPolicyName) const {
+  // CSP-support for Workers will be added in
+  // <https://bugzilla.mozilla.org/show_bug.cgi?id=1901492>.
+  // That is, currently only Windows are supported.
+  nsIContentSecurityPolicy* csp = mGlobalObject->GetAsInnerWindow()->GetCsp();
+
+  if (csp) {
+    uint32_t numPolicies = 0;
+    csp->GetPolicyCount(&numPolicies);
+
+    for (uint64_t i = 0; i < numPolicies; ++i) {
+      const nsCSPPolicy* policy = csp->GetPolicy(i);
+      if (policy->hasDirective(
+              nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE)) {
+        if (policy->ShouldCreateViolationForNewTrustedTypesPolicy(
+                aPolicyName, mCreatedPolicyNames)) {
+          // TODO: create violation, populate it with data and report it. See
+          // <https://bugzilla.mozilla.org/show_bug.cgi?id=1901510>.
+
+          if (policy->getDisposition() == nsCSPPolicy::Disposition::Enforce) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 already_AddRefed<TrustedTypePolicy> TrustedTypePolicyFactory::CreatePolicy(
     const nsAString& aPolicyName,
-    const TrustedTypePolicyOptions& aPolicyOptions) {
-  // TODO: add CSP support.
+    const TrustedTypePolicyOptions& aPolicyOptions, ErrorResult& aRv) {
+  if (ShouldTrustedTypePolicyCreationBeBlockedByCSP(aPolicyName)) {
+    nsCString errorMessage =
+        "Content-Security-Policy blocked creating policy named '"_ns +
+        NS_ConvertUTF16toUTF8(aPolicyName) + "'"_ns;
+
+    // TODO: perhaps throw different TypeError messages,
+    //       https://github.com/w3c/trusted-types/issues/511.
+    aRv.ThrowTypeError(errorMessage);
+    return nullptr;
+  }
 
   // TODO: add default policy support; this requires accessing the default
   //       policy on the C++ side, hence already now ref-counting policy
