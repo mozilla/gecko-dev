@@ -141,8 +141,6 @@ class nsCSPParser {
   void logWarningErrorToConsole(uint32_t aSeverityFlag, const char* aProperty,
                                 const nsTArray<nsString>& aParams);
 
-  void logWarningForIgnoringNoneKeywordToConsole();
-
   void MaybeWarnAboutIgnoredSources(const nsTArray<nsCSPBaseSrc*>& aSrcs);
   void MaybeWarnAboutUnsafeInline(const nsCSPDirective& aDirective);
   void MaybeWarnAboutUnsafeEval(const nsCSPDirective& aDirective);

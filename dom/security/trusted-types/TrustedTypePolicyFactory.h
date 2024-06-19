@@ -25,10 +25,8 @@ struct already_AddRefed;
 
 class DOMString;
 
-namespace mozilla {
-class ErrorResult;
+namespace mozilla::dom {
 
-namespace dom {
 class TrustedTypePolicy;
 
 // https://w3c.github.io/trusted-types/dist/spec/#trusted-type-policy-factory
@@ -50,7 +48,7 @@ class TrustedTypePolicyFactory : public nsWrapperCache {
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-createpolicy
   already_AddRefed<TrustedTypePolicy> CreatePolicy(
       const nsAString& aPolicyName,
-      const TrustedTypePolicyOptions& aPolicyOptions, ErrorResult& aRv);
+      const TrustedTypePolicyOptions& aPolicyOptions);
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-ishtml
   bool IsHTML(JSContext* aJSContext, const JS::Handle<JS::Value>& aValue) const;
@@ -92,16 +90,11 @@ class TrustedTypePolicyFactory : public nsWrapperCache {
   // Required because this class is ref-counted.
   virtual ~TrustedTypePolicyFactory() = default;
 
-  // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-should-trusted-type-policy-creation-be-blocked-by-content-security-policy
-  bool ShouldTrustedTypePolicyCreationBeBlockedByCSP(
-      const nsAString& aPolicyName) const;
-
   RefPtr<nsIGlobalObject> mGlobalObject;
 
   nsTArray<nsString> mCreatedPolicyNames;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // DOM_SECURITY_TRUSTED_TYPES_TRUSTEDTYPEPOLICYFACTORY_H_

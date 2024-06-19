@@ -103,17 +103,16 @@ inline const char* CSP_CSPDirectiveToString(CSPDirective aDir) {
 
 CSPDirective CSP_StringToCSPDirective(const nsAString& aDir);
 
-#define FOR_EACH_CSP_KEYWORD(MACRO)                 \
-  MACRO(CSP_SELF, "'self'")                         \
-  MACRO(CSP_UNSAFE_INLINE, "'unsafe-inline'")       \
-  MACRO(CSP_UNSAFE_EVAL, "'unsafe-eval'")           \
-  MACRO(CSP_UNSAFE_HASHES, "'unsafe-hashes'")       \
-  MACRO(CSP_NONE, "'none'")                         \
-  MACRO(CSP_NONCE, "'nonce-")                       \
-  MACRO(CSP_REPORT_SAMPLE, "'report-sample'")       \
-  MACRO(CSP_STRICT_DYNAMIC, "'strict-dynamic'")     \
-  MACRO(CSP_WASM_UNSAFE_EVAL, "'wasm-unsafe-eval'") \
-  MACRO(CSP_ALLOW_DUPLICATES, "'allow-duplicates'")
+#define FOR_EACH_CSP_KEYWORD(MACRO)             \
+  MACRO(CSP_SELF, "'self'")                     \
+  MACRO(CSP_UNSAFE_INLINE, "'unsafe-inline'")   \
+  MACRO(CSP_UNSAFE_EVAL, "'unsafe-eval'")       \
+  MACRO(CSP_UNSAFE_HASHES, "'unsafe-hashes'")   \
+  MACRO(CSP_NONE, "'none'")                     \
+  MACRO(CSP_NONCE, "'nonce-")                   \
+  MACRO(CSP_REPORT_SAMPLE, "'report-sample'")   \
+  MACRO(CSP_STRICT_DYNAMIC, "'strict-dynamic'") \
+  MACRO(CSP_WASM_UNSAFE_EVAL, "'wasm-unsafe-eval'")
 
 enum CSPKeyword {
 #define KEYWORD_ENUM(id_, string_) id_,
@@ -227,7 +226,6 @@ class nsCSPBaseSrc {
   virtual bool isHash() const { return false; }
   virtual bool isNonce() const { return false; }
   virtual bool isKeyword(CSPKeyword aKeyword) const { return false; }
-  virtual bool isTrustedTypesDirectivePolicyName() const { return false; }
 };
 
 /* =============== nsCSPSchemeSrc ============ */
@@ -413,10 +411,6 @@ class nsCSPTrustedTypesDirectivePolicyName : public nsCSPBaseSrc {
   bool visit(nsCSPSrcVisitor* aVisitor) const override;
   void toString(nsAString& aOutStr) const override;
 
-  bool isTrustedTypesDirectivePolicyName() const override { return true; }
-
-  const nsString& GetName() const { return mName; }
-
  private:
   const nsString mName;
 };
@@ -453,13 +447,6 @@ class nsCSPDirective {
   virtual bool allows(enum CSPKeyword aKeyword,
                       const nsAString& aHashOrNonce) const;
   bool allowsAllInlineBehavior(CSPDirective aDir) const;
-
-  // Implements step 2.1 to 2.7 of
-  // <https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy>.
-  bool ShouldCreateViolationForNewTrustedTypesPolicy(
-      const nsAString& aPolicyName,
-      const nsTArray<nsString>& aCreatedPolicyNames) const;
-
   virtual void toString(nsAString& outStr) const;
   void toDomCSPStruct(mozilla::dom::CSP& outCSP) const;
 
@@ -481,10 +468,6 @@ class nsCSPDirective {
   virtual void getDirName(nsAString& outStr) const;
 
   bool hasReportSampleKeyword() const;
-
- private:
-  bool ContainsTrustedTypesDirectivePolicyName(
-      const nsAString& aPolicyName) const;
 
  protected:
   CSPDirective mDirective;
@@ -684,15 +667,7 @@ class nsCSPPolicy {
 
   inline void setReportOnlyFlag(bool aFlag) { mReportOnly = aFlag; }
 
-  // Related to https://w3c.github.io/webappsec-csp/#policy-disposition.
-  // @return true if disposition is "report", false otherwise.
   inline bool getReportOnlyFlag() const { return mReportOnly; }
-
-  enum class Disposition { Enforce, Report };
-
-  Disposition getDisposition() const {
-    return getReportOnlyFlag() ? Disposition::Report : Disposition::Enforce;
-  }
 
   void getReportURIs(nsTArray<nsString>& outReportURIs) const;
 
@@ -708,18 +683,6 @@ class nsCSPPolicy {
   bool visitDirectiveSrcs(CSPDirective aDir, nsCSPSrcVisitor* aVisitor) const;
 
   bool allowsAllInlineBehavior(CSPDirective aDir) const;
-
-  /*
-   * Implements step 2.1 to 2.7 of
-   * <https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy>.
-   * and returns the result of "createViolation".
-   *
-   * @param aCreatedPolicyNames The already created policy names.
-   * @return true if a violation for aPolicyName should be created.
-   */
-  bool ShouldCreateViolationForNewTrustedTypesPolicy(
-      const nsAString& aPolicyName,
-      const nsTArray<nsString>& aCreatedPolicyNames) const;
 
  private:
   nsCSPDirective* matchingOrDefaultDirective(CSPDirective aDirective) const;
