@@ -109,7 +109,7 @@ class MLEngineWorker {
     self.callMainThread = worker.callMainThread.bind(worker);
     self.addEventListener("message", msg => worker.handleMessage(msg));
     self.addEventListener("unhandledrejection", function (error) {
-      throw error.reason;
+      throw error.reason?.fail ?? error.reason;
     });
   }
 }
