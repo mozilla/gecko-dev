@@ -246,7 +246,9 @@ add_task(async function test_ml_generic_pipeline() {
   const summarizer = mlEngineParent.getEngine(options);
 
   info("Run the summarizer");
-  const inferencePromise = summarizer.run({ data: "This gets echoed." });
+  const inferencePromise = summarizer.run({
+    args: ["This gets echoed."],
+  });
 
   info("Wait for the pending downloads.");
   await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);

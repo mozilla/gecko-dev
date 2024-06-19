@@ -32,7 +32,7 @@ In the example below, a text summarization task is performed using the `summariz
   'Chrysler Building by 5.2 metres (17 ft). Excluding transmitters, the Eiffel Tower is the second ' +
   'tallest free-standing structure in France after the Millau Viaduct.';
 
-  const request = { data:  text, options: { max_length: 100 } };
+  const request = { args:  [text], options: { max_length: 100 } };
   const res = await engine.run(request);
   console.log(res[0]["summary_text"]);
 

@@ -37,10 +37,10 @@ function debug(...args) {
  * Echo inference for testing purposes.
  *
  * @async
- * @param {object} request - The request object containing image data.
+ * @param {object} request - The request object containing args.
  * @param {object} _model - The model used for inference.
  * @param {object} _tokenizer - The tokenizer used for decoding.
- * @param {object} _processor - The processor used for preparing image data.
+ * @param {object} _processor - The processor used for preparing  data.
  * @returns {Promise<object>} The result object containing the processed text.
  */
 async function echo(request, _model, _tokenizer, _processor) {
@@ -281,6 +281,9 @@ export class Pipeline {
    * @async
    * @param {T} request - The request object to be processed. The fields it may contain
    * depends on the task. See each pipeline function for more details.
+   * When the pipeline is initialized with the generic pipeline function, the request contains
+   * `args` and `options` fields. The `args` field is an array of values that are passed
+   * to the generic pipeline function. The `options` field is an object that contains the options for the pipeline.
    * @returns {Promise<object>} The result object from the pipeline execution.
    */
   async run(request) {
@@ -322,10 +325,10 @@ export class Pipeline {
 
     if (this.#genericPipelineFunction) {
       if (this.#modelId === "test-echo") {
-        result = { output: request.data };
+        result = { output: request.args };
       } else {
         result = await this.#genericPipelineFunction(
-          request.data,
+          ...request.args,
           request.options || {}
         );
       }
