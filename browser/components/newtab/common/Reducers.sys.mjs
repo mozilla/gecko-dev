@@ -19,7 +19,6 @@ export const INITIAL_STATE = {
     isForStartupCache: false,
     customizeMenuVisible: false,
   },
-  ASRouter: { initialized: false },
   TopSites: {
     // Have we received real data from history yet?
     initialized: false,
@@ -143,15 +142,6 @@ function App(prevState = INITIAL_STATE.App, action) {
       return Object.assign({}, prevState, {
         customizeMenuVisible: false,
       });
-    default:
-      return prevState;
-  }
-}
-
-function ASRouter(prevState = INITIAL_STATE.ASRouter, action) {
-  switch (action.type) {
-    case at.AS_ROUTER_INITIALIZED:
-      return { ...action.data, initialized: true };
     default:
       return prevState;
   }
@@ -909,7 +899,6 @@ function Weather(prevState = INITIAL_STATE.Weather, action) {
 export const reducers = {
   TopSites,
   App,
-  ASRouter,
   Prefs,
   Dialog,
   Sections,

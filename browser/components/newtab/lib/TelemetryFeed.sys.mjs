@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// We use importESModule here instead of static import so that
-// the Karma test environment won't choke on these module. This
-// is because the Karma test environment already stubs out
-// XPCOMUtils, and overrides importESModule to be a no-op (which
-// can't be done for a static import statement). MESSAGE_TYPES_HASH / msg
-// isn't something that the tests for this module seem to rely on in the
-// Karma environment, but if that ever becomes the case, we should import
-// those into unit-entry like we do for the ASRouter tests.
+// We use importESModule here instead of static import so that the Karma test
+// environment won't choke on these module. This is because the Karma test
+// environment already stubs out XPCOMUtils, AppConstants and RemoteSettings,
+// and overrides importESModule to be a no-op (which can't be done for a static
+// import statement). MESSAGE_TYPE_HASH / msg isn't something that the tests
+// for this module seem to rely on in the Karma environment, but if that ever
+// becomes the case, we should import those into unit-entry like we do for the
+// ASRouter tests.
 
 // eslint-disable-next-line mozilla/use-static-import
 const { XPCOMUtils } = ChromeUtils.importESModule(
@@ -899,25 +899,6 @@ export class TelemetryFeed {
       case at.TELEMETRY_USER_EVENT:
         this.handleUserEvent(action);
         break;
-      // The next few action types come from ASRouter, which doesn't use
-      // Actions from Actions.jsm, but uses these other custom strings.
-      case msg.TOOLBAR_BADGE_TELEMETRY:
-      // Intentional fall-through
-      case msg.TOOLBAR_PANEL_TELEMETRY:
-      // Intentional fall-through
-      case msg.MOMENTS_PAGE_TELEMETRY:
-      // Intentional fall-through
-      case msg.DOORHANGER_TELEMETRY:
-      // Intentional fall-through
-      case msg.INFOBAR_TELEMETRY:
-      // Intentional fall-through
-      case msg.SPOTLIGHT_TELEMETRY:
-      // Intentional fall-through
-      case msg.TOAST_NOTIFICATION_TELEMETRY:
-      // Intentional fall-through
-      case at.AS_ROUTER_TELEMETRY_USER_EVENT:
-        this.handleASRouterUserEvent(action);
-        break;
       case at.TOP_SITES_SPONSORED_IMPRESSION_STATS:
         this.handleTopSitesSponsoredImpressionStats(action);
         break;
@@ -947,6 +928,25 @@ export class TelemetryFeed {
       case at.WEATHER_OPEN_PROVIDER_URL:
       case at.WEATHER_LOCATION_DATA_UPDATE:
         this.handleWeatherUserEvent(action);
+        break;
+      // The remaining action types come from ASRouter, which doesn't use
+      // Actions from Actions.mjs, but uses these other custom strings.
+      case msg.TOOLBAR_BADGE_TELEMETRY:
+      // Intentional fall-through
+      case msg.TOOLBAR_PANEL_TELEMETRY:
+      // Intentional fall-through
+      case msg.MOMENTS_PAGE_TELEMETRY:
+      // Intentional fall-through
+      case msg.DOORHANGER_TELEMETRY:
+      // Intentional fall-through
+      case msg.INFOBAR_TELEMETRY:
+      // Intentional fall-through
+      case msg.SPOTLIGHT_TELEMETRY:
+      // Intentional fall-through
+      case msg.TOAST_NOTIFICATION_TELEMETRY:
+      // Intentional fall-through
+      case msg.AS_ROUTER_TELEMETRY_USER_EVENT:
+        this.handleASRouterUserEvent(action);
         break;
     }
   }

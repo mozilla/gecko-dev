@@ -562,7 +562,7 @@ describe("ASRouter", () => {
         Router.onPrefChange
       );
     });
-    it("should send a AS_ROUTER_TARGETING_UPDATE message", async () => {
+    it("should call clearChildMessages (does nothing, see bug 1899028)", async () => {
       const messageTargeted = {
         id: "1",
         campaign: "foocampaign",
@@ -991,14 +991,13 @@ describe("ASRouter", () => {
         .rejects("fake error");
       await createRouterAndInit();
       assert.calledWith(initParams.dispatchCFRAction, {
+        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
         data: {
           action: "asrouter_undesired_event",
+          message_id: "n/a",
           event: "ASR_RS_ERROR",
           event_context: "remotey-settingsy",
-          message_id: "n/a",
         },
-        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
-        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
       });
     });
     it("should dispatch undesired event if RemoteSettings returns no messages", async () => {
@@ -1006,14 +1005,13 @@ describe("ASRouter", () => {
         .stub(MessageLoaderUtils, "_getRemoteSettingsMessages")
         .resolves([]);
       assert.calledWith(initParams.dispatchCFRAction, {
+        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
         data: {
           action: "asrouter_undesired_event",
+          message_id: "n/a",
           event: "ASR_RS_NO_MESSAGES",
           event_context: "remotey-settingsy",
-          message_id: "n/a",
         },
-        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
-        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
       });
     });
     it("should download the attachment if RemoteSettings returns some messages", async () => {
@@ -1054,14 +1052,13 @@ describe("ASRouter", () => {
       await createRouterAndInit([provider]);
 
       assert.calledWith(initParams.dispatchCFRAction, {
+        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
         data: {
           action: "asrouter_undesired_event",
+          message_id: "n/a",
           event: "ASR_RS_NO_MESSAGES",
           event_context: "ms-language-packs",
-          message_id: "n/a",
         },
-        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
-        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
       });
     });
   });

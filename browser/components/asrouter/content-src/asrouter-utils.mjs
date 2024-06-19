@@ -3,7 +3,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { MESSAGE_TYPE_HASH as msg } from "../modules/ActorConstants.mjs";
-import { actionCreators as ac } from "../../newtab/common/Actions.mjs";
 
 export const ASRouterUtils = {
   addListener(listener) {
@@ -71,7 +70,10 @@ export const ASRouterUtils = {
     });
   },
   sendTelemetry(ping) {
-    return ASRouterUtils.sendMessage(ac.ASRouterUserEvent(ping));
+    return ASRouterUtils.sendMessage({
+      type: msg.AS_ROUTER_TELEMETRY_USER_EVENT,
+      data: ping,
+    });
   },
   getPreviewEndpoint() {
     return null;

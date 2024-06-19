@@ -176,16 +176,6 @@ describe("ActionCreators", () => {
       assert.isTrue(au.isSendToMain(action), "isSendToMain");
     });
   });
-  describe("ASRouterUserEvent", () => {
-    it("should include the given data", () => {
-      const data = { action: "foo" };
-      assert.equal(ac.ASRouterUserEvent(data).data, data);
-    });
-    it("should wrap with AlsoToMain", () => {
-      const action = ac.ASRouterUserEvent({ action: "foo" });
-      assert.isTrue(au.isSendToMain(action), "isSendToMain");
-    });
-  });
   describe("ImpressionStats", () => {
     it("should include the right data", () => {
       const data = { action: "foo" };

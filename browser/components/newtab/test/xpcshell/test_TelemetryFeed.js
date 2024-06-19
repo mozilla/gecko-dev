@@ -1244,12 +1244,14 @@ add_task(async function test_createASRouterEvent_valid_ping() {
       "ASRouterEventPing ping"
   );
   let instance = new TelemetryFeed();
-  let data = {
-    action: "cfr_user_event",
-    event: "CLICK",
-    message_id: "cfr_message_01",
+  let action = {
+    type: msg.AS_ROUTER_TELEMETRY_USER_EVENT,
+    data: {
+      action: "cfr_user_event",
+      event: "CLICK",
+      message_id: "cfr_message_01",
+    },
   };
-  let action = ac.ASRouterUserEvent(data);
   let { ping } = await instance.createASRouterEvent(action);
 
   await assertASRouterEventPingValid(ping);
@@ -1266,7 +1268,7 @@ add_task(async function test_createASRouterEvent_call_correctPolicy() {
     let instance = new TelemetryFeed();
     sandbox.stub(instance, expectedPolicyFnName);
 
-    let action = ac.ASRouterUserEvent(data);
+    let action = { type: msg.AS_ROUTER_TELEMETRY_USER_EVENT, data };
     await instance.createASRouterEvent(action);
     Assert.ok(
       instance[expectedPolicyFnName].calledOnce,
@@ -1324,12 +1326,14 @@ add_task(async function test_createASRouterEvent_stringify_event_context() {
       "it is an Object"
   );
   let instance = new TelemetryFeed();
-  let data = {
-    action: "asrouter_undesired_event",
-    event: "UNDESIRED_EVENT",
-    event_context: { foo: "bar" },
+  let action = {
+    type: msg.AS_ROUTER_TELEMETRY_USER_EVENT,
+    data: {
+      action: "asrouter_undesired_event",
+      event: "UNDESIRED_EVENT",
+      event_context: { foo: "bar" },
+    },
   };
-  let action = ac.ASRouterUserEvent(data);
   let { ping } = await instance.createASRouterEvent(action);
 
   Assert.equal(ping.event_context, JSON.stringify({ foo: "bar" }));
@@ -1341,12 +1345,14 @@ add_task(async function test_createASRouterEvent_not_stringify_event_context() {
       "if it is a String"
   );
   let instance = new TelemetryFeed();
-  let data = {
-    action: "asrouter_undesired_event",
-    event: "UNDESIRED_EVENT",
-    event_context: "foo",
+  let action = {
+    type: msg.AS_ROUTER_TELEMETRY_USER_EVENT,
+    data: {
+      action: "asrouter_undesired_event",
+      event: "UNDESIRED_EVENT",
+      event_context: "foo",
+    },
   };
-  let action = ac.ASRouterUserEvent(data);
   let { ping } = await instance.createASRouterEvent(action);
 
   Assert.equal(ping.event_context, "foo");
@@ -1811,7 +1817,7 @@ add_task(async function test_onAction_basic_actions() {
 
 add_task(async function test_onAction_calls_handleASRouterUserEvent() {
   let actions = [
-    at.AS_ROUTER_TELEMETRY_USER_EVENT,
+    msg.AS_ROUTER_TELEMETRY_USER_EVENT,
     msg.TOOLBAR_BADGE_TELEMETRY,
     msg.TOOLBAR_PANEL_TELEMETRY,
     msg.MOMENTS_PAGE_TELEMETRY,
