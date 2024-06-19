@@ -3349,8 +3349,8 @@ JSAtom* Instance::getFuncDisplayAtom(JSContext* cx, uint32_t funcIndex) const {
   // also includes location, so use getFuncNameBeforeLocation.
   UTF8Bytes name;
   bool ok;
-  if (metadata()) {
-    ok = metadata()->getFuncNameForAsmJS(funcIndex, &name);
+  if (codeMetaForAsmJS()) {
+    ok = codeMetaForAsmJS()->getFuncNameForAsmJS(funcIndex, &name);
   } else {
     ok = GetFuncNameForWasm(NameContext::BeforeLocation, funcIndex,
                             codeMeta().namePayload, codeMeta().moduleName,
@@ -3505,24 +3505,23 @@ void Instance::disassembleExport(JSContext* cx, uint32_t funcIndex, Tier tier,
   jit::Disassemble(functionCode, range.end() - range.begin(), printString);
 }
 
-void Instance::addSizeOfMisc(MallocSizeOf mallocSizeOf,
-                             Metadata::SeenSet* seenMetadata,
-                             CodeMetadata::SeenSet* seenCodeMeta,
-                             Code::SeenSet* seenCode,
-                             Table::SeenSet* seenTables, size_t* code,
-                             size_t* data) const {
+void Instance::addSizeOfMisc(
+    MallocSizeOf mallocSizeOf, CodeMetadata::SeenSet* seenCodeMeta,
+    CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
+    Code::SeenSet* seenCode, Table::SeenSet* seenTables, size_t* code,
+    size_t* data) const {
   *data += mallocSizeOf(this);
   for (const SharedTable& table : tables_) {
     *data += table->sizeOfIncludingThisIfNotSeen(mallocSizeOf, seenTables);
   }
 
   if (maybeDebug_) {
-    maybeDebug_->addSizeOfMisc(mallocSizeOf, seenMetadata, seenCodeMeta,
+    maybeDebug_->addSizeOfMisc(mallocSizeOf, seenCodeMeta, seenCodeMetaForAsmJS,
                                seenCode, code, data);
   }
 
-  code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenMetadata, seenCodeMeta,
-                                seenCode, code, data);
+  code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenCodeMeta,
+                                seenCodeMetaForAsmJS, seenCode, code, data);
 }
 
 //////////////////////////////////////////////////////////////////////////////
