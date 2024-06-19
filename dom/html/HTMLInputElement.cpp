@@ -496,6 +496,10 @@ HTMLInputElement::nsFilePickerShownCallback::Done(
     nsresult rv = mFilePicker->GetDomFileOrDirectory(getter_AddRefs(tmp));
     NS_ENSURE_SUCCESS(rv, rv);
 
+    if (!tmp) {
+      return NS_OK;
+    }
+
     // Show a prompt to get user confirmation before allowing folder access.
     // This is to prevent sites from tricking the user into uploading files.
     // See Bug 1338637.
