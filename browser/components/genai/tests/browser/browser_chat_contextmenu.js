@@ -41,10 +41,7 @@ add_task(async function test_hidden_menu() {
  */
 add_task(async function test_menu_enabled() {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.ml.chat.enabled", true],
-      ["browser.ml.chat.provider", "http://localhost:8080"],
-    ],
+    set: [["browser.ml.chat.provider", "http://localhost:8080"]],
   });
   await BrowserTestUtils.withNewTab("about:blank", async () => {
     await openContextMenu();
@@ -62,7 +59,6 @@ add_task(async function test_menu_enabled() {
 add_task(async function test_open_tab() {
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["browser.ml.chat.enabled", true],
       ["browser.ml.chat.provider", "http://localhost:8080"],
       ["browser.ml.chat.sidebar", false],
     ],
@@ -87,7 +83,6 @@ add_task(async function test_open_tab() {
 add_task(async function test_open_sidebar() {
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["browser.ml.chat.enabled", true],
       ["browser.ml.chat.provider", "http://localhost:8080"],
       ["browser.ml.chat.sidebar", true],
     ],

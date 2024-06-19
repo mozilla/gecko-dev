@@ -14,13 +14,21 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "chatOpenSidebarOnProviderChange",
+  "browser.ml.chat.openSidebarOnProviderChange",
+  true
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "chatPromptPrefix",
   "browser.ml.chat.prompt.prefix"
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "chatProvider",
-  "browser.ml.chat.provider"
+  "browser.ml.chat.provider",
+  null,
+  (_pref, _old, val) => onChatProviderChange(val)
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -30,6 +38,14 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 export const GenAI = {
   chatProviders: new Map(),
+
+  /**
+   * Handle startup tasks like telemetry, adding listeners.
+   */
+  init() {
+    // Access this getter for its side effect of observing provider pref change
+    lazy.chatProvider;
+  },
 
   /**
    * Build prompts menu to ask chat for context menu or popup.
@@ -127,3 +143,16 @@ export const GenAI = {
     Preferences.add({ id: "browser.ml.chat.provider", type: "string" });
   },
 };
+
+/**
+ * Ensure the chat sidebar is shown to reflect changed provider.
+ *
+ * @param {string} value New pref value
+ */
+function onChatProviderChange(value) {
+  if (value && lazy.chatEnabled && lazy.chatOpenSidebarOnProviderChange) {
+    Services.wm
+      .getMostRecentWindow("navigator:browser")
+      ?.SidebarController.show("viewGenaiChatSidebar");
+  }
+}

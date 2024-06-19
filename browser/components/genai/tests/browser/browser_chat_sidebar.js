@@ -6,10 +6,7 @@
  */
 add_task(async function test_sidebar_render() {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.ml.chat.enabled", true],
-      ["browser.ml.chat.provider", "http://mochi.test:8888"],
-    ],
+    set: [["browser.ml.chat.provider", "http://mochi.test:8888"]],
   });
 
   await SidebarController.show("viewGenaiChatSidebar");
