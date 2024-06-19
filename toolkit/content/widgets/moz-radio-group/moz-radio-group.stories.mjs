@@ -12,6 +12,13 @@ let icons = [
   "chrome://global/skin/icons/defaultFavicon.svg",
 ];
 
+let defaultLabelIds = ["moz-radio-0", "moz-radio-1", "moz-radio-2"];
+let wrappedLabelIds = [
+  "moz-radio-long-0",
+  "moz-radio-long-1",
+  "moz-radio-long-2",
+];
+
 export default {
   title: "UI Widgets/Radio Group",
   component: "moz-radio-group",
@@ -19,6 +26,14 @@ export default {
     disabledButtons: {
       options: greetings,
       control: { type: "check" },
+    },
+    buttonLabels: {
+      options: ["default", "wrapped"],
+      mapping: {
+        default: defaultLabelIds,
+        wrapped: wrappedLabelIds,
+      },
+      control: { type: "radio" },
     },
   },
   parameters: {
@@ -31,16 +46,23 @@ moz-radio-0 =
   .label = Hello
 moz-radio-1 =
   .label = Howdy
-moz-radio-2=
+moz-radio-2 =
   .label = Hola
 moz-radio-group =
   .label = This is the group label
+moz-radio-long-0 =
+  .label = Hello ipsum dolor sit amet, consectetur adipiscing elit. Cras tincidunt diam id ligula faucibus volutpat. Integer quis ultricies elit. In in dolor luctus velit sollicitudin efficitur vel id massa.
+moz-radio-long-1 =
+  .label = Howdy ipsum dolor sit amet, consectetur adipiscing elit. Cras tincidunt diam id ligula faucibus volutpat. Integer quis ultricies elit. In in dolor luctus velit sollicitudin efficitur vel id massa.
+moz-radio-long-2 =
+  .label = Hola ipsum dolor sit amet, consectetur adipiscing elit. Cras tincidunt diam id ligula faucibus volutpat. Integer quis ultricies elit. In in dolor luctus velit sollicitudin efficitur vel id massa.
     `,
   },
 };
 
 const Template = ({
   groupL10nId = "moz-radio-group",
+  buttonLabels,
   groupName,
   unchecked,
   showIcons,
@@ -58,7 +80,7 @@ const Template = ({
           ?checked=${i == 0 && !unchecked}
           ?disabled=${disabledButtons.includes(greeting)}
           value=${greeting}
-          data-l10n-id=${`moz-radio-${i}`}
+          data-l10n-id=${buttonLabels[i]}
           iconSrc=${ifDefined(showIcons ? icons[i] : "")}
         ></moz-radio>
       `
@@ -69,6 +91,7 @@ const Template = ({
 export const Default = Template.bind({});
 Default.args = {
   label: "",
+  buttonLabels: "default",
   groupName: "greeting",
   unchecked: false,
   showIcons: false,

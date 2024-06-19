@@ -6,11 +6,15 @@
   --radio-size: var(--size-item-small);
 }
 
+label {
+  display: block;
+}
+
 input {
   font-size: inherit;
   min-height: var(--radio-size);
   min-width: var(--radio-size);
-  flex-shrink: 0;
+  vertical-align: top;
   font-family: inherit;
 }
 
@@ -19,15 +23,15 @@ input,
   margin: calc((1lh - var(--radio-size)) / 2) 0;
 }
 
-label {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-small);
+.label-content {
+  position: relative;
+  padding-inline-start: var(--space-small);
+  width: calc(100% - (var(--radio-size) + var(--space-small)));
 }
 
-.label-content {
-  display: flex;
-  position: relative;
+.label-content,
+.text {
+  display: inline-block;
 }
 
 .icon {
@@ -39,6 +43,6 @@ label {
   position: absolute;
 
   & + .text {
-    text-indent: calc(var(--radio-size) + var(--space-small));
+    text-indent: calc(var(--icon-size-default) + var(--space-small));
   }
 }

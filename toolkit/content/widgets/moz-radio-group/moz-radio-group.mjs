@@ -323,30 +323,35 @@ export class MozRadio extends MozLitElement {
     return "";
   }
 
+  inputTemplate() {
+    return html`<input
+      type="radio"
+      id="radio-button"
+      value=${this.value}
+      name=${this.name}
+      .checked=${this.checked}
+      aria-checked=${this.checked}
+      tabindex=${this.inputTabIndex}
+      ?disabled=${this.disabled || this.#controller.disabled}
+      @click=${this.handleClick}
+      @change=${this.handleChange}
+    />`;
+  }
+
+  labelTemplate() {
+    return html`<span class="label-content">
+      ${this.iconTemplate()}
+      <span class="text">${this.label}</span>
+    </span>`;
+  }
+
   render() {
     return html`
       <link
         rel="stylesheet"
         href="chrome://global/content/elements/moz-radio.css"
       />
-      <label is="moz-label" for="radio-button">
-        <input
-          type="radio"
-          id="radio-button"
-          value=${this.value}
-          name=${this.name}
-          .checked=${this.checked}
-          aria-checked=${this.checked}
-          tabindex=${this.inputTabIndex}
-          ?disabled=${this.disabled || this.#controller.disabled}
-          @click=${this.handleClick}
-          @change=${this.handleChange}
-        />
-        <span class="label-content">
-          ${this.iconTemplate()}
-          <span class="text"> ${this.label || html`<slot></slot>`} </span>
-        </span>
-      </label>
+      <label>${this.inputTemplate()}${this.labelTemplate()}</label>
     `;
   }
 }
