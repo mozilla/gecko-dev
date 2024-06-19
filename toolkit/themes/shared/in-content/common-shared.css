@@ -63,7 +63,7 @@
   --in-content-table-border-color: var(--in-content-box-border-color);
   --in-content-table-header-background: var(--in-content-primary-button-background);
   --in-content-table-header-color: var(--in-content-primary-button-text-color);
-  --in-content-sidebar-width: 240px;
+  --in-content-sidebar-width: 280px;
 
   --dialog-warning-text-color: var(--red-60);
 
