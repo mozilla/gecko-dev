@@ -19,7 +19,7 @@ import "chrome://global/content/elements/moz-label.mjs";
  */
 export default class MozCheckbox extends MozLitElement {
   static properties = {
-    label: { type: String },
+    label: { type: String, fluent: true },
     iconSrc: { type: String },
     checked: { type: Boolean, reflect: true },
     disabled: { type: Boolean, reflect: true },
@@ -37,11 +37,6 @@ export default class MozCheckbox extends MozLitElement {
     super();
     this.checked = false;
     this.disabled = false;
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
-    this.dataset.l10nAttrs = "label";
   }
 
   focus() {

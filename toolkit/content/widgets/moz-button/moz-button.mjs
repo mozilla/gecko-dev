@@ -34,13 +34,13 @@ export default class MozButton extends MozLitElement {
   };
 
   static properties = {
-    label: { type: String, reflect: true },
+    label: { type: String, reflect: true, fluent: true },
     type: { type: String, reflect: true },
     size: { type: String, reflect: true },
     disabled: { type: Boolean, reflect: true },
     title: { type: String, state: true },
     titleAttribute: { type: String, attribute: "title", reflect: true },
-    tooltipText: { type: String },
+    tooltipText: { type: String, fluent: true },
     ariaLabelAttribute: {
       type: String,
       attribute: "aria-label",
