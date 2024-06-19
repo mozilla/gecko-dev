@@ -265,6 +265,63 @@ bool DecryptingInputStream<CipherStrategy>::EnsureBuffers() {
 }
 
 template <typename CipherStrategy>
+nsresult DecryptingInputStream<CipherStrategy>::EnsureDecryptedStreamSize() {
+  if (mDecryptedStreamSize) {
+    return NS_OK;
+  }
+
+  auto decryptedStreamSizeOrErr = [this]() -> Result<int64_t, nsresult> {
+    nsresult rv = (*mBaseSeekableStream)->Seek(NS_SEEK_SET, 0);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return Err(rv);
+    }
+
+    uint64_t baseStreamSize;
+    rv = (*mBaseStream)->Available(&baseStreamSize);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return Err(rv);
+    }
+
+    if (!baseStreamSize) {
+      return 0;
+    }
+
+    rv = (*mBaseSeekableStream)
+             ->Seek(NS_SEEK_END, -static_cast<int64_t>(*mBlockSize));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return Err(rv);
+    }
+
+    uint32_t bytesRead;
+    rv = ParseNextChunk(&bytesRead);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return Err(rv);
+    }
+    MOZ_ASSERT(bytesRead);
+
+    mPlainBytes = bytesRead;
+
+    mNextByte = bytesRead;
+
+    int64_t current;
+    rv = Tell(&current);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return Err(rv);
+    }
+
+    return current;
+  }();
+
+  if (decryptedStreamSizeOrErr.isErr()) {
+    return decryptedStreamSizeOrErr.unwrapErr();
+  }
+
+  mDecryptedStreamSize.init(decryptedStreamSizeOrErr.inspect());
+
+  return NS_OK;
+}
+
+template <typename CipherStrategy>
 NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Tell(
     int64_t* const aRetval) {
   MOZ_ASSERT(aRetval);
@@ -314,8 +371,8 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
     return Err(rv);
   }
 
-  // Can't call this just in NS_SEEK_CUR case, because getting the decrypted
-  // size below changes the current position.
+  // Can't call this just in NS_SEEK_CUR case, because ensuring the decrypted
+  // size below may change the current position.
   int64_t current;
   rv = Tell(&current);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -334,51 +391,9 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
         nextByte = savedNextByte;
       });
 
-  // XXX The size of the stream could also be queried and stored once only.
-  auto decryptedStreamSizeOrErr = [this]() -> Result<int64_t, nsresult> {
-    nsresult rv = (*mBaseSeekableStream)->Seek(NS_SEEK_SET, 0);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return Err(rv);
-    }
-
-    uint64_t baseStreamSize;
-    rv = (*mBaseStream)->Available(&baseStreamSize);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return Err(rv);
-    }
-
-    if (!baseStreamSize) {
-      return 0;
-    }
-
-    rv = (*mBaseSeekableStream)
-             ->Seek(NS_SEEK_END, -static_cast<int64_t>(*mBlockSize));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return Err(rv);
-    }
-
-    uint32_t bytesRead;
-    rv = ParseNextChunk(&bytesRead);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return Err(rv);
-    }
-    MOZ_ASSERT(bytesRead);
-
-    mPlainBytes = bytesRead;
-
-    mNextByte = bytesRead;
-
-    int64_t current;
-    rv = Tell(&current);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return Err(rv);
-    }
-
-    return current;
-  }();
-
-  if (decryptedStreamSizeOrErr.isErr()) {
-    return decryptedStreamSizeOrErr.unwrapErr();
+  rv = EnsureDecryptedStreamSize();
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
   }
 
   int64_t baseBlocksOffset;
@@ -394,14 +409,14 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
 
     case NS_SEEK_END:
       // XXX Simplify this without using Seek/Tell.
-      aOffset += decryptedStreamSizeOrErr.inspect();
+      aOffset += *mDecryptedStreamSize;
       break;
 
     default:
       return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  if (aOffset < 0 || aOffset > decryptedStreamSizeOrErr.inspect()) {
+  if (aOffset < 0 || aOffset > *mDecryptedStreamSize) {
     return NS_ERROR_ILLEGAL_VALUE;
   }
 

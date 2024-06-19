@@ -143,6 +143,9 @@ class DecryptingInputStream final : public DecryptingInputStreamBase {
 
   bool EnsureBuffers();
 
+  // This method may change the current position in the stream.
+  nsresult EnsureDecryptedStreamSize();
+
   CipherStrategy mCipherStrategy;
   LazyInitializedOnce<const typename CipherStrategy::KeyType> mKey;
 
@@ -154,6 +157,8 @@ class DecryptingInputStream final : public DecryptingInputStreamBase {
 
   // Buffer storing the resulting plain data.
   nsTArray<uint8_t> mPlainBuffer;
+
+  LazyInitializedOnce<const int64_t> mDecryptedStreamSize;
 };
 
 }  // namespace mozilla::dom::quota
