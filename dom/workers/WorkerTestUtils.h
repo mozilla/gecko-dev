@@ -33,8 +33,6 @@ class WorkerTestUtils final {
    */
   static uint32_t CurrentTimerNestingLevel(const GlobalObject&,
                                            ErrorResult& aErr);
-
-  static bool IsRunningInBackground(const GlobalObject&, ErrorResult& aErr);
 };
 
 }  // namespace dom

@@ -5800,8 +5800,6 @@ void nsGlobalWindowInner::UpdateBackgroundState() {
     devices->BackgroundStateChanged();
   }
   mTimeoutManager->UpdateBackgroundState();
-
-  UpdateWorkersBackgroundState(*this, IsBackgroundInternal());
 }
 
 template <typename Method, typename... Args>

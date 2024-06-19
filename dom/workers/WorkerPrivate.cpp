@@ -500,24 +500,6 @@ class ThawRunnable final : public WorkerControlRunnable {
   }
 };
 
-class ChangeBackgroundStateRunnable final : public WorkerControlRunnable {
- public:
-  ChangeBackgroundStateRunnable() = delete;
-  explicit ChangeBackgroundStateRunnable(WorkerPrivate* aWorkerPrivate) =
-      delete;
-  ChangeBackgroundStateRunnable(WorkerPrivate* aWorkerPrivate,
-                                bool aIsBackground)
-      : WorkerControlRunnable("ChangeBackgroundStateRunnable"),
-        mIsBackground(aIsBackground) {}
-
- private:
-  bool mIsBackground = false;
-  virtual bool WorkerRun(JSContext* aCx,
-                         WorkerPrivate* aWorkerPrivate) override {
-    return aWorkerPrivate->ChangeBackgroundStateInternal(mIsBackground);
-  }
-};
-
 class PropagateStorageAccessPermissionGrantedRunnable final
     : public WorkerControlRunnable {
  public:
@@ -2491,7 +2473,6 @@ WorkerPrivate::WorkerPrivate(
       mIsSecureContext(
           IsNewWorkerSecureContext(mParent, mWorkerKind, mLoadInfo)),
       mDebuggerRegistered(false),
-      mIsInBackground(false),
       mDebuggerReady(true),
       mExtensionAPIAllowed(false),
       mIsInAutomation(false),
@@ -2517,10 +2498,6 @@ WorkerPrivate::WorkerPrivate(
 
     if (aParent->mParentFrozen) {
       Freeze(nullptr);
-    }
-
-    if (aParent->IsRunningInBackground()) {
-      mIsInBackground = true;
     }
 
     mIsPrivilegedAddonGlobal = aParent->mIsPrivilegedAddonGlobal;
@@ -2592,11 +2569,6 @@ WorkerPrivate::WorkerPrivate(
 
     if (mLoadInfo.mWindow && mLoadInfo.mWindow->IsFrozen()) {
       Freeze(mLoadInfo.mWindow);
-    }
-
-    if (mLoadInfo.mWindow && mLoadInfo.mWindow->GetOuterWindow() &&
-        mLoadInfo.mWindow->GetOuterWindow()->IsBackground()) {
-      mIsInBackground = true;
     }
   }
 
@@ -2816,28 +2788,6 @@ already_AddRefed<WorkerPrivate> WorkerPrivate::Constructor(
   }
 
   return worker.forget();
-}
-
-// Mark worker private as running in the background tab
-// for further throttling
-void WorkerPrivate::SetIsRunningInBackground() {
-  AssertIsOnParentThread();
-
-  RefPtr<ChangeBackgroundStateRunnable> runnable =
-      new ChangeBackgroundStateRunnable(this, true);
-  runnable->Dispatch(this);
-
-  LOG(WorkerLog(), ("SetIsRunningInBackground [%p]", this));
-}
-
-void WorkerPrivate::SetIsRunningInForeground() {
-  AssertIsOnParentThread();
-
-  RefPtr<ChangeBackgroundStateRunnable> runnable =
-      new ChangeBackgroundStateRunnable(this, false);
-  runnable->Dispatch(this);
-
-  LOG(WorkerLog(), ("SetIsRunningInForeground [%p]", this));
 }
 
 nsresult WorkerPrivate::SetIsDebuggerReady(bool aReady) {
@@ -4342,20 +4292,6 @@ bool WorkerPrivate::ThawInternal() {
     data->mScope->MutableClientSourceRef().Thaw();
   }
 
-  return true;
-}
-
-bool WorkerPrivate::ChangeBackgroundStateInternal(bool aIsBackground) {
-  AssertIsOnWorkerThread();
-  mIsInBackground = aIsBackground;
-  auto data = mWorkerThreadAccessible.Access();
-  for (uint32_t index = 0; index < data->mChildWorkers.Length(); index++) {
-    if (aIsBackground) {
-      data->mChildWorkers[index]->SetIsRunningInBackground();
-    } else {
-      data->mChildWorkers[index]->SetIsRunningInForeground();
-    }
-  }
   return true;
 }
 
