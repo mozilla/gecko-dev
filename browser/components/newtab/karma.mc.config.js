@@ -186,12 +186,6 @@ module.exports = function (config) {
               functions: 85.71,
               branches: 68.75,
             },
-            "content-src/asrouter/**/*.jsx": {
-              statements: 57,
-              lines: 58,
-              functions: 60,
-              branches: 50,
-            },
             /**
              * WallpaperSection.jsx is tested via an xpcshell test
              */
@@ -253,9 +247,6 @@ module.exports = function (config) {
       resolve: {
         extensions: [".js", ".jsx", ".mjs"],
         modules: [PATHS.moduleResolveDirectory, "node_modules"],
-        alias: {
-          asrouter: path.join(__dirname, "../asrouter"),
-        },
       },
       plugins: [
         // The ResourceUriPlugin handles translating resource URIs in import

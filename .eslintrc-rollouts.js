@@ -58,7 +58,6 @@ const rollouts = [
       "browser/components/enterprisepolicies/**",
       "browser/components/firefoxview/**",
       "browser/components/migration/**",
-      "browser/components/newtab/lib/ASRouterPreferences.sys.mjs",
       "browser/components/protocolhandler/WebProtocolHandlerRegistrar.sys.mjs",
       "browser/components/shell/ShellService.sys.mjs",
       "browser/components/syncedtabs/TabListComponent.sys.mjs",

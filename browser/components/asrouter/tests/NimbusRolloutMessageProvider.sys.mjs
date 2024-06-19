@@ -12,6 +12,84 @@ export const NimbusRolloutMessageProvider = {
   getMessages() {
     return [
       {
+        // Nimbus slug: recommend-add-ons-staff-pick-relaunch-treatment-a-rollout:treatment-a
+        // Version range: 123+
+        // Recipe: https://experimenter.services.mozilla.com/nimbus/recommend-add-ons-staff-pick-relaunch-treatment-a-rollout/summary#treatment-a
+        id: "ADDONS_STAFF_PICK",
+        groups: ["cfr"],
+        content: {
+          id: "ADDONS_STAFF_PICK",
+          screens: [
+            {
+              id: "ADDONS_STAFF_PICK_A",
+              anchors: [
+                {
+                  selector: "#unified-extensions-button",
+                  arrow_width: "26.9",
+                  panel_position: {
+                    anchor_attachment: "bottomcenter",
+                    callout_attachment: "topright",
+                  },
+                },
+              ],
+              content: {
+                title: {
+                  raw: "Give your browsing a boost",
+                  marginInline: "0 48px",
+                },
+                width: "310px",
+                padding: 16,
+                position: "callout",
+                subtitle: {
+                  raw: "Make browsing faster, safer, or just plain fun with Firefox add-ons. See what our staff recommends!",
+                  paddingInline: "34px 0",
+                },
+                title_logo: {
+                  width: "24px",
+                  height: "24px",
+                  imageURL:
+                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/173414e1-81f7-4612-b868-e78df0557011.svg",
+                  marginInline: "4px 14px",
+                },
+                dismiss_button: {
+                  size: "small",
+                  action: {
+                    dismiss: true,
+                  },
+                  marginBlock: "14px 0",
+                  marginInline: "0 14px",
+                },
+                primary_button: {
+                  label: {
+                    raw: "Explore add-ons",
+                  },
+                  action: {
+                    data: {
+                      args: "https://addons.mozilla.org/en-US/firefox/collections/4757633/25c2b44583534b3fa8fea977c419cd/?page=1&collection_sort=-added",
+                      where: "tabshifted",
+                    },
+                    type: "OPEN_URL",
+                    dismiss: true,
+                  },
+                },
+              },
+            },
+          ],
+          backdrop: "transparent",
+          template: "multistage",
+          transitions: false,
+        },
+        trigger: {
+          id: "defaultBrowserCheck",
+        },
+        template: "feature_callout",
+        frequency: {
+          lifetime: 1,
+        },
+        targeting:
+          "!screenImpressions.AW_AMO_INTRODUCE && !willShowDefaultPrompt && !activeNotifications && source == 'newtab' && !isFirstStartup",
+      },
+      {
         // Nimbus slug: device-migration-q4-spotlights-remaining-population-esr:treatment (message 1 of 3)
         // Recipe: https://experimenter.services.mozilla.com/nimbus/device-migration-q4-spotlights-remaining-population-esr/summary#treatment
         id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
@@ -431,189 +509,6 @@ export const NimbusRolloutMessageProvider = {
         },
         targeting:
           "source == 'startup' && !willShowDefaultPrompt && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features'|preferenceValue && !usesFirefoxSync && !hasActiveEnterprisePolicies && userMonthlyActivity[userMonthlyActivity|length - 2][1]|date >= currentDate|date - (28 * 24 * 60 * 60 * 1000) && !(((currentDate|date - profileAgeCreated|date) / 86400000 >= 168) || totalBookmarksCount >= 35) && !(os.isWindows && os.windowsVersion >= 6.1 && os.windowsBuildNumber < 22000)",
-      },
-      {
-        // Nimbus slug: fox-doodle-set-to-default-early-day-user-de-fr-it-treatment-a-rollout:treatment-a
-        // Version range: 116+
-        // Recipe: https://experimenter.services.mozilla.com/nimbus/fox-doodle-set-to-default-early-day-user-de-fr-it-treatment-a-rollout/summary#treatment-a
-        id: "fox-doodle-set-to-default-early-day-user-de-fr-it:A",
-        groups: ["eco"],
-        content: {
-          id: "fox-doodle-set-to-default-early-day-user-de-fr-it:A",
-          screens: [
-            {
-              id: "SET_DEFAULT",
-              content: {
-                logo: {
-                  height: "140px",
-                  imageURL:
-                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/05f5265b-d1e4-4fe1-9a46-0ea36f8afced.png",
-                  reducedMotionImageURL:
-                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/05f5265b-d1e4-4fe1-9a46-0ea36f8afced.png",
-                },
-                title: {
-                  raw: {
-                    $l10n: {
-                      id: "fox-doodle-trackers-title",
-                      text: "Keep pesky trackers off your tail",
-                      comment:
-                        "This title is displayed together with the picture of a running fox with a long tail. In English, this is a figure of speech meaning 'stop something from following you'. If the localization of this message is challenging, consider using a simplified alternative as a reference for translation: 'Keep unwanted trackers away'.",
-                    },
-                  },
-                  fontSize: "22px",
-                  fontWeight: 590,
-                  paddingBlock: "4px 0",
-                  letterSpacing: 0,
-                  paddingInline: "24px",
-                },
-                subtitle: {
-                  raw: {
-                    $l10n: {
-                      id: "fox-doodle-trackers-subtitle",
-                      text: "Say goodbye to annoying ad trackers and settle into a safer, speedy internet experience.",
-                      comment: "",
-                    },
-                  },
-                  fontSize: "15px",
-                  lineHeight: "1.4",
-                  marginBlock: "8px 16px",
-                  letterSpacing: 0,
-                  paddingInline: "24px",
-                },
-                dismiss_button: {
-                  action: {
-                    navigate: true,
-                  },
-                },
-                primary_button: {
-                  label: {
-                    raw: {
-                      $l10n: {
-                        id: "fox-doodle-set-default-driving-primary-button-label",
-                        text: "Open my links with Firefox",
-                        comment: "",
-                      },
-                    },
-                    marginBlock: "4px 0",
-                    paddingBlock: "0",
-                    paddingInline: "16px",
-                  },
-                  action: {
-                    type: "SET_DEFAULT_BROWSER",
-                    navigate: true,
-                  },
-                },
-                secondary_button: {
-                  label: {
-                    raw: {
-                      $l10n: {
-                        id: "fox-doodle-driving-secondary-button-label",
-                        text: "Not now",
-                        comment: "",
-                      },
-                    },
-                    marginBlock: "0 -20px",
-                  },
-                  action: {
-                    navigate: true,
-                  },
-                },
-              },
-            },
-          ],
-          backdrop: "transparent",
-          template: "multistage",
-          transitions: true,
-        },
-        trigger: {
-          id: "defaultBrowserCheck",
-        },
-        priority: 1,
-        template: "spotlight",
-        frequency: {
-          lifetime: 1,
-        },
-        targeting:
-          "source == 'startup' && !willShowDefaultPrompt && !isMajorUpgrade && !activeNotifications && (((currentDate|date) - (profileAgeCreated|date)) / 3600000 >= 6) && !isDefaultBrowser",
-      },
-      {
-        // Nimbus slug: fox-doodle-set-to-default-early-day-user-en-treatment-a-rollout:treatment-a
-        // Version range: 116+
-        // Recipe: https://experimenter.services.mozilla.com/nimbus/fox-doodle-set-to-default-early-day-user-en-treatment-a-rollout/summary#treatment-a
-        id: "fox-doodle-set-to-default-early-day-user:A",
-        groups: ["eco"],
-        content: {
-          id: "fox-doodle-set-to-default-early-day-user:A",
-          screens: [
-            {
-              id: "SET_DEFAULT",
-              content: {
-                logo: {
-                  height: "140px",
-                  imageURL:
-                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/05f5265b-d1e4-4fe1-9a46-0ea36f8afced.png",
-                  reducedMotionImageURL:
-                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/05f5265b-d1e4-4fe1-9a46-0ea36f8afced.png",
-                },
-                title: {
-                  raw: "Keep pesky trackers off your tail",
-                  fontSize: "22px",
-                  fontWeight: 590,
-                  paddingBlock: "4px 0",
-                  letterSpacing: 0,
-                  paddingInline: "24px",
-                },
-                subtitle: {
-                  raw: "Say goodbye to annoying ad trackers and settle into a safer, speedy internet experience.",
-                  fontSize: "15px",
-                  lineHeight: "1.4",
-                  marginBlock: "8px 16px",
-                  letterSpacing: 0,
-                  paddingInline: "24px",
-                },
-                dismiss_button: {
-                  action: {
-                    navigate: true,
-                  },
-                },
-                primary_button: {
-                  label: {
-                    raw: "Open my links with Firefox",
-                    marginBlock: "4px 0",
-                    paddingBlock: "0",
-                    paddingInline: "16px",
-                  },
-                  action: {
-                    type: "SET_DEFAULT_BROWSER",
-                    navigate: true,
-                  },
-                },
-                secondary_button: {
-                  label: {
-                    raw: "Not now",
-                    marginBlock: "0 -20px",
-                  },
-                  action: {
-                    navigate: true,
-                  },
-                },
-              },
-            },
-          ],
-          backdrop: "transparent",
-          template: "multistage",
-          transitions: true,
-        },
-        trigger: {
-          id: "defaultBrowserCheck",
-        },
-        priority: 1,
-        template: "spotlight",
-        frequency: {
-          lifetime: 1,
-        },
-        targeting:
-          "source == 'startup' && !willShowDefaultPrompt && !isMajorUpgrade && !activeNotifications && (((currentDate|date) - (profileAgeCreated|date)) / 3600000 >= 6) && !isDefaultBrowser",
       },
     ];
   },
