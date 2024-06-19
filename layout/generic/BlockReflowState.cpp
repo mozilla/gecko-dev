@@ -536,7 +536,7 @@ bool BlockReflowState::AddFloat(nsLineLayout* aLineLayout, nsIFrame* aFloat,
 
     // Appending is fine, since if a float was pushed to the next
     // page/column, all later floats were also pushed.
-    mBlock->EnsureFloats()->AppendFrame(mBlock, aFloat);
+    mBlock->mFloats.AppendFrame(mBlock, aFloat);
   }
 
   // Because we are in the middle of reflowing a placeholder frame

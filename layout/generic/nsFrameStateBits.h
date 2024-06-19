@@ -521,8 +521,10 @@ FRAME_STATE_BIT(Text, 63, TEXT_IN_OFFSET_CACHE)
 
 FRAME_STATE_GROUP(Block, nsBlockFrame)
 
-// NS_BLOCK_HAS_FLOATS indicates that the block has a float list.
-FRAME_STATE_BIT(Block, 20, NS_BLOCK_HAS_FLOATS)
+// Something in the block has changed that requires Bidi resolution to be
+// performed on the block. This flag must be either set on all blocks in a
+// continuation chain or none of them.
+FRAME_STATE_BIT(Block, 20, NS_BLOCK_NEEDS_BIDI_RESOLUTION)
 
 // NS_BLOCK_HAS_PUSHED_FLOATS indicates that the block has a pushed float list.
 FRAME_STATE_BIT(Block, 21, NS_BLOCK_HAS_PUSHED_FLOATS)
@@ -563,12 +565,7 @@ FRAME_STATE_BIT(Block, 27, NS_BLOCK_HAS_FIRST_LETTER_STYLE)
 FRAME_STATE_BIT(Block, 28, NS_BLOCK_HAS_OUTSIDE_MARKER)
 FRAME_STATE_BIT(Block, 29, NS_BLOCK_HAS_INSIDE_MARKER)
 
-// Something in the block has changed that requires Bidi resolution to be
-// performed on the block. This flag must be either set on all blocks in a
-// continuation chain or none of them.
-FRAME_STATE_BIT(Block, 30, NS_BLOCK_NEEDS_BIDI_RESOLUTION)
-
-// bits 31 free.
+// bits 30 and 31 free.
 
 // NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS indicates that exactly one line in this
 // block has the LineClampEllipsis flag set, and that such a line must be found
