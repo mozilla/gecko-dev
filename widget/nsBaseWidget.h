@@ -176,10 +176,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   void AddChild(nsIWidget* aChild) override;
   void RemoveChild(nsIWidget* aChild) override;
 
-  void SetZIndex(int32_t aZIndex) override;
-  void PlaceBehind(nsTopLevelWidgetZPlacement aPlacement, nsIWidget* aWidget,
-                   bool aActivate) override {}
-
   void GetWorkspaceID(nsAString& workspaceID) override;
   void MoveToWorkspace(const nsAString& workspaceID) override;
   bool IsTiled() const override { return mIsTiled; }

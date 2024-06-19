@@ -45,12 +45,6 @@ void nsIWidgetListener::DynamicToolbarOffsetChanged(ScreenIntCoord aOffset) {}
 void nsIWidgetListener::MacFullscreenMenubarOverlapChanged(
     mozilla::DesktopCoord aOverlapAmount) {}
 
-bool nsIWidgetListener::ZLevelChanged(bool aImmediate, nsWindowZ* aPlacement,
-                                      nsIWidget* aRequestBelow,
-                                      nsIWidget** aActualBelow) {
-  return false;
-}
-
 void nsIWidgetListener::OcclusionStateChanged(bool aIsFullyOccluded) {}
 
 void nsIWidgetListener::WindowActivated() {}

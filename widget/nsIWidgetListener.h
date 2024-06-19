@@ -87,17 +87,6 @@ class nsIWidgetListener {
 #endif
 
   /**
-   * Called when the z-order of the window is changed. Returns true if the
-   * notification was handled. aPlacement indicates the new z order. If
-   * placement is nsWindowZRelative, then aRequestBelow should be the
-   * window to place below. On return, aActualBelow will be set to the
-   * window actually behind. This generally only applies to Windows.
-   */
-  virtual bool ZLevelChanged(bool aImmediate, nsWindowZ* aPlacement,
-                             nsIWidget* aRequestBelow,
-                             nsIWidget** aActualBelow);
-
-  /**
    * Called when the macOS titlebar is shown while in fullscreen.
    */
   virtual void MacFullscreenMenubarOverlapChanged(

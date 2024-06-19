@@ -368,7 +368,6 @@ class nsCocoaWindow final : public nsBaseWidget {
   void DestroyNativeWindow();
   void UpdateBounds();
   int32_t GetWorkspaceID();
-  void SendSetZLevelEvent();
 
   void DoResize(double aX, double aY, double aWidth, double aHeight,
                 bool aRepaint, bool aConstrainToCurrentScreen);

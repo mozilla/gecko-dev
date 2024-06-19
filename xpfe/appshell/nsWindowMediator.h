@@ -56,14 +56,11 @@ class nsWindowMediator : public nsIWindowMediator,
   nsresult UnregisterWindow(nsWindowInfo* inInfo);
   nsWindowInfo* GetInfoFor(nsIAppWindow* aWindow);
   nsWindowInfo* GetInfoFor(nsIWidget* aWindow);
-  void SortZOrderFrontToBack();
-  void SortZOrderBackToFront();
 
   nsTArray<nsAppShellWindowEnumerator*> mEnumeratorList;
   nsWindowInfo* mOldestWindow;
   nsWindowInfo* mTopmostWindow;
   int32_t mTimeStamp;
-  bool mSortingZOrder;
   bool mReady;
 
   typedef nsTObserverArray<nsCOMPtr<nsIWindowMediatorListener>> ListenerArray;

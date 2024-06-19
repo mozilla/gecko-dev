@@ -62,13 +62,11 @@ void GetWindowType(nsIAppWindow* aWindow, nsString& outType) {
 //
 
 nsWindowInfo::nsWindowInfo(nsIAppWindow* inWindow, int32_t inTimeStamp)
-    : mWindow(inWindow),
-      mTimeStamp(inTimeStamp),
-      mZLevel(nsIAppWindow::normalZ) {
+    : mWindow(inWindow), mTimeStamp(inTimeStamp) {
   ReferenceSelf(true, true);
 }
 
-nsWindowInfo::~nsWindowInfo() {}
+nsWindowInfo::~nsWindowInfo() = default;
 
 // return true if the window described by this WindowInfo has a type
 // equal to the given type

@@ -78,40 +78,36 @@ class AppWindow final : public nsIBaseWindow,
   // The implementation of non-refcounted nsIWidgetListener, which would hold a
   // strong reference on stack before calling AppWindow's
   // MOZ_CAN_RUN_SCRIPT methods.
-  class WidgetListenerDelegate : public nsIWidgetListener {
+  class WidgetListenerDelegate final : public nsIWidgetListener {
    public:
     explicit WidgetListenerDelegate(AppWindow* aAppWindow)
         : mAppWindow(aAppWindow) {}
 
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual nsIAppWindow* GetAppWindow() override;
+    nsIAppWindow* GetAppWindow() override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual mozilla::PresShell* GetPresShell() override;
+    mozilla::PresShell* GetPresShell() override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual bool WindowMoved(nsIWidget* aWidget, int32_t x, int32_t y,
-                             ByMoveToRect) override;
+    bool WindowMoved(nsIWidget* aWidget, int32_t x, int32_t y,
+                     ByMoveToRect) override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual bool WindowResized(nsIWidget* aWidget, int32_t aWidth,
-                               int32_t aHeight) override;
+    bool WindowResized(nsIWidget* aWidget, int32_t aWidth,
+                       int32_t aHeight) override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual bool RequestWindowClose(nsIWidget* aWidget) override;
+    bool RequestWindowClose(nsIWidget* aWidget) override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual void SizeModeChanged(nsSizeMode sizeMode) override;
+    void SizeModeChanged(nsSizeMode sizeMode) override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual void MacFullscreenMenubarOverlapChanged(
+    void MacFullscreenMenubarOverlapChanged(
         mozilla::DesktopCoord aOverlapAmount) override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual void OcclusionStateChanged(bool aIsFullyOccluded) override;
+    void OcclusionStateChanged(bool aIsFullyOccluded) override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual void OSToolbarButtonPressed() override;
+    void OSToolbarButtonPressed() override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual bool ZLevelChanged(bool aImmediate, nsWindowZ* aPlacement,
-                               nsIWidget* aRequestBelow,
-                               nsIWidget** aActualBelow) override;
+    void WindowActivated() override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual void WindowActivated() override;
-    MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual void WindowDeactivated() override;
+    void WindowDeactivated() override;
 
    private:
     // The lifetime of WidgetListenerDelegate is bound to AppWindow so
@@ -163,9 +159,6 @@ class AppWindow final : public nsIBaseWindow,
   MOZ_CAN_RUN_SCRIPT void OcclusionStateChanged(bool aIsFullyOccluded);
   void RecomputeBrowsingContextVisibility();
   MOZ_CAN_RUN_SCRIPT void OSToolbarButtonPressed();
-  MOZ_CAN_RUN_SCRIPT
-  bool ZLevelChanged(bool aImmediate, nsWindowZ* aPlacement,
-                     nsIWidget* aRequestBelow, nsIWidget** aActualBelow);
   MOZ_CAN_RUN_SCRIPT void WindowActivated();
   MOZ_CAN_RUN_SCRIPT void WindowDeactivated();
 
@@ -253,8 +246,6 @@ class AppWindow final : public nsIBaseWindow,
   NS_IMETHOD GetHasPrimaryContent(bool* aResult);
 
   void EnableParent(bool aEnable);
-  bool ConstrainToZLevel(bool aImmediate, nsWindowZ* aPlacement,
-                         nsIWidget* aReqBelow, nsIWidget** aActualBelow);
   void PlaceWindowLayersBehind(uint32_t aLowLevel, uint32_t aHighLevel,
                                nsIAppWindow* aBehind);
   void SetContentScrollbarVisibility(bool aVisible);

@@ -141,57 +141,56 @@ class nsWindow final : public nsBaseWidget {
   //
 
   using nsBaseWidget::Create;  // for Create signature not overridden here
-  [[nodiscard]] virtual nsresult Create(nsIWidget* aParent,
-                                        nsNativeWidget aNativeParent,
-                                        const LayoutDeviceIntRect& aRect,
-                                        InitData* aInitData) override;
-  virtual void Destroy() override;
-  virtual void SetParent(nsIWidget* aNewParent) override;
-  virtual nsIWidget* GetParent(void) override;
-  virtual float GetDPI() override;
-  virtual double GetDefaultScaleInternal() override;
-  virtual void Show(bool aState) override;
-  virtual bool IsVisible() const override;
-  virtual void ConstrainPosition(DesktopIntPoint&) override;
-  virtual void Move(double aX, double aY) override;
-  virtual void Resize(double aWidth, double aHeight, bool aRepaint) override;
-  virtual void Resize(double aX, double aY, double aWidth, double aHeight,
-                      bool aRepaint) override;
-  void SetZIndex(int32_t aZIndex) override;
-  virtual nsSizeMode SizeMode() override { return mSizeMode; }
-  virtual void SetSizeMode(nsSizeMode aMode) override;
-  virtual void Enable(bool aState) override;
-  virtual bool IsEnabled() const override;
-  virtual void Invalidate(const LayoutDeviceIntRect& aRect) override;
-  virtual void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
-  virtual LayoutDeviceIntRect GetScreenBounds() override;
-  virtual LayoutDeviceIntPoint WidgetToScreenOffset() override;
-  virtual nsresult DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
-                                 nsEventStatus& aStatus) override;
+  [[nodiscard]] nsresult Create(nsIWidget* aParent,
+                                nsNativeWidget aNativeParent,
+                                const LayoutDeviceIntRect& aRect,
+                                InitData* aInitData) override;
+  void Destroy() override;
+  void SetParent(nsIWidget* aNewParent) override;
+  nsIWidget* GetParent(void) override;
+  float GetDPI() override;
+  double GetDefaultScaleInternal() override;
+  void Show(bool aState) override;
+  bool IsVisible() const override;
+  void ConstrainPosition(DesktopIntPoint&) override;
+  void Move(double aX, double aY) override;
+  void Resize(double aWidth, double aHeight, bool aRepaint) override;
+  void Resize(double aX, double aY, double aWidth, double aHeight,
+              bool aRepaint) override;
+  nsSizeMode SizeMode() override { return mSizeMode; }
+  void SetSizeMode(nsSizeMode aMode) override;
+  void Enable(bool aState) override;
+  bool IsEnabled() const override;
+  void Invalidate(const LayoutDeviceIntRect& aRect) override;
+  void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
+  LayoutDeviceIntRect GetScreenBounds() override;
+  LayoutDeviceIntPoint WidgetToScreenOffset() override;
+  nsresult DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
+                         nsEventStatus& aStatus) override;
   nsEventStatus DispatchEvent(mozilla::WidgetGUIEvent* aEvent);
-  virtual nsresult MakeFullScreen(bool aFullScreen) override;
+  nsresult MakeFullScreen(bool aFullScreen) override;
   void SetCursor(const Cursor& aDefaultCursor) override;
   void* GetNativeData(uint32_t aDataType) override;
-  virtual nsresult SetTitle(const nsAString& aTitle) override { return NS_OK; }
-  [[nodiscard]] virtual nsresult GetAttention(int32_t aCycleCount) override {
+  nsresult SetTitle(const nsAString& aTitle) override { return NS_OK; }
+  [[nodiscard]] nsresult GetAttention(int32_t aCycleCount) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   TextEventDispatcherListener* GetNativeTextEventDispatcherListener() override;
-  virtual void SetInputContext(const InputContext& aContext,
-                               const InputContextAction& aAction) override;
-  virtual InputContext GetInputContext() override;
+  void SetInputContext(const InputContext& aContext,
+                       const InputContextAction& aAction) override;
+  InputContext GetInputContext() override;
 
   WindowRenderer* GetWindowRenderer() override;
 
   void NotifyCompositorSessionLost(
       mozilla::layers::CompositorSession* aSession) override;
 
-  virtual bool NeedsPaint() override;
+  bool NeedsPaint() override;
 
-  virtual bool WidgetPaintsBackground() override;
+  bool WidgetPaintsBackground() override;
 
-  virtual uint32_t GetMaxTouchPoints() const override;
+  uint32_t GetMaxTouchPoints() const override;
 
   void UpdateZoomConstraints(
       const uint32_t& aPresShellId, const ScrollableLayerGuid::ViewID& aViewId,
@@ -213,7 +212,7 @@ class nsWindow final : public nsBaseWidget {
 
   void SetCompositorWidgetDelegate(CompositorWidgetDelegate* delegate) override;
 
-  virtual void GetCompositorWidgetInitData(
+  void GetCompositorWidgetInitData(
       mozilla::widget::CompositorWidgetInitData* aInitData) override;
 
   mozilla::layers::CompositorBridgeChild* GetCompositorBridgeChild() const;
@@ -241,7 +240,7 @@ class nsWindow final : public nsBaseWidget {
 
   void UpdateDynamicToolbarOffset(mozilla::ScreenIntCoord aOffset);
 
-  virtual mozilla::ScreenIntMargin GetSafeAreaInsets() const override;
+  mozilla::ScreenIntMargin GetSafeAreaInsets() const override;
   void UpdateSafeAreaInsets(const mozilla::ScreenIntMargin& aSafeAreaInsets);
 
   mozilla::jni::NativeWeakPtr<mozilla::widget::NPZCSupport>

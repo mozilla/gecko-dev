@@ -2725,37 +2725,6 @@ void nsWindow::WaylandPopupMoveImpl() {
                        mPopupMoveToRectParams.mHints, offset.x, offset.y);
 }
 
-void nsWindow::SetZIndex(int32_t aZIndex) {
-  nsIWidget* oldPrev = GetPrevSibling();
-
-  nsBaseWidget::SetZIndex(aZIndex);
-
-  if (GetPrevSibling() == oldPrev) {
-    return;
-  }
-
-  // We skip the nsWindows that don't have mGdkWindows.
-  // These are probably in the process of being destroyed.
-  if (!mGdkWindow) {
-    return;
-  }
-
-  if (!GetNextSibling()) {
-    // We're to be on top.
-    if (mGdkWindow) {
-      gdk_window_raise(mGdkWindow);
-    }
-  } else {
-    // All the siblings before us need to be below our widget.
-    for (nsWindow* w = this; w;
-         w = static_cast<nsWindow*>(w->GetPrevSibling())) {
-      if (w->mGdkWindow) {
-        gdk_window_lower(w->mGdkWindow);
-      }
-    }
-  }
-}
-
 void nsWindow::SetSizeMode(nsSizeMode aMode) {
   LOG("nsWindow::SetSizeMode %d\n", aMode);
 

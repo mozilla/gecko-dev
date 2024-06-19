@@ -170,13 +170,6 @@ void HeadlessWidget::RaiseWindow() {
     return;
   }
 
-  // Raise the window to the top of the stack.
-  nsWindowZ placement = nsWindowZTop;
-  nsCOMPtr<nsIWidget> actualBelow;
-  if (mWidgetListener)
-    mWidgetListener->ZLevelChanged(true, &placement, nullptr,
-                                   getter_AddRefs(actualBelow));
-
   // Deactivate the last active window.
   if (activeWindow && activeWindow->mWidgetListener) {
     activeWindow->mWidgetListener->WindowDeactivated();

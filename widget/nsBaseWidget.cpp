@@ -646,51 +646,6 @@ void nsBaseWidget::RemoveChild(nsIWidget* aChild) {
   aChild->SetPrevSibling(nullptr);
 }
 
-//-------------------------------------------------------------------------
-//
-// Sets widget's position within its parent's child list.
-//
-//-------------------------------------------------------------------------
-void nsBaseWidget::SetZIndex(int32_t aZIndex) {
-  // Hold a ref to ourselves just in case, since we're going to remove
-  // from our parent.
-  nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
-
-  mZIndex = aZIndex;
-
-  // reorder this child in its parent's list.
-  auto* parent = static_cast<nsBaseWidget*>(GetParent());
-  if (parent) {
-    parent->RemoveChild(this);
-    // Scope sib outside the for loop so we can check it afterward
-    nsIWidget* sib = parent->GetFirstChild();
-    for (; sib; sib = sib->GetNextSibling()) {
-      int32_t childZIndex = GetZIndex();
-      if (aZIndex < childZIndex) {
-        // Insert ourselves before sib
-        nsIWidget* prev = sib->GetPrevSibling();
-        mNextSibling = sib;
-        mPrevSibling = prev;
-        sib->SetPrevSibling(this);
-        if (prev) {
-          prev->SetNextSibling(this);
-        } else {
-          NS_ASSERTION(sib == parent->mFirstChild, "Broken child list");
-          // We've taken ownership of sib, so it's safe to have parent let
-          // go of it
-          parent->mFirstChild = this;
-        }
-        PlaceBehind(eZPlacementBelow, sib, false);
-        break;
-      }
-    }
-    // were we added to the list?
-    if (!sib) {
-      parent->AddChild(this);
-    }
-  }
-}
-
 void nsBaseWidget::GetWorkspaceID(nsAString& workspaceID) {
   workspaceID.Truncate();
 }

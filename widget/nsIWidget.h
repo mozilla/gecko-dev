@@ -215,12 +215,6 @@ enum nsCursor {  ///(normal cursor,       usually rendered as an arrow)
   eCursorInvalid = eCursorCount + 1
 };
 
-enum nsTopLevelWidgetZPlacement {  // for PlaceBehind()
-  eZPlacementBottom = 0,           // bottom of the window stack
-  eZPlacementBelow,                // just below another widget
-  eZPlacementTop                   // top of the window stack
-};
-
 /**
  * Before the OS goes to sleep, this topic is notified.
  */
@@ -408,10 +402,7 @@ class nsIWidget : public nsISupports {
       : mLastChild(nullptr),
         mPrevSibling(nullptr),
         mOnDestroyCalled(false),
-        mWindowType(WindowType::Child),
-        mZIndex(0)
-
-  {
+        mWindowType(WindowType::Child) {
     ClearNativeTouchSequence(nullptr);
   }
 
@@ -797,30 +788,6 @@ class nsIWidget : public nsISupports {
    * @param aRepaint whether the widget should be repainted
    */
   virtual void ResizeClient(const DesktopRect& aRect, bool aRepaint) = 0;
-
-  /**
-   * Sets the widget's z-index.
-   */
-  virtual void SetZIndex(int32_t aZIndex) = 0;
-
-  /**
-   * Gets the widget's z-index.
-   */
-  int32_t GetZIndex() { return mZIndex; }
-
-  /**
-   * Position this widget just behind the given widget. (Used to
-   * control z-order for top-level widgets. Get/SetZIndex by contrast
-   * control z-order for child widgets of other widgets.)
-   * @param aPlacement top, bottom, or below a widget
-   *                   (if top or bottom, param aWidget is ignored)
-   * @param aWidget    widget to place this widget behind
-   *                   (only if aPlacement is eZPlacementBelow).
-   *                   null is equivalent to aPlacement of eZPlacementTop
-   * @param aActivate  true to activate the widget after placing it
-   */
-  virtual void PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
-                           nsIWidget* aWidget, bool aActivate) = 0;
 
   /**
    * Minimize, maximize or normalize the window size.
@@ -2129,7 +2096,6 @@ class nsIWidget : public nsISupports {
   // When Destroy() is called, the sub class should set this true.
   bool mOnDestroyCalled;
   WindowType mWindowType;
-  int32_t mZIndex;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget, NS_IWIDGET_IID)
