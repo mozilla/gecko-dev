@@ -41,7 +41,7 @@ class MOZ_STACK_CLASS InitExprInterpreter {
       : features(FeatureArgs::build(cx, FeatureOptions())),
         stack(cx),
         instanceObj(cx, instanceObj),
-        types(instanceObj->instance().metadata().types) {}
+        types(instanceObj->instance().codeMeta().types) {}
 
   bool evaluate(JSContext* cx, Decoder& d);
 
@@ -135,7 +135,7 @@ class MOZ_STACK_CLASS InitExprInterpreter {
   }
 #ifdef ENABLE_WASM_GC
   bool evalStructNew(JSContext* cx, uint32_t typeIndex) {
-    const TypeDef& typeDef = instance().metadata().types->type(typeIndex);
+    const TypeDef& typeDef = instance().codeMeta().types->type(typeIndex);
     const StructType& structType = typeDef.structType();
 
     Rooted<WasmStructObject*> structObj(
@@ -163,7 +163,7 @@ class MOZ_STACK_CLASS InitExprInterpreter {
       return false;
     }
 
-    const TypeDef& typeDef = instance().metadata().types->type(typeIndex);
+    const TypeDef& typeDef = instance().codeMeta().types->type(typeIndex);
     return pushRef(RefType::fromTypeDef(&typeDef, false),
                    AnyRef::fromJSObject(*structObj));
   }
@@ -180,7 +180,7 @@ class MOZ_STACK_CLASS InitExprInterpreter {
     arrayObj->fillVal(val, 0, numElements);
     stack.popBack();
 
-    const TypeDef& typeDef = instance().metadata().types->type(typeIndex);
+    const TypeDef& typeDef = instance().codeMeta().types->type(typeIndex);
     return pushRef(RefType::fromTypeDef(&typeDef, false),
                    AnyRef::fromJSObject(*arrayObj));
   }
@@ -193,7 +193,7 @@ class MOZ_STACK_CLASS InitExprInterpreter {
       return false;
     }
 
-    const TypeDef& typeDef = instance().metadata().types->type(typeIndex);
+    const TypeDef& typeDef = instance().codeMeta().types->type(typeIndex);
     return pushRef(RefType::fromTypeDef(&typeDef, false),
                    AnyRef::fromJSObject(*arrayObj));
   }
@@ -214,7 +214,7 @@ class MOZ_STACK_CLASS InitExprInterpreter {
       stack.popBack();
     }
 
-    const TypeDef& typeDef = instance().metadata().types->type(typeIndex);
+    const TypeDef& typeDef = instance().codeMeta().types->type(typeIndex);
     return pushRef(RefType::fromTypeDef(&typeDef, false),
                    AnyRef::fromJSObject(*arrayObj));
   }

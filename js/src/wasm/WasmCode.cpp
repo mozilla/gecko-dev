@@ -217,6 +217,7 @@ static bool AppendToString(const char* str, UTF8Bytes* bytes) {
 
 static void SendCodeRangesToProfiler(const ModuleSegment& ms,
                                      const Metadata& metadata,
+                                     const CodeMetadata& codeMeta,
                                      const CodeRangeVector& codeRanges) {
   bool enabled = false;
   enabled |= PerfEnabled();
@@ -236,7 +237,9 @@ static void SendCodeRangesToProfiler(const ModuleSegment& ms,
     uintptr_t size = codeRange.end() - codeRange.begin();
 
     UTF8Bytes name;
-    if (!metadata.getFuncNameStandalone(codeRange.funcIndex(), &name)) {
+    if (!metadata.getFuncNameStandalone(
+            codeRange.funcIndex(), codeMeta.namePayload, codeMeta.moduleName,
+            codeMeta.funcNames, &name)) {
       return;
     }
 
@@ -245,7 +248,7 @@ static void SendCodeRangesToProfiler(const ModuleSegment& ms,
     (void)size;
 
     if (PerfEnabled()) {
-      const char* file = metadata.filename.get();
+      const char* file = codeMeta.filename.get();
       if (codeRange.isFunction()) {
         if (!name.append('\0')) {
           return;
@@ -335,6 +338,7 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedBytes,
 bool ModuleSegment::initialize(const CodeTier& codeTier,
                                const LinkData& linkData,
                                const Metadata& metadata,
+                               const CodeMetadata& codeMeta,
                                const MetadataTier& metadataTier) {
   if (!StaticallyLink(*this, linkData)) {
     return false;
@@ -348,7 +352,7 @@ bool ModuleSegment::initialize(const CodeTier& codeTier,
     return false;
   }
 
-  SendCodeRangesToProfiler(*this, metadata, metadataTier.codeRanges);
+  SendCodeRangesToProfiler(*this, metadata, codeMeta, metadataTier.codeRanges);
 
   // See comments in CodeSegment::initialize() for why this must be last.
   return CodeSegment::initialize(codeTier);
@@ -401,7 +405,7 @@ bool LazyStubSegment::hasSpace(size_t bytes) const {
   return bytes <= length() && usedBytes_ <= length() - bytes;
 }
 
-bool LazyStubSegment::addStubs(const Metadata& metadata, size_t codeLength,
+bool LazyStubSegment::addStubs(const CodeMetadata& codeMeta, size_t codeLength,
                                const Uint32Vector& funcExportIndices,
                                const FuncExportVector& funcExports,
                                const CodeRangeVector& codeRanges,
@@ -422,7 +426,7 @@ bool LazyStubSegment::addStubs(const Metadata& metadata, size_t codeLength,
   size_t i = 0;
   for (uint32_t funcExportIndex : funcExportIndices) {
     const FuncExport& fe = funcExports[funcExportIndex];
-    const FuncType& funcType = metadata.getFuncExportType(fe);
+    const FuncType& funcType = codeMeta.getFuncExportType(fe);
     const CodeRange& interpRange = codeRanges[i];
     MOZ_ASSERT(interpRange.isInterpEntry());
     MOZ_ASSERT(interpRange.funcIndex() ==
@@ -492,7 +496,7 @@ static void PadCodeForSingleStub(MacroAssembler& masm) {
 static constexpr unsigned LAZY_STUB_LIFO_DEFAULT_CHUNK_SIZE = 8 * 1024;
 
 bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
-                                        const Metadata& metadata,
+                                        const CodeMetadata& codeMeta,
                                         const CodeTier& codeTier,
                                         size_t* stubSegmentIndex) {
   MOZ_ASSERT(funcExportIndices.length());
@@ -514,7 +518,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
   DebugOnly<uint32_t> numExpectedRanges = 0;
   for (uint32_t funcExportIndex : funcExportIndices) {
     const FuncExport& fe = funcExports[funcExportIndex];
-    const FuncType& funcType = metadata.getFuncExportType(fe);
+    const FuncType& funcType = codeMeta.getFuncExportType(fe);
     // Exports that don't support a jit entry get only the interp entry.
     numExpectedRanges += (funcType.canHaveJitEntry() ? 2 : 1);
     void* calleePtr =
@@ -562,7 +566,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
 
   size_t interpRangeIndex;
   uint8_t* codePtr = nullptr;
-  if (!segment->addStubs(metadata, codeLength, funcExportIndices, funcExports,
+  if (!segment->addStubs(codeMeta, codeLength, funcExportIndices, funcExports,
                          codeRanges, &codePtr, &interpRangeIndex)) {
     return false;
   }
@@ -589,7 +593,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
 
   for (uint32_t funcExportIndex : funcExportIndices) {
     const FuncExport& fe = funcExports[funcExportIndex];
-    const FuncType& funcType = metadata.getFuncExportType(fe);
+    const FuncType& funcType = codeMeta.getFuncExportType(fe);
 
     DebugOnly<CodeRange> cr = segment->codeRanges()[interpRangeIndex];
     MOZ_ASSERT(cr.value.isInterpEntry());
@@ -617,7 +621,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
 }
 
 bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
-                                      const Metadata& metadata,
+                                      const CodeMetadata& codeMeta,
                                       const CodeTier& codeTier) {
   Uint32Vector funcExportIndexes;
   if (!funcExportIndexes.append(funcExportIndex)) {
@@ -625,7 +629,7 @@ bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
   }
 
   size_t stubSegmentIndex;
-  if (!createManyEntryStubs(funcExportIndexes, metadata, codeTier,
+  if (!createManyEntryStubs(funcExportIndexes, codeMeta, codeTier,
                             &stubSegmentIndex)) {
     return false;
   }
@@ -634,7 +638,7 @@ bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
   const CodeRangeVector& codeRanges = segment->codeRanges();
 
   const FuncExport& fe = codeTier.metadata().funcExports[funcExportIndex];
-  const FuncType& funcType = metadata.getFuncExportType(fe);
+  const FuncType& funcType = codeMeta.getFuncExportType(fe);
 
   // Exports that don't support a jit entry get only the interp entry.
   if (!funcType.canHaveJitEntry()) {
@@ -654,7 +658,7 @@ bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
 }
 
 bool LazyStubTier::createTier2(const Uint32Vector& funcExportIndices,
-                               const Metadata& metadata,
+                               const CodeMetadata& codeMeta,
                                const CodeTier& codeTier,
                                Maybe<size_t>* outStubSegmentIndex) {
   if (!funcExportIndices.length()) {
@@ -662,7 +666,7 @@ bool LazyStubTier::createTier2(const Uint32Vector& funcExportIndices,
   }
 
   size_t stubSegmentIndex;
-  if (!createManyEntryStubs(funcExportIndices, metadata, codeTier,
+  if (!createManyEntryStubs(funcExportIndices, codeMeta, codeTier,
                             &stubSegmentIndex)) {
     return false;
   }
@@ -720,13 +724,7 @@ void LazyStubTier::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
 }
 
 size_t Metadata::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
-  return types->sizeOfExcludingThis(mallocSizeOf) +
-         globals.sizeOfExcludingThis(mallocSizeOf) +
-         tables.sizeOfExcludingThis(mallocSizeOf) +
-         tags.sizeOfExcludingThis(mallocSizeOf) +
-         funcNames.sizeOfExcludingThis(mallocSizeOf) +
-         filename.sizeOfExcludingThis(mallocSizeOf) +
-         sourceMapURL.sizeOfExcludingThis(mallocSizeOf);
+  return 0;
 }
 
 struct ProjectFuncIndex {
@@ -782,7 +780,9 @@ static bool AppendFunctionIndexName(uint32_t funcIndex, UTF8Bytes* bytes) {
 }
 
 bool Metadata::getFuncName(NameContext ctx, uint32_t funcIndex,
-                           UTF8Bytes* name) const {
+                           SharedBytes namePayload,
+                           const Maybe<Name>& moduleName,
+                           const NameVector& funcNames, UTF8Bytes* name) const {
   if (moduleName && moduleName->length != 0) {
     if (!AppendName(namePayload->bytes, *moduleName, name)) {
       return false;
@@ -804,14 +804,15 @@ bool Metadata::getFuncName(NameContext ctx, uint32_t funcIndex,
 }
 
 bool CodeTier::initialize(const Code& code, const LinkData& linkData,
-                          const Metadata& metadata) {
+                          const Metadata& metadata,
+                          const CodeMetadata& codeMeta) {
   MOZ_ASSERT(!initialized());
   code_ = &code;
 
   MOZ_ASSERT(lazyStubs_.readLock()->entryStubsEmpty());
 
   // See comments in CodeSegment::initialize() for why this must be last.
-  if (!segment_->initialize(*this, linkData, metadata, *metadata_)) {
+  if (!segment_->initialize(*this, linkData, metadata, codeMeta, *metadata_)) {
     return false;
   }
 
@@ -890,9 +891,10 @@ bool JumpTables::init(CompileMode mode, const ModuleSegment& ms,
 }
 
 Code::Code(UniqueCodeTier tier1, const Metadata& metadata,
-           JumpTables&& maybeJumpTables)
+           const CodeMetadata& codeMeta, JumpTables&& maybeJumpTables)
     : tier1_(std::move(tier1)),
       metadata_(&metadata),
+      codeMeta_(&codeMeta),
       profilingLabels_(mutexid::WasmCodeProfilingLabels,
                        CacheableCharsVector()),
       jumpTables_(std::move(maybeJumpTables)) {}
@@ -900,7 +902,7 @@ Code::Code(UniqueCodeTier tier1, const Metadata& metadata,
 bool Code::initialize(const LinkData& linkData) {
   MOZ_ASSERT(!initialized());
 
-  if (!tier1_->initialize(*this, linkData, *metadata_)) {
+  if (!tier1_->initialize(*this, linkData, *metadata_, *codeMeta_)) {
     return false;
   }
 
@@ -914,7 +916,7 @@ bool Code::setAndBorrowTier2(UniqueCodeTier tier2, const LinkData& linkData,
   MOZ_RELEASE_ASSERT(tier2->tier() == Tier::Optimized &&
                      tier1_->tier() == Tier::Baseline);
 
-  if (!tier2->initialize(*this, linkData, *metadata_)) {
+  if (!tier2->initialize(*this, linkData, *metadata_, *codeMeta_)) {
     return false;
   }
 
@@ -1166,14 +1168,16 @@ void Code::ensureProfilingLabels(bool profilingEnabled) const {
     MOZ_ASSERT(bytecodeStr);
 
     UTF8Bytes name;
-    if (!metadata().getFuncNameStandalone(codeRange.funcIndex(), &name)) {
+    if (!metadata().getFuncNameStandalone(
+            codeRange.funcIndex(), codeMeta().namePayload,
+            codeMeta().moduleName, codeMeta().funcNames, &name)) {
       return;
     }
     if (!name.append(" (", 2)) {
       return;
     }
 
-    if (const char* filename = metadata().filename.get()) {
+    if (const char* filename = codeMeta().filename.get()) {
       if (!name.append(filename, strlen(filename))) {
         return;
       }
@@ -1215,6 +1219,7 @@ const char* Code::profilingLabel(uint32_t funcIndex) const {
 
 void Code::addSizeOfMiscIfNotSeen(MallocSizeOf mallocSizeOf,
                                   Metadata::SeenSet* seenMetadata,
+                                  CodeMetadata::SeenSet* seenCodeMeta,
                                   Code::SeenSet* seenCode, size_t* code,
                                   size_t* data) const {
   auto p = seenCode->lookupForAdd(this);
@@ -1226,6 +1231,7 @@ void Code::addSizeOfMiscIfNotSeen(MallocSizeOf mallocSizeOf,
 
   *data += mallocSizeOf(this) +
            metadata().sizeOfIncludingThisIfNotSeen(mallocSizeOf, seenMetadata) +
+           codeMeta().sizeOfIncludingThisIfNotSeen(mallocSizeOf, seenCodeMeta) +
            profilingLabels_.lock()->sizeOfExcludingThis(mallocSizeOf) +
            jumpTables_.sizeOfMiscExcludingThis();
 
@@ -1276,7 +1282,9 @@ void Code::disassemble(JSContext* cx, Tier tier, int kindSelection,
       if (range.hasFuncIndex()) {
         const char* funcName = "(unknown)";
         UTF8Bytes namebuf;
-        if (metadata().getFuncNameStandalone(range.funcIndex(), &namebuf) &&
+        if (metadata().getFuncNameStandalone(
+                range.funcIndex(), codeMeta().namePayload,
+                codeMeta().moduleName, codeMeta().funcNames, &namebuf) &&
             namebuf.append('\0')) {
           funcName = namebuf.begin();
         }

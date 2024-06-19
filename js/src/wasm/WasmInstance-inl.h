@@ -23,8 +23,9 @@ const MetadataTier& Instance::metadata(Tier t) const {
 }
 
 const Metadata& Instance::metadata() const { return code_->metadata(); }
+const CodeMetadata& Instance::codeMeta() const { return code_->codeMeta(); }
 
-bool Instance::isAsmJS() const { return metadata().isAsmJS(); }
+bool Instance::isAsmJS() const { return codeMeta().isAsmJS(); }
 
 }  // namespace wasm
 }  // namespace js

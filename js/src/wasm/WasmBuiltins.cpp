@@ -503,7 +503,7 @@ static bool WasmHandleDebugTrap() {
   Frame* fp = activation->wasmExitFP();
   Instance* instance = GetNearestEffectiveInstance(fp);
   const Code& code = instance->code();
-  MOZ_ASSERT(code.metadata().debugEnabled);
+  MOZ_ASSERT(code.codeMeta().debugEnabled);
 
   // The debug trap stub is the innermost frame. It's return address is the
   // actual trap site.
@@ -972,7 +972,7 @@ static int32_t CoerceInPlace_JitEntry(int funcExportIndex, Instance* instance,
   const Code& code = instance->code();
   const FuncExport& fe =
       code.metadata(code.stableTier()).funcExports[funcExportIndex];
-  const FuncType& funcType = code.metadata().getFuncExportType(fe);
+  const FuncType& funcType = code.codeMeta().getFuncExportType(fe);
 
   for (size_t i = 0; i < funcType.args().length(); i++) {
     HandleValue arg = HandleValue::fromMarkedLocation(&argv[i]);

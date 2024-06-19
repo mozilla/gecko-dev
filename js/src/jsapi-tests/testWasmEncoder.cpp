@@ -43,11 +43,12 @@ BEGIN_TEST(testWasmEncodeBasic) {
       CompileArgs::buildAndReport(cx, std::move(scriptedCaller), options);
 
   ModuleMetadata moduleMeta;
-  CodeMetadata codeMeta(compileArgs->features);
+  RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(compileArgs->features);
+  MOZ_ALWAYS_TRUE(codeMeta);
   CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters();
-  MOZ_ALWAYS_TRUE(codeMeta.init());
+  MOZ_ALWAYS_TRUE(codeMeta->init());
 
   ValTypeVector paramsImp, resultsImp;
   MOZ_ALWAYS_TRUE(paramsImp.emplaceBack(ValType::F64) &&
@@ -56,20 +57,20 @@ BEGIN_TEST(testWasmEncodeBasic) {
   CacheableName ns;
   CacheableName impName;
   MOZ_ALWAYS_TRUE(CacheableName::fromUTF8Chars("t", &impName));
-  MOZ_ALWAYS_TRUE(codeMeta.addImportedFunc(&moduleMeta, std::move(paramsImp),
-                                           std::move(resultsImp), std::move(ns),
-                                           std::move(impName)));
+  MOZ_ALWAYS_TRUE(codeMeta->addImportedFunc(&moduleMeta, std::move(paramsImp),
+                                            std::move(resultsImp),
+                                            std::move(ns), std::move(impName)));
 
   ValTypeVector params, results;
   MOZ_ALWAYS_TRUE(results.emplaceBack(ValType::I32));
   CacheableName expName;
   MOZ_ALWAYS_TRUE(CacheableName::fromUTF8Chars("r", &expName));
-  MOZ_ALWAYS_TRUE(codeMeta.addDefinedFunc(&moduleMeta, std::move(params),
-                                          std::move(results), true,
-                                          mozilla::Some(std::move(expName))));
+  MOZ_ALWAYS_TRUE(codeMeta->addDefinedFunc(&moduleMeta, std::move(params),
+                                           std::move(results), true,
+                                           mozilla::Some(std::move(expName))));
 
-  ModuleGenerator mg(*compileArgs, &codeMeta, &moduleMeta, &compilerEnv,
-                     nullptr, nullptr, nullptr);
+  ModuleGenerator mg(*compileArgs, codeMeta, &moduleMeta, &compilerEnv, nullptr,
+                     nullptr, nullptr);
   MOZ_ALWAYS_TRUE(mg.init(nullptr));
 
   // Build function and keep bytecode around until the end.

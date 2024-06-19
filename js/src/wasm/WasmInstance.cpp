@@ -106,7 +106,7 @@ static_assert(Instance::offsetOfLastCommonJitField() < 128);
 
 TypeDefInstanceData* Instance::typeDefInstanceData(uint32_t typeIndex) const {
   TypeDefInstanceData* instanceData =
-      (TypeDefInstanceData*)(data() + metadata().typeDefsOffsetStart);
+      (TypeDefInstanceData*)(data() + codeMeta().typeDefsOffsetStart);
   return &instanceData[typeIndex];
 }
 
@@ -126,19 +126,19 @@ FuncImportInstanceData& Instance::funcImportInstanceData(const FuncImport& fi) {
 
 MemoryInstanceData& Instance::memoryInstanceData(uint32_t memoryIndex) const {
   MemoryInstanceData* instanceData =
-      (MemoryInstanceData*)(data() + metadata().memoriesOffsetStart);
+      (MemoryInstanceData*)(data() + codeMeta().memoriesOffsetStart);
   return instanceData[memoryIndex];
 }
 
 TableInstanceData& Instance::tableInstanceData(uint32_t tableIndex) const {
   TableInstanceData* instanceData =
-      (TableInstanceData*)(data() + metadata().tablesOffsetStart);
+      (TableInstanceData*)(data() + codeMeta().tablesOffsetStart);
   return instanceData[tableIndex];
 }
 
 TagInstanceData& Instance::tagInstanceData(uint32_t tagIndex) const {
   TagInstanceData* instanceData =
-      (TagInstanceData*)(data() + metadata().tagsOffsetStart);
+      (TagInstanceData*)(data() + codeMeta().tagsOffsetStart);
   return instanceData[tagIndex];
 }
 
@@ -230,7 +230,7 @@ bool Instance::callImport(JSContext* cx, uint32_t funcImportIndex,
   Tier tier = code().bestTier();
 
   const FuncImport& fi = metadata(tier).funcImports[funcImportIndex];
-  const FuncType& funcType = metadata().getFuncImportType(fi);
+  const FuncType& funcType = codeMeta().getFuncImportType(fi);
 
   ArgTypeVector argTypes(funcType);
   InvokeArgs args(cx);
@@ -909,7 +909,7 @@ static bool AllSegmentsArePassive(const DataSegmentVector& vec) {
 bool Instance::initSegments(JSContext* cx,
                             const DataSegmentVector& dataSegments,
                             const ModuleElemSegmentVector& elemSegments) {
-  MOZ_ASSERT_IF(metadata().memories.length() == 0,
+  MOZ_ASSERT_IF(codeMeta().memories.length() == 0,
                 AllSegmentsArePassive(dataSegments));
 
   Rooted<WasmInstanceObject*> instanceObj(cx, object());
@@ -2287,14 +2287,14 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
                     const WasmTagObjectVector& tagObjs,
                     const DataSegmentVector& dataSegments,
                     const ModuleElemSegmentVector& elemSegments) {
-  MOZ_ASSERT(!!maybeDebug_ == metadata().debugEnabled);
+  MOZ_ASSERT(!!maybeDebug_ == codeMeta().debugEnabled);
 
 #ifdef DEBUG
   for (auto t : code_->tiers()) {
     MOZ_ASSERT(funcImports.length() == metadata(t).funcImports.length());
   }
 #endif
-  MOZ_ASSERT(tables_.length() == metadata().tables.length());
+  MOZ_ASSERT(tables_.length() == codeMeta().tables.length());
 
   cx_ = cx;
   valueBoxClass_ = AnyRef::valueBoxClass();
@@ -2309,7 +2309,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 #endif
 
   // Initialize type definitions in the instance data.
-  const SharedTypeContext& types = metadata().types;
+  const SharedTypeContext& types = codeMeta().types;
   Zone* zone = realm()->zone();
   for (uint32_t typeIndex = 0; typeIndex < types->length(); typeIndex++) {
     const TypeDef& typeDef = types->type(typeIndex);
@@ -2390,7 +2390,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
     if (JSObject* suspendingObject = MaybeUnwrapSuspendingObject(f)) {
       // Compile suspending function Wasm wrapper.
       const FuncImport& fi = metadata(callerTier).funcImports[i];
-      const FuncType& funcType = metadata().getFuncImportType(fi);
+      const FuncType& funcType = codeMeta().getFuncImportType(fi);
       RootedObject wrapped(cx, suspendingObject);
       RootedFunction wrapper(
           cx, WasmSuspendingFunctionCreate(cx, wrapped, funcType));
@@ -2404,7 +2404,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 
     MOZ_ASSERT(f->isCallable());
     const FuncImport& fi = metadata(callerTier).funcImports[i];
-    const FuncType& funcType = metadata().getFuncImportType(fi);
+    const FuncType& funcType = codeMeta().getFuncImportType(fi);
     FuncImportInstanceData& import = funcImportInstanceData(fi);
     import.callable = f;
     if (f->is<JSFunction>()) {
@@ -2447,9 +2447,9 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
   // `constantGlobalGet` which uses this value to assert we're never accessing
   // uninitialized globals.
   maxInitializedGlobalsIndexPlus1_ = 0;
-  for (size_t i = 0; i < metadata().globals.length();
+  for (size_t i = 0; i < codeMeta().globals.length();
        i++, maxInitializedGlobalsIndexPlus1_ = i) {
-    const GlobalDesc& global = metadata().globals[i];
+    const GlobalDesc& global = codeMeta().globals[i];
 
     // Constants are baked into the code, never stored in the global area.
     if (global.isConstant()) {
@@ -2494,11 +2494,11 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
   }
 
   // All globals were initialized
-  MOZ_ASSERT(maxInitializedGlobalsIndexPlus1_ == metadata().globals.length());
+  MOZ_ASSERT(maxInitializedGlobalsIndexPlus1_ == codeMeta().globals.length());
 
   // Initialize memories in the instance data
   for (size_t i = 0; i < memories.length(); i++) {
-    const MemoryDesc& md = metadata().memories[i];
+    const MemoryDesc& md = codeMeta().memories[i];
     MemoryInstanceData& data = memoryInstanceData(i);
     WasmMemoryObject* memory = memories.get()[i];
 
@@ -2531,7 +2531,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 
   // Initialize tables in the instance data
   for (size_t i = 0; i < tables_.length(); i++) {
-    const TableDesc& td = metadata().tables[i];
+    const TableDesc& td = codeMeta().tables[i];
     TableInstanceData& table = tableInstanceData(i);
     table.length = tables_[i]->length();
     table.elements = tables_[i]->instanceElements();
@@ -2551,7 +2551,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 #ifdef DEBUG
   // All (linked) tables with non-nullable types must be initialized.
   for (size_t i = 0; i < tables_.length(); i++) {
-    const TableDesc& td = metadata().tables[i];
+    const TableDesc& td = codeMeta().tables[i];
     if (!td.elemType.isNullable()) {
       tables_[i]->assertRangeNotNull(0, tables_[i]->length());
     }
@@ -2559,7 +2559,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 #endif  // DEBUG
 
   // Initialize tags in the instance data
-  for (size_t i = 0; i < metadata().tags.length(); i++) {
+  for (size_t i = 0; i < codeMeta().tags.length(); i++) {
     MOZ_ASSERT(tagObjs[i] != nullptr);
     tagInstanceData(i).object = tagObjs[i];
   }
@@ -2567,8 +2567,8 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
   pendingExceptionTag_ = nullptr;
 
   // Add debug filtering table.
-  if (metadata().debugEnabled) {
-    size_t numFuncs = metadata().debugNumFuncs();
+  if (codeMeta().debugEnabled) {
+    size_t numFuncs = codeMeta().debugNumFuncs();
     size_t numWords = std::max<size_t>((numFuncs + 31) / 32, 1);
     debugFilter_ = (uint32_t*)js_calloc(numWords, sizeof(uint32_t));
     if (!debugFilter_) {
@@ -2683,7 +2683,7 @@ bool Instance::memoryAccessInGuardRegion(const uint8_t* addr,
                                          unsigned numBytes) const {
   MOZ_ASSERT(numBytes > 0);
 
-  for (uint32_t memoryIndex = 0; memoryIndex < metadata().memories.length();
+  for (uint32_t memoryIndex = 0; memoryIndex < codeMeta().memories.length();
        memoryIndex++) {
     uint8_t* base = memoryBase(memoryIndex).unwrap(/* comparison */);
     if (addr < base) {
@@ -2714,7 +2714,7 @@ void Instance::tracePrivate(JSTracer* trc) {
   }
 
   for (uint32_t memoryIndex = 0;
-       memoryIndex < code().metadata().memories.length(); memoryIndex++) {
+       memoryIndex < code().codeMeta().memories.length(); memoryIndex++) {
     MemoryInstanceData& memoryData = memoryInstanceData(memoryIndex);
     TraceNullableEdge(trc, &memoryData.memory, "wasm memory object");
   }
@@ -2723,7 +2723,7 @@ void Instance::tracePrivate(JSTracer* trc) {
     table->trace(trc);
   }
 
-  for (const GlobalDesc& global : code().metadata().globals) {
+  for (const GlobalDesc& global : code().codeMeta().globals) {
     // Indirect reference globals get traced by the owning WebAssembly.Global.
     if (!global.type().isRefRepr() || global.isConstant() ||
         global.isIndirect()) {
@@ -2733,12 +2733,12 @@ void Instance::tracePrivate(JSTracer* trc) {
     TraceNullableEdge(trc, obj, "wasm reference-typed global");
   }
 
-  for (uint32_t tagIndex = 0; tagIndex < code().metadata().tags.length();
+  for (uint32_t tagIndex = 0; tagIndex < code().codeMeta().tags.length();
        tagIndex++) {
     TraceNullableEdge(trc, &tagInstanceData(tagIndex).object, "wasm tag");
   }
 
-  const SharedTypeContext& types = metadata().types;
+  const SharedTypeContext& types = codeMeta().types;
   for (uint32_t typeIndex = 0; typeIndex < types->length(); typeIndex++) {
     TypeDefInstanceData* typeDefData = typeDefInstanceData(typeIndex);
     TraceNullableEdge(trc, &typeDefData->shape, "wasm shape");
@@ -2955,10 +2955,10 @@ static bool EnsureEntryStubs(const Instance& instance, uint32_t funcIndex,
   // The best tier might have changed after we've taken the lock.
   Tier prevTier = tier;
   tier = instance.code().bestTier();
-  const Metadata& metadata = instance.metadata();
+  const CodeMetadata& codeMeta = instance.codeMeta();
   const CodeTier& codeTier = instance.code(tier);
   if (tier == prevTier) {
-    if (!stubs->createOneEntryStub(funcExportIndex, metadata, codeTier)) {
+    if (!stubs->createOneEntryStub(funcExportIndex, codeMeta, codeTier)) {
       return false;
     }
 
@@ -2974,7 +2974,7 @@ static bool EnsureEntryStubs(const Instance& instance, uint32_t funcIndex,
   // shouldn't have made one in the second tier.
   MOZ_ASSERT(!stubs2->hasEntryStub(fe.funcIndex()));
 
-  if (!stubs2->createOneEntryStub(funcExportIndex, metadata, codeTier)) {
+  if (!stubs2->createOneEntryStub(funcExportIndex, codeMeta, codeTier)) {
     return false;
   }
 
@@ -2993,7 +2993,7 @@ static bool GetInterpEntryAndEnsureStubs(JSContext* cx, Instance& instance,
     return false;
   }
 
-  *funcType = &instance.metadata().getFuncExportType(*funcExport);
+  *funcType = &instance.codeMeta().getFuncExportType(*funcExport);
 
 #ifdef DEBUG
   // EnsureEntryStubs() has ensured proper jit-entry stubs have been created and
@@ -3292,7 +3292,7 @@ void Instance::setPendingException(Handle<WasmExceptionObject*> exn) {
 void Instance::constantGlobalGet(uint32_t globalIndex,
                                  MutableHandleVal result) {
   MOZ_RELEASE_ASSERT(globalIndex < maxInitializedGlobalsIndexPlus1_);
-  const GlobalDesc& global = metadata().globals[globalIndex];
+  const GlobalDesc& global = codeMeta().globals[globalIndex];
 
   // Constant globals are baked into the code and never stored in global data.
   if (global.isConstant()) {
@@ -3348,7 +3348,9 @@ JSAtom* Instance::getFuncDisplayAtom(JSContext* cx, uint32_t funcIndex) const {
   // The "display name" of a function is primarily shown in Error.stack which
   // also includes location, so use getFuncNameBeforeLocation.
   UTF8Bytes name;
-  if (!metadata().getFuncNameBeforeLocation(funcIndex, &name)) {
+  if (!metadata().getFuncNameBeforeLocation(funcIndex, codeMeta().namePayload,
+                                            codeMeta().moduleName,
+                                            codeMeta().funcNames, &name)) {
     return nullptr;
   }
 
@@ -3363,7 +3365,7 @@ void Instance::onMovingGrowMemory(const WasmMemoryObject* memory) {
   MOZ_ASSERT(!isAsmJS());
   MOZ_ASSERT(!memory->isShared());
 
-  for (uint32_t i = 0; i < metadata().memories.length(); i++) {
+  for (uint32_t i = 0; i < codeMeta().memories.length(); i++) {
     MemoryInstanceData& md = memoryInstanceData(i);
     if (memory != md.memory) {
       continue;
@@ -3415,8 +3417,8 @@ JSString* Instance::createDisplayURL(JSContext* cx) {
   // In the best case, we simply have a URL, from a streaming compilation of a
   // fetched Response.
 
-  if (metadata().filenameIsURL) {
-    const char* filename = metadata().filename.get();
+  if (codeMeta().filenameIsURL) {
+    const char* filename = codeMeta().filename.get();
     return NewStringCopyUTF8N(cx, JS::UTF8Chars(filename, strlen(filename)));
   }
 
@@ -3430,7 +3432,7 @@ JSString* Instance::createDisplayURL(JSContext* cx) {
     return nullptr;
   }
 
-  if (const char* filename = metadata().filename.get()) {
+  if (const char* filename = codeMeta().filename.get()) {
     // EncodeURI returns false due to invalid chars or OOM -- fail only
     // during OOM.
     JSString* filenamePrefix = EncodeURI(cx, filename, strlen(filename));
@@ -3449,12 +3451,12 @@ JSString* Instance::createDisplayURL(JSContext* cx) {
     }
   }
 
-  if (metadata().debugEnabled) {
+  if (codeMeta().debugEnabled) {
     if (!result.append(":")) {
       return nullptr;
     }
 
-    const ModuleHash& hash = metadata().debugHash;
+    const ModuleHash& hash = codeMeta().debugHash;
     for (unsigned char byte : hash) {
       unsigned char digit1 = byte / 16, digit2 = byte % 16;
       if (!result.append(
@@ -3499,6 +3501,7 @@ void Instance::disassembleExport(JSContext* cx, uint32_t funcIndex, Tier tier,
 
 void Instance::addSizeOfMisc(MallocSizeOf mallocSizeOf,
                              Metadata::SeenSet* seenMetadata,
+                             CodeMetadata::SeenSet* seenCodeMeta,
                              Code::SeenSet* seenCode,
                              Table::SeenSet* seenTables, size_t* code,
                              size_t* data) const {
@@ -3508,12 +3511,12 @@ void Instance::addSizeOfMisc(MallocSizeOf mallocSizeOf,
   }
 
   if (maybeDebug_) {
-    maybeDebug_->addSizeOfMisc(mallocSizeOf, seenMetadata, seenCode, code,
-                               data);
+    maybeDebug_->addSizeOfMisc(mallocSizeOf, seenMetadata, seenCodeMeta,
+                               seenCode, code, data);
   }
 
-  code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenMetadata, seenCode, code,
-                                data);
+  code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenMetadata, seenCodeMeta,
+                                seenCode, code, data);
 }
 
 //////////////////////////////////////////////////////////////////////////////

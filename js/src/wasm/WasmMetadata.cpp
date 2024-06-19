@@ -13,7 +13,7 @@ using mozilla::CheckedInt;
 using namespace js;
 using namespace js::wasm;
 
-// Source metadata helpers -- adding functions.
+// CodeMetadata helpers -- adding functions.
 
 bool CodeMetadata::addDefinedFunc(
     /*MOD*/ ModuleMetadata* moduleMeta, ValTypeVector&& params,
@@ -58,7 +58,7 @@ bool CodeMetadata::addImportedFunc(/*MOD*/ ModuleMetadata* moduleMeta,
                                          DefinitionKind::Function);
 }
 
-// Source metadata helpers -- computing the Instance layout.
+// CodeMetadata helpers -- computing the Instance layout.
 
 // This is the highest offset into Instance::globalArea that will not overflow
 // a signed 32-bit integer.
@@ -176,4 +176,18 @@ Maybe<uint32_t> CodeMetadata::doInstanceLayout() {
   }
 
   return Some(instanceDataLength);
+}
+
+// CodeMetadata helpers -- memory accounting.
+
+size_t CodeMetadata::sizeOfExcludingThis(
+    mozilla::MallocSizeOf mallocSizeOf) const {
+  // FIXME: do other fields need to be considered?  How can we know/check?
+  return types->sizeOfExcludingThis(mallocSizeOf) +
+         globals.sizeOfExcludingThis(mallocSizeOf) +
+         tables.sizeOfExcludingThis(mallocSizeOf) +
+         tags.sizeOfExcludingThis(mallocSizeOf) +
+         funcNames.sizeOfExcludingThis(mallocSizeOf) +
+         filename.sizeOfExcludingThis(mallocSizeOf) +
+         sourceMapURL.sizeOfExcludingThis(mallocSizeOf);
 }
