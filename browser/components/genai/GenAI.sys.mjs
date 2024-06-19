@@ -45,6 +45,9 @@ export const GenAI = {
   init() {
     // Access this getter for its side effect of observing provider pref change
     lazy.chatProvider;
+
+    // Detect about:preferences to add controls
+    Services.obs.addObserver(this, "experimental-pane-loaded");
   },
 
   /**
@@ -141,6 +144,11 @@ export const GenAI = {
 
     // TODO bug 1895433 populate providers
     Preferences.add({ id: "browser.ml.chat.provider", type: "string" });
+  },
+
+  // nsIObserver
+  observe(window) {
+    this.buildPreferences(window);
   },
 };
 

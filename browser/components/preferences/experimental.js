@@ -4,10 +4,6 @@
 
 /* import-globals-from preferences.js */
 
-ChromeUtils.defineESModuleGetters(this, {
-  GenAI: "resource:///modules/GenAI.sys.mjs",
-});
-
 var gExperimentalPane = {
   inited: false,
   _template: null,
@@ -170,7 +166,6 @@ var gExperimentalPane = {
     }
     this._featureGatesContainer.appendChild(frag);
 
-    // Bug 1895494 to allow more generic logic
-    GenAI.buildPreferences(window);
+    Services.obs.notifyObservers(window, "experimental-pane-loaded");
   },
 };
