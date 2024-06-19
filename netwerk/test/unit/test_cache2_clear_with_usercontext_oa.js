@@ -8,11 +8,6 @@ const { HttpServer } = ChromeUtils.importESModule(
   "resource://testing-common/httpd.sys.mjs"
 );
 
-const lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
-  setTimeout: "resource://gre/modules/Timer.sys.mjs",
-});
-
 var httpserver = new HttpServer();
 
 function make_uri(urlStr) {
@@ -46,7 +41,11 @@ add_task(async function test_clear_cache_with_usercontext_oa() {
   Assert.ok(exists, "Entry should be in cache");
 
   Services.cache2.clearOriginAttributes(JSON.stringify({ userContextId: 0 }));
-  await new Promise(resolve => lazy.setTimeout(resolve, 0)); // clearOriginAttributes does not block
+
+  // clearOriginAttributes is async, so we block on cacheIOThread
+  await new Promise(resolve => {
+    syncWithCacheIOThread(resolve, true);
+  });
 
   let existsAgain = cache_storage.exists(make_uri(url), null);
   Assert.ok(!existsAgain, "Entry should not be in cache");
