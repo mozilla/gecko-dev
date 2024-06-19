@@ -802,16 +802,19 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
                                  JS::OptimizedEncodingListener* listener) {
   Decoder d(bytecode.bytes, 0, error, warnings);
 
+  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  if (!moduleMeta) {
+    return nullptr;
+  }
   RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(args.features);
-  ModuleMetadata moduleMeta;
   if (!codeMeta || !codeMeta->init() ||
-      !DecodeModuleEnvironment(d, codeMeta, &moduleMeta)) {
+      !DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
     return nullptr;
   }
   CompilerEnvironment compilerEnv(args);
   compilerEnv.computeParameters(d);
 
-  ModuleGenerator mg(args, codeMeta, &moduleMeta, &compilerEnv, nullptr, error,
+  ModuleGenerator mg(args, codeMeta, moduleMeta, &compilerEnv, nullptr, error,
                      warnings);
   if (!mg.init(nullptr)) {
     return nullptr;
@@ -821,7 +824,7 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
     return nullptr;
   }
 
-  if (!DecodeModuleTail(d, codeMeta, &moduleMeta)) {
+  if (!DecodeModuleTail(d, codeMeta, moduleMeta)) {
     return nullptr;
   }
 
@@ -833,18 +836,22 @@ bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
                         UniqueCharsVector* warnings, Atomic<bool>* cancelled) {
   Decoder d(bytecode, 0, error);
 
-  ModuleMetadata moduleMeta;  // FIXME this shouldn't be needed!
+  // FIXME this shouldn't be needed!  (nullptr should be OK)
+  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  if (!moduleMeta) {
+    return false;
+  }
   RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(args.features);
   if (!codeMeta || !codeMeta->init() ||
-      !DecodeModuleEnvironment(d, codeMeta, &moduleMeta)) {
+      !DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
     return false;
   }
   CompilerEnvironment compilerEnv(CompileMode::Tier2, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters(d);
 
-  ModuleGenerator mg(args, codeMeta, &moduleMeta, &compilerEnv, cancelled,
-                     error, warnings);
+  ModuleGenerator mg(args, codeMeta, moduleMeta, &compilerEnv, cancelled, error,
+                     warnings);
   if (!mg.init(nullptr)) {
     return false;
   }
@@ -853,7 +860,7 @@ bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
     return false;
   }
 
-  if (!DecodeModuleTail(d, codeMeta, &moduleMeta)) {
+  if (!DecodeModuleTail(d, codeMeta, moduleMeta)) {
     return false;
   }
 
@@ -946,12 +953,15 @@ SharedModule wasm::CompileStreaming(
   if (!codeMeta || !codeMeta->init()) {
     return nullptr;
   }
-  ModuleMetadata moduleMeta;
+  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  if (!moduleMeta) {
+    return nullptr;
+  }
 
   {
     Decoder d(envBytes, 0, error, warnings);
 
-    if (!DecodeModuleEnvironment(d, codeMeta, &moduleMeta)) {
+    if (!DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
       return nullptr;
     }
     compilerEnv.computeParameters(d);
@@ -965,7 +975,7 @@ SharedModule wasm::CompileStreaming(
     MOZ_RELEASE_ASSERT(d.done());
   }
 
-  ModuleGenerator mg(args, codeMeta, &moduleMeta, &compilerEnv, &cancelled,
+  ModuleGenerator mg(args, codeMeta, moduleMeta, &compilerEnv, &cancelled,
                      error, warnings);
   if (!mg.init(nullptr)) {
     return nullptr;
@@ -998,7 +1008,7 @@ SharedModule wasm::CompileStreaming(
   {
     Decoder d(tailBytes, codeMeta->codeSection->end(), error, warnings);
 
-    if (!DecodeModuleTail(d, codeMeta, &moduleMeta)) {
+    if (!DecodeModuleTail(d, codeMeta, moduleMeta)) {
       return nullptr;
     }
 
@@ -1050,14 +1060,16 @@ bool wasm::DumpIonFunctionInModule(const ShareableBytes& bytecode,
                                    GenericPrinter& out, UniqueChars* error) {
   UniqueCharsVector warnings;
   Decoder d(bytecode.bytes, 0, error, &warnings);
+  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  if (!moduleMeta) {
+    return false;
+  }
   RefPtr<CodeMetadata> codeMeta =
       js_new<CodeMetadata>(FeatureArgs::allEnabled());
   if (!codeMeta) {
     return false;
   }
-  ModuleMetadata moduleMeta;
   DumpIonModuleGenerator mg(*codeMeta, targetFuncIndex, contents, out, error);
-  return codeMeta->init() &&
-         DecodeModuleEnvironment(d, codeMeta, &moduleMeta) &&
+  return codeMeta->init() && DecodeModuleEnvironment(d, codeMeta, moduleMeta) &&
          DecodeCodeSection(*codeMeta, d, mg);
 }

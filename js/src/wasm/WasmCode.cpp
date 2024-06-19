@@ -895,12 +895,12 @@ bool JumpTables::init(CompileMode mode, const ModuleSegment& ms,
   return true;
 }
 
-Code::Code(UniqueCodeTier tier1, const CodeMetadata& codeMeta,
-           const CodeMetadataForAsmJS* codeMetaForAsmJS,
+Code::Code(const CodeMetadata& codeMeta,
+           const CodeMetadataForAsmJS* codeMetaForAsmJS, UniqueCodeTier tier1,
            JumpTables&& maybeJumpTables)
-    : tier1_(std::move(tier1)),
-      codeMeta_(&codeMeta),
+    : codeMeta_(&codeMeta),
       codeMetaForAsmJS_(codeMetaForAsmJS),
+      tier1_(std::move(tier1)),
       profilingLabels_(mutexid::WasmCodeProfilingLabels,
                        CacheableCharsVector()),
       jumpTables_(std::move(maybeJumpTables)) {}

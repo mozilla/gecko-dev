@@ -576,7 +576,13 @@ using MetadataAnalysisHashMap =
     HashMap<const char*, uint32_t, mozilla::CStringHasher, SystemAllocPolicy>;
 
 class Code : public ShareableBase<Code> {
-  UniqueCodeTier tier1_;
+  // These have the same lifetime end as Code itself -- they can be dropped
+  // when Code itself is dropped.  FIXME: should these be MutableCodeXX?
+  //
+  // This must always be non-null.
+  SharedCodeMetadata codeMeta_;
+  // This is null for a wasm module, non-null for asm.js
+  SharedCodeMetadataForAsmJS codeMetaForAsmJS_;
 
   // [SMDOC] Tier-2 data
   //
@@ -598,15 +604,14 @@ class Code : public ShareableBase<Code> {
   mutable UniqueConstCodeTier tier2_;
   mutable Atomic<bool> hasTier2_;
 
-  SharedCodeMetadata codeMeta_;
-  SharedCodeMetadataForAsmJS codeMetaForAsmJS_;
+  UniqueCodeTier tier1_;
 
   ExclusiveData<CacheableCharsVector> profilingLabels_;
   JumpTables jumpTables_;
 
  public:
-  Code(UniqueCodeTier tier1, const CodeMetadata& codeMeta,
-       const CodeMetadataForAsmJS* codeMetaForAsmJS,
+  Code(const CodeMetadata& codeMeta,
+       const CodeMetadataForAsmJS* codeMetaForAsmJS, UniqueCodeTier tier1,
        JumpTables&& maybeJumpTables);
   bool initialized() const { return tier1_->initialized(); }
 

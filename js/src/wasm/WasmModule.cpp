@@ -336,8 +336,9 @@ void Module::addSizeOfMisc(MallocSizeOf mallocSizeOf,
   code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenCodeMeta,
                                 seenCodeMetaForAsmJS, seenCode, code, data);
   *data += mallocSizeOf(this) +
-           SizeOfVectorExcludingThis(imports_, mallocSizeOf) +
-           SizeOfVectorExcludingThis(exports_, mallocSizeOf) +
+           // FIXME: should this accounting be migrated to ModuleMetadata now?
+           // SizeOfVectorExcludingThis(imports_, mallocSizeOf) +
+           // SizeOfVectorExcludingThis(exports_, mallocSizeOf) +
            SizeOfVectorExcludingThis(dataSegments_, mallocSizeOf) +
            SizeOfVectorExcludingThis(elemSegments_, mallocSizeOf) +
            SizeOfVectorExcludingThis(customSections_, mallocSizeOf);
@@ -485,7 +486,7 @@ bool Module::instantiateFunctions(JSContext* cx,
         codeMeta().getFuncImportTypeDef(metadata(tier).funcImports[i]);
 
     if (!TypeDef::isSubTypeOf(&exportFuncType, &importFuncType)) {
-      const Import& import = FindImportFunction(imports_, i);
+      const Import& import = FindImportFunction(moduleMeta().imports, i);
       UniqueChars importModuleName = import.module.toQuotedString(cx);
       UniqueChars importFieldName = import.field.toQuotedString(cx);
       if (!importFieldName || !importModuleName) {
@@ -792,7 +793,7 @@ bool Module::instantiateGlobals(JSContext* cx,
 
   const GlobalDescVector& globals = codeMeta().globals;
 
-  for (const Export& exp : exports_) {
+  for (const Export& exp : moduleMeta().exports) {
     if (exp.kind() != DefinitionKind::Global) {
       continue;
     }
@@ -810,7 +811,7 @@ bool Module::instantiateGlobals(JSContext* cx,
 
 #ifdef DEBUG
   size_t numGlobalImports = 0;
-  for (const Import& import : imports_) {
+  for (const Import& import : moduleMeta().imports) {
     if (import.kind != DefinitionKind::Global) {
       continue;
     }
@@ -1025,7 +1026,7 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
 
   if (!CreateExportObject(cx, instance, imports.funcs, tableObjs.get(),
                           memories.get(), imports.tagObjs, imports.globalValues,
-                          imports.globalObjs, exports_)) {
+                          imports.globalObjs, moduleMeta().exports)) {
     return false;
   }
 

@@ -1393,8 +1393,8 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
 
   // State used to build the AsmJSModule in finish():
   CompilerEnvironment compilerEnv_;
-  ModuleMetadata moduleMeta_;
-  RefPtr<CodeMetadata> codeMeta_;
+  MutableModuleMetadata moduleMeta_;
+  MutableCodeMetadata codeMeta_;
   MutableCodeMetadataForAsmJSImpl codeMetaForAsmJS_;
 
   // Error reporting:
@@ -1404,7 +1404,8 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
 
  protected:
   ModuleValidatorShared(FrontendContext* fc, ParserAtomsTable& parserAtoms,
-                        RefPtr<CodeMetadata> codeMeta,
+                        MutableModuleMetadata moduleMeta,
+                        MutableCodeMetadata codeMeta,
                         FunctionNode* moduleFunctionNode)
       : fc_(fc),
         parserAtoms_(parserAtoms),
@@ -1419,7 +1420,7 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
         funcImportMap_(fc),
         arrayViews_(fc),
         compilerEnv_(CompileMode::Once, Tier::Optimized, DebugEnabled::False),
-        moduleMeta_(),
+        moduleMeta_(moduleMeta),
         codeMeta_(codeMeta) {
     compilerEnv_.computeParameters();
     memory_.minLength = RoundUpToNextValidAsmJSHeapLength(0);
@@ -1508,7 +1509,7 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
     return bufferArgumentName_;
   }
   const CodeMetadata* codeMeta() { return codeMeta_; }
-  const ModuleMetadata& moduleMeta() { return moduleMeta_; }
+  const ModuleMetadata* moduleMeta() { return moduleMeta_; }
 
   void initModuleFunctionName(TaggedParserAtomIndex name) {
     MOZ_ASSERT(!moduleFunctionName_);
@@ -1759,8 +1760,8 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
     // Declare which function is exported which gives us an index into the
     // module ExportVector.
     uint32_t funcIndex = funcImportMap_.count() + func.funcDefIndex();
-    if (!moduleMeta_.exports.emplaceBack(std::move(fieldName), funcIndex,
-                                         DefinitionKind::Function)) {
+    if (!moduleMeta_->exports.emplaceBack(std::move(fieldName), funcIndex,
+                                          DefinitionKind::Function)) {
       return false;
     }
 
@@ -1923,9 +1924,11 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
 
  public:
   ModuleValidator(FrontendContext* fc, ParserAtomsTable& parserAtoms,
+                  RefPtr<ModuleMetadata> moduleMeta,
                   RefPtr<CodeMetadata> codeMeta, AsmJSParser<Unit>& parser,
                   FunctionNode* moduleFunctionNode)
-      : ModuleValidatorShared(fc, parserAtoms, codeMeta, moduleFunctionNode),
+      : ModuleValidatorShared(fc, parserAtoms, moduleMeta, codeMeta,
+                              moduleFunctionNode),
         parser_(parser) {}
 
   ~ModuleValidator() {
@@ -2151,7 +2154,7 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
       codeMeta_->funcs[funcIndex] = FuncDesc(
           &codeMeta_->types->type(funcTypeIndex).funcType(), funcTypeIndex);
     }
-    for (const Export& exp : moduleMeta_.exports) {
+    for (const Export& exp : moduleMeta_->exports) {
       if (exp.kind() != DefinitionKind::Function) {
         continue;
       }
@@ -2222,7 +2225,7 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
       return nullptr;
     }
 
-    ModuleGenerator mg(*args, codeMeta_, &moduleMeta_, &compilerEnv_, nullptr,
+    ModuleGenerator mg(*args, codeMeta_, moduleMeta_, &compilerEnv_, nullptr,
                        nullptr, nullptr);
     if (!mg.init(codeMetaForAsmJS_.get())) {
       return nullptr;
@@ -6436,6 +6439,10 @@ static SharedModule CheckModule(FrontendContext* fc,
                                 unsigned* time) {
   int64_t before = PRMJ_Now();
 
+  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  if (!moduleMeta) {
+    return nullptr;
+  }
   RefPtr<CodeMetadata> codeMeta =
       js_new<CodeMetadata>(FeatureArgs(), ModuleKind::AsmJS);
   if (!codeMeta) {
@@ -6444,7 +6451,7 @@ static SharedModule CheckModule(FrontendContext* fc,
 
   FunctionNode* moduleFunctionNode = parser.pc_->functionBox()->functionNode;
 
-  ModuleValidator<Unit> m(fc, parserAtoms, codeMeta, parser,
+  ModuleValidator<Unit> m(fc, parserAtoms, moduleMeta, codeMeta, parser,
                           moduleFunctionNode);
   if (!m.init()) {
     return nullptr;
