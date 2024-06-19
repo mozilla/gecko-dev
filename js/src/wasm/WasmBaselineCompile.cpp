@@ -11884,7 +11884,7 @@ bool js::wasm::BaselineCompileFunctions(const ModuleMetadata& moduleMeta,
   TempAllocator alloc(&lifo);
   JitContext jitContext;
   MOZ_ASSERT(IsCompilingWasm());
-  WasmMacroAssembler masm(alloc, moduleMeta);
+  WasmMacroAssembler masm(alloc);
 
   // Swap in already-allocated empty vectors to avoid malloc/free.
   MOZ_ASSERT(code->empty());

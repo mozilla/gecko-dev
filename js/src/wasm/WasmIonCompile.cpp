@@ -9379,7 +9379,7 @@ bool wasm::IonCompileFunctions(const ModuleMetadata& moduleMeta,
   TempAllocator alloc(&lifo);
   JitContext jitContext;
   MOZ_ASSERT(IsCompilingWasm());
-  WasmMacroAssembler masm(alloc, moduleMeta);
+  WasmMacroAssembler masm(alloc);
 #if defined(JS_CODEGEN_ARM64)
   masm.SetStackPointer64(PseudoStackPointer64);
 #endif
