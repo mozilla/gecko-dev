@@ -7,7 +7,6 @@ support-files = [
 ]
 
 ["test_localStorageBasePrivateBrowsing_perwindowpb.html"]
-skip-if = ["true"] # bug 1156725
 
 ["test_localStorageFromChrome.xhtml"]
 

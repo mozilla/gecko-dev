@@ -7,13 +7,16 @@
 
 <script type="text/javascript">
 
-var mainWindow;
+const {TestUtils} = ChromeUtils.importESModule(
+  "resource://testing-common/TestUtils.sys.mjs"
+);
 
 var prefBranch = Cc["@mozilla.org/preferences-service;1"]
                    .getService(Ci.nsIPrefBranch);
 prefBranch.setIntPref("browser.startup.page", 0);
 prefBranch.setCharPref("browser.startup.homepage_override.mstone", "ignore");
 
+var mainWindow = null;
 function startTest() {
   mainWindow = window.browsingContext.topChromeWindow;
 
@@ -25,18 +28,30 @@ var contentPage = "http://mochi.test:8888/chrome/dom/tests/mochitest/localstorag
 function testOnWindow(aIsPrivate, aCallback) {
   var win = mainWindow.OpenBrowserWindow({private: aIsPrivate});
   win.addEventListener("load", function() {
-    win.addEventListener("DOMContentLoaded", function onInnerLoad() {
-      if (win.content.location.href == "about:privatebrowsing") {
-        win.gBrowser.loadURI(Services.io.newURI(contentPage));
-        return;
-      }
-      win.removeEventListener("DOMContentLoaded", onInnerLoad, true);
-      SimpleTest.executeSoon(function() { aCallback(win); });
-    }, true);
-    win.gBrowser.loadURI(Services.io.newURI(contentPage));
+    TestUtils.topicObserved("browser-delayed-startup-finished",
+                            subject => subject == win).then(() => {
+      win.addEventListener("DOMContentLoaded", function onInnerLoad() {
+        if (win.content.location.href != contentPage) {
+          win.gBrowser.loadURI(Services.io.newURI(contentPage), {
+            triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
+          });
+          return;
+        }
+        win.removeEventListener("DOMContentLoaded", onInnerLoad, true);
+
+        win.content.addEventListener("load", function innerLoad2() {
+          win.content.removeEventListener("load", innerLoad2);
+          SimpleTest.executeSoon(function() { aCallback(win); });
+        }, false, true);
+      }, true);
+      SimpleTest.executeSoon(function() {
+        win.gBrowser.loadURI(Services.io.newURI(contentPage), {
+          triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
+        });
+      });
+    });
   }, {capture: true, once: true});
 }
-
 function doTest() {
   testOnWindow(false, function(aWin) {
     aWin.content.localStorage.setItem("persistent", "persistent1");
