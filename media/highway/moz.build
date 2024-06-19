@@ -8,7 +8,9 @@ LOCAL_INCLUDES += [
     "/third_party/highway/",
 ]
 
-if CONFIG["TARGET_CPU"] == "ppc64" and CONFIG["OS_TARGET"] == "Linux":
+# CMake has check_include_file() but for now we disable this.
+# See bug 1839363 and bug 1903190.
+if CONFIG["TARGET_CPU"] in ("ppc64", "s390x") and CONFIG["OS_TARGET"] == "Linux":
     DEFINES["TOOLCHAIN_MISS_ASM_HWCAP_H"] = True
 
 SOURCES += [
