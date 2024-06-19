@@ -1051,9 +1051,30 @@ CoderResult CodeMetadataTier(Coder<mode>& coder,
   return Ok();
 }
 
+// WasmMetadata.h
+
+template <CoderMode mode>
+CoderResult CodeModuleMetadata(Coder<mode>& coder,
+                               CoderArg<mode, wasm::ModuleMetadata> item) {
+  // NOTE: keep the field sequence here in sync with the those in the
+  // declaration of ModuleMetadata.
+
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ModuleMetadata, 128);
+  MOZ_TRY(Magic(coder, Marker::ModuleMetadata));
+  MOZ_TRY(Magic(coder, Marker::Imports));
+  MOZ_TRY((CodeVector<mode, Import, &CodeImport<mode>>(coder, &item->imports)));
+  MOZ_TRY(Magic(coder, Marker::Exports));
+  MOZ_TRY((CodeVector<mode, Export, &CodeExport<mode>>(coder, &item->exports)));
+  // not serialized: dataSegmentRanges
+  return Ok();
+}
+
 template <CoderMode mode>
 CoderResult CodeCodeMetadata(Coder<mode>& coder,
                              CoderArg<mode, wasm::CodeMetadata> item) {
+  // NOTE: keep the field sequence here in sync with the those in the
+  // declaration of CodeMetadata.
+
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeMetadata, 728);
   // Serialization doesn't handle asm.js or debug enabled modules
   MOZ_RELEASE_ASSERT(!item->isAsmJS());
@@ -1062,47 +1083,57 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   }
 
   MOZ_TRY(Magic(coder, Marker::CodeMetadata));
+  // not serialized: kind
+  MOZ_TRY(CodePod(coder, &item->features));
+  // not serialized: dataCount
+  MOZ_TRY(CodePodVector(coder, &item->memories));
+  // Types go in relatively early, because deserialisation of various other
+  // fields (globals, at least) depends on types having been deserialised
+  // first.
+  MOZ_TRY(
+      (CodeRefPtr<mode, TypeContext, &CodeTypeContext>(coder, &item->types)));
+  // not serialized: branchHints
+  // not serialized: numFuncImports
+  // not serialized: numGlobalImports
+  MOZ_TRY((CodeVector<mode, GlobalDesc, &CodeGlobalDesc<mode>>(
+      coder, &item->globals)));
+  MOZ_TRY((CodeVector<mode, TagDesc, &CodeTagDesc<mode>>(coder, &item->tags)));
+  MOZ_TRY((
+      CodeVector<mode, TableDesc, &CodeTableDesc<mode>>(coder, &item->tables)));
+  // not serialized: funcImportsOffsetStart
   MOZ_TRY(CodePod(coder, &item->typeDefsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->memoriesOffsetStart));
   MOZ_TRY(CodePod(coder, &item->tablesOffsetStart));
   MOZ_TRY(CodePod(coder, &item->tagsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->instanceDataLength));
-  MOZ_TRY(CodePod(coder, &item->builtinModules));
   MOZ_TRY(CodePod(coder, &item->featureUsage));
   MOZ_TRY(CodePod(coder, &item->filenameIsURL));
-  MOZ_TRY(CodePod(coder, &item->parsedBranchHints));
   MOZ_TRY(CodeCacheableChars(coder, &item->filename));
   MOZ_TRY(CodeCacheableChars(coder, &item->sourceMapURL));
+  // not serialized: namePayload
   MOZ_TRY(CodePod(coder, &item->moduleName));
   MOZ_TRY(CodePodVector(coder, &item->funcNames));
   MOZ_TRY((CodeMaybe<mode, uint32_t, &CodePod>(coder, &item->startFuncIndex)));
   MOZ_TRY((CodeMaybe<mode, uint32_t, &CodePod>(coder,
                                                &item->nameCustomSectionIndex)));
-
-  MOZ_TRY(CodePodVector(coder, &item->memories));
-
-  // Types go in relatively early, because deserialisation of various other
-  // fields (globals, at least) depends on types having been deserialised
-  // first.
-  // FIXME: casting from MutableTypeContext* to SharedTypeContext*
-  // seems like a nasty hack.  Is it OK?
-  MOZ_TRY((CodeRefPtr<mode, const TypeContext, &CodeTypeContext>(
-      coder, (SharedTypeContext*)&item->types)));
-
-  MOZ_TRY((CodeVector<mode, GlobalDesc, &CodeGlobalDesc<mode>>(
-      coder, &item->globals)));
-  MOZ_TRY((
-      CodeVector<mode, TableDesc, &CodeTableDesc<mode>>(coder, &item->tables)));
-  MOZ_TRY((CodeVector<mode, TagDesc, &CodeTagDesc<mode>>(coder, &item->tags)));
-
+  // not serialized: funcs
+  // not serialized: elemSegments
+  // not serialized: asmJSSigToTableIndex
+  // not serialized: codeSection
+  // not serialized: customSectionRanges
+  MOZ_TRY(CodePod(coder, &item->parsedBranchHints));
   if constexpr (mode == MODE_DECODE) {
     // Initialize debugging state to disabled
     item->debugEnabled = false;
     item->debugFuncTypeIndices.clear();
     MOZ_ASSERT(!item->isAsmJS());
   }
+  // not serialized: debugHash
+
   return Ok();
 }
+
+// WasmCode.h
 
 CoderResult CodeCodeTier(Coder<MODE_DECODE>& coder, wasm::UniqueCodeTier* item,
                          const wasm::LinkData& linkData) {
@@ -1183,18 +1214,6 @@ CoderResult CodeSharedCode(Coder<mode>& coder,
 }
 
 // WasmModule.h
-
-template <CoderMode mode>
-CoderResult CodeModuleMetadata(Coder<mode>& coder,
-                               CoderArg<mode, wasm::ModuleMetadata> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ModuleMetadata, 128);
-  MOZ_TRY(Magic(coder, Marker::ModuleMetadata));
-  MOZ_TRY(Magic(coder, Marker::Imports));
-  MOZ_TRY((CodeVector<mode, Import, &CodeImport<mode>>(coder, &item->imports)));
-  MOZ_TRY(Magic(coder, Marker::Exports));
-  MOZ_TRY((CodeVector<mode, Export, &CodeExport<mode>>(coder, &item->exports)));
-  return Ok();
-}
 
 CoderResult CodeModule(Coder<MODE_DECODE>& coder, MutableModule* item) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Module, 184);

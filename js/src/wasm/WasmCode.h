@@ -55,7 +55,7 @@
 #include "wasm/WasmExprType.h"
 #include "wasm/WasmGC.h"
 #include "wasm/WasmLog.h"
-#include "wasm/WasmMetadata.h"  // FIXME is this needed permanently?
+#include "wasm/WasmMetadata.h"
 #include "wasm/WasmModuleTypes.h"
 #include "wasm/WasmSerialize.h"
 #include "wasm/WasmShareable.h"
@@ -252,34 +252,9 @@ extern UniqueCodeBytes AllocateCodeBytes(
 extern bool StaticallyLink(const ModuleSegment& ms, const LinkData& linkData);
 extern void StaticallyUnlink(uint8_t* base, const LinkData& linkData);
 
-// ==== Printing of names
-
-// The Developer-Facing Display Conventions section of the WebAssembly Web
-// API spec defines two cases for displaying a wasm function name:
-//  1. the function name stands alone
-//  2. the function name precedes the location
-
-enum class NameContext { Standalone, BeforeLocation };
-
-// This gets names for wasm only.
-// For asm.js, see CodeMetadataForAsmJS::getFuncNameForAsmJS.
-bool GetFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
-                        SharedBytes namePayload, const Maybe<Name>& moduleName,
-                        const NameVector& funcNames, UTF8Bytes* name);
-
-// FIXME: update/remove/rehome the following old comment.
-//
-// Metadata holds all the data that is needed to describe compiled wasm code
-// at runtime (as opposed to data that is only used to statically link or
-// instantiate a module).
-//
-// Metadata is built incrementally by ModuleGenerator and then shared immutably
-// between modules.
-//
-// The Metadata structure is split into tier-invariant and tier-variant parts;
-// the former points to instances of the latter.  Additionally, the asm.js
-// subsystem subclasses the Metadata, adding more tier-invariant data, some of
-// which is serialized.  See AsmJS.cpp.
+// MetadataTier holds all the data that is needed to describe compiled wasm
+// code at runtime (as opposed to data that is only used to statically link or
+// instantiate a module), for one specific tier (baseline or Ion) of code.
 
 struct MetadataTier {
   explicit MetadataTier(Tier tier = Tier::Serialized)

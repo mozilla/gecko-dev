@@ -802,11 +802,11 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
                                  JS::OptimizedEncodingListener* listener) {
   Decoder d(bytecode.bytes, 0, error, warnings);
 
-  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta) {
     return nullptr;
   }
-  RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(args.features);
+  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(args.features);
   if (!codeMeta || !codeMeta->init() ||
       !DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
     return nullptr;
@@ -836,11 +836,11 @@ bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
   Decoder d(bytecode, 0, error);
 
   // FIXME this shouldn't be needed!  (nullptr should be OK)
-  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta) {
     return false;
   }
-  RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(args.features);
+  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(args.features);
   if (!codeMeta || !codeMeta->init() ||
       !DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
     return false;
@@ -947,11 +947,11 @@ SharedModule wasm::CompileStreaming(
     const Atomic<bool>& cancelled, UniqueChars* error,
     UniqueCharsVector* warnings) {
   CompilerEnvironment compilerEnv(args);
-  RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(args.features);
+  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(args.features);
   if (!codeMeta || !codeMeta->init()) {
     return nullptr;
   }
-  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta) {
     return nullptr;
   }
@@ -1057,11 +1057,11 @@ bool wasm::DumpIonFunctionInModule(const ShareableBytes& bytecode,
                                    GenericPrinter& out, UniqueChars* error) {
   UniqueCharsVector warnings;
   Decoder d(bytecode.bytes, 0, error, &warnings);
-  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta) {
     return false;
   }
-  RefPtr<CodeMetadata> codeMeta =
+  MutableCodeMetadata codeMeta =
       js_new<CodeMetadata>(FeatureArgs::allEnabled());
   if (!codeMeta) {
     return false;

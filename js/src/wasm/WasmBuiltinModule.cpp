@@ -143,12 +143,12 @@ bool CompileBuiltinModule(JSContext* cx,
   compilerEnv.computeParameters();
 
   // Build a module metadata struct
-  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta) {
     ReportOutOfMemory(cx);
     return false;
   }
-  RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(compileArgs->features);
+  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(compileArgs->features);
   if (!codeMeta || !codeMeta->init()) {
     ReportOutOfMemory(cx);
     return false;

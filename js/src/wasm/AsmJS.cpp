@@ -342,19 +342,10 @@ using AsmJSExportVector = Vector<AsmJSExport, 0, SystemAllocPolicy>;
 // CodeMetadataForAsmJSImpl is built incrementally by ModuleValidator and then
 // shared immutably between AsmJSModules.
 
-// FIXME: this is never used separately.  We might as well merge it back into
-// CodeMetadataForAsmJSImpl.
-struct CodeMetadataForAsmJSImplCacheablePod {
+struct js::CodeMetadataForAsmJSImpl : CodeMetadataForAsmJS {
   uint32_t numFFIs = 0;
   uint32_t srcLength = 0;
   uint32_t srcLengthWithRightBrace = 0;
-
-  CodeMetadataForAsmJSImplCacheablePod() = default;
-};
-
-struct js::CodeMetadataForAsmJSImpl : CodeMetadataForAsmJS  // public interface
-    ,
-                                      CodeMetadataForAsmJSImplCacheablePod {
   AsmJSGlobalVector asmJSGlobals;
   AsmJSImportVector asmJSImports;
   AsmJSExportVector asmJSExports;
@@ -413,9 +404,6 @@ struct js::CodeMetadataForAsmJSImpl : CodeMetadataForAsmJS  // public interface
     }
     return name->append(p, strlen(p));
   }
-
-  CodeMetadataForAsmJSImplCacheablePod& pod() { return *this; }
-  const CodeMetadataForAsmJSImplCacheablePod& pod() const { return *this; }
 
   // FIXME: no idea if this is correct.  Probably not!
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
@@ -1924,8 +1912,8 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
 
  public:
   ModuleValidator(FrontendContext* fc, ParserAtomsTable& parserAtoms,
-                  RefPtr<ModuleMetadata> moduleMeta,
-                  RefPtr<CodeMetadata> codeMeta, AsmJSParser<Unit>& parser,
+                  MutableModuleMetadata moduleMeta,
+                  MutableCodeMetadata codeMeta, AsmJSParser<Unit>& parser,
                   FunctionNode* moduleFunctionNode)
       : ModuleValidatorShared(fc, parserAtoms, moduleMeta, codeMeta,
                               moduleFunctionNode),
@@ -6440,11 +6428,11 @@ static SharedModule CheckModule(FrontendContext* fc,
                                 unsigned* time) {
   int64_t before = PRMJ_Now();
 
-  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta) {
     return nullptr;
   }
-  RefPtr<CodeMetadata> codeMeta =
+  MutableCodeMetadata codeMeta =
       js_new<CodeMetadata>(FeatureArgs(), ModuleKind::AsmJS);
   if (!codeMeta) {
     return nullptr;
