@@ -254,10 +254,13 @@ class MOZ_STACK_CLASS ModuleGenerator {
 
   // If env->mode is Once or Tier1, finishModule() must be called to generate
   // a new Module. Otherwise, if env->mode is Tier2, finishTier2() must be
-  // called to augment the given Module with tier 2 code.
+  // called to augment the given Module with tier 2 code.  `moduleMeta`
+  // is passed as mutable only because we have to std::move field(s) out of
+  // it; if that in future gets cleaned up, the parameter should be changed
+  // to being SharedModuleMetadata.
 
   SharedModule finishModule(const ShareableBytes& bytecode,
-                            SharedModuleMetadata moduleMeta,
+                            MutableModuleMetadata moduleMeta,
                             JS::OptimizedEncodingListener* maybeTier2Listener);
   [[nodiscard]] bool finishTier2(const Module& module);
 };

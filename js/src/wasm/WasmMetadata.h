@@ -132,6 +132,10 @@ struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
   ImportVector imports;
   ExportVector exports;
 
+  // Info about elem segments needed for instantiation.  Should have the same
+  // length as CodeMetadata::elemSegmentTypes.
+  ModuleElemSegmentVector elemSegments;
+
   // Fields decoded as part of the wasm module tail:
   DataSegmentRangeVector dataSegmentRanges;
 
@@ -209,11 +213,8 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // the Names (which are use payload-relative offsets) can be used
   // independently of the Module without duplicating the name section.
   SharedBytes namePayload;
-  // namePayload points at the name section's CustomSection::payload so that
-  // the Names (which are use payload-relative offsets) can be used
-  // independently of the Module without duplicating the name section.
-  Maybe<Name> moduleName;  // FIXME remove duplicate from ModuleMetadata
-  NameVector funcNames;    // FIXME remove duplicate from ModuleMetadata
+  Maybe<Name> moduleName;
+  NameVector funcNames;
 
   // ==== Misc Maybes
   //
@@ -228,11 +229,11 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // not doing partial tiering.
   FuncDescVector funcs;
 
-  // FIXME extra stuff to do here?  Ryan writes:
-  // OpIter needs to know just the type and count of elem segments, but not
-  // their payload. So we should split this up to avoid a major size regression
-  // in Code/Metadata.
-  ModuleElemSegmentVector elemSegments;
+  // Info about elem segments needed only for validation and compilation.
+  // Should have the same length as ModuleMetadata::elemSegments, and each
+  // entry here should be identical the corresponding .elemType field in
+  // ModuleMetadata::elemSegments.
+  RefTypeVector elemSegmentTypes;
 
   // asm.js needs this for compilation, technically a size regression for
   // Code/Metadata but likely not major and we don't care about asm.js enough

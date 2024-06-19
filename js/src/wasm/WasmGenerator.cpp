@@ -1047,7 +1047,7 @@ bool ModuleGenerator::finishCodeMetadata(const Bytes& bytecode) {
 // Complete all tier-1 construction and return the resulting Module.  For this
 // we will need both codeMeta_ (and maybe codeMetaForAsmJS_) and moduleMeta_.
 SharedModule ModuleGenerator::finishModule(
-    const ShareableBytes& bytecode, SharedModuleMetadata moduleMeta,
+    const ShareableBytes& bytecode, MutableModuleMetadata moduleMeta,
     JS::OptimizedEncodingListener* maybeTier2Listener) {
   MOZ_ASSERT(mode() == CompileMode::Once || mode() == CompileMode::Tier1);
 
@@ -1133,7 +1133,7 @@ SharedModule ModuleGenerator::finishModule(
 
   MutableModule module =
       js_new<Module>(*moduleMeta, *code, std::move(dataSegments),
-                     std::move(codeMeta_->elemSegments),
+                     std::move(moduleMeta->elemSegments),
                      std::move(customSections), debugBytecode);
   if (!module) {
     return nullptr;

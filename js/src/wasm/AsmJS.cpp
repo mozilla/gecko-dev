@@ -1778,7 +1778,11 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
     seg.offsetIfActive = Some(InitExpr(LitVal(uint32_t(0))));
     seg.encoding = ModuleElemSegment::Encoding::Indices;
     seg.elemIndices = std::move(elems);
-    return codeMeta_->elemSegments.append(std::move(seg));
+    bool ok = codeMeta_->elemSegmentTypes.append(seg.elemType) &&
+              moduleMeta_->elemSegments.append(std::move(seg));
+    MOZ_ASSERT_IF(ok, codeMeta_->elemSegmentTypes.length() ==
+                          moduleMeta_->elemSegments.length());
+    return ok;
   }
 
   bool tryConstantAccess(uint64_t start, uint64_t width) {

@@ -1059,12 +1059,13 @@ CoderResult CodeModuleMetadata(Coder<mode>& coder,
   // NOTE: keep the field sequence here in sync with the those in the
   // declaration of ModuleMetadata.
 
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ModuleMetadata, 128);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ModuleMetadata, 168);
   MOZ_TRY(Magic(coder, Marker::ModuleMetadata));
   MOZ_TRY(Magic(coder, Marker::Imports));
   MOZ_TRY((CodeVector<mode, Import, &CodeImport<mode>>(coder, &item->imports)));
   MOZ_TRY(Magic(coder, Marker::Exports));
   MOZ_TRY((CodeVector<mode, Export, &CodeExport<mode>>(coder, &item->exports)));
+  // not serialized: elemSegments
   // not serialized: dataSegmentRanges
   return Ok();
 }
@@ -1117,7 +1118,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   MOZ_TRY((CodeMaybe<mode, uint32_t, &CodePod>(coder,
                                                &item->nameCustomSectionIndex)));
   // not serialized: funcs
-  // not serialized: elemSegments
+  // not serialized: elemSegmentTypes
   // not serialized: asmJSSigToTableIndex
   // not serialized: codeSection
   // not serialized: customSectionRanges

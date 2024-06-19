@@ -2679,7 +2679,8 @@ static inline ModuleElemSegment::Kind NormalizeElemSegmentKind(
   MOZ_CRASH("unexpected elem segment kind");
 }
 
-static bool DecodeElemSegment(Decoder& d, CodeMetadata* codeMeta) {
+static bool DecodeElemSegment(Decoder& d, CodeMetadata* codeMeta,
+                              ModuleMetadata* moduleMeta) {
   uint32_t segmentFlags;
   if (!d.readVarU32(&segmentFlags)) {
     return d.fail("expected elem segment flags field");
@@ -2818,11 +2819,14 @@ static bool DecodeElemSegment(Decoder& d, CodeMetadata* codeMeta) {
     } break;
   }
 
-  codeMeta->elemSegments.infallibleAppend(std::move(seg));
+  codeMeta->elemSegmentTypes.infallibleAppend(seg.elemType);
+  moduleMeta->elemSegments.infallibleAppend(std::move(seg));
+
   return true;
 }
 
-static bool DecodeElemSection(Decoder& d, CodeMetadata* codeMeta) {
+static bool DecodeElemSection(Decoder& d, CodeMetadata* codeMeta,
+                              ModuleMetadata* moduleMeta) {
   MaybeSectionRange range;
   if (!d.startSection(SectionId::Elem, codeMeta, &range, "elem")) {
     return false;
@@ -2840,12 +2844,13 @@ static bool DecodeElemSection(Decoder& d, CodeMetadata* codeMeta) {
     return d.fail("too many elem segments");
   }
 
-  if (!codeMeta->elemSegments.reserve(numSegments)) {
+  if (!moduleMeta->elemSegments.reserve(numSegments) ||
+      !codeMeta->elemSegmentTypes.reserve(numSegments)) {
     return false;
   }
 
   for (uint32_t i = 0; i < numSegments; i++) {
-    if (!DecodeElemSegment(d, codeMeta)) {
+    if (!DecodeElemSegment(d, codeMeta, moduleMeta)) {
       return false;
     }
   }
@@ -3035,7 +3040,7 @@ bool wasm::DecodeModuleEnvironment(Decoder& d, CodeMetadata* codeMeta,
     return false;
   }
 
-  if (!DecodeElemSection(d, codeMeta)) {
+  if (!DecodeElemSection(d, codeMeta, moduleMeta)) {
     return false;
   }
 
