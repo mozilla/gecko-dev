@@ -521,6 +521,7 @@
 
 /* Page action panel */
 .pageAction-panel-button > .toolbarbutton-icon {
+  list-style-image: var(--pageAction-image, inherit);
   width: 16px;
   height: 16px;
 }
@@ -597,9 +598,13 @@
   }
 }
 
-.urlbar-page-action:focus-visible {
-  outline: var(--focus-outline);
-  outline-offset: var(--focus-outline-inset);
+.urlbar-page-action {
+  list-style-image: var(--pageAction-image, inherit);
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-inset);
+  }
 }
 
 .urlbar-go-button,

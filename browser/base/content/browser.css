@@ -112,12 +112,6 @@ menupopup[emptyplacesresult="true"] > .hide-if-empty-places-result {
   white-space: pre-line;
 }
 
-/* Page action buttons */
-.pageAction-panel-button > .toolbarbutton-icon,
-.urlbar-page-action {
-  list-style-image: var(--pageAction-image, inherit);
-}
-
 /* Screenshots */
 #screenshotsPagePanel {
   position: relative;
