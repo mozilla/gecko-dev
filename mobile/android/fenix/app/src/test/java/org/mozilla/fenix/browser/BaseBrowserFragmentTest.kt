@@ -86,6 +86,7 @@ class BaseBrowserFragmentTest {
     fun `initializeEngineView should setDynamicToolbarMaxHeight to toolbar height if dynamic toolbar is enabled`() {
         every { settings.shouldUseFixedTopToolbar } returns false
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.enableIncompleteToolbarRedesign } returns true
 
         fragment.initializeEngineView(
             topToolbarHeight = 13,
@@ -237,6 +238,7 @@ class BaseBrowserFragmentTest {
     fun `WHEN initializeEngineView is called  THEN setDynamicToolbarMaxHeight sets max height to the engine view as a sum of two toolbars heights`() {
         every { settings.shouldUseFixedTopToolbar } returns false
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.enableIncompleteToolbarRedesign } returns true
 
         fragment.initializeEngineView(
             topToolbarHeight = 13,
