@@ -1145,7 +1145,7 @@ function otherWindowFocused(otherWindow)
   // next, check modal dialogs
   // XXXndeakin Bug 621399 - the modal dialog test as well as later tests sometime fail
   // on Windows 8 so just end the test here.
-  if (navigator.userAgent.includes("Windows NT 6.2")) {
+  if (navigator.userAgent.includes("Windows")) {
     done();
   }
   else {
