@@ -600,7 +600,6 @@ ProcessID GetTelemetryProcessID(const nsACString& remoteType) {
 }  // anonymous namespace
 
 StaticAutoPtr<LinkedList<ContentParent>> ContentParent::sContentParents;
-StaticRefPtr<ContentParent> ContentParent::sRecycledE10SProcess;
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
 StaticAutoPtr<SandboxBrokerPolicyFactory>
     ContentParent::sSandboxBrokerPolicyFactory;
@@ -936,7 +935,6 @@ already_AddRefed<ContentParent> ContentParent::GetUsedBrowserProcess(
                  (unsigned int)retval->ChildID(),
                  PromiseFlatCString(aRemoteType).get()));
         retval->AssertAlive();
-        retval->StopRecyclingE10SOnly(true);
         return retval.forget();
       }
     }
@@ -951,27 +949,8 @@ already_AddRefed<ContentParent> ContentParent::GetUsedBrowserProcess(
                random.get(), (unsigned int)random->ChildID(),
                PromiseFlatCString(aRemoteType).get()));
       random->AssertAlive();
-      random->StopRecyclingE10SOnly(true);
       return random.forget();
     }
-  }
-
-  // If we are loading into the "web" remote type, are choosing to launch a new
-  // tab, and have a recycled E10S process, we should launch into that process.
-  if (aRemoteType == DEFAULT_REMOTE_TYPE && sRecycledE10SProcess) {
-    RefPtr<ContentParent> recycled = sRecycledE10SProcess;
-    MOZ_DIAGNOSTIC_ASSERT(recycled->GetRemoteType() == DEFAULT_REMOTE_TYPE);
-    recycled->AssertAlive();
-    recycled->StopRecyclingE10SOnly(true);
-    if (profiler_thread_is_being_profiled_for_markers()) {
-      nsPrintfCString marker("Recycled process %u (%p)",
-                             (unsigned int)recycled->ChildID(), recycled.get());
-      PROFILER_MARKER_TEXT("Process", DOM, {}, marker);
-    }
-    MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
-            ("Recycled process %p", recycled.get()));
-
-    return recycled.forget();
   }
 
   // Try to take a preallocated process except for certain remote types.
@@ -983,7 +962,6 @@ already_AddRefed<ContentParent> ContentParent::GetUsedBrowserProcess(
       (preallocated = PreallocatedProcessManager::Take(aRemoteType))) {
     MOZ_DIAGNOSTIC_ASSERT(preallocated->GetRemoteType() ==
                           PREALLOC_REMOTE_TYPE);
-    MOZ_DIAGNOSTIC_ASSERT(sRecycledE10SProcess != preallocated);
     preallocated->AssertAlive();
 
     if (profiler_thread_is_being_profiled_for_markers()) {
@@ -1064,7 +1042,6 @@ ContentParent::GetNewOrUsedLaunchingBrowserProcess(
               ("GetNewOrUsedProcess: Existing host process %p (launching %d)",
                contentParent.get(), contentParent->IsLaunching()));
       contentParent->AssertAlive();
-      contentParent->StopRecyclingE10SOnly(true);
       return contentParent.forget();
     }
   }
@@ -1106,7 +1083,6 @@ ContentParent::GetNewOrUsedLaunchingBrowserProcess(
   // still launching)
 
   contentParent->AssertAlive();
-  contentParent->StopRecyclingE10SOnly(true);
   if (aGroup) {
     aGroup->EnsureHostProcess(contentParent);
   }
@@ -1709,9 +1685,6 @@ void ContentParent::Init() {
   Unused << SendInitNextGenLocalStorageEnabled(NextGenLocalStorageEnabled());
 }
 
-// Note that for E10S we can get a false here that will be overruled by
-// TryToRecycleE10SOnly as late as MaybeBeginShutdown. We cannot really
-// foresee its result here.
 bool ContentParent::CheckTabDestroyWillKeepAlive(
     uint32_t aExpectedBrowserCount) {
   return ManagedPBrowserParent().Count() != aExpectedBrowserCount ||
@@ -1759,11 +1732,10 @@ void ContentParent::MaybeBeginShutDown(uint32_t aExpectedBrowserCount,
   // TODO: We want to get rid of the ThreadsafeHandle, see bug 1683595.
   RecursiveMutexAutoLock lock(mThreadsafeHandle->mMutex);
 
-  // Both CheckTabDestroyWillKeepAlive and TryToRecycleE10SOnly will return
-  // false if IsInOrBeyond(AppShutdownConfirmed), so if the parent shuts
-  // down we will always shutdown the child.
-  if (CheckTabDestroyWillKeepAlive(aExpectedBrowserCount) ||
-      TryToRecycleE10SOnly()) {
+  // CheckTabDestroyWillKeepAlive will return false if
+  // IsInOrBeyond(AppShutdownConfirmed), so if the parent shuts down we will
+  // always shutdown the child.
+  if (CheckTabDestroyWillKeepAlive(aExpectedBrowserCount)) {
     return;
   }
 
@@ -1790,7 +1762,6 @@ void ContentParent::AsyncSendShutDownMessage() {
   MOZ_LOG(ContentParent::GetLog(), LogLevel::Verbose,
           ("AsyncSendShutDownMessage %p", this));
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(sRecycledE10SProcess != this);
 
   // In the case of normal shutdown, send a shutdown message to child to
   // allow it to perform shutdown tasks.
@@ -1955,7 +1926,6 @@ void ContentParent::RemoveFromPool(nsTArray<ContentParent*>& aPool) {
 void ContentParent::AssertNotInPool() {
   MOZ_RELEASE_ASSERT(!mIsInPool);
 
-  MOZ_RELEASE_ASSERT(sRecycledE10SProcess != this);
   MOZ_RELEASE_ASSERT(!sBrowserContentParents ||
                      !sBrowserContentParents->Contains(mRemoteType) ||
                      !sBrowserContentParents->Get(mRemoteType)->Contains(this));
@@ -1986,8 +1956,6 @@ void ContentParent::RemoveFromList() {
   for (const auto& group : mGroups) {
     group->RemoveHostProcess(this);
   }
-
-  StopRecyclingE10SOnly(/* aForeground */ false);
 
   if (sBrowserContentParents) {
     if (auto entry = sBrowserContentParents->Lookup(mRemoteType)) {
@@ -2020,7 +1988,6 @@ void ContentParent::MarkAsDead() {
 
   // Prevent this process from being re-used.
   PreallocatedProcessManager::Erase(this);
-  StopRecyclingE10SOnly(false);
 
 #if defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_PROFILE_GENERATE)
   if (IsAlive()) {
@@ -2247,76 +2214,6 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
   MOZ_DIAGNOSTIC_ASSERT(mGroups.IsEmpty());
 
   mPendingLoadStates.Clear();
-}
-
-bool ContentParent::TryToRecycleE10SOnly() {
-  // Only try to recycle "web" content processes, as other remote types are
-  // generally more unique, and cannot be effectively re-used. This is disabled
-  // with Fission, as "web" content processes are no longer frequently used.
-  //
-  // Disabling the process pre-allocator will also disable process recycling,
-  // allowing for more consistent process counts under testing.
-  if (mRemoteType != DEFAULT_REMOTE_TYPE || mozilla::FissionAutostart() ||
-      !PreallocatedProcessManager::Enabled()) {
-    return false;
-  }
-
-  // This life time check should be replaced by a memory health check (memory
-  // usage + fragmentation).
-
-  // Note that this is specifically to help with edge cases that rapidly
-  // create-and-destroy processes
-  const double kMaxLifeSpan = 5;
-  MOZ_LOG(
-      ContentParent::GetLog(), LogLevel::Debug,
-      ("TryToRecycle ContentProcess %p (%u) with lifespan %f seconds", this,
-       (unsigned int)ChildID(), (TimeStamp::Now() - mActivateTS).ToSeconds()));
-
-  if (mCalledKillHard || !IsAlive() ||
-      (TimeStamp::Now() - mActivateTS).ToSeconds() > kMaxLifeSpan) {
-    MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
-            ("TryToRecycle did not recycle %p", this));
-
-    // It's possible that the process was already cached, and we're being called
-    // from a different path, and we're now past kMaxLifeSpan (or some other).
-    // Ensure that if we're going to kill this process we don't recycle it.
-    StopRecyclingE10SOnly(/* aForeground */ false);
-    return false;
-  }
-
-  if (!sRecycledE10SProcess) {
-    MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
-            ("TryToRecycle began recycling %p", this));
-    sRecycledE10SProcess = this;
-
-    ProcessPriorityManager::SetProcessPriority(this,
-                                               PROCESS_PRIORITY_BACKGROUND);
-    return true;
-  }
-
-  if (sRecycledE10SProcess == this) {
-    MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
-            ("TryToRecycle continue recycling %p", this));
-    return true;
-  }
-
-  // Some other process is already being recycled, just shut this one down.
-  MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
-          ("TryToRecycle did not recycle %p (already recycling %p)", this,
-           sRecycledE10SProcess.get()));
-  return false;
-}
-
-void ContentParent::StopRecyclingE10SOnly(bool aForeground) {
-  if (sRecycledE10SProcess != this) {
-    return;
-  }
-
-  sRecycledE10SProcess = nullptr;
-  if (aForeground) {
-    ProcessPriorityManager::SetProcessPriority(this,
-                                               PROCESS_PRIORITY_FOREGROUND);
-  }
 }
 
 bool ContentParent::HasActiveWorker() {
@@ -3867,7 +3764,6 @@ ContentParent::BlockShutdown(nsIAsyncShutdownClient* aClient) {
     // ensure we won't get re-used by GetUsedBrowserProcess as we have not yet
     // done MarkAsDead.
     PreallocatedProcessManager::Erase(this);
-    StopRecyclingE10SOnly(false);
 
     if (sQuitApplicationGrantedClient) {
       Unused << sQuitApplicationGrantedClient->RemoveBlocker(this);
