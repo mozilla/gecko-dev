@@ -4,40 +4,6 @@
 
 @namespace html url("http://www.w3.org/1999/xhtml");
 
-/* Rules to help integrate WebExtension buttons */
-
-.webextension-browser-action > .toolbarbutton-badge-stack > .toolbarbutton-icon {
-  height: 16px;
-  width: 16px;
-}
-
-.webextension-browser-action {
-  list-style-image: var(--webextension-toolbar-image, inherit);
-
-  toolbar[brighttext] & {
-    list-style-image: var(--webextension-toolbar-image-light, inherit);
-  }
-  :root[lwtheme] toolbar:not([brighttext]) & {
-    list-style-image: var(--webextension-toolbar-image-dark, inherit);
-  }
-  toolbaritem:is([overflowedItem="true"], [cui-areatype="panel"]) > & {
-    list-style-image: var(--webextension-menupanel-image, inherit);
-    /* TODO: This feels a bit odd, why do we have three images? It feels we
-     * should probably have only two (light/dark), and choose based on
-     * prefers-color-scheme + lwt-popup */
-    :root[lwt-popup="dark"] & {
-      list-style-image: var(--webextension-menupanel-image-light, inherit);
-    }
-    :root[lwt-popup="light"] & {
-      list-style-image: var(--webextension-menupanel-image-dark, inherit);
-    }
-  }
-}
-
-.webextension-menuitem {
-  list-style-image: var(--webextension-menuitem-image, inherit) !important;
-}
-
 #reload-button:not([displaystop]) + #stop-button,
 #reload-button[displaystop] {
   display: none;

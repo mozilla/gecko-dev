@@ -149,3 +149,7 @@ menuseparator + #sidebar-extensions-separator {
   width: 16px;
   height: 16px;
 }
+
+.webextension-menuitem {
+  list-style-image: var(--webextension-menuitem-image, inherit) !important;
+}
