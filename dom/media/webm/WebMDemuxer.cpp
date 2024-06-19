@@ -175,7 +175,7 @@ WebMDemuxer::WebMDemuxer(
 
   MOZ_ASSERT_IF(!aIsMediaSource,
                 aFrameEndTimeBeforeRecreateDemuxer.isNothing());
-  if (!aIsMediaSource && aFrameEndTimeBeforeRecreateDemuxer) {
+  if (aIsMediaSource && aFrameEndTimeBeforeRecreateDemuxer) {
     mVideoFrameEndTimeBeforeReset = aFrameEndTimeBeforeRecreateDemuxer;
     WEBM_DEBUG("Set mVideoFrameEndTimeBeforeReset=%" PRId64,
                mVideoFrameEndTimeBeforeReset->ToMicroseconds());
