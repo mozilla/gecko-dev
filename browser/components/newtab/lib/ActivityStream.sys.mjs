@@ -414,21 +414,6 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "asrouter.providers.onboarding",
-    {
-      title: "Configuration for onboarding provider",
-      value: JSON.stringify({
-        id: "onboarding",
-        type: "local",
-        localProvider: "OnboardingMessageProvider",
-        enabled: true,
-        // Block specific messages from this local provider
-        exclude: [],
-      }),
-    },
-  ],
-  // See browser/app/profile/firefox.js for other ASR preferences. They must be defined there to enable roll-outs.
-  [
     "discoverystream.flight.blocks",
     {
       title: "Track flight blocks",
