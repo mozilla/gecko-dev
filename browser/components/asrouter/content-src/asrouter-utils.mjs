@@ -45,6 +45,26 @@ export const ASRouterUtils = {
       data: { id },
     });
   },
+  unblockAll() {
+    return ASRouterUtils.sendMessage({
+      type: msg.UNBLOCK_ALL,
+    });
+  },
+  resetGroupImpressions() {
+    return ASRouterUtils.sendMessage({
+      type: msg.RESET_GROUPS_STATE,
+    });
+  },
+  resetMessageImpressions() {
+    return ASRouterUtils.sendMessage({
+      type: msg.RESET_MESSAGE_STATE,
+    });
+  },
+  resetScreenImpressions() {
+    return ASRouterUtils.sendMessage({
+      type: msg.RESET_SCREEN_IMPRESSIONS,
+    });
+  },
   blockBundle(bundle) {
     return ASRouterUtils.sendMessage({
       type: msg.BLOCK_BUNDLE,
@@ -67,6 +87,12 @@ export const ASRouterUtils = {
     return ASRouterUtils.sendMessage({
       type: msg.EDIT_STATE,
       data: { [key]: value },
+    });
+  },
+  openPBWindow(content) {
+    ASRouterUtils.sendMessage({
+      type: "FORCE_PRIVATE_BROWSING_WINDOW",
+      data: { message: { content } },
     });
   },
   sendTelemetry(ping) {

@@ -341,7 +341,7 @@ const MESSAGES = () => [
         },
       },
     },
-    groups: ["panel-test-provider"],
+    groups: ["panel-test-provider", "pbNewtab"],
     targeting: "region != 'CN' && !hasActiveEnterprisePolicies",
     frequency: { lifetime: 3 },
   },

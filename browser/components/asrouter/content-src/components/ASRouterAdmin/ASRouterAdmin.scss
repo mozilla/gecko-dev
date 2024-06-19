@@ -4,68 +4,18 @@
 
 /* stylelint-disable max-nesting-depth */
 
-@import '../../../../newtab/content-src/styles/variables';
-@import '../../../../newtab/content-src/styles/theme';
-@import '../../../../newtab/content-src/styles/icons';
-@import '../Button/Button';
-
-body {
-  font-family: system-ui;
-}
-
-/**
- * These styles are copied verbatim from _activity-stream.scss in order to maintain
- * a continuity of styling while also decoupling from the newtab code. This should
- * be removed when about:asrouter starts using the default in-content style sheets.
- */
-.button,
-.actions button {
-  background-color: var(--newtab-button-secondary-color);
-  border: $border-primary;
-  border-radius: 4px;
-  color: inherit;
-  cursor: pointer;
-  margin-bottom: 15px;
-  padding: 10px 30px;
-  white-space: nowrap;
-
-  &:hover:not(.dismiss),
-  &:focus:not(.dismiss) {
-    box-shadow: $shadow-primary;
-    transition: box-shadow 150ms;
-  }
-
-  &.dismiss {
-    background-color: transparent;
-    border: 0;
-    padding: 0;
-    text-decoration: underline;
-  }
-
-  // Blue button
-  &.primary,
-  &.done {
-    background-color: var(--newtab-primary-action-background);
-    border: solid 1px var(--newtab-primary-action-background);
-    color: var(--newtab-primary-element-text-color);
-    margin-inline-start: auto;
-  }
-}
+@import 'chrome://global/skin/in-content/common.css';
 
 .asrouter-admin {
+  $monospace: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono',
+    'Droid Sans Mono', 'Source Code Pro', monospace;
+  $sidebar-width: 160px;
+
+  font-family: system-ui;
   max-width: 1300px;
-  $border-color: var(--newtab-border-color);
-  $monospace: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono',
-    'Source Code Pro', monospace;
-  $sidebar-width: 240px;
-
-  font-size: 14px;
-  padding-inline-start: $sidebar-width;
-  color: var(--newtab-text-primary-color);
-
-  &.collapsed {
-    display: none;
-  }
+  box-sizing: border-box;
+  font-size: var(--font-size-root);
+  padding-inline-start: $sidebar-width + 40px;
 
   .sidebar {
     inset-inline-start: 0;
@@ -81,180 +31,269 @@ body {
     li a {
       padding: 10px 34px;
       display: block;
-      color: var(--lwt-sidebar-text-color);
+      color: var(--in-content-page-color);
+      border-start-end-radius: 5px;
+      border-end-end-radius: 5px;
 
       &:hover {
-        background: var(--newtab-background-color-secondary);
+        background-color: var(--in-content-button-background-hover);
+      }
+    }
+  }
+
+  .main-panel {
+    margin-block: 12px;
+    margin-inline-end: 12px;
+  }
+
+  .button-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &.baseline {
+      align-items: baseline;
+    }
+
+    &.vertical {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+
+      input[type='radio'] {
+        align-self: center;
+      }
+
+      button {
+        margin-block: 0;
+      }
+    }
+
+    &:not(.vertical) {
+      button {
+        margin-inline: 0;
+      }
+    }
+
+    button {
+      padding-block: 0;
+      min-height: 32px;
+      min-width: 32px;
+    }
+  }
+
+  .test-only {
+    display: block;
+    visibility: hidden;
+    overflow: hidden;
+    width: 0;
+    height: 0;
+    min-height: 0;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .icon {
+    $icon-size: 16px;
+    $smaller-icon-size: 12px;
+
+    display: inline-block;
+    width: $icon-size;
+    height: $icon-size;
+    vertical-align: middle;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: $icon-size;
+    -moz-context-properties: fill;
+    fill: currentColor;
+
+    &.small {
+      width: $smaller-icon-size;
+      height: $smaller-icon-size;
+      background-size: $smaller-icon-size;
+    }
+
+    // helper classes
+    &.icon-small-spacer {
+      margin-inline-end: 6px;
+    }
+
+    // icon images
+    &.icon-info {
+      background-image: url('chrome://global/skin/icons/info.svg');
+    }
+
+    &.icon-dismiss {
+      background-image: url('chrome://global/skin/icons/close.svg');
+    }
+
+    &.icon-undo {
+      background-image: url('chrome://global/skin/icons/undo.svg');
+    }
+
+    &.icon-arrowhead-down {
+      background-image: url('chrome://global/skin/icons/arrow-down-12.svg');
+    }
+
+    &.icon-arrowhead-forward {
+      background-image: url('chrome://global/skin/icons/arrow-right-12.svg');
+
+      &:dir(rtl) {
+        background-image: url('chrome://global/skin/icons/arrow-left-12.svg');
       }
     }
   }
 
   h1 {
+    font-size: 2rem;
     font-weight: 200;
-    font-size: 32px;
   }
 
-  h2 .button,
-  p .button {
-    font-size: 14px;
+  h2 button,
+  p button {
+    font-size: 1rem;
     padding: 6px 12px;
-    margin-inline-start: 5px;
-    margin-bottom: 0;
-  }
+    margin-inline-start: 8px;
+    margin-block: 0;
 
-  .general-textarea {
-    direction: ltr;
-    width: 740px;
-    height: 500px;
-    overflow: auto;
-    resize: none;
-    border-radius: 4px;
-    display: flex;
-  }
-
-  .wnp-textarea {
-    direction: ltr;
-    width: 740px;
-    height: 500px;
-    overflow: auto;
-    resize: none;
-    border-radius: 4px;
-    display: flex;
-  }
-
-  .json-button {
-    display: inline-flex;
-    font-size: 10px;
-    padding: 4px 10px;
-    margin-bottom: 6px;
-    margin-inline-end: 4px;
-
-    &:hover {
-      background-color: var(--newtab-element-hover-color);
-      box-shadow: none;
+    &.small {
+      display: inline-flex;
+      font-size: var(--font-size-small);
+      padding: 4px 8px;
+      margin-inline-start: 8px;
     }
   }
 
   table {
     border-collapse: collapse;
 
-    &.minimal-table {
-      border-collapse: collapse;
-      border: 1px solid $border-color;
-
-      td {
-        padding: 8px;
-      }
-
-      td:first-child {
-        width: 1%;
-        white-space: nowrap;
-      }
-
-      td:not(:first-child) {
-        font-family: $monospace;
-      }
-    }
-
     &.errorReporting {
       tr {
-        border: 1px solid var(--newtab-background-color-secondary);
+        border: 1px solid var(--in-content-box-border-color);
       }
 
       td {
         padding: 4px;
 
         &[rowspan] {
-          border: 1px solid var(--newtab-background-color-secondary);
+          border: 1px solid var(--in-content-box-border-color);
         }
+      }
+    }
+
+    &.bordered-table {
+      tr:first-child td {
+        border-top: 1px solid var(--in-content-box-border-color);
+      }
+
+      td {
+        vertical-align: top;
+        padding: 8px;
+        border-bottom: 1px solid var(--in-content-box-border-color);
+
+        &.nowrap {
+          white-space: nowrap;
+        }
+
+        &:first-child {
+          border-inline-start: 1px solid var(--in-content-box-border-color);
+        }
+
+        &:last-child {
+          border-inline-end: 1px solid var(--in-content-box-border-color);
+        }
+      }
+    }
+
+    input {
+      &[type='checkbox'],
+      &[type='radio'] {
+        margin: 0;
       }
     }
   }
 
-  .sourceLabel {
-    background: var(--newtab-background-color-secondary);
+  .sourceLabel:not(:empty) {
+    background: var(--in-content-box-background);
     padding: 2px 5px;
     border-radius: 3px;
 
     &.isDisabled {
-      background: $email-input-invalid;
-      color: var(--newtab-status-error);
+      background: rgba(215, 0, 34, 30%);
+      color: var(--dialog-warning-text-color);
     }
+  }
+
+  .messages-list {
+    display: flex;
+    flex-flow: column nowrap;
+    gap: 12px;
+    margin-block: 12px;
   }
 
   .message-item {
-    &:first-child td {
-      border-top: 1px solid $border-color;
-    }
-
-    td {
-      vertical-align: top;
-      padding: 8px;
-      border-bottom: 1px solid $border-color;
-
-      &.min {
-        width: 1%;
-        white-space: nowrap;
-      }
-
-      &.message-summary {
-        width: 60%;
-      }
-
-      &.button-column {
-        width: 15%;
-      }
-
-      &:first-child {
-        border-inline-start: 1px solid $border-color;
-      }
-
-      &:last-child {
-        border-inline-end: 1px solid $border-color;
-      }
-    }
+    display: flex;
+    flex-flow: column nowrap;
+    gap: 4px;
 
     &.blocked {
       .message-id,
-      .message-summary {
-        opacity: 0.5;
-      }
-
-      .message-id {
+      .message-stats,
+      textarea {
         opacity: 0.5;
       }
     }
 
-    .message-id {
+    pre {
+      display: flex;
+
+      &.collapsed {
+        display: none;
+      }
+    }
+
+    .message-textarea {
+      direction: ltr;
+      border-radius: 4px;
+      width: auto;
+      min-width: 400px;
+      resize: vertical;
+      flex-grow: 1;
       font-family: $monospace;
-      font-size: 12px;
+      margin: 4px 0;
     }
   }
 
-  .providerUrl {
-    font-size: 12px;
+  .small-text {
+    font-size: var(--font-size-small);
   }
 
   pre {
-    background: var(--newtab-background-color-secondary);
     margin: 0;
-    padding: 8px;
-    font-size: 12px;
-    max-width: 750px;
-    overflow: auto;
+    font-size: var(--font-size-small);
     font-family: $monospace;
   }
 
   .errorState {
-    border: $input-error-border;
+    border-color: var(--dialog-warning-text-color);
+    outline-color: var(--dialog-warning-text-color);
   }
 
   .helpLink {
     padding: 10px;
     display: flex;
-    background: $black-10;
+    background: var(--in-content-box-info-background);
     border-radius: 3px;
     align-items: center;
+    width: fit-content;
+    max-width: 100%;
+
+    ul {
+      margin: 0;
+      padding-inline-start: 1.25em;
+    }
 
     a {
       text-decoration: underline;
@@ -266,12 +305,13 @@ body {
     }
   }
 
-  .ds-component {
-    margin-bottom: 20px;
-  }
-
-  .modalOverlayInner {
-    height: 80%;
+  button.small {
+    align-items: center;
+    display: flex;
+    font-size: var(--font-size-small);
+    padding: 4px 8px;
+    min-height: 0;
+    margin-inline: 0;
   }
 
   .clearButton {
@@ -279,42 +319,99 @@ body {
     padding: 4px;
     border-radius: 4px;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    min-width: 0;
+  }
 
-    &:hover {
-      background: var(--newtab-element-hover-color);
+  .filters {
+    margin-block: 8px;
+
+    h3 {
+      margin-block: 8px;
+    }
+
+    .row {
+      display: flex;
+      flex-flow: row nowrap;
+      gap: 40px;
+    }
+
+    .col {
+      display: flex;
+      flex-flow: column nowrap;
     }
   }
 
-  .collapsed {
-    display: none;
+  moz-toggle::part(label) {
+    justify-content: revert;
   }
 
-  .icon {
-    display: inline-table;
-    cursor: pointer;
-    width: 18px;
-    height: 18px;
+  .jexl-evaluator-row {
+    vertical-align: top;
   }
 
-  .button {
-    &:disabled,
-    &:disabled:active {
-      opacity: 0.5;
-      cursor: unset;
-      box-shadow: none;
+  .jexl-evaluator {
+    display: flex;
+    flex-flow: column nowrap;
+    gap: 8px;
+
+    .jexl-evaluator-textareas {
+      display: flex;
+      flex-flow: row nowrap;
+      gap: 8px;
+      align-items: flex-start;
     }
+
+    .jexl-evaluator-input {
+      display: flex;
+      flex-flow: column nowrap;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .jexl-evaluator-output {
+      display: flex;
+      flex-flow: column nowrap;
+      gap: 8px;
+      align-items: end;
+    }
+  }
+
+  textarea[readonly] {
+    color: var(--text-color-deemphasized);
+    border-color: var(--in-content-border-color);
+    // Show a text cursor on readonly textareas. Otherwise, they are selectable,
+    // but there's no cursor to show the caret position.
+    -moz-user-modify: read-write;
+  }
+
+  .monospace {
+    font-family: $monospace;
+  }
+
+  input[type='text'].monospace {
+    min-height: revert;
+  }
+
+  .no-margins,
+  h2 .no-margins,
+  p .no-margins {
+    margin: 0;
   }
 
   .impressions-section {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
+    margin-block: 12px;
 
     .impressions-item {
       display: flex;
       flex-flow: column nowrap;
       padding: 8px;
-      border: 1px solid $border-color;
+      border: 1px solid var(--in-content-box-border-color);
       border-radius: 5px;
 
       .impressions-inner-box {
@@ -324,7 +421,8 @@ body {
       }
 
       .impressions-category {
-        font-size: 1.15em;
+        font-size: var(--font-size-large);
+        font-weight: var(--font-weight-bold);
         white-space: nowrap;
         flex-grow: 0.1;
       }
@@ -343,9 +441,15 @@ body {
         display: flex;
         flex-grow: 1.5;
 
-        .general-textarea {
+        textarea {
+          direction: ltr;
+          border-radius: 4px;
           width: auto;
+          min-width: 400px;
+          margin: 0;
+          resize: vertical;
           flex-grow: 1;
+          font-family: $monospace;
         }
       }
     }

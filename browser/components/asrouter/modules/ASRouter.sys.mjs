@@ -924,6 +924,10 @@ export class _ASRouter {
     if (needsUpdate.length) {
       let newState = { messages: [], providers: [] };
       for (const provider of this.state.providers) {
+        if (provider.id === "message-groups") {
+          // Message groups are handled separately by loadAllMessageGroups
+          continue;
+        }
         if (needsUpdate.includes(provider)) {
           const { messages, lastUpdated, errors } =
             await MessageLoaderUtils.loadMessagesForProvider(provider, {
