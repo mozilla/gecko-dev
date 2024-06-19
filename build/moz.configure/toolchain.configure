@@ -2453,7 +2453,7 @@ with only_when(asan):
         # Look for the ASan runtime binary
         if c_compiler.type == "clang-cl":
             cpu = {"x86": "i386"}.get(target.cpu, target.cpu)
-            clang_rt_asan_lib = f"clang_rt.asan_dynamic-{target.cpu}.dll"
+            clang_rt_asan_lib = f"clang_rt.asan_dynamic-{cpu}.dll"
             subdir = "windows"
         elif target.os == "Android":
             cpu = {"x86": "i686"}.get(target.cpu, target.cpu)
