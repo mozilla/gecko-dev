@@ -667,20 +667,7 @@ class nsBlockFrame : public nsContainerFrame {
    * @return false iff this block does not have a float on any child list.
    * This function is O(1).
    */
-  bool MaybeHasFloats() const {
-    if (!mFloats.IsEmpty()) {
-      return true;
-    }
-    // XXX this could be replaced with HasPushedFloats() if we enforced
-    // removing the property when the frame list becomes empty.
-    nsFrameList* list = GetPushedFloats();
-    if (list && !list->IsEmpty()) {
-      return true;
-    }
-    // For the OverflowOutOfFlowsProperty I think we do enforce that, but it's
-    // a mix of out-of-flow frames, so that's why the method name has "Maybe".
-    return HasAnyStateBits(NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS);
-  }
+  bool MaybeHasFloats() const;
 
  protected:
   /** grab overflow lines from this block's prevInFlow, and make them
