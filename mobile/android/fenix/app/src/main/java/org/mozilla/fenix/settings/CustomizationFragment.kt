@@ -20,7 +20,6 @@ import org.mozilla.fenix.GleanMetrics.PullToRefreshInBrowser
 import org.mozilla.fenix.GleanMetrics.ToolbarSettings
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
-import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
@@ -65,7 +64,7 @@ class CustomizationFragment : PreferenceFragmentCompat() {
         } else {
             setupToolbarCategory()
         }
-        val isNavBarEnabled = IncompleteRedesignToolbarFeature(requireContext().settings()).isEnabled
+        val isNavBarEnabled = requireContext().settings().navigationToolbarEnabled
         if (isNavBarEnabled) {
             setupNavBarEnabledSettingsUpdates()
         }

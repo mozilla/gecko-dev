@@ -424,21 +424,14 @@ features:
         type: Boolean
         default: false
 
-  toolbar-redesign:
-    description: Feature for toolbar redesign.
+  navigation-toolbar:
+    description: Feature for navigation toolbar.
     variables:
       enabled:
         description: >
-          When the feature is enabled then the user will see the new redesigned toolbar.
+          When the feature is enabled then the user will see the new navigation toolbar.
         type: Boolean
         default: false
-    defaults:
-      - channel: developer
-        value:
-          enabled: true
-      - channel: nightly
-        value:
-          enabled: true
 
   remote-tab-management:
     description: >

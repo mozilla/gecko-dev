@@ -148,7 +148,6 @@ import org.mozilla.fenix.components.toolbar.BrowserFragmentStore
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.DefaultBrowserToolbarController
 import org.mozilla.fenix.components.toolbar.DefaultBrowserToolbarMenuController
-import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarIntegration
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
@@ -1294,9 +1293,7 @@ abstract class BaseBrowserFragment :
         if (isToolbarDynamic(context)) {
             getEngineView().setDynamicToolbarMaxHeight(topToolbarHeight + bottomToolbarHeight)
 
-            if (IncompleteRedesignToolbarFeature(context.settings()).isEnabled ||
-                shouldShowMicrosurveyPrompt(context)
-            ) {
+            if (context.settings().navigationToolbarEnabled || shouldShowMicrosurveyPrompt(context)) {
                 (getSwipeRefreshLayout().layoutParams as CoordinatorLayout.LayoutParams).behavior =
                     EngineViewClippingBehavior(
                         context = context,
@@ -2019,8 +2016,7 @@ abstract class BaseBrowserFragment :
         toolbar.dismissMenu()
 
         // If the navbar feature could be visible, we should update it's state.
-        val shouldUpdateNavBarState =
-            IncompleteRedesignToolbarFeature(requireContext().settings()).isEnabled && !isTablet()
+        val shouldUpdateNavBarState = requireContext().settings().navigationToolbarEnabled && !isTablet()
         if (shouldUpdateNavBarState) {
             updateNavBarForConfigurationChange(
                 parent = binding.browserLayout,

@@ -69,7 +69,7 @@ class BrowserToolbarView(
     var view: BrowserToolbar = layout
         .findViewById(R.id.toolbar)
 
-    private val isNavBarEnabled = IncompleteRedesignToolbarFeature(context.settings()).isEnabled
+    private val isNavBarEnabled = context.settings().navigationToolbarEnabled
 
     val toolbarIntegration: ToolbarIntegration
     val menuToolbar: ToolbarMenu
