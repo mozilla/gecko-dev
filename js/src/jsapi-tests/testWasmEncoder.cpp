@@ -70,8 +70,8 @@ BEGIN_TEST(testWasmEncodeBasic) {
                                            std::move(results), true,
                                            mozilla::Some(std::move(expName))));
 
-  ModuleGenerator mg(*compileArgs, codeMeta, moduleMeta, &compilerEnv, nullptr,
-                     nullptr, nullptr);
+  ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv, nullptr, nullptr,
+                     nullptr);
   MOZ_ALWAYS_TRUE(mg.init(nullptr));
 
   // Build function and keep bytecode around until the end.
@@ -90,7 +90,8 @@ BEGIN_TEST(testWasmEncodeBasic) {
 
   SharedBytes shareableBytes = js_new<ShareableBytes>();
   MOZ_ALWAYS_TRUE(shareableBytes);
-  SharedModule module = mg.finishModule(*shareableBytes);
+  SharedModule module = mg.finishModule(*shareableBytes, moduleMeta,
+                                        /*maybeTier2Listener=*/nullptr);
   MOZ_ALWAYS_TRUE(module);
 
   MOZ_ASSERT(module->moduleMeta().imports.length() == 1);

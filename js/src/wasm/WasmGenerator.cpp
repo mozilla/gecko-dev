@@ -69,16 +69,17 @@ static const unsigned GENERATOR_LIFO_DEFAULT_CHUNK_SIZE = 4 * 1024;
 static const unsigned COMPILATION_LIFO_DEFAULT_CHUNK_SIZE = 64 * 1024;
 static const uint32_t BAD_CODE_RANGE = UINT32_MAX;
 
-ModuleGenerator::ModuleGenerator(
-    const CompileArgs& args, CodeMetadata* codeMeta, ModuleMetadata* moduleMeta,
-    CompilerEnvironment* compilerEnv, const Atomic<bool>* cancelled,
-    UniqueChars* error, UniqueCharsVector* warnings)
+ModuleGenerator::ModuleGenerator(const CompileArgs& args,
+                                 CodeMetadata* codeMeta,
+                                 CompilerEnvironment* compilerEnv,
+                                 const Atomic<bool>* cancelled,
+                                 UniqueChars* error,
+                                 UniqueCharsVector* warnings)
     : compileArgs_(&args),
       error_(error),
       warnings_(warnings),
       cancelled_(cancelled),
       codeMeta_(codeMeta),
-      moduleMeta_(moduleMeta),
       compilerEnv_(compilerEnv),
       linkData_(nullptr),
       metadataTier_(nullptr),
@@ -1008,8 +1009,7 @@ UniqueCodeTier ModuleGenerator::finishCodeTier() {
   return js::MakeUnique<CodeTier>(std::move(metadataTier_), std::move(segment));
 }
 
-Maybe<SharedCodeMetadataForAsmJS> ModuleGenerator::finishCodeMetadata(
-    const Bytes& bytecode) {
+bool ModuleGenerator::finishCodeMetadata(const Bytes& bytecode) {
   // FIXME: this comment seems wrong.
   // Finish initialization of Metadata, which is only needed for constructing
   // the initial Module, not for tier-2 compilation.
@@ -1018,6 +1018,7 @@ Maybe<SharedCodeMetadataForAsmJS> ModuleGenerator::finishCodeMetadata(
   // Copy over data from the ModuleMetadata.
 
   // FIXME: this seems pretty strange.  Do we need both?
+  // [yes.  ::builtinModules is serialised; ::features isn't.]
   codeMeta_->builtinModules = codeMeta_->features.builtinModules;
 
   // Copy over additional debug information.
@@ -1027,7 +1028,7 @@ Maybe<SharedCodeMetadataForAsmJS> ModuleGenerator::finishCodeMetadata(
 
     const size_t numFuncs = codeMeta_->funcs.length();
     if (!codeMeta_->debugFuncTypeIndices.resize(numFuncs)) {
-      return Nothing();
+      return false;
     }
     for (size_t i = 0; i < numFuncs; i++) {
       // FIXME: this seems pretty strange.  Do we need both?
@@ -1047,13 +1048,13 @@ Maybe<SharedCodeMetadataForAsmJS> ModuleGenerator::finishCodeMetadata(
 
   // FIXME: does this comment make sense any more?
   // Metadata shouldn't be mutably modified after finishCodeMetadata().
-  SharedCodeMetadataForAsmJS codeMetaForAsmJS = codeMetaForAsmJS_;
-  codeMetaForAsmJS_ = nullptr;
-  return Some(codeMetaForAsmJS);
+  return true;
 }
 
+// Complete all tier-1 construction and return the resulting Module.  For this
+// we will need both codeMeta_ (and maybe codeMetaForAsmJS_) and moduleMeta_.
 SharedModule ModuleGenerator::finishModule(
-    const ShareableBytes& bytecode,
+    const ShareableBytes& bytecode, SharedModuleMetadata moduleMeta,
     JS::OptimizedEncodingListener* maybeTier2Listener) {
   MOZ_ASSERT(mode() == CompileMode::Once || mode() == CompileMode::Tier1);
 
@@ -1076,10 +1077,10 @@ SharedModule ModuleGenerator::finishModule(
   // data blocks, and store them in the resulting Module.
 
   DataSegmentVector dataSegments;
-  if (!dataSegments.reserve(moduleMeta_->dataSegmentRanges.length())) {
+  if (!dataSegments.reserve(moduleMeta->dataSegmentRanges.length())) {
     return nullptr;
   }
-  for (const DataSegmentRange& srcRange : moduleMeta_->dataSegmentRanges) {
+  for (const DataSegmentRange& srcRange : moduleMeta->dataSegmentRanges) {
     MutableDataSegment dstSeg = js_new<DataSegment>();
     if (!dstSeg) {
       return nullptr;
@@ -1117,13 +1118,11 @@ SharedModule ModuleGenerator::finishModule(
         customSections[*codeMeta_->nameCustomSectionIndex].payload;
   }
 
-  Maybe<SharedCodeMetadataForAsmJS> maybeCodeMetaForAsmJS =
-      finishCodeMetadata(bytecode.bytes);
-  if (!maybeCodeMetaForAsmJS) {
+  if (!finishCodeMetadata(bytecode.bytes)) {
     return nullptr;
   }
 
-  MutableCode code = js_new<Code>(*codeMeta_, *maybeCodeMetaForAsmJS,
+  MutableCode code = js_new<Code>(*codeMeta_, codeMetaForAsmJS_,
                                   std::move(codeTier), std::move(jumpTables));
   if (!code || !code->initialize(*linkData_)) {
     return nullptr;
@@ -1140,7 +1139,7 @@ SharedModule ModuleGenerator::finishModule(
   // tier-2 compilation if requested.
 
   MutableModule module =
-      js_new<Module>(*moduleMeta_, *code, std::move(dataSegments),
+      js_new<Module>(*moduleMeta, *code, std::move(dataSegments),
                      std::move(codeMeta_->elemSegments),
                      std::move(customSections), debugBytecode);
   if (!module) {
@@ -1184,6 +1183,8 @@ SharedModule ModuleGenerator::finishModule(
   return module;
 }
 
+// Complete all tier-2 construction.  This merely augments the existing Code
+// and does not require moduleMeta_.
 bool ModuleGenerator::finishTier2(const Module& module) {
   MOZ_ASSERT(mode() == CompileMode::Tier2);
   MOZ_ASSERT(tier() == Tier::Optimized);

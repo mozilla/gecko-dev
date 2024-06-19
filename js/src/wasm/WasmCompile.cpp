@@ -814,8 +814,7 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
   CompilerEnvironment compilerEnv(args);
   compilerEnv.computeParameters(d);
 
-  ModuleGenerator mg(args, codeMeta, moduleMeta, &compilerEnv, nullptr, error,
-                     warnings);
+  ModuleGenerator mg(args, codeMeta, &compilerEnv, nullptr, error, warnings);
   if (!mg.init(nullptr)) {
     return nullptr;
   }
@@ -828,7 +827,7 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
     return nullptr;
   }
 
-  return mg.finishModule(bytecode, listener);
+  return mg.finishModule(bytecode, moduleMeta, listener);
 }
 
 bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
@@ -850,8 +849,7 @@ bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
                                   DebugEnabled::False);
   compilerEnv.computeParameters(d);
 
-  ModuleGenerator mg(args, codeMeta, moduleMeta, &compilerEnv, cancelled, error,
-                     warnings);
+  ModuleGenerator mg(args, codeMeta, &compilerEnv, cancelled, error, warnings);
   if (!mg.init(nullptr)) {
     return false;
   }
@@ -975,8 +973,7 @@ SharedModule wasm::CompileStreaming(
     MOZ_RELEASE_ASSERT(d.done());
   }
 
-  ModuleGenerator mg(args, codeMeta, moduleMeta, &compilerEnv, &cancelled,
-                     error, warnings);
+  ModuleGenerator mg(args, codeMeta, &compilerEnv, &cancelled, error, warnings);
   if (!mg.init(nullptr)) {
     return nullptr;
   }
@@ -1020,7 +1017,7 @@ SharedModule wasm::CompileStreaming(
     return nullptr;
   }
 
-  return mg.finishModule(*bytecode, streamEnd.tier2Listener);
+  return mg.finishModule(*bytecode, moduleMeta, streamEnd.tier2Listener);
 }
 
 class DumpIonModuleGenerator {
