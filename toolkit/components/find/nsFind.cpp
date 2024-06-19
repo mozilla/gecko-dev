@@ -874,7 +874,8 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
     // b) a match has already been stored
     // c) the previous character is a different "class" than the current
     // character.
-    if ((c == patc && (!(mWordStartBounded || mWordEndBounded) || matchAnchorNode || wordBreakPrev)) ||
+    if ((c == patc && (!(mWordStartBounded || mWordEndBounded) ||
+                       matchAnchorNode || wordBreakPrev)) ||
         (inWhitespace && IsSpace(c))) {
       prevCharInMatch = c;
       if (inWhitespace) {
