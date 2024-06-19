@@ -2007,6 +2007,15 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if the user is shown new redesigned Toolbar UI.
+     */
+    var enableRedesignToolbar by lazyFeatureFlagPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_use_redesign),
+        default = { FeatureFlags.completeToolbarRedesignEnabled },
+        featureFlag = FeatureFlags.completeToolbarRedesignEnabled,
+    )
+
+    /**
      * Indicates if the feature to close synced tabs is enabled.
      */
     val enableCloseSyncedTabs: Boolean
@@ -2019,7 +2028,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      * a combination of a navigation and address bar, or be absent.
      */
     fun getBottomToolbarHeight(): Int {
-        val isNavBarEnabled = navigationToolbarEnabled
+        val isNavBarEnabled = enableIncompleteToolbarRedesign
         val isToolbarAtBottom = toolbarPosition == ToolbarPosition.BOTTOM
         val toolbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_toolbar_height)
         val navbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
@@ -2057,7 +2066,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      * a combination of a navigation and microsurvey prompt, or be absent.
      */
     fun getBottomToolbarContainerHeight(): Int {
-        val isNavBarEnabled = navigationToolbarEnabled
+        val isNavBarEnabled = enableIncompleteToolbarRedesign
         val isMicrosurveyEnabled = shouldShowMicrosurveyPrompt
         val navbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
         val microsurveyHeight =
@@ -2072,12 +2081,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     }
 
     /**
-     * Indicates if the user is shown the new navigation toolbar.
+     * Indicates if the user is shown incomplete new redesigned Toolbar UI components and behaviors.
      */
-    var navigationToolbarEnabled by lazyFeatureFlagPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_show_navigation_toolbar),
-        default = { FxNimbus.features.navigationToolbar.value().enabled },
-        featureFlag = FeatureFlags.navigationToolbarEnabled,
+    var enableIncompleteToolbarRedesign by lazyFeatureFlagPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_use_redesign_incomplete),
+        default = { false },
+        featureFlag = FxNimbus.features.toolbarRedesign.value().enabled,
     )
 
     /**

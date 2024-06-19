@@ -1006,9 +1006,9 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN navigation toolbar is enabled  and microsurvey are enabled WHEN getBottomToolbarContainerHeight THEN returns the combined navbar & microsurvey height`() {
+    fun `GIVEN toolbar redesign and microsurvey are enabled WHEN getBottomToolbarContainerHeight THEN returns the combined navbar & microsurvey height`() {
         val settings = spyk(settings)
-        every { settings.navigationToolbarEnabled } returns true
+        every { settings.enableIncompleteToolbarRedesign } returns true
         every { settings.shouldShowMicrosurveyPrompt } returns true
 
         val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()
@@ -1017,9 +1017,9 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN only navigation toolbar is enabled  WHEN getBottomToolbarContainerHeight THEN returns navbar height`() {
+    fun `GIVEN only toolbar redesign is enabled WHEN getBottomToolbarContainerHeight THEN returns navbar height`() {
         val settings = spyk(settings)
-        every { settings.navigationToolbarEnabled } returns true
+        every { settings.enableIncompleteToolbarRedesign } returns true
 
         val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()
 
@@ -1029,7 +1029,6 @@ class SettingsTest {
     @Test
     fun `GIVEN only microsurvey is enabled WHEN getBottomToolbarContainerHeight THEN returns microsurvey height`() {
         val settings = spyk(settings)
-        every { settings.navigationToolbarEnabled } returns false
         every { settings.shouldShowMicrosurveyPrompt } returns true
 
         val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()
@@ -1038,9 +1037,9 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN that both navigation toolbar and microsurvey are not enabled WHEN getBottomToolbarContainerHeight THEN returns zero height`() {
+    fun `GIVEN that both toolbar redesign and microsurvey are not enabled WHEN getBottomToolbarContainerHeight THEN returns zero height`() {
         val settings = spyk(settings)
-        every { settings.navigationToolbarEnabled } returns false
+        every { settings.enableIncompleteToolbarRedesign } returns false
         every { settings.shouldShowMicrosurveyPrompt } returns false
 
         val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()

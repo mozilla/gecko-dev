@@ -79,9 +79,9 @@ object FeatureFlags {
     const val metaAttributionEnabled = true
 
     /**
-     * Enables Navigation Toolbar.
+     * Enable Toolbar Redesign components and behaviors ready for Nightly.
      */
-    val navigationToolbarEnabled = Config.channel.isNightlyOrDebug
+    val completeToolbarRedesignEnabled = Config.channel.isNightlyOrDebug
 
     /**
      * Enables the menu redesign.

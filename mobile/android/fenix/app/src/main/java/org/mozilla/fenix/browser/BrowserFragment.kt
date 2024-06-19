@@ -45,6 +45,7 @@ import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
+import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
@@ -112,7 +113,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
 
         updateBrowserToolbarLeadingAndNavigationActions(
             context = context,
-            redesignEnabled = context.settings().navigationToolbarEnabled,
+            redesignEnabled = IncompleteRedesignToolbarFeature(context.settings()).isEnabled,
             isLandscape = context.isLandscape(),
             isTablet = resources.getBoolean(R.bool.tablet),
             isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
@@ -235,7 +236,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     }
 
     private fun initSharePageAction(context: Context) {
-        if (!context.settings().navigationToolbarEnabled) {
+        if (!IncompleteRedesignToolbarFeature(context.settings()).isEnabled) {
             return
         }
 
@@ -314,7 +315,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     }
 
     private fun initReloadAction(context: Context) {
-        if (!context.settings().navigationToolbarEnabled) {
+        if (!IncompleteRedesignToolbarFeature(context.settings()).isEnabled) {
             return
         }
 
@@ -544,7 +545,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
 
         updateBrowserToolbarLeadingAndNavigationActions(
             context = requireContext(),
-            redesignEnabled = requireContext().settings().navigationToolbarEnabled,
+            redesignEnabled = IncompleteRedesignToolbarFeature(requireContext().settings()).isEnabled,
             isLandscape = requireContext().isLandscape(),
             isTablet = resources.getBoolean(R.bool.tablet),
             isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
