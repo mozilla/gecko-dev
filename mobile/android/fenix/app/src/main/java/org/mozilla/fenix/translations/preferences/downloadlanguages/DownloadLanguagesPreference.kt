@@ -43,12 +43,15 @@ import androidx.compose.ui.unit.dp
 import mozilla.components.concept.engine.translate.Language
 import mozilla.components.concept.engine.translate.LanguageModel
 import mozilla.components.concept.engine.translate.ModelState
+import mozilla.components.concept.engine.translate.TranslationError
 import mozilla.components.feature.downloads.toMegabyteOrKilobyteString
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
+import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoCard
+import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoType
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.translations.DownloadIconIndicator
 import java.util.Locale
@@ -58,6 +61,7 @@ import java.util.Locale
  *
  * @param downloadLanguageItemPreferences List of [DownloadLanguageItemPreference]s that needs to be displayed.
  * @param learnMoreUrl The learn more link for translations website.
+ * @param downloadLanguagesError  If a translation error occurs.
  * @param onLearnMoreClicked Invoked when the user clicks on the "Learn More" button.
  * @param onItemClick Invoked when the user clicks on the language item.
  */
@@ -66,16 +70,23 @@ import java.util.Locale
 fun DownloadLanguagesPreference(
     downloadLanguageItemPreferences: List<DownloadLanguageItemPreference>,
     learnMoreUrl: String,
+    downloadLanguagesError: TranslationError? = null,
     onLearnMoreClicked: () -> Unit,
     onItemClick: (DownloadLanguageItemPreference) -> Unit,
 ) {
     val downloadedItems = downloadLanguageItemPreferences.filter {
-        it.languageModel.status == ModelState.DOWNLOADED &&
+        (
+            it.languageModel.status == ModelState.DOWNLOADED ||
+                it.languageModel.status == ModelState.ERROR_DELETION
+            ) &&
             it.type == DownloadLanguageItemTypePreference.GeneralLanguage
     }
 
     val notDownloadedItems = downloadLanguageItemPreferences.filter {
-        it.languageModel.status == ModelState.NOT_DOWNLOADED &&
+        (
+            it.languageModel.status == ModelState.NOT_DOWNLOADED ||
+                it.languageModel.status == ModelState.ERROR_DOWNLOAD
+            ) &&
             it.type == DownloadLanguageItemTypePreference.GeneralLanguage
     }
 
@@ -129,6 +140,10 @@ fun DownloadLanguagesPreference(
             learnMoreUrl = learnMoreUrl,
             onLearnMoreClicked = onLearnMoreClicked,
         )
+
+        if (downloadLanguagesError != null) {
+            DownloadLanguagesErrorWarning(stringResource(id = R.string.download_languages_fetch_error_warning_text))
+        }
 
         LazyColumn {
             if (
@@ -244,6 +259,22 @@ fun DownloadLanguagesPreference(
     }
 }
 
+@Composable
+private fun DownloadLanguagesErrorWarning(title: String) {
+    val modifier = Modifier
+        .fillMaxWidth()
+        .padding(start = 72.dp, end = 16.dp)
+        .defaultMinSize(minHeight = 56.dp)
+        .wrapContentHeight()
+
+    ReviewQualityCheckInfoCard(
+        description = title,
+        type = ReviewQualityCheckInfoType.Warning,
+        verticalRowAlignment = Alignment.CenterVertically,
+        modifier = modifier,
+    )
+}
+
 private fun shouldShowDownloadLanguagesHeader(
     allLanguagesItemNotDownloaded: DownloadLanguageItemPreference?,
     deleteInProgressItems: List<DownloadLanguageItemPreference>,
@@ -326,6 +357,26 @@ private fun LanguageItemPreference(
                 )
             },
         )
+    }
+
+    if (item.languageModel.status == ModelState.ERROR_DOWNLOAD) {
+        item.languageModel.language?.localizedDisplayName?.let {
+            DownloadLanguagesErrorWarning(
+                stringResource(
+                    R.string.download_languages_error_warning_text,
+                    it,
+                ),
+            )
+        }
+    } else if (item.languageModel.status == ModelState.ERROR_DELETION) {
+        item.languageModel.language?.localizedDisplayName?.let {
+            DownloadLanguagesErrorWarning(
+                stringResource(
+                    R.string.download_languages_delete_error_warning_text,
+                    it,
+                ),
+            )
+        }
     }
 }
 

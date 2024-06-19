@@ -19,6 +19,7 @@ import mozilla.components.concept.engine.translate.ModelManagementOptions
 import mozilla.components.concept.engine.translate.ModelOperation
 import mozilla.components.concept.engine.translate.ModelState
 import mozilla.components.concept.engine.translate.OperationLevel
+import mozilla.components.concept.engine.translate.TranslationError
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.locale.LocaleManager
@@ -60,9 +61,14 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                 )
                 val downloadLanguageItemsPreference = getDownloadLanguageItemsPreference()
 
+                val engineError = browserStore.observeAsComposableState { state ->
+                    state.translationEngine.engineError
+                }.value
+
                 DownloadLanguagesPreference(
                     downloadLanguageItemPreferences = downloadLanguageItemsPreference,
                     learnMoreUrl = learnMoreUrl,
+                    downloadLanguagesError = engineError as? TranslationError.ModelCouldNotRetrieveError,
                     onLearnMoreClicked = { openBrowserAndLoad(learnMoreUrl) },
                     onItemClick = { downloadLanguageItemPreference ->
                         if (downloadLanguageItemPreference.languageModel.status ==
@@ -221,8 +227,10 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                         DownloadLanguageItemPreference(
                             languageModel = languageModel,
                             type = DownloadLanguageItemTypePreference.GeneralLanguage,
-                            enabled = languageModel.status == ModelState.DOWNLOADED ||
-                                languageModel.status == ModelState.NOT_DOWNLOADED,
+                            enabled = !(
+                                languageModel.status == ModelState.DOWNLOAD_IN_PROGRESS ||
+                                    languageModel.status == ModelState.DELETION_IN_PROGRESS
+                                ),
                         ),
                     )
                 }
