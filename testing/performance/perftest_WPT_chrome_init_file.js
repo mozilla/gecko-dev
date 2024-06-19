@@ -24,7 +24,7 @@ module.exports = {
   loadEventStart, loadEventEnd`,
   options: {
     test_parameters: {
-      location: "ec2-us-east-1",
+      location: "IAD_US_01",
       browser: "Chrome",
       connection: "Cable",
       timeout_limit: 21600,

@@ -24,7 +24,7 @@ module.exports = {
   loadEventStart, loadEventEnd`,
   options: {
     test_parameters: {
-      location: "ec2-us-east-1",
+      location: "IAD_US_01",
       browser: "Firefox",
       connection: "Cable",
       timeout_limit: 21600,
@@ -90,7 +90,6 @@ module.exports = {
     ],
     browser_metrics: [
       "firstContentfulPaint",
-      "timeToContentfulPaint",
       "visualComplete90",
       "firstPaint",
       "visualComplete99",
