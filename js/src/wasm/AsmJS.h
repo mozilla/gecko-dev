@@ -23,8 +23,8 @@
 
 #include <stdint.h>  // uint32_t
 
-#include "jstypes.h"      // JS_PUBLIC_API
-#include "js/CallArgs.h"  // JSNative
+#include "jstypes.h"             // JS_PUBLIC_API
+#include "js/CallArgs.h"         // JSNative
 #include "wasm/WasmShareable.h"  // ShareableBase
 
 struct JS_PUBLIC_API JSContext;
