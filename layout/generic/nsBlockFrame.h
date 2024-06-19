@@ -642,7 +642,7 @@ class nsBlockFrame : public nsContainerFrame {
   /**
    * Determine if we have any pushed floats from a previous continuation.
    *
-   * @returns true, if any of the floats at the beginning of our mFloats list
+   * @returns true, if any of the floats at the beginning of our floats list
    *          have the NS_FRAME_IS_PUSHED_FLOAT bit set; false otherwise.
    */
   bool HasPushedFloatsFromPrevContinuation() const;
@@ -965,14 +965,30 @@ class nsBlockFrame : public nsContainerFrame {
   // Return the outside ::marker frame list frame property.
   nsFrameList* GetOutsideMarkerList() const;
 
-  // Return true if this frame has pushed floats.
-  bool HasPushedFloats() const {
-    return HasAnyStateBits(NS_BLOCK_HAS_PUSHED_FLOATS);
-  }
+  // Return true if this frame has floats.
+  bool HasFloats() const;
 
-  // Get the pushed floats list, which is used for *temporary* storage
-  // of floats during reflow, between when we decide they don't fit in
-  // this block until our next continuation takes them.
+  // Get the floats list, or nullptr if there isn't one.
+  nsFrameList* GetFloats() const;
+
+  // Get the floats list, or if there is not currently one, make a new empty
+  // one.
+  nsFrameList* EnsureFloats() MOZ_NONNULL_RETURN;
+
+  // Get the float list and remove the property from this frame.
+  //
+  // The caller is responsible for deleting the returned list and managing the
+  // ownership of all frames in the list.
+  [[nodiscard]] nsFrameList* StealFloats();
+
+  // Return true if this frame has pushed floats.
+  bool HasPushedFloats() const;
+
+  // Get the pushed floats list, or nullptr if there isn't one.
+  //
+  // The pushed floats list is used for *temporary* storage of floats during
+  // reflow, between when we decide they don't fit in this block until our next
+  // continuation takes them.
   nsFrameList* GetPushedFloats() const;
 
   // Get the pushed floats list, or if there is not currently one,
@@ -995,10 +1011,6 @@ class nsBlockFrame : public nsContainerFrame {
   nscoord mCachedPrefISize = NS_INTRINSIC_ISIZE_UNKNOWN;
 
   nsLineList mLines;
-
-  // List of all floats in this block
-  // XXXmats blocks rarely have floats, make it a frame property
-  nsFrameList mFloats;
 
   friend class mozilla::BlockReflowState;
   friend class nsBlockInFlowLineIterator;
