@@ -331,6 +331,10 @@ export class Pipeline {
           ...request.args,
           request.options || {}
         );
+
+        // When the pipeline returns Tensors they are Proxy objects that cannot be cloned.
+        // Workaround: convert to JSON and back to JS objects.
+        result = JSON.parse(JSON.stringify(result));
       }
     } else {
       result = await this.#pipelineFunction(
