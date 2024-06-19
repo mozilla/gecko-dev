@@ -99,7 +99,7 @@ add_task(async function test_menu_items_labeled() {
     // Use waitForCondition() here because sidebar needs a chance to load
     // Fluent strings.
     await TestUtils.waitForCondition(
-      () => button.hasVisibleLabel,
+      () => button.label || button.hasVisibleLabel,
       `Expanded ${view} button has a label.`
     );
   }

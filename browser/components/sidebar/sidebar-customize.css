@@ -6,28 +6,16 @@
   font-size: 15px;
 }
 
-.customize-firefox-tools {
-  .inputs {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-medium);
-  }
+.customize-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  -moz-context-properties: fill;
+  fill: currentColor;
+  color: currentColor;
 
-  .input-wrapper {
-    display: flex;
-    align-items: center;
-    gap: var(--space-small);
-
-    > input {
-      margin-inline-start: 0;
-    }
-
-    > label {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-small);
-      font-size: 0.9em;
-    }
+  .customize-close-button::part(button) {
+    background-image: url("chrome://global/skin/icons/close-12.svg");
   }
 }
 
