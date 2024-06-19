@@ -621,6 +621,10 @@ function getRelativeFile(relativePath) {
   return file;
 }
 
+const isInChaosMode = () => {
+  return !!parseInt(Services.env.get("MOZ_CHAOSMODE"), 16);
+};
+
 var SpecialPowers = {
   isMainProcess() {
     return (

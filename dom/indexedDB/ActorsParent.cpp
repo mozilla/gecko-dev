@@ -617,6 +617,10 @@ Result<nsCOMPtr<nsIFileURL>, nsresult> GetDatabaseFileURL(
   return result;
 }
 
+nsLiteralCString GetDefaultSynchronousMode() {
+  return IndexedDatabaseManager::FullSynchronous() ? "FULL"_ns : "NORMAL"_ns;
+}
+
 nsresult SetDefaultPragmas(mozIStorageConnection& aConnection) {
   MOZ_ASSERT(!NS_IsMainThread());
 
@@ -645,9 +649,7 @@ nsresult SetDefaultPragmas(mozIStorageConnection& aConnection) {
   QM_TRY(MOZ_TO_RESULT(aConnection.ExecuteSimpleSQL(kBuiltInPragmas)));
 
   QM_TRY(MOZ_TO_RESULT(aConnection.ExecuteSimpleSQL(nsAutoCString{
-      "PRAGMA synchronous = "_ns +
-      (IndexedDatabaseManager::FullSynchronous() ? "FULL"_ns : "NORMAL"_ns) +
-      ";"_ns})));
+      "PRAGMA synchronous = "_ns + GetDefaultSynchronousMode() + ";"_ns})));
 
 #ifndef IDB_MOBILE
   if (kSQLiteGrowthIncrement) {
@@ -1134,6 +1136,7 @@ class DatabaseConnection final : public CachingDatabaseConnection {
   RefPtr<UpdateRefcountFunction> mUpdateRefcountFunction;
   RefPtr<QuotaObject> mQuotaObject;
   RefPtr<QuotaObject> mJournalQuotaObject;
+  IDBTransaction::Durability mLastDurability;
   bool mInReadTransaction;
   bool mInWriteTransaction;
 
@@ -1150,7 +1153,7 @@ class DatabaseConnection final : public CachingDatabaseConnection {
     return mUpdateRefcountFunction;
   }
 
-  nsresult BeginWriteTransaction();
+  nsresult BeginWriteTransaction(const IDBTransaction::Durability aDurability);
 
   nsresult CommitWriteTransaction();
 
@@ -2509,7 +2512,7 @@ class TransactionBase : public AtomicSafeRefCounted<TransactionBase> {
   uint64_t mActiveRequestCount;
   Atomic<bool> mInvalidatedOnAnyThread;
   const Mode mMode;
-  const Durability mDurability;  // TODO: See bug 1883045
+  const Durability mDurability;
   FlippedOnce<false> mInitialized;
   FlippedOnce<false> mHasBeenActiveOnConnectionThread;
   FlippedOnce<false> mActorDestroyed;
@@ -6689,6 +6692,7 @@ DatabaseConnection::DatabaseConnection(
     MovingNotNull<SafeRefPtr<DatabaseFileManager>> aFileManager)
     : CachingDatabaseConnection(std::move(aStorageConnection)),
       mFileManager(std::move(aFileManager)),
+      mLastDurability(IDBTransaction::Durability::Default),
       mInReadTransaction(false),
       mInWriteTransaction(false)
 #ifdef DEBUG
@@ -6719,7 +6723,8 @@ nsresult DatabaseConnection::Init() {
   return NS_OK;
 }
 
-nsresult DatabaseConnection::BeginWriteTransaction() {
+nsresult DatabaseConnection::BeginWriteTransaction(
+    const IDBTransaction::Durability aDurability) {
   AssertIsOnConnectionThread();
   MOZ_ASSERT(HasStorageConnection());
   MOZ_ASSERT(mInReadTransaction);
@@ -6731,6 +6736,29 @@ nsresult DatabaseConnection::BeginWriteTransaction() {
   QM_TRY(MOZ_TO_RESULT(ExecuteCachedStatement("ROLLBACK;"_ns)));
 
   mInReadTransaction = false;
+
+  if (mLastDurability != aDurability) {
+    auto synchronousMode = [aDurability]() -> nsLiteralCString {
+      switch (aDurability) {
+        case IDBTransaction::Durability::Default:
+          return GetDefaultSynchronousMode();
+
+        case IDBTransaction::Durability::Strict:
+          return "EXTRA"_ns;
+
+        case IDBTransaction::Durability::Relaxed:
+          return "OFF"_ns;
+
+        default:
+          MOZ_CRASH("Unknown CheckpointMode!");
+      }
+    }();
+
+    QM_TRY(MOZ_TO_RESULT(ExecuteCachedStatement("PRAGMA synchronous = "_ns +
+                                                synchronousMode + ";"_ns)));
+
+    mLastDurability = aDurability;
+  }
 
   if (!mUpdateRefcountFunction) {
     MOZ_ASSERT(mFileManager);
@@ -9545,7 +9573,7 @@ Database::AllocPBackgroundIDBTransactionParent(
 mozilla::ipc::IPCResult Database::RecvPBackgroundIDBTransactionConstructor(
     PBackgroundIDBTransactionParent* aActor,
     nsTArray<nsString>&& aObjectStoreNames, const Mode& aMode,
-    const Durability& aDurability) {  // TODO: See bug 1883045
+    const Durability& aDurability) {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
   MOZ_ASSERT(!aObjectStoreNames.IsEmpty());
@@ -9657,7 +9685,8 @@ nsresult Database::StartTransactionOp::DoDatabaseWork(
   }
 
   if (Transaction().GetMode() != IDBTransaction::Mode::ReadOnly) {
-    QM_TRY(MOZ_TO_RESULT(aConnection->BeginWriteTransaction()));
+    QM_TRY(MOZ_TO_RESULT(
+        aConnection->BeginWriteTransaction(Transaction().GetDurability())));
   }
 
   return NS_OK;
@@ -16048,7 +16077,8 @@ nsresult OpenDatabaseOp::VersionChangeOp::DoDatabaseWork(
 
   Transaction().SetActiveOnConnectionThread();
 
-  QM_TRY(MOZ_TO_RESULT(aConnection->BeginWriteTransaction()));
+  QM_TRY(MOZ_TO_RESULT(
+      aConnection->BeginWriteTransaction(Transaction().GetDurability())));
 
   // The parameter names are not used, parameters are bound by index only
   // locally in the same function.

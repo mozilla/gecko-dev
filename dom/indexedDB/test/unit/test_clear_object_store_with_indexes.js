@@ -3,10 +3,6 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-const isInChaosMode = () => {
-  return !!parseInt(Services.env.get("MOZ_CHAOSMODE"), 16);
-};
-
 // Reduce the amount of data on slow platforms.
 const getDataBlockSize = () => {
   if (mozinfo.os == "android") {
