@@ -64,6 +64,15 @@ add_task(async function test_allowed_hub() {
   goodHubs.forEach(url => new ModelHub({ rootUrl: url }));
 });
 
+/**
+ * Test the MOZ_ALLOW_EXTERNAL_ML_HUB environment variable
+ */
+add_task(async function test_allow_external_ml_hub() {
+  Services.env.set("MOZ_ALLOW_EXTERNAL_ML_HUB", "1");
+  new ModelHub({ rootUrl: "https://huggingface.co" });
+  Services.env.set("MOZ_ALLOW_EXTERNAL_ML_HUB", "");
+});
+
 const badInputs = [
   [
     {

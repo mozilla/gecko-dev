@@ -4,6 +4,10 @@ Machine Learning
 This component is an experimental machine learning local inference engine based on
 Transformers.js and the ONNX runtime.
 
+
+Running the pipeline API
+::::::::::::::::::::::::
+
 You can use the Transformer.js `pipeline` API directly to perform inference, as long
 as the model is in our model hub.
 
@@ -37,6 +41,24 @@ In the example below, a text summarization task is performed using the `summariz
   console.log(res[0]["summary_text"]);
 
 
+Using the Hugging Face model hub
+::::::::::::::::::::::::::::::::
+
+By default, the engine will use the Mozilla model hub and will error out if you try to use any other hub for security reasons.
+
+If you want to use the Hugging Face model hub, you will need to run Firefox with the `MOZ_ALLOW_EXTERNAL_ML_HUB` environment variable
+set to `1`, then set in `about:config` these two values:
+
+- `browser.ml.modelHubRootUrl` to `https://huggingface.co`
+- `browser.ml.modelHubUrlTemplate` to `{model}/resolve/{revision}`
+
+
+Running the internal APIs
+:::::::::::::::::::::::::
+
+Some inference tasks are doing more complex operations within the engine, such as image processing.
+For these tasks, you can use the internal APIs to run the inference.
+
 In the example below, an image is converted to text using the `image-to-text` task.
 
 
@@ -63,9 +85,6 @@ In the example below, an image is converted to text using the `image-to-text` ta
   // The result is a string containing the text extracted from the image
   console.log(res);
 
-
-Supported Inference Tasks
-:::::::::::::::::::::::::
 
 The following tasks are supported by the machine learning engine:
 

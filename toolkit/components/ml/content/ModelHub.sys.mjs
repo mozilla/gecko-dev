@@ -38,6 +38,10 @@ const DEFAULT_URL_TEMPLATE = "{model}/resolve/{revision}";
  * @returns {boolean} True if the URL is allowed; false otherwise.
  */
 function allowedHub(urlString) {
+  if (Services.env.exists("MOZ_ALLOW_EXTERNAL_ML_HUB")) {
+    return true;
+  }
+
   try {
     const url = new URL(urlString);
     // Check for username or password in the URL
