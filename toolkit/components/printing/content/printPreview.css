@@ -1,0 +1,78 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+.printSettingsBrowser {
+  width: 250px !important;
+}
+
+.previewStack {
+  background-color: light-dark(#f9f9fa, #2a2a2e);
+  color: light-dark(#0c0c0d, rgb(249, 249, 250));
+}
+
+.previewRendering {
+  background-repeat: no-repeat;
+  background-size: 60px 60px;
+  background-position: center center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .previewStack:not([rendering=true]) > & {
+    visibility: hidden;
+  }
+}
+
+.printPreviewBrowser {
+  visibility: collapse;
+
+  .previewStack[previewtype="source"] > &[previewtype="source"],
+  .previewStack[previewtype="selection"] > &[previewtype="selection"],
+  .previewStack[previewtype="simplified"] > &[previewtype="simplified"] {
+    visibility: inherit;
+  }
+
+  .previewStack[rendering=true] > & {
+    opacity: 0;
+  }
+}
+
+.print-pending-label {
+  margin-top: 110px;
+  font-size: large;
+}
+
+printpreview-pagination {
+  opacity: 0;
+}
+printpreview-pagination:focus-within,
+.previewStack:hover printpreview-pagination {
+  opacity: 1;
+}
+.previewStack[rendering=true] printpreview-pagination {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .previewRendering {
+    background-image: url("chrome://global/skin/icons/pendingpaint.png");
+  }
+
+  .printPreviewBrowser {
+    transition: opacity 60ms;
+
+    .previewStack[rendering=true] > & {
+      transition: opacity 1ms 250ms;
+    }
+  }
+
+  printpreview-pagination {
+    transition: opacity 100ms 500ms;
+
+    &:focus-within,
+    .previewStack:hover & {
+      transition: opacity 100ms;
+    }
+  }
+}

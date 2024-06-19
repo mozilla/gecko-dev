@@ -642,6 +642,7 @@ class PrintPreview extends MozElements.BaseControl {
           </vbox>
           <html:printpreview-pagination class="printPreviewNavigation"></html:printpreview-pagination>
         </stack>
+        <html:link rel="stylesheet" href="chrome://global/content/printPreview.css"/>
     `)
     );
     this.stack = this.firstElementChild;
