@@ -131,7 +131,8 @@ ArrayBufferInputStream::ReadSegments(nsWriteSegmentFun writer, void* closure,
   MOZ_RELEASE_ASSERT(mBufferLength >= mPos, "bad stream state");
 
   if (mClosed) {
-    return NS_BASE_STREAM_CLOSED;
+    *result = 0;
+    return NS_OK;
   }
 
   MOZ_RELEASE_ASSERT(mArrayBuffer || (mPos == mBufferLength),
@@ -177,6 +178,9 @@ ArrayBufferInputStream::IsNonBlocking(bool* aNonBlocking) {
 NS_IMETHODIMP ArrayBufferInputStream::Tell(int64_t* const aRetval) {
   MOZ_RELEASE_ASSERT(aRetval);
 
+  if (mClosed) {
+    return NS_BASE_STREAM_CLOSED;
+  }
   *aRetval = mPos;
 
   return NS_OK;
@@ -184,6 +188,10 @@ NS_IMETHODIMP ArrayBufferInputStream::Tell(int64_t* const aRetval) {
 
 NS_IMETHODIMP ArrayBufferInputStream::Seek(const int32_t aWhence,
                                            const int64_t aOffset) {
+  if (mClosed) {
+    return NS_BASE_STREAM_CLOSED;
+  }
+
   // XXX This is not safe. it's hard to use CheckedInt here, though. As long as
   // the class is only used for testing purposes, that's probably fine.
 
