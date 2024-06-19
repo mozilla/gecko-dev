@@ -10,7 +10,7 @@
   const { RemoteL10n } = ChromeUtils.importESModule(
     "resource:///modules/asrouter/RemoteL10n.sys.mjs"
   );
-  class MozTextParagraph extends HTMLElement {
+  class MozRemoteText extends HTMLElement {
     constructor() {
       super();
 
@@ -68,5 +68,5 @@
     }
   }
 
-  customElements.define("remote-text", MozTextParagraph);
+  customElements.define("remote-text", MozRemoteText);
 }

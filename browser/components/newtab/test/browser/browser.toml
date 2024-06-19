@@ -66,8 +66,6 @@ skip-if = ["verify"] # bug 1834620 - order of events not stable
 ["browser_open_tab_focus.js"]
 skip-if = ["os == 'linux'"] # Test setup only implemented for OSX and Windows
 
-["browser_remote_l10n.js"]
-
 ["browser_topsites_annotation.js"]
 skip-if = [
   "os == 'linux' && debug", # Bug 1785005

@@ -132,7 +132,7 @@ export const InfoBar = {
   maybeLoadCustomElement(win) {
     if (!win.customElements.get("remote-text")) {
       Services.scriptloader.loadSubScript(
-        "resource://activity-stream/data/custom-elements/paragraph.js",
+        "chrome://browser/content/asrouter/components/remote-text.js",
         win
       );
     }
