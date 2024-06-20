@@ -13368,7 +13368,6 @@ nsresult Maintenance::BeginDatabaseMaintenance() {
 
 void Maintenance::Finish() {
   AssertIsOnBackgroundThread();
-  MOZ_ASSERT(!mDirectoryLock);
   MOZ_ASSERT(mState == State::Finishing);
 
   if (NS_SUCCEEDED(mResultCode)) {
@@ -13381,6 +13380,8 @@ void Maintenance::Finish() {
 
     IDB_WARNING("Maintenance finished with error: %s", errorName.get());
   }
+
+  SafeDropDirectoryLock(mDirectoryLock);
 
   // It can happen that we are only referenced by mCurrentMaintenance which is
   // cleared in NoteFinishedMaintenance()
