@@ -281,6 +281,13 @@ IndexedDatabaseManager* IndexedDatabaseManager::Get() {
   return gDBManager;
 }
 
+// static
+already_AddRefed<IndexedDatabaseManager>
+IndexedDatabaseManager::FactoryCreate() {
+  RefPtr<IndexedDatabaseManager> indexedDatabaseManager = GetOrCreate();
+  return indexedDatabaseManager.forget();
+}
+
 nsresult IndexedDatabaseManager::Init() {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
@@ -645,6 +652,10 @@ nsresult IndexedDatabaseManager::FlushPendingFileDeletions() {
 
   return NS_OK;
 }
+
+NS_IMPL_ADDREF(IndexedDatabaseManager)
+NS_IMPL_RELEASE_WITH_DESTROY(IndexedDatabaseManager, Destroy())
+NS_IMPL_QUERY_INTERFACE(IndexedDatabaseManager, nsIIndexedDatabaseManager)
 
 // static
 void IndexedDatabaseManager::LoggingModePrefChangedCallback(

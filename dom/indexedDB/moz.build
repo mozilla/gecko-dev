@@ -26,6 +26,12 @@ XPCSHELL_TESTS_MANIFESTS += [
 
 TEST_DIRS += ["test/gtest"]
 
+XPIDL_SOURCES += [
+    "nsIIndexedDatabaseManager.idl",
+]
+
+XPIDL_MODULE = "dom_indexeddb"
+
 EXPORTS.mozilla.dom += [
     "DatabaseFileInfoFwd.h",
     "FlippedOnce.h",
@@ -52,6 +58,10 @@ EXPORTS.mozilla.dom.indexedDB += [
     "KeyPath.h",
     "SerializationHelpers.h",
     "ThreadLocal.h",
+]
+
+XPCOM_MANIFESTS += [
+    "components.conf",
 ]
 
 UNIFIED_SOURCES += [
