@@ -50,6 +50,7 @@ EXPORTS.mozilla.dom.quota += [
     "EncryptedBlock.h",
     "EncryptingOutputStream.h",
     "EncryptingOutputStream_impl.h",
+    "ErrorHandling.h",
     "FileStreams.h",
     "FileUtils.h",
     "FirstInitializationAttempts.h",

@@ -8,6 +8,7 @@
 
 #include <mozilla/Assertions.h>
 #include "mozilla/RefPtr.h"
+#include "mozilla/dom/quota/ErrorHandling.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/PQuota.h"
 #include "mozilla/dom/quota/PQuotaRequestParent.h"
@@ -32,22 +33,6 @@ namespace mozilla::dom::quota {
 using namespace mozilla::ipc;
 
 namespace {
-
-class ResolveBoolResponseAndReturn {
- public:
-  using ResolverType = BoolResponseResolver;
-
-  explicit ResolveBoolResponseAndReturn(const ResolverType& aResolver)
-      : mResolver(aResolver) {}
-
-  mozilla::ipc::IPCResult operator()(const nsresult rv) {
-    mResolver(rv);
-    return IPC_OK();
-  }
-
- private:
-  const ResolverType& mResolver;
-};
 
 class BoolPromiseResolveOrRejectCallback {
  public:
