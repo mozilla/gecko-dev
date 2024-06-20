@@ -125,6 +125,8 @@ class AbstractRange : public nsISupports,
                               StartOffset() == EndOffset());
   }
 
+  bool AreNormalRangeAndCrossShadowBoundaryRangeCollapsed() const;
+
   nsINode* GetParentObject() const;
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;

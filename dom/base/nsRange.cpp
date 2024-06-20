@@ -730,8 +730,12 @@ void nsRange::ContentRemoved(nsIContent* aChild, nsIContent* aPreviousSibling) {
   bool newStartIsSet = newStart.IsSet();
   bool newEndIsSet = newEnd.IsSet();
   if (newStartIsSet || newEndIsSet) {
-    DoSetRange(newStartIsSet ? newStart : mStart.AsRaw(),
-               newEndIsSet ? newEnd : mEnd.AsRaw(), mRoot);
+    DoSetRange(
+        newStartIsSet ? newStart : mStart.AsRaw(),
+        newEndIsSet ? newEnd : mEnd.AsRaw(), mRoot, false,
+        // CrossShadowBoundaryRange mutates content
+        // removal fot itself, so no need for nsRange to do anything with it.
+        RangeBehaviour::KeepDefaultRangeAndCrossShadowBoundaryRanges);
   } else {
     nsRange::AssertIfMismatchRootAndRangeBoundaries(mStart, mEnd, mRoot);
   }
@@ -1463,7 +1467,8 @@ class MOZ_STACK_CLASS RangeSubtreeIterator {
   RangeSubtreeIterator() : mIterState(eDone) {}
   ~RangeSubtreeIterator() = default;
 
-  nsresult Init(nsRange* aRange);
+  nsresult Init(nsRange* aRange, AllowRangeCrossShadowBoundary =
+                                     AllowRangeCrossShadowBoundary::No);
   already_AddRefed<nsINode> GetCurrentNode();
   void First();
   void Last();
@@ -1473,9 +1478,10 @@ class MOZ_STACK_CLASS RangeSubtreeIterator {
   bool IsDone() { return mIterState == eDone; }
 };
 
-nsresult RangeSubtreeIterator::Init(nsRange* aRange) {
+nsresult RangeSubtreeIterator::Init(
+    nsRange* aRange, AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
   mIterState = eDone;
-  if (aRange->Collapsed()) {
+  if (aRange->AreNormalRangeAndCrossShadowBoundaryRangeCollapsed()) {
     return NS_OK;
   }
 
@@ -1487,14 +1493,14 @@ nsresult RangeSubtreeIterator::Init(nsRange* aRange) {
     return NS_ERROR_FAILURE;
   }
 
-  nsINode* node = aRange->GetStartContainer();
+  nsINode* node = aRange->GetMayCrossShadowBoundaryStartContainer();
   if (NS_WARN_IF(!node)) {
     return NS_ERROR_FAILURE;
   }
 
   if (node->IsCharacterData() ||
-      (node->IsElement() &&
-       node->AsElement()->GetChildCount() == aRange->StartOffset())) {
+      (node->IsElement() && node->AsElement()->GetChildCount() ==
+                                aRange->MayCrossShadowBoundaryStartOffset())) {
     mStart = node;
   }
 
@@ -1502,13 +1508,13 @@ nsresult RangeSubtreeIterator::Init(nsRange* aRange) {
   // a CharacterData pointer. If it is CharacterData store
   // a pointer to the node.
 
-  node = aRange->GetEndContainer();
+  node = aRange->GetMayCrossShadowBoundaryEndContainer();
   if (NS_WARN_IF(!node)) {
     return NS_ERROR_FAILURE;
   }
 
   if (node->IsCharacterData() ||
-      (node->IsElement() && aRange->EndOffset() == 0)) {
+      (node->IsElement() && aRange->MayCrossShadowBoundaryEndOffset() == 0)) {
     mEnd = node;
   }
 
@@ -1524,7 +1530,10 @@ nsresult RangeSubtreeIterator::Init(nsRange* aRange) {
 
     mSubtreeIter.emplace();
 
-    nsresult res = mSubtreeIter->Init(aRange);
+    nsresult res =
+        aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes
+            ? mSubtreeIter->InitWithAllowCrossShadowBoundary(aRange)
+            : mSubtreeIter->Init(aRange);
     if (NS_FAILED(res)) return res;
 
     if (mSubtreeIter->IsDone()) {
@@ -1757,14 +1766,18 @@ void nsRange::CutContents(DocumentFragment** aFragment, ErrorResult& aRv) {
     *aFragment = nullptr;
   }
 
-  if (!CanAccess(*mStart.Container()) || !CanAccess(*mEnd.Container())) {
+  if (!CanAccess(*GetMayCrossShadowBoundaryStartContainer()) ||
+      !CanAccess(*GetMayCrossShadowBoundaryEndContainer())) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
 
   nsCOMPtr<Document> doc = mStart.Container()->OwnerDoc();
 
-  nsCOMPtr<nsINode> commonAncestor = GetCommonAncestorContainer(aRv);
+  nsCOMPtr<nsINode> commonAncestor = GetCommonAncestorContainer(
+      aRv, StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
+               ? AllowRangeCrossShadowBoundary::Yes
+               : AllowRangeCrossShadowBoundary::No);
   if (aRv.Failed()) {
     return;
   }
@@ -1783,13 +1796,16 @@ void nsRange::CutContents(DocumentFragment** aFragment, ErrorResult& aRv) {
   // Save the range end points locally to avoid interference
   // of Range gravity during our edits!
 
-  nsCOMPtr<nsINode> startContainer = mStart.Container();
+  nsCOMPtr<nsINode> startContainer = GetMayCrossShadowBoundaryStartContainer();
   // `GetCommonAncestorContainer()` above ensures the range is positioned, hence
   // there have to be valid offsets.
-  uint32_t startOffset =
-      *mStart.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
-  nsCOMPtr<nsINode> endContainer = mEnd.Container();
-  uint32_t endOffset = *mEnd.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
+
+  const uint32_t startOffset = *MayCrossShadowBoundaryStartRef().Offset(
+      RangeBoundary::OffsetFilter::kValidOffsets);
+
+  nsCOMPtr<nsINode> endContainer = GetMayCrossShadowBoundaryEndContainer();
+  const uint32_t endOffset = *MayCrossShadowBoundaryEndRef().Offset(
+      RangeBoundary::OffsetFilter::kValidOffsets);
 
   if (retval) {
     // For extractContents(), abort early if there's a doctype (bug 719533).
@@ -1820,7 +1836,10 @@ void nsRange::CutContents(DocumentFragment** aFragment, ErrorResult& aRv) {
 
   RangeSubtreeIterator iter;
 
-  aRv = iter.Init(this);
+  aRv = iter.Init(this,
+                  StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
+                      ? AllowRangeCrossShadowBoundary::Yes
+                      : AllowRangeCrossShadowBoundary::No);
   if (aRv.Failed()) {
     return;
   }

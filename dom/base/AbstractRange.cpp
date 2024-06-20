@@ -15,6 +15,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/StaticRange.h"
 #include "mozilla/dom/Selection.h"
+#include "mozilla/dom/CrossShadowBoundaryRange.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsGkAtoms.h"
@@ -571,6 +572,24 @@ nsINode* AbstractRange::GetParentObject() const { return mOwner; }
 JSObject* AbstractRange::WrapObject(JSContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   MOZ_CRASH("Must be overridden");
+}
+
+bool AbstractRange::AreNormalRangeAndCrossShadowBoundaryRangeCollapsed() const {
+  if (!Collapsed()) {
+    return false;
+  }
+
+  // We know normal range is collapsed at this point
+  if (IsStaticRange()) {
+    return true;
+  }
+
+  if (const CrossShadowBoundaryRange* crossShadowBoundaryRange =
+          AsDynamicRange()->GetCrossShadowBoundaryRange()) {
+    return crossShadowBoundaryRange->Collapsed();
+  }
+
+  return true;
 }
 
 void AbstractRange::ClearForReuse() {
