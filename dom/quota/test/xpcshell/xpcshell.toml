@@ -54,6 +54,8 @@ skip-if = ["true"] # Only used for recreating unsetLastAccessTime_profile.zip
 ["test_groupMismatch.js"]
 skip-if = ["true"] # The group is now always empty, so metadata can't differ anymore.
 
+["test_idle_maintenance.js"]
+
 ["test_initTemporaryStorage.js"]
 skip-if = ["condprof"] # frequent perma fail, then goes away.
 

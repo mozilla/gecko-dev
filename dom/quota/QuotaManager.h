@@ -442,6 +442,8 @@ class QuotaManager final : public BackgroundThreadObject {
     for (const auto& client : *mClients) {
       client->StartIdleMaintenance();
     }
+
+    NotifyMaintenanceStarted();
   }
 
   void StopIdleMaintenance() {
@@ -497,6 +499,8 @@ class QuotaManager final : public BackgroundThreadObject {
       const OriginMetadata& aOriginMetadata);
 
   void NotifyStoragePressure(uint64_t aUsage);
+
+  void NotifyMaintenanceStarted();
 
   // Record a quota client shutdown step, if shutting down.
   // Assumes that the QuotaManager singleton is alive.

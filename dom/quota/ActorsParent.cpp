@@ -5908,6 +5908,20 @@ void QuotaManager::NotifyStoragePressure(uint64_t aUsage) {
   MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(storagePressureRunnable));
 }
 
+void QuotaManager::NotifyMaintenanceStarted() {
+  AssertIsOnOwningThread();
+
+  MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(NS_NewRunnableFunction(
+      "dom::quota::QuotaManager::NotifyMaintenanceStarted", []() {
+        nsCOMPtr<nsIObserverService> observerService =
+            mozilla::services::GetObserverService();
+        QM_TRY(MOZ_TO_RESULT(observerService), QM_VOID);
+
+        observerService->NotifyObservers(
+            nullptr, "QuotaManager::MaintenanceStarted", u"");
+      })));
+}
+
 // static
 void QuotaManager::GetStorageId(PersistenceType aPersistenceType,
                                 const nsACString& aOrigin,
