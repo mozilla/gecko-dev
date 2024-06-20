@@ -41,11 +41,13 @@ async function testSteps() {
     }
   }
 
-  info("Sending fake 'idle-daily' notification to QuotaManager");
+  info("Starting idle maintenance");
 
-  let observer = Services.qms.QueryInterface(Ci.nsIObserver);
+  const indexedDatabaseManager = Cc[
+    "@mozilla.org/dom/indexeddb/manager;1"
+  ].getService(Ci.nsIIndexedDatabaseManager);
 
-  observer.observe(null, "idle-daily", "");
+  const maintenancePromise = indexedDatabaseManager.doMaintenance();
 
   info("Getting databases");
 
@@ -84,11 +86,9 @@ async function testSteps() {
 
   info("Waiting for maintenance to finish");
 
-  // This time is arbitrary, but it should be pessimistic enough to work with
-  // randomly slowed down threads in the chaos mode.
-  await new Promise(function (resolve) {
-    do_timeout(10000, resolve);
-  });
+  await maintenancePromise;
+
+  info("Waiting for databases operation to finish");
 
   await Promise.all(completePromises);
 }
