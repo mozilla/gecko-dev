@@ -105,7 +105,7 @@ inline float ComputeSynthesizedViewBoxDimension(
     return aViewportLength * aLength.GetAnimValInSpecifiedUnits() / 100.0f;
   }
 
-  return aLength.GetAnimValueWithZoom(aSelf);
+  return aLength.GetAnimValue(aSelf);
 }
 
 //----------------------------------------------------------------------
@@ -155,9 +155,8 @@ gfx::Matrix SVGViewportElement::GetViewBoxTransform() const {
   float viewportWidth, viewportHeight;
   if (IsInner()) {
     SVGElementMetrics metrics(this);
-    viewportWidth = mLengthAttributes[ATTR_WIDTH].GetAnimValueWithZoom(metrics);
-    viewportHeight =
-        mLengthAttributes[ATTR_HEIGHT].GetAnimValueWithZoom(metrics);
+    viewportWidth = mLengthAttributes[ATTR_WIDTH].GetAnimValue(metrics);
+    viewportHeight = mLengthAttributes[ATTR_HEIGHT].GetAnimValue(metrics);
   } else {
     viewportWidth = mViewportSize.width;
     viewportHeight = mViewportSize.height;
@@ -202,10 +201,10 @@ float SVGViewportElement::GetLength(uint8_t aCtxType) const {
     // of GetAnimValue().
     SVGElementMetrics metrics(this);
     if (shouldComputeWidth) {
-      w = mLengthAttributes[ATTR_WIDTH].GetAnimValueWithZoom(metrics);
+      w = mLengthAttributes[ATTR_WIDTH].GetAnimValue(metrics);
     }
     if (shouldComputeHeight) {
-      h = mLengthAttributes[ATTR_HEIGHT].GetAnimValueWithZoom(metrics);
+      h = mLengthAttributes[ATTR_HEIGHT].GetAnimValue(metrics);
     }
   } else if (ShouldSynthesizeViewBox()) {
     if (shouldComputeWidth) {

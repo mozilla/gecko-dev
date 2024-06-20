@@ -165,8 +165,7 @@ enum class ZoomType { Self, SelfFromRoot, None };
 
 /*static*/
 float SVGLength::GetPixelsPerUnit(const UserSpaceMetrics& aMetrics,
-                                  uint8_t aUnitType, uint8_t aAxis,
-                                  bool aApplyZoom) {
+                                  uint8_t aUnitType, uint8_t aAxis) {
   auto zoomType = ZoomType::Self;
   float value = [&]() -> float {
     switch (aUnitType) {
@@ -217,17 +216,15 @@ float SVGLength::GetPixelsPerUnit(const UserSpaceMetrics& aMetrics,
         return GetAbsUnitsPerAbsUnit(SVG_LENGTHTYPE_PX, aUnitType);
     }
   }();
-  if (aApplyZoom) {
-    switch (zoomType) {
-      case ZoomType::None:
-        break;
-      case ZoomType::Self:
-        value *= aMetrics.GetZoom();
-        break;
-      case ZoomType::SelfFromRoot:
-        value *= aMetrics.GetZoom() / aMetrics.GetRootZoom();
-        break;
-    }
+  switch (zoomType) {
+    case ZoomType::None:
+      break;
+    case ZoomType::Self:
+      value *= aMetrics.GetZoom();
+      break;
+    case ZoomType::SelfFromRoot:
+      value *= aMetrics.GetZoom() / aMetrics.GetRootZoom();
+      break;
   }
   return value;
 }

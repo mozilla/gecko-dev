@@ -158,8 +158,7 @@ nscoord SVGOuterSVGFrame::GetPrefISize(gfxContext* aRenderingContext) {
       result = nscoord(0);
     }
   } else {
-    result =
-        nsPresContext::CSSPixelsToAppUnits(isize.GetAnimValueWithZoom(svg));
+    result = nsPresContext::CSSPixelsToAppUnits(isize.GetAnimValue(svg));
     if (result < 0) {
       result = nscoord(0);
     }
@@ -190,13 +189,13 @@ IntrinsicSize SVGOuterSVGFrame::GetIntrinsicSize() {
 
   if (!width.IsPercentage()) {
     nscoord val =
-        nsPresContext::CSSPixelsToAppUnits(width.GetAnimValueWithZoom(content));
+        nsPresContext::CSSPixelsToAppUnits(width.GetAnimValue(content));
     intrinsicSize.width.emplace(std::max(val, 0));
   }
 
   if (!height.IsPercentage()) {
-    nscoord val = nsPresContext::CSSPixelsToAppUnits(
-        height.GetAnimValueWithZoom(content));
+    nscoord val =
+        nsPresContext::CSSPixelsToAppUnits(height.GetAnimValue(content));
     intrinsicSize.height.emplace(std::max(val, 0));
   }
 

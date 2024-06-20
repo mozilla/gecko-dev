@@ -376,37 +376,31 @@ float UserSpaceMetricsWithSize::GetAxisLength(uint8_t aCtxType) const {
 float SVGAnimatedLength::GetPixelsPerUnit(const SVGElement* aSVGElement,
                                           uint8_t aUnitType) const {
   return SVGLength::GetPixelsPerUnit(SVGElementMetrics(aSVGElement), aUnitType,
-                                     mCtxType, false);
+                                     mCtxType);
 }
 
-float SVGAnimatedLength::GetPixelsPerUnitWithZoom(const SVGElement* aSVGElement,
-                                                  uint8_t aUnitType) const {
-  return SVGLength::GetPixelsPerUnit(SVGElementMetrics(aSVGElement), aUnitType,
-                                     mCtxType, true);
-}
-
-float SVGAnimatedLength::GetPixelsPerUnitWithZoom(
-    const SVGViewportElement* aCtx, uint8_t aUnitType) const {
+float SVGAnimatedLength::GetPixelsPerUnit(const SVGViewportElement* aCtx,
+                                          uint8_t aUnitType) const {
   return SVGLength::GetPixelsPerUnit(SVGElementMetrics(aCtx, aCtx), aUnitType,
-                                     mCtxType, true);
+                                     mCtxType);
 }
 
-float SVGAnimatedLength::GetPixelsPerUnitWithZoom(nsIFrame* aFrame,
-                                                  uint8_t aUnitType) const {
+float SVGAnimatedLength::GetPixelsPerUnit(nsIFrame* aFrame,
+                                          uint8_t aUnitType) const {
   const nsIContent* content = aFrame->GetContent();
   MOZ_ASSERT(!content->IsText(), "Not expecting text content");
   if (content->IsSVGElement()) {
     return SVGLength::GetPixelsPerUnit(
         SVGElementMetrics(static_cast<const SVGElement*>(content)), aUnitType,
-        mCtxType, true);
+        mCtxType);
   }
   return SVGLength::GetPixelsPerUnit(NonSVGFrameUserSpaceMetrics(aFrame),
-                                     aUnitType, mCtxType, true);
+                                     aUnitType, mCtxType);
 }
 
-float SVGAnimatedLength::GetPixelsPerUnitWithZoom(
-    const UserSpaceMetrics& aMetrics, uint8_t aUnitType) const {
-  return SVGLength::GetPixelsPerUnit(aMetrics, aUnitType, mCtxType, true);
+float SVGAnimatedLength::GetPixelsPerUnit(const UserSpaceMetrics& aMetrics,
+                                          uint8_t aUnitType) const {
+  return SVGLength::GetPixelsPerUnit(aMetrics, aUnitType, mCtxType);
 }
 
 void SVGAnimatedLength::SetBaseValueInSpecifiedUnits(float aValue,
@@ -659,7 +653,7 @@ float SVGLengthAndInfo::ConvertUnits(const SVGLengthAndInfo& aTo) const {
 float SVGLengthAndInfo::ValueInPixels(const UserSpaceMetrics& aMetrics) const {
   return mValue == 0.0f ? 0.0f
                         : mValue * SVGLength::GetPixelsPerUnit(
-                                       aMetrics, mUnitType, mCtxType, false);
+                                       aMetrics, mUnitType, mCtxType);
 }
 
 void SVGLengthAndInfo::Add(const SVGLengthAndInfo& aValueToAdd,
@@ -679,7 +673,7 @@ void SVGLengthAndInfo::Add(const SVGLengthAndInfo& aValueToAdd,
   mUnitType = aValueToAdd.mUnitType;
   mCtxType = aValueToAdd.mCtxType;
   mValue = (currentLength + lengthToAdd) /
-           SVGLength::GetPixelsPerUnit(metrics, mUnitType, mCtxType, false);
+           SVGLength::GetPixelsPerUnit(metrics, mUnitType, mCtxType);
 }
 
 void SVGLengthAndInfo::Interpolate(const SVGLengthAndInfo& aStart,

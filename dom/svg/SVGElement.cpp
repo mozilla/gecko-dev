@@ -1559,7 +1559,7 @@ void SVGElement::GetAnimatedLengthValues(float* aFirst, ...) {
   va_start(args, aFirst);
 
   while (f && i < info.mCount) {
-    *f = info.mValues[i++].GetAnimValueWithZoom(metrics);
+    *f = info.mValues[i++].GetAnimValue(metrics);
     f = va_arg(args, float*);
   }
 
