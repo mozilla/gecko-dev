@@ -9,6 +9,8 @@
 #include "RangeBoundary.h"
 #include "mozilla/Assertions.h"
 #include "Document.h"
+#include "mozilla/dom/BrowsingContext.h"
+#include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/FragmentDirectiveBinding.h"
 #include "mozilla/dom/FragmentOrElement.h"
 #include "mozilla/dom/NodeBinding.h"
@@ -19,6 +21,7 @@
 #include "nsComputedDOMStyle.h"
 #include "nsContentUtils.h"
 #include "nsDOMAttributeMap.h"
+#include "nsDocShell.h"
 #include "nsFind.h"
 #include "nsGkAtoms.h"
 #include "nsICSSDeclaration.h"
@@ -31,9 +34,13 @@
 namespace mozilla::dom {
 static LazyLogModule sFragmentDirectiveLog("FragmentDirective");
 
-#define DBG(msg, ...)                             \
+#define DBG_FN(msg, func, ...)                    \
   MOZ_LOG(sFragmentDirectiveLog, LogLevel::Debug, \
-          ("%s(): " msg, __FUNCTION__, ##__VA_ARGS__))
+          ("%s(): " msg, func, ##__VA_ARGS__))
+
+// Shortcut macro for logging, which includes the current function name.
+// To customize (eg. if in a lambda), use `DBG_FN`.
+#define DBG(msg, ...) DBG_FN(msg, __FUNCTION__, ##__VA_ARGS__)
 
 MOZ_ALWAYS_INLINE static bool ShouldLog() {
   return MOZ_LOG_TEST(sFragmentDirectiveLog, LogLevel::Debug);
@@ -202,6 +209,155 @@ nsTArray<RefPtr<nsRange>> FragmentDirective::FindTextFragmentsInDocument() {
   return textDirectiveRanges;
 }
 
+bool FragmentDirective::IsTextDirectiveAllowedToBeScrolledTo() {
+  // This method follows
+  // https://wicg.github.io/scroll-to-text-fragment/#check-if-a-text-directive-can-be-scrolled
+  // However, there are some spec issues
+  // (https://github.com/WICG/scroll-to-text-fragment/issues/240).
+  // The web-platform tests currently seem more up-to-date. Therefore,
+  // this method is adapted slightly to make sure all tests pass.
+  // Comments are added to explain changes.
+
+  MOZ_ASSERT(mDocument);
+  DBG("Trying to find out if the load of URL '%s' is allowed to scroll to the "
+      "text fragment",
+      ToString(mDocument->GetDocumentURI()).Data());
+  // It seems the spec does not cover same-document navigation in particular,
+  // or Gecko needs to deal with this in a different way due to the
+  // implementation not following the spec step-by-step.
+  // Therefore, the following algorithm needs some adaptions to deal with
+  // same-document navigations correctly.
+  nsDocShell* docShell = nsDocShell::Cast(mDocument->GetDocShell());
+
+  const bool isSameDocumentNavigation =
+      docShell && docShell->CurrentLoadIsSameDocumentNavigation();
+
+  DBG("Current load is%s a same-document navigation.",
+      isSameDocumentNavigation ? "" : " not");
+
+  // 1. If document's pending text directives field is null or empty, return
+  // false.
+  // ---
+  // we don't store the *pending* text directives in this class, only the
+  // *uninvoked* text directives (uninvoked = `TextDirective`, pending =
+  // `nsRange`).
+  // Uninvoked text directives are typically already processed into pending text
+  // directives when this code is called. Pending text directives are handled by
+  // the caller when this code runs; therefore, the caller should decide if this
+  // method should be called or not.
+
+  // 2. Let is user involved be true if: document's text directive user
+  // activation is true, or user involvement is one of "activation" or "browser
+  // UI"; false otherwise.
+  // 3. Set document's text directive user activation to false.
+  const bool textDirectiveUserActivation =
+      mDocument->ConsumeTextDirectiveUserActivation();
+  DBG("Consumed Document's TextDirectiveUserActivation flag (value=%s)",
+      textDirectiveUserActivation ? "true" : "false");
+
+  // Gecko does not implement user involvement yet. This line only has the
+  // purpose of following the spec as close as possible wrt. variable names and
+  // to indicate that user involvement still needs to be implemented.
+  // (See https://bugzil.la/1901045 for this)
+  const bool isUserInvolved = textDirectiveUserActivation;
+
+  // 4. If document's content type is not a text directive allowing MIME type,
+  // return false.
+  const bool isAllowedMIMEType = [doc = this->mDocument, func = __FUNCTION__] {
+    nsAutoString contentType;
+    doc->GetContentType(contentType);
+    DBG_FN("Got document MIME type: %s", func,
+           NS_ConvertUTF16toUTF8(contentType).Data());
+    return contentType == u"text/html" || contentType == u"text/plain";
+  }();
+
+  if (!isAllowedMIMEType) {
+    DBG("Invalid document MIME type. Scrolling not allowed.");
+    return false;
+  }
+
+  // 5. If user involvement is "browser UI", return true.
+  //
+  // If a navigation originates from browser UI, it's always ok to allow it
+  // since it'll be user triggered and the page/script isn't providing the text
+  // snippet.
+  //
+  // Note: The intent in this item is to distinguish cases where the app/page is
+  // able to control the URL from those that are fully under the user's
+  // control. In the former we want to prevent scrolling of the text fragment
+  // unless the destination is loaded in a separate browsing context group (so
+  // that the source cannot both control the text snippet and observe
+  // side-effects in the navigation). There are some cases where "browser UI"
+  // may be a grey area in this regard. E.g. an "open in new window" context
+  // menu item when right clicking on a link.
+  //
+  // See sec-fetch-site [0] for a related discussion on how this applies.
+  // [0] https://w3c.github.io/webappsec-fetch-metadata/#directly-user-initiated
+
+  // 6. If is user involved is false, return false.
+  // ---
+  // same-document navigation is not mentioned in the spec. However, we run this
+  // code also in same-document navigation cases.
+  // Same-document navigation is allowed even without any user interaction.
+  if (!isUserInvolved && !isSameDocumentNavigation) {
+    DBG("User involvement is false and not same-document navigation. Scrolling "
+        "not allowed.");
+    return false;
+  }
+  // 7. If document's node navigable has a parent, return false.
+  // ---
+  // this is extended to ignore this rule if this is a same-document navigation
+  // in an iframe, which is allowed when the document's origin matches the
+  // initiator's origin (which is checked in step 8).
+  if (!isSameDocumentNavigation &&
+      (!docShell || !docShell->GetIsTopLevelContentDocShell())) {
+    DBG("Document's node navigable has a parent and this is not a "
+        "same-document navigation. Scrolling not allowed.");
+    return false;
+  }
+  // 8. If initiator origin is non-null and document's origin is same origin
+  // with initiator origin, return true.
+  const bool isSameOrigin = [doc = this->mDocument] {
+    RefPtr<nsILoadInfo> loadInfo =
+        doc->GetChannel() ? doc->GetChannel()->LoadInfo() : nullptr;
+    if (!loadInfo) {
+      return false;
+    }
+    auto* triggeringPrincipal = loadInfo->TriggeringPrincipal();
+    auto* docPrincipal = doc->GetPrincipal();
+    return triggeringPrincipal && docPrincipal &&
+           triggeringPrincipal->Equals(docPrincipal);
+  }();
+
+  if (isSameOrigin) {
+    DBG("Same origin. Scrolling allowed.");
+    return true;
+  }
+  DBG("Not same origin.");
+
+  // 9. If document's browsing context's group's browsing context set has length
+  // 1, return true.
+  //
+  // i.e. Only allow navigation from a cross-origin element/script if the
+  // document is loaded in a noopener context. That is, a new top level browsing
+  // context group to which the navigator does not have script access and which
+  // can be placed into a separate process.
+  if (BrowsingContextGroup* group =
+          mDocument->GetBrowsingContext()
+              ? mDocument->GetBrowsingContext()->Group()
+              : nullptr) {
+    const bool isNoOpenerContext = group->Toplevels().Length() == 1;
+    if (!isNoOpenerContext) {
+      DBG("Cross-origin + noopener=false. Scrolling not allowed.");
+    }
+    return isNoOpenerContext;
+  }
+
+  // 10.Otherwise, return false.
+  DBG("Scrolling not allowed.");
+  return false;
+}
+
 void FragmentDirective::HighlightTextDirectives(
     const nsTArray<RefPtr<nsRange>>& aTextDirectiveRanges) {
   MOZ_ASSERT(mDocument);
@@ -215,7 +371,8 @@ void FragmentDirective::HighlightTextDirectives(
   }
 
   DBG("Highlighting text directives for document '%s' (%zu ranges).",
-      ToString(mDocument->GetDocumentURI()).Data(), aTextDirectiveRanges.Length());
+      ToString(mDocument->GetDocumentURI()).Data(),
+      aTextDirectiveRanges.Length());
 
   const RefPtr<Selection> targetTextSelection =
       [doc = this->mDocument]() -> Selection* {
