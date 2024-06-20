@@ -16,6 +16,7 @@
 #include "mozilla/Range.h"
 #include "mozilla/Span.h"
 #include "mozilla/TextUtils.h"
+#include "mozilla/UniquePtr.h"
 
 #include <algorithm>
 #include <array>
@@ -25,6 +26,19 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <utility>
+
+#if defined(MOZ_ICU4X)
+#  include "mozilla/intl/ICU4XGeckoDataProvider.h"
+#  include "diplomat_runtime.h"
+#  include "ICU4XAnyCalendarKind.h"
+#  include "ICU4XCalendar.h"
+#  include "ICU4XDate.h"
+#  include "ICU4XIsoDate.h"
+#  include "ICU4XIsoWeekday.h"
+#  include "ICU4XWeekCalculator.h"
+#  include "ICU4XWeekOf.h"
+#  include "ICU4XWeekRelativeUnit.h"
+#endif
 
 #include "jsfriendapi.h"
 #include "jsnum.h"
@@ -1070,6 +1084,402 @@ static CalendarId BuiltinCalendarId(const CalendarValue& calendar) {
   return calendar.toObject()->as<CalendarObject>().identifier();
 }
 
+#if defined(MOZ_ICU4X)
+static auto ToAnyCalendarKind(CalendarId id) {
+  switch (id) {
+    case CalendarId::ISO8601:
+      return capi::ICU4XAnyCalendarKind_Iso;
+    case CalendarId::Buddhist:
+      return capi::ICU4XAnyCalendarKind_Buddhist;
+    case CalendarId::Chinese:
+      return capi::ICU4XAnyCalendarKind_Chinese;
+    case CalendarId::Coptic:
+      return capi::ICU4XAnyCalendarKind_Coptic;
+    case CalendarId::Dangi:
+      return capi::ICU4XAnyCalendarKind_Dangi;
+    case CalendarId::Ethiopian:
+      return capi::ICU4XAnyCalendarKind_Ethiopian;
+    case CalendarId::EthiopianAmeteAlem:
+      return capi::ICU4XAnyCalendarKind_EthiopianAmeteAlem;
+    case CalendarId::Gregorian:
+      return capi::ICU4XAnyCalendarKind_Gregorian;
+    case CalendarId::Hebrew:
+      return capi::ICU4XAnyCalendarKind_Hebrew;
+    case CalendarId::Indian:
+      return capi::ICU4XAnyCalendarKind_Indian;
+    case CalendarId::IslamicCivil:
+      return capi::ICU4XAnyCalendarKind_IslamicCivil;
+    case CalendarId::Islamic:
+      return capi::ICU4XAnyCalendarKind_IslamicObservational;
+    case CalendarId::IslamicRGSA:
+      // ICU4X doesn't support a separate islamic-rgsa calendar, so we use the
+      // observational calendar instead. This also matches ICU4C.
+      return capi::ICU4XAnyCalendarKind_IslamicObservational;
+    case CalendarId::IslamicTabular:
+      return capi::ICU4XAnyCalendarKind_IslamicTabular;
+    case CalendarId::IslamicUmmAlQura:
+      return capi::ICU4XAnyCalendarKind_IslamicUmmAlQura;
+    case CalendarId::Japanese:
+      return capi::ICU4XAnyCalendarKind_Japanese;
+    case CalendarId::Persian:
+      return capi::ICU4XAnyCalendarKind_Persian;
+    case CalendarId::ROC:
+      return capi::ICU4XAnyCalendarKind_Roc;
+  }
+  MOZ_CRASH("invalid calendar id");
+}
+
+class ICU4XCalendarDeleter {
+ public:
+  void operator()(capi::ICU4XCalendar* ptr) {
+    capi::ICU4XCalendar_destroy(ptr);
+  }
+};
+
+using UniqueICU4XCalendar =
+    mozilla::UniquePtr<capi::ICU4XCalendar, ICU4XCalendarDeleter>;
+
+static UniqueICU4XCalendar CreateICU4XCalendar(JSContext* cx, CalendarId id) {
+  auto result = capi::ICU4XCalendar_create_for_kind(
+      mozilla::intl::GetDataProvider(), ToAnyCalendarKind(id));
+  if (!result.is_ok) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
+    return nullptr;
+  }
+  return UniqueICU4XCalendar{result.ok};
+}
+
+class ICU4XDateDeleter {
+ public:
+  void operator()(capi::ICU4XDate* ptr) { capi::ICU4XDate_destroy(ptr); }
+};
+
+using UniqueICU4XDate = mozilla::UniquePtr<capi::ICU4XDate, ICU4XDateDeleter>;
+
+static UniqueICU4XDate CreateICU4XDate(JSContext* cx, const PlainDate& date,
+                                       const capi::ICU4XCalendar* calendar) {
+  auto result = capi::ICU4XDate_create_from_iso_in_calendar(
+      date.year, date.month, date.day, calendar);
+  if (!result.is_ok) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
+    return nullptr;
+  }
+  return UniqueICU4XDate{result.ok};
+}
+
+class ICU4XIsoDateDeleter {
+ public:
+  void operator()(capi::ICU4XIsoDate* ptr) { capi::ICU4XIsoDate_destroy(ptr); }
+};
+
+using UniqueICU4XIsoDate =
+    mozilla::UniquePtr<capi::ICU4XIsoDate, ICU4XIsoDateDeleter>;
+
+class ICU4XWeekCalculatorDeleter {
+ public:
+  void operator()(capi::ICU4XWeekCalculator* ptr) {
+    capi::ICU4XWeekCalculator_destroy(ptr);
+  }
+};
+
+using UniqueICU4XWeekCalculator =
+    mozilla::UniquePtr<capi::ICU4XWeekCalculator, ICU4XWeekCalculatorDeleter>;
+
+static UniqueICU4XWeekCalculator CreateICU4WeekCalculator(JSContext* cx,
+                                                          CalendarId calendar) {
+  MOZ_ASSERT(calendar == CalendarId::Gregorian);
+
+  auto firstWeekday = capi::ICU4XIsoWeekday_Monday;
+  uint8_t minWeekDays = 1;
+
+  auto* result =
+      capi::ICU4XWeekCalculator_create_from_first_day_of_week_and_min_week_days(
+          firstWeekday, minWeekDays);
+  return UniqueICU4XWeekCalculator{result};
+}
+
+#endif
+
+/**
+ * CalendarDateMonth ( calendar, date )
+ */
+static bool CalendarDateMonth(JSContext* cx, CalendarId calendar,
+                              const PlainDate& date,
+                              MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t month = capi::ICU4XDate_ordinal_month(dt.get());
+  result.setInt32(month);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateDay ( calendar, date )
+ */
+static bool CalendarDateDay(JSContext* cx, CalendarId calendar,
+                            const PlainDate& date,
+                            MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t day = capi::ICU4XDate_day_of_month(dt.get());
+  result.setInt32(day);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateDayOfWeek ( calendar, date )
+ */
+static bool CalendarDateDayOfWeek(JSContext* cx, CalendarId calendar,
+                                  const PlainDate& date,
+                                  MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  // Week day codes are correctly ordered.
+  static_assert(capi::ICU4XIsoWeekday_Monday == 1);
+  static_assert(capi::ICU4XIsoWeekday_Tuesday == 2);
+  static_assert(capi::ICU4XIsoWeekday_Wednesday == 3);
+  static_assert(capi::ICU4XIsoWeekday_Thursday == 4);
+  static_assert(capi::ICU4XIsoWeekday_Friday == 5);
+  static_assert(capi::ICU4XIsoWeekday_Saturday == 6);
+  static_assert(capi::ICU4XIsoWeekday_Sunday == 7);
+
+  capi::ICU4XIsoWeekday day = capi::ICU4XDate_day_of_week(dt.get());
+  result.setInt32(static_cast<int32_t>(day));
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateWeekOfYear ( calendar, date )
+ */
+static bool CalendarDateWeekOfYear(JSContext* cx, CalendarId calendar,
+                                   const PlainDate& date,
+                                   MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  // Non-Gregorian calendars don't get week-of-year support for now.
+  //
+  // https://github.com/tc39/proposal-intl-era-monthcode/issues/15
+  if (calendar != CalendarId::Gregorian) {
+    result.setUndefined();
+    return true;
+  }
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  auto weekCal = CreateICU4WeekCalculator(cx, calendar);
+  if (!weekCal) {
+    return false;
+  }
+
+  auto week = capi::ICU4XDate_week_of_year(dt.get(), weekCal.get());
+  if (!week.is_ok) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
+    return false;
+  }
+
+  result.setInt32(week.ok.week);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateDaysInWeek ( calendar, date )
+ */
+static bool CalendarDateDaysInWeek(JSContext* cx, CalendarId calendar,
+                                   const PlainDate& date,
+                                   MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  // All supported ICU4X calendars use a 7-day week.
+  //
+  // This function isn't supported through the ICU4X FFI, so we have to
+  // hardcode the result.
+  result.setInt32(7);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateDaysInMonth ( calendar, date )
+ */
+static bool CalendarDateDaysInMonth(JSContext* cx, CalendarId calendar,
+                                    const PlainDate& date,
+                                    MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t days = capi::ICU4XDate_days_in_month(dt.get());
+  result.setInt32(days);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateDaysInYear ( calendar, date )
+ */
+static bool CalendarDateDaysInYear(JSContext* cx, CalendarId calendar,
+                                   const PlainDate& date,
+                                   MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t days = capi::ICU4XDate_days_in_year(dt.get());
+  result.setInt32(days);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateMonthsInYear ( calendar, date )
+ */
+static bool CalendarDateMonthsInYear(JSContext* cx, CalendarId calendar,
+                                     const PlainDate& date,
+                                     MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t months = capi::ICU4XDate_months_in_year(dt.get());
+  result.setInt32(months);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateAddition ( calendar, date, duration, overflow )
+ */
+static bool CalendarDateAddition(JSContext* cx, CalendarId calendar,
+                                 const PlainDate& date,
+                                 const DateDuration& duration,
+                                 TemporalOverflow overflow, PlainDate* result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  // FIXME: Not supported in ICU4X. Use the ISO8601 calendar code for now.
+  //
+  // https://github.com/unicode-org/icu4x/issues/3964
+
+  return AddISODate(cx, date, duration, overflow, result);
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateDifference ( calendar, one, two, largestUnit )
+ */
+static bool CalendarDateDifference(JSContext* cx, CalendarId calendar,
+                                   const PlainDate& one, const PlainDate& two,
+                                   TemporalUnit largestUnit,
+                                   DateDuration* result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  // FIXME: Not supported in ICU4X. Use the ISO8601 calendar code for now.
+  //
+  // https://github.com/unicode-org/icu4x/issues/3964
+
+  *result = DifferenceISODate(one, two, largestUnit);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
 static bool ToCalendarField(JSContext* cx, JSLinearString* linear,
                             CalendarField* result) {
   if (StringEqualsLiteral(linear, "year")) {
@@ -1686,8 +2096,11 @@ static bool BuiltinCalendarMonth(JSContext* cx, CalendarId calendarId,
   // Steps 1-4. (Not applicable.)
 
   // Steps 5-7.
-  result.setInt32(date.month);
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    result.setInt32(date.month);
+    return true;
+  }
+  return CalendarDateMonth(cx, calendarId, date, result);
 }
 
 static bool Calendar_month(JSContext* cx, unsigned argc, Value* vp);
@@ -1847,8 +2260,11 @@ static bool BuiltinCalendarDay(JSContext* cx, CalendarId calendarId,
   // Steps 1-3. (Not applicable.)
 
   // Steps 4-6.
-  result.setInt32(date.day);
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    result.setInt32(date.day);
+    return true;
+  }
+  return CalendarDateDay(cx, calendarId, date, result);
 }
 
 /**
@@ -1971,8 +2387,11 @@ static bool BuiltinCalendarDayOfWeek(JSContext* cx, CalendarId calendarId,
   // Steps 1-3. (Not applicable.)
 
   // Steps 4-6.
-  result.setInt32(ToISODayOfWeek(date));
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    result.setInt32(ToISODayOfWeek(date));
+    return true;
+  }
+  return CalendarDateDayOfWeek(cx, calendarId, date, result);
 }
 
 static bool Calendar_dayOfWeek(JSContext* cx, unsigned argc, Value* vp);
@@ -2103,8 +2522,11 @@ static bool BuiltinCalendarWeekOfYear(JSContext* cx, CalendarId calendarId,
   // Steps 1-3. (Not applicable.)
 
   // Steps 4-6.
-  result.setInt32(ToISOWeekOfYear(date).week);
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    result.setInt32(ToISOWeekOfYear(date).week);
+    return true;
+  }
+  return CalendarDateWeekOfYear(cx, calendarId, date, result);
 }
 
 static bool Calendar_weekOfYear(JSContext* cx, unsigned argc, Value* vp);
@@ -2237,8 +2659,11 @@ static bool BuiltinCalendarDaysInWeek(JSContext* cx, CalendarId calendarId,
   // Steps 1-3. (Not applicable.)
 
   // Steps 4-6.
-  result.setInt32(7);
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    result.setInt32(7);
+    return true;
+  }
+  return CalendarDateDaysInWeek(cx, calendarId, date, result);
 }
 
 static bool Calendar_daysInWeek(JSContext* cx, unsigned argc, Value* vp);
@@ -2304,8 +2729,11 @@ static bool BuiltinCalendarDaysInMonth(JSContext* cx, CalendarId calendarId,
   // Steps 1-3. (Not applicable.)
 
   // Steps 4-6.
-  result.setInt32(::ISODaysInMonth(date.year, date.month));
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    result.setInt32(::ISODaysInMonth(date.year, date.month));
+    return true;
+  }
+  return CalendarDateDaysInMonth(cx, calendarId, date, result);
 }
 
 static bool Calendar_daysInMonth(JSContext* cx, unsigned argc, Value* vp);
@@ -2382,8 +2810,11 @@ static bool BuiltinCalendarDaysInYear(JSContext* cx, CalendarId calendarId,
   // Steps 1-3. (Not applicable.)
 
   // Steps 4-6.
-  result.setInt32(ISODaysInYear(date.year));
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    result.setInt32(ISODaysInYear(date.year));
+    return true;
+  }
+  return CalendarDateDaysInYear(cx, calendarId, date, result);
 }
 
 static bool Calendar_daysInYear(JSContext* cx, unsigned argc, Value* vp);
@@ -2460,8 +2891,11 @@ static bool BuiltinCalendarMonthsInYear(JSContext* cx, CalendarId calendarId,
   // Steps 1-3. (Not applicable.)
 
   // Steps 4-6.
-  result.setInt32(12);
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    result.setInt32(12);
+    return true;
+  }
+  return CalendarDateMonthsInYear(cx, calendarId, date, result);
 }
 
 static bool Calendar_monthsInYear(JSContext* cx, unsigned argc, Value* vp);
@@ -3426,7 +3860,15 @@ static bool BuiltinCalendarAdd(JSContext* cx, CalendarId calendarId,
       duration.date.weeks,
       duration.date.days + balanceResult.days,
   };
-  return AddISODate(cx, date, addDuration, overflow, result);
+
+  // Step 9.
+  if (calendarId == CalendarId::ISO8601) {
+    return AddISODate(cx, date, addDuration, overflow, result);
+  }
+
+  // Step 10.
+  return CalendarDateAddition(cx, calendarId, date, addDuration, overflow,
+                              result);
 }
 
 /**
@@ -3824,8 +4266,13 @@ static bool BuiltinCalendarDateUntil(JSContext* cx, CalendarId calendarId,
   // Steps 1-7. (Not applicable)
 
   // Step 8.
-  *result = DifferenceISODate(one, two, largestUnit);
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    *result = DifferenceISODate(one, two, largestUnit);
+    return true;
+  }
+
+  // Step 9.
+  return CalendarDateDifference(cx, calendarId, one, two, largestUnit, result);
 }
 
 /**
