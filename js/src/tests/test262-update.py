@@ -26,6 +26,7 @@ UNSUPPORTED_FEATURES = set(
         "set-methods",  # Bug 1805038
         "explicit-resource-management",  # Bug 1569081
         "regexp-modifiers",
+        "promise-try",
     ]
 )
 FEATURE_CHECK_NEEDED = {
