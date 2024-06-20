@@ -366,7 +366,8 @@ nsDocShell::nsDocShell(BrowsingContext* aBrowsingContext,
       mIsNavigating(false),
       mForcedAutodetection(false),
       mCheckingSessionHistory(false),
-      mNeedToReportActiveAfterLoadingBecomesActive(false) {
+      mNeedToReportActiveAfterLoadingBecomesActive(false),
+      mCurrentLoadIsSameDocumentNavigation(false) {
   // If no outer window ID was provided, generate a new one.
   if (aContentWindowID == 0) {
     mContentWindowID = nsContentUtils::GenerateWindowId();
@@ -8628,9 +8629,8 @@ bool nsDocShell::IsSameDocumentNavigation(nsDocShellLoadState* aLoadState,
 }
 
 nsresult nsDocShell::HandleSameDocumentNavigation(
-    nsDocShellLoadState* aLoadState, SameDocumentNavigationState& aState,
-    bool& aSameDocument) {
-  aSameDocument = true;
+    nsDocShellLoadState* aLoadState, SameDocumentNavigationState& aState) {
+  mCurrentLoadIsSameDocumentNavigation = true;
 #ifdef DEBUG
   SameDocumentNavigationState state;
   MOZ_ASSERT(IsSameDocumentNavigation(aLoadState, state));
@@ -8673,7 +8673,7 @@ nsresult nsDocShell::HandleSameDocumentNavigation(
                                                              mCurrentURI) ||
         nsScriptSecurityManager::IsHttpOrHttpsAndCrossOrigin(mCurrentURI,
                                                              newURI)) {
-      aSameDocument = false;
+      mCurrentLoadIsSameDocumentNavigation = false;
       MOZ_LOG(gSHLog, LogLevel::Debug,
               ("nsDocShell[%p]: possible violation of the same origin policy "
                "during same document navigation",
@@ -9136,6 +9136,10 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   MOZ_ASSERT(aLoadState->TriggeringPrincipal(),
              "need a valid TriggeringPrincipal");
 
+  // Set this to false to take early returns into account.
+  // This flag is set to true in `HandleSameDocumentNavigation()`.
+  mCurrentLoadIsSameDocumentNavigation = false;
+
   if (!aLoadState->TriggeringPrincipal()) {
     MOZ_ASSERT(false, "InternalLoad needs a valid triggeringPrincipal");
     return NS_ERROR_FAILURE;
@@ -9184,7 +9188,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   // If we don't have a target, we're loading into ourselves, and our load
   // delegate may want to intercept that load.
   SameDocumentNavigationState sameDocumentNavigationState;
-  bool sameDocument =
+  const bool maybeSameDocumentNavigation =
       IsSameDocumentNavigation(aLoadState, sameDocumentNavigationState) &&
       !aLoadState->GetPendingRedirectedChannel();
 
@@ -9291,14 +9295,15 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   // See if this is actually a load between two history entries for the same
   // document. If the process fails, or if we successfully navigate within the
   // same document, return.
-  if (sameDocument) {
-    nsresult rv = HandleSameDocumentNavigation(
-        aLoadState, sameDocumentNavigationState, sameDocument);
+  if (maybeSameDocumentNavigation) {
+    nsresult rv =
+        HandleSameDocumentNavigation(aLoadState, sameDocumentNavigationState);
     NS_ENSURE_SUCCESS(rv, rv);
     if (shouldTakeFocus) {
       mBrowsingContext->Focus(CallerType::System, IgnoreErrors());
     }
-    if (sameDocument) {
+    // This flag is set in `HandleSameDocumentNavigation()`.
+    if (mCurrentLoadIsSameDocumentNavigation) {
       return rv;
     }
   }
