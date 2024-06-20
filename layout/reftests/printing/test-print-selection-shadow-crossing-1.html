@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html reftest-print-range="selection">
+<head>
+  <meta charset="utf-8">
+  <link id="style" href="print.css" rel="stylesheet">
+  <script>
+    function selectNodesInShadowTree() {
+      let host = document.getElementById("host");
+      host.attachShadow({ mode: "open" }).innerHTML = `
+        <link id="style" href="print.css" rel="stylesheet">
+        <p id="shadowContent1">ShadowContent1</p>
+        <p id="shadowContent2">ShadowContent2</p>
+        <p id="shadowContent3">ShadowContent3</p>
+      `;
+
+      // A shadow-crossing selection where the start node is in light DOM,
+      // and the end node is in shadow DOM.
+      window.getSelection()
+        .setBaseAndExtent(
+          lightContent1.firstChild,
+          3,
+          host.shadowRoot.getElementById("shadowContent1").firstChild,
+          4);
+    }
+  </script>
+</head>
+<body onload="selectNodesInShadowTree()">
+  <p id="lightContent1">LightContent1</p>
+  <div id="host">Shouldn't show up (in the shadows)</div>
+  <p id="lightContent2">LightContent2</p>
+</body>
+</html>

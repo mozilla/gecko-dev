@@ -1978,7 +1978,7 @@ function RecvStartPrint(isPrintSelection, printRange) {
   ps.toFileName = file.path;
   ps.outputFormat = Ci.nsIPrintSettings.kOutputFormatPDF;
   ps.printSelectionOnly = isPrintSelection;
-  if (printRange) {
+  if (printRange && !isPrintSelection) {
     ps.pageRanges = printRange
       .split(",")
       .map(function (r) {
