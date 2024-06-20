@@ -262,6 +262,10 @@ TEST(CSPParser, Keywords)
       "trusted-types somePolicyName 'allow-duplicates'" },
     { "trusted-types 'none'", "trusted-types 'none'" },
     { "trusted-types", "trusted-types 'none'" },
+    { "trusted-types 'none' somePolicyName", "trusted-types somePolicyName" },
+    { "trusted-types 'none' 'none'", "trusted-types 'none'" },
+    { "trusted-types 'none' 'allow-duplicates'", "trusted-types 'allow-duplicates'" },
+    { "trusted-types 'none' *", "trusted-types *" },
     { "trusted-types *", "trusted-types *" },
       // clang-format on
   };
@@ -606,6 +610,8 @@ TEST(CSPParser, BadPolicies)
     { "require-sri-for", ""},
     { "require-sri-for style", ""},
     { "trusted-types $", ""},
+    { "trusted-types 'report-sample'", "" },
+
       // clang-format on
   };
 
