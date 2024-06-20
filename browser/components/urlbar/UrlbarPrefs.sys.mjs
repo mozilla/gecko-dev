@@ -181,6 +181,11 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // for Pocket suggestions.
   ["pocket.showLessFrequentlyCount", 0],
 
+  // The group-relative suggestedIndex of Pocket suggestions within the Firefox
+  // Suggest section. This is a fallback pref for the `pocketSuggestIndex` Nimbus
+  // variable.
+  ["pocket.suggestedIndex", 0],
+
   // If disabled, QuickActions will not be included in either the default search
   // mode or the QuickActions search mode.
   ["quickactions.enabled", true],

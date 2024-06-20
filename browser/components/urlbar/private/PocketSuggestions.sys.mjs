@@ -185,6 +185,18 @@ export class PocketSuggestions extends BaseFeature {
     );
     url.searchParams.set("utm_content", "treatment");
 
+    let resultProperties = {
+      isRichSuggestion: true,
+      richSuggestionIconSize: suggestion.is_top_pick ? 24 : 16,
+      showFeedbackMenu: true,
+    };
+
+    if (!suggestion.is_top_pick) {
+      resultProperties.isSuggestedIndexRelativeToGroup = true;
+      resultProperties.suggestedIndex =
+        lazy.UrlbarPrefs.get("pocketSuggestIndex");
+    }
+
     return Object.assign(
       new lazy.UrlbarResult(
         lazy.UrlbarUtils.RESULT_TYPE.URL,
@@ -212,11 +224,7 @@ export class PocketSuggestions extends BaseFeature {
           helpUrl: lazy.QuickSuggest.HELP_URL,
         })
       ),
-      {
-        isRichSuggestion: true,
-        richSuggestionIconSize: suggestion.is_top_pick ? 24 : 16,
-        showFeedbackMenu: true,
-      }
+      resultProperties
     );
   }
 

@@ -656,6 +656,10 @@ pref("browser.urlbar.addons.minKeywordLength", 0);
 // Feature gate pref for Pocket suggestions in the urlbar.
 pref("browser.urlbar.pocket.featureGate", false);
 
+// The group-relative suggestedIndex of Pocket suggestions within the Firefox
+// Suggest section.
+pref("browser.urlbar.pocket.suggestedIndex", 0);
+
 // If `browser.urlbar.pocket.featureGate` is true, this controls whether Pocket
 // suggestions are turned on.
 pref("browser.urlbar.suggest.pocket", true);

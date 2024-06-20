@@ -274,6 +274,12 @@ urlbar:
         will be able to click the "Show less frequently" command for Pocket
         suggestions. If undefined or zero, the user will be able to click the
         command without any limit.
+    pocketSuggestIndex:
+      type: int
+      fallbackPref: browser.urlbar.pocket.suggestedIndex
+      description: >-
+        The group-relative suggestedIndex of Pocket suggestions within the Firefox
+        Suggest section.
     potentialExposureKeywords:
       type: json
       fallbackPref: browser.urlbar.potentialExposureKeywords

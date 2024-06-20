@@ -46,6 +46,57 @@ add_setup(async () => {
   });
 });
 
+// Tests the `pocketSuggestIndex` Nimbus variable, which controls the
+// group-relative suggestedIndex. The default Pocket suggestedIndex is 0.
+add_task(async function nimbusSuggestedIndex() {
+  const cleanUpNimbusEnable = await UrlbarTestUtils.initNimbusFeature({
+    pocketSuggestIndex: -1,
+  });
+  await QuickSuggestTestUtils.forceSync();
+
+  await check_results({
+    context: createContext(LOW_KEYWORD, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [
+      makeExpectedResult({
+        searchString: LOW_KEYWORD,
+        suggestedIndex: -1,
+      }),
+    ],
+  });
+  await check_results({
+    context: createContext(HIGH_KEYWORD, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [
+      makeExpectedResult({
+        searchString: HIGH_KEYWORD,
+        suggestedIndex: 1,
+        isTopPick: true,
+      }),
+    ],
+  });
+
+  await cleanUpNimbusEnable();
+  await QuickSuggestTestUtils.forceSync();
+
+  await check_results({
+    context: createContext(LOW_KEYWORD, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [
+      makeExpectedResult({
+        searchString: LOW_KEYWORD,
+        suggestedIndex: 0,
+      }),
+    ],
+  });
+});
+
 add_task(async function telemetryType() {
   Assert.equal(
     QuickSuggest.getFeature("PocketSuggestions").getSuggestionTelemetryType({}),
@@ -467,6 +518,7 @@ function makeExpectedResult({
   suggestion = REMOTE_SETTINGS_DATA[0].attachment[0],
   source = "remote-settings",
   isTopPick = false,
+  suggestedIndex,
 } = {}) {
   if (
     source == "remote-settings" &&
@@ -499,9 +551,16 @@ function makeExpectedResult({
   url.searchParams.set("utm_campaign", "pocket-collections-in-the-address-bar");
   url.searchParams.set("utm_content", "treatment");
 
+  let expectedSuggestedIndex = 0;
+  if (suggestedIndex !== undefined) {
+    expectedSuggestedIndex = suggestedIndex;
+  } else if (isTopPick) {
+    expectedSuggestedIndex = 1;
+  }
+
   return {
     isBestMatch: isTopPick,
-    suggestedIndex: isTopPick ? 1 : -1,
+    suggestedIndex: expectedSuggestedIndex,
     type: UrlbarUtils.RESULT_TYPE.URL,
     source: UrlbarUtils.RESULT_SOURCE.OTHER_NETWORK,
     heuristic: false,
