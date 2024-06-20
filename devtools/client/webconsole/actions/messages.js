@@ -36,9 +36,13 @@ function messagesAdd(resources, idGenerator = null, persistLogs = false) {
   if (idGenerator == null) {
     idGenerator = defaultIdGenerator;
   }
-  const messages = resources.map(resource =>
-    prepareMessage(resource, idGenerator, persistLogs)
-  );
+  const messages = [];
+  for (const resource of resources) {
+    const message = prepareMessage(resource, idGenerator, persistLogs);
+    if (message) {
+      messages.push(message);
+    }
+  }
   // Sort the messages by their timestamps.
   messages.sort(getNaturalOrder);
 

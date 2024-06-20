@@ -518,11 +518,6 @@ class WebConsoleUI {
         continue;
       }
 
-      if (resource.resourceType === TYPES.JSTRACER_TRACE) {
-        this.wrapper.dispatchJsTraces(resource);
-        continue;
-      }
-
       if (resource.resourceType === TYPES.NETWORK_EVENT) {
         this.networkDataProvider?.onNetworkResourceAvailable(resource);
       }

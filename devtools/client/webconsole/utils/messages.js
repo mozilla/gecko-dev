@@ -96,7 +96,11 @@ function prepareMessage(resource, idGenerator, persistLogs) {
     resource = transformResource(resource, persistLogs);
   }
 
-  resource.id = idGenerator.getNextId(resource);
+  // The Tracer resource transformer may process some resource
+  // which aren't translated into any item in the console (Tracer frames)
+  if (resource) {
+    resource.id = idGenerator.getNextId(resource);
+  }
   return resource;
 }
 
@@ -138,6 +142,10 @@ function transformResource(resource, persistLogs) {
 
     case ResourceCommand.TYPES.JSTRACER_STATE: {
       return transformTracerStateResource(resource);
+    }
+
+    case ResourceCommand.TYPES.JSTRACER_TRACE: {
+      return transformTraceResource(resource);
     }
 
     case "will-navigate": {
@@ -374,20 +382,17 @@ function transformNetworkEventResource(networkEventResource) {
 }
 
 function transformTraceResource(traceResource) {
-  const { targetFront, traces, exitTraces, domMutations, events, frames } =
-    traceResource;
+  const { targetFront } = traceResource;
+  const type = traceResource[0];
   const collectedFrames = targetFront.getJsTracerCollectedFramesArray();
-  if (frames) {
-    for (const frame of frames) {
-      collectedFrames.push(frame);
-    }
-  }
-  const messages = [];
-  for (const trace of traces) {
-    const [prefix, frameIndex, timeStamp, depth, args] = trace;
-    const frame = collectedFrames[frameIndex];
-    messages.push(
-      new ConsoleMessage({
+  switch (type) {
+    case "frame":
+      collectedFrames.push(traceResource.slice(1));
+      return null;
+    case "enter": {
+      const [, prefix, frameIndex, timeStamp, depth, args] = traceResource;
+      const frame = collectedFrames[frameIndex];
+      return new ConsoleMessage({
         targetFront,
         source: MESSAGE_SOURCE.JSTRACER,
         frame: {
@@ -410,13 +415,11 @@ function transformTraceResource(traceResource) {
         // Allow the identical frames to be coalesced into a unique message
         // with a repeatition counter so that we keep the output short in case of loops.
         allowRepeating: true,
-      })
-    );
-  }
-
-  if (exitTraces) {
-    for (const trace of exitTraces) {
+      });
+    }
+    case "exit": {
       const [
+        ,
         prefix,
         frameIndex,
         timeStamp,
@@ -424,97 +427,85 @@ function transformTraceResource(traceResource) {
         relatedTraceId,
         returnedValue,
         why,
-      ] = trace;
+      ] = traceResource;
       const frame = collectedFrames[frameIndex];
-      messages.push(
-        new ConsoleMessage({
-          targetFront,
-          source: MESSAGE_SOURCE.JSTRACER,
-          frame: {
-            source: frame[TRACER_FIELDS_INDEXES.FRAME_URL],
-            sourceId: frame[TRACER_FIELDS_INDEXES.FRAME_SOURCEID],
-            line: frame[TRACER_FIELDS_INDEXES.FRAME_LINE],
-            column: frame[TRACER_FIELDS_INDEXES.FRAME_COLUMN],
-          },
-          depth,
-          implementation: frame[TRACER_FIELDS_INDEXES.FRAME_IMPLEMENTATION],
-          displayName: frame[TRACER_FIELDS_INDEXES.FRAME_NAME],
-          parameters: null,
-          returnedValue:
-            returnedValue != undefined
-              ? getAdHocFrontOrPrimitiveGrip(returnedValue, targetFront)
-              : null,
-          relatedTraceId,
-          why,
-          messageText: null,
-          timeStamp,
-          prefix,
-          // Allow the identical frames to be coallesced into a unique message
-          // with a repeatition counter so that we keep the output short in case of loops.
-          allowRepeating: true,
-        })
-      );
+      return new ConsoleMessage({
+        targetFront,
+        source: MESSAGE_SOURCE.JSTRACER,
+        frame: {
+          source: frame[TRACER_FIELDS_INDEXES.FRAME_URL],
+          sourceId: frame[TRACER_FIELDS_INDEXES.FRAME_SOURCEID],
+          line: frame[TRACER_FIELDS_INDEXES.FRAME_LINE],
+          column: frame[TRACER_FIELDS_INDEXES.FRAME_COLUMN],
+        },
+        depth,
+        implementation: frame[TRACER_FIELDS_INDEXES.FRAME_IMPLEMENTATION],
+        displayName: frame[TRACER_FIELDS_INDEXES.FRAME_NAME],
+        parameters: null,
+        returnedValue:
+          returnedValue != undefined
+            ? getAdHocFrontOrPrimitiveGrip(returnedValue, targetFront)
+            : null,
+        relatedTraceId,
+        why,
+        messageText: null,
+        timeStamp,
+        prefix,
+        // Allow the identical frames to be coallesced into a unique message
+        // with a repeatition counter so that we keep the output short in case of loops.
+        allowRepeating: true,
+      });
     }
-  }
-
-  if (domMutations) {
-    for (const trace of domMutations) {
+    case "dom-mutation": {
       const [
+        ,
         prefix,
         frameIndex,
         timeStamp,
         depth,
         mutationType,
         mutationElement,
-      ] = trace;
+      ] = traceResource;
       const frame = collectedFrames[frameIndex];
-      messages.push(
-        new ConsoleMessage({
-          targetFront,
-          source: MESSAGE_SOURCE.JSTRACER,
-          frame: {
-            source: frame[TRACER_FIELDS_INDEXES.FRAME_URL],
-            sourceId: frame[TRACER_FIELDS_INDEXES.FRAME_SOURCEID],
-            line: frame[TRACER_FIELDS_INDEXES.FRAME_LINE],
-            column: frame[TRACER_FIELDS_INDEXES.FRAME_COLUMN],
-          },
-          depth,
-          implementation: frame[TRACER_FIELDS_INDEXES.FRAME_IMPLEMENTATION],
-          displayName: frame[TRACER_FIELDS_INDEXES.FRAME_NAME],
-          parameters: null,
-          messageText: null,
-          timeStamp,
-          prefix,
-          mutationType,
-          mutationElement: mutationElement
-            ? getAdHocFrontOrPrimitiveGrip(mutationElement, targetFront)
-            : null,
-          // Allow the identical frames to be coallesced into a unique message
-          // with a repeatition counter so that we keep the output short in case of loops.
-          allowRepeating: true,
-        })
-      );
+      return new ConsoleMessage({
+        targetFront,
+        source: MESSAGE_SOURCE.JSTRACER,
+        frame: {
+          source: frame[TRACER_FIELDS_INDEXES.FRAME_URL],
+          sourceId: frame[TRACER_FIELDS_INDEXES.FRAME_SOURCEID],
+          line: frame[TRACER_FIELDS_INDEXES.FRAME_LINE],
+          column: frame[TRACER_FIELDS_INDEXES.FRAME_COLUMN],
+        },
+        depth,
+        implementation: frame[TRACER_FIELDS_INDEXES.FRAME_IMPLEMENTATION],
+        displayName: frame[TRACER_FIELDS_INDEXES.FRAME_NAME],
+        parameters: null,
+        messageText: null,
+        timeStamp,
+        prefix,
+        mutationType,
+        mutationElement: mutationElement
+          ? getAdHocFrontOrPrimitiveGrip(mutationElement, targetFront)
+          : null,
+        // Allow the identical frames to be coallesced into a unique message
+        // with a repeatition counter so that we keep the output short in case of loops.
+        allowRepeating: true,
+      });
+    }
+    case "event": {
+      const [, prefix, timeStamp, eventName] = traceResource;
+      return new ConsoleMessage({
+        targetFront,
+        source: MESSAGE_SOURCE.JSTRACER,
+        depth: 0,
+        prefix,
+        timeStamp,
+        eventName,
+        allowRepeating: false,
+      });
     }
   }
-
-  if (events) {
-    for (const trace of events) {
-      const [prefix, timeStamp, eventName] = trace;
-      messages.push(
-        new ConsoleMessage({
-          targetFront,
-          source: MESSAGE_SOURCE.JSTRACER,
-          depth: 0,
-          prefix,
-          timeStamp,
-          eventName,
-          allowRepeating: false,
-        })
-      );
-    }
-  }
-
-  return messages;
+  return null;
 }
 
 function transformTracerStateResource(stateResource) {
@@ -1122,5 +1113,4 @@ module.exports = {
   isWarningGroup,
   l10n,
   prepareMessage,
-  transformTraceResource,
 };

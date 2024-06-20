@@ -74,10 +74,6 @@ class TracerActor extends Actor {
   // each focusing on particular data type.
   // All these arrays contains arrays as elements.
   #throttledTraces = [];
-  #throttledExitTraces = [];
-  #throttledDOMMutations = [];
-  #throttledEvents = [];
-  #throttledFrames = [];
 
   // Index of the next collected frame
   #frameIndex = 0;
@@ -349,7 +345,8 @@ class TracerActor extends Actor {
         caller.columnNumber,
         caller.filename
       );
-      this.#throttledDOMMutations.push([
+      this.#throttledTraces.push([
+        "dom-mutation",
         prefix,
         frameIndex,
         ChromeUtils.dateNow(),
@@ -408,6 +405,7 @@ class TracerActor extends Actor {
         url
       );
       this.#throttledTraces.push([
+        "step",
         prefix,
         frameIndex,
         ChromeUtils.dateNow(),
@@ -427,10 +425,18 @@ class TracerActor extends Actor {
       frameIndex = this.#frameIndex++;
 
       // Remember updating TRACER_FIELDS_INDEXES when modifying the following array:
-      const frameArray = [implementation, name, sourceId, line, column, url];
+      const frameArray = [
+        "frame",
+        implementation,
+        name,
+        sourceId,
+        line,
+        column,
+        url,
+      ];
 
       this.#frameMap.set(key, frameIndex);
-      this.#throttledFrames.push(frameArray);
+      this.#throttledTraces.push(frameArray);
     }
     return frameIndex;
   }
@@ -485,7 +491,8 @@ class TracerActor extends Actor {
       // In this case, log a preliminary message, which looks different to highlight it.
       if (currentDOMEvent && depth == 0) {
         // Create a JSTRACER_TRACE resource with a slightly different shape
-        this.#throttledEvents.push([
+        this.#throttledTraces.push([
+          "event",
           prefix,
           ChromeUtils.dateNow(),
           currentDOMEvent,
@@ -519,6 +526,7 @@ class TracerActor extends Actor {
         url
       );
       this.#throttledTraces.push([
+        "enter",
         prefix,
         frameIndex,
         ChromeUtils.dateNow(),
@@ -620,7 +628,8 @@ class TracerActor extends Actor {
         column,
         url
       );
-      this.#throttledExitTraces.push([
+      this.#throttledTraces.push([
+        "exit",
         prefix,
         frameIndex,
         ChromeUtils.dateNow(),
@@ -650,40 +659,7 @@ class TracerActor extends Actor {
     const traces = this.#throttledTraces;
     this.#throttledTraces = [];
 
-    let exitTraces = undefined;
-    if (this.#throttledExitTraces.length) {
-      exitTraces = this.#throttledExitTraces;
-      this.#throttledExitTraces = [];
-    }
-
-    let domMutations = undefined;
-    if (this.#throttledDOMMutations.length) {
-      domMutations = this.#throttledDOMMutations;
-      this.#throttledDOMMutations = [];
-    }
-
-    let events = undefined;
-    if (this.#throttledEvents.length) {
-      events = this.#throttledEvents;
-      this.#throttledEvents = [];
-    }
-
-    let frames = undefined;
-    if (this.#throttledFrames.length) {
-      frames = this.#throttledFrames;
-      this.#throttledFrames = [];
-    }
-
-    traceWatcher.emitTraces([
-      {
-        resourceType: JSTRACER_TRACE,
-        traces,
-        exitTraces,
-        domMutations,
-        events,
-        frames,
-      },
-    ]);
+    traceWatcher.emitTraces(traces);
   }
 }
 exports.TracerActor = TracerActor;
