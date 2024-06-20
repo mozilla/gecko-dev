@@ -478,6 +478,7 @@ class RecursiveMakeBackend(MakeBackend):
         elif isinstance(obj, HostSources):
             suffix_map = {
                 ".c": "HOST_CSRCS",
+                ".mm": "HOST_CMMSRCS",
                 ".cpp": "HOST_CPPSRCS",
             }
             variables = [suffix_map[obj.canonical_suffix]]

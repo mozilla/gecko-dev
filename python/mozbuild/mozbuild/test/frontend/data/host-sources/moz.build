@@ -20,3 +20,8 @@ HOST_SOURCES += [
 HOST_SOURCES += [
     "d.c",
 ]
+
+HOST_SOURCES += [
+    "e.mm",
+    "f.mm",
+]

@@ -403,14 +403,7 @@ def add_warning(warning, compiler=None, when=None):
 # Like the warning checks above, but for general compilation flags.
 @dependable
 def compilation_flags():
-    return namespace(
-        cflags=[],
-        cxxflags=[],
-        host_cflags=[],
-        host_cxxflags=[],
-        cmflags=[],
-        cmmflags=[],
-    )
+    return namespace(cflags=[], cxxflags=[], host_cflags=[], host_cxxflags=[])
 
 
 # Tests whether GCC or clang support the given compilation flag; if the flag

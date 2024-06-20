@@ -764,6 +764,19 @@ HOST_LDFLAGS=`echo \
     $HOST_LDFLAGS \
     $_COMPILATION_HOST_LDFLAGS`
 
+HOST_CMFLAGS="-x objective-c -fobjc-exceptions"
+HOST_CMMFLAGS="-x objective-c++ -fobjc-exceptions"
+OS_COMPILE_CMFLAGS="-x objective-c -fobjc-exceptions"
+OS_COMPILE_CMMFLAGS="-x objective-c++ -fobjc-exceptions"
+if test "$MOZ_WIDGET_TOOLKIT" = uikit; then
+  OS_COMPILE_CMFLAGS="$OS_COMPILE_CMFLAGS -fobjc-abi-version=2 -fobjc-legacy-dispatch"
+  OS_COMPILE_CMMFLAGS="$OS_COMPILE_CMMFLAGS -fobjc-abi-version=2 -fobjc-legacy-dispatch"
+fi
+AC_SUBST(HOST_CMFLAGS)
+AC_SUBST(HOST_CMMFLAGS)
+AC_SUBST(OS_COMPILE_CMFLAGS)
+AC_SUBST(OS_COMPILE_CMMFLAGS)
+
 OS_CFLAGS="$CFLAGS"
 OS_CXXFLAGS="$CXXFLAGS"
 OS_CPPFLAGS="$CPPFLAGS"

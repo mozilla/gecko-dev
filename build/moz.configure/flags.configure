@@ -372,26 +372,6 @@ def expand_libs_list_style(c_compiler, link, linker_flags, extra_flags):
 
 set_config("EXPAND_LIBS_LIST_STYLE", expand_libs_list_style)
 
-
-# Objective-C/ Objective-C++ flags.
-# ---------------------------------
-@depends(compilation_flags, toolkit)
-def add_cmflags(compilation_flags, toolkit):
-    cmflags = ["-x", "objective-c", "-fobjc-exceptions"]
-    cmmflags = ["-x", "objective-c++", "-fobjc-exceptions"]
-
-    compilation_flags.cmflags.extend(cmflags)
-    compilation_flags.cmmflags.extend(cmmflags)
-    if toolkit == "uikit":
-        uiflags = ["-fobjc-abi-version=2", "-fobjc-legacy-dispatch"]
-        compilation_flags.cmflags.extend(uiflags)
-        compilation_flags.cmmflags.extend(uiflags)
-
-
-set_config("OS_COMPILE_CMFLAGS", compilation_flags.cmflags)
-set_config("OS_COMPILE_CMMFLAGS", compilation_flags.cmmflags)
-
-
 # Please keep these last in this file.
 add_old_configure_assignment("_COMPILATION_ASFLAGS", asm_flags.asflags)
 add_old_configure_assignment("_COMPILATION_HOST_ASFLAGS", asm_flags.host_asflags)
