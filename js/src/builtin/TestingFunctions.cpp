@@ -9351,19 +9351,6 @@ static bool NukeCCW(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool IsCCW(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-
-  if (!args[0].isObject()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_INVALID_ARGS,
-                              "IsCCW");
-    return false;
-  }
-
-  args.rval().setBoolean(IsCrossCompartmentWrapper(&args[0].toObject()));
-  return true;
-}
-
 static bool FdLibM_Pow(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -10466,10 +10453,6 @@ JS_FN_HELP("isSmallFunction", IsSmallFunction, 1, 0,
   "assertRealmFuseInvariants()",
   " Runs the realm's fuse invariant checks -- these will crash on failure. "
   " Only available in fuzzing or debug builds, so usage should be guarded. "),
-
-    JS_FN_HELP("isCCW", IsCCW, 1, 0,
-"isCCW(object)",
-"  Return true if an object is a CCW."),
 
   JS_FN_HELP("popAllFusesInRealm", PopAllFusesInRealm, 0, 0,
   "popAllFusesInRealm()",
