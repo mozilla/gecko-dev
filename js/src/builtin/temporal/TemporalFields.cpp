@@ -224,14 +224,23 @@ static bool TemporalFieldConvertValue(JSContext* cx, TemporalField field,
     case TemporalField::Second:
     case TemporalField::Millisecond:
     case TemporalField::Microsecond:
-    case TemporalField::Nanosecond:
-    case TemporalField::EraYear: {
+    case TemporalField::Nanosecond: {
       double num;
       if (!ToIntegerWithTruncation(cx, value, name, &num)) {
         return false;
       }
       value.setNumber(num);
       return true;
+    }
+
+    case TemporalField::EraYear: {
+      // All supported calendar systems with eras require positive era years, so
+      // we require era year to be greater than zero. If ICU4X' Ethiopian
+      // implementation get changed to allow negative era years, we need to
+      // update this code.
+      //
+      // Also see <https://unicode-org.atlassian.net/browse/ICU-21985>.
+      [[fallthrough]];
     }
 
     case TemporalField::Month:
@@ -504,7 +513,9 @@ bool js::temporal::PrepareTemporalFields(
           break;
         }
         case TemporalField::EraYear:
-          if (!ToIntegerWithTruncation(cx, value, cstr, &result.eraYear())) {
+          // See TemporalFieldConvertValue why positive era years are required.
+          if (!ToPositiveIntegerWithTruncation(cx, value, cstr,
+                                               &result.eraYear())) {
             return false;
           }
           break;
