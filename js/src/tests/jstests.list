@@ -629,6 +629,35 @@ skip script test262/intl402/DateTimeFormat/timezone-case-insensitive.js
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1859752
 skip script test262/built-ins/RegExp/unicode_full_case_folding.js
 
+# Requires Unicode 15.1
+# https://github.com/tc39/test262/issues/3945
+skip script test262/built-ins/RegExp/property-escapes/generated/Alphabetic.js                                                                                                                                                                
+skip script test262/built-ins/RegExp/property-escapes/generated/Unified_Ideograph.js                                                                                                                                                         
+skip script test262/built-ins/RegExp/property-escapes/generated/XID_Start.js                                                                                                                                                                 
+skip script test262/built-ins/RegExp/property-escapes/generated/XID_Continue.js                                                                                                                                                              
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Letter.js                                                                                                                                                 
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Han.js                                                                                                                                                   
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Malayalam.js                                                                                                                                             
+skip script test262/built-ins/RegExp/property-escapes/generated/Ideographic.js                                                                                                                                                               
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Sinhala.js                                                                                                                                               
+skip script test262/built-ins/RegExp/property-escapes/generated/IDS_Binary_Operator.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Other.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Other_Letter.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Han.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Common.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Symbol.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Common.js
+skip script test262/built-ins/RegExp/property-escapes/generated/ID_Continue.js
+skip script test262/built-ins/RegExp/property-escapes/generated/ID_Start.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Sentence_Terminal.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Unassigned.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Grapheme_Base.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Assigned.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Other_Symbol.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Sharada.js
+skip script test262/built-ins/RegExp/property-escapes/generated/strings/RGI_Emoji_ZWJ_Sequence.js
+skip script test262/built-ins/RegExp/property-escapes/generated/strings/RGI_Emoji.js
+
 # Requires CLDR 44
 # https://github.com/tc39/test262/pull/3946
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1859752
@@ -699,6 +728,10 @@ skip script test262/language/expressions/class/decorator/syntax/class-valid/deco
 # These don't expect Float16Array to be enabled, see https://github.com/tc39/test262/issues/4029
 skip script test262/harness/testTypedArray.js
 skip script test262/harness/testTypedArray-conversions.js
+
+# https://github.com/tc39/test262/pull/4114
+skip script test262/built-ins/Temporal/Duration/prototype/subtract/balance-negative-time-units.js
+
 
 ##############################################
 # Enable Iterator Helpers tests in the shell #
@@ -1074,6 +1107,44 @@ skip script test262/built-ins/Temporal/PlainDate/prototype/until/wrapping-at-end
 skip script test262/built-ins/Temporal/PlainDateTime/prototype/since/wrapping-at-end-of-month.js
 skip script test262/built-ins/Temporal/PlainDateTime/prototype/until/wrapping-at-end-of-month.js
 
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/order-of-operations.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/calendar-dateadd-called-with-options-undefined.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/roundingincrement-addition-out-of-range.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/calendar-dateuntil-called-with-singular-largestunit.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/order-of-operations.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/calendar-dateadd-called-with-options-undefined.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/roundingincrement-addition-out-of-range.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/calendar-dateuntil-called-with-singular-largestunit.js
+skip script test262/built-ins/Temporal/PlainDate/prototype/since/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainDate/prototype/until/order-of-operations.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-halfEven.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-halfTrunc.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/order-of-operations.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/largestunit-smallestunit-combinations-relativeto.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/calendar-dateadd-called-with-options-undefined.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-expand.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/dateuntil-field.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-halfFloor.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-halfCeil.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/calendar-dateuntil-called-with-singular-largestunit.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-floor.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-trunc.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-halfExpand.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-ceil.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/dst-rounding-result.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/timezone-getpossibleinstantsfor-iterable.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/dst-balancing-result.js
+skip script test262/built-ins/Temporal/Duration/prototype/total/order-of-operations.js
+skip script test262/built-ins/Temporal/Duration/prototype/total/precision-exact-mathematical-values-4.js
+skip script test262/built-ins/Temporal/Duration/prototype/total/precision-exact-mathematical-values-3.js
+skip script test262/built-ins/Temporal/Duration/prototype/total/dst-day-length.js
+skip script test262/built-ins/Temporal/Duration/prototype/total/calendar-dateuntil-called-with-singular-largestunit.js
+skip script test262/built-ins/Temporal/Duration/prototype/total/dst-rounding-result.js
+skip script test262/built-ins/Temporal/PlainDateTime/prototype/since/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainDateTime/prototype/until/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/since/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/until/order-of-operations.js
+
 
 ##############################################
 # Temporal Intl tests                        #
@@ -1159,6 +1230,15 @@ skip script test262/intl402/Temporal/PlainDateTime/prototype/withPlainDate/argum
 skip script test262/intl402/Temporal/PlainYearMonth/from/argument-object.js
 skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/order-of-operations.js
 skip script test262/intl402/Temporal/Calendar/prototype/dateFromFields/order-of-operations.js
+
+# https://github.com/tc39/test262/pull/4099
+skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/reference-day-chinese.js
+
+# https://github.com/tc39/test262/pull/4098
+skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/reference-day-gregory.js
+
+# relativeTo option removed
+skip script test262/intl402/Temporal/Duration/prototype/round/relativeto-string-datetime.js
 
 # Calendar arithmetic not yet supported in ICU4X.
 #
