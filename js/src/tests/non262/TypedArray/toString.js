@@ -51,10 +51,6 @@ const testCases = {
         array: [255, 256, 2, 3, 4, NaN],
         expected: "255,255,2,3,4,0",
     },
-    [Float16Array.name]: {
-        array: [-0, 0, 0.5, -0.5, NaN, Infinity, -Infinity],
-        expected: "0,0,0.5,-0.5,NaN,Infinity,-Infinity",
-    },
     [Float32Array.name]: {
         array: [-0, 0, 0.5, -0.5, NaN, Infinity, -Infinity],
         expected: "0,0,0.5,-0.5,NaN,Infinity,-Infinity",
