@@ -306,11 +306,16 @@ static nsCString HexString(uint32_t val) {
   return nsPrintfCString("%08" PRIX32, val);
 };
 
+static bool InShutdown() {
+  return AppShutdown::GetCurrentShutdownPhase() != ShutdownPhase::NotInShutdown;
+}
+
 static void RecordSuccess(uint64_t (&&time)[2]) {
   auto [t0, t1] = time;
 
   namespace glean_fd = mozilla::glean::file_dialog;
-  glean_fd::FallbackV2Extra extra{
+  glean_fd::FallbackV21Extra extra{
+      .inShutdown = Some(InShutdown()),
       .succeeded = Some(true),
       .timeLocal = Nothing(),
       .timeRemote = Some(Delta(t1, t0)),
@@ -319,7 +324,7 @@ static void RecordSuccess(uint64_t (&&time)[2]) {
       .whyLocal = Nothing(),
       .whyRemote = Nothing(),
   };
-  glean_fd::fallback_v2.Record(Some(extra));
+  glean_fd::fallback_v2_1.Record(Some(extra));
 }
 
 // for use when a local fallback is not attempted
@@ -327,7 +332,8 @@ static void RecordFailure(uint64_t (&&time)[2], Error const& remote) {
   auto [t0, t1] = time;
 
   namespace glean_fd = mozilla::glean::file_dialog;
-  glean_fd::FallbackV2Extra extra{
+  glean_fd::FallbackV21Extra extra{
+      .inShutdown = Some(InShutdown()),
       .succeeded = Some(false),
       .timeLocal = Nothing(),
       .timeRemote = Some(Delta(t1, t0)),
@@ -336,7 +342,7 @@ static void RecordFailure(uint64_t (&&time)[2], Error const& remote) {
       .whyLocal = Nothing(),
       .whyRemote = Some(HexString(remote.why)),
   };
-  glean_fd::fallback_v2.Record(Some(extra));
+  glean_fd::fallback_v2_1.Record(Some(extra));
 }
 
 // for use when a local fallback is attempted
@@ -345,7 +351,8 @@ static void RecordFailure(uint64_t (&&time)[3], Error const& remote,
   auto [t0, t1, t2] = time;
 
   namespace glean_fd = mozilla::glean::file_dialog;
-  glean_fd::FallbackV2Extra extra{
+  glean_fd::FallbackV21Extra extra{
+      .inShutdown = Some(InShutdown()),
       .succeeded = Some(false),
       .timeLocal = Some(Delta(t2, t1)),
       .timeRemote = Some(Delta(t1, t0)),
@@ -354,7 +361,7 @@ static void RecordFailure(uint64_t (&&time)[3], Error const& remote,
       .whyLocal = local.map([](auto const& e) { return HexString(e.why); }),
       .whyRemote = Some(HexString(remote.why)),
   };
-  glean_fd::fallback_v2.Record(Some(extra));
+  glean_fd::fallback_v2_1.Record(Some(extra));
 }
 
 }  // namespace telemetry

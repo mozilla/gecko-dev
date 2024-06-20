@@ -11,26 +11,27 @@ $tags:
   - 'Core :: Widget: Win32'
 
 file_dialog:
-  fallback_v2:
+  fallback_v2_1:
     type: event
     description: >
       Records the result of an attempt to open and use the out-of-process file
       dialog when the in-process file-dialog is available as a fallback.
-    metadata:
-      # mostly technical, but includes timing data that may derive from user
-      # interactions
-      data-sensitivity: [technical, interaction]
+    # mostly technical, but includes timing data that may derive from user
+    # interactions
+    data_sensitivity: [technical, interaction]
     notification_emails:
       - rkraesig@mozilla.com
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1872397
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1884221
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902737
     # this event may alternatively be manually expired once bug 1677170 is
     # closed
     expires: 135
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1872397#c7
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1884221#c2
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902737
     extra_keys:
       succeeded:
         type: boolean
@@ -74,3 +75,6 @@ file_dialog:
 
           Only present when the in-process file dialog fails. (`!succeeded` is
           necessary but not sufficient.)
+      in_shutdown:
+        type: boolean
+        description: Whether the application is currently shutting down.
