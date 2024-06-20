@@ -688,16 +688,6 @@ class ContentParent final : public PContentParent,
       sBrowserContentParents;
   static mozilla::StaticAutoPtr<LinkedList<ContentParent>> sContentParents;
 
-  /**
-   * In order to avoid rapidly creating and destroying content processes when
-   * running under e10s, we may keep alive a single unused "web" content
-   * process if it previously had a very short lifetime.
-   *
-   * This process will be re-used during process selection, avoiding spawning a
-   * new process, if the "web" remote type is being requested.
-   */
-  static StaticRefPtr<ContentParent> sRecycledE10SProcess;
-
   void AddShutdownBlockers();
   void RemoveShutdownBlockers();
 
@@ -760,24 +750,6 @@ class ContentParent final : public PContentParent,
   // should be send from this function. This function should only be
   // called after the process has been transformed to browser.
   void ForwardKnownInfo();
-
-  /**
-   * We might want to reuse barely used content processes if certain criteria
-   * are met.
-   *
-   * With Fission this is a no-op.
-   */
-  bool TryToRecycleE10SOnly();
-
-  /**
-   * If this process is currently being recycled, unmark it as the recycled
-   * content process.
-   * If `aForeground` is true, will also restore the process' foreground
-   * priority if it was previously the recycled content process.
-   *
-   * With Fission this is a no-op.
-   */
-  void StopRecyclingE10SOnly(bool aForeground);
 
   /**
    * Removing it from the static array so it won't be returned for new tabs in
