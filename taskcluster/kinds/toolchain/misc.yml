@@ -279,7 +279,7 @@ android-custom-car:
         symbol: TL(custom-car-android)
     worker:
         docker-image: {in-tree: custom-car-android}
-        max-run-time: 20000
+        max-run-time: 25000
     use-python: default
     run-on-projects: []
     run:
@@ -301,7 +301,7 @@ android-custom-car:
             target_os="android",
             is_android=true,
             is_high_end_android=true,
-            use_v8_context_snapshot=false,
+            use_v8_context_snapshot=true,
             v8_symbol_level=0
         ]
         toolchain-artifact: public/build/car_android.tar.zst
