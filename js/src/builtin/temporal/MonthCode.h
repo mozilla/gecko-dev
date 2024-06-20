@@ -279,4 +279,227 @@ constexpr bool CalendarHasLeapMonths(CalendarId id) {
   JS_CONSTEXPR_CRASH("invalid calendar id");
 }
 
+constexpr bool CalendarHasEpagomenalMonths(CalendarId id) {
+  switch (id) {
+    case CalendarId::ISO8601:
+      return false;
+
+#if defined(MOZ_ICU4X)
+    case CalendarId::Buddhist:
+    case CalendarId::Chinese:
+    case CalendarId::Dangi:
+    case CalendarId::Gregorian:
+    case CalendarId::Hebrew:
+    case CalendarId::Indian:
+    case CalendarId::Islamic:
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicTabular:
+    case CalendarId::IslamicUmmAlQura:
+    case CalendarId::Japanese:
+    case CalendarId::Persian:
+    case CalendarId::ROC:
+      return false;
+
+    case CalendarId::Coptic:
+    case CalendarId::Ethiopian:
+    case CalendarId::EthiopianAmeteAlem:
+      return true;
+#endif
+  }
+  JS_CONSTEXPR_CRASH("invalid calendar id");
+}
+
+constexpr int32_t CalendarMonthsPerYear(CalendarId id) {
+  if (CalendarHasLeapMonths(id) || CalendarHasEpagomenalMonths(id)) {
+    return 13;
+  }
+  return 12;
+}
+
+constexpr std::pair<int32_t, int32_t> CalendarDaysInMonth(CalendarId id) {
+  switch (id) {
+    // ISO8601 calendar.
+    // M02: 28-29 days
+    // M04, M06, M09, M11: 30 days
+    // M01, M03, M05, M07, M08, M10, M12: 31 days
+    case CalendarId::ISO8601:
+      return {28, 31};
+
+#if defined(MOZ_ICU4X)
+      // Same as the ISO8601 calendar.
+    case CalendarId::Buddhist:
+    case CalendarId::Gregorian:
+    case CalendarId::Japanese:
+    case CalendarId::ROC:
+      return {28, 31};
+
+    // Chinese/Dangi calendars have 29-30 days per month.
+    //
+    // Hebrew:
+    // M01, M05, M07, M09, M11: 30 days.
+    // M02, M03: 29-30 days.
+    // M04, M06, M08, M10, M12: 29 days.
+    // M05L: 30 days
+    //
+    // Islamic calendars have 29-30 days.
+    //
+    // IslamicCivil, IslamicTabular:
+    // M01, M03, M05, M07, M09, M11: 30 days
+    // M02, M04, M06, M08, M10: 29 days
+    // M12: 29-30 days.
+    case CalendarId::Chinese:
+    case CalendarId::Dangi:
+    case CalendarId::Hebrew:
+    case CalendarId::Islamic:
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicTabular:
+    case CalendarId::IslamicUmmAlQura:
+      return {29, 30};
+
+    // Coptic, Ethiopian, EthiopianAmeteAlem:
+    // M01..M12: 30 days.
+    // M13: 5-6 days.
+    case CalendarId::Coptic:
+    case CalendarId::Ethiopian:
+    case CalendarId::EthiopianAmeteAlem:
+      return {5, 30};
+
+    // Indian:
+    // M1: 30-31 days.
+    // M02..M06: 31 days
+    // M07..M12: 30 days
+    case CalendarId::Indian:
+      return {30, 31};
+
+    // Persian:
+    // M01..M06: 31 days
+    // M07..M11: 30 days
+    // M12: 29-30 days
+    case CalendarId::Persian:
+      return {29, 31};
+#endif
+  }
+  JS_CONSTEXPR_CRASH("invalid calendar id");
+}
+
+// ISO8601 calendar.
+// M02: 28-29 days
+// M04, M06, M09, M11: 30 days
+// M01, M03, M05, M07, M08, M10, M12: 31 days
+constexpr std::pair<int32_t, int32_t> ISODaysInMonth(MonthCode monthCode) {
+  int32_t ordinal = monthCode.ordinal();
+  if (ordinal == 2) {
+    return {28, 29};
+  }
+  if (ordinal == 4 || ordinal == 6 || ordinal == 9 || ordinal == 11) {
+    return {30, 30};
+  }
+  return {31, 31};
+}
+
+constexpr std::pair<int32_t, int32_t> CalendarDaysInMonth(CalendarId id,
+                                                          MonthCode monthCode) {
+  switch (id) {
+    case CalendarId::ISO8601:
+      return ISODaysInMonth(monthCode);
+
+#if defined(MOZ_ICU4X)
+    // Same as the ISO8601 calendar.
+    case CalendarId::Buddhist:
+    case CalendarId::Gregorian:
+    case CalendarId::Japanese:
+    case CalendarId::ROC:
+      return ISODaysInMonth(monthCode);
+
+    // Chinese/Dangi calendars have 29-30 days per month.
+    case CalendarId::Chinese:
+    case CalendarId::Dangi:
+      return {29, 30};
+
+    // Coptic, Ethiopian, EthiopianAmeteAlem:
+    // M01..M12: 30 days.
+    // M13: 5-6 days.
+    case CalendarId::Coptic:
+    case CalendarId::Ethiopian:
+    case CalendarId::EthiopianAmeteAlem: {
+      if (monthCode.ordinal() <= 12) {
+        return {30, 30};
+      }
+      return {5, 6};
+    }
+
+    // Hebrew:
+    // M01, M05, M07, M09, M11: 30 days.
+    // M02, M03: 29-30 days.
+    // M04, M06, M08, M10, M12: 29 days.
+    // M05L: 30 days
+    case CalendarId::Hebrew: {
+      int32_t ordinal = monthCode.ordinal();
+      if (ordinal == 2 || ordinal == 3) {
+        return {29, 30};
+      }
+      if ((ordinal & 1) == 1 || monthCode.isLeapMonth()) {
+        return {30, 30};
+      }
+      return {29, 29};
+    }
+
+    // Indian:
+    // M1: 30-31 days.
+    // M02..M06: 31 days
+    // M07..M12: 30 days
+    case CalendarId::Indian: {
+      int32_t ordinal = monthCode.ordinal();
+      if (ordinal == 1) {
+        return {30, 31};
+      }
+      if (ordinal <= 6) {
+        return {31, 31};
+      }
+      return {30, 30};
+    }
+
+    // Islamic calendars have 29-30 days per month.
+    case CalendarId::Islamic:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicUmmAlQura:
+      return {29, 30};
+
+    // IslamicCivil, IslamicTabular:
+    // M01, M03, M05, M07, M09, M11: 30 days
+    // M02, M04, M06, M08, M10: 29 days
+    // M12: 29-30 days.
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicTabular: {
+      int32_t ordinal = monthCode.ordinal();
+      if ((ordinal & 1) == 1) {
+        return {30, 30};
+      }
+      if (ordinal < 12) {
+        return {29, 29};
+      }
+      return {29, 30};
+    }
+
+    // Persian:
+    // M01..M06: 31 days
+    // M07..M11: 30 days
+    // M12: 29-30 days
+    case CalendarId::Persian: {
+      int32_t ordinal = monthCode.ordinal();
+      if (ordinal <= 6) {
+        return {31, 31};
+      }
+      if (ordinal <= 11) {
+        return {30, 30};
+      }
+      return {29, 30};
+    }
+#endif
+  }
+  JS_CONSTEXPR_CRASH("invalid calendar id");
+}
+
 }  // namespace js::temporal

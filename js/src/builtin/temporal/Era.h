@@ -294,4 +294,16 @@ constexpr bool CalendarEraStartsAtYearBoundary(CalendarId id, EraCode era) {
   return era == EraCode::Standard || era == EraCode::Inverse;
 }
 
+struct EraYear {
+  EraCode era = EraCode::Standard;
+  int32_t year = 0;
+};
+
+constexpr EraYear CalendarEraYear(CalendarId id, int32_t year) {
+  if (year > 0 || !CalendarEraRelevant(id)) {
+    return EraYear{EraCode::Standard, year};
+  }
+  return EraYear{EraCode::Inverse, int32_t(mozilla::Abs(year) + 1)};
+}
+
 }  // namespace js::temporal

@@ -898,6 +898,7 @@ MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INVALID_ID,         1, JSEXN_RANGEERR, "invalid 
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_MISSING_FIELD,      1, JSEXN_TYPEERR, "missing \"{0}\" calendar field")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INVALID_FIELD,      1, JSEXN_RANGEERR, "invalid calendar field name \"{0}\"")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_DUPLICATE_FIELD,    1, JSEXN_RANGEERR, "duplicate calendar field \"{0}\"")
+MSG_DEF(JSMSG_TEMPORAL_CALENDAR_OVERFLOW_FIELD,     2, JSEXN_RANGEERR, "calendar field \"{0}\" is too large: {1}")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INVALID_MONTHCODE,  1, JSEXN_RANGEERR, "invalid \"monthCode\" calendar field: {0}")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,       2, JSEXN_RANGEERR, "calendars \"{0}\" and \"{1}\" aren't compatible")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR,     0, JSEXN_ERR, "internal error while computing calendar data")

@@ -14,6 +14,8 @@
 #include "mozilla/Likely.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Range.h"
+#include "mozilla/Result.h"
+#include "mozilla/ResultVariant.h"
 #include "mozilla/Span.h"
 #include "mozilla/TextUtils.h"
 #include "mozilla/UniquePtr.h"
@@ -1403,6 +1405,649 @@ static constexpr std::string_view IcuEraName(CalendarId calendar, EraCode era) {
   JS_CONSTEXPR_CRASH("invalid era");
 }
 
+enum class CalendarError {
+  // Catch-all kind for all other error types.
+  Generic,
+
+  // https://docs.rs/icu/latest/icu/calendar/enum.Error.html#variant.Overflow
+  Overflow,
+
+  // https://docs.rs/icu/latest/icu/calendar/enum.Error.html#variant.Underflow
+  Underflow,
+
+  // https://docs.rs/icu/latest/icu/calendar/enum.Error.html#variant.OutOfRange
+  OutOfRange,
+
+  // https://docs.rs/icu/latest/icu/calendar/enum.Error.html#variant.UnknownEra
+  UnknownEra,
+
+  // https://docs.rs/icu/latest/icu/calendar/enum.Error.html#variant.UnknownMonthCode
+  UnknownMonthCode,
+};
+
+static mozilla::Result<UniqueICU4XDate, CalendarError> CreateDateFromCodes(
+    CalendarId calendarId, const capi::ICU4XCalendar* calendar, EraYear eraYear,
+    MonthCode monthCode, int32_t day) {
+  MOZ_ASSERT(calendarId != CalendarId::ISO8601);
+  MOZ_ASSERT(capi::ICU4XCalendar_kind(calendar) ==
+             ToAnyCalendarKind(calendarId));
+  MOZ_ASSERT(mozilla::EnumSet<EraCode>(CalendarEras(calendarId))
+                 .contains(eraYear.era));
+  MOZ_ASSERT_IF(CalendarEraRelevant(calendarId), eraYear.year > 0);
+  MOZ_ASSERT(CalendarMonthCodes(calendarId).contains(monthCode));
+  MOZ_ASSERT(day > 0);
+  MOZ_ASSERT(day <= CalendarDaysInMonth(calendarId).second);
+
+  auto era = IcuEraName(calendarId, eraYear.era);
+  auto monthCodeView = std::string_view{monthCode};
+  auto date = capi::ICU4XDate_create_from_codes_in_calendar(
+      era.data(), era.length(), eraYear.year, monthCodeView.data(),
+      monthCodeView.length(), day, calendar);
+  if (date.is_ok) {
+    return UniqueICU4XDate{date.ok};
+  }
+
+  // Map possible calendar errors.
+  //
+  // Calendar error codes which can't happen for `create_from_codes_in_calendar`
+  // are mapped to `CalendarError::Generic`.
+  switch (date.err) {
+    case capi::ICU4XError_CalendarOverflowError:
+      return mozilla::Err(CalendarError::Overflow);
+    case capi::ICU4XError_CalendarUnderflowError:
+      return mozilla::Err(CalendarError::Underflow);
+    case capi::ICU4XError_CalendarOutOfRangeError:
+      return mozilla::Err(CalendarError::OutOfRange);
+    case capi::ICU4XError_CalendarUnknownEraError:
+      return mozilla::Err(CalendarError::UnknownEra);
+    case capi::ICU4XError_CalendarUnknownMonthCodeError:
+      return mozilla::Err(CalendarError::UnknownMonthCode);
+    default:
+      return mozilla::Err(CalendarError::Generic);
+  }
+}
+
+/**
+ * The date `eraYear-monthCode-day` doesn't exist in `era`. Map it to the
+ * closest valid date in `era`.
+ *
+ * For example:
+ *
+ * Reiwa 1, April 30 doesn't exist, because the Reiwa era started on May 1 2019,
+ * the input is constrained to the first valid date in the Reiwa era, i.e.
+ * Reiwa 1, May 1.
+ *
+ * Similarly, Heisei 31, May 1 doesn't exist, because on May 1 2019 the Reiwa
+ * era started. The input is therefore constrained to Heisei 31, April 30.
+ */
+static mozilla::Result<UniqueICU4XDate, CalendarError>
+CreateDateFromCodesConstrainToJapaneseEra(JSContext* cx, CalendarId calendarId,
+                                          const capi::ICU4XCalendar* calendar,
+                                          EraYear eraYear, MonthCode monthCode,
+                                          int32_t day) {
+  MOZ_ASSERT(calendarId == CalendarId::Japanese);
+  MOZ_ASSERT(capi::ICU4XCalendar_kind(calendar) ==
+             ToAnyCalendarKind(calendarId));
+  MOZ_ASSERT(!CalendarEraStartsAtYearBoundary(calendarId, eraYear.era));
+  MOZ_ASSERT(!monthCode.isLeapMonth());
+  MOZ_ASSERT(1 <= monthCode.ordinal() && monthCode.ordinal() <= 12);
+  MOZ_ASSERT(1 <= day && day <= 31);
+
+  const auto& [era, year] = eraYear;
+
+  int32_t month = monthCode.ordinal();
+  const int32_t startMonth = month;
+
+  // Case 1: The requested date is before the start of the era.
+  if (year == 1) {
+    // The first year of modern eras is guaranteed to end on December 31, so
+    // we don't have to worry about the first era ending mid-year. If we ever
+    // add support for JapaneseExtended, we have to update this code to handle
+    // that case.
+    MOZ_ASSERT(capi::ICU4XCalendar_kind(calendar) !=
+               capi::ICU4XAnyCalendarKind_JapaneseExtended);
+
+    auto firstEraYear = EraYear{era, 1};
+
+    // Find the first month which is completely within the era.
+    for (; month <= 12; month++) {
+      auto firstDayOfMonth = CreateDateFromCodes(
+          calendarId, calendar, firstEraYear, MonthCode{month}, 1);
+      if (firstDayOfMonth.isOk()) {
+        // If the month matches the start month, we only need to constrain day.
+        if (month == startMonth) {
+          int32_t lastDayOfMonth =
+              capi::ICU4XDate_days_in_month(firstDayOfMonth.inspect().get());
+          return CreateDateFromCodes(calendarId, calendar, firstEraYear,
+                                     MonthCode{month},
+                                     std::min(day, lastDayOfMonth));
+        }
+        break;
+      }
+
+      // Out-of-range error indicates the requested date isn't within the era,
+      // so we have to keep looking. Any other error is reported back to the
+      // caller.
+      if (firstDayOfMonth.inspectErr() != CalendarError::OutOfRange) {
+        return firstDayOfMonth.propagateErr();
+      }
+    }
+    MOZ_ASSERT(startMonth < month);
+
+    // When we've reached this point, we know that the era either starts in
+    // |month - 1| or at the first day of |month|.
+    auto monthCode = MonthCode{month - 1};
+
+    // The requested month is before the era's first month. Return the start of
+    // the era.
+    if (startMonth < month - 1) {
+      // The first day of |month| is within the era, but the first day of
+      // |month - 1| isn't within the era. Maybe there's a day after the first
+      // day of |month - 1| which is part of the era.
+      for (int32_t firstDayOfEra = 2; firstDayOfEra <= 31; firstDayOfEra++) {
+        auto date = CreateDateFromCodes(calendarId, calendar, firstEraYear,
+                                        monthCode, firstDayOfEra);
+        if (date.isOk()) {
+          return date.unwrap();
+        }
+
+        // Out-of-range error indicates the requested date isn't within the era,
+        // so we have to keep looking.
+        if (date.inspectErr() == CalendarError::OutOfRange) {
+          continue;
+        }
+
+        // Overflow error is reported when the date is past the last day of the
+        // month.
+        if (date.inspectErr() == CalendarError::Overflow) {
+          break;
+        }
+
+        // Any other error is reported back to the caller.
+        return date.propagateErr();
+      }
+
+      // No valid day was found in the last month, so the start of the era must
+      // be the first day of |month|.
+      return CreateDateFromCodes(calendarId, calendar, firstEraYear,
+                                 MonthCode{month}, 1);
+    }
+
+    // We're done if |date| is now valid.
+    auto date =
+        CreateDateFromCodes(calendarId, calendar, firstEraYear, monthCode, day);
+    if (date.isOk()) {
+      return date.unwrap();
+    }
+
+    // Otherwise check in which direction we need to adjust |day|.
+    auto errorCode = date.inspectErr();
+    int32_t direction;
+    if (errorCode == CalendarError::Overflow) {
+      direction = -1;
+    } else if (errorCode == CalendarError::OutOfRange) {
+      direction = 1;
+    } else {
+      return date.propagateErr();
+    }
+
+    // Every Gregorian month has at least 28 days and no more than 31 days, so
+    // we can stop when day is less-or-equal 28 resp. greater-or-equal to 31.
+    while ((direction < 0 && day > 28) || (direction > 0 && day < 31)) {
+      day += direction;
+
+      auto date = CreateDateFromCodes(calendarId, calendar, firstEraYear,
+                                      monthCode, day);
+      if (date.isOk()) {
+        return date.unwrap();
+      }
+      if (date.inspectErr() == errorCode) {
+        continue;
+      }
+      return date.propagateErr();
+    }
+
+    // If we didn't find a valid date in the last month, the start of the era
+    // must be the first day of |month|.
+    return CreateDateFromCodes(calendarId, calendar, firstEraYear,
+                               MonthCode{month}, 1);
+  }
+
+  // Case 2: The requested date is after the end of the era.
+
+  // Check if the first day of the year is within the era.
+  auto firstDayOfYear = CreateDateFromCodes(
+      calendarId, calendar, EraYear{era, year}, MonthCode{1}, 1);
+
+  int32_t lastYearInEra;
+  if (firstDayOfYear.isOk()) {
+    // Case 2.a: The era ends in the requested year.
+    lastYearInEra = year;
+  } else if (firstDayOfYear.inspectErr() == CalendarError::OutOfRange) {
+    // Case 2.b: The era ends in a previous year.
+
+    // Start with constraining the era year (using binary search).
+    int32_t minYear = 1;
+    int32_t maxYear = year;
+    while (minYear != maxYear) {
+      int32_t candidateYear = minYear + (maxYear - minYear) / 2;
+
+      auto firstDayOfYear = CreateDateFromCodes(
+          calendarId, calendar, EraYear{era, candidateYear}, MonthCode{1}, 1);
+      if (firstDayOfYear.isOk()) {
+        // The year is still too large, increase the lower bound.
+        minYear = candidateYear + 1;
+      } else if (firstDayOfYear.inspectErr() == CalendarError::OutOfRange) {
+        // The year is still too large, reduce the upper bound.
+        maxYear = candidateYear;
+      } else {
+        return firstDayOfYear.propagateErr();
+      }
+    }
+
+    // Post-condition: |minYear| is the first invalid year.
+    MOZ_ASSERT(1 < minYear && minYear <= year);
+
+    // Start looking for the last valid date in the era iterating backwards from
+    // December 31.
+    lastYearInEra = minYear - 1;
+    month = 12;
+    day = 31;
+  } else {
+    return firstDayOfYear.propagateErr();
+  }
+
+  auto lastEraYear = EraYear{era, lastYearInEra};
+  for (; month > 0; month--) {
+    // Find the last month which is still within the era.
+    auto monthCode = MonthCode{month};
+    auto firstDayOfMonth =
+        CreateDateFromCodes(calendarId, calendar, lastEraYear, monthCode, 1);
+    if (firstDayOfMonth.isErr()) {
+      // Out-of-range indicates we're still past the end of the era.
+      if (firstDayOfMonth.inspectErr() == CalendarError::OutOfRange) {
+        continue;
+      }
+
+      // Propagate any other error to the caller.
+      return firstDayOfMonth.propagateErr();
+    }
+    auto intermediateDate = firstDayOfMonth.unwrap();
+
+    int32_t lastDayOfMonth =
+        capi::ICU4XDate_days_in_month(intermediateDate.get());
+
+    if (lastYearInEra == year && month == startMonth) {
+      // Constrain |day| to the maximum day of month.
+      day = std::min(day, lastDayOfMonth);
+    } else {
+      MOZ_ASSERT_IF(lastYearInEra == year, month < startMonth);
+      day = lastDayOfMonth;
+    }
+
+    // Iterate forward until we find the first invalid date.
+    for (int32_t nextDay = 2; nextDay <= day; nextDay++) {
+      auto nextDayOfMonth = CreateDateFromCodes(
+          calendarId, calendar, lastEraYear, monthCode, nextDay);
+      if (nextDayOfMonth.isErr()) {
+        if (nextDayOfMonth.inspectErr() == CalendarError::OutOfRange) {
+          break;
+        }
+        return nextDayOfMonth.propagateErr();
+      }
+      intermediateDate = nextDayOfMonth.unwrap();
+    }
+    return intermediateDate;
+  }
+
+  MOZ_CRASH("error constraining to end of era");
+}
+
+static void ReportCalendarFieldOverflow(JSContext* cx, const char* name,
+                                        double num) {
+  ToCStringBuf numCbuf;
+  const char* numStr = NumberToCString(&numCbuf, num);
+
+  JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                            JSMSG_TEMPORAL_CALENDAR_OVERFLOW_FIELD, name,
+                            numStr);
+}
+
+static UniqueICU4XDate CreateDateFromCodes(JSContext* cx, CalendarId calendarId,
+                                           const capi::ICU4XCalendar* calendar,
+                                           EraYear eraYear, MonthCode monthCode,
+                                           int32_t day,
+                                           TemporalOverflow overflow) {
+  MOZ_ASSERT(CalendarMonthCodes(calendarId).contains(monthCode));
+  MOZ_ASSERT(day > 0);
+  MOZ_ASSERT(day <= CalendarDaysInMonth(calendarId).second);
+
+  // Constrain day to the maximum possible day for the input month.
+  //
+  // Special cases like February 29 in leap years of the Gregorian calendar are
+  // handled below.
+  int32_t daysInMonth = CalendarDaysInMonth(calendarId, monthCode).second;
+  if (overflow == TemporalOverflow::Constrain) {
+    day = std::min(day, daysInMonth);
+  } else {
+    MOZ_ASSERT(overflow == TemporalOverflow::Reject);
+
+    if (day > daysInMonth) {
+      ReportCalendarFieldOverflow(cx, "day", day);
+      return nullptr;
+    }
+  }
+
+  auto result =
+      CreateDateFromCodes(calendarId, calendar, eraYear, monthCode, day);
+  if (result.isOk()) {
+    return result.unwrap();
+  }
+
+  switch (result.inspectErr()) {
+    case CalendarError::UnknownMonthCode: {
+      // We've asserted above that |monthCode| is valid for this calendar, so
+      // any unknown month code must be for a leap month which doesn't happen in
+      // the current year.
+      MOZ_ASSERT(CalendarHasLeapMonths(calendarId));
+      MOZ_ASSERT(monthCode.isLeapMonth());
+
+      if (overflow == TemporalOverflow::Reject) {
+        // Ensure the month code is null-terminated.
+        char code[5] = {};
+        auto monthCodeView = std::string_view{monthCode};
+        monthCodeView.copy(code, monthCodeView.length());
+
+        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                 JSMSG_TEMPORAL_CALENDAR_INVALID_MONTHCODE,
+                                 code);
+        return nullptr;
+      }
+
+      // Retry as non-leap month when we're allowed to constrain.
+      //
+      // CalendarDateToISO ( calendar, fields, overflow )
+      //
+      // If the month is a leap month that doesn't exist in the year, pick
+      // another date according to the cultural conventions of that calendar's
+      // users. Usually this will result in the same day in the month before or
+      // after where that month would normally fall in a leap year.
+      //
+      // Hebrew calendar:
+      // Replace Adar I (M05L) with Adar (M06).
+      //
+      // Chinese/Dangi calendar:
+      // Pick the next month, for example M03L -> M04, except for M12L, because
+      // we don't to switch over to the next year.
+
+      int32_t nonLeapMonth = std::min(monthCode.ordinal() + 1, 12);
+      auto nonLeapMonthCode = MonthCode{nonLeapMonth};
+      return CreateDateFromCodes(cx, calendarId, calendar, eraYear,
+                                 nonLeapMonthCode, day, overflow);
+    }
+
+    case CalendarError::Overflow: {
+      // ICU4X throws an overflow error when:
+      // 1. month > monthsInYear(year), or
+      // 2. days > daysInMonthOf(year, month).
+      //
+      // Case 1 can't happen for month-codes, so it doesn't apply here.
+      // Case 2 can only happen when |day| is larger than the minimum number
+      // of days in the month.
+      MOZ_ASSERT(day > CalendarDaysInMonth(calendarId, monthCode).first);
+
+      if (overflow == TemporalOverflow::Reject) {
+        ReportCalendarFieldOverflow(cx, "day", day);
+        return nullptr;
+      }
+
+      auto firstDayOfMonth = CreateDateFromCodes(
+          cx, calendarId, calendar, eraYear, monthCode, 1, overflow);
+      if (!firstDayOfMonth) {
+        return nullptr;
+      }
+
+      int32_t daysInMonth =
+          capi::ICU4XDate_days_in_month(firstDayOfMonth.get());
+      MOZ_ASSERT(day > daysInMonth);
+      return CreateDateFromCodes(cx, calendarId, calendar, eraYear, monthCode,
+                                 daysInMonth, overflow);
+    }
+
+    case CalendarError::OutOfRange: {
+      // ICU4X throws an out-of-range error if:
+      // 1. Non-positive era years are given.
+      // 2. Dates are before/after the requested named Japanese era.
+      //
+      // Case 1 doesn't happen for us, because we always pass strictly positive
+      // era years, so this error must be for case 2.
+      MOZ_ASSERT(calendarId == CalendarId::Japanese);
+      MOZ_ASSERT(!CalendarEraStartsAtYearBoundary(calendarId, eraYear.era));
+
+      if (overflow == TemporalOverflow::Reject) {
+        ReportCalendarFieldOverflow(cx, "eraYear", eraYear.year);
+        return nullptr;
+      }
+
+      auto result = CreateDateFromCodesConstrainToJapaneseEra(
+          cx, calendarId, calendar, eraYear, monthCode, day);
+      if (result.isOk()) {
+        return result.unwrap();
+      }
+      break;
+    }
+
+    case CalendarError::Underflow:
+    case CalendarError::UnknownEra:
+      MOZ_ASSERT(false, "unexpected calendar error");
+      break;
+
+    case CalendarError::Generic:
+      break;
+  }
+
+  JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                            JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
+  return nullptr;
+}
+
+static UniqueICU4XDate CreateDateFrom(JSContext* cx, CalendarId calendarId,
+                                      const capi::ICU4XCalendar* calendar,
+                                      EraYear eraYear, int32_t month,
+                                      int32_t day, TemporalOverflow overflow) {
+  MOZ_ASSERT(calendarId != CalendarId::ISO8601);
+  MOZ_ASSERT(month > 0);
+  MOZ_ASSERT(day > 0);
+  MOZ_ASSERT(month <= CalendarMonthsPerYear(calendarId));
+  MOZ_ASSERT(day <= CalendarDaysInMonth(calendarId).second);
+
+  switch (calendarId) {
+    case CalendarId::ISO8601:
+    case CalendarId::Buddhist:
+    case CalendarId::Coptic:
+    case CalendarId::Ethiopian:
+    case CalendarId::EthiopianAmeteAlem:
+    case CalendarId::Gregorian:
+    case CalendarId::Indian:
+    case CalendarId::Islamic:
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicTabular:
+    case CalendarId::IslamicUmmAlQura:
+    case CalendarId::Japanese:
+    case CalendarId::Persian:
+    case CalendarId::ROC: {
+      MOZ_ASSERT(!CalendarHasLeapMonths(calendarId));
+
+      // Use the month-code corresponding to the ordinal month number for
+      // calendar systems without leap months.
+      auto date = CreateDateFromCodes(cx, calendarId, calendar, eraYear,
+                                      MonthCode{month}, day, overflow);
+      if (!date) {
+        return nullptr;
+      }
+      MOZ_ASSERT_IF(
+          CalendarEraStartsAtYearBoundary(calendarId),
+          capi::ICU4XDate_ordinal_month(date.get()) == uint32_t(month));
+      return date;
+    }
+
+    case CalendarId::Dangi:
+    case CalendarId::Chinese: {
+      static_assert(CalendarHasLeapMonths(CalendarId::Chinese));
+      static_assert(CalendarMonthsPerYear(CalendarId::Chinese) == 13);
+      static_assert(CalendarHasLeapMonths(CalendarId::Dangi));
+      static_assert(CalendarMonthsPerYear(CalendarId::Dangi) == 13);
+
+      MOZ_ASSERT(1 <= month && month <= 13);
+
+      // Create date with month number replaced by month-code.
+      auto monthCode = MonthCode{std::min(month, 12)};
+      auto date = CreateDateFromCodes(cx, calendarId, calendar, eraYear,
+                                      monthCode, day, overflow);
+      if (!date) {
+        return nullptr;
+      }
+
+      // If the ordinal month of |date| matches the input month, no additional
+      // changes are necessary and we can directly return |date|.
+      int32_t ordinal = capi::ICU4XDate_ordinal_month(date.get());
+      if (ordinal == month) {
+        return date;
+      }
+
+      // Otherwise we need to handle three cases:
+      // 1. The input year contains a leap month and we need to adjust the
+      //    month-code.
+      // 2. The thirteenth month of a year without leap months was requested.
+      // 3. The thirteenth month of a year with leap months was requested.
+      if (ordinal > month) {
+        MOZ_ASSERT(1 < month && month <= 12);
+
+        // This case can only happen in leap years.
+        MOZ_ASSERT(capi::ICU4XDate_months_in_year(date.get()) == 13);
+
+        // Leap months can occur after any month in the Chinese calendar.
+        //
+        // Example when the fourth month is a leap month between M03 and M04.
+        //
+        // Month code:     M01  M02  M03  M03L  M04  M05  M06 ...
+        // Ordinal month:  1    2    3    4     5    6    7
+
+        // The month can be off by exactly one.
+        MOZ_ASSERT((ordinal - month) == 1);
+
+        // First try the case when the previous month isn't a leap month. This
+        // case can only occur when |month > 2|, because otherwise we know that
+        // "M01L" is the correct answer.
+        if (month > 2) {
+          auto previousMonthCode = MonthCode{month - 1};
+          date = CreateDateFromCodes(cx, calendarId, calendar, eraYear,
+                                     previousMonthCode, day, overflow);
+          if (!date) {
+            return nullptr;
+          }
+
+          int32_t ordinal = capi::ICU4XDate_ordinal_month(date.get());
+          if (ordinal == month) {
+            return date;
+          }
+        }
+
+        // Fall-through when the previous month is a leap month.
+      } else {
+        MOZ_ASSERT(month == 13);
+        MOZ_ASSERT(ordinal == 12);
+
+        // Years with leap months contain thirteen months.
+        if (capi::ICU4XDate_months_in_year(date.get()) != 13) {
+          if (overflow == TemporalOverflow::Reject) {
+            ReportCalendarFieldOverflow(cx, "month", month);
+            return nullptr;
+          }
+          return date;
+        }
+
+        // Fall-through to return leap month "M12L" at the end of the year.
+      }
+
+      // Finally handle the case when the previous month is a leap month.
+      auto leapMonthCode = MonthCode{month - 1, /* isLeapMonth= */ true};
+      date = CreateDateFromCodes(cx, calendarId, calendar, eraYear,
+                                 leapMonthCode, day, overflow);
+      if (!date) {
+        return nullptr;
+      }
+      MOZ_ASSERT(capi::ICU4XDate_ordinal_month(date.get()) == uint32_t(month),
+                 "unexpected ordinal month");
+      return date;
+    }
+
+    case CalendarId::Hebrew: {
+      static_assert(CalendarHasLeapMonths(CalendarId::Hebrew));
+      static_assert(CalendarMonthsPerYear(CalendarId::Hebrew) == 13);
+
+      MOZ_ASSERT(1 <= month && month <= 13);
+
+      // Create date with month number replaced by month-code.
+      auto monthCode = MonthCode{std::min(month, 12)};
+      auto date = CreateDateFromCodes(cx, calendarId, calendar, eraYear,
+                                      monthCode, day, overflow);
+      if (!date) {
+        return nullptr;
+      }
+
+      // If the ordinal month of |date| matches the input month, no additional
+      // changes are necessary and we can directly return |date|.
+      int32_t ordinal = capi::ICU4XDate_ordinal_month(date.get());
+      if (ordinal == month) {
+        return date;
+      }
+
+      // Otherwise we need to handle two cases:
+      // 1. The input year contains a leap month and we need to adjust the
+      //    month-code.
+      // 2. The thirteenth month of a year without leap months was requested.
+      if (ordinal > month) {
+        MOZ_ASSERT(1 < month && month <= 12);
+
+        // This case can only happen in leap years.
+        MOZ_ASSERT(capi::ICU4XDate_months_in_year(date.get()) == 13);
+
+        // Leap months can occur between M05 and M06 in the Hebrew calendar.
+        //
+        // Month code:     M01  M02  M03  M04  M05  M05L  M06 ...
+        // Ordinal month:  1    2    3    4    5    6     7
+
+        // The month can be off by exactly one.
+        MOZ_ASSERT((ordinal - month) == 1);
+      } else {
+        MOZ_ASSERT(month == 13);
+        MOZ_ASSERT(ordinal == 12);
+
+        if (overflow == TemporalOverflow::Reject) {
+          ReportCalendarFieldOverflow(cx, "month", month);
+          return nullptr;
+        }
+        return date;
+      }
+
+      // The previous month is the leap month Adar I iff |month| is six.
+      bool isLeapMonth = month == 6;
+      auto previousMonthCode = MonthCode{month - 1, isLeapMonth};
+      date = CreateDateFromCodes(cx, calendarId, calendar, eraYear,
+                                 previousMonthCode, day, overflow);
+      if (!date) {
+        return nullptr;
+      }
+      MOZ_ASSERT(capi::ICU4XDate_ordinal_month(date.get()) == uint32_t(month),
+                 "unexpected ordinal month");
+      return date;
+    }
+  }
+  MOZ_CRASH("invalid calendar id");
+}
+
 static constexpr size_t ICUEraNameMaxLength() {
   size_t length = 0;
   for (auto calendar : AvailableCalendars()) {
@@ -1785,6 +2430,61 @@ static bool CalendarDateDayOfWeek(JSContext* cx, CalendarId calendar,
 
   capi::ICU4XIsoWeekday day = capi::ICU4XDate_day_of_week(dt.get());
   result.setInt32(static_cast<int32_t>(day));
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateDayOfYear ( calendar, date )
+ */
+static bool CalendarDateDayOfYear(JSContext* cx, CalendarId calendar,
+                                  const PlainDate& date,
+                                  MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  // FIXME: Not supported in ICU4X FFI.
+  // https://github.com/unicode-org/icu4x/issues/4891
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  // Use the extended year instead of the era year to correctly handle the case
+  // when the era changes in the current year. This can happen in the Japanese
+  // calendar.
+  int32_t year;
+  if (!CalendarDateYear(cx, calendar, dt.get(), &year)) {
+    return false;
+  }
+  auto eraYear = CalendarEraYear(calendar, year);
+
+  int32_t dayOfYear = capi::ICU4XDate_day_of_month(dt.get());
+  int32_t month = capi::ICU4XDate_ordinal_month(dt.get());
+
+  // Add the number of days of all preceding months to compute the overall day
+  // of the year.
+  while (month > 1) {
+    auto previousMonth = CreateDateFrom(cx, calendar, cal.get(), eraYear,
+                                        --month, 1, TemporalOverflow::Reject);
+    if (!previousMonth) {
+      return false;
+    }
+
+    dayOfYear += capi::ICU4XDate_days_in_month(previousMonth.get());
+  }
+
+  MOZ_ASSERT(dayOfYear <= capi::ICU4XDate_days_in_year(dt.get()));
+
+  result.setInt32(dayOfYear);
   return true;
 #else
   MOZ_CRASH("ICU4X disabled");
@@ -3238,8 +3938,11 @@ static bool BuiltinCalendarDayOfYear(JSContext* cx, CalendarId calendarId,
   // Steps 1-3. (Not applicable.)
 
   // Steps 4-6.
-  result.setInt32(ToISODayOfYear(date));
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    result.setInt32(ToISODayOfYear(date));
+    return true;
+  }
+  return CalendarDateDayOfYear(cx, calendarId, date, result);
 }
 
 static bool Calendar_dayOfYear(JSContext* cx, unsigned argc, Value* vp);
