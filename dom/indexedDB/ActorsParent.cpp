@@ -4756,6 +4756,8 @@ class QuotaClient final : public mozilla::dom::quota::Client {
 
   nsresult FlushPendingFileDeletions();
 
+  RefPtr<BoolPromise> DoMaintenance();
+
   RefPtr<Maintenance> GetCurrentMaintenance() const {
     return mCurrentMaintenance;
   }
@@ -12011,6 +12013,22 @@ nsresult QuotaClient::FlushPendingFileDeletions() {
   return NS_OK;
 }
 
+RefPtr<BoolPromise> QuotaClient::DoMaintenance() {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(!IsShuttingDownOnBackgroundThread());
+
+  if (!mBackgroundThread) {
+    mBackgroundThread = GetCurrentSerialEventTarget();
+  }
+
+  auto maintenance = MakeRefPtr<Maintenance>(this);
+
+  mMaintenanceQueue.AppendElement(maintenance);
+  ProcessMaintenanceQueue();
+
+  return maintenance->OnResults();
+}
+
 nsThreadPool* QuotaClient::GetOrCreateThreadPool() {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(!IsShuttingDownOnBackgroundThread());
@@ -12409,12 +12427,7 @@ void QuotaClient::StartIdleMaintenance() {
     return;
   }
 
-  if (!mBackgroundThread) {
-    mBackgroundThread = GetCurrentSerialEventTarget();
-  }
-
-  mMaintenanceQueue.EmplaceBack(MakeRefPtr<Maintenance>(this));
-  ProcessMaintenanceQueue();
+  DoMaintenance();
 }
 
 void QuotaClient::StopIdleMaintenance() {
