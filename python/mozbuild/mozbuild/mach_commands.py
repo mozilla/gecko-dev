@@ -1959,20 +1959,40 @@ def _run_desktop(
         else:
             binpath = app or command_context.get_binary_path("app")
     except BinaryNotFoundException as e:
-        command_context.log(logging.ERROR, "run", {"error": str(e)}, "ERROR: {error}")
         if packaged:
-            command_context.log(
-                logging.INFO,
-                "run",
-                {
-                    "help": "It looks like your build isn't packaged. "
-                    "You can run |./mach package| to package it."
-                },
-                "{help}",
+            ret = command_context._run_make(
+                directory=".",
+                target="stage-package",
+                silent=True,
+                ensure_exit_code=False,
             )
+
+            if ret == 0:
+                try:
+                    binpath = command_context.get_binary_path(where="staged-package")
+                except BinaryNotFoundException:
+                    command_context.log(
+                        logging.ERROR, "run", {"error": str(e)}, "ERROR: {error}"
+                    )
+                    ret = 1
+
+            if ret != 0:
+                command_context.log(
+                    logging.INFO,
+                    "run",
+                    {
+                        "help": "It looks like your build failed to package properly? "
+                        "You can run |./mach package| to package it manually."
+                    },
+                    "{help}",
+                )
+                return 1
         else:
+            command_context.log(
+                logging.ERROR, "run", {"error": str(e)}, "ERROR: {error}"
+            )
             command_context.log(logging.INFO, "run", {"help": e.help()}, "{help}")
-        return 1
+            return 1
 
     args = []
     if macos_open:
