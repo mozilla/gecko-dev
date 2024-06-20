@@ -1105,7 +1105,7 @@ JS_PUBLIC_API bool js::DumpScript(JSContext* cx, JSScript* scriptArg,
   return ok;
 }
 
-static UniqueChars ToDisassemblySource(JSContext* cx, HandleValue v) {
+UniqueChars js::ToDisassemblySource(JSContext* cx, HandleValue v) {
   if (v.isString()) {
     return QuoteString(cx, v.toString(), '"');
   }

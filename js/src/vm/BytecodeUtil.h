@@ -654,6 +654,8 @@ unsigned Disassemble1(JSContext* cx, JS::Handle<JSScript*> script,
                       jsbytecode* pc, unsigned loc, bool lines,
                       StringPrinter* sp);
 
+extern UniqueChars ToDisassemblySource(JSContext* cx, HandleValue v);
+
 #endif
 
 [[nodiscard]] extern bool DumpRealmPCCounts(JSContext* cx);

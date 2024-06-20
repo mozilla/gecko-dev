@@ -3638,15 +3638,11 @@ bool JSScript::dumpGCThings(JSContext* cx, JS::Handle<JSScript*> script,
         }
 
         JS::Rooted<JS::Value> objValue(cx, ObjectValue(*obj));
-        JS::Rooted<JSString*> str(cx, ValueToSource(cx, objValue));
-        if (!str) {
+        JS::UniqueChars source = ToDisassemblySource(cx, objValue);
+        if (!source) {
           return false;
         }
-        JS::UniqueChars utf8chars = JS_EncodeStringToUTF8(cx, str);
-        if (!utf8chars) {
-          return false;
-        }
-        sp->put(utf8chars.get());
+        sp->put(source.get());
         sp->put("\n");
       }
     } else if (gcThing.is<JSString>()) {
