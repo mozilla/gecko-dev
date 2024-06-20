@@ -329,6 +329,8 @@ Please commit or stash these changes before vendoring, or re-run with `--ignore-
         # product but has a license-file that needs ignoring
         "fuchsia-cprng": "03b114f53e6587a398931762ee11e2395bfdba252a329940e2c8c9e81813845b",
         # ICU4X uses Unicode v3 license
+        "icu_calendar": ICU4X_LICENSE_SHA256,
+        "icu_calendar_data": ICU4X_LICENSE_SHA256,
         "icu_collections": ICU4X_LICENSE_SHA256,
         "icu_locid": ICU4X_LICENSE_SHA256,
         "icu_locid_transform": ICU4X_LICENSE_SHA256,

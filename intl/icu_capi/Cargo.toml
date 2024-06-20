@@ -190,6 +190,7 @@ buffer_provider = [
     "icu_experimental?/serde",
 ]
 compiled_data = [
+    "icu_calendar?/compiled_data",
     "icu_properties?/compiled_data",
     "icu_segmenter?/compiled_data",
 ]

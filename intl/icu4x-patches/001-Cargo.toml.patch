@@ -1,10 +1,10 @@
 --- a/intl/icu_capi/Cargo.toml	2023-11-23 00:55:29.801649858 +0900
 +++ b/intl/icu_capi/Cargo.toml	2023-11-23 00:57:49.528753911 +0900
-@@ -190,19 +190,8 @@
+@@ -190,20 +190,10 @@
      "icu_experimental?/serde",
  ]
  compiled_data = [
--    "icu_calendar?/compiled_data",
+     "icu_calendar?/compiled_data",
 -    "icu_casemap?/compiled_data",
 -    "icu_collator?/compiled_data",
 -    "icu_datetime?/compiled_data",
@@ -20,3 +20,4 @@
  ]
  cpp_default = ["logging"]
  default = [
+     "compiled_data",
