@@ -26,23 +26,16 @@ add_task(async function test_chat_header() {
   sandbox
     .stub(GenAI, "chatProviders")
     .value(new Map([[url, { header: "X-Prompt" }]]));
-  sandbox.stub(GenAI, "buildChatPrompt").returns("hello world?");
 
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.ml.chat.provider", url],
+      ["browser.ml.chat.prompt.prefix", ""],
       ["browser.ml.chat.sidebar", false],
     ],
   });
 
-  await GenAI.handleAskChat({
-    target: {
-      closest() {
-        return { context: { selectionInfo: {} } };
-      },
-      ownerGlobal: window,
-    },
-  });
+  await GenAI.handleAskChat({ value: "hello world?" }, { window });
   const request = await requestPromise;
   Assert.equal(
     request.getHeader("x-prompt"),

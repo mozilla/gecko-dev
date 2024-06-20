@@ -238,9 +238,6 @@ document.addEventListener(
         case "context-translate-selection":
           gContextMenu.openSelectTranslationsPanel(event);
           break;
-        case "context-ask-chat":
-          nsContextMenu.GenAI.handleAskChat(event);
-          break;
         case "context-showonlythisframe":
           gContextMenu.showOnlyThisFrame();
           break;
