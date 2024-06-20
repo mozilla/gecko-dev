@@ -8,12 +8,10 @@
 #define mozilla_dom_RemoteWorkerParent_h
 
 #include "mozilla/dom/PRemoteWorkerParent.h"
-#include "mozilla/dom/UniqueContentParentKeepAlive.h"
 
 namespace mozilla::dom {
 
 class RemoteWorkerController;
-class RemoteWorkerServiceParent;
 
 /**
  * PBackground-managed parent actor that is mutually associated with a single
@@ -26,14 +24,13 @@ class RemoteWorkerParent final : public PRemoteWorkerParent {
  public:
   NS_INLINE_DECL_REFCOUNTING(RemoteWorkerParent, override);
 
-  explicit RemoteWorkerParent(
-      UniqueThreadsafeContentParentKeepAlive aKeepAlive);
+  RemoteWorkerParent();
+
+  void Initialize(bool aAlreadyRegistered = false);
 
   void SetController(RemoteWorkerController* aController);
 
   void MaybeSendDelete();
-
-  RemoteWorkerServiceParent* Manager() const;
 
  private:
   ~RemoteWorkerParent();
@@ -58,7 +55,6 @@ class RemoteWorkerParent final : public PRemoteWorkerParent {
 
   bool mDeleteSent = false;
   RefPtr<RemoteWorkerController> mController;
-  UniqueThreadsafeContentParentKeepAlive mContentParentKeepAlive;
 };
 
 }  // namespace mozilla::dom

@@ -102,6 +102,12 @@ class BackgroundChildImpl : public PBackgroundChild {
 
   virtual bool DeallocPFileCreatorChild(PFileCreatorChild* aActor) override;
 
+  already_AddRefed<mozilla::dom::PRemoteWorkerChild> AllocPRemoteWorkerChild(
+      const RemoteWorkerData& aData) override;
+
+  virtual mozilla::ipc::IPCResult RecvPRemoteWorkerConstructor(
+      PRemoteWorkerChild* aActor, const RemoteWorkerData& aData) override;
+
   virtual mozilla::dom::PSharedWorkerChild* AllocPSharedWorkerChild(
       const mozilla::dom::RemoteWorkerData& aData, const uint64_t& aWindowID,
       const mozilla::dom::MessagePortIdentifier& aPortIdentifier) override;

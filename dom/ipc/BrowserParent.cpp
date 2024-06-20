@@ -29,7 +29,6 @@
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/indexedDB/ActorsParent.h"
 #include "mozilla/dom/PaymentRequestParent.h"
-#include "mozilla/dom/PContentPermissionRequestParent.h"
 #include "mozilla/dom/PointerEventHandler.h"
 #include "mozilla/dom/BrowserBridgeParent.h"
 #include "mozilla/dom/RemoteDragStartData.h"
@@ -65,7 +64,6 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
 #include "nsCOMPtr.h"
-#include "nsContentPermissionHelper.h"
 #include "nsContentUtils.h"
 #include "nsDebug.h"
 #include "nsFocusManager.h"
@@ -329,10 +327,6 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
   // We access `Manager()` when updating priorities later in this constructor,
   // so need to initialize it before IPC does.
   SetManager(aManager);
-
-  // Add a KeepAlive for this BrowserParent upon creation.
-  mContentParentKeepAlive =
-      aManager->TryAddKeepAlive(aBrowsingContext->BrowserId());
 
   RequestingAccessKeyEventData::OnBrowserParentCreated();
 
@@ -742,28 +736,25 @@ void BrowserParent::Destroy() {
   }
 #endif
 
-  // If this fails, it's most likely due to a content-process crash, and
-  // auto-cleanup will kick in.  Otherwise, the child side will destroy itself
-  // and send back __delete__().
-  (void)SendDestroy();
-  mIsDestroyed = true;
+  {
+    // The following sequence assumes that the keepalive state does not change
+    // between the calls, but our ThreadsafeHandle might be accessed from other
+    // threads in the meantime.
+    RecursiveMutexAutoLock lock(Manager()->ThreadsafeHandleMutex());
 
-#if !defined(MOZ_WIDGET_ANDROID)
-  // We're beginning to destroy this BrowserParent. Immediately drop the
-  // keepalive. This can start the shutdown timer, however the ShutDown message
-  // will wait for the BrowserParent to be fully destroyed.
-  //
-  // NOTE: We intentionally skip this step on Android, keeping the KeepAlive
-  // active until the BrowserParent is fully destroyed:
-  // 1. Android has a fixed upper bound on the number of content processes, so
-  //    we prefer to re-use them whenever possible (as opposed to letting an
-  //    old process wind down while we launch a new one). This restriction will
-  //    be relaxed after bug 1565196.
-  // 2. GeckoView always hard-kills content processes (and if it does not,
-  //    Android itself will), so we don't concern ourselves with the ForceKill
-  //    timer either.
-  mContentParentKeepAlive = nullptr;
-#endif
+    // If we are shutting down everything or we know to be the last
+    // BrowserParent, signal the impending shutdown early to the content process
+    // to avoid to run the SendDestroy before we know we are ExpectingShutdown.
+    Manager()->NotifyTabWillDestroy();
+
+    // If this fails, it's most likely due to a content-process crash, and
+    // auto-cleanup will kick in.  Otherwise, the child side will destroy itself
+    // and send back __delete__().
+    (void)SendDestroy();
+    mIsDestroyed = true;
+
+    Manager()->NotifyTabDestroying();
+  }
 
   // This `AddKeepAlive` will be cleared if `mMarkedDestroying` is set in
   // `ActorDestroy`. Out of caution, we don't add the `KeepAlive` if our IPC
@@ -797,20 +788,7 @@ mozilla::ipc::IPCResult BrowserParent::RecvEnsureLayersConnected(
 }
 
 void BrowserParent::ActorDestroy(ActorDestroyReason why) {
-  // Need to close undeleted ContentPermissionRequestParents before tab is
-  // closed.
-  // FIXME: Why is PContentPermissionRequest not managed by PBrowser?
-  nsTArray<PContentPermissionRequestParent*> parentArray =
-      nsContentPermissionUtils::GetContentPermissionRequestParentById(mTabId);
-  for (auto& permissionRequestParent : parentArray) {
-    Unused << PContentPermissionRequestParent::Send__delete__(
-        permissionRequestParent);
-  }
-
-  // Ensure the ContentParentKeepAlive has been cleared when the actor is
-  // destroyed, and re-check if it's time to send the ShutDown message.
-  mContentParentKeepAlive = nullptr;
-  Manager()->MaybeBeginShutDown();
+  Manager()->NotifyTabDestroyed(mTabId, mMarkedDestroying);
 
   ContentProcessManager* cpm = ContentProcessManager::GetSingleton();
   if (cpm) {

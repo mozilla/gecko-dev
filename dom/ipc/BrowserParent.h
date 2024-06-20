@@ -19,7 +19,6 @@
 #include "mozilla/dom/BrowserBridgeParent.h"
 #include "mozilla/dom/PBrowserParent.h"
 #include "mozilla/dom/TabContext.h"
-#include "mozilla/dom/UniqueContentParentKeepAlive.h"
 #include "mozilla/dom/VsyncParent.h"
 #include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/layout/RemoteLayerTreeOwner.h"
@@ -872,12 +871,6 @@ class BrowserParent final : public PBrowserParent,
   // exclusive with mBrowserBridgeParent, and one is guaranteed to be
   // non-null.
   BrowserHost* mBrowserHost;
-
-  // KeepAlive for the containing process.
-  // NOTE: While this is a strong reference to ContentParent, which is
-  // cycle-collected, it is cleared as the BrowserParent's IPC connection is
-  // destroyed, so does not need to be cycle-collected.
-  UniqueContentParentKeepAlive mContentParentKeepAlive;
 
   ContentCacheInParent mContentCache;
 

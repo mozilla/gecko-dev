@@ -63,7 +63,6 @@
 #include "mozilla/AbstractThread.h"
 #include "mozilla/FilePreferences.h"
 #include "mozilla/IOInterposer.h"
-#include "mozilla/NeverDestroyed.h"
 #include "mozilla/ProcessType.h"
 #include "mozilla/RDDProcessImpl.h"
 #include "mozilla/ipc/UtilityProcessImpl.h"
@@ -141,7 +140,6 @@ using mozilla::ipc::ProcessChild;
 
 using mozilla::dom::ContentParent;
 using mozilla::dom::ContentProcess;
-using mozilla::dom::UniqueContentParentKeepAlive;
 
 using mozilla::gmp::GMPProcessChild;
 
@@ -741,25 +739,22 @@ void XRE_ShutdownChildProcess() {
 }
 
 namespace {
-UniqueContentParentKeepAlive& TestShellContentParent() {
-  static NeverDestroyed<UniqueContentParentKeepAlive> sContentParent;
-  return *sContentParent;
-}
-
+ContentParent* gContentParent;  // long-lived, manually refcounted
 TestShellParent* GetOrCreateTestShellParent() {
-  if (!TestShellContentParent()) {
+  if (!gContentParent) {
     // Use a "web" child process by default.  File a bug if you don't like
     // this and you're sure you wouldn't be better off writing a "browser"
     // chrome mochitest where you can have multiple types of content
     // processes.
-    TestShellContentParent() =
+    RefPtr<ContentParent> parent =
         ContentParent::GetNewOrUsedBrowserProcess(DEFAULT_REMOTE_TYPE);
-  } else if (TestShellContentParent()->IsShuttingDown()) {
+    parent.forget(&gContentParent);
+  } else if (gContentParent->IsShuttingDown()) {
     return nullptr;
   }
-  TestShellParent* tsp = TestShellContentParent()->GetTestShellSingleton();
+  TestShellParent* tsp = gContentParent->GetTestShellSingleton();
   if (!tsp) {
-    tsp = TestShellContentParent()->CreateTestShell();
+    tsp = gContentParent->CreateTestShell();
   }
   return tsp;
 }
@@ -789,15 +784,15 @@ bool XRE_SendTestShellCommand(JSContext* aCx, JSString* aCommand,
 }
 
 bool XRE_ShutdownTestShell() {
-  if (!TestShellContentParent()) {
+  if (!gContentParent) {
     return true;
   }
   bool ret = true;
-  if (TestShellContentParent()->IsAlive()) {
-    ret = TestShellContentParent()->DestroyTestShell(
-        TestShellContentParent()->GetTestShellSingleton());
+  if (gContentParent->IsAlive()) {
+    ret = gContentParent->DestroyTestShell(
+        gContentParent->GetTestShellSingleton());
   }
-  TestShellContentParent().reset();
+  NS_RELEASE(gContentParent);
   return ret;
 }
 

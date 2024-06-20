@@ -299,6 +299,15 @@ interface nsIXULRuntime : nsISupports
   void invalidateCachesOnRestart();
 
   /**
+   * Starts a child process. This method is intented to pre-start a
+   * content child process so that when it is actually needed, it is
+   * ready to go.
+   *
+   * @throw NS_ERROR_NOT_AVAILABLE if not available.
+   */
+  void ensureContentProcess();
+
+  /**
    * Modification time of the profile lock before the profile was locked on
    * this startup. Used to know the last time the profile was used and not
    * closed cleanly. This is set to 0 if there was no existing profile lock.
