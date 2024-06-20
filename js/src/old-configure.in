@@ -50,7 +50,11 @@ if test -z "$JS_STANDALONE"; then
 fi
 AC_SUBST(autoconfmk)
 
-jsconfdefs=$_objdir/js/src/js-confdefs.h
+if test -z "$JS_STANDALONE"; then
+    jsconfdefs=$_objdir/mozilla-config.h
+else
+    jsconfdefs=$_objdir/js/src/js-confdefs.h
+fi
 
 dnl ========================================================
 dnl Checks for compilers.
