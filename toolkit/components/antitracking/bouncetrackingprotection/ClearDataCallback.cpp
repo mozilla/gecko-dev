@@ -36,8 +36,12 @@ nsTArray<RefPtr<nsIUrlClassifierFeature>>
     ClearDataCallback::sUrlClassifierFeatures;
 
 ClearDataCallback::ClearDataCallback(ClearDataMozPromise::Private* aPromise,
-                                     const nsACString& aHost)
-    : mHost(aHost), mPromise(aPromise), mClearDurationTimer(0) {
+                                     const nsACString& aHost,
+                                     PRTime aBounceTime)
+    : mHost(aHost),
+      mBounceTime(aBounceTime),
+      mPromise(aPromise),
+      mClearDurationTimer(0) {
   MOZ_ASSERT(!aHost.IsEmpty(), "Host must not be empty");
 
   if (!StaticPrefs::privacy_bounceTrackingProtection_enableDryRunMode()) {
@@ -78,7 +82,8 @@ NS_IMETHODIMP ClearDataCallback::OnDataDeleted(uint32_t aFailedFlags) {
     mPromise->Reject(aFailedFlags, __func__);
   } else {
     MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
-            ("%s: Cleared %s", __FUNCTION__, mHost.get()));
+            ("%s: Cleared host: %s, bounceTime: %" PRIu64, __FUNCTION__,
+             mHost.get(), mBounceTime));
     mPromise->Resolve(mHost, __func__);
 
     // Only record classifications on successful deletion.
@@ -87,6 +92,8 @@ NS_IMETHODIMP ClearDataCallback::OnDataDeleted(uint32_t aFailedFlags) {
   // Always collect clear duration and purge count.
   RecordClearDurationTelemetry();
   RecordPurgeCountTelemetry(aFailedFlags != 0);
+  RecordPurgeEventTelemetry(aFailedFlags == 0);
+
   return NS_OK;
 }
 
@@ -160,4 +167,19 @@ ClearDataCallback::OnClassifyComplete(
   }
 
   return NS_OK;
+}
+
+void ClearDataCallback::RecordPurgeEventTelemetry(bool aSuccess) {
+// Record a glean event for the clear action. This is only recorded in
+// pre-release channels.
+#if defined(EARLY_BETA_OR_EARLIER)
+  glean::bounce_tracking_protection::PurgeActionExtra extra = {
+      .bounceTime = Some(mBounceTime / PR_USEC_PER_SEC),
+      .isDryRun = Some(
+          StaticPrefs::privacy_bounceTrackingProtection_enableDryRunMode()),
+      .siteHost = Some(mHost),
+      .success = Some(aSuccess),
+  };
+  glean::bounce_tracking_protection::purge_action.Record(Some(extra));
+#endif  // defined(EARLY_BETA_OR_EARLIER)
 }
