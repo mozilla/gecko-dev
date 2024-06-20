@@ -23,7 +23,7 @@
 #include "mozilla/dom/DataTransferItemList.h"
 #include "mozilla/dom/File.h"
 
-class nsIAsyncGetClipboardData;
+class nsIClipboardDataSnapshot;
 class nsINode;
 class nsITransferable;
 class nsILoadContext;
@@ -423,7 +423,7 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
 
   already_AddRefed<WindowContext> GetWindowContext() const;
 
-  nsIAsyncGetClipboardData* GetAsyncGetClipboardData() const;
+  nsIClipboardDataSnapshot* GetClipboardDataSnapshot() const;
 
  protected:
   // Retrieve a list of clipboard formats supported
@@ -510,10 +510,10 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   // drag and drop.
   int32_t mClipboardType;
 
-  // The nsIAsyncGetClipboardData that is used for getting clipboard formats.
+  // The nsIClipboardDataSnapshot that is used for getting clipboard formats.
   // XXXedgar we should get the actual data from this in the future, see bug
   // 1879401.
-  nsCOMPtr<nsIAsyncGetClipboardData> mAsyncGetClipboardData;
+  nsCOMPtr<nsIClipboardDataSnapshot> mClipboardDataSnapshot;
 
   // The items contained with the DataTransfer
   RefPtr<DataTransferItemList> mItems;

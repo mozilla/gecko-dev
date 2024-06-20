@@ -49,7 +49,7 @@ interface nsIAsyncClipboardRequestCallback : nsISupports
 };
 
 [scriptable, builtinclass, uuid(c18ea2f7-6b6f-4a38-9ab3-a8781fdfcc39)]
-interface nsIAsyncGetClipboardData : nsISupports {
+interface nsIClipboardDataSnapshot : nsISupports {
   /**
    * Determines whether this request is still valid (e.g., the clipboard content
    * associated with this request is not stale).
@@ -85,7 +85,7 @@ interface nsIClipboardGetDataSnapshotCallback : nsISupports
   /**
    * Indicates that the clipboard get request has succeeded.
    */
-  void onSuccess(in nsIAsyncGetClipboardData aAsyncGetClipboardData);
+  void onSuccess(in nsIClipboardDataSnapshot aClipboardDataSnapshot);
 
   /**
    * Indicates that the clipboard get request has rejected.
@@ -208,7 +208,7 @@ interface nsIClipboard : nsISupports
      * @return nsIAsyncSetClipboardData if successful.
      * @throws if the request can not be made.
      */
-    nsIAsyncGetClipboardData getDataSnapshotSync(in Array<ACString> aFlavorList,
+    nsIClipboardDataSnapshot getDataSnapshotSync(in Array<ACString> aFlavorList,
                                                  in long aWhichClipboard,
                                                  [optional] in WindowContext aRequestingWindowContext);
 

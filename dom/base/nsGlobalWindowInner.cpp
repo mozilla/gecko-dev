@@ -7658,7 +7658,7 @@ void nsGlobalWindowInner::SetCurrentPasteDataTransfer(
   MOZ_ASSERT_IF(aDataTransfer, aDataTransfer->GetEventMessage() == ePaste);
   MOZ_ASSERT_IF(aDataTransfer, aDataTransfer->ClipboardType() ==
                                    nsIClipboard::kGlobalClipboard);
-  MOZ_ASSERT_IF(aDataTransfer, aDataTransfer->GetAsyncGetClipboardData());
+  MOZ_ASSERT_IF(aDataTransfer, aDataTransfer->GetClipboardDataSnapshot());
   mCurrentPasteDataTransfer = aDataTransfer;
 }
 

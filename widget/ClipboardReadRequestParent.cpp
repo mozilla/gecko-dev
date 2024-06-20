@@ -71,7 +71,7 @@ static Result<nsCOMPtr<nsITransferable>, nsresult> CreateTransferable(
 IPCResult ClipboardReadRequestParent::RecvGetData(
     const nsTArray<nsCString>& aFlavors, GetDataResolver&& aResolver) {
   bool valid = false;
-  if (NS_FAILED(mAsyncGetClipboardData->GetValid(&valid)) || !valid) {
+  if (NS_FAILED(mClipboardDataSnapshot->GetValid(&valid)) || !valid) {
     Unused << PClipboardReadRequestParent::Send__delete__(this);
     aResolver(NS_ERROR_FAILURE);
     return IPC_OK();
@@ -92,7 +92,7 @@ IPCResult ClipboardReadRequestParent::RecvGetData(
                                             manager = mManager](nsresult aRv) {
         if (NS_FAILED(aRv)) {
           bool valid = false;
-          if (NS_FAILED(self->mAsyncGetClipboardData->GetValid(&valid)) ||
+          if (NS_FAILED(self->mClipboardDataSnapshot->GetValid(&valid)) ||
               !valid) {
             Unused << PClipboardReadRequestParent::Send__delete__(self);
           }
@@ -105,7 +105,7 @@ IPCResult ClipboardReadRequestParent::RecvGetData(
             trans, &ipcTransferableData, false /* aInSyncMessage */, manager);
         resolver(std::move(ipcTransferableData));
       });
-  nsresult rv = mAsyncGetClipboardData->GetData(trans, callback);
+  nsresult rv = mClipboardDataSnapshot->GetData(trans, callback);
   if (NS_FAILED(rv)) {
     callback->OnComplete(rv);
   }

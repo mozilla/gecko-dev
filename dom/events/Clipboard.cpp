@@ -112,12 +112,12 @@ class ClipboardGetCallbackForRead final : public ClipboardGetCallback {
 
   // nsIClipboardGetDataSnapshotCallback
   NS_IMETHOD OnSuccess(
-      nsIAsyncGetClipboardData* aAsyncGetClipboardData) override {
+      nsIClipboardDataSnapshot* aClipboardDataSnapshot) override {
     MOZ_ASSERT(mPromise);
-    MOZ_ASSERT(aAsyncGetClipboardData);
+    MOZ_ASSERT(aClipboardDataSnapshot);
 
     nsTArray<nsCString> flavorList;
-    nsresult rv = aAsyncGetClipboardData->GetFlavorList(flavorList);
+    nsresult rv = aClipboardDataSnapshot->GetFlavorList(flavorList);
     if (NS_FAILED(rv)) {
       return OnError(rv);
     }
@@ -129,7 +129,7 @@ class ClipboardGetCallbackForRead final : public ClipboardGetCallback {
       if (flavorList.Contains(format)) {
         auto entry = MakeRefPtr<ClipboardItem::ItemEntry>(
             mGlobal, NS_ConvertUTF8toUTF16(format));
-        entry->LoadDataFromSystemClipboard(aAsyncGetClipboardData);
+        entry->LoadDataFromSystemClipboard(aClipboardDataSnapshot);
         entries.AppendElement(std::move(entry));
       }
     }
@@ -170,13 +170,13 @@ class ClipboardGetCallbackForReadText final
 
   // nsIClipboardGetDataSnapshotCallback
   NS_IMETHOD OnSuccess(
-      nsIAsyncGetClipboardData* aAsyncGetClipboardData) override {
+      nsIClipboardDataSnapshot* aClipboardDataSnapshot) override {
     MOZ_ASSERT(mPromise);
     MOZ_ASSERT(!mTransferable);
-    MOZ_ASSERT(aAsyncGetClipboardData);
+    MOZ_ASSERT(aClipboardDataSnapshot);
 
     AutoTArray<nsCString, 3> flavors;
-    nsresult rv = aAsyncGetClipboardData->GetFlavorList(flavors);
+    nsresult rv = aClipboardDataSnapshot->GetFlavorList(flavors);
     if (NS_FAILED(rv)) {
       return OnError(rv);
     }
@@ -192,7 +192,7 @@ class ClipboardGetCallbackForReadText final
       return OnComplete(NS_OK);
     }
 
-    rv = aAsyncGetClipboardData->GetData(mTransferable, this);
+    rv = aClipboardDataSnapshot->GetData(mTransferable, this);
     if (NS_FAILED(rv)) {
       return OnError(rv);
     }
@@ -242,7 +242,7 @@ NS_IMPL_ISUPPORTS(ClipboardGetCallbackForReadText,
 void Clipboard::RequestRead(Promise& aPromise, const ReadRequestType& aType,
                             nsPIDOMWindowInner& aOwner,
                             nsIPrincipal& aSubjectPrincipal,
-                            nsIAsyncGetClipboardData& aRequest) {
+                            nsIClipboardDataSnapshot& aRequest) {
 #ifdef DEBUG
   bool isValid = false;
   MOZ_ASSERT(NS_SUCCEEDED(aRequest.GetValid(&isValid)) && isValid);
@@ -346,14 +346,14 @@ already_AddRefed<Promise> Clipboard::ReadHelper(nsIPrincipal& aSubjectPrincipal,
   // webpage access to the clipboard.
   if (RefPtr<DataTransfer> dataTransfer =
           nsGlobalWindowInner::Cast(owner)->GetCurrentPasteDataTransfer()) {
-    // If there is valid nsIAsyncGetClipboardData, use it directly.
-    if (nsCOMPtr<nsIAsyncGetClipboardData> asyncGetClipboardData =
-            dataTransfer->GetAsyncGetClipboardData()) {
+    // If there is valid nsIClipboardDataSnapshot, use it directly.
+    if (nsCOMPtr<nsIClipboardDataSnapshot> clipboardDataSnapshot =
+            dataTransfer->GetClipboardDataSnapshot()) {
       bool isValid = false;
-      asyncGetClipboardData->GetValid(&isValid);
+      clipboardDataSnapshot->GetValid(&isValid);
       if (isValid) {
         RequestRead(*p, aType, *owner, aSubjectPrincipal,
-                    *asyncGetClipboardData);
+                    *clipboardDataSnapshot);
         return p.forget();
       }
     }

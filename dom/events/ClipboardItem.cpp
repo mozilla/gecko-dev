@@ -135,7 +135,7 @@ NS_IMETHODIMP ClipboardItem::ItemEntry::OnComplete(nsresult aResult) {
 }
 
 void ClipboardItem::ItemEntry::LoadDataFromSystemClipboard(
-    nsIAsyncGetClipboardData* aDataGetter) {
+    nsIClipboardDataSnapshot* aDataGetter) {
   MOZ_ASSERT(aDataGetter);
   // XXX maybe we could consider adding a method to check whether the union
   // object is uninitialized or initialized.
