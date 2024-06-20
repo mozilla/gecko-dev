@@ -11,6 +11,13 @@ import org.mozilla.fenix.tabstray.syncedtabs.SyncedTabsList
 import org.mozilla.fenix.tabstray.syncedtabs.OnTabClick as OnSyncedTabClick
 import org.mozilla.fenix.tabstray.syncedtabs.OnTabCloseClick as OnSyncedTabClose
 
+/**
+ * UI for displaying the Synced Tabs Page in the Tabs Tray.
+ *
+ * @param tabsTrayStore [TabsTrayStore] used to listen for changes to [TabsTrayState].
+ * @param onTabClick Invoked when the user clicks on a tab.
+ * @param onTabClose Invoked when the user clicks to close a tab.
+ */
 @Composable
 internal fun SyncedTabsPage(
     tabsTrayStore: TabsTrayStore,

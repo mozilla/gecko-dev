@@ -11,6 +11,17 @@ import androidx.compose.ui.platform.testTag
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.lib.state.ext.observeAsState
 
+/**
+ * UI for displaying the Private Tabs Page in the Tabs Tray.
+ *
+ * @param tabsTrayStore [TabsTrayStore] used to listen for changes to [TabsTrayState].
+ * @param displayTabsInGrid Whether the normal and private tabs should be displayed in a grid.
+ * @param onTabClose Invoked when the user clicks to close a tab.
+ * @param onTabMediaClick Invoked when the user interacts with a tab's media controls.
+ * @param onTabClick Invoked when the user clicks on a tab.
+ * @param onTabLongClick Invoked when the user long clicks on a tab.
+ * @param onMove Invoked after the drag and drop gesture completed. Swaps position of two tabs.
+ */
 @Composable
 internal fun PrivateTabsPage(
     tabsTrayStore: TabsTrayStore,
