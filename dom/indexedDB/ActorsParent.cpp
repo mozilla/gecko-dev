@@ -4997,6 +4997,7 @@ class Maintenance final : public Runnable {
   };
 
   RefPtr<QuotaClient> mQuotaClient;
+  MozPromiseHolder<BoolPromise> mPromiseHolder;
   PRTime mStartTime;
   RefPtr<UniversalDirectoryLock> mPendingDirectoryLock;
   RefPtr<UniversalDirectoryLock> mDirectoryLock;
@@ -5034,6 +5035,12 @@ class Maintenance final : public Runnable {
     MOZ_ASSERT(mState == State::Initial);
 
     Unused << this->Run();
+  }
+
+  RefPtr<BoolPromise> OnResults() {
+    AssertIsOnBackgroundThread();
+
+    return mPromiseHolder.Ensure(__func__);
   }
 
   void Abort();
@@ -13347,7 +13354,11 @@ void Maintenance::Finish() {
   MOZ_ASSERT(!mDirectoryLock);
   MOZ_ASSERT(mState == State::Finishing);
 
-  if (NS_FAILED(mResultCode)) {
+  if (NS_SUCCEEDED(mResultCode)) {
+    mPromiseHolder.ResolveIfExists(true, __func__);
+  } else {
+    mPromiseHolder.RejectIfExists(mResultCode, __func__);
+
     nsCString errorName;
     GetErrorName(mResultCode, errorName);
 
