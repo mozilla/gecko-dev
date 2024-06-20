@@ -58,3 +58,14 @@ support-files = [
 ["browser_superfluos_auth.js"]
 
 ["browser_upgrade_onion.js"]
+
+["browser_https_telemetry.js"]
+support-files = [
+  "file_https_telemetry_hsts.sjs",
+  "file_no_https_support.sjs"
+]
+skip-if = [
+  "http3",
+  "http2",
+  "socketprocess_networking",
+]
