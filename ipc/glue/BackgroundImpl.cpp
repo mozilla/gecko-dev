@@ -157,6 +157,12 @@ class ParentImpl final : public BackgroundParentImpl {
   bool mActorDestroyed;
 
  public:
+  static already_AddRefed<nsISerialEventTarget> GetBackgroundThread() {
+    AssertIsInMainProcess();
+    THREADSAFETY_ASSERT(NS_IsMainThread() || IsOnBackgroundThread());
+    return do_AddRef(sBackgroundThread);
+  }
+
   static bool IsOnBackgroundThread() {
     return PR_GetCurrentThread() == sBackgroundPRThread;
   }
@@ -644,6 +650,11 @@ void AssertIsOnBackgroundThread() { ParentImpl::AssertIsOnBackgroundThread(); }
 // -----------------------------------------------------------------------------
 // BackgroundParent Public Methods
 // -----------------------------------------------------------------------------
+
+// static
+already_AddRefed<nsISerialEventTarget> GetBackgroundThread() {
+  return ParentImpl::GetBackgroundThread();
+}
 
 // static
 bool BackgroundParent::IsOtherProcessActor(
