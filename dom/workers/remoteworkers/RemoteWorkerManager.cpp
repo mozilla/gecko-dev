@@ -235,47 +235,11 @@ void RemoteWorkerManager::RegisterActor(RemoteWorkerServiceParent* aActor) {
   if (!aActor->IsOtherProcessActor()) {
     MOZ_ASSERT(!mParentActor);
     mParentActor = aActor;
-    MOZ_ASSERT(mPendings.IsEmpty());
     return;
   }
 
   MOZ_ASSERT(!mChildActors.Contains(aActor));
   mChildActors.AppendElement(aActor);
-
-  if (!mPendings.IsEmpty()) {
-    const auto& processRemoteType = aActor->GetRemoteType();
-    nsTArray<Pending> unlaunched;
-
-    // Flush pending launching.
-    for (Pending& p : mPendings) {
-      if (p.mController->IsTerminated()) {
-        continue;
-      }
-
-      const auto& workerRemoteType = p.mData.remoteType();
-
-      if (MatchRemoteType(processRemoteType, workerRemoteType)) {
-        LOG(("RegisterActor - Launch Pending, workerRemoteType=%s",
-             workerRemoteType.get()));
-        LaunchInternal(p.mController, aActor, p.mData);
-      } else {
-        unlaunched.AppendElement(std::move(p));
-        continue;
-      }
-    }
-
-    std::swap(mPendings, unlaunched);
-
-    // AddRef is called when the first Pending object is added to mPendings, so
-    // the balancing Release is called when the last Pending object is removed.
-    // RemoteWorkerServiceParents will hold strong references to
-    // RemoteWorkerManager.
-    if (mPendings.IsEmpty()) {
-      Release();
-    }
-
-    LOG(("RegisterActor - mPendings length: %zu", mPendings.Length()));
-  }
 }
 
 void RemoteWorkerManager::UnregisterActor(RemoteWorkerServiceParent* aActor) {
@@ -302,18 +266,20 @@ void RemoteWorkerManager::Launch(RemoteWorkerController* aController,
   // If there is not an available actor, let's store the data, and let's spawn a
   // new process.
   if (!targetActor) {
-    // If this is the first time we have a pending launching, we must keep alive
-    // the manager.
-    if (mPendings.IsEmpty()) {
-      AddRef();
-    }
-
-    Pending* pending = mPendings.AppendElement();
-    pending->mController = aController;
-    pending->mData = aData;
-
     // Launching is async, so we cannot check for failures right here.
-    LaunchNewContentProcess(aData);
+    LaunchNewContentProcess(aData)->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [self = RefPtr{this}, controller = RefPtr{aController},
+         data = aData](const RefPtr<RemoteWorkerServiceParent>& aTargetActor) {
+          if (aTargetActor->CanSend()) {
+            self->LaunchInternal(controller, aTargetActor, data, false);
+          } else {
+            controller->CreationFailed();
+          }
+        },
+        [controller = RefPtr{aController}](nsresult) {
+          controller->CreationFailed();
+        });
     return;
   }
 
@@ -523,103 +489,43 @@ RemoteWorkerServiceParent* RemoteWorkerManager::SelectTargetActor(
   return SelectTargetActorInternal(aData, aProcessId);
 }
 
-void RemoteWorkerManager::LaunchNewContentProcess(
-    const RemoteWorkerData& aData) {
+RefPtr<RemoteWorkerManager::LaunchProcessPromise>
+RemoteWorkerManager::LaunchNewContentProcess(const RemoteWorkerData& aData) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
-  nsCOMPtr<nsISerialEventTarget> bgEventTarget = GetCurrentSerialEventTarget();
-
-  using LaunchPromiseType = ContentParent::LaunchPromise;
-  using CallbackParamType = LaunchPromiseType::ResolveOrRejectValue;
-
-  // A new content process must be requested on the main thread. On success,
-  // the success callback will also run on the main thread. On failure, however,
-  // the failure callback must be run on the background thread - it uses
-  // RemoteWorkerManager, and RemoteWorkerManager isn't threadsafe, so the
-  // promise callback will just dispatch the "real" failure callback to the
-  // background thread.
-  auto processLaunchCallback = [principalInfo = aData.principalInfo(),
-                                bgEventTarget = std::move(bgEventTarget),
-                                self = RefPtr<RemoteWorkerManager>(this)](
-                                   const CallbackParamType& aValue,
-                                   const nsCString& remoteType) mutable {
-    if (aValue.IsResolve()) {
-      LOG(("LaunchNewContentProcess: successfully got child process"));
-
-      // The failure callback won't run, and we're on the main thread, so
-      // we need to properly release the thread-unsafe RemoteWorkerManager.
-      NS_ProxyRelease(__func__, bgEventTarget, self.forget());
-    } else {
-      // The "real" failure callback.
-      nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-          __func__, [self = std::move(self), remoteType] {
-            nsTArray<Pending> uncancelled;
-            auto pendings = std::move(self->mPendings);
-
-            for (const auto& pending : pendings) {
-              const auto& workerRemoteType = pending.mData.remoteType();
-              if (self->MatchRemoteType(remoteType, workerRemoteType)) {
-                LOG(
-                    ("LaunchNewContentProcess: Cancel pending with "
-                     "workerRemoteType=%s",
-                     workerRemoteType.get()));
-                pending.mController->CreationFailed();
-              } else {
-                uncancelled.AppendElement(pending);
-              }
-            }
-
-            std::swap(self->mPendings, uncancelled);
+  // Request a process making sure to specify aPreferUsed=true.  For a given
+  // remoteType there's a pool size limit.  If we pass aPreferUsed here, then if
+  // there's any process in the pool already, we will use that.  If we pass
+  // false (which is the default if omitted), then this call will spawn a new
+  // process if the pool isn't at its limit yet.
+  //
+  // (Our intent is never to grow the pool size here.  Our logic gets here
+  // because our current logic on PBackground is only aware of
+  // RemoteWorkerServiceParent actors that have registered themselves, which is
+  // fundamentally unaware of processes that will match in the future when they
+  // register.  So we absolutely are fine with and want any existing processes.)
+  return InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
+                     [remoteType = aData.remoteType()]() {
+                       return ContentParent::GetNewOrUsedBrowserProcessAsync(
+                           /* aRemoteType = */ remoteType,
+                           /* aGroup */ nullptr,
+                           hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
+                           /* aPreferUsed */ true);
+                     })
+      ->Then(
+          GetMainThreadSerialEventTarget(), __func__,
+          [](ContentParent* aContentParent) {
+            RefPtr<RemoteWorkerServiceParent> actor =
+                aContentParent->GetRemoteWorkerServiceParent();
+            MOZ_ASSERT(actor, "RemoteWorkerServiceParent not initialized?");
+            return RemoteWorkerManager::LaunchProcessPromise::CreateAndResolve(
+                actor, __func__);
+          },
+          [](nsresult aError) {
+            return RemoteWorkerManager::LaunchProcessPromise::CreateAndReject(
+                aError, __func__);
           });
-
-      bgEventTarget->Dispatch(r.forget(), NS_DISPATCH_NORMAL);
-    }
-  };
-
-  LOG(("LaunchNewContentProcess: remoteType=%s", aData.remoteType().get()));
-
-  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-      __func__, [callback = std::move(processLaunchCallback),
-                 workerRemoteType = aData.remoteType()]() mutable {
-        auto remoteType =
-            workerRemoteType.IsEmpty() ? DEFAULT_REMOTE_TYPE : workerRemoteType;
-
-        RefPtr<LaunchPromiseType> onFinished;
-        if (!AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
-          // Request a process making sure to specify aPreferUsed=true.  For a
-          // given remoteType there's a pool size limit.  If we pass aPreferUsed
-          // here, then if there's any process in the pool already, we will use
-          // that.  If we pass false (which is the default if omitted), then
-          // this call will spawn a new process if the pool isn't at its limit
-          // yet.
-          //
-          // (Our intent is never to grow the pool size here.  Our logic gets
-          // here because our current logic on PBackground is only aware of
-          // RemoteWorkerServiceParent actors that have registered themselves,
-          // which is fundamentally unaware of processes that will match in the
-          // future when they register.  So we absolutely are fine with and want
-          // any existing processes.)
-          onFinished = ContentParent::GetNewOrUsedBrowserProcessAsync(
-              /* aRemoteType = */ remoteType,
-              /* aGroup */ nullptr,
-              hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
-              /* aPreferUsed */ true);
-        } else {
-          // We can find this event still in flight after having been asked to
-          // shutdown. Let's fake a failure to ensure our callback is called
-          // such that we clean up everything properly.
-          onFinished = LaunchPromiseType::CreateAndReject(
-              NS_ERROR_ILLEGAL_DURING_SHUTDOWN, __func__);
-        }
-        onFinished->Then(GetCurrentSerialEventTarget(), __func__,
-                         [callback = std::move(callback),
-                          remoteType](const CallbackParamType& aValue) mutable {
-                           callback(aValue, remoteType);
-                         });
-      });
-
-  SchedulerGroup::Dispatch(r.forget());
 }
 
 }  // namespace dom
