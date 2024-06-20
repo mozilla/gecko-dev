@@ -46,7 +46,10 @@ for (var constructor of anyTypedArrayConstructors) {
 }
 
 for (let constructor of anyTypedArrayConstructors.filter(isFloatConstructor)) {
-    if (constructor.BYTES_PER_ELEMENT === 4) {
+    if (constructor.BYTES_PER_ELEMENT === 2) {
+        assertEq(new constructor([.1, .2, .3]).indexOf(.2), -1);
+        assertEq(new constructor([.1, .2, .3]).indexOf(Math.f16round(.2)), 1);
+    } else if (constructor.BYTES_PER_ELEMENT === 4) {
         assertEq(new constructor([.1, .2, .3]).indexOf(.2), -1);
         assertEq(new constructor([.1, .2, .3]).indexOf(Math.fround(.2)), 1);
     } else {
@@ -110,7 +113,10 @@ for (var constructor of anyTypedArrayConstructors) {
 }
 
 for (let constructor of anyTypedArrayConstructors.filter(isFloatConstructor)) {
-    if (constructor.BYTES_PER_ELEMENT === 4) {
+    if (constructor.BYTES_PER_ELEMENT === 2) {
+        assertEq(new constructor([.1, .2, .3]).lastIndexOf(.2), -1);
+        assertEq(new constructor([.1, .2, .3]).lastIndexOf(Math.f16round(.2)), 1);
+    } else if (constructor.BYTES_PER_ELEMENT === 4) {
         assertEq(new constructor([.1, .2, .3]).lastIndexOf(.2), -1);
         assertEq(new constructor([.1, .2, .3]).lastIndexOf(Math.fround(.2)), 1);
     } else {

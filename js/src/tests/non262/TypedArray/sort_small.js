@@ -11,6 +11,10 @@ const testCases = {
     // Test the behavior in the default comparator as described in 22.2.3.26.
     // The spec boils down to, -0s come before +0s, and NaNs always come last.
     // Float Arrays are used because all other types convert -0 and NaN to +0.
+    [Float16Array.name]: [
+        [-2147483647, -2147483646.99, -0, 0, 2147483646.99, NaN],
+        [1/undefined, NaN, Number.NaN]
+    ],
     [Float32Array.name]: [
         [-2147483647, -2147483646.99, -0, 0, 2147483646.99, NaN],
         [1/undefined, NaN, Number.NaN]
