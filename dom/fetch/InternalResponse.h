@@ -57,8 +57,7 @@ class InternalResponse final : public AtomicSafeRefCounted<InternalResponse> {
 
   ParentToParentInternalResponse ToParentToParentInternalResponse();
 
-  ParentToChildInternalResponse ToParentToChildInternalResponse(
-      NotNull<mozilla::ipc::PBackgroundParent*> aBackgroundParent);
+  ParentToChildInternalResponse ToParentToChildInternalResponse();
 
   enum CloneType {
     eCloneInputStream,
@@ -410,8 +409,7 @@ class InternalResponse final : public AtomicSafeRefCounted<InternalResponse> {
 };
 
 ParentToChildInternalResponse ToParentToChild(
-    const ParentToParentInternalResponse& aResponse,
-    NotNull<mozilla::ipc::PBackgroundParent*> aBackgroundParent);
+    const ParentToParentInternalResponse& aResponse);
 
 }  // namespace dom
 }  // namespace mozilla
