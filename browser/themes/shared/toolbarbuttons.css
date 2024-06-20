@@ -427,3 +427,9 @@ toolbarspring {
   /* Allow flexible spacers to shrink further outside of customize mode. */
   min-width: 1px;
 }
+
+/* Keyboard navigation */
+
+toolbar[keyNav]:not([collapsed=true], [customizing]) toolbartabstop {
+  -moz-user-focus: normal;
+}

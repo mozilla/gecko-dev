@@ -102,7 +102,3 @@
   position: relative;
   max-height: 0;
 }
-
-toolbar[keyNav=true]:not([collapsed=true], [customizing=true]) toolbartabstop {
-  -moz-user-focus: normal;
-}
