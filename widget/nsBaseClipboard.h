@@ -54,7 +54,7 @@ class nsBaseClipboard : public nsIClipboard {
   NS_IMETHOD GetData(
       nsITransferable* aTransferable, int32_t aWhichClipboard,
       mozilla::dom::WindowContext* aWindowContext) override final;
-  NS_IMETHOD AsyncGetData(
+  NS_IMETHOD GetDataSnapshot(
       const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
       mozilla::dom::WindowContext* aRequestingWindowContext,
       nsIPrincipal* aRequestingPrincipal,
@@ -70,7 +70,7 @@ class nsBaseClipboard : public nsIClipboard {
   NS_IMETHOD IsClipboardTypeSupported(int32_t aWhichClipboard,
                                       bool* aRetval) override final;
 
-  void AsyncGetDataInternal(
+  void GetDataSnapshotInternal(
       const nsTArray<nsCString>& aFlavorList, int32_t aClipboardType,
       mozilla::dom::WindowContext* aRequestingWindowContext,
       nsIAsyncClipboardGetCallback* aCallback);

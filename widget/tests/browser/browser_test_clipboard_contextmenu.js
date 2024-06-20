@@ -50,10 +50,10 @@ function promiseClickPasteButton() {
   return promise;
 }
 
-async function clipboardAsyncGetData(aBrowser, aClipboardType) {
+async function getClipboardDataSnapshot(aBrowser, aClipboardType) {
   await SpecialPowers.spawn(aBrowser, [aClipboardType], async type => {
     return new Promise((resolve, reject) => {
-      SpecialPowers.Services.clipboard.asyncGetData(
+      SpecialPowers.Services.clipboard.getDataSnapshot(
         ["text/plain"],
         type,
         content.browsingContext.currentWindowContext,
@@ -91,7 +91,7 @@ supportedClipboardTypes.forEach(type => {
       async function (browser) {
         info(`Test clipboard contextmenu for clipboard type ${type}`);
         let pasteContextMenuPromise = waitForPasteContextMenu();
-        const asyncRead = clipboardAsyncGetData(browser, type);
+        const asyncRead = getClipboardDataSnapshot(browser, type);
         await pasteContextMenuPromise;
 
         // We don't allow requests for different clipboard type to be
@@ -108,7 +108,7 @@ supportedClipboardTypes.forEach(type => {
 
           info(`Test other clipboard type ${otherType}`);
           await Assert.rejects(
-            clipboardAsyncGetData(browser, otherType),
+            getClipboardDataSnapshot(browser, otherType),
             ex => ex == Cr.NS_ERROR_DOM_NOT_ALLOWED_ERR,
             `Request for clipboard type ${otherType} should be rejected`
           );
@@ -117,9 +117,9 @@ supportedClipboardTypes.forEach(type => {
         await promiseClickPasteButton();
         try {
           await asyncRead;
-          ok(true, `nsIClipboard.asyncGetData() should success`);
+          ok(true, `nsIClipboard.getDataSnapshot() should success`);
         } catch (e) {
-          ok(false, `nsIClipboard.asyncGetData() should not fail with ${e}`);
+          ok(false, `nsIClipboard.getDataSnapshot() should not fail with ${e}`);
         }
       }
     );

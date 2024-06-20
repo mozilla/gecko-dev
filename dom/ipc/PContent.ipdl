@@ -1220,9 +1220,9 @@ parent:
         returns (IPCTransferableDataOrError transferableDataOrError);
 
     // Requests getting data from clipboard.
-    async GetClipboardAsync(nsCString[] aTypes, int32_t aWhichClipboard,
-                            MaybeDiscardedWindowContext aRequestingWindowContext,
-                            nsIPrincipal aRequestingPrincipal)
+    async GetClipboardDataSnapshot(nsCString[] aTypes, int32_t aWhichClipboard,
+                                   MaybeDiscardedWindowContext aRequestingWindowContext,
+                                   nsIPrincipal aRequestingPrincipal)
         returns (ClipboardReadRequestOrError aClipboardReadRequestOrError);
 
     // Requests getting data from clipboard.

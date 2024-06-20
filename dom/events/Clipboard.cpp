@@ -294,14 +294,14 @@ void Clipboard::RequestRead(Promise* aPromise, ReadRequestType aType,
       types.AppendElements(Span<const nsLiteralCString>(kMandatoryDataTypes));
 
       callback = MakeRefPtr<ClipboardGetCallbackForRead>(global, std::move(p));
-      rv = clipboardService->AsyncGetData(types, nsIClipboard::kGlobalClipboard,
-                                          owner->GetWindowContext(),
-                                          &aPrincipal, callback);
+      rv = clipboardService->GetDataSnapshot(
+          types, nsIClipboard::kGlobalClipboard, owner->GetWindowContext(),
+          &aPrincipal, callback);
       break;
     }
     case ReadRequestType::eReadText: {
       callback = MakeRefPtr<ClipboardGetCallbackForReadText>(std::move(p));
-      rv = clipboardService->AsyncGetData(
+      rv = clipboardService->GetDataSnapshot(
           AutoTArray<nsCString, 1>{nsLiteralCString(kTextMime)},
           nsIClipboard::kGlobalClipboard, owner->GetWindowContext(),
           &aPrincipal, callback);

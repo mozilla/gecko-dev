@@ -207,7 +207,7 @@ CreateAsyncGetClipboardDataProxy(
 
 }  // namespace
 
-NS_IMETHODIMP nsClipboardProxy::AsyncGetData(
+NS_IMETHODIMP nsClipboardProxy::GetDataSnapshot(
     const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
     mozilla::dom::WindowContext* aRequestingWindowContext,
     nsIPrincipal* aRequestingPrincipal,
@@ -223,9 +223,9 @@ NS_IMETHODIMP nsClipboardProxy::AsyncGetData(
   }
 
   ContentChild::GetSingleton()
-      ->SendGetClipboardAsync(aFlavorList, aWhichClipboard,
-                              aRequestingWindowContext,
-                              WrapNotNull(aRequestingPrincipal))
+      ->SendGetClipboardDataSnapshot(aFlavorList, aWhichClipboard,
+                                     aRequestingWindowContext,
+                                     WrapNotNull(aRequestingPrincipal))
       ->Then(
           GetMainThreadSerialEventTarget(), __func__,
           /* resolve */

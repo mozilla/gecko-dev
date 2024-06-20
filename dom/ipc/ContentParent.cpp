@@ -3594,8 +3594,9 @@ static Result<ClipboardReadRequest, nsresult> CreateClipboardReadRequest(
 
 class ClipboardGetCallback final : public nsIAsyncClipboardGetCallback {
  public:
-  ClipboardGetCallback(ContentParent* aContentParent,
-                       ContentParent::GetClipboardAsyncResolver&& aResolver)
+  ClipboardGetCallback(
+      ContentParent* aContentParent,
+      ContentParent::GetClipboardDataSnapshotResolver&& aResolver)
       : mContentParent(aContentParent), mResolver(std::move(aResolver)) {}
 
   // This object will never be held by a cycle-collected object, so it doesn't
@@ -3627,18 +3628,18 @@ class ClipboardGetCallback final : public nsIAsyncClipboardGetCallback {
   ~ClipboardGetCallback() = default;
 
   RefPtr<ContentParent> mContentParent;
-  ContentParent::GetClipboardAsyncResolver mResolver;
+  ContentParent::GetClipboardDataSnapshotResolver mResolver;
 };
 
 NS_IMPL_ISUPPORTS(ClipboardGetCallback, nsIAsyncClipboardGetCallback)
 
 }  // namespace
 
-mozilla::ipc::IPCResult ContentParent::RecvGetClipboardAsync(
+mozilla::ipc::IPCResult ContentParent::RecvGetClipboardDataSnapshot(
     nsTArray<nsCString>&& aTypes, const int32_t& aWhichClipboard,
     const MaybeDiscarded<WindowContext>& aRequestingWindowContext,
     mozilla::NotNull<nsIPrincipal*> aRequestingPrincipal,
-    GetClipboardAsyncResolver&& aResolver) {
+    GetClipboardDataSnapshotResolver&& aResolver) {
   if (!ValidatePrincipal(aRequestingPrincipal,
                          {ValidatePrincipalOptions::AllowSystem,
                           ValidatePrincipalOptions::AllowExpanded})) {
@@ -3667,8 +3668,8 @@ mozilla::ipc::IPCResult ContentParent::RecvGetClipboardAsync(
   }
 
   auto callback = MakeRefPtr<ClipboardGetCallback>(this, std::move(aResolver));
-  rv = clipboard->AsyncGetData(aTypes, aWhichClipboard, requestingWindow,
-                               aRequestingPrincipal, callback);
+  rv = clipboard->GetDataSnapshot(aTypes, aWhichClipboard, requestingWindow,
+                                  aRequestingPrincipal, callback);
   if (NS_FAILED(rv)) {
     callback->OnError(rv);
     return IPC_OK();

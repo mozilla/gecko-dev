@@ -206,7 +206,7 @@ function runClipboardCacheTests(aIsSupportGetFromCachedTransferable) {
 
       info(`Write text/plain data to clipboard ${type}`);
       clipboard.setData(trans, null, type);
-      await testClipboardData(await asyncGetClipboardData(type), clipboardData);
+      await testClipboardData(await getClipboardDataSnapshot(type), clipboardData);
 
       info(`Add text/html data to transferable`);
       const htmlString = `<div>${generateRandomString()}</div>`;
@@ -217,19 +217,19 @@ function runClipboardCacheTests(aIsSupportGetFromCachedTransferable) {
           (type == clipboard.kSelectionCache && !SpecialPowers.isHeadless)) {
         clipboardData["text/html"] = htmlString;
       }
-      await testClipboardData(await asyncGetClipboardData(type), clipboardData);
+      await testClipboardData(await getClipboardDataSnapshot(type), clipboardData);
 
       info(`Should not get the data from other clipboard type`);
       clipboardTypes.forEach(async function(otherType) {
         if (otherType != type &&
             clipboard.isClipboardTypeSupported(otherType)) {
           info(`Check clipboard type ${otherType}`);
-          await testClipboardData(await asyncGetClipboardData(otherType), {});
+          await testClipboardData(await getClipboardDataSnapshot(otherType), {});
         }
       });
 
       info(`Check data on clipboard ${type} again`);
-      await testClipboardData(await asyncGetClipboardData(type), clipboardData);
+      await testClipboardData(await getClipboardDataSnapshot(type), clipboardData);
     });
 
     add_task(async function test_flavorList_order() {
@@ -244,7 +244,7 @@ function runClipboardCacheTests(aIsSupportGetFromCachedTransferable) {
 
       // Read with reverse order.
       let flavors = trans.flavorsTransferableCanExport().reverse();
-      let request = await asyncGetClipboardData(type, flavors);
+      let request = await getClipboardDataSnapshot(type, flavors);
       // XXX Not all clipboard type supports html format, e.g. kFindClipboard
       // on macOS only support writing text/plain.
       if (

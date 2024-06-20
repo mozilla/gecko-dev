@@ -181,11 +181,11 @@ interface nsIClipboard : nsISupports
      *         The callback object that will be notified upon completion.
      * @result NS_OK if no errors
      */
-    void asyncGetData(in Array<ACString> aFlavorList,
-                      in long aWhichClipboard,
-                      in WindowContext aRequestingWindowContext,
-                      in nsIPrincipal aRequestingPrincipal,
-                      in nsIAsyncClipboardGetCallback aCallback);
+    void getDataSnapshot(in Array<ACString> aFlavorList,
+                         in long aWhichClipboard,
+                         in WindowContext aRequestingWindowContext,
+                         in nsIPrincipal aRequestingPrincipal,
+                         in nsIAsyncClipboardGetCallback aCallback);
 
     /**
      * Requests getting data from the native clipboard. This does not actually

@@ -7,37 +7,37 @@
 
 clipboardTypes.forEach(function (type) {
   if (!clipboard.isClipboardTypeSupported(type)) {
-    add_task(async function test_clipboard_asyncGetData_not_support() {
-      info(`Test asyncGetData request throwing on ${type}`);
+    add_task(async function test_clipboard_getDataSnapshot_not_support() {
+      info(`Test getDataSnapshot request throwing on ${type}`);
       SimpleTest.doesThrow(
-        () => clipboard.asyncGetData(["text/plain"], type, {}),
+        () => clipboard.getDataSnapshot(["text/plain"], type, {}),
         "Passing unsupported clipboard type should throw"
       );
     });
     return;
   }
 
-  add_task(async function test_clipboard_asyncGetData_throw() {
-    info(`Test asyncGetData request throwing on ${type}`);
+  add_task(async function test_clipboard_getDataSnapshot_throw() {
+    info(`Test getDataSnapshot request throwing on ${type}`);
     SimpleTest.doesThrow(
-      () => clipboard.asyncGetData([], type, {}),
+      () => clipboard.getDataSnapshot([], type, {}),
       "Passing empty flavor list should throw"
     );
 
     SimpleTest.doesThrow(
-      () => clipboard.asyncGetData(["text/plain"], type, null),
+      () => clipboard.getDataSnapshot(["text/plain"], type, null),
       "Passing no callback should throw"
     );
   });
 
-  add_task(async function test_clipboard_asyncGetData_no_matched_flavor() {
-    info(`Test asyncGetData have no matched flavor on ${type}`);
+  add_task(async function test_clipboard_getDataSnapshot_no_matched_flavor() {
+    info(`Test getDataSnapshot have no matched flavor on ${type}`);
     cleanupAllClipboard();
     is(getClipboardData("text/plain", type), null, "ensure clipboard is empty");
 
     writeRandomStringToClipboard("text/plain", type);
     let request = await new Promise(resolve => {
-      clipboard.asyncGetData(
+      clipboard.getDataSnapshot(
         ["text/html"],
         type,
         null,
@@ -59,22 +59,22 @@ clipboardTypes.forEach(function (type) {
   });
 
   add_task(async function test_empty_data() {
-    info(`Test asyncGetData request with empty data on ${type}`);
+    info(`Test getDataSnapshot request with empty data on ${type}`);
     cleanupAllClipboard();
     is(getClipboardData("text/plain", type), null, "ensure clipboard is empty");
 
-    let request = await asyncGetClipboardData(type);
+    let request = await getClipboardDataSnapshot(type);
     isDeeply(request.flavorList, [], "Check flavorList");
     await asyncClipboardRequestGetData(request, "text/plain", true).catch(
       () => {}
     );
   });
 
-  add_task(async function test_clipboard_asyncGetData_after_write() {
-    info(`Test asyncGetData request after write on ${type}`);
+  add_task(async function test_clipboard_getDataSnapshot_after_write() {
+    info(`Test getDataSnapshot request after write on ${type}`);
 
     let str = writeRandomStringToClipboard("text/plain", type);
-    let request = await asyncGetClipboardData(type);
+    let request = await getClipboardDataSnapshot(type);
     isDeeply(request.flavorList, ["text/plain"], "Check flavorList");
     is(
       await asyncClipboardRequestGetData(request, "text/plain"),
@@ -101,7 +101,7 @@ clipboardTypes.forEach(function (type) {
     ok(!request.valid, "request should no longer be valid");
 
     info(`check clipboard data again`);
-    request = await asyncGetClipboardData(type);
+    request = await getClipboardDataSnapshot(type);
     isDeeply(request.flavorList, ["text/plain"], "Check flavorList");
     is(
       await asyncClipboardRequestGetData(request, "text/plain"),
@@ -112,11 +112,11 @@ clipboardTypes.forEach(function (type) {
     cleanupAllClipboard();
   });
 
-  add_task(async function test_clipboard_asyncGetData_after_empty() {
-    info(`Test asyncGetData request after empty on ${type}`);
+  add_task(async function test_clipboard_getDataSnapshot_after_empty() {
+    info(`Test getDataSnapshot request after empty on ${type}`);
 
     let str = writeRandomStringToClipboard("text/plain", type);
-    let request = await asyncGetClipboardData(type);
+    let request = await getClipboardDataSnapshot(type);
     isDeeply(request.flavorList, ["text/plain"], "Check flavorList");
     is(
       await asyncClipboardRequestGetData(request, "text/plain"),
@@ -140,7 +140,7 @@ clipboardTypes.forEach(function (type) {
     ok(!request.valid, "request should no longer be valid");
 
     info(`check clipboard data again`);
-    request = await asyncGetClipboardData(type);
+    request = await getClipboardDataSnapshot(type);
     isDeeply(request.flavorList, [], "Check flavorList");
 
     cleanupAllClipboard();
@@ -148,12 +148,12 @@ clipboardTypes.forEach(function (type) {
 });
 
 add_task(async function test_html_data() {
-  info(`Test asyncGetData request with html data`);
+  info(`Test getDataSnapshot request with html data`);
 
   const html_str = `<img src="https://example.com/oops">`;
   writeStringToClipboard(html_str, "text/html", clipboard.kGlobalClipboard);
 
-  let request = await asyncGetClipboardData(clipboard.kGlobalClipboard);
+  let request = await getClipboardDataSnapshot(clipboard.kGlobalClipboard);
   isDeeply(request.flavorList, ["text/html"], "Check flavorList");
   is(
     await asyncClipboardRequestGetData(request, "text/html"),

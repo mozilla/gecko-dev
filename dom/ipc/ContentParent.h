@@ -971,11 +971,11 @@ class ContentParent final : public PContentParent,
                                                const int32_t& aWhichClipboard,
                                                bool* aHasType);
 
-  mozilla::ipc::IPCResult RecvGetClipboardAsync(
+  mozilla::ipc::IPCResult RecvGetClipboardDataSnapshot(
       nsTArray<nsCString>&& aTypes, const int32_t& aWhichClipboard,
       const MaybeDiscarded<WindowContext>& aRequestingWindowContext,
       mozilla::NotNull<nsIPrincipal*> aRequestingPrincipal,
-      GetClipboardAsyncResolver&& aResolver);
+      GetClipboardDataSnapshotResolver&& aResolver);
 
   mozilla::ipc::IPCResult RecvGetClipboardDataSnapshotSync(
       nsTArray<nsCString>&& aTypes, const int32_t& aWhichClipboard,

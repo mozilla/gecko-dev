@@ -164,13 +164,13 @@ function getClipboardDataSnapshotSync(aClipboardType) {
   );
 }
 
-function asyncGetClipboardData(
+function getClipboardDataSnapshot(
   aClipboardType,
   aFormats = ["text/plain", "text/html", "image/png"]
 ) {
   return new Promise((resolve, reject) => {
     try {
-      clipboard.asyncGetData(
+      clipboard.getDataSnapshot(
         aFormats,
         aClipboardType,
         null,
@@ -191,7 +191,7 @@ function asyncGetClipboardData(
         }
       );
     } catch (e) {
-      ok(false, `asyncGetData should not throw`);
+      ok(false, `getDataSnapshot should not throw`);
       reject(e);
     }
   });

@@ -132,9 +132,9 @@ class UserConfirmationRequest final
       MOZ_ASSERT(request);
       MOZ_ASSERT(!request->mFlavorList.IsEmpty());
       MOZ_ASSERT(request->mCallback);
-      mClipboard->AsyncGetDataInternal(request->mFlavorList, mClipboardType,
-                                       mRequestingWindowContext,
-                                       request->mCallback);
+      mClipboard->GetDataSnapshotInternal(request->mFlavorList, mClipboardType,
+                                          mRequestingWindowContext,
+                                          request->mCallback);
     }
   }
 
@@ -540,7 +540,7 @@ void nsBaseClipboard::MaybeRetryGetAvailableFlavors(
       });
 }
 
-NS_IMETHODIMP nsBaseClipboard::AsyncGetData(
+NS_IMETHODIMP nsBaseClipboard::GetDataSnapshot(
     const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
     mozilla::dom::WindowContext* aRequestingWindowContext,
     nsIPrincipal* aRequestingPrincipal,
@@ -563,8 +563,8 @@ NS_IMETHODIMP nsBaseClipboard::AsyncGetData(
           dom_events_testing_asyncClipboard_DoNotUseDirectly() ||
       nsContentUtils::PrincipalHasPermission(*aRequestingPrincipal,
                                              nsGkAtoms::clipboardRead)) {
-    AsyncGetDataInternal(aFlavorList, aWhichClipboard, aRequestingWindowContext,
-                         aCallback);
+    GetDataSnapshotInternal(aFlavorList, aWhichClipboard,
+                            aRequestingWindowContext, aCallback);
     return NS_OK;
   }
 
@@ -578,8 +578,8 @@ NS_IMETHODIMP nsBaseClipboard::AsyncGetData(
       if (aRequestingPrincipal->Subsumes(principal)) {
         MOZ_CLIPBOARD_LOG("%s: native clipboard data is from same-origin page.",
                           __FUNCTION__);
-        AsyncGetDataInternal(aFlavorList, aWhichClipboard,
-                             aRequestingWindowContext, aCallback);
+        GetDataSnapshotInternal(aFlavorList, aWhichClipboard,
+                                aRequestingWindowContext, aCallback);
         return NS_OK;
       }
     }
@@ -645,7 +645,7 @@ nsBaseClipboard::MaybeCreateGetRequestFromClipboardCache(
       true /* aFromCache */, this, aRequestingWindowContext);
 }
 
-void nsBaseClipboard::AsyncGetDataInternal(
+void nsBaseClipboard::GetDataSnapshotInternal(
     const nsTArray<nsCString>& aFlavorList, int32_t aClipboardType,
     mozilla::dom::WindowContext* aRequestingWindowContext,
     nsIAsyncClipboardGetCallback* aCallback) {
