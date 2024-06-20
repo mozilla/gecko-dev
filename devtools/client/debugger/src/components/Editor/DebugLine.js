@@ -39,115 +39,113 @@ export class DebugLine extends PureComponent {
   }
 
   componentDidMount() {
-    const { why, location } = this.props;
-    if (features.codemirrorNext) {
-      return;
-    }
-    this.setDebugLine(why, location);
+    this.setDebugLine();
   }
 
   componentWillUnmount() {
-    const { why, location } = this.props;
-    if (features.codemirrorNext) {
-      return;
-    }
-    this.clearDebugLine(why, location);
+    this.clearDebugLine(this.props);
   }
 
   componentDidUpdate(prevProps) {
-    const { why, location, editor, selectedSource } = this.props;
-
-    if (features.codemirrorNext) {
-      if (!selectedSource) {
-        return;
-      }
-
-      if (
-        prevProps.location == this.props.location &&
-        prevProps.selectedSource?.id == selectedSource?.id
-      ) {
-        return;
-      }
-
-      const { lineClass, markTextClass } = this.getTextClasses(why);
-      // Remove the debug line marker when no longer paused, or the selected source
-      // is no longer the source where the pause occured.
-      if (!location || location.source.id !== selectedSource.id) {
-        editor.removeLineContentMarker(markerTypes.DEBUG_LINE_MARKER);
-        editor.removePositionContentMarker(markerTypes.DEBUG_POSITION_MARKER);
-      } else {
-        const isSourceWasm = isWasm(selectedSource.id);
-        editor.setLineContentMarker({
-          id: markerTypes.DEBUG_LINE_MARKER,
-          lineClassName: lineClass,
-          condition(line) {
-            const lineNumber = fromEditorLine(
-              selectedSource.id,
-              line,
-              isSourceWasm
-            );
-            const editorLocation = toEditorPosition(location);
-            return editorLocation.line == lineNumber;
-          },
-        });
-        const editorLocation = toEditorPosition(location);
-        editor.setPositionContentMarker({
-          id: markerTypes.DEBUG_POSITION_MARKER,
-          positionClassName: markTextClass,
-          positions: [editorLocation],
-        });
-      }
-    } else {
+    if (!features.codemirrorNext) {
       startOperation();
-      this.clearDebugLine(prevProps.why, prevProps.location);
-      this.setDebugLine(why, location);
+    }
+    this.clearDebugLine(prevProps);
+    this.setDebugLine();
+    if (!features.codemirrorNext) {
       endOperation();
     }
   }
 
-  setDebugLine(why, location) {
+  setDebugLine() {
+    const { why, location, editor, selectedSource } = this.props;
     if (!location) {
       return;
     }
-    const doc = getDocument(location.source.id);
 
-    let { line, column } = toEditorPosition(location);
-    let { markTextClass, lineClass } = this.getTextClasses(why);
-    doc.addLineClass(line, "wrap", lineClass);
+    if (features.codemirrorNext) {
+      if (!selectedSource || location.source.id !== selectedSource.id) {
+        return;
+      }
 
-    const lineText = doc.getLine(line);
-    column = Math.max(column, getIndentation(lineText));
+      const { lineClass, markTextClass } = this.getTextClasses(why);
+      const isSourceWasm = isWasm(selectedSource.id);
+      editor.setLineContentMarker({
+        id: markerTypes.DEBUG_LINE_MARKER,
+        lineClassName: lineClass,
+        condition(line) {
+          const lineNumber = fromEditorLine(
+            selectedSource.id,
+            line,
+            isSourceWasm
+          );
+          const editorLocation = toEditorPosition(location);
+          return editorLocation.line == lineNumber;
+        },
+      });
+      const editorLocation = toEditorPosition(location);
+      editor.setPositionContentMarker({
+        id: markerTypes.DEBUG_POSITION_MARKER,
+        positionClassName: markTextClass,
+        positions: [editorLocation],
+      });
+    } else {
+      const doc = getDocument(location.source.id);
 
-    // If component updates because user clicks on
-    // another source tab, codeMirror will be null.
-    const columnEnd = doc.cm ? getTokenEnd(doc.cm, line, column) : null;
+      let { line, column } = toEditorPosition(location);
+      let { markTextClass, lineClass } = this.getTextClasses(why);
+      doc.addLineClass(line, "wrap", lineClass);
 
-    if (columnEnd === null) {
-      markTextClass += " to-line-end";
+      const lineText = doc.getLine(line);
+      column = Math.max(column, getIndentation(lineText));
+
+      // If component updates because user clicks on
+      // another source tab, codeMirror will be null.
+      const columnEnd = doc.cm ? getTokenEnd(doc.cm, line, column) : null;
+
+      if (columnEnd === null) {
+        markTextClass += " to-line-end";
+      }
+
+      this.debugExpression = doc.markText(
+        { ch: column, line },
+        { ch: columnEnd, line },
+        { className: markTextClass }
+      );
     }
-
-    this.debugExpression = doc.markText(
-      { ch: column, line },
-      { ch: columnEnd, line },
-      { className: markTextClass }
-    );
   }
 
-  clearDebugLine(why, location) {
-    // Avoid clearing the line if we didn't set a debug line before,
-    // or, if the document is no longer available
-    if (!location || !hasDocument(location.source.id)) {
-      return;
-    }
+  clearDebugLine(otherProps = {}) {
+    if (features.codemirrorNext) {
+      const { location, editor, selectedSource } = this.props;
+      // Remove the debug line marker when no longer paused, or the selected source
+      // is no longer the source where the pause occured.
+      if (
+        !location ||
+        location.source.id !== selectedSource.id ||
+        otherProps?.location !== location ||
+        otherProps?.selectedSource?.id !== selectedSource.id
+      ) {
+        editor.removeLineContentMarker(markerTypes.DEBUG_LINE_MARKER);
+        editor.removePositionContentMarker(markerTypes.DEBUG_POSITION_MARKER);
+      }
+    } else {
+      const { why, location } = otherProps;
+      // Avoid clearing the line if we didn't set a debug line before,
+      // or, if the document is no longer available
+      if (!location || !hasDocument(location.source.id)) {
+        return;
+      }
 
-    if (this.debugExpression) {
-      this.debugExpression.clear();
-    }
+      if (this.debugExpression) {
+        this.debugExpression.clear();
+      }
 
-    const { line } = toEditorPosition(location);
-    const doc = getDocument(location.source.id);
-    const { lineClass } = this.getTextClasses(why);
-    doc.removeLineClass(line, "wrap", lineClass);
+      const { line } = toEditorPosition(location);
+      const doc = getDocument(location.source.id);
+      const { lineClass } = this.getTextClasses(why);
+      doc.removeLineClass(line, "wrap", lineClass);
+    }
   }
 
   getTextClasses(why) {
