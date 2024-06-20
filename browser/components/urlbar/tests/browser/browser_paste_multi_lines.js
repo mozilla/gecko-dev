@@ -10,7 +10,7 @@ const TEST_DATA = [
     input: "this is a\ntest",
     expected: {
       urlbar: "this is a test",
-      autocomplete: "this is a test",
+      title: "this is a test",
       type: UrlbarUtils.RESULT_TYPE.SEARCH,
     },
   },
@@ -18,7 +18,7 @@ const TEST_DATA = [
     input: "this is    a\n\ttest",
     expected: {
       urlbar: "this is    a  test",
-      autocomplete: "this is    a  test",
+      title: "this is    a  test",
       type: UrlbarUtils.RESULT_TYPE.SEARCH,
     },
   },
@@ -26,7 +26,7 @@ const TEST_DATA = [
     input: "http:\n//\nexample.\ncom",
     expected: {
       urlbar: "http://example.com",
-      autocomplete: "http://example.com/",
+      title: "http://example.com/",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -34,7 +34,7 @@ const TEST_DATA = [
     input: "htp:example.\ncom",
     expected: {
       urlbar: "htp:example.com",
-      autocomplete: "http://example.com/",
+      title: "example.com/",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -42,7 +42,7 @@ const TEST_DATA = [
     input: "example.\ncom",
     expected: {
       urlbar: "example.com",
-      autocomplete: "http://example.com/",
+      title: "example.com/",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -50,7 +50,7 @@ const TEST_DATA = [
     input: "http://example.com/foo       bar/",
     expected: {
       urlbar: "http://example.com/foo       bar/",
-      autocomplete: "http://example.com/foo       bar/",
+      title: "http://example.com/foo       bar/",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -58,7 +58,7 @@ const TEST_DATA = [
     input: "http://exam\nple.com/foo       bar/",
     expected: {
       urlbar: "http://example.com/foo       bar/",
-      autocomplete: "http://example.com/foo       bar/",
+      title: "http://example.com/foo       bar/",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -66,7 +66,7 @@ const TEST_DATA = [
     input: "javasc\nript:\nalert(1)",
     expected: {
       urlbar: "alert(1)",
-      autocomplete: "alert(1)",
+      title: "alert(1)",
       type: UrlbarUtils.RESULT_TYPE.SEARCH,
     },
   },
@@ -74,7 +74,7 @@ const TEST_DATA = [
     input: "a\nb\nc",
     expected: {
       urlbar: "a b c",
-      autocomplete: "a b c",
+      title: "a b c",
       type: UrlbarUtils.RESULT_TYPE.SEARCH,
     },
   },
@@ -82,7 +82,7 @@ const TEST_DATA = [
     input: "lo\ncal\nhost",
     expected: {
       urlbar: "localhost",
-      autocomplete: "http://localhost/",
+      title: "localhost/",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -90,7 +90,7 @@ const TEST_DATA = [
     input: "data:text/html,<iframe\n src='example\n.com'>\n</iframe>",
     expected: {
       urlbar: "data:text/html,<iframe  src='example .com'> </iframe>",
-      autocomplete: "data:text/html,<iframe  src='example .com'> </iframe>",
+      title: "data:text/html,<iframe  src='example .com'> </iframe>",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -98,7 +98,7 @@ const TEST_DATA = [
     input: "data:,123\n4 5\n6",
     expected: {
       urlbar: "data:,123 4 5 6",
-      autocomplete: "data:,123 4 5 6",
+      title: "data:,123 4 5 6",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -106,7 +106,7 @@ const TEST_DATA = [
     input: "data:text/html;base64,123\n4 5\n6",
     expected: {
       urlbar: "data:text/html;base64,1234 56",
-      autocomplete: "data:text/html;base64,123456",
+      title: "data:text/html;base64,123456",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -114,7 +114,7 @@ const TEST_DATA = [
     input: "http://example.com\n",
     expected: {
       urlbar: "http://example.com",
-      autocomplete: "http://example.com/",
+      title: "http://example.com/",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -122,7 +122,7 @@ const TEST_DATA = [
     input: "http://example.com\r",
     expected: {
       urlbar: "http://example.com",
-      autocomplete: "http://example.com/",
+      title: "http://example.com/",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -130,7 +130,7 @@ const TEST_DATA = [
     input: "http://ex\ra\nmp\r\nle.com\r\n",
     expected: {
       urlbar: "http://example.com",
-      autocomplete: "http://example.com/",
+      title: "http://example.com/",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -138,7 +138,7 @@ const TEST_DATA = [
     input: "http://example.com/titled",
     expected: {
       urlbar: "http://example.com/titled",
-      autocomplete: "example title",
+      title: "example title",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -146,7 +146,7 @@ const TEST_DATA = [
     input: "127.0.0.1\r",
     expected: {
       urlbar: "127.0.0.1",
-      autocomplete: "http://127.0.0.1/",
+      title: "127.0.0.1/",
       type: UrlbarUtils.RESULT_TYPE.URL,
     },
   },
@@ -154,7 +154,7 @@ const TEST_DATA = [
     input: "\r\n\r\n\r\n\r\n\r\n",
     expected: {
       urlbar: "",
-      autocomplete: "",
+      title: "",
       type: UrlbarUtils.RESULT_TYPE.SEARCH,
     },
   },
@@ -212,11 +212,7 @@ async function assertResult(expected) {
   Assert.equal(gURLBar.value, expected.urlbar, "Pasted value is correct");
 
   const result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
-  Assert.equal(
-    result.title,
-    expected.autocomplete,
-    "Title of autocomplete is correct"
-  );
+  Assert.equal(result.title, expected.title, "Title of result is correct");
   Assert.equal(result.type, expected.type, "Type of autocomplete is correct");
 
   if (gURLBar.value) {

@@ -341,12 +341,12 @@ add_task(async function test_no_highlight_fallback_heuristic_url() {
   await testResult(
     {
       query: "nonexisting.com",
-      title: "http://nonexisting.com/",
+      title: "nonexisting.com/",
       url: "http://nonexisting.com/",
     },
     {
       displayedUrl: "", // URL heuristic only has title.
-      highlightedTitle: [["http://nonexisting.com/", false]],
+      highlightedTitle: [["nonexisting.com/", false]],
       highlightedUrl: [],
     },
     0 // Test the heuristic result.

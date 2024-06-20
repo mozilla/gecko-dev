@@ -182,7 +182,7 @@ add_task(async function portNoMatch1() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: `http://${origin}:89/`,
-        fallbackTitle: `http://${origin}:89/`,
+        fallbackTitle: `${origin}:89/`,
         iconUri: "",
         heuristic: true,
         providerName: HEURISTIC_FALLBACK_PROVIDERNAME,
@@ -206,7 +206,7 @@ add_task(async function portNoMatch2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: `http://${origin}:9/`,
-        fallbackTitle: `http://${origin}:9/`,
+        fallbackTitle: `${origin}:9/`,
         iconUri: "",
         heuristic: true,
         providerName: HEURISTIC_FALLBACK_PROVIDERNAME,
@@ -230,7 +230,7 @@ add_task(async function trailingSlash_2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://example/",
-        fallbackTitle: "http://example/",
+        fallbackTitle: "example/",
         iconUri: "page-icon:http://example/",
         heuristic: true,
         providerName: HEURISTIC_FALLBACK_PROVIDERNAME,

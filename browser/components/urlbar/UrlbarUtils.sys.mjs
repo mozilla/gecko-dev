@@ -1317,21 +1317,29 @@ export var UrlbarUtils = {
    * @param {object} [options] Preparation options.
    * @param {boolean} [options.trimURL] Whether the displayed URL should be
    *                  trimmed or not.
+   * @param {boolean} [options.schemeless] Trim `http(s)://`.
    * @returns {string} Prepared url.
    */
-  prepareUrlForDisplay(url, { trimURL = true } = {}) {
+  prepareUrlForDisplay(url, { trimURL = true, schemeless = false } = {}) {
     // Some domains are encoded in punycode. The following ensures we display
     // the url in utf-8.
     try {
       url = new URL(url).URI.displaySpec;
     } catch {} // In some cases url is not a valid url.
 
-    if (url && trimURL && lazy.UrlbarPrefs.get("trimURLs")) {
-      url = lazy.BrowserUIUtils.removeSingleTrailingSlashFromURL(url);
-      if (url.startsWith("https://")) {
-        url = url.substring(8);
-        if (url.startsWith("www.")) {
-          url = url.substring(4);
+    if (url) {
+      if (schemeless) {
+        url = UrlbarUtils.stripPrefixAndTrim(url, {
+          stripHttp: true,
+          stripHttps: true,
+        })[0];
+      } else if (trimURL && lazy.UrlbarPrefs.get("trimURLs")) {
+        url = lazy.BrowserUIUtils.removeSingleTrailingSlashFromURL(url);
+        if (url.startsWith("https://")) {
+          url = url.substring(8);
+          if (url.startsWith("www.")) {
+            url = url.substring(4);
+          }
         }
       }
     }

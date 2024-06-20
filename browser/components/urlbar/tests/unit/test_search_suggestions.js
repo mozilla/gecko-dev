@@ -896,7 +896,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: `http://${SEARCH_STRING}/`,
-        fallbackTitle: `http://${SEARCH_STRING}/`,
+        fallbackTitle: `${SEARCH_STRING}/`,
         iconUri: "",
         heuristic: true,
       }),
@@ -941,7 +941,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: `http://${SEARCH_STRING}/`,
-        fallbackTitle: `http://${SEARCH_STRING}/`,
+        fallbackTitle: `${SEARCH_STRING}/`,
         iconUri: "",
         heuristic: true,
       }),
@@ -960,7 +960,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://somethingelse/",
-        fallbackTitle: "http://somethingelse/",
+        fallbackTitle: "somethingelse/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1009,7 +1009,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://[2001::1]:30/",
-        fallbackTitle: "http://[2001::1]:30/",
+        fallbackTitle: "[2001::1]:30/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1023,7 +1023,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://user:pass@test/",
-        fallbackTitle: "http://user:pass@test/",
+        fallbackTitle: "user:pass@test/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1070,7 +1070,7 @@ add_task(async function uri_like_queries() {
     matches: [
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
-        fallbackTitle: `http://${query}/`,
+        fallbackTitle: `${query}/`,
         uri: `http://${query}/`,
         iconUri: "",
         heuristic: true,

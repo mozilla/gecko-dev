@@ -201,7 +201,12 @@ class ProviderHeuristicFallback extends UrlbarProvider {
     // pass the pretty, unescaped URL as the result's title, since it is
     // displayed to the user.
     let escapedURL = uri.toString();
-    let displayURL = UrlbarUtils.prepareUrlForDisplay(uri, { trimURL: false });
+    let displayURL = UrlbarUtils.prepareUrlForDisplay(uri, {
+      trimURL: false,
+      // If the user didn't type a protocol, and we added one, don't show it,
+      // as https-first may upgrade it, potentially breaking expectations.
+      schemeless: !prefix,
+    });
 
     // We don't know if this url is in Places or not, and checking that would
     // be expensive. Thus we also don't know if we may have an icon.
