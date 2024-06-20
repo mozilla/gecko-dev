@@ -456,7 +456,7 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
   loadState->SetHasValidUserGestureActivation(
       aLoadURIOptions.mHasValidUserGestureActivation);
   loadState->SetTextDirectiveUserActivation(
-      aLoadURIOptions.mHasValidUserGestureActivation);
+      aLoadURIOptions.mTextDirectiveUserActivation);
   loadState->SetTriggeringSandboxFlags(aLoadURIOptions.mTriggeringSandboxFlags);
   loadState->SetTriggeringWindowId(aLoadURIOptions.mTriggeringWindowId);
   loadState->SetTriggeringStorageAccess(

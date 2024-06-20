@@ -64,6 +64,21 @@ interface nsIOpenWindowInfo : nsISupports {
   [infallible]
   readonly attribute boolean isTopLevelCreatedByWebContent;
 
+  /**
+   * Whether there is a user gesture activation for the document
+   * opened in the window.
+   */
+  [infallible]
+  readonly attribute boolean hasValidUserGestureActivation;
+
+  /**
+   * Whether there is a text directive user activation for the document
+   * opened in the window. If true, the first text directive may be scrolled
+   * into view.
+   */
+  [infallible]
+  readonly attribute boolean textDirectiveUserActivation;
+
   /** BrowserParent instance to use in the new window */
   [notxpcom, nostdcall]
   BrowserParent getNextRemoteBrowser();
