@@ -6,6 +6,7 @@
 
 #include "RemoteWorkerParent.h"
 #include "RemoteWorkerController.h"
+#include "RemoteWorkerServiceParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/PFetchEventOpProxyParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
@@ -56,9 +57,14 @@ RemoteWorkerParent::~RemoteWorkerParent() {
   MOZ_ASSERT(XRE_IsParentProcess());
 }
 
+RemoteWorkerServiceParent* RemoteWorkerParent::Manager() const {
+  return static_cast<RemoteWorkerServiceParent*>(
+      PRemoteWorkerParent::Manager());
+}
+
 void RemoteWorkerParent::Initialize(bool aAlreadyRegistered) {
   RefPtr<ThreadsafeContentParentHandle> parent =
-      BackgroundParent::GetContentParentHandle(Manager());
+      Manager()->GetContentParentHandle();
 
   // Parent is null if the child actor runs on the parent process.
   if (parent) {
@@ -83,7 +89,7 @@ void RemoteWorkerParent::ActorDestroy(IProtocol::ActorDestroyReason) {
   MOZ_ASSERT(XRE_IsParentProcess());
 
   RefPtr<ThreadsafeContentParentHandle> parent =
-      BackgroundParent::GetContentParentHandle(Manager());
+      Manager()->GetContentParentHandle();
 
   // Parent is null if the child actor runs on the parent process.
   if (parent) {

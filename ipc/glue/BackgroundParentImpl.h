@@ -169,12 +169,6 @@ class BackgroundParentImpl : public PBackgroundParent {
       mozilla::dom::PRemoteWorkerControllerParent* aActor,
       const mozilla::dom::RemoteWorkerData& aRemoteWorkerData) override;
 
-  already_AddRefed<PRemoteWorkerServiceParent> AllocPRemoteWorkerServiceParent()
-      override;
-
-  mozilla::ipc::IPCResult RecvPRemoteWorkerServiceConstructor(
-      PRemoteWorkerServiceParent* aActor) override;
-
   mozilla::dom::PSharedWorkerParent* AllocPSharedWorkerParent(
       const mozilla::dom::RemoteWorkerData& aData, const uint64_t& aWindowID,
       const mozilla::dom::MessagePortIdentifier& aPortIdentifier) override;

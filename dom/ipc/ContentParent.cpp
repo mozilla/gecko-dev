@@ -119,6 +119,7 @@
 #include "mozilla/dom/Permissions.h"
 #include "mozilla/dom/ProcessMessageManager.h"
 #include "mozilla/dom/PushNotifier.h"
+#include "mozilla/dom/RemoteWorkerServiceParent.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
 #include "mozilla/dom/ServiceWorkerRegistrar.h"
 #include "mozilla/dom/ServiceWorkerUtils.h"
@@ -1016,6 +1017,8 @@ already_AddRefed<ContentParent> ContentParent::GetUsedBrowserProcess(
 
       Unused << preallocated->SendRemoteType(preallocated->mRemoteType,
                                              preallocated->mProfile);
+
+      preallocated->StartRemoteWorkerService();
 
       nsCOMPtr<nsIObserverService> obs =
           mozilla::services::GetObserverService();
@@ -3173,6 +3176,10 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
   // because different remote types require different sandbox privileges.
 
   Unused << SendRemoteType(mRemoteType, mProfile);
+
+  if (mRemoteType != PREALLOC_REMOTE_TYPE) {
+    StartRemoteWorkerService();
+  }
 
   ScriptPreloader::InitContentChild(*this);
 
@@ -8178,6 +8185,18 @@ NS_IMETHODIMP ContentParent::GetOsPid(int32_t* aOut) {
 NS_IMETHODIMP ContentParent::GetRemoteType(nsACString& aRemoteType) {
   aRemoteType = GetRemoteType();
   return NS_OK;
+}
+
+void ContentParent::StartRemoteWorkerService() {
+  MOZ_ASSERT(!mRemoteWorkerServiceActor);
+  MOZ_ASSERT(mRemoteType != PREALLOC_REMOTE_TYPE);
+
+  Endpoint<PRemoteWorkerServiceChild> childEp;
+  mRemoteWorkerServiceActor =
+      RemoteWorkerServiceParent::CreateForProcess(this, &childEp);
+  if (mRemoteWorkerServiceActor) {
+    Unused << SendInitRemoteWorkerService(std::move(childEp));
+  }
 }
 
 IPCResult ContentParent::RecvRawMessage(

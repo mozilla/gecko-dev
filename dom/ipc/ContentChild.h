@@ -365,6 +365,9 @@ class ContentChild final : public PContentChild,
   // this for telemetry.
   const nsACString& GetRemoteType() const override;
 
+  mozilla::ipc::IPCResult RecvInitRemoteWorkerService(
+      Endpoint<PRemoteWorkerServiceChild>&& aEndpoint);
+
   mozilla::ipc::IPCResult RecvInitBlobURLs(
       nsTArray<BlobURLRegistrationData>&& aRegistations);
 
