@@ -1905,6 +1905,7 @@ pref("sidebar.main.tools", "history,syncedtabs");
 pref("sidebar.verticalTabs", false);
 
 pref("browser.ml.chat.enabled", false);
+pref("browser.ml.chat.hideLocalhost", true);
 pref("browser.ml.chat.prompt.prefix", 'I’m on page "%tabTitle%" with "%selection|12000%" selected. ');
 pref("browser.ml.chat.prompts.0", '{"label":"Summarize","value":"Please summarize the selection using precise and concise language. Highlight the main themes and conclusions. Use headers and bulleted lists in the summary, to make it scannable. Maintain the meaning of the selection."}');
 pref("browser.ml.chat.prompts.1", '{"label":"Simplify language","value":"Please rewrite the selection in plain, clear language suitable for a general audience without specialized knowledge. Use all of the following tactics: simple vocabulary; short sentences; active voice; examples where applicable to make explanations clearer; explanations for jargon and technical terms; headers and bulleted lists for scannability. Maintain factual accuracy while simplifying."}');

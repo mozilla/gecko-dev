@@ -17,6 +17,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "chatHideLocalhost",
+  "browser.ml.chat.hideLocalhost"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "chatOpenSidebarOnProviderChange",
   "browser.ml.chat.openSidebarOnProviderChange",
   true
@@ -40,7 +45,23 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 export const GenAI = {
-  chatProviders: new Map(),
+  // Any chat provider can be used and those that match the URLs in this object
+  // will allow for additional UI shown such as populating dropdown with a name,
+  // showing links, and other special behaviors needed for individual providers.
+  // The ordering of this list affects UI and currently alphabetical by name.
+  chatProviders: new Map([
+    // Until bug 1903900 to better handle max length issues, track in comments
+    // 8k max length uri before 414
+    [
+      "http://localhost:8080",
+      {
+        get hidden() {
+          return lazy.chatHideLocalhost;
+        },
+        name: "localhost",
+      },
+    ],
+  ]),
 
   /**
    * Handle startup tasks like telemetry, adding listeners.
@@ -64,7 +85,9 @@ export const GenAI = {
     if (!lazy.chatEnabled || lazy.chatProvider == "") {
       return;
     }
-    menu.label = "Ask chatbot";
+    menu.label = `Ask ${
+      this.chatProviders.get(lazy.chatProvider)?.name ?? "chatbot"
+    }`;
     menu.menupopup?.remove();
 
     // Prepare context used for both targeting and handling prompts
@@ -101,6 +124,7 @@ export const GenAI = {
       try {
         const promptObj = {
           label: Services.prefs.getStringPref(pref),
+          targeting: "true",
           value: "",
         };
         try {
@@ -195,8 +219,53 @@ export const GenAI = {
     onEnabledChange();
     enabled.on("change", onEnabledChange);
 
-    // TODO bug 1895433 populate providers
-    Preferences.add({ id: "browser.ml.chat.provider", type: "string" });
+    // Populate providers and hide from list if necessary
+    this.chatProviders.forEach((data, url) => {
+      providerEl.appendItem(data.name, url).hidden = data.hidden ?? false;
+    });
+    const provider = Preferences.add({
+      id: "browser.ml.chat.provider",
+      type: "string",
+    });
+    let customItem;
+    const onProviderChange = () => {
+      // Add/update the Custom entry if it's not a default provider entry
+      if (provider.value && !this.chatProviders.has(provider.value)) {
+        if (!customItem) {
+          customItem = providerEl.appendItem();
+        }
+        customItem.label = `Custom (${provider.value})`;
+        customItem.value = provider.value;
+
+        // Select the item if the preference changed not via menu
+        providerEl.selectedItem = customItem;
+      }
+
+      // Update potentially multiple links for the provider
+      const links = document.getElementById("genai-chat-links");
+      const providerData = this.chatProviders.get(provider.value);
+      for (let i = 1; i <= 2; i++) {
+        const name = `link${i}`;
+        let link = links.querySelector(`[data-l10n-name=${name}]`);
+        const href = providerData?.[name];
+        if (href) {
+          if (!link) {
+            link = links.appendChild(document.createElement("a"));
+            link.dataset.l10nName = name;
+            link.target = "_blank";
+          }
+          link.href = href;
+        } else {
+          link?.remove();
+        }
+      }
+      document.l10n.setAttributes(
+        links,
+        providerData?.linksId ?? "genai-settings-chat-links"
+      );
+    };
+    onProviderChange();
+    provider.on("change", onProviderChange);
   },
 
   // nsIObserver

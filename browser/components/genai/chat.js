@@ -62,6 +62,8 @@ async function renderProviders() {
     if (lazy.providerPref == url) {
       option.selected = true;
       selected = true;
+    } else if (data.hidden) {
+      option.hidden = true;
     }
   });
 
