@@ -15367,34 +15367,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 
 
 
-.. dropdown:: grandprix
-   :class-container: anchor-id-grandprix-c
-
-   **Owner**: PerfTest Team
-
-   **Description**: Runs the Grandprix benchmark
-
-   * **alert threshold**: 2.0
-   * **apps**: firefox, chrome, safari
-   * **browser cycles**: 1
-   * **browsertime args**: --browsertime.grandprix_iterations=25
-   * **custom data**: true
-   * **expected**: pass
-   * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-grandprix.toml#16>`__
-   * **lower is better**: true
-   * **output timeout**: 2000000
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest name filters**: tests/,iterations/
-   * **subtest unit**: ms
-   * **test script**: grandprix.js
-   * **test summary**: flatten
-   * **test url**: `<None>`__
-   * **type**: pageload
-   * **unit**: score
-   * **use live sites**: true
-
 .. dropdown:: process-switch
    :class-container: anchor-id-process-switch-c
 

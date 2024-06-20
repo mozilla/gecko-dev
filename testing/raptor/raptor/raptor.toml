@@ -55,9 +55,6 @@
 ["include:tests/custom/browsertime-custom.toml"]
 # Local custom browsertime tests
 
-["include:tests/custom/browsertime-grandprix.toml"]
-# Custom grandprix benchmark test
-
 ["include:tests/custom/browsertime-indexeddb.toml"]
 # Custom indexeddb test
 
@@ -82,11 +79,11 @@
 ["include:tests/custom/browsertime-upload.toml"]
 # Custom upload speed test
 
-["include:tests/custom/browsertime-welcome.toml"]
-# First-install pageload test
-
 ["include:tests/custom/browsertime-video-playback-latency.toml"]
 # Video playback latency tests
+
+["include:tests/custom/browsertime-welcome.toml"]
+# First-install pageload test
 
 ["include:tests/interactive/browsertime-responsiveness.toml"]
 # Interactive raptor-browsertime tests

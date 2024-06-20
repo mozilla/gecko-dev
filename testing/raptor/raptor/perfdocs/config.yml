@@ -221,7 +221,6 @@ suites:
             browsertime: "Used to run vanilla browsertime tests through raptor. For example: `./mach raptor --browsertime -t browsertime --browsertime-arg url=https://www.sitespeed.io --browsertime-arg iterations=3`"
             process-switch: "Measures process switch time"
             welcome: "Measures pageload metrics for the first-install about:welcome page"
-            grandprix: "Runs the Grandprix benchmark"
             addMab1: "Use add API to send many small ArrayBuffers to IndexedDB in one transaction"
             addMabN: "Use add API to send many small ArrayBuffers to IndexedDB independently"
             addMar1: "Use add API to send many small Arrays to IndexedDB in one transaction"
