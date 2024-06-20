@@ -229,13 +229,10 @@ class _QuickSuggestTestUtils {
     }
 
     // Tell the Rust backend to use the local remote setting server.
-    await lazy.QuickSuggest.rustBackend._test_setRemoteSettingsConfig(
-      new lazy.RemoteSettingsConfig({
-        collectionName: "quicksuggest",
-        bucketName: "main",
-        serverUrl: this.#remoteSettingsServer.url.toString(),
-      })
-    );
+    await lazy.QuickSuggest.rustBackend._test_setRemoteSettingsConfig({
+      bucketName: "main",
+      serverUrl: this.#remoteSettingsServer.url.toString(),
+    });
 
     // Wait for the current backend to finish syncing.
     await this.forceSync();
