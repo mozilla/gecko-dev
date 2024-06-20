@@ -116,6 +116,7 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.containsQueryParameters
 import org.mozilla.fenix.ext.hideToolbar
 import org.mozilla.fenix.ext.isTablet
+import org.mozilla.fenix.ext.isToolbarAtBottom
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.recordEventInNimbus
 import org.mozilla.fenix.ext.registerForActivityResult
@@ -565,7 +566,7 @@ class HomeFragment : Fragment() {
         isConfigChange: Boolean = false,
     ) {
         val context = requireContext()
-        val isToolbarAtBottom = isToolbarAtBottom(context)
+        val isToolbarAtBottom = context.isToolbarAtBottom()
 
         // The toolbar view has already been added directly to the container.
         // We should remove it and add the view to the navigation bar container.
@@ -694,10 +695,10 @@ class HomeFragment : Fragment() {
     }
 
     private fun initializeMicrosurveyPrompt(context: Context) {
-        val isToolbarAtTheBottom = isToolbarAtBottom(context)
+        val isToolbarAtTheBottom = context.isToolbarAtBottom()
         // The toolbar view has already been added directly to the container.
         // See initializeNavBar for more details on improving this.
-        if (isToolbarAtBottom(context)) {
+        if (isToolbarAtTheBottom) {
             binding.root.removeView(binding.toolbarLayout)
         }
 

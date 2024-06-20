@@ -174,6 +174,7 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.ext.hideToolbar
 import org.mozilla.fenix.ext.isTablet
+import org.mozilla.fenix.ext.isToolbarAtBottom
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.navigateWithBreadcrumb
 import org.mozilla.fenix.ext.registerForActivityResult
@@ -1340,7 +1341,7 @@ abstract class BaseBrowserFragment :
         context: Context,
         activity: HomeActivity,
     ) {
-        val isToolbarAtBottom = isToolbarAtBottom(context)
+        val isToolbarAtBottom = context.isToolbarAtBottom()
 
         // The toolbar view has already been added directly to the container.
         // We should remove it and add the view to the navigation bar container.
@@ -1483,7 +1484,7 @@ abstract class BaseBrowserFragment :
         view: View,
         context: Context,
     ) {
-        val isToolbarAtBottom = isToolbarAtBottom(context)
+        val isToolbarAtBottom = context.isToolbarAtBottom()
         // The toolbar view has already been added directly to the container.
         // See initializeNavBar for more details on improving this.
         if (isToolbarAtBottom) {
@@ -1563,9 +1564,6 @@ abstract class BaseBrowserFragment :
 
     private fun shouldShowMicrosurveyPrompt(context: Context) =
         context.components.settings.shouldShowMicrosurveyPrompt
-
-    private fun isToolbarAtBottom(context: Context) =
-        context.components.settings.toolbarPosition == ToolbarPosition.BOTTOM
 
     private fun isToolbarDynamic(context: Context) =
         !context.settings().shouldUseFixedTopToolbar && context.settings().isDynamicToolbarEnabled

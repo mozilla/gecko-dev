@@ -21,14 +21,18 @@ import mozilla.components.support.locale.LocaleManager.getSystemDefault
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.experiments.nimbus.NimbusEventStore
 import org.mozilla.fenix.FenixApplication
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.mozilla.fenix.utils.Settings
 import java.lang.String.format
 import java.util.Locale
 
@@ -178,5 +182,23 @@ class ContextTest {
         mockContext.recordEventInNimbus(eventId)
 
         verify { eventStore.recordEvent(eventId) }
+    }
+
+    @Test
+    fun `GIVEN context WHEN toolbar position is bottom THEN isToolbarAtBottom returns true`() {
+        val settings: Settings = mockk()
+        every { testContext.settings() } returns settings
+        every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
+
+        assertTrue(testContext.isToolbarAtBottom())
+    }
+
+    @Test
+    fun `GIVEN context WHEN toolbar position is top THEN isToolbarAtBottom returns false`() {
+        val settings: Settings = mockk()
+        every { testContext.settings() } returns settings
+        every { settings.toolbarPosition } returns ToolbarPosition.TOP
+
+        assertFalse(testContext.isToolbarAtBottom())
     }
 }

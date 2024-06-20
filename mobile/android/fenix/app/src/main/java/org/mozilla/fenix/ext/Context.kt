@@ -20,6 +20,7 @@ import org.mozilla.fenix.FenixApplication
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.metrics.MetricController
+import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.settings.advanced.getSelectedLocale
 import java.lang.String.format
 import java.util.Locale
@@ -156,3 +157,9 @@ fun Context.isTablet(): Boolean =
  *  This will record an event in the Nimbus internal event store. Used for behavioral targeting.
  */
 fun Context.recordEventInNimbus(eventId: String) = components.nimbus.events.recordEvent(eventId)
+
+/**
+ * Returns true if the toolbar is position at the bottom.
+ */
+fun Context.isToolbarAtBottom() =
+    components.settings.toolbarPosition == ToolbarPosition.BOTTOM
