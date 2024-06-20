@@ -373,7 +373,7 @@ class DefaultBrowserToolbarMenuController(
                     BrowserFragmentDirections.actionGlobalHistoryFragment(),
                 )
             }
-            is ToolbarMenu.Item.Passwords -> browserAnimator.captureEngineViewAndDrawStatically {
+            is ToolbarMenu.Item.Passwords -> {
                 fragment.view?.let { view ->
                     bindBiometricsCredentialsPromptOrShowWarning(
                         view = view,
