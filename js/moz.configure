@@ -1323,6 +1323,23 @@ set_config("MOZ_ICU_CFLAGS", [], when=in_tree_icu)
 set_config("MOZ_SYSTEM_ICU", True, when=system_icu)
 set_define("MOZ_SYSTEM_ICU", True, when=system_icu)
 
+option(
+    "--disable-icu4x",
+    help="Disable using ICU4X",
+    when=js_standalone,
+)
+
+
+@depends(
+    depends("--enable-icu4x", when=js_standalone)(lambda x: bool(x)), js_standalone
+)
+def enable_icu4x(enable, js_standalone):
+    return not js_standalone or enable
+
+
+set_config("MOZ_ICU4X", True, when=enable_icu4x)
+set_define("MOZ_ICU4X", True, when=enable_icu4x)
+
 option("--without-intl-api", help="Disable ECMAScript Internationalization API")
 
 
