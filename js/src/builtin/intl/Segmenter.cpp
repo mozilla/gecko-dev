@@ -432,7 +432,6 @@ struct SentenceSegmenter {
   static constexpr auto& create = capi::ICU4XSentenceSegmenter_create;
   static constexpr auto& destroy = capi::ICU4XSentenceSegmenter_destroy;
 };
-#endif
 
 /**
  * Create a new ICU4X segmenter instance.
@@ -446,6 +445,7 @@ static typename Interface::Segmenter* CreateSegmenter(JSContext* cx) {
   }
   return result.ok;
 }
+#endif
 
 static bool EnsureInternalsResolved(JSContext* cx,
                                     Handle<SegmenterObject*> segmenter) {
