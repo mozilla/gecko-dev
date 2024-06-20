@@ -313,6 +313,7 @@ class Scopes extends PureComponent {
           onDOMNodeMouseOver: grip => highlightDomElement(grip),
           onDOMNodeMouseOut: grip => unHighlightDomElement(grip),
           onContextMenu: this.onContextMenu,
+          preventBlur: true,
           setExpanded: (path, expand) =>
             setExpandedScope(selectedFrame, path, expand),
           initiallyExpanded,

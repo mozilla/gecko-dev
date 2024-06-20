@@ -299,12 +299,13 @@ class ObjectInspector extends Component {
     const {
       autoExpandAll = true,
       autoExpandDepth = 1,
-      initiallyExpanded,
-      focusable = true,
       disableWrap = false,
-      expandedPaths,
-      inline,
       displayRootNodeAsHeader = false,
+      expandedPaths,
+      focusable = true,
+      initiallyExpanded,
+      inline,
+      preventBlur,
     } = this.props;
 
     const classNames = ["object-inspector"];
@@ -338,6 +339,8 @@ class ObjectInspector extends Component {
       onCollapse: item => this.setExpanded(item, false),
       onFocus: focusable ? this.focusItem : null,
       onActivate: focusable ? this.activateItem : null,
+
+      preventBlur,
 
       shouldItemUpdate: this.shouldItemUpdate,
       renderItem: (item, depth, focused, arrow, expanded) =>
