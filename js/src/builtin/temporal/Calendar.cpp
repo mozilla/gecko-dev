@@ -3195,6 +3195,193 @@ static bool CalendarDateToISO(JSContext* cx, CalendarId calendar,
 #endif
 }
 
+/**
+ * CalendarMonthDayToISOReferenceDate ( calendar, fields, overflow )
+ */
+static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
+                                               CalendarId calendar,
+                                               Handle<TemporalFields> fields,
+                                               TemporalOverflow overflow,
+                                               PlainDate* result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  EraYears eraYears;
+  if (!fields.monthCode()) {
+    if (!CalendarFieldYear(cx, calendar, fields, &eraYears)) {
+      return false;
+    }
+  }
+
+  Month month;
+  if (!CalendarFieldMonth(cx, calendar, fields, overflow, &month)) {
+    return false;
+  }
+  MOZ_ASSERT((month.code == MonthCode{}) == !fields.monthCode());
+
+  int32_t day;
+  if (!CalendarFieldDay(cx, calendar, fields, overflow, &day)) {
+    return false;
+  }
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  // FIXME: spec issue - Align ISO and non-ISO calendars.
+  //
+  // https://github.com/tc39/proposal-temporal/issues/2863
+
+  // We first have to compute the month-code if it wasn't provided to us.
+  auto monthCode = month.code;
+  if (monthCode == MonthCode{}) {
+    MOZ_ASSERT(month.ordinal > 0);
+
+    auto eraYear = eraYears.fromEra ? *eraYears.fromEra : *eraYears.fromEpoch;
+
+    auto date = CreateDateFrom(cx, calendar, cal.get(), eraYear, month.ordinal,
+                               day, overflow);
+    if (!date) {
+      return false;
+    }
+
+    // FIXME: spec issue - CalendarResolveFields should be spec'ed to validate
+    // that |year| and |eraYear| are consistent if they're end up being used.
+    //
+    // https://github.com/tc39/proposal-temporal/issues/2864
+
+    // |year| and |eraYear| must be consistent.
+    if (eraYears.fromEpoch && eraYears.fromEra) {
+      if (!CalendarFieldEraYearMatchesYear(cx, calendar, fields, date.get())) {
+        return false;
+      }
+    }
+
+    if (!CalendarDateMonthCode(cx, calendar, date.get(), &monthCode)) {
+      return false;
+    }
+  }
+
+  // year/eraYear are ignored when month code is present. Try years starting
+  // from 31 December, 1972.
+  constexpr auto isoReferenceDate = PlainDate{1972, 12, 31};
+
+  auto fromIsoDate = CreateICU4XDate(cx, isoReferenceDate, cal.get());
+  if (!fromIsoDate) {
+    return false;
+  }
+
+  // Find the calendar year for the ISO reference date.
+  int32_t calendarYear;
+  if (!CalendarDateYear(cx, calendar, fromIsoDate.get(), &calendarYear)) {
+    return false;
+  }
+
+  // Constrain day to maximum possible day for the input month.
+  int32_t daysInMonth = CalendarDaysInMonth(calendar, monthCode).second;
+  if (overflow == TemporalOverflow::Constrain) {
+    day = std::min(day, daysInMonth);
+  } else {
+    MOZ_ASSERT(overflow == TemporalOverflow::Reject);
+
+    if (day > daysInMonth) {
+      ReportCalendarFieldOverflow(cx, "day", day);
+      return false;
+    }
+  }
+
+  // 10'000 is sufficient to find all possible month-days, even for rare cases
+  // like `{calendar: "chinese", monthCode: "M09L", day: 30}`.
+  constexpr size_t maxIterations = 10'000;
+
+  UniqueICU4XDate date;
+  for (size_t i = 0; i < maxIterations; i++) {
+    // This loop can run for a long time.
+    if (!CheckForInterrupt(cx)) {
+      return false;
+    }
+
+    auto candidateYear = CalendarEraYear(calendar, calendarYear);
+
+    auto result =
+        CreateDateFromCodes(calendar, cal.get(), candidateYear, monthCode, day);
+    if (result.isOk()) {
+      // Make sure the resolved date is before December 31, 1972.
+      auto plainDate = ToPlainDate(result.inspect().get());
+      if (plainDate.year > isoReferenceDate.year) {
+        calendarYear -= 1;
+        continue;
+      }
+
+      date = result.unwrap();
+      break;
+    }
+
+    switch (result.inspectErr()) {
+      case CalendarError::UnknownMonthCode: {
+        MOZ_ASSERT(CalendarHasLeapMonths(calendar));
+        MOZ_ASSERT(monthCode.isLeapMonth());
+
+        // Try the next candidate year if the requested leap month doesn't
+        // occur in the current year.
+        calendarYear -= 1;
+        continue;
+      }
+
+      case CalendarError::Overflow: {
+        // ICU4X throws an overflow error when:
+        // 1. month > monthsInYear(year), or
+        // 2. days > daysInMonthOf(year, month).
+        //
+        // Case 1 can't happen for month-codes, so it doesn't apply here.
+        // Case 2 can only happen when |day| is larger than the minimum number
+        // of days in the month.
+        MOZ_ASSERT(day > CalendarDaysInMonth(calendar, monthCode).first);
+
+        // Try next candidate year to find an earlier year which can fulfill
+        // the input request.
+        calendarYear -= 1;
+        continue;
+      }
+
+      case CalendarError::OutOfRange:
+      case CalendarError::Underflow:
+      case CalendarError::UnknownEra:
+        MOZ_ASSERT(false, "unexpected calendar error");
+        break;
+
+      case CalendarError::Generic:
+        break;
+    }
+
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
+    return false;
+  }
+
+  // We shouldn't end up here with |maxIterations == 10'000|, but just in case
+  // still handle this case and report an error.
+  if (!date) {
+    ReportCalendarFieldOverflow(cx, "day", day);
+    return false;
+  }
+
+  // |month| and |monthCode| must be consistent.
+  if (month.code != MonthCode{} && month.ordinal > 0) {
+    if (!CalendarFieldMonthCodeMatchesMonth(cx, fields, date.get(),
+                                            month.ordinal)) {
+      return false;
+    }
+  }
+
+  *result = ToPlainDate(date.get());
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
 enum class FieldType { Date, YearMonth, MonthDay };
 
 /**
@@ -5556,9 +5743,22 @@ static PlainMonthDayObject* BuiltinCalendarMonthDayFromFields(
 
   // Steps 6-7.
   Rooted<TemporalFields> dateFields(cx);
-  if (!PrepareTemporalFields(cx, fields, relevantFieldNames,
-                             {TemporalField::Day}, &dateFields)) {
-    return nullptr;
+  if (calendarId == CalendarId::ISO8601) {
+    // Step 6.a.
+    if (!PrepareTemporalFields(cx, fields, relevantFieldNames,
+                               {TemporalField::Day}, &dateFields)) {
+      return nullptr;
+    }
+  } else {
+    // Step 7.a.
+    auto calendarRelevantFieldDescriptors =
+        CalendarFieldDescriptors(calendarId, FieldType::MonthDay);
+
+    // Step 7.b.
+    if (!PrepareTemporalFields(cx, fields, relevantFieldNames, {},
+                               calendarRelevantFieldDescriptors, &dateFields)) {
+      return nullptr;
+    }
   }
 
   // Step 8.
@@ -5569,15 +5769,30 @@ static PlainMonthDayObject* BuiltinCalendarMonthDayFromFields(
     }
   }
 
-  // Step 9.a.
-  if (!ISOResolveMonth(cx, &dateFields)) {
-    return nullptr;
-  }
-
-  // Step 9.b.
+  // Steps 9-10.
   PlainDate result;
-  if (!ISOMonthDayFromFields(cx, dateFields, overflow, &result)) {
-    return nullptr;
+  if (calendarId == CalendarId::ISO8601) {
+    // Step 9.a.
+    if (!ISOResolveMonth(cx, &dateFields)) {
+      return nullptr;
+    }
+
+    // Step 9.b.
+    if (!ISOMonthDayFromFields(cx, dateFields, overflow, &result)) {
+      return nullptr;
+    }
+  } else {
+    // Step 10.a.
+    if (!CalendarResolveFields(cx, calendarId, dateFields,
+                               FieldType::MonthDay)) {
+      return nullptr;
+    }
+
+    // Step 10.b.
+    if (!CalendarMonthDayToISOReferenceDate(cx, calendarId, dateFields,
+                                            overflow, &result)) {
+      return nullptr;
+    }
   }
 
   // Step 11.
