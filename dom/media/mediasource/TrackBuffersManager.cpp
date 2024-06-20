@@ -808,18 +808,6 @@ void TrackBuffersManager::UpdateBufferedRanges() {
               DumpTimeRangesRaw(mAudioTracks.mBufferedRanges).get());
   }
 #endif
-  if (profiler_thread_is_being_profiled_for_markers()) {
-    nsPrintfCString msg("");
-    if (HasVideo()) {
-      msg += "video="_ns;
-      msg += DumpTimeRangesRaw(mVideoTracks.mBufferedRanges);
-    }
-    if (HasAudio()) {
-      msg += "audio="_ns;
-      msg += DumpTimeRangesRaw(mAudioTracks.mBufferedRanges);
-    }
-    PROFILER_MARKER_TEXT("UpdateBufferedRanges", MEDIA_PLAYBACK, {}, msg);
-  }
 }
 
 void TrackBuffersManager::SegmentParserLoop() {
@@ -934,14 +922,10 @@ void TrackBuffersManager::SegmentParserLoop() {
       if (mNewMediaSegmentStarted) {
         if (NS_SUCCEEDED(newData) && mLastParsedEndTime.isSome() &&
             start < mLastParsedEndTime.ref()) {
-          nsPrintfCString msg(
-              "Re-creating demuxer, new start (%" PRId64
-              ") is smaller than last parsed end time (%" PRId64 ")",
-              start.ToMicroseconds(), mLastParsedEndTime->ToMicroseconds());
-          if (profiler_thread_is_being_profiled_for_markers()) {
-            PROFILER_MARKER_TEXT("Re-create demuxer", MEDIA_PLAYBACK, {}, msg);
-          }
-          MSE_DEBUG("%s", msg.get());
+          MSE_DEBUG("Re-creating demuxer, new start (%" PRId64
+                    ") is smaller than last parsed end time (%" PRId64 ")",
+                    start.ToMicroseconds(),
+                    mLastParsedEndTime->ToMicroseconds());
           mFrameEndTimeBeforeRecreateDemuxer = Some(end);
           ResetDemuxingState();
           return;
@@ -1036,9 +1020,6 @@ void TrackBuffersManager::ScheduleSegmentParserLoop() {
 }
 
 void TrackBuffersManager::ShutdownDemuxers() {
-  if (profiler_thread_is_being_profiled_for_markers()) {
-    PROFILER_MARKER_UNTYPED("ShutdownDemuxers", MEDIA_PLAYBACK);
-  }
   if (mVideoTracks.mDemuxer) {
     mVideoTracks.mDemuxer->BreakCycles();
     mVideoTracks.mDemuxer = nullptr;
@@ -1090,10 +1071,6 @@ void TrackBuffersManager::ResetDemuxingState() {
   MOZ_ASSERT(mParser && mParser->HasInitData());
   AUTO_PROFILER_LABEL("TrackBuffersManager::ResetDemuxingState",
                       MEDIA_PLAYBACK);
-  if (profiler_thread_is_being_profiled_for_markers()) {
-    PROFILER_MARKER_UNTYPED("ResetDemuxingState", MEDIA_PLAYBACK);
-  }
-
   RecreateParser(true);
   mCurrentInputBuffer = new SourceBufferResource();
   // The demuxer isn't initialized yet ; we don't want to notify it
@@ -1177,9 +1154,6 @@ void TrackBuffersManager::InitializationSegmentReceived() {
   MOZ_ASSERT(mParser->HasCompleteInitData());
   AUTO_PROFILER_LABEL("TrackBuffersManager::InitializationSegmentReceived",
                       MEDIA_PLAYBACK);
-  if (profiler_thread_is_being_profiled_for_markers()) {
-    PROFILER_MARKER_UNTYPED("InitializationSegmentReceived", MEDIA_PLAYBACK);
-  }
 
   int64_t endInit = mParser->InitSegmentRange().mEnd;
   if (mInputBuffer->Length() > mProcessedInput ||
@@ -1932,13 +1906,9 @@ void TrackBuffersManager::ProcessFrames(TrackBuffer& aSamples,
       // coded frame.
       if (!sample->mKeyframe) {
         previouslyDroppedSample = nullptr;
-        nsPrintfCString msg("skipping sample [%" PRId64 ",%" PRId64 "]",
-                            sample->mTime.ToMicroseconds(),
-                            sample->GetEndTime().ToMicroseconds());
-        if (profiler_thread_is_being_profiled_for_markers()) {
-          PROFILER_MARKER_TEXT("Skipping Frame", MEDIA_PLAYBACK, {}, msg);
-        }
-        SAMPLE_DEBUGV("%s", msg.get());
+        SAMPLE_DEBUGV("skipping sample [%" PRId64 ",%" PRId64 "]",
+                      sample->mTime.ToMicroseconds(),
+                      sample->GetEndTime().ToMicroseconds());
         continue;
       }
       // 2. Set the need random access point flag on track buffer to false.
@@ -1997,9 +1967,6 @@ void TrackBuffersManager::ProcessFrames(TrackBuffer& aSamples,
         (decodeTimestamp < trackBuffer.mLastDecodeTimestamp.ref() ||
          (decodeTimestamp - trackBuffer.mLastDecodeTimestamp.ref() >
           trackBuffer.mLongestFrameDuration * 2))) {
-      if (profiler_thread_is_being_profiled_for_markers()) {
-        PROFILER_MARKER_UNTYPED("Discontinuity detected", MEDIA_PLAYBACK);
-      }
       MSE_DEBUG("Discontinuity detected.");
       SourceBufferAppendMode appendMode =
           mSourceBufferAttributes->GetAppendMode();
