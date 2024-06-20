@@ -89,6 +89,9 @@ class ResourceCommand {
 
   addResourceToCache(resource) {
     const { resourceId, resourceType } = resource;
+    if (TRANSIENT_RESOURCE_TYPES.includes(resourceType)) {
+      return;
+    }
     this._cache.set(cacheKey(resourceType, resourceId), resource);
   }
 
@@ -1323,6 +1326,16 @@ const WORKER_RESOURCE_TYPES = [
   ResourceCommand.TYPES.ERROR_MESSAGE,
   ResourceCommand.TYPES.SOURCE,
   ResourceCommand.TYPES.THREAD_STATE,
+];
+
+// List of resource types which aren't stored in the internal ResourceCommand cache.
+// Only the first `watchResources()` call for a given resource type may receive already existing
+// resources. All subsequent call to `watchResources()` for the same resource type will
+// only receive future resource, and not the one already notified in the past.
+// This is typically used for resources with very high throughput.
+const TRANSIENT_RESOURCE_TYPES = [
+  ResourceCommand.TYPES.JSTRACER_TRACE,
+  ResourceCommand.TYPES.JSTRACER_STATE,
 ];
 
 // Backward compat code for each type of resource.
