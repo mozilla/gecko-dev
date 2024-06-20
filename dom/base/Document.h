@@ -3640,6 +3640,12 @@ class Document : public nsINode,
   // document in the document tree.
   bool HasBeenUserGestureActivated();
 
+  // Returns true if this document was loaded with an user interaction,
+  // allowing a text directive to be scrolled to if the document was loaded with
+  // a text fragment. This call consumes this flag, ie. a subsequent call will
+  // return false.
+  bool ConsumeTextDirectiveUserActivation();
+
   // Reture timestamp of last user gesture in milliseconds relative to
   // navigation start timestamp.
   DOMHighResTimeStamp LastUserGestureTimeStamp();

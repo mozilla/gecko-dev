@@ -16965,6 +16965,20 @@ bool Document::HasBeenUserGestureActivated() {
   return wc && wc->HasBeenUserGestureActivated();
 }
 
+bool Document::ConsumeTextDirectiveUserActivation() {
+  if (!mChannel) {
+    return false;
+  }
+  nsCOMPtr<nsILoadInfo> loadInfo = mChannel->LoadInfo();
+  if (!loadInfo) {
+    return false;
+  }
+  const bool textDirectiveUserActivation =
+      loadInfo->GetTextDirectiveUserActivation();
+  loadInfo->SetTextDirectiveUserActivation(false);
+  return textDirectiveUserActivation;
+}
+
 DOMHighResTimeStamp Document::LastUserGestureTimeStamp() {
   if (RefPtr<WindowContext> wc = GetWindowContext()) {
     if (nsGlobalWindowInner* innerWindow = wc->GetInnerWindow()) {

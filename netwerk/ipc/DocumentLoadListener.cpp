@@ -167,6 +167,8 @@ static auto CreateDocumentLoadInfo(CanonicalBrowsingContext* aBrowsingContext,
   loadInfo->SetTriggeringStorageAccess(aLoadState->TriggeringStorageAccess());
   loadInfo->SetHasValidUserGestureActivation(
       aLoadState->HasValidUserGestureActivation());
+  loadInfo->SetTextDirectiveUserActivation(
+      aLoadState->GetTextDirectiveUserActivation());
   loadInfo->SetIsMetaRefresh(aLoadState->IsMetaRefresh());
 
   return loadInfo.forget();
@@ -190,6 +192,8 @@ static auto CreateObjectLoadInfo(
 
   loadInfo->SetHasValidUserGestureActivation(
       aLoadState->HasValidUserGestureActivation());
+  loadInfo->SetTextDirectiveUserActivation(
+      aLoadState->GetTextDirectiveUserActivation());
   loadInfo->SetTriggeringSandboxFlags(aLoadState->TriggeringSandboxFlags());
   loadInfo->SetTriggeringWindowId(aLoadState->TriggeringWindowId());
   loadInfo->SetTriggeringStorageAccess(aLoadState->TriggeringStorageAccess());
