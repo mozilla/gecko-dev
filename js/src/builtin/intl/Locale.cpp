@@ -167,7 +167,11 @@ static inline bool IsValidUnicodeExtensionValue(JSContext* cx,
   return true;
 }
 
-/** Iterate through (sep keyword) in a valid, lowercased Unicode extension. */
+/**
+ * Iterate through (sep keyword) in a valid Unicode extension.
+ *
+ * The Unicode extension value is not required to be in canonical case.
+ */
 template <typename CharT>
 class SepKeywordIterator {
   const CharT* iter_;
@@ -193,7 +197,8 @@ class SepKeywordIterator {
                "overall Unicode locale extension or non-leading subtags must "
                "be at least key-sized");
 
-    MOZ_ASSERT((iter_[0] == 'u' && iter_[1] == '-') || iter_[0] == '-');
+    MOZ_ASSERT(((iter_[0] == 'u' || iter_[0] == 'U') && iter_[1] == '-') ||
+               iter_[0] == '-');
 
     while (true) {
       // Skip past '-' so |std::char_traits::find| makes progress. Skipping
@@ -218,9 +223,8 @@ class SepKeywordIterator {
     }
 
     MOZ_ASSERT(iter_[0] == '-');
-    MOZ_ASSERT(mozilla::IsAsciiLowercaseAlpha(iter_[1]) ||
-               mozilla::IsAsciiDigit(iter_[1]));
-    MOZ_ASSERT(mozilla::IsAsciiLowercaseAlpha(iter_[2]));
+    MOZ_ASSERT(mozilla::IsAsciiAlphanumeric(iter_[1]));
+    MOZ_ASSERT(mozilla::IsAsciiAlpha(iter_[2]));
     MOZ_ASSERT_IF(iter_ + SepKeyLength < end_, iter_[SepKeyLength] == '-');
     return iter_;
   }
