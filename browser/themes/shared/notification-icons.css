@@ -28,6 +28,13 @@
   fill: currentColor;
 }
 
+/* Notification anchors should only be visible when their associated
+   notifications are. */
+#blocked-permissions-container > .blocked-permission-icon:not([showing]),
+.notification-anchor-icon:not([showing]) {
+  display: none;
+}
+
 /* This class can be used alone or in combination with the class defining the
    type of icon displayed. This rule must be defined before the others in order
    for its list-style-image to be overridden. */
@@ -39,6 +46,10 @@
     outline: var(--focus-outline);
     outline-offset: var(--focus-outline-inset);
     border-radius: var(--urlbar-icon-border-radius);
+  }
+
+  #nav-bar:not([keyNav]) & {
+    -moz-user-focus: normal;
   }
 }
 
