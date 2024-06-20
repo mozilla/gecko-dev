@@ -257,6 +257,11 @@ class ShoppingSidebarManagerClass {
       document.querySelectorAll("shopping-sidebar").forEach(sidebar => {
         sidebar.hidden = true;
       });
+      document
+        .querySelectorAll(".shopping-sidebar-splitter")
+        .forEach(splitter => {
+          splitter.hidden = true;
+        });
     }
 
     this._maybeToggleButton(window.gBrowser);
@@ -265,6 +270,11 @@ class ShoppingSidebarManagerClass {
       document.querySelectorAll("shopping-sidebar").forEach(sidebar => {
         sidebar.remove();
       });
+      document
+        .querySelectorAll(".shopping-sidebar-splitter")
+        .forEach(splitter => {
+          splitter.remove();
+        });
       return;
     }
 
@@ -341,16 +351,20 @@ class ShoppingSidebarManagerClass {
         sidebar = document.createXULElement("shopping-sidebar");
         sidebar.hidden = false;
         let splitter = document.createXULElement("splitter");
-        splitter.classList.add("sidebar-splitter");
+        splitter.classList.add("sidebar-splitter", "shopping-sidebar-splitter");
         browserPanel.appendChild(splitter);
         browserPanel.appendChild(sidebar);
       } else {
         actor?.updateProductURL(aLocationURI, aFlags);
         sidebar.hidden = false;
+        let splitter = browserPanel.querySelector(".shopping-sidebar-splitter");
+        splitter.hidden = false;
       }
     } else if (sidebar && !sidebar.hidden) {
       actor?.updateProductURL(null);
       sidebar.hidden = true;
+      let splitter = browserPanel.querySelector(".shopping-sidebar-splitter");
+      splitter.hidden = true;
     }
 
     this._updateBCActiveness(aBrowser);
