@@ -47,7 +47,9 @@
 #include "NamespaceImports.h"
 
 #include "builtin/Array.h"
+#include "builtin/temporal/Crash.h"
 #include "builtin/temporal/Duration.h"
+#include "builtin/temporal/Era.h"
 #include "builtin/temporal/PlainDate.h"
 #include "builtin/temporal/PlainDateTime.h"
 #include "builtin/temporal/PlainMonthDay.h"
@@ -1200,7 +1202,326 @@ static UniqueICU4XWeekCalculator CreateICU4WeekCalculator(JSContext* cx,
   return UniqueICU4XWeekCalculator{result};
 }
 
+static constexpr std::string_view IcuEraName(CalendarId calendar, EraCode era) {
+  switch (calendar) {
+    // https://docs.rs/icu/latest/icu/calendar/iso/struct.Iso.html#era-codes
+    case CalendarId::ISO8601: {
+      MOZ_ASSERT(era == EraCode::Standard);
+      return "default";
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/buddhist/struct.Buddhist.html#era-codes
+    case CalendarId::Buddhist: {
+      MOZ_ASSERT(era == EraCode::Standard);
+      return "be";
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/chinese/struct.Chinese.html#year-and-era-codes
+    case CalendarId::Chinese: {
+      MOZ_ASSERT(era == EraCode::Standard);
+      return "chinese";
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/coptic/struct.Coptic.html#era-codes
+    case CalendarId::Coptic: {
+      MOZ_ASSERT(era == EraCode::Standard || era == EraCode::Inverse);
+      return era == EraCode::Standard ? "ad" : "bd";
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/dangi/struct.Dangi.html#era-codes
+    case CalendarId::Dangi: {
+      MOZ_ASSERT(era == EraCode::Standard);
+      return "dangi";
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/ethiopian/struct.Ethiopian.html#era-codes
+    case CalendarId::Ethiopian: {
+      MOZ_ASSERT(era == EraCode::Standard || era == EraCode::Inverse);
+      return era == EraCode::Standard ? "incar" : "pre-incar";
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/ethiopian/struct.Ethiopian.html#era-codes
+    case CalendarId::EthiopianAmeteAlem: {
+      MOZ_ASSERT(era == EraCode::Standard);
+      return "mundi";
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/gregorian/struct.Gregorian.html#era-codes
+    case CalendarId::Gregorian: {
+      MOZ_ASSERT(era == EraCode::Standard || era == EraCode::Inverse);
+      return era == EraCode::Standard ? "ce" : "bce";
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/hebrew/struct.Hebrew.html
+    case CalendarId::Hebrew: {
+      MOZ_ASSERT(era == EraCode::Standard);
+      return "am";
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/indian/struct.Indian.html#era-codes
+    case CalendarId::Indian: {
+      MOZ_ASSERT(era == EraCode::Standard);
+      return "saka";
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/islamic/struct.IslamicCivil.html#era-codes
+    // https://docs.rs/icu/latest/icu/calendar/islamic/struct.IslamicObservational.html#era-codes
+    // https://docs.rs/icu/latest/icu/calendar/islamic/struct.IslamicTabular.html#era-codes
+    // https://docs.rs/icu/latest/icu/calendar/islamic/struct.IslamicUmmAlQura.html#era-codes
+    // https://docs.rs/icu/latest/icu/calendar/persian/struct.Persian.html#era-codes
+    case CalendarId::Islamic:
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicTabular:
+    case CalendarId::IslamicUmmAlQura:
+    case CalendarId::Persian: {
+      MOZ_ASSERT(era == EraCode::Standard);
+      return "ah";
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/japanese/struct.Japanese.html#era-codes
+    case CalendarId::Japanese: {
+      switch (era) {
+        case EraCode::Standard:
+          return "ce";
+        case EraCode::Inverse:
+          return "bce";
+        case EraCode::Meiji:
+          return "meiji";
+        case EraCode::Taisho:
+          return "taisho";
+        case EraCode::Showa:
+          return "showa";
+        case EraCode::Heisei:
+          return "heisei";
+        case EraCode::Reiwa:
+          return "reiwa";
+      }
+      break;
+    }
+
+    // https://docs.rs/icu/latest/icu/calendar/roc/struct.Roc.html#era-codes
+    case CalendarId::ROC: {
+      MOZ_ASSERT(era == EraCode::Standard || era == EraCode::Inverse);
+      return era == EraCode::Standard ? "roc" : "roc-inverse";
+    }
+  }
+  JS_CONSTEXPR_CRASH("invalid era");
+}
+
+static constexpr size_t ICUEraNameMaxLength() {
+  size_t length = 0;
+  for (auto calendar : AvailableCalendars()) {
+    for (auto era : CalendarEras(calendar)) {
+      auto name = IcuEraName(calendar, era);
+      length = std::max(length, name.length());
+    }
+  }
+  return length;
+}
+
+/**
+ * CalendarDateEra ( calendar, date )
+ */
+static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
+                            const capi::ICU4XDate* date, EraCode* result) {
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  // Note: Assigning MaxLength to ICUEraNameMaxLength() breaks the CDT indexer.
+  constexpr size_t MaxLength = 15;
+  static_assert(MaxLength >= ICUEraNameMaxLength(),
+                "Storage size is at least as large as the largest known era");
+
+  // Storage for the largest known era string and the terminating NUL-character.
+  char buf[MaxLength + 1] = {};
+  auto writable = capi::diplomat_simple_writeable(buf, std::size(buf));
+
+  if (!capi::ICU4XDate_era(date, &writable).is_ok) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
+    return false;
+  }
+  MOZ_ASSERT(writable.buf == buf, "unexpected buffer relocation");
+
+  auto dateEra = std::string_view{writable.buf, writable.len};
+
+  // Map to era name to era code.
+  for (auto era : CalendarEras(calendar)) {
+    if (IcuEraName(calendar, era) == dateEra) {
+      *result = era;
+      return true;
+    }
+  }
+
+  // Invalid/Unknown era name.
+  JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                            JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
+  return false;
+}
+
+/**
+ * CalendarDateYear ( calendar, date )
+ */
+static bool CalendarDateYear(JSContext* cx, CalendarId calendar,
+                             const capi::ICU4XDate* date, int32_t* result) {
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  // FIXME: ICU4X doesn't yet support CalendarDateYear, so we need to manually
+  // adjust the era year to determine the non-era year.
+  //
+  // https://github.com/unicode-org/icu4x/issues/3962
+
+  if (!CalendarEraRelevant(calendar)) {
+    int32_t year = capi::ICU4XDate_year_in_era(date);
+    *result = year;
+    return true;
+  }
+
+  if (calendar != CalendarId::Japanese) {
+    MOZ_ASSERT(CalendarEras(calendar).size() == 2);
+
+    int32_t year = capi::ICU4XDate_year_in_era(date);
+    MOZ_ASSERT(year > 0, "era years are strictly positive in ICU4X");
+
+    EraCode era;
+    if (!CalendarDateEra(cx, calendar, date, &era)) {
+      return false;
+    }
+
+    // Map from era year to extended year.
+    //
+    // For example in the Gregorian calendar:
+    //
+    // ----------------------------
+    // | Era Year | Extended Year |
+    // | 2 CE     |  2            |
+    // | 1 CE     |  1            |
+    // | 1 BCE    |  0            |
+    // | 2 BCE    | -1            |
+    // ----------------------------
+    if (era == EraCode::Inverse) {
+      year = -(year - 1);
+    } else {
+      MOZ_ASSERT(era == EraCode::Standard);
+    }
+
+    *result = year;
+    return true;
+  }
+
+  // Japanese uses a proleptic Gregorian calendar, so we can use the ISO year.
+  UniqueICU4XIsoDate isoDate{capi::ICU4XDate_to_iso(date)};
+  int32_t isoYear = capi::ICU4XIsoDate_year(isoDate.get());
+
+  *result = isoYear;
+  return true;
+}
+
 #endif
+
+/**
+ * CalendarDateEra ( calendar, date )
+ */
+static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
+                            const PlainDate& date,
+                            MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  if (!CalendarEraRelevant(calendar)) {
+    result.setUndefined();
+    return true;
+  }
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  EraCode era;
+  if (!CalendarDateEra(cx, calendar, dt.get(), &era)) {
+    return false;
+  }
+
+  auto* str = NewStringCopy<CanGC>(cx, CalendarEraName(calendar, era));
+  if (!str) {
+    return false;
+  }
+
+  result.setString(str);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateEraYear ( calendar, date )
+ */
+static bool CalendarDateEraYear(JSContext* cx, CalendarId calendar,
+                                const PlainDate& date,
+                                MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  if (!CalendarEraRelevant(calendar)) {
+    result.setUndefined();
+    return true;
+  }
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t year = capi::ICU4XDate_year_in_era(dt.get());
+  result.setInt32(year);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateYear ( calendar, date )
+ */
+static bool CalendarDateYear(JSContext* cx, CalendarId calendar,
+                             const PlainDate& date,
+                             MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t year;
+  if (!CalendarDateYear(cx, calendar, dt.get(), &year)) {
+    return false;
+  }
+
+  result.setInt32(year);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
 
 /**
  * CalendarDateMonth ( calendar, date )
@@ -1332,6 +1653,70 @@ static bool CalendarDateWeekOfYear(JSContext* cx, CalendarId calendar,
   }
 
   result.setInt32(week.ok.week);
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarDateWeekOfYear ( calendar, date )
+ */
+static bool CalendarDateYearOfWeek(JSContext* cx, CalendarId calendar,
+                                   const PlainDate& date,
+                                   MutableHandle<Value> result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  // Non-Gregorian calendars don't get week-of-year support for now.
+  //
+  // https://github.com/tc39/proposal-intl-era-monthcode/issues/15
+  if (calendar != CalendarId::Gregorian) {
+    result.setUndefined();
+    return true;
+  }
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  auto weekCal = CreateICU4WeekCalculator(cx, calendar);
+  if (!weekCal) {
+    return false;
+  }
+
+  auto week = capi::ICU4XDate_week_of_year(dt.get(), weekCal.get());
+  if (!week.is_ok) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
+    return false;
+  }
+
+  int32_t relative = 0;
+  switch (week.ok.unit) {
+    case capi::ICU4XWeekRelativeUnit_Previous:
+      relative = -1;
+      break;
+    case capi::ICU4XWeekRelativeUnit_Current:
+      relative = 0;
+      break;
+    case capi::ICU4XWeekRelativeUnit_Next:
+      relative = 1;
+      break;
+  }
+
+  int32_t calendarYear;
+  if (!CalendarDateYear(cx, calendar, dt.get(), &calendarYear)) {
+    return false;
+  }
+
+  result.setInt32(calendarYear + relative);
   return true;
 #else
   MOZ_CRASH("ICU4X disabled");
@@ -1885,9 +2270,14 @@ static bool BuiltinCalendarEra(JSContext* cx, CalendarId calendarId,
                                MutableHandle<Value> result) {
   // Steps 1-3. (Not applicable.)
 
-  // Steps 4-5.
-  result.setUndefined();
-  return true;
+  // Step 4.
+  if (calendarId == CalendarId::ISO8601) {
+    result.setUndefined();
+    return true;
+  }
+
+  // Step 5.
+  return CalendarDateEra(cx, calendarId, date, result);
 }
 
 static bool Calendar_era(JSContext* cx, unsigned argc, Value* vp);
@@ -1953,9 +2343,14 @@ static bool BuiltinCalendarEraYear(JSContext* cx, CalendarId calendarId,
                                    MutableHandle<Value> result) {
   // Steps 1-3. (Not applicable.)
 
-  // Steps 4-7.
-  result.setUndefined();
-  return true;
+  // Step 4.
+  if (calendarId == CalendarId::ISO8601) {
+    result.setUndefined();
+    return true;
+  }
+
+  // Steps 5-7.
+  return CalendarDateEraYear(cx, calendarId, date, result);
 }
 
 static bool Calendar_eraYear(JSContext* cx, unsigned argc, Value* vp);
@@ -2028,8 +2423,11 @@ static bool BuiltinCalendarYear(JSContext* cx, CalendarId calendarId,
   // Steps 1-3. (Not applicable.)
 
   // Steps 4-6.
-  result.setInt32(date.year);
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    result.setInt32(date.year);
+    return true;
+  }
+  return CalendarDateYear(cx, calendarId, date, result);
 }
 
 static bool Calendar_year(JSContext* cx, unsigned argc, Value* vp);
@@ -2592,8 +2990,11 @@ static bool BuiltinCalendarYearOfWeek(JSContext* cx, CalendarId calendarId,
   // Steps 1-3. (Not applicable.)
 
   // Steps 4-6.
-  result.setInt32(ToISOWeekOfYear(date).year);
-  return true;
+  if (calendarId == CalendarId::ISO8601) {
+    result.setInt32(ToISOWeekOfYear(date).year);
+    return true;
+  }
+  return CalendarDateYearOfWeek(cx, calendarId, date, result);
 }
 
 static bool Calendar_yearOfWeek(JSContext* cx, unsigned argc, Value* vp);
