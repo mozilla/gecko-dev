@@ -46,7 +46,7 @@ callback CreateScriptURLCallback = USVString? (DOMString input, any... arguments
 
 [Exposed=(Window,Worker), Pref="dom.security.trusted_types.enabled"]
 interface TrustedTypePolicyFactory {
-    TrustedTypePolicy createPolicy(DOMString policyName , optional TrustedTypePolicyOptions policyOptions = {});
+    [Throws] TrustedTypePolicy createPolicy(DOMString policyName , optional TrustedTypePolicyOptions policyOptions = {});
     boolean isHTML(any value);
     boolean isScript(any value);
     boolean isScriptURL(any value);
