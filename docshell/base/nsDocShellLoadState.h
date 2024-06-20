@@ -337,15 +337,6 @@ class nsDocShellLoadState final {
 
   bool GetWasSchemelessInput() { return mWasSchemelessInput; }
 
-  void SetHttpsUpgradeTelemetry(
-      nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry) {
-    mHttpsUpgradeTelemetry = aHttpsUpgradeTelemetry;
-  }
-
-  nsILoadInfo::HTTPSUpgradeTelemetryType GetHttpsUpgradeTelemetry() {
-    return mHttpsUpgradeTelemetry;
-  }
-
   // Determine the remote type of the process which should be considered
   // responsible for this load for the purposes of security checks.
   //
@@ -621,10 +612,6 @@ class nsDocShellLoadState final {
 
   // if the to-be-loaded address had it protocol added through a fixup
   bool mWasSchemelessInput = false;
-
-  // Solely for the use of collecting Telemetry for HTTPS upgrades.
-  nsILoadInfo::HTTPSUpgradeTelemetryType mHttpsUpgradeTelemetry =
-      nsILoadInfo::NO_UPGRADE;
 };
 
 #endif /* nsDocShellLoadState_h__ */

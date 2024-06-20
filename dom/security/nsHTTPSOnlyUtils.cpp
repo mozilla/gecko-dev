@@ -588,19 +588,6 @@ void nsHTTPSOnlyUtils::UpdateLoadStateAfterHTTPSFirstDowngrade(
   // loop
   aLoadState->SetIsExemptFromHTTPSFirstMode(true);
 
-  // we can safely set the flag to indicate the downgrade here and it will be
-  // propagated all the way to nsHttpChannel::OnStopRequest() where we collect
-  // the telemetry.
-  nsCOMPtr<nsIChannel> channel = aDocumentLoadListener->GetChannel();
-  nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
-  if (loadInfo->GetWasSchemelessInput()) {
-    aLoadState->SetHttpsUpgradeTelemetry(
-        nsILoadInfo::HTTPS_FIRST_SCHEMELESS_UPGRADE_DOWNGRADE);
-  } else {
-    aLoadState->SetHttpsUpgradeTelemetry(
-        nsILoadInfo::HTTPS_FIRST_UPGRADE_DOWNGRADE);
-  }
-
   // Add downgrade data for later telemetry usage to load state
   nsDOMNavigationTiming* timing = aDocumentLoadListener->GetTiming();
   if (timing) {
@@ -608,6 +595,9 @@ void nsHTTPSOnlyUtils::UpdateLoadStateAfterHTTPSFirstDowngrade(
     if (navigationStart) {
       mozilla::TimeDuration duration =
           mozilla::TimeStamp::Now() - navigationStart;
+
+      nsCOMPtr<nsIChannel> channel = aDocumentLoadListener->GetChannel();
+      nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
 
       bool isPrivateWin =
           loadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;

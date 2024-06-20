@@ -3026,6 +3026,26 @@
     "kind": "boolean",
     "description": "Whether or not a new alt-svc mapping would change the target hostname of the existing mapping"
   },
+  "HTTP_SCHEME_UPGRADE_TYPE": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec"],
+    "alert_emails": ["seceng-telemetry@mozilla.com", "freddyb@mozilla.com"],
+    "bug_numbers": [1340021, 1435733, 1722895],
+    "releaseChannelCollection": "opt-out",
+    "expires_in_version": "never",
+    "kind": "categorical",
+    "labels": [
+      "AlreadyHTTPS",
+      "NoReasonToUpgrade",
+      "PrefBlockedSTS",
+      "STS",
+      "CSP",
+      "BrowserDisplay",
+      "HTTPSOnly",
+      "HTTPSFirst"
+    ],
+    "description": "Was the URL upgraded to HTTPS?"
+  },
   "HTTP_RESPONSE_STATUS_CODE": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],

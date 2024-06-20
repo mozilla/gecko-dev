@@ -861,17 +861,5 @@ TRRLoadInfo::SetWasSchemelessInput(bool aWasSchemelessInput) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP
-TRRLoadInfo::GetHttpsUpgradeTelemetry(
-    nsILoadInfo::HTTPSUpgradeTelemetryType* aOutHttpsTelemetry) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-TRRLoadInfo::SetHttpsUpgradeTelemetry(
-    nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsTelemetry) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
 }  // namespace net
 }  // namespace mozilla

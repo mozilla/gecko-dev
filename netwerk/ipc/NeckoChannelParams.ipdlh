@@ -14,7 +14,6 @@ include PBackgroundSharedTypes;
 include DOMTypes;
 include ProtocolTypes;
 
-include "mozilla/dom/DomSecurityIPCUtils.h";
 include "mozilla/dom/FetchIPCTypes.h";
 include "mozilla/dom/PropertyBagUtils.h";
 include "mozilla/dom/ReferrerInfoUtils.h";
@@ -38,7 +37,6 @@ using nsILoadInfo::StoragePermissionState from "nsILoadInfo.h";
 using struct mozilla::dom::LoadingSessionHistoryInfo from "mozilla/dom/SessionHistoryEntry.h";
 using mozilla::dom::RequestMode from "mozilla/dom/RequestBinding.h";
 using mozilla::net::LinkHeader from "nsNetUtil.h";
-using nsILoadInfo::HTTPSUpgradeTelemetryType from "nsILoadInfo.h";
 
 namespace mozilla {
 namespace net {
@@ -137,7 +135,6 @@ struct LoadInfoArgs
   RedirectHistoryEntryInfo[]  redirectChain;
   bool                        hasInjectedCookieForCookieBannerHandling;
   bool                        wasSchemelessInput;
-  HTTPSUpgradeTelemetryType   httpsUpgradeTelemetry;
 
   /**
    * ClientInfo structure representing the window or worker that triggered
@@ -223,10 +220,6 @@ struct ParentLoadInfoForwarderArgs
   bool skipContentSniffing;
 
   uint32_t httpsOnlyStatus;
-
-  bool wasSchemelessInput;
-
-  HTTPSUpgradeTelemetryType httpsUpgradeTelemetry;
 
   bool hstsStatus;
 
