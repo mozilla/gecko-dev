@@ -64,12 +64,13 @@ impl RelevancyStore {
     #[handle_error(Error)]
     pub fn ingest(&self, top_urls_by_frecency: Vec<String>) -> ApiResult<InterestVector> {
         ingest::ensure_interest_data_populated(&self.db)?;
-        self.classify(top_urls_by_frecency)
+        let interest_vec = self.classify(top_urls_by_frecency)?;
+        self.db
+            .read_write(|dao| dao.update_frecency_user_interest_vector(&interest_vec))?;
+        Ok(interest_vec)
     }
 
     pub fn classify(&self, top_urls_by_frecency: Vec<String>) -> Result<InterestVector> {
-        // For experimentation purposes we are going to return an interest vector.
-        // Eventually we would want to store this data in the DB and incrementally update it.
         let mut interest_vector = InterestVector::default();
         for url in top_urls_by_frecency {
             let interest_count = self.db.read(|dao| dao.get_url_interest_vector(&url))?;

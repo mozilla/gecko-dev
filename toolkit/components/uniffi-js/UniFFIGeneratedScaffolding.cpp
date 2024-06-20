@@ -55,7 +55,7 @@ extern "C" {
   void * uniffi_suggest_fn_method_suggeststorebuilder_build(void *, RustCallStatus*);
   void * uniffi_suggest_fn_method_suggeststorebuilder_cache_path(void *, RustBuffer, RustCallStatus*);
   void * uniffi_suggest_fn_method_suggeststorebuilder_data_path(void *, RustBuffer, RustCallStatus*);
-  void * uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_config(void *, RustBuffer, RustCallStatus*);
+  void * uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name(void *, RustBuffer, RustCallStatus*);
   void * uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server(void *, RustBuffer, RustCallStatus*);
   int8_t uniffi_suggest_fn_func_raw_suggestion_url_matches(RustBuffer, RustBuffer, RustCallStatus*);
   void * uniffi_tabs_fn_clone_remotecommandstore(void *, RustCallStatus*);
@@ -248,9 +248,9 @@ Maybe<already_AddRefed<Promise>> UniFFICallAsync(const GlobalObject& aGlobal, ui
       using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
       return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststorebuilder_data_path, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststorebuilder_data_path: "_ns, aError));
     }
-    case 27: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_config
+    case 27: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
       using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_config, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_config: "_ns, aError));
+      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name: "_ns, aError));
     }
     case 28: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
       using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
@@ -509,9 +509,9 @@ bool UniFFICallSync(const GlobalObject& aGlobal, uint64_t aId, const Sequence<Un
       CallHandler::CallSync(uniffi_suggest_fn_method_suggeststorebuilder_data_path, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststorebuilder_data_path: "_ns, aError);
       return true;
     }
-    case 27: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_config
+    case 27: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
       using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_config, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_config: "_ns, aError);
+      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name: "_ns, aError);
       return true;
     }
     case 28: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server

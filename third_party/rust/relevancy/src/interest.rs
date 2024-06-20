@@ -3,6 +3,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::Error;
+use rusqlite::{types::ToSqlOutput, ToSql};
+
+/// Different kinds of interest vectors that we store for the user
+///
+/// The aspiration is to add more kinds and store more kinds of interest vectors, e.g.:
+///   - Full history existence -- does a URL appear anywhere in the user's history?
+///   - Open tabs -- does a URL appear in the user's open tabs?
+///   - Bookmarks -- does a URL appear in the user's bookmarks
+#[derive(Debug, Clone, Copy)]
+#[repr(u32)]
+pub enum InterestVectorKind {
+    // Calculated by checking the URLs in the user's frecency list against the topsite domains,
+    // categorized using Tranco.
+    Frecency = 1,
+}
+
+impl InterestVectorKind {
+    pub fn as_raw(&self) -> u32 {
+        *self as u32
+    }
+}
+
+impl ToSql for InterestVectorKind {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(ToSqlOutput::from(self.as_raw()))
+    }
+}
 
 /// List of possible interests for a domain.  Domains can have be associated with one or multiple
 /// interests.  `Inconclusive` is used for domains in the user's top sites that we can't classify
@@ -106,6 +133,16 @@ impl Interest {
             Self::Travel,
         ]
     }
+
+    pub fn as_raw(&self) -> u32 {
+        *self as u32
+    }
+}
+
+impl ToSql for Interest {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(ToSqlOutput::from(self.as_raw()))
+    }
 }
 
 /// Vector storing a count value for each interest
@@ -160,6 +197,68 @@ impl InterestVector {
             (Interest::Tech, self.tech),
             (Interest::Travel, self.travel),
         ]
+    }
+
+    pub fn set(&mut self, interest: Interest, count: u32) {
+        match interest {
+            Interest::Inconclusive => {
+                self.inconclusive = count;
+            }
+            Interest::Animals => {
+                self.animals = count;
+            }
+            Interest::Arts => {
+                self.arts = count;
+            }
+            Interest::Autos => {
+                self.autos = count;
+            }
+            Interest::Business => {
+                self.business = count;
+            }
+            Interest::Career => {
+                self.career = count;
+            }
+            Interest::Education => {
+                self.education = count;
+            }
+            Interest::Fashion => {
+                self.fashion = count;
+            }
+            Interest::Finance => {
+                self.finance = count;
+            }
+            Interest::Food => {
+                self.food = count;
+            }
+            Interest::Government => {
+                self.government = count;
+            }
+            Interest::Hobbies => {
+                self.hobbies = count;
+            }
+            Interest::Home => {
+                self.home = count;
+            }
+            Interest::News => {
+                self.news = count;
+            }
+            Interest::RealEstate => {
+                self.real_estate = count;
+            }
+            Interest::Society => {
+                self.society = count;
+            }
+            Interest::Sports => {
+                self.sports = count;
+            }
+            Interest::Tech => {
+                self.tech = count;
+            }
+            Interest::Travel => {
+                self.travel = count;
+            }
+        }
     }
 
     pub fn summary(&self) -> String {

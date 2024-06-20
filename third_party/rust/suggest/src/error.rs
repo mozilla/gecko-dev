@@ -14,8 +14,11 @@ pub enum Error {
     #[error("Error opening database: {0}")]
     OpenDatabase(#[from] sql_support::open_database::Error),
 
-    #[error("Error executing SQL: {0}")]
-    Sql(#[from] rusqlite::Error),
+    #[error("Error executing SQL: {inner} (context: {context})")]
+    Sql {
+        inner: rusqlite::Error,
+        context: String,
+    },
 
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
@@ -31,6 +34,29 @@ pub enum Error {
 
     #[error("SuggestStoreBuilder {0}")]
     SuggestStoreBuilder(String),
+}
+
+impl Error {
+    fn sql(e: rusqlite::Error, context: impl Into<String>) -> Self {
+        Self::Sql {
+            inner: e,
+            context: context.into(),
+        }
+    }
+}
+
+impl From<rusqlite::Error> for Error {
+    fn from(e: rusqlite::Error) -> Self {
+        Self::sql(e, "<none>")
+    }
+}
+
+#[extend::ext(name=RusqliteResultExt)]
+pub impl<T> Result<T, rusqlite::Error> {
+    // Convert an rusqlite::Error to our error type, with a context value
+    fn with_context(self, context: &str) -> Result<T, Error> {
+        self.map_err(|e| Error::sql(e, context))
+    }
 }
 
 /// The error type for all Suggest component operations. These errors are

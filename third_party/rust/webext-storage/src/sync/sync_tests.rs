@@ -378,7 +378,7 @@ fn test_merged_incoming() -> Result<()> {
     check_finished_with(
         &tx,
         "ext-id",
-        json!({"key1": "key1-new", "key2": "key2-incoming"}),
+        json!({"key2": "key2-incoming", "key1": "key1-new"}),
     )?;
     Ok(())
 }

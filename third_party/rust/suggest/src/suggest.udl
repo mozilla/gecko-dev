@@ -178,9 +178,8 @@ interface SuggestStoreBuilder {
     [Self=ByArc]
     SuggestStoreBuilder remote_settings_server(RemoteSettingsServer server);
 
-    // Deprecated: Use `remote_settings_server()` instead.
     [Self=ByArc]
-    SuggestStoreBuilder remote_settings_config(RemoteSettingsConfig config);
+    SuggestStoreBuilder remote_settings_bucket_name(string bucket_name);
 
     [Throws=SuggestApiError]
     SuggestStore build();

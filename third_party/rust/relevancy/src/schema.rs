@@ -13,7 +13,7 @@ use sql_support::open_database::{self, ConnectionInitializer};
 ///  1. Bump this version.
 ///  2. Add a migration from the old version to the new version in
 ///     [`RelevancyConnectionInitializer::upgrade_from`].
-pub const VERSION: u32 = 13;
+pub const VERSION: u32 = 14;
 
 /// The current database schema.
 pub const SQL: &str = "
@@ -21,6 +21,14 @@ pub const SQL: &str = "
         url_hash BLOB NOT NULL,
         interest_code INTEGER NOT NULL,
         PRIMARY KEY (url_hash, interest_code)
+    ) WITHOUT ROWID;
+
+    -- Stores user interest vectors.  The `kind` field stores the raw code from the `InterestVectorKind` enum.
+    CREATE TABLE user_interest(
+        kind INTEGER NOT NULL,
+        interest_code INTEGER NOT NULL,
+        count INTEGER NOT NULL,
+        PRIMARY KEY (kind, interest_code)
     ) WITHOUT ROWID;
 ";
 
@@ -47,7 +55,52 @@ impl ConnectionInitializer for RelevancyConnectionInitializer {
         Ok(db.execute_batch(SQL)?)
     }
 
-    fn upgrade_from(&self, _db: &Transaction<'_>, version: u32) -> open_database::Result<()> {
-        Err(open_database::Error::IncompatibleVersion(version))
+    fn upgrade_from(&self, tx: &Transaction<'_>, version: u32) -> open_database::Result<()> {
+        match version {
+            // Upgrades 1-12 are missing because we started with version 13, because of a
+            // copy-and-paste error.
+            13 => {
+                tx.execute(
+                    "
+    CREATE TABLE user_interest(
+        kind INTEGER NOT NULL,
+        interest_code INTEGER NOT NULL,
+        count INTEGER NOT NULL,
+        PRIMARY KEY (kind, interest_code)
+    ) WITHOUT ROWID;
+                ",
+                    (),
+                )?;
+                Ok(())
+            }
+            _ => Err(open_database::Error::IncompatibleVersion(version)),
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use sql_support::open_database::test_utils::MigratedDatabaseFile;
+
+    /// The first database schema we used
+    pub const V1_SCHEMA: &str = "
+    CREATE TABLE url_interest(
+        url_hash BLOB NOT NULL,
+        interest_code INTEGER NOT NULL,
+        PRIMARY KEY (url_hash, interest_code)
+    ) WITHOUT ROWID;
+
+        PRAGMA user_version=13;
+    ";
+
+    /// Test running all schema upgrades
+    ///
+    /// If an upgrade fails, then this test will fail with a panic.
+    #[test]
+    fn test_all_upgrades() {
+        let db_file = MigratedDatabaseFile::new(RelevancyConnectionInitializer, V1_SCHEMA);
+        db_file.run_all_upgrades();
+        db_file.assert_schema_matches_new_database();
     }
 }

@@ -9,7 +9,7 @@ use std::{
     sync::Arc,
 };
 
-use error_support::handle_error;
+use error_support::{breadcrumb, handle_error};
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use remote_settings::{self, RemoteSettingsConfig, RemoteSettingsServer};
@@ -38,7 +38,7 @@ pub struct SuggestStoreBuilder(Mutex<SuggestStoreBuilderInner>);
 struct SuggestStoreBuilderInner {
     data_path: Option<String>,
     remote_settings_server: Option<RemoteSettingsServer>,
-    remote_settings_config: Option<RemoteSettingsConfig>,
+    remote_settings_bucket_name: Option<String>,
 }
 
 impl Default for SuggestStoreBuilder {
@@ -62,13 +62,13 @@ impl SuggestStoreBuilder {
         self
     }
 
-    pub fn remote_settings_config(self: Arc<Self>, config: RemoteSettingsConfig) -> Arc<Self> {
-        self.0.lock().remote_settings_config = Some(config);
+    pub fn remote_settings_server(self: Arc<Self>, server: RemoteSettingsServer) -> Arc<Self> {
+        self.0.lock().remote_settings_server = Some(server);
         self
     }
 
-    pub fn remote_settings_server(self: Arc<Self>, server: RemoteSettingsServer) -> Arc<Self> {
-        self.0.lock().remote_settings_server = Some(server);
+    pub fn remote_settings_bucket_name(self: Arc<Self>, bucket_name: String) -> Arc<Self> {
+        self.0.lock().remote_settings_bucket_name = Some(bucket_name);
         self
     }
 
@@ -79,27 +79,12 @@ impl SuggestStoreBuilder {
             .data_path
             .clone()
             .ok_or_else(|| Error::SuggestStoreBuilder("data_path not specified".to_owned()))?;
-        let remote_settings_config = match (
-            inner.remote_settings_server.as_ref(),
-            inner.remote_settings_config.as_ref(),
-        ) {
-            (Some(server), None) => RemoteSettingsConfig {
-                server: Some(server.clone()),
-                server_url: None,
-                bucket_name: None,
-                collection_name: REMOTE_SETTINGS_COLLECTION.into(),
-            },
-            (None, Some(remote_settings_config)) => remote_settings_config.clone(),
-            (None, None) => RemoteSettingsConfig {
-                server: None,
-                server_url: None,
-                bucket_name: None,
-                collection_name: REMOTE_SETTINGS_COLLECTION.into(),
-            },
-            (Some(_), Some(_)) => Err(Error::SuggestStoreBuilder(
-                "can't specify both `remote_settings_server` and `remote_settings_config`"
-                    .to_owned(),
-            ))?,
+
+        let remote_settings_config = RemoteSettingsConfig {
+            server: inner.remote_settings_server.clone(),
+            bucket_name: inner.remote_settings_bucket_name.clone(),
+            server_url: None,
+            collection_name: REMOTE_SETTINGS_COLLECTION.into(),
         };
         let settings_client = remote_settings::Client::new(remote_settings_config)?;
         Ok(Arc::new(SuggestStore {
@@ -336,6 +321,7 @@ where
     S: Client,
 {
     pub fn ingest(&self, constraints: SuggestIngestionConstraints) -> Result<()> {
+        breadcrumb!("Ingestion starting");
         let writer = &self.dbs()?.writer;
         if constraints.empty_only && !writer.read(|dao| dao.suggestions_table_empty())? {
             return Ok(());
@@ -355,10 +341,12 @@ where
         // Handle ingestion inside single write scope
         let mut write_scope = writer.write_scope()?;
         for ingest_record_type in ingest_record_types {
+            breadcrumb!("Ingesting {ingest_record_type}");
             write_scope
                 .write(|dao| self.ingest_records_by_type(ingest_record_type, dao, &constraints))?;
             write_scope.err_if_interrupted()?;
         }
+        breadcrumb!("Ingestion complete");
 
         Ok(())
     }
@@ -574,10 +562,21 @@ where
         self.dbs().unwrap();
     }
 
+    pub fn force_reingest(&self, ingest_record_type: SuggestRecordType) {
+        // To force a re-ingestion, we're going to ingest all records then forget the last
+        // ingestion time.
+        self.benchmark_ingest_records_by_type(ingest_record_type);
+        let writer = &self.dbs().unwrap().writer;
+        writer
+            .write(|dao| dao.clear_meta(ingest_record_type.last_ingest_meta_key().as_str()))
+            .unwrap();
+    }
+
     pub fn benchmark_ingest_records_by_type(&self, ingest_record_type: SuggestRecordType) {
         let writer = &self.dbs().unwrap().writer;
         writer
             .write(|dao| {
+                dao.clear_meta(ingest_record_type.last_ingest_meta_key().as_str())?;
                 self.ingest_records_by_type(
                     ingest_record_type,
                     dao,
@@ -611,6 +610,15 @@ where
             .collect();
         table_names_with_counts.sort_by(|a, b| (b.1.cmp(&a.1)));
         table_names_with_counts
+    }
+
+    pub fn db_size(&self) -> usize {
+        use sql_support::ConnExt;
+
+        let reader = &self.dbs().unwrap().reader;
+        let conn = reader.conn.lock();
+        conn.query_one("SELECT page_size * page_count FROM pragma_page_count(), pragma_page_size()")
+            .unwrap()
     }
 }
 

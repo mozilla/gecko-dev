@@ -42,6 +42,10 @@ path = "../viaduct"
 expect-test = "1.4"
 mockito = "0.31"
 
+[dev-dependencies.serde_json]
+version = "1"
+features = ["preserve_order"]
+
 [dev-dependencies.viaduct-reqwest]
 path = "../support/viaduct-reqwest"
 

@@ -27,6 +27,11 @@ main = [
   "raw_suggestion_url_matches",
   "SuggestStore",
   "SuggestStore.interrupt",
+  "SuggestStoreBuilder",
+  "SuggestStoreBuilder.data_path",
+  "SuggestStoreBuilder.remote_settings_bucket_name",
+  "SuggestStoreBuilder.remote_settings_server",
+  "SuggestStoreBuilder.build",
 ]
 
 [relevancy]

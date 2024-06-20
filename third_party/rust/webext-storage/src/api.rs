@@ -516,8 +516,8 @@ mod tests {
         assert_eq!(
             clear(&tx, ext_id)?,
             make_changes(&[
-                ("foo", Some(json!({"sub-object": "sub-value"})), None),
                 ("other", Some(json!("also new")), None),
+                ("foo", Some(json!({"sub-object": "sub-value"})), None),
             ]),
         );
         assert_eq!(get(&tx, ext_id, JsonValue::Null)?, json!({}));

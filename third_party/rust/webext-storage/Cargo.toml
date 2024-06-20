@@ -71,6 +71,10 @@ tempfile = "3"
 version = "0.10"
 default-features = false
 
+[dev-dependencies.serde_json]
+version = "1"
+features = ["preserve_order"]
+
 [dev-dependencies.sql-support]
 path = "../support/sql"
 

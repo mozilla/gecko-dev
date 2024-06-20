@@ -8,7 +8,7 @@ pub fn ingest_single_provider(c: &mut Criterion) {
     // 100s to run which feels like too long.  `ingest-amp-mobile` also would take a around 50s.
     group.sample_size(10);
     for (name, benchmark) in ingest::all_benchmarks() {
-        group.bench_function(format!("ingest-{name}"), |b| {
+        group.bench_function(name.to_string(), |b| {
             b.iter_batched(
                 || benchmark.generate_input(),
                 |input| benchmark.benchmarked_code(input),
