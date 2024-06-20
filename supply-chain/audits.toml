@@ -928,6 +928,11 @@ criteria = "safe-to-deploy"
 version = "0.1.0"
 notes = "This has no unsafe code and uses no ambient capabilities."
 
+[[audits.calendrical_calculations]]
+who = "André Bargull <andre.bargull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.1.0 -> 0.1.1"
+
 [[audits.camino]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -2352,11 +2357,21 @@ criteria = "safe-to-deploy"
 version = "1.4.0"
 notes = "This has no unsafe code and uses no ambient capabilities."
 
+[[audits.icu_calendar]]
+who = "André Bargull <andre.bargull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.4.0 -> 1.5.1"
+
 [[audits.icu_calendar_data]]
 who = "André Bargull <andre.bargull@gmail.com>"
 criteria = "safe-to-deploy"
 version = "1.4.0"
 notes = "This crate is data only for icu_calendar. There is no filesystem / network access."
+
+[[audits.icu_calendar_data]]
+who = "André Bargull <andre.bargull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.4.0 -> 1.5.0"
 
 [[audits.icu_capi]]
 who = "Makoto Kato <m_kato@ga2.so-net.ne.jp>"
