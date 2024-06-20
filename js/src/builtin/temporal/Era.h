@@ -142,9 +142,6 @@ inline constexpr auto ROCInverse = {
 constexpr auto& CalendarEras(CalendarId id) {
   switch (id) {
     case CalendarId::ISO8601:
-      return eras::Standard;
-
-#if defined(MOZ_ICU4X)
     case CalendarId::Buddhist:
     case CalendarId::Chinese:
     case CalendarId::Dangi:
@@ -167,7 +164,6 @@ constexpr auto& CalendarEras(CalendarId id) {
 
     case CalendarId::Japanese:
       return eras::Japanese;
-#endif
   }
   JS_CONSTEXPR_CRASH("invalid calendar id");
 }
@@ -179,9 +175,6 @@ constexpr bool CalendarEraRelevant(CalendarId calendar) {
 constexpr auto& CalendarEraNames(CalendarId calendar, EraCode era) {
   switch (calendar) {
     case CalendarId::ISO8601:
-      return eras::names::Empty;
-
-#if defined(MOZ_ICU4X)
     case CalendarId::Buddhist:
     case CalendarId::Chinese:
     case CalendarId::Dangi:
@@ -239,8 +232,6 @@ constexpr auto& CalendarEraNames(CalendarId calendar, EraCode era) {
       return era == EraCode::Standard ? eras::names::ROC
                                       : eras::names::ROCInverse;
     }
-
-#endif
   }
   JS_CONSTEXPR_CRASH("invalid era");
 }
@@ -253,11 +244,8 @@ constexpr auto CalendarEraName(CalendarId calendar, EraCode era) {
 
 constexpr bool CalendarEraStartsAtYearBoundary(CalendarId id) {
   switch (id) {
-    case CalendarId::ISO8601:
-      return true;
-
-#if defined(MOZ_ICU4X)
     // Calendar system which use a single era.
+    case CalendarId::ISO8601:
     case CalendarId::Buddhist:
     case CalendarId::Chinese:
     case CalendarId::Dangi:
@@ -283,7 +271,6 @@ constexpr bool CalendarEraStartsAtYearBoundary(CalendarId id) {
     // Calendar system which use multiple eras and eras can start within a year.
     case CalendarId::Japanese:
       return false;
-#endif
   }
   JS_CONSTEXPR_CRASH("invalid calendar id");
 }

@@ -33,7 +33,6 @@ namespace js::temporal {
 enum class CalendarId : int32_t {
   ISO8601,
 
-#if defined(MOZ_ICU4X)
   // Thai Buddhist solar calendar.
   Buddhist,
 
@@ -76,14 +75,10 @@ enum class CalendarId : int32_t {
 
   // Republic of China (ROC) calendar.
   ROC,
-#endif
 };
 
 inline constexpr auto availableCalendars = {
     CalendarId::ISO8601,
-
-#if defined(MOZ_ICU4X)
-    // clang-format off
     CalendarId::Buddhist,
     CalendarId::Chinese,
     CalendarId::Coptic,
@@ -101,8 +96,6 @@ inline constexpr auto availableCalendars = {
     CalendarId::Japanese,
     CalendarId::Persian,
     CalendarId::ROC,
-// clang-format on
-#endif
 };
 
 /**

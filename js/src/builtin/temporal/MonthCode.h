@@ -216,9 +216,6 @@ inline constexpr auto Hebrew = MonthCodes{
 constexpr auto& CalendarMonthCodes(CalendarId id) {
   switch (id) {
     case CalendarId::ISO8601:
-      return monthcodes::ISO8601;
-
-#if defined(MOZ_ICU4X)
     case CalendarId::Buddhist:
     case CalendarId::Gregorian:
     case CalendarId::Indian:
@@ -243,7 +240,6 @@ constexpr auto& CalendarMonthCodes(CalendarId id) {
 
     case CalendarId::Hebrew:
       return monthcodes::Hebrew;
-#endif
   }
   JS_CONSTEXPR_CRASH("invalid calendar id");
 }
@@ -251,9 +247,6 @@ constexpr auto& CalendarMonthCodes(CalendarId id) {
 constexpr bool CalendarHasLeapMonths(CalendarId id) {
   switch (id) {
     case CalendarId::ISO8601:
-      return false;
-
-#if defined(MOZ_ICU4X)
     case CalendarId::Buddhist:
     case CalendarId::Coptic:
     case CalendarId::Ethiopian:
@@ -274,7 +267,6 @@ constexpr bool CalendarHasLeapMonths(CalendarId id) {
     case CalendarId::Dangi:
     case CalendarId::Hebrew:
       return true;
-#endif
   }
   JS_CONSTEXPR_CRASH("invalid calendar id");
 }
@@ -282,9 +274,6 @@ constexpr bool CalendarHasLeapMonths(CalendarId id) {
 constexpr bool CalendarHasEpagomenalMonths(CalendarId id) {
   switch (id) {
     case CalendarId::ISO8601:
-      return false;
-
-#if defined(MOZ_ICU4X)
     case CalendarId::Buddhist:
     case CalendarId::Chinese:
     case CalendarId::Dangi:
@@ -305,7 +294,6 @@ constexpr bool CalendarHasEpagomenalMonths(CalendarId id) {
     case CalendarId::Ethiopian:
     case CalendarId::EthiopianAmeteAlem:
       return true;
-#endif
   }
   JS_CONSTEXPR_CRASH("invalid calendar id");
 }
@@ -324,10 +312,6 @@ constexpr std::pair<int32_t, int32_t> CalendarDaysInMonth(CalendarId id) {
     // M04, M06, M09, M11: 30 days
     // M01, M03, M05, M07, M08, M10, M12: 31 days
     case CalendarId::ISO8601:
-      return {28, 31};
-
-#if defined(MOZ_ICU4X)
-      // Same as the ISO8601 calendar.
     case CalendarId::Buddhist:
     case CalendarId::Gregorian:
     case CalendarId::Japanese:
@@ -379,7 +363,6 @@ constexpr std::pair<int32_t, int32_t> CalendarDaysInMonth(CalendarId id) {
     // M12: 29-30 days
     case CalendarId::Persian:
       return {29, 31};
-#endif
   }
   JS_CONSTEXPR_CRASH("invalid calendar id");
 }
@@ -403,10 +386,6 @@ constexpr std::pair<int32_t, int32_t> CalendarDaysInMonth(CalendarId id,
                                                           MonthCode monthCode) {
   switch (id) {
     case CalendarId::ISO8601:
-      return ISODaysInMonth(monthCode);
-
-#if defined(MOZ_ICU4X)
-    // Same as the ISO8601 calendar.
     case CalendarId::Buddhist:
     case CalendarId::Gregorian:
     case CalendarId::Japanese:
@@ -497,7 +476,6 @@ constexpr std::pair<int32_t, int32_t> CalendarDaysInMonth(CalendarId id,
       }
       return {29, 30};
     }
-#endif
   }
   JS_CONSTEXPR_CRASH("invalid calendar id");
 }

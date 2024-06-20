@@ -10,6 +10,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/intl/ICU4XGeckoDataProvider.h"
 #include "mozilla/intl/Locale.h"
 #include "mozilla/Likely.h"
 #include "mozilla/Maybe.h"
@@ -29,18 +30,15 @@
 #include <stdint.h>
 #include <utility>
 
-#if defined(MOZ_ICU4X)
-#  include "mozilla/intl/ICU4XGeckoDataProvider.h"
-#  include "diplomat_runtime.h"
-#  include "ICU4XAnyCalendarKind.h"
-#  include "ICU4XCalendar.h"
-#  include "ICU4XDate.h"
-#  include "ICU4XIsoDate.h"
-#  include "ICU4XIsoWeekday.h"
-#  include "ICU4XWeekCalculator.h"
-#  include "ICU4XWeekOf.h"
-#  include "ICU4XWeekRelativeUnit.h"
-#endif
+#include "diplomat_runtime.h"
+#include "ICU4XAnyCalendarKind.h"
+#include "ICU4XCalendar.h"
+#include "ICU4XDate.h"
+#include "ICU4XIsoDate.h"
+#include "ICU4XIsoWeekday.h"
+#include "ICU4XWeekCalculator.h"
+#include "ICU4XWeekOf.h"
+#include "ICU4XWeekRelativeUnit.h"
 
 #include "jsfriendapi.h"
 #include "jsnum.h"
@@ -623,7 +621,6 @@ static std::string_view CalendarIdToBcp47(CalendarId id) {
   switch (id) {
     case CalendarId::ISO8601:
       return "iso8601";
-#if defined(MOZ_ICU4X)
     case CalendarId::Buddhist:
       return "buddhist";
     case CalendarId::Chinese:
@@ -658,7 +655,6 @@ static std::string_view CalendarIdToBcp47(CalendarId id) {
       return "persian";
     case CalendarId::ROC:
       return "roc";
-#endif
   }
   MOZ_CRASH("invalid calendar id");
 }
@@ -1182,7 +1178,6 @@ static CalendarId BuiltinCalendarId(const CalendarValue& calendar) {
   return calendar.toObject()->as<CalendarObject>().identifier();
 }
 
-#if defined(MOZ_ICU4X)
 static auto ToAnyCalendarKind(CalendarId id) {
   switch (id) {
     case CalendarId::ISO8601:
@@ -2244,7 +2239,6 @@ static bool CalendarDateMonthCode(JSContext* cx, CalendarId calendar,
   *result = monthCode;
   return true;
 }
-#endif
 
 /**
  * CalendarDateEra ( calendar, date )
@@ -2252,7 +2246,6 @@ static bool CalendarDateMonthCode(JSContext* cx, CalendarId calendar,
 static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
                             const PlainDate& date,
                             MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   if (!CalendarEraRelevant(calendar)) {
@@ -2282,9 +2275,6 @@ static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
 
   result.setString(str);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2293,7 +2283,6 @@ static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
 static bool CalendarDateEraYear(JSContext* cx, CalendarId calendar,
                                 const PlainDate& date,
                                 MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   if (!CalendarEraRelevant(calendar)) {
@@ -2314,9 +2303,6 @@ static bool CalendarDateEraYear(JSContext* cx, CalendarId calendar,
   int32_t year = capi::ICU4XDate_year_in_era(dt.get());
   result.setInt32(year);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2325,7 +2311,6 @@ static bool CalendarDateEraYear(JSContext* cx, CalendarId calendar,
 static bool CalendarDateYear(JSContext* cx, CalendarId calendar,
                              const PlainDate& date,
                              MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   auto cal = CreateICU4XCalendar(cx, calendar);
@@ -2345,9 +2330,6 @@ static bool CalendarDateYear(JSContext* cx, CalendarId calendar,
 
   result.setInt32(year);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2356,7 +2338,6 @@ static bool CalendarDateYear(JSContext* cx, CalendarId calendar,
 static bool CalendarDateMonth(JSContext* cx, CalendarId calendar,
                               const PlainDate& date,
                               MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   auto cal = CreateICU4XCalendar(cx, calendar);
@@ -2372,9 +2353,6 @@ static bool CalendarDateMonth(JSContext* cx, CalendarId calendar,
   int32_t month = capi::ICU4XDate_ordinal_month(dt.get());
   result.setInt32(month);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2383,7 +2361,6 @@ static bool CalendarDateMonth(JSContext* cx, CalendarId calendar,
 static bool CalendarDateMonthCode(JSContext* cx, CalendarId calendar,
                                   const PlainDate& date,
                                   MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   auto cal = CreateICU4XCalendar(cx, calendar);
@@ -2408,9 +2385,6 @@ static bool CalendarDateMonthCode(JSContext* cx, CalendarId calendar,
 
   result.setString(str);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2419,7 +2393,6 @@ static bool CalendarDateMonthCode(JSContext* cx, CalendarId calendar,
 static bool CalendarDateDay(JSContext* cx, CalendarId calendar,
                             const PlainDate& date,
                             MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   auto cal = CreateICU4XCalendar(cx, calendar);
@@ -2435,9 +2408,6 @@ static bool CalendarDateDay(JSContext* cx, CalendarId calendar,
   int32_t day = capi::ICU4XDate_day_of_month(dt.get());
   result.setInt32(day);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2446,7 +2416,6 @@ static bool CalendarDateDay(JSContext* cx, CalendarId calendar,
 static bool CalendarDateDayOfWeek(JSContext* cx, CalendarId calendar,
                                   const PlainDate& date,
                                   MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   auto cal = CreateICU4XCalendar(cx, calendar);
@@ -2471,9 +2440,6 @@ static bool CalendarDateDayOfWeek(JSContext* cx, CalendarId calendar,
   capi::ICU4XIsoWeekday day = capi::ICU4XDate_day_of_week(dt.get());
   result.setInt32(static_cast<int32_t>(day));
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2482,7 +2448,6 @@ static bool CalendarDateDayOfWeek(JSContext* cx, CalendarId calendar,
 static bool CalendarDateDayOfYear(JSContext* cx, CalendarId calendar,
                                   const PlainDate& date,
                                   MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   // FIXME: Not supported in ICU4X FFI.
@@ -2526,9 +2491,6 @@ static bool CalendarDateDayOfYear(JSContext* cx, CalendarId calendar,
 
   result.setInt32(dayOfYear);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2537,7 +2499,6 @@ static bool CalendarDateDayOfYear(JSContext* cx, CalendarId calendar,
 static bool CalendarDateWeekOfYear(JSContext* cx, CalendarId calendar,
                                    const PlainDate& date,
                                    MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   // Non-Gregorian calendars don't get week-of-year support for now.
@@ -2572,9 +2533,6 @@ static bool CalendarDateWeekOfYear(JSContext* cx, CalendarId calendar,
 
   result.setInt32(week.ok.week);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2583,7 +2541,6 @@ static bool CalendarDateWeekOfYear(JSContext* cx, CalendarId calendar,
 static bool CalendarDateYearOfWeek(JSContext* cx, CalendarId calendar,
                                    const PlainDate& date,
                                    MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   // Non-Gregorian calendars don't get week-of-year support for now.
@@ -2636,9 +2593,6 @@ static bool CalendarDateYearOfWeek(JSContext* cx, CalendarId calendar,
 
   result.setInt32(calendarYear + relative);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2647,7 +2601,6 @@ static bool CalendarDateYearOfWeek(JSContext* cx, CalendarId calendar,
 static bool CalendarDateDaysInWeek(JSContext* cx, CalendarId calendar,
                                    const PlainDate& date,
                                    MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   // All supported ICU4X calendars use a 7-day week.
@@ -2656,9 +2609,6 @@ static bool CalendarDateDaysInWeek(JSContext* cx, CalendarId calendar,
   // hardcode the result.
   result.setInt32(7);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2667,7 +2617,6 @@ static bool CalendarDateDaysInWeek(JSContext* cx, CalendarId calendar,
 static bool CalendarDateDaysInMonth(JSContext* cx, CalendarId calendar,
                                     const PlainDate& date,
                                     MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   auto cal = CreateICU4XCalendar(cx, calendar);
@@ -2683,9 +2632,6 @@ static bool CalendarDateDaysInMonth(JSContext* cx, CalendarId calendar,
   int32_t days = capi::ICU4XDate_days_in_month(dt.get());
   result.setInt32(days);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2694,7 +2640,6 @@ static bool CalendarDateDaysInMonth(JSContext* cx, CalendarId calendar,
 static bool CalendarDateDaysInYear(JSContext* cx, CalendarId calendar,
                                    const PlainDate& date,
                                    MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   auto cal = CreateICU4XCalendar(cx, calendar);
@@ -2710,9 +2655,6 @@ static bool CalendarDateDaysInYear(JSContext* cx, CalendarId calendar,
   int32_t days = capi::ICU4XDate_days_in_year(dt.get());
   result.setInt32(days);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2721,7 +2663,6 @@ static bool CalendarDateDaysInYear(JSContext* cx, CalendarId calendar,
 static bool CalendarDateMonthsInYear(JSContext* cx, CalendarId calendar,
                                      const PlainDate& date,
                                      MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   auto cal = CreateICU4XCalendar(cx, calendar);
@@ -2737,9 +2678,6 @@ static bool CalendarDateMonthsInYear(JSContext* cx, CalendarId calendar,
   int32_t months = capi::ICU4XDate_months_in_year(dt.get());
   result.setInt32(months);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2748,7 +2686,6 @@ static bool CalendarDateMonthsInYear(JSContext* cx, CalendarId calendar,
 static bool CalendarDateInLeapYear(JSContext* cx, CalendarId calendar,
                                    const PlainDate& date,
                                    MutableHandle<Value> result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   // FIXME: Not supported in ICU4X.
@@ -2825,9 +2762,6 @@ static bool CalendarDateInLeapYear(JSContext* cx, CalendarId calendar,
 
   result.setBoolean(inLeapYear);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2837,7 +2771,6 @@ static bool CalendarDateAddition(JSContext* cx, CalendarId calendar,
                                  const PlainDate& date,
                                  const DateDuration& duration,
                                  TemporalOverflow overflow, PlainDate* result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   // FIXME: Not supported in ICU4X. Use the ISO8601 calendar code for now.
@@ -2845,9 +2778,6 @@ static bool CalendarDateAddition(JSContext* cx, CalendarId calendar,
   // https://github.com/unicode-org/icu4x/issues/3964
 
   return AddISODate(cx, date, duration, overflow, result);
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -2857,7 +2787,6 @@ static bool CalendarDateDifference(JSContext* cx, CalendarId calendar,
                                    const PlainDate& one, const PlainDate& two,
                                    TemporalUnit largestUnit,
                                    DateDuration* result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   // FIXME: Not supported in ICU4X. Use the ISO8601 calendar code for now.
@@ -2866,12 +2795,8 @@ static bool CalendarDateDifference(JSContext* cx, CalendarId calendar,
 
   *result = DifferenceISODate(one, two, largestUnit);
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
-#if defined(MOZ_ICU4X)
 struct EraYears {
   // Year starting from the calendar epoch.
   mozilla::Maybe<EraYear> fromEpoch;
@@ -3126,7 +3051,6 @@ static PlainDate ToPlainDate(const capi::ICU4XDate* date) {
 
   return {isoYear, isoMonth, isoDay};
 }
-#endif
 
 /**
  * CalendarDateToISO ( calendar, fields, overflow )
@@ -3134,7 +3058,6 @@ static PlainDate ToPlainDate(const capi::ICU4XDate* date) {
 static bool CalendarDateToISO(JSContext* cx, CalendarId calendar,
                               Handle<TemporalFields> fields,
                               TemporalOverflow overflow, PlainDate* result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   EraYears eraYears;
@@ -3190,9 +3113,6 @@ static bool CalendarDateToISO(JSContext* cx, CalendarId calendar,
 
   *result = ToPlainDate(date.get());
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -3203,7 +3123,6 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
                                                Handle<TemporalFields> fields,
                                                TemporalOverflow overflow,
                                                PlainDate* result) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   EraYears eraYears;
@@ -3377,9 +3296,6 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
 
   *result = ToPlainDate(date.get());
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 enum class FieldType { Date, YearMonth, MonthDay };
@@ -3389,7 +3305,6 @@ enum class FieldType { Date, YearMonth, MonthDay };
  */
 static FieldDescriptors CalendarFieldDescriptors(CalendarId calendar,
                                                  FieldType type) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   mozilla::EnumSet<TemporalField> relevant;
@@ -3453,9 +3368,6 @@ static FieldDescriptors CalendarFieldDescriptors(CalendarId calendar,
   }
 
   return {relevant, required};
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -3463,7 +3375,6 @@ static FieldDescriptors CalendarFieldDescriptors(CalendarId calendar,
  */
 static FieldDescriptors CalendarFieldDescriptors(
     CalendarId calendar, mozilla::EnumSet<CalendarField> type) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   mozilla::EnumSet<TemporalField> relevant;
@@ -3476,9 +3387,6 @@ static FieldDescriptors CalendarFieldDescriptors(
   }
 
   return {relevant, required};
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -3486,7 +3394,6 @@ static FieldDescriptors CalendarFieldDescriptors(
  */
 static auto CalendarFieldKeysToIgnore(CalendarId calendar,
                                       mozilla::EnumSet<TemporalField> keys) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   static constexpr auto eraOrEraYear = mozilla::EnumSet{
@@ -3534,9 +3441,6 @@ static auto CalendarFieldKeysToIgnore(CalendarId calendar,
   }
 
   return result;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 /**
@@ -3545,7 +3449,6 @@ static auto CalendarFieldKeysToIgnore(CalendarId calendar,
 static bool CalendarResolveFields(JSContext* cx, CalendarId calendar,
                                   Handle<TemporalFields> fields,
                                   FieldType type) {
-#if defined(MOZ_ICU4X)
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
   double day = fields.day();
@@ -3605,9 +3508,6 @@ static bool CalendarResolveFields(JSContext* cx, CalendarId calendar,
   // checked, but inconsistent eraYear/year are ignored. Is this intentional?
 
   return true;
-#else
-  MOZ_CRASH("ICU4X disabled");
-#endif
 }
 
 static bool ToCalendarField(JSContext* cx, JSLinearString* linear,
