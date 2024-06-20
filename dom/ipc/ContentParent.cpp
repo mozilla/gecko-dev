@@ -198,7 +198,6 @@
 #include "nsICertOverrideService.h"
 #include "nsIClipboard.h"
 #include "nsIContentAnalysis.h"
-#include "nsIContentProcess.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsICookie.h"
 #include "nsICrashService.h"
@@ -524,70 +523,6 @@ uint64_t ComputeLoadedOriginHash(nsIPrincipal* aPrincipal) {
   return ((uint64_t)originNoSuffix) << 32 | originSuffix;
 }
 
-class ScriptableCPInfo final : public nsIContentProcessInfo {
- public:
-  explicit ScriptableCPInfo(ContentParent* aParent) : mContentParent(aParent) {
-    MOZ_ASSERT(mContentParent);
-  }
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSICONTENTPROCESSINFO
-
-  void ProcessDied() { mContentParent = nullptr; }
-
- private:
-  ~ScriptableCPInfo() { MOZ_ASSERT(!mContentParent, "must call ProcessDied"); }
-
-  ContentParent* mContentParent;
-};
-
-NS_IMPL_ISUPPORTS(ScriptableCPInfo, nsIContentProcessInfo)
-
-NS_IMETHODIMP
-ScriptableCPInfo::GetIsAlive(bool* aIsAlive) {
-  *aIsAlive = mContentParent != nullptr;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-ScriptableCPInfo::GetProcessId(int32_t* aPID) {
-  if (!mContentParent) {
-    *aPID = -1;
-    return NS_ERROR_NOT_INITIALIZED;
-  }
-
-  *aPID = mContentParent->Pid();
-  if (*aPID == -1) {
-    return NS_ERROR_FAILURE;
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-ScriptableCPInfo::GetTabCount(int32_t* aTabCount) {
-  if (!mContentParent) {
-    return NS_ERROR_NOT_INITIALIZED;
-  }
-
-  ContentProcessManager* cpm = ContentProcessManager::GetSingleton();
-  *aTabCount = cpm->GetBrowserParentCountByProcessId(mContentParent->ChildID());
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-ScriptableCPInfo::GetMessageManager(nsISupports** aMessenger) {
-  *aMessenger = nullptr;
-  if (!mContentParent) {
-    return NS_ERROR_NOT_INITIALIZED;
-  }
-
-  RefPtr<ProcessMessageManager> manager = mContentParent->GetMessageManager();
-  manager.forget(aMessenger);
-  return NS_OK;
-}
-
 ProcessID GetTelemetryProcessID(const nsACString& remoteType) {
   // OOP WebExtensions run in a content process.
   // For Telemetry though we want to break out collected data from the
@@ -902,11 +837,6 @@ already_AddRefed<ContentParent> ContentParent::GetUsedBrowserProcess(
 #endif
 
   uint32_t numberOfParents = aContentParents.Length();
-  nsTArray<RefPtr<nsIContentProcessInfo>> infos(numberOfParents);
-  for (auto* cp : aContentParents) {
-    infos.AppendElement(cp->mScriptableHelper);
-  }
-
   if (aPreferUsed && numberOfParents) {
     // If we prefer re-using existing content processes, we don't want to create
     // a new process, and instead re-use an existing one, so pretend the process
@@ -914,43 +844,22 @@ already_AddRefed<ContentParent> ContentParent::GetUsedBrowserProcess(
     aMaxContentParents = numberOfParents;
   }
 
-  nsCOMPtr<nsIContentProcessProvider> cpp =
-      do_GetService("@mozilla.org/ipc/processselector;1");
-  int32_t index;
-  if (cpp && NS_SUCCEEDED(cpp->ProvideProcess(aRemoteType, infos,
-                                              aMaxContentParents, &index))) {
-    // If the provider returned an existing ContentParent, use that one.
-    if (0 <= index && static_cast<uint32_t>(index) <= aMaxContentParents) {
-      RefPtr<ContentParent> retval = aContentParents[index];
-      // Ignore processes that were slated for removal but not yet removed from
-      // the pool.
-      if (!retval->IsShuttingDown()) {
-        if (profiler_thread_is_being_profiled_for_markers()) {
-          nsPrintfCString marker("Reused process %u",
-                                 (unsigned int)retval->ChildID());
-          PROFILER_MARKER_TEXT("Process", DOM, {}, marker);
-        }
-        MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
-                ("GetUsedProcess: Reused process %p (%u) for %s", retval.get(),
-                 (unsigned int)retval->ChildID(),
-                 PromiseFlatCString(aRemoteType).get()));
-        retval->AssertAlive();
-        return retval.forget();
-      }
+  // Use MinTabSelect to choose a content process unless content process re-use
+  // has been disabled.
+  RefPtr<ContentParent> selected;
+  if (!StaticPrefs::dom_ipc_disableContentProcessReuse() &&
+      (selected = MinTabSelect(aContentParents, aMaxContentParents))) {
+    if (profiler_thread_is_being_profiled_for_markers()) {
+      nsPrintfCString marker("Reused process %u",
+                             (unsigned int)selected->ChildID());
+      PROFILER_MARKER_TEXT("Process", DOM, {}, marker);
     }
-  } else {
-    // If there was a problem with the JS chooser, fall back to a random
-    // selection.
-    NS_WARNING("nsIContentProcessProvider failed to return a process");
-    RefPtr<ContentParent> random;
-    if ((random = MinTabSelect(aContentParents, aMaxContentParents))) {
-      MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
-              ("GetUsedProcess: Reused random process %p (%d) for %s",
-               random.get(), (unsigned int)random->ChildID(),
-               PromiseFlatCString(aRemoteType).get()));
-      random->AssertAlive();
-      return random.forget();
-    }
+    MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
+            ("GetUsedProcess: Reused process %p (%d) for %s", selected.get(),
+             (unsigned int)selected->ChildID(),
+             PromiseFlatCString(aRemoteType).get()));
+    selected->AssertAlive();
+    return selected.forget();
   }
 
   // Try to take a preallocated process except for certain remote types.
@@ -2014,11 +1923,6 @@ void ContentParent::MarkAsDead() {
   }
 #endif
 
-  if (mScriptableHelper) {
-    static_cast<ScriptableCPInfo*>(mScriptableHelper.get())->ProcessDied();
-    mScriptableHelper = nullptr;
-  }
-
   mLifecycleState = LifecycleState::DEAD;
 }
 
@@ -2807,10 +2711,6 @@ ContentParent::ContentParent(const nsACString& aRemoteType)
           ("CreateSubprocess: ContentParent %p mSubprocess %p handle %" PRIuPTR,
            this, mSubprocess,
            mSubprocess ? (uintptr_t)mSubprocess->GetChildProcessHandle() : -1));
-
-  // This is safe to do in the constructor, as it doesn't take a strong
-  // reference.
-  mScriptableHelper = new ScriptableCPInfo(this);
 }
 
 ContentParent::~ContentParent() {
@@ -2845,13 +2745,6 @@ ContentParent::~ContentParent() {
          this, mSubprocess,
          mSubprocess ? (uintptr_t)mSubprocess->GetChildProcessHandle() : -1));
     mSubprocess->Destroy();
-  }
-
-  // Make sure to clear the connection from `mScriptableHelper` if it hasn't
-  // been cleared yet.
-  if (mScriptableHelper) {
-    static_cast<ScriptableCPInfo*>(mScriptableHelper.get())->ProcessDied();
-    mScriptableHelper = nullptr;
   }
 }
 
