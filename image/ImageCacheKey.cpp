@@ -36,7 +36,8 @@ ImageCacheKey::ImageCacheKey(nsIURI* aURI, CORSMode aCORSMode,
       mOriginAttributes(aAttrs),
       mControlledDocument(GetSpecialCaseDocumentToken(aDocument)),
       mIsolationKey(GetIsolationKey(aDocument, aURI)),
-      mCORSMode(aCORSMode) {}
+      mCORSMode(aCORSMode),
+      mAppType(GetAppType(aDocument)) {}
 
 ImageCacheKey::ImageCacheKey(const ImageCacheKey& aOther)
     : mURI(aOther.mURI),
@@ -44,7 +45,8 @@ ImageCacheKey::ImageCacheKey(const ImageCacheKey& aOther)
       mControlledDocument(aOther.mControlledDocument),
       mIsolationKey(aOther.mIsolationKey),
       mHash(aOther.mHash),
-      mCORSMode(aOther.mCORSMode) {}
+      mCORSMode(aOther.mCORSMode),
+      mAppType(aOther.mAppType) {}
 
 ImageCacheKey::ImageCacheKey(ImageCacheKey&& aOther)
     : mURI(std::move(aOther.mURI)),
@@ -52,7 +54,8 @@ ImageCacheKey::ImageCacheKey(ImageCacheKey&& aOther)
       mControlledDocument(aOther.mControlledDocument),
       mIsolationKey(aOther.mIsolationKey),
       mHash(aOther.mHash),
-      mCORSMode(aOther.mCORSMode) {}
+      mCORSMode(aOther.mCORSMode),
+      mAppType(aOther.mAppType) {}
 
 bool ImageCacheKey::operator==(const ImageCacheKey& aOther) const {
   // Don't share the image cache between a controlled document and anything
@@ -72,6 +75,10 @@ bool ImageCacheKey::operator==(const ImageCacheKey& aOther) const {
   }
 
   if (mCORSMode != aOther.mCORSMode) {
+    return false;
+  }
+  // Don't share the image cache between two different appTypes
+  if (mAppType != aOther.mAppType) {
     return false;
   }
 
@@ -97,7 +104,7 @@ void ImageCacheKey::EnsureHash() const {
   hash = HashString(spec);
 
   hash = AddToHash(hash, HashString(suffix), HashString(mIsolationKey),
-                   HashString(ptr));
+                   HashString(ptr), mAppType);
   mHash.emplace(hash);
 }
 
@@ -165,6 +172,25 @@ nsCString ImageCacheKey::GetIsolationKey(Document* aDocument, nsIURI* aURI) {
   }
 
   return ""_ns;
+}
+
+/* static */
+nsIDocShell::AppType ImageCacheKey::GetAppType(Document* aDocument) {
+  if (!aDocument) {
+    return nsIDocShell::APP_TYPE_UNKNOWN;
+  }
+
+  nsCOMPtr<nsIDocShellTreeItem> dsti = aDocument->GetDocShell();
+  if (!dsti) {
+    return nsIDocShell::APP_TYPE_UNKNOWN;
+  }
+
+  nsCOMPtr<nsIDocShellTreeItem> root;
+  dsti->GetInProcessRootTreeItem(getter_AddRefs(root));
+  if (nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(root)) {
+    return docShell->GetAppType();
+  }
+  return nsIDocShell::APP_TYPE_UNKNOWN;
 }
 
 }  // namespace image
