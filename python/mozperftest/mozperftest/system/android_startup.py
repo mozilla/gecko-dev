@@ -103,7 +103,7 @@ class AndroidStartUpData:
                 {"file": "android_startup", "value": value, "xaxis": xaxis}
                 for xaxis, value in enumerate(data["values"])
             ],
-            "shouldAlert": True,
+            "shouldAlert": data["shouldAlert"],
         }
 
     def transform(self, data):
@@ -162,6 +162,11 @@ class AndroidStartUp(AndroidDevice):
         measurements = self.install_apk_onto_device_and_run()
         self.add_to_metadata(measurements, metadata)
 
+    def should_alert(self, key_name):
+        if MEASUREMENT_DATA[2] in key_name:
+            return False
+        return True
+
     def add_to_metadata(self, measurements, metadata):
         if measurements is not None:
             for key, value in measurements.items():
@@ -175,7 +180,7 @@ class AndroidStartUp(AndroidDevice):
                             {
                                 "values": [value],
                                 "name": key,
-                                "shouldAlert": True,
+                                "shouldAlert": self.should_alert(key),
                             }
                         ],
                     }
