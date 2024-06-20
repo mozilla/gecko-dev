@@ -669,6 +669,43 @@ class DefaultBrowserToolbarMenuControllerTest {
     }
 
     @Test
+    fun `IF in customtab WHEN share menu item is pressed THEN navigate to share screen`() = runTest {
+        val item = ToolbarMenu.Item.Share
+        val title = "Mozilla"
+        val url = "https://mozilla.org"
+        val customTab = createCustomTab(
+            url = url,
+            title = title,
+        )
+        browserStore = BrowserStore(BrowserState(customTabs = listOf(customTab)))
+        val controller = createController(
+            scope = this,
+            store = browserStore,
+            customTabSessionId = customTab.id,
+        )
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        controller.handleToolbarItemInteraction(item)
+
+        assertNotNull(Events.browserMenuAction.testGetValue())
+        val snapshot = Events.browserMenuAction.testGetValue()!!
+        assertEquals(1, snapshot.size)
+        assertEquals("share", snapshot.single().extra?.getValue("item"))
+
+        verify {
+            navController.navigate(
+                directionsEq(
+                    NavGraphDirections.actionGlobalShareFragment(
+                        sessionId = customTab.id,
+                        data = arrayOf(ShareData(url = "https://mozilla.org", title = "Mozilla")),
+                        showPage = true,
+                    ),
+                ),
+            )
+        }
+    }
+
+    @Test
     fun `WHEN Find In Page menu item is pressed THEN launch finder`() = runTest {
         val item = ToolbarMenu.Item.FindInPage
 

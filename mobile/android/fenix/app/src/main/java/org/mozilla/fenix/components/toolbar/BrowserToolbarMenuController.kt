@@ -221,7 +221,7 @@ class DefaultBrowserToolbarMenuController(
                 val sessionId = currentSession?.id
                 val url = sessionId?.let {
                     store.state.findTab(it)?.getUrl()
-                }
+                } ?: currentSession?.content?.url
                 val directions = NavGraphDirections.actionGlobalShareFragment(
                     sessionId = sessionId,
                     data = arrayOf(
