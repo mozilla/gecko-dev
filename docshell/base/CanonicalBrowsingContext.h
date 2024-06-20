@@ -16,6 +16,7 @@
 #include "mozilla/dom/SessionHistoryEntry.h"
 #include "mozilla/dom/SessionStoreRestoreData.h"
 #include "mozilla/dom/SessionStoreUtils.h"
+#include "mozilla/dom/UniqueContentParentKeepAlive.h"
 #include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/MozPromise.h"
@@ -460,7 +461,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
     RefPtr<CanonicalBrowsingContext> mTarget;
     RefPtr<RemotenessPromise::Private> mPromise;
-    RefPtr<ContentParent> mContentParent;
+    UniqueContentParentKeepAlive mContentParentKeepAlive;
     RefPtr<BrowsingContextGroup> mSpecificGroup;
 
     bool mProcessReady = false;

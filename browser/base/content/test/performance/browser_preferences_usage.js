@@ -186,8 +186,8 @@ add_task(async function navigate_around() {
     // This pref is only accessed in automation to speed up tests.
     knownProblematicPrefs["dom.ipc.keepProcessesAlive.webIsolated.perOrigin"] =
       {
-        min: 100,
-        max: 102,
+        min: 50,
+        max: 51,
       };
     if (AppConstants.platform == "linux") {
       // The following sandbox pref is covered by
