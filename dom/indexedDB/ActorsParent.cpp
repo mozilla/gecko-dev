@@ -128,6 +128,7 @@
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/DecryptingInputStream_impl.h"
 #include "mozilla/dom/quota/EncryptingOutputStream_impl.h"
+#include "mozilla/dom/quota/ErrorHandling.h"
 #include "mozilla/dom/quota/FileStreams.h"
 #include "mozilla/dom/quota/OriginScope.h"
 #include "mozilla/dom/quota/PersistenceType.h"
@@ -4646,6 +4647,9 @@ class Utils final : public PBackgroundIndexedDBUtilsParent {
       const PersistenceType& aPersistenceType, const nsACString& aOrigin,
       const nsAString& aDatabaseName, const int64_t& aFileId, int32_t* aRefCnt,
       int32_t* aDBRefCnt, bool* aResult) override;
+
+  mozilla::ipc::IPCResult RecvDoMaintenance(
+      DoMaintenanceResolver&& aResolver) override;
 };
 
 /*******************************************************************************
@@ -20684,6 +20688,37 @@ mozilla::ipc::IPCResult Utils::RecvGetFileReferences(
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IPC_FAIL(this, "DispatchAndReturnFileReferences failed!");
   }
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult Utils::RecvDoMaintenance(
+    DoMaintenanceResolver&& aResolver) {
+  AssertIsOnBackgroundThread();
+
+  QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()),
+         ResolveNSResultResponseAndReturn(aResolver));
+
+  QM_TRY(QuotaManager::EnsureCreated(),
+         ResolveNSResultResponseAndReturn(aResolver));
+
+  QuotaClient* quotaClient = QuotaClient::GetInstance();
+  QM_TRY(MOZ_TO_RESULT(quotaClient), QM_IPC_FAIL(this));
+
+  quotaClient->DoMaintenance()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [self = RefPtr(this), resolver = std::move(aResolver)](
+          const BoolPromise::ResolveOrRejectValue& aValue) {
+        if (!self->CanSend()) {
+          return;
+        }
+
+        if (aValue.IsResolve()) {
+          resolver(NS_OK);
+        } else {
+          resolver(aValue.RejectValue());
+        }
+      });
 
   return IPC_OK();
 }

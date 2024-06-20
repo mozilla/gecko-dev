@@ -27,5 +27,7 @@ class ResolveResponseAndReturn {
 
 using ResolveBoolResponseAndReturn =
     ResolveResponseAndReturn<mozilla::ipc::BoolResponseResolver>;
+using ResolveNSResultResponseAndReturn =
+    ResolveResponseAndReturn<mozilla::ipc::NSResultResponseResolver>;
 
 }  // namespace mozilla::dom::quota
