@@ -87,11 +87,18 @@ function handleChange({ target }) {
       break;
   }
 }
-
-async function handleLoad() {
-  node.chat = renderChat();
-  node.provider = await renderProviders();
-}
-
 addEventListener("change", handleChange);
-addEventListener("load", handleLoad);
+
+// Expose a promise for loading and rendering the chat browser element
+var browserPromise = new Promise((resolve, reject) => {
+  addEventListener("load", async () => {
+    try {
+      node.chat = renderChat();
+      node.provider = await renderProviders();
+      resolve(node.chat);
+    } catch (ex) {
+      console.error("Failed to render on load", ex);
+      reject(ex);
+    }
+  });
+});
