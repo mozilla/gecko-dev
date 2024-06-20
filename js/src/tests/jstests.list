@@ -1079,39 +1079,54 @@ skip script test262/built-ins/Temporal/PlainDateTime/prototype/until/wrapping-at
 # Temporal Intl tests                        #
 ##############################################
 
-# Skip tests which require support for non-ISO8601 calendars.
+# Skip tests which require Intl.DateTimeFormat supporting Temporal objects.
 
 skip script test262/intl402/DateTimeFormat/prototype/format/temporal-objects-resolved-time-zone.js
 skip script test262/intl402/DateTimeFormat/prototype/formatRange/temporal-objects-resolved-time-zone.js
 skip script test262/intl402/DateTimeFormat/prototype/formatRangeToParts/temporal-objects-resolved-time-zone.js
 skip script test262/intl402/DateTimeFormat/prototype/formatToParts/temporal-objects-resolved-time-zone.js
 
-skip script test262/intl402/Temporal/PlainMonthDay/prototype/toPlainDate/infinity-throws-rangeerror.js
+skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/locales-undefined.js
+skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/options-conflict.js
+skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/options-undefined.js
+skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/dateStyle.js
+
+skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/locales-undefined.js
+skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/timezone-getoffsetnanosecondsfor-not-callable.js
+skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/options-conflict.js
+skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/resolved-time-zone.js
+skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/options-undefined.js
+skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/calendar-mismatch.js
+skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/dateStyle.js
+
+skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/options-conflict.js
+skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/locales-undefined.js
+skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/timezone-getoffsetnanosecondsfor-not-callable.js
+skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/resolved-time-zone.js
+skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/options-undefined.js
+skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/calendar-mismatch.js
+skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/dateStyle.js
+
 skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/PlainMonthDay/prototype/equals/infinity-throws-rangeerror.js
 skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/timezone-getoffsetnanosecondsfor-not-callable.js
 skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/resolved-time-zone.js
 skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/options-undefined.js
 skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/calendar-mismatch.js
 skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/dateStyle.js
-skip script test262/intl402/Temporal/PlainMonthDay/prototype/with/fields-missing-properties.js
-skip script test262/intl402/Temporal/PlainMonthDay/from/reference-date-noniso-calendar.js
-skip script test262/intl402/Temporal/PlainMonthDay/from/fields-missing-properties.js
-skip script test262/intl402/Temporal/PlainMonthDay/from/fields-object.js
 
-skip script test262/intl402/Temporal/Now/plainDateTime/calendar-string.js
-skip script test262/intl402/Temporal/Now/plainDate/calendar-string.js
-skip script test262/intl402/Temporal/Now/zonedDateTime/calendar-timezone-string.js
-skip script test262/intl402/Temporal/Now/zonedDateTime/calendar-string.js
+skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/options-conflict.js
+skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/locales-undefined.js
+skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/timezone-getoffsetnanosecondsfor-not-callable.js
+skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/options-undefined.js
+skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/resolved-time-zone.js
 
-skip script test262/intl402/Temporal/ZonedDateTime/from/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/ZonedDateTime/compare/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/equals/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/withPlainDate/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/withCalendar/calendar-case-insensitive.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/since/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/eraYear/calendar-returns-infinity.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/until/infinity-throws-rangeerror.js
+skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/locales-undefined.js
+skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/timezone-getoffsetnanosecondsfor-not-callable.js
+skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/options-undefined.js
+skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/resolved-time-zone.js
+skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/calendar-mismatch.js
+skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/dateStyle.js
+
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/locales-undefined.js
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/options-conflict.js
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/options-undefined.js
@@ -1122,148 +1137,37 @@ skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/offs
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/calendar-mismatch.js
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/options-timeZone.js
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/dateStyle.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/weekOfYear/gregory-iso-weekofyear.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/weekOfYear/non-iso-week-of-year.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/yearOfWeek/gregory-iso-weekofyear.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/yearOfWeek/non-iso-week-of-year.js
 
-skip script test262/intl402/Temporal/PlainDate/from/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainDate/compare/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainDate/prototype/equals/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainDate/prototype/since/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainDate/prototype/eraYear/calendar-returns-infinity.js
-skip script test262/intl402/Temporal/PlainDate/prototype/until/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/timezone-getoffsetnanosecondsfor-not-callable.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/options-conflict.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/resolved-time-zone.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/calendar-mismatch.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/dateStyle.js
-skip script test262/intl402/Temporal/PlainDate/prototype/with/cross-era-boundary.js
-skip script test262/intl402/Temporal/PlainDate/prototype/weekOfYear/gregory-iso-weekofyear.js
-skip script test262/intl402/Temporal/PlainDate/prototype/weekOfYear/non-iso-week-of-year.js
-skip script test262/intl402/Temporal/PlainDate/prototype/yearOfWeek/gregory-iso-weekofyear.js
-skip script test262/intl402/Temporal/PlainDate/prototype/yearOfWeek/non-iso-week-of-year.js
-
-skip script test262/intl402/Temporal/TimeZone/prototype/getPossibleInstantsFor/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/TimeZone/prototype/getInstantFor/infinity-throws-rangeerror.js
-
-skip script test262/intl402/Temporal/Duration/prototype/round/relativeto-infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Duration/prototype/add/relativeto-infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Duration/prototype/subtract/relativeto-infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Duration/prototype/total/relativeto-infinity-throws-rangeerror.js
-
-skip script test262/intl402/Temporal/PlainTime/prototype/toPlainDateTime/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainTime/prototype/toZonedDateTime/plaindate-infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/options-conflict.js
-skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/timezone-getoffsetnanosecondsfor-not-callable.js
-skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/resolved-time-zone.js
-
-skip script test262/intl402/Temporal/PlainDateTime/from/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainDateTime/compare/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/equals/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/withPlainDate/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/withPlainDate/argument-string-calendar.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/since/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/eraYear/calendar-returns-infinity.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/until/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/options-conflict.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/timezone-getoffsetnanosecondsfor-not-callable.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/resolved-time-zone.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/calendar-mismatch.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/dateStyle.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toString/calendarname-always.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toString/calendarname-auto.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toString/calendarname-never.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/weekOfYear/gregory-iso-weekofyear.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/weekOfYear/non-iso-week-of-year.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/yearOfWeek/non-iso-week-of-year.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/yearOfWeek/gregory-iso-weekofyear.js
-
-skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/options-conflict.js
-skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/dateStyle.js
-
-skip script test262/intl402/Temporal/PlainYearMonth/from/argument-object.js
-skip script test262/intl402/Temporal/PlainYearMonth/from/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainYearMonth/compare/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/equals/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/since/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/eraYear/calendar-returns-infinity.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/until/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/timezone-getoffsetnanosecondsfor-not-callable.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/resolved-time-zone.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/calendar-mismatch.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/dateStyle.js
-
-skip script test262/intl402/Temporal/Calendar/calendar-case-insensitive.js
-skip script test262/intl402/Temporal/Calendar/from/basic.js
-skip script test262/intl402/Temporal/Calendar/from/calendar-case-insensitive.js
-skip script test262/intl402/Temporal/Calendar/prototype/day/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/dayOfWeek/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/dayOfYear/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/daysInMonth/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/daysInWeek/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/daysInYear/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/era/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/era/argument-calendar-fields-undefined.js
-skip script test262/intl402/Temporal/Calendar/prototype/era/argument-propertybag-calendar-instance-does-not-get-calendar-property.js
-skip script test262/intl402/Temporal/Calendar/prototype/eraYear/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/eraYear/argument-calendar-fields-undefined.js
-skip script test262/intl402/Temporal/Calendar/prototype/eraYear/argument-propertybag-calendar-instance-does-not-get-calendar-property.js
-skip script test262/intl402/Temporal/Calendar/prototype/inLeapYear/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/month/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/monthCode/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/monthsInYear/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/weekOfYear/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/weekOfYear/gregory-iso-weekofyear.js
-skip script test262/intl402/Temporal/Calendar/prototype/weekOfYear/non-iso-week-of-year.js
-skip script test262/intl402/Temporal/Calendar/prototype/year/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/yearOfWeek/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/yearOfWeek/non-iso-week-of-year.js
-skip script test262/intl402/Temporal/Calendar/prototype/yearOfWeek/gregory-iso-weekofyear.js
-skip script test262/intl402/Temporal/Calendar/prototype/dateAdd/date-infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/dateUntil/argument-infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/dateUntil/until-across-lunisolar-leap-months.js
-skip script test262/intl402/Temporal/Calendar/prototype/dateUntil/zero-length-duration-result.js
-skip script test262/intl402/Temporal/Calendar/prototype/dateFromFields/order-of-operations.js
-skip script test262/intl402/Temporal/Calendar/prototype/dateFromFields/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/dateFromFields/one-of-era-erayear-undefined.js
-skip script test262/intl402/Temporal/Calendar/prototype/monthDayFromFields/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/monthDayFromFields/order-of-operations.js
-skip script test262/intl402/Temporal/Calendar/prototype/monthDayFromFields/one-of-era-erayear-undefined.js
-skip script test262/intl402/Temporal/Calendar/prototype/monthDayFromFields/reference-year-1972.js
-skip script test262/intl402/Temporal/Calendar/prototype/monthDayFromFields/fields-underspecified.js
-skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/order-of-operations.js
-skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/infinity-throws-rangeerror.js
-skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/reference-day.js
-skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/one-of-era-erayear-undefined.js
-skip script test262/intl402/Temporal/Calendar/prototype/mergeFields/japanese-mutually-exclusive-fields.js
-skip script test262/intl402/Temporal/Calendar/prototype/mergeFields/gregorian-mutually-exclusive-fields.js
-
-skip script test262/staging/Temporal/ZonedDateTime/old/construction-and-properties.js
 skip script test262/staging/Intl402/Temporal/old/date-time-format.js
 skip script test262/staging/Intl402/Temporal/old/date-toLocaleString.js
 skip script test262/staging/Intl402/Temporal/old/time-toLocaleString.js
 skip script test262/staging/Intl402/Temporal/old/zoneddatetime-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/hebrew-leap-months.js
-skip script test262/staging/Intl402/Temporal/old/addition-across-lunisolar-leap-months.js
 skip script test262/staging/Intl402/Temporal/old/yearmonth-toLocaleString.js
 skip script test262/staging/Intl402/Temporal/old/datetime-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/japanese-era.js
 skip script test262/staging/Intl402/Temporal/old/monthday-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/non-iso-calendars.js
-skip script test262/staging/Intl402/Temporal/old/indian-calendar.js
 skip script test262/staging/Intl402/Temporal/old/instant-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/persian-calendar.js
+
+# https://github.com/tc39/test262/pull/4079
+skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/reference-day.js
+
+# Test assumes CalendarMonthDayToISOReferenceDate modifies input |day| when no |monthCode| is given.
+# This case should be clarified more clearly in the spec.
+skip script test262/intl402/Temporal/Calendar/prototype/monthDayFromFields/reference-year-1972.js
+
+# Expected era name is implementation-defined.
+skip script test262/intl402/Temporal/PlainDateTime/prototype/withPlainDate/argument-string-calendar.js
+skip script test262/intl402/Temporal/PlainYearMonth/from/argument-object.js
+skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/order-of-operations.js
+skip script test262/intl402/Temporal/Calendar/prototype/dateFromFields/order-of-operations.js
+
+# Calendar arithmetic not yet supported in ICU4X.
+#
+# https://github.com/unicode-org/icu4x/issues/3147
+skip script test262/intl402/Temporal/Calendar/prototype/dateUntil/until-across-lunisolar-leap-months.js
+
+# Tailored to the Temporal polyfill. Not necessarily applicable for other implementations.
+skip script test262/staging/Intl402/Temporal/old/addition-across-lunisolar-leap-months.js
+skip script test262/staging/Intl402/Temporal/old/japanese-era.js
 skip script test262/staging/Intl402/Temporal/old/islamic-calendars.js
 
 # Time zone identifier canonicalization.
