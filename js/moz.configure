@@ -1323,22 +1323,17 @@ set_config("MOZ_ICU_CFLAGS", [], when=in_tree_icu)
 set_config("MOZ_SYSTEM_ICU", True, when=system_icu)
 set_define("MOZ_SYSTEM_ICU", True, when=system_icu)
 
-option(
-    "--disable-icu4x",
-    help="Disable using ICU4X",
-    when=js_standalone,
-)
+option("--disable-icu4x", help="Disable using ICU4X")
 
 
-@depends(
-    depends("--enable-icu4x", when=js_standalone)(lambda x: bool(x)), js_standalone
-)
-def enable_icu4x(enable, js_standalone):
-    return not js_standalone or enable
+@depends("--enable-icu4x", js_standalone)
+def check_icu4x(enabled, js_standalone):
+    if not enabled and not js_standalone:
+        die("--disable-icu4x is not supported")
 
 
-set_config("MOZ_ICU4X", True, when=enable_icu4x)
-set_define("MOZ_ICU4X", True, when=enable_icu4x)
+set_config("MOZ_ICU4X", True, when="--enable-icu4x")
+set_define("MOZ_ICU4X", True, when="--enable-icu4x")
 
 option("--without-intl-api", help="Disable ECMAScript Internationalization API")
 
@@ -1382,7 +1377,7 @@ set_define("U_USING_ICU_NAMESPACE", "0", when="--with-intl-api")
 set_define("U_STATIC_IMPLEMENTATION", True, when=depends(system_icu)(lambda x: not x))
 
 
-# ECMAScript Temporal API Support (uses ICU)
+# ECMAScript Temporal API Support (uses ICU and ICU4X)
 # ======================================================
 
 option("--with-temporal-api", default=False, help="Enable ECMAScript Temporal API")
@@ -1391,10 +1386,10 @@ set_config("JS_HAS_TEMPORAL_API", True, when="--with-temporal-api")
 set_define("JS_HAS_TEMPORAL_API", True, when="--with-temporal-api")
 
 
-@depends("--with-temporal-api", "--with-intl-api")
-def check_temporal_api(temporal_enabled, intl_enabled):
-    if temporal_enabled and not intl_enabled:
-        die("Can't use both --with-temporal-api and --without-intl-api")
+@depends("--with-temporal-api", "--with-intl-api", "--enable-icu4x")
+def check_temporal_api(temporal_enabled, intl_enabled, icu4x_enabled):
+    if temporal_enabled and not (intl_enabled and icu4x_enabled):
+        die("Can't use --with-temporal-api with --without-intl-api or --disable-icu4x")
 
 
 # Initial support for WebAssembly JS-API Type Reflections
