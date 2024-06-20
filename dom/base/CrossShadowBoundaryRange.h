@@ -56,6 +56,7 @@ class CrossShadowBoundaryRange final : public StaticRange,
     return StaticRange::SetStartAndEnd(aStartBoundary, aEndBoundary);
   }
 
+  NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
  private:

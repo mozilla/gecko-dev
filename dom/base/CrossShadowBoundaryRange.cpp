@@ -198,4 +198,49 @@ void CrossShadowBoundaryRange::ContentRemoved(nsIContent* aChild,
                    newEndBoundary ? newEndBoundary.ref() : mEnd.AsRaw());
   }
 }
+
+// For now CrossShadowBoundaryRange::CharacterDataChanged is only meant
+// to handle the character removal initiated by nsRange::CutContents.
+void CrossShadowBoundaryRange::CharacterDataChanged(
+    nsIContent* aContent, const CharacterDataChangeInfo& aInfo) {
+  // When aInfo.mDetails is present, it means the character data was
+  // changed due to splitText() or normalize(), which shouldn't be the
+  // case for nsRange::CutContents, so we return early.
+  if (aInfo.mDetails) {
+    return;
+  }
+  MOZ_ASSERT(aContent);
+  MOZ_ASSERT(mIsPositioned);
+
+  auto MaybeCreateNewBoundary =
+      [aContent,
+       &aInfo](const RangeBoundary& aBoundary) -> Maybe<RawRangeBoundary> {
+    // If the changed node contains our start boundary and the change starts
+    // before the boundary we'll need to adjust the offset.
+    if (aContent == aBoundary.Container() &&
+        // aInfo.mChangeStart is the offset where the change starts, if it's
+        // smaller than the offset of aBoundary, it means the characters
+        // before the selected content is changed (i.e, removed), so the
+        // offset of aBoundary needs to be adjusted.
+        aInfo.mChangeStart <
+            *aBoundary.Offset(
+                RangeBoundary::OffsetFilter::kValidOrInvalidOffsets)) {
+      RawRangeBoundary newStart =
+          nsRange::ComputeNewBoundaryWhenBoundaryInsideChangedText(
+              aInfo, aBoundary.AsRaw());
+      return Some(newStart);
+    }
+    return Nothing();
+  };
+
+  const Maybe<RawRangeBoundary> newStartBoundary =
+      MaybeCreateNewBoundary(mStart);
+  const Maybe<RawRangeBoundary> newEndBoundary = MaybeCreateNewBoundary(mEnd);
+
+  if (newStartBoundary || newEndBoundary) {
+    DoSetRange(newStartBoundary ? newStartBoundary.ref() : mStart.AsRaw(),
+               newEndBoundary ? newEndBoundary.ref() : mEnd.AsRaw(), nullptr,
+               mOwner);
+  }
+}
 }  // namespace mozilla::dom
