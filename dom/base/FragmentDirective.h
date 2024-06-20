@@ -109,9 +109,12 @@ class FragmentDirective final : public nsISupports, public nsWrapperCache {
    * `ParseAndRemoveFragmentDirectiveFromFragment()`.
    *
    * This function returns true if it modified `aFragment`.
+   *
+   * Note: the parameter `aURI` is only used for logging purposes.
    */
   static bool ParseAndRemoveFragmentDirectiveFromFragmentString(
-      nsCString& aFragment, nsTArray<TextDirective>* aTextDirectives = nullptr);
+      nsCString& aFragment, nsTArray<TextDirective>* aTextDirectives = nullptr,
+      nsIURI* aURI = nullptr);
 
  private:
   RefPtr<nsRange> FindRangeForTextDirective(
