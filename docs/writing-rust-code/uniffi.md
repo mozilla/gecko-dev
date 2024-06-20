@@ -53,7 +53,7 @@ Here's how you can create a new set of bindings using UniFFI:
         - Edit `toolkit/library/rust/shared/Cargo.toml` and add a dependency to your library URL
         - Run `mach vendor rust` to vendor in your Rust code
   3. Generate bindings code for your crate
-      - Add the path of your UDL (that you made in step 1) in `toolkit/components/uniffi-bindgen-gecko-js/mach_commands.py`
+      - Add the path of your UDL (that you made in step 1) in `toolkit/components/uniffi-bindgen-gecko-js/config.toml`
       - Run `./mach uniffi generate`
           - add your newly generated `Rust{udl-name}.sys.mjs` file to `toolkit/components/uniffi-bindgen-gecko-js/components/moz.build`
       - Then simply import your module to the file you want to use it in and start using your APIs!
