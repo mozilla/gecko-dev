@@ -11576,9 +11576,7 @@ AttachDecision CallIRGenerator::tryAttachInlinableNative(HandleFunction callee,
              flags.getArgFormat() == CallFlags::Spread);
 
   // Special case functions are only optimized for normal calls.
-  if (op_ != JSOp::Call && op_ != JSOp::CallContent && op_ != JSOp::New &&
-      op_ != JSOp::NewContent && op_ != JSOp::CallIgnoresRv &&
-      op_ != JSOp::SpreadCall) {
+  if (!BytecodeCallOpCanHaveInlinableNative(op_)) {
     return AttachDecision::NoAction;
   }
 
@@ -11611,6 +11609,8 @@ AttachDecision InlinableNativeIRGenerator::tryAttachFuzzilliHash() {
 #endif
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
+  MOZ_ASSERT(BytecodeCallOpCanHaveInlinableNative(generator_.op_));
+
   if (!callee_->hasJitInfo() ||
       callee_->jitInfo()->type() != JSJitInfo::InlinableNative) {
     return AttachDecision::NoAction;
