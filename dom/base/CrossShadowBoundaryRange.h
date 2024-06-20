@@ -60,7 +60,8 @@ class CrossShadowBoundaryRange final : public StaticRange,
 
  private:
   explicit CrossShadowBoundaryRange(nsINode* aNode, nsRange* aOwner)
-      : StaticRange(aNode), mOwner(aOwner) {}
+      : StaticRange(aNode, RangeBoundaryIsMutationObserved::Yes),
+        mOwner(aOwner) {}
   virtual ~CrossShadowBoundaryRange() = default;
 
   /**

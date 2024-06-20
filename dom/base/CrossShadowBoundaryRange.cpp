@@ -147,13 +147,16 @@ void CrossShadowBoundaryRange::ContentRemoved(nsIContent* aChild,
 
   RefPtr<CrossShadowBoundaryRange> kungFuDeathGrip(this);
 
-  if (mStart.Container() == aChild || mEnd.Container() == aChild) {
+  const nsINode* startContainer = mStart.Container();
+  const nsINode* endContainer = mEnd.Container();
+
+  if (startContainer == aChild || endContainer == aChild) {
     mOwner->ResetCrossShadowBoundaryRange();
     return;
   }
 
   if (const auto* shadowRoot = aChild->GetShadowRoot()) {
-    if (mStart.Container() == shadowRoot || mEnd.Container() == shadowRoot) {
+    if (startContainer == shadowRoot || endContainer == shadowRoot) {
       mOwner->ResetCrossShadowBoundaryRange();
       return;
     }
@@ -163,6 +166,36 @@ void CrossShadowBoundaryRange::ContentRemoved(nsIContent* aChild,
       mEnd.Container()->IsShadowIncludingInclusiveDescendantOf(aChild)) {
     mOwner->ResetCrossShadowBoundaryRange();
     return;
+  }
+
+  nsINode* container = aChild->GetParentNode();
+
+  auto MaybeCreateNewBoundary =
+      [container, aChild, aPreviousSibling](
+          const nsINode* aContainer,
+          const RangeBoundary& aBoundary) -> Maybe<RawRangeBoundary> {
+    if (container == aContainer) {
+      // We're only interested if our boundary reference was removed, otherwise
+      // we can just invalidate the offset.
+      if (aChild == aBoundary.Ref()) {
+        return Some<RawRangeBoundary>({container, aPreviousSibling});
+      }
+      RawRangeBoundary newBoundary;
+      newBoundary.CopyFrom(aBoundary, RangeBoundaryIsMutationObserved::Yes);
+      newBoundary.InvalidateOffset();
+      return Some(newBoundary);
+    }
+    return Nothing();
+  };
+
+  const Maybe<RawRangeBoundary> newStartBoundary =
+      MaybeCreateNewBoundary(startContainer, mStart);
+  const Maybe<RawRangeBoundary> newEndBoundary =
+      MaybeCreateNewBoundary(endContainer, mEnd);
+
+  if (newStartBoundary || newEndBoundary) {
+    SetStartAndEnd(newStartBoundary ? newStartBoundary.ref() : mStart.AsRaw(),
+                   newEndBoundary ? newEndBoundary.ref() : mEnd.AsRaw());
   }
 }
 }  // namespace mozilla::dom

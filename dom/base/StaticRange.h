@@ -76,9 +76,14 @@ class StaticRange : public AbstractRange {
   // They could be in different trees, i.e, cross shadow boundaries.
   bool mAreStartAndEndInSameTree = false;
 
+  // Whether mutation is observed.
+  RangeBoundaryIsMutationObserved mIsMutationObserved;
+
  protected:
-  explicit StaticRange(nsINode* aNode)
-      : AbstractRange(aNode, /* aIsDynamicRange = */ false) {}
+  explicit StaticRange(nsINode* aNode,
+                       RangeBoundaryIsMutationObserved aIsMutationObserved)
+      : AbstractRange(aNode, /* aIsDynamicRange = */ false),
+        mIsMutationObserved(aIsMutationObserved) {}
   virtual ~StaticRange();
 
  public:
