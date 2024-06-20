@@ -183,6 +183,9 @@ tasks:
         parent: debian12-raw
         packages:
             - deb12-python-zstandard
+    fetch-more:
+        symbol: I(fetch-more)
+        parent: fetch
     static-analysis-build:
         symbol: I(static-analysis-build)
         parent: debian12-base

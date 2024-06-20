@@ -151,7 +151,7 @@ def make_task(config, jobs):
             "worker-type": "b-linux-gcp",
             "worker": {
                 "chain-of-trust": True,
-                "docker-image": {"in-tree": "fetch"},
+                "docker-image": {"in-tree": job.get("docker-image", "fetch")},
                 "env": env,
                 "max-run-time": 900,
                 "artifacts": [
@@ -380,6 +380,7 @@ def create_chromium_fetch_task(config, name, fetch):
     return {
         "command": cmd,
         "artifact_name": artifact_name,
+        "docker-image": "fetch-more",
         "digest_data": [
             f"revision={revision}",
             f"platform={platform}",
@@ -416,6 +417,7 @@ def create_cft_canary_fetch_task(config, name, fetch):
     return {
         "command": cmd,
         "artifact_name": artifact_name,
+        "docker-image": "fetch-more",
         "digest_data": [
             f"platform={platform}",
             f"artifact_name={artifact_name}",
