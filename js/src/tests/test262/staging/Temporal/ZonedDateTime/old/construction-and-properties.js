@@ -16,7 +16,6 @@ var epochNanos = BigInt(epochMillis) * BigInt(1000000) + BigInt(456789);
 var zdt = new Temporal.ZonedDateTime(epochNanos, tz);
 assert(zdt instanceof Temporal.ZonedDateTime);
 assert.sameValue(typeof zdt, "object");
-assert.sameValue(zdt.toInstant().epochSeconds, Math.floor(Date.UTC(1976, 10, 18, 15, 23, 30, 123) / 1000), "epochSeconds");
 assert.sameValue(zdt.toInstant().epochMilliseconds, Date.UTC(1976, 10, 18, 15, 23, 30, 123), "epochMilliseconds");
 
 // Temporal.ZonedDateTime for (1976, 11, 18, 15, 23, 30, 123, 456, 789)"
@@ -35,9 +34,7 @@ assert.sameValue(zdt.second, 30);
 assert.sameValue(zdt.millisecond, 123);
 assert.sameValue(zdt.microsecond, 456);
 assert.sameValue(zdt.nanosecond, 789);
-assert.sameValue(zdt.epochSeconds, 217178610);
 assert.sameValue(zdt.epochMilliseconds, 217178610123);
-assert.sameValue(zdt.epochMicroseconds, 217178610123456n);
 assert.sameValue(zdt.epochNanoseconds, 217178610123456789n);
 assert.sameValue(zdt.dayOfWeek, 4);
 assert.sameValue(zdt.dayOfYear, 323);
@@ -97,9 +94,7 @@ assert.sameValue(zdt.second, 30);
 assert.sameValue(zdt.millisecond, 123);
 assert.sameValue(zdt.microsecond, 456);
 assert.sameValue(zdt.nanosecond, 789);
-assert.sameValue(zdt.epochSeconds, 217178610);
 assert.sameValue(zdt.epochMilliseconds, 217178610123);
-assert.sameValue(zdt.epochMicroseconds, 217178610123456n);
 assert.sameValue(zdt.epochNanoseconds, 217178610123456789n);
 assert.sameValue(zdt.dayOfWeek, 4);
 assert.sameValue(zdt.dayOfYear, 323);

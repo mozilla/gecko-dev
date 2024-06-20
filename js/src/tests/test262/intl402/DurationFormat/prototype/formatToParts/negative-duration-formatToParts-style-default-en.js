@@ -42,9 +42,10 @@ const duration = {
   nanoseconds: -789,
 };
 
-const expected = partitionDurationFormatPattern(duration);
-
 const df = new Intl.DurationFormat("en");
+
+const expected = partitionDurationFormatPattern(df, duration);
+
 compare(df.formatToParts(duration), expected, `Using style : default`);
 
 reportCompare(0, 0);
