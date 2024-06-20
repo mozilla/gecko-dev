@@ -11,8 +11,6 @@
  */
 [Exposed=Window]
 interface SVGPathElement : SVGGeometryElement {
-  [Pref="dom.svg.pathSeg.enabled"]
-  unsigned long getPathSegAtLength(float distance);
 };
 
-SVGPathElement includes SVGAnimatedPathData;
+// TODO: Implement https://www.w3.org/TR/svg-paths/#InterfaceSVGPathData

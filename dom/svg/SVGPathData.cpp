@@ -22,7 +22,6 @@
 #include "SVGPathSegUtils.h"
 #include <algorithm>
 
-using namespace mozilla::dom::SVGPathSeg_Binding;
 using namespace mozilla::gfx;
 
 namespace mozilla {

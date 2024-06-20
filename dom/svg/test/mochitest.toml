@@ -1,5 +1,4 @@
 [DEFAULT]
-prefs = ["dom.svg.pathSeg.enabled=true"]
 support-files = [
   "MutationEventChecker.js",
   "a_href_destination.svg",
@@ -88,7 +87,6 @@ support-files = [
 
 ["test_getElementById.xhtml"]
 
-["test_getPathSegListAtLength_with_d_property.html"]
 
 ["test_getSubStringLength.xhtml"]
 

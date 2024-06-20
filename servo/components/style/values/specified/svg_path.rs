@@ -72,7 +72,7 @@ impl SVGPathData {
     /// Decode the svg path raw data from Gecko.
     #[cfg(feature = "gecko")]
     pub fn decode_from_f32_array(path: &[f32]) -> Result<Self, ()> {
-        use crate::gecko_bindings::structs::dom::SVGPathSeg_Binding::*;
+        use crate::gecko_bindings::structs::*;
         use crate::values::generics::basic_shape::GenericShapeCommand::*;
 
         let mut result: Vec<PathCommand> = Vec::new();

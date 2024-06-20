@@ -11,8 +11,6 @@
 #include "SVGPathData.h"
 #include "SVGPathSegUtils.h"
 
-using namespace mozilla::dom::SVGPathSeg_Binding;
-
 // Indices of boolean flags within 'arc' segment chunks in path-data arrays
 // (where '0' would correspond to the index of the encoded segment type):
 #define LARGE_ARC_FLAG_IDX 4

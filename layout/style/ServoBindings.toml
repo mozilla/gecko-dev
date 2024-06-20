@@ -9,6 +9,7 @@ headers = [
     "mozilla/css/Loader.h",
     "mozilla/AnimatedPropertyID.h",
     "mozilla/css/SheetLoadData.h",
+    "mozilla/dom/SVGPathSegUtils.h",
     "mozilla/DeclarationBlock.h",
     "mozilla/dom/AnimationEffectBinding.h",
     "mozilla/dom/HTMLSlotElement.h",
@@ -16,7 +17,6 @@ headers = [
     "mozilla/dom/MediaList.h",
     "mozilla/dom/ScreenBinding.h",
     "mozilla/dom/ShadowRoot.h",
-    "mozilla/dom/SVGPathSegBinding.h",
     "mozilla/ipc/ByteBuf.h",
     "mozilla/AnimationPropertySegment.h",
     "mozilla/ComputedTiming.h",
@@ -195,7 +195,7 @@ allowlist-vars = [
     "GECKO_IS_NIGHTLY",
     "NS_SAME_AS_FOREGROUND_COLOR",
     "mozilla::detail::gGkAtoms",
-    "mozilla::dom::SVGPathSeg_Binding::PATHSEG_.*",
+    "mozilla::PATHSEG_.*",
 ]
 # TODO(emilio): A bunch of types here can go away once we generate bindings and
 # structs together.

@@ -13,7 +13,6 @@
 #include "nsMathUtils.h"
 #include "nsTextFormatter.h"
 
-using namespace mozilla::dom::SVGPathSeg_Binding;
 using namespace mozilla::gfx;
 
 namespace mozilla {
