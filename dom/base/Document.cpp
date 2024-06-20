@@ -13238,6 +13238,13 @@ void Document::ScrollToRef() {
   if (!textDirectiveToScroll && mScrollToRef.IsEmpty()) {
     return;
   }
+
+  // TODO(mccr8): This will incorrectly block scrolling from a same-document
+  // navigation triggered before the document is full loaded. See bug 1898630.
+  if (ForceLoadAtTop()) {
+    return;
+  }
+
   // 3. Let potentialIndicatedElement be the result of finding a potential
   // indicated element given document and fragment.
   NS_ConvertUTF8toUTF16 ref(mScrollToRef);
