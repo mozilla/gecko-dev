@@ -31,25 +31,6 @@ const FRAME_URL = "https://example.com/document-builder.sjs?html=frame";
 const FRAME_MARKUP = `<iframe src="${encodeURI(FRAME_URL)}"></iframe>`;
 const TEST_URL = BUILDER_URL + encodeURI(FRAME_MARKUP);
 
-add_task(async function test_getBrowsingContextById() {
-  const browser = gBrowser.selectedBrowser;
-
-  is(TabManager.getBrowsingContextById(null), null);
-  is(TabManager.getBrowsingContextById(undefined), null);
-  is(TabManager.getBrowsingContextById("wrong-id"), null);
-
-  info(`Navigate to ${TEST_URL}`);
-  await loadURL(browser, TEST_URL);
-
-  const contexts = browser.browsingContext.getAllBrowsingContextsInSubtree();
-  is(contexts.length, 2, "Top context has 1 child");
-
-  const topContextId = TabManager.getIdForBrowsingContext(contexts[0]);
-  is(TabManager.getBrowsingContextById(topContextId), contexts[0]);
-  const childContextId = TabManager.getIdForBrowsingContext(contexts[1]);
-  is(TabManager.getBrowsingContextById(childContextId), contexts[1]);
-});
-
 add_task(async function test_addTab_focus() {
   let tabsCount = gBrowser.tabs.length;
 
@@ -144,6 +125,50 @@ add_task(async function test_addTab_window() {
   }
 });
 
+add_task(async function test_getBrowsingContextById() {
+  const browser = gBrowser.selectedBrowser;
+
+  is(TabManager.getBrowsingContextById(null), null);
+  is(TabManager.getBrowsingContextById(undefined), null);
+  is(TabManager.getBrowsingContextById("wrong-id"), null);
+
+  info(`Navigate to ${TEST_URL}`);
+  await loadURL(browser, TEST_URL);
+
+  const contexts = browser.browsingContext.getAllBrowsingContextsInSubtree();
+  is(contexts.length, 2, "Top context has 1 child");
+
+  const topContextId = TabManager.getIdForBrowsingContext(contexts[0]);
+  is(TabManager.getBrowsingContextById(topContextId), contexts[0]);
+  const childContextId = TabManager.getIdForBrowsingContext(contexts[1]);
+  is(TabManager.getBrowsingContextById(childContextId), contexts[1]);
+});
+
+add_task(async function test_getIdForBrowsingContext() {
+  const browser = gBrowser.selectedBrowser;
+
+  // Browsing context not set.
+  is(TabManager.getIdForBrowsingContext(null), null);
+  is(TabManager.getIdForBrowsingContext(undefined), null);
+
+  info(`Navigate to ${TEST_URL}`);
+  await loadURL(browser, TEST_URL);
+
+  const contexts = browser.browsingContext.getAllBrowsingContextsInSubtree();
+  is(contexts.length, 2, "Top context has 1 child");
+
+  is(
+    TabManager.getIdForBrowsingContext(contexts[0]),
+    TabManager.getIdForBrowser(browser),
+    "Got expected id for top-level browsing context"
+  );
+  is(
+    TabManager.getIdForBrowsingContext(contexts[1]),
+    contexts[1].id.toString(),
+    "Got expected id for child browsing context"
+  );
+});
+
 add_task(async function test_getNavigableForBrowsingContext() {
   const browser = gBrowser.selectedBrowser;
 
@@ -193,6 +218,34 @@ add_task(async function test_getTabForBrowsingContext() {
   } finally {
     gBrowser.removeTab(tab);
   }
+});
+
+add_task(async function test_getTabsForWindow() {
+  // Open a new window with 3 tabs in total.
+  const win1 = await BrowserTestUtils.openNewBrowserWindow();
+  BrowserTestUtils.addTab(win1.gBrowser, TEST_URL);
+  BrowserTestUtils.addTab(win1.gBrowser, TEST_URL);
+
+  try {
+    is(
+      TabManager.getTabsForWindow(win1).length,
+      3,
+      "Got expected amount of open tabs"
+    );
+    ok(
+      TabManager.getTabsForWindow(win1).every(tab =>
+        win1.gBrowser.tabs.includes(tab)
+      ),
+      "Expected tabs were returned"
+    );
+  } finally {
+    await BrowserTestUtils.closeWindow(win1);
+  }
+});
+
+add_task(async function test_removeTab() {
+  // Tab not defined.
+  await TabManager.removeTab(null);
 });
 
 add_task(async function test_removeTab_skipPermitUnload() {
@@ -248,5 +301,53 @@ add_task(async function test_removeTab_skipPermitUnload() {
     Assert.equal(gBrowser.tabs.length, 1, "Should have left one tab open");
   } finally {
     gBrowser.removeTab(tab);
+  }
+});
+
+add_task(async function test_selectTab() {
+  // Tab not defined.
+  await TabManager.selectTab(null);
+});
+
+add_task(async function test_tabs() {
+  // Open two more tabs, one in the current and the other in a new window.
+  const tab = BrowserTestUtils.addTab(gBrowser, TEST_URL);
+  const win1 = await BrowserTestUtils.openNewBrowserWindow();
+
+  const expectedTabs = [...gBrowser.tabs, ...win1.gBrowser.tabs];
+
+  try {
+    is(TabManager.tabs.length, 3, "Got expected amount of open tabs");
+    ok(
+      expectedTabs.every(tab => TabManager.tabs.includes(tab)),
+      "Expected tabs were returned"
+    );
+  } finally {
+    await BrowserTestUtils.closeWindow(win1);
+    gBrowser.removeTab(tab);
+  }
+});
+
+add_task(async function test_windows() {
+  const win1 = await BrowserTestUtils.openNewBrowserWindow();
+  const win2 = await BrowserTestUtils.openNewBrowserWindow();
+  const win3 = await BrowserTestUtils.openNewBrowserWindow();
+
+  const expectedWindows = [gBrowser.ownerGlobal, win1, win2, win3];
+
+  try {
+    is(
+      TabManager.windows.length,
+      5,
+      "All browser windows and the Mochikit harness window were returned"
+    );
+    ok(
+      expectedWindows.every(win => TabManager.windows.includes(win)),
+      "Expected windows were returned"
+    );
+  } finally {
+    await BrowserTestUtils.closeWindow(win3);
+    await BrowserTestUtils.closeWindow(win2);
+    await BrowserTestUtils.closeWindow(win1);
   }
 });

@@ -10,6 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   Marionette: "chrome://remote/content/components/Marionette.sys.mjs",
+  TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   UserContextManager:
     "chrome://remote/content/shared/UserContextManager.sys.mjs",
 });
@@ -44,9 +45,11 @@ class BrowserModule extends Module {
    */
 
   /**
-   * Terminate all WebDriver sessions and clean up automation state in the remote browser instance.
+   * Terminate all WebDriver sessions and clean up automation state in the
+   * remote browser instance.
    *
-   * Session clean up and actual broser closure will happen later in WebDriverBiDiConnection class.
+   * The actual session clean-up and closing the browser will happen later
+   * in WebDriverBiDiConnection class.
    */
   async close() {
     // TODO Bug 1838269. Enable browser.close command for the case of classic + bidi session, when
@@ -56,6 +59,11 @@ class BrowserModule extends Module {
         "Closing browser with the session which was started with Webdriver classic is not supported," +
           "you can use Webdriver classic session delete command which will also close the browser."
       );
+    }
+
+    // Close all open top-level browsing contexts by not prompting for beforeunload.
+    for (const tab of lazy.TabManager.tabs) {
+      lazy.TabManager.removeTab(tab, { skipPermitUnload: true });
     }
   }
 
