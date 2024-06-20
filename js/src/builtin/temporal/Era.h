@@ -251,4 +251,47 @@ constexpr auto CalendarEraName(CalendarId calendar, EraCode era) {
   return *names.begin();
 }
 
+constexpr bool CalendarEraStartsAtYearBoundary(CalendarId id) {
+  switch (id) {
+    case CalendarId::ISO8601:
+      return true;
+
+#if defined(MOZ_ICU4X)
+    // Calendar system which use a single era.
+    case CalendarId::Buddhist:
+    case CalendarId::Chinese:
+    case CalendarId::Dangi:
+    case CalendarId::EthiopianAmeteAlem:
+    case CalendarId::Hebrew:
+    case CalendarId::Indian:
+    case CalendarId::Islamic:
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicTabular:
+    case CalendarId::IslamicUmmAlQura:
+    case CalendarId::Persian:
+      return true;
+
+    // Calendar system which use multiple eras, but each era starts at a year
+    // boundary.
+    case CalendarId::Coptic:
+    case CalendarId::Ethiopian:
+    case CalendarId::Gregorian:
+    case CalendarId::ROC:
+      return true;
+
+    // Calendar system which use multiple eras and eras can start within a year.
+    case CalendarId::Japanese:
+      return false;
+#endif
+  }
+  JS_CONSTEXPR_CRASH("invalid calendar id");
+}
+
+constexpr bool CalendarEraStartsAtYearBoundary(CalendarId id, EraCode era) {
+  MOZ_ASSERT_IF(id != CalendarId::Japanese,
+                CalendarEraStartsAtYearBoundary(id));
+  return era == EraCode::Standard || era == EraCode::Inverse;
+}
+
 }  // namespace js::temporal

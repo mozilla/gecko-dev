@@ -2131,6 +2131,87 @@ static bool CalendarDateDifference(JSContext* cx, CalendarId calendar,
 #endif
 }
 
+/**
+ * CalendarFieldDescriptors ( calendar, type )
+ */
+static FieldDescriptors CalendarFieldDescriptors(
+    CalendarId calendar, mozilla::EnumSet<CalendarField> type) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  mozilla::EnumSet<TemporalField> relevant;
+  mozilla::EnumSet<TemporalField> required;
+
+  // "era" and "eraYear" are relevant for calendars with multiple eras when
+  // "year" is present.
+  if (type.contains(CalendarField::Year) && CalendarEraRelevant(calendar)) {
+    relevant += {TemporalField::Era, TemporalField::EraYear};
+  }
+
+  return {relevant, required};
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarFieldKeysToIgnore ( calendar, keys )
+ */
+static auto CalendarFieldKeysToIgnore(CalendarId calendar,
+                                      mozilla::EnumSet<TemporalField> keys) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  static constexpr auto eraOrEraYear = mozilla::EnumSet{
+      TemporalField::Era,
+      TemporalField::EraYear,
+  };
+
+  static constexpr auto eraOrAnyYear = mozilla::EnumSet{
+      TemporalField::Era,
+      TemporalField::EraYear,
+      TemporalField::Year,
+  };
+
+  static constexpr auto monthOrMonthCode = mozilla::EnumSet{
+      TemporalField::Month,
+      TemporalField::MonthCode,
+  };
+
+  static constexpr auto dayOrAnyMonth = mozilla::EnumSet{
+      TemporalField::Day,
+      TemporalField::Month,
+      TemporalField::MonthCode,
+  };
+
+  // A field always invalidates at least itself, so start with ignoring all
+  // input fields.
+  auto result = keys;
+
+  // "month" and "monthCode" are mutually exclusive.
+  if (!(keys & monthOrMonthCode).isEmpty()) {
+    result += monthOrMonthCode;
+  }
+
+  // "era", "eraYear", and "year" are mutually exclusive in non-single era
+  // calendar systems.
+  if (CalendarEraRelevant(calendar) && !(keys & eraOrAnyYear).isEmpty()) {
+    result += eraOrAnyYear;
+  }
+
+  // If eras don't start at year boundaries, we have to ignore "era" and
+  // "eraYear" if any of "day", "month", or "monthCode" is present.
+  if (!CalendarEraStartsAtYearBoundary(calendar) &&
+      !(keys & dayOrAnyMonth).isEmpty()) {
+    result += eraOrEraYear;
+  }
+
+  return result;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
 static bool ToCalendarField(JSContext* cx, JSLinearString* linear,
                             CalendarField* result) {
   if (StringEqualsLiteral(linear, "year")) {
@@ -2200,6 +2281,15 @@ static bool BuiltinCalendarFields(JSContext* cx, CalendarId calendarId,
 
     // Step 6.b.iv.
     temporalFields += ToTemporalField(fieldName);
+  }
+
+  // Steps 7-8.
+  if (calendarId != CalendarId::ISO8601) {
+    auto extraFieldDescriptors =
+        CalendarFieldDescriptors(calendarId, fieldNames);
+
+    temporalFields += extraFieldDescriptors.relevant;
+    temporalFields += extraFieldDescriptors.required;
   }
 
   // Reserve space for the append operation.
@@ -2289,7 +2379,32 @@ static bool BuiltinCalendarFields(JSContext* cx, CalendarId calendarId,
     seen += field;
   }
 
-  // Steps 7-9.
+  // Steps 7-8.
+  if (calendarId != CalendarId::ISO8601) {
+    auto extraFieldDescriptors = CalendarFieldDescriptors(calendarId, seen);
+
+    mozilla::EnumSet<TemporalField> temporalFields{};
+    temporalFields += extraFieldDescriptors.relevant;
+    temporalFields += extraFieldDescriptors.required;
+
+    // Remove already present fields.
+    for (auto fieldName : seen) {
+      temporalFields -= ToTemporalField(fieldName);
+    }
+
+    // Reserve space for the append operation.
+    if (!fieldNames.reserve(fieldNames.length() + temporalFields.size())) {
+      return false;
+    }
+
+    // Append all calendar fields, sorted.
+    for (auto field : SortedTemporalFields{temporalFields}) {
+      auto* name = ToPropertyName(cx, field);
+      fieldNames.infallibleAppend(StringValue(name));
+    }
+  }
+
+  // Step 9.
   auto* array =
       NewDenseCopiedArray(cx, fieldNames.length(), fieldNames.begin());
   if (!array) {
@@ -4362,7 +4477,12 @@ static PlainObject* BuiltinCalendarMergeFields(
     }
   }
 
-  auto toIgnore = ISOFieldKeysToIgnore(additionalFieldKeys);
+  mozilla::EnumSet<TemporalField> toIgnore;
+  if (calendarId == CalendarId::ISO8601) {
+    toIgnore = ISOFieldKeysToIgnore(additionalFieldKeys);
+  } else {
+    toIgnore = CalendarFieldKeysToIgnore(calendarId, additionalFieldKeys);
+  }
   MOZ_ASSERT(toIgnore.contains(additionalFieldKeys));
 
   Rooted<PropertyHashSet> overriddenKeys(cx, PropertyHashSet(cx));
