@@ -7,15 +7,16 @@ header = """/* This Source Code Form is subject to the terms of the Mozilla Publ
 #ifdef __clang__
 #  pragma GCC diagnostic ignored "-Wreturn-type-c-linkage"
 #endif
-// Work-around silly windows.h define.
-#pragma push_macro("STRICT")
-#undef STRICT
-#pragma push_macro("TRANSPARENT")
-#undef TRANSPARENT
+
+#ifndef mozilla_ServoStyleConsts_h
+#define mozilla_ServoStyleConsts_h
 """
 trailer = """
 #pragma pop_macro("STRICT")
 #pragma pop_macro("TRANSPARENT")
+
+#endif // mozilla_ServoStyleConsts_h
+
 #pragma GCC diagnostic pop
 #include "mozilla/ServoStyleConstsInlines.h"
 """
@@ -23,7 +24,6 @@ autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated usi
  * To modify this file, edit servo/ports/geckolib/cbindgen.toml and build Firefox.
  */
 """
-include_guard = "mozilla_ServoStyleConsts_h"
 include_version = true
 braces = "SameLine"
 line_length = 80
@@ -31,6 +31,13 @@ tab_width = 2
 language = "C++"
 namespaces = ["mozilla"]
 includes = ["mozilla/ServoStyleConstsForwards.h", "mozilla/ServoStyleSet.h"]
+after_includes = """
+// Work-around silly windows.h define.
+#pragma push_macro("STRICT")
+#undef STRICT
+#pragma push_macro("TRANSPARENT")
+#undef TRANSPARENT
+"""
 
 [parse]
 parse_deps = true
