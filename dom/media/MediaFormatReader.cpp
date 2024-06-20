@@ -1784,9 +1784,14 @@ void MediaFormatReader::NotifyNewOutput(
       decoder.mDecodePerfRecorder->Record(
           sample->mTime.ToMicroseconds(),
           [startTime = sample->mTime.ToMicroseconds(),
-           endTime =
-               sample->GetEndTime().ToMicroseconds()](PlaybackStage& aStage) {
+           endTime = sample->GetEndTime().ToMicroseconds(),
+           flag =
+               sample->mType == MediaData::Type::VIDEO_DATA &&
+                       decoder.mIsHardwareAccelerated
+                   ? MediaInfoFlag::HardwareDecoding
+                   : MediaInfoFlag::SoftwareDecoding](PlaybackStage& aStage) {
             aStage.SetStartTimeAndEndTime(startTime, endTime);
+            aStage.AddFlag(flag);
           });
     }
   }
@@ -1992,8 +1997,6 @@ void MediaFormatReader::DecoderData::StartRecordDecodingPerf(
   flag |=
       aSample->mKeyframe ? MediaInfoFlag::KeyFrame : MediaInfoFlag::NonKeyFrame;
   if (aTrack == TrackInfo::kVideoTrack) {
-    flag |= mIsHardwareAccelerated ? MediaInfoFlag::HardwareDecoding
-                                   : MediaInfoFlag::SoftwareDecoding;
     const nsCString& mimeType = GetCurrentInfo()->mMimeType;
     if (MP4Decoder::IsH264(mimeType)) {
       flag |= MediaInfoFlag::VIDEO_H264;

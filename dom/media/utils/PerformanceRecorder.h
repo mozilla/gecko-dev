@@ -151,6 +151,8 @@ class PlaybackStage : public StageBase {
         Some(std::pair<uint64_t, uint64_t>{aStartTime, aEndTime});
   }
 
+  void AddFlag(MediaInfoFlag aFlag);
+
   MediaStage mStage;
   int32_t mHeight;
   MediaInfoFlag mFlag;
