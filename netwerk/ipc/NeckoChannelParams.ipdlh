@@ -173,6 +173,7 @@ struct LoadInfoArgs
   uint32_t                    httpsOnlyStatus;
   bool                        hstsStatus;
   bool                        hasValidUserGestureActivation;
+  bool                        textDirectiveUserActivation;
   bool                        allowDeprecatedSystemRequests;
   bool                        isInDevToolsContext;
   bool                        parserCreatedScript;
@@ -228,6 +229,11 @@ struct ParentLoadInfoForwarderArgs
   // set or the load was triggered from External. (Mostly this bool is used
   // in the context of Sec-Fetch-User.)
   bool hasValidUserGestureActivation;
+
+  // Returns true if at the time of the loadinfo construction the document
+  // that triggered this load has an user activation, so that if the new
+  // document has a text fragment, its first text directive can be scrolled to.
+  bool textDirectiveUserActivation;
 
   // The SystemPrincipal is disallowed to make requests to the public web
   // and all requests will be cancelled. Setting this flag to true prevents

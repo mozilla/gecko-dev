@@ -587,6 +587,7 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
       integrityMetadata, aLoadInfo->GetSkipContentSniffing(),
       aLoadInfo->GetHttpsOnlyStatus(), aLoadInfo->GetHstsStatus(),
       aLoadInfo->GetHasValidUserGestureActivation(),
+      aLoadInfo->GetTextDirectiveUserActivation(),
       aLoadInfo->GetAllowDeprecatedSystemRequests(),
       aLoadInfo->GetIsInDevToolsContext(), aLoadInfo->GetParserCreatedScript(),
       aLoadInfo->GetIsFromProcessingFrameAttributes(),
@@ -877,6 +878,7 @@ nsresult LoadInfoArgsToLoadInfo(const LoadInfoArgs& loadInfoArgs,
       loadInfoArgs.cspNonce(), loadInfoArgs.integrityMetadata(),
       loadInfoArgs.skipContentSniffing(), loadInfoArgs.httpsOnlyStatus(),
       loadInfoArgs.hstsStatus(), loadInfoArgs.hasValidUserGestureActivation(),
+      loadInfoArgs.textDirectiveUserActivation(),
       loadInfoArgs.allowDeprecatedSystemRequests(),
       loadInfoArgs.isInDevToolsContext(), loadInfoArgs.parserCreatedScript(),
       loadInfoArgs.storagePermission(), overriddenFingerprintingSettings,
@@ -954,6 +956,7 @@ void LoadInfoToParentLoadInfoForwarder(
       aLoadInfo->GetAllowInsecureRedirectToDataURI(), ipcController, tainting,
       aLoadInfo->GetSkipContentSniffing(), aLoadInfo->GetHttpsOnlyStatus(),
       aLoadInfo->GetHstsStatus(), aLoadInfo->GetHasValidUserGestureActivation(),
+      aLoadInfo->GetTextDirectiveUserActivation(),
       aLoadInfo->GetAllowDeprecatedSystemRequests(),
       aLoadInfo->GetIsInDevToolsContext(), aLoadInfo->GetParserCreatedScript(),
       aLoadInfo->GetTriggeringSandboxFlags(),
@@ -988,6 +991,9 @@ nsresult MergeParentLoadInfoForwarder(
   } else {
     aLoadInfo->MaybeIncreaseTainting(aForwarderArgs.tainting());
   }
+  rv = aLoadInfo->SetTextDirectiveUserActivation(
+      aForwarderArgs.textDirectiveUserActivation());
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = aLoadInfo->SetSkipContentSniffing(aForwarderArgs.skipContentSniffing());
   NS_ENSURE_SUCCESS(rv, rv);

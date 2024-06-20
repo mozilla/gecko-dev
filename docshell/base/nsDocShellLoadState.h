@@ -258,6 +258,10 @@ class nsDocShellLoadState final {
 
   void SetHasValidUserGestureActivation(bool HasValidUserGestureActivation);
 
+  void SetTextDirectiveUserActivation(bool aTextDirectiveUserActivation);
+
+  bool GetTextDirectiveUserActivation();
+
   const nsCString& TypeHint() const;
 
   void SetTypeHint(const nsCString& aTypeHint);
@@ -549,6 +553,11 @@ class nsDocShellLoadState final {
 
   // Is this load triggered by a user gesture?
   bool mHasValidUserGestureActivation;
+
+  // True if a text directive can be scrolled to. This is true either if the
+  // load is triggered by a user, or the document has an unconsumed activation
+  // (eg. client redirect).
+  bool mTextDirectiveUserActivation = false;
 
   // Whether this load can steal the focus from the source browsing context.
   bool mAllowFocusMove;
