@@ -1298,6 +1298,46 @@ static UniqueICU4XWeekCalculator CreateICU4WeekCalculator(JSContext* cx,
   return UniqueICU4XWeekCalculator{result};
 }
 
+static constexpr size_t EraNameMaxLength() {
+  size_t length = 0;
+  for (auto calendar : AvailableCalendars()) {
+    for (auto era : CalendarEras(calendar)) {
+      for (auto name : CalendarEraNames(calendar, era)) {
+        length = std::max(length, name.length());
+      }
+    }
+  }
+  return length;
+}
+
+static mozilla::Maybe<EraCode> EraForString(CalendarId calendar,
+                                            JSLinearString* string) {
+  MOZ_ASSERT(CalendarEraRelevant(calendar));
+
+  // Note: Assigning MaxLength to EraNameMaxLength() breaks the CDT indexer.
+  constexpr size_t MaxLength = 24;
+  static_assert(MaxLength >= EraNameMaxLength(),
+                "Storage size is at least as large as the largest known era");
+
+  if (string->length() > MaxLength || !StringIsAscii(string)) {
+    return mozilla::Nothing();
+  }
+
+  char chars[MaxLength] = {};
+  CopyChars(reinterpret_cast<JS::Latin1Char*>(chars), *string);
+
+  auto stringView = std::string_view{chars, string->length()};
+
+  for (auto era : CalendarEras(calendar)) {
+    for (auto name : CalendarEraNames(calendar, era)) {
+      if (name == stringView) {
+        return mozilla::Some(era);
+      }
+    }
+  }
+  return mozilla::Nothing();
+}
+
 static constexpr std::string_view IcuEraName(CalendarId calendar, EraCode era) {
   switch (calendar) {
     // https://docs.rs/icu/latest/icu/calendar/iso/struct.Iso.html#era-codes
@@ -2831,6 +2871,406 @@ static bool CalendarDateDifference(JSContext* cx, CalendarId calendar,
 #endif
 }
 
+#if defined(MOZ_ICU4X)
+struct EraYears {
+  // Year starting from the calendar epoch.
+  mozilla::Maybe<EraYear> fromEpoch;
+
+  // Year starting from a specific calendar era.
+  mozilla::Maybe<EraYear> fromEra;
+};
+
+/**
+ * CalendarResolveFields ( calendar, fields, type )
+ * CalendarDateToISO ( calendar, fields, overflow )
+ * CalendarMonthDayToISOReferenceDate ( calendar, fields, overflow )
+ *
+ * Extract `year` and `eraYear` from |fields| and perform some initial
+ * validation to ensure the values are valid for the requested calendar.
+ */
+static bool CalendarFieldYear(JSContext* cx, CalendarId calendar,
+                              Handle<TemporalFields> fields, EraYears* result) {
+  auto era = fields.era();
+
+  double eraYear = fields.eraYear();
+  MOZ_ASSERT(IsInteger(eraYear) || std::isnan(eraYear));
+
+  double year = fields.year();
+  MOZ_ASSERT(IsInteger(year) || std::isnan(year));
+
+  // |eraYear| is to be ignored when not relevant for |calendar| per
+  // CalendarResolveFields.
+  bool hasRelevantEra = era && CalendarEraRelevant(calendar);
+
+  // Case 1: |year| field is present.
+  mozilla::Maybe<EraYear> fromEpoch;
+  if (!std::isnan(year)) {
+    int32_t intYear;
+    if (!mozilla::NumberEqualsInt32(year, &intYear)) {
+      ReportCalendarFieldOverflow(cx, "year", year);
+      return false;
+    }
+
+    fromEpoch = mozilla::Some(CalendarEraYear(calendar, intYear));
+  } else {
+    MOZ_ASSERT(hasRelevantEra);
+  }
+
+  // Case 2: |era| and |eraYear| fields are present and relevant for |calendar|.
+  mozilla::Maybe<EraYear> fromEra;
+  if (hasRelevantEra) {
+    MOZ_ASSERT(!std::isnan(eraYear));
+
+    auto* linearEra = era->ensureLinear(cx);
+    if (!linearEra) {
+      return false;
+    }
+
+    // Ensure the requested era is valid for |calendar|.
+    auto eraCode = EraForString(calendar, linearEra);
+    if (!eraCode) {
+      if (auto code = QuoteString(cx, era)) {
+        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                 JSMSG_TEMPORAL_CALENDAR_INVALID_ERA,
+                                 code.get());
+      }
+      return false;
+    }
+
+    int32_t intEraYear;
+    if (!mozilla::NumberEqualsInt32(eraYear, &intEraYear)) {
+      ReportCalendarFieldOverflow(cx, "eraYear", eraYear);
+      return false;
+    }
+
+    fromEra = mozilla::Some(EraYear{*eraCode, intEraYear});
+  }
+
+  *result = {fromEpoch, fromEra};
+  return true;
+}
+
+struct Month {
+  // Month code.
+  MonthCode code;
+
+  // Ordinal month number.
+  int32_t ordinal = 0;
+};
+
+/**
+ * CalendarResolveFields ( calendar, fields, type )
+ * CalendarDateToISO ( calendar, fields, overflow )
+ * CalendarMonthDayToISOReferenceDate ( calendar, fields, overflow )
+ *
+ * Extract `month` and `monthCode` from |fields| and perform some initial
+ * validation to ensure the values are valid for the requested calendar.
+ */
+static bool CalendarFieldMonth(JSContext* cx, CalendarId calendar,
+                               Handle<TemporalFields> fields,
+                               TemporalOverflow overflow, Month* result) {
+  double month = fields.month();
+  MOZ_ASSERT((IsInteger(month) && month > 0) || std::isnan(month));
+
+  auto monthCode = fields.monthCode();
+
+  // Case 1: |month| field is present.
+  int32_t intMonth = 0;
+  if (!std::isnan(month)) {
+    if (!mozilla::NumberEqualsInt32(month, &intMonth)) {
+      intMonth = 0;
+    }
+
+    const int32_t monthsPerYear = CalendarMonthsPerYear(calendar);
+    if (intMonth < 1 || intMonth > monthsPerYear) {
+      if (overflow == TemporalOverflow::Reject) {
+        ReportCalendarFieldOverflow(cx, "month", month);
+        return false;
+      }
+      MOZ_ASSERT(overflow == TemporalOverflow::Constrain);
+
+      intMonth = monthsPerYear;
+    }
+
+    MOZ_ASSERT(intMonth > 0);
+  }
+
+  // Case 2: |monthCode| field is present.
+  MonthCode fromMonthCode;
+  if (monthCode) {
+    if (!ParseMonthCode(cx, calendar, monthCode, &fromMonthCode)) {
+      return false;
+    }
+  } else {
+    MOZ_ASSERT(intMonth > 0);
+  }
+
+  *result = {fromMonthCode, intMonth};
+  return true;
+}
+
+/**
+ * CalendarResolveFields ( calendar, fields, type )
+ * CalendarDateToISO ( calendar, fields, overflow )
+ * CalendarMonthDayToISOReferenceDate ( calendar, fields, overflow )
+ *
+ * Extract `day` from |fields| and perform some initial validation to ensure the
+ * value is valid for the requested calendar.
+ */
+static bool CalendarFieldDay(JSContext* cx, CalendarId calendar,
+                             Handle<TemporalFields> fields,
+                             TemporalOverflow overflow, int32_t* result) {
+  double day = fields.day();
+  MOZ_ASSERT(IsInteger(day) && day > 0);
+
+  int32_t intDay;
+  if (!mozilla::NumberEqualsInt32(day, &intDay)) {
+    intDay = 0;
+  }
+
+  // Constrain to a valid day value in this calendar.
+  int32_t daysPerMonth = CalendarDaysInMonth(calendar).second;
+  if (intDay < 1 || intDay > daysPerMonth) {
+    if (overflow == TemporalOverflow::Reject) {
+      ReportCalendarFieldOverflow(cx, "day", day);
+      return false;
+    }
+    MOZ_ASSERT(overflow == TemporalOverflow::Constrain);
+
+    intDay = daysPerMonth;
+  }
+
+  *result = intDay;
+  return true;
+}
+
+/**
+ * CalendarResolveFields ( calendar, fields, type )
+ *
+ * > The operation throws a TypeError exception if the properties of fields are
+ * > internally inconsistent within the calendar [...]. For example:
+ * >
+ * > [...] The values for "era" and "eraYear" do not together identify the same
+ * > year as the value for "year".
+ */
+static bool CalendarFieldEraYearMatchesYear(JSContext* cx, CalendarId calendar,
+                                            Handle<TemporalFields> fields,
+                                            const capi::ICU4XDate* date) {
+  double year = fields.year();
+  MOZ_ASSERT(!std::isnan(year));
+
+  int32_t intYear;
+  MOZ_ALWAYS_TRUE(mozilla::NumberEqualsInt32(year, &intYear));
+
+  int32_t yearFromEraYear;
+  if (!CalendarDateYear(cx, calendar, date, &yearFromEraYear)) {
+    return false;
+  }
+
+  // The user requested year must match the actual (extended/epoch) year.
+  if (intYear != yearFromEraYear) {
+    ToCStringBuf yearCbuf;
+    const char* yearStr = NumberToCString(&yearCbuf, intYear);
+
+    ToCStringBuf fromEraCbuf;
+    const char* fromEraStr = NumberToCString(&fromEraCbuf, yearFromEraYear);
+
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE_YEAR,
+                              yearStr, fromEraStr);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * CalendarResolveFields ( calendar, fields, type )
+ *
+ * > The operation throws a TypeError exception if the properties of fields are
+ * > internally inconsistent within the calendar [...]. For example:
+ * >
+ * > If "month" and "monthCode" in the calendar [...] do not identify the same
+ * > month.
+ */
+static bool CalendarFieldMonthCodeMatchesMonth(JSContext* cx,
+                                               Handle<TemporalFields> fields,
+                                               const capi::ICU4XDate* date,
+                                               int32_t month) {
+  int32_t ordinal = capi::ICU4XDate_ordinal_month(date);
+
+  // The user requested month must match the actual ordinal month.
+  if (month != ordinal) {
+    ToCStringBuf cbuf;
+    const char* monthStr = NumberToCString(&cbuf, fields.month());
+
+    if (auto code = QuoteString(cx, fields.monthCode())) {
+      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                               JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE_MONTHCODE,
+                               code.get(), monthStr);
+    }
+    return false;
+  }
+  return true;
+}
+
+static PlainDate ToPlainDate(const capi::ICU4XDate* date) {
+  UniqueICU4XIsoDate isoDate{capi::ICU4XDate_to_iso(date)};
+
+  int32_t isoYear = capi::ICU4XIsoDate_year(isoDate.get());
+
+  int32_t isoMonth = capi::ICU4XIsoDate_month(isoDate.get());
+  MOZ_ASSERT(1 <= isoMonth && isoMonth <= 12);
+
+  int32_t isoDay = capi::ICU4XIsoDate_day_of_month(isoDate.get());
+  MOZ_ASSERT(1 <= isoDay && isoDay <= ::ISODaysInMonth(isoYear, isoMonth));
+
+  return {isoYear, isoMonth, isoDay};
+}
+#endif
+
+/**
+ * CalendarDateToISO ( calendar, fields, overflow )
+ */
+static bool CalendarDateToISO(JSContext* cx, CalendarId calendar,
+                              Handle<TemporalFields> fields,
+                              TemporalOverflow overflow, PlainDate* result) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  EraYears eraYears;
+  if (!CalendarFieldYear(cx, calendar, fields, &eraYears)) {
+    return false;
+  }
+
+  Month month;
+  if (!CalendarFieldMonth(cx, calendar, fields, overflow, &month)) {
+    return false;
+  }
+
+  int32_t day;
+  if (!CalendarFieldDay(cx, calendar, fields, overflow, &day)) {
+    return false;
+  }
+
+  auto cal = CreateICU4XCalendar(cx, calendar);
+  if (!cal) {
+    return false;
+  }
+
+  // Use |eraYear| if present, so we can more easily check for consistent
+  // |year| and |eraYear| fields.
+  auto eraYear = eraYears.fromEra ? *eraYears.fromEra : *eraYears.fromEpoch;
+
+  UniqueICU4XDate date;
+  if (month.code != MonthCode{}) {
+    date = CreateDateFromCodes(cx, calendar, cal.get(), eraYear, month.code,
+                               day, overflow);
+  } else {
+    date = CreateDateFrom(cx, calendar, cal.get(), eraYear, month.ordinal, day,
+                          overflow);
+  }
+  if (!date) {
+    return false;
+  }
+
+  // |year| and |eraYear| must be consistent.
+  if (eraYears.fromEpoch && eraYears.fromEra) {
+    if (!CalendarFieldEraYearMatchesYear(cx, calendar, fields, date.get())) {
+      return false;
+    }
+  }
+
+  // |month| and |monthCode| must be consistent.
+  if (month.code != MonthCode{} && month.ordinal > 0) {
+    if (!CalendarFieldMonthCodeMatchesMonth(cx, fields, date.get(),
+                                            month.ordinal)) {
+      return false;
+    }
+  }
+
+  *result = ToPlainDate(date.get());
+  return true;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+enum class FieldType { Date, YearMonth, MonthDay };
+
+/**
+ * CalendarFieldDescriptors ( calendar, type )
+ */
+static FieldDescriptors CalendarFieldDescriptors(CalendarId calendar,
+                                                 FieldType type) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  mozilla::EnumSet<TemporalField> relevant;
+  mozilla::EnumSet<TemporalField> required;
+
+  switch (type) {
+    case FieldType::Date: {
+      relevant = {
+          TemporalField::Day,
+          TemporalField::Month,
+          TemporalField::MonthCode,
+          TemporalField::Year,
+      };
+      required = {
+          TemporalField::Day,
+      };
+
+      if (CalendarEraRelevant(calendar)) {
+        // "era" and "eraYear" are relevant for calendars with multiple eras.
+        relevant += {TemporalField::Era, TemporalField::EraYear};
+      } else {
+        // "year" is required for calendars with a single era.
+        required += TemporalField::Year;
+      }
+      break;
+    }
+    case FieldType::YearMonth: {
+      relevant = {
+          TemporalField::Month,
+          TemporalField::MonthCode,
+          TemporalField::Year,
+      };
+      required = {};
+
+      if (CalendarEraRelevant(calendar)) {
+        // "era" and "eraYear" are relevant for calendars with multiple eras.
+        relevant += {TemporalField::Era, TemporalField::EraYear};
+      } else {
+        // "year" is required for calendars with a single era.
+        required += TemporalField::Year;
+      }
+      break;
+    }
+    case FieldType::MonthDay: {
+      relevant = {
+          TemporalField::Day,
+          TemporalField::Month,
+          TemporalField::MonthCode,
+          TemporalField::Year,
+      };
+      required = {
+          TemporalField::Day,
+      };
+
+      if (CalendarEraRelevant(calendar)) {
+        // "era" and "eraYear" are relevant for calendars with multiple eras.
+        relevant += {TemporalField::Era, TemporalField::EraYear};
+      }
+      break;
+    }
+  }
+
+  return {relevant, required};
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
 /**
  * CalendarFieldDescriptors ( calendar, type )
  */
@@ -2907,6 +3347,77 @@ static auto CalendarFieldKeysToIgnore(CalendarId calendar,
   }
 
   return result;
+#else
+  MOZ_CRASH("ICU4X disabled");
+#endif
+}
+
+/**
+ * CalendarResolveFields ( calendar, fields, type )
+ */
+static bool CalendarResolveFields(JSContext* cx, CalendarId calendar,
+                                  Handle<TemporalFields> fields,
+                                  FieldType type) {
+#if defined(MOZ_ICU4X)
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  double day = fields.day();
+  MOZ_ASSERT((IsInteger(day) && day > 0) || std::isnan(day));
+
+  double month = fields.month();
+  MOZ_ASSERT((IsInteger(month) && month > 0) || std::isnan(month));
+
+  auto monthCode = fields.monthCode();
+  auto era = fields.era();
+
+  double eraYear = fields.eraYear();
+  MOZ_ASSERT(IsInteger(eraYear) || std::isnan(eraYear));
+
+  double year = fields.year();
+  MOZ_ASSERT(IsInteger(year) || std::isnan(year));
+
+  // Date and Month-Day require |day| to be present.
+  bool requireDay = type == FieldType::Date || type == FieldType::MonthDay;
+
+  // Date and Year-Month require |year| (or |eraYear|) to be present.
+  // Month-Day requires |year| (or |eraYear|) if |monthCode| is absent.
+  bool requireYear =
+      type == FieldType::Date || type == FieldType::YearMonth || !monthCode;
+
+  // Determine if any calendar fields are missing.
+  const char* missingField = nullptr;
+  if (!monthCode && std::isnan(month)) {
+    // |monthCode| or |month| must be present.
+    missingField = "monthCode";
+  } else if (requireDay && std::isnan(day)) {
+    missingField = "day";
+  } else if (!CalendarEraRelevant(calendar)) {
+    if (requireYear && std::isnan(year)) {
+      missingField = "year";
+    }
+  } else {
+    if ((era && std::isnan(eraYear)) || (!era && !std::isnan(eraYear))) {
+      // |era| and |eraYear| must either both be present or both absent.
+      missingField = era ? "eraYear" : "era";
+    } else if (requireYear && std::isnan(year) && std::isnan(eraYear)) {
+      missingField = "eraYear";
+    }
+  }
+
+  if (missingField) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_MISSING_FIELD,
+                              missingField);
+    return false;
+  }
+
+  // FIXME: spec bug - inconsistent monthCode/month are spec'ed to throw a
+  // TypeError, but ISOResolveMonth throws a RangeError.
+
+  // FIXME: spec issue - inconsistent monthCode/month for type=MONTH-DAY are
+  // checked, but inconsistent eraYear/year are ignored. Is this intentional?
+
+  return true;
 #else
   MOZ_CRASH("ICU4X disabled");
 #endif
@@ -4642,10 +5153,23 @@ static PlainDateObject* BuiltinCalendarDateFromFields(
 
   // Steps 6-7.
   Rooted<TemporalFields> dateFields(cx);
-  if (!PrepareTemporalFields(cx, fields, relevantFieldNames,
-                             {TemporalField::Day, TemporalField::Year},
-                             &dateFields)) {
-    return nullptr;
+  if (calendarId == CalendarId::ISO8601) {
+    // Step 6.
+    if (!PrepareTemporalFields(cx, fields, relevantFieldNames,
+                               {TemporalField::Day, TemporalField::Year},
+                               &dateFields)) {
+      return nullptr;
+    }
+  } else {
+    // Step 7.a.
+    auto calendarRelevantFieldDescriptors =
+        CalendarFieldDescriptors(calendarId, FieldType::Date);
+
+    // Step 7.b.
+    if (!PrepareTemporalFields(cx, fields, relevantFieldNames, {},
+                               calendarRelevantFieldDescriptors, &dateFields)) {
+      return nullptr;
+    }
   }
 
   // Step 8.
@@ -4656,15 +5180,28 @@ static PlainDateObject* BuiltinCalendarDateFromFields(
     }
   }
 
-  // Step 9.a.
-  if (!ISOResolveMonth(cx, &dateFields)) {
-    return nullptr;
-  }
-
-  // Step 9.b.
+  // Steps 9-10.
   PlainDate result;
-  if (!ISODateFromFields(cx, dateFields, overflow, &result)) {
-    return nullptr;
+  if (calendarId == CalendarId::ISO8601) {
+    // Step 9.a.
+    if (!ISOResolveMonth(cx, &dateFields)) {
+      return nullptr;
+    }
+
+    // Step 9.b.
+    if (!ISODateFromFields(cx, dateFields, overflow, &result)) {
+      return nullptr;
+    }
+  } else {
+    // Step 10.a.
+    if (!CalendarResolveFields(cx, calendarId, dateFields, FieldType::Date)) {
+      return nullptr;
+    }
+
+    // Step 10.b.
+    if (!CalendarDateToISO(cx, calendarId, dateFields, overflow, &result)) {
+      return nullptr;
+    }
   }
 
   // Step 11.
@@ -4830,9 +5367,28 @@ static PlainYearMonthObject* BuiltinCalendarYearMonthFromFields(
 
   // Steps 6-7.
   Rooted<TemporalFields> dateFields(cx);
-  if (!PrepareTemporalFields(cx, fields, relevantFieldNames,
-                             {TemporalField::Year}, &dateFields)) {
-    return nullptr;
+  if (calendarId == CalendarId::ISO8601) {
+    // Step 6.a.
+    if (!PrepareTemporalFields(cx, fields, relevantFieldNames,
+                               {TemporalField::Year}, &dateFields)) {
+      return nullptr;
+    }
+  } else {
+    // Step 7.a.
+    auto calendarRelevantFieldDescriptors =
+        CalendarFieldDescriptors(calendarId, FieldType::YearMonth);
+
+    // Step 7.b.
+    if (!PrepareTemporalFields(cx, fields, relevantFieldNames, {},
+                               calendarRelevantFieldDescriptors, &dateFields)) {
+      return nullptr;
+    }
+
+    // Step 7.c.
+    int32_t firstDayIndex = 1;
+
+    // Step 7.d.
+    dateFields.day() = firstDayIndex;
   }
 
   // Step 8.
@@ -4843,15 +5399,29 @@ static PlainYearMonthObject* BuiltinCalendarYearMonthFromFields(
     }
   }
 
-  // Step 9.a.
-  if (!ISOResolveMonth(cx, &dateFields)) {
-    return nullptr;
-  }
-
-  // Step 9.b.
+  // Steps 9-10.
   PlainDate result;
-  if (!ISOYearMonthFromFields(cx, dateFields, overflow, &result)) {
-    return nullptr;
+  if (calendarId == CalendarId::ISO8601) {
+    // Step 9.a.
+    if (!ISOResolveMonth(cx, &dateFields)) {
+      return nullptr;
+    }
+
+    // Step 9.b.
+    if (!ISOYearMonthFromFields(cx, dateFields, overflow, &result)) {
+      return nullptr;
+    }
+  } else {
+    // Step 10.a.
+    if (!CalendarResolveFields(cx, calendarId, dateFields,
+                               FieldType::YearMonth)) {
+      return nullptr;
+    }
+
+    // Step 10.b.
+    if (!CalendarDateToISO(cx, calendarId, dateFields, overflow, &result)) {
+      return nullptr;
+    }
   }
 
   // Step 11.
