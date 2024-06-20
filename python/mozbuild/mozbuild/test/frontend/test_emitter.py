@@ -1382,17 +1382,16 @@ class TestEmitterBasic(unittest.TestCase):
         # ...and ldflags.
         ldflags = objs.pop()
         self.assertIsInstance(ldflags, ComputedFlags)
-        self.assertEqual(len(objs), 3)
+        self.assertEqual(len(objs), 2)
         for o in objs:
             self.assertIsInstance(o, HostSources)
 
         suffix_map = {obj.canonical_suffix: obj for obj in objs}
-        self.assertEqual(len(suffix_map), 3)
+        self.assertEqual(len(suffix_map), 2)
 
         expected = {
             ".cpp": ["a.cpp", "b.cc", "c.cxx"],
             ".c": ["d.c"],
-            ".mm": ["e.mm", "f.mm"],
         }
         for suffix, files in expected.items():
             sources = suffix_map[suffix]

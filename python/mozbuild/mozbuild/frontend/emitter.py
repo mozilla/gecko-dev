@@ -1121,7 +1121,7 @@ class TreeMetadataEmitter(LoggingMixin):
         all_suffixes = list(suffix_map.keys())
         varmap = dict(
             SOURCES=(Sources, all_suffixes),
-            HOST_SOURCES=(HostSources, [".c", ".mm", ".cpp"]),
+            HOST_SOURCES=(HostSources, [".c", ".cpp"]),
             UNIFIED_SOURCES=(UnifiedSources, [".c", ".mm", ".m", ".cpp"]),
         )
         # Only include a WasmSources context if there are any WASM_SOURCES.
