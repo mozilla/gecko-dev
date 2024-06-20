@@ -502,8 +502,8 @@ pref("browser.urlbar.quicksuggest.showOnboardingDialogAfterNRestarts", 0);
 
 // The indexes of the sponsored and non-sponsored quick suggest results within
 // the general results group.
-pref("browser.urlbar.quicksuggest.sponsoredIndex", -1);
-pref("browser.urlbar.quicksuggest.nonSponsoredIndex", -1);
+pref("browser.urlbar.quicksuggest.sponsoredIndex", 0);
+pref("browser.urlbar.quicksuggest.nonSponsoredIndex", 0);
 
 // Whether quick suggest results can be shown in position specified in the
 // suggestions.

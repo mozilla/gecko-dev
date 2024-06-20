@@ -531,8 +531,8 @@ add_tasks_with_rust(async function suggestionsBeforeGeneral_others() {
         suggestion: SPONSORED_SEARCH_STRING + " bar",
         engineName: Services.search.defaultEngine.name,
       }),
-      ...historyResults,
       expectedSponsoredResult(),
+      ...historyResults,
     ],
   });
 
@@ -616,8 +616,8 @@ add_tasks_with_rust(async function generalBeforeSuggestions_others() {
         query: SPONSORED_SEARCH_STRING,
         engineName: Services.search.defaultEngine.name,
       }),
-      ...historyResults,
       expectedSponsoredResult(),
+      ...historyResults,
       makeSearchResult(context, {
         query: SPONSORED_SEARCH_STRING,
         suggestion: SPONSORED_SEARCH_STRING + " foo",
@@ -736,6 +736,9 @@ async function doDedupeAgainstURLTest({
       engineName: Services.search.defaultEngine.name,
     }),
   ];
+
+  expectedResults.push(expectedQuickSuggestResult);
+
   if (expectOther) {
     expectedResults.push(
       makeVisitResult(context, {
@@ -744,7 +747,6 @@ async function doDedupeAgainstURLTest({
       })
     );
   }
-  expectedResults.push(expectedQuickSuggestResult);
 
   info("Doing second query");
   await check_results({ context, matches: expectedResults });
@@ -1025,10 +1027,11 @@ add_tasks_with_rust(async function dedupeAgainstURL_timestamps() {
     iabCategory: "22 - Shopping",
   });
 
+  const QUICK_SUGGEST_INDEX = 1;
   let expectedResults = [
     expectedHeuristic,
-    ...expectedBadTimestampResults,
     expectedQuickSuggest,
+    ...expectedBadTimestampResults,
   ];
 
   let controller = UrlbarTestUtils.newMockController();
@@ -1078,9 +1081,8 @@ add_tasks_with_rust(async function dedupeAgainstURL_timestamps() {
       `result.heuristic at result index ${i}`
     );
 
-    // Check payloads except for the last result, which should be the quick
-    // suggest.
-    if (i != expectedResults.length - 1) {
+    // Check payloads except for the quick suggest.
+    if (i != QUICK_SUGGEST_INDEX) {
       Assert.deepEqual(
         getPayload(context.results[i]),
         getPayload(expectedResults[i]),
@@ -1091,7 +1093,7 @@ add_tasks_with_rust(async function dedupeAgainstURL_timestamps() {
 
   // Check the quick suggest's payload excluding the timestamp-related
   // properties.
-  let actualQuickSuggest = context.results[context.results.length - 1];
+  let actualQuickSuggest = context.results[QUICK_SUGGEST_INDEX];
   let timestampKeys = [
     "displayUrl",
     "sponsoredClickUrl",

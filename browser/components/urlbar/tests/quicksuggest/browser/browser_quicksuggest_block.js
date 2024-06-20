@@ -88,7 +88,7 @@ async function doBasicBlockTest({ block }) {
 
 async function doOneBasicBlockTest({ result, block }) {
   let index = 2;
-  let suggested_index = -1;
+  let suggested_index = 0;
   let suggested_index_relative_to_group = true;
   let match_type = "firefox-suggest";
   let isSponsored = result.iab_category != "5 - Education";

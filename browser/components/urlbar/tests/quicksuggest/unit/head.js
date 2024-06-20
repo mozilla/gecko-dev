@@ -164,7 +164,7 @@ function makeWikipediaResult({
   blockId = 2,
   advertiser = "Wikipedia",
   iabCategory = "5 - Education",
-  suggestedIndex = -1,
+  suggestedIndex = 0,
   isSuggestedIndexRelativeToGroup = true,
 }) {
   let result = {
@@ -230,7 +230,7 @@ function makeAmpResult({
   blockId = 1,
   advertiser = "Amp",
   iabCategory = "22 - Shopping",
-  suggestedIndex = -1,
+  suggestedIndex = 0,
   isSuggestedIndexRelativeToGroup = true,
   requestId = undefined,
 } = {}) {
