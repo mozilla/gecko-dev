@@ -47,10 +47,6 @@
   }
 }
 
-menupopup[emptyplacesresult="true"] > .hide-if-empty-places-result {
-  display: none;
-}
-
 #navigator-toolbox ,
 #mainPopupSet {
   min-width: 1px;
