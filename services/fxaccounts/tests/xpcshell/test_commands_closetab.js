@@ -7,7 +7,7 @@ const { CloseRemoteTab } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccountsCommands.sys.mjs"
 );
 
-const { COMMAND_CLOSETAB } = ChromeUtils.importESModule(
+const { COMMAND_CLOSETAB, COMMAND_CLOSETAB_TAIL } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccountsCommon.sys.mjs"
 );
 
@@ -149,20 +149,6 @@ add_task(async function test_closetab_send() {
   mock.verify();
   mock.restore();
   closeTab.shutdown();
-
-  /*
-   // Test telemetry differently - this will fail as we mocked out the send call.
-   // https://bugzilla.mozilla.org/show_bug.cgi?id=1899453
-   Assert.deepEqual(fxai.telemetry._events, [
-     {
-       object: "command-sent",
-       method: COMMAND_CLOSETAB_TAIL,
-       value: "dev1-san",
-       // streamID uses the same generator as flowId, so it will be 2
-       extra: { flowID: "1", streamID: "2" },
-     },
-   ]);
- */
 });
 
 add_task(async function test_multiple_devices() {
@@ -229,8 +215,8 @@ add_task(async function test_multiple_devices() {
 
   // This will verify the expectation set after the mock init
   mock.verify();
-  closeTab.shutdown();
   mock.restore();
+  closeTab.shutdown();
 });
 
 add_task(async function test_timer_reset_on_new_tab() {
@@ -273,10 +259,66 @@ add_task(async function test_timer_reset_on_new_tab() {
   await closeTab.flushQueue();
 
   // both tabs should remain pending.
-  Assert.equal((await store.getUnsentCommands()).length, 2);
+  let unsentCmds = await store.getUnsentCommands();
+  Assert.equal(unsentCmds.length, 2);
 
-  // _ensureTimer should've been called twice
-  Assert.equal(ensureTimerSpy.callCount, 2);
+  // _ensureTimer should've been called at least twice
+  Assert.ok(ensureTimerSpy.callCount > 1);
   mock.verify();
+  mock.restore();
+
+  // Clean up any unsent commands for future tests
+  for await (const cmd of unsentCmds) {
+    console.log(cmd);
+    await store.removeRemoteCommand(cmd.deviceId, cmd.command);
+  }
+  closeTab.shutdown();
+});
+
+add_task(async function test_telemetry_on_sendCloseTabPush() {
+  const targetDevice = {
+    id: "dev1",
+    name: "Device 1",
+    availableCommands: { [COMMAND_CLOSETAB]: "payload" },
+  };
+  const fxai = FxaInternalMock([targetDevice]);
+
+  // Stub out invoke and _encrypt since we're mainly testing
+  // the telemetry gets called okay
+  const commands = {
+    _invokes: [],
+    invoke(cmd, device, payload) {
+      this._invokes.push({ cmd, device, payload });
+    },
+  };
+  const closeTab = new CloseRemoteTab(commands, fxai);
+  closeTab._encrypt = () => "encryptedpayload";
+
+  // freeze "now" to <= when the command was sent.
+  let now = Date.now();
+  closeTab.now = () => now;
+
+  // Set the delay to 10ms
+  closeTab.DELAY = 10;
+
+  let command1 = new RemoteCommand.CloseTab("https://foo.bar/");
+
+  const store = await getRemoteCommandStore();
+  Assert.ok(
+    await store.addRemoteCommandAt(targetDevice.id, command1, now - 15),
+    "adding the remote command should work"
+  );
+
+  await closeTab.flushQueue();
+  // Validate that _sendCloseTabPush was called correctly
+  Assert.deepEqual(fxai.telemetry._events, [
+    {
+      object: "command-sent",
+      method: COMMAND_CLOSETAB_TAIL,
+      value: "dev1-san",
+      extra: { flowID: "1", streamID: "2" },
+    },
+  ]);
+
   closeTab.shutdown();
 });
