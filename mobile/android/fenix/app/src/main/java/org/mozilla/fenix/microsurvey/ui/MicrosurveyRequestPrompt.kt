@@ -4,6 +4,9 @@
 
 package org.mozilla.fenix.microsurvey.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -18,6 +21,10 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -26,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
+import org.mozilla.fenix.compose.utils.KeyboardState
+import org.mozilla.fenix.compose.utils.keyboardAsState
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -40,17 +49,27 @@ fun MicrosurveyRequestPrompt(
     title: String = "Help make printing in Firefox better. It only takes a sec.",
     onStartSurveyClicked: () -> Unit = {},
 ) {
-    Column(
-        modifier = Modifier
-            .background(color = FirefoxTheme.colors.layer1)
-            .padding(all = 16.dp),
+    // Using the keyboard state (open/closed) to determine if the microsurvey is visible
+    val isKeyboardVisible by keyboardAsState()
+    var isMicrosurveyVisible by remember { mutableStateOf(true) }
+    isMicrosurveyVisible = isKeyboardVisible == KeyboardState.Closed
+
+    // Adding animation properties for the microsurvey's visibility transitions
+    AnimatedVisibility(
+        visible = isMicrosurveyVisible,
+        enter = slideInVertically(initialOffsetY = { it }),
+        exit = slideOutVertically(targetOffsetY = { it }),
     ) {
-        Header(title)
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        PrimaryButton(text = stringResource(id = R.string.micro_survey_continue_button_label)) {
-            onStartSurveyClicked()
+        Column(
+            modifier = Modifier
+                .background(color = FirefoxTheme.colors.layer1)
+                .padding(all = 16.dp),
+        ) {
+            Header(title)
+            Spacer(modifier = Modifier.height(8.dp))
+            PrimaryButton(text = stringResource(id = R.string.micro_survey_continue_button_label)) {
+                onStartSurveyClicked()
+            }
         }
     }
 }
