@@ -10,9 +10,11 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/intl/Locale.h"
 #include "mozilla/Likely.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Range.h"
+#include "mozilla/Span.h"
 #include "mozilla/TextUtils.h"
 
 #include <algorithm>
@@ -31,7 +33,6 @@
 #include "NamespaceImports.h"
 
 #include "builtin/Array.h"
-#include "builtin/String.h"
 #include "builtin/temporal/Duration.h"
 #include "builtin/temporal/PlainDate.h"
 #include "builtin/temporal/PlainDateTime.h"
@@ -496,54 +497,115 @@ static bool ToPlainDate(JSContext* cx, Handle<Value> temporalDateLike,
 }
 
 #ifdef DEBUG
-template <typename CharT>
-static bool StringIsAsciiLowerCase(mozilla::Range<CharT> str) {
-  return std::all_of(str.begin().get(), str.end().get(), [](CharT ch) {
+static bool StringIsAsciiLowerCase(mozilla::Span<const char> str) {
+  return std::all_of(str.begin(), str.end(), [](char ch) {
     return mozilla::IsAscii(ch) && !mozilla::IsAsciiUppercaseAlpha(ch);
   });
-}
-
-static bool StringIsAsciiLowerCase(const JSLinearString* str) {
-  JS::AutoCheckCannotGC nogc;
-  return str->hasLatin1Chars()
-             ? StringIsAsciiLowerCase(str->latin1Range(nogc))
-             : StringIsAsciiLowerCase(str->twoByteRange(nogc));
 }
 #endif
 
 /**
  * Return the BCP-47 string for the given calendar id.
  */
-static const char* CalendarIdToBcp47(CalendarId id) {
+static std::string_view CalendarIdToBcp47(CalendarId id) {
   switch (id) {
     case CalendarId::ISO8601:
       return "iso8601";
+#if defined(MOZ_ICU4X)
+    case CalendarId::Buddhist:
+      return "buddhist";
+    case CalendarId::Chinese:
+      return "chinese";
+    case CalendarId::Coptic:
+      return "coptic";
+    case CalendarId::Dangi:
+      return "dangi";
+    case CalendarId::Ethiopian:
+      return "ethiopic";
+    case CalendarId::EthiopianAmeteAlem:
+      return "ethioaa";
+    case CalendarId::Gregorian:
+      return "gregory";
+    case CalendarId::Hebrew:
+      return "hebrew";
+    case CalendarId::Indian:
+      return "indian";
+    case CalendarId::Islamic:
+      return "islamic";
+    case CalendarId::IslamicCivil:
+      return "islamic-civil";
+    case CalendarId::IslamicRGSA:
+      return "islamic-rgsa";
+    case CalendarId::IslamicTabular:
+      return "islamic-tbla";
+    case CalendarId::IslamicUmmAlQura:
+      return "islamic-umalqura";
+    case CalendarId::Japanese:
+      return "japanese";
+    case CalendarId::Persian:
+      return "persian";
+    case CalendarId::ROC:
+      return "roc";
+#endif
   }
   MOZ_CRASH("invalid calendar id");
 }
 
-/**
- * AvailableCalendars ( )
- */
-static constexpr auto AvailableCalendars() {
-  return std::array{
-      CalendarId::ISO8601,
-  };
-}
+class MOZ_STACK_CLASS AsciiLowerCaseChars final {
+  static constexpr size_t InlineCapacity = 24;
+
+  Vector<char, InlineCapacity> chars_;
+
+ public:
+  explicit AsciiLowerCaseChars(JSContext* cx) : chars_(cx) {}
+
+  operator mozilla::Span<const char>() const {
+    return mozilla::Span<const char>{chars_};
+  }
+
+  [[nodiscard]] bool init(JSLinearString* str) {
+    MOZ_ASSERT(StringIsAscii(str));
+
+    if (!chars_.resize(str->length())) {
+      return false;
+    }
+
+    CopyChars(reinterpret_cast<JS::Latin1Char*>(chars_.begin()), *str);
+
+    mozilla::intl::AsciiToLowerCase(chars_.begin(), chars_.length(),
+                                    chars_.begin());
+
+    return true;
+  }
+};
 
 /**
  * IsBuiltinCalendar ( id )
  */
-static mozilla::Maybe<CalendarId> IsBuiltinCalendar(JSLinearString* id) {
+static mozilla::Maybe<CalendarId> IsBuiltinCalendar(
+    mozilla::Span<const char> id) {
   // Callers must convert to lower case.
   MOZ_ASSERT(StringIsAsciiLowerCase(id));
+  MOZ_ASSERT(id.size() > 0);
+
+  // Reject invalid types before trying to resolve aliases.
+  if (mozilla::intl::LocaleParser::CanParseUnicodeExtensionType(id).isErr()) {
+    return mozilla::Nothing();
+  }
+
+  // Resolve calendar aliases.
+  static constexpr auto key = mozilla::MakeStringSpan("ca");
+  if (const char* replacement =
+          mozilla::intl::Locale::ReplaceUnicodeExtensionType(key, id)) {
+    id = mozilla::MakeStringSpan(replacement);
+  }
 
   // Step 1.
-  static constexpr auto calendars = AvailableCalendars();
+  static constexpr auto& calendars = AvailableCalendars();
 
   // Step 2.
   for (auto identifier : calendars) {
-    if (StringEqualsAscii(id, CalendarIdToBcp47(identifier))) {
+    if (id == mozilla::Span{CalendarIdToBcp47(identifier)}) {
       return mozilla::Some(identifier);
     }
   }
@@ -554,7 +616,7 @@ static mozilla::Maybe<CalendarId> IsBuiltinCalendar(JSLinearString* id) {
 
 static bool ToBuiltinCalendar(JSContext* cx, Handle<JSLinearString*> id,
                               CalendarId* result) {
-  if (!StringIsAscii(id)) {
+  if (!StringIsAscii(id) || id->empty()) {
     if (auto chars = QuoteString(cx, id)) {
       JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                                JSMSG_TEMPORAL_CALENDAR_INVALID_ID, chars.get());
@@ -562,27 +624,21 @@ static bool ToBuiltinCalendar(JSContext* cx, Handle<JSLinearString*> id,
     return false;
   }
 
-  JSString* lower = StringToLowerCase(cx, id);
-  if (!lower) {
+  AsciiLowerCaseChars lowerCaseChars(cx);
+  if (!lowerCaseChars.init(id)) {
     return false;
   }
 
-  JSLinearString* linear = lower->ensureLinear(cx);
-  if (!linear) {
-    return false;
+  if (auto builtin = IsBuiltinCalendar(lowerCaseChars)) {
+    *result = *builtin;
+    return true;
   }
 
-  auto builtin = IsBuiltinCalendar(linear);
-  if (!builtin) {
-    if (auto chars = QuoteString(cx, id)) {
-      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                               JSMSG_TEMPORAL_CALENDAR_INVALID_ID, chars.get());
-    }
-    return false;
+  if (auto chars = QuoteString(cx, id)) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_TEMPORAL_CALENDAR_INVALID_ID, chars.get());
   }
-
-  *result = *builtin;
-  return true;
+  return false;
 }
 
 bool js::temporal::ToBuiltinCalendar(JSContext* cx, Handle<JSString*> id,
@@ -831,7 +887,7 @@ bool js::temporal::GetTemporalCalendarWithISODefault(
 static JSLinearString* ToTemporalCalendarIdentifier(JSContext* cx,
                                                     CalendarId id) {
   // TODO: Avoid string allocations?
-  return NewStringCopyZ<CanGC>(cx, CalendarIdToBcp47(id));
+  return NewStringCopy<CanGC>(cx, CalendarIdToBcp47(id));
 }
 
 /**
