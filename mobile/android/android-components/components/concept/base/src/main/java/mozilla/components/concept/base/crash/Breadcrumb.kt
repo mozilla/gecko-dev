@@ -7,11 +7,7 @@ package mozilla.components.concept.base.crash
 import android.annotation.SuppressLint
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
-import org.json.JSONObject
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
 
 /**
  * Represents a single crash breadcrumb.
@@ -106,29 +102,5 @@ data class Breadcrumb(
 
     override fun compareTo(other: Breadcrumb): Int {
         return this.date.compareTo(other.date)
-    }
-
-    /**
-     * Converts Breadcrumb into a JSON object
-     *
-     * @return A [JSONObject] that contains the information within the [Breadcrumb]
-     */
-    fun toJson(): JSONObject {
-        val simpleDateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-        simpleDateFormat.timeZone = TimeZone.getTimeZone("GMT")
-        val jsonObject = JSONObject()
-        jsonObject.put("timestamp", simpleDateFormat.format(this.date))
-        jsonObject.put("message", this.message)
-        jsonObject.put("category", this.category)
-        jsonObject.put("level", this.level.value)
-        jsonObject.put("type", this.type.value)
-
-        val dataJsonObject = JSONObject()
-        for ((k, v) in this.data) {
-            dataJsonObject.put(k, v)
-        }
-
-        jsonObject.put("data", dataJsonObject)
-        return jsonObject
     }
 }

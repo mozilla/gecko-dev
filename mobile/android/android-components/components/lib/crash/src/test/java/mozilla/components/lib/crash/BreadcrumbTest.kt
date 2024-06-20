@@ -5,7 +5,10 @@
 package mozilla.components.lib.crash
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import mozilla.components.concept.base.crash.Breadcrumb
+import mozilla.components.lib.crash.db.toBreadcrumb
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
@@ -187,6 +190,7 @@ class BreadcrumbTest {
             testType,
             testDate,
         )
-        assertEquals(breadcrumb.toJson().toString(), testString)
+
+        assertEquals(Json.encodeToString(breadcrumb.toBreadcrumb()), testString)
     }
 }

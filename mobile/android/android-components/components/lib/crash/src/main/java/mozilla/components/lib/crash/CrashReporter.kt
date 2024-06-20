@@ -96,6 +96,7 @@ class CrashReporter(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
     private val maxBreadCrumbs: Int = 30,
     private val notificationsDelegate: NotificationsDelegate,
+    private val runtimeTagProviders: List<RuntimeTagProvider> = emptyList(),
 ) : CrashReporting {
     private val database: CrashDatabase by lazy { CrashDatabase.get(context) }
 
@@ -103,6 +104,9 @@ class CrashReporter(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     private val crashBreadcrumbs = BreadcrumbList(maxBreadCrumbs)
+
+    private val runtimeTags: Map<String, String>
+        get() = runtimeTagProviders.fold(emptyMap()) { acc, provider -> acc + provider() }
 
     init {
         if (services.isEmpty() and telemetryServices.isEmpty()) {
@@ -117,7 +121,11 @@ class CrashReporter(
         instance = this
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
-        val handler = ExceptionHandler(applicationContext, this, defaultHandler)
+        val handler = ExceptionHandler(
+            context = applicationContext,
+            crashReporter = this,
+            defaultExceptionHandler = defaultHandler,
+        )
         Thread.setDefaultUncaughtExceptionHandler(handler)
 
         return this
@@ -210,31 +218,38 @@ class CrashReporter(
         crashBreadcrumbs.add(breadcrumb)
     }
 
+    /**
+     * Called when a crash occurs. The crash information will be persisted locally along with
+     * relevant runtime tags, and this function will decide whether to send a report automatically,
+     * prompt the user to send a report, or do nothing.
+     */
     internal fun onCrash(context: Context, crash: Crash) {
         if (!enabled) {
             return
         }
 
-        logger.info("Received crash: $crash")
+        val crashWithTags = crash.withTags(runtimeTags)
 
-        database.crashDao().insertCrashSafely(crash.toEntity())
+        logger.info("Received crash: $crashWithTags")
+
+        database.crashDao().insertCrashSafely(crashWithTags.toEntity())
 
         if (telemetryServices.isNotEmpty()) {
-            sendCrashTelemetry(context, crash)
+            sendCrashTelemetry(context, crashWithTags)
         }
 
         // If crash is native code and non fatal then the view will handle the user prompt
-        if (shouldSendIntent(crash)) {
+        if (shouldSendIntent(crashWithTags)) {
             // App has registered a pending intent
-            sendNonFatalCrashIntent(context, crash)
+            sendNonFatalCrashIntent(context, crashWithTags)
             return
         }
 
         if (services.isNotEmpty()) {
-            if (CrashPrompt.shouldPromptForCrash(shouldPrompt, crash)) {
-                showPromptOrNotification(context, crash)
+            if (CrashPrompt.shouldPromptForCrash(shouldPrompt, crashWithTags)) {
+                showPromptOrNotification(context, crashWithTags)
             } else {
-                sendCrashReport(context, crash)
+                sendCrashReport(context, crashWithTags)
             }
         }
     }

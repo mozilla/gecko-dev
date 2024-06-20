@@ -25,6 +25,9 @@ private const val INTENT_BREADCRUMBS = "breadcrumbs"
 // Crash timestamp intent extras
 private const val INTENT_CRASH_TIMESTAMP = "crashTimestamp"
 
+// Crash runtime tag extras
+private const val INTENT_RUNTIME_TAGS = "runtimeTags"
+
 // Native code crash intent extras (Mirroring GeckoView values)
 private const val INTENT_UUID = "uuid"
 private const val INTENT_MINIDUMP_PATH = "minidumpPath"
@@ -43,16 +46,34 @@ sealed class Crash {
     abstract val uuid: String
 
     /**
+     * Runtime tags that should be attached to any report associated with this crash.
+     */
+    abstract val runtimeTags: Map<String, String>
+
+    /**
+     * Breadcrumbs associated with the crash to send with the crash report
+     */
+    abstract val breadcrumbs: ArrayList<Breadcrumb>
+
+    /**
+     * Timestamp time of when the crash happened
+     */
+    abstract val timestamp: Long
+
+    /**
      * A crash caused by an uncaught exception.
      *
      * @property timestamp Time of when the crash happened.
      * @property throwable The [Throwable] that caused the crash.
      * @property breadcrumbs List of breadcrumbs to send with the crash report.
+     * @property runtimeTags Runtime tags that should be attached to any report associated with this crash.
+     * @property uuid Unique ID identifying this crash.
      */
     data class UncaughtExceptionCrash(
-        val timestamp: Long,
+        override val timestamp: Long,
         val throwable: Throwable,
-        val breadcrumbs: ArrayList<Breadcrumb>,
+        override val breadcrumbs: ArrayList<Breadcrumb>,
+        override val runtimeTags: Map<String, String> = emptyMap(),
         override val uuid: String = UUID.randomUUID().toString(),
     ) : Crash() {
         override fun toBundle() = Bundle().apply {
@@ -60,15 +81,25 @@ sealed class Crash {
             putSerializable(INTENT_EXCEPTION, throwable as Serializable)
             putLong(INTENT_CRASH_TIMESTAMP, timestamp)
             putParcelableArrayList(INTENT_BREADCRUMBS, breadcrumbs)
+            putSerializable(INTENT_RUNTIME_TAGS, HashMap(runtimeTags))
         }
 
         companion object {
+            @Suppress("UNCHECKED_CAST", "DEPRECATION")
             internal fun fromBundle(bundle: Bundle) = UncaughtExceptionCrash(
                 uuid = bundle.getString(INTENT_UUID) as String,
-                throwable = bundle.getSerializableCompat(INTENT_EXCEPTION, Throwable::class.java) as Throwable,
-                breadcrumbs = bundle.getParcelableArrayListCompat(INTENT_BREADCRUMBS, Breadcrumb::class.java)
+                throwable = bundle.getSerializableCompat(
+                    INTENT_EXCEPTION,
+                    Throwable::class.java,
+                ) as Throwable,
+                breadcrumbs = bundle.getParcelableArrayListCompat(
+                    INTENT_BREADCRUMBS,
+                    Breadcrumb::class.java,
+                )
                     ?: arrayListOf(),
                 timestamp = bundle.getLong(INTENT_CRASH_TIMESTAMP, System.currentTimeMillis()),
+                runtimeTags = bundle.getSerializable(INTENT_RUNTIME_TAGS) as? HashMap<String, String>
+                    ?: hashMapOf(),
             )
         }
     }
@@ -87,15 +118,18 @@ sealed class Crash {
      *                       or whether the application can recover from it.
      * @property breadcrumbs List of breadcrumbs to send with the crash report.
      * @property remoteType The type of child process (when available).
+     * @property runtimeTags Runtime tags that should be attached to any report associated with this crash.
+     * @property uuid Unique ID identifying this crash.
      */
     data class NativeCodeCrash(
-        val timestamp: Long,
+        override val timestamp: Long,
         val minidumpPath: String?,
         val minidumpSuccess: Boolean,
         val extrasPath: String?,
         @ProcessType val processType: String?,
-        val breadcrumbs: ArrayList<Breadcrumb>,
+        override val breadcrumbs: ArrayList<Breadcrumb>,
         val remoteType: String?,
+        override val runtimeTags: Map<String, String> = emptyMap(),
         override val uuid: String = UUID.randomUUID().toString(),
     ) : Crash() {
         override fun toBundle() = Bundle().apply {
@@ -107,6 +141,7 @@ sealed class Crash {
             putLong(INTENT_CRASH_TIMESTAMP, timestamp)
             putParcelableArrayList(INTENT_BREADCRUMBS, breadcrumbs)
             putString(INTENT_REMOTE_TYPE, remoteType)
+            putSerializable(INTENT_RUNTIME_TAGS, HashMap(runtimeTags))
         }
 
         /**
@@ -135,20 +170,30 @@ sealed class Crash {
              */
             const val PROCESS_TYPE_BACKGROUND_CHILD = "BACKGROUND_CHILD"
 
-            @StringDef(PROCESS_TYPE_MAIN, PROCESS_TYPE_FOREGROUND_CHILD, PROCESS_TYPE_BACKGROUND_CHILD)
+            @StringDef(
+                PROCESS_TYPE_MAIN,
+                PROCESS_TYPE_FOREGROUND_CHILD,
+                PROCESS_TYPE_BACKGROUND_CHILD,
+            )
             @Retention(AnnotationRetention.SOURCE)
             annotation class ProcessType
 
+            @Suppress("UNCHECKED_CAST", "DEPRECATION")
             internal fun fromBundle(bundle: Bundle) = NativeCodeCrash(
                 uuid = bundle.getString(INTENT_UUID) ?: UUID.randomUUID().toString(),
                 minidumpPath = bundle.getString(INTENT_MINIDUMP_PATH, null),
                 minidumpSuccess = bundle.getBoolean(INTENT_MINIDUMP_SUCCESS, false),
                 extrasPath = bundle.getString(INTENT_EXTRAS_PATH, null),
                 processType = bundle.getString(INTENT_PROCESS_TYPE, PROCESS_TYPE_MAIN),
-                breadcrumbs = bundle.getParcelableArrayListCompat(INTENT_BREADCRUMBS, Breadcrumb::class.java)
+                breadcrumbs = bundle.getParcelableArrayListCompat(
+                    INTENT_BREADCRUMBS,
+                    Breadcrumb::class.java,
+                )
                     ?: arrayListOf(),
                 remoteType = bundle.getString(INTENT_REMOTE_TYPE, null),
                 timestamp = bundle.getLong(INTENT_CRASH_TIMESTAMP, System.currentTimeMillis()),
+                runtimeTags = bundle.getSerializable(INTENT_RUNTIME_TAGS) as? HashMap<String, String>
+                    ?: hashMapOf(),
             )
         }
     }
@@ -157,6 +202,21 @@ sealed class Crash {
 
     internal fun fillIn(intent: Intent) {
         intent.putExtra(INTENT_CRASH, toBundle())
+    }
+
+    /**
+     * Returns a new crash with the passed in tags added
+     */
+    fun withTags(tags: Map<String, String>): Crash {
+        return when (this) {
+            is NativeCodeCrash -> this.copy(
+                runtimeTags = runtimeTags.toMutableMap().apply { putAll(tags) },
+            )
+
+            is UncaughtExceptionCrash -> this.copy(
+                runtimeTags = runtimeTags.toMutableMap().apply { putAll(tags) },
+            )
+        }
     }
 
     companion object {
@@ -172,4 +232,17 @@ sealed class Crash {
 
         fun isCrashIntent(intent: Intent) = intent.extras?.containsKey(INTENT_CRASH) ?: false
     }
+}
+
+/**
+ * Interface used when implemented to provide tags to attach to crashes at runtime
+ */
+interface RuntimeTagProvider {
+
+    /**
+     * When invoked, should return relevant runtime tags
+     *
+     * @return relevant runtime tags
+     */
+    operator fun invoke(): Map<String, String>
 }

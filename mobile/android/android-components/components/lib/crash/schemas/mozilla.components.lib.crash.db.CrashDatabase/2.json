@@ -1,0 +1,133 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "7a5216bc6e2b05e148c7be884514c704",
+    "entities": [
+      {
+        "tableName": "crashes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`crashType` TEXT NOT NULL DEFAULT 'UNCAUGHT', `uuid` TEXT NOT NULL, `runtime_tags` TEXT NOT NULL DEFAULT '{}', `breadcrumbs` TEXT DEFAULT null, `created_at` INTEGER NOT NULL, `stacktrace` TEXT NOT NULL, `minidumpPath` TEXT DEFAULT null, `minidumpSuccess` INTEGER DEFAULT null, `extrasPath` TEXT DEFAULT null, `remoteType` TEXT DEFAULT null, PRIMARY KEY(`uuid`))",
+        "fields": [
+          {
+            "fieldPath": "crashType",
+            "columnName": "crashType",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'UNCAUGHT'"
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "runtimeTags",
+            "columnName": "runtime_tags",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'{}'"
+          },
+          {
+            "fieldPath": "breadcrumbs",
+            "columnName": "breadcrumbs",
+            "affinity": "TEXT",
+            "notNull": false,
+            "defaultValue": "null"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stacktrace",
+            "columnName": "stacktrace",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "minidumpPath",
+            "columnName": "minidumpPath",
+            "affinity": "TEXT",
+            "notNull": false,
+            "defaultValue": "null"
+          },
+          {
+            "fieldPath": "minidumpSuccess",
+            "columnName": "minidumpSuccess",
+            "affinity": "INTEGER",
+            "notNull": false,
+            "defaultValue": "null"
+          },
+          {
+            "fieldPath": "extrasPath",
+            "columnName": "extrasPath",
+            "affinity": "TEXT",
+            "notNull": false,
+            "defaultValue": "null"
+          },
+          {
+            "fieldPath": "remoteType",
+            "columnName": "remoteType",
+            "affinity": "TEXT",
+            "notNull": false,
+            "defaultValue": "null"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uuid"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "reports",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `crash_uuid` TEXT NOT NULL, `service_id` TEXT NOT NULL, `report_id` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "crashUuid",
+            "columnName": "crash_uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serviceId",
+            "columnName": "service_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reportId",
+            "columnName": "report_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7a5216bc6e2b05e148c7be884514c704')"
+    ]
+  }
+}
