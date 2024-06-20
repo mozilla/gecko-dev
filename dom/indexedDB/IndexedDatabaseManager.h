@@ -153,6 +153,8 @@ class IndexedDatabaseManager final : public nsIIndexedDatabaseManager {
 
   void Destroy();
 
+  nsresult EnsureBackgroundActor();
+
   static void LoggingModePrefChangedCallback(const char* aPrefName,
                                              void* aClosure);
 
