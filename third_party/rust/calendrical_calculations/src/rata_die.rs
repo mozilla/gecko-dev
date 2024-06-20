@@ -7,6 +7,7 @@
 // the Apache License, Version 2.0 which can be found at the calendrical_calculations
 // package root or at http://www.apache.org/licenses/LICENSE-2.0.
 
+use core::fmt;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 #[allow(unused_imports)]
 use core_maths::*;
@@ -17,7 +18,7 @@ use core_maths::*;
 ///
 /// It is a logic error to construct a RataDie
 /// except from a date that is in range of one of the official calendars.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RataDie(i64);
 
 impl RataDie {
@@ -72,6 +73,17 @@ impl RataDie {
     /// Convert this to a [`Moment`]
     pub const fn as_moment(&self) -> Moment {
         Moment::new(self.0 as f64)
+    }
+}
+
+impl fmt::Debug for RataDie {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let rd = self.0;
+        if let Ok((y, m, d)) = crate::iso::iso_from_fixed(*self) {
+            write!(f, "{rd} R.D. ({y}-{m:02}-{d:02})")
+        } else {
+            write!(f, "{rd} R.D. (out of bounds)")
+        }
     }
 }
 

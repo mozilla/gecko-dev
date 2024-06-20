@@ -4,10 +4,10 @@
 
 mod fixtures;
 
-use crate::fixtures::structs::DateFixture;
 use criterion::{
     black_box, criterion_group, criterion_main, measurement::WallTime, BenchmarkGroup, Criterion,
 };
+use fixtures::DateFixture;
 use icu_calendar::{AsCalendar, Calendar, Date, DateDuration};
 
 fn bench_date<A: AsCalendar>(date: &mut Date<A>) {
@@ -55,7 +55,7 @@ fn bench_calendar<C: Clone + Calendar>(
 
 fn date_benches(c: &mut Criterion) {
     let mut group = c.benchmark_group("date");
-    let fxs = fixtures::get_dates_fixture().unwrap();
+    let fxs = serde_json::from_str::<DateFixture>(include_str!("fixtures/datetimes.json")).unwrap();
 
     bench_calendar(
         &mut group,
@@ -139,7 +139,7 @@ fn date_benches(c: &mut Criterion) {
     #[cfg(feature = "bench")]
     bench_calendar(
         &mut group,
-        "calendar/chinese",
+        "calendar/chinese_calculating",
         &fxs,
         icu::calendar::chinese::Chinese::new_always_calculating(),
         |y, m, d| {
@@ -156,7 +156,24 @@ fn date_benches(c: &mut Criterion) {
     #[cfg(feature = "bench")]
     bench_calendar(
         &mut group,
-        "calendar/dangi",
+        "calendar/chinese_cached",
+        &fxs,
+        icu::calendar::chinese::Chinese::new(),
+        |y, m, d| {
+            Date::try_new_chinese_date_with_calendar(
+                y,
+                m,
+                d,
+                icu::calendar::chinese::Chinese::new(),
+            )
+            .unwrap()
+        },
+    );
+
+    #[cfg(feature = "bench")]
+    bench_calendar(
+        &mut group,
+        "calendar/dangi_calculating",
         &fxs,
         icu::calendar::dangi::Dangi::new_always_calculating(),
         |y, m, d| {
@@ -173,18 +190,22 @@ fn date_benches(c: &mut Criterion) {
     #[cfg(feature = "bench")]
     bench_calendar(
         &mut group,
+        "calendar/dangi_cached",
+        &fxs,
+        icu::calendar::dangi::Dangi::new(),
+        |y, m, d| {
+            Date::try_new_dangi_date_with_calendar(y, m, d, icu::calendar::dangi::Dangi::new())
+                .unwrap()
+        },
+    );
+
+    #[cfg(feature = "bench")]
+    bench_calendar(
+        &mut group,
         "calendar/hebrew",
         &fxs,
-        icu::calendar::hebrew::Hebrew::new_always_calculating(),
-        |y, m, d| {
-            Date::try_new_hebrew_date_with_calendar(
-                y,
-                m,
-                d,
-                icu::calendar::hebrew::Hebrew::new_always_calculating(),
-            )
-            .unwrap()
-        },
+        icu::calendar::hebrew::Hebrew,
+        |y, m, d| Date::try_new_hebrew_date(y, m, d).unwrap(),
     );
 
     #[cfg(feature = "bench")]
@@ -201,13 +222,13 @@ fn date_benches(c: &mut Criterion) {
         &mut group,
         "calendar/islamic/civil",
         &fxs,
-        icu::calendar::islamic::IslamicCivil::new_always_calculating(),
+        icu::calendar::islamic::IslamicCivil::new(),
         |y, m, d| {
             Date::try_new_islamic_civil_date_with_calendar(
                 y,
                 m,
                 d,
-                icu::calendar::islamic::IslamicCivil::new_always_calculating(),
+                icu::calendar::islamic::IslamicCivil::new(),
             )
             .unwrap()
         },
@@ -218,13 +239,13 @@ fn date_benches(c: &mut Criterion) {
         &mut group,
         "calendar/islamic/tabular",
         &fxs,
-        icu::calendar::islamic::IslamicTabular::new_always_calculating(),
+        icu::calendar::islamic::IslamicTabular::new(),
         |y, m, d| {
             Date::try_new_islamic_tabular_date_with_calendar(
                 y,
                 m,
                 d,
-                icu::calendar::islamic::IslamicTabular::new_always_calculating(),
+                icu::calendar::islamic::IslamicTabular::new(),
             )
             .unwrap()
         },

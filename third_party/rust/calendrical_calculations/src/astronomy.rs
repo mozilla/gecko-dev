@@ -38,10 +38,14 @@ fn div_euclid_f64(n: f64, d: f64) -> f64 {
 /// elevation in meters, and zone as a UTC offset in fractional days (ex. UTC+1 would have zone = 1.0 / 24.0)
 #[allow(clippy::exhaustive_structs)] // This is all that is needed by the book algorithms
 pub struct Location {
-    pub latitude: f64,  // latitude from -90 to 90
-    pub longitude: f64, // longitude from -180 to 180
-    pub elevation: f64, // elevation in meters
-    pub zone: f64,      // UTC timezone offset in fractional days (1 hr = 1.0 / 24.0 day)
+    /// latitude from -90 to 90
+    pub latitude: f64,
+    /// longitude from -180 to 180
+    pub longitude: f64,
+    /// elevation in meters
+    pub elevation: f64,
+    /// UTC timezone offset in fractional days (1 hr = 1.0 / 24.0 day)
+    pub zone: f64,
 }
 
 /// The location of Mecca; used for Islamic calendar calculations.
@@ -230,6 +234,7 @@ impl Astronomical {
     pub fn ephemeris_correction(moment: Moment) -> f64 {
         // TODO: Change this to directly convert from moment to Gregorian year through a separate fn
         let year = moment.inner() / 365.2425;
+        // Note: Converting to int handles negative number Euclidean division skew.
         let year_int = (if year > 0.0 { year + 1.0 } else { year }) as i32;
         let fixed_mid_year = crate::iso::fixed_from_iso(year_int, 7, 1);
         let c = ((fixed_mid_year.to_i64_date() as f64) - 693596.0) / 36525.0;
@@ -1186,7 +1191,7 @@ impl Astronomical {
         lunar_phase: Option<f64>,
     ) -> RataDie {
         let lunar_phase =
-            lunar_phase.unwrap_or_else(|| Self::calculate_lunar_phase_at_or_before(date));
+            lunar_phase.unwrap_or_else(|| Self::calculate_new_moon_at_or_before(date));
         let age = date.to_f64_date() - lunar_phase;
         let tau = if age <= 4.0 || Self::visible_crescent((date - 1).as_moment(), location) {
             lunar_phase + 29.0 // Next new moon
@@ -1207,7 +1212,7 @@ impl Astronomical {
         lunar_phase: Option<f64>,
     ) -> RataDie {
         let lunar_phase =
-            lunar_phase.unwrap_or_else(|| Self::calculate_lunar_phase_at_or_before(date));
+            lunar_phase.unwrap_or_else(|| Self::calculate_new_moon_at_or_before(date));
         let age = date.to_f64_date() - lunar_phase;
         let tau = if age <= 3.0 && !Self::visible_crescent((date).as_moment(), location) {
             lunar_phase - 30.0 // Previous new moon
@@ -1217,7 +1222,8 @@ impl Astronomical {
         next_moment(Moment::new(tau), location, Self::visible_crescent)
     }
 
-    pub fn calculate_lunar_phase_at_or_before(date: RataDie) -> f64 {
+    /// Calculate the day that the new moon occurred on or before the given date.
+    pub fn calculate_new_moon_at_or_before(date: RataDie) -> f64 {
         Self::lunar_phase_at_or_before(0.0, date.as_moment())
             .inner()
             .floor()

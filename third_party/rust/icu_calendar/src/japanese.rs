@@ -45,7 +45,8 @@ use crate::any_calendar::AnyCalendarKind;
 use crate::iso::{Iso, IsoDateInner};
 use crate::provider::{EraStartDate, JapaneseErasV1Marker, JapaneseExtendedErasV1Marker};
 use crate::{
-    types, AsCalendar, Calendar, CalendarError, Date, DateDuration, DateDurationUnit, DateTime, Ref,
+    types, AsCalendar, Calendar, CalendarError, Date, DateDuration, DateDurationUnit, DateTime,
+    Ref, Time,
 };
 use icu_provider::prelude::*;
 use tinystr::{tinystr, TinyStr16};
@@ -423,7 +424,6 @@ impl Date<Japanese> {
     /// ```rust
     /// use icu::calendar::japanese::Japanese;
     /// use icu::calendar::{types, Date, Ref};
-    /// use std::convert::TryFrom;
     /// use tinystr::tinystr;
     ///
     /// let japanese_calendar = Japanese::new();
@@ -478,7 +478,6 @@ impl Date<JapaneseExtended> {
     /// ```rust
     /// use icu::calendar::japanese::JapaneseExtended;
     /// use icu::calendar::{types, Date, Ref};
-    /// use std::convert::TryFrom;
     /// use tinystr::tinystr;
     ///
     /// let japanext_calendar = JapaneseExtended::new();
@@ -510,7 +509,7 @@ impl Date<JapaneseExtended> {
         Ok(Date::from_raw(inner, japanext_calendar))
     }
 
-    /// For testing era fallback in icu_datetime
+    // For testing era fallback in icu_datetime
     #[doc(hidden)]
     pub fn into_japanese_date(self) -> Date<Japanese> {
         Date::from_raw(self.inner, self.calendar.0)
@@ -525,7 +524,6 @@ impl DateTime<Japanese> {
     /// ```rust
     /// use icu::calendar::japanese::Japanese;
     /// use icu::calendar::{types, DateTime};
-    /// use std::convert::TryFrom;
     /// use tinystr::tinystr;
     ///
     /// let japanese_calendar = Japanese::new();
@@ -567,7 +565,7 @@ impl DateTime<Japanese> {
     ) -> Result<DateTime<A>, CalendarError> {
         Ok(DateTime {
             date: Date::try_new_japanese_date(era, year, month, day, japanese_calendar)?,
-            time: types::Time::try_new(hour, minute, second, 0)?,
+            time: Time::try_new(hour, minute, second, 0)?,
         })
     }
 }
@@ -580,7 +578,6 @@ impl DateTime<JapaneseExtended> {
     /// ```rust
     /// use icu::calendar::japanese::JapaneseExtended;
     /// use icu::calendar::{types, DateTime};
-    /// use std::convert::TryFrom;
     /// use tinystr::tinystr;
     ///
     /// let japanext_calendar = JapaneseExtended::new();
@@ -622,7 +619,7 @@ impl DateTime<JapaneseExtended> {
     ) -> Result<DateTime<A>, CalendarError> {
         Ok(DateTime {
             date: Date::try_new_japanese_extended_date(era, year, month, day, japanext_calendar)?,
-            time: types::Time::try_new(hour, minute, second, 0)?,
+            time: Time::try_new(hour, minute, second, 0)?,
         })
     }
 }
@@ -668,7 +665,7 @@ impl Japanese {
         // for japanext, meiji for japanese),
         // In such a case, we instead fall back to Gregorian era codes
         if date < start {
-            if date.year < 0 {
+            if date.year <= 0 {
                 (1 - date.year, tinystr!(16, "bce"))
             } else {
                 (date.year, tinystr!(16, "ce"))
@@ -829,7 +826,11 @@ mod tests {
         assert_eq!(
             date, reconstructed,
             "Failed to roundtrip with {era:?}, {year}, {month}, {day}"
-        )
+        );
+
+        // Extra coverage for https://github.com/unicode-org/icu4x/issues/4968
+        assert_eq!(reconstructed.year().era, era);
+        assert_eq!(reconstructed.year().number, year);
     }
 
     fn single_test_roundtrip_ext(

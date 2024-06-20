@@ -30,10 +30,28 @@ macro_rules! __impl_datetime_week_data_v1 {
                             metadata.locale = Some(fallback_iterator.take());
                             break payload;
                         }
+                        if fallback_iterator.get().is_und() {
+                            return Err(icu_provider::DataErrorKind::MissingLocale.with_req(<icu::calendar::provider::WeekDataV1Marker as icu_provider::KeyedDataMarker>::KEY, req));
+                        }
                         fallback_iterator.step();
                     }
                 };
                 Ok(icu_provider::DataResponse { payload: Some(icu_provider::DataPayload::from_static_ref(payload)), metadata })
+            }
+        }
+    };
+}
+/// Implement `IterableDataProvider<WeekDataV1Marker>` on the given struct using the data
+/// hardcoded in this file. This allows the struct to be used with
+/// `DatagenDriver` for this key.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __impliterable_datetime_week_data_v1 {
+    ($ provider : ty) => {
+        #[clippy::msrv = "1.67"]
+        impl icu_provider::datagen::IterableDataProvider<icu::calendar::provider::WeekDataV1Marker> for $provider {
+            fn supported_locales(&self) -> Result<alloc::vec::Vec<icu_provider::DataLocale>, icu_provider::DataError> {
+                Ok(["und", "und-AD", "und-AE", "und-AF", "und-AG", "und-AN", "und-AS", "und-AT", "und-AX", "und-BD", "und-BE", "und-BG", "und-BH", "und-BR", "und-BS", "und-BT", "und-BW", "und-BZ", "und-CA", "und-CH", "und-CO", "und-CZ", "und-DE", "und-DJ", "und-DK", "und-DM", "und-DO", "und-DZ", "und-EE", "und-EG", "und-ES", "und-ET", "und-FI", "und-FJ", "und-FO", "und-FR", "und-GB", "und-GF", "und-GG", "und-GI", "und-GP", "und-GR", "und-GT", "und-GU", "und-HK", "und-HN", "und-HU", "und-ID", "und-IE", "und-IL", "und-IM", "und-IN", "und-IQ", "und-IR", "und-IS", "und-IT", "und-JE", "und-JM", "und-JO", "und-JP", "und-KE", "und-KH", "und-KR", "und-KW", "und-LA", "und-LI", "und-LT", "und-LU", "und-LY", "und-MC", "und-MH", "und-MM", "und-MO", "und-MQ", "und-MT", "und-MV", "und-MX", "und-MZ", "und-NI", "und-NL", "und-NO", "und-NP", "und-OM", "und-PA", "und-PE", "und-PH", "und-PK", "und-PL", "und-PR", "und-PT", "und-PY", "und-QA", "und-RE", "und-RU", "und-SA", "und-SD", "und-SE", "und-SG", "und-SJ", "und-SK", "und-SM", "und-SV", "und-SY", "und-TH", "und-TT", "und-TW", "und-UM", "und-US", "und-VA", "und-VE", "und-VI", "und-WS", "und-YE", "und-ZA", "und-ZW"].into_iter().map(|s| <icu_provider::DataLocale as core::str::FromStr>::from_str(s).unwrap()).collect())
             }
         }
     };

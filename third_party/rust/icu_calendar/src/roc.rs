@@ -33,7 +33,7 @@
 
 use crate::{
     calendar_arithmetic::ArithmeticDate, iso::IsoDateInner, types, AnyCalendarKind, Calendar,
-    CalendarError, Date, DateTime, Iso,
+    CalendarError, Date, DateTime, Iso, Time,
 };
 use calendrical_calculations::helpers::i64_to_saturated_i32;
 use tinystr::tinystr;
@@ -215,7 +215,6 @@ impl DateTime<Roc> {
     /// Years are specified in the "roc" era, Before Minguo dates are negative (year 0 is 1 Before Minguo)
     ///
     /// ```rust
-    /// use icu::calendar::gregorian::Gregorian;
     /// use icu::calendar::DateTime;
     /// use tinystr::tinystr;
     ///
@@ -249,7 +248,7 @@ impl DateTime<Roc> {
     ) -> Result<DateTime<Roc>, CalendarError> {
         Ok(DateTime {
             date: Date::try_new_roc_date(year, month, day)?,
-            time: types::Time::try_new(hour, minute, second, 0)?,
+            time: Time::try_new(hour, minute, second, 0)?,
         })
     }
 }

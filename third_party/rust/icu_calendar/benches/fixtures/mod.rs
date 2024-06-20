@@ -2,15 +2,17 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-pub mod structs;
+use serde::{Deserialize, Serialize};
 
-use std::fs::File;
-use std::io::BufReader;
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DateFixture(pub Vec<Test>);
 
-#[allow(dead_code)]
-pub fn get_dates_fixture() -> std::io::Result<structs::DateFixture> {
-    let file = File::open("./benches/fixtures/datetimes.json")?;
-    let reader = BufReader::new(file);
-
-    Ok(serde_json::from_reader(reader)?)
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Test {
+    pub year: i32,
+    pub month: u8,
+    pub day: u8,
+    pub hour: u8,
+    pub minute: u8,
+    pub second: u8,
 }

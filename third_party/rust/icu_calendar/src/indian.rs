@@ -34,7 +34,7 @@
 use crate::any_calendar::AnyCalendarKind;
 use crate::calendar_arithmetic::{ArithmeticDate, CalendarArithmetic};
 use crate::iso::Iso;
-use crate::{types, Calendar, CalendarError, Date, DateDuration, DateDurationUnit, DateTime};
+use crate::{types, Calendar, CalendarError, Date, DateDuration, DateDurationUnit, DateTime, Time};
 use tinystr::tinystr;
 
 /// The Indian National Calendar (aka the Saka calendar)
@@ -61,9 +61,11 @@ pub struct Indian;
 pub struct IndianDateInner(ArithmeticDate<Indian>);
 
 impl CalendarArithmetic for Indian {
-    fn month_days(year: i32, month: u8) -> u8 {
+    type YearInfo = ();
+
+    fn month_days(year: i32, month: u8, _data: ()) -> u8 {
         if month == 1 {
-            if Self::is_leap_year(year) {
+            if Self::is_leap_year(year, ()) {
                 31
             } else {
                 30
@@ -77,20 +79,20 @@ impl CalendarArithmetic for Indian {
         }
     }
 
-    fn months_for_every_year(_: i32) -> u8 {
+    fn months_for_every_year(_: i32, _data: ()) -> u8 {
         12
     }
 
-    fn is_leap_year(year: i32) -> bool {
-        Iso::is_leap_year(year + 78)
+    fn is_leap_year(year: i32, _data: ()) -> bool {
+        Iso::is_leap_year(year + 78, ())
     }
 
-    fn last_month_day_in_year(_year: i32) -> (u8, u8) {
+    fn last_month_day_in_year(_year: i32, _data: ()) -> (u8, u8) {
         (12, 30)
     }
 
-    fn days_in_provided_year(year: i32) -> u16 {
-        if Self::is_leap_year(year) {
+    fn days_in_provided_year(year: i32, _data: ()) -> u16 {
+        if Self::is_leap_year(year, ()) {
             366
         } else {
             365
@@ -129,7 +131,7 @@ impl Calendar for Indian {
         // This is in the previous Indian year
         let day_of_year_indian = if day_of_year_iso <= DAY_OFFSET {
             year -= 1;
-            let n_days = Self::days_in_provided_year(year);
+            let n_days = Self::days_in_provided_year(year, ());
 
             // calculate day of year in previous year
             n_days + day_of_year_iso - DAY_OFFSET
@@ -176,7 +178,7 @@ impl Calendar for Indian {
     }
 
     fn offset_date(&self, date: &mut Self::DateInner, offset: DateDuration<Self>) {
-        date.0.offset_date(offset);
+        date.0.offset_date(offset, &());
     }
 
     #[allow(clippy::field_reassign_with_default)]
@@ -201,7 +203,7 @@ impl Calendar for Indian {
     }
 
     fn is_in_leap_year(&self, date: &Self::DateInner) -> bool {
-        Self::is_leap_year(date.0.year)
+        Self::is_leap_year(date.0.year, ())
     }
 
     fn month(&self, date: &Self::DateInner) -> types::FormattableMonth {
@@ -250,7 +252,7 @@ impl Indian {
     }
 
     fn days_in_year_direct(year: i32) -> u16 {
-        if Indian::is_leap_year(year) {
+        if Indian::is_leap_year(year, ()) {
             366
         } else {
             365
@@ -309,7 +311,7 @@ impl DateTime<Indian> {
     ) -> Result<DateTime<Indian>, CalendarError> {
         Ok(DateTime {
             date: Date::try_new_indian_date(year, month, day)?,
-            time: types::Time::try_new(hour, minute, second, 0)?,
+            time: Time::try_new(hour, minute, second, 0)?,
         })
     }
 }

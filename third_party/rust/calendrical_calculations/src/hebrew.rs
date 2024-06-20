@@ -13,7 +13,8 @@ use crate::rata_die::{Moment, RataDie};
 use core_maths::*;
 
 /// Lisp code reference: <https://github.com/EdReingold/calendar-code2/blob/main/calendar.l#L2206>
-const FIXED_HEBREW_EPOCH: RataDie = crate::julian::fixed_from_julian_book_version(-3761, 10, 7);
+pub(crate) const FIXED_HEBREW_EPOCH: RataDie =
+    crate::julian::fixed_from_julian_book_version(-3761, 10, 7);
 
 /// Biblical Hebrew dates. The months are reckoned a bit strangely, with the new year occurring on
 /// Tishri (as in the civil calendar) but the months being numbered in a different order

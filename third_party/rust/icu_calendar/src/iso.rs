@@ -31,7 +31,7 @@
 
 use crate::any_calendar::AnyCalendarKind;
 use crate::calendar_arithmetic::{ArithmeticDate, CalendarArithmetic};
-use crate::{types, Calendar, CalendarError, Date, DateDuration, DateDurationUnit, DateTime};
+use crate::{types, Calendar, CalendarError, Date, DateDuration, DateDurationUnit, DateTime, Time};
 use calendrical_calculations::helpers::{i64_to_saturated_i32, I32CastError};
 use calendrical_calculations::rata_die::RataDie;
 use tinystr::tinystr;
@@ -59,30 +59,32 @@ pub struct Iso;
 pub struct IsoDateInner(pub(crate) ArithmeticDate<Iso>);
 
 impl CalendarArithmetic for Iso {
-    fn month_days(year: i32, month: u8) -> u8 {
+    type YearInfo = ();
+
+    fn month_days(year: i32, month: u8, _data: ()) -> u8 {
         match month {
             4 | 6 | 9 | 11 => 30,
-            2 if Self::is_leap_year(year) => 29,
+            2 if Self::is_leap_year(year, ()) => 29,
             2 => 28,
             1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
             _ => 0,
         }
     }
 
-    fn months_for_every_year(_: i32) -> u8 {
+    fn months_for_every_year(_: i32, _data: ()) -> u8 {
         12
     }
 
-    fn is_leap_year(year: i32) -> bool {
+    fn is_leap_year(year: i32, _data: ()) -> bool {
         calendrical_calculations::iso::is_leap_year(year)
     }
 
-    fn last_month_day_in_year(_year: i32) -> (u8, u8) {
+    fn last_month_day_in_year(_year: i32, _data: ()) -> (u8, u8) {
         (12, 31)
     }
 
-    fn days_in_provided_year(year: i32) -> u16 {
-        if Self::is_leap_year(year) {
+    fn days_in_provided_year(year: i32, _data: ()) -> u16 {
+        if Self::is_leap_year(year, ()) {
             366
         } else {
             365
@@ -133,7 +135,9 @@ impl Calendar for Iso {
 
         // The days of the week are the same every 400 years
         // so we normalize to the nearest multiple of 400
-        let years_since_400 = date.0.year % 400;
+        let years_since_400 = date.0.year.rem_euclid(400);
+        debug_assert!(years_since_400 >= 0); // rem_euclid returns positive numbers
+        let years_since_400 = years_since_400 as u32;
         let leap_years_since_400 = years_since_400 / 4 - years_since_400 / 100;
         // The number of days to the current year
         // Can never cause an overflow because years_since_400 has a maximum value of 399.
@@ -143,7 +147,7 @@ impl Calendar for Iso {
 
         // Corresponding months from
         // https://en.wikipedia.org/wiki/Determination_of_the_day_of_the_week#Corresponding_months
-        let month_offset = if Self::is_leap_year(date.0.year) {
+        let month_offset = if Self::is_leap_year(date.0.year, ()) {
             match date.0.month {
                 10 => 0,
                 5 => 1,
@@ -167,14 +171,14 @@ impl Calendar for Iso {
             }
         };
         let january_1_2000 = 5; // Saturday
-        let day_offset = (january_1_2000 + year_offset + month_offset + date.0.day as i32) % 7;
+        let day_offset = (january_1_2000 + year_offset + month_offset + date.0.day as u32) % 7;
 
         // We calculated in a zero-indexed fashion, but ISO specifies one-indexed
         types::IsoWeekday::from((day_offset + 1) as usize)
     }
 
     fn offset_date(&self, date: &mut Self::DateInner, offset: DateDuration<Self>) {
-        date.0.offset_date(offset);
+        date.0.offset_date(offset, &());
     }
 
     #[allow(clippy::field_reassign_with_default)]
@@ -195,7 +199,7 @@ impl Calendar for Iso {
     }
 
     fn is_in_leap_year(&self, date: &Self::DateInner) -> bool {
-        Self::is_leap_year(date.0.year)
+        Self::is_leap_year(date.0.year, ())
     }
 
     /// The calendar-specific month represented by `date`
@@ -280,8 +284,17 @@ impl DateTime<Iso> {
     ) -> Result<DateTime<Iso>, CalendarError> {
         Ok(DateTime {
             date: Date::try_new_iso_date(year, month, day)?,
-            time: types::Time::try_new(hour, minute, second, 0)?,
+            time: Time::try_new(hour, minute, second, 0)?,
         })
+    }
+
+    /// Constructs an ISO datetime representing the UNIX epoch on January 1, 1970
+    /// at midnight.
+    pub fn local_unix_epoch() -> Self {
+        DateTime {
+            date: Date::unix_epoch(),
+            time: Time::midnight(),
+        }
     }
 
     /// Minute count representation of calendars starting from 00:00:00 on Jan 1st, 1970.
@@ -345,7 +358,7 @@ impl DateTime<Iso> {
     /// );
     /// ```
     pub fn from_minutes_since_local_unix_epoch(minute: i32) -> DateTime<Iso> {
-        let (time, extra_days) = types::Time::from_minute_with_remainder_days(minute);
+        let (time, extra_days) = Time::from_minute_with_remainder_days(minute);
         let unix_epoch = Date::unix_epoch();
         let unix_epoch_days = Iso::fixed_from_iso(unix_epoch.inner);
         let date = Iso::iso_from_fixed(unix_epoch_days + extra_days as i64);
@@ -363,14 +376,14 @@ impl Iso {
     fn days_in_month(year: i32, month: u8) -> u8 {
         match month {
             4 | 6 | 9 | 11 => 30,
-            2 if Self::is_leap_year(year) => 29,
+            2 if Self::is_leap_year(year, ()) => 29,
             2 => 28,
             _ => 31,
         }
     }
 
     pub(crate) fn days_in_year_direct(year: i32) -> u16 {
-        if Self::is_leap_year(year) {
+        if Self::is_leap_year(year, ()) {
             366
         } else {
             365
@@ -421,7 +434,7 @@ impl Iso {
         let month_offset = [0, 1, -1, 0, 0, 1, 1, 2, 3, 3, 4, 4];
         #[allow(clippy::indexing_slicing)] // date.0.month in 1..=12
         let mut offset = month_offset[date.0.month as usize - 1];
-        if Self::is_leap_year(date.0.year) && date.0.month > 2 {
+        if Self::is_leap_year(date.0.year, ()) && date.0.month > 2 {
             // Months after February in a leap year are offset by one less
             offset += 1;
         }

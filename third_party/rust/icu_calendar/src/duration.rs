@@ -13,7 +13,7 @@ use core::marker::PhantomData;
 /// # Example
 ///
 /// ```rust
-/// use icu_calendar::{
+/// use icu::calendar::{
 ///     types::IsoWeekday, Date, DateDuration, DateDurationUnit,
 /// };
 ///
@@ -62,8 +62,11 @@ use core::marker::PhantomData;
 /// assert_eq!(mutated_date_iso.month().ordinal, 11);
 /// assert_eq!(mutated_date_iso.day_of_month().0, 27);
 /// ```
-#[derive(Copy, Clone, Eq, PartialEq)]
+///
+/// Currently unstable for ICU4X 1.0
+#[derive(Eq, PartialEq)]
 #[allow(clippy::exhaustive_structs)] // this type should be stable (and is intended to be constructed manually)
+#[doc(hidden)]
 pub struct DateDuration<C: Calendar + ?Sized> {
     /// The number of years
     pub years: i32,
@@ -77,10 +80,23 @@ pub struct DateDuration<C: Calendar + ?Sized> {
     pub marker: PhantomData<C>,
 }
 
+// Custom impl so that C need not be bound on Copy/Clone
+impl<C: Calendar + ?Sized> Clone for DateDuration<C> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+// Custom impl so that C need not be bound on Copy/Clone
+impl<C: Calendar + ?Sized> Copy for DateDuration<C> {}
+
 /// A "duration unit" used to specify the minimum or maximum duration of time to
 /// care about
+///
+/// Currently unstable for ICU4X 1.0
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 #[allow(clippy::exhaustive_enums)] // this type should be stable
+#[doc(hidden)]
 pub enum DateDurationUnit {
     /// Duration in years
     Years,
@@ -108,7 +124,7 @@ impl<C: Calendar + ?Sized> DateDuration<C> {
     /// Construct a DateDuration
     ///
     /// ```rust
-    /// # use icu_calendar::*;
+    /// # use icu::calendar::*;
     /// // two years, three months, and five days
     /// let duration: DateDuration<Iso> = DateDuration::new(2, 3, 0, 5);
     /// ```

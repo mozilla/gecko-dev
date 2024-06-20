@@ -1,5 +1,6 @@
 use crate::astronomy::{self, Astronomical, Location, MEAN_SYNODIC_MONTH, MEAN_TROPICAL_YEAR};
 use crate::helpers::i64_to_i32;
+use crate::iso::{fixed_from_iso, iso_from_fixed};
 use crate::rata_die::{Moment, RataDie};
 use core::num::NonZeroU8;
 #[allow(unused_imports)]
@@ -25,10 +26,26 @@ pub trait ChineseBased {
     /// reflect traditional methods of year-tracking or eras, since Chinese-based calendars
     /// may not track years ordinally in the same way many western calendars do.
     const EPOCH: RataDie;
+
+    /// The ISO year that corresponds to year 1
+    const EPOCH_ISO: i32;
+
+    /// The name of the calendar for debugging.
+    const DEBUG_NAME: &'static str;
+
+    /// Given an ISO year, return the extended year
+    fn extended_from_iso(iso_year: i32) -> i32 {
+        iso_year - Self::EPOCH_ISO + 1
+    }
+    /// Given an extended year, return the ISO year
+    fn iso_from_extended(extended_year: i32) -> i32 {
+        extended_year - 1 + Self::EPOCH_ISO
+    }
 }
 
 // The equivalent first day in the Chinese calendar (based on inception of the calendar)
 const CHINESE_EPOCH: RataDie = RataDie::new(-963099); // Feb. 15, 2637 BCE (-2636)
+const CHINESE_EPOCH_ISO: i32 = -2636;
 
 /// The Chinese calendar relies on knowing the current day at the moment of a new moon;
 /// however, this can vary depending on location. As such, new moon calculations are based
@@ -47,6 +64,7 @@ const CHINESE_LOCATION_POST_1929: Location =
 
 // The first day in the Korean Dangi calendar (based on the founding of Gojoseon)
 const KOREAN_EPOCH: RataDie = RataDie::new(-852065); // Lunar new year 2333 BCE (-2332 ISO)
+const KOREAN_EPOCH_ISO: i32 = -2332; // Lunar new year 2333 BCE (-2332 ISO)
 
 /// The Korean Dangi calendar relies on knowing the current day at the moment of a new moon;
 /// however, this can vary depending on location. As such, new moon calculations are based on
@@ -102,12 +120,12 @@ const KOREAN_LOCATION_1961: Location = Location::new_unchecked(
 );
 
 /// A type implementing [`ChineseBased`] for the Chinese calendar
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 #[allow(clippy::exhaustive_structs)] // newtype
 pub struct Chinese;
 
 /// A type implementing [`ChineseBased`] for the Dangi (Korean) calendar
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 #[allow(clippy::exhaustive_structs)] // newtype
 pub struct Dangi;
 
@@ -122,6 +140,8 @@ impl ChineseBased for Chinese {
     }
 
     const EPOCH: RataDie = CHINESE_EPOCH;
+    const EPOCH_ISO: i32 = CHINESE_EPOCH_ISO;
+    const DEBUG_NAME: &'static str = "chinese";
 }
 
 impl ChineseBased for Dangi {
@@ -140,6 +160,8 @@ impl ChineseBased for Dangi {
     }
 
     const EPOCH: RataDie = KOREAN_EPOCH;
+    const EPOCH_ISO: i32 = KOREAN_EPOCH_ISO;
+    const DEBUG_NAME: &'static str = "dangi";
 }
 
 /// Marks the bounds of a lunar year
@@ -207,16 +229,6 @@ pub(crate) fn major_solar_term_from_fixed<C: ChineseBased>(date: RataDie) -> u32
     result_signed as u32
 }
 
-/// Returns true if the month of a given fixed date does not have a major solar term,
-/// false otherwise.
-///
-/// Based on functions from _Calendrical Calculations_ by Reingold & Dershowitz.
-/// Lisp reference code: https://github.com/EdReingold/calendar-code2/blob/main/calendar.l#L5345-L5351
-pub(crate) fn no_major_solar_term<C: ChineseBased>(date: RataDie) -> bool {
-    major_solar_term_from_fixed::<C>(date)
-        == major_solar_term_from_fixed::<C>(new_moon_on_or_after::<C>((date + 1).as_moment()))
-}
-
 /// The fixed date in standard time at the observation location of the next new moon on or after a given Moment.
 ///
 /// Based on functions from _Calendrical Calculations_ by Reingold & Dershowitz.
@@ -248,31 +260,76 @@ pub(crate) fn midnight<C: ChineseBased>(moment: Moment) -> Moment {
 /// Determines the fixed date of the lunar new year given the start of its corresponding solar year (歲), which is
 /// also the winter solstice
 ///
+/// Calls to `no_major_solar_term` have been inlined for increased efficiency.
+///
 /// Based on functions from _Calendrical Calculations_ by Reingold & Dershowitz.
 /// Lisp reference code: https://github.com/EdReingold/calendar-code2/blob/main/calendar.l#L5370-L5394
 pub(crate) fn new_year_in_sui<C: ChineseBased>(prior_solstice: RataDie) -> (RataDie, RataDie) {
     // s1 is prior_solstice
     // Using 370 here since solstices are ~365 days apart
-    let following_solstice = winter_solstice_on_or_before::<C>(prior_solstice + 370); // s2
+    // Both solstices should fall on December 20, 21, 22, or 23. The calendrical calculations
+    // drift away from this for large positive and negative years, so we artifically bind them
+    // to this range in order for other code invariants to be upheld.
+    let prior_solstice = bind_winter_solstice::<C>(prior_solstice);
+    let following_solstice =
+        bind_winter_solstice::<C>(winter_solstice_on_or_before::<C>(prior_solstice + 370)); // s2
     let month_after_eleventh = new_moon_on_or_after::<C>((prior_solstice + 1).as_moment()); // m12
+    debug_assert!(month_after_eleventh - prior_solstice >= 0);
     let month_after_twelfth = new_moon_on_or_after::<C>((month_after_eleventh + 1).as_moment()); // m13
+    let month_after_thirteenth = new_moon_on_or_after::<C>((month_after_twelfth + 1).as_moment());
+    debug_assert!(month_after_twelfth - month_after_eleventh >= 29);
     let next_eleventh_month = new_moon_before::<C>((following_solstice + 1).as_moment()); // next-m11
     let lhs_argument =
         ((next_eleventh_month - month_after_eleventh) as f64 / MEAN_SYNODIC_MONTH).round() as i64;
-    if lhs_argument == 12
-        && (no_major_solar_term::<C>(month_after_eleventh)
-            || no_major_solar_term::<C>(month_after_twelfth))
-    {
-        (
-            new_moon_on_or_after::<C>((month_after_twelfth + 1).as_moment()),
-            following_solstice,
-        )
+    let solar_term_a = major_solar_term_from_fixed::<C>(month_after_eleventh);
+    let solar_term_b = major_solar_term_from_fixed::<C>(month_after_twelfth);
+    let solar_term_c = major_solar_term_from_fixed::<C>(month_after_thirteenth);
+    if lhs_argument == 12 && (solar_term_a == solar_term_b || solar_term_b == solar_term_c) {
+        (month_after_thirteenth, following_solstice)
     } else {
         (month_after_twelfth, following_solstice)
     }
 }
 
-/// Get the moment of the nearest winter solstice on or before a given fixed date
+/// This function forces the RataDie to be on December 20, 21, 22, or 23. It was
+/// created for practical considerations and is not in the text.
+///
+/// See: <https://github.com/unicode-org/icu4x/pull/4904>
+fn bind_winter_solstice<C: ChineseBased>(solstice: RataDie) -> RataDie {
+    let (iso_year, iso_month, iso_day) = match iso_from_fixed(solstice) {
+        Ok(ymd) => ymd,
+        Err(_) => {
+            debug_assert!(false, "Solstice REALLY out of bounds: {solstice:?}");
+            return solstice;
+        }
+    };
+    let resolved_solstice = if iso_month < 12 || iso_day < 20 {
+        fixed_from_iso(iso_year, 12, 20)
+    } else if iso_day > 23 {
+        fixed_from_iso(iso_year, 12, 23)
+    } else {
+        solstice
+    };
+    if resolved_solstice != solstice {
+        if !(0..=4000).contains(&iso_year) {
+            #[cfg(feature = "logging")]
+            log::trace!("({}) Solstice out of bounds: {solstice:?}", C::DEBUG_NAME);
+        } else {
+            debug_assert!(
+                false,
+                "({}) Solstice out of bounds: {solstice:?}",
+                C::DEBUG_NAME
+            );
+        }
+    }
+    resolved_solstice
+}
+
+/// Get the fixed date of the nearest winter solstice, in the Chinese time zone,
+/// on or before a given fixed date.
+///
+/// This is valid for several thousand years, but it drifts for large positive
+/// and negative years. See [`bind_winter_solstice`].
 ///
 /// Based on functions from _Calendrical Calculations_ by Reingold & Dershowitz.
 /// Lisp reference code: https://github.com/EdReingold/calendar-code2/blob/main/calendar.l#L5359-L5368
@@ -431,13 +488,22 @@ pub fn chinese_based_date_from_fixed<C: ChineseBased>(date: RataDie) -> ChineseF
 /// function assumes the date passed in is in a leap year and tests to ensure this is the case in debug
 /// mode by asserting that no more than thirteen months are analyzed.
 ///
+/// Calls to `no_major_solar_term` have been inlined for increased efficiency.
+///
 /// Conceptually similar to code from _Calendrical Calculations_ by Reingold & Dershowitz
 /// Lisp reference code: <https://github.com/EdReingold/calendar-code2/blob/main/calendar.l#L5443-L5450>
 pub fn get_leap_month_from_new_year<C: ChineseBased>(new_year: RataDie) -> u8 {
     let mut cur = new_year;
     let mut result = 1;
-    while result < MAX_ITERS_FOR_MONTHS_OF_YEAR && !no_major_solar_term::<C>(cur) {
-        cur = new_moon_on_or_after::<C>((cur + 1).as_moment());
+    let mut solar_term = major_solar_term_from_fixed::<C>(cur);
+    loop {
+        let next = new_moon_on_or_after::<C>((cur + 1).as_moment());
+        let next_solar_term = major_solar_term_from_fixed::<C>(next);
+        if result >= MAX_ITERS_FOR_MONTHS_OF_YEAR || solar_term == next_solar_term {
+            break;
+        }
+        cur = next;
+        solar_term = next_solar_term;
         result += 1;
     }
     debug_assert!(result < MAX_ITERS_FOR_MONTHS_OF_YEAR, "The given year was not a leap year and an unexpected number of iterations occurred searching for a leap month.");
@@ -471,6 +537,74 @@ pub fn days_in_month<C: ChineseBased>(
     let result = (next_new_moon - prev_new_moon) as u8;
     debug_assert!(result == 29 || result == 30);
     (result, next_new_moon)
+}
+
+/// Given a new year, calculate the number of days in the previous year
+pub fn days_in_prev_year<C: ChineseBased>(new_year: RataDie) -> u16 {
+    let date = new_year - 300;
+    let prev_solstice = winter_solstice_on_or_before::<C>(date);
+    let (prev_new_year, _) = new_year_on_or_before_fixed_date::<C>(date, prev_solstice);
+    u16::try_from(new_year - prev_new_year).unwrap_or(360)
+}
+
+/// Returns the length of each month in the year, as well as a leap month index (1-indexed) if any.
+/// Month lengths are stored as true for 30-day, false for 29-day.
+/// In the case of no leap months, month 13 will have value false.
+pub fn month_structure_for_year<C: ChineseBased>(
+    new_year: RataDie,
+    next_new_year: RataDie,
+) -> ([bool; 13], Option<NonZeroU8>) {
+    let mut ret = [false; 13];
+
+    let mut current_month_start = new_year;
+    let mut current_month_major_solar_term = major_solar_term_from_fixed::<C>(new_year);
+    let mut leap_month_index = None;
+    for i in 0u8..12 {
+        let next_month_start = new_moon_on_or_after::<C>((current_month_start + 28).as_moment());
+        let next_month_major_solar_term = major_solar_term_from_fixed::<C>(next_month_start);
+
+        if next_month_major_solar_term == current_month_major_solar_term {
+            leap_month_index = NonZeroU8::new(i + 1);
+        }
+
+        let diff = next_month_start - current_month_start;
+        debug_assert!(diff == 29 || diff == 30);
+        #[allow(clippy::indexing_slicing)] // array is of length 13, we iterate till i=11
+        if diff == 30 {
+            ret[usize::from(i)] = true;
+        }
+
+        current_month_start = next_month_start;
+        current_month_major_solar_term = next_month_major_solar_term;
+    }
+
+    if current_month_start == next_new_year {
+        // not all months without solar terms are leap months; they are only leap months if
+        // the year can admit them
+        //
+        // From Reingold & Dershowitz (p 311):
+        //
+        // The leap month of a 13-month winter-solstice-to-winter-solstice period is the first month
+        // that does not contain a major solar term — that is, the first lunar month that is wholly within a solar month.
+        //
+        // As such, if a month without a solar term is found in a non-leap year, we just ingnore it.
+        leap_month_index = None;
+    } else {
+        let diff = next_new_year - current_month_start;
+        debug_assert!(diff == 29 || diff == 30);
+        if diff == 30 {
+            ret[12] = true;
+        }
+    }
+    if current_month_start != next_new_year && leap_month_index.is_none() {
+        leap_month_index = NonZeroU8::new(13); // The last month is a leap month
+        debug_assert!(
+            major_solar_term_from_fixed::<C>(current_month_start) == current_month_major_solar_term,
+            "A leap month is required here, but it had a major solar term!"
+        );
+    }
+
+    (ret, leap_month_index)
 }
 
 /// Given the new year and a month/day pair, calculate the number of days until the first day of the given month
@@ -513,6 +647,38 @@ mod test {
     fn seollal_on_or_before(fixed: RataDie) -> RataDie {
         let prev_solstice = winter_solstice_on_or_before::<Dangi>(fixed);
         new_year_on_or_before_fixed_date::<Dangi>(fixed, prev_solstice).0
+    }
+
+    #[test]
+    fn test_month_structure() {
+        // Mostly just tests that the assertions aren't hit
+        for year in 1900..2050 {
+            let fixed = crate::iso::fixed_from_iso(year, 1, 1);
+            let chinese_year = chinese_based_date_from_fixed::<Chinese>(fixed);
+            let (month_lengths, leap) = month_structure_for_year::<Chinese>(
+                chinese_year.year_bounds.new_year,
+                chinese_year.year_bounds.next_new_year,
+            );
+
+            for (i, month_is_30) in month_lengths.into_iter().enumerate() {
+                if leap.is_none() && i == 12 {
+                    // month_days has no defined behavior for month 13 on non-leap-years
+                    continue;
+                }
+                let month_len = 29 + i32::from(month_is_30);
+                let month_days = month_days::<Chinese>(chinese_year.year, i as u8 + 1);
+                assert_eq!(
+                    month_len,
+                    i32::from(month_days),
+                    "Month length for month {} must be the same",
+                    i + 1
+                );
+            }
+            println!(
+                "{year} (chinese {}): {month_lengths:?} {leap:?}",
+                chinese_year.year
+            );
+        }
     }
 
     #[test]

@@ -18,7 +18,7 @@
 //!
 //! The primary purpose of this crate is use by ICU4X, however if non-ICU4X users need this we are happy
 //! to add more structure to this crate as needed.
-// https://github.com/unicode-org/icu4x/blob/main/docs/process/boilerplate.md#library-annotations
+// https://github.com/unicode-org/icu4x/blob/main/documents/process/boilerplate.md#library-annotations
 #![cfg_attr(not(any(test, feature = "std")), no_std)]
 #![cfg_attr(
     not(test),
@@ -45,6 +45,7 @@ mod error;
 pub mod ethiopian;
 /// The Hebrew calendar
 pub mod hebrew;
+pub mod hebrew_keviyah;
 /// Additional math helpers
 pub mod helpers;
 /// Various islamic lunar calendars
@@ -55,6 +56,6 @@ pub mod iso;
 pub mod julian;
 /// The persian calendar
 pub mod persian;
-/// Representation of Rata Die (R.D., also called J.D. for Julain Date)
-/// dates, which are represented as the number of days since ISO date 0001-01-01.
+/// Representation of Rata Die (R.D.) dates, which are
+/// represented as the number of days since ISO date 0001-01-01.
 pub mod rata_die;

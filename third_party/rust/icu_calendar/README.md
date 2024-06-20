@@ -76,7 +76,7 @@ year, and calendar type. Additionally, `DateTime` objects contain an accessible
 `Time` object, including granularity of hour, minute, second, and nanosecond.
 
 ```rust
-use icu::calendar::{types::IsoWeekday, types::Time, DateTime};
+use icu::calendar::{types::IsoWeekday, DateTime, Time};
 
 // Creating ISO date: 1992-09-02 8:59
 let mut datetime_iso = DateTime::try_new_iso_datetime(1992, 9, 2, 8, 59, 0)

@@ -4,7 +4,7 @@
 
 use crate::{
     error::CalendarError,
-    provider::WeekDataV1,
+    provider::*,
     types::{DayOfMonth, DayOfYearInfo, IsoWeekday, WeekOfMonth},
 };
 use icu_provider::prelude::*;
@@ -21,6 +21,8 @@ pub struct WeekCalculator {
     /// For a given week, the minimum number of that week's days present in a given month or year
     /// for the week to be considered part of that month or year.
     pub min_week_days: u8,
+    /// The set of weekend days, if available
+    pub weekend: Option<WeekdaySet>,
 }
 
 impl From<WeekDataV1> for WeekCalculator {
@@ -28,6 +30,7 @@ impl From<WeekDataV1> for WeekCalculator {
         Self {
             first_weekday: other.first_weekday,
             min_week_days: other.min_week_days,
+            weekend: None,
         }
     }
 }
@@ -37,26 +40,65 @@ impl From<&WeekDataV1> for WeekCalculator {
         Self {
             first_weekday: other.first_weekday,
             min_week_days: other.min_week_days,
+            weekend: None,
         }
     }
 }
 
 impl WeekCalculator {
-    icu_provider::gen_any_buffer_data_constructors!(
-        locale: include,
-        options: skip,
-        error: CalendarError,
-        /// Creates a new [`WeekCalculator`] from compiled locale data.
-        ///
-        /// ✨ *Enabled with the `compiled_data` Cargo feature.*
-        ///
-        /// [📚 Help choosing a constructor](icu_provider::constructors)
-    );
+    /// Creates a new [`WeekCalculator`] from compiled data.
+    ///
+    /// ✨ *Enabled with the `compiled_data` Cargo feature.*
+    ///
+    /// [📚 Help choosing a constructor](icu_provider::constructors)
+    #[cfg(feature = "compiled_data")]
+    pub fn try_new(locale: &DataLocale) -> Result<Self, CalendarError> {
+        Self::try_new_unstable(&crate::provider::Baked, locale)
+    }
+
+    #[doc = icu_provider::gen_any_buffer_unstable_docs!(ANY, Self::try_new_unstable)]
+    pub fn try_new_with_any_provider(
+        provider: &(impl AnyProvider + ?Sized),
+        locale: &DataLocale,
+    ) -> Result<Self, CalendarError> {
+        Self::try_new_unstable(&provider.as_downcasting(), locale).or_else(|e| {
+            DataProvider::<WeekDataV1Marker>::load(
+                &provider.as_downcasting(),
+                DataRequest {
+                    locale,
+                    metadata: Default::default(),
+                },
+            )
+            .and_then(DataResponse::take_payload)
+            .map(|payload| payload.get().into())
+            .map_err(|_| e)
+        })
+    }
+
+    #[cfg(feature = "serde")]
+    #[doc = icu_provider::gen_any_buffer_unstable_docs!(BUFFER, Self::try_new_unstable)]
+    pub fn try_new_with_buffer_provider(
+        provider: &(impl BufferProvider + ?Sized),
+        locale: &DataLocale,
+    ) -> Result<Self, CalendarError> {
+        Self::try_new_unstable(&provider.as_deserializing(), locale).or_else(|e| {
+            DataProvider::<WeekDataV1Marker>::load(
+                &provider.as_deserializing(),
+                DataRequest {
+                    locale,
+                    metadata: Default::default(),
+                },
+            )
+            .and_then(DataResponse::take_payload)
+            .map(|payload| payload.get().into())
+            .map_err(|_| e)
+        })
+    }
 
     #[doc = icu_provider::gen_any_buffer_unstable_docs!(UNSTABLE, Self::try_new)]
     pub fn try_new_unstable<P>(provider: &P, locale: &DataLocale) -> Result<Self, CalendarError>
     where
-        P: DataProvider<crate::provider::WeekDataV1Marker> + ?Sized,
+        P: DataProvider<crate::provider::WeekDataV2Marker> + ?Sized,
     {
         provider
             .load(DataRequest {
@@ -64,7 +106,11 @@ impl WeekCalculator {
                 metadata: Default::default(),
             })
             .and_then(DataResponse::take_payload)
-            .map(|payload| payload.get().into())
+            .map(|payload| WeekCalculator {
+                first_weekday: payload.get().first_weekday,
+                min_week_days: payload.get().min_week_days,
+                weekend: Some(payload.get().weekend),
+            })
             .map_err(Into::into)
     }
 
@@ -78,11 +124,11 @@ impl WeekCalculator {
     /// # Examples
     ///
     /// ```
-    /// use icu_calendar::types::{DayOfMonth, IsoWeekday, WeekOfMonth};
-    /// use icu_calendar::week::WeekCalculator;
+    /// use icu::calendar::types::{DayOfMonth, IsoWeekday, WeekOfMonth};
+    /// use icu::calendar::week::WeekCalculator;
     ///
     /// let week_calculator =
-    ///     WeekCalculator::try_new(&icu_locid::locale!("und-GB").into())
+    ///     WeekCalculator::try_new(&icu::locid::locale!("und-GB").into())
     ///         .expect("locale should be present");
     ///
     /// // Wednesday the 10th is in week 2:
@@ -102,12 +148,12 @@ impl WeekCalculator {
     /// # Examples
     ///
     /// ```
-    /// use icu_calendar::types::{DayOfMonth, IsoWeekday};
-    /// use icu_calendar::week::{RelativeUnit, WeekCalculator, WeekOf};
-    /// use icu_calendar::Date;
+    /// use icu::calendar::types::IsoWeekday;
+    /// use icu::calendar::week::{RelativeUnit, WeekCalculator, WeekOf};
+    /// use icu::calendar::Date;
     ///
     /// let week_calculator =
-    ///     WeekCalculator::try_new(&icu_locid::locale!("und-GB").into())
+    ///     WeekCalculator::try_new(&icu::locid::locale!("und-GB").into())
     ///         .expect("locale should be present");
     ///
     /// let iso_date = Date::try_new_iso_date(2022, 8, 26).unwrap();
@@ -141,6 +187,15 @@ impl WeekCalculator {
     fn weekday_index(&self, weekday: IsoWeekday) -> i8 {
         (7 + (weekday as i8) - (self.first_weekday as i8)) % 7
     }
+
+    /// Weekdays that are part of the 'weekend', for calendar purposes.
+    /// Days may not be contiguous, and order is based off the first weekday.
+    pub fn weekend(&self) -> impl Iterator<Item = IsoWeekday> {
+        WeekdaySetIterator::new(
+            self.first_weekday,
+            self.weekend.unwrap_or(WeekdaySet::new(&[])),
+        )
+    }
 }
 
 impl Default for WeekCalculator {
@@ -148,6 +203,7 @@ impl Default for WeekCalculator {
         Self {
             first_weekday: IsoWeekday::Monday,
             min_week_days: 1,
+            weekend: Some(WeekdaySet::new(&[IsoWeekday::Saturday, IsoWeekday::Sunday])),
         }
     }
 }
@@ -315,6 +371,7 @@ pub fn simple_week_of(first_weekday: IsoWeekday, day: u16, week_day: IsoWeekday)
     let calendar = WeekCalculator {
         first_weekday,
         min_week_days: 1,
+        weekend: None,
     };
 
     #[allow(clippy::unwrap_used)] // week_of should can't fail with MIN_UNIT_DAYS
@@ -331,6 +388,54 @@ pub fn simple_week_of(first_weekday: IsoWeekday, day: u16, week_day: IsoWeekday)
     .week
 }
 
+/// [Iterator] that yields weekdays that are part of the weekend.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct WeekdaySetIterator {
+    /// Determines the order in which we should start reading values from `weekend`.
+    first_weekday: IsoWeekday,
+    /// Day being evaluated.
+    current_day: IsoWeekday,
+    /// Bitset to read weekdays from.
+    weekend: WeekdaySet,
+}
+
+impl WeekdaySetIterator {
+    /// Creates the Iterator. Sets `current_day` to the day after `first_weekday`.
+    pub(crate) fn new(first_weekday: IsoWeekday, weekend: WeekdaySet) -> Self {
+        WeekdaySetIterator {
+            first_weekday,
+            current_day: first_weekday,
+            weekend,
+        }
+    }
+}
+
+impl Iterator for WeekdaySetIterator {
+    type Item = IsoWeekday;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Check each bit until we find one that is ON or until we are back to the start of the week.
+        while self.current_day.next_day() != self.first_weekday {
+            if self.weekend.contains(self.current_day) {
+                let result = self.current_day;
+                self.current_day = self.current_day.next_day();
+                return Some(result);
+            } else {
+                self.current_day = self.current_day.next_day();
+            }
+        }
+
+        if self.weekend.contains(self.current_day) {
+            // Clear weekend, we've seen all bits.
+            // Breaks the loop next time `next()` is called
+            self.weekend = WeekdaySet::new(&[]);
+            return Some(self.current_day);
+        }
+
+        Option::None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{week_of, RelativeUnit, RelativeWeek, UnitInfo, WeekCalculator, WeekOf};
@@ -339,16 +444,19 @@ mod tests {
     static ISO_CALENDAR: WeekCalculator = WeekCalculator {
         first_weekday: IsoWeekday::Monday,
         min_week_days: 4,
+        weekend: None,
     };
 
     static AE_CALENDAR: WeekCalculator = WeekCalculator {
         first_weekday: IsoWeekday::Saturday,
         min_week_days: 4,
+        weekend: None,
     };
 
     static US_CALENDAR: WeekCalculator = WeekCalculator {
         first_weekday: IsoWeekday::Sunday,
         min_week_days: 1,
+        weekend: None,
     };
 
     #[test]
@@ -456,6 +564,7 @@ mod tests {
                 let calendar = WeekCalculator {
                     first_weekday: IsoWeekday::from(start_of_week),
                     min_week_days,
+                    weekend: None,
                 };
                 for unit_duration in super::MIN_UNIT_DAYS..400 {
                     for start_of_unit in 1..7 {
@@ -597,5 +706,84 @@ fn test_simple_week_of() {
     assert_eq!(
         simple_week_of(IsoWeekday::Sunday, 26, IsoWeekday::Friday),
         4
+    );
+}
+
+#[test]
+fn test_weekend() {
+    use icu_locid::locale;
+
+    assert_eq!(
+        WeekCalculator::try_new(&locale!("und").into())
+            .unwrap()
+            .weekend()
+            .collect::<Vec<_>>(),
+        vec![IsoWeekday::Saturday, IsoWeekday::Sunday],
+    );
+
+    assert_eq!(
+        WeekCalculator::try_new(&locale!("und-FR").into())
+            .unwrap()
+            .weekend()
+            .collect::<Vec<_>>(),
+        vec![IsoWeekday::Saturday, IsoWeekday::Sunday],
+    );
+
+    assert_eq!(
+        WeekCalculator::try_new(&locale!("und-IQ").into())
+            .unwrap()
+            .weekend()
+            .collect::<Vec<_>>(),
+        vec![IsoWeekday::Saturday, IsoWeekday::Friday],
+    );
+
+    assert_eq!(
+        WeekCalculator::try_new(&locale!("und-IR").into())
+            .unwrap()
+            .weekend()
+            .collect::<Vec<_>>(),
+        vec![IsoWeekday::Friday],
+    );
+}
+
+#[test]
+fn test_weekdays_iter() {
+    use IsoWeekday::*;
+
+    // Weekend ends one day before week starts
+    let default_weekend = WeekdaySetIterator::new(Monday, WeekdaySet::new(&[Saturday, Sunday]));
+    assert_eq!(vec![Saturday, Sunday], default_weekend.collect::<Vec<_>>());
+
+    // Non-contiguous weekend
+    let fri_sun_weekend = WeekdaySetIterator::new(Monday, WeekdaySet::new(&[Friday, Sunday]));
+    assert_eq!(vec![Friday, Sunday], fri_sun_weekend.collect::<Vec<_>>());
+
+    let multiple_contiguous_days = WeekdaySetIterator::new(
+        Monday,
+        WeekdaySet::new(&[
+            IsoWeekday::Tuesday,
+            IsoWeekday::Wednesday,
+            IsoWeekday::Thursday,
+            IsoWeekday::Friday,
+        ]),
+    );
+    assert_eq!(
+        vec![Tuesday, Wednesday, Thursday, Friday],
+        multiple_contiguous_days.collect::<Vec<_>>()
+    );
+
+    // Non-contiguous days and iterator yielding elements based off first_weekday
+    let multiple_non_contiguous_days = WeekdaySetIterator::new(
+        Wednesday,
+        WeekdaySet::new(&[
+            IsoWeekday::Tuesday,
+            IsoWeekday::Thursday,
+            IsoWeekday::Friday,
+            IsoWeekday::Sunday,
+        ]),
+    );
+    assert_eq!(
+        vec![Thursday, Friday, Sunday, Tuesday],
+        multiple_non_contiguous_days.collect::<Vec<_>>()
     );
 }

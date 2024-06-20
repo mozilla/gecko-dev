@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.67"
 name = "icu_calendar"
-version = "1.4.0"
+version = "1.5.1"
 authors = ["The ICU4X Project Developers"]
 include = [
     "data/**/*",
@@ -29,7 +29,7 @@ description = "API for supporting various types of calendars"
 homepage = "https://icu4x.unicode.org"
 readme = "README.md"
 categories = ["internationalization"]
-license-file = "LICENSE"
+license = "Unicode-3.0"
 repository = "https://github.com/unicode-org/icu4x"
 
 [package.metadata.cargo-all-features]
@@ -61,11 +61,11 @@ name = "convert"
 harness = false
 
 [dependencies.calendrical_calculations]
-version = "0.1.0"
+version = "0.1.1"
 default-features = false
 
 [dependencies.databake]
-version = "0.1.7"
+version = "0.1.8"
 features = ["derive"]
 optional = true
 default-features = false
@@ -75,27 +75,27 @@ version = "0.2.3"
 default-features = false
 
 [dependencies.icu_calendar_data]
-version = "~1.4.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
 [dependencies.icu_locid]
-version = "~1.4.0"
+version = "~1.5.0"
 default-features = false
 
 [dependencies.icu_locid_transform]
-version = "~1.4.0"
+version = "~1.5.0"
 features = ["compiled_data"]
 optional = true
 default-features = false
 
 [dependencies.icu_provider]
-version = "~1.4.0"
+version = "~1.5.0"
 features = ["macros"]
 default-features = false
 
 [dependencies.serde]
-version = "1.0"
+version = "1.0.110"
 features = [
     "derive",
     "alloc",
@@ -104,7 +104,7 @@ optional = true
 default-features = false
 
 [dependencies.tinystr]
-version = "0.7.4"
+version = "0.7.5"
 features = [
     "alloc",
     "zerovec",
@@ -112,23 +112,27 @@ features = [
 default-features = false
 
 [dependencies.writeable]
-version = "0.5.4"
+version = "0.5.5"
 default-features = false
 
 [dependencies.zerovec]
-version = "0.10.1"
+version = "0.10.2"
 features = ["derive"]
 default-features = false
 
 [dev-dependencies.serde]
-version = "1.0"
+version = "1.0.110"
 features = [
     "derive",
     "alloc",
 ]
+default-features = false
 
 [dev-dependencies.serde_json]
-version = "1.0"
+version = "1.0.45"
+
+[dev-dependencies.simple_logger]
+version = "4.0.0"
 
 [features]
 bench = []
@@ -143,6 +147,7 @@ datagen = [
     "tinystr/databake",
 ]
 default = ["compiled_data"]
+logging = ["calendrical_calculations/logging"]
 serde = [
     "dep:serde",
     "zerovec/serde",
@@ -156,4 +161,4 @@ std = [
 ]
 
 [target."cfg(not(target_arch = \"wasm32\"))".dev-dependencies.criterion]
-version = "0.4"
+version = "0.5.0"
