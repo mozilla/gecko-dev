@@ -80,7 +80,7 @@ interface nsIAsyncGetClipboardData : nsISupports {
 };
 
 [scriptable, uuid(ce23c1c4-58fd-4c33-8579-fa0796d9652c)]
-interface nsIAsyncClipboardGetCallback : nsISupports
+interface nsIClipboardGetDataSnapshotCallback : nsISupports
 {
   /**
    * Indicates that the clipboard get request has succeeded.
@@ -185,7 +185,7 @@ interface nsIClipboard : nsISupports
                          in long aWhichClipboard,
                          in WindowContext aRequestingWindowContext,
                          in nsIPrincipal aRequestingPrincipal,
-                         in nsIAsyncClipboardGetCallback aCallback);
+                         in nsIClipboardGetDataSnapshotCallback aCallback);
 
     /**
      * Requests getting data from the native clipboard. This does not actually

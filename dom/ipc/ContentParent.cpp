@@ -3592,7 +3592,7 @@ static Result<ClipboardReadRequest, nsresult> CreateClipboardReadRequest(
   return ClipboardReadRequest(std::move(childEndpoint), std::move(flavors));
 }
 
-class ClipboardGetCallback final : public nsIAsyncClipboardGetCallback {
+class ClipboardGetCallback final : public nsIClipboardGetDataSnapshotCallback {
  public:
   ClipboardGetCallback(
       ContentParent* aContentParent,
@@ -3603,7 +3603,7 @@ class ClipboardGetCallback final : public nsIAsyncClipboardGetCallback {
   // need to be cycle-collected despite holding alive cycle-collected objects.
   NS_DECL_ISUPPORTS
 
-  // nsIAsyncClipboardGetCallback
+  // nsIClipboardGetDataSnapshotCallback
   NS_IMETHOD OnSuccess(
       nsIAsyncGetClipboardData* aAsyncGetClipboardData) override {
     MOZ_ASSERT(mContentParent);
@@ -3631,7 +3631,7 @@ class ClipboardGetCallback final : public nsIAsyncClipboardGetCallback {
   ContentParent::GetClipboardDataSnapshotResolver mResolver;
 };
 
-NS_IMPL_ISUPPORTS(ClipboardGetCallback, nsIAsyncClipboardGetCallback)
+NS_IMPL_ISUPPORTS(ClipboardGetCallback, nsIClipboardGetDataSnapshotCallback)
 
 }  // namespace
 

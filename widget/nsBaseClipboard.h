@@ -58,7 +58,7 @@ class nsBaseClipboard : public nsIClipboard {
       const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
       mozilla::dom::WindowContext* aRequestingWindowContext,
       nsIPrincipal* aRequestingPrincipal,
-      nsIAsyncClipboardGetCallback* aCallback) override final;
+      nsIClipboardGetDataSnapshotCallback* aCallback) override final;
   NS_IMETHOD GetDataSnapshotSync(
       const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
       mozilla::dom::WindowContext* aRequestingWindowContext,
@@ -73,7 +73,7 @@ class nsBaseClipboard : public nsIClipboard {
   void GetDataSnapshotInternal(
       const nsTArray<nsCString>& aFlavorList, int32_t aClipboardType,
       mozilla::dom::WindowContext* aRequestingWindowContext,
-      nsIAsyncClipboardGetCallback* aCallback);
+      nsIClipboardGetDataSnapshotCallback* aCallback);
 
   using GetDataCallback = mozilla::MoveOnlyFunction<void(nsresult)>;
   using HasMatchingFlavorsCallback = mozilla::MoveOnlyFunction<void(
@@ -205,7 +205,7 @@ class nsBaseClipboard : public nsIClipboard {
 
   void MaybeRetryGetAvailableFlavors(
       const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
-      nsIAsyncClipboardGetCallback* aCallback, int32_t aRetryCount,
+      nsIClipboardGetDataSnapshotCallback* aCallback, int32_t aRetryCount,
       mozilla::dom::WindowContext* aRequestingWindowContext);
 
   // Return clipboard cache if the cached data is valid, otherwise clear the
@@ -220,7 +220,7 @@ class nsBaseClipboard : public nsIClipboard {
                                const nsTArray<nsCString>& aFlavorList,
                                mozilla::dom::WindowContext* aWindowContext,
                                nsIPrincipal* aRequestingPrincipal,
-                               nsIAsyncClipboardGetCallback* aCallback);
+                               nsIClipboardGetDataSnapshotCallback* aCallback);
 
   already_AddRefed<nsIAsyncGetClipboardData>
   MaybeCreateGetRequestFromClipboardCache(

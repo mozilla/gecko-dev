@@ -60,9 +60,9 @@ async function getClipboardDataSnapshot(aBrowser, aClipboardType) {
         content.document.nodePrincipal,
         {
           QueryInterface: SpecialPowers.ChromeUtils.generateQI([
-            "nsIAsyncClipboardGetCallback",
+            "nsIClipboardGetDataSnapshotCallback",
           ]),
-          // nsIAsyncClipboardGetCallback
+          // nsIClipboardGetDataSnapshotCallback
           onSuccess: () => {
             resolve();
           },

@@ -211,7 +211,7 @@ NS_IMETHODIMP nsClipboardProxy::GetDataSnapshot(
     const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
     mozilla::dom::WindowContext* aRequestingWindowContext,
     nsIPrincipal* aRequestingPrincipal,
-    nsIAsyncClipboardGetCallback* aCallback) {
+    nsIClipboardGetDataSnapshotCallback* aCallback) {
   if (!aCallback || !aRequestingPrincipal || aFlavorList.IsEmpty()) {
     return NS_ERROR_INVALID_ARG;
   }
