@@ -66,15 +66,18 @@ import:
                   - RECENTLY_PRINTED
                 style: MICRO_SURVEY
                 microsurvey-config:
+                  utm-content: "homepage"
                   icon: ic_print
                   options:
-                    - text: microsurvey_survey_5_point_option_0
+                    - text: likert_scale_option_1
                       scale-value: 0
-                    - text: microsurvey_survey_5_point_option_1
+                    - text: likert_scale_option_2
                       scale-value: 1
-                    - text: microsurvey_survey_5_point_option_2
+                    - text: likert_scale_option_3
                       scale-value: 2
-                    - text: microsurvey_survey_5_point_option_3
+                    - text: likert_scale_option_4
                       scale-value: 3
-                    - text: microsurvey_survey_5_point_option_4
+                    - text: likert_scale_option_5
                       scale-value: 4
+                    - text: likert_scale_option_6
+                      scale-value: 5

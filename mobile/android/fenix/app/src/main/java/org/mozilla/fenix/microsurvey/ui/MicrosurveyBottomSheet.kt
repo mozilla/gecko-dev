@@ -42,13 +42,15 @@ private val bottomSheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.
  * @param question The question text.
  * @param answers The answer text options available for the given [question].
  * @param icon The icon that represents the feature for the given [question].
+ * @param onPrivacyPolicyLinkClick Invoked when the privacy policy link is clicked.
  * @param modifier [Modifier] to be applied to the layout.
  */
 @Composable
 fun MicrosurveyBottomSheet(
     question: String,
     answers: List<String>,
-    @DrawableRes icon: Int = R.drawable.ic_print, // todo currently unknown if default is used FXDROID-1921.
+    @DrawableRes icon: Int,
+    onPrivacyPolicyLinkClick: () -> Unit,
     modifier: Modifier,
 ) {
     var selectedAnswer by remember { mutableStateOf<String?>(null) }
@@ -99,7 +101,7 @@ fun MicrosurveyBottomSheet(
                 MicroSurveyFooter(
                     isSubmitted = isSubmitted,
                     isContentAnswerSelected = selectedAnswer != null,
-                    onLinkClick = {}, // todo add privacy policy link and open new tab FXDROID-1876.
+                    onPrivacyPolicyLinkClick = onPrivacyPolicyLinkClick,
                     onButtonClick = { isSubmitted = true },
                 )
             }
@@ -116,12 +118,14 @@ private fun MicroSurveyBottomSheetPreview() {
             modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection()),
             question = "How satisfied are you with printing in Firefox?",
             icon = R.drawable.ic_print,
+            onPrivacyPolicyLinkClick = {},
             answers = listOf(
                 stringResource(id = R.string.likert_scale_option_1),
                 stringResource(id = R.string.likert_scale_option_2),
                 stringResource(id = R.string.likert_scale_option_3),
                 stringResource(id = R.string.likert_scale_option_4),
                 stringResource(id = R.string.likert_scale_option_5),
+                stringResource(id = R.string.likert_scale_option_6),
             ),
         )
     }

@@ -189,6 +189,10 @@ objects:
   MicrosurveyConfig:
     description: Attributes relating to microsurvey content.
     fields:
+      utm-content:
+        description: Optional "utm_content" parameter for the privacy notice URL to specify the feature being surveyed.
+        type: Option<String>
+        default: null
       icon:
         type: Option<Image>
         description: The icon shown in the survey.

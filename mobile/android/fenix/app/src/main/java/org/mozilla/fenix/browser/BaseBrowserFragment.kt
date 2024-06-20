@@ -1373,7 +1373,7 @@ abstract class BaseBrowserFragment :
                         if (currentlyDisplayedMessage != null) {
                             MicrosurveyRequestPrompt {
                                 findNavController().nav(
-                                    R.id.homeFragment,
+                                    R.id.browserFragment,
                                     BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
                                 )
                             }
@@ -1500,7 +1500,7 @@ abstract class BaseBrowserFragment :
                         if (currentlyDisplayedMessage != null) {
                             MicrosurveyRequestPrompt {
                                 findNavController().nav(
-                                    R.id.homeFragment,
+                                    R.id.browserFragment,
                                     BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
                                 )
                             }

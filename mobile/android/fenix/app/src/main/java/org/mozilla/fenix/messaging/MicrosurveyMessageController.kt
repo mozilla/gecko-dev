@@ -11,9 +11,14 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MessageClicked
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MessageDismissed
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction.Completed
+import org.mozilla.fenix.settings.SupportUtils
+
+private val PRIVACY_POLICY_URL =
+    SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.PRIVATE_NOTICE) +
+        "?utm_medium=firefox-mobile&utm_source=modal&utm_campaign=microsurvey"
 
 /**
- * Handles interactions with the microsurveys.
+ * Handles interactions with a microsurvey.
  */
 class MicrosurveyMessageController(
     private val appStore: AppStore,
@@ -30,18 +35,22 @@ class MicrosurveyMessageController(
 
     /**
      * Handles the click event on the privacy link within a message.
-     * @param message The message containing the privacy link.
-     * @param privacyLink The URL of the privacy link.
+     * @param utmContent Optional utm parameter to add to the privacy policy URL.
      */
-    // Suppress unused parameter to work around the CI.
-    // message will be called by the UI when privacy noticed is clicked.
-    @Suppress("UNUSED_PARAMETER")
-    fun onPrivacyLinkClicked(message: Message, privacyLink: String) {
+    fun onPrivacyPolicyLinkClicked(utmContent: String? = null) {
+        val url = getPrivacyPolicyUrlFor(utmContent)
+
         homeActivity.openToBrowserAndLoad(
-            searchTermOrURL = privacyLink,
+            searchTermOrURL = url,
             newTab = true,
-            from = BrowserDirection.FromHome,
+            from = BrowserDirection.FromGlobal,
         )
+    }
+
+    private fun getPrivacyPolicyUrlFor(utmContent: String?) = if (utmContent == null) {
+        PRIVACY_POLICY_URL
+    } else {
+        "$PRIVACY_POLICY_URL&utm_content=$utmContent"
     }
 
     /**
