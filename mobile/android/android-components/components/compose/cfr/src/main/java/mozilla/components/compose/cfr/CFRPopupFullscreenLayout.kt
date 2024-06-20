@@ -128,17 +128,19 @@ internal class CFRPopupFullscreenLayout(
      * with such behavior set in [CFRPopupProperties].
      */
     fun show() {
-        val anchorViewTreeLifecycleOwner = anchor.findViewTreeLifecycleOwner()
-        val anchorViewTreeSavedStateRegistryOwner = anchor.findViewTreeSavedStateRegistryOwner()
+        if (!isAttachedToWindow) {
+            val anchorViewTreeLifecycleOwner = anchor.findViewTreeLifecycleOwner()
+            val anchorViewTreeSavedStateRegistryOwner = anchor.findViewTreeSavedStateRegistryOwner()
 
-        if (anchorViewTreeLifecycleOwner != null && anchorViewTreeSavedStateRegistryOwner != null) {
-            setViewTreeLifecycleOwner(anchorViewTreeLifecycleOwner)
-            this.setViewTreeSavedStateRegistryOwner(anchorViewTreeSavedStateRegistryOwner)
-            anchor.addOnAttachStateChangeListener(anchorDetachedListener)
-            orientationChangeListener = getDisplayOrientationListener(anchor.context).also {
-                it.start()
+            if (anchorViewTreeLifecycleOwner != null && anchorViewTreeSavedStateRegistryOwner != null) {
+                setViewTreeLifecycleOwner(anchorViewTreeLifecycleOwner)
+                this.setViewTreeSavedStateRegistryOwner(anchorViewTreeSavedStateRegistryOwner)
+                anchor.addOnAttachStateChangeListener(anchorDetachedListener)
+                orientationChangeListener = getDisplayOrientationListener(anchor.context).also {
+                    it.start()
+                }
+                windowManager.addView(this, createLayoutParams())
             }
-            windowManager.addView(this, createLayoutParams())
         }
     }
 
@@ -493,12 +495,14 @@ internal class CFRPopupFullscreenLayout(
      * Clients are not automatically informed about this. Use a separate call to [onDismiss] if needed.
      */
     internal fun dismiss() {
-        anchor.removeOnAttachStateChangeListener(anchorDetachedListener)
-        orientationChangeListener.stop()
-        disposeComposition()
-        setViewTreeLifecycleOwner(null)
-        this.setViewTreeSavedStateRegistryOwner(null)
-        windowManager.removeViewImmediate(this)
+        if (isAttachedToWindow) {
+            anchor.removeOnAttachStateChangeListener(anchorDetachedListener)
+            orientationChangeListener.stop()
+            disposeComposition()
+            setViewTreeLifecycleOwner(null)
+            this.setViewTreeSavedStateRegistryOwner(null)
+            windowManager.removeViewImmediate(this)
+        }
     }
 
     /**
