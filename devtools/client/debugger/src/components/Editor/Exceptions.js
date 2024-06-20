@@ -32,16 +32,43 @@ class Exceptions extends Component {
     };
   }
 
-  componentDidUpdate() {
-    const { exceptions, selectedSource, editor } = this.props;
+  componentDidMount() {
+    this.setMarkers();
+  }
 
-    if (!features.codemirrorNext) {
+  componentDidUpdate(prevProps) {
+    this.clearMarkers(prevProps);
+    this.setMarkers();
+  }
+
+  componentWillUnmount() {
+    this.clearMarkers();
+  }
+
+  clearMarkers(prevProps) {
+    const { exceptions, selectedSource, editor } = this.props;
+    if (!features.codemirrorNext || !editor) {
       return;
     }
 
-    if (!selectedSource || !editor || !exceptions.length) {
+    if (
+      !selectedSource ||
+      !exceptions.length ||
+      prevProps?.selectedSource !== selectedSource
+    ) {
       editor.removeLineContentMarker(markerTypes.LINE_EXCEPTION_MARKER);
       editor.removePositionContentMarker(markerTypes.EXCEPTION_POSITION_MARKER);
+    }
+  }
+
+  setMarkers() {
+    const { exceptions, selectedSource, editor } = this.props;
+    if (
+      !features.codemirrorNext ||
+      !selectedSource ||
+      !editor ||
+      !exceptions.length
+    ) {
       return;
     }
 
