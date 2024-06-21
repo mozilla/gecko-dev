@@ -1,80 +1,198 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Tue, 18 Jun 2024 10:18:56 -0500
-Subject: (tmp-cherry-pick) Revert "Remove unused
- WebRTC-Bwe-InjectedCongestionController" (81eca8306b)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Date: Fri, 21 Jun 2024 18:42:15 -0500
+Subject: (tmp-cherry-pick) Revert "h264: bail out early when failing to parse
+ SPS/PPS ids" (e1607ed3a6)
 
-This reverts commit c95cb6bd3e221cd54d3060654abf91abc9a2fac5.
+This reverts commit 4344eb713bb9a6d04d922d00fb492dfb31c9111f.
 
-Reason for revert: Breaks downstream project
+Reason for revert: Breaks downstream project.
 
 Original change's description:
-> Remove unused WebRTC-Bwe-InjectedCongestionController
+> h264: bail out early when failing to parse SPS/PPS ids
 >
-> Instead, PeerConnectionFactoryDependencies.network_controller_factory is
-> used if it exists.
+> This currently gets caught later in the process by the H264 SPS/PPS
+> tracker but can be rejected explicitly here. The network observable
+> behavior should be similar and request a key frame after a 200ms delay, at least for entities that send such bad bitstreams
 >
-> Bug: webrtc:8415
-> Change-Id: I37d5cc7325072bf1d87993e53949f1b97c277f55
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/347860
-> Reviewed-by: Björn Terelius <terelius@webrtc.org>
-> Commit-Queue: Per Kjellander <perkj@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42120}
+> BUG=webrtc:337076010
+>
+> Change-Id: I239c64efa7db631460ef9e9986d283335303df5f
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/349060
+> Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+> Reviewed-by: Harald Alvestrand <hta@webrtc.org>
+> Commit-Queue: Philipp Hancke <phancke@meta.com>
+> Cr-Commit-Position: refs/heads/main@{#42211}
 
-Bug: webrtc:8415
-Change-Id: I3800ce1a65e7ef40313d67308a24d5daa6d3a028
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/349560
+Bug: webrtc:337076010
+Change-Id: I15b815c69f1d25e41fb222d46359655242589fba
+No-Presubmit: true
+No-Tree-Checks: true
+No-Try: true
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/349661
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Commit-Queue: Qingsi Wang <qingsi@google.com>
-Reviewed-by: Per Kjellander <perkj@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#42213}
+Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
+Owners-Override: Mirko Bonadei <mbonadei@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#42217}
 ---
- experiments/field_trials.py   | 5 ++++-
- pc/peer_connection_factory.cc | 3 ++-
- 2 files changed, 6 insertions(+), 2 deletions(-)
+ .../source/video_rtp_depacketizer_h264.cc     | 74 +++++++++----------
+ .../video_rtp_depacketizer_h264_unittest.cc   | 38 ++--------
+ 2 files changed, 41 insertions(+), 71 deletions(-)
 
-diff --git a/experiments/field_trials.py b/experiments/field_trials.py
-index be070fa9a2..73419bf1f7 100755
---- a/experiments/field_trials.py
-+++ b/experiments/field_trials.py
-@@ -508,6 +508,9 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
-     FieldTrial('WebRTC-Bwe-InitialProbing',
-                42220440,
-                date(2024, 4, 1)),
-+    FieldTrial('WebRTC-Bwe-InjectedCongestionController',
-+               'webrtc:8415',
-+               INDEFINITE),
-     FieldTrial('WebRTC-Bwe-LimitProbesLowerThanThroughputEstimate',
-                42221601,
-                date(2024, 4, 1)),
-@@ -887,7 +890,7 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
- ])  # yapf: disable
+diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
+index 4198c80106..9978e5f5fc 100644
+--- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
++++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
+@@ -133,47 +133,45 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
+         SpsVuiRewriter::ParseResult result = SpsVuiRewriter::ParseAndRewriteSps(
+             &payload_data[start_offset], end_offset - start_offset, &sps,
+             nullptr, &output_buffer, SpsVuiRewriter::Direction::kIncoming);
+-        switch (result) {
+-          case SpsVuiRewriter::ParseResult::kFailure:
+-            RTC_LOG(LS_WARNING) << "Failed to parse SPS NAL unit.";
+-            return absl::nullopt;
+-          case SpsVuiRewriter::ParseResult::kVuiRewritten:
+-            if (modified_buffer) {
+-              RTC_LOG(LS_WARNING)
+-                  << "More than one H264 SPS NAL units needing "
+-                     "rewriting found within a single STAP-A packet. "
+-                     "Keeping the first and rewriting the last.";
+-            }
  
- POLICY_EXEMPT_FIELD_TRIALS_DIGEST: str = \
--    '0b9e14e036ffd4b96ef5e4d6a6aa67b6a1eff11f'
-+    '263c7a29291a7c4472ff60c7c3b2520f6dd5cea8'
+-            // Rewrite length field to new SPS size.
+-            if (h264_header.packetization_type == kH264StapA) {
+-              size_t length_field_offset =
+-                  start_offset - (H264::kNaluTypeSize + kLengthFieldSize);
+-              // Stap-A Length includes payload data and type header.
+-              size_t rewritten_size =
+-                  output_buffer.size() - start_offset + H264::kNaluTypeSize;
+-              ByteWriter<uint16_t>::WriteBigEndian(
+-                  &output_buffer[length_field_offset], rewritten_size);
+-            }
++        if (result == SpsVuiRewriter::ParseResult::kVuiRewritten) {
++          if (modified_buffer) {
++            RTC_LOG(LS_WARNING)
++                << "More than one H264 SPS NAL units needing "
++                   "rewriting found within a single STAP-A packet. "
++                   "Keeping the first and rewriting the last.";
++          }
  
- REGISTERED_FIELD_TRIALS: FrozenSet[FieldTrial] = ACTIVE_FIELD_TRIALS.union(
-     POLICY_EXEMPT_FIELD_TRIALS)
-diff --git a/pc/peer_connection_factory.cc b/pc/peer_connection_factory.cc
-index e62a680116..ed0d347273 100644
---- a/pc/peer_connection_factory.cc
-+++ b/pc/peer_connection_factory.cc
-@@ -335,13 +335,14 @@ std::unique_ptr<Call> PeerConnectionFactory::CreateCall_w(
-       network_state_predictor_factory_.get();
-   call_config.neteq_factory = neteq_factory_.get();
+-            parsed_payload->video_payload.SetData(output_buffer.data(),
+-                                                  output_buffer.size());
+-            // Append rest of packet.
+-            parsed_payload->video_payload.AppendData(
+-                &payload_data[end_offset],
+-                nalu_length + kNalHeaderSize - end_offset);
++          // Rewrite length field to new SPS size.
++          if (h264_header.packetization_type == kH264StapA) {
++            size_t length_field_offset =
++                start_offset - (H264::kNaluTypeSize + kLengthFieldSize);
++            // Stap-A Length includes payload data and type header.
++            size_t rewritten_size =
++                output_buffer.size() - start_offset + H264::kNaluTypeSize;
++            ByteWriter<uint16_t>::WriteBigEndian(
++                &output_buffer[length_field_offset], rewritten_size);
++          }
  
--  if (injected_network_controller_factory_) {
-+  if (IsTrialEnabled("WebRTC-Bwe-InjectedCongestionController")) {
-     RTC_LOG(LS_INFO) << "Using injected network controller factory";
-     call_config.network_controller_factory =
-         injected_network_controller_factory_.get();
-   } else {
-     RTC_LOG(LS_INFO) << "Using default network controller factory";
-   }
+-            modified_buffer = true;
+-            [[fallthrough]];
+-          case SpsVuiRewriter::ParseResult::kVuiOk:
+-            RTC_DCHECK(sps);
+-            nalu.sps_id = sps->id;
+-            parsed_payload->video_header.width = sps->width;
+-            parsed_payload->video_header.height = sps->height;
+-            parsed_payload->video_header.frame_type =
+-                VideoFrameType::kVideoFrameKey;
+-            break;
++          parsed_payload->video_payload.SetData(output_buffer.data(),
++                                                output_buffer.size());
++          // Append rest of packet.
++          parsed_payload->video_payload.AppendData(
++              &payload_data[end_offset],
++              nalu_length + kNalHeaderSize - end_offset);
 +
-   call_config.rtp_transport_controller_send_factory =
-       transport_controller_send_factory_.get();
-   call_config.decode_metronome = decode_metronome_.get();
++          modified_buffer = true;
++        }
++
++        if (sps) {
++          parsed_payload->video_header.width = sps->width;
++          parsed_payload->video_header.height = sps->height;
++          nalu.sps_id = sps->id;
++        } else {
++          RTC_LOG(LS_WARNING) << "Failed to parse SPS id from SPS slice.";
+         }
++        parsed_payload->video_header.frame_type =
++            VideoFrameType::kVideoFrameKey;
+         break;
+       }
+       case H264::NaluType::kPps: {
+@@ -187,7 +185,6 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
+         } else {
+           RTC_LOG(LS_WARNING)
+               << "Failed to parse PPS id and SPS id from PPS slice.";
+-          return absl::nullopt;
+         }
+         break;
+       }
+@@ -203,7 +200,6 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
+         } else {
+           RTC_LOG(LS_WARNING) << "Failed to parse PPS id from slice of type: "
+                               << static_cast<int>(nalu.type);
+-          return absl::nullopt;
+         }
+         break;
+       }
+diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc
+index 7cc4108632..f569c45fd3 100644
+--- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc
++++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc
+@@ -396,6 +396,12 @@ TEST(VideoRtpDepacketizerH264Test, TruncationJustAfterSingleStapANalu) {
+   EXPECT_FALSE(depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload)));
+ }
+ 
++TEST(VideoRtpDepacketizerH264Test, ShortSpsPacket) {
++  const uint8_t kPayload[] = {0x27, 0x80, 0x00};
++  VideoRtpDepacketizerH264 depacketizer;
++  EXPECT_TRUE(depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload)));
++}
++
+ TEST(VideoRtpDepacketizerH264Test, SeiPacket) {
+   const uint8_t kPayload[] = {
+       kSei,                   // F=0, NRI=0, Type=6.
+@@ -415,37 +421,5 @@ TEST(VideoRtpDepacketizerH264Test, SeiPacket) {
+   EXPECT_EQ(h264.nalus[0].pps_id, -1);
+ }
+ 
+-TEST(VideoRtpDepacketizerH264Test, ShortSpsPacket) {
+-  const uint8_t kPayload[] = {0x27, 0x80, 0x00};
+-  VideoRtpDepacketizerH264 depacketizer;
+-  EXPECT_FALSE(depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload)));
+-}
+-
+-TEST(VideoRtpDepacketizerH264Test, BadSps) {
+-  const uint8_t kPayload[] = {
+-      kSps, 0x42, 0x41, 0x2a, 0xd3, 0x93, 0xd3, 0x3b  // Payload.
+-  };
+-  VideoRtpDepacketizerH264 depacketizer;
+-  EXPECT_FALSE(depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload)));
+-}
+-
+-TEST(VideoRtpDepacketizerH264Test, BadPps) {
+-  const uint8_t kPayload[] = {
+-      kPps,
+-      0x00  // Payload.
+-  };
+-  VideoRtpDepacketizerH264 depacketizer;
+-  EXPECT_FALSE(depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload)));
+-}
+-
+-TEST(VideoRtpDepacketizerH264Test, BadSlice) {
+-  const uint8_t kPayload[] = {
+-      kIdr,
+-      0xc0  // Payload.
+-  };
+-  VideoRtpDepacketizerH264 depacketizer;
+-  EXPECT_FALSE(depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload)));
+-}
+-
+ }  // namespace
+ }  // namespace webrtc
