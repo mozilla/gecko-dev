@@ -673,10 +673,10 @@ class IDLPartialInterfaceOrNamespace(IDLObject):
                 # This gets propagated to all our members.
                 for member in self.members:
                     if member.getExtendedAttribute("SecureContext"):
+                        typeName = self._nonPartialInterfaceOrNamespace.typeName()
                         raise WebIDLError(
-                            "[SecureContext] specified on both a "
-                            "partial interface member and on the "
-                            "partial interface itself",
+                            "[SecureContext] specified on both a partial %s member "
+                            "and on the partial %s itself" % (typeName, typeName),
                             [member.location, attr.location],
                         )
                     member.addExtendedAttributes([attr])
@@ -684,17 +684,17 @@ class IDLPartialInterfaceOrNamespace(IDLObject):
                 # This just gets propagated to all our members.
                 for member in self.members:
                     if len(member._exposureGlobalNames) != 0:
+                        typeName = self._nonPartialInterfaceOrNamespace.typeName()
                         raise WebIDLError(
-                            "[Exposed] specified on both a "
-                            "partial interface member and on the "
-                            "partial interface itself",
+                            "[Exposed] specified on both a partial %s member and "
+                            "on the partial %s itself" % (typeName, typeName),
                             [member.location, attr.location],
                         )
                     member.addExtendedAttributes([attr])
             else:
                 raise WebIDLError(
-                    "Unknown extended attribute %s on partial "
-                    "interface" % identifier,
+                    "Unknown extended attribute %s on partial %s"
+                    % (identifier, self._nonPartialInterfaceOrNamespace.typeName()),
                     [attr.location],
                 )
 
