@@ -284,7 +284,7 @@ bool GCUntilCacheSweep(JSContext* cx, const Cache& cache) {
 
   JS::Zone* zone = JS::GetObjectZone(global);
   JS::PrepareZoneForGC(cx, zone);
-  SliceBudget budget(WorkBudget(1));
+  JS::SliceBudget budget(JS::WorkBudget(1));
   cx->runtime()->gc.startDebugGC(JS::GCOptions::Normal, budget);
 
   CHECK(IsIncrementalGCInProgress(cx));
@@ -299,7 +299,7 @@ bool SweepCacheAndFinishGC(JSContext* cx, const Cache& cache) {
   CHECK(IsIncrementalGCInProgress(cx));
 
   PrepareForIncrementalGC(cx);
-  IncrementalGCSlice(cx, JS::GCReason::API, SliceBudget::unlimited());
+  IncrementalGCSlice(cx, JS::GCReason::API, JS::SliceBudget::unlimited());
 
   JS::Zone* zone = JS::GetObjectZone(global);
   CHECK(!IsIncrementalGCInProgress(cx));

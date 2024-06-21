@@ -28,6 +28,7 @@ using namespace js::gc;
 using mozilla::LinkedList;
 
 using JS::AutoGCRooter;
+using JS::SliceBudget;
 
 using RootRange = RootedValueMap::Range;
 using RootEntry = RootedValueMap::Entry;

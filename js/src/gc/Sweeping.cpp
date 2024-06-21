@@ -56,6 +56,8 @@ using namespace js::gc;
 
 using mozilla::TimeStamp;
 
+using JS::SliceBudget;
+
 struct js::gc::FinalizePhase {
   gcstats::PhaseKind statsPhase;
   AllocKinds kinds;

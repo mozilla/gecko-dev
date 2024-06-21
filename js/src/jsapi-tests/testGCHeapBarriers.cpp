@@ -504,7 +504,7 @@ bool CallDuringIncrementalGC(uint32_t mode, F&& f) {
 
   JS::SetGCZeal(cx, mode, 0);
   JS::PrepareZoneForGC(cx, js::GetContextZone(cx));
-  js::SliceBudget budget{TimeBudget(BudgetMS)};
+  JS::SliceBudget budget{JS::TimeBudget(BudgetMS)};
   JS::StartIncrementalGC(cx, JS::GCOptions(), JS::GCReason::DEBUG_GC, budget);
   CHECK(JS::IsIncrementalGCInProgress(cx));
 
@@ -659,7 +659,7 @@ BEGIN_TEST(testGCHeapPreBarriers) {
   // Start an incremental GC so we can detect if we cause barriers to fire, as
   // these will mark objects black.
   JS::PrepareForFullGC(cx);
-  SliceBudget budget(WorkBudget(1));
+  JS::SliceBudget budget(JS::WorkBudget(1));
   gc::GCRuntime* gc = &cx->runtime()->gc;
   gc->startDebugGC(JS::GCOptions::Normal, budget);
   while (gc->state() != gc::State::Mark) {

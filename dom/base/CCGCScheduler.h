@@ -178,11 +178,11 @@ class CCGCScheduler {
   enum IsIdle { eNotIdle = false, eIdle = true };
   enum IsExtended { eNormalBudget = false, eExtendedBudget = true };
   enum IsInterruptible { eNonInterruptible = false, eInterruptible = true };
-  js::SliceBudget CreateGCSliceBudget(mozilla::TimeDuration aDuration,
+  JS::SliceBudget CreateGCSliceBudget(mozilla::TimeDuration aDuration,
                                       IsIdle aIsIdle, IsExtended aIsExtended,
                                       IsInterruptible aIsInterruptible) {
     mInterruptRequested = false;
-    auto budget = js::SliceBudget(aDuration, aIsInterruptible == eInterruptible
+    auto budget = JS::SliceBudget(aDuration, aIsInterruptible == eInterruptible
                                                  ? &mInterruptRequested
                                                  : nullptr);
     budget.idle = aIsIdle == eIdle;
@@ -352,13 +352,13 @@ class CCGCScheduler {
   // Return a budget along with a boolean saying whether to prefer to run short
   // slices and stop rather than continuing to the next phase of cycle
   // collection.
-  js::SliceBudget ComputeCCSliceBudget(TimeStamp aDeadline,
+  JS::SliceBudget ComputeCCSliceBudget(TimeStamp aDeadline,
                                        TimeStamp aCCBeginTime,
                                        TimeStamp aPrevSliceEndTime,
                                        TimeStamp aNow,
                                        bool* aPreferShorterSlices) const;
 
-  js::SliceBudget ComputeInterSliceGCBudget(TimeStamp aDeadline,
+  JS::SliceBudget ComputeInterSliceGCBudget(TimeStamp aDeadline,
                                             TimeStamp aNow);
 
   bool ShouldForgetSkippable(uint32_t aSuspectedCCObjects) const {
@@ -459,7 +459,7 @@ class CCGCScheduler {
 
   // aStartTimeStamp : when the ForgetSkippable timer fired. This may be some
   // time ago, if an incremental GC needed to be finished.
-  js::SliceBudget ComputeForgetSkippableBudget(TimeStamp aStartTimeStamp,
+  JS::SliceBudget ComputeForgetSkippableBudget(TimeStamp aStartTimeStamp,
                                                TimeStamp aDeadline);
 
  private:
@@ -482,7 +482,7 @@ class CCGCScheduler {
 
   // Set when the IdleTaskRunner requests the current task be interrupted.
   // Cleared when the GC slice budget has detected the interrupt request.
-  js::SliceBudget::InterruptRequestFlag mInterruptRequested;
+  JS::SliceBudget::InterruptRequestFlag mInterruptRequested;
 
   // When a shrinking GC has been requested but we back-out, if this is true
   // we run a non-shrinking GC.

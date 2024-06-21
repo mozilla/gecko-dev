@@ -86,7 +86,7 @@ BEGIN_TEST(testGCRootsRemoved) {
   CHECK(obj);
 
   JS::PrepareForFullGC(cx);
-  js::SliceBudget budget(js::WorkBudget(1));
+  JS::SliceBudget budget(JS::WorkBudget(1));
   cx->runtime()->gc.startDebugGC(JS::GCOptions::Shrink, budget);
   CHECK(JS::IsIncrementalGCInProgress(cx));
 
@@ -171,7 +171,7 @@ static void GCTreeCallback(JSContext* cx, JSGCStatus status,
     if (invocation.requestFullGC) {
       JS::PrepareForFullGC(cx);
     }
-    js::SliceBudget budget = js::SliceBudget(js::WorkBudget(1));
+    JS::SliceBudget budget = JS::SliceBudget(JS::WorkBudget(1));
     cx->runtime()->gc.startGC(GCOptions::Normal, invocation.reason, budget);
     MOZ_RELEASE_ASSERT(JS::IsIncrementalGCInProgress(cx));
 
@@ -265,7 +265,7 @@ BEGIN_TEST(testGCTree) {
 
   // Outer GC is a full GC.
   JS::PrepareForFullGC(cx);
-  js::SliceBudget budget(js::WorkBudget(1));
+  JS::SliceBudget budget(JS::WorkBudget(1));
   cx->runtime()->gc.startDebugGC(JS::GCOptions::Normal, budget);
   CHECK(JS::IsIncrementalGCInProgress(cx));
 
