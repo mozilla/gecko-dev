@@ -17,6 +17,7 @@
 #include "jsapi.h"
 #include "mozilla/Components.h"
 #include "mozilla/dom/Promise-inl.h"
+#include "mozilla/Variant.h"
 
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_dom.h"
@@ -92,22 +93,26 @@ int MaxTouchPoints() {
 }  // extern "C"
 };  // namespace testing
 
-using VoidPromise = MozPromise<void_t, void_t, true>::Private;
+using PopulatePromise =
+    MozPromise<void_t, std::pair<nsCString, Variant<nsresult, nsCString>>,
+               true>::Private;
 
 // ==================================================================
 // ==================================================================
-RefPtr<VoidPromise> ContentPageStuff() {
+RefPtr<PopulatePromise> ContentPageStuff() {
   nsCOMPtr<nsIUserCharacteristicsPageService> ucp =
       do_GetService("@mozilla.org/user-characteristics-page;1");
   MOZ_ASSERT(ucp);
 
-  RefPtr<VoidPromise> voidPromise = new VoidPromise(__func__);
+  RefPtr<PopulatePromise> populatePromise = new PopulatePromise(__func__);
   RefPtr<mozilla::dom::Promise> promise;
   nsresult rv = ucp->CreateContentPage(getter_AddRefs(promise));
   if (NS_FAILED(rv)) {
     MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Error,
             ("Could not create Content Page"));
-    return nullptr;
+    populatePromise->Reject(
+        std::pair(__func__, "CONT_PAGE_CREATION"_ns.AsString()), __func__);
+    return populatePromise;
   }
   MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Debug,
           ("Created Content Page"));
@@ -115,18 +120,27 @@ RefPtr<VoidPromise> ContentPageStuff() {
   if (promise) {
     promise->AddCallbacksWithCycleCollectedArgs(
         [=](JSContext*, JS::Handle<JS::Value>, mozilla::ErrorResult&) {
-          voidPromise->Resolve(void_t(), __func__);
+          populatePromise->Resolve(void_t(), __func__);
         },
-        [=](JSContext*, JS::Handle<JS::Value>, mozilla::ErrorResult&) {
-          voidPromise->Reject(void_t(), __func__);
+        [=](JSContext*, JS::Handle<JS::Value>, mozilla::ErrorResult& error) {
+          if (error.Failed()) {
+            nsresult rv = error.StealNSResult();
+            populatePromise->Reject(std::pair("ContentPageStuff"_ns, rv),
+                                    __func__);
+            return;
+          }
+          populatePromise->Reject(
+              std::pair("ContentPageStuff"_ns, "UNKNOWN"_ns.AsString()),
+              __func__);
         });
   } else {
     MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Error,
             ("Did not get a Promise back from ContentPageStuff"));
-    voidPromise->Reject(void_t(), __func__);
+    populatePromise->Reject(
+        std::pair(__func__, "CONT_PAGE_PROMISE"_ns.AsString()), __func__);
   }
 
-  return voidPromise;
+  return populatePromise;
 }
 
 void PopulateCSSProperties() {
@@ -496,8 +510,8 @@ void PopulateScaling() {
   glean::characteristics::scalings.Set(output);
 }
 
-RefPtr<VoidPromise> PopulateMediaDevices() {
-  RefPtr<VoidPromise> voidPromise = new VoidPromise(__func__);
+RefPtr<PopulatePromise> PopulateMediaDevices() {
+  RefPtr<PopulatePromise> populatePromise = new PopulatePromise(__func__);
   MediaManager::Get()->GetPhysicalDevices()->Then(
       GetCurrentSerialEventTarget(), __func__,
       [=](const RefPtr<const MediaManager::MediaDeviceSetRefCnt>& aDevices) {
@@ -529,16 +543,20 @@ RefPtr<VoidPromise> PopulateMediaDevices() {
             cameraCount, microphoneCount, speakerCount, groupIds.size(),
             groupIdsWoSpeakers.size());
         glean::characteristics::media_devices.Set(json);
-        voidPromise->Resolve(void_t(), __func__);
+        populatePromise->Resolve(void_t(), __func__);
       },
       [=](RefPtr<MediaMgrError>&& reason) {
-        voidPromise->Reject(void_t(), __func__);
+        // GetPhysicalDevices() never rejects but we'll add the following
+        // just in case it changes in the future
+        reason->mMessage.StripChar(',');
+        populatePromise->Reject(
+            std::pair("PopulateMediaDevices"_ns, reason->mMessage), __func__);
       });
-  return voidPromise;
+  return populatePromise;
 }
 
-RefPtr<VoidPromise> PopulateAudioDeviceProperties() {
-  RefPtr<VoidPromise> voidPromise = new VoidPromise(__func__);
+RefPtr<PopulatePromise> PopulateAudioDeviceProperties() {
+  RefPtr<PopulatePromise> populatePromise = new PopulatePromise(__func__);
 
   NS_DispatchBackgroundTask(
       NS_NewRunnableFunction("PopulateAudioDeviceProperties", [=]() {
@@ -599,10 +617,10 @@ RefPtr<VoidPromise> PopulateAudioDeviceProperties() {
 
         NS_DispatchToMainThread(NS_NewRunnableFunction(
             "PopulateAudioDeviceProperties",
-            [=]() { voidPromise->Resolve(void_t(), __func__); }));
+            [=]() { populatePromise->Resolve(void_t(), __func__); }));
       }));
 
-  return voidPromise;
+  return populatePromise;
 }
 
 void PopulateLanguages() {
@@ -680,6 +698,38 @@ void PopulateTextAntiAliasing() {
   output.Append("]");
 
   glean::characteristics::text_anti_aliasing.Set(output);
+}
+
+void PopulateErrors(
+    const PopulatePromise::AllSettledPromiseType::ResolveOrRejectValue&
+        results) {
+  nsCString errors;
+  for (const auto& result : results.ResolveValue()) {
+    if (!result.IsReject()) {
+      continue;
+    }
+
+    const auto& errorVar = result.RejectValue();
+    if (errorVar.second.is<nsresult>()) {
+      nsresult error = errorVar.second.as<nsresult>();
+      MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Error,
+              ("%s rejected with nsresult: %u.", errorVar.first.get(),
+               static_cast<uint32_t>(error)));
+      errors.AppendPrintf("%s:%u", errorVar.first.get(),
+                          static_cast<uint32_t>(error));
+    } else if (errorVar.second.is<nsCString>()) {
+      nsCString error = errorVar.second.as<nsCString>();
+      MOZ_LOG(
+          gUserCharacteristicsLog, mozilla::LogLevel::Error,
+          ("%s rejected with reason: %s.", errorVar.first.get(), error.get()));
+      errors.AppendPrintf("%s:%s", errorVar.first.get(), error.get());
+    }
+    errors.Append(",");
+  }
+  if (errors.Length() > 0) {
+    errors.Cut(errors.Length() - 1, 1);
+  }
+  glean::characteristics::errors.Set(errors);
 }
 
 // ==================================================================
@@ -817,7 +867,9 @@ void nsUserCharacteristics::PopulateDataAndEventuallySubmit(
 
   // ------------------------------------------------------------------------
 
-  nsTArray<RefPtr<MozPromise<mozilla::void_t, mozilla::void_t, true>>> promises;
+  nsTArray<RefPtr<MozPromise<
+      void_t, std::pair<nsCString, Variant<nsresult, nsCString>>, true>>>
+      promises;
   if (!aTesting) {
     // Many of the later peices of data do not work in a gtest
     // so skip populating them
@@ -892,13 +944,14 @@ void nsUserCharacteristics::PopulateDataAndEventuallySubmit(
     }
   };
 
-  VoidPromise::All(GetCurrentSerialEventTarget(), promises)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__, [=]() { fulfillSteps(); },
-          []() {
-            MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Error,
-                    ("One of the promises rejected."));
-          });
+  PopulatePromise::AllSettled(GetCurrentSerialEventTarget(), promises)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [=](const PopulatePromise::AllSettledPromiseType::
+                     ResolveOrRejectValue& results) {
+               PopulateErrors(results);
+
+               fulfillSteps();
+             });
 }
 
 /* static */
