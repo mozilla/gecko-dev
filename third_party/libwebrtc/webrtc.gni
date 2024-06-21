@@ -399,8 +399,7 @@ if (is_mac || is_ios) {
   }
 }
 
-# TODO(b/336718643): Remove use_perfetto_client_library_flag.
-if (build_with_chromium && use_perfetto_client_library) {
+if (build_with_chromium) {
   rtc_use_perfetto = true
 }
 
