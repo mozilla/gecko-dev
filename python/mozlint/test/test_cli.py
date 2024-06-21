@@ -5,7 +5,7 @@
 import os
 import subprocess
 import sys
-from distutils.spawn import find_executable
+from shutil import which
 
 import mozunit
 import pytest
@@ -57,7 +57,7 @@ def test_cli_run_with_fix(run, capfd):
     assert out.endswith("{}\n")
 
 
-@pytest.mark.skipif(not find_executable("echo"), reason="No `echo` executable found.")
+@pytest.mark.skipif(not which("echo"), reason="No `echo` executable found.")
 def test_cli_run_with_edit(run, parser, capfd):
     os.environ["EDITOR"] = "echo"
 
