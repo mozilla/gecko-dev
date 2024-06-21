@@ -4152,7 +4152,7 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
 }
 
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
-                                       const wasm::ModuleEnvironment& env,
+                                       const wasm::ModuleMetadata& moduleMeta,
                                        bool limitedSize)
     : MacroAssembler(alloc) {
 #if defined(JS_CODEGEN_ARM64)

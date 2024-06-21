@@ -483,7 +483,7 @@ using InstanceElemSegmentVector =
     GCVector<InstanceElemSegment, 0, SystemAllocPolicy>;
 
 // DataSegmentEnv holds the initial results of decoding a data segment from the
-// bytecode and is stored in the ModuleEnvironment during compilation. When
+// bytecode and is stored in the ModuleMetadata during compilation. When
 // compilation completes, (non-Env) DataSegments are created and stored in
 // the wasm::Module which contain copies of the data segment payload. This
 // allows non-compilation uses of wasm validation to avoid expensive copies.
@@ -536,7 +536,7 @@ using SharedDataSegment = RefPtr<const DataSegment>;
 using DataSegmentVector = Vector<SharedDataSegment, 0, SystemAllocPolicy>;
 
 // The CustomSection(Env) structs are like DataSegment(Env): CustomSectionEnv is
-// stored in the ModuleEnvironment and CustomSection holds a copy of the payload
+// stored in the ModuleMetadata and CustomSection holds a copy of the payload
 // and is stored in the wasm::Module.
 
 struct CustomSectionEnv {

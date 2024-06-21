@@ -243,7 +243,7 @@ class CallSiteDesc;
 class BytecodeOffset;
 class MemoryAccessDesc;
 
-struct ModuleEnvironment;
+struct ModuleMetadata;
 
 enum class FailureMode : uint8_t;
 enum class SimdOp;
@@ -5975,7 +5975,7 @@ class MOZ_RAII WasmMacroAssembler : public MacroAssembler {
  public:
   explicit WasmMacroAssembler(TempAllocator& alloc, bool limitedSize = true);
   explicit WasmMacroAssembler(TempAllocator& alloc,
-                              const wasm::ModuleEnvironment& env,
+                              const wasm::ModuleMetadata& moduleMeta,
                               bool limitedSize = true);
   ~WasmMacroAssembler() { assertNoGCThings(); }
 };

@@ -39,7 +39,7 @@ namespace wasm {
 using mozilla::DebugOnly;
 using mozilla::Maybe;
 
-struct ModuleEnvironment;
+struct ModuleMetadata;
 
 // The Opcode compactly and safely represents the primary opcode plus any
 // extension, with convenient predicates and accessors.
@@ -574,7 +574,7 @@ class Decoder {
 
   [[nodiscard]] bool readSectionHeader(uint8_t* id, SectionRange* range);
 
-  [[nodiscard]] bool startSection(SectionId id, ModuleEnvironment* env,
+  [[nodiscard]] bool startSection(SectionId id, ModuleMetadata* moduleMeta,
                                   MaybeSectionRange* range,
                                   const char* sectionName);
   [[nodiscard]] bool finishSection(const SectionRange& range,
@@ -585,21 +585,21 @@ class Decoder {
 
   [[nodiscard]] bool startCustomSection(const char* expected,
                                         size_t expectedLength,
-                                        ModuleEnvironment* env,
+                                        ModuleMetadata* moduleMeta,
                                         MaybeSectionRange* range);
 
   template <size_t NameSizeWith0>
   [[nodiscard]] bool startCustomSection(const char (&name)[NameSizeWith0],
-                                        ModuleEnvironment* env,
+                                        ModuleMetadata* moduleMeta,
                                         MaybeSectionRange* range) {
     MOZ_ASSERT(name[NameSizeWith0 - 1] == '\0');
-    return startCustomSection(name, NameSizeWith0 - 1, env, range);
+    return startCustomSection(name, NameSizeWith0 - 1, moduleMeta, range);
   }
 
   void finishCustomSection(const char* name, const SectionRange& range);
   void skipAndFinishCustomSection(const SectionRange& range);
 
-  [[nodiscard]] bool skipCustomSection(ModuleEnvironment* env);
+  [[nodiscard]] bool skipCustomSection(ModuleMetadata* moduleMeta);
 
   // The Name section has its own optional subsections.
 

@@ -50,7 +50,7 @@ using WasmTagObjectVector = GCVector<WasmTagObject*, 0, SystemAllocPolicy>;
 
 namespace wasm {
 
-struct ModuleEnvironment;
+struct ModuleMetadata;
 class CodeRange;
 class CodeTier;
 class ModuleSegment;

@@ -29,11 +29,12 @@ namespace js {
 namespace wasm {
 
 class Decoder;
-struct ModuleEnvironment;
+struct ModuleMetadata;
 
 // Validates a constant expression. Returns an optional literal value if the
 // final value was from a simple instruction such as i32.const.
-[[nodiscard]] bool DecodeConstantExpression(Decoder& d, ModuleEnvironment* env,
+[[nodiscard]] bool DecodeConstantExpression(Decoder& d,
+                                            ModuleMetadata* moduleMeta,
                                             ValType expected,
                                             Maybe<LitVal>* literal);
 
@@ -73,7 +74,7 @@ class InitExpr {
   // Decode and validate a constant expression given at the current
   // position of the decoder. Upon failure, the decoder contains the failure
   // message or else the failure was an OOM.
-  static bool decodeAndValidate(Decoder& d, ModuleEnvironment* env,
+  static bool decodeAndValidate(Decoder& d, ModuleMetadata* moduleMeta,
                                 ValType expected, InitExpr* expr);
 
   // Decode and evaluate a constant expression at the current position of the
