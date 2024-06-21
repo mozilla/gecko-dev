@@ -51,6 +51,8 @@ class VideoCodecTester {
   struct EncodingSettings {
     SdpVideoFormat sdp_video_format = SdpVideoFormat::VP8();
     ScalabilityMode scalability_mode = ScalabilityMode::kL1T1;
+    VideoCodecMode content_type = VideoCodecMode::kRealtimeVideo;
+    bool frame_drop = true;
 
     struct LayerSettings {
       Resolution resolution;
@@ -196,7 +198,9 @@ class VideoCodecTester {
       std::vector<int> bitrates_kbps,
       double framerate_fps,
       int num_frames,
-      uint32_t first_timestamp_rtp = 90000);
+      uint32_t first_timestamp_rtp = 90000,
+      VideoCodecMode content_type = VideoCodecMode::kRealtimeVideo,
+      bool frame_drop = true);
 
   // Decodes video, collects and returns decode metrics.
   static std::unique_ptr<VideoCodecStats> RunDecodeTest(

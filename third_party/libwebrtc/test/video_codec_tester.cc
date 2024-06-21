@@ -1046,8 +1046,8 @@ class Encoder : public EncodedImageCallback {
     vc.maxFramerate = top_layer_settings.framerate.hertz<uint32_t>();
     vc.active = true;
     vc.numberOfSimulcastStreams = 0;
-    vc.mode = webrtc::VideoCodecMode::kRealtimeVideo;
-    vc.SetFrameDropEnabled(true);
+    vc.mode = es.content_type;
+    vc.SetFrameDropEnabled(es.frame_drop);
     vc.SetScalabilityMode(es.scalability_mode);
     vc.SetVideoEncoderComplexity(VideoCodecComplexity::kComplexityNormal);
 
@@ -1297,7 +1297,8 @@ SplitBitrateAndUpdateScalabilityMode(std::string codec_type,
                                      int width,
                                      int height,
                                      std::vector<int> bitrates_kbps,
-                                     double framerate_fps) {
+                                     double framerate_fps,
+                                     VideoCodecMode content_type) {
   int num_spatial_layers = ScalabilityModeToNumSpatialLayers(scalability_mode);
   int num_temporal_layers =
       ScalabilityModeToNumTemporalLayers(scalability_mode);
@@ -1326,7 +1327,7 @@ SplitBitrateAndUpdateScalabilityMode(std::string codec_type,
   vc.minBitrate = 0;
   vc.maxFramerate = static_cast<uint32_t>(framerate_fps);
   vc.numberOfSimulcastStreams = 0;
-  vc.mode = webrtc::VideoCodecMode::kRealtimeVideo;
+  vc.mode = content_type;
   vc.SetScalabilityMode(scalability_mode);
   SetDefaultCodecSpecificSettings(&vc, num_temporal_layers);
 
@@ -1489,11 +1490,13 @@ std::map<uint32_t, EncodingSettings> VideoCodecTester::CreateEncodingSettings(
     std::vector<int> layer_bitrates_kbps,
     double framerate_fps,
     int num_frames,
-    uint32_t first_timestamp_rtp) {
+    uint32_t first_timestamp_rtp,
+    webrtc::VideoCodecMode content_type,
+    bool frame_drop) {
   auto [layer_bitrates, scalability_mode] =
       SplitBitrateAndUpdateScalabilityMode(
           codec_type, *ScalabilityModeFromString(scalability_name), width,
-          height, layer_bitrates_kbps, framerate_fps);
+          height, layer_bitrates_kbps, framerate_fps, content_type);
 
   int num_spatial_layers = ScalabilityModeToNumSpatialLayers(scalability_mode);
   int num_temporal_layers =
@@ -1532,6 +1535,8 @@ std::map<uint32_t, EncodingSettings> VideoCodecTester::CreateEncodingSettings(
     frames_settings.emplace(
         timestamp_rtp, EncodingSettings{.sdp_video_format = sdp_video_format,
                                         .scalability_mode = scalability_mode,
+                                        .content_type = content_type,
+                                        .frame_drop = frame_drop,
                                         .layers_settings = layers_settings});
 
     timestamp_rtp += k90kHz / Frequency::MilliHertz(1000 * framerate_fps);

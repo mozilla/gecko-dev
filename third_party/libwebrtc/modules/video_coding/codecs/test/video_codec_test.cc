@@ -61,6 +61,8 @@ ABSL_FLAG(double,
           framerate_fps,
           30.0,
           "Encode target frame rate of the top temporal layer in fps.");
+ABSL_FLAG(bool, screencast, false, "Enable screen encoding mode.");
+ABSL_FLAG(bool, frame_drop, true, "Enable frame dropping.");
 ABSL_FLAG(int, num_frames, 300, "Number of frames to encode and/or decode.");
 ABSL_FLAG(std::string, field_trials, "", "Field trials to apply.");
 ABSL_FLAG(std::string, test_name, "", "Test name.");
@@ -549,12 +551,18 @@ TEST(VideoCodecTest, DISABLED_EncodeDecode) {
                  std::back_inserter(bitrate_kbps),
                  [](const std::string& str) { return std::stoi(str); });
 
+  VideoCodecMode content_type = absl::GetFlag(FLAGS_screencast)
+                                    ? VideoCodecMode::kScreensharing
+                                    : VideoCodecMode::kRealtimeVideo;
+
   std::map<uint32_t, EncodingSettings> frames_settings =
       VideoCodecTester::CreateEncodingSettings(
           CodecNameToCodecType(absl::GetFlag(FLAGS_encoder)),
           absl::GetFlag(FLAGS_scalability_mode), absl::GetFlag(FLAGS_width),
           absl::GetFlag(FLAGS_height), {bitrate_kbps},
-          absl::GetFlag(FLAGS_framerate_fps), absl::GetFlag(FLAGS_num_frames));
+          absl::GetFlag(FLAGS_framerate_fps), absl::GetFlag(FLAGS_num_frames),
+          /*first_timestamp_rtp=*/90000, content_type,
+          absl::GetFlag(FLAGS_frame_drop));
 
   // TODO(webrtc:14852): Pass encoder and decoder names directly, and update
   // logged test name (implies lossing history in the chromeperf dashboard).
