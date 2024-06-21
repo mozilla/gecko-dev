@@ -8,8 +8,13 @@ prefs = [
 
 ["test_AddonsBackupResource.js"]
 
+["test_ArchiveEncryption.js"]
+skip-if = ["apple_silicon && automation"] # bug 1729538
+
 ["test_ArchiveEncryptionState.js"]
 skip-if = ["apple_silicon && automation"] # bug 1729538
+
+["test_ArchiveEncryption_nonce.js"]
 
 ["test_BackupResource.js"]
 support-files = ["data/test_xulstore.json"]

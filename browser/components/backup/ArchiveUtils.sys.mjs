@@ -100,6 +100,33 @@ export const ArchiveUtils = {
   },
 
   /**
+   * The maximum size of a backup archive, in bytes, prior to base64 encoding.
+   *
+   * @type {number}
+   */
+  get ARCHIVE_MAX_BYTES_SIZE() {
+    return 34359738368; // 2 ^ 35 bytes (32 GiB)
+  },
+
+  /**
+   * The AES-GCM tag length applied to each encrypted chunk, in bits.
+   *
+   * @type {number}
+   */
+  get TAG_LENGTH() {
+    return 128;
+  },
+
+  /**
+   * The AES-GCM tag length applied to each encrypted chunk, in bytes.
+   *
+   * @type {number}
+   */
+  get TAG_LENGTH_BYTES() {
+    return this.TAG_LENGTH / 8;
+  },
+
+  /**
    * @typedef {object} ComputeKeysResult
    * @property {Uint8Array} backupAuthKey
    *   The computed BackupAuthKey. This is returned as a Uint8Array because
@@ -184,10 +211,72 @@ export const ArchiveUtils = {
       },
       backupKeyHKDF,
       { name: "AES-GCM", length: 256 },
-      true /* extractable */,
+      false /* extractable */,
       ["encrypt", "decrypt", "wrapKey"]
     );
 
     return { backupAuthKey, backupEncKey };
+  },
+
+  /**
+   * @typedef {object} ComputeEncryptionKeysResult
+   * @property {CryptoKey} archiveEncKey
+   *   This is an AES-GCM key used to encrypt chunks of a backup archive.
+   * @property {CryptoKey} authKey
+   *   This is a unique authKey for a particular backup that lets us
+   *   generate the confirmation HMAC for the backup metadata.
+   */
+
+  /**
+   * Computes the encryption keys for a particular archive.
+   *
+   * @param {Uint8Array} archiveKeyMaterial
+   *   The key material used to generate the encryption keys.
+   * @param {Uint8Array} backupAuthKey
+   *   The backupAuthKey returned from computeBackupKeys.
+   * @returns {ComputeEncryptionKeysResult}
+   */
+  async computeEncryptionKeys(archiveKeyMaterial, backupAuthKey) {
+    let archiveKey = await crypto.subtle.importKey(
+      "raw",
+      archiveKeyMaterial,
+      { name: "HKDF" },
+      false, // Not extractable
+      ["deriveKey", "deriveBits"]
+    );
+
+    let textEncoder = new TextEncoder();
+    // Derive the EncKey as HKDF(salt=BackupAuthkey, key=ArchiveKey,info=’archive-enc-key’)
+    let archiveEncKey = await crypto.subtle.deriveKey(
+      {
+        name: "HKDF",
+        salt: backupAuthKey,
+        info: textEncoder.encode("archive-enc-key"),
+        hash: "SHA-256",
+      },
+      archiveKey,
+      { name: "AES-GCM", length: 256 },
+      true /* extractable */,
+      ["decrypt", "encrypt"]
+    );
+
+    // Derive the AuthKey as HKDF(salt=BackupAuthkey, key=ArchiveKey, info=‘archive-auth-key’)
+    // Note - this is distinct for this particular backup. It is not the same as
+    // the BackupAuthKey from ArchiveEncryptionState. It only uses the
+    // BackupAuthKey from the ArchiveEncryptionState as a salt.
+    let authKey = await crypto.subtle.deriveKey(
+      {
+        name: "HKDF",
+        salt: backupAuthKey,
+        info: textEncoder.encode("archive-auth-key"),
+        hash: "SHA-256",
+      },
+      archiveKey,
+      { name: "HMAC", hash: "SHA-256", length: 256 },
+      false /* extractable */,
+      ["sign", "verify"]
+    );
+
+    return { archiveEncKey, authKey };
   },
 };
