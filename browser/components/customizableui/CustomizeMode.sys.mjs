@@ -347,7 +347,7 @@ CustomizeMode.prototype = {
       document.getElementById("mainPopupSet").appendChild(panelContextMenu);
       panelHolder.appendChild(window.PanelUI.overflowFixedList);
 
-      window.PanelUI.overflowFixedList.setAttribute("customizing", true);
+      window.PanelUI.overflowFixedList.toggleAttribute("customizing", true);
       window.PanelUI.menuButton.disabled = true;
       document.getElementById("nav-bar-overflow-button").disabled = true;
 
@@ -360,13 +360,13 @@ CustomizeMode.prototype = {
 
       this._wrapToolbarItemSync(CustomizableUI.AREA_TABSTRIP);
 
-      this.document.documentElement.setAttribute("customizing", true);
+      this.document.documentElement.toggleAttribute("customizing", true);
 
       let customizableToolbars = document.querySelectorAll(
         "toolbar[customizable=true]:not([autohide=true], [collapsed=true])"
       );
       for (let toolbar of customizableToolbars) {
-        toolbar.setAttribute("customizing", true);
+        toolbar.toggleAttribute("customizing", true);
       }
 
       this._updateOverflowPanelArrowOffset();
@@ -1269,14 +1269,10 @@ CustomizeMode.prototype = {
 
   _onToolbarVisibilityChange(aEvent) {
     let toolbar = aEvent.target;
-    if (
-      aEvent.detail.visible &&
-      toolbar.getAttribute("customizable") == "true"
-    ) {
-      toolbar.setAttribute("customizing", "true");
-    } else {
-      toolbar.removeAttribute("customizing");
-    }
+    toolbar.toggleAttribute(
+      "customizing",
+      aEvent.detail.visible && toolbar.getAttribute("customizable") == "true"
+    );
     this._onUIChange();
   },
 
@@ -2470,7 +2466,7 @@ CustomizeMode.prototype = {
     doc.documentElement.setAttribute("customizing-movingItem", true);
     let item = this._getWrapper(aEvent.target);
     if (item) {
-      item.setAttribute("mousedown", "true");
+      item.toggleAttribute("mousedown", true);
     }
   },
 

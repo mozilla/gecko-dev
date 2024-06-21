@@ -238,7 +238,7 @@ toolbarpaletteitem {
       outline-width: 0;
     }
 
-    &:not([mousedown="true"]):focus-visible {
+    &:not([mousedown]):focus-visible {
       /* Delay adding the focusring back until after the transform transition completes. */
       transition: outline-width .01s linear var(--drag-drop-transition-duration);
       outline: var(--default-focusring);

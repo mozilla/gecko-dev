@@ -1131,7 +1131,7 @@
     }
 
     get _isCustomizing() {
-      return document.documentElement.getAttribute("customizing") == "true";
+      return document.documentElement.hasAttribute("customizing");
     }
 
     // This overrides the TabsBase _selectNewTab method so that we can

@@ -734,7 +734,7 @@
         // Entering customization mode after the search bar had focus causes
         // the popup to appear again, due to focus returning after the
         // hamburger panel closes. Don't open in that spurious event.
-        if (document.documentElement.getAttribute("customizing") == "true") {
+        if (document.documentElement.hasAttribute("customizing")) {
           return;
         }
 

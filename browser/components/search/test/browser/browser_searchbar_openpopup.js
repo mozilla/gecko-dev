@@ -5,7 +5,7 @@ const searchPopup = document.getElementById("PopupSearchAutoComplete");
 const kValues = ["long text", "long text 2", "long text 3"];
 
 async function endCustomizing(aWindow = window) {
-  if (aWindow.document.documentElement.getAttribute("customizing") != "true") {
+  if (!aWindow.document.documentElement.hasAttribute("customizing")) {
     return true;
   }
   let eventPromise = BrowserTestUtils.waitForEvent(
@@ -17,7 +17,7 @@ async function endCustomizing(aWindow = window) {
 }
 
 async function startCustomizing(aWindow = window) {
-  if (aWindow.document.documentElement.getAttribute("customizing") == "true") {
+  if (aWindow.document.documentElement.hasAttribute("customizing")) {
     return true;
   }
   let eventPromise = BrowserTestUtils.waitForEvent(
