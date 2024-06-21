@@ -730,11 +730,11 @@ WasmInstanceScope* WasmInstanceScope::create(JSContext* cx,
   size_t namesCount = 0;
 
   size_t memoriesStart = namesCount;
-  size_t memoriesCount = instance->instance().metadata().memories.length();
+  size_t memoriesCount = instance->instance().codeMeta().memories.length();
   namesCount += memoriesCount;
 
   size_t globalsStart = namesCount;
-  size_t globalsCount = instance->instance().metadata().globals.length();
+  size_t globalsCount = instance->instance().codeMeta().globals.length();
   namesCount += globalsCount;
 
   Rooted<UniquePtr<RuntimeData>> data(

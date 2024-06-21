@@ -179,6 +179,7 @@ struct StatsClosure {
   ObjectPrivateVisitor* opv;
   SourceSet seenSources;
   wasm::Metadata::SeenSet wasmSeenMetadata;
+  wasm::CodeMetadata::SeenSet wasmSeenCodeMetadata;
   wasm::Code::SeenSet wasmSeenCode;
   wasm::Table::SeenSet wasmSeenTables;
   bool anonymize;
@@ -348,10 +349,10 @@ static void StatsCellCallback(JSRuntime* rt, void* data, JS::GCCellPtr cellptr,
         if (ScriptSource* ss = module.metadata().maybeScriptSource()) {
           CollectScriptSourceStats<granularity>(closure, ss);
         }
-        module.addSizeOfMisc(rtStats->mallocSizeOf_, &closure->wasmSeenMetadata,
-                             &closure->wasmSeenCode,
-                             &info.objectsNonHeapCodeWasm,
-                             &info.objectsMallocHeapMisc);
+        module.addSizeOfMisc(
+            rtStats->mallocSizeOf_, &closure->wasmSeenMetadata,
+            &closure->wasmSeenCodeMetadata, &closure->wasmSeenCode,
+            &info.objectsNonHeapCodeWasm, &info.objectsMallocHeapMisc);
       } else if (obj->is<WasmInstanceObject>()) {
         wasm::Instance& instance = obj->as<WasmInstanceObject>().instance();
         if (ScriptSource* ss = instance.metadata().maybeScriptSource()) {
@@ -359,8 +360,9 @@ static void StatsCellCallback(JSRuntime* rt, void* data, JS::GCCellPtr cellptr,
         }
         instance.addSizeOfMisc(
             rtStats->mallocSizeOf_, &closure->wasmSeenMetadata,
-            &closure->wasmSeenCode, &closure->wasmSeenTables,
-            &info.objectsNonHeapCodeWasm, &info.objectsMallocHeapMisc);
+            &closure->wasmSeenCodeMetadata, &closure->wasmSeenCode,
+            &closure->wasmSeenTables, &info.objectsNonHeapCodeWasm,
+            &info.objectsMallocHeapMisc);
       }
 
       realmStats.classInfo.add(info);

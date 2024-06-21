@@ -1354,7 +1354,7 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
                                      Register scratch, uint32_t* callOffset) {
   MOZ_ASSERT(!IsCompilingWasm());
 
-  const FuncType& funcType = inst.metadata().getFuncExportType(fe);
+  const FuncType& funcType = inst.codeMeta().getFuncExportType(fe);
 
   size_t framePushedAtStart = masm.framePushed();
 

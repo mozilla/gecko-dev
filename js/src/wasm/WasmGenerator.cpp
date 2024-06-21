@@ -149,20 +149,20 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata) {
   }
 
   if (compileArgs_->scriptedCaller.filename) {
-    metadata_->filename =
+    codeMeta_->filename =
         DuplicateString(compileArgs_->scriptedCaller.filename.get());
-    if (!metadata_->filename) {
+    if (!codeMeta_->filename) {
       return false;
     }
 
-    metadata_->filenameIsURL = compileArgs_->scriptedCaller.filenameIsURL;
+    codeMeta_->filenameIsURL = compileArgs_->scriptedCaller.filenameIsURL;
   } else {
     MOZ_ASSERT(!compileArgs_->scriptedCaller.filenameIsURL);
   }
 
   if (compileArgs_->sourceMapURL) {
-    metadata_->sourceMapURL = DuplicateString(compileArgs_->sourceMapURL.get());
-    if (!metadata_->sourceMapURL) {
+    codeMeta_->sourceMapURL = DuplicateString(compileArgs_->sourceMapURL.get());
+    if (!codeMeta_->sourceMapURL) {
       return false;
     }
   }
@@ -209,18 +209,13 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata) {
       codeSectionSize / ByteCodesPerOOBTrap);
 
   // Allocate space in instance for declarations that need it
-  MOZ_ASSERT(metadata_->instanceDataLength == 0);
+  MOZ_ASSERT(codeMeta_->instanceDataLength == 0);
 
   Maybe<uint32_t> maybeInstanceDataLength = codeMeta_->doInstanceLayout();
   if (!maybeInstanceDataLength) {
     return false;
   }
-
-  metadata_->typeDefsOffsetStart = codeMeta_->typeDefsOffsetStart;
-  metadata_->memoriesOffsetStart = codeMeta_->memoriesOffsetStart;
-  metadata_->tablesOffsetStart = codeMeta_->tablesOffsetStart;
-  metadata_->tagsOffsetStart = codeMeta_->tagsOffsetStart;
-  metadata_->instanceDataLength = *maybeInstanceDataLength;
+  codeMeta_->instanceDataLength = *maybeInstanceDataLength;
 
   // Initialize function import metadata
   if (!metadataTier_->funcImports.resize(codeMeta_->numFuncImports)) {
@@ -233,16 +228,12 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata) {
                    codeMeta_->offsetOfFuncImportInstanceData(i));
   }
 
-  // Share type definitions with metadata
-  metadata_->types = codeMeta_->types;
-
   // Accumulate all exported functions:
   // - explicitly marked as such;
   // - implicitly exported by being an element of function tables;
   // - implicitly exported by being the start function;
   // - implicitly exported by being used in global ref.func initializer
-  // ModuleMetadata accumulates this information for us during decoding,
-  // transfer it to the FuncExportVector stored in Metadata.
+  // ModuleMetadata accumulates this information for us during decoding.
 
   uint32_t exportedFuncCount = 0;
   for (const FuncDesc& func : codeMeta_->funcs) {
@@ -521,7 +512,7 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
   JitContext jcx;
 
   // Combine observed features from the compiled code into the metadata
-  metadata_->featureUsage |= code.featureUsage;
+  codeMeta_->featureUsage |= code.featureUsage;
 
   // Before merging in new code, if calls in a prior code range might go out of
   // range, insert far jumps to extend the range.
@@ -1028,28 +1019,21 @@ SharedMetadata ModuleGenerator::finishMetadata(const Bytes& bytecode) {
 
   // Copy over data from the ModuleMetadata.
 
-  metadata_->startFuncIndex = moduleMeta_->startFuncIndex;
-  metadata_->builtinModules = codeMeta_->features.builtinModules;
-  metadata_->memories = std::move(codeMeta_->memories);
-  metadata_->tables = std::move(codeMeta_->tables);
-  metadata_->globals = std::move(codeMeta_->globals);
-  metadata_->tags = std::move(codeMeta_->tags);
-  metadata_->nameCustomSectionIndex = moduleMeta_->nameCustomSectionIndex;
-  metadata_->moduleName = moduleMeta_->moduleName;
-  metadata_->funcNames = std::move(moduleMeta_->funcNames);
-  metadata_->parsedBranchHints = codeMeta_->parsedBranchHints;
+  // FIXME: this seems pretty strange.  Do we need both?
+  codeMeta_->builtinModules = codeMeta_->features.builtinModules;
 
   // Copy over additional debug information.
 
   if (compilerEnv_->debugEnabled()) {
-    metadata_->debugEnabled = true;
+    codeMeta_->debugEnabled = true;
 
     const size_t numFuncs = codeMeta_->funcs.length();
-    if (!metadata_->debugFuncTypeIndices.resize(numFuncs)) {
+    if (!codeMeta_->debugFuncTypeIndices.resize(numFuncs)) {
       return nullptr;
     }
     for (size_t i = 0; i < numFuncs; i++) {
-      metadata_->debugFuncTypeIndices[i] = codeMeta_->funcs[i].typeIndex;
+      // FIXME: this seems pretty strange.  Do we need both?
+      codeMeta_->debugFuncTypeIndices[i] = codeMeta_->funcs[i].typeIndex;
     }
 
     static_assert(sizeof(ModuleHash) <= sizeof(mozilla::SHA1Sum::Hash),
@@ -1058,10 +1042,10 @@ SharedMetadata ModuleGenerator::finishMetadata(const Bytes& bytecode) {
     mozilla::SHA1Sum sha1Sum;
     sha1Sum.update(bytecode.begin(), bytecode.length());
     sha1Sum.finish(hash);
-    memcpy(metadata_->debugHash, hash, sizeof(ModuleHash));
+    memcpy(codeMeta_->debugHash, hash, sizeof(ModuleHash));
   }
 
-  MOZ_ASSERT_IF(moduleMeta_->nameCustomSectionIndex, !!metadata_->namePayload);
+  MOZ_ASSERT_IF(codeMeta_->nameCustomSectionIndex, !!codeMeta_->namePayload);
 
   // Metadata shouldn't be mutably modified after finishMetadata().
   SharedMetadata metadata = metadata_;
@@ -1129,9 +1113,9 @@ SharedModule ModuleGenerator::finishModule(
     customSections.infallibleAppend(std::move(sec));
   }
 
-  if (moduleMeta_->nameCustomSectionIndex) {
-    metadata_->namePayload =
-        customSections[*moduleMeta_->nameCustomSectionIndex].payload;
+  if (codeMeta_->nameCustomSectionIndex) {
+    codeMeta_->namePayload =
+        customSections[*codeMeta_->nameCustomSectionIndex].payload;
   }
 
   SharedMetadata metadata = finishMetadata(bytecode.bytes);
@@ -1139,8 +1123,8 @@ SharedModule ModuleGenerator::finishModule(
     return nullptr;
   }
 
-  MutableCode code =
-      js_new<Code>(std::move(codeTier), *metadata, std::move(jumpTables));
+  MutableCode code = js_new<Code>(std::move(codeTier), *metadata, *codeMeta_,
+                                  std::move(jumpTables));
   if (!code || !code->initialize(*linkData_)) {
     return nullptr;
   }

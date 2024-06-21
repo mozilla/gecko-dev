@@ -305,7 +305,7 @@ void WasmFrameIter::popFrame() {
 
 const char* WasmFrameIter::filename() const {
   MOZ_ASSERT(!done());
-  return code_->metadata().filename.get();
+  return code_->codeMeta().filename.get();
 }
 
 const char16_t* WasmFrameIter::displayURL() const {
@@ -374,7 +374,7 @@ bool WasmFrameIter::debugEnabled() const {
   // Metadata::debugEnabled is only set if debugging is actually enabled (both
   // requested, and available via baseline compilation), and Tier::Debug code
   // will be available.
-  if (!code_->metadata().debugEnabled) {
+  if (!code_->codeMeta().debugEnabled) {
     return false;
   }
 

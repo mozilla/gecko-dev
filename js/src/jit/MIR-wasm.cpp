@@ -858,7 +858,7 @@ MIonToWasmCall* MIonToWasmCall::New(TempAllocator& alloc,
                                     WasmInstanceObject* instanceObj,
                                     const wasm::FuncExport& funcExport) {
   const wasm::FuncType& funcType =
-      instanceObj->instance().metadata().getFuncExportType(funcExport);
+      instanceObj->instance().codeMeta().getFuncExportType(funcExport);
   const wasm::ValTypeVector& results = funcType.results();
   MIRType resultType = MIRType::Value;
   // At the JS boundary some wasm types must be represented as a Value, and in
@@ -879,7 +879,7 @@ MIonToWasmCall* MIonToWasmCall::New(TempAllocator& alloc,
 #ifdef DEBUG
 bool MIonToWasmCall::isConsistentFloat32Use(MUse* use) const {
   const wasm::FuncType& funcType =
-      instance()->metadata().getFuncExportType(funcExport_);
+      instance()->codeMeta().getFuncExportType(funcExport_);
   return funcType.args()[use->index()].kind() == wasm::ValType::F32;
 }
 #endif

@@ -2657,7 +2657,7 @@ static bool DecodeStartSection(Decoder& d, CodeMetadata* codeMeta,
 
   codeMeta->declareFuncExported(funcIndex, /* eager */ true,
                                 /* canFuncRef */ false);
-  moduleMeta->startFuncIndex = Some(funcIndex);
+  codeMeta->startFuncIndex = Some(funcIndex);
 
   return d.finishSection(*range, "start");
 }
@@ -3207,6 +3207,7 @@ static bool DecodeDataSection(Decoder& d, CodeMetadata* codeMeta,
 
 static bool DecodeModuleNameSubsection(Decoder& d,
                                        const CustomSectionRange& nameSection,
+                                       CodeMetadata* codeMeta,
                                        ModuleMetadata* moduleMeta) {
   Maybe<uint32_t> endOffset;
   if (!d.startNameSubsection(NameType::Module, &endOffset)) {
@@ -3235,7 +3236,7 @@ static bool DecodeModuleNameSubsection(Decoder& d,
   }
 
   // Only save the module name if the whole subsection validates.
-  moduleMeta->moduleName.emplace(moduleName);
+  codeMeta->moduleName.emplace(moduleName);
   return true;
 }
 
@@ -3300,7 +3301,7 @@ static bool DecodeFunctionNameSubsection(Decoder& d,
 
   // To encourage fully valid function names subsections; only save names if
   // the entire subsection decoded correctly.
-  moduleMeta->funcNames = std::move(funcNames);
+  codeMeta->funcNames = std::move(funcNames);
   return true;
 }
 
@@ -3314,13 +3315,13 @@ static bool DecodeNameSection(Decoder& d, CodeMetadata* codeMeta,
     return true;
   }
 
-  moduleMeta->nameCustomSectionIndex =
+  codeMeta->nameCustomSectionIndex =
       Some(codeMeta->customSectionRanges.length() - 1);
   const CustomSectionRange& nameSection = codeMeta->customSectionRanges.back();
 
   // Once started, custom sections do not report validation errors.
 
-  if (!DecodeModuleNameSubsection(d, nameSection, moduleMeta)) {
+  if (!DecodeModuleNameSubsection(d, nameSection, codeMeta, moduleMeta)) {
     goto finish;
   }
 
@@ -3369,21 +3370,21 @@ bool wasm::Validate(JSContext* cx, const ShareableBytes& bytecode,
   Decoder d(bytecode.bytes, 0, error);
 
   FeatureArgs features = FeatureArgs::build(cx, options);
-  CodeMetadata codeMeta(features);
-  if (!codeMeta.init()) {
+  RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(features);
+  if (!codeMeta || !codeMeta->init()) {
     return false;
   }
   ModuleMetadata moduleMeta;
 
-  if (!DecodeModuleEnvironment(d, &codeMeta, &moduleMeta)) {
+  if (!DecodeModuleEnvironment(d, codeMeta, &moduleMeta)) {
     return false;
   }
 
-  if (!DecodeCodeSection(d, &codeMeta)) {
+  if (!DecodeCodeSection(d, codeMeta)) {
     return false;
   }
 
-  if (!DecodeModuleTail(d, &codeMeta, &moduleMeta)) {
+  if (!DecodeModuleTail(d, codeMeta, &moduleMeta)) {
     return false;
   }
 

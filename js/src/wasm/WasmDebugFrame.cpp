@@ -34,7 +34,7 @@ using namespace js::wasm;
 
 /* static */
 DebugFrame* DebugFrame::from(Frame* fp) {
-  MOZ_ASSERT(GetNearestEffectiveInstance(fp)->code().metadata().debugEnabled);
+  MOZ_ASSERT(GetNearestEffectiveInstance(fp)->code().codeMeta().debugEnabled);
   auto* df =
       reinterpret_cast<DebugFrame*>((uint8_t*)fp - DebugFrame::offsetOfFrame());
   MOZ_ASSERT(GetNearestEffectiveInstance(fp) == df->instance());
@@ -136,7 +136,7 @@ bool DebugFrame::updateReturnJSValue(JSContext* cx) {
   rval.setUndefined();
   flags_.hasCachedReturnJSValue = true;
   ResultType resultType = ResultType::Vector(
-      instance()->metadata().debugFuncType(funcIndex()).results());
+      instance()->codeMeta().debugFuncType(funcIndex()).results());
   Maybe<char*> stackResultsLoc;
   if (ABIResultIter::HasStackResults(resultType)) {
     stackResultsLoc = Some(static_cast<char*>(stackResultsPointer_));
