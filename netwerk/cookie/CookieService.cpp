@@ -1371,17 +1371,6 @@ bool CookieService::CanSetCookie(
     aCookieData.isSession() = true;
   }
 
-  // reject cookie if name and value are empty, per RFC6265bis
-  if (aCookieData.name().IsEmpty() && aCookieData.value().IsEmpty()) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
-                      "cookie name and value are empty");
-
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_REJECTION_CATEGORY,
-        "CookieRejectedEmptyNameAndValue"_ns, nsTArray<nsString>());
-    return newCookie;
-  }
-
   // reject cookie if it's over the size limit, per RFC2109
   if (!CookieCommons::CheckNameAndValueSize(aCookieData)) {
     COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,

@@ -32,9 +32,6 @@ support-files = ["cookies.sjs", "serviceWorker.js"]
 ["browser_oversize.js"]
 support-files = ["oversize.sjs"]
 
-["browser_cookie_empty_name_value.js"]
-support-files = ["cookie_empty_name_value.sjs"]
-
 ["browser_partitionedConsole.js"]
 support-files = ["partitioned.sjs"]
 
