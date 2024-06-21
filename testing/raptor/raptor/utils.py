@@ -8,7 +8,6 @@ import inspect
 import os
 import pathlib
 from collections.abc import Iterable
-from distutils.util import strtobool
 
 import yaml
 from base_python_support import BasePythonSupport
@@ -23,6 +22,22 @@ external_tools_path = os.environ.get("EXTERNALTOOLSPATH", None)
 if external_tools_path is not None:
     # running in production via mozharness
     TOOLTOOL_PATH = os.path.join(external_tools_path, "tooltool.py")
+
+
+def strtobool(value: str):
+    # Copied from `mach.util` since this script can run outside of a mach environment
+    # Reimplementation of distutils.util.strtobool
+    # https://docs.python.org/3.9/distutils/apiref.html#distutils.util.strtobool
+    true_vals = ("y", "yes", "t", "true", "on", "1")
+    false_vals = ("n", "no", "f", "false", "off", "0")
+
+    value = value.lower()
+    if value in true_vals:
+        return 1
+    if value in false_vals:
+        return 0
+
+    raise ValueError(f'Expected one of: {", ".join(true_vals + false_vals)}')
 
 
 def flatten(data, parent_dir, sep="/"):
