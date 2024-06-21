@@ -25,9 +25,10 @@
 #include <type_traits>
 
 #include "js/Printf.h"
+#include "wasm/WasmBinary.h"
 #include "wasm/WasmBuiltinModule.h"
+#include "wasm/WasmMetadata.h"
 #include "wasm/WasmUtility.h"
-#include "wasm/WasmValidate.h"
 
 namespace js {
 namespace wasm {

@@ -26,8 +26,8 @@
 #include "threading/ProtectedData.h"
 #include "vm/HelperThreadTask.h"
 #include "wasm/WasmCompile.h"
+#include "wasm/WasmMetadata.h"
 #include "wasm/WasmModule.h"
-#include "wasm/WasmValidate.h"
 
 namespace JS {
 class OptimizedEncodingListener;
@@ -35,6 +35,8 @@ class OptimizedEncodingListener;
 
 namespace js {
 namespace wasm {
+
+using mozilla::DebugOnly;
 
 struct CompileTask;
 using CompileTaskPtrVector = Vector<CompileTask*, 0, SystemAllocPolicy>;

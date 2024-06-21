@@ -19,7 +19,7 @@
 #include "wasm/WasmBinary.h"
 
 #include "js/Printf.h"
-#include "wasm/WasmValidate.h"
+#include "wasm/WasmMetadata.h"
 
 using namespace js;
 using namespace js::wasm;
