@@ -155,7 +155,7 @@ class Module : public JS::WasmModule {
   const Code& code() const { return *code_; }
   const ModuleSegment& moduleSegment(Tier t) const { return code_->segment(t); }
   const CodeMetadata& codeMeta() const { return code_->codeMeta(); }
-  const Metadata& metadata() const { return code_->metadata(); }
+  const Metadata* metadata() const { return code_->metadata(); }
   const MetadataTier& metadata(Tier t) const { return code_->metadata(t); }
   const ImportVector& imports() const { return imports_; }
   const ExportVector& exports() const { return exports_; }

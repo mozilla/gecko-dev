@@ -367,7 +367,7 @@ class alignas(16) Instance {
   inline const CodeTier& code(Tier t) const;
   inline uint8_t* codeBase(Tier t) const;
   inline const MetadataTier& metadata(Tier t) const;
-  inline const Metadata& metadata() const;
+  inline const Metadata* metadata() const;
   inline const CodeMetadata& codeMeta() const;
   inline bool isAsmJS() const;
 

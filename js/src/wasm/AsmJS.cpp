@@ -381,7 +381,9 @@ struct js::AsmJSMetadata : Metadata, AsmJSMetadataCacheablePod {
   }
 
   AsmJSMetadata() : toStringStart(0), srcStart(0), strict(false) {}
-  ~AsmJSMetadata() override = default;
+  ~AsmJSMetadata() = default;
+
+  const AsmJSMetadata& asAsmJS() const { return *this; }
 
   const AsmJSExport& lookupAsmJSExport(uint32_t funcIndex) const {
     // The AsmJSExportVector isn't stored in sorted order so do a linear
@@ -395,14 +397,12 @@ struct js::AsmJSMetadata : Metadata, AsmJSMetadataCacheablePod {
     MOZ_CRASH("missing asm.js func export");
   }
 
-  bool mutedErrors() const override { return source->mutedErrors(); }
-  const char16_t* displayURL() const override {
+  bool mutedErrors() const { return source->mutedErrors(); }
+  const char16_t* displayURL() const {
     return source->hasDisplayURL() ? source->displayURL() : nullptr;
   }
-  ScriptSource* maybeScriptSource() const override { return source.get(); }
-  bool getFuncName(NameContext ctx, uint32_t funcIndex, SharedBytes namePayload,
-                   const Maybe<Name>& moduleName, const NameVector& funcNames,
-                   UTF8Bytes* name) const override {
+  ScriptSource* maybeScriptSource() const { return source.get(); }
+  bool getFuncNameForAsmJS(uint32_t funcIndex, UTF8Bytes* name) const {
     const char* p = asmJSFuncNames[funcIndex].get();
     if (!p) {
       return true;
@@ -412,6 +412,11 @@ struct js::AsmJSMetadata : Metadata, AsmJSMetadataCacheablePod {
 
   AsmJSMetadataCacheablePod& pod() { return *this; }
   const AsmJSMetadataCacheablePod& pod() const { return *this; }
+
+  // FIXME: no idea if this is correct.  Probably not!
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
+    return 0;
+  }
 };
 
 using MutableAsmJSMetadata = RefPtr<AsmJSMetadata>;
@@ -7049,7 +7054,7 @@ bool js::InstantiateAsmJS(JSContext* cx, unsigned argc, JS::Value* vp) {
 
   JSFunction* callee = &args.callee().as<JSFunction>();
   const Module& module = AsmJSModuleFunctionToModule(callee);
-  const AsmJSMetadata& metadata = module.metadata().asAsmJS();
+  const AsmJSMetadata& metadata = module.metadata()->asAsmJS();
 
   Rooted<WasmInstanceObject*> instanceObj(cx);
   RootedObject exportObj(cx);
@@ -7208,11 +7213,11 @@ bool js::IsAsmJSFunction(JSFunction* fun) {
 
 bool js::IsAsmJSStrictModeModuleOrFunction(JSFunction* fun) {
   if (IsAsmJSModule(fun)) {
-    return AsmJSModuleFunctionToModule(fun).metadata().asAsmJS().strict;
+    return AsmJSModuleFunctionToModule(fun).metadata()->asAsmJS().strict;
   }
 
   if (IsAsmJSFunction(fun)) {
-    return ExportedFunctionToInstance(fun).metadata().asAsmJS().strict;
+    return ExportedFunctionToInstance(fun).metadata()->asAsmJS().strict;
   }
 
   return false;
@@ -7269,7 +7274,7 @@ JSString* js::AsmJSModuleToString(JSContext* cx, HandleFunction fun,
   MOZ_ASSERT(IsAsmJSModule(fun));
 
   const AsmJSMetadata& metadata =
-      AsmJSModuleFunctionToModule(fun).metadata().asAsmJS();
+      AsmJSModuleFunctionToModule(fun).metadata()->asAsmJS();
   uint32_t begin = metadata.toStringStart;
   uint32_t end = metadata.srcEndAfterCurly();
   ScriptSource* source = metadata.maybeScriptSource();
@@ -7317,7 +7322,7 @@ JSString* js::AsmJSFunctionToString(JSContext* cx, HandleFunction fun) {
   MOZ_ASSERT(IsAsmJSFunction(fun));
 
   const AsmJSMetadata& metadata =
-      ExportedFunctionToInstance(fun).metadata().asAsmJS();
+      ExportedFunctionToInstance(fun).metadata()->asAsmJS();
   const AsmJSExport& f =
       metadata.lookupAsmJSExport(ExportedFunctionToFuncIndex(fun));
 
