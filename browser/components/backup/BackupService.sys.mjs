@@ -253,7 +253,7 @@ class BinaryReadableStream {
  * newlines to indicate when a break between full blocks is, and buffer chunks
  * until we see those breaks - only decoding once we have a full block.
  */
-class DecoderDecryptorTransformer {
+export class DecoderDecryptorTransformer {
   #buffer = "";
   #decryptor = null;
 
@@ -329,13 +329,20 @@ class DecoderDecryptorTransformer {
    * @returns {Promise<undefined>}
    */
   async #processChunk(controller, chunk, isLastChunk = false) {
-    let bytes = lazy.ArchiveUtils.stringToArray(chunk);
+    try {
+      let bytes = lazy.ArchiveUtils.stringToArray(chunk);
 
-    if (this.#decryptor) {
-      let plaintextBytes = await this.#decryptor.decrypt(bytes, isLastChunk);
-      controller.enqueue(plaintextBytes);
-    } else {
-      controller.enqueue(bytes);
+      if (this.#decryptor) {
+        let plaintextBytes = await this.#decryptor.decrypt(bytes, isLastChunk);
+        controller.enqueue(plaintextBytes);
+      } else {
+        controller.enqueue(bytes);
+      }
+    } catch (e) {
+      // Something went wrong base64 decoding or decrypting. Tell the controller
+      // that we're done, so that it can destroy anything that was decoded /
+      // decrypted already.
+      controller.error("Corrupted archive.");
     }
   }
 }
@@ -344,7 +351,7 @@ class DecoderDecryptorTransformer {
  * A class that lets us construct a WritableStream that writes bytes to a file
  * on disk somewhere.
  */
-class FileWriterStream {
+export class FileWriterStream {
   /**
    * @type {string}
    */
@@ -361,13 +368,22 @@ class FileWriterStream {
   #binStream = null;
 
   /**
+   * @type {ArchiveDecryptor}
+   */
+  #decryptor = null;
+
+  /**
    * Constructor for FileWriterStream.
    *
    * @param {string} destPath
    *   The path to write the incoming bytes to.
+   * @param {ArchiveDecryptor|null} decryptor
+   *   An initialized ArchiveDecryptor, if this stream of bytes is presumed to
+   *   be encrypted.
    */
-  constructor(destPath) {
+  constructor(destPath, decryptor) {
     this.#destPath = destPath;
+    this.#decryptor = decryptor;
   }
 
   /**
@@ -397,9 +413,35 @@ class FileWriterStream {
 
   /**
    * Called once the stream of bytes finishes flowing in and closes the stream.
+   *
+   * @param {WritableStreamDefaultController} controller
+   *   The controller for the WritableStream.
    */
-  close() {
+  close(controller) {
     lazy.FileUtils.closeSafeFileOutputStream(this.#outStream);
+    if (this.#decryptor && !this.#decryptor.isDone()) {
+      lazy.logConsole.error(
+        "Decryptor was not done when the stream was closed."
+      );
+      controller.error("Corrupted archive.");
+    }
+  }
+
+  /**
+   * Called if something went wrong while decoding / decrypting the stream of
+   * bytes. This destroys any bytes that may have been decoded / decrypted
+   * prior to the error.
+   *
+   * @param {string} reason
+   *   The reported reason for aborting the decoding / decrpytion.
+   */
+  async abort(reason) {
+    lazy.logConsole.error(`Writing to ${this.#destPath} failed: `, reason);
+    lazy.FileUtils.closeSafeFileOutputStream(this.#outStream);
+    await IOUtils.remove(this.#destPath, {
+      ignoreAbsent: true,
+      retryReadonly: true,
+    });
   }
 }
 
@@ -1261,7 +1303,7 @@ export class BackupService extends EventTarget {
    *   The Content-Type of the MIME message.
    * @returns {ReadableStream}
    */
-  async #createBinaryReadableStream(archiveFile, startByteOffset, contentType) {
+  async createBinaryReadableStream(archiveFile, startByteOffset, contentType) {
     let fileInputStream = Cc[
       "@mozilla.org/network/file-input-stream;1"
     ].createInstance(Ci.nsIFileInputStream);
@@ -1424,7 +1466,7 @@ export class BackupService extends EventTarget {
     await IOUtils.remove(extractionDestPath, { ignoreAbsent: true });
 
     let archiveFile = await IOUtils.getFile(archivePath);
-    let archiveStream = await this.#createBinaryReadableStream(
+    let archiveStream = await this.createBinaryReadableStream(
       archiveFile,
       startByteOffset,
       contentType
@@ -1434,7 +1476,7 @@ export class BackupService extends EventTarget {
       new DecoderDecryptorTransformer(decryptor)
     );
     let fileWriter = new WritableStream(
-      new FileWriterStream(extractionDestPath)
+      new FileWriterStream(extractionDestPath, decryptor)
     );
     await archiveStream.pipeThrough(binaryDecoder).pipeTo(fileWriter);
   }

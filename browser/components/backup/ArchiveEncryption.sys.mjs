@@ -370,7 +370,7 @@ export class ArchiveDecryptor {
    * @type {string}
    */
   get OSKeyStoreSecret() {
-    if (!this.#isDone()) {
+    if (!this.isDone()) {
       throw new Error(
         "Cannot access OSKeyStoreSecret until all chunks are decrypted."
       );
@@ -489,7 +489,7 @@ export class ArchiveDecryptor {
    * @returns {Promise<Uint8Array>}
    */
   async decrypt(ciphertextChunk, isLastChunk = false) {
-    if (this.#isDone()) {
+    if (this.isDone()) {
       throw new Error(
         "Cannot decrypt any more chunks with this ArchiveDecryptor."
       );
@@ -561,7 +561,7 @@ export class ArchiveDecryptor {
    *
    * @returns {boolean}
    */
-  #isDone() {
+  isDone() {
     return NonceUtils.lastChunkSetOnNonce(this.#nonce);
   }
 

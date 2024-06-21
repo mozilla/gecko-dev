@@ -9,6 +9,16 @@ const { ArchiveEncryptionState } = ChromeUtils.importESModule(
 const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
 );
+const { ArchiveUtils } = ChromeUtils.importESModule(
+  "resource:///modules/backup/ArchiveUtils.sys.mjs"
+);
+const { ArchiveDecryptor } = ChromeUtils.importESModule(
+  "resource:///modules/backup/ArchiveEncryption.sys.mjs"
+);
+const { DecoderDecryptorTransformer, FileWriterStream } =
+  ChromeUtils.importESModule(
+    "resource:///modules/backup/BackupService.sys.mjs"
+  );
 
 let testProfilePath;
 let fakeCompressedStagingPath;
@@ -179,7 +189,7 @@ add_task(async function test_createArchive_multiple_of_six_test() {
   );
   const FAKE_COMPRESSED_FILE = PathUtils.join(
     testProfilePath,
-    "fake-compressed-staging.zip"
+    "fake-compressed-staging-mul6.zip"
   );
 
   // Instead of generating a gigantic chunk of data to test this particular
@@ -227,4 +237,162 @@ add_task(async function test_createArchive_multiple_of_six_test() {
   await IOUtils.remove(FAKE_COMPRESSED_FILE);
   await IOUtils.remove(FAKE_ARCHIVE_PATH);
   await IOUtils.remove(EXTRACTION_PATH);
+});
+
+/**
+ * Tests that if an encrypted single-file archive has had its binary blob
+ * truncated that the decryption fails and the recovery.zip file is
+ * automatically destroyed.
+ */
+add_task(async function test_createArchive_encrypted_truncated() {
+  const TEST_RECOVERY_CODE = "This is some recovery code.";
+
+  let bs = new BackupService();
+  let { instance: encState } = await ArchiveEncryptionState.initialize(
+    TEST_RECOVERY_CODE
+  );
+
+  const FAKE_ARCHIVE_PATH = PathUtils.join(
+    testProfilePath,
+    "fake-encrypted-archive.html"
+  );
+  const FAKE_COMPRESSED_FILE = PathUtils.join(
+    testProfilePath,
+    "fake-compressed-staging-large.zip"
+  );
+
+  const MULTIPLE_OF_MAX_CHUNK_SIZE =
+    2 * ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE;
+  let multipleOfMaxChunkSizeBytes = new Uint8Array(MULTIPLE_OF_MAX_CHUNK_SIZE);
+  // seededRandomNumberGenerator is defined in head.js, but eslint doesn't seem
+  // happy about it. Maybe that's because it's a generator function.
+  // eslint-disable-next-line no-undef
+  let gen = seededRandomNumberGenerator();
+  for (let i = 0; i < MULTIPLE_OF_MAX_CHUNK_SIZE; ++i) {
+    multipleOfMaxChunkSizeBytes.set(gen.next().value, i);
+  }
+
+  await IOUtils.write(FAKE_COMPRESSED_FILE, multipleOfMaxChunkSizeBytes);
+
+  await bs.createArchive(
+    FAKE_ARCHIVE_PATH,
+    archiveTemplateURI,
+    FAKE_COMPRESSED_FILE,
+    encState,
+    FAKE_METADATA
+  );
+
+  // This is a little bit gross - we're going to read out the data from the
+  // generated file, find the last line longer than ARCHIVE_CHUNK_MAX_BYTES_SIZE
+  // (which should be the last base64 encoded value), and then splice it out,
+  // before flushing that change back to disk.
+  let lines = (await IOUtils.readUTF8(FAKE_ARCHIVE_PATH)).split("\n");
+  let foundIndex = -1;
+  // The longest lines will be the base64 encoded chunks. Remove the last one.
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i].length > ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE) {
+      foundIndex = i;
+      break;
+    }
+  }
+  Assert.notEqual(foundIndex, -1, "Should have found a long line");
+  lines.splice(foundIndex, 1);
+  await IOUtils.writeUTF8(FAKE_ARCHIVE_PATH, lines.join("\n"));
+
+  let { isEncrypted } = await bs.sampleArchive(FAKE_ARCHIVE_PATH);
+  Assert.ok(isEncrypted, "Should be considered encrypted.");
+
+  const EXTRACTION_PATH = PathUtils.join(testProfilePath, "extraction.bin");
+
+  await Assert.rejects(
+    bs.extractCompressedSnapshotFromArchive(
+      FAKE_ARCHIVE_PATH,
+      EXTRACTION_PATH,
+      TEST_RECOVERY_CODE
+    ),
+    /Corrupted archive/
+  );
+
+  Assert.ok(
+    !(await IOUtils.exists(EXTRACTION_PATH)),
+    "Extraction should have been automatically destroyed."
+  );
+
+  await IOUtils.remove(FAKE_ARCHIVE_PATH);
+  await IOUtils.remove(FAKE_COMPRESSED_FILE);
+});
+
+/**
+ * Tests that if the BinaryReadableStream closes early before the last chunk
+ * is decrypted, that the recovery file is destroyed.
+ */
+add_task(async function test_createArchive_early_binary_stream_close() {
+  const TEST_RECOVERY_CODE = "This is some recovery code.";
+
+  let bs = new BackupService();
+  let { instance: encState } = await ArchiveEncryptionState.initialize(
+    TEST_RECOVERY_CODE
+  );
+
+  const FAKE_ARCHIVE_PATH = PathUtils.join(
+    testProfilePath,
+    "fake-encrypted-archive.html"
+  );
+
+  await bs.createArchive(
+    FAKE_ARCHIVE_PATH,
+    archiveTemplateURI,
+    fakeCompressedStagingPath,
+    encState,
+    FAKE_METADATA
+  );
+
+  let { isEncrypted, startByteOffset, contentType, archiveJSON } =
+    await bs.sampleArchive(FAKE_ARCHIVE_PATH);
+  Assert.ok(isEncrypted, "Should be considered encrypted.");
+
+  let archiveFile = await IOUtils.getFile(FAKE_ARCHIVE_PATH);
+  let archiveStream = await bs.createBinaryReadableStream(
+    archiveFile,
+    startByteOffset,
+    contentType
+  );
+  let decryptor = await ArchiveDecryptor.initialize(
+    TEST_RECOVERY_CODE,
+    archiveJSON
+  );
+  const EXTRACTION_PATH = PathUtils.join(testProfilePath, "extraction.bin");
+
+  let binaryDecoder = new TransformStream(
+    new DecoderDecryptorTransformer(decryptor)
+  );
+  let fileWriter = new WritableStream(
+    new FileWriterStream(EXTRACTION_PATH, decryptor)
+  );
+
+  // We're going to run the characters from the archiveStream through an
+  // intermediary TransformStream that is going to cause an abort before the
+  // the stream can complete. We'll do that by only passing part of the first
+  // chunk through, and then aborting.
+  let earlyAborter = new TransformStream({
+    async transform(chunkPart, controller) {
+      controller.enqueue(
+        chunkPart.substring(0, Math.floor(chunkPart.length / 2))
+      );
+      controller.error("We're done. Aborting early.");
+    },
+  });
+
+  let pipePromise = archiveStream
+    .pipeThrough(earlyAborter)
+    .pipeThrough(binaryDecoder)
+    .pipeTo(fileWriter);
+
+  await Assert.rejects(pipePromise, /Aborting early/);
+  Assert.ok(
+    !(await IOUtils.exists(EXTRACTION_PATH)),
+    "Extraction should have been automatically destroyed."
+  );
+
+  await IOUtils.remove(FAKE_ARCHIVE_PATH);
 });
