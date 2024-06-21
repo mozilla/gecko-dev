@@ -608,13 +608,9 @@ pref("toolkit.telemetry.translations.logLevel", "Error");
 // this pref via our remote update/experimentation system
 pref("toolkit.telemetry.user_characteristics_ping.current_version", 0);
 // pref containing the value for the user of the last version of the ping we sent
+// if a user wants to disable this type of ping explicitly, set this to -1
+// firefox/mozilla will not modify this value if a negative number is present.
 pref("toolkit.telemetry.user_characteristics_ping.last_version_sent", 0);
-// if a user wants to disable this type of ping explicitly, set this to true
-// firefox/mozilla will not modify this value.
-pref("toolkit.telemetry.user_characteristics_ping.opt-out", false);
-// if a user wants to send a single ping of this type, they can set it
-// to true. It will be set to false again after a successfull ping.
-pref("toolkit.telemetry.user_characteristics_ping.send-once", false);
 // A unique identifier for the user characteristics ping. This is not the same as
 // the telemetry client id (which is not sent in this ping), it is cleared when a
 // user opts-out of telemetry, it is set upon first telemetry submission

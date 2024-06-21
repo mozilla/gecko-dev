@@ -17,7 +17,6 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/MouseEventBinding.h"
-#include "nsUserCharacteristics.h"
 
 namespace mozilla {
 
@@ -101,7 +100,6 @@ void PointerEventHandler::UpdateActivePointerState(WidgetMouseEvent* aEvent,
                 aTargetContent ? aTargetContent->OwnerDoc() : nullptr));
         MaybeCacheSpoofedPointerID(pointerEvent->mInputSource,
                                    pointerEvent->pointerId);
-        nsUserCharacteristics::StealPointerEvent(*pointerEvent);
       }
       break;
     case ePointerCancel:

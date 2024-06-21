@@ -43,75 +43,6 @@ async function sha1(message) {
   return hashHex;
 }
 
-async function stringifyError(error) {
-  if (error instanceof Error) {
-    const stack = (error.stack ?? "").replaceAll(
-      /@chrome.+?usercharacteristics.js:/g,
-      ""
-    );
-    return `${error.toString()} ${stack}`;
-  }
-  // A hacky attempt to extract as much as info from error
-  const errStr = await (async () => {
-    const asStr = await (async () => error.toString())().catch(() => "");
-    const asJson = await (async () => JSON.stringify(error))().catch(() => "");
-    return asStr.length > asJson.len ? asStr : asJson;
-  })();
-  return errStr;
-}
-
-function sample(array, count) {
-  const range = array.length - 1;
-  if (range <= count) {
-    return array;
-  }
-
-  const samples = [];
-  const step = Math.floor(range / count);
-  for (let i = 0; i < range; i += step) {
-    samples.push(array[i]);
-  }
-  return samples;
-}
-
-function mean(array) {
-  if (array.length === 0) {
-    return 0;
-  }
-  return array.reduce((a, b) => a + b) / array.length;
-}
-
-function standardDeviation(array) {
-  const m = mean(array);
-  return Math.sqrt(mean(array.map(x => Math.pow(x - m, 2))));
-}
-
-// Returns the number of decimal places num has. Useful for
-// collecting precision of values reported by the hardware.
-function decimalPlaces(num) {
-  // Omit - sign if num is negative.
-  const str = num >= 0 ? num.toString() : num.toString().substr(1);
-  // Handle scientific notation numbers such as 1e-15.
-  const dashI = str.indexOf("-");
-  if (dashI !== -1) {
-    return +str.substr(dashI + 1);
-  }
-
-  // Handle numbers separated by . such as 1.0000015
-  const dotI = str.indexOf(".");
-  if (dotI !== -1) {
-    return str.length - dotI - 1;
-  }
-
-  // Handle numbers separated by , such as 1,0000015
-  const commaI = str.indexOf(",");
-  if (commaI !== -1) {
-    return str.length - commaI - 1;
-  }
-
-  return 0;
-}
-
 // ==============================================================
 // Regular Canvases
 
@@ -126,7 +57,7 @@ function populateTestCanvases() {
   var c1 = canvas1.getContext("2d");
   c1.fillStyle = "orange";
   c1.fillRect(100, 100, 50, 50);
-  data.canvasdata1 = sha1(canvas1.toDataURL());
+  data.canvas1data = sha1(canvas1.toDataURL());
 
   // Canvas 2 is a polygon with lines, this fingerprints a little via
   // floating point rounding.
@@ -142,13 +73,13 @@ function populateTestCanvases() {
   c2.strokeStyle = "red";
   c2.lineWidth = 5;
   c2.stroke();
-  data.canvasdata2 = sha1(canvas2.toDataURL());
+  data.canvas2data = sha1(canvas2.toDataURL());
 
   // Canvas 3 renders an image at a reduced resolution, this also
   // fingerprints via floating point rounding.
   var canvas3 = document.getElementById("canvas3");
   var c3 = canvas3.getContext("2d");
-  data.canvasdata3 = new Promise((resolve, reject) => {
+  data.canvas3data = new Promise((resolve, reject) => {
     const image = new Image();
     // CC Public Domain - https://www.flickr.com/photos/birds_and_critters/53695948491/
     image.src = kImageBlob;
@@ -171,7 +102,7 @@ function populateTestCanvases() {
   c4.fillRect(0, 0, 50, 50);
   c4.rotate((-15.0 * Math.PI) / 180.0);
   c4.fillRect(0, 0, 50, 50);
-  data.canvasdata4 = sha1(canvas4.toDataURL());
+  data.canvas4data = sha1(canvas4.toDataURL());
 
   // Canvas 5 renders text with a local font the user might have in a pretty standard configuration
   var canvas5 = document.getElementById("canvas5");
@@ -181,7 +112,7 @@ function populateTestCanvases() {
   c5.fillText("The quick brown", 15, 100);
   c5.fillText("fox jumps over", 15, 150);
   c5.fillText("the lazy dog", 15, 200);
-  data.canvasdata5 = sha1(canvas5.toDataURL());
+  data.canvas5data = sha1(canvas5.toDataURL());
 
   // Canvas 6 renders text with a local font the user might have but translated, rotated, and with a blurred shadow
   var canvas6 = document.getElementById("canvas6");
@@ -193,7 +124,7 @@ function populateTestCanvases() {
   c6.shadowBlur = 50;
   c6.font = "italic 40px Georgia";
   c6.fillText("The quick", 0, 0);
-  data.canvasdata6 = sha1(canvas6.toDataURL());
+  data.canvas6data = sha1(canvas6.toDataURL());
 
   // Canvas 7 renders text with a system font.
   var canvas7 = document.getElementById("canvas7");
@@ -203,7 +134,7 @@ function populateTestCanvases() {
   c7.fillText("The quick brown", 15, 100);
   c7.fillText("fox jumps over", 15, 150);
   c7.fillText("the lazy dog", 15, 200);
-  data.canvasdata7 = sha1(canvas7.toDataURL());
+  data.canvas7data = sha1(canvas7.toDataURL());
 
   // Canvas 8 renders text with a system font.
   var canvas8 = document.getElementById("canvas8");
@@ -215,7 +146,7 @@ function populateTestCanvases() {
   c8.shadowBlur = 50;
   c8.font = "italic 40px system-ui";
   c8.fillText("The quick", 0, 0);
-  data.canvasdata8 = sha1(canvas8.toDataURL());
+  data.canvas8data = sha1(canvas8.toDataURL());
 
   // Canvas 9 renders text with a supplied font.
   var canvas9 = document.getElementById("canvas9");
@@ -225,7 +156,7 @@ function populateTestCanvases() {
   c9.fillText("The quick brown", 15, 100);
   c9.fillText("fox jumps over", 15, 150);
   c9.fillText("the lazy dog", 15, 200);
-  data.canvasdata9 = sha1(canvas9.toDataURL());
+  data.canvas9data = sha1(canvas9.toDataURL());
 
   // Canvas 10 renders text with a supplied font.
   var canvas10 = document.getElementById("canvas10");
@@ -237,7 +168,7 @@ function populateTestCanvases() {
   c10.shadowBlur = 50;
   c10.font = "italic 40px LocalFiraSans";
   c10.fillText("The quick", 0, 0);
-  data.canvasdata10 = sha1(canvas10.toDataURL());
+  data.canvas10data = sha1(canvas10.toDataURL());
 
   return data;
 }
@@ -546,7 +477,7 @@ function populateWebGLCanvases() {
   drawScene(gl, programInfo, buffers);
 
   // Write to the fields
-  data.canvasdata11Webgl = sha1(canvas.toDataURL());
+  data.glcanvasdata = sha1(canvas.toDataURL());
 
   return data;
 }
@@ -615,12 +546,12 @@ function populateFingerprintJSCanvases() {
   const canvas1 = document.getElementById("fingerprintjscanvas1");
   const context1 = canvas1.getContext("2d");
   renderTextImage(canvas1, context1);
-  data.canvasdata12Fingerprintjs1 = sha1(canvas1.toDataURL());
+  data.fingerprintjscanvas1data = sha1(canvas1.toDataURL());
 
   const canvas2 = document.getElementById("fingerprintjscanvas2");
   const context2 = canvas2.getContext("2d");
   renderGeometryImage(canvas2, context2);
-  data.canvasdata13Fingerprintjs2 = sha1(canvas2.toDataURL());
+  data.fingerprintjscanvas2data = sha1(canvas2.toDataURL());
 
   return data;
 }
@@ -644,7 +575,31 @@ function populateVoiceList() {
     return uri;
   }
 
-  async function stringifyVoices(voices) {
+  function sample(voices, count) {
+    const range = voices.length - 1;
+    if (range <= count) {
+      return voices;
+    }
+
+    const sampledVoices = [];
+    const step = Math.floor(range / count);
+    for (let i = 0; i < range; i += step) {
+      sampledVoices.push(voices[i]);
+    }
+    return sampledVoices;
+  }
+
+  async function sha256(message) {
+    const msgUint8 = new TextEncoder().encode(message);
+    const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+    return hashHex;
+  }
+
+  async function stringify(voices) {
     voices = voices
       .map(voice => ({
         voiceURI: trimVoiceURI(voice.voiceURI),
@@ -673,7 +628,7 @@ function populateVoiceList() {
       localServices: localServices.length,
       defaultVoice: defaultVoice ? defaultVoice.voiceURI : null,
       samples: sample(voices, 5),
-      sha1: await sha1(voices.join("|")),
+      sha256: await sha256(voices.join("|")),
       allHash: ssdeep.digest(voices.join("|")),
       localHash: ssdeep.digest(localServices.join("|")),
       nonLocalHash: ssdeep.digest(nonLocalServices.join("|")),
@@ -701,7 +656,7 @@ function populateVoiceList() {
   }
 
   return {
-    voices: fetchVoices().then(stringifyVoices),
+    voices: fetchVoices().then(stringify),
   };
 }
 
@@ -925,201 +880,6 @@ function populateAudioFingerprint() {
   };
 }
 
-function populatePointerInfo() {
-  const capabilities = {
-    None: 0,
-    Coarse: 1 << 0,
-    Fine: 1 << 1,
-  };
-
-  const q = {
-    isCoarse: matchMedia("(pointer: coarse)").matches,
-    isFine: matchMedia("(pointer: fine)").matches,
-    isAnyCoarse: matchMedia("(any-pointer: coarse)").matches,
-    isAnyFine: matchMedia("(any-pointer: fine)").matches,
-  };
-
-  // Pointer media query matches for primary pointer. So, it can be
-  // only one of coarse/fine/none.
-  let pointerType;
-  if (q.isCoarse) {
-    pointerType = capabilities.Coarse;
-  } else {
-    pointerType = q.isFine ? capabilities.Fine : capabilities.None;
-  }
-
-  // Any-pointer media query matches for any pointer available. So, it
-  // can be both coarse and fine value, be one of them, or none.
-  const anyPointerType =
-    (q.isAnyCoarse && capabilities.Coarse) | (q.isAnyFine && capabilities.Fine);
-
-  return {
-    pointerType,
-    anyPointerType,
-  };
-}
-
-async function populateICEFoundations() {
-  function getFoundationsAndLatencies() {
-    const { promise, resolve, reject } = Promise.withResolvers();
-
-    // With no other peers, we wouldn't get prflx candidates.
-    // Relay type of candidates require a turn server.
-    // So, we'll only get host and srflx candidates.
-    const result = {
-      hostLatencies: [],
-      hostFoundations: [],
-      srflxLatencies: [],
-      srflxFoundations: [],
-    };
-
-    let lastTime;
-    function calculateLatency() {
-      const now = window.performance.now();
-      const latency = window.performance.now() - lastTime;
-      lastTime = now;
-      return latency;
-    }
-
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
-    });
-    pc.onicecandidate = e => {
-      const latency = calculateLatency();
-      if (e.candidate && e.candidate.candidate !== "") {
-        result[e.candidate.type + "Latencies"].push(latency);
-        result[e.candidate.type + "Foundations"].push(e.candidate.foundation);
-      }
-    };
-    pc.onicegatheringstatechange = () => {
-      if (pc.iceGatheringState !== "complete") {
-        return;
-      }
-      pc.close();
-      resolve(result);
-    };
-
-    pc.createOffer({ offerToReceiveAudio: 1 })
-      .then(desc => {
-        pc.setLocalDescription(desc);
-        lastTime = window.performance.now();
-      })
-      .catch(reject);
-
-    return promise;
-  }
-
-  // Run get candidates multiple times to see if foundation order changes
-  // and calculate standard deviation of latencies
-  const allLatencies = {
-    srflx: [],
-    host: [],
-  };
-  const allFoundations = {
-    srflx: {},
-    host: {},
-  };
-  for (let i = 0; i < 10; i++) {
-    const result = await getFoundationsAndLatencies();
-    const hostFoundations = result.hostFoundations.join("");
-    const srflxFoundations = result.srflxFoundations.join("");
-
-    allLatencies.host.push(result.hostLatencies);
-    allLatencies.srflx.push(result.srflxLatencies);
-
-    if (hostFoundations) {
-      allFoundations.host[hostFoundations] =
-        (allFoundations.host[hostFoundations] ?? 0) + 1;
-    }
-    if (srflxFoundations) {
-      allFoundations.srflx[srflxFoundations] =
-        (allFoundations.srflx[srflxFoundations] ?? 0) + 1;
-    }
-  }
-
-  const sdLatencies = {
-    host: [],
-    srflx: [],
-  };
-  for (let i = 0; i < (allLatencies.host?.[0]?.length ?? 0); i++) {
-    sdLatencies.host.push(standardDeviation(allLatencies.host.map(a => a[i])));
-  }
-  for (let i = 0; i < (allLatencies.srflx?.[0]?.length ?? 0); i++) {
-    sdLatencies.srflx.push(
-      standardDeviation(allLatencies.srflx.map(a => a[i]))
-    );
-  }
-
-  return {
-    iceFoundations: JSON.stringify({
-      uniqueHostOrder: Object.keys(allFoundations.host).length,
-      uniqueSrflxOrder: Object.keys(allFoundations.srflx).length,
-      sdLatencies,
-    }),
-  };
-}
-
-function populateSensorInfo() {
-  const { promise, resolve } = Promise.withResolvers();
-
-  const events = {
-    devicemotion: 0,
-    deviceorientation: 0,
-    deviceorientationabsolute: 0,
-  };
-  const results = {
-    frequency: { ...events },
-    decPlaces: { ...events },
-  };
-
-  const eventCounter = { ...events };
-  const eventDecPlaces = { ...events };
-  const eventStarts = { ...events };
-
-  const processEvent = eventName => e => {
-    eventCounter[eventName] += 1;
-
-    // Weird behaviour for devicemotion event, probably a bug.
-    // First devicemotion event has accelerationIncludingGravity but not acceleration.
-    const property =
-      e.acceleration?.x || e.alpha || e.accelerationIncludingGravity?.x;
-    const decPlaces = decimalPlaces(property);
-    eventDecPlaces[eventName] =
-      eventDecPlaces[eventName] > decPlaces
-        ? eventDecPlaces[eventName]
-        : decPlaces;
-  };
-  const processResult = eventName => {
-    const elapsed = (window.performance.now() - eventStarts[eventName]) / 1000;
-    results.frequency[eventName] = Math.round(
-      eventCounter[eventName] / elapsed
-    );
-    results.decPlaces[eventName] = eventDecPlaces[eventName];
-  };
-
-  for (const eventName in events) {
-    eventStarts[eventName] = window.performance.now();
-    window.addEventListener(eventName, processEvent(eventName));
-    setTimeout(() => processResult(eventName), 10 * 1000);
-  }
-
-  // A whole extra second to process results
-  setTimeout(
-    () =>
-      resolve({
-        motionDecimals: results.decPlaces.devicemotion,
-        orientationDecimals: results.decPlaces.deviceorientation,
-        orientationabsDecimals: results.decPlaces.deviceorientationabsolute,
-        motionFreq: results.frequency.devicemotion,
-        orientationFreq: results.frequency.deviceorientation,
-        orientationabsFreq: results.frequency.deviceorientationabsolute,
-      }),
-    11 * 1000
-  );
-
-  return promise;
-}
-
 // =======================================================================
 // Setup & Populating
 
@@ -1133,32 +893,17 @@ const LocalFiraSans = new FontFace(
   const font = await LocalFiraSans.load();
   document.fonts.add(font);
 
-  const errors = [];
   // Data contains key: (Promise<any> | any) pairs. The keys are identifiers
   // for the data and the values are either a promise that returns a value,
   // or a value. Promises are awaited and values are resolved immediately.
-  const data = {};
-  const sources = [
-    populateTestCanvases,
-    populateWebGLCanvases,
-    populateFingerprintJSCanvases,
-    populateVoiceList,
-    populateMediaCapabilities,
-    populateAudioFingerprint,
-    populatePointerInfo,
-    populateICEFoundations,
-    populateSensorInfo,
-  ];
-  // Catches errors in promise-creating functions. E.g. if populateVoiceList
-  // throws an error before returning any of its `key: (Promise<any> | any)`
-  // pairs, we catch it here. This also catches non-async function errors
-  for (const source of sources) {
-    try {
-      Object.assign(data, await source());
-    } catch (error) {
-      errors.push(`${source.name}: ${await stringifyError(error)}`);
-    }
-  }
+  const data = {
+    ...populateTestCanvases(),
+    ...populateWebGLCanvases(),
+    ...populateFingerprintJSCanvases(),
+    ...populateVoiceList(),
+    ...populateMediaCapabilities(),
+    ...populateAudioFingerprint(),
+  };
 
   debug("Awaiting", Object.keys(data).length, "data promises.");
   await Promise.allSettled(Object.values(data));
@@ -1171,10 +916,8 @@ const LocalFiraSans = new FontFace(
       debug(key, output[key].length);
     } catch (e) {
       debug("Promise rejected for", key, "Error:", e);
-      errors.push(`${key}: ${await stringifyError(e)}`);
     }
   }
-  output.jsErrors = JSON.stringify(errors);
 
   document.dispatchEvent(
     new CustomEvent("UserCharacteristicsDataDone", {

@@ -1050,7 +1050,7 @@ characteristics:
   canvasdata1:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas. The image is a simple organge box and used as a control image
+      The base64 encoded form of an image rendered on a canvas. The image is a simple organge box and used as a control image
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1060,7 +1060,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1070,7 +1070,7 @@ characteristics:
   canvasdata2:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas. The image is a bordered triage, and used to test point interpolation
+      The base64 encoded form of an image rendered on a canvas. The image is a bordered triage, and used to test point interpolation
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1080,7 +1080,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1090,7 +1090,7 @@ characteristics:
   canvasdata3:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas. The image is a stretched photographic image, used to test image operations.
+      The base64 encoded form of an image rendered on a canvas. The image is a stretched photographic image, used to test image operations.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1100,7 +1100,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1110,7 +1110,7 @@ characteristics:
   canvasdata4:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas. The image is two rotated, semi-transparenct overlapping squares, used to test transparency and point interpolation.
+      The base64 encoded form of an image rendered on a canvas. The image is two rotated, semi-transparenct overlapping squares, used to test transparency and point interpolation.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1120,7 +1120,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1130,7 +1130,7 @@ characteristics:
   canvasdata5:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas. The image is a local font rendered normally.
+      The base64 encoded form of an image rendered on a canvas. The image is a local font rendered normally.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1140,7 +1140,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1150,7 +1150,7 @@ characteristics:
   canvasdata6:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas. The image is a local font rendered with italics, rotation, and shadow-blur.
+      The base64 encoded form of an image rendered on a canvas. The image is a local font rendered with italics, rotation, and shadow-blur.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1160,7 +1160,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1170,7 +1170,7 @@ characteristics:
   canvasdata7:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas. The image is a system-ui font rendered normally.
+      The base64 encoded form of an image rendered on a canvas. The image is a system-ui font rendered normally.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1180,7 +1180,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1190,7 +1190,7 @@ characteristics:
   canvasdata8:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas. The image is a system-ui font rendered with italics, rotation, and shadow-blur.
+      The base64 encoded form of an image rendered on a canvas. The image is a system-ui font rendered with italics, rotation, and shadow-blur.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1200,7 +1200,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1210,7 +1210,7 @@ characteristics:
   canvasdata9:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas. The image is a font shipped with Firefox rendered normally.
+      The base64 encoded form of an image rendered on a canvas. The image is a font shipped with Firefox rendered normally.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1220,7 +1220,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1230,7 +1230,7 @@ characteristics:
   canvasdata10:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas. The image is a font shipped with Firefox rendered with italics, rotation, and shadow-blur.
+      The base64 encoded form of an image rendered on a canvas. The image is a font shipped with Firefox rendered with italics, rotation, and shadow-blur.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1240,7 +1240,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1250,7 +1250,7 @@ characteristics:
   canvasdata11_webgl:
     type: text
     description: >
-      The sha1 hash of an image rendered on a WebGL canvas (instead of Canvas2D). IT is a RGB gradient cube.
+      The base64 encoded form of an image rendered on a WebGL canvas (instead of Canvas2D). IT is a RGB gradient cube.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1260,7 +1260,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1270,7 +1270,7 @@ characteristics:
   canvasdata12_fingerprintjs1:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas, it is a copy of fingerprintjs' text canvas
+      The base64 encoded form of an image rendered on a canvas, it is a copy of fingerprintjs' text canvas
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1280,7 +1280,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1290,7 +1290,7 @@ characteristics:
   canvasdata13_fingerprintjs2:
     type: text
     description: >
-      The sha1 hash of an image rendered on a canvas, it is a copy of fingerprintjs' geometry canvas
+      The base64 encoded form of an image rendered on a canvas, it is a copy of fingerprintjs' geometry canvas
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -1300,7 +1300,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894958#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1590,7 +1590,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       - technical
@@ -1609,7 +1609,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       - technical
@@ -1756,7 +1756,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       - technical
@@ -1775,7 +1775,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       - technical
@@ -1905,7 +1905,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1900801
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1900801#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       - technical
@@ -1925,7 +1925,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1900844
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1900844#c6
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       - technical
@@ -1942,7 +1942,7 @@ characteristics:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1900082
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1900082#c6
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       - interaction
@@ -1960,7 +1960,7 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1900691
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1900691#c6
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -1984,347 +1984,3 @@ characteristics:
     expires: never
     data_sensitivity:
       - interaction
-
-  errors:
-    type: text
-    description: >
-      Errors occured on C++ side of data collection
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1897271
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1897271#c5
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  js_errors:
-    type: text
-    description: >
-      Errors occured on JavaScript side of data collection
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1897271
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1897271#c5
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  pointer_type:
-    type: quantity
-    unit: enum mozilla::PointerCapabilities values
-    description: >
-      Pointer type of the user's primary pointer device.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901799
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901799#c2
-    expires: never
-    data_sensitivity:
-      - technical
-
-  any_pointer_type:
-    type: quantity
-    unit: enum mozilla::PointerCapabilities values
-    description: >
-      Union of pointers available. We apply union to determine
-      if the user have both coarse and fine pointer.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901799
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901799#c2
-    expires: never
-    data_sensitivity:
-      - technical
-
-  ice_foundations:
-    type: text
-    description: >
-      Unique ICE foundations occurance count and the
-      standard deviation of latencies
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902003
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902003#c2
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  pointer_height:
-    type: quantity
-    unit: int
-    description: >
-      Height of user's pointer
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  pointer_width:
-    type: quantity
-    unit: int
-    description: >
-      Width of user's pointer
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  pointer_pressure:
-    type: string
-    description: >
-      Pressure of user's pointer
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  pointer_tangentinal_pressure:
-    type: string
-    description: >
-      Tangential Pressure of user's pointer
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  pointer_tiltx:
-    type: quantity
-    unit: int
-    description: >
-      TiltX of user's pointer
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  pointer_tilty:
-    type: quantity
-    unit: int
-    description: >
-      TiltY of user's pointer
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  pointer_twist:
-    type: quantity
-    unit: int
-    description: >
-      Twist of user's pointer
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  touch_rotation_angle:
-    type: string
-    description: >
-      Rotation angle of user's touch
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
-    expires: never
-    data_sensitivity:
-      - technical
-
-  motion_decimals:
-    type: quantity
-    unit: int
-    description: >
-      devicemotion event's decimal places count
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
-    expires: never
-    data_sensitivity:
-      - technical
-
-  orientation_decimals:
-    type: quantity
-    unit: int
-    description: >
-      deviceorientation event's decimal places count
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
-    expires: never
-    data_sensitivity:
-      - technical
-
-  orientationabs_decimals:
-    type: quantity
-    unit: int
-    description: >
-      deviceorientationabsolute event's decimal places count
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
-    expires: never
-    data_sensitivity:
-      - technical
-
-  motion_freq:
-    type: quantity
-    unit: int
-    description: >
-      devicemotion event's frequency
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
-    expires: never
-    data_sensitivity:
-      - technical
-
-  orientation_freq:
-    type: quantity
-    unit: int
-    description: >
-      deviceorientation event's frequency
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
-    expires: never
-    data_sensitivity:
-      - technical
-
-  orientationabs_freq:
-    type: quantity
-    unit: int
-    description: >
-      deviceorientationabsolute event's frequency
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
-    expires: never
-    data_sensitivity:
-      - technical
