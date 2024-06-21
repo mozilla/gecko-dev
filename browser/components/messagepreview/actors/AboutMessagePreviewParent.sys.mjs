@@ -41,6 +41,10 @@ export class AboutMessagePreviewParent extends JSWindowActorParent {
   }
 
   async showFeatureCallout(message, browser) {
+    // Clear the Feature Tour prefs used by some callouts, to ensure
+    // the behaviour of the message is correct
+    let tourPref = message.content.tour_pref_name;
+    Services.prefs.clearUserPref(tourPref);
     // For messagePreview, force the trigger && targeting to be something we can show.
     message.trigger.id = "nthTabClosed";
     message.targeting = "true";
