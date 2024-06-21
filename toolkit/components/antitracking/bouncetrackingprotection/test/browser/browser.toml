@@ -5,6 +5,8 @@ prefs = [
   "privacy.bounceTrackingProtection.enableTestMode=true",
   "privacy.bounceTrackingProtection.bounceTrackingPurgeTimerPeriodSec=0",
   "privacy.bounceTrackingProtection.enableDryRunMode=false",
+  # Do not upgrade ORIGIN_TRACKER_B, all other origins are already HTTPS
+  "dom.security.https_first=false",
 ]
 support-files = [
   "file_start.html",

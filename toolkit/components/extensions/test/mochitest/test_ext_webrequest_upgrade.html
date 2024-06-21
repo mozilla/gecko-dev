@@ -90,6 +90,10 @@ add_task(async function test_webRequest_redirect_wins() {
 // Test that there is no infinite redirect loop when upgradeToSecure is used on
 // https. This test checks that the redirect chain is: http -> https -> done.
 add_task(async function upgradeToSecure_for_https_is_noop() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.security.https_first", false]],
+  });
+
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
       permissions: [

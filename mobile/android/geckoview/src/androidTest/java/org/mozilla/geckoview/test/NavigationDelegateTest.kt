@@ -695,8 +695,11 @@ class NavigationDelegateTest : BaseSessionTest() {
     }
 
     @Test fun loadHSTSBadCert() {
-        val httpsFirstPref = "dom.security.https_first"
-        assertThat("https pref should be false", sessionRule.getPrefs(httpsFirstPref)[0] as Boolean, equalTo(false))
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                "dom.security.https_first" to false,
+            ),
+        )
 
         // load secure url with hsts header
         val uri = "https://example.com/tests/junit/hsts_header.sjs"

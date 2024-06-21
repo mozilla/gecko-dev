@@ -21,6 +21,9 @@ add_task(async function test_create_options() {
     ],
   });
 
+  // Ensure previous HTTPS-First exceptions don't change test expectations
+  Services.perms.removeByType("https-only-load-insecure");
+
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
       permissions: ["tabs"],

@@ -1,6 +1,6 @@
 const baseURL = getRootDirectory(gTestPath).replace(
   "chrome://mochitests/content",
-  "http://example.com"
+  "https://example.com"
 );
 
 const alertURL = `${baseURL}file_bug1682866.html`;

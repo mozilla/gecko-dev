@@ -6,11 +6,14 @@ package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
+import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.clickPageObject
@@ -34,6 +37,11 @@ class SettingsHTTPSOnlyModeTest : TestSetup() {
         AndroidComposeTestRule(
             HomeActivityIntentTestRule.withDefaultSettingsOverrides(),
         ) { it.activity }
+
+    @Before
+    fun setup() {
+        TestHelper.appContext.settings().preferences.edit().putBoolean("dom.security.https_first", false).apply()
+    }
 
     // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1724825
     @Test
