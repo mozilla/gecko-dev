@@ -31,6 +31,8 @@ support-files = [
 
 ["browser_bouncetracking_stateful_cookies.js"]
 
+["browser_bouncetracking_stateful_cookies_2.js"]
+
 ["browser_bouncetracking_stateful_storage.js"]
 
 ["browser_bouncetracking_stateful_web_worker.js"]
