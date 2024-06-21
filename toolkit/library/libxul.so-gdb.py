@@ -26,9 +26,9 @@ else:
     gdb.write("Warning: Gecko objdir not found\n")
 
 if objdir is not None:
-    m = re.search(r"[\w ]+: (.*)", gdb.execute("show dir", False, True))
+    m = re.search(r"[\w ]+: (.*)", gdb.execute("show directories", False, True))
     if m and objdir not in m.group(1).split(":"):
-        gdb.execute("set dir {}:{}".format(objdir, m.group(1)))
+        gdb.execute("set directories {}:{}".format(objdir, m.group(1)))
 
     # When running from a random directory, the toplevel Gecko .gdbinit may
     # not have been loaded. Load it now.
