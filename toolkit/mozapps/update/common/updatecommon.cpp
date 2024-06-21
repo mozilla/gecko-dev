@@ -129,7 +129,7 @@ void UpdateLog::Flush() {
   fflush(logFP);
 }
 
-void UpdateLog::Printf(const char* fmt, ...) {
+void UpdateLog::PrintTimestampPrefix() {
   if (!logFP) {
     return;
   }
@@ -152,6 +152,14 @@ void UpdateLog::Printf(const char* fmt, ...) {
 
     fprintf(logFP, "%s: ", buffer);
   }
+}
+
+void UpdateLog::Printf(const char* fmt, ...) {
+  if (!logFP) {
+    return;
+  }
+
+  PrintTimestampPrefix();
 
   va_list ap;
   va_start(ap, fmt);
@@ -159,11 +167,9 @@ void UpdateLog::Printf(const char* fmt, ...) {
   va_end(ap);
 
   fprintf(logFP, "\n");
-#if defined(XP_WIN) && defined(MOZ_DEBUG)
   // When the updater crashes on Windows the log file won't be flushed and this
   // can make it easier to debug what is going on.
   fflush(logFP);
-#endif
 }
 
 void UpdateLog::WarnPrintf(const char* fmt, ...) {
@@ -171,17 +177,17 @@ void UpdateLog::WarnPrintf(const char* fmt, ...) {
     return;
   }
 
+  PrintTimestampPrefix();
+
   va_list ap;
   va_start(ap, fmt);
   fprintf(logFP, "*** Warning: ");
   vfprintf(logFP, fmt, ap);
   fprintf(logFP, "***\n");
   va_end(ap);
-#if defined(XP_WIN) && defined(MOZ_DEBUG)
   // When the updater crashes on Windows the log file won't be flushed and this
   // can make it easier to debug what is going on.
   fflush(logFP);
-#endif
 }
 
 #ifdef XP_WIN
