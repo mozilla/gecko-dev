@@ -4151,20 +4151,6 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
   }
 }
 
-WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
-                                       const wasm::ModuleMetadata& moduleMeta,
-                                       bool limitedSize)
-    : MacroAssembler(alloc) {
-#if defined(JS_CODEGEN_ARM64)
-  // Stubs + builtins + the baseline compiler all require the native SP,
-  // not the PSP.
-  SetStackPointer64(sp);
-#endif
-  if (!limitedSize) {
-    setUnlimitedBuffer();
-  }
-}
-
 bool MacroAssembler::icBuildOOLFakeExitFrame(void* fakeReturnAddr,
                                              AutoSaveLiveRegisters& save) {
   return buildOOLFakeExitFrame(fakeReturnAddr);
