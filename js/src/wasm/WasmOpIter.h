@@ -3065,7 +3065,7 @@ inline bool OpIter<Policy>::readDataOrElemDrop(bool isData,
       return fail("data.drop segment index out of range");
     }
   } else {
-    if (*segIndex >= codeMeta_.elemSegments.length()) {
+    if (*segIndex >= codeMeta_.elemSegmentTypes.length()) {
       return fail("element segment index out of range for elem.drop");
     }
   }
@@ -3134,10 +3134,10 @@ inline bool OpIter<Policy>::readMemOrTableInit(bool isMem, uint32_t* segIndex,
     }
     *dstMemOrTableIndex = memOrTableIndex;
 
-    if (*segIndex >= codeMeta_.elemSegments.length()) {
+    if (*segIndex >= codeMeta_.elemSegmentTypes.length()) {
       return fail("table.init segment index out of range");
     }
-    if (!checkIsSubtypeOf(codeMeta_.elemSegments[*segIndex].elemType,
+    if (!checkIsSubtypeOf(codeMeta_.elemSegmentTypes[*segIndex],
                           codeMeta_.tables[*dstMemOrTableIndex].elemType)) {
       return false;
     }
@@ -3614,12 +3614,11 @@ inline bool OpIter<Policy>::readArrayNewElem(uint32_t* typeIndex,
   if (!dstElemType.isRefType()) {
     return fail("element type is not a reftype");
   }
-  if (*segIndex >= codeMeta_.elemSegments.length()) {
+  if (*segIndex >= codeMeta_.elemSegmentTypes.length()) {
     return fail("segment index is out of range");
   }
 
-  const ModuleElemSegment& elemSeg = codeMeta_.elemSegments[*segIndex];
-  RefType srcElemType = elemSeg.elemType;
+  RefType srcElemType = codeMeta_.elemSegmentTypes[*segIndex];
   // srcElemType needs to be a subtype (child) of dstElemType
   if (!checkIsSubtypeOf(srcElemType, dstElemType.refType())) {
     return fail("incompatible element types");
@@ -3702,12 +3701,11 @@ inline bool OpIter<Policy>::readArrayInitElem(uint32_t* typeIndex,
   if (!dstElemType.isRefType()) {
     return fail("element type is not a reftype");
   }
-  if (*segIndex >= codeMeta_.elemSegments.length()) {
+  if (*segIndex >= codeMeta_.elemSegmentTypes.length()) {
     return fail("segment index is out of range");
   }
 
-  const ModuleElemSegment& elemSeg = codeMeta_.elemSegments[*segIndex];
-  RefType srcElemType = elemSeg.elemType;
+  RefType srcElemType = codeMeta_.elemSegmentTypes[*segIndex];
   // srcElemType needs to be a subtype (child) of dstElemType
   if (!checkIsSubtypeOf(srcElemType, dstElemType.refType())) {
     return fail("incompatible element types");

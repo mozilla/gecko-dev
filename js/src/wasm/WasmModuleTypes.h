@@ -425,6 +425,8 @@ struct TagDesc {
 using TagDescVector = Vector<TagDesc, 0, SystemAllocPolicy>;
 using ElemExprOffsetVector = Vector<size_t, 0, SystemAllocPolicy>;
 
+// This holds info about elem segments that is needed for instantiation.  It
+// can be dropped when the associated wasm::Module is dropped.
 struct ModuleElemSegment {
   enum class Kind {
     Active,

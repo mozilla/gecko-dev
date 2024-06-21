@@ -446,6 +446,8 @@ class RefType {
   bool operator!=(const RefType& that) const { return ptc_ != that.ptc_; }
 };
 
+using RefTypeVector = Vector<RefType, 0, SystemAllocPolicy>;
+
 class StorageTypeTraits {
  public:
   enum Kind {
