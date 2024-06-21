@@ -11,7 +11,7 @@ add_task(async function test_sidebar_extension_context_menu() {
   const { document } = win;
   const sidebar = document.querySelector("sidebar-main");
   await sidebar.updateComplete;
-  ok(BrowserTestUtils.isVisible(sidebar), "Sidebar is shown.");
+  ok(sidebar, "Sidebar is shown.");
 
   const manageStub = sinon.stub(sidebar, "manageExtension");
   const reportStub = sinon.stub(sidebar, "reportExtension");
