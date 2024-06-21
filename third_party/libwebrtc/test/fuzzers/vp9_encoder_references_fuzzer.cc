@@ -189,8 +189,9 @@ class FieldTrials : public FieldTrialsView {
     if (key == "WebRTC-CongestionWindow" ||
         key == "WebRTC-UseBaseHeavyVP8TL3RateAllocation" ||
         key == "WebRTC-VideoRateControl" ||
+        key == "WebRTC-GetEncoderInfoOverride" ||
+        key == "WebRTC-VP9-GetEncoderInfoOverride" ||
         key == "WebRTC-VP9-PerformanceFlags" ||
-        key == "WebRTC-VP9VariableFramerateScreenshare" ||
         key == "WebRTC-VP9QualityScaler") {
       return "";
     }
