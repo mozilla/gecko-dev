@@ -95,12 +95,6 @@ async function testUploadPrompt(confirmUpload) {
       MockFilePicker.useDirectory(args.path);
 
       let input = content.document.getElementById("filepicker");
-
-      // Activate the page to allow opening the file picker.
-      content.SpecialPowers.wrap(
-        content.document
-      ).notifyUserGestureActivation();
-
       input.click();
     });
 

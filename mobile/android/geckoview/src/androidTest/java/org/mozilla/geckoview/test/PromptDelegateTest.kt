@@ -772,7 +772,6 @@ class PromptDelegateTest : BaseSessionTest(
             """.trimIndent(),
         )
 
-        mainSession.synthesizeTap(1, 1) // Provides user activation.
         mainSession.evaluateJS("this.c.click();")
 
         assertThat(
@@ -816,8 +815,6 @@ class PromptDelegateTest : BaseSessionTest(
             })
             """.trimIndent(),
         )
-
-        mainSession.synthesizeTap(1, 1) // Provides user activation.
         mainSession.evaluateJS("this.c.click();")
 
         assertThat(
@@ -1074,7 +1071,6 @@ class PromptDelegateTest : BaseSessionTest(
         mainSession.loadTestPath(PROMPT_HTML_PATH)
         mainSession.waitForPageStop()
 
-        mainSession.synthesizeTap(1, 1) // Provides user activation.
         mainSession.evaluateJS("document.getElementById('fileexample').click();")
 
         sessionRule.waitUntilCalled(object : PromptDelegate {
