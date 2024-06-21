@@ -164,3 +164,67 @@ add_task(async function test_createArchive_encrypted() {
   await IOUtils.remove(FAKE_ARCHIVE_PATH);
   await IOUtils.remove(EXTRACTION_PATH);
 });
+
+/**
+ * Tests that an archive can be created where the bytes of the archive are
+ * a multiple of 6, but the individual chunks of those bytes are not a multiple
+ * of 6 (which will necessitate base64 padding).
+ */
+add_task(async function test_createArchive_multiple_of_six_test() {
+  let bs = new BackupService();
+
+  const FAKE_ARCHIVE_PATH = PathUtils.join(
+    testProfilePath,
+    "fake-unencrypted-archive.html"
+  );
+  const FAKE_COMPRESSED_FILE = PathUtils.join(
+    testProfilePath,
+    "fake-compressed-staging.zip"
+  );
+
+  // Instead of generating a gigantic chunk of data to test this particular
+  // case, we'll override the default chunk size. We'll choose a chunk size of
+  // 500 bytes, which doesn't divide evenly by 6 - but we'll encode a set of
+  // 6 * 500 bytes, which will naturally divide evenly by 6.
+  const NOT_MULTIPLE_OF_SIX_OVERRIDE_CHUNK_SIZE = 500;
+  const MULTIPLE_OF_SIX_SIZE_IN_BYTES = 6 * 500;
+  let multipleOfSixBytes = new Uint8Array(MULTIPLE_OF_SIX_SIZE_IN_BYTES);
+
+  // seededRandomNumberGenerator is defined in head.js, but eslint doesn't seem
+  // happy about it. Maybe that's because it's a generator function.
+  // eslint-disable-next-line no-undef
+  let gen = seededRandomNumberGenerator();
+  for (let i = 0; i < MULTIPLE_OF_SIX_SIZE_IN_BYTES; ++i) {
+    multipleOfSixBytes.set(gen.next().value, i);
+  }
+
+  await IOUtils.write(FAKE_COMPRESSED_FILE, multipleOfSixBytes);
+
+  await bs.createArchive(
+    FAKE_ARCHIVE_PATH,
+    archiveTemplateURI,
+    FAKE_COMPRESSED_FILE,
+    null /* no ArchiveEncryptionState */,
+    FAKE_METADATA,
+    {
+      chunkSize: NOT_MULTIPLE_OF_SIX_OVERRIDE_CHUNK_SIZE,
+    }
+  );
+
+  const EXTRACTION_PATH = PathUtils.join(testProfilePath, "extraction.bin");
+  await bs.extractCompressedSnapshotFromArchive(
+    FAKE_ARCHIVE_PATH,
+    EXTRACTION_PATH
+  );
+
+  let writtenBytes = await IOUtils.read(EXTRACTION_PATH);
+  assertUint8ArraysSimilarity(
+    writtenBytes,
+    multipleOfSixBytes,
+    true /* expectSimilar */
+  );
+
+  await IOUtils.remove(FAKE_COMPRESSED_FILE);
+  await IOUtils.remove(FAKE_ARCHIVE_PATH);
+  await IOUtils.remove(EXTRACTION_PATH);
+});

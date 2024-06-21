@@ -1023,18 +1023,26 @@ export class BackupService extends EventTarget {
    * @param {object} backupMetadata
    *   The metadata for the backup, which is also stored in the backup manifest
    *   of the compressed backup snapshot.
+   * @param {object} options
+   *   Options to pass to the worker, mainly for testing.
+   * @param {object} [options.chunkSize=ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE]
+   *   The chunk size to break the bytes into.
    */
   async createArchive(
     archivePath,
     templateURI,
     compressedBackupSnapshotPath,
     encState,
-    backupMetadata
+    backupMetadata,
+    options = {}
   ) {
     let worker = new lazy.BasePromiseWorker(
       "resource:///modules/backup/Archive.worker.mjs",
       { type: "module" }
     );
+
+    let chunkSize =
+      options.chunkSize || lazy.ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE;
 
     try {
       let encryptionArgs = encState
@@ -1054,6 +1062,7 @@ export class BackupService extends EventTarget {
           backupMetadata,
           compressedBackupSnapshotPath,
           encryptionArgs,
+          chunkSize,
         },
       ]);
     } finally {

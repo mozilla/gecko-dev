@@ -100,6 +100,8 @@ class ArchiveWorker {
    *   The path on the file system where the compressed backup file is located.
    * @param {EncryptionArgs} [params.encryptionArgs=undefined]
    *   Optional EncryptionArgs, which will be used to encrypt this archive.
+   * @param {number} params.chunkSize
+   *   The size of the chunks to break the byte stream into for encoding.
    * @returns {Promise<undefined>}
    */
   async constructArchive({
@@ -108,6 +110,7 @@ class ArchiveWorker {
     backupMetadata,
     compressedBackupSnapshotPath,
     encryptionArgs,
+    chunkSize,
   }) {
     let encryptor = null;
     if (encryptionArgs) {
@@ -177,30 +180,30 @@ ${JSON.stringify(jsonBlock)}
 
     // To calculate the Content-Length of the base64 block, we start by
     // computing how many newlines we'll be adding...
-    let totalNewlines = Math.ceil(
-      totalBytesToRead / ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE
-    );
+    let totalNewlines = Math.ceil(totalBytesToRead / chunkSize);
 
-    // Next, we determine how many full-sized chunks of
-    // ARCHIVE_CHUNK_MAX_BYTES_SIZE we'll be using, and multiply that by the
-    // number of base64 bytes that such a chunk will require.
+    // Next, we determine how many full-sized chunks of chunkSize we'll be
+    // using, and multiply that by the number of base64 bytes that such a chunk
+    // will require.
     let fullSizeChunks = totalNewlines - 1;
     let fullSizeChunkBase64Bytes = this.#computeChunkBase64Bytes(
-      ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE,
+      chunkSize,
       !!encryptor
     );
     let totalBase64Bytes = fullSizeChunks * fullSizeChunkBase64Bytes;
 
-    // Finally, if there are any leftover bytes that are less than
-    // ARCHIVE_CHUNK_MAX_BYTES_SIZE, determine how many bytes those will
-    // require, and add it to our total.
-    let leftoverChunkBytes =
-      totalBytesToRead % ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE;
+    // Finally, if there are any leftover bytes that are less than chunkSize,
+    // determine how many bytes those will require, and add it to our total.
+    let leftoverChunkBytes = totalBytesToRead % chunkSize;
     if (leftoverChunkBytes) {
       totalBase64Bytes += this.#computeChunkBase64Bytes(
         leftoverChunkBytes,
         !!encryptor
       );
+    } else {
+      // We divided perfectly by chunkSize, so add another
+      // fullSizeChunkBase64Bytes to the total.
+      totalBase64Bytes += fullSizeChunkBase64Bytes;
     }
 
     await IOUtils.writeUTF8(
@@ -220,10 +223,7 @@ Content-Length: ${totalBase64Bytes}
     // encryption will be done.
     let currentIndex = 0;
     while (currentIndex < totalBytesToRead) {
-      let bytesToRead = Math.min(
-        ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE,
-        totalBytesToRead - currentIndex
-      );
+      let bytesToRead = Math.min(chunkSize, totalBytesToRead - currentIndex);
       if (bytesToRead <= 0) {
         throw new Error(
           "Failed to calculate the right number of bytes to read."
@@ -236,8 +236,7 @@ Content-Length: ${totalBase64Bytes}
       let bytesToWrite;
 
       if (encryptor) {
-        let isLastChunk =
-          bytesToRead < ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE;
+        let isLastChunk = bytesToRead < chunkSize;
         bytesToWrite = await encryptor.encrypt(buffer, isLastChunk);
       } else {
         bytesToWrite = buffer;
