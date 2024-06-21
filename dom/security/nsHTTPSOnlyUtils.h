@@ -249,14 +249,6 @@ class nsHTTPSOnlyUtils {
    * @return      true if the URI is either loopback or local
    */
   static bool LoopbackOrLocalException(nsIURI* aURI);
-
-  /**
-   * Checks whether the host of the URI ends with a suffix that is not in the
-   * public suffix list.
-   * @param aURI URI object
-   * @return     true if the host of the URI ends with a unknown suffix
-   */
-  static bool UnknownPublicSuffixException(nsIURI* aURI);
 };
 
 /**

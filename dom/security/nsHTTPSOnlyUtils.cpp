@@ -14,7 +14,7 @@
 #include "mozilla/net/DNS.h"
 #include "nsContentUtils.h"
 #include "nsHTTPSOnlyUtils.h"
-#include "nsIEffectiveTLDService.h"
+#include "nsIConsoleService.h"
 #include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIHttpsOnlyModePermission.h"
@@ -370,8 +370,7 @@ bool nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(nsIURI* aURI,
   }
 
   // 3. Check for general exceptions
-  if (OnionException(aURI) || LoopbackOrLocalException(aURI) ||
-      UnknownPublicSuffixException(aURI)) {
+  if (OnionException(aURI) || LoopbackOrLocalException(aURI)) {
     return false;
   }
 
@@ -868,19 +867,6 @@ bool nsHTTPSOnlyUtils::LoopbackOrLocalException(nsIURI* aURI) {
   bool upgradeLocal =
       mozilla::StaticPrefs::dom_security_https_only_mode_upgrade_local();
   return (!upgradeLocal && addr.IsIPAddrLocal());
-}
-
-/* static */
-bool nsHTTPSOnlyUtils::UnknownPublicSuffixException(nsIURI* aURI) {
-  nsCOMPtr<nsIEffectiveTLDService> tldService =
-      do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
-  NS_ENSURE_TRUE(tldService, false);
-
-  bool hasKnownPublicSuffix;
-  nsresult rv = tldService->HasKnownPublicSuffix(aURI, &hasKnownPublicSuffix);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  return !hasKnownPublicSuffix;
 }
 
 /* static */

@@ -41,10 +41,6 @@ interface nsIEffectiveTLDService : nsISupports
      * the Public Suffix List. If the suffix is unknown this will return
      * an empty string.
      *
-     * If you only need to know if the host ends in a valid suffix, and not the
-     * actual public suffix, consider the more performant hasKnownPublicSuffix()
-     * instead.
-     *
      * @param   aURI   The URI to be analyzed
      * @returns the public suffix if known, an empty string otherwise
      * @see     getPublicSuffixFromHost()
@@ -206,21 +202,4 @@ interface nsIEffectiveTLDService : nsISupports
      * @param aHost  The host to compare to.
      */
     boolean hasRootDomain(in AUTF8String aInput, in AUTF8String aHost);
-
-    /**
-     * Returns true if the host of |aURI| ends with, or is, a suffix that is on
-     * the public suffix list.
-     *
-     * @param aURI The URI to be checked
-     */
-    boolean hasKnownPublicSuffix(in nsIURI aURI);
-
-    /**
-     * Returns true if |aHost| ends with, or is, a suffix that is on the public
-     * suffix list.
-     *
-     * @param aHost The hostname to be checked
-     * @see         hasKnownPublicSuffix()
-     */
-    boolean hasKnownPublicSuffixFromHost(in AUTF8String aHost);
 };

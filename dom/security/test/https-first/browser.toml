@@ -57,6 +57,4 @@ support-files = [
 
 ["browser_superfluos_auth.js"]
 
-["browser_tlds.js"]
-
 ["browser_upgrade_onion.js"]
