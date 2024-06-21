@@ -4167,8 +4167,8 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
     return nullptr;
   }
 
-  ModuleGenerator mg(*compileArgs, codeMeta, moduleMeta, &compilerEnv, nullptr,
-                     nullptr, nullptr);
+  ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv, nullptr, nullptr,
+                     nullptr);
   if (!mg.init(nullptr)) {
     return nullptr;
   }
@@ -4180,7 +4180,8 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
   if (!shareableBytes) {
     return nullptr;
   }
-  SharedModule module = mg.finishModule(*shareableBytes);
+  SharedModule module = mg.finishModule(*shareableBytes, moduleMeta,
+                                        /*maybeTier2Listener=*/nullptr);
   if (!module) {
     return nullptr;
   }

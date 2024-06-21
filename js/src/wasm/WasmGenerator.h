@@ -181,8 +181,6 @@ class MOZ_STACK_CLASS ModuleGenerator {
   UniqueCharsVector* const warnings_;
   const Atomic<bool>* const cancelled_;
   CodeMetadata* const codeMeta_;
-  // FIXME check that `moduleMeta_` can be null for tier2
-  ModuleMetadata* const moduleMeta_;
   CompilerEnvironment* const compilerEnv_;
 
   // Data that is moved into the result of finish()
@@ -225,7 +223,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   bool finishCodegen();
   bool finishMetadataTier();
   UniqueCodeTier finishCodeTier();
-  Maybe<SharedCodeMetadataForAsmJS> finishCodeMetadata(const Bytes& bytecode);
+  bool finishCodeMetadata(const Bytes& bytecode);
 
   bool isAsmJS() const { return codeMeta_->isAsmJS(); }
   Tier tier() const { return compilerEnv_->tier(); }
@@ -236,7 +234,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
 
  public:
   ModuleGenerator(const CompileArgs& args, CodeMetadata* codeMeta,
-                  ModuleMetadata* moduleMeta, CompilerEnvironment* compilerEnv,
+                  CompilerEnvironment* compilerEnv,
                   const Atomic<bool>* cancelled, UniqueChars* error,
                   UniqueCharsVector* warnings);
   ~ModuleGenerator();
@@ -258,9 +256,9 @@ class MOZ_STACK_CLASS ModuleGenerator {
   // a new Module. Otherwise, if env->mode is Tier2, finishTier2() must be
   // called to augment the given Module with tier 2 code.
 
-  SharedModule finishModule(
-      const ShareableBytes& bytecode,
-      JS::OptimizedEncodingListener* maybeTier2Listener = nullptr);
+  SharedModule finishModule(const ShareableBytes& bytecode,
+                            SharedModuleMetadata moduleMeta,
+                            JS::OptimizedEncodingListener* maybeTier2Listener);
   [[nodiscard]] bool finishTier2(const Module& module);
 };
 

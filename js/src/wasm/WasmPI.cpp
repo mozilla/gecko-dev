@@ -988,8 +988,8 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
 
-    ModuleGenerator mg(*compileArgs, codeMeta, moduleMeta, &compilerEnv,
-                       nullptr, nullptr, nullptr);
+    ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv, nullptr, nullptr,
+                       nullptr);
     if (!mg.init(nullptr)) {
       return nullptr;
     }
@@ -1035,7 +1035,8 @@ class SuspendingFunctionModuleFactory {
       ReportOutOfMemory(cx);
       return nullptr;
     }
-    return mg.finishModule(*shareableBytes);
+    return mg.finishModule(*shareableBytes, moduleMeta,
+                           /*maybeTier2Listener=*/nullptr);
   }
 };
 
@@ -1488,8 +1489,8 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
 
-    ModuleGenerator mg(*compileArgs, codeMeta, moduleMeta, &compilerEnv,
-                       nullptr, nullptr, nullptr);
+    ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv, nullptr, nullptr,
+                       nullptr);
     if (!mg.init(nullptr)) {
       return nullptr;
     }
@@ -1522,7 +1523,8 @@ class PromisingFunctionModuleFactory {
       ReportOutOfMemory(cx);
       return nullptr;
     }
-    return mg.finishModule(*shareableBytes);
+    return mg.finishModule(*shareableBytes, moduleMeta,
+                           /*maybeTier2Listener=*/nullptr);
   }
 };
 
