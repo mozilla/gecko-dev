@@ -2220,3 +2220,111 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
+
+  motion_decimals:
+    type: quantity
+    unit: int
+    description: >
+      devicemotion event's decimal places count
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  orientation_decimals:
+    type: quantity
+    unit: int
+    description: >
+      deviceorientation event's decimal places count
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  orientationabs_decimals:
+    type: quantity
+    unit: int
+    description: >
+      deviceorientationabsolute event's decimal places count
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  motion_freq:
+    type: quantity
+    unit: int
+    description: >
+      devicemotion event's frequency
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  orientation_freq:
+    type: quantity
+    unit: int
+    description: >
+      deviceorientation event's frequency
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  orientationabs_freq:
+    type: quantity
+    unit: int
+    description: >
+      deviceorientationabsolute event's frequency
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902671
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
+    expires: never
+    data_sensitivity:
+      - technical

@@ -292,6 +292,12 @@ export class UserCharacteristicsPageService {
         "pointerType",
         "anyPointerType",
         "iceFoundations",
+        "motionDecimals",
+        "orientationDecimals",
+        "orientationabsDecimals",
+        "motionFreq",
+        "orientationFreq",
+        "orientationabsFreq",
       ],
     };
 
