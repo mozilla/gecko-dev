@@ -2009,8 +2009,8 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
   }
   accumulated_update_rect_is_valid_ = true;
 
-  TRACE_EVENT_ASYNC_STEP0("webrtc", "Video", video_frame.render_time_ms(),
-                          "Encode");
+  TRACE_EVENT_ASYNC_STEP_INTO0("webrtc", "Video", video_frame.render_time_ms(),
+                               "Encode");
 
   stream_resource_manager_.OnEncodeStarted(out_frame, time_when_posted_us);
 
