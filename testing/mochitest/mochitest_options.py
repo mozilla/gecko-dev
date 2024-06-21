@@ -8,9 +8,9 @@ import sys
 import tempfile
 from abc import ABCMeta, abstractmethod, abstractproperty
 from argparse import SUPPRESS, ArgumentParser
-from distutils import spawn
 from distutils.util import strtobool
 from itertools import chain
+from shutil import which
 
 import mozinfo
 import mozlog
@@ -1181,10 +1181,10 @@ class MochitestArguments(ArgumentContainer):
                     "--use-test-media-devices is only supported on Linux currently"
                 )
 
-            gst01 = spawn.find_executable("gst-launch-0.1")
-            gst010 = spawn.find_executable("gst-launch-0.10")
-            gst10 = spawn.find_executable("gst-launch-1.0")
-            pactl = spawn.find_executable("pactl")
+            gst01 = which("gst-launch-0.1")
+            gst010 = which("gst-launch-0.10")
+            gst10 = which("gst-launch-1.0")
+            pactl = which("pactl")
 
             if not (gst01 or gst10 or gst010):
                 parser.error(

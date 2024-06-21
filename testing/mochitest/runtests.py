@@ -34,7 +34,7 @@ from collections import defaultdict
 from contextlib import closing
 from ctypes.util import find_library
 from datetime import datetime, timedelta
-from distutils import spawn
+from shutil import which
 
 import bisection
 import mozcrash
@@ -893,9 +893,9 @@ def findTestMediaDevices(log):
         return None
 
     # Feed it a frame of output so it has something to display
-    gst01 = spawn.find_executable("gst-launch-0.1")
-    gst010 = spawn.find_executable("gst-launch-0.10")
-    gst10 = spawn.find_executable("gst-launch-1.0")
+    gst01 = which("gst-launch-0.1")
+    gst010 = which("gst-launch-0.10")
+    gst10 = which("gst-launch-1.0")
     if gst01:
         gst = gst01
     if gst010:
@@ -2591,7 +2591,7 @@ toolbar#nav-bar {
         options.manifestFile = None
 
         if hasattr(self, "virtualDeviceIdList"):
-            pactl = spawn.find_executable("pactl")
+            pactl = which("pactl")
 
             if not pactl:
                 self.log.error("Could not find pactl on system")
@@ -3071,7 +3071,7 @@ toolbar#nav-bar {
         if not mozinfo.isLinux:
             return
 
-        pactl = spawn.find_executable("pactl")
+        pactl = which("pactl")
 
         if not pactl:
             self.log.error("Could not find pactl on system")
