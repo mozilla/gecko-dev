@@ -121,8 +121,8 @@ ParentToParentFetchEventRespondWithResult ToParentToParent(
                                                       Nothing(), Nothing());
   if (aArgs.preloadResponse().isSome()) {
     // Convert the preload response to ParentToChildInternalResponse.
-    copyArgs.preloadResponse() =
-        Some(ToParentToChild(aArgs.preloadResponse().ref()));
+    copyArgs.preloadResponse() = Some(ToParentToChild(
+        aArgs.preloadResponse().ref(), WrapNotNull(aManager->Manager())));
   }
 
   if (aArgs.preloadResponseTiming().isSome()) {
@@ -145,7 +145,8 @@ ParentToParentFetchEventRespondWithResult ToParentToParent(
   auto [preloadResponse, preloadResponseEndArgs] =
       actor->mReal->OnStart(WrapNotNull(actor));
   if (copyArgs.preloadResponse().isNothing() && preloadResponse.isSome()) {
-    copyArgs.preloadResponse() = Some(ToParentToChild(preloadResponse.ref()));
+    copyArgs.preloadResponse() = Some(ToParentToChild(
+        preloadResponse.ref(), WrapNotNull(aManager->Manager())));
   }
   if (copyArgs.preloadResponseEndArgs().isNothing() &&
       preloadResponseEndArgs.isSome()) {

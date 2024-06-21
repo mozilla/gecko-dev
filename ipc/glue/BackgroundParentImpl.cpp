@@ -527,6 +527,27 @@ IPCResult BackgroundParentImpl::RecvPRemoteWorkerControllerConstructor(
   return IPC_OK();
 }
 
+already_AddRefed<dom::PRemoteWorkerServiceParent>
+BackgroundParentImpl::AllocPRemoteWorkerServiceParent() {
+  return MakeAndAddRef<dom::RemoteWorkerServiceParent>();
+}
+
+IPCResult BackgroundParentImpl::RecvPRemoteWorkerServiceConstructor(
+    PRemoteWorkerServiceParent* aActor) {
+  mozilla::dom::RemoteWorkerServiceParent* actor =
+      static_cast<mozilla::dom::RemoteWorkerServiceParent*>(aActor);
+
+  RefPtr<ThreadsafeContentParentHandle> parent =
+      BackgroundParent::GetContentParentHandle(this);
+  // If the ContentParent is null we are dealing with a same-process actor.
+  if (!parent) {
+    actor->Initialize(NOT_REMOTE_TYPE);
+  } else {
+    actor->Initialize(parent->GetRemoteType());
+  }
+  return IPC_OK();
+}
+
 mozilla::dom::PSharedWorkerParent*
 BackgroundParentImpl::AllocPSharedWorkerParent(
     const mozilla::dom::RemoteWorkerData& aData, const uint64_t& aWindowID,

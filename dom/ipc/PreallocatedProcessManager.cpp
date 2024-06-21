@@ -41,7 +41,7 @@ class PreallocatedProcessManagerImpl final : public nsIObserver {
   // See comments on PreallocatedProcessManager for these methods.
   void AddBlocker(ContentParent* aParent);
   void RemoveBlocker(ContentParent* aParent);
-  UniqueContentParentKeepAlive Take(const nsACString& aRemoteType);
+  already_AddRefed<ContentParent> Take(const nsACString& aRemoteType);
   void Erase(ContentParent* aParent);
 
  private:
@@ -77,7 +77,7 @@ class PreallocatedProcessManagerImpl final : public nsIObserver {
 
   bool mEnabled;
   uint32_t mNumberPreallocs;
-  AutoTArray<UniqueContentParentKeepAlive, 3> mPreallocatedProcesses;
+  AutoTArray<RefPtr<ContentParent>, 3> mPreallocatedProcesses;
   // Even if we have multiple PreallocatedProcessManagerImpls, we'll have
   // one blocker counter
   static uint32_t sNumBlockers;
@@ -192,14 +192,14 @@ void PreallocatedProcessManagerImpl::RereadPrefs() {
   }
 }
 
-UniqueContentParentKeepAlive PreallocatedProcessManagerImpl::Take(
+already_AddRefed<ContentParent> PreallocatedProcessManagerImpl::Take(
     const nsACString& aRemoteType) {
   if (!IsEnabled()) {
     return nullptr;
   }
-  UniqueContentParentKeepAlive process;
+  RefPtr<ContentParent> process;
   if (!IsEmpty()) {
-    process = std::move(mPreallocatedProcesses.ElementAt(0));
+    process = mPreallocatedProcesses.ElementAt(0);
     mPreallocatedProcesses.RemoveElementAt(0);
 
     // Don't set the priority to FOREGROUND here, since it may not have
@@ -207,7 +207,7 @@ UniqueContentParentKeepAlive PreallocatedProcessManagerImpl::Take(
 
     // We took a preallocated process. Let's try to start up a new one
     // soon.
-    ContentParent* last = mPreallocatedProcesses.SafeLastElement(nullptr).get();
+    ContentParent* last = mPreallocatedProcesses.SafeLastElement(nullptr);
     // There could be a launching process that isn't the last, but that's
     // ok (and unlikely)
     if (!last || !last->IsLaunching()) {
@@ -219,11 +219,11 @@ UniqueContentParentKeepAlive PreallocatedProcessManagerImpl::Take(
              (unsigned long)mPreallocatedProcesses.Length()));
   }
   if (process && !process->IsLaunching()) {
-    ProcessPriorityManager::SetProcessPriority(process.get(),
+    ProcessPriorityManager::SetProcessPriority(process,
                                                PROCESS_PRIORITY_FOREGROUND);
   }  // else this will get set by the caller when they call InitInternal()
 
-  return process;
+  return process.forget();
 }
 
 void PreallocatedProcessManagerImpl::Erase(ContentParent* aParent) {
@@ -315,14 +315,19 @@ void PreallocatedProcessManagerImpl::AllocateNow() {
     return;
   }
 
-  UniqueContentParentKeepAlive process = ContentParent::MakePreallocProcess();
-  process->WaitForLaunchAsync(PROCESS_PRIORITY_PREALLOC)
+  RefPtr<ContentParent> process = ContentParent::MakePreallocProcess();
+  mPreallocatedProcesses.AppendElement(process);
+  MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
+          ("Preallocated = %lu of %d processes",
+           (unsigned long)mPreallocatedProcesses.Length(), mNumberPreallocs));
+
+  RefPtr<PreallocatedProcessManagerImpl> self(this);
+  process->LaunchSubprocessAsync(PROCESS_PRIORITY_PREALLOC)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr{this},
-           process = RefPtr{process.get()}](UniqueContentParentKeepAlive) {
+          [self, this, process](const RefPtr<ContentParent>&) {
             if (process->IsDead()) {
-              self->Erase(process);
+              Erase(process);
               // Process died in startup (before we could add it).  If it
               // dies after this, MarkAsDead() will Erase() this entry.
               // Shouldn't be in the sBrowserContentParents, so we don't need
@@ -330,22 +335,24 @@ void PreallocatedProcessManagerImpl::AllocateNow() {
               // preallocation here, to avoid possible looping if something is
               // causing them to consistently fail; if everything is ok on the
               // next allocation request we'll kick off creation.
-            } else if (self->CanAllocate()) {
+            } else {
               // Continue prestarting processes if needed
-              if (self->mPreallocatedProcesses.Length() <
-                  self->mNumberPreallocs) {
-                self->AllocateOnIdle();
+              if (CanAllocate()) {
+                if (mPreallocatedProcesses.Length() < mNumberPreallocs) {
+                  AllocateOnIdle();
+                }
+              } else if (!IsEnabled()) {
+                // if this has a remote type set, it's been allocated for use
+                // already
+                if (process->mRemoteType == PREALLOC_REMOTE_TYPE) {
+                  // This will Erase() it
+                  process->ShutDownProcess(
+                      ContentParent::SEND_SHUTDOWN_MESSAGE);
+                }
               }
             }
           },
-          [self = RefPtr{this}, process = RefPtr{process.get()}]() {
-            self->Erase(process);
-          });
-
-  mPreallocatedProcesses.AppendElement(std::move(process));
-  MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
-          ("Preallocated = %lu of %d processes",
-           (unsigned long)mPreallocatedProcesses.Length(), mNumberPreallocs));
+          [self, this, process]() { Erase(process); });
 }
 
 void PreallocatedProcessManagerImpl::Disable() {
@@ -358,9 +365,20 @@ void PreallocatedProcessManagerImpl::Disable() {
 }
 
 void PreallocatedProcessManagerImpl::CloseProcesses() {
-  // Drop our KeepAlives on these processes. This will automatically lead to the
-  // processes being shut down when no keepalives are left.
-  mPreallocatedProcesses.Clear();
+  while (!IsEmpty()) {
+    RefPtr<ContentParent> process(mPreallocatedProcesses.ElementAt(0));
+    mPreallocatedProcesses.RemoveElementAt(0);
+    process->ShutDownProcess(ContentParent::SEND_SHUTDOWN_MESSAGE);
+    // drop ref and let it free
+  }
+
+  // Make sure to also clear out the recycled E10S process cache, as it's also
+  // controlled by the same preference, and can be cleaned up due to memory
+  // pressure.
+  if (RefPtr<ContentParent> recycled =
+          ContentParent::sRecycledE10SProcess.forget()) {
+    recycled->MaybeBeginShutDown();
+  }
 }
 
 inline PreallocatedProcessManagerImpl*
@@ -404,7 +422,7 @@ void PreallocatedProcessManager::RemoveBlocker(const nsACString& aRemoteType,
 }
 
 /* static */
-UniqueContentParentKeepAlive PreallocatedProcessManager::Take(
+already_AddRefed<ContentParent> PreallocatedProcessManager::Take(
     const nsACString& aRemoteType) {
   if (auto impl = GetPPMImpl()) {
     return impl->Take(aRemoteType);

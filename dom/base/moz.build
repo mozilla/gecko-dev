@@ -557,6 +557,7 @@ EXTRA_JS_MODULES += [
     "ContentAreaDropListener.sys.mjs",
     "IndexedDBHelper.sys.mjs",
     "LocationHelper.sys.mjs",
+    "ProcessSelector.sys.mjs",
     "SlowScriptDebug.sys.mjs",
 ]
 

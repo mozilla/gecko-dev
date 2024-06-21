@@ -197,8 +197,8 @@ InternalResponse::ToParentToParentInternalResponse() {
   return result;
 }
 
-ParentToChildInternalResponse
-InternalResponse::ToParentToChildInternalResponse() {
+ParentToChildInternalResponse InternalResponse::ToParentToChildInternalResponse(
+    NotNull<mozilla::ipc::PBackgroundParent*> aBackgroundParent) {
   ParentToChildInternalResponse result(GetMetadata(), Nothing(),
                                        UNKNOWN_BODY_SIZE, Nothing());
 
@@ -207,8 +207,8 @@ InternalResponse::ToParentToChildInternalResponse() {
   GetUnfilteredBody(getter_AddRefs(body), &bodySize);
 
   if (body) {
-    ParentToChildStream bodyStream =
-        ToParentToChildStream(WrapNotNull(body), bodySize, mSerializeAsLazy);
+    ParentToChildStream bodyStream = ToParentToChildStream(
+        WrapNotNull(body), bodySize, aBackgroundParent, mSerializeAsLazy);
     // The body stream can fail to serialize as an IPCStream. In the case, the
     // IPCStream's type would be T__None. Don't set up IPCInternalResponse's
     // body with the failed IPCStream.
@@ -221,8 +221,9 @@ InternalResponse::ToParentToChildInternalResponse() {
 
   nsCOMPtr<nsIInputStream> alternativeBody = TakeAlternativeBody();
   if (alternativeBody) {
-    ParentToChildStream alterBodyStream = ToParentToChildStream(
-        WrapNotNull(alternativeBody), UNKNOWN_BODY_SIZE, mSerializeAsLazy);
+    ParentToChildStream alterBodyStream =
+        ToParentToChildStream(WrapNotNull(alternativeBody), UNKNOWN_BODY_SIZE,
+                              aBackgroundParent, mSerializeAsLazy);
     // The body stream can fail to serialize as an IPCStream. In the case, the
     // IPCStream's type would be T__None. Don't set up IPCInternalResponse's
     // body with the failed IPCStream.
@@ -432,18 +433,19 @@ SafeRefPtr<InternalResponse> InternalResponse::CreateIncompleteCopy() {
 }
 
 ParentToChildInternalResponse ToParentToChild(
-    const ParentToParentInternalResponse& aResponse) {
+    const ParentToParentInternalResponse& aResponse,
+    NotNull<mozilla::ipc::PBackgroundParent*> aBackgroundParent) {
   ParentToChildInternalResponse result(aResponse.metadata(), Nothing(),
                                        aResponse.bodySize(), Nothing());
 
   if (aResponse.body().isSome()) {
-    result.body() = Some(
-        ToParentToChildStream(aResponse.body().ref(), aResponse.bodySize()));
+    result.body() = Some(ToParentToChildStream(
+        aResponse.body().ref(), aResponse.bodySize(), aBackgroundParent));
   }
   if (aResponse.alternativeBody().isSome()) {
-    result.alternativeBody() =
-        Some(ToParentToChildStream(aResponse.alternativeBody().ref(),
-                                   InternalResponse::UNKNOWN_BODY_SIZE));
+    result.alternativeBody() = Some(ToParentToChildStream(
+        aResponse.alternativeBody().ref(), InternalResponse::UNKNOWN_BODY_SIZE,
+        aBackgroundParent));
   }
 
   return result;

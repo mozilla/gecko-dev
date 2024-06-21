@@ -6,25 +6,11 @@
 
 #include "RemoteWorkerServiceChild.h"
 #include "RemoteWorkerController.h"
-#include "RemoteWorkerChild.h"
 
 namespace mozilla::dom {
 
 RemoteWorkerServiceChild::RemoteWorkerServiceChild() = default;
 
 RemoteWorkerServiceChild::~RemoteWorkerServiceChild() = default;
-
-already_AddRefed<PRemoteWorkerChild>
-RemoteWorkerServiceChild::AllocPRemoteWorkerChild(
-    const RemoteWorkerData& aData) {
-  return MakeAndAddRef<RemoteWorkerChild>(aData);
-}
-
-mozilla::ipc::IPCResult RemoteWorkerServiceChild::RecvPRemoteWorkerConstructor(
-    PRemoteWorkerChild* aActor, const RemoteWorkerData& aData) {
-  RemoteWorkerChild* actor = static_cast<RemoteWorkerChild*>(aActor);
-  actor->ExecWorker(aData);
-  return IPC_OK();
-}
 
 }  // namespace mozilla::dom
