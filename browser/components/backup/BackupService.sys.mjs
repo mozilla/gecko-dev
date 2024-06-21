@@ -31,6 +31,7 @@ ChromeUtils.defineLazyGetter(lazy, "fxAccounts", () => {
 });
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ArchiveDecryptor: "resource:///modules/backup/ArchiveEncryption.sys.mjs",
   ArchiveEncryptionState:
     "resource:///modules/backup/ArchiveEncryptionState.sys.mjs",
   ArchiveUtils: "resource:///modules/backup/ArchiveUtils.sys.mjs",
@@ -254,31 +255,50 @@ class BinaryReadableStream {
  */
 class DecoderDecryptorTransformer {
   #buffer = "";
+  #decryptor = null;
+
+  /**
+   * Constructs the DecoderDecryptorTransformer.
+   *
+   * @param {ArchiveDecryptor|null} decryptor
+   *   An initialized ArchiveDecryptor, if this stream of bytes is presumed to
+   *   be encrypted.
+   */
+  constructor(decryptor) {
+    this.#decryptor = decryptor;
+  }
 
   /**
    * Consumes a single chunk of a base64 encoded string sent by
    * BinaryReadableStream.
    *
-   * @param {string} chunk
-   *   A chunk of a base64 encoded string sent by BinaryReadableStream.
+   * @param {string} chunkPart
+   *   A part of a chunk of a base64 encoded string sent by
+   *   BinaryReadableStream.
    * @param {TransformStreamDefaultController} controller
    *   The controller to send decoded bytes to.
+   * @returns {Promise<undefined>}
    */
-  async transform(chunk, controller) {
+  async transform(chunkPart, controller) {
     // A small optimization, but considering the size of these strings, it's
     // likely worth it.
     if (this.#buffer) {
-      this.#buffer += chunk;
+      this.#buffer += chunkPart;
     } else {
-      this.#buffer = chunk;
+      this.#buffer = chunkPart;
     }
 
-    let parts = this.#buffer.split("\n");
-    this.#buffer = parts.pop();
+    // If the compressed archive was large enough, then it got split up over
+    // several chunks. In that case, each chunk is separated by a newline. We
+    // also filter out any extraneous newlines that might have been included
+    // at the end.
+    let chunks = this.#buffer.split("\n").filter(chunk => chunk != "");
+
+    this.#buffer = chunks.pop();
     // If there were any remaining parts that we split out from the buffer,
     // they must constitute full blocks that we can decode.
-    for (let part of parts) {
-      this.#processPart(controller, part);
+    for (let chunk of chunks) {
+      await this.#processChunk(controller, chunk);
     }
   }
 
@@ -289,26 +309,34 @@ class DecoderDecryptorTransformer {
    *
    * @param {TransformStreamDefaultController} controller
    *   The controller to send decoded bytes to.
+   * @returns {Promise<undefined>}
    */
-  flush(controller) {
-    this.#processPart(controller, this.#buffer);
+  async flush(controller) {
+    await this.#processChunk(controller, this.#buffer, true);
     this.#buffer = "";
   }
 
   /**
-   * Decodes (and potentially decrypts) a valid base64 encoded block into a
+   * Decodes (and potentially decrypts) a valid base64 encoded chunk into a
    * Uint8Array and sends it to the next step in the pipe.
    *
    * @param {TransformStreamDefaultController} controller
    *   The controller to send decoded bytes to.
-   * @param {string} part
+   * @param {string} chunk
    *   The base64 encoded string to decode and potentially decrypt.
+   * @param {boolean} [isLastChunk=false]
+   *   True if this is the last chunk to be processed.
+   * @returns {Promise<undefined>}
    */
-  #processPart(controller, part) {
-    let bytes = lazy.ArchiveUtils.stringToArray(part);
-    // When we start working on the encryption bits, this is where the
-    // decryption step will go.
-    controller.enqueue(bytes);
+  async #processChunk(controller, chunk, isLastChunk = false) {
+    let bytes = lazy.ArchiveUtils.stringToArray(chunk);
+
+    if (this.#decryptor) {
+      let plaintextBytes = await this.#decryptor.decrypt(bytes, isLastChunk);
+      controller.enqueue(plaintextBytes);
+    } else {
+      controller.enqueue(bytes);
+    }
   }
 }
 
@@ -855,7 +883,7 @@ export class BackupService extends EventTarget {
         archivePath,
         "chrome://browser/content/backup/archive.template.html",
         compressedStagingPath,
-        null /* ArchiveEncryptionState */,
+        this.#encState,
         manifest.meta
       );
 
@@ -1076,6 +1104,7 @@ export class BackupService extends EventTarget {
    *   The start byte offset of the MIME message.
    * @param {string} contentType
    *   The Content-Type of the MIME message.
+   * @returns {Promise<object>}
    */
   async #extractJSONFromArchive(archiveFile, startByteOffset, contentType) {
     let fileInputStream = Cc[
@@ -1244,22 +1273,31 @@ export class BackupService extends EventTarget {
   }
 
   /**
-   * Attempts to extract the compressed backup snapshot from a single-file
-   * archive, and write the extracted file to extractionDestPath. This may
-   * reject if the single-file archive appears malformed or cannot be
-   * properly decrypted.
-   *
-   * NOTE: Currently, this base64 decoding currently occurs on the main thread.
-   * We may end up moving all of this into the Archive Worker if we can modify
-   * IOUtils to allow writing via a stream.
+   * @typedef {object} SampleArchiveResult
+   * @property {boolean} isEncrypted
+   *   True if the archive claims to be encrypted, and has the necessary data
+   *   within the JSON block to attempt to initialize an ArchiveDecryptor.
+   * @property {number} startByteOffset
+   *   The start byte offset of the MIME message.
+   * @property {string} contentType
+   *   The Content-Type of the MIME message.
+   * @property {object} archiveJSON
+   *   The deserialized JSON block from the archive. See the ArchiveJSONBlock
+   *   schema for details of its structure.
+   */
+
+  /**
+   * Reads from a file to determine if it seems to be a backup archive, and if
+   * so, resolves with some information about the archive without actually
+   * unpacking it. The returned Promise may reject if the file does not appear
+   * to be a backup archive, or the backup archive appears to have been
+   * corrupted somehow.
    *
    * @param {string} archivePath
-   *   The single-file archive that contains the backup.
-   * @param {string} extractionDestPath
-   *   The path to write the extracted file to.
-   * @returns {Promise<undefined, Error>}
+   *   The path to the archive file to sample.
+   * @returns {Promise<SampleArchiveResult, Error>}
    */
-  async extractCompressedSnapshotFromArchive(archivePath, extractionDestPath) {
+  async sampleArchive(archivePath) {
     let worker = new lazy.BasePromiseWorker(
       "resource:///modules/backup/Archive.worker.mjs",
       { type: "module" }
@@ -1268,8 +1306,6 @@ export class BackupService extends EventTarget {
     if (!(await IOUtils.exists(archivePath))) {
       throw new Error("Archive file does not exist at path " + archivePath);
     }
-
-    await IOUtils.remove(extractionDestPath, { ignoreAbsent: true });
 
     try {
       let { startByteOffset, contentType } = await worker.post(
@@ -1284,6 +1320,43 @@ export class BackupService extends EventTarget {
           startByteOffset,
           contentType
         );
+
+        if (!archiveJSON.version) {
+          throw new Error("Missing version in the archive JSON block.");
+        }
+        if (archiveJSON.version > lazy.ArchiveUtils.SCHEMA_VERSION) {
+          throw new Error(
+            `Archive JSON block is a version newer than we can interpret: ${archiveJSON.version}`
+          );
+        }
+
+        let archiveJSONSchema = await BackupService.getSchemaForVersion(
+          SCHEMAS.ARCHIVE_JSON_BLOCK,
+          archiveJSON.version
+        );
+
+        let manifestSchema = await BackupService.getSchemaForVersion(
+          SCHEMAS.BACKUP_MANIFEST,
+          archiveJSON.version
+        );
+
+        let validator = new lazy.JsonSchema.Validator(archiveJSONSchema);
+        validator.addSchema(manifestSchema);
+
+        let schemaValidationResult = validator.validate(archiveJSON);
+        if (!schemaValidationResult.valid) {
+          lazy.logConsole.error(
+            "Archive JSON block does not conform to schema:",
+            archiveJSON,
+            archiveJSONSchema,
+            schemaValidationResult
+          );
+
+          // TODO: Collect telemetry for this case. (bug 1891817)
+          throw new Error(
+            `Archive JSON block does not conform to schema version ${archiveJSON.version}`
+          );
+        }
       } catch (e) {
         lazy.logConsole.error(e);
         throw new Error("Backup archive is corrupted.");
@@ -1291,22 +1364,70 @@ export class BackupService extends EventTarget {
 
       lazy.logConsole.debug("Read out archive JSON: ", archiveJSON);
 
-      let archiveStream = await this.#createBinaryReadableStream(
-        archiveFile,
+      return {
+        isEncrypted: !!archiveJSON.encConfig,
         startByteOffset,
-        contentType
-      );
-
-      let binaryDecoder = new TransformStream(
-        new DecoderDecryptorTransformer()
-      );
-      let fileWriter = new WritableStream(
-        new FileWriterStream(extractionDestPath)
-      );
-      await archiveStream.pipeThrough(binaryDecoder).pipeTo(fileWriter);
+        contentType,
+        archiveJSON,
+      };
     } finally {
       worker.terminate();
     }
+  }
+
+  /**
+   * Attempts to extract the compressed backup snapshot from a single-file
+   * archive, and write the extracted file to extractionDestPath. This may
+   * reject if the single-file archive appears malformed or cannot be
+   * properly decrypted.
+   *
+   * NOTE: Currently, this base64 decoding currently occurs on the main thread.
+   * We may end up moving all of this into the Archive Worker if we can modify
+   * IOUtils to allow writing via a stream.
+   *
+   * @param {string} archivePath
+   *   The single-file archive that contains the backup.
+   * @param {string} extractionDestPath
+   *   The path to write the extracted file to.
+   * @param {string} [recoveryCode=null]
+   *   The recovery code to decrypt an encrypted backup with.
+   * @returns {Promise<undefined, Error>}
+   */
+  async extractCompressedSnapshotFromArchive(
+    archivePath,
+    extractionDestPath,
+    recoveryCode = null
+  ) {
+    let { isEncrypted, startByteOffset, contentType, archiveJSON } =
+      await this.sampleArchive(archivePath);
+
+    let decryptor = null;
+    if (isEncrypted) {
+      if (!recoveryCode) {
+        throw new Error("A recovery code is required to decrypt this archive.");
+      }
+      decryptor = await lazy.ArchiveDecryptor.initialize(
+        recoveryCode,
+        archiveJSON
+      );
+    }
+
+    await IOUtils.remove(extractionDestPath, { ignoreAbsent: true });
+
+    let archiveFile = await IOUtils.getFile(archivePath);
+    let archiveStream = await this.#createBinaryReadableStream(
+      archiveFile,
+      startByteOffset,
+      contentType
+    );
+
+    let binaryDecoder = new TransformStream(
+      new DecoderDecryptorTransformer(decryptor)
+    );
+    let fileWriter = new WritableStream(
+      new FileWriterStream(extractionDestPath)
+    );
+    await archiveStream.pipeThrough(binaryDecoder).pipeTo(fileWriter);
   }
 
   /**

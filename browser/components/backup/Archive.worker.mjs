@@ -8,6 +8,7 @@ import { PromiseWorker } from "resource://gre/modules/workers/PromiseWorker.mjs"
 // main thread contexts.
 /* eslint-disable mozilla/reject-import-system-module-from-non-system */
 import { ArchiveUtils } from "resource:///modules/backup/ArchiveUtils.sys.mjs";
+import { ArchiveEncryptor } from "resource:///modules/backup/ArchiveEncryption.sys.mjs";
 
 /**
  * An ArchiveWorker is a PromiseWorker that tries to do most of the heavy
@@ -44,6 +45,41 @@ class ArchiveWorker {
   }
 
   /**
+   * Calculates how many base64 bytes will be generated from some number of
+   * unencoded bytes. This presumes that the base64 bytes include a newline
+   * terminator at the end.
+   *
+   * @param {number} bytes
+   *   The number of bytes to be converted to base64.
+   * @param {boolean} encrypting
+   *   True if encryption via ArchiveEncryptor is being applied.
+   * @returns {number}
+   */
+  #computeChunkBase64Bytes(bytes, encrypting) {
+    if (encrypting) {
+      bytes += ArchiveUtils.TAG_LENGTH_BYTES;
+    }
+
+    return 4 * Math.ceil(bytes / 3) + 1;
+  }
+
+  /**
+   * @typedef {object} EncryptionArgs
+   * @property {CryptoKey} publicKey
+   *   The RSA-OAEP public key that will be used to derive keys for encrypting
+   *   the backup.
+   * @property {CryptoKey} backupAuthKey
+   *   The AES-GCM key that will be used to authenticate the owner of the
+   *   backup.
+   * @property {Uint8Array} wrappedSecrets
+   *   The encrypted backup secrets computed by ArchiveEncryptionState.
+   * @property {Uint8Array} salt
+   *   A salt computed for the PBKDF2 stretching of the recovery code.
+   * @property {Uint8Array} nonce
+   *   A nonce computed when wrapping the private key and OSKeyStore secret.
+   */
+
+  /**
    * Constructs a single-file archive for a backup on the filesystem. A
    * single-file archive is a specially crafted HTML document that includes,
    * among other things, an inlined multipart/mixed MIME message within a
@@ -62,6 +98,8 @@ class ArchiveWorker {
    *   object that is contained within the compressed backups' manifest.
    * @param {string} params.compressedBackupSnapshotPath
    *   The path on the file system where the compressed backup file is located.
+   * @param {EncryptionArgs} [params.encryptionArgs=undefined]
+   *   Optional EncryptionArgs, which will be used to encrypt this archive.
    * @returns {Promise<undefined>}
    */
   async constructArchive({
@@ -69,7 +107,16 @@ class ArchiveWorker {
     templateURI,
     backupMetadata,
     compressedBackupSnapshotPath,
+    encryptionArgs,
   }) {
+    let encryptor = null;
+    if (encryptionArgs) {
+      encryptor = await ArchiveEncryptor.initialize(
+        encryptionArgs.publicKey,
+        encryptionArgs.backupAuthKey
+      );
+    }
+
     // We can get at the template content by using a sync XHR, which is fine to
     // to do in a Worker.
     let templateXhr = new XMLHttpRequest();
@@ -80,9 +127,26 @@ class ArchiveWorker {
     let template = templateXhr.responseText;
 
     let boundary = this.#generateBoundary();
-    let serializedMetadata = JSON.stringify(backupMetadata);
+
+    let jsonBlock;
+    if (encryptor) {
+      jsonBlock = await encryptor.confirm(
+        backupMetadata,
+        encryptionArgs.wrappedSecrets,
+        encryptionArgs.salt,
+        encryptionArgs.nonce
+      );
+    } else {
+      jsonBlock = {
+        version: ArchiveUtils.SCHEMA_VERSION,
+        encConfig: null,
+        meta: backupMetadata,
+      };
+    }
+
+    let serializedJsonBlock = JSON.stringify(jsonBlock);
     let textEncoder = new TextEncoder();
-    let metadataLength = textEncoder.encode(serializedMetadata).length;
+    let jsonBlockLength = textEncoder.encode(serializedJsonBlock).length;
 
     // Once we get the ability to stream to the filesystem from IOUtils in a
     // worker, we should use that instead of appending each of these chunks.
@@ -99,9 +163,9 @@ Content-Type: multipart/mixed; boundary="${boundary}"
 --${boundary}
 Content-Type: application/json; charset=utf-8
 Content-Disposition: attachment; filename="archive.json"
-Content-Length: ${metadataLength}
+Content-Length: ${jsonBlockLength}
 
-${JSON.stringify(backupMetadata)}
+${JSON.stringify(jsonBlock)}
 `,
       { mode: "append" }
     );
@@ -109,16 +173,35 @@ ${JSON.stringify(backupMetadata)}
     let compressedBackupSnapshotFile = IOUtils.openFileForSyncReading(
       compressedBackupSnapshotPath
     );
-    let totalBytes = compressedBackupSnapshotFile.size;
+    let totalBytesToRead = compressedBackupSnapshotFile.size;
 
     // To calculate the Content-Length of the base64 block, we start by
     // computing how many newlines we'll be adding...
     let totalNewlines = Math.ceil(
-      totalBytes / ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE
+      totalBytesToRead / ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE
     );
-    // And then add that to how many base64 bytes we're adding. For base64
-    // encoding, 4 bytes are used to encode 3 bytes.
-    let totalBase64Bytes = 4 * Math.ceil(totalBytes / 3) + totalNewlines;
+
+    // Next, we determine how many full-sized chunks of
+    // ARCHIVE_CHUNK_MAX_BYTES_SIZE we'll be using, and multiply that by the
+    // number of base64 bytes that such a chunk will require.
+    let fullSizeChunks = totalNewlines - 1;
+    let fullSizeChunkBase64Bytes = this.#computeChunkBase64Bytes(
+      ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE,
+      !!encryptor
+    );
+    let totalBase64Bytes = fullSizeChunks * fullSizeChunkBase64Bytes;
+
+    // Finally, if there are any leftover bytes that are less than
+    // ARCHIVE_CHUNK_MAX_BYTES_SIZE, determine how many bytes those will
+    // require, and add it to our total.
+    let leftoverChunkBytes =
+      totalBytesToRead % ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE;
+    if (leftoverChunkBytes) {
+      totalBase64Bytes += this.#computeChunkBase64Bytes(
+        leftoverChunkBytes,
+        !!encryptor
+      );
+    }
 
     await IOUtils.writeUTF8(
       archivePath,
@@ -136,10 +219,10 @@ Content-Length: ${totalBase64Bytes}
     // and append them to the document. Down the line, this is also where
     // encryption will be done.
     let currentIndex = 0;
-    while (currentIndex < totalBytes) {
+    while (currentIndex < totalBytesToRead) {
       let bytesToRead = Math.min(
         ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE,
-        totalBytes - currentIndex
+        totalBytesToRead - currentIndex
       );
       if (bytesToRead <= 0) {
         throw new Error(
@@ -150,13 +233,23 @@ Content-Length: ${totalBase64Bytes}
       let buffer = new Uint8Array(bytesToRead);
       compressedBackupSnapshotFile.readBytesInto(buffer, currentIndex);
 
+      let bytesToWrite;
+
+      if (encryptor) {
+        let isLastChunk =
+          bytesToRead < ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE;
+        bytesToWrite = await encryptor.encrypt(buffer, isLastChunk);
+      } else {
+        bytesToWrite = buffer;
+      }
+
       // We're very intentionally newline-separating these blocks here, as
       // these blocks may have been run through encryption, and the same blocks
       // must be run through decryption to unpack the archive.
       // Newline-separation makes it easier to identify and manage these blocks.
       await IOUtils.writeUTF8(
         archivePath,
-        ArchiveUtils.arrayToBase64(buffer) + "\n",
+        ArchiveUtils.arrayToBase64(bytesToWrite) + "\n",
         {
           mode: "append",
         }

@@ -26,6 +26,20 @@ const { sinon } = ChromeUtils.importESModule(
 
 const BYTES_IN_KB = 1000;
 
+const FAKE_METADATA = {
+  date: "2024-06-07T00:00:00+00:00",
+  appName: "firefox",
+  appVersion: "128.0",
+  buildID: "20240604133346",
+  profileName: "profile-default",
+  machineName: "A super cool machine",
+  osName: "Windows_NT",
+  osVersion: "10.0",
+  legacyClientID: "decafbad-0cd1-0cd2-0cd3-decafbad1000",
+  accountID: "",
+  accountEmail: "",
+};
+
 do_get_profile();
 
 /**
@@ -224,7 +238,7 @@ function* seededRandomNumberGenerator() {
  * the Web Crypto API.
  *
  * When expecting similar arrays, we expect the byte lengths to be the same, and
- * for the bytes to match. When expecting dissimiler arrays, we expect the byte
+ * for the bytes to match. When expecting dissimilar arrays, we expect the byte
  * lengths to be different and for at least one byte to be dissimilar between
  * the two arrays.
  *

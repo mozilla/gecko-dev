@@ -228,7 +228,11 @@ export class ArchiveEncryptor {
       ciphertextChunk = await crypto.subtle.encrypt(
         {
           name: "AES-GCM",
-          iv: this.#nonce,
+          /**
+           * Take only the last 12 bytes of the nonce, since the WebCrypto API
+           * starts to behave differently when the IV is > 96 bits.
+           */
+          iv: this.#nonce.subarray(4),
           tagLength: ArchiveUtils.TAG_LENGTH,
         },
         this.#encKey,
@@ -468,6 +472,7 @@ export class ArchiveDecryptor {
       jsonBlockBytes
     );
     if (!verified) {
+      this.#poisonSelf();
       throw new Error("Backup has been corrupted.");
     }
   }
@@ -518,7 +523,11 @@ export class ArchiveDecryptor {
       plaintextChunk = await crypto.subtle.decrypt(
         {
           name: "AES-GCM",
-          iv: this.#nonce,
+          /**
+           * Take only the last 12 bytes of the nonce, since the WebCrypto API
+           * starts to behave differently when the IV is > 96 bits.
+           */
+          iv: this.#nonce.subarray(4),
           tagLength: ArchiveUtils.TAG_LENGTH,
         },
         this.#archiveEncKey,

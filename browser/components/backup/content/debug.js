@@ -166,7 +166,16 @@ let DebugUI = {
         let dest = PathUtils.join(PathUtils.parent(path), "extraction.zip");
         let service = BackupService.get();
         try {
-          await service.extractCompressedSnapshotFromArchive(path, dest);
+          let { isEncrypted } = await service.sampleArchive(path);
+          let recoveryCode = undefined;
+          if (isEncrypted) {
+            recoveryCode = prompt("Please provide the decryption password");
+          }
+          await service.extractCompressedSnapshotFromArchive(
+            path,
+            dest,
+            recoveryCode
+          );
           extractionStatus.textContent = `Extracted ZIP file to ${dest}`;
         } catch (e) {
           extractionStatus.textContent = `Failed to extract: ${e.message} Check the console for the full exception.`;
