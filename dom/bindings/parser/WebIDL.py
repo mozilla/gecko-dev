@@ -8091,7 +8091,7 @@ class Parser(Tokenizer):
         Iterable : ITERABLE LT TypeWithExtendedAttributes GT SEMICOLON
                  | ITERABLE LT TypeWithExtendedAttributes COMMA TypeWithExtendedAttributes GT SEMICOLON
         """
-        location = self.getLocation(p, 2)
+        location = self.getLocation(p, 1)
         identifier = IDLUnresolvedIdentifier(
             location, "__iterable", allowDoubleUnderscore=True
         )

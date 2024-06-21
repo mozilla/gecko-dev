@@ -933,3 +933,37 @@ def WebIDLTest(parser, harness):
                 not m.isMaplikeOrSetlikeOrIterableMethod(),
                 "%s should not be a maplike/setlike function" % m.identifier.name,
             )
+
+    tests = [
+        ("maplike", "  maplike<long, long>;"),
+        ("setlike", "  readonly setlike<long>;"),
+        ("iterable", "  iterable<long>;"),
+        ("iterable", "  async iterable<long, long>;"),
+    ]
+
+    for name, line in tests:
+        parser = parser.reset()
+        lines = [
+            "interface Foo {",
+            line,
+            "  readonly attribute unsigned long length;",
+            "  getter long(unsigned long index);",
+            "};",
+        ]
+        parser.parse("\n".join(lines))
+        results = parser.finish()
+
+        p = results[0].members[0]
+
+        harness.check(p.identifier.name, "__" + name, "Correct name")
+
+        colno = line.find(name)
+
+        loc_lines = str(p.identifier.location).split("\n")
+
+        harness.check(loc_lines[1], line, "Second line shows the input")
+        harness.check(
+            loc_lines[2],
+            " " * colno + "^",
+            "Correct column pointer in location string",
+        )
