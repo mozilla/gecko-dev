@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+
+<style>
+div { font: 16px system-ui; margin: 1em; border: 1px solid gray; }
+li::marker { font-family: -moz-bullet-font, system-ui; }
+.right { list-style-type: "\25b8\a0"; }
+.left { list-style-type: "\25c2\a0"; }
+.down { list-style-type: "\25be\a0"; }
+.up { list-style-type: "\25b4\a0"; }
+</style>
+
+<div style="width: 10em">
+<ul>
+<li class=right>closed
+<li class=down>open
+</ul>
+<ul dir=rtl>
+<li class=left>closed
+<li class=down>open
+</ul>
+</div>
+
+<div style="writing-mode: vertical-lr; height: 10em">
+<ul>
+<li class=down>closed
+<li class=right>open
+</ul>
+<ul dir=rtl>
+<li class=up>closed
+<li class=right>open
+</ul>
+</div>
+
+<div style="writing-mode: vertical-rl; height: 10em">
+<ul>
+<li class=down>closed
+<li class=left>open
+</ul>
+<ul dir=rtl>
+<li class=up>closed
+<li class=left>open
+</ul>
+</div>
