@@ -8,7 +8,7 @@ import os
 import subprocess
 import sys
 import time
-from distutils.spawn import find_executable
+from shutil import which
 
 from mozperftest.utils import host_platform
 
@@ -18,7 +18,7 @@ _PYSSIM_VERSION = "0.4"
 
 def _start_xvfb():
     old_display = os.environ.get("DISPLAY")
-    xvfb = find_executable("Xvfb")
+    xvfb = which("Xvfb")
     if xvfb is None:
         raise FileNotFoundError("Xvfb")
     cmd = [xvfb, ":99"]
