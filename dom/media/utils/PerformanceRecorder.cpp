@@ -258,8 +258,6 @@ void PlaybackStage::AddMarker(MarkerOptions&& aOption) {
   }
 }
 
-void PlaybackStage::AddFlag(MediaInfoFlag aFlag) { mFlag |= aFlag; }
-
 ProfilerString8View CaptureStage::Name() const {
   if (!mName) {
     auto imageTypeToStr = [](ImageType aType) -> const char* {
