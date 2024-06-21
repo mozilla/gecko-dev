@@ -159,7 +159,9 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
                     rtp_sender_->SSRC(),
                     rtp_sender_->Rid(),
                     config.task_queue_factory)
-              : nullptr) {
+              : nullptr),
+      enable_av1_even_split_(
+          config.field_trials->IsEnabled("WebRTC-Video-AV1EvenPayloadSizes")) {
   if (frame_transformer_delegate_)
     frame_transformer_delegate_->Init();
 }
@@ -639,8 +641,8 @@ bool RTPSenderVideo::SendVideo(int payload_type,
            "one is required since require_frame_encryptor is set";
   }
 
-  std::unique_ptr<RtpPacketizer> packetizer =
-      RtpPacketizer::Create(codec_type, payload, limits, video_header);
+  std::unique_ptr<RtpPacketizer> packetizer = RtpPacketizer::Create(
+      codec_type, payload, limits, video_header, enable_av1_even_split_);
 
   const size_t num_packets = packetizer->NumPackets();
 

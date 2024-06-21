@@ -36,10 +36,10 @@ Cr-Commit-Position: refs/heads/main@{#42213}
  2 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/experiments/field_trials.py b/experiments/field_trials.py
-index 9920409a03..a1dc615d0a 100755
+index 6cb0d530ec..5e28622ff5 100755
 --- a/experiments/field_trials.py
 +++ b/experiments/field_trials.py
-@@ -499,6 +499,9 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
+@@ -502,6 +502,9 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
      FieldTrial('WebRTC-Bwe-InitialProbing',
                 42220440,
                 date(2024, 4, 1)),
@@ -49,7 +49,7 @@ index 9920409a03..a1dc615d0a 100755
      FieldTrial('WebRTC-Bwe-LimitProbesLowerThanThroughputEstimate',
                 42221601,
                 date(2024, 4, 1)),
-@@ -878,7 +881,7 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
+@@ -881,7 +884,7 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
  ])  # yapf: disable
  
  POLICY_EXEMPT_FIELD_TRIALS_DIGEST: str = \
