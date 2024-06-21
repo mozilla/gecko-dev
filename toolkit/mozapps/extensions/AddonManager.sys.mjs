@@ -4897,6 +4897,8 @@ AMTelemetry = {
    *          The object for the given addon type.
    */
   getEventObjectFromAddonType(addonType) {
+    // NOTE: Telemetry events' object maximum length is 20 chars (See https://firefox-source-docs.mozilla.org/toolkit/components/telemetry/collection/events.html#limits)
+    // and the value needs to matching the "^[a-zA-Z][a-zA-Z0-9_.]*[a-zA-Z0-9]$" pattern.
     switch (addonType) {
       case undefined:
         return "unknown";
@@ -4906,11 +4908,6 @@ AMTelemetry = {
       case "dictionary":
       case "sitepermission":
         return addonType;
-      // TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
-      case "sitepermission-deprecated":
-        // Telemetry events' object maximum length is 20 chars (See https://firefox-source-docs.mozilla.org/toolkit/components/telemetry/collection/events.html#limits)
-        // and the value needs to matching the "^[a-zA-Z][a-zA-Z0-9_.]*[a-zA-Z0-9]$" pattern.
-        return "siteperm_deprecated";
       default:
         // Currently this should only include gmp-plugins ("plugin").
         return "other";

@@ -12,8 +12,6 @@ const AMO_SUPPORTED_ADDON_TYPES = [
   "extension",
   "theme",
   "sitepermission",
-  // TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
-  "sitepermission-deprecated",
   "dictionary",
 ];
 

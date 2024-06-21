@@ -18,10 +18,6 @@ import { XPIExports } from "resource://gre/modules/addons/XPIExports.sys.mjs";
 
 const lazy = {};
 
-XPCOMUtils.defineLazyServiceGetters(lazy, {
-  ThirdPartyUtil: ["@mozilla.org/thirdpartyutil;1", "mozIThirdPartyUtil"],
-});
-
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AddonManagerPrivate: "resource://gre/modules/AddonManager.sys.mjs",
@@ -201,8 +197,6 @@ const PROP_JSON_FIELDS = [
   "userPermissions",
   "optionalPermissions",
   "requestedPermissions",
-  "sitePermissions",
-  "siteOrigin",
   "icons",
   "iconURL",
   "blocklistState",
@@ -215,13 +209,7 @@ const PROP_JSON_FIELDS = [
   "rootURI",
 ];
 
-const SIGNED_TYPES = new Set([
-  "extension",
-  "locale",
-  "theme",
-  // TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
-  "sitepermission-deprecated",
-]);
+const SIGNED_TYPES = new Set(["extension", "locale", "theme"]);
 
 // Time to wait before async save of XPI JSON database, in milliseconds
 const ASYNC_SAVE_DELAY_MS = 20;
@@ -436,37 +424,6 @@ export class AddonInternal {
     // An empty install_origins prevents any install from 3rd party websites.
     if (!installOrigins.length) {
       return false;
-    }
-
-    // TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
-    if (this.type == "sitepermission-deprecated") {
-      // NOTE: This may move into a check for all addons later.
-      for (let origin of installOrigins) {
-        let host = new URL(origin).host;
-        // install_origin cannot be on a known etld (e.g. github.io).
-        if (Services.eTLD.getKnownPublicSuffixFromHost(host) == host) {
-          logger.warn(
-            `Addon ${this.id} Installation not allowed from the install_origin ${host} that is an eTLD`
-          );
-          return false;
-        }
-      }
-
-      if (!installOrigins.includes(new URL(source.spec).origin)) {
-        logger.warn(
-          `Addon ${this.id} Installation not allowed, "${source.spec}" is not included in the Addon install_origins`
-        );
-        return false;
-      }
-
-      if (lazy.ThirdPartyUtil.isThirdPartyURI(source, installFrom)) {
-        logger.warn(
-          `Addon ${this.id} Installation not allowed, installFrom "${installFrom.spec}" is third party to the Addon install_origins`
-        );
-        return false;
-      }
-
-      return true;
     }
 
     for (const [name, uri] of Object.entries({ installFrom, source })) {
@@ -914,9 +871,7 @@ export class AddonInternal {
     // when the extension has opted out or it gets the permission automatically
     // on every extension startup (as system, privileged and builtin addons).
     if (
-      (this.type === "extension" ||
-        // TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
-        this.type == "sitepermission-deprecated") &&
+      this.type === "extension" &&
       this.incognito !== "not_allowed" &&
       this.signedState !== lazy.AddonManager.SIGNEDSTATE_PRIVILEGED &&
       this.signedState !== lazy.AddonManager.SIGNEDSTATE_SYSTEM &&
@@ -1618,8 +1573,6 @@ function defineAddonWrapperProperty(name, getter) {
   "dependencies",
   "signedState",
   "signedTypes",
-  "sitePermissions",
-  "siteOrigin",
   "isCorrectlySigned",
   "isBuiltinColorwayTheme",
 ].forEach(function (aProp) {

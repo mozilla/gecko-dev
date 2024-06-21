@@ -23,7 +23,6 @@ support-files = [
   "triggerredirect.html",
   "unsigned.xpi",
   "unsigned_mv3.xpi",
-  "webmidi_permission.xpi",
   "../xpcshell/data/signing_checks/privileged.xpi",
 ]
 

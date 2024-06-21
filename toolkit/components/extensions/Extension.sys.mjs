@@ -201,13 +201,6 @@ ChromeUtils.defineLazyGetter(lazy, "NO_PROMPT_PERMISSIONS", async () => {
   );
 });
 
-// TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
-ChromeUtils.defineLazyGetter(lazy, "SCHEMA_SITE_PERMISSIONS", async () => {
-  // Wait until all extension API schemas have been loaded and parsed.
-  await Management.lazyInit();
-  return lazy.Schemas.getPermissionNames(["SitePermission"]);
-});
-
 const { sharedData } = Services.ppmm;
 
 const PRIVATE_ALLOWED_PERMISSION = "internal:privateBrowsingAllowed";
@@ -891,8 +884,6 @@ const manifestTypes = new Map([
   ["locale", "manifest.WebExtensionLangpackManifest"],
   ["dictionary", "manifest.WebExtensionDictionaryManifest"],
   ["extension", "manifest.WebExtensionManifest"],
-  // TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
-  ["sitepermission-deprecated", "manifest.WebExtensionSitePermissionsManifest"],
 ]);
 
 /**
@@ -1599,9 +1590,6 @@ export class ExtensionData {
       this.type = "locale";
     } else if (manifest.dictionaries) {
       this.type = "dictionary";
-    } else if (manifest.site_permissions) {
-      // TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
-      this.type = "sitepermission-deprecated";
     } else {
       this.type = "extension";
     }
@@ -2513,7 +2501,6 @@ export class ExtensionData {
     // a less-generic message than addons with site permissions.
     // NOTE: this is used as part of the synthetic addon install flow implemented for the
     // SitePermissionAddonProvider.
-    // (and so it should not be removed as part of Bug 1789718 changes, while this additional note should be).
     // FIXME
     if (addon?.type === lazy.SITEPERMS_ADDON_TYPE) {
       // We simplify the origin to make it more user friendly. The origin is assured to be
@@ -2539,7 +2526,9 @@ export class ExtensionData {
       return result;
     }
 
-    // TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
+    // NOTE: this is used as part of the synthetic addon implemented for the
+    // SitePermissionAddonProvider to render the site permissions in the
+    // about:addon detail view for the synthetic addon entries.
     if (sitePermissions) {
       for (let permission of sitePermissions) {
         let permMsg;
@@ -2860,23 +2849,6 @@ class LangpackBootstrapScope extends BootstrapScope {
   async shutdown(data, reason) {
     this.langpack.shutdown(BootstrapScope.BOOTSTRAP_REASON_MAP[reason]);
     this.langpack = null;
-  }
-}
-
-// TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
-class SitePermissionBootstrapScope extends BootstrapScope {
-  install() {}
-  uninstall() {}
-
-  startup(data) {
-    // eslint-disable-next-line no-use-before-define
-    this.sitepermission = new SitePermission(data);
-    return this.sitepermission.startup();
-  }
-
-  async shutdown(data, reason) {
-    this.sitepermission.shutdown(BootstrapScope.BOOTSTRAP_REASON_MAP[reason]);
-    this.sitepermission = null;
   }
 }
 
@@ -4060,121 +4032,6 @@ export class Langpack extends ExtensionData {
     }
 
     lazy.resourceProtocol.setSubstitution(this.startupData.langpackId, null);
-  }
-}
-
-// TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
-export class SitePermission extends ExtensionData {
-  constructor(addonData) {
-    super(addonData.resourceURI);
-    this.id = addonData.id;
-    this.hasShutdown = false;
-  }
-
-  async loadManifest() {
-    let [manifestData] = await Promise.all([this.parseManifest()]);
-
-    if (!manifestData) {
-      return;
-    }
-
-    this.manifest = manifestData.manifest;
-    this.type = manifestData.type;
-    this.sitePermissions = this.manifest.site_permissions;
-    // 1 install_origins is mandatory for this addon type
-    this.siteOrigin = this.manifest.install_origins[0];
-
-    return this.manifest;
-  }
-
-  static getBootstrapScope() {
-    return new SitePermissionBootstrapScope();
-  }
-
-  // Array of principals that may be set by the addon.
-  getSupportedPrincipals() {
-    if (!this.siteOrigin) {
-      return [];
-    }
-    const uri = Services.io.newURI(this.siteOrigin);
-    return [
-      Services.scriptSecurityManager.createContentPrincipal(uri, {}),
-      Services.scriptSecurityManager.createContentPrincipal(uri, {
-        privateBrowsingId: 1,
-      }),
-    ];
-  }
-
-  async startup() {
-    await this.loadManifest();
-
-    this.ensureNoErrors();
-
-    let site_permissions = await lazy.SCHEMA_SITE_PERMISSIONS;
-    let perms = await lazy.ExtensionPermissions.get(this.id);
-
-    if (this.hasShutdown) {
-      // Startup was interrupted and shutdown() has taken care of unloading
-      // the extension and running cleanup logic.
-      return;
-    }
-
-    let privateAllowed = perms.permissions.includes(PRIVATE_ALLOWED_PERMISSION);
-    let principals = this.getSupportedPrincipals();
-
-    // Remove any permissions not contained in site_permissions
-    for (let principal of principals) {
-      let existing = Services.perms.getAllForPrincipal(principal);
-      for (let perm of existing) {
-        if (
-          site_permissions.includes(perm) &&
-          !this.sitePermissions.includes(perm)
-        ) {
-          Services.perms.removeFromPrincipal(principal, perm.type);
-        }
-      }
-    }
-
-    // Ensure all permissions in site_permissions have been set, but do not
-    // overwrite the permission so the user can override the values in preferences.
-    for (let perm of this.sitePermissions) {
-      for (let principal of principals) {
-        let permission = Services.perms.testExactPermissionFromPrincipal(
-          principal,
-          perm
-        );
-        if (permission == Ci.nsIPermissionManager.UNKNOWN_ACTION) {
-          let { privateBrowsingId } = principal.originAttributes;
-          let allow = privateBrowsingId == 0 || privateAllowed;
-          Services.perms.addFromPrincipal(
-            principal,
-            perm,
-            allow ? Services.perms.ALLOW_ACTION : Services.perms.DENY_ACTION,
-            Services.perms.EXPIRE_NEVER
-          );
-        }
-      }
-    }
-
-    Services.obs.notifyObservers(
-      { wrappedJSObject: { sitepermissions: this } },
-      "webextension-sitepermissions-startup"
-    );
-  }
-
-  async shutdown(reason) {
-    this.hasShutdown = true;
-    // Permissions are retained across restarts
-    if (reason == "APP_SHUTDOWN") {
-      return;
-    }
-    let principals = this.getSupportedPrincipals();
-
-    for (let perm of this.sitePermissions || []) {
-      for (let principal of principals) {
-        Services.perms.removeFromPrincipal(principal, perm);
-      }
-    }
   }
 }
 

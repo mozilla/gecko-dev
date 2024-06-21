@@ -2,9 +2,6 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-// TODO(Bug 1789718): adapt to synthetic addon type implemented by the SitePermAddonProvider
-// or remove if redundant, after the deprecated XPIProvider-based implementation is also removed.
-
 const { AddonTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/AddonTestUtils.sys.mjs"
 );
@@ -439,147 +436,6 @@ var TESTS = [
       "amosigned-xpi@tests.mozilla.org"
     );
     await addon.uninstall();
-
-    await BrowserTestUtils.removeTab(gBrowser.selectedTab);
-    await SpecialPowers.popPrefEnv();
-  },
-
-  async function test_blockedInstallDomain() {
-    await SpecialPowers.pushPrefEnv({
-      set: [
-        ["extensions.postDownloadThirdPartyPrompt", true],
-        ["extensions.install_origins.enabled", true],
-      ],
-    });
-
-    let progressPromise = waitForProgressNotification();
-    let notificationPromise = waitForNotification("addon-install-failed");
-    let triggers = encodeURIComponent(
-      JSON.stringify({
-        XPI: TESTROOT2 + "webmidi_permission.xpi",
-      })
-    );
-    BrowserTestUtils.openNewForegroundTab(
-      gBrowser,
-      TESTROOT + "installtrigger.html?" + triggers
-    );
-    await progressPromise;
-    let panel = await notificationPromise;
-
-    let notification = panel.childNodes[0];
-    is(
-      notification.getAttribute("label"),
-      "The add-on WebMIDI test addon can not be installed from this location.",
-      "Should have seen the right message"
-    );
-
-    await removeTabAndWaitForNotificationClose();
-    await SpecialPowers.popPrefEnv();
-  },
-
-  async function test_allowedInstallDomain() {
-    await SpecialPowers.pushPrefEnv({
-      set: [
-        ["extensions.postDownloadThirdPartyPrompt", true],
-        ["extensions.install_origins.enabled", true],
-      ],
-    });
-
-    let notificationPromise = waitForNotification("addon-install-blocked");
-    let triggers = encodeURIComponent(
-      JSON.stringify({
-        XPI: TESTROOT + "webmidi_permission.xpi",
-      })
-    );
-    BrowserTestUtils.openNewForegroundTab(
-      gBrowser,
-      TESTROOT + "installtrigger.html?" + triggers
-    );
-    let panel = await notificationPromise;
-
-    let notification = panel.childNodes[0];
-    is(
-      notification.button.label,
-      "Continue to Installation",
-      "Should have seen the right button"
-    );
-    let message = panel.ownerDocument.getElementById(
-      "addon-install-blocked-message"
-    );
-    is(
-      message.textContent,
-      "You are attempting to install an add-on from example.com. Make sure you trust this site before continuing.",
-      "Should have seen the right message"
-    );
-
-    // Next we get the permissions prompt, which also warns of the unsigned state of the addon
-    notificationPromise = waitForNotification("addon-webext-permissions");
-    // Click on Allow on the 3rd party panel
-    notification.button.click();
-    panel = await notificationPromise;
-    notification = panel.childNodes[0];
-
-    is(notification.button.label, "Add", "Should have seen the right button");
-
-    is(
-      notification.id,
-      "addon-webext-permissions-notification",
-      "Should have seen the permissions panel"
-    );
-    let singlePerm = panel.ownerDocument.getElementById(
-      "addon-webext-perm-single-entry"
-    );
-    is(
-      singlePerm.textContent,
-      "Access MIDI devices",
-      "Should have seen the right permission text"
-    );
-
-    notificationPromise = acceptAppMenuNotificationWhenShown(
-      "addon-installed",
-      "webmidi@test.mozilla.org",
-      { incognitoHidden: false, checkIncognito: true }
-    );
-
-    // Click on Allow on the permissions panel
-    notification.button.click();
-
-    await notificationPromise;
-
-    let installs = await AddonManager.getAllInstalls();
-    is(installs.length, 0, "Should be no pending installs");
-
-    let addon = await AddonManager.getAddonByID("webmidi@test.mozilla.org");
-    await TestUtils.topicObserved("webextension-sitepermissions-startup");
-
-    // This addon should have a site permission with private browsing.
-    let uri = Services.io.newURI(addon.siteOrigin);
-    let pbPrincipal = Services.scriptSecurityManager.createContentPrincipal(
-      uri,
-      {
-        privateBrowsingId: 1,
-      }
-    );
-    let permission = Services.perms.testExactPermissionFromPrincipal(
-      pbPrincipal,
-      "midi"
-    );
-    is(
-      permission,
-      Services.perms.ALLOW_ACTION,
-      "api access in private browsing granted"
-    );
-
-    await addon.uninstall();
-
-    // Verify the permission has not been retained.
-    let { permissions } = await ExtensionPermissions.get(
-      "webmidi@test.mozilla.org"
-    );
-    ok(
-      !permissions.includes("internal:privateBrowsingAllowed"),
-      "permission is not set after uninstall"
-    );
 
     await BrowserTestUtils.removeTab(gBrowser.selectedTab);
     await SpecialPowers.popPrefEnv();
@@ -1370,43 +1226,6 @@ var TESTS = [
     await addon.uninstall();
 
     await BrowserTestUtils.closeWindow(win);
-  },
-
-  async function test_blockedInstallDomain_with_unified_extensions() {
-    await SpecialPowers.pushPrefEnv({
-      set: [["extensions.install_origins.enabled", true]],
-    });
-
-    let win = await BrowserTestUtils.openNewBrowserWindow();
-    await SimpleTest.promiseFocus(win);
-
-    let progressPromise = waitForProgressNotification(
-      false,
-      1,
-      true,
-      "unified-extensions-button",
-      win
-    );
-    let notificationPromise = waitForNotification(
-      "addon-install-failed",
-      1,
-      "unified-extensions-button",
-      win
-    );
-    let triggers = encodeURIComponent(
-      JSON.stringify({
-        XPI: TESTROOT2 + "webmidi_permission.xpi",
-      })
-    );
-    await BrowserTestUtils.openNewForegroundTab(
-      win.gBrowser,
-      TESTROOT + "installtrigger.html?" + triggers
-    );
-    await progressPromise;
-    await notificationPromise;
-
-    await BrowserTestUtils.closeWindow(win);
-    await SpecialPowers.popPrefEnv();
   },
 
   async function test_mv3_installOrigins_disallowed_with_unified_extensions() {
