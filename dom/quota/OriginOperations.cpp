@@ -506,10 +506,13 @@ class ClearStorageOp final
 
 class ClearRequestBase
     : public OpenStorageDirectoryHelper<ResolvableNormalOriginOp<bool>> {
+  Atomic<uint64_t> mIterations;
+
  protected:
   ClearRequestBase(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
                    const char* aName)
-      : OpenStorageDirectoryHelper(std::move(aQuotaManager), aName) {
+      : OpenStorageDirectoryHelper(std::move(aQuotaManager), aName),
+        mIterations(0) {
     AssertIsOnOwningThread();
   }
 
@@ -529,6 +532,17 @@ class ClearRequestBase
                            const OriginScope& aOriginScope,
                            const Nullable<Client::Type>& aClientType,
                            const FileCollector& aFileCollector);
+
+  void DoStringify(nsACString& aData) override {
+    aData.Append("ClearRequestBase "_ns +
+                 //
+                 kStringifyStartInstance +
+                 //
+                 "Iterations:"_ns +
+                 IntToCString(static_cast<uint64_t>(mIterations)) +
+                 //
+                 kStringifyEndInstance);
+  }
 };
 
 class ClearOriginOp final : public ClearRequestBase {
@@ -1975,7 +1989,8 @@ void ClearRequestBase::DeleteFilesInternal(
   QM_TRY(
       aFileCollector([&aClientType, &originScope = aOriginScope,
                       aPersistenceType, &aQuotaManager,
-                      &directoriesForRemovalRetry](nsCOMPtr<nsIFile>&& file)
+                      &directoriesForRemovalRetry,
+                      this](nsCOMPtr<nsIFile>&& file)
                          -> mozilla::Result<Ok, nsresult> {
         QM_TRY_INSPECT(const auto& dirEntryKind, GetDirEntryKind(*file));
 
@@ -2077,6 +2092,8 @@ void ClearRequestBase::DeleteFilesInternal(
             // Ignore files that got removed externally while iterating.
             break;
         }
+
+        mIterations++;
 
         return Ok{};
       }),

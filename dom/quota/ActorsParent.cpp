@@ -2268,11 +2268,17 @@ void QuotaManager::Shutdown() {
     if (gNormalOriginOps) {
       annotation.AppendPrintf("QM: %zu normal origin ops pending\n",
                               gNormalOriginOps->Length());
-#ifdef QM_COLLECTING_OPERATION_TELEMETRY
+
       for (const auto& op : *gNormalOriginOps) {
+#ifdef QM_COLLECTING_OPERATION_TELEMETRY
         annotation.AppendPrintf("Op: %s pending\n", op->Name());
-      }
 #endif
+
+        nsCString data;
+        op->Stringify(data);
+
+        annotation.AppendPrintf("Op details:\n%s\n", data.get());
+      }
     }
     {
       MutexAutoLock lock(quotaManager->mQuotaMutex);
