@@ -336,7 +336,9 @@ class WindowGlobalTargetActor extends BaseTargetActor {
 
     // Start observing navigations as well as sub documents.
     // (This is probably meant to disappear once EFT is the only supported codepath)
-    this._progressListener = new DebuggerProgressListener(this);
+    if (!this.followWindowGlobalLifeCycle) {
+      this._progressListener = new DebuggerProgressListener(this);
+    }
 
     TargetActorRegistry.registerTargetActor(this);
 
@@ -557,11 +559,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
    * being inspected in the toolbox.
    */
   get originalDocShell() {
-    if (!this._originalWindow) {
-      return this.docShell;
-    }
-
-    return this._originalWindow.docShell;
+    return this._originalWindow?.docShell || this.docShell;
   }
 
   /**
@@ -877,6 +875,13 @@ class WindowGlobalTargetActor extends BaseTargetActor {
   }
 
   _watchDocshells() {
+    // When the target actor follows the window global lifecycle,
+    // it only tracks one Window Global and the target actor is managed
+    // by the WindowGlobal Target Watcher class.
+    if (this.followWindowGlobalLifeCycle) {
+      return;
+    }
+
     // If for some unexpected reason, the actor is immediately destroyed,
     // avoid registering leaking observer listener.
     if (this.isDestroyed()) {
@@ -896,6 +901,10 @@ class WindowGlobalTargetActor extends BaseTargetActor {
   }
 
   _unwatchDocshells() {
+    if (this.followWindowGlobalLifeCycle) {
+      return;
+    }
+
     if (this._progressListener) {
       this._progressListener.destroy();
       this._progressListener = null;
@@ -1435,7 +1444,12 @@ class WindowGlobalTargetActor extends BaseTargetActor {
    * state when closing the toolbox.
    */
   _restoreTargetConfiguration() {
-    if (this._restoreFocus && this.browsingContext?.isActive) {
+    // Ignore the restore request if the document isn't active or is being destroyed
+    if (
+      this._restoreFocus &&
+      this.browsingContext?.isActive &&
+      !this.browsingContext?.isDiscarded
+    ) {
       try {
         this.window.focus();
       } catch (e) {

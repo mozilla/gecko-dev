@@ -76,7 +76,11 @@ function watch() {
   Services.obs.addObserver(observe, "chrome-page-shown");
   Services.obs.addObserver(observe, "content-page-hidden");
   Services.obs.addObserver(observe, "chrome-page-hidden");
-  Services.obs.addObserver(observe, "inner-window-destroyed");
+  // Bug 1892411: use this late event in order to support breakpoint in iframe unload
+  //Services.obs.addObserver(observe, "inner-window-destroyed");
+  // Ideally, we would listen for inner-window-destroyed, but this is fired too late
+  // and the docShell interface throws and break most of cleanup codepath
+  Services.obs.addObserver(observe, "webnavigation-destroy");
   Services.obs.addObserver(observe, "initial-document-element-inserted");
 }
 
@@ -88,7 +92,9 @@ function unwatch() {
   Services.obs.removeObserver(observe, "chrome-page-shown");
   Services.obs.removeObserver(observe, "content-page-hidden");
   Services.obs.removeObserver(observe, "chrome-page-hidden");
-  Services.obs.removeObserver(observe, "inner-window-destroyed");
+  // Bug 1892411: use this late event in order to support breakpoint in iframe unload
+  //Services.obs.removeObserver(observe, "inner-window-destroyed");
+  Services.obs.removeObserver(observe, "webnavigation-destroy");
   Services.obs.removeObserver(observe, "initial-document-element-inserted");
 }
 
@@ -434,6 +440,9 @@ function observe(subject, topic) {
     topic == "chrome-document-global-created"
   ) {
     onWindowGlobalCreated(subject);
+  } else if (topic == "webnavigation-destroy") {
+    subject.QueryInterface(Ci.nsIDocShell);
+    onWindowGlobalDestroyed(subject.domWindow.windowGlobalChild.innerWindowId);
   } else if (topic == "inner-window-destroyed") {
     const innerWindowId = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
     onWindowGlobalDestroyed(innerWindowId);
