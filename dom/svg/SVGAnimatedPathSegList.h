@@ -38,10 +38,6 @@ class SVGElement;
  * to know or worry about wrappers (or forget about them!) for the most part.
  */
 class SVGAnimatedPathSegList final {
-  // friends so that they can get write access to mBaseVal and mAnimVal
-  friend class dom::DOMSVGPathSeg;
-  friend class dom::DOMSVGPathSegList;
-
  public:
   SVGAnimatedPathSegList() = default;
 

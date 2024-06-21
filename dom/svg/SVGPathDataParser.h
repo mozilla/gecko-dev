@@ -7,51 +7,9 @@
 #ifndef DOM_SVG_SVGPATHDATAPARSER_H_
 #define DOM_SVG_SVGPATHDATAPARSER_H_
 
-#include "mozilla/Attributes.h"
 #include "mozilla/gfx/Point.h"
-#include "SVGDataParser.h"
 
 namespace mozilla {
-class SVGPathData;
-
-////////////////////////////////////////////////////////////////////////
-// SVGPathDataParser: a simple recursive descent parser that builds
-// DOMSVGPathSegs from path data strings. The grammar for path data
-// can be found in SVG CR 20001102, chapter 8.
-
-class SVGPathDataParser : public SVGDataParser {
- public:
-  SVGPathDataParser(const nsAString& aValue, mozilla::SVGPathData* aList)
-      : SVGDataParser(aValue), mPathSegList(aList) {
-    MOZ_ASSERT(aList, "null path data");
-  }
-
-  bool Parse();
-
- private:
-  bool ParseCoordPair(float& aX, float& aY);
-  bool ParseFlag(bool& aFlag);
-
-  bool ParsePath();
-  bool IsStartOfSubPath() const;
-  bool ParseSubPath();
-
-  bool ParseSubPathElements();
-  bool ParseSubPathElement(char16_t aCommandType, bool aAbsCoords);
-
-  bool ParseMoveto();
-  bool ParseClosePath();
-  bool ParseLineto(bool aAbsCoords);
-  bool ParseHorizontalLineto(bool aAbsCoords);
-  bool ParseVerticalLineto(bool aAbsCoords);
-  bool ParseCurveto(bool aAbsCoords);
-  bool ParseSmoothCurveto(bool aAbsCoords);
-  bool ParseQuadBezierCurveto(bool aAbsCoords);
-  bool ParseSmoothQuadBezierCurveto(bool aAbsCoords);
-  bool ParseEllipticalArc(bool aAbsCoords);
-
-  mozilla::SVGPathData* const mPathSegList;
-};
 
 class SVGArcConverter {
   using Point = mozilla::gfx::Point;

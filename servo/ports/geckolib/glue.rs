@@ -5618,25 +5618,77 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
 pub extern "C" fn Servo_DeclarationBlock_SetPathValue(
     declarations: &LockedDeclarationBlock,
     property: nsCSSPropertyID,
-    path: &nsTArray<f32>,
+    path: &specified::SVGPathData,
 ) {
     use style::properties::PropertyDeclaration;
     use style::values::specified::DProperty;
 
-    // 1. Decode the path data from SVG.
-    let path = match specified::SVGPathData::decode_from_f32_array(path) {
-        Ok(p) => p,
-        Err(()) => return,
-    };
-
     // 2. Set decoded path into style.
     let long = get_longhand_from_id!(property);
     let prop = match_wrap_declared! { long,
-        D => if path.0.is_empty() { DProperty::None } else { DProperty::Path(path) },
+        D => if path.0.is_empty() { DProperty::None } else { DProperty::Path(path.clone()) },
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(prop, Importance::Normal);
     })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_SVGPathData_Add(
+    dest: &mut specified::SVGPathData,
+    to_add: &specified::SVGPathData,
+    count: u32,
+) -> bool {
+    match dest.animate(to_add, Procedure::Accumulate { count: count as u64 }) {
+        Ok(r) => {
+            *dest = r;
+            true
+        }
+        Err(..) => false,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_SVGPathData_Parse(input: &nsACString, dest: &mut specified::SVGPathData) -> bool {
+    let (path, ret) = specified::SVGPathData::parse_bytes(input.as_ref());
+    *dest = path;
+    ret
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_SVGPathData_ToString(path: &specified::SVGPathData, dest: &mut nsACString) {
+    path.to_css(&mut CssWriter::new(dest), /* quote = */ false).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_SVGPathData_Interpolate(
+    left: Option<&specified::SVGPathData>,
+    right: &specified::SVGPathData,
+    progress: f64,
+    dest: &mut specified::SVGPathData,
+) -> bool {
+    let zero;
+    let left = match left {
+        Some(l) => l,
+        None => {
+            zero = match right.to_animated_zero() {
+                Ok(z) => z,
+                Err(..) => {
+                    debug_assert!(false, "how?");
+                    return false;
+                }
+            };
+            &zero
+        }
+    };
+
+    match left.animate(right, Procedure::Interpolate { progress }) {
+        Ok(r) => {
+            *dest = r;
+            true
+        }
+        Err(..) => false,
+    }
 }
 
 #[no_mangle]

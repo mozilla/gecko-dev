@@ -224,15 +224,11 @@ void SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromPathAttr() {
   mPathSourceType = ePathSourceType_PathAttr;
 
   // Generate Path from |path| attr
-  SVGPathData path;
-  SVGPathDataParser pathParser(pathSpec, &path);
+  SVGPathData path{NS_ConvertUTF16toUTF8(pathSpec)};
 
-  // We ignore any failure returned from Parse() since the SVG spec says to
-  // accept all segments up to the first invalid token. Instead we must
-  // explicitly check that the parse produces at least one path segment (if
-  // the path data doesn't begin with a valid "M", then it's invalid).
-  pathParser.Parse();
-  if (!path.Length()) {
+  // We must explicitly check that the parse produces at least one path segment
+  // (if the path data doesn't begin with a valid "M", then it's invalid).
+  if (path.IsEmpty()) {
     return;
   }
 

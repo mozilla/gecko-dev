@@ -873,10 +873,9 @@ float SVGContentUtils::CoordToFloat(const SVGElement* aContent,
 }
 
 already_AddRefed<gfx::Path> SVGContentUtils::GetPath(
-    const nsAString& aPathString) {
-  SVGPathData pathData;
-  SVGPathDataParser parser(aPathString, &pathData);
-  if (!parser.Parse()) {
+    const nsACString& aPathString) {
+  SVGPathData pathData(aPathString);
+  if (pathData.IsEmpty()) {
     return nullptr;
   }
 

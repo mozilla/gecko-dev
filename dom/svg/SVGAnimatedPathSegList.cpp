@@ -20,18 +20,10 @@ using namespace mozilla::dom;
 namespace mozilla {
 
 nsresult SVGAnimatedPathSegList::SetBaseValueString(const nsAString& aValue) {
-  SVGPathData newBaseValue;
-
-  // The spec says that the path data is parsed and accepted up to the first
-  // error encountered, so we don't return early if an error occurs. However,
-  // we do want to throw any error code from setAttribute if there's a problem.
-  nsresult rv = newBaseValue.SetValueFromString(aValue);
-
   // We don't need to call DidChange* here - we're only called by
   // SVGElement::ParseAttribute under Element::SetAttr,
   // which takes care of notifying.
-  mBaseVal.SwapWith(newBaseValue);
-  return rv;
+  return mBaseVal.SetValueFromString(NS_ConvertUTF16toUTF8(aValue));
 }
 
 void SVGAnimatedPathSegList::ClearBaseValue() {
@@ -52,14 +44,9 @@ nsresult SVGAnimatedPathSegList::SetAnimValue(const SVGPathData& aNewAnimValue,
   if (!mAnimVal) {
     mAnimVal = MakeUnique<SVGPathData>();
   }
-  nsresult rv = mAnimVal->CopyFrom(aNewAnimValue);
-  if (NS_FAILED(rv)) {
-    // OOM. We clear the animation and, importantly, ClearAnimValue() ensures
-    // that mAnimVal's DOM wrapper (if any) is kept in sync!
-    ClearAnimValue(aElement);
-  }
+  *mAnimVal = aNewAnimValue;
   aElement->DidAnimatePathSegList();
-  return rv;
+  return NS_OK;
 }
 
 void SVGAnimatedPathSegList::ClearAnimValue(SVGElement* aElement) {
@@ -80,7 +67,7 @@ nsresult SVGAnimatedPathSegList::SMILAnimatedPathSegList::ValueFromString(
     SMILValue& aValue, bool& aPreventCachingOfSandwich) const {
   SMILValue val(SVGPathSegListSMILType::Singleton());
   SVGPathDataAndInfo* list = static_cast<SVGPathDataAndInfo*>(val.mU.mPtr);
-  nsresult rv = list->SetValueFromString(aStr);
+  nsresult rv = list->SetValueFromString(NS_ConvertUTF16toUTF8(aStr));
   if (NS_SUCCEEDED(rv)) {
     list->SetElement(mElement);
     aValue = std::move(val);
@@ -93,16 +80,11 @@ SMILValue SVGAnimatedPathSegList::SMILAnimatedPathSegList::GetBaseValue()
   // To benefit from Return Value Optimization and avoid copy constructor calls
   // due to our use of return-by-value, we must return the exact same object
   // from ALL return points. This function must only return THIS variable:
-  SMILValue val;
-
   SMILValue tmp(SVGPathSegListSMILType::Singleton());
   auto* list = static_cast<SVGPathDataAndInfo*>(tmp.mU.mPtr);
-  nsresult rv = list->CopyFrom(mVal->mBaseVal);
-  if (NS_SUCCEEDED(rv)) {
-    list->SetElement(mElement);
-    val = std::move(tmp);
-  }
-  return val;
+  list->CopyFrom(mVal->mBaseVal);
+  list->SetElement(mElement);
+  return tmp;
 }
 
 nsresult SVGAnimatedPathSegList::SMILAnimatedPathSegList::SetAnimValue(

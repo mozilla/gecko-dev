@@ -9,7 +9,6 @@ headers = [
     "mozilla/css/Loader.h",
     "mozilla/AnimatedPropertyID.h",
     "mozilla/css/SheetLoadData.h",
-    "mozilla/dom/SVGPathSegUtils.h",
     "mozilla/DeclarationBlock.h",
     "mozilla/dom/AnimationEffectBinding.h",
     "mozilla/dom/HTMLSlotElement.h",
@@ -195,7 +194,6 @@ allowlist-vars = [
     "GECKO_IS_NIGHTLY",
     "NS_SAME_AS_FOREGROUND_COLOR",
     "mozilla::detail::gGkAtoms",
-    "mozilla::PATHSEG_.*",
 ]
 # TODO(emilio): A bunch of types here can go away once we generate bindings and
 # structs together.

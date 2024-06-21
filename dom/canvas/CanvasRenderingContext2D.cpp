@@ -6714,7 +6714,7 @@ already_AddRefed<CanvasPath> CanvasPath::Constructor(
 }
 
 already_AddRefed<CanvasPath> CanvasPath::Constructor(
-    const GlobalObject& aGlobal, const nsAString& aPathString) {
+    const GlobalObject& aGlobal, const nsACString& aPathString) {
   RefPtr<gfx::Path> tempPath = SVGContentUtils::GetPath(aPathString);
   if (!tempPath) {
     return Constructor(aGlobal);

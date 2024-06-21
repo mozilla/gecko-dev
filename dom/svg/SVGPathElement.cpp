@@ -193,35 +193,29 @@ bool SVGPathElement::GetDistancesFromOriginToEndsOfVisibleSegments(
       aOutput);
 }
 
+static bool PathIsClosed(Span<const StylePathCommand> aPath) {
+  return !aPath.IsEmpty() && aPath.rbegin()->IsClose();
+}
+
 // Offset paths (including references to SVG Paths) are closed loops only if the
 // final command in the path list is a closepath command ("z" or "Z"), otherwise
 // they are unclosed intervals.
 // https://drafts.fxtf.org/motion/#path-distance
 bool SVGPathElement::IsClosedLoop() const {
   bool isClosed = false;
+
   auto callback = [&](const ComputedStyle* s) {
     const nsStyleSVGReset* styleSVGReset = s->StyleSVGReset();
     if (styleSVGReset->mD.IsPath()) {
-      isClosed = !styleSVGReset->mD.AsPath()._0.IsEmpty() &&
-                 styleSVGReset->mD.AsPath()._0.AsSpan().rbegin()->IsClose();
+      isClosed = PathIsClosed(styleSVGReset->mD.AsPath()._0.AsSpan());
     }
   };
 
-  const bool success = SVGGeometryProperty::DoForComputedStyle(this, callback);
-  if (success) {
+  if (SVGGeometryProperty::DoForComputedStyle(this, callback)) {
     return isClosed;
   }
 
-  const SVGPathData& data = mD.GetAnimValue();
-  // FIXME: Bug 1847621, we can cache this value, instead of walking through the
-  // entire path again and again.
-  uint32_t i = 0;
-  uint32_t segType = PATHSEG_UNKNOWN;
-  while (i < data.Length()) {
-    segType = SVGPathSegUtils::DecodeType(data[i++]);
-    i += SVGPathSegUtils::ArgCountForType(segType);
-  }
-  return segType == PATHSEG_CLOSEPATH;
+  return PathIsClosed(mD.GetAnimValue().AsSpan());
 }
 
 /* static */
