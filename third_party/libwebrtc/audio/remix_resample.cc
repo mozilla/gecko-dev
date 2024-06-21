@@ -14,6 +14,7 @@
 #include "audio/utility/audio_frame_operations.h"
 #include "common_audio/resampler/include/push_resampler.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/logging.h"
 
 namespace webrtc {
 namespace voe {
@@ -67,15 +68,22 @@ void RemixAndResample(const int16_t* src_data,
   // how much to zero here; or 2) make resampler accept a hint that the input is
   // zeroed.
   const size_t src_length = samples_per_channel * audio_ptr_num_channels;
-  int out_length =
-      resampler->Resample(audio_ptr, src_length, dst_frame->mutable_data(),
-                          AudioFrame::kMaxDataSizeSamples);
+  // Ensure the `samples_per_channel_` member is set correctly based on the
+  // destination sample rate, number of channels and assumed 10ms buffer size.
+  // TODO(tommi): Could we rather assume that this has been done by the caller?
+  dst_frame->SetSampleRateAndChannelSize(dst_frame->sample_rate_hz_);
+
+  int out_length = resampler->Resample(
+      rtc::ArrayView<const int16_t>(audio_ptr, src_length),
+      dst_frame->mutable_data(dst_frame->samples_per_channel_,
+                              dst_frame->num_channels_));
   if (out_length == -1) {
     RTC_FATAL() << "Resample failed: audio_ptr = " << audio_ptr
                 << ", src_length = " << src_length
                 << ", dst_frame->mutable_data() = "
                 << dst_frame->mutable_data();
   }
+
   dst_frame->samples_per_channel_ = out_length / audio_ptr_num_channels;
 
   // Upmix after resampling.

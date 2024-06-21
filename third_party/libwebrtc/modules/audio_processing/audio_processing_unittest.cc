@@ -2198,7 +2198,8 @@ TEST_P(AudioProcessingTest, Formats) {
           // necessary.
           ASSERT_EQ(ref_length,
                     static_cast<size_t>(resampler.Resample(
-                        out_ptr, out_length, cmp_data.get(), ref_length)));
+                        rtc::ArrayView<const float>(out_ptr, out_length),
+                        rtc::ArrayView<float>(cmp_data.get(), ref_length))));
           out_ptr = cmp_data.get();
         }
 
