@@ -18,12 +18,10 @@ const PLATFORMS = {
         file: "gizmo.mp4",
         decoder: "wmf H264 codec hardware video decoder",
       },
-      // TODO : enable VP9 for Windows. The current machine on CI doesn't
-      // support VP9 HW. See bug 1861755.
-      // {
-      //   file: "gizmo.webm",
-      //   decoder: "wmf VP9 codec hardware video decoder",
-      // },
+      {
+        file: "gizmo.webm",
+        decoder: "wmf VP9 codec hardware video decoder",
+      },
       {
         file: "av1.mp4",
         decoder: "wmf AV1 codec hardware video decoder",
