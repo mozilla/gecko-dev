@@ -7,9 +7,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/MozPromise.h"
 #include "nsIBounceTrackingProtection.h"
-#include "nsIClearDataService.h"
 #include "mozilla/Maybe.h"
-#include "ClearDataCallback.h"
 
 class nsIPrincipal;
 class nsITimer;
@@ -20,7 +18,10 @@ class BounceTrackingAllowList;
 class BounceTrackingState;
 class BounceTrackingStateGlobal;
 class BounceTrackingProtectionStorage;
+class ClearDataCallback;
 class OriginAttributes;
+
+using ClearDataMozPromise = MozPromise<nsCString, uint32_t, true>;
 
 extern LazyLogModule gBounceTrackingProtectionLog;
 

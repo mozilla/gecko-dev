@@ -9,7 +9,6 @@
 #include "ErrorList.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Logging.h"
-#include "mozilla/IntegerPrintfMacros.h"
 #include "nsIPrincipal.h"
 
 namespace mozilla {
