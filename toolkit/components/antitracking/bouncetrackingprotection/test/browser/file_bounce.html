@@ -17,12 +17,18 @@
       "indexedDB": setIndexedDB,
     };
 
-    function setCookie(id) {
+    function setCookie(id, isThirdParty) {
       let cookie = document.cookie;
       if (cookie) {
         console.info("Received cookie", cookie);
       } else {
-        let newCookie = `id=${id}`;
+        let newCookie = `id=${id};`;
+        if(isThirdParty) {
+          // If we're in the third-party context request a partitioned cookies
+          // for compatibility with CHIPS / 3rd party cookies being blocked by
+          // default.
+          newCookie += "SameSite=None; Secure; Partitioned;";
+        }
         console.info("Setting new cookie", newCookie);
         document.cookie = newCookie;
       }
@@ -73,40 +79,77 @@
       });
     }
 
+
     /**
-     * Set a state in a child frame.
+     * Waits for the specified frame element to be ready.
+     *
+     * @param {HTMLIFrameElement} frameElement - The frame element to wait for.
+     * @param {boolean} waitForReadyMessage - Whether to wait for a "ready" message
+     * from the frame. If false, the promise will resolve when the frame is loaded.
+     * @returns {Promise<void>} - A promise that resolves when the frame is ready.
      */
-    function setStateInFrame() {
+    function waitForFrameReady(frameElement, waitForReadyMessage = false) {
+      if (waitForReadyMessage) {
+        return new Promise((resolve) => {
+        window.addEventListener("message", (event) => {
+          if (event.data === "ready" && event.source === frameElement.contentWindow) {
+            resolve();
+          }
+        }, { once: true });
+      });
+      }
+      return new Promise((resolve) => {
+          frameElement.addEventListener("load", resolve, { once: true });
+      });
+    }
+
+    /**
+     * Set a state in a child frame. The caller determines the host and thus
+     * whether the frame is same or cross-site with this page
+     *
+     * @param {string} frameURI - The URI of the frame to embed.
+     * @returns {Promise} - A promise that resolves when the iframe has loaded
+     * and set state.
+     */
+    async function setStateInFrame(frameURI) {
       // Embed self
       let iframe = document.createElement("iframe");
 
-      let src = new URL(location.href);
+      let src = new URL(frameURI);
+
       // Remove search params we don't need for the iframe.
       src.searchParams.delete("target");
       src.searchParams.delete("redirectDelay");
-      src.searchParams.delete("setStateSameSiteFrame");
+      // Override potential 3xx codes to avoid the iframe redirecting if its
+      // pointed to file_bounce.sjs.
+      src.searchParams.set("statusCode", 200);
+      // Deleting this avoids infinite recursion. We don't want to spawn more
+      // nested frames.
+      src.searchParams.delete("setStateInFrameWithURI");
       iframe.src = src.href;
 
-      let frameReadyPromise = new Promise((resolve) => {
-        iframe.addEventListener("load", () => {
-          iframe.contentWindow.readyPromise.then(resolve);
-        });
-      });
+      // The frame only dispatches a ready message if this helper is used is
+      // loaded. Otherwise just wait for load.
+      let waitForReadyMessage = src.pathname.endsWith("file_bounce.html");
+      let frameReadyPromise = waitForFrameReady(iframe, waitForReadyMessage);
       document.body.appendChild(iframe);
 
-      return frameReadyPromise;
+      await frameReadyPromise;
+      // await new Promise((resolve) => {});
     }
 
     // Wrap the entire block so we can run async code. Store the result in a
     // promise so that parent windows can wait for us to be ready.
-    window.readyPromise = (async () => {
+    (async () => {
       let url = new URL(location.href);
       // Display the test config in the body.
       document.getElementById("test-config").innerText = JSON.stringify(Object.fromEntries(url.searchParams), null, 2);
 
-      if (url.searchParams.get("setStateSameSiteFrame") === "true") {
+      let setStateInFrameWithURI = url.searchParams.get("setStateInFrameWithURI");
+
+      if (setStateInFrameWithURI) {
         // Set state in a child frame.
-        await setStateInFrame(url);
+        await setStateInFrame(setStateInFrameWithURI);
       } else if(url.searchParams.get("setStateInWebWorker") === "true") {
         // Set state in a worker.
         await setIndexedDBInWorker();
@@ -123,9 +166,12 @@
           if (!handler) {
             throw new Error("Unknown state handler: " + setState);
           }
-          await handler(id);
+          let isThirdParty = url.searchParams.get("isThirdParty") === "true";
+          await handler(id, isThirdParty);
         }
       }
+
+      window.parent.postMessage('ready', '*');
 
       // Redirect to the target URL after a delay.
       // If no target is specified, do nothing.

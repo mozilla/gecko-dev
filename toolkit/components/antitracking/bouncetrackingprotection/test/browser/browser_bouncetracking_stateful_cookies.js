@@ -66,3 +66,25 @@ add_task(async function test_bounce_stateful_cookies_server_sameSiteFrame() {
     setStateSameSiteFrame: true,
   });
 });
+
+add_task(async function test_bounce_stateful_cookies_crossSiteFrame() {
+  info(
+    "Test client bounce with partitioned cookies set in a third-party iframe."
+  );
+  await runTestBounce({
+    bounceType: "client",
+    setState: "cookie-client",
+    setStateCrossSiteFrame: true,
+  });
+});
+
+add_task(async function test_bounce_stateful_cookies_server_crossSiteFrame() {
+  info(
+    "Test client bounce with partitioned server cookies set in a third-party iframe."
+  );
+  await runTestBounce({
+    bounceType: "client",
+    setState: "cookie-server",
+    setStateCrossSiteFrame: true,
+  });
+});
