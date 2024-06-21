@@ -806,9 +806,6 @@ fi
 dnl Spit out some output
 dnl ========================================================
 
-# Avoid using obsolete NSPR features
-AC_DEFINE(NO_NSPR_10_SUPPORT)
-
 MOZ_CREATE_CONFIG_STATUS()
 
 rm -fr confdefs* $ac_clean_files

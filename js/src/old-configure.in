@@ -655,9 +655,6 @@ AC_SUBST(JS_LIBRARY_NAME)
 AC_SUBST(JS_CONFIG_MOZ_JS_LIBS)
 AC_SUBST(JS_CONFIG_LIBS)
 
-# Avoid using obsolete NSPR features
-AC_DEFINE(NO_NSPR_10_SUPPORT)
-
 dnl Spit out some output
 dnl ========================================================
 MOZ_CREATE_CONFIG_STATUS()
