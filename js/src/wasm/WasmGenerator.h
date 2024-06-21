@@ -188,7 +188,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   // Data that is moved into the result of finish()
   UniqueLinkData linkData_;
   UniqueMetadataTier metadataTier_;
-  MutableMetadata metadata_;
+  MutableCodeMetadataForAsmJS codeMetaForAsmJS_;
 
   // Data scoped to the ModuleGenerator's lifetime
   CompileTaskState taskState_;
@@ -225,7 +225,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   bool finishCodegen();
   bool finishMetadataTier();
   UniqueCodeTier finishCodeTier();
-  Maybe<SharedMetadata> finishMetadata(const Bytes& bytecode);
+  Maybe<SharedCodeMetadataForAsmJS> finishCodeMetadata(const Bytes& bytecode);
 
   bool isAsmJS() const { return codeMeta_->isAsmJS(); }
   Tier tier() const { return compilerEnv_->tier(); }
@@ -240,7 +240,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
                   const Atomic<bool>* cancelled, UniqueChars* error,
                   UniqueCharsVector* warnings);
   ~ModuleGenerator();
-  [[nodiscard]] bool init(Metadata* maybeAsmJSMetadata = nullptr);
+  [[nodiscard]] bool init(CodeMetadataForAsmJS* codeMetaForAsmJS);
 
   // Before finishFuncDefs() is called, compileFuncDef() must be called once
   // for each funcIndex in the range [0, env->numFuncDefs()).

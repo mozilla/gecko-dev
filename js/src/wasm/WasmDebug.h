@@ -164,8 +164,10 @@ class DebugState {
   // Accessors for commonly used elements of linked structures.
 
   const MetadataTier& metadata(Tier t) const { return code_->metadata(t); }
-  const Metadata* metadata() const { return code_->metadata(); }
   const CodeMetadata& codeMeta() const { return code_->codeMeta(); }
+  const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
+    return code_->codeMetaForAsmJS();
+  }
   const CodeRangeVector& codeRanges(Tier t) const {
     return metadata(t).codeRanges;
   }
@@ -179,8 +181,9 @@ class DebugState {
 
   // about:memory reporting:
 
-  void addSizeOfMisc(MallocSizeOf mallocSizeOf, Metadata::SeenSet* seenMetadata,
+  void addSizeOfMisc(MallocSizeOf mallocSizeOf,
                      CodeMetadata::SeenSet* seenCodeMeta,
+                     CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
                      Code::SeenSet* seenCode, size_t* code, size_t* data) const;
 };
 

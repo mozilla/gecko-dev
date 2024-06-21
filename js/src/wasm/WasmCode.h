@@ -63,7 +63,7 @@
 #include "wasm/WasmTypeDef.h"
 #include "wasm/WasmValType.h"
 
-using js::Metadata;
+using js::CodeMetadataForAsmJS;
 
 struct JS_PUBLIC_API JSContext;
 class JSFunction;
@@ -228,7 +228,8 @@ class ModuleSegment : public CodeSegment {
                                     const LinkData& linkData);
 
   bool initialize(const CodeTier& codeTier, const LinkData& linkData,
-                  const Metadata* metadata, const CodeMetadata& codeMeta,
+                  const CodeMetadata& codeMeta,
+                  const CodeMetadataForAsmJS* codeMetaForAsmJS,
                   const MetadataTier& metadataTier);
 
   Tier tier() const { return tier_; }
@@ -452,7 +453,8 @@ class CodeTier {
 
   bool initialized() const { return !!code_ && segment_->initialized(); }
   bool initialize(const Code& code, const LinkData& linkData,
-                  const Metadata* metadata, const CodeMetadata& codeMeta);
+                  const CodeMetadata& codeMeta,
+                  const CodeMetadataForAsmJS* codeMetaForAsmJS);
 
   Tier tier() const { return segment_->tier(); }
   const RWExclusiveData<LazyStubTier>& lazyStubs() const { return lazyStubs_; }
@@ -596,15 +598,16 @@ class Code : public ShareableBase<Code> {
   mutable UniqueConstCodeTier tier2_;
   mutable Atomic<bool> hasTier2_;
 
-  SharedMetadata metadata_;  // to be incrementally replaced by ..
   SharedCodeMetadata codeMeta_;
+  SharedCodeMetadataForAsmJS codeMetaForAsmJS_;
 
   ExclusiveData<CacheableCharsVector> profilingLabels_;
   JumpTables jumpTables_;
 
  public:
-  Code(UniqueCodeTier tier1, const Metadata* metadata,
-       const CodeMetadata& codeMeta, JumpTables&& maybeJumpTables);
+  Code(UniqueCodeTier tier1, const CodeMetadata& codeMeta,
+       const CodeMetadataForAsmJS* codeMetaForAsmJS,
+       JumpTables&& maybeJumpTables);
   bool initialized() const { return tier1_->initialized(); }
 
   bool initialize(const LinkData& linkData);
@@ -642,8 +645,10 @@ class Code : public ShareableBase<Code> {
       const;  // This may transition from Baseline -> Ion at any time
 
   const CodeTier& codeTier(Tier tier) const;
-  const Metadata* metadata() const { return metadata_; }
   const CodeMetadata& codeMeta() const { return *codeMeta_; }
+  const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
+    return codeMetaForAsmJS_;
+  }
 
   const ModuleSegment& segment(Tier iter) const {
     return codeTier(iter).segment();
@@ -679,11 +684,10 @@ class Code : public ShareableBase<Code> {
 
   // about:memory reporting:
 
-  void addSizeOfMiscIfNotSeen(MallocSizeOf mallocSizeOf,
-                              Metadata::SeenSet* seenMetadata,
-                              CodeMetadata::SeenSet* seenCodeMeta,
-                              Code::SeenSet* seenCode, size_t* code,
-                              size_t* data) const;
+  void addSizeOfMiscIfNotSeen(
+      MallocSizeOf mallocSizeOf, CodeMetadata::SeenSet* seenCodeMeta,
+      CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
+      Code::SeenSet* seenCode, size_t* code, size_t* data) const;
 
   WASM_DECLARE_FRIEND_SERIALIZE_ARGS(SharedCode, const wasm::LinkData& data);
 };

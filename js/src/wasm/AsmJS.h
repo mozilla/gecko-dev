@@ -114,15 +114,18 @@ extern JSString* AsmJSModuleToString(JSContext* cx, JS::Handle<JSFunction*> fun,
 extern bool IsValidAsmJSHeapLength(size_t length);
 
 // Minimally expose wasm::Code-lifetime state in AsmJS.cpp to ModuleGenerator
-// and friends.
+// and friends.  The only implementation of this interface is in, and private
+// to, WasmJS.cpp.  In every place that stores or uses a CodeMetadataForAsmJS*
+// (or smart-pointer equivalent), that pointer may be null, which indicates
+// that the associated module is wasm, not asm.js.
 
-struct AsmJSMetadata;
+struct CodeMetadataForAsmJSImpl;
 
-struct Metadata : public wasm::ShareableBase<Metadata> {
-  Metadata() {};
-  virtual ~Metadata() = default;
+struct CodeMetadataForAsmJS : public wasm::ShareableBase<CodeMetadataForAsmJS> {
+  CodeMetadataForAsmJS() {};
+  virtual ~CodeMetadataForAsmJS() = default;
 
-  virtual const AsmJSMetadata& asAsmJS() const = 0;
+  virtual const CodeMetadataForAsmJSImpl& asAsmJS() const = 0;
 
   virtual bool mutedErrors() const = 0;
   virtual const char16_t* displayURL() const = 0;
@@ -134,8 +137,8 @@ struct Metadata : public wasm::ShareableBase<Metadata> {
       mozilla::MallocSizeOf mallocSizeOf) const = 0;
 };
 
-using MutableMetadata = RefPtr<Metadata>;
-using SharedMetadata = RefPtr<const Metadata>;
+using MutableCodeMetadataForAsmJS = RefPtr<CodeMetadataForAsmJS>;
+using SharedCodeMetadataForAsmJS = RefPtr<const CodeMetadataForAsmJS>;
 
 }  // namespace js
 

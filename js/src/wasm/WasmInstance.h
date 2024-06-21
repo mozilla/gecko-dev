@@ -367,8 +367,8 @@ class alignas(16) Instance {
   inline const CodeTier& code(Tier t) const;
   inline uint8_t* codeBase(Tier t) const;
   inline const MetadataTier& metadata(Tier t) const;
-  inline const Metadata* metadata() const;
   inline const CodeMetadata& codeMeta() const;
+  inline const CodeMetadataForAsmJS* codeMetaForAsmJS() const;
   inline bool isAsmJS() const;
 
   // This method returns a pointer to the GC object that owns this Instance.
@@ -456,8 +456,9 @@ class alignas(16) Instance {
 
   // about:memory reporting:
 
-  void addSizeOfMisc(MallocSizeOf mallocSizeOf, SeenSet<Metadata>* seenMetadata,
+  void addSizeOfMisc(MallocSizeOf mallocSizeOf,
                      SeenSet<CodeMetadata>* seenCodeMeta,
+                     SeenSet<CodeMetadataForAsmJS>* seenCodeMetaForAsmJS,
                      SeenSet<Code>* seenCode, SeenSet<Table>* seenTables,
                      size_t* code, size_t* data) const;
 

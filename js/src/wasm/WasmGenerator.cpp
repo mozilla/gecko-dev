@@ -135,11 +135,14 @@ ModuleGenerator::~ModuleGenerator() {
   }
 }
 
-bool ModuleGenerator::init(Metadata* maybeCodeMetaForAsmJS) {
+bool ModuleGenerator::init(CodeMetadataForAsmJS* codeMetaForAsmJS) {
   // Perform fallible metadata, linkdata, assumption allocations.
 
-  MOZ_ASSERT(isAsmJS() == !!maybeCodeMetaForAsmJS);
-  metadata_ = maybeCodeMetaForAsmJS;
+  // If codeMetaForAsmJS is null, we're compiling wasm; else we're compiling
+  // asm.js, in whih case it contains wasm::Code-lifetime asm.js-specific
+  // information.
+  MOZ_ASSERT(isAsmJS() == !!codeMetaForAsmJS);
+  codeMetaForAsmJS_ = codeMetaForAsmJS;
 
   if (compileArgs_->scriptedCaller.filename) {
     codeMeta_->filename =
@@ -1005,7 +1008,9 @@ UniqueCodeTier ModuleGenerator::finishCodeTier() {
   return js::MakeUnique<CodeTier>(std::move(metadataTier_), std::move(segment));
 }
 
-Maybe<SharedMetadata> ModuleGenerator::finishMetadata(const Bytes& bytecode) {
+Maybe<SharedCodeMetadataForAsmJS> ModuleGenerator::finishCodeMetadata(
+    const Bytes& bytecode) {
+  // FIXME: this comment seems wrong.
   // Finish initialization of Metadata, which is only needed for constructing
   // the initial Module, not for tier-2 compilation.
   MOZ_ASSERT(mode() != CompileMode::Tier2);
@@ -1040,10 +1045,11 @@ Maybe<SharedMetadata> ModuleGenerator::finishMetadata(const Bytes& bytecode) {
 
   MOZ_ASSERT_IF(codeMeta_->nameCustomSectionIndex, !!codeMeta_->namePayload);
 
-  // Metadata shouldn't be mutably modified after finishMetadata().
-  SharedMetadata metadata = metadata_;
-  metadata_ = nullptr;
-  return Some(metadata);
+  // FIXME: does this comment make sense any more?
+  // Metadata shouldn't be mutably modified after finishCodeMetadata().
+  SharedCodeMetadataForAsmJS codeMetaForAsmJS = codeMetaForAsmJS_;
+  codeMetaForAsmJS_ = nullptr;
+  return Some(codeMetaForAsmJS);
 }
 
 SharedModule ModuleGenerator::finishModule(
@@ -1111,13 +1117,15 @@ SharedModule ModuleGenerator::finishModule(
         customSections[*codeMeta_->nameCustomSectionIndex].payload;
   }
 
-  Maybe<SharedMetadata> maybeMetadata = finishMetadata(bytecode.bytes);
-  if (!maybeMetadata) {
+  Maybe<SharedCodeMetadataForAsmJS> maybeCodeMetaForAsmJS =
+      finishCodeMetadata(bytecode.bytes);
+  if (!maybeCodeMetaForAsmJS) {
     return nullptr;
   }
 
-  MutableCode code = js_new<Code>(std::move(codeTier), *maybeMetadata,
-                                  *codeMeta_, std::move(jumpTables));
+  MutableCode code =
+      js_new<Code>(std::move(codeTier), *codeMeta_, *maybeCodeMetaForAsmJS,
+                   std::move(jumpTables));
   if (!code || !code->initialize(*linkData_)) {
     return nullptr;
   }

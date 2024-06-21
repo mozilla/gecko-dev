@@ -155,7 +155,9 @@ class Module : public JS::WasmModule {
   const Code& code() const { return *code_; }
   const ModuleSegment& moduleSegment(Tier t) const { return code_->segment(t); }
   const CodeMetadata& codeMeta() const { return code_->codeMeta(); }
-  const Metadata* metadata() const { return code_->metadata(); }
+  const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
+    return code_->codeMetaForAsmJS();
+  }
   const MetadataTier& metadata(Tier t) const { return code_->metadata(t); }
   const ImportVector& imports() const { return imports_; }
   const ExportVector& exports() const { return exports_; }
@@ -194,8 +196,9 @@ class Module : public JS::WasmModule {
 
   // about:memory reporting:
 
-  void addSizeOfMisc(MallocSizeOf mallocSizeOf, Metadata::SeenSet* seenMetadata,
+  void addSizeOfMisc(MallocSizeOf mallocSizeOf,
                      CodeMetadata::SeenSet* seenCodeMeta,
+                     CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
                      Code::SeenSet* seenCode, size_t* code, size_t* data) const;
 
   // GC malloc memory tracking:

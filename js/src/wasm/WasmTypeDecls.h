@@ -48,7 +48,7 @@ using WasmGlobalObjectVector =
     GCVector<WasmGlobalObject*, 0, SystemAllocPolicy>;
 using WasmTagObjectVector = GCVector<WasmTagObject*, 0, SystemAllocPolicy>;
 
-struct Metadata;
+struct CodeMetadataForAsmJS;
 
 namespace wasm {
 

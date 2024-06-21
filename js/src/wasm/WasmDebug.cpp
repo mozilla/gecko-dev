@@ -320,7 +320,7 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
   }
 
   MOZ_RELEASE_ASSERT(&instance->codeMeta() == &codeMeta());
-  MOZ_RELEASE_ASSERT(instance->metadata() == metadata());
+  MOZ_RELEASE_ASSERT(instance->codeMetaForAsmJS() == codeMetaForAsmJS());
   uint32_t numFuncs = codeMeta().debugNumFuncs();
   if (enabled) {
     MOZ_ASSERT(enterAndLeaveFrameTrapsCounter_ > 0);
@@ -521,13 +521,12 @@ bool DebugState::getSourceMappingURL(JSContext* cx,
   return true;
 }
 
-void DebugState::addSizeOfMisc(MallocSizeOf mallocSizeOf,
-                               Metadata::SeenSet* seenMetadata,
-                               CodeMetadata::SeenSet* seenCodeMeta,
-                               Code::SeenSet* seenCode, size_t* code,
-                               size_t* data) const {
-  code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenMetadata, seenCodeMeta,
-                                seenCode, code, data);
-  module_->addSizeOfMisc(mallocSizeOf, seenMetadata, seenCodeMeta, seenCode,
-                         code, data);
+void DebugState::addSizeOfMisc(
+    MallocSizeOf mallocSizeOf, CodeMetadata::SeenSet* seenCodeMeta,
+    CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
+    Code::SeenSet* seenCode, size_t* code, size_t* data) const {
+  code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenCodeMeta,
+                                seenCodeMetaForAsmJS, seenCode, code, data);
+  module_->addSizeOfMisc(mallocSizeOf, seenCodeMeta, seenCodeMetaForAsmJS,
+                         seenCode, code, data);
 }

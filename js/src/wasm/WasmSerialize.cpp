@@ -1137,8 +1137,8 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
                            const wasm::LinkData& linkData,
                            const wasm::CustomSectionVector& customSections) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 200);
-  MutableMetadata metadata;
   MutableCodeMetadata codeMeta;
+  MutableCodeMetadataForAsmJS codeMetaForAsmJS;
   UniqueCodeTier codeTier;
   MOZ_TRY((CodeRefPtr<MODE_DECODE, CodeMetadata, &CodeCodeMetadata>(
       coder, &codeMeta)));
@@ -1161,8 +1161,9 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
   }
 
   // Create and initialize the code
-  MutableCode code = js_new<Code>(std::move(codeTier), nullptr /*metadata*/,
-                                  *codeMeta, std::move(jumpTables));
+  MutableCode code =
+      js_new<Code>(std::move(codeTier), *codeMeta,
+                   /*codeMetaForAsmJS=*/nullptr, std::move(jumpTables));
   if (!code || !code->initialize(linkData)) {
     return Err(OutOfMemory());
   }

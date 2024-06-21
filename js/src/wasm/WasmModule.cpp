@@ -329,12 +329,12 @@ bool wasm::GetOptimizedEncodingBuildId(JS::BuildIdCharVector* buildId) {
 
 /* virtual */
 void Module::addSizeOfMisc(MallocSizeOf mallocSizeOf,
-                           Metadata::SeenSet* seenMetadata,
                            CodeMetadata::SeenSet* seenCodeMeta,
+                           CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
                            Code::SeenSet* seenCode, size_t* code,
                            size_t* data) const {
-  code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenMetadata, seenCodeMeta,
-                                seenCode, code, data);
+  code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenCodeMeta,
+                                seenCodeMetaForAsmJS, seenCode, code, data);
   *data += mallocSizeOf(this) +
            SizeOfVectorExcludingThis(imports_, mallocSizeOf) +
            SizeOfVectorExcludingThis(exports_, mallocSizeOf) +
