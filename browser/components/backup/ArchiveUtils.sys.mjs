@@ -44,6 +44,16 @@ export const ArchiveUtils = {
   },
 
   /**
+   * The current shared schema version between the BackupManifest and the
+   * ArchiveJSONBlock schemas.
+   *
+   * @type {number}
+   */
+  get SCHEMA_VERSION() {
+    return 1;
+  },
+
+  /**
    * The version of the single-file archive that this version of the
    * application is expected to produce. Versions greater than this are not
    * interpretable by the application, and will cause an exception to be

@@ -8,6 +8,10 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const BACKUP_DIR_PREF_NAME = "browser.backup.location";
 const SCHEDULED_BACKUPS_ENABLED_PREF_NAME = "browser.backup.scheduled.enabled";
+const SCHEMAS = Object.freeze({
+  BACKUP_MANIFEST: 1,
+  ARCHIVE_JSON_BLOCK: 2,
+});
 
 const lazy = {};
 
@@ -33,8 +37,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BasePromiseWorker: "resource://gre/modules/PromiseWorker.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
-  JsonSchemaValidator:
-    "resource://gre/modules/components-utils/JsonSchemaValidator.sys.mjs",
+  JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   UIState: "resource://services-sync/UIState.sys.mjs",
 });
@@ -527,16 +530,6 @@ export class BackupService extends EventTarget {
   }
 
   /**
-   * The current schema version of the backup manifest that this BackupService
-   * uses when creating a backup.
-   *
-   * @type {number}
-   */
-  static get MANIFEST_SCHEMA_VERSION() {
-    return 1;
-  }
-
-  /**
    * A promise that resolves to the schema for the backup manifest that this
    * BackupService uses when creating a backup. This should be accessed via
    * the `MANIFEST_SCHEMA` static getter.
@@ -553,8 +546,9 @@ export class BackupService extends EventTarget {
    */
   static get MANIFEST_SCHEMA() {
     if (!BackupService.#manifestSchemaPromise) {
-      BackupService.#manifestSchemaPromise = BackupService._getSchemaForVersion(
-        BackupService.MANIFEST_SCHEMA_VERSION
+      BackupService.#manifestSchemaPromise = BackupService.getSchemaForVersion(
+        SCHEMAS.BACKUP_MANIFEST,
+        lazy.ArchiveUtils.SCHEMA_VERSION
       );
     }
 
@@ -582,22 +576,34 @@ export class BackupService extends EventTarget {
   }
 
   /**
-   * Returns the schema for the backup manifest for a given version.
+   * Returns the SCHEMAS constants, which is a key/value store of constants.
    *
-   * This should really be #getSchemaForVersion, but for some reason,
-   * sphinx-js seems to choke on static async private methods (bug 1893362).
-   * We workaround this breakage by using the `_` prefix to indicate that this
-   * method should be _considered_ private, and ask that you not use this method
-   * outside of this class. The sphinx-js issue is tracked at
-   * https://github.com/mozilla/sphinx-js/issues/240.
+   * @type {object}
+   */
+  static get SCHEMAS() {
+    return SCHEMAS;
+  }
+
+  /**
+   * Returns the schema for the schemaType for a given version.
    *
-   * @private
+   * @param {number} schemaType
+   *   One of the constants from SCHEMAS.
    * @param {number} version
    *   The version of the schema to return.
    * @returns {Promise<object>}
    */
-  static async _getSchemaForVersion(version) {
-    let schemaURL = `chrome://browser/content/backup/BackupManifest.${version}.schema.json`;
+  static async getSchemaForVersion(schemaType, version) {
+    let schemaURL;
+
+    if (schemaType == SCHEMAS.BACKUP_MANIFEST) {
+      schemaURL = `chrome://browser/content/backup/BackupManifest.${version}.schema.json`;
+    } else if (schemaType == SCHEMAS.ARCHIVE_JSON_BLOCK) {
+      schemaURL = `chrome://browser/content/backup/ArchiveJSONBlock.${version}.schema.json`;
+    } else {
+      throw new Error(`Did not recognize SCHEMAS constant: ${schemaType}`);
+    }
+
     let response = await fetch(schemaURL);
     return response.json();
   }
@@ -808,7 +814,7 @@ export class BackupService extends EventTarget {
       // case, a user so-inclined could theoretically repair the manifest
       // to make it valid.
       let manifestSchema = await BackupService.MANIFEST_SCHEMA;
-      let schemaValidationResult = lazy.JsonSchemaValidator.validate(
+      let schemaValidationResult = lazy.JsonSchema.validate(
         manifest,
         manifestSchema
       );
@@ -1402,7 +1408,7 @@ export class BackupService extends EventTarget {
     }
 
     return {
-      version: BackupService.MANIFEST_SCHEMA_VERSION,
+      version: lazy.ArchiveUtils.SCHEMA_VERSION,
       meta,
       resources: {},
     };
@@ -1458,17 +1464,18 @@ export class BackupService extends EventTarget {
         throw new Error("Backup manifest version not found");
       }
 
-      if (manifest.version > BackupService.MANIFEST_SCHEMA_VERSION) {
+      if (manifest.version > lazy.ArchiveUtils.SCHEMA_VERSION) {
         throw new Error(
           "Cannot recover from a manifest newer than the current schema version"
         );
       }
 
       // Make sure that it conforms to the schema.
-      let manifestSchema = await BackupService._getSchemaForVersion(
+      let manifestSchema = await BackupService.getSchemaForVersion(
+        SCHEMAS.BACKUP_MANIFEST,
         manifest.version
       );
-      let schemaValidationResult = lazy.JsonSchemaValidator.validate(
+      let schemaValidationResult = lazy.JsonSchema.validate(
         manifest,
         manifestSchema
       );
@@ -1483,9 +1490,9 @@ export class BackupService extends EventTarget {
         throw new Error("Cannot recover from an invalid backup manifest");
       }
 
-      // In the future, if we ever bump the MANIFEST_SCHEMA_VERSION and need to
-      // do any special behaviours to interpret older schemas, this is where we
-      // can do that, and we can remove this comment.
+      // In the future, if we ever bump the ArchiveUtils.SCHEMA_VERSION and need
+      // to do any special behaviours to interpret older schemas, this is where
+      // we can do that, and we can remove this comment.
 
       let meta = manifest.meta;
 

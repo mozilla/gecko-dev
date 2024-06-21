@@ -1,17 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2019-09/schema",
-  "$id": "file:///BackupManifest.schema.json",
+  "$id": "chrome://browser/content/backup/BackupManifest.1.schema.json",
   "title": "BackupManifest",
   "description": "A schema for the backup-manifest.json file for profile backups created by the BackupService",
-  "type": "object",
-  "properties": {
-    "version": {
-      "type": "integer",
-      "description": "Version of the backup manifest structure"
-    },
-    "meta": {
+  "definitions": {
+    "metadataType": {
+      "title": "Backup Metadata",
+      "description": "Metadata about a particular backup.",
       "type": "object",
-      "description": "Metadata about the backup",
       "properties": {
         "date": {
           "type": "string",
@@ -70,12 +66,19 @@
         "osVersion",
         "legacyClientID"
       ]
+    }
+  },
+
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Version of the backup manifest structure"
     },
+    "meta": { "$ref": "#/definitions/metadataType" },
     "resources": {
       "type": "object",
-      "additionalProperties": {
-        "type": "object"
-      }
+      "additionalProperties": true
     }
   },
   "required": ["version", "resources", "meta"]

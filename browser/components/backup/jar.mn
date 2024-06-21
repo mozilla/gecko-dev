@@ -7,6 +7,7 @@ browser.jar:
   content/browser/backup/debug.html                              (content/debug.html)
   content/browser/backup/debug.js                                (content/debug.js)
 #endif
+  content/browser/backup/ArchiveJSONBlock.1.schema.json          (content/ArchiveJSONBlock.1.schema.json)
   content/browser/backup/BackupManifest.1.schema.json            (content/BackupManifest.1.schema.json)
   content/browser/backup/backup-settings.css                     (content/backup-settings.css)
   content/browser/backup/backup-settings.mjs                     (content/backup-settings.mjs)

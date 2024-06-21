@@ -6,8 +6,8 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
-const { JsonSchemaValidator } = ChromeUtils.importESModule(
-  "resource://gre/modules/components-utils/JsonSchemaValidator.sys.mjs"
+const { JsonSchema } = ChromeUtils.importESModule(
+  "resource://gre/modules/JsonSchema.sys.mjs"
 );
 const { UIState } = ChromeUtils.importESModule(
   "resource://services-sync/UIState.sys.mjs"
@@ -198,7 +198,7 @@ async function testCreateBackupHelper(sandbox, taskFn) {
   let manifest = await IOUtils.readJSON(manifestPath);
 
   let schema = await BackupService.MANIFEST_SCHEMA;
-  let validationResult = JsonSchemaValidator.validate(manifest, schema);
+  let validationResult = JsonSchema.validate(manifest, schema);
   Assert.ok(validationResult.valid, "Schema matches manifest");
   Assert.deepEqual(
     Object.keys(manifest.resources).sort(),

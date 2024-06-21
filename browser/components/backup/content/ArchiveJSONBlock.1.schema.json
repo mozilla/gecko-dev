@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "chrome://browser/content/backup/ArchiveJSONBlock.1.schema.json",
+  "title": "ArchiveJSONBlock",
+  "description": "A schema for the JSON block included with a single-file backup archive created by the BackupService",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Version of the JSON block structure"
+    },
+    "encConfig": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": {
+            "wrappedArchiveKeyMaterial": {
+              "type": "string",
+              "description": "The archive encryption key material used to generate the encryption keys for this backup. This is wrapped with an RSA-OAEP public key. Base64 encoded."
+            },
+            "wrappedSecrets": {
+              "type": "string",
+              "description": "The various static secrets for this backup, wrapped using an AES-GCM key. Base64 encoded."
+            },
+            "salt": {
+              "type": "string",
+              "description": "The salt used when computing the BackupAuthKey and BackupEncKey. Base64 encoded."
+            },
+            "nonce": {
+              "type": "string",
+              "description": "The nonce used when wrapping the wrappedSecrets. Base64 encoded."
+            },
+            "confirmation": {
+              "type": "string",
+              "description": "The confirmation HMAC for the backup metadata. Base64 encoded."
+            }
+          },
+          "required": [
+            "wrappedArchiveKeyMaterial",
+            "wrappedSecrets",
+            "salt",
+            "nonce",
+            "confirmation"
+          ]
+        }
+      ]
+    },
+    "meta": {
+      "$ref": "chrome://browser/content/backup/BackupManifest.1.schema.json#/definitions/metadataType"
+    }
+  },
+  "required": ["version", "encConfig", "meta"]
+}
