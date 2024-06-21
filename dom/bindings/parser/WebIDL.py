@@ -881,11 +881,14 @@ class IDLInterfaceOrInterfaceMixinOrNamespace(IDLObjectWithScope, IDLExposureMix
             )
 
     def handleExtendedAttribute(self, attr):
-        raise WebIDLError(
-            "Unknown extended attribute %s on %s"
-            % (attr.identifier(), self.typeName()),
-            [attr.location],
-        )
+        identifier = attr.identifier()
+        if identifier == "Exposed":
+            convertExposedAttrToGlobalNameSet(attr, self._exposureGlobalNames)
+        else:
+            raise WebIDLError(
+                "Unknown extended attribute %s on %s" % (identifier, self.typeName()),
+                [attr.location],
+            )
 
     def getExtendedAttribute(self, name):
         return self._extendedAttrDict.get(name, None)
@@ -1039,8 +1042,6 @@ class IDLInterfaceMixin(IDLInterfaceOrInterfaceMixinOrNamespace):
                         [member.location, attr.location],
                     )
                 member.addExtendedAttributes([attr])
-        elif identifier == "Exposed":
-            convertExposedAttrToGlobalNameSet(attr, self._exposureGlobalNames)
         else:
             IDLInterfaceOrInterfaceMixinOrNamespace.handleExtendedAttribute(self, attr)
 
@@ -2113,8 +2114,6 @@ class IDLInterface(IDLInterfaceOrNamespace):
                 raise WebIDLError(
                     "[%s] must take no arguments" % identifier, [attr.location]
                 )
-        elif identifier == "Exposed":
-            convertExposedAttrToGlobalNameSet(attr, self._exposureGlobalNames)
         elif (
             identifier == "Pref"
             or identifier == "JSImplementation"
@@ -2183,9 +2182,7 @@ class IDLNamespace(IDLInterfaceOrNamespace):
         # isNamespace() checks all through
         # IDLInterfaceOrNamespace.handleExtendedAttribute.
         identifier = attr.identifier()
-        if identifier == "Exposed":
-            convertExposedAttrToGlobalNameSet(attr, self._exposureGlobalNames)
-        elif identifier == "ClassString":
+        if identifier == "ClassString":
             # Takes a string value to override the default "Object" if
             # desired.
             if not attr.hasValue():
