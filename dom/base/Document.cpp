@@ -16719,15 +16719,17 @@ nsAutoSyncOperation::nsAutoSyncOperation(Document* aDoc,
 }
 
 void nsAutoSyncOperation::SuppressDocument(Document* aDoc) {
-  if (nsCOMPtr<nsPIDOMWindowInner> win = aDoc->GetInnerWindow()) {
-    win->TimeoutManager().BeginSyncOperation();
+  if (RefPtr<nsGlobalWindowInner> win =
+          nsGlobalWindowInner::Cast(aDoc->GetInnerWindow())) {
+    win->GetTimeoutManager()->BeginSyncOperation();
   }
   aDoc->SetIsInSyncOperation(true);
 }
 
 void nsAutoSyncOperation::UnsuppressDocument(Document* aDoc) {
-  if (nsCOMPtr<nsPIDOMWindowInner> win = aDoc->GetInnerWindow()) {
-    win->TimeoutManager().EndSyncOperation();
+  if (RefPtr<nsGlobalWindowInner> win =
+          nsGlobalWindowInner::Cast(aDoc->GetInnerWindow())) {
+    win->GetTimeoutManager()->EndSyncOperation();
   }
   aDoc->SetIsInSyncOperation(false);
 }

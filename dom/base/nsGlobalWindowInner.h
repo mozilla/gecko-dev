@@ -272,6 +272,10 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   virtual nsIPrincipal* PartitionedPrincipal() override;
 
+  mozilla::dom::TimeoutManager* GetTimeoutManager() override;
+
+  bool IsRunningTimeout() override;
+
   // nsIDOMWindow
   NS_DECL_NSIDOMWINDOW
 
@@ -1168,7 +1172,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   friend class nsPIDOMWindowInner;
   friend class nsPIDOMWindowOuter;
 
-  bool IsBackgroundInternal() const;
+  bool IsBackgroundInternal() const override;
 
   // NOTE: Chrome Only
   void DisconnectAndClearGroupMessageManagers() {
