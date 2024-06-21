@@ -180,6 +180,7 @@ LibaomAv1Encoder::LibaomAv1Encoder(const Environment& env,
       frame_for_encode_(nullptr),
       encoded_image_callback_(nullptr),
       timestamp_(0),
+      encoder_info_override_(env.field_trials()),
       disable_frame_dropping_(env.field_trials().IsEnabled(
           "WebRTC-LibaomAv1Encoder-DisableFrameDropping")),
       max_consec_frame_drop_(GetMaxConsecutiveFrameDrop(env.field_trials())) {}

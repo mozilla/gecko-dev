@@ -316,6 +316,7 @@ LibvpxVp8Encoder::LibvpxVp8Encoder(const Environment& env,
       last_encoder_output_time_(kMaxSimulcastStreams,
                                 Timestamp::MinusInfinity()),
       framerate_controller_(variable_framerate_screenshare::kMinFps),
+      encoder_info_override_(env_.field_trials()),
       max_frame_drop_interval_(ParseFrameDropInterval(env_.field_trials())),
       android_specific_threading_settings_(env_.field_trials().IsEnabled(
           "WebRTC-LibvpxVp8Encoder-AndroidSpecificThreadingSettings")) {

@@ -145,8 +145,8 @@ rtc_library("encoder_info_settings") {
   deps = [
     ":field_trial_parser",
     "..:logging",
+    "../../api:field_trials_view",
     "../../api/video_codecs:video_codecs_api",
-    "../../system_wrappers:field_trial",
   ]
   absl_deps = [
     "//third_party/abseil-cpp/absl/strings",

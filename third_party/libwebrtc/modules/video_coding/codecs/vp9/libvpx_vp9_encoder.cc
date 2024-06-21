@@ -265,6 +265,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
       performance_flags_(ParsePerformanceFlagsFromTrials(env.field_trials())),
       num_steady_state_frames_(0),
       config_changed_(true),
+      encoder_info_override_(env.field_trials()),
       svc_frame_drop_config_(ParseSvcFrameDropConfig(env.field_trials())) {
   codec_ = {};
   memset(&svc_params_, 0, sizeof(vpx_svc_extra_cfg_t));

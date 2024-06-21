@@ -126,7 +126,8 @@ class InitEncodeTest : public test::EndToEndTest,
         encoder_factory_(this),
         payload_name_(payload_name),
         configs_(configs),
-        expectations_(expectations) {}
+        expectations_(expectations),
+        encoder_info_override_(env.field_trials()) {}
 
   void OnFrameGeneratorCapturerCreated(
       test::FrameGeneratorCapturer* frame_generator_capturer) override {

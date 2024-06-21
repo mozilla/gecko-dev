@@ -265,7 +265,8 @@ SimulcastEncoderAdapter::SimulcastEncoderAdapter(
               .Vp8BoostBaseLayerQuality()),
       prefer_temporal_support_on_base_layer_(env_.field_trials().IsEnabled(
           "WebRTC-Video-PreferTemporalSupportOnBaseLayer")),
-      per_layer_pli_(SupportsPerLayerPictureLossIndication(format.parameters)) {
+      per_layer_pli_(SupportsPerLayerPictureLossIndication(format.parameters)),
+      encoder_info_override_(env.field_trials()) {
   RTC_DCHECK(primary_factory);
 
   // The adapter is typically created on the worker thread, but operated on
