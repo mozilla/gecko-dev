@@ -79,12 +79,6 @@
   }
 }
 
-/* Firefox View */
-:root[firefoxviewhidden] #wrapper-firefox-view-button,
-:root[firefoxviewhidden] #firefox-view-button {
-  display: none;
-}
-
 .popup-notification-invalid-input {
   box-shadow: 0 0 1.5px 1px red;
 }

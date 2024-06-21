@@ -797,6 +797,7 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .t
   margin-inline-start: 2px;
 }
 
+:root[firefoxviewhidden] :is(#firefox-view-button, #wrapper-firefox-view-button),
 :root[privatebrowsingmode] :is(#firefox-view-button, #menu_openFirefoxView) {
   display: none;
 }
