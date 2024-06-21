@@ -32,6 +32,9 @@ Library("updatecommon")
 DEFINES["NS_NO_XPCOM"] = True
 USE_STATIC_LIBS = True
 
+if CONFIG["DISABLE_UPDATER_AUTHENTICODE_CHECK"]:
+    DEFINES["DISABLE_UPDATER_AUTHENTICODE_CHECK"] = True
+
 if CONFIG["OS_ARCH"] == "WINNT":
     # This forces the creation of updatecommon.lib, which the update agent needs
     # in order to link to updatecommon library functions.

@@ -15,18 +15,38 @@
 /**
  * Verifies if the file path matches any certificate stored in the registry.
  *
- * @param  filePath The file path of the application to check if allowed.
- * @param  allowFallbackKeySkip when this is TRUE the fallback registry key will
- *   be used to skip the certificate check.  This is the default since the
- *   fallback registry key is located under HKEY_LOCAL_MACHINE which can't be
- *   written to by a low integrity process.
- *   Note: the maintenance service binary can be used to perform this check for
- *   testing or troubleshooting.
+ * @param  filePath
+ *         The file path of the application to check if allowed.
+ * @param  allowFallbackKeySkip
+ *         When this is TRUE the fallback registry key can be used to skip the
+ *         certificate check.  This is the default since the fallback registry
+ *         key is located under HKEY_LOCAL_MACHINE which can't be written to by
+ *         a low integrity process.
+ *         Note: The maintenance service binary can be used to perform this
+ *               check for testing or troubleshooting.
+ *         Note: When this is `TRUE` and we are building with
+ *               `DISABLE_UPDATER_AUTHENTICODE_CHECK`, this function will
+ *               unconditionally return `TRUE` since that flag is meant to
+ *               disable specifically this. We don't fall through in the `FALSE`
+ *               case since currently the only time when we don't allow the
+ *               fallback key is when we are running this for debugging purposes
+ *               and, in that case, it's more helpful if we return something
+ *               meaningful here.
+ *
  * @return TRUE if the binary matches any of the allowed certificates.
  */
 BOOL DoesBinaryMatchAllowedCertificates(LPCWSTR basePathForUpdate,
                                         LPCWSTR filePath,
                                         BOOL allowFallbackKeySkip) {
+#ifdef DISABLE_UPDATER_AUTHENTICODE_CHECK
+  if (allowFallbackKeySkip) {
+    LOG_WARN(("Skipping authenticode check"));
+    return TRUE;
+  } else {
+    LOG(("Performing a diagnostic authenticode check"));
+  }
+#endif
+
   WCHAR maintenanceServiceKey[MAX_PATH + 1];
   if (!CalculateRegistryPathFromFilePath(basePathForUpdate,
                                          maintenanceServiceKey)) {
