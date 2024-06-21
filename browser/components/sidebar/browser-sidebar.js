@@ -418,8 +418,7 @@ var SidebarController = {
     [...browser.children].forEach((node, i) => {
       node.style.order = i + 1;
     });
-    let sidebarContainer = document.getElementById("sidebar-main");
-    let sidebarMain = document.querySelector("sidebar-main");
+    let sidebarMain = document.getElementById("sidebar-main");
     if (!this._positionStart) {
       // DOM ordering is:     sidebar-main |  sidebar-box  | splitter |   appcontent  |
       // Want to display as:  |   appcontent  | splitter |  sidebar-box  | sidebar-main
@@ -429,22 +428,14 @@ var SidebarController = {
       this._box.style.order = appcontent.style.order;
 
       appcontent.style.order = boxOrdinal;
-      // the launcher and splitter should be on the right of the sidebar-box
-      this._splitter.style.order = parseInt(this._box.style.order) + 1;
-      sidebarContainer.style.order =
-        parseInt(
-          this.sidebarRevampEnabled
-            ? this._splitter.style.order
-            : this._box.style.order
-        ) + 1;
+      // the launcher should be on the right of the sidebar-box
+      sidebarMain.style.order = parseInt(this._box.style.order) + 1;
       // Indicate we've switched ordering to the box
       this._box.setAttribute("positionend", true);
       sidebarMain.setAttribute("positionend", true);
-      sidebarContainer.setAttribute("positionend", true);
     } else {
       this._box.removeAttribute("positionend");
       sidebarMain.removeAttribute("positionend");
-      sidebarContainer.removeAttribute("positionend");
     }
 
     this.hideSwitcherPanel();

@@ -25,16 +25,9 @@ sidebar-history-date-prev-month =
 sidebar-search-results-header =
   .heading = Search results for “{ $query }”
 
-## Labels for sidebar customize panel
-
 sidebar-customize-firefox-tools =
   .label = { -brand-product-name } tools
 sidebar-customize-firefox-settings = Manage { -brand-short-name } settings
-sidebar-customize-settings = Sidebar settings
-sidebar-position-left =
-  .label = Show on the left
-sidebar-position-right =
-  .label = Show on the right
 
 ## Labels for sidebar context menu items
 

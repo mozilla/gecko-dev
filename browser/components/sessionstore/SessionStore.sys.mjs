@@ -4547,6 +4547,7 @@ var SessionStoreInternal = {
     if (command && sidebarBox.getAttribute("checked") == "true") {
       winData.sidebar = {
         command,
+        positionEnd: sidebarBox.getAttribute("positionend"),
         style: sidebarBox.style.cssText,
       };
     } else if (winData.sidebar?.command) {
@@ -5595,7 +5596,8 @@ var SessionStoreInternal = {
    * @param aWindow
    *        Window reference
    * @param aSidebar
-   *        Object containing command (sidebarcommand/category) and styles
+   *        Object containing command (sidebarcommand/category),styles and
+   *        positionEnd (reflecting the sidebar.position_start pref)
    */
   restoreSidebar(aWindow, aSidebar, isPopup) {
     if (!isPopup) {
@@ -5607,6 +5609,7 @@ var SessionStoreInternal = {
       ) {
         aWindow.SidebarController.showInitially(aSidebar.command);
         sidebarBox.setAttribute("style", aSidebar.style);
+        sidebarBox.setAttribute("positionend", !!aSidebar?.positionEnd);
       }
     }
   },
@@ -6304,7 +6307,11 @@ var SessionStoreInternal = {
 
       // We want to preserve the sidebar if previously open in the window
       if (window.sidebar?.command) {
-        newWindowState.sidebar = window.sidebar;
+        newWindowState.sidebar = {
+          command: window.sidebar.command,
+          positionEnd: !!window.sidebar.positionEnd,
+          style: window.sidebar.style,
+        };
       }
 
       for (let tIndex = 0; tIndex < window.tabs.length; ) {

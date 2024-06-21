@@ -6,9 +6,6 @@ import { html, when } from "chrome://global/content/vendor/lit.all.mjs";
 
 import { SidebarPage } from "./sidebar-page.mjs";
 
-// eslint-disable-next-line import/no-unassigned-import
-import "chrome://global/content/elements/moz-radio-group.mjs";
-
 const l10nMap = new Map([
   ["viewHistorySidebar", "sidebar-menu-history-label"],
   ["viewTabsSidebar", "sidebar-menu-synced-tabs-label"],
@@ -28,7 +25,6 @@ export class SidebarCustomize extends SidebarPage {
   static queries = {
     toolInputs: { all: ".customize-firefox-tools moz-checkbox" },
     extensionLinks: { all: ".extension-link" },
-    positionInputs: { all: ".position-setting" },
   };
 
   connectedCallback() {
@@ -124,11 +120,6 @@ export class SidebarCustomize extends SidebarPage {
     this.activeExtIndex = index;
   }
 
-  reversePosition() {
-    const SidebarController = this.getWindow().SidebarController;
-    SidebarController.reversePosition.apply(SidebarController);
-  }
-
   extensionTemplate(extension, index) {
     return html` <div class="extension-item">
       <img src=${extension.iconUrl} class="icon" role="presentation" />
@@ -178,33 +169,6 @@ export class SidebarCustomize extends SidebarPage {
             </div>
           </div>`
         )}
-        <h5 data-l10n-id="sidebar-customize-settings"></h5>
-        <hr>
-        <moz-radio-group
-            class="customize-settings"
-            @change=${this.reversePosition}
-            name="position">
-          <moz-radio
-            class="position-setting"
-            id="position-left"
-            value=${true}
-            ?checked=${
-              this.getWindow().SidebarController._positionStart === true
-            }
-            iconsrc="chrome://browser/skin/sidebars.svg"
-            data-l10n-id="sidebar-position-left"
-          ></moz-radio>
-          <moz-radio
-            class="position-setting"
-            id="position-right"
-            value=${false}
-            ?checked=${
-              this.getWindow().SidebarController._positionStart === false
-            }
-            iconsrc="chrome://browser/skin/sidebars.svg"
-            data-l10n-id="sidebar-position-right"
-          ></moz-radio>
-        </moz-radio-group>
         <div id="manage-settings">
           <img src="chrome://browser/skin/preferences/category-general.svg" class="icon" role="presentation" />
           <a
