@@ -101,9 +101,7 @@ class BackgroundServices(
         // See https://github.com/mozilla/application-services/issues/1308
         capabilities = buildSet {
             add(DeviceCapability.SEND_TAB)
-            if (context.settings().enableCloseSyncedTabs) {
-                add(DeviceCapability.CLOSE_TABS)
-            }
+            add(DeviceCapability.CLOSE_TABS)
         },
 
         // Enable encryption for account state on supported API levels (23+).
@@ -230,9 +228,7 @@ class BackgroundServices(
             notificationManager.showReceivedTabs(context, device, tabs)
         }
 
-        if (context.settings().enableCloseSyncedTabs) {
-            CloseTabsFeature(closeSyncedTabsCommandReceiver, accountManager).observe()
-        }
+        CloseTabsFeature(closeSyncedTabsCommandReceiver, accountManager).observe()
 
         SyncedTabsIntegration(context, accountManager).launch()
 
