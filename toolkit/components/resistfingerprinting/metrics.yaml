@@ -2022,3 +2022,40 @@ characteristics:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
       # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
       - highly_sensitive
+
+  pointer_type:
+    type: quantity
+    unit: enum mozilla::PointerCapabilities values
+    description: >
+      Pointer type of the user's primary pointer device.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901799
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901799#c2
+    expires: never
+    data_sensitivity:
+      - technical
+
+  any_pointer_type:
+    type: quantity
+    unit: enum mozilla::PointerCapabilities values
+    description: >
+      Union of pointers available. We apply union to determine
+      if the user have both coarse and fine pointer.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901799
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901799#c2
+    expires: never
+    data_sensitivity:
+      - technical
