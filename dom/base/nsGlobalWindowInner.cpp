@@ -606,7 +606,7 @@ nsresult IdleRequestExecutor::Cancel() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mDelayedExecutorHandle && mWindow) {
-    mWindow->GetTimeoutManager()->ClearTimeout(
+    mWindow->TimeoutManager().ClearTimeout(
         mDelayedExecutorHandle.value(), Timeout::Reason::eIdleCallbackTimeout);
   }
 
@@ -671,7 +671,7 @@ void IdleRequestExecutor::DelayedDispatch(uint32_t aDelay) {
   MOZ_ASSERT(mWindow);
   MOZ_ASSERT(mDelayedExecutorHandle.isNothing());
   int32_t handle;
-  mWindow->GetTimeoutManager()->SetTimeout(
+  mWindow->TimeoutManager().SetTimeout(
       mDelayedExecutorDispatcher, aDelay, false,
       Timeout::Reason::eIdleCallbackTimeout, &handle);
   mDelayedExecutorHandle = Some(handle);
@@ -2773,12 +2773,12 @@ bool nsPIDOMWindowInner::IsPlayingAudio() {
 
 bool nsPIDOMWindowInner::IsDocumentLoaded() const { return mIsDocumentLoaded; }
 
-mozilla::dom::TimeoutManager* nsGlobalWindowInner::GetTimeoutManager() {
-  return mTimeoutManager.get();
+mozilla::dom::TimeoutManager& nsPIDOMWindowInner::TimeoutManager() {
+  return *mTimeoutManager;
 }
 
-bool nsGlobalWindowInner::IsRunningTimeout() {
-  return GetTimeoutManager()->IsRunningTimeout();
+bool nsPIDOMWindowInner::IsRunningTimeout() {
+  return TimeoutManager().IsRunningTimeout();
 }
 
 void nsPIDOMWindowInner::TryToCacheTopInnerWindow() {

@@ -297,8 +297,7 @@ static bool IsPresContextInScriptAnimationCallback(
   }
   // Treat timeouts/setintervals as scripted animation callbacks for our
   // purposes.
-  nsGlobalWindowInner* win =
-      nsGlobalWindowInner::Cast(aPresContext->Document()->GetInnerWindow());
+  nsPIDOMWindowInner* win = aPresContext->Document()->GetInnerWindow();
   return win && win->IsRunningTimeout();
 }
 

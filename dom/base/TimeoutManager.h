@@ -12,7 +12,7 @@
 
 class nsIEventTarget;
 class nsITimer;
-class nsIGlobalObject;
+class nsGlobalWindowInner;
 
 namespace mozilla {
 
@@ -27,7 +27,7 @@ class TimeoutManager final {
   struct Timeouts;
 
  public:
-  TimeoutManager(nsIGlobalObject& aHandle, uint32_t aMaxIdleDeferMS);
+  TimeoutManager(nsGlobalWindowInner& aWindow, uint32_t aMaxIdleDeferMS);
   ~TimeoutManager();
   TimeoutManager(const TimeoutManager& rhs) = delete;
   void operator=(const TimeoutManager& rhs) = delete;
@@ -103,13 +103,6 @@ class TimeoutManager final {
 
  private:
   void MaybeStartThrottleTimeout();
-
-  // get nsGlobalWindowInner
-  // if the method returns nullptr, then we have a worker,
-  // which should be handled differently according to TimeoutManager logic
-  nsGlobalWindowInner* GetInnerWindow() const {
-    return nsGlobalWindowInner::Cast(mGlobalObject.GetAsInnerWindow());
-  }
 
   // Return true if |aTimeout| needs to be reinserted into the timeout list.
   bool RescheduleTimeout(mozilla::dom::Timeout* aTimeout,
@@ -211,9 +204,9 @@ class TimeoutManager final {
     RefPtr<Timeout::TimeoutSet> mTimeouts;
   };
 
-  // Each nsIGlobalObject object has a TimeoutManager member.  This
+  // Each nsGlobalWindowInner object has a TimeoutManager member.  This
   // reference points to that holder object.
-  nsIGlobalObject& mGlobalObject;
+  nsGlobalWindowInner& mWindow;
   // The executor is specific to the nsGlobalWindow/TimeoutManager, but it
   // can live past the destruction of the window if its scheduled.  Therefore
   // it must be a separate ref-counted object.

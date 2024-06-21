@@ -208,11 +208,9 @@ static void SetTimeoutForGlobal(GlobalObject& aGlobal, TimeoutHandler& aHandler,
     }
 
     int32_t handle;
-    nsresult rv =
-        nsGlobalWindowInner::Cast(innerWindow)
-            ->GetTimeoutManager()
-            ->SetTimeout(&aHandler, timeout, /* aIsInterval */ false,
-                         Timeout::Reason::eAbortSignalTimeout, &handle);
+    nsresult rv = innerWindow->TimeoutManager().SetTimeout(
+        &aHandler, timeout, /* aIsInterval */ false,
+        Timeout::Reason::eAbortSignalTimeout, &handle);
     if (NS_FAILED(rv)) {
       aRv.Throw(rv);
       return;

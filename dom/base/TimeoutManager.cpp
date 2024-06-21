@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "TimeoutManager.h"
-#include "nsIGlobalObject.h"
+#include "nsGlobalWindowInner.h"
 #include "mozilla/Logging.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/ScopeExit.h"
@@ -86,12 +86,7 @@ TimeDuration GetMinBudget(bool aIsBackground) {
 //
 
 bool TimeoutManager::IsBackground() const {
-  nsGlobalWindowInner* window = GetInnerWindow();
-  if (!window) {
-    // TODO(aiunusov): consider workers case here
-    return !IsActive();
-  }
-  return !IsActive() && window->IsBackgroundInternal();
+  return !IsActive() && mWindow.IsBackgroundInternal();
 }
 
 bool TimeoutManager::IsActive() const {
@@ -102,18 +97,12 @@ bool TimeoutManager::IsActive() const {
   // Note that a window can be considered active if it is either in the
   // foreground or in the background.
 
-  nsGlobalWindowInner* window = GetInnerWindow();
-
-  if (!window) {
-    return true;
-  }
-
-  if (window->IsChromeWindow()) {
+  if (mWindow.IsChromeWindow()) {
     return true;
   }
 
   // Check if we're playing audio
-  if (window->IsPlayingAudio()) {
+  if (mWindow.IsPlayingAudio()) {
     return true;
   }
 
@@ -155,24 +144,19 @@ void TimeoutManager::MoveIdleToActive() {
       TimeDuration elapsed = now - timeout->SubmitTime();
       TimeDuration target = timeout->When() - timeout->SubmitTime();
       TimeDuration delta = now - timeout->When();
-      if (mGlobalObject.GetAsInnerWindow()) {
-        nsPrintfCString marker(
-            "Releasing deferred setTimeout() for %dms (original target time "
-            "was "
-            "%dms (%dms delta))",
-            int(elapsed.ToMilliseconds()), int(target.ToMilliseconds()),
-            int(delta.ToMilliseconds()));
-        // don't have end before start...
-        PROFILER_MARKER_TEXT(
-            "setTimeout deferred release", DOM,
-            MarkerOptions(
-                MarkerTiming::Interval(
-                    delta.ToMilliseconds() >= 0 ? timeout->When() : now, now),
-                MarkerInnerWindowId(
-                    mGlobalObject.GetAsInnerWindow()->WindowID())),
-            marker);
-      }
-      // TODO: add separate marker for Workers case
+      nsPrintfCString marker(
+          "Releasing deferred setTimeout() for %dms (original target time was "
+          "%dms (%dms delta))",
+          int(elapsed.ToMilliseconds()), int(target.ToMilliseconds()),
+          int(delta.ToMilliseconds()));
+      // don't have end before start...
+      PROFILER_MARKER_TEXT(
+          "setTimeout deferred release", DOM,
+          MarkerOptions(
+              MarkerTiming::Interval(
+                  delta.ToMilliseconds() >= 0 ? timeout->When() : now, now),
+              MarkerInnerWindowId(mWindow.WindowID())),
+          marker);
     }
     num++;
   }
@@ -211,8 +195,7 @@ TimeDuration TimeoutManager::MinSchedulingDelay() const {
     return TimeDuration();
   }
 
-  nsGlobalWindowInner* window = GetInnerWindow();
-  bool isBackground = window && window->IsBackgroundInternal();
+  bool isBackground = mWindow.IsBackgroundInternal();
 
   // If a window isn't active as defined by TimeoutManager::IsActive()
   // and we're throttling timeouts using an execution budget, we
@@ -261,11 +244,7 @@ TimeDuration TimeoutManager::MinSchedulingDelay() const {
   bool budgetThrottlingEnabled = BudgetThrottlingEnabled(isBackground);
   if (budgetThrottlingEnabled && mExecutionBudget < TimeDuration()) {
     // Only throttle if execution budget is less than 0
-
-    // TODO(aiunusov): change the logic accordingly for the workers,
-    // once we have the "is in background" in workers
-    double factor =
-        1.0 / GetRegenerationFactor(window && window->IsBackgroundInternal());
+    double factor = 1.0 / GetRegenerationFactor(mWindow.IsBackgroundInternal());
     return TimeDuration::Max(unthrottled, -mExecutionBudget.MultDouble(factor));
   }
   if (!budgetThrottlingEnabled && isBackground) {
@@ -361,12 +340,7 @@ void TimeoutManager::RecordExecution(Timeout* aRunningTimeout,
 
 void TimeoutManager::UpdateBudget(const TimeStamp& aNow,
                                   const TimeDuration& aDuration) {
-  nsGlobalWindowInner* window = GetInnerWindow();
-  if (!window) {
-    return;
-  }
-
-  if (window->IsChromeWindow()) {
+  if (mWindow.IsChromeWindow()) {
     return;
   }
 
@@ -377,7 +351,7 @@ void TimeoutManager::UpdateBudget(const TimeStamp& aNow,
   // window is active or not. If throttling is enabled and the window
   // is active and then becomes inactive, an overdrawn budget will
   // still be counted against the minimum delay.
-  bool isBackground = window->IsBackgroundInternal();
+  bool isBackground = mWindow.IsBackgroundInternal();
   if (BudgetThrottlingEnabled(isBackground)) {
     double factor = GetRegenerationFactor(isBackground);
     TimeDuration regenerated = (aNow - mLastBudgetUpdate).MultDouble(factor);
@@ -407,9 +381,9 @@ void TimeoutManager::UpdateBudget(const TimeStamp& aNow,
 
 uint32_t TimeoutManager::sNestingLevel = 0;
 
-TimeoutManager::TimeoutManager(nsIGlobalObject& aHandle,
+TimeoutManager::TimeoutManager(nsGlobalWindowInner& aWindow,
                                uint32_t aMaxIdleDeferMS)
-    : mGlobalObject(aHandle),
+    : mWindow(aWindow),
       mExecutor(new TimeoutExecutor(this, false, 0)),
       mIdleExecutor(new TimeoutExecutor(this, true, aMaxIdleDeferMS)),
       mTimeouts(*this),
@@ -423,8 +397,7 @@ TimeoutManager::TimeoutManager(nsIGlobalObject& aHandle,
       mIdleTimeouts(*this),
       mIdleCallbackTimeoutCounter(1),
       mLastBudgetUpdate(TimeStamp::Now()),
-      mExecutionBudget(GetMaxBudget(GetInnerWindow() &&
-                                    GetInnerWindow()->IsBackgroundInternal())),
+      mExecutionBudget(GetMaxBudget(mWindow.IsBackgroundInternal())),
       mThrottleTimeouts(false),
       mThrottleTrackingTimeouts(false),
       mBudgetThrottleTimeouts(false),
@@ -437,7 +410,7 @@ TimeoutManager::TimeoutManager(nsIGlobalObject& aHandle,
 }
 
 TimeoutManager::~TimeoutManager() {
-  MOZ_DIAGNOSTIC_ASSERT(mGlobalObject.IsDying());
+  MOZ_DIAGNOSTIC_ASSERT(mWindow.IsDying());
   MOZ_DIAGNOSTIC_ASSERT(!mThrottleTimeoutsTimer);
 
   mExecutor->Shutdown();
@@ -466,14 +439,10 @@ nsresult TimeoutManager::SetTimeout(TimeoutHandler* aHandler, int32_t interval,
                                     int32_t* aReturn) {
   // If we don't have a document (we could have been unloaded since
   // the call to setTimeout was made), do nothing.
-  if (mGlobalObject.GetAsInnerWindow()) {
-    nsCOMPtr<Document> doc = mGlobalObject.GetAsInnerWindow()->GetExtantDoc();
-    if (!doc || mGlobalObject.IsDying()) {
-      return NS_OK;
-    }
+  nsCOMPtr<Document> doc = mWindow.GetExtantDoc();
+  if (!doc || mWindow.IsDying()) {
+    return NS_OK;
   }
-
-  nsGlobalWindowInner* window = GetInnerWindow();
 
   // Disallow negative intervals.
   interval = std::max(0, interval);
@@ -490,7 +459,7 @@ nsresult TimeoutManager::SetTimeout(TimeoutHandler* aHandler, int32_t interval,
 #ifdef DEBUG
   timeout->mFiringIndex = -1;
 #endif
-  timeout->mWindow = window;
+  timeout->mWindow = &mWindow;
   timeout->mIsInterval = aIsInterval;
   timeout->mInterval = TimeDuration::FromMilliseconds(interval);
   timeout->mScriptHandler = aHandler;
@@ -514,7 +483,7 @@ nsresult TimeoutManager::SetTimeout(TimeoutHandler* aHandler, int32_t interval,
   timeout->SetWhenOrTimeRemaining(now, realInterval);
 
   // If we're not suspended, then set the timer.
-  if (window && !window->IsSuspended()) {
+  if (!mWindow.IsSuspended()) {
     nsresult rv = MaybeSchedule(timeout->When(), now);
     if (NS_FAILED(rv)) {
       return rv;
@@ -536,9 +505,8 @@ nsresult TimeoutManager::SetTimeout(TimeoutHandler* aHandler, int32_t interval,
     }
   }
 
-  Timeouts::SortBy sort(window && window->IsFrozen()
-                            ? Timeouts::SortBy::TimeRemaining
-                            : Timeouts::SortBy::TimeWhen);
+  Timeouts::SortBy sort(mWindow.IsFrozen() ? Timeouts::SortBy::TimeRemaining
+                                           : Timeouts::SortBy::TimeWhen);
 
   timeout->mTimeoutId = GetTimeoutId(aReason);
   mTimeouts.Insert(timeout, sort);
@@ -554,7 +522,7 @@ nsresult TimeoutManager::SetTimeout(TimeoutHandler* aHandler, int32_t interval,
        (CalculateDelay(timeout) - timeout->mInterval).ToMilliseconds(),
        mThrottleTimeouts ? "yes" : (mThrottleTimeoutsTimer ? "pending" : "no"),
        IsActive() ? "active" : "inactive",
-       window && window->IsBackgroundInternal() ? "background" : "foreground",
+       mWindow.IsBackgroundInternal() ? "background" : "foreground",
        realInterval.ToMilliseconds(), timeout->mTimeoutId,
        int(mExecutionBudget.ToMilliseconds())));
 
@@ -588,8 +556,6 @@ bool TimeoutManager::ClearTimeoutInternal(int32_t aTimerId,
   }
   bool firstTimeout = timeout == timeouts.GetFirst();
 
-  nsGlobalWindowInner* window = GetInnerWindow();
-
   MOZ_LOG(gTimeoutLog, LogLevel::Debug,
           ("%s(TimeoutManager=%p, timeout=%p, ID=%u)\n",
            timeout->mReason == Timeout::Reason::eIdleCallbackTimeout
@@ -617,7 +583,7 @@ bool TimeoutManager::ClearTimeoutInternal(int32_t aTimerId,
   //    RunTimeout() will handle rescheduling the executor.
   //  * If the window has become suspended then we should not start executing
   //    Timeouts.
-  if (!firstTimeout || deferredDeletion || (window && window->IsSuspended())) {
+  if (!firstTimeout || deferredDeletion || mWindow.IsSuspended()) {
     return true;
   }
 
@@ -642,17 +608,8 @@ void TimeoutManager::RunTimeout(const TimeStamp& aNow,
   MOZ_DIAGNOSTIC_ASSERT(!aNow.IsNull());
   MOZ_DIAGNOSTIC_ASSERT(!aTargetDeadline.IsNull());
 
-  RefPtr<nsGlobalWindowInner> window = GetInnerWindow();
-
-  if (!window) {
-    // we have a workers case here
-    // TODO(aiunusov): change the code accordigly to cover workers usecase
-    return;
-  }
-
-  MOZ_ASSERT_IF(window->IsFrozen(), window->IsSuspended());
-
-  if (window->IsSuspended()) {
+  MOZ_ASSERT_IF(mWindow.IsFrozen(), mWindow.IsSuspended());
+  if (mWindow.IsSuspended()) {
     return;
   }
 
@@ -684,9 +641,8 @@ void TimeoutManager::RunTimeout(const TimeStamp& aNow,
 
   // Make sure that the window and the script context don't go away as
   // a result of running timeouts
-  RefPtr<nsIGlobalObject> global(&mGlobalObject);
-  MOZ_DIAGNOSTIC_ASSERT(global);
-  // Accessing members of mGlobalObject here is safe, because the lifetime of
+  RefPtr<nsGlobalWindowInner> window(&mWindow);
+  // Accessing members of mWindow here is safe, because the lifetime of
   // TimeoutManager is the same as the lifetime of the containing
   // nsGlobalWindow.
 
@@ -760,7 +716,7 @@ void TimeoutManager::RunTimeout(const TimeStamp& aNow,
     // Note, we verified the window is not suspended at the top of
     // method and the window should not have been suspended while
     // executing the loop above since it doesn't call out to js.
-    MOZ_DIAGNOSTIC_ASSERT(!window->IsSuspended());
+    MOZ_DIAGNOSTIC_ASSERT(!mWindow.IsSuspended());
     if (aProcessIdle) {
       // We don't want to update timing budget for idle queue firings, and
       // all timeouts in the IdleTimeouts list have hit their deadlines,
@@ -847,8 +803,8 @@ void TimeoutManager::RunTimeout(const TimeStamp& aNow,
         }
       }
 
-      MOZ_ASSERT_IF(window->IsFrozen(), window->IsSuspended());
-      if (window->IsSuspended()) {
+      MOZ_ASSERT_IF(mWindow.IsFrozen(), mWindow.IsSuspended());
+      if (mWindow.IsSuspended()) {
         break;
       }
 
@@ -895,7 +851,7 @@ void TimeoutManager::RunTimeout(const TimeStamp& aNow,
 
         // Get the script context (a strong ref to prevent it going away)
         // for this timeout and ensure the script language is enabled.
-        nsCOMPtr<nsIScriptContext> scx = window->GetContextInternal();
+        nsCOMPtr<nsIScriptContext> scx = mWindow.GetContextInternal();
 
         if (!scx) {
           // No context means this window was closed or never properly
@@ -920,10 +876,7 @@ void TimeoutManager::RunTimeout(const TimeStamp& aNow,
         mLastFiringIndex = timeout->mFiringIndex;
 #endif
         // This timeout is good to run.
-        bool timeout_was_cleared = false;
-        if (window) {
-          timeout_was_cleared = window->RunTimeoutHandler(timeout, scx);
-        }
+        bool timeout_was_cleared = window->RunTimeoutHandler(timeout, scx);
         MOZ_LOG(gTimeoutLog, LogLevel::Debug,
                 ("Run%s(TimeoutManager=%p, timeout=%p) returned %d\n",
                  timeout->mIsInterval ? "Interval" : "Timeout", this,
@@ -961,7 +914,7 @@ void TimeoutManager::RunTimeout(const TimeStamp& aNow,
           // Insert interval timeout onto the corresponding list sorted in
           // deadline order. AddRefs timeout.
           // Always re-insert into the normal time queue!
-          mTimeouts.Insert(timeout, window->IsFrozen()
+          mTimeouts.Insert(timeout, mWindow.IsFrozen()
                                         ? Timeouts::SortBy::TimeRemaining
                                         : Timeouts::SortBy::TimeWhen);
         }
@@ -974,7 +927,7 @@ void TimeoutManager::RunTimeout(const TimeStamp& aNow,
         // run immediately for the next timer, if it exists.  Its possible,
         // however, that the last timeout handler suspended the window.  If
         // that happened then we must skip this step.
-        if (!window->IsSuspended()) {
+        if (!mWindow.IsSuspended()) {
           if (next) {
             if (aProcessIdle) {
               // We don't want to update timing budget for idle queue firings,
@@ -1037,9 +990,8 @@ bool TimeoutManager::RescheduleTimeout(Timeout* aTimeout,
   }
 
   aTimeout->SetWhenOrTimeRemaining(aCurrentNow, delay);
-  nsGlobalWindowInner* window = GetInnerWindow();
 
-  if (window && window->IsSuspended()) {
+  if (mWindow.IsSuspended()) {
     return true;
   }
 
@@ -1151,12 +1103,11 @@ void TimeoutManager::Suspend() {
 
 void TimeoutManager::Resume() {
   MOZ_LOG(gTimeoutLog, LogLevel::Debug, ("Resume(TimeoutManager=%p)\n", this));
-  nsGlobalWindowInner* window = GetInnerWindow();
 
   // When Suspend() has been called after IsDocumentLoaded(), but the
   // throttle tracking timer never managed to fire, start the timer
   // again.
-  if (window && window->IsDocumentLoaded() && !mThrottleTimeouts) {
+  if (mWindow.IsDocumentLoaded() && !mThrottleTimeouts) {
     MaybeStartThrottleTimeout();
   }
 
@@ -1216,14 +1167,13 @@ void TimeoutManager::Thaw() {
 }
 
 void TimeoutManager::UpdateBackgroundState() {
-  nsGlobalWindowInner* window = GetInnerWindow();
-  mExecutionBudget = GetMaxBudget(window && window->IsBackgroundInternal());
+  mExecutionBudget = GetMaxBudget(mWindow.IsBackgroundInternal());
 
   // When the window moves to the background or foreground we should
   // reschedule the TimeoutExecutor in case the MinSchedulingDelay()
   // changed.  Only do this if the window is not suspended and we
   // actually have a timeout.
-  if (window && !window->IsSuspended()) {
+  if (!mWindow.IsSuspended()) {
     Timeout* nextTimeout = mTimeouts.GetFirst();
     if (nextTimeout) {
       mExecutor->Cancel();
@@ -1248,8 +1198,8 @@ namespace {
 class ThrottleTimeoutsCallback final : public nsITimerCallback,
                                        public nsINamed {
  public:
-  explicit ThrottleTimeoutsCallback(nsIGlobalObject* aHandle)
-      : mGlobalObject(aHandle) {}
+  explicit ThrottleTimeoutsCallback(nsGlobalWindowInner* aWindow)
+      : mWindow(aWindow) {}
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSITIMERCALLBACK
@@ -1265,19 +1215,15 @@ class ThrottleTimeoutsCallback final : public nsITimerCallback,
  private:
   // The strong reference here keeps the Window and hence the TimeoutManager
   // object itself alive.
-  RefPtr<nsIGlobalObject> mGlobalObject;
+  RefPtr<nsGlobalWindowInner> mWindow;
 };
 
 NS_IMPL_ISUPPORTS(ThrottleTimeoutsCallback, nsITimerCallback, nsINamed)
 
 NS_IMETHODIMP
 ThrottleTimeoutsCallback::Notify(nsITimer* aTimer) {
-  if (nsGlobalWindowInner::Cast(mGlobalObject->GetAsInnerWindow())) {
-    nsGlobalWindowInner::Cast(mGlobalObject->GetAsInnerWindow())
-        ->GetTimeoutManager()
-        ->StartThrottlingTimeouts();
-  }
-  mGlobalObject = nullptr;
+  mWindow->TimeoutManager().StartThrottlingTimeouts();
+  mWindow = nullptr;
   return NS_OK;
 }
 
@@ -1303,19 +1249,17 @@ bool TimeoutManager::BudgetThrottlingEnabled(bool aIsBackground) const {
     return false;
   }
 
-  nsGlobalWindowInner* window = GetInnerWindow();
-
   // Check if there are any active IndexedDB databases
-  if (window && window->HasActiveIndexedDBDatabases()) {
+  if (mWindow.HasActiveIndexedDBDatabases()) {
     return false;
   }
 
   // Check if we have active PeerConnection
-  if (window && window->HasActivePeerConnections()) {
+  if (mWindow.HasActivePeerConnections()) {
     return false;
   }
 
-  if (window && window->HasOpenWebSockets()) {
+  if (mWindow.HasOpenWebSockets()) {
     return false;
   }
 
@@ -1347,9 +1291,8 @@ void TimeoutManager::OnDocumentLoaded() {
 }
 
 void TimeoutManager::MaybeStartThrottleTimeout() {
-  nsGlobalWindowInner* win = GetInnerWindow();
-  if (StaticPrefs::dom_timeout_throttling_delay() <= 0 || !win ||
-      win->IsDying() || win->IsSuspended()) {
+  if (StaticPrefs::dom_timeout_throttling_delay() <= 0 || mWindow.IsDying() ||
+      mWindow.IsSuspended()) {
     return;
   }
 
@@ -1359,8 +1302,7 @@ void TimeoutManager::MaybeStartThrottleTimeout() {
           ("TimeoutManager %p delaying tracking timeout throttling by %dms\n",
            this, StaticPrefs::dom_timeout_throttling_delay()));
 
-  nsCOMPtr<nsITimerCallback> callback =
-      new ThrottleTimeoutsCallback(&mGlobalObject);
+  nsCOMPtr<nsITimerCallback> callback = new ThrottleTimeoutsCallback(&mWindow);
 
   NS_NewTimerWithCallback(getter_AddRefs(mThrottleTimeoutsTimer), callback,
                           StaticPrefs::dom_timeout_throttling_delay(),
@@ -1383,9 +1325,5 @@ void TimeoutManager::EndSyncOperation() {
 }
 
 nsIEventTarget* TimeoutManager::EventTarget() {
-  nsGlobalWindowInner* window = GetInnerWindow();
-  if (window) {
-    return window->GetBrowsingContextGroup()->GetTimerEventQueue();
-  }
-  return nullptr;
+  return mWindow.GetBrowsingContextGroup()->GetTimerEventQueue();
 }
