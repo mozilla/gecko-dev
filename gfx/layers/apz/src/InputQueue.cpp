@@ -783,7 +783,7 @@ InputBlockState* InputQueue::GetBlockForId(uint64_t aInputBlockId) {
 }
 
 void InputQueue::AddInputBlockCallback(uint64_t aInputBlockId,
-                                       InputBlockCallbackInfo&& aCallbackInfo) {
+                                       InputBlockCallback&& aCallbackInfo) {
   mInputBlockCallbacks.insert(InputBlockCallbackMap::value_type(
       aInputBlockId, std::move(aCallbackInfo)));
 }
@@ -1009,8 +1009,7 @@ void InputQueue::SetBrowserGestureResponse(uint64_t aInputBlockId,
 
 static APZHandledResult GetHandledResultFor(
     const AsyncPanZoomController* aApzc,
-    const InputBlockState* aCurrentInputBlock, nsEventStatus aEagerStatus,
-    const InputData& aEvent) {
+    const InputBlockState* aCurrentInputBlock, const InputData& aEvent) {
   if (aCurrentInputBlock->ShouldDropEvents()) {
     return APZHandledResult{APZHandledPlace::HandledByContent, aApzc};
   }
@@ -1100,9 +1099,8 @@ bool InputQueue::ProcessQueue() {
                  "\n",
                  curBlock, curBlock->GetBlockId());
         APZHandledResult handledResult =
-            GetHandledResultFor(target, curBlock, it->second.mEagerStatus,
-                                *(mQueuedInputs[0]->Input()));
-        it->second.mCallback(curBlock->GetBlockId(), handledResult);
+            GetHandledResultFor(target, curBlock, *(mQueuedInputs[0]->Input()));
+        it->second(curBlock->GetBlockId(), handledResult);
         // The callback is one-shot; discard it after calling it.
         mInputBlockCallbacks.erase(it);
       }
