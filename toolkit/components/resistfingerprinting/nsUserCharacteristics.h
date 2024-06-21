@@ -7,10 +7,15 @@
 #define __nsUserCharacteristics_h__
 
 #include "ErrorList.h"
+#include "mozilla/MouseEvents.h"
 
 class nsUserCharacteristics {
  public:
   static void MaybeSubmitPing();
+
+  // Steals an event from PointerEventHandler. Currently only catches
+  // ePointerDown event.
+  static void StealPointerEvent(const mozilla::WidgetPointerEvent& aEvent);
 
   /*
    * These APIs are public only for testing using the gtest

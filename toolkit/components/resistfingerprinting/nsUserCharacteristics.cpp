@@ -36,6 +36,7 @@
 #include "mozilla/widget/ScreenManager.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/MouseEvents.h"
 #include "nsPIDOMWindow.h"
 #include "nsIAppWindow.h"
 #include "nsIDocShellTreeOwner.h"
@@ -778,6 +779,49 @@ RefPtr<PopulatePromise> PopulateTimeZone() {
   return populatePromise;
 }
 
+static StaticRefPtr<MozPromise<WidgetPointerEvent, void_t, true>::Private>
+    sPointerStolenEvent;
+
+/* static */
+void nsUserCharacteristics::StealPointerEvent(const WidgetPointerEvent& event) {
+  if (!sPointerStolenEvent) {
+    sPointerStolenEvent =
+        new MozPromise<WidgetPointerEvent, void_t, true>::Private(__func__);
+  }
+  if (!sPointerStolenEvent->IsResolved()) {
+    sPointerStolenEvent->Resolve(event, __func__);
+  }
+}
+
+RefPtr<PopulatePromise> PopulatePointerInfo() {
+  RefPtr<PopulatePromise> populatePromise = new PopulatePromise(__func__);
+
+  if (!sPointerStolenEvent) {
+    sPointerStolenEvent =
+        new MozPromise<WidgetPointerEvent, void_t, true>::Private(__func__);
+  }
+
+  sPointerStolenEvent->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [=](const MozPromise<WidgetPointerEvent, void_t,
+                           true>::ResolveOrRejectValue& result) {
+        auto event = result.ResolveValue();
+        glean::characteristics::pointer_height.Set(event.mHeight);
+        glean::characteristics::pointer_width.Set(event.mWidth);
+        glean::characteristics::pointer_pressure.Set(
+            nsCString(std::to_string(event.mPressure)));
+        glean::characteristics::pointer_tangentinal_pressure.Set(
+            nsCString(std::to_string(event.tangentialPressure)));
+        glean::characteristics::pointer_tiltx.Set(event.tiltX);
+        glean::characteristics::pointer_tilty.Set(event.tiltY);
+        glean::characteristics::pointer_twist.Set(event.twist);
+
+        populatePromise->Resolve(void_t(), __func__);
+      });
+
+  return populatePromise;
+}
+
 // ==================================================================
 // The current schema of the data. Anytime you add a metric, or change how a
 // metric is set, this variable should be incremented. It'll be a lot. It's
@@ -943,6 +987,7 @@ void nsUserCharacteristics::PopulateDataAndEventuallySubmit(
     promises.AppendElement(PopulateMediaDevices());
     promises.AppendElement(PopulateAudioDeviceProperties());
     promises.AppendElement(PopulateTimeZone());
+    promises.AppendElement(PopulatePointerInfo());
     PopulateMissingFonts();
     PopulateCSSProperties();
     PopulateScreenProperties();
