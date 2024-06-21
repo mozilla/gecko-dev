@@ -242,6 +242,10 @@ class NetworkEventWatcher {
    * Called by NetworkObserver in order to know if the channel should be ignored
    */
   shouldIgnoreChannel(channel) {
+    // Bug 972821. Ignore data channels, until support in DevTools is implemented.
+    if (channel instanceof Ci.nsIDataChannel) {
+      return true;
+    }
     // First of all, check if the channel matches the watcherActor's session.
     const filters = { sessionContext: this.watcherActor.sessionContext };
     if (!lazy.NetworkUtils.matchRequest(channel, filters)) {

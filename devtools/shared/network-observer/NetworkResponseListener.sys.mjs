@@ -506,8 +506,11 @@ export class NetworkResponseListener {
     response.headersSize = this.#httpActivity.headersSize;
     response.transferredSize = this.#bodySize + this.#httpActivity.headersSize;
 
+    let charset = "";
+
     try {
       response.mimeType = this.#request.contentType;
+      charset = this.#request.contentCharset;
     } catch (ex) {
       // Ignore.
     }
@@ -524,9 +527,10 @@ export class NetworkResponseListener {
       }
     }
 
-    if (response.mimeType && this.#request.contentCharset) {
-      response.mimeType += "; charset=" + this.#request.contentCharset;
-    }
+    response.mimeType = lazy.NetworkHelper.addCharsetToMimeType(
+      response.mimeType,
+      charset
+    );
 
     this.#receivedData = "";
 

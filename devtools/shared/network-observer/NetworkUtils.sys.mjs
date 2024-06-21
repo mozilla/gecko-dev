@@ -218,6 +218,10 @@ function getChannelPriority(channel) {
  * @returns {string}
  */
 function getHttpVersion(channel) {
+  if (!(channel instanceof Ci.nsIHttpChannelInternal)) {
+    return null;
+  }
+
   // Determine the HTTP version.
   const httpVersionMaj = {};
   const httpVersionMin = {};

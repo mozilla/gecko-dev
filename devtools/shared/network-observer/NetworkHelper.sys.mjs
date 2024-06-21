@@ -99,6 +99,24 @@ const COOKIE_SAMESITE = {
  */
 export var NetworkHelper = {
   /**
+   * Add charset to MIME type.
+   *
+   * @param string mimeType
+   *        Initial MIME type.
+   * @param string charset
+   *        Charset to add to the MIME type.
+   * @returns {string}
+   *        Final MIME type.
+   */
+  addCharsetToMimeType(mimeType, charset) {
+    if (mimeType && charset) {
+      mimeType += "; charset=" + charset;
+    }
+
+    return mimeType;
+  },
+
+  /**
    * Converts text with a given charset to unicode.
    *
    * @param string text

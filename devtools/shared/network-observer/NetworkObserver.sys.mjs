@@ -249,6 +249,10 @@ export class NetworkObserver {
         this.#fileChannelExaminer,
         "file-channel-opened"
       );
+      Services.obs.addObserver(
+        this.#dataChannelExaminer,
+        "data-channel-opened"
+      );
 
       if (this.#createEarlyEvents) {
         Services.obs.addObserver(
@@ -590,6 +594,52 @@ export class NetworkObserver {
       throttler.manageUpload(channel);
     }
   });
+
+  #dataChannelExaminer = DevToolsInfaillibleUtils.makeInfallible(
+    (subject, topic) => {
+      if (
+        topic != "data-channel-opened" ||
+        !(subject instanceof Ci.nsIDataChannel)
+      ) {
+        return;
+      }
+      const channel = subject.QueryInterface(Ci.nsIChannel);
+
+      if (this.#ignoreChannelFunction(channel)) {
+        return;
+      }
+
+      logPlatformEvent(topic, channel);
+
+      const networkEvent = this.#onNetworkEvent({}, channel, true);
+
+      networkEvent.addResponseStart({
+        channel,
+        fromCache: false,
+        // According to the fetch spec for data URLs we can just hardcode
+        // "Content-Type" header.
+        rawHeaders: "content-type: " + channel.contentType,
+      });
+
+      // For data URLs we can not set up a stream listener as for http,
+      // so we have to create a response manually and complete it.
+      const response = {
+        // TODO: Bug 1903807. Reevaluate if it's correct to just return
+        // zero for `bodySize` and `decodedBodySize`.
+        bodySize: 0,
+        decodedBodySize: 0,
+        contentCharset: channel.contentCharset,
+        contentLength: channel.contentLength,
+        contentType: channel.contentType,
+        mimeType: lazy.NetworkHelper.addCharsetToMimeType(
+          channel.contentType,
+          channel.contentCharset
+        ),
+        transferredSize: 0,
+      };
+      networkEvent.addResponseContent(response, {});
+    }
+  );
 
   /**
    * Observe notifications for the file-channel-opened topic
@@ -1552,6 +1602,11 @@ export class NetworkObserver {
         this.#fileChannelExaminer,
         "file-channel-opened"
       );
+      Services.obs.removeObserver(
+        this.#dataChannelExaminer,
+        "data-channel-opened"
+      );
+
       Services.obs.removeObserver(
         this.#httpStopRequest,
         "http-on-stop-request"
