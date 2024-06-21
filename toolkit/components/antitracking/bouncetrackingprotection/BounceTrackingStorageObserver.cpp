@@ -102,8 +102,42 @@ BounceTrackingStorageObserver::Observe(nsISupports* aSubject,
     return NS_OK;
   }
 
+  // For non third-party cookies we can just take the site host directly from
+  // the cookie as that matches the top level site host. This includes top level
+  // HTTP cookies set in redirects.
+  if (!notification->GetIsThirdParty()) {
+    nsAutoCString baseDomain;
+    rv = notification->GetBaseDomain(baseDomain);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return bounceTrackingState->OnCookieWrite(baseDomain);
+  }
+
+  // For all other cases get the site host from the top window. This is
+  // important so cookie writes from cross-site iframes or subresources are
+  // correctly attributed to the top site. Only the top site appears in the
+  // bounce set. With stateful bounces enabled sites are only classified if they
+  // both bounced and set state.
+  dom::WindowContext* windowContext = topBC->GetCurrentWindowContext();
+
+  if (!windowContext) {
+    return NS_OK;
+  }
+
+  // Using the storage principal over the cookie principal is fine here since we
+  // only care about the base domain and not partition key.
+  nsIPrincipal* cookiePrincipal =
+      windowContext->Canonical()->DocumentStoragePrincipal();
+  NS_ENSURE_TRUE(cookiePrincipal, NS_ERROR_FAILURE);
+
+  if (!BounceTrackingState::ShouldTrackPrincipal(cookiePrincipal)) {
+    MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Verbose,
+            ("%s: Skipping principal.", __FUNCTION__));
+    return NS_OK;
+  }
+
   nsAutoCString baseDomain;
-  rv = notification->GetBaseDomain(baseDomain);
+  rv = cookiePrincipal->GetBaseDomain(baseDomain);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return bounceTrackingState->OnCookieWrite(baseDomain);
@@ -114,15 +148,26 @@ nsresult BounceTrackingStorageObserver::OnInitialStorageAccess(
     dom::WindowContext* aWindowContext) {
   NS_ENSURE_ARG_POINTER(aWindowContext);
 
+  // Get the site host from the top window. This is important so storage access
+  // from cross-site iframes or subresources are correctly attributed to the top
+  // site. Only the top site appears in the bounce set. With stateful bounces
+  // enabled sites are only classified if they both bounced and set state.
+  dom::WindowContext* topWindowContext = aWindowContext->TopWindowContext();
+  NS_ENSURE_TRUE(topWindowContext, NS_ERROR_FAILURE);
+
   if (!XRE_IsParentProcess()) {
     // Check if the principal needs to be tracked for bounce tracking. Checking
     // this in the content process may save us IPC to the parent.
-    nsIPrincipal* storagePrincipal =
-        aWindowContext->GetInnerWindow()->GetEffectiveStoragePrincipal();
-    if (!BounceTrackingState::ShouldTrackPrincipal(storagePrincipal)) {
-      MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Verbose,
-              ("%s: Skipping principal (content process).", __FUNCTION__));
-      return NS_OK;
+    nsGlobalWindowInner* innerWindow = topWindowContext->GetInnerWindow();
+
+    if (innerWindow) {
+      nsIPrincipal* storagePrincipal =
+          innerWindow->GetEffectiveStoragePrincipal();
+      if (!BounceTrackingState::ShouldTrackPrincipal(storagePrincipal)) {
+        MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Verbose,
+                ("%s: Skipping principal (content process).", __FUNCTION__));
+        return NS_OK;
+      }
     }
 
     dom::WindowGlobalChild* windowGlobalChild =
@@ -136,7 +181,7 @@ nsresult BounceTrackingStorageObserver::OnInitialStorageAccess(
 
   MOZ_ASSERT(XRE_IsParentProcess());
   nsCOMPtr<nsIPrincipal> storagePrincipal =
-      aWindowContext->Canonical()->DocumentStoragePrincipal();
+      topWindowContext->Canonical()->DocumentStoragePrincipal();
   NS_ENSURE_TRUE(storagePrincipal, NS_ERROR_FAILURE);
 
   if (!BounceTrackingState::ShouldTrackPrincipal(storagePrincipal)) {
@@ -145,7 +190,8 @@ nsresult BounceTrackingStorageObserver::OnInitialStorageAccess(
     return NS_OK;
   }
 
-  dom::BrowsingContext* browsingContext = aWindowContext->GetBrowsingContext();
+  dom::BrowsingContext* browsingContext =
+      topWindowContext->GetBrowsingContext();
   NS_ENSURE_TRUE(browsingContext, NS_ERROR_FAILURE);
 
   nsresult rv = NS_OK;
