@@ -20,6 +20,9 @@ fails print test-missing-text.html test-missing-text-noref.html
 test-pref(print.print_in_color,false) fails print test-color-text-01.html test-color-text-01.html
 print testcase-1696844.html testcase-1696844.html
 print 1900028-text-mask-pdf.html 1900028-text-mask-pdf-ref.html
-test-pref(dom.shadowdom.selection_across_boundary.enabled,true) print test-print-selection-shadow-crossing-1.html test-print-selection-shadow-crossing-1-ref.html
-test-pref(dom.shadowdom.selection_across_boundary.enabled,true) print test-print-selection-shadow-crossing-2.html test-print-selection-shadow-crossing-2-ref.html
-test-pref(dom.shadowdom.selection_across_boundary.enabled,true) print test-print-selection-shadow-crossing-3.html test-print-selection-shadow-crossing-3-ref.html
+# Skip the following shadow-crossing ones because flipping the
+# dom.shadowdom.selection_across_boundary.enabled pref while the selection still exists
+# can cause unexpected behaviours (i.e, something was selectable and became unselectable).
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-1.html test-print-selection-shadow-crossing-1-ref.html
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-2.html test-print-selection-shadow-crossing-2-ref.html
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-3.html test-print-selection-shadow-crossing-3-ref.html
