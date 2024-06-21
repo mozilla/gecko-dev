@@ -228,10 +228,8 @@ export class ArchiveEncryptor {
       ciphertextChunk = await crypto.subtle.encrypt(
         {
           name: "AES-GCM",
-          /**
-           * Take only the last 12 bytes of the nonce, since the WebCrypto API
-           * starts to behave differently when the IV is > 96 bits.
-           */
+          // Take only the last 12 bytes of the nonce, since the WebCrypto API
+          // starts to behave differently when the IV is > 96 bits.
           iv: this.#nonce.subarray(4),
           tagLength: ArchiveUtils.TAG_LENGTH,
         },
@@ -343,7 +341,7 @@ export class ArchiveDecryptor {
    *
    * @type {string}
    */
-  #OSKeyStoreSecret = null;
+  #_OSKeyStoreSecret = null;
 
   /**
    * A big-endian counter nonce, incremented for each subsequent chunk of the
@@ -375,7 +373,7 @@ export class ArchiveDecryptor {
         "Cannot access OSKeyStoreSecret until all chunks are decrypted."
       );
     }
-    return this.#OSKeyStoreSecret;
+    return this.#_OSKeyStoreSecret;
   }
 
   /**
@@ -444,7 +442,7 @@ export class ArchiveDecryptor {
       ["decrypt"]
     );
 
-    this.#OSKeyStoreSecret = secrets.OSKeyStoreSecret;
+    this.#_OSKeyStoreSecret = secrets.OSKeyStoreSecret;
 
     // Now use the private key to decrypt the wrappedArchiveKeyMaterial
     let archiveKeyMaterial = await crypto.subtle.decrypt(
@@ -523,10 +521,8 @@ export class ArchiveDecryptor {
       plaintextChunk = await crypto.subtle.decrypt(
         {
           name: "AES-GCM",
-          /**
-           * Take only the last 12 bytes of the nonce, since the WebCrypto API
-           * starts to behave differently when the IV is > 96 bits.
-           */
+          // Take only the last 12 bytes of the nonce, since the WebCrypto API
+          // starts to behave differently when the IV is > 96 bits.
           iv: this.#nonce.subarray(4),
           tagLength: ArchiveUtils.TAG_LENGTH,
         },
@@ -551,7 +547,7 @@ export class ArchiveDecryptor {
   #poisonSelf() {
     this.#privateKey = null;
     this.#archiveEncKey = null;
-    this.#OSKeyStoreSecret = null;
+    this.#_OSKeyStoreSecret = null;
     this.#nonce = null;
   }
 
