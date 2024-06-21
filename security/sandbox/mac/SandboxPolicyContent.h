@@ -202,6 +202,18 @@ static const char SandboxPolicyContent[] = R"SANDBOX_LITERAL(
       (iokit-property "IOVARendererID")
       (iokit-property "MetalPluginName")
       (iokit-property "MetalPluginClassName")))
+  ; bug 1893921
+  (if (defined? 'iokit-get-properties)
+    (with-filter (iokit-registry-entry-class "IOPlatformDevice")
+      (allow iokit-get-properties
+        (iokit-property "product-id")
+        (iokit-property "IORegistryEntryPropertyKeys")
+        (iokit-property "ean-storage-present"))))
+  (if (defined? 'iokit-get-properties)
+    (with-filter (iokit-registry-entry-class "IOService")
+      (allow iokit-get-properties
+        (iokit-property "housing-color")
+        (iokit-property "sysconfig-v2-data"))))
 
   ; depending on systems, the 1st, 2nd or both rules are necessary
   (allow user-preference-read (preference-domain "com.apple.HIToolbox"))
