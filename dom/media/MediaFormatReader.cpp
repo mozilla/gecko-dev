@@ -1781,6 +1781,29 @@ void MediaFormatReader::NotifyNewOutput(
       if (aTrack == TrackInfo::kAudioTrack) {
         decoder.mNumOfConsecutiveUtilityCrashes = 0;
       }
+      if (aTrack == TrackInfo::kVideoTrack) {
+        nsCString dummy;
+        bool wasHardwareAccelerated = decoder.mIsHardwareAccelerated;
+        decoder.mIsHardwareAccelerated =
+            mVideo.mDecoder->IsHardwareAccelerated(dummy);
+        if (!decoder.mHasReportedVideoHardwareSupportTelemtry ||
+            wasHardwareAccelerated != decoder.mIsHardwareAccelerated) {
+          decoder.mHasReportedVideoHardwareSupportTelemtry = true;
+          VideoData* videoData = sample->As<VideoData>();
+          Telemetry::ScalarSet(
+              Telemetry::ScalarID::MEDIA_VIDEO_HARDWARE_DECODING_SUPPORT,
+              NS_ConvertUTF8toUTF16(decoder.GetCurrentInfo()->mMimeType),
+              !!decoder.mIsHardwareAccelerated);
+          static constexpr gfx::IntSize HD_VIDEO_SIZE{1280, 720};
+          if (videoData->mDisplay.width >= HD_VIDEO_SIZE.Width() &&
+              videoData->mDisplay.height >= HD_VIDEO_SIZE.Height()) {
+            Telemetry::ScalarSet(
+                Telemetry::ScalarID::MEDIA_VIDEO_HD_HARDWARE_DECODING_SUPPORT,
+                NS_ConvertUTF8toUTF16(decoder.GetCurrentInfo()->mMimeType),
+                !!decoder.mIsHardwareAccelerated);
+          }
+        }
+      }
       decoder.mDecodePerfRecorder->Record(
           sample->mTime.ToMicroseconds(),
           [startTime = sample->mTime.ToMicroseconds(),
@@ -2383,27 +2406,6 @@ void MediaFormatReader::Update(TrackType aTrack) {
             }
           }
           mPreviousDecodedKeyframeTime_us = output->mTime.ToMicroseconds();
-        }
-        bool wasHardwareAccelerated = mVideo.mIsHardwareAccelerated;
-        nsCString error;
-        mVideo.mIsHardwareAccelerated =
-            mVideo.mDecoder && mVideo.mDecoder->IsHardwareAccelerated(error);
-        VideoData* videoData = output->As<VideoData>();
-        if (!mVideo.mHasReportedVideoHardwareSupportTelemtry ||
-            wasHardwareAccelerated != mVideo.mIsHardwareAccelerated) {
-          mVideo.mHasReportedVideoHardwareSupportTelemtry = true;
-          Telemetry::ScalarSet(
-              Telemetry::ScalarID::MEDIA_VIDEO_HARDWARE_DECODING_SUPPORT,
-              NS_ConvertUTF8toUTF16(mVideo.GetCurrentInfo()->mMimeType),
-              !!mVideo.mIsHardwareAccelerated);
-          static constexpr gfx::IntSize HD_VIDEO_SIZE{1280, 720};
-          if (videoData->mDisplay.width >= HD_VIDEO_SIZE.Width() &&
-              videoData->mDisplay.height >= HD_VIDEO_SIZE.Height()) {
-            Telemetry::ScalarSet(
-                Telemetry::ScalarID::MEDIA_VIDEO_HD_HARDWARE_DECODING_SUPPORT,
-                NS_ConvertUTF8toUTF16(mVideo.GetCurrentInfo()->mMimeType),
-                !!mVideo.mIsHardwareAccelerated);
-          }
         }
       }
     } else if (decoder.HasFatalError()) {
