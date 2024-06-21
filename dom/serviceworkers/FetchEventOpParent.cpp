@@ -51,8 +51,11 @@ mozilla::ipc::IPCResult FetchEventOpParent::RecvPreloadResponse(
         aPending.mPreloadResponse = Some(std::move(aResponse));
       },
       [&aResponse](Started& aStarted) {
+        auto backgroundParent = WrapNotNull(
+            WrapNotNull(aStarted.mFetchEventOpProxyParent->Manager())
+                ->Manager());
         Unused << aStarted.mFetchEventOpProxyParent->SendPreloadResponse(
-            ToParentToChild(aResponse));
+            ToParentToChild(aResponse, backgroundParent));
       },
       [](const Finished&) {});
 

@@ -69,9 +69,11 @@ namespace mozilla::ipc {
 using mozilla::dom::UDPSocketChild;
 using mozilla::net::PUDPSocketChild;
 
+using mozilla::dom::PRemoteWorkerChild;
 using mozilla::dom::PServiceWorkerChild;
 using mozilla::dom::PServiceWorkerContainerChild;
 using mozilla::dom::PServiceWorkerRegistrationChild;
+using mozilla::dom::RemoteWorkerChild;
 using mozilla::dom::StorageDBChild;
 using mozilla::dom::cache::PCacheChild;
 using mozilla::dom::cache::PCacheStreamControlChild;
@@ -248,6 +250,18 @@ bool BackgroundChildImpl::DeallocPBackgroundStorageChild(
   StorageDBChild* child = static_cast<StorageDBChild*>(aActor);
   child->ReleaseIPDLReference();
   return true;
+}
+
+already_AddRefed<PRemoteWorkerChild>
+BackgroundChildImpl::AllocPRemoteWorkerChild(const RemoteWorkerData& aData) {
+  return MakeAndAddRef<RemoteWorkerChild>(aData);
+}
+
+IPCResult BackgroundChildImpl::RecvPRemoteWorkerConstructor(
+    PRemoteWorkerChild* aActor, const RemoteWorkerData& aData) {
+  dom::RemoteWorkerChild* actor = static_cast<dom::RemoteWorkerChild*>(aActor);
+  actor->ExecWorker(aData);
+  return IPC_OK();
 }
 
 dom::PSharedWorkerChild* BackgroundChildImpl::AllocPSharedWorkerChild(

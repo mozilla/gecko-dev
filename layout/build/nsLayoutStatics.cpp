@@ -253,7 +253,7 @@ nsresult nsLayoutStatics::Initialize() {
   if (XRE_IsParentProcess()) {
     // On content process we initialize these components when PContentChild is
     // fully initialized.
-    mozilla::dom::RemoteWorkerService::InitializeParent();
+    mozilla::dom::RemoteWorkerService::Initialize();
   }
 
   ClearSiteData::Initialize();
