@@ -141,7 +141,9 @@ APZEventResult InputQueue::ReceiveTouchInput(
       block->SetDuringFastFling();
       block->SetConfirmedTargetApzc(
           aTarget, InputBlockState::TargetConfirmationState::eConfirmed,
-          nullptr /* the block was just created so it has no events */,
+          InputQueueIterator() /* the block was just created so it has no events
+                                */
+          ,
           false /* not a scrollbar drag */);
       block->SetAllowedTouchBehaviors(currentBehaviors);
       INPQ_LOG("block %p tagged as fast-motion\n", block.get());
@@ -788,14 +790,15 @@ void InputQueue::AddInputBlockCallback(uint64_t aInputBlockId,
       aInputBlockId, std::move(aCallbackInfo)));
 }
 
-InputBlockState* InputQueue::FindBlockForId(uint64_t aInputBlockId,
-                                            InputData** aOutFirstInput) {
-  for (const auto& queuedInput : mQueuedInputs) {
-    if (queuedInput->Block()->GetBlockId() == aInputBlockId) {
+InputBlockState* InputQueue::FindBlockForId(
+    uint64_t aInputBlockId, InputQueueIterator* aOutFirstInput) {
+  for (auto it = mQueuedInputs.begin(), end = mQueuedInputs.end(); it != end;
+       ++it) {
+    if ((*it)->Block()->GetBlockId() == aInputBlockId) {
       if (aOutFirstInput) {
-        *aOutFirstInput = queuedInput->Input();
+        *aOutFirstInput = InputQueueIterator(it, end);
       }
-      return queuedInput->Block();
+      return (*it)->Block();
     }
   }
 
@@ -824,7 +827,7 @@ InputBlockState* InputQueue::FindBlockForId(uint64_t aInputBlockId,
   // Since we didn't encounter this block while iterating through mQueuedInputs,
   // it must have no events associated with it at the moment.
   if (aOutFirstInput) {
-    *aOutFirstInput = nullptr;
+    *aOutFirstInput = InputQueueIterator();
   }
   return block;
 }
@@ -839,7 +842,7 @@ void InputQueue::MainThreadTimeout(uint64_t aInputBlockId) {
 
   INPQ_LOG("got a main thread timeout; block=%" PRIu64 "\n", aInputBlockId);
   bool success = false;
-  InputData* firstInput = nullptr;
+  InputQueueIterator firstInput;
   InputBlockState* inputBlock = FindBlockForId(aInputBlockId, &firstInput);
   if (inputBlock && inputBlock->AsCancelableBlock()) {
     CancelableBlockState* block = inputBlock->AsCancelableBlock();
@@ -926,7 +929,7 @@ void InputQueue::SetConfirmedTargetApzc(
   INPQ_LOG("got a target apzc; block=%" PRIu64 " guid=%s\n", aInputBlockId,
            aTargetApzc ? ToString(aTargetApzc->GetGuid()).c_str() : "");
   bool success = false;
-  InputData* firstInput = nullptr;
+  InputQueueIterator firstInput;
   InputBlockState* inputBlock = FindBlockForId(aInputBlockId, &firstInput);
   if (inputBlock && inputBlock->AsCancelableBlock()) {
     CancelableBlockState* block = inputBlock->AsCancelableBlock();
@@ -957,7 +960,7 @@ void InputQueue::ConfirmDragBlock(
            aTargetApzc ? ToString(aTargetApzc->GetGuid()).c_str() : "",
            aDragMetrics.mViewId);
   bool success = false;
-  InputData* firstInput = nullptr;
+  InputQueueIterator firstInput;
   InputBlockState* inputBlock = FindBlockForId(aInputBlockId, &firstInput);
   if (inputBlock && inputBlock->AsDragBlock()) {
     DragBlockState* block = inputBlock->AsDragBlock();
@@ -1212,7 +1215,7 @@ bool InputQueue::CanDiscardBlock(InputBlockState* aBlock) {
       aBlock->MustStayActive()) {
     return false;
   }
-  InputData* firstInput = nullptr;
+  InputQueueIterator firstInput;
   FindBlockForId(aBlock->GetBlockId(), &firstInput);
   if (firstInput) {
     // The block has at least one input event still in the queue, so it's

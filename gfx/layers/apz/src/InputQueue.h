@@ -49,6 +49,24 @@ struct InputBlockCallbackInfo {
   InputBlockCallback mCallback;
 };
 
+class InputQueueIterator {
+  using Iterator = nsTArray<UniquePtr<QueuedInput>>::iterator;
+
+ public:
+  InputQueueIterator() : mCurrent(), mEnd() {}  // "null" iterator
+  InputQueueIterator(Iterator aCurrent, Iterator aEnd)
+      : mCurrent(aCurrent), mEnd(aEnd) {}
+
+  explicit operator bool() const { return mCurrent != mEnd; }
+  QueuedInput* operator*() const { return mCurrent->get(); }
+  QueuedInput* operator->() const { return mCurrent->get(); }
+  void operator++() { ++mCurrent; }
+
+ private:
+  Iterator mCurrent;
+  Iterator mEnd;
+};
+
 /**
  * This class stores incoming input events, associated with "input blocks",
  * until they are ready for handling.
@@ -228,7 +246,7 @@ class InputQueue {
    * active blocks (mActiveTouchBlock, mActiveWheelBlock, etc.).
    */
   InputBlockState* FindBlockForId(uint64_t aInputBlockId,
-                                  InputData** aOutFirstInput);
+                                  InputQueueIterator* aOutFirstInput);
   void ScheduleMainThreadTimeout(const RefPtr<AsyncPanZoomController>& aTarget,
                                  CancelableBlockState* aBlock);
   void MainThreadTimeout(uint64_t aInputBlockId);

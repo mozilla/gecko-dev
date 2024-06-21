@@ -31,6 +31,7 @@ class DragBlockState;
 class PanGestureBlockState;
 class PinchGestureBlockState;
 class KeyboardBlockState;
+class InputQueueIterator;
 enum class BrowserGestureResponse : bool;
 
 /**
@@ -65,7 +66,7 @@ class InputBlockState : public RefCounted<InputBlockState> {
 
   virtual bool SetConfirmedTargetApzc(
       const RefPtr<AsyncPanZoomController>& aTargetApzc,
-      TargetConfirmationState aState, InputData* aFirstInput,
+      TargetConfirmationState aState, InputQueueIterator aFirstInput,
       bool aForScrollbarDrag);
   const RefPtr<AsyncPanZoomController>& GetTargetApzc() const;
   const RefPtr<const OverscrollHandoffChain>& GetOverscrollHandoffChain() const;
@@ -209,7 +210,7 @@ class WheelBlockState : public CancelableBlockState {
   const char* Type() override;
   bool SetConfirmedTargetApzc(const RefPtr<AsyncPanZoomController>& aTargetApzc,
                               TargetConfirmationState aState,
-                              InputData* aFirstInput,
+                              InputQueueIterator aFirstInput,
                               bool aForScrollbarDrag) override;
 
   WheelBlockState* AsWheelBlock() override { return this; }
@@ -326,7 +327,7 @@ class PanGestureBlockState : public CancelableBlockState {
   const char* Type() override;
   bool SetConfirmedTargetApzc(const RefPtr<AsyncPanZoomController>& aTargetApzc,
                               TargetConfirmationState aState,
-                              InputData* aFirstInput,
+                              InputQueueIterator aFirstInput,
                               bool aForScrollbarDrag) override;
 
   PanGestureBlockState* AsPanGestureBlock() override { return this; }

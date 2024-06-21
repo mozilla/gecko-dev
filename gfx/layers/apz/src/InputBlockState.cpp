@@ -51,7 +51,7 @@ InputBlockState::InputBlockState(
 
 bool InputBlockState::SetConfirmedTargetApzc(
     const RefPtr<AsyncPanZoomController>& aTargetApzc,
-    TargetConfirmationState aState, InputData* aFirstInput,
+    TargetConfirmationState aState, InputQueueIterator aFirstInput,
     bool aForScrollbarDrag) {
   MOZ_ASSERT(aState == TargetConfirmationState::eConfirmed ||
              aState == TargetConfirmationState::eTimedOut);
@@ -319,7 +319,7 @@ bool WheelBlockState::SetContentResponse(bool aPreventDefault) {
 
 bool WheelBlockState::SetConfirmedTargetApzc(
     const RefPtr<AsyncPanZoomController>& aTargetApzc,
-    TargetConfirmationState aState, InputData* aFirstInput,
+    TargetConfirmationState aState, InputQueueIterator aFirstInput,
     bool aForScrollbarDrag) {
   // The APZC that we find via APZCCallbackHelpers may not be the same APZC
   // ESM or OverscrollHandoff would have computed. Make sure we get the right
@@ -327,7 +327,7 @@ bool WheelBlockState::SetConfirmedTargetApzc(
   RefPtr<AsyncPanZoomController> apzc = aTargetApzc;
   if (apzc && aFirstInput) {
     apzc = apzc->BuildOverscrollHandoffChain()->FindFirstScrollable(
-        *aFirstInput, &mAllowedScrollDirections);
+        *aFirstInput->Input(), &mAllowedScrollDirections);
   }
 
   InputBlockState::SetConfirmedTargetApzc(apzc, aState, aFirstInput,
@@ -522,7 +522,7 @@ PanGestureBlockState::PanGestureBlockState(
 
 bool PanGestureBlockState::SetConfirmedTargetApzc(
     const RefPtr<AsyncPanZoomController>& aTargetApzc,
-    TargetConfirmationState aState, InputData* aFirstInput,
+    TargetConfirmationState aState, InputQueueIterator aFirstInput,
     bool aForScrollbarDrag) {
   // The APZC that we find via APZCCallbackHelpers may not be the same APZC
   // ESM or OverscrollHandoff would have computed. Make sure we get the right
@@ -531,7 +531,7 @@ bool PanGestureBlockState::SetConfirmedTargetApzc(
   if (apzc && aFirstInput) {
     RefPtr<AsyncPanZoomController> scrollableApzc =
         apzc->BuildOverscrollHandoffChain()->FindFirstScrollable(
-            *aFirstInput, &mAllowedScrollDirections);
+            *aFirstInput->Input(), &mAllowedScrollDirections);
     if (scrollableApzc) {
       apzc = scrollableApzc;
     }
