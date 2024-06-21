@@ -142,9 +142,6 @@ document.addEventListener(
         case "view-menu-popup":
           onViewToolbarsPopupShowing(event);
           break;
-        case "viewSidebarMenu":
-          SidebarController.setMegalistMenubarVisibility(event);
-          break;
         case "pageStyleMenuPopup":
           gPageStyleMenu.fillPopup(event.target);
           break;

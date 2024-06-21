@@ -30,7 +30,7 @@
 #    will already have switched the button's state, so this is correct:
           oncommand="gCustomizeMode.toggleTitlebar(this.checked)" data-l10n-id="customize-mode-titlebar"/>
 <button id="customization-toolbar-visibility-button" class="footer-button" type="menu" data-l10n-id="customize-mode-toolbars">
-  <menupopup id="customization-toolbar-menu" onpopupshowing="onViewToolbarsPopupShowing(event)"/>
+  <menupopup id="customization-toolbar-menu" onpopupshowing="if (event.target == this) onViewToolbarsPopupShowing(event)"/>
 </button>
 <button id="customization-uidensity-button"
         data-l10n-id="customize-mode-uidensity"

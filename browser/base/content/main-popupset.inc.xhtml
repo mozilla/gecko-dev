@@ -261,7 +261,7 @@
   </menupopup>
 
   <menupopup id="toolbar-context-menu"
-             onpopupshowing="onViewToolbarsPopupShowing(event, document.getElementById('viewToolbarsMenuSeparator')); ToolbarContextMenu.updateDownloadsAutoHide(this); ToolbarContextMenu.updateDownloadsAlwaysOpenPanel(this); ToolbarContextMenu.updateExtension(this, event)">
+             onpopupshowing="if (event.target == this) { onViewToolbarsPopupShowing(event, document.getElementById('viewToolbarsMenuSeparator')) }; ToolbarContextMenu.updateDownloadsAutoHide(this); ToolbarContextMenu.updateDownloadsAlwaysOpenPanel(this); ToolbarContextMenu.updateExtension(this, event)">
     <menuitem id="toolbar-context-manage-extension"
               data-lazy-l10n-id="toolbar-context-menu-manage-extension"
               contexttype="toolbaritem"
