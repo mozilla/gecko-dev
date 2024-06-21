@@ -205,14 +205,13 @@ bool ModuleGenerator::init(CodeMetadataForAsmJS* codeMetaForAsmJS) {
   (void)metadataTier_->trapSites[Trap::OutOfBounds].reserve(
       codeSectionSize / ByteCodesPerOOBTrap);
 
-  // Allocate space in instance for declarations that need it
+  // Allocate space in instance for declarations that need it.  This sets
+  // various fields in `codeMeta_` and leaves the total length in
+  // `codeMeta_->instanceDataLength`.
   MOZ_ASSERT(codeMeta_->instanceDataLength == 0);
-
-  Maybe<uint32_t> maybeInstanceDataLength = codeMeta_->doInstanceLayout();
-  if (!maybeInstanceDataLength) {
+  if (!codeMeta_->initInstanceLayout()) {
     return false;
   }
-  codeMeta_->instanceDataLength = *maybeInstanceDataLength;
 
   // Initialize function import metadata
   if (!metadataTier_->funcImports.resize(codeMeta_->numFuncImports)) {
@@ -1014,12 +1013,6 @@ bool ModuleGenerator::finishCodeMetadata(const Bytes& bytecode) {
   // Finish initialization of Metadata, which is only needed for constructing
   // the initial Module, not for tier-2 compilation.
   MOZ_ASSERT(mode() != CompileMode::Tier2);
-
-  // Copy over data from the ModuleMetadata.
-
-  // FIXME: this seems pretty strange.  Do we need both?
-  // [yes.  ::builtinModules is serialised; ::features isn't.]
-  codeMeta_->builtinModules = codeMeta_->features.builtinModules;
 
   // Copy over additional debug information.
 

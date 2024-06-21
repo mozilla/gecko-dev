@@ -241,9 +241,8 @@ static void SendCodeRangesToProfiler(
     if (codeMetaForAsmJS) {
       ok = codeMetaForAsmJS->getFuncNameForAsmJS(codeRange.funcIndex(), &name);
     } else {
-      ok = GetFuncNameForWasm(NameContext::Standalone, codeRange.funcIndex(),
-                              codeMeta.namePayload, codeMeta.moduleName,
-                              codeMeta.funcNames, &name);
+      ok = codeMeta.getFuncNameForWasm(NameContext::Standalone,
+                                       codeRange.funcIndex(), &name);
     }
     if (!ok) {
       return;
@@ -758,55 +757,6 @@ const FuncExport& MetadataTier::lookupFuncExport(
                                                            funcExportIndex);
 }
 
-static bool AppendName(const Bytes& namePayload, const Name& name,
-                       UTF8Bytes* bytes) {
-  MOZ_RELEASE_ASSERT(name.offsetInNamePayload <= namePayload.length());
-  MOZ_RELEASE_ASSERT(name.length <=
-                     namePayload.length() - name.offsetInNamePayload);
-  return bytes->append(
-      (const char*)namePayload.begin() + name.offsetInNamePayload, name.length);
-}
-
-static bool AppendFunctionIndexName(uint32_t funcIndex, UTF8Bytes* bytes) {
-  const char beforeFuncIndex[] = "wasm-function[";
-  const char afterFuncIndex[] = "]";
-
-  Int32ToCStringBuf cbuf;
-  size_t funcIndexStrLen;
-  const char* funcIndexStr =
-      Uint32ToCString(&cbuf, funcIndex, &funcIndexStrLen);
-  MOZ_ASSERT(funcIndexStr);
-
-  return bytes->append(beforeFuncIndex, strlen(beforeFuncIndex)) &&
-         bytes->append(funcIndexStr, funcIndexStrLen) &&
-         bytes->append(afterFuncIndex, strlen(afterFuncIndex));
-}
-
-bool js::wasm::GetFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
-                                  SharedBytes namePayload,
-                                  const Maybe<Name>& moduleName,
-                                  const NameVector& funcNames,
-                                  UTF8Bytes* name) {
-  if (moduleName && moduleName->length != 0) {
-    if (!AppendName(namePayload->bytes, *moduleName, name)) {
-      return false;
-    }
-    if (!name->append('.')) {
-      return false;
-    }
-  }
-
-  if (funcIndex < funcNames.length() && funcNames[funcIndex].length != 0) {
-    return AppendName(namePayload->bytes, funcNames[funcIndex], name);
-  }
-
-  if (ctx == NameContext::BeforeLocation) {
-    return true;
-  }
-
-  return AppendFunctionIndexName(funcIndex, name);
-}
-
 bool CodeTier::initialize(const Code& code, const LinkData& linkData,
                           const CodeMetadata& codeMeta,
                           const CodeMetadataForAsmJS* codeMetaForAsmJS) {
@@ -1179,9 +1129,8 @@ void Code::ensureProfilingLabels(bool profilingEnabled) const {
       ok =
           codeMetaForAsmJS()->getFuncNameForAsmJS(codeRange.funcIndex(), &name);
     } else {
-      ok = GetFuncNameForWasm(NameContext::Standalone, codeRange.funcIndex(),
-                              codeMeta().namePayload, codeMeta().moduleName,
-                              codeMeta().funcNames, &name);
+      ok = codeMeta().getFuncNameForWasm(NameContext::Standalone,
+                                         codeRange.funcIndex(), &name);
     }
     if (!ok || !name.append(" (", 2)) {
       return;
@@ -1238,12 +1187,14 @@ void Code::addSizeOfMiscIfNotSeen(
   bool ok = seenCode->add(p, this);
   (void)ok;  // oh well
 
-  *data += mallocSizeOf(this) +
-           codeMeta().sizeOfIncludingThisIfNotSeen(mallocSizeOf, seenCodeMeta) +
-           codeMetaForAsmJS()->sizeOfIncludingThisIfNotSeen(
-               mallocSizeOf, seenCodeMetaForAsmJS) +
-           profilingLabels_.lock()->sizeOfExcludingThis(mallocSizeOf) +
-           jumpTables_.sizeOfMiscExcludingThis();
+  *data +=
+      mallocSizeOf(this) +
+      codeMeta().sizeOfIncludingThisIfNotSeen(mallocSizeOf, seenCodeMeta) +
+      (codeMetaForAsmJS() ? codeMetaForAsmJS()->sizeOfIncludingThisIfNotSeen(
+                                mallocSizeOf, seenCodeMetaForAsmJS)
+                          : 0) +
+      profilingLabels_.lock()->sizeOfExcludingThis(mallocSizeOf) +
+      jumpTables_.sizeOfMiscExcludingThis();
 
   for (auto t : tiers()) {
     codeTier(t).addSizeOfMisc(mallocSizeOf, code, data);
@@ -1297,9 +1248,8 @@ void Code::disassemble(JSContext* cx, Tier tier, int kindSelection,
           ok = codeMetaForAsmJS()->getFuncNameForAsmJS(range.funcIndex(),
                                                        &namebuf);
         } else {
-          ok = GetFuncNameForWasm(NameContext::Standalone, range.funcIndex(),
-                                  codeMeta().namePayload, codeMeta().moduleName,
-                                  codeMeta().funcNames, &namebuf);
+          ok = codeMeta().getFuncNameForWasm(NameContext::Standalone,
+                                             range.funcIndex(), &namebuf);
         }
         if (ok && namebuf.append('\0')) {
           funcName = namebuf.begin();

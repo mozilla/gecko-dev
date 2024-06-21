@@ -3352,9 +3352,8 @@ JSAtom* Instance::getFuncDisplayAtom(JSContext* cx, uint32_t funcIndex) const {
   if (codeMetaForAsmJS()) {
     ok = codeMetaForAsmJS()->getFuncNameForAsmJS(funcIndex, &name);
   } else {
-    ok = GetFuncNameForWasm(NameContext::BeforeLocation, funcIndex,
-                            codeMeta().namePayload, codeMeta().moduleName,
-                            codeMeta().funcNames, &name);
+    ok = codeMeta().getFuncNameForWasm(NameContext::BeforeLocation, funcIndex,
+                                       &name);
   }
   if (!ok) {
     return nullptr;

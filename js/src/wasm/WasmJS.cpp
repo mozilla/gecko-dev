@@ -166,7 +166,7 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
   const TableDescVector& tables = codeMeta.tables;
   for (const Import& import : moduleMeta.imports) {
     Maybe<BuiltinModuleId> builtinModule = ImportMatchesBuiltinModule(
-        import.module.utf8Bytes(), codeMeta.builtinModules);
+        import.module.utf8Bytes(), codeMeta.features.builtinModules);
     if (builtinModule) {
       MutableHandle<JSObject*> builtinInstance =
           builtinInstances[*builtinModule];
@@ -4127,11 +4127,11 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
     return nullptr;
   }
 
-  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta) {
     return nullptr;
   }
-  RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(compileArgs->features);
+  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(compileArgs->features);
   if (!codeMeta) {
     return nullptr;
   }

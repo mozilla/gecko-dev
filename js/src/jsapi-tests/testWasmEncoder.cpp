@@ -42,9 +42,9 @@ BEGIN_TEST(testWasmEncodeBasic) {
   SharedCompileArgs compileArgs =
       CompileArgs::buildAndReport(cx, std::move(scriptedCaller), options);
 
-  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   MOZ_ALWAYS_TRUE(moduleMeta);
-  RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(compileArgs->features);
+  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(compileArgs->features);
   MOZ_ALWAYS_TRUE(codeMeta);
   CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                   DebugEnabled::False);

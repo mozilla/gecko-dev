@@ -844,11 +844,11 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
 
-    RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+    MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
     if (!moduleMeta) {
       return nullptr;
     }
-    RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(compileArgs->features);
+    MutableCodeMetadata codeMeta = js_new<CodeMetadata>(compileArgs->features);
     if (!codeMeta) {
       return nullptr;
     }
@@ -1400,11 +1400,11 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
 
-    RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+    MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
     if (!moduleMeta) {
       return nullptr;
     }
-    RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(compileArgs->features);
+    MutableCodeMetadata codeMeta = js_new<CodeMetadata>(compileArgs->features);
     if (!codeMeta) {
       return nullptr;
     }

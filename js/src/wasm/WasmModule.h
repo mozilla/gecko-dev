@@ -80,8 +80,8 @@ struct ImportValues {
 
 class Module : public JS::WasmModule {
   // This has the same lifetime end as Module itself -- it can be dropped when
-  // Module itself is dropped.  FIXME: should this be MutableModuleMetadata?
-  SharedModuleMetadata moduleMeta_;
+  // Module itself is dropped.
+  const SharedModuleMetadata moduleMeta_;
 
   const SharedCode code_;
   const DataSegmentVector dataSegments_;
@@ -161,8 +161,6 @@ class Module : public JS::WasmModule {
     return code_->codeMetaForAsmJS();
   }
   const MetadataTier& metadata(Tier t) const { return code_->metadata(t); }
-  // const ImportVector& imports() const { return imports_; }
-  // const ExportVector& exports() const { return exports_; }
   const CustomSectionVector& customSections() const { return customSections_; }
   const Bytes& debugBytecode() const { return debugBytecode_->bytes; }
   uint32_t codeLength(Tier t) const { return code_->segment(t).length(); }

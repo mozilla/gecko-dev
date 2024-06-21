@@ -3370,11 +3370,11 @@ bool wasm::Validate(JSContext* cx, const ShareableBytes& bytecode,
   Decoder d(bytecode.bytes, 0, error);
 
   FeatureArgs features = FeatureArgs::build(cx, options);
-  RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(features);
+  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(features);
   if (!codeMeta || !codeMeta->init()) {
     return false;
   }
-  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta) {
     return false;
   }
