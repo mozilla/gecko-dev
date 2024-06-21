@@ -390,10 +390,12 @@ class RestyleManager {
    * element's parent has NODE_HAS_SLOW_SELECTOR_NTH_OF and the element has a
    * relevant attribute dependency.
    */
-  void MaybeRestyleForNthOfAttribute(dom::Element* aChild, nsAtom* aAttribute,
+  void MaybeRestyleForNthOfAttribute(dom::Element* aChild, int32_t aNameSpaceID,
+                                     nsAtom* aAttribute,
                                      const nsAttrValue* aOldValue);
 
   void MaybeRestyleForRelativeSelectorAttribute(dom::Element* aElement,
+                                                int32_t aNameSpaceID,
                                                 nsAtom* aAttribute,
                                                 const nsAttrValue* aOldValue);
   void MaybeRestyleForRelativeSelectorState(ServoStyleSet& aStyleSet,

@@ -3632,8 +3632,9 @@ void RestyleManager::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
 
   changeHint |= aElement->GetAttributeChangeHint(aAttribute, aModType);
 
-  MaybeRestyleForNthOfAttribute(aElement, aAttribute, aOldValue);
-  MaybeRestyleForRelativeSelectorAttribute(aElement, aAttribute, aOldValue);
+  MaybeRestyleForNthOfAttribute(aElement, aNameSpaceID, aAttribute, aOldValue);
+  MaybeRestyleForRelativeSelectorAttribute(aElement, aNameSpaceID, aAttribute,
+                                           aOldValue);
 
   if (aAttribute == nsGkAtoms::style) {
     restyleHint |= RestyleHint::RESTYLE_STYLE_ATTRIBUTE;
@@ -3686,7 +3687,8 @@ void RestyleManager::RestyleSiblingsForNthOf(Element* aChild,
 }
 
 void RestyleManager::MaybeRestyleForNthOfAttribute(
-    Element* aChild, nsAtom* aAttribute, const nsAttrValue* aOldValue) {
+    Element* aChild, int32_t aNameSpaceID, nsAtom* aAttribute,
+    const nsAttrValue* aOldValue) {
   const auto* parentNode = aChild->GetParentNode();
   MOZ_ASSERT(parentNode);
   const auto parentFlags = parentNode->GetSelectorFlags();
@@ -3699,13 +3701,15 @@ void RestyleManager::MaybeRestyleForNthOfAttribute(
 
   bool mightHaveNthOfDependency;
   auto& styleSet = *StyleSet();
-  if (aAttribute == nsGkAtoms::id) {
+  if (aAttribute == nsGkAtoms::id &&
+      MOZ_LIKELY(aNameSpaceID == kNameSpaceID_None)) {
     auto* const oldAtom = aOldValue->Type() == nsAttrValue::eAtom
                               ? aOldValue->GetAtomValue()
                               : nullptr;
     mightHaveNthOfDependency =
         styleSet.MightHaveNthOfIDDependency(*aChild, oldAtom, aChild->GetID());
-  } else if (aAttribute == nsGkAtoms::_class) {
+  } else if (aAttribute == nsGkAtoms::_class &&
+             MOZ_LIKELY(aNameSpaceID == kNameSpaceID_None)) {
     mightHaveNthOfDependency = styleSet.MightHaveNthOfClassDependency(*aChild);
   } else {
     mightHaveNthOfDependency =
@@ -3718,18 +3722,21 @@ void RestyleManager::MaybeRestyleForNthOfAttribute(
 }
 
 void RestyleManager::MaybeRestyleForRelativeSelectorAttribute(
-    Element* aElement, nsAtom* aAttribute, const nsAttrValue* aOldValue) {
+    Element* aElement, int32_t aNameSpaceID, nsAtom* aAttribute,
+    const nsAttrValue* aOldValue) {
   if (!aElement->HasFlag(ELEMENT_HAS_SNAPSHOT)) {
     return;
   }
   auto& styleSet = *StyleSet();
-  if (aAttribute == nsGkAtoms::id) {
+  if (aAttribute == nsGkAtoms::id &&
+      MOZ_LIKELY(aNameSpaceID == kNameSpaceID_None)) {
     auto* const oldAtom = aOldValue->Type() == nsAttrValue::eAtom
                               ? aOldValue->GetAtomValue()
                               : nullptr;
     styleSet.MaybeInvalidateRelativeSelectorIDDependency(
         *aElement, oldAtom, aElement->GetID(), Snapshots());
-  } else if (aAttribute == nsGkAtoms::_class) {
+  } else if (aAttribute == nsGkAtoms::_class &&
+             MOZ_LIKELY(aNameSpaceID == kNameSpaceID_None)) {
     styleSet.MaybeInvalidateRelativeSelectorClassDependency(*aElement,
                                                             Snapshots());
   } else {
