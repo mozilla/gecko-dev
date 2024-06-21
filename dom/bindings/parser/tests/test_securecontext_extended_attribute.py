@@ -466,6 +466,124 @@ def WebIDLTest(parser, harness):
         ),
     )
 
+    # Test namespace
+    parser = parser.reset()
+    parser.parse(
+        """
+        [SecureContext]
+        namespace TestSecureContextOnNamespace {
+          const octet TEST_CONSTANT = 0;
+          readonly attribute byte testAttribute;
+          undefined testMethod(byte foo);
+        };
+        partial namespace TestSecureContextOnNamespace {
+          const octet TEST_CONSTANT_2 = 0;
+          readonly attribute byte testAttribute2;
+          undefined testMethod2(byte foo);
+        };
+    """
+    )
+    results = parser.finish()
+    harness.check(
+        len(results[0].members),
+        6,
+        "TestSecureContextOnNamespace should have six members",
+    )
+    harness.ok(
+        results[0].getExtendedAttribute("SecureContext"),
+        "Namespace should have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[0].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from namespace to constant members",
+    )
+    harness.ok(
+        results[0].members[1].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from namespace to attribute members",
+    )
+    harness.ok(
+        results[0].members[2].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from namespace to method members",
+    )
+    harness.ok(
+        results[0].members[3].getExtendedAttribute("SecureContext"),
+        (
+            "[SecureContext] should propagate from namespace to "
+            "constant members from partial namespace"
+        ),
+    )
+    harness.ok(
+        results[0].members[4].getExtendedAttribute("SecureContext"),
+        (
+            "[SecureContext] should propagate from namespace to "
+            "attribute members from partial namespace"
+        ),
+    )
+    harness.ok(
+        results[0].members[5].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from namespace to method members from partial namespace",
+    )
+
+    parser = parser.reset()
+    parser.parse(
+        """
+        namespace TestSecureContextOnNamespace {
+          const octet TEST_CONSTANT = 0;
+          readonly attribute byte testAttribute;
+          undefined testMethod(byte foo);
+        };
+        [SecureContext]
+        partial namespace TestSecureContextOnNamespace {
+          const octet TEST_CONSTANT_2 = 0;
+          readonly attribute byte testAttribute2;
+          undefined testMethod2(byte foo);
+        };
+    """
+    )
+    results = parser.finish()
+    harness.check(
+        len(results[0].members),
+        6,
+        "TestSecureContextOnNamespace should have six members",
+    )
+    harness.ok(
+        results[0].getExtendedAttribute("SecureContext") is None,
+        "Namespace should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[0].getExtendedAttribute("SecureContext") is None,
+        (
+            "[SecureContext] should not propagate from a partial namespace to the namespace's "
+            "constant members"
+        ),
+    )
+    harness.ok(
+        results[0].members[1].getExtendedAttribute("SecureContext") is None,
+        (
+            "[SecureContext] should not propagate from a partial namespace to the namespace's "
+            "attribute members"
+        ),
+    )
+    harness.ok(
+        results[0].members[2].getExtendedAttribute("SecureContext") is None,
+        (
+            "[SecureContext] should not propagate from a partial namespace to the namespace's "
+            "method members"
+        ),
+    )
+    harness.ok(
+        results[0].members[3].getExtendedAttribute("SecureContext"),
+        "Constant members from [SecureContext] partial namespace should be [SecureContext]",
+    )
+    harness.ok(
+        results[0].members[4].getExtendedAttribute("SecureContext"),
+        "Attribute members from [SecureContext] partial namespace should be [SecureContext]",
+    )
+    harness.ok(
+        results[0].members[5].getExtendedAttribute("SecureContext"),
+        "Method members from [SecureContext] partial namespace should be [SecureContext]",
+    )
+
     # Test 'includes'.
     parser = parser.reset()
     parser.parse(
@@ -513,6 +631,54 @@ def WebIDLTest(parser, harness):
     harness.ok(
         results[0].members[3].getExtendedAttribute("SecureContext") is None,
         "Methods copied from non-[SecureContext] mixin should not be [SecureContext]",
+    )
+
+    parser = parser.reset()
+    parser.parse(
+        """
+        interface TestSecureContextInterfaceThatIncludesNonSecureContextMixin {
+          const octet TEST_CONSTANT = 0;
+        };
+        [SecureContext]
+        interface mixin TestNonSecureContextMixin {
+          const octet TEST_CONSTANT_2 = 0;
+          readonly attribute byte testAttribute2;
+          undefined testMethod2(byte foo);
+        };
+        TestSecureContextInterfaceThatIncludesNonSecureContextMixin includes TestNonSecureContextMixin;
+     """
+    )
+    results = parser.finish()
+    harness.check(
+        len(results[0].members),
+        4,
+        (
+            "TestSecureContextInterfaceThatImplementsNonSecureContextInterface should have four "
+            "members"
+        ),
+    )
+    harness.ok(
+        results[0].getExtendedAttribute("SecureContext") is None,
+        "Interface should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[0].getExtendedAttribute("SecureContext") is None,
+        (
+            "[SecureContext] should not propagate from interface to constant members when other "
+            "members are copied from a [SecureContext] mixin"
+        ),
+    )
+    harness.ok(
+        results[0].members[1].getExtendedAttribute("SecureContext"),
+        "Constants copied from [SecureContext] mixin should be [SecureContext]",
+    )
+    harness.ok(
+        results[0].members[2].getExtendedAttribute("SecureContext"),
+        "Attributes copied from [SecureContext] mixin should be [SecureContext]",
+    )
+    harness.ok(
+        results[0].members[3].getExtendedAttribute("SecureContext"),
+        "Methods copied from [SecureContext] mixin should be [SecureContext]",
     )
 
     # Test SecureContext and LegacyNoInterfaceObject

@@ -884,6 +884,21 @@ class IDLInterfaceOrInterfaceMixinOrNamespace(IDLObjectWithScope, IDLExposureMix
         identifier = attr.identifier()
         if identifier == "Exposed":
             convertExposedAttrToGlobalNameSet(attr, self._exposureGlobalNames)
+        elif identifier == "SecureContext":
+            if not attr.noArguments():
+                raise WebIDLError(
+                    "[SecureContext] must take no arguments", [attr.location]
+                )
+            # This gets propagated to all our members.
+            for member in self.members:
+                if member.getExtendedAttribute("SecureContext"):
+                    typeName = self.typeName()
+                    raise WebIDLError(
+                        "[SecureContext] specified on both an %s member and on "
+                        "%s itself" % (typeName, typeName),
+                        [member.location, attr.location],
+                    )
+                member.addExtendedAttributes([attr])
         else:
             raise WebIDLError(
                 "Unknown extended attribute %s on %s" % (identifier, self.typeName()),
@@ -1024,26 +1039,6 @@ class IDLInterfaceMixin(IDLInterfaceOrInterfaceMixinOrNamespace):
                         "Interface mixin member cannot include a " "special operation",
                         [member.location, self.location],
                     )
-
-    def handleExtendedAttribute(self, attr):
-        identifier = attr.identifier()
-        if identifier == "SecureContext":
-            if not attr.noArguments():
-                raise WebIDLError(
-                    "[%s] must take no arguments" % identifier, [attr.location]
-                )
-            # This gets propagated to all our members.
-            for member in self.members:
-                if member.getExtendedAttribute("SecureContext"):
-                    raise WebIDLError(
-                        "[SecureContext] specified on both "
-                        "an interface mixin member and on"
-                        "the interface mixin itself",
-                        [member.location, attr.location],
-                    )
-                member.addExtendedAttributes([attr])
-        else:
-            IDLInterfaceOrInterfaceMixinOrNamespace.handleExtendedAttribute(self, attr)
 
     def _getDependentObjects(self):
         return set(self.members)
@@ -2082,21 +2077,6 @@ class IDLInterface(IDLInterfaceOrNamespace):
             for alias in self.legacyWindowAliases:
                 unresolved = IDLUnresolvedIdentifier(attr.location, alias)
                 IDLObjectWithIdentifier(attr.location, self.parentScope, unresolved)
-        elif identifier == "SecureContext":
-            if not attr.noArguments():
-                raise WebIDLError(
-                    "[%s] must take no arguments" % identifier, [attr.location]
-                )
-            # This gets propagated to all our members.
-            for member in self.members:
-                if member.getExtendedAttribute("SecureContext"):
-                    raise WebIDLError(
-                        "[SecureContext] specified on both "
-                        "an interface member and on the "
-                        "interface itself",
-                        [member.location, attr.location],
-                    )
-                member.addExtendedAttributes([attr])
         elif (
             identifier == "NeedResolve"
             or identifier == "LegacyOverrideBuiltIns"
