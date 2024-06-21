@@ -57,7 +57,6 @@ class InputBlockState : public RefCounted<InputBlockState> {
 
   virtual CancelableBlockState* AsCancelableBlock() { return nullptr; }
   virtual TouchBlockState* AsTouchBlock() { return nullptr; }
-  virtual const TouchBlockState* AsTouchBlock() const { return nullptr; }
   virtual WheelBlockState* AsWheelBlock() { return nullptr; }
   virtual DragBlockState* AsDragBlock() { return nullptr; }
   virtual PanGestureBlockState* AsPanGestureBlock() { return nullptr; }
@@ -430,7 +429,6 @@ class TouchBlockState : public CancelableBlockState {
                            TouchCounter& aTouchCounter);
 
   TouchBlockState* AsTouchBlock() override { return this; }
-  const TouchBlockState* AsTouchBlock() const override { return this; }
 
   /**
    * Set the allowed touch behavior flags for this block.
@@ -536,7 +534,7 @@ class TouchBlockState : public CancelableBlockState {
    * can be made.
    */
   Maybe<ScrollDirection> GetBestGuessPanDirection(
-      const MultiTouchInput& aInput) const;
+      const MultiTouchInput& aInput);
 
   /**
    * Returns the number of touch points currently active.

@@ -26,130 +26,6 @@
 namespace mozilla {
 namespace layers {
 
-APZHandledResult::APZHandledResult(APZHandledPlace aPlace,
-                                   const AsyncPanZoomController* aTarget,
-                                   bool aPopulateDirectionsForUnhandled)
-    : mPlace(aPlace) {
-  MOZ_ASSERT(aTarget);
-  switch (aPlace) {
-    case APZHandledPlace::Unhandled:
-      if (aTarget && aPopulateDirectionsForUnhandled) {
-        mScrollableDirections = aTarget->ScrollableDirections();
-        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
-      }
-      break;
-    case APZHandledPlace::HandledByContent:
-      if (aTarget) {
-        mScrollableDirections = aTarget->ScrollableDirections();
-        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
-      }
-      break;
-    case APZHandledPlace::HandledByRoot: {
-      MOZ_ASSERT(aTarget->IsRootContent());
-      if (aTarget) {
-        mScrollableDirections = aTarget->ScrollableDirections();
-        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
-      }
-      break;
-    }
-    default:
-      MOZ_ASSERT_UNREACHABLE("Invalid APZHandledPlace");
-      break;
-  }
-}
-
-/* static */
-Maybe<APZHandledResult> APZHandledResult::Initialize(
-    const AsyncPanZoomController* aInitialTarget,
-    DispatchToContent aDispatchToContent) {
-  if (!aInitialTarget->IsRootContent()) {
-    // If the initial target is not the root, this will definitely not be
-    // handled by the root. (The confirmed target is either the initial
-    // target, or a descendant.)
-    return Some(
-        APZHandledResult{APZHandledPlace::HandledByContent, aInitialTarget});
-  }
-
-  if (!bool(aDispatchToContent)) {
-    // If the initial target is the root and we don't need to dispatch to
-    // content, the event will definitely be handled by the root.
-    return Some(
-        APZHandledResult{APZHandledPlace::HandledByRoot, aInitialTarget});
-  }
-
-  // Otherwise, we're not sure.
-  return Nothing();
-}
-
-/* static */
-void APZHandledResult::UpdateForTouchEvent(
-    Maybe<APZHandledResult>& aHandledResult, const InputBlockState& aBlock,
-    PointerEventsConsumableFlags aConsumableFlags,
-    const AsyncPanZoomController* aTarget,
-    DispatchToContent aDispatchToContent) {
-  // If the touch event's effect is disallowed by touch-action, treat it as if
-  // a touch event listener had preventDefault()-ed it (i.e. return
-  // HandledByContent, except we can do it eagerly rather than having to wait
-  // for the listener to run).
-  if (!aConsumableFlags.mAllowedByTouchAction) {
-    aHandledResult =
-        Some(APZHandledResult{APZHandledPlace::HandledByContent, aTarget});
-    aHandledResult->mOverscrollDirections = ScrollDirections();
-    return;
-  }
-
-  if (aHandledResult && !bool(aDispatchToContent) &&
-      !aConsumableFlags.mHasRoom) {
-    // Set result to Unhandled if we have no room to scroll, unless it
-    // was HandledByContent because we're over a dispatch-to-content region,
-    // in which case it should remain HandledByContent.
-    aHandledResult->mPlace = APZHandledPlace::Unhandled;
-  }
-
-  if (aTarget && !aTarget->IsRootContent()) {
-    // If the event targets a subframe but the subframe and its ancestors
-    // are all scrolled to the top, we want an upward swipe to allow
-    // triggering pull-to-refresh.
-    bool mayTriggerPullToRefresh =
-        aBlock.GetOverscrollHandoffChain()->ScrollingUpWillTriggerPullToRefresh(
-            aTarget);
-    if (mayTriggerPullToRefresh) {
-      // Similar to what is done for the dynamic toolbar, we need to ensure
-      // that if the input has the dispatch to content flag, we need to change
-      // the handled result to Nothing(), so that GeckoView can wait for the
-      // result.
-      aHandledResult = bool(aDispatchToContent)
-                           ? Nothing()
-                           : Some(APZHandledResult{APZHandledPlace::Unhandled,
-                                                   aTarget, true});
-    }
-
-    auto [mayMoveDynamicToolbar, rootApzc] =
-        aBlock.GetOverscrollHandoffChain()->ScrollingDownWillMoveDynamicToolbar(
-            aTarget);
-    if (mayMoveDynamicToolbar) {
-      MOZ_ASSERT(rootApzc && rootApzc->IsRootContent());
-      // The event is actually consumed by a non-root APZC but scroll
-      // positions in all relevant APZCs are at the bottom edge, so if there's
-      // still contents covered by the dynamic toolbar we need to move the
-      // dynamic toolbar to make the covered contents visible, thus we need
-      // to tell it to GeckoView so we handle it as if it's consumed in the
-      // root APZC.
-      // IMPORTANT NOTE: If the incoming TargetConfirmationFlags has
-      // mDispatchToContent, we need to change it to Nothing() so that
-      // GeckoView can properly wait for results from the content on the
-      // main-thread.
-      aHandledResult =
-          bool(aDispatchToContent)
-              ? Nothing()
-              : Some(APZHandledResult{aConsumableFlags.IsConsumable()
-                                          ? APZHandledPlace::HandledByRoot
-                                          : APZHandledPlace::Unhandled,
-                                      rootApzc});
-    }
-  }
-}
-
 APZEventResult::APZEventResult()
     : mStatus(nsEventStatus_eIgnore),
       mInputBlockId(InputBlockState::NO_BLOCK_ID) {}
@@ -158,8 +34,25 @@ APZEventResult::APZEventResult(
     const RefPtr<AsyncPanZoomController>& aInitialTarget,
     TargetConfirmationFlags aFlags)
     : APZEventResult() {
-  mHandledResult =
-      APZHandledResult::Initialize(aInitialTarget, aFlags.DispatchToContent());
+  mHandledResult = [&]() -> Maybe<APZHandledResult> {
+    if (!aInitialTarget->IsRootContent()) {
+      // If the initial target is not the root, this will definitely not be
+      // handled by the root. (The confirmed target is either the initial
+      // target, or a descendant.)
+      return Some(
+          APZHandledResult{APZHandledPlace::HandledByContent, aInitialTarget});
+    }
+
+    if (!aFlags.mDispatchToContent) {
+      // If the initial target is the root and we don't need to dispatch to
+      // content, the event will definitely be handled by the root.
+      return Some(
+          APZHandledResult{APZHandledPlace::HandledByRoot, aInitialTarget});
+    }
+
+    // Otherwise, we're not sure.
+    return Nothing();
+  }();
   aInitialTarget->GetGuid(&mTargetGuid);
 }
 
@@ -189,9 +82,74 @@ void APZEventResult::SetStatusForTouchEvent(
   mStatus = aConsumableFlags.IsConsumable() ? nsEventStatus_eConsumeDoDefault
                                             : nsEventStatus_eIgnore;
 
-  APZHandledResult::UpdateForTouchEvent(mHandledResult, aBlock,
-                                        aConsumableFlags, aTarget,
-                                        aFlags.DispatchToContent());
+  UpdateHandledResult(aBlock, aConsumableFlags, aTarget,
+                      aFlags.mDispatchToContent);
+}
+
+void APZEventResult::UpdateHandledResult(
+    const InputBlockState& aBlock,
+    PointerEventsConsumableFlags aConsumableFlags,
+    const AsyncPanZoomController* aTarget, bool aDispatchToContent) {
+  // If the touch event's effect is disallowed by touch-action, treat it as if
+  // a touch event listener had preventDefault()-ed it (i.e. return
+  // HandledByContent, except we can do it eagerly rather than having to wait
+  // for the listener to run).
+  if (!aConsumableFlags.mAllowedByTouchAction) {
+    mHandledResult =
+        Some(APZHandledResult{APZHandledPlace::HandledByContent, aTarget});
+    mHandledResult->mOverscrollDirections = ScrollDirections();
+    return;
+  }
+
+  if (mHandledResult && !aDispatchToContent && !aConsumableFlags.mHasRoom) {
+    // Set result to Unhandled if we have no room to scroll, unless it
+    // was HandledByContent because we're over a dispatch-to-content region,
+    // in which case it should remain HandledByContent.
+    mHandledResult->mPlace = APZHandledPlace::Unhandled;
+  }
+
+  if (aTarget && !aTarget->IsRootContent()) {
+    // If the event targets a subframe but the subframe and its ancestors
+    // are all scrolled to the top, we want an upward swipe to allow
+    // triggering pull-to-refresh.
+    bool mayTriggerPullToRefresh =
+        aBlock.GetOverscrollHandoffChain()->ScrollingUpWillTriggerPullToRefresh(
+            aTarget);
+    if (mayTriggerPullToRefresh) {
+      // Similar to what is done for the dynamic toolbar, we need to ensure
+      // that if the input has the dispatch to content flag, we need to change
+      // the handled result to Nothing(), so that GeckoView can wait for the
+      // result.
+      mHandledResult = (aDispatchToContent)
+                           ? Nothing()
+                           : Some(APZHandledResult{APZHandledPlace::Unhandled,
+                                                   aTarget, true});
+    }
+
+    auto [mayMoveDynamicToolbar, rootApzc] =
+        aBlock.GetOverscrollHandoffChain()->ScrollingDownWillMoveDynamicToolbar(
+            aTarget);
+    if (mayMoveDynamicToolbar) {
+      MOZ_ASSERT(rootApzc && rootApzc->IsRootContent());
+      // The event is actually consumed by a non-root APZC but scroll
+      // positions in all relevant APZCs are at the bottom edge, so if there's
+      // still contents covered by the dynamic toolbar we need to move the
+      // dynamic toolbar to make the covered contents visible, thus we need
+      // to tell it to GeckoView so we handle it as if it's consumed in the
+      // root APZC.
+      // IMPORTANT NOTE: If the incoming TargetConfirmationFlags has
+      // mDispatchToContent, we need to change it to Nothing() so that
+      // GeckoView can properly wait for results from the content on the
+      // main-thread.
+      mHandledResult =
+          aDispatchToContent
+              ? Nothing()
+              : Some(APZHandledResult{aConsumableFlags.IsConsumable()
+                                          ? APZHandledPlace::HandledByRoot
+                                          : APZHandledPlace::Unhandled,
+                                      rootApzc});
+    }
+  }
 }
 
 void APZEventResult::SetStatusForFastFling(
@@ -207,8 +165,8 @@ void APZEventResult::SetStatusForFastFling(
   // In the case of fast fling, the event will never be sent to content, so we
   // want a result where `aDispatchToContent` is false whatever the original
   // `aFlags.mDispatchToContent` is.
-  APZHandledResult::UpdateForTouchEvent(
-      mHandledResult, aBlock, aConsumableFlags, aTarget, DispatchToContent::No);
+  UpdateHandledResult(aBlock, aConsumableFlags, aTarget, false /*
+  aDispatchToContent */);
 }
 
 static bool WillHandleMouseEvent(const WidgetMouseEventBase& aEvent) {
@@ -396,6 +354,38 @@ APZEventResult APZInputBridge::ReceiveInputEvent(
   MOZ_ASSERT_UNREACHABLE("Invalid WidgetInputEvent type.");
   result.SetStatusAsConsumeNoDefault();
   return result;
+}
+
+APZHandledResult::APZHandledResult(APZHandledPlace aPlace,
+                                   const AsyncPanZoomController* aTarget,
+                                   bool aPopulateDirectionsForUnhandled)
+    : mPlace(aPlace) {
+  MOZ_ASSERT(aTarget);
+  switch (aPlace) {
+    case APZHandledPlace::Unhandled:
+      if (aTarget && aPopulateDirectionsForUnhandled) {
+        mScrollableDirections = aTarget->ScrollableDirections();
+        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
+      }
+      break;
+    case APZHandledPlace::HandledByContent:
+      if (aTarget) {
+        mScrollableDirections = aTarget->ScrollableDirections();
+        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
+      }
+      break;
+    case APZHandledPlace::HandledByRoot: {
+      MOZ_ASSERT(aTarget->IsRootContent());
+      if (aTarget) {
+        mScrollableDirections = aTarget->ScrollableDirections();
+        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
+      }
+      break;
+    }
+    default:
+      MOZ_ASSERT_UNREACHABLE("Invalid APZHandledPlace");
+      break;
+  }
 }
 
 std::ostream& operator<<(std::ostream& aOut, const SideBits& aSideBits) {

@@ -1987,10 +1987,15 @@ APZCTreeManager::HitTestResult APZCTreeManager::GetTouchInputBlockAPZC(
     hit.mLayersId = LayersId{0};
   }
 
-  aOutTouchBehaviors->AppendElement(ConvertToTouchBehavior(hit.mHitResult));
+  if (aOutTouchBehaviors) {
+    aOutTouchBehaviors->AppendElement(ConvertToTouchBehavior(hit.mHitResult));
+  }
   for (size_t i = 1; i < aEvent.mTouches.Length(); i++) {
     HitTestResult hit2 = GetTargetAPZC(aEvent.mTouches[i].mScreenPoint);
-    aOutTouchBehaviors->AppendElement(ConvertToTouchBehavior(hit2.mHitResult));
+    if (aOutTouchBehaviors) {
+      aOutTouchBehaviors->AppendElement(
+          ConvertToTouchBehavior(hit2.mHitResult));
+    }
     hit.mTargetApzc = GetZoomableTarget(hit.mTargetApzc, hit2.mTargetApzc);
     APZCTM_LOG("Using APZC %p as the root APZC for multi-touch\n",
                hit.mTargetApzc.get());
@@ -2025,8 +2030,8 @@ APZEventResult APZCTreeManager::InputHandlingState::Finish(
   // If the event will have a delayed result then add the callback to the
   // APZCTreeManager.
   if (aCallback && mResult.WillHaveDelayedResult()) {
-    aTreeManager.AddInputBlockCallback(mResult.mInputBlockId,
-                                       std::move(aCallback));
+    aTreeManager.AddInputBlockCallback(
+        mResult.mInputBlockId, {mResult.GetStatus(), std::move(aCallback)});
   }
 
   return mResult;
@@ -3058,10 +3063,10 @@ void APZCTreeManager::SetLongTapEnabled(bool aLongTapEnabled) {
   GestureEventListener::SetLongTapEnabled(aLongTapEnabled);
 }
 
-void APZCTreeManager::AddInputBlockCallback(uint64_t aInputBlockId,
-                                            InputBlockCallback&& aCallback) {
+void APZCTreeManager::AddInputBlockCallback(
+    uint64_t aInputBlockId, InputBlockCallbackInfo&& aCallbackInfo) {
   APZThreadUtils::AssertOnControllerThread();
-  mInputQueue->AddInputBlockCallback(aInputBlockId, std::move(aCallback));
+  mInputQueue->AddInputBlockCallback(aInputBlockId, std::move(aCallbackInfo));
 }
 
 void APZCTreeManager::FindScrollThumbNode(
