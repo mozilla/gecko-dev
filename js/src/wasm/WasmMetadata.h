@@ -130,7 +130,7 @@ using FuncImportVector = Vector<FuncImport, 0, SystemAllocPolicy>;
 // Note that ModuleMetadata is not serialized, so data needing serialization
 // cannot live here -- instead it must live in CodeMetadata.
 
-struct ModuleMetadata {
+struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
   // Module fields decoded from the module environment (or initialized while
   // validating an asm.js module) and immutable during compilation:
   ImportVector imports;
@@ -140,7 +140,12 @@ struct ModuleMetadata {
   DataSegmentRangeVector dataSegmentRanges;
 
   explicit ModuleMetadata() {}
+
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
+
+using MutableModuleMetadata = RefPtr<ModuleMetadata>;
+using SharedModuleMetadata = RefPtr<const ModuleMetadata>;
 
 // wasm::CodeMetadata contains metadata whose lifetime ends at the same time
 // that the lifetime of wasm::Code ends.  This encompasses a wide variety of

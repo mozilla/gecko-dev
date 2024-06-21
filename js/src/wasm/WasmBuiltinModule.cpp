@@ -143,12 +143,16 @@ bool CompileBuiltinModule(JSContext* cx,
   compilerEnv.computeParameters();
 
   // Build a module metadata struct
+  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  if (!moduleMeta) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
   RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(compileArgs->features);
   if (!codeMeta || !codeMeta->init()) {
     ReportOutOfMemory(cx);
     return false;
   }
-  ModuleMetadata moduleMeta;
 
   if (memory.isSome()) {
     // Add (import (memory 0))
@@ -158,9 +162,9 @@ bool CompileBuiltinModule(JSContext* cx,
       ReportOutOfMemory(cx);
       return false;
     }
-    if (!moduleMeta.imports.append(Import(std::move(emptyString),
-                                          std::move(memoryString),
-                                          DefinitionKind::Memory))) {
+    if (!moduleMeta->imports.append(Import(std::move(emptyString),
+                                           std::move(memoryString),
+                                           DefinitionKind::Memory))) {
       ReportOutOfMemory(cx);
       return false;
     }
@@ -205,8 +209,8 @@ bool CompileBuiltinModule(JSContext* cx,
     CacheableName exportName;
     if (!CacheableName::fromUTF8Chars(builtinModuleFunc.exportName(),
                                       &exportName) ||
-        !moduleMeta.exports.append(Export(std::move(exportName), funcIndex,
-                                          DefinitionKind::Function))) {
+        !moduleMeta->exports.append(Export(std::move(exportName), funcIndex,
+                                           DefinitionKind::Function))) {
       ReportOutOfMemory(cx);
       return false;
     }
@@ -214,7 +218,7 @@ bool CompileBuiltinModule(JSContext* cx,
 
   // Compile the module functions
   UniqueChars error;
-  ModuleGenerator mg(*compileArgs, codeMeta, &moduleMeta, &compilerEnv, nullptr,
+  ModuleGenerator mg(*compileArgs, codeMeta, moduleMeta, &compilerEnv, nullptr,
                      &error, nullptr);
   if (!mg.init(nullptr)) {
     ReportOutOfMemory(cx);

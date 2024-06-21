@@ -146,11 +146,12 @@ static bool IsWasmSuspendingWrapper(const Value& v) {
 
 bool js::wasm::GetImports(JSContext* cx, const Module& module,
                           HandleObject importObj, ImportValues* imports) {
-  if (!module.imports().empty() && !importObj) {
+  const ModuleMetadata& moduleMeta = module.moduleMeta();
+  const CodeMetadata& codeMeta = module.codeMeta();
+
+  if (!moduleMeta.imports.empty() && !importObj) {
     return ThrowBadImportArg(cx);
   }
-
-  const CodeMetadata& codeMeta = module.codeMeta();
 
   BuiltinModuleInstances builtinInstances(cx);
   RootedValue importModuleValue(cx);
@@ -163,7 +164,7 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
   const GlobalDescVector& globals = codeMeta.globals;
   uint32_t tableIndex = 0;
   const TableDescVector& tables = codeMeta.tables;
-  for (const Import& import : module.imports()) {
+  for (const Import& import : moduleMeta.imports) {
     Maybe<BuiltinModuleId> builtinModule = ImportMatchesBuiltinModule(
         import.module.utf8Bytes(), codeMeta.builtinModules);
     if (builtinModule) {
@@ -1116,8 +1117,10 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  const ModuleMetadata& moduleMeta = module->moduleMeta();
+
   RootedValueVector elems(cx);
-  if (!elems.reserve(module->imports().length())) {
+  if (!elems.reserve(moduleMeta.imports.length())) {
     return false;
   }
 
@@ -1133,7 +1136,7 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
   size_t numTagImport = 0;
 #endif  // ENABLE_WASM_TYPE_REFLECTIONS
 
-  for (const Import& import : module->imports()) {
+  for (const Import& import : moduleMeta.imports) {
     Rooted<IdValueVector> props(cx, IdValueVector(cx));
     if (!props.reserve(3)) {
       return false;
@@ -1237,8 +1240,10 @@ bool WasmModuleObject::exports(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  const ModuleMetadata& moduleMeta = module->moduleMeta();
+
   RootedValueVector elems(cx);
-  if (!elems.reserve(module->exports().length())) {
+  if (!elems.reserve(moduleMeta.exports.length())) {
     return false;
   }
 
@@ -1248,7 +1253,7 @@ bool WasmModuleObject::exports(JSContext* cx, unsigned argc, Value* vp) {
       module->metadata(module->code().stableTier());
 #endif  // ENABLE_WASM_TYPE_REFLECTIONS
 
-  for (const Export& exp : module->exports()) {
+  for (const Export& exp : moduleMeta.exports) {
     Rooted<IdValueVector> props(cx, IdValueVector(cx));
     if (!props.reserve(2)) {
       return false;
@@ -4122,11 +4127,14 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
     return nullptr;
   }
 
+  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  if (!moduleMeta) {
+    return nullptr;
+  }
   RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(compileArgs->features);
   if (!codeMeta) {
     return nullptr;
   }
-  ModuleMetadata moduleMeta;  // FIXME is this needed?
   CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters();
@@ -4154,12 +4162,12 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
   // We will be looking up and using the function in the future by index so the
   // name doesn't matter.
   CacheableName fieldName;
-  if (!moduleMeta.exports.emplaceBack(std::move(fieldName), 0,
-                                      DefinitionKind::Function)) {
+  if (!moduleMeta->exports.emplaceBack(std::move(fieldName), 0,
+                                       DefinitionKind::Function)) {
     return nullptr;
   }
 
-  ModuleGenerator mg(*compileArgs, codeMeta, &moduleMeta, &compilerEnv, nullptr,
+  ModuleGenerator mg(*compileArgs, codeMeta, moduleMeta, &compilerEnv, nullptr,
                      nullptr, nullptr);
   if (!mg.init(nullptr)) {
     return nullptr;

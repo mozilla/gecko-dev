@@ -1123,9 +1123,8 @@ SharedModule ModuleGenerator::finishModule(
     return nullptr;
   }
 
-  MutableCode code =
-      js_new<Code>(std::move(codeTier), *codeMeta_, *maybeCodeMetaForAsmJS,
-                   std::move(jumpTables));
+  MutableCode code = js_new<Code>(*codeMeta_, *maybeCodeMetaForAsmJS,
+                                  std::move(codeTier), std::move(jumpTables));
   if (!code || !code->initialize(*linkData_)) {
     return nullptr;
   }
@@ -1140,10 +1139,10 @@ SharedModule ModuleGenerator::finishModule(
   // All the components are finished, so create the complete Module and start
   // tier-2 compilation if requested.
 
-  MutableModule module = js_new<Module>(
-      *code, std::move(moduleMeta_->imports), std::move(moduleMeta_->exports),
-      std::move(dataSegments), std::move(codeMeta_->elemSegments),
-      std::move(customSections), debugBytecode);
+  MutableModule module =
+      js_new<Module>(*moduleMeta_, *code, std::move(dataSegments),
+                     std::move(codeMeta_->elemSegments),
+                     std::move(customSections), debugBytecode);
   if (!module) {
     return nullptr;
   }

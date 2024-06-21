@@ -276,7 +276,7 @@ static int testWasmFuzz(const uint8_t* buf, size_t size) {
 
     // At this point we have a valid module and we should try to ensure
     // that its import requirements are met for instantiation.
-    const ImportVector& importVec = module->imports();
+    const ImportVector& importVec = module->moduleMeta().imports;
 
     // Empty native function used to fill in function import slots if we
     // run out of functions exported by other modules.

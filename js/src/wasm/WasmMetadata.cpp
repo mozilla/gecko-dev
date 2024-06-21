@@ -13,6 +13,16 @@ using mozilla::CheckedInt;
 using namespace js;
 using namespace js::wasm;
 
+// ModuleMetadata helpers -- memory accounting.
+
+size_t ModuleMetadata::sizeOfExcludingThis(
+    mozilla::MallocSizeOf mallocSizeOf) const {
+  // FIXME: do other fields need to be considered?  How can we know/check?
+  return imports.sizeOfExcludingThis(mallocSizeOf) +
+         exports.sizeOfExcludingThis(mallocSizeOf) +
+         dataSegmentRanges.sizeOfExcludingThis(mallocSizeOf);
+}
+
 // CodeMetadata helpers -- adding functions.
 
 bool CodeMetadata::addDefinedFunc(

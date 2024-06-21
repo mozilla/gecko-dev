@@ -844,11 +844,14 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
 
+    RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+    if (!moduleMeta) {
+      return nullptr;
+    }
     RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(compileArgs->features);
     if (!codeMeta) {
       return nullptr;
     }
-    ModuleMetadata moduleMeta;
 
     MOZ_ASSERT(IonAvailable(cx));
     CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
@@ -926,8 +929,7 @@ class SuspendingFunctionModuleFactory {
     }
 
     MOZ_ASSERT(codeMeta->funcs.length() == WrappedFnIndex);
-    if (!codeMeta->addDefinedFunc(&moduleMeta,
-                                  std::move(paramsWithoutSuspender),
+    if (!codeMeta->addDefinedFunc(moduleMeta, std::move(paramsWithoutSuspender),
                                   std::move(resultsRef))) {
       return nullptr;
     }
@@ -940,7 +942,7 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
     MOZ_ASSERT(codeMeta->funcs.length() == GetSuspendingResultsFnIndex);
-    if (!codeMeta->addDefinedFunc(&moduleMeta,
+    if (!codeMeta->addDefinedFunc(moduleMeta,
                                   std::move(paramsGetSuspendingResults),
                                   std::move(resultsGetSuspendingResults))) {
       return nullptr;
@@ -953,7 +955,7 @@ class SuspendingFunctionModuleFactory {
     // the name doesn't matter.
     MOZ_ASSERT(codeMeta->funcs.length() == ExportedFnIndex);
     if (!codeMeta->addDefinedFunc(
-            &moduleMeta, std::move(params), std::move(results),
+            moduleMeta, std::move(params), std::move(results),
             /*declareForRef = */ true, mozilla::Some(CacheableName()))) {
       return nullptr;
     }
@@ -966,7 +968,7 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
     MOZ_ASSERT(codeMeta->funcs.length() == TrampolineFnIndex);
-    if (!codeMeta->addDefinedFunc(&moduleMeta, std::move(paramsTrampoline),
+    if (!codeMeta->addDefinedFunc(moduleMeta, std::move(paramsTrampoline),
                                   std::move(resultsTrampoline),
                                   /*declareForRef = */ true)) {
       return nullptr;
@@ -979,14 +981,14 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
     MOZ_ASSERT(codeMeta->funcs.length() == ContinueOnSuspendableFnIndex);
-    if (!codeMeta->addDefinedFunc(&moduleMeta,
+    if (!codeMeta->addDefinedFunc(moduleMeta,
                                   std::move(paramsContinueOnSuspendable),
                                   std::move(resultsContinueOnSuspendable),
                                   /*declareForRef = */ true)) {
       return nullptr;
     }
 
-    ModuleGenerator mg(*compileArgs, codeMeta, &moduleMeta, &compilerEnv,
+    ModuleGenerator mg(*compileArgs, codeMeta, moduleMeta, &compilerEnv,
                        nullptr, nullptr, nullptr);
     if (!mg.init(nullptr)) {
       return nullptr;
@@ -1397,11 +1399,14 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
 
+    RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+    if (!moduleMeta) {
+      return nullptr;
+    }
     RefPtr<CodeMetadata> codeMeta = js_new<CodeMetadata>(compileArgs->features);
     if (!codeMeta) {
       return nullptr;
     }
-    ModuleMetadata moduleMeta;
 
     MOZ_ASSERT(IonAvailable(cx));
     CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
@@ -1440,7 +1445,7 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
     MOZ_ASSERT(codeMeta->funcs.length() == WrappedFnIndex);
-    if (!codeMeta->addDefinedFunc(&moduleMeta, std::move(paramsForWrapper),
+    if (!codeMeta->addDefinedFunc(moduleMeta, std::move(paramsForWrapper),
                                   std::move(resultsForWrapper))) {
       return nullptr;
     }
@@ -1452,7 +1457,7 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
     MOZ_ASSERT(codeMeta->funcs.length() == CreateSuspenderFnIndex);
-    if (!codeMeta->addDefinedFunc(&moduleMeta, std::move(paramsCreateSuspender),
+    if (!codeMeta->addDefinedFunc(moduleMeta, std::move(paramsCreateSuspender),
                                   std::move(resultsCreateSuspender))) {
       return nullptr;
     }
@@ -1464,7 +1469,7 @@ class PromisingFunctionModuleFactory {
     // the name doesn't matter.
     MOZ_ASSERT(codeMeta->funcs.length() == ExportedFnIndex);
     if (!codeMeta->addDefinedFunc(
-            &moduleMeta, std::move(params), std::move(results),
+            moduleMeta, std::move(params), std::move(results),
             /* declareFoRef = */ true, mozilla::Some(CacheableName()))) {
       return nullptr;
     }
@@ -1477,13 +1482,13 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
     MOZ_ASSERT(codeMeta->funcs.length() == TrampolineFnIndex);
-    if (!codeMeta->addDefinedFunc(&moduleMeta, std::move(paramsTrampoline),
+    if (!codeMeta->addDefinedFunc(moduleMeta, std::move(paramsTrampoline),
                                   std::move(resultsTrampoline),
                                   /* declareFoRef = */ true)) {
       return nullptr;
     }
 
-    ModuleGenerator mg(*compileArgs, codeMeta, &moduleMeta, &compilerEnv,
+    ModuleGenerator mg(*compileArgs, codeMeta, moduleMeta, &compilerEnv,
                        nullptr, nullptr, nullptr);
     if (!mg.init(nullptr)) {
       return nullptr;

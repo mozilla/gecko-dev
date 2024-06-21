@@ -3374,9 +3374,12 @@ bool wasm::Validate(JSContext* cx, const ShareableBytes& bytecode,
   if (!codeMeta || !codeMeta->init()) {
     return false;
   }
-  ModuleMetadata moduleMeta;
+  RefPtr<ModuleMetadata> moduleMeta = js_new<ModuleMetadata>();
+  if (!moduleMeta) {
+    return false;
+  }
 
-  if (!DecodeModuleEnvironment(d, codeMeta, &moduleMeta)) {
+  if (!DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
     return false;
   }
 
@@ -3384,7 +3387,7 @@ bool wasm::Validate(JSContext* cx, const ShareableBytes& bytecode,
     return false;
   }
 
-  if (!DecodeModuleTail(d, codeMeta, &moduleMeta)) {
+  if (!DecodeModuleTail(d, codeMeta, moduleMeta)) {
     return false;
   }
 
