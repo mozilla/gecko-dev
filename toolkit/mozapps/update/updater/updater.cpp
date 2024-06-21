@@ -2922,6 +2922,8 @@ int LaunchCallbackAndPostProcessApps(int argc, NS_tchar** argv,
       if (!sUsingService) {
         LOG(("Starting Service Update before launching callback app"));
         StartServiceUpdate(gInstallDirPath);
+      } else {
+        LOG(("Not starting service update. MMS will handle it."));
       }
 #  endif
     } else {
