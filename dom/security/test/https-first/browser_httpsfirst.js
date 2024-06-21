@@ -81,7 +81,7 @@ add_task(async function () {
   );
 
   await runPrefTest(
-    "http://domain.does.not.exist",
+    "http://domain.does.not.exist.example.com",
     "Should not downgrade on dnsNotFound error.",
     "https://"
   );
