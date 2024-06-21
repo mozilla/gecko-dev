@@ -476,6 +476,14 @@ std::vector<ProbeClusterConfig> ProbeController::Process(Timestamp at_time) {
   if (at_time - time_last_probing_initiated_ >
       kMaxWaitingTimeForProbingResult) {
     if (state_ == State::kWaitingForProbingResult) {
+      // If the initial probe timed out, and the estimate has not changed by
+      // other means, (likely because normal media packets are not being sent
+      // yet), then send a probe again.
+      if (waiting_for_initial_probe_result_ &&
+          estimated_bitrate_ == start_bitrate_ && first_probe_to_max_bitrate_) {
+        UpdateState(State::kInit);
+        return InitiateExponentialProbing(at_time);
+      }
       RTC_LOG(LS_INFO) << "kWaitingForProbingResult: timeout";
       UpdateState(State::kProbingComplete);
     }

@@ -438,7 +438,7 @@ TEST(ProbeControllerTest,
   EXPECT_EQ(probes[0].target_data_rate.bps(), 2 * kStartBitrate.bps());
 }
 
-TEST(ProbeControllerTest, TestExponentialProbingTimeout) {
+TEST(ProbeControllerTest, InitialProbingTimeout) {
   ProbeControllerFixture fixture;
   std::unique_ptr<ProbeController> probe_controller =
       fixture.CreateController();
@@ -447,14 +447,57 @@ TEST(ProbeControllerTest, TestExponentialProbingTimeout) {
       IsEmpty());
   auto probes = probe_controller->SetBitrates(
       kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
+  EXPECT_THAT(probes, SizeIs(Gt(0)));
   // Advance far enough to cause a time out in waiting for probing result.
   fixture.AdvanceTime(kExponentialProbingTimeout);
   probes = probe_controller->Process(fixture.CurrentTime());
-
+  EXPECT_THAT(probes, IsEmpty());
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(1800), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  EXPECT_THAT(probes, IsEmpty());
+}
+
+TEST(
+    ProbeControllerTest,
+    InitialProbingRetriedAfterTimeoutIfFirstProbeToMaxBitrateAndBweNotUpdated) {
+  ProbeControllerFixture fixture;
+  std::unique_ptr<ProbeController> probe_controller =
+      fixture.CreateController();
+  probe_controller->SetFirstProbeToMaxBitrate(true);
+  ASSERT_THAT(
+      probe_controller->OnNetworkAvailability({.network_available = true}),
+      IsEmpty());
+  auto probes = probe_controller->SetBitrates(
+      kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
+  EXPECT_THAT(probes, SizeIs(Gt(0)));
+  // Advance far enough to cause a time out in waiting for probing result.
+  fixture.AdvanceTime(kExponentialProbingTimeout);
+  probes = probe_controller->Process(fixture.CurrentTime());
+  EXPECT_THAT(probes, SizeIs(Gt(0)));
+}
+
+TEST(ProbeControllerTest,
+     InitialProbingNotRetriedAfterTimeoutIfFirstProbeAndBweUpdated) {
+  ProbeControllerFixture fixture;
+  std::unique_ptr<ProbeController> probe_controller =
+      fixture.CreateController();
+  probe_controller->SetFirstProbeToMaxBitrate(true);
+  ASSERT_THAT(
+      probe_controller->OnNetworkAvailability({.network_available = true}),
+      IsEmpty());
+  auto probes = probe_controller->SetBitrates(
+      kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
+  EXPECT_THAT(probes, SizeIs(Gt(0)));
+  fixture.AdvanceTime(TimeDelta::Millis(700));
+  probes = probe_controller->SetEstimatedBitrate(
+      DataRate::BitsPerSec(180), BandwidthLimitedCause::kDelayBasedLimited,
+      fixture.CurrentTime());
+  EXPECT_THAT(probes, IsEmpty());
+  // Advance far enough to cause a time out in waiting for probing result.
+  fixture.AdvanceTime(kExponentialProbingTimeout);
+  probes = probe_controller->Process(fixture.CurrentTime());
+  EXPECT_THAT(probes, IsEmpty());
 }
 
 TEST(ProbeControllerTest, RequestProbeInAlr) {
