@@ -693,73 +693,86 @@ const auto* const kLastVersionPref =
     "toolkit.telemetry.user_characteristics_ping.last_version_sent";
 const auto* const kCurrentVersionPref =
     "toolkit.telemetry.user_characteristics_ping.current_version";
+const auto* const kOptOutPref =
+    "toolkit.telemetry.user_characteristics_ping.opt-out";
+const auto* const kSendOncePref =
+    "toolkit.telemetry.user_characteristics_ping.send-once";
+
+/*
+  We allow users to send one voluntary ping by setting kSendOncePref to true.
+  We also use this to force submit a ping as a dev.
+
+  We allow users users to opt-out of this ping by setting kOptOutPref to true.
+  Note that kSendOncePref takes precedence over kOptOutPref. This allows user
+  to send only a single ping without modifying their opt-out preference.
+
+  We only send pings if the conditions above are met and kCurrentVersionPref >
+  kLastVersionPref.
+*/
+bool nsUserCharacteristics::ShouldSubmit() {
+  // User opted out of this ping specifically
+  bool optOut = Preferences::GetBool(kOptOutPref, false);
+  bool sendOnce = Preferences::GetBool(kSendOncePref, false);
+
+  if (optOut && sendOnce) {
+    MOZ_LOG(gUserCharacteristicsLog, LogLevel::Warning,
+            ("BOTH OPT-OUT AND SEND-ONCE IS SET TO TRUE. OPT-OUT HAS PRIORITY "
+             "OVER SEND-ONCE. THE PING WON'T BE SEND."));
+  }
+
+  if (optOut) {
+    return false;
+  }
+
+  // User asked to send a ping regardless of the version
+  if (sendOnce) {
+    return true;
+  }
+
+  int32_t currentVersion = Preferences::GetInt(kCurrentVersionPref, 0);
+  int32_t lastSubmissionVersion = Preferences::GetInt(kLastVersionPref, 0);
+  MOZ_ASSERT(lastSubmissionVersion <= currentVersion,
+             "lastSubmissionVersion is somehow greater than currentVersion "
+             "- did you edit prefs improperly?");
+
+  if (currentVersion == 0) {
+    // Do nothing. We do not want any pings.
+    MOZ_LOG(gUserCharacteristicsLog, LogLevel::Debug,
+            ("Returning, currentVersion == 0"));
+    return false;
+  }
+
+  if (lastSubmissionVersion > currentVersion) {
+    // This is an unexpected scenario that indicates something is wrong. We
+    // asserted against it (in debug, above) We will try to sanity-correct
+    // ourselves by setting it to the current version.
+    Preferences::SetInt(kLastVersionPref, currentVersion);
+    MOZ_LOG(gUserCharacteristicsLog, LogLevel::Warning,
+            ("Returning, lastSubmissionVersion > currentVersion"));
+    return false;
+  }
+
+  if (lastSubmissionVersion == currentVersion) {
+    // We are okay, we've already submitted the most recent ping
+    MOZ_LOG(gUserCharacteristicsLog, LogLevel::Warning,
+            ("Returning, lastSubmissionVersion == currentVersion"));
+    return false;
+  }
+
+  MOZ_LOG(gUserCharacteristicsLog, LogLevel::Warning, ("Ping requested"));
+
+  return true;
+}
 
 /* static */
 void nsUserCharacteristics::MaybeSubmitPing() {
   MOZ_LOG(gUserCharacteristicsLog, LogLevel::Debug, ("In MaybeSubmitPing()"));
   MOZ_ASSERT(XRE_IsParentProcess());
 
-  /**
-   * There are two preferences at play here:
-   *  - Last Version Sent - preference containing the last version sent by the
-   * user to Mozilla
-   *  - Current Version - preference containing the version Mozilla would like
-   * the user to send
-   *
-   * A point of complexity arises in that these two values _may_ be changed
-   * by the user, even though neither is intended to be.
-   *
-   * When Current Version > Last Version Sent, we intend for the user to submit
-   * a new ping, which will include the schema version. Then update Last Version
-   * Sent = Current Version.
-   *
-   */
-  auto lastSubmissionVersion = Preferences::GetInt(kLastVersionPref, 0);
-  auto currentVersion = Preferences::GetInt(kCurrentVersionPref, 0);
-
-  MOZ_ASSERT(currentVersion == -1 || lastSubmissionVersion <= currentVersion,
-             "lastSubmissionVersion is somehow greater than currentVersion "
-             "- did you edit prefs improperly?");
-
-  if (lastSubmissionVersion < 0) {
-    // This is a way for users to opt out of this ping specifically.
-    MOZ_LOG(gUserCharacteristicsLog, LogLevel::Debug,
-            ("Returning, User Opt-out"));
-    return;
-  }
-  if (currentVersion == 0) {
-    // Do nothing. We do not want any pings.
-    MOZ_LOG(gUserCharacteristicsLog, LogLevel::Debug,
-            ("Returning, currentVersion == 0"));
-    return;
-  }
-  if (currentVersion == -1) {
-    // currentVersion = -1 is a development value to force a ping submission
-    MOZ_LOG(gUserCharacteristicsLog, LogLevel::Debug,
-            ("Force-Submitting Ping"));
-    PopulateDataAndEventuallySubmit(false);
-    return;
-  }
-  if (lastSubmissionVersion > currentVersion) {
-    // This is an unexpected scneario that indicates something is wrong. We
-    // asserted against it (in debug, above) We will try to sanity-correct
-    // ourselves by setting it to the current version.
-    Preferences::SetInt(kLastVersionPref, currentVersion);
-    MOZ_LOG(gUserCharacteristicsLog, LogLevel::Warning,
-            ("Returning, lastSubmissionVersion > currentVersion"));
-    return;
-  }
-  if (lastSubmissionVersion == currentVersion) {
-    // We are okay, we've already submitted the most recent ping
-    MOZ_LOG(gUserCharacteristicsLog, LogLevel::Warning,
-            ("Returning, lastSubmissionVersion == currentVersion"));
-    return;
-  }
-  if (lastSubmissionVersion < currentVersion) {
-    MOZ_LOG(gUserCharacteristicsLog, LogLevel::Warning, ("Ping requested"));
+  // Check user's preferences and submit only if (the user hasn't opted-out AND
+  // lastSubmissionVersion < currentVersion) OR send-once is true.
+  if (ShouldSubmit()) {
     PopulateDataAndEventuallySubmit(true);
-  } else {
-    MOZ_ASSERT_UNREACHABLE("Should never reach here");
   }
 }
 
@@ -873,6 +886,9 @@ void nsUserCharacteristics::PopulateDataAndEventuallySubmit(
       auto current_version =
           mozilla::Preferences::GetInt(kCurrentVersionPref, 0);
       mozilla::Preferences::SetInt(kLastVersionPref, current_version);
+      if (Preferences::GetBool(kSendOncePref, false)) {
+        Preferences::SetBool(kSendOncePref, false);
+      }
     }
   };
 
