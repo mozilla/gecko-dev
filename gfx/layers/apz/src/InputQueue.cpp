@@ -1007,10 +1007,10 @@ void InputQueue::SetBrowserGestureResponse(uint64_t aInputBlockId,
   ProcessQueue();
 }
 
-static APZHandledResult GetHandledResultFor(const AsyncPanZoomController* aApzc,
-                                            InputBlockState* aCurrentInputBlock,
-                                            nsEventStatus aEagerStatus,
-                                            const InputData& aEvent) {
+static APZHandledResult GetHandledResultFor(
+    const AsyncPanZoomController* aApzc,
+    const InputBlockState* aCurrentInputBlock, nsEventStatus aEagerStatus,
+    const InputData& aEvent) {
   if (aCurrentInputBlock->ShouldDropEvents()) {
     return APZHandledResult{APZHandledPlace::HandledByContent, aApzc};
   }
