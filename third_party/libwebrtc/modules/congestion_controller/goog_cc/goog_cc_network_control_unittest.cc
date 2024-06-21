@@ -486,6 +486,37 @@ TEST(GoogCcNetworkControllerTest, PaceAtMaxOfLowerLinkCapacityAndBwe) {
             update.target_rate->target_rate.kbps() * kDefaultPacingRate);
 }
 
+TEST(GoogCcNetworkControllerTest, LimitPacingFactorToUpperLinkCapacity) {
+  ScopedFieldTrials trial(
+      "WebRTC-Bwe-LimitPacingFactorByUpperLinkCapacityEstimate/Enabled/");
+  NetworkControllerTestFixture fixture;
+  std::unique_ptr<NetworkControllerInterface> controller =
+      fixture.CreateController();
+  Timestamp current_time = Timestamp::Millis(123);
+  NetworkControlUpdate update = controller->OnNetworkAvailability(
+      {.at_time = current_time, .network_available = true});
+  update = controller->OnProcessInterval({.at_time = current_time});
+  current_time += TimeDelta::Millis(100);
+  NetworkStateEstimate network_estimate = {
+      .link_capacity_upper = kInitialBitrate * kDefaultPacingRate / 2};
+  update = controller->OnNetworkStateEstimate(network_estimate);
+  // OnNetworkStateEstimate does not trigger processing a new estimate. So add a
+  // dummy loss report to trigger a BWE update in the next process interval.
+  TransportLossReport loss_report;
+  loss_report.start_time = current_time;
+  loss_report.end_time = current_time;
+  loss_report.receive_time = current_time;
+  loss_report.packets_received_delta = 50;
+  loss_report.packets_lost_delta = 1;
+  update = controller->OnTransportLossReport(loss_report);
+  update = controller->OnProcessInterval({.at_time = current_time});
+  ASSERT_TRUE(update.pacer_config);
+  ASSERT_TRUE(update.target_rate);
+  EXPECT_GE(update.target_rate->target_rate, kInitialBitrate);
+  EXPECT_EQ(update.pacer_config->data_rate(),
+            network_estimate.link_capacity_upper);
+}
+
 // Test congestion window pushback on network delay happens.
 TEST(GoogCcScenario, CongestionWindowPushbackOnNetworkDelay) {
   auto factory = CreateFeedbackOnlyFactory();

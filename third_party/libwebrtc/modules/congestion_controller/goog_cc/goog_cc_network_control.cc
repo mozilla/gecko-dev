@@ -120,6 +120,9 @@ GoogCcNetworkController::GoogCcNetworkController(NetworkControllerConfig config,
       pace_at_max_of_bwe_and_lower_link_capacity_(
           IsEnabled(key_value_config_,
                     "WebRTC-Bwe-PaceAtMaxOfBweAndLowerLinkCapacity")),
+      limit_pacingfactor_by_upper_link_capacity_estimate_(
+          IsEnabled(key_value_config_,
+                    "WebRTC-Bwe-LimitPacingFactorByUpperLinkCapacityEstimate")),
       probe_controller_(
           new ProbeController(key_value_config_, config.event_log)),
       congestion_window_pushback_controller_(
@@ -735,6 +738,14 @@ PacerConfig GoogCcNetworkController::GetPacingRates(Timestamp at_time) const {
         std::max(min_total_allocated_bitrate_, last_loss_based_target_rate_) *
         pacing_factor_;
   }
+  if (limit_pacingfactor_by_upper_link_capacity_estimate_ && estimate_ &&
+      estimate_->link_capacity_upper.IsFinite() &&
+      pacing_rate > estimate_->link_capacity_upper) {
+    pacing_rate =
+        std::max({estimate_->link_capacity_upper, min_total_allocated_bitrate_,
+                  last_loss_based_target_rate_});
+  }
+
   DataRate padding_rate =
       (last_loss_base_state_ == LossBasedState::kIncreaseUsingPadding)
           ? std::max(max_padding_rate_, last_loss_based_target_rate_)
