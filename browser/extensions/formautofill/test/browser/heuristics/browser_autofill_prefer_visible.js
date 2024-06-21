@@ -3,8 +3,7 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
-// This test ensures that when two dropdown fields exist and one is hidden, that the autofill
-// is performed correctly on the visible one.
+// This test verifies autofill on select dropdowns when one is hidden.
 
 const TEST_PROFILE = {
   "given-name": "Joe",
@@ -41,11 +40,51 @@ const MARKUP_SELECT_STATE = `
   </body></html>
 `;
 
+const MARKUP_SELECT_STATE_WITH_AIRAHIDDEN = `
+  <html><body><form>
+    First Name: <input id="fname">
+    Last Name: <input id="lname">
+    Address: <input id="address">
+    <select id="county" autocomplete="address-level1" aria-hidden="true">
+      <option value="--">Select a county</option>
+      <option value="C1">Cheshire</option>
+      <option value="K1">Kansas</option>
+      <option value="N1">Norfolk</option>
+      <option value="S1">Surrey</option>
+    </select>
+    <select id="state" autocomplete="address-level1">
+      <option value="None">Select a state</option>
+      <option value="CO">Colorado</option>
+      <option value="KS">Kansas</option>
+      <option value="MN">Minnesota</option>
+      <option value="MO">Missouri</option>
+    </select>
+  </form></body></html>
+`;
+
+const MARKUP_SELECT_STATE_WITH_AIRAHIDDEN_PARTIAL = `
+  <html><body><form>
+    First Name: <input id="fname">
+    Last Name: <input id="lname">
+    Address: <input id="address">
+    <select id="county" autocomplete="address-level1" aria-hidden="true">
+      <option value="--">Select a county</option>
+      <option value="C1">Cheshire</option>
+      <option value="K1">Kansas</option>
+      <option value="N1">Norfolk</option>
+      <option value="S1">Surrey</option>
+    </select>
+  </form></body></html>
+`;
+
 /* global add_heuristic_tests */
 
 add_heuristic_tests(
   [
     {
+      description:
+        "When two dropdown fields exist and one is hidden, the autofill " +
+        "should be performed on the visible dropdown.",
       fixtureData: MARKUP_SELECT_STATE,
       profile: TEST_PROFILE,
       expectedResult: [
@@ -68,6 +107,63 @@ add_heuristic_tests(
             {
               fieldName: "country",
               autofill: "United States",
+              reason: "autocomplete",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "When a dropdown has aria-hidden set to true, autofill should happen on the visible dropdown ",
+      fixtureData: MARKUP_SELECT_STATE_WITH_AIRAHIDDEN,
+      profile: TEST_PROFILE,
+      expectedResult: [
+        {
+          default: {
+            reason: "regex-heuristic",
+          },
+          fields: [
+            { fieldName: "given-name", autofill: TEST_PROFILE["given-name"] },
+            { fieldName: "family-name", autofill: TEST_PROFILE["family-name"] },
+            {
+              fieldName: "street-address",
+              autofill: TEST_PROFILE["street-address"],
+            },
+            {
+              fieldName: "address-level1",
+              autofill: "--",
+              reason: "autocomplete",
+            },
+            {
+              fieldName: "address-level1",
+              autofill: "KS",
+              reason: "autocomplete",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "When only one dropdown exists and has aria-hidden, it will be filled in anyway",
+      fixtureData: MARKUP_SELECT_STATE_WITH_AIRAHIDDEN_PARTIAL,
+      profile: TEST_PROFILE,
+      expectedResult: [
+        {
+          default: {
+            reason: "regex-heuristic",
+          },
+          fields: [
+            { fieldName: "given-name", autofill: TEST_PROFILE["given-name"] },
+            { fieldName: "family-name", autofill: TEST_PROFILE["family-name"] },
+            {
+              fieldName: "street-address",
+              autofill: TEST_PROFILE["street-address"],
+            },
+            {
+              fieldName: "address-level1",
+              autofill: "K1",
               reason: "autocomplete",
             },
           ],
