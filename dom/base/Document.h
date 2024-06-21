@@ -1514,7 +1514,6 @@ class Document : public nsINode,
 
   nsresult InitCSP(nsIChannel* aChannel);
   nsresult InitCOEP(nsIChannel* aChannel);
-  nsresult InitDocPolicy(nsIChannel* aChannel);
 
   nsresult InitReferrerInfo(nsIChannel* aChannel);
 
@@ -3626,9 +3625,6 @@ class Document : public nsINode,
   // Whether we're cloning the contents of an SVG use element.
   bool CloningForSVGUse() const { return mCloningForSVGUse; }
 
-  // If this is true, we're ignoring scrolling to a fragment.
-  bool ForceLoadAtTop() const { return mForceLoadAtTop; }
-
   // This should be called when this document receives events which are likely
   // to be user interaction with the document, rather than the byproduct of
   // interaction with the browser (i.e. a keypress to scroll the view port,
@@ -4890,8 +4886,6 @@ class Document : public nsINode,
   bool mAllowDeclarativeShadowRoots : 1;
 
   bool mSuspendDOMNotifications : 1;
-
-  bool mForceLoadAtTop : 1;
 
   // The fingerprinting protections overrides for this document. The value will
   // override the default enabled fingerprinting protections for this document.

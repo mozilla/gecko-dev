@@ -843,12 +843,6 @@ nsILoadInfo::CrossOriginEmbedderPolicy
 NS_GetCrossOriginEmbedderPolicyFromHeader(
     const nsACString& aHeader, bool aIsOriginTrialCoepCredentiallessEnabled);
 
-/**
- * Return true if the header is a dictionary where the key force-load-at-top
- * has the value true. Otherwise, return false.
- */
-bool NS_GetForceLoadAtTopFromHeader(const nsACString& aHeader);
-
 /** Given the first (disposition) token from a Content-Disposition header,
  * tell whether it indicates the content is inline or attachment
  * @param aDispToken the disposition token from the content-disposition header
