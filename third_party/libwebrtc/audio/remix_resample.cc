@@ -31,6 +31,7 @@ void RemixAndResample(const AudioFrame& src_frame,
   dst_frame->packet_infos_ = src_frame.packet_infos_;
 }
 
+// TODO: b/335805780 - Accept ArrayView.
 void RemixAndResample(const int16_t* src_data,
                       size_t samples_per_channel,
                       size_t num_channels,
@@ -49,8 +50,11 @@ void RemixAndResample(const int16_t* src_data,
         << "dst_frame->num_channels_: " << dst_frame->num_channels_;
 
     AudioFrameOperations::DownmixChannels(
-        src_data, num_channels, samples_per_channel, dst_frame->num_channels_,
-        downmixed_audio);
+        rtc::ArrayView<const int16_t>(src_data,
+                                      num_channels * samples_per_channel),
+        num_channels, samples_per_channel, dst_frame->num_channels_,
+        rtc::ArrayView<int16_t>(&downmixed_audio[0], dst_frame->num_channels_ *
+                                                         samples_per_channel));
     audio_ptr = downmixed_audio;
     audio_ptr_num_channels = dst_frame->num_channels_;
   }
