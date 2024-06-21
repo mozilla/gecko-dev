@@ -7,7 +7,8 @@
 with Files("**"):
     BUG_COMPONENT = ("Core", "DOM: Bindings (WebIDL)")
 
-TEST_DIRS += ["test"]
+if CONFIG["MOZ_DEBUG"] and CONFIG["ENABLE_TESTS"]:
+    TEST_DIRS += ["test"]
 
 XPIDL_SOURCES += ["nsIScriptError.idl"]
 
