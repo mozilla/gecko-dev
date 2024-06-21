@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-
 export class AboutMessagePreviewChild extends JSWindowActorChild {
   handleEvent(event) {
     console.log(`Received page event ${event.type}`);
@@ -47,12 +45,11 @@ export class AboutMessagePreviewChild extends JSWindowActorChild {
   }
 
   /**
-   * Check if a hint should be shown about how to enable Message Preview. The
-   * hint is only displayed in local/unofficial builds.
+   * Check if a hint should be shown about how to enable Message Preview.
    *
    * @returns {boolean}
    */
   MPShouldShowHint() {
-    return !this.MPIsEnabled() && !AppConstants.MOZILLA_OFFICIAL;
+    return !this.MPIsEnabled();
   }
 }
