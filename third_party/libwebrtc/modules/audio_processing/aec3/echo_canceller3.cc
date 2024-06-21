@@ -633,6 +633,13 @@ EchoCanceller3Config AdjustConfig(const EchoCanceller3Config& config) {
       "WebRTC-Aec3DelayEstimateSmoothingDelayFoundOverride", 0.f, 1.f,
       &adjusted_cfg.delay.delay_estimate_smoothing_delay_found);
 
+  int max_allowed_excess_render_blocks_override =
+      adjusted_cfg.buffering.max_allowed_excess_render_blocks;
+  RetrieveFieldTrialValue(
+      "WebRTC-Aec3BufferingMaxAllowedExcessRenderBlocksOverride", 0, 20,
+      &max_allowed_excess_render_blocks_override);
+  adjusted_cfg.buffering.max_allowed_excess_render_blocks =
+      max_allowed_excess_render_blocks_override;
   return adjusted_cfg;
 }
 
