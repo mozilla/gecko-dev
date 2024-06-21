@@ -54,6 +54,11 @@
 
     .divider {
       border: var(--shopping-card-border-width) solid var(--shopping-card-border-color);
+
+      @media (prefers-contrast) {
+        border-color: ButtonText;
+        border-width: 1px 0 0 0;
+      }
     }
 
     #shopping-settings-opt-out-section {

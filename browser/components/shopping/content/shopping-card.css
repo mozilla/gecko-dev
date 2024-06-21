@@ -158,10 +158,16 @@ details[open] .chevron-icon {
 }
 
 @media (prefers-contrast) {
-  /* Style accordion card like a dropdown button. */
-  :host([type="accordion"]) > .shopping-card {
+  .shopping-card {
     border: var(--shopping-card-border-width) solid ButtonText;
 
+    .show-more footer {
+      border-top: var(--shopping-card-border-width) solid ButtonText;
+    }
+  }
+
+  /* Style accordion card like a dropdown button. */
+  :host([type="accordion"]) > .shopping-card {
     summary {
       background-color: var(--button-background-color);
       color: ButtonText;
