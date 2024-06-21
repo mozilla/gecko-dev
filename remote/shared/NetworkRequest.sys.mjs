@@ -23,6 +23,7 @@ export class NetworkRequest {
   #alreadyCompleted;
   #channel;
   #contextId;
+  #isDataURL;
   #navigationId;
   #navigationManager;
   #rawHeaders;
@@ -46,10 +47,28 @@ export class NetworkRequest {
     const { navigationManager, rawHeaders = "" } = params;
 
     this.#channel = channel;
+    this.#isDataURL = this.#channel instanceof Ci.nsIDataChannel;
     this.#navigationManager = navigationManager;
     this.#rawHeaders = rawHeaders;
 
-    this.#timedChannel = this.#channel.QueryInterface(Ci.nsITimedChannel);
+    const currentTime = Date.now();
+    this.#timedChannel =
+      this.#channel instanceof Ci.nsITimedChannel
+        ? this.#channel.QueryInterface(Ci.nsITimedChannel)
+        : {
+            redirectCount: 0,
+            channelCreationTime: currentTime,
+            redirectStartTime: 0,
+            redirectEndTime: 0,
+            domainLookupStartTime: currentTime,
+            domainLookupEndTime: currentTime,
+            connectStartTime: currentTime,
+            connectEndTime: currentTime,
+            secureConnectionStartTime: currentTime,
+            requestStartTime: currentTime,
+            responseStartTime: currentTime,
+            responseEndTime: currentTime,
+          };
     this.#wrappedChannel = ChannelWrapper.get(channel);
 
     this.#redirectCount = this.#timedChannel.redirectCount;
@@ -82,7 +101,7 @@ export class NetworkRequest {
   }
 
   get method() {
-    return this.#channel.requestMethod;
+    return this.#isDataURL ? "GET" : this.#channel.requestMethod;
   }
 
   get navigationId() {
@@ -192,17 +211,29 @@ export class NetworkRequest {
   getHeadersList() {
     const headers = [];
 
-    this.#channel.visitRequestHeaders({
-      visitHeader(name, value) {
-        // The `Proxy-Authorization` header even though it appears on the channel is not
-        // actually sent to the server for non CONNECT requests after the HTTP/HTTPS tunnel
-        // is setup by the proxy.
-        if (name == "Proxy-Authorization") {
-          return;
-        }
-        headers.push([name, value]);
-      },
-    });
+    if (this.#channel instanceof Ci.nsIHttpChannel) {
+      this.#channel.visitRequestHeaders({
+        visitHeader(name, value) {
+          // The `Proxy-Authorization` header even though it appears on the channel is not
+          // actually sent to the server for non CONNECT requests after the HTTP/HTTPS tunnel
+          // is setup by the proxy.
+          if (name == "Proxy-Authorization") {
+            return;
+          }
+          headers.push([name, value]);
+        },
+      });
+    }
+
+    if (this.#channel instanceof Ci.nsIDataChannel) {
+      // Data channels have no request headers.
+      return [];
+    }
+
+    if (this.#channel instanceof Ci.nsIFileChannel) {
+      // File channels have no request headers.
+      return [];
+    }
 
     return headers;
   }
@@ -299,7 +330,7 @@ export class NetworkRequest {
   }
 
   #getNavigationId() {
-    if (!this.#channel.isMainDocumentChannel) {
+    if (!this.#channel.isDocument) {
       return null;
     }
 

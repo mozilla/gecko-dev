@@ -133,8 +133,8 @@ export class NetworkEventRecord {
   addResponseStart(options) {
     const { channel, fromCache, rawHeaders } = options;
     this.#response = new lazy.NetworkResponse(channel, {
-      rawHeaders,
       fromCache: this.#fromCache || !!fromCache,
+      rawHeaders,
     });
 
     // This should be triggered when all headers have been received, matching

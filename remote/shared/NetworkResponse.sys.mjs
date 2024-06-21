@@ -18,6 +18,7 @@ export class NetworkResponse {
   #decodedBodySize;
   #encodedBodySize;
   #fromCache;
+  #isDataURL;
   #headersTransmittedSize;
   #status;
   #statusMessage;
@@ -38,6 +39,7 @@ export class NetworkResponse {
     this.#channel = channel;
     const { fromCache, rawHeaders = "" } = params;
     this.#fromCache = fromCache;
+    this.#isDataURL = this.#channel instanceof Ci.nsIDataChannel;
     this.#wrappedChannel = ChannelWrapper.get(channel);
 
     this.#decodedBodySize = 0;
@@ -50,8 +52,12 @@ export class NetworkResponse {
     // responseStarted event, and then (200, OK) during the responseCompleted
     // event.
     // For now consider them as immutable and store them on startup.
-    this.#status = this.#channel.responseStatus;
-    this.#statusMessage = this.#channel.responseStatusText;
+    // According to the fetch spec for data URLs we can just hardcode
+    // status `200` and statusMessage `OK`.
+    this.#status = this.#isDataURL ? 200 : this.#channel.responseStatus;
+    this.#statusMessage = this.#isDataURL
+      ? "OK"
+      : this.#channel.responseStatusText;
   }
 
   get decodedBodySize() {
@@ -105,7 +111,11 @@ export class NetworkResponse {
     let mimeType = "";
 
     try {
-      mimeType = this.#wrappedChannel.contentType;
+      if (this.#isDataURL) {
+        mimeType = this.#channel.contentType;
+      } else {
+        mimeType = this.#wrappedChannel.contentType;
+      }
       const contentCharset = this.#channel.contentCharset;
       if (contentCharset) {
         mimeType += `;charset=${contentCharset}`;
@@ -120,11 +130,17 @@ export class NetworkResponse {
   getHeadersList() {
     const headers = [];
 
-    this.#channel.visitOriginalResponseHeaders({
-      visitHeader(name, value) {
-        headers.push([name, value]);
-      },
-    });
+    // According to the fetch spec for data URLs we can just hardcode
+    // "Content-Type" header.
+    if (this.#isDataURL) {
+      headers.push(["Content-Type", this.#channel.contentType]);
+    } else {
+      this.#channel.visitOriginalResponseHeaders({
+        visitHeader(name, value) {
+          headers.push([name, value]);
+        },
+      });
+    }
 
     return headers;
   }
