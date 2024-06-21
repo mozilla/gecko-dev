@@ -87,14 +87,6 @@ BounceTrackingStorageObserver::Observe(nsISupports* aSubject,
     return NS_OK;
   }
 
-  // Check if the cookie is partitioned. Partitioned cookies can not be used for
-  // bounce tracking.
-  if (!cookie->OriginAttributesNative().mPartitionKey.IsEmpty()) {
-    MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Verbose,
-            ("Skipping partitioned cookie."));
-    return NS_OK;
-  }
-
   dom::BrowsingContext* topBC = browsingContext->Top();
   dom::BrowsingContextWebProgress* webProgress =
       topBC->Canonical()->GetWebProgress();
@@ -150,12 +142,6 @@ nsresult BounceTrackingStorageObserver::OnInitialStorageAccess(
   if (!BounceTrackingState::ShouldTrackPrincipal(storagePrincipal)) {
     MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Verbose,
             ("%s: Skipping principal.", __FUNCTION__));
-    return NS_OK;
-  }
-
-  if (!storagePrincipal->OriginAttributesRef().mPartitionKey.IsEmpty()) {
-    MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Verbose,
-            ("Skipping partitioned storage access."));
     return NS_OK;
   }
 
