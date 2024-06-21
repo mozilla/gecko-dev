@@ -49,6 +49,7 @@
 #include "mozilla/media/MediaUtils.h"
 #include "mozilla/dom/Navigator.h"
 #include "nsIGSettingsService.h"
+#include "nsITimer.h"
 
 #include "gfxPlatformFontList.h"
 #include "prsystem.h"
@@ -96,7 +97,7 @@ int MaxTouchPoints() {
 
 using PopulatePromiseBase =
     MozPromise<void_t, std::pair<nsCString, Variant<nsresult, nsCString>>,
-               true>;
+               false>;
 using PopulatePromise = PopulatePromiseBase::Private;
 
 // ==================================================================
@@ -816,10 +817,40 @@ RefPtr<PopulatePromise> PopulatePointerInfo() {
         glean::characteristics::pointer_tilty.Set(event.tiltY);
         glean::characteristics::pointer_twist.Set(event.twist);
 
-        populatePromise->Resolve(void_t(), __func__);
+        if (!populatePromise->IsResolved()) {
+          populatePromise->Resolve(void_t(), __func__);
+        }
       });
 
   return populatePromise;
+}
+
+const RefPtr<PopulatePromise>& TimoutPromise(
+    const RefPtr<PopulatePromise>& promise, uint32_t delay,
+    const nsCString& funcName) {
+  nsCOMPtr<nsITimer> timeout;
+  nsresult rv = NS_NewTimerWithCallback(
+      getter_AddRefs(timeout),
+      [=](auto) {
+        if (!promise->IsResolved()) {
+          promise->Reject(std::pair(funcName, "TIMEOUT"_ns.AsString()),
+                          __func__);
+        }
+      },
+      delay, nsITimer::TYPE_ONE_SHOT, "UserCharacteristicsPromiseTimeout");
+  if (NS_FAILED(rv)) {
+    promise->Reject(std::pair(funcName, "TIMEOUT_CREATION"_ns.AsString()),
+                    __func__);
+  }
+
+  auto cancelTimeoutRes = [timeout = std::move(timeout)]() {
+    timeout->Cancel();
+  };
+  auto cancelTimeoutRej = cancelTimeoutRes;
+  promise->Then(GetCurrentSerialEventTarget(), __func__,
+                std::move(cancelTimeoutRes), std::move(cancelTimeoutRej));
+
+  return promise;
 }
 
 // ==================================================================
@@ -987,7 +1018,8 @@ void nsUserCharacteristics::PopulateDataAndEventuallySubmit(
     promises.AppendElement(PopulateMediaDevices());
     promises.AppendElement(PopulateAudioDeviceProperties());
     promises.AppendElement(PopulateTimeZone());
-    promises.AppendElement(PopulatePointerInfo());
+    promises.AppendElement(TimoutPromise(PopulatePointerInfo(), 5 * 60 * 1000,
+                                         "PopulatePointerInfo"_ns));
     PopulateMissingFonts();
     PopulateCSSProperties();
     PopulateScreenProperties();
@@ -1008,7 +1040,7 @@ void nsUserCharacteristics::PopulateDataAndEventuallySubmit(
 
   auto fulfillSteps = [aUpdatePref, aTesting]() {
     MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Debug,
-            ("ContentPageStuff Promise Resolved"));
+            ("All promises Resolved"));
 
     if (!aTesting) {
       nsUserCharacteristics::SubmitPing();
