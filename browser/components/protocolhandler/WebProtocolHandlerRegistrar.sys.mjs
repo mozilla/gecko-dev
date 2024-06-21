@@ -20,7 +20,6 @@ XPCOMUtils.defineLazyServiceGetters(lazy, {
 
 ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-  PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
 
@@ -139,24 +138,24 @@ WebProtocolHandlerRegistrar.prototype = {
     }
   },
 
-  async observe(browser, topic) {
+  async observe(aBrowser, aTopic) {
     try {
-      switch (topic) {
+      switch (aTopic) {
         case "mailto::onLocationChange": {
           // registerProtocolHandler only works for https
-          const uri = browser.currentURI;
-          if (!uri.schemeIs("https")) {
+          const uri = aBrowser.currentURI;
+          if (!uri?.schemeIs("https")) {
             return;
           }
 
-          const host = browser.currentURI.host;
+          const host = uri.host;
           if (this._knownWebmailerCache.has(host)) {
             // second: search the cache for an entry which starts with the path
             // of the current uri. If it exists we identified the current page as
             // webmailer (again).
             const value = this._knownWebmailerCache.get(host);
-            await this._askUserToSetMailtoHandler(
-              browser,
+            this._askUserToSetMailtoHandler(
+              aBrowser,
               "mailto",
               value.uriTemplate,
               value.name
@@ -173,7 +172,7 @@ WebProtocolHandlerRegistrar.prototype = {
           this._ensureWebmailerCache();
           break;
         default:
-          lazy.log.debug(`observe reached with unknown topic: ${topic}`);
+          lazy.log.debug(`observe reached with unknown topic: ${aTopic}`);
       }
     } catch (e) {
       lazy.log.debug(`Problem in observer: ${e}`);
@@ -472,41 +471,6 @@ WebProtocolHandlerRegistrar.prototype = {
     });
   },
 
-  /* function to look up for a specific stored (in site specific settings)
-   * timestamp and check if it is now older as again_after_minutes.
-   *
-   * @param {string} group
-   *        site specific setting group (e.g. domain)
-   * @param {string} setting_name
-   *        site specific settings name (e.g. `last_dimissed_ts`)
-   * @param {number} again_after_minutes
-   *        length in minutes of time difference allowed between setting and now
-   * @returns {boolean}
-   *        true: within again_after_minutes
-   *        false: older than again_after_minutes
-   */
-  async _isStillDismissed(group, setting_name, again_after_minutes = 0) {
-    let lastDismiss = await this._getSiteSpecificSetting(group, setting_name);
-
-    // first: if we find such a value, then the user has already been
-    // interactive with the page
-    if (lastDismiss) {
-      let timeNow = new Date().getTime();
-      let minutesAgo = (timeNow - lastDismiss) / 1000 / 60;
-      if (minutesAgo < again_after_minutes) {
-        lazy.log.debug(
-          `prompt not shown- a site with setting_name '${setting_name}'` +
-            ` was last dismissed ${minutesAgo.toFixed(2)} minutes ago and` +
-            ` will only be shown again after ${again_after_minutes} minutes.`
-        );
-        return true;
-      }
-    } else {
-      lazy.log.debug(`no such setting: '${setting_name}'`);
-    }
-    return false;
-  },
-
   /**
    * See nsIWebProtocolHandlerRegistrar
    */
@@ -644,33 +608,26 @@ WebProtocolHandlerRegistrar.prototype = {
 
     // guard: bail out if this site has been dismissed before (either by
     // clicking the 'x' button or the 'not now' button.
-    const pathHash = lazy.PlacesUtils.md5(aURI.spec, { format: "hex" });
-    const aSettingGroup = aURI.host + `/${pathHash}`;
-
-    const mailtoSiteSpecificNotNow = `dismissed`;
-    const mailtoSiteSpecificXClick = `xclicked`;
-
+    let principal = browser.getTabBrowser().contentPrincipal;
     if (
-      await this._isStillDismissed(
-        aSettingGroup,
-        mailtoSiteSpecificNotNow,
-        lazy.NimbusFeatures.mailto.getVariable(
-          "dualPrompt.dismissNotNowMinutes"
-        )
+      Ci.nsIPermissionManager.DENY_ACTION ==
+      Services.perms.testExactPermissionFromPrincipal(
+        principal,
+        "mailto-infobar-dismissed"
       )
     ) {
-      return;
-    }
+      let expiry =
+        Services.perms.getPermissionObject(
+          principal,
+          "mailto-infobar-dismissed",
+          true
+        ).expireTime - Date.now();
 
-    if (
-      await this._isStillDismissed(
-        aSettingGroup,
-        mailtoSiteSpecificXClick,
-        lazy.NimbusFeatures.mailto.getVariable(
-          "dualPrompt.dismissXClickMinutes"
-        )
-      )
-    ) {
+      lazy.log.debug(
+        `prompt not shown, because it is still dismissed for` +
+          ` ${principal.host} and will be shown in` +
+          ` ${(expiry / 1000).toFixed()} seconds again.`
+      );
       return;
     }
 
@@ -692,13 +649,20 @@ WebProtocolHandlerRegistrar.prototype = {
           },
           priority: osDefaultNotificationBox.PRIORITY_INFO_LOW,
           eventCallback: eventType => {
-            // after a click on 'X' save todays date, so that we can show the
-            // bar again tomorrow...
             if (eventType === "dismissed") {
-              this._saveSiteSpecificSetting(
-                aSettingGroup,
-                mailtoSiteSpecificXClick,
-                new Date().getTime()
+              // after a click on 'X' save a timestamp after which we can show
+              // the prompt again
+              Services.perms.addFromPrincipal(
+                principal,
+                "mailto-infobar-dismissed",
+                Ci.nsIPermissionManager.DENY_ACTION,
+                Ci.nsIPermissionManager.EXPIRE_TIME,
+                lazy.NimbusFeatures.mailto.getVariable(
+                  "dualPrompt.dismissXClickMinutes"
+                ) *
+                  60 *
+                  1000 +
+                  Date.now()
               );
             }
           },
@@ -753,10 +717,19 @@ WebProtocolHandlerRegistrar.prototype = {
           {
             "l10n-id": "protocolhandler-mailto-os-handler-no-button",
             callback: () => {
-              this._saveSiteSpecificSetting(
-                aSettingGroup,
-                mailtoSiteSpecificNotNow,
-                new Date().getTime()
+              // after a click on 'Not Now' save a timestamp after which we can
+              // show the prompt again
+              Services.perms.addFromPrincipal(
+                principal,
+                "mailto-infobar-dismissed",
+                Ci.nsIPermissionManager.DENY_ACTION,
+                Ci.nsIPermissionManager.EXPIRE_TIME,
+                lazy.NimbusFeatures.mailto.getVariable(
+                  "dualPrompt.dismissNotNowMinutes"
+                ) *
+                  60 *
+                  1000 +
+                  Date.now()
               );
               return false;
             },
