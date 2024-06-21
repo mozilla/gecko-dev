@@ -48,10 +48,6 @@ class ClearDataCallback final : public nsIClearDataCallback,
   // URL Classifier telemetry
   void RecordURLClassifierTelemetry();
 
-  // List of features for classifying bounce trackers that have been purged.
-  // See kUrlClassifierFeatures for the list of features.
-  static nsTArray<RefPtr<nsIUrlClassifierFeature>> sUrlClassifierFeatures;
-
   // Event telemetry for purges.
   void RecordPurgeEventTelemetry(bool aSuccess);
 };
