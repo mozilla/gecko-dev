@@ -8,6 +8,8 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
+  InterruptKind: "resource://gre/modules/RustSuggest.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   RemoteSettingsServer: "resource://gre/modules/RustSuggest.sys.mjs",
   SuggestIngestionConstraints: "resource://gre/modules/RustSuggest.sys.mjs",
@@ -153,7 +155,7 @@ export class SuggestBackendRust extends BaseFeature {
   }
 
   cancelQuery() {
-    this.#store?.interrupt();
+    this.#store?.interrupt(lazy.InterruptKind.READ);
   }
 
   /**
@@ -263,6 +265,16 @@ export class SuggestBackendRust extends BaseFeature {
       this.logger.debug("Last ingest time: none");
     }
 
+    // Interrupt any ongoing ingests (WRITE) and queries (READ) on shutdown.
+    // Note that `interrupt()` runs on the main thread and is not async; see
+    // toolkit/components/uniffi-bindgen-gecko-js/config.toml
+    this.#shutdownBlocker = () =>
+      this.#store?.interrupt(lazy.InterruptKind.READ_WRITE);
+    lazy.AsyncShutdown.profileBeforeChange.addBlocker(
+      "QuickSuggest: Interrupt the Rust component",
+      this.#shutdownBlocker
+    );
+
     // Register the ingest timer.
     lazy.timerManager.registerTimer(
       INGEST_TIMER_ID,
@@ -279,6 +291,9 @@ export class SuggestBackendRust extends BaseFeature {
     this.#store = null;
     this.#configsBySuggestionType.clear();
     lazy.timerManager.unregisterTimer(INGEST_TIMER_ID);
+
+    lazy.AsyncShutdown.profileBeforeChange.removeBlocker(this.#shutdownBlocker);
+    this.#shutdownBlocker = null;
   }
 
   async #ingest() {
@@ -345,6 +360,10 @@ export class SuggestBackendRust extends BaseFeature {
     this.logger.info("Finished ingest and configs fetch");
   }
 
+  get _test_store() {
+    return this.#store;
+  }
+
   async _test_setRemoteSettingsConfig({ serverUrl, bucketName }) {
     this.#remoteSettingsServer = new lazy.RemoteSettingsServer.Custom(
       serverUrl
@@ -375,6 +394,7 @@ export class SuggestBackendRust extends BaseFeature {
 
   #ingestPromise;
   #ingestInstance;
+  #shutdownBlocker;
   #remoteSettingsServer = new lazy.RemoteSettingsServer.Custom(
     lazy.Utils.SERVER_URL
   );

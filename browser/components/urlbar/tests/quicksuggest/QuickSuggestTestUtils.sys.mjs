@@ -377,7 +377,7 @@ class _QuickSuggestTestUtils {
     url = "http://example.com/amp",
     title = "Amp Suggestion",
     score = 0.3,
-  }) {
+  } = {}) {
     return {
       keywords,
       url,
@@ -404,7 +404,7 @@ class _QuickSuggestTestUtils {
     url = "http://example.com/wikipedia",
     title = "Wikipedia Suggestion",
     score = 0.2,
-  }) {
+  } = {}) {
     return {
       keywords,
       url,
@@ -431,7 +431,7 @@ class _QuickSuggestTestUtils {
     url = "http://example.com/amo",
     title = "Amo Suggestion",
     score = 0.2,
-  }) {
+  } = {}) {
     return {
       keywords,
       url,

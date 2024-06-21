@@ -7,6 +7,8 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
+  InterruptKind: "resource://gre/modules/RustSuggest.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
@@ -17,17 +19,7 @@ const PREF_APP_UPDATE_TIMERFIRSTINTERVAL = "app.update.timerFirstInterval";
 const MAIN_TIMER_INTERVAL = 1000; // milliseconds
 const CATEGORY_UPDATE_TIMER = "update-timer";
 
-const REMOTE_SETTINGS_SUGGESTION = {
-  id: 1,
-  url: "http://example.com/amp",
-  title: "AMP Suggestion",
-  keywords: ["amp"],
-  click_url: "http://example.com/amp-click",
-  impression_url: "http://example.com/amp-impression",
-  advertiser: "Amp",
-  iab_category: "22 - Shopping",
-  icon: "1234",
-};
+const REMOTE_SETTINGS_SUGGESTION = QuickSuggestTestUtils.ampRemoteSettings();
 
 add_setup(async function () {
   initUpdateTimerManager();
@@ -39,37 +31,27 @@ add_setup(async function () {
         attachment: [REMOTE_SETTINGS_SUGGESTION],
       },
     ],
-    prefs: [
-      ["suggest.quicksuggest.sponsored", true],
-      ["quicksuggest.rustEnabled", false],
-    ],
+    prefs: [["suggest.quicksuggest.sponsored", true]],
   });
 });
 
-// IMPORTANT: This task must run first!
-//
-// This simulates the first time the Rust backend is enabled in a profile. The
-// backend should perform ingestion immediately.
-add_task(async function firstRun() {
-  Assert.ok(
-    !UrlbarPrefs.get("quicksuggest.rustEnabled"),
-    "rustEnabled pref is initially false (this task must run first!)"
+// The backend should ingest when it's disabled and then re-enabled.
+add_task(async function disableEnable() {
+  Assert.strictEqual(
+    UrlbarPrefs.get("quicksuggest.rustEnabled"),
+    true,
+    "Sanity check: Rust pref is initially true"
   );
   Assert.strictEqual(
     QuickSuggest.rustBackend.isEnabled,
-    false,
-    "Rust backend is initially disabled (this task must run first!)"
-  );
-  Assert.ok(
-    !QuickSuggest.rustBackend.ingestPromise,
-    "No ingest has been performed yet (this task must run first!)"
+    true,
+    "Sanity check: Rust backend is initially enabled"
   );
 
-  info("Enabling the Rust backend");
+  // Disable and re-enable the backend. An ingest should start immediately
+  // since ingest is done every time the backend is re-enabled.
+  UrlbarPrefs.set("quicksuggest.rustEnabled", false);
   UrlbarPrefs.set("quicksuggest.rustEnabled", true);
-  Assert.ok(QuickSuggest.rustBackend.isEnabled, "Rust backend is now enabled");
-
-  // An ingest should start.
   let { ingestPromise } = await waitForIngestStart(null);
 
   info("Awaiting ingest promise");
@@ -77,44 +59,23 @@ add_task(async function firstRun() {
   info("Done awaiting ingest promise");
 
   await checkSuggestions();
-
-  // Disable and re-enable the backend. Another ingest should start immediately
-  // since ingest is done every time the backend is re-enabled.
-  UrlbarPrefs.set("quicksuggest.rustEnabled", false);
-  UrlbarPrefs.set("quicksuggest.rustEnabled", true);
-  ({ ingestPromise } = await waitForIngestStart(ingestPromise));
-
-  info("Awaiting ingest promise");
-  await ingestPromise;
-  info("Done awaiting ingest promise");
-
-  await checkSuggestions();
-
-  UrlbarPrefs.set("quicksuggest.rustEnabled", false);
 });
 
 // Ingestion should be performed according to the defined interval.
 add_task(async function interval() {
   let { ingestPromise } = QuickSuggest.rustBackend;
-  Assert.ok(
-    ingestPromise,
-    "Sanity check: An ingest has already been performed"
-  );
-  Assert.ok(
-    !UrlbarPrefs.get("quicksuggest.rustEnabled"),
-    "Sanity check: Rust backend is initially disabled"
-  );
 
-  // Set a small interval and enable the backend. A new ingest will immediately
-  // start.
+  // Re-enable the backend with a small ingest interval. A new ingest will
+  // immediately start.
   let intervalSecs = 1;
   UrlbarPrefs.set("quicksuggest.rustIngestIntervalSeconds", intervalSecs);
+  UrlbarPrefs.set("quicksuggest.rustEnabled", false);
   UrlbarPrefs.set("quicksuggest.rustEnabled", true);
   ({ ingestPromise } = await waitForIngestStart(ingestPromise));
 
-  info("Awaiting ingest promise");
+  info("Awaiting initial ingest promise");
   await ingestPromise;
-  info("Done awaiting ingest promise");
+  info("Done awaiting initial ingest promise");
 
   // Wait for a few ingests to happen due to the timer firing.
   for (let i = 0; i < 3; i++) {
@@ -145,25 +106,43 @@ add_task(async function interval() {
     await checkSuggestions([suggestion]);
   }
 
-  // In the loop above, there was one additional async call after awaiting the
-  // ingest promise, to `checkSuggestions()`. It's possible, though unlikely,
-  // that call took so long that another ingest has started. To be sure, wait
-  // for one final ingest to start before continuing.
-  ({ ingestPromise } = await waitForIngestStart(ingestPromise));
-
-  // Now immediately disable the backend. New ingests should not start, but the
-  // final one will still be ongoing.
   info("Disabling the backend");
   UrlbarPrefs.set("quicksuggest.rustEnabled", false);
 
-  info("Awaiting final ingest promise");
-  await ingestPromise;
+  // At this point, ingests should stop with two caveats. (1) There may be one
+  // ongoing ingest that started immediately after `ingestPromise` resolved in
+  // the final iteration of the loop above. (2) The timer manager sometimes
+  // fires our ingest timer even after it was unregistered by the backend (when
+  // the backend was disabled), maybe because the interval is so small in this
+  // test. These two things mean that up to two more ingests may finish now.
+  // We'll simply wait for a few seconds up to two times until no new ingests
+  // start.
 
-  // Wait a few seconds.
   let waitSecs = 3 * intervalSecs;
-  info(`Waiting ${waitSecs}s...`);
   // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
-  await new Promise(r => setTimeout(r, 1000 * waitSecs));
+  let wait = () => new Promise(r => setTimeout(r, 1000 * waitSecs));
+
+  let waitedAtEndOfLoop = false;
+  for (let i = 0; i < 2; i++) {
+    info(`Waiting ${waitSecs}s after disabling backend, i=${i}...`);
+    await wait();
+
+    let { ingestPromise: newIngestPromise } = QuickSuggest.rustBackend;
+    if (ingestPromise == newIngestPromise) {
+      info(`No new ingest started, i=${i}`);
+      waitedAtEndOfLoop = true;
+      break;
+    }
+
+    info(`New ingest started, now awaiting, i=${i}`);
+    ingestPromise = newIngestPromise;
+    await ingestPromise;
+  }
+
+  if (!waitedAtEndOfLoop) {
+    info(`Waiting a final ${waitSecs}s...`);
+    await wait();
+  }
 
   // No new ingests should have started.
   Assert.equal(
@@ -172,7 +151,42 @@ add_task(async function interval() {
     "No new ingest started after disabling the backend"
   );
 
+  // Clean up for later tasks: Reset the interval and enable the backend again.
   UrlbarPrefs.clear("quicksuggest.rustIngestIntervalSeconds");
+  UrlbarPrefs.set("quicksuggest.rustEnabled", true);
+  ({ ingestPromise } = await waitForIngestStart(ingestPromise));
+
+  info("Awaiting cleanup ingest promise");
+  await ingestPromise;
+  info("Done awaiting cleanup ingest promise");
+});
+
+// `SuggestStore.interrupt()` should be called on shutdown.
+add_task(async function shutdown() {
+  let sandbox = sinon.createSandbox();
+  let spy = sandbox.spy(QuickSuggest.rustBackend._test_store, "interrupt");
+
+  Services.prefs.setBoolPref("toolkit.asyncshutdown.testing", true);
+  AsyncShutdown.profileBeforeChange._trigger();
+
+  let calls = spy.getCalls();
+  Assert.equal(
+    calls.length,
+    1,
+    "store.interrupt() should have been called once on simulated shutdown"
+  );
+  Assert.deepEqual(
+    calls[0].args,
+    [InterruptKind.READ_WRITE],
+    "store.interrupt() should have been called with InterruptKind.READ_WRITE"
+  );
+  Assert.ok(
+    InterruptKind.READ_WRITE,
+    "Sanity check: InterruptKind.READ_WRITE is defined"
+  );
+
+  Services.prefs.clearUserPref("toolkit.asyncshutdown.testing");
+  sandbox.restore();
 });
 
 async function waitForIngestStart(oldIngestPromise) {
