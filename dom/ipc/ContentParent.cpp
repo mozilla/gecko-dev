@@ -5252,8 +5252,7 @@ mozilla::ipc::IPCResult ContentParent::CommonCreateWindow(
     bool* aWindowIsNew, int32_t& aOpenLocation,
     nsIPrincipal* aTriggeringPrincipal, nsIReferrerInfo* aReferrerInfo,
     bool aLoadURI, nsIContentSecurityPolicy* aCsp,
-    const OriginAttributes& aOriginAttributes, bool aUserActivation,
-    bool aTextDirectiveUserActivation) {
+    const OriginAttributes& aOriginAttributes) {
   // The content process should never be in charge of computing whether or
   // not a window should be private - the parent will do that.
   const uint32_t badFlags = nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW |
@@ -5272,8 +5271,6 @@ mozilla::ipc::IPCResult ContentParent::CommonCreateWindow(
   openInfo->mNextRemoteBrowser = aNextRemoteBrowser;
   openInfo->mOriginAttributes = aOriginAttributes;
   openInfo->mIsTopLevelCreatedByWebContent = aIsTopLevelCreatedByWebContent;
-  openInfo->mHasValidUserGestureActivation = aUserActivation;
-  openInfo->mTextDirectiveUserActivation = aTextDirectiveUserActivation;
 
   MOZ_ASSERT_IF(aForWindowDotPrint, aForPrinting);
 
@@ -5481,7 +5478,6 @@ mozilla::ipc::IPCResult ContentParent::RecvCreateWindow(
     const UserActivation::Modifiers& aModifiers,
     nsIPrincipal* aTriggeringPrincipal, nsIContentSecurityPolicy* aCsp,
     nsIReferrerInfo* aReferrerInfo, const OriginAttributes& aOriginAttributes,
-    bool aUserActivation, bool aTextDirectiveUserActivation,
     CreateWindowResolver&& aResolve) {
   if (!aTriggeringPrincipal) {
     return IPC_FAIL(this, "No principal");
@@ -5567,8 +5563,7 @@ mozilla::ipc::IPCResult ContentParent::RecvCreateWindow(
       aForPrinting, aForWindowDotPrint, aIsTopLevelCreatedByWebContent,
       aURIToLoad, aFeatures, aModifiers, newTab, VoidString(), rv, newRemoteTab,
       &cwi.windowOpened(), openLocation, aTriggeringPrincipal, aReferrerInfo,
-      /* aLoadUri = */ false, aCsp, aOriginAttributes, aUserActivation,
-      aTextDirectiveUserActivation);
+      /* aLoadUri = */ false, aCsp, aOriginAttributes);
   if (!ipcResult) {
     return ipcResult;
   }
@@ -5606,8 +5601,7 @@ mozilla::ipc::IPCResult ContentParent::RecvCreateWindowInDifferentProcess(
     const nsACString& aFeatures, const UserActivation::Modifiers& aModifiers,
     const nsAString& aName, nsIPrincipal* aTriggeringPrincipal,
     nsIContentSecurityPolicy* aCsp, nsIReferrerInfo* aReferrerInfo,
-    const OriginAttributes& aOriginAttributes, bool aUserActivation,
-    bool aTextDirectiveUserActivation) {
+    const OriginAttributes& aOriginAttributes) {
   MOZ_DIAGNOSTIC_ASSERT(!nsContentUtils::IsSpecialName(aName));
 
   // Don't continue to try to create a new window if we've been fully discarded.
@@ -5653,8 +5647,7 @@ mozilla::ipc::IPCResult ContentParent::RecvCreateWindowInDifferentProcess(
       aURIToLoad, aFeatures, aModifiers,
       /* aNextRemoteBrowser = */ nullptr, aName, rv, newRemoteTab, &windowIsNew,
       openLocation, aTriggeringPrincipal, aReferrerInfo,
-      /* aLoadUri = */ true, aCsp, aOriginAttributes, aUserActivation,
-      aTextDirectiveUserActivation);
+      /* aLoadUri = */ true, aCsp, aOriginAttributes);
   if (!ipcResult) {
     return ipcResult;
   }

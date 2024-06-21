@@ -2699,46 +2699,6 @@ NS_GetCrossOriginEmbedderPolicyFromHeader(
   return nsILoadInfo::EMBEDDER_POLICY_NULL;
 }
 
-bool NS_GetForceLoadAtTopFromHeader(const nsACString& aHeader) {
-  nsCOMPtr<nsISFVService> sfv = mozilla::net::GetSFVService();
-
-  nsCOMPtr<nsISFVDictionary> dict;
-  if (NS_FAILED(sfv->ParseDictionary(aHeader, getter_AddRefs(dict)))) {
-    return false;
-  }
-  nsCOMPtr<nsISFVItemOrInnerList> iil;
-  if (NS_FAILED(dict->Get("force-load-at-top"_ns, getter_AddRefs(iil)))) {
-    return false;
-  }
-
-  nsCOMPtr<nsISFVItem> item(do_QueryInterface(iil));
-  if (!item) {
-    return false;
-  }
-
-  nsCOMPtr<nsISFVBareItem> bareItem;
-  if (NS_FAILED(item->GetValue(getter_AddRefs(bareItem)))) {
-    return false;
-  }
-
-  int32_t type;
-  if (NS_FAILED(bareItem->GetType(&type))) {
-    return false;
-  }
-
-  nsCOMPtr<nsISFVBool> boolItem(do_QueryInterface(bareItem));
-  if (!boolItem) {
-    return false;
-  }
-
-  bool b;
-  if (NS_FAILED(boolItem->GetValue(&b))) {
-    return false;
-  }
-
-  return b;
-}
-
 /** Given the first (disposition) token from a Content-Disposition header,
  * tell whether it indicates the content is inline or attachment
  * @param aDispToken the disposition token from the content-disposition header

@@ -993,8 +993,7 @@ nsresult ContentChild::ProvideWindowCommon(
       aChromeFlags & nsIWebBrowserChrome::CHROME_FISSION_WINDOW;
 
   uint32_t parentSandboxFlags = parent->SandboxFlags();
-  Document* doc = parent->GetDocument();
-  if (doc) {
+  if (Document* doc = parent->GetDocument()) {
     parentSandboxFlags = doc->GetSandboxFlags();
   }
 
@@ -1036,32 +1035,11 @@ nsresult ContentChild::ProvideWindowCommon(
 
       MOZ_DIAGNOSTIC_ASSERT(!nsContentUtils::IsSpecialName(name));
 
-      const bool hasValidUserGestureActivation = [aLoadState, doc] {
-        if (aLoadState) {
-          return aLoadState->HasValidUserGestureActivation();
-        }
-        if (doc) {
-          return doc->HasValidTransientUserGestureActivation();
-        }
-        return false;
-      }();
-
-      const bool textDirectiveUserActivation = [aLoadState, doc] {
-        if (doc && doc->ConsumeTextDirectiveUserActivation()) {
-          return true;
-        }
-        if (aLoadState) {
-          return aLoadState->GetTextDirectiveUserActivation();
-        }
-        return false;
-      }() || hasValidUserGestureActivation;
-
       Unused << SendCreateWindowInDifferentProcess(
           aTabOpener, parent, aChromeFlags, aCalledFromJS,
           aOpenWindowInfo->GetIsTopLevelCreatedByWebContent(), aURI, features,
           aModifiers, name, triggeringPrincipal, csp, referrerInfo,
-          aOpenWindowInfo->GetOriginAttributes(), hasValidUserGestureActivation,
-          textDirectiveUserActivation);
+          aOpenWindowInfo->GetOriginAttributes());
 
       // We return NS_ERROR_ABORT, so that the caller knows that we've abandoned
       // the window open as far as it is concerned.
@@ -1262,16 +1240,13 @@ nsresult ContentChild::ProvideWindowCommon(
     return rv;
   }
 
-  SendCreateWindow(
-      aTabOpener, parent, newChild, aChromeFlags, aCalledFromJS,
-      aOpenWindowInfo->GetIsForPrinting(),
-      aOpenWindowInfo->GetIsForWindowDotPrint(),
-      aOpenWindowInfo->GetIsTopLevelCreatedByWebContent(), aURI, features,
-      aModifiers, triggeringPrincipal, csp, referrerInfo,
-      aOpenWindowInfo->GetOriginAttributes(),
-      aLoadState ? aLoadState->HasValidUserGestureActivation() : false,
-      aLoadState ? aLoadState->GetTextDirectiveUserActivation() : false,
-      std::move(resolve), std::move(reject));
+  SendCreateWindow(aTabOpener, parent, newChild, aChromeFlags, aCalledFromJS,
+                   aOpenWindowInfo->GetIsForPrinting(),
+                   aOpenWindowInfo->GetIsForWindowDotPrint(),
+                   aOpenWindowInfo->GetIsTopLevelCreatedByWebContent(), aURI,
+                   features, aModifiers, triggeringPrincipal, csp, referrerInfo,
+                   aOpenWindowInfo->GetOriginAttributes(), std::move(resolve),
+                   std::move(reject));
 
   // =======================
   // Begin Nested Event Loop

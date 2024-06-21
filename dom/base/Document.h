@@ -1514,7 +1514,6 @@ class Document : public nsINode,
 
   nsresult InitCSP(nsIChannel* aChannel);
   nsresult InitCOEP(nsIChannel* aChannel);
-  nsresult InitDocPolicy(nsIChannel* aChannel);
 
   nsresult InitReferrerInfo(nsIChannel* aChannel);
 
@@ -3626,9 +3625,6 @@ class Document : public nsINode,
   // Whether we're cloning the contents of an SVG use element.
   bool CloningForSVGUse() const { return mCloningForSVGUse; }
 
-  // If this is true, we're ignoring scrolling to a fragment.
-  bool ForceLoadAtTop() const { return mForceLoadAtTop; }
-
   // This should be called when this document receives events which are likely
   // to be user interaction with the document, rather than the byproduct of
   // interaction with the browser (i.e. a keypress to scroll the view port,
@@ -3644,12 +3640,6 @@ class Document : public nsINode,
   // Return true if NotifyUserGestureActivation() has been called on any
   // document in the document tree.
   bool HasBeenUserGestureActivated();
-
-  // Returns true if this document was loaded with an user interaction,
-  // allowing a text directive to be scrolled to if the document was loaded with
-  // a text fragment. This call consumes this flag, ie. a subsequent call will
-  // return false.
-  bool ConsumeTextDirectiveUserActivation();
 
   // Reture timestamp of last user gesture in milliseconds relative to
   // navigation start timestamp.
@@ -4890,8 +4880,6 @@ class Document : public nsINode,
   bool mAllowDeclarativeShadowRoots : 1;
 
   bool mSuspendDOMNotifications : 1;
-
-  bool mForceLoadAtTop : 1;
 
   // The fingerprinting protections overrides for this document. The value will
   // override the default enabled fingerprinting protections for this document.

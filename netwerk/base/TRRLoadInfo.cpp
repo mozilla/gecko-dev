@@ -766,17 +766,6 @@ TRRLoadInfo::SetHasValidUserGestureActivation(
 }
 
 NS_IMETHODIMP
-TRRLoadInfo::GetTextDirectiveUserActivation(
-    bool* aTextDirectiveUserActivation) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-TRRLoadInfo::SetTextDirectiveUserActivation(bool aTextDirectiveUserActivation) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
 TRRLoadInfo::GetInternalContentPolicyType(nsContentPolicyType* aResult) {
   *aResult = mInternalContentPolicyType;
   return NS_OK;
