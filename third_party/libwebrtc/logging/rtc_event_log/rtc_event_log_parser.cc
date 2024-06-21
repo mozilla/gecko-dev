@@ -53,7 +53,7 @@ using webrtc_event_logging::ToUnsigned;
 namespace webrtc {
 
 namespace {
-constexpr int64_t kMaxLogSize = 250000000;
+constexpr size_t kMaxLogSize = 250000000;
 
 constexpr size_t kIpv4Overhead = 20;
 constexpr size_t kIpv6Overhead = 40;
@@ -1127,17 +1127,17 @@ ParsedRtcEventLog::ParseStatus ParsedRtcEventLog::ParseFile(
   }
 
   // Compute file size.
-  long signed_filesize = file.FileSize();  // NOLINT(runtime/int)
-  RTC_PARSE_CHECK_OR_RETURN_GE(signed_filesize, 0);
-  RTC_PARSE_CHECK_OR_RETURN_LE(signed_filesize, kMaxLogSize);
-  size_t filesize = rtc::checked_cast<size_t>(signed_filesize);
+  absl::optional<size_t> file_size = file.FileSize();
+  RTC_PARSE_CHECK_OR_RETURN(file_size.has_value());
+  RTC_PARSE_CHECK_OR_RETURN_GE(*file_size, 0u);
+  RTC_PARSE_CHECK_OR_RETURN_LE(*file_size, kMaxLogSize);
 
   // Read file into memory.
-  std::string buffer(filesize, '\0');
+  std::string buffer(*file_size, '\0');
   size_t bytes_read = file.Read(&buffer[0], buffer.size());
-  if (bytes_read != filesize) {
+  if (bytes_read != *file_size) {
     RTC_LOG(LS_WARNING) << "Failed to read file " << filename;
-    RTC_PARSE_CHECK_OR_RETURN_EQ(bytes_read, filesize);
+    RTC_PARSE_CHECK_OR_RETURN_EQ(bytes_read, *file_size);
   }
 
   return ParseStream(buffer);

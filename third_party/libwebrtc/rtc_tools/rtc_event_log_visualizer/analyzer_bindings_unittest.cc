@@ -37,11 +37,12 @@ TEST(RtcEventLogAnalyzerBindingsTest, ProducesCharts) {
       "rtc_event_log/rtc_event_log_500kbps", "binarypb");
   webrtc::FileWrapper file = webrtc::FileWrapper::OpenReadOnly(file_name);
   ASSERT_TRUE(file.is_open());
-  int64_t file_size = file.FileSize();
-  ASSERT_LE(file_size, kInputBufferSize);
-  ASSERT_GT(file_size, 0);
-  size_t input_size = file.Read(input.get(), static_cast<size_t>(file_size));
-  ASSERT_EQ(static_cast<size_t>(file_size), input_size);
+  absl::optional<size_t> file_size = file.FileSize();
+  ASSERT_TRUE(file_size.has_value());
+  ASSERT_LE(*file_size, static_cast<size_t>(kInputBufferSize));
+  ASSERT_GT(*file_size, 0u);
+  size_t input_size = file.Read(input.get(), *file_size);
+  ASSERT_EQ(*file_size, input_size);
 
   // Call analyzer.
   uint32_t output_size = kOutputBufferSize;

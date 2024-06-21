@@ -1218,10 +1218,10 @@ index db328d51c6..27bac96ba1 100644
      visibility = [ "*" ]
      sources = [
 diff --git a/rtc_base/system/BUILD.gn b/rtc_base/system/BUILD.gn
-index 77f5139a2f..486b37590c 100644
+index 4360317d3b..777d46e05c 100644
 --- a/rtc_base/system/BUILD.gn
 +++ b/rtc_base/system/BUILD.gn
-@@ -101,7 +101,7 @@ if (is_mac || is_ios) {
+@@ -104,7 +104,7 @@ if (is_mac || is_ios) {
  rtc_source_set("warn_current_thread_is_deadlocked") {
    sources = [ "warn_current_thread_is_deadlocked.h" ]
    deps = []
