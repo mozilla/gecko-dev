@@ -10946,8 +10946,8 @@
 # Hls
 - name: media.hls.enabled
   type: RelaxedAtomicBool
-#if defined(ANDROID) && !defined(NIGHTLY_BUILD)
-  value: true
+#if defined(ANDROID)
+  value: @IS_NOT_EARLY_BETA_OR_EARLIER@
 #else
   value: false
 #endif
