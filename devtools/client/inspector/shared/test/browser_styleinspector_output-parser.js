@@ -15,6 +15,8 @@ const URL_CLASS = "url-class";
 const CUBIC_BEZIER_CLASS = "bezier-class";
 const ANGLE_CLASS = "angle-class";
 const LINEAR_EASING_CLASS = "linear-easing-class";
+const FLEX_CLASS = "flex-class";
+const GRID_CLASS = "grid-class";
 
 const TEST_DATA = [
   {
@@ -322,6 +324,44 @@ const TEST_DATA = [
       is(fragment.textContent, "url(())");
     },
   },
+  {
+    name: "display",
+    value: "flex",
+    test: fragment => {
+      is(countFlex(fragment), 1, "Got expected flex toggle button");
+    },
+  },
+  {
+    name: "display",
+    value: "grid",
+    test: fragment => {
+      is(countGrid(fragment), 1, "Got expected grid toggle button");
+    },
+  },
+  {
+    name: "display",
+    value: "flex",
+    parserOptions: { flexClass: null },
+    test: fragment => {
+      is(
+        countFlex(fragment),
+        0,
+        "No flex toggle button is created when flexClass is null"
+      );
+    },
+  },
+  {
+    name: "display",
+    value: "grid",
+    parserOptions: { gridClass: null },
+    test: fragment => {
+      is(
+        countGrid(fragment),
+        0,
+        "No grid toggle button is created when gridClass is null"
+      );
+    },
+  },
 ];
 
 add_task(async function () {
@@ -345,6 +385,9 @@ add_task(async function () {
         bezierClass: CUBIC_BEZIER_CLASS,
         angleClass: ANGLE_CLASS,
         linearEasingClass: LINEAR_EASING_CLASS,
+        flexClass: FLEX_CLASS,
+        gridClass: GRID_CLASS,
+        ...(data.parserOptions || {}),
       })
     );
   }
@@ -364,6 +407,12 @@ function countCubicBeziers(fragment) {
 }
 function countLinears(fragment) {
   return fragment.querySelectorAll("." + LINEAR_EASING_CLASS).length;
+}
+function countFlex(fragment) {
+  return fragment.querySelectorAll("." + FLEX_CLASS).length;
+}
+function countGrid(fragment) {
+  return fragment.querySelectorAll("." + GRID_CLASS).length;
 }
 function getColor(fragment, index) {
   return fragment.querySelectorAll("." + COLOR_CLASS)[index || 0].textContent;

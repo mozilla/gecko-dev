@@ -586,9 +586,15 @@ class OutputParser {
           ) {
             this.#appendLinear(token.text, options);
           } else if (this.#isDisplayFlex(text, token, options)) {
-            this.#appendHighlighterToggle(token.text, options.flexClass);
+            this.#appendDisplayWithHighlighterToggle(
+              token.text,
+              options.flexClass
+            );
           } else if (this.#isDisplayGrid(text, token, options)) {
-            this.#appendHighlighterToggle(token.text, options.gridClass);
+            this.#appendDisplayWithHighlighterToggle(
+              token.text,
+              options.gridClass
+            );
           } else if (colorOK() && InspectorUtils.isValidCSSColor(token.text)) {
             this.#appendColor(token.text, {
               ...options,
@@ -859,18 +865,22 @@ class OutputParser {
    *
    * @param {String} text
    *        The text value to append
-   * @param {String} className
-   *        The class name for the toggle span
+   * @param {String} toggleButtonClassName
+   *        The class name for the toggle button.
+   *        If not passed/empty, the toggle button won't be created.
    */
-  #appendHighlighterToggle(text, className) {
+  #appendDisplayWithHighlighterToggle(text, toggleButtonClassName) {
     const container = this.#createNode("span", {});
 
-    const toggleButton = this.#createNode("button", {
-      class: className,
-    });
+    if (toggleButtonClassName) {
+      const toggleButton = this.#createNode("button", {
+        class: toggleButtonClassName,
+      });
+      container.append(toggleButton);
+    }
 
     const value = this.#createNode("span", {}, text);
-    container.append(toggleButton, value);
+    container.append(value);
     this.#parsed.push(container);
   }
 
