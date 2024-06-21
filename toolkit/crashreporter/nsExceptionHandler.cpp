@@ -40,6 +40,10 @@
 #include "mozilla/toolkit/crashreporter/mozannotation_client_ffi_generated.h"
 #include "mozilla/toolkit/crashreporter/mozannotation_server_ffi_generated.h"
 
+#ifdef MOZ_BACKGROUNDTASKS
+#  include "mozilla/BackgroundTasks.h"
+#endif
+
 #if defined(XP_WIN)
 #  ifdef WIN32_LEAN_AND_MEAN
 #    undef WIN32_LEAN_AND_MEAN
@@ -1448,6 +1452,12 @@ static void WriteCrashEventFile(time_t crashTime, const char* crashTimeString,
                                 const XP_CHAR* minidump_id
 #endif
 ) {
+  if (!BackgroundTasks::IsBackgroundTaskMode()) {
+    // Do not generate a crash event file if the main process was running a
+    // background task, as the crash won't be visible to the user.
+    return;
+  }
+
   // Minidump IDs are UUIDs (36) + NULL.
   static char id_ascii[37] = {};
 #ifdef XP_LINUX
@@ -1568,7 +1578,7 @@ bool MinidumpCallback(
     WriteAnnotationsForMainProcessCrash(apiData, addrInfo, crashTime);
   }
 
-  if (doReport && isSafeToDump) {
+  if (doReport && isSafeToDump && !BackgroundTasks::IsBackgroundTaskMode()) {
     // We launch the crash reporter client/dialog only if we've been explicitly
     // asked to report crashes and if we weren't already trying to unset the
     // exception handler (which is indicated by isSafeToDump being false).
