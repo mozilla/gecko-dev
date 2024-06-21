@@ -2854,10 +2854,6 @@
           globalHistoryOptions,
           triggeringRemoteType,
           wasSchemelessInput,
-          hasValidUserGestureActivation:
-            !!openWindowInfo?.hasValidUserGestureActivation,
-          textDirectiveUserActivation:
-            !!openWindowInfo?.textDirectiveUserActivation,
         });
       }
 
@@ -3098,8 +3094,6 @@
         globalHistoryOptions,
         triggeringRemoteType,
         wasSchemelessInput,
-        hasValidUserGestureActivation,
-        textDirectiveUserActivation,
       }
     ) {
       if (
@@ -3164,8 +3158,6 @@
             globalHistoryOptions,
             triggeringRemoteType,
             wasSchemelessInput,
-            hasValidUserGestureActivation,
-            textDirectiveUserActivation,
           });
         } catch (ex) {
           console.error(ex);
