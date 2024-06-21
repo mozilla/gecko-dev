@@ -1056,7 +1056,8 @@ mozilla::ipc::IPCResult HttpChannelParent::RecvRemoveCorsPreflightCacheEntry(
 
 mozilla::ipc::IPCResult HttpChannelParent::RecvSetCookies(
     const nsACString& aBaseDomain, const OriginAttributes& aOriginAttributes,
-    nsIURI* aHost, const bool& aFromHttp, nsTArray<CookieStruct>&& aCookies) {
+    nsIURI* aHost, const bool& aFromHttp, const bool& aIsThirdParty,
+    nsTArray<CookieStruct>&& aCookies) {
   net::PCookieServiceParent* csParent =
       LoneManagedOrNullAsserts(Manager()->ManagedPCookieServiceParent());
   NS_ENSURE_TRUE(csParent, IPC_OK());
@@ -1069,7 +1070,7 @@ mozilla::ipc::IPCResult HttpChannelParent::RecvSetCookies(
   }
 
   return cs->SetCookies(nsCString(aBaseDomain), aOriginAttributes, aHost,
-                        aFromHttp, aCookies, browsingContext);
+                        aFromHttp, aIsThirdParty, aCookies, browsingContext);
 }
 
 //-----------------------------------------------------------------------------

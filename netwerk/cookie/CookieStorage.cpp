@@ -462,6 +462,7 @@ void CookieStorage::RemoveAll() {
 void CookieStorage::NotifyChanged(nsISupports* aSubject,
                                   nsICookieNotification::Action aAction,
                                   const nsACString& aBaseDomain,
+                                  bool aIsThirdParty,
                                   dom::BrowsingContext* aBrowsingContext,
                                   bool aOldCookieIsSession) {
   nsCOMPtr<nsIObserverService> os = services::GetObserverService();
@@ -483,8 +484,9 @@ void CookieStorage::NotifyChanged(nsISupports* aSubject,
     browsingContextId = aBrowsingContext->Id();
   }
 
-  nsCOMPtr<nsICookieNotification> notification = new CookieNotification(
-      aAction, cookie, aBaseDomain, batchDeletedCookies, browsingContextId);
+  nsCOMPtr<nsICookieNotification> notification =
+      new CookieNotification(aAction, cookie, aBaseDomain, aIsThirdParty,
+                             batchDeletedCookies, browsingContextId);
   // Notify for topic "private-cookie-changed" or "cookie-changed"
   os->NotifyObservers(notification, NotificationTopic(), u"");
 
@@ -501,7 +503,7 @@ void CookieStorage::AddCookie(nsIConsoleReportCollector* aCRC,
                               const OriginAttributes& aOriginAttributes,
                               Cookie* aCookie, int64_t aCurrentTimeInUsec,
                               nsIURI* aHostURI, const nsACString& aCookieHeader,
-                              bool aFromHttp,
+                              bool aFromHttp, bool aIsThirdParty,
                               dom::BrowsingContext* aBrowsingContext) {
   int64_t currentTime = aCurrentTimeInUsec / PR_USEC_PER_SEC;
 
@@ -623,7 +625,7 @@ void CookieStorage::AddCookie(nsIConsoleReportCollector* aCRC,
         COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
                           "previously stored cookie was deleted");
         NotifyChanged(oldCookie, nsICookieNotification::COOKIE_DELETED,
-                      aBaseDomain, aBrowsingContext, oldCookieIsSession);
+                      aBaseDomain, false, aBrowsingContext, oldCookieIsSession);
         return;
       }
 
@@ -716,7 +718,8 @@ void CookieStorage::AddCookie(nsIConsoleReportCollector* aCRC,
   NotifyChanged(aCookie,
                 foundCookie ? nsICookieNotification::COOKIE_CHANGED
                             : nsICookieNotification::COOKIE_ADDED,
-                aBaseDomain, aBrowsingContext, oldCookieIsSession);
+                aBaseDomain, aIsThirdParty, aBrowsingContext,
+                oldCookieIsSession);
 }
 
 void CookieStorage::UpdateCookieOldestTime(Cookie* aCookie) {

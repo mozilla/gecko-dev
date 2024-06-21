@@ -31,6 +31,13 @@ NS_IMETHODIMP CookieNotification::GetBaseDomain(nsACString& aBaseDomain) {
   return NS_OK;
 }
 
+NS_IMETHODIMP CookieNotification::GetIsThirdParty(bool* aResult) {
+  NS_ENSURE_ARG_POINTER(aResult);
+
+  *aResult = mIsThirdParty;
+  return NS_OK;
+}
+
 NS_IMETHODIMP
 CookieNotification::GetBatchDeletedCookies(nsIArray** aResult) {
   NS_ENSURE_ARG_POINTER(aResult);

@@ -231,6 +231,7 @@ parent:
                                       OriginAttributes attrs,
                                       nullable nsIURI host,
                                       bool fromHttp,
+                                      bool isThirdParty,
                                       CookieStruct[] cookies);
 
   // Notify parent of storage access in the content process. This only happens

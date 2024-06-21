@@ -577,11 +577,12 @@ CookieServiceChild::SetCookieStringFromDocument(
 
     // If there is no WindowGlobalChild fall back to PCookieService SetCookies.
     if (NS_WARN_IF(!windowGlobalChild)) {
-      SendSetCookies(baseDomain, attrs, documentURI, false, cookiesToSend);
+      SendSetCookies(baseDomain, attrs, documentURI, false, thirdParty,
+                     cookiesToSend);
       return NS_OK;
     }
     windowGlobalChild->SendSetCookies(baseDomain, attrs, documentURI, false,
-                                      cookiesToSend);
+                                      thirdParty, cookiesToSend);
   }
 
   return NS_OK;
@@ -758,14 +759,14 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
     RefPtr<HttpChannelChild> httpChannelChild = do_QueryObject(aChannel);
     MOZ_ASSERT(httpChannelChild);
     if (!cookiesToSend.IsEmpty()) {
-      httpChannelChild->SendSetCookies(baseDomain,
-                                       storagePrincipalOriginAttributes,
-                                       aHostURI, true, cookiesToSend);
+      httpChannelChild->SendSetCookies(
+          baseDomain, storagePrincipalOriginAttributes, aHostURI, true,
+          isForeignAndNotAddon, cookiesToSend);
     }
     if (!partitionedCookiesToSend.IsEmpty()) {
       httpChannelChild->SendSetCookies(
           baseDomain, partitionedPrincipalOriginAttributes, aHostURI, true,
-          partitionedCookiesToSend);
+          isForeignAndNotAddon, partitionedCookiesToSend);
     }
   }
 

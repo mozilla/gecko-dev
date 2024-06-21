@@ -1730,7 +1730,8 @@ void WindowGlobalParent::SetShouldReportHasBlockedOpaqueResponse(
 
 IPCResult WindowGlobalParent::RecvSetCookies(
     const nsCString& aBaseDomain, const OriginAttributes& aOriginAttributes,
-    nsIURI* aHost, bool aFromHttp, const nsTArray<CookieStruct>& aCookies) {
+    nsIURI* aHost, bool aFromHttp, bool aIsThirdParty,
+    const nsTArray<CookieStruct>& aCookies) {
   // Get CookieServiceParent via
   // ContentParent->NeckoParent->CookieServiceParent.
   ContentParent* contentParent = GetContentParent();
@@ -1745,7 +1746,7 @@ IPCResult WindowGlobalParent::RecvSetCookies(
   auto* cs = static_cast<net::CookieServiceParent*>(csParent);
 
   return cs->SetCookies(aBaseDomain, aOriginAttributes, aHost, aFromHttp,
-                        aCookies, GetBrowsingContext());
+                        aIsThirdParty, aCookies, GetBrowsingContext());
 }
 
 IPCResult WindowGlobalParent::RecvOnInitialStorageAccess() {

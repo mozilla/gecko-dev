@@ -100,7 +100,8 @@ class CookieService final : public nsICookieService,
 
   bool SetCookiesFromIPC(const nsACString& aBaseDomain,
                          const OriginAttributes& aAttrs, nsIURI* aHostURI,
-                         bool aFromHttp, const nsTArray<CookieStruct>& aCookies,
+                         bool aFromHttp, bool aIsThirdParty,
+                         const nsTArray<CookieStruct>& aCookies,
                          dom::BrowsingContext* aBrowsingContext);
 
  protected:

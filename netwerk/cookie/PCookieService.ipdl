@@ -36,6 +36,7 @@ parent:
                                         OriginAttributes attrs,
                                         nullable nsIURI host,
                                         bool fromHttp,
+                                        bool isThirdParty,
                                         CookieStruct[] cookies);
 
   async GetCookieList(nullable nsIURI host,

@@ -669,9 +669,9 @@ CookieService::SetCookieStringFromDocument(Document* aDocument,
       do_QueryInterface(aDocument->GetChannel());
 
   // add the cookie to the list. AddCookie() takes care of logging.
-  PickStorage(attrs)->AddCookie(crc, baseDomain, attrs, cookie,
-                                currentTimeInUsec, documentURI, aCookieString,
-                                false, aDocument->GetBrowsingContext());
+  PickStorage(attrs)->AddCookie(
+      crc, baseDomain, attrs, cookie, currentTimeInUsec, documentURI,
+      aCookieString, false, thirdParty, aDocument->GetBrowsingContext());
   return NS_OK;
 }
 
@@ -874,7 +874,8 @@ CookieService::SetCookieStringFromHttp(nsIURI* aHostURI,
 
     // add the cookie to the list. AddCookie() takes care of logging.
     storage->AddCookie(crc, baseDomain, cookieOriginAttributes, cookie,
-                       currentTimeInUsec, aHostURI, aCookieHeader, true, bc);
+                       currentTimeInUsec, aHostURI, aCookieHeader, true,
+                       isForeignAndNotAddon, bc);
   }
 
   return NS_OK;
@@ -1002,7 +1003,8 @@ CookieService::AddNative(const nsACString& aHost, const nsACString& aPath,
 
   CookieStorage* storage = PickStorage(*aOriginAttributes);
   storage->AddCookie(nullptr, baseDomain, *aOriginAttributes, cookie,
-                     currentTimeInUsec, nullptr, VoidCString(), true, nullptr);
+                     currentTimeInUsec, nullptr, VoidCString(), true,
+                     !aOriginAttributes->mPartitionKey.IsEmpty(), nullptr);
   return NS_OK;
 }
 
@@ -2703,6 +2705,7 @@ CookieStorage* CookieService::PickStorage(
 bool CookieService::SetCookiesFromIPC(const nsACString& aBaseDomain,
                                       const OriginAttributes& aAttrs,
                                       nsIURI* aHostURI, bool aFromHttp,
+                                      bool aIsThirdParty,
                                       const nsTArray<CookieStruct>& aCookies,
                                       BrowsingContext* aBrowsingContext) {
   if (!IsInitialized()) {
@@ -2744,7 +2747,8 @@ bool CookieService::SetCookiesFromIPC(const nsACString& aBaseDomain,
         Cookie::GenerateUniqueCreationTime(currentTimeInUsec));
 
     storage->AddCookie(nullptr, aBaseDomain, aAttrs, cookie, currentTimeInUsec,
-                       aHostURI, ""_ns, aFromHttp, aBrowsingContext);
+                       aHostURI, ""_ns, aFromHttp, aIsThirdParty,
+                       aBrowsingContext);
   }
 
   return true;

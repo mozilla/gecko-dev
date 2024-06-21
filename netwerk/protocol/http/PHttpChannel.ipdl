@@ -69,6 +69,7 @@ parent:
                                     OriginAttributes attrs,
                                     nullable nsIURI host,
                                     bool fromHttp,
+                                    bool isThirdParty,
                                     CookieStruct[] cookies);
 
   // After receiving this message, the parent calls SendDeleteSelf, and makes

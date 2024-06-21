@@ -118,7 +118,7 @@ class CookieStorage : public nsIObserver, public nsSupportsWeakReference {
 
   void NotifyChanged(nsISupports* aSubject,
                      nsICookieNotification::Action aAction,
-                     const nsACString& aBaseDomain,
+                     const nsACString& aBaseDomain, bool aIsThirdParty = false,
                      dom::BrowsingContext* aBrowsingContext = nullptr,
                      bool aOldCookieIsSession = false);
 
@@ -126,7 +126,7 @@ class CookieStorage : public nsIObserver, public nsSupportsWeakReference {
                  const OriginAttributes& aOriginAttributes, Cookie* aCookie,
                  int64_t aCurrentTimeInUsec, nsIURI* aHostURI,
                  const nsACString& aCookieHeader, bool aFromHttp,
-                 dom::BrowsingContext* aBrowsingContext);
+                 bool aIsThirdParty, dom::BrowsingContext* aBrowsingContext);
 
   static void CreateOrUpdatePurgeList(nsCOMPtr<nsIArray>& aPurgedList,
                                       nsICookie* aCookie);

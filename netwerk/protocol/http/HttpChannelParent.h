@@ -198,7 +198,7 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
       const OriginAttributes& originAttributes) override;
   virtual mozilla::ipc::IPCResult RecvSetCookies(
       const nsACString& aBaseDomain, const OriginAttributes& aOriginAttributes,
-      nsIURI* aHost, const bool& aFromHttp,
+      nsIURI* aHost, const bool& aFromHttp, const bool& aIsThirdParty,
       nsTArray<CookieStruct>&& aCookies) override;
   virtual mozilla::ipc::IPCResult RecvBytesRead(const int32_t& aCount) override;
   virtual mozilla::ipc::IPCResult RecvOpenOriginalCacheInputStream() override;

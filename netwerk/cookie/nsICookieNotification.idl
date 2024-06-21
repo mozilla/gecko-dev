@@ -52,6 +52,11 @@ interface nsICookieNotification : nsISupports {
     readonly attribute ACString baseDomain;
 
     /**
+     * True if the cookie set (added or changed) is considered third-party.
+     */
+    [infallible] readonly attribute boolean isThirdParty;
+
+    /**
      * List of cookies purged.
      * Only set when action == COOKIES_BATCH_DELETED.
      */
