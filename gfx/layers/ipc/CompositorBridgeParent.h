@@ -418,6 +418,12 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
   static LayerTreeState* GetIndirectShadowTree(LayersId aId);
 
   /**
+   * If a shadow tree exists for the given id |aId|, return true.  Otherwise
+   * return false.
+   */
+  static bool HasIndirectShadowTree(LayersId aId);
+
+  /**
    * Lookup the indirect shadow tree for |aId|, call the function object and
    * return true if found. If not found, return false.
    */
@@ -510,6 +516,12 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
   void FlushPendingWrTransactionEventsWithWait();
 
  private:
+  /**
+   * Lookup the indirect shadow tree for |aId| and return it if it
+   * exists.  Otherwise null is returned.
+   */
+  static LayerTreeState* GetIndirectShadowTreeInternal(LayersId aId);
+
   void Initialize();
 
   /**
