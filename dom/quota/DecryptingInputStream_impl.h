@@ -110,6 +110,11 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::StreamStatus() {
 }
 
 template <typename CipherStrategy>
+nsresult DecryptingInputStream<CipherStrategy>::BaseStreamStatus() {
+  return mBaseStream ? (*mBaseStream)->StreamStatus() : NS_BASE_STREAM_CLOSED;
+}
+
+template <typename CipherStrategy>
 NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::ReadSegments(
     nsWriteSegmentFun aWriter, void* aClosure, uint32_t aCount,
     uint32_t* aBytesReadOut) {
@@ -160,7 +165,7 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::ReadSegments(
     // Otherwise decrypt the next chunk and loop.  Any resulting data will set
     // mPlainBytes and mNextByte which we check at the top of the loop.
     uint32_t bytesRead;
-    rv = ParseNextChunk(&bytesRead);
+    rv = ParseNextChunk(false /* aCheckAvailableBytes */, &bytesRead);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -179,7 +184,7 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::ReadSegments(
 
 template <typename CipherStrategy>
 nsresult DecryptingInputStream<CipherStrategy>::ParseNextChunk(
-    uint32_t* const aBytesReadOut) {
+    bool aCheckAvailableBytes, uint32_t* const aBytesReadOut) {
   *aBytesReadOut = 0;
 
   if (!EnsureBuffers()) {
@@ -190,7 +195,7 @@ nsresult DecryptingInputStream<CipherStrategy>::ParseNextChunk(
   auto wholeBlock = mEncryptedBlock->MutableWholeBlock();
   nsresult rv =
       ReadAll(AsWritableChars(wholeBlock).Elements(), wholeBlock.Length(),
-              wholeBlock.Length(), aBytesReadOut);
+              wholeBlock.Length(), aCheckAvailableBytes, aBytesReadOut);
   if (NS_WARN_IF(NS_FAILED(rv)) || *aBytesReadOut == 0) {
     return rv;
   }
@@ -211,18 +216,37 @@ nsresult DecryptingInputStream<CipherStrategy>::ParseNextChunk(
 template <typename CipherStrategy>
 nsresult DecryptingInputStream<CipherStrategy>::ReadAll(
     char* aBuf, uint32_t aCount, uint32_t aMinValidCount,
-    uint32_t* aBytesReadOut) {
+    bool aCheckAvailableBytes, uint32_t* aBytesReadOut) {
   MOZ_ASSERT(aCount >= aMinValidCount);
   MOZ_ASSERT(mBaseStream);
 
+  nsresult rv = NS_OK;
   *aBytesReadOut = 0;
 
   uint32_t offset = 0;
   while (aCount > 0) {
+    Maybe<uint64_t> availableBytes;
+    if (aCheckAvailableBytes) {
+      uint64_t available;
+      rv = (*mBaseStream)->Available(&available);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        if (rv == NS_BASE_STREAM_CLOSED) {
+          rv = NS_OK;
+        }
+        break;
+      }
+
+      if (available == 0) {
+        break;
+      }
+
+      availableBytes = Some(available);
+    }
+
     uint32_t bytesRead = 0;
-    nsresult rv = (*mBaseStream)->Read(aBuf + offset, aCount, &bytesRead);
+    rv = (*mBaseStream)->Read(aBuf + offset, aCount, &bytesRead);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+      break;
     }
 
     // EOF, but don't immediately return.  We need to validate min read bytes
@@ -230,6 +254,8 @@ nsresult DecryptingInputStream<CipherStrategy>::ReadAll(
     if (bytesRead == 0) {
       break;
     }
+
+    MOZ_DIAGNOSTIC_ASSERT(!availableBytes || bytesRead <= *availableBytes);
 
     *aBytesReadOut += bytesRead;
     offset += bytesRead;
@@ -242,7 +268,7 @@ nsresult DecryptingInputStream<CipherStrategy>::ReadAll(
     return NS_ERROR_CORRUPTED_CONTENT;
   }
 
-  return NS_OK;
+  return rv;
 }
 
 template <typename CipherStrategy>
@@ -293,7 +319,7 @@ nsresult DecryptingInputStream<CipherStrategy>::EnsureDecryptedStreamSize() {
     }
 
     uint32_t bytesRead;
-    rv = ParseNextChunk(&bytesRead);
+    rv = ParseNextChunk(true /* aCheckAvailableBytes */, &bytesRead);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return Err(rv);
     }
@@ -431,7 +457,7 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
   }
 
   uint32_t readBytes;
-  rv = ParseNextChunk(&readBytes);
+  rv = ParseNextChunk(true /* aCheckAvailableBytes */, &readBytes);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

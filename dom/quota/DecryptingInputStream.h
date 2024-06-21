@@ -103,6 +103,8 @@ class DecryptingInputStream final : public DecryptingInputStreamBase {
   // For deserialization only.
   explicit DecryptingInputStream();
 
+  nsresult BaseStreamStatus();
+
   NS_IMETHOD Close() override;
   NS_IMETHOD Available(uint64_t* _retval) override;
   NS_IMETHOD StreamStatus() override;
@@ -125,21 +127,26 @@ class DecryptingInputStream final : public DecryptingInputStreamBase {
 
   // Parse the next chunk of data.  This populates mPlainBuffer (until the
   // stream position is at EOF).
-  nsresult ParseNextChunk(uint32_t* aBytesReadOut);
+  nsresult ParseNextChunk(bool aCheckAvailableBytes, uint32_t* aBytesReadOut);
 
   // Convenience routine to Read() from the base stream until we get
   // the given number of bytes or reach EOF.
   //
-  // aBuf           - The buffer to write the bytes into.
-  // aCount         - Max number of bytes to read. If the stream closes
-  //                  fewer bytes my be read.
-  // aMinValidCount - A minimum expected number of bytes.  If we find
-  //                  fewer than this many bytes, then return
-  //                  NS_ERROR_CORRUPTED_CONTENT.  If nothing was read due
-  //                  due to EOF (aBytesReadOut == 0), then NS_OK is returned.
-  // aBytesReadOut  - An out parameter indicating how many bytes were read.
+  // aBuf                   - The buffer to write the bytes into.
+  // aCount                 - Max number of bytes to read. If the stream closes
+  //                          fewer bytes my be read.
+  // aMinValidCount         - A minimum expected number of bytes.  If we find
+  //                          fewer than this many bytes, then return
+  //                          NS_ERROR_CORRUPTED_CONTENT.  If nothing was read
+  //                          due due to EOF (aBytesReadOut == 0), then NS_OK is
+  //                          returned.
+  // aCheckAvailableBytes   - boolean flag controlling whether ReadAll should
+  //                          check available bytes before calling underlying
+  //                          Read method.
+  // aBytesReadOut          - An out parameter indicating how many bytes were
+  // 			      read.
   nsresult ReadAll(char* aBuf, uint32_t aCount, uint32_t aMinValidCount,
-                   uint32_t* aBytesReadOut);
+                   bool aCheckAvailableBytes, uint32_t* aBytesReadOut);
 
   bool EnsureBuffers();
 
