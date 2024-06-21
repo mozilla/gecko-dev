@@ -1781,7 +1781,7 @@ void MediaFormatReader::NotifyNewOutput(
       if (aTrack == TrackInfo::kAudioTrack) {
         decoder.mNumOfConsecutiveUtilityCrashes = 0;
       }
-      if (aTrack == TrackInfo::kVideoTrack) {
+      if (sample->mType == MediaData::Type::VIDEO_DATA) {
         nsCString dummy;
         bool wasHardwareAccelerated = decoder.mIsHardwareAccelerated;
         decoder.mIsHardwareAccelerated =
