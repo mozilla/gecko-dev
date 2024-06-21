@@ -1143,17 +1143,10 @@ function otherWindowFocused(otherWindow)
   getById("n2").focus();
 
   // next, check modal dialogs
-  // XXXndeakin Bug 621399 - the modal dialog test as well as later tests sometime fail
-  // on Windows 8 so just end the test here.
-  if (navigator.userAgent.includes("Windows")) {
-    done();
-  }
-  else {
-    window.openDialog("focus_window2.xhtml", "_blank", "chrome,modal", modalWindowOpened);
-  }
+  window.openDialog("focus_window2.xhtml", "_blank", "chrome,modal", modalWindowOpened);
 }
 
-function modalWindowOpened(modalWindow)
+async function modalWindowOpened(modalWindow)
 {
   var elem = modalWindow.document.getElementById("other");
   if (gPartialTabbing)
@@ -1163,8 +1156,19 @@ function modalWindowOpened(modalWindow)
   is(fm.activeWindow, modalWindow, "modal activeWindow");
   is(fm.focusedElement, elem, "modal focusedElement");
 
-  modalWindow.close();
-  SimpleTest.waitForFocus(modalWindowClosed);
+  // For silly reasons (see the comments around nsCloseEvent), close() doesn't
+  // synchronously close the modal window. If we try to focus the window before
+  // the modal window is fully closed, we fail to focus it (see
+  // AppWindow::EnableParent).
+  //
+  // Wait for the unload event to make sure that we get enabled on time. Another
+  // alternative would be to use the xul-window-destroyed topic.
+  await new Promise(r => {
+    modalWindow.addEventListener("unload", r, { once: true });
+    modalWindow.close();
+  });
+  await SimpleTest.promiseFocus();
+  modalWindowClosed();
 }
 
 function modalWindowClosed()
