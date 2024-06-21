@@ -187,51 +187,7 @@ export class UserCharacteristicsPageService {
 
         lazy.console.debug("Populating Glean metrics...");
 
-        for (let gamepad of data.output.gamepads) {
-          Glean.characteristics.gamepads.add(gamepad);
-        }
-        this.populateIntlLocale();
-
-        Glean.characteristics.zoomCount.set(await this.populateZoomPrefs());
-        Glean.characteristics.pixelRatio.set(
-          await this.populateDevicePixelRatio(browser.ownerGlobal)
-        );
-
-        try {
-          Glean.characteristics.canvasdata1.set(data.output.canvas1data);
-          Glean.characteristics.canvasdata2.set(data.output.canvas2data);
-          Glean.characteristics.canvasdata3.set(data.output.canvas3data);
-          Glean.characteristics.canvasdata4.set(data.output.canvas4data);
-          Glean.characteristics.canvasdata5.set(data.output.canvas5data);
-          Glean.characteristics.canvasdata6.set(data.output.canvas6data);
-          Glean.characteristics.canvasdata7.set(data.output.canvas7data);
-          Glean.characteristics.canvasdata8.set(data.output.canvas8data);
-          Glean.characteristics.canvasdata9.set(data.output.canvas9data);
-          Glean.characteristics.canvasdata10.set(data.output.canvas10data);
-          Glean.characteristics.canvasdata11Webgl.set(data.output.glcanvasdata);
-          Glean.characteristics.canvasdata12Fingerprintjs1.set(
-            data.output.fingerprintjscanvas1data
-          );
-          Glean.characteristics.canvasdata13Fingerprintjs2.set(
-            data.output.fingerprintjscanvas2data
-          );
-          Glean.characteristics.voices.set(data.output.voices);
-          Glean.characteristics.mediaCapabilities.set(
-            data.output.mediaCapabilities
-          );
-          this.populateDisabledMediaPrefs();
-          Glean.characteristics.audioFingerprint.set(
-            data.output.audioFingerprint
-          );
-          Glean.characteristics.jsErrors.set(data.output.jsErrors);
-        } catch (e) {
-          // Grab the exception and send it to the console
-          // (we don't see it otherwise)
-          lazy.console.debug(e);
-          // But still fail
-          throw e;
-        }
-        Glean.characteristics.mathOps.set(await this.populateMathOps());
+        await this.populateAndCollectErrors(browser, data);
 
         lazy.console.debug("Unregistering actor");
         Services.obs.notifyObservers(
@@ -242,6 +198,34 @@ export class UserCharacteristicsPageService {
         this._backgroundBrowsers.delete(browser);
       }
     });
+  }
+
+  async populateAndCollectErrors(browser, data) {
+    const populateFuncs = [
+      [this.populateIntlLocale, []],
+      [this.populateZoomPrefs, []],
+      [this.populateDevicePixelRatio, [browser.ownerGlobal]],
+      [this.populateDisabledMediaPrefs, []],
+      [this.populateMathOps, []],
+      [this.populateMapableData, [data.output]],
+      [this.populateGamepads, [data.output.gamepads]],
+    ];
+    const results = await Promise.allSettled(
+      populateFuncs.map(([f, args]) => f(...args))
+    );
+
+    const errors = JSON.parse(data?.output?.errors ?? "[]");
+    for (const [i, [func]] of populateFuncs.entries()) {
+      if (results[i].status == "rejected") {
+        const error = `${func.name}: ${await stringifyError(
+          results[i].reason
+        )}`;
+        errors.push(error);
+        lazy.console.debug(error);
+      }
+    }
+
+    Glean.characteristics.jsErrors.set(JSON.stringify(errors));
   }
 
   async populateZoomPrefs() {
@@ -257,20 +241,62 @@ export class UserCharacteristicsPageService {
       });
     });
 
-    return zoomPrefsCount;
+    Glean.characteristics.zoomCount.set(zoomPrefsCount);
   }
 
   async populateDevicePixelRatio(window) {
-    return (
+    Glean.characteristics.pixelRatio.set(
       (window.browsingContext.overrideDPPX || window.devicePixelRatio) * 100
     );
   }
 
-  populateIntlLocale() {
+  async populateIntlLocale() {
     const locale = new Intl.DisplayNames(undefined, {
       type: "region",
     }).resolvedOptions().locale;
     Glean.characteristics.intlLocale.set(locale);
+  }
+
+  async populateGamepads(gamepads) {
+    for (let gamepad of gamepads) {
+      Glean.characteristics.gamepads.add(gamepad);
+    }
+  }
+
+  async populateMapableData(data) {
+    // We set data from usercharacteristics.js
+    // We could do Object.keys(data), but this
+    // is more explicit and provides better
+    // readability and control.
+    // Keys must match to data returned from
+    // usercharacteristics.js and the metric defined
+    const metrics = {
+      set: [
+        "canvasdata1",
+        "canvasdata2",
+        "canvasdata3",
+        "canvasdata4",
+        "canvasdata5",
+        "canvasdata6",
+        "canvasdata7",
+        "canvasdata8",
+        "canvasdata9",
+        "canvasdata10",
+        "canvasdata11Webgl",
+        "canvasdata12Fingerprintjs1",
+        "canvasdata13Fingerprintjs2",
+        "voices",
+        "mediaCapabilities",
+        "audioFingerprint",
+        "jsErrors",
+      ],
+    };
+
+    for (const type in metrics) {
+      for (const metric of metrics[type]) {
+        Glean.characteristics[metric][type](data[metric]);
+      }
+    }
   }
 
   async populateMathOps() {
@@ -305,7 +331,9 @@ export class UserCharacteristicsPageService {
       [value => Math.log(1 + value), 10],
     ].map(([op, value]) => [op || (() => 0), value]);
 
-    return JSON.stringify(ops.map(([op, value]) => op(value)));
+    Glean.characteristics.mathOps.set(
+      JSON.stringify(ops.map(([op, value]) => op(value)))
+    );
   }
 
   async pageLoaded(browsingContext, data) {
@@ -350,4 +378,24 @@ export class UserCharacteristicsPageService {
     }
     Glean.characteristics.changedMediaPrefs.set(JSON.stringify(changedPrefs));
   }
+}
+
+// =============================================================
+// Utility Functions
+
+async function stringifyError(error) {
+  if (error instanceof Error) {
+    const stack = (error.stack ?? "").replaceAll(
+      /@chrome.+?UserCharacteristicsPageService.sys.mjs:/g,
+      ""
+    );
+    return `${error.toString()} ${stack}`;
+  }
+  // A hacky attempt to extract as much as info from error
+  const errStr = await (async () => {
+    const asStr = await (async () => error.toString())().catch(() => "");
+    const asJson = await (async () => JSON.stringify(error))().catch(() => "");
+    return asStr.length > asJson.len ? asStr : asJson;
+  })();
+  return errStr;
 }

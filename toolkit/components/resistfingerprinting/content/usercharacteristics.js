@@ -43,6 +43,37 @@ async function sha1(message) {
   return hashHex;
 }
 
+async function stringifyError(error) {
+  if (error instanceof Error) {
+    const stack = (error.stack ?? "").replaceAll(
+      /@chrome.+?usercharacteristics.js:/g,
+      ""
+    );
+    return `${error.toString()} ${stack}`;
+  }
+  // A hacky attempt to extract as much as info from error
+  const errStr = await (async () => {
+    const asStr = await (async () => error.toString())().catch(() => "");
+    const asJson = await (async () => JSON.stringify(error))().catch(() => "");
+    return asStr.length > asJson.len ? asStr : asJson;
+  })();
+  return errStr;
+}
+
+function sample(list, count) {
+  const range = list.length - 1;
+  if (range <= count) {
+    return list;
+  }
+
+  const samples = [];
+  const step = Math.floor(range / count);
+  for (let i = 0; i < range; i += step) {
+    samples.push(list[i]);
+  }
+  return samples;
+}
+
 // ==============================================================
 // Regular Canvases
 
@@ -57,7 +88,7 @@ function populateTestCanvases() {
   var c1 = canvas1.getContext("2d");
   c1.fillStyle = "orange";
   c1.fillRect(100, 100, 50, 50);
-  data.canvas1data = sha1(canvas1.toDataURL());
+  data.canvasdata1 = sha1(canvas1.toDataURL());
 
   // Canvas 2 is a polygon with lines, this fingerprints a little via
   // floating point rounding.
@@ -73,13 +104,13 @@ function populateTestCanvases() {
   c2.strokeStyle = "red";
   c2.lineWidth = 5;
   c2.stroke();
-  data.canvas2data = sha1(canvas2.toDataURL());
+  data.canvasdata2 = sha1(canvas2.toDataURL());
 
   // Canvas 3 renders an image at a reduced resolution, this also
   // fingerprints via floating point rounding.
   var canvas3 = document.getElementById("canvas3");
   var c3 = canvas3.getContext("2d");
-  data.canvas3data = new Promise((resolve, reject) => {
+  data.canvasdata3 = new Promise((resolve, reject) => {
     const image = new Image();
     // CC Public Domain - https://www.flickr.com/photos/birds_and_critters/53695948491/
     image.src = kImageBlob;
@@ -102,7 +133,7 @@ function populateTestCanvases() {
   c4.fillRect(0, 0, 50, 50);
   c4.rotate((-15.0 * Math.PI) / 180.0);
   c4.fillRect(0, 0, 50, 50);
-  data.canvas4data = sha1(canvas4.toDataURL());
+  data.canvasdata4 = sha1(canvas4.toDataURL());
 
   // Canvas 5 renders text with a local font the user might have in a pretty standard configuration
   var canvas5 = document.getElementById("canvas5");
@@ -112,7 +143,7 @@ function populateTestCanvases() {
   c5.fillText("The quick brown", 15, 100);
   c5.fillText("fox jumps over", 15, 150);
   c5.fillText("the lazy dog", 15, 200);
-  data.canvas5data = sha1(canvas5.toDataURL());
+  data.canvasdata5 = sha1(canvas5.toDataURL());
 
   // Canvas 6 renders text with a local font the user might have but translated, rotated, and with a blurred shadow
   var canvas6 = document.getElementById("canvas6");
@@ -124,7 +155,7 @@ function populateTestCanvases() {
   c6.shadowBlur = 50;
   c6.font = "italic 40px Georgia";
   c6.fillText("The quick", 0, 0);
-  data.canvas6data = sha1(canvas6.toDataURL());
+  data.canvasdata6 = sha1(canvas6.toDataURL());
 
   // Canvas 7 renders text with a system font.
   var canvas7 = document.getElementById("canvas7");
@@ -134,7 +165,7 @@ function populateTestCanvases() {
   c7.fillText("The quick brown", 15, 100);
   c7.fillText("fox jumps over", 15, 150);
   c7.fillText("the lazy dog", 15, 200);
-  data.canvas7data = sha1(canvas7.toDataURL());
+  data.canvasdata7 = sha1(canvas7.toDataURL());
 
   // Canvas 8 renders text with a system font.
   var canvas8 = document.getElementById("canvas8");
@@ -146,7 +177,7 @@ function populateTestCanvases() {
   c8.shadowBlur = 50;
   c8.font = "italic 40px system-ui";
   c8.fillText("The quick", 0, 0);
-  data.canvas8data = sha1(canvas8.toDataURL());
+  data.canvasdata8 = sha1(canvas8.toDataURL());
 
   // Canvas 9 renders text with a supplied font.
   var canvas9 = document.getElementById("canvas9");
@@ -156,7 +187,7 @@ function populateTestCanvases() {
   c9.fillText("The quick brown", 15, 100);
   c9.fillText("fox jumps over", 15, 150);
   c9.fillText("the lazy dog", 15, 200);
-  data.canvas9data = sha1(canvas9.toDataURL());
+  data.canvasdata9 = sha1(canvas9.toDataURL());
 
   // Canvas 10 renders text with a supplied font.
   var canvas10 = document.getElementById("canvas10");
@@ -168,7 +199,7 @@ function populateTestCanvases() {
   c10.shadowBlur = 50;
   c10.font = "italic 40px LocalFiraSans";
   c10.fillText("The quick", 0, 0);
-  data.canvas10data = sha1(canvas10.toDataURL());
+  data.canvasdata10 = sha1(canvas10.toDataURL());
 
   return data;
 }
@@ -477,7 +508,7 @@ function populateWebGLCanvases() {
   drawScene(gl, programInfo, buffers);
 
   // Write to the fields
-  data.glcanvasdata = sha1(canvas.toDataURL());
+  data.canvasdata11Webgl = sha1(canvas.toDataURL());
 
   return data;
 }
@@ -546,12 +577,12 @@ function populateFingerprintJSCanvases() {
   const canvas1 = document.getElementById("fingerprintjscanvas1");
   const context1 = canvas1.getContext("2d");
   renderTextImage(canvas1, context1);
-  data.fingerprintjscanvas1data = sha1(canvas1.toDataURL());
+  data.canvasdata12Fingerprintjs1 = sha1(canvas1.toDataURL());
 
   const canvas2 = document.getElementById("fingerprintjscanvas2");
   const context2 = canvas2.getContext("2d");
   renderGeometryImage(canvas2, context2);
-  data.fingerprintjscanvas2data = sha1(canvas2.toDataURL());
+  data.canvasdata13Fingerprintjs2 = sha1(canvas2.toDataURL());
 
   return data;
 }
@@ -575,31 +606,7 @@ function populateVoiceList() {
     return uri;
   }
 
-  function sample(voices, count) {
-    const range = voices.length - 1;
-    if (range <= count) {
-      return voices;
-    }
-
-    const sampledVoices = [];
-    const step = Math.floor(range / count);
-    for (let i = 0; i < range; i += step) {
-      sampledVoices.push(voices[i]);
-    }
-    return sampledVoices;
-  }
-
-  async function sha256(message) {
-    const msgUint8 = new TextEncoder().encode(message);
-    const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgUint8);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray
-      .map(b => b.toString(16).padStart(2, "0"))
-      .join("");
-    return hashHex;
-  }
-
-  async function stringify(voices) {
+  async function stringifyVoices(voices) {
     voices = voices
       .map(voice => ({
         voiceURI: trimVoiceURI(voice.voiceURI),
@@ -628,7 +635,7 @@ function populateVoiceList() {
       localServices: localServices.length,
       defaultVoice: defaultVoice ? defaultVoice.voiceURI : null,
       samples: sample(voices, 5),
-      sha256: await sha256(voices.join("|")),
+      sha1: await sha1(voices.join("|")),
       allHash: ssdeep.digest(voices.join("|")),
       localHash: ssdeep.digest(localServices.join("|")),
       nonLocalHash: ssdeep.digest(nonLocalServices.join("|")),
@@ -656,7 +663,7 @@ function populateVoiceList() {
   }
 
   return {
-    voices: fetchVoices().then(stringify),
+    voices: fetchVoices().then(stringifyVoices),
   };
 }
 
@@ -913,23 +920,7 @@ const LocalFiraSans = new FontFace(
     try {
       Object.assign(data, source());
     } catch (error) {
-      if (error instanceof Error) {
-        const stack = (error.stack ?? "").replaceAll(
-          /@chrome.+?usercharacteristics.js:/g,
-          ""
-        );
-        errors.push(`${source.name}: ${error.toString()} ${stack}`);
-        continue;
-      }
-      // A hacky attempt to extract as much as info from error
-      const errStr = await (async () => {
-        const asStr = await (async () => error.toString())().catch(() => "");
-        const asJson = await (async () => JSON.stringify(error))().catch(
-          () => ""
-        );
-        return asStr.length > asJson.len ? asStr : asJson;
-      })();
-      errors.push(`${source.name}: ${errStr}`);
+      errors.push(`${source.name}: ${await stringifyError(error)}`);
     }
   }
 
@@ -944,21 +935,7 @@ const LocalFiraSans = new FontFace(
       debug(key, output[key].length);
     } catch (e) {
       debug("Promise rejected for", key, "Error:", e);
-      if (e instanceof Error) {
-        const stack = (e.stack ?? "").replaceAll(
-          /@chrome.+?usercharacteristics.js:/g,
-          ""
-        );
-        errors.push(`${key}: ${e.toString()} ${stack}`);
-        continue;
-      }
-      // A hacky attempt to extract as much as info from error
-      const errStr = await (async () => {
-        const asStr = await (async () => e.toString())().catch(() => "");
-        const asJson = await (async () => JSON.stringify(e))().catch(() => "");
-        return asStr.length > asJson.len ? asStr : asJson;
-      })();
-      errors.push(`${key}: ${errStr}`);
+      errors.push(`${key}: ${await stringifyError(e)}`);
     }
   }
   output.jsErrors = JSON.stringify(errors);
