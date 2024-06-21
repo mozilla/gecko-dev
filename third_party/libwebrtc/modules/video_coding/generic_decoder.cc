@@ -103,9 +103,9 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
                                       absl::optional<int32_t> decode_time_ms,
                                       absl::optional<uint8_t> qp) {
   RTC_DCHECK(_receiveCallback) << "Callback must not be null at this point";
-  TRACE_EVENT(
-      "webrtc", "VCMDecodedFrameCallback::Decoded",
-      perfetto::TerminatingFlow::ProcessScoped(decodedImage.rtp_timestamp()));
+  TRACE_EVENT_INSTANT1("webrtc", "VCMDecodedFrameCallback::Decoded",
+                       TRACE_EVENT_SCOPE_GLOBAL, "timestamp",
+                       decodedImage.rtp_timestamp());
   // TODO(holmer): We should improve this so that we can handle multiple
   // callbacks from one call to Decode().
   absl::optional<FrameInfo> frame_info;
@@ -293,8 +293,8 @@ int32_t VCMGenericDecoder::Decode(const VCMEncodedFrame& frame, Timestamp now) {
 int32_t VCMGenericDecoder::Decode(const EncodedImage& frame,
                                   Timestamp now,
                                   int64_t render_time_ms) {
-  TRACE_EVENT("webrtc", "VCMGenericDecoder::Decode",
-              perfetto::Flow::ProcessScoped(frame.RtpTimestamp()));
+  TRACE_EVENT1("webrtc", "VCMGenericDecoder::Decode", "timestamp",
+               frame.RtpTimestamp());
   FrameInfo frame_info;
   frame_info.rtp_timestamp = frame.RtpTimestamp();
   frame_info.decode_start = now;
