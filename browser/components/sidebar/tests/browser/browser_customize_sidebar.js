@@ -5,6 +5,18 @@
 
 add_setup(() => SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] }));
 
+async function showCustomizePanel(win) {
+  await win.SidebarController.show("viewCustomizeSidebar");
+  const document = win.SidebarController.browser.contentDocument;
+  return TestUtils.waitForCondition(async () => {
+    const component = document.querySelector("sidebar-customize");
+    if (!component?.positionInputs) {
+      return false;
+    }
+    return component;
+  }, "Customize panel is shown.");
+}
+
 add_task(async function test_customize_sidebar_actions() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { document } = win;
@@ -133,4 +145,47 @@ add_task(async function test_manage_preferences_navigation() {
   );
 
   await BrowserTestUtils.closeWindow(win);
+});
+
+add_task(async function test_customize_position_setting() {
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const { document } = win;
+  const panel = await showCustomizePanel(win);
+  const sidebarBox = document.getElementById("sidebar-box");
+  await BrowserTestUtils.waitForCondition(
+    () => BrowserTestUtils.isVisible(sidebarBox),
+    "Sidebar panel is visible"
+  );
+  const [positionLeft, positionRight] = panel.positionInputs;
+  ok(positionLeft.checked, "The sidebar positioned on the left by default.");
+  is(
+    sidebarBox.style.order,
+    "2",
+    "Sidebar box should have an order of 2 when on the left"
+  );
+  EventUtils.synthesizeMouseAtCenter(
+    positionRight,
+    {},
+    win.SidebarController.browser.contentWindow
+  );
+  ok(positionRight.checked, "Sidebar is positioned on the right");
+
+  const newWin = await BrowserTestUtils.openNewBrowserWindow();
+  const newPanel = await showCustomizePanel(newWin);
+  const newSidebarBox = newWin.document.getElementById("sidebar-box");
+  await BrowserTestUtils.waitForCondition(
+    () => BrowserTestUtils.isVisible(newSidebarBox),
+    "Sidebar panel is visible"
+  );
+  const [, newPositionRight] = newPanel.positionInputs;
+  ok(newPositionRight.checked, "Position setting persists.");
+  is(
+    newSidebarBox.style.order,
+    "4",
+    "Sidebar box should have an order of 4 when on the right"
+  );
+
+  await BrowserTestUtils.closeWindow(win);
+  await BrowserTestUtils.closeWindow(newWin);
+  Services.prefs.clearUserPref("sidebar.position_start");
 });
