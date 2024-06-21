@@ -174,6 +174,14 @@ commit ($MOZ_CHANGED).  This may indicate a mismatch between the vendoring
 script and this script, or it could be a true error in the import
 processing.  Once the issue has been resolved, the following steps
 remain for this commit:
+  # save the patch-stack
+  ./mach python $SCRIPT_DIR/save_patch_stack.py \\
+    --skip-startup-sanity \\
+    --repo-path $MOZ_LIBWEBRTC_SRC \\
+    --branch $MOZ_LIBWEBRTC_BRANCH \\
+    --patch-path \"third_party/libwebrtc/moz-patch-stack\" \\
+    --state-path $STATE_DIR \\
+    --target-branch-head $MOZ_TARGET_UPSTREAM_BRANCH_HEAD
   # generate moz.build files (may not be necessary)
   ./mach python python/mozbuild/mozbuild/gn_processor.py \\
       $SCRIPT_DIR/gn-configs/webrtc.json
@@ -181,6 +189,8 @@ remain for this commit:
   bash $SCRIPT_DIR/commit-build-file-changes.sh
   # do a (hopefully) quick test build
   ./mach build
+
+After a successful build, you may resume this script.
 "
 echo_log "Verify number of files changed MOZ($MOZ_CHANGED) GIT($GIT_CHANGED)"
 if [ "x$HANDLE_NOOP_COMMIT" == "x1" ]; then
