@@ -222,6 +222,7 @@ webrtc_fuzzer_test("rtcp_receiver_fuzzer") {
     "../../modules/rtp_rtcp:rtp_rtcp_format",
     "../../rtc_base:checks",
     "../../system_wrappers",
+    "../../system_wrappers:field_trial",
   ]
   seed_corpus = "corpora/rtcp-corpus"
 }

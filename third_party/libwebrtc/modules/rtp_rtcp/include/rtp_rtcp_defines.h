@@ -29,6 +29,7 @@
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/congestion_control_feedback.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/remote_estimate.h"
 #include "system_wrappers/include/clock.h"
 
@@ -107,7 +108,7 @@ enum RTCPPacketType : uint32_t {
   kRtcpXrReceiverReferenceTime = 0x40000,
   kRtcpXrDlrrReportBlock = 0x80000,
   kRtcpTransportFeedback = 0x100000,
-  kRtcpXrTargetBitrate = 0x200000
+  kRtcpXrTargetBitrate = 0x200000,
 };
 
 enum class KeyFrameReqMethod : uint8_t {
@@ -164,6 +165,10 @@ class NetworkLinkRtcpObserver {
 
   virtual void OnTransportFeedback(Timestamp receive_time,
                                    const rtcp::TransportFeedback& feedback) {}
+  // RFC 8888 congestion control feedback.
+  virtual void OnCongestionControlFeedback(
+      Timestamp receive_time,
+      const rtcp::CongestionControlFeedback& feedback) {}
   virtual void OnReceiverEstimatedMaxBitrate(Timestamp receive_time,
                                              DataRate bitrate) {}
 
