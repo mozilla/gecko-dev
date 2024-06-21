@@ -7,6 +7,7 @@
 #include "APZCTreeManagerTester.h"
 #include "APZTestCommon.h"
 #include "InputUtils.h"
+#include "mozilla/layers/ScrollableLayerGuid.h"
 
 // Test of scenario described in bug 1269067 - that a continuing mouse drag
 // doesn't interrupt a wheel scrolling animation
@@ -45,4 +46,53 @@ TEST_F(APZCTreeManagerTester, WheelInterruptedByMouseDrag) {
       AsyncPanZoomController::eForEventHandling);
   EXPECT_EQ(scroll.x, 0);
   EXPECT_EQ(scroll.y, 10);  // We scrolled 1 "line" or 10 pixels
+}
+
+// Test of the scenario in bug 1894228, where the touchpad generates a
+// mixture of wheel events with horizontal and vertical deltas, and if the
+// content is only scrollable in the vertical direction, then an input
+// block starting with a wheel event with a horizontal can prevent the
+// entire input block from causing any scrolling.
+TEST_F(APZCTreeManagerTester, HorizontalDeltaInterferesWithVerticalScrolling) {
+  using ViewID = ScrollableLayerGuid::ViewID;
+  ViewID rootScrollId = ScrollableLayerGuid::START_SCROLL_ID;
+  const char* treeShape = "x";
+  LayerIntRect layerVisibleRect[] = {
+      LayerIntRect(0, 0, 100, 100),
+  };
+  CreateScrollData(treeShape, layerVisibleRect);
+  // Only vertically scrollable
+  SetScrollableFrameMetrics(layers[0], rootScrollId, CSSRect(0, 0, 100, 1000));
+
+  ScopedLayerTreeRegistration registration(LayersId{0}, mcc);
+  UpdateHitTestingTree();
+  RefPtr<TestAsyncPanZoomController> apzc = ApzcOf(root);
+
+  // Configure the APZC to wait for main-thread confirmations before
+  // processing events. (This is needed to trigger the buggy codepath.)
+  apzc->SetWaitForMainThread();
+
+  // Send a wheel event with a horizontal delta.
+  ScreenIntPoint cursorLocation(50, 50);
+  uint64_t wheelBlockId1 =
+      Wheel(apzc, cursorLocation, ScreenIntPoint(-10, 0), mcc->Time())
+          .mInputBlockId;
+
+  // Send a wheel event with a vertical delta.
+  uint64_t wheelBlockId2 =
+      Wheel(apzc, cursorLocation, ScreenIntPoint(0, 10), mcc->Time())
+          .mInputBlockId;
+
+  // Since the wheel block's target APZC has not been confirmed yet, the second
+  // event will go into the same block as the first.
+  EXPECT_EQ(wheelBlockId1, wheelBlockId2);
+
+  // Confirm the input block.
+  manager->ContentReceivedInputBlock(wheelBlockId1, false);
+  manager->SetTargetAPZC(wheelBlockId1, {apzc->GetGuid()});
+
+  // We should have scrolled vertically.
+  EXPECT_EQ(ParentLayerPoint(0, 10),
+            apzc->GetCurrentAsyncScrollOffset(
+                AsyncPanZoomController::eForEventHandling));
 }

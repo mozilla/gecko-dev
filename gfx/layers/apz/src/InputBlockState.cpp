@@ -326,8 +326,23 @@ bool WheelBlockState::SetConfirmedTargetApzc(
   // one by looking for the first apzc the next pending event can scroll.
   RefPtr<AsyncPanZoomController> apzc = aTargetApzc;
   if (apzc && aFirstInput) {
-    apzc = apzc->BuildOverscrollHandoffChain()->FindFirstScrollable(
-        *aFirstInput->Input(), &mAllowedScrollDirections);
+    auto handoffChain = apzc->BuildOverscrollHandoffChain();
+    apzc = handoffChain->FindFirstScrollable(*aFirstInput->Input(),
+                                             &mAllowedScrollDirections);
+
+    // If the first event in the input block cannot scroll any APZC,
+    // iterate through the input queue and try subsequent events in the block.
+    // This avoids dropping an entire block where some events could have caused
+    // scrolling.
+    while (!apzc) {
+      ++aFirstInput;
+      if (!aFirstInput) break;
+      if (aFirstInput->Block() != this) {
+        continue;
+      }
+      apzc = handoffChain->FindFirstScrollable(*aFirstInput->Input(),
+                                               &mAllowedScrollDirections);
+    }
   }
 
   InputBlockState::SetConfirmedTargetApzc(apzc, aState, aFirstInput,
