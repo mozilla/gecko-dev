@@ -48,14 +48,10 @@ class XMLHttpRequestWorker final : public SupportsWeakPtr,
 
   struct StateData {
     nsString mResponseURL;
-    uint32_t mStatus;
+    uint32_t mStatus{0};
     nsCString mStatusText;
-    uint16_t mReadyState;
-    bool mFlagSend;
-    nsresult mStatusResult;
-
-    StateData()
-        : mStatus(0), mReadyState(0), mFlagSend(false), mStatusResult(NS_OK) {}
+    uint16_t mReadyState{0};
+    nsresult mStatusResult{NS_OK};
   };
 
  private:
@@ -74,11 +70,13 @@ class XMLHttpRequestWorker final : public SupportsWeakPtr,
   JS::Heap<JSObject*> mResponseArrayBufferValue;
   JS::Heap<JS::Value> mResponseJSONValue;
 
+  uint32_t mEventStreamId{0};
   uint32_t mTimeout;
 
   bool mBackgroundRequest;
   bool mWithCredentials;
   bool mCanceled;
+  bool mFlagSend{false};  // spec flag
   bool mFlagSendActive;
 
   bool mMozAnon;
@@ -97,15 +95,15 @@ class XMLHttpRequestWorker final : public SupportsWeakPtr,
 
   void Unpin();
 
-  virtual uint16_t ReadyState() const override {
-    return mStateData->mReadyState;
-  }
+  virtual uint16_t ReadyState() const override;
 
   virtual void Open(const nsACString& aMethod, const nsAString& aUrl,
                     ErrorResult& aRv) override {
     Open(aMethod, aUrl, true, Optional<nsAString>(), Optional<nsAString>(),
          aRv);
   }
+
+  uint32_t EventStreamId() const { return mEventStreamId; }
 
   virtual void Open(const nsACString& aMethod, const nsAString& aUrl,
                     bool aAsync, const nsAString& aUsername,
@@ -239,9 +237,13 @@ class XMLHttpRequestWorker final : public SupportsWeakPtr,
 
   void MaybePin(ErrorResult& aRv);
 
-  void MaybeDispatchPrematureAbortEvents(ErrorResult& aRv);
+  void SetResponseToNetworkError();
 
-  void FireEvent(EventTarget* aTarget, const EventType& aEventType,
+  void RequestErrorSteps(ErrorResult& aRv,
+                         const ErrorProgressEventType& aEventType,
+                         nsresult aException = NS_ERROR_DOM_INVALID_STATE_ERR);
+
+  bool FireEvent(EventTarget* aTarget, const EventType& aEventType,
                  bool aUploadTarget, ErrorResult& aRv);
 
   void Send(JSContext* aCx, JS::Handle<JSObject*> aBody, ErrorResult& aRv);

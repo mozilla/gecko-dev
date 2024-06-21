@@ -76,7 +76,7 @@ class XMLHttpRequest : public XMLHttpRequestEventTarget {
   static constexpr ProgressEventType NAME { #NAME, u## #NAME }
 
 #define DECL_ERRORPROGRESSEVENT(NAME, ERR) \
-  static constexpr ErrorProgressEventType NAME{#NAME, u## #NAME, ERR};
+  static constexpr ErrorProgressEventType NAME { #NAME, u## #NAME, ERR };
 
   struct Events;
 
