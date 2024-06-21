@@ -73,7 +73,6 @@ nsDocShellLoadState::nsDocShellLoadState(
   mInternalLoadFlags = aLoadState.InternalLoadFlags();
   mFirstParty = aLoadState.FirstParty();
   mHasValidUserGestureActivation = aLoadState.HasValidUserGestureActivation();
-  mTextDirectiveUserActivation = aLoadState.TextDirectiveUserActivation();
   mAllowFocusMove = aLoadState.AllowFocusMove();
   mTypeHint = aLoadState.TypeHint();
   mFileName = aLoadState.FileName();
@@ -183,7 +182,6 @@ nsDocShellLoadState::nsDocShellLoadState(const nsDocShellLoadState& aOther)
       mInternalLoadFlags(aOther.mInternalLoadFlags),
       mFirstParty(aOther.mFirstParty),
       mHasValidUserGestureActivation(aOther.mHasValidUserGestureActivation),
-      mTextDirectiveUserActivation(aOther.mTextDirectiveUserActivation),
       mAllowFocusMove(aOther.mAllowFocusMove),
       mTypeHint(aOther.mTypeHint),
       mFileName(aOther.mFileName),
@@ -454,8 +452,6 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
   loadState->SetLoadFlags(extraFlags);
   loadState->SetFirstParty(true);
   loadState->SetHasValidUserGestureActivation(
-      aLoadURIOptions.mHasValidUserGestureActivation);
-  loadState->SetTextDirectiveUserActivation(
       aLoadURIOptions.mHasValidUserGestureActivation);
   loadState->SetTriggeringSandboxFlags(aLoadURIOptions.mTriggeringSandboxFlags);
   loadState->SetTriggeringWindowId(aLoadURIOptions.mTriggeringWindowId);
@@ -904,15 +900,6 @@ void nsDocShellLoadState::SetHasValidUserGestureActivation(
   mHasValidUserGestureActivation = aHasValidUserGestureActivation;
 }
 
-void nsDocShellLoadState::SetTextDirectiveUserActivation(
-    bool aTextDirectiveUserActivation) {
-  mTextDirectiveUserActivation = aTextDirectiveUserActivation;
-}
-
-bool nsDocShellLoadState::GetTextDirectiveUserActivation() {
-  return mTextDirectiveUserActivation;
-}
-
 const nsCString& nsDocShellLoadState::TypeHint() const { return mTypeHint; }
 
 void nsDocShellLoadState::SetTypeHint(const nsCString& aTypeHint) {
@@ -1304,7 +1291,6 @@ DocShellLoadStateInit nsDocShellLoadState::Serialize(
   loadState.InternalLoadFlags() = mInternalLoadFlags;
   loadState.FirstParty() = mFirstParty;
   loadState.HasValidUserGestureActivation() = mHasValidUserGestureActivation;
-  loadState.TextDirectiveUserActivation() = mTextDirectiveUserActivation;
   loadState.AllowFocusMove() = mAllowFocusMove;
   loadState.TypeHint() = mTypeHint;
   loadState.FileName() = mFileName;

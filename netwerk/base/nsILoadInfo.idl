@@ -547,14 +547,6 @@ interface nsILoadInfo : nsISupports
   [infallible] attribute boolean hasValidUserGestureActivation;
 
   /**
-   * Returns true if at the time of the loadinfo construction the document that
-   * triggered this load was user activated. This flag is being used to indicate
-   * whether a document load with a text fragment is allowed to scroll to the
-   * first text directive.
-   */
-  [infallible] attribute boolean textDirectiveUserActivation;
-
-  /**
    * We disallow the SystemPrincipal to initiate requests to
    * the public web. This flag is to allow exceptions.
    */
