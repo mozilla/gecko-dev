@@ -2,10 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+ @import url("chrome://global/skin/design-system/text-and-typography.css");
+
 :host {
   display: flex;
   flex-direction: column;
   gap: var(--space-xxsmall);
+  --checkbox-space-offset: calc(var(--checkbox-size) + var(--space-small));
+  --icon-space-offset: calc(var(--icon-size-default) + var(--space-small));
 }
 
 label {
@@ -19,6 +23,10 @@ input {
   height: var(--checkbox-size);
   accent-color: var(--color-accent-primary);
   font-size: inherit;
+  /* Bug 1901865: Due to the "MS Shell Dlg 2" font, we need inherits to
+   * keep the checkbox aligned */
+  font-family: inherit;
+  line-height: inherit;
 }
 
 input,
@@ -40,6 +48,10 @@ input,
   position: absolute;
 
   & + .text {
-    text-indent: calc(var(--checkbox-size) + var(--space-small));
+    text-indent: var(--icon-space-offset)
   }
+}
+
+.description {
+  margin-inline-start: var(--checkbox-space-offset);
 }

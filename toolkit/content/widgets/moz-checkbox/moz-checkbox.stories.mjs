@@ -8,30 +8,47 @@ import "./moz-checkbox.mjs";
 export default {
   title: "UI Widgets/Checkbox",
   component: "moz-checkbox",
+  argTypes: {
+    l10nId: {
+      options: ["moz-checkbox-label", "moz-checkbox-label-description"],
+      control: { type: "select" },
+    },
+  },
   parameters: {
     status: "in-development",
     handles: ["click", "input", "change"],
     fluent: `
 moz-checkbox-label =
   .label = The label of the checkbox
+moz-checkbox-label-description =
+  .label = The label of the checkbox
+  .description = This is a description
     `,
   },
 };
 
-const Template = opts => {
-  let { l10nId, checked, label, disabled, value, iconSrc } = opts;
-  return html`
-    <moz-checkbox
-      name=${ifDefined(opts.name)}
-      value=${ifDefined(value)}
-      ?checked=${checked}
-      .label=${label}
-      data-l10n-id=${ifDefined(l10nId)}
-      .iconSrc=${iconSrc}
-      ?disabled=${disabled}
-    ></moz-checkbox>
-  `;
-};
+const Template = ({
+  l10nId,
+  checked,
+  label,
+  disabled,
+  iconSrc,
+  description,
+  hasSlottedDescription,
+}) => html`
+  <moz-checkbox
+    ?checked=${checked}
+    label=${ifDefined(label)}
+    description=${ifDefined(description)}
+    data-l10n-id=${ifDefined(l10nId)}
+    .iconSrc=${iconSrc}
+    ?disabled=${disabled}
+  >
+    ${hasSlottedDescription
+      ? html`<div slot="description">test slot text</div>`
+      : ""}
+  </moz-checkbox>
+`;
 
 export const Default = Template.bind({});
 Default.args = {
@@ -39,9 +56,10 @@ Default.args = {
   value: "example-value",
   l10nId: "moz-checkbox-label",
   checked: false,
-  label: "",
   disabled: false,
   iconSrc: "",
+  description: "",
+  label: "",
 };
 
 export const WithIcon = Template.bind({});
@@ -60,4 +78,16 @@ export const Disabled = Template.bind({});
 Disabled.args = {
   ...Default.args,
   disabled: true,
+};
+
+export const WithDescription = Template.bind({});
+WithDescription.args = {
+  ...Default.args,
+  l10nId: "moz-checkbox-label-description",
+};
+
+export const WithSlottedDescription = Template.bind({});
+WithSlottedDescription.args = {
+  ...Default.args,
+  hasSlottedDescription: true,
 };

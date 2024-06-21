@@ -14,6 +14,16 @@
   <moz-checkbox id="moz-checkbox-1" label="test label 1" value="one"></moz-checkbox>
   <moz-checkbox id="moz-checkbox-2" label="test label 2" checked="" name="checkbox-2" value="two"></moz-checkbox>
   <moz-checkbox id="moz-checkbox-3" label="test label 3" disabled value="three"></moz-checkbox>
+  <moz-checkbox id="moz-checkbox-4" label="test label 4" description="description"></moz-checkbox>
+  <moz-checkbox id="moz-checkbox-5" label="test label 5">
+    <span slot="description">slot description</span>
+  </moz-checkbox>
+  <moz-checkbox
+  id="moz-checkbox-6"
+  label="test label 6"
+  description="description attr">
+    <span slot="description">slot description</span>
+  </moz-checkbox>
 </div>
 <pre id="test">
   <script class="testbody" type="application/javascript">
@@ -24,13 +34,20 @@
     );
 
     add_task(async function testMozCheckboxDisplay() {
+
       // Ensure moz-checkbox rendered correctly
       const mozCheckbox1 = document.getElementById("moz-checkbox-1");
       const mozCheckbox2 = document.getElementById("moz-checkbox-2");
       const mozCheckbox3 = document.getElementById("moz-checkbox-3");
+      const mozCheckbox4 = document.getElementById("moz-checkbox-4");
+      const mozCheckbox5 = document.getElementById("moz-checkbox-5");
+      const mozCheckbox6 = document.getElementById("moz-checkbox-6");
       ok(mozCheckbox1, "moz-checkbox-1 is rendered");
       ok(mozCheckbox2, "moz-checkbox-2 is rendered");
       ok(mozCheckbox3, "moz-checkbox-3 is rendered");
+      ok(mozCheckbox4, "moz-checkbox-4 is rendered");
+      ok(mozCheckbox5, "moz-checkbox-5 is rendered");
+      ok(mozCheckbox6, "moz-checkbox-6 is rendered");
 
       // Ensure label is set on moz-checkbox and inner label
       is(
@@ -44,6 +61,9 @@
         "inner label of moz-checkbox-2 is correct"
       );
       is(mozCheckbox3.labelEl.innerText, "test label 3", "inner label of moz-checkbox-3 is correct");
+      is(mozCheckbox4.labelEl.innerText, "test label 4", "inner label of moz-checkbox-4 is correct");
+      is(mozCheckbox5.labelEl.innerText, "test label 5", "inner label of moz-checkbox-5 is correct");
+      is(mozCheckbox6.labelEl.innerText, "test label 6", "inner label of moz-checkbox-4 is correct");
 
       // Ensure checked attribute is set on moz-checkbox and inner checkbox
       ok(
@@ -68,6 +88,30 @@
         !mozCheckbox3.checkboxEl.checked,
         "inner checkbox of moz-checkbox-3 should not be checked on initial render"
       );
+      ok(
+        !mozCheckbox4.checked,
+        "moz-checkbox-4 should not be checked on initial render"
+      );
+      ok(
+        !mozCheckbox4.checkboxEl.checked,
+        "inner checkbox of moz-checkbox-4 should not be checked on initial render"
+      );
+      ok(
+        !mozCheckbox5.checked,
+        "moz-checkbox-5 should not be checked on initial render"
+      );
+      ok(
+        !mozCheckbox5.checkboxEl.checked,
+        "inner checkbox of moz-checkbox-5 should not be checked on initial render"
+      );
+      ok(
+        !mozCheckbox6.checked,
+        "moz-checkbox-6 should not be checked on initial render"
+      );
+      ok(
+        !mozCheckbox6.checkboxEl.checked,
+        "inner checkbox of moz-checkbox-6 should not be checked on initial render"
+      );
 
       // Ensure name propagates
       is(mozCheckbox2.checkboxEl.name, "checkbox-2", "name gets set on input");
@@ -91,6 +135,18 @@
         "moz-checkbox-3 should be disabled on initial render"
       );
       ok(
+        !mozCheckbox4.disabled,
+        "moz-checkbox-4 should not be disabled on initial render"
+      );
+      ok(
+        !mozCheckbox5.disabled,
+        "moz-checkbox-5 should not be disabled on initial render"
+      );
+      ok(
+        !mozCheckbox6.disabled,
+        "moz-checkbox-6 should not be disabled on initial render"
+      );
+      ok(
         !mozCheckbox1.checkboxEl.disabled,
         "inner checkbox of moz-checkbox-1 should not be disabled on initial render"
       );
@@ -102,17 +158,31 @@
         mozCheckbox3.checkboxEl.disabled,
         "inner checkbox of moz-checkbox-3 should be disabled on initial render"
       );
+      ok(
+        !mozCheckbox4.checkboxEl.disabled,
+        "inner checkbox of moz-checkbox-4 should not be disabled on initial render"
+      );
+      ok(
+        !mozCheckbox5.checkboxEl.disabled,
+        "inner checkbox of moz-checkbox-5 should not be disabled on initial render"
+      );
+      ok(
+        !mozCheckbox6.checkboxEl.disabled,
+        "inner checkbox of moz-checkbox-6 should not be disabled on initial render"
+      );
     });
 
     add_task(async function testCheckboxEvents() {
       const mozCheckbox1 = document.getElementById("moz-checkbox-1");
       const mozCheckbox2 = document.getElementById("moz-checkbox-2");
       const mozCheckbox3 = document.getElementById("moz-checkbox-3");
-      let checkboxes = [mozCheckbox1, mozCheckbox2, mozCheckbox3];
+      const mozCheckbox4 = document.getElementById("moz-checkbox-4");
+      let checkboxes = [mozCheckbox1, mozCheckbox2, mozCheckbox3, mozCheckbox4];
 
       mozCheckbox1.checked = false;
       mozCheckbox2.checked = true;
       mozCheckbox3.disabled = true;
+      mozCheckbox4.checked = false;
       await TestUtils.waitForTick();
 
       let seenEvents = [];
@@ -227,6 +297,25 @@
       await TestUtils.waitForTick();
 
       verifyEvents([]);
+
+      // Ensure clicking on a description within moz-checkbox does not
+      // change the value of the checkbox input.
+
+      // Reset seen events.
+      seenEvents = [];
+
+      synthesizeMouseAtCenter(mozCheckbox4.descriptionEl, {});
+      await TestUtils.waitForTick();
+
+      verifyEvents([
+        { type: "click", localName: "moz-checkbox", checked: false }
+      ]);
+      is(
+        mozCheckbox4.checked,
+        false,
+        "Checkbox input should not change when clicking on description"
+      );
+
     });
 
     // Verify setting iconSrc displays an icon in the checkbox.
@@ -248,6 +337,57 @@
       await mozCheckbox1.updateComplete;
       ok(!mozCheckbox1.icon, "Checkbox icon can be removed");
     });
+
+    // Ensure the description is generated correctly in the component.
+    add_task(async function testCheckboxDescription() {
+      const mozCheckbox4 = document.getElementById("moz-checkbox-4");
+      let descriptionEl = mozCheckbox4.descriptionEl
+      ok(descriptionEl, "Description element should exist");
+      is(
+        descriptionEl.innerText,
+        "description",
+        "The description element markup should have the correct text"
+      );
+      is(
+        mozCheckbox4.checkboxEl.getAttribute("aria-describedby"),
+        "description",
+        "The input element should be described by the 'description' slot"
+      );
+
+      const mozCheckbox5 = document.getElementById("moz-checkbox-5");
+      descriptionEl = mozCheckbox5.shadowRoot.querySelector("slot");
+
+      ok(descriptionEl, "Description slot element should exist");
+      is(descriptionEl.name, "description", "Description slow should have the correct name attribute");
+      is(
+        mozCheckbox5.querySelector("[slot='description']").innerText,
+        "slot description",
+        "The slotted element markup should have the correct text"
+      );
+      is(
+        mozCheckbox5.checkboxEl.getAttribute("aria-describedby"),
+        "description",
+        "The input element should be described by the 'description' slot"
+      );
+
+      // Ensures that when given both a description via attribute and
+      // slotted element, the description attribute takes precedence
+      const mozCheckbox6 = document.getElementById("moz-checkbox-6");
+      descriptionEl = mozCheckbox6.descriptionEl;
+      ok(descriptionEl, "Description element should exist");
+      is(
+        descriptionEl.innerText,
+        "description attr",
+        "The description element markup should have the correct text"
+      );
+      is(
+        mozCheckbox6.checkboxEl.getAttribute("aria-describedby"),
+        "description",
+        "The input element should be described by the 'description' slot"
+      );
+
+    });
+
   </script>
 </pre>
 </body>
