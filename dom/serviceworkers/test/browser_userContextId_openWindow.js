@@ -22,19 +22,8 @@ let mockAlertsService = {
     }, 100);
   },
 
-  showAlertNotification(
-    imageUrl,
-    title,
-    text,
-    textClickable,
-    cookie,
-    alertListener,
-    name,
-    dir,
-    lang,
-    data
-  ) {
-    this.showAlert();
+  showPersistentNotification(persistentData, alert, alertListener) {
+    this.showAlert(alert, alertListener);
   },
 
   QueryInterface(aIID) {
@@ -98,7 +87,7 @@ add_task(async function test() {
 
   // here the test.
   /* eslint-disable no-shadow */
-  let uci = await SpecialPowers.spawn(browser, [], async uri => {
+  let uci = await SpecialPowers.spawn(browser, [], async () => {
     let uci = content.document.nodePrincipal.userContextId;
 
     await SpecialPowers.pushPermissions([
@@ -125,7 +114,7 @@ add_task(async function test() {
     });
 
     // Ask for an openWindow.
-    swr.showNotification("testPopup");
+    await swr.showNotification("testPopup");
     return uci;
   });
   /* eslint-enable no-shadow */
