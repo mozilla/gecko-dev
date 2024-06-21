@@ -10,6 +10,8 @@ support-files = [
   "file_start.html",
   "file_bounce.sjs",
   "file_bounce.html",
+  "file_image.png",
+  "file_image.png^headers^",
   "file_web_worker.js",
 ]
 

@@ -104,6 +104,19 @@
     }
 
     /**
+     * Waits for the specified image element to be loaded.
+     * @param {HTMLImageElement} img - The image element to wait for.
+     * @returns {Promise<void>} - A promise that resolves when the image is loaded.
+     */
+    function waitForImageLoad(img) {
+      return new Promise((resolve) => {
+          img.addEventListener('load', () => {
+              resolve();
+          }, { once: true });
+      });
+    }
+
+    /**
      * Set a state in a child frame. The caller determines the host and thus
      * whether the frame is same or cross-site with this page
      *
@@ -135,21 +148,40 @@
       document.body.appendChild(iframe);
 
       await frameReadyPromise;
-      // await new Promise((resolve) => {});
     }
 
-    // Wrap the entire block so we can run async code. Store the result in a
-    // promise so that parent windows can wait for us to be ready.
+    /**
+     * Set a cookie by embedding an image which points to a server responding
+     * with a cookie header. The caller determines the host and thus whether the
+     * frame is same or cross-site with this page.
+     *
+     * @param {string} imgURI - The URI of the image to embed.
+     * @returns {Promise} - A promise that resolves when the image has loaded
+     * and the cookie has been set.
+     */
+    async function setCookieViaImg(imgURI) {
+      // Set a cookie in a child frame via an image.
+      let img = new Image();
+      img.src = imgURI;
+      let loadPromise = waitForImageLoad(img);
+      document.body.appendChild(img);
+      await loadPromise
+    }
+
+    // Wrap the entire block so we can run async code.
     (async () => {
       let url = new URL(location.href);
       // Display the test config in the body.
       document.getElementById("test-config").innerText = JSON.stringify(Object.fromEntries(url.searchParams), null, 2);
 
       let setStateInFrameWithURI = url.searchParams.get("setStateInFrameWithURI");
+      let setCookieViaImageWithURI = url.searchParams.get("setCookieViaImageWithURI");
 
       if (setStateInFrameWithURI) {
         // Set state in a child frame.
         await setStateInFrame(setStateInFrameWithURI);
+      } else if(setCookieViaImageWithURI) {
+        await setCookieViaImg(setCookieViaImageWithURI);
       } else if(url.searchParams.get("setStateInWebWorker") === "true") {
         // Set state in a worker.
         await setIndexedDBInWorker();

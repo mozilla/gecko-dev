@@ -61,7 +61,7 @@ add_task(async function test_bounce_stateful_cookies_server() {
 add_task(async function test_bounce_stateful_cookies_server_sameSiteFrame() {
   info("Test client bounce with cookie set in same site frame.");
   await runTestBounce({
-    bounceType: "server",
+    bounceType: "client",
     setState: "cookie-server",
     setStateSameSiteFrame: true,
   });
@@ -86,5 +86,27 @@ add_task(async function test_bounce_stateful_cookies_server_crossSiteFrame() {
     bounceType: "client",
     setState: "cookie-server",
     setStateCrossSiteFrame: true,
+  });
+});
+
+add_task(async function test_bounce_stateful_cookies_server_sameSiteImage() {
+  info(
+    "Test client bounce with partitioned server cookies set via a same-site image."
+  );
+  await runTestBounce({
+    bounceType: "client",
+    setState: "cookie-server",
+    setCookieViaImage: "same-site",
+  });
+});
+
+add_task(async function test_bounce_stateful_cookies_server_crossSiteImage() {
+  info(
+    "Test client bounce with partitioned server cookies set via a third-party / cross-site image."
+  );
+  await runTestBounce({
+    bounceType: "client",
+    setState: "cookie-server",
+    setCookieViaImage: "cross-site",
   });
 });

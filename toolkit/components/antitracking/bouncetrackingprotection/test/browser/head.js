@@ -63,6 +63,9 @@ function getBaseUrl(origin) {
  * state in a web worker. This only supports setState == "indexedDB".
  * @param {boolean} [options.setStateInWebWorker=false] - Whether to set the
  * state in a nested web worker. Otherwise the same as setStateInWebWorker.
+ * @param {('same-site'|'cross-site')} [options.setCookieViaImage] - Whether to
+ * set the state via an image request. Only applies to setState ==
+ * "cookie-server".
  * @param {number} [options.statusCode] - HTTP status code to use for server
  * side redirect. Only applies to bounceType == "server".
  * @param {number} [options.redirectDelayMS] - How long to wait before
@@ -79,6 +82,7 @@ function getBounceURL({
   setStateCrossSiteFrame = false,
   setStateInWebWorker = false,
   setStateInNestedWebWorker = false,
+  setCookieViaImage = null,
   statusCode = 302,
   redirectDelayMS = 50,
 }) {
@@ -144,6 +148,17 @@ function getBounceURL({
       bounceUrlIframe.host = SITE_C;
       searchParams.set("setStateInFrameWithURI", bounceUrlIframe.href);
     }
+  } else if (setCookieViaImage) {
+    let imageOrigin =
+      setCookieViaImage == "same-site" ? bounceOrigin : ORIGIN_C;
+    let imageURL = new URL(getBaseUrl(imageOrigin) + "file_image.png");
+
+    if (setState != "cookie-server") {
+      throw new Error(
+        "setCookieViaImage only supports setState == 'cookie-server'"
+      );
+    }
+    searchParams.set("setCookieViaImageWithURI", imageURL.href);
   }
 
   return bounceUrl;
@@ -245,6 +260,9 @@ async function waitForRecordBounces(browser) {
  * state in a web worker. This only supports setState == "indexedDB".
  * @param {boolean} [options.setStateInWebWorker=false] - Whether to set the
  * state in a nested web worker. Otherwise the same as setStateInWebWorker.
+ * @param {('same-site'|'cross-site')} [options.setCookieViaImage] - Whether to
+ * set the state via an image request. Only applies to setState ==
+ * "cookie-server".
  * @param {boolean} [options.expectCandidate=true] - Expect the redirecting site
  * to be identified as a bounce tracker (candidate).
  * @param {boolean} [options.expectPurge=true] - Expect the redirecting site to
@@ -267,6 +285,7 @@ async function runTestBounce(options = {}) {
     setStateCrossSiteFrame = false,
     setStateInWebWorker = false,
     setStateInNestedWebWorker = false,
+    setCookieViaImage = null,
     expectCandidate = true,
     expectPurge = true,
     originAttributes = {},
@@ -336,6 +355,7 @@ async function runTestBounce(options = {}) {
       setStateCrossSiteFrame,
       setStateInWebWorker,
       setStateInNestedWebWorker,
+      setCookieViaImage,
     })
   );
 
