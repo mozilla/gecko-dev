@@ -88,4 +88,96 @@ export const ArchiveUtils = {
   get ARCHIVE_CHUNK_MAX_BYTES_SIZE() {
     return 1048576; // 2 ^ 20 bytes, per guidance from security engineering.
   },
+
+  /**
+   * @typedef {object} ComputeKeysResult
+   * @property {Uint8Array} backupAuthKey
+   *   The computed BackupAuthKey. This is returned as a Uint8Array because
+   *   this key is used as a salt for other derived keys.
+   * @property {CryptoKey} backupEncKey
+   *   The computed BackupEncKey. This is an AES-GCM key used to encrypt and
+   *   decrypt the secrets contained within a backup archive.
+   */
+
+  /**
+   * Computes the BackupAuthKey and BackupEncKey from a recovery code and a
+   * salt.
+   *
+   * @param {string} recoveryCode
+   *   A recovery code. Callers are responsible for checking the length /
+   *   entropy of the recovery code.
+   * @param {Uint8Array} salt
+   *   A salt that should be used for computing the keys.
+   * @returns {ComputeKeysResult}
+   */
+  async computeBackupKeys(recoveryCode, salt) {
+    let textEncoder = new TextEncoder();
+    let recoveryCodeBytes = textEncoder.encode(recoveryCode);
+
+    let keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      recoveryCodeBytes,
+      "PBKDF2",
+      false /* extractable */,
+      ["deriveBits"]
+    );
+
+    // Then we derive the "backup key", using
+    // PBKDF2(recoveryCode, saltPrefix || SALT_SUFFIX, SHA-256, 600,000)
+    const ITERATIONS = 600_000;
+
+    let backupKeyBits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        salt,
+        iterations: ITERATIONS,
+        hash: "SHA-256",
+      },
+      keyMaterial,
+      256
+    );
+
+    // This is a little awkward, but the way that the WebCrypto API currently
+    // works is that we have to read in those bits as a "raw HKDF key", and
+    // only then can we derive our other HKDF keys from it.
+    let backupKeyHKDF = await crypto.subtle.importKey(
+      "raw",
+      backupKeyBits,
+      {
+        name: "HKDF",
+        hash: "SHA-256",
+      },
+      false /* extractable */,
+      ["deriveKey", "deriveBits"]
+    );
+
+    // Re-derive BackupAuthKey as HKDF(backupKey, “backupkey-auth”, salt=None)
+    let backupAuthKey = new Uint8Array(
+      await crypto.subtle.deriveBits(
+        {
+          name: "HKDF",
+          salt: new Uint8Array(0), // no salt
+          info: textEncoder.encode("backupkey-auth"),
+          hash: "SHA-256",
+        },
+        backupKeyHKDF,
+        256
+      )
+    );
+
+    let backupEncKey = await crypto.subtle.deriveKey(
+      {
+        name: "HKDF",
+        salt: new Uint8Array(0), // no salt
+        info: textEncoder.encode("backupkey-enc-key"),
+        hash: "SHA-256",
+      },
+      backupKeyHKDF,
+      { name: "AES-GCM", length: 256 },
+      true /* extractable */,
+      ["encrypt", "decrypt", "wrapKey"]
+    );
+
+    return { backupAuthKey, backupEncKey };
+  },
 };

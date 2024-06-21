@@ -1007,7 +1007,7 @@ export class BackupService extends EventTarget {
         ? {
             publicKey: encState.publicKey,
             salt: encState.salt,
-            authKey: encState.authKey,
+            backupAuthKey: encState.backupAuthKey,
             wrappedSecrets: encState.wrappedSecrets,
           }
         : null;

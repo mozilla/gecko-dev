@@ -76,8 +76,8 @@ export class ArchiveEncryptionState {
    *
    * @type {CryptoKey}
    */
-  get authKey() {
-    return this.#state.authKey;
+  get backupAuthKey() {
+    return this.#state.backupAuthKey;
   }
 
   /**
@@ -182,23 +182,10 @@ export class ArchiveEncryptionState {
       }
     }
 
-    let textEncoder = new TextEncoder();
-    let recoveryCodeBytes = textEncoder.encode(recoveryCode);
-
-    // Next, we turn the recoveryCode into some key material that we can use
-    // to derive a key from.
-    lazy.logConsole.debug("Creating keyMaterial from recovery code");
-    let keyMaterial = await crypto.subtle.importKey(
-      "raw",
-      recoveryCodeBytes,
-      "PBKDF2",
-      false /* extractable */,
-      ["deriveBits"]
-    );
-
     // Next, we generate a 32-byte salt, and then concatenate a static suffix
     // to it, including the version number.
     lazy.logConsole.debug("Creating salt");
+    let textEncoder = new TextEncoder();
     const SALT_SUFFIX = textEncoder.encode(
       "backupkey-v" + ArchiveEncryptionState.VERSION
     );
@@ -209,67 +196,8 @@ export class ArchiveEncryptionState {
     salt.set(saltPrefix);
     salt.set(SALT_SUFFIX, saltPrefix.length);
 
-    // Then we derive the "backup key", using
-    // PBKDF2(recoveryCode, saltPrefix || SALT_SUFFIX, SHA-256, 600,000)
-    const ITERATIONS = 600_000;
-
-    // We actually use the backup key as bits to derive other information,
-    // like the HKDF authKey and encKey.
-    lazy.logConsole.debug("Deriving backupKeyBits");
-    let backupKeyBits = await crypto.subtle.deriveBits(
-      {
-        name: "PBKDF2",
-        salt,
-        iterations: ITERATIONS,
-        hash: "SHA-256",
-      },
-      keyMaterial,
-      256
-    );
-
-    // This is a little awkward, but the way that the WebCrypto API currently
-    // works is that we have to read in those bits as a "raw HKDF key", and
-    // only then can we derive our other HKDF keys from it.
-    let backupKeyHKDF = await crypto.subtle.importKey(
-      "raw",
-      backupKeyBits,
-      {
-        name: "HKDF",
-        hash: "SHA-256",
-      },
-      false /* extractable */,
-      ["deriveKey", "deriveBits"]
-    );
-
-    // Derive BackupAuthKey as HKDF(backupKey, “backupkey-auth”, salt=None)
-    lazy.logConsole.debug("Deriving authKey from backupKey");
-    let authKey = new Uint8Array(
-      await crypto.subtle.deriveBits(
-        {
-          name: "HKDF",
-          salt: new Uint8Array(0), // no salt
-          info: textEncoder.encode("backupkey-auth"),
-          hash: "SHA-256",
-        },
-        backupKeyHKDF,
-        256
-      )
-    );
-
-    // Derive BackupEncKey as HKDF(BackupKey, info=“backupkey-enc-key”, salt=None)
-    lazy.logConsole.debug("Deriving backupEncKey");
-    let encKey = await crypto.subtle.deriveKey(
-      {
-        name: "HKDF",
-        salt: new Uint8Array(0), // no salt
-        info: textEncoder.encode("backupkey-enc-key"),
-        hash: "SHA-256",
-      },
-      backupKeyHKDF,
-      { name: "AES-GCM", length: 256 },
-      true /* extractable */,
-      ["encrypt", "wrapKey"]
-    );
+    let { backupAuthKey, backupEncKey } =
+      await lazy.ArchiveUtils.computeBackupKeys(recoveryCode, salt);
 
     lazy.logConsole.debug("Encrypting secrets with encKey");
     const NONCE_SIZE = 96;
@@ -287,7 +215,7 @@ export class ArchiveEncryptionState {
           name: "AES-GCM",
           iv: nonce,
         },
-        encKey,
+        backupEncKey,
         secretsBytes
       )
     );
@@ -295,7 +223,7 @@ export class ArchiveEncryptionState {
     this.#state = {
       publicKey: keyPair.publicKey,
       salt,
-      authKey,
+      backupAuthKey,
       nonce,
       wrappedSecrets,
     };
@@ -312,7 +240,9 @@ export class ArchiveEncryptionState {
   async serialize() {
     let publicKey = await crypto.subtle.exportKey("jwk", this.#state.publicKey);
     let salt = lazy.ArchiveUtils.arrayToBase64(this.#state.salt);
-    let authKey = lazy.ArchiveUtils.arrayToBase64(this.#state.authKey);
+    let backupAuthKey = lazy.ArchiveUtils.arrayToBase64(
+      this.#state.backupAuthKey
+    );
     let nonce = lazy.ArchiveUtils.arrayToBase64(this.#state.nonce);
     let wrappedSecrets = lazy.ArchiveUtils.arrayToBase64(
       this.#state.wrappedSecrets
@@ -320,7 +250,7 @@ export class ArchiveEncryptionState {
     let result = {
       publicKey,
       salt,
-      authKey,
+      backupAuthKey,
       nonce,
       wrappedSecrets,
       version: ArchiveEncryptionState.VERSION,
@@ -360,7 +290,9 @@ export class ArchiveEncryptionState {
       true /* extractable */,
       ["encrypt"]
     );
-    let authKey = lazy.ArchiveUtils.stringToArray(stateData.authKey);
+    let backupAuthKey = lazy.ArchiveUtils.stringToArray(
+      stateData.backupAuthKey
+    );
     let salt = lazy.ArchiveUtils.stringToArray(stateData.salt);
     let nonce = lazy.ArchiveUtils.stringToArray(stateData.nonce);
     let wrappedSecrets = lazy.ArchiveUtils.stringToArray(
@@ -369,7 +301,7 @@ export class ArchiveEncryptionState {
 
     this.#state = {
       publicKey,
-      authKey,
+      backupAuthKey,
       salt,
       nonce,
       wrappedSecrets,

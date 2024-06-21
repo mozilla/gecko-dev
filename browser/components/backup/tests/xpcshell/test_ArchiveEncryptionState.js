@@ -29,7 +29,7 @@ add_task(async function test_ArchiveEncryptionState_enable() {
 
   Assert.equal(recoveryCode, TEST_RECOVERY_CODE, "Got back recovery code.");
   Assert.ok(encState.publicKey, "A public key was computed.");
-  Assert.ok(encState.authKey, "An auth key was computed.");
+  Assert.ok(encState.backupAuthKey, "An auth key was computed.");
   Assert.ok(encState.salt, "A salt was computed.");
   Assert.ok(encState.nonce, "A nonce was computed.");
   Assert.ok(encState.wrappedSecrets, "Wrapped secrets were computed.");
@@ -66,8 +66,8 @@ add_task(
       "Public keys match"
     );
     Assert.deepEqual(
-      encState.authKey,
-      recoveredState.authKey,
+      encState.backupAuthKey,
+      recoveredState.backupAuthKey,
       "Auth keys match"
     );
     Assert.deepEqual(encState.salt, recoveredState.salt, "Salts match");
