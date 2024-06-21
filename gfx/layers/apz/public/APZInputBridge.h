@@ -10,6 +10,7 @@
 #include "Units.h"                  // for LayoutDeviceIntPoint
 #include "mozilla/EventForwards.h"  // for WidgetInputEvent, nsEventStatus
 #include "mozilla/layers/APZPublicUtils.h"       // for APZWheelAction
+#include "mozilla/layers/APZUtils.h"             // for DispatchToContent
 #include "mozilla/layers/LayersTypes.h"          // for ScrollDirections
 #include "mozilla/layers/ScrollableLayerGuid.h"  // for ScrollableLayerGuid
 
@@ -73,6 +74,21 @@ struct APZHandledResult {
            mScrollableDirections == aOther.mScrollableDirections &&
            mOverscrollDirections == aOther.mOverscrollDirections;
   }
+
+  // Compute an initial (optional) APZHandledResult for an event.
+  // If aDispatchToContent==false, the result is guaranteed to not be empty.
+  static Maybe<APZHandledResult> Initialize(
+      const AsyncPanZoomController* aInitialTarget,
+      DispatchToContent aDispatchToContent);
+
+  // Update |aHandledResult| with information specific to touch events.
+  // If aDispatchToContent==false, the resulting value of |aHandledResult|
+  // is guarateed to not be empty.
+  static void UpdateForTouchEvent(Maybe<APZHandledResult>& aHandledResult,
+                                  const InputBlockState& aBlock,
+                                  PointerEventsConsumableFlags aConsumableFlags,
+                                  const AsyncPanZoomController* aTarget,
+                                  DispatchToContent aDispatchToContent);
 };
 
 /**
@@ -148,11 +164,6 @@ struct APZEventResult {
   }
 
  private:
-  void UpdateHandledResult(const InputBlockState& aBlock,
-                           PointerEventsConsumableFlags aConsumableFlags,
-                           const AsyncPanZoomController* aTarget,
-                           bool aDispatchToContent);
-
   /**
    * A status flag indicated how APZ handled the event.
    * The interpretation of each value is as follows:
