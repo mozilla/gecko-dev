@@ -1186,38 +1186,42 @@ SharedModule ModuleGenerator::finishModule(
 
   // Copy over data from the Bytecode, which is going away at the end of
   // compilation.
+  //
+  // In particular, convert the data- and custom-section ranges in the
+  // ModuleMetadata into their full-fat versions by copying the underlying
+  // data blocks, and store them in the resulting Module.
 
   DataSegmentVector dataSegments;
-  if (!dataSegments.reserve(moduleMeta_->dataSegments.length())) {
+  if (!dataSegments.reserve(moduleMeta_->dataSegmentRanges.length())) {
     return nullptr;
   }
-  for (const DataSegmentEnv& srcSeg : moduleMeta_->dataSegments) {
+  for (const DataSegmentRange& srcRange : moduleMeta_->dataSegmentRanges) {
     MutableDataSegment dstSeg = js_new<DataSegment>();
     if (!dstSeg) {
       return nullptr;
     }
-    if (!dstSeg->init(bytecode, srcSeg)) {
+    if (!dstSeg->init(bytecode, srcRange)) {
       return nullptr;
     }
     dataSegments.infallibleAppend(std::move(dstSeg));
   }
 
   CustomSectionVector customSections;
-  if (!customSections.reserve(moduleMeta_->customSections.length())) {
+  if (!customSections.reserve(moduleMeta_->customSectionRanges.length())) {
     return nullptr;
   }
-  for (const CustomSectionEnv& srcSec : moduleMeta_->customSections) {
+  for (const CustomSectionRange& srcRange : moduleMeta_->customSectionRanges) {
     CustomSection sec;
-    if (!sec.name.append(bytecode.begin() + srcSec.nameOffset,
-                         srcSec.nameLength)) {
+    if (!sec.name.append(bytecode.begin() + srcRange.nameOffset,
+                         srcRange.nameLength)) {
       return nullptr;
     }
     MutableBytes payload = js_new<ShareableBytes>();
     if (!payload) {
       return nullptr;
     }
-    if (!payload->append(bytecode.begin() + srcSec.payloadOffset,
-                         srcSec.payloadLength)) {
+    if (!payload->append(bytecode.begin() + srcRange.payloadOffset,
+                         srcRange.payloadLength)) {
       return nullptr;
     }
     sec.payload = std::move(payload);
