@@ -2203,3 +2203,20 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
+
+  touch_rotation_angle:
+    type: string
+    description: >
+      Rotation angle of user's touch
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902364#c1
+    expires: never
+    data_sensitivity:
+      - technical
