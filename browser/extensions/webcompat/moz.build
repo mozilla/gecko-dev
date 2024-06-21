@@ -104,6 +104,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
     "injections/js/bug1855071-www.meteoam.it.js",
     "injections/js/bug1859617-installtrigger-removal-shim.js",
     "injections/js/bug1864564-esri-transfrom-names-shim.js",
+    "injections/js/bug1889326-office365-email-handling-prompt-autohide.js",
     "injections/js/bug1896383-error-capturestacktrace-shim.js",
     "injections/js/bug1897120-turnjs-zoom-fix.js",
 ]
