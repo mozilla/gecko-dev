@@ -241,6 +241,7 @@ function onWindowGlobalCreated(
         // - in such case we weren't seeing the issue of Bug 1721398 (the old target can't access the new document)
         const existingTarget = findTargetActor({
           watcherDataObject,
+          browsingContextID: windowGlobal.browsingContext.id,
           innerWindowId: windowGlobal.innerWindowId,
         });
 
@@ -536,16 +537,26 @@ function handleEvent({ type, persisted, target }) {
  *
  * @param {Object} options
  * @param {String} options.watcherDataObject
+ * @param {String} options.browsingContextID
  * @param {Number} options.innerWindowId
  *                 The WindowGlobal inner window ID.
  *
  * @returns {WindowGlobalTargetActor|null}
  */
-function findTargetActor({ watcherDataObject, innerWindowId }) {
+function findTargetActor({
+  watcherDataObject,
+  browsingContextID,
+  innerWindowId,
+}) {
   // First let's check if a target was created for this watcher actor in this specific
   // DevToolsProcessChild instance.
   const targetActor = watcherDataObject.actors.find(
-    actor => actor.innerWindowId == innerWindowId
+    actor =>
+      // We lookup by BrowsingContext ID in order to match any target related to a given browser/iframe element
+      // which may have navigated to a new Window Global and we want to destroy the previous target actor
+      // before creating a new one
+      (browsingContextID && browsingContextID == actor.browsingContextID) ||
+      actor.innerWindowId == innerWindowId
   );
   if (targetActor) {
     return targetActor;
@@ -563,7 +574,11 @@ function findTargetActor({ watcherDataObject, innerWindowId }) {
     connectionPrefix
   );
 
-  return targetActors.find(actor => actor.innerWindowId == innerWindowId);
+  return targetActors.find(
+    actor =>
+      (browsingContextID && browsingContextID == actor.browsingContextID) ||
+      actor.innerWindowId == innerWindowId
+  );
 }
 
 export const WindowGlobalTargetWatcher = {

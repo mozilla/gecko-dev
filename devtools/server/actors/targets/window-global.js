@@ -365,6 +365,23 @@ class WindowGlobalTargetActor extends BaseTargetActor {
     // Save references to the original document we attached to
     this._originalWindow = this.window;
 
+    // For WebExtensions, we want the target to represent the <browser> element
+    // created by DevTools, which always exists and help better connect resources to the target
+    // in the frontend. Otherwise all other <browser> elements of webext may be reloaded or go away
+    // and then we would have troubles matching targets for resources.
+    if (this.devtoolsSpawnedBrowsingContextForWebExtension) {
+      this._innerWindowId =
+        this.devtoolsSpawnedBrowsingContextForWebExtension.currentWindowContext.innerWindowId;
+    } else {
+      // Use a fixed innerWindowId for the whole target actor lifecycle,
+      // that, even if the iframe dropdown is used and `changeTopLevelDocument()` is called
+      // to focus on another particular document.
+      //
+      // This helps attach resources to the right target actor as it is the target front
+      // identifier in resources.
+      this._innerWindowId = this.window.windowGlobalChild.innerWindowId;
+    }
+
     // Update isPrivate as window is based on docShell
     this.isPrivate = PrivateBrowsingUtils.isContentWindowPrivate(this.window);
 
@@ -490,7 +507,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
   }
 
   get innerWindowId() {
-    return this.window?.windowGlobalChild.innerWindowId;
+    return this._innerWindowId;
   }
 
   get browserId() {
@@ -652,8 +669,6 @@ class WindowGlobalTargetActor extends BaseTargetActor {
       ? this.devtoolsSpawnedBrowsingContextForWebExtension
       : this.originalDocShell.browsingContext;
     const browsingContextID = originalBrowsingContext.id;
-    const innerWindowId =
-      originalBrowsingContext.currentWindowContext.innerWindowId;
     const parentInnerWindowId =
       originalBrowsingContext.parent?.currentWindowContext.innerWindowId;
     // Doesn't only check `!!opener` as some iframe might have an opener
@@ -670,7 +685,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
       processID: Services.appinfo.processID,
       // True for targets created by JSWindowActors, see constructor JSDoc.
       followWindowGlobalLifeCycle: this.followWindowGlobalLifeCycle,
-      innerWindowId,
+      innerWindowId: this.innerWindowId,
       parentInnerWindowId,
       topInnerWindowId: this.browsingContext.topWindowContext.innerWindowId,
       isTopLevelTarget: this.isTopLevelTarget,
