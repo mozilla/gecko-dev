@@ -26,6 +26,7 @@ add_task(() => {
     ["公司.香港", true],
     ["भारतम्", true],
     ["فلسطين", true],
+    ["example.com.", true],
   ]) {
     let origin = "test." + suffix;
     Assert.equal(
