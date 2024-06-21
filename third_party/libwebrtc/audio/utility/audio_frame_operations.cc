@@ -29,48 +29,6 @@ const float kMuteFadeInc = 1.0f / kMuteFadeFrames;
 
 }  // namespace
 
-void AudioFrameOperations::Add(const AudioFrame& frame_to_add,
-                               AudioFrame* result_frame) {
-  // Sanity check.
-  RTC_DCHECK(result_frame);
-  RTC_DCHECK_GT(result_frame->num_channels_, 0);
-  RTC_DCHECK_EQ(result_frame->num_channels_, frame_to_add.num_channels_);
-
-  bool no_previous_data = result_frame->muted();
-  if (result_frame->samples_per_channel_ != frame_to_add.samples_per_channel_) {
-    // Special case we have no data to start with.
-    RTC_DCHECK_EQ(result_frame->samples_per_channel_, 0);
-    result_frame->samples_per_channel_ = frame_to_add.samples_per_channel_;
-    no_previous_data = true;
-  }
-
-  if (result_frame->vad_activity_ == AudioFrame::kVadActive ||
-      frame_to_add.vad_activity_ == AudioFrame::kVadActive) {
-    result_frame->vad_activity_ = AudioFrame::kVadActive;
-  } else if (result_frame->vad_activity_ == AudioFrame::kVadUnknown ||
-             frame_to_add.vad_activity_ == AudioFrame::kVadUnknown) {
-    result_frame->vad_activity_ = AudioFrame::kVadUnknown;
-  }
-
-  if (result_frame->speech_type_ != frame_to_add.speech_type_)
-    result_frame->speech_type_ = AudioFrame::kUndefined;
-
-  if (!frame_to_add.muted()) {
-    auto in_data = frame_to_add.data_view();
-    auto out_data = result_frame->mutable_data(
-        frame_to_add.samples_per_channel_, frame_to_add.num_channels_);
-    if (no_previous_data) {
-      std::copy(in_data.begin(), in_data.end(), out_data.data());
-    } else {
-      for (size_t i = 0; i < in_data.size(); ++i) {
-        const int32_t wrap_guard = static_cast<int32_t>(out_data[i]) +
-                                   static_cast<int32_t>(in_data[i]);
-        out_data[i] = rtc::saturated_cast<int16_t>(wrap_guard);
-      }
-    }
-  }
-}
-
 void AudioFrameOperations::QuadToStereo(rtc::ArrayView<const int16_t> src_audio,
                                         size_t samples_per_channel,
                                         rtc::ArrayView<int16_t> dst_audio) {
@@ -238,35 +196,6 @@ void AudioFrameOperations::Mute(AudioFrame* frame,
 
 void AudioFrameOperations::Mute(AudioFrame* frame) {
   Mute(frame, true, true);
-}
-
-void AudioFrameOperations::ApplyHalfGain(AudioFrame* frame) {
-  RTC_DCHECK(frame);
-  RTC_DCHECK_GT(frame->num_channels_, 0);
-  if (frame->num_channels_ < 1 || frame->muted()) {
-    return;
-  }
-
-  int16_t* frame_data = frame->mutable_data();
-  for (size_t i = 0; i < frame->samples_per_channel_ * frame->num_channels_;
-       i++) {
-    frame_data[i] = frame_data[i] >> 1;
-  }
-}
-
-int AudioFrameOperations::Scale(float left, float right, AudioFrame* frame) {
-  if (frame->num_channels_ != 2) {
-    return -1;
-  } else if (frame->muted()) {
-    return 0;
-  }
-
-  int16_t* frame_data = frame->mutable_data();
-  for (size_t i = 0; i < frame->samples_per_channel_; i++) {
-    frame_data[2 * i] = static_cast<int16_t>(left * frame_data[2 * i]);
-    frame_data[2 * i + 1] = static_cast<int16_t>(right * frame_data[2 * i + 1]);
-  }
-  return 0;
 }
 
 int AudioFrameOperations::ScaleWithSat(float scale, AudioFrame* frame) {

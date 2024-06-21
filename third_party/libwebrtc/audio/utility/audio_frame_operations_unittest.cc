@@ -443,64 +443,6 @@ TEST_F(AudioFrameOperationsTest, MuteEndAlreadyMuted) {
   EXPECT_TRUE(frame_.muted());
 }
 
-TEST_F(AudioFrameOperationsTest, ApplyHalfGainSucceeds) {
-  SetFrameData(2, &frame_);
-
-  AudioFrame half_gain_frame;
-  half_gain_frame.num_channels_ = frame_.num_channels_;
-  half_gain_frame.samples_per_channel_ = frame_.samples_per_channel_;
-  SetFrameData(1, &half_gain_frame);
-
-  AudioFrameOperations::ApplyHalfGain(&frame_);
-  VerifyFramesAreEqual(half_gain_frame, frame_);
-}
-
-TEST_F(AudioFrameOperationsTest, ApplyHalfGainMuted) {
-  ASSERT_TRUE(frame_.muted());
-  AudioFrameOperations::ApplyHalfGain(&frame_);
-  EXPECT_TRUE(frame_.muted());
-}
-
-// TODO(andrew): should not allow negative scales.
-TEST_F(AudioFrameOperationsTest, DISABLED_ScaleFailsWithBadParameters) {
-  frame_.num_channels_ = 1;
-  EXPECT_EQ(-1, AudioFrameOperations::Scale(1.0, 1.0, &frame_));
-
-  frame_.num_channels_ = 3;
-  EXPECT_EQ(-1, AudioFrameOperations::Scale(1.0, 1.0, &frame_));
-
-  frame_.num_channels_ = 2;
-  EXPECT_EQ(-1, AudioFrameOperations::Scale(-1.0, 1.0, &frame_));
-  EXPECT_EQ(-1, AudioFrameOperations::Scale(1.0, -1.0, &frame_));
-}
-
-// TODO(andrew): fix the wraparound bug. We should always saturate.
-TEST_F(AudioFrameOperationsTest, DISABLED_ScaleDoesNotWrapAround) {
-  SetFrameData(4000, -4000, &frame_);
-  EXPECT_EQ(0, AudioFrameOperations::Scale(10.0, 10.0, &frame_));
-
-  AudioFrame clipped_frame;
-  clipped_frame.samples_per_channel_ = 320;
-  SetFrameData(32767, -32768, &clipped_frame);
-  VerifyFramesAreEqual(clipped_frame, frame_);
-}
-
-TEST_F(AudioFrameOperationsTest, ScaleSucceeds) {
-  SetFrameData(1, -1, &frame_);
-  EXPECT_EQ(0, AudioFrameOperations::Scale(2.0, 3.0, &frame_));
-
-  AudioFrame scaled_frame;
-  scaled_frame.samples_per_channel_ = 320;
-  SetFrameData(2, -3, &scaled_frame);
-  VerifyFramesAreEqual(scaled_frame, frame_);
-}
-
-TEST_F(AudioFrameOperationsTest, ScaleMuted) {
-  ASSERT_TRUE(frame_.muted());
-  EXPECT_EQ(0, AudioFrameOperations::Scale(2.0, 3.0, &frame_));
-  EXPECT_TRUE(frame_.muted());
-}
-
 // TODO(andrew): should fail with a negative scale.
 TEST_F(AudioFrameOperationsTest, DISABLED_ScaleWithSatFailsWithBadParameters) {
   EXPECT_EQ(-1, AudioFrameOperations::ScaleWithSat(-1.0, &frame_));
@@ -535,64 +477,6 @@ TEST_F(AudioFrameOperationsTest, ScaleWithSatMuted) {
   ASSERT_TRUE(frame_.muted());
   EXPECT_EQ(0, AudioFrameOperations::ScaleWithSat(2.0, &frame_));
   EXPECT_TRUE(frame_.muted());
-}
-
-TEST_F(AudioFrameOperationsTest, AddingXToEmptyGivesX) {
-  // When samples_per_channel_ is 0, the frame counts as empty and zero.
-  AudioFrame frame_to_add_to;
-  frame_to_add_to.mutable_data();  // Unmute the frame.
-  ASSERT_FALSE(frame_to_add_to.muted());
-
-  SetFrameData(1000, &frame_);
-  frame_to_add_to.samples_per_channel_ = 0;
-  frame_to_add_to.num_channels_ = frame_.num_channels_;
-
-  AudioFrameOperations::Add(frame_, &frame_to_add_to);
-  VerifyFramesAreEqual(frame_, frame_to_add_to);
-}
-
-TEST_F(AudioFrameOperationsTest, AddingXToMutedGivesX) {
-  AudioFrame frame_to_add_to;
-  ASSERT_TRUE(frame_to_add_to.muted());
-
-  frame_to_add_to.samples_per_channel_ = frame_.samples_per_channel_;
-  SetFrameData(1000, &frame_);
-  frame_to_add_to.num_channels_ = frame_.num_channels_;
-
-  AudioFrameOperations::Add(frame_, &frame_to_add_to);
-  VerifyFramesAreEqual(frame_, frame_to_add_to);
-}
-
-TEST_F(AudioFrameOperationsTest, AddingMutedToXGivesX) {
-  AudioFrame frame_to_add_to;
-
-  // Clear the internal buffer to avoid msan issues since we're changing
-  // buffer dimension member variables outside of the class without updating
-  // the buffer.
-  RTC_DCHECK(frame_to_add_to.muted());
-  frame_to_add_to.mutable_data();
-
-  frame_to_add_to.samples_per_channel_ = frame_.samples_per_channel_;
-  SetFrameData(1000, &frame_to_add_to);  // sets frame to mono.
-  frame_to_add_to.num_channels_ = frame_.num_channels_;
-
-  AudioFrame frame_copy;
-  frame_copy.CopyFrom(frame_to_add_to);
-
-  ASSERT_TRUE(frame_.muted());
-  AudioFrameOperations::Add(frame_, &frame_to_add_to);
-  VerifyFramesAreEqual(frame_copy, frame_to_add_to);
-}
-
-TEST_F(AudioFrameOperationsTest, AddingTwoFramesProducesTheirSum) {
-  AudioFrame frame_to_add_to;
-  frame_to_add_to.samples_per_channel_ = frame_.samples_per_channel_;
-  SetFrameData(1000, &frame_to_add_to);
-  SetFrameData(2000, &frame_);
-
-  AudioFrameOperations::Add(frame_, &frame_to_add_to);
-  SetFrameData(frame_.data()[0] + 1000, &frame_);
-  VerifyFramesAreEqual(frame_, frame_to_add_to);
 }
 
 }  // namespace

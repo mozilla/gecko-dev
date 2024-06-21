@@ -25,15 +25,6 @@ namespace webrtc {
 // than a class.
 class AudioFrameOperations {
  public:
-  // Add samples in `frame_to_add` with samples in `result_frame`
-  // putting the results in `results_frame`.  The fields
-  // `vad_activity_` and `speech_type_` of the result frame are
-  // updated. If `result_frame` is empty (`samples_per_channel_`==0),
-  // the samples in `frame_to_add` are added to it.  The number of
-  // channels and number of samples per channel must match except when
-  // `result_frame` is empty.
-  static void Add(const AudioFrame& frame_to_add, AudioFrame* result_frame);
-
   // Downmixes 4 channels `src_audio` to stereo `dst_audio`. This is an in-place
   // operation, meaning `src_audio` and `dst_audio` may point to the same
   // buffer.
@@ -82,11 +73,6 @@ class AudioFrameOperations {
 
   // Zero out contents of frame.
   static void Mute(AudioFrame* frame);
-
-  // Halve samples in `frame`.
-  static void ApplyHalfGain(AudioFrame* frame);
-
-  static int Scale(float left, float right, AudioFrame* frame);
 
   static int ScaleWithSat(float scale, AudioFrame* frame);
 };
