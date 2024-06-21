@@ -694,7 +694,7 @@ class HistoryMenu extends PlacesMenu {
     super._onPopupShowing(aEvent);
 
     // Don't handle events for submenus.
-    if (aEvent.target != aEvent.currentTarget) {
+    if (aEvent.target != this.rootElement) {
       return;
     }
 

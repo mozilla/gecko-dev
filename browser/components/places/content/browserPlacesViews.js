@@ -41,6 +41,10 @@ class PlacesViewBase {
   // The xul element that represents the root container.
   _rootElt = null;
 
+  get rootElement() {
+    return this._rootElt;
+  }
+
   // Set to true for views that are represented by native widgets (i.e.
   // the native mac menu).
   _nativeView = false;
