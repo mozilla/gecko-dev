@@ -1047,6 +1047,7 @@ if (is_mac || is_ios) {
     umbrella_header_path =
         "$target_gen_dir/$output_name.framework/WebRTC/$output_name.h"
     modulemap_path = "$target_gen_dir/Modules/module.modulemap"
+    privacy_manifest_path = "$target_gen_dir/$target_name/PrivacyInfo.xcprivacy"
 
     action_foreach("create_bracket_include_headers_$target_name") {
       script = "//tools_webrtc/apple/copy_framework_header.py"
@@ -1087,6 +1088,7 @@ if (is_mac || is_ios) {
         deps += [
           ":copy_framework_headers_$this_target_name",
           ":copy_modulemap_$this_target_name",
+          ":copy_privacy_manifest_$this_target_name",
           ":copy_umbrella_header_$this_target_name",
           ":create_bracket_include_headers_$this_target_name",
           ":modulemap_$this_target_name",
@@ -1109,6 +1111,7 @@ if (is_mac || is_ios) {
                 ":create_bracket_include_headers_$this_target_name")
 
         deps += [
+          ":copy_privacy_manifest_$this_target_name",
           ":copy_umbrella_header_$this_target_name",
           ":create_bracket_include_headers_$this_target_name",
         ]
@@ -1118,8 +1121,13 @@ if (is_mac || is_ios) {
     if (is_mac || target_environment == "catalyst") {
       # Catalyst frameworks use the same layout as regular Mac frameworks.
       headers_dir = "Versions/A/Headers"
+
+      # The path to the privacy manifest file differs between Mac and iOS.
+      # https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/adding_a_privacy_manifest_to_your_app_or_third-party_sdk
+      privacy_manifest_out_path = "Versions/A/Resources/PrivacyInfo.xcprivacy"
     } else {
       headers_dir = "Headers"
+      privacy_manifest_out_path = "PrivacyInfo.xcprivacy"
     }
 
     bundle_data("copy_framework_headers_$this_target_name") {
@@ -1168,6 +1176,25 @@ if (is_mac || is_ios) {
           [ "$root_out_dir/$output_name.framework/$headers_dir/$output_name.h" ]
 
       deps = [ ":umbrella_header_$target_name" ]
+    }
+
+    action("create_privacy_manifest_$target_name") {
+      script = "//tools_webrtc/apple/generate_privacy_manifest.py"
+
+      args = [
+        "--output",
+        rebase_path(privacy_manifest_path),
+      ]
+
+      outputs = [ privacy_manifest_path ]
+    }
+
+    copy("copy_privacy_manifest_$target_name") {
+      sources = [ privacy_manifest_path ]
+      outputs =
+          [ "$root_out_dir/$output_name.framework/$privacy_manifest_out_path" ]
+
+      deps = [ ":create_privacy_manifest_$target_name" ]
     }
   }
 }
