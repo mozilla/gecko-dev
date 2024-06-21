@@ -42,8 +42,9 @@ using mozilla::Span;
 
 // Source metadata helpers -- adding functions.
 
-bool ModuleMetadata::addDefinedFunc(
-    ValTypeVector&& params, ValTypeVector&& results, bool declareForRef,
+bool CodeMetadata::addDefinedFunc(
+    /*MOD*/ ModuleMetadata* meta, ValTypeVector&& params,
+    ValTypeVector&& results, bool declareForRef,
     Maybe<CacheableName>&& optionalExportedName) {
   uint32_t typeIndex = types->length();
   FuncType funcType(std::move(params), std::move(results));
@@ -60,27 +61,28 @@ bool ModuleMetadata::addDefinedFunc(
     declareFuncExported(funcIndex, true, true);
   }
   if (optionalExportedName.isSome()) {
-    if (!exports.emplaceBack(std::move(optionalExportedName.ref()), funcIndex,
-                             DefinitionKind::Function)) {
+    if (!meta->exports.emplaceBack(std::move(optionalExportedName.ref()),
+                                   funcIndex, DefinitionKind::Function)) {
       return false;
     }
   }
   return true;
 }
 
-bool ModuleMetadata::addImportedFunc(ValTypeVector&& params,
-                                     ValTypeVector&& results,
-                                     CacheableName&& importModName,
-                                     CacheableName&& importFieldName) {
+bool CodeMetadata::addImportedFunc(/*MOD*/ ModuleMetadata* meta,
+                                   ValTypeVector&& params,
+                                   ValTypeVector&& results,
+                                   CacheableName&& importModName,
+                                   CacheableName&& importFieldName) {
   MOZ_ASSERT(numFuncImports == funcs.length());
-  if (!addDefinedFunc(std::move(params), std::move(results), false,
+  if (!addDefinedFunc(meta, std::move(params), std::move(results), false,
                       mozilla::Nothing())) {
     return false;
   }
   numFuncImports++;
-  return imports.emplaceBack(std::move(importModName),
-                             std::move(importFieldName),
-                             DefinitionKind::Function);
+  return meta->imports.emplaceBack(std::move(importModName),
+                                   std::move(importFieldName),
+                                   DefinitionKind::Function);
 }
 
 // Source metadata helpers -- computing the Instance layout.
@@ -145,7 +147,7 @@ static const uint32_t MaxInstanceDataOffset =
                                    instanceDataLength, assignedOffset);
 }
 
-Maybe<uint32_t> ModuleMetadata::doInstanceLayout() {
+Maybe<uint32_t> CodeMetadata::doInstanceLayout() {
   uint32_t instanceDataLength = 0;
 
   // Allocate space for type definitions
@@ -253,7 +255,7 @@ bool wasm::EncodeLocalEntries(Encoder& e, const ValTypeVector& locals) {
 }
 
 bool wasm::DecodeLocalEntriesWithParams(Decoder& d,
-                                        const ModuleMetadata& moduleMeta,
+                                        const CodeMetadata& codeMeta,
                                         uint32_t funcIndex,
                                         ValTypeVector* locals) {
   uint32_t numLocalEntries;
@@ -261,7 +263,7 @@ bool wasm::DecodeLocalEntriesWithParams(Decoder& d,
     return d.fail("failed to read number of local entries");
   }
 
-  if (!locals->appendAll(moduleMeta.funcs[funcIndex].type->args())) {
+  if (!locals->appendAll(codeMeta.funcs[funcIndex].type->args())) {
     return false;
   }
 
@@ -276,7 +278,7 @@ bool wasm::DecodeLocalEntriesWithParams(Decoder& d,
     }
 
     ValType type;
-    if (!d.readValType(*moduleMeta.types, moduleMeta.features, &type)) {
+    if (!d.readValType(*codeMeta.types, codeMeta.features, &type)) {
       return false;
     }
 
@@ -304,19 +306,19 @@ bool wasm::DecodeValidatedLocalEntries(const TypeContext& types, Decoder& d,
   return true;
 }
 
-bool wasm::CheckIsSubtypeOf(Decoder& d, const ModuleMetadata& moduleMeta,
+bool wasm::CheckIsSubtypeOf(Decoder& d, const CodeMetadata& codeMeta,
                             size_t opcodeOffset, StorageType subType,
                             StorageType superType) {
   if (StorageType::isSubTypeOf(subType, superType)) {
     return true;
   }
 
-  UniqueChars subText = ToString(subType, moduleMeta.types);
+  UniqueChars subText = ToString(subType, codeMeta.types);
   if (!subText) {
     return false;
   }
 
-  UniqueChars superText = ToString(superType, moduleMeta.types);
+  UniqueChars superText = ToString(superType, codeMeta.types);
   if (!superText) {
     return false;
   }
@@ -333,11 +335,11 @@ bool wasm::CheckIsSubtypeOf(Decoder& d, const ModuleMetadata& moduleMeta,
 
 // Function body validation.
 
-static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
+static bool DecodeFunctionBodyExprs(const CodeMetadata& codeMeta,
                                     uint32_t funcIndex,
                                     const ValTypeVector& locals,
                                     const uint8_t* bodyEnd, Decoder* d) {
-  ValidatingOpIter iter(moduleMeta, *d);
+  ValidatingOpIter iter(codeMeta, *d);
 
   if (!iter.startFunction(funcIndex, locals)) {
     return false;
@@ -386,7 +388,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
       }
 #ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCall): {
-        if (!moduleMeta.tailCallsEnabled()) {
+        if (!codeMeta.tailCallsEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         uint32_t unusedIndex;
@@ -394,7 +396,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
         CHECK(iter.readReturnCall(&unusedIndex, &unusedArgs));
       }
       case uint16_t(Op::ReturnCallIndirect): {
-        if (!moduleMeta.tailCallsEnabled()) {
+        if (!codeMeta.tailCallsEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         uint32_t unusedIndex, unusedIndex2;
@@ -405,7 +407,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
 #endif
 #ifdef ENABLE_WASM_GC
       case uint16_t(Op::CallRef): {
-        if (!moduleMeta.gcEnabled()) {
+        if (!codeMeta.gcEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         const FuncType* unusedType;
@@ -414,7 +416,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
       }
 #  ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCallRef): {
-        if (!moduleMeta.gcEnabled() || !moduleMeta.tailCallsEnabled()) {
+        if (!codeMeta.gcEnabled() || !codeMeta.tailCallsEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         const FuncType* unusedType;
@@ -745,7 +747,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
         CHECK(iter.readUnreachable());
 #ifdef ENABLE_WASM_GC
       case uint16_t(Op::GcPrefix): {
-        if (!moduleMeta.gcEnabled()) {
+        if (!codeMeta.gcEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         switch (op.b1) {
@@ -915,7 +917,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
 
 #ifdef ENABLE_WASM_SIMD
       case uint16_t(Op::SimdPrefix): {
-        if (!moduleMeta.simdAvailable()) {
+        if (!codeMeta.simdAvailable()) {
           return iter.unrecognizedOpcode(&op);
         }
         uint32_t noIndex;
@@ -1286,7 +1288,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
           case uint32_t(SimdOp::I32x4RelaxedLaneSelect):
           case uint32_t(SimdOp::I64x2RelaxedLaneSelect):
           case uint32_t(SimdOp::I32x4DotI8x16I7x16AddS): {
-            if (!moduleMeta.v128RelaxedEnabled()) {
+            if (!codeMeta.v128RelaxedEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
             CHECK(
@@ -1298,7 +1300,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
           case uint32_t(SimdOp::F64x2RelaxedMax):
           case uint32_t(SimdOp::I16x8RelaxedQ15MulrS):
           case uint32_t(SimdOp::I16x8DotI8x16I7x16S): {
-            if (!moduleMeta.v128RelaxedEnabled()) {
+            if (!codeMeta.v128RelaxedEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
             CHECK(iter.readBinary(ValType::V128, &nothing, &nothing));
@@ -1307,13 +1309,13 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
           case uint32_t(SimdOp::I32x4RelaxedTruncF32x4U):
           case uint32_t(SimdOp::I32x4RelaxedTruncF64x2SZero):
           case uint32_t(SimdOp::I32x4RelaxedTruncF64x2UZero): {
-            if (!moduleMeta.v128RelaxedEnabled()) {
+            if (!codeMeta.v128RelaxedEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
             CHECK(iter.readUnary(ValType::V128, &nothing));
           }
           case uint32_t(SimdOp::I8x16RelaxedSwizzle): {
-            if (!moduleMeta.v128RelaxedEnabled()) {
+            if (!codeMeta.v128RelaxedEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
             CHECK(iter.readBinary(ValType::V128, &nothing, &nothing));
@@ -1388,7 +1390,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
           }
 #ifdef ENABLE_WASM_MEMORY_CONTROL
           case uint32_t(MiscOp::MemoryDiscard): {
-            if (!moduleMeta.memoryControlEnabled()) {
+            if (!codeMeta.memoryControlEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
             uint32_t unusedMemoryIndex;
@@ -1410,13 +1412,13 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
       }
 #ifdef ENABLE_WASM_GC
       case uint16_t(Op::RefAsNonNull): {
-        if (!moduleMeta.gcEnabled()) {
+        if (!codeMeta.gcEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         CHECK(iter.readRefAsNonNull(&nothing));
       }
       case uint16_t(Op::BrOnNull): {
-        if (!moduleMeta.gcEnabled()) {
+        if (!codeMeta.gcEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         uint32_t unusedDepth;
@@ -1424,7 +1426,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
             iter.readBrOnNull(&unusedDepth, &unusedType, &nothings, &nothing));
       }
       case uint16_t(Op::BrOnNonNull): {
-        if (!moduleMeta.gcEnabled()) {
+        if (!codeMeta.gcEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         uint32_t unusedDepth;
@@ -1434,7 +1436,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
 #endif
 #ifdef ENABLE_WASM_GC
       case uint16_t(Op::RefEq): {
-        if (!moduleMeta.gcEnabled()) {
+        if (!codeMeta.gcEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         CHECK(iter.readComparison(RefType::eq(), &nothing, &nothing));
@@ -1482,13 +1484,13 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
         CHECK(iter.readRethrow(&unusedDepth));
       }
       case uint16_t(Op::ThrowRef): {
-        if (!moduleMeta.exnrefEnabled()) {
+        if (!codeMeta.exnrefEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         CHECK(iter.readThrowRef(&nothing));
       }
       case uint16_t(Op::TryTable): {
-        if (!moduleMeta.exnrefEnabled()) {
+        if (!codeMeta.exnrefEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         TryTableCatchVector catches;
@@ -1498,7 +1500,7 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
         // Though thread ops can be used on nonshared memories, we make them
         // unavailable if shared memory has been disabled in the prefs, for
         // maximum predictability and safety and consistency with JS.
-        if (moduleMeta.sharedMemoryEnabled() == Shareable::False) {
+        if (codeMeta.sharedMemoryEnabled() == Shareable::False) {
           return iter.unrecognizedOpcode(&op);
         }
         switch (op.b1) {
@@ -1688,17 +1690,17 @@ static bool DecodeFunctionBodyExprs(const ModuleMetadata& moduleMeta,
 #undef CHECK
 }
 
-bool wasm::ValidateFunctionBody(const ModuleMetadata& moduleMeta,
+bool wasm::ValidateFunctionBody(const CodeMetadata& codeMeta,
                                 uint32_t funcIndex, uint32_t bodySize,
                                 Decoder& d) {
   const uint8_t* bodyBegin = d.currentPosition();
 
   ValTypeVector locals;
-  if (!DecodeLocalEntriesWithParams(d, moduleMeta, funcIndex, &locals)) {
+  if (!DecodeLocalEntriesWithParams(d, codeMeta, funcIndex, &locals)) {
     return false;
   }
 
-  return DecodeFunctionBodyExprs(moduleMeta, funcIndex, locals,
+  return DecodeFunctionBodyExprs(codeMeta, funcIndex, locals,
                                  bodyBegin + bodySize, &d);
 }
 
@@ -1723,22 +1725,21 @@ static bool DecodePreamble(Decoder& d) {
   return true;
 }
 
-static bool DecodeValTypeVector(Decoder& d, ModuleMetadata* moduleMeta,
+static bool DecodeValTypeVector(Decoder& d, CodeMetadata* codeMeta,
                                 uint32_t count, ValTypeVector* valTypes) {
   if (!valTypes->resize(count)) {
     return false;
   }
 
   for (uint32_t i = 0; i < count; i++) {
-    if (!d.readValType(*moduleMeta->types, moduleMeta->features,
-                       &(*valTypes)[i])) {
+    if (!d.readValType(*codeMeta->types, codeMeta->features, &(*valTypes)[i])) {
       return false;
     }
   }
   return true;
 }
 
-static bool DecodeFuncType(Decoder& d, ModuleMetadata* moduleMeta,
+static bool DecodeFuncType(Decoder& d, CodeMetadata* codeMeta,
                            FuncType* funcType) {
   uint32_t numArgs;
   if (!d.readVarU32(&numArgs)) {
@@ -1748,7 +1749,7 @@ static bool DecodeFuncType(Decoder& d, ModuleMetadata* moduleMeta,
     return d.fail("too many arguments in signature");
   }
   ValTypeVector args;
-  if (!DecodeValTypeVector(d, moduleMeta, numArgs, &args)) {
+  if (!DecodeValTypeVector(d, codeMeta, numArgs, &args)) {
     return false;
   }
 
@@ -1760,7 +1761,7 @@ static bool DecodeFuncType(Decoder& d, ModuleMetadata* moduleMeta,
     return d.fail("too many returns in signature");
   }
   ValTypeVector results;
-  if (!DecodeValTypeVector(d, moduleMeta, numResults, &results)) {
+  if (!DecodeValTypeVector(d, codeMeta, numResults, &results)) {
     return false;
   }
 
@@ -1768,9 +1769,9 @@ static bool DecodeFuncType(Decoder& d, ModuleMetadata* moduleMeta,
   return true;
 }
 
-static bool DecodeStructType(Decoder& d, ModuleMetadata* moduleMeta,
+static bool DecodeStructType(Decoder& d, CodeMetadata* codeMeta,
                              StructType* structType) {
-  if (!moduleMeta->gcEnabled()) {
+  if (!codeMeta->gcEnabled()) {
     return d.fail("gc not enabled");
   }
 
@@ -1789,7 +1790,7 @@ static bool DecodeStructType(Decoder& d, ModuleMetadata* moduleMeta,
   }
 
   for (uint32_t i = 0; i < numFields; i++) {
-    if (!d.readStorageType(*moduleMeta->types, moduleMeta->features,
+    if (!d.readStorageType(*codeMeta->types, codeMeta->features,
                            &fields[i].type)) {
       return false;
     }
@@ -1813,15 +1814,14 @@ static bool DecodeStructType(Decoder& d, ModuleMetadata* moduleMeta,
   return true;
 }
 
-static bool DecodeArrayType(Decoder& d, ModuleMetadata* moduleMeta,
+static bool DecodeArrayType(Decoder& d, CodeMetadata* codeMeta,
                             ArrayType* arrayType) {
-  if (!moduleMeta->gcEnabled()) {
+  if (!codeMeta->gcEnabled()) {
     return d.fail("gc not enabled");
   }
 
   StorageType elementType;
-  if (!d.readStorageType(*moduleMeta->types, moduleMeta->features,
-                         &elementType)) {
+  if (!d.readStorageType(*codeMeta->types, codeMeta->features, &elementType)) {
     return false;
   }
 
@@ -1838,9 +1838,9 @@ static bool DecodeArrayType(Decoder& d, ModuleMetadata* moduleMeta,
   return true;
 }
 
-static bool DecodeTypeSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeTypeSection(Decoder& d, CodeMetadata* codeMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::Type, moduleMeta, &range, "type")) {
+  if (!d.startSection(SectionId::Type, codeMeta, &range, "type")) {
     return false;
   }
   if (!range) {
@@ -1864,7 +1864,7 @@ static bool DecodeTypeSection(Decoder& d, ModuleMetadata* moduleMeta) {
 
     // Decode an optional recursion group length, if the GC proposal is
     // enabled.
-    if (moduleMeta->gcEnabled()) {
+    if (codeMeta->gcEnabled()) {
       uint8_t firstTypeCode;
       if (!d.peekByte(&firstTypeCode)) {
         return d.fail("expected type form");
@@ -1883,7 +1883,7 @@ static bool DecodeTypeSection(Decoder& d, ModuleMetadata* moduleMeta) {
 
     // Start a recursion group. This will extend the type context with empty
     // type definitions to be filled.
-    MutableRecGroup recGroup = moduleMeta->types->startRecGroup(recGroupLength);
+    MutableRecGroup recGroup = codeMeta->types->startRecGroup(recGroupLength);
     if (!recGroup) {
       return false;
     }
@@ -1893,7 +1893,7 @@ static bool DecodeTypeSection(Decoder& d, ModuleMetadata* moduleMeta) {
     for (uint32_t recGroupTypeIndex = 0; recGroupTypeIndex < recGroupLength;
          recGroupTypeIndex++) {
       uint32_t typeIndex =
-          moduleMeta->types->length() - recGroupLength + recGroupTypeIndex;
+          codeMeta->types->length() - recGroupLength + recGroupTypeIndex;
 
       // Check if we've reached our implementation defined limit of type
       // definitions.
@@ -1909,7 +1909,7 @@ static bool DecodeTypeSection(Decoder& d, ModuleMetadata* moduleMeta) {
 
       // Decode an optional declared super type index, if the GC proposal is
       // enabled.
-      if (moduleMeta->gcEnabled() && d.peekByte(&form) &&
+      if (codeMeta->gcEnabled() && d.peekByte(&form) &&
           (form == (uint8_t)TypeCode::SubNoFinalType ||
            form == (uint8_t)TypeCode::SubFinalType)) {
         if (form == (uint8_t)TypeCode::SubNoFinalType) {
@@ -1942,7 +1942,7 @@ static bool DecodeTypeSection(Decoder& d, ModuleMetadata* moduleMeta) {
             return d.fail("invalid super type index");
           }
 
-          superTypeDef = &moduleMeta->types->type(superTypeDefIndex);
+          superTypeDef = &codeMeta->types->type(superTypeDefIndex);
         }
       }
 
@@ -1955,7 +1955,7 @@ static bool DecodeTypeSection(Decoder& d, ModuleMetadata* moduleMeta) {
       switch (form) {
         case uint8_t(TypeCode::Func): {
           FuncType funcType;
-          if (!DecodeFuncType(d, moduleMeta, &funcType)) {
+          if (!DecodeFuncType(d, codeMeta, &funcType)) {
             return false;
           }
           *typeDef = std::move(funcType);
@@ -1963,7 +1963,7 @@ static bool DecodeTypeSection(Decoder& d, ModuleMetadata* moduleMeta) {
         }
         case uint8_t(TypeCode::Struct): {
           StructType structType;
-          if (!DecodeStructType(d, moduleMeta, &structType)) {
+          if (!DecodeStructType(d, codeMeta, &structType)) {
             return false;
           }
           *typeDef = std::move(structType);
@@ -1971,7 +1971,7 @@ static bool DecodeTypeSection(Decoder& d, ModuleMetadata* moduleMeta) {
         }
         case uint8_t(TypeCode::Array): {
           ArrayType arrayType;
-          if (!DecodeArrayType(d, moduleMeta, &arrayType)) {
+          if (!DecodeArrayType(d, codeMeta, &arrayType)) {
             return false;
           }
           *typeDef = std::move(arrayType);
@@ -1992,7 +1992,7 @@ static bool DecodeTypeSection(Decoder& d, ModuleMetadata* moduleMeta) {
       }
 
       if (typeDef->isFuncType()) {
-        typeDef->funcType().initImmediateTypeId(moduleMeta->gcEnabled(),
+        typeDef->funcType().initImmediateTypeId(codeMeta->gcEnabled(),
                                                 typeDef->isFinal(),
                                                 superTypeDef, recGroupLength);
       }
@@ -2013,7 +2013,7 @@ static bool DecodeTypeSection(Decoder& d, ModuleMetadata* moduleMeta) {
     }
 
     // Finish the recursion group, which will canonicalize the types.
-    if (!moduleMeta->types->endRecGroup()) {
+    if (!codeMeta->types->endRecGroup()) {
       return false;
     }
   }
@@ -2147,7 +2147,7 @@ static bool DecodeLimits(Decoder& d, LimitsKind kind, Limits* limits) {
   return true;
 }
 
-static bool DecodeTableTypeAndLimits(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeTableTypeAndLimits(Decoder& d, CodeMetadata* codeMeta) {
   bool initExprPresent = false;
   uint8_t typeCode;
   if (!d.peekByte(&typeCode)) {
@@ -2163,8 +2163,7 @@ static bool DecodeTableTypeAndLimits(Decoder& d, ModuleMetadata* moduleMeta) {
   }
 
   RefType tableElemType;
-  if (!d.readRefType(*moduleMeta->types, moduleMeta->features,
-                     &tableElemType)) {
+  if (!d.readRefType(*codeMeta->types, codeMeta->features, &tableElemType)) {
     return false;
   }
 
@@ -2185,7 +2184,7 @@ static bool DecodeTableTypeAndLimits(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("too many table elements");
   }
 
-  if (moduleMeta->tables.length() >= MaxTables) {
+  if (codeMeta->tables.length() >= MaxTables) {
     return d.fail("too many tables");
   }
 
@@ -2200,7 +2199,7 @@ static bool DecodeTableTypeAndLimits(Decoder& d, ModuleMetadata* moduleMeta) {
   Maybe<InitExpr> initExpr;
   if (initExprPresent) {
     InitExpr initializer;
-    if (!InitExpr::decodeAndValidate(d, moduleMeta, tableElemType,
+    if (!InitExpr::decodeAndValidate(d, codeMeta, tableElemType,
                                      &initializer)) {
       return false;
     }
@@ -2211,9 +2210,9 @@ static bool DecodeTableTypeAndLimits(Decoder& d, ModuleMetadata* moduleMeta) {
     }
   }
 
-  return moduleMeta->tables.emplaceBack(tableElemType, initialLength,
-                                        maximumLength, std::move(initExpr),
-                                        /* isAsmJS */ false);
+  return codeMeta->tables.emplaceBack(tableElemType, initialLength,
+                                      maximumLength, std::move(initExpr),
+                                      /* isAsmJS */ false);
 }
 
 static bool DecodeGlobalType(Decoder& d, const SharedTypeContext& types,
@@ -2236,13 +2235,13 @@ static bool DecodeGlobalType(Decoder& d, const SharedTypeContext& types,
   return true;
 }
 
-static bool DecodeMemoryTypeAndLimits(Decoder& d, ModuleMetadata* moduleMeta,
+static bool DecodeMemoryTypeAndLimits(Decoder& d, CodeMetadata* codeMeta,
                                       MemoryDescVector* memories) {
-  if (!moduleMeta->features.multiMemory && moduleMeta->numMemories() == 1) {
+  if (!codeMeta->features.multiMemory && codeMeta->numMemories() == 1) {
     return d.fail("already have default memory");
   }
 
-  if (moduleMeta->numMemories() >= MaxMemories) {
+  if (codeMeta->numMemories() >= MaxMemories) {
     return d.fail("too many memories");
   }
 
@@ -2262,18 +2261,18 @@ static bool DecodeMemoryTypeAndLimits(Decoder& d, ModuleMetadata* moduleMeta,
   }
 
   if (limits.shared == Shareable::True &&
-      moduleMeta->sharedMemoryEnabled() == Shareable::False) {
+      codeMeta->sharedMemoryEnabled() == Shareable::False) {
     return d.fail("shared memory is disabled");
   }
 
-  if (limits.indexType == IndexType::I64 && !moduleMeta->memory64Enabled()) {
+  if (limits.indexType == IndexType::I64 && !codeMeta->memory64Enabled()) {
     return d.fail("memory64 is disabled");
   }
 
   return memories->emplaceBack(MemoryDesc(limits));
 }
 
-static bool DecodeTag(Decoder& d, ModuleMetadata* moduleMeta, TagKind* tagKind,
+static bool DecodeTag(Decoder& d, CodeMetadata* codeMeta, TagKind* tagKind,
                       uint32_t* funcTypeIndex) {
   uint32_t tagCode;
   if (!d.readVarU32(&tagCode)) {
@@ -2288,19 +2287,20 @@ static bool DecodeTag(Decoder& d, ModuleMetadata* moduleMeta, TagKind* tagKind,
   if (!d.readVarU32(funcTypeIndex)) {
     return d.fail("expected function index in tag");
   }
-  if (*funcTypeIndex >= moduleMeta->numTypes()) {
+  if (*funcTypeIndex >= codeMeta->numTypes()) {
     return d.fail("function type index in tag out of bounds");
   }
-  if (!(*moduleMeta->types)[*funcTypeIndex].isFuncType()) {
+  if (!(*codeMeta->types)[*funcTypeIndex].isFuncType()) {
     return d.fail("function type index must index a function type");
   }
-  if ((*moduleMeta->types)[*funcTypeIndex].funcType().results().length() != 0) {
+  if ((*codeMeta->types)[*funcTypeIndex].funcType().results().length() != 0) {
     return d.fail("tag function types must not return anything");
   }
   return true;
 }
 
-static bool DecodeImport(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeImport(Decoder& d, CodeMetadata* codeMeta,
+                         ModuleMetadata* moduleMeta) {
   CacheableName moduleName;
   if (!DecodeName(d, &moduleName)) {
     return d.fail("expected valid import module name");
@@ -2321,28 +2321,28 @@ static bool DecodeImport(Decoder& d, ModuleMetadata* moduleMeta) {
   switch (importKind) {
     case DefinitionKind::Function: {
       uint32_t funcTypeIndex;
-      if (!DecodeFuncTypeIndex(d, moduleMeta->types, &funcTypeIndex)) {
+      if (!DecodeFuncTypeIndex(d, codeMeta->types, &funcTypeIndex)) {
         return false;
       }
-      if (!moduleMeta->funcs.append(
-              FuncDesc(&moduleMeta->types->type(funcTypeIndex).funcType(),
+      if (!codeMeta->funcs.append(
+              FuncDesc(&codeMeta->types->type(funcTypeIndex).funcType(),
                        funcTypeIndex))) {
         return false;
       }
-      if (moduleMeta->funcs.length() > MaxFuncs) {
+      if (codeMeta->funcs.length() > MaxFuncs) {
         return d.fail("too many functions");
       }
       break;
     }
     case DefinitionKind::Table: {
-      if (!DecodeTableTypeAndLimits(d, moduleMeta)) {
+      if (!DecodeTableTypeAndLimits(d, codeMeta)) {
         return false;
       }
-      moduleMeta->tables.back().isImported = true;
+      codeMeta->tables.back().isImported = true;
       break;
     }
     case DefinitionKind::Memory: {
-      if (!DecodeMemoryTypeAndLimits(d, moduleMeta, &moduleMeta->memories)) {
+      if (!DecodeMemoryTypeAndLimits(d, codeMeta, &codeMeta->memories)) {
         return false;
       }
       break;
@@ -2350,15 +2350,15 @@ static bool DecodeImport(Decoder& d, ModuleMetadata* moduleMeta) {
     case DefinitionKind::Global: {
       ValType type;
       bool isMutable;
-      if (!DecodeGlobalType(d, moduleMeta->types, moduleMeta->features, &type,
+      if (!DecodeGlobalType(d, codeMeta->types, codeMeta->features, &type,
                             &isMutable)) {
         return false;
       }
-      if (!moduleMeta->globals.append(
-              GlobalDesc(type, isMutable, moduleMeta->globals.length()))) {
+      if (!codeMeta->globals.append(
+              GlobalDesc(type, isMutable, codeMeta->globals.length()))) {
         return false;
       }
-      if (moduleMeta->globals.length() > MaxGlobals) {
+      if (codeMeta->globals.length() > MaxGlobals) {
         return d.fail("too many globals");
       }
       break;
@@ -2366,22 +2366,22 @@ static bool DecodeImport(Decoder& d, ModuleMetadata* moduleMeta) {
     case DefinitionKind::Tag: {
       TagKind tagKind;
       uint32_t funcTypeIndex;
-      if (!DecodeTag(d, moduleMeta, &tagKind, &funcTypeIndex)) {
+      if (!DecodeTag(d, codeMeta, &tagKind, &funcTypeIndex)) {
         return false;
       }
       ValTypeVector args;
       if (!args.appendAll(
-              (*moduleMeta->types)[funcTypeIndex].funcType().args())) {
+              (*codeMeta->types)[funcTypeIndex].funcType().args())) {
         return false;
       }
       MutableTagType tagType = js_new<TagType>();
       if (!tagType || !tagType->initialize(std::move(args))) {
         return false;
       }
-      if (!moduleMeta->tags.emplaceBack(tagKind, tagType)) {
+      if (!codeMeta->tags.emplaceBack(tagKind, tagType)) {
         return false;
       }
-      if (moduleMeta->tags.length() > MaxTags) {
+      if (codeMeta->tags.length() > MaxTags) {
         return d.fail("too many tags");
       }
       break;
@@ -2395,8 +2395,9 @@ static bool DecodeImport(Decoder& d, ModuleMetadata* moduleMeta) {
 }
 
 static bool CheckImportsAgainstBuiltinModules(Decoder& d,
+                                              CodeMetadata* codeMeta,
                                               ModuleMetadata* moduleMeta) {
-  const BuiltinModuleIds& builtinModules = moduleMeta->features.builtinModules;
+  const BuiltinModuleIds& builtinModules = codeMeta->features.builtinModules;
 
   // Skip this pass if there are no builtin modules enabled
   if (builtinModules.hasNone()) {
@@ -2410,7 +2411,7 @@ static bool CheckImportsAgainstBuiltinModules(Decoder& d,
 
     switch (import.kind) {
       case DefinitionKind::Function: {
-        const FuncDesc& func = moduleMeta->funcs[importFuncIndex];
+        const FuncDesc& func = codeMeta->funcs[importFuncIndex];
         importFuncIndex += 1;
 
         // Skip this import if it doesn't refer to a builtin module. We do have
@@ -2427,7 +2428,7 @@ static bool CheckImportsAgainstBuiltinModules(Decoder& d,
           return d.fail("unrecognized builtin module field");
         }
 
-        const TypeDef& importTypeDef = (*moduleMeta->types)[func.typeIndex];
+        const TypeDef& importTypeDef = (*codeMeta->types)[func.typeIndex];
         if (!TypeDef::isSubTypeOf((*builtinFunc)->typeDef(), &importTypeDef)) {
           return d.failf("type mismatch in %s", (*builtinFunc)->exportName());
         }
@@ -2445,9 +2446,10 @@ static bool CheckImportsAgainstBuiltinModules(Decoder& d,
   return true;
 }
 
-static bool DecodeImportSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeImportSection(Decoder& d, CodeMetadata* codeMeta,
+                                ModuleMetadata* moduleMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::Import, moduleMeta, &range, "import")) {
+  if (!d.startSection(SectionId::Import, codeMeta, &range, "import")) {
     return false;
   }
   if (!range) {
@@ -2464,7 +2466,7 @@ static bool DecodeImportSection(Decoder& d, ModuleMetadata* moduleMeta) {
   }
 
   for (uint32_t i = 0; i < numImports; i++) {
-    if (!DecodeImport(d, moduleMeta)) {
+    if (!DecodeImport(d, codeMeta, moduleMeta)) {
       return false;
     }
   }
@@ -2473,14 +2475,14 @@ static bool DecodeImportSection(Decoder& d, ModuleMetadata* moduleMeta) {
     return false;
   }
 
-  moduleMeta->numFuncImports = moduleMeta->funcs.length();
-  moduleMeta->numGlobalImports = moduleMeta->globals.length();
+  codeMeta->numFuncImports = codeMeta->funcs.length();
+  codeMeta->numGlobalImports = codeMeta->globals.length();
   return true;
 }
 
-static bool DecodeFunctionSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeFunctionSection(Decoder& d, CodeMetadata* codeMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::Function, moduleMeta, &range, "function")) {
+  if (!d.startSection(SectionId::Function, codeMeta, &range, "function")) {
     return false;
   }
   if (!range) {
@@ -2492,31 +2494,31 @@ static bool DecodeFunctionSection(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("expected number of function definitions");
   }
 
-  CheckedInt<uint32_t> numFuncs = moduleMeta->funcs.length();
+  CheckedInt<uint32_t> numFuncs = codeMeta->funcs.length();
   numFuncs += numDefs;
   if (!numFuncs.isValid() || numFuncs.value() > MaxFuncs) {
     return d.fail("too many functions");
   }
 
-  if (!moduleMeta->funcs.reserve(numFuncs.value())) {
+  if (!codeMeta->funcs.reserve(numFuncs.value())) {
     return false;
   }
 
   for (uint32_t i = 0; i < numDefs; i++) {
     uint32_t funcTypeIndex;
-    if (!DecodeFuncTypeIndex(d, moduleMeta->types, &funcTypeIndex)) {
+    if (!DecodeFuncTypeIndex(d, codeMeta->types, &funcTypeIndex)) {
       return false;
     }
-    moduleMeta->funcs.infallibleAppend(FuncDesc(
-        &moduleMeta->types->type(funcTypeIndex).funcType(), funcTypeIndex));
+    codeMeta->funcs.infallibleAppend(FuncDesc(
+        &codeMeta->types->type(funcTypeIndex).funcType(), funcTypeIndex));
   }
 
   return d.finishSection(*range, "function");
 }
 
-static bool DecodeTableSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeTableSection(Decoder& d, CodeMetadata* codeMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::Table, moduleMeta, &range, "table")) {
+  if (!d.startSection(SectionId::Table, codeMeta, &range, "table")) {
     return false;
   }
   if (!range) {
@@ -2529,7 +2531,7 @@ static bool DecodeTableSection(Decoder& d, ModuleMetadata* moduleMeta) {
   }
 
   for (uint32_t i = 0; i < numTables; ++i) {
-    if (!DecodeTableTypeAndLimits(d, moduleMeta)) {
+    if (!DecodeTableTypeAndLimits(d, codeMeta)) {
       return false;
     }
   }
@@ -2537,9 +2539,9 @@ static bool DecodeTableSection(Decoder& d, ModuleMetadata* moduleMeta) {
   return d.finishSection(*range, "table");
 }
 
-static bool DecodeMemorySection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeMemorySection(Decoder& d, CodeMetadata* codeMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::Memory, moduleMeta, &range, "memory")) {
+  if (!d.startSection(SectionId::Memory, codeMeta, &range, "memory")) {
     return false;
   }
   if (!range) {
@@ -2551,12 +2553,12 @@ static bool DecodeMemorySection(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("failed to read number of memories");
   }
 
-  if (!moduleMeta->features.multiMemory && numMemories > 1) {
+  if (!codeMeta->features.multiMemory && numMemories > 1) {
     return d.fail("the number of memories must be at most one");
   }
 
   for (uint32_t i = 0; i < numMemories; ++i) {
-    if (!DecodeMemoryTypeAndLimits(d, moduleMeta, &moduleMeta->memories)) {
+    if (!DecodeMemoryTypeAndLimits(d, codeMeta, &codeMeta->memories)) {
       return false;
     }
   }
@@ -2564,9 +2566,9 @@ static bool DecodeMemorySection(Decoder& d, ModuleMetadata* moduleMeta) {
   return d.finishSection(*range, "memory");
 }
 
-static bool DecodeGlobalSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeGlobalSection(Decoder& d, CodeMetadata* codeMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::Global, moduleMeta, &range, "global")) {
+  if (!d.startSection(SectionId::Global, codeMeta, &range, "global")) {
     return false;
   }
   if (!range) {
@@ -2578,39 +2580,39 @@ static bool DecodeGlobalSection(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("expected number of globals");
   }
 
-  CheckedInt<uint32_t> numGlobals = moduleMeta->globals.length();
+  CheckedInt<uint32_t> numGlobals = codeMeta->globals.length();
   numGlobals += numDefs;
   if (!numGlobals.isValid() || numGlobals.value() > MaxGlobals) {
     return d.fail("too many globals");
   }
 
-  if (!moduleMeta->globals.reserve(numGlobals.value())) {
+  if (!codeMeta->globals.reserve(numGlobals.value())) {
     return false;
   }
 
   for (uint32_t i = 0; i < numDefs; i++) {
     ValType type;
     bool isMutable;
-    if (!DecodeGlobalType(d, moduleMeta->types, moduleMeta->features, &type,
+    if (!DecodeGlobalType(d, codeMeta->types, codeMeta->features, &type,
                           &isMutable)) {
       return false;
     }
 
     InitExpr initializer;
-    if (!InitExpr::decodeAndValidate(d, moduleMeta, type, &initializer)) {
+    if (!InitExpr::decodeAndValidate(d, codeMeta, type, &initializer)) {
       return false;
     }
 
-    moduleMeta->globals.infallibleAppend(
+    codeMeta->globals.infallibleAppend(
         GlobalDesc(std::move(initializer), isMutable));
   }
 
   return d.finishSection(*range, "global");
 }
 
-static bool DecodeTagSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeTagSection(Decoder& d, CodeMetadata* codeMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::Tag, moduleMeta, &range, "tag")) {
+  if (!d.startSection(SectionId::Tag, codeMeta, &range, "tag")) {
     return false;
   }
   if (!range) {
@@ -2622,32 +2624,31 @@ static bool DecodeTagSection(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("expected number of tags");
   }
 
-  CheckedInt<uint32_t> numTags = moduleMeta->tags.length();
+  CheckedInt<uint32_t> numTags = codeMeta->tags.length();
   numTags += numDefs;
   if (!numTags.isValid() || numTags.value() > MaxTags) {
     return d.fail("too many tags");
   }
 
-  if (!moduleMeta->tags.reserve(numTags.value())) {
+  if (!codeMeta->tags.reserve(numTags.value())) {
     return false;
   }
 
   for (uint32_t i = 0; i < numDefs; i++) {
     TagKind tagKind;
     uint32_t funcTypeIndex;
-    if (!DecodeTag(d, moduleMeta, &tagKind, &funcTypeIndex)) {
+    if (!DecodeTag(d, codeMeta, &tagKind, &funcTypeIndex)) {
       return false;
     }
     ValTypeVector args;
-    if (!args.appendAll(
-            (*moduleMeta->types)[funcTypeIndex].funcType().args())) {
+    if (!args.appendAll((*codeMeta->types)[funcTypeIndex].funcType().args())) {
       return false;
     }
     MutableTagType tagType = js_new<TagType>();
     if (!tagType || !tagType->initialize(std::move(args))) {
       return false;
     }
-    moduleMeta->tags.infallibleEmplaceBack(tagKind, tagType);
+    codeMeta->tags.infallibleEmplaceBack(tagKind, tagType);
   }
 
   return d.finishSection(*range, "tag");
@@ -2671,8 +2672,8 @@ using NameSet = HashSet<Span<char>, NameHasher, SystemAllocPolicy>;
   return dupSet->add(p, exportName->utf8Bytes());
 }
 
-static bool DecodeExport(Decoder& d, ModuleMetadata* moduleMeta,
-                         NameSet* dupSet) {
+static bool DecodeExport(Decoder& d, CodeMetadata* codeMeta,
+                         ModuleMetadata* moduleMeta, NameSet* dupSet) {
   CacheableName fieldName;
   if (!DecodeExportName(d, dupSet, &fieldName)) {
     return false;
@@ -2690,12 +2691,12 @@ static bool DecodeExport(Decoder& d, ModuleMetadata* moduleMeta,
         return d.fail("expected function index");
       }
 
-      if (funcIndex >= moduleMeta->numFuncs()) {
+      if (funcIndex >= codeMeta->numFuncs()) {
         return d.fail("exported function index out of bounds");
       }
 
-      moduleMeta->declareFuncExported(funcIndex, /* eager */ true,
-                                      /* canRefFunc */ true);
+      codeMeta->declareFuncExported(funcIndex, /* eager */ true,
+                                    /* canRefFunc */ true);
       return moduleMeta->exports.emplaceBack(std::move(fieldName), funcIndex,
                                              DefinitionKind::Function);
     }
@@ -2705,10 +2706,10 @@ static bool DecodeExport(Decoder& d, ModuleMetadata* moduleMeta,
         return d.fail("expected table index");
       }
 
-      if (tableIndex >= moduleMeta->tables.length()) {
+      if (tableIndex >= codeMeta->tables.length()) {
         return d.fail("exported table index out of bounds");
       }
-      moduleMeta->tables[tableIndex].isExported = true;
+      codeMeta->tables[tableIndex].isExported = true;
       return moduleMeta->exports.emplaceBack(std::move(fieldName), tableIndex,
                                              DefinitionKind::Table);
     }
@@ -2718,7 +2719,7 @@ static bool DecodeExport(Decoder& d, ModuleMetadata* moduleMeta,
         return d.fail("expected memory index");
       }
 
-      if (memoryIndex >= moduleMeta->numMemories()) {
+      if (memoryIndex >= codeMeta->numMemories()) {
         return d.fail("exported memory index out of bounds");
       }
 
@@ -2731,11 +2732,11 @@ static bool DecodeExport(Decoder& d, ModuleMetadata* moduleMeta,
         return d.fail("expected global index");
       }
 
-      if (globalIndex >= moduleMeta->globals.length()) {
+      if (globalIndex >= codeMeta->globals.length()) {
         return d.fail("exported global index out of bounds");
       }
 
-      GlobalDesc* global = &moduleMeta->globals[globalIndex];
+      GlobalDesc* global = &codeMeta->globals[globalIndex];
       global->setIsExport();
 
       return moduleMeta->exports.emplaceBack(std::move(fieldName), globalIndex,
@@ -2746,11 +2747,11 @@ static bool DecodeExport(Decoder& d, ModuleMetadata* moduleMeta,
       if (!d.readVarU32(&tagIndex)) {
         return d.fail("expected tag index");
       }
-      if (tagIndex >= moduleMeta->tags.length()) {
+      if (tagIndex >= codeMeta->tags.length()) {
         return d.fail("exported tag index out of bounds");
       }
 
-      moduleMeta->tags[tagIndex].isExport = true;
+      codeMeta->tags[tagIndex].isExport = true;
       return moduleMeta->exports.emplaceBack(std::move(fieldName), tagIndex,
                                              DefinitionKind::Tag);
     }
@@ -2761,9 +2762,10 @@ static bool DecodeExport(Decoder& d, ModuleMetadata* moduleMeta,
   MOZ_CRASH("unreachable");
 }
 
-static bool DecodeExportSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeExportSection(Decoder& d, CodeMetadata* codeMeta,
+                                ModuleMetadata* moduleMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::Export, moduleMeta, &range, "export")) {
+  if (!d.startSection(SectionId::Export, codeMeta, &range, "export")) {
     return false;
   }
   if (!range) {
@@ -2782,7 +2784,7 @@ static bool DecodeExportSection(Decoder& d, ModuleMetadata* moduleMeta) {
   }
 
   for (uint32_t i = 0; i < numExports; i++) {
-    if (!DecodeExport(d, moduleMeta, &dupSet)) {
+    if (!DecodeExport(d, codeMeta, moduleMeta, &dupSet)) {
       return false;
     }
   }
@@ -2790,9 +2792,10 @@ static bool DecodeExportSection(Decoder& d, ModuleMetadata* moduleMeta) {
   return d.finishSection(*range, "export");
 }
 
-static bool DecodeStartSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeStartSection(Decoder& d, CodeMetadata* codeMeta,
+                               ModuleMetadata* moduleMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::Start, moduleMeta, &range, "start")) {
+  if (!d.startSection(SectionId::Start, codeMeta, &range, "start")) {
     return false;
   }
   if (!range) {
@@ -2804,11 +2807,11 @@ static bool DecodeStartSection(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("failed to read start func index");
   }
 
-  if (funcIndex >= moduleMeta->numFuncs()) {
+  if (funcIndex >= codeMeta->numFuncs()) {
     return d.fail("unknown start function");
   }
 
-  const FuncType& funcType = *moduleMeta->funcs[funcIndex].type;
+  const FuncType& funcType = *codeMeta->funcs[funcIndex].type;
   if (funcType.results().length() > 0) {
     return d.fail("start function must not return anything");
   }
@@ -2817,8 +2820,8 @@ static bool DecodeStartSection(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("start function must be nullary");
   }
 
-  moduleMeta->declareFuncExported(funcIndex, /* eager */ true,
-                                  /* canFuncRef */ false);
+  codeMeta->declareFuncExported(funcIndex, /* eager */ true,
+                                /* canFuncRef */ false);
   moduleMeta->startFuncIndex = Some(funcIndex);
 
   return d.finishSection(*range, "start");
@@ -2841,7 +2844,7 @@ static inline ModuleElemSegment::Kind NormalizeElemSegmentKind(
   MOZ_CRASH("unexpected elem segment kind");
 }
 
-static bool DecodeElemSegment(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeElemSegment(Decoder& d, CodeMetadata* codeMeta) {
   uint32_t segmentFlags;
   if (!d.readVarU32(&segmentFlags)) {
     return d.fail("expected elem segment flags field");
@@ -2859,7 +2862,7 @@ static bool DecodeElemSegment(Decoder& d, ModuleMetadata* moduleMeta) {
 
   if (segmentKind == ElemSegmentKind::Active ||
       segmentKind == ElemSegmentKind::ActiveWithTableIndex) {
-    if (moduleMeta->tables.length() == 0) {
+    if (codeMeta->tables.length() == 0) {
       return d.fail("active elem segment requires a table");
     }
 
@@ -2868,13 +2871,13 @@ static bool DecodeElemSegment(Decoder& d, ModuleMetadata* moduleMeta) {
         !d.readVarU32(&tableIndex)) {
       return d.fail("expected table index");
     }
-    if (tableIndex >= moduleMeta->tables.length()) {
+    if (tableIndex >= codeMeta->tables.length()) {
       return d.fail("table index out of range for element segment");
     }
     seg.tableIndex = tableIndex;
 
     InitExpr offset;
-    if (!InitExpr::decodeAndValidate(d, moduleMeta, ValType::I32, &offset)) {
+    if (!InitExpr::decodeAndValidate(d, codeMeta, ValType::I32, &offset)) {
       return false;
     }
     seg.offsetIfActive.emplace(std::move(offset));
@@ -2898,8 +2901,7 @@ static bool DecodeElemSegment(Decoder& d, ModuleMetadata* moduleMeta) {
   } else {
     switch (payload) {
       case ElemSegmentPayload::Expressions: {
-        if (!d.readRefType(*moduleMeta->types, moduleMeta->features,
-                           &elemType)) {
+        if (!d.readRefType(*codeMeta->types, codeMeta->features, &elemType)) {
           return false;
         }
       } break;
@@ -2920,8 +2922,8 @@ static bool DecodeElemSegment(Decoder& d, ModuleMetadata* moduleMeta) {
   // For active segments, check if the element type is compatible with the
   // destination table type.
   if (seg.active()) {
-    RefType tblElemType = moduleMeta->tables[seg.tableIndex].elemType;
-    if (!CheckIsSubtypeOf(d, *moduleMeta, d.currentOffset(),
+    RefType tblElemType = codeMeta->tables[seg.tableIndex].elemType;
+    if (!CheckIsSubtypeOf(d, *codeMeta, d.currentOffset(),
                           ValType(elemType).storageType(),
                           ValType(tblElemType).storageType())) {
       return false;
@@ -2938,7 +2940,7 @@ static bool DecodeElemSegment(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("too many elements in element segment");
   }
 
-  bool isAsmJS = seg.active() && moduleMeta->tables[seg.tableIndex].isAsmJS;
+  bool isAsmJS = seg.active() && codeMeta->tables[seg.tableIndex].isAsmJS;
 
   switch (payload) {
     case ElemSegmentPayload::Indices: {
@@ -2953,14 +2955,14 @@ static bool DecodeElemSegment(Decoder& d, ModuleMetadata* moduleMeta) {
           return d.fail("failed to read element index");
         }
         // The only valid type of index right now is a function index.
-        if (elemIndex >= moduleMeta->numFuncs()) {
+        if (elemIndex >= codeMeta->numFuncs()) {
           return d.fail("element index out of range");
         }
 
         seg.elemIndices.infallibleAppend(elemIndex);
         if (!isAsmJS) {
-          moduleMeta->declareFuncExported(elemIndex, /*eager=*/false,
-                                          /*canRefFunc=*/true);
+          codeMeta->declareFuncExported(elemIndex, /*eager=*/false,
+                                        /*canRefFunc=*/true);
         }
       }
     } break;
@@ -2970,8 +2972,7 @@ static bool DecodeElemSegment(Decoder& d, ModuleMetadata* moduleMeta) {
       seg.elemExpressions.count = numElems;
       for (uint32_t i = 0; i < numElems; i++) {
         Maybe<LitVal> unusedLiteral;
-        if (!DecodeConstantExpression(d, moduleMeta, elemType,
-                                      &unusedLiteral)) {
+        if (!DecodeConstantExpression(d, codeMeta, elemType, &unusedLiteral)) {
           return false;
         }
       }
@@ -2982,13 +2983,13 @@ static bool DecodeElemSegment(Decoder& d, ModuleMetadata* moduleMeta) {
     } break;
   }
 
-  moduleMeta->elemSegments.infallibleAppend(std::move(seg));
+  codeMeta->elemSegments.infallibleAppend(std::move(seg));
   return true;
 }
 
-static bool DecodeElemSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeElemSection(Decoder& d, CodeMetadata* codeMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::Elem, moduleMeta, &range, "elem")) {
+  if (!d.startSection(SectionId::Elem, codeMeta, &range, "elem")) {
     return false;
   }
   if (!range) {
@@ -3004,12 +3005,12 @@ static bool DecodeElemSection(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("too many elem segments");
   }
 
-  if (!moduleMeta->elemSegments.reserve(numSegments)) {
+  if (!codeMeta->elemSegments.reserve(numSegments)) {
     return false;
   }
 
   for (uint32_t i = 0; i < numSegments; i++) {
-    if (!DecodeElemSegment(d, moduleMeta)) {
+    if (!DecodeElemSegment(d, codeMeta)) {
       return false;
     }
   }
@@ -3017,9 +3018,9 @@ static bool DecodeElemSection(Decoder& d, ModuleMetadata* moduleMeta) {
   return d.finishSection(*range, "elem");
 }
 
-static bool DecodeDataCountSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeDataCountSection(Decoder& d, CodeMetadata* codeMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::DataCount, moduleMeta, &range, "datacount")) {
+  if (!d.startSection(SectionId::DataCount, codeMeta, &range, "datacount")) {
     return false;
   }
   if (!range) {
@@ -3031,7 +3032,7 @@ static bool DecodeDataCountSection(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("expected data segment count");
   }
 
-  moduleMeta->dataCount.emplace(dataCount);
+  codeMeta->dataCount.emplace(dataCount);
 
   return d.finishSection(*range, "datacount");
 }
@@ -3066,7 +3067,7 @@ bool wasm::StartsCodeSection(const uint8_t* begin, const uint8_t* end,
 }
 
 #ifdef ENABLE_WASM_BRANCH_HINTING
-static bool ParseBranchHintingSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool ParseBranchHintingSection(Decoder& d, CodeMetadata* codeMeta) {
   uint32_t functionCount;
   if (!d.readVarU32(&functionCount)) {
     return d.fail("failed to read function count");
@@ -3079,8 +3080,8 @@ static bool ParseBranchHintingSection(Decoder& d, ModuleMetadata* moduleMeta) {
     }
 
     // Disallow branch hints on imported functions.
-    if ((functionIndex >= moduleMeta->funcs.length()) ||
-        (functionIndex < moduleMeta->numFuncImports)) {
+    if ((functionIndex >= codeMeta->funcs.length()) ||
+        (functionIndex < codeMeta->numFuncImports)) {
       return d.fail("invalid function index in branch hint");
     }
 
@@ -3125,8 +3126,8 @@ static bool ParseBranchHintingSection(Decoder& d, ModuleMetadata* moduleMeta) {
     }
 
     // Save this collection in the module
-    if (!moduleMeta->branchHints.addHintsForFunc(functionIndex,
-                                                 std::move(hintVector))) {
+    if (!codeMeta->branchHints.addHintsForFunc(functionIndex,
+                                               std::move(hintVector))) {
       return false;
     }
   }
@@ -3134,9 +3135,9 @@ static bool ParseBranchHintingSection(Decoder& d, ModuleMetadata* moduleMeta) {
   return true;
 }
 
-static bool DecodeBranchHintingSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeBranchHintingSection(Decoder& d, CodeMetadata* codeMeta) {
   MaybeSectionRange range;
-  if (!d.startCustomSection(BranchHintingSectionName, moduleMeta, &range)) {
+  if (!d.startCustomSection(BranchHintingSectionName, codeMeta, &range)) {
     return false;
   }
   if (!range) {
@@ -3144,89 +3145,90 @@ static bool DecodeBranchHintingSection(Decoder& d, ModuleMetadata* moduleMeta) {
   }
 
   // Skip this custom section if errors are encountered during parsing.
-  moduleMeta->parsedBranchHints = ParseBranchHintingSection(d, moduleMeta);
+  codeMeta->parsedBranchHints = ParseBranchHintingSection(d, codeMeta);
 
   d.finishCustomSection(BranchHintingSectionName, *range);
   return true;
 }
 #endif
 
-bool wasm::DecodeModuleEnvironment(Decoder& d, ModuleMetadata* moduleMeta) {
+bool wasm::DecodeModuleEnvironment(Decoder& d, CodeMetadata* codeMeta,
+                                   ModuleMetadata* moduleMeta) {
   if (!DecodePreamble(d)) {
     return false;
   }
 
-  if (!DecodeTypeSection(d, moduleMeta)) {
+  if (!DecodeTypeSection(d, codeMeta)) {
     return false;
   }
 
-  if (!DecodeImportSection(d, moduleMeta)) {
+  if (!DecodeImportSection(d, codeMeta, moduleMeta)) {
     return false;
   }
 
   // Eagerly check imports for future link errors against any known builtin
   // module.
-  if (!CheckImportsAgainstBuiltinModules(d, moduleMeta)) {
+  if (!CheckImportsAgainstBuiltinModules(d, codeMeta, moduleMeta)) {
     return false;
   }
 
-  if (!DecodeFunctionSection(d, moduleMeta)) {
+  if (!DecodeFunctionSection(d, codeMeta)) {
     return false;
   }
 
-  if (!DecodeTableSection(d, moduleMeta)) {
+  if (!DecodeTableSection(d, codeMeta)) {
     return false;
   }
 
-  if (!DecodeMemorySection(d, moduleMeta)) {
+  if (!DecodeMemorySection(d, codeMeta)) {
     return false;
   }
 
-  if (!DecodeTagSection(d, moduleMeta)) {
+  if (!DecodeTagSection(d, codeMeta)) {
     return false;
   }
 
-  if (!DecodeGlobalSection(d, moduleMeta)) {
+  if (!DecodeGlobalSection(d, codeMeta)) {
     return false;
   }
 
-  if (!DecodeExportSection(d, moduleMeta)) {
+  if (!DecodeExportSection(d, codeMeta, moduleMeta)) {
     return false;
   }
 
-  if (!DecodeStartSection(d, moduleMeta)) {
+  if (!DecodeStartSection(d, codeMeta, moduleMeta)) {
     return false;
   }
 
-  if (!DecodeElemSection(d, moduleMeta)) {
+  if (!DecodeElemSection(d, codeMeta)) {
     return false;
   }
 
-  if (!DecodeDataCountSection(d, moduleMeta)) {
+  if (!DecodeDataCountSection(d, codeMeta)) {
     return false;
   }
 
 #ifdef ENABLE_WASM_BRANCH_HINTING
-  if (moduleMeta->branchHintingEnabled() &&
-      !DecodeBranchHintingSection(d, moduleMeta)) {
+  if (codeMeta->branchHintingEnabled() &&
+      !DecodeBranchHintingSection(d, codeMeta)) {
     return false;
   }
 #endif
 
-  if (!d.startSection(SectionId::Code, moduleMeta, &moduleMeta->codeSection,
+  if (!d.startSection(SectionId::Code, codeMeta, &codeMeta->codeSection,
                       "code")) {
     return false;
   }
 
-  if (moduleMeta->codeSection &&
-      moduleMeta->codeSection->size > MaxCodeSectionBytes) {
+  if (codeMeta->codeSection &&
+      codeMeta->codeSection->size > MaxCodeSectionBytes) {
     return d.fail("code section too big");
   }
 
   return true;
 }
 
-static bool DecodeFunctionBody(Decoder& d, const ModuleMetadata& moduleMeta,
+static bool DecodeFunctionBody(Decoder& d, const CodeMetadata& codeMeta,
                                uint32_t funcIndex) {
   uint32_t bodySize;
   if (!d.readVarU32(&bodySize)) {
@@ -3241,12 +3243,12 @@ static bool DecodeFunctionBody(Decoder& d, const ModuleMetadata& moduleMeta,
     return d.fail("function body length too big");
   }
 
-  return ValidateFunctionBody(moduleMeta, funcIndex, bodySize, d);
+  return ValidateFunctionBody(codeMeta, funcIndex, bodySize, d);
 }
 
-static bool DecodeCodeSection(Decoder& d, ModuleMetadata* moduleMeta) {
-  if (!moduleMeta->codeSection) {
-    if (moduleMeta->numFuncDefs() != 0) {
+static bool DecodeCodeSection(Decoder& d, CodeMetadata* codeMeta) {
+  if (!codeMeta->codeSection) {
+    if (codeMeta->numFuncDefs() != 0) {
       return d.fail("expected code section");
     }
     return true;
@@ -3257,28 +3259,29 @@ static bool DecodeCodeSection(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("expected function body count");
   }
 
-  if (numFuncDefs != moduleMeta->numFuncDefs()) {
+  if (numFuncDefs != codeMeta->numFuncDefs()) {
     return d.fail(
         "function body count does not match function signature count");
   }
 
   for (uint32_t funcDefIndex = 0; funcDefIndex < numFuncDefs; funcDefIndex++) {
-    if (!DecodeFunctionBody(d, *moduleMeta,
-                            moduleMeta->numFuncImports + funcDefIndex)) {
+    if (!DecodeFunctionBody(d, *codeMeta,
+                            codeMeta->numFuncImports + funcDefIndex)) {
       return false;
     }
   }
 
-  return d.finishSection(*moduleMeta->codeSection, "code");
+  return d.finishSection(*codeMeta->codeSection, "code");
 }
 
-static bool DecodeDataSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeDataSection(Decoder& d, CodeMetadata* codeMeta,
+                              ModuleMetadata* moduleMeta) {
   MaybeSectionRange range;
-  if (!d.startSection(SectionId::Data, moduleMeta, &range, "data")) {
+  if (!d.startSection(SectionId::Data, codeMeta, &range, "data")) {
     return false;
   }
   if (!range) {
-    if (moduleMeta->dataCount.isSome() && *moduleMeta->dataCount > 0) {
+    if (codeMeta->dataCount.isSome() && *codeMeta->dataCount > 0) {
       return d.fail("number of data segments does not match declared count");
     }
     return true;
@@ -3293,7 +3296,7 @@ static bool DecodeDataSection(Decoder& d, ModuleMetadata* moduleMeta) {
     return d.fail("too many data segments");
   }
 
-  if (moduleMeta->dataCount.isSome() && numSegments != *moduleMeta->dataCount) {
+  if (codeMeta->dataCount.isSome() && numSegments != *codeMeta->dataCount) {
     return d.fail("number of data segments does not match declared count");
   }
 
@@ -3315,7 +3318,7 @@ static bool DecodeDataSection(Decoder& d, ModuleMetadata* moduleMeta) {
     DataSegmentKind initializerKind = DataSegmentKind(initializerKindVal);
 
     if (initializerKind != DataSegmentKind::Passive &&
-        moduleMeta->numMemories() == 0) {
+        codeMeta->numMemories() == 0) {
       return d.fail("active data segment requires a memory section");
     }
 
@@ -3332,14 +3335,14 @@ static bool DecodeDataSection(Decoder& d, ModuleMetadata* moduleMeta) {
 
     if (initializerKind == DataSegmentKind::Active ||
         initializerKind == DataSegmentKind::ActiveWithMemoryIndex) {
-      if (segRange.memoryIndex >= moduleMeta->numMemories()) {
+      if (segRange.memoryIndex >= codeMeta->numMemories()) {
         return d.fail("invalid memory index");
       }
 
       InitExpr segOffset;
       ValType exprType =
-          ToValType(moduleMeta->memories[segRange.memoryIndex].indexType());
-      if (!InitExpr::decodeAndValidate(d, moduleMeta, exprType, &segOffset)) {
+          ToValType(codeMeta->memories[segRange.memoryIndex].indexType());
+      if (!InitExpr::decodeAndValidate(d, codeMeta, exprType, &segOffset)) {
         return false;
       }
       segRange.offsetIfActive.emplace(std::move(segOffset));
@@ -3403,6 +3406,7 @@ static bool DecodeModuleNameSubsection(Decoder& d,
 
 static bool DecodeFunctionNameSubsection(Decoder& d,
                                          const CustomSectionRange& nameSection,
+                                         CodeMetadata* codeMeta,
                                          ModuleMetadata* moduleMeta) {
   Maybe<uint32_t> endOffset;
   if (!d.startNameSubsection(NameType::Function, &endOffset)) {
@@ -3426,7 +3430,7 @@ static bool DecodeFunctionNameSubsection(Decoder& d,
     }
 
     // Names must refer to real functions and be given in ascending order.
-    if (funcIndex >= moduleMeta->numFuncs() || funcIndex < funcNames.length()) {
+    if (funcIndex >= codeMeta->numFuncs() || funcIndex < funcNames.length()) {
       return d.fail("invalid function index");
     }
 
@@ -3465,9 +3469,10 @@ static bool DecodeFunctionNameSubsection(Decoder& d,
   return true;
 }
 
-static bool DecodeNameSection(Decoder& d, ModuleMetadata* moduleMeta) {
+static bool DecodeNameSection(Decoder& d, CodeMetadata* codeMeta,
+                              ModuleMetadata* moduleMeta) {
   MaybeSectionRange range;
-  if (!d.startCustomSection(NameSectionName, moduleMeta, &range)) {
+  if (!d.startCustomSection(NameSectionName, codeMeta, &range)) {
     return false;
   }
   if (!range) {
@@ -3475,9 +3480,8 @@ static bool DecodeNameSection(Decoder& d, ModuleMetadata* moduleMeta) {
   }
 
   moduleMeta->nameCustomSectionIndex =
-      Some(moduleMeta->customSectionRanges.length() - 1);
-  const CustomSectionRange& nameSection =
-      moduleMeta->customSectionRanges.back();
+      Some(codeMeta->customSectionRanges.length() - 1);
+  const CustomSectionRange& nameSection = codeMeta->customSectionRanges.back();
 
   // Once started, custom sections do not report validation errors.
 
@@ -3485,7 +3489,7 @@ static bool DecodeNameSection(Decoder& d, ModuleMetadata* moduleMeta) {
     goto finish;
   }
 
-  if (!DecodeFunctionNameSubsection(d, nameSection, moduleMeta)) {
+  if (!DecodeFunctionNameSubsection(d, nameSection, codeMeta, moduleMeta)) {
     goto finish;
   }
 
@@ -3500,17 +3504,18 @@ finish:
   return true;
 }
 
-bool wasm::DecodeModuleTail(Decoder& d, ModuleMetadata* moduleMeta) {
-  if (!DecodeDataSection(d, moduleMeta)) {
+bool wasm::DecodeModuleTail(Decoder& d, CodeMetadata* codeMeta,
+                            ModuleMetadata* moduleMeta) {
+  if (!DecodeDataSection(d, codeMeta, moduleMeta)) {
     return false;
   }
 
-  if (!DecodeNameSection(d, moduleMeta)) {
+  if (!DecodeNameSection(d, codeMeta, moduleMeta)) {
     return false;
   }
 
   while (!d.done()) {
-    if (!d.skipCustomSection(moduleMeta)) {
+    if (!d.skipCustomSection(codeMeta)) {
       if (d.resilientMode()) {
         d.clearError();
         return true;
@@ -3529,20 +3534,21 @@ bool wasm::Validate(JSContext* cx, const ShareableBytes& bytecode,
   Decoder d(bytecode.bytes, 0, error);
 
   FeatureArgs features = FeatureArgs::build(cx, options);
-  ModuleMetadata moduleMeta(features);
-  if (!moduleMeta.init()) {
+  CodeMetadata codeMeta(features);
+  if (!codeMeta.init()) {
+    return false;
+  }
+  ModuleMetadata moduleMeta;
+
+  if (!DecodeModuleEnvironment(d, &codeMeta, &moduleMeta)) {
     return false;
   }
 
-  if (!DecodeModuleEnvironment(d, &moduleMeta)) {
+  if (!DecodeCodeSection(d, &codeMeta)) {
     return false;
   }
 
-  if (!DecodeCodeSection(d, &moduleMeta)) {
-    return false;
-  }
-
-  if (!DecodeModuleTail(d, &moduleMeta)) {
+  if (!DecodeModuleTail(d, &codeMeta, &moduleMeta)) {
     return false;
   }
 

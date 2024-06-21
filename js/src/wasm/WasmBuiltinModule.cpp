@@ -143,11 +143,12 @@ bool CompileBuiltinModule(JSContext* cx,
   compilerEnv.computeParameters();
 
   // Build a module metadata struct
-  ModuleMetadata moduleMeta(compileArgs->features);
-  if (!moduleMeta.init()) {
+  CodeMetadata codeMeta(compileArgs->features);
+  if (!codeMeta.init()) {
     ReportOutOfMemory(cx);
     return false;
   }
+  ModuleMetadata moduleMeta;
 
   if (memory.isSome()) {
     // Add (import (memory 0))
@@ -163,8 +164,7 @@ bool CompileBuiltinModule(JSContext* cx,
       ReportOutOfMemory(cx);
       return false;
     }
-    if (!moduleMeta.memories.append(
-            MemoryDesc(Limits(0, Nothing(), *memory)))) {
+    if (!codeMeta.memories.append(MemoryDesc(Limits(0, Nothing(), *memory)))) {
       ReportOutOfMemory(cx);
       return false;
     }
@@ -179,7 +179,7 @@ bool CompileBuiltinModule(JSContext* cx,
 
     SharedRecGroup recGroup = builtinModuleFunc.recGroup();
     MOZ_ASSERT(recGroup->numTypes() == 1);
-    if (!moduleMeta.types->addRecGroup(recGroup)) {
+    if (!codeMeta.types->addRecGroup(recGroup)) {
       ReportOutOfMemory(cx);
       return false;
     }
@@ -189,12 +189,12 @@ bool CompileBuiltinModule(JSContext* cx,
   // as the function declaration metadata uses pointers into the type vectors
   // that must be stable.
   for (uint32_t funcIndex = 0; funcIndex < ids.size(); funcIndex++) {
-    FuncDesc decl(&(*moduleMeta.types)[funcIndex].funcType(), funcIndex);
-    if (!moduleMeta.funcs.append(decl)) {
+    FuncDesc decl(&(*codeMeta.types)[funcIndex].funcType(), funcIndex);
+    if (!codeMeta.funcs.append(decl)) {
       ReportOutOfMemory(cx);
       return false;
     }
-    moduleMeta.declareFuncExported(funcIndex, true, false);
+    codeMeta.declareFuncExported(funcIndex, true, false);
   }
 
   // Add (export "$name" (func $i)) declarations.
@@ -214,8 +214,8 @@ bool CompileBuiltinModule(JSContext* cx,
 
   // Compile the module functions
   UniqueChars error;
-  ModuleGenerator mg(*compileArgs, &moduleMeta, &compilerEnv, nullptr, &error,
-                     nullptr);
+  ModuleGenerator mg(*compileArgs, &codeMeta, &moduleMeta, &compilerEnv,
+                     nullptr, &error, nullptr);
   if (!mg.init(nullptr)) {
     ReportOutOfMemory(cx);
     return false;

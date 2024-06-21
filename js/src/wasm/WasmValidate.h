@@ -47,7 +47,9 @@ using mozilla::Some;
 // are given a read-only view of the ModuleMetadata, thus preventing race
 // conditions.
 
-struct ModuleMetadata {
+struct ModuleMetadata;
+
+struct CodeMetadata {
   // Constant parameters for the entire compilation:
   const ModuleKind kind;
   const FeatureArgs features;
@@ -57,19 +59,13 @@ struct ModuleMetadata {
   Maybe<uint32_t> dataCount;
   MemoryDescVector memories;
   MutableTypeContext types;
-  FuncDescVector funcs;
   BranchHintCollection branchHints;
+
   uint32_t numFuncImports;
   uint32_t numGlobalImports;
   GlobalDescVector globals;
   TagDescVector tags;
   TableDescVector tables;
-  Uint32Vector asmJSSigToTableIndex;
-  ImportVector imports;
-  ExportVector exports;
-  Maybe<uint32_t> startFuncIndex;
-  ModuleElemSegmentVector elemSegments;
-  MaybeSectionRange codeSection;
 
   // The start offset of the FuncImportInstanceData[] section of the instance
   // data. There is one entry for every imported function.
@@ -87,18 +83,37 @@ struct ModuleMetadata {
   // entry for every tag.
   uint32_t tagsOffsetStart;
 
-  // Fields decoded as part of the wasm module tail:
-  DataSegmentRangeVector dataSegmentRanges;
-  CustomSectionRangeVector customSectionRanges;
-  Maybe<uint32_t> nameCustomSectionIndex;
-  Maybe<Name> moduleName;
-  NameVector funcNames;
+  // OpIter needs to know types of functions for calls. This will increase size
+  // of Code/Metadata compared to before. We can probably shrink this class by
+  // removing typeIndex/typePtr redundancy and move the flag to ModuleEnv.
+  //
+  // We could also manually clear this vector when we're in a mode that is
+  // not doing partial tiering.
+  FuncDescVector funcs;
+
+  // FIXME extra stuff to do here?  Ryan writes:
+  // OpIter needs to know just the type and count of elem segments, but not
+  // their payload. So we should split this up to avoid a major size regression
+  // in Code/Metadata.
+  ModuleElemSegmentVector elemSegments;
 
   // Indicates whether the branch hint section was successfully parsed.
   bool parsedBranchHints;
 
-  explicit ModuleMetadata(FeatureArgs features,
-                          ModuleKind kind = ModuleKind::Wasm)
+  // asm.js needs this for compilation, technically a size regression for
+  // Code/Metadata but likely not major and we don't care about asm.js enough
+  // to optimize for this.
+  Uint32Vector asmJSSigToTableIndex;
+
+  // Bytecode ranges for the code section?  FIXME check
+  MaybeSectionRange
+      codeSection;  // !!!! moved, but the doc doesn't specify that
+
+  // Bytecode ranges for custom sections?  FIXME check
+  CustomSectionRangeVector customSectionRanges;  // !!!! also moved
+
+  explicit CodeMetadata(FeatureArgs features,
+                        ModuleKind kind = ModuleKind::Wasm)
       : kind(kind),
         features(features),
         numFuncImports(0),
@@ -202,13 +217,32 @@ struct ModuleMetadata {
   }
 
   bool addDefinedFunc(
-      ValTypeVector&& params, ValTypeVector&& results,
-      bool declareForRef = false,
+      /*MOD*/ ModuleMetadata* meta, ValTypeVector&& params,
+      ValTypeVector&& results, bool declareForRef = false,
       Maybe<CacheableName>&& optionalExportedName = mozilla::Nothing());
 
-  bool addImportedFunc(ValTypeVector&& params, ValTypeVector&& results,
-                       CacheableName&& importModName,
+  bool addImportedFunc(/*MOD*/ ModuleMetadata* meta, ValTypeVector&& params,
+                       ValTypeVector&& results, CacheableName&& importModName,
                        CacheableName&& importFieldName);
+};
+
+struct ModuleMetadata {
+  // Module fields decoded from the module environment (or initialized while
+  // validating an asm.js module) and immutable during compilation:
+  ImportVector imports;
+  ExportVector exports;
+  Maybe<uint32_t> startFuncIndex;
+  // MaybeSectionRange codeSection; !!!! moved, but the doc doesn't specify that
+
+  // Fields decoded as part of the wasm module tail:
+  DataSegmentRangeVector dataSegmentRanges;
+  // CustomSectionSummaryVector customSectionRanges; !!!! also moved
+  //                            ^ was moved because Decoder needs it
+  Maybe<uint32_t> nameCustomSectionIndex;
+  Maybe<Name> moduleName;
+  NameVector funcNames;
+
+  explicit ModuleMetadata() {}
 };
 
 // ElemSegmentFlags provides methods for decoding and encoding the flags field
@@ -287,8 +321,7 @@ using ValidatingOpIter = OpIter<ValidatingPolicy>;
 
 // Shared subtyping function across validation.
 
-[[nodiscard]] bool CheckIsSubtypeOf(Decoder& d,
-                                    const ModuleMetadata& moduleMeta,
+[[nodiscard]] bool CheckIsSubtypeOf(Decoder& d, const CodeMetadata& codeMeta,
                                     size_t opcodeOffset, StorageType subType,
                                     StorageType superType);
 
@@ -307,9 +340,10 @@ using ValidatingOpIter = OpIter<ValidatingPolicy>;
 // This validates the entries. Function params are inserted before the locals
 // to generate the full local entries for use in validation
 
-[[nodiscard]] bool DecodeLocalEntriesWithParams(
-    Decoder& d, const ModuleMetadata& moduleMeta, uint32_t funcIndex,
-    ValTypeVector* locals);
+[[nodiscard]] bool DecodeLocalEntriesWithParams(Decoder& d,
+                                                const CodeMetadata& codeMeta,
+                                                uint32_t funcIndex,
+                                                ValTypeVector* locals);
 
 // Returns whether the given [begin, end) prefix of a module's bytecode starts a
 // code section and, if so, returns the SectionRange of that code section.
@@ -327,14 +361,15 @@ using ValidatingOpIter = OpIter<ValidatingPolicy>;
 // and finally call DecodeModuleTail to decode all remaining sections after the
 // code section (again, performing full validation).
 
-[[nodiscard]] bool DecodeModuleEnvironment(Decoder& d,
+[[nodiscard]] bool DecodeModuleEnvironment(Decoder& d, CodeMetadata* codeMeta,
                                            ModuleMetadata* moduleMeta);
 
-[[nodiscard]] bool ValidateFunctionBody(const ModuleMetadata& moduleMeta,
+[[nodiscard]] bool ValidateFunctionBody(const CodeMetadata& codeMeta,
                                         uint32_t funcIndex, uint32_t bodySize,
                                         Decoder& d);
 
-[[nodiscard]] bool DecodeModuleTail(Decoder& d, ModuleMetadata* moduleMeta);
+[[nodiscard]] bool DecodeModuleTail(Decoder& d, CodeMetadata* codeMeta,
+                                    ModuleMetadata* meta);
 
 // Validate an entire module, returning true if the module was validated
 // successfully. If Validate returns false:

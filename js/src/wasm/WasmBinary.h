@@ -574,7 +574,7 @@ class Decoder {
 
   [[nodiscard]] bool readSectionHeader(uint8_t* id, SectionRange* range);
 
-  [[nodiscard]] bool startSection(SectionId id, ModuleMetadata* moduleMeta,
+  [[nodiscard]] bool startSection(SectionId id, CodeMetadata* codeMeta,
                                   MaybeSectionRange* range,
                                   const char* sectionName);
   [[nodiscard]] bool finishSection(const SectionRange& range,
@@ -585,21 +585,21 @@ class Decoder {
 
   [[nodiscard]] bool startCustomSection(const char* expected,
                                         size_t expectedLength,
-                                        ModuleMetadata* moduleMeta,
+                                        CodeMetadata* codeMeta,
                                         MaybeSectionRange* range);
 
   template <size_t NameSizeWith0>
   [[nodiscard]] bool startCustomSection(const char (&name)[NameSizeWith0],
-                                        ModuleMetadata* moduleMeta,
+                                        CodeMetadata* codeMeta,
                                         MaybeSectionRange* range) {
     MOZ_ASSERT(name[NameSizeWith0 - 1] == '\0');
-    return startCustomSection(name, NameSizeWith0 - 1, moduleMeta, range);
+    return startCustomSection(name, NameSizeWith0 - 1, codeMeta, range);
   }
 
   void finishCustomSection(const char* name, const SectionRange& range);
   void skipAndFinishCustomSection(const SectionRange& range);
 
-  [[nodiscard]] bool skipCustomSection(ModuleMetadata* moduleMeta);
+  [[nodiscard]] bool skipCustomSection(CodeMetadata* codeMeta);
 
   // The Name section has its own optional subsections.
 

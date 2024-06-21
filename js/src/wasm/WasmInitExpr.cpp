@@ -416,9 +416,9 @@ bool InitExprInterpreter::evaluate(JSContext* cx, Decoder& d) {
 #undef CHECK
 }
 
-bool wasm::DecodeConstantExpression(Decoder& d, ModuleMetadata* moduleMeta,
+bool wasm::DecodeConstantExpression(Decoder& d, CodeMetadata* codeMeta,
                                     ValType expected, Maybe<LitVal>* literal) {
-  ValidatingOpIter iter(*moduleMeta, d, ValidatingOpIter::InitExpr);
+  ValidatingOpIter iter(*codeMeta, d, ValidatingOpIter::InitExpr);
 
   if (!iter.startInitExpr(expected)) {
     return false;
@@ -500,7 +500,7 @@ bool wasm::DecodeConstantExpression(Decoder& d, ModuleMetadata* moduleMeta,
       }
 #ifdef ENABLE_WASM_SIMD
       case uint16_t(Op::SimdPrefix): {
-        if (!moduleMeta->simdAvailable()) {
+        if (!codeMeta->simdAvailable()) {
           return d.fail("v128 not enabled");
         }
         if (op.b1 != uint32_t(SimdOp::V128Const)) {
@@ -519,8 +519,8 @@ bool wasm::DecodeConstantExpression(Decoder& d, ModuleMetadata* moduleMeta,
         if (!iter.readRefFunc(&funcIndex)) {
           return false;
         }
-        moduleMeta->declareFuncExported(funcIndex, /* eager */ false,
-                                        /* canRefFunc */ true);
+        codeMeta->declareFuncExported(funcIndex, /* eager */ false,
+                                      /* canRefFunc */ true);
         *literal = Nothing();
         break;
       }
@@ -552,7 +552,7 @@ bool wasm::DecodeConstantExpression(Decoder& d, ModuleMetadata* moduleMeta,
       }
 #ifdef ENABLE_WASM_GC
       case uint16_t(Op::GcPrefix): {
-        if (!moduleMeta->gcEnabled()) {
+        if (!codeMeta->gcEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         switch (op.b1) {
@@ -631,11 +631,11 @@ bool wasm::DecodeConstantExpression(Decoder& d, ModuleMetadata* moduleMeta,
   }
 }
 
-bool InitExpr::decodeAndValidate(Decoder& d, ModuleMetadata* moduleMeta,
+bool InitExpr::decodeAndValidate(Decoder& d, CodeMetadata* codeMeta,
                                  ValType expected, InitExpr* expr) {
   Maybe<LitVal> literal = Nothing();
   const uint8_t* exprStart = d.currentPosition();
-  if (!DecodeConstantExpression(d, moduleMeta, expected, &literal)) {
+  if (!DecodeConstantExpression(d, codeMeta, expected, &literal)) {
     return false;
   }
   const uint8_t* exprEnd = d.currentPosition();

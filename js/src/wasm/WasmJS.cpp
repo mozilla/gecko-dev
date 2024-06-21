@@ -4122,29 +4122,31 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
     return nullptr;
   }
 
-  ModuleMetadata moduleMeta(compileArgs->features);
+  CodeMetadata codeMeta(compileArgs->features);
+  ModuleMetadata moduleMeta;  // FIXME is this needed?
   CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters();
 
-  if (!moduleMeta.init()) {
+  if (!codeMeta.init()) {
     return nullptr;
   }
 
   FuncType funcType = FuncType(std::move(params), std::move(results));
-  if (!moduleMeta.types->addType(std::move(funcType))) {
+  if (!codeMeta.types->addType(std::move(funcType))) {
     return nullptr;
   }
 
   // Add an (import (func ...))
-  FuncDesc funcDesc = FuncDesc(&(*moduleMeta.types)[0].funcType(), 0);
-  if (!moduleMeta.funcs.append(funcDesc)) {
+  FuncDesc funcDesc = FuncDesc(&(*codeMeta.types)[0].funcType(), 0);
+  if (!codeMeta.funcs.append(funcDesc)) {
     return nullptr;
   }
-  moduleMeta.numFuncImports = 1;
+  codeMeta.numFuncImports = 1;
 
   // Add an (export (func 0))
-  moduleMeta.declareFuncExported(0, /* eager */ true, /* canRefFunc */ true);
+  codeMeta.declareFuncExported(0, /* eager */ true,
+                               /* canRefFunc */ true);
 
   // We will be looking up and using the function in the future by index so the
   // name doesn't matter.
@@ -4154,8 +4156,8 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
     return nullptr;
   }
 
-  ModuleGenerator mg(*compileArgs, &moduleMeta, &compilerEnv, nullptr, nullptr,
-                     nullptr);
+  ModuleGenerator mg(*compileArgs, &codeMeta, &moduleMeta, &compilerEnv,
+                     nullptr, nullptr, nullptr);
   if (!mg.init(nullptr)) {
     return nullptr;
   }
