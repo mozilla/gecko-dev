@@ -3449,11 +3449,10 @@ class IDLTypedefType(IDLType):
 class IDLTypedef(IDLObjectWithIdentifier):
     __slots__ = ("innerType",)
 
-    def __init__(self, location, parentScope, innerType, name):
+    def __init__(self, location, parentScope, innerType, identifier):
         # Set self.innerType first, because IDLObjectWithIdentifier.__init__
         # will call our __str__, which wants to use it.
         self.innerType = innerType
-        identifier = IDLUnresolvedIdentifier(location, name)
         IDLObjectWithIdentifier.__init__(self, location, parentScope, identifier)
 
     def __str__(self):
@@ -7997,7 +7996,13 @@ class Parser(Tokenizer):
         """
         Typedef : TYPEDEF TypeWithExtendedAttributes IDENTIFIER SEMICOLON
         """
-        typedef = IDLTypedef(self.getLocation(p, 1), self.globalScope(), p[2], p[3])
+        identifier = IDLUnresolvedIdentifier(self.getLocation(p, 3), p[3])
+        typedef = IDLTypedef(
+            self.getLocation(p, 1),
+            self.globalScope(),
+            p[2],
+            identifier,
+        )
         p[0] = typedef
 
     def p_IncludesStatement(self, p):
@@ -9186,8 +9191,15 @@ class Parser(Tokenizer):
             IDLBuiltinType.Types.ArrayBuffer, IDLBuiltinType.Types.Float64Array + 1
         ):
             builtin = BuiltinTypes[x]
-            name = builtin.name
-            IDLTypedef(BuiltinLocation("<builtin type>"), scope, builtin, name)
+            identifier = IDLUnresolvedIdentifier(
+                BuiltinLocation("<builtin type>"), builtin.name
+            )
+            IDLTypedef(
+                BuiltinLocation("<builtin type>"),
+                scope,
+                builtin,
+                identifier,
+            )
 
     @staticmethod
     def handleNullable(type, questionMarkLocation):

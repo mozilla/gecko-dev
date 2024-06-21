@@ -95,3 +95,24 @@ def WebIDLTest(parser, harness):
         "Long",
         "Should expand typedefs that come before interface",
     )
+
+    lines = ["typedef byte MyByte;", "typedef unsigned long MyLong;"]
+    parser = parser.reset()
+    parser.parse("\n".join(lines))
+    results = parser.finish()
+
+    for index, line in enumerate(lines):
+        p = results[index]
+
+        name = p.identifier.name
+        colno = line.find(name)
+
+        loc_lines = str(p.identifier.location).split("\n")
+
+        harness.check(name[:2], "My", "Correct type name")
+        harness.check(loc_lines[1], line, "Second line shows the input")
+        harness.check(
+            loc_lines[2],
+            " " * colno + "^",
+            "Correct column pointer in location string",
+        )
