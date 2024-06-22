@@ -81,6 +81,7 @@ add_task(async function test_open_tab() {
  * Check sidebar behavior of chat menu items with sidebar pref
  */
 add_task(async function test_open_sidebar() {
+  Services.fog.testResetFOG();
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.ml.chat.provider", "http://localhost:8080"],
@@ -97,4 +98,10 @@ add_task(async function test_open_sidebar() {
     Assert.ok(SidebarController.isOpen, "Chat opened sidebar");
     SidebarController.hide();
   });
+
+  const events = Glean.genaiChatbot.contextmenuPromptClick.testGetValue();
+  Assert.equal(events.length, 1, "One context menu click");
+  Assert.equal(events[0].extra.prompt, "summarize", "Picked summarize");
+  Assert.equal(events[0].extra.provider, "localhost", "With localhost");
+  Assert.equal(events[0].extra.selection, "0", "No selection");
 });

@@ -58,6 +58,7 @@ export const GenAI = {
         get hidden() {
           return lazy.chatHideLocalhost;
         },
+        id: "localhost",
         name: "localhost",
       },
     ],
@@ -67,11 +68,26 @@ export const GenAI = {
    * Handle startup tasks like telemetry, adding listeners.
    */
   init() {
+    Glean.genaiChatbot.enabled.set(lazy.chatEnabled);
+    Glean.genaiChatbot.provider.set(this.getProviderId());
+    Glean.genaiChatbot.sidebar.set(lazy.chatSidebar);
+
     // Access this getter for its side effect of observing provider pref change
     lazy.chatProvider;
 
     // Detect about:preferences to add controls
     Services.obs.addObserver(this, "experimental-pane-loaded");
+  },
+
+  /**
+   * Convert provider to id.
+   *
+   * @param {string} provider url defaulting to current pref
+   * @returns {string} id or custom or none
+   */
+  getProviderId(provider = lazy.chatProvider) {
+    const { id } = this.chatProviders.get(provider) ?? {};
+    return id ?? (provider ? "custom" : "none");
   },
 
   /**
@@ -86,7 +102,7 @@ export const GenAI = {
       return;
     }
     menu.label = `Ask ${
-      this.chatProviders.get(lazy.chatProvider)?.name ?? "chatbot"
+      this.chatProviders.get(lazy.chatProvider)?.name ?? "Your Chatbot"
     }`;
     menu.menupopup?.remove();
 
@@ -170,6 +186,12 @@ export const GenAI = {
    * @param {object} context of how the prompt should be handled
    */
   async handleAskChat(promptObj, context) {
+    Glean.genaiChatbot.contextmenuPromptClick.record({
+      prompt: promptObj.id ?? "custom",
+      provider: this.getProviderId(),
+      selection: context.selection?.length ?? 0,
+    });
+
     const prompt = this.buildChatPrompt(promptObj, context);
 
     // Pass the prompt via GET url ?q= param or request header
@@ -215,7 +237,18 @@ export const GenAI = {
     }
 
     const enabled = Preferences.get("browser.ml.chat.enabled");
-    const onEnabledChange = () => (providerEl.disabled = !enabled.value);
+    const onEnabledChange = () => {
+      providerEl.disabled = !enabled.value;
+
+      // Update enabled telemetry
+      Glean.genaiChatbot.enabled.set(enabled.value);
+      if (onEnabledChange.canChange) {
+        Glean.genaiChatbot.experimentCheckboxClick.record({
+          enabled: enabled.value,
+        });
+      }
+      onEnabledChange.canChange = true;
+    };
     onEnabledChange();
     enabled.on("change", onEnabledChange);
 
@@ -263,6 +296,18 @@ export const GenAI = {
         links,
         providerData?.linksId ?? "genai-settings-chat-links"
       );
+
+      // Update provider telemetry
+      const providerId = this.getProviderId(provider.value);
+      Glean.genaiChatbot.provider.set(providerId);
+      if (onProviderChange.lastId && document.hasFocus()) {
+        Glean.genaiChatbot.providerChange.record({
+          current: providerId,
+          previous: onProviderChange.lastId,
+          surface: "settings",
+        });
+      }
+      onProviderChange.lastId = providerId;
     };
     onProviderChange();
     provider.on("change", onProviderChange);

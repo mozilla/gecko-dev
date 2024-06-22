@@ -1,0 +1,161 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - "Core :: Machine Learning"
+
+genai.chatbot:
+  enabled:
+    type: boolean
+    lifetime: application
+    description: >
+      Indicates if the chatbot feature is enabled.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1895813
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D214470
+    data_sensitivity:
+      - interaction
+    expires: 134
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - metrics
+
+  provider:
+    type: string
+    lifetime: application
+    description: >
+      Indicates id of activated chatbot provider or "custom" or "none"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1895813
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D214470
+    data_sensitivity:
+      - interaction
+    expires: 134
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - metrics
+
+  sidebar:
+    type: boolean
+    lifetime: application
+    description: >
+      Indicates if the chatbot feature would open in sidebar.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1895813
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D214470
+    data_sensitivity:
+      - interaction
+    expires: 134
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - metrics
+
+  experiment_checkbox_click:
+    type: event
+    description: >
+      Chatbot experiment checkbox was clicked to enable/disable.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1895813
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D214470
+    data_sensitivity:
+      - interaction
+    expires: 134
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      enabled:
+        type: boolean
+        description: New/current state is enabled.
+
+  provider_change:
+    type: event
+    description: >
+      Chatbot provider UI changed providers.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1895813
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D214470
+    data_sensitivity:
+      - interaction
+    expires: 134
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      current:
+        type: string
+        description: Current provider id.
+      previous:
+        type: string
+        description: Previous provider id.
+      surface:
+        type: string
+        description: Which UI surface.
+
+  contextmenu_prompt_click:
+    type: event
+    description: >
+      Chatbot prompt was clicked from the context menu.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1895813
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D214470
+    data_sensitivity:
+      - interaction
+    expires: 134
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      prompt:
+        type: string
+        description: Selected prompt id.
+      provider:
+        type: string
+        description: Selected provider id.
+      selection:
+        type: quantity
+        description: Selected text length.
+
+  sidebar_toggle:
+    type: event
+    description: >
+      Chatbot sidebar panel was toggled open/close.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1895813
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D214470
+    data_sensitivity:
+      - interaction
+    expires: 134
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      opened:
+        type: boolean
+        description: New/current state of sidebar is open.
+      provider:
+        type: string
+        description: Selected provider id.
+      reason:
+        type: string
+        description: Why panel is toggling.
