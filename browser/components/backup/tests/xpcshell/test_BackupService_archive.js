@@ -396,3 +396,38 @@ add_task(async function test_createArchive_early_binary_stream_close() {
 
   await IOUtils.remove(FAKE_ARCHIVE_PATH);
 });
+
+/**
+ * Tests that if the nsIZipReader fails the CRC check, that the ZIP recovery
+ * file is destroyed and an exception is thrown.
+ */
+add_task(async function test_createArchive_corrupt_zip() {
+  let bs = new BackupService();
+  let corruptZipFile = do_get_file("data/corrupt.zip");
+  let fakeRecoveryFilePath = await IOUtils.createUniqueDirectory(
+    PathUtils.tempDir,
+    "testCreateArchiveCorruptZipSource"
+  );
+  const CORRUPT_ZIP_SOURCE = PathUtils.join(
+    fakeRecoveryFilePath,
+    "corrupt.zip"
+  );
+  await IOUtils.copy(corruptZipFile.path, CORRUPT_ZIP_SOURCE);
+
+  let fakeRecoveryPath = await IOUtils.createUniqueDirectory(
+    PathUtils.tempDir,
+    "testCreateArchiveCorruptZipDest"
+  );
+
+  await Assert.rejects(
+    bs.decompressRecoveryFile(CORRUPT_ZIP_SOURCE, fakeRecoveryPath),
+    /Corrupt/
+  );
+
+  let children = await IOUtils.getChildren(fakeRecoveryPath);
+  Assert.equal(children.length, 0, "Nothing was decompressed.");
+  Assert.ok(
+    !(await IOUtils.exists(CORRUPT_ZIP_SOURCE)),
+    "Corrupt zip was deleted."
+  );
+});

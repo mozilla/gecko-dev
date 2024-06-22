@@ -1077,13 +1077,27 @@ export class BackupService extends EventTarget {
    *   decompressed within.
    * @returns {Promise<undefined>}
    */
-  async #decompressRecoveryFile(recoveryFilePath, recoveryFolderDestPath) {
+  async decompressRecoveryFile(recoveryFilePath, recoveryFolderDestPath) {
     let recoveryFile = await IOUtils.getFile(recoveryFilePath);
     let recoveryArchive = new lazy.ZipReader(recoveryFile);
     lazy.logConsole.log(
       "Decompressing recovery folder to ",
       recoveryFolderDestPath
     );
+    try {
+      // null is passed to test if we're meant to CRC test the entire
+      // ZIP file. If an exception is thrown, this means we failed the CRC
+      // check. See the nsIZipReader.idl documentation for details.
+      recoveryArchive.test(null);
+    } catch (e) {
+      recoveryArchive.close();
+      lazy.logConsole.error("Compressed recovery file was corrupt.");
+      await IOUtils.remove(recoveryFilePath, {
+        retryReadonly: true,
+      });
+      throw new Error("Corrupt archive.");
+    }
+
     await this.#decompressChildren(recoveryFolderDestPath, "", recoveryArchive);
     recoveryArchive.close();
   }
@@ -1746,7 +1760,7 @@ export class BackupService extends EventTarget {
       BackupService.PROFILE_FOLDER_NAME,
       "recovery"
     );
-    await this.#decompressRecoveryFile(
+    await this.decompressRecoveryFile(
       RECOVERY_FILE_DEST_PATH,
       RECOVERY_FOLDER_DEST_PATH
     );
