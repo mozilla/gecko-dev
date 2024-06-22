@@ -127,7 +127,7 @@ let DebugUI = {
 
         let service = BackupService.get();
         try {
-          let newProfile = await service.recoverFromBackup(
+          let newProfile = await service.recoverFromSnapshotFolder(
             path,
             true /* shouldLaunch */
           );

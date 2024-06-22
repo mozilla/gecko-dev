@@ -1619,7 +1619,7 @@ export class BackupService extends EventTarget {
    * @throws {Exception}
    *   In the event that recovery somehow failed.
    */
-  async recoverFromBackup(
+  async recoverFromSnapshotFolder(
     recoveryPath,
     shouldLaunch = false,
     profileRootPath = null

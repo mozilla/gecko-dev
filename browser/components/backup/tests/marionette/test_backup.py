@@ -164,9 +164,9 @@ class BackupTest(MarionetteTestCase):
           (async () => {
             let newProfileRootPath = await IOUtils.createUniqueDirectory(
               PathUtils.tempDir,
-              "recoverFromBackupTest-newProfileRoot"
+              "recoverFromSnapshotFolderTest-newProfileRoot"
             );
-            let newProfile = await bs.recoverFromBackup(stagingPath, false, newProfileRootPath)
+            let newProfile = await bs.recoverFromSnapshotFolder(stagingPath, false, newProfileRootPath)
             if (!newProfile) {
               throw new Error("Could not create recovery profile.");
             }
