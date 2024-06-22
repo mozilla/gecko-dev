@@ -46,6 +46,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
 ChromeUtils.defineLazyGetter(lazy, "ZipWriter", () =>
   Components.Constructor("@mozilla.org/zipwriter;1", "nsIZipWriter", "open")
 );
+ChromeUtils.defineLazyGetter(lazy, "ZipReader", () =>
+  Components.Constructor(
+    "@mozilla.org/libjar/zip-reader;1",
+    "nsIZipReader",
+    "open"
+  )
+);
 ChromeUtils.defineLazyGetter(lazy, "BinaryInputStream", () =>
   Components.Constructor(
     "@mozilla.org/binaryinputstream;1",
@@ -655,6 +662,16 @@ export class BackupService extends EventTarget {
   }
 
   /**
+   * Returns the filename used for the intermediary compressed ZIP file that
+   * is extracted from archives during recovery.
+   *
+   * @type {string}
+   */
+  static get RECOVERY_ZIP_FILE_NAME() {
+    return "recovery.zip";
+  }
+
+  /**
    * Returns the schema for the schemaType for a given version.
    *
    * @param {number} schemaType
@@ -778,6 +795,10 @@ export class BackupService extends EventTarget {
    * @typedef {object} CreateBackupResult
    * @property {string} stagingPath
    *   The staging path for where the backup was created.
+   * @property {string} compressedStagingPath
+   *   The path to the file containing the compressed staging path.
+   * @property {string} archivePath
+   *   The path to the single file archive that was created.
    */
 
   /**
@@ -1042,6 +1063,82 @@ export class BackupService extends EventTarget {
           childFile,
           true
         );
+      }
+    }
+  }
+
+  /**
+   * Decompressed a compressed recovery file into recoveryFolderDestPath.
+   *
+   * @param {string} recoveryFilePath
+   *   The path to the compressed recovery file to decompress.
+   * @param {string} recoveryFolderDestPath
+   *   The path to the folder that the compressed recovery file should be
+   *   decompressed within.
+   * @returns {Promise<undefined>}
+   */
+  async #decompressRecoveryFile(recoveryFilePath, recoveryFolderDestPath) {
+    let recoveryFile = await IOUtils.getFile(recoveryFilePath);
+    let recoveryArchive = new lazy.ZipReader(recoveryFile);
+    lazy.logConsole.log(
+      "Decompressing recovery folder to ",
+      recoveryFolderDestPath
+    );
+    await this.#decompressChildren(recoveryFolderDestPath, "", recoveryArchive);
+    recoveryArchive.close();
+  }
+
+  /**
+   * A helper method that recursively decompresses any children within a folder
+   * within a compressed archive.
+   *
+   * @param {string} rootPath
+   *   The path to the root folder that is being decompressed into.
+   * @param {string} parentEntryName
+   *   The name of the parent folder within the compressed archive that is
+   *   having its children decompressed.
+   * @param {nsIZipReader} reader
+   *   The nsIZipReader for the compressed archive.
+   * @returns {Promise<undefined>}
+   */
+  async #decompressChildren(rootPath, parentEntryName, reader) {
+    // nsIZipReader.findEntries has an interesting querying language that is
+    // documented in the nsIZipReader IDL file, in case you're curious about
+    // what these symbols mean.
+    let childEntryNames = reader.findEntries(
+      parentEntryName + "?*~" + parentEntryName + "?*/?*"
+    );
+
+    for (let childEntryName of childEntryNames) {
+      let childEntry = reader.getEntry(childEntryName);
+      if (childEntry.isDirectory) {
+        await this.#decompressChildren(rootPath, childEntryName, reader);
+      } else {
+        let inputStream = reader.getInputStream(childEntryName);
+        // ZIP files all use `/` as their path separators, regardless of
+        // platform.
+        let fileNameParts = childEntryName.split("/");
+        let outputFilePath = PathUtils.join(rootPath, ...fileNameParts);
+        let outputFile = await IOUtils.getFile(outputFilePath);
+        let outputStream = Cc[
+          "@mozilla.org/network/file-output-stream;1"
+        ].createInstance(Ci.nsIFileOutputStream);
+
+        outputStream.init(
+          outputFile,
+          -1,
+          -1,
+          Ci.nsIFileOutputStream.DEFER_OPEN
+        );
+
+        await new Promise(resolve => {
+          lazy.logConsole.debug("Writing ", outputFilePath);
+          lazy.NetUtil.asyncCopy(inputStream, outputStream, () => {
+            lazy.logConsole.debug("Done writing ", outputFilePath);
+            outputStream.close();
+            resolve();
+          });
+        });
       }
     }
   }
@@ -1585,6 +1682,88 @@ export class BackupService extends EventTarget {
       meta,
       resources: {},
     };
+  }
+
+  /**
+   * Given a backup archive at archivePath, this method does the
+   * following:
+   *
+   * 1. Potentially decrypts, and then extracts the compressed backup snapshot
+   *    from the archive to a file named BackupService.RECOVERY_ZIP_FILE_NAME in
+   *    the PROFILE_FOLDER_NAME folder.
+   * 2. Decompresses that file into a subdirectory of PROFILE_FOLDER_NAME named
+   *    "recovery".
+   * 3. Deletes the BackupService.RECOVERY_ZIP_FILE_NAME file.
+   * 4. Calls into recoverFromSnapshotFolder on the decompressed "recovery"
+   *    folder.
+   * 5. Optionally launches the newly created profile.
+   * 6. Returns the name of the newly created profile directory.
+   *
+   * @see BackupService.recoverFromSnapshotFolder
+   * @param {string} archivePath
+   *   The path to the single-file backup archive on the file system.
+   * @param {string|null} recoveryCode
+   *   The recovery code to use to attempt to decrypt the archive if it was
+   *   encrypted.
+   * @param {boolean} [shouldLaunch=false]
+   *   An optional argument that specifies whether an instance of the app
+   *   should be launched with the newly recovered profile after recovery is
+   *   complete.
+   * @param {boolean} [profilePath=PathUtils.profileDir]
+   *   The profile path where the recovery files will be written to within the
+   *   PROFILE_FOLDER_NAME. This is only used for testing.
+   * @param {string} [profileRootPath=null]
+   *   An optional argument that specifies the root directory where the new
+   *   profile directory should be created. If not provided, the default
+   *   profile root directory will be used. This is primarily meant for
+   *   testing.
+   * @returns {Promise<nsIToolkitProfile>}
+   *   The nsIToolkitProfile that was created for the recovered profile.
+   * @throws {Exception}
+   *   In the event that unpacking the archive, decompressing the snapshot, or
+   *   recovery from the snapshot somehow failed.
+   */
+  async recoverFromBackupArchive(
+    archivePath,
+    recoveryCode = null,
+    shouldLaunch = false,
+    profilePath = PathUtils.profileDir,
+    profileRootPath = null
+  ) {
+    const RECOVERY_FILE_DEST_PATH = PathUtils.join(
+      profilePath,
+      BackupService.PROFILE_FOLDER_NAME,
+      BackupService.RECOVERY_ZIP_FILE_NAME
+    );
+    await this.extractCompressedSnapshotFromArchive(
+      archivePath,
+      RECOVERY_FILE_DEST_PATH,
+      recoveryCode
+    );
+
+    const RECOVERY_FOLDER_DEST_PATH = PathUtils.join(
+      profilePath,
+      BackupService.PROFILE_FOLDER_NAME,
+      "recovery"
+    );
+    await this.#decompressRecoveryFile(
+      RECOVERY_FILE_DEST_PATH,
+      RECOVERY_FOLDER_DEST_PATH
+    );
+
+    // Now that we've decompressed it, reclaim some disk space by getting rid of
+    // the ZIP file.
+    try {
+      await IOUtils.remove(RECOVERY_FILE_DEST_PATH);
+    } catch (_) {
+      lazy.logConsole.warn("Could not remove ", RECOVERY_FILE_DEST_PATH);
+    }
+
+    return this.recoverFromSnapshotFolder(
+      RECOVERY_FOLDER_DEST_PATH,
+      shouldLaunch,
+      profileRootPath
+    );
   }
 
   /**
