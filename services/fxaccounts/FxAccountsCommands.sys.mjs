@@ -60,10 +60,17 @@ export class FxAccountsCommands {
         commands[COMMAND_SENDTAB] = encryptedSendTabKeys;
       }
 
-      const encryptedCloseTabKeys =
-        await this.closeTab.getEncryptedCloseTabKeys();
-      if (encryptedCloseTabKeys) {
-        commands[COMMAND_CLOSETAB] = encryptedCloseTabKeys;
+      // Close Tab is still a worked-on feature, so we should not broadcast it widely yet
+      let closeTabEnabled = Services.prefs.getBoolPref(
+        "identity.fxaccounts.commands.remoteTabManagement.enabled",
+        false
+      );
+      if (closeTabEnabled) {
+        const encryptedCloseTabKeys =
+          await this.closeTab.getEncryptedCloseTabKeys();
+        if (encryptedCloseTabKeys) {
+          commands[COMMAND_CLOSETAB] = encryptedCloseTabKeys;
+        }
       }
     }
 
