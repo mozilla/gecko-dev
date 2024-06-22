@@ -11,6 +11,7 @@
 #include "mozilla/WeakPtr.h"
 #include "mozilla/OriginAttributes.h"
 #include "nsIPrincipal.h"
+#include "nsIWeakReferenceUtils.h"
 #include "nsStringFwd.h"
 #include "nsIWebProgressListener.h"
 #include "nsWeakReference.h"

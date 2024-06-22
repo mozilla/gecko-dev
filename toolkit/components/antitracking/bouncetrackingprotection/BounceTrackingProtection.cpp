@@ -9,7 +9,6 @@
 #include "BounceTrackingState.h"
 #include "BounceTrackingRecord.h"
 #include "BounceTrackingMapEntry.h"
-#include "ClearDataCallback.h"
 
 #include "BounceTrackingStateGlobal.h"
 #include "ErrorList.h"

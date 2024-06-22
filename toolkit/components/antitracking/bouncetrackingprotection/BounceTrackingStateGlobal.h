@@ -103,13 +103,13 @@ class BounceTrackingStateGlobal final {
   // Map of site hosts to moments. The moments represent the most recent wall
   // clock time at which the user activated a top-level document on the
   // associated site host.
-  nsTHashMap<nsCStringHashKey, PRTime> mUserActivation;
+  nsTHashMap<nsCStringHashKey, PRTime> mUserActivation{};
 
   // Map of site hosts to moments. The moments represent the first wall clock
   // time since the last execution of the bounce tracking timer at which a page
   // on the given site host performed an action that could indicate stateful
   // bounce tracking took place.
-  nsTHashMap<nsCStringHashKey, PRTime> mBounceTrackers;
+  nsTHashMap<nsCStringHashKey, PRTime> mBounceTrackers{};
 
   // Helper to create a string representation of a siteHost -> timestamp map.
   static nsCString DescribeMap(

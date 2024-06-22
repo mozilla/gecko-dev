@@ -15,6 +15,7 @@
 #include "mozStorageCID.h"
 #include "mozilla/Components.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Services.h"
 #include "nsCOMPtr.h"
 #include "nsDirectoryServiceUtils.h"
