@@ -598,6 +598,16 @@ export class BackupService extends EventTarget {
   }
 
   /**
+   * The name of the folder within the PROFILE_FOLDER_NAME where the staging
+   * folder / prior backups will be stored.
+   *
+   * @type {string}
+   */
+  static get SNAPSHOTS_FOLDER_NAME() {
+    return "snapshots";
+  }
+
+  /**
    * The name of the backup manifest file.
    *
    * @type {string}
@@ -830,13 +840,17 @@ export class BackupService extends EventTarget {
       // profile.
       let backupDirPath = PathUtils.join(
         profilePath,
-        BackupService.PROFILE_FOLDER_NAME
+        BackupService.PROFILE_FOLDER_NAME,
+        BackupService.SNAPSHOTS_FOLDER_NAME
       );
       lazy.logConsole.debug("Creating backups folder");
 
       // ignoreExisting: true is the default, but we're being explicit that it's
       // okay if this folder already exists.
-      await IOUtils.makeDirectory(backupDirPath, { ignoreExisting: true });
+      await IOUtils.makeDirectory(backupDirPath, {
+        ignoreExisting: true,
+        createAncestors: true,
+      });
 
       let stagingPath = await this.#prepareStagingFolder(backupDirPath);
 
