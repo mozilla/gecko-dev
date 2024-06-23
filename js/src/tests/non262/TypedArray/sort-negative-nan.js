@@ -4,6 +4,7 @@ const floatConstructors = anyTypedArrayConstructors.filter(isFloatConstructor);
 // Also test with cross-compartment wrapped typed arrays.
 if (typeof newGlobal === "function") {
     const otherGlobal = newGlobal();
+    floatConstructors.push(otherGlobal.Float16Array);
     floatConstructors.push(otherGlobal.Float32Array);
     floatConstructors.push(otherGlobal.Float64Array);
 }
@@ -18,40 +19,65 @@ function* prod(xs, ys) {
 
 const isLittleEndian = new Uint8Array(new Uint16Array([1]).buffer)[0] !== 0;
 
-function seti32(i32, i, v) {
-    i32[i] = v;
+function seti16(i16, i, v) {
+    i16[i] = v;
 }
 
-function seti64(i32, i, [hi, lo]) {
-    i32[i * 2 + isLittleEndian] = hi;
-    i32[i * 2 + !isLittleEndian] = lo;
+function seti32(i16, i, [hi, lo]) {
+    i16[i * 2 + isLittleEndian] = hi;
+    i16[i * 2 + !isLittleEndian] = lo;
+}
+
+function seti64(i16, i, [hi, hiMid, loMid, lo]) {
+    if (isLittleEndian) {
+        i16[i * 4] = lo;
+        i16[i * 4 + 1] = loMid;
+        i16[i * 4 + 2] = hiMid;
+        i16[i * 4 + 3] = hi;
+    } else {
+        i16[i * 4 + 3] = lo;
+        i16[i * 4 + 2] = loMid;
+        i16[i * 4 + 1] = hiMid;
+        i16[i * 4] = hi;
+    }
 }
 
 const setInt = {
+    Float16: seti16,
     Float32: seti32,
     Float64: seti64,
 };
 
 const NaNs = {
+    Float16: [
+        0x7C01|0, // smallest SNaN
+        0x7DFF|0, // largest SNaN
+        0x7E01|0, // smallest QNaN
+        0x7FFF|0, // largest QNaN
+        0xFC01|0, // smallest SNaN, sign-bit set
+        0xFDFF|0, // largest SNaN, sign-bit set
+        0xFE01|0, // smallest QNaN, sign-bit set
+        0xFFFF|0, // largest QNaN, sign-bit set
+    ],
     Float32: [
-        0x7F800001|0, // smallest SNaN
-        0x7FBFFFFF|0, // largest SNaN
-        0x7FC00000|0, // smallest QNaN
-        0x7FFFFFFF|0, // largest QNaN
-        0xFF800001|0, // smallest SNaN, sign-bit set
-        0xFFBFFFFF|0, // largest SNaN, sign-bit set
-        0xFFC00000|0, // smallest QNaN, sign-bit set
-        0xFFFFFFFF|0, // largest QNaN, sign-bit set
+        [0x7F80|0, 0x0001|0], // smallest SNaN
+        [0x7FBF|0, 0xFFFF|0], // largest SNaN
+        [0x7FC0|0, 0x0000|0], // smallest QNaN
+        [0x7FFF|0, 0xFFFF|0], // largest QNaN
+        [0xFF80|0, 0x0001|0], // smallest SNaN, sign-bit set
+        [0xFFBF|0, 0xFFFF|0], // largest SNaN, sign-bit set
+        [0xFFC0|0, 0x0000|0], // smallest QNaN, sign-bit set
+        [0xFFFF|0, 0xFFFF|0], // largest QNaN, sign-bit set
     ],
     Float64: [
-        [0x7FF00000|0, 0x00000001|0], // smallest SNaN
-        [0x7FF7FFFF|0, 0xFFFFFFFF|0], // largest SNaN
-        [0x7FF80000|0, 0x00000000|0], // smallest QNaN
-        [0x7FFFFFFF|0, 0xFFFFFFFF|0], // largest QNaN
-        [0xFFF00000|0, 0x00000001|0], // smallest SNaN, sign-bit set
-        [0xFFF7FFFF|0, 0xFFFFFFFF|0], // largest SNaN, sign-bit set
-        [0xFFF80000|0, 0x00000000|0], // smallest QNaN, sign-bit set
-        [0xFFFFFFFF|0, 0xFFFFFFFF|0], // largest QNaN, sign-bit set
+        [0x7FF0|0, 0x0000|0, 0x0000|0, 0x0001|0], // smallest SNaN
+        [0x7FF7|0, 0xFFFF|0, 0xFFFF|0, 0xFFFF|0], // largest SNaN
+        [0x7FF8|0, 0x0000|0, 0x0000|0, 0x0000|0], // smallest QNaN
+        [0x7FFF|0, 0xFFFF|0, 0xFFFF|0, 0xFFFF|0], // largest QNaN
+        [0xFFF0|0, 0x0000|0, 0x0000|0, 0x0001|0], // smallest SNaN, sign-bit set
+        [0xFFF7|0, 0xFFFF|0, 0xFFFF|0, 0xFFFF|0], // largest SNaN, sign-bit set
+        [0xFFF8|0, 0x0000|0, 0x0000|0, 0x0000|0], // smallest QNaN, sign-bit set
+        [0xFFFF|0, 0xFFFF|0, 0xFFFF|0, 0xFFFF|0], // largest QNaN, sign-bit set
     ],
 };
 
@@ -65,11 +91,11 @@ for (const [TA, taLength] of prod(floatConstructors, typedArrayLengths)) {
     let type = TA.name.slice(0, -"Array".length);
     let nansLength = NaNs[type].length;
     let fta = new TA(taLength);
-    let i32 = new Int32Array(fta.buffer);
+    let i16 = new Int16Array(fta.buffer);
 
     // Add NaNs in various representations at the start of the typed array.
     for (let i = 0; i < nansLength; ++i) {
-        setInt[type](i32, i, NaNs[type][i]);
+        setInt[type](i16, i, NaNs[type][i]);
     }
 
     // Also add two non-NaN values for testing.
