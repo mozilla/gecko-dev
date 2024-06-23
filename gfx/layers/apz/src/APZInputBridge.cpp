@@ -26,6 +26,38 @@
 namespace mozilla {
 namespace layers {
 
+APZHandledResult::APZHandledResult(APZHandledPlace aPlace,
+                                   const AsyncPanZoomController* aTarget,
+                                   bool aPopulateDirectionsForUnhandled)
+    : mPlace(aPlace) {
+  MOZ_ASSERT(aTarget);
+  switch (aPlace) {
+    case APZHandledPlace::Unhandled:
+      if (aTarget && aPopulateDirectionsForUnhandled) {
+        mScrollableDirections = aTarget->ScrollableDirections();
+        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
+      }
+      break;
+    case APZHandledPlace::HandledByContent:
+      if (aTarget) {
+        mScrollableDirections = aTarget->ScrollableDirections();
+        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
+      }
+      break;
+    case APZHandledPlace::HandledByRoot: {
+      MOZ_ASSERT(aTarget->IsRootContent());
+      if (aTarget) {
+        mScrollableDirections = aTarget->ScrollableDirections();
+        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
+      }
+      break;
+    }
+    default:
+      MOZ_ASSERT_UNREACHABLE("Invalid APZHandledPlace");
+      break;
+  }
+}
+
 APZEventResult::APZEventResult()
     : mStatus(nsEventStatus_eIgnore),
       mInputBlockId(InputBlockState::NO_BLOCK_ID) {}
@@ -354,38 +386,6 @@ APZEventResult APZInputBridge::ReceiveInputEvent(
   MOZ_ASSERT_UNREACHABLE("Invalid WidgetInputEvent type.");
   result.SetStatusAsConsumeNoDefault();
   return result;
-}
-
-APZHandledResult::APZHandledResult(APZHandledPlace aPlace,
-                                   const AsyncPanZoomController* aTarget,
-                                   bool aPopulateDirectionsForUnhandled)
-    : mPlace(aPlace) {
-  MOZ_ASSERT(aTarget);
-  switch (aPlace) {
-    case APZHandledPlace::Unhandled:
-      if (aTarget && aPopulateDirectionsForUnhandled) {
-        mScrollableDirections = aTarget->ScrollableDirections();
-        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
-      }
-      break;
-    case APZHandledPlace::HandledByContent:
-      if (aTarget) {
-        mScrollableDirections = aTarget->ScrollableDirections();
-        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
-      }
-      break;
-    case APZHandledPlace::HandledByRoot: {
-      MOZ_ASSERT(aTarget->IsRootContent());
-      if (aTarget) {
-        mScrollableDirections = aTarget->ScrollableDirections();
-        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
-      }
-      break;
-    }
-    default:
-      MOZ_ASSERT_UNREACHABLE("Invalid APZHandledPlace");
-      break;
-  }
 }
 
 std::ostream& operator<<(std::ostream& aOut, const SideBits& aSideBits) {
