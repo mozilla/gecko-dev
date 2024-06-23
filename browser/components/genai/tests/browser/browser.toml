@@ -2,6 +2,7 @@
 prefs = [
   "browser.ml.chat.enabled=true",
   "browser.ml.chat.openSidebarOnProviderChange=false",
+  "browser.preferences.experimental=true",
 ]
 
 ["browser_chat_contextmenu.js"]
