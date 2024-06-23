@@ -7188,10 +7188,6 @@ void nsIFrame::SetPrevContinuation(nsIFrame*) {
   MOZ_ASSERT_UNREACHABLE("Not splittable!");
 }
 
-void nsIFrame::SetPrevContinuationWithoutUpdatingCache(nsIFrame*) {
-  MOZ_ASSERT_UNREACHABLE("Not splittable!");
-}
-
 nsIFrame* nsIFrame::GetNextContinuation() const { return nullptr; }
 
 void nsIFrame::SetNextContinuation(nsIFrame*) {
@@ -7201,10 +7197,6 @@ void nsIFrame::SetNextContinuation(nsIFrame*) {
 nsIFrame* nsIFrame::GetPrevInFlow() const { return nullptr; }
 
 void nsIFrame::SetPrevInFlow(nsIFrame*) {
-  MOZ_ASSERT_UNREACHABLE("Not splittable!");
-}
-
-void nsIFrame::SetPrevInFlowWithoutUpdatingCache(nsIFrame*) {
   MOZ_ASSERT_UNREACHABLE("Not splittable!");
 }
 
