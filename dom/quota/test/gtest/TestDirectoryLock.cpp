@@ -19,7 +19,7 @@ class DOM_Quota_DirectoryLock : public QuotaManagerDependencyFixture {
   static void TearDownTestCase() { ASSERT_NO_FATAL_FAILURE(ShutdownFixture()); }
 };
 
-// Test that Drop unregisters directory lock synchronously.
+// Test that Drop unregisters directory lock asynchronously.
 TEST_F(DOM_Quota_DirectoryLock, Drop_Timing) {
   PerformOnBackgroundThread([]() {
     QuotaManager* quotaManager = QuotaManager::Get();
@@ -41,7 +41,7 @@ TEST_F(DOM_Quota_DirectoryLock, Drop_Timing) {
 
     SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
 
-    exclusiveDirectoryLock->Drop();
+    auto exclusiveDirectoryLockDropPromise = exclusiveDirectoryLock->Drop();
     exclusiveDirectoryLock = nullptr;
 
     RefPtr<UniversalDirectoryLock> sharedDirectoryLock =
@@ -49,6 +49,18 @@ TEST_F(DOM_Quota_DirectoryLock, Drop_Timing) {
             WrapNotNullUnchecked(quotaManager), Nullable<PersistenceType>(),
             OriginScope::FromNull(), Nullable<Client::Type>(),
             /* aExclusive */ false, DirectoryLockCategory::None);
+
+    ASSERT_TRUE(sharedDirectoryLock->MustWait());
+
+    done = false;
+
+    exclusiveDirectoryLockDropPromise->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
+          done = true;
+        });
+
+    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
 
     ASSERT_FALSE(sharedDirectoryLock->MustWait());
 
