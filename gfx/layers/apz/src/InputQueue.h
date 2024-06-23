@@ -175,7 +175,7 @@ class InputQueue {
   InputBlockState* GetBlockForId(uint64_t aInputBlockId);
 
   void AddInputBlockCallback(uint64_t aInputBlockId,
-                             InputBlockCallbackInfo&& aCallback);
+                             InputBlockCallback&& aCallback);
 
   void SetBrowserGestureResponse(uint64_t aInputBlockId,
                                  BrowserGestureResponse aResponse);
@@ -298,7 +298,7 @@ class InputQueue {
   // Maps input block ids to callbacks that will be invoked when the input block
   // is ready for handling.
   using InputBlockCallbackMap =
-      std::unordered_map<uint64_t, InputBlockCallbackInfo>;
+      std::unordered_map<uint64_t, InputBlockCallback>;
   InputBlockCallbackMap mInputBlockCallbacks;
 };
 

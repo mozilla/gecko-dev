@@ -2025,8 +2025,8 @@ APZEventResult APZCTreeManager::InputHandlingState::Finish(
   // If the event will have a delayed result then add the callback to the
   // APZCTreeManager.
   if (aCallback && mResult.WillHaveDelayedResult()) {
-    aTreeManager.AddInputBlockCallback(
-        mResult.mInputBlockId, {mResult.GetStatus(), std::move(aCallback)});
+    aTreeManager.AddInputBlockCallback(mResult.mInputBlockId,
+                                       std::move(aCallback));
   }
 
   return mResult;
@@ -3058,10 +3058,10 @@ void APZCTreeManager::SetLongTapEnabled(bool aLongTapEnabled) {
   GestureEventListener::SetLongTapEnabled(aLongTapEnabled);
 }
 
-void APZCTreeManager::AddInputBlockCallback(
-    uint64_t aInputBlockId, InputBlockCallbackInfo&& aCallbackInfo) {
+void APZCTreeManager::AddInputBlockCallback(uint64_t aInputBlockId,
+                                            InputBlockCallback&& aCallback) {
   APZThreadUtils::AssertOnControllerThread();
-  mInputQueue->AddInputBlockCallback(aInputBlockId, std::move(aCallbackInfo));
+  mInputQueue->AddInputBlockCallback(aInputBlockId, std::move(aCallback));
 }
 
 void APZCTreeManager::FindScrollThumbNode(
