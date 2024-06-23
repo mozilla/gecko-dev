@@ -623,7 +623,7 @@ static already_AddRefed<DataSourceSurface> ApplyColorMatrix_SIMD(
       Float clampedFloatMatrixElement = std::min(
           std::max(floatMatrixElement, -floatElementMax), floatElementMax);
       int16_t scaledIntMatrixElement =
-          int16_t(floorf(clampedFloatMatrixElement * factor + 0.5));
+          int16_t(clampedFloatMatrixElement * factor + 0.5);
       int8_t bg_or_ra = componentOffsets[rowIndex] / 2;
       int8_t g_or_a = componentOffsets[rowIndex] % 2;
       int8_t B_or_G_or_R_or_A = componentOffsets[colIndex];
@@ -633,19 +633,14 @@ static already_AddRefed<DataSourceSurface> ApplyColorMatrix_SIMD(
   }
 
   int32_t rowBias[4];
-  Float biasMax =
-      (INT32_MAX - 4 * 255 * INT16_MAX - (factor / 2)) / (factor * 255);
+  Float biasMax = (INT32_MAX - 4 * 255 * INT16_MAX) / (factor * 255);
   for (size_t colIndex = 0; colIndex < 4; colIndex++) {
     size_t rowIndex = 4;
     const Float& floatMatrixElement = floats[rowIndex * 4 + colIndex];
     Float clampedFloatMatrixElement =
         std::min(std::max(floatMatrixElement, -biasMax), biasMax);
-    // Add 0.5 before multiplying by factor so that the later bitshift dividing
-    // by factor is rounding to nearest
-    Float scaledFloatMatrixElement =
-        (clampedFloatMatrixElement * 255 + 0.5) * factor;
     int32_t scaledIntMatrixElement =
-        int32_t(floorf(scaledFloatMatrixElement + 0.5));
+        int32_t(clampedFloatMatrixElement * factor * 255 + 0.5);
     rowBias[componentOffsets[colIndex]] = scaledIntMatrixElement;
   }
 
