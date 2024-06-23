@@ -96,6 +96,7 @@ let ecmaGlobals = [
   { name: "Error", insecureContext: true },
   { name: "EvalError", insecureContext: true },
   { name: "FinalizationRegistry", insecureContext: true },
+  { name: "Float16Array", insecureContext: true },
   { name: "Float32Array", insecureContext: true },
   { name: "Float64Array", insecureContext: true },
   { name: "Function", insecureContext: true },

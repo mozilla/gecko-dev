@@ -63,6 +63,7 @@ let ecmaGlobals = [
   "Error",
   "EvalError",
   "FinalizationRegistry",
+  "Float16Array",
   "Float32Array",
   "Float64Array",
   "Function",
