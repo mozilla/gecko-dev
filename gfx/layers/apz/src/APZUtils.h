@@ -112,6 +112,8 @@ inline AsyncTransformMatrix CompleteAsyncTransform(
       aMatrix, PixelCastJustification::MultipleAsyncTransforms);
 }
 
+enum class DispatchToContent : bool { No, Yes };
+
 struct TargetConfirmationFlags final {
   explicit TargetConfirmationFlags(bool aTargetConfirmed)
       : mTargetConfirmed(aTargetConfirmed),
@@ -134,6 +136,10 @@ struct TargetConfirmationFlags final {
         mDispatchToContent(
             !(aHitTestInfo & gfx::CompositorHitTestDispatchToContent)
                  .isEmpty()) {}
+
+  DispatchToContent NeedDispatchToContent() const {
+    return mDispatchToContent ? DispatchToContent::Yes : DispatchToContent::No;
+  }
 
   bool mTargetConfirmed : 1;
   bool mRequiresTargetConfirmation : 1;
