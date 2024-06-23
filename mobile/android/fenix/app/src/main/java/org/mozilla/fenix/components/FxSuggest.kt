@@ -5,8 +5,10 @@
 package org.mozilla.fenix.components
 
 import android.content.Context
+import mozilla.appservices.remotesettings.RemoteSettingsServer
 import mozilla.components.feature.fxsuggest.FxSuggestIngestionScheduler
 import mozilla.components.feature.fxsuggest.FxSuggestStorage
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.perf.lazyMonitored
 
 /**
@@ -16,7 +18,14 @@ import org.mozilla.fenix.perf.lazyMonitored
  */
 class FxSuggest(context: Context) {
     val storage by lazyMonitored {
-        FxSuggestStorage(context)
+        FxSuggestStorage(
+            context,
+            remoteSettingsServer = if (context.settings().useProductionRemoteSettingsServer) {
+                RemoteSettingsServer.Prod
+            } else {
+                RemoteSettingsServer.Stage
+            },
+        )
     }
 
     val ingestionScheduler by lazyMonitored {

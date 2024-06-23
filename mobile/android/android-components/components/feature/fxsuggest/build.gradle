@@ -46,7 +46,7 @@ tasks.withType(KotlinCompile).configureEach {
 }
 
 dependencies {
-    api ComponentsDependencies.mozilla_appservices_suggest
+    api ComponentsDependencies.mozilla_remote_settings
 
     implementation project(':browser-state')
     implementation project(':concept-awesomebar')
@@ -58,6 +58,7 @@ dependencies {
 
     implementation ComponentsDependencies.androidx_work_runtime
     implementation ComponentsDependencies.kotlin_coroutines
+    implementation ComponentsDependencies.mozilla_appservices_suggest
 
     testImplementation project(':support-test')
 

@@ -10,29 +10,30 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.withContext
+import mozilla.appservices.remotesettings.RemoteSettingsServer
 import mozilla.appservices.suggest.SuggestApiException
 import mozilla.appservices.suggest.SuggestIngestionConstraints
 import mozilla.appservices.suggest.SuggestStore
 import mozilla.appservices.suggest.SuggestStoreBuilder
 import mozilla.appservices.suggest.Suggestion
 import mozilla.appservices.suggest.SuggestionQuery
-import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.support.base.log.logger.Logger
 
 /**
  * A coroutine-aware wrapper around the synchronous [SuggestStore] interface.
  *
  * @param context The Android application context.
- * @param crashReporter An optional [CrashReporting] instance for reporting unexpected caught
- * exceptions.
+ * @param remoteSettingsServer The [RemoteSettingsServer] from which to ingest
+ * suggestions.
  */
-class FxSuggestStorage(context: Context) {
+class FxSuggestStorage(context: Context, remoteSettingsServer: RemoteSettingsServer = RemoteSettingsServer.Prod) {
     // Lazily initializes the store on first use. `cacheDir` and using the `File` constructor
     // does I/O, so `store.value` should only be accessed from the read or write scope.
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val store: Lazy<SuggestStore> = lazy {
         SuggestStoreBuilder()
             .dataPath(context.getDatabasePath(DATABASE_NAME).absolutePath)
+            .remoteSettingsServer(remoteSettingsServer)
             .build()
     }
 
