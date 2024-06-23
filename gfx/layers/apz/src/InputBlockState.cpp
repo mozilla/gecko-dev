@@ -844,7 +844,7 @@ bool TouchBlockState::UpdateSlopState(const MultiTouchInput& aInput,
 bool TouchBlockState::IsInSlop() const { return mInSlop; }
 
 Maybe<ScrollDirection> TouchBlockState::GetBestGuessPanDirection(
-    const MultiTouchInput& aInput) {
+    const MultiTouchInput& aInput) const {
   if (aInput.mType != MultiTouchInput::MULTITOUCH_MOVE ||
       aInput.mTouches.Length() != 1) {
     return Nothing();
