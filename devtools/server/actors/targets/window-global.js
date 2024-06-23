@@ -336,9 +336,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
 
     // Start observing navigations as well as sub documents.
     // (This is probably meant to disappear once EFT is the only supported codepath)
-    if (!this.followWindowGlobalLifeCycle) {
-      this._progressListener = new DebuggerProgressListener(this);
-    }
+    this._progressListener = new DebuggerProgressListener(this);
 
     TargetActorRegistry.registerTargetActor(this);
 
@@ -366,23 +364,6 @@ class WindowGlobalTargetActor extends BaseTargetActor {
 
     // Save references to the original document we attached to
     this._originalWindow = this.window;
-
-    // For WebExtensions, we want the target to represent the <browser> element
-    // created by DevTools, which always exists and help better connect resources to the target
-    // in the frontend. Otherwise all other <browser> elements of webext may be reloaded or go away
-    // and then we would have troubles matching targets for resources.
-    if (this.devtoolsSpawnedBrowsingContextForWebExtension) {
-      this._innerWindowId =
-        this.devtoolsSpawnedBrowsingContextForWebExtension.currentWindowContext.innerWindowId;
-    } else {
-      // Use a fixed innerWindowId for the whole target actor lifecycle,
-      // that, even if the iframe dropdown is used and `changeTopLevelDocument()` is called
-      // to focus on another particular document.
-      //
-      // This helps attach resources to the right target actor as it is the target front
-      // identifier in resources.
-      this._innerWindowId = this.window.windowGlobalChild.innerWindowId;
-    }
 
     // Update isPrivate as window is based on docShell
     this.isPrivate = PrivateBrowsingUtils.isContentWindowPrivate(this.window);
@@ -509,7 +490,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
   }
 
   get innerWindowId() {
-    return this._innerWindowId;
+    return this.window?.windowGlobalChild.innerWindowId;
   }
 
   get browserId() {
@@ -559,7 +540,11 @@ class WindowGlobalTargetActor extends BaseTargetActor {
    * being inspected in the toolbox.
    */
   get originalDocShell() {
-    return this._originalWindow?.docShell || this.docShell;
+    if (!this._originalWindow) {
+      return this.docShell;
+    }
+
+    return this._originalWindow.docShell;
   }
 
   /**
@@ -667,6 +652,8 @@ class WindowGlobalTargetActor extends BaseTargetActor {
       ? this.devtoolsSpawnedBrowsingContextForWebExtension
       : this.originalDocShell.browsingContext;
     const browsingContextID = originalBrowsingContext.id;
+    const innerWindowId =
+      originalBrowsingContext.currentWindowContext.innerWindowId;
     const parentInnerWindowId =
       originalBrowsingContext.parent?.currentWindowContext.innerWindowId;
     // Doesn't only check `!!opener` as some iframe might have an opener
@@ -683,7 +670,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
       processID: Services.appinfo.processID,
       // True for targets created by JSWindowActors, see constructor JSDoc.
       followWindowGlobalLifeCycle: this.followWindowGlobalLifeCycle,
-      innerWindowId: this.innerWindowId,
+      innerWindowId,
       parentInnerWindowId,
       topInnerWindowId: this.browsingContext.topWindowContext.innerWindowId,
       isTopLevelTarget: this.isTopLevelTarget,
@@ -875,13 +862,6 @@ class WindowGlobalTargetActor extends BaseTargetActor {
   }
 
   _watchDocshells() {
-    // When the target actor follows the window global lifecycle,
-    // it only tracks one Window Global and the target actor is managed
-    // by the WindowGlobal Target Watcher class.
-    if (this.followWindowGlobalLifeCycle) {
-      return;
-    }
-
     // If for some unexpected reason, the actor is immediately destroyed,
     // avoid registering leaking observer listener.
     if (this.isDestroyed()) {
@@ -901,10 +881,6 @@ class WindowGlobalTargetActor extends BaseTargetActor {
   }
 
   _unwatchDocshells() {
-    if (this.followWindowGlobalLifeCycle) {
-      return;
-    }
-
     if (this._progressListener) {
       this._progressListener.destroy();
       this._progressListener = null;
@@ -1444,12 +1420,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
    * state when closing the toolbox.
    */
   _restoreTargetConfiguration() {
-    // Ignore the restore request if the document isn't active or is being destroyed
-    if (
-      this._restoreFocus &&
-      this.browsingContext?.isActive &&
-      !this.browsingContext?.isDiscarded
-    ) {
+    if (this._restoreFocus && this.browsingContext?.isActive) {
       try {
         this.window.focus();
       } catch (e) {

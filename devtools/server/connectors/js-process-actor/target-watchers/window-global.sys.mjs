@@ -76,11 +76,7 @@ function watch() {
   Services.obs.addObserver(observe, "chrome-page-shown");
   Services.obs.addObserver(observe, "content-page-hidden");
   Services.obs.addObserver(observe, "chrome-page-hidden");
-  // Bug 1892411: use this late event in order to support breakpoint in iframe unload
-  //Services.obs.addObserver(observe, "inner-window-destroyed");
-  // Ideally, we would listen for inner-window-destroyed, but this is fired too late
-  // and the docShell interface throws and break most of cleanup codepath
-  Services.obs.addObserver(observe, "webnavigation-destroy");
+  Services.obs.addObserver(observe, "inner-window-destroyed");
   Services.obs.addObserver(observe, "initial-document-element-inserted");
 }
 
@@ -92,9 +88,7 @@ function unwatch() {
   Services.obs.removeObserver(observe, "chrome-page-shown");
   Services.obs.removeObserver(observe, "content-page-hidden");
   Services.obs.removeObserver(observe, "chrome-page-hidden");
-  // Bug 1892411: use this late event in order to support breakpoint in iframe unload
-  //Services.obs.removeObserver(observe, "inner-window-destroyed");
-  Services.obs.removeObserver(observe, "webnavigation-destroy");
+  Services.obs.removeObserver(observe, "inner-window-destroyed");
   Services.obs.removeObserver(observe, "initial-document-element-inserted");
 }
 
@@ -247,7 +241,6 @@ function onWindowGlobalCreated(
         // - in such case we weren't seeing the issue of Bug 1721398 (the old target can't access the new document)
         const existingTarget = findTargetActor({
           watcherDataObject,
-          browsingContextID: windowGlobal.browsingContext.id,
           innerWindowId: windowGlobal.innerWindowId,
         });
 
@@ -440,9 +433,6 @@ function observe(subject, topic) {
     topic == "chrome-document-global-created"
   ) {
     onWindowGlobalCreated(subject);
-  } else if (topic == "webnavigation-destroy") {
-    subject.QueryInterface(Ci.nsIDocShell);
-    onWindowGlobalDestroyed(subject.domWindow.windowGlobalChild.innerWindowId);
   } else if (topic == "inner-window-destroyed") {
     const innerWindowId = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
     onWindowGlobalDestroyed(innerWindowId);
@@ -546,26 +536,16 @@ function handleEvent({ type, persisted, target }) {
  *
  * @param {Object} options
  * @param {String} options.watcherDataObject
- * @param {String} options.browsingContextID
  * @param {Number} options.innerWindowId
  *                 The WindowGlobal inner window ID.
  *
  * @returns {WindowGlobalTargetActor|null}
  */
-function findTargetActor({
-  watcherDataObject,
-  browsingContextID,
-  innerWindowId,
-}) {
+function findTargetActor({ watcherDataObject, innerWindowId }) {
   // First let's check if a target was created for this watcher actor in this specific
   // DevToolsProcessChild instance.
   const targetActor = watcherDataObject.actors.find(
-    actor =>
-      // We lookup by BrowsingContext ID in order to match any target related to a given browser/iframe element
-      // which may have navigated to a new Window Global and we want to destroy the previous target actor
-      // before creating a new one
-      (browsingContextID && browsingContextID == actor.browsingContextID) ||
-      actor.innerWindowId == innerWindowId
+    actor => actor.innerWindowId == innerWindowId
   );
   if (targetActor) {
     return targetActor;
@@ -583,11 +563,7 @@ function findTargetActor({
     connectionPrefix
   );
 
-  return targetActors.find(
-    actor =>
-      (browsingContextID && browsingContextID == actor.browsingContextID) ||
-      actor.innerWindowId == innerWindowId
-  );
+  return targetActors.find(actor => actor.innerWindowId == innerWindowId);
 }
 
 export const WindowGlobalTargetWatcher = {
