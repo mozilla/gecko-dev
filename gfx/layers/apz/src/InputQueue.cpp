@@ -1018,56 +1018,28 @@ static APZHandledResult GetHandledResultFor(
     return APZHandledResult{APZHandledPlace::HandledByContent, aApzc};
   }
 
+  // For the remainder of the function, we know the event was *not*
+  // preventDefault()-ed, so we can pass DispatchToContent::No to helpers.
+
   if (!aApzc) {
     return APZHandledResult{APZHandledPlace::HandledByContent, aApzc};
   }
 
+  Maybe<APZHandledResult> result =
+      APZHandledResult::Initialize(aApzc, DispatchToContent::No);
+
   if (aEvent.mInputType == MULTITOUCH_INPUT) {
-    // If the event is a multi touch event and is disallowed by touch-action,
-    // treat it as if a touch event listener had preventDefault()-ed it.
     PointerEventsConsumableFlags consumableFlags =
         aApzc->ArePointerEventsConsumable(aCurrentInputBlock->AsTouchBlock(),
                                           aEvent.AsMultiTouchInput());
-    if (!consumableFlags.mAllowedByTouchAction) {
-      APZHandledResult result =
-          APZHandledResult{APZHandledPlace::HandledByContent, aApzc};
-      result.mOverscrollDirections = ScrollDirections();
-      return result;
-    }
+    APZHandledResult::UpdateForTouchEvent(result, *aCurrentInputBlock,
+                                          consumableFlags, aApzc,
+                                          DispatchToContent::No);
   }
-
-  if (aApzc->IsRootContent()) {
-    // If the eager status was eIgnore, we would have returned an eager result
-    // of Unhandled if there had been no event handler. Now that we know the
-    // event handler did not preventDefault() the input block, return Unhandled
-    // as the delayed result.
-    // FIXME: A more accurate implementation would be to re-do the entire
-    // computation that determines the status (i.e. calling
-    // ArePointerEventsConsumable()) with the confirmed target APZC.
-    return (aEagerStatus == nsEventStatus_eConsumeDoDefault &&
-            aApzc->CanVerticalScrollWithDynamicToolbar())
-               ? APZHandledResult{APZHandledPlace::HandledByRoot, aApzc}
-               : APZHandledResult{APZHandledPlace::Unhandled, aApzc, true};
-  }
-
-  bool mayTriggerPullToRefresh =
-      aCurrentInputBlock->GetOverscrollHandoffChain()
-          ->ScrollingUpWillTriggerPullToRefresh(aApzc);
-  if (mayTriggerPullToRefresh) {
-    return APZHandledResult{APZHandledPlace::Unhandled, aApzc, true};
-  }
-
-  auto [willMoveDynamicToolbar, rootApzc] =
-      aCurrentInputBlock->GetOverscrollHandoffChain()
-          ->ScrollingDownWillMoveDynamicToolbar(aApzc);
-  if (!willMoveDynamicToolbar) {
-    return APZHandledResult{APZHandledPlace::HandledByContent, aApzc};
-  }
-
-  // Return `HandledByRoot` if scroll positions in all relevant APZC are at the
-  // bottom edge and if there are contents covered by the dynamic toolbar.
-  MOZ_ASSERT(rootApzc && rootApzc->IsRootContent());
-  return APZHandledResult{APZHandledPlace::HandledByRoot, rootApzc};
+  // Initialize() and UpdateForTouchEvent() can only produce Nothing() in
+  // case of aDispatchToContent=true.
+  MOZ_RELEASE_ASSERT(result.isSome());
+  return *result;
 }
 
 bool InputQueue::ProcessQueue() {
