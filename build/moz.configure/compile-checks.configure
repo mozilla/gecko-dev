@@ -331,6 +331,9 @@ def check_and_add_flags(
                         return c.try_link(host_linker_ldflags, *args, **kwargs)
 
                 tool = "linker"
+            elif mode == "assemble":
+                runner = c.try_compile
+                tool = "assembler"
             else:
                 runner = c.try_compile
                 tool = "compiler"
