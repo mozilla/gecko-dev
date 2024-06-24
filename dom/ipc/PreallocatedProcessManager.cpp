@@ -371,14 +371,6 @@ void PreallocatedProcessManagerImpl::CloseProcesses() {
     process->ShutDownProcess(ContentParent::SEND_SHUTDOWN_MESSAGE);
     // drop ref and let it free
   }
-
-  // Make sure to also clear out the recycled E10S process cache, as it's also
-  // controlled by the same preference, and can be cleaned up due to memory
-  // pressure.
-  if (RefPtr<ContentParent> recycled =
-          ContentParent::sRecycledE10SProcess.forget()) {
-    recycled->MaybeBeginShutDown();
-  }
 }
 
 inline PreallocatedProcessManagerImpl*
