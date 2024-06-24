@@ -86,6 +86,12 @@ If you want to debug a particular part of code, you can use the :code:`MOZ_DBG` 
 
 You can combine that with the -M and -g flags to jump to a particular point in a particular process's lifetime.
 
+Pernosco
+--------
+
+Pernosco is a commercial service for providing 'omniscient' debugging of :code:`rr` 
+traces. If you have an trace you'd like to debug, see :doc:`debugging_firefox_with_pernosco`
+
 Get help!
 ---------
 
