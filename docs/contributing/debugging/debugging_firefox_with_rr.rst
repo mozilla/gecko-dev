@@ -89,7 +89,7 @@ You can combine that with the -M and -g flags to jump to a particular point in a
 Pernosco
 --------
 
-Pernosco is a commercial service for providing 'omniscient' debugging of :code:`rr` 
+Pernosco is a commercial service for providing 'omniscient' debugging of :code:`rr`
 traces. If you have an trace you'd like to debug, see :doc:`debugging_firefox_with_pernosco`
 
 Get help!
