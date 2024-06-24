@@ -346,6 +346,17 @@ set_config("HOST_IMPORT_LIB_SUFFIX", host_library_name_info.import_lib.suffix)
 set_config("WASM_OBJ_SUFFIX", "wasm")
 
 
+@depends(target)
+def bin_suffix(target):
+    if target.os == "WINNT":
+        return ".exe"
+    else:
+        return ""
+
+
+set_config("BIN_SUFFIX", bin_suffix)
+
+
 @template
 def plain_llvm_or_prefixed(name, llvm_name=None):
     # look for a tool, using the following alternatives, in that order:
