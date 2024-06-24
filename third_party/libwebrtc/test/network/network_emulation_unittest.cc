@@ -11,6 +11,8 @@
 #include "test/network/network_emulation.h"
 
 #include <atomic>
+#include <functional>
+#include <map>
 #include <memory>
 #include <set>
 
@@ -176,8 +178,6 @@ EmulatedNetworkNode* CreateEmulatedNodeWithDefaultBuiltInConfig(
 }
 
 }  // namespace
-
-using ::testing::_;
 
 TEST(NetworkEmulationManagerTest, GeneratedIpv4AddressDoesNotCollide) {
   NetworkEmulationManagerImpl network_manager(

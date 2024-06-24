@@ -13,9 +13,13 @@
 #include <stdint.h>
 
 #include <algorithm>
+#include <functional>
 #include <limits>
+#include <map>
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/types/optional.h"

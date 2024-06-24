@@ -175,7 +175,7 @@ bool SimulatedNetwork::EnqueuePacket(PacketInFlightInfo packet) {
 
   // Only update `next_process_time_` if not already set. Otherwise,
   // next_process_time_ is calculated when a packet is dequeued. Note that this
-  // means that the newly enqueud packet risk having an arrival time before
+  // means that the newly enqueued packet risk having an arrival time before
   // `next_process_time_` if packet reordering is allowed and
   // config.delay_standard_deviation_ms is set.
   // TODO(bugs.webrtc.org/14525): Consider preventing this.

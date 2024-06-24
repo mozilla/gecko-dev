@@ -11,7 +11,10 @@
 #include "test/network/network_emulation_manager.h"
 
 #include <algorithm>
+#include <functional>
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "api/field_trials_view.h"
 #include "api/units/time_delta.h"

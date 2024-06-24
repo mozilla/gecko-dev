@@ -468,7 +468,7 @@ TEST(SimulatedNetworkTest, QueueDelayMsWithStandardDeviationAndReorderAllowed) {
 }
 
 TEST(SimulatedNetworkTest, PacketLoss) {
-  // On a network with 50% probablility of packet loss ...
+  // On a network with 50% probability of packet loss ...
   SimulatedNetwork network =
       SimulatedNetwork({.loss_percent = 50}, /*random_seed =*/1);
 
@@ -494,7 +494,7 @@ TEST(SimulatedNetworkTest, PacketLoss) {
 }
 
 TEST(SimulatedNetworkTest, NextDeliveryTimeSetAfterLostPackets) {
-  // On a network with 50% probablility of packet loss ...
+  // On a network with 50% probability of packet loss ...
   SimulatedNetwork network = SimulatedNetwork(
       {.queue_delay_ms = 10, .link_capacity_kbps = 1000, .loss_percent = 50},
       /*random_seed =*/1);
@@ -534,7 +534,7 @@ TEST(SimulatedNetworkTest, NextDeliveryTimeSetAfterLostPackets) {
 }
 
 TEST(SimulatedNetworkTest, PacketLossBurst) {
-  // On a network with 50% probablility of packet loss and an average burst
+  // On a network with 50% probability of packet loss and an average burst
   // loss length of 100 ...
   SimulatedNetwork network = SimulatedNetwork(
       {.loss_percent = 50, .avg_burst_loss_length = 100}, /*random_seed=*/1);
