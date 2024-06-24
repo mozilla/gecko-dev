@@ -211,13 +211,6 @@ user-id = 1281
 user-login = "nical"
 user-name = "Nicolas Silva"
 
-[[publisher.etagere]]
-version = "0.2.13"
-when = "2024-06-17"
-user-id = 1281
-user-login = "nical"
-user-name = "Nicolas Silva"
-
 [[publisher.euclid]]
 version = "0.22.10"
 when = "2024-05-21"
