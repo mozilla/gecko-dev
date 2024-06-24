@@ -740,8 +740,92 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestCreateVideoOffer) {
   EXPECT_EQ(kMediaProtocolDtlsSavpf, vcd->protocol());
 }
 
+TEST_F(MediaSessionDescriptionFactoryTest, TestCreateOfferWithCustomCodecs) {
+  MediaSessionOptions opts;
+
+  webrtc::SdpAudioFormat audio_format("custom-audio", 8000, 2);
+  Codec custom_audio_codec = CreateAudioCodec(audio_format);
+  auto audio_options = MediaDescriptionOptions(
+      MEDIA_TYPE_AUDIO, "0", RtpTransceiverDirection::kSendRecv, kActive);
+  audio_options.codecs_to_include.push_back(custom_audio_codec);
+  opts.media_description_options.push_back(audio_options);
+
+  Codec custom_video_codec = CreateVideoCodec("custom-video");
+  auto video_options = MediaDescriptionOptions(
+      MEDIA_TYPE_VIDEO, "1", RtpTransceiverDirection::kSendRecv, kActive);
+  video_options.codecs_to_include.push_back(custom_video_codec);
+  opts.media_description_options.push_back(video_options);
+
+  std::unique_ptr<SessionDescription> offer =
+      f1_.CreateOfferOrError(opts, nullptr).MoveValue();
+  ASSERT_TRUE(offer.get());
+  const ContentInfo* ac = offer->GetContentByName("0");
+  const ContentInfo* vc = offer->GetContentByName("1");
+  ASSERT_TRUE(ac);
+  ASSERT_TRUE(vc);
+  EXPECT_EQ(MediaProtocolType::kRtp, ac->type);
+  EXPECT_EQ(MediaProtocolType::kRtp, vc->type);
+  const MediaContentDescription* acd = ac->media_description();
+  const MediaContentDescription* vcd = vc->media_description();
+  EXPECT_EQ(MEDIA_TYPE_AUDIO, acd->type());
+  ASSERT_EQ(acd->codecs().size(), 1U);
+  // Fields in codec are set during the gen process, so simple compare
+  // does not work.
+  EXPECT_EQ(acd->codecs()[0].name, custom_audio_codec.name);
+
+  EXPECT_EQ(MEDIA_TYPE_VIDEO, vcd->type());
+  ASSERT_EQ(vcd->codecs().size(), 1U);
+  EXPECT_EQ(vcd->codecs()[0].name, custom_video_codec.name);
+}
+
+TEST_F(MediaSessionDescriptionFactoryTest, TestCreateAnswerWithCustomCodecs) {
+  MediaSessionOptions offer_opts;
+  MediaSessionOptions answer_opts;
+
+  AddAudioVideoSections(RtpTransceiverDirection::kSendRecv, &offer_opts);
+  // Create custom codecs and add to answer. These will override
+  // the normally generated codec list in the answer.
+  // This breaks O/A rules - the responsibility for obeying those is
+  // on the caller, not on this function.
+  webrtc::SdpAudioFormat audio_format("custom-audio", 8000, 2);
+  Codec custom_audio_codec = CreateAudioCodec(audio_format);
+  auto audio_options = MediaDescriptionOptions(
+      MEDIA_TYPE_AUDIO, "audio", RtpTransceiverDirection::kSendRecv, kActive);
+  audio_options.codecs_to_include.push_back(custom_audio_codec);
+  answer_opts.media_description_options.push_back(audio_options);
+
+  Codec custom_video_codec = CreateVideoCodec("custom-video");
+  auto video_options = MediaDescriptionOptions(
+      MEDIA_TYPE_VIDEO, "video", RtpTransceiverDirection::kSendRecv, kActive);
+  video_options.codecs_to_include.push_back(custom_video_codec);
+  answer_opts.media_description_options.push_back(video_options);
+
+  std::unique_ptr<SessionDescription> offer =
+      f1_.CreateOfferOrError(offer_opts, nullptr).MoveValue();
+  ASSERT_TRUE(offer.get());
+  std::unique_ptr<SessionDescription> answer =
+      f1_.CreateAnswerOrError(offer.get(), answer_opts, nullptr).MoveValue();
+  const ContentInfo* ac = answer->GetContentByName("audio");
+  const ContentInfo* vc = answer->GetContentByName("video");
+  ASSERT_TRUE(ac);
+  ASSERT_TRUE(vc);
+  EXPECT_EQ(MediaProtocolType::kRtp, ac->type);
+  EXPECT_EQ(MediaProtocolType::kRtp, vc->type);
+  const MediaContentDescription* acd = ac->media_description();
+  const MediaContentDescription* vcd = vc->media_description();
+  EXPECT_EQ(MEDIA_TYPE_AUDIO, acd->type());
+  ASSERT_EQ(acd->codecs().size(), 1U);
+  // Fields in codec are set during the gen process, so simple compare
+  // does not work.
+  EXPECT_EQ(acd->codecs()[0].name, custom_audio_codec.name);
+
+  EXPECT_EQ(MEDIA_TYPE_VIDEO, vcd->type());
+  ASSERT_EQ(vcd->codecs().size(), 1U);
+  EXPECT_EQ(vcd->codecs()[0].name, custom_video_codec.name);
+}
+
 // Test creating an offer with bundle where the Codecs have the same dynamic
-// RTP playlod type. The test verifies that the offer don't contain the
+// RTP paylod type. The test verifies that the offer don't contain the
 // duplicate RTP payload types.
 TEST_F(MediaSessionDescriptionFactoryTest, TestBundleOfferWithSameCodecPlType) {
   const Codec& offered_video_codec = f2_.video_sendrecv_codecs()[0];

@@ -90,6 +90,9 @@ struct MediaDescriptionOptions {
   std::vector<SenderOptions> sender_options;
   std::vector<webrtc::RtpCodecCapability> codec_preferences;
   std::vector<webrtc::RtpHeaderExtensionCapability> header_extensions;
+  // Codecs to include in a generated offer or answer.
+  // If this is used, session-level codec lists MUST be ignored.
+  std::vector<Codec> codecs_to_include;
 
  private:
   // Doesn't DCHECK on `type`.

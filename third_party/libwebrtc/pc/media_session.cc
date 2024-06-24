@@ -1036,10 +1036,7 @@ bool SetCodecsInAnswer(const MediaContentDescription* offer,
                        const webrtc::FieldTrialsView& field_trials) {
   RTC_DCHECK(offer->type() == MEDIA_TYPE_AUDIO ||
              offer->type() == MEDIA_TYPE_VIDEO);
-  std::vector<Codec> negotiated_codecs;
-  NegotiateCodecs(local_codecs, offer->codecs(), &negotiated_codecs,
-                  media_description_options.codec_preferences.empty());
-  answer->AddCodecs(negotiated_codecs);
+  answer->AddCodecs(local_codecs);
   answer->set_protocol(offer->protocol());
   if (!AddStreamParams(media_description_options.sender_options,
                        session_options.rtcp_cname, ssrc_generator,
@@ -2013,6 +2010,10 @@ RTCError MediaSessionDescriptionFactory::AddTransportAnswer(
   return RTCError::OK();
 }
 
+// Add the RTP description to the SessionDescription.
+// If media_description_options.codecs_to_include is set, those codecs are used.
+//
+// If it is not set, the codecs used are computed based on:
 // `codecs` = set of all possible codecs that can be used, with correct
 // payload type mappings
 //
@@ -2039,17 +2040,23 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
   RTC_DCHECK(media_description_options.type == MEDIA_TYPE_AUDIO ||
              media_description_options.type == MEDIA_TYPE_VIDEO);
 
-  const std::vector<Codec>& supported_codecs =
-      media_description_options.type == MEDIA_TYPE_AUDIO
-          ? GetAudioCodecsForOffer(media_description_options.direction)
-          : GetVideoCodecsForOffer(media_description_options.direction);
-  webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
-      GetNegotiatedCodecsForOffer(media_description_options, session_options,
-                                  current_content, codecs, supported_codecs);
-  if (!error_or_filtered_codecs.ok()) {
-    return error_or_filtered_codecs.MoveError();
+  std::vector<Codec> codecs_to_include;
+  if (media_description_options.codecs_to_include.empty()) {
+    const std::vector<Codec>& supported_codecs =
+        media_description_options.type == MEDIA_TYPE_AUDIO
+            ? GetAudioCodecsForOffer(media_description_options.direction)
+            : GetVideoCodecsForOffer(media_description_options.direction);
+    webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
+        GetNegotiatedCodecsForOffer(media_description_options, session_options,
+                                    current_content, codecs, supported_codecs);
+    if (!error_or_filtered_codecs.ok()) {
+      return error_or_filtered_codecs.MoveError();
+    }
+    codecs_to_include = error_or_filtered_codecs.MoveValue();
+  } else {
+    // Ignore both the codecs argument and the Get*CodecsForOffer results.
+    codecs_to_include = media_description_options.codecs_to_include;
   }
-
   std::unique_ptr<MediaContentDescription> content_description;
   if (media_description_options.type == MEDIA_TYPE_AUDIO) {
     content_description = std::make_unique<AudioContentDescription>();
@@ -2058,10 +2065,9 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
   }
 
   auto error = CreateMediaContentOffer(
-      media_description_options, session_options,
-      error_or_filtered_codecs.MoveValue(), header_extensions, ssrc_generator(),
-      current_streams, content_description.get(),
-      transport_desc_factory_->trials());
+      media_description_options, session_options, codecs_to_include,
+      header_extensions, ssrc_generator(), current_streams,
+      content_description.get(), transport_desc_factory_->trials());
   if (!error.ok()) {
     return error;
   }
@@ -2197,24 +2203,31 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
   auto offer_rtd = offer_content_description->direction();
   auto answer_rtd = NegotiateRtpTransceiverDirection(offer_rtd, wants_rtd);
 
-  const std::vector<Codec>& supported_codecs =
-      media_description_options.type == MEDIA_TYPE_AUDIO
-          ? GetAudioCodecsForAnswer(offer_rtd, answer_rtd)
-          : GetVideoCodecsForAnswer(offer_rtd, answer_rtd);
-  webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
-      GetNegotiatedCodecsForAnswer(media_description_options, session_options,
-                                   current_content, codecs, supported_codecs);
-  if (!error_or_filtered_codecs.ok()) {
-    return error_or_filtered_codecs.MoveError();
+  std::vector<Codec> codecs_to_include;
+  bool negotiate;
+  if (media_description_options.codecs_to_include.empty()) {
+    const std::vector<Codec>& supported_codecs =
+        media_description_options.type == MEDIA_TYPE_AUDIO
+            ? GetAudioCodecsForAnswer(offer_rtd, answer_rtd)
+            : GetVideoCodecsForAnswer(offer_rtd, answer_rtd);
+    webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
+        GetNegotiatedCodecsForAnswer(media_description_options, session_options,
+                                     current_content, codecs, supported_codecs);
+    if (!error_or_filtered_codecs.ok()) {
+      return error_or_filtered_codecs.MoveError();
+    }
+    codecs_to_include = error_or_filtered_codecs.MoveValue();
+    negotiate = true;
+  } else {
+    codecs_to_include = media_description_options.codecs_to_include;
+    negotiate = false;  // Don't filter against remote codecs
   }
-  auto filtered_codecs = error_or_filtered_codecs.MoveValue();
-
   // Determine if we have media codecs in common.
-  bool has_common_media_codecs =
-      std::find_if(filtered_codecs.begin(), filtered_codecs.end(),
+  bool has_usable_media_codecs =
+      std::find_if(codecs_to_include.begin(), codecs_to_include.end(),
                    [](const Codec& c) {
                      return c.IsMediaCodec() && !IsComfortNoiseCodec(c);
-                   }) != filtered_codecs.end();
+                   }) != codecs_to_include.end();
 
   bool bundle_enabled = offer_description->HasGroup(GROUP_TYPE_BUNDLE) &&
                         session_options.bundle_enabled;
@@ -2224,10 +2237,19 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
   } else {
     answer_content = std::make_unique<VideoContentDescription>();
   }
-  if (!SetCodecsInAnswer(
-          offer_content_description, filtered_codecs, media_description_options,
-          session_options, ssrc_generator(), current_streams,
-          answer_content.get(), transport_desc_factory_->trials())) {
+  if (negotiate) {
+    std::vector<Codec> negotiated_codecs;
+    NegotiateCodecs(codecs_to_include, offer_content_description->codecs(),
+                    &negotiated_codecs,
+                    media_description_options.codec_preferences.empty());
+    codecs_to_include = negotiated_codecs;
+  }
+
+  if (!SetCodecsInAnswer(offer_content_description, codecs_to_include,
+                         media_description_options, session_options,
+                         ssrc_generator(), current_streams,
+                         answer_content.get(),
+                         transport_desc_factory_->trials())) {
     LOG_AND_RETURN_ERROR(RTCErrorType::INTERNAL_ERROR,
                          "Failed to set codecs in answer");
   }
@@ -2243,7 +2265,7 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
   bool secure = bundle_transport ? bundle_transport->description.secure()
                                  : transport->secure();
   bool rejected = media_description_options.stopped ||
-                  offer_content->rejected || !has_common_media_codecs ||
+                  offer_content->rejected || !has_usable_media_codecs ||
                   !IsMediaProtocolSupported(MEDIA_TYPE_AUDIO,
                                             answer_content->protocol(), secure);
   if (rejected) {
