@@ -576,6 +576,11 @@ BounceTrackingProtection::PurgeBounceTrackers() {
                     ("%s: Done. Cleared %zu hosts.", __FUNCTION__,
                      aResults.ResolveValue().Length()));
 
+            if (!aResults.ResolveValue().IsEmpty()) {
+              glean::bounce_tracking_protection::num_hosts_per_purge_run
+                  .AccumulateSingleSample(aResults.ResolveValue().Length());
+            }
+
             // Check if any clear call failed.
             bool anyFailed = false;
 
@@ -712,7 +717,6 @@ nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(
     }
 
     // No exception above applies, clear state for the given host.
-
     RefPtr<ClearDataMozPromise::Private> clearPromise =
         new ClearDataMozPromise::Private(__func__);
     RefPtr<ClearDataCallback> cb =

@@ -31,6 +31,26 @@ bounce.tracking.protection:
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
     expires: 134
+  num_hosts_per_purge_run:
+    type: custom_distribution
+    unit: integer
+    range_min: 1
+    range_max: 99
+    bucket_count: 100
+    histogram_type: linear
+    description: >
+      Number of bounce trackers purged successfully per scheduled purge.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1899809
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1899809
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - pbz@mozilla.com
+      - bvandersloot@mozilla.com
+      - manuel@mozilla.com
+    expires: 134
   purge_count:
     type: labeled_counter
     description: >
