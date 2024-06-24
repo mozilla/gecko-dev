@@ -2,7 +2,7 @@
 name = "l10nregistry"
 version = "0.3.0"
 authors = ["Zibi Braniecki <gandalf@mozilla.com>"]
-license = "Apache-2.0/MIT"
+license = "Apache-2.0 OR MIT"
 edition = "2018"
 
 [dependencies]
