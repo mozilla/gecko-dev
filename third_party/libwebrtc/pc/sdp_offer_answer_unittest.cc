@@ -1242,4 +1242,75 @@ TEST_F(SdpOfferAnswerTest, OfferWithRejectedMlineWithoutFingerprintIsAccepted) {
   EXPECT_TRUE(pc->SetLocalDescription(std::move(answer)));
 }
 
+TEST_F(SdpOfferAnswerTest, MidBackfillAnswer) {
+  auto pc = CreatePeerConnection();
+  // An offer without a mid backfills the mid. This is currently
+  // done with a per-peerconnection counter that starts from 0.
+  // JSEP says to only include the mid in the answer if it was in the offer
+  // but due to backfill it is always present.
+  // TODO: https://issues.webrtc.org/issues/338529222 - don't respond with mid.
+  std::string sdp =
+      "v=0\r\n"
+      "o=- 0 3 IN IP4 127.0.0.1\r\n"
+      "s=-\r\n"
+      "t=0 0\r\n"
+      "a=setup:actpass\r\n"
+      "a=ice-ufrag:ETEn\r\n"
+      "a=ice-pwd:OtSK0WpNtpUjkY4+86js7Z/l\r\n"
+      "a=fingerprint:sha-1 "
+      "4A:AD:B9:B1:3F:82:18:3B:54:02:12:DF:3E:5D:49:6B:19:E5:7C:AB\r\n"
+      "a=setup:actpass\r\n"
+      "m=audio 9 RTP/SAVPF 111\r\n"
+      "c=IN IP4 0.0.0.0\r\n"
+      "a=sendrecv\r\n"
+      "a=rtpmap:111 opus/48000/2\r\n"
+      // "a=mid:0\r\n"
+      "a=rtcp-mux\r\n";
+  auto desc = CreateSessionDescription(SdpType::kOffer, sdp);
+  ASSERT_NE(desc, nullptr);
+  RTCError error;
+  pc->SetRemoteDescription(std::move(desc), &error);
+  EXPECT_TRUE(error.ok());
+  auto offer_contents =
+      pc->pc()->remote_description()->description()->contents();
+  ASSERT_EQ(offer_contents.size(), 1u);
+  EXPECT_EQ(offer_contents[0].mid(), "0");
+  auto answer = pc->CreateAnswerAndSetAsLocal();
+  auto answer_contents = answer->description()->contents();
+  ASSERT_EQ(answer_contents.size(), 1u);
+  EXPECT_EQ(answer_contents[0].mid(), offer_contents[0].mid());
+}
+
+TEST_F(SdpOfferAnswerTest, MidBackfillDoesNotCheckAgainstBundleGroup) {
+  auto pc = CreatePeerConnection();
+  // An offer with a BUNDLE group specifying a mid that is not present
+  // in the offer. This is not rejected due to the mid being backfilled
+  // starting at 0.
+  // TODO: https://issues.webrtc.org/issues/338528603 - reject this.
+  std::string sdp =
+      "v=0\r\n"
+      "o=- 0 3 IN IP4 127.0.0.1\r\n"
+      "s=-\r\n"
+      "t=0 0\r\n"
+      "a=setup:actpass\r\n"
+      "a=ice-ufrag:ETEn\r\n"
+      "a=ice-pwd:OtSK0WpNtpUjkY4+86js7Z/l\r\n"
+      "a=fingerprint:sha-1 "
+      "4A:AD:B9:B1:3F:82:18:3B:54:02:12:DF:3E:5D:49:6B:19:E5:7C:AB\r\n"
+      "a=setup:actpass\r\n"
+      "a=group:BUNDLE 0\r\n"
+      "m=audio 9 RTP/SAVPF 111\r\n"
+      "c=IN IP4 0.0.0.0\r\n"
+      "a=sendrecv\r\n"
+      "a=rtpmap:111 opus/48000/2\r\n"
+      // "a=mid:0\r\n"
+      "a=rtcp-mux\r\n";
+  auto desc = CreateSessionDescription(SdpType::kOffer, sdp);
+  ASSERT_NE(desc, nullptr);
+  RTCError error;
+  pc->SetRemoteDescription(std::move(desc), &error);
+  EXPECT_TRUE(error.ok());
+  EXPECT_TRUE(pc->CreateAnswerAndSetAsLocal());
+}
+
 }  // namespace webrtc
