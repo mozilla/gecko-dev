@@ -127,7 +127,6 @@ class RTC_EXPORT VideoFrameBuffer : public webrtc::RefCountInterface {
       rtc::ArrayView<Type> types);
 
   // For logging: returns a textual representation of the storage.
-  // TODO(b/328533258): Make pure virtual once downstream adapts.
   virtual std::string storage_representation() const;
 
  protected:
