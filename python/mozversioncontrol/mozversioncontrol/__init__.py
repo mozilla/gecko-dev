@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import uuid
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -989,21 +990,68 @@ class GitRepository(Repository):
         `changed_files` may contain a dict of file paths and their contents,
         see `stage_changes`.
         """
-        if changed_files:
-            self.stage_changes(changed_files)
+        current_head = self.head_ref
 
-        self._run(
-            "-c",
-            "commit.gpgSign=false",
-            "commit",
-            "--allow-empty",
-            "-m",
-            commit_message,
+        def data(content):
+            return f"data {len(content)}\n{content}"
+
+        author = self._run("var", "GIT_AUTHOR_IDENT").strip()
+        committer = self._run("var", "GIT_COMMITTER_IDENT").strip()
+        # A random enough temporary branch name that shouldn't conflict with
+        # anything else, even in the machtry namespace.
+        branch = str(uuid.uuid4())
+        # The following fast-import script creates a new commit on a temporary
+        # branch that it deletes at the end, based off the current HEAD, and
+        # adding or modifying the files from `changed_files`.
+        # fast-import will output the sha1 for that temporary commit on stdout
+        # (via `get-mark`).
+        fast_import = "\n".join(
+            [
+                f"commit refs/machtry/{branch}",
+                "mark :1",
+                f"author {author}",
+                f"committer {committer}",
+                data(commit_message),
+                f"from {current_head}",
+                "\n".join(
+                    f"M 100644 inline {path}\n{data(content)}"
+                    for path, content in (changed_files or {}).items()
+                ),
+                f"reset refs/machtry/{branch}",
+                "from 0000000000000000000000000000000000000000",
+                "get-mark :1",
+                "",
+            ]
         )
 
-        yield "HEAD"
+        cmd = (str(self._tool), "fast-import", "--quiet")
+        stdout = subprocess.check_output(
+            cmd,
+            cwd=self.path,
+            env=self._env,
+            input=fast_import,
+            text=True,
+        )
 
-        self._run("reset", "HEAD~")
+        try_head = stdout.strip()
+        yield try_head
+
+        # Keep trace of the temporary push in the reflog, as if we did actually commit.
+        # This does update HEAD for a small window of time.
+        # If we raced with something else that changed the HEAD after we created our
+        # commit, update-ref will fail and print an error message. Only the update in
+        # the reflog would be lost in this case.
+        self._run("update-ref", "-m", "mach try: push", "HEAD", try_head, current_head)
+        # Likewise, if we raced with something else that updated the HEAD between our
+        # two update-ref, update-ref will fail and print an error message.
+        self._run(
+            "update-ref",
+            "-m",
+            "mach try: restore",
+            "HEAD",
+            current_head,
+            try_head,
+        )
 
     def get_last_modified_time_for_file(self, path: Path):
         """Return last modified in VCS time for the specified file."""

@@ -4,6 +4,8 @@
 
 import os
 import subprocess
+import textwrap
+import uuid
 
 import mozunit
 import pytest
@@ -16,15 +18,28 @@ def test_push_to_try(repo, monkeypatch):
     vcs = get_repository_object(repo.dir)
 
     captured_commands = []
+    captured_inputs = []
 
     def fake_run(*args, **kwargs):
         cmd = args[0]
         captured_commands.append(cmd)
+        if cmd[1] == "var" and cmd[2] in ("GIT_AUTHOR_IDENT", "GIT_COMMITTER_IDENT"):
+            return "FooBar <foobar@example.com> 0 +0000"
+        if cmd[1:] == ("rev-parse", "HEAD"):
+            return "0987654321098765432109876543210987654321"
+        if cmd[1:] == ("fast-import", "--quiet"):
+            if input := kwargs.get("input"):
+                captured_inputs.append(input)
+            return "1234567890123456789012345678901234567890"
         if os.path.basename(cmd[0]).startswith("hg") and cmd[1] == "--version":
             return "version 6.7"
 
+    def fake_uuid():
+        return "974284fd-f395-4a15-a9d7-814a71241242"
+
     monkeypatch.setattr(subprocess, "check_output", fake_run)
     monkeypatch.setattr(subprocess, "check_call", fake_run)
+    monkeypatch.setattr(uuid, "uuid4", fake_uuid)
 
     vcs.push_to_try(
         commit_message,
@@ -49,39 +64,73 @@ def test_push_to_try(repo, monkeypatch):
             (str(tool), "push-to-try", "-m", commit_message),
             (str(tool), "revert", "-a"),
         ]
+        expected_inputs = []
     else:
         expected = [
             (str(tool), "cinnabar", "--version"),
-            (
-                str(tool),
-                "add",
-                os.path.join(vcs.path, "extra-file"),
-                os.path.join(vcs.path, "other", "extra-file"),
-            ),
-            (
-                str(tool),
-                "-c",
-                "commit.gpgSign=false",
-                "commit",
-                "--allow-empty",
-                "-m",
-                commit_message,
-            ),
+            (str(tool), "rev-parse", "HEAD"),
+            (str(tool), "var", "GIT_AUTHOR_IDENT"),
+            (str(tool), "var", "GIT_COMMITTER_IDENT"),
+            (str(tool), "fast-import", "--quiet"),
             (
                 str(tool),
                 "-c",
                 "cinnabar.data=never",
                 "push",
                 "hg::ssh://hg.mozilla.org/try",
-                "+HEAD:refs/heads/branches/default/tip",
+                "+1234567890123456789012345678901234567890:refs/heads/branches/default/tip",
             ),
-            (str(tool), "reset", "HEAD~"),
+            (
+                str(tool),
+                "update-ref",
+                "-m",
+                "mach try: push",
+                "HEAD",
+                "1234567890123456789012345678901234567890",
+                "0987654321098765432109876543210987654321",
+            ),
+            (
+                str(tool),
+                "update-ref",
+                "-m",
+                "mach try: restore",
+                "HEAD",
+                "0987654321098765432109876543210987654321",
+                "1234567890123456789012345678901234567890",
+            ),
+        ]
+        expected_inputs = [
+            textwrap.dedent(
+                f"""\
+                commit refs/machtry/974284fd-f395-4a15-a9d7-814a71241242
+                mark :1
+                author FooBar <foobar@example.com> 0 +0000
+                committer FooBar <foobar@example.com> 0 +0000
+                data {len(commit_message)}
+                {commit_message}
+                from 0987654321098765432109876543210987654321
+                M 100644 inline extra-file
+                data 7
+                content
+                M 100644 inline other/extra-file
+                data 8
+                content2
+                reset refs/machtry/974284fd-f395-4a15-a9d7-814a71241242
+                from 0000000000000000000000000000000000000000
+                get-mark :1
+            """
+            ),
         ]
 
     for i, value in enumerate(captured_commands):
         assert value == expected[i]
 
     assert len(captured_commands) == len(expected)
+
+    for i, value in enumerate(captured_inputs):
+        assert value == expected_inputs[i]
+
+    assert len(captured_inputs) == len(expected_inputs)
 
 
 def test_push_to_try_missing_extensions(repo, monkeypatch):
