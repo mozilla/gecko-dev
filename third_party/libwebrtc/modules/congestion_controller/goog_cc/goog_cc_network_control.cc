@@ -65,14 +65,6 @@ constexpr float kDefaultPaceMultiplier = 2.5f;
 // below the current throughput estimate to drain the network queues.
 constexpr double kProbeDropThroughputFraction = 0.85;
 
-bool IsEnabled(const FieldTrialsView* config, absl::string_view key) {
-  return absl::StartsWith(config->Lookup(key), "Enabled");
-}
-
-bool IsNotDisabled(const FieldTrialsView* config, absl::string_view key) {
-  return !absl::StartsWith(config->Lookup(key), "Disabled");
-}
-
 BandwidthLimitedCause GetBandwidthLimitedCause(LossBasedState loss_based_state,
                                                bool is_rtt_above_limit,
                                                BandwidthUsage bandwidth_usage) {
@@ -108,27 +100,24 @@ GoogCcNetworkController::GoogCcNetworkController(NetworkControllerConfig config,
       safe_reset_on_route_change_("Enabled"),
       safe_reset_acknowledged_rate_("ack"),
       use_min_allocatable_as_lower_bound_(
-          IsNotDisabled(key_value_config_, "WebRTC-Bwe-MinAllocAsLowerBound")),
-      ignore_probes_lower_than_network_estimate_(IsNotDisabled(
-          key_value_config_,
+          !key_value_config_->IsDisabled("WebRTC-Bwe-MinAllocAsLowerBound")),
+      ignore_probes_lower_than_network_estimate_(!key_value_config_->IsDisabled(
           "WebRTC-Bwe-IgnoreProbesLowerThanNetworkStateEstimate")),
       limit_probes_lower_than_throughput_estimate_(
-          IsNotDisabled(key_value_config_,
-                        "WebRTC-Bwe-LimitProbesLowerThanThroughputEstimate")),
-      rate_control_settings_(
-          RateControlSettings::ParseFromKeyValueConfig(key_value_config_)),
-      pace_at_max_of_bwe_and_lower_link_capacity_(
-          IsEnabled(key_value_config_,
-                    "WebRTC-Bwe-PaceAtMaxOfBweAndLowerLinkCapacity")),
+          !key_value_config_->IsDisabled(
+              "WebRTC-Bwe-LimitProbesLowerThanThroughputEstimate")),
+      rate_control_settings_(*key_value_config_),
+      pace_at_max_of_bwe_and_lower_link_capacity_(key_value_config_->IsEnabled(
+          "WebRTC-Bwe-PaceAtMaxOfBweAndLowerLinkCapacity")),
       limit_pacingfactor_by_upper_link_capacity_estimate_(
-          IsEnabled(key_value_config_,
-                    "WebRTC-Bwe-LimitPacingFactorByUpperLinkCapacityEstimate")),
+          key_value_config_->IsEnabled(
+              "WebRTC-Bwe-LimitPacingFactorByUpperLinkCapacityEstimate")),
       probe_controller_(
           new ProbeController(key_value_config_, config.event_log)),
       congestion_window_pushback_controller_(
           rate_control_settings_.UseCongestionWindowPushback()
               ? std::make_unique<CongestionWindowPushbackController>(
-                    key_value_config_)
+                    *key_value_config_)
               : nullptr),
       bandwidth_estimation_(
           std::make_unique<SendSideBandwidthEstimation>(key_value_config_,

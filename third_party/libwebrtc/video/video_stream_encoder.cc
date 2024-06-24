@@ -660,8 +660,7 @@ VideoStreamEncoder::VideoStreamEncoder(
       number_of_cores_(number_of_cores),
       settings_(settings),
       allocation_cb_type_(allocation_cb_type),
-      rate_control_settings_(
-          RateControlSettings::ParseFromKeyValueConfig(&env_.field_trials())),
+      rate_control_settings_(env_.field_trials()),
       encoder_selector_from_constructor_(encoder_selector),
       encoder_selector_from_factory_(
           encoder_selector_from_constructor_

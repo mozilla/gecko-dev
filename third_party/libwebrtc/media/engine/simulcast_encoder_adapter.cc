@@ -247,8 +247,7 @@ SimulcastEncoderAdapter::SimulcastEncoderAdapter(
       bypass_mode_(false),
       encoded_complete_callback_(nullptr),
       boost_base_layer_quality_(
-          RateControlSettings::ParseFromKeyValueConfig(&env_.field_trials())
-              .Vp8BoostBaseLayerQuality()),
+          RateControlSettings(env_.field_trials()).Vp8BoostBaseLayerQuality()),
       prefer_temporal_support_on_base_layer_(env_.field_trials().IsEnabled(
           "WebRTC-Video-PreferTemporalSupportOnBaseLayer")),
       per_layer_pli_(SupportsPerLayerPictureLossIndication(format.parameters)),

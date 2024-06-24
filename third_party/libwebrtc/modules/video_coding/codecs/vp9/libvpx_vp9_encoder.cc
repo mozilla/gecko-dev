@@ -250,9 +250,8 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
       is_svc_(false),
       inter_layer_pred_(InterLayerPredMode::kOn),
       external_ref_control_(false),  // Set in InitEncode because of tests.
-      trusted_rate_controller_(
-          RateControlSettings::ParseFromKeyValueConfig(&env.field_trials())
-              .LibvpxVp9TrustedRateController()),
+      trusted_rate_controller_(RateControlSettings(env.field_trials())
+                                   .LibvpxVp9TrustedRateController()),
       first_frame_in_picture_(true),
       ss_info_needed_(false),
       force_all_active_layers_(false),

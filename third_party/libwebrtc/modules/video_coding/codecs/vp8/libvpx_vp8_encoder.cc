@@ -309,8 +309,7 @@ LibvpxVp8Encoder::LibvpxVp8Encoder(const Environment& env,
                                    std::unique_ptr<LibvpxInterface> interface)
     : env_(env),
       libvpx_(std::move(interface)),
-      rate_control_settings_(
-          RateControlSettings::ParseFromKeyValueConfig(&env_.field_trials())),
+      rate_control_settings_(env_.field_trials()),
       resolution_bitrate_limits_(std::move(settings.resolution_bitrate_limits)),
       key_frame_request_(kMaxSimulcastStreams, false),
       last_encoder_output_time_(kMaxSimulcastStreams,
