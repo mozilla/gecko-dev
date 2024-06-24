@@ -30,8 +30,7 @@ FecControllerDefault::FecControllerDefault(
     VCMProtectionCallback* protection_callback)
     : env_(env),
       protection_callback_(protection_callback),
-      loss_prot_logic_(new media_optimization::VCMLossProtectionLogic(
-          env_.clock().TimeInMilliseconds())),
+      loss_prot_logic_(new media_optimization::VCMLossProtectionLogic(env_)),
       max_payload_size_(1460),
       overhead_threshold_(GetProtectionOverheadRateThreshold()) {}
 
