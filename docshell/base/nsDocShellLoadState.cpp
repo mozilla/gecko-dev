@@ -91,6 +91,7 @@ nsDocShellLoadState::nsDocShellLoadState(
   mTriggeringStorageAccess = aLoadState.TriggeringStorageAccess();
   mTriggeringRemoteType = aLoadState.TriggeringRemoteType();
   mWasSchemelessInput = aLoadState.WasSchemelessInput();
+  mHttpsUpgradeTelemetry = aLoadState.HttpsUpgradeTelemetry();
   mCsp = aLoadState.Csp();
   mOriginalURIString = aLoadState.OriginalURIString();
   mCancelContentJSEpoch = aLoadState.CancelContentJSEpoch();
@@ -196,7 +197,8 @@ nsDocShellLoadState::nsDocShellLoadState(const nsDocShellLoadState& aOther)
       mUnstrippedURI(aOther.mUnstrippedURI),
       mRemoteTypeOverride(aOther.mRemoteTypeOverride),
       mTriggeringRemoteType(aOther.mTriggeringRemoteType),
-      mWasSchemelessInput(aOther.mWasSchemelessInput) {
+      mWasSchemelessInput(aOther.mWasSchemelessInput),
+      mHttpsUpgradeTelemetry(aOther.mHttpsUpgradeTelemetry) {
   MOZ_DIAGNOSTIC_ASSERT(
       XRE_IsParentProcess(),
       "Cloning a nsDocShellLoadState with the same load identifier is only "
@@ -242,6 +244,11 @@ nsDocShellLoadState::nsDocShellLoadState(nsIURI* aURI, uint64_t aLoadIdentifier)
                                 : NOT_REMOTE_TYPE),
       mWasSchemelessInput(false) {
   MOZ_ASSERT(aURI, "Cannot create a LoadState with a null URI!");
+  if (aURI->SchemeIs("https")) {
+    mHttpsUpgradeTelemetry = nsILoadInfo::ALREADY_HTTPS;
+  } else {
+    mHttpsUpgradeTelemetry = nsILoadInfo::NO_UPGRADE;
+  }
 }
 
 nsDocShellLoadState::~nsDocShellLoadState() {
@@ -1308,6 +1315,7 @@ DocShellLoadStateInit nsDocShellLoadState::Serialize(
   loadState.TriggeringStorageAccess() = mTriggeringStorageAccess;
   loadState.TriggeringRemoteType() = mTriggeringRemoteType;
   loadState.WasSchemelessInput() = mWasSchemelessInput;
+  loadState.HttpsUpgradeTelemetry() = mHttpsUpgradeTelemetry;
   loadState.Csp() = mCsp;
   loadState.OriginalURIString() = mOriginalURIString;
   loadState.CancelContentJSEpoch() = mCancelContentJSEpoch;

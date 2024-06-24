@@ -691,7 +691,8 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
       mInterceptionInfo(rhs.mInterceptionInfo),
       mHasInjectedCookieForCookieBannerHandling(
           rhs.mHasInjectedCookieForCookieBannerHandling),
-      mWasSchemelessInput(rhs.mWasSchemelessInput) {
+      mWasSchemelessInput(rhs.mWasSchemelessInput),
+      mHttpsUpgradeTelemetry(rhs.mHttpsUpgradeTelemetry) {
 }
 
 LoadInfo::LoadInfo(
@@ -738,7 +739,8 @@ LoadInfo::LoadInfo(
     nsILoadInfo::CrossOriginEmbedderPolicy aLoadingEmbedderPolicy,
     bool aIsOriginTrialCoepCredentiallessEnabledForTopLevel,
     nsIURI* aUnstrippedURI, nsIInterceptionInfo* aInterceptionInfo,
-    bool aHasInjectedCookieForCookieBannerHandling, bool aWasSchemelessInput)
+    bool aHasInjectedCookieForCookieBannerHandling, bool aWasSchemelessInput,
+    nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry)
     : mLoadingPrincipal(aLoadingPrincipal),
       mTriggeringPrincipal(aTriggeringPrincipal),
       mPrincipalToInherit(aPrincipalToInherit),
@@ -816,7 +818,8 @@ LoadInfo::LoadInfo(
       mInterceptionInfo(aInterceptionInfo),
       mHasInjectedCookieForCookieBannerHandling(
           aHasInjectedCookieForCookieBannerHandling),
-      mWasSchemelessInput(aWasSchemelessInput) {
+      mWasSchemelessInput(aWasSchemelessInput),
+      mHttpsUpgradeTelemetry(aHttpsUpgradeTelemetry) {
   // Only top level TYPE_DOCUMENT loads can have a null loadingPrincipal
   MOZ_ASSERT(mLoadingPrincipal ||
              aContentPolicyType == nsIContentPolicy::TYPE_DOCUMENT);
@@ -2413,6 +2416,20 @@ LoadInfo::GetWasSchemelessInput(bool* aWasSchemelessInput) {
 NS_IMETHODIMP
 LoadInfo::SetWasSchemelessInput(bool aWasSchemelessInput) {
   mWasSchemelessInput = aWasSchemelessInput;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::GetHttpsUpgradeTelemetry(
+    nsILoadInfo::HTTPSUpgradeTelemetryType* aOutHttpsUpgradeTelemetry) {
+  *aOutHttpsUpgradeTelemetry = mHttpsUpgradeTelemetry;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetHttpsUpgradeTelemetry(
+    nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry) {
+  mHttpsUpgradeTelemetry = aHttpsUpgradeTelemetry;
   return NS_OK;
 }
 

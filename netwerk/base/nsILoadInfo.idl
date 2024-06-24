@@ -1544,4 +1544,23 @@ interface nsILoadInfo : nsISupports
    * Whether the load has gone through the URL bar, where the fixup had to add * the protocol scheme.
    */
    [infallible] attribute boolean wasSchemelessInput;
+
+  cenum HTTPSUpgradeTelemetryType : 32 {
+    NO_UPGRADE = 0,
+    ALREADY_HTTPS = (1 << 0),
+    HSTS = (1 << 1),
+    HTTPS_ONLY_UPGRADE = (1 << 2),
+    HTTPS_ONLY_UPGRADE_DOWNGRADE = (1 << 3),
+    HTTPS_FIRST_UPGRADE = (1 << 4),
+    HTTPS_FIRST_UPGRADE_DOWNGRADE = (1 << 5),
+    HTTPS_FIRST_SCHEMELESS_UPGRADE = (1 << 6),
+    HTTPS_FIRST_SCHEMELESS_UPGRADE_DOWNGRADE = (1 << 7),
+    HTTPS_RR = (1 << 8),
+  };
+
+  /**
+   * Solely for the use of collecting Telemetry for HTTPS upgrades.
+   */
+  [infallible] attribute nsILoadInfo_HTTPSUpgradeTelemetryType httpsUpgradeTelemetry;
+
 };

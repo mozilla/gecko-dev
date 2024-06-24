@@ -576,10 +576,10 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
       aLoadInfo->GetIsFormSubmission(), aLoadInfo->GetSendCSPViolationEvents(),
       aLoadInfo->GetOriginAttributes(), redirectChainIncludingInternalRedirects,
       redirectChain, aLoadInfo->GetHasInjectedCookieForCookieBannerHandling(),
-      aLoadInfo->GetWasSchemelessInput(), ipcClientInfo, ipcReservedClientInfo,
-      ipcInitialClientInfo, ipcController, aLoadInfo->CorsUnsafeHeaders(),
-      aLoadInfo->GetForcePreflight(), aLoadInfo->GetIsPreflight(),
-      aLoadInfo->GetLoadTriggeredFromExternal(),
+      aLoadInfo->GetWasSchemelessInput(), aLoadInfo->GetHttpsUpgradeTelemetry(),
+      ipcClientInfo, ipcReservedClientInfo, ipcInitialClientInfo, ipcController,
+      aLoadInfo->CorsUnsafeHeaders(), aLoadInfo->GetForcePreflight(),
+      aLoadInfo->GetIsPreflight(), aLoadInfo->GetLoadTriggeredFromExternal(),
       aLoadInfo->GetServiceWorkerTaintingSynthesized(),
       aLoadInfo->GetDocumentHasUserInteracted(),
       aLoadInfo->GetAllowListFutureDocumentsCreatedFromThisRedirectChain(),
@@ -885,7 +885,7 @@ nsresult LoadInfoArgsToLoadInfo(const LoadInfoArgs& loadInfoArgs,
       loadInfoArgs.originTrialCoepCredentiallessEnabledForTopLevel(),
       loadInfoArgs.unstrippedURI(), interceptionInfo,
       loadInfoArgs.hasInjectedCookieForCookieBannerHandling(),
-      loadInfoArgs.wasSchemelessInput());
+      loadInfoArgs.wasSchemelessInput(), loadInfoArgs.httpsUpgradeTelemetry());
 
   if (loadInfoArgs.isFromProcessingFrameAttributes()) {
     loadInfo->SetIsFromProcessingFrameAttributes();
@@ -953,6 +953,7 @@ void LoadInfoToParentLoadInfoForwarder(
   *aForwarderArgsOut = ParentLoadInfoForwarderArgs(
       aLoadInfo->GetAllowInsecureRedirectToDataURI(), ipcController, tainting,
       aLoadInfo->GetSkipContentSniffing(), aLoadInfo->GetHttpsOnlyStatus(),
+      aLoadInfo->GetWasSchemelessInput(), aLoadInfo->GetHttpsUpgradeTelemetry(),
       aLoadInfo->GetHstsStatus(), aLoadInfo->GetHasValidUserGestureActivation(),
       aLoadInfo->GetAllowDeprecatedSystemRequests(),
       aLoadInfo->GetIsInDevToolsContext(), aLoadInfo->GetParserCreatedScript(),
@@ -994,6 +995,13 @@ nsresult MergeParentLoadInfoForwarder(
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = aLoadInfo->SetHttpsOnlyStatus(aForwarderArgs.httpsOnlyStatus());
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = aLoadInfo->SetWasSchemelessInput(aForwarderArgs.wasSchemelessInput());
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = aLoadInfo->SetHttpsUpgradeTelemetry(
+      aForwarderArgs.httpsUpgradeTelemetry());
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = aLoadInfo->SetHstsStatus(aForwarderArgs.hstsStatus());

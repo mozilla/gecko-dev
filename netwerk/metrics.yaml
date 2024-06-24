@@ -964,22 +964,6 @@ networking:
       - presented_with_http3
       - none
 
-  https_upgrade_with_https_rr:
-    type: labeled_counter
-    description: >
-      Whether an HTTP request gets upgraded to HTTPS because of HTTPS RR
-    bugs:
-      - https://bugzilla.mozilla.org/1686421
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1686421
-    notification_emails:
-      - necko@mozilla.com
-      - kershaw@mozilla.com
-    expires: never
-    labels:
-      - https_rr
-      - others
-
   http_channel_onstart_success_https_rr:
     type: labeled_counter
     description: >
@@ -1135,6 +1119,33 @@ networking:
       - necko@mozilla.com
       - kershaw@mozilla.com
     expires: never
+
+  http_to_https_upgrade_reason:
+    type: labeled_counter
+    description: >
+      Whether a top-level HTTP request gets upgraded to HTTPS and the reason for it
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1883954
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1883954
+    notification_emails:
+      - ckerschb@mozilla.com
+      - freddyb@mozilla.com
+      - kershaw@mozilla.com
+      - necko@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    labels:
+      - no_upgrade
+      - already_https
+      - hsts
+      - https_only_upgrade
+      - https_only_upgrade_downgrade
+      - https_first_upgrade
+      - https_first_upgrade_downgrade
+      - https_first_schemeless_upgrade
+      - https_first_schemeless_upgrade_downgrade
+      - https_rr
 
   http_channel_sub_open_to_first_sent_https_rr:
     type: timing_distribution
