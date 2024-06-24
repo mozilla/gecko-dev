@@ -53,6 +53,7 @@ class VideoCodecTester {
     ScalabilityMode scalability_mode = ScalabilityMode::kL1T1;
     VideoCodecMode content_type = VideoCodecMode::kRealtimeVideo;
     bool frame_drop = true;
+    bool keyframe = false;
 
     struct LayerSettings {
       Resolution resolution;

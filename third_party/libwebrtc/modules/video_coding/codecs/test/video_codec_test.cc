@@ -66,6 +66,10 @@ ABSL_FLAG(absl::optional<double>,
           "Encode target frame rate of the top temporal layer in fps.");
 ABSL_FLAG(bool, screencast, false, "Enable screen encoding mode.");
 ABSL_FLAG(bool, frame_drop, true, "Enable frame dropping.");
+ABSL_FLAG(int,
+          key_interval,
+          std::numeric_limits<int>::max(),
+          "Keyframe interval in frames.");
 ABSL_FLAG(int, num_frames, 300, "Number of frames to encode and/or decode.");
 ABSL_FLAG(std::string, field_trials, "", "Field trials to apply.");
 ABSL_FLAG(std::string, test_name, "", "Test name.");
@@ -562,21 +566,27 @@ TEST(VideoCodecTest, DISABLED_EncodeDecode) {
                    return DataRate::KilobitsPerSec(std::stoi(str));
                  });
 
+  Frequency framerate = Frequency::Hertz<double>(
+      absl::GetFlag(FLAGS_framerate_fps)
+          .value_or(absl::GetFlag(FLAGS_input_framerate_fps)));
+
   EncodingSettings encoding_settings = VideoCodecTester::CreateEncodingSettings(
       CodecNameToCodecType(absl::GetFlag(FLAGS_encoder)),
       absl::GetFlag(FLAGS_scalability_mode),
       absl::GetFlag(FLAGS_width).value_or(absl::GetFlag(FLAGS_input_width)),
       absl::GetFlag(FLAGS_height).value_or(absl::GetFlag(FLAGS_input_height)),
-      {bitrate},
-      Frequency::Hertz<double>(
-          absl::GetFlag(FLAGS_framerate_fps)
-              .value_or(absl::GetFlag(FLAGS_input_framerate_fps))),
-      absl::GetFlag(FLAGS_screencast), absl::GetFlag(FLAGS_frame_drop));
+      {bitrate}, framerate, absl::GetFlag(FLAGS_screencast),
+      absl::GetFlag(FLAGS_frame_drop));
 
-  std::map<uint32_t, EncodingSettings> frame_settings =
-      VideoCodecTester::CreateFrameSettings(encoding_settings,
-                                            absl::GetFlag(FLAGS_num_frames),
-                                            /*timestamp_rtp=*/90000);
+  int num_frames = absl::GetFlag(FLAGS_num_frames);
+  int key_interval = absl::GetFlag(FLAGS_key_interval);
+  uint32_t timestamp_rtp = 90000;
+  std::map<uint32_t, EncodingSettings> frame_settings;
+  for (int frame_num = 0; frame_num < num_frames; ++frame_num) {
+    encoding_settings.keyframe = (frame_num % (key_interval + 1) == 0);
+    frame_settings.emplace(timestamp_rtp, encoding_settings);
+    timestamp_rtp += k90kHz / framerate;
+  }
 
   // TODO(webrtc:14852): Pass encoder and decoder names directly, and update
   // logged test name (implies lossing history in the chromeperf dashboard).

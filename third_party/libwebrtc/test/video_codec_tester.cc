@@ -953,7 +953,10 @@ class Encoder : public EncodedImageCallback {
           }
           last_encoding_settings_ = encoding_settings;
 
-          int error = encoder_->Encode(input_frame, /*frame_types=*/nullptr);
+          std::vector<VideoFrameType> frame_types = {
+              encoding_settings.keyframe ? VideoFrameType::kVideoFrameKey
+                                         : VideoFrameType::kVideoFrameDelta};
+          int error = encoder_->Encode(input_frame, &frame_types);
           if (error != 0) {
             RTC_LOG(LS_WARNING)
                 << "Encode failed with error code " << error
