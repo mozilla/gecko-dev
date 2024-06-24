@@ -15,6 +15,7 @@
 #include "mozilla/dom/RemoteType.h"
 #include "mozilla/dom/JSProcessActorParent.h"
 #include "mozilla/dom/ProcessActor.h"
+#include "mozilla/dom/UniqueContentParentKeepAlive.h"
 #include "mozilla/dom/UserActivation.h"
 #include "mozilla/gfx/gfxVarReceiver.h"
 #include "mozilla/gfx/GPUProcessListener.h"
@@ -128,10 +129,11 @@ class ContentParent final : public PContentParent,
   friend class mozilla::PreallocatedProcessManagerImpl;
   friend class PContentParent;
   friend class mozilla::dom::RemoteWorkerManager;
+  friend struct mozilla::dom::ContentParentKeepAliveDeleter;
 
  public:
   using LaunchPromise =
-      mozilla::MozPromise<RefPtr<ContentParent>, nsresult, false>;
+      mozilla::MozPromise<UniqueContentParentKeepAlive, nsresult, true>;
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_CONTENTPARENT_IID)
 
@@ -144,7 +146,7 @@ class ContentParent final : public PContentParent,
   /**
    * Create a ContentParent suitable for use later as a content process.
    */
-  static already_AddRefed<ContentParent> MakePreallocProcess();
+  static UniqueContentParentKeepAlive MakePreallocProcess();
 
   /**
    * Start up the content-process machinery.  This might include
@@ -168,49 +170,81 @@ class ContentParent final : public PContentParent,
 
   /**
    * Picks a random content parent from |aContentParents| respecting the index
-   * limit set by |aMaxContentParents|.
+   * limit set by |aMaxContentParents|. If |aBrowserId| is non-zero, that tab
+   * will be ignored when counting tabs in this process.
    * Returns null if non available.
    */
   static already_AddRefed<ContentParent> MinTabSelect(
       const nsTArray<ContentParent*>& aContentParents,
-      int32_t maxContentParents);
+      int32_t maxContentParents, uint64_t aBrowserId);
 
   /**
-   * Get or create a content process for:
-   * 1. browser iframe
-   * 2. remote xul <browser>
-   * 3. normal iframe
+   * Get or create a content process which can be used for hosting web content
+   * or workers.
+   *
+   * This method returns a |UniqueContentParentKeepAlive|, which manages the
+   * lifecycle of the process. See the documentation on |AddKeepAlive| for more
+   * information about managing content process lifecycles.
+   *
+   * The returned ContentParent which may still be in the process of launching.
+   * Use the |WaitForLaunchAsync| or |WaitForLaunchSync| methods to wait for
+   * this process to finish launching.
+   *
+   * @param aRemoteType Required remote type for new & used processes.
+   * @param aGroup If specified, the |BrowsingContextGroup| requesting process
+   *               selection. Used to ensure that only a single process per
+   *               remoteType is used for each |BrowsingContextGroup|.
+   * @param aPriority Initial process priority for a new content process.
+   * @param aPreferUsed If true, process selection will prefer re-using an
+   *                    existing ContentProcess over launching a new one.
+   * @param aBrowserId The |BrowserId| requesting process selection. This
+   *                   information is used to reduce unnecessary process churn
+   *                   when navigating (see |MinTabSelect|).
+   *                   The returned KeepAlive will be for this BrowserId.
+   */
+  static UniqueContentParentKeepAlive GetNewOrUsedLaunchingBrowserProcess(
+      const nsACString& aRemoteType, BrowsingContextGroup* aGroup = nullptr,
+      hal::ProcessPriority aPriority =
+          hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
+      bool aPreferUsed = false, uint64_t aBrowserId = 0);
+
+  /**
+   * Like |GetNewOrUsedLaunchingBrowserProcess|, but returns a promise which
+   * resolves when the process is finished launching.
    */
   static RefPtr<ContentParent::LaunchPromise> GetNewOrUsedBrowserProcessAsync(
       const nsACString& aRemoteType, BrowsingContextGroup* aGroup = nullptr,
       hal::ProcessPriority aPriority =
           hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
-      bool aPreferUsed = false);
-  static already_AddRefed<ContentParent> GetNewOrUsedBrowserProcess(
-      const nsACString& aRemoteType, BrowsingContextGroup* aGroup = nullptr,
-      hal::ProcessPriority aPriority =
-          hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
-      bool aPreferUsed = false);
+      bool aPreferUsed = false, uint64_t aBrowserId = 0);
 
   /**
-   * Get or create a content process, but without waiting for the process
-   * launch to have completed. The returned `ContentParent` may still be in the
-   * "Launching" state.
-   *
-   * Can return `nullptr` in the case of an error.
-   *
-   * Use the `WaitForLaunchAsync` or `WaitForLaunchSync` methods to wait for
-   * the process to be fully launched.
+   * Like |GetNewOrUsedLaunchingBrowserProcess|, but blocks the main thread
+   * until the process process is finished launching before returning.
    */
-  static already_AddRefed<ContentParent> GetNewOrUsedLaunchingBrowserProcess(
+  static UniqueContentParentKeepAlive GetNewOrUsedBrowserProcess(
       const nsACString& aRemoteType, BrowsingContextGroup* aGroup = nullptr,
       hal::ProcessPriority aPriority =
           hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
-      bool aPreferUsed = false);
+      bool aPreferUsed = false, uint64_t aBrowserId = 0);
 
+  /**
+   * Asynchronously wait for this content process to finish launching, such that
+   * the ContentParent actor is ready for IPC.
+   *
+   * @param aPriority The initial priority for the process after launching.
+   * @param aBrowserId The BrowserId to hold a KeepAlive for during the async
+   *                   launch which will be used to resolve the LaunchPromise.
+   */
   RefPtr<ContentParent::LaunchPromise> WaitForLaunchAsync(
       hal::ProcessPriority aPriority =
-          hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND);
+          hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
+      uint64_t aBrowserId = 0);
+
+  /**
+   * Like `WaitForLaunchAsync`, but synchronously blocks the main thread until
+   * the content process has finished launching.
+   */
   bool WaitForLaunchSync(hal::ProcessPriority aPriority =
                              hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND);
 
@@ -330,34 +364,44 @@ class ContentParent final : public PContentParent,
   virtual nsresult DoSendAsyncMessage(const nsAString& aMessage,
                                       StructuredCloneData& aData) override;
 
-  RecursiveMutex& ThreadsafeHandleMutex();
+  /*
+   * Attempt to add a KeepAlive for the given BrowserId. A KeepAlive will try to
+   * keep the process alive, though it may still die (e.g. due to a crash,
+   * explicit shutdown request, or similar).
+   *
+   * The returned `UniqueContentParentKeepAlive` will clear this KeepAlive when
+   * destroyed, and acts as a strong pointer to this `ContentParent`.
+   *
+   * Returns nullptr if the process is already being shut down.
+   */
+  [[nodiscard]] UniqueContentParentKeepAlive TryAddKeepAlive(
+      uint64_t aBrowserId);
 
-  /** Notify that a tab is about to send Destroy to its child. */
-  void NotifyTabWillDestroy();
+  /*
+   * Like `TryAddKeepAlive`, but never returns `nullptr`, instead asserting if
+   * the ContentParent is already shutting down.
+   */
+  [[nodiscard]] UniqueContentParentKeepAlive AddKeepAlive(uint64_t aBrowserId);
 
-  /** Notify that a tab is beginning its destruction sequence. */
-  void NotifyTabDestroying();
-
-  /** Notify that a tab was destroyed during normal operation. */
-  void NotifyTabDestroyed(const TabId& aTabId, bool aNotifiedDestroying);
-
-  // Manage the set of `KeepAlive`s on this ContentParent which are preventing
-  // it from being destroyed.
-  void AddKeepAlive();
-  void RemoveKeepAlive();
+  /**
+   * Check if this process is ready to be shut down, and if it is, begin the
+   * shutdown process.  Automatically called whenever a KeepAlive is removed, or
+   * a BrowserParent is removed.
+   *
+   * Returns `true` if shutdown for the process has been started, and `false`
+   * otherwise.
+   *
+   * @param aIgnoreKeepAlivePref If true, the dom.ipc.keepProcessesAlive.*
+   *                             preferences will be ignored, for clean-up of
+   *                             cached processes.
+   */
+  bool MaybeBeginShutDown(bool aIgnoreKeepAlivePref = false);
 
   TestShellParent* CreateTestShell();
 
   bool DestroyTestShell(TestShellParent* aTestShell);
 
   TestShellParent* GetTestShellSingleton();
-
-  // This method can be called on any thread.
-  void RegisterRemoteWorkerActor();
-
-  // This method _must_ be called on main-thread because it can start the
-  // shutting down of the content process.
-  void UnregisterRemoveWorkerActor();
 
   void ReportChildAlreadyBlocked();
 
@@ -709,19 +753,6 @@ class ContentParent final : public PContentParent,
 
   explicit ContentParent(const nsACString& aRemoteType);
 
-  // Launch the subprocess and associated initialization.
-  // Returns false if the process fails to start.
-  // Deprecated in favor of LaunchSubprocessAsync.
-  bool LaunchSubprocessSync(hal::ProcessPriority aInitialPriority);
-
-  // Launch the subprocess and associated initialization;
-  // returns a promise and signals failure by rejecting.
-  // OS-level launching work is dispatched to another thread, but some
-  // initialization (creating IPDL actors, etc.; see Init()) is run on
-  // the main thread.
-  RefPtr<LaunchPromise> LaunchSubprocessAsync(
-      hal::ProcessPriority aInitialPriority);
-
   // Common implementation of LaunchSubprocess{Sync,Async}.
   // Return `true` in case of success, `false` if launch was
   // aborted because of shutdown.
@@ -752,17 +783,6 @@ class ContentParent final : public PContentParent,
   void RemoveFromList();
 
   /**
-   * Return if the process has an active worker.
-   */
-  bool HasActiveWorker();
-
-  /**
-   * Decide whether the process should be kept alive even when it would normally
-   * be shut down, for example when all its tabs are closed.
-   */
-  bool ShouldKeepProcessAlive();
-
-  /**
    * Mark this ContentParent as dead for the purposes of Get*().
    * This method is idempotent.
    */
@@ -774,22 +794,6 @@ class ContentParent final : public PContentParent,
    * This potentially cancels mainthread content JS execution.
    */
   void SignalImpendingShutdownToContentJS();
-
-  bool CheckTabDestroyWillKeepAlive(uint32_t aExpectedBrowserCount);
-
-  /**
-   * Check if this process is ready to be shut down, and if it is, begin the
-   * shutdown process. Should be called whenever a change occurs which could
-   * cause the decisions made by `ShouldKeepProcessAlive` to change.
-   *
-   * @param aExpectedBrowserCount The number of PBrowser actors which should
-   *                              not block shutdown. This should usually be 0.
-   * @param aSendShutDown If true, will send the shutdown message in addition
-   *                      to marking the process as dead and starting the force
-   *                      kill timer.
-   */
-  void MaybeBeginShutDown(uint32_t aExpectedBrowserCount = 0,
-                          bool aSendShutDown = true);
 
   /**
    * How we will shut down this ContentParent and its subprocess.
@@ -1412,13 +1416,16 @@ class ContentParent final : public PContentParent,
 
  private:
   // Return an existing ContentParent if possible. Otherwise, `nullptr`.
-  static already_AddRefed<ContentParent> GetUsedBrowserProcess(
+  static UniqueContentParentKeepAlive GetUsedBrowserProcess(
       const nsACString& aRemoteType, nsTArray<ContentParent*>& aContentParents,
-      uint32_t aMaxContentParents, bool aPreferUsed, ProcessPriority aPriority);
+      uint32_t aMaxContentParents, bool aPreferUsed, ProcessPriority aPriority,
+      uint64_t aBrowserId);
 
   void AddToPool(nsTArray<ContentParent*>&);
   void RemoveFromPool(nsTArray<ContentParent*>&);
   void AssertNotInPool();
+
+  void RemoveKeepAlive(uint64_t aBrowserId);
 
   void AssertAlive();
 
@@ -1459,13 +1466,6 @@ class ContentParent final : public PContentParent,
   // track the identity and other relevant information about the content process
   // they're attached to.
   const RefPtr<ThreadsafeContentParentHandle> mThreadsafeHandle;
-
-  // How many tabs we're waiting to finish their destruction
-  // sequence.  Precisely, how many BrowserParents have called
-  // NotifyTabDestroying() but not called NotifyTabDestroyed().
-  int32_t mNumDestroyingTabs;
-
-  uint32_t mNumKeepaliveCalls;
 
   // The process starts in the LAUNCHING state, and transitions to
   // ALIVE once it can accept IPC messages.  It remains ALIVE only
@@ -1509,7 +1509,6 @@ class ContentParent final : public PContentParent,
   uint8_t mGMPCreated : 1;
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  bool mNotifiedImpendingShutdownOnTabWillDestroy = false;
   bool mBlockShutdownCalled;
 #endif
 
@@ -1615,20 +1614,15 @@ class ThreadsafeContentParentHandle final {
     return do_AddRef(mWeakActor);
   }
 
-  // Calls `aCallback` with the current remote worker count and whether or not
-  // shutdown has been started. If the callback returns `true`, registers a new
-  // actor, and returns `true`, otherwise returns `false`.
+  // Attempt to add a KeepAlive for the given BrowserId. A KeepAlive will try to
+  // keep the process alive, though it may still die (e.g. due to a crash,
+  // explicit shutdown request, or similar).
   //
-  // NOTE: The internal mutex is held while evaluating `aCallback`.
-  bool MaybeRegisterRemoteWorkerActor(
-      MoveOnlyFunction<bool(uint32_t, bool)> aCallback) MOZ_EXCLUDES(mMutex);
-
-  // Like `MaybeRegisterRemoteWorkerActor`, but unconditional.
-  void RegisterRemoteWorkerActor() MOZ_EXCLUDES(mMutex) {
-    MaybeRegisterRemoteWorkerActor([](uint32_t, bool) { return true; });
-  }
-
-  RecursiveMutex& Mutex() { return mMutex; }
+  // Returns nullptr if the process is already being shut down.
+  //
+  // May be called from any thread.
+  [[nodiscard]] UniqueThreadsafeContentParentKeepAlive TryAddKeepAlive(
+      uint64_t aBrowserId = 0) MOZ_EXCLUDES(mMutex);
 
  private:
   ThreadsafeContentParentHandle(ContentParent* aActor, ContentParentId aChildID,
@@ -1641,7 +1635,17 @@ class ThreadsafeContentParentHandle final {
   const ContentParentId mChildID;
 
   nsCString mRemoteType MOZ_GUARDED_BY(mMutex);
-  uint32_t mRemoteWorkerActorCount MOZ_GUARDED_BY(mMutex) = 0;
+
+  // Keepalives for this browser, keyed by BrowserId. A BrowserId of `0` is used
+  // for non-tab code keeping the process alive (such as for workers).
+  // Each KeepAlive increments the corresponding BrowserId's counter, and the
+  // process will begin shutdown when the last KeepAlive is removed.
+  // FIXME: These sets are probably quite small, so it might make sense to avoid
+  // hashtable storage.
+  nsTHashMap<uint64_t, uint32_t> mKeepAlivesPerBrowserId MOZ_GUARDED_BY(mMutex);
+
+  // If set, the browser is shutting down, and new workers or tabs should not be
+  // created in this process.
   bool mShutdownStarted MOZ_GUARDED_BY(mMutex) = false;
 
   // Weak reference to the actual ContentParent actor. Only touched on the main

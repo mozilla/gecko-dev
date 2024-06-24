@@ -8,6 +8,7 @@
 #define mozilla_dom_RemoteWorkerParent_h
 
 #include "mozilla/dom/PRemoteWorkerParent.h"
+#include "mozilla/dom/UniqueContentParentKeepAlive.h"
 
 namespace mozilla::dom {
 
@@ -25,9 +26,8 @@ class RemoteWorkerParent final : public PRemoteWorkerParent {
  public:
   NS_INLINE_DECL_REFCOUNTING(RemoteWorkerParent, override);
 
-  RemoteWorkerParent();
-
-  void Initialize(bool aAlreadyRegistered = false);
+  explicit RemoteWorkerParent(
+      UniqueThreadsafeContentParentKeepAlive aKeepAlive);
 
   void SetController(RemoteWorkerController* aController);
 
@@ -58,6 +58,7 @@ class RemoteWorkerParent final : public PRemoteWorkerParent {
 
   bool mDeleteSent = false;
   RefPtr<RemoteWorkerController> mController;
+  UniqueThreadsafeContentParentKeepAlive mContentParentKeepAlive;
 };
 
 }  // namespace mozilla::dom

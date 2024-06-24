@@ -8,13 +8,10 @@
 #define mozilla_PreallocatedProcessManager_h
 
 #include "base/basictypes.h"
-#include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/dom/UniqueContentParentKeepAlive.h"
 #include "nsStringFwd.h"
 
 namespace mozilla {
-namespace dom {
-class ContentParent;
-}  // namespace dom
 
 /**
  * This class manages a ContentParent that it starts up ahead of any particular
@@ -32,7 +29,9 @@ class ContentParent;
 class PreallocatedProcessManagerImpl;
 
 class PreallocatedProcessManager final {
-  typedef mozilla::dom::ContentParent ContentParent;
+  using ContentParent = mozilla::dom::ContentParent;
+  using UniqueContentParentKeepAlive =
+      mozilla::dom::UniqueContentParentKeepAlive;
 
  public:
   static PreallocatedProcessManagerImpl* GetPPMImpl();
@@ -55,7 +54,7 @@ class PreallocatedProcessManager final {
    * If we use a preallocated process, it will schedule the start of
    * another on Idle (AllocateOnIdle()).
    */
-  static already_AddRefed<ContentParent> Take(const nsACString& aRemoteType);
+  static UniqueContentParentKeepAlive Take(const nsACString& aRemoteType);
 
   /**
    * Note that a process was shut down, and should no longer be tracked as a
