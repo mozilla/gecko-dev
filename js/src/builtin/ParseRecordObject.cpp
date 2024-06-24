@@ -22,9 +22,6 @@ ParseRecordObject::ParseRecordObject(Handle<js::JSONParseNode*> parseNode,
 bool ParseRecordObject::addEntries(JSContext* cx, EntryMap&& appendEntries) {
   if (!entries) {
     entries = js::MakeUnique<EntryMap>(std::move(appendEntries));
-    if (!entries) {
-      ReportOutOfMemory(cx);
-    }
     return !!entries;
   }
   for (auto iter = appendEntries.iter(); !iter.done(); iter.next()) {

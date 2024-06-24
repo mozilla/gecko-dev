@@ -440,13 +440,11 @@ class CycleDetector {
 };
 
 static inline JSString* MaybeGetRawJSON(JSContext* cx, JSObject* obj) {
-  auto* unwrappedObj = obj->maybeUnwrapIf<js::RawJSONObject>();
-  if (!unwrappedObj) {
+  if (!obj->is<RawJSONObject>()) {
     return nullptr;
   }
-  JSAutoRealm ar(cx, unwrappedObj);
 
-  JSString* rawJSON = unwrappedObj->rawJSON(cx);
+  JSString* rawJSON = obj->as<js::RawJSONObject>().rawJSON(cx);
   MOZ_ASSERT(rawJSON);
   return rawJSON;
 }
@@ -2203,8 +2201,7 @@ static bool json_isRawJSON(JSContext* cx, unsigned argc, Value* vp) {
       MOZ_ASSERT(objIsFrozen);
     }
 #  endif  // DEBUG
-    args.rval().setBoolean(obj->is<RawJSONObject>() ||
-                           obj->canUnwrapAs<RawJSONObject>());
+    args.rval().setBoolean(obj->is<RawJSONObject>());
     return true;
   }
 

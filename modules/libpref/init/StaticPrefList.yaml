@@ -7798,7 +7798,7 @@
     type: bool
     value: false
     mirror: always
-    set_spidermonkey_pref: always
+    set_spidermonkey_pref: startup
 #endif  // ENABLE_JSON_PARSE_WITH_SOURCE
 
 - name: javascript.options.wasm_caching

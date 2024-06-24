@@ -17,17 +17,14 @@ const JSClass RawJSONObject::class_ = {"RawJSON",
 /* static */
 RawJSONObject* RawJSONObject::create(JSContext* cx,
                                      Handle<JSString*> jsonString) {
-  // https://tc39.es/proposal-json-parse-with-source/#sec-json.rawjson
-  // Step 5
   Rooted<RawJSONObject*> obj(
       cx, NewObjectWithGivenProto<RawJSONObject>(cx, nullptr));
   if (!obj) {
     return nullptr;
   }
-  // Step 6
   Rooted<PropertyKey> id(cx, NameToId(cx->names().rawJSON));
   Rooted<Value> jsonStringVal(cx, StringValue(jsonString));
-  if (!NativeDefineDataProperty(cx, obj, id, jsonStringVal, JSPROP_ENUMERATE)) {
+  if (!NativeDefineDataProperty(cx, obj, id, jsonStringVal, 0)) {
     return nullptr;
   }
   return obj;
