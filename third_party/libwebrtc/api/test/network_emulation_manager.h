@@ -24,6 +24,7 @@
 #include "api/test/peer_network_dependencies.h"
 #include "api/test/simulated_network.h"
 #include "api/test/time_controller.h"
+#include "api/units/data_rate.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/network.h"
 #include "rtc_base/network_constants.h"
@@ -200,6 +201,7 @@ class NetworkEmulationManager {
       // values.
       Builder& config(BuiltInNetworkBehaviorConfig config);
       Builder& delay_ms(int queue_delay_ms);
+      Builder& capacity(DataRate link_capacity);
       Builder& capacity_kbps(int link_capacity_kbps);
       Builder& capacity_Mbps(int link_capacity_Mbps);
       Builder& loss(double loss_rate);

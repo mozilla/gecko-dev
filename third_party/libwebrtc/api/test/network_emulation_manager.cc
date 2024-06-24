@@ -11,6 +11,7 @@
 
 #include <utility>
 
+#include "api/units/data_rate.h"
 #include "rtc_base/checks.h"
 #include "test/network/simulated_network.h"
 
@@ -56,16 +57,31 @@ NetworkEmulationManager::SimulatedNetworkNode::Builder::delay_ms(
 }
 
 NetworkEmulationManager::SimulatedNetworkNode::Builder&
+NetworkEmulationManager::SimulatedNetworkNode::Builder::capacity(
+    DataRate link_capacity) {
+  config_.link_capacity = link_capacity;
+  return *this;
+}
+
+NetworkEmulationManager::SimulatedNetworkNode::Builder&
 NetworkEmulationManager::SimulatedNetworkNode::Builder::capacity_kbps(
     int link_capacity_kbps) {
-  config_.link_capacity_kbps = link_capacity_kbps;
+  if (link_capacity_kbps > 0) {
+    config_.link_capacity = DataRate::KilobitsPerSec(link_capacity_kbps);
+  } else {
+    config_.link_capacity = DataRate::Infinity();
+  }
   return *this;
 }
 
 NetworkEmulationManager::SimulatedNetworkNode::Builder&
 NetworkEmulationManager::SimulatedNetworkNode::Builder::capacity_Mbps(
     int link_capacity_Mbps) {
-  config_.link_capacity_kbps = link_capacity_Mbps * 1000;
+  if (link_capacity_Mbps > 0) {
+    config_.link_capacity = DataRate::KilobitsPerSec(link_capacity_Mbps * 1000);
+  } else {
+    config_.link_capacity = DataRate::Infinity();
+  }
   return *this;
 }
 
