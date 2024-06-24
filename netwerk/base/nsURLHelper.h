@@ -9,6 +9,8 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsASCIIMask.h"
+#include <mozilla/Maybe.h>
+#include <mozilla/CompactPair.h>
 
 class nsIFile;
 class nsIURLParser;
@@ -59,8 +61,11 @@ nsresult net_ParseFileURL(const nsACString& inURL, nsACString& outDirectory,
                           nsACString& outFileBaseName,
                           nsACString& outFileExtension);
 
-/* handle .. in dirs while resolving URLs (path is UTF-8) */
-void net_CoalesceDirs(netCoalesceFlags flags, char* path);
+// handle .. in dirs while resolving URLs (path is UTF-8)
+// Return a tuple containing:
+// (index of the last slash, index of the end of the basename)
+mozilla::Maybe<mozilla::CompactPair<uint32_t, uint32_t>> net_CoalesceDirs(
+    netCoalesceFlags flags, char* path);
 
 /**
  * Check if a URL is absolute
