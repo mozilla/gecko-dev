@@ -20,3 +20,5 @@ browser.jar:
   content/browser/backup/restore-from-backup.css                 (content/restore-from-backup.css)
   content/browser/backup/restore-from-backup.mjs                 (content/restore-from-backup.mjs)
 * content/browser/backup/archive.template.html                   (content/archive.template.html)
+  content/browser/backup/archive.css                             (content/archive.css)
+* content/browser/backup/archive.js                              (content/archive.js)
