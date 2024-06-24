@@ -93,15 +93,6 @@ def add_icf_flags(compilation_flags, linker_flags, add_addrsig_flag):
     linker_flags.ldflags.append("-Wl,--icf=safe")
 
 
-# Please keep these last in this file.
-add_old_configure_assignment("_COMPILATION_CFLAGS", compilation_flags.cflags)
-add_old_configure_assignment("_COMPILATION_CXXFLAGS", compilation_flags.cxxflags)
-add_old_configure_assignment("_COMPILATION_HOST_CFLAGS", compilation_flags.host_cflags)
-add_old_configure_assignment(
-    "_COMPILATION_HOST_CXXFLAGS", compilation_flags.host_cxxflags
-)
-
-
 option(
     "--disable-new-pass-manager",
     help="Use the legacy LLVM pass manager in clang builds",
@@ -423,3 +414,10 @@ add_old_configure_assignment(
     "_COMPILATION_OPTIMIZE_LDFLAGS", linker_optimize_flags.ldflags
 )
 add_old_configure_assignment("_COMPILATION_HOST_LDFLAGS", linker_flags.host_ldflags)
+
+add_old_configure_assignment("_COMPILATION_CFLAGS", compilation_flags.cflags)
+add_old_configure_assignment("_COMPILATION_CXXFLAGS", compilation_flags.cxxflags)
+add_old_configure_assignment("_COMPILATION_HOST_CFLAGS", compilation_flags.host_cflags)
+add_old_configure_assignment(
+    "_COMPILATION_HOST_CXXFLAGS", compilation_flags.host_cxxflags
+)
