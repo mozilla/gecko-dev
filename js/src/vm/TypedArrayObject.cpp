@@ -4447,6 +4447,7 @@ bool TypedArrayObject::sort(JSContext* cx, unsigned argc, Value* vp) {
 
 ArraySortResult js::TypedArraySortFromJit(
     JSContext* cx, jit::TrampolineNativeFrameLayout* frame) {
+  AutoJSMethodProfilerEntry pseudoFrame(cx, "[TypedArray].prototype", "sort");
   // Initialize the ArraySortData class stored in the trampoline frame.
   void* dataUninit = frame->getFrameData<ArraySortData>();
   auto* data = new (dataUninit) ArraySortData(cx);

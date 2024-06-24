@@ -2412,6 +2412,7 @@ bool js::array_sort(JSContext* cx, unsigned argc, Value* vp) {
 
 ArraySortResult js::ArraySortFromJit(JSContext* cx,
                                      jit::TrampolineNativeFrameLayout* frame) {
+  AutoJSMethodProfilerEntry pseudoFrame(cx, "Array.prototype", "sort");
   // Initialize the ArraySortData class stored in the trampoline frame.
   void* dataUninit = frame->getFrameData<ArraySortData>();
   auto* data = new (dataUninit) ArraySortData(cx);
