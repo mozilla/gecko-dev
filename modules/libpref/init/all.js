@@ -3679,7 +3679,7 @@ pref("reader.content_width", 3);
 pref("reader.line_height", 4);
 
 // Determines if improved text and layout menu is enabled in reader mode.
-pref("reader.improved_text_menu.enabled", false);
+pref("reader.improved_text_menu.enabled", true);
 
 // The default character spacing in reader mode (1-9)
 pref("reader.character_spacing", 0);
@@ -3699,7 +3699,7 @@ pref("reader.color_scheme", "auto");
 pref("reader.color_scheme.values", "[\"auto\",\"light\",\"dark\",\"sepia\",\"contrast\",\"gray\"]");
 
 // Determines if updated color theme menu is enabled in reader mode.
-pref("reader.colors_menu.enabled", false);
+pref("reader.colors_menu.enabled", true);
 
 // The custom color scheme options in reader colors menu.
 pref("reader.custom_colors.foreground", "");
