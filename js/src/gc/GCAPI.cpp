@@ -431,13 +431,8 @@ JS_PUBLIC_API void JS::SetLowMemoryState(JSContext* cx, bool newState) {
   return cx->runtime()->gc.setLowMemoryState(newState);
 }
 
-JS_PUBLIC_API void JS::DisableIncrementalGC(JSContext* cx) {
-  cx->runtime()->gc.disallowIncrementalGC();
-}
-
 JS_PUBLIC_API bool JS::IsIncrementalGCEnabled(JSContext* cx) {
-  GCRuntime& gc = cx->runtime()->gc;
-  return gc.isIncrementalGCEnabled() && gc.isIncrementalGCAllowed();
+  return cx->runtime()->gc.isIncrementalGCEnabled();
 }
 
 JS_PUBLIC_API bool JS::IsIncrementalGCInProgress(JSContext* cx) {

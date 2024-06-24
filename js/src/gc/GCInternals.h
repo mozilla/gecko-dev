@@ -191,8 +191,6 @@ class MOZ_RAII AutoRunParallelTask : public GCParallelTask {
   }
 };
 
-GCAbortReason IsIncrementalGCUnsafe(JSRuntime* rt);
-
 #ifdef JS_GC_ZEAL
 
 class MOZ_RAII AutoStopVerifyingBarriers {

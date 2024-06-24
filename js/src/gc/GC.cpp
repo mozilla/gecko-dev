@@ -472,7 +472,6 @@ GCRuntime::GCRuntime(JSRuntime* rt)
       markingValidator(nullptr),
 #endif
       defaultTimeBudgetMS_(TuningDefaults::DefaultTimeBudgetMS),
-      incrementalAllowed(true),
       compactingEnabled(TuningDefaults::CompactingEnabled),
       parallelMarkingEnabled(TuningDefaults::ParallelMarkingEnabled),
       rootsRemoved(false),
@@ -4037,16 +4036,6 @@ IncrementalProgress GCRuntime::waitForBackgroundTask(
   return Finished;
 }
 
-GCAbortReason gc::IsIncrementalGCUnsafe(JSRuntime* rt) {
-  MOZ_ASSERT(!rt->mainContextFromOwnThread()->suppressGC);
-
-  if (!rt->gc.isIncrementalGCAllowed()) {
-    return GCAbortReason::IncrementalDisabled;
-  }
-
-  return GCAbortReason::None;
-}
-
 inline void GCRuntime::checkZoneIsScheduled(Zone* zone, JS::GCReason reason,
                                             const char* trigger) {
 #ifdef DEBUG
@@ -4092,13 +4081,11 @@ GCRuntime::IncrementalResult GCRuntime::budgetIncrementalGC(
   }
 
   if (!budget.isUnlimited()) {
-    GCAbortReason unsafeReason = IsIncrementalGCUnsafe(rt);
-    if (unsafeReason == GCAbortReason::None) {
-      if (reason == JS::GCReason::COMPARTMENT_REVIVED) {
-        unsafeReason = GCAbortReason::CompartmentRevived;
-      } else if (!incrementalGCEnabled) {
-        unsafeReason = GCAbortReason::ModeChange;
-      }
+    GCAbortReason unsafeReason = GCAbortReason::None;
+    if (reason == JS::GCReason::COMPARTMENT_REVIVED) {
+      unsafeReason = GCAbortReason::CompartmentRevived;
+    } else if (!incrementalGCEnabled) {
+      unsafeReason = GCAbortReason::ModeChange;
     }
 
     if (unsafeReason != GCAbortReason::None) {

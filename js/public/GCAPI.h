@@ -973,14 +973,6 @@ extern JS_PUBLIC_API void SetCreateGCSliceBudgetCallback(
     JSContext* cx, CreateSliceBudgetCallback cb);
 
 /**
- * Incremental GC defaults to enabled, but may be disabled for testing or in
- * embeddings that have not yet implemented barriers on their native classes.
- * There is not currently a way to re-enable incremental GC once it has been
- * disabled on the runtime.
- */
-extern JS_PUBLIC_API void DisableIncrementalGC(JSContext* cx);
-
-/**
  * Returns true if incremental GC is enabled. Simply having incremental GC
  * enabled is not sufficient to ensure incremental collections are happening.
  * See the comment "Incremental GC" above for reasons why incremental GC may be

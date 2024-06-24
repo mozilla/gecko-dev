@@ -197,10 +197,7 @@ void gc::GCRuntime::startVerifyPreBarriers() {
   }
 
   JSContext* cx = rt->mainContextFromOwnThread();
-
-  if (IsIncrementalGCUnsafe(rt) != GCAbortReason::None) {
-    return;
-  }
+  MOZ_ASSERT(!cx->suppressGC);
 
   number++;
 
@@ -362,7 +359,7 @@ void gc::GCRuntime::endVerifyPreBarriers() {
   MOZ_ASSERT(incrementalState == State::Mark);
   incrementalState = State::NotActive;
 
-  if (!compartmentCreated && IsIncrementalGCUnsafe(rt) == GCAbortReason::None) {
+  if (!compartmentCreated) {
     CheckEdgeTracer cetrc(rt);
 
     /* Start after the roots. */

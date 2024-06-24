@@ -431,9 +431,6 @@ class GCRuntime {
 
   void setAlwaysPreserveCode() { alwaysPreserveCode = true; }
 
-  bool isIncrementalGCAllowed() const { return incrementalAllowed; }
-  void disallowIncrementalGC() { incrementalAllowed = false; }
-
   void setIncrementalGCEnabled(bool enabled);
 
   bool isIncrementalGCEnabled() const { return incrementalGCEnabled; }
@@ -1293,12 +1290,6 @@ class GCRuntime {
    * pref: javascript.options.mem.gc_incremental_slice_ms,
    */
   MainThreadData<int64_t> defaultTimeBudgetMS_;
-
-  /*
-   * We disable incremental GC if we encounter a Class with a trace hook
-   * that does not implement write barriers.
-   */
-  MainThreadData<bool> incrementalAllowed;
 
   /*
    * Whether compacting GC can is enabled globally.
