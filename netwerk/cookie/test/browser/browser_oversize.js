@@ -45,7 +45,23 @@ add_task(async _ => {
       expected.push({
         resolve,
         match:
-          "Cookie “b” is invalid because its path size is too big. Max size is 1024 B.",
+          "The value of the attribute “path” for the cookie “b” has been rejected because its size is too big. Max size is 1024 B.",
+      });
+    }),
+
+    new Promise(resolve => {
+      expected.push({
+        resolve,
+        match:
+          "The value of the attribute “domain” for the cookie “c” has been rejected because its size is too big. Max size is 1024 B.",
+      });
+    }),
+
+    new Promise(resolve => {
+      expected.push({
+        resolve,
+        match:
+          "The value of the attribute “max-age” for the cookie “d” has been rejected because its size is too big. Max size is 1024 B.",
       });
     }),
   ];
@@ -66,7 +82,7 @@ add_task(async _ => {
       expected.push({
         resolve,
         match:
-          "Cookie “d” is invalid because its size is too big. Max size is 4096 B.",
+          "Cookie “aa” is invalid because its size is too big. Max size is 4096 B.",
       });
     }),
 
@@ -74,7 +90,23 @@ add_task(async _ => {
       expected.push({
         resolve,
         match:
-          "Cookie “e” is invalid because its path size is too big. Max size is 1024 B.",
+          "The value of the attribute “path” for the cookie “bb” has been rejected because its size is too big. Max size is 1024 B.",
+      });
+    }),
+
+    new Promise(resolve => {
+      expected.push({
+        resolve,
+        match:
+          "The value of the attribute “domain” for the cookie “cc” has been rejected because its size is too big. Max size is 1024 B.",
+      });
+    }),
+
+    new Promise(resolve => {
+      expected.push({
+        resolve,
+        match:
+          "The value of the attribute “max-age” for the cookie “dd” has been rejected because its size is too big. Max size is 1024 B.",
       });
     }),
   ];
@@ -82,10 +114,14 @@ add_task(async _ => {
   // Let's use document.cookie
   SpecialPowers.spawn(browser, [], () => {
     const maxBytesPerCookie = 4096;
-    const maxBytesPerCookiePath = 1024;
-    content.document.cookie = "d=" + Array(maxBytesPerCookie + 1).join("x");
+    const maxBytesPerAttribute = 1024;
+    content.document.cookie = "aa=" + Array(maxBytesPerCookie + 1).join("x");
     content.document.cookie =
-      "e=f; path=/" + Array(maxBytesPerCookiePath + 1).join("x");
+      "bb=f; path=/" + Array(maxBytesPerAttribute + 1).join("x");
+    content.document.cookie =
+      "cc=f; domain=" + Array(maxBytesPerAttribute + 1).join("x") + ".net";
+    content.document.cookie =
+      "dd=f; max-age=" + Array(maxBytesPerAttribute + 2).join("x");
   });
 
   // Let's wait for the dom events.

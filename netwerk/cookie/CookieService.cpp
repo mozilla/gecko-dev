@@ -144,6 +144,8 @@ constexpr auto SAMESITE_MDN_URL =
     "https://developer.mozilla.org/docs/Web/HTTP/Headers/Set-Cookie/"
     u"SameSite"_ns;
 
+constexpr char ATTRIBUTE_PATH[] = "path";
+
 namespace {
 
 void ComposeCookieString(nsTArray<RefPtr<Cookie>>& aCookieList,
@@ -213,6 +215,29 @@ bool ProcessSameSiteCookieForForeignRequest(nsIChannel* aChannel,
   // We only have SameSite=Lax or lax-by-default cookies at this point.  These
   // are processed only if it's a top-level navigation
   return aIsSafeTopLevelNav;
+}
+
+bool CheckAttributeSize(nsIConsoleReportCollector* aCRC, nsIURI* aHostURI,
+                        const CookieStruct& aCookieData, const char* aAttribute,
+                        const nsACString& aValue) {
+  static uint16_t kMaxAttributeLength = 1024;
+
+  if (aValue.Length() > kMaxAttributeLength) {
+    AutoTArray<nsString, 3> params = {NS_ConvertUTF8toUTF16(aCookieData.name()),
+                                      NS_ConvertUTF8toUTF16(aAttribute)};
+
+    nsString size;
+    size.AppendInt(kMaxAttributeLength);
+    params.AppendElement(size);
+
+    CookieLogging::LogMessageToConsole(
+        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_OVERSIZE_CATEGORY,
+        "CookieAttributeIgnored"_ns, params);
+
+    return false;
+  }
+
+  return true;
 }
 
 }  // namespace
@@ -1744,7 +1769,6 @@ bool CookieService::ParseAttributes(nsIConsoleReportCollector* aCRC,
                                     bool& aAcceptedByParser) {
   aAcceptedByParser = false;
 
-  static const char kPath[] = "path";
   static const char kDomain[] = "domain";
   static const char kExpires[] = "expires";
   static const char kMaxage[] = "max-age";
@@ -1800,17 +1824,29 @@ bool CookieService::ParseAttributes(nsIConsoleReportCollector* aCRC,
     }
 
     // decide which attribute we have, and copy the string
-    if (tokenString.LowerCaseEqualsLiteral(kPath)) {
-      aCookieData.path() = tokenValue;
+    if (tokenString.LowerCaseEqualsLiteral(ATTRIBUTE_PATH)) {
+      if (CheckAttributeSize(aCRC, aHostURI, aCookieData, ATTRIBUTE_PATH,
+                             tokenValue)) {
+        aCookieData.path() = tokenValue;
+      }
 
     } else if (tokenString.LowerCaseEqualsLiteral(kDomain)) {
-      aCookieData.host() = tokenValue;
+      if (CheckAttributeSize(aCRC, aHostURI, aCookieData, kDomain,
+                             tokenValue)) {
+        aCookieData.host() = tokenValue;
+      }
 
     } else if (tokenString.LowerCaseEqualsLiteral(kExpires)) {
-      aExpires = tokenValue;
+      if (CheckAttributeSize(aCRC, aHostURI, aCookieData, kExpires,
+                             tokenValue)) {
+        aExpires = tokenValue;
+      }
 
     } else if (tokenString.LowerCaseEqualsLiteral(kMaxage)) {
-      aMaxage = tokenValue;
+      if (CheckAttributeSize(aCRC, aHostURI, aCookieData, kMaxage,
+                             tokenValue)) {
+        aMaxage = tokenValue;
+      }
 
       // ignore any tokenValue for isSecure; just set the boolean
     } else if (tokenString.LowerCaseEqualsLiteral(kSecure)) {
@@ -2165,22 +2201,13 @@ bool CookieService::CheckPath(CookieStruct& aCookieData,
                               nsIURI* aHostURI) {
   // if a path is given, check the host has permission
   if (aCookieData.path().IsEmpty() || aCookieData.path().First() != '/') {
-    aCookieData.path() = GetPathFromURI(aHostURI);
+    nsAutoCString path = GetPathFromURI(aHostURI);
+    if (CheckAttributeSize(aCRC, aHostURI, aCookieData, ATTRIBUTE_PATH, path)) {
+      aCookieData.path() = path;
+    }
   }
 
-  if (!CookieCommons::CheckPathSize(aCookieData)) {
-    AutoTArray<nsString, 2> params = {
-        NS_ConvertUTF8toUTF16(aCookieData.name())};
-
-    nsString size;
-    size.AppendInt(kMaxBytesPerPath);
-    params.AppendElement(size);
-
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_OVERSIZE_CATEGORY,
-        "CookiePathOversize"_ns, params);
-    return false;
-  }
+  MOZ_ASSERT(CookieCommons::CheckPathSize(aCookieData));
 
   return !aCookieData.path().Contains('\t');
 }
