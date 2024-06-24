@@ -36,9 +36,12 @@
 #include "test/video_codec_tester.h"
 
 ABSL_FLAG(std::string,
-          video_name,
-          "FourPeople_1280x720_30",
-          "Name of input video sequence.");
+          input_path,
+          webrtc::test::ResourcePath("FourPeople_1280x720_30", "yuv"),
+          "Path to input video file.");
+ABSL_FLAG(int, input_width, 1280, "Input video width.");
+ABSL_FLAG(int, input_height, 720, "Input video height.");
+ABSL_FLAG(double, input_framerate_fps, 30, "Input video framerate, fps.");
 ABSL_FLAG(std::string,
           encoder,
           "libaom-av1",
@@ -50,8 +53,8 @@ ABSL_FLAG(std::string,
           "Decoder: dav1d, libvpx-vp9, libvpx-vp8, ffmpeg-h264, hw-vp8, "
           "hw-vp9, hw-av1, hw-h264, hw-h265");
 ABSL_FLAG(std::string, scalability_mode, "L1T1", "Scalability mode.");
-ABSL_FLAG(int, width, 1280, "Width.");
-ABSL_FLAG(int, height, 720, "Height.");
+ABSL_FLAG(absl::optional<int>, width, absl::nullopt, "Encode width.");
+ABSL_FLAG(absl::optional<int>, height, absl::nullopt, "Encode height.");
 ABSL_FLAG(std::vector<std::string>,
           bitrate_kbps,
           {"1024"},
@@ -90,29 +93,18 @@ struct VideoInfo {
   Frequency framerate;
 };
 
-const std::map<std::string, VideoInfo> kRawVideos = {
-    {"FourPeople_1280x720_30",
-     {.name = "FourPeople_1280x720_30",
-      .resolution = {.width = 1280, .height = 720},
-      .framerate = Frequency::Hertz(30)}},
-    {"vidyo1_1280x720_30",
-     {.name = "vidyo1_1280x720_30",
-      .resolution = {.width = 1280, .height = 720},
-      .framerate = Frequency::Hertz(30)}},
-    {"vidyo4_1280x720_30",
-     {.name = "vidyo4_1280x720_30",
-      .resolution = {.width = 1280, .height = 720},
-      .framerate = Frequency::Hertz(30)}},
-    {"KristenAndSara_1280x720_30",
-     {.name = "KristenAndSara_1280x720_30",
-      .resolution = {.width = 1280, .height = 720},
-      .framerate = Frequency::Hertz(30)}},
-    {"Johnny_1280x720_30",
-     {.name = "Johnny_1280x720_30",
-      .resolution = {.width = 1280, .height = 720},
-      .framerate = Frequency::Hertz(30)}}};
+VideoInfo kFourPeople_1280x720_30 = {
+    .name = "FourPeople_1280x720_30",
+    .resolution = {.width = 1280, .height = 720},
+    .framerate = Frequency::Hertz(30)};
 
 static constexpr Frequency k90kHz = Frequency::Hertz(90000);
+
+VideoSourceSettings ToSourceSettings(VideoInfo video_info) {
+  return VideoSourceSettings{.file_path = ResourcePath(video_info.name, "yuv"),
+                             .resolution = video_info.resolution,
+                             .framerate = video_info.framerate};
+}
 
 std::string CodecNameToCodecType(std::string name) {
   if (name.find("av1") != std::string::npos) {
@@ -188,13 +180,8 @@ std::unique_ptr<VideoCodecStats> RunEncodeDecodeTest(
     const Environment& env,
     std::string encoder_impl,
     std::string decoder_impl,
-    const VideoInfo& video_info,
+    const VideoSourceSettings& source_settings,
     const std::map<uint32_t, EncodingSettings>& encoding_settings) {
-  VideoSourceSettings source_settings{
-      .file_path = ResourcePath(video_info.name, "yuv"),
-      .resolution = video_info.resolution,
-      .framerate = video_info.framerate};
-
   const SdpVideoFormat& sdp_video_format =
       encoding_settings.begin()->second.sdp_video_format;
 
@@ -263,13 +250,8 @@ std::unique_ptr<VideoCodecStats> RunEncodeTest(
     const Environment& env,
     std::string codec_type,
     std::string codec_impl,
-    const VideoInfo& video_info,
+    const VideoSourceSettings& source_settings,
     const std::map<uint32_t, EncodingSettings>& encoding_settings) {
-  VideoSourceSettings source_settings{
-      .file_path = ResourcePath(video_info.name, "yuv"),
-      .resolution = video_info.resolution,
-      .framerate = video_info.framerate};
-
   const SdpVideoFormat& sdp_video_format =
       encoding_settings.begin()->second.sdp_video_format;
 
@@ -330,13 +312,15 @@ TEST_P(SpatialQualityTest, SpatialQuality) {
   int duration_s = 10;
   int num_frames = duration_s * framerate_fps;
 
+  VideoSourceSettings source_settings = ToSourceSettings(video_info);
+
   std::map<uint32_t, EncodingSettings> frames_settings =
       VideoCodecTester::CreateEncodingSettings(
           codec_type, /*scalability_mode=*/"L1T1", width, height,
           {bitrate_kbps}, framerate_fps, num_frames);
 
   std::unique_ptr<VideoCodecStats> stats = RunEncodeDecodeTest(
-      env, codec_impl, codec_impl, video_info, frames_settings);
+      env, codec_impl, codec_impl, source_settings, frames_settings);
 
   VideoCodecStats::Stream stream;
   if (stats != nullptr) {
@@ -365,7 +349,7 @@ INSTANTIATE_TEST_SUITE_P(
 #else
             Values("builtin"),
 #endif
-            Values(kRawVideos.at("FourPeople_1280x720_30")),
+            Values(kFourPeople_1280x720_30),
             Values(std::make_tuple(320, 180, 30, 32, 26),
                    std::make_tuple(320, 180, 30, 64, 29),
                    std::make_tuple(320, 180, 30, 128, 32),
@@ -404,6 +388,8 @@ TEST_P(BitrateAdaptationTest, BitrateAdaptation) {
   int num_frames =
       static_cast<int>(duration_s * video_info.framerate.hertz<double>());
 
+  VideoSourceSettings source_settings = ToSourceSettings(video_info);
+
   std::map<uint32_t, EncodingSettings> encoding_settings =
       VideoCodecTester::CreateEncodingSettings(
           codec_type, /*scalability_mode=*/"L1T1",
@@ -421,8 +407,8 @@ TEST_P(BitrateAdaptationTest, BitrateAdaptation) {
 
   encoding_settings.merge(encoding_settings2);
 
-  std::unique_ptr<VideoCodecStats> stats =
-      RunEncodeTest(env, codec_type, codec_impl, video_info, encoding_settings);
+  std::unique_ptr<VideoCodecStats> stats = RunEncodeTest(
+      env, codec_type, codec_impl, source_settings, encoding_settings);
 
   VideoCodecStats::Stream stream;
   if (stats != nullptr) {
@@ -445,18 +431,18 @@ TEST_P(BitrateAdaptationTest, BitrateAdaptation) {
                             std::to_string(bitrate_kbps.second)}});
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    All,
-    BitrateAdaptationTest,
-    Combine(Values("AV1", "VP9", "VP8", "H264", "H265"),
+INSTANTIATE_TEST_SUITE_P(All,
+                         BitrateAdaptationTest,
+                         Combine(Values("AV1", "VP9", "VP8", "H264", "H265"),
 #if defined(WEBRTC_ANDROID)
-            Values("builtin", "mediacodec"),
+                                 Values("builtin", "mediacodec"),
 #else
-            Values("builtin"),
+                                 Values("builtin"),
 #endif
-            Values(kRawVideos.at("FourPeople_1280x720_30")),
-            Values(std::pair(1024, 512), std::pair(512, 1024))),
-    BitrateAdaptationTest::TestParamsToString);
+                                 Values(kFourPeople_1280x720_30),
+                                 Values(std::pair(1024, 512),
+                                        std::pair(512, 1024))),
+                         BitrateAdaptationTest::TestParamsToString);
 
 class FramerateAdaptationTest
     : public ::testing::TestWithParam<std::tuple</*codec_type=*/std::string,
@@ -481,6 +467,8 @@ TEST_P(FramerateAdaptationTest, FramerateAdaptation) {
 
   int duration_s = 10;  // Duration of fixed rate interval.
 
+  VideoSourceSettings source_settings = ToSourceSettings(video_info);
+
   std::map<uint32_t, EncodingSettings> encoding_settings =
       VideoCodecTester::CreateEncodingSettings(
           codec_type, /*scalability_mode=*/"L1T1",
@@ -502,8 +490,8 @@ TEST_P(FramerateAdaptationTest, FramerateAdaptation) {
 
   encoding_settings.merge(encoding_settings2);
 
-  std::unique_ptr<VideoCodecStats> stats =
-      RunEncodeTest(env, codec_type, codec_impl, video_info, encoding_settings);
+  std::unique_ptr<VideoCodecStats> stats = RunEncodeTest(
+      env, codec_type, codec_impl, source_settings, encoding_settings);
 
   VideoCodecStats::Stream stream;
   if (stats != nullptr) {
@@ -526,24 +514,30 @@ TEST_P(FramerateAdaptationTest, FramerateAdaptation) {
                             std::to_string(framerate_fps.second)}});
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    All,
-    FramerateAdaptationTest,
-    Combine(Values("AV1", "VP9", "VP8", "H264", "H265"),
+INSTANTIATE_TEST_SUITE_P(All,
+                         FramerateAdaptationTest,
+                         Combine(Values("AV1", "VP9", "VP8", "H264", "H265"),
 #if defined(WEBRTC_ANDROID)
-            Values("builtin", "mediacodec"),
+                                 Values("builtin", "mediacodec"),
 #else
-            Values("builtin"),
+                                 Values("builtin"),
 #endif
-            Values(kRawVideos.at("FourPeople_1280x720_30")),
-            Values(std::pair(30, 15), std::pair(15, 30))),
-    FramerateAdaptationTest::TestParamsToString);
+                                 Values(kFourPeople_1280x720_30),
+                                 Values(std::pair(30, 15), std::pair(15, 30))),
+                         FramerateAdaptationTest::TestParamsToString);
 
 TEST(VideoCodecTest, DISABLED_EncodeDecode) {
   ScopedFieldTrials field_trials(absl::GetFlag(FLAGS_field_trials));
   const Environment env =
       CreateEnvironment(std::make_unique<ExplicitKeyValueConfig>(
           absl::GetFlag(FLAGS_field_trials)));
+
+  VideoSourceSettings source_settings{
+      .file_path = absl::GetFlag(FLAGS_input_path),
+      .resolution = {.width = absl::GetFlag(FLAGS_input_width),
+                     .height = absl::GetFlag(FLAGS_input_height)},
+      .framerate =
+          Frequency::Hertz<double>(absl::GetFlag(FLAGS_input_framerate_fps))};
 
   std::vector<std::string> bitrate_str = absl::GetFlag(FLAGS_bitrate_kbps);
   std::vector<int> bitrate_kbps;
@@ -558,9 +552,12 @@ TEST(VideoCodecTest, DISABLED_EncodeDecode) {
   std::map<uint32_t, EncodingSettings> frames_settings =
       VideoCodecTester::CreateEncodingSettings(
           CodecNameToCodecType(absl::GetFlag(FLAGS_encoder)),
-          absl::GetFlag(FLAGS_scalability_mode), absl::GetFlag(FLAGS_width),
-          absl::GetFlag(FLAGS_height), {bitrate_kbps},
-          absl::GetFlag(FLAGS_framerate_fps), absl::GetFlag(FLAGS_num_frames),
+          absl::GetFlag(FLAGS_scalability_mode),
+          absl::GetFlag(FLAGS_width).value_or(absl::GetFlag(FLAGS_input_width)),
+          absl::GetFlag(FLAGS_height)
+              .value_or(absl::GetFlag(FLAGS_input_height)),
+          {bitrate_kbps}, absl::GetFlag(FLAGS_framerate_fps),
+          absl::GetFlag(FLAGS_num_frames),
           /*first_timestamp_rtp=*/90000, content_type,
           absl::GetFlag(FLAGS_frame_drop));
 
@@ -569,8 +566,8 @@ TEST(VideoCodecTest, DISABLED_EncodeDecode) {
   // Sync with changes in Stream::LogMetrics (see TODOs there).
   std::unique_ptr<VideoCodecStats> stats = RunEncodeDecodeTest(
       env, CodecNameToCodecImpl(absl::GetFlag(FLAGS_encoder)),
-      CodecNameToCodecImpl(absl::GetFlag(FLAGS_decoder)),
-      kRawVideos.at(absl::GetFlag(FLAGS_video_name)), frames_settings);
+      CodecNameToCodecImpl(absl::GetFlag(FLAGS_decoder)), source_settings,
+      frames_settings);
   ASSERT_NE(nullptr, stats);
 
   // Log unsliced metrics.

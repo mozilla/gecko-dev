@@ -1422,5 +1422,8 @@ rtc_library("video_codec_tester") {
     "//third_party/libyuv",
   ]
 
-  absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
+  absl_deps = [
+    "//third_party/abseil-cpp/absl/strings:strings",
+    "//third_party/abseil-cpp/absl/types:optional",
+  ]
 }
