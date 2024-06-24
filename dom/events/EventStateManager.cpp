@@ -854,6 +854,7 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
                                            nsIContent* aTargetContent,
                                            nsEventStatus* aStatus,
                                            nsIContent* aOverrideClickTarget) {
+  AUTO_PROFILER_LABEL("EventStateManager::PreHandleEvent", DOM);
   NS_ENSURE_ARG_POINTER(aStatus);
   NS_ENSURE_ARG(aPresContext);
   if (!aEvent) {
@@ -3766,6 +3767,7 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
                                             nsIFrame* aTargetFrame,
                                             nsEventStatus* aStatus,
                                             nsIContent* aOverrideClickTarget) {
+  AUTO_PROFILER_LABEL("EventStateManager::PostHandleEvent", DOM);
   NS_ENSURE_ARG(aPresContext);
   NS_ENSURE_ARG_POINTER(aStatus);
 
