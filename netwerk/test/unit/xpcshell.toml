@@ -310,6 +310,11 @@ skip-if = [
 ["test_bug1725766.js"]
 skip-if = ["os == 'android'"] # skip because of bug 1589327
 
+["test_bug1883496.js"]
+skip-if = [
+  "os != 'android'",
+]
+
 ["test_cache-control_request.js"]
 
 ["test_cache-entry-id.js"]
@@ -464,6 +469,8 @@ run-sequentially = "http3server"
 
 ["test_connection_based_auth.js"]
 
+["test_connection_coalescing.js"]
+
 ["test_content_encoding_gzip.js"]
 
 ["test_content_length_underrun.js"]
@@ -509,6 +516,8 @@ skip-if = ["os == 'android'"] # Bug 1700483
 ["test_data_protocol.js"]
 
 ["test_defaultURI.js"]
+
+["test_default_uri_bypass.js"]
 
 ["test_dns_by_type_resolve.js"]
 
@@ -727,7 +736,6 @@ disabled = "bug 1771744 - telemetry probe expired"
 #   os == 'android'
 #   socketprocess_networking
 
-
 ["test_http3_perf.js"]
 skip-if = [
   "os == 'android'",
@@ -862,6 +870,8 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_multipart_byteranges.js"]
 
+["test_multipart_set_cookie.js"]
+
 ["test_multipart_streamconv-byte-by-byte.js"]
 
 ["test_multipart_streamconv.js"]
@@ -873,8 +883,6 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_multipart_streamconv_missing_boundary_lead_dashes.js"]
 
 ["test_multipart_streamconv_missing_lead_boundary.js"]
-
-["test_multipart_set_cookie.js"]
 
 ["test_nestedabout_serialize.js"]
 
@@ -944,6 +952,8 @@ skip-if = ["os == 'win' && socketprocess_networking"]
 
 ["test_predictor.js"]
 
+["test_prio_header_override_forbid.js"]
+
 ["test_private_cookie_changed.js"]
 
 ["test_private_necko_channel.js"]
@@ -984,6 +994,11 @@ run-sequentially = "node server exceptions dont replay well"
 skip-if = [
   "tsan",
   "socketprocess_networking", # Bug 1614708
+]
+
+["test_proxyconnect_https.js"]
+skip-if = [
+"socketprocess_networking",
 ]
 
 ["test_psl.js"]
@@ -1056,11 +1071,11 @@ run-sequentially = "tlsserver uses fixed port"
 
 ["test_safeoutputstream_append.js"]
 
-["test_schema_13_db.js"]
+["test_schema_10_migration.js"]
 
 ["test_schema_12_migration.js"]
 
-["test_schema_10_migration.js"]
+["test_schema_13_db.js"]
 
 ["test_schema_2_migration.js"]
 
@@ -1288,16 +1303,3 @@ skip-if = [
 ]
 
 ["test_xmlhttprequest.js"]
-
-["test_connection_coalescing.js"]
-
-["test_default_uri_bypass.js"]
-
-["test_proxyconnect_https.js"]
-skip-if = [
-  "socketprocess_networking",
-]
-["test_bug1883496.js"]
-skip-if = [
-  "os != 'android'",
-]

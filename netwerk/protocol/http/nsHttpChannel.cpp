@@ -436,6 +436,10 @@ nsresult nsHttpChannel::PrepareToConnect() {
 
   AddCookiesToRequest();
 
+  if (StaticPrefs::network_http_priority_header_enabled()) {
+    SetPriorityHeader();
+  }
+
 #ifdef XP_WIN
 
   auto prefEnabledForCurrentContainer = [&]() {
@@ -499,6 +503,13 @@ void nsHttpChannel::HandleContinueCancellingByURLClassifier(
 }
 
 void nsHttpChannel::SetPriorityHeader() {
+  nsAutoCString userSetPriority;
+  Unused << GetRequestHeader("Priority"_ns, userSetPriority);
+  if (!userSetPriority.IsEmpty()) {
+    // If the Priority header is set by the user, do not override it.
+    return;
+  }
+
   uint8_t urgency =
       nsHttpHandler::UrgencyFromCoSFlags(mClassOfService.Flags(), mPriority);
   bool incremental = mClassOfService.Incremental();
@@ -1292,10 +1303,6 @@ nsresult nsHttpChannel::SetupChannelForTransaction() {
   nsresult rv;
 
   mozilla::MutexAutoLock lock(mRCWNLock);
-
-  if (StaticPrefs::network_http_priority_header_enabled()) {
-    SetPriorityHeader();
-  }
 
   // If we're racing cache with network, conditional or byte range header
   // could be added in OnCacheEntryCheck. We cannot send conditional request
@@ -9229,6 +9236,10 @@ nsresult nsHttpChannel::DoAuthRetry(
   // this authentication attempt (bug 84794).
   // TODO: save cookies from auth response and send them here (bug 572151).
   AddCookiesToRequest();
+
+  if (StaticPrefs::network_http_priority_header_enabled()) {
+    SetPriorityHeader();
+  }
 
   // notify "http-on-modify-request" observers
   CallOnModifyRequestObservers();
