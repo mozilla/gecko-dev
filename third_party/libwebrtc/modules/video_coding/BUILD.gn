@@ -443,7 +443,6 @@ rtc_library("video_coding_utility") {
     "../../rtc_base:stringutils",
     "../../rtc_base:timeutils",
     "../../rtc_base:weak_ptr",
-    "../../rtc_base/experiments:bandwidth_quality_scaler_settings",
     "../../rtc_base/experiments:encoder_info_settings",
     "../../rtc_base/experiments:quality_scaler_settings",
     "../../rtc_base/experiments:quality_scaling_experiment",

@@ -78,21 +78,6 @@ rtc_library("quality_scaler_settings") {
   absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
 
-rtc_library("bandwidth_quality_scaler_settings") {
-  sources = [
-    "bandwidth_quality_scaler_settings.cc",
-    "bandwidth_quality_scaler_settings.h",
-  ]
-  deps = [
-    ":field_trial_parser",
-    "..:logging",
-    "../../api:field_trials_view",
-    "../../api/transport:field_trial_based_config",
-    "../../system_wrappers:field_trial",
-  ]
-  absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
-}
-
 rtc_library("quality_scaling_experiment") {
   sources = [
     "quality_scaling_experiment.cc",
@@ -224,7 +209,6 @@ if (rtc_include_tests && !build_with_chromium) {
 
     sources = [
       "balanced_degradation_settings_unittest.cc",
-      "bandwidth_quality_scaler_settings_unittest.cc",
       "encoder_info_settings_unittest.cc",
       "field_trial_list_unittest.cc",
       "field_trial_parser_unittest.cc",
@@ -241,7 +225,6 @@ if (rtc_include_tests && !build_with_chromium) {
     ]
     deps = [
       ":balanced_degradation_settings",
-      ":bandwidth_quality_scaler_settings",
       ":encoder_info_settings",
       ":field_trial_parser",
       ":keyframe_interval_settings_experiment",
