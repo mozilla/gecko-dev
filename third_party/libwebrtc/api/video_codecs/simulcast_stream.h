@@ -25,6 +25,11 @@ struct SimulcastStream {
   absl::optional<ScalabilityMode> GetScalabilityMode() const;
   void SetNumberOfTemporalLayers(unsigned char n);
 
+  bool operator==(const SimulcastStream& other) const;
+  bool operator!=(const SimulcastStream& other) const {
+    return !(*this == other);
+  }
+
   int width = 0;
   int height = 0;
   float maxFramerate = 0;  // fps.

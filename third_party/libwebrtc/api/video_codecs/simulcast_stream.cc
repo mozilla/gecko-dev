@@ -36,4 +36,14 @@ absl::optional<ScalabilityMode> SimulcastStream::GetScalabilityMode() const {
   return scalability_modes[numberOfTemporalLayers - 1];
 }
 
+bool SimulcastStream::operator==(const SimulcastStream& other) const {
+  return (width == other.width && height == other.height &&
+          maxFramerate == other.maxFramerate &&
+          numberOfTemporalLayers == other.numberOfTemporalLayers &&
+          maxBitrate == other.maxBitrate &&
+          targetBitrate == other.targetBitrate &&
+          minBitrate == other.minBitrate && qpMax == other.qpMax &&
+          active == other.active);
+}
+
 }  // namespace webrtc
