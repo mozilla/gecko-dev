@@ -754,19 +754,6 @@ export class ASRouterAdminInner extends React.PureComponent {
     );
   }
 
-  renderTableHead() {
-    return (
-      <thead>
-        <tr>
-          <td className="nowrap" />
-          <td className="nowrap">Provider</td>
-          <td>Source</td>
-          <td className="nowrap">Last Updated</td>
-        </tr>
-      </thead>
-    );
-  }
-
   renderProviders() {
     const providersConfig = this.state.providerPrefs;
     const providerInfo = this.state.providers;
@@ -774,7 +761,14 @@ export class ASRouterAdminInner extends React.PureComponent {
 
     return (
       <table className="bordered-table" id="providers-table">
-        {this.renderTableHead()}
+        <thead>
+          <tr>
+            <td className="fixed-width" />
+            <td className="no-wrap">Provider</td>
+            <td>Source</td>
+            <td className="no-wrap">Last Updated</td>
+          </tr>
+        </thead>
         <tbody>
           {providersConfig.map((provider, i) => {
             const isTestProvider = provider.id.includes("_local_testing");
@@ -871,7 +865,7 @@ export class ASRouterAdminInner extends React.PureComponent {
                     {label}
                   </span>
                 </td>
-                <td style={{ whiteSpace: "nowrap" }}>
+                <td className="no-wrap">
                   {info.lastUpdated ? relativeTime(info.lastUpdated) : ""}
                 </td>
               </tr>
@@ -887,9 +881,9 @@ export class ASRouterAdminInner extends React.PureComponent {
       <table className="bordered-table" id="groups-table">
         <thead>
           <tr>
-            <td />
-            <td className="nowrap">Group</td>
-            <td className="nowrap">Impressions</td>
+            <td className="fixed-width" />
+            <td className="no-wrap">Group</td>
+            <td className="no-wrap">Impressions</td>
             <td>Frequency caps</td>
             <td>User preferences</td>
           </tr>
@@ -938,15 +932,15 @@ export class ASRouterAdminInner extends React.PureComponent {
                 }
                 return (
                   <tr key={id}>
-                    <td>
+                    <td className="fixed-width">
                       <input
                         type="checkbox"
                         checked={enabled}
                         disabled={true}
                       />
                     </td>
-                    <td className="nowrap">{id}</td>
-                    <td className="nowrap">
+                    <td className="no-wrap">{id}</td>
+                    <td className="no-wrap">
                       {this._getGroupImpressionsCount(id, frequency)}
                     </td>
                     <td>
@@ -1294,7 +1288,7 @@ export class ASRouterAdminInner extends React.PureComponent {
     return <p>No errors</p>;
   }
 
-  getSection() {
+  renderSection() {
     const [section] = this.props.location.routes;
     switch (section) {
       case "targeting":
@@ -1378,27 +1372,45 @@ export class ASRouterAdminInner extends React.PureComponent {
       );
     }
 
+    const [section] = this.props.location.routes;
+
     return (
       <div className="asrouter-admin">
         <aside className="sidebar">
           <ul>
             <li>
-              <a href="#devtools" className="category">
+              <a
+                href="#devtools"
+                className="category"
+                data-selected={section ? null : ""}
+              >
                 General
               </a>
             </li>
             <li>
-              <a href="#devtools-targeting" className="category">
+              <a
+                href="#devtools-targeting"
+                className="category"
+                data-selected={section === "targeting" ? "" : null}
+              >
                 Targeting
               </a>
             </li>
             <li>
-              <a href="#devtools-impressions" className="category">
+              <a
+                href="#devtools-impressions"
+                className="category"
+                data-selected={section === "impressions" ? "" : null}
+              >
                 Impressions
               </a>
             </li>
             <li>
-              <a href="#devtools-errors" className="category">
+              <a
+                href="#devtools-errors"
+                className="category"
+                data-selected={section === "errors" ? "" : null}
+              >
                 Errors
               </a>
             </li>
@@ -1420,7 +1432,7 @@ export class ASRouterAdminInner extends React.PureComponent {
             </span>
           </p>
 
-          {this.getSection()}
+          {this.renderSection()}
         </main>
       </div>
     );

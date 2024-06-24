@@ -20,15 +20,23 @@
   padding: 0;
   list-style: none;
 }
-.asrouter-admin .sidebar li a {
-  padding: 10px 34px;
+.asrouter-admin .sidebar .category {
   display: block;
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-inline-start: 20px;
   color: var(--in-content-page-color);
-  border-start-end-radius: 5px;
-  border-end-end-radius: 5px;
+  text-decoration: none;
+  user-select: none;
 }
-.asrouter-admin .sidebar li a:hover {
+.asrouter-admin .sidebar .category:hover {
   background-color: var(--in-content-button-background-hover);
+}
+.asrouter-admin .sidebar .category:hover:active {
+  background-color: var(--in-content-button-background-active);
+}
+.asrouter-admin .sidebar .category[data-selected] {
+  color: var(--in-content-accent-color);
 }
 .asrouter-admin .main-panel {
   margin-block: 12px;
@@ -140,6 +148,9 @@
 .asrouter-admin table.errorReporting td[rowspan] {
   border: 1px solid var(--in-content-box-border-color);
 }
+.asrouter-admin table.bordered-table {
+  min-width: 100%;
+}
 .asrouter-admin table.bordered-table tr:first-child td {
   border-top: 1px solid var(--in-content-box-border-color);
 }
@@ -148,8 +159,11 @@
   padding: 8px;
   border-bottom: 1px solid var(--in-content-box-border-color);
 }
-.asrouter-admin table.bordered-table td.nowrap {
+.asrouter-admin table.bordered-table td.no-wrap {
   white-space: nowrap;
+}
+.asrouter-admin table.bordered-table td.fixed-width {
+  width: 0;
 }
 .asrouter-admin table.bordered-table td:first-child {
   border-inline-start: 1px solid var(--in-content-box-border-color);
@@ -260,7 +274,7 @@
 .asrouter-admin .filters .row {
   display: flex;
   flex-flow: row nowrap;
-  gap: 40px;
+  gap: 60px;
 }
 .asrouter-admin .filters .col {
   display: flex;
