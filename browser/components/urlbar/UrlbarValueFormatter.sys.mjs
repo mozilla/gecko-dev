@@ -273,23 +273,34 @@ export class UrlbarValueFormatter {
   }
 
   /**
-   * Whether value would show strike-through mixed content protocol.
+   * Whether a striked out active mixed content protocol will show for the
+   * currently loaded input field value.
    *
-   * @param {string} val The value to evaluate. It should normally be the
-   *   input field value, otherwise this returns false.
+   * @param {string} val The value to evaluate. If it's not the currently
+   *   loaded page, this will return false, as we cannot know if a page has
+   *   active mixed content until it's loaded.
    * @returns {boolean}
    */
   willShowFormattedMixedContentProtocol(val) {
-    let shownUrlIsMixedContentLoadedPage =
-      this.urlbarInput.getAttribute("pageproxystate") == "valid" &&
-      this.window.gBrowser.securityUI.state &
-        Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT;
     return (
       this.formattingEnabled &&
       !lazy.UrlbarPrefs.get("security.insecure_connection_text.enabled") &&
       val.startsWith("https://") &&
       val == this.urlbarInput.value &&
-      shownUrlIsMixedContentLoadedPage
+      this.#showingMixedContentLoadedPageUrl
+    );
+  }
+
+  /**
+   * Whether the currently loaded page is in mixed content mode.
+   *
+   * @returns {boolean} whether the loaded page has active mixed content.
+   */
+  get #showingMixedContentLoadedPageUrl() {
+    return (
+      this.urlbarInput.getAttribute("pageproxystate") == "valid" &&
+      this.window.gBrowser.securityUI.state &
+        Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT
     );
   }
 
@@ -311,22 +322,20 @@ export class UrlbarValueFormatter {
     let { domain, origin, preDomain, schemeWSlashes, trimmedLength, url } =
       urlMetaData;
 
-    let showMixedContentProtocol = this.willShowFormattedMixedContentProtocol(
-      this.urlbarInput.value
-    );
-
     // When RTL domains cause the address bar to overflow to the left, the
     // protocol may get hidden, if it was not trimmed. We then set the
     // `--urlbar-scheme-size` property to show the protocol in a floating box.
     // We don't show the floating protocol box if:
+    //  - The insecure label is enabled, as it is a sufficient indicator.
+    //  - The current page is mixed content but formatting is disabled, as it
+    //    may be confusing for the user to see a non striked out protocol.
     //  - The protocol was trimmed.
-    //  - We're in mixed mode, but formatting is disabled. The not struck out
-    //    box may make the user think the connection is fully secure.
-    //  - The insecure label is active. The label is a sufficient indicator.
+    let isUnformattedMixedContent =
+      this.#showingMixedContentLoadedPageUrl && !this.formattingEnabled;
     if (
-      this.urlbarInput.value.startsWith(schemeWSlashes) &&
-      showMixedContentProtocol &&
-      this.formattingEnabled
+      !lazy.UrlbarPrefs.get("security.insecure_connection_text.enabled") &&
+      !isUnformattedMixedContent &&
+      this.urlbarInput.value.startsWith(schemeWSlashes)
     ) {
       this.scheme.value = schemeWSlashes;
       this.inputField.style.setProperty(
@@ -350,7 +359,7 @@ export class UrlbarValueFormatter {
 
     // Strike out the "https" part if mixed active content status should be
     // shown.
-    if (showMixedContentProtocol) {
+    if (this.willShowFormattedMixedContentProtocol(this.urlbarInput.value)) {
       let range = this.document.createRange();
       range.setStart(textNode, 0);
       range.setEnd(textNode, 5);
