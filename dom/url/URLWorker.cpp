@@ -32,12 +32,15 @@ class CreateURLRunnable : public WorkerMainThreadRunnable {
   bool MainThreadRun() override {
     using namespace mozilla::ipc;
 
+    MOZ_ASSERT(mWorkerRef);
+    WorkerPrivate* workerPrivate = mWorkerRef->Private();
+
     AssertIsOnMainThread();
 
-    nsCOMPtr<nsIPrincipal> principal = mWorkerPrivate->GetPrincipal();
+    nsCOMPtr<nsIPrincipal> principal = workerPrivate->GetPrincipal();
 
     nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
-        mWorkerPrivate->CookieJarSettings();
+        workerPrivate->CookieJarSettings();
 
     nsAutoString partKey;
     cookieJarSettings->GetPartitionKey(partKey);
@@ -66,14 +69,17 @@ class RevokeURLRunnable : public WorkerMainThreadRunnable {
   bool MainThreadRun() override {
     AssertIsOnMainThread();
 
+    MOZ_ASSERT(mWorkerRef);
+    WorkerPrivate* workerPrivate = mWorkerRef->Private();
+
     nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
-        mWorkerPrivate->CookieJarSettings();
+        workerPrivate->CookieJarSettings();
 
     nsAutoString partKey;
     cookieJarSettings->GetPartitionKey(partKey);
 
-    BlobURLProtocolHandler::RemoveDataEntry(
-        mURL, mWorkerPrivate->GetPrincipal(), NS_ConvertUTF16toUTF8(partKey));
+    BlobURLProtocolHandler::RemoveDataEntry(mURL, workerPrivate->GetPrincipal(),
+                                            NS_ConvertUTF16toUTF8(partKey));
     return true;
   }
 };
@@ -114,7 +120,7 @@ void URLWorker::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
   RefPtr<CreateURLRunnable> runnable =
       new CreateURLRunnable(workerPrivate, blobImpl, aResult);
 
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return;
   }
@@ -134,7 +140,7 @@ void URLWorker::RevokeObjectURL(const GlobalObject& aGlobal,
   RefPtr<RevokeURLRunnable> runnable =
       new RevokeURLRunnable(workerPrivate, aUrl);
 
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return;
   }
@@ -154,7 +160,7 @@ bool URLWorker::IsValidObjectURL(const GlobalObject& aGlobal,
   RefPtr<IsValidURLRunnable> runnable =
       new IsValidURLRunnable(workerPrivate, aUrl);
 
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return false;
   }

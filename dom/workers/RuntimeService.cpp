@@ -549,7 +549,7 @@ bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
                                         scriptSample);
 
     ErrorResult rv;
-    runnable->Dispatch(Killing, rv);
+    runnable->Dispatch(worker, Killing, rv);
     if (NS_WARN_IF(rv.Failed())) {
       rv.SuppressException();
     }
@@ -2043,14 +2043,15 @@ void RuntimeService::DumpRunningWorkers() {
 
 bool LogViolationDetailsRunnable::MainThreadRun() {
   AssertIsOnMainThread();
+  MOZ_ASSERT(mWorkerRef);
 
-  nsIContentSecurityPolicy* csp = mWorkerPrivate->GetCsp();
+  nsIContentSecurityPolicy* csp = mWorkerRef->Private()->GetCsp();
   if (csp) {
     csp->LogViolationDetails(mViolationType,
                              nullptr,  // triggering element
-                             mWorkerPrivate->CSPEventListener(), mFileName,
-                             mScriptSample, mLineNum, mColumnNum, u""_ns,
-                             u""_ns);
+                             mWorkerRef->Private()->CSPEventListener(),
+                             mFileName, mScriptSample, mLineNum, mColumnNum,
+                             u""_ns, u""_ns);
   }
 
   return true;

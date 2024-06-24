@@ -1381,7 +1381,7 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
               new CreateImageFromRawDataInMainThreadSyncTask(
                   fixedData, dataLength, imageStride, FORMAT, imageSize,
                   aCropRect, getter_AddRefs(data), aOptions);
-          task->Dispatch(Canceling, aRv);
+          task->Dispatch(GetCurrentThreadWorkerPrivate(), Canceling, aRv);
         }
 
         if (NS_WARN_IF(!data)) {

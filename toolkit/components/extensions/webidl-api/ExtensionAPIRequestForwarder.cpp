@@ -151,7 +151,7 @@ void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
     return;
   }
 
-  runnable->Dispatch(dom::WorkerStatus::Canceling, rv);
+  runnable->Dispatch(workerPrivate, dom::WorkerStatus::Canceling, rv);
   if (NS_WARN_IF(rv.Failed())) {
     ThrowUnexpectedError(aCx, aRv);
     return;
@@ -291,9 +291,11 @@ void RequestWorkerRunnable::Init(nsIGlobalObject* aGlobal, JSContext* aCx,
                                  ErrorResult& aRv) {
   MOZ_ASSERT(dom::IsCurrentThreadRunningWorker());
 
-  mSWDescriptorId = mWorkerPrivate->ServiceWorkerID();
+  dom::WorkerPrivate* workerPrivate = dom::GetCurrentThreadWorkerPrivate();
 
-  auto* workerScope = mWorkerPrivate->GlobalScope();
+  mSWDescriptorId = workerPrivate->ServiceWorkerID();
+
+  auto* workerScope = workerPrivate->GlobalScope();
   if (NS_WARN_IF(!workerScope)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return;
@@ -339,7 +341,7 @@ void RequestWorkerRunnable::Init(nsIGlobalObject* aGlobal, JSContext* aCx,
 
   RefPtr<dom::PromiseWorkerProxy> promiseProxy =
       dom::PromiseWorkerProxy::Create(
-          mWorkerPrivate, aPromiseRetval,
+          dom::GetCurrentThreadWorkerPrivate(), aPromiseRetval,
           &kExtensionAPIRequestStructuredCloneCallbacks);
   if (!promiseProxy) {
     aRv.Throw(NS_ERROR_DOM_ABORT_ERR);
@@ -446,8 +448,8 @@ already_AddRefed<ExtensionAPIRequest> RequestWorkerRunnable::CreateAPIRequest(
 already_AddRefed<WebExtensionPolicy>
 RequestWorkerRunnable::GetWebExtensionPolicy() {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mWorkerPrivate);
-  auto* baseURI = mWorkerPrivate->GetBaseURI();
+  MOZ_ASSERT(mWorkerRef);
+  auto* baseURI = mWorkerRef->Private()->GetBaseURI();
   RefPtr<WebExtensionPolicy> policy =
       ExtensionPolicyService::GetSingleton().GetByURL(baseURI);
   return policy.forget();
@@ -595,7 +597,7 @@ bool RequestWorkerRunnable::ProcessHandlerResult(
 void RequestWorkerRunnable::ReadResult(JSContext* aCx,
                                        JS::MutableHandle<JS::Value> aResult,
                                        ErrorResult& aRv) {
-  MOZ_ASSERT(mWorkerPrivate->IsOnCurrentThread());
+  MOZ_ASSERT(dom::IsCurrentThreadRunningWorker());
   if (mResultHolder.isNothing() || !mResultHolder->get()->HasData()) {
     return;
   }
@@ -642,13 +644,16 @@ RequestInitWorkerRunnable::RequestInitWorkerRunnable(
 
 bool RequestInitWorkerRunnable::MainThreadRun() {
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mWorkerRef);
 
-  auto* baseURI = mWorkerPrivate->GetBaseURI();
+  dom::WorkerPrivate* workerPrivate = mWorkerRef->Private();
+
+  auto* baseURI = workerPrivate->GetBaseURI();
   RefPtr<WebExtensionPolicy> policy =
       ExtensionPolicyService::GetSingleton().GetByURL(baseURI);
 
   RefPtr<ExtensionServiceWorkerInfo> swInfo = new ExtensionServiceWorkerInfo(
-      *mClientInfo, mWorkerPrivate->ServiceWorkerID());
+      *mClientInfo, workerPrivate->ServiceWorkerID());
 
   nsCOMPtr<mozIExtensionAPIRequestHandler> handler =
       &ExtensionAPIRequestForwarder::APIRequestHandler();

@@ -373,7 +373,7 @@ already_AddRefed<Promise> ExecuteOpOnMainOrWorkerThread(
       RefPtr<EstimateWorkerMainThreadRunnable> runnnable =
           new EstimateWorkerMainThreadRunnable(promiseProxy->GetWorkerPrivate(),
                                                promiseProxy);
-      runnnable->Dispatch(Canceling, aRv);
+      runnnable->Dispatch(promiseProxy->GetWorkerPrivate(), Canceling, aRv);
 
       break;
     }
@@ -382,7 +382,7 @@ already_AddRefed<Promise> ExecuteOpOnMainOrWorkerThread(
       RefPtr<PersistedWorkerMainThreadRunnable> runnnable =
           new PersistedWorkerMainThreadRunnable(
               promiseProxy->GetWorkerPrivate(), promiseProxy);
-      runnnable->Dispatch(Canceling, aRv);
+      runnnable->Dispatch(promiseProxy->GetWorkerPrivate(), Canceling, aRv);
 
       break;
     }

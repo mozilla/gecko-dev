@@ -219,13 +219,15 @@ class ReferrerSameOriginChecker final : public WorkerMainThreadRunnable {
                                  "Fetch :: Referrer same origin check"_ns),
         mReferrerURL(aReferrerURL),
         mResult(aResult) {
-    mWorkerPrivate->AssertIsOnWorkerThread();
+    aWorkerPrivate->AssertIsOnWorkerThread();
   }
 
   bool MainThreadRun() override {
     nsCOMPtr<nsIURI> uri;
     if (NS_SUCCEEDED(NS_NewURI(getter_AddRefs(uri), mReferrerURL))) {
-      if (nsCOMPtr<nsIPrincipal> principal = mWorkerPrivate->GetPrincipal()) {
+      MOZ_ASSERT(mWorkerRef);
+      if (nsCOMPtr<nsIPrincipal> principal =
+              mWorkerRef->Private()->GetPrincipal()) {
         mResult = principal->CheckMayLoad(uri,
                                           /* allowIfInheritsPrincipal */ false);
       }
@@ -402,7 +404,7 @@ SafeRefPtr<Request> Request::Constructor(
           RefPtr<ReferrerSameOriginChecker> checker =
               new ReferrerSameOriginChecker(worker, referrerURL, rv);
           IgnoredErrorResult error;
-          checker->Dispatch(Canceling, error);
+          checker->Dispatch(worker, Canceling, error);
           if (error.Failed() || NS_FAILED(rv)) {
             referrerURL.AssignLiteral(kFETCH_CLIENT_REFERRER_STR);
           }

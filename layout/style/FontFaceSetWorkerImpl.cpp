@@ -68,7 +68,7 @@ bool FontFaceSetWorkerImpl::Initialize(WorkerPrivate* aWorkerPrivate) {
 
   IgnoredErrorResult rv;
   auto runnable = MakeRefPtr<InitRunnable>(aWorkerPrivate, this);
-  runnable->Dispatch(Canceling, rv);
+  runnable->Dispatch(aWorkerPrivate, Canceling, rv);
   return !NS_WARN_IF(rv.Failed());
 }
 

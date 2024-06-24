@@ -230,8 +230,12 @@ class WorkerThreadProxySyncRunnable : public WorkerMainThreadRunnable {
     aWorkerPrivate->AssertIsOnWorkerThread();
   }
 
-  void Dispatch(WorkerStatus aFailStatus, ErrorResult& aRv) {
-    WorkerMainThreadRunnable::Dispatch(aFailStatus, aRv);
+  void Dispatch(WorkerPrivate* aWorkerPrivate, WorkerStatus aFailStatus,
+                ErrorResult& aRv) {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+
+    WorkerMainThreadRunnable::Dispatch(aWorkerPrivate, aFailStatus, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return;
     }
@@ -643,7 +647,8 @@ class OpenRunnable final : public WorkerThreadProxySyncRunnable {
 
   virtual void RunOnMainThread(ErrorResult& aRv) override {
     WorkerPrivate* oldWorker = mProxy->mWorkerPrivate;
-    mProxy->mWorkerPrivate = mWorkerPrivate;
+    MOZ_ASSERT(mWorkerRef);
+    mProxy->mWorkerPrivate = mWorkerRef->Private();
 
     MainThreadRunInternal(aRv);
 
@@ -1142,8 +1147,10 @@ bool WorkerThreadProxySyncRunnable::MainThreadRun() {
 void AbortRunnable::RunOnMainThread(ErrorResult& aRv) {
   mProxy->mInnerEventStreamId++;
 
+  MOZ_ASSERT(mWorkerRef);
+
   WorkerPrivate* oldWorker = mProxy->mWorkerPrivate;
-  mProxy->mWorkerPrivate = mWorkerPrivate;
+  mProxy->mWorkerPrivate = mWorkerRef->Private();
 
   mProxy->mXHR->Abort(aRv);
 
@@ -1250,7 +1257,8 @@ void SendRunnable::RunOnMainThread(ErrorResult& aRv) {
     mProxy->Reset();
   }
 
-  mProxy->mWorkerPrivate = mWorkerPrivate;
+  MOZ_ASSERT(mWorkerRef);
+  mProxy->mWorkerPrivate = mWorkerRef->Private();
 
   MOZ_ASSERT(!mProxy->mSyncLoopTarget);
   mProxy->mSyncLoopTarget.swap(mSyncLoopTarget);
@@ -1423,7 +1431,9 @@ void XMLHttpRequestWorker::ReleaseProxy(ReleaseType aType) {
 
       IgnoredErrorResult forAssertionsOnly;
       // This runnable _must_ be executed.
-      runnable->Dispatch(Dead, forAssertionsOnly);
+      // XXX This is a bit weird the failure status is Dead. Dispatching this
+      // WorkerThreadRunnable in Killing status is not reasonable for Worker.
+      runnable->Dispatch(mWorkerPrivate, Dead, forAssertionsOnly);
       MOZ_DIAGNOSTIC_ASSERT(!forAssertionsOnly.Failed());
     }
   }
@@ -1690,7 +1700,7 @@ void XMLHttpRequestWorker::SendInternal(const BodyExtractorBase* aBody,
 
   mFlagSend = true;
 
-  sendRunnable->Dispatch(Canceling, aRv);
+  sendRunnable->Dispatch(mWorkerPrivate, Canceling, aRv);
   if (aRv.Failed()) {
     // Dispatch() may have spun the event loop and we may have already unrooted.
     // If so we don't want autoUnpin to try again.
@@ -1799,7 +1809,7 @@ void XMLHttpRequestWorker::Open(const nsACString& aMethod,
       profiler_capture_backtrace());
 
   ++mProxy->mOpenCount;
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
   if (aRv.Failed()) {
     if (mProxy && !--mProxy->mOpenCount) {
       ReleaseProxy();
@@ -1835,7 +1845,7 @@ void XMLHttpRequestWorker::SetRequestHeader(const nsACString& aHeader,
 
   RefPtr<SetRequestHeaderRunnable> runnable =
       new SetRequestHeaderRunnable(mWorkerPrivate, mProxy, aHeader, aValue);
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
 }
 
 void XMLHttpRequestWorker::SetTimeout(uint32_t aTimeout, ErrorResult& aRv) {
@@ -1856,7 +1866,7 @@ void XMLHttpRequestWorker::SetTimeout(uint32_t aTimeout, ErrorResult& aRv) {
 
   RefPtr<SetTimeoutRunnable> runnable =
       new SetTimeoutRunnable(mWorkerPrivate, mProxy, aTimeout);
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
 }
 
 void XMLHttpRequestWorker::SetWithCredentials(bool aWithCredentials,
@@ -1878,7 +1888,7 @@ void XMLHttpRequestWorker::SetWithCredentials(bool aWithCredentials,
 
   RefPtr<SetWithCredentialsRunnable> runnable =
       new SetWithCredentialsRunnable(mWorkerPrivate, mProxy, aWithCredentials);
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
 }
 
 void XMLHttpRequestWorker::SetMozBackgroundRequest(bool aBackgroundRequest,
@@ -1901,7 +1911,7 @@ void XMLHttpRequestWorker::SetMozBackgroundRequest(bool aBackgroundRequest,
   RefPtr<SetBackgroundRequestRunnable> runnable =
       new SetBackgroundRequestRunnable(mWorkerPrivate, mProxy,
                                        aBackgroundRequest);
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
 }
 
 XMLHttpRequestUpload* XMLHttpRequestWorker::GetUpload(ErrorResult& aRv) {
@@ -2022,7 +2032,7 @@ void XMLHttpRequestWorker::Abort(ErrorResult& aRv) {
   MOZ_LOG(gXMLHttpRequestLog, LogLevel::Debug, ("Abort(step 1))"));
   mEventStreamId++;
   RefPtr<AbortRunnable> runnable = new AbortRunnable(mWorkerPrivate, mProxy);
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
 
   // Spec step 2
   if ((mStateData->mReadyState == XMLHttpRequest_Binding::OPENED &&
@@ -2061,7 +2071,7 @@ void XMLHttpRequestWorker::GetResponseHeader(const nsACString& aHeader,
   nsCString responseHeader;
   RefPtr<GetResponseHeaderRunnable> runnable = new GetResponseHeaderRunnable(
       mWorkerPrivate, mProxy, aHeader, responseHeader);
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -2086,7 +2096,7 @@ void XMLHttpRequestWorker::GetAllResponseHeaders(nsACString& aResponseHeaders,
   RefPtr<GetAllResponseHeadersRunnable> runnable =
       new GetAllResponseHeadersRunnable(mWorkerPrivate, mProxy,
                                         responseHeaders);
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -2115,7 +2125,7 @@ void XMLHttpRequestWorker::OverrideMimeType(const nsAString& aMimeType,
   if (mProxy) {
     RefPtr<OverrideMimeTypeRunnable> runnable =
         new OverrideMimeTypeRunnable(mWorkerPrivate, mProxy, aMimeType);
-    runnable->Dispatch(Canceling, aRv);
+    runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
   }
 }
 
@@ -2146,7 +2156,7 @@ void XMLHttpRequestWorker::SetResponseType(
 
   RefPtr<SetResponseTypeRunnable> runnable =
       new SetResponseTypeRunnable(mWorkerPrivate, mProxy, aResponseType);
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
   if (aRv.Failed()) {
     return;
   }

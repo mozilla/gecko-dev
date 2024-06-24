@@ -262,8 +262,9 @@ class GetPermissionRunnable final : public WorkerMainThreadRunnable {
 
   bool MainThreadRun() override {
     ErrorResult result;
+    MOZ_ASSERT(mWorkerRef);
     mPermission = Notification::GetPermissionInternal(
-        mWorkerPrivate->GetPrincipal(), result);
+        mWorkerRef->Private()->GetPrincipal(), result);
     return true;
   }
 
@@ -1550,7 +1551,7 @@ NotificationPermission Notification::GetPermission(nsIGlobalObject* aGlobal,
     WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
     MOZ_ASSERT(worker);
     RefPtr<GetPermissionRunnable> r = new GetPermissionRunnable(worker);
-    r->Dispatch(Canceling, aRv);
+    r->Dispatch(worker, Canceling, aRv);
     if (aRv.Failed()) {
       return NotificationPermission::Denied;
     }
@@ -2100,7 +2101,7 @@ bool Notification::CreateWorkerRef() {
         RefPtr<CloseNotificationRunnable> r =
             new CloseNotificationRunnable(self);
         ErrorResult rv;
-        r->Dispatch(Killing, rv);
+        r->Dispatch(self->mWorkerPrivate, Killing, rv);
         // XXXbz I'm told throwing and returning false from here is pointless
         // (and also that doing sync stuff from here is really weird), so I
         // guess we just suppress the exception on rv, if any.
@@ -2147,8 +2148,9 @@ class CheckLoadRunnable final : public WorkerMainThreadRunnable {
         mDescriptor(aDescriptor) {}
 
   bool MainThreadRun() override {
-    nsIPrincipal* principal = mWorkerPrivate->GetPrincipal();
-    mRv = CheckScope(principal, mScope, mWorkerPrivate->WindowID());
+    MOZ_ASSERT(mWorkerRef);
+    nsIPrincipal* principal = mWorkerRef->Private()->GetPrincipal();
+    mRv = CheckScope(principal, mScope, mWorkerRef->Private()->WindowID());
 
     if (NS_FAILED(mRv)) {
       return true;
@@ -2157,7 +2159,7 @@ class CheckLoadRunnable final : public WorkerMainThreadRunnable {
     auto activeWorker = mDescriptor.GetActive();
 
     if (!activeWorker ||
-        activeWorker.ref().Id() != mWorkerPrivate->ServiceWorkerID()) {
+        activeWorker.ref().Id() != mWorkerRef->Private()->ServiceWorkerID()) {
       mRv = NS_ERROR_NOT_AVAILABLE;
     }
 
@@ -2213,7 +2215,7 @@ already_AddRefed<Promise> Notification::ShowPersistentNotification(
 
     RefPtr<CheckLoadRunnable> loadChecker = new CheckLoadRunnable(
         worker, NS_ConvertUTF16toUTF8(aScope), aDescriptor);
-    loadChecker->Dispatch(Canceling, aRv);
+    loadChecker->Dispatch(worker, Canceling, aRv);
     if (aRv.Failed()) {
       return nullptr;
     }

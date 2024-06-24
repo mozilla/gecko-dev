@@ -365,7 +365,7 @@ void WebSocketImpl::PrintErrorOnConsole(const char* aBundleURI,
         new PrintErrorOnConsoleRunnable(this, aBundleURI, aError,
                                         std::move(aFormatStrings));
     ErrorResult rv;
-    runnable->Dispatch(Killing, rv);
+    runnable->Dispatch(mWorkerRef->Private(), Killing, rv);
     // XXXbz this seems totally broken.  We should be propagating this out, but
     // none of our callers really propagate anything usefully.  Come to think of
     // it, why is this a syncrunnable anyway?  Can't this be a fire-and-forget
@@ -645,7 +645,7 @@ void WebSocketImpl::Disconnect(const RefPtr<WebSocketImpl>& aProofOfRef) {
     RefPtr<DisconnectInternalRunnable> runnable =
         new DisconnectInternalRunnable(this);
     ErrorResult rv;
-    runnable->Dispatch(Killing, rv);
+    runnable->Dispatch(GetCurrentThreadWorkerPrivate(), Killing, rv);
     // XXXbz this seems totally broken.  We should be propagating this out, but
     // where to, exactly?
     rv.SuppressException();
@@ -1080,9 +1080,11 @@ class WebSocketMainThreadRunnable : public WorkerMainThreadRunnable {
 
   bool MainThreadRun() override {
     AssertIsOnMainThread();
+    MOZ_ASSERT(mWorkerRef);
 
     // Walk up to our containing page
-    WorkerPrivate* wp = mWorkerPrivate;
+    WorkerPrivate* wp = mWorkerRef->Private();
+    ;
     while (wp->GetParent()) {
       wp = wp->GetParent();
     }
@@ -1119,8 +1121,7 @@ class InitRunnable final : public WebSocketMainThreadRunnable {
         mScriptLine(aScriptLine),
         mScriptColumn(aScriptColumn),
         mErrorCode(NS_OK) {
-    MOZ_ASSERT(mWorkerPrivate);
-    mWorkerPrivate->AssertIsOnWorkerThread();
+    aWorkerPrivate->AssertIsOnWorkerThread();
   }
 
   nsresult ErrorCode() const { return mErrorCode; }
@@ -1141,22 +1142,27 @@ class InitRunnable final : public WebSocketMainThreadRunnable {
       return true;
     }
 
-    nsIPrincipal* principal = mWorkerPrivate->GetPrincipal();
+    MOZ_ASSERT(mWorkerRef);
+
+    nsIPrincipal* principal = mWorkerRef->Private()->GetPrincipal();
     mErrorCode = mImpl->Init(
         jsapi.cx(), principal->SchemeIs("https"), principal, mClientInfo,
-        mWorkerPrivate->CSPEventListener(), mIsServerSide, mURL, mProtocolArray,
-        mScriptFile, mScriptLine, mScriptColumn);
+        mWorkerRef->Private()->CSPEventListener(), mIsServerSide, mURL,
+        mProtocolArray, mScriptFile, mScriptLine, mScriptColumn);
     return true;
   }
 
   virtual bool InitWindowless(WorkerPrivate* aTopLevelWorkerPrivate) override {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aTopLevelWorkerPrivate && !aTopLevelWorkerPrivate->GetWindow());
+    MOZ_ASSERT(mWorkerRef);
+
+    WorkerPrivate* workerPrivate = mWorkerRef->Private();
 
     mErrorCode =
-        mImpl->Init(nullptr, mWorkerPrivate->GetPrincipal()->SchemeIs("https"),
+        mImpl->Init(nullptr, workerPrivate->GetPrincipal()->SchemeIs("https"),
                     aTopLevelWorkerPrivate->GetPrincipal(), mClientInfo,
-                    mWorkerPrivate->CSPEventListener(), mIsServerSide, mURL,
+                    workerPrivate->CSPEventListener(), mIsServerSide, mURL,
                     mProtocolArray, mScriptFile, mScriptLine, mScriptColumn);
     return true;
   }
@@ -1180,31 +1186,34 @@ class ConnectRunnable final : public WebSocketMainThreadRunnable {
       : WebSocketMainThreadRunnable(aWorkerPrivate, "WebSocket :: init"_ns),
         mImpl(aImpl),
         mConnectionFailed(true) {
-    MOZ_ASSERT(mWorkerPrivate);
-    mWorkerPrivate->AssertIsOnWorkerThread();
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
   }
 
   bool ConnectionFailed() const { return mConnectionFailed; }
 
  protected:
   virtual bool InitWithWindow(nsPIDOMWindowInner* aWindow) override {
+    MOZ_ASSERT(mWorkerRef);
+
     Document* doc = aWindow->GetExtantDoc();
     if (!doc) {
       return true;
     }
 
     mConnectionFailed = NS_FAILED(mImpl->InitializeConnection(
-        doc->NodePrincipal(), mWorkerPrivate->CookieJarSettings()));
+        doc->NodePrincipal(), mWorkerRef->Private()->CookieJarSettings()));
     return true;
   }
 
   virtual bool InitWindowless(WorkerPrivate* aTopLevelWorkerPrivate) override {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aTopLevelWorkerPrivate && !aTopLevelWorkerPrivate->GetWindow());
+    MOZ_ASSERT(mWorkerRef);
 
-    mConnectionFailed = NS_FAILED(
-        mImpl->InitializeConnection(aTopLevelWorkerPrivate->GetPrincipal(),
-                                    mWorkerPrivate->CookieJarSettings()));
+    mConnectionFailed = NS_FAILED(mImpl->InitializeConnection(
+        aTopLevelWorkerPrivate->GetPrincipal(),
+        mWorkerRef->Private()->CookieJarSettings()));
     return true;
   }
 
@@ -1223,8 +1232,8 @@ class AsyncOpenRunnable final : public WebSocketMainThreadRunnable {
         mImpl(aImpl),
         mOriginStack(std::move(aOriginStack)),
         mErrorCode(NS_OK) {
-    MOZ_ASSERT(mWorkerPrivate);
-    mWorkerPrivate->AssertIsOnWorkerThread();
+    MOZ_ASSERT(aImpl->mWorkerRef);
+    aImpl->mWorkerRef->Private()->AssertIsOnWorkerThread();
   }
 
   nsresult ErrorCode() const { return mErrorCode; }
@@ -1406,7 +1415,7 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
         workerPrivate->GlobalScope()->GetClientInfo(), !!aTransportProvider,
         aUrl, protocolArray, nsDependentCString(file.get()), lineno,
         column.oneOriginValue());
-    runnable->Dispatch(Canceling, aRv);
+    runnable->Dispatch(workerPrivate, Canceling, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
     }
@@ -1424,7 +1433,7 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
 
     RefPtr<ConnectRunnable> connectRunnable =
         new ConnectRunnable(workerPrivate, webSocketImpl);
-    connectRunnable->Dispatch(Canceling, aRv);
+    connectRunnable->Dispatch(workerPrivate, Canceling, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
     }
@@ -1515,7 +1524,7 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
 
     RefPtr<AsyncOpenRunnable> runnable =
         new AsyncOpenRunnable(webSocket->mImpl, std::move(stack));
-    runnable->Dispatch(Canceling, aRv);
+    runnable->Dispatch(webSocket->mImpl->mWorkerRef->Private(), Canceling, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
     }

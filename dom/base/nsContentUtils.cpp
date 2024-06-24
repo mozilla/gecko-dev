@@ -4507,7 +4507,7 @@ nsresult nsContentUtils::FormatLocalizedString(
     auto runnable = MakeRefPtr<FormatLocalizedStringRunnable>(
         workerPrivate, aFile, aKey, aParams, aResult);
 
-    runnable->Dispatch(Canceling, IgnoreErrors());
+    runnable->Dispatch(workerPrivate, Canceling, IgnoreErrors());
     return runnable->GetResult();
   }
 

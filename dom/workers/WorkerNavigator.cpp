@@ -179,11 +179,14 @@ class GetUserAgentRunnable final : public WorkerMainThreadRunnable {
 
   virtual bool MainThreadRun() override {
     AssertIsOnMainThread();
+    MOZ_ASSERT(mWorkerRef);
 
-    nsCOMPtr<nsPIDOMWindowInner> window = mWorkerPrivate->GetWindow();
+    WorkerPrivate* workerPrivate = mWorkerRef->Private();
+
+    nsCOMPtr<nsPIDOMWindowInner> window = workerPrivate->GetWindow();
 
     nsresult rv =
-        dom::Navigator::GetUserAgent(window, mWorkerPrivate->GetDocument(),
+        dom::Navigator::GetUserAgent(window, workerPrivate->GetDocument(),
                                      Some(mShouldResistFingerprinting), mUA);
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to retrieve user-agent from the worker thread.");
@@ -204,7 +207,7 @@ void WorkerNavigator::GetUserAgent(nsString& aUserAgent, CallerType aCallerType,
       workerPrivate, aUserAgent,
       workerPrivate->ShouldResistFingerprinting(RFPTarget::NavigatorUserAgent));
 
-  runnable->Dispatch(Canceling, aRv);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
 }
 
 uint64_t WorkerNavigator::HardwareConcurrency() const {

@@ -557,36 +557,68 @@ nsresult WorkerControlRunnable::Cancel() {
 }
 
 WorkerMainThreadRunnable::WorkerMainThreadRunnable(
-    WorkerPrivate* aWorkerPrivate, const nsACString& aTelemetryKey)
+    WorkerPrivate* aWorkerPrivate, const nsACString& aTelemetryKey,
+    const char* const aName)
     : mozilla::Runnable("dom::WorkerMainThreadRunnable"),
-      mWorkerPrivate(aWorkerPrivate),
-      mTelemetryKey(aTelemetryKey) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+      mTelemetryKey(aTelemetryKey),
+      mName(aName) {
+  aWorkerPrivate->AssertIsOnWorkerThread();
 }
 
 WorkerMainThreadRunnable::~WorkerMainThreadRunnable() = default;
 
-void WorkerMainThreadRunnable::Dispatch(WorkerStatus aFailStatus,
+void WorkerMainThreadRunnable::Dispatch(WorkerPrivate* aWorkerPrivate,
+                                        WorkerStatus aFailStatus,
                                         mozilla::ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  aWorkerPrivate->AssertIsOnWorkerThread();
 
   TimeStamp startTime = TimeStamp::NowLoRes();
 
-  AutoSyncLoopHolder syncLoop(mWorkerPrivate, aFailStatus);
+  RefPtr<StrongWorkerRef> workerRef;
+  if (aFailStatus < Canceling) {
+    // Nothing but logging debugging messages in the WorkerRef's
+    // shutdown callback.
+    // Stopping syncLoop in the shutdown callback could cause memory leaks or
+    // UAF when the main thread job completes.
+    workerRef =
+        StrongWorkerRef::Create(aWorkerPrivate, mName, [self = RefPtr{this}]() {
+          LOG(
+              ("WorkerMainThreadRunnable::Dispatch [%p](%s) Worker starts to "
+               "shutdown while underlying SyncLoop is still running",
+               self.get(), self->mName));
+        });
+  } else {
+    LOG(
+        ("WorkerMainThreadRunnable::Dispatch [%p](%s) Creating a SyncLoop when"
+         "the Worker is shutting down",
+         this, mName));
+    workerRef = StrongWorkerRef::CreateForcibly(aWorkerPrivate, mName);
+  }
+  if (!workerRef) {
+    // WorkerRef creation can fail if the worker is not in a valid status.
+    aRv.ThrowInvalidStateError("The worker has already shut down");
+    return;
+  }
+  mWorkerRef = MakeRefPtr<ThreadSafeWorkerRef>(workerRef);
+
+  AutoSyncLoopHolder syncLoop(aWorkerPrivate, aFailStatus);
 
   mSyncLoopTarget = syncLoop.GetSerialEventTarget();
   if (!mSyncLoopTarget) {
     // SyncLoop creation can fail if the worker is shutting down.
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    aRv.ThrowInvalidStateError("The worker is shutting down");
     return;
   }
 
-  DebugOnly<nsresult> rv = mWorkerPrivate->DispatchToMainThread(this);
+  DebugOnly<nsresult> rv = aWorkerPrivate->DispatchToMainThread(this);
   MOZ_ASSERT(
       NS_SUCCEEDED(rv),
       "Should only fail after xpcom-shutdown-threads and we're gone by then");
 
   bool success = NS_SUCCEEDED(syncLoop.Run());
+
+  // syncLoop is done, release WorkerRef to unblock shutdown.
+  mWorkerRef = nullptr;
 
   Telemetry::Accumulate(
       Telemetry::SYNC_WORKER_OPERATION, mTelemetryKey,
@@ -616,7 +648,8 @@ WorkerMainThreadRunnable::Run() {
       new MainThreadStopSyncLoopRunnable(std::move(mSyncLoopTarget),
                                          runResult ? NS_OK : NS_ERROR_FAILURE);
 
-  MOZ_ALWAYS_TRUE(response->Dispatch(mWorkerPrivate));
+  MOZ_ASSERT(mWorkerRef);
+  MOZ_ALWAYS_TRUE(response->Dispatch(mWorkerRef->Private()));
 
   return NS_OK;
 }
