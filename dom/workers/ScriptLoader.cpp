@@ -1058,8 +1058,7 @@ nsresult WorkerScriptLoader::LoadScript(
   // should have occured prior that processed the headers.
   if (!IsDebuggerScript()) {
     headerProcessor = MakeRefPtr<ScriptResponseHeaderProcessor>(
-        mWorkerRef->Private(),
-        loadContext->IsTopLevel() && !IsDynamicImport(request),
+        mWorkerRef, loadContext->IsTopLevel() && !IsDynamicImport(request),
         GetContentPolicyType(request) ==
             nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS);
   }

@@ -18,7 +18,7 @@
 
 namespace mozilla::dom {
 
-class WorkerPrivate;
+class ThreadSafeWorkerRef;
 
 namespace workerinternals::loader {
 
@@ -34,9 +34,9 @@ class ScriptResponseHeaderProcessor final : public nsIRequestObserver {
  public:
   NS_DECL_ISUPPORTS
 
-  ScriptResponseHeaderProcessor(WorkerPrivate* aWorkerPrivate,
+  ScriptResponseHeaderProcessor(RefPtr<ThreadSafeWorkerRef>& aWorkerRef,
                                 bool aIsMainScript, bool aIsImportScript)
-      : mWorkerPrivate(aWorkerPrivate),
+      : mWorkerRef(aWorkerRef),
         mIsMainScript(aIsMainScript),
         mIsImportScript(aIsImportScript) {
     AssertIsOnMainThread();
@@ -82,7 +82,9 @@ class ScriptResponseHeaderProcessor final : public nsIRequestObserver {
 
   nsresult ProcessCrossOriginEmbedderPolicyHeader(nsIRequest* aRequest);
 
-  WorkerPrivate* const mWorkerPrivate;
+  // The owner of ScriptResponseHeaderProcessor should give the WorkerRef to
+  // ensure ScriptResponseHeaderProcessor works with an valid WorkerPrivate.
+  RefPtr<ThreadSafeWorkerRef> mWorkerRef;
   const bool mIsMainScript;
   const bool mIsImportScript;
 };

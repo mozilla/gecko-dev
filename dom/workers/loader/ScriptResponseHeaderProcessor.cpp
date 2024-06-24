@@ -6,6 +6,7 @@
 
 #include "ScriptResponseHeaderProcessor.h"
 #include "mozilla/Try.h"
+#include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/WorkerScope.h"
 
 namespace mozilla {
@@ -53,11 +54,12 @@ nsresult ScriptResponseHeaderProcessor::ProcessCrossOriginEmbedderPolicyHeader(
     nsIRequest* aRequest) {
   nsCOMPtr<nsIHttpChannelInternal> httpChannel = do_QueryInterface(aRequest);
 
+  MOZ_ASSERT(mWorkerRef);
   // NOTE: the spec doesn't say what to do with non-HTTP workers.
   // See: https://github.com/whatwg/html/issues/4916
   if (!httpChannel) {
     if (mIsMainScript) {
-      mWorkerPrivate->InheritOwnerEmbedderPolicyOrNull(aRequest);
+      mWorkerRef->Private()->InheritOwnerEmbedderPolicyOrNull(aRequest);
     }
 
     return NS_OK;
@@ -65,10 +67,11 @@ nsresult ScriptResponseHeaderProcessor::ProcessCrossOriginEmbedderPolicyHeader(
 
   nsILoadInfo::CrossOriginEmbedderPolicy coep;
   MOZ_TRY(httpChannel->GetResponseEmbedderPolicy(
-      mWorkerPrivate->Trials().IsEnabled(OriginTrial::CoepCredentialless),
+      mWorkerRef->Private()->Trials().IsEnabled(
+          OriginTrial::CoepCredentialless),
       &coep));
 
-  return ProcessCrossOriginEmbedderPolicyHeader(mWorkerPrivate, coep,
+  return ProcessCrossOriginEmbedderPolicyHeader(mWorkerRef->Private(), coep,
                                                 mIsMainScript);
 }
 
