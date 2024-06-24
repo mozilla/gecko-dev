@@ -51,6 +51,65 @@ export const GenAI = {
   // The ordering of this list affects UI and currently alphabetical by name.
   chatProviders: new Map([
     // Until bug 1903900 to better handle max length issues, track in comments
+    // ~14k max length uri before 431
+    [
+      "https://chatgpt.com",
+      {
+        id: "chatgpt",
+        link1: "https://openai.com/terms",
+        link2: "https://openai.com/privacy",
+        linksId: "genai-settings-chat-chatgpt-links",
+        name: "ChatGPT",
+      },
+    ],
+    // ~4k max length uri before 400
+    [
+      "https://www.bing.com/chat?sendquery=1",
+      {
+        hidden: true,
+        id: "copilot",
+        link1: "https://www.bing.com/new/termsofuse",
+        link2: "https://go.microsoft.com/fwlink/?LinkId=521839",
+        linksId: "genai-settings-chat-copilot-links",
+        name: "Copilot",
+      },
+    ],
+    // ~20k max length uri before 400
+    // ~55k max header (no ?q=) before 413
+    [
+      "https://gemini.google.com",
+      {
+        header: "X-Firefox-Gemini",
+        id: "gemini",
+        link1: "https://policies.google.com/terms",
+        link2: "https://policies.google.com/terms/generative-ai/use-policy",
+        link3: "https://support.google.com/gemini?p=privacy_notice",
+        linksId: "genai-settings-chat-gemini-links",
+        name: "Google Gemini",
+      },
+    ],
+    // ~8k max length uri before 413
+    [
+      "https://huggingface.co/chat",
+      {
+        id: "huggingchat",
+        link1: "https://huggingface.co/chat/privacy",
+        link2: "https://huggingface.co/privacy",
+        linksId: "genai-settings-chat-huggingchat-links",
+        name: "HuggingChat",
+      },
+    ],
+    // ~4k max length uri before 502
+    [
+      "https://chat.mistral.ai/chat",
+      {
+        id: "lechat",
+        link1: "https://mistral.ai/terms/#terms-of-service-le-chat",
+        link2: "https://mistral.ai/terms/#privacy-policy",
+        linksId: "genai-settings-chat-lechat-links",
+        name: "Le Chat Mistral",
+      },
+    ],
     // 8k max length uri before 414
     [
       "http://localhost:8080",
@@ -59,6 +118,8 @@ export const GenAI = {
           return lazy.chatHideLocalhost;
         },
         id: "localhost",
+        link1: "https://llamafile.ai",
+        linksId: "genai-settings-chat-localhost-links",
         name: "localhost",
       },
     ],
@@ -102,7 +163,7 @@ export const GenAI = {
       return;
     }
     menu.label = `Ask ${
-      this.chatProviders.get(lazy.chatProvider)?.name ?? "Your Chatbot"
+      this.chatProviders.get(lazy.chatProvider)?.name ?? "AI Chatbot"
     }`;
     menu.menupopup?.remove();
 
@@ -277,7 +338,7 @@ export const GenAI = {
       // Update potentially multiple links for the provider
       const links = document.getElementById("genai-chat-links");
       const providerData = this.chatProviders.get(provider.value);
-      for (let i = 1; i <= 2; i++) {
+      for (let i = 1; i <= 3; i++) {
         const name = `link${i}`;
         let link = links.querySelector(`[data-l10n-name=${name}]`);
         const href = providerData?.[name];
