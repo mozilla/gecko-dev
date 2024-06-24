@@ -533,13 +533,15 @@ void Decoder::PostInvalidation(const OrientedIntRect& aRect,
   }
 }
 
-void Decoder::PostDecodeDone(int32_t aLoopCount /* = 0 */) {
+void Decoder::PostLoopCount(int32_t aLoopCount) {
+  mImageMetadata.SetLoopCount(aLoopCount);
+}
+
+void Decoder::PostDecodeDone() {
   MOZ_ASSERT(!IsMetadataDecode(), "Done with decoding in metadata decode");
   MOZ_ASSERT(!mInFrame, "Can't be done decoding if we're mid-frame!");
   MOZ_ASSERT(!mDecodeDone, "Decode already done!");
   mDecodeDone = true;
-
-  mImageMetadata.SetLoopCount(aLoopCount);
 
   // Some metadata that we track should take into account every frame in the
   // image. If this is a first-frame-only decode, our accumulated loop length
