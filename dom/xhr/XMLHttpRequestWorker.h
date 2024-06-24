@@ -56,7 +56,6 @@ class XMLHttpRequestWorker final : public SupportsWeakPtr,
 
  private:
   RefPtr<XMLHttpRequestUpload> mUpload;
-  WorkerPrivate* mWorkerPrivate;
   RefPtr<StrongWorkerRef> mWorkerRef;
   RefPtr<XMLHttpRequestWorker> mPinnedSelfRef;
   RefPtr<Proxy> mProxy;

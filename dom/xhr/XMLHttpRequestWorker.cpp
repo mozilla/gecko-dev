@@ -256,7 +256,15 @@ class WorkerThreadProxySyncRunnable : public WorkerMainThreadRunnable {
 
 class SendRunnable final : public WorkerThreadProxySyncRunnable {
   RefPtr<BlobImpl> mBlobImpl;
-  nsCOMPtr<nsIEventTarget> mSyncLoopTarget;
+  // WorkerMainThreadRunnable has a member mSyncLoopTarget to perform the
+  // synchronous dispatch. The mSyncLoopTarget will be released after
+  // WorkerMainThreadRunnable::Dispatch().
+  // However, to perform sync XHR, an additional sync loop is needed to wait
+  // for the sync XHR response. This is because XMLHttpRequestMainThread
+  // performs xhr in async way, and it causes the response to not be
+  // available before SendRunnable returns back to the worker thread.
+  // This is the event target to the additional sync loop.
+  nsCOMPtr<nsIEventTarget> mSyncXHRSyncLoopTarget;
   bool mHasUploadListeners;
 
  public:
@@ -270,8 +278,8 @@ class SendRunnable final : public WorkerThreadProxySyncRunnable {
     mHasUploadListeners = aHasUploadListeners;
   }
 
-  void SetSyncLoopTarget(nsIEventTarget* aSyncLoopTarget) {
-    mSyncLoopTarget = aSyncLoopTarget;
+  void SetSyncXHRSyncLoopTarget(nsIEventTarget* aSyncXHRSyncLoopTarget) {
+    mSyncXHRSyncLoopTarget = aSyncXHRSyncLoopTarget;
   }
 
  private:
@@ -1261,7 +1269,7 @@ void SendRunnable::RunOnMainThread(ErrorResult& aRv) {
   mProxy->mWorkerPrivate = mWorkerRef->Private();
 
   MOZ_ASSERT(!mProxy->mSyncLoopTarget);
-  mProxy->mSyncLoopTarget.swap(mSyncLoopTarget);
+  mProxy->mSyncLoopTarget.swap(mSyncXHRSyncLoopTarget);
 
   if (mHasUploadListeners) {
     // Send() can be called more than once before failure,
@@ -1290,14 +1298,13 @@ void SendRunnable::RunOnMainThread(ErrorResult& aRv) {
   } else {
     // In case of failure we just break the sync loop
     mProxy->mSyncLoopTarget = nullptr;
-    mSyncLoopTarget = nullptr;
+    mSyncXHRSyncLoopTarget = nullptr;
   }
 }
 
 XMLHttpRequestWorker::XMLHttpRequestWorker(WorkerPrivate* aWorkerPrivate,
                                            nsIGlobalObject* aGlobalObject)
     : XMLHttpRequest(aGlobalObject),
-      mWorkerPrivate(aWorkerPrivate),
       mResponseType(XMLHttpRequestResponseType::_empty),
       mStateData(new StateData()),
       mResponseData(new ResponseData()),
@@ -1311,14 +1318,12 @@ XMLHttpRequestWorker::XMLHttpRequestWorker(WorkerPrivate* aWorkerPrivate,
       mMozAnon(false),
       mMozSystem(false),
       mMimeTypeOverride(VoidString()) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  aWorkerPrivate->AssertIsOnWorkerThread();
 
   mozilla::HoldJSObjects(this);
 }
 
 XMLHttpRequestWorker::~XMLHttpRequestWorker() {
-  mWorkerPrivate->AssertIsOnWorkerThread();
-
   ReleaseProxy(XHRIsGoingAway);
 
   MOZ_ASSERT(!mWorkerRef);
@@ -1389,8 +1394,9 @@ already_AddRefed<XMLHttpRequest> XMLHttpRequestWorker::Construct(
 void XMLHttpRequestWorker::ReleaseProxy(ReleaseType aType) {
   // Can't assert that we're on the worker thread here because mWorkerPrivate
   // may be gone.
-
   if (mProxy) {
+    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+    MOZ_ASSERT(workerPrivate);
     if (aType == XHRIsGoingAway) {
       // Coming here means the XHR was GC'd, so we can't be pinned.
       MOZ_ASSERT(!mProxy->mXMLHttpRequestPrivate ||
@@ -1406,7 +1412,7 @@ void XMLHttpRequestWorker::ReleaseProxy(ReleaseType aType) {
           new AsyncTeardownRunnable(mProxy);
       mProxy = nullptr;
 
-      if (NS_FAILED(mWorkerPrivate->DispatchToMainThread(runnable.forget()))) {
+      if (NS_FAILED(workerPrivate->DispatchToMainThread(runnable.forget()))) {
         NS_ERROR("Failed to dispatch teardown runnable!");
       }
     } else {
@@ -1426,29 +1432,31 @@ void XMLHttpRequestWorker::ReleaseProxy(ReleaseType aType) {
 
       // We need to make a sync call here.
       RefPtr<SyncTeardownRunnable> runnable =
-          new SyncTeardownRunnable(mWorkerPrivate, mProxy);
+          new SyncTeardownRunnable(workerPrivate, mProxy);
       mProxy = nullptr;
 
       IgnoredErrorResult forAssertionsOnly;
       // This runnable _must_ be executed.
       // XXX This is a bit weird the failure status is Dead. Dispatching this
       // WorkerThreadRunnable in Killing status is not reasonable for Worker.
-      runnable->Dispatch(mWorkerPrivate, Dead, forAssertionsOnly);
+      runnable->Dispatch(workerPrivate, Dead, forAssertionsOnly);
       MOZ_DIAGNOSTIC_ASSERT(!forAssertionsOnly.Failed());
     }
   }
 }
 
 void XMLHttpRequestWorker::MaybePin(ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   if (mWorkerRef) {
     return;
   }
 
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+
   RefPtr<XMLHttpRequestWorker> self = this;
   mWorkerRef =
-      StrongWorkerRef::Create(mWorkerPrivate, "XMLHttpRequestWorker", [self]() {
+      StrongWorkerRef::Create(workerPrivate, "XMLHttpRequestWorker", [self]() {
         if (!self->mCanceled) {
           self->mCanceled = true;
           self->ReleaseProxy(WorkerIsGoingAway);
@@ -1482,10 +1490,11 @@ void XMLHttpRequestWorker::RequestErrorSteps(
     ErrorResult& aRv, const ErrorProgressEventType& aEventType,
     nsresult aException) {
   // https://xhr.spec.whatwg.org/#request-error-steps
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
+
   MOZ_LOG(gXMLHttpRequestLog, LogLevel::Debug,
           ("RequestErrorSteps(%s)", aEventType.cStr));
 
-  mWorkerPrivate->AssertIsOnWorkerThread();
   MOZ_ASSERT(mProxy);
 
   // Step 1: Set xhr’s state to done.
@@ -1557,7 +1566,7 @@ void XMLHttpRequestWorker::RequestErrorSteps(
 bool XMLHttpRequestWorker::FireEvent(EventTarget* aTarget,
                                      const EventType& aEventType,
                                      bool aUploadTarget, ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
   MOZ_ASSERT(aTarget);
 
   if (!mProxy) {
@@ -1612,7 +1621,7 @@ bool XMLHttpRequestWorker::FireEvent(EventTarget* aTarget,
 }
 
 void XMLHttpRequestWorker::Unpin() {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   MOZ_ASSERT(mWorkerRef, "Mismatched calls to Unpin!");
 
@@ -1636,7 +1645,7 @@ uint16_t XMLHttpRequestWorker::ReadyState() const {
 
 void XMLHttpRequestWorker::SendInternal(const BodyExtractorBase* aBody,
                                         ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   // We don't really need to keep the same body-type when we proxy the send()
   // call to the main-thread XHR. Let's extract the nsIInputStream from the
@@ -1662,8 +1671,10 @@ void XMLHttpRequestWorker::SendInternal(const BodyExtractorBase* aBody,
     MOZ_ASSERT(blobImpl);
   }
 
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+
   RefPtr<SendRunnable> sendRunnable =
-      new SendRunnable(mWorkerPrivate, mProxy, blobImpl);
+      new SendRunnable(workerPrivate, mProxy, blobImpl);
 
   // No send() calls when open is running.
   if (mProxy->mOpenCount) {
@@ -1680,14 +1691,14 @@ void XMLHttpRequestWorker::SendInternal(const BodyExtractorBase* aBody,
 
   RefPtr<XMLHttpRequestWorker> selfRef = this;
   AutoUnpinXHR autoUnpin(this);
-  Maybe<AutoSyncLoopHolder> autoSyncLoop;
+  Maybe<AutoSyncLoopHolder> syncXHRSyncLoop;
 
-  nsCOMPtr<nsISerialEventTarget> syncLoopTarget;
+  nsCOMPtr<nsISerialEventTarget> syncXHRSyncLoopTarget;
   bool isSyncXHR = mProxy->mIsSyncXHR;
   if (isSyncXHR) {
-    autoSyncLoop.emplace(mWorkerPrivate, Canceling);
-    syncLoopTarget = autoSyncLoop->GetSerialEventTarget();
-    if (!syncLoopTarget) {
+    syncXHRSyncLoop.emplace(workerPrivate, Canceling);
+    syncXHRSyncLoopTarget = syncXHRSyncLoop->GetSerialEventTarget();
+    if (!syncXHRSyncLoopTarget) {
       aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
       return;
     }
@@ -1695,12 +1706,12 @@ void XMLHttpRequestWorker::SendInternal(const BodyExtractorBase* aBody,
 
   mProxy->mOuterChannelId++;
 
-  sendRunnable->SetSyncLoopTarget(syncLoopTarget);
+  sendRunnable->SetSyncXHRSyncLoopTarget(syncXHRSyncLoopTarget);
   sendRunnable->SetHaveUploadListeners(hasUploadListeners);
 
   mFlagSend = true;
 
-  sendRunnable->Dispatch(mWorkerPrivate, Canceling, aRv);
+  sendRunnable->Dispatch(workerPrivate, Canceling, aRv);
   if (aRv.Failed()) {
     // Dispatch() may have spun the event loop and we may have already unrooted.
     // If so we don't want autoUnpin to try again.
@@ -1712,13 +1723,13 @@ void XMLHttpRequestWorker::SendInternal(const BodyExtractorBase* aBody,
 
   if (!isSyncXHR) {
     autoUnpin.Clear();
-    MOZ_ASSERT(!autoSyncLoop);
+    MOZ_ASSERT(!syncXHRSyncLoop);
     return;
   }
 
   autoUnpin.Clear();
 
-  bool succeeded = NS_SUCCEEDED(autoSyncLoop->Run());
+  bool succeeded = NS_SUCCEEDED(syncXHRSyncLoop->Run());
 
   // Throw appropriately If a sync XHR failed per spec's RequestErrorSteps
   if (isSyncXHR && mProxy) {
@@ -1762,7 +1773,7 @@ void XMLHttpRequestWorker::Open(const nsACString& aMethod,
                                 const Optional<nsAString>& aUser,
                                 const Optional<nsAString>& aPassword,
                                 ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   MOZ_LOG(gXMLHttpRequestLog, LogLevel::Debug,
           ("%p Open(%s,%s,%d)", this, nsAutoCString(aMethod).get(),
@@ -1773,18 +1784,19 @@ void XMLHttpRequestWorker::Open(const nsACString& aMethod,
     return;
   }
 
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+
   mFlagSend = false;
 
   bool alsoOverrideMimeType = false;
   if (!mProxy) {
-    Maybe<ClientInfo> clientInfo(
-        mWorkerPrivate->GlobalScope()->GetClientInfo());
+    Maybe<ClientInfo> clientInfo(workerPrivate->GlobalScope()->GetClientInfo());
     if (clientInfo.isNothing()) {
       aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
       return;
     }
     mProxy = new Proxy(this, clientInfo.ref(),
-                       mWorkerPrivate->GlobalScope()->GetController(), mMozAnon,
+                       workerPrivate->GlobalScope()->GetController(), mMozAnon,
                        mMozSystem);
     alsoOverrideMimeType = true;
   }
@@ -1796,20 +1808,20 @@ void XMLHttpRequestWorker::Open(const nsACString& aMethod,
   mEventStreamId++;
 
   UniquePtr<SerializedStackHolder> stack;
-  if (mWorkerPrivate->IsWatchedByDevTools()) {
+  if (workerPrivate->IsWatchedByDevTools()) {
     if (JSContext* cx = nsContentUtils::GetCurrentJSContext()) {
       stack = GetCurrentStackForNetMonitor(cx);
     }
   }
 
   RefPtr<OpenRunnable> runnable = new OpenRunnable(
-      mWorkerPrivate, mProxy, aMethod, aUrl, aUser, aPassword,
+      workerPrivate, mProxy, aMethod, aUrl, aUser, aPassword,
       mBackgroundRequest, mWithCredentials, mTimeout, mResponseType,
       alsoOverrideMimeType ? mMimeTypeOverride : VoidString(), std::move(stack),
       profiler_capture_backtrace());
 
   ++mProxy->mOpenCount;
-  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
   if (aRv.Failed()) {
     if (mProxy && !--mProxy->mOpenCount) {
       ReleaseProxy();
@@ -1831,7 +1843,7 @@ void XMLHttpRequestWorker::Open(const nsACString& aMethod,
 void XMLHttpRequestWorker::SetRequestHeader(const nsACString& aHeader,
                                             const nsACString& aValue,
                                             ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   if (mCanceled) {
     aRv.ThrowUncatchableException();
@@ -1843,13 +1855,15 @@ void XMLHttpRequestWorker::SetRequestHeader(const nsACString& aHeader,
     return;
   }
 
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+
   RefPtr<SetRequestHeaderRunnable> runnable =
-      new SetRequestHeaderRunnable(mWorkerPrivate, mProxy, aHeader, aValue);
-  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
+      new SetRequestHeaderRunnable(workerPrivate, mProxy, aHeader, aValue);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
 }
 
 void XMLHttpRequestWorker::SetTimeout(uint32_t aTimeout, ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   if (mCanceled) {
     aRv.ThrowUncatchableException();
@@ -1864,14 +1878,16 @@ void XMLHttpRequestWorker::SetTimeout(uint32_t aTimeout, ErrorResult& aRv) {
     return;
   }
 
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+
   RefPtr<SetTimeoutRunnable> runnable =
-      new SetTimeoutRunnable(mWorkerPrivate, mProxy, aTimeout);
-  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
+      new SetTimeoutRunnable(workerPrivate, mProxy, aTimeout);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
 }
 
 void XMLHttpRequestWorker::SetWithCredentials(bool aWithCredentials,
                                               ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   if (mCanceled) {
     aRv.ThrowUncatchableException();
@@ -1886,14 +1902,16 @@ void XMLHttpRequestWorker::SetWithCredentials(bool aWithCredentials,
     return;
   }
 
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+
   RefPtr<SetWithCredentialsRunnable> runnable =
-      new SetWithCredentialsRunnable(mWorkerPrivate, mProxy, aWithCredentials);
-  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
+      new SetWithCredentialsRunnable(workerPrivate, mProxy, aWithCredentials);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
 }
 
 void XMLHttpRequestWorker::SetMozBackgroundRequest(bool aBackgroundRequest,
                                                    ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   if (mCanceled) {
     aRv.ThrowUncatchableException();
@@ -1908,14 +1926,16 @@ void XMLHttpRequestWorker::SetMozBackgroundRequest(bool aBackgroundRequest,
     return;
   }
 
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+
   RefPtr<SetBackgroundRequestRunnable> runnable =
-      new SetBackgroundRequestRunnable(mWorkerPrivate, mProxy,
+      new SetBackgroundRequestRunnable(workerPrivate, mProxy,
                                        aBackgroundRequest);
-  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
 }
 
 XMLHttpRequestUpload* XMLHttpRequestWorker::GetUpload(ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   if (mCanceled) {
     aRv.ThrowUncatchableException();
@@ -1934,7 +1954,7 @@ void XMLHttpRequestWorker::Send(
         DocumentOrBlobOrArrayBufferViewOrArrayBufferOrFormDataOrURLSearchParamsOrUSVString>&
         aData,
     ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   MOZ_LOG(gXMLHttpRequestLog, LogLevel::Debug, ("Send()"));
 
@@ -2015,7 +2035,7 @@ void XMLHttpRequestWorker::Send(
 }
 
 void XMLHttpRequestWorker::Abort(ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   if (mCanceled) {
     MOZ_LOG(gXMLHttpRequestLog, LogLevel::Debug, ("Abort(canceled)"));
@@ -2031,8 +2051,10 @@ void XMLHttpRequestWorker::Abort(ErrorResult& aRv) {
   // Spec step 1
   MOZ_LOG(gXMLHttpRequestLog, LogLevel::Debug, ("Abort(step 1))"));
   mEventStreamId++;
-  RefPtr<AbortRunnable> runnable = new AbortRunnable(mWorkerPrivate, mProxy);
-  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
+
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+  RefPtr<AbortRunnable> runnable = new AbortRunnable(workerPrivate, mProxy);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
 
   // Spec step 2
   if ((mStateData->mReadyState == XMLHttpRequest_Binding::OPENED &&
@@ -2056,7 +2078,7 @@ void XMLHttpRequestWorker::Abort(ErrorResult& aRv) {
 void XMLHttpRequestWorker::GetResponseHeader(const nsACString& aHeader,
                                              nsACString& aResponseHeader,
                                              ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   if (mCanceled) {
     aRv.ThrowUncatchableException();
@@ -2068,10 +2090,12 @@ void XMLHttpRequestWorker::GetResponseHeader(const nsACString& aHeader,
     return;
   }
 
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+
   nsCString responseHeader;
   RefPtr<GetResponseHeaderRunnable> runnable = new GetResponseHeaderRunnable(
-      mWorkerPrivate, mProxy, aHeader, responseHeader);
-  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
+      workerPrivate, mProxy, aHeader, responseHeader);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -2080,7 +2104,7 @@ void XMLHttpRequestWorker::GetResponseHeader(const nsACString& aHeader,
 
 void XMLHttpRequestWorker::GetAllResponseHeaders(nsACString& aResponseHeaders,
                                                  ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   if (mCanceled) {
     aRv.ThrowUncatchableException();
@@ -2092,11 +2116,12 @@ void XMLHttpRequestWorker::GetAllResponseHeaders(nsACString& aResponseHeaders,
     return;
   }
 
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+
   nsCString responseHeaders;
   RefPtr<GetAllResponseHeadersRunnable> runnable =
-      new GetAllResponseHeadersRunnable(mWorkerPrivate, mProxy,
-                                        responseHeaders);
-  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
+      new GetAllResponseHeadersRunnable(workerPrivate, mProxy, responseHeaders);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -2106,7 +2131,7 @@ void XMLHttpRequestWorker::GetAllResponseHeaders(nsACString& aResponseHeaders,
 
 void XMLHttpRequestWorker::OverrideMimeType(const nsAString& aMimeType,
                                             ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   if (mCanceled) {
     aRv.ThrowUncatchableException();
@@ -2123,15 +2148,16 @@ void XMLHttpRequestWorker::OverrideMimeType(const nsAString& aMimeType,
   mMimeTypeOverride = aMimeType;
 
   if (mProxy) {
+    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     RefPtr<OverrideMimeTypeRunnable> runnable =
-        new OverrideMimeTypeRunnable(mWorkerPrivate, mProxy, aMimeType);
-    runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
+        new OverrideMimeTypeRunnable(workerPrivate, mProxy, aMimeType);
+    runnable->Dispatch(workerPrivate, Canceling, aRv);
   }
 }
 
 void XMLHttpRequestWorker::SetResponseType(
     XMLHttpRequestResponseType aResponseType, ErrorResult& aRv) {
-  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   // "document" is fine for the main thread but not for a worker. Short-circuit
   // that here.
@@ -2154,9 +2180,10 @@ void XMLHttpRequestWorker::SetResponseType(
     return;
   }
 
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
   RefPtr<SetResponseTypeRunnable> runnable =
-      new SetResponseTypeRunnable(mWorkerPrivate, mProxy, aResponseType);
-  runnable->Dispatch(mWorkerPrivate, Canceling, aRv);
+      new SetResponseTypeRunnable(workerPrivate, mProxy, aResponseType);
+  runnable->Dispatch(workerPrivate, Canceling, aRv);
   if (aRv.Failed()) {
     return;
   }
