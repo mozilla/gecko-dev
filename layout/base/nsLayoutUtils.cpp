@@ -8828,6 +8828,8 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
     metadata.SetSnapInfo(scrollContainerFrame->GetScrollSnapInfo());
     metadata.SetOverscrollBehavior(
         scrollContainerFrame->GetOverscrollBehaviorInfo());
+    auto scrollStyles = scrollContainerFrame->GetScrollStyles();
+    metadata.SetOverflow({scrollStyles.mHorizontal, scrollStyles.mVertical});
     metadata.SetScrollUpdates(scrollContainerFrame->GetScrollUpdates());
   }
 

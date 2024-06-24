@@ -174,6 +174,12 @@ struct ParamTraits<mozilla::layers::OverscrollBehavior>
           mozilla::layers::kHighestOverscrollBehavior> {};
 
 template <>
+struct ParamTraits<mozilla::StyleOverflow>
+    : public ContiguousEnumSerializerInclusive<mozilla::StyleOverflow,
+                                               mozilla::StyleOverflow::Visible,
+                                               mozilla::StyleOverflow::Clip> {};
+
+template <>
 struct ParamTraits<mozilla::layers::LayerHandle> {
   typedef mozilla::layers::LayerHandle paramType;
 
@@ -507,6 +513,10 @@ template <>
 struct ParamTraits<mozilla::layers::OverscrollBehaviorInfo>
     : public ParamTraits_TiedFields<mozilla::layers::OverscrollBehaviorInfo> {};
 
+template <>
+struct ParamTraits<mozilla::layers::OverflowInfo>
+    : public ParamTraits_TiedFields<mozilla::layers::OverflowInfo> {};
+
 template <typename T>
 struct ParamTraits<mozilla::ScrollGeneration<T>>
     : public ParamTraits_TiedFields<mozilla::ScrollGeneration<T>> {};
@@ -589,6 +599,7 @@ struct ParamTraits<mozilla::layers::ScrollMetadata>
     WriteParam(aWriter, aParam.mIsPaginatedPresentation);
     WriteParam(aWriter, aParam.mDisregardedDirection);
     WriteParam(aWriter, aParam.mOverscrollBehavior);
+    WriteParam(aWriter, aParam.mOverflow);
     WriteParam(aWriter, aParam.mScrollUpdates);
   }
 
@@ -632,6 +643,7 @@ struct ParamTraits<mozilla::layers::ScrollMetadata>
                                &paramType::SetIsPaginatedPresentation) &&
            ReadParam(aReader, &aResult->mDisregardedDirection) &&
            ReadParam(aReader, &aResult->mOverscrollBehavior) &&
+           ReadParam(aReader, &aResult->mOverflow) &&
            ReadParam(aReader, &aResult->mScrollUpdates);
   }
 };

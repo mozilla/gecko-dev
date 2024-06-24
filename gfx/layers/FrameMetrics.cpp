@@ -256,6 +256,10 @@ std::ostream& operator<<(std::ostream& aStream,
   return aStream;
 }
 
+bool OverflowInfo::operator==(const OverflowInfo& aOther) const {
+  return mOverflowX == aOther.mOverflowX && mOverflowY == aOther.mOverflowY;
+}
+
 std::ostream& operator<<(std::ostream& aStream,
                          const ScrollMetadata& aMetadata) {
   aStream << "{ [description=" << aMetadata.GetContentDescription()
