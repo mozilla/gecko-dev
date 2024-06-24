@@ -191,7 +191,7 @@ void MarkDocumentViewer(nsIDocumentViewer* aViewer, bool aCleanupJS) {
         if (elm) {
           elm->MarkForCC();
         }
-        win->TimeoutManager().UnmarkGrayTimers();
+        win->GetTimeoutManager()->UnmarkGrayTimers();
       }
     }
   }

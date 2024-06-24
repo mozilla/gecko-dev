@@ -354,10 +354,6 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
 
   bool IsDocumentLoaded() const;
 
-  mozilla::dom::TimeoutManager& TimeoutManager();
-
-  bool IsRunningTimeout();
-
   // To cache top inner-window if available after constructed for tab-wised
   // indexedDB counters.
   void TryToCacheTopInnerWindow();
