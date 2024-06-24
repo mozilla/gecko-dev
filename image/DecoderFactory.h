@@ -190,9 +190,11 @@ class DecoderFactory {
    * @param aType Which type of decoder to create - JPEG, PNG, etc.
    * @param aSourceBuffer The SourceBuffer which the decoder will read its data
    *                      from.
+   * @param aDecoderFlags Flags specifying the behavior of this decoder.
    */
   static already_AddRefed<Decoder> CreateAnonymousMetadataDecoder(
-      DecoderType aType, NotNull<SourceBuffer*> aSourceBuffer);
+      DecoderType aType, NotNull<SourceBuffer*> aSourceBuffer,
+      DecoderFlags aDecoderFlags);
 
  private:
   virtual ~DecoderFactory() = 0;

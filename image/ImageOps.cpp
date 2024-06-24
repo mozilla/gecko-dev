@@ -171,8 +171,11 @@ nsresult ImageOps::DecodeMetadata(ImageBuffer* aBuffer,
   // Create a decoder.
   DecoderType decoderType =
       DecoderFactory::GetDecoderType(PromiseFlatCString(aMimeType).get());
+  DecoderFlags decoderFlags =
+      DecoderFactory::GetDefaultDecoderFlagsForType(decoderType);
+  decoderFlags |= DecoderFlags::FIRST_FRAME_ONLY;
   RefPtr<Decoder> decoder = DecoderFactory::CreateAnonymousMetadataDecoder(
-      decoderType, WrapNotNull(sourceBuffer));
+      decoderType, WrapNotNull(sourceBuffer), decoderFlags);
   if (!decoder) {
     return NS_ERROR_FAILURE;
   }

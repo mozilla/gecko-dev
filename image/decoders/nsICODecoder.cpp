@@ -291,6 +291,9 @@ LexerTransition<ICOState> nsICODecoder::FinishDirEntry() {
   // is necessary for downscale-during-decode to work since we won't even
   // attempt to *upscale* while decoding.
   PostSize(biggestEntry->mSize.width, biggestEntry->mSize.height);
+  if (WantsFrameCount()) {
+    PostFrameCount(/* aFrameCount */ 1);
+  }
   if (HasError()) {
     return Transition::TerminateFailure();
   }

@@ -151,6 +151,9 @@ nsresult Decoder::Init() {
   // XXX(seth): Soon that exception will be removed.
   MOZ_ASSERT_IF(mImage, IsMetadataDecode());
 
+  // We can only request the frame count for metadata decoders.
+  MOZ_ASSERT_IF(WantsFrameCount(), IsMetadataDecode());
+
   // Implementation-specific initialization.
   nsresult rv = InitInternal();
 
@@ -465,6 +468,10 @@ void Decoder::PostIsAnimated(FrameTimeout aFirstFrameTimeout) {
   mProgress |= FLAG_IS_ANIMATED;
   mImageMetadata.SetHasAnimation();
   mImageMetadata.SetFirstFrameTimeout(aFirstFrameTimeout);
+}
+
+void Decoder::PostFrameCount(uint32_t aFrameCount) {
+  mImageMetadata.SetFrameCount(aFrameCount);
 }
 
 void Decoder::PostFrameStop(Opacity aFrameOpacity) {

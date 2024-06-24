@@ -28,27 +28,82 @@ using namespace mozilla::image;
 
 enum class BMPWithinICO { NO, YES };
 
-static void CheckMetadata(const ImageTestCase& aTestCase,
-                          BMPWithinICO aBMPWithinICO = BMPWithinICO::NO) {
-  nsCOMPtr<nsIInputStream> inputStream = LoadFile(aTestCase.mPath);
-  ASSERT_TRUE(inputStream != nullptr);
-
-  // Figure out how much data we have.
-  uint64_t length;
-  nsresult rv = inputStream->Available(&length);
-  ASSERT_NS_SUCCEEDED(rv);
-
-  // Write the data into a SourceBuffer.
-  auto sourceBuffer = MakeNotNull<RefPtr<SourceBuffer>>();
-  sourceBuffer->ExpectLength(length);
-  rv = sourceBuffer->AppendFromInputStream(inputStream, length);
-  ASSERT_NS_SUCCEEDED(rv);
-  sourceBuffer->Complete(NS_OK);
-
+static void CheckMetadataFrameCount(
+    const ImageTestCase& aTestCase,
+    NotNull<RefPtr<SourceBuffer>>& aSourceBuffer, BMPWithinICO aBMPWithinICO) {
   // Create a metadata decoder.
   DecoderType decoderType = DecoderFactory::GetDecoderType(aTestCase.mMimeType);
+  DecoderFlags decoderFlags =
+      DecoderFactory::GetDefaultDecoderFlagsForType(decoderType);
+  decoderFlags |= DecoderFlags::COUNT_FRAMES;
   RefPtr<image::Decoder> decoder =
-      DecoderFactory::CreateAnonymousMetadataDecoder(decoderType, sourceBuffer);
+      DecoderFactory::CreateAnonymousMetadataDecoder(decoderType, aSourceBuffer,
+                                                     decoderFlags);
+  ASSERT_TRUE(decoder != nullptr);
+  RefPtr<IDecodingTask> task =
+      new AnonymousDecodingTask(WrapNotNull(decoder), /* aResumable */ false);
+
+  if (aBMPWithinICO == BMPWithinICO::YES) {
+    static_cast<nsBMPDecoder*>(decoder.get())->SetIsWithinICO();
+  }
+
+  // Run the metadata decoder synchronously.
+  task->Run();
+
+  // Ensure that the metadata decoder didn't make progress it shouldn't have
+  // (which would indicate that it decoded past the header of the image).
+  Progress metadataProgress = decoder->TakeProgress();
+  EXPECT_TRUE(
+      0 == (metadataProgress &
+            ~(FLAG_SIZE_AVAILABLE | FLAG_HAS_TRANSPARENCY | FLAG_IS_ANIMATED)));
+
+  // If the test case is corrupt, assert what we can and return early.
+  if (aTestCase.mFlags & TEST_CASE_HAS_ERROR) {
+    EXPECT_TRUE(decoder->GetDecodeDone());
+    EXPECT_TRUE(decoder->HasError());
+    return;
+  }
+
+  EXPECT_TRUE(decoder->GetDecodeDone() && !decoder->HasError());
+
+  // Check that we got the expected metadata.
+  EXPECT_TRUE(metadataProgress & FLAG_SIZE_AVAILABLE);
+
+  OrientedIntSize metadataSize = decoder->Size();
+  EXPECT_EQ(aTestCase.mSize.width, metadataSize.width);
+  if (aBMPWithinICO == BMPWithinICO::YES) {
+    // Half the data is considered to be part of the AND mask if embedded
+    EXPECT_EQ(aTestCase.mSize.height / 2, metadataSize.height);
+  } else {
+    EXPECT_EQ(aTestCase.mSize.height, metadataSize.height);
+  }
+
+  bool expectTransparency =
+      aBMPWithinICO == BMPWithinICO::YES
+          ? true
+          : bool(aTestCase.mFlags & TEST_CASE_IS_TRANSPARENT);
+  EXPECT_EQ(expectTransparency, bool(metadataProgress & FLAG_HAS_TRANSPARENCY));
+
+  EXPECT_EQ(bool(aTestCase.mFlags & TEST_CASE_IS_ANIMATED),
+            bool(metadataProgress & FLAG_IS_ANIMATED));
+
+  EXPECT_TRUE(decoder->WantsFrameCount());
+  const auto metadata = decoder->GetImageMetadata();
+  ASSERT_TRUE(metadata.HasFrameCount());
+  EXPECT_EQ(aTestCase.mFrameCount, metadata.GetFrameCount());
+}
+
+static void CheckMetadataCommon(const ImageTestCase& aTestCase,
+                                NotNull<RefPtr<SourceBuffer>>& aSourceBuffer,
+                                BMPWithinICO aBMPWithinICO) {
+  // Create a metadata decoder.
+  DecoderType decoderType = DecoderFactory::GetDecoderType(aTestCase.mMimeType);
+  DecoderFlags decoderFlags =
+      DecoderFactory::GetDefaultDecoderFlagsForType(decoderType);
+  decoderFlags |= DecoderFlags::FIRST_FRAME_ONLY;
+  RefPtr<image::Decoder> decoder =
+      DecoderFactory::CreateAnonymousMetadataDecoder(decoderType, aSourceBuffer,
+                                                     decoderFlags);
   ASSERT_TRUE(decoder != nullptr);
   RefPtr<IDecodingTask> task =
       new AnonymousDecodingTask(WrapNotNull(decoder), /* aResumable */ false);
@@ -99,7 +154,7 @@ static void CheckMetadata(const ImageTestCase& aTestCase,
 
   // Create a full decoder, so we can compare the result.
   decoder = DecoderFactory::CreateAnonymousDecoder(
-      decoderType, sourceBuffer, Nothing(), DecoderFlags::FIRST_FRAME_ONLY,
+      decoderType, aSourceBuffer, Nothing(), DecoderFlags::FIRST_FRAME_ONLY,
       aTestCase.mSurfaceFlags);
   ASSERT_TRUE(decoder != nullptr);
   task =
@@ -131,6 +186,34 @@ static void CheckMetadata(const ImageTestCase& aTestCase,
               (fullProgress & FLAG_IS_ANIMATED));
 }
 
+static void CheckMetadata(const ImageTestCase& aTestCase,
+                          BMPWithinICO aBMPWithinICO = BMPWithinICO::NO,
+                          bool aSkipCommon = false,
+                          bool aSkipFrameCount = false) {
+  nsCOMPtr<nsIInputStream> inputStream = LoadFile(aTestCase.mPath);
+  ASSERT_TRUE(inputStream != nullptr);
+
+  // Figure out how much data we have.
+  uint64_t length;
+  nsresult rv = inputStream->Available(&length);
+  ASSERT_NS_SUCCEEDED(rv);
+
+  // Write the data into a SourceBuffer.
+  auto sourceBuffer = MakeNotNull<RefPtr<SourceBuffer>>();
+  sourceBuffer->ExpectLength(length);
+  rv = sourceBuffer->AppendFromInputStream(inputStream, length);
+  ASSERT_NS_SUCCEEDED(rv);
+  sourceBuffer->Complete(NS_OK);
+
+  if (!aSkipCommon) {
+    CheckMetadataCommon(aTestCase, sourceBuffer, aBMPWithinICO);
+  }
+
+  if (!aSkipFrameCount) {
+    CheckMetadataFrameCount(aTestCase, sourceBuffer, aBMPWithinICO);
+  }
+}
+
 class ImageDecoderMetadata : public ::testing::Test {
  protected:
   AutoInitializeImageLib mInit;
@@ -153,6 +236,7 @@ TEST_F(ImageDecoderMetadata, BMP) { CheckMetadata(GreenBMPTestCase()); }
 TEST_F(ImageDecoderMetadata, ICO) { CheckMetadata(GreenICOTestCase()); }
 TEST_F(ImageDecoderMetadata, Icon) { CheckMetadata(GreenIconTestCase()); }
 TEST_F(ImageDecoderMetadata, WebP) { CheckMetadata(GreenWebPTestCase()); }
+TEST_F(ImageDecoderMetadata, AVIF) { CheckMetadata(GreenAVIFTestCase()); }
 
 #ifdef MOZ_JXL
 TEST_F(ImageDecoderMetadata, JXL) { CheckMetadata(GreenJXLTestCase()); }
@@ -167,6 +251,17 @@ TEST_F(ImageDecoderMetadata, AnimatedGIF) {
 
 TEST_F(ImageDecoderMetadata, AnimatedPNG) {
   CheckMetadata(GreenFirstFrameAnimatedPNGTestCase());
+}
+
+TEST_F(ImageDecoderMetadata, AnimatedWebP) {
+  CheckMetadata(GreenFirstFrameAnimatedWebPTestCase());
+}
+
+TEST_F(ImageDecoderMetadata, AnimatedAVIF) {
+  // TODO: If we request first frame only decoding, the AVIF decoder says the
+  // animated image is not animated. This should be fixed at some point.
+  CheckMetadata(GreenFirstFrameAnimatedAVIFTestCase(), BMPWithinICO::NO,
+                /* aSkipCommon */ true, /* aSkipFrameCount */ false);
 }
 
 TEST_F(ImageDecoderMetadata, FirstFramePaddingGIF) {
@@ -189,7 +284,10 @@ TEST_F(ImageDecoderMetadata, RLE8BMP) { CheckMetadata(RLE8BMPTestCase()); }
 TEST_F(ImageDecoderMetadata, Corrupt) { CheckMetadata(CorruptTestCase()); }
 
 TEST_F(ImageDecoderMetadata, NoFrameDelayGIF) {
-  CheckMetadata(NoFrameDelayGIFTestCase());
+  // We skip the frame count version because we realize it is animated with a
+  // full decode, so the test isn't consistent.
+  CheckMetadata(NoFrameDelayGIFTestCase(), BMPWithinICO::NO,
+                /* aSkipCommon */ false, /* aSkipFrameCount */ true);
 }
 
 TEST_F(ImageDecoderMetadata, NoFrameDelayGIFFullDecode) {

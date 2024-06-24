@@ -390,6 +390,12 @@ LexerResult nsWebPDecoder::ReadHeader(WebPDemuxer* aDemuxer, bool aIsComplete) {
   }
 
   if (flags & WebPFeatureFlags::ANIMATION_FLAG) {
+    // The demuxer only knows how many frames it will have once it has the
+    // complete buffer.
+    if (WantsFrameCount() && !aIsComplete) {
+      return LexerResult(Yield::NEED_MORE_DATA);
+    }
+
     // A metadata decode expects to get the correct first frame timeout which
     // sadly is not provided by the normal WebP header parsing.
     WebPIterator iter;
@@ -422,6 +428,11 @@ LexerResult nsWebPDecoder::ReadHeader(WebPDemuxer* aDemuxer, bool aIsComplete) {
   }
 
   PostSize(width, height);
+
+  if (WantsFrameCount()) {
+    uint32_t frameCount = WebPDemuxGetI(aDemuxer, WEBP_FF_FRAME_COUNT);
+    PostFrameCount(frameCount);
+  }
 
   bool alpha = flags & WebPFeatureFlags::ALPHA_FLAG;
   if (alpha) {

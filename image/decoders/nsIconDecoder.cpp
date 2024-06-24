@@ -79,6 +79,10 @@ LexerTransition<nsIconDecoder::State> nsIconDecoder::ReadHeader(
   // Post our size to the superclass.
   PostSize(width, height);
 
+  if (WantsFrameCount()) {
+    PostFrameCount(/* aFrameCount */ 1);
+  }
+
   // Icons have alpha.
   PostHasTransparency();
 

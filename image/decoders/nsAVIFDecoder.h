@@ -126,6 +126,8 @@ class AVIFParser {
 
   const Mp4parseAvifInfo& GetInfo() const { return mInfo; }
 
+  uint32_t GetFrameCount();
+
   nsAVIFDecoder::DecodeResult GetImage(AVIFImage& aImage);
 
   bool IsAnimated() const;

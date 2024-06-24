@@ -178,6 +178,11 @@ nsresult DecoderFactory::CreateDecoder(
     return NS_ERROR_INVALID_ARG;
   }
 
+  // Only can use COUNT_FRAMES with metadata decoders.
+  if (NS_WARN_IF(bool(aDecoderFlags & DecoderFlags::COUNT_FRAMES))) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
   // Create an anonymous decoder. Interaction with the SurfaceCache and the
   // owning RasterImage will be mediated by DecodedSurfaceProvider.
   RefPtr<Decoder> decoder = GetDecoder(
@@ -230,6 +235,11 @@ nsresult DecoderFactory::CreateAnimationDecoder(
     DecoderFlags aDecoderFlags, SurfaceFlags aSurfaceFlags,
     size_t aCurrentFrame, IDecodingTask** aOutTask) {
   if (aType == DecoderType::UNKNOWN) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  // Only can use COUNT_FRAMES with metadata decoders.
+  if (NS_WARN_IF(bool(aDecoderFlags & DecoderFlags::COUNT_FRAMES))) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -391,6 +401,11 @@ already_AddRefed<Decoder> DecoderFactory::CreateAnonymousDecoder(
     return nullptr;
   }
 
+  // Only can use COUNT_FRAMES with metadata decoders.
+  if (NS_WARN_IF(bool(aDecoderFlags & DecoderFlags::COUNT_FRAMES))) {
+    return nullptr;
+  }
+
   RefPtr<Decoder> decoder =
       GetDecoder(aType, /* aImage = */ nullptr, /* aIsRedecode = */ false);
   MOZ_ASSERT(decoder, "Should have a decoder now");
@@ -420,7 +435,8 @@ already_AddRefed<Decoder> DecoderFactory::CreateAnonymousDecoder(
 
 /* static */
 already_AddRefed<Decoder> DecoderFactory::CreateAnonymousMetadataDecoder(
-    DecoderType aType, NotNull<SourceBuffer*> aSourceBuffer) {
+    DecoderType aType, NotNull<SourceBuffer*> aSourceBuffer,
+    DecoderFlags aDecoderFlags) {
   if (aType == DecoderType::UNKNOWN) {
     return nullptr;
   }
@@ -432,7 +448,7 @@ already_AddRefed<Decoder> DecoderFactory::CreateAnonymousMetadataDecoder(
   // Initialize the decoder.
   decoder->SetMetadataDecode(true);
   decoder->SetIterator(aSourceBuffer->Iterator());
-  decoder->SetDecoderFlags(DecoderFlags::FIRST_FRAME_ONLY);
+  decoder->SetDecoderFlags(aDecoderFlags);
 
   if (NS_FAILED(decoder->Init())) {
     return nullptr;
