@@ -342,6 +342,7 @@ rtc_library("simple_encoder_wrapper") {
   absl_deps = [
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/functional:any_invocable",
+    "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
 
@@ -397,6 +398,8 @@ rtc_library("libaom_av1_encoder_factory_test") {
     "../../test:test_support",
     "../../test:video_test_support",
   ]
+
+  absl_deps = [ "//third_party/abseil-cpp/absl/types:variant" ]
 }
 
 rtc_library("vp8_temporal_layers_factory") {

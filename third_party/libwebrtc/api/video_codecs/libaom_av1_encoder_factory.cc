@@ -27,7 +27,7 @@
 #define SET_OR_DO_ERROR_CALLBACK_AND_RETURN(param_id, param_value)    \
   do {                                                                \
     if (!SetEncoderControlParameters(&ctx_, param_id, param_value)) { \
-      encode_result_callback({});                                     \
+      DoErrorCallback(frame_settings);                                \
       return;                                                         \
     }                                                                 \
   } while (0)
@@ -41,8 +41,9 @@
 
 namespace webrtc {
 
-using Cbr = VideoEncoderInterface::FrameEncodeSettings::Cbr;
-using Cqp = VideoEncoderInterface::FrameEncodeSettings::Cqp;
+using FrameEncodeSettings = VideoEncoderInterface::FrameEncodeSettings;
+using Cbr = FrameEncodeSettings::Cbr;
+using Cqp = FrameEncodeSettings::Cqp;
 using aom_img_ptr = std::unique_ptr<aom_image_t, decltype(&aom_img_free)>;
 
 namespace {
@@ -87,8 +88,7 @@ class LibaomAv1Encoder : public VideoEncoderInterface {
 
   void Encode(rtc::scoped_refptr<webrtc::VideoFrameBuffer> frame_buffer,
               const TemporalUnitSettings& tu_settings,
-              const std::vector<FrameEncodeSettings>& frame_settings,
-              EncodeResultCallback encode_result_callback) override;
+              std::vector<FrameEncodeSettings> frame_settings) override;
 
  private:
   aom_img_ptr image_to_encode_ = aom_img_ptr(nullptr, aom_img_free);
@@ -275,6 +275,11 @@ bool ValidateEncodeParams(
   for (size_t i = 0; i < frame_settings.size(); ++i) {
     const VideoEncoderInterface::FrameEncodeSettings& settings =
         frame_settings[i];
+
+    if (!settings.result_callback) {
+      RTC_LOG(LS_ERROR) << "No result callback function provided.";
+      return false;
+    }
 
     if (!in_range(0, kMaxSpatialLayersWtf, settings.spatial_id)) {
       RTC_LOG(LS_ERROR) << "invalid spatial id " << settings.spatial_id;
@@ -611,14 +616,23 @@ aom_svc_params_t GetSvcParams(
   return svc_params;
 }
 
+void DoErrorCallback(std::vector<FrameEncodeSettings>& frame_settings) {
+  for (FrameEncodeSettings& settings : frame_settings) {
+    if (settings.result_callback) {
+      settings.result_callback({});
+      // To avoid invoking any callback more than once.
+      settings.result_callback = {};
+    }
+  }
+}
+
 void LibaomAv1Encoder::Encode(
     rtc::scoped_refptr<webrtc::VideoFrameBuffer> frame_buffer,
     const TemporalUnitSettings& tu_settings,
-    const std::vector<FrameEncodeSettings>& frame_settings,
-    EncodeResultCallback encode_result_callback) {
+    std::vector<FrameEncodeSettings> frame_settings) {
   if (!ValidateEncodeParams(*frame_buffer, tu_settings, frame_settings,
                             last_resolution_in_buffer_, cfg_.rc_end_usage)) {
-    encode_result_callback({});
+    DoErrorCallback(frame_settings);
     return;
   }
 
@@ -681,7 +695,7 @@ void LibaomAv1Encoder::Encode(
   if (aom_codec_err_t ret = aom_codec_enc_config_set(&ctx_, &cfg_);
       ret != AOM_CODEC_OK) {
     RTC_LOG(LS_ERROR) << "aom_codec_enc_config_set returned " << ret;
-    encode_result_callback({});
+    DoErrorCallback(frame_settings);
     return;
   }
   aom_svc_params_t svc_params = GetSvcParams(*frame_buffer, frame_settings);
@@ -689,20 +703,20 @@ void LibaomAv1Encoder::Encode(
 
   // The libaom AV1 encoder requires that `aom_codec_encode` is called for
   // every spatial layer, even if no frame should be encoded for that layer.
-  std::array<const FrameEncodeSettings*, kMaxSpatialLayersWtf>
+  std::array<FrameEncodeSettings*, kMaxSpatialLayersWtf>
       settings_for_spatial_id;
   settings_for_spatial_id.fill(nullptr);
   FrameEncodeSettings settings_for_unused_layer;
-  for (const FrameEncodeSettings& settings : frame_settings) {
+  for (FrameEncodeSettings& settings : frame_settings) {
     settings_for_spatial_id[settings.spatial_id] = &settings;
   }
 
   for (int sid = frame_settings[0].spatial_id;
        sid < svc_params.number_spatial_layers; ++sid) {
     const bool layer_enabled = settings_for_spatial_id[sid] != nullptr;
-    const FrameEncodeSettings& settings = layer_enabled
-                                              ? *settings_for_spatial_id[sid]
-                                              : settings_for_unused_layer;
+    FrameEncodeSettings& settings = layer_enabled
+                                        ? *settings_for_spatial_id[sid]
+                                        : settings_for_unused_layer;
 
     aom_svc_layer_id_t layer_id = {
         .spatial_layer_id = sid,
@@ -713,7 +727,6 @@ void LibaomAv1Encoder::Encode(
     SET_OR_DO_ERROR_CALLBACK_AND_RETURN(AV1E_SET_SVC_REF_FRAME_CONFIG,
                                         &ref_config);
 
-    // TD: Why does the libaom have both `encode_timestamp_` and `duration`?
     // TD: Duration can't be zero, what does it matter when the layer is
     // not being encoded?
     TimeDelta duration = TimeDelta::Millis(1);
@@ -738,7 +751,7 @@ void LibaomAv1Encoder::Encode(
         settings.frame_type == FrameType::kKeyframe ? AOM_EFLAG_FORCE_KF : 0);
     if (ret != AOM_CODEC_OK) {
       RTC_LOG(LS_WARNING) << "aom_codec_encode returned " << ret;
-      encode_result_callback({});
+      DoErrorCallback(frame_settings);
       return;
     }
 
@@ -766,17 +779,18 @@ void LibaomAv1Encoder::Encode(
                                 : FrameType::kDeltaFrame;
         result.bitstream_data = EncodedImageBuffer::Create(
             static_cast<uint8_t*>(pkt->data.frame.buf), pkt->data.frame.sz);
-        result.spatial_id = sid;
         break;
       }
     }
 
     if (result.bitstream_data == nullptr) {
-      // TD: How should error callbacks be handled, only call once?
-      encode_result_callback({});
+      DoErrorCallback(frame_settings);
       return;
     } else {
-      encode_result_callback(result);
+      RTC_CHECK(settings.result_callback);
+      settings.result_callback(result);
+      // To avoid invoking any callback more than once.
+      settings.result_callback = {};
     }
   }
 }
@@ -786,7 +800,6 @@ std::string LibaomAv1EncoderFactory::CodecName() const {
   return "AV1";
 }
 
-// TD: it should also possible to expose SW/HW/driver version.
 std::string LibaomAv1EncoderFactory::ImplementationName() const {
   return "Libaom";
 }

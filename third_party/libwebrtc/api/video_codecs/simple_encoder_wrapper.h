@@ -33,8 +33,7 @@ class SimpleEncoderWrapper {
     absl::optional<FrameDependencyStructure> dependency_structure;
   };
 
-  using EncodeResultCallback =
-      absl::AnyInvocable<void(const EncodeResult& result)>;
+  using EncodeResultCallback = std::function<void(const EncodeResult& result)>;
 
   static std::vector<std::string> SupportedWebrtcSvcModes(
       const VideoEncoderFactoryInterface::Capabilities::PredictionConstraints&

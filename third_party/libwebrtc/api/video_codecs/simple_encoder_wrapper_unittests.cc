@@ -125,8 +125,8 @@ TEST(SimpleEncoderWrapper, SupportedSvcModesUpToL3T3KeyWithHScaling) {
           "S3T1", "S3T1h", "S3T2", "S3T2h", "S3T3", "S3T3h"));
 }
 
-// TD: The encoder wrapper shouldn't really use an actual encoder implementation
-//     for testing, but hey, this is just a PoC.
+// TD: The encoder wrapper shouldn't really use an actual encoder
+// implementation for testing, but hey, this is just a PoC.
 TEST(SimpleEncoderWrapper, EncodeL1T1) {
   auto encoder = LibaomAv1EncoderFactory().CreateEncoder(
       {.max_encode_dimensions = {1080, 720},
@@ -171,7 +171,7 @@ TEST(SimpleEncoderWrapper, EncodeL1T1) {
       });
 }
 
-TEST(SimpleEncoderWrapper, DISABLED_EncodeL2T2_KEY) {
+TEST(SimpleEncoderWrapper, EncodeL2T2_KEY) {
   auto encoder = LibaomAv1EncoderFactory().CreateEncoder(
       {.max_encode_dimensions = {1080, 720},
        .encoding_format = {.sub_sampling = EncodingFormat::k420,
@@ -231,7 +231,7 @@ TEST(SimpleEncoderWrapper, DISABLED_EncodeL2T2_KEY) {
   EXPECT_THAT(num_callbacks, Eq(4));
 }
 
-TEST(SimpleEncoderWrapper, DISABLED_EncodeL1T3ForceKeyframe) {
+TEST(SimpleEncoderWrapper, EncodeL1T3ForceKeyframe) {
   auto encoder = LibaomAv1EncoderFactory().CreateEncoder(
       {.max_encode_dimensions = {1080, 720},
        .encoding_format = {.sub_sampling = EncodingFormat::k420,

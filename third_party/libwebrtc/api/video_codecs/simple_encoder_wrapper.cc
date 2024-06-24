@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/types/variant.h"
 #include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/scalability_mode_helper.h"
 #include "api/video_codecs/video_encoder_factory_interface.h"
@@ -146,7 +147,6 @@ void SimpleEncoderWrapper::Encode(
       svc_controller_->NextFrameConfig(force_keyframe);
   std::vector<FrameEncodeSettings> encode_settings;
   std::vector<GenericFrameInfo> frame_infos;
-
   bool include_dependency_structure = false;
 
   for (size_t s = 0; s < configs.size(); ++s) {
@@ -178,38 +178,39 @@ void SimpleEncoderWrapper::Encode(
       settings.frame_type = FrameType::kKeyframe;
       include_dependency_structure = true;
     }
-  }
 
-  absl::optional<FrameDependencyStructure> dependency_structure;
-  if (include_dependency_structure) {
-    dependency_structure = svc_controller_->DependencyStructure();
-  }
+    absl::optional<FrameDependencyStructure> dependency_structure;
+    if (include_dependency_structure) {
+      dependency_structure = svc_controller_->DependencyStructure();
+    }
 
-  VideoEncoderInterface::EncodeResultCallback callback_internal =
-      [cb = std::move(callback), ds = std::move(dependency_structure),
-       infos = std::move(frame_infos)](
-          const VideoEncoderInterface::EncodeResult& result) mutable {
-        auto* data = std::get_if<VideoEncoderInterface::EncodedData>(&result);
-        EncodeResult res;
-        if (!data || data->spatial_id >= static_cast<int>(infos.size())) {
-          res.oh_no = true;
+    settings.result_callback =
+        [cb = callback, ds = std::move(dependency_structure),
+         info = std::move(frame_infos[settings.spatial_id])](
+            const VideoEncoderInterface::EncodeResult& result) mutable {
+          auto* data =
+              absl::get_if<VideoEncoderInterface::EncodedData>(&result);
+
+          EncodeResult res;
+          if (!data) {
+            res.oh_no = true;
+            cb(res);
+            return;
+          }
+
+          res.frame_type = data->frame_type;
+          res.bitstream_data = std::move(data->bitstream_data);
+          res.generic_frame_info = info;
+          if (res.frame_type == FrameType::kKeyframe) {
+            res.dependency_structure = ds;
+          }
           cb(res);
-          return;
-        }
-
-        res.frame_type = data->frame_type;
-        res.bitstream_data = std::move(data->bitstream_data);
-        res.generic_frame_info = infos[data->spatial_id];
-        if (res.frame_type == FrameType::kKeyframe) {
-          // Keyframe
-          res.dependency_structure = ds;
-        }
-        cb(res);
-      };
+        };
+  }
 
   encoder_->Encode(std::move(frame_buffer),
                    {.presentation_timestamp = presentation_timestamp_},
-                   encode_settings, std::move(callback_internal));
+                   std::move(encode_settings));
   presentation_timestamp_ += 1 / Frequency::Hertz(fps_);
 }
 
