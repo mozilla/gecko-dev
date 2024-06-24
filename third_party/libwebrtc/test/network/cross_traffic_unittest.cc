@@ -125,8 +125,7 @@ TEST(CrossTrafficTest, RandomWalkCrossTraffic) {
 }
 
 TEST(TcpMessageRouteTest, DeliveredOnLossyNetwork) {
-  NetworkEmulationManagerImpl net(TimeMode::kSimulated,
-                                  EmulatedNetworkStatsGatheringMode::kDefault);
+  NetworkEmulationManagerImpl net({.time_mode = TimeMode::kSimulated});
   BuiltInNetworkBehaviorConfig send;
   // 800 kbps means that the 100 kB message would be delivered in ca 1 second
   // under ideal conditions and no overhead.

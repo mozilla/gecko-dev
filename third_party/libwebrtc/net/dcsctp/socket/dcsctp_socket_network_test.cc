@@ -326,7 +326,7 @@ class DcSctpSocketNetworkTest : public testing::Test {
   DcSctpSocketNetworkTest()
       : options_(MakeOptionsForTest()),
         emulation_(webrtc::CreateNetworkEmulationManager(
-            webrtc::TimeMode::kSimulated)) {}
+            {.time_mode = webrtc::TimeMode::kSimulated})) {}
 
   void MakeNetwork(const webrtc::BuiltInNetworkBehaviorConfig& config) {
     webrtc::EmulatedEndpoint* endpoint_a =

@@ -10,6 +10,8 @@
 
 #include "test/network/network_emulation.h"
 
+#include <stdint.h>
+
 #include <algorithm>
 #include <limits>
 #include <memory>
@@ -49,6 +51,17 @@ EmulatedNetworkIncomingStats GetOverallIncomingStats(
     builder.AddIncomingStats(entry.second);
   }
   return builder.Build();
+}
+
+bool IsDtlsHandshakePacket(const uint8_t* payload, size_t payload_size) {
+  if (payload_size < 14) {
+    return false;
+  }
+  // https://tools.ietf.org/html/rfc6347#section-4.1
+  // https://tools.ietf.org/html/rfc6347#section-4.2.2
+  // https://tools.ietf.org/html/rfc5246#section-7.4
+  return payload[0] == 22 &&
+         (payload[13] == 1 || payload[13] == 2 || payload[13] == 11);
 }
 
 }  // namespace
@@ -311,16 +324,31 @@ EmulatedNetworkNodeStats EmulatedNetworkNodeStatsBuilder::Build() const {
   return stats_;
 }
 
+size_t LinkEmulation::GetPacketSizeForEmulation(
+    const EmulatedIpPacket& packet) const {
+  if (fake_dtls_handshake_sizes_ &&
+      IsDtlsHandshakePacket(packet.data.cdata(), packet.data.size())) {
+    // DTLS handshake packets can not have deterministic size unless
+    // the OpenSSL/BoringSSL is configured to have deterministic random,
+    // which is hard. The workaround is - conditionally ignore the actual
+    // size and hardcode the value order of typical handshake packet size.
+    return 1000;
+  }
+  return packet.ip_packet_size();
+}
+
 LinkEmulation::LinkEmulation(
     Clock* clock,
     absl::Nonnull<TaskQueueBase*> task_queue,
     std::unique_ptr<NetworkBehaviorInterface> network_behavior,
     EmulatedNetworkReceiverInterface* receiver,
-    EmulatedNetworkStatsGatheringMode stats_gathering_mode)
+    EmulatedNetworkStatsGatheringMode stats_gathering_mode,
+    bool fake_dtls_handshake_sizes)
     : clock_(clock),
       task_queue_(task_queue),
       network_behavior_(std::move(network_behavior)),
       receiver_(receiver),
+      fake_dtls_handshake_sizes_(fake_dtls_handshake_sizes),
       stats_builder_(stats_gathering_mode) {
   task_queue_->PostTask([&]() {
     RTC_DCHECK_RUN_ON(task_queue_);
@@ -336,8 +364,9 @@ void LinkEmulation::OnPacketReceived(EmulatedIpPacket packet) {
     RTC_DCHECK_RUN_ON(task_queue_);
 
     uint64_t packet_id = next_packet_id_++;
-    bool sent = network_behavior_->EnqueuePacket(PacketInFlightInfo(
-        packet.ip_packet_size(), packet.arrival_time.us(), packet_id));
+    bool sent = network_behavior_->EnqueuePacket(
+        PacketInFlightInfo(GetPacketSizeForEmulation(packet),
+                           packet.arrival_time.us(), packet_id));
     if (sent) {
       packets_.emplace_back(StoredPacket{.id = packet_id,
                                          .sent_time = clock_->CurrentTime(),
@@ -372,7 +401,7 @@ void LinkEmulation::Process(Timestamp at_time) {
     packet->removed = true;
     stats_builder_.AddPacketTransportTime(
         clock_->CurrentTime() - packet->sent_time,
-        packet->packet.ip_packet_size());
+        GetPacketSizeForEmulation(packet->packet));
 
     if (delivery_info.receive_time_us != PacketDeliveryInfo::kNotReceived) {
       packet->packet.arrival_time =
@@ -492,13 +521,15 @@ EmulatedNetworkNode::EmulatedNetworkNode(
     Clock* clock,
     absl::Nonnull<TaskQueueBase*> task_queue,
     std::unique_ptr<NetworkBehaviorInterface> network_behavior,
-    EmulatedNetworkStatsGatheringMode stats_gathering_mode)
+    EmulatedNetworkStatsGatheringMode stats_gathering_mode,
+    bool fake_dtls_handshake_sizes)
     : router_(task_queue),
       link_(clock,
             task_queue,
             std::move(network_behavior),
             &router_,
-            stats_gathering_mode) {}
+            stats_gathering_mode,
+            fake_dtls_handshake_sizes) {}
 
 void EmulatedNetworkNode::OnPacketReceived(EmulatedIpPacket packet) {
   link_.OnPacketReceived(std::move(packet));

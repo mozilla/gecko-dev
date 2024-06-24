@@ -12,6 +12,7 @@
 #define TEST_NETWORK_NETWORK_EMULATION_H_
 
 #include <cstdint>
+#include <cstring>
 #include <deque>
 #include <map>
 #include <memory>
@@ -150,7 +151,8 @@ class LinkEmulation : public EmulatedNetworkReceiverInterface {
                 absl::Nonnull<TaskQueueBase*> task_queue,
                 std::unique_ptr<NetworkBehaviorInterface> network_behavior,
                 EmulatedNetworkReceiverInterface* receiver,
-                EmulatedNetworkStatsGatheringMode stats_gathering_mode);
+                EmulatedNetworkStatsGatheringMode stats_gathering_mode,
+                bool fake_dtls_handshake_sizes);
   void OnPacketReceived(EmulatedIpPacket packet) override;
 
   EmulatedNetworkNodeStats stats() const;
@@ -164,12 +166,14 @@ class LinkEmulation : public EmulatedNetworkReceiverInterface {
   };
   void UpdateProcessSchedule() RTC_RUN_ON(task_queue_);
   void Process(Timestamp at_time) RTC_RUN_ON(task_queue_);
+  size_t GetPacketSizeForEmulation(const EmulatedIpPacket& packet) const;
 
   Clock* const clock_;
   const absl::Nonnull<TaskQueueBase*> task_queue_;
   const std::unique_ptr<NetworkBehaviorInterface> network_behavior_
       RTC_GUARDED_BY(task_queue_);
   EmulatedNetworkReceiverInterface* const receiver_;
+  const bool fake_dtls_handshake_sizes_;
 
   RepeatingTaskHandle process_task_ RTC_GUARDED_BY(task_queue_);
   std::deque<StoredPacket> packets_ RTC_GUARDED_BY(task_queue_);
@@ -224,7 +228,8 @@ class EmulatedNetworkNode : public EmulatedNetworkReceiverInterface {
       Clock* clock,
       absl::Nonnull<TaskQueueBase*> task_queue,
       std::unique_ptr<NetworkBehaviorInterface> network_behavior,
-      EmulatedNetworkStatsGatheringMode stats_gathering_mode);
+      EmulatedNetworkStatsGatheringMode stats_gathering_mode,
+      bool fake_dtls_handshake_sizes);
   ~EmulatedNetworkNode() override;
 
   EmulatedNetworkNode(const EmulatedNetworkNode&) = delete;
@@ -408,6 +413,7 @@ class FakePacketRoute : public EmulatedNetworkReceiverInterface {
     RTC_CHECK_GE(size, sizeof(int));
     sent_.emplace(next_packet_id_, packet);
     rtc::CopyOnWriteBuffer buf(size);
+    memset(buf.MutableData(), 0, size);
     reinterpret_cast<int*>(buf.MutableData())[0] = next_packet_id_++;
     route_->from->SendPacket(send_addr_, recv_addr_, buf);
   }
