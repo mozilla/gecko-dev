@@ -5,6 +5,11 @@ This ping is captured after the main Firefox process crashes or after a child pr
 process crashes, whether or not the crash report is submitted to
 crash-stats.mozilla.org. It includes non-identifying metadata about the crash.
 
+.. warning::
+    The Telemetry crash ping will be deprecated and eventually removed. It is being
+    replaced by the Glean crash ping. See `bug 1784069 <https://bugzilla.mozilla.org/show_bug.cgi?id=1784069>`_.
+    Please be sure to mirror any changes made to the Telemetry ping!
+
 This ping is sent either by the ``CrashManager`` or by the crash reporter
 client. The ``CrashManager`` is responsible for sending crash pings for the
 child processes crashes, which are sent right after the crash is detected,

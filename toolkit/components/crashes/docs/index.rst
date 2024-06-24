@@ -29,9 +29,12 @@ or when a crash event is found. Crash pings are sent using
 
 Glean
 -----
-Crash pings are being migrated to use `Glean pings <../../glean/index.html>`__,
-however until information parity is reached, the Telemetry pings will still be
-sent. The Glean `crash` ping can be found `here <https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/pings/crash>`__.
+Crash pings have been migrated to use `Glean pings <../../glean/index.html>`__, however
+the Telemetry pings will still be sent until we are confident that the Glean
+implementation is robust. The Glean `crash` ping can be found
+`here <https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/pings/crash>`__.
+
+See `bug 1784069 <https://bugzilla.mozilla.org/show_bug.cgi?id=1784069>`_ for details.
 
 
 Other Documents
