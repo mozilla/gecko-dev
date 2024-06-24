@@ -2,7 +2,7 @@ const PREF_WARN_ON_CLOSE = "browser.tabs.warnOnCloseOtherTabs";
 const PREF_SHOWN_DUPE_DIALOG =
   "browser.tabs.haveShownCloseAllDuplicateTabsWarning";
 
-add_task(async function setPref() {
+add_setup(async function setPref() {
   await SpecialPowers.pushPrefEnv({
     set: [
       [PREF_WARN_ON_CLOSE, false],
@@ -175,4 +175,43 @@ add_task(async function closeAllDuplicateTabs() {
   for (let tab of [tab1, tab2, tab4]) {
     BrowserTestUtils.removeTab(tab);
   }
+});
+
+/**
+ * Tests that if we choose Close Duplicate Tabs, we warn for the close of a
+ * single duplicate tab.
+ */
+add_task(async function closeAllDuplicateTabs_warn_on_single() {
+  await SpecialPowers.pushPrefEnv({
+    set: [[PREF_SHOWN_DUPE_DIALOG, false]],
+  });
+
+  let initialTab = gBrowser.selectedTab;
+  let tab1 = await addTab("http://mochi.test:8888/one");
+  let tab2 = await addTab("http://mochi.test:8888/two");
+  let tab3 = await addTab("http://mochi.test:8888/one");
+
+  let tabClosedPromise = BrowserTestUtils.waitForTabClosing(tab3);
+  let dialogOpenedPromise = BrowserTestUtils.promiseAlertDialogOpen("accept");
+
+  gBrowser.removeAllDuplicateTabs();
+
+  await dialogOpenedPromise;
+  await tabClosedPromise;
+
+  ok(!initialTab.closing, "InitialTab is not closing");
+  ok(!tab1.closing, "Tab1 is not closing");
+  ok(!tab2.closing, "Tab2 is not closing");
+  ok(tab3.closing, "Tab3 is closing");
+
+  for (let tab of [tab1, tab2]) {
+    BrowserTestUtils.removeTab(tab);
+  }
+
+  Assert.ok(
+    Services.prefs.getBoolPref(PREF_SHOWN_DUPE_DIALOG),
+    "Should have set the PREF_SHOWN_DUPE_DIALOG pref to true"
+  );
+
+  await SpecialPowers.popPrefEnv();
 });

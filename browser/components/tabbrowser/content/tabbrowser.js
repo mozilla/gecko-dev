@@ -3355,10 +3355,9 @@
     },
 
     warnAboutClosingTabs(tabsToClose, aCloseTabs, aSource) {
-      if (tabsToClose <= 1) {
-        return true;
-      }
-
+      // We want to warn about closing duplicates even if there was only a
+      // single duplicate, so we intentionally place this above the check for
+      // tabsToClose <= 1.
       const shownDupeDialogPref =
         "browser.tabs.haveShownCloseAllDuplicateTabsWarning";
       if (
@@ -3375,6 +3374,10 @@
           { id: "tabbrowser-confirm-close-duplicate-tabs-text" },
         ]);
         return Services.prompt.confirm(window, title, text);
+      }
+
+      if (tabsToClose <= 1) {
+        return true;
       }
 
       const pref =
