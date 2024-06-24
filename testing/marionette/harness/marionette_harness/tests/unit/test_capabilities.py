@@ -120,23 +120,11 @@ class TestCapabilities(MarionetteTestCase):
         self.assertIn("moz:windowless", self.caps)
         self.assertFalse(self.caps["moz:windowless"])
 
-        # No longer supported capabilities
-        self.assertNotIn("moz:useNonSpecCompliantPointerOrigin", self.caps)
-
     def test_disable_webdriver_click(self):
         self.marionette.delete_session()
         self.marionette.start_session({"moz:webdriverClick": False})
         caps = self.marionette.session_capabilities
         self.assertFalse(caps["moz:webdriverClick"])
-
-    def test_no_longer_supported_capabilities(self):
-        self.marionette.delete_session()
-        with self.assertRaisesRegexp(
-            errors.SessionNotCreatedException, "InvalidArgumentError"
-        ):
-            self.marionette.start_session(
-                {"moz:useNonSpecCompliantPointerOrigin": True}
-            )
 
     def test_valid_uuid4_when_creating_a_session(self):
         self.assertNotIn(

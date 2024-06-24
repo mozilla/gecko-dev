@@ -421,9 +421,6 @@ add_task(function test_Capabilities_ctor_bidi() {
   ok(caps.has("moz:processID"));
   ok(caps.has("moz:profile"));
   ok(!caps.has("moz:webdriverClick"));
-
-  // No longer supported capabilities
-  ok(!caps.has("moz:useNonSpecCompliantPointerOrigin"));
 });
 
 add_task(function test_Capabilities_toString() {
@@ -538,12 +535,6 @@ add_task(function test_Capabilities_fromJSON_http() {
     () => fromJSON({ "webauthn:extension:credBlob": "foo" }, false),
     /InvalidArgumentError/
   );
-
-  // No longer supported capabilities
-  Assert.throws(
-    () => fromJSON({ "moz:useNonSpecCompliantPointerOrigin": true }, false),
-    /InvalidArgumentError/
-  );
 });
 
 add_task(function test_Capabilities_fromJSON_bidi() {
@@ -654,7 +645,6 @@ add_task(function test_validateCapabilities_invalid() {
     { "moz:accessibilityChecks": "foo" },
     { "moz:webdriverClick": "foo" },
     { "moz:webdriverClick": 1 },
-    { "moz:useNonSpecCompliantPointerOrigin": false },
     { "moz:debuggerAddress": "foo" },
     { "moz:someRandomString": {} },
   ];
