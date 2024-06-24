@@ -61,7 +61,6 @@ let tests = [
     {input: '{"a": [1, {"b":2}, "7"], "c": 8}', expected: ['1', '2', null, '"7"', null, '8', null]},
 ];
 for (const test of tests) {
-    print("Testing " + JSON.stringify(test));
     actual = [];
     JSON.parse(test.input, reviver);
     assertDeepEq(actual, test.expected);
@@ -98,6 +97,36 @@ assertEq(false, JSON.isRawJSON());
 assertEq(false, JSON.isRawJSON({}, {}));
 assertEq(false, JSON.isRawJSON({}, JSON.rawJSON(2)));
 assertEq(true, JSON.isRawJSON(JSON.rawJSON(1), JSON.rawJSON(2)));
+
+(function checkUseAsPrototype() {
+    var p = JSON.rawJSON(false);
+    var obj = { a: "hi" };
+    Object.setPrototypeOf(obj, p);
+    assertDeepEq(obj.rawJSON, "false");
+})();
+
+(function checkErrorsComeFromCorrectRealm() {
+    const otherGlobal = newGlobal({newCompartment: true});
+    assertEq(TypeError !== otherGlobal.TypeError, true);
+
+    assertErrorComesFromCorrectRealm = (fun, thisRealmType) => {
+        assertThrowsInstanceOf(() => fun(this), thisRealmType,
+            `${thisRealmType.name} should come from this realm.`);
+        assertThrowsInstanceOf(() => fun(otherGlobal), otherGlobal[thisRealmType.name],
+            `${thisRealmType.name} should come from the other realm.`);
+    }
+
+    otherGlobal.eval('obj = {}');
+
+    assertErrorComesFromCorrectRealm((gbl) => gbl.JSON.rawJSON(Symbol('123')), TypeError);
+    assertErrorComesFromCorrectRealm((gbl) => gbl.JSON.rawJSON(undefined), SyntaxError);
+    assertErrorComesFromCorrectRealm((gbl) => gbl.JSON.rawJSON({}), SyntaxError);
+    assertErrorComesFromCorrectRealm((gbl) => gbl.JSON.rawJSON(otherGlobal.obj), SyntaxError);
+    assertErrorComesFromCorrectRealm((gbl) => gbl.JSON.rawJSON([]), SyntaxError);
+    assertErrorComesFromCorrectRealm((gbl) => gbl.JSON.rawJSON('123\n'), SyntaxError);
+    assertErrorComesFromCorrectRealm((gbl) => gbl.JSON.rawJSON('\t123'), SyntaxError);
+    assertErrorComesFromCorrectRealm((gbl) => gbl.JSON.rawJSON(''), SyntaxError);
+})();
 
 if (typeof reportCompare == 'function')
     reportCompare(0, 0);
