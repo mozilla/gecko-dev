@@ -52,6 +52,7 @@ EXTRA_JS_MODULES += [
     "UrlbarProviderWeather.sys.mjs",
     "UrlbarResult.sys.mjs",
     "UrlbarSearchOneOffs.sys.mjs",
+    "UrlbarSearchTermsPersistence.sys.mjs",
     "UrlbarSearchUtils.sys.mjs",
     "UrlbarTokenizer.sys.mjs",
     "UrlbarUtils.sys.mjs",
