@@ -381,7 +381,7 @@ class InactivePropertyHelper {
             "table-caption",
           ]),
         fixId: "inactive-css-not-display-block-on-floated-fix",
-        msgId: "inactive-css-not-display-block-on-floated",
+        msgId: "inactive-css-not-display-block-on-floated-2",
       },
       // The property is impossible to override due to :visited restriction.
       {
