@@ -292,6 +292,29 @@ add_old_configure_assignment(
 )
 
 
+@depends(target, build_environment)
+@imports(_from="os", _import="environ")
+def moz_fix_link_paths(target, build_env):
+    dist = build_env.dist
+    flags = [f"-Wl,-rpath-link,{dist}/bin"]
+    if target.kernel == "Darwin":
+        return []
+    if target.kernel == "WINNT":
+        return []
+    if target.kernel == "OpenBSD":
+        X11BASE = environ.get("X11BASE", "/usr/X11R6")
+        flags.append(f"-Wl,-rpath-link,{X11BASE}/lib")
+    if target.kernel == "SunOS":
+        return [f"-L{dist}/bin"]
+    if target.os == "WASI":
+        return []
+
+    return flags
+
+
+set_config("MOZ_FIX_LINK_PATHS", moz_fix_link_paths)
+
+
 @depends("--enable-address-sanitizer", building_with_gnu_compatible_cc)
 def check_Bsymbolic(enable_asan, building_with_gnu_compatible_cc):
     return enable_asan and building_with_gnu_compatible_cc

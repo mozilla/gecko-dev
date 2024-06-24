@@ -157,11 +157,6 @@ esac
 
 fi # COMPILE_ENVIRONMENT
 
-dnl ========================================================
-dnl set the defaults first
-dnl ========================================================
-MOZ_FIX_LINK_PATHS="-Wl,-rpath-link,${DIST}/bin -Wl,-rpath-link,${prefix}/lib"
-
 dnl Configure platform-specific CPU architecture compiler options.
 dnl ==============================================================
 MOZ_ARCH_OPTS
@@ -248,7 +243,6 @@ case "$target" in
 *-darwin*)
     MOZ_OPTIMIZE_FLAGS="-O3"
     DSO_LDOPTS=''
-    MOZ_FIX_LINK_PATHS=
     ;;
 
 *-android*|*-linuxandroid*)
@@ -279,7 +273,6 @@ case "$target" in
         fi
 
         DSO_LDOPTS='-shared'
-        MOZ_FIX_LINK_PATHS=
 
         # Silence problematic clang warnings
         CXXFLAGS="$CXXFLAGS -Wno-incompatible-ms-struct"
@@ -328,7 +321,6 @@ case "$target" in
           MOZ_DEBUG_LDFLAGS="$MOZ_DEBUG_LDFLAGS -PDBALTPATH:%_PDB%"
         fi
         MOZ_OPTIMIZE_FLAGS="-O2"
-        MOZ_FIX_LINK_PATHS=
         LDFLAGS="$LDFLAGS -LARGEADDRESSAWARE"
     fi
     AC_DEFINE(HAVE__MSIZE)
@@ -399,13 +391,8 @@ case "$target" in
     fi
     ;;
 
-*-solaris*)
-    MOZ_FIX_LINK_PATHS="-L${DIST}/bin"
-    ;;
-
 *-wasi*)
     CXXFLAGS="$CXXFLAGS -mthread-model single"
-    MOZ_FIX_LINK_PATHS=
     ;;
 
 esac
@@ -513,8 +500,6 @@ dnl ========================================================
 
 AC_SUBST_LIST(ASFLAGS)
 AC_SUBST_LIST(MOZ_DEBUG_LDFLAGS)
-
-AC_SUBST_LIST(MOZ_FIX_LINK_PATHS)
 
 AC_SUBST(MOZ_POST_PROGRAM_COMMAND)
 

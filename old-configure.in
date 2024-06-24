@@ -153,11 +153,6 @@ fi
 
 fi # COMPILE_ENVIRONMENT
 
-dnl ========================================================
-dnl set the defaults first
-dnl ========================================================
-MOZ_FIX_LINK_PATHS="-Wl,-rpath-link,${DIST}/bin -Wl,-rpath-link,${prefix}/lib"
-
 dnl Configure platform-specific CPU architecture compiler options.
 dnl ==============================================================
 if test "$COMPILE_ENVIRONMENT"; then
@@ -261,7 +256,6 @@ case "$target" in
 *-darwin*)
     MOZ_OPTIMIZE_FLAGS="-O3"
     DSO_LDOPTS=''
-    MOZ_FIX_LINK_PATHS=
     ;;
 
 *-android*|*-linuxandroid*)
@@ -292,7 +286,6 @@ case "$target" in
         fi
 
         DSO_LDOPTS='-shared'
-        MOZ_FIX_LINK_PATHS=
 
         MOZ_OPTIMIZE_FLAGS="-O2"
 
@@ -343,7 +336,6 @@ case "$target" in
           MOZ_DEBUG_LDFLAGS="$MOZ_DEBUG_LDFLAGS -PDBALTPATH:%_PDB%"
         fi
         MOZ_OPTIMIZE_FLAGS='-O2'
-        MOZ_FIX_LINK_PATHS=
         LDFLAGS="$LDFLAGS -LARGEADDRESSAWARE"
     fi
     AC_DEFINE(WIN32_LEAN_AND_MEAN)
@@ -406,19 +398,11 @@ case "$target" in
     ;;
 
 *-openbsd*)
-    if test -z "$X11BASE"; then
-        X11BASE=/usr/X11R6
-    fi
-    MOZ_FIX_LINK_PATHS="$MOZ_FIX_LINK_PATHS -Wl,-rpath-link,${X11BASE}/lib"
     DSO_PIC_CFLAGS='-fPIC'
     DSO_LDOPTS='-shared -fPIC'
     if test "$LIBRUNPATH"; then
         DSO_LDOPTS="-R$LIBRUNPATH $DSO_LDOPTS"
     fi
-    ;;
-
-*-solaris*)
-    MOZ_FIX_LINK_PATHS="-L${DIST}/bin"
     ;;
 
 esac
@@ -568,8 +552,6 @@ dnl ========================================================
 
 AC_SUBST_LIST(ASFLAGS)
 AC_SUBST_LIST(MOZ_DEBUG_LDFLAGS)
-
-AC_SUBST_LIST(MOZ_FIX_LINK_PATHS)
 
 dnl ========================================================
 dnl = Mac bundle name
