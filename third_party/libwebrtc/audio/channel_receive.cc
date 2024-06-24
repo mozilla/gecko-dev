@@ -392,9 +392,7 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
   event_log_->Log(std::make_unique<RtcEventAudioPlayout>(remote_ssrc_));
 
   // Get 10ms raw PCM data from the ACM (mixer limits output frequency)
-  bool muted;
-  if (acm_receiver_.GetAudio(audio_frame->sample_rate_hz_, audio_frame,
-                             &muted) == -1) {
+  if (acm_receiver_.GetAudio(audio_frame->sample_rate_hz_, audio_frame) == -1) {
     RTC_DLOG(LS_ERROR)
         << "ChannelReceive::GetAudioFrame() PlayoutData10Ms() failed!";
     // In all likelihood, the audio in this frame is garbage. We return an
@@ -405,13 +403,6 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
     TRACE_EVENT_END1("webrtc", "ChannelReceive::GetAudioFrameWithInfo", "error",
                      1);
     return AudioMixer::Source::AudioFrameInfo::kError;
-  }
-
-  if (muted) {
-    // TODO(henrik.lundin): We should be able to do better than this. But we
-    // will have to go through all the cases below where the audio samples may
-    // be used, and handle the muted case in some way.
-    AudioFrameOperations::Mute(audio_frame);
   }
 
   {
@@ -510,9 +501,9 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
   }
 
   TRACE_EVENT_END2("webrtc", "ChannelReceive::GetAudioFrameWithInfo", "gain",
-                   output_gain, "muted", muted);
-  return muted ? AudioMixer::Source::AudioFrameInfo::kMuted
-               : AudioMixer::Source::AudioFrameInfo::kNormal;
+                   output_gain, "muted", audio_frame->muted());
+  return audio_frame->muted() ? AudioMixer::Source::AudioFrameInfo::kMuted
+                              : AudioMixer::Source::AudioFrameInfo::kNormal;
 }
 
 int ChannelReceive::PreferredSampleRate() const {

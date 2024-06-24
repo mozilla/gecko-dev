@@ -151,8 +151,6 @@ int AcmReceiver::InsertPacket(const RTPHeader& rtp_header,
 int AcmReceiver::GetAudio(int desired_freq_hz,
                           AudioFrame* audio_frame,
                           bool* muted) {
-  RTC_DCHECK(muted);
-
   int current_sample_rate_hz = 0;
   if (neteq_->GetAudio(audio_frame, muted, &current_sample_rate_hz) !=
       NetEq::kOK) {
@@ -212,7 +210,7 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
          sizeof(int16_t) * audio_frame->samples_per_channel_ *
              audio_frame->num_channels_);
 
-  call_stats_.DecodedByNetEq(audio_frame->speech_type_, *muted);
+  call_stats_.DecodedByNetEq(audio_frame->speech_type_, audio_frame->muted());
   return 0;
 }
 
