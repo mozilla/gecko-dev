@@ -702,9 +702,8 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
     moreCookies = CookieService::CanSetCookie(
         aHostURI, baseDomain, cookieData, requireHostMatch, cookieStatus,
         cookieString, true, isForeignAndNotAddon, mustBePartitioned,
-        storagePrincipalOriginAttributes.mPrivateBrowsingId !=
-            nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID,
-        crc, canSetCookie);
+        storagePrincipalOriginAttributes.IsPrivateBrowsing(), crc,
+        canSetCookie);
     if (!canSetCookie) {
       continue;
     }

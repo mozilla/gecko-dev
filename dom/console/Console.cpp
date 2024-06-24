@@ -1321,7 +1321,7 @@ void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
 
           bool pb;
           if (NS_SUCCEEDED(loadContext->GetUsePrivateBrowsing(&pb))) {
-            MOZ_ASSERT(pb == !!oa.mPrivateBrowsingId);
+            MOZ_ASSERT(pb == oa.IsPrivateBrowsing());
           }
         }
       }
@@ -1620,7 +1620,7 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
   event.mFunctionName = frame.mFunctionName;
   event.mTimeStamp = aData->mMicroSecondTimeStamp / PR_USEC_PER_MSEC;
   event.mMicroSecondTimeStamp = aData->mMicroSecondTimeStamp;
-  event.mPrivate = !!aData->mOriginAttributes.mPrivateBrowsingId;
+  event.mPrivate = aData->mOriginAttributes.IsPrivateBrowsing();
 
   switch (aData->mMethodName) {
     case MethodLog:

@@ -127,7 +127,7 @@ nsDataDocumentContentPolicy::ShouldLoad(nsIURI* aContentLocation,
         aContentLocation->GetAsciiSpec(targetSpec);
         nsScriptSecurityManager::ReportError(
             "ExternalDataError", sourceSpec, targetSpec,
-            requestingPrincipal->OriginAttributesRef().mPrivateBrowsingId > 0);
+            requestingPrincipal->OriginAttributesRef().IsPrivateBrowsing());
       }
     } else if ((contentType == ExtContentPolicy::TYPE_IMAGE ||
                 contentType == ExtContentPolicy::TYPE_IMAGESET) &&

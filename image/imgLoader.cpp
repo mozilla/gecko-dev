@@ -1391,11 +1391,10 @@ imgLoader::RemoveEntriesFromPrincipalInAllProcesses(nsIPrincipal* aPrincipal) {
   }
 
   imgLoader* loader;
-  if (aPrincipal->OriginAttributesRef().mPrivateBrowsingId ==
-      nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID) {
-    loader = imgLoader::NormalLoader();
-  } else {
+  if (aPrincipal->OriginAttributesRef().IsPrivateBrowsing()) {
     loader = imgLoader::PrivateBrowsingLoader();
+  } else {
+    loader = imgLoader::NormalLoader();
   }
 
   return loader->RemoveEntriesInternal(aPrincipal, nullptr);

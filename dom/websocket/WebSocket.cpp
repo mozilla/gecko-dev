@@ -1670,7 +1670,7 @@ nsresult WebSocketImpl::Init(JSContext* aCx, bool aIsSecure,
     }
   }
 
-  mPrivateBrowsing = !!aPrincipal->OriginAttributesRef().mPrivateBrowsingId;
+  mPrivateBrowsing = aPrincipal->OriginAttributesRef().IsPrivateBrowsing();
   mIsChromeContext = aPrincipal->IsSystemPrincipal();
 
   // parses the url

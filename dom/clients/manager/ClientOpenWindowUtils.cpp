@@ -114,7 +114,7 @@ class WebProgressListener final : public nsIWebProgressListener,
     nsCOMPtr<nsIScriptSecurityManager> securityManager =
         nsContentUtils::GetSecurityManager();
     bool isPrivateWin =
-        wgp->DocumentPrincipal()->OriginAttributesRef().mPrivateBrowsingId > 0;
+        wgp->DocumentPrincipal()->OriginAttributesRef().IsPrivateBrowsing();
     nsresult rv = securityManager->CheckSameOriginURI(
         wgp->GetDocumentURI(), mBaseURI, false, isPrivateWin);
     if (NS_WARN_IF(NS_FAILED(rv))) {

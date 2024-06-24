@@ -91,14 +91,14 @@ bool ClientInfo::IsPrivateBrowsing() const {
   switch (PrincipalInfo().type()) {
     case PrincipalInfo::TContentPrincipalInfo: {
       const auto& p = PrincipalInfo().get_ContentPrincipalInfo();
-      return p.attrs().mPrivateBrowsingId != 0;
+      return p.attrs().IsPrivateBrowsing();
     }
     case PrincipalInfo::TSystemPrincipalInfo: {
       return false;
     }
     case PrincipalInfo::TNullPrincipalInfo: {
       const auto& p = PrincipalInfo().get_NullPrincipalInfo();
-      return p.attrs().mPrivateBrowsingId != 0;
+      return p.attrs().IsPrivateBrowsing();
     }
     default: {
       // clients should never be expanded principals

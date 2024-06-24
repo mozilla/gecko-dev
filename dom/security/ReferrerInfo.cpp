@@ -1318,7 +1318,7 @@ nsresult ReferrerInfo::ComputeReferrer(nsIHttpChannel* aChannel) {
       ShouldIgnoreLessRestrictedPolicies(aChannel, mOriginalPolicy)) {
     nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
     OriginAttributes attrs = loadInfo->GetOriginAttributes();
-    bool isPrivate = attrs.mPrivateBrowsingId > 0;
+    bool isPrivate = attrs.IsPrivateBrowsing();
 
     nsCOMPtr<nsIURI> uri;
     rv = aChannel->GetURI(getter_AddRefs(uri));

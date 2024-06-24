@@ -31,8 +31,7 @@ class BounceTrackingStateGlobal final {
                             const OriginAttributes& aAttrs);
 
   bool IsPrivateBrowsing() const {
-    return mOriginAttributes.mPrivateBrowsingId !=
-           nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID;
+    return mOriginAttributes.IsPrivateBrowsing();
   }
 
   bool ShouldPersistToDisk() const { return !IsPrivateBrowsing(); }

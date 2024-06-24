@@ -427,7 +427,7 @@ bool nsClientAuthRememberService::IsPrivateBrowsingKey(
 
 nsIDataStorage::DataType nsClientAuthRememberService::GetDataStorageType(
     const OriginAttributes& aOriginAttributes) {
-  if (aOriginAttributes.mPrivateBrowsingId > 0) {
+  if (aOriginAttributes.IsPrivateBrowsing()) {
     return nsIDataStorage::DataType::Private;
   }
   return nsIDataStorage::DataType::Persistent;

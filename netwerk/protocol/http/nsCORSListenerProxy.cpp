@@ -308,7 +308,7 @@ nsPreflightCache::CacheEntry* nsPreflightCache::GetEntry(
   // This is a new entry, allocate and insert into the table now so that any
   // failures don't cause items to be removed from a full cache.
   auto newEntry =
-      MakeUnique<CacheEntry>(key, aOriginAttributes.mPrivateBrowsingId != 0);
+      MakeUnique<CacheEntry>(key, aOriginAttributes.IsPrivateBrowsing());
 
   NS_ASSERTION(mTable.Count() <= PREFLIGHT_CACHE_SIZE,
                "Something is borked, too many entries in the cache!");

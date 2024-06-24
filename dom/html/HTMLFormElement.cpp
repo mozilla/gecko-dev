@@ -1660,7 +1660,7 @@ nsresult HTMLFormElement::GetActionURL(nsIURI** aActionURL,
         1,       // aColumnNumber
         nsIScriptError::warningFlag, "upgradeInsecureRequest"_ns,
         document->InnerWindowID(),
-        !!document->NodePrincipal()->OriginAttributesRef().mPrivateBrowsingId);
+        document->NodePrincipal()->OriginAttributesRef().IsPrivateBrowsing());
   }
 
   //

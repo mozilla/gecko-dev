@@ -2315,7 +2315,7 @@ nsresult nsHttpHandler::SpeculativeConnectInternal(
       new nsHttpConnectionInfo(host, port, ""_ns, username, nullptr,
                                originAttributes, aURI->SchemeIs("https"));
   ci->SetAnonymous(anonymous);
-  if (originAttributes.mPrivateBrowsingId > 0) {
+  if (originAttributes.IsPrivateBrowsing()) {
     ci->SetPrivate(true);
   }
 

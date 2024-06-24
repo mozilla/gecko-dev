@@ -757,7 +757,7 @@ nsresult FetchDriver::HttpFetch(
     // then set request’s referrer policy to the user-set default policy.
     if (mRequest->ReferrerPolicy_() == ReferrerPolicy::_empty) {
       nsCOMPtr<nsILoadInfo> loadInfo = httpChan->LoadInfo();
-      bool isPrivate = loadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
+      bool isPrivate = loadInfo->GetOriginAttributes().IsPrivateBrowsing();
       referrerPolicy =
           ReferrerInfo::GetDefaultReferrerPolicy(httpChan, uri, isPrivate);
       mRequest->SetReferrerPolicy(referrerPolicy);

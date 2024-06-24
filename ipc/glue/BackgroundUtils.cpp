@@ -359,7 +359,7 @@ bool IsPrincipalInfoPrivate(const PrincipalInfo& aPrincipalInfo) {
   }
 
   const ContentPrincipalInfo& info = aPrincipalInfo.get_ContentPrincipalInfo();
-  return !!info.attrs().mPrivateBrowsingId;
+  return info.attrs().IsPrivateBrowsing();
 }
 
 already_AddRefed<nsIRedirectHistoryEntry> RHEntryInfoToRHEntry(

@@ -603,7 +603,7 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
     }
 
     nsHostKey key(host, aTrrServer, type, flags, af,
-                  (aOriginAttributes.mPrivateBrowsingId > 0), originSuffix);
+                  (aOriginAttributes.IsPrivateBrowsing()), originSuffix);
 
     // Check if we have a localhost domain, if so hardcode to loopback
     if (IS_ADDR_TYPE(type) && IsLoopbackHostname(host)) {
@@ -678,7 +678,7 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
     } else if (!rec->mResolving) {
       result =
           FromUnspecEntry(rec, host, aTrrServer, originSuffix, type, flags, af,
-                          aOriginAttributes.mPrivateBrowsingId > 0, status);
+                          aOriginAttributes.IsPrivateBrowsing(), status);
       // If this is a by-type request or if no valid record was found
       // in the cache or this is an AF_UNSPEC request, then start a
       // new lookup.
@@ -903,7 +903,7 @@ void nsHostResolver::DetachCallback(
     aOriginAttributes.CreateSuffix(originSuffix);
 
     nsHostKey key(host, aTrrServer, aType, flags, af,
-                  (aOriginAttributes.mPrivateBrowsingId > 0), originSuffix);
+                  (aOriginAttributes.IsPrivateBrowsing()), originSuffix);
     RefPtr<nsHostRecord> entry = mRecordDB.Get(key);
     if (entry) {
       // walk list looking for |callback|... we cannot assume
@@ -1883,7 +1883,7 @@ void nsHostResolver::CancelAsyncRequest(
   // Lookup the host record associated with host, flags & address family
 
   nsHostKey key(host, aTrrServer, aType, flags, af,
-                (aOriginAttributes.mPrivateBrowsingId > 0), originSuffix);
+                (aOriginAttributes.IsPrivateBrowsing()), originSuffix);
   RefPtr<nsHostRecord> rec = mRecordDB.Get(key);
   if (!rec) {
     return;

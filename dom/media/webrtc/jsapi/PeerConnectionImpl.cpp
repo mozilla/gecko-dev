@@ -4164,9 +4164,9 @@ bool PeerConnectionImpl::ShouldForceProxy() const {
   if (mWindow && mWindow->GetExtantDoc() &&
       mWindow->GetExtantDoc()->GetPrincipal() &&
       mWindow->GetExtantDoc()
-              ->GetPrincipal()
-              ->OriginAttributesRef()
-              .mPrivateBrowsingId > 0) {
+          ->GetPrincipal()
+          ->OriginAttributesRef()
+          .IsPrivateBrowsing()) {
     isPBM = true;
   }
 

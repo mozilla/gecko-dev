@@ -2555,8 +2555,7 @@ bool nsContentUtils::ShouldResistFingerprinting_dangerous(
     const char* aJustification, RFPTarget aTarget) {
   // With this check, we can ensure that the prefs and target say yes, so only
   // an exemption would cause us to return false.
-  bool isPBM = aOriginAttributes.mPrivateBrowsingId !=
-               nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID;
+  bool isPBM = aOriginAttributes.IsPrivateBrowsing();
   if (!ShouldResistFingerprinting_("Positive return check", isPBM, aTarget)) {
     MOZ_LOG(nsContentUtils::ResistFingerprintingLog(), LogLevel::Debug,
             ("Inside ShouldResistFingerprinting_dangerous(nsIURI*,"
@@ -2575,8 +2574,7 @@ bool nsContentUtils::ShouldResistFingerprinting_dangerous(
     // If neither of the 'regular' RFP prefs are set, then one (or both)
     // of the PBM-Only prefs are set (or we would have failed the
     // Positive return check.)  Therefore, if we are not in PBM, return false
-    if (aOriginAttributes.mPrivateBrowsingId ==
-        nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID) {
+    if (!aOriginAttributes.IsPrivateBrowsing()) {
       MOZ_LOG(nsContentUtils::ResistFingerprintingLog(), LogLevel::Debug,
               ("Inside ShouldResistFingerprinting_dangerous(nsIURI*,"
                " OriginAttributes) OA PBM Check said false"));
@@ -2626,8 +2624,7 @@ bool nsContentUtils::ShouldResistFingerprinting_dangerous(
       BasePrincipal::Cast(aPrincipal)->OriginAttributesRef();
   // With this check, we can ensure that the prefs and target say yes, so only
   // an exemption would cause us to return false.
-  bool isPBM = originAttributes.mPrivateBrowsingId !=
-               nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID;
+  bool isPBM = originAttributes.IsPrivateBrowsing();
   if (!ShouldResistFingerprinting_("Positive return check", isPBM, aTarget)) {
     MOZ_LOG(nsContentUtils::ResistFingerprintingLog(), LogLevel::Debug,
             ("Inside ShouldResistFingerprinting(nsIPrincipal*) Positive return "
@@ -6297,7 +6294,7 @@ void nsContentUtils::WarnScriptWasIgnored(Document* aDocument) {
       msg.AppendLiteral(" : ");
     }
     privateBrowsing =
-        !!aDocument->NodePrincipal()->OriginAttributesRef().mPrivateBrowsingId;
+        aDocument->NodePrincipal()->OriginAttributesRef().IsPrivateBrowsing();
     chromeContext = aDocument->NodePrincipal()->IsSystemPrincipal();
   }
 

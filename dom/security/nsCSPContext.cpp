@@ -877,7 +877,7 @@ void nsCSPContext::flushConsoleMessages() {
   if (doc) {
     mInnerWindowID = doc->InnerWindowID();
     privateWindow =
-        !!doc->NodePrincipal()->OriginAttributesRef().mPrivateBrowsingId;
+        doc->NodePrincipal()->OriginAttributesRef().IsPrivateBrowsing();
   }
 
   mQueueUpMessages = false;
@@ -928,7 +928,7 @@ void nsCSPContext::logToConsole(const char* aName,
   nsCOMPtr<Document> doc = do_QueryReferent(mLoadingContext);
   if (doc) {
     privateWindow =
-        !!doc->NodePrincipal()->OriginAttributesRef().mPrivateBrowsingId;
+        doc->NodePrincipal()->OriginAttributesRef().IsPrivateBrowsing();
   }
 
   CSP_LogLocalizedStr(aName, aParams, sourceName, aSourceLine, aLineNumber,

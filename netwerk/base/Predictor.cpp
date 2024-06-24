@@ -519,7 +519,7 @@ Predictor::PredictNative(nsIURI* targetURI, nsIURI* sourceURI,
     return NS_OK;
   }
 
-  if (originAttributes.mPrivateBrowsingId > 0) {
+  if (originAttributes.IsPrivateBrowsing()) {
     // Don't want to do anything in PB mode
     PREDICTOR_LOG(("    in PB mode"));
     return NS_OK;
@@ -1263,7 +1263,7 @@ Predictor::LearnNative(nsIURI* targetURI, nsIURI* sourceURI,
     return NS_OK;
   }
 
-  if (originAttributes.mPrivateBrowsingId > 0) {
+  if (originAttributes.IsPrivateBrowsing()) {
     // Don't want to do anything in PB mode
     PREDICTOR_LOG(("    in PB mode"));
     return NS_OK;

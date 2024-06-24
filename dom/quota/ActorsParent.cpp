@@ -6058,14 +6058,14 @@ QuotaManager::GetInfoFromValidatedPrincipalInfo(
 
       principalMetadata.mOrigin = origin;
 
-      if (info.attrs().mPrivateBrowsingId != 0) {
+      if (info.attrs().IsPrivateBrowsing()) {
         QM_TRY_UNWRAP(principalMetadata.mStorageOrigin,
                       EnsureStorageOriginFromOrigin(origin));
       } else {
         principalMetadata.mStorageOrigin = origin;
       }
 
-      principalMetadata.mIsPrivate = info.attrs().mPrivateBrowsingId != 0;
+      principalMetadata.mIsPrivate = info.attrs().IsPrivateBrowsing();
 
       return principalMetadata;
     }

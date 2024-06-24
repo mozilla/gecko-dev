@@ -9328,7 +9328,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
     //    * https-first failed to upgrade request to https
     //    * we already asked for permission to unload and the user accepted
     //      otherwise we wouldn't be here.
-    bool isPrivateWin = GetOriginAttributes().mPrivateBrowsingId > 0;
+    bool isPrivateWin = GetOriginAttributes().IsPrivateBrowsing();
     bool isHistoryOrReload = false;
     uint32_t loadType = aLoadState->LoadType();
 
@@ -11264,8 +11264,7 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
                         NS_ERROR_FAILURE);
       NS_ENSURE_SUCCESS(newURI->GetUserPass(newUserPass), NS_ERROR_FAILURE);
       bool isPrivateWin =
-          document->NodePrincipal()->OriginAttributesRef().mPrivateBrowsingId >
-          0;
+          document->NodePrincipal()->OriginAttributesRef().IsPrivateBrowsing();
       if (NS_FAILED(secMan->CheckSameOriginURI(currentURI, newURI, true,
                                                isPrivateWin)) ||
           !currentUserPass.Equals(newUserPass)) {
@@ -12613,7 +12612,7 @@ bool nsDocShell::IsOKToLoadURI(nsIURI* aURI) {
   Document* doc = GetDocument();
   if (doc) {
     isPrivateWin =
-        doc->NodePrincipal()->OriginAttributesRef().mPrivateBrowsingId > 0;
+        doc->NodePrincipal()->OriginAttributesRef().IsPrivateBrowsing();
   }
 
   nsCOMPtr<nsIScriptSecurityManager> secMan =

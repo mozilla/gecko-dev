@@ -1013,7 +1013,7 @@ void HttpChannelChild::OnStopRequest(
         mURI, requestMethod, priority, mChannelId, NetworkLoadType::LOAD_STOP,
         mLastStatusReported, now, mTransferSize, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
-        mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0,
+        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
         &mTransactionTimings, std::move(mSource),
         Some(nsDependentCString(contentType.get())));
   }
@@ -1605,7 +1605,7 @@ void HttpChannelChild::Redirect1Begin(
         mURI, requestMethod, mPriority, mChannelId,
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         0, kCacheUnknown, mLoadInfo->GetInnerWindowID(),
-        mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0,
+        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
         &mTransactionTimings, std::move(mSource),
         Some(nsDependentCString(contentType.get())), newOriginalURI,
         redirectFlags, channelId);
@@ -1928,7 +1928,7 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener* aListener) {
         mURI, requestMethod, mPriority, mChannelId, NetworkLoadType::LOAD_START,
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
-        mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0);
+        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing());
   }
   StoreIsPending(true);
   StoreWasOpened(true);
@@ -2269,7 +2269,7 @@ nsresult HttpChannelChild::AsyncOpenInternal(nsIStreamListener* aListener) {
         mURI, requestMethod, mPriority, mChannelId, NetworkLoadType::LOAD_START,
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
-        mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0);
+        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing());
   }
   StoreIsPending(true);
   StoreWasOpened(true);
@@ -3263,7 +3263,7 @@ HttpChannelChild::LogBlockedCORSRequest(const nsAString& aMessage,
                                         const nsACString& aCategory,
                                         bool aIsWarning) {
   uint64_t innerWindowID = mLoadInfo->GetInnerWindowID();
-  bool privateBrowsing = !!mLoadInfo->GetOriginAttributes().mPrivateBrowsingId;
+  bool privateBrowsing = mLoadInfo->GetOriginAttributes().IsPrivateBrowsing();
   bool fromChromeContext =
       mLoadInfo->TriggeringPrincipal()->IsSystemPrincipal();
   nsCORSListenerProxy::LogBlockedCORSRequest(innerWindowID, privateBrowsing,

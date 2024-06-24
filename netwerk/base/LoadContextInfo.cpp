@@ -26,7 +26,7 @@ LoadContextInfo::LoadContextInfo(bool aIsAnonymous,
       mOriginAttributes(std::move(aOriginAttributes)) {}
 
 NS_IMETHODIMP LoadContextInfo::GetIsPrivate(bool* aIsPrivate) {
-  *aIsPrivate = mOriginAttributes.mPrivateBrowsingId > 0;
+  *aIsPrivate = mOriginAttributes.IsPrivateBrowsing();
   return NS_OK;
 }
 
@@ -121,7 +121,7 @@ LoadContextInfo* GetLoadContextInfo(nsIChannel* aChannel) {
 
   OriginAttributes oa;
   StoragePrincipalHelper::GetOriginAttributesForNetworkState(aChannel, oa);
-  MOZ_ASSERT(pb == (oa.mPrivateBrowsingId > 0));
+  MOZ_ASSERT(pb == (oa.IsPrivateBrowsing()));
 
   return new LoadContextInfo(anon, oa);
 }
@@ -139,8 +139,7 @@ LoadContextInfo* GetLoadContextInfo(nsILoadContext* aLoadContext,
   nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(aLoadContext);
   if (!docShell ||
       nsDocShell::Cast(docShell)->GetBrowsingContext()->IsContent()) {
-    MOZ_ASSERT(aLoadContext->UsePrivateBrowsing() ==
-               (oa.mPrivateBrowsingId > 0));
+    MOZ_ASSERT(aLoadContext->UsePrivateBrowsing() == (oa.IsPrivateBrowsing()));
   }
 #endif
 

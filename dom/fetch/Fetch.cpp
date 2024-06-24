@@ -1423,8 +1423,9 @@ already_AddRefed<Promise> FetchBody<Derived>::ConsumeBody(
            mozilla::ipc::PrincipalInfo::TSystemPrincipalInfo ||
        (principalInfo->type() ==
             mozilla::ipc::PrincipalInfo::TContentPrincipalInfo &&
-        principalInfo->get_ContentPrincipalInfo().attrs().mPrivateBrowsingId ==
-            0))) {
+        !principalInfo->get_ContentPrincipalInfo()
+             .attrs()
+             .IsPrivateBrowsing()))) {
     blobStorageType = MutableBlobStorage::eCouldBeInTemporaryFile;
   }
 

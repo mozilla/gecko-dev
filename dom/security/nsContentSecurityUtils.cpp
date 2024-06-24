@@ -1145,7 +1145,7 @@ void EnforceXFrameOptionsCheck(nsIChannel* aChannel,
     // log warning to console that xfo is ignored because of CSP
     nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
     uint64_t innerWindowID = loadInfo->GetInnerWindowID();
-    bool privateWindow = !!loadInfo->GetOriginAttributes().mPrivateBrowsingId;
+    bool privateWindow = loadInfo->GetOriginAttributes().IsPrivateBrowsing();
     AutoTArray<nsString, 2> params = {u"x-frame-options"_ns,
                                       u"frame-ancestors"_ns};
     CSP_LogLocalizedStr("IgnoringSrcBecauseOfDirective", params,

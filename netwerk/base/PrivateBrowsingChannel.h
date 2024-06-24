@@ -75,7 +75,7 @@ class PrivateBrowsingChannel : public nsIPrivateBrowsingChannel {
 
     nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
     OriginAttributes attrs = loadInfo->GetOriginAttributes();
-    mPrivateBrowsing = attrs.mPrivateBrowsingId > 0;
+    mPrivateBrowsing = attrs.IsPrivateBrowsing();
   }
 
   bool CanSetCallbacks(nsIInterfaceRequestor* aCallbacks) const {

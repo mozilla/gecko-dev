@@ -822,9 +822,8 @@ CookieService::SetCookieStringFromHttp(nsIURI* aHostURI,
     moreCookieToRead = CanSetCookie(
         aHostURI, baseDomain, cookieData, requireHostMatch, cookieStatus,
         cookieHeader, true, isForeignAndNotAddon, mustBePartitioned,
-        storagePrincipalOriginAttributes.mPrivateBrowsingId !=
-            nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID,
-        crc, canSetCookie);
+        storagePrincipalOriginAttributes.IsPrivateBrowsing(), crc,
+        canSetCookie);
 
     if (!canSetCookie) {
       continue;
@@ -1214,8 +1213,7 @@ void CookieService::GetCookiesForURI(
       // if opt-in partitioning is enabled.
       if (aIsForeign && cookieJarSettings->GetPartitionForeign() &&
           (StaticPrefs::network_cookie_cookieBehavior_optInPartitioning() ||
-           (attrs.mPrivateBrowsingId !=
-                nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID &&
+           (attrs.IsPrivateBrowsing() &&
             StaticPrefs::
                 network_cookie_cookieBehavior_optInPartitioning_pbmode())) &&
           !(cookie->IsPartitioned() && cookie->RawIsPartitioned()) &&
@@ -2693,7 +2691,7 @@ bool CookieService::IsInitialized() const {
 CookieStorage* CookieService::PickStorage(const OriginAttributes& aAttrs) {
   MOZ_ASSERT(IsInitialized());
 
-  if (aAttrs.mPrivateBrowsingId > 0) {
+  if (aAttrs.IsPrivateBrowsing()) {
     return mPrivateStorage;
   }
 

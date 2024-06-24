@@ -380,8 +380,7 @@ PersistenceType IDBFactory::GetPersistenceType(
       return PERSISTENCE_TYPE_PERSISTENT;
     }
 
-    if (aPrincipalInfo.get_ContentPrincipalInfo().attrs().mPrivateBrowsingId >
-        0) {
+    if (aPrincipalInfo.get_ContentPrincipalInfo().attrs().IsPrivateBrowsing()) {
       return PERSISTENCE_TYPE_PRIVATE;
     }
   }

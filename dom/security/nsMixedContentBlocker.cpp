@@ -808,7 +808,7 @@ nsresult nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
                         1,       // aColumnNumber
                         nsIScriptError::errorFlag, "blockAllMixedContent"_ns,
                         requestingWindow->Id(),
-                        !!aLoadInfo->GetOriginAttributes().mPrivateBrowsingId);
+                        aLoadInfo->GetOriginAttributes().IsPrivateBrowsing());
     *aDecision = REJECT_REQUEST;
     MOZ_LOG(
         sMCBLog, LogLevel::Verbose,

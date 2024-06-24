@@ -138,7 +138,7 @@ static SECStatus CertIDHash(SHA384Buffer& buf, const CertID& certID,
   }
 
   bool isolateByPartitionKey =
-      originAttributes.mPrivateBrowsingId > 0
+      originAttributes.IsPrivateBrowsing()
           ? StaticPrefs::privacy_partition_network_state_ocsp_cache_pbmode()
           : StaticPrefs::privacy_partition_network_state_ocsp_cache();
   if (isolateByPartitionKey) {

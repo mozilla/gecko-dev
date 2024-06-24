@@ -1726,8 +1726,7 @@ nsresult nsSSLIOLayerAddToSocket(int32_t family, const char* host, int32_t port,
     sharedState = allocatedState.get();
   } else {
     bool isPrivate = providerFlags & nsISocketProvider::NO_PERMANENT_STORAGE ||
-                     originAttributes.mPrivateBrowsingId !=
-                         OriginAttributes().mPrivateBrowsingId;
+                     originAttributes.IsPrivateBrowsing();
     sharedState = isPrivate ? PrivateSSLState() : PublicSSLState();
   }
 

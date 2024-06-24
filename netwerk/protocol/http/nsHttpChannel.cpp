@@ -5419,7 +5419,7 @@ nsresult nsHttpChannel::SetupReplacementChannel(nsIURI* newURI,
         mURI, requestMethod, priority, mChannelId,
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         size, mCacheDisposition, mLoadInfo->GetInnerWindowID(),
-        mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0, &timings,
+        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), &timings,
         std::move(mSource), Some(nsDependentCString(contentType.get())), newURI,
         redirectFlags, channelId);
   }
@@ -6028,7 +6028,7 @@ nsresult nsHttpChannel::CancelInternal(nsresult status) {
         mURI, requestMethod, priority, mChannelId, NetworkLoadType::LOAD_CANCEL,
         mLastStatusReported, TimeStamp::Now(), size, mCacheDisposition,
         mLoadInfo->GetInnerWindowID(),
-        mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0,
+        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
         &mTransactionTimings, std::move(mSource));
   }
 
@@ -6377,7 +6377,7 @@ void nsHttpChannel::AsyncOpenFinal(TimeStamp aTimeStamp) {
         mURI, requestMethod, mPriority, mChannelId, NetworkLoadType::LOAD_START,
         mChannelCreationTimestamp, mLastStatusReported, 0, mCacheDisposition,
         mLoadInfo->GetInnerWindowID(),
-        mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0);
+        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing());
   }
 
   // Added due to PauseTask/DelayHttpChannel
@@ -8376,7 +8376,7 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
         mURI, requestMethod, priority, mChannelId, NetworkLoadType::LOAD_STOP,
         mLastStatusReported, TimeStamp::Now(), size, mCacheDisposition,
         mLoadInfo->GetInnerWindowID(),
-        mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0,
+        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
         &mTransactionTimings, std::move(mSource),
         Some(nsDependentCString(contentType.get())));
   }
@@ -10454,7 +10454,7 @@ void nsHttpChannel::ReEvaluateReferrerAfterTrackingStatusIsKnown() {
     cjs = net::CookieJarSettings::Create(mLoadInfo->GetLoadingPrincipal());
   }
   if (cjs->GetRejectThirdPartyContexts()) {
-    bool isPrivate = mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
+    bool isPrivate = mLoadInfo->GetOriginAttributes().IsPrivateBrowsing();
     // If our referrer has been set before, and our referrer policy is unset
     // (default policy) if we thought the channel wasn't a third-party
     // tracking channel, we may need to set our referrer with referrer policy

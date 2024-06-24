@@ -685,9 +685,9 @@ nsresult BasePrincipal::CheckMayLoadHelper(nsIURI* aURI,
   }
 
   if (aReport) {
-    nsScriptSecurityManager::ReportError(
-        "CheckSameOriginError", prinURI, aURI,
-        mOriginAttributes.mPrivateBrowsingId > 0, aInnerWindowID);
+    nsScriptSecurityManager::ReportError("CheckSameOriginError", prinURI, aURI,
+                                         mOriginAttributes.IsPrivateBrowsing(),
+                                         aInnerWindowID);
   }
 
   return NS_ERROR_DOM_BAD_URI;

@@ -175,7 +175,7 @@ already_AddRefed<CacheStorage> CacheStorage::CreateOnWorker(
   MOZ_DIAGNOSTIC_ASSERT(aWorkerPrivate);
   aWorkerPrivate->AssertIsOnWorkerThread();
 
-  if (aWorkerPrivate->GetOriginAttributes().mPrivateBrowsingId > 0 &&
+  if (aWorkerPrivate->GetOriginAttributes().IsPrivateBrowsing() &&
       !StaticPrefs::dom_cache_privateBrowsing_enabled()) {
     NS_WARNING("CacheStorage not supported during private browsing.");
     RefPtr<CacheStorage> ref = new CacheStorage(NS_ERROR_DOM_SECURITY_ERR);

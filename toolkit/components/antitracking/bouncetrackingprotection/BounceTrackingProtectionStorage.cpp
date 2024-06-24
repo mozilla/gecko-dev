@@ -83,9 +83,7 @@ nsresult BounceTrackingProtectionStorage::ClearBySiteHost(
 
   // Update the database.
   // Private browsing data is not written to disk.
-  if (aOriginAttributes &&
-      aOriginAttributes->mPrivateBrowsingId !=
-          nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID) {
+  if (aOriginAttributes && aOriginAttributes->IsPrivateBrowsing()) {
     return NS_OK;
   }
   return DeleteDBEntries(aOriginAttributes, aSiteHost);

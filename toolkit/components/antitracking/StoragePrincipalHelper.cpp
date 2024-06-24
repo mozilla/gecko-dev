@@ -447,7 +447,7 @@ bool StoragePrincipalHelper::GetOriginAttributes(
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
   loadInfo->GetOriginAttributes(&aAttributes);
 
-  bool isPrivate = aAttributes.mPrivateBrowsingId > 0;
+  bool isPrivate = aAttributes.IsPrivateBrowsing();
   nsCOMPtr<nsIPrivateBrowsingChannel> pbChannel = do_QueryInterface(aChannel);
   if (pbChannel) {
     nsresult rv = pbChannel->GetIsChannelPrivate(&isPrivate);

@@ -424,7 +424,7 @@ bool OriginAttributes::IsPrivateBrowsing(const nsACString& aOrigin) {
     return false;
   }
 
-  return !!attrs.mPrivateBrowsingId;
+  return attrs.IsPrivateBrowsing();
 }
 
 /* static */

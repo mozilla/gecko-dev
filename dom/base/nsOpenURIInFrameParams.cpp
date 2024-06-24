@@ -47,7 +47,7 @@ nsOpenURIInFrameParams::SetReferrerInfo(nsIReferrerInfo* aReferrerInfo) {
 NS_IMETHODIMP
 nsOpenURIInFrameParams::GetIsPrivate(bool* aIsPrivate) {
   NS_ENSURE_ARG_POINTER(aIsPrivate);
-  *aIsPrivate = mOpenWindowInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
+  *aIsPrivate = mOpenWindowInfo->GetOriginAttributes().IsPrivateBrowsing();
   return NS_OK;
 }
 

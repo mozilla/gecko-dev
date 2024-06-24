@@ -1774,7 +1774,7 @@ HttpBaseChannel::IsThirdPartyTrackingResource(bool* aIsTrackingResource) {
       !(mFirstPartyClassificationFlags && mThirdPartyClassificationFlags));
   *aIsTrackingResource = UrlClassifierCommon::IsTrackingClassificationFlag(
       mThirdPartyClassificationFlags,
-      mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0);
+      mLoadInfo->GetOriginAttributes().IsPrivateBrowsing());
   return NS_OK;
 }
 
@@ -2515,7 +2515,7 @@ bool HttpBaseChannel::IsBrowsingContextDiscarded() const {
       return false;
     }
 
-    return mLoadInfo->GetOriginAttributes().mPrivateBrowsingId != 0 &&
+    return mLoadInfo->GetOriginAttributes().IsPrivateBrowsing() &&
            !dom::CanonicalBrowsingContext::IsPrivateBrowsingActive();
   }
 
@@ -5279,7 +5279,7 @@ bool HttpBaseChannel::ShouldTaintReplacementChannelOrigin(
 // Redirect Tracking
 bool HttpBaseChannel::SameOriginWithOriginalUri(nsIURI* aURI) {
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-  bool isPrivateWin = mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
+  bool isPrivateWin = mLoadInfo->GetOriginAttributes().IsPrivateBrowsing();
   nsresult rv =
       ssm->CheckSameOriginURI(aURI, mOriginalURI, false, isPrivateWin);
   return (NS_SUCCEEDED(rv));

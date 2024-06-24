@@ -135,7 +135,7 @@ already_AddRefed<nsICookieJarSettings> CookieJarSettings::Create(
           aPrincipal, "We are constructing CookieJarSettings here.",
           RFPTarget::IsAlwaysEnabledForPrecompute);
 
-  if (aPrincipal && aPrincipal->OriginAttributesRef().mPrivateBrowsingId > 0) {
+  if (aPrincipal && aPrincipal->OriginAttributesRef().IsPrivateBrowsing()) {
     return Create(ePrivate, shouldResistFingerprinting);
   }
 

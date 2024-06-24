@@ -2126,7 +2126,7 @@ bool NS_UsePrivateBrowsing(nsIChannel* channel) {
   bool result = StoragePrincipalHelper::GetOriginAttributes(
       channel, attrs, StoragePrincipalHelper::eRegularPrincipal);
   NS_ENSURE_TRUE(result, result);
-  return attrs.mPrivateBrowsingId > 0;
+  return attrs.IsPrivateBrowsing();
 }
 
 bool NS_HasBeenCrossOrigin(nsIChannel* aChannel, bool aReport) {
@@ -2965,7 +2965,7 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
                         1,       // aColumnNumber
                         nsIScriptError::warningFlag,
                         "upgradeInsecureRequest"_ns, innerWindowId,
-                        !!aLoadInfo->GetOriginAttributes().mPrivateBrowsingId);
+                        aLoadInfo->GetOriginAttributes().IsPrivateBrowsing());
     Telemetry::AccumulateCategorical(
         Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::CSP);
     return true;

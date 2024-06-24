@@ -649,7 +649,7 @@ bool ChannelWrapper::Matches(
 
   nsCOMPtr<nsILoadInfo> loadInfo = GetLoadInfo();
   bool isPrivate =
-      loadInfo && loadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
+      loadInfo && loadInfo->GetOriginAttributes().IsPrivateBrowsing();
   if (!aFilter.mIncognito.IsNull() && aFilter.mIncognito.Value() != isPrivate) {
     return false;
   }
