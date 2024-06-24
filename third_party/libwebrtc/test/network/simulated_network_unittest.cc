@@ -10,6 +10,7 @@
 #include "test/network/simulated_network.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <set>
@@ -19,6 +20,7 @@
 #include "api/test/simulated_network.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 
@@ -26,6 +28,8 @@ namespace webrtc {
 namespace {
 
 using ::testing::ElementsAre;
+using ::testing::MockFunction;
+using ::testing::SizeIs;
 
 PacketInFlightInfo PacketWithSize(size_t size) {
   return PacketInFlightInfo(/*size=*/size, /*send_time_us=*/0, /*packet_id=*/1);
@@ -194,9 +198,118 @@ TEST(SimulatedNetworkTest,
                   /*receive_time_us=*/TimeDelta::Millis(1100).us())));
 }
 
-TEST(SimulatedNetworkTest, NetworkEmptyAfterLastPacketDequeued) {
+TEST(SimulatedNetworkTest,
+     SetConfigUpdateNextDeliveryTimeIfLinkCapacityChange) {
   // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
   // should be ready to exit the network in 1 second.
+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
+  MockFunction<void()> delivery_time_changed_callback;
+  network.RegisterDeliveryTimeChangedCallback(
+      delivery_time_changed_callback.AsStdFunction());
+  const PacketInFlightInfo packet_1 =
+      PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1);
+  ASSERT_TRUE(network.EnqueuePacket(packet_1));
+  EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Seconds(1).us());
+
+  // Since the link capacity changes from 1 kbps to 10 kbps, packets will take
+  // 100 ms each to leave the network. After 500ms, half the packet should have
+  // gone through.
+  EXPECT_CALL(delivery_time_changed_callback, Call).WillOnce([&]() {
+    EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Millis(500 + 50).us());
+  });
+  network.SetConfig({.link_capacity_kbps = 10},
+                    /*config_update_time*/ Timestamp::Millis(500));
+}
+
+TEST(SimulatedNetworkTest,
+     SetConfigUpdateNextDeliveryTimeIfLinkCapacityChangeFromZero) {
+  SimulatedNetwork network =
+      SimulatedNetwork({.link_capacity = DataRate::Zero()});
+  MockFunction<void()> delivery_time_changed_callback;
+  network.RegisterDeliveryTimeChangedCallback(
+      delivery_time_changed_callback.AsStdFunction());
+  const PacketInFlightInfo packet_1 =
+      PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1);
+  const PacketInFlightInfo packet_2 =
+      PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/2);
+  ASSERT_TRUE(network.EnqueuePacket(packet_1));
+  ASSERT_TRUE(network.EnqueuePacket(packet_2));
+  EXPECT_FALSE(network.NextDeliveryTimeUs().has_value());
+
+  // The link capacity changes from 0 kbps to 10 kbps during 10ms 1/10th of the
+  // packet will be transmitted. (The packet would take 100ms to go through the
+  // network at 10kbps.)
+  ::testing::Sequence s;
+  EXPECT_CALL(delivery_time_changed_callback, Call)
+      .InSequence(s)
+      .WillOnce([&]() {
+        EXPECT_EQ(network.NextDeliveryTimeUs(),
+                  TimeDelta::Millis(500 + 100).us());
+      });
+  EXPECT_CALL(delivery_time_changed_callback, Call)
+      .InSequence(s)
+      .WillOnce(
+          [&]() { EXPECT_FALSE(network.NextDeliveryTimeUs().has_value()); });
+  EXPECT_CALL(delivery_time_changed_callback, Call)
+      .InSequence(s)
+      .WillOnce([&]() {
+        EXPECT_EQ(network.NextDeliveryTimeUs(),
+                  TimeDelta::Millis(610 + 90).us());
+      });
+  network.SetConfig({.link_capacity = DataRate::KilobitsPerSec(10)},
+                    /*config_update_time*/ Timestamp::Millis(500));
+  network.SetConfig({.link_capacity = DataRate::Zero()},
+                    /*config_update_time*/ Timestamp::Millis(510));
+  network.SetConfig({.link_capacity = DataRate::KilobitsPerSec(10)},
+                    /*config_update_time*/ Timestamp::Millis(610));
+}
+
+TEST(SimulatedNetworkTest, SetConfigUpdateQueueDelayAfterDelivery) {
+  // A packet of 125 bytes that gets enqueued on a network with 1000 kbps
+  // capacity should be ready to exit the narrow section in 1 ms.
+  SimulatedNetwork network =
+      SimulatedNetwork({.queue_delay_ms = 1000, .link_capacity_kbps = 1000});
+  MockFunction<void()> delivery_time_changed_callback;
+  network.RegisterDeliveryTimeChangedCallback(
+      delivery_time_changed_callback.AsStdFunction());
+  EXPECT_CALL(delivery_time_changed_callback, Call).Times(0);
+  const PacketInFlightInfo packet_1 =
+      PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1);
+  ASSERT_TRUE(network.EnqueuePacket(packet_1));
+  EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Millis(1).us());
+  // But no packets is actually delivered. Only moved to the delay link.
+  EXPECT_TRUE(network
+                  .DequeueDeliverablePackets(
+                      /*receive_time_us=*/TimeDelta::Millis(1).us())
+                  .empty());
+  EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Millis(1000 + 1).us());
+
+  // Changing the queue time does not change the next delivery time.
+  network.SetConfig({.queue_delay_ms = 1, .link_capacity_kbps = 100},
+                    /*config_update_time*/ Timestamp::Millis(500));
+  EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Millis(1000 + 1).us());
+
+  // A new packet require NextDeliveryTimeUs to change since the capacity
+  // change. But does not affect the delivery time of packet_1.
+  const PacketInFlightInfo packet_2 = PacketInFlightInfo(
+      /*size=*/125, /*send_time_us=*/TimeDelta::Millis(500).us(),
+      /*packet_id=*/2);
+  ASSERT_TRUE(network.EnqueuePacket(packet_2));
+  EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Millis(1000 + 1).us());
+  // At 100kbps, it will take packet 2 10ms to pass through the narrow section.
+  // Since delay is lower for packet_2, but reordering is not allowed, both
+  // packets are delivered at the same time.
+  std::vector<PacketDeliveryInfo> delivered_packets =
+      network.DequeueDeliverablePackets(
+          /*receive_time_us=*/TimeDelta::Millis(1000 + 1).us());
+  ASSERT_THAT(delivered_packets, SizeIs(2));
+  EXPECT_EQ(delivered_packets[0].receive_time_us,
+            delivered_packets[1].receive_time_us);
+}
+
+TEST(SimulatedNetworkTest, NetworkEmptyAfterLastPacketDequeued) {
+  // A packet of 125 bytes that gets enqueued on a network with 1 kbps
+  // capacity should be ready to exit the network in 1 second.
   SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
   ASSERT_TRUE(network.EnqueuePacket(PacketWithSize(125)));
 
@@ -211,21 +324,21 @@ TEST(SimulatedNetworkTest, NetworkEmptyAfterLastPacketDequeued) {
 }
 
 TEST(SimulatedNetworkTest, DequeueDeliverablePacketsOnLateCall) {
-  // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
-  // should be ready to exit the network in 1 second.
+  // A packet of 125 bytes that gets enqueued on a network with 1 kbps
+  // capacity should be ready to exit the network in 1 second.
   SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
   ASSERT_TRUE(network.EnqueuePacket(
       PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1)));
 
-  // Enqueue another packet of 125 bytes with send time 1 second so this should
-  // exit after 2 seconds.
+  // Enqueue another packet of 125 bytes with send time 1 second so this
+  // should exit after 2 seconds.
   ASSERT_TRUE(network.EnqueuePacket(
       PacketInFlightInfo(/*size=*/125,
                          /*send_time_us=*/TimeDelta::Seconds(1).us(),
                          /*packet_id=*/2)));
 
-  // Collecting delivered packets after 3 seconds will result in the delivery of
-  // both the enqueued packets.
+  // Collecting delivered packets after 3 seconds will result in the delivery
+  // of both the enqueued packets.
   std::vector<PacketDeliveryInfo> delivered_packets =
       network.DequeueDeliverablePackets(
           /*receive_time_us=*/TimeDelta::Seconds(3).us());
@@ -234,13 +347,13 @@ TEST(SimulatedNetworkTest, DequeueDeliverablePacketsOnLateCall) {
 
 TEST(SimulatedNetworkTest,
      DequeueDeliverablePacketsOnEarlyCallReturnsNoPackets) {
-  // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
-  // should be ready to exit the network in 1 second.
+  // A packet of 125 bytes that gets enqueued on a network with 1 kbps
+  // capacity should be ready to exit the network in 1 second.
   SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
   ASSERT_TRUE(network.EnqueuePacket(PacketWithSize(125)));
 
-  // Collecting delivered packets after 0.5 seconds will result in the delivery
-  // of 0 packets.
+  // Collecting delivered packets after 0.5 seconds will result in the
+  // delivery of 0 packets.
   std::vector<PacketDeliveryInfo> delivered_packets =
       network.DequeueDeliverablePackets(
           /*receive_time_us=*/TimeDelta::Seconds(0.5).us());
@@ -251,8 +364,8 @@ TEST(SimulatedNetworkTest,
 }
 
 TEST(SimulatedNetworkTest, QueueDelayMsWithoutStandardDeviation) {
-  // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
-  // should be ready to exit the network in 1 second.
+  // A packet of 125 bytes that gets enqueued on a network with 1 kbps
+  // capacity should be ready to exit the network in 1 second.
   SimulatedNetwork network =
       SimulatedNetwork({.queue_delay_ms = 100, .link_capacity_kbps = 1});
   ASSERT_TRUE(network.EnqueuePacket(PacketWithSize(125)));
@@ -283,8 +396,8 @@ TEST(SimulatedNetworkTest,
                         .delay_standard_deviation_ms = 90,
                         .link_capacity_kbps = 1,
                         .allow_reordering = false});
-  // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
-  // should be ready to exit the network in 1 second.
+  // A packet of 125 bytes that gets enqueued on a network with 1 kbps
+  // capacity should be ready to exit the network in 1 second.
   ASSERT_TRUE(network.EnqueuePacket(
       PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1)));
 
@@ -322,8 +435,8 @@ TEST(SimulatedNetworkTest, QueueDelayMsWithStandardDeviationAndReorderAllowed) {
                         .link_capacity_kbps = 1,
                         .allow_reordering = true},
                        /*random_seed=*/1);
-  // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
-  // should be ready to exit the network in 1 second.
+  // A packet of 125 bytes that gets enqueued on a network with 1 kbps
+  // capacity should be ready to exit the network in 1 second.
   ASSERT_TRUE(network.EnqueuePacket(
       PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1)));
 
@@ -356,7 +469,8 @@ TEST(SimulatedNetworkTest, QueueDelayMsWithStandardDeviationAndReorderAllowed) {
 
 TEST(SimulatedNetworkTest, PacketLoss) {
   // On a network with 50% probablility of packet loss ...
-  SimulatedNetwork network = SimulatedNetwork({.loss_percent = 50});
+  SimulatedNetwork network =
+      SimulatedNetwork({.loss_percent = 50}, /*random_seed =*/1);
 
   // Enqueueing 8 packets ...
   for (int i = 0; i < 8; i++) {
@@ -379,9 +493,49 @@ TEST(SimulatedNetworkTest, PacketLoss) {
   EXPECT_EQ(lost_packets, 4);
 }
 
+TEST(SimulatedNetworkTest, NextDeliveryTimeSetAfterLostPackets) {
+  // On a network with 50% probablility of packet loss ...
+  SimulatedNetwork network = SimulatedNetwork(
+      {.queue_delay_ms = 10, .link_capacity_kbps = 1000, .loss_percent = 50},
+      /*random_seed =*/1);
+  // Enqueueing 8 packets at the same time. It should take 1ms to pass through
+  // the capacity limited section per packet, it total adding 8ms delay to the
+  // last packet. Since queue delay is 10ms, multiple packets will be in the
+  // delay queue at the same time.
+  for (int i = 0; i < 8; i++) {
+    ASSERT_TRUE(network.EnqueuePacket(PacketInFlightInfo(
+        /*size=*/125, /*send_time_us=*/0, /*packet_id=*/i + 1)));
+  }
+  int64_t time_us = 0;
+  std::vector<PacketDeliveryInfo> delivered_packets;
+  // This assumes first packet is lost and last packet is delivered....
+  while (delivered_packets.size() != 8) {
+    ASSERT_TRUE(network.NextDeliveryTimeUs().has_value());
+    time_us = *network.NextDeliveryTimeUs();
+    std::vector<PacketDeliveryInfo> packets =
+        network.DequeueDeliverablePackets(time_us);
+    delivered_packets.insert(delivered_packets.end(), packets.begin(),
+                             packets.end());
+  }
+  // Results in the loss of 4 of them.
+  int lost_packets = 0;
+  int received_packets = 0;
+  for (const auto& packet : delivered_packets) {
+    if (packet.receive_time_us == PacketDeliveryInfo::kNotReceived) {
+      lost_packets++;
+    } else {
+      received_packets++;
+    }
+  }
+  EXPECT_EQ(delivered_packets.back().receive_time_us,
+            Timestamp::Millis(10 + 8).us());
+  EXPECT_EQ(lost_packets, 4);
+  EXPECT_EQ(received_packets, 4);
+}
+
 TEST(SimulatedNetworkTest, PacketLossBurst) {
-  // On a network with 50% probablility of packet loss and an average burst loss
-  // length of 100 ...
+  // On a network with 50% probablility of packet loss and an average burst
+  // loss length of 100 ...
   SimulatedNetwork network = SimulatedNetwork(
       {.loss_percent = 50, .avg_burst_loss_length = 100}, /*random_seed=*/1);
 
@@ -412,8 +566,9 @@ TEST(SimulatedNetworkTest, PacketLossBurst) {
 }
 
 TEST(SimulatedNetworkTest, PauseTransmissionUntil) {
-  // 3 packets of 125 bytes that gets enqueued on a network with 1 kbps capacity
-  // should be ready to exit the network after 1, 2 and 3 seconds respectively.
+  // 3 packets of 125 bytes that gets enqueued on a network with 1 kbps
+  // capacity should be ready to exit the network after 1, 2 and 3 seconds
+  // respectively.
   SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
   ASSERT_TRUE(network.EnqueuePacket(
       PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1)));
@@ -443,8 +598,8 @@ TEST(SimulatedNetworkTest, PauseTransmissionUntil) {
   // delivery time of the next packet which accounts for the network pause.
   EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Seconds(6).us());
 
-  // And 2 seconds after the exit of the first enqueued packet, the following 2
-  // packets are also delivered.
+  // And 2 seconds after the exit of the first enqueued packet, the following
+  // 2 packets are also delivered.
   delivered_packets = network.DequeueDeliverablePackets(
       /*receive_time_us=*/TimeDelta::Seconds(7).us());
   EXPECT_EQ(delivered_packets.size(), 2ul);
@@ -453,8 +608,8 @@ TEST(SimulatedNetworkTest, PauseTransmissionUntil) {
 TEST(SimulatedNetworkTest, CongestedNetworkRespectsLinkCapacity) {
   SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
   for (size_t i = 0; i < 1'000; ++i) {
-    ASSERT_TRUE(network.EnqueuePacket(
-        PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/i)));
+    ASSERT_TRUE(network.EnqueuePacket(PacketInFlightInfo(
+        /*size=*/125, /*send_time_us=*/0, /*packet_id=*/i)));
   }
   PacketDeliveryInfo last_delivered_packet{
       PacketInFlightInfo(/*size=*/0, /*send_time_us=*/0, /*packet_id=*/0), 0};
@@ -474,10 +629,10 @@ TEST(SimulatedNetworkTest, CongestedNetworkRespectsLinkCapacity) {
 }
 
 TEST(SimulatedNetworkTest, EnqueuePacketWithSubSecondNonMonotonicBehaviour) {
-  // On multi-core systems, different threads can experience sub-millisecond non
-  // monothonic behaviour when running on different cores. This test checks that
-  // when a non monotonic packet enqueue, the network continues to work and the
-  // out of order packet is sent anyway.
+  // On multi-core systems, different threads can experience sub-millisecond
+  // non monothonic behaviour when running on different cores. This test
+  // checks that when a non monotonic packet enqueue, the network continues to
+  // work and the out of order packet is sent anyway.
   SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
   ASSERT_TRUE(network.EnqueuePacket(PacketInFlightInfo(
       /*size=*/125, /*send_time_us=*/TimeDelta::Seconds(1).us(),

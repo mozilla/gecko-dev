@@ -150,12 +150,7 @@ class LinkEmulation : public EmulatedNetworkReceiverInterface {
                 absl::Nonnull<TaskQueueBase*> task_queue,
                 std::unique_ptr<NetworkBehaviorInterface> network_behavior,
                 EmulatedNetworkReceiverInterface* receiver,
-                EmulatedNetworkStatsGatheringMode stats_gathering_mode)
-      : clock_(clock),
-        task_queue_(task_queue),
-        network_behavior_(std::move(network_behavior)),
-        receiver_(receiver),
-        stats_builder_(stats_gathering_mode) {}
+                EmulatedNetworkStatsGatheringMode stats_gathering_mode);
   void OnPacketReceived(EmulatedIpPacket packet) override;
 
   EmulatedNetworkNodeStats stats() const;
@@ -167,6 +162,7 @@ class LinkEmulation : public EmulatedNetworkReceiverInterface {
     EmulatedIpPacket packet;
     bool removed;
   };
+  void UpdateProcessSchedule() RTC_RUN_ON(task_queue_);
   void Process(Timestamp at_time) RTC_RUN_ON(task_queue_);
 
   Clock* const clock_;

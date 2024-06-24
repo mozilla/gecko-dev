@@ -95,23 +95,6 @@ rtc_library("emulated_network") {
   ]
 }
 
-rtc_library("network_emulation_unittest") {
-  testonly = true
-  sources = [ "network_emulation_unittest.cc" ]
-  deps = [
-    ":emulated_network",
-    "../:test_support",
-    "../..//test/network:simulated_network",
-    "../../api:simulated_network_api",
-    "../../api/units:time_delta",
-    "../../rtc_base:gunit_helpers",
-    "../../rtc_base:logging",
-    "../../rtc_base:rtc_event",
-    "../../rtc_base:task_queue_for_test",
-    "../../rtc_base/synchronization:mutex",
-  ]
-}
-
 if (rtc_include_tests && !build_with_chromium) {
   rtc_library("network_emulation_pc_unittest") {
     testonly = true
@@ -163,6 +146,26 @@ rtc_library("cross_traffic_unittest") {
 }
 
 if (rtc_include_tests) {
+  rtc_library("network_emulation_unittest") {
+    testonly = true
+    sources = [ "network_emulation_unittest.cc" ]
+    deps = [
+      ":emulated_network",
+      "../:test_support",
+      "../..//test/network:simulated_network",
+      "../../api:create_time_controller",
+      "../../api:simulated_network_api",
+      "../../api/task_queue:task_queue",
+      "../../api/units:time_delta",
+      "../../api/units:timestamp",
+      "../../rtc_base:gunit_helpers",
+      "../../rtc_base:logging",
+      "../../rtc_base:rtc_event",
+      "../../rtc_base:task_queue_for_test",
+      "../../rtc_base/synchronization:mutex",
+    ]
+  }
+
   rtc_library("feedback_generator") {
     testonly = true
     sources = [
@@ -235,6 +238,7 @@ if (rtc_include_tests) {
       "../../api/units:data_rate",
       "../../api/units:data_size",
       "../../api/units:time_delta",
+      "../../api/units:timestamp",
       "//testing/gtest",
     ]
     absl_deps = [ "//third_party/abseil-cpp/absl/algorithm:container" ]

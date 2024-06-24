@@ -14,8 +14,11 @@
 #include <memory>
 #include <set>
 
+#include "api/task_queue/task_queue_base.h"
+#include "api/test/create_time_controller.h"
 #include "api/test/simulated_network.h"
 #include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "rtc_base/event.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/synchronization/mutex.h"
@@ -74,6 +77,23 @@ class SocketReader : public sigslot::has_slots<> {
 class MockReceiver : public EmulatedNetworkReceiverInterface {
  public:
   MOCK_METHOD(void, OnPacketReceived, (EmulatedIpPacket packet), (override));
+};
+
+class MockNetworkBehaviourInterface : public NetworkBehaviorInterface {
+ public:
+  MOCK_METHOD(bool, EnqueuePacket, (PacketInFlightInfo), (override));
+  MOCK_METHOD(std::vector<PacketDeliveryInfo>,
+              DequeueDeliverablePackets,
+              (int64_t),
+              (override));
+  MOCK_METHOD(absl::optional<int64_t>,
+              NextDeliveryTimeUs,
+              (),
+              (const override));
+  MOCK_METHOD(void,
+              RegisterDeliveryTimeChangedCallback,
+              (absl::AnyInvocable<void()>),
+              (override));
 };
 
 class NetworkEmulationManagerThreeNodesRoutingTest : public ::testing::Test {
@@ -670,6 +690,46 @@ TEST(NetworkEmulationManagerTURNTest, ClientTraffic) {
   ep->SendPacket(rtc::SocketAddress(ep->GetPeerLocalAddress(), port),
                  turn->GetClientEndpointAddress(), packet);
   emulation.time_controller()->AdvanceTime(TimeDelta::Seconds(1));
+}
+
+TEST(LinkEmulationTest, HandlesDeliveryTimeChangedCallback) {
+  constexpr uint32_t kEndpointIp = 0xC0A80011;  // 192.168.0.17
+  NetworkEmulationManagerImpl network_manager(
+      TimeMode::kSimulated, EmulatedNetworkStatsGatheringMode::kDefault);
+  auto mock_behaviour =
+      std::make_unique<::testing::NiceMock<MockNetworkBehaviourInterface>>();
+  MockNetworkBehaviourInterface* mock_behaviour_ptr = mock_behaviour.get();
+  absl::AnyInvocable<void()> delivery_time_changed_callback = nullptr;
+  TaskQueueBase* emulation_task_queue = nullptr;
+  EXPECT_CALL(*mock_behaviour_ptr, RegisterDeliveryTimeChangedCallback)
+      .WillOnce([&](absl::AnyInvocable<void()> callback) {
+        delivery_time_changed_callback = std::move(callback);
+        emulation_task_queue = TaskQueueBase::Current();
+      });
+  LinkEmulation* link =
+      network_manager.CreateEmulatedNode(std::move(mock_behaviour))->link();
+  network_manager.time_controller()->AdvanceTime(TimeDelta::Zero());
+  ASSERT_TRUE(delivery_time_changed_callback);
+
+  EXPECT_CALL(*mock_behaviour_ptr, EnqueuePacket);
+  EXPECT_CALL(*mock_behaviour_ptr, NextDeliveryTimeUs)
+      .WillOnce(::testing::Return(
+          network_manager.time_controller()->GetClock()->TimeInMicroseconds() +
+          10));
+  link->OnPacketReceived(EmulatedIpPacket(
+      rtc::SocketAddress(kEndpointIp, 50), rtc::SocketAddress(kEndpointIp, 79),
+      rtc::CopyOnWriteBuffer(10), Timestamp::Millis(1)));
+  network_manager.time_controller()->AdvanceTime(TimeDelta::Zero());
+
+  // Test that NetworkBehaviour can reschedule time for delivery. When
+  // delivery_time_changed_callback is triggered, LinkEmulation re-query the
+  // next delivery time.
+  EXPECT_CALL(*mock_behaviour_ptr, NextDeliveryTimeUs)
+      .WillOnce(::testing::Return(
+          network_manager.time_controller()->GetClock()->TimeInMicroseconds() +
+          20));
+  emulation_task_queue->PostTask([&]() { delivery_time_changed_callback(); });
+  network_manager.time_controller()->AdvanceTime(TimeDelta::Zero());
 }
 
 }  // namespace test

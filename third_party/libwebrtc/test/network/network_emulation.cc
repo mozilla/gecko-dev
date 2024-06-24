@@ -311,6 +311,26 @@ EmulatedNetworkNodeStats EmulatedNetworkNodeStatsBuilder::Build() const {
   return stats_;
 }
 
+LinkEmulation::LinkEmulation(
+    Clock* clock,
+    absl::Nonnull<TaskQueueBase*> task_queue,
+    std::unique_ptr<NetworkBehaviorInterface> network_behavior,
+    EmulatedNetworkReceiverInterface* receiver,
+    EmulatedNetworkStatsGatheringMode stats_gathering_mode)
+    : clock_(clock),
+      task_queue_(task_queue),
+      network_behavior_(std::move(network_behavior)),
+      receiver_(receiver),
+      stats_builder_(stats_gathering_mode) {
+  task_queue_->PostTask([&]() {
+    RTC_DCHECK_RUN_ON(task_queue_);
+    network_behavior_->RegisterDeliveryTimeChangedCallback([&]() {
+      RTC_DCHECK_RUN_ON(task_queue_);
+      UpdateProcessSchedule();
+    });
+  });
+}
+
 void LinkEmulation::OnPacketReceived(EmulatedIpPacket packet) {
   task_queue_->PostTask([this, packet = std::move(packet)]() mutable {
     RTC_DCHECK_RUN_ON(task_queue_);
@@ -326,28 +346,8 @@ void LinkEmulation::OnPacketReceived(EmulatedIpPacket packet) {
     }
     if (process_task_.Running())
       return;
-    absl::optional<int64_t> next_time_us =
-        network_behavior_->NextDeliveryTimeUs();
-    if (!next_time_us)
-      return;
-    Timestamp current_time = clock_->CurrentTime();
-    process_task_ = RepeatingTaskHandle::DelayedStart(
-        task_queue_,
-        std::max(TimeDelta::Zero(),
-                 Timestamp::Micros(*next_time_us) - current_time),
-        [this]() {
-          RTC_DCHECK_RUN_ON(task_queue_);
-          Timestamp current_time = clock_->CurrentTime();
-          Process(current_time);
-          absl::optional<int64_t> next_time_us =
-              network_behavior_->NextDeliveryTimeUs();
-          if (!next_time_us) {
-            process_task_.Stop();
-            return TimeDelta::Zero();  // This is ignored.
-          }
-          RTC_DCHECK_GE(*next_time_us, current_time.us());
-          return Timestamp::Micros(*next_time_us) - current_time;
-        });
+
+    UpdateProcessSchedule();
   });
 }
 
@@ -383,6 +383,35 @@ void LinkEmulation::Process(Timestamp at_time) {
       packets_.pop_front();
     }
   }
+}
+
+void LinkEmulation::UpdateProcessSchedule() {
+  RTC_DCHECK_RUN_ON(task_queue_);
+  if (process_task_.Running()) {
+    process_task_.Stop();
+  };
+  absl::optional<int64_t> next_time_us =
+      network_behavior_->NextDeliveryTimeUs();
+  if (!next_time_us)
+    return;
+  Timestamp current_time = clock_->CurrentTime();
+  process_task_ = RepeatingTaskHandle::DelayedStart(
+      task_queue_,
+      std::max(TimeDelta::Zero(),
+               Timestamp::Micros(*next_time_us) - current_time),
+      [this]() {
+        RTC_DCHECK_RUN_ON(task_queue_);
+        Timestamp current_time = clock_->CurrentTime();
+        Process(current_time);
+        absl::optional<int64_t> next_time_us =
+            network_behavior_->NextDeliveryTimeUs();
+        if (!next_time_us) {
+          process_task_.Stop();
+          return TimeDelta::Zero();  // This is ignored.
+        }
+        RTC_DCHECK_GE(*next_time_us, current_time.us());
+        return Timestamp::Micros(*next_time_us) - current_time;
+      });
 }
 
 NetworkRouterNode::NetworkRouterNode(absl::Nonnull<TaskQueueBase*> task_queue)
