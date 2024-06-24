@@ -151,9 +151,6 @@ nsresult Decoder::Init() {
   // XXX(seth): Soon that exception will be removed.
   MOZ_ASSERT_IF(mImage, IsMetadataDecode());
 
-  // We can only request the frame count for metadata decoders.
-  MOZ_ASSERT_IF(WantsFrameCount(), IsMetadataDecode());
-
   // Implementation-specific initialization.
   nsresult rv = InitInternal();
 
@@ -470,10 +467,6 @@ void Decoder::PostIsAnimated(FrameTimeout aFirstFrameTimeout) {
   mImageMetadata.SetFirstFrameTimeout(aFirstFrameTimeout);
 }
 
-void Decoder::PostFrameCount(uint32_t aFrameCount) {
-  mImageMetadata.SetFrameCount(aFrameCount);
-}
-
 void Decoder::PostFrameStop(Opacity aFrameOpacity) {
   // We should be mid-frame
   MOZ_ASSERT(!IsMetadataDecode(), "Stopping frame during metadata decode");
@@ -540,15 +533,13 @@ void Decoder::PostInvalidation(const OrientedIntRect& aRect,
   }
 }
 
-void Decoder::PostLoopCount(int32_t aLoopCount) {
-  mImageMetadata.SetLoopCount(aLoopCount);
-}
-
-void Decoder::PostDecodeDone() {
+void Decoder::PostDecodeDone(int32_t aLoopCount /* = 0 */) {
   MOZ_ASSERT(!IsMetadataDecode(), "Done with decoding in metadata decode");
   MOZ_ASSERT(!mInFrame, "Can't be done decoding if we're mid-frame!");
   MOZ_ASSERT(!mDecodeDone, "Decode already done!");
   mDecodeDone = true;
+
+  mImageMetadata.SetLoopCount(aLoopCount);
 
   // Some metadata that we track should take into account every frame in the
   // image. If this is a first-frame-only decode, our accumulated loop length

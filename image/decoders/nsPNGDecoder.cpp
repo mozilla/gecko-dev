@@ -889,31 +889,22 @@ nsresult nsPNGDecoder::FinishInternal() {
   // We shouldn't be called in error cases.
   MOZ_ASSERT(!HasError(), "Can't call FinishInternal on error!");
 
-  int32_t loop_count = 0;
-  uint32_t frame_count = 1;
-#ifdef PNG_APNG_SUPPORTED
-  uint32_t num_plays = 0;
-  if (png_get_acTL(mPNG, mInfo, &frame_count, &num_plays)) {
-    loop_count = int32_t(num_plays) - 1;
-  } else {
-    frame_count = 1;
-  }
-#endif
-
-  PostLoopCount(loop_count);
-
-  if (WantsFrameCount()) {
-    PostFrameCount(frame_count);
-  }
-
   if (IsMetadataDecode()) {
     return NS_OK;
   }
 
+  int32_t loop_count = 0;
+#ifdef PNG_APNG_SUPPORTED
+  if (png_get_valid(mPNG, mInfo, PNG_INFO_acTL)) {
+    int32_t num_plays = png_get_num_plays(mPNG, mInfo);
+    loop_count = num_plays - 1;
+  }
+#endif
+
   if (InFrame()) {
     EndImageFrame();
   }
-  PostDecodeDone();
+  PostDecodeDone(loop_count);
 
   return NS_OK;
 }

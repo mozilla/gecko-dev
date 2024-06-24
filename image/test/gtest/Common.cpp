@@ -739,48 +739,42 @@ ImageTestCase GreenWebPIccSrgbTestCase() {
 
 ImageTestCase GreenFirstFrameAnimatedGIFTestCase() {
   return ImageTestCase("first-frame-green.gif", "image/gif", IntSize(100, 100),
-                       TEST_CASE_IS_ANIMATED, /* aFrameCount */ 2);
+                       TEST_CASE_IS_ANIMATED);
 }
 
 ImageTestCase GreenFirstFrameAnimatedPNGTestCase() {
   return ImageTestCase("first-frame-green.png", "image/png", IntSize(100, 100),
-                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED,
-                       /* aFrameCount */ 2);
+                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED);
 }
 
 ImageTestCase GreenFirstFrameAnimatedWebPTestCase() {
   return ImageTestCase("first-frame-green.webp", "image/webp",
-                       IntSize(100, 100), TEST_CASE_IS_ANIMATED,
-                       /* aFrameCount */ 2);
+                       IntSize(100, 100), TEST_CASE_IS_ANIMATED);
 }
 
 ImageTestCase GreenFirstFrameAnimatedAVIFTestCase() {
   return ImageTestCase("first-frame-green.avif", "image/avif",
-                       IntSize(100, 100), TEST_CASE_IS_ANIMATED,
-                       /* aFrameCount */ 2);
+                       IntSize(100, 100), TEST_CASE_IS_ANIMATED);
 }
 
 ImageTestCase BlendAnimatedGIFTestCase() {
   return ImageTestCase("blend.gif", "image/gif", IntSize(100, 100),
-                       TEST_CASE_IS_ANIMATED, /* aFrameCount */ 2);
+                       TEST_CASE_IS_ANIMATED);
 }
 
 ImageTestCase BlendAnimatedPNGTestCase() {
   return ImageTestCase("blend.png", "image/png", IntSize(100, 100),
-                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED,
-                       /* aFrameCount */ 2);
+                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED);
 }
 
 ImageTestCase BlendAnimatedWebPTestCase() {
   return ImageTestCase("blend.webp", "image/webp", IntSize(100, 100),
-                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED,
-                       /* aFrameCount */ 2);
+                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED);
 }
 
 ImageTestCase BlendAnimatedAVIFTestCase() {
   return ImageTestCase("blend.avif", "image/avif", IntSize(100, 100),
-                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED,
-                       /* aFrameCount */ 2);
+                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED);
 }
 
 ImageTestCase CorruptTestCase() {

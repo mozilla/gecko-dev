@@ -219,38 +219,6 @@ Mp4parseStatus AVIFParser::Create(const Mp4parseIo* aIo, ByteStream* aBuffer,
   return status;
 }
 
-uint32_t AVIFParser::GetFrameCount() {
-  MOZ_ASSERT(mParser);
-
-  // Note that because this consumes the frame iterators, this can only be
-  // requested for metadata decodes. Since we had to partially decode the
-  // first frame to determine the size, we need to add one to the result.
-  // This means we return 0 for 1 frame, 1 for 2 frames, etc.
-
-  if (!IsAnimated()) {
-    return 0;
-  }
-
-  uint32_t frameCount = 0;
-  while (true) {
-    RefPtr<MediaRawData> header = mColorSampleIter->GetNextHeader();
-    if (!header) {
-      break;
-    }
-
-    if (mAlphaSampleIter) {
-      header = mAlphaSampleIter->GetNextHeader();
-      if (!header) {
-        break;
-      }
-    }
-
-    ++frameCount;
-  }
-
-  return frameCount;
-}
-
 nsAVIFDecoder::DecodeResult AVIFParser::GetImage(AVIFImage& aImage) {
   MOZ_ASSERT(mParser);
 
@@ -1605,20 +1573,6 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
 
   if (mIsAnimated) {
     PostIsAnimated(parsedImage.mDuration);
-
-    switch (mParser->GetInfo().loop_mode) {
-      case MP4PARSE_AVIF_LOOP_MODE_LOOP_BY_COUNT: {
-        auto loopCount = mParser->GetInfo().loop_count;
-        PostLoopCount(loopCount > INT32_MAX ? -1
-                                            : static_cast<int32_t>(loopCount));
-        break;
-      }
-      case MP4PARSE_AVIF_LOOP_MODE_LOOP_INFINITELY:
-      case MP4PARSE_AVIF_LOOP_MODE_NO_EDITS:
-      default:
-        PostLoopCount(-1);
-        break;
-    }
   }
   if (mHasAlpha) {
     PostHasTransparency();
@@ -1644,12 +1598,6 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
              mIsAnimated ? parsedInfo.alpha_track_bit_depth
                          : parsedInfo.alpha_item_bit_depth));
     PostSize(ispeImageSize->width, ispeImageSize->height, orientation);
-    if (WantsFrameCount()) {
-      // Note that this consumes the frame iterators, so this can only be
-      // requested for metadata decodes. Since we had to partially decode the
-      // first frame to determine the size, we need to add one to the result.
-      PostFrameCount(mParser->GetFrameCount() + 1);
-    }
     if (IsMetadataDecode()) {
       MOZ_LOG(
           sAVIFLog, LogLevel::Debug,
@@ -1710,12 +1658,6 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
          decodedData->mPictureRect.width, decodedData->mPictureRect.height));
     PostSize(decodedData->mPictureRect.width, decodedData->mPictureRect.height,
              orientation);
-    if (WantsFrameCount()) {
-      // Note that this consumes the frame iterators, so this can only be
-      // requested for metadata decodes. Since we had to partially decode the
-      // first frame to determine the size, we need to add one to the result.
-      PostFrameCount(mParser->GetFrameCount() + 1);
-    }
     AccumulateCategorical(LABELS_AVIF_ISPE::absent);
     mozilla::glean::avif::ispe.EnumGet(mozilla::glean::avif::IspeLabel::eAbsent)
         .Add();
@@ -1989,12 +1931,24 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
                             : Opacity::FULLY_OPAQUE);
 
     if (!mIsAnimated || IsFirstFrameDecode()) {
-      PostDecodeDone();
+      PostDecodeDone(0);
       return DecodeResult(NonDecoderResult::Complete);
     }
 
     if (isDone) {
-      PostDecodeDone();
+      switch (mParser->GetInfo().loop_mode) {
+        case MP4PARSE_AVIF_LOOP_MODE_LOOP_BY_COUNT: {
+          auto loopCount = mParser->GetInfo().loop_count;
+          PostDecodeDone(
+              loopCount > INT32_MAX ? -1 : static_cast<int32_t>(loopCount));
+          break;
+        }
+        case MP4PARSE_AVIF_LOOP_MODE_LOOP_INFINITELY:
+        case MP4PARSE_AVIF_LOOP_MODE_NO_EDITS:
+        default:
+          PostDecodeDone(-1);
+          break;
+      }
       return DecodeResult(NonDecoderResult::Complete);
     }
 
