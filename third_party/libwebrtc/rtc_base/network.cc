@@ -32,11 +32,9 @@
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "api/task_queue/pending_task_safety_flag.h"
-#include "api/transport/field_trial_based_config.h"
 #include "api/units/time_delta.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
-#include "rtc_base/memory/always_valid_pointer.h"
 #include "rtc_base/network_monitor.h"
 #include "rtc_base/socket.h"  // includes something that makes windows happy
 #include "rtc_base/string_encode.h"
@@ -1203,12 +1201,6 @@ webrtc::MdnsResponderInterface* Network::GetMdnsResponder() const {
     return nullptr;
   }
   return mdns_responder_provider_->GetMdnsResponder();
-}
-
-uint16_t Network::GetCost(const webrtc::FieldTrialsView* field_trials) const {
-  return GetCost(
-      *webrtc::AlwaysValidPointer<const webrtc::FieldTrialsView,
-                                  webrtc::FieldTrialBasedConfig>(field_trials));
 }
 
 uint16_t Network::GetCost(const webrtc::FieldTrialsView& field_trials) const {
