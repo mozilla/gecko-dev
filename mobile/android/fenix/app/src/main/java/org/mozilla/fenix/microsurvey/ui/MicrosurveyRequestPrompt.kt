@@ -35,26 +35,26 @@ import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.utils.KeyboardState
 import org.mozilla.fenix.compose.utils.keyboardAsState
+import org.mozilla.fenix.microsurvey.ui.ext.MicrosurveyUIData
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
  * Initial microsurvey prompt displayed to the user to request completion of feedback.
  *
- * @param title The prompt header title.
+ * @param microsurvey Contains the required microsurvey data for the UI.
  * @param onStartSurveyClicked Handles the on click event of the start survey button.
  */
 @Composable
 fun MicrosurveyRequestPrompt(
-    // todo this is the message title FXDROID-1966).
-    title: String = "Help make printing in Firefox better. It only takes a sec.",
+    microsurvey: MicrosurveyUIData,
     onStartSurveyClicked: () -> Unit = {},
 ) {
-    // Using the keyboard state (open/closed) to determine if the microsurvey is visible
+    // Using the keyboard state (open/closed) to determine if the microsurvey is visible.
     val isKeyboardVisible by keyboardAsState()
     var isMicrosurveyVisible by remember { mutableStateOf(true) }
     isMicrosurveyVisible = isKeyboardVisible == KeyboardState.Closed
 
-    // Adding animation properties for the microsurvey's visibility transitions
+    // Adding animation properties for the microsurvey's visibility transitions.
     AnimatedVisibility(
         visible = isMicrosurveyVisible,
         enter = slideInVertically(initialOffsetY = { it }),
@@ -65,7 +65,7 @@ fun MicrosurveyRequestPrompt(
                 .background(color = FirefoxTheme.colors.layer1)
                 .padding(all = 16.dp),
         ) {
-            Header(title)
+            Header(microsurvey.promptTitle)
             Spacer(modifier = Modifier.height(8.dp))
             PrimaryButton(text = stringResource(id = R.string.micro_survey_continue_button_label)) {
                 onStartSurveyClicked()
@@ -114,6 +114,14 @@ private fun Header(
 @Composable
 private fun MicrosurveyRequestPromptPreview() {
     FirefoxTheme {
-        MicrosurveyRequestPrompt()
+        MicrosurveyRequestPrompt(
+            MicrosurveyUIData(
+                id = "",
+                promptTitle = "Help make printing in Firefox better. It only takes a sec.",
+                icon = R.drawable.mozac_ic_lightbulb_24,
+                question = "",
+                answers = emptyList(),
+            ),
+        )
     }
 }

@@ -82,7 +82,6 @@ import mozilla.components.feature.top.sites.TopSitesProviderConfig
 import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.service.glean.private.NoExtras
-import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.BrowserDirection
@@ -150,6 +149,8 @@ import org.mozilla.fenix.messaging.DefaultMessageController
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.messaging.MessagingFeature
 import org.mozilla.fenix.microsurvey.ui.MicrosurveyRequestPrompt
+import org.mozilla.fenix.microsurvey.ui.ext.MicrosurveyUIData
+import org.mozilla.fenix.microsurvey.ui.ext.toMicrosurveyUIData
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
 import org.mozilla.fenix.perf.StartupTimeline
@@ -597,16 +598,18 @@ class HomeFragment : Fragment() {
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        if (currentlyDisplayedMessage != null) {
-                            MicrosurveyRequestPrompt {
-                                findNavController().nav(
-                                    R.id.homeFragment,
-                                    HomeFragmentDirections.actionGlobalMicrosurveyDialog(),
-                                )
+                        currentMicrosurvey.let {
+                            if (it == null) {
+                                binding.bottomBarShadow.visibility = View.VISIBLE
+                            } else {
+                                MicrosurveyRequestPrompt(it) {
+                                    findNavController().nav(
+                                        R.id.homeFragment,
+                                        HomeFragmentDirections.actionGlobalMicrosurveyDialog(),
+                                    )
+                                }
+                                binding.bottomBarShadow.visibility = View.GONE
                             }
-                            binding.bottomBarShadow.visibility = View.GONE
-                        } else {
-                            binding.bottomBarShadow.visibility = View.VISIBLE
                         }
 
                         if (isToolbarAtBottom) {
@@ -708,8 +711,8 @@ class HomeFragment : Fragment() {
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        if (currentlyDisplayedMessage != null) {
-                            MicrosurveyRequestPrompt {
+                        currentMicrosurvey?.let {
+                            MicrosurveyRequestPrompt(it) {
                                 findNavController().nav(
                                     R.id.homeFragment,
                                     HomeFragmentDirections.actionGlobalMicrosurveyDialog(),
@@ -729,7 +732,7 @@ class HomeFragment : Fragment() {
         )
     }
 
-    private var currentlyDisplayedMessage: Message? = null
+    private var currentMicrosurvey: MicrosurveyUIData? = null
 
     /**
      * Listens for the microsurvey message and initializes the microsurvey prompt if one is available.
@@ -737,16 +740,19 @@ class HomeFragment : Fragment() {
     private fun listenForMicrosurveyMessage(context: Context) {
         binding.root.consumeFrom(context.components.appStore, viewLifecycleOwner) { state ->
             state.messaging.messageToShow[FenixMessageSurfaceId.MICROSURVEY]?.let { message ->
-                if (message.id != currentlyDisplayedMessage?.id) {
-                    context.components.settings.shouldShowMicrosurveyPrompt = true
-                    currentlyDisplayedMessage = message
-                    if (context.shouldAddNavigationBar()) {
-                        _bottomToolbarContainerView?.toolbarContainerView.let {
-                            binding.homeLayout.removeView(it)
+                if (message.id != currentMicrosurvey?.id) {
+                    message.toMicrosurveyUIData()?.let { microsurvey ->
+                        context.components.settings.shouldShowMicrosurveyPrompt = true
+                        currentMicrosurvey = microsurvey
+
+                        if (context.shouldAddNavigationBar()) {
+                            _bottomToolbarContainerView?.toolbarContainerView.let {
+                                binding.homeLayout.removeView(it)
+                            }
+                            reinitializeNavBar()
+                        } else {
+                            initializeMicrosurveyPrompt(requireContext())
                         }
-                        reinitializeNavBar()
-                    } else {
-                        initializeMicrosurveyPrompt(requireContext())
                     }
                 }
             }

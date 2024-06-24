@@ -68,16 +68,16 @@ import:
                 microsurvey-config:
                   utm-content: "homepage"
                   icon: ic_print
-                  options:
+                  answers:
                     - text: likert_scale_option_1
-                      scale-value: 0
+                      ordering: 0
                     - text: likert_scale_option_2
-                      scale-value: 1
+                      ordering: 1
                     - text: likert_scale_option_3
-                      scale-value: 2
+                      ordering: 2
                     - text: likert_scale_option_4
-                      scale-value: 3
+                      ordering: 3
                     - text: likert_scale_option_5
-                      scale-value: 4
+                      ordering: 4
                     - text: likert_scale_option_6
-                      scale-value: 5
+                      ordering: 5

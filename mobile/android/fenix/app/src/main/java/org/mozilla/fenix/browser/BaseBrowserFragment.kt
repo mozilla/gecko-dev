@@ -105,7 +105,6 @@ import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.service.glean.private.NoExtras
-import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.service.sync.autofill.DefaultCreditCardValidationDelegate
 import mozilla.components.service.sync.logins.DefaultLoginValidationDelegate
 import mozilla.components.service.sync.logins.LoginsApiException
@@ -191,6 +190,8 @@ import org.mozilla.fenix.library.bookmarks.BookmarksSharedViewModel
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.messaging.MessagingFeature
 import org.mozilla.fenix.microsurvey.ui.MicrosurveyRequestPrompt
+import org.mozilla.fenix.microsurvey.ui.ext.MicrosurveyUIData
+import org.mozilla.fenix.microsurvey.ui.ext.toMicrosurveyUIData
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.biometric.BiometricPromptFeature
@@ -1371,8 +1372,8 @@ abstract class BaseBrowserFragment :
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        if (currentlyDisplayedMessage != null) {
-                            MicrosurveyRequestPrompt {
+                        currentMicrosurvey?.let {
+                            MicrosurveyRequestPrompt(microsurvey = it) {
                                 findNavController().nav(
                                     R.id.browserFragment,
                                     BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
@@ -1498,8 +1499,8 @@ abstract class BaseBrowserFragment :
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        if (currentlyDisplayedMessage != null) {
-                            MicrosurveyRequestPrompt {
+                        currentMicrosurvey?.let {
+                            MicrosurveyRequestPrompt(microsurvey = it) {
                                 findNavController().nav(
                                     R.id.browserFragment,
                                     BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
@@ -1530,7 +1531,7 @@ abstract class BaseBrowserFragment :
         )
     }
 
-    private var currentlyDisplayedMessage: Message? = null
+    private var currentMicrosurvey: MicrosurveyUIData? = null
 
     /**
      * Listens for the microsurvey message and initializes the microsurvey prompt if one is available.
@@ -1542,20 +1543,23 @@ abstract class BaseBrowserFragment :
     ) {
         binding.root.consumeFrom(context.components.appStore, viewLifecycleOwner) { state ->
             state.messaging.messageToShow[FenixMessageSurfaceId.MICROSURVEY]?.let { message ->
-                if (message.id != currentlyDisplayedMessage?.id) {
-                    context.components.settings.shouldShowMicrosurveyPrompt = true
-                    currentlyDisplayedMessage = message
-                    if (context.shouldAddNavigationBar()) {
-                        _bottomToolbarContainerView?.toolbarContainerView.let {
-                            binding.browserLayout.removeView(it)
+                if (message.id != currentMicrosurvey?.id) {
+                    message.toMicrosurveyUIData()?.let { microsurvey ->
+                        context.components.settings.shouldShowMicrosurveyPrompt = true
+                        currentMicrosurvey = microsurvey
+
+                        if (context.shouldAddNavigationBar()) {
+                            _bottomToolbarContainerView?.toolbarContainerView.let {
+                                binding.browserLayout.removeView(it)
+                            }
+                            reinitializeNavBar()
+                        } else {
+                            initializeMicrosurveyPrompt(
+                                browserToolbar = browserToolbar,
+                                view = view,
+                                context = context,
+                            )
                         }
-                        reinitializeNavBar()
-                    } else {
-                        initializeMicrosurveyPrompt(
-                            browserToolbar = browserToolbar,
-                            view = view,
-                            context = context,
-                        )
                     }
                 }
             }

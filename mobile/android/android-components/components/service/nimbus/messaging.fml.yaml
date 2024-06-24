@@ -96,8 +96,7 @@ objects:
         description: >
           A URL of a page or a deeplink.
           This may have substitution variables in.
-        # This should never be defaulted.
-        default: OPEN_URL
+        default: OPEN_URL # This should never be defaulted.
       action-params:
         description: >
           A string map containing query parameters that will be appended to the action URL.
@@ -116,8 +115,7 @@ objects:
       text:
         type: Text
         description: The message text displayed to the user
-        # This should never be defaulted.
-        default: ""
+        default: "" # This should never be defaulted.
       microsurvey-config:
         type: Option<MicrosurveyConfig>
         description: Optional configuration data for a microsurvey.
@@ -196,20 +194,24 @@ objects:
       icon:
         type: Option<Image>
         description: The icon shown in the survey.
-      options:
-        description: The list of options to present to the user e.g. "Satisfied, Dissatisfied...".
-        type: List<MicrosurveyQuestion>
+        default: null # If null, a default will be provided.
+      answers:
+        description: The list of answers to present to the user e.g. "Satisfied, Dissatisfied...".
+        type: List<MicrosurveyAnswer>
         default: [] # Should not be defaulted
-  MicrosurveyQuestion:
+  MicrosurveyAnswer:
     description: Attributes relating to microsurvey content.
     fields:
-      scale-value:
+      ordering:
         type: Int
-        description: Scale value for this question.
+        description: >
+          Used to sequence the answers top to bottom. E.g. 0 will be the first/top item, 1 will be next and so on.
+          Always set either ALL the provided answers ordering or NONE. If ALL answers are default, the the ordering
+          used will be the same as provided by the experiment.
         default: 0
       text:
         type: Text
-        description: The text for the question.
+        description: The text for the answer.
         default: "" # This should never be defaulted.
 
 enums:

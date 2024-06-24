@@ -12,16 +12,16 @@ import androidx.annotation.VisibleForTesting
  * In order to be eligible to be shown, all `triggerIfAll` expressions
  * AND none of the `excludeIfAny` expressions must evaluate to `true`.
  *
- * @param id identifies a message as unique.
- * @param data Data information provided from Nimbus.
- * @param action A strings that represents which action should be performed
+ * @property id identifies a message as unique.
+ * @property data Data information provided from Nimbus.
+ * @property action A strings that represents which action should be performed
  * after a message is clicked.
- * @param style Indicates how a message should be styled.
- * @param triggerIfAll A list of strings corresponding to JEXL targeting expressions. The message
+ * @property style Indicates how a message should be styled.
+ * @property triggerIfAll A list of strings corresponding to JEXL targeting expressions. The message
  * will be shown if _all_ expressions evaluate to `true`.
- * @param excludeIfAny A list of strings corresponding to JEXL targeting expressions. The message
+ * @property excludeIfAny A list of strings corresponding to JEXL targeting expressions. The message
  * will _not_ be shown if _any_ expressions evaluate to `true`.
- * @param metadata Metadata that help to identify if a message should shown.
+ * @property metadata Metadata that help to identify if a message should shown.
  */
 data class Message(
     val id: String,
@@ -53,6 +53,9 @@ data class Message(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     val displayCount: Int
         get() = metadata.displayCount
+
+    val microsurvey: MicrosurveyConfig?
+        get() = data.microsurveyConfig
 
     /**
      * Returns true if the passed boot id, taken from [BootUtils] matches the one associated
