@@ -457,7 +457,6 @@ rtc_library("video_stream_encoder_impl") {
     "../rtc_base/experiments:balanced_degradation_settings",
     "../rtc_base/experiments:encoder_info_settings",
     "../rtc_base/experiments:field_trial_parser",
-    "../rtc_base/experiments:quality_rampup_experiment",
     "../rtc_base/experiments:quality_scaler_settings",
     "../rtc_base/experiments:quality_scaling_experiment",
     "../rtc_base/experiments:rate_control_settings",
