@@ -537,7 +537,8 @@ class JSString : public js::gc::CellWithLengthAndFlags {
 
  protected:
   template <typename CharT>
-  MOZ_ALWAYS_INLINE void setNonInlineChars(const CharT* chars);
+  MOZ_ALWAYS_INLINE void setNonInlineChars(const CharT* chars,
+                                           bool checkArena = true);
 
   template <typename CharT>
   static MOZ_ALWAYS_INLINE void checkStringCharsArena(const CharT* chars) {
@@ -1236,8 +1237,12 @@ class JSDependentString : public JSLinearString {
                                      js::gc::Heap heap);
 
   template <typename T>
-  void relocateNonInlineChars(T chars, size_t offset) {
-    setNonInlineChars(chars + offset);
+  void relocateBaseAndChars(JSLinearString* base, T chars, size_t offset) {
+    // StringBuffers are not yet allocated in the jemalloc string arena.
+    bool checkArena = !base->hasStringBuffer();
+    MOZ_ASSERT(base->assertIsValidBase());
+    setNonInlineChars(chars + offset, checkArena);
+    setBase(base);
   }
 
   inline JSLinearString* rootBaseDuringMinorGC();
@@ -2291,19 +2296,20 @@ MOZ_ALWAYS_INLINE bool JSAtom::lengthFitsInline<char16_t>(size_t length) {
 }
 
 template <>
-MOZ_ALWAYS_INLINE void JSString::setNonInlineChars(const char16_t* chars) {
+MOZ_ALWAYS_INLINE void JSString::setNonInlineChars(const char16_t* chars,
+                                                   bool checkArena) {
   // Check that the new buffer is located in the StringBufferArena
-  if (!(isAtomRef() && atom()->isInline())) {
+  if (checkArena && !(isAtomRef() && atom()->isInline())) {
     checkStringCharsArena(chars);
   }
   d.s.u2.nonInlineCharsTwoByte = chars;
 }
 
 template <>
-MOZ_ALWAYS_INLINE void JSString::setNonInlineChars(
-    const JS::Latin1Char* chars) {
+MOZ_ALWAYS_INLINE void JSString::setNonInlineChars(const JS::Latin1Char* chars,
+                                                   bool checkArena) {
   // Check that the new buffer is located in the StringBufferArena
-  if (!(isAtomRef() && atom()->isInline())) {
+  if (checkArena && !(isAtomRef() && atom()->isInline())) {
     checkStringCharsArena(chars);
   }
   d.s.u2.nonInlineCharsLatin1 = chars;

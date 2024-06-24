@@ -558,9 +558,7 @@ void JSDependentString::sweepTypedAfterMinorGC() {
   MOZ_ASSERT(offset < tenuredBase->length());
 
   const CharT* newBaseChars = tenuredBase->JSString::nonInlineCharsRaw<CharT>();
-  relocateNonInlineChars(newBaseChars, offset);
-  MOZ_ASSERT(tenuredBase->assertIsValidBase());
-  d.s.u3.base = tenuredBase;
+  relocateBaseAndChars(tenuredBase, newBaseChars, offset);
 }
 
 inline void JSDependentString::sweepAfterMinorGC() {
@@ -1093,10 +1091,9 @@ void js::gc::TenuringTracer::relocateDependentStringChars(
         const CharT* rootBaseChars = relocOverlay->savedNurseryChars<CharT>();
         *offset = dependentStrChars - rootBaseChars;
         MOZ_ASSERT(*offset < tenuredRootBase->length());
-        tenuredDependentStr->relocateNonInlineChars<const CharT*>(
-            tenuredRootBase->nonInlineChars<CharT>(nogc), *offset);
-        tenuredDependentStr->setBase(tenuredRootBase);
-        MOZ_ASSERT(tenuredRootBase->assertIsValidBase());
+        tenuredDependentStr->relocateBaseAndChars<const CharT*>(
+            tenuredRootBase, tenuredRootBase->nonInlineChars<CharT>(nogc),
+            *offset);
 
         if (tenuredDependentStr->isTenured() && !tenuredRootBase->isTenured()) {
           runtime()->gc.storeBuffer().putWholeCell(tenuredDependentStr);
@@ -1220,15 +1217,12 @@ void js::gc::TenuringTracer::collectToStringFixedPoint() {
       MOZ_ASSERT(offset < tenuredRootBase->length());
 
       if (str->hasTwoByteChars()) {
-        str->asDependent().relocateNonInlineChars<const char16_t*>(
-            tenuredRootBase->twoByteChars(nogc), offset);
+        str->asDependent().relocateBaseAndChars<const char16_t*>(
+            tenuredRootBase, tenuredRootBase->twoByteChars(nogc), offset);
       } else {
-        str->asDependent().relocateNonInlineChars<const JS::Latin1Char*>(
-            tenuredRootBase->latin1Chars(nogc), offset);
+        str->asDependent().relocateBaseAndChars<const JS::Latin1Char*>(
+            tenuredRootBase, tenuredRootBase->latin1Chars(nogc), offset);
       }
-
-      str->setBase(tenuredRootBase);
-      MOZ_ASSERT(tenuredRootBase->assertIsValidBase());
       if (str->isTenured() && !tenuredRootBase->isTenured()) {
         runtime()->gc.storeBuffer().putWholeCell(str);
       }
