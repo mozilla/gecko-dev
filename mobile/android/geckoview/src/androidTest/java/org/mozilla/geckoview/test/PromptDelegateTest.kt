@@ -784,7 +784,8 @@ class PromptDelegateTest : BaseSessionTest(
     }
 
     @WithDisplay(width = 100, height = 100)
-    @Test fun colorTestWithDatalist() {
+    @Test
+    fun colorTestWithDatalist() {
         sessionRule.setPrefsUntilTestEnd(mapOf("dom.disable_open_during_load" to false))
 
         mainSession.loadTestPath(PROMPT_HTML_PATH)
@@ -1071,7 +1072,8 @@ class PromptDelegateTest : BaseSessionTest(
     }
 
     @WithDisplay(width = 100, height = 100)
-    @Test fun fileTest() {
+    @Test
+    fun fileTest() {
         sessionRule.setPrefsUntilTestEnd(mapOf("dom.disable_open_during_load" to false))
 
         mainSession.loadTestPath(PROMPT_HTML_PATH)
@@ -1079,7 +1081,6 @@ class PromptDelegateTest : BaseSessionTest(
 
         mainSession.evaluateJS("document.addEventListener('click', () => document.getElementById('fileexample').click(), { once: true });")
         mainSession.synthesizeTap(1, 1)
-
 
         sessionRule.waitUntilCalled(object : PromptDelegate {
             @AssertCalled(count = 1)
