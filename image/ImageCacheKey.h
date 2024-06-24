@@ -14,6 +14,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
 #include "PLDHashTable.h"
+#include "nsIDocShell.h"
 
 class nsIURI;
 
@@ -71,6 +72,10 @@ class ImageCacheKey final {
   // document's base domain. This is handled by this method.
   static nsCString GetIsolationKey(dom::Document* aDocument, nsIURI* aURI);
 
+  // The AppType of the docshell an image is loaded in can influence whether the
+  // image is allowed to load. The specific AppType is fetched by this method.
+  static nsIDocShell::AppType GetAppType(dom::Document* aDocument);
+
   void EnsureHash() const;
 
   nsCOMPtr<nsIURI> mURI;
@@ -79,6 +84,7 @@ class ImageCacheKey final {
   nsCString mIsolationKey;
   mutable Maybe<PLDHashNumber> mHash;
   const CORSMode mCORSMode;
+  const nsIDocShell::AppType mAppType;
 };
 
 }  // namespace image
