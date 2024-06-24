@@ -80,6 +80,29 @@ SampleIterator::~SampleIterator() { mIndex->UnregisterIterator(this); }
 
 bool SampleIterator::HasNext() { return !!Get(); }
 
+already_AddRefed<MediaRawData> SampleIterator::GetNextHeader() {
+  Sample* s(Get());
+  if (!s) {
+    return nullptr;
+  }
+
+  int64_t length = std::numeric_limits<int64_t>::max();
+  mIndex->mSource->Length(&length);
+  if (s->mByteRange.mEnd > length) {
+    // We don't have this complete sample.
+    return nullptr;
+  }
+
+  RefPtr<MediaRawData> sample = new MediaRawData();
+  sample->mTimecode = s->mDecodeTime;
+  sample->mTime = s->mCompositionRange.start;
+  sample->mDuration = s->mCompositionRange.Length();
+  sample->mOffset = s->mByteRange.mStart;
+  sample->mKeyframe = s->mSync;
+  Next();
+  return sample.forget();
+}
+
 already_AddRefed<MediaRawData> SampleIterator::GetNext() {
   Sample* s(Get());
   if (!s) {

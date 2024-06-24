@@ -113,11 +113,13 @@ enum TestCaseFlags {
 
 struct ImageTestCase {
   ImageTestCase(const char* aPath, const char* aMimeType, gfx::IntSize aSize,
-                uint32_t aFlags = TEST_CASE_DEFAULT_FLAGS)
+                uint32_t aFlags = TEST_CASE_DEFAULT_FLAGS,
+                uint32_t aFrameCount = 1)
       : mPath(aPath),
         mMimeType(aMimeType),
         mSize(aSize),
         mOutputSize(aSize),
+        mFrameCount(aFrameCount),
         mFlags(aFlags),
         mSurfaceFlags(DefaultSurfaceFlags()),
         mColor(BGRAColor::Green()) {}
@@ -173,6 +175,7 @@ struct ImageTestCase {
   const char* mMimeType;
   gfx::IntSize mSize;
   gfx::IntSize mOutputSize;
+  uint32_t mFrameCount = 0;
   uint32_t mFlags;
   SurfaceFlags mSurfaceFlags;
   BGRAColor mColor;

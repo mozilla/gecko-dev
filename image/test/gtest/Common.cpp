@@ -739,42 +739,48 @@ ImageTestCase GreenWebPIccSrgbTestCase() {
 
 ImageTestCase GreenFirstFrameAnimatedGIFTestCase() {
   return ImageTestCase("first-frame-green.gif", "image/gif", IntSize(100, 100),
-                       TEST_CASE_IS_ANIMATED);
+                       TEST_CASE_IS_ANIMATED, /* aFrameCount */ 2);
 }
 
 ImageTestCase GreenFirstFrameAnimatedPNGTestCase() {
   return ImageTestCase("first-frame-green.png", "image/png", IntSize(100, 100),
-                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED);
+                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED,
+                       /* aFrameCount */ 2);
 }
 
 ImageTestCase GreenFirstFrameAnimatedWebPTestCase() {
   return ImageTestCase("first-frame-green.webp", "image/webp",
-                       IntSize(100, 100), TEST_CASE_IS_ANIMATED);
+                       IntSize(100, 100), TEST_CASE_IS_ANIMATED,
+                       /* aFrameCount */ 2);
 }
 
 ImageTestCase GreenFirstFrameAnimatedAVIFTestCase() {
   return ImageTestCase("first-frame-green.avif", "image/avif",
-                       IntSize(100, 100), TEST_CASE_IS_ANIMATED);
+                       IntSize(100, 100), TEST_CASE_IS_ANIMATED,
+                       /* aFrameCount */ 2);
 }
 
 ImageTestCase BlendAnimatedGIFTestCase() {
   return ImageTestCase("blend.gif", "image/gif", IntSize(100, 100),
-                       TEST_CASE_IS_ANIMATED);
+                       TEST_CASE_IS_ANIMATED, /* aFrameCount */ 2);
 }
 
 ImageTestCase BlendAnimatedPNGTestCase() {
   return ImageTestCase("blend.png", "image/png", IntSize(100, 100),
-                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED);
+                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED,
+                       /* aFrameCount */ 2);
 }
 
 ImageTestCase BlendAnimatedWebPTestCase() {
   return ImageTestCase("blend.webp", "image/webp", IntSize(100, 100),
-                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED);
+                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED,
+                       /* aFrameCount */ 2);
 }
 
 ImageTestCase BlendAnimatedAVIFTestCase() {
   return ImageTestCase("blend.avif", "image/avif", IntSize(100, 100),
-                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED);
+                       TEST_CASE_IS_TRANSPARENT | TEST_CASE_IS_ANIMATED,
+                       /* aFrameCount */ 2);
 }
 
 ImageTestCase CorruptTestCase() {

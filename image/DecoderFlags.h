@@ -42,6 +42,14 @@ enum class DecoderFlags : uint8_t {
   // "image.avif.sequence.animate_avif_major_branded_images" preference.
   AVIF_ANIMATE_AVIF_MAJOR = 1 << 6,
 #endif
+
+  /**
+   * By default, we don't count how many animated frames there are in an image,
+   * as that would require us to iterate over the entire buffer for some image
+   * formats. If the caller requires a full accounting of how many frames there
+   * are.
+   */
+  COUNT_FRAMES = 1 << 7,
 };
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DecoderFlags)
 

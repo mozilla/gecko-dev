@@ -698,6 +698,9 @@ LexerTransition<nsBMPDecoder::State> nsBMPDecoder::ReadBitfields(
 
   // Post our size to the superclass.
   PostSize(mH.mWidth, AbsoluteHeight());
+  if (WantsFrameCount()) {
+    PostFrameCount(/* aFrameCount */ 1);
+  }
   if (HasError()) {
     return Transition::TerminateFailure();
   }

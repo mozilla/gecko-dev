@@ -112,6 +112,9 @@ LexerTransition<nsJXLDecoder::State> nsJXLDecoder::ReadJXLData(
       case JXL_DEC_BASIC_INFO: {
         JXL_TRY(JxlDecoderGetBasicInfo(mDecoder.get(), &mInfo));
         PostSize(mInfo.xsize, mInfo.ysize);
+        if (WantsFrameCount()) {
+          PostFrameCount(/* aFrameCount */ 1);
+        }
         if (mInfo.alpha_bits > 0) {
           PostHasTransparency();
         }

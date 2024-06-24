@@ -38,6 +38,10 @@ class ImageMetadata {
   FrameTimeout GetLoopLength() const { return *mLoopLength; }
   bool HasLoopLength() const { return mLoopLength.isSome(); }
 
+  void SetFrameCount(uint32_t aCount) { mFrameCount = Some(aCount); }
+  uint32_t GetFrameCount() const { return *mFrameCount; }
+  bool HasFrameCount() const { return mFrameCount.isSome(); }
+
   void SetFirstFrameTimeout(FrameTimeout aTimeout) {
     mFirstFrameTimeout = aTimeout;
   }
@@ -93,6 +97,9 @@ class ImageMetadata {
 
   // The total length of a single loop through an animated image.
   Maybe<FrameTimeout> mLoopLength;
+
+  // The total number of frames we expect from the animated image.
+  Maybe<uint32_t> mFrameCount;
 
   /// The timeout of an animated image's first frame.
   FrameTimeout mFirstFrameTimeout = FrameTimeout::Forever();

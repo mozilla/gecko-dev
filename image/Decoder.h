@@ -198,6 +198,13 @@ class Decoder {
   bool IsMetadataDecode() const { return mMetadataDecode; }
 
   /**
+   * Should we return how many frames we expect are in the animation.
+   */
+  bool WantsFrameCount() const {
+    return bool(mDecoderFlags & DecoderFlags::COUNT_FRAMES);
+  }
+
+  /**
    * Sets the output size of this decoder. If this is smaller than the intrinsic
    * size of the image, we'll downscale it while decoding. For memory usage
    * reasons, upscaling is forbidden and will trigger assertions in debug
@@ -300,7 +307,7 @@ class Decoder {
   /// useless?
   bool GetDecodeDone() const {
     return mReachedTerminalState || mDecodeDone ||
-           (mMetadataDecode && HasSize()) || HasError();
+           (mMetadataDecode && HasSize() && !WantsFrameCount()) || HasError();
   }
 
   /// Are we in the middle of a frame right now? Used for assertions only.
@@ -504,6 +511,10 @@ class Decoder {
   // @param aTimeout The time for which the first frame should be shown before
   //                 we advance to the next frame.
   void PostIsAnimated(FrameTimeout aFirstFrameTimeout);
+
+  // Called by decoders if they determine the expected frame count.
+  // @param aFrameCount The expected frame count.
+  void PostFrameCount(uint32_t aFrameCount);
 
   // Called by decoders when they end a frame. Informs the image, sends
   // notifications, and does internal book-keeping.
