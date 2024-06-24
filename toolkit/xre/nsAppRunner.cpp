@@ -1500,15 +1500,6 @@ nsXULAppInfo::GetIsTextRecognitionSupported(bool* aResult) {
 }
 
 NS_IMETHODIMP
-nsXULAppInfo::EnsureContentProcess() {
-  if (!XRE_IsParentProcess()) return NS_ERROR_NOT_AVAILABLE;
-
-  RefPtr<ContentParent> unused =
-      ContentParent::GetNewOrUsedBrowserProcess(DEFAULT_REMOTE_TYPE);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsXULAppInfo::InvalidateCachesOnRestart() {
   nsCOMPtr<nsIFile> file;
   nsresult rv =
