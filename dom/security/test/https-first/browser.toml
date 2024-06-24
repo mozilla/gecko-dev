@@ -48,6 +48,7 @@ support-files = [
 ]
 
 ["browser_schemeless.js"]
+skip-if = ["!debug && tsan"] #Bug 1890170
 
 ["browser_slow_download.js"]
 support-files = [
@@ -60,3 +61,14 @@ support-files = [
 ["browser_tlds.js"]
 
 ["browser_upgrade_onion.js"]
+
+["browser_https_telemetry.js"]
+support-files = [
+  "file_https_telemetry_hsts.sjs",
+  "file_no_https_support.sjs"
+]
+skip-if = [
+  "http3",
+  "http2",
+  "socketprocess_networking",
+]
