@@ -113,9 +113,6 @@ class DefaultToolbarIntegration(
     )
 
     init {
-        toolbar.display.menuBuilder = toolbarMenu.menuBuilder
-        toolbar.private = isPrivate
-
         toolbar.display.indicators = listOf(
             DisplayToolbar.Indicators.SECURITY,
             DisplayToolbar.Indicators.EMPTY,
