@@ -42,6 +42,7 @@
       },
       'slow_peer_connection_unittests': {},
       'svc_tests': {
+        'remove_mixins': ['walleye'],
         'mixins': ['shards-8', 'crosshatch'],
       },
       'system_wrappers_unittests': {},
@@ -99,9 +100,11 @@
     },
     'desktop_tests_try_server_specific': {
       'video_codec_perf_tests': {
+        'remove_mixins': ['resultdb-json-format'],
         'mixins': ['quick-perf-tests', 'resultdb-gtest-json-format'],
       },
       'webrtc_perf_tests': {
+        'remove_mixins': ['resultdb-json-format'],
         'mixins': ['quick-perf-tests', 'resultdb-gtest-json-format'],
       }
     },

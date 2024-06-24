@@ -415,13 +415,13 @@
     "isolated_scripts": [
       {
         "args": [
+          "--nologs",
           "--write_perf_output_on_ios",
           "--xctest",
           "--xcode-build-version",
           "14c18",
           "--out-dir",
-          "${ISOLATED_OUTDIR}",
-          "--nologs"
+          "${ISOLATED_OUTDIR}"
         ],
         "merge": {
           "args": [
