@@ -46,10 +46,10 @@ struct StreamsConfig {
   ~StreamsConfig();
   Timestamp at_time = Timestamp::PlusInfinity();
   absl::optional<bool> requests_alr_probing;
-  // If `initial_probe_to_max_bitrate` is set to true, the first probe
-  // may probe up to the max configured bitrate and can ignore
-  // max_total_allocated_bitrate.
-  absl::optional<bool> initial_probe_to_max_bitrate;
+  // If `enable_repeated_initial_probing` is set to true, Probes are sent
+  // periodically every 1s during the first 5s after the network becomes
+  // available. The probes ignores max_total_allocated_bitrate.
+  absl::optional<bool> enable_repeated_initial_probing;
   absl::optional<double> pacing_factor;
 
   // TODO(srte): Use BitrateAllocationLimits here.

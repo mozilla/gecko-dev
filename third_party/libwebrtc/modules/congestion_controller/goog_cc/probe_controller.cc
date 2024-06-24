@@ -89,6 +89,8 @@ ProbeControllerConfig::ProbeControllerConfig(
       further_exponential_probe_scale("step_size", 2),
       further_probe_threshold("further_probe_threshold", 0.7),
       abort_further_probe_if_max_lower_than_current("abort_further", false),
+      repeated_initial_probing_duration("initial_probing_duration",
+                                        TimeDelta::Seconds(5)),
       alr_probing_interval("alr_interval", TimeDelta::Seconds(5)),
       alr_probe_scale("alr_scale", 2),
       network_state_estimate_probing_interval("network_state_interval",
@@ -118,6 +120,7 @@ ProbeControllerConfig::ProbeControllerConfig(
                    &further_exponential_probe_scale,
                    &further_probe_threshold,
                    &abort_further_probe_if_max_lower_than_current,
+                   &repeated_initial_probing_duration,
                    &alr_probing_interval,
                    &alr_probe_scale,
                    &probe_on_max_allocated_bitrate_change,
@@ -304,6 +307,13 @@ std::vector<ProbeClusterConfig> ProbeController::InitiateExponentialProbing(
                      start_bitrate_);
   }
   waiting_for_initial_probe_result_ = true;
+  if (repeated_initial_probing_enabled_) {
+    last_allowed_repeated_initial_probe_ =
+        at_time + config_.repeated_initial_probing_duration;
+    RTC_LOG(LS_INFO) << "Repeated initial probing enabled, last allowed probe: "
+                     << last_allowed_repeated_initial_probe_
+                     << "now: " << at_time;
+  }
 
   return InitiateProbing(at_time, probes, true);
 }
@@ -325,7 +335,8 @@ std::vector<ProbeClusterConfig> ProbeController::SetEstimatedBitrate(
     if (config_.abort_further_probe_if_max_lower_than_current &&
         (bitrate > max_bitrate_ ||
          (!max_total_allocated_bitrate_.IsZero() &&
-          !(waiting_for_initial_probe_result_ && first_probe_to_max_bitrate_) &&
+          !(waiting_for_initial_probe_result_ &&
+            repeated_initial_probing_enabled_) &&
           bitrate > 2 * max_total_allocated_bitrate_))) {
       // No need to continue probing.
       min_bitrate_to_probe_further_ = DataRate::PlusInfinity();
@@ -354,9 +365,8 @@ void ProbeController::EnablePeriodicAlrProbing(bool enable) {
   enable_periodic_alr_probing_ = enable;
 }
 
-void ProbeController::SetFirstProbeToMaxBitrate(
-    bool first_probe_to_max_bitrate) {
-  first_probe_to_max_bitrate_ = first_probe_to_max_bitrate;
+void ProbeController::EnableRepeatedInitialProbing(bool enable) {
+  repeated_initial_probing_enabled_ = enable;
 }
 
 void ProbeController::SetAlrStartTimeMs(
@@ -472,24 +482,34 @@ bool ProbeController::TimeForNetworkStateProbe(Timestamp at_time) const {
   return false;
 }
 
+bool ProbeController::TimeForNextRepeatedInitialProbe(Timestamp at_time) const {
+  if (state_ != State::kWaitingForProbingResult &&
+      last_allowed_repeated_initial_probe_ > at_time) {
+    Timestamp next_probe_time =
+        time_last_probing_initiated_ + kMaxWaitingTimeForProbingResult;
+    if (at_time >= next_probe_time) {
+      return true;
+    }
+  }
+  return false;
+}
+
 std::vector<ProbeClusterConfig> ProbeController::Process(Timestamp at_time) {
   if (at_time - time_last_probing_initiated_ >
       kMaxWaitingTimeForProbingResult) {
     if (state_ == State::kWaitingForProbingResult) {
-      // If the initial probe timed out, and the estimate has not changed by
-      // other means, (likely because normal media packets are not being sent
-      // yet), then send a probe again.
-      if (waiting_for_initial_probe_result_ &&
-          estimated_bitrate_ == start_bitrate_ && first_probe_to_max_bitrate_) {
-        UpdateState(State::kInit);
-        return InitiateExponentialProbing(at_time);
-      }
       RTC_LOG(LS_INFO) << "kWaitingForProbingResult: timeout";
       UpdateState(State::kProbingComplete);
     }
   }
   if (estimated_bitrate_.IsZero() || state_ != State::kProbingComplete) {
     return {};
+  }
+  if (TimeForNextRepeatedInitialProbe(at_time)) {
+    waiting_for_initial_probe_result_ = true;
+    return InitiateProbing(
+        at_time, {estimated_bitrate_ * config_.first_exponential_probe_scale},
+        true);
   }
   if (TimeForAlrProbe(at_time) || TimeForNetworkStateProbe(at_time)) {
     return InitiateProbing(
@@ -519,7 +539,8 @@ std::vector<ProbeClusterConfig> ProbeController::InitiateProbing(
 
   DataRate max_probe_bitrate = max_bitrate_;
   if (max_total_allocated_bitrate_ > DataRate::Zero() &&
-      !(first_probe_to_max_bitrate_ && waiting_for_initial_probe_result_)) {
+      !(repeated_initial_probing_enabled_ &&
+        waiting_for_initial_probe_result_)) {
     // If a max allocated bitrate has been configured, allow probing up to 2x
     // that rate. This allows some overhead to account for bursty streams,
     // which otherwise would have to ramp up when the overshoot is already in
