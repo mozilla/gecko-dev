@@ -15,13 +15,36 @@
 #endif
 <!DOCTYPE html>
 <!-- Version: 1 -->
-<html lang="{{locale}}">
+<html>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{title}}</title>
+    <title data-l10n-id="backup-file-title"></title>
   </head>
   <body>
-    <p>This is placeholder content for now.</p>
+    <h1 data-l10n-id="backup-file-header"></h1>
+    <p data-l10n-id="backup-file-intro">
+      <a data-l10n-name="backup-file-support-link" id="support-link" target="_blank"></a>
+    </p>
+    <ul>
+      <li id="last-backed-up" data-l10n-id="backup-file-last-backed-up"></li>
+      <li id="encryption-state"></li>
+      <li id="creation-device" data-l10n-id="backup-file-creation-device"></li>
+    </ul>
+    <hr />
+    <section class="moz-browser">
+      <h2 data-l10n-id="backup-file-how-to-restore-header"></h2>
+      <ol>
+        <li data-l10n-id="backup-file-moz-browser-restore-step-1"></li>
+        <li data-l10n-id="backup-file-moz-browser-restore-step-2"></li>
+        <li data-l10n-id="backup-file-moz-browser-restore-step-3"></li>
+      </ol>
+    </section>
+    <section class="other-browser">
+      <ol>
+        <li><span data-l10n-id="backup-file-other-browser-restore-step-1"></span><button id="download-moz-browser" data-l10n-id="backup-file-download-moz-browser-button"></button></li>
+        <li data-l10n-id="backup-file-other-browser-restore-step-2"></li>
+      </ol>
+    </section>
   </body>
 </html>

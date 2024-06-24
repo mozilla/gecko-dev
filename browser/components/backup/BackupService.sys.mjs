@@ -68,6 +68,13 @@ ChromeUtils.defineLazyGetter(lazy, "gFluentStrings", function () {
   );
 });
 
+ChromeUtils.defineLazyGetter(lazy, "gDOMLocalization", function () {
+  return new DOMLocalization([
+    "branding/brand.ftl",
+    "preview/backupSettings.ftl",
+  ]);
+});
+
 ChromeUtils.defineLazyGetter(lazy, "defaultParentDirPath", function () {
   return Services.dirsvc.get("Docs", Ci.nsIFile).path;
 });
@@ -1172,6 +1179,73 @@ export class BackupService extends EventTarget {
   }
 
   /**
+   * Given a URI to an HTML template for the single-file backup archive,
+   * produces the static markup that will then be used as the beginning of that
+   * single-file backup archive.
+   *
+   * @param {string} templateURI
+   *   A URI pointing at a template for the HTML content for the page. This is
+   *   what is visible if the file is loaded in a web browser.
+   * @param {boolean} isEncrypted
+   *   True if the template should indicate that the backup is encrypted.
+   * @param {object} backupMetadata
+   *   The metadata for the backup, which is also stored in the backup manifest
+   *   of the compressed backup snapshot.
+   * @returns {Promise<string>}
+   */
+  async renderTemplate(templateURI, isEncrypted, backupMetadata) {
+    let templateResponse = await fetch(templateURI);
+    let templateString = await templateResponse.text();
+    let templateDOM = new DOMParser().parseFromString(
+      templateString,
+      "text/html"
+    );
+
+    // Set the lang attribute on the <html> element
+    templateDOM.documentElement.setAttribute(
+      "lang",
+      Services.locale.appLocaleAsBCP47
+    );
+
+    // TODO: insert download link (bug 1903117)
+    let supportLinkHref =
+      Services.urlFormatter.formatURLPref("app.support.baseURL") +
+      "recover-from-backup";
+    let supportLink = templateDOM.querySelector("#support-link");
+    supportLink.href = supportLinkHref;
+
+    let encStateNode = templateDOM.querySelector("#encryption-state");
+    lazy.gDOMLocalization.setAttributes(
+      encStateNode,
+      isEncrypted
+        ? "backup-file-encryption-state-encrypted"
+        : "backup-file-encryption-state-not-encrypted"
+    );
+
+    let lastBackedUpNode = templateDOM.querySelector("#last-backed-up");
+    lazy.gDOMLocalization.setArgs(lastBackedUpNode, {
+      date: new Date(backupMetadata.date).getTime(),
+    });
+
+    let creationDeviceNode = templateDOM.querySelector("#creation-device");
+    lazy.gDOMLocalization.setArgs(creationDeviceNode, {
+      machineName: backupMetadata.machineName,
+    });
+
+    try {
+      await lazy.gDOMLocalization.translateFragment(
+        templateDOM.documentElement
+      );
+    } catch (_) {
+      // This shouldn't happen, but we don't want a missing locale string to
+      // cause backup creation to fail.
+    }
+
+    let serializer = new XMLSerializer();
+    return serializer.serializeToString(templateDOM);
+  }
+
+  /**
    * Creates a portable, potentially encrypted single-file archive containing
    * a compressed backup snapshot. The single-file archive is a specially
    * crafted HTML file that embeds the compressed backup snapshot and
@@ -1203,6 +1277,12 @@ export class BackupService extends EventTarget {
     backupMetadata,
     options = {}
   ) {
+    let markup = await this.renderTemplate(
+      templateURI,
+      !!encState,
+      backupMetadata
+    );
+
     let worker = new lazy.BasePromiseWorker(
       "resource:///modules/backup/Archive.worker.mjs",
       { type: "module" }
@@ -1225,7 +1305,7 @@ export class BackupService extends EventTarget {
       await worker.post("constructArchive", [
         {
           archivePath,
-          templateURI,
+          markup,
           backupMetadata,
           compressedBackupSnapshotPath,
           encryptionArgs,
