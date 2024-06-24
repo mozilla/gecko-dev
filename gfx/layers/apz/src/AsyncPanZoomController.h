@@ -545,7 +545,8 @@ class AsyncPanZoomController {
 
   // Return the directions in which this APZC allows handoff (as governed by
   // overscroll-behavior).
-  ScrollDirections GetAllowedHandoffDirections() const;
+  ScrollDirections GetAllowedHandoffDirections(
+      HandoffConsumer aConsumer = HandoffConsumer::Scrolling) const;
 
   // Return the directions in which this APZC allows overscrolling.
   ScrollDirections GetOverscrollableDirections() const;

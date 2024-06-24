@@ -114,6 +114,8 @@ open class BaseSessionTest(
         const val TOUCHSTART_HTML_PATH = "/assets/www/touchstart.html"
         const val TOUCH_ACTION_HTML_PATH = "/assets/www/touch-action.html"
         const val TOUCH_ACTION_WHEEL_LISTENER_HTML_PATH = "/assets/www/touch-action-wheel-listener.html"
+        const val OVERFLOW_HTML_PATH = "/assets/www/overflow.html"
+        const val OVERFLOW_CLIP_HTML_PATH = "/assets/www/overflow-clip.html"
         const val OVERSCROLL_BEHAVIOR_AUTO_HTML_PATH = "/assets/www/overscroll-behavior-auto.html"
         const val OVERSCROLL_BEHAVIOR_AUTO_NONE_HTML_PATH = "/assets/www/overscroll-behavior-auto-none.html"
         const val OVERSCROLL_BEHAVIOR_NONE_AUTO_HTML_PATH = "/assets/www/overscroll-behavior-none-auto.html"

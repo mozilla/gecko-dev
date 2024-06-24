@@ -177,6 +177,13 @@ enum class AsyncTransformConsumer {
 };
 
 /**
+ * A flag type for use by functions which return information about
+ * handoff, in case they need to differentiate between handoff for
+ * the purpose of scrolling and handoff for the purpose of pull-to-refresh.
+ */
+enum class HandoffConsumer { Scrolling, PullToRefresh };
+
+/**
  * Metrics that GeckoView wants to know at every composite.
  * These are the effective visual scroll offset and zoom level of
  * the root content APZC at composition time.

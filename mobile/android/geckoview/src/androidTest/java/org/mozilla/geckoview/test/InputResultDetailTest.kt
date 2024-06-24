@@ -548,4 +548,63 @@ class InputResultDetailTest : BaseSessionTest() {
             (PanZoomController.OVERSCROLL_FLAG_HORIZONTAL or PanZoomController.OVERSCROLL_FLAG_VERTICAL),
         )
     }
+
+    @WithDisplay(width = 100, height = 100)
+    @Test
+    fun testOverflow() {
+        for (element in arrayOf("body", "html")) {
+            for (overflow in arrayOf("hidden", "auto")) {
+                for (tall in arrayOf(true, false)) {
+                    var url = OVERFLOW_HTML_PATH + "?element=" + element
+                    url += ("&overflow-y=" + overflow)
+                    if (tall) {
+                        url += "&tall"
+                    }
+
+                    setupDocument(url)
+
+                    var expectedPlace = if (overflow == "auto" && tall) {
+                        PanZoomController.INPUT_RESULT_HANDLED
+                    } else {
+                        PanZoomController.INPUT_RESULT_UNHANDLED
+                    }
+
+                    var expectedScrollableDirections = if (overflow == "auto" && tall) {
+                        PanZoomController.SCROLLABLE_FLAG_BOTTOM
+                    } else {
+                        PanZoomController.SCROLLABLE_FLAG_NONE
+                    }
+
+                    // pull-to-refresh should be disabled for an overflow:hidden
+                    // page (specified on body or html) by NOT setting OVERSCROLL_FLAG_VERTICAL.
+                    // It should be enabeld on overflow:auto pages eve if the page is short.
+                    var expectedOverscrollDirections = PanZoomController.OVERSCROLL_FLAG_HORIZONTAL
+                    if (overflow == "auto") {
+                        expectedOverscrollDirections = expectedOverscrollDirections or PanZoomController.OVERSCROLL_FLAG_VERTICAL
+                    }
+
+                    var value = sessionRule.waitForResult(sendDownEvent(50f, 20f))
+                    assertResultDetail(
+                        "`element=$element, overflow-y=$overflow, tall=$tall`",
+                        value,
+                        expectedPlace,
+                        expectedScrollableDirections,
+                        expectedOverscrollDirections,
+                    )
+                }
+            }
+        }
+
+        // For testing overflow:clip, use a separate test page to work around
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1819563
+        setupDocument(OVERFLOW_CLIP_HTML_PATH)
+        var value = sessionRule.waitForResult(sendDownEvent(50f, 20f))
+        assertResultDetail(
+            "overflow-y:clip",
+            value,
+            PanZoomController.INPUT_RESULT_UNHANDLED,
+            PanZoomController.SCROLLABLE_FLAG_NONE,
+            PanZoomController.OVERSCROLL_FLAG_HORIZONTAL,
+        )
+    }
 }

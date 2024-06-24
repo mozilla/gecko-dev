@@ -35,20 +35,23 @@ APZHandledResult::APZHandledResult(APZHandledPlace aPlace,
     case APZHandledPlace::Unhandled:
       if (aTarget && aPopulateDirectionsForUnhandled) {
         mScrollableDirections = aTarget->ScrollableDirections();
-        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
+        mOverscrollDirections = aTarget->GetAllowedHandoffDirections(
+            HandoffConsumer::PullToRefresh);
       }
       break;
     case APZHandledPlace::HandledByContent:
       if (aTarget) {
         mScrollableDirections = aTarget->ScrollableDirections();
-        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
+        mOverscrollDirections = aTarget->GetAllowedHandoffDirections(
+            HandoffConsumer::PullToRefresh);
       }
       break;
     case APZHandledPlace::HandledByRoot: {
       MOZ_ASSERT(aTarget->IsRootContent());
       if (aTarget) {
         mScrollableDirections = aTarget->ScrollableDirections();
-        mOverscrollDirections = aTarget->GetAllowedHandoffDirections();
+        mOverscrollDirections = aTarget->GetAllowedHandoffDirections(
+            HandoffConsumer::PullToRefresh);
       }
       break;
     }
