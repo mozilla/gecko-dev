@@ -90,6 +90,7 @@ DepsEntry = collections.namedtuple('DepsEntry', 'path url revision')
 ChangedDep = collections.namedtuple('ChangedDep',
                                     'path url current_rev new_rev')
 CipdDepsEntry = collections.namedtuple('CipdDepsEntry', 'path packages')
+GcsDepsEntry = collections.namedtuple('GcsDepsEntry', 'path bucket objects')
 VersionEntry = collections.namedtuple('VersionEntry', 'version')
 ChangedCipdPackage = collections.namedtuple(
     'ChangedCipdPackage', 'path package current_version new_version')
@@ -279,6 +280,9 @@ def BuildDepsentryDict(deps_dict):
                 dep = {'url': dep}
             if dep.get('dep_type') == 'cipd':
                 result[path] = CipdDepsEntry(path, dep['packages'])
+            elif dep.get('dep_type') == 'gcs':
+                result[path] = GcsDepsEntry(path, dep['bucket'],
+                                            dep['objects'])
             else:
                 if '@' not in dep['url']:
                     url, revision = dep['url'], 'HEAD'
@@ -439,6 +443,15 @@ def CalculateChangedDeps(webrtc_deps, new_cr_deps):
                 result.extend(
                     _FindChangedCipdPackages(path, webrtc_deps_entry.packages,
                                              cr_deps_entry.packages))
+                continue
+
+            if isinstance(cr_deps_entry, GcsDepsEntry):
+                result.extend(
+                    _FindChangedVars(
+                        path, ','.join(x['object_name']
+                                       for x in webrtc_deps_entry.objects),
+                        ','.join(x['object_name']
+                                 for x in cr_deps_entry.objects)))
                 continue
 
             if isinstance(cr_deps_entry, VersionEntry):
