@@ -1223,7 +1223,55 @@ const AuthCacheCleaner = {
   },
 };
 
-const PermissionsCleaner = {
+// helper functions for Permission cleaners
+const SHUTDOWN_EXCEPTION_PERMISSION = "cookie";
+
+function deleteSingleInternalPerm(
+  { baseDomain, host },
+  perm,
+  skipThirdPartyStoragePerms = false
+) {
+  let toBeRemoved;
+
+  if (baseDomain) {
+    toBeRemoved = perm.principal.baseDomain == baseDomain;
+  } else {
+    try {
+      toBeRemoved = Services.eTLD.hasRootDomain(perm.principal.host, host);
+    } catch (ex) {
+      return;
+    }
+  }
+
+  if (
+    !skipThirdPartyStoragePerms &&
+    !toBeRemoved &&
+    (perm.type.startsWith("3rdPartyStorage^") ||
+      perm.type.startsWith("3rdPartyFrameStorage^"))
+  ) {
+    let parts = perm.type.split("^");
+    let uri;
+    try {
+      uri = Services.io.newURI(parts[1]);
+    } catch (ex) {
+      return;
+    }
+
+    toBeRemoved = Services.eTLD.hasRootDomain(uri.host, baseDomain || host);
+  }
+
+  if (!toBeRemoved) {
+    return;
+  }
+
+  try {
+    Services.perms.removePermission(perm);
+  } catch (ex) {
+    // Ignore entry
+  }
+}
+
+const ShutdownExceptionsCleaner = {
   /**
    * Delete permissions by either base domain or host.
    * Clearing by host also clears associated subdomains.
@@ -1235,43 +1283,11 @@ const PermissionsCleaner = {
    */
   async _deleteInternal({ baseDomain, host }) {
     for (let perm of Services.perms.all) {
-      let toBeRemoved;
-
-      if (baseDomain) {
-        toBeRemoved = perm.principal.baseDomain == baseDomain;
-      } else {
-        try {
-          toBeRemoved = Services.eTLD.hasRootDomain(perm.principal.host, host);
-        } catch (ex) {
-          continue;
-        }
-      }
-
-      if (
-        !toBeRemoved &&
-        (perm.type.startsWith("3rdPartyStorage^") ||
-          perm.type.startsWith("3rdPartyFrameStorage^"))
-      ) {
-        let parts = perm.type.split("^");
-        let uri;
-        try {
-          uri = Services.io.newURI(parts[1]);
-        } catch (ex) {
-          continue;
-        }
-
-        toBeRemoved = Services.eTLD.hasRootDomain(uri.host, baseDomain || host);
-      }
-
-      if (!toBeRemoved) {
+      if (SHUTDOWN_EXCEPTION_PERMISSION != perm.type) {
         continue;
       }
 
-      try {
-        Services.perms.removePermission(perm);
-      } catch (ex) {
-        // Ignore entry
-      }
+      deleteSingleInternalPerm({ baseDomain, host }, perm, true);
     }
   },
 
@@ -1288,15 +1304,74 @@ const PermissionsCleaner = {
   },
 
   async deleteByRange(aFrom) {
-    Services.perms.removeAllSince(aFrom / 1000);
+    Services.perms.removeByTypeSince(
+      SHUTDOWN_EXCEPTION_PERMISSION,
+      aFrom / 1000
+    );
   },
 
   async deleteByOriginAttributes(aOriginAttributesString) {
-    Services.perms.removePermissionsWithAttributes(aOriginAttributesString);
+    Services.perms.removePermissionsWithAttributes(
+      aOriginAttributesString,
+      [SHUTDOWN_EXCEPTION_PERMISSION],
+      []
+    );
   },
 
   async deleteAll() {
-    Services.perms.removeAll();
+    Services.perms.removeByType(SHUTDOWN_EXCEPTION_PERMISSION);
+  },
+};
+
+const PermissionsCleaner = {
+  /**
+   * Delete permissions by either base domain or host.
+   * Clearing by host also clears associated subdomains.
+   * For example, clearing "example.com" will also clear permissions for
+   * "test.example.com" and "another.test.example.com".
+   * @param options
+   * @param {string} options.baseDomain - Base domain to delete permissions for.
+   * @param {string} options.host - Host to delete permissions for.
+   */
+  async _deleteInternal({ baseDomain, host }) {
+    for (let perm of Services.perms.all) {
+      // skip shutdown exception permission because it is handled by ShutDownExceptionsCleaner
+      if (SHUTDOWN_EXCEPTION_PERMISSION == perm.type) {
+        continue;
+      }
+
+      deleteSingleInternalPerm({ baseDomain, host }, perm);
+    }
+  },
+
+  deleteByHost(aHost) {
+    return this._deleteInternal({ host: aHost });
+  },
+
+  deleteByPrincipal(aPrincipal) {
+    return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
+  },
+
+  deleteByBaseDomain(aBaseDomain) {
+    return this._deleteInternal({ baseDomain: aBaseDomain });
+  },
+
+  async deleteByRange(aFrom) {
+    Services.perms.removeAllSinceWithTypeExceptions(aFrom / 1000, [
+      SHUTDOWN_EXCEPTION_PERMISSION,
+    ]);
+  },
+
+  async deleteByOriginAttributes(aOriginAttributesString) {
+    Services.perms.removePermissionsWithAttributes(
+      aOriginAttributesString,
+      [],
+      [SHUTDOWN_EXCEPTION_PERMISSION]
+    );
+  },
+
+  async deleteAll() {
+    Services.perms.removeAllExceptTypes([SHUTDOWN_EXCEPTION_PERMISSION]);
   },
 };
 
@@ -1871,7 +1946,7 @@ const FLAGS_MAP = [
   },
 
   {
-    flag: Ci.nsIClearDataService.CLEAR_PERMISSIONS,
+    flag: Ci.nsIClearDataService.CLEAR_SITE_PERMISSIONS,
     cleaners: [PermissionsCleaner],
   },
 
@@ -1932,6 +2007,11 @@ const FLAGS_MAP = [
   {
     flag: Ci.nsIClearDataService.CLEAR_STORAGE_PERMISSIONS,
     cleaners: [StoragePermissionsCleaner],
+  },
+
+  {
+    flag: Ci.nsIClearDataService.CLEAR_SHUTDOWN_EXCEPTIONS,
+    cleaners: [ShutdownExceptionsCleaner],
   },
 ];
 

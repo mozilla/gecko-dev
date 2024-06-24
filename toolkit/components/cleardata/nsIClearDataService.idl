@@ -228,9 +228,9 @@ interface nsIClearDataService : nsISupports
   const uint32_t CLEAR_AUTH_CACHE = 1 << 13;
 
   /**
-   * Site permissions
+   * Clear Site permissions. Excludes permissions which are used as shutdown data clearing exceptions.
    */
-  const uint32_t CLEAR_PERMISSIONS = 1 << 14;
+  const uint32_t CLEAR_SITE_PERMISSIONS = 1 << 14;
 
   /**
    * Site preferences
@@ -313,6 +313,13 @@ interface nsIClearDataService : nsISupports
   const uint32_t CLEAR_STORAGE_PERMISSIONS = 1 << 30;
 
   /**
+   * Clear permissions of type "cookie" used for manual cookie rules and shutdown exceptions
+   *
+   * TODO: Bug 1767271: move clear-on-shutdown exceptions to its own permission type and switch this cleaner over to clear the new permission type, not the "cookie" permissions.
+   */
+  const uint32_t CLEAR_SHUTDOWN_EXCEPTIONS = 1 << 31;
+
+  /**
    * Use this value to delete all the data.
    */
   const uint32_t CLEAR_ALL = 0xFFFFFFFF;
@@ -321,6 +328,11 @@ interface nsIClearDataService : nsISupports
    * The following flags are helpers: they combine some of the previous flags
    * in a more convenient way.
    */
+
+  /**
+   * Helper flag for clearing ALL permissions from the permission manager.
+   */
+  const uint32_t CLEAR_PERMISSIONS = CLEAR_SITE_PERMISSIONS | CLEAR_SHUTDOWN_EXCEPTIONS;
 
   /**
    * Delete all the possible caches.

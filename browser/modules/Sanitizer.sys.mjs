@@ -661,7 +661,7 @@ export var Sanitizer = {
         TelemetryStopwatch.start("FX_SANITIZE_SITESETTINGS", refObj);
         await clearData(
           range,
-          Ci.nsIClearDataService.CLEAR_PERMISSIONS |
+          Ci.nsIClearDataService.CLEAR_SITE_PERMISSIONS |
             Ci.nsIClearDataService.CLEAR_CONTENT_PREFERENCES |
             Ci.nsIClearDataService.CLEAR_DOM_PUSH_NOTIFICATIONS |
             Ci.nsIClearDataService.CLEAR_CLIENT_AUTH_REMEMBER_SERVICE |

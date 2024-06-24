@@ -172,12 +172,26 @@ interface nsIPermissionManager : nsISupports
   void removeByType(in ACString type);
 
   /**
+   * Clear all permissions not of the passed types.
+   */
+  void removeAllExceptTypes(in Array<ACString> typeExceptions);
+
+  /**
    * Clear all permissions of the passed type added since the specified time.
    * @param type    a case-sensitive ASCII string, identifying the permission.
    * @param since   a unix timestamp representing the number of milliseconds from
    *                Jan 1, 1970 00:00:00 UTC.
    */
   void removeByTypeSince(in ACString type, in int64_t since);
+
+  /**
+   * Clear all permissions of the passed types added since the specified time.
+   * @param since   a unix timestamp representing the number of milliseconds from
+   *                Jan 1, 1970 00:00:00 UTC.
+   * @param typeExceptions    a array of case-sensitive ASCII strings, identifying
+   *                          the types to not remove.
+   */
+  void removeAllSinceWithTypeExceptions(in int64_t since, in Array<ACString> typeExceptions);
 
   /**
    * Test whether the principal has the permission to perform a given action.
@@ -239,8 +253,11 @@ interface nsIPermissionManager : nsISupports
 
   /**
    * Remove all permissions that will match the origin pattern.
+   * @param patternAsJSON    Origin pattern to match.
+   * @param typeInclusions   Types to include in search. If empty, includes all types.
+   * @param typeExceptions   Types to skip in search.
    */
-  void removePermissionsWithAttributes(in AString patternAsJSON);
+  void removePermissionsWithAttributes(in AString patternAsJSON, in Array<ACString> typeInclusions, in Array<ACString> typeExceptions);
 };
 
 %{ C++

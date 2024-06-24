@@ -45,7 +45,7 @@ function test(aEntries, aData, aResults) {
 
   // `clear-origin-attributes-data` notification is removed from permission
   // manager
-  pm.removePermissionsWithAttributes(aData);
+  pm.removePermissionsWithAttributes(aData, [], []);
 
   var length = aEntries.length;
   for (let i = 0; i < length; ++i) {
