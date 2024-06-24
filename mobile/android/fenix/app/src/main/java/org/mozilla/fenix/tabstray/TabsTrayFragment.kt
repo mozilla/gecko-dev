@@ -154,6 +154,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                 initialState = TabsTrayState(
                     selectedPage = initialPage,
                     mode = initialMode,
+                    selectedTabId = requireComponents.core.store.state.selectedTabId,
                 ),
                 middlewares = listOf(
                     TabsTrayMiddleware(),
