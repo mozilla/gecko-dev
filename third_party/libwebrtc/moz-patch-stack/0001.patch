@@ -1,102 +1,243 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Mon, 24 Jun 2024 09:15:58 -0500
-Subject: (tmp-cherry-pick) Revert "Temporary disable sharding on Fuchsia
- bots." (36ecffa129)
+Date: Mon, 24 Jun 2024 09:35:13 -0500
+Subject: (tmp-cherry-pick) Revert "Split digest methods from ssl target into
+ digest target" (fc57037462)
 
-This reverts commit 5dbc4a45bc3f8b6eee99426fb7ebfb76c861e8c2.
+This reverts commit 47bfe39ecfe45b2f94c616ace97949003d9e87b4.
 
-Reason for revert: Sharding should now work on fuchsia + no new generated starlark files have been uploaded since.
+Reason for revert: Breaks downstream project.
 
 Original change's description:
-> Temporary disable sharding on Fuchsia bots.
+> Split digest methods from ssl target into digest target
 >
-> Change-Id: I248ef19317de9a93751641e8bf0cab80a42a35f7
-> Bug: b/338087169
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/349840
-> Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
+> in an attempt to break up the monolithic ssl target.
+>
+> BUG=None
+>
+> Change-Id: I38f5b3e2828742d5d918460db1af0a5797d6a5c2
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/349764
+> Reviewed-by: Harald Alvestrand <hta@webrtc.org>
 > Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42230}
+> Commit-Queue: Philipp Hancke <phancke@meta.com>
+> Cr-Commit-Position: refs/heads/main@{#42249}
 
-Bug: b/338087169
-Change-Id: I25f29a64a4a2ca40afb0ac9fbbc2a821c3ca4551
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/350182
+Bug: None
+Change-Id: Ice6f901cd8c2aecf4cf44d3728ec76568b19a7ca
+No-Presubmit: true
+No-Tree-Checks: true
+No-Try: true
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/350180
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
-Commit-Queue: Jeremy Leconte <jleconte@google.com>
-Cr-Commit-Position: refs/heads/main@{#42282}
+Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
+Owners-Override: Mirko Bonadei <mbonadei@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#42255}
 ---
- infra/specs/client.webrtc.json    | 6 ++++--
- infra/specs/test_suites.pyl       | 6 ++----
- infra/specs/tryserver.webrtc.json | 6 ++++--
- 3 files changed, 10 insertions(+), 8 deletions(-)
+ api/transport/BUILD.gn        |  1 -
+ media/BUILD.gn                |  2 +-
+ modules/audio_coding/BUILD.gn |  6 ++---
+ p2p/BUILD.gn                  |  2 --
+ pc/BUILD.gn                   |  1 -
+ rtc_base/BUILD.gn             | 42 +++++------------------------------
+ test/fuzzers/BUILD.gn         |  1 -
+ 7 files changed, 9 insertions(+), 46 deletions(-)
 
-diff --git a/infra/specs/client.webrtc.json b/infra/specs/client.webrtc.json
-index 9822358da2..c38b68b0d3 100644
---- a/infra/specs/client.webrtc.json
-+++ b/infra/specs/client.webrtc.json
-@@ -2009,7 +2009,8 @@
-           "dimensions": {
-             "cpu": "x86-64",
-             "os": "Ubuntu-22.04"
--          }
-+          },
-+          "shards": 4
-         },
-         "test": "svc_tests",
-         "test_id_prefix": "ninja://pc:svc_tests/"
-@@ -2057,7 +2058,8 @@
-           "dimensions": {
-             "cpu": "x86-64",
-             "os": "Ubuntu-22.04"
--          }
-+          },
-+          "shards": 4
-         },
-         "test": "video_engine_tests",
-         "test_id_prefix": "ninja://:video_engine_tests/"
-diff --git a/infra/specs/test_suites.pyl b/infra/specs/test_suites.pyl
-index 0226a646ea..b292fc11fe 100644
---- a/infra/specs/test_suites.pyl
-+++ b/infra/specs/test_suites.pyl
-@@ -116,15 +116,13 @@
-       # 'rtc_unittests': {},
-       'rtc_pc_unittests': {},
-       'svc_tests': {
--        # TODO: b/338087169 - Re-enable sharding.
--        # 'mixins': ['shards-4'],
-+        'mixins': ['shards-4'],
-       },
-       'system_wrappers_unittests': {},
-       # TODO(bugs.webrtc.org/14712):  Enable once network issue is fixed.
-       # 'peerconnection_unittests': {},
-       'video_engine_tests': {
--        # TODO: b/338087169 - Re-enable sharding.
--        # 'mixins': ['shards-4'],
-+        'mixins': ['shards-4'],
-       },
-       'voip_unittests': {},
-       'webrtc_nonparallel_tests': {},
-diff --git a/infra/specs/tryserver.webrtc.json b/infra/specs/tryserver.webrtc.json
-index 5391a84da8..41af426aeb 100644
---- a/infra/specs/tryserver.webrtc.json
-+++ b/infra/specs/tryserver.webrtc.json
-@@ -2207,7 +2207,8 @@
-           "dimensions": {
-             "cpu": "x86-64",
-             "os": "Ubuntu-22.04"
--          }
-+          },
-+          "shards": 4
-         },
-         "test": "svc_tests",
-         "test_id_prefix": "ninja://pc:svc_tests/"
-@@ -2255,7 +2256,8 @@
-           "dimensions": {
-             "cpu": "x86-64",
-             "os": "Ubuntu-22.04"
--          }
-+          },
-+          "shards": 4
-         },
-         "test": "video_engine_tests",
-         "test_id_prefix": "ninja://:video_engine_tests/"
+diff --git a/api/transport/BUILD.gn b/api/transport/BUILD.gn
+index 5b4ab3b121..9f89df5d80 100644
+--- a/api/transport/BUILD.gn
++++ b/api/transport/BUILD.gn
+@@ -110,7 +110,6 @@ rtc_source_set("stun_types") {
+     "../../rtc_base:byte_order",
+     "../../rtc_base:checks",
+     "../../rtc_base:crc32",
+-    "../../rtc_base:digest",
+     "../../rtc_base:ip_address",
+     "../../rtc_base:logging",
+     "../../rtc_base:socket_address",
+diff --git a/media/BUILD.gn b/media/BUILD.gn
+index f7c52ece8f..5a0a5ef245 100644
+--- a/media/BUILD.gn
++++ b/media/BUILD.gn
+@@ -399,7 +399,7 @@ rtc_library("rtp_utils") {
+     "../rtc_base:async_packet_socket",
+     "../rtc_base:byte_order",
+     "../rtc_base:checks",
+-    "../rtc_base:digest",
++    "../rtc_base:ssl",
+     "../rtc_base/system:rtc_export",
+   ]
+   absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
+diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
+index d0a1b6947b..8b23955d5b 100644
+--- a/modules/audio_coding/BUILD.gn
++++ b/modules/audio_coding/BUILD.gn
+@@ -837,7 +837,7 @@ rtc_library("neteq_test_tools") {
+     "../../common_audio",
+     "../../rtc_base:buffer",
+     "../../rtc_base:checks",
+-    "../../rtc_base:digest",
++    "../../rtc_base:ssl",
+     "../../rtc_base:stringutils",
+     "../../rtc_base/system:arch",
+     "../../test:rtp_test_utils",
+@@ -954,7 +954,7 @@ rtc_library("audio_coding_modules_tests_shared") {
+     "../../api/audio_codecs:builtin_audio_encoder_factory",
+     "../../api/neteq:neteq_api",
+     "../../rtc_base:checks",
+-    "../../rtc_base:digest",
++    "../../rtc_base:ssl",
+     "../../rtc_base:stringutils",
+     "../../system_wrappers",
+     "../../test:fileutils",
+@@ -1713,7 +1713,6 @@ if (rtc_include_tests) {
+         "../../logging:rtc_event_audio",
+         "../../modules/rtp_rtcp:rtp_rtcp_format",
+         "../../rtc_base:checks",
+-        "../../rtc_base:digest",
+         "../../rtc_base:macromagic",
+         "../../rtc_base:platform_thread",
+         "../../rtc_base:refcount",
+@@ -1721,6 +1720,7 @@ if (rtc_include_tests) {
+         "../../rtc_base:rtc_event",
+         "../../rtc_base:safe_conversions",
+         "../../rtc_base:sanitizer",
++        "../../rtc_base:ssl",
+         "../../rtc_base:stringutils",
+         "../../rtc_base:timeutils",
+         "../../rtc_base/synchronization:mutex",
+diff --git a/p2p/BUILD.gn b/p2p/BUILD.gn
+index b548f4b815..8a3c8eb14d 100644
+--- a/p2p/BUILD.gn
++++ b/p2p/BUILD.gn
+@@ -1181,7 +1181,6 @@ if (rtc_include_tests) {
+       "../rtc_base:byte_buffer",
+       "../rtc_base:checks",
+       "../rtc_base:copy_on_write_buffer",
+-      "../rtc_base:digest",
+       "../rtc_base:dscp",
+       "../rtc_base:gunit_helpers",
+       "../rtc_base:ip_address",
+@@ -1243,7 +1242,6 @@ rtc_library("p2p_server_utils") {
+     "../rtc_base:async_udp_socket",
+     "../rtc_base:byte_buffer",
+     "../rtc_base:checks",
+-    "../rtc_base:digest",
+     "../rtc_base:logging",
+     "../rtc_base:rtc_base_tests_utils",
+     "../rtc_base:socket_adapters",
+diff --git a/pc/BUILD.gn b/pc/BUILD.gn
+index 97f541d1c3..9c629154a3 100644
+--- a/pc/BUILD.gn
++++ b/pc/BUILD.gn
+@@ -2424,7 +2424,6 @@ if (rtc_include_tests && !build_with_chromium) {
+       "../rtc_base:byte_buffer",
+       "../rtc_base:checks",
+       "../rtc_base:copy_on_write_buffer",
+-      "../rtc_base:digest",
+       "../rtc_base:event_tracer",
+       "../rtc_base:gunit_helpers",
+       "../rtc_base:ip_address",
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index 2bdf923136..b6e1697682 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1487,45 +1487,18 @@ rtc_library("rtc_certificate_generator") {
+   ]
+ }
+ 
+-rtc_source_set("ssl_header") {
+-  sources = [ "openssl.h" ]
+-  deps = []
+-  if (is_win) {
+-    deps += [ ":win32" ]
+-  }
+-}
+-
+-rtc_library("digest") {
+-  visibility = [ "*" ]
+-  sources = [
+-    "message_digest.cc",
+-    "message_digest.h",
+-    "openssl_digest.cc",
+-    "openssl_digest.h",
+-  ]
+-  deps = [
+-    ":checks",
+-    ":ssl_header",
+-    ":stringutils",
+-  ]
+-
+-  # If we are building the SSL library ourselves, we know it's BoringSSL.
+-  if (rtc_build_ssl) {
+-    deps += [ "//third_party/boringssl" ]
+-  } else {
+-    configs += [ ":external_ssl_library" ]
+-  }
+-
+-  absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
+-}
+-
+ rtc_library("ssl") {
+   visibility = [ "*" ]
+   sources = [
+     "helpers.cc",
+     "helpers.h",
++    "message_digest.cc",
++    "message_digest.h",
++    "openssl.h",
+     "openssl_adapter.cc",
+     "openssl_adapter.h",
++    "openssl_digest.cc",
++    "openssl_digest.h",
+     "openssl_key_pair.cc",
+     "openssl_key_pair.h",
+     "openssl_session_cache.cc",
+@@ -1553,13 +1526,11 @@ rtc_library("ssl") {
+     ":buffer",
+     ":checks",
+     ":copy_on_write_buffer",
+-    ":digest",
+     ":logging",
+     ":macromagic",
+     ":safe_conversions",
+     ":socket",
+     ":socket_address",
+-    ":ssl_header",
+     ":stream",
+     ":stringutils",
+     ":threading",
+@@ -1718,7 +1689,6 @@ rtc_library("rtc_base_tests_utils") {
+     ":buffer",
+     ":byte_buffer",
+     ":checks",
+-    ":digest",
+     ":ip_address",
+     ":logging",
+     ":macromagic",
+@@ -2101,7 +2071,6 @@ if (rtc_include_tests) {
+         ":checks",
+         ":crc32",
+         ":data_rate_limiter",
+-        ":digest",
+         ":gunit_helpers",
+         ":ifaddrs_converter",
+         ":ip_address",
+@@ -2124,7 +2093,6 @@ if (rtc_include_tests) {
+         ":socket_factory",
+         ":socket_server",
+         ":ssl",
+-        ":ssl_header",
+         ":stream",
+         ":stringutils",
+         ":testclient",
+diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
+index 8fe6459133..d857d9cd21 100644
+--- a/test/fuzzers/BUILD.gn
++++ b/test/fuzzers/BUILD.gn
+@@ -689,7 +689,6 @@ webrtc_fuzzer_test("ssl_certificate_fuzzer") {
+   sources = [ "ssl_certificate_fuzzer.cc" ]
+   deps = [
+     "../:rtp_test_utils",
+-    "../../rtc_base:digest",
+     "../../rtc_base:ssl",
+     "../../rtc_base:stringutils",
+   ]
