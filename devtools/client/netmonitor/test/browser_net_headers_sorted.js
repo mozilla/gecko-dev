@@ -141,11 +141,11 @@ async function verifyRawHeaders(monitor) {
     "Accept-Encoding",
     "Connection",
     "Cookie",
-    "Priority",
     "Upgrade-Insecure-Requests",
     "Sec-Fetch-Dest",
     "Sec-Fetch-Mode",
     "Sec-Fetch-Site",
+    "Priority",
     "Pragma",
     "Cache-Control",
   ];

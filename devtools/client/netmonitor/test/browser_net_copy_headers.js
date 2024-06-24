@@ -46,8 +46,8 @@ add_task(async function () {
     "Accept-Language: " + navigator.languages.join(",") + ";q=0.5",
     "Accept-Encoding: gzip, deflate",
     "Connection: keep-alive",
-    "Priority: u=0, i",
     "Upgrade-Insecure-Requests: 1",
+    "Priority: u=0, i",
     "Pragma: no-cache",
     "Cache-Control: no-cache",
   ].join("\n");
