@@ -10,6 +10,7 @@
 #include <gtk/gtk.h>
 #include <gtk/gtkx.h>
 #include <gdk/gdkwayland.h>
+#include <xkbcommon/xkbcommon.h>
 
 union wl_argument;
 
@@ -227,4 +228,34 @@ MOZ_EXPORT struct wl_pointer* gdk_wayland_device_get_wl_pointer(
 MOZ_EXPORT struct wl_display* gdk_wayland_display_get_wl_display(
     GdkDisplay* display) {
   return NULL;
+}
+
+MOZ_EXPORT struct xkb_context* xkb_context_new(enum xkb_context_flags flags) {
+  return NULL;
+}
+
+MOZ_EXPORT void xkb_context_unref(struct xkb_context* context) {}
+
+MOZ_EXPORT struct xkb_keymap* xkb_keymap_new_from_names(
+    struct xkb_context* context, const struct xkb_rule_names* names,
+    enum xkb_keymap_compile_flags flags) {
+  return NULL;
+}
+
+MOZ_EXPORT struct xkb_keymap* xkb_keymap_new_from_string(
+    struct xkb_context* context, const char* string,
+    enum xkb_keymap_format format, enum xkb_keymap_compile_flags flags) {
+  return NULL;
+}
+
+MOZ_EXPORT void xkb_keymap_unref(struct xkb_keymap* keymap) {}
+
+MOZ_EXPORT const char* xkb_keymap_layout_get_name(struct xkb_keymap* keymap,
+                                                  xkb_layout_index_t idx) {
+  return NULL;
+}
+
+MOZ_EXPORT xkb_mod_index_t xkb_keymap_mod_get_index(struct xkb_keymap* keymap,
+                                                    const char* name) {
+  return XKB_MOD_INVALID;
 }
