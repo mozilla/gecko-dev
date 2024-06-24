@@ -2192,34 +2192,15 @@ already_AddRefed<gfxFont> gfxFontGroup::GetDefaultFont() {
     }
   }
 
-  if (!mDefaultFont && pfl->SharedFontList() && !XRE_IsParentProcess()) {
-    // If we're a content process, it's possible this is failing because the
-    // chrome process has just updated the shared font list and we haven't yet
-    // refreshed our reference to it. If that's the case, update and retry.
-    // But if we're not on the main thread, we can't do this, so just use
-    // the platform default font directly.
-    if (NS_IsMainThread()) {
-      uint32_t oldGeneration = pfl->SharedFontList()->GetGeneration();
-      pfl->UpdateFontList();
-      if (pfl->SharedFontList()->GetGeneration() != oldGeneration) {
-        return GetDefaultFont();
-      }
-    }
-  }
-
   if (!mDefaultFont) {
     // We must have failed to find anything usable in our font-family list,
     // or it's badly broken. One more last-ditch effort to make a font:
-    gfxFontEntry* fe = pfl->GetDefaultFontEntry();
-    if (fe) {
-      RefPtr<gfxFont> f = fe->FindOrMakeFont(&mStyle);
-      if (f) {
+    if (gfxFontEntry* fe = pfl->GetDefaultFontEntry()) {
+      if (RefPtr<gfxFont> f = fe->FindOrMakeFont(&mStyle)) {
         return f.forget();
       }
     }
-  }
 
-  if (!mDefaultFont) {
     // an empty font list at this point is fatal; we're not going to
     // be able to do even the most basic layout operations
 
