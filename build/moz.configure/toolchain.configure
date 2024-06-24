@@ -2416,6 +2416,36 @@ set_config(
     when=depends(target.cpu)(lambda cpu: cpu.startswith("ppc")),
 )
 
+# TARGET_XPCOM_ABI
+# ==============================================================
+
+is_arm_eabi = c_compiler.try_compile(
+    body="""
+        #if defined(__ARM_EABI__)
+          return 0;
+        #else
+        #error Not ARM EABI.
+        #endif""",
+    check_msg="for ARM EABI",
+    when=building_with_gnu_compatible_cc
+    & depends(target.cpu)(lambda cpu: cpu == "arm"),
+)
+
+
+@depends(target, is_arm_eabi, c_compiler)
+def target_xpcom_abi(target, is_arm_eabi, compiler):
+    if compiler.type == "clang-cl":
+        return f"{target.cpu}-msvc"
+    elif target.cpu == "arm":
+        target_compiler_abi = "eabi" if is_arm_eabi else "oabi"
+        return f"{target.cpu}-{target_compiler_abi}-gcc3"
+    else:
+        return f"{target.cpu}-gcc3"
+
+
+set_config("TARGET_XPCOM_ABI", target_xpcom_abi)
+set_define("TARGET_XPCOM_ABI", depends(target_xpcom_abi)(lambda v: f'"{v}"'))
+
 # ASAN
 # ==============================================================
 
