@@ -122,6 +122,10 @@
     assertEq(JSON.isRawJSON(gbl.objCCW), false, "isRawJSON() should accept CCW arguments");
     rawJSONCCW = gbl.eval("JSON.rawJSON(455);");
     assertEq(JSON.isRawJSON(rawJSONCCW), true, "isRawJSON() should return true for wrapped rawJSON objects");
+
+    objWithCCW = { ccw: rawJSONCCW, raw: JSON.rawJSON(true) };
+    assertEq(JSON.stringify(objWithCCW), '{"ccw":455,"raw":true}');
+    assertEq(isCCW(rawJSONCCW), true);
 })();
 
 (function checkUseAsPrototype() {
