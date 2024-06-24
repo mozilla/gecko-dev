@@ -1052,6 +1052,64 @@ TEST_F(SdpOfferAnswerTest, MsidSignalingInSubsequentOfferAnswer) {
   EXPECT_NE(std::string::npos, sdp.find("a=msid:- audio_track\r\n"));
 }
 
+// Regression test for crbug.com/328522463
+// where the stream parameters got recreated which changed the ssrc.
+TEST_F(SdpOfferAnswerTest, MsidSignalingUnknownRespondsWithMsidAndKeepsSsrc) {
+  auto pc = CreatePeerConnection();
+  pc->AddAudioTrack("audio_track", {"default"});
+  std::string sdp =
+      "v=0\r\n"
+      "o=- 0 3 IN IP4 127.0.0.1\r\n"
+      "s=-\r\n"
+      "t=0 0\r\n"
+      "a=group:BUNDLE 0\r\n"
+      // "a=msid-semantic: WMS *\r\n"
+      "a=ice-ufrag:ETEn\r\n"
+      "a=ice-pwd:OtSK0WpNtpUjkY4+86js7Z/l\r\n"
+      "a=fingerprint:sha-1 "
+      "4A:AD:B9:B1:3F:82:18:3B:54:02:12:DF:3E:5D:49:6B:19:E5:7C:AB\r\n"
+      "a=setup:actpass\r\n"
+      "m=audio 9 UDP/TLS/RTP/SAVPF 111\r\n"
+      "c=IN IP4 0.0.0.0\r\n"
+      "a=rtcp:9 IN IP4 0.0.0.0\r\n"
+      "a=recvonly\r\n"
+      "a=rtcp-mux\r\n"
+      "a=mid:0\r\n"
+      "a=rtpmap:111 opus/48000/2\r\n";
+
+  auto offer = CreateSessionDescription(SdpType::kOffer, sdp);
+  EXPECT_TRUE(pc->SetRemoteDescription(std::move(offer)));
+  auto first_transceiver = pc->pc()->GetTransceivers()[0];
+  EXPECT_TRUE(first_transceiver
+                  ->SetDirectionWithError(RtpTransceiverDirection::kSendOnly)
+                  .ok());
+  // Check the generated *serialized* SDP.
+  auto answer = pc->CreateAnswer();
+  const auto& answer_contents = answer->description()->contents();
+  ASSERT_EQ(answer_contents.size(), 1u);
+  auto answer_streams = answer_contents[0].media_description()->streams();
+  ASSERT_EQ(answer_streams.size(), 1u);
+  std::string first_stream_serialized = answer_streams[0].ToString();
+  uint32_t first_ssrc = answer_contents[0].media_description()->first_ssrc();
+
+  answer->ToString(&sdp);
+  EXPECT_TRUE(
+      pc->SetLocalDescription(CreateSessionDescription(SdpType::kAnswer, sdp)));
+
+  auto reoffer = pc->CreateOffer();
+  const auto& offer_contents = reoffer->description()->contents();
+  ASSERT_EQ(offer_contents.size(), 1u);
+
+  auto offer_streams = offer_contents[0].media_description()->streams();
+  ASSERT_EQ(offer_streams.size(), 1u);
+  std::string second_stream_serialized = offer_streams[0].ToString();
+  uint32_t second_ssrc = offer_contents[0].media_description()->first_ssrc();
+
+  EXPECT_EQ(first_ssrc, second_ssrc);
+  EXPECT_EQ(first_stream_serialized, second_stream_serialized);
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(reoffer)));
+}
+
 // Test variant with boolean order for audio-video and video-audio.
 class SdpOfferAnswerShuffleMediaTypes
     : public SdpOfferAnswerTest,
@@ -1180,39 +1238,6 @@ TEST_F(SdpOfferAnswerTest, OfferWithNoCompatibleCodecsIsRejectedInAnswer) {
   ASSERT_EQ(answer_contents.size(), 2u);
   EXPECT_EQ(answer_contents[0].rejected, true);
   EXPECT_EQ(answer_contents[1].rejected, true);
-}
-
-TEST_F(SdpOfferAnswerTest,
-       OfferWithNoMsidSemanticYieldsAnswerWithoutMsidSemantic) {
-  auto pc = CreatePeerConnection();
-  // An offer with no msid-semantic line. The answer should not add one.
-  std::string sdp =
-      "v=0\r\n"
-      "o=- 0 3 IN IP4 127.0.0.1\r\n"
-      "s=-\r\n"
-      "t=0 0\r\n"
-      "a=fingerprint:sha-1 "
-      "4A:AD:B9:B1:3F:82:18:3B:54:02:12:DF:3E:5D:49:6B:19:E5:7C:AB\r\n"
-      "a=setup:actpass\r\n"
-      "a=ice-ufrag:ETEn\r\n"
-      "a=ice-pwd:OtSK0WpNtpUjkY4+86js7Z/l\r\n"
-      "m=audio 9 RTP/SAVPF 111\r\n"
-      "c=IN IP4 0.0.0.0\r\n"
-      "a=sendrecv\r\n"
-      "a=rtpmap:111 opus/48000/2\r\n"
-      "a=rtcp-mux\r\n";
-
-  auto desc = CreateSessionDescription(SdpType::kOffer, sdp);
-  ASSERT_NE(desc, nullptr);
-  EXPECT_EQ(desc->description()->msid_signaling(),
-            cricket::kMsidSignalingNotUsed);
-  RTCError error;
-  pc->SetRemoteDescription(std::move(desc), &error);
-  EXPECT_TRUE(error.ok());
-
-  auto answer = pc->CreateAnswer();
-  EXPECT_EQ(answer->description()->msid_signaling(),
-            cricket::kMsidSignalingNotUsed);
 }
 
 TEST_F(SdpOfferAnswerTest, OfferWithRejectedMlineWithoutFingerprintIsAccepted) {

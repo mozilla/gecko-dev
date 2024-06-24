@@ -1713,23 +1713,27 @@ MediaSessionDescriptionFactory::CreateAnswerOrError(
       // a=msid.
       answer->set_msid_signaling(cricket::kMsidSignalingSemantic |
                                  cricket::kMsidSignalingMediaSection);
-    } else if (msid_signaling == cricket::kMsidSignalingSemantic) {
+    } else if (msid_signaling == (cricket::kMsidSignalingSemantic |
+                                  cricket::kMsidSignalingSsrcAttribute) ||
+               msid_signaling == cricket::kMsidSignalingSsrcAttribute) {
+      // If only a=ssrc MSID signaling method was used, we're probably talking
+      // to a Plan B endpoint so respond with just a=ssrc MSID.
+      answer->set_msid_signaling(cricket::kMsidSignalingSemantic |
+                                 cricket::kMsidSignalingSsrcAttribute);
+    } else {
       // We end up here in one of three cases:
       // 1. An empty offer. We'll reply with an empty answer so it doesn't
       //    matter what we pick here.
       // 2. A data channel only offer. We won't add any MSIDs to the answer so
       //    it also doesn't matter what we pick here.
-      // 3. Media that's either sendonly or inactive from the remote endpoint.
+      // 3. Media that's either recvonly or inactive from the remote point of
+      // view.
       //    We don't have any information to say whether the endpoint is Plan B
-      //    or Unified Plan, so be conservative and send both.
+      //    or Unified Plan. Since plan-b is obsolete, do not respond with it.
+      //    We assume that endpoints not supporting MSID will silently ignore
+      //    the a=msid lines they do not understand.
       answer->set_msid_signaling(cricket::kMsidSignalingSemantic |
-                                 cricket::kMsidSignalingMediaSection |
-                                 cricket::kMsidSignalingSsrcAttribute);
-    } else {
-      // Otherwise, it's clear which method the offerer is using so repeat that
-      // back to them. This includes the case where the msid-semantic line is
-      // not included.
-      answer->set_msid_signaling(msid_signaling);
+                                 cricket::kMsidSignalingMediaSection);
     }
   } else {
     // Plan B always signals MSID using a=ssrc lines.
