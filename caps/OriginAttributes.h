@@ -81,6 +81,11 @@ class OriginAttributes : public dom::OriginAttributesDictionary {
            mFirstPartyDomain == aOther.mFirstPartyDomain;
   }
 
+  [[nodiscard]] inline bool IsPrivateBrowsing() const {
+    return mPrivateBrowsingId !=
+           nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID;
+  }
+
   // Serializes/Deserializes non-default values into the suffix format, i.e.
   // |^key1=value1&key2=value2|. If there are no non-default attributes, this
   // returns an empty string.
