@@ -676,9 +676,8 @@ talos-webgl:
         by-variant:
             webgl-ipc:
                 by-test-platform:
-                    (linux1804|windows10|macosx1015)-64.*: [trunk]
-                    windows11-64-2009-hw-ref-shippable.*: [trunk]
-                    windows11(?!.*shippable).*: []
+                    (linux1804|windows1|macosx1015)-64.*: [trunk]
+                    windows11-64-2009.*shippable.*: [trunk]
                     default: []
             webrender-sw:
                 by-test-platform:

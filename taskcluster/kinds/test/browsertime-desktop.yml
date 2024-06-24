@@ -105,7 +105,7 @@ browsertime-tp6:
         mozharness:
             extra-options:
                 by-test-platform:
-                    windows10-64.*shippable.*-qr.*:
+                    windows.*64.*shippable.*-qr.*:
                         - --chimera
                         - --browsertime-no-ffwindowrecorder
                         - --conditioned-profile=settled
@@ -121,7 +121,7 @@ browsertime-tp6:
                         firefox:
                             by-test-platform:
                                 windows.*-32.*: []
-                                (macosx1015|linux|windows10-64).*shippable-qr.*: [trunk]
+                                (macosx1015|linux|windows.*-64).*shippable-qr.*: [trunk]
                                 default: []
                         default: []
                 default:
@@ -181,7 +181,7 @@ browsertime-responsiveness:
     mozharness:
         extra-options:
             by-test-platform:
-                windows10-.*:
+                windows.*:
                     - --cold
                     - --browsertime-no-ffwindowrecorder
                     - --conditioned-profile=settled
@@ -209,7 +209,7 @@ browsertime-tp6-essential:
         mozharness:
             extra-options:
                 by-test-platform:
-                    windows10-64.*shippable.*-qr.*:
+                    windows.*-64.*shippable.*-qr.*:
                         - --chimera
                         - --browsertime-no-ffwindowrecorder
                         - --conditioned-profile=settled
@@ -283,7 +283,7 @@ browsertime-tp6-bytecode:
     mozharness:
         extra-options:
             by-test-platform:
-                windows10-64.*shippable.*-qr.*:
+                windows.*-64.*shippable.*-qr.*:
                     - --chimera
                     - --browsertime
                     - --browsertime-no-ffwindowrecorder
@@ -321,7 +321,7 @@ browsertime-tp7:
         mozharness:
             extra-options:
                 by-test-platform:
-                    windows10-64.*shippable.*-qr.*:
+                    windows.*-64.*shippable.*-qr.*:
                         - --chimera
                         - --browsertime-no-ffwindowrecorder
                         - --conditioned-profile=settled
@@ -468,7 +468,7 @@ browsertime-benchmark:
                             default: 1
                     default:
                         by-test-platform:
-                            windows10-64-ccov.*/.*: 3
+                            windows.*-64-ccov.*/.*: 3
                             linux64-ccov.*/.*: 3
                             default: 2
             default:
@@ -487,7 +487,7 @@ browsertime-benchmark:
                             default: []
                     custom-car:
                         by-test-platform:
-                            (linux|windows10-64).*shippable-qr.*: [mozilla-central]
+                            (linux|windows).*shippable-qr.*: [mozilla-central]
                             default: []
                     safari-tp:
                         by-test-platform:
@@ -513,7 +513,7 @@ browsertime-benchmark:
                             default: []
                     custom-car:
                         by-test-platform:
-                            (linux|windows10-64).*shippable-qr.*: [mozilla-central]
+                            (linux|windows.*-64).*shippable-qr.*: [mozilla-central]
                             default: []
                     default: []
             default:
@@ -771,7 +771,7 @@ browsertime-tp6-live-sheriffed:
             - --browsertime-arg=maxLoadTime=240000
     run-on-projects:
         by-test-platform:
-            (linux|windows10-64|macos)(?!.*shippable).*: []
+            (linux|windows.*-64|macos)(?!.*shippable).*: []
             (linux|windows|macosx1015)(?!.*-qr).*: []
             windows.*-32.*: []
             default: []
@@ -847,7 +847,7 @@ browsertime-regression-tests:
     mozharness:
         extra-options:
             by-test-platform:
-                windows10-64.*shippable.*-qr.*: []
+                windows.*-64.*shippable.*-qr.*: []
                 default: []
     tier: 2
     treeherder-symbol: Btime(regressor)
@@ -968,7 +968,7 @@ browsertime-tp6-webextensions:
     mozharness:
         extra-options:
             by-test-platform:
-                windows10-64.*shippable.*-qr.*:
+                windows.*-64.*shippable.*-qr.*:
                     - --chimera
                     - --browsertime
                     - --browsertime-no-ffwindowrecorder
