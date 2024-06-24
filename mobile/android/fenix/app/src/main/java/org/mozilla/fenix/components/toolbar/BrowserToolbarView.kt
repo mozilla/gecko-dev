@@ -108,6 +108,7 @@ class BrowserToolbarView(
 
             view.apply {
                 setToolbarBehavior()
+                setDisplayToolbarColors()
 
                 if (!isCustomTabSession) {
                     display.setUrlBackground(getDrawable(R.drawable.search_url_background))
@@ -123,19 +124,6 @@ class BrowserToolbarView(
                     ToolbarPosition.TOP -> DisplayToolbar.Gravity.BOTTOM
                 }
 
-                val primaryTextColor = ContextCompat.getColor(
-                    context,
-                    ThemeManager.resolveAttribute(R.attr.textPrimary, context),
-                )
-                val secondaryTextColor = ContextCompat.getColor(
-                    context,
-                    ThemeManager.resolveAttribute(R.attr.textSecondary, context),
-                )
-                val separatorColor = ContextCompat.getColor(
-                    context,
-                    ThemeManager.resolveAttribute(R.attr.borderPrimary, context),
-                )
-
                 display.urlFormatter = { url ->
                     if (isNavBarEnabled) {
                         Uri.parse(url.toString()).host ?: url
@@ -143,20 +131,6 @@ class BrowserToolbarView(
                         URLStringUtils.toDisplayUrl(url)
                     }
                 }
-
-                display.colors = display.colors.copy(
-                    text = primaryTextColor,
-                    securityIconSecure = primaryTextColor,
-                    securityIconInsecure = Color.TRANSPARENT,
-                    menu = primaryTextColor,
-                    hint = secondaryTextColor,
-                    separator = separatorColor,
-                    trackingProtection = primaryTextColor,
-                    highlight = ContextCompat.getColor(
-                        context,
-                        R.color.fx_mobile_icon_color_information,
-                    ),
-                )
 
                 display.hint = context.getString(R.string.search_hint)
             }
@@ -299,6 +273,35 @@ class BrowserToolbarView(
                 }
             }
         }
+    }
+
+    private fun setDisplayToolbarColors() {
+        val primaryTextColor = ContextCompat.getColor(
+            context,
+            ThemeManager.resolveAttribute(R.attr.textPrimary, context),
+        )
+        val secondaryTextColor = ContextCompat.getColor(
+            context,
+            ThemeManager.resolveAttribute(R.attr.textSecondary, context),
+        )
+        val separatorColor = ContextCompat.getColor(
+            context,
+            ThemeManager.resolveAttribute(R.attr.borderPrimary, context),
+        )
+
+        view.display.colors = view.display.colors.copy(
+            text = primaryTextColor,
+            securityIconSecure = primaryTextColor,
+            securityIconInsecure = Color.TRANSPARENT,
+            menu = primaryTextColor,
+            hint = secondaryTextColor,
+            separator = separatorColor,
+            trackingProtection = primaryTextColor,
+            highlight = ContextCompat.getColor(
+                context,
+                R.color.fx_mobile_icon_color_information,
+            ),
+        )
     }
 
     @VisibleForTesting
