@@ -8,7 +8,6 @@ import os
 import sys
 import traceback
 
-import six
 from mach.util import get_state_dir
 from mozbuild.base import MozbuildObject
 from mozversioncontrol import MissingVCSExtension, get_repository_object
@@ -55,14 +54,6 @@ vcs = get_repository_object(build.topsrcdir)
 history_path = os.path.join(
     get_state_dir(specific_to_topsrcdir=True), "history", "try_task_configs.json"
 )
-
-
-def write_task_config(try_task_config):
-    config_path = os.path.join(vcs.path, "try_task_config.json")
-    with open(config_path, "w") as fh:
-        json.dump(try_task_config, fh, indent=4, separators=(",", ": "), sort_keys=True)
-        fh.write("\n")
-    return config_path
 
 
 def write_task_config_history(msg, try_task_config):
@@ -230,46 +221,47 @@ def push_to_try(
         method,
     )
 
-    config_path = None
-    changed_files = []
+    changed_files = {}
+
     if try_task_config:
+        changed_files["try_task_config.json"] = (
+            json.dumps(
+                try_task_config, indent=4, separators=(",", ": "), sort_keys=True
+            )
+            + "\n"
+        )
         if push and method not in ("again", "auto", "empty"):
             write_task_config_history(msg, try_task_config)
-        config_path = write_task_config(try_task_config)
-        changed_files.append(config_path)
 
     if (push or stage_changes) and files_to_change:
-        for path, content in files_to_change.items():
-            path = os.path.join(vcs.path, path)
-            with open(path, "wb") as fh:
-                fh.write(six.ensure_binary(content))
-            changed_files.append(path)
+        changed_files.update(files_to_change.items())
+
+    if not push:
+        print("Commit message:")
+        print(commit_message)
+        config = changed_files.pop("try_task_config.json", None)
+        if config:
+            print("Calculated try_task_config.json:")
+            print(config)
+        if stage_changes:
+            vcs.stage_changes(changed_files)
+
+        return
 
     try:
-        if not push:
-            print("Commit message:")
-            print(commit_message)
-            if config_path:
-                print("Calculated try_task_config.json:")
-                with open(config_path) as fh:
-                    print(fh.read())
-            return
-
-        vcs.add_remove_files(*changed_files)
-
-        try:
-            if push_to_lando:
-                push_to_lando_try(vcs, commit_message)
-            else:
-                vcs.push_to_try(commit_message, allow_log_capture=allow_log_capture)
-        except MissingVCSExtension as e:
-            if e.ext == "push-to-try":
-                print(HG_PUSH_TO_TRY_NOT_FOUND)
-            elif e.ext == "cinnabar":
-                print(GIT_CINNABAR_NOT_FOUND)
-            else:
-                raise
-            sys.exit(1)
-    finally:
-        if config_path and os.path.isfile(config_path):
-            os.remove(config_path)
+        if push_to_lando:
+            push_to_lando_try(vcs, commit_message, changed_files)
+        else:
+            vcs.push_to_try(
+                commit_message,
+                changed_files=changed_files,
+                allow_log_capture=allow_log_capture,
+            )
+    except MissingVCSExtension as e:
+        if e.ext == "push-to-try":
+            print(HG_PUSH_TO_TRY_NOT_FOUND)
+        elif e.ext == "cinnabar":
+            print(GIT_CINNABAR_NOT_FOUND)
+        else:
+            raise
+        sys.exit(1)

@@ -8,9 +8,11 @@ import os
 import re
 import shutil
 import subprocess
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import (
+    Dict,
     Iterator,
     List,
     Optional,
@@ -260,13 +262,21 @@ class Repository(object):
         """
 
     @abc.abstractmethod
-    def push_to_try(self, message, allow_log_capture=False):
+    def push_to_try(
+        self,
+        message: str,
+        changed_files: Dict[str, str] = {},
+        allow_log_capture: bool = False,
+    ):
         """Create a temporary commit, push it to try and clean it up
         afterwards.
 
         With mercurial, MissingVCSExtension will be raised if the `push-to-try`
         extension is not installed. On git, MissingVCSExtension will be raised
         if git cinnabar is not present.
+
+        `changed_files` is a dict of file paths and their contents, see
+        `stage_changes`.
 
         If `allow_log_capture` is set to `True`, then the push-to-try will be run using
         Popen instead of check_call so that the logs can be captured elsewhere.
@@ -327,24 +337,43 @@ class Repository(object):
             )
 
     @abc.abstractmethod
-    def get_branch_nodes(self) -> List[str]:
+    def get_branch_nodes(self, head: Optional[str] = None) -> List[str]:
         """Return a list of commit SHAs for nodes on the current branch."""
 
     @abc.abstractmethod
     def get_commit_patches(self, nodes: str) -> List[bytes]:
         """Return the contents of the patch `node` in the VCS's standard format."""
 
+    @contextmanager
     @abc.abstractmethod
-    def create_try_commit(self, commit_message: str):
-        """Create a temporary try commit.
+    def try_commit(
+        self, commit_message: str, changed_files: Optional[Dict[str, str]] = None
+    ):
+        """Create a temporary try commit as a context manager.
 
         Create a new commit using `commit_message` as the commit message. The commit
         may be empty, for example when only including try syntax.
+
+        `changed_files` may contain a dict of file paths and their contents,
+        see `stage_changes`.
         """
 
-    @abc.abstractmethod
-    def remove_current_commit(self):
-        """Remove the currently checked out commit from VCS history."""
+    def stage_changes(self, changed_files: Dict[str, str]):
+        """Stage a set of file changes
+
+        `changed_files` is a dict that contains the paths of files to change or
+        create as keys and their respective contents as values.
+        """
+        paths = []
+        for path, content in changed_files.items():
+            full_path = Path(self.path) / path
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+            with full_path.open("w") as fh:
+                fh.write(content)
+            paths.append(full_path)
+
+        if paths:
+            self.add_remove_files(*paths)
 
     @abc.abstractmethod
     def get_last_modified_time_for_file(self, path: Path):
@@ -589,7 +618,15 @@ class HgRepository(Repository):
         except subprocess.CalledProcessError:
             raise MissingVCSExtension(extension)
 
-    def push_to_try(self, message, allow_log_capture=False):
+    def push_to_try(
+        self,
+        message: str,
+        changed_files: Dict[str, str] = {},
+        allow_log_capture: bool = False,
+    ):
+        if changed_files:
+            self.stage_changes(changed_files)
+
         try:
             cmd = (str(self._tool), "push-to-try", "-m", message)
             if allow_log_capture:
@@ -616,12 +653,14 @@ class HgRepository(Repository):
         finally:
             self._run("revert", "-a")
 
-    def get_branch_nodes(self, base_ref: Optional[str] = None) -> List[str]:
+    def get_branch_nodes(
+        self, head: Optional[str] = None, base_ref: Optional[str] = None
+    ) -> List[str]:
         """Return a list of commit SHAs for nodes on the current branch."""
         if not base_ref:
             base_ref = self.base_ref
 
-        head_ref = self.head_ref
+        head_ref = head or self.head_ref
 
         return self._run(
             "log",
@@ -661,17 +700,26 @@ class HgRepository(Repository):
 
         return patches
 
-    def create_try_commit(self, commit_message: str):
-        """Create a temporary try commit.
+    @contextmanager
+    def try_commit(
+        self, commit_message: str, changed_files: Optional[Dict[str, str]] = None
+    ):
+        """Create a temporary try commit as a context manager.
 
         Create a new commit using `commit_message` as the commit message. The commit
         may be empty, for example when only including try syntax.
+
+        `changed_files` may contain a dict of file paths and their contents,
+        see `stage_changes`.
         """
+        if changed_files:
+            self.stage_changes(changed_files)
+
         # Allow empty commit messages in case we only use try-syntax.
         self._run("--config", "ui.allowemptycommit=1", "commit", "-m", commit_message)
 
-    def remove_current_commit(self):
-        """Remove the currently checked out commit from VCS history."""
+        yield self.head_ref
+
         try:
             self._run("prune", ".")
         except subprocess.CalledProcessError:
@@ -869,12 +917,16 @@ class GitRepository(Repository):
     def update(self, ref):
         self._run("checkout", ref)
 
-    def push_to_try(self, message, allow_log_capture=False):
+    def push_to_try(
+        self,
+        message: str,
+        changed_files: Dict[str, str] = {},
+        allow_log_capture: bool = False,
+    ):
         if not self.has_git_cinnabar:
             raise MissingVCSExtension("cinnabar")
 
-        self.create_try_commit(message)
-        try:
+        with self.try_commit(message, changed_files) as head:
             cmd = (
                 str(self._tool),
                 "-c",
@@ -884,7 +936,7 @@ class GitRepository(Repository):
                 "cinnabar.data=never",
                 "push",
                 "hg::ssh://hg.mozilla.org/try",
-                "+HEAD:refs/heads/branches/default/tip",
+                f"+{head}:refs/heads/branches/default/tip",
             )
             if allow_log_capture:
                 self._push_to_try_with_log_capture(
@@ -899,19 +951,17 @@ class GitRepository(Repository):
                 )
             else:
                 subprocess.check_call(cmd, cwd=self.path)
-        finally:
-            self.remove_current_commit()
 
     def set_config(self, name, value):
         self._run("config", name, value)
 
-    def get_branch_nodes(self) -> List[str]:
+    def get_branch_nodes(self, head: Optional[str] = None) -> List[str]:
         """Return a list of commit SHAs for nodes on the current branch."""
         remote_args = self.get_mozilla_remote_args()
 
         return self._run(
             "log",
-            "HEAD",
+            head or "HEAD",
             "--reverse",
             "--not",
             *remote_args,
@@ -927,18 +977,32 @@ class GitRepository(Repository):
             for node in nodes
         ]
 
-    def create_try_commit(self, message: str):
-        """Create a temporary try commit.
+    @contextmanager
+    def try_commit(
+        self, commit_message: str, changed_files: Optional[Dict[str, str]] = None
+    ):
+        """Create a temporary try commit as a context manager.
 
         Create a new commit using `commit_message` as the commit message. The commit
         may be empty, for example when only including try syntax.
+
+        `changed_files` may contain a dict of file paths and their contents,
+        see `stage_changes`.
         """
+        if changed_files:
+            self.stage_changes(changed_files)
+
         self._run(
-            "-c", "commit.gpgSign=false", "commit", "--allow-empty", "-m", message
+            "-c",
+            "commit.gpgSign=false",
+            "commit",
+            "--allow-empty",
+            "-m",
+            commit_message,
         )
 
-    def remove_current_commit(self):
-        """Remove the currently checked out commit from VCS history."""
+        yield "HEAD"
+
         self._run("reset", "HEAD~")
 
     def get_last_modified_time_for_file(self, path: Path):
@@ -1062,7 +1126,12 @@ class SrcRepository(Repository):
     def update(self, ref):
         pass
 
-    def push_to_try(self, message, allow_log_capture=False):
+    def push_to_try(
+        self,
+        message: str,
+        changed_files: Dict[str, str] = {},
+        allow_log_capture: bool = False,
+    ):
         pass
 
     def set_config(self, name, value):

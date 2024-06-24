@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import os
 import subprocess
 
 import mozunit
@@ -17,22 +18,46 @@ def test_push_to_try(repo, monkeypatch):
     captured_commands = []
 
     def fake_run(*args, **kwargs):
-        captured_commands.append(args[0])
+        cmd = args[0]
+        captured_commands.append(cmd)
+        if os.path.basename(cmd[0]).startswith("hg") and cmd[1] == "--version":
+            return "version 6.7"
 
     monkeypatch.setattr(subprocess, "check_output", fake_run)
     monkeypatch.setattr(subprocess, "check_call", fake_run)
 
-    vcs.push_to_try(commit_message)
+    vcs.push_to_try(
+        commit_message,
+        {
+            "extra-file": "content",
+            "other/extra-file": "content2",
+        },
+    )
     tool = vcs._tool
 
     if repo.vcs == "hg":
         expected = [
+            (str(tool), "--version"),
+            (
+                str(tool),
+                "--config",
+                "extensions.automv=",
+                "addremove",
+                os.path.join(vcs.path, "extra-file"),
+                os.path.join(vcs.path, "other", "extra-file"),
+            ),
             (str(tool), "push-to-try", "-m", commit_message),
             (str(tool), "revert", "-a"),
         ]
     else:
         expected = [
             (str(tool), "cinnabar", "--version"),
+            (
+                str(tool),
+                "add",
+                os.path.join(vcs.path, "extra-file"),
+                os.path.join(vcs.path, "other", "extra-file"),
+            ),
             (
                 str(tool),
                 "-c",

@@ -15,14 +15,12 @@ import subprocess
 import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
 from argparse import SUPPRESS, Action
-from contextlib import contextmanager
 from textwrap import dedent
 
 import mozpack.path as mozpath
 import requests
 import six
 from mozbuild.base import BuildEnvironmentNotFoundException, MozbuildObject
-from mozversioncontrol import Repository
 from taskgraph.util import taskcluster
 
 from .tasks import resolve_tests_by_suite
@@ -30,24 +28,6 @@ from .util.ssh import get_ssh_user
 
 here = pathlib.Path(__file__).parent
 build = MozbuildObject.from_environment(cwd=str(here))
-
-
-@contextmanager
-def try_config_commit(vcs: Repository, commit_message: str):
-    """Context manager that creates and removes a try config commit."""
-    # Add the `try_task_config.json` file if it exists.
-    try_task_config_path = pathlib.Path(build.topsrcdir) / "try_task_config.json"
-    if try_task_config_path.exists():
-        vcs.add_remove_files("try_task_config.json")
-
-    try:
-        # Create a try config commit.
-        vcs.create_try_commit(commit_message)
-
-        yield
-    finally:
-        # Revert the try config commit.
-        vcs.remove_current_commit()
 
 
 class ParameterConfig:
