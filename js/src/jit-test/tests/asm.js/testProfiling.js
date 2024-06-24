@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !isAsmJSCompilationAvailable() || !getBuildConfiguration("arm-simulator")
+// |jit-test| skip-if: !isAsmJSCompilationAvailable() || (!getBuildConfiguration("arm-simulator") && !getBuildConfiguration("arm64-simulator"))
 // Single-step profiling currently only works in the ARM simulator
 
 load(libdir + "asm.js");

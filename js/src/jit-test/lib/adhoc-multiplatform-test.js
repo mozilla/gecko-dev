@@ -78,7 +78,8 @@ const prefixAndSuffix =
        arm64: {
            prefix: `910003fd        mov x29, sp
                     910003fc        mov x28, sp`,
-           suffix: `f94003fd        ldr x29, \\[sp\\]`
+           suffix: `f94007fe        ldr x30, \\[sp, #8\\]
+                    f94003fd        ldr x29, \\[sp\\]`
        },
        arm: {
            prefix: `e52db004        str fp, \\[sp, #-4\\]!

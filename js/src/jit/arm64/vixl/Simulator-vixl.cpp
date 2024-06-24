@@ -63,12 +63,40 @@ SimSystemRegister SimSystemRegister::DefaultValueFor(SystemRegister id) {
   }
 }
 
+void Simulator::enable_single_stepping(SingleStepCallback cb, void* arg) {
+  single_stepping_ = true;
+  single_step_callback_ = cb;
+  single_step_callback_arg_ = arg;
+  single_step_callback_(single_step_callback_arg_, this, (void*)get_pc());
+}
+
+void Simulator::disable_single_stepping() {
+  if (!single_stepping_) {
+    return;
+  }
+  single_step_callback_(single_step_callback_arg_, this, (void*)get_pc());
+  single_stepping_ = false;
+  single_step_callback_ = nullptr;
+  single_step_callback_arg_ = nullptr;
+}
 
 void Simulator::Run() {
+  if (single_stepping_) {
+    single_step_callback_(single_step_callback_arg_, this, nullptr);
+  }
+
   pc_modified_ = false;
   while (pc_ != kEndOfSimAddress) {
+    if (single_stepping_) {
+      single_step_callback_(single_step_callback_arg_, this, (void*)pc_);
+    }
+
     ExecuteInstruction();
     LogAllWrittenRegisters();
+  }
+
+  if (single_stepping_) {
+    single_step_callback_(single_step_callback_arg_, this, nullptr);
   }
 }
 

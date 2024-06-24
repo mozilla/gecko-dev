@@ -463,7 +463,7 @@ static const unsigned BeforePushRetAddr = 0;
 static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 12;
 static const unsigned SetFP = 16;
-static const unsigned PoppedFP = 4;
+static const unsigned PoppedFP = 8;
 static const unsigned PoppedFPJitEntry = 8;
 static_assert(BeforePushRetAddr == 0, "Required by StartUnwinding");
 static_assert(PushedFP > PushedRetAddr, "Required by StartUnwinding");
@@ -675,12 +675,10 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
 
   AutoForbidPoolsAndNops afp(&masm, /* number of instructions in scope = */ 5);
 
+  masm.Ldr(ARMRegister(lr, 64), MemOperand(sp, Frame::returnAddressOffset()));
   masm.Ldr(ARMRegister(FramePointer, 64),
            MemOperand(sp, Frame::callerFPOffset()));
   poppedFP = masm.currentOffset();
-
-  masm.Ldr(ARMRegister(lr, 64), MemOperand(sp, Frame::returnAddressOffset()));
-  *ret = masm.currentOffset();
 
   masm.Add(sp, sp, sizeof(Frame));
 
@@ -690,6 +688,7 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
   // use it.  Hence we have to do it "by hand".
   masm.Mov(PseudoStackPointer64, vixl::sp);
 
+  *ret = masm.currentOffset();
   masm.Ret(ARMRegister(lr, 64));
 
   // See comment at equivalent place in |GenerateCallablePrologue| above.
@@ -1431,7 +1430,7 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
         // been restored so several cases can be coalesced here.
       } else if (offsetInCode >= codeRange->ret() - PoppedFP &&
                  offsetInCode <= codeRange->ret()) {
-        fixedPC = Frame::fromUntaggedWasmExitFP(sp)->returnAddress();
+        fixedPC = (uint8_t*)registers.lr;
         fixedFP = fp;
         AssertMatchesCallSite(fixedPC, fixedFP);
 #else

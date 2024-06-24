@@ -6,7 +6,7 @@ enableGeckoProfiling();
 
 var f = asmLink(asmCompile('glob', 'ffis', 'buf', USE_ASM + "function g() { var i=0; while (1) { i=(i+1)|0 } } function f() { g() } return f"));
 timeout(1);
-if (getBuildConfiguration("arm-simulator"))
+if (getBuildConfiguration("arm-simulator") || getBuildConfiguration("arm64-simulator"))
     enableSingleStepProfiling();
 f();
 assertEq(true, false);

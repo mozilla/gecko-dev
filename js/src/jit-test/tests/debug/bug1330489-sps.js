@@ -5,8 +5,8 @@ load(libdir + "asserts.js");
 if (!wasmDebuggingEnabled())
     throw "TestComplete";
 
-// Single-step profiling currently only works in the ARM simulator
-if (!getBuildConfiguration("arm-simulator"))
+// Single-step profiling currently only works in the ARM/ARM64 simulators
+if (!getBuildConfiguration("arm-simulator") && !getBuildConfiguration("arm64-simulator"))
     throw "TestComplete";
 
 enableGeckoProfiling();

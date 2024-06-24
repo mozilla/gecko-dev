@@ -24,7 +24,7 @@
 
 // Some platform hooks must be implemented for single-step profiling.
 #if defined(JS_SIMULATOR_ARM) || defined(JS_SIMULATOR_MIPS64) || \
-    defined(JS_SIMULATOR_MIPS32)
+    defined(JS_SIMULATOR_MIPS32) || defined(JS_SIMULATOR_ARM64)
 #  define SINGLESTEP_PROFILING
 #endif
 

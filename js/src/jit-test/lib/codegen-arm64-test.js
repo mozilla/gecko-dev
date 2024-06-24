@@ -11,6 +11,7 @@ var arm64_prefix = `
 
 // Start of epilogue
 var arm64_suffix = `
+f94007fe  ldr     x30, \\[sp, #8\\]
 f94003fd  ldr     x29, \\[sp\\]
 `;
 

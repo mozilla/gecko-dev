@@ -53,6 +53,9 @@ Simulator::Simulator(Decoder* decoder, FILE* stream)
   , stack_limit_(nullptr)
   , decoder_(nullptr)
   , oom_(false)
+  , single_stepping_(false)
+  , single_step_callback_(nullptr)
+  , single_step_callback_arg_(nullptr)
 {
     this->init(decoder, stream);
 
@@ -545,12 +548,20 @@ Simulator::VisitCallRedirection(const Instruction* instr)
   float s3 = sreg(3);
   float s4 = sreg(4);
 
+  if (single_stepping_) {
+    single_step_callback_(single_step_callback_arg_, this, nullptr);
+  }
+
   // Dispatch the call and set the return value.
   switch (redir->type()) {
     ABI_FUNCTION_TYPE_ARM64_SIM_DISPATCH
 
     default:
       MOZ_CRASH("Unknown function type.");
+  }
+
+  if (single_stepping_) {
+    single_step_callback_(single_step_callback_arg_, this, nullptr);
   }
 
   // Nuke the volatile registers. x0-x7 are used as result registers, but except

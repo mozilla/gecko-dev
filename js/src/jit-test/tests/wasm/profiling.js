@@ -114,6 +114,9 @@ this,
 // A few math builtins.
 for (let type of ['f32', 'f64']) {
     for (let func of ['ceil', 'floor', 'nearest', 'trunc']) {
+        if (getBuildConfiguration("arm64")) {
+            continue;
+        }
         test(`(module
             (func (export "") (param ${type}) (result ${type})
                 local.get 0

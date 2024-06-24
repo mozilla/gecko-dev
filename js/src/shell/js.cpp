@@ -7312,6 +7312,11 @@ static void SingleStepCallback(void* arg, jit::Simulator* sim, void* pc) {
   state.lr = (void*)sim->get_register(jit::Simulator::lr);
   state.fp = (void*)sim->get_register(jit::Simulator::fp);
   state.tempFP = (void*)sim->get_register(jit::Simulator::r7);
+#  elif defined(JS_SIMULATOR_ARM64)
+  state.sp = (void*)sim->get_sp();
+  state.lr = (void*)sim->get_lr();
+  state.fp = (void*)sim->get_fp();
+  state.tempFP = (void*)sim->xreg(11);
 #  elif defined(JS_SIMULATOR_MIPS64) || defined(JS_SIMULATOR_MIPS32)
   state.sp = (void*)sim->getRegister(jit::Simulator::sp);
   state.lr = (void*)sim->getRegister(jit::Simulator::ra);
