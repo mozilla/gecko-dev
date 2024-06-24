@@ -3395,6 +3395,8 @@ void RestyleManager::UpdateOnlyAnimationStyles() {
 
 void RestyleManager::ElementStateChanged(Element* aElement,
                                          ElementState aChangedBits) {
+  AUTO_PROFILER_LABEL_RELEVANT_FOR_JS("ElementStateChanged",
+                                      LAYOUT_StyleComputation);
 #ifdef EARLY_BETA_OR_EARLIER
   if (MOZ_UNLIKELY(mInStyleRefresh)) {
     MOZ_CRASH_UNSAFE_PRINTF(
