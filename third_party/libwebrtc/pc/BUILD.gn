@@ -357,6 +357,7 @@ rtc_source_set("media_session") {
     ":used_ids",
     "../api:field_trials_view",
     "../api:libjingle_peerconnection_api",
+    "../api:rtc_error",
     "../api:rtp_parameters",
     "../api:rtp_transceiver_direction",
     "../api/crypto:options",
