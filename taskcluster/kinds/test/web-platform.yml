@@ -271,6 +271,7 @@ web-platform-tests-webgpu:
         by-test-platform:
             linux2204.*/debug.*: 8
             linux2204.*: 6
+            windows.*-64.*/debug.*: 3
             default: 2
     max-run-time:
         by-test-platform:
