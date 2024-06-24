@@ -52,7 +52,7 @@ class VideoEncoderInterface {
   };
   using EncodeResult = absl::variant<EncodingError, EncodedData>;
   using EncodeResultCallback =
-      absl::AnyInvocable<void(const EncodeResult& result)>;
+      absl::AnyInvocable<void(const EncodeResult& result) &&>;
 
   struct FrameEncodeSettings {
     struct Cbr {

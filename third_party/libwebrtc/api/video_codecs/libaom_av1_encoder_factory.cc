@@ -14,6 +14,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
@@ -619,7 +620,7 @@ aom_svc_params_t GetSvcParams(
 void DoErrorCallback(std::vector<FrameEncodeSettings>& frame_settings) {
   for (FrameEncodeSettings& settings : frame_settings) {
     if (settings.result_callback) {
-      settings.result_callback({});
+      std::move(settings.result_callback)({});
       // To avoid invoking any callback more than once.
       settings.result_callback = {};
     }
@@ -788,7 +789,7 @@ void LibaomAv1Encoder::Encode(
       return;
     } else {
       RTC_CHECK(settings.result_callback);
-      settings.result_callback(result);
+      std::move(settings.result_callback)(result);
       // To avoid invoking any callback more than once.
       settings.result_callback = {};
     }
