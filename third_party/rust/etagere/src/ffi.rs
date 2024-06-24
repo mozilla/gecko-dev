@@ -1,4 +1,5 @@
 use crate::{AtlasAllocator, size2};
+use std::os::raw::c_char;
 
 /// 1 means OK, 0 means error.
 pub type EtagereStatus = u32;
@@ -108,7 +109,7 @@ pub unsafe extern "C" fn etagere_atlas_allocator_get(allocator: &AtlasAllocator,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn etagere_atlas_allocator_dump_svg(allocator: &AtlasAllocator, file_name: *const i8) -> EtagereStatus {
+pub unsafe extern "C" fn etagere_atlas_allocator_dump_svg(allocator: &AtlasAllocator, file_name: *const c_char) -> EtagereStatus {
     let cstr = std::ffi::CStr::from_ptr(file_name);
     let rstr = String::from_utf8_lossy(cstr.to_bytes());
     let mut file = match std::fs::File::create(rstr.as_ref()) {
