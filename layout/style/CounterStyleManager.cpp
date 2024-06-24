@@ -613,6 +613,7 @@ static const char16_t kSquareCharacter = 0x25aa;
 static const char16_t kRightPointingCharacter = 0x25b8;
 static const char16_t kLeftPointingCharacter = 0x25c2;
 static const char16_t kDownPointingCharacter = 0x25be;
+static const char16_t kUpPointingCharacter = 0x25b4;
 
 /* virtual */
 void BuiltinCounterStyle::GetSpokenCounterText(CounterValue aOrdinal,
@@ -828,7 +829,11 @@ bool BuiltinCounterStyle::GetInitialCounterText(CounterValue aOrdinal,
       return true;
     case ListStyle::DisclosureClosed:
       if (aWritingMode.IsVertical()) {
-        aResult.Assign(kDownPointingCharacter);
+        if (aWritingMode.IsBidiLTR()) {
+          aResult.Assign(kDownPointingCharacter);
+        } else {
+          aResult.Assign(kUpPointingCharacter);
+        }
       } else if (aWritingMode.IsBidiLTR()) {
         aResult.Assign(kRightPointingCharacter);
       } else {
