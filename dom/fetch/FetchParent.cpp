@@ -271,7 +271,7 @@ void FetchParent::OnResponseAvailableInternal(
   }
 
   Unused << SendOnResponseAvailableInternal(
-      aResponse->ToParentToChildInternalResponse(WrapNotNull(Manager())));
+      aResponse->ToParentToChildInternalResponse());
 }
 
 void FetchParent::OnResponseEnd(const ResponseEndArgs& aArgs) {

@@ -56,7 +56,6 @@ ParentToParentStream ToParentToParentStream(
 
 ParentToChildStream ToParentToChildStream(
     const NotNull<nsCOMPtr<nsIInputStream>>& aStream, int64_t aStreamSize,
-    NotNull<mozilla::ipc::PBackgroundParent*> aBackgroundParent,
     bool aSerializeAsLazy) {
   MOZ_ASSERT(XRE_IsParentProcess());
 
@@ -73,11 +72,9 @@ ParentToChildStream ToParentToChildStream(
   return result;
 }
 
-ParentToChildStream ToParentToChildStream(
-    const ParentToParentStream& aStream, int64_t aStreamSize,
-    NotNull<mozilla::ipc::PBackgroundParent*> aBackgroundParent) {
-  return ToParentToChildStream(ToInputStream(aStream), aStreamSize,
-                               aBackgroundParent);
+ParentToChildStream ToParentToChildStream(const ParentToParentStream& aStream,
+                                          int64_t aStreamSize) {
+  return ToParentToChildStream(ToInputStream(aStream), aStreamSize);
 }
 
 }  // namespace mozilla::dom
