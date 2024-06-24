@@ -112,27 +112,15 @@ RemoteWorkerServiceKeepAlive::~RemoteWorkerServiceKeepAlive() {
 }
 
 /* static */
-void RemoteWorkerService::Initialize() {
+void RemoteWorkerService::InitializeParent() {
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess());
 
   StaticMutexAutoLock lock(sRemoteWorkerServiceMutex);
   MOZ_ASSERT(!sRemoteWorkerService);
 
   RefPtr<RemoteWorkerService> service = new RemoteWorkerService();
 
-  // ## Content Process Initialization Case
-  //
-  // We are being told to initialize now that we know what our remote type is.
-  // Now is a fine time to call InitializeOnMainThread.
-  if (!XRE_IsParentProcess()) {
-    nsresult rv = service->InitializeOnMainThread();
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
-    }
-
-    sRemoteWorkerService = service;
-    return;
-  }
   // ## Parent Process Initialization Case
   //
   // Otherwise we are in the parent process and were invoked by
@@ -150,6 +138,30 @@ void RemoteWorkerService::Initialize() {
   }
 
   nsresult rv = obs->AddObserver(service, "profile-after-change", false);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return;
+  }
+
+  sRemoteWorkerService = service;
+}
+
+/* static */
+void RemoteWorkerService::InitializeChild(
+    mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!XRE_IsParentProcess());
+
+  StaticMutexAutoLock lock(sRemoteWorkerServiceMutex);
+  MOZ_ASSERT(!sRemoteWorkerService);
+
+  RefPtr<RemoteWorkerService> service = new RemoteWorkerService();
+
+  // ## Content Process Initialization Case
+  //
+  // We are being told to initialize now that we know what our remote type is.
+  // Now is a fine time to call InitializeOnMainThread.
+
+  nsresult rv = service->InitializeOnMainThread(std::move(aEndpoint));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -183,7 +195,8 @@ RemoteWorkerService::MaybeGetKeepAlive() {
   return extraRef.forget();
 }
 
-nsresult RemoteWorkerService::InitializeOnMainThread() {
+nsresult RemoteWorkerService::InitializeOnMainThread(
+    mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint) {
   // I would like to call this thread "DOM Remote Worker Launcher", but the max
   // length is 16 chars.
   nsresult rv = NS_NewNamedThread("Worker Launcher", getter_AddRefs(mThread));
@@ -213,7 +226,9 @@ nsresult RemoteWorkerService::InitializeOnMainThread() {
 
   RefPtr<RemoteWorkerService> self = this;
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-      "InitializeThread", [self]() { self->InitializeOnTargetThread(); });
+      "InitializeThread", [self, endpoint = std::move(aEndpoint)]() mutable {
+        self->InitializeOnTargetThread(std::move(endpoint));
+      });
 
   rv = mThread->Dispatch(r.forget(), NS_DISPATCH_NORMAL);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -230,20 +245,14 @@ RemoteWorkerService::RemoteWorkerService()
 
 RemoteWorkerService::~RemoteWorkerService() = default;
 
-void RemoteWorkerService::InitializeOnTargetThread() {
+void RemoteWorkerService::InitializeOnTargetThread(
+    mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint) {
   MOZ_ASSERT(mThread);
   MOZ_ASSERT(mThread->IsOnCurrentThread());
 
-  PBackgroundChild* backgroundActor =
-      BackgroundChild::GetOrCreateForCurrentThread();
-  if (NS_WARN_IF(!backgroundActor)) {
-    return;
-  }
-
   RefPtr<RemoteWorkerServiceChild> serviceActor =
       MakeAndAddRef<RemoteWorkerServiceChild>();
-  if (NS_WARN_IF(!backgroundActor->SendPRemoteWorkerServiceConstructor(
-          serviceActor))) {
+  if (NS_WARN_IF(!aEndpoint.Bind(serviceActor))) {
     return;
   }
 
@@ -258,7 +267,7 @@ void RemoteWorkerService::CloseActorOnTargetThread() {
   // If mActor is nullptr it means that initialization failed.
   if (mActor) {
     // Here we need to shutdown the IPC protocol.
-    mActor->Send__delete__(mActor);
+    mActor->Close();
     mActor = nullptr;
   }
 }
@@ -300,7 +309,12 @@ RemoteWorkerService::Observe(nsISupports* aSubject, const char* aTopic,
     obs->RemoveObserver(this, "profile-after-change");
   }
 
-  return InitializeOnMainThread();
+  Endpoint<PRemoteWorkerServiceChild> childEp;
+  RefPtr<RemoteWorkerServiceParent> parentActor =
+      RemoteWorkerServiceParent::CreateForProcess(nullptr, &childEp);
+  NS_ENSURE_TRUE(parentActor, NS_ERROR_FAILURE);
+
+  return InitializeOnMainThread(std::move(childEp));
 }
 
 void RemoteWorkerService::BeginShutdown() {

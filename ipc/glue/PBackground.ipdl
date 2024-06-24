@@ -27,7 +27,6 @@ include protocol PGamepadEventChannel;
 include protocol PGamepadTestChannel;
 include protocol PHttpBackgroundChannel;
 include protocol PIdleScheduler;
-include protocol PRemoteWorker;
 include protocol PRemoteWorkerController;
 include protocol PRemoteWorkerService;
 include protocol PSharedWorker;
@@ -107,9 +106,7 @@ sync protocol PBackground
   manages PHttpBackgroundChannel;
   manages PIdleScheduler;
   manages PLockManager;
-  manages PRemoteWorker;
   manages PRemoteWorkerController;
-  manages PRemoteWorkerService;
   manages PSharedWorker;
   manages PTemporaryIPCBlob;
   manages PFileCreator;
@@ -261,8 +258,6 @@ parent:
 
   async PRemoteWorkerController(RemoteWorkerData aData);
 
-  async PRemoteWorkerService();
-
   async PServiceWorkerContainer();
 
   async PServiceWorkerRegistration(IPCServiceWorkerRegistrationDescriptor aDescriptor);
@@ -289,8 +284,6 @@ parent:
 child:
   async PCache();
   async PCacheStreamControl();
-
-  async PRemoteWorker(RemoteWorkerData data);
 };
 
 } // namespace ipc

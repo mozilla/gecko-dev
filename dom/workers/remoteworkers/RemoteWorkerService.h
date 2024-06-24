@@ -9,6 +9,7 @@
 
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/DataMutex.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
 #include "nsISupportsImpl.h"
@@ -20,6 +21,7 @@ namespace mozilla::dom {
 class RemoteWorkerService;
 class RemoteWorkerServiceChild;
 class RemoteWorkerServiceShutdownBlocker;
+class PRemoteWorkerServiceChild;
 
 /**
  * Refcounted lifecycle helper; when its refcount goes to zero its destructor
@@ -67,7 +69,9 @@ class RemoteWorkerService final : public nsIObserver {
   NS_DECL_NSIOBSERVER
 
   // To be called when a process is initialized on main-thread.
-  static void Initialize();
+  static void InitializeParent();
+  static void InitializeChild(
+      mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint);
 
   static nsIThread* Thread();
 
@@ -91,9 +95,11 @@ class RemoteWorkerService final : public nsIObserver {
   RemoteWorkerService();
   ~RemoteWorkerService();
 
-  nsresult InitializeOnMainThread();
+  nsresult InitializeOnMainThread(
+      mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint);
 
-  void InitializeOnTargetThread();
+  void InitializeOnTargetThread(
+      mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint);
 
   void CloseActorOnTargetThread();
 
