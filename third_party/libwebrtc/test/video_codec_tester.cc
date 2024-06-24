@@ -1301,36 +1301,32 @@ SplitBitrateAndUpdateScalabilityMode(std::string codec_type,
                                      ScalabilityMode scalability_mode,
                                      int width,
                                      int height,
-                                     std::vector<int> bitrates_kbps,
-                                     double framerate_fps,
+                                     std::vector<DataRate> layer_bitrate,
+                                     Frequency framerate,
                                      VideoCodecMode content_type) {
   int num_spatial_layers = ScalabilityModeToNumSpatialLayers(scalability_mode);
   int num_temporal_layers =
       ScalabilityModeToNumTemporalLayers(scalability_mode);
 
-  int num_bitrates = static_cast<int>(bitrates_kbps.size());
+  int num_bitrates = static_cast<int>(layer_bitrate.size());
   RTC_CHECK(num_bitrates == 1 || num_bitrates == num_spatial_layers ||
             num_bitrates == num_spatial_layers * num_temporal_layers);
 
   if (num_bitrates == num_spatial_layers * num_temporal_layers) {
-    std::vector<DataRate> bitrates;
-    for (const auto& bitrate_kbps : bitrates_kbps) {
-      bitrates.push_back(DataRate::KilobitsPerSec(bitrate_kbps));
-    }
-    return std::make_tuple(bitrates, scalability_mode);
+    return std::make_tuple(layer_bitrate, scalability_mode);
   }
 
-  int total_bitrate_kbps =
-      std::accumulate(bitrates_kbps.begin(), bitrates_kbps.end(), 0);
+  DataRate total_bitrate = std::accumulate(
+      layer_bitrate.begin(), layer_bitrate.end(), DataRate::Zero());
 
   VideoCodec vc;
   vc.codecType = PayloadStringToCodecType(codec_type);
   vc.width = width;
   vc.height = height;
-  vc.startBitrate = total_bitrate_kbps;
-  vc.maxBitrate = total_bitrate_kbps;
+  vc.startBitrate = total_bitrate.kbps();
+  vc.maxBitrate = total_bitrate.kbps();
   vc.minBitrate = 0;
-  vc.maxFramerate = static_cast<uint32_t>(framerate_fps);
+  vc.maxFramerate = framerate.hertz();
   vc.numberOfSimulcastStreams = 0;
   vc.mode = content_type;
   vc.SetScalabilityMode(scalability_mode);
@@ -1348,8 +1344,8 @@ SplitBitrateAndUpdateScalabilityMode(std::string codec_type,
           ss->height = height >> (num_spatial_layers - sidx - 1);
           ss->maxFramerate = vc.maxFramerate;
           ss->numberOfTemporalLayers = num_temporal_layers;
-          ss->maxBitrate = bitrates_kbps[sidx];
-          ss->targetBitrate = bitrates_kbps[sidx];
+          ss->maxBitrate = layer_bitrate[sidx].kbps();
+          ss->targetBitrate = layer_bitrate[sidx].kbps();
           ss->minBitrate = 0;
           ss->qpMax = 0;
           ss->active = true;
@@ -1363,8 +1359,8 @@ SplitBitrateAndUpdateScalabilityMode(std::string codec_type,
           ss->height = height >> (num_spatial_layers - sidx - 1);
           ss->maxFramerate = vc.maxFramerate;
           ss->numberOfTemporalLayers = num_temporal_layers;
-          ss->maxBitrate = bitrates_kbps[sidx];
-          ss->targetBitrate = bitrates_kbps[sidx];
+          ss->maxBitrate = layer_bitrate[sidx].kbps();
+          ss->targetBitrate = layer_bitrate[sidx].kbps();
           ss->minBitrate = 0;
           ss->qpMax = 0;
           ss->active = true;
@@ -1412,7 +1408,7 @@ SplitBitrateAndUpdateScalabilityMode(std::string codec_type,
           vc);
   VideoBitrateAllocation bitrate_allocation =
       bitrate_allocator->Allocate(VideoBitrateAllocationParameters(
-          1000 * total_bitrate_kbps, framerate_fps));
+          total_bitrate.bps(), framerate.hertz<double>()));
 
   std::vector<DataRate> bitrates;
   for (int sidx = 0; sidx < num_spatial_layers; ++sidx) {
@@ -1486,22 +1482,22 @@ void VideoCodecStats::Stream::LogMetrics(
                     metadata);
 }
 
-// TODO(ssilkin): use Frequency and DataRate for framerate and bitrate.
-std::map<uint32_t, EncodingSettings> VideoCodecTester::CreateEncodingSettings(
+EncodingSettings VideoCodecTester::CreateEncodingSettings(
     std::string codec_type,
     std::string scalability_name,
     int width,
     int height,
-    std::vector<int> layer_bitrates_kbps,
-    double framerate_fps,
-    int num_frames,
-    uint32_t first_timestamp_rtp,
-    webrtc::VideoCodecMode content_type,
+    std::vector<DataRate> bitrate,
+    Frequency framerate,
+    bool screencast,
     bool frame_drop) {
-  auto [layer_bitrates, scalability_mode] =
+  VideoCodecMode content_type = screencast ? VideoCodecMode::kScreensharing
+                                           : VideoCodecMode::kRealtimeVideo;
+
+  auto [adjusted_bitrate, scalability_mode] =
       SplitBitrateAndUpdateScalabilityMode(
           codec_type, *ScalabilityModeFromString(scalability_name), width,
-          height, layer_bitrates_kbps, framerate_fps, content_type);
+          height, bitrate, framerate, content_type);
 
   int num_spatial_layers = ScalabilityModeToNumSpatialLayers(scalability_mode);
   int num_temporal_layers =
@@ -1512,14 +1508,12 @@ std::map<uint32_t, EncodingSettings> VideoCodecTester::CreateEncodingSettings(
     int layer_width = width >> (num_spatial_layers - sidx - 1);
     int layer_height = height >> (num_spatial_layers - sidx - 1);
     for (int tidx = 0; tidx < num_temporal_layers; ++tidx) {
-      double layer_framerate_fps =
-          framerate_fps / (1 << (num_temporal_layers - tidx - 1));
       layers_settings.emplace(
           LayerId{.spatial_idx = sidx, .temporal_idx = tidx},
           LayerSettings{
               .resolution = {.width = layer_width, .height = layer_height},
-              .framerate = Frequency::MilliHertz(1000 * layer_framerate_fps),
-              .bitrate = layer_bitrates[sidx * num_temporal_layers + tidx]});
+              .framerate = framerate / (1 << (num_temporal_layers - tidx - 1)),
+              .bitrate = adjusted_bitrate[sidx * num_temporal_layers + tidx]});
     }
   }
 
@@ -1534,20 +1528,25 @@ std::map<uint32_t, EncodingSettings> VideoCodecTester::CreateEncodingSettings(
             .parameters;
   }
 
-  std::map<uint32_t, EncodingSettings> frames_settings;
-  uint32_t timestamp_rtp = first_timestamp_rtp;
+  return EncodingSettings{.sdp_video_format = sdp_video_format,
+                          .scalability_mode = scalability_mode,
+                          .content_type = content_type,
+                          .frame_drop = frame_drop,
+                          .layers_settings = layers_settings};
+}
+
+std::map<uint32_t, EncodingSettings> VideoCodecTester::CreateFrameSettings(
+    const EncodingSettings& encoding_settings,
+    int num_frames,
+    uint32_t timestamp_rtp) {
+  std::map<uint32_t, EncodingSettings> frame_settings;
+  Frequency framerate =
+      encoding_settings.layers_settings.rbegin()->second.framerate;
   for (int frame_num = 0; frame_num < num_frames; ++frame_num) {
-    frames_settings.emplace(
-        timestamp_rtp, EncodingSettings{.sdp_video_format = sdp_video_format,
-                                        .scalability_mode = scalability_mode,
-                                        .content_type = content_type,
-                                        .frame_drop = frame_drop,
-                                        .layers_settings = layers_settings});
-
-    timestamp_rtp += k90kHz / Frequency::MilliHertz(1000 * framerate_fps);
+    frame_settings.emplace(timestamp_rtp, encoding_settings);
+    timestamp_rtp += k90kHz / framerate;
   }
-
-  return frames_settings;
+  return frame_settings;
 }
 
 std::unique_ptr<VideoCodecTester::VideoCodecStats>

@@ -60,9 +60,9 @@ ABSL_FLAG(std::vector<std::string>,
           {"1024"},
           "Encode target bitrate per layer (l0t0,l0t1,...l1t0,l1t1 and so on) "
           "in kbps.");
-ABSL_FLAG(double,
+ABSL_FLAG(absl::optional<double>,
           framerate_fps,
-          30.0,
+          absl::nullopt,
           "Encode target frame rate of the top temporal layer in fps.");
 ABSL_FLAG(bool, screencast, false, "Enable screen encoding mode.");
 ABSL_FLAG(bool, frame_drop, true, "Enable frame dropping.");
@@ -314,13 +314,16 @@ TEST_P(SpatialQualityTest, SpatialQuality) {
 
   VideoSourceSettings source_settings = ToSourceSettings(video_info);
 
-  std::map<uint32_t, EncodingSettings> frames_settings =
-      VideoCodecTester::CreateEncodingSettings(
-          codec_type, /*scalability_mode=*/"L1T1", width, height,
-          {bitrate_kbps}, framerate_fps, num_frames);
+  EncodingSettings encoding_settings = VideoCodecTester::CreateEncodingSettings(
+      codec_type, /*scalability_mode=*/"L1T1", width, height,
+      {DataRate::KilobitsPerSec(bitrate_kbps)},
+      Frequency::Hertz(framerate_fps));
+
+  std::map<uint32_t, EncodingSettings> frame_settings =
+      VideoCodecTester::CreateFrameSettings(encoding_settings, num_frames);
 
   std::unique_ptr<VideoCodecStats> stats = RunEncodeDecodeTest(
-      env, codec_impl, codec_impl, source_settings, frames_settings);
+      env, codec_impl, codec_impl, source_settings, frame_settings);
 
   VideoCodecStats::Stream stream;
   if (stats != nullptr) {
@@ -390,29 +393,36 @@ TEST_P(BitrateAdaptationTest, BitrateAdaptation) {
 
   VideoSourceSettings source_settings = ToSourceSettings(video_info);
 
-  std::map<uint32_t, EncodingSettings> encoding_settings =
+  EncodingSettings encoding_settings = VideoCodecTester::CreateEncodingSettings(
+      codec_type, /*scalability_mode=*/"L1T1",
+      /*width=*/640, /*height=*/360,
+      {DataRate::KilobitsPerSec(bitrate_kbps.first)},
+      /*framerate=*/Frequency::Hertz(30));
+
+  EncodingSettings encoding_settings2 =
       VideoCodecTester::CreateEncodingSettings(
           codec_type, /*scalability_mode=*/"L1T1",
-          /*width=*/640, /*height=*/360, {bitrate_kbps.first},
-          /*framerate_fps=*/30, num_frames);
+          /*width=*/640, /*height=*/360,
+          {DataRate::KilobitsPerSec(bitrate_kbps.second)},
+          /*framerate=*/Frequency::Hertz(30));
 
-  uint32_t initial_timestamp_rtp =
-      encoding_settings.rbegin()->first + k90kHz / Frequency::Hertz(30);
+  std::map<uint32_t, EncodingSettings> frame_settings =
+      VideoCodecTester::CreateFrameSettings(encoding_settings, num_frames);
 
-  std::map<uint32_t, EncodingSettings> encoding_settings2 =
-      VideoCodecTester::CreateEncodingSettings(
-          codec_type, /*scalability_mode=*/"L1T1",
-          /*width=*/640, /*height=*/360, {bitrate_kbps.second},
-          /*framerate_fps=*/30, num_frames, initial_timestamp_rtp);
+  uint32_t timestamp_rtp =
+      frame_settings.rbegin()->first + k90kHz / Frequency::Hertz(30);
+  std::map<uint32_t, EncodingSettings> frame_settings2 =
+      VideoCodecTester::CreateFrameSettings(encoding_settings2, num_frames,
+                                            timestamp_rtp);
 
-  encoding_settings.merge(encoding_settings2);
+  frame_settings.merge(frame_settings2);
 
   std::unique_ptr<VideoCodecStats> stats = RunEncodeTest(
-      env, codec_type, codec_impl, source_settings, encoding_settings);
+      env, codec_type, codec_impl, source_settings, frame_settings);
 
   VideoCodecStats::Stream stream;
   if (stats != nullptr) {
-    stream = stats->Aggregate({.min_timestamp_rtp = initial_timestamp_rtp});
+    stream = stats->Aggregate({.min_timestamp_rtp = timestamp_rtp});
     if (absl::GetFlag(FLAGS_webrtc_quick_perf_test)) {
       EXPECT_NEAR(stream.bitrate_mismatch_pct.GetAverage(), 0, 10);
       EXPECT_NEAR(stream.framerate_mismatch_pct.GetAverage(), 0, 10);
@@ -469,33 +479,39 @@ TEST_P(FramerateAdaptationTest, FramerateAdaptation) {
 
   VideoSourceSettings source_settings = ToSourceSettings(video_info);
 
-  std::map<uint32_t, EncodingSettings> encoding_settings =
+  EncodingSettings encoding_settings = VideoCodecTester::CreateEncodingSettings(
+      codec_type, /*scalability_mode=*/"L1T1",
+      /*width=*/640, /*height=*/360,
+      /*bitrate=*/{DataRate::KilobitsPerSec(512)},
+      Frequency::Hertz(framerate_fps.first));
+
+  EncodingSettings encoding_settings2 =
       VideoCodecTester::CreateEncodingSettings(
           codec_type, /*scalability_mode=*/"L1T1",
           /*width=*/640, /*height=*/360,
-          /*layer_bitrates_kbps=*/{512}, framerate_fps.first,
-          static_cast<int>(duration_s * framerate_fps.first));
+          /*bitrate=*/{DataRate::KilobitsPerSec(512)},
+          Frequency::Hertz(framerate_fps.second));
 
-  uint32_t initial_timestamp_rtp =
-      encoding_settings.rbegin()->first +
-      k90kHz / Frequency::Hertz(framerate_fps.first);
+  int num_frames = static_cast<int>(duration_s * framerate_fps.first);
+  std::map<uint32_t, EncodingSettings> frame_settings =
+      VideoCodecTester::CreateFrameSettings(encoding_settings, num_frames);
 
-  std::map<uint32_t, EncodingSettings> encoding_settings2 =
-      VideoCodecTester::CreateEncodingSettings(
-          codec_type, /*scalability_mode=*/"L1T1", /*width=*/640,
-          /*height=*/360,
-          /*layer_bitrates_kbps=*/{512}, framerate_fps.second,
-          static_cast<int>(duration_s * framerate_fps.second),
-          initial_timestamp_rtp);
+  uint32_t timestamp_rtp = frame_settings.rbegin()->first +
+                           k90kHz / Frequency::Hertz(framerate_fps.first);
 
-  encoding_settings.merge(encoding_settings2);
+  num_frames = static_cast<int>(duration_s * framerate_fps.second);
+  std::map<uint32_t, EncodingSettings> frame_settings2 =
+      VideoCodecTester::CreateFrameSettings(encoding_settings2, num_frames,
+                                            timestamp_rtp);
+
+  frame_settings.merge(frame_settings2);
 
   std::unique_ptr<VideoCodecStats> stats = RunEncodeTest(
-      env, codec_type, codec_impl, source_settings, encoding_settings);
+      env, codec_type, codec_impl, source_settings, frame_settings);
 
   VideoCodecStats::Stream stream;
   if (stats != nullptr) {
-    stream = stats->Aggregate({.min_timestamp_rtp = initial_timestamp_rtp});
+    stream = stats->Aggregate({.min_timestamp_rtp = timestamp_rtp});
     if (absl::GetFlag(FLAGS_webrtc_quick_perf_test)) {
       EXPECT_NEAR(stream.bitrate_mismatch_pct.GetAverage(), 0, 10);
       EXPECT_NEAR(stream.framerate_mismatch_pct.GetAverage(), 0, 10);
@@ -540,26 +556,27 @@ TEST(VideoCodecTest, DISABLED_EncodeDecode) {
           Frequency::Hertz<double>(absl::GetFlag(FLAGS_input_framerate_fps))};
 
   std::vector<std::string> bitrate_str = absl::GetFlag(FLAGS_bitrate_kbps);
-  std::vector<int> bitrate_kbps;
+  std::vector<DataRate> bitrate;
   std::transform(bitrate_str.begin(), bitrate_str.end(),
-                 std::back_inserter(bitrate_kbps),
-                 [](const std::string& str) { return std::stoi(str); });
+                 std::back_inserter(bitrate), [](const std::string& str) {
+                   return DataRate::KilobitsPerSec(std::stoi(str));
+                 });
 
-  VideoCodecMode content_type = absl::GetFlag(FLAGS_screencast)
-                                    ? VideoCodecMode::kScreensharing
-                                    : VideoCodecMode::kRealtimeVideo;
+  EncodingSettings encoding_settings = VideoCodecTester::CreateEncodingSettings(
+      CodecNameToCodecType(absl::GetFlag(FLAGS_encoder)),
+      absl::GetFlag(FLAGS_scalability_mode),
+      absl::GetFlag(FLAGS_width).value_or(absl::GetFlag(FLAGS_input_width)),
+      absl::GetFlag(FLAGS_height).value_or(absl::GetFlag(FLAGS_input_height)),
+      {bitrate},
+      Frequency::Hertz<double>(
+          absl::GetFlag(FLAGS_framerate_fps)
+              .value_or(absl::GetFlag(FLAGS_input_framerate_fps))),
+      absl::GetFlag(FLAGS_screencast), absl::GetFlag(FLAGS_frame_drop));
 
-  std::map<uint32_t, EncodingSettings> frames_settings =
-      VideoCodecTester::CreateEncodingSettings(
-          CodecNameToCodecType(absl::GetFlag(FLAGS_encoder)),
-          absl::GetFlag(FLAGS_scalability_mode),
-          absl::GetFlag(FLAGS_width).value_or(absl::GetFlag(FLAGS_input_width)),
-          absl::GetFlag(FLAGS_height)
-              .value_or(absl::GetFlag(FLAGS_input_height)),
-          {bitrate_kbps}, absl::GetFlag(FLAGS_framerate_fps),
-          absl::GetFlag(FLAGS_num_frames),
-          /*first_timestamp_rtp=*/90000, content_type,
-          absl::GetFlag(FLAGS_frame_drop));
+  std::map<uint32_t, EncodingSettings> frame_settings =
+      VideoCodecTester::CreateFrameSettings(encoding_settings,
+                                            absl::GetFlag(FLAGS_num_frames),
+                                            /*timestamp_rtp=*/90000);
 
   // TODO(webrtc:14852): Pass encoder and decoder names directly, and update
   // logged test name (implies lossing history in the chromeperf dashboard).
@@ -567,7 +584,7 @@ TEST(VideoCodecTest, DISABLED_EncodeDecode) {
   std::unique_ptr<VideoCodecStats> stats = RunEncodeDecodeTest(
       env, CodecNameToCodecImpl(absl::GetFlag(FLAGS_encoder)),
       CodecNameToCodecImpl(absl::GetFlag(FLAGS_decoder)), source_settings,
-      frames_settings);
+      frame_settings);
   ASSERT_NE(nullptr, stats);
 
   // Log unsliced metrics.

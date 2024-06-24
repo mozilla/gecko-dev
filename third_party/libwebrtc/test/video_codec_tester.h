@@ -188,19 +188,26 @@ class VideoCodecTester {
     virtual absl::optional<EncodedImage> PullFrame() = 0;
   };
 
-  // A helper function that creates `EncodingSettings` for `num_frames` frames,
-  // wraps the settings into RTP timestamp -> settings map and returns the map.
-  static std::map<uint32_t, EncodingSettings> CreateEncodingSettings(
-      std::string codec_type,
-      std::string scalability_name,
-      int width,
-      int height,
-      std::vector<int> bitrates_kbps,
-      double framerate_fps,
+  // A helper function that creates `EncodingSettings` from the given
+  // parameters. `bitrate` is either total, or per-spatial layer or per-spatial
+  // and per-temporal layer. If layer bitrates are not explicitly specified,
+  // then the codec-specific rate allocators used to distribute the total
+  // bitrate across spatial or/and temporal layers.
+  static EncodingSettings CreateEncodingSettings(std::string codec_type,
+                                                 std::string scalability_name,
+                                                 int width,
+                                                 int height,
+                                                 std::vector<DataRate> bitrate,
+                                                 Frequency framerate,
+                                                 bool screencast = false,
+                                                 bool frame_drop = true);
+
+  // A helper function that creates a map of RTP timestamps to
+  // `EncodingSettings` for the given number of frames.
+  static std::map<uint32_t, EncodingSettings> CreateFrameSettings(
+      const EncodingSettings& encoding_settings,
       int num_frames,
-      uint32_t first_timestamp_rtp = 90000,
-      VideoCodecMode content_type = VideoCodecMode::kRealtimeVideo,
-      bool frame_drop = true);
+      uint32_t first_timestamp_rtp = 90000);
 
   // Decodes video, collects and returns decode metrics.
   static std::unique_ptr<VideoCodecStats> RunDecodeTest(
