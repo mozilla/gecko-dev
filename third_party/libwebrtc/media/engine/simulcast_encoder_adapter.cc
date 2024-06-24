@@ -44,18 +44,6 @@ namespace {
 // Max qp for lowest spatial resolution when doing simulcast.
 const unsigned int kLowestResMaxQp = 45;
 
-absl::optional<unsigned int> GetScreenshareBoostedQpValue(
-    const webrtc::FieldTrialsView& field_trials) {
-  std::string experiment_group =
-      field_trials.Lookup("WebRTC-BoostedScreenshareQp");
-  unsigned int qp;
-  if (sscanf(experiment_group.c_str(), "%u", &qp) != 1)
-    return absl::nullopt;
-  qp = std::min(qp, 63u);
-  qp = std::max(qp, 1u);
-  return qp;
-}
-
 uint32_t SumStreamMaxBitrate(int streams, const webrtc::VideoCodec& codec) {
   uint32_t bitrate_sum = 0;
   for (int i = 0; i < streams; ++i) {
@@ -258,8 +246,6 @@ SimulcastEncoderAdapter::SimulcastEncoderAdapter(
       total_streams_count_(0),
       bypass_mode_(false),
       encoded_complete_callback_(nullptr),
-      experimental_boosted_screenshare_qp_(
-          GetScreenshareBoostedQpValue(env_.field_trials())),
       boost_base_layer_quality_(
           RateControlSettings::ParseFromKeyValueConfig(&env_.field_trials())
               .Vp8BoostBaseLayerQuality()),
@@ -825,11 +811,8 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
   // Settings that are based on stream/resolution.
   if (is_lowest_quality_stream) {
     // Settings for lowest spatial resolutions.
-    if (codec.mode == VideoCodecMode::kScreensharing) {
-      if (experimental_boosted_screenshare_qp_) {
-        codec_params.qpMax = *experimental_boosted_screenshare_qp_;
-      }
-    } else if (boost_base_layer_quality_) {
+    if (codec.mode == VideoCodecMode::kRealtimeVideo &&
+        boost_base_layer_quality_) {
       codec_params.qpMax = kLowestResMaxQp;
     }
   }
