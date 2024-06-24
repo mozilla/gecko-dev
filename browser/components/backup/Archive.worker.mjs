@@ -89,10 +89,10 @@ class ArchiveWorker {
    *   Arguments that are described in more detail below.
    * @param {string} params.archivePath
    *   The path on the file system to write the single-file archive.
-   * @param {string} params.markup
-   *   The HTML markup to insert into the archive file before the HTML
-   *   comment block. This is the markup that will be rendered if the HTML
-   *   file is opened in a web browser.
+   * @param {string} params.templateURI
+   *   A URI pointing to the HTML template that will be used for the viewable
+   *   part of the document. The inlined MIME message will be appended after
+   *   the contents of this template.
    * @param {object} params.backupMetadata
    *   The metadata associated with this backup. This is a copy of the metadata
    *   object that is contained within the compressed backups' manifest.
@@ -106,7 +106,7 @@ class ArchiveWorker {
    */
   async constructArchive({
     archivePath,
-    markup,
+    templateURI,
     backupMetadata,
     compressedBackupSnapshotPath,
     encryptionArgs,
@@ -119,6 +119,15 @@ class ArchiveWorker {
         encryptionArgs.backupAuthKey
       );
     }
+
+    // We can get at the template content by using a sync XHR, which is fine to
+    // to do in a Worker.
+    let templateXhr = new XMLHttpRequest();
+    // Using a synchronous XHR in a worker is fine.
+    templateXhr.open("GET", templateURI, false);
+    templateXhr.responseType = "text";
+    templateXhr.send(null);
+    let template = templateXhr.responseText;
 
     let boundary = this.#generateBoundary();
 
@@ -147,7 +156,7 @@ class ArchiveWorker {
     //
     // This isn't supposed to be some kind of generalized MIME message
     // generator, so we're happy to construct it by hand here.
-    await IOUtils.writeUTF8(archivePath, markup);
+    await IOUtils.writeUTF8(archivePath, template);
     await IOUtils.writeUTF8(
       archivePath,
       `
@@ -301,8 +310,7 @@ ${ArchiveUtils.INLINE_MIME_END_MARKER}
 
     let textDecoder = new TextDecoder();
     let decodedHeader = textDecoder.decode(headerBuffer);
-    const EXPECTED_HEADER =
-      /^<!DOCTYPE html>[\r\n]+<!-- Version: (\d+) -->[\r\n]+/;
+    const EXPECTED_HEADER = /^<!DOCTYPE html>\n<!-- Version: (\d+) -->\n/;
     let headerMatches = decodedHeader.match(EXPECTED_HEADER);
     if (!headerMatches) {
       throw new Error("Corrupt archive header");

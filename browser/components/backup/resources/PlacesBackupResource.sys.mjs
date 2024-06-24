@@ -43,11 +43,7 @@ export class PlacesBackupResource extends BackupResource {
     return 1;
   }
 
-  async backup(
-    stagingPath,
-    profilePath = PathUtils.profileDir,
-    _isEncrypting = false
-  ) {
+  async backup(stagingPath, profilePath = PathUtils.profileDir) {
     let canBackupHistory =
       !lazy.PrivateBrowsingUtils.permanentPrivateBrowsing &&
       !lazy.isSanitizeOnShutdownEnabled &&

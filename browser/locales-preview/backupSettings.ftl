@@ -84,33 +84,4 @@ disable-backup-encryption-support-link = What will be backed up?
 disable-backup-encryption-cancel-button = Cancel
 disable-backup-encryption-confirm-button = Remove password
 
-## These strings are inserted into the generated single-file backup archive.
-## The single-file backup archive is a specially-crafted, static HTML file
-## that is placed within a user specified directory (the Documents folder by
-## default) within a folder labelled with the "backup-folder-name" string.
-
-backup-file-header = { -brand-short-name } is ready to be restored
-backup-file-title = Restore { -brand-short-name }
-backup-file-intro = Get back to browsing and recover all your bookmarks, history, and other data. <a data-l10n-name="backup-file-support-link">Learn more</a>
-
-# Variables:
-#   $date (string) - Date to be formatted based on locale
-backup-file-last-backed-up = <strong>Last backed up:</strong> { DATETIME($date, timeStyle: "short") }, { DATETIME($date, dateStyle: "short") }
-
-backup-file-encryption-state-encrypted = Encrypted
-backup-file-encryption-state-not-encrypted = Not encrypted
-
-# Variables:
-#   $machineName (String) - Name of the machine that the backup was created on.
-backup-file-creation-device = Created on { $machineName }
-
-backup-file-how-to-restore-header = How to restore your data:
-backup-file-moz-browser-restore-step-1 = Go to Settings > Backup
-backup-file-moz-browser-restore-step-2 = Under “Restore”, click “Choose backup file”
-backup-file-moz-browser-restore-step-3 = Restart { -brand-short-name } when asked
-
-backup-file-other-browser-restore-step-1 = Download and install { -brand-short-name }:
-backup-file-download-moz-browser-button = Download { -brand-short-name }
-backup-file-other-browser-restore-step-2 = Open { -brand-short-name } and restore your backup
-
 ##

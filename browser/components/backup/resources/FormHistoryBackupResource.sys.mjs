@@ -16,11 +16,7 @@ export class FormHistoryBackupResource extends BackupResource {
     return false;
   }
 
-  async backup(
-    stagingPath,
-    profilePath = PathUtils.profileDir,
-    _isEncrypting = false
-  ) {
+  async backup(stagingPath, profilePath = PathUtils.profileDir) {
     await BackupResource.copySqliteDatabases(profilePath, stagingPath, [
       "formhistory.sqlite",
     ]);

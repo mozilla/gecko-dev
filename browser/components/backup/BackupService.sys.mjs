@@ -68,13 +68,6 @@ ChromeUtils.defineLazyGetter(lazy, "gFluentStrings", function () {
   );
 });
 
-ChromeUtils.defineLazyGetter(lazy, "gDOMLocalization", function () {
-  return new DOMLocalization([
-    "branding/brand.ftl",
-    "preview/backupSettings.ftl",
-  ]);
-});
-
 ChromeUtils.defineLazyGetter(lazy, "defaultParentDirPath", function () {
   return Services.dirsvc.get("Docs", Ci.nsIFile).path;
 });
@@ -722,16 +715,6 @@ export class BackupService extends EventTarget {
   }
 
   /**
-   * Returns the chrome:// URI string for the template that should be used to
-   * construct the single-file archive.
-   *
-   * @type {string}
-   */
-  static get ARCHIVE_TEMPLATE() {
-    return "chrome://browser/content/backup/archive.template.html";
-  }
-
-  /**
    * Returns a reference to a BackupService singleton. If this is the first time
    * that this getter is accessed, this causes the BackupService singleton to be
    * be instantiated.
@@ -905,8 +888,7 @@ export class BackupService extends EventTarget {
           // we're just going to log it.
           let manifestEntry = await new resourceClass().backup(
             resourcePath,
-            profilePath,
-            encryptionEnabled
+            profilePath
           );
 
           if (manifestEntry === undefined) {
@@ -976,7 +958,7 @@ export class BackupService extends EventTarget {
       lazy.logConsole.log("Exporting single-file archive to ", archivePath);
       await this.createArchive(
         archivePath,
-        BackupService.ARCHIVE_TEMPLATE,
+        "chrome://browser/content/backup/archive.template.html",
         compressedStagingPath,
         this.#encState,
         manifest.meta
@@ -1190,116 +1172,6 @@ export class BackupService extends EventTarget {
   }
 
   /**
-   * Given a URI to an HTML template for the single-file backup archive,
-   * produces the static markup that will then be used as the beginning of that
-   * single-file backup archive.
-   *
-   * @param {string} templateURI
-   *   A URI pointing at a template for the HTML content for the page. This is
-   *   what is visible if the file is loaded in a web browser.
-   * @param {boolean} isEncrypted
-   *   True if the template should indicate that the backup is encrypted.
-   * @param {object} backupMetadata
-   *   The metadata for the backup, which is also stored in the backup manifest
-   *   of the compressed backup snapshot.
-   * @returns {Promise<string>}
-   */
-  async renderTemplate(templateURI, isEncrypted, backupMetadata) {
-    const ARCHIVE_STYLES = "chrome://browser/content/backup/archive.css";
-    const ARCHIVE_SCRIPT = "chrome://browser/content/backup/archive.js";
-    const LOGO = "chrome://branding/content/icon128.png";
-
-    let templateResponse = await fetch(templateURI);
-    let templateString = await templateResponse.text();
-    let templateDOM = new DOMParser().parseFromString(
-      templateString,
-      "text/html"
-    );
-
-    // Set the lang attribute on the <html> element
-    templateDOM.documentElement.setAttribute(
-      "lang",
-      Services.locale.appLocaleAsBCP47
-    );
-
-    // TODO: insert download link (bug 1903117)
-    let supportLinkHref =
-      Services.urlFormatter.formatURLPref("app.support.baseURL") +
-      "recover-from-backup";
-    let supportLink = templateDOM.querySelector("#support-link");
-    supportLink.href = supportLinkHref;
-
-    // Now insert the logo as a dataURL, since we want the single-file backup
-    // archive to be entirely self-contained.
-    let logoResponse = await fetch(LOGO);
-    let logoBlob = await logoResponse.blob();
-    let logoDataURL = await new Promise((resolve, reject) => {
-      let reader = new FileReader();
-      reader.addEventListener("load", () => resolve(reader.result));
-      reader.addEventListener("error", reject);
-      reader.readAsDataURL(logoBlob);
-    });
-
-    let logoNode = templateDOM.querySelector("#logo");
-    logoNode.src = logoDataURL;
-
-    let encStateNode = templateDOM.querySelector("#encryption-state");
-    lazy.gDOMLocalization.setAttributes(
-      encStateNode,
-      isEncrypted
-        ? "backup-file-encryption-state-encrypted"
-        : "backup-file-encryption-state-not-encrypted"
-    );
-
-    let lastBackedUpNode = templateDOM.querySelector("#last-backed-up");
-    lazy.gDOMLocalization.setArgs(lastBackedUpNode, {
-      date: new Date(backupMetadata.date).getTime(),
-    });
-
-    let creationDeviceNode = templateDOM.querySelector("#creation-device");
-    lazy.gDOMLocalization.setArgs(creationDeviceNode, {
-      machineName: backupMetadata.machineName,
-    });
-
-    try {
-      await lazy.gDOMLocalization.translateFragment(
-        templateDOM.documentElement
-      );
-    } catch (_) {
-      // This shouldn't happen, but we don't want a missing locale string to
-      // cause backup creation to fail.
-    }
-
-    // We have to insert styles and scripts after we serialize to XML, otherwise
-    // the XMLSerializer will escape things like descendent selectors in CSS
-    // with &gt;.
-    let stylesResponse = await fetch(ARCHIVE_STYLES);
-    let scriptResponse = await fetch(ARCHIVE_SCRIPT);
-
-    // These days, we don't really support CSS preprocessor directives, so we
-    // can't ifdef out the MPL license header in styles before writing it into
-    // the archive file. Instead, we'll ensure that the license header is there,
-    // and then manually remove it here at runtime.
-    let stylesText = await stylesResponse.text();
-    const MPL_LICENSE = `/**
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- */`;
-    if (!stylesText.includes(MPL_LICENSE)) {
-      throw new Error("Expected the MPL license block within archive.css");
-    }
-
-    stylesText = stylesText.replace(MPL_LICENSE, "");
-
-    let serializer = new XMLSerializer();
-    return serializer
-      .serializeToString(templateDOM)
-      .replace("{{styles}}", stylesText)
-      .replace("{{script}}", await scriptResponse.text());
-  }
-
-  /**
    * Creates a portable, potentially encrypted single-file archive containing
    * a compressed backup snapshot. The single-file archive is a specially
    * crafted HTML file that embeds the compressed backup snapshot and
@@ -1331,12 +1203,6 @@ export class BackupService extends EventTarget {
     backupMetadata,
     options = {}
   ) {
-    let markup = await this.renderTemplate(
-      templateURI,
-      !!encState,
-      backupMetadata
-    );
-
     let worker = new lazy.BasePromiseWorker(
       "resource:///modules/backup/Archive.worker.mjs",
       { type: "module" }
@@ -1359,7 +1225,7 @@ export class BackupService extends EventTarget {
       await worker.post("constructArchive", [
         {
           archivePath,
-          markup,
+          templateURI,
           backupMetadata,
           compressedBackupSnapshotPath,
           encryptionArgs,
@@ -1903,17 +1769,6 @@ export class BackupService extends EventTarget {
       recoveryCode
     );
 
-    let encState = null;
-    if (recoveryCode) {
-      // We were passed a recovery code and made it to this line. That implies
-      // that the backup was encrypted, and the recovery code was the correct
-      // one to decrypt it. We now generate a new ArchiveEncryptionState with
-      // that recovery code to write into the recovered profile.
-      ({ instance: encState } = await lazy.ArchiveEncryptionState.initialize(
-        recoveryCode
-      ));
-    }
-
     const RECOVERY_FOLDER_DEST_PATH = PathUtils.join(
       profilePath,
       BackupService.PROFILE_FOLDER_NAME,
@@ -1935,8 +1790,7 @@ export class BackupService extends EventTarget {
     return this.recoverFromSnapshotFolder(
       RECOVERY_FOLDER_DEST_PATH,
       shouldLaunch,
-      profileRootPath,
-      encState
+      profileRootPath
     );
   }
 
@@ -1967,13 +1821,6 @@ export class BackupService extends EventTarget {
    *   profile directory should be created. If not provided, the default
    *   profile root directory will be used. This is primarily meant for
    *   testing.
-   * @param {ArchiveEncryptionState} [encState=null]
-   *   Set if the backup being recovered was encrypted. This implies that the
-   *   profile being recovered was configured to create encrypted backups. This
-   *   ArchiveEncryptionState is therefore needed to generate the
-   *   ARCHIVE_ENCRYPTION_STATE_FILE for the recovered profile (since the
-   *   original ARCHIVE_ENCRYPTION_STATE_FILE was intentionally not backed up,
-   *   as the recovery device might have a different OSKeyStore secret).
    * @returns {Promise<nsIToolkitProfile>}
    *   The nsIToolkitProfile that was created for the recovered profile.
    * @throws {Exception}
@@ -1982,8 +1829,7 @@ export class BackupService extends EventTarget {
   async recoverFromSnapshotFolder(
     recoveryPath,
     shouldLaunch = false,
-    profileRootPath = null,
-    encState = null
+    profileRootPath = null
   ) {
     lazy.logConsole.debug("Recovering from backup at ", recoveryPath);
 
@@ -2100,21 +1946,6 @@ export class BackupService extends EventTarget {
           TELEMETRY_STATE_FILENAME
         )
       );
-
-      if (encState) {
-        // The backup we're recovering was originally encrypted, meaning that
-        // the recovered profile is configured to create encrypted backups. Our
-        // caller passed us a _new_ ArchiveEncryptionState generated for this
-        // device with the backup's recovery code so that we can serialize the
-        // ArchiveEncryptionState for the recovered profile.
-        let encStatePath = PathUtils.join(
-          profile.rootDir.path,
-          BackupService.PROFILE_FOLDER_NAME,
-          BackupService.ARCHIVE_ENCRYPTION_STATE_FILE
-        );
-        let encStateObject = await encState.serialize();
-        await IOUtils.writeJSON(encStatePath, encStateObject);
-      }
 
       let postRecoveryPath = PathUtils.join(
         profile.rootDir.path,
