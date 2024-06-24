@@ -1640,7 +1640,7 @@ impl RenderTask {
         data_stores: &mut DataStores,
         uv_rect_kind: UvRectKind,
         original_task_id: RenderTaskId,
-        _surface_rects_task_size: DeviceIntSize,
+        surface_rects_task_size: DeviceIntSize,
         surface_rects_clipped: DeviceRect,
         surface_rects_clipped_local: PictureRect,
     ) -> RenderTaskId {
@@ -2256,39 +2256,29 @@ impl RenderTask {
                 },
             }
 
-            // If this is the output node, we have to match the provided filter
-            // subregion as the primitive it is applied to is already placed (it
-            // was calculated in get_surface_rects using get_coverage_svgfe).
-            let node_subregion = match is_output {
-                true => output_subregion,
-                false => used_subregion,
-            };
+            // If this is the output node, apply the output clip.
+            let node_inflate = node.inflate;
+            let mut create_output_task = false;
+            if is_output {
+                // If we're drawing a subregion that encloses output_subregion
+                // we can just crop the node to output_subregion.
+                if used_subregion.to_i32().contains_box(&output_rect) {
+                    used_subregion = output_subregion;
+                } else {
+                    // We'll have to create an extra blit task after this task
+                    // so that there is transparent black padding around it.
+                    create_output_task = true;
+                }
+            }
 
             // Convert subregion from layout pixels to integer device pixels and
             // then calculate size afterwards so it reflects the used pixel area
-            //
-            // In case of the output node we preserve the exact filter_subregion
-            // task size.
             //
             // This can be an empty rect if the source_subregion invalidation
             // rect didn't request any pixels of this node, but we can't skip
             // creating tasks that have no size because they would leak in the
             // render task graph with no consumers
-            let node_task_rect =
-                match is_output {
-                    true => output_rect,
-                    false => node_subregion.to_i32(),
-                };
-
-            // SVG spec requires that a later node sampling pixels outside
-            // this node's subregion will receive a transparent black color
-            // for those samples, we achieve this by adding a 1 pixel border
-            // around the target rect, which works fine with the clamping of the
-            // texture fetch in the shader, and to account for the offset we
-            // have to make a UvRectKind::Quad mapping for later nodes to use
-            // when sampling this output, if they use feOffset or have a
-            // larger target rect those samples will be clamped to the
-            // transparent black border and thus meet spec.
+            let node_task_rect: DeviceIntRect = used_subregion.to_i32().cast_unit();
             let mut node_task_size = node_task_rect.size().cast_unit();
 
             // We have to limit the render target sizes we're asking for on the
@@ -2300,22 +2290,31 @@ impl RenderTask {
             // space.  Blurs will do this same logic if their intermediate is
             // too large.  We use a simple halving calculation here so that
             // pixel alignment is still vaguely sensible.
-            while node_task_size.width as usize + node.inflate as usize * 2 > MAX_SURFACE_SIZE ||
-                node_task_size.height as usize + node.inflate as usize * 2 > MAX_SURFACE_SIZE {
+            while node_task_size.width as usize + node_inflate as usize * 2 > MAX_SURFACE_SIZE ||
+                node_task_size.height as usize + node_inflate as usize * 2 > MAX_SURFACE_SIZE {
                 node_task_size.width >>= 1;
                 node_task_size.height >>= 1;
             }
-            // Add the inflate border
-            node_task_size.width += node.inflate as i32 * 2;
-            node_task_size.height += node.inflate as i32 * 2;
+
+            // SVG spec requires that a later node sampling pixels outside
+            // this node's subregion will receive a transparent black color
+            // for those samples, we achieve this by adding a 1 pixel border
+            // around the target rect, which works fine with the clamping of the
+            // texture fetch in the shader, and to account for the offset we
+            // have to make a UvRectKind::Quad mapping for later nodes to use
+            // when sampling this output, if they use feOffset or have a
+            // larger target rect those samples will be clamped to the
+            // transparent black border and thus meet spec.
+            node_task_size.width += node_inflate as i32 * 2;
+            node_task_size.height += node_inflate as i32 * 2;
 
             // Make the uv_rect_kind for this node's task to use, this matters
             // only on the final node because we don't use it internally
             let node_uv_rect_kind =
-                uv_rect_kind_for_task_size(node_task_size, node.inflate);
+                uv_rect_kind_for_task_size(node_task_size, node_inflate);
 
             // Create task for this node
-            let task_id;
+            let mut task_id;
             match op {
                 FilterGraphOp::SVGFEGaussianBlur { std_deviation_x, std_deviation_y } => {
                     // Note: wrap_prim_with_filters copies the SourceGraphic to
@@ -2430,7 +2429,7 @@ impl RenderTask {
                                 node: FilterGraphNode{
                                     kept_by_optimizer: true,
                                     linear: node.linear,
-                                    inflate: node.inflate,
+                                    inflate: node_inflate,
                                     inputs: [
                                         FilterGraphPictureReference{
                                             buffer_id: blur_input.buffer_id,
@@ -2440,7 +2439,7 @@ impl RenderTask {
                                             source_padding: LayoutRect::zero(),
                                             target_padding: LayoutRect::zero(),
                                         }].to_vec(),
-                                    subregion: node_subregion,
+                                    subregion: used_subregion,
                                 },
                                 op: FilterGraphOp::SVGFEIdentity,
                                 content_origin: DevicePoint::zero(),
@@ -2575,7 +2574,7 @@ impl RenderTask {
                                 node: FilterGraphNode{
                                     kept_by_optimizer: true,
                                     linear: node.linear,
-                                    inflate: node.inflate,
+                                    inflate: node_inflate,
                                     inputs: [
                                         // Original picture
                                         *blur_input,
@@ -2588,7 +2587,7 @@ impl RenderTask {
                                             source_padding: LayoutRect::zero(),
                                             target_padding: LayoutRect::zero(),
                                         }].to_vec(),
-                                    subregion: node_subregion,
+                                    subregion: used_subregion,
                                 },
                                 op: FilterGraphOp::SVGFEDropShadow{
                                     color,
@@ -2618,7 +2617,7 @@ impl RenderTask {
                                 node: FilterGraphNode{
                                     kept_by_optimizer: true,
                                     linear: node.linear,
-                                    inflate: node.inflate,
+                                    inflate: node_inflate,
                                     inputs: [
                                         FilterGraphPictureReference{
                                             buffer_id: FilterOpGraphPictureBufferId::None,
@@ -2635,7 +2634,7 @@ impl RenderTask {
                                             target_padding: LayoutRect::zero(),
                                         }
                                     ].to_vec(),
-                                    subregion: node_subregion,
+                                    subregion: used_subregion,
                                 },
                                 op: op.clone(),
                                 content_origin: DevicePoint::zero(),
@@ -2661,8 +2660,8 @@ impl RenderTask {
                                     kept_by_optimizer: true,
                                     linear: node.linear,
                                     inputs: node_inputs.iter().map(|input| {input.0}).collect(),
-                                    subregion: node_subregion,
-                                    inflate: node.inflate,
+                                    subregion: used_subregion,
+                                    inflate: node_inflate,
                                 },
                                 op: op.clone(),
                                 content_origin: DevicePoint::zero(),
@@ -2693,8 +2692,8 @@ impl RenderTask {
                                     kept_by_optimizer: true,
                                     linear: node.linear,
                                     inputs: node_inputs.iter().map(|input| {input.0}).collect(),
-                                    subregion: node_subregion,
-                                    inflate: node.inflate,
+                                    subregion: used_subregion,
+                                    inflate: node_inflate,
                                 },
                                 op: op.clone(),
                                 content_origin: DevicePoint::zero(),
@@ -2720,9 +2719,44 @@ impl RenderTask {
             // to look them up quickly, since nodes can only depend on previous
             // nodes in the same list
             task_by_buffer_id[filter_index] = task_id;
-            subregion_by_buffer_id[filter_index] = node_subregion;
+            subregion_by_buffer_id[filter_index] = used_subregion;
 
-            if is_output {
+            // The final task we create is the output picture.
+            output_task_id = task_id;
+            if create_output_task {
+                // If the final node subregion is smaller than the output rect,
+                // we need to pad it with transparent black to match SVG spec,
+                // as the output task rect is larger than the invalidated area,
+                // ideally the origin and size of the picture we return should
+                // be used instead of the get_rect result for sizing geometry,
+                // as it would allow us to produce a much smaller rect.
+                let output_uv_rect_kind =
+                    uv_rect_kind_for_task_size(surface_rects_task_size, 0);
+                task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
+                    surface_rects_task_size,
+                    RenderTaskKind::SVGFENode(
+                        SVGFEFilterTask{
+                            node: FilterGraphNode{
+                                kept_by_optimizer: true,
+                                linear: false,
+                                inputs: [FilterGraphPictureReference{
+                                    buffer_id: FilterOpGraphPictureBufferId::None,
+                                    subregion: used_subregion,
+                                    offset: LayoutVector2D::zero(),
+                                    inflate: node_inflate,
+                                    source_padding: LayoutRect::zero(),
+                                    target_padding: LayoutRect::zero(),
+                                }].to_vec(),
+                                subregion: output_subregion,
+                                inflate: 0,
+                            },
+                            op: FilterGraphOp::SVGFEIdentity,
+                            content_origin: surface_rects_clipped.min,
+                            extra_gpu_cache_handle: None,
+                        }
+                    ),
+                ).with_uv_rect_kind(output_uv_rect_kind));
+                frame_state.rg_builder.add_dependency(task_id, output_task_id);
                 output_task_id = task_id;
             }
         }

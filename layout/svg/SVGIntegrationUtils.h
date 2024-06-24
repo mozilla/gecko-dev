@@ -22,7 +22,27 @@ struct nsPoint;
 struct nsRect;
 struct nsSize;
 
+enum class WrFiltersStatus {
+  // Image will be rendered unftilered - the filter graph contains invalid refs
+  // (which SVG spec states will be rendered as if there is no filter graph).
+  UNSUPPORTED = 0,
+  // Image will be rendered unfiltered - the filter graph provided is
+  // excessively costly to render and has been dropped (per SVG spec we can do
+  // this to preserve user experience).
+  DISABLED_FOR_PERFORMANCE = 1,
+  // Image will be rendered using blob fallback (software rendering) due to
+  // unsupported operations (in either the CSS or SVGFE path).
+  BLOB_FALLBACK = 2,
+  // Image will be rendered using a simple CSS filter chain in WebRender.
+  CHAIN = 3,
+  // Filter graph will be rendered using WebRender SVGFE code path, this can
+  // handle any kind of filter graph consisting of supported operations (most
+  // operations are supported).
+  SVGFE = 4,
+};
+
 struct WrFiltersHolder {
+  // TODO(Bug 1899691): Better to use AutoTArray here...
   nsTArray<mozilla::wr::FilterOp> filters;
   nsTArray<mozilla::wr::WrFilterData> filter_datas;
   mozilla::Maybe<nsRect> post_filters_clip;
@@ -192,19 +212,18 @@ class SVGIntegrationUtils final {
   /**
    * Build WebRender filters for a frame with CSS filters applied to it.
    */
-  static bool CreateWebRenderCSSFilters(Span<const StyleFilter> aFilters,
-                                        nsIFrame* aFrame,
-                                        WrFiltersHolder& aWrFilters);
+  static WrFiltersStatus CreateWebRenderCSSFilters(
+      Span<const StyleFilter> aFilters, nsIFrame* aFrame,
+      WrFiltersHolder& aWrFilters);
 
   /**
    * Try to build WebRender filters for a frame with SVG filters applied to it
    * if the filters are supported.
    */
-  static bool BuildWebRenderFilters(nsIFrame* aFilteredFrame,
-                                    Span<const StyleFilter> aFilters,
-                                    StyleFilterType aStyleFilterType,
-                                    WrFiltersHolder& aWrFilters,
-                                    bool& aInitialized);
+  static WrFiltersStatus BuildWebRenderFilters(
+      nsIFrame* aFilteredFrame, Span<const StyleFilter> aFilters,
+      StyleFilterType aStyleFilterType, WrFiltersHolder& aWrFilters,
+      const nsPoint& aOffsetForSVGFilters);
 
   /**
    * Check if the filters present on |aFrame| are supported by WebRender.

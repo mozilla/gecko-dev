@@ -795,9 +795,6 @@ pub struct FilterGraphNodeKey {
     /// sRGB texture pixel colors on load and convert back on store, for correct
     /// interpolation
     pub linear: bool,
-    /// padding for output rect if we need a border to get correct clamping, or
-    /// to account for larger final subregion than source rect (see bug 1869672)
-    pub inflate: i16,
     /// virtualized picture input binding 1 (i.e. texture source), typically
     /// this is used, but certain filters do not use it
     pub inputs: Vec<FilterGraphPictureReferenceKey>,
@@ -811,7 +808,6 @@ impl From<FilterGraphNode> for FilterGraphNodeKey {
         FilterGraphNodeKey{
             kept_by_optimizer: node.kept_by_optimizer,
             linear: node.linear,
-            inflate: node.inflate,
             inputs: node.inputs.into_iter().map(|node| {node.into()}).collect(),
             subregion: [
                 Au::from_f32_px(node.subregion.min.x),
