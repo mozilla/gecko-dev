@@ -122,6 +122,18 @@ class CompositorBridgeChild final : public PCompositorBridgeChild,
   bool SendResumeAsync();
   bool SendAdoptChild(const LayersId& id);
   bool SendFlushRendering(const wr::RenderReasons& aReasons);
+  bool SendFlushRenderingAsync(const wr::RenderReasons& aReasons);
+
+  /**
+   * This can be used, sparingly, to force all flush rendering to be
+   * synchronous. This should only be done temporarily, as we want almost
+   * all flushes to be async. It is intended to be used for animations
+   * that rely on repeated small changes to scene rebuilds. These look
+   * better with a consistent frame rate and sync flushes will help
+   * generate a stable frame rate.
+   */
+  void SetForceSyncFlushRendering(bool aForceSyncFlushRendering);
+
   bool SendStartFrameTimeRecording(const int32_t& bufferSize,
                                    uint32_t* startIndex);
   bool SendStopFrameTimeRecording(const uint32_t& startIndex,
@@ -222,6 +234,8 @@ class CompositorBridgeChild final : public PCompositorBridgeChild,
   bool mActorDestroyed;
 
   bool mPaused;
+
+  bool mForceSyncFlushRendering;
 
   /**
    * Hold TextureClients refs until end of their usages on host side.
