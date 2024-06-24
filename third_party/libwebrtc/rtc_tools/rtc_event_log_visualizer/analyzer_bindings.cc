@@ -100,7 +100,8 @@ void analyze_rtc_event_log(const char* log_contents,
   std::string serialized_charts = proto_charts.SerializeAsString();
   if (rtc::checked_cast<uint32_t>(serialized_charts.size()) > *output_size) {
     std::cerr << "Serialized charts larger than available output buffer: "
-              << serialized_charts.size() << " vs " << *output_size;
+              << serialized_charts.size() << " vs " << *output_size
+              << std::endl;
     *output_size = 0;
     return;
   }
