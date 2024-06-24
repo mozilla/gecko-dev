@@ -1457,7 +1457,7 @@ index 5ec1fd4a83..e46e050609 100644
  
    int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index 877d10d00a..66c43bf728 100644
+index 5a6d465e89..c09f559498 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 @@ -256,6 +256,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
@@ -1468,7 +1468,7 @@ index 877d10d00a..66c43bf728 100644
        is_flexible_mode_(false),
        variable_framerate_controller_(variable_framerate_screenshare::kMinFps),
        quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
-@@ -578,6 +579,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
+@@ -529,6 +530,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
  
    force_key_frame_ = true;
    pics_since_key_ = 0;
@@ -1476,7 +1476,7 @@ index 877d10d00a..66c43bf728 100644
  
    scalability_mode_ = inst->GetScalabilityMode();
    if (scalability_mode_.has_value()) {
-@@ -1157,6 +1159,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+@@ -1099,6 +1101,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
      config_changed_ = false;
    }
  
@@ -1491,7 +1491,7 @@ index 877d10d00a..66c43bf728 100644
    RTC_DCHECK_EQ(input_image.width(), raw_->d_w);
    RTC_DCHECK_EQ(input_image.height(), raw_->d_h);
  
-@@ -1279,6 +1289,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+@@ -1221,6 +1231,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
    return WEBRTC_VIDEO_CODEC_OK;
  }
  
@@ -1541,7 +1541,7 @@ index 877d10d00a..66c43bf728 100644
                                               absl::optional<int>* spatial_idx,
                                               absl::optional<int>* temporal_idx,
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
-index d8c9805b9b..1238f01aae 100644
+index 0134e3ea58..86d1bdda16 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
 @@ -68,6 +68,9 @@ class LibvpxVp9Encoder : public VideoEncoder {
@@ -1554,7 +1554,7 @@ index d8c9805b9b..1238f01aae 100644
    bool PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
                               absl::optional<int>* spatial_idx,
                               absl::optional<int>* temporal_idx,
-@@ -149,6 +152,7 @@ class LibvpxVp9Encoder : public VideoEncoder {
+@@ -150,6 +153,7 @@ class LibvpxVp9Encoder : public VideoEncoder {
    VideoBitrateAllocation current_bitrate_allocation_;
    bool ss_info_needed_;
    bool force_all_active_layers_;
