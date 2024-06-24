@@ -67,9 +67,7 @@ category-sync3 =
 pane-experimental-title = { -brand-short-name } Experiments
 category-experimental =
     .tooltiptext = { -brand-short-name } Experiments
-pane-experimental-subtitle = Proceed with Caution
-pane-experimental-search-results-header = { -brand-short-name } Experiments: Proceed with Caution
-pane-experimental-description2 = Changing advanced configuration settings can impact { -brand-short-name } performance or security.
+pane-experimental-description3 = Give our experimental features a try! They’re in development and evolving, which could impact how { -brand-short-name } works.
 
 pane-experimental-reset =
   .label = Restore Defaults

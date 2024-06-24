@@ -1208,25 +1208,6 @@ richlistitem .text-link:hover {
   height: 20px;
 }
 
-#pane-experimental-search-results-header,
-#pane-experimental-subtitle {
-  background-image: url("chrome://global/skin/icons/warning.svg");
-  background-repeat: no-repeat;
-  background-position: 0 center;
-  background-size: contain;
-  min-height: 30px;
-  padding-inline-start: 38px;
-  display: flex;
-  align-items: center;
-  -moz-context-properties: fill;
-  fill: #FFBF00;
-}
-
-#pane-experimental-search-results-header:-moz-locale-dir(rtl),
-#pane-experimental-subtitle:-moz-locale-dir(rtl) {
-  background-position-x: right;
-}
-
 #pane-experimental-featureGates {
   margin-top: var(--space-large);
 }
