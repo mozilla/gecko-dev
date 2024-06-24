@@ -1017,6 +1017,7 @@ dependencies = [
  "cocoabind",
  "embed-manifest",
  "env_logger",
+ "flate2",
  "fluent",
  "gtkbind",
  "intl-memoizer",

@@ -25,7 +25,7 @@ use crate::ui::{self, test::model, ui_impl::Interact};
 /// A simple thread-safe counter which can be used in tests to mark that certain code paths were
 /// hit.
 #[derive(Clone, Default)]
-struct Counter(Arc<AtomicUsize>);
+pub struct Counter(Arc<AtomicUsize>);
 
 impl Counter {
     /// Create a new zero counter.
@@ -799,21 +799,16 @@ fn include_url() {
             }
             .to_string(),
         );
-        test.mock
-            .set(
-                Command::mock("curl"),
-                Box::new(|_| Err(std::io::ErrorKind::NotFound.into())),
-            )
-            .set(
-                net::report::MockLibCurl,
-                Box::new(move |report| {
-                    assert_eq!(
-                        report.extra.get("URL").and_then(|v| v.as_str()),
-                        setting.then_some("https://url.example.com")
-                    );
-                    Ok(Ok(format!("CrashID={MOCK_REMOTE_CRASH_ID}")))
-                }),
-            );
+        test.mock.set(
+            net::report::MockReport,
+            Box::new(move |report| {
+                assert_eq!(
+                    report.extra.get("URL").and_then(|v| v.as_str()),
+                    setting.then_some("https://url.example.com")
+                );
+                Ok(Ok(format!("CrashID={MOCK_REMOTE_CRASH_ID}")))
+            }),
+        );
         test.run(|interact| {
             interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
         });
@@ -828,22 +823,17 @@ fn comment() {
         let invoked = Counter::new();
         let mock_invoked = invoked.clone();
         let mut test = GuiTest::new();
-        test.mock
-            .set(
-                Command::mock("curl"),
-                Box::new(|_| Err(std::io::ErrorKind::NotFound.into())),
-            )
-            .set(
-                net::report::MockLibCurl,
-                Box::new(move |report| {
-                    mock_invoked.inc();
-                    assert_eq!(
-                        report.extra.get("Comments").and_then(|v| v.as_str()),
-                        set_comment.then_some(COMMENT)
-                    );
-                    Ok(Ok(format!("CrashID={MOCK_REMOTE_CRASH_ID}")))
-                }),
-            );
+        test.mock.set(
+            net::report::MockReport,
+            Box::new(move |report| {
+                mock_invoked.inc();
+                assert_eq!(
+                    report.extra.get("Comments").and_then(|v| v.as_str()),
+                    set_comment.then_some(COMMENT)
+                );
+                Ok(Ok(format!("CrashID={MOCK_REMOTE_CRASH_ID}")))
+            }),
+        );
         test.run(move |interact| {
             if set_comment {
                 interact.element("comment", |_style, c: &model::TextBox| {
@@ -879,7 +869,7 @@ fn curl_binary() {
 
             let expected_args: Vec<OsString> = [
                 "--user-agent",
-                net::report::USER_AGENT,
+                net::http::USER_AGENT,
                 "--form",
                 "extra=@-;filename=extra.json;type=application/json",
                 "--form",
@@ -916,18 +906,13 @@ fn curl_library() {
     let invoked = Counter::new();
     let mock_invoked = invoked.clone();
     let mut test = GuiTest::new();
-    test.mock
-        .set(
-            Command::mock("curl"),
-            Box::new(|_| Err(std::io::ErrorKind::NotFound.into())),
-        )
-        .set(
-            net::report::MockLibCurl,
-            Box::new(move |_| {
-                mock_invoked.inc();
-                Ok(Ok(format!("CrashID={MOCK_REMOTE_CRASH_ID}")))
-            }),
-        );
+    test.mock.set(
+        net::report::MockReport,
+        Box::new(move |_| {
+            mock_invoked.inc();
+            Ok(Ok(format!("CrashID={MOCK_REMOTE_CRASH_ID}")))
+        }),
+    );
     test.run(|interact| {
         interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
     });
@@ -938,15 +923,10 @@ fn curl_library() {
 fn report_not_sent() {
     let mut test = GuiTest::new();
     test.files.add_dir("events_dir");
-    test.mock
-        .set(
-            Command::mock("curl"),
-            Box::new(|_| Err(std::io::ErrorKind::NotFound.into())),
-        )
-        .set(
-            net::report::MockLibCurl,
-            Box::new(move |_| Err(std::io::ErrorKind::NotFound.into())),
-        );
+    test.mock.set(
+        net::report::MockReport,
+        Box::new(move |_| Err(std::io::ErrorKind::NotFound.into())),
+    );
     test.run(|interact| {
         interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
     });
@@ -962,15 +942,10 @@ fn report_not_sent() {
 fn report_response_failed() {
     let mut test = GuiTest::new();
     test.files.add_dir("events_dir");
-    test.mock
-        .set(
-            Command::mock("curl"),
-            Box::new(|_| Err(std::io::ErrorKind::NotFound.into())),
-        )
-        .set(
-            net::report::MockLibCurl,
-            Box::new(move |_| Ok(Err(std::io::ErrorKind::NotFound.into()))),
-        );
+    test.mock.set(
+        net::report::MockReport,
+        Box::new(move |_| Ok(Err(std::io::ErrorKind::NotFound.into()))),
+    );
     test.run(|interact| {
         interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
     });

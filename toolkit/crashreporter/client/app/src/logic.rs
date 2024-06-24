@@ -557,6 +557,13 @@ impl ReportCrash {
             return None;
         };
 
+        let Some(url) = url.to_str() else {
+            log::warn!(
+                "not sending report due to provided url containing invalid utf8 characters: {url:?}"
+            );
+            return None;
+        };
+
         if let Some(ui) = &self.ui {
             ui.push(|r| *r.submit_state.borrow_mut() = SubmitState::InProgress);
         }

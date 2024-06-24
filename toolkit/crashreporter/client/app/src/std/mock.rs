@@ -221,14 +221,14 @@ pub fn try_hook<T: Any + Send + Sync + Clone>(fallback: T, name: &'static str) -
 /// * Tuple struct: `<visibility> struct NAME(ITEMS) => VALUE_TYPE`
 /// * Normal struct: `<visibility> struct NAME { FIELDS } => VALUE_TYPE`
 macro_rules! mock_key {
-    ( $vis:vis struct $name:ident => $value:ty ) => {
-        $crate::std::mock::mock_key! { @structdef[$vis struct $name;] $name $value }
+    ( $(#[$m:meta])* $vis:vis struct $name:ident => $value:ty ) => {
+        $crate::std::mock::mock_key! { @structdef[$(#[$m])* $vis struct $name;] $name $value }
     };
-    ( $vis:vis struct $name:ident ($($tuple:tt)*) => $value:ty ) => {
-        $crate::std::mock::mock_key! { @structdef[$vis struct $name($($tuple)*);] $name $value }
+    ( $(#[$m:meta])* $vis:vis struct $name:ident ($($tuple:tt)*) => $value:ty ) => {
+        $crate::std::mock::mock_key! { @structdef[$(#[$m])* $vis struct $name($($tuple)*);] $name $value }
     };
-    ( $vis:vis struct $name:ident {$($full:tt)*} => $value:ty ) => {
-        $crate::std::mock::mock_key! { @structdef[$vis struct $name{$($full)*}] $name $value }
+    ( $(#[$m:meta])* $vis:vis struct $name:ident {$($full:tt)*} => $value:ty ) => {
+        $crate::std::mock::mock_key! { @structdef[$(#[$m])* $vis struct $name{$($full)*}] $name $value }
     };
     ( @structdef [$($def:tt)+] $name:ident $value:ty ) => {
         #[derive(Debug, PartialEq, Eq, Hash)]

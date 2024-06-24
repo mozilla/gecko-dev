@@ -10,6 +10,7 @@ name = "crashreporter"
 anyhow = "1.0"
 cfg-if = "1.0"
 env_logger = { version = "0.10", default-features = false }
+flate2 = "1"
 fluent = "0.16.0"
 intl-memoizer = "0.5"
 libloading = "0.8"
