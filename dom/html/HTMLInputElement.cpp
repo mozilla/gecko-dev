@@ -683,13 +683,8 @@ nsColorPickerShownCallback::Done(const nsAString& aColor) {
 
 NS_IMPL_ISUPPORTS(nsColorPickerShownCallback, nsIColorPickerShownCallback)
 
-static bool IsPopupBlocked(Document* aDoc) {
+static bool IsPickerBlocked(Document* aDoc) {
   if (aDoc->ConsumeTransientUserGestureActivation()) {
-    return false;
-  }
-
-  WindowContext* wc = aDoc->GetWindowContext();
-  if (wc && wc->CanShowPopup()) {
     return false;
   }
 
@@ -741,7 +736,7 @@ nsresult HTMLInputElement::InitColorPicker() {
     return NS_ERROR_FAILURE;
   }
 
-  if (IsPopupBlocked(doc)) {
+  if (IsPickerBlocked(doc)) {
     return NS_OK;
   }
 
@@ -789,7 +784,7 @@ nsresult HTMLInputElement::InitFilePicker(FilePickerType aType) {
     return NS_ERROR_FAILURE;
   }
 
-  if (IsPopupBlocked(doc)) {
+  if (IsPickerBlocked(doc)) {
     return NS_OK;
   }
 
@@ -3596,7 +3591,7 @@ nsresult HTMLInputElement::MaybeInitPickers(EventChainPostVisitor& aVisitor) {
   // open a color picker when we receive a click on a <input type='color'>.
   // A click is handled if it's the left mouse button.
   // We do not prevent non-trusted click because authors can already use
-  // .click(). However, the pickers will follow the rules of popup-blocking.
+  // .click(). However, the pickers will check and consume user activation.
   WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
   if (!(mouseEvent && mouseEvent->IsLeftClickEvent())) {
     return NS_OK;
@@ -5864,7 +5859,11 @@ void HTMLInputElement::ShowPicker(ErrorResult& aRv) {
   // Step 2. If element is not mutable, then return.
   // (See above.)
 
-  // Step 3. If element's type attribute is in the File Upload state, then run
+  // Step 3. Consume user activation given element's relevant global object.
+  // InitFilePicker() and InitColorPicker() consume it themselves,
+  // so only consume in this function if not those.
+
+  // Step 4. If element's type attribute is in the File Upload state, then run
   // these steps in parallel:
   if (mType == FormControlType::InputFile) {
     FilePickerType type = FILE_PICKER_FILE;
@@ -5876,13 +5875,16 @@ void HTMLInputElement::ShowPicker(ErrorResult& aRv) {
     return;
   }
 
-  // Step 4. Otherwise, the user agent should show any relevant user interface
+  // Step 5. Otherwise, the user agent should show any relevant user interface
   // for selecting a value for element, in the way it normally would when the
   // user interacts with the control
   if (mType == FormControlType::InputColor) {
     InitColorPicker();
     return;
   }
+
+  // See Step 3.
+  OwnerDoc()->ConsumeTransientUserGestureActivation();
 
   if (!IsInComposedDoc()) {
     return;
