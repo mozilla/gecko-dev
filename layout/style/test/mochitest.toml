@@ -433,8 +433,6 @@ skip-if = ["verify"]
 
 ["test_font_face_cascade.html"]
 
-["test_font_face_gc.html"]
-
 ["test_font_face_parser.html"]
 
 ["test_font_family_parsing.html"]

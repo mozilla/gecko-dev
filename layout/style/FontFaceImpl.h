@@ -291,13 +291,10 @@ class FontFaceImpl final {
 
   // Whether mUnicodeRange needs to be rebuilt before being returned from
   // GetUnicodeRangeAsCharacterMap.
-  bool mUnicodeRangeDirty = true;
+  bool mUnicodeRangeDirty;
 
   // Whether this FontFace appears in mFontFaceSet.
-  bool mInFontFaceSet = false;
-
-  // Whether we're artificially keeping mOwner alive while we load.
-  bool mKeepingOwnerAlive = false;
+  bool mInFontFaceSet;
 };
 
 }  // namespace mozilla::dom
