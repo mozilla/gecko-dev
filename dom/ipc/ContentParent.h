@@ -51,7 +51,6 @@
 #include "nsIReferrerInfo.h"
 
 class nsConsoleService;
-class nsIContentProcessInfo;
 class nsICycleCollectorLogSink;
 class nsIDumpGCAndCCLogsCallback;
 class nsIRemoteTab;
@@ -382,8 +381,6 @@ class ContentParent final : public PContentParent,
   bool IsForBrowser() const { return mIsForBrowser; }
 
   GeckoChildProcessHost* Process() const { return mSubprocess; }
-
-  nsIContentProcessInfo* ScriptableHelper() const { return mScriptableHelper; }
 
   mozilla::dom::ProcessMessageManager* GetMessageManager() const {
     return mMessageManager;
@@ -1515,8 +1512,6 @@ class ContentParent final : public PContentParent,
   bool mNotifiedImpendingShutdownOnTabWillDestroy = false;
   bool mBlockShutdownCalled;
 #endif
-
-  nsCOMPtr<nsIContentProcessInfo> mScriptableHelper;
 
   nsTArray<nsCOMPtr<nsIObserver>> mIdleListeners;
 

@@ -2933,6 +2933,18 @@
 #endif
   mirror: always
 
+# If true, disables non-required re-use of content processes. This can be used
+# in tests to force a new process to be used whenever a process selection
+# decision is made. Setting this pref can cause dom.ipc.processCount limits to
+# be exceeded.
+# WARNING: This will exceed even process limits for the extension or
+# privilegedAbout remote types, which may lead to unexpected breakage!
+# Should only be used for testing.
+- name: dom.ipc.disableContentProcessReuse
+  type: bool
+  value: false
+  mirror: always
+
 # Process launch delay (in milliseconds).
 - name: dom.ipc.processPrelaunch.delayMs
   type: uint32_t
