@@ -81,3 +81,9 @@ function array_concat_subclassing_type_iii() {
 
 test_function_for_use_counter_integration(array_concat, "SubclassingArrayTypeIII", /* expected_growth = */ false);
 test_function_for_use_counter_integration(array_concat_subclassing_type_iii, "SubclassingArrayTypeIII", /* expected_growth = */ true);
+
+function array_map() {
+    var arr = new MyArray([1, 2, 3]);
+    arr.map(x => x + 1);
+}
+test_function_for_use_counter_integration(array_map, "SubclassingArrayTypeIII", /* expected_growth = */ false);
