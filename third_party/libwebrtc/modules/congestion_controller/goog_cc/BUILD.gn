@@ -209,7 +209,6 @@ rtc_library("send_side_bwe") {
     "../../../rtc_base:checks",
     "../../../rtc_base:logging",
     "../../../rtc_base/experiments:field_trial_parser",
-    "../../../system_wrappers:field_trial",
     "../../../system_wrappers:metrics",
     "../../remote_bitrate_estimator",
   ]
