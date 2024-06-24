@@ -431,6 +431,13 @@ def vcs_checkout(source_repo, dest, store_path,
         '--purge',
     ]
 
+    robustcheckout = os.path.join(os.path.dirname(__file__), 'robustcheckout.py')
+    if os.path.isfile(robustcheckout):
+        args.extend([
+            '--config',
+            f'extensions.robustcheckout={robustcheckout}',
+        ])
+
     # Obtain certificate fingerprints.  Without this, the checkout will use the fingerprint
     # on the system, which is managed some other way (such as puppet)
     if fetch_hgfingerprint:
