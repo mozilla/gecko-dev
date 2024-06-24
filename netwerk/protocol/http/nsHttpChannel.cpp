@@ -2267,39 +2267,101 @@ nsresult nsHttpChannel::ProcessResponse() {
     switch (httpStatus) {
       case 200:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 0);
+        mozilla::glean::networking::http_response_status_code.Get("200_ok"_ns)
+            .Add(1);
         break;
       case 301:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 1);
+        mozilla::glean::networking::http_response_status_code
+            .Get("301_moved_permanently"_ns)
+            .Add(1);
         break;
       case 302:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 2);
+        mozilla::glean::networking::http_response_status_code
+            .Get("302_found"_ns)
+            .Add(1);
         break;
       case 304:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 3);
+        mozilla::glean::networking::http_response_status_code
+            .Get("304_not_modified"_ns)
+            .Add(1);
         break;
       case 307:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 4);
+        mozilla::glean::networking::http_response_status_code
+            .Get("307_temporary_redirect"_ns)
+            .Add(1);
         break;
       case 308:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 5);
+        mozilla::glean::networking::http_response_status_code
+            .Get("308_permanent_redirect"_ns)
+            .Add(1);
         break;
       case 400:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 6);
+        mozilla::glean::networking::http_response_status_code
+            .Get("400_bad_request"_ns)
+            .Add(1);
         break;
       case 401:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 7);
+        mozilla::glean::networking::http_response_status_code
+            .Get("401_unauthorized"_ns)
+            .Add(1);
         break;
       case 403:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 8);
+        mozilla::glean::networking::http_response_status_code
+            .Get("403_forbidden"_ns)
+            .Add(1);
         break;
       case 404:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 9);
+        mozilla::glean::networking::http_response_status_code
+            .Get("404_not_found"_ns)
+            .Add(1);
+        break;
+      case 421:
+        Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 11);
+        mozilla::glean::networking::http_response_status_code
+            .Get("421_misdirected_request"_ns)
+            .Add(1);
+        break;
+      case 425:
+        Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 11);
+        mozilla::glean::networking::http_response_status_code
+            .Get("425_too_early"_ns)
+            .Add(1);
+        break;
+      case 429:
+        Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 11);
+        mozilla::glean::networking::http_response_status_code
+            .Get("429_too_many_requests"_ns)
+            .Add(1);
         break;
       case 500:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 10);
+        mozilla::glean::networking::http_response_status_code
+            .Get("other_5xx"_ns)
+            .Add(1);
         break;
       default:
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 11);
+        if (httpStatus >= 400 && httpStatus < 500) {
+          mozilla::glean::networking::http_response_status_code
+              .Get("other_4xx"_ns)
+              .Add(1);
+        } else if (httpStatus > 500) {
+          mozilla::glean::networking::http_response_status_code
+              .Get("other_5xx"_ns)
+              .Add(1);
+        } else {
+          mozilla::glean::networking::http_response_status_code.Get("other"_ns)
+              .Add(1);
+        }
         break;
     }
   }

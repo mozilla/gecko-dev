@@ -916,6 +916,37 @@ networking:
       - http_2
       - http_3
 
+  http_response_status_code:
+    type: labeled_counter
+    description: >
+      HTTP Response Status Code (200, 301, 302, 304, 307, 308, 400, 401, 403, 404, 421, 425, 429, other 400 and 500)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1896350
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903410
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1896350
+    notification_emails:
+      - necko@mozilla.com
+      - smayya@mozilla.com
+    expires: never
+    labels:
+      - 200_ok
+      - 301_moved_permanently
+      - 302_found
+      - 304_not_modified
+      - 307_temporary_redirect
+      - 308_permanent_redirect
+      - 400_bad_request
+      - 401_unauthorized
+      - 403_forbidden
+      - 404_not_found
+      - 421_misdirected_request
+      - 425_too_early
+      - 429_too_many_requests
+      - other_4xx
+      - other_5xx
+      - other
+
   https_rr_presented:
     type: labeled_counter
     description: >
