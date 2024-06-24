@@ -542,6 +542,7 @@ class HomeFragment : Fragment() {
                 reinitializeNavBar = ::reinitializeNavBar,
                 reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt(requireContext()) },
             )
+            toolbarView?.updateLayout()
         }
 
         // If the microsurvey feature is visible, we should update it's state.

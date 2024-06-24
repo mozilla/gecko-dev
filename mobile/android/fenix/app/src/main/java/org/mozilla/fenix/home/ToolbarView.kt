@@ -6,7 +6,6 @@ package org.mozilla.fenix.home
 
 import android.content.Context
 import android.view.Gravity
-import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -34,7 +33,7 @@ class ToolbarView(
     private val interactor: ToolbarInteractor,
 ) {
     init {
-        updateLayout(binding.root)
+        updateLayout()
     }
 
     /**
@@ -59,7 +58,7 @@ class ToolbarView(
         }
     }
 
-    private fun updateLayout(view: View) {
+    internal fun updateLayout() {
         val showBrowserActionButtonsAndMenu = !context.shouldAddNavigationBar()
         binding.menuButton.isVisible = showBrowserActionButtonsAndMenu
         binding.tabButton.isVisible = showBrowserActionButtonsAndMenu
@@ -110,8 +109,8 @@ class ToolbarView(
                 }
 
                 binding.bottomBar.background = AppCompatResources.getDrawable(
-                    view.context,
-                    view.context.theme.resolveAttribute(R.attr.bottomBarBackgroundTop),
+                    context,
+                    context.theme.resolveAttribute(R.attr.bottomBarBackgroundTop),
                 )
 
                 binding.homeAppBar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
