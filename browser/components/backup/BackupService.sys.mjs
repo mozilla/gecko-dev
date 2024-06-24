@@ -905,7 +905,8 @@ export class BackupService extends EventTarget {
           // we're just going to log it.
           let manifestEntry = await new resourceClass().backup(
             resourcePath,
-            profilePath
+            profilePath,
+            encryptionEnabled
           );
 
           if (manifestEntry === undefined) {

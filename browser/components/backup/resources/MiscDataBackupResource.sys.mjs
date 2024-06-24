@@ -32,7 +32,11 @@ export class MiscDataBackupResource extends BackupResource {
     return false;
   }
 
-  async backup(stagingPath, profilePath = PathUtils.profileDir) {
+  async backup(
+    stagingPath,
+    profilePath = PathUtils.profileDir,
+    _isEncrypting = false
+  ) {
     const files = ["enumerate_devices.txt", "SiteSecurityServiceState.bin"];
     await BackupResource.copyFiles(profilePath, stagingPath, files);
 

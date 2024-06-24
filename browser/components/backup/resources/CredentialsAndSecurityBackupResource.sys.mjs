@@ -16,7 +16,11 @@ export class CredentialsAndSecurityBackupResource extends BackupResource {
     return true;
   }
 
-  async backup(stagingPath, profilePath = PathUtils.profileDir) {
+  async backup(
+    stagingPath,
+    profilePath = PathUtils.profileDir,
+    _isEncrypting = false
+  ) {
     const simpleCopyFiles = [
       "pkcs11.txt",
       "logins.json",

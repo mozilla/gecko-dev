@@ -16,7 +16,11 @@ export class AddonsBackupResource extends BackupResource {
     return false;
   }
 
-  async backup(stagingPath, profilePath = PathUtils.profileDir) {
+  async backup(
+    stagingPath,
+    profilePath = PathUtils.profileDir,
+    _isEncrypting = false
+  ) {
     // Files and directories to backup.
     let toCopy = [
       "extensions.json",
