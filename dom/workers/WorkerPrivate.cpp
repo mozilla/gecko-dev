@@ -1624,7 +1624,6 @@ nsresult WorkerPrivate::DispatchLockHeld(
            this, runnable.get()));
       RefPtr<WorkerThreadRunnable> workerThreadRunnable =
           static_cast<WorkerThreadRunnable*>(runnable.get());
-      workerThreadRunnable->mWorkerPrivateForPreStartCleaning = this;
       mPreStartRunnables.AppendElement(workerThreadRunnable);
       return NS_OK;
     }
@@ -3216,12 +3215,14 @@ void WorkerPrivate::RunLoopNeverRan() {
   RefPtr<WorkerThread> thread;
   {
     MutexAutoLock lock(mMutex);
-    // WorkerPrivate::DoRunLoop() is never called, so CompileScriptRunnable
-    // should not execute yet. However, the Worker is going to "Dead", flip the
-    // mCancelBeforeWorkerScopeConstructed to true for the dispatched runnables
-    // to indicate runnables there is no valid WorkerGlobalScope for executing.
-    MOZ_ASSERT(!data->mCancelBeforeWorkerScopeConstructed);
-    data->mCancelBeforeWorkerScopeConstructed.Flip();
+
+    if (!mPreStartRunnables.IsEmpty()) {
+      for (const RefPtr<WorkerThreadRunnable>& runnable : mPreStartRunnables) {
+        runnable->mCleanPreStartDispatching = true;
+      }
+      mPreStartRunnables.Clear();
+    }
+
     // Switch State to Dead
     mStatus = Dead;
     thread = mThread;
@@ -3279,6 +3280,10 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
 
     MOZ_ASSERT(mStatus == Pending);
     mStatus = Running;
+
+    // Now, start to run the event loop, mPreStartRunnables can be cleared,
+    // since when get here, Worker initialization has done successfully.
+    mPreStartRunnables.Clear();
   }
 
   // Now that we've done that, we can go ahead and set up our AutoJSAPI.  We
@@ -4192,7 +4197,7 @@ void WorkerPrivate::ShutdownModuleLoader() {
 }
 
 void WorkerPrivate::ClearPreStartRunnables() {
-  nsTArray<RefPtr<WorkerRunnable>> prestart;
+  nsTArray<RefPtr<WorkerThreadRunnable>> prestart;
   {
     MutexAutoLock lock(mMutex);
     mPreStartRunnables.SwapElements(prestart);
@@ -5858,7 +5863,8 @@ void WorkerPrivate::SetWorkerPrivateInWorkerThread(
       MOZ_ALWAYS_SUCCEEDS(mThread->DispatchAnyThread(
           WorkerThreadFriendKey{}, mPreStartRunnables[index].forget()));
     }
-    mPreStartRunnables.Clear();
+    // Don't clear mPreStartRunnables here, it will be cleared in the beginning
+    // of WorkerPrivate::DoRunLoop() or when in WorkerPrivate::RunLoopNeverRan()
   }
 }
 
