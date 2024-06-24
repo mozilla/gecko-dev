@@ -253,9 +253,8 @@ function approximateFraction(x) {
   }
   return result;
 }
-function roundToDivide(x, div) {
-  const r = x % div;
-  return r === 0 ? x : Math.round(x - r + div);
+function floorToDivide(x, div) {
+  return x - x % div;
 }
 function getPageSizeInches({
   view,
@@ -2979,6 +2978,7 @@ class PDFFindController {
       source: this,
       state,
       previous,
+      entireWord: this.#state?.entireWord ?? null,
       matchesCount: this.#requestMatchesCount(),
       rawQuery: this.#state?.query ?? null
     });
@@ -5680,13 +5680,13 @@ class PDFPageView {
     }
     const sfx = approximateFraction(outputScale.sx);
     const sfy = approximateFraction(outputScale.sy);
-    canvas.width = roundToDivide(width * outputScale.sx, sfx[0]);
-    canvas.height = roundToDivide(height * outputScale.sy, sfy[0]);
+    canvas.width = floorToDivide(width * outputScale.sx, sfx[0]);
+    canvas.height = floorToDivide(height * outputScale.sy, sfy[0]);
     const {
       style
     } = canvas;
-    style.width = roundToDivide(width, sfx[1]) + "px";
-    style.height = roundToDivide(height, sfy[1]) + "px";
+    style.width = floorToDivide(width, sfx[1]) + "px";
+    style.height = floorToDivide(height, sfy[1]) + "px";
     this.#viewportMap.set(canvas, viewport);
     const transform = outputScale.scaled ? [outputScale.sx, 0, 0, outputScale.sy, 0, 0] : null;
     const renderContext = {
@@ -5867,7 +5867,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.4.34";
+    const viewerVersion = "4.4.111";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -6166,10 +6166,14 @@ class PDFViewer {
         return;
       }
       this.#getAllTextInProgress = true;
-      const savedCursor = this.container.style.cursor;
-      this.container.style.cursor = "wait";
-      const interruptCopy = ev => this.#interruptCopyCondition = ev.key === "Escape";
-      window.addEventListener("keydown", interruptCopy);
+      const {
+        classList
+      } = this.viewer;
+      classList.add("copyAll");
+      const ac = new AbortController();
+      window.addEventListener("keydown", ev => this.#interruptCopyCondition = ev.key === "Escape", {
+        signal: ac.signal
+      });
       this.getAllText().then(async text => {
         if (text !== null) {
           await navigator.clipboard.writeText(text);
@@ -6179,8 +6183,8 @@ class PDFViewer {
       }).finally(() => {
         this.#getAllTextInProgress = false;
         this.#interruptCopyCondition = false;
-        window.removeEventListener("keydown", interruptCopy);
-        this.container.style.cursor = savedCursor;
+        ac.abort();
+        classList.remove("copyAll");
       });
       event.preventDefault();
       event.stopPropagation();
@@ -7997,17 +8001,12 @@ const PDFViewerApplication = {
       });
     });
   },
-  _ensureDownloadComplete() {
-    if (this.pdfDocument && this.downloadComplete) {
-      return;
-    }
-    throw new Error("PDF document not downloaded.");
-  },
   async download(options = {}) {
     let data;
     try {
-      this._ensureDownloadComplete();
-      data = await this.pdfDocument.getData();
+      if (this.downloadComplete) {
+        data = await this.pdfDocument.getData();
+      }
     } catch {}
     this.downloadManager.download(data, this._downloadUrl, this._docFilename, options);
   },
@@ -8018,7 +8017,6 @@ const PDFViewerApplication = {
     this._saveInProgress = true;
     await this.pdfScriptingManager.dispatchWillSave();
     try {
-      this._ensureDownloadComplete();
       const data = await this.pdfDocument.saveDocument();
       this.downloadManager.download(data, this._downloadUrl, this._docFilename, options);
     } catch (reason) {
@@ -8761,10 +8759,15 @@ const PDFViewerApplication = {
   unbindWindowEvents() {
     this._windowAbortController?.abort();
     this._windowAbortController = null;
-    if (AppOptions.get("isInAutomation")) {
-      this._globalAbortController?.abort();
-      this._globalAbortController = null;
-    }
+  },
+  async testingClose() {
+    this.l10n?.pause();
+    this.findBar?.close();
+    this.unbindEvents();
+    this.unbindWindowEvents();
+    this._globalAbortController?.abort();
+    this._globalAbortController = null;
+    await this.close();
   },
   _accumulateTicks(ticks, prop) {
     if (this[prop] > 0 && ticks < 0 || this[prop] < 0 && ticks > 0) {
@@ -9022,6 +9025,7 @@ function webViewerUpdateFindMatchesCount({
 function webViewerUpdateFindControlState({
   state,
   previous,
+  entireWord,
   matchesCount,
   rawQuery
 }) {
@@ -9029,6 +9033,7 @@ function webViewerUpdateFindControlState({
     PDFViewerApplication.externalServices.updateFindControlState({
       result: state,
       findPrevious: previous,
+      entireWord,
       matchesCount,
       rawQuery
     });
@@ -9509,8 +9514,8 @@ function webViewerReportTelemetry({
 
 
 
-const pdfjsVersion = "4.4.34";
-const pdfjsBuild = "e3caa3c6e";
+const pdfjsVersion = "4.4.111";
+const pdfjsBuild = "f9ff613e5";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

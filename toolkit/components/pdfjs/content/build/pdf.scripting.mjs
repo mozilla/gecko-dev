@@ -1015,11 +1015,26 @@ class AForm {
     }
     return date;
   }
-  _parseDate(cFormat, cDate) {
+  _parseDate(cFormat, cDate, strict = false) {
     let date = null;
     try {
       date = this._util.scand(cFormat, cDate);
     } catch {}
+    if (!date) {
+      if (strict) {
+        return null;
+      }
+      let format = cFormat;
+      if (/mm(?!m)/.test(format)) {
+        format = format.replace("mm", "m");
+      }
+      if (/dd(?!d)/.test(format)) {
+        format = format.replace("dd", "d");
+      }
+      try {
+        date = this._util.scand(format, cDate);
+      } catch {}
+    }
     if (!date) {
       date = Date.parse(cDate);
       date = isNaN(date) ? this._tryToGuessDate(cFormat, cDate) : new Date(date);
@@ -1187,7 +1202,7 @@ class AForm {
     if (!value) {
       return;
     }
-    if (this._parseDate(cFormat, value) === null) {
+    if (this._parseDate(cFormat, value, true) === null) {
       const invalid = GlobalConstants.IDS_INVALID_DATE;
       const invalid2 = GlobalConstants.IDS_INVALID_DATE2;
       const err = `${invalid} ${this._mkTargetName(event)}${invalid2}${cFormat}`;
@@ -3956,8 +3971,8 @@ function initSandbox(params) {
 
 ;// CONCATENATED MODULE: ./src/pdf.scripting.js
 
-const pdfjsVersion = "4.4.34";
-const pdfjsBuild = "e3caa3c6e";
+const pdfjsVersion = "4.4.111";
+const pdfjsBuild = "f9ff613e5";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };
