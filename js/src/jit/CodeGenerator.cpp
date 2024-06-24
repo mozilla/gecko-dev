@@ -2152,6 +2152,80 @@ static bool PrepareAndExecuteRegExp(MacroAssembler& masm, Register regexp,
   return true;
 }
 
+static void EmitInitDependentStringBase(MacroAssembler& masm,
+                                        Register dependent, Register base,
+                                        Register temp1, Register temp2,
+                                        bool needsPostBarrier) {
+  // Determine the base string to use and store it in temp2.
+  Label notDependent, markedDependedOn;
+  masm.load32(Address(base, JSString::offsetOfFlags()), temp1);
+  masm.branchTest32(Assembler::Zero, temp1, Imm32(JSString::DEPENDENT_BIT),
+                    &notDependent);
+  {
+    // The base is also a dependent string. Load its base to prevent chains of
+    // dependent strings in most cases. This must either be an atom or already
+    // have the DEPENDED_ON_BIT set.
+    masm.loadDependentStringBase(base, temp2);
+    masm.jump(&markedDependedOn);
+  }
+  masm.bind(&notDependent);
+  {
+    // The base is not a dependent string. Set the DEPENDED_ON_BIT if it's not
+    // an atom.
+    masm.movePtr(base, temp2);
+    masm.branchTest32(Assembler::NonZero, temp1, Imm32(JSString::ATOM_BIT),
+                      &markedDependedOn);
+    masm.or32(Imm32(JSString::DEPENDED_ON_BIT), temp1);
+    masm.store32(temp1, Address(temp2, JSString::offsetOfFlags()));
+  }
+  masm.bind(&markedDependedOn);
+
+#ifdef DEBUG
+  // Assert the base has the DEPENDED_ON_BIT set or is an atom.
+  Label isAppropriatelyMarked;
+  masm.branchTest32(Assembler::NonZero,
+                    Address(temp2, JSString::offsetOfFlags()),
+                    Imm32(JSString::ATOM_BIT | JSString::DEPENDED_ON_BIT),
+                    &isAppropriatelyMarked);
+  masm.assumeUnreachable("Base string is missing DEPENDED_ON_BIT");
+  masm.bind(&isAppropriatelyMarked);
+#endif
+  masm.storeDependentStringBase(temp2, dependent);
+
+  // Post-barrier the base store. The base is still in temp2.
+  if (needsPostBarrier) {
+    Label done;
+    masm.branchPtrInNurseryChunk(Assembler::Equal, dependent, temp1, &done);
+    masm.branchPtrInNurseryChunk(Assembler::NotEqual, temp2, temp1, &done);
+
+    LiveRegisterSet regsToSave(RegisterSet::Volatile());
+    regsToSave.takeUnchecked(temp1);
+    regsToSave.takeUnchecked(temp2);
+
+    masm.PushRegsInMask(regsToSave);
+
+    masm.mov(ImmPtr(masm.runtime()), temp1);
+
+    using Fn = void (*)(JSRuntime* rt, js::gc::Cell* cell);
+    masm.setupUnalignedABICall(temp2);
+    masm.passABIArg(temp1);
+    masm.passABIArg(dependent);
+    masm.callWithABI<Fn, PostWriteBarrier>();
+
+    masm.PopRegsInMask(regsToSave);
+
+    masm.bind(&done);
+  } else {
+#ifdef DEBUG
+    Label done;
+    masm.branchPtrInNurseryChunk(Assembler::Equal, dependent, temp1, &done);
+    masm.branchPtrInNurseryChunk(Assembler::NotEqual, temp2, temp1, &done);
+    masm.assumeUnreachable("Missing post barrier for dependent string base");
+    masm.bind(&done);
+#endif
+  }
+}
+
 static void CopyStringChars(MacroAssembler& masm, Register to, Register from,
                             Register len, Register byteOpScratch,
                             CharEncoding encoding,
@@ -2330,60 +2404,9 @@ void CreateDependentString::generate(MacroAssembler& masm,
     masm.load32(startIndexAddress, temp2_);
     masm.addToCharPtr(temp1_, temp2_, encoding_);
     masm.storeNonInlineStringChars(temp1_, string_);
-    masm.storeDependentStringBase(base, string_);
 
-    // Ensure that the depended-on string is flagged as such, so we don't
-    // convert it into a forwarded atom
-    masm.load32(Address(base, JSString::offsetOfFlags()), temp2_);
-    Label skipDependedOn;
-    masm.branchTest32(Assembler::NonZero, temp2_, Imm32(JSString::ATOM_BIT),
-                      &skipDependedOn);
-    masm.or32(Imm32(JSString::DEPENDED_ON_BIT), temp2_);
-    masm.store32(temp2_, Address(base, JSString::offsetOfFlags()));
-    masm.bind(&skipDependedOn);
-
-    // Follow any base pointer if the input is itself a dependent string.
-    // Watch for undepended strings, which have a base pointer but don't
-    // actually share their characters with it.
-    Label noBase;
-    masm.movePtr(base, temp1_);
-    masm.and32(Imm32(JSString::TYPE_FLAGS_MASK), temp2_);
-    masm.branchTest32(Assembler::Zero, temp2_, Imm32(JSString::DEPENDENT_BIT),
-                      &noBase);
-    masm.loadDependentStringBase(base, temp1_);
-    masm.storeDependentStringBase(temp1_, string_);
-#ifdef DEBUG
-    Label isAppropriatelyMarked;
-    masm.branchTest32(Assembler::NonZero,
-                      Address(temp1_, JSString::offsetOfFlags()),
-                      Imm32(JSString::ATOM_BIT | JSString::DEPENDED_ON_BIT),
-                      &isAppropriatelyMarked);
-    masm.assumeUnreachable("Base chain missing DEPENDED_ON_BIT");
-    masm.bind(&isAppropriatelyMarked);
-#endif
-
-    masm.bind(&noBase);
-
-    // Post-barrier the base store, whether it was the direct or indirect
-    // base (both will end up in temp1 here).
-    masm.branchPtrInNurseryChunk(Assembler::Equal, string_, temp2_, &done);
-    masm.branchPtrInNurseryChunk(Assembler::NotEqual, temp1_, temp2_, &done);
-
-    LiveRegisterSet regsToSave(RegisterSet::Volatile());
-    regsToSave.takeUnchecked(temp1_);
-    regsToSave.takeUnchecked(temp2_);
-
-    masm.PushRegsInMask(regsToSave);
-
-    masm.mov(ImmPtr(runtime), temp1_);
-
-    using Fn = void (*)(JSRuntime* rt, js::gc::Cell* cell);
-    masm.setupUnalignedABICall(temp2_);
-    masm.passABIArg(temp1_);
-    masm.passABIArg(string_);
-    masm.callWithABI<Fn, PostWriteBarrier>();
-
-    masm.PopRegsInMask(regsToSave);
+    EmitInitDependentStringBase(masm, string_, base, temp1_, temp2_,
+                                /* needsPostBarrier = */ true);
   }
 
   masm.bind(&done);
@@ -13160,22 +13183,18 @@ void CodeGenerator::visitSubstr(LSubstr* lir) {
     masm.bind(&notInline);
     masm.newGCString(output, temp0, gen->initialStringHeap(), slowPath);
     masm.store32(length, Address(output, JSString::offsetOfLength()));
-    masm.storeDependentStringBase(string, output);
+
+    // Note: no post barrier is needed because the dependent string is either
+    // allocated in the nursery or both strings are tenured (if nursery strings
+    // are disabled for this zone).
+    EmitInitDependentStringBase(masm, output, string, temp0, temp2,
+                                /* needsPostBarrier = */ false);
 
     auto initializeDependentString = [&](CharEncoding encoding) {
-      masm.loadPtr(Address(string, JSString::offsetOfFlags()), temp0);
-      Label skipDependedOn;
-      masm.branchTest32(Assembler::NonZero, temp0, Imm32(JSString::ATOM_BIT),
-                        &skipDependedOn);
-      masm.or32(Imm32(JSString::DEPENDED_ON_BIT), temp0);
-      masm.store32(temp0, Address(string, JSString::offsetOfFlags()));
-      masm.bind(&skipDependedOn);
-
       uint32_t flags = JSString::INIT_DEPENDENT_FLAGS;
       if (encoding == CharEncoding::Latin1) {
         flags |= JSString::LATIN1_CHARS_BIT;
       }
-
       masm.store32(Imm32(flags), Address(output, JSString::offsetOfFlags()));
       masm.loadNonInlineStringChars(string, temp0, encoding);
       masm.addToCharPtr(temp0, begin, encoding);
