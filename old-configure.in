@@ -196,8 +196,6 @@ if test "$CC_TYPE" != clang-cl; then
 fi
 
 if test "$CC_TYPE" != clang-cl ; then
-    CXXFLAGS="$CXXFLAGS -fno-exceptions"
-
     _DEFINES_CXXFLAGS="-DMOZILLA_CLIENT -include $_objdir/mozilla-config.h"
 fi
 
