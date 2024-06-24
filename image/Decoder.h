@@ -527,15 +527,16 @@ class Decoder {
       const OrientedIntRect& aRect,
       const Maybe<OrientedIntRect>& aRectAtOutputSize = Nothing());
 
+  // For animated images, specify the loop count. -1 means loop forever, 0
+  // means a single iteration, stopping on the last frame.
+  void PostLoopCount(int32_t aLoopCount);
+
   // Called by the decoders when they have successfully decoded the image. This
   // may occur as the result of the decoder getting to the appropriate point in
   // the stream, or by us calling FinishInternal().
   //
   // May not be called mid-frame.
-  //
-  // For animated images, specify the loop count. -1 means loop forever, 0
-  // means a single iteration, stopping on the last frame.
-  void PostDecodeDone(int32_t aLoopCount = 0);
+  void PostDecodeDone();
 
   /**
    * Allocates a new frame, making it our current frame if successful.

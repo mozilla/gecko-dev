@@ -1573,6 +1573,20 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
 
   if (mIsAnimated) {
     PostIsAnimated(parsedImage.mDuration);
+
+    switch (mParser->GetInfo().loop_mode) {
+      case MP4PARSE_AVIF_LOOP_MODE_LOOP_BY_COUNT: {
+        auto loopCount = mParser->GetInfo().loop_count;
+        PostLoopCount(loopCount > INT32_MAX ? -1
+                                            : static_cast<int32_t>(loopCount));
+        break;
+      }
+      case MP4PARSE_AVIF_LOOP_MODE_LOOP_INFINITELY:
+      case MP4PARSE_AVIF_LOOP_MODE_NO_EDITS:
+      default:
+        PostLoopCount(-1);
+        break;
+    }
   }
   if (mHasAlpha) {
     PostHasTransparency();
@@ -1931,24 +1945,12 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
                             : Opacity::FULLY_OPAQUE);
 
     if (!mIsAnimated || IsFirstFrameDecode()) {
-      PostDecodeDone(0);
+      PostDecodeDone();
       return DecodeResult(NonDecoderResult::Complete);
     }
 
     if (isDone) {
-      switch (mParser->GetInfo().loop_mode) {
-        case MP4PARSE_AVIF_LOOP_MODE_LOOP_BY_COUNT: {
-          auto loopCount = mParser->GetInfo().loop_count;
-          PostDecodeDone(
-              loopCount > INT32_MAX ? -1 : static_cast<int32_t>(loopCount));
-          break;
-        }
-        case MP4PARSE_AVIF_LOOP_MODE_LOOP_INFINITELY:
-        case MP4PARSE_AVIF_LOOP_MODE_NO_EDITS:
-        default:
-          PostDecodeDone(-1);
-          break;
-      }
+      PostDecodeDone();
       return DecodeResult(NonDecoderResult::Complete);
     }
 

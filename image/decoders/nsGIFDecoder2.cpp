@@ -103,15 +103,30 @@ nsGIFDecoder2::nsGIFDecoder2(RasterImage* aImage)
 
 nsGIFDecoder2::~nsGIFDecoder2() { free(mGIFStruct.local_colormap); }
 
+nsresult nsGIFDecoder2::FinishWithErrorInternal() {
+  if (mGIFOpen) {
+    PostLoopCount(mGIFStruct.loop_count);
+    mGIFOpen = false;
+  }
+
+  return Decoder::FinishWithErrorInternal();
+}
+
 nsresult nsGIFDecoder2::FinishInternal() {
   MOZ_ASSERT(!HasError(), "Shouldn't call FinishInternal after error!");
 
+  if (!mGIFOpen) {
+    return NS_OK;
+  }
+
+  PostLoopCount(mGIFStruct.loop_count);
+
   // If the GIF got cut off, handle it anyway
-  if (!IsMetadataDecode() && mGIFOpen) {
+  if (!IsMetadataDecode()) {
     if (mCurrentFrameIndex == mGIFStruct.images_decoded) {
       EndImageFrame();
     }
-    PostDecodeDone(mGIFStruct.loop_count);
+    PostDecodeDone();
     mGIFOpen = false;
   }
 

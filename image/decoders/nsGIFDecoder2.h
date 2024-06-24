@@ -20,7 +20,7 @@ class RasterImage;
 //////////////////////////////////////////////////////////////////////
 // nsGIFDecoder2 Definition
 
-class nsGIFDecoder2 : public Decoder {
+class nsGIFDecoder2 final : public Decoder {
  public:
   ~nsGIFDecoder2();
 
@@ -29,6 +29,7 @@ class nsGIFDecoder2 : public Decoder {
  protected:
   LexerResult DoDecode(SourceBufferIterator& aIterator,
                        IResumable* aOnResume) override;
+  nsresult FinishWithErrorInternal() override;
   nsresult FinishInternal() override;
 
   Maybe<Telemetry::HistogramID> SpeedHistogram() const override;
