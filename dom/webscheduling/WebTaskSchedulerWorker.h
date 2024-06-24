@@ -13,6 +13,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/dom/WorkerPrivate.h"
+#include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/WebTaskSchedulingBinding.h"
 
 namespace mozilla::dom {
@@ -32,6 +33,8 @@ class WebTaskWorkerRunnable final : public WorkerSameThreadRunnable {
 
 class WebTaskSchedulerWorker final : public WebTaskScheduler {
  public:
+  static RefPtr<WebTaskSchedulerWorker> Create(WorkerPrivate* aWorkerPrivate);
+
   explicit WebTaskSchedulerWorker(WorkerPrivate* aWorkerPrivate);
 
   void Disconnect() override;
@@ -42,7 +45,8 @@ class WebTaskSchedulerWorker final : public WebTaskScheduler {
   nsresult SetTimeoutForDelayedTask(WebTask* aTask, uint64_t aDelay) override;
   bool DispatchEventLoopRunnable() override;
 
-  CheckedUnsafePtr<WorkerPrivate> mWorkerPrivate;
+  RefPtr<StrongWorkerRef> mWorkerRef;
+  bool mWorkerIsShuttingDown{false};
 };
 }  // namespace mozilla::dom
 #endif

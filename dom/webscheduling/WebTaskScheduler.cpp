@@ -147,7 +147,7 @@ already_AddRefed<WebTaskSchedulerWorker> WebTaskScheduler::CreateForWorker(
     WorkerPrivate* aWorkerPrivate) {
   aWorkerPrivate->AssertIsOnWorkerThread();
   RefPtr<WebTaskSchedulerWorker> scheduler =
-      new WebTaskSchedulerWorker(aWorkerPrivate);
+      WebTaskSchedulerWorker::Create(aWorkerPrivate);
   return scheduler.forget();
 }
 
