@@ -259,6 +259,11 @@ skip-if = ["!debug"]
 
 ["test_isRemoteProxy.html"]
 
+["test_json_parse_with_source_worker.html"]
+prefs = [
+  "javascript.options.experimental.json_parse_with_source=true",
+]
+
 ["test_nukeContentWindow.html"]
 
 ["test_paris_weakmap_keys.html"]
