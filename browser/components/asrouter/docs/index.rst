@@ -88,6 +88,10 @@ Current templates include\:
 Detailed Docs
 -------------
 
+* Explore key terms in the `Messaging System Glossary`__.
+
+.. __: ./messaging-glossary.html
+
 * Read more about `trigger listeners and user action schemas`__.
 
 .. __: /toolkit/components/messaging-system/docs
