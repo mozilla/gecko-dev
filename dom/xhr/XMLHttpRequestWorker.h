@@ -21,7 +21,7 @@ namespace mozilla::dom {
 class Proxy;
 class DOMString;
 class SendRunnable;
-class StrongWorkerRef;
+class ThreadSafeWorkerRef;
 class WorkerPrivate;
 
 class XMLHttpRequestWorker final : public SupportsWeakPtr,
@@ -56,7 +56,15 @@ class XMLHttpRequestWorker final : public SupportsWeakPtr,
 
  private:
   RefPtr<XMLHttpRequestUpload> mUpload;
-  RefPtr<StrongWorkerRef> mWorkerRef;
+
+  // This is set by SendRunnable::RunOnMainThread when the send process starts
+  // and is cleared by Proxy::Teardown and is held for the duration of the send.
+  // Additionally, it will be temporarily saved off by various sync runnables
+  // and replaced with their own reference to make a ThreadSafeWorkerRef
+  // available to the proxy for the duration of the sync runnables.
+  // They will restore the state when their sync runnable completes its main
+  // thread work.
+  RefPtr<ThreadSafeWorkerRef> mWorkerRef;
   RefPtr<XMLHttpRequestWorker> mPinnedSelfRef;
   RefPtr<Proxy> mProxy;
 
