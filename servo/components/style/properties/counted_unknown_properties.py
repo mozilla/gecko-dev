@@ -6,7 +6,6 @@ COUNTED_UNKNOWN_PROPERTIES = [
     "-webkit-tap-highlight-color",
     "speak",
     "text-size-adjust",
-    "-webkit-font-feature-settings",
     "-webkit-user-drag",
     "orphans",
     "widows",
