@@ -496,6 +496,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_net_telemetry_persist_toggle_changed.js"]
 
 ["browser_net_telemetry_select_ws_frame.js"]
+skip-if = [
+  "os == 'win' && !debug", # Bug 1767657
+  "os == 'mac' && os_version == '10.15' && !debug" # Bug 1767657
+]
 
 ["browser_net_telemetry_sidepanel_changed.js"]
 
