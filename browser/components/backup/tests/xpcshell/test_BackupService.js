@@ -353,7 +353,8 @@ add_task(async function test_recoverFromSnapshotFolder() {
   let profile = await bs.recoverFromSnapshotFolder(
     stagingPath,
     false /* shouldLaunch */,
-    newProfileRootPath
+    newProfileRootPath,
+    null /* encState */
   );
   Assert.ok(profile, "An nsIToolkitProfile was created.");
   let newProfilePath = profile.rootDir.path;

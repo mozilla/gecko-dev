@@ -122,6 +122,7 @@ class BackupTest(MarionetteTestCase):
             expectedClientID,
         ] = self.marionette.execute_async_script(
             """
+          const { OSKeyStore } = ChromeUtils.importESModule("resource://gre/modules/OSKeyStore.sys.mjs");
           const { ClientID } = ChromeUtils.importESModule("resource://gre/modules/ClientID.sys.mjs");
           const { BackupService } = ChromeUtils.importESModule("resource:///modules/backup/BackupService.sys.mjs");
           let bs = BackupService.get();
@@ -135,7 +136,21 @@ class BackupTest(MarionetteTestCase):
               PathUtils.tempDir,
               "recoverFromBackupArchiveTest-newProfileRoot"
             );
+
+            // This is some hackery to make it so that OSKeyStore doesn't kick
+            // off an OS authentication dialog in our test, and also to make
+            // sure we don't blow away the _real_ OSKeyStore key for the browser
+            // on the system that this test is running on. Normally, I'd use
+            // OSKeyStoreTestUtils.setup to do this, but apparently the
+            // testing-common modules aren't available in Marionette tests.
+            const ORIGINAL_STORE_LABEL = OSKeyStore.STORE_LABEL;
+            OSKeyStore.STORE_LABEL = "test-" + Math.random().toString(36).substr(2);
+
             let newProfile = await bs.recoverFromBackupArchive(archivePath, recoveryCode, false, recoveryPath, newProfileRootPath);
+
+            await OSKeyStore.cleanup();
+            OSKeyStore.STORE_LABEL = ORIGINAL_STORE_LABEL;
+
             if (!newProfile) {
               throw new Error("Could not create recovery profile.");
             }
@@ -158,8 +173,9 @@ class BackupTest(MarionetteTestCase):
         self.marionette.start_session()
         self.marionette.set_context("chrome")
 
-        # Ensure that all postRecovery actions have completed.
-        self.marionette.execute_async_script(
+        # Ensure that all postRecovery actions have completed, and that
+        # encryption is enabled.
+        encryptionEnabled = self.marionette.execute_async_script(
             """
           const { BackupService } = ChromeUtils.importESModule("resource:///modules/backup/BackupService.sys.mjs");
           let bs = BackupService.get();
@@ -170,9 +186,13 @@ class BackupTest(MarionetteTestCase):
           let [outerResolve] = arguments;
           (async () => {
             await bs.postRecoveryComplete;
+
+            await bs.loadEncryptionState();
+            return bs.state.encryptionEnabled;
           })().then(outerResolve);
         """
         )
+        self.assertTrue(encryptionEnabled)
 
         self.verify_recovered_test_cookie()
         self.verify_recovered_test_login()

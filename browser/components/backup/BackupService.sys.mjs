@@ -1903,6 +1903,17 @@ export class BackupService extends EventTarget {
       recoveryCode
     );
 
+    let encState = null;
+    if (recoveryCode) {
+      // We were passed a recovery code and made it to this line. That implies
+      // that the backup was encrypted, and the recovery code was the correct
+      // one to decrypt it. We now generate a new ArchiveEncryptionState with
+      // that recovery code to write into the recovered profile.
+      ({ instance: encState } = await lazy.ArchiveEncryptionState.initialize(
+        recoveryCode
+      ));
+    }
+
     const RECOVERY_FOLDER_DEST_PATH = PathUtils.join(
       profilePath,
       BackupService.PROFILE_FOLDER_NAME,
@@ -1924,7 +1935,8 @@ export class BackupService extends EventTarget {
     return this.recoverFromSnapshotFolder(
       RECOVERY_FOLDER_DEST_PATH,
       shouldLaunch,
-      profileRootPath
+      profileRootPath,
+      encState
     );
   }
 
@@ -1955,6 +1967,13 @@ export class BackupService extends EventTarget {
    *   profile directory should be created. If not provided, the default
    *   profile root directory will be used. This is primarily meant for
    *   testing.
+   * @param {ArchiveEncryptionState} [encState=null]
+   *   Set if the backup being recovered was encrypted. This implies that the
+   *   profile being recovered was configured to create encrypted backups. This
+   *   ArchiveEncryptionState is therefore needed to generate the
+   *   ARCHIVE_ENCRYPTION_STATE_FILE for the recovered profile (since the
+   *   original ARCHIVE_ENCRYPTION_STATE_FILE was intentionally not backed up,
+   *   as the recovery device might have a different OSKeyStore secret).
    * @returns {Promise<nsIToolkitProfile>}
    *   The nsIToolkitProfile that was created for the recovered profile.
    * @throws {Exception}
@@ -1963,7 +1982,8 @@ export class BackupService extends EventTarget {
   async recoverFromSnapshotFolder(
     recoveryPath,
     shouldLaunch = false,
-    profileRootPath = null
+    profileRootPath = null,
+    encState = null
   ) {
     lazy.logConsole.debug("Recovering from backup at ", recoveryPath);
 
@@ -2080,6 +2100,21 @@ export class BackupService extends EventTarget {
           TELEMETRY_STATE_FILENAME
         )
       );
+
+      if (encState) {
+        // The backup we're recovering was originally encrypted, meaning that
+        // the recovered profile is configured to create encrypted backups. Our
+        // caller passed us a _new_ ArchiveEncryptionState generated for this
+        // device with the backup's recovery code so that we can serialize the
+        // ArchiveEncryptionState for the recovered profile.
+        let encStatePath = PathUtils.join(
+          profile.rootDir.path,
+          BackupService.PROFILE_FOLDER_NAME,
+          BackupService.ARCHIVE_ENCRYPTION_STATE_FILE
+        );
+        let encStateObject = await encState.serialize();
+        await IOUtils.writeJSON(encStatePath, encStateObject);
+      }
 
       let postRecoveryPath = PathUtils.join(
         profile.rootDir.path,
