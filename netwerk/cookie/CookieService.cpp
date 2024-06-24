@@ -2065,16 +2065,6 @@ CookieStatus CookieService::CheckPrefs(
       *aRejectedReason = nsIWebProgressListener::STATE_COOKIES_BLOCKED_FOREIGN;
       return STATUS_REJECTED;
     }
-
-    if (StaticPrefs::network_cookie_thirdparty_sessionOnly()) {
-      return STATUS_ACCEPT_SESSION;
-    }
-
-    if (StaticPrefs::network_cookie_thirdparty_nonsecureSessionOnly()) {
-      if (!aHostURI->SchemeIs("https")) {
-        return STATUS_ACCEPT_SESSION;
-      }
-    }
   }
 
   // if nothing has complained, accept cookie

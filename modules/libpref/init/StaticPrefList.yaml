@@ -11821,16 +11821,6 @@
   value: true
   mirror: always
 
-- name: network.cookie.thirdparty.sessionOnly
-  type: bool
-  value: false
-  mirror: always
-
-- name: network.cookie.thirdparty.nonsecureSessionOnly
-  type: bool
-  value: false
-  mirror: always
-
 # If we should not store "persistent" cookies at all, i.e., make the
 # "persistent" storage be like "private" storage.  This value is only read when
 # instantiating persistent storage for the cookie service, which usually only

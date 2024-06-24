@@ -327,15 +327,6 @@ CookieStatus CookieStatusForWindow(nsPIDOMWindowInner* aWindow,
     }
   }
 
-  if (StaticPrefs::network_cookie_thirdparty_sessionOnly()) {
-    return STATUS_ACCEPT_SESSION;
-  }
-
-  if (StaticPrefs::network_cookie_thirdparty_nonsecureSessionOnly() &&
-      !nsMixedContentBlocker::IsPotentiallyTrustworthyOrigin(aDocumentURI)) {
-    return STATUS_ACCEPT_SESSION;
-  }
-
   return STATUS_ACCEPTED;
 }
 

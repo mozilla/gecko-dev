@@ -502,8 +502,6 @@ skip-if = ["os == 'android'"] # Bug 1700483
 
 ["test_cookies_thirdparty.js"]
 
-["test_cookies_thirdparty_session.js"]
-
 ["test_cookies_upgrade_10.js"]
 
 ["test_data_protocol.js"]
