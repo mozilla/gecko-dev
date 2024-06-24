@@ -231,15 +231,23 @@ std::tuple<sRGBColor, sRGBColor, sRGBColor> Theme::ComputeCheckboxColors(
       return std::make_tuple(bg, bg, fg);
     }
 
-    if (aColors.HighContrast()) {
-      auto bg = aColors.System(StyleSystemColor::Selecteditem);
-      auto fg = aColors.System(StyleSystemColor::Selecteditemtext);
-      return std::make_tuple(bg, bg, fg);
-    }
-
     bool isActive =
         aState.HasAllStates(ElementState::HOVER | ElementState::ACTIVE);
     bool isHovered = aState.HasState(ElementState::HOVER);
+
+    if (aColors.HighContrast()) {
+      sRGBColor border = (isHovered && !isActive)
+                             ? aColors.System(StyleSystemColor::Selecteditem)
+                             : aColors.System(StyleSystemColor::Buttontext);
+      auto bg = (isHovered || isActive)
+                    ? aColors.System(StyleSystemColor::Selecteditem)
+                    : aColors.System(StyleSystemColor::Buttontext);
+      auto fg = (isHovered || isActive)
+                    ? aColors.System(StyleSystemColor::Selecteditemtext)
+                    : aColors.System(StyleSystemColor::Buttonface);
+      return std::make_tuple(bg, border, fg);
+    }
+
     const auto& bg = isActive    ? aColors.Accent().GetDarker()
                      : isHovered ? aColors.Accent().GetDark()
                                  : aColors.Accent().Get();
@@ -257,13 +265,15 @@ sRGBColor Theme::ComputeBorderColor(const ElementState& aState,
                                     const Colors& aColors,
                                     OutlineCoversBorder aOutlineCoversBorder) {
   bool isDisabled = aState.HasState(ElementState::DISABLED);
-  if (aColors.HighContrast()) {
-    return aColors.System(isDisabled ? StyleSystemColor::Graytext
-                                     : StyleSystemColor::Buttontext);
-  }
   bool isActive =
       aState.HasAllStates(ElementState::HOVER | ElementState::ACTIVE);
   bool isHovered = aState.HasState(ElementState::HOVER);
+  if (aColors.HighContrast()) {
+    return aColors.System(isDisabled ? StyleSystemColor::Graytext
+                          : (isHovered && !isActive)
+                              ? StyleSystemColor::Selecteditem
+                              : StyleSystemColor::Buttontext);
+  }
   bool isFocused = aState.HasState(ElementState::FOCUSRING);
   if (isDisabled) {
     return sColorGrey40Alpha50;
@@ -444,8 +454,8 @@ std::pair<sRGBColor, sRGBColor> Theme::ComputeMeterchunkColors(
 std::array<sRGBColor, 3> Theme::ComputeFocusRectColors(const Colors& aColors) {
   if (aColors.HighContrast()) {
     return {aColors.System(StyleSystemColor::Selecteditem),
-            aColors.System(StyleSystemColor::Buttontext),
-            aColors.System(StyleSystemColor::Window)};
+            aColors.System(StyleSystemColor::Window),
+            aColors.System(StyleSystemColor::Buttontext)};
   }
   const auto& accent = aColors.Accent();
   const sRGBColor middle =
