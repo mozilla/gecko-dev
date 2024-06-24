@@ -47,6 +47,7 @@
 #include "xpcpublic.h"
 #include "nsIVariant.h"
 #include "mozilla/dom/FakeString.h"
+#include "mozilla/ProfilerLabels.h"
 
 #include "nsWrapperCacheInlines.h"
 
@@ -3032,6 +3033,7 @@ bool CreateGlobal(JSContext* aCx, T* aNative, nsWrapperCache* aCache,
                   const JSClass* aClass, JS::RealmOptions& aOptions,
                   JSPrincipals* aPrincipal,
                   JS::MutableHandle<JSObject*> aGlobal) {
+  AUTO_PROFILER_LABEL_RELEVANT_FOR_JS("Create global object", JS);
   aOptions.creationOptions()
       .setTrace(CreateGlobalOptions<T>::TraceGlobal)
       .setProfilerRealmID(GetWindowID(aNative));
