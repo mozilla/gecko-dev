@@ -28,6 +28,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "api/dtls_transport_interface.h"
+#include "api/environment/environment_factory.h"
 #include "api/function_view.h"
 #include "api/media_types.h"
 #include "api/network_state_predictor.h"
@@ -1851,7 +1852,7 @@ void EventLogAnalyzer::CreateReceiveSideBweSimulationGraph(Plot* plot) {
   SimulatedClock clock(0);
   RembInterceptor remb_interceptor;
   ReceiveSideCongestionController rscc(
-      &clock, [](auto...) {},
+      CreateEnvironment(&clock), [](auto...) {},
       absl::bind_front(&RembInterceptor::SendRemb, &remb_interceptor), nullptr);
   // TODO(holmer): Log the call config and use that here instead.
   // static const uint32_t kDefaultStartBitrateBps = 300000;

@@ -359,6 +359,7 @@ if (!build_with_chromium) {
 
     rtc_library("event_log_visualizer_utils") {
       visibility = [ "*" ]
+      allow_poison = [ "environment_construction" ]
       sources = [
         "rtc_event_log_visualizer/alerts.cc",
         "rtc_event_log_visualizer/alerts.h",
@@ -384,6 +385,7 @@ if (!build_with_chromium) {
         "../api:scoped_refptr",
         "../api/audio_codecs:audio_codecs_api",  # TODO(kwiberg): Remove this
                                                  # dependency.
+        "../api/environment:environment_factory",
         "../api/neteq:neteq_api",
         "../api/rtc_event_log:rtc_event_log",
         "../api/transport:field_trial_based_config",
@@ -437,6 +439,7 @@ if (!build_with_chromium) {
 
     rtc_library("event_log_visualizer_bindings") {
       visibility = [ "*" ]
+      allow_poison = [ "environment_construction" ]
       sources = [
         "rtc_event_log_visualizer/analyzer_bindings.cc",
         "rtc_event_log_visualizer/analyzer_bindings.h",

@@ -278,6 +278,7 @@ webrtc_fuzzer_test("receive_side_congestion_controller_fuzzer") {
   sources = [ "receive_side_congestion_controller_fuzzer.cc" ]
   deps = [
     "../../api:array_view",
+    "../../api/environment:environment_factory",
     "../../api/units:time_delta",
     "../../api/units:timestamp",
     "../../modules/congestion_controller",
