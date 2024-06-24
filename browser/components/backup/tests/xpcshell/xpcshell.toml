@@ -29,6 +29,8 @@ skip-if = ["apple_silicon && automation"] # bug 1729538
 ["test_BackupService_enable_disable_encryption.js"]
 skip-if = ["apple_silicon && automation"] # bug 1729538
 
+["test_BackupService_renderTemplate.js"]
+
 ["test_BackupService_schema_versions.js"]
 
 ["test_BackupService_takeMeasurements.js"]

@@ -722,6 +722,16 @@ export class BackupService extends EventTarget {
   }
 
   /**
+   * Returns the chrome:// URI string for the template that should be used to
+   * construct the single-file archive.
+   *
+   * @type {string}
+   */
+  static get ARCHIVE_TEMPLATE() {
+    return "chrome://browser/content/backup/archive.template.html";
+  }
+
+  /**
    * Returns a reference to a BackupService singleton. If this is the first time
    * that this getter is accessed, this causes the BackupService singleton to be
    * be instantiated.
@@ -965,7 +975,7 @@ export class BackupService extends EventTarget {
       lazy.logConsole.log("Exporting single-file archive to ", archivePath);
       await this.createArchive(
         archivePath,
-        "chrome://browser/content/backup/archive.template.html",
+        BackupService.ARCHIVE_TEMPLATE,
         compressedStagingPath,
         this.#encState,
         manifest.meta
