@@ -1265,6 +1265,19 @@ size_t js::gc::TenuringTracer::moveString(JSString* dst, JSString* src,
     return size;
   }
 
+  if (src->asLinear().hasStringBuffer()) {
+    auto* buffer = src->asLinear().stringBuffer();
+    if (dst->isTenured()) {
+      // Increment the buffer's refcount because the tenured string now has a
+      // reference to it. The nursery's reference will be released at the end of
+      // the minor GC in Nursery::sweep.
+      buffer->AddRef();
+      AddCellMemory(dst, dst->asLinear().allocSize(),
+                    MemoryUse::StringContents);
+    }
+    return size;
+  }
+
   // String data is in the nursery and needs to be moved to the malloc heap.
 
   MOZ_ASSERT(nursery().isInside(src->asLinear().nonInlineCharsRaw()));

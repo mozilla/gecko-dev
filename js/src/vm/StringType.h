@@ -10,7 +10,9 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Range.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/Span.h"
+#include "mozilla/StringBuffer.h"
 #include "mozilla/TextUtils.h"
 
 #include <string_view>  // std::basic_string_view
@@ -417,6 +419,15 @@ class JSString : public js::gc::CellWithLengthAndFlags {
   static const uint32_t INDEX_VALUE_BIT = js::Bit(11);
   static const uint32_t INDEX_VALUE_SHIFT = 16;
 
+  // Whether this is a non-inline linear string with a refcounted
+  // mozilla::StringBuffer.
+  //
+  // If set, d.s.u2.nonInlineChars* still points to the string's characters and
+  // the StringBuffer header is stored immediately before the characters. This
+  // allows recovering the StringBuffer from the chars pointer with
+  // StringBuffer::FromData.
+  static const uint32_t HAS_STRING_BUFFER_BIT = js::Bit(12);
+
   // NON_DEDUP_BIT is used in string deduplication during tenuring. This bit is
   // shared with both FLATTEN_FINISH_NODE and ATOM_IS_PERMANENT_BIT, since it
   // only applies to linear non-atoms.
@@ -747,6 +758,13 @@ class JSString : public js::gc::CellWithLengthAndFlags {
 
   inline bool ownsMallocedChars() const;
 
+  bool hasStringBuffer() const {
+    MOZ_ASSERT_IF(flags() & HAS_STRING_BUFFER_BIT,
+                  isLinear() && !isInline() && !isDependent() &&
+                      !isExternal() && !isExtensible());
+    return flags() & HAS_STRING_BUFFER_BIT;
+  }
+
   /* Encode as many scalar values of the string as UTF-8 as can fit
    * into the caller-provided buffer replacing unpaired surrogates
    * with the REPLACEMENT CHARACTER.
@@ -1009,8 +1027,8 @@ class JSLinearString : public JSString {
   bool isLinear() const = delete;
   JSLinearString& asLinear() const = delete;
 
-  JSLinearString(const char16_t* chars, size_t length);
-  JSLinearString(const JS::Latin1Char* chars, size_t length);
+  JSLinearString(const char16_t* chars, size_t length, bool hasBuffer);
+  JSLinearString(const JS::Latin1Char* chars, size_t length, bool hasBuffer);
   template <typename CharT>
   explicit inline JSLinearString(JS::MutableHandle<OwnedChars<CharT>> chars);
 
@@ -1042,6 +1060,11 @@ class JSLinearString : public JSString {
   static inline JSLinearString* newValidLength(
       JSContext* cx, JS::MutableHandle<OwnedChars<CharT>> chars,
       js::gc::Heap heap);
+
+  template <js::AllowGC allowGC, typename CharT>
+  static inline JSLinearString* newValidLength(
+      JSContext* cx, RefPtr<mozilla::StringBuffer>&& buffer, const CharT* chars,
+      size_t length, js::gc::Heap heap);
 
   // Convert a plain linear string to an extensible string. For testing. The
   // caller must ensure that it is a plain or extensible string already, and
@@ -1143,6 +1166,12 @@ class JSLinearString : public JSString {
 
     setFlagBit((index << INDEX_VALUE_SHIFT) | INDEX_VALUE_BIT);
     MOZ_ASSERT(getIndexValue() == index);
+  }
+
+  mozilla::StringBuffer* stringBuffer() const {
+    MOZ_ASSERT(hasStringBuffer());
+    auto* chars = nonInlineCharsRaw();
+    return mozilla::StringBuffer::FromData(const_cast<void*>(chars));
   }
 
   /*

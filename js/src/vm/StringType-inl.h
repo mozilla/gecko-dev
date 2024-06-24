@@ -265,7 +265,7 @@ MOZ_ALWAYS_INLINE const JS::Latin1Char* JSString::nonInlineCharsRaw() const {
 }
 
 bool JSString::ownsMallocedChars() const {
-  if (!hasOutOfLineChars()) {
+  if (!hasOutOfLineChars() || asLinear().hasStringBuffer()) {
     return false;
   }
 
@@ -303,7 +303,7 @@ inline size_t JSLinearString::maybeMallocCharsOnPromotion(
 }
 
 inline size_t JSLinearString::allocSize() const {
-  MOZ_ASSERT(ownsMallocedChars());
+  MOZ_ASSERT(ownsMallocedChars() || hasStringBuffer());
 
   size_t charSize =
       hasLatin1Chars() ? sizeof(JS::Latin1Char) : sizeof(char16_t);
@@ -312,7 +312,10 @@ inline size_t JSLinearString::allocSize() const {
 }
 
 inline size_t JSString::allocSize() const {
-  return ownsMallocedChars() ? asLinear().allocSize() : 0;
+  if (ownsMallocedChars() || hasStringBuffer()) {
+    return asLinear().allocSize();
+  }
+  return 0;
 }
 
 inline JSRope::JSRope(JSString* left, JSString* right, size_t length) {
@@ -413,18 +416,30 @@ MOZ_ALWAYS_INLINE JSLinearString* JSDependentString::new_(
   return cx->newCell<JSDependentString>(heap, base, start, length);
 }
 
-inline JSLinearString::JSLinearString(const char16_t* chars, size_t length) {
-  setLengthAndFlags(length, INIT_LINEAR_FLAGS);
-  // Check that the new buffer is located in the StringBufferArena
-  checkStringCharsArena(chars);
+inline JSLinearString::JSLinearString(const char16_t* chars, size_t length,
+                                      bool hasBuffer) {
+  uint32_t flags = INIT_LINEAR_FLAGS | (hasBuffer ? HAS_STRING_BUFFER_BIT : 0);
+  setLengthAndFlags(length, flags);
+  // Check that the new buffer is located in the StringBufferArena.
+  // For now ignore this for StringBuffers because Gecko allocates these in the
+  // main jemalloc arena.
+  if (!hasBuffer) {
+    checkStringCharsArena(chars);
+  }
   d.s.u2.nonInlineCharsTwoByte = chars;
 }
 
 inline JSLinearString::JSLinearString(const JS::Latin1Char* chars,
-                                      size_t length) {
-  setLengthAndFlags(length, INIT_LINEAR_FLAGS | LATIN1_CHARS_BIT);
-  // Check that the new buffer is located in the StringBufferArena
-  checkStringCharsArena(chars);
+                                      size_t length, bool hasBuffer) {
+  uint32_t flags = INIT_LINEAR_FLAGS | LATIN1_CHARS_BIT |
+                   (hasBuffer ? HAS_STRING_BUFFER_BIT : 0);
+  setLengthAndFlags(length, flags);
+  // Check that the new buffer is located in the StringBufferArena.
+  // For now ignore this for StringBuffers because Gecko allocates these in the
+  // main jemalloc arena.
+  if (!hasBuffer) {
+    checkStringCharsArena(chars);
+  }
   d.s.u2.nonInlineCharsLatin1 = chars;
 }
 
@@ -507,6 +522,46 @@ MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::newValidLength(
 
   // Either the tenured Cell or the nursery's registry owns the chars now.
   chars.release();
+
+  return str;
+}
+
+template <js::AllowGC allowGC, typename CharT>
+MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::newValidLength(
+    JSContext* cx, RefPtr<mozilla::StringBuffer>&& buffer, const CharT* chars,
+    size_t length, js::gc::Heap heap) {
+  MOZ_ASSERT(!cx->zone()->isAtomsZone());
+  MOZ_ASSERT(!JSInlineString::lengthFits<CharT>(length));
+  JSLinearString* str = cx->newCell<JSLinearString, allowGC>(
+      heap, chars, length, /* hasBuffer = */ true);
+  if (!str) {
+    return nullptr;
+  }
+
+  if (!str->isTenured()) {
+    // If the following registration fails, the string is partially initialized
+    // and must be made valid, or its finalizer may attempt to free
+    // uninitialized memory.
+    if (!cx->nursery().addStringBuffer(str)) {
+      str->disownCharsBecauseError();
+      if (allowGC) {
+        ReportOutOfMemory(cx);
+      }
+      return nullptr;
+    }
+  } else {
+    // Note: this will overcount if the same buffer is used by multiple JS
+    // strings. Unfortunately we don't have a good way to avoid this.
+    cx->zone()->addCellMemory(str, length * sizeof(CharT),
+                              js::MemoryUse::StringContents);
+  }
+
+  MOZ_ASSERT(str->stringBuffer() == buffer.get());
+
+  // Either the tenured Cell or the nursery's registry owns the chars now, so
+  // transfer the reference.
+  mozilla::StringBuffer* buf;
+  buffer.forget(&buf);
 
   return str;
 }
@@ -763,8 +818,15 @@ inline void JSLinearString::finalize(JS::GCContext* gcx) {
   MOZ_ASSERT(getAllocKind() != js::gc::AllocKind::FAT_INLINE_ATOM);
 
   if (!isInline() && !isDependent()) {
-    gcx->free_(this, nonInlineCharsRaw(), allocSize(),
-               js::MemoryUse::StringContents);
+    size_t size = allocSize();
+    if (hasStringBuffer()) {
+      mozilla::StringBuffer* buffer = stringBuffer();
+      buffer->Release();
+      gcx->removeCellMemory(this, size, js::MemoryUse::StringContents);
+    } else {
+      gcx->free_(this, nonInlineCharsRaw(), size,
+                 js::MemoryUse::StringContents);
+    }
   }
 }
 

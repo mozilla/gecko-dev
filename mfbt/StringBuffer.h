@@ -79,6 +79,10 @@ class StringBuffer {
                                                size_t aLength) {
     return DoCreate(aData, aLength);
   }
+  static already_AddRefed<StringBuffer> Create(const unsigned char* aData,
+                                               size_t aLength) {
+    return DoCreate(aData, aLength);
+  }
 
   /**
    * Resizes the given string buffer to the specified storage size.  This
@@ -209,6 +213,16 @@ class StringBuffer {
     return mRefCount.load(std::memory_order_relaxed) > 1;
 #endif
   }
+
+#ifdef DEBUG
+  /**
+   * Returns the buffer's reference count. This is only exposed for logging and
+   * testing purposes.
+   */
+  uint32_t RefCount() const {
+    return mRefCount.load(std::memory_order_acquire);
+  }
+#endif
 
   /**
    * This measures the size only if the StringBuffer is unshared.

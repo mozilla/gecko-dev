@@ -15,6 +15,7 @@
 #include "js/TracingAPI.h"
 #include "vm/JSContext.h"
 #include "vm/NativeObject.h"
+#include "vm/StringType.h"
 
 namespace js {
 namespace gc {
@@ -27,6 +28,13 @@ inline JSRuntime* js::Nursery::runtime() const { return gc->rt; }
 template <typename T>
 bool js::Nursery::isInside(const SharedMem<T>& p) const {
   return isInside(p.unwrap(/*safe - used for value in comparison above*/));
+}
+
+inline bool js::Nursery::addStringBuffer(JSLinearString* s) {
+  MOZ_ASSERT(IsInsideNursery(s));
+  MOZ_ASSERT(isEnabled());
+  MOZ_ASSERT(s->hasStringBuffer());
+  return stringBuffers_.emplaceBack(s, s->stringBuffer());
 }
 
 inline bool js::Nursery::shouldTenure(gc::Cell* cell) {

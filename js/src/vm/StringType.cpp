@@ -112,13 +112,18 @@ size_t JSString::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {
     return 0;
   }
 
+  JSLinearString& linear = asLinear();
+
+  if (hasStringBuffer()) {
+    return linear.stringBuffer()->SizeOfIncludingThisIfUnshared(mallocSizeOf);
+  }
+
   // Chars in the nursery are owned by the nursery.
   if (!ownsMallocedChars()) {
     return 0;
   }
 
   // Everything else: measure the space for the chars.
-  JSLinearString& linear = asLinear();
   return linear.hasLatin1Chars() ? mallocSizeOf(linear.rawLatin1Chars())
                                  : mallocSizeOf(linear.rawTwoByteChars());
 }
@@ -404,6 +409,9 @@ void ForEachStringFlag(const JSString* str, uint32_t flags, KnownF known,
         break;
       case JSString::LATIN1_CHARS_BIT:
         known("LATIN1_CHARS_BIT");
+        break;
+      case JSString::HAS_STRING_BUFFER_BIT:
+        known("HAS_STRING_BUFFER_BIT");
         break;
       case JSString::ATOM_IS_INDEX_BIT:
         if (str->isAtom()) {
@@ -2277,6 +2285,12 @@ void JSExtensibleString::dumpOwnRepresentationFields(
 void JSInlineString::dumpOwnRepresentationFields(js::JSONPrinter& json) const {}
 
 void JSLinearString::dumpOwnRepresentationFields(js::JSONPrinter& json) const {
+  if (hasStringBuffer()) {
+#  ifdef DEBUG
+    json.property("bufferRefCount", stringBuffer()->RefCount());
+#  endif
+    return;
+  }
   if (!isInline()) {
     // Include whether the chars are in the nursery even for tenured
     // strings, which should always be false. For investigating bugs, it's
@@ -2540,17 +2554,27 @@ bool JSString::tryReplaceWithAtomRef(JSAtom* atom) {
 
   AutoCheckCannotGC nogc;
   if (hasOutOfLineChars()) {
-    void* buffer = asLinear().nonInlineCharsRaw();
-    // This is a little cheeky and so deserves a comment. If the string is
-    // not tenured, then either its buffer lives purely in the nursery, in
-    // which case it will just be forgotten and blown away in the next
-    // minor GC, or it is tracked in the nursery's mallocedBuffers hashtable,
-    // in which case it will be freed for us in the next minor GC. We opt
-    // to let the GC take care of it since there's a chance it will run
-    // during idle time.
-    if (isTenured()) {
-      RemoveCellMemory(this, allocSize(), MemoryUse::StringContents);
-      js_free(buffer);
+    if (asLinear().hasStringBuffer()) {
+      // If the string is in the nursery, the reference to the buffer will be
+      // released during the next minor GC (in Nursery::sweep). If the string is
+      // tenured, we have to release this reference here.
+      if (isTenured()) {
+        RemoveCellMemory(this, allocSize(), MemoryUse::StringContents);
+        asLinear().stringBuffer()->Release();
+      }
+    } else {
+      void* buffer = asLinear().nonInlineCharsRaw();
+      // This is a little cheeky and so deserves a comment. If the string is
+      // not tenured, then either its buffer lives purely in the nursery, in
+      // which case it will just be forgotten and blown away in the next
+      // minor GC, or it is tracked in the nursery's mallocedBuffers hashtable,
+      // in which case it will be freed for us in the next minor GC. We opt
+      // to let the GC take care of it since there's a chance it will run
+      // during idle time.
+      if (isTenured()) {
+        RemoveCellMemory(this, allocSize(), MemoryUse::StringContents);
+        js_free(buffer);
+      }
     }
   }
 
