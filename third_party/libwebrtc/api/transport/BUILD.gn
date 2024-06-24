@@ -39,6 +39,7 @@ rtc_library("network_control") {
 
   deps = [
     "../../api:field_trials_view",
+    "../environment",
     "../rtc_event_log",
     "../units:data_rate",
     "../units:data_size",

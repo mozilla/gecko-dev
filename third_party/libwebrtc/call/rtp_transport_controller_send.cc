@@ -90,6 +90,7 @@ RtpTransportControllerSend::RtpTransportControllerSend(
       process_interval_(controller_factory_fallback_->GetProcessInterval()),
       last_report_block_time_(
           Timestamp::Millis(env_.clock().TimeInMilliseconds())),
+      initial_config_(env_),
       reset_feedback_on_route_change_(
           !env_.field_trials().IsEnabled("WebRTC-Bwe-NoFeedbackReset")),
       add_pacing_to_cwin_(env_.field_trials().IsEnabled(
@@ -105,8 +106,6 @@ RtpTransportControllerSend::RtpTransportControllerSend(
       env_.field_trials().Lookup("WebRTC-Bwe-NetworkRouteConstraints"));
   initial_config_.constraints =
       ConvertConstraints(config.bitrate_config, &env_.clock());
-  initial_config_.event_log = &env_.event_log();
-  initial_config_.key_value_config = &env_.field_trials();
   RTC_DCHECK(config.bitrate_config.start_bitrate_bps > 0);
 
   pacer_.SetPacingRates(

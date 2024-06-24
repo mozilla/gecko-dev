@@ -19,6 +19,8 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/test/network_emulation/create_cross_traffic.h"
 #include "api/test/network_emulation/cross_traffic.h"
 #include "api/transport/goog_cc_factory.h"
@@ -274,7 +276,7 @@ class NetworkControllerTestFixture {
       int starting_bandwidth_kbps = kInitialBitrateKbps,
       int min_data_rate_kbps = 0,
       int max_data_rate_kbps = 5 * kInitialBitrateKbps) {
-    NetworkControllerConfig config;
+    NetworkControllerConfig config(env_);
     config.constraints.at_time = Timestamp::Zero();
     config.constraints.min_data_rate =
         DataRate::KilobitsPerSec(min_data_rate_kbps);
@@ -282,11 +284,11 @@ class NetworkControllerTestFixture {
         DataRate::KilobitsPerSec(max_data_rate_kbps);
     config.constraints.starting_rate =
         DataRate::KilobitsPerSec(starting_bandwidth_kbps);
-    config.event_log = &event_log_;
     return config;
   }
 
   NiceMock<MockRtcEventLog> event_log_;
+  const Environment env_ = CreateEnvironment(&event_log_);
   GoogCcNetworkControllerFactory factory_;
 };
 

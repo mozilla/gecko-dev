@@ -339,6 +339,8 @@ if (rtc_include_tests) {
         ":send_side_bwe",
         "../../../api:field_trials_view",
         "../../../api:network_state_predictor_api",
+        "../../../api/environment",
+        "../../../api/environment:environment_factory",
         "../../../api/rtc_event_log",
         "../../../api/test/network_emulation",
         "../../../api/test/network_emulation:create_cross_traffic",

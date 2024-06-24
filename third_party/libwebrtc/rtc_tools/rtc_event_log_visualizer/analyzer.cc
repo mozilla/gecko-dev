@@ -1651,11 +1651,10 @@ void EventLogAnalyzer::CreateSendSideBweSimulationGraph(Plot* plot) {
   TimeDelta process_interval = factory.GetProcessInterval();
   // TODO(holmer): Log the call config and use that here instead.
   static const uint32_t kDefaultStartBitrateBps = 300000;
-  NetworkControllerConfig cc_config;
+  NetworkControllerConfig cc_config(CreateEnvironment(&null_event_log));
   cc_config.constraints.at_time = Timestamp::Micros(clock.TimeInMicroseconds());
   cc_config.constraints.starting_rate =
       DataRate::BitsPerSec(kDefaultStartBitrateBps);
-  cc_config.event_log = &null_event_log;
   auto goog_cc = factory.Create(cc_config);
 
   TimeSeries time_series("Delay-based estimate", LineStyle::kStep,
