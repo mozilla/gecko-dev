@@ -280,11 +280,10 @@ bool WebGLContext::CreateAndInitGL(
 
   // -
 
-  bool forceSoftwareRendering = mOptions.forceSoftwareRendering;
-  if (StaticPrefs::webgl_forbid_hardware() || forceSoftwareRendering) {
+  if (StaticPrefs::webgl_forbid_hardware()) {
     flags |= gl::CreateContextFlags::FORBID_HARDWARE;
   }
-  if (StaticPrefs::webgl_forbid_software() && !forceSoftwareRendering) {
+  if (StaticPrefs::webgl_forbid_software()) {
     flags |= gl::CreateContextFlags::FORBID_SOFTWARE;
   }
 

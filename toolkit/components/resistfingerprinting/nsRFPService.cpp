@@ -1889,18 +1889,6 @@ bool nsRFPService::CheckSuspiciousFingerprintingActivity(
 }
 
 /* static */
-bool nsRFPService::IsSoftwareRenderingOptionExposed(JSContext* aCx,
-                                                    JSObject* aObj) {
-  nsIPrincipal* principal = nsContentUtils::ObjectPrincipal(aObj);
-  if (nsContentUtils::SubjectPrincipal(aCx)->IsSystemPrincipal()) {
-    return true;
-  }
-
-  return principal->Equals(
-      nsContentUtils::GetFingerprintingProtectionPrincipal());
-}
-
-/* static */
 nsresult nsRFPService::CreateOverrideDomainKey(
     nsIFingerprintingOverride* aOverride, nsACString& aDomainKey) {
   MOZ_ASSERT(aOverride);
