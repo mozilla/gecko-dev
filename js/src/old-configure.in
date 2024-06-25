@@ -165,12 +165,6 @@ dnl ========================================================
 dnl GNU specific defaults
 dnl ========================================================
 if test "$CC_TYPE" != clang-cl ; then
-
-    if test "$OS_ARCH" != "WINNT"; then
-        DSO_PIC_CFLAGS='-fPIC'
-        ASFLAGS="$ASFLAGS -fPIC"
-    fi
-
     _DEFINES_CFLAGS="-include $jsconfdefs -DMOZILLA_CLIENT"
 fi
 
@@ -254,7 +248,6 @@ case "$target" in
     ;;
 
 *-mingw*)
-    DSO_PIC_CFLAGS=
     if test "$CC_TYPE" != clang-cl ; then
         # != clang-cl will match gcc and clang
         if test "$CC_TYPE" = gcc ; then
@@ -349,15 +342,8 @@ case "$target" in
     CFLAGS="$CFLAGS -Dunix"
     CXXFLAGS="$CXXFLAGS -Dunix"
     if $CC -E - -dM </dev/null | grep __ELF__ >/dev/null; then
-        DSO_PIC_CFLAGS='-fPIC -DPIC'
         MOZ_PROGRAM_LDFLAGS="$MOZ_PROGRAM_LDFLAGS -Wl,--export-dynamic"
-    else
-    	DSO_PIC_CFLAGS='-fPIC -DPIC'
     fi
-    ;;
-
-*-openbsd*)
-    DSO_PIC_CFLAGS='-fPIC'
     ;;
 
 *-wasi*)
@@ -365,9 +351,6 @@ case "$target" in
     ;;
 
 esac
-
-CFLAGS="$CFLAGS $DSO_PIC_CFLAGS"
-CXXFLAGS="$CXXFLAGS $DSO_PIC_CFLAGS"
 
 if test -z "$MOZ_OPTIMIZE_FLAGS"; then
 	MOZ_OPTIMIZE_FLAGS="-O"

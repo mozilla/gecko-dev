@@ -273,6 +273,9 @@ check_and_add_linker_flag("-Wl,-z,nocopyreloc", when=building_with_gnu_compatibl
 
 check_and_add_linker_optimize_flag("-Wl,-dead_strip", when=target_is_darwin & ~dtrace)
 
+check_and_add_asm_flag("-fPIC", when=building_with_gnu_compatible_cc)
+check_and_add_flag("-fPIC", when=building_with_gnu_compatible_cc)
+set_define("PIC", True, when=target_is_netbsd)
 
 # DSO flags manipulations
 have_linker_support_ignore_unresolved = try_link(
