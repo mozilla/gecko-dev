@@ -14,12 +14,13 @@ from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import _python_exit as futures_atexit
 from itertools import chain
 from math import ceil
-from multiprocessing import cpu_count, get_context
+from multiprocessing import get_context
 from multiprocessing.queues import Queue
 from subprocess import CalledProcessError
 from typing import Dict, Set
 
 import mozpack.path as mozpath
+from mozbuild.util import cpu_count
 from mozversioncontrol import (
     InvalidRepoPath,
     MissingUpstreamRepo,

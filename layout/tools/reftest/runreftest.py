@@ -6,7 +6,6 @@
 Runs the reftest test harness.
 """
 import json
-import multiprocessing
 import os
 import platform
 import posixpath
@@ -61,10 +60,12 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 try:
     from mozbuild.base import MozbuildObject
+    from mozbuild.util import cpu_count
 
     build_obj = MozbuildObject.from_environment(cwd=here)
 except ImportError:
     build_obj = None
+    from multiprocessing import cpu_count
 
 
 def categoriesToRegex(categoryList):
@@ -698,7 +699,7 @@ class RefTest(object):
         if not getattr(options, "runTestsInParallel", False):
             return self.runSerialTests(manifests, options, cmdargs)
 
-        cpuCount = multiprocessing.cpu_count()
+        cpuCount = cpu_count()
 
         # We have the directive, technology, and machine to run multiple test instances.
         # Experimentation says that reftests are not overly CPU-intensive, so we can run

@@ -8,12 +8,12 @@ import os
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed, thread
-from multiprocessing import cpu_count
 
 import mozinfo
 from mach.decorators import Command, CommandArgument
 from manifestparser import TestManifest
 from manifestparser import filters as mpf
+from mozbuild.util import cpu_count
 from mozfile import which
 from tqdm import tqdm
 

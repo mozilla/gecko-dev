@@ -4,7 +4,6 @@
 
 import concurrent.futures
 import lzma
-import os
 import plistlib
 import struct
 import subprocess
@@ -14,6 +13,8 @@ from typing import List
 from urllib.parse import quote
 
 import mozfile
+
+from mozbuild.util import cpu_count
 
 TEMPLATE_DIRECTORY = Path(__file__).parent / "apple_pkg"
 PBZX_CHUNK_SIZE = 16 * 1024 * 1024  # 16MB chunks
@@ -132,7 +133,7 @@ def create_payload(destination: Path, root_path: Path, cpio_tool: str):
         with tmp_payload_path.open("rb") as f_in, destination.open(
             "wb"
         ) as f_out, concurrent.futures.ThreadPoolExecutor(
-            max_workers=os.cpu_count()
+            max_workers=cpu_count()
         ) as executor:
             f_out.write(b"pbzx")
             f_out.write(struct.pack(">Q", PBZX_CHUNK_SIZE))

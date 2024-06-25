@@ -18,14 +18,14 @@ import mozpack.path as mozpath
 from mach.mixin.logging import LoggingMixin
 from mozbuild.makeutil import Makefile
 from mozbuild.pythonutil import iter_modules_in_path
-from mozbuild.util import FileAvoidWrite
+from mozbuild.util import FileAvoidWrite, cpu_count
 
 # There are various imports in this file in functions to avoid adding
 # dependencies to config.status. See bug 949875.
 
 # Limit the count on Windows, because of bug 1889842 and also the
 # inefficiency of fork on Windows.
-DEFAULT_PROCESS_COUNT = 4 if sys.platform == "win32" else os.cpu_count()
+DEFAULT_PROCESS_COUNT = 4 if sys.platform == "win32" else cpu_count()
 
 
 class WebIDLPool:

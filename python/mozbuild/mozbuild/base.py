@@ -6,7 +6,6 @@ import errno
 import io
 import json
 import logging
-import multiprocessing
 import os
 import subprocess
 import sys
@@ -31,7 +30,7 @@ from .backend.configenvironment import ConfigEnvironment, ConfigStatusFailure
 from .configure import ConfigureSandbox
 from .controller.clobber import Clobberer
 from .mozconfig import MozconfigLoader, MozconfigLoadException
-from .util import memoize, memoized_property
+from .util import cpu_count, memoize, memoized_property
 
 try:
     import psutil
@@ -747,7 +746,7 @@ class MozbuildObject(ProcessExecutionMixin):
             if job_size == 0:
                 job_size = 2.0 if self.substs.get("CC_TYPE") == "gcc" else 1.0  # GiB
 
-            cpus = multiprocessing.cpu_count()
+            cpus = cpu_count()
             if not psutil or not job_size:
                 num_jobs = cpus
             else:

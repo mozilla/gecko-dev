@@ -13,6 +13,7 @@ from mach.decorators import Command, CommandArgument
 from mozfile import which
 
 from mozbuild import build_commands
+from mozbuild.util import cpu_count
 
 
 @Command(
@@ -300,8 +301,6 @@ def setup_clangd_rust_in_vscode(command_context):
         if rc != 0:
             return rc
 
-    import multiprocessing
-
     from mozbuild.code_analysis.utils import ClangTidyConfig
 
     clang_tidy_cfg = ClangTidyConfig(command_context.topsrcdir)
@@ -316,7 +315,7 @@ def setup_clangd_rust_in_vscode(command_context):
         "cargo",
         "check",
         "-j",
-        str(multiprocessing.cpu_count() // 2),
+        str(cpu_count() // 2),
         "--all-crates",
         "--message-format-json",
     ]
@@ -344,7 +343,7 @@ def setup_clangd_rust_in_vscode(command_context):
         "clangd.path": clangd_path,
         "clangd.arguments": [
             "-j",
-            str(multiprocessing.cpu_count() // 2),
+            str(cpu_count() // 2),
             "--limit-results",
             "0",
             "--completion-style",

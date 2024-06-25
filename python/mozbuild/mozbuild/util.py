@@ -22,6 +22,11 @@ import six
 
 from mozbuild.dirutils import ensureParentDir
 
+try:
+    import psutil
+except Exception:
+    psutil = None
+
 MOZBUILD_METRICS_PATH = os.path.abspath(
     os.path.join(__file__, "..", "..", "metrics.yaml")
 )
@@ -1227,3 +1232,22 @@ def hexdump(buf):
         line += "|\n"
         lines.append(line)
     return lines
+
+
+def cpu_count():
+    """
+    Returns the number of CPUs available to us. This may be different than
+    `os.cpu_count()` because of affinity.
+
+    See the Python documentation for `os.cpu_count()`.
+    """
+    try:
+        return len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        pass
+    if psutil:
+        try:
+            return len(psutil.Process().cpu_affinity())
+        except (AttributeError, OSError):
+            pass
+    return os.cpu_count()

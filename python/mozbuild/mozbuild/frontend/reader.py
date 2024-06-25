@@ -30,7 +30,6 @@ from collections import OrderedDict, defaultdict
 from concurrent.futures.process import ProcessPoolExecutor
 from io import StringIO
 from itertools import chain
-from multiprocessing import cpu_count
 
 import mozpack.path as mozpath
 from mozpack.files import FileFinder
@@ -41,6 +40,7 @@ from mozbuild.util import (
     EmptyValue,
     HierarchicalStringList,
     ReadOnlyDefaultDict,
+    cpu_count,
     memoize,
 )
 

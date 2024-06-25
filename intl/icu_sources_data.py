@@ -11,13 +11,13 @@
 # copy of ICU has been updated.
 
 import glob
-import multiprocessing
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
 
+from mozbuild.util import cpu_count
 from mozpack import path as mozpath
 
 # The following files have been determined to be dead/unused by a
@@ -277,7 +277,7 @@ def update_data_file(topsrcdir):
     print("Running ICU make...")
     if not try_run(
         "icu-make",
-        ["make", "--jobs=%d" % multiprocessing.cpu_count(), "--output-sync"],
+        ["make", "--jobs=%d" % cpu_count(), "--output-sync"],
         cwd=objdir,
     ):
         return False
