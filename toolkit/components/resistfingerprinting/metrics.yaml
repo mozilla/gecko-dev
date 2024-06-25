@@ -2388,3 +2388,20 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
+
+  cpu_model:
+    type: string
+    description: >
+      CPU model of the user's device
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901291
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901291#c2
+    expires: never
+    data_sensitivity:
+      - technical
