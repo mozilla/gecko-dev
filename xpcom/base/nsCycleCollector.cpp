@@ -175,6 +175,7 @@
 #include "mozilla/MruCache.h"
 #include "mozilla/PoisonIOInterposer.h"
 #include "mozilla/ProfilerLabels.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "mozilla/SegmentedVector.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/ThreadLocal.h"
@@ -1288,6 +1289,107 @@ mozilla::CycleCollectorStats* CycleCollectorStats::Get() {
   MOZ_ASSERT(sCollectorData.get());
   return sCollectorData.get()->mStats.get();
 }
+
+////////////////////////////////////////////////////////////////////////
+// Profiler & ETW markers
+////////////////////////////////////////////////////////////////////////
+
+namespace geckoprofiler::markers {
+struct CCIntervalMarker : public mozilla::BaseMarkerType<CCIntervalMarker> {
+  static constexpr const char* Name = "CC";
+  static constexpr const char* Description =
+      "Summary data for the core part of a cycle collection, possibly "
+      "encompassing a set of incremental slices. The thread is not "
+      "blocked for the entire major CC interval, only for the individual "
+      "slices.";
+
+  using MS = mozilla::MarkerSchema;
+  static constexpr MS::PayloadField PayloadFields[] = {
+      {"mReason", MS::InputType::CString, "Reason", MS::Format::String,
+       MS::PayloadFlags::Searchable},
+      {"mMaxSliceTime", MS::InputType::TimeDuration, "Max Slice Time",
+       MS::Format::Duration},
+      {"mSuspected", MS::InputType::Uint32, "Suspected Objects",
+       MS::Format::Integer},
+      {"mSlices", MS::InputType::Uint32, "Number of Slices",
+       MS::Format::Integer},
+      {"mAnyManual", MS::InputType::Boolean, "Manually Triggered",
+       MS::Format::Integer},
+      {"mForcedGC", MS::InputType::Boolean, "GC Forced", MS::Format::Integer},
+      {"mMergedZones", MS::InputType::Boolean, "Zones Merged",
+       MS::Format::Integer},
+      {"mForgetSkippable", MS::InputType::Uint32, "Forget Skippables",
+       MS::Format::Integer},
+      {"mVisitedRefCounted", MS::InputType::Uint32,
+       "Refcounted Objects Visited", MS::Format::Integer},
+      {"mVisitedGCed", MS::InputType::Uint32, "GC Objects Visited",
+       MS::Format::Integer},
+      {"mFreedRefCounted", MS::InputType::Uint32, "GC Objects Freed",
+       MS::Format::Integer},
+      {"mFreedGCed", MS::InputType::Uint32, "GC Objects Freed",
+       MS::Format::Integer},
+      {"mFreedJSZones", MS::InputType::Uint32, "JS Zones Freed",
+       MS::Format::Integer},
+      {"mRemovedPurples", MS::InputType::Uint32,
+       "Objects Removed From Purple Buffer", MS::Format::Integer}};
+
+  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
+                                               MS::Location::MarkerTable,
+                                               MS::Location::TimelineMemory};
+  static constexpr MS::ETWMarkerGroup Group = MS::ETWMarkerGroup::Memory;
+
+  static void TranslateMarkerInputToSchema(
+      void* aContext, bool aIsStart,
+      const mozilla::ProfilerString8View& aReason,
+      uint32_t aForgetSkippableBeforeCC, uint32_t aSuspectedAtCCStart,
+      uint32_t aRemovedPurples, const mozilla::CycleCollectorResults& aResults,
+      const mozilla::TimeDuration& aMaxSliceTime) {
+    uint32_t none = 0;
+    if (aIsStart) {
+      ETW::OutputMarkerSchema(aContext, CCIntervalMarker{}, aReason,
+                              mozilla::TimeDuration{}, aSuspectedAtCCStart,
+                              none, false, false, false,
+                              aForgetSkippableBeforeCC, none, none, none, none,
+                              none, aRemovedPurples);
+    } else {
+      ETW::OutputMarkerSchema(
+          aContext, CCIntervalMarker{}, mozilla::ProfilerStringView(""),
+          aMaxSliceTime, none, aResults.mNumSlices, aResults.mAnyManual,
+          aResults.mForcedGC, aResults.mMergedZones, none,
+          aResults.mVisitedRefCounted, aResults.mVisitedGCed,
+          aResults.mFreedRefCounted, aResults.mFreedGCed,
+          aResults.mFreedJSZones, none);
+    }
+  }
+
+  static void StreamJSONMarkerData(
+      mozilla::baseprofiler::SpliceableJSONWriter& aWriter, bool aIsStart,
+      const mozilla::ProfilerString8View& aReason,
+      uint32_t aForgetSkippableBeforeCC, uint32_t aSuspectedAtCCStart,
+      uint32_t aRemovedPurples, const mozilla::CycleCollectorResults& aResults,
+      mozilla::TimeDuration aMaxSliceTime) {
+    if (aIsStart) {
+      aWriter.StringProperty("mReason", aReason);
+      aWriter.IntProperty("mSuspected", aSuspectedAtCCStart);
+      aWriter.IntProperty("mForgetSkippable", aForgetSkippableBeforeCC);
+      aWriter.IntProperty("mRemovedPurples", aRemovedPurples);
+    } else {
+      aWriter.TimeDoubleMsProperty("mMaxSliceTime",
+                                   aMaxSliceTime.ToMilliseconds());
+      aWriter.IntProperty("mSlices", aResults.mNumSlices);
+
+      aWriter.BoolProperty("mAnyManual", aResults.mAnyManual);
+      aWriter.BoolProperty("mForcedGC", aResults.mForcedGC);
+      aWriter.BoolProperty("mMergedZones", aResults.mMergedZones);
+      aWriter.IntProperty("mVisitedRefCounted", aResults.mVisitedRefCounted);
+      aWriter.IntProperty("mVisitedGCed", aResults.mVisitedGCed);
+      aWriter.IntProperty("mFreedRefCounted", aResults.mFreedRefCounted);
+      aWriter.IntProperty("mFreedGCed", aResults.mFreedGCed);
+      aWriter.IntProperty("mFreedJSZones", aResults.mFreedJSZones);
+    }
+  }
+};
+}  // namespace geckoprofiler::markers
 
 ////////////////////////////////////////////////////////////////////////
 // Utility functions
@@ -3403,8 +3505,8 @@ void nsCycleCollector::CleanupAfterCollection() {
   mGraph.Clear();
   timeLog.Checkpoint("CleanupAfterCollection::mGraph.Clear()");
 
-  uint32_t interval =
-      (uint32_t)((TimeStamp::Now() - mCollectionStart).ToMilliseconds());
+  TimeStamp endTime = TimeStamp::Now();
+  uint32_t interval = (uint32_t)((endTime - mCollectionStart).ToMilliseconds());
 #ifdef COLLECT_TIME_DEBUG
   printf("cc: total cycle collector time was %ums in %u slices\n", interval,
          mResults.mNumSlices);
@@ -3426,6 +3528,10 @@ void nsCycleCollector::CleanupAfterCollection() {
   CC_TELEMETRY(_VISITED_GCED, mResults.mVisitedGCed);
   CC_TELEMETRY(_COLLECTED, mWhiteNodeCount);
   timeLog.Checkpoint("CleanupAfterCollection::telemetry");
+
+  PROFILER_MARKER("CC", GCCC, MarkerOptions(MarkerTiming::IntervalEnd(endTime)),
+                  CCIntervalMarker, /* aIsStart */ false, nullptr, 0, 0, 0,
+                  mResults, sCollectorData.get()->mStats->mMaxSliceTime);
 
   if (mCCJSRuntime) {
     mCCJSRuntime->FinalizeDeferredThings(
@@ -3672,6 +3778,16 @@ void nsCycleCollector::BeginCollection(
       mLogger->SetAllTraces();
     }
   }
+
+  CycleCollectorResults ignoredResults;
+  mozilla::CycleCollectorStats* stats = sCollectorData.get()->mStats.get();
+  PROFILER_MARKER(
+      "CC", GCCC, MarkerOptions(MarkerTiming::IntervalStart(mCollectionStart)),
+      CCIntervalMarker,
+      /* aIsStart */ true,
+      ProfilerString8View::WrapNullTerminatedString(CCReasonToString(aReason)),
+      stats->mForgetSkippableBeforeCC, stats->mSuspected,
+      stats->mRemovedPurples, ignoredResults, TimeDuration());
 
   // BeginCycleCollectionCallback() might have started an IGC, and we need
   // to finish it before we run FixGrayBits.

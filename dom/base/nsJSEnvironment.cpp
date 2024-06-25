@@ -1217,9 +1217,7 @@ void nsJSContext::PrepareForCycleCollectionSlice(CCReason aReason,
 
   if (!sScheduler->IsCollectingCycles()) {
     sCCStats->PrepareForCycleCollection(beginTime);
-    sScheduler->NoteCCBegin(aReason, beginTime,
-                            sCCStats->mForgetSkippableBeforeCC,
-                            sCCStats->mSuspected, sCCStats->mRemovedPurples);
+    sScheduler->NoteCCBegin();
   }
 
   sCCStats->AfterPrepareForCycleCollectionSlice(aDeadline, beginTime,
@@ -1316,7 +1314,7 @@ void nsJSContext::EndCycleCollectionCallback(
   TimeDuration ccNowDuration = endCCTimeStamp - sCCStats->mBeginTime;
   TimeStamp prevCCEnd = sScheduler->GetLastCCEndTime();
 
-  sScheduler->NoteCCEnd(aResults, endCCTimeStamp, sCCStats->mMaxSliceTime);
+  sScheduler->NoteCCEnd(aResults, endCCTimeStamp);
 
   // Log information about the CC via telemetry, JSON and the console.
 

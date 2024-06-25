@@ -147,7 +147,7 @@ void TestCC::TimerFires(int aNumSlices) {
   step = mScheduler.AdvanceCCRunner(idleDeadline, Now(), SuspectedCCObjects());
   EXPECT_EQ(step.mAction, CCRunnerAction::CleanupDeferred);
 
-  mScheduler.NoteCCBegin(CCReason::API, Now(), 0, sSuspected, 0);
+  mScheduler.NoteCCBegin();
   RunSlices(aNumSlices);
 }
 
@@ -176,7 +176,7 @@ void TestCC::EndCycleCollectionCallback() {
   CycleCollectorResults results;
   results.mFreedGCed = 10;
   results.mFreedJSZones = 2;
-  mScheduler.NoteCCEnd(results, Now(), TimeDuration());
+  mScheduler.NoteCCEnd(results, Now());
 
   // Because > 0 zones were freed.
   EXPECT_TRUE(mScheduler.NeedsGCAfterCC());
