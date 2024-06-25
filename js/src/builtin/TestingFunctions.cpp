@@ -10030,15 +10030,6 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE)
 "      ImportJitExit    - wasm-to-jitted-JS stubs\n"
 "      all              - all kinds, including obscure ones\n"),
 
-    JS_FN_HELP("wasmDumpIon", WasmDumpIon, 2, 0,
-"wasmDumpIon(bytecode, funcIndex, [, contents])\n",
-"wasmDumpIon(bytecode, funcIndex, [, contents])"
-"  Returns a dump of compiling a function in the specified module with Ion."
-"  The `contents` flag controls what is dumped. one of:"
-"    `mir` | `unopt-mir`: Unoptimized MIR (the default)"
-"    `opt-mir`: Optimized MIR"
-"    `lir`: LIR"),
-
     JS_FN_HELP("wasmHasTier2CompilationCompleted", WasmHasTier2CompilationCompleted, 1, 0,
 "wasmHasTier2CompilationCompleted(module)",
 "  Returns a boolean indicating whether a given module has finished compiled code for tier2. \n"
@@ -10618,8 +10609,16 @@ JS_FN_HELP("getEnvironmentObjectType", GetEnvironmentObjectType, 1, 0,
     JS_FN_HELP("stringRepresentation", GetStringRepresentation, 1, 0,
 "stringRepresentation(str)",
 "  Return a human-readable description of how the string |str| is represented.\n"),
-
 #endif
+
+    JS_FN_HELP("wasmDumpIon", WasmDumpIon, 2, 0,
+"wasmDumpIon(bytecode, funcIndex, [, contents])\n",
+"wasmDumpIon(bytecode, funcIndex, [, contents])"
+"  Returns a dump of compiling a function in the specified module with Ion."
+"  The `contents` flag controls what is dumped. one of:"
+"    `mir` | `unopt-mir`: Unoptimized MIR (the default)"
+"    `opt-mir`: Optimized MIR"
+"    `lir`: LIR"),
 
     JS_FS_HELP_END
 };
