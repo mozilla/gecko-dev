@@ -10,6 +10,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
 });
 
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
   return console.createInstance({
     prefix: "UserCharacteristicsPage",
@@ -209,6 +211,7 @@ export class UserCharacteristicsPageService {
       [this.populateMathOps, []],
       [this.populateMapableData, [data.output]],
       [this.populateGamepads, [data.output.gamepads]],
+      [this.populateClientInfo, []],
     ];
     const results = await Promise.allSettled(
       populateFuncs.map(([f, args]) => f(...args))
@@ -343,6 +346,27 @@ export class UserCharacteristicsPageService {
     Glean.characteristics.mathOps.set(
       JSON.stringify(ops.map(([op, value]) => op(value)))
     );
+  }
+
+  async populateClientInfo() {
+    const buildID = Services.appinfo.appBuildID;
+    const buildDate =
+      new Date(
+        buildID.slice(0, 4),
+        buildID.slice(4, 6) - 1,
+        buildID.slice(6, 8),
+        buildID.slice(8, 10),
+        buildID.slice(10, 12),
+        buildID.slice(12, 14)
+      ).getTime() / 1000;
+
+    Glean.characteristics.version.set(Services.appinfo.version);
+    Glean.characteristics.channel.set(AppConstants.MOZ_UPDATE_CHANNEL);
+    Glean.characteristics.osName.set(Services.appinfo.OS);
+    Glean.characteristics.osVersion.set(
+      Services.sysinfo.getProperty("version")
+    );
+    Glean.characteristics.buildDate.set(buildDate);
   }
 
   async pageLoaded(browsingContext, data) {
