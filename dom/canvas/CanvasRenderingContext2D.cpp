@@ -1472,7 +1472,7 @@ bool CanvasRenderingContext2D::BorrowTarget(const IntRect& aPersistedRect,
   // acceleration, then we skip trying to use this provider so that it will be
   // recreated by EnsureTarget later.
   if (!mBufferProvider || mBufferProvider->RequiresRefresh() ||
-      (mBufferProvider->IsAccelerated() && GetEffectiveWillReadFrequently())) {
+      (mBufferProvider->IsAccelerated() && UseSoftwareRendering())) {
     return false;
   }
   mTarget = mBufferProvider->BorrowDrawTarget(aPersistedRect);
@@ -1723,7 +1723,7 @@ bool CanvasRenderingContext2D::TryAcceleratedTarget(
   }
   // Don't try creating an accelerate DrawTarget if either acceleration failed
   // previously or if the application expects acceleration to be slow.
-  if (!mAllowAcceleration || GetEffectiveWillReadFrequently()) {
+  if (!mAllowAcceleration || UseSoftwareRendering()) {
     return false;
   }
 
@@ -1780,7 +1780,7 @@ bool CanvasRenderingContext2D::TrySharedTarget(
 
     aOutProvider = renderer->CreatePersistentBufferProvider(
         GetSize(), GetSurfaceFormat(),
-        !mAllowAcceleration || GetEffectiveWillReadFrequently());
+        !mAllowAcceleration || UseSoftwareRendering());
   } else if (mOffscreenCanvas) {
     if (!StaticPrefs::gfx_offscreencanvas_shared_provider()) {
       return false;
@@ -1794,7 +1794,7 @@ bool CanvasRenderingContext2D::TrySharedTarget(
 
     aOutProvider = PersistentBufferProviderShared::Create(
         GetSize(), GetSurfaceFormat(), imageBridge,
-        !mAllowAcceleration || GetEffectiveWillReadFrequently(),
+        !mAllowAcceleration || UseSoftwareRendering(),
         mOffscreenCanvas->GetWindowID());
   }
 
@@ -1815,7 +1815,7 @@ bool CanvasRenderingContext2D::TryBasicTarget(
     RefPtr<layers::PersistentBufferProvider>& aOutProvider,
     ErrorResult& aError) {
   aOutDT = gfxPlatform::GetPlatform()->CreateOffscreenCanvasDrawTarget(
-      GetSize(), GetSurfaceFormat());
+      GetSize(), GetSurfaceFormat(), UseSoftwareRendering());
   if (!aOutDT) {
     aError.ThrowInvalidStateError("Canvas could not create basic draw target.");
     return false;
@@ -6671,9 +6671,10 @@ void CanvasRenderingContext2D::SetWriteOnly() {
   }
 }
 
-bool CanvasRenderingContext2D::GetEffectiveWillReadFrequently() const {
-  return StaticPrefs::gfx_canvas_willreadfrequently_enabled_AtStartup() &&
-         mWillReadFrequently;
+bool CanvasRenderingContext2D::UseSoftwareRendering() const {
+  return (StaticPrefs::gfx_canvas_willreadfrequently_enabled_AtStartup() &&
+          mWillReadFrequently) ||
+         mForceSoftwareRendering;
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(CanvasPath, mParent)
