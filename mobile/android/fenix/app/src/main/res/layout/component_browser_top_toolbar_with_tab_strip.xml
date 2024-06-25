@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?><!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<org.mozilla.fenix.components.toolbar.navbar.ToolbarContainerView xmlns:android="http://schemas.android.com/apk/res/android"
+<org.mozilla.fenix.components.toolbar.ToolbarContainerView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/toolbar_tab_strip_container"
     android:layout_width="match_parent"
@@ -27,4 +27,4 @@
         app:browserToolbarProgressBarGravity="bottom"
         app:browserToolbarSecureColor="?attr/textPrimary"
         app:browserToolbarTrackingProtectionAndSecurityIndicatorSeparatorColor="?borderPrimary" />
-</org.mozilla.fenix.components.toolbar.navbar.ToolbarContainerView>
+</org.mozilla.fenix.components.toolbar.ToolbarContainerView>

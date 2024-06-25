@@ -24,8 +24,8 @@ import mozilla.components.support.utils.ext.isLandscape
 import org.mozilla.fenix.NavHostActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.Components
+import org.mozilla.fenix.components.toolbar.ToolbarContainerView
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
-import org.mozilla.fenix.components.toolbar.navbar.ToolbarContainerView
 
 /**
  * Get the requireComponents of this application.

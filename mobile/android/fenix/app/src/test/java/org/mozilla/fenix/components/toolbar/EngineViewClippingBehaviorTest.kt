@@ -25,7 +25,6 @@ import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mozilla.fenix.components.toolbar.navbar.EngineViewClippingBehavior
-import org.mozilla.fenix.components.toolbar.navbar.ToolbarContainerView
 
 @RunWith(AndroidJUnit4::class)
 class EngineViewClippingBehaviorTest {
