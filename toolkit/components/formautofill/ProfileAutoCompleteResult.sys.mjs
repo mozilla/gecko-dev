@@ -20,7 +20,7 @@ class ProfileAutoCompleteResult {
 
   constructor(
     searchString,
-    focusedFieldName,
+    focusedFieldDetail,
     allFieldNames,
     matchingProfiles,
     { resultCode = null, isSecure = true, isInputAutofilled = false }
@@ -31,7 +31,9 @@ class ProfileAutoCompleteResult {
     // The user's query string
     this.searchString = searchString;
     // The field name of the focused input.
-    this._focusedFieldName = focusedFieldName;
+    this._focusedFieldName = focusedFieldDetail.fieldName;
+    // The content dom reference id of the focused input.
+    this._focusedElementId = focusedFieldDetail.elementId;
     // The matching profiles contains the information for filling forms.
     this._matchingProfiles = matchingProfiles;
     // The default item that should be entered if none is selected
@@ -143,25 +145,35 @@ class ProfileAutoCompleteResult {
       return JSON.stringify(item);
     }
 
-    let type = this.getTypeOfIndex(index);
+    const data = {
+      fillMessageData: {
+        focusElementId: this._focusedElementId,
+      },
+    };
+
+    const type = this.getTypeOfIndex(index);
     switch (type) {
       case "clear":
-        return '{"fillMessageName": "FormAutofill:ClearForm"}';
+        data.fillMessageName = "FormAutofill:ClearForm";
+        break;
       case "manage":
-        return '{"fillMessageName": "FormAutofill:OpenPreferences"}';
+        data.fillMessageName = "FormAutofill:OpenPreferences";
+        break;
       case "insecure":
-        return '{"noLearnMore": true }';
+        data.noLearnMore = true;
+        break;
+      default: {
+        if (item.comment) {
+          return item.comment;
+        }
+
+        data.fillMessageName = "FormAutofill:FillForm";
+        data.fillMessageData.profile = this._matchingProfiles[index];
+        break;
+      }
     }
 
-    if (item.comment) {
-      return item.comment;
-    }
-
-    return JSON.stringify({
-      ...item,
-      fillMessageName: "FormAutofill:FillForm",
-      fillMessageData: this._matchingProfiles[index],
-    });
+    return JSON.stringify({ ...item, ...data });
   }
 
   /**
