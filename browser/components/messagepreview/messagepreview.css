@@ -20,6 +20,22 @@ body {
   fill-opacity: 0.2;
 }
 
+#light-switch {
+  background: url(chrome://browser/content/messagepreview/switch.svg) center/contain no-repeat;
+  fill: var(--in-content-icon-color);
+  stroke: var(--in-content-icon-color);
+  fill-opacity: 0.8;
+  height: 80px;
+  width: 80px;
+  cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+  #light-switch {
+    transform: scaleY(-1);
+  }
+}
+
 .hint-box {
   display: flex;
   align-items: center;

@@ -13,7 +13,12 @@ export class AboutMessagePreviewChild extends JSWindowActorChild {
 
   exportFunctions() {
     if (this.contentWindow) {
-      for (const name of ["MPShowMessage", "MPIsEnabled", "MPShouldShowHint"]) {
+      for (const name of [
+        "MPShowMessage",
+        "MPIsEnabled",
+        "MPShouldShowHint",
+        "MPToggleLights",
+      ]) {
         Cu.exportFunction(this[name].bind(this), this.contentWindow, {
           defineAs: name,
         });
@@ -32,6 +37,16 @@ export class AboutMessagePreviewChild extends JSWindowActorChild {
       "browser.newtabpage.activity-stream.asrouter.devtoolsEnabled",
       false
     );
+  }
+
+  /**
+   * Check the browser theme and switch it.
+   */
+  MPToggleLights() {
+    const isDark = this.contentWindow.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    this.sendAsyncMessage(`MessagePreview:CHANGE_THEME`, { isDark });
   }
 
   /**

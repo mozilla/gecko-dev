@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global MPShowMessage, MPIsEnabled, MPShouldShowHint */
+/* global MPShowMessage, MPIsEnabled, MPShouldShowHint, MPToggleLights */
 
 "use strict";
 
@@ -33,6 +33,13 @@ function showHint() {
   document.body.classList.add("hint-box");
   document.body.innerHTML = `<div class="hint">Message preview is not enabled. Enable it in about:config by setting <code>browser.newtabpage.activity-stream.asrouter.devtoolsEnabled</code> to true.</div>`;
 }
+
+// Light switch things
+document.addEventListener("DOMContentLoaded", () => {
+  document
+    .querySelector("#light-switch")
+    .addEventListener("click", MPToggleLights);
+});
 
 const message = decodeMessageFromUrl();
 
