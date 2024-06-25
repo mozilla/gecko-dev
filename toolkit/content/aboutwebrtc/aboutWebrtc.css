@@ -232,6 +232,7 @@ div.fold-trigger {
 
 .copy-button-base {
   padding-inline-end: 0.25em;
+  cursor: default;
 }
 
 .copy-button {

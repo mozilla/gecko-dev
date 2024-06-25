@@ -586,13 +586,13 @@ function renderSubsectionHeading(l10n_id, copyFunc) {
   const heading = document.createElement("div");
   heading.className = "subsection-heading";
   const h4 = document.createElement("h4");
-  const text = document.createElement("span");
-  document.l10n.setAttributes(text, l10n_id);
-  h4.appendChild(text);
   if (copyFunc != undefined) {
     const copyButton = new CopyButton(copyFunc);
     h4.appendChild(copyButton.element);
   }
+  const text = document.createElement("span");
+  document.l10n.setAttributes(text, l10n_id);
+  h4.appendChild(text);
   heading.appendChild(h4);
   return heading;
 }
