@@ -1550,8 +1550,8 @@ nsWindow* nsWindow::GetParentWindowBase(bool aIncludeOwner) {
  *
  **************************************************************/
 
-void nsWindow::Show(bool bState) {
-  if (bState && mIsShowingPreXULSkeletonUI) {
+void nsWindow::Show(bool aState) {
+  if (aState && mIsShowingPreXULSkeletonUI) {
     // The first time we decide to actually show the window is when we decide
     // that we've taken over the window from the skeleton UI, and we should
     // no longer treat resizes / moves specially.
@@ -1585,10 +1585,10 @@ void nsWindow::Show(bool bState) {
   bool wasVisible = mIsVisible;
   // Set the status now so that anyone asking during ShowWindow or
   // SetWindowPos would get the correct answer.
-  mIsVisible = bState;
+  mIsVisible = aState;
 
   if (mWnd) {
-    if (bState) {
+    if (aState) {
       if (!wasVisible && mWindowType == WindowType::TopLevel) {
         // speed up the initial paint after show for
         // top level windows:
@@ -1743,7 +1743,7 @@ void nsWindow::Show(bool bState) {
     }
   }
 
-  if (!wasVisible && bState) {
+  if (!wasVisible && aState) {
     Invalidate();
     if (syncInvalidate && !mInDtor && !mOnDestroyCalled) {
       ::UpdateWindow(mWnd);
@@ -2298,9 +2298,9 @@ void nsWindow::ConstrainPosition(DesktopIntPoint& aPoint) {
  **************************************************************/
 
 // Enable/disable this component
-void nsWindow::Enable(bool bState) {
+void nsWindow::Enable(bool aState) {
   if (mWnd) {
-    ::EnableWindow(mWnd, bState);
+    ::EnableWindow(mWnd, aState);
   }
 }
 
