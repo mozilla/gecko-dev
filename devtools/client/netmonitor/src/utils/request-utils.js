@@ -505,7 +505,7 @@ function getFormattedProtocol(item) {
  */
 function getResponseHeader(item, header) {
   const { responseHeaders } = item;
-  if (!responseHeaders || !responseHeaders.headers.length) {
+  if (!responseHeaders?.headers?.length) {
     return null;
   }
   header = header.toLowerCase();
@@ -523,7 +523,7 @@ function getResponseHeader(item, header) {
  */
 function getRequestHeader(item, header) {
   const { requestHeaders } = item;
-  if (!requestHeaders || !requestHeaders.headers.length) {
+  if (!requestHeaders?.headers?.length) {
     return null;
   }
   header = header.toLowerCase();
