@@ -1147,6 +1147,16 @@ class nsTSubstring : public mozilla::detail::nsTStringRepr<T> {
   void NS_FASTCALL SetIsVoid(bool);
 
   /**
+   * If the string uses a shared buffer, this method
+   * clears the pointer without releasing the buffer.
+   */
+  void ForgetSharedBuffer() {
+    if (this->mDataFlags & DataFlags::REFCOUNTED) {
+      SetToEmptyBuffer();
+    }
+  }
+
+  /**
    * If the string uses a reference-counted buffer, this method returns a
    * pointer to it without incrementing the buffer's refcount.
    */

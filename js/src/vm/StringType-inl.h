@@ -11,7 +11,6 @@
 
 #include "mozilla/PodOperations.h"
 #include "mozilla/Range.h"
-#include "mozilla/StringBuffer.h"
 
 #include "gc/GCEnum.h"
 #include "gc/MaybeRooted.h"
@@ -492,17 +491,6 @@ MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::new_(
   }
 
   return newValidLength<allowGC>(cx, chars, heap);
-}
-
-template <js::AllowGC allowGC, typename CharT>
-MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::new_(
-    JSContext* cx, RefPtr<mozilla::StringBuffer>&& buffer, const CharT* chars,
-    size_t length, js::gc::Heap heap) {
-  if (MOZ_UNLIKELY(!validateLengthInternal<allowGC>(cx, length))) {
-    return nullptr;
-  }
-
-  return newValidLength<allowGC>(cx, std::move(buffer), chars, length, heap);
 }
 
 template <js::AllowGC allowGC, typename CharT>

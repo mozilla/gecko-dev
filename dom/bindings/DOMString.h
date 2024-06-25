@@ -103,6 +103,20 @@ class MOZ_STACK_CLASS DOMString {
     return mLength;
   }
 
+  // Tell the DOMString to relinquish ownership of its mozilla::StringBuffer to
+  // the caller.  Can only be called if HasStringBuffer().
+  void RelinquishBufferOwnership() {
+    MOZ_ASSERT(HasStringBuffer(),
+               "Don't call this if there is no stringbuffer");
+    if (mState == State::OwnedStringBuffer) {
+      // Just hand that ref over.
+      mState = State::UnownedStringBuffer;
+    } else {
+      // Caller should end up holding a ref.
+      mStringBuffer->AddRef();
+    }
+  }
+
   bool HasLiteral() const {
     MOZ_ASSERT(!mString || !mStringBuffer, "Shouldn't have both present!");
     MOZ_ASSERT(mState > State::Null,

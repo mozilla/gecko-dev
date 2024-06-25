@@ -13,7 +13,6 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/RangedPtr.h"
-#include "mozilla/StringBuffer.h"
 #include "mozilla/TextUtils.h"
 #include "mozilla/Utf8.h"
 #include "mozilla/Vector.h"
@@ -2276,71 +2275,6 @@ template JSString* NewMaybeExternalString(
     gc::Heap heap);
 
 } /* namespace js */
-
-template <typename CharT>
-static JSString* NewStringFromBuffer(JSContext* cx,
-                                     RefPtr<mozilla::StringBuffer>&& buffer,
-                                     size_t length) {
-  AssertHeapIsIdle();
-  CHECK_THREAD(cx);
-
-  const auto* s = static_cast<const CharT*>(buffer->Data());
-
-  if (JSString* str = TryEmptyOrStaticString(cx, s, length)) {
-    return str;
-  }
-
-  // Use the inline-string cache that we also use for external strings.
-  if (JSThinInlineString::lengthFits<Latin1Char>(length) &&
-      CanStoreCharsAsLatin1(s, length)) {
-    ExternalStringCache& cache = cx->zone()->externalStringCache();
-    if (JSInlineString* str = cache.lookupInline(s, length)) {
-      return str;
-    }
-    JSInlineString* str = NewInlineStringMaybeDeflated<AllowGC::CanGC>(
-        cx, mozilla::Range(s, length), gc::Heap::Default);
-    if (!str) {
-      return nullptr;
-    }
-    cache.putInline(str);
-    return str;
-  }
-
-  if (JSInlineString::lengthFits<CharT>(length)) {
-    return NewInlineString<CanGC>(cx, mozilla::Range(s, length),
-                                  gc::Heap::Default);
-  }
-
-  return JSLinearString::new_<CanGC>(cx, std::move(buffer), s, length,
-                                     gc::Heap::Default);
-}
-
-JS_PUBLIC_API JSString* JS::NewStringFromLatin1Buffer(
-    JSContext* cx, RefPtr<mozilla::StringBuffer> buffer, size_t length) {
-  return NewStringFromBuffer<Latin1Char>(cx, std::move(buffer), length);
-}
-
-JS_PUBLIC_API JSString* JS::NewStringFromTwoByteBuffer(
-    JSContext* cx, RefPtr<mozilla::StringBuffer> buffer, size_t length) {
-  return NewStringFromBuffer<char16_t>(cx, std::move(buffer), length);
-}
-
-JS_PUBLIC_API JSString* JS::NewStringFromUTF8Buffer(
-    JSContext* cx, RefPtr<mozilla::StringBuffer> buffer, size_t length) {
-  AssertHeapIsIdle();
-  CHECK_THREAD(cx);
-
-  const JS::UTF8Chars utf8(static_cast<const char*>(buffer->Data()), length);
-
-  JS::SmallestEncoding encoding = JS::FindSmallestEncoding(utf8);
-  if (encoding == JS::SmallestEncoding::ASCII) {
-    // ASCII case can use the string buffer as Latin1 buffer.
-    return NewStringFromBuffer<Latin1Char>(cx, std::move(buffer), length);
-  }
-
-  // Non-ASCII case cannot use the string buffer.
-  return NewStringCopyUTF8N(cx, utf8, encoding);
-}
 
 #if defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_CACHEIR_SPEW)
 void JSExtensibleString::dumpOwnRepresentationFields(

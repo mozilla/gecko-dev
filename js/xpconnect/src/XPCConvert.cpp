@@ -164,7 +164,15 @@ bool XPCConvert::NativeData2JS(JSContext* cx, MutableHandleValue d,
         d.setNull();
         return true;
       }
-      return NonVoidStringToJsval(cx, *p, d);
+
+      StringBuffer* buf;
+      if (!XPCStringConvert::ReadableToJSVal(cx, *p, &buf, d)) {
+        return false;
+      }
+      if (buf) {
+        buf->AddRef();
+      }
+      return true;
     }
 
     case nsXPTType::T_CHAR_STR: {
@@ -244,10 +252,17 @@ bool XPCConvert::NativeData2JS(JSContext* cx, MutableHandleValue d,
 
       // Is the string buffer is already valid latin1 (i.e. it is ASCII).
       //
-      // NOTE: NonVoidUTF8StringToJsval cannot be used here because
+      // NOTE: XPCStringConvert::UTF8ToJSVal cannot be used here because
       //       it requires valid UTF-8 sequence.
       if (mozilla::IsAscii(*utf8String)) {
-        return NonVoidLatin1StringToJsval(cx, *utf8String, d);
+        StringBuffer* buf;
+        if (!XPCStringConvert::Latin1ToJSVal(cx, *utf8String, &buf, d)) {
+          return false;
+        }
+        if (buf) {
+          buf->AddRef();
+        }
+        return true;
       }
 
       // 1-byte sequences decode to 1 UTF-16 code unit
@@ -297,7 +312,14 @@ bool XPCConvert::NativeData2JS(JSContext* cx, MutableHandleValue d,
       }
 
       // c-strings (binary blobs) are Latin1 string in JSAPI.
-      return NonVoidLatin1StringToJsval(cx, *cString, d);
+      StringBuffer* buf;
+      if (!XPCStringConvert::Latin1ToJSVal(cx, *cString, &buf, d)) {
+        return false;
+      }
+      if (buf) {
+        buf->AddRef();
+      }
+      return true;
     }
 
     case nsXPTType::T_INTERFACE:

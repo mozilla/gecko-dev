@@ -177,7 +177,6 @@ UNIFIED_SOURCES += [
     "JSONWriter.cpp",
     "Poison.cpp",
     "RandomNum.cpp",
-    "RefCounted.cpp",
     "SHA1.cpp",
     "TaggedAnonymousMemory.cpp",
     "UniquePtrExtensions.cpp",
@@ -209,9 +208,6 @@ DisableStlWrapping()
 OS_LIBS += CONFIG["LIBATOMIC_LIBS"]
 
 DEFINES["LZ4LIB_VISIBILITY"] = ""
-
-# For RefCounted.cpp
-DEFINES["MOZ_SUPPORT_LEAKCHECKING"] = True
 
 # This is kind of gross because this is not a subdirectory,
 # but pure_virtual requires mfbt to build and some projects
