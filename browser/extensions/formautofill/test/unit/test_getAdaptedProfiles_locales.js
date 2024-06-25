@@ -241,7 +241,9 @@ for (let localeTests of TESTCASES) {
 
       handler.collectFormFields();
       handler.focusedInput = form.elements[0];
-      let adaptedRecords = handler.getAdaptedProfiles(testcase.profileData);
+      let adaptedRecords = handler.activeSection.getAdaptedProfiles(
+        testcase.profileData
+      );
       Assert.deepEqual(adaptedRecords, testcase.expectedResult);
 
       if (testcase.expectedOptionElements) {
@@ -254,7 +256,10 @@ for (let localeTests of TESTCASES) {
             Assert.notEqual(expectedOption, null);
 
             let value = testcase.profileData[i][field];
-            let cache = handler._cacheValue.matchingSelectOption.get(select);
+            let cache =
+              handler.activeSection._cacheValue.matchingSelectOption.get(
+                select
+              );
             let targetOption = cache[value] && cache[value].deref();
             Assert.notEqual(targetOption, null);
 

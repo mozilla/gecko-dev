@@ -56,25 +56,18 @@ add_task(async function history_only_menu_checking() {
   checkMenuEntries(["+1234567890"], false);
 });
 
-// Test to ensure the abandoned heuristic is no longer applied:
-// Do not display history search result if less than 3 inputs are covered by all saved
+// Display history search result if less than 3 inputs are covered by all saved
 // fields in the storage.
 add_task(async function all_saved_fields_less_than_threshold() {
-  const email = "test@test.com";
   await addAddress({
-    email,
+    email: "test@test.com",
   });
 
   await setInput("#email", "");
   await notExpectPopup();
   synthesizeKey("KEY_ArrowDown");
   await expectPopup();
-  checkMenuEntriesComment([
-    makeAddressComment({
-      primary: email,
-      secondary: "United States",
-      status: "Also autofills address"
-    })], 2);
+  checkMenuEntries(["foo@mozilla.com"], false);
 
   await cleanUpAddresses();
 });
@@ -175,18 +168,14 @@ add_task(async function check_fields_after_form_autofill() {
   is(focusedInput.value, "Mozilla", "Filled field shouldn't be reverted by ESC key");
 });
 
-// Test to ensure the abandoned heuristic is no longer applied:
-// Do not fallback to history search after autofill address.
+// Fallback to history search after autofill address.
 add_task(async function check_fallback_after_form_autofill() {
   await setInput("#tel", "", true);
   await triggerPopupAndHoverItem("#tel", 0);
-  checkMenuEntriesComment(MOCK_STORAGE.map(address =>
-    makeAddressComment({
-      primary: address.tel,
-      secondary: FormAutofillUtils.toOneLineAddress(address["street-address"]),
-      status: "Also autofills address, organization"
-    })
-  ), 2);
+  checkMenuEntries(["+1234567890"], false);
+  await triggerAutofillAndCheckProfile({
+    tel: "+1234567890",
+  });
 });
 
 // Resume form autofill once all the autofilled fileds are changed.

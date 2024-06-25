@@ -145,11 +145,9 @@ add_task(async function check_filled_highlight() {
   await triggerPopupAndHoverItem("#cc-name", 0);
   let osKeyStoreLoginShown = Promise.resolve();
 
-  if (OSKeyStore.canReauth()) {
-    osKeyStoreLoginShown = waitForOSKeyStoreLogin(true);
-    await waitForOSKeyStoreLoginTestSetupComplete();
-  }
-
+if (OSKeyStore.canReauth()) {
+  osKeyStoreLoginShown = waitForOSKeyStoreLogin(true);
+}
   // filled 1st credit card option
   synthesizeKey("KEY_Enter");
   await osKeyStoreLoginShown;

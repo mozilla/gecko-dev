@@ -130,7 +130,6 @@ add_task(async function clear_distinct_section() {
   let osKeyStoreLoginShown = Promise.resolve();
   if(OSKeyStore.canReauth()) {
     osKeyStoreLoginShown = waitForOSKeyStoreLogin(true);
-    await waitForOSKeyStoreLoginTestSetupComplete();
   }
   await triggerPopupAndHoverItem("#cc-name", 0);
   await triggerAutofillAndCheckProfile(MOCK_CC_STORAGE[0]);

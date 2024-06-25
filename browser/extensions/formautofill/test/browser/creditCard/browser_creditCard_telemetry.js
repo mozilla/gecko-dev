@@ -223,19 +223,19 @@ add_task(async function test_popup_opened() {
     }
   );
 
-  await assertTelemetry(undefined, [
+  await assertTelemetry([
     ccFormArgsv2("detected", buildccFormv2Extra({ cc_exp: "false" }, "true")),
     ccFormArgsv2("popup_shown", { field_name: "cc-number" }),
   ]);
 
   TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("parent"),
+    TelemetryTestUtils.getProcessScalars("content"),
     "formautofill.creditCards.detected_sections_count",
     1,
     "There should be 1 section detected."
   );
   TelemetryTestUtils.assertScalarUnset(
-    TelemetryTestUtils.getProcessScalars("parent"),
+    TelemetryTestUtils.getProcessScalars("content"),
     "formautofill.creditCards.submitted_sections_count"
   );
 
@@ -286,7 +286,7 @@ add_task(async function test_popup_opened_form_without_autocomplete() {
     }
   );
 
-  await assertTelemetry(undefined, [
+  await assertTelemetry([
     ccFormArgsv2(
       "detected",
       buildccFormv2Extra({ cc_number: "1", cc_name: "1", cc_exp: "false" }, "0")
@@ -295,13 +295,13 @@ add_task(async function test_popup_opened_form_without_autocomplete() {
   ]);
 
   TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("parent"),
+    TelemetryTestUtils.getProcessScalars("content"),
     "formautofill.creditCards.detected_sections_count",
     1,
     "There should be 1 section detected."
   );
   TelemetryTestUtils.assertScalarUnset(
-    TelemetryTestUtils.getProcessScalars("parent"),
+    TelemetryTestUtils.getProcessScalars("content"),
     "formautofill.creditCards.submitted_sections_count"
   );
 
@@ -360,7 +360,7 @@ add_task(
       }
     );
 
-    await assertTelemetry(undefined, [
+    await assertTelemetry([
       ccFormArgsv2("detected", buildccFormv2Extra({ cc_number: "1" }, "false")),
       ccFormArgsv2("popup_shown", { field_name: "cc-number" }),
     ]);
@@ -394,7 +394,7 @@ add_task(
       }
     );
 
-    await assertTelemetry(undefined, [
+    await assertTelemetry([
       ccFormArgsv2(
         "detected",
         buildccFormv2Extra(
@@ -406,13 +406,13 @@ add_task(
     ]);
 
     TelemetryTestUtils.assertScalar(
-      TelemetryTestUtils.getProcessScalars("parent"),
+      TelemetryTestUtils.getProcessScalars("content"),
       "formautofill.creditCards.detected_sections_count",
       2,
       "There should be 1 section detected."
     );
     TelemetryTestUtils.assertScalarUnset(
-      TelemetryTestUtils.getProcessScalars("parent"),
+      TelemetryTestUtils.getProcessScalars("content"),
       "formautofill.creditCards.submitted_sections_count"
     );
 
@@ -503,14 +503,14 @@ add_task(async function test_submit_creditCard_new() {
   Services.telemetry.getHistogramById(CC_NUM_USES_HISTOGRAM).clear();
   await clearGleanTelemetry();
 
-  let expected_parent = [
+  let expected_content = [
     ccFormArgsv2("detected", buildccFormv2Extra({ cc_exp: "false" }, "true")),
     ccFormArgsv2(
       "submitted",
       buildccFormv2Extra({ cc_exp: "unavailable" }, "user_filled")
     ),
   ];
-  const expected_glean_events = [
+  let expected_glean_events = [
     {
       event_name: "formDetected",
       expected_extra: buildccFormv2Extra(
@@ -528,8 +528,7 @@ add_task(async function test_submit_creditCard_new() {
   ];
   await test_per_command(MAIN_BUTTON, undefined, { 1: 1 }, 1);
 
-  await assertTelemetry(undefined, [
-    ...expected_parent,
+  await assertTelemetry(expected_content, [
     ["creditcard", "show", "capture_doorhanger"],
     ["creditcard", "save", "capture_doorhanger"],
   ]);
@@ -540,8 +539,7 @@ add_task(async function test_submit_creditCard_new() {
 
   await test_per_command(SECONDARY_BUTTON);
 
-  await assertTelemetry(undefined, [
-    ...expected_parent,
+  await assertTelemetry(expected_content, [
     ["creditcard", "show", "capture_doorhanger"],
     ["creditcard", "cancel", "capture_doorhanger"],
   ]);
@@ -552,23 +550,22 @@ add_task(async function test_submit_creditCard_new() {
 
   await test_per_command(MENU_BUTTON, 0);
 
-  await assertTelemetry(undefined, [
-    ...expected_parent,
+  await assertTelemetry(expected_content, [
     ["creditcard", "show", "capture_doorhanger"],
     ["creditcard", "disable", "capture_doorhanger"],
   ]);
 
   TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("parent"),
+    TelemetryTestUtils.getProcessScalars("content"),
     "formautofill.creditCards.detected_sections_count",
     3,
     "There should be 3 sections detected."
   );
   TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("parent"),
+    TelemetryTestUtils.getProcessScalars("content"),
     "formautofill.creditCards.submitted_sections_count",
     3,
-    "There should be 3 section submitted."
+    "There should be 1 section submitted."
   );
 
   await assertGleanTelemetry(expected_glean_events);
@@ -603,18 +600,21 @@ add_task(async function test_submit_creditCard_autofill() {
 
   SpecialPowers.clearUserPref(ENABLED_AUTOFILL_CREDITCARDS_PREF);
 
-  await assertTelemetry(undefined, [
-    ccFormArgsv2("detected", buildccFormv2Extra({ cc_exp: "false" }, "true")),
-    ccFormArgsv2("popup_shown", { field_name: "cc-name" }),
-    ccFormArgsv2(
-      "filled",
-      buildccFormv2Extra({ cc_exp: "unavailable" }, "filled")
-    ),
-    ccFormArgsv2(
-      "submitted",
-      buildccFormv2Extra({ cc_exp: "unavailable" }, "autofilled")
-    ),
-  ]);
+  await assertTelemetry(
+    [
+      ccFormArgsv2("detected", buildccFormv2Extra({ cc_exp: "false" }, "true")),
+      ccFormArgsv2("popup_shown", { field_name: "cc-name" }),
+      ccFormArgsv2(
+        "filled",
+        buildccFormv2Extra({ cc_exp: "unavailable" }, "filled")
+      ),
+      ccFormArgsv2(
+        "submitted",
+        buildccFormv2Extra({ cc_exp: "unavailable" }, "autofilled")
+      ),
+    ],
+    []
+  );
 
   await assertGleanTelemetry([
     {
@@ -730,7 +730,7 @@ add_task(async function test_submit_creditCard_update() {
   Services.telemetry.getHistogramById(CC_NUM_USES_HISTOGRAM).clear();
   await clearGleanTelemetry();
 
-  const expected_parent = [
+  let expected_content = [
     ccFormArgsv2("detected", buildccFormv2Extra({ cc_exp: "false" }, "true")),
     ccFormArgsv2("popup_shown", { field_name: "cc-name" }),
     ccFormArgsv2(
@@ -746,7 +746,7 @@ add_task(async function test_submit_creditCard_update() {
       )
     ),
   ];
-  const expected_glean_events = [
+  let expected_glean_events = [
     {
       event_name: "formDetected",
       expected_extra: buildccFormv2Extra(
@@ -783,8 +783,7 @@ add_task(async function test_submit_creditCard_update() {
 
   await test_per_command(MAIN_BUTTON, undefined, { 1: 1 }, 1);
 
-  await assertTelemetry(undefined, [
-    ...expected_parent,
+  await assertTelemetry(expected_content, [
     ["creditcard", "show", "update_doorhanger"],
     ["creditcard", "update", "update_doorhanger"],
   ]);
@@ -795,8 +794,7 @@ add_task(async function test_submit_creditCard_update() {
 
   await test_per_command(SECONDARY_BUTTON, undefined, { 0: 1, 1: 1 }, 2);
 
-  await assertTelemetry(undefined, [
-    ...expected_parent,
+  await assertTelemetry(expected_content, [
     ["creditcard", "show", "update_doorhanger"],
     ["creditcard", "save", "update_doorhanger"],
   ]);
@@ -1011,7 +1009,7 @@ add_task(async function test_clear_creditCard_autofill() {
     submitForm: false,
   });
 
-  let expected_parent = [
+  let expected_content = [
     ccFormArgsv2("detected", buildccFormv2Extra({ cc_exp: "false" }, "true")),
     ccFormArgsv2("popup_shown", { field_name: "cc-name" }),
     ccFormArgsv2(
@@ -1019,7 +1017,7 @@ add_task(async function test_clear_creditCard_autofill() {
       buildccFormv2Extra({ cc_exp: "unavailable" }, "filled")
     ),
   ];
-  await assertTelemetry(undefined, expected_parent);
+  await assertTelemetry(expected_content, []);
 
   await assertGleanTelemetry([
     {
@@ -1058,8 +1056,8 @@ add_task(async function test_clear_creditCard_autofill() {
   // flushing Glean data before tab removal (see Bug 1843178)
   await Services.fog.testFlushAllChildren();
 
-  expected_parent = [ccFormArgsv2("popup_shown", { field_name: "cc-number" })];
-  await assertTelemetry(undefined, expected_parent);
+  expected_content = [ccFormArgsv2("popup_shown", { field_name: "cc-number" })];
+  await assertTelemetry(expected_content, []);
   await assertGleanTelemetry([
     {
       event_name: "formPopupShown",
@@ -1092,19 +1090,19 @@ add_task(async function test_clear_creditCard_autofill() {
   // flushing Glean data before tab removal (see Bug 1843178)
   await Services.fog.testFlushAllChildren();
 
-  expected_parent = [
-    ccFormArgsv2("cleared", { field_name: "cc-number" }),
+  expected_content = [
     ccFormArgsv2("filled_modified", { field_name: "cc-name" }),
     ccFormArgsv2("filled_modified", { field_name: "cc-number" }),
     ccFormArgsv2("filled_modified", { field_name: "cc-exp-month" }),
     ccFormArgsv2("filled_modified", { field_name: "cc-exp-year" }),
     ccFormArgsv2("filled_modified", { field_name: "cc-type" }),
+    ccFormArgsv2("cleared", { field_name: "cc-number" }),
     // popup is shown again because when the field is cleared and is focused,
     // we automatically triggers the popup.
     ccFormArgsv2("popup_shown", { field_name: "cc-number" }),
   ];
 
-  await assertTelemetry(undefined, expected_parent);
+  await assertTelemetry(expected_content, []);
 
   await assertGleanTelemetry([
     {

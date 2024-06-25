@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { FormAutofillUtils } from "resource://gre/modules/shared/FormAutofillUtils.sys.mjs";
+import { FormAutofillCreditCardSection } from "resource://gre/modules/shared/FormAutofillSection.sys.mjs";
 
 const { FIELD_STATES } = FormAutofillUtils;
 
@@ -40,7 +41,7 @@ class AutofillTelemetryBase {
    * or `address_form` event and the Glean event `cc_form`, and `address_form`.
    * It indicates the detected credit card or address fields and which method (autocomplete property, regular expression heuristics or fathom) identified them.
    *
-   * @param {Array<object>} fieldDetails fieldDetails to extract which fields were identified and how
+   * @param {object} section Using section.fieldDetails to extract which fields were identified and how
    * @param {string} undetected Default value when a field is not detected: 'undetected' (Glean) and 'false' in (Legacy)
    * @param {string} autocomplete Value when a field is identified with autocomplete property: 'autocomplete' (Glean), 'true' (Legacy)
    * @param {string} regexp Value when a field is identified with regex expression heuristics: 'regexp' (Glean), '0' (Legacy)
@@ -48,7 +49,7 @@ class AutofillTelemetryBase {
    * @returns {object} Extra keys to include in the form event
    */
   #buildFormDetectedEventExtra(
-    fieldDetails,
+    section,
     undetected,
     autocomplete,
     regexp,
@@ -57,7 +58,7 @@ class AutofillTelemetryBase {
     let extra = this.#initFormEventExtra(undetected);
 
     let identified = new Set();
-    fieldDetails.forEach(detail => {
+    section.fieldDetails.forEach(detail => {
       identified.add(detail.fieldName);
 
       if (detail.reason == "autocomplete") {
@@ -85,24 +86,18 @@ class AutofillTelemetryBase {
     return extra;
   }
 
-  recordFormDetected(flowId, fieldDetails) {
+  recordFormDetected(section) {
     this.recordFormEvent(
       "detected",
-      flowId,
-      this.#buildFormDetectedEventExtra(
-        fieldDetails,
-        "false",
-        "true",
-        "0",
-        false
-      )
+      section.flowId,
+      this.#buildFormDetectedEventExtra(section, "false", "true", "0", false)
     );
 
     this.recordGleanFormEvent(
       "formDetected",
-      flowId,
+      section.flowId,
       this.#buildFormDetectedEventExtra(
-        fieldDetails,
+        section,
         "undetected",
         "autocomplete",
         "regexp",
@@ -111,74 +106,72 @@ class AutofillTelemetryBase {
     );
   }
 
-  recordPopupShown(flowId, fieldDetails) {
-    const extra = { field_name: fieldDetails[0].fieldName };
-    this.recordFormEvent("popup_shown", flowId, extra);
-    this.recordGleanFormEvent("formPopupShown", flowId, extra);
+  recordPopupShown(section, fieldName) {
+    const extra = { field_name: fieldName };
+    this.recordFormEvent("popup_shown", section.flowId, extra);
+    this.recordGleanFormEvent("formPopupShown", section.flowId, extra);
   }
 
-  recordFormFilled(flowId, fieldDetails, data) {
+  recordFormFilled(section, profile) {
     // Calculate values for telemetry
-    const extra = this.#initFormEventExtra("unavailable");
+    let extra = this.#initFormEventExtra("unavailable");
 
-    for (const fieldDetail of fieldDetails) {
-      let { filledState, value } = data[fieldDetail.elementId];
-      switch (filledState) {
-        case FIELD_STATES.AUTO_FILLED:
-          filledState = "filled";
-          break;
-        case FIELD_STATES.NORMAL:
-        default:
-          filledState =
-            fieldDetail.tagName == "SELECT" || value.length
-              ? "user_filled"
-              : "not_filled";
-          break;
+    for (let fieldDetail of section.fieldDetails) {
+      let element = fieldDetail.element;
+      let state = profile[fieldDetail.fieldName] ? "filled" : "not_filled";
+      if (
+        element.autofillState == FIELD_STATES.NORMAL &&
+        (HTMLSelectElement.isInstance(element) ||
+          (HTMLInputElement.isInstance(element) && element.value.length))
+      ) {
+        state = "user_filled";
       }
-      this.#setFormEventExtra(extra, fieldDetail.fieldName, filledState);
+      this.#setFormEventExtra(extra, fieldDetail.fieldName, state);
     }
 
-    this.recordFormEvent("filled", flowId, extra);
-    this.recordGleanFormEvent("formFilled", flowId, extra);
+    this.recordFormEvent("filled", section.flowId, extra);
+    this.recordGleanFormEvent("formFilled", section.flowId, extra);
   }
 
-  recordFilledModified(flowId, fieldDetails) {
-    const extra = { field_name: fieldDetails[0].fieldName };
-    this.recordFormEvent("filled_modified", flowId, extra);
-    this.recordGleanFormEvent("formFilledModified", flowId, extra);
+  recordFilledModified(section, fieldName) {
+    const extra = { field_name: fieldName };
+    this.recordFormEvent("filled_modified", section.flowId, extra);
+    this.recordGleanFormEvent("formFilledModified", section.flowId, extra);
   }
 
-  recordFormSubmitted(flowId, fieldDetails, data) {
-    const extra = this.#initFormEventExtra("unavailable");
+  recordFormSubmitted(section, record, _form) {
+    let extra = this.#initFormEventExtra("unavailable");
 
-    for (const fieldDetail of fieldDetails) {
-      let { filledState, value } = data[fieldDetail.elementId];
-      switch (filledState) {
-        case FIELD_STATES.AUTO_FILLED:
-          filledState = "autofilled";
-          break;
-        case FIELD_STATES.NORMAL:
-        default:
-          filledState =
-            fieldDetail.tagName == "SELECT" || value.length
-              ? "user_filled"
-              : "not_filled";
-          break;
+    if (record.guid !== null) {
+      // If the `guid` is not null, it means we're editing an existing record.
+      // In that case, all fields in the record are autofilled, and fields in
+      // `untouchedFields` are unmodified.
+      for (const [fieldName, value] of Object.entries(record.record)) {
+        if (record.untouchedFields?.includes(fieldName)) {
+          this.#setFormEventExtra(extra, fieldName, "autofilled");
+        } else if (value) {
+          this.#setFormEventExtra(extra, fieldName, "user_filled");
+        } else {
+          this.#setFormEventExtra(extra, fieldName, "not_filled");
+        }
       }
-      this.#setFormEventExtra(extra, fieldDetail.fieldName, filledState);
+    } else {
+      Object.keys(record.record).forEach(fieldName =>
+        this.#setFormEventExtra(extra, fieldName, "user_filled")
+      );
     }
 
-    this.recordFormEvent("submitted", flowId, extra);
-    this.recordGleanFormEvent("formSubmitted", flowId, extra);
+    this.recordFormEvent("submitted", section.flowId, extra);
+    this.recordGleanFormEvent("formSubmitted", section.flowId, extra);
   }
 
-  recordFormCleared(flowId, fieldDetails) {
-    const extra = { field_name: fieldDetails[0].fieldName };
+  recordFormCleared(section, fieldName) {
+    const extra = { field_name: fieldName };
 
     // Note that when a form is cleared, we also record `filled_modified` events
     // for all the fields that have been cleared.
-    this.recordFormEvent("cleared", flowId, extra);
-    this.recordGleanFormEvent("formCleared", flowId, extra);
+    this.recordFormEvent("cleared", section.flowId, extra);
+    this.recordGleanFormEvent("formCleared", section.flowId, extra);
   }
 
   recordFormEvent(method, flowId, extra) {
@@ -195,23 +188,27 @@ class AutofillTelemetryBase {
     throw new Error("Not implemented.");
   }
 
-  recordFormInteractionEvent(method, flowId, fieldDetails, data) {
+  recordFormInteractionEvent(
+    method,
+    section,
+    { fieldName, profile, record, form } = {}
+  ) {
     if (!this.EVENT_OBJECT_FORM_INTERACTION) {
       return undefined;
     }
     switch (method) {
       case "detected":
-        return this.recordFormDetected(flowId, fieldDetails);
+        return this.recordFormDetected(section);
       case "popup_shown":
-        return this.recordPopupShown(flowId, fieldDetails);
+        return this.recordPopupShown(section, fieldName);
       case "filled":
-        return this.recordFormFilled(flowId, fieldDetails, data);
+        return this.recordFormFilled(section, profile);
       case "filled_modified":
-        return this.recordFilledModified(flowId, fieldDetails);
+        return this.recordFilledModified(section, fieldName);
       case "submitted":
-        return this.recordFormSubmitted(flowId, fieldDetails, data);
+        return this.recordFormSubmitted(section, record, form);
       case "cleared":
-        return this.recordFormCleared(flowId, fieldDetails);
+        return this.recordFormCleared(section, fieldName);
     }
     return undefined;
   }
@@ -411,10 +408,10 @@ export class AutofillTelemetry {
   static ADDRESS = "address";
   static CREDIT_CARD = "creditcard";
 
-  static #getTelemetryByFieldDetail(fieldDetail) {
-    return FormAutofillUtils.isAddressField(fieldDetail.fieldName)
-      ? this.#addressTelemetry
-      : this.#creditCardTelemetry;
+  static #getTelemetryBySection(section) {
+    return section instanceof FormAutofillCreditCardSection
+      ? this.#creditCardTelemetry
+      : this.#addressTelemetry;
   }
 
   static #getTelemetryByType(type) {
@@ -460,9 +457,18 @@ export class AutofillTelemetry {
    * Event name: cc_form_v2, or address_form
    */
 
-  static recordFormInteractionEvent(method, flowId, fieldDetails, data) {
-    const telemetry = this.#getTelemetryByFieldDetail(fieldDetails[0]);
-    telemetry.recordFormInteractionEvent(method, flowId, fieldDetails, data);
+  static recordFormInteractionEvent(
+    method,
+    section,
+    { fieldName, profile, record, form } = {}
+  ) {
+    const telemetry = this.#getTelemetryBySection(section);
+    telemetry.recordFormInteractionEvent(method, section, {
+      fieldName,
+      profile,
+      record,
+      form,
+    });
   }
 
   /**
@@ -471,13 +477,13 @@ export class AutofillTelemetry {
    * Category: formautofill.creditCards or formautofill.addresses
    * Scalar name: submitted_sections_count
    */
-  static recordDetectedSectionCount(fieldDetails) {
-    const telemetry = this.#getTelemetryByFieldDetail(fieldDetails[0]);
+  static recordDetectedSectionCount(section) {
+    const telemetry = this.#getTelemetryBySection(section);
     telemetry.recordDetectedSectionCount();
   }
 
-  static recordSubmittedSectionCount(fieldDetails, count) {
-    const telemetry = this.#getTelemetryByFieldDetail(fieldDetails[0]);
+  static recordSubmittedSectionCount(type, count) {
+    const telemetry = this.#getTelemetryByType(type);
     telemetry.recordSubmittedSectionCount(count);
   }
 

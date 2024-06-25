@@ -91,7 +91,6 @@ add_task(async function check_filled_highlight() {
   let osKeyStoreLoginShown = Promise.resolve();
   if(OSKeyStore.canReauth()) {
     osKeyStoreLoginShown = waitForOSKeyStoreLogin(true);
-    await waitForOSKeyStoreLoginTestSetupComplete();
   }
   // filled 1st credit card option
   await triggerAutofillAndCheckProfile(MOCK_STORAGE_EXPECTED_FILL[0]);

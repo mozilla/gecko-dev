@@ -5,8 +5,6 @@ support-files = [
   "../../fixtures/**",
 ]
 
-["browser_autocomplete_fields.js"]
-
 ["browser_autocomplete_off_on_form.js"]
 
 ["browser_autocomplete_off_on_inputs.js"]
@@ -20,11 +18,7 @@ skip-if = ["apple_silicon && !debug"]
 
 ["browser_cc_exp.js"]
 
-["browser_consecutive_cc_number.js"]
-
 ["browser_de_fields.js"]
-
-["browser_formless.js"]
 
 ["browser_fr_fields.js"]
 

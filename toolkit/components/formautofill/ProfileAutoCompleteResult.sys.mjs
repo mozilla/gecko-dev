@@ -20,7 +20,7 @@ class ProfileAutoCompleteResult {
 
   constructor(
     searchString,
-    focusedFieldDetail,
+    focusedFieldName,
     allFieldNames,
     matchingProfiles,
     { resultCode = null, isSecure = true, isInputAutofilled = false }
@@ -31,9 +31,7 @@ class ProfileAutoCompleteResult {
     // The user's query string
     this.searchString = searchString;
     // The field name of the focused input.
-    this._focusedFieldName = focusedFieldDetail.fieldName;
-    // The content dom reference id of the focused input.
-    this._focusedElementId = focusedFieldDetail.elementId;
+    this._focusedFieldName = focusedFieldName;
     // The matching profiles contains the information for filling forms.
     this._matchingProfiles = matchingProfiles;
     // The default item that should be entered if none is selected
@@ -145,35 +143,25 @@ class ProfileAutoCompleteResult {
       return JSON.stringify(item);
     }
 
-    const data = {
-      fillMessageData: {
-        focusElementId: this._focusedElementId,
-      },
-    };
-
-    const type = this.getTypeOfIndex(index);
+    let type = this.getTypeOfIndex(index);
     switch (type) {
       case "clear":
-        data.fillMessageName = "FormAutofill:ClearForm";
-        break;
+        return '{"fillMessageName": "FormAutofill:ClearForm"}';
       case "manage":
-        data.fillMessageName = "FormAutofill:OpenPreferences";
-        break;
+        return '{"fillMessageName": "FormAutofill:OpenPreferences"}';
       case "insecure":
-        data.noLearnMore = true;
-        break;
-      default: {
-        if (item.comment) {
-          return item.comment;
-        }
-
-        data.fillMessageName = "FormAutofill:FillForm";
-        data.fillMessageData.profile = this._matchingProfiles[index];
-        break;
-      }
+        return '{"noLearnMore": true }';
     }
 
-    return JSON.stringify({ ...item, ...data });
+    if (item.comment) {
+      return item.comment;
+    }
+
+    return JSON.stringify({
+      ...item,
+      fillMessageName: "FormAutofill:FillForm",
+      fillMessageData: this._matchingProfiles[index],
+    });
   }
 
   /**

@@ -180,11 +180,6 @@ export class AutoCompleteParent extends JSWindowActorParent {
           selectedIndex != -1
             ? AutoCompleteResultView.getStyleAt(selectedIndex)
             : "";
-
-        // Normally preview is cleared after selecting/hovering on a different
-        // entry. However, we also need to clear the preview when a pop is closed.
-        this.clearAutoCompletePreview();
-
         this.sendAsyncMessage("AutoComplete:PopupClosed", {
           selectedRowComment,
           selectedRowStyle,
@@ -402,7 +397,7 @@ export class AutoCompleteParent extends JSWindowActorParent {
       // to the parent to indicate that an autocomplete entry is selected.
       case "AutoComplete:SelectEntry": {
         if (this.openedPopup) {
-          this.selectAutoCompleteEntry(this.openedPopup.selectedIndex);
+          this.selectEntry(this.openedPopup.selectedIndex);
         }
         break;
       }
@@ -428,10 +423,6 @@ export class AutoCompleteParent extends JSWindowActorParent {
         } else {
           this.showPopupWithResults({ results, rect, dir });
           this.notifyListeners();
-
-          this.notifyAutoCompletePopupOpened(
-            JSON.stringify(inputElementIdentifier)
-          );
         }
         break;
       }
@@ -569,91 +560,29 @@ export class AutoCompleteParent extends JSWindowActorParent {
     return this.browsingContext.currentWindowGlobal.getActor(name);
   }
 
-  /**
-   * When an autocomplete popup is opened, we notify all the autocomplete
-   * entry providers that have an entry displayed in this popup.
-   *
-   * @param {ElementIdentifier} elementId The element with which the autocomplete popup is associated
-   */
-  notifyAutoCompletePopupOpened(elementId) {
-    const actors = new Set();
-    for (const result of AutoCompleteResultView.results) {
-      try {
-        const { fillMessageName } = JSON.parse(result.comment);
-        if (!fillMessageName) {
-          continue;
-        }
-
-        actors.add(this.#getActorByMessagePrefix(fillMessageName));
-      } catch {}
-    }
-
-    for (const actor of actors) {
-      actor.onAutoCompletePopupOpened?.(elementId);
-    }
-  }
-
-  /**
-   * Clear the autocomplete preview
-   */
-  clearAutoCompletePreview() {
-    const selectedIndex = this.openedPopup?.selectedIndex;
-    const result = AutoCompleteResultView.results[selectedIndex];
-    if (!result) {
-      return;
-    }
-
-    const { fillMessageName, fillMessageData } = JSON.parse(
-      result.comment || "{}"
-    );
-    if (!fillMessageName) {
-      return;
-    }
-
-    const actor = this.#getActorByMessagePrefix(fillMessageName);
-    actor?.onAutoCompleteEntryClearPreview?.(fillMessageName, fillMessageData);
-  }
-
-  /**
-   * Show the autocomplete preview for the current selected entry.
-   */
-  previewAutoCompleteEntry() {
-    const selectedIndex = this.openedPopup?.selectedIndex;
-    const result = AutoCompleteResultView.results[selectedIndex];
-    if (!result) {
-      return;
-    }
-
-    const { fillMessageName, fillMessageData } = JSON.parse(
-      result.comment || "{}"
-    );
-    if (!fillMessageName) {
-      return;
-    }
-
-    const actor = this.#getActorByMessagePrefix(fillMessageName);
-    actor?.onAutoCompleteEntryHovered?.(fillMessageName, fillMessageData);
+  previewEntry(index) {
+    this.selectEntry(index, true);
   }
 
   /**
    * When an autocomplete entry is selected, notify the actor that provides the entry
    */
-  selectAutoCompleteEntry() {
-    const selectedIndex = this.openedPopup?.selectedIndex;
-    const result = AutoCompleteResultView.results[selectedIndex];
-    if (!result) {
-      return;
-    }
+  selectEntry(index, hover = false) {
+    const result = AutoCompleteResultView.results[index];
 
-    const { fillMessageName, fillMessageData } = JSON.parse(
-      result.comment || "{}"
-    );
-    if (!fillMessageName) {
-      return;
-    }
+    try {
+      const { fillMessageName, fillMessageData } = JSON.parse(result.comment);
+      if (!fillMessageName) {
+        return;
+      }
 
-    const actor = this.#getActorByMessagePrefix(fillMessageName);
-    actor?.onAutoCompleteEntrySelected?.(fillMessageName, fillMessageData);
+      const actor = this.#getActorByMessagePrefix(fillMessageName);
+      if (hover) {
+        actor?.onAutoCompleteEntryHovered(fillMessageName, fillMessageData);
+      } else {
+        actor?.onAutoCompleteEntrySelected(fillMessageName, fillMessageData);
+      }
+    } catch {}
   }
 
   /**

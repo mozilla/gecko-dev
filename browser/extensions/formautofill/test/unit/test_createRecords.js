@@ -4,9 +4,12 @@
 
 "use strict";
 
-const { FormAutofillSection } = ChromeUtils.importESModule(
-  "resource://gre/modules/shared/FormAutofillSection.sys.mjs"
-);
+var FormAutofillHandler;
+add_task(async function seutp() {
+  ({ FormAutofillHandler } = ChromeUtils.importESModule(
+    "resource://gre/modules/shared/FormAutofillHandler.sys.mjs"
+  ));
+});
 
 const TESTCASES = [
   {
@@ -28,18 +31,22 @@ const TESTCASES = [
       "cc-number": "1111222233334444",
       "cc-name": "*".repeat(201),
     },
-    expectedRecord: [
-      {
-        "given-name": "John",
-        organization: "*".repeat(200),
-        "address-level1": "",
-        country: "US",
-      },
-      {
-        "cc-number": "1111222233334444",
-        "cc-name": "",
-      },
-    ],
+    expectedRecord: {
+      address: [
+        {
+          "given-name": "John",
+          organization: "*".repeat(200),
+          "address-level1": "",
+          country: "US",
+        },
+      ],
+      creditCard: [
+        {
+          "cc-number": "1111222233334444",
+          "cc-name": "",
+        },
+      ],
+    },
   },
   {
     description: "Don't create address record if filled data is less than 3",
@@ -52,7 +59,10 @@ const TESTCASES = [
       "given-name": "John",
       organization: "Mozilla",
     },
-    expectedRecord: [],
+    expectedRecord: {
+      address: [],
+      creditCard: [],
+    },
   },
   {
     description: "All name related fields should be counted as 1 field only.",
@@ -66,7 +76,10 @@ const TESTCASES = [
       "family-name": "Doe",
       organization: "Mozilla",
     },
-    expectedRecord: [],
+    expectedRecord: {
+      address: [],
+      creditCard: [],
+    },
   },
   {
     description:
@@ -83,7 +96,10 @@ const TESTCASES = [
       "tel-local": "4567890",
       organization: "Mozilla",
     },
-    expectedRecord: [],
+    expectedRecord: {
+      address: [],
+      creditCard: [],
+    },
   },
   {
     description:
@@ -100,14 +116,17 @@ const TESTCASES = [
       "cc-exp": "2022-06",
       "cc-type": "Visa",
     },
-    expectedRecord: [
-      {
-        "cc-number": "5105105105105100",
-        "cc-name": "Foo Bar",
-        "cc-exp": "2022-06",
-        "cc-type": "Visa",
-      },
-    ],
+    expectedRecord: {
+      address: [],
+      creditCard: [
+        {
+          "cc-number": "5105105105105100",
+          "cc-name": "Foo Bar",
+          "cc-exp": "2022-06",
+          "cc-type": "Visa",
+        },
+      ],
+    },
   },
   {
     description: "A credit card form with cc-number value only.",
@@ -117,11 +136,14 @@ const TESTCASES = [
     formValue: {
       "cc-number": "4111111111111111",
     },
-    expectedRecord: [
-      {
-        "cc-number": "4111111111111111",
-      },
-    ],
+    expectedRecord: {
+      address: [],
+      creditCard: [
+        {
+          "cc-number": "4111111111111111",
+        },
+      ],
+    },
   },
   {
     description: "A credit card form must have cc-number value.",
@@ -135,7 +157,10 @@ const TESTCASES = [
       "cc-name": "Foo Bar",
       "cc-exp": "2022-06",
     },
-    expectedRecord: [],
+    expectedRecord: {
+      address: [],
+      creditCard: [],
+    },
   },
   {
     description: "A credit card form must have cc-number field.",
@@ -147,7 +172,10 @@ const TESTCASES = [
       "cc-name": "Foo Bar",
       "cc-exp": "2022-06",
     },
-    expectedRecord: [],
+    expectedRecord: {
+      address: [],
+      creditCard: [],
+    },
   },
   {
     description: "A form with multiple sections",
@@ -193,33 +221,37 @@ const TESTCASES = [
       "cc-name-section-two": "Foo Bar",
       "cc-exp-section-two": "2026-26",
     },
-    expectedRecord: [
-      {
-        "given-name": "Bar",
-        organization: "Foo",
-        country: "US",
-      },
-      {
-        "given-name": "John",
-        "family-name": "Doe",
-        organization: "Mozilla",
-        country: "US",
-      },
-      {
-        "given-name": "Foo",
-        organization: "Bar",
-        country: "US",
-      },
-      {
-        "cc-number": "4111111111111111",
-        "cc-name": "John",
-      },
-      {
-        "cc-number": "5105105105105100",
-        "cc-name": "Foo Bar",
-        "cc-exp": "2026-26",
-      },
-    ],
+    expectedRecord: {
+      address: [
+        {
+          "given-name": "Bar",
+          organization: "Foo",
+          country: "US",
+        },
+        {
+          "given-name": "John",
+          "family-name": "Doe",
+          organization: "Mozilla",
+          country: "US",
+        },
+        {
+          "given-name": "Foo",
+          organization: "Bar",
+          country: "US",
+        },
+      ],
+      creditCard: [
+        {
+          "cc-number": "4111111111111111",
+          "cc-name": "John",
+        },
+        {
+          "cc-number": "5105105105105100",
+          "cc-name": "Foo Bar",
+          "cc-exp": "2026-26",
+        },
+      ],
+    },
   },
   {
     description: "A credit card form with a cc-type select.",
@@ -233,12 +265,15 @@ const TESTCASES = [
     formValue: {
       "cc-number": "5105105105105100",
     },
-    expectedRecord: [
-      {
-        "cc-number": "5105105105105100",
-        "cc-type": "visa",
-      },
-    ],
+    expectedRecord: {
+      address: [],
+      creditCard: [
+        {
+          "cc-number": "5105105105105100",
+          "cc-type": "visa",
+        },
+      ],
+    },
   },
   {
     description: "A credit card form with a cc-type select from label.",
@@ -254,12 +289,15 @@ const TESTCASES = [
       "cc-number": "5105105105105100",
       "cc-type": "A",
     },
-    expectedRecord: [
-      {
-        "cc-number": "5105105105105100",
-        "cc-type": "amex",
-      },
-    ],
+    expectedRecord: {
+      address: [],
+      creditCard: [
+        {
+          "cc-number": "5105105105105100",
+          "cc-type": "amex",
+        },
+      ],
+    },
   },
   {
     description:
@@ -274,13 +312,16 @@ const TESTCASES = [
       "cc-exp-month": "05",
       "cc-exp-year": "26",
     },
-    expectedRecord: [
-      {
-        "cc-number": "5105105105105100",
-        "cc-exp-month": "05",
-        "cc-exp-year": "26",
-      },
-    ],
+    expectedRecord: {
+      address: [],
+      creditCard: [
+        {
+          "cc-number": "5105105105105100",
+          "cc-exp-month": "05",
+          "cc-exp-year": "26",
+        },
+      ],
+    },
   },
   {
     description:
@@ -293,12 +334,15 @@ const TESTCASES = [
       "cc-number": "5105105105105100",
       "cc-exp": "07/27",
     },
-    expectedRecord: [
-      {
-        "cc-number": "5105105105105100",
-        "cc-exp": "07/27",
-      },
-    ],
+    expectedRecord: {
+      address: [],
+      creditCard: [
+        {
+          "cc-number": "5105105105105100",
+          "cc-exp": "07/27",
+        },
+      ],
+    },
   },
 ];
 
@@ -306,38 +350,28 @@ for (let testcase of TESTCASES) {
   add_task(async function () {
     info("Starting testcase: " + testcase.description);
 
-    const doc = MockDocument.createTestDocument(
+    let doc = MockDocument.createTestDocument(
       "http://localhost:8080/test/",
       testcase.document
     );
+    let form = doc.querySelector("form");
+    let formLike = FormLikeFactory.createFromForm(form);
+    let handler = new FormAutofillHandler(formLike);
 
-    for (const id in testcase.formValue) {
+    handler.collectFormFields();
+
+    for (let id in testcase.formValue) {
       doc.getElementById(id).value = testcase.formValue[id];
     }
 
-    const form = doc.querySelector("form");
-    const formLike = FormLikeFactory.createFromForm(form);
+    let record = handler.createRecords();
 
-    // Child process
-    const handler = new FormAutofillHandler(formLike);
-    const fields = handler.collectFormFields();
-    const filledData = handler.collectFormFilledData();
-
-    // Parent process
-    const sections = FormAutofillSection.classifySections(fields);
-
-    const actualRecords = sections
-      .map(section => section.createRecord(filledData)?.record)
-      .filter(s => !!s);
-
-    const expectedRecords = testcase.expectedRecord;
-    Assert.equal(
-      actualRecords.length,
-      expectedRecords.length,
-      "Check the number of record"
-    );
-    for (const idx in expectedRecords) {
-      Assert.deepEqual(actualRecords[idx], expectedRecords[idx]);
+    let expectedRecord = testcase.expectedRecord;
+    for (let type in record) {
+      Assert.deepEqual(
+        record[type].map(secRecord => secRecord.record),
+        expectedRecord[type]
+      );
     }
   });
 }

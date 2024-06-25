@@ -17,12 +17,22 @@ const gFormFillController = Cc[
   "@mozilla.org/satchel/form-fill-controller;1"
 ].getService(Ci.nsIFormFillController);
 
+let autoCompleteListeners = new Set();
+
 export class AutoCompleteChild extends JSWindowActorChild {
   constructor() {
     super();
 
     this._input = null;
     this._popupOpen = false;
+  }
+
+  static addPopupStateListener(listener) {
+    autoCompleteListeners.add(listener);
+  }
+
+  static removePopupStateListener(listener) {
+    autoCompleteListeners.delete(listener);
   }
 
   receiveMessage(message) {
@@ -39,11 +49,13 @@ export class AutoCompleteChild extends JSWindowActorChild {
 
       case "AutoComplete:PopupClosed": {
         this._popupOpen = false;
+        this.notifyListeners(message.name, message.data);
         break;
       }
 
       case "AutoComplete:PopupOpened": {
         this._popupOpen = true;
+        this.notifyListeners(message.name, message.data);
         break;
       }
 
@@ -60,6 +72,16 @@ export class AutoCompleteChild extends JSWindowActorChild {
         }
         */
         break;
+      }
+    }
+  }
+
+  notifyListeners(messageName, data) {
+    for (let listener of autoCompleteListeners) {
+      try {
+        listener.popupStateChanged(messageName, data, this.contentWindow);
+      } catch (ex) {
+        console.error(ex);
       }
     }
   }
@@ -192,7 +214,7 @@ export class AutoCompleteChild extends JSWindowActorChild {
         input.ownerGlobal.windowGlobalChild.getActor("LoginManager")
       );
     } else {
-      // The current design is that FormHistory doesn't call `markAsAutoCompletable`
+      // The current design is that FormHisotry doesn't call `markAsAutoCompletable`
       // for every eligilbe input. Instead, when FormFillController receives a focus event,
       // it would control the <input> if the <input> is eligible to show form history.
       // Because of the design, we need to ask FormHistory whether to search for autocomplete entries
@@ -241,6 +263,10 @@ export class AutoCompleteChild extends JSWindowActorChild {
   #ongoingSearches = new Set();
 
   async startSearch(searchString, input, listener) {
+    // TODO: This should be removed once we implement triggering autocomplete
+    // from the parent.
+    this.lastProfileAutoCompleteFocusedInput = input;
+
     // For all the autocomplete entry providers that previsouly marked
     // this <input> as autocompletable, ask the provider whether we should
     // search for autocomplete entries in the parent. This is because the current
@@ -283,7 +309,7 @@ export class AutoCompleteChild extends JSWindowActorChild {
     for (const provider of providers) {
       // Search result could be empty. However, an autocomplete provider might
       // want to show an autocomplete popup when there is no search result. For example,
-      // <datalist> for FormHistory, insecure warning for LoginManager.
+      // <datalist> for FormHisotry, insecure warning for LoginManager.
       const searchResult = result.find(r => r.actorName == provider.actorName);
       const acResult = provider.searchResultToAutoCompleteResult(
         searchString,
@@ -294,13 +320,16 @@ export class AutoCompleteChild extends JSWindowActorChild {
       // We have not yet supported showing autocomplete entries from multiple providers,
       // Note: The prioty is defined in AutoCompleteParent.
       if (acResult) {
+        this.lastProfileAutoCompleteResult = acResult;
         listener.onSearchCompletion(acResult);
         return;
       }
     }
+    this.lastProfileAutoCompleteResult = null;
   }
 
   stopSearch() {
+    this.lastProfileAutoCompleteResult = null;
     this.#ongoingSearches.clear();
   }
 

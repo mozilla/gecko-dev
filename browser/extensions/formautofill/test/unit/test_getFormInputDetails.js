@@ -163,13 +163,23 @@ TESTCASES.forEach(testcase => {
       testcase.document
     );
 
-    for (const i in testcase.targetInput) {
-      const input = doc.getElementById(testcase.targetInput[i]);
+    for (let i in testcase.targetInput) {
+      let input = doc.getElementById(testcase.targetInput[i]);
       const fsm = new FormStateManager();
+      fsm.updateActiveInput(input);
       fsm.identifyAutofillFields(input);
 
-      const formDetails = testcase.expectedResult[i].form;
-      for (const formDetail of formDetails) {
+      // Put the input element reference to `element` to make sure the result of
+      // `activeFieldDetail` contains the same input element.
+      testcase.expectedResult[i].input.elementWeakRef = new WeakRef(input);
+
+      inputDetailAssertion(
+        fsm.activeFieldDetail,
+        testcase.expectedResult[i].input
+      );
+
+      let formDetails = testcase.expectedResult[i].form;
+      for (let formDetail of formDetails) {
         // Compose a query string to get the exact reference of <input>/<select>
         // element, e.g. #form1 > *[autocomplete="street-address"]
         let queryString =
@@ -181,8 +191,7 @@ TESTCASES.forEach(testcase => {
         formDetail.elementWeakRef = new WeakRef(doc.querySelector(queryString));
       }
 
-      const handler = fsm.getFormHandler(input);
-      handler.fieldDetails.forEach((detail, index) => {
+      fsm.activeFormDetails.forEach((detail, index) => {
         inputDetailAssertion(detail, formDetails[index]);
       });
     }
