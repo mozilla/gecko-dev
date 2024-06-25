@@ -2079,3 +2079,127 @@ characteristics:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
       # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
       - highly_sensitive
+
+  pointer_height:
+    type: quantity
+    unit: int
+    description: >
+      Height of user's pointer
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  pointer_width:
+    type: quantity
+    unit: int
+    description: >
+      Width of user's pointer
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  pointer_pressure:
+    type: string
+    description: >
+      Pressure of user's pointer
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  pointer_tangentinal_pressure:
+    type: string
+    description: >
+      Tangential Pressure of user's pointer
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  pointer_tiltx:
+    type: quantity
+    unit: int
+    description: >
+      TiltX of user's pointer
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  pointer_tilty:
+    type: quantity
+    unit: int
+    description: >
+      TiltY of user's pointer
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  pointer_twist:
+    type: quantity
+    unit: int
+    description: >
+      Twist of user's pointer
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902086#c3
+    expires: never
+    data_sensitivity:
+      - technical
