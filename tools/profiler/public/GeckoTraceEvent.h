@@ -167,21 +167,27 @@
   INTERNAL_TRACE_EVENT_ADD_SCOPED(category, name, arg1_name, arg1_val,         \
                                   arg2_name, arg2_val)
 
+// Enum reflecting the scope of an INSTANT event. Must fit within
+// TRACE_EVENT_FLAG_SCOPE_MASK.
+static constexpr uint8_t TRACE_EVENT_SCOPE_GLOBAL = 0u << 2;
+static constexpr uint8_t TRACE_EVENT_SCOPE_PROCESS = 1u << 2;
+static constexpr uint8_t TRACE_EVENT_SCOPE_THREAD = 2u << 2;
+
 // Records a single event called "name" immediately, with 0, 1 or 2
 // associated arguments. If the category is not enabled, then this
 // does nothing.
 // - category and name strings must have application lifetime (statics or
 //   literals). They may not include " chars.
-#define TRACE_EVENT_INSTANT0(category, name)                          \
+#define TRACE_EVENT_INSTANT0(category, name, scope)                   \
   INTERNAL_TRACE_EVENT_ADD(TRACE_EVENT_PHASE_INSTANT, category, name, \
                            TRACE_EVENT_FLAG_NONE)
-#define TRACE_EVENT_INSTANT1(category, name, arg1_name, arg1_val)     \
-  INTERNAL_TRACE_EVENT_ADD(TRACE_EVENT_PHASE_INSTANT, category, name, \
+#define TRACE_EVENT_INSTANT1(category, name, scope, arg1_name, arg1_val) \
+  INTERNAL_TRACE_EVENT_ADD(TRACE_EVENT_PHASE_INSTANT, category, name,    \
                            TRACE_EVENT_FLAG_NONE, arg1_name, arg1_val)
-#define TRACE_EVENT_INSTANT2(category, name, arg1_name, arg1_val, arg2_name, \
-                             arg2_val)                                       \
-  INTERNAL_TRACE_EVENT_ADD(TRACE_EVENT_PHASE_INSTANT, category, name,        \
-                           TRACE_EVENT_FLAG_NONE, arg1_name, arg1_val,       \
+#define TRACE_EVENT_INSTANT2(category, name, scope, arg1_name, arg1_val, \
+                             arg2_name, arg2_val)                        \
+  INTERNAL_TRACE_EVENT_ADD(TRACE_EVENT_PHASE_INSTANT, category, name,    \
+                           TRACE_EVENT_FLAG_NONE, arg1_name, arg1_val,   \
                            arg2_name, arg2_val)
 
 // Records a single BEGIN event called "name" immediately, with 0, 1 or 2
@@ -729,7 +735,6 @@ class TraceEndOnScopeClose {
   do {             \
   } while (0)
 
-
 #define TRACE_DISABLED_BY_DEFAULT(name) "disabled-by-default-" name
 
 #define TRACE_ID_MANGLE(id) 0
@@ -739,11 +744,12 @@ class TraceEndOnScopeClose {
 #define TRACE_EVENT2(category, name, arg1_name, arg1_val, arg2_name, arg2_val) \
   RTC_NOOP()
 
-#define TRACE_EVENT_INSTANT0(category, name) RTC_NOOP()
-#define TRACE_EVENT_INSTANT1(category, name, arg1_name, arg1_val) RTC_NOOP()
+#define TRACE_EVENT_INSTANT0(category, name, scope) RTC_NOOP()
+#define TRACE_EVENT_INSTANT1(category, name, scope, arg1_name, arg1_val) \
+  RTC_NOOP()
 
-#define TRACE_EVENT_INSTANT2(category, name, arg1_name, arg1_val, arg2_name, \
-                             arg2_val)                                       \
+#define TRACE_EVENT_INSTANT2(category, name, scope, arg1_name, arg1_val, \
+                             arg2_name, arg2_val)                        \
   RTC_NOOP()
 
 #define TRACE_EVENT_BEGIN0(category, name) RTC_NOOP()
