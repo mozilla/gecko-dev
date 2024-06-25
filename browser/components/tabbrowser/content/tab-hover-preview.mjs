@@ -112,7 +112,7 @@ export default class TabHoverPreviewPanel {
 
     this._thumbnailElement = null;
     this._maybeRequestThumbnail();
-    if (this._panel.state == "open") {
+    if (this._panel.state == "open" || this._panel.state == "showing") {
       this._updatePreview();
     }
     if (this._timer) {
