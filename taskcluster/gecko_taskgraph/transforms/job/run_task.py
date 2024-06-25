@@ -163,6 +163,7 @@ def generic_worker_run_task(config, job, taskdesc):
     worker = taskdesc["worker"] = job["worker"]
     is_win = worker["os"] == "windows"
     is_mac = worker["os"] == "macosx"
+    is_linux = worker["os"] == "linux"
     is_bitbar = worker["os"] == "linux-bitbar"
 
     if run["tooltool-downloads"]:
@@ -203,9 +204,9 @@ def generic_worker_run_task(config, job, taskdesc):
                 "file": "./fetch-content",
             }
         )
-    # Mac workers are still using a python2-based Mercurial not compatible with the
-    # in-tree robustcheckout. bug #1626357
-    if run.get("checkout") and not is_mac:
+    # Mac and Linux workers are still using a python2-based Mercurial not compatible
+    # with the in-tree robustcheckout. bug #1626357
+    if run.get("checkout") and not is_mac and not is_linux:
         worker["mounts"].append(
             {
                 "content": {
