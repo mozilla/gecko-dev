@@ -139,6 +139,15 @@ class MessagePayload extends Component {
       "responseHeaders"
     );
 
+    if (!responseHeaders.headers) {
+      // If the network event actor was destroyed while retrieving the request
+      // data, no headers will be available.
+      return {
+        formattedData: null,
+        formattedDataTitle: "",
+      };
+    }
+
     const wsProtocol = getResponseHeader(
       { responseHeaders },
       "Sec-WebSocket-Protocol"
