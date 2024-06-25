@@ -17,20 +17,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Likely.h"
 
-// We normally have logging enabled everywhere, but measurements showed that
-// having logging enabled on Android is quite expensive (hundreds of kilobytes
-// for both the format strings for logging and the code to perform all the
-// logging calls).  Because retrieving logs from a mobile device is
-// comparatively more difficult for Android than it is for desktop and because
-// desktop machines tend to be less space/bandwidth-constrained than Android
-// devices, we've chosen to leave logging enabled on desktop, but disabled on
-// Android.  Given that logging can still be useful for development purposes,
-// however, we leave logging enabled on Android developer builds.
-#if !defined(ANDROID) || !defined(RELEASE_OR_BETA)
-#  define MOZ_LOGGING_ENABLED 1
-#else
-#  define MOZ_LOGGING_ENABLED 0
-#endif
+#define MOZ_LOGGING_ENABLED 1
 
 // The mandatory extension we add to log files.  Note that rotate will append
 // the file piece number still at the end.
