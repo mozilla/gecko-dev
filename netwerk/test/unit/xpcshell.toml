@@ -603,7 +603,9 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_hostnameIsSharedIPAddress.js"]
 
 ["test_hpke_config_manager.js"]
-skip-if = ["!nightly_build"] # OHTTP Config manager not currently shipped to release.
+
+["test_hpke_out_of_process.js"]
+skip-if = ["os == 'android'"] # Bug 1904406
 
 ["test_http1-proxy.js"]
 

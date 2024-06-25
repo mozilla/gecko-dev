@@ -43,6 +43,13 @@ let JSPROCESSACTORS = {
     includeParent: true,
   },
 
+  HPKEConfigManager: {
+    remoteTypes: ["privilegedabout"],
+    parent: {
+      esModuleURI: "resource://gre/modules/HPKEConfigManager.sys.mjs",
+    },
+  },
+
   ProcessConduits: {
     parent: {
       esModuleURI: "resource://gre/modules/ConduitsParent.sys.mjs",
