@@ -26,7 +26,10 @@ bool TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
   // CSP-support for Workers will be added in
   // <https://bugzilla.mozilla.org/show_bug.cgi?id=1901492>.
   // That is, currently only Windows are supported.
-  nsIContentSecurityPolicy* csp = mGlobalObject->GetAsInnerWindow()->GetCsp();
+  nsIContentSecurityPolicy* csp =
+      mGlobalObject->GetAsInnerWindow()
+          ? mGlobalObject->GetAsInnerWindow()->GetCsp()
+          : nullptr;
 
   if (csp) {
     uint32_t numPolicies = 0;
