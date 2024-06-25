@@ -868,6 +868,13 @@ class WindowGlobalTargetActor extends BaseTargetActor {
       return;
     }
 
+    // This method is called asynchronously and the document may have been destroyed in the meantime.
+    // In such case, automatically destroy the target actor.
+    if (this.docShell.isBeingDestroyed()) {
+      this.destroy();
+      return;
+    }
+
     // In child processes, we watch all docshells living in the process.
     Services.obs.addObserver(this, "webnavigation-create");
     Services.obs.addObserver(this, "webnavigation-destroy");
@@ -1743,6 +1750,12 @@ class DebuggerProgressListener {
   }
 
   unwatch(docShell) {
+    // If the docshell is being destroyed, we won't be able to retrieve its related window object,
+    // which is the key ingredient for all cleanup operations done in this method.
+    if (docShell.isBeingDestroyed()) {
+      return;
+    }
+
     const docShellWindow = docShell.domWindow;
     if (!this._watchedDocShells.has(docShellWindow)) {
       return;
