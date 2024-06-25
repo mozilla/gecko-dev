@@ -314,8 +314,9 @@ def add_gnu_specific_dso_flags(
         # linked against executables, so we must allow undefined
         # symbols for shared objects in some cases.
         if not use_sanitizer_runtime:
-            # Don't allow undefined symbols in libraries
-            ldopts.append("-Wl,-z,defs")
+            if target.os != "WINNT":
+                # Don't allow undefined symbols in libraries
+                ldopts.append("-Wl,-z,defs")
 
             # BSDs need `environ' exposed for posix_spawn (bug 753046)
             if target.os in ("DragonFly", "FreeBSD", "NetBSD", "OpenBSD"):
