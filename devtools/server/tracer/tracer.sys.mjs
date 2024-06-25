@@ -50,6 +50,10 @@ const isWorker =
   globalThis.isWorker ||
   globalThis.constructor.name == "WorkerDebuggerGlobalScope";
 
+// The following preference controls the depth limit which, when hit,
+// will automatically stop the tracer and declare the current stack as an infinite loop.
+const MAX_DEPTH_PREF = "devtools.debugger.javascript-tracing-max-depth";
+
 // This module can be loaded from the worker thread, where we can't use ChromeUtils.
 // So implement custom lazy getters (without XPCOMUtils ESM) from here.
 // Worker codepath in DevTools will pass a custom Debugger instance.
@@ -215,6 +219,9 @@ class JavaScriptTracer {
     this.traceValues = !!options.traceValues;
     this.traceFunctionReturn = !!options.traceFunctionReturn;
     this.maxDepth = options.maxDepth;
+    this.infiniteLoopDepthLimit = isWorker
+      ? 200
+      : Services.prefs.getIntPref(MAX_DEPTH_PREF, 200);
     this.maxRecords = options.maxRecords;
     this.records = 0;
     if ("pauseOnStep" in options) {
@@ -609,7 +616,7 @@ class JavaScriptTracer {
     if (shouldLogToStdout) {
       this.loggingMethod(
         this.prefix +
-          "Looks like an infinite recursion? We stopped the JavaScript tracer, but code may still be running!\n"
+          `Looks like an infinite recursion? We stopped the JavaScript tracer, but code may still be running!\n(This is configurable via ${MAX_DEPTH_PREF} preference)\n`
       );
     }
   }
@@ -662,8 +669,8 @@ class JavaScriptTracer {
         this.records++;
       }
 
-      // Consider depth > 100 as an infinite recursive loop and stop the tracer.
-      if (depth == 100) {
+      // Consider that beyond some depth, we are running an infinite recursive loop and stop the tracer.
+      if (depth == this.infiniteLoopDepthLimit) {
         this.notifyInfiniteLoop();
         this.stopTracing("infinite-loop");
         return;
@@ -1116,4 +1123,5 @@ export const JSTracer = {
   removeTracingListener,
   NEXT_INTERACTION_MESSAGE,
   DOM_MUTATIONS,
+  MAX_DEPTH_PREF,
 };

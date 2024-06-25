@@ -127,7 +127,8 @@ class ConsoleTracingListener {
     }
 
     const message =
-      "Looks like an infinite recursion? We stopped the JavaScript tracer, but code may still be running!";
+      "Looks like an infinite recursion? We stopped the JavaScript tracer, but code may still be running! " +
+      `(This is configurable via ${lazy.JSTracer.MAX_DEPTH_PREF} preference)`;
     consoleMessageWatcher.emitMessages([
       {
         arguments: [message],
