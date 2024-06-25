@@ -464,7 +464,7 @@ address:
     expiry_version: never
     products:
       - "firefox"
-    record_in_processes: ["content"]
+    record_in_processes: ["main"]
     release_channel_collection: opt-out
     extra_keys:
       street_address: street address result, filled when method is `detected`, `filled`, or `filled_modified`
@@ -487,7 +487,7 @@ address:
     expiry_version: never
     products:
       - "firefox"
-    record_in_processes: ["content"]
+    record_in_processes: ["main"]
     release_channel_collection: opt-out
     extra_keys:
       name: name
@@ -568,7 +568,7 @@ creditcard:
     expiry_version: never
     products:
       - "firefox"
-    record_in_processes: ["content"]
+    record_in_processes: ["main"]
     release_channel_collection: opt-out
     extra_keys:
       cc_name: cardholder name field result. Used by `detected`, `filled`, and `filled_modified` methods.
