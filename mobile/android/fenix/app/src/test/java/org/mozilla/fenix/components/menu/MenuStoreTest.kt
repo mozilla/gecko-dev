@@ -65,12 +65,14 @@ class MenuStoreTest {
             browserMenuState = BrowserMenuState(
                 selectedTab = selectedTab,
                 bookmarkState = BookmarkState(),
+                isPinned = false,
             ),
         )
 
         assertEquals(selectedTab, state.browserMenuState!!.selectedTab)
         assertNull(state.browserMenuState!!.bookmarkState.guid)
         assertFalse(state.browserMenuState!!.bookmarkState.isBookmarked)
+        assertFalse(state.browserMenuState!!.isPinned)
 
         var newState = state.copyWithBrowserMenuState {
             it.copy(selectedTab = firefoxTab)
@@ -79,14 +81,17 @@ class MenuStoreTest {
         assertEquals(firefoxTab, newState.browserMenuState!!.selectedTab)
         assertNull(state.browserMenuState!!.bookmarkState.guid)
         assertFalse(state.browserMenuState!!.bookmarkState.isBookmarked)
+        assertFalse(state.browserMenuState!!.isPinned)
 
         val bookmarkState = BookmarkState(guid = "id", isBookmarked = true)
+        val isPinned = true
         newState = newState.copyWithBrowserMenuState {
-            it.copy(bookmarkState = bookmarkState)
+            it.copy(bookmarkState = bookmarkState, isPinned = isPinned)
         }
 
         assertEquals(firefoxTab, newState.browserMenuState!!.selectedTab)
         assertEquals(bookmarkState, newState.browserMenuState!!.bookmarkState)
+        assertEquals(isPinned, newState.browserMenuState!!.isPinned)
     }
 
     @Test
@@ -135,5 +140,47 @@ class MenuStoreTest {
         store.dispatch(MenuAction.UpdateBookmarkState(bookmarkState = newBookmarkState)).join()
 
         assertEquals(newBookmarkState, store.state.browserMenuState!!.bookmarkState)
+    }
+
+    @Test
+    fun `WHEN add shortcut action is dispatched THEN state is not updated`() = runTest {
+        val initialState = MenuState(
+            browserMenuState = BrowserMenuState(
+                selectedTab = TabSessionState(
+                    id = "tabId",
+                    content = ContentState(
+                        url = "www.google.com",
+                    ),
+                ),
+                isPinned = false,
+            ),
+        )
+        val store = MenuStore(initialState = initialState)
+
+        store.dispatch(MenuAction.AddShortcut).join()
+
+        assertEquals(initialState, store.state)
+    }
+
+    @Test
+    fun `WHEN update shortcut state action is dispatched THEN pinned state is updated`() = runTest {
+        val initialState = MenuState(
+            browserMenuState = BrowserMenuState(
+                selectedTab = TabSessionState(
+                    id = "tabId",
+                    content = ContentState(
+                        url = "www.google.com",
+                    ),
+                ),
+                isPinned = false,
+            ),
+        )
+        val store = MenuStore(initialState = initialState)
+
+        assertNotNull(store.state.browserMenuState)
+        assertFalse(store.state.browserMenuState!!.isPinned)
+
+        store.dispatch(MenuAction.UpdatePinnedState(isPinned = true)).join()
+        assertTrue(store.state.browserMenuState!!.isPinned)
     }
 }

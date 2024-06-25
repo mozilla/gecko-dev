@@ -64,6 +64,16 @@ class MenuTelemetryMiddlewareTest {
     }
 
     @Test
+    fun `WHEN adding a shortcut THEN record the add to top sites browser menu telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.AddShortcut).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "add_to_top_sites")
+    }
+
+    @Test
     fun `WHEN navigating to customize homepage THEN record the customize homepage telemetry`() {
         val store = createStore()
         assertNull(AppMenu.customizeHomepage.testGetValue())

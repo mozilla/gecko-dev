@@ -44,6 +44,12 @@ class MenuTelemetryMiddleware(
                 ),
             )
 
+            MenuAction.AddShortcut -> Events.browserMenuAction.record(
+                Events.BrowserMenuActionExtra(
+                    item = "add_to_top_sites",
+                ),
+            )
+
             MenuAction.Navigate.Bookmarks -> Events.browserMenuAction.record(
                 Events.BrowserMenuActionExtra(
                     item = "bookmarks",
@@ -144,6 +150,7 @@ class MenuTelemetryMiddleware(
             MenuAction.Navigate.Save,
             MenuAction.Navigate.Tools,
             is MenuAction.UpdateBookmarkState,
+            is MenuAction.UpdatePinnedState,
             -> Unit
         }
     }

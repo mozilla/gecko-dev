@@ -9,6 +9,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.ext.getUrl
 import mozilla.components.concept.storage.BookmarksStorage
+import mozilla.components.feature.top.sites.PinnedSiteStorage
+import mozilla.components.feature.top.sites.TopSitesUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
@@ -23,14 +25,20 @@ import org.mozilla.fenix.components.menu.store.MenuState
  *
  * @param bookmarksStorage An instance of the [BookmarksStorage] used
  * to query matching bookmarks.
+ * @param pinnedSiteStorage An instance of the [PinnedSiteStorage] used
+ * to query matching pinned shortcuts.
  * @param addBookmarkUseCase The [BookmarksUseCase.AddBookmarksUseCase] for adding the
  * selected tab as a bookmark.
+ * @param addPinnedSiteUseCase The [TopSitesUseCases.AddPinnedSiteUseCase] for adding the
+ * selected tab as a pinned shortcut.
  * @param onDeleteAndQuit Callback invoked to delete browsing data and quit the browser.
  * @param scope [CoroutineScope] used to launch coroutines.
  */
 class MenuDialogMiddleware(
     private val bookmarksStorage: BookmarksStorage,
+    private val pinnedSiteStorage: PinnedSiteStorage,
     private val addBookmarkUseCase: BookmarksUseCase.AddBookmarksUseCase,
+    private val addPinnedSiteUseCase: TopSitesUseCases.AddPinnedSiteUseCase,
     private val onDeleteAndQuit: () -> Unit,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) : Middleware<MenuState, MenuAction> {
@@ -43,6 +51,7 @@ class MenuDialogMiddleware(
         when (action) {
             is MenuAction.InitAction -> initialize(context.store)
             is MenuAction.AddBookmark -> addBookmark(context.store)
+            is MenuAction.AddShortcut -> addShortcut(context.store)
             is MenuAction.DeleteBrowsingDataAndQuit -> deleteBrowsingDataAndQuit()
             else -> Unit
         }
@@ -53,9 +62,16 @@ class MenuDialogMiddleware(
     private fun initialize(
         store: Store<MenuState, MenuAction>,
     ) = scope.launch {
-        val url = store.state.browserMenuState?.selectedTab?.content?.url ?: return@launch
-        val bookmark =
-            bookmarksStorage.getBookmarksWithUrl(url).firstOrNull { it.url == url } ?: return@launch
+        setInitialBookmarkState(store)
+        setInitialPinnedState(store)
+    }
+
+    private suspend fun setInitialBookmarkState(
+        store: Store<MenuState, MenuAction>,
+    ) {
+        val url = store.state.browserMenuState?.selectedTab?.content?.url ?: return
+        val bookmark = bookmarksStorage.getBookmarksWithUrl(url)
+            .firstOrNull { it.url == url } ?: return
 
         store.dispatch(
             MenuAction.UpdateBookmarkState(
@@ -63,6 +79,20 @@ class MenuDialogMiddleware(
                     guid = bookmark.guid,
                     isBookmarked = true,
                 ),
+            ),
+        )
+    }
+
+    private suspend fun setInitialPinnedState(
+        store: Store<MenuState, MenuAction>,
+    ) {
+        val url = store.state.browserMenuState?.selectedTab?.content?.url ?: return
+        pinnedSiteStorage.getPinnedSites()
+            .firstOrNull { it.url == url } ?: return
+
+        store.dispatch(
+            MenuAction.UpdatePinnedState(
+                isPinned = true,
             ),
         )
     }
@@ -82,6 +112,24 @@ class MenuDialogMiddleware(
         addBookmarkUseCase(
             url = url,
             title = selectedTab.content.title,
+        )
+    }
+
+    private fun addShortcut(
+        store: Store<MenuState, MenuAction>,
+    ) = scope.launch {
+        val browserMenuState = store.state.browserMenuState ?: return@launch
+
+        if (browserMenuState.isPinned) {
+            return@launch
+        }
+
+        val selectedTab = browserMenuState.selectedTab
+        val url = selectedTab.getUrl() ?: return@launch
+
+        addPinnedSiteUseCase(
+            title = selectedTab.content.title,
+            url = url,
         )
     }
 

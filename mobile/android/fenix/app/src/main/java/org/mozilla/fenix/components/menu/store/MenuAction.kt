@@ -34,6 +34,18 @@ sealed class MenuAction : Action {
     data class UpdateBookmarkState(val bookmarkState: BookmarkState) : MenuAction()
 
     /**
+     * [MenuAction] dispatched when a site is to be added to shortcuts.
+     */
+    data object AddShortcut : MenuAction()
+
+    /**
+     * [MenuAction] dispatched when a pinned shortcut state is updated.
+     *
+     * @property isPinned The new [isPinned] state to be updated.
+     */
+    data class UpdatePinnedState(val isPinned: Boolean) : MenuAction()
+
+    /**
      * [MenuAction] dispatched to delete browsing data and quit the browser.
      */
     data object DeleteBrowsingDataAndQuit : MenuAction()

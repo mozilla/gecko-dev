@@ -84,8 +84,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val browserStore = components.core.store
                     val syncStore = components.backgroundServices.syncStore
                     val bookmarksStorage = components.core.bookmarksStorage
+                    val pinnedSiteStorage = components.core.pinnedSiteStorage
                     val tabCollectionStorage = components.core.tabCollectionStorage
                     val addBookmarkUseCase = components.useCases.bookmarksUseCases.addBookmark
+                    val addPinnedSiteUseCase = components.useCases.topSitesUseCase.addPinnedSites
                     val printContentUseCase = components.useCases.sessionUseCases.printContent
                     val saveToPdfUseCase = components.useCases.sessionUseCases.saveToPdf
                     val selectedTab = browserStore.state.selectedTab
@@ -105,6 +107,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             middleware = listOf(
                                 MenuDialogMiddleware(
                                     bookmarksStorage = bookmarksStorage,
+                                    pinnedSiteStorage = pinnedSiteStorage,
                                     addBookmarkUseCase = addBookmarkUseCase,
                                     onDeleteAndQuit = {
                                         deleteAndQuit(
@@ -113,6 +116,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                             snackbar = null,
                                         )
                                     },
+                                    addPinnedSiteUseCase = addPinnedSiteUseCase,
                                     scope = coroutineScope,
                                 ),
                                 MenuNavigationMiddleware(
@@ -247,7 +251,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 onEditBookmarkButtonClick = {
                                     store.dispatch(MenuAction.Navigate.EditBookmark)
                                 },
-                                onAddToShortcutsMenuClick = {},
+                                onAddToShortcutsMenuClick = {
+                                    store.dispatch(MenuAction.AddShortcut)
+                                },
                                 onAddToHomeScreenMenuClick = {},
                                 onSaveToCollectionMenuClick = {
                                     store.dispatch(

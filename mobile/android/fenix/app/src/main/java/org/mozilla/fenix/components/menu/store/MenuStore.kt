@@ -28,12 +28,17 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
     return when (action) {
         is MenuAction.InitAction,
         is MenuAction.AddBookmark,
+        is MenuAction.AddShortcut,
         is MenuAction.DeleteBrowsingDataAndQuit,
         is MenuAction.Navigate,
         -> state
 
         is MenuAction.UpdateBookmarkState -> state.copyWithBrowserMenuState {
             it.copy(bookmarkState = action.bookmarkState)
+        }
+
+        is MenuAction.UpdatePinnedState -> state.copyWithBrowserMenuState {
+            it.copy(isPinned = action.isPinned)
         }
     }
 }
