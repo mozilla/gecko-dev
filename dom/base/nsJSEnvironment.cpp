@@ -1047,18 +1047,14 @@ static void FireForgetSkippable(bool aRemoveChildless, TimeStamp aDeadline) {
   TimeStamp startTimeStamp = TimeStamp::Now();
   FinishAnyIncrementalGC();
 
-  uint32_t suspectedBefore = nsCycleCollector_suspectedCount();
   JS::SliceBudget budget =
       sScheduler->ComputeForgetSkippableBudget(startTimeStamp, aDeadline);
   bool earlyForgetSkippable = sScheduler->IsEarlyForgetSkippable();
-  nsCycleCollector_forgetSkippable(budget, aRemoveChildless,
-                                   earlyForgetSkippable);
+  nsCycleCollector_forgetSkippable(startTimeStamp, budget, !aDeadline.IsNull(),
+                                   aRemoveChildless, earlyForgetSkippable);
   TimeStamp now = TimeStamp::Now();
-  uint32_t removedPurples = sScheduler->NoteForgetSkippableComplete(
-      now, suspectedBefore, nsCycleCollector_suspectedCount());
-
-  bool inIdle = !aDeadline.IsNull();
-  sCCStats->AfterForgetSkippable(startTimeStamp, now, removedPurples, inIdle);
+  sScheduler->NoteForgetSkippableComplete(now,
+                                          nsCycleCollector_suspectedCount());
 
   TimeDuration duration = now - startTimeStamp;
   if (duration.ToSeconds()) {

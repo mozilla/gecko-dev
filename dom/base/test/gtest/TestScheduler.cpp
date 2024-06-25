@@ -152,14 +152,12 @@ void TestCC::TimerFires(int aNumSlices) {
 }
 
 void TestCC::ForgetSkippable() {
-  uint32_t suspectedBefore = sSuspected;
   // ...ForgetSkippable would happen here...
   JS::SliceBudget budget =
       mScheduler.ComputeForgetSkippableBudget(Now(), Now() + kTenthSecond);
   EXPECT_NEAR(budget.timeBudget(), kTenthSecond.ToMilliseconds(), 1);
   AdvanceTime(kTenthSecond);
-  mScheduler.NoteForgetSkippableComplete(Now(), suspectedBefore,
-                                         SuspectedCCObjects());
+  mScheduler.NoteForgetSkippableComplete(Now(), SuspectedCCObjects());
 }
 
 void TestCC::RunSlices(int aNumSlices) {

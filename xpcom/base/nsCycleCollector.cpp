@@ -3958,7 +3958,8 @@ void nsCycleCollector_setForgetSkippableCallback(
   data->mCollector->SetForgetSkippableCallback(aCB);
 }
 
-void nsCycleCollector_forgetSkippable(SliceBudget& aBudget,
+void nsCycleCollector_forgetSkippable(TimeStamp aStartTime,
+                                      JS::SliceBudget& aBudget, bool aInIdle,
                                       bool aRemoveChildlessNodes,
                                       bool aAsyncSnowWhiteFreeing) {
   CollectorData* data = sCollectorData.get();
@@ -3968,9 +3969,14 @@ void nsCycleCollector_forgetSkippable(SliceBudget& aBudget,
   MOZ_ASSERT(data->mCollector);
 
   TimeLog timeLog;
+  uint32_t purpleBefore = data->mCollector->SuspectedCount();
   data->mCollector->ForgetSkippable(aBudget, aRemoveChildlessNodes,
                                     aAsyncSnowWhiteFreeing);
   timeLog.Checkpoint("ForgetSkippable()");
+  uint32_t purpleAfter = data->mCollector->SuspectedCount();
+
+  data->mStats->AfterForgetSkippable(aStartTime, TimeStamp::Now(),
+                                     purpleBefore - purpleAfter, aInIdle);
 }
 
 void nsCycleCollector_dispatchDeferredDeletion(bool aContinuation,
