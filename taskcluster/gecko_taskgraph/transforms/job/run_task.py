@@ -203,6 +203,17 @@ def generic_worker_run_task(config, job, taskdesc):
                 "file": "./fetch-content",
             }
         )
+    # Mac workers are still using a python2-based Mercurial not compatible with the
+    # in-tree robustcheckout. bug #1626357
+    if run.get("checkout") and not is_mac:
+        worker["mounts"].append(
+            {
+                "content": {
+                    "url": script_url(config, "robustcheckout.py"),
+                },
+                "file": "./robustcheckout.py",
+            }
+        )
 
     run_command = run["command"]
     run_cwd = run.get("cwd")

@@ -231,12 +231,17 @@ def taskgraph_decision(options, parameters=None):
     if len(push_schedules) > 0:
         write_artifact("bugbug-push-schedules.json", push_schedules.popitem()[1])
 
-    # cache run-task & misc/fetch-content
+    # cache run-task, misc/fetch-content & robustcheckout.py
     scripts_root_dir = os.path.join(GECKO, "taskcluster/scripts")
     run_task_file_path = os.path.join(scripts_root_dir, "run-task")
     fetch_content_file_path = os.path.join(scripts_root_dir, "misc/fetch-content")
+    robustcheckout_path = os.path.join(
+        GECKO,
+        "testing/mozharness/external_tools/robustcheckout.py",
+    )
     shutil.copy2(run_task_file_path, ARTIFACTS_DIR)
     shutil.copy2(fetch_content_file_path, ARTIFACTS_DIR)
+    shutil.copy2(robustcheckout_path, ARTIFACTS_DIR)
 
     # actually create the graph
     create_tasks(
