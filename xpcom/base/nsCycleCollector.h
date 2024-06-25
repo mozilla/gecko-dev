@@ -15,6 +15,8 @@ struct already_AddRefed;
 
 #include <cstdint>
 #include "mozilla/Attributes.h"
+#include "mozilla/TimeStamp.h"
+#include "nsCycleCollectionParticipant.h"
 
 namespace JS {
 class SliceBudget;

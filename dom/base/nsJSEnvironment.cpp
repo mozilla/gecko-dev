@@ -54,6 +54,7 @@
 #include "nsGlobalWindowOuter.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/CycleCollectorStats.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_dom.h"
@@ -109,75 +110,17 @@ static bool sShuttingDown;
 static CCGCScheduler* sScheduler = nullptr;
 static std::aligned_storage_t<sizeof(*sScheduler)> sSchedulerStorage;
 
-struct CycleCollectorStats {
-  constexpr CycleCollectorStats() = default;
-  void Init();
-  void Clear();
-  void PrepareForCycleCollection(TimeStamp aNow);
-  void AfterPrepareForCycleCollectionSlice(TimeStamp aDeadline,
-                                           TimeStamp aBeginTime,
-                                           TimeStamp aMaybeAfterGCTime);
-  void AfterCycleCollectionSlice();
-  void AfterSyncForgetSkippable(TimeStamp beginTime);
-  void AfterForgetSkippable(TimeDuration duration, uint32_t aRemovedPurples);
-  void AfterCycleCollection();
+struct MainThreadCycleCollectorStats : CycleCollectorStats {
+  constexpr MainThreadCycleCollectorStats() = default;
 
-  void SendTelemetry(TimeDuration aCCNowDuration, TimeStamp aPrevCCEnd) const;
   void MaybeLogStats(const CycleCollectorResults& aResults,
                      uint32_t aCleanups) const;
   void MaybeNotifyStats(const CycleCollectorResults& aResults,
-                        TimeDuration aCCNowDuration, uint32_t aCleanups) const;
-
-  // Time the current slice began, including any GC finishing.
-  TimeStamp mBeginSliceTime;
-
-  // Time the previous slice of the current CC ended.
-  TimeStamp mEndSliceTime;
-
-  // Time the current cycle collection began.
-  TimeStamp mBeginTime;
-
-  // The longest GC finishing duration for any slice of the current CC.
-  TimeDuration mMaxGCDuration;
-
-  // True if we ran sync forget skippable in any slice of the current CC.
-  bool mRanSyncForgetSkippable = false;
-
-  // Number of suspected objects at the start of the current CC.
-  uint32_t mSuspected = 0;
-
-  // The longest duration spent on sync forget skippable in any slice of the
-  // current CC.
-  TimeDuration mMaxSkippableDuration;
-
-  // The longest pause of any slice in the current CC.
-  TimeDuration mMaxSliceTime;
-
-  // The longest slice time since ClearMaxCCSliceTime() was called.
-  TimeDuration mMaxSliceTimeSinceClear;
-
-  // The total amount of time spent actually running the current CC.
-  TimeDuration mTotalSliceTime;
-
-  // True if we were locked out by the GC in any slice of the current CC.
-  bool mAnyLockedOut = false;
-
-  // A file to dump CC activity to; set by MOZ_CCTIMER environment variable.
-  FILE* mFile = nullptr;
-
-  // In case CC slice was triggered during idle time, set to the end of the idle
-  // period.
-  TimeStamp mIdleDeadline;
-
-  TimeDuration mMinForgetSkippableTime;
-  TimeDuration mMaxForgetSkippableTime;
-  TimeDuration mTotalForgetSkippableTime;
-  uint32_t mForgetSkippableBeforeCC = 0;
-
-  uint32_t mRemovedPurples = 0;
+                        mozilla::TimeDuration aCCNowDuration,
+                        uint32_t aCleanups) const;
 };
 
-static CycleCollectorStats sCCStats;
+static MainThreadCycleCollectorStats sCCStats;
 
 static const char* ProcessNameForCollectorLog() {
   return XRE_GetProcessType() == GeckoProcessType_Default ? "default"
@@ -1109,33 +1052,6 @@ static void FinishAnyIncrementalGC() {
   }
 }
 
-namespace geckoprofiler::markers {
-class CCSliceMarker : public BaseMarkerType<CCSliceMarker> {
- public:
-  static constexpr const char* Name = "CCSlice";
-  static constexpr const char* Description =
-      "Information for an individual CC slice.";
-
-  using MS = MarkerSchema;
-  static constexpr MS::PayloadField PayloadFields[] = {
-      {"idle", MS::InputType::Boolean, "Idle", MS::Format::Integer}};
-
-  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
-                                               MS::Location::MarkerTable,
-                                               MS::Location::TimelineMemory};
-  static constexpr const char* AllLabels =
-      "{marker.name} (idle={marker.data.idle})";
-
-  static constexpr MS::ETWMarkerGroup Group = MS::ETWMarkerGroup::Memory;
-
-  static void StreamJSONMarkerData(
-      mozilla::baseprofiler::SpliceableJSONWriter& aWriter,
-      bool aIsDuringIdle) {
-    StreamJSONMarkerDataImpl(aWriter, aIsDuringIdle);
-  }
-};
-}  // namespace geckoprofiler::markers
-
 static void FireForgetSkippable(bool aRemoveChildless, TimeStamp aDeadline) {
   TimeStamp startTimeStamp = TimeStamp::Now();
   FinishAnyIncrementalGC();
@@ -1150,10 +1066,10 @@ static void FireForgetSkippable(bool aRemoveChildless, TimeStamp aDeadline) {
   uint32_t removedPurples = sScheduler->NoteForgetSkippableComplete(
       now, suspectedBefore, nsCycleCollector_suspectedCount());
 
+  bool inIdle = !aDeadline.IsNull();
+  sCCStats.AfterForgetSkippable(startTimeStamp, now, removedPurples, inIdle);
+
   TimeDuration duration = now - startTimeStamp;
-
-  sCCStats.AfterForgetSkippable(duration, removedPurples);
-
   if (duration.ToSeconds()) {
     TimeDuration idleDuration;
     if (!aDeadline.IsNull()) {
@@ -1171,151 +1087,10 @@ static void FireForgetSkippable(bool aRemoveChildless, TimeStamp aDeadline) {
         uint32_t(idleDuration.ToSeconds() / duration.ToSeconds() * 100);
     Telemetry::Accumulate(Telemetry::FORGET_SKIPPABLE_DURING_IDLE, percent);
   }
-
-  PROFILER_MARKER("ForgetSkippable", GCCC,
-                  MarkerTiming::IntervalUntilNowFrom(startTimeStamp),
-                  CCSliceMarker, !aDeadline.IsNull());
 }
 
-MOZ_ALWAYS_INLINE
-static TimeDuration TimeBetween(TimeStamp aStart, TimeStamp aEnd) {
-  MOZ_ASSERT(aEnd >= aStart);
-  return aEnd - aStart;
-}
-
-static TimeDuration TimeUntilNow(TimeStamp start) {
-  if (start.IsNull()) {
-    return TimeDuration();
-  }
-  return TimeBetween(start, TimeStamp::Now());
-}
-
-void CycleCollectorStats::Init() {
-  Clear();
-
-  char* env = getenv("MOZ_CCTIMER");
-  if (!env) {
-    return;
-  }
-  if (strcmp(env, "none") == 0) {
-    mFile = nullptr;
-  } else if (strcmp(env, "stdout") == 0) {
-    mFile = stdout;
-  } else if (strcmp(env, "stderr") == 0) {
-    mFile = stderr;
-  } else {
-    mFile = fopen(env, "a");
-    if (!mFile) {
-      MOZ_CRASH("Failed to open MOZ_CCTIMER log file.");
-    }
-  }
-}
-
-void CycleCollectorStats::Clear() {
-  if (mFile && mFile != stdout && mFile != stderr) {
-    fclose(mFile);
-  }
-  *this = CycleCollectorStats();
-}
-
-void CycleCollectorStats::AfterCycleCollectionSlice() {
-  if (mBeginSliceTime.IsNull()) {
-    // We already called this method from EndCycleCollectionCallback for this
-    // slice.
-    return;
-  }
-
-  mEndSliceTime = TimeStamp::Now();
-  TimeDuration duration = mEndSliceTime - mBeginSliceTime;
-
-  PROFILER_MARKER(
-      "CCSlice", GCCC, MarkerTiming::Interval(mBeginSliceTime, mEndSliceTime),
-      CCSliceMarker, !mIdleDeadline.IsNull() && mIdleDeadline >= mEndSliceTime);
-
-  if (duration.ToSeconds()) {
-    TimeDuration idleDuration;
-    if (!mIdleDeadline.IsNull()) {
-      if (mIdleDeadline < mEndSliceTime) {
-        // This slice overflowed the idle period.
-        if (mIdleDeadline > mBeginSliceTime) {
-          idleDuration = mIdleDeadline - mBeginSliceTime;
-        }
-      } else {
-        idleDuration = duration;
-      }
-    }
-
-    uint32_t percent =
-        uint32_t(idleDuration.ToSeconds() / duration.ToSeconds() * 100);
-    Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_SLICE_DURING_IDLE,
-                          percent);
-  }
-
-  TimeDuration sliceTime = TimeBetween(mBeginSliceTime, mEndSliceTime);
-  mMaxSliceTime = std::max(mMaxSliceTime, sliceTime);
-  mMaxSliceTimeSinceClear = std::max(mMaxSliceTimeSinceClear, sliceTime);
-  mTotalSliceTime += sliceTime;
-  mBeginSliceTime = TimeStamp();
-}
-
-void CycleCollectorStats::PrepareForCycleCollection(TimeStamp aNow) {
-  mBeginTime = aNow;
-  mSuspected = nsCycleCollector_suspectedCount();
-}
-
-void CycleCollectorStats::AfterPrepareForCycleCollectionSlice(
-    TimeStamp aDeadline, TimeStamp aBeginTime, TimeStamp aMaybeAfterGCTime) {
-  mBeginSliceTime = aBeginTime;
-  mIdleDeadline = aDeadline;
-
-  if (!aMaybeAfterGCTime.IsNull()) {
-    mAnyLockedOut = true;
-    mMaxGCDuration = std::max(mMaxGCDuration, aMaybeAfterGCTime - aBeginTime);
-  }
-}
-
-void CycleCollectorStats::AfterSyncForgetSkippable(TimeStamp beginTime) {
-  mMaxSkippableDuration =
-      std::max(mMaxSkippableDuration, TimeUntilNow(beginTime));
-  mRanSyncForgetSkippable = true;
-}
-
-void CycleCollectorStats::AfterForgetSkippable(TimeDuration duration,
-                                               uint32_t aRemovedPurples) {
-  if (!mMinForgetSkippableTime || mMinForgetSkippableTime > duration) {
-    mMinForgetSkippableTime = duration;
-  }
-  if (!mMaxForgetSkippableTime || mMaxForgetSkippableTime < duration) {
-    mMaxForgetSkippableTime = duration;
-  }
-  mTotalForgetSkippableTime += duration;
-  ++mForgetSkippableBeforeCC;
-
-  mRemovedPurples += aRemovedPurples;
-}
-
-void CycleCollectorStats::SendTelemetry(TimeDuration aCCNowDuration,
-                                        TimeStamp aPrevCCEnd) const {
-  Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_FINISH_IGC, mAnyLockedOut);
-  Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_SYNC_SKIPPABLE,
-                        mRanSyncForgetSkippable);
-  Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_FULL,
-                        aCCNowDuration.ToMilliseconds());
-  Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_MAX_PAUSE,
-                        mMaxSliceTime.ToMilliseconds());
-
-  if (!aPrevCCEnd.IsNull()) {
-    TimeDuration timeBetween = TimeBetween(aPrevCCEnd, mBeginTime);
-    Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_TIME_BETWEEN,
-                          timeBetween.ToSeconds());
-  }
-
-  Telemetry::Accumulate(Telemetry::FORGET_SKIPPABLE_MAX,
-                        mMaxForgetSkippableTime.ToMilliseconds());
-}
-
-void CycleCollectorStats::MaybeLogStats(const CycleCollectorResults& aResults,
-                                        uint32_t aCleanups) const {
+void MainThreadCycleCollectorStats::MaybeLogStats(
+    const CycleCollectorResults& aResults, uint32_t aCleanups) const {
   if (!StaticPrefs::javascript_options_mem_log() && !sCCStats.mFile) {
     return;
   }
@@ -1365,7 +1140,7 @@ void CycleCollectorStats::MaybeLogStats(const CycleCollectorResults& aResults,
   }
 }
 
-void CycleCollectorStats::MaybeNotifyStats(
+void MainThreadCycleCollectorStats::MaybeNotifyStats(
     const CycleCollectorResults& aResults, TimeDuration aCCNowDuration,
     uint32_t aCleanups) const {
   if (!StaticPrefs::javascript_options_mem_notify()) {
@@ -1544,7 +1319,8 @@ void nsJSContext::EndCycleCollectionCallback(
   sCCStats.AfterCycleCollectionSlice();
 
   TimeStamp endCCTimeStamp = TimeStamp::Now();
-  TimeDuration ccNowDuration = TimeBetween(sCCStats.mBeginTime, endCCTimeStamp);
+  MOZ_ASSERT(endCCTimeStamp >= sCCStats.mBeginTime);
+  TimeDuration ccNowDuration = endCCTimeStamp - sCCStats.mBeginTime;
   TimeStamp prevCCEnd = sScheduler->GetLastCCEndTime();
 
   sScheduler->NoteCCEnd(aResults, endCCTimeStamp, sCCStats.mMaxSliceTime);
@@ -1861,8 +1637,10 @@ static void DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress,
         nsCycleCollector_dispatchDeferredDeletion();
       }
 
-      Telemetry::Accumulate(Telemetry::GC_IN_PROGRESS_MS,
-                            TimeUntilNow(sCurrentGCStartTime).ToMilliseconds());
+      MOZ_ASSERT(sCurrentGCStartTime);
+      Telemetry::Accumulate(
+          Telemetry::GC_IN_PROGRESS_MS,
+          (TimeStamp::Now() - sCurrentGCStartTime).ToMilliseconds());
 
 #if defined(MOZ_MEMORY)
       if (freeDirty &&
