@@ -13,9 +13,15 @@
 
 #include "ds/Nestable.h"
 #include "frontend/AbstractScopePtr.h"
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+#  include "frontend/BytecodeOffset.h"
+#endif
 #include "frontend/NameAnalysisTypes.h"
 #include "frontend/NameCollections.h"
 #include "frontend/Stencil.h"
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+#  include "frontend/UsingEmitter.h"
+#endif
 #include "vm/Opcodes.h"        // JSOp
 #include "vm/SharedStencil.h"  // GCThingIndex
 
@@ -46,7 +52,7 @@ class EmitterScope : public Nestable<EmitterScope> {
   bool hasEnvironment_;
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  bool hasDisposables_ = false;
+  mozilla::Maybe<UsingEmitter> usingEmitter_;
 #endif
 
   // The number of enclosing environments. Used for error checking.
@@ -109,13 +115,29 @@ class EmitterScope : public Nestable<EmitterScope> {
     return clearFrameSlotRange(bce, JSOp::Uninitialized, slotStart, slotEnd);
   }
 
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  void setHasDisposables(BytecodeEmitter* bce) {
+    if (!usingEmitter_.isSome()) {
+      usingEmitter_.emplace(bce);
+    }
+  }
+#endif
+
  public:
   explicit EmitterScope(BytecodeEmitter* bce);
 
   void dump(BytecodeEmitter* bce);
 
-  [[nodiscard]] bool enterLexical(BytecodeEmitter* bce, ScopeKind kind,
-                                  LexicalScope::ParserData* bindings);
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  enum class IsSwitchBlock : uint8_t { No, Yes };
+#endif
+  [[nodiscard]] bool enterLexical(
+      BytecodeEmitter* bce, ScopeKind kind, LexicalScope::ParserData* bindings
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+      ,
+      IsSwitchBlock isSwitchBlock = IsSwitchBlock::No
+#endif
+  );
   [[nodiscard]] bool enterClassBody(BytecodeEmitter* bce, ScopeKind kind,
                                     ClassBodyScope::ParserData* bindings);
   [[nodiscard]] bool enterNamedLambda(BytecodeEmitter* bce,
@@ -131,7 +153,12 @@ class EmitterScope : public Nestable<EmitterScope> {
   [[nodiscard]] bool enterWith(BytecodeEmitter* bce);
   [[nodiscard]] bool deadZoneFrameSlots(BytecodeEmitter* bce) const;
 
-  [[nodiscard]] bool leave(BytecodeEmitter* bce, bool nonLocal = false);
+  [[nodiscard]] bool leave(BytecodeEmitter* bce, bool nonLocal = false
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+                           ,
+                           IsSwitchBlock isSwitchBlock = IsSwitchBlock::No
+#endif
+  );
 
   GCThingIndex index() const {
     MOZ_ASSERT(scopeIndex_ != ScopeNote::NoScopeIndex,
@@ -147,12 +174,28 @@ class EmitterScope : public Nestable<EmitterScope> {
   bool hasEnvironment() const { return hasEnvironment_; }
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  bool hasDisposables() const { return hasDisposables_; }
+ private:
+  // Disposable Scope here refers to any scope
+  // with using bindings in it for now that is
+  // a lexical scope and a module scope.
+  [[nodiscard]] bool prepareForDisposableScopeBody(
+      BytecodeEmitter* bce, IsSwitchBlock isSwitchBlock = IsSwitchBlock::No);
 
-  bool setHasDisposables() {
-    hasDisposables_ = true;
-    return true;
-  }
+  [[nodiscard]] bool emitDisposableScopeBodyEnd(
+      BytecodeEmitter* bce, IsSwitchBlock isSwitchBlock = IsSwitchBlock::No);
+
+ public:
+  [[nodiscard]] bool prepareForModuleDisposableScopeBody(BytecodeEmitter* bce);
+
+  [[nodiscard]] bool emitModuleDisposableScopeBodyEnd(BytecodeEmitter* bce);
+
+  [[nodiscard]] bool prepareForDisposableAssignment(UsingEmitter::Kind kind);
+
+  [[nodiscard]] bool prepareForForOfLoopIteration();
+
+  [[nodiscard]] bool prepareForForOfIteratorCloseOnThrow();
+
+  bool hasDisposables() const { return usingEmitter_.isSome(); }
 #endif
 
   // The first frame slot used.

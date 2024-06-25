@@ -3549,6 +3549,10 @@ static const char* TryNoteName(TryNoteKind kind) {
       return "for-of-iterclose";
     case TryNoteKind::Destructuring:
       return "destructuring";
+#  ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    case TryNoteKind::Using:
+      return "using";
+#  endif
   }
 
   MOZ_CRASH("Bad TryNoteKind");

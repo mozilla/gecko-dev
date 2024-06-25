@@ -52,6 +52,7 @@ namespace jit {
   /* TODO: To be implemented (Bug 1899501) */            \
   IF_EXPLICIT_RESOURCE_MANAGEMENT(_(AddDisposable))      \
   IF_EXPLICIT_RESOURCE_MANAGEMENT(_(DisposeDisposables)) \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(_(TryUsing))           \
   /* Records and Tuples */                               \
   IF_RECORD_TUPLE(_(InitRecord))                         \
   IF_RECORD_TUPLE(_(AddRecordProperty))                  \

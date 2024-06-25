@@ -20,3 +20,23 @@ function testDisposalsInGenerator() {
 }
 testDisposalsInGenerator();
 assertArrayEq(disposedInGenerator, [42, 43]);
+
+const disposedInGeneratorWithForcedReturn = [];
+function* gen2() {
+  using x = {
+    value: 1,
+    [Symbol.dispose]() {
+      disposedInGeneratorWithForcedReturn.push(42);
+    }
+  };
+  yield 1;
+  yield 2;
+}
+function testDisposalsInGeneratorWithForcedReturn() {
+  const gen = gen2();
+  gen.next();
+  gen.return();
+  disposedInGeneratorWithForcedReturn.push(43);
+}
+testDisposalsInGeneratorWithForcedReturn();
+assertArrayEq(disposedInGeneratorWithForcedReturn, [42, 43]);

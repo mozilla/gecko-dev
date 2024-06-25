@@ -39,7 +39,7 @@ ForOfEmitter::ForOfEmitter(BytecodeEmitter* bce,
     // Mark that the environment has disposables for them to be disposed on
     // every iteration.
     MOZ_ASSERT(headLexicalEmitterScope == bce_->innermostEmitterScope());
-    bce_->innermostEmitterScope()->setHasDisposables();
+    MOZ_ASSERT(headLexicalEmitterScope->hasDisposables());
   }
 #endif
 }
@@ -107,21 +107,18 @@ bool ForOfEmitter::emitInitialize(uint32_t forPos) {
 
     if (headLexicalEmitterScope_->hasEnvironment()) {
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-      if (headLexicalEmitterScope_->hasDisposables()) {
-        // Before recreation of the lexical environment, we must dispose
-        // the disposables of the previous iteration.
-        //
-        // Emitting the bytecode to dispose over here means
-        // that we will have one extra disposal at the start of the loop which
-        // is a no op because there arent any disposables added yet.
-        //
-        // There also wouldn't be a dispose operation for the environment
-        // object recreated for the last iteration, where it leaves the loop
-        // before evaluating the body statement.
-        UsingEmitter ue(bce_);
-        if (!ue.emitEnd()) {
-          return false;
-        }
+      // Before recreation of the lexical environment, we must dispose
+      // the disposables of the previous iteration.
+      //
+      // Emitting the bytecode to dispose over here means
+      // that we will have one extra disposal at the start of the loop which
+      // is a no op because there arent any disposables added yet.
+      //
+      // There also wouldn't be a dispose operation for the environment
+      // object recreated for the last iteration, where it leaves the loop
+      // before evaluating the body statement.
+      if (!bce_->innermostEmitterScope()->prepareForForOfLoopIteration()) {
+        return false;
       }
 #endif
       if (!bce_->emitInternedScopeOp(headLexicalEmitterScope_->index(),

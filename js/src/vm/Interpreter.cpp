@@ -1161,6 +1161,15 @@ static void SettleOnTryNote(JSContext* cx, const TryNote* tn,
   // Unwind the environment to the beginning of the JSOp::Try.
   UnwindEnvironment(cx, ei, UnwindEnvironmentToTryPc(regs.fp()->script(), tn));
 
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  if (tn->kind() == TryNoteKind::Using) {
+    regs.pc = regs.fp()->script()->offsetToPC(tn->start);
+    regs.sp = regs.spForStackDepth(tn->stackDepth);
+    MOZ_ASSERT(JSOp(*regs.pc) == JSOp::TryUsing);
+    return;
+  }
+#endif
+
   // Set pc to the first bytecode after the the try note to point
   // to the beginning of catch or finally.
   regs.pc = regs.fp()->script()->offsetToPC(tn->start + tn->length);
@@ -1256,6 +1265,17 @@ static HandleErrorContinuation ProcessTryNotes(JSContext* cx,
         }
         break;
       }
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+      case TryNoteKind::Using: {
+        SettleOnTryNote(cx, tn, ei, regs);
+        Rooted<JSObject*> env(cx, regs.fp()->environmentChain());
+        if (!DisposeDisposablesOnScopeLeave(cx, env)) {
+          return ErrorReturnContinuation;
+        }
+        break;
+      }
+#endif
 
       case TryNoteKind::ForOf:
       case TryNoteKind::Loop:
@@ -1753,6 +1773,15 @@ bool js::DisposeDisposablesOnScopeLeave(JSContext* cx,
     // Step 1. For each element resource of
     // disposeCapability.[[DisposableResourceStack]], in reverse list order, do
     JS::Rooted<JS::Value> latestException(cx);
+
+    if (cx->isExceptionPending()) {
+      hadError = true;
+      if (!cx->getPendingException(&latestException)) {
+        return false;
+      }
+      cx->clearPendingException();
+    }
+
     while (index) {
       --index;
       Value val = disposables->get(index);
@@ -2058,6 +2087,9 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     CASE(Try)
     CASE(NopDestructuring)
     CASE(NopIsAssignOp)
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    CASE(TryUsing)
+#endif
     CASE(TryDestructuring) {
       MOZ_ASSERT(GetBytecodeLength(REGS.pc) == 1);
       ADVANCE_AND_DISPATCH(1);

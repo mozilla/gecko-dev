@@ -1699,6 +1699,9 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::AddTupleElement:
     case JSOp::FinishTuple:
 #endif
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    case JSOp::TryUsing:
+#endif
       return false;
 
     case JSOp::InitAliasedLexical: {

@@ -46,6 +46,10 @@ enum class TryNoteKind : uint8_t {
   ForOf,
   ForOfIterClose,
   Loop
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  ,
+  Using
+#endif
 };
 
 // [SMDOC] Script Flags

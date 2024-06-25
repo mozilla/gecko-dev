@@ -4886,6 +4886,10 @@ bool BaselineCodeGen<Handler>::emit_DisposeDisposables() {
   // TODO: DisposeDisposables to be implemented for Baseline (Bug 1899500)
   MOZ_CRASH("DisposeDisposables has not been implemented for baseline");
 }
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_TryUsing() {
+  return true;
+}
 #endif
 
 template <typename Handler>

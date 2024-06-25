@@ -7,6 +7,8 @@
 
 #include "mozilla/Attributes.h"
 
+#include "frontend/BytecodeOffset.h"
+
 namespace js::frontend {
 
 struct BytecodeEmitter;
@@ -15,15 +17,25 @@ class MOZ_STACK_CLASS UsingEmitter {
  private:
   BytecodeEmitter* bce_;
 
+  int depthAtDisposables_ = -1;
+
+  BytecodeOffset disposableStart_ = BytecodeOffset::invalidOffset();
+
   // TODO: add state transition graph and state
-  // management for this emitter.
+  // management for this emitter. (Bug 1904346)
 
  public:
   enum Kind { Sync, Async };
 
   explicit UsingEmitter(BytecodeEmitter* bce);
 
+  [[nodiscard]] bool prepareForDisposableScopeBody();
+
   [[nodiscard]] bool prepareForAssignment(Kind kind);
+
+  [[nodiscard]] bool prepareForForOfLoopIteration();
+
+  [[nodiscard]] bool prepareForForOfIteratorCloseOnThrow();
 
   [[nodiscard]] bool emitEnd();
 };

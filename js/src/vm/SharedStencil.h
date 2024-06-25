@@ -88,6 +88,9 @@ struct TryNote {
       case TryNoteKind::Finally:
       case TryNoteKind::ForOfIterClose:
       case TryNoteKind::Destructuring:
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+      case TryNoteKind::Using:
+#endif
         return false;
     }
     MOZ_CRASH("Unexpected try note kind");

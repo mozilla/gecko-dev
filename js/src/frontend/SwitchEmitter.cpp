@@ -125,7 +125,12 @@ bool SwitchEmitter::emitLexical(LexicalScope::ParserData* bindings) {
 
   tdzCacheLexical_.emplace(bce_);
   emitterScope_.emplace(bce_);
-  if (!emitterScope_->enterLexical(bce_, ScopeKind::Lexical, bindings)) {
+  if (!emitterScope_->enterLexical(bce_, ScopeKind::Lexical, bindings
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+                                   ,
+                                   EmitterScope::IsSwitchBlock::Yes
+#endif
+                                   )) {
     return false;
   }
 
@@ -392,7 +397,13 @@ bool SwitchEmitter::emitEnd() {
     return false;
   }
 
-  if (emitterScope_ && !emitterScope_->leave(bce_)) {
+  if (emitterScope_ && !emitterScope_->leave(bce_
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+                                             ,
+                                             /* nonLocal = */ false,
+                                             EmitterScope::IsSwitchBlock::Yes
+#endif
+                                             )) {
     return false;
   }
 
