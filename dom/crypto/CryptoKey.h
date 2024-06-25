@@ -123,7 +123,7 @@ class CryptoKey final : public nsISupports, public nsWrapperCache {
   nsresult SetType(const nsString& aType);
   void SetType(KeyType aType);
   void SetExtractable(bool aExtractable);
-  nsresult AddPublicKeyData(SECKEYPublicKey* aPublicKey);
+  nsresult AddPublicKeyData(SECKEYPublicKey* point);
   void ClearUsages();
   nsresult AddUsage(const nsString& aUsage);
   nsresult AddAllowedUsage(const nsString& aUsage, const nsString& aAlgorithm);
@@ -171,9 +171,6 @@ class CryptoKey final : public nsISupports, public nsWrapperCache {
                                                   const nsString& aNamedCurve);
   static nsresult PublicECKeyToRaw(SECKEYPublicKey* aPubKey,
                                    CryptoBuffer& aRetVal);
-
-  static UniqueSECKEYPublicKey PublicEDKeyFromRaw(CryptoBuffer& aKeyData,
-                                                  const nsString& aNamedCurve);
 
   static bool PublicKeyValid(SECKEYPublicKey* aPubKey);
 

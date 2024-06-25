@@ -49,7 +49,6 @@ struct JSStructuredCloneWriter;
 #define WEBCRYPTO_ALG_RSA_PSS "RSA-PSS"
 #define WEBCRYPTO_ALG_ECDH "ECDH"
 #define WEBCRYPTO_ALG_ECDSA "ECDSA"
-#define WEBCRYPTO_ALG_ED25519 "Ed25519"
 
 // WebCrypto key formats
 #define WEBCRYPTO_KEY_FORMAT_RAW "raw"
@@ -76,13 +75,11 @@ struct JSStructuredCloneWriter;
 #define WEBCRYPTO_NAMED_CURVE_P256 "P-256"
 #define WEBCRYPTO_NAMED_CURVE_P384 "P-384"
 #define WEBCRYPTO_NAMED_CURVE_P521 "P-521"
-#define WEBCRYPTO_NAMED_CURVE_ED25519 "Ed25519"
 
 // JWK key types
 #define JWK_TYPE_SYMMETRIC "oct"
 #define JWK_TYPE_RSA "RSA"
 #define JWK_TYPE_EC "EC"
-#define JWK_TYPE_OKP "OKP"
 
 // JWK algorithms
 #define JWK_ALG_A128CBC "A128CBC"  // CBC
@@ -238,8 +235,6 @@ inline bool NormalizeToken(const nsString& aName, nsString& aDest) {
     aDest.AssignLiteral(WEBCRYPTO_ALG_ECDH);
   } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_ECDSA)) {
     aDest.AssignLiteral(WEBCRYPTO_ALG_ECDSA);
-  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_ED25519)) {
-    aDest.AssignLiteral(WEBCRYPTO_ALG_ED25519);
     // Named curve values
   } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_NAMED_CURVE_P256)) {
     aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_P256);
@@ -247,9 +242,6 @@ inline bool NormalizeToken(const nsString& aName, nsString& aDest) {
     aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_P384);
   } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_NAMED_CURVE_P521)) {
     aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_P521);
-  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_NAMED_CURVE_ED25519)) {
-    aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_ED25519);
-
   } else {
     return false;
   }
@@ -257,43 +249,27 @@ inline bool NormalizeToken(const nsString& aName, nsString& aDest) {
   return true;
 }
 
-inline bool CheckEncodedParameters(const SECItem* aParams) {
+inline bool CheckEncodedECParameters(const SECItem* aEcParams) {
   // Need at least two bytes for a valid ASN.1 encoding.
-  if (aParams->len < 2) {
+  if (aEcParams->len < 2) {
     return false;
   }
 
   // Check the ASN.1 tag.
-  if (aParams->data[0] != SEC_ASN1_OBJECT_ID) {
+  if (aEcParams->data[0] != SEC_ASN1_OBJECT_ID) {
     return false;
   }
 
   // OID tags are short, we never need more than one length byte.
-  if (aParams->data[1] >= 128) {
+  if (aEcParams->data[1] >= 128) {
     return false;
   }
 
   // Check that the SECItem's length is correct.
-  if (aParams->len != (unsigned)aParams->data[1] + 2) {
+  if (aEcParams->len != (unsigned)aEcParams->data[1] + 2) {
     return false;
   }
 
-  return true;
-}
-
-inline bool FindOIDTagForEncodedParameters(const SECItem* params,
-                                           SECOidTag* tag) {
-  // Check that the given EC parameters are valid.
-  if (!CheckEncodedParameters(params)) {
-    return false;
-  }
-
-  // Construct the OID tag.
-  SECItem oid = {siBuffer, nullptr, 0};
-  oid.len = params->data[1];
-  oid.data = params->data + 2;
-
-  *tag = SECOID_FindOIDTag(&oid);
   return true;
 }
 
@@ -308,8 +284,6 @@ inline SECItem* CreateECParamsForCurve(const nsAString& aNamedCurve,
     curveOIDTag = SEC_OID_SECG_EC_SECP384R1;
   } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P521)) {
     curveOIDTag = SEC_OID_SECG_EC_SECP521R1;
-  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
-    curveOIDTag = SEC_OID_ED25519_PUBLIC_KEY;
   } else {
     return nullptr;
   }
@@ -332,7 +306,7 @@ inline SECItem* CreateECParamsForCurve(const nsAString& aNamedCurve,
   memcpy(params->data + 2, oidData->oid.data, oidData->oid.len);
 
   // Sanity check the params we just created.
-  if (!CheckEncodedParameters(params)) {
+  if (!CheckEncodedECParameters(params)) {
     return nullptr;
   }
 

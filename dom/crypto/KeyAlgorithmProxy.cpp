@@ -35,8 +35,6 @@ bool KeyAlgorithmProxy::WriteStructuredClone(
     }
     case EC:
       return StructuredCloneHolder::WriteString(aWriter, mEc.mNamedCurve);
-    case ED:
-      return true;
   }
 
   return false;
