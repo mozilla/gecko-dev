@@ -480,6 +480,11 @@ def linker_flags():
     return namespace(ldflags=[], host_ldflags=[])
 
 
+@dependable
+def dso_flags():
+    return namespace(ldopts=[])
+
+
 # Tests the given linker flag is supported; if the flag
 # is supported, add it to the list of compilation flags for the build.
 # - `flag` is the flag to test

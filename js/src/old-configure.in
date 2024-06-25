@@ -165,16 +165,6 @@ dnl ========================================================
 dnl GNU specific defaults
 dnl ========================================================
 if test "$CC_TYPE" != clang-cl ; then
-    DSO_LDOPTS='-shared'
-    if test "$GCC_USE_GNU_LD"; then
-        # Some tools like ASan use a runtime library that is only
-        # linked against executables, so we must allow undefined
-        # symbols for shared objects in some cases.
-        if test -z "$MOZ_ASAN$MOZ_MSAN$MOZ_UBSAN$MOZ_TSAN$FUZZING_INTERFACES"; then
-            # Don't allow undefined symbols in libraries
-            DSO_LDOPTS="$DSO_LDOPTS -Wl,-z,defs"
-        fi
-    fi
 
     if test "$OS_ARCH" != "WINNT"; then
         DSO_PIC_CFLAGS='-fPIC'
@@ -242,7 +232,6 @@ MOZ_OPTIMIZE_LDFLAGS="${_COMPILATION_OPTIMIZE_LDFLAGS} ${MOZ_OPTIMIZE_FLAGS}"
 case "$target" in
 *-darwin*)
     MOZ_OPTIMIZE_FLAGS="-O3"
-    DSO_LDOPTS=''
     ;;
 
 *-android*|*-linuxandroid*)
@@ -272,8 +261,6 @@ case "$target" in
             AC_MSG_ERROR(Firefox cannot be built with mingw-gcc and requires a mingw-clang toolchain to work)
         fi
 
-        DSO_LDOPTS='-shared'
-
         # Silence problematic clang warnings
         CXXFLAGS="$CXXFLAGS -Wno-incompatible-ms-struct"
         LDFLAGS="$LDFLAGS -Wl,--no-insert-timestamp"
@@ -286,7 +273,6 @@ case "$target" in
         WIN32_SUBSYSTEM_VERSION=10.0
         WIN32_CONSOLE_EXE_LDFLAGS=-SUBSYSTEM:CONSOLE,$WIN32_SUBSYSTEM_VERSION
         WIN32_GUI_EXE_LDFLAGS=-SUBSYSTEM:WINDOWS,$WIN32_SUBSYSTEM_VERSION
-        DSO_LDOPTS=-SUBSYSTEM:WINDOWS,$WIN32_SUBSYSTEM_VERSION
         _DEFINES_CFLAGS="-FI $jsconfdefs -DMOZILLA_CLIENT"
         _DEFINES_CXXFLAGS="-FI $jsconfdefs -DMOZILLA_CLIENT"
         CFLAGS="$CFLAGS -Gy -Zc:inline"
@@ -342,22 +328,15 @@ case "$target" in
             CXXFLAGS="$CXXFLAGS -mstackrealign"
             LDFLAGS="$LDFLAGS -Wl,--large-address-aware"
         else
-            DSO_LDOPTS="$DSO_LDOPTS -MACHINE:X86"
             LDFLAGS="$LDFLAGS -SAFESEH"
         fi
 
     	AC_DEFINE(_X86_)
 	;;
     x86_64-*)
-        if test -n "$_WIN32_MSVC"; then
-            DSO_LDOPTS="$DSO_LDOPTS -MACHINE:X64"
-        fi
         AC_DEFINE(_AMD64_)
         ;;
     aarch64-*)
-        if test -n "$_WIN32_MSVC"; then
-            DSO_LDOPTS="$DSO_LDOPTS -MACHINE:ARM64"
-        fi
         AC_DEFINE(_ARM64_)
         ;;
     *)
@@ -371,24 +350,14 @@ case "$target" in
     CXXFLAGS="$CXXFLAGS -Dunix"
     if $CC -E - -dM </dev/null | grep __ELF__ >/dev/null; then
         DSO_PIC_CFLAGS='-fPIC -DPIC'
-        DSO_LDOPTS='-shared'
         MOZ_PROGRAM_LDFLAGS="$MOZ_PROGRAM_LDFLAGS -Wl,--export-dynamic"
     else
     	DSO_PIC_CFLAGS='-fPIC -DPIC'
-    	DSO_LDOPTS='-shared'
-    fi
-    # This will fail on a.out systems prior to 1.5.1_ALPHA.
-    if test "$LIBRUNPATH"; then
-	DSO_LDOPTS="-Wl,-R$LIBRUNPATH $DSO_LDOPTS"
     fi
     ;;
 
 *-openbsd*)
     DSO_PIC_CFLAGS='-fPIC'
-    DSO_LDOPTS='-shared -fPIC'
-    if test "$LIBRUNPATH"; then
-	DSO_LDOPTS="-R$LIBRUNPATH $DSO_LDOPTS"
-    fi
     ;;
 
 *-wasi*)
@@ -566,7 +535,6 @@ AC_SUBST(HOST_LDFLAGS)
 AC_SUBST_LIST(HOST_OPTIMIZE_FLAGS)
 AC_SUBST(HOST_BIN_SUFFIX)
 
-AC_SUBST(DSO_LDOPTS)
 AC_SUBST(BIN_SUFFIX)
 AC_SUBST(WIN32_CONSOLE_EXE_LDFLAGS)
 AC_SUBST(WIN32_GUI_EXE_LDFLAGS)

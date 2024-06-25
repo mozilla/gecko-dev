@@ -26,19 +26,14 @@ option(
     help="Build a PGO instrumented binary",
 )
 
-imply_option("MOZ_PGO", depends_if("--enable-profile-generate")(lambda _: True))
+enable_profile_generate = depends_if("--enable-profile-generate")(lambda _: True)
 
-set_config(
-    "MOZ_PROFILE_GENERATE", depends_if("--enable-profile-generate")(lambda _: True)
-)
 
-set_define(
-    "MOZ_PROFILE_GENERATE", depends_if("--enable-profile-generate")(lambda _: True)
-)
+imply_option("MOZ_PGO", enable_profile_generate)
 
-add_old_configure_assignment(
-    "MOZ_PROFILE_GENERATE", 1, when="--enable-profile-generate"
-)
+set_config("MOZ_PROFILE_GENERATE", enable_profile_generate)
+
+set_define("MOZ_PROFILE_GENERATE", enable_profile_generate)
 
 option(
     "--enable-profile-use",
@@ -427,6 +422,17 @@ def lto(
         ldflags=ldflags,
         rust_lto=rust_lto,
     )
+
+
+@depends(
+    dso_flags,
+    when=building_with_gnu_compatible_cc
+    & gcc_use_gnu_ld
+    & ~developer_options
+    & ~enable_profile_generate,
+)
+def remove_dead_symbols(dso_flags):
+    dso_flags.ldopts.append("-Wl,--gc-sections")
 
 
 add_old_configure_assignment("MOZ_LTO", lto.enabled)

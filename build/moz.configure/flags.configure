@@ -273,14 +273,82 @@ check_and_add_linker_flag("-Wl,-z,nocopyreloc", when=building_with_gnu_compatibl
 
 check_and_add_linker_optimize_flag("-Wl,-dead_strip", when=target_is_darwin & ~dtrace)
 
+
+# DSO flags manipulations
 have_linker_support_ignore_unresolved = try_link(
     flags=["-Wl,--ignore-unresolved-symbol,environ"],
     check_msg="for --ignore-unresolved-symbol option to the linker",
-    when=building_with_gnu_compatible_cc & gcc_use_gnu_ld,
+    when=building_with_gnu_compatible_cc
+    & gcc_use_gnu_ld
+    & depends(target)(lambda t: t.os in ("DragonFly", "FreeBSD", "NetBSD", "OpenBSD")),
 )
-add_old_configure_assignment(
-    "HAVE_LINKER_SUPPORT_IGNORE_UNRESOLVED", have_linker_support_ignore_unresolved
+
+
+@depends(
+    dso_flags,
+    gcc_use_gnu_ld,
+    target,
+    asan | msan | any_ubsan | tsan | enable_fuzzing_interfaces,
+    have_linker_support_ignore_unresolved,
+    when=building_with_gnu_compatible_cc,
 )
+@imports(_from="os", _import="environ")
+def add_gnu_specific_dso_flags(
+    dso_flags,
+    use_gnu_ld,
+    target,
+    use_sanitizer_runtime,
+    have_linker_support_ignore_unresolved,
+):
+    ldopts = []
+    if target.kernel != "Darwin":
+        ldopts.append("-shared")
+
+    if use_gnu_ld:
+        # Some tools like ASan use a runtime library that is only
+        # linked against executables, so we must allow undefined
+        # symbols for shared objects in some cases.
+        if not use_sanitizer_runtime:
+            # Don't allow undefined symbols in libraries
+            ldopts.append("-Wl,-z,defs")
+
+            # BSDs need `environ' exposed for posix_spawn (bug 753046)
+            if target.os in ("DragonFly", "FreeBSD", "NetBSD", "OpenBSD"):
+                if have_linker_support_ignore_unresolved:
+                    ldopts.append("-Wl,--ignore-unresolved-symbol,environ")
+                else:
+                    ldopts.append("-Wl,--warn-unresolved-symbols")
+
+                if librunpath := environ.get("LIBRUNPATH"):
+                    if target.os == "NetBSD":
+                        ldopts.insert(0, f"-Wl,-R{librunpath}")
+                    elif target.os == "OpenBSD":
+                        ldopts.insert(0, f"-R{librunpath}")
+
+    dso_flags.ldopts.extend(ldopts)
+
+
+@depends(
+    dso_flags, target, win32_subsystem_version, when=~building_with_gnu_compatible_cc
+)
+def add_non_gnu_dso_flags(dso_flags, target, win32_subsystem_version):
+    ldopts = [f"-SUBSYSTEM:WINDOWS,{win32_subsystem_version}"]
+    if target.cpu == "x86":
+        ldopts.append("-MACHINE:X86")
+    if target.cpu == "x86_64":
+        ldopts.append("-MACHINE:X64")
+    if target.cpu == "aarch64":
+        ldopts.append("-MACHINE:ARM64")
+
+    dso_flags.ldopts.extend(ldopts)
+
+
+@depends(libfuzzer_flags, when=enable_fuzzing)
+def sancov(libfuzzer_flags):
+    for flag in libfuzzer_flags.use_flags:
+        if "-fsanitize-coverage" in flag or "-fsanitize=fuzzer" in flag:
+            return True
+    return False
 
 
 @depends(target, build_environment)
@@ -421,3 +489,5 @@ add_old_configure_assignment("_COMPILATION_HOST_CFLAGS", compilation_flags.host_
 add_old_configure_assignment(
     "_COMPILATION_HOST_CXXFLAGS", compilation_flags.host_cxxflags
 )
+
+set_config("DSO_LDOPTS", dso_flags.ldopts)

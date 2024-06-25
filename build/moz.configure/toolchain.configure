@@ -294,6 +294,17 @@ with only_when(target_is_ios):
 
     set_config("IPHONEOS_SDK_DIR", ios_sdk)
 
+# Windows console settings
+# ========================
+
+
+@dependable
+def win32_subsystem_version():
+    return "10.0"
+
+
+add_old_configure_assignment("WIN32_SUBSYSTEM_VERSION", win32_subsystem_version)
+
 
 # GC rooting and hazard analysis.
 # ==============================================================

@@ -42,40 +42,6 @@ fi
 
 fi
 
-dnl ========================================================
-dnl = Automatically remove dead symbols
-dnl ========================================================
-
-if test "$CC_TYPE" != clang-cl -a "$GCC_USE_GNU_LD" -a -z "$DEVELOPER_OPTIONS" -a -z "$MOZ_PROFILE_GENERATE" -a -z "$SANCOV"; then
-    if test -n "$MOZ_DEBUG_FLAGS"; then
-        dnl See bug 670659
-        AC_CACHE_CHECK([whether removing dead symbols breaks debugging],
-            moz_cv_opt_gc_sections_breaks_debug_ranges,
-            [echo 'int foo() {return 42;}' \
-                  'int bar() {return 1;}' \
-                  'int main() {return foo();}' > conftest.${ac_ext}
-            if AC_TRY_COMMAND([${CC-cc} -o conftest.${ac_objext} $CFLAGS $MOZ_DEBUG_FLAGS -c conftest.${ac_ext} 1>&2]) &&
-                AC_TRY_COMMAND([${CC-cc} -o conftest${ac_exeext} $LDFLAGS $MOZ_DEBUG_FLAGS -Wl,--gc-sections conftest.${ac_objext} $LIBS 1>&2]) &&
-                test -s conftest${ac_exeext} -a -s conftest.${ac_objext}; then
-                 if test "`$PYTHON3 -m mozbuild.configure.check_debug_ranges conftest.${ac_objext} conftest.${ac_ext}`" = \
-                         "`$PYTHON3 -m mozbuild.configure.check_debug_ranges conftest${ac_exeext} conftest.${ac_ext}`"; then
-                     moz_cv_opt_gc_sections_breaks_debug_ranges=no
-                 else
-                     moz_cv_opt_gc_sections_breaks_debug_ranges=yes
-                 fi
-             else
-                  dnl We really don't expect to get here, but just in case
-                  moz_cv_opt_gc_sections_breaks_debug_ranges="no, but it's broken in some other way"
-             fi
-             rm -rf conftest*])
-         if test "$moz_cv_opt_gc_sections_breaks_debug_ranges" = no; then
-             DSO_LDOPTS="$DSO_LDOPTS -Wl,--gc-sections"
-         fi
-    else
-        DSO_LDOPTS="$DSO_LDOPTS -Wl,--gc-sections"
-    fi
-fi
-
 if test "$CC_TYPE" != clang-cl ; then
     case "${OS_TARGET}" in
     Darwin|WASI)
