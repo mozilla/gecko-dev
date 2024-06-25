@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://br.wikipedia.org/wiki/Dibar:Klask"
   },
-  "searchForm": {
-    "message": "https://br.wikipedia.org/wiki/Dibar:Klask"
-  },
   "suggestUrl": {
     "message": "https://br.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://www.ebay.co.uk/sch/"
   },
-  "searchForm": {
-    "message": "https://www.ebay.co.uk/"
-  },
   "searchUrlGetParams": {
     "message": "toolid=20004&campid=5338192028&mkevt=1&mkcid=1&mkrid=710-53481-19255-0&kw={searchTerms}"
   },

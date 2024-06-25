@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://mk.wikipedia.org/wiki/Специјална:Барај"
   },
-  "searchForm": {
-    "message": "https://mk.wikipedia.org/wiki/Специјална:Барај"
-  },
   "suggestUrl": {
     "message": "https://mk.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

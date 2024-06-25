@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://yandex.ru/search"
   },
-  "searchForm": {
-    "message": "https://www.yandex.ru/"
-  },
   "suggestUrl": {
     "message": "https://suggest.yandex.ru/suggest-ff.cgi?part={searchTerms}"
   },
@@ -31,8 +28,5 @@
   },
   "param_newtab": {
     "message": "2186620"
-  },
-  "extensionIcon": {
-    "message": "yandex-ru.ico"
   }
 }

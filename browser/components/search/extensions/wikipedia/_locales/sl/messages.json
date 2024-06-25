@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://sl.wikipedia.org/wiki/Posebno:Iskanje"
   },
-  "searchForm": {
-    "message": "https://sl.wikipedia.org/wiki/Posebno:Iskanje"
-  },
   "suggestUrl": {
     "message": "https://sl.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

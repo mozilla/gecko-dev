@@ -2,17 +2,13 @@
   "name": "Am Faclair Beag",
   "description": "Lorg Am Faclair Beag",
   "manifest_version": 2,
-  "version": "1.1",
+  "version": "1.2",
   "browser_specific_settings": {
     "gecko": {
       "id": "faclair-beag@search.mozilla.org"
     }
   },
   "hidden": true,
-  "icons": {
-    "16": "favicon.ico"
-  },
-  "web_accessible_resources": ["favicon.ico"],
   "chrome_settings_overrides": {
     "search_provider": {
       "name": "Am Faclair Beag",

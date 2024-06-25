@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://te.wikipedia.org/wiki/ప్రత్యేక:అన్వేషణ"
   },
-  "searchForm": {
-    "message": "https://te.wikipedia.org/wiki/ప్రత్యేక:అన్వేషణ"
-  },
   "suggestUrl": {
     "message": "https://te.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

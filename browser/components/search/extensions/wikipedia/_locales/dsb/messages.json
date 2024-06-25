@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://dsb.wikipedia.org/wiki/Specialne:Pytaś"
   },
-  "searchForm": {
-    "message": "https://dsb.wikipedia.org/wiki/Specialne:Pytaś"
-  },
   "suggestUrl": {
     "message": "https://dsb.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

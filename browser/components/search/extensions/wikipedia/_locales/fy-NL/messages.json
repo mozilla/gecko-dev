@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://fy.wikipedia.org/wiki/Wiki:Sykje"
   },
-  "searchForm": {
-    "message": "https://fy.wikipedia.org/wiki/Wiki:Sykje"
-  },
   "suggestUrl": {
     "message": "https://fy.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://sv.wikipedia.org/wiki/Special:Sök"
   },
-  "searchForm": {
-    "message": "https://sv.wikipedia.org/wiki/Special:Sök"
-  },
   "suggestUrl": {
     "message": "https://sv.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

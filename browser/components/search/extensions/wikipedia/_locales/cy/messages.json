@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://cy.wikipedia.org/wiki/Arbennig:Search"
   },
-  "searchForm": {
-    "message": "https://cy.wikipedia.org/wiki/Arbennig:Search"
-  },
   "suggestUrl": {
     "message": "https://cy.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

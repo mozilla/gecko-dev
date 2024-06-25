@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://ur.wikipedia.org/wiki/خاص:تلاش"
   },
-  "searchForm": {
-    "message": "https://ur.wikipedia.org/wiki/خاص:تلاش"
-  },
   "suggestUrl": {
     "message": "https://ur.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

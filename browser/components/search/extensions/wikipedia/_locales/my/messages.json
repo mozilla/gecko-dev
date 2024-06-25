@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://my.wikipedia.org/wiki/Special:Search"
   },
-  "searchForm": {
-    "message": "https://my.wikipedia.org/wiki/Special:Search"
-  },
   "suggestUrl": {
     "message": "https://my.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },
