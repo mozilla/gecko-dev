@@ -4902,8 +4902,9 @@ MDefinition* FunctionCompiler::unary<MWasmBuiltinTruncateToInt32>(
   if (inDeadCode()) {
     return nullptr;
   }
-  auto* ins = MWasmBuiltinTruncateToInt32::New(alloc(), op, instancePointer_,
-                                               bytecodeOffset());
+  auto* ins = MWasmBuiltinTruncateToInt32::New(
+      alloc(), op, instancePointer_,
+      BytecodeOffset(readCallSiteLineOrBytecode()));
   curBlock_->add(ins);
   return ins;
 }

@@ -4701,6 +4701,9 @@ static bool CheckCoerceToInt(FunctionValidator<Unit>& f, ParseNode* expr,
     *type = Type::Signed;
     Op opcode =
         operandType.isMaybeDouble() ? Op::I32TruncF64S : Op::I32TruncF32S;
+    if (!f.prepareCall(expr)) {
+      return false;
+    }
     return f.encoder().writeOp(opcode);
   }
 
