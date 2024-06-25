@@ -61,16 +61,16 @@
 
 .expression-input-container {
   display: flex;
-  border: 1px solid transparent;
+
+  /* The outline on the input is set to 0 as we want the whole container to have the focus indicator */
+  &:has(input:focus) {
+    outline: var(--theme-focus-outline);
+    /* The container takes the whole width of the sidebar, we need to offset the layout for it to be visible */
+    outline-offset: calc(0px - var(--theme-focus-outline-size));
+    box-shadow: var(--theme-outline-box-shadow);
+  }
 }
 
-.expression-input-container.focused {
-  border: 1px solid var(--theme-highlight-blue);
-}
-
-:root.theme-dark .expression-input-container.focused {
-  border: 1px solid var(--blue-50);
-}
 
 .expression-container {
   padding-top: 3px;

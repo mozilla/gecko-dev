@@ -40,8 +40,11 @@ add_task(async function () {
   ok(true, "The accordion toggle is properly marked as expanded again");
 
   info("Check that the input element gets focused");
-  await waitForElementWithSelector(dbg, ".expression-input-container.focused");
-  ok(true, "Found the expression input container, with the focused class");
+  await waitForElementWithSelector(
+    dbg,
+    ".expression-input-container:has(input:focus)"
+  );
+  ok(true, "Found the expression input container, with the input focused");
   is(
     dbg.win.document.activeElement.classList.contains("input-expression"),
     true,
