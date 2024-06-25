@@ -1413,6 +1413,9 @@ void GCMarker::updateRangesAtStartOfSlice() {
       MarkStack::SlotsOrElementsRange& range = iter.slotsOrElementsRange();
       JSObject* obj = range.ptr().asRangeObject();
       if (!obj->is<NativeObject>()) {
+        // The object owning the range was swapped with a non-native object by
+        // the mutator. The barriers at the end of JSObject::swap ensure that
+        // everything gets marked so there's nothing to do here.
         range.setEmpty();
       } else if (range.kind() == SlotsOrElementsKind::Elements) {
         NativeObject* obj = &range.ptr().asRangeObject()->as<NativeObject>();
@@ -1753,6 +1756,10 @@ inline void MarkStack::SlotsOrElementsRange::setStart(size_t newStart) {
 }
 
 inline void MarkStack::SlotsOrElementsRange::setEmpty() {
+  // Replace this SlotsOrElementsRange with something that's valid for marking
+  // but doesn't involve accessing this range, which is now invalid. This
+  // replaces the two-word range with two single-word entries for the owning
+  // object.
   TaggedPtr entry = TaggedPtr(ObjectTag, ptr().asRangeObject());
   ptr_ = entry;
   startAndKind_ = entry.asBits();
