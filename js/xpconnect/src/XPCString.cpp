@@ -51,18 +51,19 @@ size_t XPCStringConvert::LiteralExternalString::sizeOfBuffer(
   return 0;
 }
 
-// convert a readable to a JSString, copying string data
+// convert a string to a JSString, either copying or sharing string data
 // static
-bool XPCStringConvert::ReadableToJSVal(JSContext* cx, const nsAString& readable,
-                                       MutableHandleValue vp) {
+bool xpc::NonVoidStringToJsval(JSContext* cx, const nsAString& readable,
+                               MutableHandleValue vp) {
   uint32_t length = readable.Length();
 
   if (readable.IsLiteral()) {
-    return StringLiteralToJSVal(cx, readable.BeginReading(), length, vp);
+    return XPCStringConvert::StringLiteralToJSVal(cx, readable.BeginReading(),
+                                                  length, vp);
   }
 
   if (StringBuffer* buf = readable.GetStringBuffer()) {
-    return UCStringBufferToJSVal(cx, buf, length, vp);
+    return XPCStringConvert::UCStringBufferToJSVal(cx, buf, length, vp);
   }
 
   // blech, have to copy.
@@ -74,18 +75,18 @@ bool XPCStringConvert::ReadableToJSVal(JSContext* cx, const nsAString& readable,
   return true;
 }
 
-bool XPCStringConvert::Latin1ToJSVal(JSContext* cx, const nsACString& latin1,
+bool xpc::NonVoidLatin1StringToJsval(JSContext* cx, const nsACString& latin1,
                                      MutableHandleValue vp) {
   uint32_t length = latin1.Length();
 
   if (latin1.IsLiteral()) {
-    return StringLiteralToJSVal(
+    return XPCStringConvert::StringLiteralToJSVal(
         cx, reinterpret_cast<const JS::Latin1Char*>(latin1.BeginReading()),
         length, vp);
   }
 
   if (StringBuffer* buf = latin1.GetStringBuffer()) {
-    return Latin1StringBufferToJSVal(cx, buf, length, vp);
+    return XPCStringConvert::Latin1StringBufferToJSVal(cx, buf, length, vp);
   }
 
   JSString* str = JS_NewStringCopyN(cx, latin1.BeginReading(), length);
@@ -96,17 +97,17 @@ bool XPCStringConvert::Latin1ToJSVal(JSContext* cx, const nsACString& latin1,
   return true;
 }
 
-bool XPCStringConvert::UTF8ToJSVal(JSContext* cx, const nsACString& utf8,
+bool xpc::NonVoidUTF8StringToJsval(JSContext* cx, const nsACString& utf8,
                                    MutableHandleValue vp) {
   uint32_t length = utf8.Length();
 
   if (utf8.IsLiteral()) {
-    return UTF8StringLiteralToJSVal(
+    return XPCStringConvert::UTF8StringLiteralToJSVal(
         cx, JS::UTF8Chars(utf8.BeginReading(), length), vp);
   }
 
   if (StringBuffer* buf = utf8.GetStringBuffer()) {
-    return UTF8StringBufferToJSVal(cx, buf, length, vp);
+    return XPCStringConvert::UTF8StringBufferToJSVal(cx, buf, length, vp);
   }
 
   JSString* str =
@@ -117,22 +118,3 @@ bool XPCStringConvert::UTF8ToJSVal(JSContext* cx, const nsACString& utf8,
   vp.setString(str);
   return true;
 }
-
-namespace xpc {
-
-bool NonVoidStringToJsval(JSContext* cx, const nsAString& str,
-                          MutableHandleValue rval) {
-  return XPCStringConvert::ReadableToJSVal(cx, str, rval);
-}
-
-bool NonVoidLatin1StringToJsval(JSContext* cx, const nsACString& str,
-                                MutableHandleValue rval) {
-  return XPCStringConvert::Latin1ToJSVal(cx, str, rval);
-}
-
-bool NonVoidUTF8StringToJsval(JSContext* cx, const nsACString& str,
-                              MutableHandleValue rval) {
-  return XPCStringConvert::UTF8ToJSVal(cx, str, rval);
-}
-
-}  // namespace xpc
