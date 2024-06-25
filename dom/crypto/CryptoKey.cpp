@@ -212,6 +212,9 @@ void CryptoKey::GetAlgorithm(JSContext* cx,
     case KeyAlgorithmProxy::EC:
       converted = ToJSValue(cx, mAlgorithm.mEc, &val);
       break;
+    case KeyAlgorithmProxy::ED:
+      converted = ToJSValue(cx, mAlgorithm.mEd, &val);
+      break;
   }
   if (!converted) {
     aRv.Throw(NS_ERROR_DOM_OPERATION_ERR);
@@ -299,8 +302,9 @@ void CryptoKey::SetExtractable(bool aExtractable) {
 nsresult CryptoKey::AddPublicKeyData(SECKEYPublicKey* aPublicKey) {
   // This should be a private key.
   MOZ_ASSERT(GetKeyType() == PRIVATE);
-  // There should be a private NSS key with type 'EC'.
-  MOZ_ASSERT(mPrivateKey && mPrivateKey->keyType == ecKey);
+  // There should be a private NSS key with type 'EC' and 'ED'.
+  MOZ_ASSERT(mPrivateKey &&
+             (mPrivateKey->keyType == ecKey || mPrivateKey->keyType == edKey));
   // The given public key should have the same key type.
   MOZ_ASSERT(aPublicKey->keyType == mPrivateKey->keyType);
 
@@ -323,7 +327,17 @@ nsresult CryptoKey::AddPublicKeyData(SECKEYPublicKey* aPublicKey) {
   SECItem* point = &aPublicKey->u.ec.publicValue;
   CK_OBJECT_CLASS privateKeyValue = CKO_PRIVATE_KEY;
   CK_BBOOL falseValue = CK_FALSE;
-  CK_KEY_TYPE ecValue = CKK_EC;
+
+  /* ecKey corresponds to CKK_EC; edKey corresponds to CKK_EC_EDWARDS key.
+    The other key types are not allowed. */
+  CK_KEY_TYPE ecValue;
+  if (mPrivateKey->keyType == ecKey) {
+    ecValue = CKK_EC;
+  } else if (mPrivateKey->keyType == edKey) {
+    ecValue = CKK_EC_EDWARDS;
+  } else {
+    return NS_ERROR_DOM_OPERATION_ERR;
+  }
 
   CK_ATTRIBUTE keyTemplate[9] = {
       {CKA_CLASS, &privateKeyValue, sizeof(privateKeyValue)},
@@ -428,7 +442,8 @@ uint32_t CryptoKey::GetAllowedUsagesForAlgorithm(const nsString& aAlgorithm) {
   } else if (aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_HMAC) ||
              aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_RSASSA_PKCS1) ||
              aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_RSA_PSS) ||
-             aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_ECDSA)) {
+             aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_ECDSA) ||
+             aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_ED25519)) {
     allowedUsages = SIGN | VERIFY;
   } else if (aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_ECDH) ||
              aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_HKDF) ||
@@ -614,6 +629,36 @@ SECItem* CreateECPointForCoordinates(const CryptoBuffer& aX,
   return point;
 }
 
+nsresult CheckEDKeyLen(const CryptoBuffer& p) {
+  /* Ed25519 keys are 32 bytes long.
+    See: https://datatracker.ietf.org/doc/html/rfc8032 Introduction. */
+  uint32_t lengthEDPrivatePublicKey = 32;
+  if (p.Length() != lengthEDPrivatePublicKey) {
+    /* We do not use this error code, we only check is the function returns
+     * NS_OK or not. */
+    return NS_ERROR_DOM_OPERATION_ERR;
+  }
+
+  return NS_OK;
+}
+
+SECItem* CreateEDPointForXCoordinate(const CryptoBuffer& aX,
+                                     PLArenaPool* aArena) {
+  if (NS_FAILED(CheckEDKeyLen(aX))) {
+    return nullptr;
+  }
+
+  // Create point.
+  SECItem* point = ::SECITEM_AllocItem(aArena, nullptr, aX.Length());
+  if (!point) {
+    return nullptr;
+  }
+
+  // Set point data.
+  memcpy(point->data, aX.Elements(), aX.Length());
+  return point;
+}
+
 UniqueSECKEYPrivateKey CryptoKey::PrivateKeyFromJwk(const JsonWebKey& aJwk) {
   CK_OBJECT_CLASS privateKeyValue = CKO_PRIVATE_KEY;
   CK_BBOOL falseValue = CK_FALSE;
@@ -709,6 +754,63 @@ UniqueSECKEYPrivateKey CryptoKey::PrivateKeyFromJwk(const JsonWebKey& aJwk) {
                                             ArrayLength(keyTemplate));
   }
 
+  if (aJwk.mKty.EqualsLiteral(JWK_TYPE_OKP)) {
+    CryptoBuffer x, d;
+
+    if (!aJwk.mCrv.WasPassed() || !aJwk.mX.WasPassed() ||
+        NS_FAILED(x.FromJwkBase64(aJwk.mX.Value())) || !aJwk.mD.WasPassed() ||
+        NS_FAILED(d.FromJwkBase64(aJwk.mD.Value()))) {
+      return nullptr;
+    }
+
+    nsString namedCurve;
+    if (!NormalizeToken(aJwk.mCrv.Value(), namedCurve)) {
+      return nullptr;
+    }
+
+    if (!namedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
+      return nullptr;
+    }
+
+    UniquePLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
+    if (!arena) {
+      return nullptr;
+    }
+
+    // Create parameters.
+    SECItem* params = CreateECParamsForCurve(namedCurve, arena.get());
+    if (!params) {
+      return nullptr;
+    }
+
+    SECItem* ecPoint = CreateEDPointForXCoordinate(x, arena.get());
+    if (!ecPoint) {
+      return nullptr;
+    }
+
+    if (CheckEDKeyLen(d) != NS_OK) {
+      return nullptr;
+    }
+
+    // Populate template from parameters
+    CK_KEY_TYPE ecValue = CKK_EC_EDWARDS;
+    CK_ATTRIBUTE keyTemplate[9] = {
+        {CKA_CLASS, &privateKeyValue, sizeof(privateKeyValue)},
+        {CKA_KEY_TYPE, &ecValue, sizeof(ecValue)},
+        {CKA_TOKEN, &falseValue, sizeof(falseValue)},
+        {CKA_SENSITIVE, &falseValue, sizeof(falseValue)},
+        {CKA_PRIVATE, &falseValue, sizeof(falseValue)},
+        // PrivateKeyFromPrivateKeyTemplate sets the ID.
+        {CKA_ID, nullptr, 0},
+        {CKA_EC_PARAMS, params->data, params->len},
+        {CKA_EC_POINT, ecPoint->data, ecPoint->len},
+        {CKA_VALUE, (void*)d.Elements(), (CK_ULONG)d.Length()},
+    };
+
+    return PrivateKeyFromPrivateKeyTemplate(keyTemplate,
+                                            ArrayLength(keyTemplate));
+  }
+
   return nullptr;
 }
 
@@ -733,6 +835,40 @@ bool ReadAndEncodeAttribute(SECKEYPrivateKey* aKey,
   return true;
 }
 
+bool EDKeyToJwk(const SECItem* aEcParams, const SECItem* aPublicValue,
+                JsonWebKey& aRetVal) {
+  aRetVal.mX.Construct();
+
+  SECOidTag tag;
+  if (!FindOIDTagForEncodedParameters(aEcParams, &tag)) {
+    return false;
+  }
+
+  uint32_t flen;
+  switch (tag) {
+    case SEC_OID_ED25519_PUBLIC_KEY:
+      flen = 32;
+      aRetVal.mCrv.Construct(
+          NS_LITERAL_STRING_FROM_CSTRING(WEBCRYPTO_NAMED_CURVE_ED25519));
+      break;
+    default:
+      return false;
+  }
+
+  /* No compression is used. */
+  if (aPublicValue->len != flen) {
+    return false;
+  }
+
+  CryptoBuffer x;
+  if (!x.Assign(aPublicValue) || NS_FAILED(x.ToJwkBase64(aRetVal.mX.Value()))) {
+    return false;
+  }
+
+  aRetVal.mKty = NS_LITERAL_STRING_FROM_CSTRING(JWK_TYPE_OKP);
+  return true;
+}
+
 bool ECKeyToJwk(const PK11ObjectType aKeyType, void* aKey,
                 const SECItem* aEcParams, const SECItem* aPublicValue,
                 JsonWebKey& aRetVal) {
@@ -740,17 +876,13 @@ bool ECKeyToJwk(const PK11ObjectType aKeyType, void* aKey,
   aRetVal.mY.Construct();
 
   // Check that the given EC parameters are valid.
-  if (!CheckEncodedECParameters(aEcParams)) {
+  SECOidTag tag;
+  if (!FindOIDTagForEncodedParameters(aEcParams, &tag)) {
     return false;
   }
 
-  // Construct the OID tag.
-  SECItem oid = {siBuffer, nullptr, 0};
-  oid.len = aEcParams->data[1];
-  oid.data = aEcParams->data + 2;
-
   uint32_t flen;
-  switch (SECOID_FindOIDTag(&oid)) {
+  switch (tag) {
     case SEC_OID_SECG_EC_SECP256R1:
       flen = 32;  // bytes
       aRetVal.mCrv.Construct(
@@ -829,6 +961,37 @@ nsresult CryptoKey::PrivateKeyToJwk(SECKEYPrivateKey* aPrivKey,
       aRetVal.mKty = NS_LITERAL_STRING_FROM_CSTRING(JWK_TYPE_RSA);
       return NS_OK;
     }
+    case edKey: {
+      // Read EC params.
+      ScopedAutoSECItem params;
+      SECStatus rv = PK11_ReadRawAttribute(PK11_TypePrivKey, aPrivKey,
+                                           CKA_EC_PARAMS, &params);
+      if (rv != SECSuccess) {
+        return NS_ERROR_DOM_OPERATION_ERR;
+      }
+
+      // Read public point Q.
+      ScopedAutoSECItem ecPoint;
+      rv = PK11_ReadRawAttribute(PK11_TypePrivKey, aPrivKey, CKA_EC_POINT,
+                                 &ecPoint);
+
+      if (rv != SECSuccess) {
+        return NS_ERROR_DOM_OPERATION_ERR;
+      }
+
+      if (!EDKeyToJwk(&params, &ecPoint, aRetVal)) {
+        return NS_ERROR_DOM_OPERATION_ERR;
+      }
+
+      aRetVal.mD.Construct();
+
+      // Read private value.
+      if (!ReadAndEncodeAttribute(aPrivKey, CKA_VALUE, aRetVal.mD)) {
+        return NS_ERROR_DOM_OPERATION_ERR;
+      }
+
+      return NS_OK;
+    }
     case ecKey: {
       // Read EC params.
       ScopedAutoSECItem params;
@@ -864,6 +1027,20 @@ nsresult CryptoKey::PrivateKeyToJwk(SECKEYPrivateKey* aPrivKey,
   }
 }
 
+/* The function is used to determine a key type from the curve. */
+KeyType KeyTypeFromCurveName(const nsAString& aNamedCurve) {
+  KeyType t = nullKey;
+  if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P256) ||
+      aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P384) ||
+      aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P521)) {
+    t = ecKey;
+  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
+    t = edKey;
+  }
+  return t;
+}
+
+/* The function is used for EC and ED keys. */
 UniqueSECKEYPublicKey CreateECPublicKey(const SECItem* aKeyData,
                                         const nsAString& aNamedCurve) {
   if (!EnsureNSSInitializedChromeOrContent()) {
@@ -886,7 +1063,11 @@ UniqueSECKEYPublicKey CreateECPublicKey(const SECItem* aKeyData,
 
   // Transfer arena ownership to the key.
   key->arena = arena.release();
-  key->keyType = ecKey;
+  key->keyType = KeyTypeFromCurveName(aNamedCurve);
+  if (key->keyType != ecKey && key->keyType != edKey) {
+    return nullptr;
+  }
+
   key->pkcs11Slot = nullptr;
   key->pkcs11ID = CK_INVALID_HANDLE;
 
@@ -981,6 +1162,37 @@ UniqueSECKEYPublicKey CryptoKey::PublicKeyFromJwk(const JsonWebKey& aJwk) {
     return CreateECPublicKey(point, namedCurve);
   }
 
+  if (aJwk.mKty.EqualsLiteral(JWK_TYPE_OKP)) {
+    // Verify that all of the required parameters are present
+    CryptoBuffer x;
+    if (!aJwk.mCrv.WasPassed() || !aJwk.mX.WasPassed() ||
+        NS_FAILED(x.FromJwkBase64(aJwk.mX.Value()))) {
+      return nullptr;
+    }
+
+    UniquePLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
+    if (!arena) {
+      return nullptr;
+    }
+
+    // Create point.
+    SECItem* point = CreateEDPointForXCoordinate(x, arena.get());
+    if (!point) {
+      return nullptr;
+    }
+
+    nsString namedCurve;
+    if (!NormalizeToken(aJwk.mCrv.Value(), namedCurve)) {
+      return nullptr;
+    }
+
+    if (!namedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
+      return nullptr;
+    }
+
+    return CreateECPublicKey(point, namedCurve);
+  }
+
   return nullptr;
 }
 
@@ -1002,6 +1214,12 @@ nsresult CryptoKey::PublicKeyToJwk(SECKEYPublicKey* aPubKey,
       aRetVal.mKty = NS_LITERAL_STRING_FROM_CSTRING(JWK_TYPE_RSA);
       return NS_OK;
     }
+    case edKey:
+      if (!EDKeyToJwk(&aPubKey->u.ec.DEREncodedParams,
+                      &aPubKey->u.ec.publicValue, aRetVal)) {
+        return NS_ERROR_DOM_OPERATION_ERR;
+      }
+      return NS_OK;
     case ecKey:
       if (!ECKeyToJwk(PK11_TypePubKey, aPubKey, &aPubKey->u.ec.DEREncodedParams,
                       &aPubKey->u.ec.publicValue, aRetVal)) {
@@ -1056,6 +1274,32 @@ nsresult CryptoKey::PublicECKeyToRaw(SECKEYPublicKey* aPubKey,
     return NS_ERROR_DOM_OPERATION_ERR;
   }
   return NS_OK;
+}
+
+UniqueSECKEYPublicKey CryptoKey::PublicEDKeyFromRaw(
+    CryptoBuffer& aKeyData, const nsString& aNamedCurve) {
+  UniquePLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
+  if (!arena) {
+    return nullptr;
+  }
+
+  SECItem rawItem = {siBuffer, nullptr, 0};
+  if (!aKeyData.ToSECItem(arena.get(), &rawItem)) {
+    return nullptr;
+  }
+
+  uint32_t flen;
+  if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
+    flen = 32;  // bytes
+  } else {
+    return nullptr;
+  }
+
+  if (rawItem.len != flen) {
+    return nullptr;
+  }
+
+  return CreateECPublicKey(&rawItem, aNamedCurve);
 }
 
 bool CryptoKey::PublicKeyValid(SECKEYPublicKey* aPubKey) {
