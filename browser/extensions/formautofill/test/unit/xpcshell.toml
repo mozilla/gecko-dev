@@ -50,8 +50,6 @@ skip-if = [
   "apple_silicon", # bug 1729554
 ]
 
-["test_clearPopulatedForm.js"]
-
 ["test_collectFormFields.js"]
 
 ["test_createRecords.js"]
@@ -94,8 +92,6 @@ skip-if = [
 
 ["test_known_strings.js"]
 
-["test_markAsAutofillField.js"]
-
 ["test_migrateRecords.js"]
 skip-if = ["tsan"] # Times out, bug 1612707
 
@@ -106,8 +102,6 @@ skip-if = ["tsan"] # Times out, bug 1612707
 ["test_parseStreetAddress.js"]
 
 ["test_phoneNumber.js"]
-
-["test_previewFormFields.js"]
 
 ["test_profileAutocompleteResult.js"]
 

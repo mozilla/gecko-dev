@@ -4,12 +4,9 @@
 
 "use strict";
 
-var FormAutofillHandler;
-add_setup(async () => {
-  ({ FormAutofillHandler } = ChromeUtils.importESModule(
-    "resource://gre/modules/shared/FormAutofillHandler.sys.mjs"
-  ));
-});
+const { FormAutofillSection } = ChromeUtils.importESModule(
+  "resource://gre/modules/shared/FormAutofillSection.sys.mjs"
+);
 
 const TESTCASES = [
   {
@@ -594,7 +591,7 @@ function verifyDetails(handlerDetails, testCaseDetails) {
 
 for (let tc of TESTCASES) {
   (function () {
-    let testcase = tc;
+    const testcase = tc;
     add_task(async function () {
       info("Starting testcase: " + testcase.description);
 
@@ -602,7 +599,7 @@ for (let tc of TESTCASES) {
         testcase.prefs.forEach(pref => SetPref(pref[0], pref[1]));
       }
 
-      let doc = MockDocument.createTestDocument(
+      const doc = MockDocument.createTestDocument(
         "http://localhost:8080/test/",
         testcase.document
       );
@@ -613,22 +610,18 @@ for (let tc of TESTCASES) {
         field.elementWeakRef = new WeakRef(elementRef);
       });
 
-      let form = doc.querySelector("form");
-      let formLike = FormLikeFactory.createFromForm(form);
+      const form = doc.querySelector("form");
+      const formLike = FormLikeFactory.createFromForm(form);
 
-      let handler = new FormAutofillHandler(formLike);
-      let validFieldDetails = handler.collectFormFields();
+      const handler = new FormAutofillHandler(formLike);
+      const fieldDetails = handler.collectFormFields();
 
-      Assert.equal(
-        handler.sections.length,
-        testcase.sections.length,
-        "section count"
-      );
-      for (let i = 0; i < handler.sections.length; i++) {
-        let section = handler.sections[i];
-        verifyDetails(section.fieldDetails, testcase.sections[i]);
+      const sections = FormAutofillSection.classifySections(fieldDetails, true);
+
+      Assert.equal(sections.length, testcase.sections.length, "section count");
+      for (let i = 0; i < sections.length; i++) {
+        verifyDetails(sections[i].fieldDetails, testcase.sections[i]);
       }
-      verifyDetails(validFieldDetails, testcase.sections.flat());
 
       if (testcase.prefs) {
         testcase.prefs.forEach(pref => Services.prefs.clearUserPref(pref[0]));

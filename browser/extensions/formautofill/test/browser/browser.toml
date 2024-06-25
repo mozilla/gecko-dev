@@ -33,6 +33,8 @@ skip-if = [
 
 ["browser_check_installed.js"]
 
+["browser_clearPopulatedForm.js"]
+
 ["browser_dropdown_layout.js"]
 
 ["browser_editAddressDialog.js"]
@@ -46,6 +48,8 @@ skip-if = [
 ["browser_manageAddressesDialog.js"]
 
 ["browser_page_navigation_in_subtree.js"]
+
+["browser_previewFormFields.js"]
 
 ["browser_privacyPreferences.js"]
 skip-if = [
