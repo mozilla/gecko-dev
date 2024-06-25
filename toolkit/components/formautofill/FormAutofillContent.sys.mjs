@@ -30,6 +30,10 @@ export var FormAutofillContent = {
     return Services.cpmm.sharedData.get("FormAutofill:savedFieldNames");
   },
 
+  get focusedInput() {
+    return formFillController.focusedInput;
+  },
+
   /**
    * @type {boolean} Flag indicating whether a focus action requiring
    * the popup to be active is pending.

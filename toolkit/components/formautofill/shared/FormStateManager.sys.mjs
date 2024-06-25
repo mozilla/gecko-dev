@@ -10,7 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 export class FormStateManager {
-  constructor(onSubmit, onAutofillCallback) {
+  constructor(onFilledModifiedCallback) {
     /**
      * @type {WeakMap} mapping FormLike root HTML elements to FormAutofillHandler objects.
      */
@@ -21,9 +21,7 @@ export class FormStateManager {
      */
     this._activeItems = {};
 
-    this.onSubmit = onSubmit;
-
-    this.onAutofillCallback = onAutofillCallback;
+    this.onFilledModifiedCallback = onFilledModifiedCallback;
   }
 
   /**
@@ -100,7 +98,7 @@ export class FormStateManager {
    *          (or return null if the information is not found in the cache).
    *
    */
-  _getFormHandler(element) {
+  getFormHandler(element) {
     if (!element) {
       return null;
     }
@@ -108,20 +106,32 @@ export class FormStateManager {
     return this._formsDetails.get(rootElement);
   }
 
+  /**
+   * Identifies and handles autofill fields in a form element.
+   *
+   * This function retrieves a form handler for the given element and returns the
+   * form handler. If the form handler already exists and the form does not change
+   * since last time we identify its fields, it sets `newFieldsIdentifided` to false.
+   *
+   * @param {HTMLElement} element The form element to identify autofill fields for.
+   * @returns {object} a {handler, newFieldsIdentified} object
+   */
   identifyAutofillFields(element) {
-    let formHandler = this._getFormHandler(element);
-    if (!formHandler) {
-      let formLike = lazy.FormLikeFactory.createFromField(element);
-      formHandler = new lazy.FormAutofillHandler(
-        formLike,
-        this.onSubmit,
-        this.onAutofillCallback
-      );
-    } else if (!formHandler.updateFormIfNeeded(element)) {
-      return formHandler.fieldDetails;
+    let handler = this.getFormHandler(element);
+    if (handler && !handler.updateFormIfNeeded(element)) {
+      return { handler, newFieldsIdentified: false };
     }
-    this._formsDetails.set(formHandler.form.rootElement, formHandler);
-    return formHandler.collectFormFields();
+
+    if (!handler) {
+      handler = new lazy.FormAutofillHandler(
+        lazy.FormLikeFactory.createFromField(element),
+        this.onFilledModifiedCallback
+      );
+      this._formsDetails.set(handler.form.rootElement, handler);
+    }
+
+    handler.collectFormFields();
+    return { handler, newFieldsIdentified: true };
   }
 
   updateActiveInput(element) {
@@ -135,7 +145,7 @@ export class FormStateManager {
     };
   }
 
-  getRecords(formElement, handler) {
+  getElementValues(formElement, handler) {
     handler = handler || this._formsDetails.get(formElement);
     const records = handler?.createRecords();
 
