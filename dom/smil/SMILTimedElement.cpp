@@ -2117,9 +2117,18 @@ void SMILTimedElement::NotifyChangedInterval(SMILInterval* aInterval,
 void SMILTimedElement::FireTimeEventAsync(EventMessage aMsg, int32_t aDetail) {
   if (!mAnimationElement) return;
 
+  Document* ownerDoc = mAnimationElement->OwnerDoc();
+  if (ownerDoc->IsBeingUsedAsImage() || !ownerDoc->IsScriptEnabled()) {
+    // Without scripting the only listeners would be from SMIL itself
+    // and they would exist for the life of the document.
+    nsPIDOMWindowInner* inner = ownerDoc->GetInnerWindow();
+    if (inner && !inner->HasSMILTimeEventListeners()) {
+      return;
+    }
+  }
   nsCOMPtr<nsIRunnable> event =
       new AsyncTimeEventRunner(mAnimationElement, aMsg, aDetail);
-  mAnimationElement->OwnerDoc()->Dispatch(event.forget());
+  ownerDoc->Dispatch(event.forget());
 }
 
 const SMILInstanceTime* SMILTimedElement::GetEffectiveBeginInstance() const {
