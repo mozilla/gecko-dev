@@ -769,6 +769,7 @@ void ClientWebGLContext::GetContextAttributes(
   result.mPreserveDrawingBuffer = options.preserveDrawingBuffer;
   result.mFailIfMajorPerformanceCaveat = options.failIfMajorPerformanceCaveat;
   result.mPowerPreference = options.powerPreference;
+  result.mForceSoftwareRendering = options.forceSoftwareRendering;
 }
 
 // -----------------------
@@ -1061,6 +1062,7 @@ ClientWebGLContext::SetContextOptions(JSContext* cx,
       attributes.mFailIfMajorPerformanceCaveat;
   newOpts.xrCompatible = attributes.mXrCompatible;
   newOpts.powerPreference = attributes.mPowerPreference;
+  newOpts.forceSoftwareRendering = attributes.mForceSoftwareRendering;
   newOpts.enableDebugRendererInfo =
       StaticPrefs::webgl_enable_debug_renderer_info();
   MOZ_ASSERT(mCanvasElement || mOffscreenCanvas);
@@ -2327,7 +2329,7 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
         retval.set(JS::NumberValue(state.mPixelUnpackState.skipRows));
         return;
     }  // switch pname
-  }    // if webgl2
+  }  // if webgl2
 
   // -
 

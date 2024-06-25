@@ -1121,6 +1121,7 @@ void CanvasRenderingContext2D::GetContextAttributes(
 
   aSettings.mAlpha = mContextAttributesHasAlpha;
   aSettings.mWillReadFrequently = mWillReadFrequently;
+  aSettings.mForceSoftwareRendering = mForceSoftwareRendering;
 
   // We don't support the 'desynchronized' and 'colorSpace' attributes, so
   // those just keep their default values.
@@ -2027,6 +2028,7 @@ CanvasRenderingContext2D::SetContextOptions(JSContext* aCx,
   }
 
   mWillReadFrequently = attributes.mWillReadFrequently;
+  mForceSoftwareRendering = attributes.mForceSoftwareRendering;
 
   mContextAttributesHasAlpha = attributes.mAlpha;
   UpdateIsOpaque();
