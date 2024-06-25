@@ -146,18 +146,6 @@ repackage-zip-%: unpack
 # chrome directory and top-level localization for Fluent.
 PKG_ZIP_DIRS = chrome localization $(or $(DIST_SUBDIRS),$(DIST_SUBDIR))
 
-# Clone a l10n repository, either via hg or git
-# Make this a variable as it's embedded in a sh conditional
-ifeq ($(VCS_CHECKOUT_TYPE),hg)
-L10N_CO = $(HG) --cwd $(L10NBASEDIR) clone https://hg.mozilla.org/l10n-central/$(AB_CD)/
-else
-ifeq ($(VCS_CHECKOUT_TYPE),git)
-L10N_CO = $(GIT) -C $(L10NBASEDIR) clone hg://hg.mozilla.org/l10n-central/$(AB_CD)/
-else
-L10N_CO = $(error You need to use either hg or git)
-endif
-endif
-
 merge-%: IS_LANGUAGE_REPACK=1
 merge-%: AB_CD=$*
 merge-%:
@@ -173,9 +161,8 @@ ifdef MOZ_AUTOMATION
 endif
 ifdef NIGHTLY_BUILD
 	if  ! test -d $(L10NBASEDIR)/$(AB_CD) ; then \
-		echo 'Checking out $(L10NBASEDIR)/$(AB_CD)' ; \
 		$(NSINSTALL) -D $(L10NBASEDIR) ; \
-		$(L10N_CO) ; \
+		$(GIT) clone https://github.com/mozilla-l10n/firefox-l10n.git $(L10NBASEDIR) ; \
 	fi
 endif
 	$(RM) -rf $(REAL_LOCALE_MERGEDIR)

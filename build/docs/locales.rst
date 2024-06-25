@@ -23,7 +23,7 @@ Instructions for single-locale repacks for developers
 -----------------------------------------------------
 
 This assumes that ``$AB_CD`` is the locale you want to repack with; you
-find the available localizations on `l10n-central <https://hg.mozilla.org/l10n-central/>`_.
+find the available localizations from `firefox-l10n <https://github.com/mozilla-l10n/firefox-l10n>`_.
 
 #. You must have a built and packaged object directory, or a pre-built
    ``en-US`` package.
@@ -42,10 +42,10 @@ find the available localizations on `l10n-central <https://hg.mozilla.org/l10n-c
 You should find a re-packaged build at ``OBJDIR/dist/``, and a
 runnable binary in ``OBJDIR/dist/l10n-stage/``.
 The ``installers`` target runs quite a few things for you, including getting
-the repository for the requested locale from
-https://hg.mozilla.org/l10n-central/. It will clone them into
-``~/.mozbuild/l10n-central``. If you have an existing repository there, you
-may want to occasionally update that via ``hg pull -u``. If you prefer
+the localizations from https://github.com/mozilla-l10n/firefox-l10n.
+It will clone them into ``~/.mozbuild/l10n-central``.
+If you have an existing repository there, you
+may want to occasionally update that via ``git pull``. If you prefer
 to have the l10n repositories at a different location on your disk, you
 can point to the directory via
 
@@ -361,8 +361,8 @@ Localizations
 Now that we talked in-depth about how to expose content to localizers,
 where are the localizations?
 
-We host a mercurial repository per locale. All of our
-localizations can be found on https://hg.mozilla.org/l10n-central/.
+We host all locales in a git monorepo. All of our
+localizations can be found on https://github.com/mozilla-l10n/firefox-l10n.
 
 You can search inside our localized files on
 `Transvision <https://transvision.mozfr.org/>`_.
