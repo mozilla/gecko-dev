@@ -289,6 +289,8 @@ export class UserCharacteristicsPageService {
         "mediaCapabilities",
         "audioFingerprint",
         "jsErrors",
+        "pointerType",
+        "anyPointerType",
       ],
     };
 
