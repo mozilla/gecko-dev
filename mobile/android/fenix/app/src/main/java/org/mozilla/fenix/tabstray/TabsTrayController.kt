@@ -253,6 +253,14 @@ class DefaultTabsTrayController(
     private fun openNewTab(isPrivate: Boolean) {
         val startTime = profiler?.getProfilerTime()
         browsingModeManager.mode = BrowsingMode.fromBoolean(isPrivate)
+
+        if (settings.enableHomepageAsNewTab) {
+            tabsUseCases.addTab.invoke(
+                startLoading = false,
+                private = isPrivate,
+            )
+        }
+
         navController.navigate(
             TabsTrayFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
         )

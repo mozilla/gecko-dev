@@ -148,6 +148,37 @@ class DefaultTabsTrayControllerTest {
     }
 
     @Test
+    fun `GIVEN private mode and homepage as a new tab is enabled WHEN the fab is clicked THEN a new private homepage tab is displayed`() {
+        every { settings.enableHomepageAsNewTab } returns true
+
+        profiler = spyk(profiler) {
+            every { getProfilerTime() } returns Double.MAX_VALUE
+        }
+
+        assertNull(TabsTray.newPrivateTabTapped.testGetValue())
+
+        createController().handlePrivateTabsFabClick()
+
+        assertNotNull(TabsTray.newPrivateTabTapped.testGetValue())
+
+        verifyOrder {
+            profiler.getProfilerTime()
+            tabsUseCases.addTab.invoke(
+                startLoading = false,
+                private = true,
+            )
+            navController.navigate(
+                TabsTrayFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
+            )
+            navigationInteractor.onTabTrayDismissed()
+            profiler.addMarker(
+                "DefaultTabTrayController.onNewTabTapped",
+                Double.MAX_VALUE,
+            )
+        }
+    }
+
+    @Test
     fun `GIVEN normal mode WHEN the fab is clicked THEN a profile marker is added for the operations executed`() {
         profiler = spyk(profiler) {
             every { getProfilerTime() } returns Double.MAX_VALUE
@@ -157,6 +188,33 @@ class DefaultTabsTrayControllerTest {
 
         verifyOrder {
             profiler.getProfilerTime()
+            navController.navigate(
+                TabsTrayFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
+            )
+            navigationInteractor.onTabTrayDismissed()
+            profiler.addMarker(
+                "DefaultTabTrayController.onNewTabTapped",
+                Double.MAX_VALUE,
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN normal mode and homepage as a new tab is enabled WHEN the fab is clicked THEN a new homepage tab is displayed`() {
+        every { settings.enableHomepageAsNewTab } returns true
+
+        profiler = spyk(profiler) {
+            every { getProfilerTime() } returns Double.MAX_VALUE
+        }
+
+        createController().handleNormalTabsFabClick()
+
+        verifyOrder {
+            profiler.getProfilerTime()
+            tabsUseCases.addTab.invoke(
+                startLoading = false,
+                private = false,
+            )
             navController.navigate(
                 TabsTrayFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
             )
