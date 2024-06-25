@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -144,7 +145,10 @@ fun TabListItem(
                 .background(contentBackgroundColor)
                 .then(clickableModifier)
                 .padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
-                .testTag(TabsTrayTestTag.tabItemRoot),
+                .testTag(TabsTrayTestTag.tabItemRoot)
+                .semantics {
+                    selected = isSelected
+                },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Thumbnail(
