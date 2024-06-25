@@ -1194,6 +1194,10 @@ export class BackupService extends EventTarget {
    * @returns {Promise<string>}
    */
   async renderTemplate(templateURI, isEncrypted, backupMetadata) {
+    const ARCHIVE_STYLES = "chrome://browser/content/backup/archive.css";
+    const ARCHIVE_SCRIPT = "chrome://browser/content/backup/archive.js";
+    const LOGO = "chrome://branding/content/icon128.png";
+
     let templateResponse = await fetch(templateURI);
     let templateString = await templateResponse.text();
     let templateDOM = new DOMParser().parseFromString(
@@ -1213,6 +1217,20 @@ export class BackupService extends EventTarget {
       "recover-from-backup";
     let supportLink = templateDOM.querySelector("#support-link");
     supportLink.href = supportLinkHref;
+
+    // Now insert the logo as a dataURL, since we want the single-file backup
+    // archive to be entirely self-contained.
+    let logoResponse = await fetch(LOGO);
+    let logoBlob = await logoResponse.blob();
+    let logoDataURL = await new Promise((resolve, reject) => {
+      let reader = new FileReader();
+      reader.addEventListener("load", () => resolve(reader.result));
+      reader.addEventListener("error", reject);
+      reader.readAsDataURL(logoBlob);
+    });
+
+    let logoNode = templateDOM.querySelector("#logo");
+    logoNode.src = logoDataURL;
 
     let encStateNode = templateDOM.querySelector("#encryption-state");
     lazy.gDOMLocalization.setAttributes(
@@ -1244,8 +1262,33 @@ export class BackupService extends EventTarget {
       // cause backup creation to fail.
     }
 
+    // We have to insert styles and scripts after we serialize to XML, otherwise
+    // the XMLSerializer will escape things like descendent selectors in CSS
+    // with &gt;.
+    let stylesResponse = await fetch(ARCHIVE_STYLES);
+    let scriptResponse = await fetch(ARCHIVE_SCRIPT);
+
+    // These days, we don't really support CSS preprocessor directives, so we
+    // can't ifdef out the MPL license header in styles before writing it into
+    // the archive file. Instead, we'll ensure that the license header is there,
+    // and then manually remove it here at runtime.
+    let stylesText = await stylesResponse.text();
+    const MPL_LICENSE = `/**
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */`;
+    if (!stylesText.includes(MPL_LICENSE)) {
+      throw new Error("Expected the MPL license block within archive.css");
+    }
+
+    stylesText = stylesText.replace(MPL_LICENSE, "");
+
     let serializer = new XMLSerializer();
-    return serializer.serializeToString(templateDOM);
+    return serializer
+      .serializeToString(templateDOM)
+      .replace("{{styles}}", stylesText)
+      .replace("{{script}}", await scriptResponse.text());
   }
 
   /**
