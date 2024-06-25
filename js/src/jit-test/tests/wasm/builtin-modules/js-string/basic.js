@@ -147,7 +147,8 @@ let polyFillImports = {
   fromCharCodeArray: (array, arrayStart, arrayEnd) => {
     arrayStart >>>= 0;
     arrayEnd >>>= 0;
-    if (arrayStart > arrayEnd ||
+    if (array == null ||
+        arrayStart > arrayEnd ||
         arrayEnd > arrayLength(array)) {
       throw new WebAssembly.RuntimeError();
     }
@@ -160,6 +161,9 @@ let polyFillImports = {
   intoCharCodeArray: (string, arr, arrayStart) => {
     arrayStart >>>= 0;
     throwIfNotString(string);
+    if (arr == null) {
+      throw new WebAssembly.RuntimeError();
+    }
     let arrLength = arrayLength(arr);
     let stringLength = string.length;
     if (BigInt(arrayStart) + BigInt(stringLength) > BigInt(arrLength)) {
@@ -381,4 +385,22 @@ for (let a of testStrings) {
     polyfillExports['fromCharCodeArray'],
     arrayMutI16, 1, 1
   ), "");
+}
+
+// fromCharCodeArray array is null
+{
+  assertErrorMessage(() => assertSameBehavior(
+    builtinExports['fromCharCodeArray'],
+    polyfillExports['fromCharCodeArray'],
+    null, 0, 0
+  ), WebAssembly.RuntimeError, /./);
+}
+
+// intoCharCodeArray array is null
+{
+  assertErrorMessage(() => assertSameBehavior(
+    builtinExports['intoCharCodeArray'],
+    polyfillExports['intoCharCodeArray'],
+    "test", null, 0,
+  ), WebAssembly.RuntimeError, /./);
 }

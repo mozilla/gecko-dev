@@ -1999,6 +1999,10 @@ void* Instance::stringFromCharCodeArray(Instance* instance, void* arrayArg,
                                         uint32_t arrayEnd) {
   JSContext* cx = instance->cx();
   RootedAnyRef arrayRef(cx, AnyRef::fromCompiledCode(arrayArg));
+  if (arrayRef.isNull()) {
+    ReportTrapError(instance->cx(), JSMSG_WASM_BAD_CAST);
+    return nullptr;
+  }
   Rooted<WasmArrayObject*> array(cx, UncheckedCastToArrayI16<true>(arrayRef));
 
   if (arrayStart > arrayEnd || arrayEnd > array->numElements_) {
@@ -2030,6 +2034,10 @@ int32_t Instance::stringIntoCharCodeArray(Instance* instance, void* stringArg,
   size_t stringLength = string->length();
 
   RootedAnyRef arrayRef(cx, AnyRef::fromCompiledCode(arrayArg));
+  if (arrayRef.isNull()) {
+    ReportTrapError(instance->cx(), JSMSG_WASM_BAD_CAST);
+    return -1;
+  }
   Rooted<WasmArrayObject*> array(cx, UncheckedCastToArrayI16<true>(arrayRef));
 
   CheckedUint32 lastIndexPlus1 = CheckedUint32(arrayStart) + stringLength;
