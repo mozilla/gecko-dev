@@ -66,6 +66,10 @@ UniquePtr<T> TrustedTypePolicy::CreateTrustedType(
     return nullptr;
   }
 
+  if (policyValue.IsVoid()) {
+    policyValue = EmptyString();
+  }
+
   UniquePtr<T> trustedObject = MakeUnique<T>(std::move(policyValue));
 
   // TODO: add special handling for `TrustedScript` when default policy support
@@ -80,9 +84,7 @@ void TrustedTypePolicy::DetermineTrustedPolicyValue(
     const Sequence<JS::Value>& aArguments, bool aThrowIfMissing,
     ErrorResult& aErrorResult, nsAString& aResult) const {
   if (!aCallbackObject) {
-    // The spec lacks a definition for stringifying null, see
-    // <https://github.com/w3c/trusted-types/issues/469>.
-    aResult = EmptyString();
+    aResult.SetIsVoid(true);
 
     if (aThrowIfMissing) {
       aErrorResult.ThrowTypeError("Function missing.");
