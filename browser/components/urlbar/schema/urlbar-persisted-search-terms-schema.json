@@ -1,0 +1,64 @@
+{
+  "type": "object",
+  "properties": {
+    "providerId": {
+      "type": "string"
+    },
+    "searchPageRegexp": {
+      "type": "string",
+      "title": "Search Page Regular Expression",
+      "description": "A regular expression which matches the search page of the provider."
+    },
+    "includeParams": {
+      "type": "array",
+      "title": "Included Search Page Params",
+      "description": "An array of params that should be included in the URL",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The key corresponding to the query parameter that contains what type of search page is being shown"
+          },
+          "values": {
+            "type": "array",
+            "description": "An array of possible values for the query parameter",
+            "items": {
+              "type": "string",
+              "description": "The value corresponding to the query parameter that should be matched against"
+            }
+          },
+          "canBeMissing": {
+            "type": "boolean",
+            "description": "Indicates if the parameter can be missing"
+          }
+        },
+        "required": ["key", "values"]
+      }
+    },
+    "excludeParams": {
+      "type": "array",
+      "title": "Exclude Parameters",
+      "description": "An array of parameters that should be excluded from the search query",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The key corresponding to the query parameter that should not be included"
+          },
+          "values": {
+            "type": "array",
+            "description": "An array of possible values to exclude for the query parameter",
+            "items": {
+              "type": "string",
+              "description": "The value corresponding to the query parameter that should not be included"
+            }
+          }
+        },
+        "required": ["key"]
+      }
+    }
+  },
+  "required": ["providerId", "searchPageRegexp", "includeParams"]
+}
