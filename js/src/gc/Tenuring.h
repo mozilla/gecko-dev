@@ -110,7 +110,6 @@ class TenuringTracer final : public JSTracer {
   void traceObjectSlots(NativeObject* nobj, uint32_t start, uint32_t end);
   void traceObjectElements(JS::Value* vp, uint32_t count);
   void traceString(JSString* str);
-  void traceBigInt(JS::BigInt* bi);
 
   // Methods to promote a live cell or get the pointer to its new location if
   // that has already happened. The store buffers call these.
@@ -129,15 +128,6 @@ class TenuringTracer final : public JSTracer {
   void on##name##Edge(type** thingp, const char* name) override;
   JS_FOR_EACH_TRACEKIND(DEFINE_ON_EDGE_METHOD)
 #undef DEFINE_ON_EDGE_METHOD
-
-  // The dependent string chars needs to be relocated if the base which it's
-  // using chars from has been deduplicated.
-  template <typename CharT>
-  void relocateDependentStringChars(JSDependentString* tenuredDependentStr,
-                                    JSLinearString* baseOrRelocOverlay,
-                                    size_t* offset,
-                                    bool* rootBaseNotYetForwarded,
-                                    JSLinearString** rootBase);
 
   inline void insertIntoObjectFixupList(gc::RelocationOverlay* entry);
   inline void insertIntoStringFixupList(gc::StringRelocationOverlay* entry);
