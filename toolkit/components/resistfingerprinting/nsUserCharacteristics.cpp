@@ -786,50 +786,66 @@ RefPtr<PopulatePromise> PopulateTimeZone() {
   return populatePromise;
 }
 
-static StaticRefPtr<MozPromise<WidgetPointerEvent, void_t, true>::Private>
-    sPointerStolenEvent;
+using StealPointerPromise = MozPromise<WidgetGUIEvent*, void_t, true>::Private;
+static StaticRefPtr<StealPointerPromise> sPointerStolenEvent;
 
 /* static */
-void nsUserCharacteristics::StealPointerEvent(const WidgetPointerEvent& event) {
+void nsUserCharacteristics::StealPointerEvent(WidgetGUIEvent* aEvent) {
+  if (!aEvent) {
+    return;
+  }
+
   if (!sPointerStolenEvent) {
-    sPointerStolenEvent =
-        new MozPromise<WidgetPointerEvent, void_t, true>::Private(__func__);
+    sPointerStolenEvent = new StealPointerPromise(__func__, true);
+    ClearOnShutdown(&sPointerStolenEvent);
   }
-  if (!sPointerStolenEvent->IsResolved()) {
-    sPointerStolenEvent->Resolve(event, __func__);
+
+  if (sPointerStolenEvent->IsResolved()) {
+    return;
   }
+
+  if (aEvent->mMessage != eMouseDown && aEvent->mMessage != eTouchStart) {
+    return;
+  }
+
+  sPointerStolenEvent->Resolve(aEvent, __func__);
 }
 
 RefPtr<PopulatePromise> PopulatePointerInfo() {
   RefPtr<PopulatePromise> populatePromise = new PopulatePromise(__func__);
 
   if (!sPointerStolenEvent) {
-    sPointerStolenEvent =
-        new MozPromise<WidgetPointerEvent, void_t, true>::Private(__func__);
+    sPointerStolenEvent = new StealPointerPromise(__func__, true);
+    ClearOnShutdown(&sPointerStolenEvent);
   }
 
   sPointerStolenEvent->Then(
       GetCurrentSerialEventTarget(), __func__,
-      [=](const MozPromise<WidgetPointerEvent, void_t,
-                           true>::ResolveOrRejectValue& result) {
-        auto event = result.ResolveValue();
-        glean::characteristics::pointer_height.Set(event.mHeight);
-        glean::characteristics::pointer_width.Set(event.mWidth);
-        glean::characteristics::pointer_pressure.Set(
-            nsCString(std::to_string(event.mPressure)));
-        glean::characteristics::pointer_tangentinal_pressure.Set(
-            nsCString(std::to_string(event.tangentialPressure)));
-        glean::characteristics::pointer_tiltx.Set(event.tiltX);
-        glean::characteristics::pointer_tilty.Set(event.tiltY);
-        glean::characteristics::pointer_twist.Set(event.twist);
+      [=](const StealPointerPromise::ResolveOrRejectValue& r) {
+        const auto& guiEvent = r.ResolveValue();
 
-        if (event.mFromTouchEvent) {
-          // We only collect rotationAngle because all the other properties are
-          // copied to pointer event anyway. See
-          // https://searchfox.org/mozilla-central/rev/4c8627a76e2e0a9b49c2b673424da478e08715ad/dom/events/PointerEventHandler.cpp#553-586
-          auto* touchEvent = event.AsTouchEvent();
-          if (touchEvent->mTouches.Length()) {
-            auto touch = touchEvent->mTouches[0];
+        if (guiEvent->mMessage == eMouseDown) {
+          auto* mouseEvent = guiEvent->AsMouseEvent();
+          glean::characteristics::pointer_pressure.Set(
+              nsCString(std::to_string(mouseEvent->mPressure)));
+          glean::characteristics::pointer_tangentinal_pressure.Set(
+              nsCString(std::to_string(mouseEvent->tangentialPressure)));
+          glean::characteristics::pointer_tiltx.Set(mouseEvent->tiltX);
+          glean::characteristics::pointer_tilty.Set(mouseEvent->tiltY);
+          glean::characteristics::pointer_twist.Set(mouseEvent->twist);
+        } else if (guiEvent->mMessage == eTouchStart) {
+          auto* touchEvent = guiEvent->AsTouchEvent();
+          if (touchEvent->mTouches.Length() > 0) {
+            const auto& touch = touchEvent->mTouches[0];
+            glean::characteristics::pointer_height.Set(
+                touch->RadiusY(dom::CallerType::System));
+            glean::characteristics::pointer_width.Set(
+                touch->RadiusX(dom::CallerType::System));
+            glean::characteristics::pointer_tangentinal_pressure.Set(
+                nsCString(std::to_string(touch->tangentialPressure)));
+            glean::characteristics::pointer_tiltx.Set(touch->tiltX);
+            glean::characteristics::pointer_tilty.Set(touch->tiltY);
+            glean::characteristics::pointer_twist.Set(touch->twist);
             glean::characteristics::touch_rotation_angle.Set(
                 nsCString(std::to_string(touch->mRotationAngle)));
           }

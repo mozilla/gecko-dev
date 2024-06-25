@@ -15,7 +15,7 @@ class nsUserCharacteristics {
 
   // Steals an event from PointerEventHandler. Currently only catches
   // ePointerDown event.
-  static void StealPointerEvent(const mozilla::WidgetPointerEvent& aEvent);
+  static void StealPointerEvent(mozilla::WidgetGUIEvent* aEvent);
 
   /*
    * These APIs are public only for testing using the gtest
