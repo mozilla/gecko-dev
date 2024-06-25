@@ -103,10 +103,11 @@ Detailed Docs
 .. toctree::
   :maxdepth: 2
 
-  simple-cfr-template
   debugging-docs
   first-run
+  messaging-glossary
   remote_cfr
+  simple-cfr-template
   targeting-attributes
   targeting-guide
   telemetry
