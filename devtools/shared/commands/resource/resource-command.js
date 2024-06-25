@@ -682,13 +682,99 @@ class ResourceCommand {
   }
 
   async _onResourceAvailableArray({ targetFront, watcherFront }, array) {
+    let includesDocumentEventWillNavigate = false;
+    let includesDocumentEventDomLoading = false;
     for (const [resourceType, resources] of array) {
-      for (const resource of resources) {
+      const isAlreadyExistingResource =
+        this._processingExistingResources.has(resourceType);
+      const transformer = ResourceTransformers[resourceType];
+
+      for (let i = 0; i < resources.length; i++) {
+        let resource = resources[i];
         if (!("resourceType" in resource)) {
           resource.resourceType = resourceType;
         }
+
+        if (watcherFront) {
+          targetFront = await this._getTargetForWatcherResource(resource);
+          // When we receive resources from the Watcher actor,
+          // there is no guarantee that the target front is fully initialized.
+          // The Target Front is initialized by the TargetCommand, by calling TargetFront.attachAndInitThread.
+          // We have to wait for its completion as resources watchers are expecting it to be completed.
+          //
+          // But when navigating, we may receive resources packets for a destroyed target.
+          // Or, in the context of the browser toolbox, they may not relate to any target.
+          if (targetFront) {
+            await targetFront.initialized;
+          }
+        }
+
+        // Put the targetFront on the resource for easy retrieval.
+        // (Resources from the legacy listeners may already have the attribute set)
+        if (!resource.targetFront) {
+          resource.targetFront = targetFront;
+        }
+
+        if (transformer) {
+          resource = transformer({
+            resource,
+            targetCommand: this.targetCommand,
+            targetFront,
+            watcherFront: this.watcherFront,
+          });
+          resources[i] = resource;
+        }
+
+        // isAlreadyExistingResource indicates that the resources already existed before
+        // the resource command started watching for this type of resource.
+        resource.isAlreadyExistingResource = isAlreadyExistingResource;
+
+        if (!resource.resourceId) {
+          resource.resourceId = `auto:${++gLastResourceId}`;
+        }
+
+        // Only consider top level document, and ignore remote iframes top document
+        let isWillNavigate = false;
+        if (resourceType == DOCUMENT_EVENT) {
+          isWillNavigate = resource.name === "will-navigate";
+          if (isWillNavigate && resource.targetFront.isTopLevel) {
+            includesDocumentEventWillNavigate = true;
+            this._onWillNavigate(resource.targetFront);
+          }
+
+          if (
+            resource.name === "dom-loading" &&
+            resource.targetFront.isTopLevel
+          ) {
+            includesDocumentEventDomLoading = true;
+          }
+        }
+
+        // Avoid storing will-navigate resource and consider it as a transcient resource.
+        // We do that to prevent leaking this resource (and its target) on navigation.
+        // We do clear the cache in _onWillNavigate, that we call a few lines before this.
+        if (!isWillNavigate) {
+          this.addResourceToCache(resource);
+        }
       }
-      await this._onResourceAvailable({ targetFront, watcherFront }, resources);
+
+      this._queueResourceEvent("available", resourceType, resources);
+    }
+
+    // If we receive the DOCUMENT_EVENT for:
+    // - will-navigate
+    // - dom-loading + we're using the service worker legacy listener
+    // then flush immediately the resources to notify about the navigation sooner than later.
+    // (this is especially useful for tests, even if they should probably avoid depending on this...)
+    if (
+      includesDocumentEventWillNavigate ||
+      (includesDocumentEventDomLoading &&
+        !this.targetCommand.hasTargetWatcherSupport("service_worker")) ||
+      this.throttlingDisabled
+    ) {
+      this._notifyWatchers();
+    } else {
+      this._throttledNotifyWatchers();
     }
   }
 
@@ -713,6 +799,9 @@ class ResourceCommand {
     await this._onResourceDestroyed(context, resources);
   }
 
+  // @backward-compat { version 129 } Once Fx129 is release, resource-*-form event won't be used anymore,
+  // and we can drop the _onResourceAvailable/Updated/Destroyed.
+  // (only _onResourceAvailableArray/UpdatedArray/DestroyedArray will be used)
   /**
    * Method called either by:
    * - the backward compatibility code (LegacyListeners)
@@ -780,7 +869,6 @@ class ResourceCommand {
         includesDocumentEventWillNavigate = true;
         this._onWillNavigate(resource.targetFront);
       }
-
       if (
         resourceType == ResourceCommand.TYPES.DOCUMENT_EVENT &&
         resource.name == "dom-loading" &&
@@ -789,7 +877,7 @@ class ResourceCommand {
         includesDocumentEventDomLoading = true;
       }
 
-      this._queueResourceEvent("available", resourceType, resource);
+      this._queueResourceEvent("available", resourceType, [resource]);
 
       // Avoid storing will-navigate resource and consider it as a transcient resource.
       // We do that to prevent leaking this resource (and its target) on navigation.
@@ -903,11 +991,14 @@ class ResourceCommand {
           target[path[path.length - 1]] = value;
         }
       }
-      this._queueResourceEvent("updated", resourceType, {
-        resource: existingResource,
-        update,
-      });
+      this._queueResourceEvent("updated", resourceType, [
+        {
+          resource: existingResource,
+          update,
+        },
+      ]);
     }
+
     this._throttledNotifyWatchers();
   }
 
@@ -922,30 +1013,22 @@ class ResourceCommand {
       if (!resource.targetFront) {
         resource.targetFront = targetFront;
       }
-      this._queueResourceEvent("destroyed", resourceType, resource);
+      this._queueResourceEvent("destroyed", resourceType, [resource]);
     }
     this._throttledNotifyWatchers();
   }
 
-  _queueResourceEvent(callbackType, resourceType, update) {
+  _queueResourceEvent(callbackType, resourceType, updates) {
     for (const { resources, pendingEvents } of this._watchers) {
       // This watcher doesn't listen to this type of resource
       if (!resources.includes(resourceType)) {
         continue;
       }
-      // If we receive a new event of the same type, accumulate the new update in the last event
-      if (pendingEvents.length) {
-        const lastEvent = pendingEvents[pendingEvents.length - 1];
-        if (lastEvent.callbackType == callbackType) {
-          lastEvent.updates.push(update);
-          continue;
-        }
-      }
-      // Otherwise, pile up a new event, which will force calling watcher
-      // callback a new time
+      // Avoid trying to coalesce with last pending event as mutating `updates` may have side effects
+      // with other watchers as this array is shared between all the watchers.
       pendingEvents.push({
         callbackType,
-        updates: [update],
+        updates,
       });
     }
   }
@@ -1286,6 +1369,7 @@ class ResourceCommand {
   }
 }
 
+const DOCUMENT_EVENT = "document-event";
 ResourceCommand.TYPES = ResourceCommand.prototype.TYPES = {
   CONSOLE_MESSAGE: "console-message",
   CSS_CHANGE: "css-change",
@@ -1293,7 +1377,7 @@ ResourceCommand.TYPES = ResourceCommand.prototype.TYPES = {
   CSS_REGISTERED_PROPERTIES: "css-registered-properties",
   ERROR_MESSAGE: "error-message",
   PLATFORM_MESSAGE: "platform-message",
-  DOCUMENT_EVENT: "document-event",
+  DOCUMENT_EVENT,
   ROOT_NODE: "root-node",
   STYLESHEET: "stylesheet",
   NETWORK_EVENT: "network-event",
