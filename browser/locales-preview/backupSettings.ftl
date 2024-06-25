@@ -12,7 +12,7 @@ settings-data-backup-toggle = Manage backup
 
 settings-data-backup-restore-header = Restore your data
 settings-data-backup-restore-description = Use a { -brand-short-name } backup from another device to restore your data.
-settings-data-backup-restore-choose = Choose your file…
+settings-data-backup-restore-choose = Choose backup file…
 
 settings-data-toggle-encryption-label = Back up your sensitive data
 settings-data-toggle-encryption-description = Back up your passwords, payment methods, and cookies with encryption.
