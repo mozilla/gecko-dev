@@ -1625,7 +1625,14 @@ void nsWindow::Show(bool bState) {
 
           RECT rect;
           ::GetWindowRect(hwnd, &rect);  // includes non-client area
+
+          // Convert from screen- to client-coordinates, accounting for the
+          // desktop (or, in theory, us) possibly being WS_EX_LAYOUTRTL...
           ::MapWindowPoints(HWND_DESKTOP, hwnd, (LPPOINT)&rect, 2);
+          // ... then convert from client- to window- coordinates, with no
+          // separate RTL-handling needed.
+          ::OffsetRect(&rect, -rect.left, -rect.top);
+
           ::FillRect(hdc, &rect, brush);
         };
 

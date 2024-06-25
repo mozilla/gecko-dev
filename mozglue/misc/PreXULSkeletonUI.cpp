@@ -1936,6 +1936,13 @@ static Result<Ok, PreXULSkeletonUIError> CreateAndStorePreXULSkeletonUIImpl(
       sDwmSetWindowAttribute(sPreXULSkeletonUIWindow, DWMWA_CLOAK, &state,
                              sizeof(state));
     };
+    // Equivalent to ::OffsetRect, with no dynamic-symbol resolution needed.
+    constexpr static auto const OffsetRect = [](LPRECT rect, int dx, int dy) {
+      rect->left += dx;
+      rect->top += dy;
+      rect->right += dx;
+      rect->bottom += dy;
+    };
 
     CloakWindow(sPreXULSkeletonUIWindow, TRUE);
     auto const _uncloak =
@@ -1949,9 +1956,13 @@ static Result<Ok, PreXULSkeletonUIError> CreateAndStorePreXULSkeletonUIImpl(
     auto const _cleanupDC =
         MakeScopeExit([&] { sReleaseDC(sPreXULSkeletonUIWindow, hdc); });
 
+    // This should match the related code in nsWindow::Show.
     RECT rect;
     sGetWindowRect(sPreXULSkeletonUIWindow, &rect);  // includes non-client area
+    // screen-to-client (handling RTL if necessary)
     sMapWindowPoints(HWND_DESKTOP, sPreXULSkeletonUIWindow, (LPPOINT)&rect, 2);
+    // client-to-window (no RTL handling needed)
+    OffsetRect(&rect, -rect.left, -rect.top);
     FillRectWithColor(hdc, &rect, currentTheme.backgroundColor);
   }
 
