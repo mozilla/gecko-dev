@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://gn.wikipedia.org/wiki/Mba'echĩchĩ:Buscar"
   },
+  "searchForm": {
+    "message": "https://gn.wikipedia.org/wiki/Mba'echĩchĩ:Buscar"
+  },
   "suggestUrl": {
     "message": "https://gn.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

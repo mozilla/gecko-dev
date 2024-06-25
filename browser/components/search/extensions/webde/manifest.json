@@ -1,13 +1,17 @@
 {
   "name": "WEB.DE Suche",
   "manifest_version": 2,
-  "version": "1.2",
+  "version": "1.1",
   "browser_specific_settings": {
     "gecko": {
       "id": "webde@search.mozilla.org"
     }
   },
   "hidden": true,
+  "icons": {
+    "16": "favicon.ico"
+  },
+  "web_accessible_resources": ["favicon.ico"],
   "chrome_settings_overrides": {
     "search_provider": {
       "name": "WEB.DE Suche",

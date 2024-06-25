@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://oc.wikipedia.org/wiki/Especial:Recèrca"
   },
+  "searchForm": {
+    "message": "https://oc.wikipedia.org/wiki/Especial:Recèrca"
+  },
   "suggestUrl": {
     "message": "https://oc.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

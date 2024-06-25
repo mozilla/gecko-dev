@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://el.wikipedia.org/wiki/Ειδικό:Αναζήτηση"
   },
+  "searchForm": {
+    "message": "https://el.wikipedia.org/wiki/Ειδικό:Αναζήτηση"
+  },
   "suggestUrl": {
     "message": "https://el.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

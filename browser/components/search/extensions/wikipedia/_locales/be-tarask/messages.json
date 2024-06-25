@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://be-tarask.wikipedia.org/wiki/Спэцыяльныя:Пошук"
   },
+  "searchForm": {
+    "message": "https://be-tarask.wikipedia.org/wiki/Спэцыяльныя:Пошук"
+  },
   "suggestUrl": {
     "message": "https://be-tarask.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

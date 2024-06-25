@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://www.ebay.com/sch/"
   },
+  "searchForm": {
+    "message": "https://www.ebay.com/"
+  },
   "searchUrlGetParams": {
     "message": "toolid=20004&campid=5338192028&mkevt=1&mkcid=1&mkrid=711-53200-19255-0&kw={searchTerms}"
   },

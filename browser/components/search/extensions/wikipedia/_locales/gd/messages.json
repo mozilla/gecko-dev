@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://gd.wikipedia.org/wiki/Sònraichte:Search"
   },
+  "searchForm": {
+    "message": "https://gd.wikipedia.org/wiki/Sònraichte:Search"
+  },
   "suggestUrl": {
     "message": "https://gd.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

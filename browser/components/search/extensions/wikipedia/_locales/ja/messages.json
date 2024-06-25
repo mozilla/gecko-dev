@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://ja.wikipedia.org/wiki/特別:検索"
   },
+  "searchForm": {
+    "message": "https://ja.wikipedia.org/wiki/特別:検索"
+  },
   "suggestUrl": {
     "message": "https://ja.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://eu.wikipedia.org/wiki/Berezi:Bilatu"
   },
+  "searchForm": {
+    "message": "https://eu.wikipedia.org/wiki/Berezi:Bilatu"
+  },
   "suggestUrl": {
     "message": "https://eu.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

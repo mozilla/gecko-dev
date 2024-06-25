@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://ca.wikipedia.org/wiki/Especial:Cerca"
   },
+  "searchForm": {
+    "message": "https://ca.wikipedia.org/wiki/Especial:Cerca"
+  },
   "suggestUrl": {
     "message": "https://ca.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

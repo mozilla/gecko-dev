@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://ltg.wikipedia.org/wiki/Seviškuo:Search"
   },
+  "searchForm": {
+    "message": "https://ltg.wikipedia.org/wiki/Seviškuo:Search"
+  },
   "suggestUrl": {
     "message": "https://ltg.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

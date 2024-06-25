@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://be.wikipedia.org/wiki/Адмысловае:Search"
   },
+  "searchForm": {
+    "message": "https://be.wikipedia.org/wiki/Адмысловае:Search"
+  },
   "suggestUrl": {
     "message": "https://be.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

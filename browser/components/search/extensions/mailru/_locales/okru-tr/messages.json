@@ -1,4 +1,7 @@
 {
+  "searchForm": {
+    "message": "https://go.mail.ru/?gp=900210"
+  },
   "searchUrlGetParams": {
     "message": "q={searchTerms}&fr=osmi&gp=900210&frc=900210"
   },

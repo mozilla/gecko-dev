@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://es.wikipedia.org/wiki/Especial:Buscar"
   },
+  "searchForm": {
+    "message": "https://es.wikipedia.org/wiki/Especial:Buscar"
+  },
   "suggestUrl": {
     "message": "https://es.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

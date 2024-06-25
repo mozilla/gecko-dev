@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://fa.wikipedia.org/wiki/ویژه:جستجو"
   },
+  "searchForm": {
+    "message": "https://fa.wikipedia.org/wiki/ویژه:جستجو"
+  },
   "suggestUrl": {
     "message": "https://fa.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://tl.wikipedia.org/wiki/Natatangi:Maghanap"
   },
+  "searchForm": {
+    "message": "https://tl.wikipedia.org/wiki/Natatangi:Maghanap"
+  },
   "suggestUrl": {
     "message": "https://tl.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

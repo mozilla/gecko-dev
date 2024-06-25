@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://lv.wikipedia.org/wiki/Special:Search"
   },
+  "searchForm": {
+    "message": "https://lv.wikipedia.org/wiki/Special:Search"
+  },
   "suggestUrl": {
     "message": "https://lv.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

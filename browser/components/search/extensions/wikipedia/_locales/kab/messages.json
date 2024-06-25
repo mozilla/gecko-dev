@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://kab.wikipedia.org/wiki/Uslig:Search"
   },
+  "searchForm": {
+    "message": "https://kab.wikipedia.org/wiki/Uslig:Search"
+  },
   "suggestUrl": {
     "message": "https://kab.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

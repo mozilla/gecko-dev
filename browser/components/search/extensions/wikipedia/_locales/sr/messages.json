@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://sr.wikipedia.org/wiki/Посебно:Претражи"
   },
+  "searchForm": {
+    "message": "https://sr.wikipedia.org/wiki/Посебно:Претражи"
+  },
   "suggestUrl": {
     "message": "https://sr.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

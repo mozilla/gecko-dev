@@ -2,7 +2,7 @@
   "name": "__MSG_extensionName__",
   "description": "__MSG_extensionName__",
   "manifest_version": 2,
-  "version": "1.3",
+  "version": "1.2",
   "browser_specific_settings": {
     "gecko": {
       "id": "gmx@search.mozilla.org"
@@ -10,6 +10,10 @@
   },
   "hidden": true,
   "default_locale": "de",
+  "icons": {
+    "16": "favicon.png"
+  },
+  "web_accessible_resources": ["favicon.png"],
   "chrome_settings_overrides": {
     "search_provider": {
       "name": "__MSG_extensionName__",

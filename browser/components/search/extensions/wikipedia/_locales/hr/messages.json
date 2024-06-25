@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://hr.wikipedia.org/wiki/Posebno:Traži"
   },
+  "searchForm": {
+    "message": "https://hr.wikipedia.org/wiki/Posebno:Traži"
+  },
   "suggestUrl": {
     "message": "https://hr.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

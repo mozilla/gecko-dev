@@ -2,18 +2,23 @@
   "name": "Bing",
   "description": "Microsoft Bing",
   "manifest_version": 2,
-  "version": "1.7",
+  "version": "1.6",
   "browser_specific_settings": {
     "gecko": {
       "id": "bing@search.mozilla.org"
     }
   },
   "hidden": true,
+  "icons": {
+    "16": "favicon.ico"
+  },
+  "web_accessible_resources": ["favicon.ico"],
   "chrome_settings_overrides": {
     "search_provider": {
       "keyword": "@bing",
       "name": "Bing",
       "search_url": "https://www.bing.com/search",
+      "search_form": "https://www.bing.com/search",
       "search_url_get_params": "pc=MOZI&q={searchTerms}",
       "params": [
         {

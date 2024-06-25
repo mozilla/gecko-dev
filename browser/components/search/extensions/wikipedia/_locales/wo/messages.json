@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://wo.wikipedia.org/wiki/Jagleel:Ceet"
   },
+  "searchForm": {
+    "message": "https://wo.wikipedia.org/wiki/Jagleel:Ceet"
+  },
   "suggestUrl": {
     "message": "https://wo.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

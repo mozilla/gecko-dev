@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://th.wikipedia.org/wiki/พิเศษ:ค้นหา"
   },
+  "searchForm": {
+    "message": "https://th.wikipedia.org/wiki/พิเศษ:ค้นหา"
+  },
   "suggestUrl": {
     "message": "https://th.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

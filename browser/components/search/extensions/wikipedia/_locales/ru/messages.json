@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://ru.wikipedia.org/wiki/Служебная:Поиск"
   },
+  "searchForm": {
+    "message": "https://ru.wikipedia.org/wiki/Служебная:Поиск"
+  },
   "suggestUrl": {
     "message": "https://ru.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

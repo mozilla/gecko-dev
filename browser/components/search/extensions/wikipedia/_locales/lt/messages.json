@@ -8,6 +8,9 @@
   "searchUrl": {
     "message": "https://lt.wikipedia.org/wiki/Specialus:Paieška"
   },
+  "searchForm": {
+    "message": "https://lt.wikipedia.org/wiki/Specialus:Paieška"
+  },
   "suggestUrl": {
     "message": "https://lt.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },
