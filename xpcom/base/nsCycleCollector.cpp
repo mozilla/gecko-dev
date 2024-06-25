@@ -155,6 +155,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
+#include "mozilla/CycleCollectorStats.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/HashTable.h"
@@ -1278,9 +1279,15 @@ class GraphWalker {
 struct CollectorData {
   RefPtr<nsCycleCollector> mCollector;
   CycleCollectedJSContext* mContext;
+  UniquePtr<mozilla::CycleCollectorStats> mStats;
 };
 
 static MOZ_THREAD_LOCAL(CollectorData*) sCollectorData;
+
+mozilla::CycleCollectorStats* CycleCollectorStats::Get() {
+  MOZ_ASSERT(sCollectorData.get());
+  return sCollectorData.get()->mStats.get();
+}
 
 ////////////////////////////////////////////////////////////////////////
 // Utility functions
@@ -3925,6 +3932,7 @@ void nsCycleCollector_startup() {
   CollectorData* data = new CollectorData;
   data->mCollector = new nsCycleCollector();
   data->mContext = nullptr;
+  data->mStats.reset(new mozilla::CycleCollectorStats());
 
   sCollectorData.set(data);
 }
@@ -4067,6 +4075,8 @@ void nsCycleCollector_shutdown(bool aDoCollect) {
       collector->Shutdown(aDoCollect);
       data->mCollector = nullptr;
     }
+
+    data->mStats.reset();
 
     if (!data->mContext) {
       delete data;

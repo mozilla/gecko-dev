@@ -110,7 +110,8 @@ static bool sShuttingDown;
 static CCGCScheduler* sScheduler = nullptr;
 static std::aligned_storage_t<sizeof(*sScheduler)> sSchedulerStorage;
 
-static CycleCollectorStats sCCStats;
+// Cache a pointer to the main thread's statistics struct.
+static CycleCollectorStats* sCCStats = nullptr;
 
 static const char* ProcessNameForCollectorLog() {
   return XRE_GetProcessType() == GeckoProcessType_Default ? "default"
@@ -1057,7 +1058,7 @@ static void FireForgetSkippable(bool aRemoveChildless, TimeStamp aDeadline) {
       now, suspectedBefore, nsCycleCollector_suspectedCount());
 
   bool inIdle = !aDeadline.IsNull();
-  sCCStats.AfterForgetSkippable(startTimeStamp, now, removedPurples, inIdle);
+  sCCStats->AfterForgetSkippable(startTimeStamp, now, removedPurples, inIdle);
 
   TimeDuration duration = now - startTimeStamp;
   if (duration.ToSeconds()) {
@@ -1081,7 +1082,7 @@ static void FireForgetSkippable(bool aRemoveChildless, TimeStamp aDeadline) {
 
 static void MaybeLogStats(const CycleCollectorResults& aResults,
                           uint32_t aCleanups) {
-  if (!StaticPrefs::javascript_options_mem_log() && !sCCStats.mFile) {
+  if (!StaticPrefs::javascript_options_mem_log() && !sCCStats->mFile) {
     return;
   }
 
@@ -1107,20 +1108,20 @@ static void MaybeLogStats(const CycleCollectorResults& aResults,
   nsTextFormatter::ssprintf(
       msg, kFmt, delta.ToMicroseconds() / PR_USEC_PER_SEC,
       ProcessNameForCollectorLog(), getpid(),
-      sCCStats.mMaxSliceTime.ToMilliseconds(),
-      sCCStats.mTotalSliceTime.ToMilliseconds(), aResults.mNumSlices,
-      sCCStats.mSuspected, aResults.mVisitedRefCounted, aResults.mVisitedGCed,
+      sCCStats->mMaxSliceTime.ToMilliseconds(),
+      sCCStats->mTotalSliceTime.ToMilliseconds(), aResults.mNumSlices,
+      sCCStats->mSuspected, aResults.mVisitedRefCounted, aResults.mVisitedGCed,
       mergeMsg.get(), aResults.mFreedRefCounted, aResults.mFreedGCed,
       sScheduler->mCCollectedWaitingForGC,
       sScheduler->mCCollectedZonesWaitingForGC,
       sScheduler->mLikelyShortLivingObjectsNeedingGC, gcMsg.get(),
-      sCCStats.mForgetSkippableBeforeCC,
-      sCCStats.mMinForgetSkippableTime.ToMilliseconds(),
-      sCCStats.mMaxForgetSkippableTime.ToMilliseconds(),
-      sCCStats.mTotalForgetSkippableTime.ToMilliseconds() / aCleanups,
-      sCCStats.mTotalForgetSkippableTime.ToMilliseconds(),
-      sCCStats.mMaxSkippableDuration.ToMilliseconds(),
-      sCCStats.mRemovedPurples);
+      sCCStats->mForgetSkippableBeforeCC,
+      sCCStats->mMinForgetSkippableTime.ToMilliseconds(),
+      sCCStats->mMaxForgetSkippableTime.ToMilliseconds(),
+      sCCStats->mTotalForgetSkippableTime.ToMilliseconds() / aCleanups,
+      sCCStats->mTotalForgetSkippableTime.ToMilliseconds(),
+      sCCStats->mMaxSkippableDuration.ToMilliseconds(),
+      sCCStats->mRemovedPurples);
   if (StaticPrefs::javascript_options_mem_log()) {
     nsCOMPtr<nsIConsoleService> cs =
         do_GetService(NS_CONSOLESERVICE_CONTRACTID);
@@ -1128,8 +1129,8 @@ static void MaybeLogStats(const CycleCollectorResults& aResults,
       cs->LogStringMessage(msg.get());
     }
   }
-  if (sCCStats.mFile) {
-    fprintf(sCCStats.mFile, "%s\n", NS_ConvertUTF16toUTF8(msg).get());
+  if (sCCStats->mFile) {
+    fprintf(sCCStats->mFile, "%s\n", NS_ConvertUTF16toUTF8(msg).get());
   }
 }
 
@@ -1169,21 +1170,21 @@ static void MaybeNotifyStats(const CycleCollectorResults& aResults,
   nsString json;
   nsTextFormatter::ssprintf(
       json, kJSONFmt, PR_Now(), aCCNowDuration.ToMilliseconds(),
-      sCCStats.mMaxSliceTime.ToMilliseconds(),
-      sCCStats.mTotalSliceTime.ToMilliseconds(),
-      sCCStats.mMaxGCDuration.ToMilliseconds(),
-      sCCStats.mMaxSkippableDuration.ToMilliseconds(), sCCStats.mSuspected,
+      sCCStats->mMaxSliceTime.ToMilliseconds(),
+      sCCStats->mTotalSliceTime.ToMilliseconds(),
+      sCCStats->mMaxGCDuration.ToMilliseconds(),
+      sCCStats->mMaxSkippableDuration.ToMilliseconds(), sCCStats->mSuspected,
       aResults.mVisitedRefCounted, aResults.mVisitedGCed,
       aResults.mFreedRefCounted, aResults.mFreedGCed,
       sScheduler->mCCollectedWaitingForGC,
       sScheduler->mCCollectedZonesWaitingForGC,
       sScheduler->mLikelyShortLivingObjectsNeedingGC, aResults.mForcedGC,
-      sCCStats.mForgetSkippableBeforeCC,
-      sCCStats.mMinForgetSkippableTime.ToMilliseconds(),
-      sCCStats.mMaxForgetSkippableTime.ToMilliseconds(),
-      sCCStats.mTotalForgetSkippableTime.ToMilliseconds() / aCleanups,
-      sCCStats.mTotalForgetSkippableTime.ToMilliseconds(),
-      sCCStats.mRemovedPurples);
+      sCCStats->mForgetSkippableBeforeCC,
+      sCCStats->mMinForgetSkippableTime.ToMilliseconds(),
+      sCCStats->mMaxForgetSkippableTime.ToMilliseconds(),
+      sCCStats->mTotalForgetSkippableTime.ToMilliseconds() / aCleanups,
+      sCCStats->mTotalForgetSkippableTime.ToMilliseconds(),
+      sCCStats->mRemovedPurples);
   nsCOMPtr<nsIObserverService> observerService =
       mozilla::services::GetObserverService();
   if (observerService) {
@@ -1203,7 +1204,7 @@ void nsJSContext::CycleCollectNow(CCReason aReason,
 
   PrepareForCycleCollectionSlice(aReason, TimeStamp());
   nsCycleCollector_collect(aReason, aListener);
-  sCCStats.AfterCycleCollectionSlice();
+  sCCStats->AfterCycleCollectionSlice();
 }
 
 // static
@@ -1219,14 +1220,14 @@ void nsJSContext::PrepareForCycleCollectionSlice(CCReason aReason,
   }
 
   if (!sScheduler->IsCollectingCycles()) {
-    sCCStats.PrepareForCycleCollection(beginTime);
+    sCCStats->PrepareForCycleCollection(beginTime);
     sScheduler->NoteCCBegin(aReason, beginTime,
-                            sCCStats.mForgetSkippableBeforeCC,
-                            sCCStats.mSuspected, sCCStats.mRemovedPurples);
+                            sCCStats->mForgetSkippableBeforeCC,
+                            sCCStats->mSuspected, sCCStats->mRemovedPurples);
   }
 
-  sCCStats.AfterPrepareForCycleCollectionSlice(aDeadline, beginTime,
-                                               afterGCTime);
+  sCCStats->AfterPrepareForCycleCollectionSlice(aDeadline, beginTime,
+                                                afterGCTime);
 }
 
 // static
@@ -1242,7 +1243,7 @@ void nsJSContext::RunCycleCollectorSlice(CCReason aReason,
   if (sIncrementalCC) {
     bool preferShorterSlices;
     JS::SliceBudget budget = sScheduler->ComputeCCSliceBudget(
-        aDeadline, sCCStats.mBeginTime, sCCStats.mEndSliceTime,
+        aDeadline, sCCStats->mBeginTime, sCCStats->mEndSliceTime,
         TimeStamp::Now(), &preferShorterSlices);
     nsCycleCollector_collectSlice(budget, aReason, preferShorterSlices);
   } else {
@@ -1250,7 +1251,7 @@ void nsJSContext::RunCycleCollectorSlice(CCReason aReason,
     nsCycleCollector_collectSlice(budget, aReason, false);
   }
 
-  sCCStats.AfterCycleCollectionSlice();
+  sCCStats->AfterCycleCollectionSlice();
 }
 
 // static
@@ -1266,15 +1267,15 @@ void nsJSContext::RunCycleCollectorWorkSlice(int64_t aWorkBudget) {
   JS::SliceBudget budget = JS::SliceBudget(JS::WorkBudget(aWorkBudget));
   nsCycleCollector_collectSlice(budget, CCReason::API);
 
-  sCCStats.AfterCycleCollectionSlice();
+  sCCStats->AfterCycleCollectionSlice();
 }
 
 void nsJSContext::ClearMaxCCSliceTime() {
-  sCCStats.mMaxSliceTimeSinceClear = TimeDuration();
+  sCCStats->mMaxSliceTimeSinceClear = TimeDuration();
 }
 
 uint32_t nsJSContext::GetMaxCCSliceTimeSinceClear() {
-  return sCCStats.mMaxSliceTimeSinceClear.ToMilliseconds();
+  return sCCStats->mMaxSliceTimeSinceClear.ToMilliseconds();
 }
 
 // static
@@ -1282,7 +1283,7 @@ void nsJSContext::BeginCycleCollectionCallback(CCReason aReason) {
   MOZ_ASSERT(NS_IsMainThread());
 
   TimeStamp startTime = TimeStamp::Now();
-  sCCStats.PrepareForCycleCollection(startTime);
+  sCCStats->PrepareForCycleCollection(startTime);
 
   // Run forgetSkippable synchronously to reduce the size of the CC graph. This
   // is particularly useful if we recently finished a GC.
@@ -1290,7 +1291,7 @@ void nsJSContext::BeginCycleCollectionCallback(CCReason aReason) {
     while (sScheduler->IsEarlyForgetSkippable()) {
       FireForgetSkippable(false, TimeStamp());
     }
-    sCCStats.AfterSyncForgetSkippable(startTime);
+    sCCStats->AfterSyncForgetSkippable(startTime);
   }
 
   if (sShuttingDown) {
@@ -1312,27 +1313,27 @@ void nsJSContext::EndCycleCollectionCallback(
   // Update timing information for the current slice before we log it, if
   // we previously called PrepareForCycleCollectionSlice(). During shutdown
   // CCs, this won't happen.
-  sCCStats.AfterCycleCollectionSlice();
+  sCCStats->AfterCycleCollectionSlice();
 
   TimeStamp endCCTimeStamp = TimeStamp::Now();
-  MOZ_ASSERT(endCCTimeStamp >= sCCStats.mBeginTime);
-  TimeDuration ccNowDuration = endCCTimeStamp - sCCStats.mBeginTime;
+  MOZ_ASSERT(endCCTimeStamp >= sCCStats->mBeginTime);
+  TimeDuration ccNowDuration = endCCTimeStamp - sCCStats->mBeginTime;
   TimeStamp prevCCEnd = sScheduler->GetLastCCEndTime();
 
-  sScheduler->NoteCCEnd(aResults, endCCTimeStamp, sCCStats.mMaxSliceTime);
+  sScheduler->NoteCCEnd(aResults, endCCTimeStamp, sCCStats->mMaxSliceTime);
 
   // Log information about the CC via telemetry, JSON and the console.
 
-  sCCStats.SendTelemetry(ccNowDuration, prevCCEnd);
+  sCCStats->SendTelemetry(ccNowDuration, prevCCEnd);
 
-  uint32_t cleanups = std::max(sCCStats.mForgetSkippableBeforeCC, 1u);
+  uint32_t cleanups = std::max(sCCStats->mForgetSkippableBeforeCC, 1u);
 
   MaybeLogStats(aResults, cleanups);
 
   MaybeNotifyStats(aResults, ccNowDuration, cleanups);
 
   // Update global state to indicate we have just run a cycle collection.
-  sCCStats.Clear();
+  sCCStats->Clear();
 
   // If we need a GC after this CC (typically because lots of GCed objects or
   // zones have been collected in the CC), schedule it.
@@ -1709,7 +1710,7 @@ void mozilla::dom::StartupJSEnvironment() {
   // initialize all our statics, so that we can restart XPCOM
   sIsInitialized = false;
   sShuttingDown = false;
-  sCCStats.Init();
+  sCCStats = CycleCollectorStats::Get();
 }
 
 static void SetGCParameter(JSGCParamKey aParam, uint32_t aValue) {
@@ -2048,6 +2049,7 @@ void nsJSContext::EnsureStatics() {
 void mozilla::dom::ShutdownJSEnvironment() {
   sShuttingDown = true;
   sScheduler->Shutdown();
+  sCCStats = nullptr;
 }
 
 AsyncErrorReporter::AsyncErrorReporter(xpc::ErrorReport* aReport)

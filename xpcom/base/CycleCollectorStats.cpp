@@ -19,7 +19,7 @@
 
 using namespace mozilla;
 
-void mozilla::CycleCollectorStats::Init() {
+mozilla::CycleCollectorStats::CycleCollectorStats() {
   char* env = getenv("MOZ_CCTIMER");
   if (!env) {
     return;

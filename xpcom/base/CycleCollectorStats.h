@@ -13,8 +13,11 @@
 namespace mozilla {
 
 struct CycleCollectorStats {
-  CycleCollectorStats() = default;
-  void Init();
+  // Return the statistics struct for the current cycle-collecting thread, which
+  // will have initialized it during startup.
+  static CycleCollectorStats* Get();
+
+  CycleCollectorStats();
   void Clear();
   void PrepareForCycleCollection(TimeStamp aNow);
   void AfterPrepareForCycleCollectionSlice(TimeStamp aDeadline,
