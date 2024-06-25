@@ -24,11 +24,7 @@
 #  include <atomic>
 #endif  // __wasi__
 
-#if defined(MOZILLA_INTERNAL_API)
-#  include "nsXPCOM.h"
-#endif
-
-#if defined(MOZILLA_INTERNAL_API) && defined(NS_BUILD_REFCNT_LOGGING)
+#if defined(MOZ_SUPPORT_LEAKCHECKING) && defined(NS_BUILD_REFCNT_LOGGING)
 #  define MOZ_REFCOUNTED_LEAK_CHECKING
 #endif
 
@@ -58,9 +54,6 @@ namespace mozilla {
  * Note that when deriving from RefCounted or AtomicRefCounted, you
  * should add MOZ_DECLARE_REFCOUNTED_TYPENAME(ClassName) to the public
  * section of your class, where ClassName is the name of your class.
- *
- * Note: SpiderMonkey should use js::RefCounted instead since that type
- * will use appropriate js_delete and also not break ref-count logging.
  */
 namespace detail {
 const MozRefCountType DEAD = 0xffffdead;
@@ -68,6 +61,20 @@ const MozRefCountType DEAD = 0xffffdead;
 // When building code that gets compiled into Gecko, try to use the
 // trace-refcount leak logging facilities.
 class RefCountLogger {
+#ifdef MOZ_REFCOUNTED_LEAK_CHECKING
+  // When this header is included in SpiderMonkey code, NS_LogAddRef and
+  // NS_LogRelease are not available. To work around this, we call these
+  // functions through a function pointer set by SetLeakCheckingFunctions.
+  using LogAddRefFunc = void (*)(void* aPtr, MozRefCountType aNewRefCnt,
+                                 const char* aTypeName, uint32_t aClassSize);
+  using LogReleaseFunc = void (*)(void* aPtr, MozRefCountType aNewRefCnt,
+                                  const char* aTypeName);
+  static MFBT_DATA LogAddRefFunc sLogAddRefFunc;
+  static MFBT_DATA LogReleaseFunc sLogReleaseFunc;
+  static MFBT_DATA size_t sNumStaticCtors;
+  static MFBT_DATA const char* sLastStaticCtorTypeName;
+#endif
+
  public:
   // Called by `RefCounted`-like classes to log a successful AddRef call in the
   // Gecko leak-logging system. This call is a no-op outside of Gecko. Should be
@@ -78,9 +85,19 @@ class RefCountLogger {
     const void* pointer = aPointer;
     const char* typeName = aPointer->typeName();
     uint32_t typeSize = aPointer->typeSize();
-    NS_LogAddRef(const_cast<void*>(pointer), aRefCount, typeName, typeSize);
+    if (sLogAddRefFunc) {
+      sLogAddRefFunc(const_cast<void*>(pointer), aRefCount, typeName, typeSize);
+    } else {
+      sNumStaticCtors++;
+      sLastStaticCtorTypeName = typeName;
+    }
 #endif
   }
+
+#ifdef MOZ_REFCOUNTED_LEAK_CHECKING
+  static MFBT_DATA void SetLeakCheckingFunctions(
+      LogAddRefFunc aLogAddRefFunc, LogReleaseFunc aLogReleaseFunc);
+#endif
 
   // Created by `RefCounted`-like classes to log a successful Release call in
   // the Gecko leak-logging system. The constructor should be invoked before the
@@ -100,7 +117,12 @@ class RefCountLogger {
     void logRelease(MozRefCountType aRefCount) {
 #ifdef MOZ_REFCOUNTED_LEAK_CHECKING
       MOZ_ASSERT(aRefCount != DEAD);
-      NS_LogRelease(const_cast<void*>(mPointer), aRefCount, mTypeName);
+      if (sLogReleaseFunc) {
+        sLogReleaseFunc(const_cast<void*>(mPointer), aRefCount, mTypeName);
+      } else {
+        sNumStaticCtors++;
+        sLastStaticCtorTypeName = mTypeName;
+      }
 #endif
     }
 
