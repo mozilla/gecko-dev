@@ -51,7 +51,11 @@ export class GeckoViewTranslations extends GeckoViewModule {
             );
           try {
             this.getActor("Translations")
-              .translate(fromLanguage, toLanguage)
+              .translate(
+                fromLanguage,
+                toLanguage,
+                /* reportAsAutoTranslate */ false
+              )
               .then(() => {
                 aCallback.onSuccess();
               });

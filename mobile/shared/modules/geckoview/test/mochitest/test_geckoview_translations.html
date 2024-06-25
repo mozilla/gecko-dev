@@ -1,0 +1,67 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Tests for GeckoView Translations Module</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="head.js" type="application/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+
+<script class="testbody" type="text/javascript">
+
+async function requestTranslate() {
+    const chromeScript = SpecialPowers.loadChromeScript(_ => {
+        /* eslint-env mozilla/chrome-script */
+        addMessageListener("translate",() => {
+            // Get Chrome
+            const navigator = Services.wm.getMostRecentWindow("navigator:geckoview");
+            // Setup Translations Parent values
+            const translationsParent = navigator.window.moduleManager.getActor("Translations");
+            translationsParent.languageState.detectedLanguages = "en";
+
+            // Callback to signal wait ended
+            const { promise, resolve, reject } = Promise.withResolvers();
+            const callback = {
+                onSuccess(message) {
+                    resolve()
+                },
+                onError(error) {
+                    reject()
+                }
+            };
+
+            // Simulate GeckoView callers through Java
+            const dispatcher = navigator.window.WindowEventDispatcher;
+            dispatcher.dispatch("GeckoView:Translations:Translate",
+            {
+                fromLanguage: "en",
+                toLanguage: "es"
+            }, callback);
+            return promise;
+        });
+    });
+
+    const result = await chromeScript.sendQuery("translate");
+    chromeScript.destroy();
+    return result;
+  }
+
+
+  add_task(async function test_translate_telemetry() {
+    const startCount = await GleanTest.translations.requestsCount.testGetValue() ?? 0;
+    await requestTranslate();
+    const endCount = await GleanTest.translations.requestsCount.testGetValue() ?? 0;
+    is(endCount - startCount, 1, "Translation telemetry only incremented once during the test.");
+
+    const translationRequest = await GleanTest.translations.translationRequest.testGetValue() ?? 0;
+    is(translationRequest[0].extra.from_language, "en", "Translation telemetry recorded the expected from language.");
+    is(translationRequest[0].extra.to_language, "es", "Translation telemetry recorded the expected to language.");
+    is(translationRequest[0].extra.auto_translate, "false", "Translation telemetry recorded the correct translation method.");
+  });
+
+</script>
+</body>
+</html>

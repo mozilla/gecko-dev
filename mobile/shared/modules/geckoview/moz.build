@@ -42,3 +42,4 @@ EXTRA_JS_MODULES += [
 ]
 
 XPCSHELL_TESTS_MANIFESTS += ["test/xpcshell/xpcshell.toml"]
+MOCHITEST_MANIFESTS += ["test/mochitest/mochitest.toml"]
