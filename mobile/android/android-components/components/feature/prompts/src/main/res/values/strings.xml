@@ -128,8 +128,6 @@
     <string name="mozac_feature_prompts_suggest_strong_password_title">Use strong password?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description">Protect your accounts by using a strong, randomly generated password. Get quick access to your passwords by saving it in your account.</string>
-    <!-- The actual suggested strong password. %1$s will be replaced with the generated password -->
-    <string name="mozac_feature_prompts_suggest_strong_password_generated_password">%1$s</string>
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Use password</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
