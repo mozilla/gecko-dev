@@ -620,14 +620,8 @@ impl<'a> Unstructured<'a> {
     pub fn arbitrary_take_rest_iter<ElementType: Arbitrary<'a>>(
         self,
     ) -> Result<ArbitraryTakeRestIter<'a, ElementType>> {
-        let (lower, upper) = ElementType::size_hint(0);
-
-        let elem_size = upper.unwrap_or(lower * 2);
-        let elem_size = std::cmp::max(1, elem_size);
-        let size = self.len() / elem_size;
         Ok(ArbitraryTakeRestIter {
-            size,
-            u: Some(self),
+            u: self,
             _marker: PhantomData,
         })
     }
@@ -735,25 +729,16 @@ impl<'a, 'b, ElementType: Arbitrary<'a>> Iterator for ArbitraryIter<'a, 'b, Elem
 
 /// Utility iterator produced by [`Unstructured::arbitrary_take_rest_iter`]
 pub struct ArbitraryTakeRestIter<'a, ElementType> {
-    u: Option<Unstructured<'a>>,
-    size: usize,
+    u: Unstructured<'a>,
     _marker: PhantomData<ElementType>,
 }
 
 impl<'a, ElementType: Arbitrary<'a>> Iterator for ArbitraryTakeRestIter<'a, ElementType> {
     type Item = Result<ElementType>;
     fn next(&mut self) -> Option<Result<ElementType>> {
-        if let Some(mut u) = self.u.take() {
-            if self.size == 1 {
-                Some(Arbitrary::arbitrary_take_rest(u))
-            } else if self.size == 0 {
-                None
-            } else {
-                self.size -= 1;
-                let ret = Arbitrary::arbitrary(&mut u);
-                self.u = Some(u);
-                Some(ret)
-            }
+        let keep_going = self.u.arbitrary().unwrap_or(false);
+        if keep_going {
+            Some(Arbitrary::arbitrary(&mut self.u))
         } else {
             None
         }

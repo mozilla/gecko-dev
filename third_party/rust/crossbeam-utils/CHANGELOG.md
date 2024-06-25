@@ -1,3 +1,36 @@
+# Version 0.8.20
+
+- Implement `Display` for `CachePadded`. (#1097)
+
+# Version 0.8.19
+
+- Remove dependency on `cfg-if`. (#1072)
+
+# Version 0.8.18
+
+- Relax the minimum supported Rust version to 1.60. (#1056)
+- Improve scalability of `AtomicCell` fallback. (#1055)
+
+# Version 0.8.17
+
+- Bump the minimum supported Rust version to 1.61. (#1037)
+- Improve support for targets without atomic CAS or 64-bit atomic. (#1037)
+- Always implement `UnwindSafe` and `RefUnwindSafe` for `AtomicCell`. (#1045)
+- Improve compatibility with Miri, TSan, and loom. (#995, #1003)
+- Improve compatibility with unstable `oom=panic`. (#1045)
+- Improve implementation of `CachePadded`. (#1014, #1025)
+- Update `loom` dependency to 0.7.
+
+# Version 0.8.16
+
+- Improve implementation of `CachePadded`. (#967)
+
+# Version 0.8.15
+
+- Add `#[clippy::has_significant_drop]` to `ShardedLock{Read,Write}Guard`. (#958)
+- Improve handling of very large timeout. (#953)
+- Soft-deprecate `thread::scope()` in favor of the more efficient `std::thread::scope` that stabilized on Rust 1.63. (#954)
+
 # Version 0.8.14
 
 - Fix build script bug introduced in 0.8.13. (#932)

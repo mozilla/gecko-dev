@@ -61,7 +61,6 @@ const K2: i64 = 0x1c6e41596;
 const K3: i64 = 0x1751997d0;
 const K4: i64 = 0x0ccaa009e;
 const K5: i64 = 0x163cd6124;
-const K6: i64 = 0x1db710640;
 
 const P_X: i64 = 0x1DB710641;
 const U_PRIME: i64 = 0x1F7011641;
@@ -144,7 +143,6 @@ unsafe fn calculate(crc: u32, mut data: &[u8]) -> u32 {
     // It's not clear to me, reading the paper, where the xor operations are
     // happening or why things are shifting around. This implementation...
     // appears to work though!
-    drop(K6);
     let x = arch::_mm_xor_si128(
         arch::_mm_clmulepi64_si128(x, k3k4, 0x10),
         arch::_mm_srli_si128(x, 8),

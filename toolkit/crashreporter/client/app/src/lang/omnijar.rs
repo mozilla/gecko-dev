@@ -11,7 +11,7 @@ use crate::std::{
 };
 use anyhow::Context;
 use once_cell::unsync::Lazy;
-use zip::read::ZipArchive;
+use zip::read::{ArchiveOffset, Config as ZipConfig, ZipArchive};
 
 /// Read the appropriate localization fluent definitions from the omnijar files.
 ///
@@ -107,7 +107,12 @@ fn read_archive_file_as_string(
 }
 
 fn read_omnijar_file(path: &Path) -> anyhow::Result<ZipArchive<File>> {
-    ZipArchive::new(
+    ZipArchive::with_config(
+        ZipConfig {
+            // The archive starts at the beginning of the file (it's a standard zip file, no
+            // prefix data).
+            archive_offset: ArchiveOffset::Known(0),
+        },
         File::open(&path).with_context(|| format!("failed to open {}", path.display()))?,
     )
     .with_context(|| format!("failed to read zip archive in {}", path.display()))

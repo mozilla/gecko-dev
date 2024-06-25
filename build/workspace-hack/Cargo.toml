@@ -58,7 +58,7 @@ unicode-bidi = { version = "0.3", features = ["smallvec"], optional = true }
 url = { version = "2", features = ["serde"], optional = true }
 uuid = { version = "1", features = ["serde", "v4"], optional = true }
 yoke = { version = "0.7", features = ["derive"], optional = true }
-zip = { version = "0.6", default-features = false, features = ["deflate", "flate2"], optional = true }
+zip = { version = "2.1.2", default-features = false, features = ["deflate-flate2", "flate2"], optional = true }
 zerofrom = { version = "0.1", default-features = false, features = ["alloc", "derive"], optional = true }
 zerovec = { version = "0.10", default-features = false, features = ["derive", "yoke"], optional = true }
 

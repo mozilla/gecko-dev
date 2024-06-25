@@ -1139,6 +1139,12 @@ who = "Gabriele Svelto <gsvelto@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.6.0 -> 0.6.1"
 
+[[audits.crc32fast]]
+who = "Alex Franchuk <afranchuk@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "1.3.2 -> 1.4.2"
+notes = "Minor, safe changes."
+
 [[audits.crossbeam-channel]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -1178,6 +1184,12 @@ delta = "0.8.8 -> 0.8.11"
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.8.11 -> 0.8.14"
+
+[[audits.crossbeam-utils]]
+who = "Alex Franchuk <afranchuk@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.8.19 -> 0.8.20"
+notes = "Minor changes."
 
 [[audits.crypto-common]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
@@ -1825,6 +1837,12 @@ notes = "Uses no ambient capabilities, vetted the one instance of unsafe."
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.0.24 -> 1.0.25"
+
+[[audits.flate2]]
+who = "Alex Franchuk <afranchuk@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "1.0.28 -> 1.0.30"
+notes = "Some new unsafe code, however it has been verified and there are unit tests as well."
 
 [[audits.fluent]]
 who = "Zibi Braniecki <zibi@unicode.org>"
@@ -5275,6 +5293,18 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-run"
 delta = "0.6.3 -> 0.6.4"
 
+[[audits.zip]]
+who = "Alex Franchuk <afranchuk@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.6.4 -> 2.1.3"
+notes = """
+There's a lot of new code and features, however it's almost entirely very
+straightforward and safe. All new dependencies are appropriate.
+`FixedSizeBlock::interpret` could be unsound if implemented on a
+non-1-byte-aligned type, however right now that is not the case
+(submitted https://github.com/zip-rs/zip2/issues/198).
+"""
+
 [[trusted.aho-corasick]]
 criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)
@@ -5447,7 +5477,7 @@ end = "2024-05-05"
 criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)
 start = "2019-07-07"
-end = "2024-05-03"
+end = "2025-06-20"
 
 [[trusted.mime]]
 criteria = "safe-to-deploy"

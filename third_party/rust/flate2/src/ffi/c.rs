@@ -1,15 +1,12 @@
 //! Implementation for C backends.
-use std::alloc::{self, Layout};
 use std::cmp;
-use std::convert::TryFrom;
 use std::fmt;
 use std::marker;
-use std::ops::{Deref, DerefMut};
-use std::os::raw::{c_int, c_uint, c_void};
+use std::os::raw::{c_int, c_uint};
 use std::ptr;
 
 use super::*;
-use crate::mem::{self, FlushDecompress, Status};
+use crate::mem;
 
 #[derive(Default)]
 pub struct ErrorMessage(Option<&'static str>);
@@ -21,7 +18,10 @@ impl ErrorMessage {
 }
 
 pub struct StreamWrapper {
-    pub inner: Box<mz_stream>,
+    // SAFETY: The field `inner` must always be accessed as a raw pointer,
+    // since it points to a cyclic structure, and it must never be copied
+    // by Rust.
+    pub inner: *mut mz_stream,
 }
 
 impl fmt::Debug for StreamWrapper {
@@ -32,8 +32,12 @@ impl fmt::Debug for StreamWrapper {
 
 impl Default for StreamWrapper {
     fn default() -> StreamWrapper {
+        // SAFETY: The field `state` will be initialized across the FFI to
+        // point to the opaque type `mz_internal_state`, which will contain a copy
+        // of `inner`. This cyclic structure breaks the uniqueness invariant of
+        // &mut mz_stream, so we must use a raw pointer instead of Box<mz_stream>.
         StreamWrapper {
-            inner: Box::new(mz_stream {
+            inner: Box::into_raw(Box::new(mz_stream {
                 next_in: ptr::null_mut(),
                 avail_in: 0,
                 total_in: 0,
@@ -46,81 +50,100 @@ impl Default for StreamWrapper {
                 reserved: 0,
                 opaque: ptr::null_mut(),
                 state: ptr::null_mut(),
-                #[cfg(all(feature = "any_zlib", not(feature = "cloudflare-zlib-sys")))]
-                zalloc,
-                #[cfg(all(feature = "any_zlib", not(feature = "cloudflare-zlib-sys")))]
-                zfree,
-                #[cfg(not(all(feature = "any_zlib", not(feature = "cloudflare-zlib-sys"))))]
-                zalloc: Some(zalloc),
-                #[cfg(not(all(feature = "any_zlib", not(feature = "cloudflare-zlib-sys"))))]
-                zfree: Some(zfree),
-            }),
+                #[cfg(all(
+                    feature = "any_zlib",
+                    not(any(feature = "cloudflare-zlib-sys", feature = "libz-rs-sys"))
+                ))]
+                zalloc: allocator::zalloc,
+                #[cfg(all(
+                    feature = "any_zlib",
+                    not(any(feature = "cloudflare-zlib-sys", feature = "libz-rs-sys"))
+                ))]
+                zfree: allocator::zfree,
+
+                #[cfg(all(feature = "any_zlib", feature = "cloudflare-zlib-sys"))]
+                zalloc: Some(allocator::zalloc),
+                #[cfg(all(feature = "any_zlib", feature = "cloudflare-zlib-sys"))]
+                zfree: Some(allocator::zfree),
+
+                // for zlib-rs, it is most efficient to have it provide the allocator.
+                // The libz-rs-sys dependency is configured to use the rust system allocator
+                #[cfg(all(feature = "any_zlib", feature = "libz-rs-sys"))]
+                zalloc: None,
+                #[cfg(all(feature = "any_zlib", feature = "libz-rs-sys"))]
+                zfree: None,
+            })),
         }
     }
 }
 
-const ALIGN: usize = std::mem::align_of::<usize>();
-
-fn align_up(size: usize, align: usize) -> usize {
-    (size + align - 1) & !(align - 1)
+impl Drop for StreamWrapper {
+    fn drop(&mut self) {
+        // SAFETY: At this point, every other allocation for struct has been freed by
+        // `inflateEnd` or `deflateEnd`, and no copies of `inner` are retained by `C`,
+        // so it is safe to drop the struct as long as the user respects the invariant that
+        // `inner` must never be copied by Rust.
+        drop(unsafe { Box::from_raw(self.inner) });
+    }
 }
 
-extern "C" fn zalloc(_ptr: *mut c_void, items: AllocSize, item_size: AllocSize) -> *mut c_void {
-    // We need to multiply `items` and `item_size` to get the actual desired
-    // allocation size. Since `zfree` doesn't receive a size argument we
-    // also need to allocate space for a `usize` as a header so we can store
-    // how large the allocation is to deallocate later.
-    let size = match items
-        .checked_mul(item_size)
-        .and_then(|i| usize::try_from(i).ok())
-        .map(|size| align_up(size, ALIGN))
-        .and_then(|i| i.checked_add(std::mem::size_of::<usize>()))
-    {
-        Some(i) => i,
-        None => return ptr::null_mut(),
-    };
+#[cfg(all(feature = "any_zlib", not(feature = "libz-rs-sys")))]
+mod allocator {
+    use super::*;
 
-    // Make sure the `size` isn't too big to fail `Layout`'s restrictions
-    let layout = match Layout::from_size_align(size, ALIGN) {
-        Ok(layout) => layout,
-        Err(_) => return ptr::null_mut(),
-    };
+    use std::alloc::{self, Layout};
+    use std::convert::TryFrom;
+    use std::os::raw::c_void;
 
-    unsafe {
-        // Allocate the data, and if successful store the size we allocated
-        // at the beginning and then return an offset pointer.
-        let ptr = alloc::alloc(layout) as *mut usize;
-        if ptr.is_null() {
-            return ptr as *mut c_void;
+    const ALIGN: usize = std::mem::align_of::<usize>();
+
+    fn align_up(size: usize, align: usize) -> usize {
+        (size + align - 1) & !(align - 1)
+    }
+
+    pub extern "C" fn zalloc(_ptr: *mut c_void, items: uInt, item_size: uInt) -> *mut c_void {
+        // We need to multiply `items` and `item_size` to get the actual desired
+        // allocation size. Since `zfree` doesn't receive a size argument we
+        // also need to allocate space for a `usize` as a header so we can store
+        // how large the allocation is to deallocate later.
+        let size = match items
+            .checked_mul(item_size)
+            .and_then(|i| usize::try_from(i).ok())
+            .map(|size| align_up(size, ALIGN))
+            .and_then(|i| i.checked_add(std::mem::size_of::<usize>()))
+        {
+            Some(i) => i,
+            None => return ptr::null_mut(),
+        };
+
+        // Make sure the `size` isn't too big to fail `Layout`'s restrictions
+        let layout = match Layout::from_size_align(size, ALIGN) {
+            Ok(layout) => layout,
+            Err(_) => return ptr::null_mut(),
+        };
+
+        unsafe {
+            // Allocate the data, and if successful store the size we allocated
+            // at the beginning and then return an offset pointer.
+            let ptr = alloc::alloc(layout) as *mut usize;
+            if ptr.is_null() {
+                return ptr as *mut c_void;
+            }
+            *ptr = size;
+            ptr.add(1) as *mut c_void
         }
-        *ptr = size;
-        ptr.add(1) as *mut c_void
     }
-}
 
-extern "C" fn zfree(_ptr: *mut c_void, address: *mut c_void) {
-    unsafe {
-        // Move our address being freed back one pointer, read the size we
-        // stored in `zalloc`, and then free it using the standard Rust
-        // allocator.
-        let ptr = (address as *mut usize).offset(-1);
-        let size = *ptr;
-        let layout = Layout::from_size_align_unchecked(size, ALIGN);
-        alloc::dealloc(ptr as *mut u8, layout)
-    }
-}
-
-impl Deref for StreamWrapper {
-    type Target = mz_stream;
-
-    fn deref(&self) -> &Self::Target {
-        &*self.inner
-    }
-}
-
-impl DerefMut for StreamWrapper {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut *self.inner
+    pub extern "C" fn zfree(_ptr: *mut c_void, address: *mut c_void) {
+        unsafe {
+            // Move our address being freed back one pointer, read the size we
+            // stored in `zalloc`, and then free it using the standard Rust
+            // allocator.
+            let ptr = (address as *mut usize).offset(-1);
+            let size = *ptr;
+            let layout = Layout::from_size_align_unchecked(size, ALIGN);
+            alloc::dealloc(ptr as *mut u8, layout)
+        }
     }
 }
 
@@ -148,7 +171,10 @@ pub struct Stream<D: Direction> {
 
 impl<D: Direction> Stream<D> {
     pub fn msg(&self) -> ErrorMessage {
-        let msg = self.stream_wrapper.msg;
+        // SAFETY: The field `inner` must always be accessed as a raw pointer,
+        // since it points to a cyclic structure. No copies of `inner` can be
+        // retained for longer than the lifetime of `self`.
+        let msg = unsafe { (*self.stream_wrapper.inner).msg };
         ErrorMessage(if msg.is_null() {
             None
         } else {
@@ -161,7 +187,7 @@ impl<D: Direction> Stream<D> {
 impl<D: Direction> Drop for Stream<D> {
     fn drop(&mut self) {
         unsafe {
-            let _ = D::destroy(&mut *self.stream_wrapper);
+            let _ = D::destroy(self.stream_wrapper.inner);
         }
     }
 }
@@ -185,9 +211,9 @@ pub struct Inflate {
 impl InflateBackend for Inflate {
     fn make(zlib_header: bool, window_bits: u8) -> Self {
         unsafe {
-            let mut state = StreamWrapper::default();
+            let state = StreamWrapper::default();
             let ret = mz_inflateInit2(
-                &mut *state,
+                state.inner,
                 if zlib_header {
                     window_bits as c_int
                 } else {
@@ -212,27 +238,38 @@ impl InflateBackend for Inflate {
         output: &mut [u8],
         flush: FlushDecompress,
     ) -> Result<Status, DecompressError> {
-        let raw = &mut *self.inner.stream_wrapper;
-        raw.msg = ptr::null_mut();
-        raw.next_in = input.as_ptr() as *mut u8;
-        raw.avail_in = cmp::min(input.len(), c_uint::MAX as usize) as c_uint;
-        raw.next_out = output.as_mut_ptr();
-        raw.avail_out = cmp::min(output.len(), c_uint::MAX as usize) as c_uint;
+        let raw = self.inner.stream_wrapper.inner;
+        // SAFETY: The field `inner` must always be accessed as a raw pointer,
+        // since it points to a cyclic structure. No copies of `inner` can be
+        // retained for longer than the lifetime of `self`.
+        unsafe {
+            (*raw).msg = ptr::null_mut();
+            (*raw).next_in = input.as_ptr() as *mut u8;
+            (*raw).avail_in = cmp::min(input.len(), c_uint::MAX as usize) as c_uint;
+            (*raw).next_out = output.as_mut_ptr();
+            (*raw).avail_out = cmp::min(output.len(), c_uint::MAX as usize) as c_uint;
 
-        let rc = unsafe { mz_inflate(raw, flush as c_int) };
+            let rc = mz_inflate(raw, flush as c_int);
 
-        // Unfortunately the total counters provided by zlib might be only
-        // 32 bits wide and overflow while processing large amounts of data.
-        self.inner.total_in += (raw.next_in as usize - input.as_ptr() as usize) as u64;
-        self.inner.total_out += (raw.next_out as usize - output.as_ptr() as usize) as u64;
+            // Unfortunately the total counters provided by zlib might be only
+            // 32 bits wide and overflow while processing large amounts of data.
+            self.inner.total_in += ((*raw).next_in as usize - input.as_ptr() as usize) as u64;
+            self.inner.total_out += ((*raw).next_out as usize - output.as_ptr() as usize) as u64;
 
-        match rc {
-            MZ_DATA_ERROR | MZ_STREAM_ERROR => mem::decompress_failed(self.inner.msg()),
-            MZ_OK => Ok(Status::Ok),
-            MZ_BUF_ERROR => Ok(Status::BufError),
-            MZ_STREAM_END => Ok(Status::StreamEnd),
-            MZ_NEED_DICT => mem::decompress_need_dict(raw.adler as u32),
-            c => panic!("unknown return code: {}", c),
+            // reset these pointers so we don't accidentally read them later
+            (*raw).next_in = ptr::null_mut();
+            (*raw).avail_in = 0;
+            (*raw).next_out = ptr::null_mut();
+            (*raw).avail_out = 0;
+
+            match rc {
+                MZ_DATA_ERROR | MZ_STREAM_ERROR => mem::decompress_failed(self.inner.msg()),
+                MZ_OK => Ok(Status::Ok),
+                MZ_BUF_ERROR => Ok(Status::BufError),
+                MZ_STREAM_END => Ok(Status::StreamEnd),
+                MZ_NEED_DICT => mem::decompress_need_dict((*raw).adler as u32),
+                c => panic!("unknown return code: {}", c),
+            }
         }
     }
 
@@ -243,7 +280,7 @@ impl InflateBackend for Inflate {
             -MZ_DEFAULT_WINDOW_BITS
         };
         unsafe {
-            inflateReset2(&mut *self.inner.stream_wrapper, bits);
+            inflateReset2(self.inner.stream_wrapper.inner, bits);
         }
         self.inner.total_out = 0;
         self.inner.total_in = 0;
@@ -270,9 +307,9 @@ pub struct Deflate {
 impl DeflateBackend for Deflate {
     fn make(level: Compression, zlib_header: bool, window_bits: u8) -> Self {
         unsafe {
-            let mut state = StreamWrapper::default();
+            let state = StreamWrapper::default();
             let ret = mz_deflateInit2(
-                &mut *state,
+                state.inner,
                 level.0 as c_int,
                 MZ_DEFLATED,
                 if zlib_header {
@@ -300,33 +337,44 @@ impl DeflateBackend for Deflate {
         output: &mut [u8],
         flush: FlushCompress,
     ) -> Result<Status, CompressError> {
-        let raw = &mut *self.inner.stream_wrapper;
-        raw.msg = ptr::null_mut();
-        raw.next_in = input.as_ptr() as *mut _;
-        raw.avail_in = cmp::min(input.len(), c_uint::MAX as usize) as c_uint;
-        raw.next_out = output.as_mut_ptr();
-        raw.avail_out = cmp::min(output.len(), c_uint::MAX as usize) as c_uint;
+        let raw = self.inner.stream_wrapper.inner;
+        // SAFETY: The field `inner` must always be accessed as a raw pointer,
+        // since it points to a cyclic structure. No copies of `inner` can be
+        // retained for longer than the lifetime of `self`.
+        unsafe {
+            (*raw).msg = ptr::null_mut();
+            (*raw).next_in = input.as_ptr() as *mut _;
+            (*raw).avail_in = cmp::min(input.len(), c_uint::MAX as usize) as c_uint;
+            (*raw).next_out = output.as_mut_ptr();
+            (*raw).avail_out = cmp::min(output.len(), c_uint::MAX as usize) as c_uint;
 
-        let rc = unsafe { mz_deflate(raw, flush as c_int) };
+            let rc = mz_deflate(raw, flush as c_int);
 
-        // Unfortunately the total counters provided by zlib might be only
-        // 32 bits wide and overflow while processing large amounts of data.
-        self.inner.total_in += (raw.next_in as usize - input.as_ptr() as usize) as u64;
-        self.inner.total_out += (raw.next_out as usize - output.as_ptr() as usize) as u64;
+            // Unfortunately the total counters provided by zlib might be only
+            // 32 bits wide and overflow while processing large amounts of data.
 
-        match rc {
-            MZ_OK => Ok(Status::Ok),
-            MZ_BUF_ERROR => Ok(Status::BufError),
-            MZ_STREAM_END => Ok(Status::StreamEnd),
-            MZ_STREAM_ERROR => mem::compress_failed(self.inner.msg()),
-            c => panic!("unknown return code: {}", c),
+            self.inner.total_in += ((*raw).next_in as usize - input.as_ptr() as usize) as u64;
+            self.inner.total_out += ((*raw).next_out as usize - output.as_ptr() as usize) as u64;
+            // reset these pointers so we don't accidentally read them later
+            (*raw).next_in = ptr::null_mut();
+            (*raw).avail_in = 0;
+            (*raw).next_out = ptr::null_mut();
+            (*raw).avail_out = 0;
+
+            match rc {
+                MZ_OK => Ok(Status::Ok),
+                MZ_BUF_ERROR => Ok(Status::BufError),
+                MZ_STREAM_END => Ok(Status::StreamEnd),
+                MZ_STREAM_ERROR => mem::compress_failed(self.inner.msg()),
+                c => panic!("unknown return code: {}", c),
+            }
         }
     }
 
     fn reset(&mut self) {
         self.inner.total_in = 0;
         self.inner.total_out = 0;
-        let rc = unsafe { mz_deflateReset(&mut *self.inner.stream_wrapper) };
+        let rc = unsafe { mz_deflateReset(self.inner.stream_wrapper.inner) };
         assert_eq!(rc, MZ_OK);
     }
 }
@@ -347,6 +395,7 @@ pub use self::c_backend::*;
 
 /// For backwards compatibility, we provide symbols as `mz_` to mimic the miniz API
 #[allow(bad_style)]
+#[allow(unused_imports)]
 mod c_backend {
     use std::mem;
     use std::os::raw::{c_char, c_int};
@@ -354,10 +403,17 @@ mod c_backend {
     #[cfg(feature = "zlib-ng")]
     use libz_ng_sys as libz;
 
+    #[cfg(all(not(feature = "zlib-ng"), feature = "zlib-rs"))]
+    use libz_rs_sys as libz;
+
     #[cfg(all(not(feature = "zlib-ng"), feature = "cloudflare_zlib"))]
     use cloudflare_zlib_sys as libz;
 
-    #[cfg(all(not(feature = "cloudflare_zlib"), not(feature = "zlib-ng")))]
+    #[cfg(all(
+        not(feature = "cloudflare_zlib"),
+        not(feature = "zlib-ng"),
+        not(feature = "zlib-rs")
+    ))]
     use libz_sys as libz;
 
     pub use libz::deflate as mz_deflate;
@@ -382,13 +438,14 @@ mod c_backend {
     pub use libz::Z_STREAM_END as MZ_STREAM_END;
     pub use libz::Z_STREAM_ERROR as MZ_STREAM_ERROR;
     pub use libz::Z_SYNC_FLUSH as MZ_SYNC_FLUSH;
-    pub type AllocSize = libz::uInt;
 
     pub const MZ_DEFAULT_WINDOW_BITS: c_int = 15;
 
     #[cfg(feature = "zlib-ng")]
     const ZLIB_VERSION: &'static str = "2.1.0.devel\0";
-    #[cfg(not(feature = "zlib-ng"))]
+    #[cfg(all(not(feature = "zlib-ng"), feature = "zlib-rs"))]
+    const ZLIB_VERSION: &'static str = "0.1.0\0";
+    #[cfg(not(any(feature = "zlib-ng", feature = "zlib-rs")))]
     const ZLIB_VERSION: &'static str = "1.2.8\0";
 
     pub unsafe extern "C" fn mz_deflateInit2(

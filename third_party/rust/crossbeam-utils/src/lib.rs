@@ -24,6 +24,7 @@
 //! [`WaitGroup`]: sync::WaitGroup
 //! [`scope`]: thread::scope
 
+#![no_std]
 #![doc(test(
     no_crate_inject,
     attr(
@@ -37,17 +38,21 @@
     rust_2018_idioms,
     unreachable_pub
 )]
-#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(feature = "std")]
+extern crate std;
 
 #[cfg(crossbeam_loom)]
 #[allow(unused_imports)]
 mod primitive {
+    pub(crate) mod hint {
+        pub(crate) use loom::hint::spin_loop;
+    }
     pub(crate) mod sync {
         pub(crate) mod atomic {
-            pub(crate) use loom::sync::atomic::spin_loop_hint;
             pub(crate) use loom::sync::atomic::{
                 AtomicBool, AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicIsize, AtomicU16,
-                AtomicU32, AtomicU64, AtomicU8, AtomicUsize,
+                AtomicU32, AtomicU64, AtomicU8, AtomicUsize, Ordering,
             };
 
             // FIXME: loom does not support compiler_fence at the moment.
@@ -63,19 +68,24 @@ mod primitive {
 #[cfg(not(crossbeam_loom))]
 #[allow(unused_imports)]
 mod primitive {
+    pub(crate) mod hint {
+        pub(crate) use core::hint::spin_loop;
+    }
     pub(crate) mod sync {
         pub(crate) mod atomic {
-            pub(crate) use core::sync::atomic::compiler_fence;
-            // TODO(taiki-e): once we bump the minimum required Rust version to 1.49+,
-            // use [`core::hint::spin_loop`] instead.
-            #[allow(deprecated)]
-            pub(crate) use core::sync::atomic::spin_loop_hint;
+            pub(crate) use core::sync::atomic::{compiler_fence, Ordering};
             #[cfg(not(crossbeam_no_atomic))]
             pub(crate) use core::sync::atomic::{
-                AtomicBool, AtomicI16, AtomicI32, AtomicI8, AtomicIsize, AtomicU16, AtomicU32,
-                AtomicU8, AtomicUsize,
+                AtomicBool, AtomicI16, AtomicI8, AtomicIsize, AtomicU16, AtomicU8, AtomicUsize,
             };
-            #[cfg(not(crossbeam_no_atomic_64))]
+            #[cfg(not(crossbeam_no_atomic))]
+            #[cfg(any(target_has_atomic = "32", not(target_pointer_width = "16")))]
+            pub(crate) use core::sync::atomic::{AtomicI32, AtomicU32};
+            #[cfg(not(crossbeam_no_atomic))]
+            #[cfg(any(
+                target_has_atomic = "64",
+                not(any(target_pointer_width = "16", target_pointer_width = "32")),
+            ))]
             pub(crate) use core::sync::atomic::{AtomicI64, AtomicU64};
         }
 
@@ -92,13 +102,9 @@ pub use crate::cache_padded::CachePadded;
 mod backoff;
 pub use crate::backoff::Backoff;
 
-use cfg_if::cfg_if;
+#[cfg(feature = "std")]
+pub mod sync;
 
-cfg_if! {
-    if #[cfg(feature = "std")] {
-        pub mod sync;
-
-        #[cfg(not(crossbeam_loom))]
-        pub mod thread;
-    }
-}
+#[cfg(feature = "std")]
+#[cfg(not(crossbeam_loom))]
+pub mod thread;

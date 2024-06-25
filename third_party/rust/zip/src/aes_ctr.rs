@@ -2,11 +2,11 @@
 //!
 //! This was implemented since the zip specification requires the mode to not use a nonce and uses a
 //! different byte order (little endian) than NIST (big endian).
-//! See [AesCtrZipKeyStream](./struct.AesCtrZipKeyStream.html) for more information.
+//! See [AesCtrZipKeyStream] for more information.
 
+use crate::unstable::LittleEndianWriteExt;
 use aes::cipher::generic_array::GenericArray;
-use aes::{BlockEncrypt, NewBlockCipher};
-use byteorder::WriteBytesExt;
+use aes::cipher::{BlockEncrypt, KeyInit};
 use std::{any, fmt};
 
 /// Internal block size of an AES cipher.
@@ -27,7 +27,7 @@ pub trait AesKind {
     /// Key type.
     type Key: AsRef<[u8]>;
     /// Cipher used to decrypt.
-    type Cipher;
+    type Cipher: KeyInit;
 }
 
 impl AesKind for Aes128 {
@@ -82,7 +82,7 @@ where
 impl<C> AesCtrZipKeyStream<C>
 where
     C: AesKind,
-    C::Cipher: NewBlockCipher,
+    C::Cipher: KeyInit,
 {
     /// Creates a new zip variant AES-CTR key stream.
     ///
@@ -112,7 +112,7 @@ where
                 // Note: AES block size is always 16 bytes, same as u128.
                 self.buffer
                     .as_mut()
-                    .write_u128::<byteorder::LittleEndian>(self.counter)
+                    .write_u128_le(self.counter)
                     .expect("did not expect u128 le conversion to fail");
                 self.cipher
                     .encrypt_block(GenericArray::from_mut_slice(&mut self.buffer));
@@ -150,25 +150,25 @@ fn xor(dest: &mut [u8], src: &[u8]) {
 #[cfg(test)]
 mod tests {
     use super::{Aes128, Aes192, Aes256, AesCipher, AesCtrZipKeyStream, AesKind};
-    use aes::{BlockEncrypt, NewBlockCipher};
+    use aes::cipher::{BlockEncrypt, KeyInit};
 
     /// Checks whether `crypt_in_place` produces the correct plaintext after one use and yields the
     /// cipertext again after applying it again.
-    fn roundtrip<Aes>(key: &[u8], ciphertext: &mut [u8], expected_plaintext: &[u8])
+    fn roundtrip<Aes>(key: &[u8], ciphertext: &[u8], expected_plaintext: &[u8])
     where
         Aes: AesKind,
-        Aes::Cipher: NewBlockCipher + BlockEncrypt,
+        Aes::Cipher: KeyInit + BlockEncrypt,
     {
         let mut key_stream = AesCtrZipKeyStream::<Aes>::new(key);
 
-        let mut plaintext: Vec<u8> = ciphertext.to_vec();
-        key_stream.crypt_in_place(plaintext.as_mut_slice());
-        assert_eq!(plaintext, expected_plaintext.to_vec());
+        let mut plaintext = ciphertext.to_vec().into_boxed_slice();
+        key_stream.crypt_in_place(&mut plaintext);
+        assert_eq!(*plaintext, *expected_plaintext);
 
         // Round-tripping should yield the ciphertext again.
         let mut key_stream = AesCtrZipKeyStream::<Aes>::new(key);
         key_stream.crypt_in_place(&mut plaintext);
-        assert_eq!(plaintext, ciphertext.to_vec());
+        assert_eq!(*plaintext, *ciphertext);
     }
 
     #[test]
@@ -182,7 +182,7 @@ mod tests {
     // `7z a -phelloworld -mem=AES256 -mx=0 aes256_40byte.zip 40byte_data.txt`
     #[test]
     fn crypt_aes_256_0_byte() {
-        let mut ciphertext = [];
+        let ciphertext = [];
         let expected_plaintext = &[];
         let key = [
             0x0b, 0xec, 0x2e, 0xf2, 0x46, 0xf0, 0x7e, 0x35, 0x16, 0x54, 0xe0, 0x98, 0x10, 0xb3,
@@ -190,36 +190,36 @@ mod tests {
             0x5c, 0xd0, 0xc0, 0x54,
         ];
 
-        roundtrip::<Aes256>(&key, &mut ciphertext, expected_plaintext);
+        roundtrip::<Aes256>(&key, &ciphertext, expected_plaintext);
     }
 
     #[test]
     fn crypt_aes_128_5_byte() {
-        let mut ciphertext = [0x98, 0xa9, 0x8c, 0x26, 0x0e];
+        let ciphertext = [0x98, 0xa9, 0x8c, 0x26, 0x0e];
         let expected_plaintext = b"asdf\n";
         let key = [
             0xe0, 0x25, 0x7b, 0x57, 0x97, 0x6a, 0xa4, 0x23, 0xab, 0x94, 0xaa, 0x44, 0xfd, 0x47,
             0x4f, 0xa5,
         ];
 
-        roundtrip::<Aes128>(&key, &mut ciphertext, expected_plaintext);
+        roundtrip::<Aes128>(&key, &ciphertext, expected_plaintext);
     }
 
     #[test]
     fn crypt_aes_192_5_byte() {
-        let mut ciphertext = [0x36, 0x55, 0x5c, 0x61, 0x3c];
+        let ciphertext = [0x36, 0x55, 0x5c, 0x61, 0x3c];
         let expected_plaintext = b"asdf\n";
         let key = [
             0xe4, 0x4a, 0x88, 0x52, 0x8f, 0xf7, 0x0b, 0x81, 0x7b, 0x75, 0xf1, 0x74, 0x21, 0x37,
             0x8c, 0x90, 0xad, 0xbe, 0x4a, 0x65, 0xa8, 0x96, 0x0e, 0xcc,
         ];
 
-        roundtrip::<Aes192>(&key, &mut ciphertext, expected_plaintext);
+        roundtrip::<Aes192>(&key, &ciphertext, expected_plaintext);
     }
 
     #[test]
     fn crypt_aes_256_5_byte() {
-        let mut ciphertext = [0xc2, 0x47, 0xc0, 0xdc, 0x56];
+        let ciphertext = [0xc2, 0x47, 0xc0, 0xdc, 0x56];
         let expected_plaintext = b"asdf\n";
         let key = [
             0x79, 0x5e, 0x17, 0xf2, 0xc6, 0x3d, 0x28, 0x9b, 0x4b, 0x4b, 0xbb, 0xa9, 0xba, 0xc9,
@@ -227,12 +227,12 @@ mod tests {
             0x15, 0xb2, 0x86, 0xab,
         ];
 
-        roundtrip::<Aes256>(&key, &mut ciphertext, expected_plaintext);
+        roundtrip::<Aes256>(&key, &ciphertext, expected_plaintext);
     }
 
     #[test]
     fn crypt_aes_128_40_byte() {
-        let mut ciphertext = [
+        let ciphertext = [
             0xcf, 0x72, 0x6b, 0xa1, 0xb2, 0x0f, 0xdf, 0xaa, 0x10, 0xad, 0x9c, 0x7f, 0x6d, 0x1c,
             0x8d, 0xb5, 0x16, 0x7e, 0xbb, 0x11, 0x69, 0x52, 0x8c, 0x89, 0x80, 0x32, 0xaa, 0x76,
             0xa6, 0x18, 0x31, 0x98, 0xee, 0xdd, 0x22, 0x68, 0xb7, 0xe6, 0x77, 0xd2,
@@ -243,12 +243,12 @@ mod tests {
             0x81, 0xb6,
         ];
 
-        roundtrip::<Aes128>(&key, &mut ciphertext, expected_plaintext);
+        roundtrip::<Aes128>(&key, &ciphertext, expected_plaintext);
     }
 
     #[test]
     fn crypt_aes_192_40_byte() {
-        let mut ciphertext = [
+        let ciphertext = [
             0xa6, 0xfc, 0x52, 0x79, 0x2c, 0x6c, 0xfe, 0x68, 0xb1, 0xa8, 0xb3, 0x07, 0x52, 0x8b,
             0x82, 0xa6, 0x87, 0x9c, 0x72, 0x42, 0x3a, 0xf8, 0xc6, 0xa9, 0xc9, 0xfb, 0x61, 0x19,
             0x37, 0xb9, 0x56, 0x62, 0xf4, 0xfc, 0x5e, 0x7a, 0xdd, 0x55, 0x0a, 0x48,
@@ -259,12 +259,12 @@ mod tests {
             0xfe, 0xae, 0x1b, 0xba, 0x01, 0x97, 0x97, 0x79, 0xbb, 0xa6,
         ];
 
-        roundtrip::<Aes192>(&key, &mut ciphertext, expected_plaintext);
+        roundtrip::<Aes192>(&key, &ciphertext, expected_plaintext);
     }
 
     #[test]
     fn crypt_aes_256_40_byte() {
-        let mut ciphertext = [
+        let ciphertext = [
             0xa9, 0x99, 0xbd, 0xea, 0x82, 0x9b, 0x8f, 0x2f, 0xb7, 0x52, 0x2f, 0x6b, 0xd8, 0xf6,
             0xab, 0x0e, 0x24, 0x51, 0x9e, 0x18, 0x0f, 0xc0, 0x8f, 0x54, 0x15, 0x80, 0xae, 0xbc,
             0xa0, 0x5c, 0x8a, 0x11, 0x8d, 0x14, 0x7e, 0xc5, 0xb4, 0xae, 0xd3, 0x37,
@@ -276,6 +276,6 @@ mod tests {
             0xc2, 0x07, 0x36, 0xb6,
         ];
 
-        roundtrip::<Aes256>(&key, &mut ciphertext, expected_plaintext);
+        roundtrip::<Aes256>(&key, &ciphertext, expected_plaintext);
     }
 }

@@ -1,3 +1,4 @@
+use std::boxed::Box;
 use std::cell::UnsafeCell;
 use std::collections::HashMap;
 use std::fmt;
@@ -8,6 +9,7 @@ use std::panic::{RefUnwindSafe, UnwindSafe};
 use std::sync::{LockResult, PoisonError, TryLockError, TryLockResult};
 use std::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread::{self, ThreadId};
+use std::vec::Vec;
 
 use crate::sync::once_lock::OnceLock;
 use crate::CachePadded;
@@ -356,7 +358,7 @@ impl<T: ?Sized> ShardedLock<T> {
             for shard in self.shards[0..i].iter().rev() {
                 unsafe {
                     let dest: *mut _ = shard.write_guard.get();
-                    let guard = mem::replace(&mut *dest, None);
+                    let guard = (*dest).take();
                     drop(guard);
                 }
             }
@@ -480,6 +482,7 @@ impl<T> From<T> for ShardedLock<T> {
 }
 
 /// A guard used to release the shared read access of a [`ShardedLock`] when dropped.
+#[clippy::has_significant_drop]
 pub struct ShardedLockReadGuard<'a, T: ?Sized> {
     lock: &'a ShardedLock<T>,
     _guard: RwLockReadGuard<'a, ()>,
@@ -511,6 +514,7 @@ impl<T: ?Sized + fmt::Display> fmt::Display for ShardedLockReadGuard<'_, T> {
 }
 
 /// A guard used to release the exclusive write access of a [`ShardedLock`] when dropped.
+#[clippy::has_significant_drop]
 pub struct ShardedLockWriteGuard<'a, T: ?Sized> {
     lock: &'a ShardedLock<T>,
     _marker: PhantomData<RwLockWriteGuard<'a, T>>,
@@ -524,7 +528,7 @@ impl<T: ?Sized> Drop for ShardedLockWriteGuard<'_, T> {
         for shard in self.lock.shards.iter().rev() {
             unsafe {
                 let dest: *mut _ = shard.write_guard.get();
-                let guard = mem::replace(&mut *dest, None);
+                let guard = (*dest).take();
                 drop(guard);
             }
         }
@@ -611,7 +615,7 @@ impl Drop for Registration {
     }
 }
 
-thread_local! {
+std::thread_local! {
     static REGISTRATION: Registration = {
         let thread_id = thread::current().id();
         let mut indices = thread_indices().lock().unwrap();

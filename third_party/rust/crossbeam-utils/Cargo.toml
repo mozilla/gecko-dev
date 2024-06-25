@@ -10,10 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
-rust-version = "1.38"
+edition = "2021"
+rust-version = "1.60"
 name = "crossbeam-utils"
-version = "0.8.14"
+version = "0.8.20"
 description = "Utilities for concurrent programming"
 homepage = "https://github.com/crossbeam-rs/crossbeam/tree/master/crossbeam-utils"
 readme = "README.md"
@@ -32,14 +32,10 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/crossbeam-rs/crossbeam"
 
-[dependencies.cfg-if]
-version = "1"
+[dependencies]
 
 [dev-dependencies.rand]
 version = "0.8"
-
-[dev-dependencies.rustversion]
-version = "1"
 
 [features]
 default = ["std"]
@@ -47,5 +43,9 @@ nightly = []
 std = []
 
 [target."cfg(crossbeam_loom)".dependencies.loom]
-version = "0.5"
+version = "0.7.1"
 optional = true
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0

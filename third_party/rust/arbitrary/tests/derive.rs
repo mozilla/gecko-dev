@@ -59,7 +59,7 @@ fn test_take_rest() {
     assert_eq!(s2.1, true);
     assert_eq!(s1.2, 0x4030201);
     assert_eq!(s2.2, 0x4030201);
-    assert_eq!(s1.3, vec![0x605, 0x807]);
+    assert_eq!(s1.3, vec![0x0706]);
     assert_eq!(s2.3, "\x05\x06\x07\x08");
 }
 

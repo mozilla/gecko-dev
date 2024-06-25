@@ -1,7 +1,7 @@
 use std::{error, fmt};
 
 /// An enumeration of buffer creation errors
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Error {
     /// No choices were provided to the Unstructured::choose call

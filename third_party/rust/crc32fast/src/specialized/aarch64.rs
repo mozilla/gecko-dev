@@ -1,4 +1,4 @@
-use std::arch::aarch64 as arch;
+use core::arch::aarch64 as arch;
 
 #[derive(Clone)]
 pub struct State {
@@ -6,6 +6,18 @@ pub struct State {
 }
 
 impl State {
+    #[cfg(not(feature = "std"))]
+    pub fn new(state: u32) -> Option<Self> {
+        if cfg!(target_feature = "crc") {
+            // SAFETY: The conditions above ensure that all
+            //         required instructions are supported by the CPU.
+            Some(Self { state })
+        } else {
+            None
+        }
+    }
+
+    #[cfg(feature = "std")]
     pub fn new(state: u32) -> Option<Self> {
         if std::arch::is_aarch64_feature_detected!("crc") {
             // SAFETY: The conditions above ensure that all

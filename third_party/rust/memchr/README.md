@@ -35,30 +35,19 @@ memchr links to the standard library by default, but you can disable the
 memchr = { version = "2", default-features = false }
 ```
 
-On x86 platforms, when the `std` feature is disabled, the SSE2 accelerated
-implementations will be used. When `std` is enabled, AVX accelerated
+On `x86_64` platforms, when the `std` feature is disabled, the SSE2 accelerated
+implementations will be used. When `std` is enabled, AVX2 accelerated
 implementations will be used if the CPU is determined to support it at runtime.
 
-### Using libc
+SIMD accelerated routines are also available on the `wasm32` and `aarch64`
+targets. The `std` feature is not required to use them.
 
-`memchr` is a routine that is part of libc, although this crate does not use
-libc by default. Instead, it uses its own routines, which are either vectorized
-or generic fallback routines. In general, these should be competitive with
-what's in libc, although this has not been tested for all architectures. If
-using `memchr` from libc is desirable and a vectorized routine is not otherwise
-available in this crate, then enabling the `libc` feature will use libc's
-version of `memchr`.
-
-The rest of the functions in this crate, e.g., `memchr2` or `memrchr3` and the
-substring search routines, will always use the implementations in this crate.
-One exception to this is `memrchr`, which is an extension in `libc` found on
-Linux. On Linux, `memrchr` is used in precisely the same scenario as `memchr`,
-as described above.
-
+When a SIMD version is not available, then this crate falls back to
+[SWAR](https://en.wikipedia.org/wiki/SWAR) techniques.
 
 ### Minimum Rust version policy
 
-This crate's minimum supported `rustc` version is `1.41.1`.
+This crate's minimum supported `rustc` version is `1.61.0`.
 
 The current policy is that the minimum Rust version required to use this crate
 can be increased in minor version updates. For example, if `crate 1.0` requires
@@ -105,3 +94,103 @@ has a few different algorithms to choose from depending on the situation.
   is used. If possible, a prefilter based on the "Generic SIMD" algorithm
   linked above is used to find candidates quickly. A dynamic heuristic is used
   to detect if the prefilter is ineffective, and if so, disables it.
+
+
+### Why is the standard library's substring search so much slower?
+
+We'll start by establishing what the difference in performance actually
+is. There are two relevant benchmark classes to consider: `prebuilt` and
+`oneshot`. The `prebuilt` benchmarks are designed to measure---to the extent
+possible---search time only. That is, the benchmark first starts by building a
+searcher and then only tracking the time for _using_ the searcher:
+
+```
+$ rebar rank benchmarks/record/x86_64/2023-08-26.csv --intersection -e memchr/memmem/prebuilt -e std/memmem/prebuilt
+Engine                       Version                   Geometric mean of speed ratios  Benchmark count
+------                       -------                   ------------------------------  ---------------
+rust/memchr/memmem/prebuilt  2.5.0                     1.03                            53
+rust/std/memmem/prebuilt     1.73.0-nightly 180dffba1  6.50                            53
+```
+
+Conversely, the `oneshot` benchmark class measures the time it takes to both
+build the searcher _and_ use it:
+
+```
+$ rebar rank benchmarks/record/x86_64/2023-08-26.csv --intersection -e memchr/memmem/oneshot -e std/memmem/oneshot
+Engine                      Version                   Geometric mean of speed ratios  Benchmark count
+------                      -------                   ------------------------------  ---------------
+rust/memchr/memmem/oneshot  2.5.0                     1.04                            53
+rust/std/memmem/oneshot     1.73.0-nightly 180dffba1  5.26                            53
+```
+
+**NOTE:** Replace `rebar rank` with `rebar cmp` in the above commands to
+explore the specific benchmarks and their differences.
+
+So in both cases, this crate is quite a bit faster over a broad sampling of
+benchmarks regardless of whether you measure only search time or search time
+plus construction time. The difference is a little smaller when you include
+construction time in your measurements.
+
+These two different types of benchmark classes make for a nice segue into
+one reason why the standard library's substring search can be slower: API
+design. In the standard library, the only APIs available to you require
+one to re-construct the searcher for every search. While you can benefit
+from building a searcher once and iterating over all matches in a single
+string, you cannot reuse that searcher to search other strings. This might
+come up when, for example, searching a file one line at a time. You'll need
+to re-build the searcher for every line searched, and this can [really
+matter][burntsushi-bstr-blog].
+
+**NOTE:** The `prebuilt` benchmark for the standard library can't actually
+avoid measuring searcher construction at some level, because there is no API
+for it. Instead, the benchmark consists of building the searcher once and then
+finding all matches in a single string via an iterator. This tends to
+approximate a benchmark where searcher construction isn't measured, but it
+isn't perfect. While this means the comparison is not strictly
+apples-to-apples, it does reflect what is maximally possible with the standard
+library, and thus reflects the best that one could do in a real world scenario.
+
+While there is more to the story than just API design here, it's important to
+point out that even if the standard library's substring search were a precise
+clone of this crate internally, it would still be at a disadvantage in some
+workloads because of its API. (The same also applies to C's standard library
+`memmem` function. There is no way to amortize construction of the searcher.
+You need to pay for it on every call.)
+
+The other reason for the difference in performance is that
+the standard library has trouble using SIMD. In particular, substring search
+is implemented in the `core` library, where platform specific code generally
+can't exist. That's an issue because in order to utilize SIMD beyond SSE2
+while maintaining portable binaries, one needs to use [dynamic CPU feature
+detection][dynamic-cpu], and that in turn requires platform specific code.
+While there is [an RFC for enabling target feature detection in
+`core`][core-feature], it doesn't yet exist.
+
+The bottom line here is that `core`'s substring search implementation is
+limited to making use of SSE2, but not AVX.
+
+Still though, this crate does accelerate substring search even when only SSE2
+is available. The standard library could therefore adopt the techniques in this
+crate just for SSE2. The reason why that hasn't happened yet isn't totally
+clear to me. It likely needs a champion to push it through. The standard
+library tends to be more conservative in these things. With that said, the
+standard library does use some [SSE2 acceleration on `x86-64`][std-sse2] added
+in [this PR][std-sse2-pr]. However, at the time of writing, it is only used
+for short needles and doesn't use the frequency based heuristics found in this
+crate.
+
+**NOTE:** Another thing worth mentioning is that the standard library's
+substring search routine requires that both the needle and haystack have type
+`&str`. Unless you can assume that your data is valid UTF-8, building a `&str`
+will come with the overhead of UTF-8 validation. This may in turn result in
+overall slower searching depending on your workload. In contrast, the `memchr`
+crate permits both the needle and the haystack to have type `&[u8]`, where
+`&[u8]` can be created from a `&str` with zero cost. Therefore, the substring
+search in this crate is strictly more flexible than what the standard library
+provides.
+
+[burntsushi-bstr-blog]: https://blog.burntsushi.net/bstr/#motivation-based-on-performance
+[dynamic-cpu]: https://doc.rust-lang.org/std/arch/index.html#dynamic-cpu-feature-detection
+[core-feature]: https://github.com/rust-lang/rfcs/pull/3469
+[std-sse2]: https://github.com/rust-lang/rust/blob/bf9229a2e366b4c311f059014a4aa08af16de5d8/library/core/src/str/pattern.rs#L1719-L1857
+[std-sse2-pr]: https://github.com/rust-lang/rust/pull/103779

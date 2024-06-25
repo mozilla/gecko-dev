@@ -18,15 +18,19 @@
 //! |         | Reading | Writing |
 //! | ------- | ------  | ------- |
 //! | Deflate | ✅ [->](`crate::ZipArchive::by_name`)      | ✅ [->](`crate::write::FileOptions::compression_method`) |
+//! | Deflate64 | ✅ | |
+//! | Bzip2 | ✅ | ✅ |
+//! | LZMA | ✅ | |
+//! | AES encryption | ✅ | ✅ |
+//! | ZipCrypto deprecated encryption | ✅ | ✅ |
 //!
 //!
-//!
-
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![warn(missing_docs)]
-
+#![allow(unexpected_cfgs)] // Needed for cfg(fuzzing) on nightly as of 2024-05-06
 pub use crate::compression::{CompressionMethod, SUPPORTED_COMPRESSION_METHODS};
 pub use crate::read::ZipArchive;
-pub use crate::types::DateTime;
+pub use crate::types::{AesMode, DateTime};
 pub use crate::write::ZipWriter;
 
 #[cfg(feature = "aes-crypto")]
@@ -36,9 +40,25 @@ mod aes_ctr;
 mod compression;
 mod cp437;
 mod crc32;
+pub mod extra_fields;
 pub mod read;
 pub mod result;
 mod spec;
 mod types;
 pub mod write;
 mod zipcrypto;
+pub use extra_fields::ExtraField;
+
+#[doc = "Unstable APIs\n\
+\
+All APIs accessible by importing this module are unstable; They may be changed in patch \
+releases. You MUST use an exact version specifier in `Cargo.toml`, to indicate the version of this \
+API you're using:\n\
+\
+```toml\n
+[dependencies]\n
+zip = \"="]
+#[doc=env!("CARGO_PKG_VERSION")]
+#[doc = "\"\n\
+```"]
+pub mod unstable;

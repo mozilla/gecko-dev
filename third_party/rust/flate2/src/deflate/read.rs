@@ -6,8 +6,8 @@ use crate::bufreader::BufReader;
 
 /// A DEFLATE encoder, or compressor.
 ///
-/// This structure implements a [`Read`] interface and will read uncompressed
-/// data from an underlying stream and emit a stream of compressed data.
+/// This structure implements a [`Read`] interface. When read from, it reads
+/// uncompressed data from the underlying [`Read`] and provides the compressed data.
 ///
 /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
 ///
@@ -25,11 +25,11 @@ use crate::bufreader::BufReader;
 /// #
 /// // Return a vector containing the Deflate compressed version of hello world
 /// fn deflateencoder_read_hello_world() -> io::Result<Vec<u8>> {
-///    let mut ret_vec = [0;100];
+///    let mut ret_vec = Vec::new();
 ///    let c = b"hello world";
 ///    let mut deflater = DeflateEncoder::new(&c[..], Compression::fast());
-///    let count = deflater.read(&mut ret_vec)?;
-///    Ok(ret_vec[0..count].to_vec())
+///    deflater.read_to_end(&mut ret_vec)?;
+///    Ok(ret_vec)
 /// }
 /// ```
 #[derive(Debug)]
@@ -120,8 +120,8 @@ impl<W: Read + Write> Write for DeflateEncoder<W> {
 
 /// A DEFLATE decoder, or decompressor.
 ///
-/// This structure implements a [`Read`] interface and takes a stream of
-/// compressed data as input, providing the decompressed data when read from.
+/// This structure implements a [`Read`] interface. When read from, it reads
+/// compressed data from the underlying [`Read`] and provides the uncompressed data.
 ///
 /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
 ///

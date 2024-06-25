@@ -1,7 +1,7 @@
-# crc32fast [![Build Status][travis-img]][travis] [![Crates.io][crates-img]][crates] [![Documentation][docs-img]][docs]
+# crc32fast [![Build Status][build-img]][build] [![Crates.io][crates-img]][crates] [![Documentation][docs-img]][docs]
 
-[travis-img]: https://travis-ci.com/srijs/rust-crc32fast.svg?branch=master
-[travis]: https://travis-ci.com/srijs/rust-crc32fast
+[build-img]: https://github.com/srijs/rust-crc32fast/actions/workflows/ci.yml/badge.svg
+[build]: https://github.com/srijs/rust-crc32fast/actions/workflows/ci.yml
 [crates-img]: https://img.shields.io/crates/v/crc32fast.svg
 [crates]: https://crates.io/crates/crc32fast
 [docs-img]: https://docs.rs/crc32fast/badge.svg

@@ -44,6 +44,14 @@ impl<W: Write> ZlibEncoder<W> {
         }
     }
 
+    /// Creates a new encoder which will write compressed data to the stream
+    /// `w` with the given `compression` settings.
+    pub fn new_with_compress(w: W, compression: Compress) -> ZlibEncoder<W> {
+        ZlibEncoder {
+            inner: zio::Writer::new(w, compression),
+        }
+    }
+
     /// Acquires a reference to the underlying writer.
     pub fn get_ref(&self) -> &W {
         self.inner.get_ref()
@@ -218,6 +226,17 @@ impl<W: Write> ZlibDecoder<W> {
         }
     }
 
+    /// Creates a new decoder which will write uncompressed data to the stream `w`
+    /// using the given `decompression` settings.
+    ///
+    /// When this decoder is dropped or unwrapped the final pieces of data will
+    /// be flushed.
+    pub fn new_with_decompress(w: W, decompression: Decompress) -> ZlibDecoder<W> {
+        ZlibDecoder {
+            inner: zio::Writer::new(w, decompression),
+        }
+    }
+
     /// Acquires a reference to the underlying writer.
     pub fn get_ref(&self) -> &W {
         self.inner.get_ref()
@@ -317,5 +336,45 @@ impl<W: Write> Write for ZlibDecoder<W> {
 impl<W: Read + Write> Read for ZlibDecoder<W> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.inner.get_mut().read(buf)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Compression;
+
+    const STR: &str = "Hello World Hello World Hello World Hello World Hello World \
+        Hello World Hello World Hello World Hello World Hello World \
+        Hello World Hello World Hello World Hello World Hello World \
+        Hello World Hello World Hello World Hello World Hello World \
+        Hello World Hello World Hello World Hello World Hello World";
+
+    // ZlibDecoder consumes one zlib archive and then returns 0 for subsequent writes, allowing any
+    // additional data to be consumed by the caller.
+    #[test]
+    fn decode_extra_data() {
+        let compressed = {
+            let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
+            e.write(STR.as_ref()).unwrap();
+            let mut b = e.finish().unwrap();
+            b.push(b'x');
+            b
+        };
+
+        let mut writer = Vec::new();
+        let mut decoder = ZlibDecoder::new(writer);
+        let mut consumed_bytes = 0;
+        loop {
+            let n = decoder.write(&compressed[consumed_bytes..]).unwrap();
+            if n == 0 {
+                break;
+            }
+            consumed_bytes += n;
+        }
+        writer = decoder.finish().unwrap();
+        let actual = String::from_utf8(writer).expect("String parsing error");
+        assert_eq!(actual, STR);
+        assert_eq!(&compressed[consumed_bytes..], b"x");
     }
 }

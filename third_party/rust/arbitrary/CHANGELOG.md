@@ -28,6 +28,30 @@ Released YYYY-MM-DD.
 
 --------------------------------------------------------------------------------
 
+## 1.3.2
+
+Released 2023-10-30.
+
+### Added
+
+* Added `Arbitrary` implementations for `Arc<[T]>` and
+  `Rc<[T]>`. [#160](https://github.com/rust-fuzz/arbitrary/pull/160)
+
+--------------------------------------------------------------------------------
+
+## 1.3.1
+
+Released 2023-10-11.
+
+### Fixed
+
+* Fixed an issue with generating collections of collections in
+  `arbitrary_take_rest` where `<Vec<Vec<u8>>>::arbitrary_take_rest` would never
+  generate `vec![vec![]]` for example. See
+  [#159](https://github.com/rust-fuzz/arbitrary/pull/159) for details.
+
+--------------------------------------------------------------------------------
+
 ## 1.3.0
 
 Released 2023-03-13.
@@ -85,7 +109,7 @@ Released 2022-10-20.
 
 ## 1.1.6
 
-Released 2022-09-08.
+Released 2022-09-20.
 
 ### Fixed
 
@@ -96,7 +120,7 @@ Released 2022-09-08.
 
 ## 1.1.5
 
-Released 2022-09-20.
+Released 2022-09-08.
 
 ### Added
 

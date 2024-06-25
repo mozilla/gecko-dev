@@ -40,9 +40,9 @@ mod c;
 #[cfg(feature = "any_zlib")]
 pub use self::c::*;
 
-#[cfg(not(feature = "any_zlib"))]
+#[cfg(all(not(feature = "any_zlib"), feature = "miniz_oxide"))]
 mod rust;
-#[cfg(not(feature = "any_zlib"))]
+#[cfg(all(not(feature = "any_zlib"), feature = "miniz_oxide"))]
 pub use self::rust::*;
 
 impl std::fmt::Debug for ErrorMessage {

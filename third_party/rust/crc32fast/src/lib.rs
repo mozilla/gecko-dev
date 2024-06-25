@@ -35,10 +35,6 @@
 //! optimal implementation for the current CPU feature set.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(
-    all(feature = "nightly", target_arch = "aarch64"),
-    feature(stdsimd, aarch64_target_feature)
-)]
 
 #[deny(missing_docs)]
 #[cfg(test)]
