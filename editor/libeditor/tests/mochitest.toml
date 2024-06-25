@@ -627,4 +627,6 @@ skip-if = ["os == 'android'"]
 
 ["test_undo_with_editingui.html"]
 
-["test_updating_input_value_during_composition.html"]
+["test_updating_input_value_during_composition_from_async_input.html"]
+
+["test_updating_input_value_during_composition_from_input.html"]

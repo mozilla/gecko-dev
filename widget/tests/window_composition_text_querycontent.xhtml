@@ -7583,30 +7583,21 @@ function runForceCommitTest()
   events = [];
   input.value = "set value";
 
-  is(events.length, 4,
+  // In this case, the result of committing composition won't appear since
+  // the new value overwrites it.  Therefore, neither `beforeinput` nor `input`
+  // event is fired.
+  is(events.length, 2,
      "runForceCommitTest: wrong event count #12");
   is(events[0].type, "text",
      "runForceCommitTest: the 1st event must be text #12");
   is(events[0].target, input,
      `runForceCommitTest: The "${events[0].type}" event was fired on wrong event target #12`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #12");
+  is(events[1].type, "compositionend",
+     "runForceCommitTest: the 2nd event must be compositionend #12");
   is(events[1].target, input,
      `runForceCommitTest: The "${events[1].type}" event was fired on wrong event target #12`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #12");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #12");
-  is(events[2].target, input,
-     `runForceCommitTest: The "${events[2].type}" event was fired on wrong event target #12`);
-  is(events[2].data, "\u306E",
+  is(events[1].data, "\u306E",
      "runForceCommitTest: compositionend has wrong data #12");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #12");
-  is(events[3].target, input,
-     `runForceCommitTest: The "${events[3].type}" event was fired on wrong event target #12`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #12");
   ok(!getEditor(input).isComposing,
      "runForceCommitTest: the input still has composition #12");
   is(input.value, "set value",
@@ -7629,30 +7620,21 @@ function runForceCommitTest()
   events = [];
   textarea.value = "set value";
 
-  is(events.length, 4,
+  // In this case, the result of committing composition won't appear since
+  // the new value overwrites it.  Therefore, neither `beforeinput` nor `input`
+  // event is fired.
+  is(events.length, 2,
      "runForceCommitTest: wrong event count #13");
   is(events[0].type, "text",
      "runForceCommitTest: the 1st event must be text #13");
   is(events[0].target, textarea,
      `runForceCommitTest: The "${events[0].type}" event was fired on wrong event target #13`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #13");
+  is(events[1].type, "compositionend",
+     "runForceCommitTest: the 2nd event must be compositionend #13");
   is(events[1].target, textarea,
      `runForceCommitTest: The "${events[1].type}" event was fired on wrong event target #13`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #13");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #13");
-  is(events[2].target, textarea,
-     `runForceCommitTest: The "${events[2].type}" event was fired on wrong event target #13`);
-  is(events[2].data, "\u306E",
+  is(events[1].data, "\u306E",
      "runForceCommitTest: compositionend has wrong data #13");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #13");
-  is(events[3].target, textarea,
-     `runForceCommitTest: The "${events[3].type}" event was fired on wrong event target #13`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #13");
   ok(!getEditor(textarea).isComposing,
      "runForceCommitTest: the textarea still has composition #13");
   is(textarea.value, "set value",
@@ -7675,30 +7657,21 @@ function runForceCommitTest()
   events = [];
   input.value += " appended value";
 
-  is(events.length, 4,
+  // In this case, the result of committing composition won't appear since
+  // the new value overwrites it.  Therefore, neither `beforeinput` nor `input`
+  // event is fired.
+  is(events.length, 2,
      "runForceCommitTest: wrong event count #14");
   is(events[0].type, "text",
      "runForceCommitTest: the 1st event must be text #14");
   is(events[0].target, input,
      `runForceCommitTest: The "${events[0].type}" event was fired on wrong event target #14`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #14");
+  is(events[1].type, "compositionend",
+     "runForceCommitTest: the 2nd event must be compositionend #14");
   is(events[1].target, input,
      `runForceCommitTest: The "${events[1].type}" event was fired on wrong event target #14`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #14");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #14");
-  is(events[2].target, input,
-     `runForceCommitTest: The "${events[2].type}" event was fired on wrong event target #14`);
-  is(events[2].data, "\u306E",
+  is(events[1].data, "\u306E",
      "runForceCommitTest: compositionend has wrong data #14");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #14");
-  is(events[3].target, input,
-     `runForceCommitTest: The "${events[3].type}" event was fired on wrong event target #14`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #14");
   ok(!getEditor(input).isComposing,
      "runForceCommitTest: the input still has composition #14");
   is(input.value, "\u306E appended value",
@@ -7797,33 +7770,24 @@ function runNestedSettingValue()
   textarea.value = "first setting value, ";
   isTesting = false;
 
-  is(events.length, 4,
+  // In this case, the result of committing composition won't appear since
+  // the new value overwrites it.  Therefore, neither `beforeinput` nor `input`
+  // event is fired.
+  is(events.length, 2,
      "runNestedSettingValue: wrong event count #1");
   is(events[0].type, "text",
      "runNestedSettingValue: the 1st event must be text #1");
   is(events[0].target, textarea,
      `runNestedSettingValue: The "${events[0].type}" event was fired on wrong event target #1`);
-  is(events[1].type, "beforeinput",
-     "runNestedSettingValue: the 2nd event must be beforeinput #1");
+  is(events[1].type, "compositionend",
+     "runNestedSettingValue: the 2nd event must be compositionend #1");
   is(events[1].target, textarea,
      `runNestedSettingValue: The "${events[1].type}" event was fired on wrong event target #1`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runNestedSettingValue #1");
-  is(events[2].type, "compositionend",
-     "runNestedSettingValue: the 3rd event must be compositionend #1");
-  is(events[2].target, textarea,
-     `runNestedSettingValue: The "${events[2].type}" event was fired on wrong event target #1`);
-  is(events[2].data, "\u306E",
+  is(events[1].data, "\u306E",
      "runNestedSettingValue: compositionend has wrong data #1");
-  is(events[3].type, "input",
-     "runNestedSettingValue: the 4th event must be input #1");
-  is(events[3].target, textarea,
-     `runNestedSettingValue: The "${events[3].type}" event was fired on wrong event target #1`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runNestedSettingValue #1");
   ok(!getEditor(textarea).isComposing,
      "runNestedSettingValue: the textarea still has composition #1");
-  is(textarea.value, "first setting value, text, beforeinput, compositionend, input, ",
+  is(textarea.value, "first setting value, text, compositionend, ",
      "runNestedSettingValue: the textarea should have all string set to value attribute");
 
   input.focus();
@@ -7845,33 +7809,24 @@ function runNestedSettingValue()
   input.value = "first setting value, ";
   isTesting = false;
 
-  is(events.length, 4,
+  // In this case, the result of committing composition won't appear since
+  // the new value overwrites it.  Therefore, neither `beforeinput` nor `input`
+  // event is fired.
+  is(events.length, 2,
      "runNestedSettingValue: wrong event count #2");
   is(events[0].type, "text",
      "runNestedSettingValue: the 1st event must be text #2");
   is(events[0].target, input,
      `runNestedSettingValue: The "${events[0].type}" event was fired on wrong event target #2`);
-  is(events[1].type, "beforeinput",
-     "runNestedSettingValue: the 2nd event must be beforeinput #2");
+  is(events[1].type, "compositionend",
+     "runNestedSettingValue: the 2nd event must be compositionend #2");
   is(events[1].target, input,
      `runNestedSettingValue: The "${events[1].type}" event was fired on wrong event target #2`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runNestedSettingValue #2");
-  is(events[2].type, "compositionend",
-     "runNestedSettingValue: the 3rd event must be compositionend #2");
-  is(events[2].target, input,
-     `runNestedSettingValue: The "${events[2].type}" event was fired on wrong event target #2`);
-  is(events[2].data, "\u306E",
+  is(events[1].data, "\u306E",
      "runNestedSettingValue: compositionend has wrong data #2");
-  is(events[3].type, "input",
-     "runNestedSettingValue: the 4th event must be input #2");
-  is(events[3].target, input,
-     `runNestedSettingValue: The "${events[3].type}" event was fired on wrong event target #2`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runNestedSettingValue #2");
   ok(!getEditor(input).isComposing,
      "runNestedSettingValue: the input still has composition #2");
-  is(textarea.value, "first setting value, text, beforeinput, compositionend, input, ",
+  is(textarea.value, "first setting value, text, compositionend, ",
      "runNestedSettingValue: the input should have all string set to value attribute #2");
 
   textarea.focus();
@@ -7893,33 +7848,24 @@ function runNestedSettingValue()
   textarea.setRangeText("first setting value, ");
   isTesting = false;
 
-  is(events.length, 4,
+  // In this case, the result of committing composition won't appear since
+  // the new value overwrites it.  Therefore, neither `beforeinput` nor `input`
+  // event is fired.
+  is(events.length, 2,
      "runNestedSettingValue: wrong event count #3");
   is(events[0].type, "text",
      "runNestedSettingValue: the 1st event must be text #3");
   is(events[0].target, textarea,
      `runNestedSettingValue: The ${events[0].type} event was fired on wrong event target #3`);
-  is(events[1].type, "beforeinput",
-     "runNestedSettingValue: the 2nd event must be beforeinput #3");
+  is(events[1].type, "compositionend",
+     "runNestedSettingValue: the 2nd event must be compositionend #3");
   is(events[1].target, textarea,
      `runNestedSettingValue: The ${events[1].type} event was fired on wrong event target #3`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runNestedSettingValue #3");
-  is(events[2].type, "compositionend",
-     "runNestedSettingValue: the 3rd event must be compositionend #3");
-  is(events[2].target, textarea,
-     `runNestedSettingValue: The ${events[2].type} event was fired on wrong event target #3`);
-  is(events[2].data, "\u306E",
+  is(events[1].data, "\u306E",
      "runNestedSettingValue: compositionend has wrong data #3");
-  is(events[3].type, "input",
-     "runNestedSettingValue: the 4th event must be input #3");
-  is(events[3].target, textarea,
-     `runNestedSettingValue: The ${events[3].type} event was fired on wrong event target #3`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runNestedSettingValue #3");
   ok(!getEditor(textarea).isComposing,
      "runNestedSettingValue: the textarea still has composition #3");
-  is(textarea.value, "\u306Efirst setting value, text, beforeinput, compositionend, input, ",
+  is(textarea.value, "\u306Efirst setting value, text, compositionend, ",
      "runNestedSettingValue: the textarea should have appended by setRangeText() and all string set to value attribute #3");
 
   input.focus();
@@ -7941,33 +7887,24 @@ function runNestedSettingValue()
   input.setRangeText("first setting value, ");
   isTesting = false;
 
-  is(events.length, 4,
+  // In this case, the result of committing composition won't appear since
+  // the new value overwrites it.  Therefore, neither `beforeinput` nor `input`
+  // event is fired.
+  is(events.length, 2,
      "runNestedSettingValue: wrong event count #4");
   is(events[0].type, "text",
      "runNestedSettingValue: the 1st event must be text #4");
   is(events[0].target, input,
      `runNestedSettingValue: The "${events[0].type}" event was fired on wrong event target #4`);
-  is(events[1].type, "beforeinput",
-     "runNestedSettingValue: the 2nd event must be beforeinput #4");
+  is(events[1].type, "compositionend",
+     "runNestedSettingValue: the 2nd event must be compositionend #4");
   is(events[1].target, input,
      `runNestedSettingValue: The "${events[1].type}" event was fired on wrong event target #4`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runNestedSettingValue #4");
-  is(events[2].type, "compositionend",
-     "runNestedSettingValue: the 3rd event must be compositionend #4");
-  is(events[2].target, input,
-     `runNestedSettingValue: The "${events[2].type}" event was fired on wrong event target #4`);
-  is(events[2].data, "\u306E",
+  is(events[1].data, "\u306E",
      "runNestedSettingValue: compositionend has wrong data #4");
-  is(events[3].type, "input",
-     "runNestedSettingValue: the 4th event must be input #4");
-  is(events[3].target, input,
-     `runNestedSettingValue: The "${events[3].type}" event was fired on wrong event target #4`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runNestedSettingValue #4");
   ok(!getEditor(input).isComposing,
      "runNestedSettingValue: the input still has composition #4");
-  is(textarea.value, "\u306Efirst setting value, text, beforeinput, compositionend, input, ",
+  is(textarea.value, "\u306Efirst setting value, text, compositionend, ",
      "runNestedSettingValue: the input should have all string appended by setRangeText() and set to value attribute #4");
 
   window.removeEventListener("compositionstart", eventHandler, true);

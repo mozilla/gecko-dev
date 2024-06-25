@@ -4,13 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "TextComposition.h"
+
 #include "ContentEventHandler.h"
 #include "IMEContentObserver.h"
 #include "IMEStateManager.h"
-#include "nsContentUtils.h"
-#include "nsIContent.h"
-#include "nsIMutationObserver.h"
-#include "nsPresContext.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/EditorBase.h"
 #include "mozilla/EventDispatcher.h"
@@ -21,10 +19,13 @@
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_intl.h"
-#include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/BrowserParent.h"
+#include "nsContentUtils.h"
+#include "nsIContent.h"
+#include "nsIMutationObserver.h"
+#include "nsPresContext.h"
 
 #ifdef XP_MACOSX
 // Some defiens will be conflict with OSX SDK
@@ -85,7 +86,6 @@ TextComposition::TextComposition(nsPresContext* aPresContext, nsINode* aNode,
       mCompositionLengthInTextNode(UINT32_MAX),
       mIsSynthesizedForTests(aCompositionEvent->mFlags.mIsSynthesizedForTests),
       mIsComposing(false),
-      mIsEditorHandlingEvent(false),
       mIsRequestingCommit(false),
       mIsRequestingCancel(false),
       mRequestedToCommitOrCancel(false),
@@ -207,6 +207,9 @@ bool TextComposition::MaybeDispatchCompositionUpdate(
   // empty string (mLastData isn't set to selected text when this receives
   // eCompositionStart).
   if (mLastData == aCompositionEvent->mData) {
+    // Even if the new composition event does not update the composition string,
+    // it may change IME selection.
+    mLastRanges = aCompositionEvent->mRanges;
     return true;
   }
   CloneAndDispatchAs(aCompositionEvent, eCompositionUpdate);
@@ -726,7 +729,7 @@ void TextComposition::EditorWillHandleCompositionChangeEvent(
     const WidgetCompositionEvent* aCompositionChangeEvent) {
   mIsComposing = aCompositionChangeEvent->IsComposing();
   mRanges = aCompositionChangeEvent->mRanges;
-  mIsEditorHandlingEvent = true;
+  mEditorIsHandlingEvent = true;
 
   MOZ_ASSERT(
       mLastData == aCompositionChangeEvent->mData,
@@ -737,7 +740,7 @@ void TextComposition::EditorWillHandleCompositionChangeEvent(
 void TextComposition::OnEditorDestroyed() {
   MOZ_RELEASE_ASSERT(!mBrowserParent);
 
-  MOZ_ASSERT(!mIsEditorHandlingEvent,
+  MOZ_ASSERT(!mEditorIsHandlingEvent,
              "The editor should have stopped listening events");
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (NS_WARN_IF(!widget)) {
@@ -751,7 +754,7 @@ void TextComposition::OnEditorDestroyed() {
 
 void TextComposition::EditorDidHandleCompositionChangeEvent() {
   mString = mLastData;
-  mIsEditorHandlingEvent = false;
+  mEditorIsHandlingEvent = false;
 }
 
 void TextComposition::StartHandlingComposition(EditorBase* aEditorBase) {

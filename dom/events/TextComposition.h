@@ -14,6 +14,7 @@
 #include "nsThreadUtils.h"
 #include "nsPresContext.h"
 #include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/RangeBoundary.h"
@@ -188,10 +189,21 @@ class TextComposition final {
   bool IsComposing() const { return mIsComposing; }
 
   /**
-   * Returns true while editor is handling an event which is modifying the
-   * composition string.
+   * Returns true if editor has started or already ended handling an event which
+   * is modifying the composition string and/or IME selections.
    */
-  bool IsEditorHandlingEvent() const { return mIsEditorHandlingEvent; }
+  [[nodiscard]] bool EditorHasHandledLatestChange() const {
+    return EditorIsHandlingLatestChange() ||
+           (mLastRanges == mRanges && mLastData == mString);
+  }
+
+  /**
+   * Returns true while editor is handling an event which is modifying the
+   * composition string and/or IME selections.
+   */
+  [[nodiscard]] bool EditorIsHandlingLatestChange() const {
+    return mEditorIsHandlingEvent;
+  }
 
   /**
    * IsMovingToNewTextNode() returns true if editor detects the text node
@@ -309,8 +321,10 @@ class TextComposition final {
   // This is the clause and caret range information which is managed by
   // the focused editor.  This may be null if there is no clauses or caret.
   RefPtr<TextRangeArray> mRanges;
-  // Same as mRange, but mRange will have old data during compositionupdate.
-  // So this will be valied during compositionupdate.
+  // Same as mRange, but mRange will have old ranges before editor starts
+  // handling the latest eCompositionChange.  Therefore, this stores the latest
+  // ranges which is introduced by the latest eCompositionChange.  So this may
+  // be useful during dispatching eCompositionUpdate or eCompositionChange.
   RefPtr<TextRangeArray> mLastRanges;
 
   // mNativeContext stores a opaque pointer.  This works as the "ID" for this
@@ -358,9 +372,9 @@ class TextComposition final {
   // See the comment for IsComposing().
   bool mIsComposing;
 
-  // mIsEditorHandlingEvent is true while editor is modifying the composition
+  // mEditorIsHandlingEvent is true while editor is modifying the composition
   // string.
-  bool mIsEditorHandlingEvent;
+  bool mEditorIsHandlingEvent = false;
 
   // mIsRequestingCommit or mIsRequestingCancel is true *only* while we're
   // requesting commit or canceling the composition.  In other words, while
@@ -564,7 +578,7 @@ class TextComposition final {
     CompositionEventDispatcher()
         : Runnable("TextComposition::CompositionEventDispatcher"),
           mEventMessage(eVoidEvent),
-          mIsSynthesizedEvent(false){};
+          mIsSynthesizedEvent(false) {};
   };
 
   /**

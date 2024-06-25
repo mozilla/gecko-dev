@@ -890,7 +890,7 @@ bool GeckoEditableSupport::DoReplaceText(int32_t aStart, int32_t aEnd,
   NS_ENSURE_SUCCESS(BeginInputTransaction(mDispatcher), false);
 
   RefPtr<TextComposition> composition(GetComposition());
-  MOZ_ASSERT(!composition || !composition->IsEditorHandlingEvent());
+  MOZ_ASSERT(!composition || !composition->EditorIsHandlingLatestChange());
 
   nsString string(aText->ToString());
   const bool composing = !mIMERanges->IsEmpty();
@@ -1134,7 +1134,7 @@ bool GeckoEditableSupport::DoUpdateComposition(int32_t aStart, int32_t aEnd,
    */
   nsString string;
   RefPtr<TextComposition> composition(GetComposition());
-  MOZ_ASSERT(!composition || !composition->IsEditorHandlingEvent());
+  MOZ_ASSERT(!composition || !composition->EditorIsHandlingLatestChange());
 
   if (!composition || !mDispatcher->IsComposing() ||
       uint32_t(aStart) != composition->NativeOffsetOfStartComposition() ||

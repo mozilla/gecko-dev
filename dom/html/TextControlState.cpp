@@ -9,6 +9,7 @@
 #include "mozilla/CaretAssociationHint.h"
 #include "mozilla/IMEContentObserver.h"
 #include "mozilla/IMEStateManager.h"
+#include "mozilla/TextComposition.h"
 #include "mozilla/TextInputListener.h"
 
 #include "nsCOMPtr.h"
@@ -2640,7 +2641,9 @@ bool TextControlState::SetValue(const nsAString& aValue,
   //       bug must not be reproducible actually.
   if (aOptions.contains(ValueSetterOption::BySetUserInputAPI) ||
       aOptions.contains(ValueSetterOption::ByContentAPI)) {
-    if (EditorHasComposition()) {
+    RefPtr<TextComposition> compositionInEditor =
+        mTextEditor ? mTextEditor->GetComposition() : nullptr;
+    if (compositionInEditor && compositionInEditor->IsComposing()) {
       // When this is called recursively, there shouldn't be composition.
       if (handlingSetValue.IsHandling(TextControlAction::CommitComposition)) {
         // Don't request to commit composition again.  But if it occurs,
@@ -2679,13 +2682,27 @@ bool TextControlState::SetValue(const nsAString& aValue,
         // dispatches nested `beforeinput`/`input` events if this is called by a
         // `beforeinput`/`input` event listener since the commit value will be
         // completely overwritten by the new value soon and the web app do not
-        // need to handle the committing composition which is caused by updating
-        // the value.
-        // Note that `compositionupdate` and `compositionend` will be fired.
-        // Therefore, everything could occur during a the following call.
-        // I.e., the document may be unloaded by the web app itself.
+        // need to handle the temporary input caused by committing composition
+        // which is caused by updating the value by the web app itself  Note
+        // that `input` event listener may be async function and setting value
+        // may occur after the editor ends dispatching `input` event. Even in
+        // this case, to avoid nest call of the async `input` event listener, we
+        // need to suppress `input` events caused by committing composition.  On
+        // the other hand, we need to dispatch `input` event when the value is
+        // set by a `compositionupdate` event listener because once we suppress
+        // `input` event for it, the composition change won't cause dispatching
+        // `input` event.  Therefore, we should not suppress `input` events
+        // before the editor starts handling the composition change, but we need
+        // to suppress `input` events even after the editor ends handling the
+        // change.
+        // FYI: Even if we suppress `input` event dispatching,
+        // `compositionupdate` and `compositionend` caused by the committing
+        // composition will be fired.  Therefore, everything could occur during
+        // a the following call.  I.e., the document may be unloaded by the web
+        // app itself.
         Maybe<AutoInputEventSuppresser> preventInputEventsDuringCommit;
-        if (mTextEditor->IsDispatchingInputEvent()) {
+        if (mTextEditor->IsDispatchingInputEvent() ||
+            compositionInEditor->EditorHasHandledLatestChange()) {
           preventInputEventsDuringCommit.emplace(mTextEditor);
         }
         OwningNonNull<TextEditor> textEditor(*mTextEditor);
