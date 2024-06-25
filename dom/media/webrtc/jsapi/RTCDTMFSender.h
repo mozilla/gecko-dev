@@ -49,6 +49,7 @@ class RTCDTMFSender : public DOMEventTargetHelper,
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   void SetPayloadType(int32_t aPayloadType, int32_t aPayloadFrequency);
+  bool CanInsertDTMF() const;
   void InsertDTMF(const nsAString& aTones, uint32_t aDuration,
                   uint32_t aInterToneGap, ErrorResult& aRv);
   void GetToneBuffer(nsAString& aOutToneBuffer);

@@ -71,6 +71,10 @@ void RTCDTMFSender::SetPayloadType(int32_t aPayloadType,
   mPayloadFrequency = Some(aPayloadFrequency);
 }
 
+bool RTCDTMFSender::CanInsertDTMF() const {
+  return mTransceiver->CanSendDTMF();
+}
+
 void RTCDTMFSender::InsertDTMF(const nsAString& aTones, uint32_t aDuration,
                                uint32_t aInterToneGap, ErrorResult& aRv) {
   if (!mTransceiver->CanSendDTMF()) {
