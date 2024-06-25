@@ -1,0 +1,8 @@
+{
+  "ui:order": [
+    "providerId",
+    "searchPageRegexp",
+    "includeParams",
+    "excludeParams"
+  ]
+}
