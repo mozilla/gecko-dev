@@ -37,6 +37,8 @@ class NotificationsDelegate(
     var isRequestingPermission: Boolean = false
         private set
 
+    private var permissionRequestsCount: Int = 0
+
     private var onPermissionGranted: OnPermissionGranted = { }
     private var onPermissionRejected: OnPermissionRejected = { }
     private val notificationPermissionHandler: MutableMap<AppCompatActivity, ActivityResultLauncher<String>> =
@@ -143,6 +145,11 @@ class NotificationsDelegate(
             return
         }
 
+        // do not request permission more than twice per session
+        if (permissionRequestsCount >= 2) {
+            return
+        }
+
         this.onPermissionGranted = onPermissionGranted
         this.onPermissionRejected = onPermissionRejected
 
@@ -158,6 +165,7 @@ class NotificationsDelegate(
                 it.key.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
             }?.value?.also {
                 isRequestingPermission = true
+                permissionRequestsCount++
             }?.launch(POST_NOTIFICATIONS)
         }
     }
