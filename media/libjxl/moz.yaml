@@ -29,6 +29,7 @@ updatebot:
 vendoring:
   url: https://github.com/libjxl/libjxl
   source-hosting: github
+  tracking: tag
   vendor-directory: third_party/jpeg-xl
 
   exclude:
