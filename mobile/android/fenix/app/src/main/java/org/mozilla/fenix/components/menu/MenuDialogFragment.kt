@@ -140,6 +140,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val isBookmarked by store.observeAsState(initialValue = false) { state ->
                         state.browserMenuState != null && state.browserMenuState.bookmarkState.isBookmarked
                     }
+                    val isPinned by store.observeAsState(initialValue = false) { state ->
+                        state.browserMenuState != null && state.browserMenuState.isPinned
+                    }
 
                     NavHost(
                         navController = navHostController,
@@ -242,6 +245,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         composable(route = SAVE_MENU_ROUTE) {
                             SaveSubmenu(
                                 isBookmarked = isBookmarked,
+                                isPinned = isPinned,
                                 onBackButtonClick = {
                                     store.dispatch(MenuAction.Navigate.Back)
                                 },
@@ -251,8 +255,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 onEditBookmarkButtonClick = {
                                     store.dispatch(MenuAction.Navigate.EditBookmark)
                                 },
-                                onAddToShortcutsMenuClick = {
-                                    store.dispatch(MenuAction.AddShortcut)
+                                onShortcutsMenuClick = {
+                                    if (!isPinned) {
+                                        store.dispatch(MenuAction.AddShortcut)
+                                    }
                                 },
                                 onAddToHomeScreenMenuClick = {},
                                 onSaveToCollectionMenuClick = {
