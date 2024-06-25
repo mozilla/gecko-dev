@@ -1,20 +1,18 @@
 import pytest
-from tests.support import platform_name
 from webdriver.bidi.modules.script import ContextTarget
 
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.mark.skipif(
-    platform_name is None, reason="Unsupported platform {}".format(platform_name)
-)
 @pytest.mark.parametrize("match_type", ["alwaysMatch", "firstMatch"])
-async def test_platform_name(new_session, match_capabilities, match_type):
-    capabilities = match_capabilities(match_type, "platformName", platform_name)
+async def test_platform_name(
+    new_session, match_capabilities, target_platform, match_type
+):
+    capabilities = match_capabilities(match_type, "platformName", target_platform)
 
     bidi_session = await new_session(capabilities=capabilities)
 
-    assert bidi_session.capabilities["platformName"] == platform_name
+    assert bidi_session.capabilities["platformName"] == target_platform
 
 
 @pytest.mark.parametrize("match_type", ["alwaysMatch", "firstMatch"])
