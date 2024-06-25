@@ -256,6 +256,7 @@ private fun LazyListState.isItemPartiallyVisible(itemInfo: LazyListItemInfo?) =
         (itemInfo.offset + itemInfo.size > layoutInfo.viewportEndOffset || itemInfo.offset < 0)
 
 @Composable
+@Suppress("LongMethod")
 private fun TabItem(
     state: TabStripItem,
     modifier: Modifier = Modifier,
@@ -336,7 +337,10 @@ private fun TabItem(
                 Icon(
                     painter = painterResource(R.drawable.mozac_ic_cross_20),
                     tint = FirefoxTheme.colors.iconPrimary,
-                    contentDescription = stringResource(R.string.close_tab),
+                    contentDescription = stringResource(
+                        id = R.string.close_tab_title,
+                        state.title,
+                    ),
                 )
             }
         }
