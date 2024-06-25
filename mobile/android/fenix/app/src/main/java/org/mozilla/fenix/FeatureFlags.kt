@@ -84,6 +84,12 @@ object FeatureFlags {
     val navigationToolbarEnabled = Config.channel.isNightlyOrDebug
 
     /**
+     * Whether or not to replace the Homepage button on the Navigation Toolbar with a New Tab
+     * button.
+     */
+    const val navigationToolbarNewTabButtonEnabled = false
+
+    /**
      * Enables the menu redesign.
      */
     const val menuRedesignEnabled = false

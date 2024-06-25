@@ -431,6 +431,7 @@ abstract class BaseBrowserFragment :
             store = store,
             tabsUseCases = requireComponents.useCases.tabsUseCases,
             activity = activity,
+            settings = context.settings(),
             navController = findNavController(),
             readerModeController = readerMenuController,
             engineView = binding.engineView,
@@ -1389,6 +1390,7 @@ abstract class BaseBrowserFragment :
 
                         BrowserNavBar(
                             isPrivateMode = activity.browsingModeManager.mode.isPrivate,
+                            showNewTabButton = FeatureFlags.navigationToolbarNewTabButtonEnabled,
                             browserStore = context.components.core.store,
                             menuButton = menuButton,
                             onBackButtonClick = {
@@ -1422,6 +1424,9 @@ abstract class BaseBrowserFragment :
                                         BrowserFragmentDirections.actionGlobalHome(),
                                     )
                                 }
+                            },
+                            onNewTabButtonClick = {
+                                browserToolbarInteractor.onNewTabButtonClicked()
                             },
                             onTabsButtonClick = {
                                 NavigationBar.browserTabTrayTapped.record(NoExtras())

@@ -93,6 +93,9 @@ class DefaultBrowserToolbarControllerTest {
     @RelaxedMockK
     private lateinit var homeViewModel: HomeScreenViewModel
 
+    @RelaxedMockK
+    private lateinit var settings: Settings
+
     private lateinit var store: BrowserStore
     private val captureMiddleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
 
@@ -462,6 +465,37 @@ class DefaultBrowserToolbarControllerTest {
         assertEquals("main_flow_toolbar", telemetry?.extra?.get("item"))
     }
 
+    @Test
+    fun `WHEN new tab button is clicked THEN navigate to homepage`() {
+        val controller = createController()
+        controller.handleNewTabButtonClick()
+
+        verify {
+            navController.navigate(
+                BrowserFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN homepage as a new tab is enabled WHEN new tab button is clicked THEN a new homepage tab is displayed`() {
+        every { settings.enableHomepageAsNewTab } returns true
+
+        val controller = createController()
+        controller.handleNewTabButtonClick()
+
+        verify {
+            tabsUseCases.addTab.invoke(
+                startLoading = false,
+                private = false,
+            )
+
+            navController.navigate(
+                BrowserFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
+            )
+        }
+    }
+
     private fun createController(
         activity: HomeActivity = this.activity,
         customTabSessionId: String? = null,
@@ -469,6 +503,7 @@ class DefaultBrowserToolbarControllerTest {
         store = store,
         tabsUseCases = tabsUseCases,
         activity = activity,
+        settings = settings,
         navController = navController,
         engineView = engineView,
         homeViewModel = homeViewModel,
