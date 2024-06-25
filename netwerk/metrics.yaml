@@ -515,13 +515,14 @@ networking:
       The time between processing OnDataFinished and processing OnStopRequest for CSSLoader in the content process
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1883391
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902186
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1883391
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
-    expires: 130
+    expires: 136
 
   http_onstart_suspend_total_time:
     type: timing_distribution
