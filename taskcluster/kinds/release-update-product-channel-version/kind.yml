@@ -13,7 +13,7 @@ transforms:
     - gecko_taskgraph.transforms.release:run_on_releases
     - gecko_taskgraph.transforms.task:transforms
 
-job-defaults:
+task-defaults:
     description: Update product channel version in Ship-It
     attributes:
         shippable: true
@@ -34,7 +34,7 @@ job-defaults:
         kind: other
         tier: 1
 
-jobs:
+tasks:
     firefox:
         run-on-releases: ["nightly"]
         run-on-projects: ["mozilla-central"]
