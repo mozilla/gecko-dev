@@ -77,7 +77,7 @@ WINVER=0A00
 
 case "$target" in
 *-mingw*)
-    if test "$GCC" != "yes"; then
+    if test "$CC_TYPE" = clang-cl; then
         # Check to see if we are really running in a msvc environemnt
         _WIN32_MSVC=1
 
