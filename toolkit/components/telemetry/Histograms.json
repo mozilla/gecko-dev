@@ -17350,5 +17350,17 @@
     "n_buckets": 50,
     "bug_numbers": [1589554],
     "description": "Battery level when discharging and the wake lock was released"
+  },
+  "BROWSER_BACKUP_TOTAL_BACKUP_SIZE": {
+    "record_in_processes": ["main"],
+    "alert_emails": "mconley@mozilla.com",
+    "products": ["firefox"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "low": 1,
+    "high": 10240,
+    "n_buckets": 50,
+    "bug_numbers": [1887765],
+    "description": "The total uncompressed size of all profile data included in a completed backup, in mebibytes"
   }
 }

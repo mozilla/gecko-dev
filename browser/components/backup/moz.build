@@ -28,6 +28,7 @@ EXTRA_JS_MODULES.backup += [
     "ArchiveUtils.sys.mjs",
     "BackupResources.sys.mjs",
     "BackupService.sys.mjs",
+    "MeasurementUtils.sys.mjs",
     "resources/AddonsBackupResource.sys.mjs",
     "resources/BackupResource.sys.mjs",
     "resources/CookiesBackupResource.sys.mjs",

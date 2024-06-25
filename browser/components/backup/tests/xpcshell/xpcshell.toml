@@ -35,6 +35,8 @@ skip-if = ["apple_silicon && automation"] # bug 1729538
 
 ["test_BackupService_takeMeasurements.js"]
 
+["test_MeasurementUtils_fuzzByteSize.js"]
+
 ["test_CookiesBackupResource.js"]
 
 ["test_CredentialsAndSecurityBackupResource.js"]

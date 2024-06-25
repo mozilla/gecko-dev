@@ -5,6 +5,13 @@
 import * as DefaultBackupResources from "resource:///modules/backup/BackupResources.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+import { BackupResource } from "resource:///modules/backup/BackupResource.sys.mjs";
+import {
+  MeasurementUtils,
+  BYTES_IN_KILOBYTE,
+  BYTES_IN_MEGABYTE,
+  BYTES_IN_MEBIBYTE,
+} from "resource:///modules/backup/MeasurementUtils.sys.mjs";
 
 const BACKUP_DIR_PREF_NAME = "browser.backup.location";
 const SCHEDULED_BACKUPS_ENABLED_PREF_NAME = "browser.backup.scheduled.enabled";
@@ -962,6 +969,23 @@ export class BackupService extends EventTarget {
       lazy.logConsole.log(
         "Wrote backup to staging directory at ",
         renamedStagingPath
+      );
+
+      // Record the total size of the backup staging directory
+      let totalSizeKilobytes = await BackupResource.getDirectorySize(
+        renamedStagingPath
+      );
+      let totalSizeBytesNearestMebibyte = MeasurementUtils.fuzzByteSize(
+        totalSizeKilobytes * BYTES_IN_KILOBYTE,
+        1 * BYTES_IN_MEBIBYTE
+      );
+      lazy.logConsole.debug(
+        "total staging directory size in bytes: " +
+          totalSizeBytesNearestMebibyte
+      );
+
+      Glean.browserBackup.totalBackupSize.accumulate(
+        totalSizeBytesNearestMebibyte / BYTES_IN_MEBIBYTE
       );
 
       let compressedStagingPath = await this.#compressStagingFolder(
@@ -2292,11 +2316,6 @@ export class BackupService extends EventTarget {
   async takeMeasurements() {
     lazy.logConsole.debug("Taking Telemetry measurements");
 
-    // Note: We're talking about kilobytes here, not kibibytes. That means
-    // 1000 bytes, and not 1024 bytes.
-    const BYTES_IN_KB = 1000;
-    const BYTES_IN_MB = 1000000;
-
     // We'll start by measuring the available disk space on the storage
     // device that the profile directory is on.
     let profileDir = await IOUtils.getFile(PathUtils.profileDir);
@@ -2304,12 +2323,16 @@ export class BackupService extends EventTarget {
     let profDDiskSpaceBytes = profileDir.diskSpaceAvailable;
 
     // Make the measurement fuzzier by rounding to the nearest 10MB.
-    let profDDiskSpaceMB =
-      Math.round(profDDiskSpaceBytes / BYTES_IN_MB / 100) * 100;
+    let profDDiskSpaceFuzzed = MeasurementUtils.fuzzByteSize(
+      profDDiskSpaceBytes,
+      10 * BYTES_IN_MEGABYTE
+    );
 
     // And then record the value in kilobytes, since that's what everything
     // else is going to be measured in.
-    Glean.browserBackup.profDDiskSpace.set(profDDiskSpaceMB * BYTES_IN_KB);
+    Glean.browserBackup.profDDiskSpace.set(
+      profDDiskSpaceFuzzed / BYTES_IN_KILOBYTE
+    );
 
     // Measure the size of each file we are going to backup.
     for (let resourceClass of this.#resources.values()) {

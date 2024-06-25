@@ -29,6 +29,24 @@ browser.backup:
     expires: never
     telemetry_mirror: BROWSER_BACKUP_PROF_D_DISK_SPACE
 
+  total_backup_size:
+    type: memory_distribution
+    memory_unit: megabyte
+    description: >
+      The total uncompressed size of all profile data included in a
+      completed backup. To reduce fingerprintability, we round to the
+      nearest 1 mebibyte.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1887765
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1887765
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_BACKUP_TOTAL_BACKUP_SIZE
+
   places_size:
     type: quantity
     unit: kilobyte
