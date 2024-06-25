@@ -87,6 +87,8 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     private var refreshAction: BrowserToolbar.TwoStateButton? = null
     private var isTablet: Boolean = false
 
+    private var translationSnackbar: FenixSnackbar? = null
+
     @Suppress("LongMethod")
     override fun initializeUI(view: View, tab: SessionState) {
         super.initializeUI(view, tab)
@@ -222,13 +224,14 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         ) { _, result ->
             result.getString(SESSION_ID)?.let {
                 if (it == getCurrentTab()?.id) {
-                    FenixSnackbar.make(
+                    translationSnackbar = FenixSnackbar.make(
                         view = binding.dynamicSnackbarContainer,
-                        duration = Snackbar.LENGTH_LONG,
+                        duration = FenixSnackbar.LENGTH_INDEFINITE,
                         isDisplayedWithBrowserToolbar = true,
                     )
                         .setText(requireContext().getString(R.string.translation_in_progress_snackbar))
-                        .show()
+
+                    translationSnackbar?.show()
                 }
             }
         }
@@ -303,8 +306,15 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                     )
 
                     safeInvalidateBrowserToolbarView()
+
+                    if (!it.isTranslateProcessing && translationSnackbar?.isShown == true) {
+                        translationSnackbar?.dismiss()
+                    }
                 },
                 onShowTranslationsDialog = {
+                    if (translationSnackbar?.isShown == true) {
+                        translationSnackbar?.dismiss()
+                    }
                     browserToolbarInteractor.onTranslationsButtonClicked()
                 },
             ),

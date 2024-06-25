@@ -14,6 +14,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.translate.DetectedLanguages
 import mozilla.components.concept.engine.translate.Language
 import mozilla.components.concept.engine.translate.TranslationEngineState
+import mozilla.components.concept.engine.translate.TranslationError
 import mozilla.components.concept.engine.translate.TranslationOperation
 import mozilla.components.concept.engine.translate.TranslationPair
 import mozilla.components.concept.engine.translate.TranslationSupport
@@ -97,9 +98,11 @@ class TranslationsBindingTest {
             ).joinBlocking()
 
             browserStore.dispatch(
-                TranslationsAction.TranslateSuccessAction(
+                TranslationsAction.TranslateAction(
                     tabId = tab.id,
-                    operation = TranslationOperation.TRANSLATE,
+                    fromLanguage = englishLanguage.code,
+                    toLanguage = spanishLanguage.code,
+                    options = null,
                 ),
             ).joinBlocking()
 
@@ -107,6 +110,7 @@ class TranslationsBindingTest {
                 TranslationsIconState(
                     isVisible = true,
                     isTranslated = true,
+                    isTranslateProcessing = true,
                     fromSelectedLanguage = englishLanguage,
                     toSelectedLanguage = spanishLanguage,
                 ),
@@ -141,6 +145,7 @@ class TranslationsBindingTest {
                 TranslationsIconState(
                     isVisible = true,
                     isTranslated = false,
+                    isTranslateProcessing = false,
                 ),
             )
         }
@@ -166,6 +171,7 @@ class TranslationsBindingTest {
                 TranslationsIconState(
                     isVisible = false,
                     isTranslated = false,
+                    isTranslateProcessing = false,
                 ),
             )
         }
@@ -224,6 +230,7 @@ class TranslationsBindingTest {
                 TranslationsIconState(
                     isVisible = false,
                     isTranslated = false,
+                    isTranslateProcessing = false,
                 ),
             )
         }
@@ -254,5 +261,49 @@ class TranslationsBindingTest {
             ).joinBlocking()
 
             verify(onShowTranslationsDialog, never()).invoke()
+        }
+
+    @Test
+    fun `GIVEN translationState WHEN translation state has an error THEN do invoke onShowTranslationsDialog callback`() =
+        runTestOnMain {
+            browserStore = BrowserStore(
+                BrowserState(
+                    tabs = listOf(tab),
+                    selectedTabId = tabId,
+                    translationEngine = TranslationsBrowserState(
+                        isEngineSupported = true,
+                    ),
+                ),
+            )
+
+            val binding = TranslationsBinding(
+                browserStore = browserStore,
+                onTranslationsActionUpdated = onTranslationsActionUpdated,
+                onShowTranslationsDialog = onShowTranslationsDialog,
+            )
+            binding.start()
+
+            browserStore.dispatch(
+                TranslationsAction.TranslateExpectedAction(
+                    tabId = tabId,
+                ),
+            ).joinBlocking()
+
+            browserStore.dispatch(
+                TranslationsAction.TranslateOfferAction(
+                    tabId = tab.id,
+                    isOfferTranslate = false,
+                ),
+            ).joinBlocking()
+
+            browserStore.dispatch(
+                TranslationsAction.TranslateExceptionAction(
+                    tabId,
+                    TranslationOperation.TRANSLATE,
+                    TranslationError.CouldNotTranslateError(null),
+                ),
+            ).joinBlocking()
+
+            verify(onShowTranslationsDialog).invoke()
         }
 }

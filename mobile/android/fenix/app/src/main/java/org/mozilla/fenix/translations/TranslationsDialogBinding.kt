@@ -76,6 +76,12 @@ class TranslationsDialogBinding(
                 // Session Translations State Behavior (Tab)
                 val sessionTranslationsState = state.sessionState.translationsState
 
+                translationsDialogStore.dispatch(
+                    TranslationsDialogAction.UpdateTranslationInProgress(
+                        sessionTranslationsState.isTranslateProcessing,
+                    ),
+                )
+
                 val fromSelected =
                     sessionTranslationsState.translationEngineState?.initialFromLanguage(
                         translateFromLanguages,
@@ -119,7 +125,11 @@ class TranslationsDialogBinding(
                 }
 
                 if (sessionTranslationsState.isTranslateProcessing) {
-                    updateStoreIfIsTranslateProcessing()
+                    translationsDialogStore.dispatch(
+                        TranslationsDialogAction.DismissDialog(
+                            dismissDialogState = DismissDialogState.WaitingToBeDismissed,
+                        ),
+                    )
                 }
 
                 if (sessionTranslationsState.isTranslated && !sessionTranslationsState.isTranslateProcessing) {
@@ -163,6 +173,7 @@ class TranslationsDialogBinding(
      * @param browserState The browser state to consider when fetching information for errors.
 
      */
+    @Suppress("MaxLineLength")
     private fun updateTranslationError(
         sessionTranslationsState: TranslationsState,
         browserTranslationsState: TranslationsBrowserState,
@@ -206,26 +217,7 @@ class TranslationsDialogBinding(
         }
     }
 
-    private fun updateStoreIfIsTranslateProcessing() {
-        translationsDialogStore.dispatch(
-            TranslationsDialogAction.UpdateTranslationInProgress(
-                true,
-            ),
-        )
-        translationsDialogStore.dispatch(
-            TranslationsDialogAction.DismissDialog(
-                dismissDialogState = DismissDialogState.WaitingToBeDismissed,
-            ),
-        )
-    }
-
     private fun updateStoreIfTranslated() {
-        translationsDialogStore.dispatch(
-            TranslationsDialogAction.UpdateTranslationInProgress(
-                false,
-            ),
-        )
-
         if (!translationsDialogStore.state.isTranslated) {
             translationsDialogStore.dispatch(
                 TranslationsDialogAction.UpdateTranslated(
