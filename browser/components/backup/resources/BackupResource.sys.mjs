@@ -250,11 +250,15 @@ export class BackupResource {
    *   (for example, it's being run from a BackgroundTask on a user profile that
    *   just shut down, or during test), then this is a string set to that user
    *   profile path.
+   * @param {boolean} [isEncrypting=false]
+   *   True if the backup is being encrypted. A BackupResource may not require
+   *   encryption, but might still choose to behave differently when encrypting,
+   *   so this flag can be used to support that kind of behaviour.
    *
    * @returns {Promise<object|null>}
    */
   // eslint-disable-next-line no-unused-vars
-  async backup(stagingPath, profilePath = null) {
+  async backup(stagingPath, profilePath = null, isEncrypting = false) {
     throw new Error("BackupResource::backup must be overridden");
   }
 

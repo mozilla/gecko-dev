@@ -28,12 +28,19 @@ export class SessionStoreBackupResource extends BackupResource {
     return false;
   }
 
-  async backup(stagingPath, profilePath = PathUtils.profileDir) {
+  async backup(
+    stagingPath,
+    profilePath = PathUtils.profileDir,
+    isEncrypting = false
+  ) {
     let sessionStoreState = lazy.SessionStore.getCurrentState(true);
     let sessionStorePath = PathUtils.join(stagingPath, "sessionstore.jsonlz4");
 
-    /* Bug 1891854 - remove cookies from session store state if the backup file is
-     * not encrypted. */
+    if (!isEncrypting) {
+      // If we're not encrypting, we don't want to include any session cookies
+      // in the backup.
+      sessionStoreState.cookies = [];
+    }
 
     await IOUtils.writeJSON(sessionStorePath, sessionStoreState, {
       compress: true,

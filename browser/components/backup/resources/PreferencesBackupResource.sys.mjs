@@ -16,7 +16,11 @@ export class PreferencesBackupResource extends BackupResource {
     return false;
   }
 
-  async backup(stagingPath, profilePath = PathUtils.profileDir) {
+  async backup(
+    stagingPath,
+    profilePath = PathUtils.profileDir,
+    _isEncrypting = false
+  ) {
     // These are files that can be simply copied into the staging folder using
     // IOUtils.copy.
     const simpleCopyFiles = [

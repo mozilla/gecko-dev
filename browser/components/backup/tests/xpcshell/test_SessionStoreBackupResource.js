@@ -9,6 +9,42 @@ const { SessionStoreBackupResource } = ChromeUtils.importESModule(
 const { SessionStore } = ChromeUtils.importESModule(
   "resource:///modules/sessionstore/SessionStore.sys.mjs"
 );
+const { NetUtil } = ChromeUtils.importESModule(
+  "resource://gre/modules/NetUtil.sys.mjs"
+);
+
+const TOTAL_COOKIES = 10;
+
+add_setup(async () => {
+  // Start the cookieservice, to force creation of a database.
+  // Get the sessionCookies to join the initialization in cookie thread
+  Services.cookies.sessionCookies;
+
+  Services.prefs.setBoolPref(
+    "network.cookieJarSettings.unblocked_for_testing",
+    true
+  );
+
+  let uri = NetUtil.newURI("https://foo.com/");
+  let channel = NetUtil.newChannel({
+    uri,
+    loadUsingSystemPrincipal: true,
+    contentPolicyType: Ci.nsIContentPolicy.TYPE_DOCUMENT,
+  });
+  for (let i = 0; i < TOTAL_COOKIES; ++i) {
+    uri = NetUtil.newURI("https://" + i + ".com/");
+    Services.cookies.setCookieStringFromHttp(uri, "oh=hai", channel);
+  }
+
+  Assert.equal(Services.cookies.sessionCookies.length, TOTAL_COOKIES);
+
+  let state = SessionStore.getCurrentState(true);
+  Assert.equal(
+    state.cookies.length,
+    TOTAL_COOKIES,
+    "The cookies are part of the session"
+  );
+});
 
 /**
  * Tests that we can measure the Session Store JSON and backups directory.
@@ -71,9 +107,28 @@ add_task(async function test_measure() {
 
 /**
  * Test that the backup method correctly copies items from the profile directory
- * into the staging directory.
+ * into the staging directory when the backup is encrypted.
  */
-add_task(async function test_backup() {
+add_task(async function test_backup_encrypted() {
+  await testBackupHelper(true /* isEncrypted */);
+});
+
+/**
+ * Test that the backup method correctly copies items from the profile directory
+ * into the staging directory when the backup is not encrypted.
+ */
+add_task(async function test_backup_not_encrypted() {
+  await testBackupHelper(false /* isEncrypted */);
+});
+
+/**
+ * A helper method that does the work of setting up a SessionStoreBackupResource
+ * and all of the testing infrastructure needed to test its backup() method.
+ *
+ * @param {boolean} isEncrypted
+ *   True if the test is for an encrypted backup.
+ */
+async function testBackupHelper(isEncrypted) {
   let sandbox = sinon.createSandbox();
 
   let sessionStoreBackupResource = new SessionStoreBackupResource();
@@ -95,7 +150,8 @@ add_task(async function test_backup() {
   let sessionStoreState = SessionStore.getCurrentState(true);
   let manifestEntry = await sessionStoreBackupResource.backup(
     stagingPath,
-    sourcePath
+    sourcePath,
+    isEncrypted
   );
   Assert.equal(
     manifestEntry,
@@ -127,6 +183,12 @@ add_task(async function test_backup() {
    */
   delete sessionStoreStateStaged.session.lastUpdate;
   delete sessionStoreState.session.lastUpdate;
+
+  if (!isEncrypted) {
+    // If we're not encrypting, then we expect the cookies array to be empty.
+    sessionStoreState.cookies = [];
+  }
+
   Assert.deepEqual(
     sessionStoreStateStaged,
     sessionStoreState,
@@ -137,7 +199,7 @@ add_task(async function test_backup() {
   await maybeRemovePath(sourcePath);
 
   sandbox.restore();
-});
+}
 
 /**
  * Test that the recover method correctly copies items from the recovery
