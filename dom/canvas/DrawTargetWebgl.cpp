@@ -39,129 +39,6 @@
 
 namespace mozilla::gfx {
 
-// Inserts (allocates) a rectangle of the requested size into the tree.
-Maybe<IntPoint> TexturePacker::Insert(const IntSize& aSize) {
-  // Check if the available space could possibly fit the requested size. If
-  // not, there is no reason to continue searching within this sub-tree.
-  if (mAvailable < std::min(aSize.width, aSize.height) ||
-      mBounds.width < aSize.width || mBounds.height < aSize.height) {
-    return Nothing();
-  }
-  if (mChildren) {
-    // If this node has children, then try to insert into each of the children
-    // in turn.
-    Maybe<IntPoint> inserted = mChildren[0].Insert(aSize);
-    if (!inserted) {
-      inserted = mChildren[1].Insert(aSize);
-    }
-    // If the insertion succeeded, adjust the available state to reflect the
-    // remaining space in the children.
-    if (inserted) {
-      mAvailable = std::max(mChildren[0].mAvailable, mChildren[1].mAvailable);
-      if (!mAvailable) {
-        DiscardChildren();
-      }
-    }
-    return inserted;
-  }
-  // If we get here, we've encountered a leaf node. First check if its size is
-  // exactly the requested size. If so, mark the node as unavailable and return
-  // its offset.
-  if (mBounds.Size() == aSize) {
-    mAvailable = 0;
-    return Some(mBounds.TopLeft());
-  }
-  // The node is larger than the requested size. Choose the axis which has the
-  // most excess space beyond the requested size and split it so that at least
-  // one of the children matches the requested size for that axis.
-  if (mBounds.width - aSize.width > mBounds.height - aSize.height) {
-    mChildren.reset(new TexturePacker[2]{
-        TexturePacker(
-            IntRect(mBounds.x, mBounds.y, aSize.width, mBounds.height)),
-        TexturePacker(IntRect(mBounds.x + aSize.width, mBounds.y,
-                              mBounds.width - aSize.width, mBounds.height))});
-  } else {
-    mChildren.reset(new TexturePacker[2]{
-        TexturePacker(
-            IntRect(mBounds.x, mBounds.y, mBounds.width, aSize.height)),
-        TexturePacker(IntRect(mBounds.x, mBounds.y + aSize.height,
-                              mBounds.width, mBounds.height - aSize.height))});
-  }
-  // After splitting, try to insert into the first child, which should usually
-  // be big enough to accomodate the request. Adjust the available state to the
-  // remaining space.
-  Maybe<IntPoint> inserted = mChildren[0].Insert(aSize);
-  mAvailable = std::max(mChildren[0].mAvailable, mChildren[1].mAvailable);
-  return inserted;
-}
-
-// Removes (frees) a rectangle with the given bounds from the tree.
-bool TexturePacker::Remove(const IntRect& aBounds) {
-  if (!mChildren) {
-    // If there are no children, we encountered a leaf node. Non-zero available
-    // state means that this node was already removed previously. Also, if the
-    // bounds don't contain the request, and assuming the tree was previously
-    // split during insertion, then this node is not the node we're searching
-    // for.
-    if (mAvailable > 0 || !mBounds.Contains(aBounds)) {
-      return false;
-    }
-    // The bounds match exactly and it was previously inserted, so in this case
-    // we can just remove it.
-    if (mBounds == aBounds) {
-      mAvailable = std::min(mBounds.width, mBounds.height);
-      return true;
-    }
-    // We need to split this leaf node so that it can exactly match the removed
-    // bounds. We know the leaf node at least contains the removed bounds, but
-    // needs to be subdivided until it has a child node that exactly matches.
-    // Choose the axis to split with the largest amount of excess space. Within
-    // that axis, choose the larger of the space before or after the subrect as
-    // the split point to the new children.
-    if (mBounds.width - aBounds.width > mBounds.height - aBounds.height) {
-      int split = aBounds.x - mBounds.x > mBounds.XMost() - aBounds.XMost()
-                      ? aBounds.x
-                      : aBounds.XMost();
-      mChildren.reset(new TexturePacker[2]{
-          TexturePacker(
-              IntRect(mBounds.x, mBounds.y, split - mBounds.x, mBounds.height),
-              false),
-          TexturePacker(IntRect(split, mBounds.y, mBounds.XMost() - split,
-                                mBounds.height),
-                        false)});
-    } else {
-      int split = aBounds.y - mBounds.y > mBounds.YMost() - aBounds.YMost()
-                      ? aBounds.y
-                      : aBounds.YMost();
-      mChildren.reset(new TexturePacker[2]{
-          TexturePacker(
-              IntRect(mBounds.x, mBounds.y, mBounds.width, split - mBounds.y),
-              false),
-          TexturePacker(
-              IntRect(mBounds.x, split, mBounds.width, mBounds.YMost() - split),
-              false)});
-    }
-  }
-  // We've encountered a branch node. Determine which of the two child nodes
-  // would possibly contain the removed bounds. We first check which axis the
-  // children were split on and then whether the removed bounds on that axis
-  // are past the start of the second child. Proceed to recurse into that
-  // child node for removal.
-  bool next = mChildren[0].mBounds.x < mChildren[1].mBounds.x
-                  ? aBounds.x >= mChildren[1].mBounds.x
-                  : aBounds.y >= mChildren[1].mBounds.y;
-  bool removed = mChildren[next ? 1 : 0].Remove(aBounds);
-  if (removed) {
-    if (mChildren[0].IsFullyAvailable() && mChildren[1].IsFullyAvailable()) {
-      DiscardChildren();
-      mAvailable = std::min(mBounds.width, mBounds.height);
-    } else {
-      mAvailable = std::max(mChildren[0].mAvailable, mChildren[1].mAvailable);
-    }
-  }
-  return removed;
-}
-
 BackingTexture::BackingTexture(const IntSize& aSize, SurfaceFormat aFormat,
                                const RefPtr<WebGLTexture>& aTexture)
     : mSize(aSize), mFormat(aFormat), mTexture(aTexture) {}
@@ -169,30 +46,48 @@ BackingTexture::BackingTexture(const IntSize& aSize, SurfaceFormat aFormat,
 SharedTexture::SharedTexture(const IntSize& aSize, SurfaceFormat aFormat,
                              const RefPtr<WebGLTexture>& aTexture)
     : BackingTexture(aSize, aFormat, aTexture),
-      mPacker(IntRect(IntPoint(0, 0), aSize)) {}
+      mAtlasAllocator(
+          Etagere::etagere_atlas_allocator_new(aSize.width, aSize.height)) {}
 
-SharedTextureHandle::SharedTextureHandle(const IntRect& aBounds,
+SharedTexture::~SharedTexture() {
+  if (mAtlasAllocator) {
+    Etagere::etagere_atlas_allocator_delete(mAtlasAllocator);
+    mAtlasAllocator = nullptr;
+  }
+}
+
+SharedTextureHandle::SharedTextureHandle(Etagere::AllocationId aId,
+                                         const IntRect& aBounds,
                                          SharedTexture* aTexture)
-    : mBounds(aBounds), mTexture(aTexture) {}
+    : mAllocationId(aId), mBounds(aBounds), mTexture(aTexture) {}
 
 already_AddRefed<SharedTextureHandle> SharedTexture::Allocate(
     const IntSize& aSize) {
-  RefPtr<SharedTextureHandle> handle;
-  if (Maybe<IntPoint> origin = mPacker.Insert(aSize)) {
-    handle = new SharedTextureHandle(IntRect(*origin, aSize), this);
-    ++mAllocatedHandles;
+  Etagere::Allocation alloc = {{0, 0, 0, 0}, Etagere::INVALID_ALLOCATION_ID};
+  if (!mAtlasAllocator ||
+      !Etagere::etagere_atlas_allocator_allocate(mAtlasAllocator, aSize.width,
+                                                 aSize.height, &alloc) ||
+      alloc.id == Etagere::INVALID_ALLOCATION_ID) {
+    return nullptr;
   }
+  RefPtr<SharedTextureHandle> handle = new SharedTextureHandle(
+      alloc.id,
+      IntRect(IntPoint(alloc.rectangle.min_x, alloc.rectangle.min_y), aSize),
+      this);
   return handle.forget();
 }
 
-bool SharedTexture::Free(const SharedTextureHandle& aHandle) {
+bool SharedTexture::Free(SharedTextureHandle& aHandle) {
   if (aHandle.mTexture != this) {
     return false;
   }
-  if (!mPacker.Remove(aHandle.mBounds)) {
-    return false;
+  if (aHandle.mAllocationId != Etagere::INVALID_ALLOCATION_ID) {
+    if (mAtlasAllocator) {
+      Etagere::etagere_atlas_allocator_deallocate(mAtlasAllocator,
+                                                  aHandle.mAllocationId);
+    }
+    aHandle.mAllocationId = Etagere::INVALID_ALLOCATION_ID;
   }
-  --mAllocatedHandles;
   return true;
 }
 

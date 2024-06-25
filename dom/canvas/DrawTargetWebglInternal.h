@@ -10,46 +10,11 @@
 #include "DrawTargetWebgl.h"
 
 #include "mozilla/HashFunctions.h"
+#include "mozilla/gfx/Etagere.h"
 #include "mozilla/gfx/PathSkia.h"
 #include "mozilla/gfx/WPFGpuRaster.h"
 
 namespace mozilla::gfx {
-
-// TexturePacker implements a bin-packing algorithm for 2D rectangles. It uses
-// a binary tree that partitions the space of a node at a given split. This
-// produces two children, one on either side of the split. This subdivision
-// proceeds recursively as necessary.
-class TexturePacker {
- public:
-  explicit TexturePacker(const IntRect& aBounds, bool aAvailable = true)
-      : mBounds(aBounds),
-        mAvailable(aAvailable ? std::min(aBounds.width, aBounds.height) : 0) {}
-
-  Maybe<IntPoint> Insert(const IntSize& aSize);
-
-  bool Remove(const IntRect& aBounds);
-
-  const IntRect& GetBounds() const { return mBounds; }
-
- private:
-  bool IsLeaf() const { return !mChildren; }
-  bool IsFullyAvailable() const { return IsLeaf() && mAvailable > 0; }
-
-  void DiscardChildren() { mChildren.reset(); }
-
-  // If applicable, the two children produced by picking a single axis split
-  // within the node's bounds and subdividing the bounds there.
-  UniquePtr<TexturePacker[]> mChildren;
-  // The bounds enclosing this node and any children within it.
-  IntRect mBounds;
-  // For a leaf node, specifies the size of the smallest dimension available to
-  // allocate. For a branch node, specifies largest potential available size of
-  // all children. This can be used during the allocation process to rapidly
-  // reject certain sub-trees without having to search all the way to a leaf
-  // node if we know that largest available size within the sub-tree wouldn't
-  // fit the requested size.
-  int mAvailable = 0;
-};
 
 // CacheEnty is a generic interface for various items that need to be cached to
 // a texture.
@@ -257,15 +222,18 @@ class SharedTexture : public RefCounted<SharedTexture>, public BackingTexture {
 
   SharedTexture(const IntSize& aSize, SurfaceFormat aFormat,
                 const RefPtr<WebGLTexture>& aTexture);
+  ~SharedTexture();
 
   already_AddRefed<SharedTextureHandle> Allocate(const IntSize& aSize);
-  bool Free(const SharedTextureHandle& aHandle);
+  bool Free(SharedTextureHandle& aHandle);
 
-  bool HasAllocatedHandles() const { return mAllocatedHandles > 0; }
+  bool HasAllocatedHandles() const {
+    return mAtlasAllocator && Etagere::etagere_atlas_allocator_allocated_space(
+                                  mAtlasAllocator) > 0;
+  }
 
  private:
-  TexturePacker mPacker;
-  size_t mAllocatedHandles = 0;
+  Etagere::AtlasAllocator* mAtlasAllocator = nullptr;
 };
 
 // SharedTextureHandle is an allocated region within a large SharedTexture page
@@ -276,7 +244,8 @@ class SharedTextureHandle : public TextureHandle {
  public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(SharedTextureHandle, override)
 
-  SharedTextureHandle(const IntRect& aBounds, SharedTexture* aTexture);
+  SharedTextureHandle(Etagere::AllocationId aId, const IntRect& aBounds,
+                      SharedTexture* aTexture);
 
   Type GetType() const override { return Type::SHARED; }
 
@@ -291,6 +260,7 @@ class SharedTextureHandle : public TextureHandle {
   const RefPtr<SharedTexture>& GetOwner() const { return mTexture; }
 
  private:
+  Etagere::AllocationId mAllocationId = Etagere::INVALID_ALLOCATION_ID;
   IntRect mBounds;
   RefPtr<SharedTexture> mTexture;
 };
