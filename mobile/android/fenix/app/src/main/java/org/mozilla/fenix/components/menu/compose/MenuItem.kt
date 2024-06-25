@@ -58,6 +58,7 @@ internal fun MenuItem(
     IconListItem(
         label = label,
         labelTextColor = labelTextColor,
+        maxLabelLines = 2,
         description = description,
         enabled = enabled,
         onClick = onClick,
