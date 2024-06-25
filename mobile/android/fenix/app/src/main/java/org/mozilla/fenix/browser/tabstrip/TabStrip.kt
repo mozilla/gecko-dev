@@ -336,10 +336,7 @@ private fun TabItem(
                 Icon(
                     painter = painterResource(R.drawable.mozac_ic_cross_20),
                     tint = FirefoxTheme.colors.iconPrimary,
-                    contentDescription = stringResource(
-                        id = R.string.close_tab_title,
-                        state.title,
-                    ),
+                    contentDescription = stringResource(R.string.close_tab),
                 )
             }
         }
