@@ -31,8 +31,12 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param description An optional description text below the label.
  * @param state The state of the menu item to display.
  * @param onClick Invoked when the user clicks on the item.
+ * @param showDivider Whether or not to display a vertical divider line before the [IconButton]
+ * at the end.
  * @param afterIconPainter [Painter] used to display an [IconButton] after the list item.
  * @param afterIconDescription Content description of the icon.
+ * @param onAfterIconClick Invoked when the user clicks on the icon. An [IconButton] will be
+ * displayed if this is provided. Otherwise, an [Icon] will be displayed.
  */
 @Composable
 internal fun MenuItem(
@@ -42,8 +46,10 @@ internal fun MenuItem(
     description: String? = null,
     state: MenuItemState = MenuItemState.ENABLED,
     onClick: (() -> Unit)? = null,
+    showDivider: Boolean = false,
     afterIconPainter: Painter? = null,
     afterIconDescription: String? = null,
+    onAfterIconClick: (() -> Unit)? = null,
 ) {
     val labelTextColor = getLabelTextColor(state = state)
     val iconTint = getIconTint(state = state)
@@ -58,9 +64,11 @@ internal fun MenuItem(
         beforeIconPainter = beforeIconPainter,
         beforeIconDescription = beforeIconDescription,
         beforeIconTint = iconTint,
+        showDivider = showDivider,
         afterIconPainter = afterIconPainter,
         afterIconDescription = afterIconDescription,
         afterIconTint = iconTint,
+        onAfterIconClick = onAfterIconClick,
     )
 }
 
@@ -135,6 +143,20 @@ private fun MenuItemPreview() {
                         state = state,
                         onClick = {},
                         afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
+                    )
+
+                    Divider(color = FirefoxTheme.colors.borderSecondary)
+                }
+
+                for (state in MenuItemState.entries) {
+                    MenuItem(
+                        label = stringResource(id = R.string.browser_menu_extensions),
+                        beforeIconPainter = painterResource(id = R.drawable.mozac_ic_extension_24),
+                        state = state,
+                        onClick = {},
+                        showDivider = true,
+                        afterIconPainter = painterResource(id = R.drawable.mozac_ic_plus_24),
+                        onAfterIconClick = {},
                     )
 
                     Divider(color = FirefoxTheme.colors.borderSecondary)
