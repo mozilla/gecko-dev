@@ -10,6 +10,7 @@
 #include "AlternateServices.h"
 #include "AutoClose.h"
 #include "HttpBaseChannel.h"
+#include "nsIReplacedHttpResponse.h"
 #include "TimingStruct.h"
 #include "mozilla/AtomicBitfields.h"
 #include "mozilla/Atomics.h"
@@ -206,6 +207,8 @@ class nsHttpChannel final : public HttpBaseChannel,
   NS_IMETHOD SetEarlyHintObserver(nsIEarlyHintObserver* aObserver) override;
   NS_IMETHOD SetWebTransportSessionEventListener(
       WebTransportSessionEventListener* aListener) override;
+  NS_IMETHOD SetResponseOverride(
+      nsIReplacedHttpResponse* aReplacedHttpResponse) override;
 
   void SetWarningReporter(HttpChannelSecurityWarningReporter* aReporter);
   HttpChannelSecurityWarningReporter* GetWarningReporter();
@@ -344,6 +347,7 @@ class nsHttpChannel final : public HttpBaseChannel,
   void AsyncContinueProcessResponse();
   [[nodiscard]] nsresult ContinueProcessResponse1();
   [[nodiscard]] nsresult ContinueProcessResponse2(nsresult);
+  nsresult HandleOverrideResponse();
 
  public:
   void UpdateCacheDisposition(bool aSuccessfulReval, bool aPartialContentUsed);
@@ -861,6 +865,7 @@ class nsHttpChannel final : public HttpBaseChannel,
   RefPtr<nsIEarlyHintObserver> mEarlyHintObserver;
   Maybe<nsCString> mOpenerCallingScriptLocation;
   RefPtr<WebTransportSessionEventListener> mWebTransportSessionEventListener;
+  nsMainThreadPtrHandle<nsIReplacedHttpResponse> mOverrideResponse;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsHttpChannel, NS_HTTPCHANNEL_IID)

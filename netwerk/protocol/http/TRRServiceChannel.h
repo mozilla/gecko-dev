@@ -98,6 +98,11 @@ class TRRServiceChannel : public HttpBaseChannel,
     return NS_OK;
   }
 
+  NS_IMETHOD SetResponseOverride(
+      nsIReplacedHttpResponse* aReplacedHttpResponse) override {
+    return NS_OK;
+  }
+
   [[nodiscard]] nsresult OnPush(uint32_t aPushedStreamId,
                                 const nsACString& aUrl,
                                 const nsACString& aRequestString,

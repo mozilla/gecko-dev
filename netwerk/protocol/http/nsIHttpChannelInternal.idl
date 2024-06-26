@@ -5,6 +5,7 @@
 
 #include "nsISupports.idl"
 #include "nsILoadInfo.idl"
+#include "nsIReplacedHttpResponse.idl"
 #include "nsIRequest.idl"
 #include "nsITRRSkipReason.idl"
 
@@ -84,7 +85,7 @@ interface nsIHttpChannelInternal : nsISupports
     [must_use]
     void getResponseVersion(out unsigned long major, out unsigned long minor);
 
-    /*
+    /**
      * Retrieves all security messages from the security message queue
      * and empties the queue after retrieval
      */
@@ -425,7 +426,7 @@ interface nsIHttpChannelInternal : nsISupports
     [noscript, infallible]
     attribute unsigned long lastRedirectFlags;
 
-      // This is use to determine the duration since navigation started.
+    // This is used to determine the duration since navigation started.
     [noscript] attribute TimeStamp navigationStartTimeStamp;
 
     /**
@@ -485,7 +486,7 @@ interface nsIHttpChannelInternal : nsISupports
      */
     [must_use] void setEarlyHintObserver(in nsIEarlyHintObserver aObserver);
 
-    /*
+    /**
      * id of the EarlyHintPreloader to connect back from PreloadService to
      * EarlyHintPreloader.
      */
@@ -493,12 +494,12 @@ interface nsIHttpChannelInternal : nsISupports
 
     [notxpcom, nostdcall] void setConnectionInfo(in nsHttpConnectionInfo aInfo);
 
-    /*
-    * This attribute indicates if the channel was loaded via Proxy.
-    */
+    /**
+     * This attribute indicates if the channel was loaded via Proxy.
+     */
     [must_use] readonly attribute boolean isProxyUsed;
 
-     /**
+    /**
      * Set mWebTransportSessionEventListener.
      */
     [must_use] void setWebTransportSessionEventListener(
@@ -518,4 +519,14 @@ interface nsIHttpChannelInternal : nsISupports
      * overridden header value.
      */
     [must_use] attribute boolean isUserAgentHeaderModified;
+
+    /**
+     * The nsIReplacedHttpResponse will be used to override the response of the
+     * channel. Should be called before connect (http-on-before-connect).
+     * When setResponseOverride is called, the request will bypass the network
+     * and a mocked response based on the nsIReplacedHttpResponse content will
+     * be used instead.
+     */
+    [must_use] void setResponseOverride(
+        in nsIReplacedHttpResponse aReplacedHttpResponse);
 };

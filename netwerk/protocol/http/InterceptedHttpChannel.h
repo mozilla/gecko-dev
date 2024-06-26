@@ -294,6 +294,11 @@ class InterceptedHttpChannel final
     return NS_OK;
   }
 
+  NS_IMETHOD SetResponseOverride(
+      nsIReplacedHttpResponse* aReplacedHttpResponse) override {
+    return NS_OK;
+  }
+
   NS_IMETHOD SetLaunchServiceWorkerStart(TimeStamp aTimeStamp) override;
   NS_IMETHOD GetLaunchServiceWorkerStart(TimeStamp* aRetVal) override;
 

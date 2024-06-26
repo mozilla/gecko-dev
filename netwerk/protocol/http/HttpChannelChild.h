@@ -105,6 +105,11 @@ class HttpChannelChild final : public PHttpChannelChild,
   NS_IMETHOD SetEarlyHintObserver(nsIEarlyHintObserver* aObserver) override;
   NS_IMETHOD SetWebTransportSessionEventListener(
       WebTransportSessionEventListener* aListener) override;
+
+  NS_IMETHOD SetResponseOverride(
+      nsIReplacedHttpResponse* aReplacedHttpResponse) override {
+    return NS_OK;
+  }
   // nsISupportsPriority
   NS_IMETHOD SetPriority(int32_t value) override;
   // nsIClassOfService
