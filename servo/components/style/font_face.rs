@@ -8,21 +8,17 @@
 
 use crate::error_reporting::ContextualParseError;
 use crate::parser::{Parse, ParserContext};
-#[cfg(feature = "gecko")]
 use crate::properties::longhands::font_language_override;
 use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::values::computed::font::{FamilyName, FontStretch};
 use crate::values::generics::font::FontStyle as GenericFontStyle;
-use crate::values::specified::font::SpecifiedFontStyle;
 use crate::values::specified::font::{
-    AbsoluteFontWeight, FontStretch as SpecifiedFontStretch, MetricsOverride,
+    AbsoluteFontWeight, FontStretch as SpecifiedFontStretch, FontFeatureSettings,
+    FontVariationSettings, MetricsOverride, SpecifiedFontStyle,
 };
-#[cfg(feature = "gecko")]
-use crate::values::specified::font::{FontFeatureSettings, FontVariationSettings};
 use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::{Angle, NonNegativePercentage};
-#[cfg(feature = "gecko")]
 use cssparser::UnicodeRange;
 use cssparser::{
     AtRuleParser, CowRcStr, DeclarationParser, Parser, QualifiedRuleParser, RuleBodyItemParser,
@@ -489,40 +485,6 @@ pub fn parse_font_face_block(
 #[cfg(feature = "servo")]
 pub struct FontFace<'a>(&'a FontFaceRuleData);
 
-/// A list of effective sources that we send over through IPC to the font cache.
-#[cfg(feature = "servo")]
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-pub struct EffectiveSources(SourceList);
-
-#[cfg(feature = "servo")]
-impl<'a> FontFace<'a> {
-    /// Returns the list of effective sources for that font-face, that is the
-    /// sources which don't list any format hint, or the ones which list at
-    /// least "truetype" or "opentype".
-    pub fn effective_sources(&self) -> EffectiveSources {
-        EffectiveSources(
-            self.sources()
-                .iter()
-                .rev()
-                .filter(|source| {
-                    if let Source::Url(ref url_source) = **source {
-                        // We support only opentype fonts and truetype is an alias for
-                        // that format. Sources without format hints need to be
-                        // downloaded in case we support them.
-                        url_source.format_hint.as_ref().map_or(true, |hint| {
-                            hint == "truetype" || hint == "opentype" || hint == "woff"
-                        })
-                    } else {
-                        true
-                    }
-                })
-                .cloned()
-                .collect(),
-        )
-    }
-}
-
 #[cfg(feature = "servo")]
 impl Iterator for EffectiveSources {
     type Item = Source;
@@ -748,7 +710,6 @@ macro_rules! font_face_descriptors {
     }
 }
 
-#[cfg(feature = "gecko")]
 font_face_descriptors! {
     mandatory descriptors = [
         /// The name of this font face
@@ -796,15 +757,3 @@ font_face_descriptors! {
     ]
 }
 
-#[cfg(feature = "servo")]
-font_face_descriptors! {
-    mandatory descriptors = [
-        /// The name of this font face
-        "font-family" family / mFamily: FamilyName,
-
-        /// The alternative sources for this font face.
-        "src" sources / mSrc: SourceList,
-    ]
-    optional descriptors = [
-    ]
-}
