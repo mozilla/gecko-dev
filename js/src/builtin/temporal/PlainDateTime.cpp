@@ -851,9 +851,6 @@ static bool DifferenceISODateTime(JSContext* cx, const PlainDateTime& one,
 
   // Steps 16.
   if (largestUnit != dateLargestUnit) {
-    // FIXME: spec bug - wrong argument order for call to
-    // Add24HourDaysToNormalizedTimeDuration.
-
     // Step 16.a.
     if (!Add24HourDaysToNormalizedTimeDuration(
             cx, timeDuration, dateDifference.days, &timeDuration)) {
@@ -911,7 +908,7 @@ PlainDateTime js::temporal::RoundISODateTime(
 }
 
 /**
- * DifferencePlainDateTimeWithRounding ( plainDate1, h1, min1, s1, ms1, mus1,
+ * DifferencePlainDateTimeWithRounding ( y1, mon1, d1, h1, min1, s1, ms1, mus1,
  * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit,
  * roundingIncrement, smallestUnit, roundingMode, resolvedOptions )
  */
@@ -989,7 +986,7 @@ static bool DifferencePlainDateTimeWithRounding(
 }
 
 /**
- * DifferencePlainDateTimeWithRounding ( plainDate1, h1, min1, s1, ms1, mus1,
+ * DifferencePlainDateTimeWithRounding ( y1, mon1, d1, h1, min1, s1, ms1, mus1,
  * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit,
  * roundingIncrement, smallestUnit, roundingMode, resolvedOptions )
  */
@@ -1002,7 +999,7 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
 }
 
 /**
- * DifferencePlainDateTimeWithRounding ( plainDate1, h1, min1, s1, ms1, mus1,
+ * DifferencePlainDateTimeWithRounding ( y1, mon1, d1, h1, min1, s1, ms1, mus1,
  * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit,
  * roundingIncrement, smallestUnit, roundingMode, resolvedOptions )
  */
@@ -1131,9 +1128,6 @@ static bool DifferenceTemporalPlainDateTime(JSContext* cx,
   }
 
   // Step 9.
-  // FIXME: spec issue - unnecessary object creation
-
-  // Step 10.
   Rooted<CalendarRecord> calendar(cx);
   if (!CreateCalendarMethodsRecord(cx, dateTime.calendar(),
                                    {
@@ -1144,7 +1138,7 @@ static bool DifferenceTemporalPlainDateTime(JSContext* cx,
     return false;
   }
 
-  // Steps 11-12.
+  // Steps 10-11.
   Duration duration;
   if (!DifferencePlainDateTimeWithRounding(cx, dateTime, other, calendar,
                                            settings, resolvedOptions,
@@ -1153,7 +1147,7 @@ static bool DifferenceTemporalPlainDateTime(JSContext* cx,
   }
   MOZ_ASSERT(IsValidDuration(duration));
 
-  // Step 13.
+  // Step 12.
   if (operation == TemporalDifference::Since) {
     duration = duration.negate();
   }

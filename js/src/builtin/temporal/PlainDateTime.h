@@ -192,7 +192,7 @@ bool DifferenceISODateTime(JSContext* cx, const PlainDateTime& one,
                            NormalizedDuration* result);
 
 /**
- * DifferencePlainDateTimeWithRounding ( plainDate1, h1, min1, s1, ms1, mus1,
+ * DifferencePlainDateTimeWithRounding ( y1, mon1, d1, h1, min1, s1, ms1, mus1,
  * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit,
  * roundingIncrement, smallestUnit, roundingMode, resolvedOptions )
  */
@@ -203,7 +203,7 @@ bool DifferencePlainDateTimeWithRounding(JSContext* cx,
                                          const DifferenceSettings& settings,
                                          Duration* result);
 /**
- * DifferencePlainDateTimeWithRounding ( plainDate1, h1, min1, s1, ms1, mus1,
+ * DifferencePlainDateTimeWithRounding ( y1, mon1, d1, h1, min1, s1, ms1, mus1,
  * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit,
  * roundingIncrement, smallestUnit, roundingMode, resolvedOptions )
  */

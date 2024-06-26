@@ -4359,9 +4359,6 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
       return false;
     }
   } else {
-    // FIXME: spec issue - `IsCalendarUnit(largestUnit) is true` implies that
-    // `IsCalendarUnit(smallestUnit) is true`, too.
-
     // Step 40.a.
     if (calendarUnitsPresent || largestUnit < TemporalUnit::Day) {
       JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
@@ -4370,35 +4367,35 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
       return false;
     }
 
+    // Step 40.b.
+    MOZ_ASSERT(smallestUnit >= TemporalUnit::Day);
+
     // FIXME: spec issue - can with switch the call order, so that
     // Add24HourDaysToNormalizedTimeDuration is first called. That way we don't
     // have to add the additional `days` parameter to RoundTimeDuration.
 
-    // Step 40.b.
+    // Step 40.c.
     RoundedDuration rounded;
     if (!::RoundTimeDuration(cx, normDuration, roundingIncrement, smallestUnit,
                              roundingMode, ComputeRemainder::No, &rounded)) {
       return false;
     }
 
-    // FIXME: spec issue -  Add24HourDaysToNormalizedTimeDuration called with
-    // wrong argument order.
-
-    // Step 40.c.
+    // Step 40.d.
     NormalizedTimeDuration withDays;
     if (!Add24HourDaysToNormalizedTimeDuration(
             cx, rounded.duration.time, rounded.duration.date.days, &withDays)) {
       return false;
     }
 
-    // Step 40.d.
+    // Step 40.e.
     TimeDuration balanceResult;
     if (!temporal::BalanceTimeDuration(cx, withDays, largestUnit,
                                        &balanceResult)) {
       return false;
     }
 
-    // Step 40.e.
+    // Step 40.f.
     roundResult = balanceResult.toDuration();
   }
 
@@ -4614,7 +4611,8 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
     total = rounded.total;
   }
 
-  // Step 21. (FIXME: spec issue - unnecessary assertion)
+  // Step 21.
+  MOZ_ASSERT(!std::isnan(total));
 
   // Step 22.
   args.rval().setNumber(total);
