@@ -408,6 +408,16 @@ class PtrKind {
   }
 };
 
+// On MacOS, the first __thread/thread_local access calls malloc, which leads
+// to an infinite loop. So we use pthread-based TLS instead, which somehow
+// doesn't have this problem.
+#if !defined(XP_DARWIN)
+#  define PHC_THREAD_LOCAL(T) MOZ_THREAD_LOCAL(T)
+#else
+#  define PHC_THREAD_LOCAL(T) \
+    detail::ThreadLocal<T, detail::ThreadLocalKeyStorage>
+#endif
+
 // Shared, atomic, mutable global state.
 class GAtomic {
  public:
@@ -605,7 +615,12 @@ class GMut {
 
   // The RNG seeds here are poor, but non-reentrant since this can be called
   // from malloc().  SetState() will reset the RNG later.
-  GMut() : mRNG(RandomSeed<1>(), RandomSeed<2>()) { sMutex.Init(); }
+  GMut() : mRNG(RandomSeed<1>(), RandomSeed<2>()) {
+    sMutex.Init();
+    if (!tlsIsDisabled.init()) {
+      MOZ_CRASH();
+    }
+  }
 
   uint64_t Random64(GMutLock) { return mRNG.next(); }
 
@@ -888,6 +903,25 @@ class GMut {
     mAvgPageReuseDelay = CheckProbability(aAvgDelayPageReuse);
   }
 
+  static void DisableOnCurrentThread() {
+    MOZ_ASSERT(!tlsIsDisabled.get());
+    tlsIsDisabled.set(true);
+  }
+
+  void EnableOnCurrentThread() {
+    MOZ_ASSERT(tlsIsDisabled.get());
+
+    MutexAutoLock lock(sMutex);
+    Delay avg_delay = GetAvgAllocDelay(lock);
+    Delay avg_first_delay = GetAvgFirstAllocDelay(lock);
+    if (GAtomic::AllocDelayHasWrapped(avg_delay, avg_first_delay)) {
+      GAtomic::SetAllocDelay(Rnd64ToDelay(avg_delay, Random64(lock)));
+    }
+    tlsIsDisabled.set(false);
+  }
+
+  static bool IsDisabledOnCurrentThread() { return tlsIsDisabled.get(); }
+
  private:
   template <int N>
   uint64_t RandomSeed() {
@@ -973,47 +1007,6 @@ class GMut {
   // any crash report.
   Delay mAvgPageReuseDelay = 256 * 1024;
 
- public:
-  Delay GetAvgAllocDelay(const MutexAutoLock&) { return mAvgAllocDelay; }
-  Delay GetAvgFirstAllocDelay(const MutexAutoLock&) {
-    return mAvgFirstAllocDelay;
-  }
-  Delay GetAvgPageReuseDelay(const MutexAutoLock&) {
-    return mAvgPageReuseDelay;
-  }
-};
-
-Mutex GMut::sMutex;
-
-static GMut* gMut;
-
-// When PHC wants to crash we first have to unlock so that the crash reporter
-// can call into PHC to lockup its pointer. That also means that before calling
-// PHCCrash please ensure that state is consistent.  Because this can report an
-// arbitrary string, use of it must be reviewed by Firefox data stewards.
-static void PHCCrash(GMutLock, const char* aMessage)
-    MOZ_REQUIRES(GMut::sMutex) {
-  GMut::sMutex.Unlock();
-  MOZ_CRASH_UNSAFE(aMessage);
-}
-
-// On MacOS, the first __thread/thread_local access calls malloc, which leads
-// to an infinite loop. So we use pthread-based TLS instead, which somehow
-// doesn't have this problem.
-#if !defined(XP_DARWIN)
-#  define PHC_THREAD_LOCAL(T) MOZ_THREAD_LOCAL(T)
-#else
-#  define PHC_THREAD_LOCAL(T) \
-    detail::ThreadLocal<T, detail::ThreadLocalKeyStorage>
-#endif
-
-// Thread-local state.
-class GTls {
- public:
-  GTls(const GTls&) = delete;
-
-  const GTls& operator=(const GTls&) = delete;
-
   // When true, PHC does as little as possible.
   //
   // (a) It does not allocate any new page allocations.
@@ -1062,36 +1055,33 @@ class GTls {
   //   exactly. (Note that (b) isn't necessary for this use -- MozStackWalk()
   //   could be safely called -- but it is necessary for the first use above.)
   //
-
-  static void Init() {
-    if (!tlsIsDisabled.init()) {
-      MOZ_CRASH();
-    }
-  }
-
-  static void DisableOnCurrentThread() {
-    MOZ_ASSERT(!GTls::tlsIsDisabled.get());
-    tlsIsDisabled.set(true);
-  }
-
-  static void EnableOnCurrentThread() {
-    MOZ_ASSERT(GTls::tlsIsDisabled.get());
-    MutexAutoLock lock(GMut::sMutex);
-    Delay avg_delay = gMut->GetAvgAllocDelay(lock);
-    Delay avg_first_delay = gMut->GetAvgFirstAllocDelay(lock);
-    if (GAtomic::AllocDelayHasWrapped(avg_delay, avg_first_delay)) {
-      GAtomic::SetAllocDelay(Rnd64ToDelay(avg_delay, gMut->Random64(lock)));
-    }
-    tlsIsDisabled.set(false);
-  }
-
-  static bool IsDisabledOnCurrentThread() { return tlsIsDisabled.get(); }
-
- private:
   static PHC_THREAD_LOCAL(bool) tlsIsDisabled;
+
+ public:
+  Delay GetAvgAllocDelay(const MutexAutoLock&) { return mAvgAllocDelay; }
+  Delay GetAvgFirstAllocDelay(const MutexAutoLock&) {
+    return mAvgFirstAllocDelay;
+  }
+  Delay GetAvgPageReuseDelay(const MutexAutoLock&) {
+    return mAvgPageReuseDelay;
+  }
 };
 
-PHC_THREAD_LOCAL(bool) GTls::tlsIsDisabled;
+Mutex GMut::sMutex;
+
+PHC_THREAD_LOCAL(bool) GMut::tlsIsDisabled;
+
+static GMut* gMut;
+
+// When PHC wants to crash we first have to unlock so that the crash reporter
+// can call into PHC to lockup its pointer. That also means that before calling
+// PHCCrash please ensure that state is consistent.  Because this can report an
+// arbitrary string, use of it must be reviewed by Firefox data stewards.
+static void PHCCrash(GMutLock, const char* aMessage)
+    MOZ_REQUIRES(GMut::sMutex) {
+  GMut::sMutex.Unlock();
+  MOZ_CRASH_UNSAFE(aMessage);
+}
 
 class AutoDisableOnCurrentThread {
  public:
@@ -1100,8 +1090,8 @@ class AutoDisableOnCurrentThread {
   const AutoDisableOnCurrentThread& operator=(
       const AutoDisableOnCurrentThread&) = delete;
 
-  explicit AutoDisableOnCurrentThread() { GTls::DisableOnCurrentThread(); }
-  ~AutoDisableOnCurrentThread() { GTls::EnableOnCurrentThread(); }
+  explicit AutoDisableOnCurrentThread() { GMut::DisableOnCurrentThread(); }
+  ~AutoDisableOnCurrentThread() { gMut->EnableOnCurrentThread(); }
 };
 
 //---------------------------------------------------------------------------
@@ -1111,8 +1101,8 @@ class AutoDisableOnCurrentThread {
 // WARNING: this function runs *very* early -- before all static initializers
 // have run. For this reason, non-scalar globals (gConst, gMut) are allocated
 // dynamically (so we can guarantee their construction in this function) rather
-// than statically. GAtomic and GTls contain simple static data that doesn't
-// involve static initializers so they don't need to be allocated dynamically.
+// than statically. GAtomic contains simple static data that doesn't involve
+// static initializers so they don't need to be allocated dynamically.
 static bool phc_init() {
   if (GetKernelPageSize() != kPageSize) {
     return false;
@@ -1121,7 +1111,6 @@ static bool phc_init() {
   // gConst and gMut are never freed. They live for the life of the process.
   gConst = InfallibleAllocPolicy::new_<GConst>();
 
-  GTls::Init();
   gMut = InfallibleAllocPolicy::new_<GMut>();
 
 #ifndef XP_WIN
@@ -1202,7 +1191,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
     return nullptr;
   }
 
-  if (GTls::IsDisabledOnCurrentThread()) {
+  if (GMut::IsDisabledOnCurrentThread()) {
     return nullptr;
   }
 
@@ -1431,7 +1420,7 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
   Maybe<AutoDisableOnCurrentThread> disable;
   // Get the stack trace *before* locking the mutex.
   StackTrace stack;
-  if (GTls::IsDisabledOnCurrentThread()) {
+  if (GMut::IsDisabledOnCurrentThread()) {
     // PHC is disabled on this thread. Leave the stack empty.
   } else {
     // Disable on this thread *before* getting the stack trace.
@@ -1532,7 +1521,7 @@ MOZ_ALWAYS_INLINE static bool MaybePageFree(const Maybe<arena_id_t>& aArenaId,
   Maybe<AutoDisableOnCurrentThread> disable;
   // Get the stack trace *before* locking the mutex.
   StackTrace freeStack;
-  if (GTls::IsDisabledOnCurrentThread()) {
+  if (GMut::IsDisabledOnCurrentThread()) {
     // PHC is disabled on this thread. Leave the stack empty.
   } else {
     // Disable on this thread *before* getting the stack trace.
@@ -1792,17 +1781,17 @@ bool IsPHCAllocation(const void* aPtr, AddrInfo* aOut) {
 }
 
 void DisablePHCOnCurrentThread() {
-  GTls::DisableOnCurrentThread();
+  GMut::DisableOnCurrentThread();
   LOG("DisablePHCOnCurrentThread: %zu\n", 0ul);
 }
 
 void ReenablePHCOnCurrentThread() {
-  GTls::EnableOnCurrentThread();
+  gMut->EnableOnCurrentThread();
   LOG("ReenablePHCOnCurrentThread: %zu\n", 0ul);
 }
 
 bool IsPHCEnabledOnCurrentThread() {
-  bool enabled = !GTls::IsDisabledOnCurrentThread();
+  bool enabled = !GMut::IsDisabledOnCurrentThread();
   LOG("IsPHCEnabledOnCurrentThread: %zu\n", size_t(enabled));
   return enabled;
 }
