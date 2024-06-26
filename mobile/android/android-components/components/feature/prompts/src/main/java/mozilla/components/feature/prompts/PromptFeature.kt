@@ -490,7 +490,7 @@ class PromptFeature private constructor(
                 store.consumeAllSessionPrompts(
                     sessionId = prompt?.sessionId,
                     activePrompt,
-                    predicate = { it.shouldDismissOnLoad },
+                    predicate = { it.shouldDismissOnLoad && it !is File },
                     consume = { prompt?.dismiss() },
                 )
 
