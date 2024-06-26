@@ -52,6 +52,7 @@ private val graphics_threads = arrayOf(
     "Renderer",
     "SwComposite",
     "RenderBackend",
+    "GlyphRasterizer",
     "SceneBuilder",
     "WrWorker",
     "CanvasWorkers",

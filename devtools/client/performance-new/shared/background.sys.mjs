@@ -180,6 +180,7 @@ export const presets = {
       "Renderer",
       "SwComposite",
       "RenderBackend",
+      "GlyphRasterizer",
       "SceneBuilder",
       "WrWorker",
       "CanvasWorkers",
