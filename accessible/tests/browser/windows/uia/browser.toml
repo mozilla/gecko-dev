@@ -24,4 +24,6 @@ support-files = ["head.js"]
 
 ["browser_simplePatterns.js"]
 
+["browser_textPatterns.js"]
+
 ["browser_tree.js"]

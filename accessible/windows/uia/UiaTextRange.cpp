@@ -96,7 +96,31 @@ UiaTextRange::GetEnclosingElement(
 
 STDMETHODIMP
 UiaTextRange::GetText(int aMaxLength, __RPC__deref_out_opt BSTR* aRetVal) {
-  return E_NOTIMPL;
+  if (!aRetVal || aMaxLength < -1) {
+    return E_INVALIDARG;
+  }
+  TextLeafRange range = GetRange();
+  if (!range) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  nsAutoString text;
+  for (TextLeafRange segment : range) {
+    TextLeafPoint start = segment.Start();
+    int segmentLength = segment.End().mOffset - start.mOffset;
+    // aMaxLength can be -1 to indicate no maximum.
+    if (aMaxLength >= 0) {
+      const int remaining = aMaxLength - text.Length();
+      if (segmentLength > remaining) {
+        segmentLength = remaining;
+      }
+    }
+    start.mAcc->AppendTextTo(text, start.mOffset, segmentLength);
+    if (aMaxLength >= 0 && static_cast<int32_t>(text.Length()) >= aMaxLength) {
+      break;
+    }
+  }
+  *aRetVal = ::SysAllocString(text.get());
+  return S_OK;
 }
 
 STDMETHODIMP
