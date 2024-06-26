@@ -124,8 +124,10 @@ micro_survey:
         type: string
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1891509
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1895560
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1891509
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1895560
     data_sensitivity:
       - interaction
     notification_emails:

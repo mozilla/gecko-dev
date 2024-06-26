@@ -191,7 +191,6 @@ sealed class AppAction : Action {
 
         /**
          * Sealed class representing actions related to microsurveys within messaging functionality.
-         * Extends [MessagingAction].
          */
         sealed class MicrosurveyAction : MessagingAction() {
             /**
