@@ -29,6 +29,7 @@ task-defaults:
         from-object: {}
         substitution-fields: []
     if-dependencies: [build]
+    run-on-projects: ['trunk']
 
 tasks:
     simple:

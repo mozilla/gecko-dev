@@ -20,9 +20,9 @@ def test_generate_graph(optimized_task_graph):
     "func,min_expected",
     (
         pytest.param(
-            lambda t: t.kind == "build" and "fuzzing" in t.attributes["build_platform"],
-            5,
-            id="fuzzing builds",
+            lambda t: t.kind == "build" and "tsan" in t.attributes["build_platform"],
+            1,
+            id="tsan builds",
         ),
     ),
 )

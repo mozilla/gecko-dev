@@ -163,6 +163,7 @@ macosx64-asan-fuzzing/opt:
         custom-build-variant-cfg: cross-fuzzing-asan
         mozconfig-variant: nightly-fuzzing-asan
     use-sccache: true
+    run-on-projects: ['trunk']
     fetches:
         toolchain:
             - linux64-clang
@@ -195,6 +196,7 @@ macosx64-fuzzing/debug:
             - builds/releng_base_mac_64_cross_builds.py
         custom-build-variant-cfg: cross-fuzzing-debug
         mozconfig-variant: debug-fuzzing
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
@@ -229,6 +231,7 @@ macosx64-aarch64-asan-fuzzing/opt:
         mozconfig-variant: nightly-fuzzing-asan
         extra-config:
             mozconfig_platform: macosx64-aarch64
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
@@ -264,6 +267,7 @@ macosx64-aarch64-fuzzing/debug:
         mozconfig-variant: debug-fuzzing
         extra-config:
             mozconfig_platform: macosx64-aarch64
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:

@@ -274,6 +274,7 @@ linux64-fuzzing/debug:
         custom-build-variant-cfg: fuzzing-debug
         mozconfig-variant: debug-fuzzing
         tooltool-downloads: public
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
@@ -319,6 +320,7 @@ linux64-fuzzing-noopt/debug:
         custom-build-variant-cfg: fuzzing-debug
         mozconfig-variant: debug-fuzzing-noopt
         tooltool-downloads: public
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
@@ -543,6 +545,7 @@ linux-fuzzing/debug:
         custom-build-variant-cfg: fuzzing-debug
         mozconfig-variant: debug-fuzzing
         tooltool-downloads: public
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
@@ -851,6 +854,7 @@ linux-asan-fuzzing/opt:
         custom-build-variant-cfg: fuzzing-asan-tc
         mozconfig-variant: nightly-fuzzing-asan
         tooltool-downloads: public
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
@@ -1021,6 +1025,7 @@ linux64-tsan-fuzzing/opt:
         custom-build-variant-cfg: fuzzing-tsan-tc
         mozconfig-variant: tsan-fuzzing
         tooltool-downloads: public
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
@@ -1066,6 +1071,7 @@ linux64-asan-fuzzing/noopt:
         custom-build-variant-cfg: fuzzing-asan-tc
         mozconfig-variant: nightly-fuzzing-asan-noopt
         tooltool-downloads: public
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
@@ -1115,6 +1121,7 @@ linux64-asan-fuzzing-afl/opt:
         custom-build-variant-cfg: fuzzing-asan-tc
         mozconfig-variant: nightly-fuzzing-asan-afl
         tooltool-downloads: public
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
@@ -1165,6 +1172,7 @@ linux64-asan-fuzzing-nyx/opt:
         custom-build-variant-cfg: fuzzing-asan-tc
         mozconfig-variant: nightly-fuzzing-asan-nyx
         tooltool-downloads: public
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
@@ -1263,6 +1271,7 @@ linux64-asan-fuzzing/opt:
         custom-build-variant-cfg: fuzzing-asan-tc
         mozconfig-variant: nightly-fuzzing-asan
         tooltool-downloads: public
+    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
