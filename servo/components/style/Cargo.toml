@@ -17,7 +17,16 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["nsstring", "serde", "style_traits/gecko", "bindgen", "regex", "toml", "mozbuild"]
+gecko = [
+    "bindgen",
+    "malloc_size_of/gecko",
+    "mozbuild",
+    "nsstring",
+    "regex",
+    "serde",
+    "style_traits/gecko",
+    "toml"
+]
 servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
          "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "arrayvec/use_union",
          "string_cache", "to_shmem/servo", "servo_arc/servo", "url"]
