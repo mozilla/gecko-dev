@@ -10,6 +10,15 @@
 
 namespace mozilla::a11y {
 
+// Used internally to safely get a UiaTextRange from a COM pointer provided
+// to us by a client.
+// {74B8E664-4578-4B52-9CBC-30A7A8271AE8}
+static const GUID IID_UiaTextRange = {
+    0x74b8e664,
+    0x4578,
+    0x4b52,
+    {0x9c, 0xbc, 0x30, 0xa7, 0xa8, 0x27, 0x1a, 0xe8}};
+
 // UiaTextRange
 
 UiaTextRange::UiaTextRange(TextLeafRange& aRange) {
@@ -37,8 +46,20 @@ TextLeafRange UiaTextRange::GetRange() const {
                        {mEndAcc->Acc(), mEndOffset});
 }
 
+/* static */
+TextLeafRange UiaTextRange::GetRangeFrom(ITextRangeProvider* aProvider) {
+  if (aProvider) {
+    RefPtr<UiaTextRange> uiaRange;
+    aProvider->QueryInterface(IID_UiaTextRange, getter_AddRefs(uiaRange));
+    if (uiaRange) {
+      return uiaRange->GetRange();
+    }
+  }
+  return TextLeafRange();
+}
+
 // IUnknown
-IMPL_IUNKNOWN1(UiaTextRange, ITextRangeProvider)
+IMPL_IUNKNOWN2(UiaTextRange, ITextRangeProvider, UiaTextRange)
 
 // ITextRangeProvider methods
 

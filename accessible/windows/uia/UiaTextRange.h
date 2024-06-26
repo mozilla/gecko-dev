@@ -103,6 +103,7 @@ class UiaTextRange : public ITextRangeProvider {
  private:
   void SetRange(const TextLeafRange& aRange);
   TextLeafRange GetRange() const;
+  static TextLeafRange GetRangeFrom(ITextRangeProvider* aProvider);
 
   // Accessible doesn't support strong references and so neither does
   // TextLeafRange. Therefore, we hold strong references to MsaaAccessibles. We
