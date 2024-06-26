@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://is.wikipedia.org/wiki/Kerfissíða:Leit"
   },
-  "searchForm": {
-    "message": "https://is.wikipedia.org/wiki/Kerfissíða:Leit"
-  },
   "suggestUrl": {
     "message": "https://is.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

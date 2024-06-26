@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://mr.wikipedia.org/wiki/विशेष:शोधा"
   },
-  "searchForm": {
-    "message": "https://mr.wikipedia.org/wiki/विशेष:शोधा"
-  },
   "suggestUrl": {
     "message": "https://mr.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

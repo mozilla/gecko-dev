@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://da.wikipedia.org/wiki/Speciel:Søgning"
   },
-  "searchForm": {
-    "message": "https://da.wikipedia.org/wiki/Speciel:Søgning"
-  },
   "suggestUrl": {
     "message": "https://da.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

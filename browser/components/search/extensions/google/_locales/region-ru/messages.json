@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://www.google.ru/search"
   },
-  "searchForm": {
-    "message": "https://www.google.ru/search"
-  },
   "suggestUrl": {
     "message": "https://www.google.ru/complete/search?client=firefox&q={searchTerms}"
   },

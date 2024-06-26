@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://hi.wikipedia.org/wiki/विशेष:खोज"
   },
-  "searchForm": {
-    "message": "https://hi.wikipedia.org/wiki/विशेष:खोज"
-  },
   "suggestUrl": {
     "message": "https://hi.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

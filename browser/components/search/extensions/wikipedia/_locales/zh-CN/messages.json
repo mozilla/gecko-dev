@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://zh.wikipedia.org/wiki/Special:搜索"
   },
-  "searchForm": {
-    "message": "https://zh.wikipedia.org/wiki/Special:搜索"
-  },
   "suggestUrl": {
     "message": "https://zh.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

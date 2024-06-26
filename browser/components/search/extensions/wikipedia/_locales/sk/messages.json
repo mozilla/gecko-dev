@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://sk.wikipedia.org/wiki/Špeciálne:Hľadanie"
   },
-  "searchForm": {
-    "message": "https://sk.wikipedia.org/wiki/Špeciálne:Hľadanie"
-  },
   "suggestUrl": {
     "message": "https://sk.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://nn.wikipedia.org/wiki/Spesial:Søk"
   },
-  "searchForm": {
-    "message": "https://nn.wikipedia.org/wiki/Spesial:Søk"
-  },
   "suggestUrl": {
     "message": "https://nn.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

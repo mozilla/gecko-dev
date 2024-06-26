@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://bn.wikipedia.org/wiki/বিশেষ:Search"
   },
-  "searchForm": {
-    "message": "https://bn.wikipedia.org/wiki/বিশেষ:Search"
-  },
   "suggestUrl": {
     "message": "https://bn.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

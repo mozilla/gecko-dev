@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://ka.wikipedia.org/wiki/სპეციალური:ძიება"
   },
-  "searchForm": {
-    "message": "https://ka.wikipedia.org/wiki/სპეციალური:ძიება"
-  },
   "suggestUrl": {
     "message": "https://ka.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

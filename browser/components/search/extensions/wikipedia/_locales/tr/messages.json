@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://tr.wikipedia.org/wiki/Özel:Ara"
   },
-  "searchForm": {
-    "message": "https://tr.wikipedia.org/wiki/Özel:Ara"
-  },
   "suggestUrl": {
     "message": "https://tr.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://cs.wikipedia.org/wiki/Speciální:Hledání"
   },
-  "searchForm": {
-    "message": "https://cs.wikipedia.org/wiki/Speciální:Hledání"
-  },
   "suggestUrl": {
     "message": "https://cs.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

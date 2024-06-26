@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://he.wikipedia.org/wiki/מיוחד:חיפוש"
   },
-  "searchForm": {
-    "message": "https://he.wikipedia.org/wiki/מיוחד:חיפוש"
-  },
   "suggestUrl": {
     "message": "https://he.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

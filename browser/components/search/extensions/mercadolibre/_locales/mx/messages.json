@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://www.mercadolibre.com.mx/jm/search"
   },
-  "searchForm": {
-    "message": "https://www.mercadolibre.com.mx/"
-  },
   "searchUrlGetParams": {
     "message": "as_word={searchTerms}"
   }

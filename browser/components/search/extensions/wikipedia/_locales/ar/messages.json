@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://ar.wikipedia.org/wiki/خاص:بحث"
   },
-  "searchForm": {
-    "message": "https://ar.wikipedia.org/wiki/خاص:بحث"
-  },
   "suggestUrl": {
     "message": "https://ar.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },

@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://www.amazon.in/s"
   },
-  "searchForm": {
-    "message": "https://www.amazon.in/"
-  },
   "searchUrlGetParams": {
     "message": "k={searchTerms}"
   }

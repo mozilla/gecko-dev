@@ -8,9 +8,6 @@
   "searchUrl": {
     "message": "https://bs.wikipedia.org/wiki/Posebno:Pretraga"
   },
-  "searchForm": {
-    "message": "https://bs.wikipedia.org/wiki/Posebno:Pretraga"
-  },
   "suggestUrl": {
     "message": "https://bs.wikipedia.org/w/api.php?action=opensearch&search={searchTerms}"
   },
