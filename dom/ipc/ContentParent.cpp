@@ -1156,7 +1156,7 @@ IPCResult ContentParent::RecvAttributionEvent(
 
 IPCResult ContentParent::RecvAttributionConversion(
     const nsACString& aHost, const nsAString& aTask, uint32_t aHistogramSize,
-    const Maybe<uint32_t>& aLookbackDays,
+    const Maybe<uint32_t>& aLoopbackDays,
     const Maybe<PrivateAttributionImpressionType>& aImpressionType,
     const nsTArray<nsString>& aAds, const nsTArray<nsCString>& aSourceHosts) {
   nsCOMPtr<nsIPrivateAttributionService> pa =
@@ -1165,7 +1165,7 @@ IPCResult ContentParent::RecvAttributionConversion(
     return IPC_OK();
   }
   pa->OnAttributionConversion(
-      aHost, aTask, aHistogramSize, aLookbackDays.valueOr(0),
+      aHost, aTask, aHistogramSize, aLoopbackDays.valueOr(0),
       aImpressionType ? GetEnumString(*aImpressionType) : EmptyCString(), aAds,
       aSourceHosts);
   return IPC_OK();

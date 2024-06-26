@@ -1,4 +1,0 @@
-[DEFAULT]
-
-["test_ppa.js"]
-skip-if = ["os == 'android'"] # PPA is not supported on Android

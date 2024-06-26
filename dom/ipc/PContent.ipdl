@@ -1986,9 +1986,9 @@ parent:
                          PrivateAttributionImpressionType aType,
                          uint32_t aIndex, nsString aAd, nsCString aTargetHost);
 
-  async AttributionConversion(nsCString aTargetHost, nsString aTask,
+  async AttributionConversion(nsCString aSourceHost, nsString aTask,
                               uint32_t aHistogramSize,
-                              uint32_t? aLookbackDays,
+                              uint32_t? aLoopbackDays,
                               PrivateAttributionImpressionType? aImpressionType,
                               nsString[] aAds,
                               nsCString[] aImpressionSourceHosts);
