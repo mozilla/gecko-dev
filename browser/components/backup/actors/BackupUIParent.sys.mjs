@@ -39,6 +39,9 @@ export class BackupUIParent extends JSWindowActorParent {
    */
   actorCreated() {
     this.#bs.addEventListener("BackupService:StateUpdate", this);
+    // Note that loadEncryptionState is an async function.
+    // This function is no-op if the encryption state was already loaded.
+    this.#bs.loadEncryptionState();
   }
 
   /**
