@@ -11,11 +11,13 @@
 #include "MsaaAccessible.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/RefPtr.h"
+#include "nsDirection.h"
 #include "objbase.h"
 #include "uiautomation.h"
 
 namespace mozilla::a11y {
 class TextLeafRange;
+class TextLeafPoint;
 
 /**
  * ITextRangeProvider implementation.
@@ -104,6 +106,13 @@ class UiaTextRange : public ITextRangeProvider {
   void SetRange(const TextLeafRange& aRange);
   TextLeafRange GetRange() const;
   static TextLeafRange GetRangeFrom(ITextRangeProvider* aProvider);
+  static TextLeafPoint FindBoundary(const TextLeafPoint& aOrigin,
+                                    enum TextUnit aUnit, nsDirection aDirection,
+                                    bool aIncludeOrigin = false);
+  bool MovePoint(TextLeafPoint& aPoint, enum TextUnit aUnit,
+                 const int aRequestedCount, int& aActualCount);
+  void SetEndpoint(enum TextPatternRangeEndpoint aEndpoint,
+                   const TextLeafPoint& aDest);
 
   // Accessible doesn't support strong references and so neither does
   // TextLeafRange. Therefore, we hold strong references to MsaaAccessibles. We
