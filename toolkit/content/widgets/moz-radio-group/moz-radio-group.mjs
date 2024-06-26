@@ -6,6 +6,8 @@ import { html } from "../vendor/lit.all.mjs";
 import { MozLitElement } from "../lit-utils.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-label.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-fieldset.mjs";
 
 const NAVIGATION_FORWARD = "forward";
 const NAVIGATION_BACKWARD = "backward";
@@ -55,8 +57,7 @@ export class MozRadioGroup extends MozLitElement {
 
   static queries = {
     defaultSlot: "slot:not([name])",
-    fieldset: "fieldset",
-    legend: "legend",
+    fieldset: "moz-fieldset",
   };
 
   set value(newValue) {
@@ -193,17 +194,16 @@ export class MozRadioGroup extends MozLitElement {
 
   render() {
     return html`
-      <link
-        rel="stylesheet"
-        href="chrome://global/content/elements/moz-radio-group.css"
-      />
-      <fieldset role="radiogroup" ?disabled=${this.disabled}>
-        <legend class="heading-medium">${this.label}</legend>
+      <moz-fieldset
+        role="radiogroup"
+        ?disabled=${this.disabled}
+        label=${this.label}
+      >
         <slot
           @slotchange=${this.syncStateToRadioButtons}
           @change=${this.handleChange}
         ></slot>
-      </fieldset>
+      </moz-fieldset>
     `;
   }
 }

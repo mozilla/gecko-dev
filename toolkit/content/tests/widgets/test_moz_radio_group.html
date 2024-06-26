@@ -38,14 +38,14 @@
       let { radioGroup, radioButtons } = await renderRadioElements();
 
       is(
-        radioGroup.legend.innerText,
+        radioGroup.fieldset.label,
         "Radio group label",
         "Radio group label text is set."
       );
       radioGroup.label = TEST_LABEL;
       await radioGroup.updateComplete;
       is(
-        radioGroup.legend.innerText,
+        radioGroup.fieldset.label,
         TEST_LABEL,
         "Radio group label text is updated."
       );
