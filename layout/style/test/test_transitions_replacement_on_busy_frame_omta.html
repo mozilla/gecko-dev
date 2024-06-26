@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=1626165
+-->
+<head>
+  <meta charset=utf-8>
+  <title>Test for bug 1626165</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+  <script src="animation_utils.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css">
+  <style>
+    #target {
+      height: 100px;
+      width: 100px;
+      background: green;
+      transition: translate 2s steps(2, start);
+    }
+  </style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+'use strict';
+
+SimpleTest.waitForExplicitFinish();
+
+const OMTAPrefKey = 'layers.offmainthreadcomposition.async-animations';
+const omtaEnabled =
+  SpecialPowers.DOMWindowUtils.layerManagerRemote &&
+  SpecialPowers.getBoolPref(OMTAPrefKey);
+
+function waitForAnimationFrames(aFrameCount) {
+  const timeAtStart = window.document.timeline.currentTime;
+  return new Promise(function (resolve, reject) {
+    function handleFrame() {
+      if (
+        timeAtStart != window.document.timeline.currentTime &&
+        --aFrameCount <= 0
+      ) {
+        resolve();
+      } else {
+        window.requestAnimationFrame(handleFrame); // wait another frame
+      }
+    }
+    window.requestAnimationFrame(handleFrame);
+  });
+}
+
+window.addEventListener('load', async function() {
+  if (!omtaEnabled) {
+    ok(true, 'Skipping the test since OMTA is disabled');
+    SimpleTest.finish();
+    return;
+  }
+
+  try {
+    await isOMTAWorking();
+  } catch (error) {
+    ok(true, 'Skipping the test since OMTA may have issues');
+    SimpleTest.finish();
+    return;
+  }
+
+  const div = document.getElementById('target');
+
+  // Start first transition
+  div.style.translate = '400px';
+  const firstTransition = div.getAnimations()[0];
+
+  // Wait for first transition to start running on the main thread and
+  // compositor.
+  await firstTransition.ready;
+  await waitForPaintsFlushed();
+
+  // Wait for some frames to make sure we have OMTA style there, to avoid the
+  // possible intermittent (on Android especially).
+  await waitForAnimationFrames(10);
+
+  // We create a transition from 0px to 400px, so the current value is 200px
+  // (i.e. 50%).
+  let matrix = SpecialPowers.DOMWindowUtils.getOMTAStyle(div, "translate");
+  ok(matricesRoughlyEqual(convertTo3dMatrix(matrix),
+                          convertTo3dMatrix("matrix(1, 0, 0, 1, 200, 0)")),
+    "The current value of the 1st transition after ready");
+
+  // Start second transition
+  div.style.translate = '600px';
+  const secondTransition = div.getAnimations()[0];
+
+  // Tie up main thread for 1200ms. In the meantime, the first transition
+  // will continue running on the compositor. If we don't update the start
+  // point of the second transition, it will appear to jump when it starts.
+  const startTime = performance.now();
+  while (performance.now() - startTime < 1200);
+
+  await waitForPaintsFlushed();
+
+  // We should create a transition from 400px to 600px, so the final current
+  // value is 500px (i.e. 50%).
+  matrix = SpecialPowers.DOMWindowUtils.getOMTAStyle(div, "translate");
+  ok(matricesRoughlyEqual(convertTo3dMatrix(matrix),
+                          convertTo3dMatrix("matrix(1, 0, 0, 1, 500, 0)")),
+    "The current value of the 2nd transition after replacing the start value");
+
+  SimpleTest.finish();
+});
+
+</script>
+</body>
+</html>

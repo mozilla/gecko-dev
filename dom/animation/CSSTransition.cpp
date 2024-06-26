@@ -276,14 +276,14 @@ double CSSTransition::CurrentValuePortion() const {
   return computedTiming.mProgress.Value();
 }
 
-void CSSTransition::UpdateStartValueFromReplacedTransition() {
+bool CSSTransition::UpdateStartValueFromReplacedTransition() {
   MOZ_ASSERT(mEffect && mEffect->AsKeyframeEffect() &&
                  mEffect->AsKeyframeEffect()->HasAnimationOfPropertySet(
                      nsCSSPropertyIDSet::CompositorAnimatables()),
              "Should be called for compositor-runnable transitions");
 
   if (!mReplacedTransition) {
-    return;
+    return false;
   }
 
   // We don't set |mReplacedTransition| if the timeline of this transition is
@@ -308,6 +308,8 @@ void CSSTransition::UpdateStartValueFromReplacedTransition() {
         mReplacedTransition->mTimingFunction, computedTiming.mProgress.Value(),
         computedTiming.mBeforeFlag);
 
+    // FIXME: Bug 1634945. We may have to use the last value on the compositor
+    // to replace the start value.
     const AnimationValue& replacedFrom = mReplacedTransition->mFromValue;
     const AnimationValue& replacedTo = mReplacedTransition->mToValue;
     AnimationValue startValue;
@@ -321,6 +323,8 @@ void CSSTransition::UpdateStartValueFromReplacedTransition() {
   }
 
   mReplacedTransition.reset();
+
+  return true;
 }
 
 void CSSTransition::SetEffectFromStyle(KeyframeEffect* aEffect) {

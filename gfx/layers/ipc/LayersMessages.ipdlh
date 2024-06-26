@@ -240,6 +240,8 @@ struct Animation {
   Animatable baseStyle;
   // An optional data specific for transform like properies.
   TransformData? transformData;
+  // This indicates that a transition whose start value should be replaced.
+  uint64_t? replacedTransitionId;
   // If this is present, the animation is driven by a ScrollTimeline, and
   // this structure contains information about that timeline.
   ScrollTimelineOptions? scrollTimelineOptions;

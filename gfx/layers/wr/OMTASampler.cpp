@@ -167,8 +167,8 @@ void OMTASampler::SetAnimations(
     const nsTArray<layers::Animation>& aAnimations) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   MutexAutoLock lock(mStorageLock);
-
-  mAnimStorage->SetAnimations(aId, aLayersId, aAnimations);
+  MutexAutoLock timeLock(mSampleTimeLock);
+  mAnimStorage->SetAnimations(aId, aLayersId, aAnimations, mPreviousSampleTime);
 }
 
 bool OMTASampler::HasAnimations() const {

@@ -418,8 +418,16 @@ void AnimationInfo::AddAnimationForProperty(
   // since after generating the new transition other requestAnimationFrame
   // callbacks may run that introduce further lag between the main thread and
   // the compositor.
+  //
+  // Note that we will replace the start value with the last sampled animation
+  // value on the compositor.
+  // The computation here is for updating the keyframe values, to make sure the
+  // computed values on the main thread don't behind the rendering result on the
+  // compositor too much.
+  bool needReplaceTransition = false;
   if (dom::CSSTransition* cssTransition = aAnimation->AsCSSTransition()) {
-    cssTransition->UpdateStartValueFromReplacedTransition();
+    needReplaceTransition =
+        cssTransition->UpdateStartValueFromReplacedTransition();
   }
 
   animation->originTime() =
@@ -463,6 +471,12 @@ void AnimationInfo::AddAnimationForProperty(
   animation->isNotAnimating() = false;
   animation->scrollTimelineOptions() =
       GetScrollTimelineOptions(aAnimation->GetTimeline());
+  // We set this flag to let the compositor know that the start value of this
+  // transition is replaced. The compositor may replace the start value with its
+  // last sampled animation value, instead of using the segment.mFromValue we
+  // send to the compositor, to avoid any potential lag.
+  animation->replacedTransitionId() =
+      needReplaceTransition ? Some(GetCompositorAnimationsId()) : Nothing();
 
   TransformReferenceBox refBox(aFrame);
 

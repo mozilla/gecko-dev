@@ -143,7 +143,7 @@ class CSSTransition final : public Animation {
   // For a new transition interrupting an existing transition on the
   // compositor, update the start value to match the value of the replaced
   // transitions at the current time.
-  void UpdateStartValueFromReplacedTransition();
+  bool UpdateStartValueFromReplacedTransition();
 
  protected:
   virtual ~CSSTransition() {
@@ -222,6 +222,8 @@ class CSSTransition final : public Animation {
   // for the third transition (from 0px/2px to 10px) will be 0.8.
   double mReversePortion = 1.0;
 
+  // The information of the old transition we'd like to replace with "this"
+  // transition.
   Maybe<ReplacedTransitionProperties> mReplacedTransition;
 };
 

@@ -208,6 +208,90 @@ function findKeyframesRule(name) {
   return undefined;
 }
 
+function isOMTAWorking() {
+  function waitForDocumentLoad() {
+    return new Promise(function (resolve, reject) {
+      if (document.readyState === "complete") {
+        resolve();
+      } else {
+        window.addEventListener("load", resolve);
+      }
+    });
+  }
+
+  function loadPaintListener() {
+    return new Promise(function (resolve, reject) {
+      if (typeof window.waitForAllPaints !== "function") {
+        var script = document.createElement("script");
+        script.onload = resolve;
+        script.onerror = function () {
+          reject(new Error("Failed to load paint listener"));
+        };
+        script.src = "/tests/SimpleTest/paint_listener.js";
+        var firstScript = document.scripts[0];
+        firstScript.parentNode.insertBefore(script, firstScript);
+      } else {
+        resolve();
+      }
+    });
+  }
+
+  // Create keyframes rule
+  const animationName = "a6ce3091ed85"; // Random name to avoid clashes
+  var ruleText =
+    "@keyframes " +
+    animationName +
+    " { from { opacity: 0.5 } to { opacity: 0.5 } }";
+  var style = document.createElement("style");
+  style.appendChild(document.createTextNode(ruleText));
+  document.head.appendChild(style);
+
+  // Create animation target
+  var div = document.createElement("div");
+  document.body.appendChild(div);
+
+  // Give the target geometry so it is eligible for layerization
+  div.style.width = "100px";
+  div.style.height = "100px";
+  div.style.backgroundColor = "white";
+
+  var utils = SpecialPowers.DOMWindowUtils;
+
+  // Common clean up code
+  var cleanUp = function () {
+    div.remove();
+    style.remove();
+    if (utils.isTestControllingRefreshes) {
+      utils.restoreNormalRefresh();
+    }
+  };
+
+  return waitForDocumentLoad()
+    .then(loadPaintListener)
+    .then(function () {
+      // Put refresh driver under test control and flush all pending style,
+      // layout and paint to avoid the situation that waitForPaintsFlush()
+      // receives unexpected MozAfterpaint event for those pending
+      // notifications.
+      utils.advanceTimeAndRefresh(0);
+      return waitForPaintsFlushed();
+    })
+    .then(function () {
+      div.style.animation = animationName + " 10s";
+
+      return waitForPaintsFlushed();
+    })
+    .then(function () {
+      var opacity = utils.getOMTAStyle(div, "opacity");
+      cleanUp();
+      return Promise.resolve(opacity == 0.5);
+    })
+    .catch(function (err) {
+      cleanUp();
+      return Promise.reject(err);
+    });
+}
+
 // Checks if off-main thread animation (OMTA) is available, and if it is, runs
 // the provided callback function. If OMTA is not available or is not
 // functioning correctly, the second callback, aOnSkip, is run instead.
@@ -261,88 +345,6 @@ function runOMTATest(aTestFunction, aOnSkip, specialPowersForPrefs) {
       ok(false, err);
       aOnSkip();
     });
-
-  function isOMTAWorking() {
-    // Create keyframes rule
-    const animationName = "a6ce3091ed85"; // Random name to avoid clashes
-    var ruleText =
-      "@keyframes " +
-      animationName +
-      " { from { opacity: 0.5 } to { opacity: 0.5 } }";
-    var style = document.createElement("style");
-    style.appendChild(document.createTextNode(ruleText));
-    document.head.appendChild(style);
-
-    // Create animation target
-    var div = document.createElement("div");
-    document.body.appendChild(div);
-
-    // Give the target geometry so it is eligible for layerization
-    div.style.width = "100px";
-    div.style.height = "100px";
-    div.style.backgroundColor = "white";
-
-    // Common clean up code
-    var cleanUp = function () {
-      div.remove();
-      style.remove();
-      if (utils.isTestControllingRefreshes) {
-        utils.restoreNormalRefresh();
-      }
-    };
-
-    return waitForDocumentLoad()
-      .then(loadPaintListener)
-      .then(function () {
-        // Put refresh driver under test control and flush all pending style,
-        // layout and paint to avoid the situation that waitForPaintsFlush()
-        // receives unexpected MozAfterpaint event for those pending
-        // notifications.
-        utils.advanceTimeAndRefresh(0);
-        return waitForPaintsFlushed();
-      })
-      .then(function () {
-        div.style.animation = animationName + " 10s";
-
-        return waitForPaintsFlushed();
-      })
-      .then(function () {
-        var opacity = utils.getOMTAStyle(div, "opacity");
-        cleanUp();
-        return Promise.resolve(opacity == 0.5);
-      })
-      .catch(function (err) {
-        cleanUp();
-        return Promise.reject(err);
-      });
-  }
-
-  function waitForDocumentLoad() {
-    return new Promise(function (resolve, reject) {
-      if (document.readyState === "complete") {
-        resolve();
-      } else {
-        window.addEventListener("load", resolve);
-      }
-    });
-  }
-
-  function loadPaintListener() {
-    return new Promise(function (resolve, reject) {
-      if (typeof window.waitForAllPaints !== "function") {
-        var script = document.createElement("script");
-        script.onload = resolve;
-        script.onerror = function () {
-          reject(new Error("Failed to load paint listener"));
-        };
-        script.src = "/tests/SimpleTest/paint_listener.js";
-        var firstScript = document.scripts[0];
-        firstScript.parentNode.insertBefore(script, firstScript);
-      } else {
-        resolve();
-      }
-    });
-  }
 }
 
 // Common architecture for setting up a series of asynchronous animation tests

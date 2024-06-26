@@ -145,7 +145,9 @@ class AnimationHelper {
    * 3. background color property: background-color.
    */
   static AnimationStorageData ExtractAnimations(
-      const LayersId& aLayersId, const AnimationArray& aAnimations);
+      const LayersId& aLayersId, const AnimationArray& aAnimations,
+      const CompositorAnimationStorage* aStorage,
+      const TimeStamp& aPreviousSampleTime);
 
   /**
    * Get a unique id to represent the compositor animation between child
