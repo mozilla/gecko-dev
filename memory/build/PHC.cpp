@@ -418,32 +418,6 @@ class PtrKind {
     detail::ThreadLocal<T, detail::ThreadLocalKeyStorage>
 #endif
 
-// Shared, atomic, mutable global state.
-class GAtomic {
- public:
-  static void Init(Delay aFirstDelay);
-
-  // Decrements the delay and returns the decremented value.
-  static int32_t DecrementDelay() { return --sAllocDelay; }
-
-  static void SetAllocDelay(Delay aAllocDelay) { sAllocDelay = aAllocDelay; }
-
-  static bool AllocDelayHasWrapped(Delay aAvgAllocDelay,
-                                   Delay aAvgFirstAllocDelay) {
-    // Delay is unsigned so we can't test for less that zero.  Instead test if
-    // it has wrapped around by comparing with the maximum value we ever use.
-    return sAllocDelay > 2 * std::max(aAvgAllocDelay, aAvgFirstAllocDelay);
-  }
-
- private:
-  // Delay until the next attempt at a page allocation. See the comment in
-  // MaybePageAlloc() for an explanation of why it uses ReleaseAcquire
-  // semantics.
-  static Atomic<Delay, ReleaseAcquire> sAllocDelay;
-};
-
-Atomic<Delay, ReleaseAcquire> GAtomic::sAllocDelay;
-
 // Shared, immutable global state. Initialized by replace_init() and never
 // changed after that. replace_init() runs early enough that no synchronization
 // is needed.
@@ -604,6 +578,15 @@ class GMut {
     if (!tlsIsDisabled.init()) {
       MOZ_CRASH();
     }
+
+    // This constructor is part of PHC's very early initialisation,
+    // see phc_init(), and if PHC is default-on it'll start marking allocations
+    // and we must setup the delay.  However once XPCOM starts it'll call
+    // SetState() which will re-initialise the RNG and allocation delay.
+    MutexAutoLock lock(sMutex);
+    SetAllocDelay(Rnd64ToDelay(mAvgFirstAllocDelay, Random64(lock)));
+
+    LOG("Initial sAllocDelay <- %zu\n", size_t(sAllocDelay));
   }
 
   uint64_t Random64(GMutLock) { return mRNG.next(); }
@@ -868,7 +851,9 @@ class GMut {
       MutexAutoLock lock(GMut::sMutex);
       // Reset the RNG at this point with a better seed.
       ResetRNG();
-      GAtomic::Init(Rnd64ToDelay(mAvgFirstAllocDelay, Random64(lock)));
+
+      SetAllocDelay(Rnd64ToDelay(mAvgFirstAllocDelay, Random64(lock)));
+      LOG("New initial sAllocDelay <- %zu\n", size_t(sAllocDelay));
     }
 
     mPhcState = aState;
@@ -898,8 +883,8 @@ class GMut {
     MutexAutoLock lock(sMutex);
     Delay avg_delay = GetAvgAllocDelay(lock);
     Delay avg_first_delay = GetAvgFirstAllocDelay(lock);
-    if (GAtomic::AllocDelayHasWrapped(avg_delay, avg_first_delay)) {
-      GAtomic::SetAllocDelay(Rnd64ToDelay(avg_delay, Random64(lock)));
+    if (AllocDelayHasWrapped(avg_delay, avg_first_delay)) {
+      SetAllocDelay(Rnd64ToDelay(avg_delay, Random64(lock)));
     }
     tlsIsDisabled.set(false);
   }
@@ -909,6 +894,18 @@ class GMut {
   static Time Now() { return sNow; }
 
   static void IncrementNow() { sNow++; }
+
+  // Decrements the delay and returns the decremented value.
+  static int32_t DecrementDelay() { return --sAllocDelay; }
+
+  static void SetAllocDelay(Delay aAllocDelay) { sAllocDelay = aAllocDelay; }
+
+  static bool AllocDelayHasWrapped(Delay aAvgAllocDelay,
+                                   Delay aAvgFirstAllocDelay) {
+    // Delay is unsigned so we can't test for less that zero.  Instead test if
+    // it has wrapped around by comparing with the maximum value we ever use.
+    return sAllocDelay > 2 * std::max(aAvgAllocDelay, aAvgFirstAllocDelay);
+  }
 
  private:
   template <int N>
@@ -1050,6 +1047,11 @@ class GMut {
   // need to be exact.
   static Atomic<Time, Relaxed> sNow;
 
+  // Delay until the next attempt at a page allocation. See the comment in
+  // MaybePageAlloc() for an explanation of why it uses ReleaseAcquire
+  // semantics.
+  static Atomic<Delay, ReleaseAcquire> sAllocDelay;
+
  public:
   Delay GetAvgAllocDelay(const MutexAutoLock&) { return mAvgAllocDelay; }
   Delay GetAvgFirstAllocDelay(const MutexAutoLock&) {
@@ -1063,16 +1065,11 @@ class GMut {
 Mutex GMut::sMutex;
 PHC_THREAD_LOCAL(bool) GMut::tlsIsDisabled;
 Atomic<Time, Relaxed> GMut::sNow;
+Atomic<Delay, ReleaseAcquire> GMut::sAllocDelay;
 
 static GMut* gMut;
 
-// These must be defined after the PHC class.
-void GAtomic::Init(Delay aFirstDelay) {
-  sAllocDelay = aFirstDelay;
-
-  LOG("Initial sAllocDelay <- %zu\n", size_t(aFirstDelay));
-}
-
+// This must be defined after the PHC class.
 GConst::GConst()
     : mPagesStart(AllocAllPages()), mPagesLimit(mPagesStart + kAllPagesSize) {
   LOG("AllocAllPages at %p..%p\n", mPagesStart, mPagesLimit);
@@ -1106,8 +1103,7 @@ class AutoDisableOnCurrentThread {
 // WARNING: this function runs *very* early -- before all static initializers
 // have run. For this reason, non-scalar globals (gConst, gMut) are allocated
 // dynamically (so we can guarantee their construction in this function) rather
-// than statically. GAtomic contains simple static data that doesn't involve
-// static initializers so they don't need to be allocated dynamically.
+// than statically.
 static bool phc_init() {
   if (GetKernelPageSize() != kPageSize) {
     return false;
@@ -1191,7 +1187,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
   // again. (At least, not until sAllocDelay wraps around on overflow, which
   // would take a very long time indeed.)
   //
-  int32_t newDelay = GAtomic::DecrementDelay();
+  int32_t newDelay = GMut::DecrementDelay();
   if (newDelay != 0) {
     return nullptr;
   }
@@ -1296,7 +1292,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
   }
 
   // Set the new alloc delay.
-  GAtomic::SetAllocDelay(newAllocDelay);
+  GMut::SetAllocDelay(newAllocDelay);
 
   return ptr;
 }
