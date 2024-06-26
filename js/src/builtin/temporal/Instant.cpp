@@ -1279,76 +1279,6 @@ static bool Instant_valueOf(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 /**
- * Temporal.Instant.prototype.toZonedDateTime ( item )
- */
-static bool Instant_toZonedDateTime(JSContext* cx, const CallArgs& args) {
-  auto instant = ToInstant(&args.thisv().toObject().as<InstantObject>());
-
-  // Step 3.
-  Rooted<JSObject*> item(
-      cx, RequireObjectArg(cx, "item", "toZonedDateTime", args.get(0)));
-  if (!item) {
-    return false;
-  }
-
-  // Step 4.
-  Rooted<Value> calendarLike(cx);
-  if (!GetProperty(cx, item, item, cx->names().calendar, &calendarLike)) {
-    return false;
-  }
-
-  // Step 5.
-  if (calendarLike.isUndefined()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_MISSING_PROPERTY, "calendar");
-    return false;
-  }
-
-  // Step 6.
-  Rooted<CalendarValue> calendar(cx);
-  if (!ToTemporalCalendar(cx, calendarLike, &calendar)) {
-    return false;
-  }
-
-  // Step 7.
-  Rooted<Value> timeZoneLike(cx);
-  if (!GetProperty(cx, item, item, cx->names().timeZone, &timeZoneLike)) {
-    return false;
-  }
-
-  // Step 8.
-  if (timeZoneLike.isUndefined()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_MISSING_PROPERTY, "timeZone");
-    return false;
-  }
-
-  // Step 9.
-  Rooted<TimeZoneValue> timeZone(cx);
-  if (!ToTemporalTimeZone(cx, timeZoneLike, &timeZone)) {
-    return false;
-  }
-
-  // Step 10.
-  auto* result = CreateTemporalZonedDateTime(cx, instant, timeZone, calendar);
-  if (!result) {
-    return false;
-  }
-
-  args.rval().setObject(*result);
-  return true;
-}
-
-/**
- * Temporal.Instant.prototype.toZonedDateTime ( item )
- */
-static bool Instant_toZonedDateTime(JSContext* cx, unsigned argc, Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsInstant, Instant_toZonedDateTime>(cx, args);
-}
-
-/**
  * Temporal.Instant.prototype.toZonedDateTimeISO ( item )
  */
 static bool Instant_toZonedDateTimeISO(JSContext* cx, const CallArgs& args) {
@@ -1410,7 +1340,6 @@ static const JSFunctionSpec Instant_prototype_methods[] = {
     JS_FN("toLocaleString", Instant_toLocaleString, 0, 0),
     JS_FN("toJSON", Instant_toJSON, 0, 0),
     JS_FN("valueOf", Instant_valueOf, 0, 0),
-    JS_FN("toZonedDateTime", Instant_toZonedDateTime, 1, 0),
     JS_FN("toZonedDateTimeISO", Instant_toZonedDateTimeISO, 1, 0),
     JS_FS_END,
 };
