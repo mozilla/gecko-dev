@@ -556,11 +556,9 @@ class NetworkModule extends Module {
     }
 
     if (headers !== null) {
-      // Delete all existing request headers not found in the headers parameter.
+      // Delete all existing request headers.
       request.getHeadersList().forEach(([name]) => {
-        if (!headers.some(header => header.name == name)) {
-          request.setRequestHeader(name, "");
-        }
+        request.clearRequestHeader(name);
       });
 
       // Set all headers specified in the headers parameter.

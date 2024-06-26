@@ -148,6 +148,20 @@ export class NetworkRequest {
   }
 
   /**
+   * Clear a request header from the request's headers list.
+   *
+   * @param {string} name
+   *     The header's name.
+   */
+  clearRequestHeader(name) {
+    this.#channel.setRequestHeader(
+      name, // aName
+      "", // aValue="" as an empty value
+      false // aMerge=false to force clearing the header
+    );
+  }
+
+  /**
    * Retrieve the Fetch timings for the NetworkRequest.
    *
    * @returns {object}
@@ -277,7 +291,11 @@ export class NetworkRequest {
    *     The header's value.
    */
   setRequestHeader(name, value) {
-    this.#channel.setRequestHeader(name, value, false);
+    this.#channel.setRequestHeader(
+      name, // aName
+      value, // aValue
+      true // aMerge=true to allow setting multiple values for a given header name
+    );
   }
 
   /**
