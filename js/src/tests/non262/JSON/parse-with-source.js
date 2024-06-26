@@ -85,6 +85,7 @@
     function assertIsRawJson(rawJson, expectedRawJsonValue) {
         assertEq(null, Object.getPrototypeOf(rawJson));
         assertEq(true, Object.hasOwn(rawJson, 'rawJSON'));
+        assertDeepEq(['rawJSON'], Object.keys(rawJson));
         assertDeepEq(['rawJSON'], Object.getOwnPropertyNames(rawJson));
         assertDeepEq([], Object.getOwnPropertySymbols(rawJson));
         assertEq(expectedRawJsonValue, rawJson.rawJSON);
@@ -122,6 +123,8 @@
     assertEq(JSON.isRawJSON(gbl.objCCW), false, "isRawJSON() should accept CCW arguments");
     rawJSONCCW = gbl.eval("JSON.rawJSON(455);");
     assertEq(JSON.isRawJSON(rawJSONCCW), true, "isRawJSON() should return true for wrapped rawJSON objects");
+
+    assertEq(rawJSONCCW.rawJSON, "455", "rawJSON object enumerable property should be visible through CCW");
 
     objWithCCW = { ccw: rawJSONCCW, raw: JSON.rawJSON(true) };
     assertEq(JSON.stringify(objWithCCW), '{"ccw":455,"raw":true}');
