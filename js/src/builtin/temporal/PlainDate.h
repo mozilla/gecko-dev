@@ -197,6 +197,13 @@ bool AddDate(JSContext* cx, JS::Handle<CalendarRecord> calendar,
  * AddDate ( calendarRec, plainDate, duration [ , options ] )
  */
 bool AddDate(JSContext* cx, JS::Handle<CalendarRecord> calendar,
+             const PlainDate& date, const DateDuration& duration,
+             PlainDate* result);
+
+/**
+ * AddDate ( calendarRec, plainDate, duration [ , options ] )
+ */
+bool AddDate(JSContext* cx, JS::Handle<CalendarRecord> calendar,
              JS::Handle<Wrapped<PlainDateObject*>> date,
              const DateDuration& duration, PlainDate* result);
 

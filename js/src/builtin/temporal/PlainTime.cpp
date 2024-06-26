@@ -780,9 +780,6 @@ RoundedTime js::temporal::RoundTime(const PlainTime& time, Increment increment,
   int32_t days = 0;
   auto [hour, minute, second, millisecond, microsecond, nanosecond] = time;
 
-  // Take the same approach as used in RoundDuration() to perform exact
-  // mathematical operations without possible loss of precision.
-
   // Steps 1-6.
   PlainTime quantity;
   int32_t* result;
@@ -950,8 +947,8 @@ static bool DifferenceTemporalPlainTime(JSContext* cx,
   if (settings.smallestUnit != TemporalUnit::Nanosecond ||
       settings.roundingIncrement != Increment{1}) {
     // Steps 6.a-b.
-    diff = RoundDuration(diff, settings.roundingIncrement,
-                         settings.smallestUnit, settings.roundingMode);
+    diff = RoundTimeDuration(diff, settings.roundingIncrement,
+                             settings.smallestUnit, settings.roundingMode);
   }
 
   // Step 7.

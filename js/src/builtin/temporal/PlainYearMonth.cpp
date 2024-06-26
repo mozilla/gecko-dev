@@ -495,25 +495,41 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   // We only care about years and months here, all other fields are set to zero.
   auto dateDuration = DateDuration{until.years, until.months};
 
-  // Step 17.
+  // Step 17. (Moved below)
+
+  // Step 18.
   if (settings.smallestUnit != TemporalUnit::Month ||
       settings.roundingIncrement != Increment{1}) {
-    // Steps 17.a-b.
-    NormalizedDuration roundResult;
-    if (!RoundDuration(cx, {dateDuration, {}}, settings.roundingIncrement,
-                       settings.smallestUnit, settings.roundingMode, thisDate,
-                       calendarRec, &roundResult)) {
-      return false;
-    }
+    // Step 17. (Reordered)
+    auto duration = NormalizedDuration{dateDuration, {}};
 
-    // Step 17.c.
-    auto toBalance =
-        DateDuration{roundResult.date.years, roundResult.date.months};
-    if (!temporal::BalanceDateDurationRelative(
-            cx, toBalance, settings.largestUnit, settings.smallestUnit,
-            thisDate, calendarRec, &dateDuration)) {
+    // Step 18.a.
+    auto* unwrappedOther = otherDate.unwrap(cx);
+    if (!unwrappedOther) {
       return false;
     }
+    auto otherDateTime = PlainDateTime{ToPlainDate(unwrappedOther), {}};
+    auto destEpochNs = GetUTCEpochNanoseconds(otherDateTime);
+
+    // Step 18.b.
+    auto* unwrappedThis = thisDate.unwrap(cx);
+    if (!unwrappedThis) {
+      return false;
+    }
+    auto dateTime = PlainDateTime{ToPlainDate(unwrappedThis), {}};
+
+    // Step 18.c
+    Rooted<TimeZoneRecord> timeZone(cx, TimeZoneRecord{});
+    RoundedRelativeDuration relative;
+    if (!RoundRelativeDuration(
+            cx, duration, destEpochNs, dateTime, calendarRec, timeZone,
+            settings.largestUnit, settings.roundingIncrement,
+            settings.smallestUnit, settings.roundingMode, &relative)) {
+      return false;
+    }
+    MOZ_ASSERT(IsValidDuration(relative.duration));
+
+    dateDuration = relative.duration.toDateDuration();
   }
 
   // Step 18.

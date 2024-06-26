@@ -95,6 +95,12 @@ int32_t DurationSign(const Duration& duration);
 int32_t DurationSign(const DateDuration& duration);
 
 /**
+ * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
+ * milliseconds, microseconds, nanoseconds )
+ */
+int32_t DurationSign(const NormalizedDuration& duration);
+
+/**
  * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
  * milliseconds, microseconds, nanoseconds )
  */
@@ -287,75 +293,33 @@ bool BalanceTimeDuration(JSContext* cx, const NormalizedTimeDuration& duration,
                          TemporalUnit largestUnit, TimeDuration* result);
 
 /**
- * BalanceDateDurationRelative ( years, months, weeks, days, largestUnit,
- * smallestUnit, plainRelativeTo, calendarRec )
+ * RoundTimeDuration ( days, norm, increment, unit, roundingMode )
  */
-bool BalanceDateDurationRelative(
-    JSContext* cx, const DateDuration& duration, TemporalUnit largestUnit,
-    TemporalUnit smallestUnit,
-    JS::Handle<Wrapped<PlainDateObject*>> plainRelativeTo,
-    JS::Handle<CalendarRecord> calendar, DateDuration* result);
+NormalizedTimeDuration RoundTimeDuration(const NormalizedTimeDuration& duration,
+                                         Increment increment, TemporalUnit unit,
+                                         TemporalRoundingMode roundingMode);
+
+struct RoundedRelativeDuration {
+  Duration duration;
+  double total = 0;
+};
 
 /**
- * AdjustRoundedDurationDays ( years, months, weeks, days, norm, increment,
- * unit, roundingMode, zonedRelativeTo, calendarRec, timeZoneRec,
- * precalculatedPlainDateTime )
+ * RoundRelativeDuration ( duration, destEpochNs, dateTime, calendarRec,
+ * timeZoneRec, largestUnit, increment, smallestUnit, roundingMode )
  */
-bool AdjustRoundedDurationDays(JSContext* cx,
-                               const NormalizedDuration& duration,
-                               Increment increment, TemporalUnit unit,
-                               TemporalRoundingMode roundingMode,
-                               JS::Handle<ZonedDateTime> relativeTo,
-                               JS::Handle<CalendarRecord> calendar,
-                               JS::Handle<TimeZoneRecord> timeZone,
-                               const PlainDateTime& precalculatedPlainDateTime,
-                               NormalizedDuration* result);
+bool RoundRelativeDuration(
+    JSContext* cx, const NormalizedDuration& duration,
+    const Instant& destEpochNs, const PlainDateTime& dateTime,
+    JS::Handle<CalendarRecord> calendar, JS::Handle<TimeZoneRecord> timeZone,
+    TemporalUnit largestUnit, Increment increment, TemporalUnit smallestUnit,
+    TemporalRoundingMode roundingMode, RoundedRelativeDuration* result);
 
 /**
- * RoundDuration ( years, months, weeks, days, norm, increment, unit,
- * roundingMode [ , plainRelativeTo [ , calendarRec [ , zonedRelativeTo [ ,
- * timeZoneRec [ , precalculatedPlainDateTime ] ] ] ] ] )
+ * DivideNormalizedTimeDuration ( d, divisor )
  */
-NormalizedTimeDuration RoundDuration(const NormalizedTimeDuration& duration,
-                                     Increment increment, TemporalUnit unit,
-                                     TemporalRoundingMode roundingMode);
-
-/**
- * RoundDuration ( years, months, weeks, days, norm, increment, unit,
- * roundingMode [ , plainRelativeTo [ , calendarRec [ , zonedRelativeTo [ ,
- * timeZoneRec [ , precalculatedPlainDateTime ] ] ] ] ] )
- */
-bool RoundDuration(JSContext* cx, const NormalizedTimeDuration& duration,
-                   Increment increment, TemporalUnit unit,
-                   TemporalRoundingMode roundingMode,
-                   NormalizedTimeDuration* result);
-
-/**
- * RoundDuration ( years, months, weeks, days, norm, increment, unit,
- * roundingMode [ , plainRelativeTo [ , calendarRec [ , zonedRelativeTo [ ,
- * timeZoneRec [ , precalculatedPlainDateTime ] ] ] ] ] )
- */
-bool RoundDuration(JSContext* cx, const NormalizedDuration& duration,
-                   Increment increment, TemporalUnit unit,
-                   TemporalRoundingMode roundingMode,
-                   JS::Handle<Wrapped<PlainDateObject*>> plainRelativeTo,
-                   JS::Handle<CalendarRecord> calendar,
-                   NormalizedDuration* result);
-
-/**
- * RoundDuration ( years, months, weeks, days, norm, increment, unit,
- * roundingMode [ , plainRelativeTo [ , calendarRec [ , zonedRelativeTo [ ,
- * timeZoneRec [ , precalculatedPlainDateTime ] ] ] ] ] )
- */
-bool RoundDuration(JSContext* cx, const NormalizedDuration& duration,
-                   Increment increment, TemporalUnit unit,
-                   TemporalRoundingMode roundingMode,
-                   JS::Handle<Wrapped<PlainDateObject*>> plainRelativeTo,
-                   JS::Handle<CalendarRecord> calendar,
-                   JS::Handle<ZonedDateTime> zonedRelativeTo,
-                   JS::Handle<TimeZoneRecord> timeZone,
-                   const PlainDateTime& precalculatedPlainDateTime,
-                   NormalizedDuration* result);
+double DivideNormalizedTimeDuration(const NormalizedTimeDuration& duration,
+                                    TemporalUnit unit);
 
 /**
  * DaysUntil ( earlier, later )

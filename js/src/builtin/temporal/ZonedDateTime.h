@@ -198,8 +198,6 @@ bool DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
 bool DifferenceZonedDateTimeWithRounding(
     JSContext* cx, const Instant& ns1, const Instant& ns2,
     JS::Handle<TimeZoneRecord> timeZone, JS::Handle<CalendarRecord> calendar,
-    JS::Handle<Wrapped<PlainDateObject*>> plainRelativeTo,
-    JS::Handle<ZonedDateTime> zonedDateTime,
     const PlainDateTime& precalculatedPlainDateTime,
     const DifferenceSettings& settings, Duration* result);
 
@@ -213,32 +211,25 @@ bool DifferenceZonedDateTimeWithRounding(JSContext* cx, const Instant& ns1,
                                          const DifferenceSettings& settings,
                                          Duration* result);
 
-struct NormalizedTimeAndDays final {
-  int64_t days = 0;
-  int64_t time = 0;
-  int64_t dayLength = 0;
-};
+/**
+ * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendarRec, timeZoneRec,
+ * precalculatedPlainDateTime, resolvedOptions, largestUnit, roundingIncrement,
+ * smallestUnit, roundingMode )
+ */
+bool DifferenceZonedDateTimeWithRounding(
+    JSContext* cx, const Instant& ns1, const Instant& ns2,
+    JS::Handle<TimeZoneRecord> timeZone, JS::Handle<CalendarRecord> calendar,
+    const PlainDateTime& precalculatedPlainDateTime, TemporalUnit unit,
+    double* result);
 
 /**
- * NormalizedTimeDurationToDays ( norm, zonedRelativeTo, timeZoneRec [ ,
- * precalculatedPlainDateTime ] )
+ * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendarRec, timeZoneRec,
+ * precalculatedPlainDateTime, resolvedOptions, largestUnit, roundingIncrement,
+ * smallestUnit, roundingMode )
  */
-bool NormalizedTimeDurationToDays(JSContext* cx,
-                                  const NormalizedTimeDuration& duration,
-                                  JS::Handle<ZonedDateTime> zonedRelativeTo,
-                                  JS::Handle<TimeZoneRecord> timeZone,
-                                  NormalizedTimeAndDays* result);
-
-/**
- * NormalizedTimeDurationToDays ( norm, zonedRelativeTo, timeZoneRec [ ,
- * precalculatedPlainDateTime ] )
- */
-bool NormalizedTimeDurationToDays(
-    JSContext* cx, const NormalizedTimeDuration& duration,
-    JS::Handle<ZonedDateTime> zonedRelativeTo,
-    JS::Handle<TimeZoneRecord> timeZone,
-    const PlainDateTime& precalculatedPlainDateTime,
-    NormalizedTimeAndDays* result);
+double DifferenceZonedDateTimeWithRounding(const Instant& ns1,
+                                           const Instant& ns2,
+                                           TemporalUnit unit);
 
 enum class OffsetBehaviour { Option, Exact, Wall };
 

@@ -919,49 +919,43 @@ static bool DifferencePlainDateTimeWithRounding(
     JSContext* cx, const PlainDateTime& one, const PlainDateTime& two,
     Handle<CalendarRecord> calendar, const DifferenceSettings& settings,
     Handle<PlainObject*> maybeResolvedOptions, Duration* result) {
-  // Step 1.
+  // Steps 1-2.
   MOZ_ASSERT(ISODateTimeWithinLimits(one));
   MOZ_ASSERT(ISODateTimeWithinLimits(two));
 
-  // FIXME: spec issue - pass years, month, and days as separate arguments
-  // instead of using `plainDate1`. This also avoids creating an unobservable
-  // `Temporal.PlainDate` instance in DifferenceTemporalPlainDateTime.
-
-  // Steps 2-4. (Not applicable in our implementation.)
-
-  // Step 5.
+  // Step 3.
   if (one == two) {
-    // Steps 5.a-b.
+    // Steps 3.a-b.
     *result = {};
     return true;
   }
 
-  // Step 6.
+  // Step 4.
   NormalizedDuration diff;
   if (!::DifferenceISODateTime(cx, one, two, calendar, settings.largestUnit,
                                maybeResolvedOptions, &diff)) {
     return false;
   }
 
-  // Step 7.
+  // Step 5.
   if (settings.smallestUnit == TemporalUnit::Nanosecond &&
       settings.roundingIncrement == Increment{1}) {
-    // Step 7.a.
+    // Step 5.a.
     NormalizedTimeDuration withDays;
     if (!Add24HourDaysToNormalizedTimeDuration(cx, diff.time, diff.date.days,
                                                &withDays)) {
       return false;
     }
 
-    // Step 7.b.
+    // Step 5.b.
     TimeDuration timeResult;
     if (!BalanceTimeDuration(cx, withDays, settings.largestUnit, &timeResult)) {
       return false;
     }
 
-    // Step 7.c. (Not application in our implementation.)
+    // Step 5.c. (Not application in our implementation.)
 
-    // Step 7.d.
+    // Steps 5.d-e.
     *result = {
         double(diff.date.years),    double(diff.date.months),
         double(diff.date.weeks),    double(timeResult.days),
@@ -973,58 +967,25 @@ static bool DifferencePlainDateTimeWithRounding(
     return true;
   }
 
-  // TODO: Actually passed as an argument to this function, but later commits
-  // won't use the object identity, so don't bother to update all caller to use
-  // objects.
-  Rooted<PlainDateObject*> relativeTo(
-      cx, CreateTemporalDate(cx, one.date, calendar.receiver()));
-  if (!relativeTo) {
+  // Step 6.
+  const auto& dateTime = one;
+
+  // Step 7.
+  auto destEpochNs = GetUTCEpochNanoseconds(two);
+
+  // Step 8.
+  Rooted<TimeZoneRecord> timeZone(cx, TimeZoneRecord{});
+  RoundedRelativeDuration relative;
+  if (!RoundRelativeDuration(cx, diff, destEpochNs, dateTime, calendar,
+                             timeZone, settings.largestUnit,
+                             settings.roundingIncrement, settings.smallestUnit,
+                             settings.roundingMode, &relative)) {
     return false;
   }
+  MOZ_ASSERT(IsValidDuration(relative.duration));
 
-  // Steps 8-9.
-  NormalizedDuration roundResult;
-  if (!temporal::RoundDuration(cx, diff, settings.roundingIncrement,
-                               settings.smallestUnit, settings.roundingMode,
-                               relativeTo, calendar, &roundResult)) {
-    return false;
-  }
-
-  // Step 10.
-  NormalizedTimeDuration withDays;
-  if (!Add24HourDaysToNormalizedTimeDuration(
-          cx, roundResult.time, roundResult.date.days, &withDays)) {
-    return false;
-  }
-
-  // Step 11.
-  TimeDuration balancedTime;
-  if (!BalanceTimeDuration(cx, withDays, settings.largestUnit, &balancedTime)) {
-    return false;
-  }
-
-  // Step 12.
-  auto toBalance = DateDuration{
-      roundResult.date.years,
-      roundResult.date.months,
-      roundResult.date.weeks,
-      balancedTime.days,
-  };
-  DateDuration balancedDate;
-  if (!temporal::BalanceDateDurationRelative(
-          cx, toBalance, settings.largestUnit, settings.smallestUnit,
-          relativeTo, calendar, &balancedDate)) {
-    return false;
-  }
-
-  *result = {
-      double(balancedDate.years),   double(balancedDate.months),
-      double(balancedDate.weeks),   double(balancedDate.days),
-      double(balancedTime.hours),   double(balancedTime.minutes),
-      double(balancedTime.seconds), double(balancedTime.milliseconds),
-      balancedTime.microseconds,    balancedTime.nanoseconds,
-  };
-  return ThrowIfInvalidDuration(cx, *result);
+  *result = relative.duration;
+  return true;
 }
 
 /**
@@ -1038,6 +999,67 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
     Duration* result) {
   return ::DifferencePlainDateTimeWithRounding(cx, one, two, calendar, settings,
                                                nullptr, result);
+}
+
+/**
+ * DifferencePlainDateTimeWithRounding ( plainDate1, h1, min1, s1, ms1, mus1,
+ * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit,
+ * roundingIncrement, smallestUnit, roundingMode, resolvedOptions )
+ */
+bool js::temporal::DifferencePlainDateTimeWithRounding(
+    JSContext* cx, const PlainDateTime& one, const PlainDateTime& two,
+    Handle<CalendarRecord> calendar, TemporalUnit unit, double* result) {
+  // Steps 1-2.
+  MOZ_ASSERT(ISODateTimeWithinLimits(one));
+  MOZ_ASSERT(ISODateTimeWithinLimits(two));
+
+  // Step 3.
+  if (one == two) {
+    // Steps 3.a-b.
+    *result = 0;
+    return true;
+  }
+
+  // Step 4.
+  NormalizedDuration diff;
+  if (!DifferenceISODateTime(cx, one, two, calendar, unit, &diff)) {
+    return false;
+  }
+
+  // Step 5.
+  if (unit == TemporalUnit::Nanosecond) {
+    // Step 5.a.
+    NormalizedTimeDuration withDays;
+    if (!Add24HourDaysToNormalizedTimeDuration(cx, diff.time, diff.date.days,
+                                               &withDays)) {
+      return false;
+    }
+
+    // Step 5.b. (Not application in our implementation.)
+
+    // Steps 5.c-d.
+    *result = double(withDays.toNanoseconds());
+    return true;
+  }
+
+  // Step 6.
+  const auto& dateTime = one;
+
+  // Step 7.
+  auto destEpochNs = GetUTCEpochNanoseconds(two);
+
+  // Step 8.
+  Rooted<TimeZoneRecord> timeZone(cx, TimeZoneRecord{});
+  RoundedRelativeDuration relative;
+  if (!RoundRelativeDuration(cx, diff, destEpochNs, dateTime, calendar,
+                             timeZone, unit, Increment{1}, unit,
+                             TemporalRoundingMode::Trunc, &relative)) {
+    return false;
+  }
+  MOZ_ASSERT(!std::isnan(relative.total));
+
+  *result = relative.total;
+  return true;
 }
 
 /**
