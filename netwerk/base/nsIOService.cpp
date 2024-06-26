@@ -64,6 +64,7 @@
 #include "nsContentUtils.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_security.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "nsNSSComponent.h"
 #include "ssl.h"
 #include "StaticComponents.h"
@@ -885,13 +886,24 @@ nsresult nsIOService::AsyncOnChannelRedirect(
     newURI->GetScheme(scheme);
     MOZ_ASSERT(!scheme.IsEmpty());
 
-    Telemetry::AccumulateCategoricalKeyed(
-        scheme,
-        oldChan->IsDocument()
-            ? Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::topLevel
-            : Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::subresource);
+    if (oldChan->IsDocument()) {
+      Telemetry::AccumulateCategoricalKeyed(
+          scheme, Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::topLevel);
+#ifndef ANDROID
+      mozilla::glean::networking::http_redirect_to_scheme_top_level.Get(scheme)
+          .Add(1);
+#endif
+    } else {
+      Telemetry::AccumulateCategoricalKeyed(
+          scheme,
+          Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::subresource);
+#ifndef ANDROID
+      mozilla::glean::networking::http_redirect_to_scheme_subresource
+          .Get(scheme)
+          .Add(1);
+#endif
+    }
   }
-
   return NS_OK;
 }
 
