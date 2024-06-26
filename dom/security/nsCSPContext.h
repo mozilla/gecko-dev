@@ -156,7 +156,7 @@ class nsCSPContext : public nsIContentSecurityPolicy {
                              uint32_t aLineNumber, uint32_t aColumnNumber);
 
   nsCString mReferrer;
-  uint64_t mInnerWindowID;          // used for web console logging
+  uint64_t mInnerWindowID;          // See `nsPIDOMWindowInner::mWindowID`.
   bool mSkipAllowInlineStyleCheck;  // used to allow Devtools to edit styles
   // When deserializing an nsCSPContext instance, we initially just keep the
   // policies unparsed. We will only reconstruct actual CSP policy instances
