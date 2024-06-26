@@ -1715,9 +1715,18 @@ class BrowsingContextModule extends Module {
     }
 
     const userContext = lazy.UserContextManager.getIdByBrowsingContext(context);
+    const originalOpener =
+      context.crossGroupOpener !== null
+        ? lazy.TabManager.getIdForBrowsingContext(context.crossGroupOpener)
+        : null;
     const contextInfo = {
       children,
       context: lazy.TabManager.getIdForBrowsingContext(context),
+      // TODO: Bug 1904641. If a browsing context was not tracked in TabManager,
+      // because it was created and discarded before the WebDriver BiDi session was
+      // started, we get undefined as id for this browsing context.
+      // We should remove this condition, when we can provide a correct id here.
+      originalOpener: originalOpener === undefined ? null : originalOpener,
       url: context.currentURI.spec,
       userContext,
     };
