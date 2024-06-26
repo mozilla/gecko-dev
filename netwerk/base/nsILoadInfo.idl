@@ -555,6 +555,21 @@ interface nsILoadInfo : nsISupports
   [infallible] attribute boolean textDirectiveUserActivation;
 
   /**
+   * Returns true if the current load is a same-document navigation.
+   *
+   * Note: There exists no IPC plumbing for this field. If this object crosses
+   *       a process boundary, it is not same-document, and the value defaults
+   *       to false.
+   * Also note: This flag is only meant to be used for a specific case when
+   *            scrolling to a text fragment: If a same-doc load is triggered
+   *            during the initial document load, and the target text has not
+   *            been parsed.
+   *            The flag is not being reset. If you want to use this flag for
+   *            another reason, don't. Check Bug 1777171 for a stable solution.
+   */
+  [infallible] attribute boolean isSameDocumentNavigation;
+
+  /**
    * We disallow the SystemPrincipal to initiate requests to
    * the public web. This flag is to allow exceptions.
    */

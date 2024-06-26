@@ -879,6 +879,9 @@ nsresult LoadInfoArgsToLoadInfo(const LoadInfoArgs& loadInfoArgs,
       loadInfoArgs.skipContentSniffing(), loadInfoArgs.httpsOnlyStatus(),
       loadInfoArgs.hstsStatus(), loadInfoArgs.hasValidUserGestureActivation(),
       loadInfoArgs.textDirectiveUserActivation(),
+      // This function is only called for moving LoadInfo across processes.
+      // Same-document navigation won't cross process boundaries.
+      /* aIsSameDocumentNavigation */ false,
       loadInfoArgs.allowDeprecatedSystemRequests(),
       loadInfoArgs.isInDevToolsContext(), loadInfoArgs.parserCreatedScript(),
       loadInfoArgs.storagePermission(), overriddenFingerprintingSettings,

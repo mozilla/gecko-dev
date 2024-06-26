@@ -732,8 +732,8 @@ LoadInfo::LoadInfo(
     const nsAString& aIntegrityMetadata, bool aSkipContentSniffing,
     uint32_t aHttpsOnlyStatus, bool aHstsStatus,
     bool aHasValidUserGestureActivation, bool aTextDirectiveUserActivation,
-    bool aAllowDeprecatedSystemRequests, bool aIsInDevToolsContext,
-    bool aParserCreatedScript,
+    bool aIsSameDocumentNavigation, bool aAllowDeprecatedSystemRequests,
+    bool aIsInDevToolsContext, bool aParserCreatedScript,
     nsILoadInfo::StoragePermissionState aStoragePermission,
     const Maybe<RFPTarget>& aOverriddenFingerprintingSettings,
     bool aIsMetaRefresh, uint32_t aRequestBlockingReason,
@@ -808,6 +808,7 @@ LoadInfo::LoadInfo(
       mHstsStatus(aHstsStatus),
       mHasValidUserGestureActivation(aHasValidUserGestureActivation),
       mTextDirectiveUserActivation(aTextDirectiveUserActivation),
+      mIsSameDocumentNavigation(aIsSameDocumentNavigation),
       mAllowDeprecatedSystemRequests(aAllowDeprecatedSystemRequests),
       mIsInDevToolsContext(aIsInDevToolsContext),
       mParserCreatedScript(aParserCreatedScript),
@@ -1997,6 +1998,18 @@ LoadInfo::GetTextDirectiveUserActivation(bool* aTextDirectiveUserActivation) {
 NS_IMETHODIMP
 LoadInfo::SetTextDirectiveUserActivation(bool aTextDirectiveUserActivation) {
   mTextDirectiveUserActivation = aTextDirectiveUserActivation;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::GetIsSameDocumentNavigation(bool* aIsSameDocumentNavigation) {
+  *aIsSameDocumentNavigation = mIsSameDocumentNavigation;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetIsSameDocumentNavigation(bool aIsSameDocumentNavigation) {
+  mIsSameDocumentNavigation = aIsSameDocumentNavigation;
   return NS_OK;
 }
 
