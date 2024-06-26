@@ -185,13 +185,13 @@ class StackTrace : public phc::StackTrace {
   }
 };
 
-// WARNING WARNING WARNING: this function must only be called when PHC::sMutex
+// WARNING WARNING WARNING: this function must only be called when PHC::mMutex
 // is *not* locked, otherwise we might get deadlocks.
 //
 // How? On Windows, MozStackWalk() can lock a mutex, M, from the shared library
 // loader. Another thread might call malloc() while holding M locked (when
-// loading a shared library) and try to lock PHC::sMutex, causing a deadlock.
-// So PHC::sMutex can't be locked during the call to MozStackWalk(). (For
+// loading a shared library) and try to lock PHC::mMutex, causing a deadlock.
+// So PHC::mMutex can't be locked during the call to MozStackWalk(). (For
 // details, see https://bugzilla.mozilla.org/show_bug.cgi?id=374829#c8. On
 // Linux, something similar can happen; see bug 824340. So we just disallow it
 // on all platforms.)
@@ -199,7 +199,7 @@ class StackTrace : public phc::StackTrace {
 // In DMD, to avoid this problem we temporarily unlock the equivalent mutex for
 // the MozStackWalk() call. But that's grotty, and things are a bit different
 // here, so we just require that stack traces be obtained before locking
-// PHC::sMutex.
+// PHC::mMutex.
 //
 // Unfortunately, there is no reliable way at compile-time or run-time to ensure
 // this pre-condition. Hence this large comment.
@@ -481,11 +481,11 @@ class PHCRegion {
 };
 
 // This type is used as a proof-of-lock token, to make it clear which functions
-// require sMutex to be locked.
+// require mMutex to be locked.
 using PHCLock = const MutexAutoLock&;
 
 // Shared, mutable global state.  Many fields are protected by sMutex; functions
-// that access those feilds should take a PHCLock as proof that sMutex is held.
+// that access those feilds should take a PHCLock as proof that mMutex is held.
 // Other fields are TLS or Atomic and don't need the lock.
 class PHC {
   enum class AllocPageState {
@@ -566,13 +566,10 @@ class PHC {
   };
 
  public:
-  // The mutex that protects the other members.
-  static Mutex sMutex MOZ_UNANNOTATED;
-
   // The RNG seeds here are poor, but non-reentrant since this can be called
   // from malloc().  SetState() will reset the RNG later.
   PHC() : mRNG(RandomSeed<1>(), RandomSeed<2>()) {
-    sMutex.Init();
+    mMutex.Init();
     if (!tlsIsDisabled.init()) {
       MOZ_CRASH();
     }
@@ -581,7 +578,7 @@ class PHC {
     // see phc_init(), and if PHC is default-on it'll start marking allocations
     // and we must setup the delay.  However once XPCOM starts it'll call
     // SetState() which will re-initialise the RNG and allocation delay.
-    MutexAutoLock lock(sMutex);
+    MutexAutoLock lock(mMutex);
     SetAllocDelay(Rnd64ToDelay(mAvgFirstAllocDelay, Random64(lock)));
 
     LOG("Initial sAllocDelay <- %zu\n", size_t(sAllocDelay));
@@ -704,7 +701,7 @@ class PHC {
   }
 
   void EnsureValidAndInUse(PHCLock, void* aPtr, uintptr_t aIndex)
-      MOZ_REQUIRES(sMutex) {
+      MOZ_REQUIRES(mMutex) {
     const AllocPageInfo& page = mAllocPages[aIndex];
 
     // The pointer must point to the start of the allocation.
@@ -714,17 +711,17 @@ class PHC {
       LOG("EnsureValidAndInUse(%p), use-after-free\n", aPtr);
       // An operation on a freed page? This is a particular kind of
       // use-after-free. Deliberately touch the page in question, in order to
-      // cause a crash that triggers the usual PHC machinery. But unlock sMutex
+      // cause a crash that triggers the usual PHC machinery. But unlock mMutex
       // first, because that self-same PHC machinery needs to re-lock it, and
-      // the crash causes non-local control flow so sMutex won't be unlocked
+      // the crash causes non-local control flow so mMutex won't be unlocked
       // the normal way in the caller.
-      sMutex.Unlock();
+      mMutex.Unlock();
       *static_cast<uint8_t*>(aPtr) = 0;
       MOZ_CRASH("unreachable");
     }
   }
 
-  // This expects GMUt::sMutex to be locked but can't check it with a parameter
+  // This expects GMUt::mMutex to be locked but can't check it with a parameter
   // since we try-lock it.
   void FillAddrInfo(uintptr_t aIndex, const void* aBaseAddr, bool isGuardPage,
                     phc::AddrInfo& aOut) {
@@ -798,11 +795,13 @@ class PHC {
   }
 
 #ifndef XP_WIN
-  static void prefork() MOZ_NO_THREAD_SAFETY_ANALYSIS { sMutex.Lock(); }
-  static void postfork_parent() MOZ_NO_THREAD_SAFETY_ANALYSIS {
-    sMutex.Unlock();
+  static void prefork() MOZ_NO_THREAD_SAFETY_ANALYSIS {
+    PHC::sPHC->mMutex.Lock();
   }
-  static void postfork_child() { sMutex.Init(); }
+  static void postfork_parent() MOZ_NO_THREAD_SAFETY_ANALYSIS {
+    PHC::sPHC->mMutex.Unlock();
+  }
+  static void postfork_child() { PHC::sPHC->mMutex.Init(); }
 #endif
 
 #if PHC_LOGGING
@@ -846,7 +845,7 @@ class PHC {
   using PHCState = mozilla::phc::PHCState;
   void SetState(PHCState aState) {
     if (mPhcState != PHCState::Enabled && aState == PHCState::Enabled) {
-      MutexAutoLock lock(PHC::sMutex);
+      MutexAutoLock lock(mMutex);
       // Reset the RNG at this point with a better seed.
       ResetRNG();
 
@@ -863,7 +862,7 @@ class PHC {
 
   void SetProbabilities(int64_t aAvgDelayFirst, int64_t aAvgDelayNormal,
                         int64_t aAvgDelayPageReuse) {
-    MutexAutoLock lock(PHC::sMutex);
+    MutexAutoLock lock(mMutex);
 
     mAvgFirstAllocDelay = CheckProbability(aAvgDelayFirst);
     mAvgAllocDelay = CheckProbability(aAvgDelayNormal);
@@ -878,7 +877,7 @@ class PHC {
   void EnableOnCurrentThread() {
     MOZ_ASSERT(tlsIsDisabled.get());
 
-    MutexAutoLock lock(sMutex);
+    MutexAutoLock lock(mMutex);
     Delay avg_delay = GetAvgAllocDelay(lock);
     Delay avg_first_delay = GetAvgFirstAllocDelay(lock);
     if (AllocDelayHasWrapped(avg_delay, avg_first_delay)) {
@@ -950,6 +949,11 @@ class PHC {
 #endif
   }
 
+ public:
+  // The mutex that protects the other members.
+  Mutex mMutex MOZ_UNANNOTATED;
+
+ private:
   // RNG for deciding which allocations to treat specially. It doesn't need to
   // be high quality.
   //
@@ -1067,7 +1071,6 @@ class PHC {
   static PHC* sPHC;
 };
 
-Mutex PHC::sMutex;
 PHC_THREAD_LOCAL(bool) PHC::tlsIsDisabled;
 Atomic<Time, Relaxed> PHC::sNow;
 Atomic<Delay, ReleaseAcquire> PHC::sAllocDelay;
@@ -1085,8 +1088,9 @@ PHCRegion::PHCRegion()
 // can call into PHC to lockup its pointer. That also means that before calling
 // PHCCrash please ensure that state is consistent.  Because this can report an
 // arbitrary string, use of it must be reviewed by Firefox data stewards.
-static void PHCCrash(PHCLock, const char* aMessage) MOZ_REQUIRES(PHC::sMutex) {
-  PHC::sMutex.Unlock();
+static void PHCCrash(PHCLock, const char* aMessage)
+    MOZ_REQUIRES(PHC::sPHC->mMutex) {
+  PHC::sPHC->mMutex.Unlock();
   MOZ_CRASH_UNSAFE(aMessage);
 }
 
@@ -1141,7 +1145,7 @@ static inline bool maybe_init() {
 // Attempt a page allocation if the time and the size are right. Allocated
 // memory is zeroed if aZero is true. On failure, the caller should attempt a
 // normal allocation via MozJemalloc. Can be called in a context where
-// PHC::sMutex is locked.
+// PHC::mMutex is locked.
 static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
                             size_t aAlignment, bool aZero) {
   MOZ_ASSERT(IsPowerOfTwo(aAlignment));
@@ -1211,7 +1215,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
   StackTrace allocStack;
   allocStack.Fill();
 
-  MutexAutoLock lock(PHC::sMutex);
+  MutexAutoLock lock(PHC::sPHC->mMutex);
 
   Time now = PHC::Now();
   Delay newAllocDelay = Rnd64ToDelay(PHC::sPHC->GetAvgAllocDelay(lock),
@@ -1306,7 +1310,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
 static void FreePage(PHCLock aLock, uintptr_t aIndex,
                      const Maybe<arena_id_t>& aArenaId,
                      const StackTrace& aFreeStack, Delay aReuseDelay)
-    MOZ_REQUIRES(PHC::sMutex) {
+    MOZ_REQUIRES(PHC::sPHC->mMutex) {
   void* pagePtr = PHC::sRegion->AllocPagePtr(aIndex);
 
 #ifdef XP_WIN
@@ -1435,7 +1439,7 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
     stack.Fill();
   }
 
-  MutexAutoLock lock(PHC::sMutex);
+  MutexAutoLock lock(PHC::sPHC->mMutex);
 
   // Check for realloc() of a freed block.
   PHC::sPHC->EnsureValidAndInUse(lock, aOldPtr, index);
@@ -1536,7 +1540,7 @@ MOZ_ALWAYS_INLINE static bool MaybePageFree(const Maybe<arena_id_t>& aArenaId,
     freeStack.Fill();
   }
 
-  MutexAutoLock lock(PHC::sMutex);
+  MutexAutoLock lock(PHC::sPHC->mMutex);
 
   // Check for a double-free.
   PHC::sPHC->EnsureValidAndInUse(lock, aPtr, index);
@@ -1609,7 +1613,7 @@ inline size_t MozJemallocPHC::malloc_usable_size(usable_ptr_t aPtr) {
   // before the base address of the allocation, we return 0.
   uintptr_t index = pk.AllocPageIndex();
 
-  MutexAutoLock lock(PHC::sMutex);
+  MutexAutoLock lock(PHC::sPHC->mMutex);
 
   void* pageBaseAddr = PHC::sPHC->AllocPageBaseAddr(lock, index);
 
@@ -1644,7 +1648,7 @@ inline void MozJemallocPHC::jemalloc_stats_internal(
 
   size_t allocated = 0;
   {
-    MutexAutoLock lock(PHC::sMutex);
+    MutexAutoLock lock(PHC::sPHC->mMutex);
 
     // Add usable space of in-use allocations to `allocated`.
     for (size_t i = 0; i < kNumAllocPages; i++) {
@@ -1696,7 +1700,7 @@ inline void MozJemallocPHC::jemalloc_ptr_info(const void* aPtr,
   // At this point we know we have an allocation page.
   uintptr_t index = pk.AllocPageIndex();
 
-  MutexAutoLock lock(PHC::sMutex);
+  MutexAutoLock lock(PHC::sPHC->mMutex);
 
   PHC::sPHC->FillJemallocPtrInfo(lock, aPtr, index, aInfo);
 #if DEBUG
@@ -1772,13 +1776,13 @@ bool IsPHCAllocation(const void* aPtr, AddrInfo* aOut) {
   uintptr_t index = pk.AllocPageIndex();
 
   if (aOut) {
-    if (PHC::sMutex.TryLock()) {
+    if (PHC::sPHC->mMutex.TryLock()) {
       PHC::sPHC->FillAddrInfo(index, aPtr, isGuardPage, *aOut);
       LOG("IsPHCAllocation: %zu, %p, %zu, %zu, %zu\n", size_t(aOut->mKind),
           aOut->mBaseAddr, aOut->mUsableSize,
           aOut->mAllocStack.isSome() ? aOut->mAllocStack->mLength : 0,
           aOut->mFreeStack.isSome() ? aOut->mFreeStack->mLength : 0);
-      PHC::sMutex.Unlock();
+      PHC::sPHC->mMutex.Unlock();
     } else {
       LOG("IsPHCAllocation: PHC is locked\n");
       aOut->mPhcWasLocked = true;
@@ -1811,7 +1815,7 @@ void PHCMemoryUsage(MemoryUsage& aMemoryUsage) {
 
   aMemoryUsage.mMetadataBytes = metadata_size();
   if (PHC::sPHC) {
-    MutexAutoLock lock(PHC::sMutex);
+    MutexAutoLock lock(PHC::sPHC->mMutex);
     aMemoryUsage.mFragmentationBytes = PHC::sPHC->FragmentationBytes();
   } else {
     aMemoryUsage.mFragmentationBytes = 0;
@@ -1824,7 +1828,7 @@ void GetPHCStats(PHCStats& aStats) {
     return;
   }
 
-  MutexAutoLock lock(PHC::sMutex);
+  MutexAutoLock lock(PHC::sPHC->mMutex);
 
   aStats = PHC::sPHC->GetPageStats(lock);
 }
