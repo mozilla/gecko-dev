@@ -670,6 +670,7 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
       mHttpsOnlyStatus(rhs.mHttpsOnlyStatus),
       mHstsStatus(rhs.mHstsStatus),
       mHasValidUserGestureActivation(rhs.mHasValidUserGestureActivation),
+      mTextDirectiveUserActivation(rhs.mTextDirectiveUserActivation),
       mAllowDeprecatedSystemRequests(rhs.mAllowDeprecatedSystemRequests),
       mIsInDevToolsContext(rhs.mIsInDevToolsContext),
       mParserCreatedScript(rhs.mParserCreatedScript),
@@ -730,8 +731,9 @@ LoadInfo::LoadInfo(
     bool aNeedForCheckingAntiTrackingHeuristic, const nsAString& aCspNonce,
     const nsAString& aIntegrityMetadata, bool aSkipContentSniffing,
     uint32_t aHttpsOnlyStatus, bool aHstsStatus,
-    bool aHasValidUserGestureActivation, bool aAllowDeprecatedSystemRequests,
-    bool aIsInDevToolsContext, bool aParserCreatedScript,
+    bool aHasValidUserGestureActivation, bool aTextDirectiveUserActivation,
+    bool aAllowDeprecatedSystemRequests, bool aIsInDevToolsContext,
+    bool aParserCreatedScript,
     nsILoadInfo::StoragePermissionState aStoragePermission,
     const Maybe<RFPTarget>& aOverriddenFingerprintingSettings,
     bool aIsMetaRefresh, uint32_t aRequestBlockingReason,
@@ -805,6 +807,7 @@ LoadInfo::LoadInfo(
       mHttpsOnlyStatus(aHttpsOnlyStatus),
       mHstsStatus(aHstsStatus),
       mHasValidUserGestureActivation(aHasValidUserGestureActivation),
+      mTextDirectiveUserActivation(aTextDirectiveUserActivation),
       mAllowDeprecatedSystemRequests(aAllowDeprecatedSystemRequests),
       mIsInDevToolsContext(aIsInDevToolsContext),
       mParserCreatedScript(aParserCreatedScript),
@@ -1982,6 +1985,18 @@ NS_IMETHODIMP
 LoadInfo::SetHasValidUserGestureActivation(
     bool aHasValidUserGestureActivation) {
   mHasValidUserGestureActivation = aHasValidUserGestureActivation;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::GetTextDirectiveUserActivation(bool* aTextDirectiveUserActivation) {
+  *aTextDirectiveUserActivation = mTextDirectiveUserActivation;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetTextDirectiveUserActivation(bool aTextDirectiveUserActivation) {
+  mTextDirectiveUserActivation = aTextDirectiveUserActivation;
   return NS_OK;
 }
 

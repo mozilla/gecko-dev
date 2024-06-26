@@ -209,6 +209,7 @@ struct DocShellLoadStateInit
   bool IsFormSubmission;
   bool FirstParty;
   bool HasValidUserGestureActivation;
+  bool TextDirectiveUserActivation;
   bool AllowFocusMove;
   bool IsFromProcessingFrameAttributes;
   bool WasSchemelessInput;
