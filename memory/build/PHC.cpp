@@ -1288,6 +1288,27 @@ static inline bool maybe_init() {
 // Page allocation operations
 //---------------------------------------------------------------------------
 
+// This is the hot-path for testing if we should make a PHC allocation, it
+// should be inlined into the caller while the remainder of the tests that are
+// in MaybePageAlloc need not be inlined.
+static MOZ_ALWAYS_INLINE bool ShouldPageAllocHot(size_t aReqSize) {
+  if (MOZ_UNLIKELY(!maybe_init())) {
+    return false;
+  }
+
+  if (MOZ_UNLIKELY(aReqSize > kPageSize)) {
+    return false;
+  }
+
+  // Decrement the delay. If it's zero, we do a page allocation and reset the
+  // delay to a random number.
+  if (MOZ_LIKELY(!PHC::DecrementDelay())) {
+    return false;
+  }
+
+  return true;
+}
+
 // Attempt a page allocation if the time and the size are right. Allocated
 // memory is zeroed if aZero is true. On failure, the caller should attempt a
 // normal allocation via MozJemalloc. Can be called in a context where
@@ -1295,21 +1316,6 @@ static inline bool maybe_init() {
 static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
                             size_t aAlignment, bool aZero) {
   MOZ_ASSERT(IsPowerOfTwo(aAlignment));
-
-  if (!maybe_init()) {
-    return nullptr;
-  }
-
-  if (aReqSize > kPageSize) {
-    return nullptr;
-  }
-
-  // Decrement the delay. If it's zero, we do a page allocation and reset the
-  // delay to a random number.
-  if (MOZ_LIKELY(!PHC::DecrementDelay())) {
-    return nullptr;
-  }
-
   MOZ_ASSERT(PHC::sPHC);
   if (!PHC::sPHC->ShouldMakeNewAllocations()) {
     // Reset the allocation delay so that we take the fast path most of the
@@ -1462,8 +1468,10 @@ static void FreePage(PHCLock aLock, uintptr_t aIndex,
 // This handles malloc, moz_arena_malloc, and realloc-with-a-nullptr.
 MOZ_ALWAYS_INLINE static void* PageMalloc(const Maybe<arena_id_t>& aArenaId,
                                           size_t aReqSize) {
-  void* ptr = MaybePageAlloc(aArenaId, aReqSize, /* aAlignment */ 1,
-                             /* aZero */ false);
+  void* ptr = ShouldPageAllocHot(aReqSize)
+                  ? MaybePageAlloc(aArenaId, aReqSize, /* aAlignment */ 1,
+                                   /* aZero */ false)
+                  : nullptr;
   return ptr ? ptr
              : (aArenaId.isSome()
                     ? MozJemalloc::moz_arena_malloc(*aArenaId, aReqSize)
@@ -1488,8 +1496,11 @@ MOZ_ALWAYS_INLINE static void* PageCalloc(const Maybe<arena_id_t>& aArenaId,
     return nullptr;
   }
 
-  void* ptr = MaybePageAlloc(aArenaId, checkedSize.value(), /* aAlignment */ 1,
-                             /* aZero */ true);
+  void* ptr =
+      ShouldPageAllocHot(checkedSize.value())
+          ? MaybePageAlloc(aArenaId, checkedSize.value(), /* aAlignment */ 1,
+                           /* aZero */ true)
+          : nullptr;
   return ptr ? ptr
              : (aArenaId.isSome()
                     ? MozJemalloc::moz_arena_calloc(*aArenaId, aNum, aReqSize)
@@ -1709,7 +1720,7 @@ MOZ_ALWAYS_INLINE static void* PageMemalign(const Maybe<arena_id_t>& aArenaId,
   // PHC can't satisfy an alignment greater than a page size, so fall back to
   // mozjemalloc in that case.
   void* ptr = nullptr;
-  if (aAlignment <= kPageSize) {
+  if (ShouldPageAllocHot(aReqSize) && aAlignment <= kPageSize) {
     ptr = MaybePageAlloc(aArenaId, aReqSize, aAlignment, /* aZero */ false);
   }
   return ptr ? ptr
