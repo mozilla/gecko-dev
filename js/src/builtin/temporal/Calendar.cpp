@@ -6715,62 +6715,6 @@ bool js::temporal::CalendarEqualsOrThrow(JSContext* cx,
 }
 
 /**
- * ConsolidateCalendars ( one, two )
- */
-bool js::temporal::ConsolidateCalendars(JSContext* cx,
-                                        Handle<CalendarValue> one,
-                                        Handle<CalendarValue> two,
-                                        MutableHandle<CalendarValue> result) {
-  // Step 1.
-  if (one.isObject() && two.isObject() && one.toObject() == two.toObject()) {
-    result.set(two);
-    return true;
-  }
-
-  // Step 2.
-  Rooted<JSLinearString*> calendarOne(cx,
-                                      ToTemporalCalendarIdentifier(cx, one));
-  if (!calendarOne) {
-    return false;
-  }
-
-  // Step 3.
-  Rooted<JSLinearString*> calendarTwo(cx,
-                                      ToTemporalCalendarIdentifier(cx, two));
-  if (!calendarTwo) {
-    return false;
-  }
-
-  // Step 4.
-  if (EqualStrings(calendarOne, calendarTwo)) {
-    result.set(two);
-    return true;
-  }
-
-  // Step 5.
-  if (StringEqualsLiteral(calendarOne, "iso8601")) {
-    result.set(two);
-    return true;
-  }
-
-  // Step 6.
-  if (StringEqualsLiteral(calendarTwo, "iso8601")) {
-    result.set(one);
-    return true;
-  }
-
-  // Step 7.
-  if (auto charsOne = QuoteString(cx, calendarOne)) {
-    if (auto charsTwo = QuoteString(cx, calendarTwo)) {
-      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                               JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,
-                               charsOne.get(), charsTwo.get());
-    }
-  }
-  return false;
-}
-
-/**
  * Temporal.Calendar ( id )
  */
 static bool CalendarConstructor(JSContext* cx, unsigned argc, Value* vp) {

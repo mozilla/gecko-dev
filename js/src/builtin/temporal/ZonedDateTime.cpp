@@ -2832,81 +2832,6 @@ static bool ZonedDateTime_withPlainTime(JSContext* cx, unsigned argc,
 }
 
 /**
- * Temporal.ZonedDateTime.prototype.withPlainDate ( plainDateLike )
- */
-static bool ZonedDateTime_withPlainDate(JSContext* cx, const CallArgs& args) {
-  Rooted<ZonedDateTime> zonedDateTime(
-      cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
-
-  // Step 3.
-  Rooted<PlainDateWithCalendar> plainDate(cx);
-  if (!ToTemporalDate(cx, args.get(0), &plainDate)) {
-    return false;
-  }
-  auto date = plainDate.date();
-
-  // Step 4.
-  Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(),
-                                   {
-                                       TimeZoneMethod::GetOffsetNanosecondsFor,
-                                       TimeZoneMethod::GetPossibleInstantsFor,
-                                   },
-                                   &timeZone)) {
-    return false;
-  }
-
-  // Steps 5-6.
-  PlainDateTime plainDateTime;
-  if (!GetPlainDateTimeFor(cx, timeZone, zonedDateTime.instant(),
-                           &plainDateTime)) {
-    return false;
-  }
-
-  // Step 7.
-  Rooted<CalendarValue> calendar(cx);
-  if (!ConsolidateCalendars(cx, zonedDateTime.calendar(), plainDate.calendar(),
-                            &calendar)) {
-    return false;
-  }
-
-  // Step 8.
-  Rooted<PlainDateTimeWithCalendar> resultPlainDateTime(cx);
-  if (!CreateTemporalDateTime(cx, {date, plainDateTime.time}, calendar,
-                              &resultPlainDateTime)) {
-    return false;
-  }
-
-  // Step 9.
-  Instant instant;
-  if (!GetInstantFor(cx, timeZone, resultPlainDateTime,
-                     TemporalDisambiguation::Compatible, &instant)) {
-    return false;
-  }
-
-  // Step 10.
-  auto* result =
-      CreateTemporalZonedDateTime(cx, instant, timeZone.receiver(), calendar);
-  if (!result) {
-    return false;
-  }
-
-  args.rval().setObject(*result);
-  return true;
-}
-
-/**
- * Temporal.ZonedDateTime.prototype.withPlainDate ( plainDateLike )
- */
-static bool ZonedDateTime_withPlainDate(JSContext* cx, unsigned argc,
-                                        Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsZonedDateTime, ZonedDateTime_withPlainDate>(
-      cx, args);
-}
-
-/**
  * Temporal.ZonedDateTime.prototype.withTimeZone ( timeZoneLike )
  */
 static bool ZonedDateTime_withTimeZone(JSContext* cx, const CallArgs& args) {
@@ -3975,7 +3900,6 @@ static const JSFunctionSpec ZonedDateTime_methods[] = {
 static const JSFunctionSpec ZonedDateTime_prototype_methods[] = {
     JS_FN("with", ZonedDateTime_with, 1, 0),
     JS_FN("withPlainTime", ZonedDateTime_withPlainTime, 0, 0),
-    JS_FN("withPlainDate", ZonedDateTime_withPlainDate, 1, 0),
     JS_FN("withTimeZone", ZonedDateTime_withTimeZone, 1, 0),
     JS_FN("withCalendar", ZonedDateTime_withCalendar, 1, 0),
     JS_FN("add", ZonedDateTime_add, 1, 0),

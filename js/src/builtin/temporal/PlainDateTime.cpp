@@ -2079,47 +2079,6 @@ static bool PlainDateTime_withPlainTime(JSContext* cx, unsigned argc,
 }
 
 /**
- * Temporal.PlainDateTime.prototype.withPlainDate ( plainDateLike )
- */
-static bool PlainDateTime_withPlainDate(JSContext* cx, const CallArgs& args) {
-  auto* temporalDateTime = &args.thisv().toObject().as<PlainDateTimeObject>();
-  auto time = ToPlainTime(temporalDateTime);
-  Rooted<CalendarValue> calendar(cx, temporalDateTime->calendar());
-
-  // Step 3.
-  Rooted<PlainDateWithCalendar> plainDate(cx);
-  if (!ToTemporalDate(cx, args.get(0), &plainDate)) {
-    return false;
-  }
-  auto date = plainDate.date();
-
-  // Step 4.
-  if (!ConsolidateCalendars(cx, calendar, plainDate.calendar(), &calendar)) {
-    return false;
-  }
-
-  // Step 5.
-  auto* obj = CreateTemporalDateTime(cx, {date, time}, calendar);
-  if (!obj) {
-    return false;
-  }
-
-  args.rval().setObject(*obj);
-  return true;
-}
-
-/**
- * Temporal.PlainDateTime.prototype.withPlainDate ( plainDateLike )
- */
-static bool PlainDateTime_withPlainDate(JSContext* cx, unsigned argc,
-                                        Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsPlainDateTime, PlainDateTime_withPlainDate>(
-      cx, args);
-}
-
-/**
  * Temporal.PlainDateTime.prototype.withCalendar ( calendar )
  */
 static bool PlainDateTime_withCalendar(JSContext* cx, const CallArgs& args) {
@@ -2868,7 +2827,6 @@ static const JSFunctionSpec PlainDateTime_methods[] = {
 static const JSFunctionSpec PlainDateTime_prototype_methods[] = {
     JS_FN("with", PlainDateTime_with, 1, 0),
     JS_FN("withPlainTime", PlainDateTime_withPlainTime, 0, 0),
-    JS_FN("withPlainDate", PlainDateTime_withPlainDate, 1, 0),
     JS_FN("withCalendar", PlainDateTime_withCalendar, 1, 0),
     JS_FN("add", PlainDateTime_add, 1, 0),
     JS_FN("subtract", PlainDateTime_subtract, 1, 0),
