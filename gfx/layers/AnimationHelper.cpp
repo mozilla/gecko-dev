@@ -317,7 +317,7 @@ AnimationHelper::SampleResult AnimationHelper::SampleAnimationForEachNode(
     const MutexAutoLock& aProofOfMapLock, TimeStamp aPreviousFrameTime,
     TimeStamp aCurrentFrameTime, const AnimatedValue* aPreviousValue,
     nsTArray<PropertyAnimationGroup>& aPropertyAnimationGroups,
-    nsTArray<RefPtr<StyleAnimationValue>>& aAnimationValues /* out */) {
+    SampledAnimationArray& aAnimationValues /* output */) {
   MOZ_ASSERT(!aPropertyAnimationGroups.IsEmpty(),
              "Should be called with animation data");
   MOZ_ASSERT(aAnimationValues.IsEmpty(),
@@ -600,8 +600,8 @@ uint64_t AnimationHelper::GetNextCompositorAnimationsId() {
 }
 
 gfx::Matrix4x4 AnimationHelper::ServoAnimationValueToMatrix4x4(
-    const nsTArray<RefPtr<StyleAnimationValue>>& aValues,
-    const TransformData& aTransformData, gfx::Path* aCachedMotionPath) {
+    const SampledAnimationArray& aValues, const TransformData& aTransformData,
+    gfx::Path* aCachedMotionPath) {
   using nsStyleTransformMatrix::TransformReferenceBox;
 
   // This is a bit silly just to avoid the transform list copy from the

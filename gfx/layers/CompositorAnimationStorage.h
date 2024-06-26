@@ -24,7 +24,8 @@ class Animation;
 class CompositorBridgeParent;
 class OMTAController;
 
-typedef nsTArray<layers::Animation> AnimationArray;
+using AnimationArray = nsTArray<layers::Animation>;
+using SampledAnimationArray = AutoTArray<RefPtr<StyleAnimationValue>, 1>;
 
 struct AnimationTransform {
   /*
@@ -193,7 +194,7 @@ class CompositorAnimationStorage final {
   void StoreAnimatedValue(
       nsCSSPropertyID aProperty, uint64_t aId,
       const std::unique_ptr<AnimationStorageData>& aAnimationStorageData,
-      const AutoTArray<RefPtr<StyleAnimationValue>, 1>& aAnimationValues,
+      SampledAnimationArray&& aAnimationValues,
       const MutexAutoLock& aProofOfMapLock,
       const RefPtr<APZSampler>& aApzSampler, AnimatedValue* aAnimatedValueEntry,
       JankedAnimationMap& aJankedAnimationMap);
