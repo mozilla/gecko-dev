@@ -418,8 +418,8 @@ class PtrKind {
     detail::ThreadLocal<T, detail::ThreadLocalKeyStorage>
 #endif
 
-// Shared, immutable global state. Initialized by replace_init() and never
-// changed after that. replace_init() runs early enough that no synchronization
+// Shared, immutable global state. Initialized by phc_init() and never
+// changed after that. phc_init() runs early enough that no synchronization
 // is needed.
 class GConst {
  private:
@@ -1117,7 +1117,7 @@ static bool phc_init() {
 
 #ifndef XP_WIN
   // Avoid deadlocks when forking by acquiring our state lock prior to forking
-  // and releasing it after forking. See |LogAlloc|'s |replace_init| for
+  // and releasing it after forking. See |LogAlloc|'s |phc_init| for
   // in-depth details.
   pthread_atfork(PHC::prefork, PHC::postfork_parent, PHC::postfork_child);
 #endif
