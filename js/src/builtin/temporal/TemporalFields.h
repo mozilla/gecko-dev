@@ -295,17 +295,10 @@ using TemporalFieldNames = JS::StackGCVector<JS::PropertyKey>;
  * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
  * extraFieldDescriptors [ , duplicateBehaviour ] ] )
  */
-PlainObject* PrepareTemporalFields(JSContext* cx, JS::Handle<JSObject*> fields,
-                                   JS::Handle<TemporalFieldNames> fieldNames);
-
-/**
- * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
- * extraFieldDescriptors [ , duplicateBehaviour ] ] )
- */
 PlainObject* PrepareTemporalFields(
     JSContext* cx, JS::Handle<JSObject*> fields,
     JS::Handle<TemporalFieldNames> fieldNames,
-    mozilla::EnumSet<TemporalField> requiredFields);
+    mozilla::EnumSet<TemporalField> requiredFields = {});
 
 /**
  * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
