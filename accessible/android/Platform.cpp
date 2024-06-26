@@ -162,7 +162,7 @@ void a11y::PlatformCaretMoveEvent(Accessible* aTarget, int32_t aOffset,
   if (!aTarget->IsDoc() && !aFromUser && !aIsSelectionCollapsed) {
     // Pivot to the caret's position if it has an expanded selection.
     // This is used mostly for find in page.
-    Accessible* leaf = TextLeafPoint::GetCaret(aTarget).ActualizeCaret().mAcc;
+    Accessible* leaf = TextLeafPoint::GetCaret(aTarget).mAcc;
     MOZ_ASSERT(leaf);
     if (leaf) {
       if (Accessible* result = AccessibleWrap::DoPivot(
