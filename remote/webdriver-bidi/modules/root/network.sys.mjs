@@ -556,16 +556,14 @@ class NetworkModule extends Module {
     }
 
     if (headers !== null) {
-      // Delete all existing request headers not found in the headers parameter.
+      // Delete all existing request headers.
       request.getHeadersList().forEach(([name]) => {
-        if (!headers.some(header => header.name == name)) {
-          request.setRequestHeader(name, "");
-        }
+        request.clearRequestHeader(name);
       });
 
       // Set all headers specified in the headers parameter.
       for (const [name, value] of deserializedHeaders) {
-        request.setRequestHeader(name, value);
+        request.setRequestHeader(name, value, { merge: true });
       }
     }
 
@@ -582,14 +580,16 @@ class NetworkModule extends Module {
       const requestHeaders = request.getHeadersList();
       for (const [name] of requestHeaders) {
         if (name.toLowerCase() == "cookie") {
-          request.setRequestHeader(name, cookieHeader);
+          // If there is already a cookie header, use merge: false to override
+          // the value.
+          request.setRequestHeader(name, cookieHeader, { merge: false });
           foundCookieHeader = true;
           break;
         }
       }
 
       if (!foundCookieHeader) {
-        request.setRequestHeader("Cookie", cookieHeader);
+        request.setRequestHeader("Cookie", cookieHeader, { merge: false });
       }
     }
 
