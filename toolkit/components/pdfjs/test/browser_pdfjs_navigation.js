@@ -294,8 +294,7 @@ async function runTests(browser) {
       let pgNumber = await deferred.promise;
       Assert.equal(pgNumber, test.expectedPage, test.message);
     }
-
-    var viewer = content.wrappedJSObject.PDFViewerApplication;
-    await viewer.close();
   });
+
+  await waitForPdfJSClose(browser);
 }

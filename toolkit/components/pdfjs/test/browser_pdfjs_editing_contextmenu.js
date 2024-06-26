@@ -417,11 +417,7 @@ add_task(async function test_highlight_selection() {
         "An highlight editor must have been added"
       );
 
-      await SpecialPowers.spawn(browser, [], async function () {
-        var viewer = content.wrappedJSObject.PDFViewerApplication;
-        viewer.pdfDocument.annotationStorage.resetModified();
-        await viewer.close();
-      });
+      await waitForPdfJSClose(browser);
     }
   );
 });

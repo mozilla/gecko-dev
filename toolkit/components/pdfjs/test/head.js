@@ -31,26 +31,10 @@ function waitForPdfJS(browser, url = null) {
 }
 
 async function waitForPdfJSClose(browser, closeTab = false) {
-  const hasPDFjs = await SpecialPowers.spawn(
-    browser,
-    [],
-    () => !!content.wrappedJSObject.PDFViewerApplication
-  );
-  if (hasPDFjs) {
-    const closePromise = BrowserTestUtils.waitForContentEvent(
-      browser,
-      "pagesdestroy",
-      false,
-      null,
-      true
-    );
-    await SpecialPowers.spawn(browser, [], async () => {
-      const viewer = content.wrappedJSObject.PDFViewerApplication;
-      viewer.unbindWindowEvents();
-      await viewer.close();
-    });
-    await closePromise;
-  }
+  await SpecialPowers.spawn(browser, [], async () => {
+    const viewer = content.wrappedJSObject.PDFViewerApplication;
+    await viewer.testingClose();
+  });
   if (closeTab) {
     const tab = gBrowser.getTabForBrowser(browser);
     if (tab) {
