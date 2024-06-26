@@ -948,7 +948,9 @@ nsSHEntry::CreateLoadInfo(nsDocShellLoadState** aLoadState) {
 
   loadState->SetFirstParty(true);
 
-  loadState->SetHasValidUserGestureActivation(GetHasUserActivation());
+  const bool hasUserActivation = GetHasUserActivation();
+  loadState->SetHasValidUserGestureActivation(hasUserActivation);
+  loadState->SetTextDirectiveUserActivation(hasUserActivation);
 
   loadState->SetSHEntry(this);
 
