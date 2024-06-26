@@ -112,14 +112,15 @@ void EarlyHintsService::EarlyHint(
   }
 }
 
-void EarlyHintsService::FinalResponse(uint32_t aResponseStatus) {
+void EarlyHintsService::FinalResponse(uint32_t aResponseStatus,
+                                      const nsACString& aProtocolVersion) {
   // We will collect telemetry mosly once for a document.
   // In case of a reddirect this will be called multiple times.
-  CollectTelemetry(Some(aResponseStatus));
+  CollectTelemetry(Some(aResponseStatus), aProtocolVersion);
 }
 
 void EarlyHintsService::Cancel(const nsACString& aReason) {
-  CollectTelemetry(Nothing());
+  CollectTelemetry(Nothing(), ""_ns);
   mOngoingEarlyHints->CancelAll(aReason);
 }
 
@@ -128,11 +129,12 @@ void EarlyHintsService::RegisterLinksAndGetConnectArgs(
   mOngoingEarlyHints->RegisterLinksAndGetConnectArgs(aCpId, aOutLinks);
 }
 
-void EarlyHintsService::CollectTelemetry(Maybe<uint32_t> aResponseStatus) {
+void EarlyHintsService::CollectTelemetry(Maybe<uint32_t> aResponseStatus,
+                                         const nsACString& aProtocolVersion) {
   // EH_NUM_OF_HINTS_PER_PAGE is only collected for the 2xx responses,
   // regardless of the number of received mEarlyHintsCount.
   // Other telemetry probes are only collected if there was at least one
-  // EarlyHins response.
+  // EarlyHints response.
   if (aResponseStatus && (*aResponseStatus <= 299)) {
     Telemetry::Accumulate(Telemetry::EH_NUM_OF_HINTS_PER_PAGE,
                           mEarlyHintsCount);
@@ -160,6 +162,23 @@ void EarlyHintsService::CollectTelemetry(Maybe<uint32_t> aResponseStatus) {
   }
 
   Telemetry::AccumulateCategorical(label);
+
+  // Bug 1851437: Add telemetry for Early Hints protocol version
+  // glean does not allow keys named "http/1.0" or "http/1.1"
+#ifndef ANDROID
+  if (aResponseStatus) {
+    if (aProtocolVersion.EqualsLiteral("http/1.0") ||
+        aProtocolVersion.EqualsLiteral("http/1.1")) {
+      glean::netwerk::eh_response_version.Get("http_1"_ns).Add(1);
+    } else if (aProtocolVersion.EqualsLiteral("h2")) {
+      glean::netwerk::eh_response_version.Get("http_2"_ns).Add(1);
+    } else if (aProtocolVersion.EqualsLiteral("h3")) {
+      glean::netwerk::eh_response_version.Get("http_3"_ns).Add(1);
+    } else {
+      glean::netwerk::eh_response_version.Get("unknown"_ns).Add(1);
+    }
+  }
+#endif
 
   // Reset telemetry counters and timestamps.
   mEarlyHintsCount = 0;

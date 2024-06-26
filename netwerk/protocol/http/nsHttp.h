@@ -527,6 +527,8 @@ bool PossibleZeroRTTRetryError(nsresult aReason);
 
 void DisallowHTTPSRR(uint32_t& aCaps);
 
+nsLiteralCString HttpVersionToTelemetryLabel(HttpVersion version);
+
 }  // namespace net
 }  // namespace mozilla
 

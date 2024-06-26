@@ -1165,5 +1165,22 @@ void DisallowHTTPSRR(uint32_t& aCaps) {
   aCaps = (aCaps | NS_HTTP_DISALLOW_HTTPS_RR) & ~NS_HTTP_FORCE_WAIT_HTTP_RR;
 }
 
+// Convert HttpVersion enum to Telemetry label string
+nsLiteralCString HttpVersionToTelemetryLabel(HttpVersion version) {
+  switch (version) {
+    case HttpVersion::v0_9:
+    case HttpVersion::v1_0:
+    case HttpVersion::v1_1:
+      return "http_1"_ns;
+    case HttpVersion::v2_0:
+      return "http_2"_ns;
+    case HttpVersion::v3_0:
+      return "http_3"_ns;
+    default:
+      break;
+  }
+  return "unknown"_ns;
+}
+
 }  // namespace net
 }  // namespace mozilla
