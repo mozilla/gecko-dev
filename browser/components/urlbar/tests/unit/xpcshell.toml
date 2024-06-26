@@ -194,6 +194,12 @@ skip-if = ["!sync"]
 
 ["test_trimming.js"]
 
+["test_ui_schemas_valid.js"]
+support-files = [
+  "../../schema/urlbar-persisted-search-terms-schema.json",
+  "../../schema/urlbar-persisted-search-terms-ui-schema.json",
+]
+
 ["test_unitConversion.js"]
 
 ["test_urlbar_search_terms_persistence.js"]
