@@ -59,6 +59,8 @@ inactive-css-not-for-internal-table-elements-except-table-cells = <strong>{ $pro
 
 inactive-css-not-table = <strong>{ $property }</strong> has no effect on this element since it’s not a table.
 
+inactive-css-collapsed-table-borders = <strong>{ $property }</strong> has no effect on this element since it’s a table with collapsed borders.
+
 inactive-css-not-table-cell = <strong>{ $property }</strong> has no effect on this element since it’s not a table cell.
 
 inactive-scroll-padding-when-not-scroll-container = <strong>{ $property }</strong> has no effect on this element since it doesn’t scroll.
@@ -129,6 +131,8 @@ inactive-css-not-for-internal-table-elements-fix = Try setting its <strong>displ
 inactive-css-not-for-internal-table-elements-except-table-cells-fix = Try setting its <strong>display</strong> property to something else than <strong>table-column</strong>, <strong>table-row</strong>, <strong>table-column-group</strong>, <strong>table-row-group</strong>, or <strong>table-footer-group</strong>. { learn-more }
 
 inactive-css-not-table-fix = Try adding <strong>display:table</strong> or <strong>display:inline-table</strong>. { learn-more }
+
+inactive-css-collapsed-table-borders-fix = Try adding <strong>border-collapse:separate</strong>. { learn-more }
 
 inactive-css-not-table-cell-fix = Try adding <strong>display:table-cell</strong>. { learn-more }
 
