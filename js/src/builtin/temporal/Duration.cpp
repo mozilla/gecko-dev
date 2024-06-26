@@ -1644,301 +1644,6 @@ static bool UnbalanceDateDurationRelative(
   return true;
 }
 
-/**
- * AddDuration ( y1, mon1, w1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, w2,
- * d2, h2, min2, s2, ms2, mus2, ns2, plainRelativeTo, calendarRec,
- * zonedRelativeTo, timeZoneRec [ , precalculatedPlainDateTime ] )
- */
-static bool AddDuration(JSContext* cx, const Duration& one, const Duration& two,
-                        Duration* result) {
-  MOZ_ASSERT(IsValidDuration(one));
-  MOZ_ASSERT(IsValidDuration(two));
-
-  // Steps 1-2. (Not applicable)
-
-  // Step 3.
-  auto largestUnit1 = DefaultTemporalLargestUnit(one);
-
-  // Step 4.
-  auto largestUnit2 = DefaultTemporalLargestUnit(two);
-
-  // Step 5.
-  auto largestUnit = std::min(largestUnit1, largestUnit2);
-
-  // Step 6.
-  auto normalized1 = NormalizeTimeDuration(one);
-
-  // Step 7.
-  auto normalized2 = NormalizeTimeDuration(two);
-
-  // Step 8.a.
-  if (largestUnit <= TemporalUnit::Week) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_DURATION_UNCOMPARABLE,
-                              "relativeTo");
-    return false;
-  }
-
-  // Step 8.b.
-  NormalizedTimeDuration normalized;
-  if (!AddNormalizedTimeDuration(cx, normalized1, normalized2, &normalized)) {
-    return false;
-  }
-
-  // Step 8.c.
-  int64_t days1 = mozilla::AssertedCast<int64_t>(one.days);
-  int64_t days2 = mozilla::AssertedCast<int64_t>(two.days);
-  auto totalDays = mozilla::CheckedInt64(days1) + days2;
-  MOZ_ASSERT(totalDays.isValid(), "adding two duration days can't overflow");
-
-  if (!Add24HourDaysToNormalizedTimeDuration(cx, normalized, totalDays.value(),
-                                             &normalized)) {
-    return false;
-  }
-
-  // Step 8.d.
-  TimeDuration balanced;
-  if (!temporal::BalanceTimeDuration(cx, normalized, largestUnit, &balanced)) {
-    return false;
-  }
-
-  // Steps 8.e.
-  *result = balanced.toDuration();
-  return true;
-}
-
-/**
- * AddDuration ( y1, mon1, w1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, w2,
- * d2, h2, min2, s2, ms2, mus2, ns2, plainRelativeTo, calendarRec,
- * zonedRelativeTo, timeZoneRec [ , precalculatedPlainDateTime ] )
- */
-static bool AddDuration(JSContext* cx, const Duration& one, const Duration& two,
-                        Handle<Wrapped<PlainDateObject*>> plainRelativeTo,
-                        Handle<CalendarRecord> calendar, Duration* result) {
-  MOZ_ASSERT(IsValidDuration(one));
-  MOZ_ASSERT(IsValidDuration(two));
-
-  // Steps 1-2. (Not applicable)
-
-  // Step 3.
-  auto largestUnit1 = DefaultTemporalLargestUnit(one);
-
-  // Step 4.
-  auto largestUnit2 = DefaultTemporalLargestUnit(two);
-
-  // Step 5.
-  auto largestUnit = std::min(largestUnit1, largestUnit2);
-
-  // Step 6.
-  auto normalized1 = NormalizeTimeDuration(one);
-
-  // Step 7.
-  auto normalized2 = NormalizeTimeDuration(two);
-
-  // Step 8. (Not applicable)
-
-  // Step 9.a. (Not applicable in our implementation.)
-
-  // Step 9.b.
-  auto dateDuration1 = one.toDateDuration();
-
-  // Step 9.c.
-  auto dateDuration2 = two.toDateDuration();
-
-  // Step 9.d.
-  Rooted<Wrapped<PlainDateObject*>> intermediate(
-      cx, AddDate(cx, calendar, plainRelativeTo, dateDuration1));
-  if (!intermediate) {
-    return false;
-  }
-
-  // Step 9.e.
-  Rooted<Wrapped<PlainDateObject*>> end(
-      cx, AddDate(cx, calendar, intermediate, dateDuration2));
-  if (!end) {
-    return false;
-  }
-
-  // Step 9.f.
-  auto dateLargestUnit = std::min(TemporalUnit::Day, largestUnit);
-
-  // Steps 9.g-i.
-  DateDuration dateDifference;
-  if (!DifferenceDate(cx, calendar, plainRelativeTo, end, dateLargestUnit,
-                      &dateDifference)) {
-    return false;
-  }
-
-  // Step 9.j.
-  NormalizedTimeDuration normalized1WithDays;
-  if (!Add24HourDaysToNormalizedTimeDuration(
-          cx, normalized1, dateDifference.days, &normalized1WithDays)) {
-    return false;
-  }
-
-  // Step 9.k.
-  NormalizedTimeDuration normalized;
-  if (!AddNormalizedTimeDuration(cx, normalized1WithDays, normalized2,
-                                 &normalized)) {
-    return false;
-  }
-
-  // Step 9.l.
-  TimeDuration balanced;
-  if (!temporal::BalanceTimeDuration(cx, normalized, largestUnit, &balanced)) {
-    return false;
-  }
-
-  // Steps 9.m.
-  *result = {
-      double(dateDifference.years), double(dateDifference.months),
-      double(dateDifference.weeks), double(balanced.days),
-      double(balanced.hours),       double(balanced.minutes),
-      double(balanced.seconds),     double(balanced.milliseconds),
-      balanced.microseconds,        balanced.nanoseconds,
-  };
-  MOZ_ASSERT(IsValidDuration(*result));
-  return true;
-}
-
-/**
- * AddDuration ( y1, mon1, w1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, w2,
- * d2, h2, min2, s2, ms2, mus2, ns2, plainRelativeTo, calendarRec,
- * zonedRelativeTo, timeZoneRec [ , precalculatedPlainDateTime ] )
- */
-static bool AddDuration(
-    JSContext* cx, const Duration& one, const Duration& two,
-    Handle<ZonedDateTime> zonedRelativeTo, Handle<CalendarRecord> calendar,
-    Handle<TimeZoneRecord> timeZone,
-    mozilla::Maybe<const PlainDateTime&> precalculatedPlainDateTime,
-    Duration* result) {
-  // Steps 1-2. (Not applicable)
-
-  // Step 3.
-  auto largestUnit1 = DefaultTemporalLargestUnit(one);
-
-  // Step 4.
-  auto largestUnit2 = DefaultTemporalLargestUnit(two);
-
-  // Step 5.
-  auto largestUnit = std::min(largestUnit1, largestUnit2);
-
-  // Step 6.
-  auto normalized1 = NormalizeTimeDuration(one);
-
-  // Step 7.
-  auto normalized2 = NormalizeTimeDuration(two);
-
-  // Steps 8-9. (Not applicable)
-
-  // Steps 10-11. (Not applicable in our implementation.)
-
-  // Step 12.
-  bool startDateTimeNeeded = largestUnit <= TemporalUnit::Day;
-
-  // Steps 13-17.
-  if (!startDateTimeNeeded) {
-    // Steps 13-14. (Not applicable)
-
-    // Step 15. (Inlined AddZonedDateTime, step 6.)
-    Instant intermediateNs;
-    if (!AddInstant(cx, zonedRelativeTo.instant(), normalized1,
-                    &intermediateNs)) {
-      return false;
-    }
-    MOZ_ASSERT(IsValidEpochInstant(intermediateNs));
-
-    // Step 16. (Inlined AddZonedDateTime, step 6.)
-    Instant endNs;
-    if (!AddInstant(cx, intermediateNs, normalized2, &endNs)) {
-      return false;
-    }
-    MOZ_ASSERT(IsValidEpochInstant(endNs));
-
-    // Step 17.a.
-    auto normalized = NormalizedTimeDurationFromEpochNanosecondsDifference(
-        endNs, zonedRelativeTo.instant());
-
-    // Step 17.b.
-    TimeDuration balanced;
-    if (!BalanceTimeDuration(cx, normalized, largestUnit, &balanced)) {
-      return false;
-    }
-
-    // Step 17.c.
-    *result = balanced.toDuration();
-    return true;
-  }
-
-  // Steps 13-14.
-  PlainDateTime startDateTime;
-  if (!precalculatedPlainDateTime) {
-    if (!GetPlainDateTimeFor(cx, timeZone, zonedRelativeTo.instant(),
-                             &startDateTime)) {
-      return false;
-    }
-  } else {
-    startDateTime = *precalculatedPlainDateTime;
-  }
-
-  // Step 15.
-  auto norm1 =
-      CreateNormalizedDurationRecord(one.toDateDuration(), normalized1);
-  Instant intermediateNs;
-  if (!AddZonedDateTime(cx, zonedRelativeTo.instant(), timeZone, calendar,
-                        norm1, startDateTime, &intermediateNs)) {
-    return false;
-  }
-  MOZ_ASSERT(IsValidEpochInstant(intermediateNs));
-
-  // Step 16.
-  auto norm2 =
-      CreateNormalizedDurationRecord(two.toDateDuration(), normalized2);
-  Instant endNs;
-  if (!AddZonedDateTime(cx, intermediateNs, timeZone, calendar, norm2,
-                        &endNs)) {
-    return false;
-  }
-  MOZ_ASSERT(IsValidEpochInstant(endNs));
-
-  // Step 17. (Not applicable)
-
-  // Step 18.
-  NormalizedDuration difference;
-  if (!DifferenceZonedDateTime(cx, zonedRelativeTo.instant(), endNs, timeZone,
-                               calendar, largestUnit, startDateTime,
-                               &difference)) {
-    return false;
-  }
-
-  // Step 19.
-  auto balanced = BalanceTimeDuration(difference.time, TemporalUnit::Hour);
-
-  // Step 20.
-  *result = {
-      double(difference.date.years), double(difference.date.months),
-      double(difference.date.weeks), double(difference.date.days),
-      double(balanced.hours),        double(balanced.minutes),
-      double(balanced.seconds),      double(balanced.milliseconds),
-      balanced.microseconds,         balanced.nanoseconds,
-  };
-  MOZ_ASSERT(IsValidDuration(*result));
-  return true;
-}
-
-/**
- * AddDuration ( y1, mon1, w1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, w2,
- * d2, h2, min2, s2, ms2, mus2, ns2, plainRelativeTo, calendarRec,
- * zonedRelativeTo, timeZoneRec [ , precalculatedPlainDateTime ] )
- */
-static bool AddDuration(JSContext* cx, const Duration& one, const Duration& two,
-                        Handle<ZonedDateTime> zonedRelativeTo,
-                        Handle<CalendarRecord> calendar,
-                        Handle<TimeZoneRecord> timeZone, Duration* result) {
-  return AddDuration(cx, one, two, zonedRelativeTo, calendar, timeZone,
-                     mozilla::Nothing(), result);
-}
-
 static bool NumberToStringBuilder(JSContext* cx, double num,
                                   JSStringBuilder& sb) {
   MOZ_ASSERT(IsInteger(num));
@@ -3610,11 +3315,10 @@ bool js::temporal::RoundRelativeDuration(
 enum class DurationOperation { Add, Subtract };
 
 /**
- * AddDurationToOrSubtractDurationFromDuration ( operation, duration, other,
- * options )
+ * AddDurations ( operation, duration, other )
  */
-static bool AddDurationToOrSubtractDurationFromDuration(
-    JSContext* cx, DurationOperation operation, const CallArgs& args) {
+static bool AddDurations(JSContext* cx, DurationOperation operation,
+                         const CallArgs& args) {
   auto* durationObj = &args.thisv().toObject().as<DurationObject>();
   auto duration = ToDuration(durationObj);
 
@@ -3626,63 +3330,61 @@ static bool AddDurationToOrSubtractDurationFromDuration(
     return false;
   }
 
-  Rooted<Wrapped<PlainDateObject*>> plainRelativeTo(cx);
-  Rooted<ZonedDateTime> zonedRelativeTo(cx);
-  Rooted<TimeZoneRecord> timeZone(cx);
-  if (args.hasDefined(1)) {
-    const char* name = operation == DurationOperation::Add ? "add" : "subtract";
+  // Steps 3-12. (Not applicable in our implementation.)
 
-    // Step 3.
-    Rooted<JSObject*> options(cx,
-                              RequireObjectArg(cx, "options", name, args[1]));
-    if (!options) {
-      return false;
-    }
-
-    // Steps 4-7.
-    if (!GetTemporalRelativeToOption(cx, options, &plainRelativeTo,
-                                     &zonedRelativeTo, &timeZone)) {
-      return false;
-    }
-    MOZ_ASSERT(!plainRelativeTo || !zonedRelativeTo);
-    MOZ_ASSERT_IF(zonedRelativeTo, timeZone.receiver());
-  }
-
-  // Step 8.
-  Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecordFromRelativeTo(cx, plainRelativeTo,
-                                                 zonedRelativeTo,
-                                                 {
-                                                     CalendarMethod::DateAdd,
-                                                     CalendarMethod::DateUntil,
-                                                 },
-                                                 &calendar)) {
-    return false;
-  }
-
-  // Step 9.
+  // Steps 13-22.
   if (operation == DurationOperation::Subtract) {
     other = other.negate();
   }
 
-  Duration result;
-  if (plainRelativeTo) {
-    if (!AddDuration(cx, duration, other, plainRelativeTo, calendar, &result)) {
-      return false;
-    }
-  } else if (zonedRelativeTo) {
-    if (!AddDuration(cx, duration, other, zonedRelativeTo, calendar, timeZone,
-                     &result)) {
-      return false;
-    }
-  } else {
-    if (!AddDuration(cx, duration, other, &result)) {
-      return false;
-    }
+  // Step 23.
+  auto largestUnit1 = DefaultTemporalLargestUnit(duration);
+
+  // Step 24.
+  auto largestUnit2 = DefaultTemporalLargestUnit(other);
+
+  // Step 25.
+  auto largestUnit = std::min(largestUnit1, largestUnit2);
+
+  // Step 26.
+  auto normalized1 = NormalizeTimeDuration(duration);
+
+  // Step 27.
+  auto normalized2 = NormalizeTimeDuration(other);
+
+  // Step 28.
+  if (largestUnit <= TemporalUnit::Week) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_DURATION_UNCOMPARABLE,
+                              "relativeTo");
+    return false;
   }
 
-  // Step 10.
-  auto* obj = CreateTemporalDuration(cx, result);
+  // Step 29.
+  NormalizedTimeDuration normalized;
+  if (!AddNormalizedTimeDuration(cx, normalized1, normalized2, &normalized)) {
+    return false;
+  }
+
+  // Step 30.
+  int64_t days1 = mozilla::AssertedCast<int64_t>(duration.days);
+  int64_t days2 = mozilla::AssertedCast<int64_t>(other.days);
+  auto totalDays = mozilla::CheckedInt64(days1) + days2;
+  MOZ_ASSERT(totalDays.isValid(), "adding two duration days can't overflow");
+
+  if (!Add24HourDaysToNormalizedTimeDuration(cx, normalized, totalDays.value(),
+                                             &normalized)) {
+    return false;
+  }
+
+  // Step 31.
+  TimeDuration balanced;
+  if (!temporal::BalanceTimeDuration(cx, normalized, largestUnit, &balanced)) {
+    return false;
+  }
+
+  // Step 32.
+  auto* obj = CreateTemporalDuration(cx, balanced.toDuration());
   if (!obj) {
     return false;
   }
@@ -4289,15 +3991,15 @@ static bool Duration_abs(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 /**
- * Temporal.Duration.prototype.add ( other [ , options ] )
+ * Temporal.Duration.prototype.add ( other )
  */
 static bool Duration_add(JSContext* cx, const CallArgs& args) {
-  return AddDurationToOrSubtractDurationFromDuration(cx, DurationOperation::Add,
-                                                     args);
+  // Step 3.
+  return AddDurations(cx, DurationOperation::Add, args);
 }
 
 /**
- * Temporal.Duration.prototype.add ( other [ , options ] )
+ * Temporal.Duration.prototype.add ( other )
  */
 static bool Duration_add(JSContext* cx, unsigned argc, Value* vp) {
   // Steps 1-2.
@@ -4306,15 +4008,15 @@ static bool Duration_add(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 /**
- * Temporal.Duration.prototype.subtract ( other [ , options ] )
+ * Temporal.Duration.prototype.subtract ( other )
  */
 static bool Duration_subtract(JSContext* cx, const CallArgs& args) {
-  return AddDurationToOrSubtractDurationFromDuration(
-      cx, DurationOperation::Subtract, args);
+  // Step 3.
+  return AddDurations(cx, DurationOperation::Subtract, args);
 }
 
 /**
- * Temporal.Duration.prototype.subtract ( other [ , options ] )
+ * Temporal.Duration.prototype.subtract ( other )
  */
 static bool Duration_subtract(JSContext* cx, unsigned argc, Value* vp) {
   // Steps 1-2.
