@@ -71,6 +71,7 @@ class Record(object):
         self.allocatedAtDesc = None
         self.reportedAtDescs = []
         self.usableSizes = collections.defaultdict(int)
+        self.addrs = []
 
     def isZero(self, args):
         return (
@@ -504,6 +505,10 @@ def getDigestFromFile(args, inputFile):
                 traceTable, frameTable, allocatedAtTraceKey
             )
 
+        # In heap scan mode, we record the address of every block.
+        if "addr" in block:
+            record.addrs.append(block["addr"])
+
         if mode in ["live", "cumulative"]:
             pass
         elif mode == "dark-matter":
@@ -674,6 +679,14 @@ def printDigest(args, digest):
                     number(record.numBlocks), plural(record.numBlocks), i, numRecords
                 )
             )
+            if record.addrs:
+                if args.filter_stacks_for_testing:
+                    # These addresses will vary, so for testing replace them with a fixed value.
+                    baseAddrs = ["dadadada" for a in record.addrs]
+                else:
+                    baseAddrs = sorted(record.addrs)
+                addrsString = ", ".join([f"0x{a}" for a in baseAddrs])
+                out("  block addresses: " + addrsString)
             out(
                 "  {:} bytes ({:} requested / {:} slop)".format(
                     number(record.usableSize),
