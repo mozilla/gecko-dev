@@ -824,3 +824,62 @@ addUiaTask(
     // should be added in bug 1901458.
   }
 );
+
+/**
+ * Test the Text pattern's TextSelectionChanged event.
+ */
+addUiaTask(
+  `<input id="input" value="abc">`,
+  async function testTextTextSelectionChanged(browser) {
+    info("Focusing input");
+    await setUpWaitForUiaEvent("Text_TextSelectionChanged", "input");
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("input").focus();
+    });
+    await waitForUiaEvent();
+    ok(true, "input got TextSelectionChanged event");
+    info("Moving caret to b");
+    await setUpWaitForUiaEvent("Text_TextSelectionChanged", "input");
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("input").setSelectionRange(1, 1);
+    });
+    await waitForUiaEvent();
+    ok(true, "input got TextSelectionChanged event");
+    info("Selecting bc");
+    await setUpWaitForUiaEvent("Text_TextSelectionChanged", "input");
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("input").setSelectionRange(1, 3);
+    });
+    await waitForUiaEvent();
+    ok(true, "input got TextSelectionChanged event");
+  }
+);
+
+/**
+ * Test the Text pattern's TextChanged event.
+ */
+addUiaTask(
+  `<input id="input" value="abc">`,
+  async function testTextTextChanged(browser) {
+    info("Focusing input");
+    let moved = waitForEvent(EVENT_TEXT_CARET_MOVED, "input");
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("input").focus();
+    });
+    await moved;
+    info("Deleting a");
+    await setUpWaitForUiaEvent("Text_TextChanged", "input");
+    await invokeContentTask(browser, [], () => {
+      content.document.execCommand("forwardDelete");
+    });
+    await waitForUiaEvent();
+    ok(true, "input got TextChanged event");
+    info("Inserting a");
+    await setUpWaitForUiaEvent("Text_TextChanged", "input");
+    await invokeContentTask(browser, [], () => {
+      content.document.execCommand("insertText", false, "a");
+    });
+    await waitForUiaEvent();
+    ok(true, "input got TextChanged event");
+  }
+);

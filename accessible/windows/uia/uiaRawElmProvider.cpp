@@ -155,8 +155,13 @@ void uiaRawElmProvider::RaiseUiaEventForGeckoEvent(Accessible* aAcc,
     case nsIAccessibleEvent::EVENT_SELECTION_WITHIN:
       ::UiaRaiseAutomationEvent(uia, UIA_Selection_InvalidatedEventId);
       return;
+    case nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED:
+    case nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED:
+      ::UiaRaiseAutomationEvent(uia, UIA_Text_TextSelectionChangedEventId);
+      return;
     case nsIAccessibleEvent::EVENT_TEXT_INSERTED:
     case nsIAccessibleEvent::EVENT_TEXT_REMOVED:
+      ::UiaRaiseAutomationEvent(uia, UIA_Text_TextChangedEventId);
       MaybeRaiseUiaLiveRegionEvent(aAcc, aGeckoEvent);
       return;
     case nsIAccessibleEvent::EVENT_TEXT_VALUE_CHANGE:

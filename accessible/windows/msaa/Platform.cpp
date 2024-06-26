@@ -106,6 +106,8 @@ void a11y::PlatformCaretMoveEvent(Accessible* aTarget, int32_t aOffset,
   AccessibleWrap::UpdateSystemCaretFor(aTarget, aCaretRect);
   MsaaAccessible::FireWinEvent(aTarget,
                                nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED);
+  uiaRawElmProvider::RaiseUiaEventForGeckoEvent(
+      aTarget, nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED);
 }
 
 void a11y::PlatformTextChangeEvent(Accessible* aText, const nsAString& aStr,
