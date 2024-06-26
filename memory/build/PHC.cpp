@@ -847,7 +847,7 @@ class PHC {
     if (mPhcState != PHCState::Enabled && aState == PHCState::Enabled) {
       MutexAutoLock lock(mMutex);
       // Reset the RNG at this point with a better seed.
-      ResetRNG();
+      ResetRNG(lock);
 
       SetAllocDelay(Rnd64ToDelay(mAvgFirstAllocDelay, Random64(lock)));
       LOG("New initial sAllocDelay <- %zu\n", size_t(sAllocDelay));
@@ -856,7 +856,7 @@ class PHC {
     mPhcState = aState;
   }
 
-  void ResetRNG() {
+  void ResetRNG(MutexAutoLock&) {
     mRNG = non_crypto::XorShift128PlusRNG(RandomSeed<0>(), RandomSeed<1>());
   }
 
