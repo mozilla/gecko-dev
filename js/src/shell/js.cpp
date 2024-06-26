@@ -12582,8 +12582,9 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
 #endif
 #ifdef ENABLE_JSON_PARSE_WITH_SOURCE
-  JS::Prefs::setAtStartup_experimental_json_parse_with_source(
-      op.getBoolOption("enable-json-parse-with-source"));
+  if (op.getBoolOption("enable-json-parse-with-source")) {
+    JS::Prefs::setAtStartup_experimental_json_parse_with_source(true);
+  }
 #else
   if (op.getBoolOption("enable-json-parse-with-source")) {
     fprintf(stderr, "JSON.parse with source is not enabled on this build.\n");
