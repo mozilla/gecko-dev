@@ -78,6 +78,7 @@ IPCFuzzController::IPCFuzzController()
   portNameToIndex["PVRManager"] = 7;
   portNameToIndex["PCanvasManager"] = 8;
   portNameToIndex["PRemoteLazyInputStream"] = 9;
+  portNameToIndex["PRemoteWorkerService"] = 10;
 
   // Used to select the n-th trigger message as a starting point for fuzzing
   // in single message mode. A value of 1 will skip the first matching message
