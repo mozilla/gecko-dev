@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import mozilla.components.browser.state.ext.getUrl
 import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.top.sites.PinnedSiteStorage
+import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
@@ -33,15 +34,18 @@ import org.mozilla.fenix.components.menu.store.MenuState
  * selected tab as a pinned shortcut.
  * @param removePinnedSitesUseCase The [TopSitesUseCases.RemoveTopSiteUseCase] for removing the
  * selected tab from pinned shortcuts.
+ * @param topSitesMaxLimit The maximum number of top sites the user can have.
  * @param onDeleteAndQuit Callback invoked to delete browsing data and quit the browser.
  * @param scope [CoroutineScope] used to launch coroutines.
  */
+@Suppress("LongParameterList")
 class MenuDialogMiddleware(
     private val bookmarksStorage: BookmarksStorage,
     private val pinnedSiteStorage: PinnedSiteStorage,
     private val addBookmarkUseCase: BookmarksUseCase.AddBookmarksUseCase,
     private val addPinnedSiteUseCase: TopSitesUseCases.AddPinnedSiteUseCase,
     private val removePinnedSitesUseCase: TopSitesUseCases.RemoveTopSiteUseCase,
+    private val topSitesMaxLimit: Int,
     private val onDeleteAndQuit: () -> Unit,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) : Middleware<MenuState, MenuAction> {
@@ -125,6 +129,13 @@ class MenuDialogMiddleware(
         val browserMenuState = store.state.browserMenuState ?: return@launch
 
         if (browserMenuState.isPinned) {
+            return@launch
+        }
+
+        val numPinnedSites = pinnedSiteStorage.getPinnedSites()
+            .filter { it is TopSite.Default || it is TopSite.Pinned }.size
+
+        if (numPinnedSites >= topSitesMaxLimit) {
             return@launch
         }
 

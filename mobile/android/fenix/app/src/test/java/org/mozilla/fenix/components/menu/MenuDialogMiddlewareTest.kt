@@ -48,6 +48,10 @@ class MenuDialogMiddlewareTest {
     private lateinit var addPinnedSiteUseCase: TopSitesUseCases.AddPinnedSiteUseCase
     private lateinit var removePinnedSiteUseCase: TopSitesUseCases.RemoveTopSiteUseCase
 
+    companion object {
+        const val TOP_SITES_MAX_COUNT = 16
+    }
+
     @Before
     fun setup() {
         pinnedSiteStorage = mock()
@@ -409,6 +413,52 @@ class MenuDialogMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN maximum number of top sites is reached WHEN add to shortcuts action is dispatched THEN add pinned site use case is never called`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+
+        val pinnedSitesList = mutableListOf<TopSite>()
+
+        repeat(TOP_SITES_MAX_COUNT) {
+            pinnedSitesList.add(
+                TopSite.Pinned(
+                    id = 0,
+                    title = title,
+                    url = "$url/1",
+                    createdAt = 0,
+                ),
+            )
+        }
+
+        whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(pinnedSitesList)
+
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+            ),
+        )
+        val store = createStore(
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+        )
+
+        // Wait for InitAction and middleware
+        store.waitUntilIdle()
+
+        // Wait for UpdatePinnedState and middleware
+        store.waitUntilIdle()
+
+        assertFalse(store.state.browserMenuState!!.isPinned)
+
+        store.dispatch(MenuAction.AddShortcut)
+        store.waitUntilIdle()
+
+        verify(addPinnedSiteUseCase, never()).invoke(url = url, title = title)
+    }
+
+    @Test
     fun `WHEN delete browsing data and quit action is dispatched THEN onDeleteAndQuit is invoked`() = runTestOnMain {
         val store = createStore(
             menuState = MenuState(
@@ -433,6 +483,7 @@ class MenuDialogMiddlewareTest {
                 addBookmarkUseCase = addBookmarkUseCase,
                 addPinnedSiteUseCase = addPinnedSiteUseCase,
                 removePinnedSitesUseCase = removePinnedSiteUseCase,
+                topSitesMaxLimit = TOP_SITES_MAX_COUNT,
                 onDeleteAndQuit = onDeleteAndQuit,
                 scope = scope,
             ),

@@ -89,6 +89,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val addBookmarkUseCase = components.useCases.bookmarksUseCases.addBookmark
                     val addPinnedSiteUseCase = components.useCases.topSitesUseCase.addPinnedSites
                     val removePinnedSiteUseCase = components.useCases.topSitesUseCase.removeTopSites
+                    val topSitesMaxLimit = components.settings.topSitesMaxLimit
                     val printContentUseCase = components.useCases.sessionUseCases.printContent
                     val saveToPdfUseCase = components.useCases.sessionUseCases.saveToPdf
                     val selectedTab = browserStore.state.selectedTab
@@ -119,6 +120,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     },
                                     addPinnedSiteUseCase = addPinnedSiteUseCase,
                                     removePinnedSitesUseCase = removePinnedSiteUseCase,
+                                    topSitesMaxLimit = topSitesMaxLimit,
                                     scope = coroutineScope,
                                 ),
                                 MenuNavigationMiddleware(
