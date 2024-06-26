@@ -4,6 +4,26 @@ FROM $DOCKER_IMAGE_PARENT
 LABEL authors="Richard Pappalardo <rpappalax@gmail.com>, Aaron Train <atrain@mozilla.com>"
 LABEL maintainer="Richard Pappalardo <rpappalax@gmail.com>"
 
+ENV LANG='en_US.UTF-8' \
+    TERM='dumb'
+
+RUN apt-get update && \
+    apt-get install \
+      curl \
+      jq \
+      locales \
+      openjdk-17-jdk \
+      openssh-client \
+      python3-pip \
+      python3-yaml \
+      tar \
+      wget \
+      xvfb
+
+RUN pip3 install taskcluster==65.3.0
+
+RUN locale-gen "$LANG"
+
 #----------------------------------------------------------------------------------------------------------------------
 #-- Test tools --------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------
@@ -33,10 +53,10 @@ RUN curl -L https://github.com/Flank/flank/releases/download/v${FLANK_VERSION}/f
     && chmod +x ${FLANK_DOWNLOAD}
 
 # Used in parse-ui-test-fromfile.py
-RUN pip3 install --break-system-packages junitparser beautifultable
+RUN pip3 install junitparser==3.1.2 beautifultable==1.1.0
 
 # Used for env var ingest in testrail.py
-RUN pip3 install --break-system-packages python-dotenv
+RUN pip3 install python-dotenv==1.0.1
 
 # run-task expects to run as root
 USER root
