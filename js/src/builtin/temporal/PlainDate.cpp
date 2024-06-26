@@ -879,6 +879,13 @@ bool js::temporal::AddISODate(JSContext* cx, const PlainDate& date,
   auto balanced = BalanceISODate(regulated.year, regulated.month, int32_t(d));
   MOZ_ASSERT(IsValidISODate(balanced));
 
+  // Directly validate the result is within the valid limits.
+  if (!ISODateTimeWithinLimits(balanced)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
+    return false;
+  }
+
   *result = balanced;
   return true;
 }
