@@ -6448,25 +6448,37 @@ void nsBlockFrame::RemoveFloat(nsIFrame* aFloat) {
               .ContainsFrame(aFloat),
       "aFloat is not our child or on an unexpected frame list");
 
-  nsFrameList* floats = GetFloats();
-  if (floats && floats->StartRemoveFrame(aFloat)) {
-    if (floats->IsEmpty()) {
-      StealFloats()->Delete(PresShell());
+  bool didStartRemovingFloat = false;
+  if (nsFrameList* floats = GetFloats()) {
+    didStartRemovingFloat = true;
+    if (floats->StartRemoveFrame(aFloat)) {
+      if (floats->IsEmpty()) {
+        StealFloats()->Delete(PresShell());
+      }
+      return;
     }
-    return;
   }
 
-  nsFrameList* list = GetPushedFloats();
-  if (list && list->ContinueRemoveFrame(aFloat)) {
-    if (list->IsEmpty()) {
-      StealPushedFloats()->Delete(PresShell());
+  if (nsFrameList* pushedFloats = GetPushedFloats()) {
+    bool found;
+    if (didStartRemovingFloat) {
+      found = pushedFloats->ContinueRemoveFrame(aFloat);
+    } else {
+      didStartRemovingFloat = true;
+      found = pushedFloats->StartRemoveFrame(aFloat);
     }
-    return;
+    if (found) {
+      if (pushedFloats->IsEmpty()) {
+        StealPushedFloats()->Delete(PresShell());
+      }
+      return;
+    }
   }
 
   {
     nsAutoOOFFrameList oofs(this);
-    if (oofs.mList.ContinueRemoveFrame(aFloat)) {
+    if (didStartRemovingFloat ? oofs.mList.ContinueRemoveFrame(aFloat)
+                              : oofs.mList.StartRemoveFrame(aFloat)) {
       return;
     }
   }
