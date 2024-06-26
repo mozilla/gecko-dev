@@ -29,6 +29,7 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.InitAction,
         is MenuAction.AddBookmark,
         is MenuAction.AddShortcut,
+        is MenuAction.RemoveShortcut,
         is MenuAction.DeleteBrowsingDataAndQuit,
         is MenuAction.Navigate,
         -> state

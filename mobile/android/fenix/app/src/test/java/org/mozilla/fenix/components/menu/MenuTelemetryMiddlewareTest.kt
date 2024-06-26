@@ -74,6 +74,16 @@ class MenuTelemetryMiddlewareTest {
     }
 
     @Test
+    fun `WHEN removing a shortcut from top sites THEN record the remove from top sites browser menu telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.RemoveShortcut).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "remove_from_top_sites")
+    }
+
+    @Test
     fun `WHEN navigating to customize homepage THEN record the customize homepage telemetry`() {
         val store = createStore()
         assertNull(AppMenu.customizeHomepage.testGetValue())

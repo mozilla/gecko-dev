@@ -31,6 +31,8 @@ import org.mozilla.fenix.components.menu.store.MenuState
  * selected tab as a bookmark.
  * @param addPinnedSiteUseCase The [TopSitesUseCases.AddPinnedSiteUseCase] for adding the
  * selected tab as a pinned shortcut.
+ * @param removePinnedSitesUseCase The [TopSitesUseCases.RemoveTopSiteUseCase] for removing the
+ * selected tab from pinned shortcuts.
  * @param onDeleteAndQuit Callback invoked to delete browsing data and quit the browser.
  * @param scope [CoroutineScope] used to launch coroutines.
  */
@@ -39,6 +41,7 @@ class MenuDialogMiddleware(
     private val pinnedSiteStorage: PinnedSiteStorage,
     private val addBookmarkUseCase: BookmarksUseCase.AddBookmarksUseCase,
     private val addPinnedSiteUseCase: TopSitesUseCases.AddPinnedSiteUseCase,
+    private val removePinnedSitesUseCase: TopSitesUseCases.RemoveTopSiteUseCase,
     private val onDeleteAndQuit: () -> Unit,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) : Middleware<MenuState, MenuAction> {
@@ -52,6 +55,7 @@ class MenuDialogMiddleware(
             is MenuAction.InitAction -> initialize(context.store)
             is MenuAction.AddBookmark -> addBookmark(context.store)
             is MenuAction.AddShortcut -> addShortcut(context.store)
+            is MenuAction.RemoveShortcut -> removeShortcut(context.store)
             is MenuAction.DeleteBrowsingDataAndQuit -> deleteBrowsingDataAndQuit()
             else -> Unit
         }
@@ -131,6 +135,23 @@ class MenuDialogMiddleware(
             title = selectedTab.content.title,
             url = url,
         )
+    }
+
+    private fun removeShortcut(
+        store: Store<MenuState, MenuAction>,
+    ) = scope.launch {
+        val browserMenuState = store.state.browserMenuState ?: return@launch
+
+        if (!browserMenuState.isPinned) {
+            return@launch
+        }
+
+        val selectedTab = browserMenuState.selectedTab
+        val url = selectedTab.getUrl() ?: return@launch
+        val topSite = pinnedSiteStorage.getPinnedSites()
+            .firstOrNull { it.url == url } ?: return@launch
+
+        removePinnedSitesUseCase(topSite = topSite)
     }
 
     private fun deleteBrowsingDataAndQuit() = scope.launch {

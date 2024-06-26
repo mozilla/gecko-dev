@@ -163,6 +163,26 @@ class MenuStoreTest {
     }
 
     @Test
+    fun `WHEN remove shortcut action is dispatched THEN state is not updated`() = runTest {
+        val initialState = MenuState(
+            browserMenuState = BrowserMenuState(
+                selectedTab = TabSessionState(
+                    id = "tabId",
+                    content = ContentState(
+                        url = "www.google.com",
+                    ),
+                ),
+                isPinned = false,
+            ),
+        )
+        val store = MenuStore(initialState = initialState)
+
+        store.dispatch(MenuAction.RemoveShortcut).join()
+
+        assertEquals(initialState, store.state)
+    }
+
+    @Test
     fun `WHEN update shortcut state action is dispatched THEN pinned state is updated`() = runTest {
         val initialState = MenuState(
             browserMenuState = BrowserMenuState(

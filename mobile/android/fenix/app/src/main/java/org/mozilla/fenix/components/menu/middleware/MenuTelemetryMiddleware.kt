@@ -50,6 +50,12 @@ class MenuTelemetryMiddleware(
                 ),
             )
 
+            MenuAction.RemoveShortcut -> Events.browserMenuAction.record(
+                Events.BrowserMenuActionExtra(
+                    item = "remove_from_top_sites",
+                ),
+            )
+
             MenuAction.Navigate.Bookmarks -> Events.browserMenuAction.record(
                 Events.BrowserMenuActionExtra(
                     item = "bookmarks",

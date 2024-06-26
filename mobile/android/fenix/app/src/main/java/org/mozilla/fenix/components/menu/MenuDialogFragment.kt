@@ -88,6 +88,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val tabCollectionStorage = components.core.tabCollectionStorage
                     val addBookmarkUseCase = components.useCases.bookmarksUseCases.addBookmark
                     val addPinnedSiteUseCase = components.useCases.topSitesUseCase.addPinnedSites
+                    val removePinnedSiteUseCase = components.useCases.topSitesUseCase.removeTopSites
                     val printContentUseCase = components.useCases.sessionUseCases.printContent
                     val saveToPdfUseCase = components.useCases.sessionUseCases.saveToPdf
                     val selectedTab = browserStore.state.selectedTab
@@ -117,6 +118,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         )
                                     },
                                     addPinnedSiteUseCase = addPinnedSiteUseCase,
+                                    removePinnedSitesUseCase = removePinnedSiteUseCase,
                                     scope = coroutineScope,
                                 ),
                                 MenuNavigationMiddleware(
@@ -258,6 +260,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 onShortcutsMenuClick = {
                                     if (!isPinned) {
                                         store.dispatch(MenuAction.AddShortcut)
+                                    } else {
+                                        store.dispatch(MenuAction.RemoveShortcut)
                                     }
                                 },
                                 onAddToHomeScreenMenuClick = {},

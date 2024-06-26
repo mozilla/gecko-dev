@@ -46,11 +46,13 @@ class MenuDialogMiddlewareTest {
 
     private lateinit var pinnedSiteStorage: PinnedSiteStorage
     private lateinit var addPinnedSiteUseCase: TopSitesUseCases.AddPinnedSiteUseCase
+    private lateinit var removePinnedSiteUseCase: TopSitesUseCases.RemoveTopSiteUseCase
 
     @Before
     fun setup() {
         pinnedSiteStorage = mock()
         addPinnedSiteUseCase = mock()
+        removePinnedSiteUseCase = mock()
     }
 
     @Test
@@ -332,6 +334,81 @@ class MenuDialogMiddlewareTest {
     }
 
     @Test
+    fun `WHEN remove from shortcuts action is dispatched for a selected tab THEN remove pinned site use case is never called`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+
+        whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(emptyList())
+
+        val topSite = TopSite.Pinned(
+            id = 0,
+            title = title,
+            url = url,
+            createdAt = 0,
+        )
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+            ),
+        )
+        val store = createStore(
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+        )
+
+        // Wait for InitAction and middleware
+        store.waitUntilIdle()
+
+        assertFalse(store.state.browserMenuState!!.isPinned)
+
+        store.dispatch(MenuAction.RemoveShortcut)
+        store.waitUntilIdle()
+
+        verify(removePinnedSiteUseCase, never()).invoke(topSite = topSite)
+    }
+
+    @Test
+    fun `GIVEN selected tab is pinned WHEN remove from shortcuts action is dispatched THEN pinned state is updated`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        val topSite = TopSite.Pinned(
+            id = 0,
+            title = title,
+            url = url,
+            createdAt = 0,
+        )
+
+        whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(listOf(topSite))
+
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+            ),
+        )
+        val store = createStore(
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+        )
+
+        // Wait for InitAction and middleware
+        store.waitUntilIdle()
+
+        // Wait for UpdatePinnedState and middleware
+        store.waitUntilIdle()
+
+        assertTrue(store.state.browserMenuState!!.isPinned)
+
+        store.dispatch(MenuAction.RemoveShortcut)
+        store.waitUntilIdle()
+
+        verify(removePinnedSiteUseCase).invoke(topSite = topSite)
+    }
+
+    @Test
     fun `WHEN delete browsing data and quit action is dispatched THEN onDeleteAndQuit is invoked`() = runTestOnMain {
         val store = createStore(
             menuState = MenuState(
@@ -355,6 +432,7 @@ class MenuDialogMiddlewareTest {
                 pinnedSiteStorage = pinnedSiteStorage,
                 addBookmarkUseCase = addBookmarkUseCase,
                 addPinnedSiteUseCase = addPinnedSiteUseCase,
+                removePinnedSitesUseCase = removePinnedSiteUseCase,
                 onDeleteAndQuit = onDeleteAndQuit,
                 scope = scope,
             ),

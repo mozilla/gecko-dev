@@ -39,6 +39,11 @@ sealed class MenuAction : Action {
     data object AddShortcut : MenuAction()
 
     /**
+     * [MenuAction] dispatched when a site is to be removed from shortcuts.
+     */
+    data object RemoveShortcut : MenuAction()
+
+    /**
      * [MenuAction] dispatched when a pinned shortcut state is updated.
      *
      * @property isPinned The new [isPinned] state to be updated.
