@@ -53,6 +53,9 @@ class InstallReferrerMetricsService(private val context: Context) : MetricsServi
                                 // We can't do anything about this.
                                 logger.error("Failed to retrieve install referrer response", e)
                                 null
+                            } catch (e: SecurityException) {
+                                logger.error("Failed to retrieve install referrer response", e)
+                                null
                             }
 
                             if (installReferrerResponse.isNullOrBlank()) {
