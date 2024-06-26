@@ -3983,7 +3983,6 @@ class SearchDefaultOverrideAllowlistHandler {
     return entry.urls.some(
       e =>
         searchProvider.search_url == e.search_url &&
-        searchProvider.search_form == e.search_form &&
         searchProvider.search_url_get_params == e.search_url_get_params &&
         searchProvider.search_url_post_params == e.search_url_post_params
     );

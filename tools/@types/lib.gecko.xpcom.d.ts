@@ -11139,7 +11139,6 @@ interface nsISearchEngine extends nsISupports {
   hideOneOffButton: boolean;
   readonly name: string;
   readonly id: string;
-  readonly searchForm: string;
   readonly telemetryId: string;
   readonly identifier: string;
   readonly isAppProvided: boolean;

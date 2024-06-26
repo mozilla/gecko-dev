@@ -457,13 +457,10 @@ const TEST_GLOBAL = {
         Promise.resolve([{ identifier: "google" }, { identifier: "bing" }]),
       defaultEngine: {
         identifier: "google",
-        searchForm:
-          "https://www.google.com/search?q=&ie=utf-8&oe=utf-8&client=firefox-b",
         aliases: ["@google"],
       },
       defaultPrivateEngine: {
         identifier: "bing",
-        searchForm: "https://www.bing.com",
         aliases: ["@bing"],
       },
       getEngineByAlias: async () => null,

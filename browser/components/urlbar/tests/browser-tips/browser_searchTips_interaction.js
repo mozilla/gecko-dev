@@ -40,7 +40,7 @@ const GOOGLE_DOMAINS = [
 
 // In order for the persist tip to appear, the scheme of the
 // search engine has to be the same as the scheme of the SERP url.
-// withDNSRedirect() loads an http: url while the searchform
+// withDNSRedirect() loads an http: url while the search url
 // of the default engine uses https. To enable the search term
 // to be shown, we use the Example engine because it doesn't require
 // a redirect.

@@ -193,7 +193,6 @@ skip-if = ["true"] # Will be permanently removed as part of bug 1870686
 support-files = [
   "opensearch/mozilla-ns.xml",
   "opensearch/post.xml",
-  "opensearch/searchform-invalid.xml",
   "opensearch/simple.xml",
   "opensearch/suggestion.xml",
   "opensearch/suggestion-alternate.xml",

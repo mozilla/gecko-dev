@@ -2240,7 +2240,6 @@ add_task(async function test_improvesearch_noDefaultSearchTile_experiment() {
 
   sandbox.stub(SearchService.prototype, "getDefault").resolves({
     identifier: "google",
-    searchForm: "google.com",
   });
 
   {
@@ -2354,7 +2353,6 @@ add_task(
 
     sandbox.stub(SearchService.prototype, "getDefault").resolves({
       identifier: "google",
-      searchForm: "google.com",
     });
 
     {

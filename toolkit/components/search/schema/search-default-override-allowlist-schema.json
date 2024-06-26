@@ -45,7 +45,8 @@
           "search_form": {
             "type": "string",
             "title": "search_form",
-            "description": "The search form url"
+            "description": "The search form url",
+            "deprecated": "Unsupported on Firefox at this time."
           }
         }
       }

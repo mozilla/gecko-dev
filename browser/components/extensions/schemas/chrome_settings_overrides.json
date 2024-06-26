@@ -124,7 +124,8 @@
                     "optional": true,
                     "format": "url",
                     "pattern": "^(https://|http://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:\\d*)?(/|$)).*$",
-                    "preprocess": "localize"
+                    "preprocess": "localize",
+                    "deprecated": "Unsupported on Firefox at this time."
                   },
                   "alternate_urls": {
                     "type": "array",

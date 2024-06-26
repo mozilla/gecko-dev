@@ -89,7 +89,6 @@ add_task(async function add_search_engine_match() {
     await UrlbarSearchUtils.enginesForDomainPrefix("bacon")
   )[0];
   Assert.ok(matchedEngine);
-  Assert.equal(matchedEngine.searchForm, "https://www.bacon.moz");
   Assert.equal(matchedEngine.name, "bacon");
   Assert.equal(await matchedEngine.getIconURL(), null);
   info("also type part of the public suffix");
@@ -97,7 +96,6 @@ add_task(async function add_search_engine_match() {
     await UrlbarSearchUtils.enginesForDomainPrefix("bacon.m")
   )[0];
   Assert.ok(matchedEngine);
-  Assert.equal(matchedEngine.searchForm, "https://www.bacon.moz");
   Assert.equal(matchedEngine.name, "bacon");
   Assert.equal(await matchedEngine.getIconURL(), null);
 });
@@ -117,9 +115,7 @@ add_task(async function match_multiple_search_engines() {
     2,
     "enginesForDomainPrefix returned two engines."
   );
-  Assert.equal(matchedEngines[0].searchForm, "https://www.bacon.moz");
   Assert.equal(matchedEngines[0].name, "bacon");
-  Assert.equal(matchedEngines[1].searchForm, "https://www.baseball.moz");
   Assert.equal(matchedEngines[1].name, "baseball");
 });
 
@@ -424,19 +420,10 @@ add_task(async function matchAllDomainLevels() {
     let engines = await UrlbarSearchUtils.enginesForDomainPrefix(searchString, {
       matchAllDomainLevels: true,
     });
-    let engineData = engines.map(e => ({
-      name: e.name,
-      searchForm: e.searchForm,
-    }));
-    info("Matching engines: " + JSON.stringify(engineData));
-
-    Assert.equal(
-      engines.length,
-      expectedDomains.length,
-      "Expected number of matching engines"
-    );
+    // Domain names are saved in engine names.
+    let actualDomains = engines.map(e => e.name);
     Assert.deepEqual(
-      engineData.map(d => d.name),
+      actualDomains,
       expectedDomains,
       "Expected matching engine names/domains in the expected order"
     );

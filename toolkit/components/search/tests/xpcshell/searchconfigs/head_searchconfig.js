@@ -468,13 +468,6 @@ class SearchConfigTest {
       `Should have an expectedDomain for the engine ${location}`
     );
 
-    const searchForm = new URL(engine.searchForm);
-    this.assertOk(
-      searchForm.host.endsWith(rules.domain),
-      `Should have the correct search form domain ${location}.
-       Got "${searchForm.host}", expected to end with "${rules.domain}".`
-    );
-
     let submission = engine.getSubmission("test", URLTYPE_SEARCH_HTML);
 
     this.assertOk(
@@ -546,11 +539,6 @@ class SearchConfigTest {
       this.assertOk(
         submission.uri.query.split("&").includes(rule.searchUrlCode),
         `Expected "${rule.searchUrlCode}" in search url "${submission.uri.spec}"`
-      );
-      let uri = engine.searchForm;
-      this.assertOk(
-        !uri.includes(rule.searchUrlCode),
-        `"${rule.searchUrlCode}" should not be in the search form URL.`
       );
     }
     if (rule.searchUrlCodeNotInQuery) {

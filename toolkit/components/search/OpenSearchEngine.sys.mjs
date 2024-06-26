@@ -196,7 +196,6 @@ export class OpenSearchEngine extends SearchEngine {
 
     this._name = name;
     this._description = data.description ?? "";
-    this._searchForm = data.searchForm ?? "";
     this._queryCharset = data.queryCharset ?? "UTF-8";
 
     for (let url of data.urls) {

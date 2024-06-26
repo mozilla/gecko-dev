@@ -22,7 +22,7 @@ let port;
 
 add_setup(async function () {
   engine = await addTestSuggestionsEngine();
-  port = engine.getSubmission("").uri.port;
+  port = engine.getSubmission("abc").uri.port;
 
   // Set a mock engine as the default so we don't hit the network below when we
   // do searches that return the default engine heuristic result.
@@ -37,7 +37,7 @@ add_setup(async function () {
   // History matches should not appear with @aliases, so this visit should not
   // appear when searching with @aliases below.
   await PlacesTestUtils.addVisits({
-    uri: engine.searchForm,
+    uri: engine.getSubmission("abc").uri,
     title: HISTORY_TITLE,
   });
 });
@@ -92,7 +92,7 @@ add_task(async function nonTokenAlias_trailingSpace() {
             heuristic: true,
           }),
           makeVisitResult(context, {
-            uri: `http://localhost:${port}/search?q=`,
+            uri: `http://localhost:${port}/search?q=abc`,
             title: HISTORY_TITLE,
           }),
         ],
@@ -134,7 +134,7 @@ add_task(async function nonTokenAlias_history_nonPrivate() {
           suggestion: `${HISTORY_TITLE} bar`,
         }),
         makeVisitResult(context, {
-          uri: `http://localhost:${port}/search?q=`,
+          uri: `http://localhost:${port}/search?q=abc`,
           title: HISTORY_TITLE,
         }),
       ],
@@ -163,7 +163,7 @@ add_task(async function nonTokenAlias_history_private() {
           heuristic: true,
         }),
         makeVisitResult(context, {
-          uri: `http://localhost:${port}/search?q=`,
+          uri: `http://localhost:${port}/search?q=abc`,
           title: HISTORY_TITLE,
         }),
       ],

@@ -54,8 +54,6 @@ const MOZSEARCH_LOCALNAME = "SearchPlugin";
  *   The description of the engine.
  * @property {string} [queryCharset]
  *   The character set to use for encoding query values.
- * @property {string} [searchForm]
- *   Non-standard. The search form URL.
  * @property {string} [UpdateUrl]
  *   Non-standard. The update URL for the engine.
  * @property {number} [UpdateInterval]
@@ -266,9 +264,6 @@ function processXMLDocument(xmlDocument) {
         break;
 
       // Non-OpenSearch elements
-      case "SearchForm":
-        result.searchForm = child.textContent;
-        break;
       case "UpdateUrl":
         result.updateURL = child.textContent;
         break;

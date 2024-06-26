@@ -44,9 +44,6 @@ add_task(async function test_purpose() {
   // Tests for a purpose on the search form (ie. empty query).
   engine = Services.search.getEngineByName("engine-rel-searchform-purpose");
 
-  // See bug 1485508
-  Assert.ok(!engine.searchForm.includes("?&"));
-
   // verify that the 'system' purpose falls back to the 'searchbar' purpose.
   check_submission("sb", "foo", "text/html", "system");
   check_submission("sb", "foo", "text/html", "searchbar");
@@ -77,7 +74,4 @@ add_task(async function test_purpose() {
   check_submission("fflb", "foo", null, "keyword");
   check_submission("fflb", "foo", "text/html", "keyword");
   check_submission("", "foo", "text/html", "invalid");
-
-  // See bug 1485508
-  Assert.ok(!engine.searchForm.includes("?&"));
 });

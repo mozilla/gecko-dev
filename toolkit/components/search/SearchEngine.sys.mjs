@@ -583,8 +583,6 @@ export class SearchEngine {
   _name = null;
   // The name of the charset used to submit the search terms.
   _queryCharset = null;
-  // The engine's raw SearchForm value (URL string pointing to a search form).
-  #cachedSearchForm = null;
   // The order hint from the configuration (if any).
   _orderHint = null;
   // The telemetry id from the configuration (if any).
@@ -629,20 +627,6 @@ export class SearchEngine {
       throw new Error("loadPath missing from options.");
     }
     this._loadPath = options.loadPath;
-  }
-
-  get _searchForm() {
-    return this.#cachedSearchForm;
-  }
-  set _searchForm(value) {
-    if (/^https?:/i.test(value)) {
-      this.#cachedSearchForm = value;
-    } else {
-      lazy.logConsole.debug(
-        "_searchForm: Invalid URL dropped for",
-        this._name || "the current engine"
-      );
-    }
   }
 
   /**
@@ -909,8 +893,6 @@ export class SearchEngine {
    *   The suggestion url parameters for use with the POST method.
    * @param {string} [details.encoding]
    *   The encoding to use for the engine.
-   * @param {string} [details.search_form]
-   *   THe search form url for the engine.
    * @param {object} [configuration]
    *   The search engine configuration for application provided engines, that
    *   may be overriding some of the WebExtension's settings.
@@ -956,8 +938,6 @@ export class SearchEngine {
    *   The suggestion url parameters for use with the POST method.
    * @param {string} [details.encoding]
    *   The encoding to use for the engine.
-   * @param {string} [details.search_form]
-   *   THe search form url for the engine.
    * @param {object} [configuration]
    *   The search engine configuration for application provided engines, that
    *   may be overriding some of the WebExtension's settings.
@@ -1024,7 +1004,6 @@ export class SearchEngine {
     if (details.encoding) {
       this._queryCharset = details.encoding;
     }
-    this.#cachedSearchForm = details.search_form;
   }
 
   checkSearchUrlMatchesManifest(details) {
@@ -1072,7 +1051,6 @@ export class SearchEngine {
     this._overriddenData = {
       urls: this._urls,
       queryCharset: this._queryCharset,
-      searchForm: this.#cachedSearchForm,
     };
     if (engine) {
       // Copy any saved user data (alias, order etc).
@@ -1103,7 +1081,6 @@ export class SearchEngine {
       if (this._overriddenData) {
         this._urls = this._overriddenData.urls;
         this._queryCharset = this._overriddenData.queryCharset;
-        this.#cachedSearchForm = this._overriddenData.searchForm;
         delete this._overriddenData;
       } else {
         lazy.logConsole.error(
@@ -1147,7 +1124,6 @@ export class SearchEngine {
     this._hasPreferredIcon = json._hasPreferredIcon == undefined;
     this._queryCharset =
       json.queryCharset || lazy.SearchUtils.DEFAULT_QUERY_CHARSET;
-    this.#cachedSearchForm = json.__searchForm;
     this._iconURI = lazy.SearchUtils.makeURI(json._iconURL);
     this._iconMapObj = json._iconMapObj || null;
     this._metaData = json._metaData || {};
@@ -1201,9 +1177,6 @@ export class SearchEngine {
       }
     }
 
-    if (this.#cachedSearchForm) {
-      json.__searchForm = this.#cachedSearchForm;
-    }
     if (!this._hasPreferredIcon) {
       json._hasPreferredIcon = this._hasPreferredIcon;
     }
@@ -1411,50 +1384,6 @@ export class SearchEngine {
     return this._name;
   }
 
-  /**
-   * The searchForm URL points to the engine's organic search page. This should
-   * not contain neither search term parameters nor partner codes, but may
-   * contain parameters which set the engine in the correct way.
-   *
-   * This URL is typically the prePath and filePath of the search submission URI,
-   * but may vary for different engines. For example, some engines may use a
-   * different domain, e.g. https://sub.example.com for the search URI but
-   * https://example.org/ for the organic search page.
-   *
-   * @returns {string}
-   */
-  get searchForm() {
-    // First look for a <Url rel="searchform">
-    var searchFormURL = this._getURLOfType(
-      lazy.SearchUtils.URL_TYPE.SEARCH,
-      "searchform"
-    );
-    if (searchFormURL) {
-      let submission = searchFormURL.getSubmission("", this.queryCharset);
-
-      // If the rel=searchform URL is not type="get" (i.e. has postData),
-      // ignore it, since we can only return a URL.
-      if (!submission.postData) {
-        return submission.uri.spec;
-      }
-    }
-
-    if (!this._searchForm) {
-      // No SearchForm specified in the engine definition file, use the prePath
-      // (e.g. https://foo.com for https://foo.com/search.php?q=bar).
-      var htmlUrl = this._getURLOfType(lazy.SearchUtils.URL_TYPE.SEARCH);
-      if (!htmlUrl) {
-        throw Components.Exception(
-          "Engine has no HTML URL!",
-          Cr.NS_ERROR_UNEXPECTED
-        );
-      }
-      this._searchForm = lazy.SearchUtils.makeURI(htmlUrl.template).prePath;
-    }
-
-    return ParamSubstitution(this._searchForm, "", this.queryCharset);
-  }
-
   get queryCharset() {
     return this._queryCharset || lazy.SearchUtils.DEFAULT_QUERY_CHARSET;
   }
@@ -1496,8 +1425,7 @@ export class SearchEngine {
       !searchTerms &&
       responseType != lazy.SearchUtils.URL_TYPE.TRENDING_JSON
     ) {
-      // Return a dummy submission object with our searchForm attribute
-      return new Submission(lazy.SearchUtils.makeURI(this.searchForm));
+      lazy.logConsole.warn("getSubmission: searchTerms is empty!");
     }
 
     var submissionData = "";
