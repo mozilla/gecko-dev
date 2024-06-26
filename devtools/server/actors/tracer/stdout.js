@@ -4,7 +4,9 @@
 
 "use strict";
 
-/* eslint-disable no-unused-vars */
+// The functions in the class use standard functions called from tracer.js but we want to keep the
+// arguments intact.
+/* eslint "no-unused-vars": ["error", {args: "none"} ]*/
 
 class StdoutTracingListener {
   constructor({ targetActor, traceValues, traceActor }) {
@@ -17,7 +19,9 @@ class StdoutTracingListener {
   /**
    * Called when the tracer stops recording JS executions.
    */
-  stop() {}
+  stop() {
+    // The stdout output is simple enough to not need to do any cleanup.
+  }
 
   /**
    * Be notified by the underlying JavaScriptTracer class
@@ -68,6 +72,8 @@ class StdoutTracingListener {
    *        - "remove": Node being removed,
    * @param {DOMNode} options.element
    *        The DOM Node related to the current mutation.
+   * @return {Boolean}
+   *         Return true, if the JavaScriptTracer should log a message to stdout.
    */
   onTracingDOMMutation({ depth, prefix, type, caller, element }) {
     // Delegate to JavaScriptTracer to log to stdout

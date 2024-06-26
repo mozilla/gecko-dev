@@ -4,7 +4,9 @@
 
 "use strict";
 
-/* eslint-disable no-unused-vars */
+// The functions in the class use standard functions called from tracer.js but we want to keep the
+// arguments intact.
+/* eslint "no-unused-vars": ["error", {args: "none"} ]*/
 
 // The fallback color for unexpected cases
 const DEFAULT_COLOR = "grey";
@@ -339,8 +341,12 @@ class ProfilerTracingListener {
    *        - "remove": Node being removed,
    * @param {DOMNode} options.element
    *        The DOM Node related to the current mutation.
+   * @return {Boolean}
+   *         Return true, if the JavaScriptTracer should log a message to stdout.
    */
   onTracingDOMMutation({ depth, prefix, type, caller, element }) {
+    // Bug 1904602: we need a tweak in profiler frontend before being able to show
+    // dom mutation in the stack chart.
     return false;
   }
 
@@ -358,6 +364,7 @@ class ProfilerTracingListener {
    *         Return true, if the JavaScriptTracer should log the step to stdout.
    */
   onTracingFrameStep({ frame, depth, prefix }) {
+    // Steps within a function execution aren't recorded in the profiler mode
     return false;
   }
 

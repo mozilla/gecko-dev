@@ -159,6 +159,8 @@ class ConsoleTracingListener {
    *        - "remove": Node being removed,
    * @param {DOMNode} options.element
    *        The DOM Node related to the current mutation.
+   * @return {Boolean}
+   *         Return true, if the JavaScriptTracer should log a message to stdout.
    */
   onTracingDOMMutation({ depth, prefix, type, caller, element }) {
     const dbgObj = makeDebuggeeValue(this.targetActor, element);
