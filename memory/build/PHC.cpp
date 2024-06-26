@@ -1469,7 +1469,10 @@ static void FreePage(PHCLock aLock, uintptr_t aIndex,
 MOZ_ALWAYS_INLINE static void* PageMalloc(const Maybe<arena_id_t>& aArenaId,
                                           size_t aReqSize) {
   void* ptr = ShouldPageAllocHot(aReqSize)
-                  ? MaybePageAlloc(aArenaId, aReqSize, /* aAlignment */ 1,
+                  // The test on aArenaId here helps the compiler optimise away
+                  // the construction of Nothing() in the caller.
+                  ? MaybePageAlloc(aArenaId.isSome() ? aArenaId : Nothing(),
+                                   aReqSize, /* aAlignment */ 1,
                                    /* aZero */ false)
                   : nullptr;
   return ptr ? ptr
@@ -1496,11 +1499,13 @@ MOZ_ALWAYS_INLINE static void* PageCalloc(const Maybe<arena_id_t>& aArenaId,
     return nullptr;
   }
 
-  void* ptr =
-      ShouldPageAllocHot(checkedSize.value())
-          ? MaybePageAlloc(aArenaId, checkedSize.value(), /* aAlignment */ 1,
-                           /* aZero */ true)
-          : nullptr;
+  void* ptr = ShouldPageAllocHot(checkedSize.value())
+                  // The test on aArenaId here helps the compiler optimise away
+                  // the construction of Nothing() in the caller.
+                  ? MaybePageAlloc(aArenaId.isSome() ? aArenaId : Nothing(),
+                                   checkedSize.value(), /* aAlignment */ 1,
+                                   /* aZero */ true)
+                  : nullptr;
   return ptr ? ptr
              : (aArenaId.isSome()
                     ? MozJemalloc::moz_arena_calloc(*aArenaId, aNum, aReqSize)
@@ -1700,7 +1705,9 @@ MOZ_ALWAYS_INLINE static bool FastIsPHCPtr(void* aPtr) {
 MOZ_ALWAYS_INLINE static void PageFree(const Maybe<arena_id_t>& aArenaId,
                                        void* aPtr) {
   if (MOZ_UNLIKELY(FastIsPHCPtr(aPtr))) {
-    DoPageFree(aArenaId, aPtr);
+    // The tenery expression here helps the compiler optimise away the
+    // construction of Nothing() in the caller.
+    DoPageFree(aArenaId.isSome() ? aArenaId : Nothing(), aPtr);
     return;
   }
 
@@ -1720,7 +1727,10 @@ MOZ_ALWAYS_INLINE static void* PageMemalign(const Maybe<arena_id_t>& aArenaId,
   // mozjemalloc in that case.
   void* ptr = nullptr;
   if (ShouldPageAllocHot(aReqSize) && aAlignment <= kPageSize) {
-    ptr = MaybePageAlloc(aArenaId, aReqSize, aAlignment, /* aZero */ false);
+    // The test on aArenaId here helps the compiler optimise away
+    // the construction of Nothing() in the caller.
+    ptr = MaybePageAlloc(aArenaId.isSome() ? aArenaId : Nothing(), aReqSize,
+                         aAlignment, /* aZero */ false);
   }
   return ptr ? ptr
              : (aArenaId.isSome()
