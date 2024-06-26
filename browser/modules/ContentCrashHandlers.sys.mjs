@@ -786,12 +786,19 @@ export var UnsubmittedCrashHandler = {
 
   _checkTimeout: null,
 
+  log: null,
+
   init() {
     if (this.initialized) {
       return;
     }
 
     this.initialized = true;
+
+    this.log = console.createInstance({
+      prefix: "UnsubmittedCrashHandler",
+      maxLogLevel: this.prefs.getStringPref("loglevel", "Error"),
+    });
 
     // UnsubmittedCrashHandler can be initialized but still be disabled.
     // This is intentional, as this makes simulating UnsubmittedCrashHandler's
@@ -804,6 +811,7 @@ export var UnsubmittedCrashHandler = {
           // We'll be suppressing any notifications until after suppressedDate,
           // so there's no need to do anything more.
           this.suppressed = true;
+          this.log.debug("suppressing crash handler due to suppressUntilDate");
           return;
         }
 
@@ -812,6 +820,8 @@ export var UnsubmittedCrashHandler = {
       }
 
       Services.obs.addObserver(this, "profile-before-change");
+    } else {
+      this.log.debug("not enabled");
     }
   },
 
@@ -821,6 +831,8 @@ export var UnsubmittedCrashHandler = {
     }
 
     this.initialized = false;
+
+    this.log = null;
 
     if (this._checkTimeout) {
       lazy.clearTimeout(this._checkTimeout);
@@ -878,6 +890,8 @@ export var UnsubmittedCrashHandler = {
       return null;
     }
 
+    this.log.debug("checking for unsubmitted crash reports");
+
     let dateLimit = new Date();
     dateLimit.setDate(dateLimit.getDate() - PENDING_CRASH_REPORT_DAYS);
 
@@ -885,13 +899,15 @@ export var UnsubmittedCrashHandler = {
     try {
       reportIDs = await lazy.CrashSubmit.pendingIDs(dateLimit);
     } catch (e) {
-      console.error(e);
+      this.log.error(e);
       return null;
     }
 
     if (reportIDs.length) {
+      this.log.debug("found ", reportIDs.length, " unsubmitted crash reports");
       Glean.crashSubmission.pending.add(reportIDs.length);
       if (this.autoSubmit) {
+        this.log.debug("auto submitted crash reports");
         this.submitReports(reportIDs, lazy.CrashSubmit.SUBMITTED_FROM_AUTO);
       } else if (this.shouldShowPendingSubmissionsNotification()) {
         return this.showPendingSubmissionsNotification(reportIDs);
@@ -961,6 +977,8 @@ export var UnsubmittedCrashHandler = {
     if (!reportIDs.length) {
       return null;
     }
+
+    this.log.debug("showing pending submissions notification");
 
     let notification = await this.show({
       notificationID: "pending-crash-reports",
@@ -1126,8 +1144,16 @@ export var UnsubmittedCrashHandler = {
    *        how this crash was submitted.
    */
   submitReports(reportIDs, submittedFrom) {
+    this.log.debug(
+      "submitting ",
+      reportIDs.length,
+      " reports from ",
+      submittedFrom
+    );
     for (let reportID of reportIDs) {
-      lazy.CrashSubmit.submit(reportID, submittedFrom).catch(console.error);
+      lazy.CrashSubmit.submit(reportID, submittedFrom).catch(
+        this.log.error.bind(this.log)
+      );
     }
   },
 };

@@ -192,6 +192,7 @@ Submitter.prototype = {
       if (xhr.readyState == 4) {
         let ret =
           xhr.status === 200 ? this.parseResponse(xhr.responseText) : {};
+        let failmsg;
         if (xhr.status !== 200) {
           const xhrStatus = code => {
             switch (code) {
@@ -211,6 +212,7 @@ Submitter.prototype = {
             // with a number when dealing with the telemetry value on JS side
             const errMsg = `${err.split("Discarded=")[1]}_${xhr.status}`;
             Glean.crashSubmission.collectorErrors[errMsg].add();
+            failmsg = `received bad response: ${xhr.status} ${err}`;
           }
         }
         let submitted = !!ret.CrashID;
@@ -235,7 +237,10 @@ Submitter.prototype = {
           if (submitted) {
             this.submitSuccess(ret);
           } else {
-            this.notifyStatus(FAILED);
+            this.notifyStatus(
+              FAILED,
+              failmsg || "did not receive a crash ID in server response"
+            );
             this.cleanup();
           }
         });
@@ -256,6 +261,10 @@ Submitter.prototype = {
     return true;
   },
 
+  // `ret` is determined based on `status`:
+  // * `SUCCESS` - `ret` should be an object with submission details.
+  // * `FAILED` - `ret` should be a string with additional information about
+  //   the failure.
   notifyStatus: function Submitter_notify(status, ret) {
     let propBag = Cc["@mozilla.org/hash-property-bag;1"].createInstance(
       Ci.nsIWritablePropertyBag2
@@ -281,7 +290,7 @@ Submitter.prototype = {
         Glean.crashSubmission.success.add(1);
         break;
       case FAILED:
-        this.rejectSubmitStatusPromise(FAILED);
+        this.rejectSubmitStatusPromise(`${FAILED}: ${ret}`);
         Glean.crashSubmission.failure.add(1);
         break;
       default:
@@ -317,7 +326,10 @@ Submitter.prototype = {
     ]);
 
     if (!dumpExists || !extraExists) {
-      this.notifyStatus(FAILED);
+      this.notifyStatus(
+        FAILED,
+        `missing ${!dumpExists ? "dump" : "extra"} file`
+      );
       this.cleanup();
       return this.submitStatusPromise;
     }
@@ -346,7 +358,10 @@ Submitter.prototype = {
       let allDumpsExist = dumpsExist.every(exists => exists);
 
       if (!allDumpsExist) {
-        this.notifyStatus(FAILED);
+        this.notifyStatus(
+          FAILED,
+          "one or more additional minidumps are missing"
+        );
         this.cleanup();
         return this.submitStatusPromise;
       }
@@ -356,7 +371,10 @@ Submitter.prototype = {
     this.additionalDumps = additionalDumps;
 
     if (!(await this.submitForm())) {
-      this.notifyStatus(FAILED);
+      this.notifyStatus(
+        FAILED,
+        "no url available to which to send crash reports"
+      );
       this.cleanup();
     }
 
@@ -367,7 +385,7 @@ Submitter.prototype = {
 // ===================================
 // External API goes here
 export var CrashSubmit = {
-  // A set of strings representing how a user subnmitted a given crash
+  // A set of strings representing how a user submitted a given crash
   SUBMITTED_FROM_AUTO: "Auto",
   SUBMITTED_FROM_INFOBAR: "Infobar",
   SUBMITTED_FROM_ABOUT_CRASHES: "AboutCrashes",
