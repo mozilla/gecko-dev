@@ -8021,8 +8021,7 @@ void MacroAssembler::resizableTypedArrayElementShiftBy(Register obj,
   static_assert(
       ValidateSizeRange(Scalar::Float16, Scalar::MaxTypedArrayViewType),
       "element shift is one in [Float16, MaxTypedArrayViewType)");
-  branchPtr(Assembler::Below, scratch, ImmPtr(classForType(Scalar::Float16)),
-            &one);
+  jump(&one);
 
   bind(&three);
   rshiftPtr(Imm32(3), output);
