@@ -31,8 +31,7 @@ popupnotificationcontent {
 .popup-notification-header-container,
 .popup-notification-footer-container {
   display: flex;
-  /** Padding + Icon width + border-radius + popup-notification-body-width **/
-  max-width: calc(2 * var(--arrowpanel-padding) + 32px + 4px + var(--popup-notification-body-width));
+  max-width: calc(2 * var(--arrowpanel-padding) + 16px /* Icon width */ + var(--panel-border-radius) + var(--popup-notification-body-width));
 }
 
 .popup-notification-body-container {
@@ -40,9 +39,13 @@ popupnotificationcontent {
 }
 
 .popup-notification-icon {
-  width: 32px;
-  height: 32px;
-  margin-inline-end: var(--arrowpanel-padding);
+  height: 16px;
+  width: 16px;
+  margin-inline-end: 6px;
+
+  &:not([hasicon]) {
+    display: none;
+  }
 }
 
 .popup-notification-body {
@@ -55,37 +58,36 @@ popupnotificationcontent {
   margin-top: -8px;
 }
 
-.popup-notification-origin:not([value]),
-.popup-notification-learnmore-link:not([href]) {
-  display: none;
-}
-
 .popup-notification-origin {
   margin-bottom: .3em !important;
+
+  &:not([value]) {
+    display: none;
+  }
 }
 
 .popup-notification-hint-text {
   margin-top: .5em !important;
-}
 
-.popup-notification-hint-text:empty {
-  display: none;
+  &:empty {
+    display: none;
+  }
 }
 
 .popup-notification-secondary-button:not([dropmarkerhidden="true"]) {
   border-start-end-radius: 0;
   border-end-end-radius: 0;
-}
 
-/**
- * The focus ring is an outline thicker than 1px, meaning that for split buttons,
- * if the main button part of the split button has :focus-visible, the ring will
- * be partially hidden behind the dropmarker button. We work around this by
- * temporarily boosting the z-index of the main button while showing its focus
- * ring.
- */
-.popup-notification-secondary-button:not([dropmarkerhidden="true"]):focus-visible {
-  z-index: 2;
+  /**
+   * The focus ring is an outline thicker than 1px, meaning that for split buttons,
+   * if the main button part of the split button has :focus-visible, the ring will
+   * be partially hidden behind the dropmarker button. We work around this by
+   * temporarily boosting the z-index of the main button while showing its focus
+   * ring.
+   */
+  &:focus-visible {
+    z-index: 2;
+  }
 }
 
 .popup-notification-dropmarker {
@@ -94,32 +96,22 @@ popupnotificationcontent {
   margin-inline-start: 1px !important;
   padding: 8px !important;
   max-width: 32px;
-}
 
-.popup-notification-dropmarker > .button-box > hbox {
-  display: none;
-}
+  > .button-box > hbox {
+    display: none;
+  }
 
-.popup-notification-dropmarker > .button-box > .button-menu-dropmarker {
-  appearance: none;
-  display: flex;
-  content: url(chrome://global/skin/icons/arrow-down.svg);
-  -moz-context-properties: fill;
-  fill: currentColor;
+  > .button-box > .button-menu-dropmarker {
+    appearance: none;
+    display: flex;
+    content: url(chrome://global/skin/icons/arrow-down.svg);
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
 }
 
 .popup-notification-warning {
   color: #d74345;
-}
-
-.popup-notification-icon:not([hasicon]) {
-  display: none;
-}
-
-.popup-notification-icon {
-  height: 16px;
-  width: 16px;
-  margin-inline-end: 6px;
 }
 
 .popup-notification-checkbox > .checkbox-label-box > .checkbox-label {
@@ -129,4 +121,8 @@ popupnotificationcontent {
 .popup-notification-learnmore-link {
   text-decoration: underline;
   margin-block: 4px 0;
+
+  &:not([href]) {
+    display: none;
+  }
 }
