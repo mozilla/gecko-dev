@@ -7,6 +7,7 @@
 #include "UiaText.h"
 
 #include "ia2AccessibleHypertext.h"
+#include "mozilla/a11y/States.h"
 #include "TextLeafRange.h"
 #include "UiaTextRange.h"
 
@@ -67,5 +68,17 @@ UiaText::get_DocumentRange(__RPC__deref_out_opt ITextRangeProvider** aRetVal) {
 STDMETHODIMP
 UiaText::get_SupportedTextSelection(
     __RPC__out enum SupportedTextSelection* aRetVal) {
-  return E_NOTIMPL;
+  if (!aRetVal) {
+    return E_INVALIDARG;
+  }
+  Accessible* acc = Acc();
+  if (!acc) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  if (acc->State() & states::SELECTABLE_TEXT) {
+    *aRetVal = SupportedTextSelection_Multiple;
+  } else {
+    *aRetVal = SupportedTextSelection_None;
+  }
+  return S_OK;
 }

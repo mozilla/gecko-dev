@@ -4,6 +4,11 @@
 
 "use strict";
 
+/* eslint-disable camelcase */
+const SupportedTextSelection_None = 0;
+const SupportedTextSelection_Multiple = 2;
+/* eslint-enable camelcase */
+
 /**
  * Test the Text pattern's DocumentRange property. This also tests where the
  * Text pattern is exposed.
@@ -660,5 +665,42 @@ addUiaTask(
       "MoveEndpointByUnit return correct"
     );
     is(await runPython(`range.GetText(-1)`), "i", "range text correct");
+  }
+);
+
+/**
+ * Test the Text pattern's SupportedTextSelection property.
+ */
+addUiaTask(
+  `
+<style>
+body {
+  user-select: none;
+}
+</style>
+<input id="input">
+  `,
+  async function testTextSupportedTextSelection() {
+    let result = await runPython(`
+      global doc
+      doc = getDocUia()
+      input = findUiaByDomId(doc, "input")
+      text = getUiaPattern(input, "Text")
+      return text.SupportedTextSelection
+    `);
+    is(
+      result,
+      SupportedTextSelection_Multiple,
+      "input SupportedTextSelection correct"
+    );
+    // The IA2 -> UIA bridge doesn't understand that text isn't selectable in
+    // this document.
+    if (gIsUiaEnabled) {
+      is(
+        await runPython(`getUiaPattern(doc, "Text").SupportedTextSelection`),
+        SupportedTextSelection_None,
+        "doc SupportedTextSelection correct"
+      );
+    }
   }
 );
