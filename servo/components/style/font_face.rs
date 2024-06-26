@@ -756,4 +756,3 @@ font_face_descriptors! {
         "size-adjust" size_adjust / mSizeAdjust: NonNegativePercentage,
     ]
 }
-
