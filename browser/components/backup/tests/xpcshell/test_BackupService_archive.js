@@ -234,9 +234,9 @@ add_task(async function test_createArchive_multiple_of_six_test() {
     true /* expectSimilar */
   );
 
-  await IOUtils.remove(FAKE_COMPRESSED_FILE);
-  await IOUtils.remove(FAKE_ARCHIVE_PATH);
-  await IOUtils.remove(EXTRACTION_PATH);
+  await maybeRemovePath(FAKE_COMPRESSED_FILE);
+  await maybeRemovePath(FAKE_ARCHIVE_PATH);
+  await maybeRemovePath(EXTRACTION_PATH);
 });
 
 /**
