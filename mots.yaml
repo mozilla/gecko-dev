@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-06-10T14:16:11.478989+00:00'
+updated_at: '2024-06-26T12:22:07.076142+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -3307,6 +3307,25 @@ modules:
           - *willdurand
         machine_name: addons_manager_ui
 
+      - machine_name: address_bar
+        name: Address Bar
+        description: The address bar and address bar autocomplete.
+        includes:
+          - browser/components/urlbar/**/*
+          - browser/themes/shared/urlbar*
+        owners:
+          - *adw
+        peers:
+          - *daisuke
+          - *dao
+          - *mak
+          - *standard8
+          - *jteow
+        meta:
+          components:
+            - Firefox::Address Bar
+          review_group: urlbar-reviewers
+
       - name: Application Update
         description: The application update services.
         includes:
@@ -3612,28 +3631,24 @@ modules:
           - *jhirsch
         machine_name: screenshots
 
-      - name: Search and Address Bar
-        description: The search service, address bar and address bar autocomplete.
+      - name: Search
+        description: The search service and search bar.
         includes:
           - browser/components/search/**/*
-          - browser/components/urlbar/**/*
           - toolkit/components/search/**/*
         meta:
           components:
-            - Firefox::Address Bar
             - Firefox::Search
           peers_emeritus:
             - Michael de Boer
+          review_group: search-reviewers
         owners:
           - *standard8
-          - *adw
         peers:
           - *daleharvey
-          - *mak
-          - *dao
           - *mcheang
           - *jteow
-        machine_name: search_and_address_bar
+        machine_name: search
 
       - name: Security and Privacy UI
         description: The front-end to our security and privacy features, including
@@ -4339,5 +4354,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 30b94193541538ca2c2df58e6748b3bdb8fd301d
-  export: ced1998560bc3776f1113eb26bdfe6ce936d8019
+  config: bd89032e86ba36962b83f5dd7bf3543c1d4cf2b8
+  export: 7f3b5be9263d19dd1052441bb203c70aa5681cc3

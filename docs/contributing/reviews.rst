@@ -174,7 +174,7 @@ Review groups
      - Remote Debugging UI & tools
      - `Member list <https://phabricator.services.mozilla.com/project/members/108/>`__
    * - #search-reviewers
-     - Search Reviewers (search parts of `Search and Address Bar </mots/index.html#search-and-address-bar>`__)
+     - `Search Reviewers </mots/index.html#search>`__
      - `Member list <https://phabricator.services.mozilla.com/project/members/169/>`__
    * - #spidermonkey-reviewers
      - SpiderMonkey JS/Wasm Engine
@@ -188,6 +188,9 @@ Review groups
    * - #supply-chain-reviewers
      - Changes to third-party audits and vendoring (cargo-vet, supply_chain).
      - `Member list <https://phabricator.services.mozilla.com/project/members/164/>`__
+   * - #urlbar-reviewers
+     - `Urlbar (Address Bar) Reviewers </mots/index.html#address-bar>`__
+     - `Member list <https://phabricator.services.mozilla.com/project/members/211/>`__
    * - #webcompat-reviewers
      - System addons maintained by the Web Compatibility team
      - `Member list <https://phabricator.services.mozilla.com/project/members/124/>`__
