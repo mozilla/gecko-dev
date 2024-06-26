@@ -999,7 +999,6 @@ HTMLInputElement::HTMLInputElement(already_AddRefed<dom::NodeInfo>&& aNodeInfo,
       mLastValueChangeWasInteractive(false),
       mCheckedChanged(false),
       mChecked(false),
-      mHandlingSelectEvent(false),
       mShouldInitChecked(false),
       mDoneCreating(aFromParser == NOT_FROM_PARSER &&
                     aFromClone == FromClone::No),

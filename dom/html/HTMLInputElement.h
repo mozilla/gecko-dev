@@ -1520,7 +1520,6 @@ class HTMLInputElement final : public TextControlElement,
   bool mLastValueChangeWasInteractive : 1;
   bool mCheckedChanged : 1;
   bool mChecked : 1;
-  bool mHandlingSelectEvent : 1;
   bool mShouldInitChecked : 1;
   bool mDoneCreating : 1;
   bool mInInternalActivate : 1;
