@@ -35,11 +35,25 @@ static LazyLogModule sFragmentDirectiveLog("FragmentDirective");
   MOZ_LOG(sFragmentDirectiveLog, LogLevel::Debug, \
           ("%s(): " msg, __FUNCTION__, ##__VA_ARGS__))
 
+MOZ_ALWAYS_INLINE static bool ShouldLog() {
+  return MOZ_LOG_TEST(sFragmentDirectiveLog, LogLevel::Debug);
+}
+
 /** Converts a `TextDirective` into a percent-encoded string. */
-nsCString ToString(const TextDirective& aTextDirective) {
+static nsCString ToString(const TextDirective& aTextDirective) {
   nsCString str;
   create_text_directive(&aTextDirective, &str);
   return str;
+}
+
+/** Utility, used for logging. Converts an nsIURI to string. */
+static nsCString ToString(nsIURI* aURI) {
+  nsCString url;
+  if (!aURI) {
+    return url;
+  }
+  Unused << aURI->GetSpec(url);
+  return url;
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(FragmentDirective, mDocument)
@@ -59,16 +73,45 @@ JSObject* FragmentDirective::WrapObject(JSContext* aCx,
 }
 
 bool FragmentDirective::ParseAndRemoveFragmentDirectiveFromFragmentString(
-    nsCString& aFragment, nsTArray<TextDirective>* aTextDirectives) {
+    nsCString& aFragment, nsTArray<TextDirective>* aTextDirectives,
+    nsIURI* aURI) {
+  if (aFragment.IsEmpty()) {
+    DBG("URL '%s' has no fragment.", ToString(aURI).Data());
+    return false;
+  }
+  DBG("Trying to extract a fragment directive from fragment '%s' of URL '%s'.",
+      aFragment.Data(), ToString(aURI).Data());
   ParsedFragmentDirectiveResult fragmentDirective;
   const bool hasRemovedFragmentDirective =
       StaticPrefs::dom_text_fragments_enabled() &&
       parse_fragment_directive(&aFragment, &fragmentDirective);
   if (hasRemovedFragmentDirective) {
+    DBG("Found a fragment directive '%s', which was removed from the fragment. "
+        "New fragment is '%s'.",
+        fragmentDirective.fragment_directive.Data(),
+        fragmentDirective.url_without_fragment_directive.Data());
+    if (ShouldLog()) {
+      if (fragmentDirective.text_directives.IsEmpty()) {
+        DBG("Found no valid text directives in fragment directive '%s'.",
+            fragmentDirective.fragment_directive.Data());
+      } else {
+        DBG("Found %zu valid text directives in fragment directive '%s':",
+            fragmentDirective.text_directives.Length(),
+            fragmentDirective.fragment_directive.Data());
+        for (size_t index = 0;
+             index < fragmentDirective.text_directives.Length(); ++index) {
+          const auto& textDirective = fragmentDirective.text_directives[index];
+          DBG(" [%zu]: %s", index, ToString(textDirective).Data());
+        }
+      }
+    }
     aFragment = fragmentDirective.url_without_fragment_directive;
     if (aTextDirectives) {
       aTextDirectives->SwapElements(fragmentDirective.text_directives);
     }
+  } else {
+    DBG("Fragment '%s' of URL '%s' did not contain a fragment directive.",
+        aFragment.Data(), ToString(aURI).Data());
   }
   return hasRemovedFragmentDirective;
 }
@@ -80,29 +123,39 @@ void FragmentDirective::ParseAndRemoveFragmentDirectiveFromFragment(
   }
   bool hasRef = false;
   aURI->GetHasRef(&hasRef);
-  if (!hasRef) {
-    return;
-  }
 
   nsAutoCString hash;
   aURI->GetRef(hash);
+  if (!hasRef || hash.IsEmpty()) {
+    DBG("URL '%s' has no fragment. Exiting.", ToString(aURI).Data());
+  }
 
   const bool hasRemovedFragmentDirective =
-      ParseAndRemoveFragmentDirectiveFromFragmentString(hash, aTextDirectives);
+      ParseAndRemoveFragmentDirectiveFromFragmentString(hash, aTextDirectives,
+                                                        aURI);
   if (!hasRemovedFragmentDirective) {
     return;
   }
   Unused << NS_MutateURI(aURI).SetRef(hash).Finalize(aURI);
+  DBG("Updated hash of the URL. New URL: %s", ToString(aURI).Data());
 }
 
 nsTArray<RefPtr<nsRange>> FragmentDirective::FindTextFragmentsInDocument() {
   MOZ_ASSERT(mDocument);
+  if (mUninvokedTextDirectives.IsEmpty()) {
+    DBG("No uninvoked text directives in document '%s'. Exiting.",
+        ToString(mDocument->GetDocumentURI()).Data());
+    return {};
+  }
+  DBG("Trying to find text directives in document '%s'.",
+      ToString(mDocument->GetDocumentURI()).Data());
   mDocument->FlushPendingNotifications(FlushType::Frames);
   // https://wicg.github.io/scroll-to-text-fragment/#invoke-text-directives
   // To invoke text directives, given as input a list of text directives text
   // directives and a Document document, run these steps:
   // 1. Let ranges be a list of ranges, initially empty.
-  nsTArray<RefPtr<nsRange>> textDirectiveRanges;
+  nsTArray<RefPtr<nsRange>> textDirectiveRanges(
+      mUninvokedTextDirectives.Length());
 
   // Additionally (not mentioned in the spec), remove all text directives from
   // the input list to keep only the ones that are not found.
@@ -117,8 +170,30 @@ nsTArray<RefPtr<nsRange>> FragmentDirective::FindTextFragmentsInDocument() {
     //     directive and document is non-null, then append it to ranges.
     if (RefPtr<nsRange> range = FindRangeForTextDirective(textDirective)) {
       textDirectiveRanges.AppendElement(range);
+      DBG("Found text directive '%s'", ToString(textDirective).Data());
     } else {
       uninvokedTextDirectives.AppendElement(std::move(textDirective));
+    }
+  }
+  if (ShouldLog()) {
+    if (uninvokedTextDirectives.Length() == mUninvokedTextDirectives.Length()) {
+      DBG("Did not find any of the %zu uninvoked text directives.",
+          mUninvokedTextDirectives.Length());
+    } else {
+      DBG("Found %zu of %zu text directives in the document.",
+          mUninvokedTextDirectives.Length() - uninvokedTextDirectives.Length(),
+          mUninvokedTextDirectives.Length());
+    }
+    if (uninvokedTextDirectives.IsEmpty()) {
+      DBG("No uninvoked text directives left.");
+    } else {
+      DBG("There are %zu uninvoked text directives left:",
+          uninvokedTextDirectives.Length());
+      for (size_t index = 0; index < uninvokedTextDirectives.Length();
+           ++index) {
+        DBG(" [%zu]: %s", index,
+            ToString(uninvokedTextDirectives[index]).Data());
+      }
     }
   }
   mUninvokedTextDirectives = std::move(uninvokedTextDirectives);
@@ -130,12 +205,17 @@ nsTArray<RefPtr<nsRange>> FragmentDirective::FindTextFragmentsInDocument() {
 void FragmentDirective::HighlightTextDirectives(
     const nsTArray<RefPtr<nsRange>>& aTextDirectiveRanges) {
   MOZ_ASSERT(mDocument);
-  if (aTextDirectiveRanges.IsEmpty()) {
-    return;
-  }
   if (!StaticPrefs::dom_text_fragments_enabled()) {
     return;
   }
+  if (aTextDirectiveRanges.IsEmpty()) {
+    DBG("No text directive ranges to highlight for document '%s'. Exiting.",
+        ToString(mDocument->GetDocumentURI()).Data());
+    return;
+  }
+
+  DBG("Highlighting text directives for document '%s' (%zu ranges).",
+      ToString(mDocument->GetDocumentURI()).Data(), aTextDirectiveRanges.Length());
 
   const RefPtr<Selection> targetTextSelection =
       [doc = this->mDocument]() -> Selection* {
