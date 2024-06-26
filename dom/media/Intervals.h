@@ -678,10 +678,18 @@ class IntervalSet {
     return mIntervals.begin();
   }
 
+  typename ContainerType::const_iterator cbegin() const {
+    return mIntervals.cbegin();
+  }
+
   typename ContainerType::iterator end() { return mIntervals.end(); }
 
   typename ContainerType::const_iterator end() const {
     return mIntervals.end();
+  }
+
+  typename ContainerType::const_iterator cend() const {
+    return mIntervals.cend();
   }
 
   ElemType& LastInterval() {

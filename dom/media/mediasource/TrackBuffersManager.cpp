@@ -2458,7 +2458,6 @@ uint32_t TrackBuffersManager::RemoveFrames(const TimeIntervals& aIntervals,
     lastRemovedIndex = i;
   }
 
-  TimeUnit maxSampleDuration;
   uint32_t sizeRemoved = 0;
   TimeIntervals removedIntervals;
   for (uint32_t i = firstRemovedIndex.ref(); i <= lastRemovedIndex; i++) {
@@ -2466,9 +2465,6 @@ uint32_t TrackBuffersManager::RemoveFrames(const TimeIntervals& aIntervals,
     TimeInterval sampleInterval =
         TimeInterval(sample->mTime, sample->GetEndTime());
     removedIntervals += sampleInterval;
-    if (sample->mDuration > maxSampleDuration) {
-      maxSampleDuration = sample->mDuration;
-    }
     sizeRemoved += sample->ComputedSizeOfIncludingThis();
   }
   aTrackData.mSizeBuffer -= sizeRemoved;
@@ -2524,9 +2520,46 @@ uint32_t TrackBuffersManager::RemoveFrames(const TimeIntervals& aIntervals,
             DumpTimeRanges(aTrackData.mBufferedRanges).get());
   aTrackData.mBufferedRanges -= removedIntervals;
 
-  // Recalculate sanitized buffered ranges.
-  aTrackData.mSanitizedBufferedRanges = aTrackData.mBufferedRanges;
-  aTrackData.mSanitizedBufferedRanges.SetFuzz(maxSampleDuration / 2);
+  // Update sanitized buffered ranges.  As well as subtracting intervals for
+  // the removed samples, adjacent gaps between samples that were filled in
+  // through Interval fuzz also need to be removed.  Calculate the complete
+  // gaps left due to frame removal by comparing the remaining buffered
+  // intervals with the removed intervals, and then subtract these gaps from
+  // mSanitizedBufferedRanges.
+  TimeIntervals gaps;
+  // If the earliest buffered interval was removed then a leading interval will
+  // be removed from mSanitizedBufferedRanges.
+  Maybe<TimeUnit> gapStart =
+      Some(aTrackData.mSanitizedBufferedRanges.GetStart());
+  for (auto removedInterval = removedIntervals.cbegin(),
+            bufferedInterval = aTrackData.mBufferedRanges.cbegin();
+       removedInterval < removedIntervals.cend();) {
+    if (bufferedInterval == aTrackData.mBufferedRanges.cend()) {
+      // No more buffered intervals.  The rest has been removed.
+      // gapStart has always been set here, either before the loop or when
+      // bufferedInterval was incremented.
+      gaps += TimeInterval(gapStart.value(),
+                           aTrackData.mSanitizedBufferedRanges.GetEnd());
+      break;
+    }
+    if (bufferedInterval->mEnd <= removedInterval->mStart) {
+      gapStart = Some(bufferedInterval->mEnd);
+      ++bufferedInterval;
+      continue;
+    }
+    MOZ_ASSERT(removedInterval->mEnd <= bufferedInterval->mStart);
+    // If gapStart is not set then gaps already includes the gap up to
+    // bufferedInterval.
+    if (gapStart) {
+      gaps += TimeInterval(gapStart.value(), bufferedInterval->mStart);
+      gapStart.reset();
+    }
+    ++removedInterval;
+  }
+  MSE_DEBUG("Removing %s from mSanitizedBufferedRanges %s",
+            DumpTimeRanges(gaps).get(),
+            DumpTimeRanges(aTrackData.mSanitizedBufferedRanges).get());
+  aTrackData.mSanitizedBufferedRanges -= gaps;
 
   data.RemoveElementsAt(firstRemovedIndex.ref(),
                         lastRemovedIndex - firstRemovedIndex.ref() + 1);
