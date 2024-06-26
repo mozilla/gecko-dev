@@ -46,6 +46,9 @@ void UiaTextRange::SetRange(const TextLeafRange& aRange) {
   mEndAcc = MsaaAccessible::GetFrom(end.mAcc);
   MOZ_ASSERT(mEndAcc);
   mEndOffset = end.mOffset;
+  // Special handling of the insertion point at the end of a line only makes
+  // sense when dealing with the caret, which is a collapsed range.
+  mIsEndOfLineInsertionPoint = start == end && start.mIsEndOfLineInsertionPoint;
 }
 
 TextLeafRange UiaTextRange::GetRange() const {
@@ -53,6 +56,12 @@ TextLeafRange UiaTextRange::GetRange() const {
   // tree. In that case, Acc() will return null, resulting in an invalid
   // TextLeafPoint and thus an invalid TextLeafRange. Any caller is expected to
   // handle this case.
+  if (mIsEndOfLineInsertionPoint) {
+    MOZ_ASSERT(mStartAcc == mEndAcc && mStartOffset == mEndOffset);
+    TextLeafPoint point(mStartAcc->Acc(), mStartOffset);
+    point.mIsEndOfLineInsertionPoint = true;
+    return TextLeafRange(point, point);
+  }
   return TextLeafRange({mStartAcc->Acc(), mStartOffset},
                        {mEndAcc->Acc(), mEndOffset});
 }

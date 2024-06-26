@@ -704,3 +704,123 @@ body {
     }
   }
 );
+
+/**
+ * Test the Text pattern's GetSelection method with the caret.
+ */
+addUiaTask(
+  `<textarea id="textarea" cols="2">ab cd</textarea>`,
+  async function testTextGetSelectionCaret(browser, docAcc) {
+    await runPython(`
+      doc = getDocUia()
+      textarea = findUiaByDomId(doc, "textarea")
+      global text
+      text = getUiaPattern(textarea, "Text")
+    `);
+    is(await runPython(`text.GetSelection().Length`), 0, "No selection");
+    info("Focusing textarea");
+    const textarea = findAccessibleChildByID(docAcc, "textarea");
+    let moved = waitForEvent(EVENT_TEXT_CARET_MOVED, textarea);
+    textarea.takeFocus();
+    await moved;
+    is(await runPython(`text.GetSelection().Length`), 1, "1 selection");
+    await definePyVar("range", `text.GetSelection().GetElement(0)`);
+    ok(await runPython(`bool(range)`), "Got selection range 0");
+    info("Expanding to character");
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Character)`);
+    is(await runPython(`range.GetText(-1)`), "a", "range text correct");
+
+    info("Pressing ArrowRight");
+    moved = waitForEvent(EVENT_TEXT_CARET_MOVED, textarea);
+    EventUtils.synthesizeKey("KEY_ArrowRight");
+    await moved;
+    is(await runPython(`text.GetSelection().Length`), 1, "1 selection");
+    await definePyVar("range", `text.GetSelection().GetElement(0)`);
+    ok(await runPython(`bool(range)`), "Got selection range 0");
+    info("Expanding to character");
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Character)`);
+    is(await runPython(`range.GetText(-1)`), "b", "range text correct");
+
+    // The IA2 -> UIA proxy doesn't handle the insertion point at the end of a
+    // line correctly.
+    if (!gIsUiaEnabled) {
+      return;
+    }
+
+    // Test the insertion point at the end of a wrapped line.
+    info("Pressing End");
+    moved = waitForEvent(EVENT_TEXT_CARET_MOVED, textarea);
+    EventUtils.synthesizeKey("KEY_End");
+    await moved;
+    is(await runPython(`text.GetSelection().Length`), 1, "1 selection");
+    await definePyVar("range", `text.GetSelection().GetElement(0)`);
+    ok(await runPython(`bool(range)`), "Got selection range 0");
+    info("Expanding to character");
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Character)`);
+    is(await runPython(`range.GetText(-1)`), "", "range text correct");
+    info("Moving end 1 character");
+    await runPython(
+      `range.MoveEndpointByUnit(TextPatternRangeEndpoint_End, TextUnit_Character, 1)`
+    );
+    is(await runPython(`range.GetText(-1)`), "c", "range text correct");
+    info("Expanding to line at caret");
+    await definePyVar("range", `text.GetSelection().GetElement(0)`);
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Line)`);
+    is(await runPython(`range.GetText(-1)`), "ab ", "range text correct");
+
+    // Test the insertion point at the end of the textarea.
+    info("Pressing Ctrl+End");
+    moved = waitForEvent(EVENT_TEXT_CARET_MOVED, textarea);
+    EventUtils.synthesizeKey("KEY_End", { ctrlKey: true });
+    await moved;
+    is(await runPython(`text.GetSelection().Length`), 1, "1 selection");
+    await definePyVar("range", `text.GetSelection().GetElement(0)`);
+    ok(await runPython(`bool(range)`), "Got selection range 0");
+    info("Expanding to character");
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Character)`);
+    is(await runPython(`range.GetText(-1)`), "", "range text correct");
+    info("Expanding to line");
+    await definePyVar("range", `text.GetSelection().GetElement(0)`);
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Line)`);
+    is(await runPython(`range.GetText(-1)`), "cd", "range text correct");
+  }
+);
+
+/**
+ * Test the Text pattern's GetSelection method with selection.
+ */
+addUiaTask(
+  `<textarea id="textarea" cols="3">ab cd</textarea>`,
+  async function testTextGetSelectionSelection(browser, docAcc) {
+    await runPython(`
+      doc = getDocUia()
+      textarea = findUiaByDomId(doc, "textarea")
+      global text
+      text = getUiaPattern(textarea, "Text")
+    `);
+    is(await runPython(`text.GetSelection().Length`), 0, "No selection");
+    info("Focusing textarea");
+    const textarea = findAccessibleChildByID(docAcc, "textarea");
+    let moved = waitForEvent(EVENT_TEXT_CARET_MOVED, textarea);
+    textarea.takeFocus();
+    await moved;
+    is(await runPython(`text.GetSelection().Length`), 1, "1 selection");
+    await definePyVar("range", `text.GetSelection().GetElement(0)`);
+    ok(await runPython(`bool(range)`), "Got selection range 0");
+    is(await runPython(`range.GetText(-1)`), "", "range text correct");
+
+    info("Selecting ab");
+    moved = waitForEvent(EVENT_TEXT_SELECTION_CHANGED, textarea);
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("textarea").setSelectionRange(0, 2);
+    });
+    await moved;
+    is(await runPython(`text.GetSelection().Length`), 1, "1 selection");
+    await definePyVar("range", `text.GetSelection().GetElement(0)`);
+    ok(await runPython(`bool(range)`), "Got selection range 0");
+    is(await runPython(`range.GetText(-1)`), "ab", "range text correct");
+
+    // XXX Multiple selections aren't possible in editable text. A test for that
+    // should be added in bug 1901458.
+  }
+);

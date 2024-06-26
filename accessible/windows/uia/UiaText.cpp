@@ -25,7 +25,33 @@ Accessible* UiaText::Acc() const {
 
 STDMETHODIMP
 UiaText::GetSelection(__RPC__deref_out_opt SAFEARRAY** aRetVal) {
-  return E_NOTIMPL;
+  if (!aRetVal) {
+    return E_INVALIDARG;
+  }
+  Accessible* acc = Acc();
+  if (!acc) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  AutoTArray<TextLeafRange, 1> ranges;
+  TextLeafRange::GetSelection(acc, ranges);
+  if (ranges.IsEmpty()) {
+    // There is no selection. Check if there is a caret.
+    if (TextLeafPoint caret = TextLeafPoint::GetCaret(acc)) {
+      ranges.EmplaceBack(caret, caret);
+    }
+  }
+  if (!ranges.IsEmpty()) {
+    *aRetVal = SafeArrayCreateVector(VT_UNKNOWN, 0, ranges.Length());
+    LONG indices[1] = {0};
+    for (TextLeafRange& range : ranges) {
+      // SafeArrayPutElement calls AddRef on the element, so we use a raw
+      // pointer here.
+      UiaTextRange* uiaRange = new UiaTextRange(range);
+      SafeArrayPutElement(*aRetVal, indices, uiaRange);
+      ++indices[0];
+    }
+  }
+  return S_OK;
 }
 
 STDMETHODIMP
