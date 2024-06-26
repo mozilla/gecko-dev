@@ -284,6 +284,7 @@ impl<Factor: ToCss> ToCss for GenericFontSizeAdjust<Factor> {
     ToShmem,
     Parse,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C, u8)]
 pub enum GenericLineHeight<N, L> {
     /// `normal`

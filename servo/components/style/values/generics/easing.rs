@@ -46,7 +46,6 @@ pub enum TimingFunction<Integer, Number, LinearStops> {
 }
 
 #[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
     Clone,
     Copy,
@@ -93,7 +92,6 @@ fn step_position_jump_enabled(_context: &ParserContext) -> bool {
 }
 
 #[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
     Clone,
     Copy,

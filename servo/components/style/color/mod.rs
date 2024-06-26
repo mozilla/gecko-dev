@@ -21,6 +21,7 @@ use cssparser::color::PredefinedColorSpace;
 
 /// The 3 components that make up a color.  (Does not include the alpha component)
 #[derive(Copy, Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct ColorComponents(pub f32, pub f32, pub f32);
 
@@ -65,6 +66,7 @@ impl std::ops::Div for ColorComponents {
     ToResolvedValue,
     ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
 pub enum ColorSpace {
     /// A color specified in the sRGB color space with either the rgb/rgba(..)
@@ -190,6 +192,7 @@ bitflags! {
 /// An absolutely specified color, using either rgb(), rgba(), lab(), lch(),
 /// oklab(), oklch() or color().
 #[derive(Copy, Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct AbsoluteColor {
     /// The 3 components that make up colors in any color space.

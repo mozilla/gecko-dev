@@ -78,6 +78,7 @@ impl Parse for SourceList {
 /// Keywords for the font-face src descriptor's format() function.
 /// ('None' and 'Unknown' are for internal use in gfx, not exposed to CSS.)
 #[derive(Clone, Copy, Debug, Eq, Parse, PartialEq, ToCss, ToShmem)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum FontFaceSourceFormatKeyword {
@@ -97,6 +98,7 @@ pub enum FontFaceSourceFormatKeyword {
 /// Flags for the @font-face tech() function, indicating font technologies
 /// required by the resource.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ToShmem)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct FontFaceSourceTechFlags(u16);
 bitflags! {
@@ -224,6 +226,7 @@ pub enum FontFaceSourceListComponent {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, ToCss, ToShmem)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum FontFaceSourceFormat {

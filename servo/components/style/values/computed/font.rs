@@ -62,12 +62,14 @@ pub use crate::values::specified::Number as SpecifiedNumber;
     ComputeSquaredDistance,
     Copy,
     Debug,
+    Eq,
     Hash,
     MallocSizeOf,
     PartialEq,
     PartialOrd,
     ToResolvedValue,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct FixedPoint<T, const FRACTION_BITS: u16> {
     /// The actual representation.
     pub value: T,
@@ -960,6 +962,7 @@ where
     ToShmem,
 )]
 #[repr(C)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[value_info(other_values = "normal")]
 pub struct FontLanguageOverride(pub u32);
 
@@ -1089,12 +1092,14 @@ pub type FontStyleFixedPoint = FixedPoint<i16, FONT_STYLE_FRACTION_BITS>;
     ComputeSquaredDistance,
     Copy,
     Debug,
+    Eq,
     Hash,
     MallocSizeOf,
     PartialEq,
     PartialOrd,
     ToResolvedValue,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct FontStyle(FontStyleFixedPoint);
 
@@ -1218,6 +1223,7 @@ pub type FontStretchFixedPoint = FixedPoint<u16, FONT_STRETCH_FRACTION_BITS>;
 #[derive(
     Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToResolvedValue,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct FontStretch(pub FontStretchFixedPoint);
 

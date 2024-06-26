@@ -402,7 +402,6 @@ pub enum GenericPathOrShapeFunction<Angle, LengthPercentage> {
 // https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
 // says that it can also be `inherit`
 #[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
     Animate,
     Clone,
