@@ -1058,6 +1058,12 @@ class JSLinearString : public JSString {
                                      js::gc::Heap heap);
 
   template <js::AllowGC allowGC, typename CharT>
+  static inline JSLinearString* new_(JSContext* cx,
+                                     RefPtr<mozilla::StringBuffer>&& buffer,
+                                     const CharT* chars, size_t length,
+                                     js::gc::Heap heap);
+
+  template <js::AllowGC allowGC, typename CharT>
   static inline JSLinearString* newValidLength(
       JSContext* cx, JS::MutableHandle<OwnedChars<CharT>> chars,
       js::gc::Heap heap);
