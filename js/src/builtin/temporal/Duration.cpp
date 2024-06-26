@@ -5216,10 +5216,23 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
     }
     roundResult = adjustResult;
 
+    // Step 40.c.
+    Rooted<ZonedDateTime> intermediate(cx);
+    if (!MoveRelativeZonedDateTime(cx, zonedRelativeTo, calendar, timeZone,
+                                   DateDuration{
+                                       roundResult.date.years,
+                                       roundResult.date.months,
+                                       roundResult.date.weeks,
+                                       0,
+                                   },
+                                   precalculatedPlainDateTime, &intermediate)) {
+      return false;
+    }
+
     // Step 40.b.
-    if (!BalanceTimeDurationRelative(
-            cx, roundResult, largestUnit, zonedRelativeTo, timeZone,
-            precalculatedPlainDateTime, &balanceResult)) {
+    if (!BalanceTimeDurationRelative(cx, roundResult, largestUnit, intermediate,
+                                     timeZone, precalculatedPlainDateTime,
+                                     &balanceResult)) {
       return false;
     }
   } else {
