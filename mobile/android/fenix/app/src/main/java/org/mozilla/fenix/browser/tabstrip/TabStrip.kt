@@ -44,6 +44,7 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Devices
@@ -333,7 +334,14 @@ private fun TabItem(
                 }
             }
 
-            IconButton(onClick = { onCloseTabClick(state.id, state.isPrivate) }) {
+            IconButton(
+                onClick = { onCloseTabClick(state.id, state.isPrivate) },
+                modifier = if (state.isSelected) {
+                    Modifier.semantics {}
+                } else {
+                    Modifier.clearAndSetSemantics {}
+                },
+            ) {
                 Icon(
                     painter = painterResource(R.drawable.mozac_ic_cross_20),
                     tint = FirefoxTheme.colors.iconPrimary,
