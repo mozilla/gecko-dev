@@ -11,8 +11,6 @@ import android.net.Uri
 import android.os.Build
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.pm.PackageInfoCompat
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.lib.crash.Crash
 import mozilla.components.support.base.ext.getStacktraceAsJsonString
@@ -188,7 +186,7 @@ class MozillaSocorroService(
 
         val breadcrumbsJson = JSONArray()
         for (breadcrumb in breadcrumbs) {
-            breadcrumbsJson.put(Json.encodeToString(breadcrumb))
+            breadcrumbsJson.put(breadcrumb.toJson())
         }
 
         try {

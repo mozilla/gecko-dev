@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.io.Resources.getResource
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.lib.crash.Crash
+import mozilla.components.support.ktx.kotlin.toDate
 import mozilla.components.support.test.any
 import mozilla.components.support.test.robolectric.testContext
 import okhttp3.mockwebserver.MockResponse
@@ -133,7 +134,7 @@ class MozillaSocorroServiceTest {
                 true,
                 "extras.path",
                 processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
-                breadcrumbs = arrayListOf(),
+                breadcrumbs = arrayListOf(Breadcrumb(message = "Hello World", date = "2018-06-12T19:30+00:00".toDate("yyyy-MM-dd'T'HH:mmXXX"))),
                 remoteType = null,
             )
             service.report(crash)
@@ -154,6 +155,7 @@ class MozillaSocorroServiceTest {
             assert(request.contains("name=CrashType\r\n\r\n$FATAL_NATIVE_CRASH_TYPE"))
             assert(request.contains("name=CrashTime\r\n\r\n123"))
             assert(request.contains("name=useragent_locale\r\n\r\nen-US"))
+            assert(request.contains("name=Breadcrumbs\r\n\r\n[{\"timestamp\":\"2018-06-12T19:30:00\",\"message\":\"Hello World\",\"category\":\"\",\"level\":\"Debug\",\"type\":\"Default\",\"data\":{}}]"))
 
             verify(service).report(crash)
             verify(service).sendReport(123456, null, "dump.path", "extras.path", true, true, crash.breadcrumbs)
