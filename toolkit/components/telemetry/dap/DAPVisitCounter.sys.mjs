@@ -146,7 +146,12 @@ export const DAPVisitCounter = new (class {
         )
       );
     }
-    await Promise.all(send_promises);
+
+    try {
+      await Promise.all(send_promises);
+    } catch (e) {
+      lazy.logConsole.error("Failed to send report: ", e);
+    }
   }
 
   show() {

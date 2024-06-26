@@ -490,7 +490,7 @@ class ContentParent final : public PContentParent,
       uint32_t aIndex, const nsAString& aAd, const nsACString& aTargetHost);
   mozilla::ipc::IPCResult RecvAttributionConversion(
       const nsACString& aHost, const nsAString& aTask, uint32_t aHistogramSize,
-      const Maybe<uint32_t>& aLoopbackDays,
+      const Maybe<uint32_t>& aLookbackDays,
       const Maybe<PrivateAttributionImpressionType>& aImpressionType,
       const nsTArray<nsString>& aAds, const nsTArray<nsCString>& aSourceHosts);
 
