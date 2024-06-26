@@ -702,7 +702,7 @@ Toolbox.prototype = {
     if (!profile) {
       return;
     }
-    const browser = await openProfilerTab();
+    const browser = await openProfilerTab({ defaultPanel: "stack-chart" });
 
     const profileCaptureResult = {
       type: "SUCCESS",

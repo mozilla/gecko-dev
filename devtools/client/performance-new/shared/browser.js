@@ -17,7 +17,8 @@
  * @typedef {import("../@types/perf").RestartBrowserWithEnvironmentVariable} RestartBrowserWithEnvironmentVariable
  * @typedef {import("../@types/perf").GetActiveBrowserID} GetActiveBrowserID
  * @typedef {import("../@types/perf").MinimallyTypedGeckoProfile} MinimallyTypedGeckoProfile
- * * @typedef {import("../@types/perf").ProfilerViewMode} ProfilerViewMode
+ * @typedef {import("../@types/perf").ProfilerViewMode} ProfilerViewMode
+ * @typedef {import("../@types/perf").ProfilerPanel} ProfilerPanel
  */
 
 /** @type {PerformancePref["UIBaseUrl"]} */
@@ -43,12 +44,17 @@ const UI_BASE_URL_PATH_DEFAULT = "/from-browser";
  * Once a profile is received from the actor, it needs to be opened up in
  * profiler.firefox.com to be analyzed. This function opens up profiler.firefox.com
  * into a new browser tab.
- * @param {ProfilerViewMode | undefined} profilerViewMode - View mode for the Firefox Profiler
+ *
+ * @typedef {Object} OpenProfilerOptions
+ * @property {ProfilerViewMode | undefined} [profilerViewMode] - View mode for the Firefox Profiler
  *   front-end timeline. While opening the url, we should append a query string
  *   if a view other than "full" needs to be displayed.
+ * @property {ProfilerPanel} [defaultPanel] Allows to change the default opened panel.
+ *
+ * @param {OpenProfilerOptions} options
  * @returns {Promise<MockedExports.Browser>} The browser for the opened tab.
  */
-async function openProfilerTab(profilerViewMode) {
+async function openProfilerTab({ profilerViewMode, defaultPanel }) {
   // Allow the user to point to something other than profiler.firefox.com.
   const baseUrl = Services.prefs.getStringPref(
     UI_BASE_URL_PREF,
@@ -59,6 +65,7 @@ async function openProfilerTab(profilerViewMode) {
     UI_BASE_URL_PATH_PREF,
     UI_BASE_URL_PATH_DEFAULT
   );
+  const additionalPath = defaultPanel ? `/${defaultPanel}/` : "";
   // This controls whether we enable the active tab view when capturing in web
   // developer preset.
   const enableActiveTab = Services.prefs.getBoolPref(
@@ -82,7 +89,7 @@ async function openProfilerTab(profilerViewMode) {
     viewModeQueryString = `?view=${profilerViewMode}`;
   }
 
-  const urlToLoad = `${baseUrl}${baseUrlPath}${viewModeQueryString}`;
+  const urlToLoad = `${baseUrl}${baseUrlPath}${additionalPath}${viewModeQueryString}`;
 
   // Find the most recently used window, as the DevTools client could be in a variety
   // of hosts.

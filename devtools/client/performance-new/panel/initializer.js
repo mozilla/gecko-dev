@@ -144,7 +144,7 @@ async function gInit(perfFront, traits, pageContext, openAboutProfiling) {
       objdirs,
       perfFront
     );
-    const browser = await openProfilerTab(profilerViewMode);
+    const browser = await openProfilerTab({ profilerViewMode });
 
     /**
      * @type {ProfileCaptureResult}

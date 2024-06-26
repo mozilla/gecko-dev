@@ -438,6 +438,15 @@ export interface ScaleFunctions {
  */
 export type ProfilerViewMode = "full" | "active-tab" | "origins";
 
+/**
+ * Panel string identifier in the profiler frontend.
+ *
+ * To be synchronized with:
+ * https://github.com/firefox-devtools/profiler/blob/b7fe97217b5d3ae770e2b7025738a075eba9ec34/src/app-logic/tabs-handling.js#L12
+ */
+export type ProfilerPanel = "calltree" | "flame-graph" | "stack-chart" |
+  "marker-chart" | "marker-table" | "network-chart" | "js-tracer";
+
 export interface PresetDefinition {
   entries: number;
   interval: number;
