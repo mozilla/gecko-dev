@@ -104,6 +104,8 @@ static const char SandboxPolicyContent[] = R"SANDBOX_LITERAL(
     ; is arguably sensitive information, so we should see what can be done about
     ; removing it.
     (sysctl-name "kern.hostname")
+    (sysctl-name "kern.hv_vmm_present")
+    (sysctl-name "kern.osproductversion")
     (sysctl-name "hw.machine")
     (sysctl-name "hw.memsize")
     (sysctl-name "hw.model")
@@ -202,6 +204,21 @@ static const char SandboxPolicyContent[] = R"SANDBOX_LITERAL(
       (iokit-property "IOVARendererID")
       (iokit-property "MetalPluginName")
       (iokit-property "MetalPluginClassName")))
+  ; bug 1893921
+  (if (defined? 'iokit-get-properties)
+    (with-filter (iokit-registry-entry-class "IOPlatformDevice")
+      (allow iokit-get-properties
+        (iokit-property "product-id")
+        (iokit-property "IORegistryEntryPropertyKeys")
+        (iokit-property "ean-storage-present"))))
+  (if (defined? 'iokit-get-properties)
+    (with-filter (iokit-registry-entry-class "IOService")
+      (allow iokit-get-properties
+        (iokit-property "housing-color")
+        (iokit-property "syscfg-erly-kbgs-allow-load")
+        (iokit-property "syscfg-erly-kbgs-data-class")
+        (iokit-property "syscfg-erly-kbgs-allow-unsealed")
+        (iokit-property "syscfg-v2-data"))))
 
   ; depending on systems, the 1st, 2nd or both rules are necessary
   (allow user-preference-read (preference-domain "com.apple.HIToolbox"))
