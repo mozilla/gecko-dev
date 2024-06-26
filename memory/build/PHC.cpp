@@ -268,7 +268,7 @@ static size_t GetTid() {
 #  endif
 #  define LOG(fmt, ...)                                                \
     FdPrintf(LOG_STDERR, "PHC[%zu,%zu,~%zu] " fmt, GetPid(), GetTid(), \
-             size_t(GAtomic::Now()), ##__VA_ARGS__)
+             size_t(GMut::Now()), ##__VA_ARGS__)
 
 #else
 
@@ -421,15 +421,7 @@ class PtrKind {
 // Shared, atomic, mutable global state.
 class GAtomic {
  public:
-  static void Init(Delay aFirstDelay) {
-    sAllocDelay = aFirstDelay;
-
-    LOG("Initial sAllocDelay <- %zu\n", size_t(aFirstDelay));
-  }
-
-  static Time Now() { return sNow; }
-
-  static void IncrementNow() { sNow++; }
+  static void Init(Delay aFirstDelay);
 
   // Decrements the delay and returns the decremented value.
   static int32_t DecrementDelay() { return --sAllocDelay; }
@@ -444,18 +436,12 @@ class GAtomic {
   }
 
  private:
-  // The current time. Relaxed semantics because it's primarily used for
-  // determining if an allocation can be recycled yet and therefore it doesn't
-  // need to be exact.
-  static Atomic<Time, Relaxed> sNow;
-
   // Delay until the next attempt at a page allocation. See the comment in
   // MaybePageAlloc() for an explanation of why it uses ReleaseAcquire
   // semantics.
   static Atomic<Delay, ReleaseAcquire> sAllocDelay;
 };
 
-Atomic<Time, Relaxed> GAtomic::sNow;
 Atomic<Delay, ReleaseAcquire> GAtomic::sAllocDelay;
 
 // Shared, immutable global state. Initialized by replace_init() and never
@@ -499,10 +485,7 @@ class GConst {
   }
 
  public:
-  GConst()
-      : mPagesStart(AllocAllPages()), mPagesLimit(mPagesStart + kAllPagesSize) {
-    LOG("AllocAllPages at %p..%p\n", mPagesStart, mPagesLimit);
-  }
+  GConst();
 
   class PtrKind PtrKind(const void* aPtr) {
     class PtrKind pk(aPtr, mPagesStart, mPagesLimit);
@@ -529,8 +512,9 @@ static GConst* gConst;
 // require sMutex to be locked.
 using GMutLock = const MutexAutoLock&;
 
-// Shared, mutable global state. Protected by sMutex; all accessing functions
-// take a GMutLock as proof that sMutex is held.
+// Shared, mutable global state.  Many fields are protected by sMutex; functions
+// that access those feilds should take a GMutLock as proof that sMutex is held.
+// Other fields are TLS or Atomic and don't need the lock.
 class GMut {
   enum class AllocPageState {
     NeverAllocated = 0,
@@ -602,7 +586,7 @@ class GMut {
     Maybe<StackTrace> mFreeStack;
 
     // The time at which the page is available for reuse, as measured against
-    // GAtomic::sNow. When the page is in use this value will be kMaxTime.
+    // sNow. When the page is in use this value will be kMaxTime.
     // - NeverAllocated: must be 0.
     // - InUse: must be kMaxTime.
     // - Freed: must be > 0 and < kMaxTime.
@@ -722,7 +706,7 @@ class GMut {
     // page.mAllocStack is left unchanged, for reporting on UAF.
 
     page.mFreeStack = Some(aFreeStack);
-    Time now = GAtomic::Now();
+    Time now = Now();
 #if PHC_LOGGING
     mFreeTime[aIndex] = now;
 #endif
@@ -922,6 +906,10 @@ class GMut {
 
   static bool IsDisabledOnCurrentThread() { return tlsIsDisabled.get(); }
 
+  static Time Now() { return sNow; }
+
+  static void IncrementNow() { sNow++; }
+
  private:
   template <int N>
   uint64_t RandomSeed() {
@@ -1057,6 +1045,11 @@ class GMut {
   //
   static PHC_THREAD_LOCAL(bool) tlsIsDisabled;
 
+  // The current time. Relaxed semantics because it's primarily used for
+  // determining if an allocation can be recycled yet and therefore it doesn't
+  // need to be exact.
+  static Atomic<Time, Relaxed> sNow;
+
  public:
   Delay GetAvgAllocDelay(const MutexAutoLock&) { return mAvgAllocDelay; }
   Delay GetAvgFirstAllocDelay(const MutexAutoLock&) {
@@ -1068,10 +1061,22 @@ class GMut {
 };
 
 Mutex GMut::sMutex;
-
 PHC_THREAD_LOCAL(bool) GMut::tlsIsDisabled;
+Atomic<Time, Relaxed> GMut::sNow;
 
 static GMut* gMut;
+
+// These must be defined after the PHC class.
+void GAtomic::Init(Delay aFirstDelay) {
+  sAllocDelay = aFirstDelay;
+
+  LOG("Initial sAllocDelay <- %zu\n", size_t(aFirstDelay));
+}
+
+GConst::GConst()
+    : mPagesStart(AllocAllPages()), mPagesLimit(mPagesStart + kAllPagesSize) {
+  LOG("AllocAllPages at %p..%p\n", mPagesStart, mPagesLimit);
+}
 
 // When PHC wants to crash we first have to unlock so that the crash reporter
 // can call into PHC to lockup its pointer. That also means that before calling
@@ -1153,7 +1158,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
     return nullptr;
   }
 
-  GAtomic::IncrementNow();
+  GMut::IncrementNow();
 
   // Decrement the delay. If it's zero, we do a page allocation and reset the
   // delay to a random number. Because the assignment to the random number isn't
@@ -1207,7 +1212,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
 
   MutexAutoLock lock(GMut::sMutex);
 
-  Time now = GAtomic::Now();
+  Time now = GMut::Now();
   Delay newAllocDelay =
       Rnd64ToDelay(gMut->GetAvgAllocDelay(lock), gMut->Random64(lock));
 
@@ -1477,7 +1482,7 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
   FreePage(lock, index, aArenaId, stack, reuseDelay);
   LOG("PageRealloc-Free(%p[%zu], %zu) -> %p, %zu delay, reuse at ~%zu\n",
       aOldPtr, index, aNewSize, newPtr, size_t(reuseDelay),
-      size_t(GAtomic::Now()) + reuseDelay);
+      size_t(GMut::Now()) + reuseDelay);
 
   return Some(newPtr);
 }
@@ -1542,7 +1547,7 @@ MOZ_ALWAYS_INLINE static bool MaybePageFree(const Maybe<arena_id_t>& aArenaId,
   phc::PHCStats stats = gMut->GetPageStats(lock);
 #endif
   LOG("PageFree(%p[%zu]), %zu delay, reuse at ~%zu, fullness %zu/%zu/%zu\n",
-      aPtr, index, size_t(reuseDelay), size_t(GAtomic::Now()) + reuseDelay,
+      aPtr, index, size_t(reuseDelay), size_t(GMut::Now()) + reuseDelay,
       stats.mSlotsAllocated, stats.mSlotsFreed, kNumAllocPages);
 
   return true;
