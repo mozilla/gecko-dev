@@ -1725,10 +1725,11 @@ pref("browser.newtabpage.activity-stream.weather.display", "simple");
 // Preference to enable wallpaper selection in the Customize Menu of new tab page
 #ifdef NIGHTLY_BUILD
   pref("browser.newtabpage.activity-stream.newtabWallpapers.enabled", true);
+  pref("browser.newtabpage.activity-stream.newtabWallpapers.v2.enabled", true);
 #else
+  pref("browser.newtabpage.activity-stream.newtabWallpapers.v2.enabled", false);
   pref("browser.newtabpage.activity-stream.newtabWallpapers.enabled", false);
 #endif
-pref("browser.newtabpage.activity-stream.newtabWallpapers.v2.enabled", false);
 
 // Current new tab page background images.
 pref("browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-light", "");
