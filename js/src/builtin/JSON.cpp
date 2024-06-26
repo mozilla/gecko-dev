@@ -2201,7 +2201,8 @@ static bool json_isRawJSON(JSContext* cx, unsigned argc, Value* vp) {
       MOZ_ASSERT(objIsFrozen);
     }
 #  endif  // DEBUG
-    args.rval().setBoolean(obj->is<RawJSONObject>());
+    args.rval().setBoolean(obj->is<RawJSONObject>() ||
+                           obj->canUnwrapAs<RawJSONObject>());
     return true;
   }
 
