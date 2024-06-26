@@ -1502,130 +1502,6 @@ static bool PlainTime_equals(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 /**
- * Temporal.PlainTime.prototype.toPlainDateTime ( temporalDate )
- */
-static bool PlainTime_toPlainDateTime(JSContext* cx, const CallArgs& args) {
-  auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  auto time = ToPlainTime(temporalTime);
-
-  // Step 3.
-  Rooted<PlainDateWithCalendar> plainDate(cx);
-  if (!ToTemporalDate(cx, args.get(0), &plainDate)) {
-    return false;
-  }
-  auto date = plainDate.date();
-  auto calendar = plainDate.calendar();
-
-  // Step 4.
-  auto* result = CreateTemporalDateTime(cx, {date, time}, calendar);
-  if (!result) {
-    return false;
-  }
-
-  args.rval().setObject(*result);
-  return true;
-}
-
-/**
- * Temporal.PlainTime.prototype.toPlainDateTime ( temporalDate )
- */
-static bool PlainTime_toPlainDateTime(JSContext* cx, unsigned argc, Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsPlainTime, PlainTime_toPlainDateTime>(cx, args);
-}
-
-/**
- * Temporal.PlainTime.prototype.toZonedDateTime ( item )
- *
- * |item| is an options object with `plainDate` and `timeZone` properties.
- */
-static bool PlainTime_toZonedDateTime(JSContext* cx, const CallArgs& args) {
-  auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  auto time = ToPlainTime(temporalTime);
-
-  // Step 3.
-  Rooted<JSObject*> itemObj(
-      cx, RequireObjectArg(cx, "item", "toZonedDateTime", args.get(0)));
-  if (!itemObj) {
-    return false;
-  }
-
-  // Step 4.
-  Rooted<Value> temporalDateLike(cx);
-  if (!GetProperty(cx, itemObj, args[0], cx->names().plainDate,
-                   &temporalDateLike)) {
-    return false;
-  }
-
-  // Step 5.
-  if (temporalDateLike.isUndefined()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_MISSING_PROPERTY, "plainDate");
-    return false;
-  }
-
-  // Step 6.
-  Rooted<PlainDateWithCalendar> plainDate(cx);
-  if (!ToTemporalDate(cx, temporalDateLike, &plainDate)) {
-    return false;
-  }
-  auto date = plainDate.date();
-  auto calendar = plainDate.calendar();
-
-  // Step 7.
-  Rooted<Value> temporalTimeZoneLike(cx);
-  if (!GetProperty(cx, itemObj, itemObj, cx->names().timeZone,
-                   &temporalTimeZoneLike)) {
-    return false;
-  }
-
-  // Step 8.
-  if (temporalTimeZoneLike.isUndefined()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_MISSING_PROPERTY, "timeZone");
-    return false;
-  }
-
-  // Step 9.
-  Rooted<TimeZoneValue> timeZone(cx);
-  if (!ToTemporalTimeZone(cx, temporalTimeZoneLike, &timeZone)) {
-    return false;
-  }
-
-  // Step 10.
-  Rooted<PlainDateTimeWithCalendar> temporalDateTime(cx);
-  if (!CreateTemporalDateTime(cx, {date, time}, calendar, &temporalDateTime)) {
-    return false;
-  }
-
-  // Steps 11-12.
-  Instant instant;
-  if (!GetInstantFor(cx, timeZone, temporalDateTime,
-                     TemporalDisambiguation::Compatible, &instant)) {
-    return false;
-  }
-
-  // Step 13.
-  auto* result = CreateTemporalZonedDateTime(cx, instant, timeZone, calendar);
-  if (!result) {
-    return false;
-  }
-
-  args.rval().setObject(*result);
-  return true;
-}
-
-/**
- * Temporal.PlainTime.prototype.toZonedDateTime ( item )
- */
-static bool PlainTime_toZonedDateTime(JSContext* cx, unsigned argc, Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsPlainTime, PlainTime_toZonedDateTime>(cx, args);
-}
-
-/**
  * Temporal.PlainTime.prototype.getISOFields ( )
  */
 static bool PlainTime_getISOFields(JSContext* cx, const CallArgs& args) {
@@ -1848,8 +1724,6 @@ static const JSFunctionSpec PlainTime_prototype_methods[] = {
     JS_FN("since", PlainTime_since, 1, 0),
     JS_FN("round", PlainTime_round, 1, 0),
     JS_FN("equals", PlainTime_equals, 1, 0),
-    JS_FN("toPlainDateTime", PlainTime_toPlainDateTime, 1, 0),
-    JS_FN("toZonedDateTime", PlainTime_toZonedDateTime, 1, 0),
     JS_FN("getISOFields", PlainTime_getISOFields, 0, 0),
     JS_FN("toString", PlainTime_toString, 0, 0),
     JS_FN("toLocaleString", PlainTime_toLocaleString, 0, 0),
