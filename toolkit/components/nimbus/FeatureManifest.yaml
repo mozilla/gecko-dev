@@ -3176,6 +3176,14 @@ certCompression:
         pref: security.tls.enable_certificate_compression_brotli
       description: >-
         Whether to enable Brotli for TLS certificate compression.
+    tlsEnableZstd:
+      type: boolean
+      setPref:
+        branch: default
+        pref: security.tls.enable_certificate_compression_zstd
+      description: >-
+        Whether to enable Zstd for TLS certificate compression.
+
 bounceTrackingProtection:
   description: Controls the Bounce Tracking Protection feature.
   owner: pbz@mozilla.com
