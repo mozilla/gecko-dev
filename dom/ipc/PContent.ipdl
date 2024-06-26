@@ -1547,7 +1547,9 @@ parent:
                        nullable nsIPrincipal aTriggeringPrincipal,
                        nullable nsIContentSecurityPolicy aCsp,
                        nullable nsIReferrerInfo aReferrerInfo,
-                       OriginAttributes aOriginAttributes)
+                       OriginAttributes aOriginAttributes,
+                       bool aUserActivation,
+                       bool aTextDirectiveUserActivation)
         returns (CreatedWindowInfo window);
 
     async CreateWindowInDifferentProcess(
@@ -1563,7 +1565,9 @@ parent:
       nullable nsIPrincipal aTriggeringPrincipal,
       nullable nsIContentSecurityPolicy aCsp,
       nullable nsIReferrerInfo aReferrerInfo,
-      OriginAttributes aOriginAttributes);
+      OriginAttributes aOriginAttributes,
+      bool aUserActivation,
+      bool aTextDirectiveUserActivation);
 
     /**
      * Tell the parent that a decoder's' benchmark has been completed.

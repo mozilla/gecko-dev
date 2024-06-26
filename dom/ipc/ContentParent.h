@@ -530,6 +530,7 @@ class ContentParent final : public PContentParent,
       const UserActivation::Modifiers& aModifiers,
       nsIPrincipal* aTriggeringPrincipal, nsIContentSecurityPolicy* aCsp,
       nsIReferrerInfo* aReferrerInfo, const OriginAttributes& aOriginAttributes,
+      bool aUserActivation, bool aTextDirectiveUserActivation,
       CreateWindowResolver&& aResolve);
 
   mozilla::ipc::IPCResult RecvCreateWindowInDifferentProcess(
@@ -539,7 +540,8 @@ class ContentParent final : public PContentParent,
       const nsACString& aFeatures, const UserActivation::Modifiers& aModifiers,
       const nsAString& aName, nsIPrincipal* aTriggeringPrincipal,
       nsIContentSecurityPolicy* aCsp, nsIReferrerInfo* aReferrerInfo,
-      const OriginAttributes& aOriginAttributes);
+      const OriginAttributes& aOriginAttributes, bool aUserActivation,
+      bool aTextDirectiveUserActivation);
 
   static void BroadcastBlobURLRegistration(
       const nsACString& aURI, BlobImpl* aBlobImpl, nsIPrincipal* aPrincipal,
@@ -749,7 +751,8 @@ class ContentParent final : public PContentParent,
       bool* aWindowIsNew, int32_t& aOpenLocation,
       nsIPrincipal* aTriggeringPrincipal, nsIReferrerInfo* aReferrerInfo,
       bool aLoadUri, nsIContentSecurityPolicy* aCsp,
-      const OriginAttributes& aOriginAttributes);
+      const OriginAttributes& aOriginAttributes, bool aUserActivation,
+      bool aTextDirectiveUserActivation);
 
   explicit ContentParent(const nsACString& aRemoteType);
 

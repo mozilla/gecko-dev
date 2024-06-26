@@ -43,6 +43,18 @@ NS_IMETHODIMP nsOpenWindowInfo::GetIsTopLevelCreatedByWebContent(
   return NS_OK;
 }
 
+NS_IMETHODIMP nsOpenWindowInfo::GetHasValidUserGestureActivation(
+    bool* aHasValidUserGestureActivation) {
+  *aHasValidUserGestureActivation = mHasValidUserGestureActivation;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsOpenWindowInfo::GetTextDirectiveUserActivation(
+    bool* aTextDirectiveUserActivation) {
+  *aTextDirectiveUserActivation = mTextDirectiveUserActivation;
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsOpenWindowInfo::GetScriptableOriginAttributes(
     JSContext* aCx, JS::MutableHandle<JS::Value> aAttrs) {
   bool ok = ToJSValue(aCx, mOriginAttributes, aAttrs);

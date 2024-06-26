@@ -571,6 +571,10 @@ export class GeckoViewNavigation extends GeckoViewModule {
       triggeringPrincipal,
       csp,
       referrerInfo,
+      hasValidUserGestureActivation:
+        !!openWindowInfo?.hasValidUserGestureActivation,
+      textDirectiveUserActivation:
+        !!openWindowInfo?.textDirectiveUserActivation,
     });
     return browser;
   }
