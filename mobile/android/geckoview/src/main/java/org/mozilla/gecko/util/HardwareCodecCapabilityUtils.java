@@ -151,16 +151,10 @@ public final class HardwareCodecCapabilityUtils {
     final String[] hwPrefixes = getAllSupportedHWCodecPrefixes(false);
 
     for (final MediaCodecInfo info : getDecoderInfos()) {
+      final boolean isHw = isHardwareAccelerated(info, hwPrefixes);
       final String[] supportedTypes = info.getSupportedTypes();
       for (final String mimeType : info.getSupportedTypes()) {
-        boolean isHwPrefix = false;
-        for (final String prefix : hwPrefixes) {
-          if (info.getName().startsWith(prefix)) {
-            isHwPrefix = true;
-            break;
-          }
-        }
-        if (!isHwPrefix) {
+        if (!isHw) {
           mimeTypes.add("SW " + mimeType);
           continue;
         }
@@ -174,6 +168,25 @@ public final class HardwareCodecCapabilityUtils {
       Log.d(LOGTAG, "MIME support: " + typeit);
     }
     return mimeTypes.toArray(new String[0]);
+  }
+
+  @SuppressLint("NewApi")
+  private static boolean isHardwareAccelerated(
+      final MediaCodecInfo aCodecInfo, final String[] aHwPrefixes) {
+    // By public API.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      return aCodecInfo.isHardwareAccelerated();
+    }
+    // By name.
+    if (aHwPrefixes == null) {
+      return false;
+    }
+    for (final String prefix : aHwPrefixes) {
+      if (aCodecInfo.getName().startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public static boolean checkSupportsAdaptivePlayback(
@@ -232,19 +245,7 @@ public final class HardwareCodecCapabilityUtils {
       }
       Log.d(LOGTAG, "Found candidate" + (aIsEncoder ? " encoder " : " decoder ") + name);
 
-      // Check if this is supported codec.
-      final String[] hwList = getSupportedHWCodecPrefixes(aMimeType, aIsEncoder);
-      if (hwList == null) {
-        continue;
-      }
-      boolean supportedCodec = false;
-      for (final String codecPrefix : hwList) {
-        if (name.startsWith(codecPrefix)) {
-          supportedCodec = true;
-          break;
-        }
-      }
-      if (!supportedCodec) {
+      if (!isHardwareAccelerated(info, getSupportedHWCodecPrefixes(aMimeType, aIsEncoder))) {
         continue;
       }
 
