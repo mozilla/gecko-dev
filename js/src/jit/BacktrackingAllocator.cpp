@@ -1986,8 +1986,13 @@ bool BacktrackingAllocator::tryMergeReusedRegister(VirtualRegister& def,
   // Avoid merging in very large live ranges as merging has non-linear
   // complexity.  The cutoff value is hard to gauge.  1M was chosen because it
   // is "large" and yet usefully caps compile time on AutoCad-for-the-web to
-  // something reasonable on a 2017-era desktop system.
-  const uint32_t RANGE_SIZE_CUTOFF = 1000000;
+  // something reasonable on a 2017-era desktop system.  See bug 1728781.
+  //
+  // Subsequently -- bug 1897427 comment 9 -- even this threshold seems too
+  // high, resulting in delays of around 10 seconds.  Setting it to 500000
+  // "fixes" that one, but it seems prudent to reduce it to 250000 so as to
+  // avoid having to change it yet again at some future point.
+  const uint32_t RANGE_SIZE_CUTOFF = 250000;
   if (inputRange->to() - inputRange->from() > RANGE_SIZE_CUTOFF) {
     def.setMustCopyInput();
     return true;
