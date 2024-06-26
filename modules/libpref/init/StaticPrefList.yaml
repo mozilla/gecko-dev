@@ -8655,7 +8655,7 @@
 # Whether transition-behavior property is enabled?
 - name: layout.css.transition-behavior.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
   rust: true
 
