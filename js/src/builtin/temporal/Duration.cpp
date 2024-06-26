@@ -631,13 +631,8 @@ bool js::temporal::IsValidDuration(const NormalizedDuration& duration) {
     return false;
   }
 
-  auto [seconds, nanoseconds] = duration.time;
-  if (seconds < 0 && nanoseconds > 0) {
-    seconds += 1;
-    nanoseconds -= 1'000'000'000;
-  }
-
   auto d = duration.date.toDuration();
+  auto [seconds, nanoseconds] = duration.time.denormalize();
   d.seconds = double(seconds);
   d.nanoseconds = double(nanoseconds);
 
@@ -1276,18 +1271,7 @@ TimeDuration js::temporal::BalanceTimeDuration(
   MOZ_ASSERT(largestUnit <= TemporalUnit::Second,
              "fallible fractional seconds units");
 
-  auto [seconds, nanoseconds] = duration;
-
-  // Negative nanoseconds are represented as the difference to 1'000'000'000.
-  // Convert these back to their absolute value and adjust the seconds part
-  // accordingly.
-  //
-  // For example the nanoseconds duration |-1n| is represented as the
-  // duration {seconds: -1, nanoseconds: 999'999'999}.
-  if (seconds < 0 && nanoseconds > 0) {
-    seconds += 1;
-    nanoseconds -= ToNanoseconds(TemporalUnit::Second);
-  }
+  auto [seconds, nanoseconds] = duration.denormalize();
 
   // Step 1.
   int64_t days = 0;
@@ -1442,18 +1426,7 @@ bool js::temporal::BalanceTimeDuration(JSContext* cx,
                                        TimeDuration* result) {
   MOZ_ASSERT(IsValidNormalizedTimeDuration(duration));
 
-  auto [seconds, nanoseconds] = duration;
-
-  // Negative nanoseconds are represented as the difference to 1'000'000'000.
-  // Convert these back to their absolute value and adjust the seconds part
-  // accordingly.
-  //
-  // For example the nanoseconds duration |-1n| is represented as the
-  // duration {seconds: -1, nanoseconds: 999'999'999}.
-  if (seconds < 0 && nanoseconds > 0) {
-    seconds += 1;
-    nanoseconds -= ToNanoseconds(TemporalUnit::Second);
-  }
+  auto [seconds, nanoseconds] = duration.denormalize();
 
   // Steps 1-3. (Not applicable in our implementation.)
   //
@@ -2293,11 +2266,7 @@ struct FractionalDays final {
   explicit FractionalDays(const NormalizedDuration& duration) {
     MOZ_ASSERT(IsValidDuration(duration));
 
-    auto [seconds, nanoseconds] = duration.time;
-    if (seconds < 0 && nanoseconds > 0) {
-      seconds += 1;
-      nanoseconds -= 1'000'000'000;
-    }
+    auto [seconds, nanoseconds] = duration.time.denormalize();
 
     int64_t days = seconds / ToSeconds(TemporalUnit::Day);
     seconds = seconds % ToSeconds(TemporalUnit::Day);

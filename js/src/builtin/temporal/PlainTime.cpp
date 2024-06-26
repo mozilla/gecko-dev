@@ -871,11 +871,7 @@ AddedTime js::temporal::AddTime(const PlainTime& time,
   MOZ_ASSERT(IsValidTime(time));
   MOZ_ASSERT(IsValidNormalizedTimeDuration(duration));
 
-  auto [seconds, nanoseconds] = duration;
-  if (seconds < 0 && nanoseconds > 0) {
-    seconds += 1;
-    nanoseconds -= 1'000'000'000;
-  }
+  auto [seconds, nanoseconds] = duration.denormalize();
   MOZ_ASSERT(std::abs(nanoseconds) <= 999'999'999);
 
   // Step 1.
