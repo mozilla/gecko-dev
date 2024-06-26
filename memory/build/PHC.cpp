@@ -1649,18 +1649,8 @@ inline void* MozJemallocPHC::realloc(void* aOldPtr, size_t aNewSize) {
 }
 
 // This handles both free and moz_arena_free.
-MOZ_ALWAYS_INLINE static bool MaybePageFree(const Maybe<arena_id_t>& aArenaId,
-                                            void* aPtr) {
-  if (!maybe_init()) {
-    return false;
-  }
-
+static void DoPageFree(const Maybe<arena_id_t>& aArenaId, void* aPtr) {
   PtrKind pk = PHC::sRegion->PtrKind(aPtr);
-  if (pk.IsNothing()) {
-    // Not a page allocation.
-    return false;
-  }
-
   if (pk.IsGuardPage()) {
     PHC::CrashOnGuardPage(aPtr);
   }
@@ -1696,17 +1686,26 @@ MOZ_ALWAYS_INLINE static bool MaybePageFree(const Maybe<arena_id_t>& aArenaId,
   LOG("PageFree(%p[%zu]), %zu delay, reuse at ~%zu, fullness %zu/%zu/%zu\n",
       aPtr, index, size_t(reuseDelay), size_t(PHC::Now()) + reuseDelay,
       stats.mSlotsAllocated, stats.mSlotsFreed, kNumAllocPages);
+}
 
-  return true;
+MOZ_ALWAYS_INLINE static bool FastIsPHCPtr(void* aPtr) {
+  if (MOZ_UNLIKELY(!maybe_init())) {
+    return false;
+  }
+
+  PtrKind pk = PHC::sRegion->PtrKind(aPtr);
+  return !pk.IsNothing();
 }
 
 MOZ_ALWAYS_INLINE static void PageFree(const Maybe<arena_id_t>& aArenaId,
                                        void* aPtr) {
-  bool res = MaybePageFree(aArenaId, aPtr);
-  if (!res) {
-    aArenaId.isSome() ? MozJemalloc::moz_arena_free(*aArenaId, aPtr)
-                      : MozJemalloc::free(aPtr);
+  if (MOZ_UNLIKELY(FastIsPHCPtr(aPtr))) {
+    DoPageFree(aArenaId, aPtr);
+    return;
   }
+
+  aArenaId.isSome() ? MozJemalloc::moz_arena_free(*aArenaId, aPtr)
+                    : MozJemalloc::free(aPtr);
 }
 
 inline void MozJemallocPHC::free(void* aPtr) { PageFree(Nothing(), aPtr); }
