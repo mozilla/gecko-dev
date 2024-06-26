@@ -28,6 +28,11 @@
 #include <stdint.h>
 #include <type_traits>
 
+#if defined(__i386) || defined(_M_IX86) || defined(__x86_64__) || \
+    defined(_M_X64)
+#  include <emmintrin.h>
+#endif
+
 namespace mozilla {
 
 /**
@@ -506,6 +511,16 @@ class Atomic<bool, Order> : protected detail::AtomicBase<uint32_t, Order> {
  private:
   Atomic(Atomic& aOther) = delete;
 };
+
+// Relax the CPU during a spinlock.  It's a good idea to place this in a
+// spinlock so that the CPU doesn't pipeline the loop otherwise flushing the
+// pipeline when the loop finally breaks can be expensive.
+inline void cpu_pause() {
+#if defined(__i386) || defined(_M_IX86) || defined(__x86_64__) || \
+    defined(_M_X64)
+  _mm_pause();
+#endif
+}
 
 }  // namespace mozilla
 

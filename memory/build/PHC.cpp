@@ -284,9 +284,11 @@ static size_t GetTid() {
 // allocations performed (by PHC and mozjemalloc combined). `Time` is 64-bit
 // because we could have more than 2**32 allocations in a long-running session.
 // `Delay` is 32-bit because the delays used within PHC are always much smaller
-// than 2**32.
+// than 2**32.  Delay must be unsigned so that IsPowerOfTwo() can work on some
+// Delay values.
 using Time = uint64_t;   // A moment in time.
 using Delay = uint32_t;  // A time duration.
+static constexpr Delay DELAY_MAX = UINT32_MAX / 2;
 
 // PHC only runs if the page size is 4 KiB; anything more is uncommon and would
 // use too much memory. So we hardwire this size for all platforms but macOS
@@ -330,6 +332,18 @@ static const size_t kAllPagesSize = kNumAllPages * kPageSize;
 // jemalloc adds a guard page to the end of our allocation, see the comment in
 // AllocAllPages() for more information.
 static const size_t kAllPagesJemallocSize = kAllPagesSize - kPageSize;
+
+// The amount to decrement from the shared allocation delay each time a thread's
+// local allocation delay reaches zero.
+static const Delay kDelayDecrementAmount = 256;
+
+// When PHC is disabled on the current thread wait this many allocations before
+// accessing sAllocDelay once more.
+static const Delay kDelayBackoffAmount = 64;
+
+// When PHC is disabled globally reset the shared delay by this many allocations
+// to keep code running on the fast path.
+static const Delay kDelayResetWhenDisabled = 64 * 1024;
 
 // The default state for PHC.  Either Enabled or OnlyFree.
 #define DEFAULT_STATE mozilla::phc::OnlyFree
@@ -573,15 +587,20 @@ class PHC {
     if (!tlsIsDisabled.init()) {
       MOZ_CRASH();
     }
+    if (!tlsAllocDelay.init()) {
+      MOZ_CRASH();
+    }
+    if (!tlsLastDelay.init()) {
+      MOZ_CRASH();
+    }
 
     // This constructor is part of PHC's very early initialisation,
     // see phc_init(), and if PHC is default-on it'll start marking allocations
     // and we must setup the delay.  However once XPCOM starts it'll call
     // SetState() which will re-initialise the RNG and allocation delay.
     MutexAutoLock lock(mMutex);
-    SetAllocDelay(Rnd64ToDelay(mAvgFirstAllocDelay, Random64(lock)));
 
-    LOG("Initial sAllocDelay <- %zu\n", size_t(sAllocDelay));
+    ForceSetNewAllocDelay(Rnd64ToDelay(mAvgFirstAllocDelay, Random64(lock)));
   }
 
   uint64_t Random64(PHCLock) { return mRNG.next(); }
@@ -849,8 +868,7 @@ class PHC {
       // Reset the RNG at this point with a better seed.
       ResetRNG(lock);
 
-      SetAllocDelay(Rnd64ToDelay(mAvgFirstAllocDelay, Random64(lock)));
-      LOG("New initial sAllocDelay <- %zu\n", size_t(sAllocDelay));
+      ForceSetNewAllocDelay(Rnd64ToDelay(mAvgFirstAllocDelay, Random64(lock)));
     }
 
     mPhcState = aState;
@@ -876,13 +894,6 @@ class PHC {
 
   void EnableOnCurrentThread() {
     MOZ_ASSERT(tlsIsDisabled.get());
-
-    MutexAutoLock lock(mMutex);
-    Delay avg_delay = GetAvgAllocDelay(lock);
-    Delay avg_first_delay = GetAvgFirstAllocDelay(lock);
-    if (AllocDelayHasWrapped(avg_delay, avg_first_delay)) {
-      SetAllocDelay(Rnd64ToDelay(avg_delay, Random64(lock)));
-    }
     tlsIsDisabled.set(false);
   }
 
@@ -890,19 +901,115 @@ class PHC {
 
   static Time Now() { return sNow; }
 
-  static void IncrementNow() { sNow++; }
-
-  // Decrements the delay and returns the decremented value.
-  static int32_t DecrementDelay() { return --sAllocDelay; }
-
-  static void SetAllocDelay(Delay aAllocDelay) { sAllocDelay = aAllocDelay; }
-
-  static bool AllocDelayHasWrapped(Delay aAvgAllocDelay,
-                                   Delay aAvgFirstAllocDelay) {
-    // Delay is unsigned so we can't test for less that zero.  Instead test if
-    // it has wrapped around by comparing with the maximum value we ever use.
-    return sAllocDelay > 2 * std::max(aAvgAllocDelay, aAvgFirstAllocDelay);
+  static void AdvanceNow(uint32_t delay = 0) {
+    sNow += tlsLastDelay.get() - delay;
+    tlsLastDelay.set(delay);
   }
+
+  // Decrements the delay and returns true if it's time to make a new PHC
+  // allocation.
+  static bool DecrementDelay() {
+    const Delay alloc_delay = tlsAllocDelay.get();
+
+    if (MOZ_LIKELY(alloc_delay > 0)) {
+      tlsAllocDelay.set(alloc_delay - 1);
+      return false;
+    }
+    // The local delay has expired, check the shared delay.  This path is also
+    // executed on a new thread's first allocation, the result is the same: all
+    // the thread's TLS fields will be initialised.
+
+    AdvanceNow();
+
+    // Use an atomic fetch-and-subtract.  This uses unsigned underflow semantics
+    // to avoid doing a full compare-and-swap.
+    Delay new_delay = (sAllocDelay -= kDelayDecrementAmount);
+    Delay old_delay = new_delay + kDelayDecrementAmount;
+    if (MOZ_LIKELY(new_delay < DELAY_MAX)) {
+      // Normal case, we decremented the shared delay but it's not yet
+      // underflowed.
+      tlsAllocDelay.set(kDelayDecrementAmount);
+      tlsLastDelay.set(kDelayDecrementAmount);
+      LOG("Update sAllocDelay <- %zu, tlsAllocDelay <- %zu\n",
+          size_t(new_delay), size_t(kDelayDecrementAmount));
+      return false;
+    }
+
+    if (old_delay < new_delay) {
+      // The shared delay only just underflowed, so unless we hit exactly zero
+      // we should set our local counter and continue.
+      LOG("Update sAllocDelay <- %zu, tlsAllocDelay <- %zu\n",
+          size_t(new_delay), size_t(old_delay));
+      if (old_delay == 0) {
+        // We don't need to set tlsAllocDelay because it's already zero, we know
+        // because the condition at the beginning of this function failed.
+        return true;
+      }
+      tlsAllocDelay.set(old_delay);
+      tlsLastDelay.set(old_delay);
+      return false;
+    }
+
+    // The delay underflowed on another thread or a previous failed allocation
+    // by this thread.  Return true and attempt the next allocation, if the
+    // other thread wins we'll check for that before committing.
+    LOG("Update sAllocDelay <- %zu, tlsAllocDelay <- %zu\n", size_t(new_delay),
+        size_t(alloc_delay));
+    return true;
+  }
+
+  static void ResetLocalAllocDelay(Delay aDelay = 0) {
+    // We could take some delay from the shared delay but we'd need a
+    // compare-and-swap because this is called on paths that don't make
+    // allocations.  Or we can set the local delay to zero and let it get
+    // initialised on the next allocation.
+    tlsAllocDelay.set(aDelay);
+    tlsLastDelay.set(aDelay);
+  }
+
+  static void ForceSetNewAllocDelay(Delay aNewAllocDelay) {
+    LOG("Setting sAllocDelay <- %zu\n", size_t(aNewAllocDelay));
+    sAllocDelay = aNewAllocDelay;
+    ResetLocalAllocDelay();
+  }
+
+  // Set a new allocation delay and return true if the delay was less than zero
+  // (but it's unsigned so interpret it as signed) indicating that we won the
+  // race to make the next allocation.
+  static bool SetNewAllocDelay(Delay aNewAllocDelay) {
+    bool cas_retry;
+    do {
+      // We read the current delay on every iteration, we consider that the PHC
+      // allocation is still "up for grabs" if sAllocDelay < 0.  This is safe
+      // even while other threads continuing to fetch-and-subtract sAllocDelay
+      // in DecrementDelay(), up to DELAY_MAX (2^31) calls to DecrementDelay().
+      Delay read_delay = sAllocDelay;
+      if (read_delay < DELAY_MAX) {
+        // Another thread already set a valid delay.
+        LOG("Observe delay %zu this thread lost the race\n",
+            size_t(read_delay));
+        ResetLocalAllocDelay();
+        return false;
+      } else {
+        LOG("Preparing for CAS, read sAllocDelay %zu\n", size_t(read_delay));
+      }
+
+      cas_retry = !sAllocDelay.compareExchange(read_delay, aNewAllocDelay);
+      if (cas_retry) {
+        LOG("Lost the CAS, sAllocDelay is now %zu\n", size_t(sAllocDelay));
+        cpu_pause();
+        //  We raced against another thread and lost.
+      }
+    } while (cas_retry);
+    LOG("Won the CAS, set sAllocDelay = %zu\n", size_t(sAllocDelay));
+    ResetLocalAllocDelay();
+    return true;
+  }
+
+  static Delay LocalAllocDelay() { return tlsAllocDelay.get(); }
+  static Delay SharedAllocDelay() { return sAllocDelay; }
+
+  static Delay LastDelay() { return tlsLastDelay.get(); }
 
  private:
   template <int N>
@@ -1044,15 +1151,24 @@ class PHC {
   //
   static PHC_THREAD_LOCAL(bool) tlsIsDisabled;
 
-  // The current time. Relaxed semantics because it's primarily used for
-  // determining if an allocation can be recycled yet and therefore it doesn't
-  // need to be exact.
-  static Atomic<Time, Relaxed> sNow;
+  // The current time. We use ReleaseAcquire semantics since we attempt to
+  // update this by larger increments and don't want to lose an entire update.
+  static Atomic<Time, ReleaseAcquire> sNow;
 
-  // Delay until the next attempt at a page allocation. See the comment in
-  // MaybePageAlloc() for an explanation of why it uses ReleaseAcquire
-  // semantics.
+  // Delay until the next attempt at a page allocation.  The delay is made up of
+  // two parts the global delay and each thread's local portion of that delay:
+  //
+  //  delay = sDelay + sum_all_threads(tlsAllocDelay)
+  //
+  // Threads use their local delay to reduce contention on the shared delay.
+  //
+  // See the comment in MaybePageAlloc() for an explanation of why it uses
+  // ReleaseAcquire semantics.
   static Atomic<Delay, ReleaseAcquire> sAllocDelay;
+  static PHC_THREAD_LOCAL(Delay) tlsAllocDelay;
+
+  // The last value we set tlsAllocDelay to before starting to count down.
+  static PHC_THREAD_LOCAL(Delay) tlsLastDelay;
 
  public:
   Delay GetAvgAllocDelay(const MutexAutoLock&) { return mAvgAllocDelay; }
@@ -1072,8 +1188,10 @@ class PHC {
 };
 
 PHC_THREAD_LOCAL(bool) PHC::tlsIsDisabled;
-Atomic<Time, Relaxed> PHC::sNow;
+Atomic<Time, ReleaseAcquire> PHC::sNow;
+PHC_THREAD_LOCAL(Delay) PHC::tlsAllocDelay;
 Atomic<Delay, ReleaseAcquire> PHC::sAllocDelay;
+PHC_THREAD_LOCAL(Delay) PHC::tlsLastDelay;
 
 PHCRegion* PHC::sRegion;
 PHC* PHC::sPHC;
@@ -1158,50 +1276,31 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
     return nullptr;
   }
 
-  MOZ_ASSERT(PHC::sPHC);
-  if (!PHC::sPHC->ShouldMakeNewAllocations()) {
+  // Decrement the delay. If it's zero, we do a page allocation and reset the
+  // delay to a random number.
+  if (MOZ_LIKELY(!PHC::DecrementDelay())) {
     return nullptr;
   }
 
-  PHC::IncrementNow();
-
-  // Decrement the delay. If it's zero, we do a page allocation and reset the
-  // delay to a random number. Because the assignment to the random number isn't
-  // atomic w.r.t. the decrement, we might have a sequence like this:
-  //
-  //     Thread 1                      Thread 2           Thread 3
-  //     --------                      --------           --------
-  // (a) newDelay = --sAllocDelay (-> 0)
-  // (b)                               --sAllocDelay (-> -1)
-  // (c) (newDelay != 0) fails
-  // (d)                                                  --sAllocDelay (-> -2)
-  // (e) sAllocDelay = new_random_number()
-  //
-  // It's critical that sAllocDelay has ReleaseAcquire semantics, because that
-  // guarantees that exactly one thread will see sAllocDelay have the value 0.
-  // (Relaxed semantics wouldn't guarantee that.)
-  //
-  // Note that sAllocDelay is unsigned and we expect that it will wrap after
-  // being decremented "below" zero. It must be unsigned so that IsPowerOfTwo()
-  // can work on some Delay values.
-  //
-  // Finally, note that the decrements that occur between (a) and (e) above are
-  // effectively ignored, because (e) clobbers them. This shouldn't be a
-  // problem; it effectively just adds a little more randomness to
-  // new_random_number(). An early version of this code tried to account for
-  // these decrements by doing `sAllocDelay += new_random_number()`. However, if
-  // new_random_value() is small, the number of decrements between (a) and (e)
-  // can easily exceed it, whereupon sAllocDelay ends up negative after
-  // `sAllocDelay += new_random_number()`, and the zero-check never succeeds
-  // again. (At least, not until sAllocDelay wraps around on overflow, which
-  // would take a very long time indeed.)
-  //
-  int32_t newDelay = PHC::DecrementDelay();
-  if (newDelay != 0) {
+  MOZ_ASSERT(PHC::sPHC);
+  if (!PHC::sPHC->ShouldMakeNewAllocations()) {
+    // Reset the allocation delay so that we take the fast path most of the
+    // time.  Rather than take the lock and use the RNG which are unnecessary
+    // when PHC is disabled, instead set the delay to a reasonably high number,
+    // the default average first allocation delay.  This is reset when PHC is
+    // re-enabled anyway.
+    PHC::ForceSetNewAllocDelay(kDelayResetWhenDisabled);
     return nullptr;
   }
 
   if (PHC::IsDisabledOnCurrentThread()) {
+    // We don't reset sAllocDelay since that might affect other threads.  We
+    // assume this is okay because either this thread will be re-enabled after
+    // less than DELAY_MAX allocations or that there are other active threads
+    // that will reset sAllocDelay.  We do reset our local delay which will
+    // cause this thread to "back off" from updating sAllocDelay on future
+    // allocations.
+    PHC::ResetLocalAllocDelay(kDelayBackoffAmount);
     return nullptr;
   }
 
@@ -1218,8 +1317,12 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
   MutexAutoLock lock(PHC::sPHC->mMutex);
 
   Time now = PHC::Now();
+
   Delay newAllocDelay = Rnd64ToDelay(PHC::sPHC->GetAvgAllocDelay(lock),
                                      PHC::sPHC->Random64(lock));
+  if (!PHC::sPHC->SetNewAllocDelay(newAllocDelay)) {
+    return nullptr;
+  }
 
   // We start at a random page alloc and wrap around, to ensure pages get even
   // amounts of use.
@@ -1280,11 +1383,11 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
 #endif
     LOG("PageAlloc(%zu, %zu) -> %p[%zu]/%p (%zu) (z%zu), sAllocDelay <- %zu, "
         "fullness %zu/%zu/%zu, hits %zu/%zu (%zu%%), lifetime %zu\n",
-        aReqSize, aAlignment, pagePtr, i, ptr, usableSize, size_t(aZero),
-        size_t(newAllocDelay), stats.mSlotsAllocated, stats.mSlotsFreed,
-        kNumAllocPages, PHC::sPHC->PageAllocHits(lock),
-        PHC::sPHC->PageAllocAttempts(lock), PHC::sPHC->PageAllocHitRate(lock),
-        lifetime);
+        aReqSize, aAlignment, pagePtr, i, ptr, usableSize,
+        size_t(newAllocDelay), size_t(PHC::SharedAllocDelay()),
+        stats.mSlotsAllocated, stats.mSlotsFreed, kNumAllocPages,
+        PHC::sPHC->PageAllocHits(lock), PHC::sPHC->PageAllocAttempts(lock),
+        PHC::sPHC->PageAllocHitRate(lock), lifetime);
     break;
   }
 
@@ -1300,9 +1403,6 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
         stats.mSlotsFreed, kNumAllocPages, PHC::sPHC->PageAllocHits(lock),
         PHC::sPHC->PageAllocAttempts(lock), PHC::sPHC->PageAllocHitRate(lock));
   }
-
-  // Set the new alloc delay.
-  PHC::SetAllocDelay(newAllocDelay);
 
   return ptr;
 }
@@ -1426,6 +1526,7 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
   uintptr_t index = pk.AllocPageIndex();
 
   // A page-to-something transition.
+  PHC::AdvanceNow(PHC::LocalAllocDelay());
 
   // Note that `disable` has no effect unless it is emplaced below.
   Maybe<AutoDisableOnCurrentThread> disable;
@@ -1526,6 +1627,7 @@ MOZ_ALWAYS_INLINE static bool MaybePageFree(const Maybe<arena_id_t>& aArenaId,
   }
 
   // At this point we know we have an allocation page.
+  PHC::AdvanceNow(PHC::LocalAllocDelay());
   uintptr_t index = pk.AllocPageIndex();
 
   // Note that `disable` has no effect unless it is emplaced below.
