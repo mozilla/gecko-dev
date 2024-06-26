@@ -732,6 +732,19 @@ skip script test262/harness/testTypedArray-conversions.js
 # https://github.com/tc39/test262/pull/4114
 skip script test262/built-ins/Temporal/Duration/prototype/subtract/balance-negative-time-units.js
 
+# https://github.com/tc39/proposal-temporal/issues/2881
+skip script test262/built-ins/Temporal/Duration/prototype/round/order-of-operations.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/calendar-dateadd-called-with-options-undefined.js
+
+# https://github.com/tc39/test262/pull/4099
+skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/reference-day-chinese.js
+
+# https://github.com/tc39/test262/pull/4098
+skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/reference-day-gregory.js
+skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/order-of-operations.js
+skip script test262/intl402/Temporal/Calendar/prototype/dateFromFields/order-of-operations.js
+skip script test262/intl402/Temporal/PlainYearMonth/from/argument-object.js
+
 
 ##############################################
 # Enable Iterator Helpers tests in the shell #
@@ -1094,6 +1107,7 @@ shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/take/na
 shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/take/take.js
 shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/take/take-more-than-available.js
 
+
 ##############################################
 # Temporal                                   #
 ##############################################
@@ -1106,44 +1120,6 @@ skip script test262/built-ins/Temporal/PlainDate/prototype/since/wrapping-at-end
 skip script test262/built-ins/Temporal/PlainDate/prototype/until/wrapping-at-end-of-month.js
 skip script test262/built-ins/Temporal/PlainDateTime/prototype/since/wrapping-at-end-of-month.js
 skip script test262/built-ins/Temporal/PlainDateTime/prototype/until/wrapping-at-end-of-month.js
-
-skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/order-of-operations.js
-skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/calendar-dateadd-called-with-options-undefined.js
-skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/roundingincrement-addition-out-of-range.js
-skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/calendar-dateuntil-called-with-singular-largestunit.js
-skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/order-of-operations.js
-skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/calendar-dateadd-called-with-options-undefined.js
-skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/roundingincrement-addition-out-of-range.js
-skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/calendar-dateuntil-called-with-singular-largestunit.js
-skip script test262/built-ins/Temporal/PlainDate/prototype/since/order-of-operations.js
-skip script test262/built-ins/Temporal/PlainDate/prototype/until/order-of-operations.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-halfEven.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-halfTrunc.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/order-of-operations.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/largestunit-smallestunit-combinations-relativeto.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/calendar-dateadd-called-with-options-undefined.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-expand.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/dateuntil-field.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-halfFloor.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-halfCeil.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/calendar-dateuntil-called-with-singular-largestunit.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-floor.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-trunc.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-halfExpand.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/roundingmode-ceil.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/dst-rounding-result.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/timezone-getpossibleinstantsfor-iterable.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/dst-balancing-result.js
-skip script test262/built-ins/Temporal/Duration/prototype/total/order-of-operations.js
-skip script test262/built-ins/Temporal/Duration/prototype/total/precision-exact-mathematical-values-4.js
-skip script test262/built-ins/Temporal/Duration/prototype/total/precision-exact-mathematical-values-3.js
-skip script test262/built-ins/Temporal/Duration/prototype/total/dst-day-length.js
-skip script test262/built-ins/Temporal/Duration/prototype/total/calendar-dateuntil-called-with-singular-largestunit.js
-skip script test262/built-ins/Temporal/Duration/prototype/total/dst-rounding-result.js
-skip script test262/built-ins/Temporal/PlainDateTime/prototype/since/order-of-operations.js
-skip script test262/built-ins/Temporal/PlainDateTime/prototype/until/order-of-operations.js
-skip script test262/built-ins/Temporal/PlainYearMonth/prototype/since/order-of-operations.js
-skip script test262/built-ins/Temporal/PlainYearMonth/prototype/until/order-of-operations.js
 
 
 ##############################################
@@ -1218,27 +1194,9 @@ skip script test262/staging/Intl402/Temporal/old/datetime-toLocaleString.js
 skip script test262/staging/Intl402/Temporal/old/monthday-toLocaleString.js
 skip script test262/staging/Intl402/Temporal/old/instant-toLocaleString.js
 
-# https://github.com/tc39/test262/pull/4079
-skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/reference-day.js
-
 # Test assumes CalendarMonthDayToISOReferenceDate modifies input |day| when no |monthCode| is given.
 # This case should be clarified more clearly in the spec.
 skip script test262/intl402/Temporal/Calendar/prototype/monthDayFromFields/reference-year-1972.js
-
-# Expected era name is implementation-defined.
-skip script test262/intl402/Temporal/PlainDateTime/prototype/withPlainDate/argument-string-calendar.js
-skip script test262/intl402/Temporal/PlainYearMonth/from/argument-object.js
-skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/order-of-operations.js
-skip script test262/intl402/Temporal/Calendar/prototype/dateFromFields/order-of-operations.js
-
-# https://github.com/tc39/test262/pull/4099
-skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/reference-day-chinese.js
-
-# https://github.com/tc39/test262/pull/4098
-skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/reference-day-gregory.js
-
-# relativeTo option removed
-skip script test262/intl402/Temporal/Duration/prototype/round/relativeto-string-datetime.js
 
 # Calendar arithmetic not yet supported in ICU4X.
 #
