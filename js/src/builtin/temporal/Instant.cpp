@@ -594,13 +594,7 @@ NormalizedTimeDuration js::temporal::DifferenceInstant(
   auto diff = NormalizedTimeDurationFromEpochNanosecondsDifference(ns2, ns1);
   MOZ_ASSERT(IsValidInstantSpan(diff.to<InstantSpan>()));
 
-  // Step 2.
-  if (smallestUnit == TemporalUnit::Nanosecond &&
-      roundingIncrement == Increment{1}) {
-    return diff;
-  }
-
-  // Steps 3-4.
+  // Steps 2-3.
   return RoundDuration(diff, roundingIncrement, smallestUnit, roundingMode);
 }
 
@@ -694,18 +688,18 @@ static bool DifferenceTemporalInstant(JSContext* cx,
     };
   }
 
-  // Step 5.
+  // Steps 5-6.
   auto difference =
       DifferenceInstant(instant, other, settings.roundingIncrement,
                         settings.smallestUnit, settings.roundingMode);
 
-  // Step 6.
+  // Step 7.
   TimeDuration balanced;
   if (!BalanceTimeDuration(cx, difference, settings.largestUnit, &balanced)) {
     return false;
   }
 
-  // Step 7.
+  // Step 8.
   auto duration = balanced.toDuration();
   if (operation == TemporalDifference::Since) {
     duration = duration.negate();

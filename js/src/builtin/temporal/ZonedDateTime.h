@@ -106,6 +106,7 @@ class MOZ_STACK_CLASS ZonedDateTime final {
   const auto* calendarDoNotUse() const { return &calendar_; }
 };
 
+struct DifferenceSettings;
 enum class TemporalDisambiguation;
 enum class TemporalOffset;
 enum class TemporalOverflow;
@@ -179,15 +180,38 @@ bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
 
 /**
  * DifferenceZonedDateTime ( ns1, ns2, timeZoneRec, calendarRec, largestUnit,
- * options, precalculatedPlainDateTime )
+ * options, startDateTime )
  */
 bool DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
                              const Instant& ns2,
                              JS::Handle<TimeZoneRecord> timeZone,
                              JS::Handle<CalendarRecord> calendar,
                              TemporalUnit largestUnit,
-                             const PlainDateTime& precalculatedPlainDateTime,
+                             const PlainDateTime& startDateTime,
                              NormalizedDuration* result);
+
+/**
+ * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendarRec, timeZoneRec,
+ * precalculatedPlainDateTime, resolvedOptions, largestUnit, roundingIncrement,
+ * smallestUnit, roundingMode )
+ */
+bool DifferenceZonedDateTimeWithRounding(
+    JSContext* cx, const Instant& ns1, const Instant& ns2,
+    JS::Handle<TimeZoneRecord> timeZone, JS::Handle<CalendarRecord> calendar,
+    JS::Handle<Wrapped<PlainDateObject*>> plainRelativeTo,
+    JS::Handle<ZonedDateTime> zonedDateTime,
+    const PlainDateTime& precalculatedPlainDateTime,
+    const DifferenceSettings& settings, Duration* result);
+
+/**
+ * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendarRec, timeZoneRec,
+ * precalculatedPlainDateTime, resolvedOptions, largestUnit, roundingIncrement,
+ * smallestUnit, roundingMode )
+ */
+bool DifferenceZonedDateTimeWithRounding(JSContext* cx, const Instant& ns1,
+                                         const Instant& ns2,
+                                         const DifferenceSettings& settings,
+                                         Duration* result);
 
 struct NormalizedTimeAndDays final {
   int64_t days = 0;

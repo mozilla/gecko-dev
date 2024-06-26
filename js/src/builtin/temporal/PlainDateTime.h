@@ -105,6 +105,7 @@ inline PlainDateTime ToPlainDateTime(const PlainDateTimeObject* dateTime) {
   return {ToPlainDate(dateTime), ToPlainTime(dateTime)};
 }
 
+struct DifferenceSettings;
 class Increment;
 enum class TemporalRoundingMode;
 enum class TemporalUnit;
@@ -179,6 +180,38 @@ bool InterpretTemporalDateTimeFields(JSContext* cx,
 PlainDateTime RoundISODateTime(const PlainDateTime& dateTime,
                                Increment increment, TemporalUnit unit,
                                TemporalRoundingMode roundingMode);
+
+/**
+ * DifferenceISODateTime ( y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2,
+ * d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit, options )
+ */
+bool DifferenceISODateTime(JSContext* cx, const PlainDateTime& one,
+                           const PlainDateTime& two,
+                           JS::Handle<CalendarRecord> calendar,
+                           TemporalUnit largestUnit,
+                           NormalizedDuration* result);
+
+/**
+ * DifferencePlainDateTimeWithRounding ( plainDate1, h1, min1, s1, ms1, mus1,
+ * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit,
+ * roundingIncrement, smallestUnit, roundingMode, resolvedOptions )
+ */
+bool DifferencePlainDateTimeWithRounding(JSContext* cx,
+                                         const PlainDateTime& one,
+                                         const PlainDateTime& two,
+                                         JS::Handle<CalendarRecord> calendar,
+                                         const DifferenceSettings& settings,
+                                         Duration* result);
+/**
+ * DifferencePlainDateTimeWithRounding ( plainDate1, h1, min1, s1, ms1, mus1,
+ * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit,
+ * roundingIncrement, smallestUnit, roundingMode, resolvedOptions )
+ */
+bool DifferencePlainDateTimeWithRounding(JSContext* cx,
+                                         const PlainDateTime& one,
+                                         const PlainDateTime& two,
+                                         JS::Handle<CalendarRecord> calendar,
+                                         TemporalUnit unit, double* result);
 
 class MOZ_STACK_CLASS PlainDateTimeWithCalendar final {
   PlainDateTime dateTime_;
