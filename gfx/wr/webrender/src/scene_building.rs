@@ -1273,26 +1273,20 @@ impl<'a> SceneBuilder<'a> {
     fn process_common_properties(
         &mut self,
         common: &CommonItemProperties,
-        bounds: Option<&LayoutRect>,
+        bounds: Option<LayoutRect>,
     ) -> (LayoutPrimitiveInfo, LayoutRect, SpatialNodeIndex, ClipNodeId) {
         let spatial_node_index = self.get_space(common.spatial_id);
-        let current_offset = self.current_external_scroll_offset(spatial_node_index);
-
-        let unsnapped_clip_rect = common.clip_rect.translate(current_offset);
-        let unsnapped_rect = bounds.map(|bounds| {
-            bounds.translate(current_offset)
-        });
 
         // If no bounds rect is given, default to clip rect.
         let (rect, clip_rect) = if common.flags.contains(PrimitiveFlags::ANTIALISED) {
-            (unsnapped_rect.unwrap_or(unsnapped_clip_rect), unsnapped_clip_rect)
+            (bounds.unwrap_or(common.clip_rect), common.clip_rect)
         } else {
             let clip_rect = self.snap_rect(
-                &unsnapped_clip_rect,
+                &common.clip_rect,
                 spatial_node_index,
             );
 
-            let rect = unsnapped_rect.map_or(clip_rect, |bounds| {
+            let rect = bounds.map_or(clip_rect, |bounds| {
                 self.snap_rect(
                     &bounds,
                     spatial_node_index,
@@ -1301,6 +1295,12 @@ impl<'a> SceneBuilder<'a> {
 
             (rect, clip_rect)
         };
+
+        let current_offset = self.current_external_scroll_offset(spatial_node_index);
+
+        let rect = rect.translate(current_offset);
+        let clip_rect = clip_rect.translate(current_offset);
+        let unsnapped_rect = bounds.unwrap_or(common.clip_rect).translate(current_offset);
 
         let clip_node_id = self.get_clip_node(
             common.clip_chain_id,
@@ -1312,13 +1312,13 @@ impl<'a> SceneBuilder<'a> {
             flags: common.flags,
         };
 
-        (layout, unsnapped_rect.unwrap_or(unsnapped_clip_rect), spatial_node_index, clip_node_id)
+        (layout, unsnapped_rect, spatial_node_index, clip_node_id)
     }
 
     fn process_common_properties_with_bounds(
         &mut self,
         common: &CommonItemProperties,
-        bounds: &LayoutRect,
+        bounds: LayoutRect,
     ) -> (LayoutPrimitiveInfo, LayoutRect, SpatialNodeIndex, ClipNodeId) {
         self.process_common_properties(
             common,
@@ -1348,7 +1348,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let (layout, _, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.bounds,
+                    info.bounds,
                 );
 
                 self.add_image(
@@ -1368,7 +1368,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let (layout, unsnapped_rect, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.bounds,
+                    info.bounds,
                 );
 
                 let stretch_size = process_repeat_size(
@@ -1394,7 +1394,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let (layout, _, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.bounds,
+                    info.bounds,
                 );
 
                 self.add_yuv_image(
@@ -1419,7 +1419,7 @@ impl<'a> SceneBuilder<'a> {
                 // error throughout the layers). We should fix this at some point.
                 let (layout, _, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.bounds,
+                    info.bounds,
                 );
 
                 self.add_text(
@@ -1438,7 +1438,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let (layout, _, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.bounds,
+                    info.bounds,
                 );
 
                 self.add_primitive(
@@ -1498,7 +1498,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let (layout, _, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.bounds,
+                    info.bounds,
                 );
 
                 self.add_clear_rectangle(
@@ -1512,7 +1512,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let (layout, _, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.area,
+                    info.area,
                 );
 
                 self.add_line(
@@ -1534,7 +1534,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let (mut layout, unsnapped_rect, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.bounds,
+                    info.bounds,
                 );
 
                 let mut tile_size = process_repeat_size(
@@ -1612,7 +1612,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let (mut layout, unsnapped_rect, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.bounds,
+                    info.bounds,
                 );
 
                 let mut center = info.gradient.center;
@@ -1690,7 +1690,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let (mut layout, unsnapped_rect, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.bounds,
+                    info.bounds,
                 );
 
                 let tile_size = process_repeat_size(
@@ -1735,7 +1735,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let (layout, _, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.box_bounds,
+                    info.box_bounds,
                 );
 
                 self.add_box_shadow(
@@ -1755,7 +1755,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let (layout, _, spatial_node_index, clip_node_id) = self.process_common_properties_with_bounds(
                     &info.common,
-                    &info.bounds,
+                    info.bounds,
                 );
 
                 self.add_border(
