@@ -34,6 +34,7 @@
 #include "nsUnicharUtils.h"
 #include "Pivot.h"
 #include "TextAttrs.h"
+#include "TextRange.h"
 
 using mozilla::intl::WordBreaker;
 using FindWordOptions = mozilla::intl::WordBreaker::FindWordOptions;
@@ -2018,6 +2019,30 @@ bool TextLeafRange::SetSelection(int32_t aSelectionNum) const {
   }
 
   return false;
+}
+
+/* static */
+void TextLeafRange::GetSelection(Accessible* aAcc,
+                                 nsTArray<TextLeafRange>& aRanges) {
+  // Use HyperTextAccessibleBase::SelectionRanges. Eventually, we'll want to
+  // move that code into TextLeafPoint, but events and caching are based on
+  // HyperText offsets for now.
+  HyperTextAccessibleBase* hyp = aAcc->AsHyperTextBase();
+  if (!hyp) {
+    return;
+  }
+  AutoTArray<TextRange, 1> hypRanges;
+  hyp->CroppedSelectionRanges(hypRanges);
+  aRanges.SetCapacity(hypRanges.Length());
+  for (TextRange& hypRange : hypRanges) {
+    TextLeafPoint start =
+        hypRange.StartContainer()->AsHyperTextBase()->ToTextLeafPoint(
+            hypRange.StartOffset());
+    TextLeafPoint end =
+        hypRange.EndContainer()->AsHyperTextBase()->ToTextLeafPoint(
+            hypRange.EndOffset());
+    aRanges.EmplaceBack(start, end);
+  }
 }
 
 void TextLeafRange::ScrollIntoView(uint32_t aScrollType) const {

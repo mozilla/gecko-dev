@@ -297,6 +297,12 @@ class TextLeafRange final {
   LayoutDeviceIntRect Bounds() const;
 
   /**
+   * Get the ranges of text that are selected within this Accessible. The caret
+   * is not included as a collapsed range.
+   */
+  static void GetSelection(Accessible* aAcc, nsTArray<TextLeafRange>& aRanges);
+
+  /**
    * Set range as DOM selection.
    * aSelectionNum is the selection index to use. If aSelectionNum is
    * out of bounds for current selection ranges, or is -1, a new selection
