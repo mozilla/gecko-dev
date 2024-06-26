@@ -1252,8 +1252,15 @@ static bool phc_init() {
 }
 
 static inline bool maybe_init() {
-  static bool sInitSuccess = []() { return phc_init(); }();
-  return sInitSuccess;
+  // This runs on hot paths and we can save some memory accesses by using sPHC
+  // to test if we've already initialised PHC successfully.
+  if (MOZ_UNLIKELY(!PHC::sPHC)) {
+    // The lambda will only be called once and is thread safe.
+    static bool sInitSuccess = []() { return phc_init(); }();
+    return sInitSuccess;
+  }
+
+  return true;
 }
 
 //---------------------------------------------------------------------------
