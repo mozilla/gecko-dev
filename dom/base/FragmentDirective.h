@@ -116,6 +116,15 @@ class FragmentDirective final : public nsISupports, public nsWrapperCache {
       nsCString& aFragment, nsTArray<TextDirective>* aTextDirectives = nullptr,
       nsIURI* aURI = nullptr);
 
+  /** Performs various checks to determine if a text directive is allowed to be
+   * scrolled to.
+   *
+   * This follows the algorithm "check if a text directive can be scrolled" in
+   * section 3.5.4 of the text fragment spec
+   * (https://wicg.github.io/scroll-to-text-fragment/#restricting-the-text-fragment).
+   */
+  bool IsTextDirectiveAllowedToBeScrolledTo();
+
  private:
   RefPtr<nsRange> FindRangeForTextDirective(
       const TextDirective& aTextDirective);
