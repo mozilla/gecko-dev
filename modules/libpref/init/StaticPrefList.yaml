@@ -8020,7 +8020,7 @@
     value: false
 #endif
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
 
 -   name: javascript.options.wasm_moz_intgemm
     type: bool
@@ -8046,13 +8046,13 @@
     value: false
 #endif
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
 
 -   name: javascript.options.wasm_memory_control
     type: bool
     value: false
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
 
 -   name: javascript.options.wasm_branch_hinting
     type: bool
@@ -8062,7 +8062,7 @@
     value: false
 #endif
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
 
 #if defined(ENABLE_WASM_SIMD)
 #if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
@@ -8072,6 +8072,7 @@
     type: bool
     value: true
     mirror: always
+    set_spidermonkey_pref: startup
 #endif
 #endif
 
@@ -8083,7 +8084,7 @@
     value: false
 #endif
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
 
 -   name: javascript.options.wasm_multi_memory
     type: bool
@@ -8093,7 +8094,7 @@
     value: false
 #endif
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
 
 -   name: javascript.options.wasm_js_string_builtins
     type: bool
@@ -8109,19 +8110,19 @@
     value: false
 #endif
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
 
 -   name: javascript.options.wasm_js_promise_integration
     type: bool
     value: false
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
 
 -   name: javascript.options.wasm_test_serialization
     type: bool
     value: false
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
 
 -   name: javascript.options.wasm_experimental_compile_pipeline
     type: bool

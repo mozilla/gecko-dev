@@ -115,7 +115,7 @@
     /* compiler predicate */ AnyCompilerAvailable(cx),                  \
     /* flag predicate     */ true,                                      \
     /* flag force enable  */ false,                                     \
-    /* flag fuzz enable   */ true,                                      \
+    /* flag fuzz enable   */ false,                                     \
     /* preference name    */ js_string_builtins)                        \
   FEATURE(                                                              \
     /* capitalized name   */ RelaxedSimd,                               \

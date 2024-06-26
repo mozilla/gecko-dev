@@ -36,6 +36,20 @@ extern "C" {
 size_t gluesmith(uint8_t* data, size_t size, uint8_t* out, size_t maxsize);
 }
 
+// Filter and set only "always" preferences. "startup" preferences are
+// not allowed to be set after JS_Init.
+struct PrefsSetters {
+#define JS_PREF_SETTER(NAME, CPP_NAME, TYPE, SETTER_NAME, IS_STARTUP) \
+  template <typename T>                                               \
+  static void set_##CPP_NAME(T value) {                               \
+    if constexpr (!IS_STARTUP) {                                      \
+      JS::Prefs::SETTER_NAME(value);                                  \
+    }                                                                 \
+  }
+  FOR_EACH_JS_PREF(JS_PREF_SETTER)
+#undef JS_PREF_SETTER
+};
+
 static int testWasmInit(int* argc, char*** argv) {
   if (!wasm::HasSupport(gCx)) {
     MOZ_CRASH("Wasm is not supported");
@@ -43,7 +57,7 @@ static int testWasmInit(int* argc, char*** argv) {
 
 #define WASM_FEATURE(NAME, LOWER_NAME, COMPILE_PRED, COMPILER_PRED, FLAG_PRED, \
                      FLAG_FORCE_ON, FLAG_FUZZ_ON, PREF)                        \
-  JS::Prefs::setAtStartup_wasm_##PREF(FLAG_FUZZ_ON);
+  PrefsSetters::set_wasm_##PREF(FLAG_FUZZ_ON);
   JS_FOR_WASM_FEATURES(WASM_FEATURE)
 #undef WASM_FEATURE
 
