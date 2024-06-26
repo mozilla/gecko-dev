@@ -1,0 +1,30 @@
+/* -*- Mode: IDL; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+interface nsIHttpHeaderVisitor;
+
+/**
+ * nsIHttpChannel
+ *
+ * This interface allows to create an object holding mocked data which will
+ * replace the response for a channel. To override the channel's response
+ * use nsIHttpChannelInternal::setResponseOverride with an instance of
+ * nsIReplacedHttpResponse as parameter.
+ */
+[scriptable, uuid(067cb318-9b67-4442-9c1c-93e62dac8a7c)]
+interface nsIReplacedHttpResponse : nsISupports
+{
+    [must_use] void init();
+    [must_use] attribute ACString responseBody;
+    [must_use] attribute unsigned long responseStatus;
+    [must_use] attribute ACString responseStatusText;
+
+    [must_use] void visitResponseHeaders(in nsIHttpHeaderVisitor visitor);
+    [must_use] void setResponseHeader(in ACString header,
+                                      in ACString value,
+                                      in boolean merge);
+};

@@ -24,6 +24,7 @@ XPIDL_SOURCES += [
     "nsIObliviousHttp.idl",
     "nsIObliviousHttpChannel.idl",
     "nsIRaceCacheWithNetwork.idl",
+    "nsIReplacedHttpResponse.idl",
     "nsITlsHandshakeListener.idl",
     "nsIWellKnownOpportunisticUtils.idl",
 ]
@@ -74,6 +75,7 @@ EXPORTS.mozilla.net += [
     "ParentChannelListener.h",
     "PHttpChannelParams.h",
     "PSpdyPush.h",
+    "ReplacedHttpResponse.h",
     "SpeculativeTransaction.h",
     "TimingStruct.h",
 ]
@@ -160,6 +162,7 @@ UNIFIED_SOURCES += [
     "PendingTransactionInfo.cpp",
     "PendingTransactionQueue.cpp",
     "QuicSocketControl.cpp",
+    "ReplacedHttpResponse.cpp",
     "SpeculativeTransaction.cpp",
     "TlsHandshaker.cpp",
     "TLSTransportLayer.cpp",
