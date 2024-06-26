@@ -572,7 +572,7 @@ class PHC {
     Maybe<StackTrace> mFreeStack;
 
     // The time at which the page is available for reuse, as measured against
-    // sNow. When the page is in use this value will be kMaxTime.
+    // mNow. When the page is in use this value will be kMaxTime.
     // - NeverAllocated: must be 0.
     // - InUse: must be kMaxTime.
     // - Freed: must be > 0 and < kMaxTime.
@@ -899,10 +899,16 @@ class PHC {
 
   static bool IsDisabledOnCurrentThread() { return tlsIsDisabled.get(); }
 
-  static Time Now() { return sNow; }
+  static Time Now() {
+    if (!sPHC) {
+      return 0;
+    }
 
-  static void AdvanceNow(uint32_t delay = 0) {
-    sNow += tlsLastDelay.get() - delay;
+    return sPHC->mNow;
+  }
+
+  void AdvanceNow(uint32_t delay = 0) {
+    mNow += tlsLastDelay.get() - delay;
     tlsLastDelay.set(delay);
   }
 
@@ -919,7 +925,10 @@ class PHC {
     // executed on a new thread's first allocation, the result is the same: all
     // the thread's TLS fields will be initialised.
 
-    AdvanceNow();
+    // This accesses sPHC but we want to ensure it's still a static member
+    // function so that sPHC isn't dereferenced until after the hot path above.
+    MOZ_ASSERT(sPHC);
+    sPHC->AdvanceNow();
 
     // Use an atomic fetch-and-subtract.  This uses unsigned underflow semantics
     // to avoid doing a full compare-and-swap.
@@ -1056,11 +1065,23 @@ class PHC {
 #endif
   }
 
+  // To improve locality we try to order this file by how frequently different
+  // fields are modified and place all the modified-together fields early and
+  // ideally within a single cache line.
  public:
   // The mutex that protects the other members.
-  Mutex mMutex MOZ_UNANNOTATED;
+  alignas(kCacheLineSize) Mutex mMutex MOZ_UNANNOTATED;
 
  private:
+  // The current time. We use ReleaseAcquire semantics since we attempt to
+  // update this by larger increments and don't want to lose an entire update.
+  Atomic<Time, ReleaseAcquire> mNow;
+
+  // This will only ever be updated from one thread.  The other threads should
+  // eventually get the update.
+  Atomic<PHCState, Relaxed> mPhcState =
+      Atomic<PHCState, Relaxed>(DEFAULT_STATE);
+
   // RNG for deciding which allocations to treat specially. It doesn't need to
   // be high quality.
   //
@@ -1068,10 +1089,7 @@ class PHC {
   // PHC's constructor. Don't change it to UniquePtr or anything like that.
   non_crypto::XorShift128PlusRNG mRNG;
 
-  AllocPageInfo mAllocPages[kNumAllocPages];
 #if PHC_LOGGING
-  Time mFreeTime[kNumAllocPages];
-
   // How many allocations that could have been page allocs actually were? As
   // constrained kNumAllocPages. If the hit ratio isn't close to 100% it's
   // likely that the global constants are poorly chosen.
@@ -1079,15 +1097,13 @@ class PHC {
   size_t mPageAllocMisses = 0;
 #endif
 
-  // This will only ever be updated from one thread.  The other threads should
-  // eventually get the update.
-  Atomic<PHCState, Relaxed> mPhcState =
-      Atomic<PHCState, Relaxed>(DEFAULT_STATE);
+  // The remaining fields are updated much less often, place them on the next
+  // cache line.
 
   // The average delay before doing any page allocations at the start of a
   // process. Note that roughly 1 million allocations occur in the main process
   // while starting the browser. The delay range is 1..gAvgFirstAllocDelay*2.
-  Delay mAvgFirstAllocDelay = 64 * 1024;
+  alignas(kCacheLineSize) Delay mAvgFirstAllocDelay = 64 * 1024;
 
   // The average delay until the next attempted page allocation, once we get
   // past the first delay. The delay range is 1..kAvgAllocDelay*2.
@@ -1151,10 +1167,6 @@ class PHC {
   //
   static PHC_THREAD_LOCAL(bool) tlsIsDisabled;
 
-  // The current time. We use ReleaseAcquire semantics since we attempt to
-  // update this by larger increments and don't want to lose an entire update.
-  static Atomic<Time, ReleaseAcquire> sNow;
-
   // Delay until the next attempt at a page allocation.  The delay is made up of
   // two parts the global delay and each thread's local portion of that delay:
   //
@@ -1169,6 +1181,11 @@ class PHC {
 
   // The last value we set tlsAllocDelay to before starting to count down.
   static PHC_THREAD_LOCAL(Delay) tlsLastDelay;
+
+  AllocPageInfo mAllocPages[kNumAllocPages];
+#if PHC_LOGGING
+  Time mFreeTime[kNumAllocPages];
+#endif
 
  public:
   Delay GetAvgAllocDelay(const MutexAutoLock&) { return mAvgAllocDelay; }
@@ -1187,14 +1204,18 @@ class PHC {
   static PHC* sPHC;
 };
 
+// These globals are read together and hardly ever written.  They should be on
+// the same cache line.  They should be in a different cache line to data that
+// is manipulated often (sMutex and mNow are members of sPHC for that reason) so
+// that this cache line can be shared amoung cores.  This makes a measurable
+// impact to calls to maybe_init()
+alignas(kCacheLineSize) PHCRegion* PHC::sRegion;
+PHC* PHC::sPHC;
+
 PHC_THREAD_LOCAL(bool) PHC::tlsIsDisabled;
-Atomic<Time, ReleaseAcquire> PHC::sNow;
 PHC_THREAD_LOCAL(Delay) PHC::tlsAllocDelay;
 Atomic<Delay, ReleaseAcquire> PHC::sAllocDelay;
 PHC_THREAD_LOCAL(Delay) PHC::tlsLastDelay;
-
-PHCRegion* PHC::sRegion;
-PHC* PHC::sPHC;
 
 // This must be defined after the PHC class.
 PHCRegion::PHCRegion()
@@ -1533,7 +1554,7 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
   uintptr_t index = pk.AllocPageIndex();
 
   // A page-to-something transition.
-  PHC::AdvanceNow(PHC::LocalAllocDelay());
+  PHC::sPHC->AdvanceNow(PHC::LocalAllocDelay());
 
   // Note that `disable` has no effect unless it is emplaced below.
   Maybe<AutoDisableOnCurrentThread> disable;
@@ -1634,7 +1655,7 @@ MOZ_ALWAYS_INLINE static bool MaybePageFree(const Maybe<arena_id_t>& aArenaId,
   }
 
   // At this point we know we have an allocation page.
-  PHC::AdvanceNow(PHC::LocalAllocDelay());
+  PHC::sPHC->AdvanceNow(PHC::LocalAllocDelay());
   uintptr_t index = pk.AllocPageIndex();
 
   // Note that `disable` has no effect unless it is emplaced below.

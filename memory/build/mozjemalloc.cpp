@@ -432,17 +432,6 @@ struct arena_chunk_t {
 // ***************************************************************************
 // Constants defining allocator size classes and behavior.
 
-// Maximum size of L1 cache line.  This is used to avoid cache line aliasing,
-// so over-estimates are okay (up to a point), but under-estimates will
-// negatively affect performance.
-static const size_t kCacheLineSize =
-#if defined(XP_DARWIN) && defined(__aarch64__)
-    128
-#else
-    64
-#endif
-    ;
-
 // Our size classes are inclusive ranges of memory sizes.  By describing the
 // minimums and how memory is allocated in each range the maximums can be
 // calculated.
