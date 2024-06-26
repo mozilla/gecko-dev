@@ -8,7 +8,9 @@
 #define mozilla_a11y_UiaTextRange_h__
 
 #include "IUnknownImpl.h"
+#include "MsaaAccessible.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/RefPtr.h"
 #include "objbase.h"
 #include "uiautomation.h"
 
@@ -97,6 +99,18 @@ class UiaTextRange : public ITextRangeProvider {
 
   virtual HRESULT STDMETHODCALLTYPE GetChildren(
       /* [retval][out] */ __RPC__deref_out_opt SAFEARRAY** aRetVal);
+
+ private:
+  void SetRange(const TextLeafRange& aRange);
+  TextLeafRange GetRange() const;
+
+  // Accessible doesn't support strong references and so neither does
+  // TextLeafRange. Therefore, we hold strong references to MsaaAccessibles. We
+  // combine those with offsets to reconstitute the TextLeafRange later.
+  RefPtr<MsaaAccessible> mStartAcc;
+  int32_t mStartOffset = -1;
+  RefPtr<MsaaAccessible> mEndAcc;
+  int32_t mEndOffset = -1;
 };
 
 }  // namespace mozilla::a11y
