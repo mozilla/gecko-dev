@@ -208,7 +208,8 @@ bool ScrollbarDrawing::DoPaintDefaultScrollbar(
   }
   const auto color =
       ComputeScrollbarTrackColor(aFrame, aStyle, aDocumentState, aColors);
-  if (overlay && mKind == Kind::Win11) {
+  if (overlay && mKind == Kind::Win11 &&
+      StaticPrefs::widget_non_native_theme_win11_scrollbar_round_track()) {
     LayoutDeviceCoord radius =
         (aScrollbarKind == ScrollbarKind::Horizontal ? aRect.height
                                                      : aRect.width) /
