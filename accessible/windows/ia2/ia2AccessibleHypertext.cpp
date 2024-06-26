@@ -41,6 +41,8 @@ ia2AccessibleHypertext::QueryInterface(REFIID aIID, void** aInstancePtr) {
       *aInstancePtr = static_cast<IAccessibleEditableText*>(this);
     } else if (aIID == IID_IAccessibleTextSelectionContainer) {
       *aInstancePtr = static_cast<IAccessibleTextSelectionContainer*>(this);
+    } else if (aIID == IID_ITextProvider) {
+      *aInstancePtr = static_cast<ITextProvider*>(this);
     }
 
     if (*aInstancePtr) {

@@ -13,6 +13,7 @@
 #include "AccessibleWrap.h"
 #include "ApplicationAccessible.h"
 #include "ARIAMap.h"
+#include "ia2AccessibleHypertext.h"
 #include "ia2AccessibleTable.h"
 #include "ia2AccessibleTableCell.h"
 #include "LocalAccessible-inl.h"
@@ -433,6 +434,20 @@ uiaRawElmProvider::GetPatternProvider(
         item.forget(aPatternProvider);
       }
       return S_OK;
+    case UIA_TextPatternId: {
+      // Only documents and editable text controls should have the Text pattern.
+      // https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-textpattern-and-embedded-objects-overview#webpage-and-text-input-controls-in-edge
+      constexpr uint64_t editableRootStates =
+          states::EDITABLE | states::FOCUSABLE;
+      if (acc->IsDoc() ||
+          (acc->IsHyperText() &&
+           (acc->State() & editableRootStates) == editableRootStates)) {
+        auto text =
+            GetPatternFromDerived<ia2AccessibleHypertext, ITextProvider>();
+        text.forget(aPatternProvider);
+      }
+      return S_OK;
+    }
     case UIA_TogglePatternId:
       if (HasTogglePattern()) {
         RefPtr<IToggleProvider> toggle = this;
