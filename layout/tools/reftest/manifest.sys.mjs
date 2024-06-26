@@ -652,6 +652,9 @@ function BuildConditionSandbox(aURL) {
   sandbox.gfxSVGFE =
     Services.prefs.getBoolPref("gfx.webrender.svg-filter-effects") &&
     !g.useDrawSnapshot;
+  sandbox.gfxSVGFEBlend =
+    Services.prefs.getBoolPref("gfx.webrender.svg-filter-effects.feblend") &&
+    sandbox.gfxSVGFE;
   sandbox.gfxSVGFEColorMatrix =
     Services.prefs.getBoolPref(
       "gfx.webrender.svg-filter-effects.fecolormatrix"
