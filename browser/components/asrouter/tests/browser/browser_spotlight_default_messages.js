@@ -123,8 +123,10 @@ async function testTelemetry(spy, message) {
 }
 
 async function waitForClick(selector, win) {
-  await TestUtils.waitForCondition(() => win.document.querySelector(selector));
-  win.document.querySelector(selector).click();
+  let el = await TestUtils.waitForCondition(() =>
+    win.document.querySelector(selector)
+  );
+  el.click();
 }
 
 /* Test Fox Doodle Set to Default message screen */

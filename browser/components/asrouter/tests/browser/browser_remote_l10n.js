@@ -30,10 +30,22 @@ add_setup(async () => {
 
   // Remove any cached l10n resources, "cfr" is the cache key
   // used for strings from the remote `asrouter.ftl` see RemoteL10n.sys.mjs
-  RemoteL10n.reloadL10n();
   if (l10nRegistryInstance.hasSource("cfr")) {
     l10nRegistryInstance.removeSources(["cfr"]);
   }
+  RemoteL10n.reloadL10n();
+
+  registerCleanupFunction(async function () {
+    try {
+      await IOUtils.remove(dirPath, { recursive: true });
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (l10nRegistryInstance.hasSource("cfr")) {
+      l10nRegistryInstance.removeSources(["cfr"]);
+    }
+  });
 });
 
 add_task(async function test_TODO() {
