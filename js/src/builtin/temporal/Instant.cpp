@@ -133,28 +133,11 @@ bool js::temporal::IsValidEpochNanoseconds(const BigInt* epochNanoseconds) {
   return AbsoluteValueIsLessOrEqual<EpochLimitBigIntDigits>(epochNanoseconds);
 }
 
-static bool IsValidEpochMicroseconds(const BigInt* epochMicroseconds) {
-  int64_t i;
-  if (!BigInt::isInt64(epochMicroseconds, &i)) {
-    return false;
-  }
-
-  constexpr int64_t MicrosecondsMaxInstant = Instant::max().toMicroseconds();
-  return -MicrosecondsMaxInstant <= i && i <= MicrosecondsMaxInstant;
-}
-
 static bool IsValidEpochMilliseconds(double epochMilliseconds) {
   MOZ_ASSERT(IsInteger(epochMilliseconds));
 
   constexpr int64_t MillisecondsMaxInstant = Instant::max().toMilliseconds();
   return std::abs(epochMilliseconds) <= double(MillisecondsMaxInstant);
-}
-
-static bool IsValidEpochSeconds(double epochSeconds) {
-  MOZ_ASSERT(IsInteger(epochSeconds));
-
-  constexpr int64_t SecondsMaxInstant = Instant::max().toSeconds();
-  return std::abs(epochSeconds) <= double(SecondsMaxInstant);
 }
 
 /**
@@ -822,49 +805,6 @@ static bool Instant_from(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 /**
- * Temporal.Instant.fromEpochSeconds ( epochSeconds )
- */
-static bool Instant_fromEpochSeconds(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-
-  // Step 1.
-  double epochSeconds;
-  if (!JS::ToNumber(cx, args.get(0), &epochSeconds)) {
-    return false;
-  }
-
-  // Step 2.
-  //
-  // NumberToBigInt throws a RangeError for non-integral numbers.
-  if (!IsInteger(epochSeconds)) {
-    ToCStringBuf cbuf;
-    const char* str = NumberToCString(&cbuf, epochSeconds);
-
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_INSTANT_NONINTEGER, str);
-    return false;
-  }
-
-  // Step 3. (Not applicable)
-
-  // Step 4.
-  if (!IsValidEpochSeconds(epochSeconds)) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_INSTANT_INVALID);
-    return false;
-  }
-
-  // Step 5.
-  int64_t seconds = mozilla::AssertedCast<int64_t>(epochSeconds);
-  auto* result = CreateTemporalInstant(cx, Instant::fromSeconds(seconds));
-  if (!result) {
-    return false;
-  }
-  args.rval().setObject(*result);
-  return true;
-}
-
-/**
  * Temporal.Instant.fromEpochMilliseconds ( epochMilliseconds )
  */
 static bool Instant_fromEpochMilliseconds(JSContext* cx, unsigned argc,
@@ -902,40 +842,6 @@ static bool Instant_fromEpochMilliseconds(JSContext* cx, unsigned argc,
   int64_t milliseconds = mozilla::AssertedCast<int64_t>(epochMilliseconds);
   auto* result =
       CreateTemporalInstant(cx, Instant::fromMilliseconds(milliseconds));
-  if (!result) {
-    return false;
-  }
-  args.rval().setObject(*result);
-  return true;
-}
-
-/**
- * Temporal.Instant.fromEpochMicroseconds ( epochMicroseconds )
- */
-static bool Instant_fromEpochMicroseconds(JSContext* cx, unsigned argc,
-                                          Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-
-  // Step 1.
-  Rooted<BigInt*> epochMicroseconds(cx, js::ToBigInt(cx, args.get(0)));
-  if (!epochMicroseconds) {
-    return false;
-  }
-
-  // Step 2. (Not applicable)
-
-  // Step 3.
-  if (!IsValidEpochMicroseconds(epochMicroseconds)) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_INSTANT_INVALID);
-    return false;
-  }
-
-  int64_t i;
-  MOZ_ALWAYS_TRUE(BigInt::isInt64(epochMicroseconds, &i));
-
-  // Step 4.
-  auto* result = CreateTemporalInstant(cx, Instant::fromMicroseconds(i));
   if (!result) {
     return false;
   }
@@ -996,27 +902,6 @@ static bool Instant_compare(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 /**
- * get Temporal.Instant.prototype.epochSeconds
- */
-static bool Instant_epochSeconds(JSContext* cx, const CallArgs& args) {
-  // Step 3.
-  auto instant = ToInstant(&args.thisv().toObject().as<InstantObject>());
-
-  // Steps 4-5.
-  args.rval().setNumber(instant.seconds);
-  return true;
-}
-
-/**
- * get Temporal.Instant.prototype.epochSeconds
- */
-static bool Instant_epochSeconds(JSContext* cx, unsigned argc, Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsInstant, Instant_epochSeconds>(cx, args);
-}
-
-/**
  * get Temporal.Instant.prototype.epochMilliseconds
  */
 static bool Instant_epochMilliseconds(JSContext* cx, const CallArgs& args) {
@@ -1035,34 +920,6 @@ static bool Instant_epochMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
   // Steps 1-2.
   CallArgs args = CallArgsFromVp(argc, vp);
   return CallNonGenericMethod<IsInstant, Instant_epochMilliseconds>(cx, args);
-}
-
-/**
- * get Temporal.Instant.prototype.epochMicroseconds
- */
-static bool Instant_epochMicroseconds(JSContext* cx, const CallArgs& args) {
-  // Step 3.
-  auto instant = ToInstant(&args.thisv().toObject().as<InstantObject>());
-
-  // Step 4.
-  auto* microseconds =
-      BigInt::createFromInt64(cx, instant.floorToMicroseconds());
-  if (!microseconds) {
-    return false;
-  }
-
-  // Step 5.
-  args.rval().setBigInt(microseconds);
-  return true;
-}
-
-/**
- * get Temporal.Instant.prototype.epochMicroseconds
- */
-static bool Instant_epochMicroseconds(JSContext* cx, unsigned argc, Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsInstant, Instant_epochMicroseconds>(cx, args);
 }
 
 /**
@@ -1536,9 +1393,7 @@ const JSClass& InstantObject::protoClass_ = PlainObject::class_;
 
 static const JSFunctionSpec Instant_methods[] = {
     JS_FN("from", Instant_from, 1, 0),
-    JS_FN("fromEpochSeconds", Instant_fromEpochSeconds, 1, 0),
     JS_FN("fromEpochMilliseconds", Instant_fromEpochMilliseconds, 1, 0),
-    JS_FN("fromEpochMicroseconds", Instant_fromEpochMicroseconds, 1, 0),
     JS_FN("fromEpochNanoseconds", Instant_fromEpochNanoseconds, 1, 0),
     JS_FN("compare", Instant_compare, 2, 0),
     JS_FS_END,
@@ -1561,9 +1416,7 @@ static const JSFunctionSpec Instant_prototype_methods[] = {
 };
 
 static const JSPropertySpec Instant_prototype_properties[] = {
-    JS_PSG("epochSeconds", Instant_epochSeconds, 0),
     JS_PSG("epochMilliseconds", Instant_epochMilliseconds, 0),
-    JS_PSG("epochMicroseconds", Instant_epochMicroseconds, 0),
     JS_PSG("epochNanoseconds", Instant_epochNanoseconds, 0),
     JS_STRING_SYM_PS(toStringTag, "Temporal.Instant", JSPROP_READONLY),
     JS_PS_END,

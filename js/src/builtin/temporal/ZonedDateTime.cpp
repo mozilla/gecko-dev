@@ -2013,31 +2013,6 @@ static bool ZonedDateTime_nanosecond(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 /**
- * get Temporal.ZonedDateTime.prototype.epochSeconds
- */
-static bool ZonedDateTime_epochSeconds(JSContext* cx, const CallArgs& args) {
-  auto* zonedDateTime = &args.thisv().toObject().as<ZonedDateTimeObject>();
-
-  // Step 3.
-  auto instant = ToInstant(zonedDateTime);
-
-  // Steps 4-5.
-  args.rval().setNumber(instant.seconds);
-  return true;
-}
-
-/**
- * get Temporal.ZonedDateTime.prototype.epochSeconds
- */
-static bool ZonedDateTime_epochSeconds(JSContext* cx, unsigned argc,
-                                       Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsZonedDateTime, ZonedDateTime_epochSeconds>(
-      cx, args);
-}
-
-/**
  * get Temporal.ZonedDateTime.prototype.epochMilliseconds
  */
 static bool ZonedDateTime_epochMilliseconds(JSContext* cx,
@@ -2060,39 +2035,6 @@ static bool ZonedDateTime_epochMilliseconds(JSContext* cx, unsigned argc,
   // Steps 1-2.
   CallArgs args = CallArgsFromVp(argc, vp);
   return CallNonGenericMethod<IsZonedDateTime, ZonedDateTime_epochMilliseconds>(
-      cx, args);
-}
-
-/**
- * get Temporal.ZonedDateTime.prototype.epochMicroseconds
- */
-static bool ZonedDateTime_epochMicroseconds(JSContext* cx,
-                                            const CallArgs& args) {
-  auto* zonedDateTime = &args.thisv().toObject().as<ZonedDateTimeObject>();
-
-  // Step 3.
-  auto instant = ToInstant(zonedDateTime);
-
-  // Step 4.
-  auto* microseconds =
-      BigInt::createFromInt64(cx, instant.floorToMicroseconds());
-  if (!microseconds) {
-    return false;
-  }
-
-  // Step 5.
-  args.rval().setBigInt(microseconds);
-  return true;
-}
-
-/**
- * get Temporal.ZonedDateTime.prototype.epochMicroseconds
- */
-static bool ZonedDateTime_epochMicroseconds(JSContext* cx, unsigned argc,
-                                            Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsZonedDateTime, ZonedDateTime_epochMicroseconds>(
       cx, args);
 }
 
@@ -3940,9 +3882,7 @@ static const JSPropertySpec ZonedDateTime_prototype_properties[] = {
     JS_PSG("millisecond", ZonedDateTime_millisecond, 0),
     JS_PSG("microsecond", ZonedDateTime_microsecond, 0),
     JS_PSG("nanosecond", ZonedDateTime_nanosecond, 0),
-    JS_PSG("epochSeconds", ZonedDateTime_epochSeconds, 0),
     JS_PSG("epochMilliseconds", ZonedDateTime_epochMilliseconds, 0),
-    JS_PSG("epochMicroseconds", ZonedDateTime_epochMicroseconds, 0),
     JS_PSG("epochNanoseconds", ZonedDateTime_epochNanoseconds, 0),
     JS_PSG("dayOfWeek", ZonedDateTime_dayOfWeek, 0),
     JS_PSG("dayOfYear", ZonedDateTime_dayOfYear, 0),
