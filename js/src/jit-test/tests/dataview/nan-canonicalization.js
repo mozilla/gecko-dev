@@ -2,6 +2,81 @@
 
 load(libdir + "dataview.js");
 
+// Float16
+function testF16() {
+  function writeBE(ui16, value) {
+    let ui8 = new Uint8Array(ui16.buffer);
+
+    ui8[0] = (value >> 8) & 0xff;
+    ui8[1] = (value >> 0) & 0xff;
+  }
+
+  function writeLE(ui16, value) {
+    let ui8 = new Uint8Array(ui16.buffer);
+
+    ui8[0] = (value >> 0) & 0xff;
+    ui8[1] = (value >> 8) & 0xff;
+  }
+
+  // Smallest and largest SNaNs and QNaNs, with and without sign-bit set.
+  const NaNs = [
+    0x7C01, 0x7DFF, 0x7E00, 0x7FFF,
+    0xFC01, 0xFDFF, 0xFE00, 0xFFFF,
+  ];
+
+  const canonicalNaN = new Uint16Array(new Float16Array([NaN]).buffer)[0];
+
+  // Load from array so that Ion doesn't treat as constants.
+  const True = [true, 1];
+  const False = [false, 0];
+
+  function f() {
+    let src_ui16 = new Uint16Array(1);
+
+    let dst_f16 = new Float16Array(1);
+    let dst_ui16 = new Uint16Array(dst_f16.buffer);
+
+    let dv = new DataView(src_ui16.buffer);
+
+    for (let i = 0; i < 100; ++i) {
+      let nan = NaNs[i % NaNs.length];
+
+      // Write to typed array, implicitly using native endian.
+      src_ui16[0] = nan;
+      dst_f16[0] = dv.getFloat16(0, nativeIsLittleEndian);
+      assertEq(dst_ui16[0], canonicalNaN);
+
+      // Write and read using big endian. |isLittleEndian| parameter is absent.
+      writeBE(src_ui16, nan);
+      dst_f16[0] = dv.getFloat16(0);
+      assertEq(dst_ui16[0], canonicalNaN);
+
+      // Write and read using big endian. |isLittleEndian| parameter is a constant.
+      writeBE(src_ui16, nan);
+      dst_f16[0] = dv.getFloat16(0, false);
+      assertEq(dst_ui16[0], canonicalNaN);
+
+      // Write and read using little endian. |isLittleEndian| parameter is a constant.
+      writeLE(src_ui16, nan);
+      dst_f16[0] = dv.getFloat16(0, true);
+      assertEq(dst_ui16[0], canonicalNaN);
+
+      // Write and read using big endian.
+      writeBE(src_ui16, nan);
+      dst_f16[0] = dv.getFloat16(0, False[i & 1]);
+      assertEq(dst_ui16[0], canonicalNaN);
+
+      // Write and read using little endian.
+      writeLE(src_ui16, nan);
+      dst_f16[0] = dv.getFloat16(0, True[i & 1]);
+      assertEq(dst_ui16[0], canonicalNaN);
+    }
+  }
+
+  for (let i = 0; i < 2; ++i) f();
+}
+testF16();
+
 // Float32
 function testF32() {
   function writeBE(ui32, value) {

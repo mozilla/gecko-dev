@@ -56,6 +56,10 @@ function createTestData() {
       values: [0, 1, 2, 2147483646, 2147483647, 2147483648, 4294967294, 4294967295],
     },
     {
+      type: Float16Array,
+      values: [-NaN, -Infinity, -0.5, -0, +0, 0.5, Infinity, NaN],
+    },
+    {
       type: Float32Array,
       values: [-NaN, -Infinity, -0.5, -0, +0, 0.5, Infinity, NaN],
     },

@@ -32,7 +32,7 @@ function createWrite(data) {
       let j = i % values.length;
 
       // Skip over NaNs to avoid false-negatives due to NaN canonicalisation.
-      if (${name === "Float32" || name === "Float64"}) {
+      if (${name === "Float16" || name === "Float32" || name === "Float64"}) {
         if (Number.isNaN(bigEndian[j]) || Number.isNaN(littleEndian[j])) {
           continue;
         }

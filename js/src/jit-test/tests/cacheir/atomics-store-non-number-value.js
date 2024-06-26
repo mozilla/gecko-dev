@@ -22,24 +22,6 @@ function convert(type, value) {
       return (num >>> 0) & 0xffff;
     case "Uint32":
       return (num >>> 0);
-    case "Uint8Clamped": {
-      if (Number.isNaN(num)) {
-        return 0;
-      }
-      let clamped = Math.max(0, Math.min(num, 255));
-      let f = Math.floor(clamped);
-      if (clamped < f + 0.5) {
-        return f;
-      }
-      if (clamped > f + 0.5) {
-        return f + 1;
-      }
-      return f + (f & 1);
-    }
-    case "Float32":
-      return Math.fround(num);
-    case "Float64":
-      return num;
   }
   throw new Error();
 }
