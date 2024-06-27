@@ -1234,7 +1234,6 @@ win64-asan-fuzzing/opt:
             stage_platform: win64-fuzzing-asan
             mozconfig_platform: win64
         mozconfig-variant: nightly-fuzzing-asan
-    run-on-projects: ['trunk']
     use-sccache: true
     fetches:
         toolchain:
