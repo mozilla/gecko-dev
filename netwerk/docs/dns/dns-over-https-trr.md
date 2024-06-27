@@ -61,7 +61,7 @@ _nsHostResolver::NameLookup_ will trigger either a DoH or a Do53 request.
 First it checks the effective TRR mode of the request is as requests
 could have a different mode from the global one. If the request may use
 TRR, then we dispatch a request in _nsHostResolver::TrrLookup_. Since we
-usually reolve both IPv4 and IPv6 names, a **TRRQuery** object is
+usually resolve both IPv4 and IPv6 names, a **TRRQuery** object is
 created to perform and combine both responses.
 
 Once done, _nsHostResolver::CompleteLookup_ is called. If the DoH server

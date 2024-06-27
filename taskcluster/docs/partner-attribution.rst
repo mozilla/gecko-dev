@@ -99,7 +99,7 @@ target.exe full installers. The ``ATTRIBUTION_CONFIG`` environment variable cont
 It produces more target.exe installers.
 
 The size of ``ATTRIBUTION_CONFIG`` variable may grow large if the number of configurations
-increases, and it may be necesssary to pass the content of ``attribution_config.yml`` to the
+increases, and it may be necessary to pass the content of ``attribution_config.yml`` to the
 script instead, or via an artifact of the promotion task.
 
 Beetmover

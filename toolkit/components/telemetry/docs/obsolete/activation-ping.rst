@@ -2,7 +2,7 @@
 "activation" ping (obsolete)
 ============================
 
-This mobile-specific ping is intendend to track activations of distributions of mobile products
+This mobile-specific ping is intended to track activations of distributions of mobile products
 with a small error rate.
 
 This will be sent at Startup. Minimally, we want to get this ping at least once from every client.
@@ -25,7 +25,7 @@ Structure:
     {
       "identifier": <string>, // Googled Ad ID hashed using bcrypt
       "clientId": <string>, // client id, e.g. "c641eacf-c30c-4171-b403-f077724e848a"
-                            //included only if identifier was unabled to be retrieved
+                            //included only if identifier was unable to be retrieved
       "manufacturer": <string>, // Build.MANUFACTURER
       "model": <string>, // Build.MODEL
       "locale": <string>, // application locale, e.g. "en-US"

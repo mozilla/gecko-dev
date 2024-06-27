@@ -295,7 +295,7 @@ the GeckoView capability above.
 
 In Treeherder, the Lite build is denoted with ``Lite``, while the Omni builds
 don't have extra denominations as they are the default build, so e.g. for
-``x86_64`` the platorm names would be:
+``x86_64`` the platform names would be:
 
 - ``Android 7.0 x86-64`` for the Omni build
 - ``Android 7.0 x86-64 Lite`` for the Lite build

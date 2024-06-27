@@ -37,7 +37,7 @@ For a more detailed document on testing styles and technologies used by the Andr
 
 [Treeherder](https://treeherder.mozilla.org/) is a reporting dashboard for Mozilla check-ins. It allows users to see result of automatic builds and their respective tests. A common use case is looking at a particular check-in and pulling up test logs and artifacts from the UI test job.
 
-For all Android applications, UI tests are classfied under the `ui-test-x86` job symbol.
+For all Android applications, UI tests are classified under the `ui-test-x86` job symbol.
 
 # Tying it all together
 

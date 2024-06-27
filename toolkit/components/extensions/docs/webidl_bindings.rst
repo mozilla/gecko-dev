@@ -95,7 +95,7 @@ Generating WebIDL definitions from WebExtensions API JSONSchema
 ---------------------------------------------------------------
 
 WebIDL definitions for the extension APIs are being generated based on the WebExtensions API JSONSchema
-data (the same metadata used to generate the "privilged JS"-based API bindings).
+data (the same metadata used to generate the "privileged JS"-based API bindings).
 
 Most of the API methods in generated WebIDL are meant to be implemented using stub methods shared
 between all WebExtensions API classes, a ``WebExtensionStub`` webidl extended attribute specify
