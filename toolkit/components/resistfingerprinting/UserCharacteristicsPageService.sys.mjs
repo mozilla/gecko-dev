@@ -190,7 +190,8 @@ export class UserCharacteristicsPageService {
         };
 
         let userCharacteristicsPageURI = Services.io.newURI(
-          "about:fingerprintingprotection"
+          "about:fingerprintingprotection" +
+            (Cu.isInAutomation ? "#automation" : "")
         );
 
         browser.loadURI(userCharacteristicsPageURI, loadURIOptions);
