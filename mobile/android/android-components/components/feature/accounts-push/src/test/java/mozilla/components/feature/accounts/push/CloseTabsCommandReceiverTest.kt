@@ -62,6 +62,30 @@ class CloseTabsCommandReceiverTest {
     }
 
     @Test
+    fun `GIVEN a command to close a URL that is open in a private tab WHEN the command is received THEN the tab is not closed AND the observer is not notified`() {
+        val browserStore = BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(
+                    createTab("https://getfirefox.com", id = "1", private = true),
+                ),
+                selectedTabId = "1",
+            ),
+        )
+        val processor = CloseTabsCommandReceiver(browserStore)
+        val observer = mock<CloseTabsCommandReceiver.Observer>()
+        processor.register(observer)
+
+        processor.receive(DeviceCommandIncoming.TabsClosed(null, listOf("https://getfirefox.com")))
+
+        browserStore.waitUntilIdle()
+
+        assertEquals(listOf("1"), browserStore.state.tabs.map { it.id })
+        assertEquals("1", browserStore.state.selectedTabId)
+        verify(observer, never()).onTabsClosed(any())
+        verify(observer, never()).onLastTabClosed()
+    }
+
+    @Test
     fun `GIVEN a command to close a URL that is open in the currently selected tab WHEN the command is received THEN the tab is closed AND the observer is notified`() {
         val browserStore = BrowserStore(
             initialState = BrowserState(
@@ -86,7 +110,7 @@ class CloseTabsCommandReceiverTest {
     }
 
     @Test
-    fun `GIVEN a command to close duplicate URLs that are open in tabs WHEN the command is received THEN the number of tabs closed matches the number of URLs AND the observer is notified`() {
+    fun `GIVEN a command to close duplicate URLs that are open in normal tabs WHEN the command is received THEN the number of tabs closed matches the number of URLs AND the observer is notified`() {
         val browserStore = BrowserStore(
             initialState = BrowserState(
                 tabs = listOf(
@@ -127,6 +151,97 @@ class CloseTabsCommandReceiverTest {
                     "https://getfirefox.com",
                     "https://getfirefox.com",
                     "https://example.org",
+                ),
+            ),
+        )
+        verify(observer, never()).onLastTabClosed()
+    }
+
+    @Test
+    fun `GIVEN a command to close duplicate URLs that are open in normal and private tabs WHEN a normal tab is currently selected AND the command is received THEN only the normal tabs are closed AND the observer is notified`() {
+        val browserStore = BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(
+                    createTab("https://mozilla.org", id = "1"),
+                    createTab("https://mozilla.org", id = "2", private = true),
+                    createTab("https://mozilla.org", id = "3"),
+                    createTab("https://getfirefox.com", id = "4"),
+                    createTab("https://getfirefox.com", id = "5", private = true),
+                    createTab("https://getfirefox.com", id = "6"),
+                    createTab("https://example.org", id = "7"),
+                ),
+                selectedTabId = "4",
+            ),
+        )
+        val processor = CloseTabsCommandReceiver(browserStore)
+        val observer = mock<CloseTabsCommandReceiver.Observer>()
+        processor.register(observer)
+
+        processor.receive(
+            DeviceCommandIncoming.TabsClosed(
+                null,
+                listOf(
+                    "https://mozilla.org",
+                    "https://mozilla.org",
+                    "https://mozilla.org",
+                    "https://getfirefox.com",
+                    "https://getfirefox.com",
+                    "https://getfirefox.com",
+                    "https://example.org",
+                ),
+            ),
+        )
+
+        browserStore.waitUntilIdle()
+
+        assertEquals(listOf("2", "5"), browserStore.state.tabs.map { it.id })
+        assertNull(browserStore.state.selectedTabId)
+        verify(observer).onTabsClosed(
+            eq(
+                listOf(
+                    "https://mozilla.org",
+                    "https://mozilla.org",
+                    "https://getfirefox.com",
+                    "https://getfirefox.com",
+                    "https://example.org",
+                ),
+            ),
+        )
+        verify(observer).onLastTabClosed()
+    }
+
+    @Test
+    fun `GIVEN a command to close duplicate URLs that are open in normal and private tabs WHEN a private tab is currently selected AND the command is received THEN only the normal tabs are closed AND the observer is notified`() {
+        val browserStore = BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(
+                    createTab("https://mozilla.org", id = "1"),
+                    createTab("https://mozilla.org", id = "2", private = true),
+                ),
+                selectedTabId = "2",
+            ),
+        )
+        val processor = CloseTabsCommandReceiver(browserStore)
+        val observer = mock<CloseTabsCommandReceiver.Observer>()
+        processor.register(observer)
+
+        processor.receive(
+            DeviceCommandIncoming.TabsClosed(
+                null,
+                listOf(
+                    "https://mozilla.org",
+                    "https://mozilla.org",
+                ),
+            ),
+        )
+
+        browserStore.waitUntilIdle()
+
+        assertEquals(listOf("2"), browserStore.state.tabs.map { it.id })
+        verify(observer).onTabsClosed(
+            eq(
+                listOf(
+                    "https://mozilla.org",
                 ),
             ),
         )

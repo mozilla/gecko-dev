@@ -5,6 +5,7 @@
 package mozilla.components.feature.accounts.push
 
 import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.sync.DeviceCommandIncoming
@@ -28,8 +29,9 @@ class CloseTabsCommandReceiver(
      * @param command The received command.
      */
     fun receive(command: DeviceCommandIncoming.TabsClosed) {
-        val tabsToRemove = getTabsToRemove(command.urls).ifEmpty { return }
-        val remainingTabsCount = browserStore.state.tabs.size - tabsToRemove.size
+        val openTabs = browserStore.state.normalTabs
+        val tabsToRemove = getTabsToRemove(openTabs, command.urls).ifEmpty { return }
+        val remainingTabsCount = openTabs.size - tabsToRemove.size
         val willCloseLastTab = tabsToRemove.any { it.id == browserStore.state.selectedTabId } && remainingTabsCount <= 0
 
         browserStore.dispatch(TabListAction.RemoveTabsAction(tabsToRemove.map { it.id }))
@@ -38,23 +40,6 @@ class CloseTabsCommandReceiver(
         if (willCloseLastTab) {
             notifyObservers { onLastTabClosed() }
         }
-    }
-
-    private fun getTabsToRemove(remotelyClosedUrls: List<String>): List<TabSessionState> {
-        // The user might have the same URL open in multiple tabs on this device, and might want
-        // to remotely close some or all of those tabs. Synced tabs don't carry enough
-        // information to know which duplicates the user meant to close, so we use a heuristic:
-        // if a URL appears N times in the remotely closed URLs list, we'll close up to
-        // N instances of that URL.
-        val countsByUrl = remotelyClosedUrls.groupingBy { it }.eachCount()
-        return browserStore.state.tabs
-            .groupBy { it.content.url }
-            .asSequence()
-            .mapNotNull { (url, tabs) ->
-                countsByUrl[url]?.let { count -> tabs.take(count) }
-            }
-            .flatten()
-            .toList()
     }
 
     /** Receives notifications for closed tabs. */
@@ -69,4 +54,19 @@ class CloseTabsCommandReceiver(
         /** The last tab on this device was closed. */
         fun onLastTabClosed() = Unit
     }
+}
+
+private fun getTabsToRemove(openTabs: List<TabSessionState>, remotelyClosedUrls: List<String>): List<TabSessionState> {
+    // The user might have the same URL open in multiple tabs on this device, and might want
+    // to remotely close some or all of those tabs. Synced tabs don't carry enough
+    // information to know which duplicates the user meant to close, so we use a heuristic:
+    // if a URL appears N times in the remotely closed URLs list, we'll close up to
+    // N instances of that URL.
+    val countsByUrl = remotelyClosedUrls.groupingBy { it }.eachCount()
+    return openTabs
+        .filter { !it.content.private }
+        .groupBy { it.content.url }
+        .flatMap { (url, tabs) ->
+            countsByUrl[url]?.let { count -> tabs.take(count) } ?: emptyList()
+        }
 }
