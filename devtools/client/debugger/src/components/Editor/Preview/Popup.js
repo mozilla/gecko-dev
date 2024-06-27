@@ -101,7 +101,7 @@ export class Popup extends Component {
   renderExceptionPreview(exception) {
     return React.createElement(ExceptionPopup, {
       exception,
-      clearPreview: this.props.clearPreview,
+      mouseout: this.props.clearPreview,
     });
   }
 

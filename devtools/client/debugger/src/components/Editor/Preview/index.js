@@ -76,7 +76,7 @@ class Preview extends PureComponent {
     this.currentTokenId = tokenId;
 
     const { editor, getPreview, getExceptionPreview } = this.props;
-    const isTargetException = target.classList.contains(EXCEPTION_MARKER);
+    const isTargetException = target.closest(`.${EXCEPTION_MARKER}`);
 
     let preview;
     if (isTargetException) {
