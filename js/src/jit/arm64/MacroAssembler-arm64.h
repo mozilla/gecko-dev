@@ -1153,9 +1153,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   void moveFloat32(FloatRegister src, FloatRegister dest) {
     fmov(ARMFPRegister(dest, 32), ARMFPRegister(src, 32));
   }
-  void moveFloatAsDouble(Register src, FloatRegister dest) {
-    MOZ_CRASH("moveFloatAsDouble");
-  }
 
   void moveSimd128(FloatRegister src, FloatRegister dest) {
     fmov(ARMFPRegister(dest, 128), ARMFPRegister(src, 128));

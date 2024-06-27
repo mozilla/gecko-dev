@@ -752,10 +752,6 @@ class MacroAssemblerX86Shared : public Assembler {
   void moveHighPairToLowPairFloat32(FloatRegister src, FloatRegister dest) {
     vmovhlps(src, dest, dest);
   }
-  void moveFloatAsDouble(Register src, FloatRegister dest) {
-    vmovd(src, dest);
-    vcvtss2sd(dest, dest, dest);
-  }
   void loadFloatAsDouble(const Address& src, FloatRegister dest) {
     vmovss(src, dest);
     vcvtss2sd(dest, dest, dest);
