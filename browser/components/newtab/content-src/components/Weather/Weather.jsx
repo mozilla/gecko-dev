@@ -340,7 +340,7 @@ export class _Weather extends React.PureComponent {
     return (
       <div ref={this.setErrorRef} className={outerClassName}>
         <div className="weatherNotAvailable">
-          <span className="icon icon-small-spacer icon-info-critical" />{" "}
+          <span className="icon icon-small-spacer icon-info-warning" />{" "}
           <span data-l10n-id="newtab-weather-error-not-available"></span>
         </div>
       </div>

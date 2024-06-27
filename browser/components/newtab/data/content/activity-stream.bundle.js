@@ -10195,7 +10195,7 @@ class _Weather extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "weatherNotAvailable"
     }, /*#__PURE__*/external_React_default().createElement("span", {
-      className: "icon icon-small-spacer icon-info-critical"
+      className: "icon icon-small-spacer icon-info-warning"
     }), " ", /*#__PURE__*/external_React_default().createElement("span", {
       "data-l10n-id": "newtab-weather-error-not-available"
     })));

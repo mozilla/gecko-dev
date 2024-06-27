@@ -15,16 +15,10 @@
 // Unavailable / Error State
 .weatherNotAvailable {
   font-size: var(--newtab-weather-content-font-size);
-  color: var(--text-color-error);
   display: flex;
   align-items: center;
   border-radius: var(--border-radius-medium);
   padding: var(--space-small);
-
-  .icon {
-    fill: var(--icon-color-critical);
-    -moz-context-properties: fill;
-  }
 
   // Contrast fix for users who have wallpapers set
   .lightWallpaper &,

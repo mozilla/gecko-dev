@@ -159,6 +159,11 @@ input {
 .icon.icon-info-critical {
   background-image: url("chrome://activity-stream/content/data/content/assets/glyph-info-critical-16.svg");
 }
+.icon.icon-info-warning {
+  background-image: url("chrome://global/skin/icons/warning.svg");
+  fill: var(--icon-color-warning);
+  -moz-context-properties: fill;
+}
 .icon.icon-help {
   background-image: url("chrome://global/skin/icons/help.svg");
 }
@@ -2155,15 +2160,10 @@ main section {
 
 .weatherNotAvailable {
   font-size: var(--newtab-weather-content-font-size);
-  color: var(--text-color-error);
   display: flex;
   align-items: center;
   border-radius: var(--border-radius-medium);
   padding: var(--space-small);
-}
-.weatherNotAvailable .icon {
-  fill: var(--icon-color-critical);
-  -moz-context-properties: fill;
 }
 .lightWallpaper .weatherNotAvailable, .darkWallpaper .weatherNotAvailable {
   background-color: var(--newtab-weather-background-color);
