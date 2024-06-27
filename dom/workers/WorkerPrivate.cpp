@@ -3291,11 +3291,10 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
     // process background thread for non-life cycle related operations of
     // SharedWorker/ServiceWorker
     if (mChildEp.IsValid()) {
-      RefPtr<RemoteWorkerNonLifeCycleOpControllerChild>
-          nonLifeCycleOpController =
-              RemoteWorkerNonLifeCycleOpControllerChild::Create();
-      if (nonLifeCycleOpController) {
-        mChildEp.Bind(nonLifeCycleOpController);
+      mRemoteWorkerNonLifeCycleOpController =
+          RemoteWorkerNonLifeCycleOpControllerChild::Create();
+      if (mRemoteWorkerNonLifeCycleOpController) {
+        mChildEp.Bind(mRemoteWorkerNonLifeCycleOpController);
       }
     }
 
@@ -5222,6 +5221,14 @@ bool WorkerPrivate::NotifyInternal(WorkerStatus aStatus) {
   // Let all our holders know the new status.
   if (aStatus == Canceling) {
     NotifyWorkerRefs(aStatus);
+  }
+
+  if (aStatus == Canceling && mRemoteWorkerNonLifeCycleOpController) {
+    mRemoteWorkerNonLifeCycleOpController->TransistionStateToCanceled();
+  }
+
+  if (aStatus == Killing && mRemoteWorkerNonLifeCycleOpController) {
+    mRemoteWorkerNonLifeCycleOpController->TransistionStateToKilled();
   }
 
   // If the worker script never ran, or failed to compile, we don't need to do

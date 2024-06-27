@@ -64,6 +64,7 @@ class ThrottledEventQueue;
 namespace dom {
 
 class RemoteWorkerChild;
+class RemoteWorkerNonLifeCycleOpControllerChild;
 
 // If you change this, the corresponding list in nsIWorkerDebugger.idl needs
 // to be updated too. And histograms enum for worker use counters uses the same
@@ -1451,6 +1452,11 @@ class WorkerPrivate final
   // Only touched on the parent thread.  Used for both SharedWorker and
   // ServiceWorker RemoteWorkers.
   RefPtr<RemoteWorkerChild> mRemoteWorkerController;
+
+  // Only touched on the worker thread. Used for both SharedWorker and
+  // ServiceWorker RemoteWorkers.
+  RefPtr<RemoteWorkerNonLifeCycleOpControllerChild>
+      mRemoteWorkerNonLifeCycleOpController;
 
   mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild> mChildEp;
 

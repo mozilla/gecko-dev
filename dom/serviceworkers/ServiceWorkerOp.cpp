@@ -66,6 +66,9 @@
 
 namespace mozilla::dom {
 
+using remoteworker::Canceled;
+using remoteworker::Killed;
+
 namespace {
 
 class ExtendableEventKeepAliveHandler final
@@ -322,7 +325,7 @@ NS_IMPL_ISUPPORTS_INHERITED0(ServiceWorkerOp::ServiceWorkerOpRunnable,
                              WorkerThreadRunnable)
 
 bool ServiceWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
-                                 RemoteWorkerChild::State& aState) {
+                                 RemoteWorkerState& aState) {
   MOZ_ASSERT(!mStarted);
   MOZ_ASSERT(aOwner);
   MOZ_ASSERT(aOwner->GetActorEventTarget()->IsOnCurrentThread());
@@ -340,14 +343,13 @@ bool ServiceWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
     return false;
   }
 
-  if (NS_WARN_IF(aState.is<RemoteWorkerChild::Canceled>()) ||
-      NS_WARN_IF(aState.is<RemoteWorkerChild::Killed>())) {
+  if (NS_WARN_IF(aState.is<Canceled>()) || NS_WARN_IF(aState.is<Killed>())) {
     RejectAll(NS_ERROR_DOM_INVALID_STATE_ERR);
     mStarted = true;
     return true;
   }
 
-  MOZ_ASSERT(aState.is<RemoteWorkerChild::Running>() || IsTerminationOp());
+  MOZ_ASSERT(aState.is<Running>() || IsTerminationOp());
 
   RefPtr<ServiceWorkerOp> self = this;
 

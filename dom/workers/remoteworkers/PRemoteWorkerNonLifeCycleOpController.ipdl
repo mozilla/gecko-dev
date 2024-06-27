@@ -9,6 +9,10 @@ namespace dom{
 [ChildProc=any]
 protocol PRemoteWorkerNonLifeCycleOpController
 {
+
+parent:
+  async Terminated();
+
 child:
   async Shutdown();
 

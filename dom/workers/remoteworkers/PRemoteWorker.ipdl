@@ -5,53 +5,12 @@
 include protocol PFetchEventOpProxy;
 include protocol PRemoteWorkerService;
 
-include DOMTypes;
 include ServiceWorkerOpArgs;
+include SharedWorkerOpArgs;
 include RemoteWorkerTypes;
 
 namespace mozilla {
 namespace dom {
-
-struct RemoteWorkerSuspendOp
-{};
-
-struct RemoteWorkerResumeOp
-{};
-
-struct RemoteWorkerFreezeOp
-{};
-
-struct RemoteWorkerThawOp
-{};
-
-struct RemoteWorkerTerminateOp
-{};
-
-struct RemoteWorkerPortIdentifierOp
-{
-  MessagePortIdentifier portIdentifier;
-};
-
-struct RemoteWorkerAddWindowIDOp
-{
-  uint64_t windowID;
-};
-
-struct RemoteWorkerRemoveWindowIDOp
-{
-  uint64_t windowID;
-};
-
-union RemoteWorkerOp {
-  RemoteWorkerSuspendOp;
-  RemoteWorkerResumeOp;
-  RemoteWorkerFreezeOp;
-  RemoteWorkerThawOp;
-  RemoteWorkerTerminateOp;
-  RemoteWorkerPortIdentifierOp;
-  RemoteWorkerAddWindowIDOp;
-  RemoteWorkerRemoveWindowIDOp;
-};
 
 // This protocol is used to make a remote worker controllable from the parent
 // process. The parent process will receive operations from the
@@ -80,7 +39,7 @@ child:
 
   async __delete__();
 
-  async ExecOp(RemoteWorkerOp op);
+  async ExecOp(SharedWorkerOpArgs aArgs);
 
   async ExecServiceWorkerOp(ServiceWorkerOpArgs aArgs)
       returns (ServiceWorkerOpResult aResult);
