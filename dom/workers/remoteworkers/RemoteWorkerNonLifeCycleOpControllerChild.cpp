@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "RemoteWorkerNonLifeCycleOpControllerChild.h"
+#include "mozilla/dom/ServiceWorkerOp.h"
 #include "mozilla/dom/SharedWorkerOp.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerPrivate.h"
@@ -74,6 +75,21 @@ IPCResult RemoteWorkerNonLifeCycleOpControllerChild::RecvExecOp(
              SharedWorkerOpArgs::TSharedWorkerPortIdentifierOpArgs);
   StartOp(new SharedWorkerOp(std::move(aOpArgs)));
 
+  return IPC_OK();
+}
+
+IPCResult RemoteWorkerNonLifeCycleOpControllerChild::RecvExecServiceWorkerOp(
+    ServiceWorkerOpArgs&& aOpArgs, ExecServiceWorkerOpResolver&& aResolve) {
+  MOZ_ASSERT(
+      aOpArgs.type() !=
+          ServiceWorkerOpArgs::TParentToChildServiceWorkerFetchEventOpArgs,
+      "FetchEvent operations should be sent via PFetchEventOp(Proxy) actors!");
+
+  MOZ_ASSERT(aOpArgs.type() !=
+                 ServiceWorkerOpArgs::TServiceWorkerTerminateWorkerOpArgs,
+             "Terminate operations should be sent via PRemoteWorker actros!");
+
+  StartOp(ServiceWorkerOp::Create(std::move(aOpArgs), std::move(aResolve)));
   return IPC_OK();
 }
 

@@ -26,6 +26,10 @@ class RemoteWorkerNonLifeCycleOpControllerParent final
 
   IPCResult RecvError(const ErrorValue& aError);
 
+  void ActorDestroy(IProtocol::ActorDestroyReason) override;
+
+  void Shutdown();
+
  private:
   ~RemoteWorkerNonLifeCycleOpControllerParent();
 
