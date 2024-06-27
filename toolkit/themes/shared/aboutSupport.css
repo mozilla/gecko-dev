@@ -174,3 +174,11 @@ td.integer {
 .hidden {
   display: none;
 }
+
+#sandbox-tbody tr > td.feature-unavailable {
+  background-color: var(--background-color-critical);
+}
+
+#sandbox-tbody tr > td.feature-unavailable > .user-namespaces-unavailabe-support-link {
+  margin: 0 5px
+}

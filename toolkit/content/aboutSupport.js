@@ -1450,7 +1450,30 @@ var snapshotFormatters = {
       let keyStrId = toFluentID(key);
       let th = $.new("th", null, "column");
       document.l10n.setAttributes(th, keyStrId);
-      tbody.appendChild($.new("tr", [th, $.new("td", data[key])]));
+      let td = $.new("td", data[key]);
+      if (key === "hasUserNamespaces" && !data[key]) {
+        td = $.new("td", "");
+        td.classList.add("feature-unavailable");
+        let span = document.createElement("span");
+        document.l10n.setAttributes(
+          span,
+          "support-user-namespaces-unavailable",
+          {
+            status: data[key],
+          }
+        );
+        let supportLink = document.createElement("a", {
+          is: "moz-support-link",
+        });
+        supportLink.classList.add("user-namespaces-unavailabe-support-link");
+        supportLink.setAttribute(
+          "support-page",
+          "install-firefox-linux#w_install-firefox-from-mozilla-builds"
+        );
+        td.appendChild(span);
+        td.appendChild(supportLink);
+      }
+      tbody.appendChild($.new("tr", [th, td]));
     }
 
     if ("syscallLog" in data) {

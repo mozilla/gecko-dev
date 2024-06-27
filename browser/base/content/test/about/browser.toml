@@ -83,6 +83,9 @@ tags = "remote-settings"
 ["browser_aboutSupport_places.js"]
 skip-if = ["os == 'android'"]
 
+["browser_aboutSupport_user_namespaces.js"]
+skip-if = ["os != 'linux'", "asan", "tsan"]
+
 ["browser_bug435325.js"]
 skip-if = [
   "apple_catalina && !debug && verify",
