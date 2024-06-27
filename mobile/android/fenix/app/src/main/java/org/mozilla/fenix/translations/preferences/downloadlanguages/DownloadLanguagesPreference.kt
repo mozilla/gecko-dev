@@ -79,7 +79,7 @@ fun DownloadLanguagesPreference(
             it.languageModel.status == ModelState.DOWNLOADED ||
                 it.languageModel.status == ModelState.ERROR_DELETION
             ) &&
-            it.type == DownloadLanguageItemTypePreference.GeneralLanguage
+            it.type != DownloadLanguageItemTypePreference.AllLanguages
     }
 
     val notDownloadedItems = downloadLanguageItemPreferences.filter {
@@ -87,12 +87,12 @@ fun DownloadLanguagesPreference(
             it.languageModel.status == ModelState.NOT_DOWNLOADED ||
                 it.languageModel.status == ModelState.ERROR_DOWNLOAD
             ) &&
-            it.type == DownloadLanguageItemTypePreference.GeneralLanguage
+            it.type != DownloadLanguageItemTypePreference.AllLanguages
     }
 
     val downloadInProgressItems = downloadLanguageItemPreferences.filter {
         it.languageModel.status == ModelState.DOWNLOAD_IN_PROGRESS &&
-            it.type == DownloadLanguageItemTypePreference.GeneralLanguage
+            it.type != DownloadLanguageItemTypePreference.AllLanguages
     }
 
     val deleteInProgressItems = downloadLanguageItemPreferences.filter {
@@ -183,18 +183,6 @@ fun DownloadLanguagesPreference(
                 )
             }
 
-            if (
-                pivotLanguage != null &&
-                pivotLanguage.languageModel.status == ModelState.DOWNLOADED
-            ) {
-                item {
-                    LanguageItemPreference(
-                        item = pivotLanguage,
-                        onItemClick = onItemClick,
-                    )
-                }
-            }
-
             if (pivotLanguage?.languageModel?.status == ModelState.NOT_DOWNLOADED ||
                 shouldShowDownloadLanguagesHeader(
                     allLanguagesItemNotDownloaded = allLanguagesItemNotDownloaded,
@@ -257,6 +245,11 @@ fun DownloadLanguagesPreference(
             }
         }
     }
+
+    // The pivot model may be deleted when all of the other models are deleted and it may
+    // always be downloaded
+    pivotLanguage?.enabled = downloadedItems.size == 1 ||
+        pivotLanguage?.languageModel?.status == ModelState.NOT_DOWNLOADED
 }
 
 @Composable
@@ -458,7 +451,6 @@ private fun IconDownloadLanguageItemPreference(
     when (item.languageModel.status) {
         ModelState.DOWNLOADED, ModelState.ERROR_DELETION -> {
             if (
-                item.type != DownloadLanguageItemTypePreference.PivotLanguage ||
                 item.enabled
             ) {
                 Icon(

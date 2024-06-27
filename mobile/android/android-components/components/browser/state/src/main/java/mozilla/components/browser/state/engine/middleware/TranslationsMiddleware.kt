@@ -17,6 +17,7 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.translate.Language
 import mozilla.components.concept.engine.translate.LanguageModel
+import mozilla.components.concept.engine.translate.LanguageModel.Companion.areModelsProcessing
 import mozilla.components.concept.engine.translate.LanguageSetting
 import mozilla.components.concept.engine.translate.ModelManagementOptions
 import mozilla.components.concept.engine.translate.ModelOperation
@@ -963,6 +964,7 @@ class TranslationsMiddleware(
                     ModelState.NOT_DOWNLOADED
                 }
                 val newModelState = LanguageModel.determineNewLanguageModelState(
+                    appLanguage = context.store.state.locale?.language.toString(),
                     currentLanguageModels = context.store.state.translationEngine.languageModels,
                     options = options,
                     newStatus = processState,
@@ -973,6 +975,12 @@ class TranslationsMiddleware(
                             languageModels = newModelState,
                         ),
                     )
+                    if (!areModelsProcessing(newModelState)) {
+                        // Refresh state to ensure we have the latest model sizes.
+                        // Sizes can change if pivots are required and acquired or deleted.
+                        requestLanguageModels(context)
+                    }
+
                     logger.info("Successfully updated the language model(s).")
                 } else {
                     logger.warn(
@@ -995,6 +1003,7 @@ class TranslationsMiddleware(
                     ModelState.ERROR_DELETION
                 }
                 val errorModelState = LanguageModel.determineNewLanguageModelState(
+                    appLanguage = context.store.state.locale?.language.toString(),
                     currentLanguageModels = context.store.state.translationEngine.languageModels,
                     options = options,
                     newStatus = errorState,

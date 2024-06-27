@@ -22,7 +22,6 @@ import mozilla.components.concept.engine.translate.OperationLevel
 import mozilla.components.concept.engine.translate.TranslationError
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
-import mozilla.components.support.locale.LocaleManager
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
@@ -171,7 +170,6 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
             state.translationEngine.languageModels
         }.value?.toMutableList()
         val languageItemPreferenceList = mutableListOf<DownloadLanguageItemPreference>()
-        val appLocale = browserStore.state.locale ?: LocaleManager.getSystemDefault()
 
         languageModels?.let {
             var allLanguagesSizeNotDownloaded = 0L
@@ -186,10 +184,7 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                 }
 
                 if (
-                    languageModel.status == ModelState.DOWNLOADED &&
-                    !languageModel.language?.code.equals(
-                        Locale.ENGLISH.language,
-                    )
+                    languageModel.status == ModelState.DOWNLOADED
                 ) {
                     allLanguagesSizeDownloaded += size
                 }
@@ -208,7 +203,7 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
             val iterator = languageModels.iterator()
             while (iterator.hasNext()) {
                 val languageModel = iterator.next()
-                if (!appLocale.language.equals(Locale.ENGLISH.language) && languageModel.language?.code.equals(
+                if (languageModel.language?.code.equals(
                         Locale.ENGLISH.language,
                     )
                 ) {

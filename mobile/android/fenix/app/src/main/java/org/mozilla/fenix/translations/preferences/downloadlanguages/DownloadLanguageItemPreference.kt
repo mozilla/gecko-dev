@@ -17,7 +17,7 @@ import mozilla.components.concept.engine.translate.LanguageModel
 data class DownloadLanguageItemPreference(
     val languageModel: LanguageModel,
     val type: DownloadLanguageItemTypePreference,
-    val enabled: Boolean = true,
+    var enabled: Boolean = true,
 )
 
 /**

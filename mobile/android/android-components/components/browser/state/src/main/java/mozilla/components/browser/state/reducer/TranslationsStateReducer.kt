@@ -509,6 +509,7 @@ internal object TranslationsStateReducer {
                 ModelState.DELETION_IN_PROGRESS
             }
             val newModelState = LanguageModel.determineNewLanguageModelState(
+                appLanguage = state.locale?.language.toString(),
                 currentLanguageModels = state.translationEngine.languageModels,
                 options = action.options,
                 newStatus = processState,
