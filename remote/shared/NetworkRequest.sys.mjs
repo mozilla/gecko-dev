@@ -23,6 +23,7 @@ export class NetworkRequest {
   #alreadyCompleted;
   #channel;
   #contextId;
+  #eventRecord;
   #isDataURL;
   #navigationId;
   #navigationManager;
@@ -37,6 +38,8 @@ export class NetworkRequest {
    * @param {nsIChannel} channel
    *     The channel for the request.
    * @param {object} params
+   * @param {NetworkEventRecord} params.networkEventRecord
+   *     The NetworkEventRecord owning this NetworkRequest.
    * @param {NavigationManager} params.navigationManager
    *     The NavigationManager where navigations for the current session are
    *     monitored.
@@ -44,9 +47,10 @@ export class NetworkRequest {
    *     The request's raw (ie potentially compressed) headers
    */
   constructor(channel, params) {
-    const { navigationManager, rawHeaders = "" } = params;
+    const { eventRecord, navigationManager, rawHeaders = "" } = params;
 
     this.#channel = channel;
+    this.#eventRecord = eventRecord;
     this.#isDataURL = this.#channel instanceof Ci.nsIDataChannel;
     this.#navigationManager = navigationManager;
     this.#rawHeaders = rawHeaders;
@@ -316,6 +320,37 @@ export class NetworkRequest {
       // Make sure to reset the flag once the modification was attempted.
       this.#channel.requestObserversCalled = true;
     }
+  }
+
+  /**
+   * Allows to bypass the actual network request and immediately respond with
+   * the provided nsIReplacedHttpResponse.
+   *
+   * @param {nsIReplacedHttpResponse} replacedHttpResponse
+   *     The replaced response to use.
+   */
+  setResponseOverride(replacedHttpResponse) {
+    this.wrappedChannel.channel
+      .QueryInterface(Ci.nsIHttpChannelInternal)
+      .setResponseOverride(replacedHttpResponse);
+
+    const rawHeaders = [];
+    replacedHttpResponse.visitResponseHeaders({
+      visitHeader(name, value) {
+        rawHeaders.push(`${name}: ${value}`);
+      },
+    });
+
+    // Setting an override bypasses the usual codepath for network responses.
+    // There will be no notification about receiving a response.
+    // However, there will be a notification about the end of the response.
+    // Therefore, simulate a addResponseStart here to make sure we handle
+    // addResponseContent properly.
+    this.#eventRecord.prepareResponseStart({
+      channel: this.#channel,
+      fromCache: false,
+      rawHeaders: rawHeaders.join("\n"),
+    });
   }
 
   /**
