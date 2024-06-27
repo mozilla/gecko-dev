@@ -7,9 +7,9 @@
 #include "nsComponentManagerUtils.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsHttpConnectionInfo.h"
-#include "nsHttpHandler.h"
 #include "nsICaptivePortalService.h"
 #include "nsIFile.h"
+#include "nsIParentalControlsService.h"
 #include "nsINetworkLinkService.h"
 #include "nsIObserverService.h"
 #include "nsIOService.h"
@@ -196,7 +196,7 @@ nsresult TRRService::Init(bool aNativeHTTPSQueryEnabled) {
   if (XRE_IsParentProcess()) {
     mCaptiveIsPassed = CheckCaptivePortalIsPassed();
 
-    mParentalControlEnabled = GetParentalControlsEnabledInternal();
+    mParentalControlEnabled = GetParentalControlEnabledInternal();
 
     mLinkService = do_GetService(NS_NETWORK_LINK_SERVICE_CONTRACTID);
     if (mLinkService) {
@@ -224,14 +224,17 @@ nsresult TRRService::Init(bool aNativeHTTPSQueryEnabled) {
 }
 
 // static
-bool TRRService::GetParentalControlsEnabledInternal() {
-  return nsHttpHandler::GetParentalControlsEnabled();
-}
+bool TRRService::GetParentalControlEnabledInternal() {
+  nsCOMPtr<nsIParentalControlsService> pc =
+      do_CreateInstance("@mozilla.org/parental-controls-service;1");
+  if (pc) {
+    bool result = false;
+    pc->GetParentalControlsEnabled(&result);
+    LOG(("TRRService::GetParentalControlEnabledInternal=%d\n", result));
+    return result;
+  }
 
-// static, for testing purposes only
-bool TRRService::ReloadParentalControlsEnabled() {
-  nsHttpHandler::UpdateParentalControlsEnabled(true /* wait for completion */);
-  return nsHttpHandler::GetParentalControlsEnabled();
+  return false;
 }
 
 void TRRService::SetDetectedTrrURI(const nsACString& aURI) {

@@ -245,8 +245,6 @@ static nsCString DocumentAcceptHeader() {
   return mimeTypes;
 }
 
-Atomic<bool, Relaxed> nsHttpHandler::sParentalControlsEnabled(false);
-
 nsHttpHandler::nsHttpHandler()
     : mIdleTimeout(PR_SecondsToInterval(10)),
       mSpdyTimeout(
@@ -486,52 +484,15 @@ nsresult nsHttpHandler::Init() {
 
   MakeNewRequestTokenBucket();
   mWifiTickler = new Tickler();
-  if (NS_FAILED(mWifiTickler->Init())) {
-    mWifiTickler = nullptr;
+  if (NS_FAILED(mWifiTickler->Init())) mWifiTickler = nullptr;
+
+  nsCOMPtr<nsIParentalControlsService> pc =
+      do_CreateInstance("@mozilla.org/parental-controls-service;1");
+  if (pc) {
+    pc->GetParentalControlsEnabled(&mParentalControlEnabled);
   }
 
-  UpdateParentalControlsEnabled(false /* wait for completion */);
   return NS_OK;
-}
-
-void nsHttpHandler::UpdateParentalControlsEnabled(bool waitForCompletion) {
-  auto getParentalControlsTask = []() {
-    nsCOMPtr<nsIParentalControlsService> pc =
-        do_CreateInstance("@mozilla.org/parental-controls-service;1");
-    if (pc) {
-      bool localEnabled = false;
-      pc->GetParentalControlsEnabled(&localEnabled);
-      sParentalControlsEnabled = localEnabled;
-
-      // Cache the state of parental controls via preference on the main thread
-      if (NS_IsMainThread()) {
-        Preferences::SetBool(
-            StaticPrefs::GetPrefName_network_parental_controls_cached_state(),
-            localEnabled);
-      } else {
-        NS_DispatchToMainThread(NS_NewRunnableFunction(
-            "nsHttpHandler::UpdateParentalControlsEnabled", [localEnabled]() {
-              Preferences::SetBool(
-                  StaticPrefs::
-                      GetPrefName_network_parental_controls_cached_state(),
-                  localEnabled);
-            }));
-      }
-    }
-  };
-
-  if (waitForCompletion) {
-    getParentalControlsTask();
-  } else {
-    // To avoid blocking on determining parental controls state, used the cached
-    // pref until the runnable completes
-    sParentalControlsEnabled =
-        mozilla::StaticPrefs::network_parental_controls_cached_state();
-    Unused << NS_DispatchBackgroundTask(
-        NS_NewRunnableFunction("GetParentalControlsEnabled",
-                               std::move(getParentalControlsTask)),
-        NS_DISPATCH_NORMAL);
-  }
 }
 
 const nsCString& nsHttpHandler::Http3QlogDir() {
@@ -654,7 +615,7 @@ nsresult nsHttpHandler::AddStandardRequestHeaders(
   if (NS_FAILED(rv)) return rv;
 
   // add the "Send Hint" header
-  if (mSafeHintEnabled || sParentalControlsEnabled) {
+  if (mSafeHintEnabled || mParentalControlEnabled) {
     rv = request->SetHeader(nsHttp::Prefer, "safe"_ns, false,
                             nsHttpHeaderArray::eVarietyRequestDefault);
     if (NS_FAILED(rv)) return rv;
@@ -2843,7 +2804,7 @@ void nsHttpHandler::MaybeAddAltSvcForTesting(
 }
 
 bool nsHttpHandler::EchConfigEnabled(bool aIsHttp3) const {
-  if (sParentalControlsEnabled) {
+  if (mParentalControlEnabled) {
     return false;
   }
 
