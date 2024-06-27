@@ -6268,8 +6268,7 @@ void MacroAssemblerARM::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
     }
   }
 
-  bool isSigned = type == Scalar::Int8 || type == Scalar::Int16 ||
-                  type == Scalar::Int32 || type == Scalar::Int64;
+  bool isSigned = Scalar::isSignedIntType(type);
   unsigned byteSize = access.byteSize();
 
   // NOTE: the generated code must match the assembly code in gen_load in

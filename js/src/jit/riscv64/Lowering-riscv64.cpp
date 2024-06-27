@@ -616,9 +616,7 @@ void LIRGenerator::visitSubstr(MSubstr* ins) {
 
 void LIRGenerator::visitCompareExchangeTypedArrayElement(
     MCompareExchangeTypedArrayElement* ins) {
-  MOZ_ASSERT(ins->arrayType() != Scalar::Float32);
-  MOZ_ASSERT(ins->arrayType() != Scalar::Float64);
-
+  MOZ_ASSERT(!Scalar::isFloatingType(ins->arrayType()));
   MOZ_ASSERT(ins->elements()->type() == MIRType::Elements);
   MOZ_ASSERT(ins->index()->type() == MIRType::IntPtr);
 
@@ -719,9 +717,7 @@ void LIRGenerator::visitAtomicExchangeTypedArrayElement(
 void LIRGenerator::visitAtomicTypedArrayElementBinop(
     MAtomicTypedArrayElementBinop* ins) {
   MOZ_ASSERT(ins->arrayType() != Scalar::Uint8Clamped);
-  MOZ_ASSERT(ins->arrayType() != Scalar::Float32);
-  MOZ_ASSERT(ins->arrayType() != Scalar::Float64);
-
+  MOZ_ASSERT(!Scalar::isFloatingType(ins->arrayType()));
   MOZ_ASSERT(ins->elements()->type() == MIRType::Elements);
   MOZ_ASSERT(ins->index()->type() == MIRType::IntPtr);
 
