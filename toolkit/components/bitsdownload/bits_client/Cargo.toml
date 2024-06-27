@@ -15,5 +15,5 @@ thiserror = "1"
 #ctrlc = "3.1.1"
 lazy_static = "1.0.1"
 rand = "0.8"
-regex = { version = "1", default_features = false, features = ["perf", "std"] }
+regex = { version = "1", default-features = false, features = ["perf", "std"] }
 tempfile = "3"
