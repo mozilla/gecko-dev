@@ -64,6 +64,7 @@ prefs = [
 ["browser_shopping_sidebar.js"]
 
 ["browser_shopping_survey.js"]
+skip-if = ["verify && debug"] # Bug 1905209
 
 ["browser_shopping_urlbar.js"]
 
