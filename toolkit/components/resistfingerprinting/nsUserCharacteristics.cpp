@@ -226,26 +226,42 @@ void PopulateScreenProperties() {
   glean::characteristics::avail_height.Set(availRect.Height());
   glean::characteristics::avail_width.Set(availRect.Width());
   glean::characteristics::orientation_angle.Set(screen->GetOrientationAngle());
+  glean::characteristics::video_dynamic_range.Set(screen->GetIsHDR());
 
   glean::characteristics::color_gamut.Set((int)colorGamut);
   glean::characteristics::color_depth.Set(colorDepth);
   const LayoutDeviceIntRect rect = screen->GetRect();
   glean::characteristics::screen_height.Set(rect.Height());
   glean::characteristics::screen_width.Set(rect.Width());
+  glean::characteristics::posx.Set(rect.X());
+  glean::characteristics::posy.Set(rect.Y());
+
+  glean::characteristics::screen_orientation.Set(
+      (int)screen->GetOrientationType());
+  glean::characteristics::target_frame_rate.Set(gfxPlatform::TargetFrameRate());
 
   nsCOMPtr<nsPIDOMWindowInner> innerWindow =
       do_QueryInterface(dom::GetEntryGlobal());
+  if (!innerWindow) {
+    return;
+  }
 
   double outerHeight, outerWidth;
   innerWindow->GetInnerHeight(&outerHeight);
-
   innerWindow->GetInnerWidth(&outerWidth);
   glean::characteristics::outer_height.Set(static_cast<int64_t>(outerHeight));
   glean::characteristics::outer_width.Set(static_cast<int64_t>(outerWidth));
 
   nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
   innerWindow->GetDocShell()->GetTreeOwner(getter_AddRefs(treeOwner));
+  if (!treeOwner) {
+    return;
+  }
+
   nsCOMPtr<nsIBaseWindow> treeOwnerAsWin(do_QueryInterface(treeOwner));
+  if (!treeOwnerAsWin) {
+    return;
+  }
 
   LayoutDeviceIntSize contentSize;
   treeOwner->GetPrimaryContentSize(&contentSize.width, &contentSize.height);
@@ -256,19 +272,14 @@ void PopulateScreenProperties() {
   glean::characteristics::inner_height.Set(contentSizeCSS.height);
   glean::characteristics::inner_width.Set(contentSizeCSS.width);
 
-  glean::characteristics::video_dynamic_range.Set(screen->GetIsHDR());
-
-  glean::characteristics::posx.Set(rect.X());
-  glean::characteristics::posy.Set(rect.Y());
-
   nsCOMPtr<nsIWidget> mainWidget;
   treeOwnerAsWin->GetMainWidget(getter_AddRefs(mainWidget));
+  if (!mainWidget) {
+    return;
+  }
+
   nsSizeMode sizeMode = mainWidget ? mainWidget->SizeMode() : nsSizeMode_Normal;
   glean::characteristics::size_mode.Set(sizeMode);
-
-  glean::characteristics::screen_orientation.Set(
-      (int)screen->GetOrientationType());
-  glean::characteristics::target_frame_rate.Set(gfxPlatform::TargetFrameRate());
 }
 
 void PopulateMissingFonts() {
