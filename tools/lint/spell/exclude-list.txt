@@ -23,3 +23,5 @@ complies
 ehr
 inout
 manuel
+thirdparty
+checkin
