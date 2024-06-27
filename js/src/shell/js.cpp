@@ -5448,20 +5448,24 @@ static bool RegisterModule(JSContext* cx, unsigned argc, Value* vp) {
 
   if (!args[0].isString()) {
     const char* typeName = InformalValueTypeName(args[0]);
-    JS_ReportErrorASCII(cx, "expected string, got %s", typeName);
+    JS_ReportErrorASCII(cx, "Expected string, got %s", typeName);
     return false;
   }
 
   if (!args[1].isObject() ||
       !args[1].toObject().is<ShellModuleObjectWrapper>()) {
     const char* typeName = InformalValueTypeName(args[1]);
-    JS_ReportErrorASCII(cx, "expected module, got %s", typeName);
+    JS_ReportErrorASCII(cx, "Expected module, got %s", typeName);
     return false;
   }
 
   ShellContext* sc = GetShellContext(cx);
   Rooted<ModuleObject*> module(
       cx, args[1].toObject().as<ShellModuleObjectWrapper>().get());
+  if (module->realm() != cx->realm()) {
+    JS_ReportErrorASCII(cx, "Module is in a different realm");
+    return false;
+  }
 
   Rooted<JSAtom*> specifier(cx, AtomizeString(cx, args[0].toString()));
   if (!specifier) {
