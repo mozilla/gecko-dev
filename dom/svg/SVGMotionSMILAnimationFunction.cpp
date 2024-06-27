@@ -232,7 +232,7 @@ void SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromPathAttr() {
     return;
   }
 
-  mPath = path.BuildPathForMeasuring();
+  mPath = path.BuildPathForMeasuring(1.0f);
   bool ok = path.GetDistancesFromOriginToEndsOfVisibleSegments(&mPathVertices);
   if (!ok || !mPathVertices.Length()) {
     mPath = nullptr;

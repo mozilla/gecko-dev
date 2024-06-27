@@ -119,11 +119,10 @@ class SVGPathData {
   static uint32_t GetPathSegAtLength(Span<const StylePathCommand> aPath,
                                      float aDistance);
 
-  void GetMarkerPositioningData(nsTArray<SVGMark>* aMarks) const;
+  void GetMarkerPositioningData(float aZoom, nsTArray<SVGMark>* aMarks) const;
 
   static void GetMarkerPositioningData(Span<const StylePathCommand> aPath,
-                                       nsTArray<SVGMark>* aMarks);
-
+                                       float aZoom, nsTArray<SVGMark>* aMarks);
   /**
    * Returns true, except on OOM, in which case returns false.
    */
@@ -141,14 +140,14 @@ class SVGPathData {
    * ApproximateZeroLengthSubpathSquareCaps can insert if we have square-caps.
    * See the comment for that function for more info on that.
    */
-  already_AddRefed<Path> BuildPathForMeasuring() const;
+  already_AddRefed<Path> BuildPathForMeasuring(float aZoom) const;
 
   already_AddRefed<Path> BuildPath(PathBuilder* aBuilder,
                                    StyleStrokeLinecap aStrokeLineCap,
-                                   Float aStrokeWidth) const;
+                                   Float aStrokeWidth, float aZoom) const;
 
   static already_AddRefed<Path> BuildPathForMeasuring(
-      Span<const StylePathCommand> aPath);
+      Span<const StylePathCommand> aPath, float aZoom);
 
   /**
    * This function tries to build the path from an array of GenericShapeCommand,
@@ -157,11 +156,13 @@ class SVGPathData {
    * Note: |StylePathCommand| doesn't accept percentage values, so its |aBasis|
    * is empty by default.
    */
-  static already_AddRefed<Path> BuildPath(
-      Span<const StylePathCommand> aPath, PathBuilder* aBuilder,
-      StyleStrokeLinecap aStrokeLineCap, Float aStrokeWidth,
-      const CSSSize& aBasis = {}, const gfx::Point& aOffset = gfx::Point(),
-      float aZoomFactor = 1.0);
+  static already_AddRefed<Path> BuildPath(Span<const StylePathCommand> aPath,
+                                          PathBuilder* aBuilder,
+                                          StyleStrokeLinecap aStrokeLineCap,
+                                          Float aStrokeWidth,
+                                          const CSSSize& aBasis = {},
+                                          const gfx::Point& aOffset = {},
+                                          float aZoomFactor = 1.0);
   static already_AddRefed<Path> BuildPath(
       Span<const StyleShapeCommand> aShape, PathBuilder* aBuilder,
       StyleStrokeLinecap aStrokeLineCap, Float aStrokeWidth,

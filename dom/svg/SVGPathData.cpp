@@ -162,13 +162,15 @@ static void ApproximateZeroLengthSubpathSquareCaps(PathBuilder* aPB,
 
 already_AddRefed<Path> SVGPathData::BuildPath(PathBuilder* aBuilder,
                                               StyleStrokeLinecap aStrokeLineCap,
-                                              Float aStrokeWidth) const {
-  return BuildPath(AsSpan(), aBuilder, aStrokeLineCap, aStrokeWidth);
+                                              Float aStrokeWidth,
+                                              float aZoom) const {
+  return BuildPath(AsSpan(), aBuilder, aStrokeLineCap, aStrokeWidth, {}, {},
+                   aZoom);
 }
 
 #undef MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS_TO_DT
 
-already_AddRefed<Path> SVGPathData::BuildPathForMeasuring() const {
+already_AddRefed<Path> SVGPathData::BuildPathForMeasuring(float aZoom) const {
   // Since the path that we return will not be used for painting it doesn't
   // matter what we pass to CreatePathBuilder as aFillRule. Hawever, we do want
   // to pass something other than NS_STYLE_STROKE_LINECAP_SQUARE as
@@ -181,17 +183,17 @@ already_AddRefed<Path> SVGPathData::BuildPathForMeasuring() const {
       gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
   RefPtr<PathBuilder> builder =
       drawTarget->CreatePathBuilder(FillRule::FILL_WINDING);
-  return BuildPath(builder, StyleStrokeLinecap::Butt, 0);
+  return BuildPath(builder, StyleStrokeLinecap::Butt, 0, aZoom);
 }
 
 /* static */
 already_AddRefed<Path> SVGPathData::BuildPathForMeasuring(
-    Span<const StylePathCommand> aPath) {
+    Span<const StylePathCommand> aPath, float aZoom) {
   RefPtr<DrawTarget> drawTarget =
       gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
   RefPtr<PathBuilder> builder =
       drawTarget->CreatePathBuilder(FillRule::FILL_WINDING);
-  return BuildPath(aPath, builder, StyleStrokeLinecap::Butt, 0);
+  return BuildPath(aPath, builder, StyleStrokeLinecap::Butt, 0, {}, {}, aZoom);
 }
 
 static inline StyleCSSFloat GetRotate(const StyleCSSFloat& aAngle) {
@@ -525,8 +527,9 @@ ComputeSegAnglesAndCorrectRadii(const Point& aSegStart, const Point& aSegEnd,
           static_cast<float>(atan2(ty2, tx2))};
 }
 
-void SVGPathData::GetMarkerPositioningData(nsTArray<SVGMark>* aMarks) const {
-  return GetMarkerPositioningData(AsSpan(), aMarks);
+void SVGPathData::GetMarkerPositioningData(float aZoom,
+                                           nsTArray<SVGMark>* aMarks) const {
+  return GetMarkerPositioningData(AsSpan(), aZoom, aMarks);
 }
 
 // Basically, this is identical to the above function, but replace |mData| with
@@ -535,6 +538,7 @@ void SVGPathData::GetMarkerPositioningData(nsTArray<SVGMark>* aMarks) const {
 // StylePathCommand for SVG d attribute in the future.
 /* static */
 void SVGPathData::GetMarkerPositioningData(Span<const StylePathCommand> aPath,
+                                           float aZoom,
                                            nsTArray<SVGMark>* aMarks) {
   if (aPath.IsEmpty()) {
     return;
@@ -564,7 +568,7 @@ void SVGPathData::GetMarkerPositioningData(Span<const StylePathCommand> aPath,
         break;
 
       case StylePathCommand::Tag::Move: {
-        const Point& p = cmd.move.point.ToGfxPoint();
+        const Point& p = cmd.move.point.ToGfxPoint() * aZoom;
         pathStart = segEnd = cmd.move.by_to == StyleByTo::To ? p : segStart + p;
         pathStartIndex = aMarks->Length();
         // If authors are going to specify multiple consecutive moveto commands
@@ -573,15 +577,15 @@ void SVGPathData::GetMarkerPositioningData(Span<const StylePathCommand> aPath,
         break;
       }
       case StylePathCommand::Tag::Line: {
-        const Point& p = cmd.line.point.ToGfxPoint();
+        const Point& p = cmd.line.point.ToGfxPoint() * aZoom;
         segEnd = cmd.line.by_to == StyleByTo::To ? p : segStart + p;
         segStartAngle = segEndAngle = AngleOfVector(segEnd, segStart);
         break;
       }
       case StylePathCommand::Tag::CubicCurve: {
-        Point cp1 = cmd.cubic_curve.control1.ToGfxPoint();
-        Point cp2 = cmd.cubic_curve.control2.ToGfxPoint();
-        segEnd = cmd.cubic_curve.point.ToGfxPoint();
+        Point cp1 = cmd.cubic_curve.control1.ToGfxPoint() * aZoom;
+        Point cp2 = cmd.cubic_curve.control2.ToGfxPoint() * aZoom;
+        segEnd = cmd.cubic_curve.point.ToGfxPoint() * aZoom;
 
         if (cmd.cubic_curve.by_to == StyleByTo::By) {
           cp1 += segStart;
@@ -597,8 +601,8 @@ void SVGPathData::GetMarkerPositioningData(Span<const StylePathCommand> aPath,
         break;
       }
       case StylePathCommand::Tag::QuadCurve: {
-        Point cp1 = cmd.quad_curve.control1.ToGfxPoint();
-        segEnd = cmd.quad_curve.point.ToGfxPoint();
+        Point cp1 = cmd.quad_curve.control1.ToGfxPoint() * aZoom;
+        segEnd = cmd.quad_curve.point.ToGfxPoint() * aZoom;
 
         if (cmd.quad_curve.by_to == StyleByTo::By) {
           cp1 += segStart;
@@ -612,12 +616,12 @@ void SVGPathData::GetMarkerPositioningData(Span<const StylePathCommand> aPath,
       }
       case StylePathCommand::Tag::Arc: {
         const auto& arc = cmd.arc;
-        float rx = arc.radii.x;
-        float ry = arc.radii.y;
+        float rx = arc.radii.x * aZoom;
+        float ry = arc.radii.y * aZoom;
         float angle = arc.rotate;
         bool largeArcFlag = arc.arc_size == StyleArcSize::Large;
         bool sweepFlag = arc.arc_sweep == StyleArcSweep::Cw;
-        segEnd = arc.point.ToGfxPoint();
+        segEnd = arc.point.ToGfxPoint() * aZoom;
         if (arc.by_to == StyleByTo::By) {
           segEnd += segStart;
         }
@@ -654,18 +658,18 @@ void SVGPathData::GetMarkerPositioningData(Span<const StylePathCommand> aPath,
       }
       case StylePathCommand::Tag::HLine: {
         if (cmd.h_line.by_to == StyleByTo::To) {
-          segEnd = Point(cmd.h_line.x, segStart.y);
+          segEnd = Point(cmd.h_line.x, segStart.y) * aZoom;
         } else {
-          segEnd = segStart + Point(cmd.h_line.x, 0.0f);
+          segEnd = segStart + Point(cmd.h_line.x, 0.0f) * aZoom;
         }
         segStartAngle = segEndAngle = AngleOfVector(segEnd, segStart);
         break;
       }
       case StylePathCommand::Tag::VLine: {
         if (cmd.v_line.by_to == StyleByTo::To) {
-          segEnd = Point(segStart.x, cmd.v_line.y);
+          segEnd = Point(segStart.x, cmd.v_line.y) * aZoom;
         } else {
-          segEnd = segStart + Point(0.0f, cmd.v_line.y);
+          segEnd = segStart + Point(0.0f, cmd.v_line.y) * aZoom;
         }
         segStartAngle = segEndAngle = AngleOfVector(segEnd, segStart);
         break;
@@ -674,8 +678,8 @@ void SVGPathData::GetMarkerPositioningData(Span<const StylePathCommand> aPath,
         const Point& cp1 = prevSeg && prevSeg->IsCubicType()
                                ? segStart * 2 - prevCP
                                : segStart;
-        Point cp2 = cmd.smooth_cubic.control2.ToGfxPoint();
-        segEnd = cmd.smooth_cubic.point.ToGfxPoint();
+        Point cp2 = cmd.smooth_cubic.control2.ToGfxPoint() * aZoom;
+        segEnd = cmd.smooth_cubic.point.ToGfxPoint() * aZoom;
 
         if (cmd.smooth_cubic.by_to == StyleByTo::By) {
           cp2 += segStart;
@@ -694,8 +698,8 @@ void SVGPathData::GetMarkerPositioningData(Span<const StylePathCommand> aPath,
                                ? segStart * 2 - prevCP
                                : segStart;
         segEnd = cmd.smooth_quad.by_to == StyleByTo::To
-                     ? cmd.smooth_quad.point.ToGfxPoint()
-                     : segStart + cmd.smooth_quad.point.ToGfxPoint();
+                     ? cmd.smooth_quad.point.ToGfxPoint() * aZoom
+                     : segStart + cmd.smooth_quad.point.ToGfxPoint() * aZoom;
 
         prevCP = cp1;
         segStartAngle = AngleOfVector(cp1 == segStart ? segEnd : cp1, segStart);
@@ -738,7 +742,7 @@ void SVGPathData::GetMarkerPositioningData(Span<const StylePathCommand> aPath,
     prevSegEndAngle = segEndAngle;
   }
 
-  if (aMarks->Length()) {
+  if (!aMarks->IsEmpty()) {
     if (!(prevSeg && prevSeg->IsClose())) {
       aMarks->LastElement().angle = prevSegEndAngle;
     }

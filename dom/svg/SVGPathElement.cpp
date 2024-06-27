@@ -88,9 +88,11 @@ already_AddRefed<Path> SVGPathElement::GetOrBuildPathForMeasuring() {
         if (d.IsNone()) {
           return;
         }
-        path = SVGPathData::BuildPathForMeasuring(d.AsPath()._0.AsSpan());
+        path = SVGPathData::BuildPathForMeasuring(d.AsPath()._0.AsSpan(),
+                                                  s->EffectiveZoom().ToFloat());
       });
-  return success ? path.forget() : mD.GetAnimValue().BuildPathForMeasuring();
+  return success ? path.forget()
+                 : mD.GetAnimValue().BuildPathForMeasuring(1.0f);
 }
 
 //----------------------------------------------------------------------
@@ -108,7 +110,8 @@ void SVGPathElement::GetMarkPoints(nsTArray<SVGMark>* aMarks) {
     if (styleSVGReset->mD.IsPath()) {
       Span<const StylePathCommand> path =
           styleSVGReset->mD.AsPath()._0.AsSpan();
-      SVGPathData::GetMarkerPositioningData(path, aMarks);
+      SVGPathData::GetMarkerPositioningData(path, s->EffectiveZoom().ToFloat(),
+                                            aMarks);
     }
   };
 
@@ -116,7 +119,7 @@ void SVGPathElement::GetMarkPoints(nsTArray<SVGMark>* aMarks) {
     return;
   }
 
-  mD.GetAnimValue().GetMarkerPositioningData(aMarks);
+  mD.GetAnimValue().GetMarkerPositioningData(1.0f, aMarks);
 }
 
 void SVGPathElement::GetAsSimplePath(SimplePath* aSimplePath) {
@@ -162,7 +165,8 @@ already_AddRefed<Path> SVGPathElement::BuildPath(PathBuilder* aBuilder) {
     const auto& d = s->StyleSVGReset()->mD;
     if (d.IsPath()) {
       path = SVGPathData::BuildPath(d.AsPath()._0.AsSpan(), aBuilder,
-                                    strokeLineCap, strokeWidth);
+                                    strokeLineCap, strokeWidth, {}, {},
+                                    s->EffectiveZoom().ToFloat());
     }
   };
 
@@ -172,7 +176,8 @@ already_AddRefed<Path> SVGPathElement::BuildPath(PathBuilder* aBuilder) {
   }
 
   // Fallback to use the d attribute if it exists.
-  return mD.GetAnimValue().BuildPath(aBuilder, strokeLineCap, strokeWidth);
+  return mD.GetAnimValue().BuildPath(aBuilder, strokeLineCap, strokeWidth,
+                                     1.0f);
 }
 
 bool SVGPathElement::GetDistancesFromOriginToEndsOfVisibleSegments(

@@ -4506,7 +4506,8 @@ already_AddRefed<Path> SVGTextFrame::GetTextPath(nsIFrame* aTextPathFrame) {
   if (tp->mPath.IsRendered()) {
     // This is just an attribute so there's no transform that can apply
     // so we can just return the path directly.
-    return tp->mPath.GetAnimValue().BuildPathForMeasuring();
+    return tp->mPath.GetAnimValue().BuildPathForMeasuring(
+        aTextPathFrame->Style()->EffectiveZoom().ToFloat());
   }
 
   SVGGeometryElement* geomElement =
