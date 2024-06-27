@@ -25,6 +25,9 @@ class SharedWorkerOp : public RemoteWorkerOp {
 
   void StartOnMainThread(RefPtr<RemoteWorkerChild>& aOwner) final;
 
+  void Start(RemoteWorkerNonLifeCycleOpControllerChild* aOwner,
+             RemoteWorkerState& aState) final;
+
   void Cancel() override;
 
  private:

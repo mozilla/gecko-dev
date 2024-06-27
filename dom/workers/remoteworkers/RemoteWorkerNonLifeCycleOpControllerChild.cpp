@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "RemoteWorkerNonLifeCycleOpControllerChild.h"
+#include "mozilla/dom/SharedWorkerOp.h"
 #include "mozilla/dom/WorkerCommon.h"
+#include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRef.h"
 
 namespace mozilla::dom {
@@ -43,8 +45,36 @@ void RemoteWorkerNonLifeCycleOpControllerChild::TransistionStateToCanceled() {
 void RemoteWorkerNonLifeCycleOpControllerChild::TransistionStateToKilled() {
   auto lock = mState.Lock();
   MOZ_ASSERT(lock->is<Canceled>());
-  Unused << SendTerminated();
   *lock = VariantType<Killed>();
+  if (!CanSend()) {
+    return;
+  }
+  Unused << SendTerminated();
+}
+
+void RemoteWorkerNonLifeCycleOpControllerChild::ErrorPropagation(
+    nsresult aError) {
+  if (!CanSend()) {
+    return;
+  }
+  Unused << SendError(aError);
+}
+
+void RemoteWorkerNonLifeCycleOpControllerChild::StartOp(
+    RefPtr<RemoteWorkerOp>&& aOp) {
+  MOZ_ASSERT(aOp);
+  auto lock = mState.Lock();
+  // ServiceWorkerOp/SharedWorkerOp handles the Canceled/Killed state cases.
+  aOp->Start(this, lock.ref());
+}
+
+IPCResult RemoteWorkerNonLifeCycleOpControllerChild::RecvExecOp(
+    SharedWorkerOpArgs&& aOpArgs) {
+  MOZ_ASSERT(aOpArgs.type() ==
+             SharedWorkerOpArgs::TSharedWorkerPortIdentifierOpArgs);
+  StartOp(new SharedWorkerOp(std::move(aOpArgs)));
+
+  return IPC_OK();
 }
 
 IPCResult RemoteWorkerNonLifeCycleOpControllerChild::RecvShutdown() {

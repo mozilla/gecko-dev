@@ -805,14 +805,6 @@ void RemoteWorkerChild::ExceptionalErrorTransitionDuringExecWorker() {
   }
 }
 
-void RemoteWorkerChild::AddPortIdentifier(
-    JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-    UniqueMessagePortId& aPortIdentifier) {
-  if (NS_WARN_IF(!aWorkerPrivate->ConnectMessagePort(aCx, aPortIdentifier))) {
-    ErrorPropagationDispatch(NS_ERROR_FAILURE);
-  }
-}
-
 void RemoteWorkerChild::CancelAllPendingOps(RemoteWorkerState& aState) {
   MOZ_ASSERT(aState.is<Pending>());
 

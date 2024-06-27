@@ -30,12 +30,17 @@ class RemoteWorkerNonLifeCycleOpControllerChild final
 
   RemoteWorkerNonLifeCycleOpControllerChild();
 
-  void TransistionStateToCanceled();
-  void TransistionStateToKilled();
+  IPCResult RecvExecOp(SharedWorkerOpArgs&& aOpArgs);
 
   IPCResult RecvShutdown();
 
+  void TransistionStateToCanceled();
+  void TransistionStateToKilled();
+
+  void ErrorPropagation(nsresult aError);
+
  private:
+  void StartOp(RefPtr<RemoteWorkerOp>&& aOp);
   ~RemoteWorkerNonLifeCycleOpControllerChild();
 
   DataMutex<RemoteWorkerState> mState;

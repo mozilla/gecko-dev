@@ -3293,9 +3293,11 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
     if (mChildEp.IsValid()) {
       mRemoteWorkerNonLifeCycleOpController =
           RemoteWorkerNonLifeCycleOpControllerChild::Create();
-      if (mRemoteWorkerNonLifeCycleOpController) {
-        mChildEp.Bind(mRemoteWorkerNonLifeCycleOpController);
-      }
+      // RemoteWorkerNonLifeCycleOpControllerChild::Create() can fail when
+      // Worker enters "Canceling." But Worker just gets into "Running,"
+      // probably can replace the if statement with an assertion.
+      MOZ_ASSERT_DEBUG_OR_FUZZING(mRemoteWorkerNonLifeCycleOpController);
+      mChildEp.Bind(mRemoteWorkerNonLifeCycleOpController);
     }
 
     // Now, start to run the event loop, mPreStartRunnables can be cleared,
@@ -5229,6 +5231,7 @@ bool WorkerPrivate::NotifyInternal(WorkerStatus aStatus) {
 
   if (aStatus == Killing && mRemoteWorkerNonLifeCycleOpController) {
     mRemoteWorkerNonLifeCycleOpController->TransistionStateToKilled();
+    mRemoteWorkerNonLifeCycleOpController = nullptr;
   }
 
   // If the worker script never ran, or failed to compile, we don't need to do

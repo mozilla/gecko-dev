@@ -334,7 +334,7 @@ void RemoteWorkerManager::LaunchInternal(
 
   MOZ_ASSERT(!aController->mNonLifeCycleOpController);
   aController->mNonLifeCycleOpController =
-      MakeAndAddRef<RemoteWorkerNonLifeCycleOpControllerParent>();
+      MakeAndAddRef<RemoteWorkerNonLifeCycleOpControllerParent>(aController);
 
   parentEp.Bind(aController->mNonLifeCycleOpController);
 
