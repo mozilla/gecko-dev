@@ -3116,6 +3116,22 @@ backupService:
       setPref:
         branch: user
         pref: browser.backup.sqlite.step_delay_ms
+    idleThresholdSeconds:
+      description: >-
+        The number of seconds of user idle time to wait for before considering
+        to schedule a backup.
+      type: int
+      setPref:
+        branch: user
+        pref: browser.backup.scheduled.idle-threshold-seconds
+    minTimeBetweenBackupsSeconds:
+      description: >-
+        The minimum number of seconds since the last known backup that must
+        pass before we might schedule a backup.
+      type: int
+      setPref:
+        branch: user
+        pref: browser.backup.scheduled.minimum-time-between-backups-seconds
 
 pqcrypto:
   description: Prefs that control the use of post-quantum cryptography.

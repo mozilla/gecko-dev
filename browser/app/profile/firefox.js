@@ -3119,6 +3119,8 @@ pref("browser.backup.preferences.ui.enabled", false);
 pref("browser.backup.sqlite.pages_per_step", 5);
 // The delay between SQLite database backup steps in milliseconds.
 pref("browser.backup.sqlite.step_delay_ms", 250);
+pref("browser.backup.scheduled.idle-threshold-seconds", 300);
+pref("browser.backup.scheduled.minimum-time-between-backups-seconds", 3600);
 
 // Pref to enable the new profiles
 pref("browser.profiles.enabled", false);

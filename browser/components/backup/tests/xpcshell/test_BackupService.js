@@ -115,7 +115,9 @@ async function testCreateBackupHelper(sandbox, taskFn) {
     "createBackupTest"
   );
 
+  Assert.ok(!bs.state.lastBackupDate, "No backup date is stored in state.");
   await bs.createBackup({ profilePath: fakeProfilePath });
+  Assert.ok(bs.state.lastBackupDate, "The backup date was recorded.");
 
   // We expect the staging folder to exist then be renamed under the fakeProfilePath.
   // We should also find a folder for each fake BackupResource.

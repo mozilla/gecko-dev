@@ -15,6 +15,13 @@ import {
 
 const BACKUP_DIR_PREF_NAME = "browser.backup.location";
 const SCHEDULED_BACKUPS_ENABLED_PREF_NAME = "browser.backup.scheduled.enabled";
+const IDLE_THRESHOLD_SECONDS_PREF_NAME =
+  "browser.backup.scheduled.idle-threshold-seconds";
+const MINIMUM_TIME_BETWEEN_BACKUPS_SECONDS_PREF_NAME =
+  "browser.backup.scheduled.minimum-time-between-backups-seconds";
+const LAST_BACKUP_TIMESTAMP_PREF_NAME =
+  "browser.backup.scheduled.last-backup-timestamp";
+
 const SCHEMAS = Object.freeze({
   BACKUP_MANIFEST: 1,
   ARCHIVE_JSON_BLOCK: 2,
@@ -119,6 +126,20 @@ XPCOMUtils.defineLazyPreferenceGetter(
       await bs.onUpdateLocationDirPath(newVal);
     }
   }
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "minimumTimeBetweenBackupsSeconds",
+  MINIMUM_TIME_BETWEEN_BACKUPS_SECONDS_PREF_NAME,
+  3600 /* 1 hour */
+);
+
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "idleService",
+  "@mozilla.org/widget/useridleservice;1",
+  "nsIUserIdleService"
 );
 
 /**
@@ -542,6 +563,8 @@ export class BackupService extends EventTarget {
     backupInProgress: false,
     scheduledBackupsEnabled: lazy.scheduledBackupsPref,
     encryptionEnabled: false,
+    /** @type {number?} Number of seconds since UNIX epoch */
+    lastBackupDate: null,
   };
 
   /**
@@ -756,6 +779,7 @@ export class BackupService extends EventTarget {
       this.#instance.takeMeasurements();
     });
 
+    this.#instance.initBackupScheduler();
     return this.#instance;
   }
 
@@ -1005,6 +1029,10 @@ export class BackupService extends EventTarget {
         this.#encState,
         manifest.meta
       );
+
+      let nowSeconds = Math.floor(Date.now() / 1000);
+      Services.prefs.setIntPref(LAST_BACKUP_TIMESTAMP_PREF_NAME, nowSeconds);
+      this.#_state.lastBackupDate = nowSeconds;
 
       return {
         stagingPath: renamedStagingPath,
@@ -2494,5 +2522,204 @@ export class BackupService extends EventTarget {
     this.#encState = null;
     this.#_state.encryptionEnabled = false;
     this.stateUpdate();
+  }
+
+  /**
+   * The value of IDLE_THRESHOLD_SECONDS_PREF_NAME at the time that
+   * initBackupScheduler was called. This is recorded so that if the preference
+   * changes at runtime, that we properly remove the idle observer in
+   * uninitBackupScheduler, since it's mapped to the idle time value.
+   *
+   * @see BackupService.initBackupScheduler()
+   * @see BackupService.uninitBackupScheduler()
+   * @type {number}
+   */
+  #idleThresholdSeconds = null;
+
+  /**
+   * An ES6 class that extends EventTarget cannot, apparently, be coerced into
+   * a nsIObserver, even when we define QueryInterface. We work around this
+   * limitation by having the observer be a function that we define at
+   * registration time. We hold a reference to the observer so that we can
+   * properly unregister.
+   *
+   * @see BackupService.initBackupScheduler()
+   * @type {Function}
+   */
+  #observer = null;
+
+  /**
+   * True if the backup scheduler system has been initted via
+   * initBackupScheduler().
+   *
+   * @see BackupService.initBackupScheduler()
+   * @type {boolean}
+   */
+  #backupSchedulerInitted = false;
+
+  /**
+   * Initializes the backup scheduling system. This should be done shortly
+   * after startup. It is exposed as a public method mainly for ease in testing.
+   *
+   * The scheduler will automatically uninitialize itself on the
+   * quit-application-granted observer notification.
+   *
+   * @returns {Promise<undefined>}
+   */
+  async initBackupScheduler() {
+    if (this.#backupSchedulerInitted) {
+      lazy.logConsole.warn(
+        "BackupService scheduler already initting or initted."
+      );
+      return;
+    }
+
+    this.#backupSchedulerInitted = true;
+
+    let lastBackupPrefValue = Services.prefs.getIntPref(
+      LAST_BACKUP_TIMESTAMP_PREF_NAME,
+      0
+    );
+    if (!lastBackupPrefValue) {
+      this.#_state.lastBackupDate = null;
+    } else {
+      this.#_state.lastBackupDate = lastBackupPrefValue;
+    }
+
+    this.stateUpdate();
+
+    // We'll default to 5 minutes of idle time unless otherwise configured.
+    const FIVE_MINUTES_IN_SECONDS = 5 * 60;
+
+    this.#idleThresholdSeconds = Services.prefs.getIntPref(
+      IDLE_THRESHOLD_SECONDS_PREF_NAME,
+      FIVE_MINUTES_IN_SECONDS
+    );
+    this.#observer = (subject, topic, data) => {
+      this.onObserve(subject, topic, data);
+    };
+    lazy.logConsole.debug(
+      `Registering idle observer for ${
+        this.#idleThresholdSeconds
+      } seconds of idle time`
+    );
+    lazy.idleService.addIdleObserver(
+      this.#observer,
+      this.#idleThresholdSeconds
+    );
+    lazy.logConsole.debug("Idle observer registered.");
+
+    Services.obs.addObserver(this.#observer, "quit-application-granted");
+  }
+
+  /**
+   * Uninitializes the backup scheduling system.
+   *
+   * @returns {Promise<undefined>}
+   */
+  async uninitBackupScheduler() {
+    if (!this.#backupSchedulerInitted) {
+      lazy.logConsole.warn(
+        "Tried to uninitBackupScheduler when it wasn't yet enabled."
+      );
+      return;
+    }
+
+    lazy.idleService.removeIdleObserver(
+      this.#observer,
+      this.#idleThresholdSeconds
+    );
+    Services.obs.removeObserver(this.#observer, "quit-application-granted");
+    this.#observer = null;
+  }
+
+  /**
+   * Called by this.#observer on idle from the nsIUserIdleService or
+   * quit-application-granted from the nsIObserverService. Exposed as a public
+   * method mainly for ease in testing.
+   *
+   * @param {nsISupports|null} _subject
+   *   The nsIUserIdleService for the idle notification, and null for the
+   *   quit-application-granted topic.
+   * @param {string} topic
+   *   The topic that the notification belongs to.
+   */
+  onObserve(_subject, topic) {
+    switch (topic) {
+      case "idle": {
+        this.onIdle();
+        break;
+      }
+      case "quit-application-granted": {
+        this.uninitBackupScheduler();
+        break;
+      }
+    }
+  }
+
+  /**
+   * Called when the nsIUserIdleService reports that user input events have
+   * not been sent to the application for at least
+   * IDLE_THRESHOLD_SECONDS_PREF_NAME seconds.
+   */
+  onIdle() {
+    lazy.logConsole.debug("Saw idle callback");
+    if (lazy.scheduledBackupsPref) {
+      lazy.logConsole.debug("Scheduled backups enabled.");
+      let now = Math.floor(Date.now() / 1000);
+      let lastBackupDate = this.#_state.lastBackupDate;
+      if (lastBackupDate && lastBackupDate > now) {
+        lazy.logConsole.error(
+          "Last backup was somehow in the future. Resetting the preference."
+        );
+        lastBackupDate = null;
+        this.#_state.lastBackupDate = null;
+        this.stateUpdate();
+      }
+
+      if (!lastBackupDate) {
+        lazy.logConsole.debug("No last backup time recorded in prefs.");
+      } else {
+        lazy.logConsole.debug(
+          "Last backup was: ",
+          new Date(lastBackupDate * 1000)
+        );
+      }
+
+      if (
+        !lastBackupDate ||
+        now - lastBackupDate > lazy.minimumTimeBetweenBackupsSeconds
+      ) {
+        lazy.logConsole.debug(
+          "Last backup exceeded minimum time between backups. Queing a " +
+            "backup via idleDispatch."
+        );
+        // Just because the user hasn't sent us events in a while doesn't mean
+        // that the browser itself isn't busy. It might be, for example, playing
+        // video or doing a complex calculation that the user is actively
+        // waiting to complete, and we don't want to draw resources from that.
+        // Instead, we'll use ChromeUtils.idleDispatch to wait until the event
+        // loop in the parent process isn't so busy with higher priority things.
+        this.createBackupOnIdleDispatch();
+      } else {
+        lazy.logConsole.debug(
+          "Last backup was too recent. Not creating one for now."
+        );
+      }
+    }
+  }
+
+  /**
+   * Calls BackupService.createBackup at the next moment when the event queue
+   * is not busy with higher priority events. This is intentionally broken out
+   * into its own method to make it easier to stub out in tests.
+   */
+  createBackupOnIdleDispatch() {
+    ChromeUtils.idleDispatch(() => {
+      lazy.logConsole.debug(
+        "idleDispatch fired. Attempting to create a backup."
+      );
+      this.createBackup();
+    });
   }
 }
