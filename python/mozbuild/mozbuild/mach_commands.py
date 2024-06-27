@@ -2866,7 +2866,13 @@ def repackage_mar(command_context, input, mar, output, arch, mar_channel_id):
     help="Name of the snap to generate (default: firefox-devel)",
 )
 @CommandArgument(
-    "--branch",
+    "--upstream-repo",
+    default="canonical/firefox-snap",
+    required=False,
+    help="Name of the firefox-snap github repo to use (default: canonical/firefox-snap)",
+)
+@CommandArgument(
+    "--upstream-branch",
     default="nightly",
     required=False,
     help="Name of the firefox-snap github branch to use (default: nightly)",
@@ -2909,7 +2915,8 @@ def repackage_snap(
     command_context,
     snapcraft=None,
     snap_name=None,
-    branch=None,
+    upstream_repo=None,
+    upstream_branch=None,
     output=None,
     input_pkg=None,
     tmp_dir=None,
@@ -3022,7 +3029,8 @@ def repackage_snap(
         snapdir=snapdir,
         snapcraft=snapcraft,
         appname=snap_name,
-        branchname=branch,
+        reponame=upstream_repo,
+        branchname=upstream_branch,
         arch=arch,
         dry_run=dry_run,
     )

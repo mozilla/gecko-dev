@@ -9,6 +9,9 @@ ln -s /builds/worker/artifacts /builds/worker/.local/state/snapcraft/log
 BRANCH=$1
 DEBUG=${2:-0}
 
+SOURCE_REPO=${SOURCE_REPO:-https://github.com/canonical/firefox-snap/}
+SOURCE_BRANCH=${SOURCE_BRANCH:-${BRANCH}}
+
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 export SNAP_ARCH=amd64
@@ -38,7 +41,7 @@ if [ "${USE_SNAP_FROM_STORE_OR_MC}" = "0" ]; then
   # Stable and beta runs out of file descriptors during link with gold
   ulimit -n 65536
 
-  git clone --single-branch --depth 1 --branch "${BRANCH}" https://github.com/canonical/firefox-snap/
+  git clone --single-branch --depth 1 --branch "${SOURCE_BRANCH}" "${SOURCE_REPO}" firefox-snap/
   cd firefox-snap/
 
   if [ "${TRY}" = "1" ]; then
