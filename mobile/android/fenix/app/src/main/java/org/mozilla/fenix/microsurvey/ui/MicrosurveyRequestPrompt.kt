@@ -31,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.utils.KeyboardState
@@ -60,15 +61,18 @@ fun MicrosurveyRequestPrompt(
         enter = slideInVertically(initialOffsetY = { it }),
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
-        Column(
-            modifier = Modifier
-                .background(color = FirefoxTheme.colors.layer1)
-                .padding(all = 16.dp),
-        ) {
-            Header(microsurvey.promptTitle)
-            Spacer(modifier = Modifier.height(8.dp))
-            PrimaryButton(text = stringResource(id = R.string.micro_survey_continue_button_label)) {
-                onStartSurveyClicked()
+        Column {
+            Divider()
+            Column(
+                modifier = Modifier
+                    .background(color = FirefoxTheme.colors.layer1)
+                    .padding(all = 16.dp),
+            ) {
+                Header(microsurvey.promptTitle)
+                Spacer(modifier = Modifier.height(8.dp))
+                PrimaryButton(text = stringResource(id = R.string.micro_survey_continue_button_label)) {
+                    onStartSurveyClicked()
+                }
             }
         }
     }
