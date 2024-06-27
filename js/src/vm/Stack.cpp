@@ -636,7 +636,11 @@ JS::ProfilingFrameIterator::getPhysicalFrameAndEntry(
   void* stackAddr = stackAddress();
 
   MOZ_DIAGNOSTIC_ASSERT(endStackAddress_);
+#ifndef ENABLE_WASM_JSPI
+  // The stack addresses are monotonically increasing, except when
+  // suspendable stacks are present (e.g. when JS PI is enabled).
   MOZ_DIAGNOSTIC_ASSERT(stackAddr >= endStackAddress_);
+#endif
 
   if (isWasm()) {
     Frame frame;

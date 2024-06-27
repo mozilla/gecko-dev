@@ -7339,7 +7339,11 @@ static void SingleStepCallback(void* arg, jit::Simulator* sim, void* pc) {
   AutoEnterOOMUnsafeRegion oomUnsafe;
   for (JS::ProfilingFrameIterator i(cx, state); !i.done(); ++i) {
     MOZ_ASSERT(i.stackAddress() != nullptr);
+#  ifndef ENABLE_WASM_JSPI
+    // The stack addresses are monotonically increasing, except when
+    // suspendable stacks are present (e.g. when JS PI is enabled).
     MOZ_ASSERT(lastStackAddress <= i.stackAddress());
+#  endif
     lastStackAddress = i.stackAddress();
     JS::ProfilingFrameIterator::Frame frames[16];
     uint32_t nframes = i.extractStack(frames, 0, 16);

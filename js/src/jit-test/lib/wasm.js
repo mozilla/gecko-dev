@@ -284,7 +284,8 @@ WasmHelpers._normalizeStack = (stack, preciseStacks) => {
         {re:/^wasm-function\[(\d+)\] \(.*\)$/,                            sub:"$1"},
         {re:/^(\w+) \(.*?> WebAssembly\.Module:\d+\)$/,                   sub:"$1"},
         {re:/^(fast|slow) exit trampoline (?:to native )?\(in wasm\)$/,   sub:"<"},
-        {re:/^call to(?: asm.js)? native (.*) \(in wasm\)$/,              sub:"$1"},
+        {re:/^call to(?: asm.js)? native (.*?)(?: builtin)? \(in wasm\)$/, sub:"$1"},
+        {re:/^call to native (.*)$/,                                      sub:"#$1"},
         {re:/ \(in wasm\)$/,                                              sub:""}
     ];
 

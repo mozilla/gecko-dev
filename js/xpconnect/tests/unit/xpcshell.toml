@@ -396,6 +396,12 @@ skip-if = [
   "!nightly_build",
 ]
 
+["test_wasm_jspi_profiler.js"]
+skip-if = [
+  "tsan",
+  "!nightly_build",
+]
+
 ["test_watchdog_default.js"]
 head = "head_watchdog.js"
 
