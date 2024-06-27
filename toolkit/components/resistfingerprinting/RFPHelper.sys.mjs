@@ -44,8 +44,6 @@ class _RFPHelper {
     this._initialized = true;
 
     // Add unconditional observers
-    Services.obs.addObserver(this, "user-characteristics-populating-data");
-    Services.obs.addObserver(this, "user-characteristics-populating-data-done");
     Services.prefs.addObserver(kPrefResistFingerprinting, this);
     Services.prefs.addObserver(kPrefLetterboxing, this);
     XPCOMUtils.defineLazyPreferenceGetter(
@@ -83,12 +81,6 @@ class _RFPHelper {
 
   observe(subject, topic, data) {
     switch (topic) {
-      case "user-characteristics-populating-data":
-        this._registerUserCharacteristicsActor();
-        break;
-      case "user-characteristics-populating-data-done":
-        this._unregisterUserCharacteristicsActor();
-        break;
       case "nsPref:changed":
         this._handlePrefChanged(data);
         break;
@@ -104,28 +96,6 @@ class _RFPHelper {
       default:
         break;
     }
-  }
-
-  _registerUserCharacteristicsActor() {
-    log("_registerUserCharacteristicsActor()");
-    ChromeUtils.registerWindowActor("UserCharacteristics", {
-      parent: {
-        esModuleURI: "resource://gre/actors/UserCharacteristicsParent.sys.mjs",
-      },
-      child: {
-        esModuleURI: "resource://gre/actors/UserCharacteristicsChild.sys.mjs",
-        events: {
-          UserCharacteristicsDataDone: { wantUntrusted: true },
-        },
-      },
-      matches: ["about:fingerprintingprotection"],
-      remoteTypes: ["privilegedabout"],
-    });
-  }
-
-  _unregisterUserCharacteristicsActor() {
-    log("_unregisterUserCharacteristicsActor()");
-    ChromeUtils.unregisterWindowActor("UserCharacteristics");
   }
 
   handleEvent(aMessage) {
