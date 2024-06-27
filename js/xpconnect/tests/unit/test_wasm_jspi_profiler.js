@@ -8,6 +8,10 @@ registerCleanupFunction(() => {
 // It is not guarantee 100% hit since the profiler probes stacks every 1ms,
 // but it will happen often enough.
 add_task(async () => {
+  if (!WebAssembly.promising) {
+    return;
+  }
+
   await Services.profiler.StartProfiler(10, 1, ["js"], ["GeckoMain"]);
   Assert.ok(Services.profiler.IsActive());
 
@@ -50,6 +54,10 @@ add_task(async () => {
 });
 
 add_task(async () => {
+  if (!WebAssembly.promising) {
+    return;
+  }
+
   await Services.profiler.StartProfiler(10, 1, ["js"], ["GeckoMain"]);
   Assert.ok(Services.profiler.IsActive());
 
