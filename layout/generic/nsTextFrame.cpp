@@ -3245,7 +3245,7 @@ nsTextFrame::PropertyProvider::PropertyProvider(
     const nsTextFragment* aFrag, nsTextFrame* aFrame,
     const gfxSkipCharsIterator& aStart, int32_t aLength,
     nsIFrame* aLineContainer, nscoord aOffsetFromBlockOriginForTabs,
-    nsTextFrame::TextRunType aWhichTextRun)
+    nsTextFrame::TextRunType aWhichTextRun, bool aAtStartOfLine)
     : mTextRun(aTextRun),
       mFontGroup(nullptr),
       mTextStyle(aTextStyle),
@@ -3266,6 +3266,9 @@ nsTextFrame::PropertyProvider::PropertyProvider(
       mReflowing(true),
       mWhichTextRun(aWhichTextRun) {
   NS_ASSERTION(mStart.IsInitialized(), "Start not initialized?");
+  if (aAtStartOfLine) {
+    mStartOfLineOffset = mStart.GetSkippedOffset();
+  }
 }
 
 nsTextFrame::PropertyProvider::PropertyProvider(
@@ -3723,11 +3726,12 @@ void nsTextFrame::PropertyProvider::GetSpacingInternal(Range aRange,
         after = mLetterSpacing - before;
         break;
     }
+    bool atStart = mStartOfLineOffset == start.GetSkippedOffset();
     while (run.NextRun()) {
       uint32_t runOffsetInSubstring = run.GetSkippedOffset() - aRange.start;
       gfxSkipCharsIterator iter = run.GetPos();
       for (int32_t i = 0; i < run.GetRunLength(); ++i) {
-        if (before != 0.0 &&
+        if (!atStart && before != 0.0 &&
             CanAddSpacingBefore(mTextRun, run.GetSkippedOffset() + i,
                                 newlineIsSignificant)) {
           aSpacing[runOffsetInSubstring + i].mBefore += before;
@@ -3748,6 +3752,7 @@ void nsTextFrame::PropertyProvider::GetSpacingInternal(Range aRange,
           uint32_t runOffset = iter.GetSkippedOffset() - aRange.start;
           aSpacing[runOffset].mAfter += mWordSpacing;
         }
+        atStart = false;
       }
     }
   }
@@ -3971,6 +3976,9 @@ void nsTextFrame::PropertyProvider::InitializeForDisplay(bool aTrimAfter) {
                          : nsTextFrame::TrimmedOffsetFlags::NoTrimAfter));
   mStart.SetOriginalOffset(trimmed.mStart);
   mLength = trimmed.mLength;
+  if (mFrame->HasAnyStateBits(TEXT_START_OF_LINE)) {
+    mStartOfLineOffset = mStart.GetSkippedOffset();
+  }
   SetupJustificationSpacing(true);
 }
 
@@ -3979,6 +3987,9 @@ void nsTextFrame::PropertyProvider::InitializeForMeasure() {
       mFrag, nsTextFrame::TrimmedOffsetFlags::NotPostReflow);
   mStart.SetOriginalOffset(trimmed.mStart);
   mLength = trimmed.mLength;
+  if (mFrame->HasAnyStateBits(TEXT_START_OF_LINE)) {
+    mStartOfLineOffset = mStart.GetSkippedOffset();
+  }
   SetupJustificationSpacing(false);
 }
 
@@ -8630,7 +8641,7 @@ void nsTextFrame::AddInlineMinISizeForFlow(gfxContext* aRenderingContext,
           iter.GetOriginalOffset();
   }
   PropertyProvider provider(textRun, textStyle, frag, this, iter, len, nullptr,
-                            0, aTextRunType);
+                            0, aTextRunType, aData->mAtStartOfLine);
 
   bool collapseWhitespace = !textStyle->WhiteSpaceIsSignificant();
   bool preformatNewlines = textStyle->NewlineIsSignificant(this);
@@ -8745,6 +8756,7 @@ void nsTextFrame::AddInlineMinISizeForFlow(gfxContext* aRenderingContext,
       } else {
         wordStart = i;
       }
+      provider.SetStartOfLine(iter);
     }
   }
 
@@ -8908,7 +8920,7 @@ void nsTextFrame::AddInlinePrefISizeForFlow(
   const nsStyleText* textStyle = StyleText();
   const nsTextFragment* frag = TextFragment();
   PropertyProvider provider(textRun, textStyle, frag, this, iter, INT32_MAX,
-                            nullptr, 0, aTextRunType);
+                            nullptr, 0, aTextRunType, aData->mLineIsEmpty);
 
   // text-combine-upright frame is constantly 1em on inline-axis.
   if (Style()->IsTextCombined()) {
@@ -8924,6 +8936,9 @@ void nsTextFrame::AddInlinePrefISizeForFlow(
   gfxFloat tabWidth = -1;
   uint32_t start = FindStartAfterSkippingWhitespace(&provider, aData, textStyle,
                                                     &iter, flowEndInTextRun);
+  if (aData->mLineIsEmpty) {
+    provider.SetStartOfLine(iter);
+  }
 
   // XXX Should we consider hyphenation here?
   // If newlines and tabs aren't preformatted, nothing to do inside
@@ -9671,7 +9686,8 @@ void nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
           : -1;
   PropertyProvider provider(mTextRun, textStyle, frag, this, iter, length,
                             lineContainer, xOffsetForTabs,
-                            nsTextFrame::eInflated);
+                            nsTextFrame::eInflated,
+                            HasAnyStateBits(TEXT_START_OF_LINE));
 
   uint32_t transformedOffset = provider.GetStart().GetSkippedOffset();
 
@@ -10129,9 +10145,9 @@ nsTextFrame::TrimOutput nsTextFrame::TrimTrailingWhiteSpace(
     if (trimmedEnd < endOffset) {
       // We can't be dealing with tabs here ... they wouldn't be trimmed. So
       // it's OK to pass null for the line container.
-      PropertyProvider provider(mTextRun, textStyle, frag, this, start,
-                                contentLength, nullptr, 0,
-                                nsTextFrame::eInflated);
+      PropertyProvider provider(
+          mTextRun, textStyle, frag, this, start, contentLength, nullptr, 0,
+          nsTextFrame::eInflated, HasAnyStateBits(TEXT_START_OF_LINE));
       delta =
           mTextRun->GetAdvanceWidth(Range(trimmedEnd, endOffset), &provider);
       result.mChanged = true;
