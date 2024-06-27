@@ -2955,6 +2955,9 @@ pref("devtools.debugger.hide-ignored-sources", false);
 // about:devtools-toolbox tabs unusable by mistake.
 pref("devtools.popup.disable_autohide", false);
 
+// Add support for high contrast mode
+pref("devtools.high-contrast-mode-support", false);
+
 // FirstStartup service time-out in ms
 pref("first-startup.timeout", 30000);
 
