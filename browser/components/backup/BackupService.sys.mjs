@@ -2525,6 +2525,24 @@ export class BackupService extends EventTarget {
   }
 
   /**
+   * Gets a sample from a given backup file and sets a subset of that as
+   * the backupFileInfo in the backup service state.
+   *
+   * Called when getting a info for an archive to potentially restore.
+   *
+   * @param {string} backupFilePath path to the backup file to sample.
+   */
+  async getBackupFileInfo(backupFilePath) {
+    lazy.logConsole.debug(`Getting info from backup file at ${backupFilePath}`);
+    let { archiveJSON, isEncrypted } = await this.sampleArchive(backupFilePath);
+    this.#_state.backupFileInfo = {
+      isEncrypted,
+      date: archiveJSON?.meta?.date,
+    };
+    this.stateUpdate();
+  }
+
+  /**
    * The value of IDLE_THRESHOLD_SECONDS_PREF_NAME at the time that
    * initBackupScheduler was called. This is recorded so that if the preference
    * changes at runtime, that we properly remove the idle observer in
