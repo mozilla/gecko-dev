@@ -352,10 +352,6 @@ class MacroAssemblerLOONG64 : public Assembler {
   FaultingCodeOffset loadDouble(const Address& addr, FloatRegister dest);
   FaultingCodeOffset loadDouble(const BaseIndex& src, FloatRegister dest);
 
-  // Load a float value into a register, then expand it to a double.
-  void loadFloatAsDouble(const Address& addr, FloatRegister dest);
-  void loadFloatAsDouble(const BaseIndex& src, FloatRegister dest);
-
   FaultingCodeOffset loadFloat32(const Address& addr, FloatRegister dest);
   FaultingCodeOffset loadFloat32(const BaseIndex& src, FloatRegister dest);
 

@@ -1550,18 +1550,6 @@ void MacroAssemblerMIPSShared::loadDouble(const BaseIndex& src,
   asMasm().ma_ld(dest, src);
 }
 
-void MacroAssemblerMIPSShared::loadFloatAsDouble(const Address& address,
-                                                 FloatRegister dest) {
-  asMasm().ma_ls(dest, address);
-  as_cvtds(dest, dest);
-}
-
-void MacroAssemblerMIPSShared::loadFloatAsDouble(const BaseIndex& src,
-                                                 FloatRegister dest) {
-  asMasm().loadFloat32(src, dest);
-  as_cvtds(dest, dest);
-}
-
 void MacroAssemblerMIPSShared::loadFloat32(const Address& address,
                                            FloatRegister dest) {
   asMasm().ma_ls(dest, address);

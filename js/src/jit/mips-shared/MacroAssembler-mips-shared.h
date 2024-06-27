@@ -227,10 +227,6 @@ class MacroAssemblerMIPSShared : public Assembler {
   void loadDouble(const Address& addr, FloatRegister dest);
   void loadDouble(const BaseIndex& src, FloatRegister dest);
 
-  // Load a float value into a register, then expand it to a double.
-  void loadFloatAsDouble(const Address& addr, FloatRegister dest);
-  void loadFloatAsDouble(const BaseIndex& src, FloatRegister dest);
-
   void loadFloat32(const Address& addr, FloatRegister dest);
   void loadFloat32(const BaseIndex& src, FloatRegister dest);
 

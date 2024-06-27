@@ -1098,27 +1098,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     Add(scratch64, base, Operand(index, vixl::LSL, unsigned(src.scale)));
     return Ldr(ARMFPRegister(dest, 64), MemOperand(scratch64, src.offset));
   }
-  void loadFloatAsDouble(const Address& addr, FloatRegister dest) {
-    Ldr(ARMFPRegister(dest, 32), toMemOperand(addr));
-    fcvt(ARMFPRegister(dest, 64), ARMFPRegister(dest, 32));
-  }
-  void loadFloatAsDouble(const BaseIndex& src, FloatRegister dest) {
-    ARMRegister base = toARMRegister(src.base, 64);
-    ARMRegister index(src.index, 64);
-    if (src.offset == 0) {
-      Ldr(ARMFPRegister(dest, 32),
-          MemOperand(base, index, vixl::LSL, unsigned(src.scale)));
-    } else {
-      vixl::UseScratchRegisterScope temps(this);
-      const ARMRegister scratch64 = temps.AcquireX();
-      MOZ_ASSERT(scratch64.asUnsized() != src.base);
-      MOZ_ASSERT(scratch64.asUnsized() != src.index);
-
-      Add(scratch64, base, Operand(index, vixl::LSL, unsigned(src.scale)));
-      Ldr(ARMFPRegister(dest, 32), MemOperand(scratch64, src.offset));
-    }
-    fcvt(ARMFPRegister(dest, 64), ARMFPRegister(dest, 32));
-  }
 
   FaultingCodeOffset loadFloat32(const Address& addr, FloatRegister dest) {
     return Ldr(ARMFPRegister(dest, 32), toMemOperand(addr));

@@ -2114,18 +2114,6 @@ FaultingCodeOffset MacroAssemblerLOONG64::loadDouble(const BaseIndex& src,
   return asMasm().ma_fld_d(dest, src);
 }
 
-void MacroAssemblerLOONG64::loadFloatAsDouble(const Address& address,
-                                              FloatRegister dest) {
-  asMasm().ma_fld_s(dest, address);
-  as_fcvt_d_s(dest, dest);
-}
-
-void MacroAssemblerLOONG64::loadFloatAsDouble(const BaseIndex& src,
-                                              FloatRegister dest) {
-  asMasm().loadFloat32(src, dest);
-  as_fcvt_d_s(dest, dest);
-}
-
 FaultingCodeOffset MacroAssemblerLOONG64::loadFloat32(const Address& address,
                                                       FloatRegister dest) {
   return asMasm().ma_fld_s(dest, address);
