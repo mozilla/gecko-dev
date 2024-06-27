@@ -28,6 +28,8 @@
 #include "mozilla/UseCounter.h"
 #include "mozilla/dom/ClientSource.h"
 #include "mozilla/dom/FlippedOnce.h"
+#include "mozilla/dom/PRemoteWorkerNonLifeCycleOpControllerChild.h"
+#include "mozilla/dom/RemoteWorkerTypes.h"
 #include "mozilla/dom/Timeout.h"
 #include "mozilla/dom/quota/CheckedUnsafePtr.h"
 #include "mozilla/dom/Worker.h"
@@ -38,11 +40,13 @@
 #include "mozilla/dom/workerinternals/JSSettings.h"
 #include "mozilla/dom/workerinternals/Queue.h"
 #include "mozilla/dom/JSExecutionManager.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "mozilla/StaticPrefs_extensions.h"
 #include "nsContentUtils.h"
 #include "nsIChannel.h"
 #include "nsIContentSecurityPolicy.h"
+#include "nsID.h"
 #include "nsIEventTarget.h"
 #include "nsILoadInfo.h"
 #include "nsRFPService.h"
@@ -231,7 +235,10 @@ class WorkerPrivate final
       const nsACString& aServiceWorkerScope, WorkerLoadInfo* aLoadInfo,
       ErrorResult& aRv, nsString aId = u""_ns,
       CancellationCallback&& aCancellationCallback = {},
-      TerminationCallback&& aTerminationCallback = {});
+      TerminationCallback&& aTerminationCallback = {},
+      mozilla::ipc::Endpoint<
+          PRemoteWorkerNonLifeCycleOpControllerChild>&& aChildEp =
+          mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild>());
 
   enum LoadGroupBehavior { InheritLoadGroup, OverrideLoadGroup };
 
@@ -1196,7 +1203,9 @@ class WorkerPrivate final
       nsString&& aId, const nsID& aAgentClusterId,
       const nsILoadInfo::CrossOriginOpenerPolicy aAgentClusterOpenerPolicy,
       CancellationCallback&& aCancellationCallback,
-      TerminationCallback&& aTerminationCallback);
+      TerminationCallback&& aTerminationCallback,
+      mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild>&&
+          aChildEp);
 
   ~WorkerPrivate();
 
@@ -1442,6 +1451,8 @@ class WorkerPrivate final
   // Only touched on the parent thread.  Used for both SharedWorker and
   // ServiceWorker RemoteWorkers.
   RefPtr<RemoteWorkerChild> mRemoteWorkerController;
+
+  mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild> mChildEp;
 
   JS::UniqueChars mDefaultLocale;  // nulled during worker JSContext init
   TimeStamp mKillTime;

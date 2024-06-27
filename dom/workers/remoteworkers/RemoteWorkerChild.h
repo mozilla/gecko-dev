@@ -16,6 +16,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/ThreadBound.h"
 #include "mozilla/dom/PRemoteWorkerChild.h"
+#include "mozilla/dom/PRemoteWorkerNonLifeCycleOpControllerChild.h"
 #include "mozilla/dom/ServiceWorkerOpArgs.h"
 
 class nsISerialEventTarget;
@@ -55,7 +56,10 @@ class RemoteWorkerChild final : public PRemoteWorkerChild {
 
   explicit RemoteWorkerChild(const RemoteWorkerData& aData);
 
-  void ExecWorker(const RemoteWorkerData& aData);
+  void ExecWorker(
+      const RemoteWorkerData& aData,
+      mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild>&&
+          aChildEp);
 
   void ErrorPropagationOnMainThread(const WorkerErrorReport* aReport,
                                     bool aIsErrorEvent);
@@ -171,7 +175,10 @@ class RemoteWorkerChild final : public PRemoteWorkerChild {
       PFetchEventOpProxyChild* aActor,
       const ParentToChildServiceWorkerFetchEventOpArgs& aArgs) override;
 
-  nsresult ExecWorkerOnMainThread(RemoteWorkerData&& aData);
+  nsresult ExecWorkerOnMainThread(
+      RemoteWorkerData&& aData,
+      mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild>&&
+          aChildEp);
 
   void ExceptionalErrorTransitionDuringExecWorker();
 

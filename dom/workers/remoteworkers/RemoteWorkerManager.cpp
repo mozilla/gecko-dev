@@ -12,7 +12,10 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/dom/ContentChild.h"  // ContentChild::GetSingleton
 #include "mozilla/dom/ProcessIsolation.h"
+#include "mozilla/dom/PRemoteWorkerNonLifeCycleOpControllerParent.h"
+#include "mozilla/dom/PRemoteWorkerNonLifeCycleOpControllerChild.h"
 #include "mozilla/dom/RemoteWorkerController.h"
+#include "mozilla/dom/RemoteWorkerNonLifeCycleOpControllerParent.h"
 #include "mozilla/dom/RemoteWorkerParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/BackgroundUtils.h"
@@ -323,7 +326,20 @@ void RemoteWorkerManager::LaunchInternal(
 
   RefPtr<RemoteWorkerParent> workerActor =
       MakeAndAddRef<RemoteWorkerParent>(std::move(aKeepAlive));
-  if (!aTargetActor->SendPRemoteWorkerConstructor(workerActor, aData)) {
+
+  mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerParent> parentEp;
+  mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild> childEp;
+  MOZ_ALWAYS_SUCCEEDS(PRemoteWorkerNonLifeCycleOpController::CreateEndpoints(
+      &parentEp, &childEp));
+
+  MOZ_ASSERT(!aController->mNonLifeCycleOpController);
+  aController->mNonLifeCycleOpController =
+      MakeAndAddRef<RemoteWorkerNonLifeCycleOpControllerParent>();
+
+  parentEp.Bind(aController->mNonLifeCycleOpController);
+
+  if (!aTargetActor->SendPRemoteWorkerConstructor(workerActor, aData,
+                                                  std::move(childEp))) {
     AsyncCreationFailed(aController);
     return;
   }
