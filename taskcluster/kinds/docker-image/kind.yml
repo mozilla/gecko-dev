@@ -255,4 +255,4 @@ tasks:
         parent: debian12-base
     android-ui-tests:
         symbol: I(android-ui-tests)
-        parent: ubuntu2204-base
+        parent: android-components
