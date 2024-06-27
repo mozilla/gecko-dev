@@ -11,6 +11,7 @@ let gAreas = CustomizableUI.getTestOnlyInternalProp("gAreas");
 const SIDEBAR_BUTTON_INTRODUCED_PREF =
   "browser.toolbarbuttons.introduced.sidebar-button";
 const SIDEBAR_REVAMP_PREF = "sidebar.revamp";
+const SIDEBAR_VISIBILITY_PREF = "sidebar.visibility";
 
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
@@ -95,6 +96,9 @@ add_task(async function test_toolbar_sidebar_button() {
 });
 
 add_task(async function test_expanded_state_for_always_show() {
+  await SpecialPowers.pushPrefEnv({
+    set: [[SIDEBAR_VISIBILITY_PREF, "always-show"]],
+  });
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const {
     SidebarController: { sidebarMain, toolbarButton },
@@ -155,6 +159,74 @@ add_task(async function test_expanded_state_for_always_show() {
     newWin.SidebarController.toolbarButton
   );
 
-  await BrowserTestUtils.closeWindow(newWin);
   await BrowserTestUtils.closeWindow(win);
+  await BrowserTestUtils.closeWindow(newWin);
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_states_for_hide_sidebar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [[SIDEBAR_VISIBILITY_PREF, "hide-sidebar"]],
+  });
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const { SidebarController } = win;
+  const { sidebarContainer, sidebarMain, toolbarButton } = SidebarController;
+
+  const checkStates = async (
+    { hidden, expanded },
+    container = sidebarContainer,
+    component = sidebarMain,
+    button = toolbarButton
+  ) => {
+    await TestUtils.waitForCondition(
+      () => container.hidden == hidden,
+      "Hidden state is correct."
+    );
+    await TestUtils.waitForCondition(
+      () => component.expanded == expanded,
+      "Expanded state is correct."
+    );
+    await TestUtils.waitForCondition(
+      () => button.checked == !hidden,
+      "Toolbar button state is correct."
+    );
+  };
+
+  info("Check default hidden state.");
+  await checkStates({ hidden: true, expanded: false });
+
+  info("Show expanded sidebar using the toolbar button.");
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
+  await checkStates({ hidden: false, expanded: true });
+
+  info("Collapse the sidebar by loading a tool.");
+  const toolButton = sidebarMain.toolButtons[0];
+  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
+  await checkStates({ hidden: false, expanded: false });
+
+  info("Restore the sidebar back to its previous state.");
+  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
+  await checkStates({ hidden: false, expanded: true });
+
+  info("Close a panel using the toolbar button.");
+  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
+  ok(SidebarController.isOpen, "Panel is open.");
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
+  ok(!SidebarController.isOpen, "Panel is closed.");
+  await checkStates({ hidden: true, expanded: true });
+
+  info("Check states on a new window.");
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
+  await checkStates({ hidden: false, expanded: true });
+  const newWin = await BrowserTestUtils.openNewBrowserWindow();
+  await checkStates(
+    { hidden: false, expanded: true },
+    newWin.SidebarController.sidebarContainer,
+    newWin.SidebarController.sidebarMain,
+    newWin.SidebarController.toolbarButton
+  );
+
+  await BrowserTestUtils.closeWindow(win);
+  await BrowserTestUtils.closeWindow(newWin);
+  await SpecialPowers.popPrefEnv();
 });

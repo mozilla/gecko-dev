@@ -211,6 +211,15 @@ var SidebarController = {
     return this._inited;
   },
 
+  get sidebarContainer() {
+    if (!this._sidebarContainer) {
+      // This is the *parent* of the `sidebar-main` component.
+      // TODO: Rename this element in the markup in order to avoid confusion. (Bug 1904860)
+      this._sidebarContainer = document.getElementById("sidebar-main");
+    }
+    return this._sidebarContainer;
+  },
+
   get sidebarMain() {
     if (!this._sidebarMain) {
       this._sidebarMain = document.querySelector("sidebar-main");
@@ -254,7 +263,10 @@ var SidebarController = {
 
     if (this.sidebarRevampEnabled) {
       await import("chrome://browser/content/sidebar/sidebar-main.mjs");
-      document.getElementById("sidebar-main").hidden = !window.toolbar.visible;
+      this.revampComponentsLoaded = true;
+      this.sidebarContainer.hidden =
+        !window.toolbar.visible ||
+        (this.sidebarRevampVisibility === "hide-sidebar" && !this.isOpen);
       document.getElementById("sidebar-header").hidden = true;
       mainResizeObserver.observe(this.sidebarMain);
 
@@ -492,8 +504,14 @@ var SidebarController = {
       this._box.setAttribute("sidebarcommand", commandID);
     }
 
-    if (this.sidebarRevampEnabled) {
-      this.sidebarMain.expanded = sourceController.sidebarMain.expanded;
+    // Adopt `expanded` and `hidden` states only if the opener was also using
+    // revamped sidebar.
+    if (this.sidebarRevampEnabled && sourceController.revampComponentsLoaded) {
+      this.promiseInitialized.then(() => {
+        this.sidebarMain.expanded = sourceController.sidebarMain.expanded;
+        this.sidebarContainer.hidden = sourceController.sidebarContainer.hidden;
+        this.updateToolbarButton();
+      });
     }
 
     if (sourceController._box.hidden) {
@@ -651,15 +669,44 @@ var SidebarController = {
   },
 
   handleToolbarButtonClick() {
-    // TODO (Bug 1892430) This behavior is subject to change based on visibility setting.
-    this.toggleExpanded();
+    switch (this.sidebarRevampVisibility) {
+      case "always-show":
+        this.sidebarMain.expanded = !this.sidebarMain.expanded;
+        break;
+      case "hide-sidebar": {
+        const isHidden = this.sidebarContainer.hidden;
+        if (!isHidden && this.isOpen) {
+          // Sidebar is currently visible, but now we want to hide it.
+          this.hide();
+        } else if (isHidden) {
+          // Sidebar is currently hidden, but now we want to show it.
+          this.sidebarMain.expanded = true;
+        }
+        this.sidebarContainer.hidden = !isHidden;
+        break;
+      }
+    }
+    this.updateToolbarButton();
   },
 
   /**
-   * Toggle the expansion state of the sidebar.
+   * Update `checked` state of the toolbar button.
    */
-  toggleExpanded() {
-    this.sidebarMain.expanded = !this.sidebarMain.expanded;
+  updateToolbarButton() {
+    if (!this.sidebarRevampEnabled || !this.toolbarButton) {
+      // For the non-revamped sidebar, this is handled by CustomizableWidgets.
+      return;
+    }
+    switch (this.sidebarRevampVisibility) {
+      case "always-show":
+        // Toolbar button controls expanded state.
+        this.toolbarButton.checked = this.sidebarMain.expanded;
+        break;
+      case "hide-sidebar":
+        // Toolbar button controls hidden state.
+        this.toolbarButton.checked = !this.sidebarContainer.hidden;
+        break;
+    }
   },
 
   _loadSidebarExtension(commandID) {
@@ -926,6 +973,7 @@ var SidebarController = {
       if (triggerNode) {
         updateToggleControlLabel(triggerNode);
       }
+      this.updateToolbarButton();
 
       this._fireFocusedEvent();
       return true;
@@ -968,10 +1016,12 @@ var SidebarController = {
         this._box.dispatchEvent(
           new CustomEvent("sidebar-show", { detail: { viewId: commandID } })
         );
+
         // Whenever a panel is shown, the sidebar is collapsed. Upon hiding
         // that panel afterwards, `expanded` reverts back to what it was prior
         // to calling `show()`. Thus, we store the expanded state at this point.
         this._previousExpandedState = this.sidebarMain.expanded;
+
         this.sidebarMain.expanded = false;
       } else {
         this.hideSwitcherPanel();
@@ -1046,7 +1096,12 @@ var SidebarController = {
     this.hideSwitcherPanel();
     if (this.sidebarRevampEnabled) {
       this._box.dispatchEvent(new CustomEvent("sidebar-hide"));
-      this.sidebarMain.expanded = this._previousExpandedState;
+
+      // When visibility is set to "Hide Sidebar", we always want to revert
+      // back to an expanded state.
+      this.sidebarMain.expanded =
+        this.sidebarRevampVisibility === "hide-sidebar" ||
+        this._previousExpandedState;
     }
     this.selectMenuItem("");
 
@@ -1066,6 +1121,7 @@ var SidebarController = {
     if (triggerNode) {
       updateToggleControlLabel(triggerNode);
     }
+    this.updateToolbarButton();
   },
 
   /**
@@ -1154,6 +1210,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebarRevampTools",
   "sidebar.main.tools",
   "history, syncedtabs"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  SidebarController,
+  "sidebarRevampVisibility",
+  "sidebar.visibility",
+  "always-show"
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,

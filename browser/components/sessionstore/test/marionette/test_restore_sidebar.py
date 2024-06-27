@@ -109,10 +109,11 @@ class TestSessionRestore(SessionStoreTestCase):
             "Correct sidebar category has been restored.",
         )
 
-    def test_revamp_restore(self):
+    def test_restore_for_always_show(self):
         self.marionette.execute_script(
             """
             Services.prefs.setBoolPref("sidebar.revamp", true);
+            Services.prefs.setStringPref("sidebar.visibility", "always-show");
             """
         )
         self.marionette.restart()
@@ -127,7 +128,7 @@ class TestSessionRestore(SessionStoreTestCase):
             self.marionette.execute_script(
                 """
                 const window = BrowserWindowTracker.getTopWindow();
-                window.SidebarController.toggleExpanded();
+                window.SidebarController.toolbarButton.click();
                 return window.SidebarController.sidebarMain.expanded;
                 """
             ),
@@ -144,4 +145,42 @@ class TestSessionRestore(SessionStoreTestCase):
                 """
             ),
             "Sidebar expanded state has been restored.",
+        )
+
+    def test_restore_for_hide_sidebar(self):
+        self.marionette.execute_script(
+            """
+            Services.prefs.setBoolPref("sidebar.revamp", true);
+            Services.prefs.setStringPref("sidebar.visibility", "hide-sidebar");
+            """
+        )
+        self.marionette.restart()
+        self.marionette.set_context("chrome")
+
+        self.assertEqual(
+            len(self.marionette.chrome_window_handles),
+            1,
+            msg="Should have 1 window open.",
+        )
+        self.assertFalse(
+            self.marionette.execute_script(
+                """
+                const window = BrowserWindowTracker.getTopWindow();
+                window.SidebarController.toolbarButton.click();
+                return window.SidebarController.sidebarContainer.hidden;
+                """
+            ),
+            "Sidebar is visible before window is closed.",
+        )
+
+        self.marionette.restart()
+
+        self.assertFalse(
+            self.marionette.execute_script(
+                """
+                const window = BrowserWindowTracker.getTopWindow();
+                return window.SidebarController.sidebarContainer.hidden;
+                """
+            ),
+            "Sidebar visibility state has been restored.",
         )

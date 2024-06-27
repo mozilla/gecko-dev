@@ -24,6 +24,7 @@ support-files = ["head.js"]
 ["browser_sidebar_prefs.js"]
 
 ["browser_toolbar_sidebar_button.js"]
+skip-if = ["true"] # Fails leakcheck due to race condition in history. (Bug 1904868)
 
 ["browser_vertical_tabs.js"]
 

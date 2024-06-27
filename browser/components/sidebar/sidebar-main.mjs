@@ -10,9 +10,6 @@ import {
 } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
-// eslint-disable-next-line import/no-unassigned-import
-import "chrome://global/content/elements/moz-button.mjs";
-
 /**
  * Sidebar with expanded and collapsed states that provides entry points
  * to various sidebar panels and sidebar extensions.
@@ -81,15 +78,6 @@ export default class SidebarMain extends MozLitElement {
     window.removeEventListener("SidebarItemAdded", this);
     window.removeEventListener("SidebarItemChanged", this);
     window.removeEventListener("SidebarItemRemoved", this);
-  }
-
-  updated(changedProperties) {
-    if (
-      changedProperties.has("expanded") &&
-      window.SidebarController.toolbarButton
-    ) {
-      window.SidebarController.toolbarButton.checked = this.expanded;
-    }
   }
 
   onSidebarPopupShowing(event) {

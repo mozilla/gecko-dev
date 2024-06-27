@@ -4553,9 +4553,10 @@ var SessionStoreInternal = {
       delete winData.sidebar.command;
     }
 
-    if (aWindow.SidebarController.sidebarRevampEnabled) {
+    if (aWindow.SidebarController.revampComponentsLoaded) {
       winData.sidebar = Object.assign(winData.sidebar || {}, {
         expanded: aWindow.SidebarController.sidebarMain.expanded,
+        hidden: aWindow.SidebarController.sidebarContainer.hidden,
       });
     }
 
@@ -5615,8 +5616,13 @@ var SessionStoreInternal = {
         sidebarBox.setAttribute("style", aSidebar.style);
       }
     }
-    if (aSidebar?.expanded) {
-      aWindow.SidebarController.sidebarMain.expanded = true;
+    if (aSidebar && aWindow.SidebarController.sidebarRevampEnabled) {
+      const { SidebarController } = aWindow;
+      SidebarController.promiseInitialized.then(() => {
+        SidebarController.sidebarMain.expanded = aSidebar.expanded;
+        SidebarController.sidebarContainer.hidden = aSidebar.hidden;
+        SidebarController.updateToolbarButton();
+      });
     }
   },
 
