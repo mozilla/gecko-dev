@@ -589,23 +589,8 @@ class MacroAssemblerX86Shared : public Assembler {
 
   // SIMD inline methods private to the implementation, that appear to be used.
 
-  template <class T, class Reg>
-  inline void loadScalar(const Operand& src, Reg dest);
-  template <class T, class Reg>
-  inline void storeScalar(Reg src, const Address& dest);
-  template <class T>
-  inline void loadAlignedVector(const Address& src, FloatRegister dest);
-  template <class T>
-  inline void storeAlignedVector(FloatRegister src, const Address& dest);
-
-  void loadAlignedSimd128Int(const Address& src, FloatRegister dest) {
-    vmovdqa(Operand(src), dest);
-  }
   void loadAlignedSimd128Int(const Operand& src, FloatRegister dest) {
     vmovdqa(src, dest);
-  }
-  void storeAlignedSimd128Int(FloatRegister src, const Address& dest) {
-    vmovdqa(src, Operand(dest));
   }
   void moveSimd128Int(FloatRegister src, FloatRegister dest) {
     if (src != dest) {
@@ -959,74 +944,6 @@ class MacroAssemblerX86Shared : public Assembler {
  protected:
   bool buildOOLFakeExitFrame(void* fakeReturnAddr);
 };
-
-// Specialize for float to use movaps. Use movdqa for everything else.
-template <>
-inline void MacroAssemblerX86Shared::loadAlignedVector<float>(
-    const Address& src, FloatRegister dest) {
-  loadAlignedSimd128Float(src, dest);
-}
-
-template <typename T>
-inline void MacroAssemblerX86Shared::loadAlignedVector(const Address& src,
-                                                       FloatRegister dest) {
-  loadAlignedSimd128Int(src, dest);
-}
-
-// Specialize for float to use movaps. Use movdqa for everything else.
-template <>
-inline void MacroAssemblerX86Shared::storeAlignedVector<float>(
-    FloatRegister src, const Address& dest) {
-  storeAlignedSimd128Float(src, dest);
-}
-
-template <typename T>
-inline void MacroAssemblerX86Shared::storeAlignedVector(FloatRegister src,
-                                                        const Address& dest) {
-  storeAlignedSimd128Int(src, dest);
-}
-
-template <>
-inline void MacroAssemblerX86Shared::loadScalar<int8_t>(const Operand& src,
-                                                        Register dest) {
-  load8ZeroExtend(src, dest);
-}
-template <>
-inline void MacroAssemblerX86Shared::loadScalar<int16_t>(const Operand& src,
-                                                         Register dest) {
-  load16ZeroExtend(src, dest);
-}
-template <>
-inline void MacroAssemblerX86Shared::loadScalar<int32_t>(const Operand& src,
-                                                         Register dest) {
-  load32(src, dest);
-}
-template <>
-inline void MacroAssemblerX86Shared::loadScalar<float>(const Operand& src,
-                                                       FloatRegister dest) {
-  loadFloat32(src, dest);
-}
-
-template <>
-inline void MacroAssemblerX86Shared::storeScalar<int8_t>(Register src,
-                                                         const Address& dest) {
-  store8(src, dest);
-}
-template <>
-inline void MacroAssemblerX86Shared::storeScalar<int16_t>(Register src,
-                                                          const Address& dest) {
-  store16(src, dest);
-}
-template <>
-inline void MacroAssemblerX86Shared::storeScalar<int32_t>(Register src,
-                                                          const Address& dest) {
-  store32(src, dest);
-}
-template <>
-inline void MacroAssemblerX86Shared::storeScalar<float>(FloatRegister src,
-                                                        const Address& dest) {
-  vmovss(src, dest);
-}
 
 }  // namespace jit
 }  // namespace js
