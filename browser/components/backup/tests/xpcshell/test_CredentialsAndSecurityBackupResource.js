@@ -13,7 +13,7 @@ const { CredentialsAndSecurityBackupResource } = ChromeUtils.importESModule(
 add_task(async function test_measure() {
   Services.fog.testResetFOG();
 
-  const EXPECTED_CREDENTIALS_KILOBYTES_SIZE = 413;
+  const EXPECTED_CREDENTIALS_KILOBYTES_SIZE = 403;
   const EXPECTED_SECURITY_KILOBYTES_SIZE = 231;
 
   // Create resource files in temporary directory
@@ -29,7 +29,6 @@ add_task(async function test_measure() {
     { path: "logins-backup.json", sizeInKB: 1 },
     { path: "autofill-profiles.json", sizeInKB: 1 },
     { path: "credentialstate.sqlite", sizeInKB: 100 },
-    { path: "signedInUser.json", sizeInKB: 5 },
     // Set up security files
     { path: "cert9.db", sizeInKB: 230 },
     { path: "pkcs11.txt", sizeInKB: 1 },
@@ -99,7 +98,6 @@ add_task(async function test_backup() {
     { path: "logins.json", sizeInKB: 1 },
     { path: "logins-backup.json", sizeInKB: 1 },
     { path: "autofill-profiles.json", sizeInKB: 1 },
-    { path: "signedInUser.json", sizeInKB: 5 },
     { path: "pkcs11.txt", sizeInKB: 1 },
   ];
   await createTestFiles(sourcePath, simpleCopyFiles);
@@ -188,7 +186,6 @@ add_task(async function test_recover() {
     { path: "logins-backup.json" },
     { path: "autofill-profiles.json" },
     { path: "credentialstate.sqlite" },
-    { path: "signedInUser.json" },
     { path: "cert9.db" },
     { path: "key4.db" },
     { path: "pkcs11.txt" },

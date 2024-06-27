@@ -26,7 +26,6 @@ export class CredentialsAndSecurityBackupResource extends BackupResource {
       "logins.json",
       "logins-backup.json",
       "autofill-profiles.json",
-      "signedInUser.json",
     ];
     await BackupResource.copyFiles(profilePath, stagingPath, simpleCopyFiles);
 
@@ -46,7 +45,6 @@ export class CredentialsAndSecurityBackupResource extends BackupResource {
       "logins.json",
       "logins-backup.json",
       "autofill-profiles.json",
-      "signedInUser.json",
       "cert9.db",
       "key4.db",
       "credentialstate.sqlite",
@@ -76,7 +74,6 @@ export class CredentialsAndSecurityBackupResource extends BackupResource {
       "logins-backup.json",
       "autofill-profiles.json",
       "credentialstate.sqlite",
-      "signedInUser.json",
     ];
     let credentialsSize = 0;
 
