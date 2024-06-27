@@ -29,3 +29,22 @@ consistently detected. So the value may fluctuate from build to build
 even if the number of compiler warnings didn\'t actually change. Since
 Perfherder alerts are calculated based on the mean value of a range, a
 regression may be reported as a fractional value.
+
+# In case of alert
+
+Folks to contact when a change in metric **can't** be associated with a bug:
+
+- Mike Hommey (`:glandium`)
+  - Anything that says sccache
+  - Build time
+- Serge Guelton (`:sergesanspaille`)
+  - Build time teardown
+  - Installer size
+  - Compiler metrics
+  - XUL section size, NSS section size
+- Paul Adenot (`:padenot`)
+  - avcodec, avutil section size
+- Julien Cristau (`:jcristau`)
+  - `fetch_content` anything
+
+otherwise, open a bug as usual and NI the person that seem to have regressed the metric, etc.
