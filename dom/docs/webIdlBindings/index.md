@@ -1780,7 +1780,7 @@ So for example, given this IDL:
 
 ``` webidl
 interface MyInterface {
-  [Pure, StoreInSlot] attribute long myAttribute;
+  [Pure, Cached] attribute long myAttribute;
 };
 ```
 
