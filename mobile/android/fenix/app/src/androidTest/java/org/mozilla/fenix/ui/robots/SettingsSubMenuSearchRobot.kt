@@ -50,6 +50,7 @@ import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestHelper.hasCousin
@@ -468,8 +469,7 @@ class SettingsSubMenuSearchRobot {
         closeSoftKeyboard()
         Log.i(TAG, "verifyErrorConnectingToSearchString: Performed \"Close soft keyboard\" action")
         Log.i(TAG, "verifyErrorConnectingToSearchString: Trying to verify that the \"Error connecting to $searchEngineName\" error message is displayed")
-        onView(withText(getStringResource(R.string.search_add_custom_engine_error_cannot_reach, searchEngineName)))
-            .check(matches(isDisplayed()))
+        assertUIObjectExists(itemWithResIdContainingText("$packageName:id/textinput_error", "Error connecting to “$searchEngineName”"))
         Log.i(TAG, "verifyErrorConnectingToSearchString: Verified that the \"Error connecting to $searchEngineName\" error message is displayed")
     }
 
