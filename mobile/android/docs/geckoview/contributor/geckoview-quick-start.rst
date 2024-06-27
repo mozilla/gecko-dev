@@ -296,7 +296,7 @@ Creating JavaDoc Locally
     made to the API in the changelog are made correctly. Otherwise, this step won't work.
 
 GeckoView is a public API, so well maintained javadoc is an important practice. To create the
-javadoc locally, we use the following command, which should have already been done above:
+javadoc locally, we use the following command:
 
 .. code:: bash
 
