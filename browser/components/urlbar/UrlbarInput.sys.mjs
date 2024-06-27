@@ -104,11 +104,6 @@ export class UrlbarInput {
     );
     this.panel = this.textbox.querySelector(".urlbarView");
 
-    this.searchButton = lazy.UrlbarPrefs.get("experimental.searchButton");
-    if (this.searchButton) {
-      this.textbox.classList.add("searchButton");
-    }
-
     this.controller = new lazy.UrlbarController({
       input: this,
       eventTelemetryCategory: options.eventTelemetryCategory,

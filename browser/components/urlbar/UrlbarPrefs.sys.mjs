@@ -113,9 +113,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether the heuristic result is hidden.
   ["experimental.hideHeuristic", false],
 
-  // Whether the urlbar displays a permanent search button.
-  ["experimental.searchButton", false],
-
   // Comma-separated list of `source.providers` combinations, that are used to
   // determine if an exposure event should be fired. This can be set by a
   // Nimbus variable and is expected to be set via nimbus experiment

@@ -238,9 +238,6 @@ browser.urlbar.unitConversion.suggestedIndex (integer, default: 1)
 browser.urlbar.experimental.expandTextOnFocus (boolean, default: false)
   Whether we expand the font size when the urlbar is focused.
 
-browser.urlbar.experimental.searchButton (boolean, default: false)
-  Whether to displays a permanent search button before the urlbar.
-
 browser.urlbar.keepPanelOpenDuringImeComposition (boolean, default: false)
   Whether the results panel should be kept open during IME composition. The
   panel may overlap with the IME compositor panel.

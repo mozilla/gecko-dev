@@ -7,7 +7,6 @@
 :root {
   --urlbar-container-padding: 1px;
   --urlbar-margin-inline: 5px;
-  --urlbar-search-button-width: calc(16px + 2 * var(--urlbar-icon-padding));
 }
 
 #urlbar[actiontype="switchtab"][action-override] > .urlbar-input-container > #urlbar-label-box,
@@ -29,7 +28,7 @@
  * align the results and urlbar text */
 /* stylelint-disable-next-line media-query-no-invalid */
 @media (-moz-bool-pref: "browser.urlbar.richSuggestions.featureGate") {
-  #urlbar:not(.searchButton) > .urlbar-input-container > #identity-box[pageproxystate="invalid"] > .identity-box-button {
+  #identity-box[pageproxystate="invalid"] > .identity-box-button {
     padding-inline: calc(6px + var(--urlbar-icon-padding));
   }
 }
@@ -220,19 +219,6 @@
   caret-color: transparent;
 }
 
-#urlbar.searchButton > .urlbar-input-container > .urlbar-search-button {
-  width: var(--urlbar-search-button-width);
-  background-image: url(chrome://global/skin/icons/search-glass.svg);
-  background-repeat: no-repeat;
-  background-position: center;
-  -moz-context-properties: fill, fill-opacity;
-  fill: var(--toolbarbutton-icon-fill);
-}
-
-#urlbar.searchButton > .urlbar-input-container[pageproxystate="invalid"] > .urlbar-search-button {
-  margin-inline-end: 6px;
-}
-
 /**
  * The urlbar background is a separate element so we can animate it
  * independently from the content. It's positioned absolutely and stretched to
@@ -249,11 +235,6 @@
   display: block;
   position: absolute;
   inset: 0;
-}
-
-:root:not([chromehidden~="toolbar"]) #urlbar.searchButton:not([breakout]) > #urlbar-background,
-:root:not([chromehidden~="toolbar"]) #urlbar.searchButton:not([breakout-extend]) > #urlbar-background {
-  inset-inline-start: var(--urlbar-search-button-width);
 }
 
 .urlbar-input-container {
@@ -302,11 +283,6 @@
     padding-block: calc((var(--urlbar-container-height) - var(--urlbar-height)) / 2 + var(--urlbar-container-padding));
     padding-inline: calc(var(--urlbar-margin-inline) + var(--urlbar-container-padding));
   }
-}
-
-#urlbar.searchButton[breakout][breakout-extend] > .urlbar-input-container > .urlbar-search-button {
-  fill: currentColor;
-  fill-opacity: .6;
 }
 
 @keyframes urlbar-grow {
