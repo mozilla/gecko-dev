@@ -143,7 +143,7 @@ def mock_mozinfo():
         fission=False,
         headless=False,
         tsan=False,
-        tag="",
+        tag="[]",
     ):
         return {
             "os": os,

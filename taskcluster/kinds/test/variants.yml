@@ -184,6 +184,10 @@ conditioned_profile:
                     || "xpcshell" == task["try-name"]
                 )'
     merge:
+        worker:
+            env:
+                MOZHARNESS_TEST_TAG:
+                    - "condprof"
         mozharness:
             extra-options:
                 - "--conditioned-profile"
@@ -329,9 +333,12 @@ wmf-media-engine:
     replace:
         tier: 2
     merge:
+        worker:
+            env:
+                MOZHARNESS_TEST_TAG:
+                    - "media-engine-compatible"
         mozharness:
             extra-options:
-                - "--tag=media-engine-compatible"
                 - "--setpref=media.wmf.media-engine.enabled=1"
                 - "--setpref=media.wmf.media-engine.channel-decoder.enabled=true"
                 - "--setpref=media.eme.wmf.clearkey.enabled=true"
@@ -350,10 +357,13 @@ media-gpu:
                     || "macosx" in task["test-platform"]
                 '
     merge:
+        worker:
+            env:
+                MOZHARNESS_TEST_TAG:
+                    - "media-gpu"
         virtualization: virtual-with-gpu
         mozharness:
             extra-options:
-                - "--tag=media-gpu"
                 - "--setpref=media.hardware-video-decoding.force-enabled=true"
 
 msix:

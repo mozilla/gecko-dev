@@ -1112,7 +1112,7 @@ class XPCShellTests(object):
 
         filters = []
         if test_tags:
-            filters.append(tags(test_tags))
+            filters.extend([tags(x) for x in test_tags])
 
         path_filter = None
         if test_paths:
@@ -1806,9 +1806,6 @@ class XPCShellTests(object):
                 "full", self.appPath
             )
             options["self_test"] = False
-            if not options["test_tags"]:
-                options["test_tags"] = []
-            options["test_tags"].append("condprof")
 
         self.setAbsPath()
 

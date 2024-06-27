@@ -1726,12 +1726,6 @@ toolbar#nav-bar {
                 subsuite(options.subsuite),
             ]
 
-            # Allow for only running tests/manifests which match this tag
-            if options.conditionedProfile:
-                if not options.test_tags:
-                    options.test_tags = []
-                options.test_tags.append("condprof")
-
             if options.test_tags:
                 filters.append(tags(options.test_tags))
 

@@ -234,7 +234,7 @@ class Tag(TryConfig):
 
         return {
             "env": {
-                "MOZHARNESS_TEST_TAG": tag[0],
+                "MOZHARNESS_TEST_TAG": json.dumps(tag),
             }
         }
 

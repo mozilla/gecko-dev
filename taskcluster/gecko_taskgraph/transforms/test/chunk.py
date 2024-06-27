@@ -17,6 +17,7 @@ from gecko_taskgraph.util.chunking import (
     chunk_manifests,
     get_manifest_loader,
     get_runtimes,
+    get_test_tags,
     guess_mozinfo_from_task,
 )
 from gecko_taskgraph.util.perfile import perfile_number_of_chunks
@@ -94,7 +95,7 @@ def set_test_manifests(config, tasks):
         mozinfo = guess_mozinfo_from_task(
             task,
             config.params.get("head_repository", ""),
-            config.params.get("try_task_config", {}).get("env", {}),
+            get_test_tags(config, task.get("worker", {}).get("env", {})),
         )
 
         loader_name = task.pop(
@@ -169,9 +170,7 @@ def set_test_manifests(config, tasks):
             # this could be the test suite doesn't support test paths
             continue
         elif (
-            config.params.get("try_task_config", {})
-            .get("env", {})
-            .get("MOZHARNESS_TEST_TAG", "")
+            get_test_tags(config, task.get("worker", {}).get("env", {}))
             and not task["test-manifests"]["active"]
         ):
             # no MH_TEST_PATHS, but MH_TEST_TAG or other filters
