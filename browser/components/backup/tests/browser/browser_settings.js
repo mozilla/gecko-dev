@@ -168,6 +168,11 @@ add_task(async function test_turn_off_scheduled_backups_confirm() {
  */
 add_task(async function test_restore_from_backup() {
   await BrowserTestUtils.withNewTab("about:preferences", async browser => {
+    let sandbox = sinon.createSandbox();
+    let recoverFromBackupArchiveStub = sandbox
+      .stub(BackupService.prototype, "recoverFromBackupArchive")
+      .resolves();
+
     const mockBackupFilePath = await IOUtils.createUniqueFile(
       PathUtils.tempDir,
       "backup.html"
@@ -246,5 +251,12 @@ add_task(async function test_restore_from_backup() {
         "Event should contain the file and password"
       );
     });
+
+    Assert.ok(
+      recoverFromBackupArchiveStub.calledOnce,
+      "BackupService was called to start a recovery from a backup archive."
+    );
+
+    sandbox.restore();
   });
 });

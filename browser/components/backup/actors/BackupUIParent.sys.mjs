@@ -152,8 +152,18 @@ export class BackupUIParent extends JSWindowActorParent {
       const window = this.browsingContext.topChromeWindow;
       this.#bs.filePickerForRestore(window);
     } else if (message.name == "RestoreFromBackupFile") {
-      // TODO: Call restore from single-file archive method
-      // in BackupService once it is implemented in Bug 1890322.
+      let { backupFile, backupPassword } = message.data;
+      try {
+        await this.#bs.recoverFromBackupArchive(
+          backupFile,
+          backupPassword,
+          true /* shouldLaunch */
+        );
+      } catch (e) {
+        /**
+         * TODO: (Bug 1905156) display a localized version of error in the restore dialog.
+         */
+      }
     } else if (message.name == "ToggleEncryption") {
       let { isEncryptionEnabled } = message.data;
 

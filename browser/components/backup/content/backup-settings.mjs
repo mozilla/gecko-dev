@@ -125,6 +125,7 @@ export default class BackupSettings extends MozLitElement {
             composed: true,
             detail: {
               backupFile: event.detail.backupFile,
+              backupPassword: event.detail.backupPassword,
             },
           })
         );
@@ -144,7 +145,6 @@ export default class BackupSettings extends MozLitElement {
             composed: true,
             detail: {
               backupFile: event.detail.backupFile,
-              backupPassword: event.detail.backupPassword,
             },
           })
         );
