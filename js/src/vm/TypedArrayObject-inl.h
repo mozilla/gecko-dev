@@ -740,6 +740,13 @@ class ElementSpecific {
         }
         break;
       }
+      case Scalar::Float16: {
+        float16* src = static_cast<float16*>(data);
+        for (size_t i = 0; i < len; ++i) {
+          Ops::store(dest++, ConvertNumber<T>(*src++));
+        }
+        break;
+      }
       case Scalar::Float32: {
         float* src = static_cast<float*>(data);
         for (size_t i = 0; i < len; ++i) {
