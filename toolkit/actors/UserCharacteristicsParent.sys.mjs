@@ -20,15 +20,29 @@ XPCOMUtils.defineLazyServiceGetter(
   "nsIUserCharacteristicsPageService"
 );
 
-export class UserCharacteristicsParent extends JSWindowActorParent {
+class UserCharacteristicsParent extends JSWindowActorParent {
   receiveMessage(aMessage) {
     lazy.console.debug("Got ", aMessage.name);
-    if (aMessage.name == "UserCharacteristics::PageReady") {
-      lazy.console.debug("Got pageReady");
-      lazy.UserCharacteristicsPageService.pageLoaded(
-        this.browsingContext,
-        aMessage.data
-      );
+    switch (aMessage.name) {
+      case "UserCharacteristics::PageReady":
+        lazy.console.debug("Got pageReady");
+        lazy.UserCharacteristicsPageService.pageLoaded(
+          this.browsingContext,
+          aMessage.data
+        );
+        break;
+      case "ScreenInfo:Populate":
+        Services.obs.notifyObservers(
+          null,
+          "user-characteristics-screen-info-done",
+          aMessage.data.join(",")
+        );
+        break;
     }
   }
 }
+
+export {
+  UserCharacteristicsParent,
+  UserCharacteristicsParent as UserCharacteristicsScreenInfoParent,
+};

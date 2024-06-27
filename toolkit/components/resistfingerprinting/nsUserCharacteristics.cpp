@@ -222,9 +222,6 @@ void PopulateScreenProperties() {
   glean::characteristics::color_depth.Set(colorDepth);
   glean::characteristics::pixel_depth.Set(screen->GetPixelDepth());
 
-  LayoutDeviceIntRect availRect = screen->GetAvailRect();
-  glean::characteristics::avail_height.Set(availRect.Height());
-  glean::characteristics::avail_width.Set(availRect.Width());
   glean::characteristics::orientation_angle.Set(screen->GetOrientationAngle());
   glean::characteristics::video_dynamic_range.Set(screen->GetIsHDR());
 
@@ -246,12 +243,6 @@ void PopulateScreenProperties() {
     return;
   }
 
-  double outerHeight, outerWidth;
-  innerWindow->GetInnerHeight(&outerHeight);
-  innerWindow->GetInnerWidth(&outerWidth);
-  glean::characteristics::outer_height.Set(static_cast<int64_t>(outerHeight));
-  glean::characteristics::outer_width.Set(static_cast<int64_t>(outerWidth));
-
   nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
   innerWindow->GetDocShell()->GetTreeOwner(getter_AddRefs(treeOwner));
   if (!treeOwner) {
@@ -262,15 +253,6 @@ void PopulateScreenProperties() {
   if (!treeOwnerAsWin) {
     return;
   }
-
-  LayoutDeviceIntSize contentSize;
-  treeOwner->GetPrimaryContentSize(&contentSize.width, &contentSize.height);
-
-  CSSToLayoutDeviceScale cssToDevScale =
-      treeOwnerAsWin->UnscaledDevicePixelsPerCSSPixel();
-  CSSIntSize contentSizeCSS = RoundedToInt(contentSize / cssToDevScale);
-  glean::characteristics::inner_height.Set(contentSizeCSS.height);
-  glean::characteristics::inner_width.Set(contentSizeCSS.width);
 
   nsCOMPtr<nsIWidget> mainWidget;
   treeOwnerAsWin->GetMainWidget(getter_AddRefs(mainWidget));
