@@ -461,7 +461,7 @@ private fun ListItem(
             .defaultMinSize(minHeight = LIST_ITEM_HEIGHT)
             .thenConditional(
                 modifier = Modifier.clickable { onClick?.invoke() },
-                predicate = { onClick != null },
+                predicate = { onClick != null && enabled },
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
