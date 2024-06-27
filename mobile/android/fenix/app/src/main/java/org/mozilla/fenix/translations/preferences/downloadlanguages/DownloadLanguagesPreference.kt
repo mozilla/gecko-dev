@@ -97,7 +97,7 @@ fun DownloadLanguagesPreference(
 
     val deleteInProgressItems = downloadLanguageItemPreferences.filter {
         it.languageModel.status == ModelState.DELETION_IN_PROGRESS &&
-            it.type == DownloadLanguageItemTypePreference.GeneralLanguage
+            it.type != DownloadLanguageItemTypePreference.AllLanguages
     }
 
     var allLanguagesItemDownloaded: DownloadLanguageItemPreference? = null
@@ -212,17 +212,6 @@ fun DownloadLanguagesPreference(
                 item {
                     LanguageItemPreference(
                         item = allLanguagesItemNotDownloaded,
-                        onItemClick = onItemClick,
-                    )
-                }
-            }
-
-            if (pivotLanguage != null &&
-                pivotLanguage.languageModel.status == ModelState.NOT_DOWNLOADED
-            ) {
-                item {
-                    LanguageItemPreference(
-                        item = pivotLanguage,
                         onItemClick = onItemClick,
                     )
                 }
