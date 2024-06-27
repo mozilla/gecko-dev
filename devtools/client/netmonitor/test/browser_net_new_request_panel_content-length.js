@@ -72,14 +72,16 @@ add_task(async function () {
   document.querySelector("#http-custom-request-send-button").click();
   await waitUntilEventsDisplayed;
 
-  // Also make sure the selected request has switched to the new resent request
+  info("Wait until selected request updated");
   await waitUntil(() => getSelectedRequest(store.getState()) !== prevRequest);
 
+  info("Wait until request headers available");
+  await waitUntil(() => {
+    const newRequest = getSelectedRequest(store.getState());
+    return newRequest.requestHeaders?.headers.length;
+  });
+
   const newRequest = getSelectedRequest(store.getState());
-
-  // Wait for request headers to be available
-  await waitUntil(() => newRequest.requestHeaders?.headers.length);
-
   const contentLengthHeader = newRequest.requestHeaders.headers.find(
     header => header.name == "Content-Length"
   );
