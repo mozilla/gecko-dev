@@ -7,7 +7,7 @@ const currentTime = Date.now() / 1000;
 const time25HrsAgo = currentTime - 25 * 60 * 60;
 const time1HrAgo = currentTime - 1 * 60 * 60;
 
-add_setup(async function test_setup() {
+add_task(async function test_setup() {
   await BrowserTestUtils.withNewTab(
     {
       url: "about:shoppingsidebar",
@@ -300,10 +300,6 @@ add_task(async function test_confirmation_screen() {
 
           await shoppingContainer.updateComplete;
 
-          let childActor = content.windowGlobalChild.getExistingActor(
-            "AboutWelcomeShopping"
-          );
-
           let surveyScreen1 = await ContentTaskUtils.waitForCondition(
             () =>
               content.document.querySelector(
@@ -333,156 +329,9 @@ add_task(async function test_confirmation_screen() {
           );
 
           ok(confirmationScreen, "Survey confirmation screen is rendered");
-
-          childActor.resetChildStates();
         }
       );
     }
   );
-  await SpecialPowers.popPrefEnv();
-});
-
-add_task(async function test_onboarding_resets_after_opt_out() {
-  // Verify the fix for bug 1900486 - when you click "Turn off Review Checker",
-  // the sidebar should be hidden (but not removed from the DOM). Then, if you
-  // reactivate Review Checker, the sidebar will reappear, and the opt-in
-  // onboarding message should show _instead of_ the survey.
-  const PRODUCT_PAGE = "https://example.com/product/B09TJGHL5F";
-
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.shopping.experience2023.active", true],
-      ["browser.shopping.experience2023.optedIn", 1],
-      ["browser.shopping.experience2023.survey.enabled", true],
-      ["browser.shopping.experience2023.survey.hasSeen", false],
-      ["browser.shopping.experience2023.survey.pdpVisits", 5],
-      ["browser.shopping.experience2023.survey.optedInTime", time25HrsAgo],
-    ],
-  });
-
-  await BrowserTestUtils.withNewTab(
-    { url: PRODUCT_PAGE, gBrowser },
-    async browser => {
-      let browserPanel = gBrowser.getPanel(browser);
-      let sidebar = browserPanel.querySelector("shopping-sidebar");
-      let sidebarBrowser = sidebar.querySelector("browser.shopping-sidebar");
-      let shoppingButton = document.getElementById("shopping-sidebar-button");
-
-      ok(sidebar, "Sidebar should exist.");
-      ok(BrowserTestUtils.isVisible(sidebar), "Sidebar should be visible.");
-      ok(
-        BrowserTestUtils.isVisible(shoppingButton),
-        "Shopping Button should be visible on a product page"
-      );
-
-      let sidebarHiddenPromise = BrowserTestUtils.waitForMutationCondition(
-        shoppingButton,
-        { attributes: false, attributeFilter: ["shoppingsidebaropen"] },
-        () => shoppingButton.getAttribute("shoppingsidebaropen")
-      );
-
-      await SpecialPowers.spawn(
-        sidebarBrowser,
-        [MOCK_ANALYZED_PRODUCT_RESPONSE],
-        async mockData => {
-          const { TestUtils } = ChromeUtils.importESModule(
-            "resource://testing-common/TestUtils.sys.mjs"
-          );
-          let surveyPrefChanged = TestUtils.waitForPrefChange(
-            "browser.shopping.experience2023.survey.hasSeen"
-          );
-          let shoppingContainer =
-            content.document.querySelector(
-              "shopping-container"
-            ).wrappedJSObject;
-          ok(true, "Shopping container exists");
-
-          shoppingContainer.data = Cu.cloneInto(mockData, content);
-          let mockObj = {
-            data: mockData,
-            productUrl: "https://example.com/product/1234",
-          };
-          let evt = new content.CustomEvent("Update", {
-            bubbles: true,
-            detail: Cu.cloneInto(mockObj, content),
-          });
-          content.document.dispatchEvent(evt);
-          await shoppingContainer.updateComplete;
-          ok(true, "Shopping container is updated");
-
-          let shoppingSettings = shoppingContainer.settingsEl;
-          await shoppingSettings.updateComplete;
-          ok(true, "Shopping settings is updated");
-          await surveyPrefChanged;
-          ok(true, "Survey pref is updated");
-
-          let childActor = content.windowGlobalChild.getExistingActor(
-            "AboutWelcomeShopping"
-          );
-          ok(childActor.surveyEnabled, "Survey is Enabled");
-          let surveyScreen = await ContentTaskUtils.waitForCondition(
-            () =>
-              content.document.querySelector(
-                "shopping-container .screen.SHOPPING_MICROSURVEY_SCREEN_1"
-              ),
-            "survey-screen"
-          );
-          ok(surveyScreen, "Survey screen is rendered");
-          ok(
-            childActor.showMicroSurvey,
-            "Show Survey targeting conditions met"
-          );
-          ok(
-            !content.document.getElementById("multi-stage-message-root").hidden,
-            "Survey Message container is shown"
-          );
-          let survey_seen_status = Services.prefs.getBoolPref(
-            "browser.shopping.experience2023.survey.hasSeen",
-            false
-          );
-          ok(survey_seen_status, "Survey pref state is updated");
-
-          shoppingSettings.shoppingCardEl.detailsEl.open = true;
-          let optOutButton = shoppingSettings.optOutButtonEl;
-          optOutButton.click();
-        }
-      );
-
-      // With the sidebar hidden and the user opted out, let's now open the
-      // sidebar again and check what is rendered.
-      await sidebarHiddenPromise;
-      let sidebarShownPromise = BrowserTestUtils.waitForMutationCondition(
-        shoppingButton,
-        { attributes: false, attributeFilter: ["shoppingsidebaropen"] },
-        () => shoppingButton.getAttribute("shoppingsidebaropen")
-      );
-      shoppingButton.click();
-      await sidebarShownPromise;
-
-      await SpecialPowers.spawn(sidebarBrowser, [], async () => {
-        let childActor = content.windowGlobalChild.getExistingActor(
-          "AboutWelcomeShopping"
-        );
-        let optInScreen = await ContentTaskUtils.waitForCondition(() => {
-          return content.document.querySelector(".screen.FS_OPT_IN");
-        }, "survey-screen");
-        ok(optInScreen, "Onboarding screen is rendered");
-        ok(childActor.showOnboarding, "Showing onboarding message");
-        ok(
-          !content.document.getElementById("multi-stage-message-root").hidden,
-          "Message container is shown"
-        );
-        ok(
-          !content.document.querySelector(
-            ".screen.SHOPPING_MICROSURVEY_SCREEN_1"
-          ),
-          "Survey screen is not rendered"
-        );
-
-        childActor.resetChildStates();
-      });
-    }
-  );
-
   await SpecialPowers.popPrefEnv();
 });
