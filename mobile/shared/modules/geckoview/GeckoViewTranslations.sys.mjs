@@ -376,12 +376,18 @@ export const GeckoViewTranslationsSettings = {
             const languageList =
               lazy.TranslationsParent.getLanguageList(supportedLanguages);
             const results = [];
+            const pivotIsDownloaded =
+              await lazy.TranslationsParent.hasAllFilesForLanguage(
+                lazy.TranslationsParent.PIVOT_LANGUAGE
+              );
+
             // For each language, process the related remote server model records
             languageList.forEach(language => {
+              // No need to include the pivot in the download size, once it has been downloaded.
               const recordsResult =
                 lazy.TranslationsParent.getRecordsForTranslatingToAndFromAppLanguage(
                   language.langTag,
-                  /* includePivotRecords */ true
+                  /* includePivotRecords */ !pivotIsDownloaded
                 ).then(
                   async function (records) {
                     return _processLanguageModelData(language, records);
