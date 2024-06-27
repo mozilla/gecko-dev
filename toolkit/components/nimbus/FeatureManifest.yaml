@@ -914,6 +914,12 @@ pocketNewtab:
         browser.newtabpage.activity-stream.discoverystream.spocs.personalized
       description: >-
         Enables Pocket sponsored content personalization.
+    topicSelectionEnabled:
+      type: boolean
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.topicSelection.enabled
+      description: >-
+        Enables topic selection for discovery stream.
     spocsCacheTimeout:
       type: int
       fallbackPref: >-

@@ -506,6 +506,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.topicSelection.enabled",
+    {
+      title: "Enables topic selection for discovery stream",
+      value: false,
+    },
+  ],
+  [
     "showRecentSaves",
     {
       title: "Control whether a user wants recent saves visible on Newtab",
