@@ -23,7 +23,6 @@
 #include "mozilla/ipc/BackgroundParent.h"
 #include "RemoteWorkerControllerParent.h"
 #include "RemoteWorkerManager.h"
-#include "RemoteWorkerNonLifeCycleOpControllerParent.h"
 #include "RemoteWorkerParent.h"
 
 namespace mozilla {
@@ -97,7 +96,6 @@ void RemoteWorkerController::CreationFailed() {
 
   if (mState == eTerminated) {
     MOZ_ASSERT(!mActor);
-    MOZ_ASSERT(!mNonLifeCycleOpController);
     MOZ_ASSERT(mPendingOps.IsEmpty());
     // Nothing to do.
     return;
@@ -114,14 +112,12 @@ void RemoteWorkerController::CreationSucceeded() {
 
   if (mState == eTerminated) {
     MOZ_ASSERT(!mActor);
-    MOZ_ASSERT(!mNonLifeCycleOpController);
     MOZ_ASSERT(mPendingOps.IsEmpty());
     // Nothing to do.
     return;
   }
 
   MOZ_ASSERT(mActor);
-  MOZ_ASSERT(mNonLifeCycleOpController);
   mState = eReady;
 
   mObserver->CreationSucceeded();
@@ -183,11 +179,6 @@ void RemoteWorkerController::Shutdown() {
 
   CancelAllPendingOps();
 
-  if (mNonLifeCycleOpController) {
-    mNonLifeCycleOpController->Shutdown();
-    mNonLifeCycleOpController = nullptr;
-  }
-
   if (!mActor) {
     return;
   }
@@ -201,7 +192,7 @@ void RemoteWorkerController::Shutdown() {
   if (mIsServiceWorker) {
     mActor->MaybeSendDelete();
   } else {
-    Unused << mActor->SendExecOp(SharedWorkerTerminateOpArgs());
+    Unused << mActor->SendExecOp(RemoteWorkerTerminateOp());
   }
 
   mActor = nullptr;
@@ -381,39 +372,28 @@ bool RemoteWorkerController::PendingSharedWorkerOp::MaybeStart(
       aOwner->Shutdown();
       break;
     case eSuspend:
-      Unused << aOwner->mActor->SendExecOp(SharedWorkerSuspendOpArgs());
+      Unused << aOwner->mActor->SendExecOp(RemoteWorkerSuspendOp());
       break;
     case eResume:
-      Unused << aOwner->mActor->SendExecOp(SharedWorkerResumeOpArgs());
+      Unused << aOwner->mActor->SendExecOp(RemoteWorkerResumeOp());
       break;
     case eFreeze:
-      Unused << aOwner->mActor->SendExecOp(SharedWorkerFreezeOpArgs());
+      Unused << aOwner->mActor->SendExecOp(RemoteWorkerFreezeOp());
       break;
     case eThaw:
-      Unused << aOwner->mActor->SendExecOp(SharedWorkerThawOpArgs());
+      Unused << aOwner->mActor->SendExecOp(RemoteWorkerThawOp());
       break;
     case ePortIdentifier:
-      // mNonLifeCycleOpController can be nullptr if the Worker is in "Killing."
-      // RemoteWorkerNonLifeCycleOpControllerChild switches to the Killed status
-      // earlier than RemoteWorkerChild since it switches the status on the
-      // worker thread, not the main thread.
-      if (!aOwner->mNonLifeCycleOpController) {
-        Cancel();
-        return true;
-      }
-      if (!aOwner->mNonLifeCycleOpController->CanSend()) {
-        return false;
-      }
-      Unused << aOwner->mNonLifeCycleOpController->SendExecOp(
-          SharedWorkerPortIdentifierOpArgs(mPortIdentifier));
+      Unused << aOwner->mActor->SendExecOp(
+          RemoteWorkerPortIdentifierOp(mPortIdentifier));
       break;
     case eAddWindowID:
       Unused << aOwner->mActor->SendExecOp(
-          SharedWorkerAddWindowIDOpArgs(mWindowID));
+          RemoteWorkerAddWindowIDOp(mWindowID));
       break;
     case eRemoveWindowID:
       Unused << aOwner->mActor->SendExecOp(
-          SharedWorkerRemoveWindowIDOpArgs(mWindowID));
+          RemoteWorkerRemoveWindowIDOp(mWindowID));
       break;
     default:
       MOZ_CRASH("Unknown op.");
@@ -491,51 +471,21 @@ bool RemoteWorkerController::PendingServiceWorkerOp::MaybeStart(
     return false;
   }
 
-  switch (mArgs.type()) {
-    case ServiceWorkerOpArgs::TServiceWorkerTerminateWorkerOpArgs:
-    case ServiceWorkerOpArgs::TParentToChildServiceWorkerFetchEventOpArgs: {
-      MaybeReportServiceWorkerShutdownProgress(mArgs);
+  MaybeReportServiceWorkerShutdownProgress(mArgs);
 
-      aOwner->mActor->SendExecServiceWorkerOp(mArgs)->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [promise = std::move(mPromise)](
-              PRemoteWorkerParent::ExecServiceWorkerOpPromise::
-                  ResolveOrRejectValue&& aResult) {
-            if (NS_WARN_IF(aResult.IsReject())) {
-              promise->Reject(NS_ERROR_DOM_ABORT_ERR, __func__);
-              return;
-            }
+  aOwner->mActor->SendExecServiceWorkerOp(mArgs)->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [promise = std::move(mPromise)](
+          PRemoteWorkerParent::ExecServiceWorkerOpPromise::
+              ResolveOrRejectValue&& aResult) {
+        if (NS_WARN_IF(aResult.IsReject())) {
+          promise->Reject(NS_ERROR_DOM_ABORT_ERR, __func__);
+          return;
+        }
 
-            promise->Resolve(std::move(aResult.ResolveValue()), __func__);
-          });
-      break;
-    }
-    default: {
-      // mNonLifeCycleOpController can be nullptr if the Worker is in "Killing."
-      // RemoteWorkerNonLifeCycleOpControllerChild switches to the Killed status
-      // earlier than RemoteWorkerChild since it switches the status on the
-      // worker thread, not the main thread.
-      if (!aOwner->mNonLifeCycleOpController) {
-        Cancel();
-        return true;
-      }
-      if (!aOwner->mNonLifeCycleOpController->CanSend()) {
-        return false;
-      }
-      aOwner->mNonLifeCycleOpController->SendExecServiceWorkerOp(mArgs)->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [promise = std::move(mPromise)](
-              PRemoteWorkerParent::ExecServiceWorkerOpPromise::
-                  ResolveOrRejectValue&& aResult) {
-            if (NS_WARN_IF(aResult.IsReject())) {
-              promise->Reject(NS_ERROR_DOM_ABORT_ERR, __func__);
-              return;
-            }
+        promise->Resolve(std::move(aResult.ResolveValue()), __func__);
+      });
 
-            promise->Resolve(std::move(aResult.ResolveValue()), __func__);
-          });
-    }
-  }
   return true;
 }
 

@@ -40,7 +40,6 @@
 #include "mozilla/dom/ServiceWorkerRegistrationDescriptor.h"
 #include "mozilla/dom/ServiceWorkerShutdownState.h"
 #include "mozilla/dom/ServiceWorkerUtils.h"
-#include "mozilla/dom/SharedWorkerOp.h"
 #include "mozilla/dom/workerinternals/ScriptLoader.h"
 #include "mozilla/dom/WorkerError.h"
 #include "mozilla/dom/WorkerPrivate.h"
@@ -66,11 +65,6 @@ using namespace ipc;
 namespace dom {
 
 using workerinternals::ChannelFromScriptURLMainThread;
-
-using remoteworker::Canceled;
-using remoteworker::Killed;
-using remoteworker::Pending;
-using remoteworker::Running;
 
 namespace {
 
@@ -111,6 +105,30 @@ NS_IMPL_ADDREF(SharedWorkerInterfaceRequestor)
 NS_IMPL_RELEASE(SharedWorkerInterfaceRequestor)
 NS_IMPL_QUERY_INTERFACE(SharedWorkerInterfaceRequestor, nsIInterfaceRequestor)
 
+// Normal runnable because AddPortIdentifier() is going to exec JS code.
+class MessagePortIdentifierRunnable final : public WorkerThreadRunnable {
+ public:
+  MessagePortIdentifierRunnable(WorkerPrivate* aWorkerPrivate,
+                                RemoteWorkerChild* aActor,
+                                const MessagePortIdentifier& aPortIdentifier)
+      : WorkerThreadRunnable("MessagePortIdentifierRunnable"),
+        mActor(aActor),
+        mPortIdentifier(aPortIdentifier) {}
+
+ private:
+  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+    if (aWorkerPrivate->GlobalScope()->IsDying()) {
+      mPortIdentifier.ForceClose();
+      return true;
+    }
+    mActor->AddPortIdentifier(aCx, aWorkerPrivate, mPortIdentifier);
+    return true;
+  }
+
+  RefPtr<RemoteWorkerChild> mActor;
+  UniqueMessagePortId mPortIdentifier;
+};
+
 // This is used to propagate the CSP violation when loading the SharedWorker
 // main-script and nothing else.
 class RemoteWorkerCSPEventListener final : public nsICSPEventListener {
@@ -118,7 +136,7 @@ class RemoteWorkerCSPEventListener final : public nsICSPEventListener {
   NS_DECL_ISUPPORTS
 
   explicit RemoteWorkerCSPEventListener(RemoteWorkerChild* aActor)
-      : mActor(aActor) {};
+      : mActor(aActor){};
 
   NS_IMETHOD OnCSPViolationEvent(const nsAString& aJSON) override {
     mActor->CSPViolationPropagationOnMainThread(aJSON);
@@ -136,7 +154,7 @@ NS_IMPL_ISUPPORTS(RemoteWorkerCSPEventListener, nsICSPEventListener)
 }  // anonymous namespace
 
 RemoteWorkerChild::RemoteWorkerChild(const RemoteWorkerData& aData)
-    : mState(VariantType<remoteworker::Pending>(), "RemoteWorkerState"),
+    : mState(VariantType<Pending>(), "RemoteWorkerChild::mState"),
       mServiceKeepAlive(RemoteWorkerService::MaybeGetKeepAlive()),
       mIsServiceWorker(aData.serviceWorkerData().type() ==
                        OptionalServiceWorkerData::TServiceWorkerData) {
@@ -187,10 +205,7 @@ void RemoteWorkerChild::ActorDestroy(ActorDestroyReason) {
   }
 }
 
-void RemoteWorkerChild::ExecWorker(
-    const RemoteWorkerData& aData,
-    mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild>&&
-        aChildEp) {
+void RemoteWorkerChild::ExecWorker(const RemoteWorkerData& aData) {
 #ifdef DEBUG
   MOZ_ASSERT(GetActorEventTarget()->IsOnCurrentThread());
   auto launcherData = mLauncherData.Access();
@@ -200,10 +215,8 @@ void RemoteWorkerChild::ExecWorker(
   RefPtr<RemoteWorkerChild> self = this;
 
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-      __func__, [self = std::move(self), data = aData,
-                 childEp = std::move(aChildEp)]() mutable {
-        nsresult rv =
-            self->ExecWorkerOnMainThread(std::move(data), std::move(childEp));
+      __func__, [self = std::move(self), data = aData]() mutable {
+        nsresult rv = self->ExecWorkerOnMainThread(std::move(data));
 
         // Creation failure will already have been reported via the method
         // above internally using ScopeExit.
@@ -213,10 +226,7 @@ void RemoteWorkerChild::ExecWorker(
   MOZ_ALWAYS_SUCCEEDS(SchedulerGroup::Dispatch(r.forget()));
 }
 
-nsresult RemoteWorkerChild::ExecWorkerOnMainThread(
-    RemoteWorkerData&& aData,
-    mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild>&&
-        aChildEp) {
+nsresult RemoteWorkerChild::ExecWorkerOnMainThread(RemoteWorkerData&& aData) {
   MOZ_ASSERT(NS_IsMainThread());
 
   // Ensure that the IndexedDatabaseManager is initialized so that if any
@@ -385,8 +395,7 @@ nsresult RemoteWorkerChild::ExecWorkerOnMainThread(
       // begin to transition when the worker thread would reach the Canceling
       // state.  This lambda ensures that we not only wait for the Killing state
       // to be reached but that the global shutdown has already occurred.
-      [self]() { self->TransitionStateFromCanceledToKilled(); },
-      std::move(aChildEp));
+      [self]() { self->TransitionStateFromCanceledToKilled(); });
 
   if (NS_WARN_IF(error.Failed())) {
     MOZ_ASSERT(!workerPrivate);
@@ -668,6 +677,22 @@ void RemoteWorkerChild::FlushReportsOnMainThread(
 /**
  * Worker state transition methods
  */
+RemoteWorkerChild::WorkerPrivateAccessibleState::
+    ~WorkerPrivateAccessibleState() {
+  // We should now only be performing state transitions on the main thread, so
+  // we should assert we're only releasing on the main thread.
+  MOZ_ASSERT(!mWorkerPrivate || NS_IsMainThread());
+  // mWorkerPrivate can be safely released on the main thread.
+  if (!mWorkerPrivate || NS_IsMainThread()) {
+    return;
+  }
+
+  // But as a backstop, do proxy the release to the main thread.
+  NS_ReleaseOnMainThread(
+      "RemoteWorkerChild::WorkerPrivateAccessibleState::mWorkerPrivate",
+      mWorkerPrivate.forget());
+}
+
 void RemoteWorkerChild::
     OnWorkerCancellationTransitionStateFromPendingOrRunningToCanceled() {
   auto lock = mState.Lock();
@@ -677,21 +702,20 @@ void RemoteWorkerChild::
   if (lock->is<Pending>()) {
     TransitionStateFromPendingToCanceled(lock.ref());
   } else if (lock->is<Running>()) {
-    *lock = VariantType<remoteworker::Canceled>();
+    *lock = VariantType<Canceled>();
   } else {
     MOZ_ASSERT(false, "State should have been Pending or Running");
   }
 }
 
-void RemoteWorkerChild::TransitionStateFromPendingToCanceled(
-    RemoteWorkerState& aState) {
+void RemoteWorkerChild::TransitionStateFromPendingToCanceled(State& aState) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aState.is<Pending>());
   LOG(("TransitionStateFromPendingToCanceled[this=%p]", this));
 
   CancelAllPendingOps(aState);
 
-  aState = VariantType<remoteworker::Canceled>();
+  aState = VariantType<Canceled>();
 }
 
 void RemoteWorkerChild::TransitionStateFromCanceledToKilled() {
@@ -702,7 +726,7 @@ void RemoteWorkerChild::TransitionStateFromCanceledToKilled() {
   auto lock = mState.Lock();
   MOZ_ASSERT(lock->is<Canceled>());
 
-  *lock = VariantType<remoteworker::Killed>();
+  *lock = VariantType<Killed>();
 
   RefPtr<RemoteWorkerChild> self = this;
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(__func__, [self]() {
@@ -730,7 +754,7 @@ void RemoteWorkerChild::TransitionStateToRunning() {
 
   LOG(("TransitionStateToRunning[this=%p]", this));
 
-  nsTArray<RefPtr<RemoteWorkerOp>> pendingOps;
+  nsTArray<RefPtr<Op>> pendingOps;
 
   {
     auto lock = mState.Lock();
@@ -751,7 +775,7 @@ void RemoteWorkerChild::TransitionStateToRunning() {
 
     // Move the worker private into place to avoid gratuitous ref churn; prior
     // comments here suggest the Variant can't accept a move.
-    *lock = VariantType<remoteworker::Running>();
+    *lock = VariantType<Running>();
     lock->as<Running>().mWorkerPrivate = std::move(workerPrivate);
   }
 
@@ -805,7 +829,153 @@ void RemoteWorkerChild::ExceptionalErrorTransitionDuringExecWorker() {
   }
 }
 
-void RemoteWorkerChild::CancelAllPendingOps(RemoteWorkerState& aState) {
+/**
+ * Operation execution classes/methods
+ */
+class RemoteWorkerChild::SharedWorkerOp : public RemoteWorkerChild::Op {
+ public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SharedWorkerOp, override)
+
+  explicit SharedWorkerOp(RemoteWorkerOp&& aOp) : mOp(std::move(aOp)) {}
+
+  bool MaybeStart(RemoteWorkerChild* aOwner,
+                  RemoteWorkerChild::State& aState) override {
+    MOZ_ASSERT(!mStarted);
+    MOZ_ASSERT(aOwner);
+    // Thread: We are on the Worker Launcher thread.
+
+    // Return false, indicating we should queue this op if our current state is
+    // pending and this isn't a termination op (which should skip the line).
+    if (aState.is<Pending>() && !IsTerminationOp()) {
+      return false;
+    }
+
+    // If the worker is already shutting down (which should be unexpected
+    // because we should be told new operations after a termination op), just
+    // return true to indicate the op should be discarded.
+    if (aState.is<Canceled>() || aState.is<Killed>()) {
+#ifdef DEBUG
+      mStarted = true;
+#endif
+      if (mOp.type() == RemoteWorkerOp::TRemoteWorkerPortIdentifierOp) {
+        MessagePort::ForceClose(
+            mOp.get_RemoteWorkerPortIdentifierOp().portIdentifier());
+      }
+      return true;
+    }
+
+    MOZ_ASSERT(aState.is<Running>() || IsTerminationOp());
+
+    RefPtr<SharedWorkerOp> self = this;
+    RefPtr<RemoteWorkerChild> owner = aOwner;
+
+    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
+        __func__, [self = std::move(self), owner = std::move(owner)]() mutable {
+          {
+            auto lock = owner->mState.Lock();
+
+            if (NS_WARN_IF(lock->is<Canceled>() || lock->is<Killed>())) {
+              self->Cancel();
+              // Worker has already canceled, force close the MessagePort.
+              if (self->mOp.type() ==
+                  RemoteWorkerOp::TRemoteWorkerPortIdentifierOp) {
+                MessagePort::ForceClose(
+                    self->mOp.get_RemoteWorkerPortIdentifierOp()
+                        .portIdentifier());
+              }
+              return;
+            }
+          }
+
+          self->StartOnMainThread(owner);
+        });
+
+    MOZ_ALWAYS_SUCCEEDS(SchedulerGroup::Dispatch(r.forget()));
+
+#ifdef DEBUG
+    mStarted = true;
+#endif
+
+    return true;
+  }
+
+  void StartOnMainThread(RefPtr<RemoteWorkerChild>& aOwner) final {
+    using Running = RemoteWorkerChild::Running;
+
+    AssertIsOnMainThread();
+
+    if (IsTerminationOp()) {
+      aOwner->CloseWorkerOnMainThread();
+      return;
+    }
+
+    auto lock = aOwner->mState.Lock();
+    MOZ_ASSERT(lock->is<Running>());
+    if (!lock->is<Running>()) {
+      aOwner->ErrorPropagationDispatch(NS_ERROR_DOM_INVALID_STATE_ERR);
+      return;
+    }
+
+    RefPtr<WorkerPrivate> workerPrivate = lock->as<Running>().mWorkerPrivate;
+
+    MOZ_ASSERT(workerPrivate);
+
+    if (mOp.type() == RemoteWorkerOp::TRemoteWorkerSuspendOp) {
+      workerPrivate->ParentWindowPaused();
+    } else if (mOp.type() == RemoteWorkerOp::TRemoteWorkerResumeOp) {
+      workerPrivate->ParentWindowResumed();
+    } else if (mOp.type() == RemoteWorkerOp::TRemoteWorkerFreezeOp) {
+      workerPrivate->Freeze(nullptr);
+    } else if (mOp.type() == RemoteWorkerOp::TRemoteWorkerThawOp) {
+      workerPrivate->Thaw(nullptr);
+    } else if (mOp.type() == RemoteWorkerOp::TRemoteWorkerPortIdentifierOp) {
+      RefPtr<MessagePortIdentifierRunnable> r =
+          new MessagePortIdentifierRunnable(
+              workerPrivate, aOwner,
+              mOp.get_RemoteWorkerPortIdentifierOp().portIdentifier());
+      if (NS_WARN_IF(!r->Dispatch(workerPrivate))) {
+        aOwner->ErrorPropagationDispatch(NS_ERROR_FAILURE);
+      }
+    } else if (mOp.type() == RemoteWorkerOp::TRemoteWorkerAddWindowIDOp) {
+      aOwner->mWindowIDs.AppendElement(
+          mOp.get_RemoteWorkerAddWindowIDOp().windowID());
+    } else if (mOp.type() == RemoteWorkerOp::TRemoteWorkerRemoveWindowIDOp) {
+      aOwner->mWindowIDs.RemoveElement(
+          mOp.get_RemoteWorkerRemoveWindowIDOp().windowID());
+    } else {
+      MOZ_CRASH("Unknown RemoteWorkerOp type!");
+    }
+  }
+
+  void Cancel() override {
+#ifdef DEBUG
+    mStarted = true;
+#endif
+  }
+
+ private:
+  ~SharedWorkerOp() { MOZ_ASSERT(mStarted); }
+
+  bool IsTerminationOp() const {
+    return mOp.type() == RemoteWorkerOp::TRemoteWorkerTerminateOp;
+  }
+
+  RemoteWorkerOp mOp;
+
+#ifdef DEBUG
+  bool mStarted = false;
+#endif
+};
+
+void RemoteWorkerChild::AddPortIdentifier(
+    JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+    UniqueMessagePortId& aPortIdentifier) {
+  if (NS_WARN_IF(!aWorkerPrivate->ConnectMessagePort(aCx, aPortIdentifier))) {
+    ErrorPropagationDispatch(NS_ERROR_FAILURE);
+  }
+}
+
+void RemoteWorkerChild::CancelAllPendingOps(State& aState) {
   MOZ_ASSERT(aState.is<Pending>());
 
   auto pendingOps = std::move(aState.as<Pending>().mPendingOps);
@@ -815,7 +985,7 @@ void RemoteWorkerChild::CancelAllPendingOps(RemoteWorkerState& aState) {
   }
 }
 
-void RemoteWorkerChild::MaybeStartOp(RefPtr<RemoteWorkerOp>&& aOp) {
+void RemoteWorkerChild::MaybeStartOp(RefPtr<Op>&& aOp) {
   MOZ_ASSERT(aOp);
 
   auto lock = mState.Lock();
@@ -826,10 +996,10 @@ void RemoteWorkerChild::MaybeStartOp(RefPtr<RemoteWorkerOp>&& aOp) {
   }
 }
 
-IPCResult RemoteWorkerChild::RecvExecOp(SharedWorkerOpArgs&& aOpArgs) {
+IPCResult RemoteWorkerChild::RecvExecOp(RemoteWorkerOp&& aOp) {
   MOZ_ASSERT(!mIsServiceWorker);
 
-  MaybeStartOp(new SharedWorkerOp(std::move(aOpArgs)));
+  MaybeStartOp(new SharedWorkerOp(std::move(aOp)));
 
   return IPC_OK();
 }

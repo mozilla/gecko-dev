@@ -15,7 +15,6 @@
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/ServiceWorkerOpArgs.h"
 #include "mozilla/dom/ServiceWorkerOpPromise.h"
-#include "mozilla/dom/SharedWorkerOpArgs.h"
 
 namespace mozilla::dom {
 
@@ -90,7 +89,6 @@ class FetchEventOpParent;
 class RemoteWorkerControllerParent;
 class RemoteWorkerData;
 class RemoteWorkerManager;
-class RemoteWorkerNonLifeCycleOpControllerParent;
 class RemoteWorkerParent;
 
 class RemoteWorkerObserver {
@@ -126,7 +124,6 @@ class RemoteWorkerController final {
   friend class RemoteWorkerControllerParent;
   friend class RemoteWorkerManager;
   friend class RemoteWorkerParent;
-  friend class RemoteWorkerNonLifeCycleOpControllerParent;
 
  public:
   NS_INLINE_DECL_REFCOUNTING(RemoteWorkerController)
@@ -195,7 +192,6 @@ class RemoteWorkerController final {
 
   RefPtr<RemoteWorkerObserver> mObserver;
   RefPtr<RemoteWorkerParent> mActor;
-  RefPtr<RemoteWorkerNonLifeCycleOpControllerParent> mNonLifeCycleOpController;
 
   enum {
     ePending,
