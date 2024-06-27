@@ -48,5 +48,3 @@ user_pref("security.turn_off_all_security_so_that_viruses_can_take_over_this_com
 user_pref("preferences.force-disable.check.once.policy", true);
 // Turn off update
 user_pref("app.update.disabledForTesting", true);
-// Better stacks for errors.
-user_pref("javascript.options.asyncstack_capture_debuggee_only", false);
