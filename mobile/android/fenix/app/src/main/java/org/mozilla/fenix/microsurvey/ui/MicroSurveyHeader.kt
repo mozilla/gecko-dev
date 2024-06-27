@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
@@ -40,25 +41,29 @@ fun MicroSurveyHeader(
     onCloseButtonClick: () -> Unit,
 ) {
     Row(
-        horizontalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
     ) {
-        Image(
-            painter = painterResource(R.drawable.ic_firefox),
-            contentDescription = null, // todo update to string res once a11y strings are available.
-            modifier = Modifier.size(24.dp),
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Text(
-            text = title,
-            style = FirefoxTheme.typography.headline7,
-            color = FirefoxTheme.colors.textPrimary,
-            modifier = Modifier.weight(1f),
-        )
-
+        Row(
+            modifier = Modifier
+                .wrapContentWidth()
+                .padding(start = 32.dp),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_firefox),
+                contentDescription = null, // todo update to string res once a11y strings are available.
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = title,
+                style = FirefoxTheme.typography.headline6,
+                color = FirefoxTheme.colors.textPrimary,
+            )
+        }
         IconButton(onClick = onCloseButtonClick) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_close),
@@ -76,9 +81,7 @@ fun MicroSurveyHeader(
 private fun MicroSurveyHeaderPreview() {
     FirefoxTheme {
         Box(
-            modifier = Modifier
-                .background(color = FirefoxTheme.colors.layer1)
-                .padding(16.dp),
+            modifier = Modifier.background(color = FirefoxTheme.colors.layer1),
         ) {
             MicroSurveyHeader(stringResource(R.string.micro_survey_survey_header_2)) {}
         }

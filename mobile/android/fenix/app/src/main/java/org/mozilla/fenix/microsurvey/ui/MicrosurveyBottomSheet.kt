@@ -62,11 +62,7 @@ fun MicrosurveyBottomSheet(
         shape = bottomSheetShape,
     ) {
         Column(
-            modifier = Modifier
-                .padding(
-                    vertical = 8.dp,
-                    horizontal = 16.dp,
-                ),
+            modifier = Modifier.padding(vertical = 8.dp),
         ) {
             BottomSheetHandle(
                 onRequestDismiss = {},
@@ -77,11 +73,7 @@ fun MicrosurveyBottomSheet(
                     .semantics { traversalIndex = -1f },
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
             MicroSurveyHeader(title = stringResource(id = R.string.micro_survey_survey_header_2)) {}
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 if (isSubmitted) {
