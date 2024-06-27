@@ -2205,19 +2205,15 @@ WorkerThreadPrimaryRunnable::Run() {
     // Check sentinels if we actually removed all global scope references.
     // In case use the earlier set-aside raw pointers to not mess with the
     // ref counting after the cycle collector has gone away.
-    if (globalScopeSentinel) {
-      MOZ_ASSERT(!globalScopeSentinel->IsAlive());
-      if (NS_WARN_IF(globalScopeSentinel->IsAlive())) {
-        globalScopeRawPtr->NoteWorkerTerminated();
-        globalScopeRawPtr = nullptr;
-      }
+    if (NS_WARN_IF(globalScopeSentinel && globalScopeSentinel->IsAlive())) {
+      MOZ_ASSERT_UNREACHABLE("WorkerGlobalScope alive after worker shutdown");
+      globalScopeRawPtr->NoteWorkerTerminated();
+      globalScopeRawPtr = nullptr;
     }
-    if (debuggerScopeSentinel) {
-      MOZ_ASSERT(!debuggerScopeSentinel->IsAlive());
-      if (NS_WARN_IF(debuggerScopeSentinel->IsAlive())) {
-        debuggerScopeRawPtr->NoteWorkerTerminated();
-        debuggerScopeRawPtr = nullptr;
-      }
+    if (NS_WARN_IF(debuggerScopeSentinel && debuggerScopeSentinel->IsAlive())) {
+      MOZ_ASSERT_UNREACHABLE("Debugger global alive after worker shutdown");
+      debuggerScopeRawPtr->NoteWorkerTerminated();
+      debuggerScopeRawPtr = nullptr;
     }
   }
 
