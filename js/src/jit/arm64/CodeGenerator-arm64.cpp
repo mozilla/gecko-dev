@@ -216,35 +216,19 @@ static ARMRegister toXRegister(const T* a) {
   return ARMRegister(ToRegister(a), 64);
 }
 
-Operand toWOperand(const LAllocation* a) {
+static Operand toWOperand(const LAllocation* a) {
   if (a->isConstant()) {
     return Operand(ToInt32(a));
   }
   return Operand(toWRegister(a));
 }
 
-vixl::CPURegister ToCPURegister(const LAllocation* a, Scalar::Type type) {
-  if (a->isFloatReg() && type == Scalar::Float64) {
-    return ARMFPRegister(ToFloatRegister(a), 64);
-  }
-  if (a->isFloatReg() && type == Scalar::Float32) {
-    return ARMFPRegister(ToFloatRegister(a), 32);
-  }
-  if (a->isGeneralReg()) {
-    return ARMRegister(ToRegister(a), 32);
-  }
-  MOZ_CRASH("Unknown LAllocation");
-}
-
-vixl::CPURegister ToCPURegister(const LDefinition* d, Scalar::Type type) {
-  return ToCPURegister(d->output(), type);
-}
-
 // Let |cond| be an ARM64 condition code that we could reasonably use in a
 // conditional branch or select following a comparison instruction.  This
 // function returns the condition to use in the case where we swap the two
 // operands of the comparison instruction.
-Assembler::Condition GetCondForSwappedOperands(Assembler::Condition cond) {
+static Assembler::Condition GetCondForSwappedOperands(
+    Assembler::Condition cond) {
   // EQ and NE map to themselves
   // Of the remaining 14 cases, 4 other pairings can meaningfully swap:
   // HS -- LS
