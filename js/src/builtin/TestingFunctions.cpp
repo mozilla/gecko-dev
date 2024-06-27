@@ -3679,13 +3679,11 @@ static bool NewString(JSContext* cx, unsigned argc, Value* vp) {
     }
     RefPtr<mozilla::StringBuffer> buffer = src->asLinear().stringBuffer();
     if (src->hasLatin1Chars()) {
-      auto* bufferChars = static_cast<const Latin1Char*>(buffer->Data());
-      dest = JSLinearString::newValidLength<CanGC>(cx, std::move(buffer),
-                                                   bufferChars, len, heap);
+      dest = JSLinearString::newValidLength<CanGC, Latin1Char>(
+          cx, std::move(buffer), len, heap);
     } else {
-      auto* bufferChars = static_cast<const char16_t*>(buffer->Data());
-      dest = JSLinearString::newValidLength<CanGC>(cx, std::move(buffer),
-                                                   bufferChars, len, heap);
+      dest = JSLinearString::newValidLength<CanGC, char16_t>(
+          cx, std::move(buffer), len, heap);
     }
   } else {
     AutoStableStringChars stable(cx);
@@ -3715,9 +3713,8 @@ static bool NewString(JSContext* cx, unsigned argc, Value* vp) {
           return nullptr;
         }
 
-        auto* bufferChars = static_cast<const CharT*>(buffer->Data());
         return JSLinearString::newValidLength<CanGC, CharT>(
-            cx, std::move(buffer), bufferChars, len, heap);
+            cx, std::move(buffer), len, heap);
       };
       if (stable.isLatin1()) {
         dest = allocString(stable.latin1Chars());

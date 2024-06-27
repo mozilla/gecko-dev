@@ -496,13 +496,13 @@ MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::new_(
 
 template <js::AllowGC allowGC, typename CharT>
 MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::new_(
-    JSContext* cx, RefPtr<mozilla::StringBuffer>&& buffer, const CharT* chars,
-    size_t length, js::gc::Heap heap) {
+    JSContext* cx, RefPtr<mozilla::StringBuffer>&& buffer, size_t length,
+    js::gc::Heap heap) {
   if (MOZ_UNLIKELY(!validateLengthInternal<allowGC>(cx, length))) {
     return nullptr;
   }
 
-  return newValidLength<allowGC>(cx, std::move(buffer), chars, length, heap);
+  return newValidLength<allowGC, CharT>(cx, std::move(buffer), length, heap);
 }
 
 template <js::AllowGC allowGC, typename CharT>
@@ -540,10 +540,15 @@ MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::newValidLength(
 
 template <js::AllowGC allowGC, typename CharT>
 MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::newValidLength(
-    JSContext* cx, RefPtr<mozilla::StringBuffer>&& buffer, const CharT* chars,
-    size_t length, js::gc::Heap heap) {
+    JSContext* cx, RefPtr<mozilla::StringBuffer>&& buffer, size_t length,
+    js::gc::Heap heap) {
   MOZ_ASSERT(!cx->zone()->isAtomsZone());
   MOZ_ASSERT(!JSInlineString::lengthFits<CharT>(length));
+
+  static_assert(std::is_same_v<CharT, JS::Latin1Char> ||
+                std::is_same_v<CharT, char16_t>);
+  const auto* chars = static_cast<const CharT*>(buffer->Data());
+
   JSLinearString* str = cx->newCell<JSLinearString, allowGC>(
       heap, chars, length, /* hasBuffer = */ true);
   if (!str) {

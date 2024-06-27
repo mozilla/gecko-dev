@@ -2311,8 +2311,8 @@ static JSString* NewStringFromBuffer(JSContext* cx,
                                   gc::Heap::Default);
   }
 
-  return JSLinearString::new_<CanGC>(cx, std::move(buffer), s, length,
-                                     gc::Heap::Default);
+  return JSLinearString::new_<CanGC, CharT>(cx, std::move(buffer), length,
+                                            gc::Heap::Default);
 }
 
 JS_PUBLIC_API JSString* JS::NewStringFromLatin1Buffer(
