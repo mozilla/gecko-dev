@@ -31,7 +31,7 @@ SPHINX_TREES["resistfingerprinting"] = "docs"
 
 FINAL_LIBRARY = "xul"
 
-EXPORTS += ["nsRFPService.h", "nsUserCharacteristics.h", "RFPTargets.inc"]
+EXPORTS += ["nsRFPService.h", "RFPTargets.inc"]
 EXPORTS.mozilla += [
     "RelativeTimeline.h",
     "RFPTargetIPCUtils.h",

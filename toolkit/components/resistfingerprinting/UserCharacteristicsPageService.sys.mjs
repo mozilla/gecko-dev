@@ -8,11 +8,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   HiddenFrame: "resource://gre/modules/HiddenFrame.sys.mjs",
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
-  setTimeout: "resource://gre/modules/Timer.sys.mjs",
-  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
-
-import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
   return console.createInstance({
@@ -162,22 +158,6 @@ export class UserCharacteristicsPageService {
 
   createContentPage() {
     lazy.console.debug("called createContentPage");
-
-    lazy.console.debug("Registering actor");
-    ChromeUtils.registerWindowActor("UserCharacteristics", {
-      parent: {
-        esModuleURI: "resource://gre/actors/UserCharacteristicsParent.sys.mjs",
-      },
-      child: {
-        esModuleURI: "resource://gre/actors/UserCharacteristicsChild.sys.mjs",
-        events: {
-          UserCharacteristicsDataDone: { wantUntrusted: true },
-        },
-      },
-      matches: ["about:fingerprintingprotection"],
-      remoteTypes: ["privilegedabout"],
-    });
-
     return this._browserManager.withHiddenBrowser(async browser => {
       lazy.console.debug(`In withHiddenBrowser`);
       try {
@@ -190,8 +170,7 @@ export class UserCharacteristicsPageService {
         };
 
         let userCharacteristicsPageURI = Services.io.newURI(
-          "about:fingerprintingprotection" +
-            (Cu.isInAutomation ? "#automation" : "")
+          "about:fingerprintingprotection"
         );
 
         browser.loadURI(userCharacteristicsPageURI, loadURIOptions);
@@ -208,113 +187,60 @@ export class UserCharacteristicsPageService {
 
         lazy.console.debug("Populating Glean metrics...");
 
-        await this.populateAndCollectErrors(browser, data);
+        for (let gamepad of data.output.gamepads) {
+          Glean.characteristics.gamepads.add(gamepad);
+        }
+        this.populateIntlLocale();
 
-        // Notify test observers that the data has been populated.
+        Glean.characteristics.zoomCount.set(await this.populateZoomPrefs());
+        Glean.characteristics.pixelRatio.set(
+          await this.populateDevicePixelRatio(browser.ownerGlobal)
+        );
+
+        try {
+          Glean.characteristics.canvasdata1.set(data.output.canvas1data);
+          Glean.characteristics.canvasdata2.set(data.output.canvas2data);
+          Glean.characteristics.canvasdata3.set(data.output.canvas3data);
+          Glean.characteristics.canvasdata4.set(data.output.canvas4data);
+          Glean.characteristics.canvasdata5.set(data.output.canvas5data);
+          Glean.characteristics.canvasdata6.set(data.output.canvas6data);
+          Glean.characteristics.canvasdata7.set(data.output.canvas7data);
+          Glean.characteristics.canvasdata8.set(data.output.canvas8data);
+          Glean.characteristics.canvasdata9.set(data.output.canvas9data);
+          Glean.characteristics.canvasdata10.set(data.output.canvas10data);
+          Glean.characteristics.canvasdata11Webgl.set(data.output.glcanvasdata);
+          Glean.characteristics.canvasdata12Fingerprintjs1.set(
+            data.output.fingerprintjscanvas1data
+          );
+          Glean.characteristics.canvasdata13Fingerprintjs2.set(
+            data.output.fingerprintjscanvas2data
+          );
+          Glean.characteristics.voices.set(data.output.voices);
+          Glean.characteristics.mediaCapabilities.set(
+            data.output.mediaCapabilities
+          );
+          this.populateDisabledMediaPrefs();
+          Glean.characteristics.audioFingerprint.set(
+            data.output.audioFingerprint
+          );
+        } catch (e) {
+          // Grab the exception and send it to the console
+          // (we don't see it otherwise)
+          lazy.console.debug(e);
+          // But still fail
+          throw e;
+        }
+        Glean.characteristics.mathOps.set(await this.populateMathOps());
+
+        lazy.console.debug("Unregistering actor");
         Services.obs.notifyObservers(
           null,
           "user-characteristics-populating-data-done"
         );
       } finally {
-        lazy.console.debug("Unregistering actor");
-        ChromeUtils.unregisterWindowActor("UserCharacteristics");
         this._backgroundBrowsers.delete(browser);
       }
     });
-  }
-
-  async populateAndCollectErrors(browser, data) {
-    const populateFuncs = [
-      [this.populateIntlLocale, []],
-      [this.populateZoomPrefs, []],
-      [this.populateDevicePixelRatio, [browser.ownerGlobal]],
-      [this.populateDisabledMediaPrefs, []],
-      [this.populateMathOps, []],
-      [this.populateMapableData, [data.output]],
-      [this.populateGamepads, [data.output.gamepads]],
-      [this.populateClientInfo, []],
-      [this.populateCPUInfo, []],
-      [this.populateScreenInfo, []],
-    ];
-    const results = await Promise.allSettled(
-      populateFuncs.map(([f, args]) =>
-        timeoutPromise(f(...args), 5 * 60 * 1000)
-      )
-    );
-
-    const errors = JSON.parse(data?.output?.errors ?? "[]");
-    for (const [i, [func]] of populateFuncs.entries()) {
-      if (results[i].status == "rejected") {
-        const error = `${func.name}: ${await stringifyError(
-          results[i].reason
-        )}`;
-        errors.push(error);
-        lazy.console.debug(error);
-      }
-    }
-
-    Glean.characteristics.jsErrors.set(JSON.stringify(errors));
-  }
-
-  async populateScreenInfo() {
-    // We use two different methods to get any loaded document.
-    // First one is, DOMContentLoaded event. If the user loads
-    // a new document after actor registration, we will get it.
-    // Second one is, we iterate over all open windows and tabs
-    // and try to get the screen info from them.
-    // The reason we do both is, for DOMContentLoaded, we can't
-    // guarantee that all the documents were not loaded before the
-    // actor registration.
-    // We could only use the second method and add a load event
-    // listener, but that assumes the user won't close already
-    // existing tabs and continue on a new one before the page
-    // is loaded. This is a rare case, but we want to cover it.
-
-    const { promise, resolve } = Promise.withResolvers();
-
-    Services.obs.addObserver(function observe(_subject, topic, data) {
-      Services.obs.removeObserver(observe, topic);
-      ChromeUtils.unregisterWindowActor("UserCharacteristicsScreenInfo");
-      resolve(data.split(","));
-    }, "user-characteristics-screen-info-done");
-
-    ChromeUtils.registerWindowActor("UserCharacteristicsScreenInfo", {
-      parent: {
-        esModuleURI: "resource://gre/actors/UserCharacteristicsParent.sys.mjs",
-      },
-      child: {
-        esModuleURI:
-          "resource://gre/actors/UserCharacteristicsScreenInfoChild.sys.mjs",
-        events: {
-          DOMContentLoaded: {},
-        },
-      },
-    });
-
-    for (const win of Services.wm.getEnumerator("navigator:browser")) {
-      if (!win.closed) {
-        for (const tab of win.gBrowser.tabs) {
-          const actor =
-            tab.linkedBrowser.browsingContext?.currentWindowGlobal.getActor(
-              "UserCharacteristicsScreenInfo"
-            );
-
-          if (!actor) {
-            continue;
-          }
-
-          actor.sendAsyncMessage("ScreenInfo:PopulateFromDocument");
-        }
-      }
-    }
-
-    const result = await promise;
-    Glean.characteristics.outerHeight.set(result[0]);
-    Glean.characteristics.innerHeight.set(result[1]);
-    Glean.characteristics.outerWidth.set(result[2]);
-    Glean.characteristics.innerWidth.set(result[3]);
-    Glean.characteristics.availHeight.set(result[4]);
-    Glean.characteristics.availWidth.set(result[5]);
   }
 
   async populateZoomPrefs() {
@@ -330,71 +256,20 @@ export class UserCharacteristicsPageService {
       });
     });
 
-    Glean.characteristics.zoomCount.set(zoomPrefsCount);
+    return zoomPrefsCount;
   }
 
   async populateDevicePixelRatio(window) {
-    Glean.characteristics.pixelRatio.set(
+    return (
       (window.browsingContext.overrideDPPX || window.devicePixelRatio) * 100
     );
   }
 
-  async populateIntlLocale() {
+  populateIntlLocale() {
     const locale = new Intl.DisplayNames(undefined, {
       type: "region",
     }).resolvedOptions().locale;
     Glean.characteristics.intlLocale.set(locale);
-  }
-
-  async populateGamepads(gamepads) {
-    for (let gamepad of gamepads) {
-      Glean.characteristics.gamepads.add(gamepad);
-    }
-  }
-
-  async populateMapableData(data) {
-    // We set data from usercharacteristics.js
-    // We could do Object.keys(data), but this
-    // is more explicit and provides better
-    // readability and control.
-    // Keys must match to data returned from
-    // usercharacteristics.js and the metric defined
-    const metrics = {
-      set: [
-        "canvasdata1",
-        "canvasdata2",
-        "canvasdata3",
-        "canvasdata4",
-        "canvasdata5",
-        "canvasdata6",
-        "canvasdata7",
-        "canvasdata8",
-        "canvasdata9",
-        "canvasdata10",
-        "canvasdata11Webgl",
-        "canvasdata12Fingerprintjs1",
-        "canvasdata13Fingerprintjs2",
-        "voices",
-        "mediaCapabilities",
-        "audioFingerprint",
-        "jsErrors",
-        "pointerType",
-        "anyPointerType",
-        "iceFoundations",
-        "motionDecimals",
-        "orientationDecimals",
-        "orientationabsDecimals",
-        "motionFreq",
-        "orientationFreq",
-        "orientationabsFreq",
-      ],
-    };
-
-    for (const type in metrics) {
-      for (const metric of metrics[type]) {
-        Glean.characteristics[metric][type](data[metric]);
-      }
-    }
   }
 
   async populateMathOps() {
@@ -429,36 +304,7 @@ export class UserCharacteristicsPageService {
       [value => Math.log(1 + value), 10],
     ].map(([op, value]) => [op || (() => 0), value]);
 
-    Glean.characteristics.mathOps.set(
-      JSON.stringify(ops.map(([op, value]) => op(value)))
-    );
-  }
-
-  async populateClientInfo() {
-    const buildID = Services.appinfo.appBuildID;
-    const buildDate =
-      new Date(
-        buildID.slice(0, 4),
-        buildID.slice(4, 6) - 1,
-        buildID.slice(6, 8),
-        buildID.slice(8, 10),
-        buildID.slice(10, 12),
-        buildID.slice(12, 14)
-      ).getTime() / 1000;
-
-    Glean.characteristics.version.set(Services.appinfo.version);
-    Glean.characteristics.channel.set(AppConstants.MOZ_UPDATE_CHANNEL);
-    Glean.characteristics.osName.set(Services.appinfo.OS);
-    Glean.characteristics.osVersion.set(
-      Services.sysinfo.getProperty("version")
-    );
-    Glean.characteristics.buildDate.set(buildDate);
-  }
-
-  async populateCPUInfo() {
-    Glean.characteristics.cpuModel.set(
-      await Services.sysinfo.processInfo.then(r => r.name)
-    );
+    return JSON.stringify(ops.map(([op, value]) => op(value)));
   }
 
   async pageLoaded(browsingContext, data) {
@@ -503,43 +349,4 @@ export class UserCharacteristicsPageService {
     }
     Glean.characteristics.changedMediaPrefs.set(JSON.stringify(changedPrefs));
   }
-}
-
-// =============================================================
-// Utility Functions
-
-async function stringifyError(error) {
-  if (error instanceof Error) {
-    const stack = (error.stack ?? "").replaceAll(
-      /@chrome.+?UserCharacteristicsPageService.sys.mjs:/g,
-      ""
-    );
-    return `${error.toString()} ${stack}`;
-  }
-  // A hacky attempt to extract as much as info from error
-  const errStr = await (async () => {
-    const asStr = await (async () => error.toString())().catch(() => "");
-    const asJson = await (async () => JSON.stringify(error))().catch(() => "");
-    return asStr.length > asJson.len ? asStr : asJson;
-  })();
-  return errStr;
-}
-
-function timeoutPromise(promise, ms) {
-  return new Promise((resolve, reject) => {
-    const timeoutId = lazy.setTimeout(() => {
-      reject(new Error("TIMEOUT"));
-    }, ms);
-
-    promise.then(
-      value => {
-        lazy.clearTimeout(timeoutId);
-        resolve(value);
-      },
-      error => {
-        lazy.clearTimeout(timeoutId);
-        reject(error);
-      }
-    );
-  });
 }
