@@ -13823,6 +13823,12 @@
   value: 512
   mirror: always
 
+# Cached state of parental controls (enabled/disabled)
+- name: network.parental_controls_cached_state
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "nglayout."
 #---------------------------------------------------------------------------
