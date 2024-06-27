@@ -170,6 +170,15 @@ If you encounter a build error when trying to setup your development environment
    2. Paste this error on `paste.mozilla.org <https://paste.mozilla.org>`_ in the text area and change the "Expire in one hour" option to "Expire in one week". Note: it won't take a week to get help but it's better to have the snippet be around for a bit longer than expected.
    3. Go to the `introduction channel <https://chat.mozilla.org/#/room/#introduction:mozilla.org>`__ and ask for help with your build error. Make sure to post the link to the paste.mozilla.org snippet you created!
 
+The CLOBBER file has been updated
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is a normal error to encounter and tends to appear when working on a bug for a long period of time.
+If you encounter this error, you need to run ``./mach clobber`` before running ``./mach build``.
+Running ``./mach clobber`` will remove previous build artifacts to restart a build from scratch.
+If you are using an artifact build, this will mean that the next build will take slightly longer than usual.
+However, if you are using a non-artifact/full build, the next build will take significantly longer to complete.
+
 MozillaBuild out-of-date
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
