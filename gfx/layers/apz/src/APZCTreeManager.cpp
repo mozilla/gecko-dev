@@ -2016,6 +2016,10 @@ APZEventResult APZCTreeManager::InputHandlingState::Finish(
     mEvent.mLayersId = mHit.mLayersId;
   }
 
+  if (mEvent.mInputType == SCROLLWHEEL_INPUT) {
+    aTreeManager.MaybeOverrideLayersIdForWheelEvent(mEvent);
+  }
+
   // Absorb events that are in targetted at a position in the gutter,
   // unless they are fixed position elements.
   if (mHit.mHitOverscrollGutter && mHit.mFixedPosSides == SideBits::eNone) {
@@ -2379,6 +2383,32 @@ void APZCTreeManager::SynthesizePinchGestureFromMouseWheel(
   mInputQueue->ReceiveInputEvent(aTarget, confFlags, pinchScale1);
   mInputQueue->ReceiveInputEvent(aTarget, confFlags, pinchScale2);
   mInputQueue->ReceiveInputEvent(aTarget, confFlags, pinchEnd);
+}
+
+void APZCTreeManager::MaybeOverrideLayersIdForWheelEvent(InputData& aEvent) {
+  APZThreadUtils::AssertOnControllerThread();
+  MOZ_ASSERT(aEvent.mInputType == SCROLLWHEEL_INPUT);
+
+  WheelBlockState* txn = mInputQueue->GetActiveWheelTransaction();
+  APZCTM_LOG("Maybe override txn (0x%p) wheel transactions enabled=%d", txn,
+             StaticPrefs::dom_event_wheel_event_groups_enabled());
+
+  // If we're in a wheel transaction, subsequent events in the transaction
+  // should be sent to the same content process as the first event, even
+  // if content rendered by a different process has scrolled under the
+  // cursor.
+  if (!txn || !StaticPrefs::dom_event_wheel_event_groups_enabled()) {
+    return;
+  }
+
+  LayersId layersId = txn->GetLayersId();
+
+  APZCTM_LOG("Maybe override layers id (%s) -> (%s)",
+             ToString(aEvent.mLayersId).c_str(), ToString(layersId).c_str());
+
+  if (txn->GetLayersId() != LayersId{0}) {
+    aEvent.mLayersId = txn->GetLayersId();
+  }
 }
 
 void APZCTreeManager::UpdateWheelTransaction(
