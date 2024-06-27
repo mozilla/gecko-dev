@@ -86,6 +86,10 @@
       mozToggle.buttonEl,
       "Toggle button should not be focused."
     );
+    await mozToggle.updateComplete;
+
+    mozToggle.pressed = false;
+    ok(!mozToggle.pressed, "Toggle is off");
     synthesizeKey(
       nextAccesskey,
       navigator.platform.includes("Mac")
@@ -98,6 +102,7 @@
       mozToggle.buttonEl,
       "Focus has moved to the toggle button."
     );
+    ok(mozToggle.pressed, "Toggle is on");
   });
 </script>
 </pre>

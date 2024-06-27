@@ -28,7 +28,8 @@ export default class MozToggle extends MozLitElement {
     label: { type: String },
     description: { type: String },
     ariaLabel: { type: String, attribute: "aria-label" },
-    accessKey: { type: String, attribute: "accesskey" },
+    accessKeyAttribute: { type: String, attribute: "accesskey", reflect: true },
+    accessKey: { type: String, state: true },
   };
 
   static get queries() {
@@ -65,6 +66,13 @@ export default class MozToggle extends MozLitElement {
     this.buttonEl.focus();
   }
 
+  willUpdate(changes) {
+    if (changes.has("accessKeyAttribute")) {
+      this.accessKey = this.accessKeyAttribute;
+      this.accessKeyAttribute = null;
+    }
+  }
+
   descriptionTemplate() {
     if (this.description) {
       return html`
@@ -98,6 +106,7 @@ export default class MozToggle extends MozLitElement {
         aria-describedby=${ifDefined(
           description ? "moz-toggle-description" : undefined
         )}
+        accesskey=${ifDefined(this.accessKey)}
         @click=${handleClick}
       ></button>
     `;
@@ -116,7 +125,7 @@ export default class MozToggle extends MozLitElement {
               id="moz-toggle-label"
               part="label"
               for="moz-toggle-button"
-              accesskey=${ifDefined(this.accessKey)}
+              shownaccesskey=${ifDefined(this.accessKey)}
             >
               <span>
                 ${this.label}
