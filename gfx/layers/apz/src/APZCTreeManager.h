@@ -459,8 +459,6 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
       LayoutDeviceIntPoint aRefPoint, EventMessage aEventMessage,
       const Maybe<ScrollableLayerGuid>& aTargetGuid) override;
 
-  void MaybeOverrideLayersIdForWheelEvent(InputData& aEvent);
-
   bool GetAPZTestData(LayersId aLayersId, APZTestData* aOutData);
 
   /**

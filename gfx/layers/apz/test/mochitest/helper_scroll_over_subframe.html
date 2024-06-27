@@ -14,14 +14,14 @@ body {
 }
 
 #spacer {
-  height: 150px;
+  height: 50px;
   width: 100vw;
   background: yellow;
 }
 
 #subframe {
   width: 80vw;
-  height: 100vh;
+  height: 60vh;
 }
 </style>
 </head>
@@ -33,86 +33,47 @@ body {
 <script>
 const searchParams = new URLSearchParams(location.search);
 
-const GESTURE_Y = 120;
-
 async function scrollWithPan() {
-  let transformEndPromise = promiseTransformEnd();
-
   await NativePanHandler.promiseNativePanEvent(
-    window,
-    150,
-    GESTURE_Y,
+    document.scrollingElement,
+    50,
+    30,
     0,
-    NativePanHandler.delta * 0.5,
+    NativePanHandler.delta,
     NativePanHandler.beginPhase,
   );
 
-  // The iframe we need to scroll over is 30 CSS pixels lower than the original
-  // gesture location. We need to perform at least one pan gesture update after
-  // we have scrolled at least 30 CSS pixels.
-  await SimpleTest.promiseWaitForCondition(async () => {
-    let scrollOffset = window.scrollY;
-
-    await NativePanHandler.promiseNativePanEvent(
-      window,
-      150,
-      GESTURE_Y,
-      0,
-      NativePanHandler.delta * 0.5,
-      NativePanHandler.updatePhase,
-    );
-
-    await promiseFrame();
-    await promiseApzFlushedRepaints();
-
-    return scrollOffset > 50;
-  }, "Scroll at least once over the iframe");
+  await NativePanHandler.promiseNativePanEvent(
+    document.scrollingElement,
+    50,
+    30,
+    0,
+    NativePanHandler.delta,
+    NativePanHandler.updatePhase,
+  );
 
   await NativePanHandler.promiseNativePanEvent(
-    window,
-    150,
-    GESTURE_Y,
+    document.scrollingElement,
+    50,
+    30,
     0,
     NativePanHandler.delta,
     NativePanHandler.endPhase,
   );
-
-  await transformEndPromise;
 }
 
 async function scrollWithWheel() {
-  let transformEndPromise = promiseTransformEnd();
-
-  await promiseMoveMouseAndScrollWheelOver(window, 150, GESTURE_Y, false, 20);
-
-  // The iframe we need to scroll over is 30 CSS pixels lower than the original
-  // gesture location. We need to perform at least one mousewheel scroll after
-  // we have scrolled at least 30 CSS pixels.
-  await SimpleTest.promiseWaitForCondition(async () => {
-    let scrollOffset = window.scrollY;
-
-    // While promiseMoveMouseAndScrollWheelOver uses a positive value to scroll
-    // down, synthesizeNativeWheel uses a negative value to scroll down.
-    await synthesizeNativeWheel(window, 150, GESTURE_Y, 0, -20, null);
-
-    await promiseFrame();
-    await promiseApzFlushedRepaints();
-
-    return scrollOffset > 50;
-  }, "Scroll at least once over the iframe");
-
-  await transformEndPromise;
+  await promiseMoveMouseAndScrollWheelOver(document.scrollingElement, 50, 30,
+                                           false, 100);
 }
 
 async function test() {
   let iframeURL =
        SimpleTest.getTestFileURL("helper_scroll_over_subframe_child.html");
 
-  let oop = false;
   switch (searchParams.get("oop")) {
     case "true":
       iframeURL = iframeURL.replace(window.location.origin, "https://example.com/");
-      oop = true;
       break;
     default:
       break;
@@ -148,6 +109,8 @@ async function test() {
 
   await promiseFrame();
 
+  let transformEndPromise = promiseTransformEnd();
+
   // Scroll over the iframe
   switch (searchParams.get("scroll")) {
     case "wheel":
@@ -161,6 +124,8 @@ async function test() {
       break;
   }
 
+  await transformEndPromise;
+
   // Wait an extra frame to ensure any message from the child has
   // extra time to be sent to the parent.
   await promiseFrame();
@@ -172,16 +137,9 @@ async function test() {
 
   await promiseFrame();
 
-  if (searchParams.get("scroll") == "pan" && (oop || getPlatform() != "mac")) {
-    // TODO: Bug 1904439 tracks re-enabling these checks.
-    todo(!childWindowReceivedWheelEvent,
-         "This test does not pass reliably using pan gestures");
-    todo(res == "green", "This test does not pass reliably using pan gestures");
-  } else {
-    // We should not have fired a wheel event to the element in the iframe
-    ok(!childWindowReceivedWheelEvent, "Child window should not receive wheel events");
-    is(res, "green", "OOP iframe does not halt user scroll of parent");
-  }
+  // We should not have fired a wheel event to the element in the iframe
+  ok(!childWindowReceivedWheelEvent, "Child window should not receive wheel events");
+  is(res, "green", "OOP iframe does not halt user scroll of parent");
 }
 waitUntilApzStable().then(test).then(subtestDone, subtestFailed);
 </script>
