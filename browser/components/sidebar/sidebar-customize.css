@@ -54,6 +54,10 @@
   margin: 0;
 }
 
+moz-radio-group {
+  display: block;
+}
+
 #manage-settings {
   display: flex;
   align-items: center;

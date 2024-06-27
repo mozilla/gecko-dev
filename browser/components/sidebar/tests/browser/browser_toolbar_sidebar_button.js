@@ -93,3 +93,68 @@ add_task(async function test_toolbar_sidebar_button() {
   );
   await BrowserTestUtils.closeWindow(win);
 });
+
+add_task(async function test_expanded_state_for_always_show() {
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const {
+    SidebarController: { sidebarMain, toolbarButton },
+  } = win;
+
+  const checkExpandedState = async (
+    expanded,
+    component = sidebarMain,
+    button = toolbarButton
+  ) => {
+    await TestUtils.waitForCondition(
+      () => Boolean(component.expanded) == expanded,
+      expanded ? "Sidebar is expanded." : "Sidebar is collapsed."
+    );
+    await TestUtils.waitForCondition(
+      () => Boolean(button.checked) == expanded,
+      expanded
+        ? "Toolbar button is highlighted."
+        : "Toolbar button is not highlighted."
+    );
+  };
+
+  info("Check default expanded state.");
+  await checkExpandedState(false);
+
+  info("Toggle expanded state via toolbar button.");
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
+  await checkExpandedState(true);
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
+  await checkExpandedState(false);
+
+  info("Collapse the sidebar by loading a tool.");
+  sidebarMain.expanded = true;
+  await sidebarMain.updateComplete;
+  const toolButton = sidebarMain.toolButtons[0];
+  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
+  await checkExpandedState(false);
+
+  info("Restore the sidebar back to its previous state.");
+  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
+  await checkExpandedState(true);
+
+  info("Load and unload a tool with the sidebar collapsed to begin with.");
+  sidebarMain.expanded = false;
+  await sidebarMain.updateComplete;
+  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
+  await checkExpandedState(false);
+  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
+  await checkExpandedState(false);
+
+  info("Check expanded state on a new window.");
+  sidebarMain.expanded = true;
+  await sidebarMain.updateComplete;
+  const newWin = await BrowserTestUtils.openNewBrowserWindow();
+  await checkExpandedState(
+    true,
+    newWin.SidebarController.sidebarMain,
+    newWin.SidebarController.toolbarButton
+  );
+
+  await BrowserTestUtils.closeWindow(newWin);
+  await BrowserTestUtils.closeWindow(win);
+});

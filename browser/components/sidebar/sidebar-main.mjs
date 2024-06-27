@@ -83,6 +83,15 @@ export default class SidebarMain extends MozLitElement {
     window.removeEventListener("SidebarItemRemoved", this);
   }
 
+  updated(changedProperties) {
+    if (
+      changedProperties.has("expanded") &&
+      window.SidebarController.toolbarButton
+    ) {
+      window.SidebarController.toolbarButton.checked = this.expanded;
+    }
+  }
+
   onSidebarPopupShowing(event) {
     // Store the context menu target which holds the id required for managing sidebar items
     this.contextMenuTarget =

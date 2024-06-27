@@ -108,3 +108,40 @@ class TestSessionRestore(SessionStoreTestCase):
             "viewHistorySidebar",
             "Correct sidebar category has been restored.",
         )
+
+    def test_revamp_restore(self):
+        self.marionette.execute_script(
+            """
+            Services.prefs.setBoolPref("sidebar.revamp", true);
+            """
+        )
+        self.marionette.restart()
+        self.marionette.set_context("chrome")
+
+        self.assertEqual(
+            len(self.marionette.chrome_window_handles),
+            1,
+            msg="Should have 1 window open.",
+        )
+        self.assertTrue(
+            self.marionette.execute_script(
+                """
+                const window = BrowserWindowTracker.getTopWindow();
+                window.SidebarController.toggleExpanded();
+                return window.SidebarController.sidebarMain.expanded;
+                """
+            ),
+            "Sidebar is expanded before window is closed.",
+        )
+
+        self.marionette.restart()
+
+        self.assertTrue(
+            self.marionette.execute_script(
+                """
+                const window = BrowserWindowTracker.getTopWindow();
+                return window.SidebarController.sidebarMain.expanded;
+                """
+            ),
+            "Sidebar expanded state has been restored.",
+        )

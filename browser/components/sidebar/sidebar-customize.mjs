@@ -14,21 +14,28 @@ const l10nMap = new Map([
   ["viewTabsSidebar", "sidebar-menu-synced-tabs-label"],
   ["viewBookmarksSidebar", "sidebar-menu-bookmarks-label"],
 ]);
+const VISIBILITY_SETTING_PREF = "sidebar.visibility";
 
 export class SidebarCustomize extends SidebarPage {
   constructor() {
     super();
     this.activeExtIndex = 0;
+    this.visibility = Services.prefs.getStringPref(
+      VISIBILITY_SETTING_PREF,
+      "always-show"
+    );
   }
 
   static properties = {
     activeExtIndex: { type: Number },
+    visibility: { type: String },
   };
 
   static queries = {
     toolInputs: { all: ".customize-firefox-tools moz-checkbox" },
     extensionLinks: { all: ".extension-link" },
     positionInputs: { all: ".position-setting" },
+    visibilityInputs: { all: ".visibility-setting" },
   };
 
   connectedCallback() {
@@ -37,6 +44,7 @@ export class SidebarCustomize extends SidebarPage {
     this.getWindow().addEventListener("SidebarItemChanged", this);
     this.getWindow().addEventListener("SidebarItemRemoved", this);
   }
+
   disconnectedCallback() {
     super.disconnectedCallback();
     this.getWindow().removeEventListener("SidebarItemAdded", this);
@@ -178,10 +186,28 @@ export class SidebarCustomize extends SidebarPage {
             </div>
           </div>`
         )}
-        <h5 data-l10n-id="sidebar-customize-settings"></h5>
+        <moz-radio-group
+          @change=${this.#handleVisibilityChange}
+          name="visibility"
+          data-l10n-id="sidebar-customize-settings"
+        >
+          <moz-radio
+            class="visibility-setting"
+            value="always-show"
+            ?checked=${this.visibility === "always-show"}
+            iconsrc="chrome://browser/content/sidebar/sidebar-expanded.svg"
+            data-l10n-id="sidebar-visibility-always-show"
+          ></moz-radio>
+          <moz-radio
+            class="visibility-setting"
+            value="hide-sidebar"
+            ?checked=${this.visibility === "hide-sidebar"}
+            iconsrc="chrome://browser/content/sidebar/sidebar-hidden.svg"
+            data-l10n-id="sidebar-visibility-hide-sidebar"
+          ></moz-radio>
+        </moz-radio-group>
         <hr>
         <moz-radio-group
-            class="customize-settings"
             @change=${this.reversePosition}
             name="position">
           <moz-radio
@@ -217,6 +243,11 @@ export class SidebarCustomize extends SidebarPage {
         </div>
       </div>
     `;
+  }
+
+  #handleVisibilityChange({ target: { value } }) {
+    this.visibility = value;
+    Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, value);
   }
 }
 

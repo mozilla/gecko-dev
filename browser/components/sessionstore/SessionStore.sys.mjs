@@ -4553,6 +4553,12 @@ var SessionStoreInternal = {
       delete winData.sidebar.command;
     }
 
+    if (aWindow.SidebarController.sidebarRevampEnabled) {
+      winData.sidebar = Object.assign(winData.sidebar || {}, {
+        expanded: aWindow.SidebarController.sidebarMain.expanded,
+      });
+    }
+
     let workspaceID = aWindow.getWorkspaceID();
     if (workspaceID) {
       winData.workspaceID = workspaceID;
@@ -5609,6 +5615,9 @@ var SessionStoreInternal = {
         sidebarBox.setAttribute("style", aSidebar.style);
       }
     }
+    if (aSidebar?.expanded) {
+      aWindow.SidebarController.sidebarMain.expanded = true;
+    }
   },
 
   /**
@@ -6303,7 +6312,7 @@ var SessionStoreInternal = {
       }
 
       // We want to preserve the sidebar if previously open in the window
-      if (window.sidebar?.command) {
+      if (window.sidebar) {
         newWindowState.sidebar = window.sidebar;
       }
 

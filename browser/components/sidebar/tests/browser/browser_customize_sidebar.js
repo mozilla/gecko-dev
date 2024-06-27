@@ -3,6 +3,8 @@
 
 "use strict";
 
+requestLongerTimeout(2);
+
 add_setup(() => SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] }));
 
 async function showCustomizePanel(win) {
@@ -10,7 +12,7 @@ async function showCustomizePanel(win) {
   const document = win.SidebarController.browser.contentDocument;
   return TestUtils.waitForCondition(async () => {
     const component = document.querySelector("sidebar-customize");
-    if (!component?.positionInputs) {
+    if (!component?.positionInputs || !component?.visibilityInputs) {
       return false;
     }
     return component;
@@ -188,4 +190,26 @@ add_task(async function test_customize_position_setting() {
   await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);
   Services.prefs.clearUserPref("sidebar.position_start");
+});
+
+add_task(async function test_customize_visibility_setting() {
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const panel = await showCustomizePanel(win);
+  const [showInput, hideInput] = panel.visibilityInputs;
+  ok(showInput.checked, "Always show is enabled by default.");
+  EventUtils.synthesizeMouseAtCenter(
+    hideInput,
+    {},
+    win.SidebarController.browser.contentWindow
+  );
+  ok(hideInput.checked, "Hide sidebar is enabled.");
+
+  const newWin = await BrowserTestUtils.openNewBrowserWindow();
+  const newPanel = await showCustomizePanel(newWin);
+  const [, newHideInput] = newPanel.visibilityInputs;
+  ok(newHideInput.checked, "Visibility setting persists.");
+
+  await BrowserTestUtils.closeWindow(win);
+  await BrowserTestUtils.closeWindow(newWin);
+  Services.prefs.clearUserPref("sidebar.visibility");
 });

@@ -48,6 +48,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "sidebarRevampEnabled",
+  "sidebar.revamp",
+  false
+);
+
 function setAttributes(aNode, aAttrs) {
   let doc = aNode.ownerDocument;
   for (let [name, value] of Object.entries(aAttrs)) {
@@ -281,25 +288,27 @@ export const CustomizableWidgets = [
     defaultArea: "nav-bar",
     _introducedByPref: "sidebar.revamp",
     onCommand(aEvent) {
-      let { SidebarController } = aEvent.target.ownerGlobal;
-      if (SidebarController.sidebarRevampEnabled) {
-        SidebarController.toggleExpanded();
+      const { SidebarController } = aEvent.target.ownerGlobal;
+      if (lazy.sidebarRevampEnabled) {
+        SidebarController.handleToolbarButtonClick();
       } else {
         SidebarController.toggle();
       }
     },
     onCreated(aNode) {
-      // Add an observer so the button is checked while the sidebar is open
-      let doc = aNode.ownerDocument;
-      let obChecked = doc.createXULElement("observes");
-      obChecked.setAttribute("element", "sidebar-box");
-      obChecked.setAttribute("attribute", "checked");
-      let obPosition = doc.createXULElement("observes");
-      obPosition.setAttribute("element", "sidebar-box");
-      obPosition.setAttribute("attribute", "positionend");
+      if (!lazy.sidebarRevampEnabled) {
+        // Add an observer so the button is checked while the sidebar is open
+        let doc = aNode.ownerDocument;
+        let obChecked = doc.createXULElement("observes");
+        obChecked.setAttribute("element", "sidebar-box");
+        obChecked.setAttribute("attribute", "checked");
+        let obPosition = doc.createXULElement("observes");
+        obPosition.setAttribute("element", "sidebar-box");
+        obPosition.setAttribute("attribute", "positionend");
 
-      aNode.appendChild(obChecked);
-      aNode.appendChild(obPosition);
+        aNode.appendChild(obChecked);
+        aNode.appendChild(obPosition);
+      }
     },
   },
   {

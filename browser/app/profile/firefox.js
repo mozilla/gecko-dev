@@ -1916,6 +1916,7 @@ pref("sidebar.position_start", true);
 pref("sidebar.revamp", false);
 pref("sidebar.main.tools", "history,syncedtabs");
 pref("sidebar.verticalTabs", false);
+pref("sidebar.visibility", "always-show");
 
 pref("browser.ml.chat.enabled", false);
 pref("browser.ml.chat.hideLocalhost", true);
