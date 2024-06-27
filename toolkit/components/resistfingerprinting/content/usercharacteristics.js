@@ -112,6 +112,25 @@ function decimalPlaces(num) {
   return 0;
 }
 
+function timeoutPromise(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error("TIMEOUT"));
+    }, ms);
+
+    promise.then(
+      value => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timeoutId);
+        reject(error);
+      }
+    );
+  });
+}
+
 // ==============================================================
 // Regular Canvases
 
@@ -627,7 +646,7 @@ function populateFingerprintJSCanvases() {
 
 // ==============================================================
 // Speech Synthesis Voices
-function populateVoiceList() {
+async function populateVoiceList() {
   // Replace long prefixes with short ones to reduce the size of the output.
   const uriPrefixes = [
     [/(?:urn:)?moz-tts:.*?:/, "#m:"],
@@ -705,7 +724,7 @@ function populateVoiceList() {
   };
 }
 
-function populateMediaCapabilities() {
+async function populateMediaCapabilities() {
   // Decoding: MP4 and WEBM are PDM dependant, while the other types are not, so for MP4 and WEBM we manually check for mimetypes.
   // We also don't make an extra check for media-source as both file and media-source end up calling the same code path except for
   // some prefs that block some mime types but we collect them.
@@ -794,7 +813,7 @@ function populateMediaCapabilities() {
   };
 }
 
-function populateAudioFingerprint() {
+async function populateAudioFingerprint() {
   // Trimmed down version of https://github.com/fingerprintjs/fingerprintjs/blob/c463ca034747df80d95cc96a0a9c686d8cd001a5/src/sources/audio.ts
   // At that time, fingerprintjs was licensed with MIT.
   const hashFromIndex = 4500;
@@ -925,7 +944,7 @@ function populateAudioFingerprint() {
   };
 }
 
-function populatePointerInfo() {
+async function populatePointerInfo() {
   const capabilities = {
     None: 0,
     Coarse: 1 << 0,
@@ -1059,7 +1078,7 @@ async function populateICEFoundations() {
   };
 }
 
-function populateSensorInfo() {
+async function populateSensorInfo() {
   const { promise, resolve } = Promise.withResolvers();
 
   const events = {
@@ -1120,6 +1139,36 @@ function populateSensorInfo() {
   return promise;
 }
 
+// A helper function to generate an array of asynchronous functions to populate
+// canvases using both software and hardware rendering.
+function getCanvasSources() {
+  const canvasSources = [
+    populateTestCanvases,
+    populateWebGLCanvases,
+    populateFingerprintJSCanvases,
+  ];
+
+  // Create a source with both software and hardware rendering
+  return canvasSources
+    .map(source => {
+      const functions = [
+        async () => source({ forceSoftwareRendering: true }),
+        async () => source({ forceSoftwareRendering: false }),
+      ];
+
+      // Using () => {} renames the function, so we rename them again.
+      // This is needed for error collection.
+      Object.defineProperty(functions[0], "name", {
+        value: source.name + "Software",
+      });
+      Object.defineProperty(functions[1], "name", {
+        value: source.name,
+      });
+      return functions;
+    })
+    .flat();
+}
+
 // =======================================================================
 // Setup & Populating
 
@@ -1130,18 +1179,21 @@ const LocalFiraSans = new FontFace(
 );
 
 (async () => {
-  const font = await LocalFiraSans.load();
-  document.fonts.add(font);
-
   const errors = [];
+
+  await LocalFiraSans.load()
+    .then(font => document.fonts.add(font))
+    .catch(async e => {
+      // Fail silently
+      errors.push(`LocalFiraSans: ${await stringifyError(e)}`);
+    });
+
   // Data contains key: (Promise<any> | any) pairs. The keys are identifiers
   // for the data and the values are either a promise that returns a value,
   // or a value. Promises are awaited and values are resolved immediately.
   const data = {};
   const sources = [
-    populateTestCanvases,
-    populateWebGLCanvases,
-    populateFingerprintJSCanvases,
+    ...getCanvasSources(),
     populateVoiceList,
     populateMediaCapabilities,
     populateAudioFingerprint,
@@ -1154,7 +1206,7 @@ const LocalFiraSans = new FontFace(
   // pairs, we catch it here. This also catches non-async function errors
   for (const source of sources) {
     try {
-      Object.assign(data, await source());
+      Object.assign(data, await timeoutPromise(source(), 5 * 60 * 1000));
     } catch (error) {
       errors.push(`${source.name}: ${await stringifyError(error)}`);
     }
