@@ -38,7 +38,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[0],
     "GET",
-    CONTENT_TYPE_SJS + "?fmt=json-malformed",
+    HTTPS_CONTENT_TYPE_SJS + "?fmt=json-malformed",
     {
       status: 200,
       statusText: "OK",

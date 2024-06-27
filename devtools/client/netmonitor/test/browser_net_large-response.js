@@ -7,7 +7,7 @@
  * Tests if very large response contents are just displayed as plain text.
  */
 
-const HTML_LONG_URL = CONTENT_TYPE_SJS + "?fmt=html-long";
+const HTML_LONG_URL = HTTPS_CONTENT_TYPE_SJS + "?fmt=html-long";
 
 add_task(async function () {
   const { tab, monitor } = await initNetMonitor(CUSTOM_GET_URL, {
@@ -49,7 +49,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[0],
     "GET",
-    CONTENT_TYPE_SJS + "?fmt=html-long",
+    HTTPS_CONTENT_TYPE_SJS + "?fmt=html-long",
     {
       status: 200,
       statusText: "OK",

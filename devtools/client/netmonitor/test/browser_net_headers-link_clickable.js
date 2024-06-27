@@ -31,7 +31,7 @@ add_task(async function () {
 
   const headerLink = document.querySelector(".objectBox-string .url");
   const expectedURL =
-    "http://example.com/browser/devtools/client/netmonitor/test/html_json-long-test-page.html";
+    "https://example.com/browser/devtools/client/netmonitor/test/html_json-long-test-page.html";
   const onTabOpen = BrowserTestUtils.waitForNewTab(gBrowser, expectedURL, true);
 
   info("Click on a first link in Headers panel");

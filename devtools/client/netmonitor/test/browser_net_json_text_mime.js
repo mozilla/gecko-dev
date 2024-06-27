@@ -39,7 +39,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[0],
     "GET",
-    CONTENT_TYPE_SJS + "?fmt=json-text-mime",
+    HTTPS_CONTENT_TYPE_SJS + "?fmt=json-text-mime",
     {
       status: 200,
       statusText: "OK",

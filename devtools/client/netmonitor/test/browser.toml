@@ -195,7 +195,6 @@ skip-if = [
 ]
 
 ["browser_net_content-type.js"]
-https_first_disabled = true # Bug 1732865
 skip-if = [
   "apple_catalina && !debug",
   "apple_silicon && !debug",
@@ -233,10 +232,8 @@ skip-if = [
 ["browser_net_curl-utils.js"]
 
 ["browser_net_cyrillic-01.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_cyrillic-02.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_decode-params.js"]
 
@@ -259,10 +256,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_net_error-boundary-01.js"]
 
 ["browser_net_filter-01.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_filter-02.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_filter-03.js"]
 
@@ -272,7 +267,6 @@ https_first_disabled = true # Bug 1732865
 https_first_disabled = true # Bug 1732865
 
 ["browser_net_filter-flags.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_filter-sts-search.js"]
 
@@ -300,7 +294,6 @@ https_first_disabled = true # Bug 1732865
 ["browser_net_headers-alignment.js"]
 
 ["browser_net_headers-link_clickable.js"]
-https_first_disabled = true # Bug 1732865
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_net_headers-proxy.js"]
@@ -329,10 +322,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_net_json-empty.js"]
 
 ["browser_net_json-long.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_json-malformed.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_json-nogrip.js"]
 
@@ -341,16 +332,12 @@ https_first_disabled = true # Bug 1732865
 ["browser_net_json-xssi-protection.js"]
 
 ["browser_net_json_custom_mime.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_json_text_mime.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_jsonp.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_large-response.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_leak_on_tab_close.js"]
 
@@ -415,7 +402,6 @@ skip-if = [
 ["browser_net_reload-button.js"]
 
 ["browser_net_req-resp-bodies.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_resend.js"]
 https_first_disabled = true # Bug 1732865
@@ -512,7 +498,6 @@ https_first_disabled = true # Bug 1732865
 https_first_disabled = true # Bug 1732865
 
 ["browser_net_streaming-response.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_tabbar_focus.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
