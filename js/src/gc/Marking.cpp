@@ -2849,7 +2849,10 @@ namespace js::debug {
 MarkInfo GetMarkInfo(void* vp) {
   GCRuntime& gc = TlsGCContext.get()->runtime()->gc;
   if (gc.nursery().isInside(vp)) {
-    return MarkInfo::NURSERY;
+    ChunkBase* chunk = js::gc::detail::GetGCAddressChunkBase(vp);
+    return chunk->getKind() == js::gc::ChunkKind::NurseryFromSpace
+               ? MarkInfo::NURSERY_FROMSPACE
+               : MarkInfo::NURSERY_TOSPACE;
   }
 
   if (!gc.isPointerWithinTenuredCell(vp)) {

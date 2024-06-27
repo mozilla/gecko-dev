@@ -796,15 +796,16 @@ enum class MarkInfo : int {
   BLACK = 0,
   GRAY = 1,
   UNMARKED = -1,
-  NURSERY = -2,
-  UNKNOWN = -3,
+  NURSERY_FROMSPACE = -2,
+  NURSERY_TOSPACE = -3,  // Unused if semispace disabled.
+  UNKNOWN = -4,
 };
 
 // For calling from gdb only: given a pointer that is either in the nursery
 // (possibly pointing to a buffer, not necessarily a Cell) or a tenured Cell,
-// return its mark color or NURSERY or UNKNOWN. UNKONWN is only for non-Cell
-// pointers, and means it is not in the nursery (so could be malloced or stack
-// or whatever.)
+// return its mark color or UNMARKED if it is tenured, otherwise the region of
+// memory that contains it. UNKNOWN is only for non-Cell pointers, and means it
+// is not in the nursery (so could be malloced or stack or whatever.)
 MOZ_NEVER_INLINE MarkInfo GetMarkInfo(void* vp);
 
 // Sample usage from gdb:

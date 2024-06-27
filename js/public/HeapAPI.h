@@ -552,12 +552,18 @@ MOZ_ALWAYS_INLINE void MarkBitmap::getMarkWordAndMask(const TenuredCell* cell,
 
 namespace detail {
 
-static MOZ_ALWAYS_INLINE ChunkBase* GetCellChunkBase(const Cell* cell) {
-  MOZ_ASSERT(cell);
-  auto* chunk = reinterpret_cast<ChunkBase*>(uintptr_t(cell) & ~ChunkMask);
+// `addr` must be an address within GC-controlled memory. Note that it cannot
+// point just past GC-controlled memory.
+static MOZ_ALWAYS_INLINE ChunkBase* GetGCAddressChunkBase(const void* addr) {
+  MOZ_ASSERT(addr);
+  auto* chunk = reinterpret_cast<ChunkBase*>(uintptr_t(addr) & ~ChunkMask);
   MOZ_ASSERT(chunk->runtime);
   MOZ_ASSERT(chunk->kind != ChunkKind::Invalid);
   return chunk;
+}
+
+static MOZ_ALWAYS_INLINE ChunkBase* GetCellChunkBase(const Cell* cell) {
+  return GetGCAddressChunkBase(cell);
 }
 
 static MOZ_ALWAYS_INLINE TenuredChunkBase* GetCellChunkBase(
