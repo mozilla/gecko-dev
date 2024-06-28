@@ -119,7 +119,7 @@ nsAtom* URLInfo::Scheme() const {
   if (!mScheme) {
     nsCString scheme;
     if (NS_SUCCEEDED(mURI->GetScheme(scheme))) {
-      mScheme = NS_AtomizeMainThread(NS_ConvertASCIItoUTF16(scheme));
+      mScheme = NS_Atomize(scheme);
     }
   }
   return mScheme;
@@ -196,6 +196,7 @@ bool URLInfo::InheritsPrincipal() const {
 }
 
 bool URLInfo::IsNonOpaqueURL() const {
+  MOZ_ASSERT(NS_IsMainThread());
   if (!mIsNonOpaqueURL.isSome()) {
     RefPtr<AtomSet> nonOpaqueSchemes = NonOpaqueSchemes();
     mIsNonOpaqueURL.emplace(nonOpaqueSchemes->Contains(Scheme()));

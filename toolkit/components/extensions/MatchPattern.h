@@ -112,6 +112,8 @@ class URLInfo final {
   // that document were to have an opaque origin (null principal).
   // These URLs are more verbose than the precursor (origin) of a null
   // principal, and therefore preferred for matching purposes.
+  //
+  // NOTE: This method is main-thread only
   bool IsNonOpaqueURL() const;
 
  private:
