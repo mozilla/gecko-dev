@@ -22,6 +22,8 @@
   --letter-spacing: 0;
   --font-weight: normal;
   --font-family: Helvetica, Arial, sans-serif;
+  --block-img-margin-left: unset;
+  --block-img-margin-right: unset;
 }
 
 body {
@@ -1190,6 +1192,13 @@ pre {
 
 .moz-reader-content img[moz-reader-center] {
   margin-inline: auto;
+}
+
+/* Align non-centered images with the text. Margins are unset unless the user makes a text alignment selection. */
+/* Does not use logical properties because the margins are tied to text alignment and not text direction. */
+.moz-reader-content img:not([moz-reader-center]) {
+  margin-left: var(--block-img-margin-left);
+  margin-right: var(--block-img-margin-right);
 }
 
 .moz-reader-content .caption,

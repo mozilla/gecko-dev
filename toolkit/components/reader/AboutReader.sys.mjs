@@ -1126,6 +1126,20 @@ AboutReader.prototype = {
       return false;
     }
 
+    const blockImageMarginRight = {
+      left: "auto",
+      center: "auto",
+      right: "0",
+      start: "unset",
+    };
+
+    const blockImageMarginLeft = {
+      left: "0",
+      center: "auto",
+      right: "auto",
+      start: "unset",
+    };
+
     if (newTextAlignment === "start") {
       let startAlignButton;
       if (isAppLocaleRTL) {
@@ -1139,6 +1153,16 @@ AboutReader.prototype = {
     this._containerElement.style.setProperty(
       "--text-alignment",
       newTextAlignment
+    );
+
+    this._containerElement.style.setProperty(
+      "--block-img-margin-right",
+      blockImageMarginRight[newTextAlignment]
+    );
+
+    this._containerElement.style.setProperty(
+      "--block-img-margin-left",
+      blockImageMarginLeft[newTextAlignment]
     );
 
     lazy.AsyncPrefs.set("reader.text_alignment", newTextAlignment);
