@@ -40,7 +40,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[0],
     "GET",
-    CONTENT_TYPE_SJS + "?fmt=jsonp&jsonp=$_0123Fun",
+    HTTPS_CONTENT_TYPE_SJS + "?fmt=jsonp&jsonp=$_0123Fun",
     {
       status: 200,
       statusText: "OK",
@@ -55,7 +55,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[1],
     "GET",
-    CONTENT_TYPE_SJS + "?fmt=jsonp2&jsonp=$_4567Sad",
+    HTTPS_CONTENT_TYPE_SJS + "?fmt=jsonp2&jsonp=$_4567Sad",
     {
       status: 200,
       statusText: "OK",

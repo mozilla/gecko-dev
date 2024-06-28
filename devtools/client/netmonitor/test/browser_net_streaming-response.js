@@ -29,7 +29,7 @@ add_task(async function () {
 
   let wait = waitForNetworkEvents(monitor, REQUESTS.length);
   for (const [fmt] of REQUESTS) {
-    const url = CONTENT_TYPE_SJS + "?fmt=" + fmt;
+    const url = HTTPS_CONTENT_TYPE_SJS + "?fmt=" + fmt;
     await SpecialPowers.spawn(
       tab.linkedBrowser,
       [{ url }],
@@ -55,7 +55,7 @@ add_task(async function () {
       getDisplayedRequests(store.getState()),
       getSortedRequests(store.getState())[i],
       "GET",
-      CONTENT_TYPE_SJS + "?fmt=" + fmt,
+      HTTPS_CONTENT_TYPE_SJS + "?fmt=" + fmt,
       {
         status: 200,
         statusText: "OK",
