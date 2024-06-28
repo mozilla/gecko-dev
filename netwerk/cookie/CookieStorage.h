@@ -144,7 +144,6 @@ class CookieStorage : public nsIObserver, public nsSupportsWeakReference {
   int32_t PartitionLimitExceededBytes(Cookie* aCookie,
                                       const nsACString& aBaseDomain);
 
-
   static void CreateOrUpdatePurgeList(nsCOMPtr<nsIArray>& aPurgedList,
                                       nsICookie* aCookie);
 
