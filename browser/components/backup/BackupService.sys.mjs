@@ -2091,6 +2091,14 @@ export class BackupService extends EventTarget {
         );
       }
 
+      if (
+        Services.vc.compare(AppConstants.MOZ_APP_VERSION, meta.appVersion) < 0
+      ) {
+        throw new Error(
+          `Cannot recover a backup created on version ${meta.appVersion} in ${AppConstants.MOZ_APP_VERSION}`
+        );
+      }
+
       // Okay, we have a valid backup-manifest.json. Let's create a new profile
       // and start invoking the recover() method on each BackupResource.
       let profileSvc = Cc["@mozilla.org/toolkit/profile-service;1"].getService(

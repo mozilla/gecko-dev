@@ -55,3 +55,47 @@ add_task(async function test_different_appName() {
 
   await IOUtils.remove(testRecoveryPath, { recursive: true });
 });
+
+/**
+ * Tests that if the backup-manifest.json provides an appVersion greater than
+ * AppConstants.MOZ_APP_VERSION of the currently running application, then
+ * recoverFromSnapshotFolder should throw an exception.
+ */
+add_task(async function test_newer_appVersion() {
+  let testRecoveryPath = await IOUtils.createUniqueDirectory(
+    PathUtils.tempDir,
+    "testNewerAppVersion"
+  );
+
+  let meta = Object.assign({}, FAKE_METADATA);
+  // Hopefully this static version number will do for now.
+  meta.appVersion = "999.0.0";
+  Assert.equal(
+    Services.vc.compare(AppConstants.MOZ_APP_VERSION, meta.appVersion),
+    -1,
+    "The current application version is less than 999.0.0."
+  );
+
+  let manifest = {
+    version: ArchiveUtils.SCHEMA_VERSION,
+    meta,
+    resources: {},
+  };
+  let schema = await BackupService.MANIFEST_SCHEMA;
+  let validationResult = JsonSchema.validate(manifest, schema);
+  Assert.ok(validationResult.valid, "Schema matches manifest");
+
+  await IOUtils.writeJSON(
+    PathUtils.join(testRecoveryPath, BackupService.MANIFEST_FILE_NAME),
+    manifest
+  );
+
+  let bs = new BackupService();
+  // This should reject and mention the invalid appVersion from the manifest.
+  await Assert.rejects(
+    bs.recoverFromSnapshotFolder(testRecoveryPath),
+    new RegExp(`${meta.appVersion}`)
+  );
+
+  await IOUtils.remove(testRecoveryPath, { recursive: true });
+});

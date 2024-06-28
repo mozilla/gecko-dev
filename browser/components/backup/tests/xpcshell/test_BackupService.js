@@ -384,6 +384,12 @@ add_task(async function test_recoverFromSnapshotFolder() {
     AppConstants.MOZ_APP_NAME,
     "appName matches MOZ_APP_NAME"
   );
+  // And that appVersion matches MOZ_APP_VERSION
+  Assert.equal(
+    manifest.meta.appVersion,
+    AppConstants.MOZ_APP_VERSION,
+    "appVersion matches MOZ_APP_VERSION"
+  );
 
   let testTelemetryStateObject = {
     clientID: "ed209123-04a1-04a1-04a1-c0ffeec0ffee",
