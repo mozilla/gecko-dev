@@ -19,6 +19,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.requireComponents
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.messaging.MicrosurveyMessageController
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -75,6 +76,10 @@ class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
                         closeBottomSheet
                         // todo get value from messaging
                         microsurveyMessageController.onPrivacyPolicyLinkClicked("homepage")
+                    },
+                    onCloseButtonClicked = {
+                        context.settings().shouldShowMicrosurveyPrompt = false
+                        dismiss()
                     },
                     modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection()),
                 )

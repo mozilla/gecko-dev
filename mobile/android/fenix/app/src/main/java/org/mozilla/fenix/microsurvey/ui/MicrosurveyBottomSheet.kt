@@ -43,6 +43,7 @@ private val bottomSheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.
  * @param answers The answer text options available for the given [question].
  * @param icon The icon that represents the feature for the given [question].
  * @param onPrivacyPolicyLinkClick Invoked when the privacy policy link is clicked.
+ * @param onCloseButtonClicked Invoked when the close button is clicked.
  * @param modifier [Modifier] to be applied to the layout.
  */
 @Composable
@@ -51,6 +52,7 @@ fun MicrosurveyBottomSheet(
     answers: List<String>,
     @DrawableRes icon: Int,
     onPrivacyPolicyLinkClick: () -> Unit,
+    onCloseButtonClicked: () -> Unit,
     modifier: Modifier,
 ) {
     var selectedAnswer by remember { mutableStateOf<String?>(null) }
@@ -73,7 +75,9 @@ fun MicrosurveyBottomSheet(
                     .semantics { traversalIndex = -1f },
             )
 
-            MicroSurveyHeader(title = stringResource(id = R.string.micro_survey_survey_header_2)) {}
+            MicroSurveyHeader(title = stringResource(id = R.string.micro_survey_survey_header_2)) {
+                onCloseButtonClicked()
+            }
 
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 if (isSubmitted) {
@@ -111,6 +115,7 @@ private fun MicroSurveyBottomSheetPreview() {
             question = "How satisfied are you with printing in Firefox?",
             icon = R.drawable.ic_print,
             onPrivacyPolicyLinkClick = {},
+            onCloseButtonClicked = {},
             answers = listOf(
                 stringResource(id = R.string.likert_scale_option_1),
                 stringResource(id = R.string.likert_scale_option_2),
