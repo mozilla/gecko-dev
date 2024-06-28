@@ -125,7 +125,9 @@
   min-height: 16px;
   margin-inline-end: 3px;
   vertical-align: middle;
-  content: image-set(url("chrome://global/skin/icons/loading.png"), url("chrome://global/skin/icons/loading@2x.png") 2x);
+  content: url("chrome://global/skin/icons/loading.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 .text-link {

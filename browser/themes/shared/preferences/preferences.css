@@ -923,15 +923,12 @@ dialog > .sync-engines-list + hbox {
 }
 
 .update-throbber {
-  width: 16px;
-  min-height: 16px;
-  margin-block: 7px;
+  width: 1.3em;
+  min-height: 1.3em;
   margin-inline-end: 8px;
-  vertical-align: middle;
-}
-
-.update-throbber {
-  content: image-set(url("chrome://global/skin/icons/loading.png"), url("chrome://global/skin/icons/loading@2x.png") 2x);
+  content: url("chrome://global/skin/icons/loading.svg");
+  -moz-context-properties: fill;
+  fill: var(--in-content-accent-color);
 }
 
 .navigation {

@@ -250,13 +250,12 @@ input[type="radio"]:disabled + span > label {
 }
 
 #print-progress {
-  background-image: image-set(
-    url("chrome://global/skin/icons/loading.png"),
-    url("chrome://global/skin/icons/loading@2x.png") 2x
-  );
+  background-image: url("chrome://global/skin/icons/loading.svg");
   background-repeat: no-repeat;
   background-size: var(--size-item-small);
   background-position: left center;
+  -moz-context-properties: fill;
+  fill: var(--in-content-accent-color);
   padding-inline-start: calc(var(--size-item-small) + var(--space-xsmall));
 
   &:dir(rtl) {

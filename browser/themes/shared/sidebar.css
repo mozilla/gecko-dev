@@ -65,7 +65,9 @@
 }
 
 #sidebar-throbber[loading="true"] {
-  list-style-image: image-set(url("chrome://global/skin/icons/loading.png"), url("chrome://global/skin/icons/loading@2x.png") 2x);
+  list-style-image: url("chrome://global/skin/icons/loading.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 #sidebar-title {
