@@ -279,7 +279,7 @@ int ArchiveReader::ExtractItemToStream(const MarItem* item, FILE* fp) {
 
   int offset, inlen, ret = OK;
   struct xz_buf strm = {0};
-  enum xz_ret xz_rv = XZ_OK;
+  enum xz_ret xz_rv;
 
   struct xz_dec* dec = xz_dec_init(XZ_DYNALLOC, 64 * 1024 * 1024);
   if (!dec) {
