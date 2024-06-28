@@ -46,7 +46,6 @@
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Base64.h"
 #include "mozilla/BasePrincipal.h"
-#include "mozilla/BounceTrackingProtection.h"
 #include "mozilla/CSSEnabledState.h"
 #include "mozilla/ContentBlockingAllowList.h"
 #include "mozilla/ContentBlockingNotifier.h"
@@ -17128,17 +17127,6 @@ class UserInteractionTimer final : public Runnable,
     // the document could be already gone.
     mBlockerName.AppendPrintf("UserInteractionTimer %d for document %p",
                               ++userInteractionTimerId, aDocument);
-
-    // For ContentBlockingUserInteraction we care about user-interaction stored
-    // only for top-level documents and documents with access to the Storage
-    // Access API
-    if (aDocument->IsTopLevelContentDocument()) {
-      mShouldRecordContentBlockingUserInteraction = true;
-    } else {
-      bool hasSA;
-      nsresult rv = aDocument->HasStorageAccessSync(hasSA);
-      mShouldRecordContentBlockingUserInteraction = NS_SUCCEEDED(rv) && hasSA;
-    }
   }
 
   // Runnable interface
@@ -17212,11 +17200,7 @@ class UserInteractionTimer final : public Runnable,
     // If the document is not gone, let's reset its timer flag.
     nsCOMPtr<Document> document(mDocument);
     if (document) {
-      if (mShouldRecordContentBlockingUserInteraction) {
-        ContentBlockingUserInteraction::Observe(mPrincipal);
-      }
-      Unused << BounceTrackingProtection::RecordUserActivation(
-          mDocument->GetWindowContext());
+      ContentBlockingUserInteraction::Observe(mPrincipal);
       document->ResetUserInteractionTimer();
     }
   }
@@ -17243,7 +17227,6 @@ class UserInteractionTimer final : public Runnable,
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
   WeakPtr<Document> mDocument;
-  bool mShouldRecordContentBlockingUserInteraction = false;
 
   nsCOMPtr<nsITimer> mTimer;
 
@@ -17256,21 +17239,18 @@ NS_IMPL_ISUPPORTS_INHERITED(UserInteractionTimer, Runnable, nsITimerCallback,
 }  // namespace
 
 void Document::MaybeStoreUserInteractionAsPermission() {
+  // We care about user-interaction stored only for top-level documents
+  // and documents with access to the Storage Access API
+  if (!IsTopLevelContentDocument()) {
+    bool hasSA;
+    nsresult rv = HasStorageAccessSync(hasSA);
+    if (NS_FAILED(rv) || !hasSA) {
+      return;
+    }
+  }
+
   if (!mUserHasInteracted) {
     // First interaction, let's store this info now.
-    Unused << BounceTrackingProtection::RecordUserActivation(
-        GetWindowContext());
-
-    // For ContentBlockingUserInteraction we care about user-interaction stored
-    // only for top-level documents and documents with access to the Storage
-    // Access API
-    if (!IsTopLevelContentDocument()) {
-      bool hasSA;
-      nsresult rv = HasStorageAccessSync(hasSA);
-      if (NS_FAILED(rv) || !hasSA) {
-        return;
-      }
-    }
     ContentBlockingUserInteraction::Observe(NodePrincipal());
     return;
   }

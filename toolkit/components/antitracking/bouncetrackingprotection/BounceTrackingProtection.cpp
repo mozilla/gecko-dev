@@ -35,9 +35,6 @@
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/ContentBlockingLog.h"
 #include "mozilla/glean/GleanPings.h"
-#include "mozilla/dom/WindowContext.h"
-#include "mozilla/dom/WindowGlobalChild.h"
-#include "mozilla/dom/WindowGlobalParent.h"
 
 #define TEST_OBSERVER_MSG_RECORD_BOUNCES_FINISHED "test-record-bounces-finished"
 
@@ -320,26 +317,6 @@ nsresult BounceTrackingProtection::RecordUserActivation(
   // aActivationTime defaults to current time if no value is provided.
   return globalState->RecordUserActivation(siteHost,
                                            aActivationTime.valueOr(PR_Now()));
-}
-
-nsresult BounceTrackingProtection::RecordUserActivation(
-    dom::WindowContext* aWindowContext) {
-  NS_ENSURE_ARG_POINTER(aWindowContext);
-
-  if (XRE_IsContentProcess()) {
-    dom::WindowGlobalChild* wgc = aWindowContext->GetWindowGlobalChild();
-    NS_ENSURE_TRUE(wgc, NS_ERROR_FAILURE);
-    NS_ENSURE_TRUE(wgc->SendRecordUserActivationForBTP(), NS_ERROR_FAILURE);
-    return NS_OK;
-  }
-  MOZ_ASSERT(XRE_IsParentProcess());
-
-  dom::WindowGlobalParent* wgp = aWindowContext->Canonical();
-  MOZ_ASSERT(wgp);
-
-  NS_ENSURE_TRUE(wgp->RecvRecordUserActivationForBTP(), NS_ERROR_FAILURE);
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP

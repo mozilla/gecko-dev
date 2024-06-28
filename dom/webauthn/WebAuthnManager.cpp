@@ -13,7 +13,6 @@
 #include "WebAuthnTransportIdentifiers.h"
 #include "mozilla/Base64.h"
 #include "mozilla/BasePrincipal.h"
-#include "mozilla/BounceTrackingProtection.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/dom/AuthenticatorAssertionResponse.h"
 #include "mozilla/dom/AuthenticatorAttestationResponse.h"
@@ -24,6 +23,7 @@
 #include "mozilla/dom/WebAuthnManager.h"
 #include "mozilla/dom/WebAuthnTransactionChild.h"
 #include "mozilla/dom/WebAuthnUtil.h"
+#include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "mozilla/JSONStringWriteFuncs.h"
@@ -844,8 +844,8 @@ void WebAuthnManager::FinishGetAssertion(
   if (global) {
     nsPIDOMWindowInner* window = global->GetAsInnerWindow();
     if (window) {
-      Unused << BounceTrackingProtection::RecordUserActivation(
-          window->GetWindowContext());
+      WindowGlobalChild* windowGlobalChild = window->GetWindowGlobalChild();
+      windowGlobalChild->SendRecordUserActivationForBTP();
     }
   }
 
