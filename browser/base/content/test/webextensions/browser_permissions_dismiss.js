@@ -3,6 +3,22 @@
 const INSTALL_PAGE = `${BASE}/file_install_extensions.html`;
 const INSTALL_XPI = `${BASE}/browser_webext_permissions.xpi`;
 
+function assertPermissionsListCount({ grantedPermissionsCount }) {
+  let permsUL = document.getElementById("addon-webext-perm-list");
+  // When the private browsing checkbox is expected to be shown in the post install
+  // dialog we expect only one entry for each of the expected granted permissions,
+  // otherwise we expect one more perms list entry for the private browsing checkbox
+  // in addition to the entries for the granted permissions.
+  const count = ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX
+    ? grantedPermissionsCount
+    : grantedPermissionsCount + 1;
+  is(
+    permsUL.childElementCount,
+    count,
+    `Permissions list should have ${count} entries`
+  );
+}
+
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -34,8 +50,8 @@ add_task(async function test_tab_switch_dismiss() {
   });
 
   await promisePopupNotificationShown("addon-webext-permissions");
-  let permsUL = document.getElementById("addon-webext-perm-list");
-  is(permsUL.childElementCount, 5, `Permissions list has 5 entries`);
+
+  assertPermissionsListCount({ grantedPermissionsCount: 5 });
 
   let permsLearnMore = document.getElementById("addon-webext-perm-info");
   ok(
@@ -76,11 +92,10 @@ add_task(async function test_add_tab_by_user_and_switch() {
 
   // Show addon permission notification.
   await promisePopupNotificationShown("addon-webext-permissions");
-  is(
-    document.getElementById("addon-webext-perm-list").childElementCount,
-    5,
-    "Permissions list has 5 entries"
-  );
+
+  assertPermissionsListCount({ grantedPermissionsCount: 5 });
+
+  info("Verify permissions list again after switching active tab");
 
   // Open about:newtab page in a new tab.
   let newTab = await BrowserTestUtils.openNewForegroundTab(
@@ -91,11 +106,9 @@ add_task(async function test_add_tab_by_user_and_switch() {
 
   // Switch to tab that is opening addon permission notification.
   gBrowser.selectedTab = tab;
-  is(
-    document.getElementById("addon-webext-perm-list").childElementCount,
-    5,
-    "Permission notification is shown again"
-  );
+
+  assertPermissionsListCount({ grantedPermissionsCount: 5 });
+
   ok(!listener.canceledPromise, "Extension installation is not canceled");
 
   // Cancel installation.

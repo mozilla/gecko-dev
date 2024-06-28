@@ -17,6 +17,27 @@
 html|*.addon-webext-perm-list {
   margin-block-end: 0;
   padding-inline-start: 10px;
+
+  > html|li {
+    list-style: none;
+
+    /* style the permissions list items that are not editable to use the check.svg image */
+    &.webext-perm-granted::before {
+      content: "";
+      background-image: url("chrome://global/skin/icons/check.svg");
+      background-repeat: no-repeat;
+      -moz-context-properties: fill;
+      fill: currentColor;
+      /* style the permissions list items to match sizes and margins used by the
+       * checkbox xul element to make sure they are properly aligned with the
+       * private browsing checkbox at the end of the list. */
+      display: inline-flex;
+      width: var(--checkbox-size);
+      height: var(--checkbox-size);
+      margin-inline-end: var(--checkbox-margin-inline);
+      vertical-align: text-bottom;
+    }
+  }
 }
 
 .addon-webext-perm-single-entry {

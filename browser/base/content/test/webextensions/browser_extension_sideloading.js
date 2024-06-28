@@ -251,6 +251,18 @@ add_task(async function test_sideloading() {
 
   // Test incognito checkbox in post install notification
   function setupPostInstallNotificationTest() {
+    if (!ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX) {
+      // When the post install private browsing checkbox is disabled,
+      // the private browsing checkbox has been already shown in the
+      // initial install dialog and so the post install dialog is
+      // expected to not be shown at all and so we return a no-op
+      // function.
+      //
+      // Assertions related to the private browsing checkbox expected
+      // to be shown in the initial dialog have been already been
+      // covered internally by the checkNotification test helper.
+      return () => {};
+    }
     let promiseNotificationShown =
       promiseAppMenuNotificationShown("addon-installed");
     return async function (addon) {
@@ -268,7 +280,17 @@ add_task(async function test_sideloading() {
         incognitoCheckbox,
         "Got an incognito checkbox in the post install notification panel"
       );
-      ok(!incognitoCheckbox.hidden, "Incognito checkbox should not be hidden");
+      if (ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX) {
+        ok(
+          !incognitoCheckbox.hidden,
+          "Incognito checkbox should not be hidden"
+        );
+      } else {
+        ok(
+          incognitoCheckbox.hidden,
+          "Incognito checkbox expected to be hidden in the post install dialog"
+        );
+      }
       // Dismiss post install notification.
       postInstallPanel.button.click();
     };

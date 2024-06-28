@@ -808,6 +808,23 @@ export class AddonInternal {
   permissions() {
     let permissions = 0;
 
+    // The permission to "toggle the private browsing access" is locked down
+    // when the extension has opted out or it gets the permission automatically
+    // on every extension startup (as system, privileged and builtin addons).
+    if (
+      this.type === "extension" &&
+      this.incognito !== "not_allowed" &&
+      this.signedState !== lazy.AddonManager.SIGNEDSTATE_PRIVILEGED &&
+      this.signedState !== lazy.AddonManager.SIGNEDSTATE_SYSTEM &&
+      !this.location.isBuiltin
+    ) {
+      // NOTE: This permission is computed even for addons not in the database because
+      // it is being used in the first dialog part of the install flow, when the addon
+      // may not be installed yet (and so also not in the database), to determine if
+      // the private browsing permission toggle button should be shown.
+      permissions |= lazy.AddonManager.PERM_CAN_CHANGE_PRIVATEBROWSING_ACCESS;
+    }
+
     // Add-ons that aren't installed cannot be modified in any way
     if (!this.inDatabase) {
       return permissions;
@@ -865,19 +882,6 @@ export class AddonInternal {
       if (!this.location.isBuiltin) {
         permissions |= lazy.AddonManager.PERM_CAN_UNINSTALL;
       }
-    }
-
-    // The permission to "toggle the private browsing access" is locked down
-    // when the extension has opted out or it gets the permission automatically
-    // on every extension startup (as system, privileged and builtin addons).
-    if (
-      this.type === "extension" &&
-      this.incognito !== "not_allowed" &&
-      this.signedState !== lazy.AddonManager.SIGNEDSTATE_PRIVILEGED &&
-      this.signedState !== lazy.AddonManager.SIGNEDSTATE_SYSTEM &&
-      !this.location.isBuiltin
-    ) {
-      permissions |= lazy.AddonManager.PERM_CAN_CHANGE_PRIVATEBROWSING_ACCESS;
     }
 
     if (Services.policies) {
