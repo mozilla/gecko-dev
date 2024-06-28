@@ -620,7 +620,15 @@ Result<MediaDataEncoder::EncodedData, nsresult> FFmpegVideoEncoder<
   mFrame->time_base =
       AVRational{.num = 1, .den = static_cast<int>(USECS_PER_S)};
 #  endif
-  mFrame->pts = aSample->mTime.ToMicroseconds();
+  // Provide fake pts, see header file.
+  if (mConfig.mCodec == CodecType::AV1) {
+      mFrame->pts = mFakePts;
+      mPtsMap.Insert(mFakePts, aSample->mTime.ToMicroseconds());
+      mFakePts += aSample->mDuration.ToMicroseconds();
+      mCurrentFramePts = aSample->mTime.ToMicroseconds();
+  } else {
+      mFrame->pts = aSample->mTime.ToMicroseconds();
+  }
 #  if LIBAVCODEC_VERSION_MAJOR >= 60
   mFrame->duration = aSample->mDuration.ToMicroseconds();
 
@@ -657,8 +665,11 @@ RefPtr<MediaRawData> FFmpegVideoEncoder<LIBAV_VER>::ToMediaRawData(
 
   RefPtr<MediaRawData> data = ToMediaRawDataCommon(aPacket);
 
-  // TODO: Is it possible to retrieve temporal layer id from underlying codec
-  // instead?
+  if (mConfig.mCodec == CodecType::AV1) {
+      auto found = mPtsMap.Take(aPacket->pts);
+      data->mTime = media::TimeUnit::FromMicroseconds(found.value());
+  }
+
   if (mSVCInfo) {
     if (data->mKeyframe) {
       FFMPEGV_LOG(
