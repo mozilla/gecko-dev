@@ -161,28 +161,6 @@ def normalize_path():
 normalize_path = normalize_path()
 
 
-@template
-@imports(_from="tempfile", _import="mkstemp")
-@imports("os")
-@imports(_from="contextlib", _import="contextmanager")
-@imports(_from="__builtin__", _import="FileNotFoundError")
-def make_create_temporary_file():
-    @contextmanager
-    def create_temporary_file(suffix):
-        fd, path = mkstemp(prefix="conftest", suffix=suffix)
-        os.close(fd)
-        yield path
-        try:
-            os.remove(path)
-        except FileNotFoundError:
-            pass
-
-    return create_temporary_file
-
-
-create_temporary_file = make_create_temporary_file()
-
-
 # Locates the given program using which, or returns the given path if it
 # exists.
 # The `paths` parameter may be passed to search the given paths instead of
@@ -232,7 +210,7 @@ def find_program(file, paths=None, allow_spaces=False):
 
 @imports("os")
 @imports(_from="mozbuild.configure.util", _import="LineIO")
-@imports(_from="__builtin__", _import="open")
+@imports(_from="tempfile", _import="mkstemp")
 @imports(_import="subprocess")
 def try_invoke_compiler(
     configure_cache, compiler, language, source, flags=None, onerror=None, wrapper=[]
@@ -278,22 +256,24 @@ def try_invoke_compiler(
         "C++": ".cpp",
     }[language]
 
-    with create_temporary_file(suffix=suffix) as path:
-        bsource = source.encode("ascii", "replace")
+    fd, path = mkstemp(prefix="conftest.", suffix=suffix, text=True)
+    try:
+        source = source.encode("ascii", "replace")
 
         log.debug("Creating `%s` with content:", path)
         with LineIO(lambda l: log.debug("| %s", l)) as out:
-            out.write(bsource)
+            out.write(source)
 
-        with open(path, "w") as fd:
-            fd.write(source)
-
+        os.write(fd, source)
+        os.close(fd)
         cmd = compiler + [path] + list(flags)
         kwargs = {"onerror": onerror}
         val = check_cmd_output(*cmd, **kwargs)
         if use_cache:
             configure_cache[compiler_path][key] = val
         return val
+    finally:
+        os.remove(path)
 
 
 def unique_list(l):
