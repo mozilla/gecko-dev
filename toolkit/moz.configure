@@ -1736,7 +1736,6 @@ with only_when("--enable-compile-environment"):
     @checking("for -z pack-relative-relocs option to ld", bool)
     @imports(_from="__builtin__", _import="FileNotFoundError")
     @imports("os")
-    @imports(_from="tempfile", _import="mkstemp")
     @imports("textwrap")
     def has_pack_relative_relocs(
         c_compiler,
@@ -1744,10 +1743,7 @@ with only_when("--enable-compile-environment"):
         linker_ldflags,
         readelf,
     ):
-        try:
-            fd, path = mkstemp(prefix="conftest.")
-            os.close(fd)
-
+        with create_temporary_file(suffix=".out") as path:
             pack_rel_relocs = ["-Wl,-z,pack-relative-relocs"]
             if (
                 try_invoke_compiler(
@@ -1792,11 +1788,6 @@ with only_when("--enable-compile-environment"):
                             return pack_rel_relocs
                     else:
                         return pack_rel_relocs
-        finally:
-            try:
-                os.remove(path)
-            except FileNotFoundError:
-                pass
 
     @depends(
         has_pack_relative_relocs,

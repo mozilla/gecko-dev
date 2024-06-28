@@ -24,7 +24,6 @@ check_and_add_flag("-fno-aligned-new", compiler=cxx_compiler)
 @checking("whether we're trying to statically link with libstdc++")
 @imports("os")
 @imports("re")
-@imports(_from="tempfile", _import="mkstemp")
 @imports(_from="mozbuild.shellutil", _import="split", _as="shell_split")
 def link_libstdcxx_statically(
     cxx_compiler,
@@ -32,10 +31,7 @@ def link_libstdcxx_statically(
     linker_ldflags,
     llvm_objdump,
 ):
-    fd, bin_path = mkstemp(prefix="conftest.", suffix=".out")
-    os.close(fd)
-
-    try:
+    with create_temporary_file(suffix=".out") as bin_path:
         # This test is quite conservative: it assumes dynamic linkage if the
         # compilation step fails or if the binary format is not supported. But
         # it still detects basic issues.
@@ -74,10 +70,6 @@ def link_libstdcxx_statically(
                 and not stderr
                 and not re.search("NEEDED.*lib(std)?c\\+\\+", stdout)
             )
-
-    finally:
-        if os.path.exists(bin_path):
-            os.remove(bin_path)
 
 
 @depends(when=link_libstdcxx_statically)
@@ -118,13 +110,10 @@ add_addrsig_flag = depends(c_compiler, when=target_is_android)(
 )
 @checking("whether the linker supports Identical Code Folding")
 @imports("os")
-@imports(_from="tempfile", _import="mkstemp")
 def linker_supports_icf(
     c_compiler, extra_toolchain_flags, linker_ldflags, llvm_objdump, add_addrsig_flag
 ):
-    fd, bin_path = mkstemp(prefix="conftest.", suffix=".out")
-    os.close(fd)
-    try:
+    with create_temporary_file(suffix=".out") as bin_path:
         if (
             try_invoke_compiler(
                 None,
@@ -154,9 +143,6 @@ def linker_supports_icf(
                 foo_addr = sym_addr.get("foo")
                 bar_addr = sym_addr.get("bar")
                 return foo_addr == bar_addr and foo_addr is not None
-    finally:
-        if os.path.exists(bin_path):
-            os.remove(bin_path)
 
 
 @depends(compilation_flags, linker_flags, add_addrsig_flag, when=linker_supports_icf)
@@ -470,19 +456,13 @@ check_and_add_linker_flag("-Wl,-Bsymbolic", when=check_Bsymbolic)
 @checking("what kind of list files are supported by the linker")
 @imports("os")
 @imports(_from="__builtin__", _import="open")
-@imports(_from="tempfile", _import="mkstemp")
 def expand_libs_list_style(c_compiler, link, linker_flags, extra_flags):
-    objfd, objname = mkstemp(prefix="conftest.", suffix=".o")
-    os.close(objfd)
+    with create_temporary_file(suffix=".o") as objname, create_temporary_file(
+        suffix=".list"
+    ) as listname, create_temporary_file(suffix=".out") as outname:
+        with open(listname, "w") as fd:
+            fd.write(objname)
 
-    listfd, listname = mkstemp(prefix="conftest.", suffix=".list")
-    os.write(listfd, objname.encode())
-    os.close(listfd)
-
-    outfd, outname = mkstemp(prefix="conftest.", suffix=".out")
-    os.close(outfd)
-
-    try:
         cflags = c_compiler.flags
 
         if (
@@ -522,11 +502,6 @@ def expand_libs_list_style(c_compiler, link, linker_flags, extra_flags):
             if check_cmd_output(*linker_cmd, onerror=lambda: None) is not None:
                 return kind
         die("Couldn't find one that works")
-
-    finally:
-        os.remove(objname)
-        os.remove(listname)
-        os.remove(outname)
 
 
 set_config("EXPAND_LIBS_LIST_STYLE", expand_libs_list_style)
