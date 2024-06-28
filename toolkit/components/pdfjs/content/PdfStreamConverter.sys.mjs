@@ -224,6 +224,13 @@ class PrefObserver {
  * All the privileged actions.
  */
 class ChromeActions {
+  #allowedGlobalEvents = new Set([
+    "documentloaded",
+    "pagesloaded",
+    "layersloaded",
+    "outlineloaded",
+  ]);
+
   constructor(domWindow, contentDispositionFilename) {
     this.domWindow = domWindow;
     this.contentDispositionFilename = contentDispositionFilename;
@@ -380,6 +387,26 @@ class ChromeActions {
       },
       "pdfjs-getNimbus"
     );
+  }
+
+  getGlobalEventNames(_data, sendResponse) {
+    sendResponse(this.#allowedGlobalEvents);
+  }
+
+  async dispatchGlobalEvent({ eventName, detail }) {
+    if (!this.#allowedGlobalEvents.has(eventName)) {
+      return;
+    }
+    const windowUtils = this.domWindow.windowUtils;
+    if (!windowUtils) {
+      return;
+    }
+    const event = new CustomEvent(eventName, {
+      bubbles: true,
+      cancelable: false,
+      detail,
+    });
+    windowUtils.dispatchEventToChromeOnly(this.domWindow, event);
   }
 
   reportTelemetry(data) {
@@ -1105,6 +1132,7 @@ PdfStreamConverter.prototype = {
             dataListener
           );
         }
+
         var requestListener = new RequestListener(actions);
         domWindow.document.addEventListener(
           PDFJS_EVENT_ID,
