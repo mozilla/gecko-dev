@@ -34,7 +34,7 @@
   --toolbarbutton-inner-padding: calc((var(--tab-min-height) - 16px) / 2);
 }
 
-/* ::::: primary toolbar buttons ::::: */
+/* Primary toolbar buttons */
 
 .toolbarbutton-1 {
   :root:not([customizing]) &[disabled] {
@@ -220,7 +220,7 @@ toolbar[brighttext] .toolbaritem-combined-buttons > separator {
   }
 }
 
-/* ::::: bookmark buttons ::::: */
+/* Bookmark buttons */
 
 #personal-toolbar-empty-description,
 toolbarbutton.bookmark-item:not(.subviewbutton) {
@@ -289,6 +289,15 @@ toolbarbutton.bookmark-item:not(.subviewbutton) {
   #PlacesToolbarItems > & {
     margin-inline-end: 0;
   }
+}
+
+/* This rule applies to bookmark menu items too */
+.bookmark-item > label {
+  /* Ensure we use the direction of the bookmarks label instead of the
+     browser locale. */
+  unicode-bidi: plaintext;
+  /* Preserve whitespace in bookmark names. */
+  white-space: pre;
 }
 
 #personal-toolbar-empty-description {

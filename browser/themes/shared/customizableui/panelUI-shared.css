@@ -714,6 +714,7 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 }
 
 .PanelUI-remotetabs-clientcontainer > label[itemtype="client"] {
+  color: var(--text-color-deemphasized);
   font-size: 11px;
 }
 
@@ -992,10 +993,6 @@ panelmultiview[mainViewId="PanelUI-fxa"] #PanelUI-remotetabs-syncnow {
                 8px + /* padding of .PanelUI-remotetabs-button */
                 1em);
   }
-}
-
-.PanelUI-remotetabs-clientcontainer > label[itemtype="client"] {
-  color: var(--text-color-deemphasized);
 }
 
 /* Collapse the non-active vboxes in the remotetabs deck to use only the
@@ -1333,11 +1330,17 @@ panelview .toolbarbutton-1 {
 #appMenu-fxa-label > .toolbarbutton-icon,
 #PanelUI-containersItems > .subviewbutton > .toolbarbutton-icon,
 .PanelUI-tabitem-container > toolbarbutton[itemtype="tab"] > .toolbarbutton-icon,
+.PanelUI-remotetabs-clientcontainer > toolbarbutton > .toolbarbutton-icon,
 #PanelUI-recentlyClosedWindows > toolbarbutton > .toolbarbutton-icon,
 #PanelUI-recentlyClosedTabs > toolbarbutton > .toolbarbutton-icon,
 #PanelUI-historyItems > toolbarbutton > .toolbarbutton-icon {
   width: 16px;
   height: 16px;
+
+  /* Apply crisp rendering for favicons at exactly 2x resolution */
+  @media (resolution: 2x) {
+    image-rendering: -moz-crisp-edges;
+  }
 }
 
 #PanelUI-fxa-remotetabs-tabspane {

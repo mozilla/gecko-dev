@@ -27,26 +27,6 @@
   display: none;
 }
 
-.bookmark-item > label {
-  /* ensure we use the direction of the bookmarks label instead of the
-   * browser locale */
-  unicode-bidi: plaintext;
-  /* Preserve whitespace in bookmark names */
-  white-space: pre;
-}
-
-/* Apply crisp rendering for favicons at exactly 2dppx resolution */
-@media (resolution: 2dppx) {
-  .menuitem-with-favicon > .menu-iconic-left > .menu-iconic-icon {
-    image-rendering: -moz-crisp-edges;
-  }
-
-  .bookmark-item > .toolbarbutton-icon,
-  .bookmark-item > .menu-iconic-left > .menu-iconic-icon {
-    image-rendering: -moz-crisp-edges;
-  }
-}
-
 #navigator-toolbox ,
 #mainPopupSet {
   min-width: 1px;
@@ -66,16 +46,6 @@
 
   > description {
     max-width: 280px;
-  }
-}
-
-/* Apply crisp rendering for favicons at exactly 2dppx resolution */
-@media (resolution: 2dppx) {
-  .PanelUI-remotetabs-clientcontainer > toolbarbutton > .toolbarbutton-icon,
-  #PanelUI-recentlyClosedWindows > toolbarbutton > .toolbarbutton-icon,
-  #PanelUI-recentlyClosedTabs > toolbarbutton > .toolbarbutton-icon,
-  #PanelUI-historyItems > toolbarbutton > .toolbarbutton-icon {
-    image-rendering: -moz-crisp-edges;
   }
 }
 
