@@ -65,7 +65,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=css&text=sample",
+    url: CONTENT_TYPE_SJS + "?fmt=css&text=sample",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -76,7 +76,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=js&text=sample",
+    url: CONTENT_TYPE_SJS + "?fmt=js&text=sample",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -87,7 +87,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + `?fmt=html&text=${ENCODED_CHARS_IN_URI_COMP}`,
+    url: CONTENT_TYPE_SJS + `?fmt=html&text=${ENCODED_CHARS_IN_URI_COMP}`,
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -98,7 +98,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + `?fmt=css&text=${ENCODED_CHARS_IN_URI_COMP}`,
+    url: CONTENT_TYPE_SJS + `?fmt=css&text=${ENCODED_CHARS_IN_URI_COMP}`,
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -109,7 +109,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + `?fmt=js&text=${ENCODED_CHARS_IN_URI_COMP}`,
+    url: CONTENT_TYPE_SJS + `?fmt=js&text=${ENCODED_CHARS_IN_URI_COMP}`,
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -131,7 +131,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=image",
+    url: CONTENT_TYPE_SJS + "?fmt=image",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -142,7 +142,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=audio",
+    url: CONTENT_TYPE_SJS + "?fmt=audio",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -153,7 +153,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=application-ogg",
+    url: CONTENT_TYPE_SJS + "?fmt=application-ogg",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -164,7 +164,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=video",
+    url: CONTENT_TYPE_SJS + "?fmt=video",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -175,7 +175,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=hls-m3u8",
+    url: CONTENT_TYPE_SJS + "?fmt=hls-m3u8",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -186,7 +186,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=hls-m3u8-alt-mime-type",
+    url: CONTENT_TYPE_SJS + "?fmt=hls-m3u8-alt-mime-type",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -197,7 +197,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=flash",
+    url: CONTENT_TYPE_SJS + "?fmt=flash",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -553,6 +553,6 @@ add_task(async function () {
 });
 
 function getSjsURLInUnicodeIdn() {
-  const { hostname } = new URL(HTTPS_CONTENT_TYPE_SJS);
-  return HTTPS_CONTENT_TYPE_SJS.replace(hostname, IDN);
+  const { hostname } = new URL(CONTENT_TYPE_SJS);
+  return CONTENT_TYPE_SJS.replace(hostname, IDN);
 }

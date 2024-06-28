@@ -30,7 +30,7 @@ const REQUESTS = [
 const EXPECTED_REQUESTS = [
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=html",
+    url: CONTENT_TYPE_SJS + "?fmt=html",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -41,7 +41,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=html",
+    url: CONTENT_TYPE_SJS + "?fmt=html",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -52,7 +52,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=css",
+    url: CONTENT_TYPE_SJS + "?fmt=css",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -63,7 +63,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=js",
+    url: CONTENT_TYPE_SJS + "?fmt=js",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -74,7 +74,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=font",
+    url: CONTENT_TYPE_SJS + "?fmt=font",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -85,7 +85,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=image",
+    url: CONTENT_TYPE_SJS + "?fmt=image",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -96,7 +96,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=audio",
+    url: CONTENT_TYPE_SJS + "?fmt=audio",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -107,7 +107,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=video",
+    url: CONTENT_TYPE_SJS + "?fmt=video",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -118,7 +118,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=gzip",
+    url: CONTENT_TYPE_SJS + "?fmt=gzip",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -130,7 +130,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_STATUS_CODES_SJS + "?sts=304",
+    url: STATUS_CODES_SJS + "?sts=304",
     data: {
       status: 304,
       statusText: "Not Modified",
@@ -142,9 +142,7 @@ const EXPECTED_REQUESTS = [
 ];
 
 add_task(async function () {
-  const { monitor } = await initNetMonitor(HTTPS_FILTERING_URL, {
-    requestCount: 1,
-  });
+  const { monitor } = await initNetMonitor(FILTERING_URL, { requestCount: 1 });
   const { document, store, windowRequire } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
   const { getDisplayedRequests, getSortedRequests } = windowRequire(
@@ -211,11 +209,11 @@ add_task(async function () {
   setFreetextFilter("method:post");
   await testContents([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
-  info(" > Test scheme flag (all requests are https)");
-  setFreetextFilter("scheme:https");
+  info(" > Test scheme flag (all requests are http)");
+  setFreetextFilter("scheme:http");
   await testContents([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
 
-  setFreetextFilter("scheme:http");
+  setFreetextFilter("scheme:https");
   await testContents([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
   info(" > Test regex filter");

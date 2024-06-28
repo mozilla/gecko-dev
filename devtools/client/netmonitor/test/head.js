@@ -78,9 +78,9 @@ const SIMPLE_URL = EXAMPLE_URL + "html_simple-test-page.html";
 const HTTPS_SIMPLE_URL = HTTPS_EXAMPLE_URL + "html_simple-test-page.html";
 const NAVIGATE_URL = EXAMPLE_URL + "html_navigate-test-page.html";
 const CONTENT_TYPE_WITHOUT_CACHE_URL =
-  HTTPS_EXAMPLE_URL + "html_content-type-without-cache-test-page.html";
+  EXAMPLE_URL + "html_content-type-without-cache-test-page.html";
 const CONTENT_TYPE_WITHOUT_CACHE_REQUESTS = 8;
-const CYRILLIC_URL = HTTPS_EXAMPLE_URL + "html_cyrillic-test-page.html";
+const CYRILLIC_URL = EXAMPLE_URL + "html_cyrillic-test-page.html";
 const STATUS_CODES_URL = EXAMPLE_URL + "html_status-codes-test-page.html";
 const HTTPS_STATUS_CODES_URL =
   HTTPS_EXAMPLE_URL + "html_status-codes-test-page.html";
@@ -92,12 +92,11 @@ const POST_RAW_URL_WITH_HASH = EXAMPLE_URL + "html_header-test-page.html";
 const POST_RAW_WITH_HEADERS_URL =
   EXAMPLE_URL + "html_post-raw-with-headers-test-page.html";
 const PARAMS_URL = EXAMPLE_URL + "html_params-test-page.html";
-const JSONP_URL = HTTPS_EXAMPLE_URL + "html_jsonp-test-page.html";
-const JSON_LONG_URL = HTTPS_EXAMPLE_URL + "html_json-long-test-page.html";
-const JSON_MALFORMED_URL =
-  HTTPS_EXAMPLE_URL + "html_json-malformed-test-page.html";
+const JSONP_URL = EXAMPLE_URL + "html_jsonp-test-page.html";
+const JSON_LONG_URL = EXAMPLE_URL + "html_json-long-test-page.html";
+const JSON_MALFORMED_URL = EXAMPLE_URL + "html_json-malformed-test-page.html";
 const JSON_CUSTOM_MIME_URL =
-  HTTPS_EXAMPLE_URL + "html_json-custom-mime-test-page.html";
+  EXAMPLE_URL + "html_json-custom-mime-test-page.html";
 const JSON_TEXT_MIME_URL = EXAMPLE_URL + "html_json-text-mime-test-page.html";
 const JSON_B64_URL = EXAMPLE_URL + "html_json-b64.html";
 const JSON_BASIC_URL = EXAMPLE_URL + "html_json-basic.html";
@@ -132,6 +131,7 @@ const SIMPLE_SJS = EXAMPLE_URL + "sjs_simple-test-server.sjs";
 const HTTPS_SIMPLE_SJS = HTTPS_EXAMPLE_URL + "sjs_simple-test-server.sjs";
 const SIMPLE_UNSORTED_COOKIES_SJS =
   EXAMPLE_URL + "sjs_simple-unsorted-cookies-test-server.sjs";
+const CONTENT_TYPE_SJS = EXAMPLE_URL + "sjs_content-type-test-server.sjs";
 const WS_CONTENT_TYPE_SJS = WS_HTTP_URL + "sjs_content-type-test-server.sjs";
 const WS_WS_CONTENT_TYPE_SJS = WS_URL + "sjs_content-type-test-server.sjs";
 const HTTPS_CONTENT_TYPE_SJS =
@@ -139,8 +139,6 @@ const HTTPS_CONTENT_TYPE_SJS =
 const SERVER_TIMINGS_TYPE_SJS =
   HTTPS_EXAMPLE_URL + "sjs_timings-test-server.sjs";
 const STATUS_CODES_SJS = EXAMPLE_URL + "sjs_status-codes-test-server.sjs";
-const HTTPS_STATUS_CODES_SJS =
-  HTTPS_EXAMPLE_URL + "sjs_status-codes-test-server.sjs";
 const SORTING_SJS = EXAMPLE_URL + "sjs_sorting-test-server.sjs";
 const HTTPS_REDIRECT_SJS = EXAMPLE_URL + "sjs_https-redirect-test-server.sjs";
 const CORS_SJS_PATH =
@@ -155,7 +153,7 @@ const HTTPS_SEARCH_SJS = HTTPS_EXAMPLE_URL + "sjs_search-test-server.sjs";
 const HSTS_BASE_URL = EXAMPLE_URL;
 const HSTS_PAGE_URL = CUSTOM_GET_URL;
 
-const HTTPS_TEST_IMAGE = HTTPS_EXAMPLE_URL + "test-image.png";
+const TEST_IMAGE = EXAMPLE_URL + "test-image.png";
 const TEST_IMAGE_DATA_URI =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAHWSURBVHjaYvz//z8DJQAggJiQOe/fv2fv7Oz8rays/N+VkfG/iYnJfyD/1+rVq7ffu3dPFpsBAAHEAHIBCJ85c8bN2Nj4vwsDw/8zQLwKiO8CcRoQu0DxqlWrdsHUwzBAAIGJmTNnPgYa9j8UqhFElwPxf2MIDeIrKSn9FwSJoRkAEEAM0DD4DzMAyPi/G+QKY4hh5WAXGf8PDQ0FGwJ22d27CjADAAIIrLmjo+MXA9R2kAHvGBA2wwx6B8W7od6CeQcggKCmCEL8bgwxYCbUIGTDVkHDBia+CuotgACCueD3TDQN75D4xmAvCoK9ARMHBzAw0AECiBHkAlC0Mdy7x9ABNA3obAZXIAa6iKEcGlMVQHwWyjYuL2d4v2cPg8vZswx7gHyAAAK7AOif7SAbOqCmn4Ha3AHFsIDtgPq/vLz8P4MSkJ2W9h8ggBjevXvHDo4FQUQg/kdypqCg4H8lUIACnQ/SOBMYI8bAsAJFPcj1AAEEjwVQqLpAbXmH5BJjqI0gi9DTAAgDBBCcAVLkgmQ7yKCZxpCQxqUZhAECCJ4XgMl493ug21ZD+aDAXH0WLM4A9MZPXJkJIIAwTAR5pQMalaCABQUULttBGCCAGCnNzgABBgAMJ5THwGvJLAAAAABJRU5ErkJggg==";
 

@@ -1,4 +1,5 @@
 [DEFAULT]
+https_first_disabled = true
 tags = "devtools"
 subsuite = "devtools"
 skip-if = [
@@ -210,7 +211,6 @@ skip-if = ["win11_2009 && debug && verify"]
 ["browser_net_copy_as_powershell.js"]
 
 ["browser_net_copy_headers.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_copy_image_as_data_uri.js"]
 
@@ -240,7 +240,6 @@ skip-if = [
 ["browser_net_decode-url.js"]
 
 ["browser_net_details_copy.js"]
-https_first_disabled = true # Bug 1732865
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_net_domain-not-found.js"]
@@ -264,7 +263,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_net_filter-04.js"]
 
 ["browser_net_filter-autocomplete.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_filter-flags.js"]
 
@@ -287,7 +285,6 @@ skip-if = ["true"] # Bug 1479782
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_net_header-ref-policy.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_header-request-priority.js"]
 
@@ -387,7 +384,6 @@ skip-if = ["true"] #Bug 1661612
 ["browser_net_post-data-raw-payloads.js"]
 
 ["browser_net_post-data.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_prefs-and-l10n.js"]
 
@@ -404,7 +400,6 @@ skip-if = [
 ["browser_net_req-resp-bodies.js"]
 
 ["browser_net_resend.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_resend_cors.js"]
 
@@ -447,7 +442,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_net_send-beacon-other-tab.js"]
 
 ["browser_net_send-beacon.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_server_timings.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -464,23 +458,18 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = ["true"] #Bug 1667115
 
 ["browser_net_simple-request-details.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_simple-request.js"]
 
 ["browser_net_sort-01.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_sort-02.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_sort-reset.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_sse-basic.js"]
 
 ["browser_net_stacktraces-visibility.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_statistics-01.js"]
 skip-if = ["true"] # Bug 1373558
@@ -488,14 +477,12 @@ skip-if = ["true"] # Bug 1373558
 ["browser_net_statistics-02.js"]
 
 ["browser_net_statistics-edge-case.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_status-bar-transferred-size.js"]
 
 ["browser_net_status-bar.js"]
 
 ["browser_net_status-codes.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_streaming-response.js"]
 
@@ -534,7 +521,6 @@ skip-if = ["socketprocess_networking"] # Bug 1772211
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_net_use_as_fetch.js"]
-https_first_disabled = true # Bug 1732865
 
 ["browser_net_view-source-debugger.js"]
 
