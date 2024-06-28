@@ -18,6 +18,7 @@
   const {
     getTheme,
     getAutoTheme,
+    getThemePrefValue,
     addThemeObserver,
     removeThemeObserver,
   } = require("resource://devtools/client/shared/theme.js");
@@ -57,6 +58,10 @@
    * from `oldTheme`
    */
   function switchTheme(newTheme) {
+    // handle forced colors attribute even if newTheme === gOldTheme, as the user can switch from light to auto,
+    // and we'd get a newTheme of "light" here (see getTheme).
+    handleForcedColorsActiveAttribute();
+
     if (newTheme === gOldTheme) {
       return;
     }
@@ -119,6 +124,32 @@
   function handleThemeChange() {
     switchTheme(getTheme());
   }
+
+  const FORCED_COLORS_ACTIVE_ATTRIBUTE = "forced-colors-active";
+  const FORCE_COLORS_ACTIVE_MEDIA_QUERY_STRING = "(forced-colors: active)";
+  /**
+   * Sets or remove the "forced-colors-active" attribute. The toolbox onlys support high contrast mode
+   * if the user didn't explicitly set a light/dark theme
+   */
+  function handleForcedColorsActiveAttribute() {
+    const themePrefValue = getThemePrefValue();
+    const forcedColorsActive =
+      Services.prefs.getBoolPref(
+        "devtools.high-contrast-mode-support",
+        false
+      ) &&
+      themePrefValue == "auto" &&
+      window.matchMedia(FORCE_COLORS_ACTIVE_MEDIA_QUERY_STRING).matches;
+    if (forcedColorsActive) {
+      documentElement.setAttribute(FORCED_COLORS_ACTIVE_ATTRIBUTE, "");
+    } else {
+      documentElement.removeAttribute(FORCED_COLORS_ACTIVE_ATTRIBUTE);
+    }
+  }
+
+  // Add/Remove forced-colors-active attribute when the user toggles high contrast mode.
+  const mql = window.matchMedia(FORCE_COLORS_ACTIVE_MEDIA_QUERY_STRING);
+  mql.addEventListener("change", handleForcedColorsActiveAttribute);
 
   // Check if the current document or the embedder of the document enforces a
   // theme.

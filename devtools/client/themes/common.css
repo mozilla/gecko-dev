@@ -13,9 +13,6 @@
   font: message-box;
   font-size: var(--theme-body-font-size);
 
-  /* TODO(bug 1022557): Perhaps we want to allow forced colors in devtools */
-  forced-color-adjust: none;
-
   --tab-line-hover-color: rgba(0,0,0,.2);
   --tab-line-selected-color: var(--blue-50);
   --toggle-thumb-color: white;
@@ -23,6 +20,11 @@
 
   --searchbox-no-match-background-color: #ffe5e5;
   --searchbox-no-match-stroke-color: var(--red-60);
+
+  /* Don't allow forced colors in DevTools if they're not supported */
+  &:not([forced-colors-active]) {
+    forced-color-adjust: none;
+  }
 }
 
 :root.theme-light {
