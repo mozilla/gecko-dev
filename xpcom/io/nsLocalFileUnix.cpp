@@ -16,6 +16,7 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/FilePreferences.h"
+#include "mozilla/dom/Promise.h"
 #include "prtime.h"
 
 #include <sys/select.h>
@@ -51,6 +52,11 @@
 
 #ifdef MOZ_WIDGET_GTK
 #  include "nsIGIOService.h"
+#  ifdef MOZ_ENABLE_DBUS
+#    include "mozilla/widget/AsyncDBus.h"
+#    include "mozilla/WidgetUtilsGtk.h"
+#    include <map>
+#  endif
 #endif
 
 #ifdef MOZ_WIDGET_COCOA
@@ -116,6 +122,19 @@ using namespace mozilla;
     if (!FilePreferences::IsAllowedPath(mPath))           \
       return NS_ERROR_FILE_ACCESS_DENIED;                 \
   } while (0)
+
+// Prefix for files exported through document portal when we are
+// in a sandboxed environment (Flatpak).
+static const nsCString& GetDocumentStorePath() {
+  static const nsDependentCString sDocumentStorePath = [] {
+    nsCString storePath = nsPrintfCString("/run/user/%d/doc/", getuid());
+    // Intentionally put into a ToNewCString copy, rather than just making a
+    // static nsCString to avoid leakchecking errors, since we really want to
+    // leak this string.
+    return nsDependentCString(ToNewCString(storePath), storePath.Length());
+  }();
+  return sDocumentStorePath;
+}
 
 static PRTime TimespecToMillis(const struct timespec& aTimeSpec) {
   return PRTime(aTimeSpec.tv_sec) * PR_MSEC_PER_SEC +
@@ -223,7 +242,7 @@ nsDirEnumeratorUnix::GetNextEntry() {
 
     // keep going past "." and ".."
   } while (mEntry->d_name[0] == '.' &&
-           (mEntry->d_name[1] == '\0' ||                                // .\0
+           (mEntry->d_name[1] == '\0' ||  // .\0
             (mEntry->d_name[1] == '.' && mEntry->d_name[2] == '\0')));  // ..\0
   return NS_OK;
 }
@@ -671,6 +690,146 @@ nsLocalFile::SetNativeLeafName(const nsACString& aLeafName) {
 NS_IMETHODIMP
 nsLocalFile::GetDisplayName(nsAString& aLeafName) {
   return GetLeafName(aLeafName);
+}
+
+NS_IMETHODIMP
+nsLocalFile::HostPath(JSContext* aCx, dom::Promise** aPromise) {
+  MOZ_ASSERT(aCx);
+  MOZ_ASSERT(aPromise);
+
+  nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
+  if (NS_WARN_IF(!globalObject)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  ErrorResult result;
+  RefPtr<dom::Promise> retPromise = dom::Promise::Create(globalObject, result);
+  if (NS_WARN_IF(result.Failed())) {
+    return result.StealNSResult();
+  }
+
+#if defined(MOZ_ENABLE_DBUS) && defined(MOZ_WIDGET_GTK)
+  if (!widget::IsRunningUnderFlatpak() ||
+      !StringBeginsWith(mPath, GetDocumentStorePath())) {
+    retPromise->MaybeResolve(mPath);
+    retPromise.forget(aPromise);
+    return NS_OK;
+  }
+
+  nsCString docId = [this] {
+    auto subPath = Substring(mPath, GetDocumentStorePath().Length());
+    if (auto idx = subPath.Find("/"); idx > 0) {
+      subPath.Truncate(idx);
+    }
+    return nsCString(subPath);
+  }();
+
+  const char kServiceName[] = "org.freedesktop.portal.Documents";
+  const char kDBusPath[] = "/org/freedesktop/portal/documents";
+  const char kInterfaceName[] = "org.freedesktop.portal.Documents";
+
+  widget::CreateDBusProxyForBus(G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE,
+                                /* aInterfaceInfo = */ nullptr, kServiceName,
+                                kDBusPath, kInterfaceName)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [this, self = RefPtr(this), docId,
+           retPromise](RefPtr<GDBusProxy>&& aProxy) {
+            RefPtr<GVariant> version = dont_AddRef(
+                g_dbus_proxy_get_cached_property(aProxy, "version"));
+            if (!version ||
+                !g_variant_is_of_type(version, G_VARIANT_TYPE_UINT32)) {
+              g_printerr(
+                  "nsIFile: failed to get host path for %s\n: Invalid value.",
+                  mPath.get());
+              retPromise->MaybeReject(NS_ERROR_FAILURE);
+              return;
+            }
+
+            if (g_variant_get_uint32(version) < 5) {
+              g_printerr(
+                  "nsIFile: failed to get host path for %s\n: Document "
+                  "portal in version 5 is required.",
+                  mPath.get());
+              retPromise->MaybeReject(NS_ERROR_NOT_AVAILABLE);
+              return;
+            }
+
+            GVariantBuilder builder;
+            g_variant_builder_init(&builder, G_VARIANT_TYPE("(as)"));
+            g_variant_builder_open(&builder, G_VARIANT_TYPE("as"));
+            g_variant_builder_add(&builder, "s", docId.get());
+            g_variant_builder_close(&builder);
+
+            RefPtr<GVariant> args = dont_AddRef(
+                g_variant_ref_sink(g_variant_builder_end(&builder)));
+
+            if (!args) {
+              g_printerr(
+                  "nsIFile: failed to get host path for %s\n: "
+                  "Invalid value.",
+                  mPath.get());
+              retPromise->MaybeReject(NS_ERROR_FAILURE);
+              return;
+            }
+
+            widget::DBusProxyCall(aProxy, "GetHostPaths", args,
+                                  G_DBUS_CALL_FLAGS_NONE, -1,
+                                  /* cancellable */ nullptr)
+                ->Then(
+                    GetCurrentSerialEventTarget(), __func__,
+                    [this, self = RefPtr(this), docId,
+                     retPromise](RefPtr<GVariant>&& aResult) {
+                      RefPtr<GVariant> result = dont_AddRef(
+                          g_variant_get_child_value(aResult.get(), 0));
+                      if (!g_variant_is_of_type(result,
+                                                G_VARIANT_TYPE("a{say}"))) {
+                        g_printerr(
+                            "nsIFile: failed to get host path for %s\n: "
+                            "Invalid value.",
+                            mPath.get());
+                        retPromise->MaybeReject(NS_ERROR_FAILURE);
+                        return;
+                      }
+
+                      const gchar* key = nullptr;
+                      const gchar* path = nullptr;
+                      GVariantIter* iter = g_variant_iter_new(result);
+
+                      while (
+                          g_variant_iter_loop(iter, "{&s^&ay}", &key, &path)) {
+                        if (g_strcmp0(key, docId.get()) == 0) {
+                          retPromise->MaybeResolve(nsDependentCString(path));
+                          g_variant_iter_free(iter);
+                          return;
+                        }
+                      }
+
+                      g_variant_iter_free(iter);
+                      g_printerr(
+                          "nsIFile: failed to get host path for %s\n: "
+                          "Invalid value.",
+                          mPath.get());
+                      retPromise->MaybeReject(NS_ERROR_FAILURE);
+                    },
+                    [this, self = RefPtr(this),
+                     retPromise](GUniquePtr<GError>&& aError) {
+                      g_printerr(
+                          "nsIFile: failed to get host path for %s\n: %s.",
+                          mPath.get(), aError->message);
+                      retPromise->MaybeReject(NS_ERROR_FAILURE);
+                    });
+          },
+          [this, self = RefPtr(this), retPromise](GUniquePtr<GError>&& aError) {
+            g_printerr("nsIFile: failed to get host path for %s\n: %s.",
+                       mPath.get(), aError->message);
+            retPromise->MaybeReject(NS_ERROR_NOT_AVAILABLE);
+          });
+#else
+  retPromise->MaybeResolve(mPath);
+#endif
+  retPromise.forget(aPromise);
+  return NS_OK;
 }
 
 nsCString nsLocalFile::NativePath() { return mPath; }
