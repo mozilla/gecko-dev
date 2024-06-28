@@ -8,6 +8,8 @@ support-files = [
 
 ["browser_broadcastChannel.js"]
 
+["browser_chips_partition_cap_child.js"]
+
 ["browser_cookie_chips.js"]
 support-files = ["chips.sjs"]
 
