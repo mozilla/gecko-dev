@@ -1900,15 +1900,20 @@ class BrowsingContextModule extends Module {
         type: lazy.WindowGlobalMessageHandler.type,
       };
 
-      const type = prompt.promptType;
       const eventPayload = {
         context: contextId,
-        type,
+        type: prompt.promptType,
         message: await prompt.getText(),
       };
 
-      if (type === "prompt") {
-        eventPayload.defaultValue = await prompt.getInputText();
+      // Bug 1859814: Since the platform doesn't provide the access to the `defaultValue` of the prompt,
+      // we use prompt the `value` instead. The `value` is set to `defaultValue` when `defaultValue` is provided.
+      // This approach doesn't allow us to distinguish between the `defaultValue` being set to an empty string and
+      // `defaultValue` not set, because `value` is always defaulted to an empty string.
+      // We should switch to using the actual `defaultValue` when it's available and check for the `null` here.
+      const defaultValue = await prompt.getInputText();
+      if (defaultValue) {
+        eventPayload.defaultValue = defaultValue;
       }
 
       this.emitEvent(
