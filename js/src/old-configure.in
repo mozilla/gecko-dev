@@ -341,9 +341,6 @@ case "$target" in
 *-netbsd*)
     CFLAGS="$CFLAGS -Dunix"
     CXXFLAGS="$CXXFLAGS -Dunix"
-    if $CC -E - -dM </dev/null | grep __ELF__ >/dev/null; then
-        MOZ_PROGRAM_LDFLAGS="$MOZ_PROGRAM_LDFLAGS -Wl,--export-dynamic"
-    fi
     ;;
 
 *-wasi*)

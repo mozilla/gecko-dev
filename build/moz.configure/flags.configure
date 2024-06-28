@@ -458,6 +458,17 @@ def expand_libs_list_style(c_compiler, link, linker_flags, extra_flags):
 set_config("EXPAND_LIBS_LIST_STYLE", expand_libs_list_style)
 
 
+# MOZ_PROGRAM_LDFLAGS
+# ---------------------------------
+@depends(building_with_gnu_compatible_cc, target)
+def moz_program_ldflags(building_with_gnu_compatible_cc, target):
+    if building_with_gnu_compatible_cc and target.kernel not in ("Darwin", "WASI"):
+        return ["-pie"]
+
+
+set_config("MOZ_PROGRAM_LDFLAGS", moz_program_ldflags)
+
+
 # Objective-C/ Objective-C++ flags.
 # ---------------------------------
 @depends(compilation_flags, toolkit)

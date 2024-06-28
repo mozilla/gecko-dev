@@ -42,19 +42,4 @@ fi
 
 fi
 
-if test "$CC_TYPE" != clang-cl ; then
-    case "${OS_TARGET}" in
-    Darwin|WASI)
-        # It's the default on those targets, and clang complains about -pie
-        # being unused if passed.
-        ;;
-    *)
-        MOZ_PROGRAM_LDFLAGS="$MOZ_PROGRAM_LDFLAGS -pie"
-        ;;
-    esac
-fi
-
-AC_SUBST(MOZ_PROGRAM_LDFLAGS)
-
-
 ])
