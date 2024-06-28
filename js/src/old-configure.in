@@ -50,12 +50,6 @@ if test -z "$JS_STANDALONE"; then
 fi
 AC_SUBST(autoconfmk)
 
-if test -z "$JS_STANDALONE"; then
-    jsconfdefs=$_objdir/mozilla-config.h
-else
-    jsconfdefs=$_objdir/js/src/js-confdefs.h
-fi
-
 dnl ========================================================
 dnl Checks for compilers.
 dnl ========================================================
@@ -162,17 +156,6 @@ dnl ==============================================================
 MOZ_ARCH_OPTS
 
 dnl ========================================================
-dnl GNU specific defaults
-dnl ========================================================
-if test "$CC_TYPE" != clang-cl ; then
-    _DEFINES_CFLAGS="-include $jsconfdefs -DMOZILLA_CLIENT"
-fi
-
-if test "$CC_TYPE" != clang-cl ; then
-    _DEFINES_CXXFLAGS="-DMOZILLA_CLIENT -include $jsconfdefs"
-fi
-
-dnl ========================================================
 dnl System overrides of the defaults for host
 dnl ========================================================
 case "$host" in
@@ -266,8 +249,6 @@ case "$target" in
         WIN32_SUBSYSTEM_VERSION=10.0
         WIN32_CONSOLE_EXE_LDFLAGS=-SUBSYSTEM:CONSOLE,$WIN32_SUBSYSTEM_VERSION
         WIN32_GUI_EXE_LDFLAGS=-SUBSYSTEM:WINDOWS,$WIN32_SUBSYSTEM_VERSION
-        _DEFINES_CFLAGS="-FI $jsconfdefs -DMOZILLA_CLIENT"
-        _DEFINES_CXXFLAGS="-FI $jsconfdefs -DMOZILLA_CLIENT"
         CFLAGS="$CFLAGS -Gy -Zc:inline"
         CXXFLAGS="$CXXFLAGS -Gy -Zc:inline"
         if test "$TARGET_CPU" = "x86";then
@@ -463,14 +444,6 @@ ASFLAGS=`echo \
     $_COMPILATION_ASFLAGS \
     $ASFLAGS`
 
-COMPILE_CFLAGS=`echo \
-    $_DEFINES_CFLAGS \
-    $COMPILE_CFLAGS`
-
-COMPILE_CXXFLAGS=`echo \
-    $_DEFINES_CXXFLAGS \
-    $COMPILE_CXXFLAGS`
-
 HOST_CFLAGS=`echo \
     $_COMPILATION_HOST_CFLAGS \
     $HOST_CFLAGS`
@@ -490,15 +463,11 @@ HOST_LDFLAGS=`echo \
 OS_CFLAGS="$CFLAGS"
 OS_CXXFLAGS="$CXXFLAGS"
 OS_CPPFLAGS="$CPPFLAGS"
-OS_COMPILE_CFLAGS="$COMPILE_CFLAGS"
-OS_COMPILE_CXXFLAGS="$COMPILE_CXXFLAGS"
 OS_LDFLAGS="$LDFLAGS"
 OS_LIBS="$LIBS"
 AC_SUBST_LIST(OS_CFLAGS)
 AC_SUBST_LIST(OS_CXXFLAGS)
 AC_SUBST_LIST(OS_CPPFLAGS)
-AC_SUBST_LIST(OS_COMPILE_CFLAGS)
-AC_SUBST_LIST(OS_COMPILE_CXXFLAGS)
 AC_SUBST_LIST(OS_LDFLAGS)
 AC_SUBST(OS_LIBS)
 
