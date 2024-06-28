@@ -5006,6 +5006,8 @@ class Maintenance final : public Runnable {
   MozPromiseHolder<BoolPromise> mPromiseHolder;
   PRTime mStartTime;
   RefPtr<UniversalDirectoryLock> mPendingDirectoryLock;
+  // The directory lock is normally dropped by BeginDatabaseMaintenance, but if
+  // something fails (in any method), the Finish method will do the cleanup.
   RefPtr<UniversalDirectoryLock> mDirectoryLock;
   nsTArray<nsCOMPtr<nsIRunnable>> mCompleteCallbacks;
   nsTArray<DirectoryInfo> mDirectoryInfos;
@@ -5158,6 +5160,8 @@ class DatabaseMaintenance final : public Runnable {
   enum class MaintenanceAction { Nothing = 0, IncrementalVacuum, FullVacuum };
 
   RefPtr<Maintenance> mMaintenance;
+  // The directory lock is dropped in RunOnOwningThread which serves as a
+  // cleanup method and is always called.
   RefPtr<DirectoryLock> mDirectoryLock;
   const OriginMetadata mOriginMetadata;
   const nsString mDatabasePath;
@@ -12846,9 +12850,6 @@ void Maintenance::Abort() {
     aDatabaseMaintenance.GetData()->Abort();
   }
 
-  // mDirectoryLock must be cleared before transition to finished state
-  SafeDropDirectoryLock(mDirectoryLock);
-
   mAborted = true;
 }
 
@@ -13512,12 +13513,6 @@ nsresult DatabaseMaintenance::Abort() {
       QM_TRY(MOZ_TO_RESULT(connection->Interrupt()));
     }
   }
-
-  // mDirectoryLock must not be released here - otherwise QuotaVFS of storage
-  // emits a crash to disallow getting a quota object for an unregistered
-  // directory lock when connection is closed.
-  // mDirectoryLock will be dropped by RunOnOwningThread in a timely fashion
-  // after the interrupted maintenance completes.
 
   return NS_OK;
 }
