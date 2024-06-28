@@ -8,14 +8,13 @@
 #include "CookieLogging.h"
 #include "CookieParser.h"
 #include "CookieService.h"
-#include "mozilla/ConsoleReportCollector.h"
 #include "mozilla/ContentBlockingNotifier.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StorageAccess.h"
 #include "mozilla/dom/Document.h"
-#include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/net/CookieJarSettings.h"
+#include "mozilla/Telemetry.h"
 #include "mozIThirdPartyUtil.h"
 #include "nsContentUtils.h"
 #include "nsICookiePermission.h"
@@ -335,29 +334,20 @@ CookieStatus CookieStatusForWindow(nsPIDOMWindowInner* aWindow,
 
 // static
 already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
-    Document* aDocument, const nsACString& aCookieString,
-    int64_t currentTimeInUsec, nsIEffectiveTLDService* aTLDService,
-    mozIThirdPartyUtil* aThirdPartyUtil,
+    CookieParser& aCookieParser, Document* aDocument,
+    const nsACString& aCookieString, int64_t currentTimeInUsec,
+    nsIEffectiveTLDService* aTLDService, mozIThirdPartyUtil* aThirdPartyUtil,
     std::function<bool(const nsACString&, const OriginAttributes&)>&&
         aHasExistingCookiesLambda,
-    nsIURI** aDocumentURI, nsACString& aBaseDomain, OriginAttributes& aAttrs) {
-  nsCOMPtr<nsIURI> principalURI;
-  auto* basePrincipal = BasePrincipal::Cast(aDocument->NodePrincipal());
-  basePrincipal->GetURI(getter_AddRefs(principalURI));
-  if (NS_WARN_IF(!principalURI)) {
-    // Document's principal is not a content or null (may be system), so
-    // can't set cookies
-    return nullptr;
-  }
-
-  if (!CookieCommons::IsSchemeSupported(principalURI)) {
+    nsACString& aBaseDomain, OriginAttributes& aAttrs) {
+  if (!CookieCommons::IsSchemeSupported(aCookieParser.HostURI())) {
     return nullptr;
   }
 
   nsAutoCString baseDomain;
   bool requireHostMatch = false;
-  nsresult rv = CookieCommons::GetBaseDomain(aTLDService, principalURI,
-                                             baseDomain, requireHostMatch);
+  nsresult rv = CookieCommons::GetBaseDomain(
+      aTLDService, aCookieParser.HostURI(), baseDomain, requireHostMatch);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return nullptr;
   }
@@ -369,8 +359,9 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
 
   bool isForeignAndNotAddon = false;
   if (!BasePrincipal::Cast(aDocument->NodePrincipal())->AddonPolicy()) {
-    rv = aThirdPartyUtil->IsThirdPartyWindow(
-        innerWindow->GetOuterWindow(), principalURI, &isForeignAndNotAddon);
+    rv = aThirdPartyUtil->IsThirdPartyWindow(innerWindow->GetOuterWindow(),
+                                             aCookieParser.HostURI(),
+                                             &isForeignAndNotAddon);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       isForeignAndNotAddon = true;
     }
@@ -384,34 +375,26 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
 
   // If we are here, we have been already accepted by the anti-tracking.
   // We just need to check if we have to be in session-only mode.
-  CookieStatus cookieStatus = CookieStatusForWindow(innerWindow, principalURI);
+  CookieStatus cookieStatus =
+      CookieStatusForWindow(innerWindow, aCookieParser.HostURI());
   MOZ_ASSERT(cookieStatus == STATUS_ACCEPTED ||
              cookieStatus == STATUS_ACCEPT_SESSION);
 
-  // Console report takes care of the correct reporting at the exit of this
-  // method.
-  RefPtr<ConsoleReportCollector> crc = new ConsoleReportCollector();
-  auto scopeExit = MakeScopeExit([&] { crc->FlushConsoleReports(aDocument); });
-
   nsCString cookieString(aCookieString);
 
-  CookieStruct cookieData;
-  MOZ_ASSERT(cookieData.creationTime() == 0, "Must be initialized to 0");
-  bool canSetCookie = false;
-  CookieParser::CanSetCookie(
-      principalURI, baseDomain, cookieData, requireHostMatch, cookieStatus,
-      cookieString, false, isForeignAndNotAddon, mustBePartitioned,
-      aDocument->IsInPrivateBrowsing(), crc, canSetCookie);
+  aCookieParser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieString,
+                      false, isForeignAndNotAddon, mustBePartitioned,
+                      aDocument->IsInPrivateBrowsing());
 
-  if (!canSetCookie) {
+  if (!aCookieParser.ContainsCookie()) {
     return nullptr;
   }
 
   // check permissions from site permission list.
   if (!CookieCommons::CheckCookiePermission(aDocument->NodePrincipal(),
                                             aDocument->CookieJarSettings(),
-                                            cookieData)) {
-    NotifyRejectionToObservers(principalURI, OPERATION_WRITE);
+                                            aCookieParser.CookieData())) {
+    NotifyRejectionToObservers(aCookieParser.HostURI(), OPERATION_WRITE);
     ContentBlockingNotifier::OnDecision(
         innerWindow, ContentBlockingNotifier::BlockingDecision::eBlock,
         nsIWebProgressListener::STATE_COOKIES_BLOCKED_BY_PERMISSION);
@@ -422,8 +405,8 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
   // cookie jar independent of context. If the cookies are stored in the
   // partitioned cookie jar anyway no special treatment of CHIPS cookies
   // necessary.
-  bool needPartitioned =
-      StaticPrefs::network_cookie_CHIPS_enabled() && cookieData.isPartitioned();
+  bool needPartitioned = StaticPrefs::network_cookie_CHIPS_enabled() &&
+                         aCookieParser.CookieData().isPartitioned();
   nsCOMPtr<nsIPrincipal> cookiePrincipal =
       needPartitioned ? aDocument->PartitionedPrincipal()
                       : aDocument->EffectiveCookiePrincipal();
@@ -434,12 +417,13 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
   if (aDocument->CookieJarSettings()->GetLimitForeignContexts() &&
       !aHasExistingCookiesLambda(baseDomain,
                                  cookiePrincipal->OriginAttributesRef()) &&
-      !ShouldAllowAccessFor(innerWindow, principalURI, &dummyRejectedReason)) {
+      !ShouldAllowAccessFor(innerWindow, aCookieParser.HostURI(),
+                            &dummyRejectedReason)) {
     return nullptr;
   }
 
-  RefPtr<Cookie> cookie =
-      Cookie::Create(cookieData, cookiePrincipal->OriginAttributesRef());
+  RefPtr<Cookie> cookie = Cookie::Create(
+      aCookieParser.CookieData(), cookiePrincipal->OriginAttributesRef());
   MOZ_ASSERT(cookie);
 
   cookie->SetLastAccessed(currentTimeInUsec);
@@ -448,7 +432,6 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
 
   aBaseDomain = baseDomain;
   aAttrs = cookiePrincipal->OriginAttributesRef();
-  principalURI.forget(aDocumentURI);
 
   return cookie.forget();
 }

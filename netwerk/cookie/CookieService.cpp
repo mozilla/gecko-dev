@@ -6,15 +6,16 @@
 
 #include "CookieCommons.h"
 #include "CookieLogging.h"
+#include "CookieParser.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Components.h"
+#include "mozilla/ConsoleReportCollector.h"
 #include "mozilla/ContentBlockingNotifier.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/net/CookieJarSettings.h"
 #include "mozilla/net/CookiePersistentStorage.h"
 #include "mozilla/net/CookiePrivateStorage.h"
@@ -632,9 +633,24 @@ CookieService::SetCookieStringFromDocument(Document* aDocument,
                                            aAttrs.mPrivateBrowsingId);
   };
 
+  auto* basePrincipal = BasePrincipal::Cast(aDocument->NodePrincipal());
+  basePrincipal->GetURI(getter_AddRefs(documentURI));
+  if (NS_WARN_IF(!documentURI)) {
+    // Document's principal is not a content or null (may be system), so
+    // can't set cookies
+    return NS_OK;
+  }
+
+  // Console report takes care of the correct reporting at the exit of this
+  // method.
+  RefPtr<ConsoleReportCollector> crc = new ConsoleReportCollector();
+  auto scopeExit = MakeScopeExit([&] { crc->FlushConsoleReports(aDocument); });
+
+  CookieParser cookieParser(crc, documentURI);
+
   RefPtr<Cookie> cookie = CookieCommons::CreateCookieFromDocument(
-      aDocument, aCookieString, currentTimeInUsec, mTLDService, mThirdPartyUtil,
-      hasExistingCookiesLambda, getter_AddRefs(documentURI), baseDomain, attrs);
+      cookieParser, aDocument, aCookieString, currentTimeInUsec, mTLDService,
+      mThirdPartyUtil, hasExistingCookiesLambda, baseDomain, attrs);
   if (!cookie) {
     return NS_OK;
   }
@@ -657,12 +673,9 @@ CookieService::SetCookieStringFromDocument(Document* aDocument,
     return NS_OK;
   }
 
-  nsCOMPtr<nsIConsoleReportCollector> crc =
-      do_QueryInterface(aDocument->GetChannel());
-
   // add the cookie to the list. AddCookie() takes care of logging.
   PickStorage(attrs)->AddCookie(
-      crc, baseDomain, attrs, cookie, currentTimeInUsec, documentURI,
+      &cookieParser, baseDomain, attrs, cookie, currentTimeInUsec, documentURI,
       aCookieString, false, thirdParty, aDocument->GetBrowsingContext());
   return NS_OK;
 }
@@ -808,33 +821,27 @@ CookieService::SetCookieStringFromHttp(nsIURI* aHostURI,
   // process each cookie in the header
   bool moreCookieToRead = true;
   while (moreCookieToRead) {
-    CookieStruct cookieData;
-    bool canSetCookie = false;
+    CookieParser cookieParser(crc, aHostURI);
 
-    moreCookieToRead = CookieParser::CanSetCookie(
-        aHostURI, baseDomain, cookieData, requireHostMatch, cookieStatus,
-        cookieHeader, true, isForeignAndNotAddon, mustBePartitioned,
-        storagePrincipalOriginAttributes.IsPrivateBrowsing(), crc,
-        canSetCookie);
+    moreCookieToRead = cookieParser.Parse(
+        baseDomain, requireHostMatch, cookieStatus, cookieHeader, true,
+        isForeignAndNotAddon, mustBePartitioned,
+        storagePrincipalOriginAttributes.IsPrivateBrowsing());
 
-    if (!canSetCookie) {
+    if (!cookieParser.ContainsCookie()) {
       continue;
     }
 
     // check permissions from site permission list.
-    if (!CookieCommons::CheckCookiePermission(aChannel, cookieData)) {
+    if (!CookieCommons::CheckCookiePermission(aChannel,
+                                              cookieParser.CookieData())) {
       COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
                         "cookie rejected by permission manager");
       CookieCommons::NotifyRejected(
           aHostURI, aChannel,
           nsIWebProgressListener::STATE_COOKIES_BLOCKED_BY_PERMISSION,
           OPERATION_WRITE);
-      CookieLogging::LogMessageToConsole(
-          crc, aHostURI, nsIScriptError::warningFlag,
-          CONSOLE_REJECTION_CATEGORY, "CookieRejectedByPermissionManager"_ns,
-          AutoTArray<nsString, 1>{
-              NS_ConvertUTF8toUTF16(cookieData.name()),
-          });
+      cookieParser.RejectCookie(CookieParser::RejectedByPermissionManager);
       continue;
     }
 
@@ -842,8 +849,9 @@ CookieService::SetCookieStringFromHttp(nsIURI* aHostURI,
     // cookie jar independent of context. If the cookies are stored in the
     // partitioned cookie jar anyway no special treatment of CHIPS cookies
     // necessary.
-    bool needPartitioned =
-        isCHIPS && cookieData.isPartitioned() && !isPartitionedPrincipal;
+    bool needPartitioned = isCHIPS &&
+                           cookieParser.CookieData().isPartitioned() &&
+                           !isPartitionedPrincipal;
     OriginAttributes& cookieOriginAttributes =
         needPartitioned ? partitionedPrincipalOriginAttributes
                         : storagePrincipalOriginAttributes;
@@ -853,7 +861,8 @@ CookieService::SetCookieStringFromHttp(nsIURI* aHostURI,
         !partitionedPrincipalOriginAttributes.mPartitionKey.IsEmpty());
 
     // create a new Cookie
-    RefPtr<Cookie> cookie = Cookie::Create(cookieData, cookieOriginAttributes);
+    RefPtr<Cookie> cookie =
+        Cookie::Create(cookieParser.CookieData(), cookieOriginAttributes);
     MOZ_ASSERT(cookie);
 
     int64_t currentTimeInUsec = PR_Now();
@@ -865,8 +874,8 @@ CookieService::SetCookieStringFromHttp(nsIURI* aHostURI,
     RefPtr<BrowsingContext> bc = loadInfo->GetTargetBrowsingContext();
 
     // add the cookie to the list. AddCookie() takes care of logging.
-    storage->AddCookie(crc, baseDomain, cookieOriginAttributes, cookie,
-                       currentTimeInUsec, aHostURI, aCookieHeader, true,
+    storage->AddCookie(&cookieParser, baseDomain, cookieOriginAttributes,
+                       cookie, currentTimeInUsec, aHostURI, aCookieHeader, true,
                        isForeignAndNotAddon, bc);
   }
 

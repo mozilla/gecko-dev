@@ -4,12 +4,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "CookieParser.h"
+#include "CookieLogging.h"
 
+#include "mozilla/dom/nsMixedContentBlocker.h"
+#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/StaticPrefs_network.h"
+#include "mozilla/Telemetry.h"
+#include "nsIConsoleReportCollector.h"
+#include "nsIScriptError.h"
 #include "nsIURI.h"
 #include "nsIURL.h"
 #include "prprf.h"
 
 constexpr char ATTRIBUTE_PATH[] = "path";
+constexpr uint64_t ATTRIBUTE_MAX_LENGTH = 1024;
 
 constexpr auto CONSOLE_CHIPS_CATEGORY = "cookiesCHIPS"_ns;
 constexpr auto CONSOLE_OVERSIZE_CATEGORY = "cookiesOversize"_ns;
@@ -21,6 +29,180 @@ constexpr auto SAMESITE_MDN_URL =
 
 namespace mozilla {
 namespace net {
+
+CookieParser::CookieParser(nsIConsoleReportCollector* aCRC, nsIURI* aHostURI)
+    : mCRC(aCRC), mHostURI(aHostURI) {
+  MOZ_COUNT_CTOR(CookieParser);
+  MOZ_ASSERT(aCRC);
+  MOZ_ASSERT(aHostURI);
+}
+
+CookieParser::~CookieParser() {
+  MOZ_COUNT_DTOR(CookieParser);
+
+#define COOKIE_LOGGING_WITH_NAME(category, x)                 \
+  CookieLogging::LogMessageToConsole(                         \
+      mCRC, mHostURI, nsIScriptError::errorFlag, category, x, \
+      AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(mCookieData.name())});
+
+  switch (mRejection) {
+    case NoRejection:
+      break;
+
+    case RejectedInvalidCharAttributes:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
+                               "CookieRejectedInvalidCharAttributes"_ns);
+      break;
+
+    case RejectedNoneRequiresSecure:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_SAMESITE_CATEGORY,
+                               "CookieRejectedNonRequiresSecure2"_ns);
+      break;
+
+    case RejectedPartitionedRequiresSecure:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
+                               "CookieRejectedPartitionedRequiresSecure"_ns);
+      break;
+
+    case RejectedEmptyNameAndValue:
+      CookieLogging::LogMessageToConsole(
+          mCRC, mHostURI, nsIScriptError::warningFlag,
+          CONSOLE_REJECTION_CATEGORY, "CookieRejectedEmptyNameAndValue"_ns,
+          nsTArray<nsString>());
+
+      break;
+
+    case RejectedNameValueOversize: {
+      AutoTArray<nsString, 2> params = {
+          NS_ConvertUTF8toUTF16(mCookieData.name())};
+
+      nsString size;
+      size.AppendInt(kMaxBytesPerCookie);
+      params.AppendElement(size);
+
+      CookieLogging::LogMessageToConsole(
+          mCRC, mHostURI, nsIScriptError::warningFlag,
+          CONSOLE_OVERSIZE_CATEGORY, "CookieOversize"_ns, params);
+      break;
+    }
+
+    case RejectedInvalidCharName:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
+                               "CookieRejectedInvalidCharName"_ns);
+      break;
+
+    case RejectedInvalidDomain:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
+                               "CookieRejectedInvalidDomain"_ns);
+      break;
+
+    case RejectedInvalidPrefix:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
+                               "CookieRejectedInvalidPrefix"_ns);
+      break;
+
+    case RejectedInvalidCharValue:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
+                               "CookieRejectedInvalidCharValue"_ns);
+      break;
+
+    case RejectedHttpOnlyButFromScript:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
+                               "CookieRejectedHttpOnlyButFromScript"_ns);
+      break;
+
+    case RejectedSecureButNonHttps:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
+                               "CookieRejectedSecureButNonHttps"_ns);
+      break;
+
+    case RejectedForNonSameSiteness:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_SAMESITE_CATEGORY,
+                               "CookieRejectedForNonSameSiteness"_ns);
+      break;
+
+    case RejectedForeignNoPartitionedError:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_CHIPS_CATEGORY,
+                               "CookieForeignNoPartitionedError"_ns);
+      break;
+
+    case RejectedByPermissionManager:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
+                               "CookieRejectedByPermissionManager"_ns);
+      break;
+
+    case RejectedNonsecureOverSecure:
+      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
+                               "CookieRejectedNonsecureOverSecure"_ns);
+      break;
+  }
+
+#undef COOKIE_LOGGING_WITH_NAME
+
+  if (mRejection != NoRejection || !mContainsCookie) {
+    return;
+  }
+
+  for (const char* attribute : mWarnings.mAttributeOversize) {
+    AutoTArray<nsString, 3> params = {NS_ConvertUTF8toUTF16(mCookieData.name()),
+                                      NS_ConvertUTF8toUTF16(attribute)};
+
+    nsString size;
+    size.AppendInt(ATTRIBUTE_MAX_LENGTH);
+    params.AppendElement(size);
+
+    CookieLogging::LogMessageToConsole(
+        mCRC, mHostURI, nsIScriptError::warningFlag, CONSOLE_OVERSIZE_CATEGORY,
+        "CookieAttributeIgnored"_ns, params);
+  }
+
+  for (const char* attribute : mWarnings.mAttributeOverwritten) {
+    CookieLogging::LogMessageToConsole(
+        mCRC, mHostURI, nsIScriptError::warningFlag, CONSOLE_OVERSIZE_CATEGORY,
+        "CookieAttributeOverwritten"_ns,
+        AutoTArray<nsString, 2>{NS_ConvertUTF8toUTF16(mCookieData.name()),
+                                NS_ConvertUTF8toUTF16(attribute)});
+  }
+
+  if (mWarnings.mInvalidSameSiteAttribute) {
+    CookieLogging::LogMessageToConsole(
+        mCRC, mHostURI, nsIScriptError::infoFlag, CONSOLE_SAMESITE_CATEGORY,
+        "CookieSameSiteValueInvalid2"_ns,
+        AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(mCookieData.name())});
+  }
+
+  if (mWarnings.mSameSiteNoneRequiresSecureForBeta) {
+    CookieLogging::LogMessageToConsole(
+        mCRC, mHostURI, nsIScriptError::warningFlag, CONSOLE_SAMESITE_CATEGORY,
+        "CookieRejectedNonRequiresSecureForBeta3"_ns,
+        AutoTArray<nsString, 2>{NS_ConvertUTF8toUTF16(mCookieData.name()),
+                                SAMESITE_MDN_URL});
+  }
+
+  if (mWarnings.mSameSiteLaxForced) {
+    CookieLogging::LogMessageToConsole(
+        mCRC, mHostURI, nsIScriptError::infoFlag, CONSOLE_SAMESITE_CATEGORY,
+        "CookieLaxForced2"_ns,
+        AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(mCookieData.name())});
+  }
+
+  if (mWarnings.mSameSiteLaxForcedForBeta) {
+    CookieLogging::LogMessageToConsole(
+        mCRC, mHostURI, nsIScriptError::warningFlag, CONSOLE_SAMESITE_CATEGORY,
+        "CookieLaxForcedForBeta2"_ns,
+        AutoTArray<nsString, 2>{NS_ConvertUTF8toUTF16(mCookieData.name()),
+                                SAMESITE_MDN_URL});
+  }
+
+  if (mWarnings.mForeignNoPartitionedWarning) {
+    CookieLogging::LogMessageToConsole(
+        mCRC, mHostURI, nsIScriptError::warningFlag, CONSOLE_CHIPS_CATEGORY,
+        "CookieForeignNoPartitionedWarning"_ns,
+        AutoTArray<nsString, 1>{
+            NS_ConvertUTF8toUTF16(mCookieData.name()),
+        });
+  }
+}
 
 // clang-format off
 // The following comment block elucidates the function of ParseAttributes.
@@ -193,24 +375,16 @@ static inline void SetSameSiteAttributeDefault(CookieStruct& aCookieData) {
   aCookieData.rawSameSite() = nsICookie::SAMESITE_NONE;
 }
 
-bool CheckAttributeSize(nsIConsoleReportCollector* aCRC, nsIURI* aHostURI,
-                        const CookieStruct& aCookieData, const char* aAttribute,
-                        const nsACString& aValue) {
-  static uint16_t kMaxAttributeLength = 1024;
-
-  if (aValue.Length() > kMaxAttributeLength) {
-    AutoTArray<nsString, 3> params = {NS_ConvertUTF8toUTF16(aCookieData.name()),
-                                      NS_ConvertUTF8toUTF16(aAttribute)};
-
-    nsString size;
-    size.AppendInt(kMaxAttributeLength);
-    params.AppendElement(size);
-
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_OVERSIZE_CATEGORY,
-        "CookieAttributeIgnored"_ns, params);
-
+bool CookieParser::CheckAttributeSize(const nsACString& currentValue,
+                                      const char* aAttribute,
+                                      const nsACString& aValue) {
+  if (aValue.Length() > ATTRIBUTE_MAX_LENGTH) {
+    mWarnings.mAttributeOversize.AppendElement(aAttribute);
     return false;
+  }
+
+  if (!currentValue.IsEmpty()) {
+    mWarnings.mAttributeOverwritten.AppendElement(aAttribute);
   }
 
   return true;
@@ -219,10 +393,7 @@ bool CheckAttributeSize(nsIConsoleReportCollector* aCRC, nsIURI* aHostURI,
 // Parses attributes from cookie header. expires/max-age attributes aren't
 // folded into the cookie struct here, because we don't know which one to use
 // until we've parsed the header.
-// static
-bool CookieParser::ParseAttributes(nsIConsoleReportCollector* aCRC,
-                                   nsIURI* aHostURI, nsCString& aCookieHeader,
-                                   CookieStruct& aCookieData,
+bool CookieParser::ParseAttributes(nsCString& aCookieHeader,
                                    nsACString& aExpires, nsACString& aMaxage,
                                    bool& aAcceptedByParser) {
   aAcceptedByParser = false;
@@ -244,10 +415,10 @@ bool CookieParser::ParseAttributes(nsIConsoleReportCollector* aCRC,
   nsACString::const_char_iterator cookieEnd;
   aCookieHeader.EndReading(cookieEnd);
 
-  aCookieData.isSecure() = false;
-  aCookieData.isHttpOnly() = false;
+  mCookieData.isSecure() = false;
+  mCookieData.isHttpOnly() = false;
 
-  SetSameSiteAttributeDefault(aCookieData);
+  SetSameSiteAttributeDefault(mCookieData);
 
   nsDependentCSubstring tokenString(cookieStart, cookieStart);
   nsDependentCSubstring tokenValue(cookieStart, cookieStart);
@@ -262,10 +433,10 @@ bool CookieParser::ParseAttributes(nsIConsoleReportCollector* aCRC,
   newCookie = GetTokenValue(cookieStart, cookieEnd, tokenString, tokenValue,
                             equalsFound);
   if (equalsFound) {
-    aCookieData.name() = tokenString;
-    aCookieData.value() = tokenValue;
+    mCookieData.name() = tokenString;
+    mCookieData.value() = tokenValue;
   } else {
-    aCookieData.value() = tokenString;
+    mCookieData.value() = tokenString;
   }
 
   // extract remaining attributes
@@ -274,65 +445,55 @@ bool CookieParser::ParseAttributes(nsIConsoleReportCollector* aCRC,
                               equalsFound);
 
     if (ContainsControlChars(tokenString) || ContainsControlChars(tokenValue)) {
-      CookieLogging::LogMessageToConsole(
-          aCRC, aHostURI, nsIScriptError::errorFlag, CONSOLE_REJECTION_CATEGORY,
-          "CookieRejectedInvalidCharAttributes"_ns,
-          AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(aCookieData.name())});
+      RejectCookie(RejectedInvalidCharAttributes);
       return newCookie;
     }
 
     // decide which attribute we have, and copy the string
     if (tokenString.LowerCaseEqualsLiteral(ATTRIBUTE_PATH)) {
-      if (CheckAttributeSize(aCRC, aHostURI, aCookieData, ATTRIBUTE_PATH,
-                             tokenValue)) {
-        aCookieData.path() = tokenValue;
+      if (CheckAttributeSize(mCookieData.path(), ATTRIBUTE_PATH, tokenValue)) {
+        mCookieData.path() = tokenValue;
       }
 
     } else if (tokenString.LowerCaseEqualsLiteral(kDomain)) {
-      if (CheckAttributeSize(aCRC, aHostURI, aCookieData, kDomain,
-                             tokenValue)) {
-        aCookieData.host() = tokenValue;
+      if (CheckAttributeSize(mCookieData.host(), kDomain, tokenValue)) {
+        mCookieData.host() = tokenValue;
       }
 
     } else if (tokenString.LowerCaseEqualsLiteral(kExpires)) {
-      if (CheckAttributeSize(aCRC, aHostURI, aCookieData, kExpires,
-                             tokenValue)) {
+      if (CheckAttributeSize(aExpires, kExpires, tokenValue)) {
         aExpires = tokenValue;
       }
 
     } else if (tokenString.LowerCaseEqualsLiteral(kMaxage)) {
-      if (CheckAttributeSize(aCRC, aHostURI, aCookieData, kMaxage,
-                             tokenValue)) {
+      if (CheckAttributeSize(aMaxage, kMaxage, tokenValue)) {
         aMaxage = tokenValue;
       }
 
       // ignore any tokenValue for isSecure; just set the boolean
     } else if (tokenString.LowerCaseEqualsLiteral(kSecure)) {
-      aCookieData.isSecure() = true;
+      mCookieData.isSecure() = true;
 
       // ignore any tokenValue for isPartitioned; just set the boolean
     } else if (tokenString.LowerCaseEqualsLiteral(kPartitioned)) {
-      aCookieData.isPartitioned() = true;
+      mCookieData.isPartitioned() = true;
 
       // ignore any tokenValue for isHttpOnly (see bug 178993);
       // just set the boolean
     } else if (tokenString.LowerCaseEqualsLiteral(kHttpOnly)) {
-      aCookieData.isHttpOnly() = true;
+      mCookieData.isHttpOnly() = true;
 
     } else if (tokenString.LowerCaseEqualsLiteral(kSameSite)) {
       if (tokenValue.LowerCaseEqualsLiteral(kSameSiteLax)) {
-        SetSameSiteAttribute(aCookieData, nsICookie::SAMESITE_LAX);
+        SetSameSiteAttribute(mCookieData, nsICookie::SAMESITE_LAX);
       } else if (tokenValue.LowerCaseEqualsLiteral(kSameSiteStrict)) {
-        SetSameSiteAttribute(aCookieData, nsICookie::SAMESITE_STRICT);
+        SetSameSiteAttribute(mCookieData, nsICookie::SAMESITE_STRICT);
       } else if (tokenValue.LowerCaseEqualsLiteral(kSameSiteNone)) {
-        SetSameSiteAttribute(aCookieData, nsICookie::SAMESITE_NONE);
+        SetSameSiteAttribute(mCookieData, nsICookie::SAMESITE_NONE);
       } else {
         // Reset to Default if unknown token value (see Bug 1682450)
-        SetSameSiteAttributeDefault(aCookieData);
-        CookieLogging::LogMessageToConsole(
-            aCRC, aHostURI, nsIScriptError::infoFlag, CONSOLE_SAMESITE_CATEGORY,
-            "CookieSameSiteValueInvalid2"_ns,
-            AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(aCookieData.name())});
+        SetSameSiteAttributeDefault(mCookieData);
+        mWarnings.mInvalidSameSiteAttribute = true;
       }
     }
   }
@@ -342,60 +503,42 @@ bool CookieParser::ParseAttributes(nsIConsoleReportCollector* aCRC,
 
   // If same-site is explicitly set to 'none' but this is not a secure context,
   // let's abort the parsing.
-  if (!aCookieData.isSecure() &&
-      aCookieData.sameSite() == nsICookie::SAMESITE_NONE) {
+  if (!mCookieData.isSecure() &&
+      mCookieData.sameSite() == nsICookie::SAMESITE_NONE) {
     if (StaticPrefs::network_cookie_sameSite_noneRequiresSecure()) {
-      CookieLogging::LogMessageToConsole(
-          aCRC, aHostURI, nsIScriptError::errorFlag, CONSOLE_SAMESITE_CATEGORY,
-          "CookieRejectedNonRequiresSecure2"_ns,
-          AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(aCookieData.name())});
+      RejectCookie(RejectedNoneRequiresSecure);
       return newCookie;
     }
 
     // Still warn about the missing Secure attribute when not enforcing.
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_SAMESITE_CATEGORY,
-        "CookieRejectedNonRequiresSecureForBeta3"_ns,
-        AutoTArray<nsString, 2>{NS_ConvertUTF8toUTF16(aCookieData.name()),
-                                SAMESITE_MDN_URL});
+    mWarnings.mSameSiteNoneRequiresSecureForBeta = true;
   }
 
   // Ensure the partitioned cookie is set with the secure attribute if CHIPS
   // is enabled.
   if (StaticPrefs::network_cookie_CHIPS_enabled() &&
-      aCookieData.isPartitioned() && !aCookieData.isSecure()) {
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::errorFlag, CONSOLE_REJECTION_CATEGORY,
-        "CookieRejectedPartitionedRequiresSecure"_ns,
-        AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(aCookieData.name())});
-
+      mCookieData.isPartitioned() && !mCookieData.isSecure()) {
+    RejectCookie(RejectedPartitionedRequiresSecure);
     return newCookie;
   }
 
-  if (aCookieData.rawSameSite() == nsICookie::SAMESITE_NONE &&
-      aCookieData.sameSite() == nsICookie::SAMESITE_LAX) {
+  if (mCookieData.rawSameSite() == nsICookie::SAMESITE_NONE &&
+      mCookieData.sameSite() == nsICookie::SAMESITE_LAX) {
     bool laxByDefault =
         StaticPrefs::network_cookie_sameSite_laxByDefault() &&
         !nsContentUtils::IsURIInPrefList(
-            aHostURI, "network.cookie.sameSite.laxByDefault.disabledHosts");
+            mHostURI, "network.cookie.sameSite.laxByDefault.disabledHosts");
     if (laxByDefault) {
-      CookieLogging::LogMessageToConsole(
-          aCRC, aHostURI, nsIScriptError::infoFlag, CONSOLE_SAMESITE_CATEGORY,
-          "CookieLaxForced2"_ns,
-          AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(aCookieData.name())});
+      mWarnings.mSameSiteLaxForced = true;
     } else {
-      CookieLogging::LogMessageToConsole(
-          aCRC, aHostURI, nsIScriptError::warningFlag,
-          CONSOLE_SAMESITE_CATEGORY, "CookieLaxForcedForBeta2"_ns,
-          AutoTArray<nsString, 2>{NS_ConvertUTF8toUTF16(aCookieData.name()),
-                                  SAMESITE_MDN_URL});
+      mWarnings.mSameSiteLaxForcedForBeta = true;
     }
   }
 
   // Cookie accepted.
   aAcceptedByParser = true;
 
-  MOZ_ASSERT(Cookie::ValidateSameSite(aCookieData));
+  MOZ_ASSERT(Cookie::ValidateSameSite(mCookieData));
   return newCookie;
 }
 
@@ -432,20 +575,18 @@ nsAutoCString GetPathFromURI(nsIURI* aHostURI) {
 
 }  // namespace
 
-bool CookieParser::CheckPath(CookieStruct& aCookieData,
-                             nsIConsoleReportCollector* aCRC,
-                             nsIURI* aHostURI) {
+bool CookieParser::CheckPath() {
   // if a path is given, check the host has permission
-  if (aCookieData.path().IsEmpty() || aCookieData.path().First() != '/') {
-    nsAutoCString path = GetPathFromURI(aHostURI);
-    if (CheckAttributeSize(aCRC, aHostURI, aCookieData, ATTRIBUTE_PATH, path)) {
-      aCookieData.path() = path;
+  if (mCookieData.path().IsEmpty() || mCookieData.path().First() != '/') {
+    nsAutoCString path = GetPathFromURI(mHostURI);
+    if (CheckAttributeSize(mCookieData.path(), ATTRIBUTE_PATH, path)) {
+      mCookieData.path() = path;
     }
   }
 
-  MOZ_ASSERT(CookieCommons::CheckPathSize(aCookieData));
+  MOZ_ASSERT(CookieCommons::CheckPathSize(mCookieData));
 
-  return !aCookieData.path().Contains('\t');
+  return !mCookieData.path().Contains('\t');
 }
 
 // static
@@ -655,20 +796,16 @@ static void RecordPartitionedTelemetry(const CookieStruct& aCookieData,
 
 // processes a single cookie, and returns true if there are more cookies
 // to be processed
-bool CookieParser::CanSetCookie(
-    nsIURI* aHostURI, const nsACString& aBaseDomain, CookieStruct& aCookieData,
-    bool aRequireHostMatch, CookieStatus aStatus, nsCString& aCookieHeader,
-    bool aFromHttp, bool aIsForeignAndNotAddon, bool aPartitionedOnly,
-    bool aIsInPrivateBrowsing, nsIConsoleReportCollector* aCRC,
-    bool& aSetCookie) {
-  MOZ_ASSERT(aHostURI);
-
-  aSetCookie = false;
+bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
+                         CookieStatus aStatus, nsCString& aCookieHeader,
+                         bool aFromHttp, bool aIsForeignAndNotAddon,
+                         bool aPartitionedOnly, bool aIsInPrivateBrowsing) {
+  MOZ_ASSERT(!mContainsCookie);
 
   // init expiryTime such that session cookies won't prematurely expire
-  aCookieData.expiry() = INT64_MAX;
+  mCookieData.expiry() = INT64_MAX;
 
-  aCookieData.schemeMap() = CookieCommons::URIToSchemeType(aHostURI);
+  mCookieData.schemeMap() = CookieCommons::URIToSchemeType(mHostURI);
 
   // aCookieHeader is an in/out param to point to the next cookie, if
   // there is one. Save the present value for logging purposes
@@ -679,8 +816,8 @@ bool CookieParser::CanSetCookie(
   nsAutoCString expires;
   nsAutoCString maxage;
   bool acceptedByParser = false;
-  bool newCookie = ParseAttributes(aCRC, aHostURI, aCookieHeader, aCookieData,
-                                   expires, maxage, acceptedByParser);
+  bool newCookie =
+      ParseAttributes(aCookieHeader, expires, maxage, acceptedByParser);
   if (!acceptedByParser) {
     return newCookie;
   }
@@ -693,153 +830,106 @@ bool CookieParser::CanSetCookie(
   // 2 = secure and "http:"
   // 3 = secure and "https:"
   bool potentiallyTrustworthy =
-      nsMixedContentBlocker::IsPotentiallyTrustworthyOrigin(aHostURI);
+      nsMixedContentBlocker::IsPotentiallyTrustworthyOrigin(mHostURI);
 
   int64_t currentTimeInUsec = PR_Now();
 
   // calculate expiry time of cookie.
-  aCookieData.isSession() =
-      GetExpiry(aCookieData, expires, maxage,
+  mCookieData.isSession() =
+      GetExpiry(mCookieData, expires, maxage,
                 currentTimeInUsec / PR_USEC_PER_SEC, aFromHttp);
   if (aStatus == STATUS_ACCEPT_SESSION) {
     // force lifetime to session. note that the expiration time, if set above,
     // will still apply.
-    aCookieData.isSession() = true;
+    mCookieData.isSession() = true;
   }
 
   // reject cookie if name and value are empty, per RFC6265bis
-  if (aCookieData.name().IsEmpty() && aCookieData.value().IsEmpty()) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+  if (mCookieData.name().IsEmpty() && mCookieData.value().IsEmpty()) {
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
                       "cookie name and value are empty");
 
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_REJECTION_CATEGORY,
-        "CookieRejectedEmptyNameAndValue"_ns, nsTArray<nsString>());
+    RejectCookie(RejectedEmptyNameAndValue);
     return newCookie;
   }
 
   // reject cookie if it's over the size limit, per RFC2109
-  if (!CookieCommons::CheckNameAndValueSize(aCookieData)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+  if (!CookieCommons::CheckNameAndValueSize(mCookieData)) {
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
                       "cookie too big (> 4kb)");
-
-    AutoTArray<nsString, 2> params = {
-        NS_ConvertUTF8toUTF16(aCookieData.name())};
-
-    nsString size;
-    size.AppendInt(kMaxBytesPerCookie);
-    params.AppendElement(size);
-
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_OVERSIZE_CATEGORY,
-        "CookieOversize"_ns, params);
+    RejectCookie(RejectedNameValueOversize);
     return newCookie;
   }
 
-  CookieCommons::RecordUnicodeTelemetry(aCookieData);
+  CookieCommons::RecordUnicodeTelemetry(mCookieData);
 
   // We count SetCookie operations in the parent process only for HTTP set
   // cookies to prevent double counting.
   if (XRE_IsParentProcess() || !aFromHttp) {
-    RecordPartitionedTelemetry(aCookieData, aIsForeignAndNotAddon);
+    RecordPartitionedTelemetry(mCookieData, aIsForeignAndNotAddon);
   }
 
-  if (!CookieCommons::CheckName(aCookieData)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+  if (!CookieCommons::CheckName(mCookieData)) {
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
                       "invalid name character");
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_REJECTION_CATEGORY,
-        "CookieRejectedInvalidCharName"_ns,
-        AutoTArray<nsString, 1>{
-            NS_ConvertUTF8toUTF16(aCookieData.name()),
-        });
+    RejectCookie(RejectedInvalidCharName);
     return newCookie;
   }
 
   // domain & path checks
-  if (!CheckDomain(aCookieData, aHostURI, aBaseDomain, aRequireHostMatch)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+  if (!CheckDomain(mCookieData, mHostURI, aBaseDomain, aRequireHostMatch)) {
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
                       "failed the domain tests");
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_REJECTION_CATEGORY,
-        "CookieRejectedInvalidDomain"_ns,
-        AutoTArray<nsString, 1>{
-            NS_ConvertUTF8toUTF16(aCookieData.name()),
-        });
+    RejectCookie(RejectedInvalidDomain);
     return newCookie;
   }
 
-  if (!CheckPath(aCookieData, aCRC, aHostURI)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+  if (!CheckPath()) {
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
                       "failed the path tests");
     return newCookie;
   }
 
   // If a cookie is nameless, then its value must not start with
   // `__Host-` or `__Secure-`
-  if (aCookieData.name().IsEmpty() && (HasSecurePrefix(aCookieData.value()) ||
-                                       HasHostPrefix(aCookieData.value()))) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+  if (mCookieData.name().IsEmpty() && (HasSecurePrefix(mCookieData.value()) ||
+                                       HasHostPrefix(mCookieData.value()))) {
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
                       "failed hidden prefix tests");
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_REJECTION_CATEGORY,
-        "CookieRejectedInvalidPrefix"_ns,
-        AutoTArray<nsString, 1>{
-            NS_ConvertUTF8toUTF16(aCookieData.name()),
-        });
+    RejectCookie(RejectedInvalidPrefix);
     return newCookie;
   }
 
   // magic prefix checks. MUST be run after CheckDomain() and CheckPath()
-  if (!CheckPrefixes(aCookieData, potentiallyTrustworthy)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+  if (!CheckPrefixes(mCookieData, potentiallyTrustworthy)) {
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
                       "failed the prefix tests");
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_REJECTION_CATEGORY,
-        "CookieRejectedInvalidPrefix"_ns,
-        AutoTArray<nsString, 1>{
-            NS_ConvertUTF8toUTF16(aCookieData.name()),
-        });
+    RejectCookie(RejectedInvalidPrefix);
     return newCookie;
   }
 
-  if (!CookieCommons::CheckValue(aCookieData)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+  if (!CookieCommons::CheckValue(mCookieData)) {
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
                       "invalid value character");
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_REJECTION_CATEGORY,
-        "CookieRejectedInvalidCharValue"_ns,
-        AutoTArray<nsString, 1>{
-            NS_ConvertUTF8toUTF16(aCookieData.name()),
-        });
+    RejectCookie(RejectedInvalidCharValue);
     return newCookie;
   }
 
   // if the new cookie is httponly, make sure we're not coming from script
-  if (!aFromHttp && aCookieData.isHttpOnly()) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+  if (!aFromHttp && mCookieData.isHttpOnly()) {
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
                       "cookie is httponly; coming from script");
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_REJECTION_CATEGORY,
-        "CookieRejectedHttpOnlyButFromScript"_ns,
-        AutoTArray<nsString, 1>{
-            NS_ConvertUTF8toUTF16(aCookieData.name()),
-        });
+    RejectCookie(RejectedHttpOnlyButFromScript);
     return newCookie;
   }
 
   // If the new cookie is non-https and wants to set secure flag,
   // browser have to ignore this new cookie.
   // (draft-ietf-httpbis-cookie-alone section 3.1)
-  if (aCookieData.isSecure() && !potentiallyTrustworthy) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
+  if (mCookieData.isSecure() && !potentiallyTrustworthy) {
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, aCookieHeader,
                       "non-https cookie can't set secure flag");
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_REJECTION_CATEGORY,
-        "CookieRejectedSecureButNonHttps"_ns,
-        AutoTArray<nsString, 1>{
-            NS_ConvertUTF8toUTF16(aCookieData.name()),
-        });
+    RejectCookie(RejectedSecureButNonHttps);
     return newCookie;
   }
 
@@ -848,20 +938,14 @@ bool CookieParser::CanSetCookie(
   bool laxByDefault =
       StaticPrefs::network_cookie_sameSite_laxByDefault() &&
       !nsContentUtils::IsURIInPrefList(
-          aHostURI, "network.cookie.sameSite.laxByDefault.disabledHosts");
+          mHostURI, "network.cookie.sameSite.laxByDefault.disabledHosts");
   auto effectiveSameSite =
-      laxByDefault ? aCookieData.sameSite() : aCookieData.rawSameSite();
+      laxByDefault ? mCookieData.sameSite() : mCookieData.rawSameSite();
   if ((effectiveSameSite != nsICookie::SAMESITE_NONE) &&
       aIsForeignAndNotAddon) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
                       "failed the samesite tests");
-
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_SAMESITE_CATEGORY,
-        "CookieRejectedForNonSameSiteness"_ns,
-        AutoTArray<nsString, 1>{
-            NS_ConvertUTF8toUTF16(aCookieData.name()),
-        });
+    RejectCookie(RejectedForNonSameSiteness);
     return newCookie;
   }
 
@@ -869,32 +953,28 @@ bool CookieParser::CanSetCookie(
   // but is foreign we should give the developer a message.
   // If CHIPS isn't required yet, we will warn the console
   // that we have upcoming changes. Otherwise we give a rejection message.
-  if (aPartitionedOnly && !aCookieData.isPartitioned() &&
+  if (aPartitionedOnly && !mCookieData.isPartitioned() &&
       aIsForeignAndNotAddon) {
     if (StaticPrefs::network_cookie_cookieBehavior_optInPartitioning() ||
         (aIsInPrivateBrowsing &&
          StaticPrefs::
              network_cookie_cookieBehavior_optInPartitioning_pbmode())) {
-      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+      COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
                         "foreign cookies must be partitioned");
-      CookieLogging::LogMessageToConsole(
-          aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_CHIPS_CATEGORY,
-          "CookieForeignNoPartitionedError"_ns,
-          AutoTArray<nsString, 1>{
-              NS_ConvertUTF8toUTF16(aCookieData.name()),
-          });
+      RejectCookie(RejectedForeignNoPartitionedError);
       return newCookie;
     }
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_CHIPS_CATEGORY,
-        "CookieForeignNoPartitionedWarning"_ns,
-        AutoTArray<nsString, 1>{
-            NS_ConvertUTF8toUTF16(aCookieData.name()),
-        });
+    mWarnings.mForeignNoPartitionedWarning = true;
   }
 
-  aSetCookie = true;
+  mContainsCookie = true;
   return newCookie;
+}
+
+void CookieParser::RejectCookie(Rejection aRejection) {
+  MOZ_ASSERT(mRejection == NoRejection);
+  MOZ_ASSERT(aRejection != NoRejection);
+  mRejection = aRejection;
 }
 
 }  // namespace net

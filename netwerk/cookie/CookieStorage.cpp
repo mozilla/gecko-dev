@@ -6,6 +6,7 @@
 #include "Cookie.h"
 #include "CookieCommons.h"
 #include "CookieLogging.h"
+#include "CookieParser.h"
 #include "CookieNotification.h"
 #include "mozilla/net/MozURL_ffi.h"
 #include "nsCOMPtr.h"
@@ -498,7 +499,7 @@ void CookieStorage::NotifyChanged(nsISupports* aSubject,
 // replaces an existing cookie; or adds the cookie to the hashtable, and
 // deletes a cookie (if maximum number of cookies has been reached). also
 // performs list maintenance by removing expired cookies.
-void CookieStorage::AddCookie(nsIConsoleReportCollector* aCRC,
+void CookieStorage::AddCookie(CookieParser* aCookieParser,
                               const nsACString& aBaseDomain,
                               const OriginAttributes& aOriginAttributes,
                               Cookie* aCookie, int64_t aCurrentTimeInUsec,
@@ -517,7 +518,6 @@ void CookieStorage::AddCookie(nsIConsoleReportCollector* aCRC,
     potentiallyTrustworthy =
         nsMixedContentBlocker::IsPotentiallyTrustworthyOrigin(aHostURI);
   }
-  constexpr auto CONSOLE_REJECTION_CATEGORY = "cookiesRejection"_ns;
   bool oldCookieIsSession = false;
   // Step1, call FindSecureCookie(). FindSecureCookie() would
   // find the existing cookie with the security flag and has
@@ -536,12 +536,9 @@ void CookieStorage::AddCookie(nsIConsoleReportCollector* aCRC,
     COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
                       "cookie can't save because older cookie is secure "
                       "cookie but newer cookie is non-secure cookie");
-    CookieLogging::LogMessageToConsole(
-        aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_REJECTION_CATEGORY,
-        "CookieRejectedNonsecureOverSecure"_ns,
-        AutoTArray<nsString, 1>{
-            NS_ConvertUTF8toUTF16(aCookie->Name()),
-        });
+    if (aCookieParser) {
+      aCookieParser->RejectCookie(CookieParser::RejectedNonsecureOverSecure);
+    }
     return;
   }
 
@@ -581,13 +578,10 @@ void CookieStorage::AddCookie(nsIConsoleReportCollector* aCRC,
         COOKIE_LOGFAILURE(
             SET_COOKIE, aHostURI, aCookieHeader,
             "previously stored cookie is httponly; coming from script");
-        CookieLogging::LogMessageToConsole(
-            aCRC, aHostURI, nsIScriptError::warningFlag,
-            CONSOLE_REJECTION_CATEGORY,
-            "CookieRejectedHttpOnlyButFromScript"_ns,
-            AutoTArray<nsString, 1>{
-                NS_ConvertUTF8toUTF16(aCookie->Name()),
-            });
+        if (aCookieParser) {
+          aCookieParser->RejectCookie(
+              CookieParser::RejectedHttpOnlyButFromScript);
+        }
         return;
       }
 
