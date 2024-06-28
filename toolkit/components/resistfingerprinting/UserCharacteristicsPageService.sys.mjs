@@ -8,6 +8,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   HiddenFrame: "resource://gre/modules/HiddenFrame.sys.mjs",
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
+  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
@@ -215,7 +217,9 @@ export class UserCharacteristicsPageService {
       [this.populateCPUInfo, []],
     ];
     const results = await Promise.allSettled(
-      populateFuncs.map(([f, args]) => f(...args))
+      populateFuncs.map(([f, args]) =>
+        timeoutPromise(f(...args), 5 * 60 * 1000)
+      )
     );
 
     const errors = JSON.parse(data?.output?.errors ?? "[]");
@@ -438,4 +442,23 @@ async function stringifyError(error) {
     return asStr.length > asJson.len ? asStr : asJson;
   })();
   return errStr;
+}
+
+function timeoutPromise(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timeoutId = lazy.setTimeout(() => {
+      reject(new Error("TIMEOUT"));
+    }, ms);
+
+    promise.then(
+      value => {
+        lazy.clearTimeout(timeoutId);
+        resolve(value);
+      },
+      error => {
+        lazy.clearTimeout(timeoutId);
+        reject(error);
+      }
+    );
+  });
 }
