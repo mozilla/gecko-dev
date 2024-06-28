@@ -2085,6 +2085,12 @@ export class BackupService extends EventTarget {
 
       let meta = manifest.meta;
 
+      if (meta.appName != AppConstants.MOZ_APP_NAME) {
+        throw new Error(
+          `Cannot recover a backup from ${meta.appName} in ${AppConstants.MOZ_APP_NAME}`
+        );
+      }
+
       // Okay, we have a valid backup-manifest.json. Let's create a new profile
       // and start invoking the recover() method on each BackupResource.
       let profileSvc = Cc["@mozilla.org/toolkit/profile-service;1"].getService(

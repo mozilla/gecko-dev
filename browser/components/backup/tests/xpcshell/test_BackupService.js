@@ -374,6 +374,17 @@ add_task(async function test_recoverFromSnapshotFolder() {
 
   let { stagingPath } = await bs.createBackup({ profilePath: oldProfilePath });
 
+  // Ensure that the appName in the written manifest matches the current
+  // MOZ_APP_NAME.
+  let manifest = await IOUtils.readJSON(
+    PathUtils.join(stagingPath, BackupService.MANIFEST_FILE_NAME)
+  );
+  Assert.equal(
+    manifest.meta.appName,
+    AppConstants.MOZ_APP_NAME,
+    "appName matches MOZ_APP_NAME"
+  );
+
   let testTelemetryStateObject = {
     clientID: "ed209123-04a1-04a1-04a1-c0ffeec0ffee",
   };
