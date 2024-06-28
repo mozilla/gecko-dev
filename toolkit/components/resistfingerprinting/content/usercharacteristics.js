@@ -887,6 +887,40 @@ function populateAudioFingerprint() {
   };
 }
 
+function populatePointerInfo() {
+  const capabilities = {
+    None: 0,
+    Coarse: 1 << 0,
+    Fine: 1 << 1,
+  };
+
+  const q = {
+    isCoarse: matchMedia("(pointer: coarse)").matches,
+    isFine: matchMedia("(pointer: fine)").matches,
+    isAnyCoarse: matchMedia("(any-pointer: coarse)").matches,
+    isAnyFine: matchMedia("(any-pointer: fine)").matches,
+  };
+
+  // Pointer media query matches for primary pointer. So, it can be
+  // only one of coarse/fine/none.
+  let pointerType;
+  if (q.isCoarse) {
+    pointerType = capabilities.Coarse;
+  } else {
+    pointerType = q.isFine ? capabilities.Fine : capabilities.None;
+  }
+
+  // Any-pointer media query matches for any pointer available. So, it
+  // can be both coarse and fine value, be one of them, or none.
+  const anyPointerType =
+    (q.isAnyCoarse && capabilities.Coarse) | (q.isAnyFine && capabilities.Fine);
+
+  return {
+    pointerType,
+    anyPointerType,
+  };
+}
+
 // =======================================================================
 // Setup & Populating
 
@@ -912,6 +946,7 @@ const LocalFiraSans = new FontFace(
     populateVoiceList,
     populateMediaCapabilities,
     populateAudioFingerprint,
+    populatePointerInfo,
   ];
   // Catches errors in promise-creating functions. E.g. if populateVoiceList
   // throws an error before returning any of its `key: (Promise<any> | any)`
