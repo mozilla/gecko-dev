@@ -92,8 +92,8 @@ TEST(BitWriter, SPS)
 
   auto testOutput = [&](uint8_t aProfile, uint8_t aConstraints, uint8_t aLevel,
                         gfx::IntSize aSize, char const* aDesc) {
-    RefPtr<MediaByteBuffer> extraData =
-        H264::CreateExtraData(aProfile, aConstraints, aLevel, aSize);
+    RefPtr<MediaByteBuffer> extraData = H264::CreateExtraData(
+        aProfile, aConstraints, H264_LEVEL{aLevel}, aSize);
     SPSData spsData;
     success = H264::DecodeSPSFromExtraData(extraData, spsData);
     EXPECT_EQ(success, true) << aDesc;
