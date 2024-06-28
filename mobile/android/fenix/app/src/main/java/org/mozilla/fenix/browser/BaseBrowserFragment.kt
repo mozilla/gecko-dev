@@ -1457,6 +1457,9 @@ abstract class BaseBrowserFragment :
                                     ),
                                 )
                             },
+                            onTabsButtonLongPress = {
+                                NavigationBar.browserTabTrayLongTapped.record(NoExtras())
+                            },
                             onMenuButtonClick = {
                                 findNavController().nav(
                                     R.id.browserFragment,

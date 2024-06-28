@@ -1,8 +1,11 @@
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
+import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.RetryTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
@@ -192,5 +195,20 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
         }.dismissSearchBar {
             verifyIfInPrivateOrNormalMode(privateBrowsingEnabled = false)
         }
+    }
+
+    @Test
+    fun verifyTabsCounterShortcutMenuFromNavbarRecordsTelemetry() {
+        composeTestRule.activityRule.applySettingsExceptions {
+            it.isNavigationToolbarEnabled = true
+        }
+        val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(defaultWebPage.url) { }
+
+        assertNull(NavigationBar.browserTabTrayLongTapped.testGetValue())
+        navigationToolbar {
+        }.openTabButtonShortcutsMenu { }
+        assertNotNull(NavigationBar.browserTabTrayLongTapped.testGetValue())
     }
 }

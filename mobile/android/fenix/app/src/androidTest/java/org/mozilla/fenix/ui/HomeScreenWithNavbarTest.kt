@@ -1,8 +1,11 @@
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
+import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.RetryTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
@@ -102,5 +105,18 @@ class HomeScreenWithNavbarTest : TestSetup() {
         }.openTabButtonShortcutsMenu {
             verifyTabButtonShortcutMenuItemsForPrivateHomescreen()
         }
+    }
+
+    @Test
+    fun verifyTabsCounterShortcutMenuFromNavbarRecordsTelemetry() {
+        composeTestRule.activityRule.applySettingsExceptions {
+            it.isNavigationToolbarEnabled = true
+        }
+        restartApp(composeTestRule.activityRule)
+
+        assertNull(NavigationBar.homeTabTrayLongTapped.testGetValue())
+        navigationToolbar {
+        }.openTabButtonShortcutsMenu { }
+        assertNotNull(NavigationBar.homeTabTrayLongTapped.testGetValue())
     }
 }

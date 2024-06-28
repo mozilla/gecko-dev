@@ -672,6 +672,9 @@ class HomeFragment : Fragment() {
                                     ),
                                 )
                             },
+                            onTabsButtonLongPress = {
+                                NavigationBar.homeTabTrayLongTapped.record(NoExtras())
+                            },
                             onMenuButtonClick = {
                                 findNavController().nav(
                                     findNavController().currentDestination?.id,

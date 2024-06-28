@@ -11684,6 +11684,19 @@ navigation_bar:
     notification_emails:
       - android-probes@mozilla.com
     expires: never
+  home_tab_tray_long_tapped:
+    type: event
+    description: |
+      When navigation bar tab tray button is long tapped by the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894512
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D214362
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
   home_menu_tapped:
     type: event
     description: |
@@ -11757,6 +11770,19 @@ navigation_bar:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1889484
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1889484
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  browser_tab_tray_long_tapped:
+    type: event
+    description: |
+      When navigation bar tab tray button is long tapped by the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894512
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D214362
     data_sensitivity:
       - interaction
     notification_emails:

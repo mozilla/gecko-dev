@@ -65,6 +65,7 @@ import org.mozilla.fenix.theme.ThemeManager
  * @param onHomeButtonClick Invoked when the user clicks on the home button in the navigation bar.
  * @param onNewTabButtonClick Invoked when the user click on the new tab button in the navigation bar.
  * @param onTabsButtonClick Invoked when the user clicks on the tabs button in the navigation bar.
+ * @param onTabsButtonLongPress Invoked when the user long-presses the tabs button in the navigation bar.
  * @param onMenuButtonClick Invoked when the user clicks on the menu button in the navigation bar.
  * @param isMenuRedesignEnabled Whether or not the menu redesign is enabled.
  */
@@ -84,6 +85,7 @@ fun BrowserNavBar(
     onHomeButtonClick: () -> Unit,
     onNewTabButtonClick: () -> Unit,
     onTabsButtonClick: () -> Unit,
+    onTabsButtonLongPress: () -> Unit,
     onMenuButtonClick: () -> Unit,
     isMenuRedesignEnabled: Boolean = components.settings.enableMenuRedesign,
 ) {
@@ -128,6 +130,7 @@ fun BrowserNavBar(
             isFeltPrivateBrowsingEnabled = isFeltPrivateBrowsingEnabled,
             onClick = onTabsButtonClick,
             menu = tabsCounterMenu,
+            onLongPress = onTabsButtonLongPress,
         )
 
         MenuButton(
@@ -151,6 +154,7 @@ fun BrowserNavBar(
  * @param onSearchButtonClick Invoked when the user clicks the search button in the nav bar. The button
  * is visible only on home screen and activates [SearchDialogFragment].
  * @param onTabsButtonClick Invoked when the user clicks the tabs button in the nav bar.
+ * @param onTabsButtonLongPress Invoked when the user long-presses the tabs button in the nav bar.
  * @param onMenuButtonClick Invoked when the user clicks on the menu button in the navigation bar.
  * @param isMenuRedesignEnabled Whether or not the menu redesign is enabled.
  */
@@ -164,6 +168,7 @@ fun HomeNavBar(
     tabsCounterMenu: TabCounterMenu,
     onSearchButtonClick: () -> Unit,
     onTabsButtonClick: () -> Unit,
+    onTabsButtonLongPress: () -> Unit,
     onMenuButtonClick: () -> Unit,
     isMenuRedesignEnabled: Boolean = components.settings.enableMenuRedesign,
 ) {
@@ -208,6 +213,7 @@ fun HomeNavBar(
             isFeltPrivateBrowsingEnabled = isFeltPrivateBrowsingEnabled,
             onClick = onTabsButtonClick,
             menu = tabsCounterMenu,
+            onLongPress = onTabsButtonLongPress,
         )
 
         MenuButton(
@@ -449,6 +455,7 @@ private fun HomeNavBarPreviewRoot(
         tabsCounterMenu = tabsCounterMenu,
         onSearchButtonClick = {},
         onTabsButtonClick = {},
+        onTabsButtonLongPress = {},
         onMenuButtonClick = {},
         isMenuRedesignEnabled = false,
     )
@@ -487,6 +494,7 @@ private fun OpenTabNavBarNavBarPreviewRoot(isPrivateMode: Boolean) {
         onHomeButtonClick = {},
         onNewTabButtonClick = {},
         onTabsButtonClick = {},
+        onTabsButtonLongPress = {},
         onMenuButtonClick = {},
         isMenuRedesignEnabled = false,
     )
