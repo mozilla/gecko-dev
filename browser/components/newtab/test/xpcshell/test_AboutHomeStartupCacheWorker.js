@@ -85,6 +85,10 @@ add_setup(async function () {
     "browser.newtabpage.activity-stream.newtabWallpapers.enabled",
     false
   );
+  Services.prefs.setBoolPref(
+    "browser.newtabpage.activity-stream.newtabWallpapers.v2.enabled",
+    false
+  );
 
   let defaultDSConfig = JSON.parse(
     PREFS_CONFIG.get("discoverystream.config").getValue({

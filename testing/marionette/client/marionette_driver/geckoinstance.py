@@ -49,6 +49,7 @@ class GeckoInstance(object):
         "browser.newtabpage.activity-stream.discoverystream.region-weather-config": "",
         # Don't pull wallpaper content from the network
         "browser.newtabpage.activity-stream.newtabWallpapers.enabled": False,
+        "browser.newtabpage.activity-stream.newtabWallpapers.v2.enabled": False,
         # Don't pull sponsored Top Sites content from the network
         "browser.newtabpage.activity-stream.showSponsoredTopSites": False,
         # Disable geolocation ping (#1)
