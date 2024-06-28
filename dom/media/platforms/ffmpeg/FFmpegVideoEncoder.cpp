@@ -372,6 +372,10 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
     // Explicitly ask encoder do not keep in flight at any one time for
     // lookahead purposes.
     mLib->av_opt_set(mCodecContext->priv_data, "lag-in-frames", "0", 0);
+
+    if (mConfig.mCodec == CodecType::VP8 || mConfig.mCodec == CodecType::VP9) {
+      mLib->av_opt_set(mCodecContext->priv_data, "error-resilient", "1", 0);
+    }
   }
 
   if (SvcEnabled()) {
