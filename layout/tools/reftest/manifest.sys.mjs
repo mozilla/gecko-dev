@@ -624,6 +624,11 @@ function BuildConditionSandbox(aURL) {
   sandbox.is64Bit = mozinfo.bits == "64";
   sandbox.AddressSanitizer = mozinfo.asan;
   sandbox.ThreadSanitizer = mozinfo.tsan;
+  sandbox.optimized =
+    !sandbox.isDebugBuild &&
+    !sandbox.isCoverageBuild &&
+    !sandbox.AddressSanitizer &&
+    !sandbox.ThreadSanitizer;
 
   sandbox.release_or_beta = mozinfo.release_or_beta;
 
