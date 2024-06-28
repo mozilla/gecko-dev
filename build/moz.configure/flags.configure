@@ -11,6 +11,80 @@ check_and_add_flag("-fno-sized-deallocation", compiler=cxx_compiler)
 # from the clang and GCC documentation, but they both support this.
 check_and_add_flag("-fno-aligned-new", compiler=cxx_compiler)
 
+
+# Detect static linkage of libstdc++
+# ==============================================================
+@depends(
+    cxx_compiler,
+    extra_toolchain_flags,
+    linker_ldflags,
+    llvm_objdump,
+    when=target_has_linux_kernel,
+)
+@checking("whether we're trying to statically link with libstdc++")
+@imports("os")
+@imports("re")
+@imports(_from="tempfile", _import="mkstemp")
+@imports(_from="mozbuild.shellutil", _import="split", _as="shell_split")
+def link_libstdcxx_statically(
+    cxx_compiler,
+    extra_toolchain_flags,
+    linker_ldflags,
+    llvm_objdump,
+):
+    fd, bin_path = mkstemp(prefix="conftest.", suffix=".out")
+    os.close(fd)
+
+    try:
+        # This test is quite conservative: it assumes dynamic linkage if the
+        # compilation step fails or if the binary format is not supported. But
+        # it still detects basic issues.
+
+        # FIXME: At some point we should make these dependencies explicit.
+        # See #1903233.
+        env_flags = []
+        if "CXXFLAGS" in os.environ:
+            env_flags.extend(shell_split(os.environ["CXXFLAGS"]))
+        if "LDFLAGS" in os.environ:
+            env_flags.extend(shell_split(os.environ["LDFLAGS"]))
+
+        if (
+            try_invoke_compiler(
+                None,
+                [cxx_compiler.compiler]
+                + env_flags
+                + cxx_compiler.flags
+                + linker_ldflags,
+                cxx_compiler.language,
+                """
+                    #include <iostream>
+                    int main() { std::cout << 1;}
+                """,
+                ["-o", bin_path] + (extra_toolchain_flags or []),
+                wrapper=cxx_compiler.wrapper,
+                onerror=lambda: None,
+            )
+            is not None
+        ):
+            objdump_command = [llvm_objdump, "--private-headers", bin_path]
+            result, stdout, stderr = get_cmd_output(*objdump_command)
+            # This is very conservative :-).
+            return (
+                result == 0
+                and not stderr
+                and not re.search("NEEDED.*lib(std)?c\\+\\+", stdout)
+            )
+
+    finally:
+        if os.path.exists(bin_path):
+            os.remove(bin_path)
+
+
+@depends(when=link_libstdcxx_statically)
+def check_libstdcxx_linkage():
+    die("Firefox does not support linking statically with libstdc++")
+
+
 # Identical Code Folding
 option(
     "--enable-icf",
