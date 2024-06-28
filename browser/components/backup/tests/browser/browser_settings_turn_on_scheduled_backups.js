@@ -215,17 +215,12 @@ add_task(async function test_turn_on_scheduled_backups_encryption() {
 
     let newPasswordInput = turnOnScheduledBackups.inputNewPasswordEl;
     let repeatPasswordInput = turnOnScheduledBackups.inputRepeatPasswordEl;
-    const mockPassword = "newpass";
 
     // Pretend we're entering a password in the new password field
-    let newPassPromise = new Promise(resolve => {
-      newPasswordInput.addEventListener("input", () => resolve(), {
-        once: true,
-      });
-    });
-    newPasswordInput.focus();
-    newPasswordInput.value = mockPassword;
-    newPasswordInput.dispatchEvent(new Event("input"));
+    let newPassPromise = createMockPassInputEventPromise(
+      newPasswordInput,
+      MOCK_PASSWORD
+    );
     await newPassPromise;
 
     // Pretend we're entering a password in the repeat field
@@ -241,14 +236,10 @@ add_task(async function test_turn_on_scheduled_backups_encryption() {
     );
 
     // Passwords match
-    let matchPassPromise = new Promise(resolve => {
-      repeatPasswordInput.addEventListener("input", () => resolve(), {
-        once: true,
-      });
-    });
-    repeatPasswordInput.focus();
-    repeatPasswordInput.value = mockPassword;
-    repeatPasswordInput.dispatchEvent(new Event("input"));
+    let matchPassPromise = createMockPassInputEventPromise(
+      repeatPasswordInput,
+      MOCK_PASSWORD
+    );
     await matchPassPromise;
     await confirmButtonPromise;
 
@@ -314,17 +305,12 @@ add_task(async function test_turn_on_scheduled_backups_encryption_error() {
 
     let newPasswordInput = turnOnScheduledBackups.inputNewPasswordEl;
     let repeatPasswordInput = turnOnScheduledBackups.inputRepeatPasswordEl;
-    const mockPassword = "newpass";
 
     // Pretend we're entering a password in the new password field
-    let newPassPromise = new Promise(resolve => {
-      newPasswordInput.addEventListener("input", () => resolve(), {
-        once: true,
-      });
-    });
-    newPasswordInput.focus();
-    newPasswordInput.value = mockPassword;
-    newPasswordInput.dispatchEvent(new Event("input"));
+    let newPassPromise = createMockPassInputEventPromise(
+      newPasswordInput,
+      MOCK_PASSWORD
+    );
     await newPassPromise;
 
     // Pretend we're entering a password in the repeat field
@@ -340,14 +326,10 @@ add_task(async function test_turn_on_scheduled_backups_encryption_error() {
     );
 
     // Passwords match
-    let matchPassPromise = new Promise(resolve => {
-      repeatPasswordInput.addEventListener("input", () => resolve(), {
-        once: true,
-      });
-    });
-    repeatPasswordInput.focus();
-    repeatPasswordInput.value = mockPassword;
-    repeatPasswordInput.dispatchEvent(new Event("input"));
+    let matchPassPromise = createMockPassInputEventPromise(
+      repeatPasswordInput,
+      MOCK_PASSWORD
+    );
     await matchPassPromise;
     await confirmButtonPromise;
 
