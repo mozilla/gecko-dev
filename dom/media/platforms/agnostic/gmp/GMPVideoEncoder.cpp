@@ -6,7 +6,6 @@
 
 #include "GMPVideoEncoder.h"
 
-#include "ErrorList.h"
 #include "H264.h"
 #include "GMPLog.h"
 #include "GMPUtils.h"
@@ -45,42 +44,41 @@ static GMPProfile ToGMPProfile(H264_PROFILE aProfile) {
 
 static GMPLevel ToGMPLevel(H264_LEVEL aLevel) {
   switch (aLevel) {
-    case H264_LEVEL::H264_LEVEL_1:
+    case H264_LEVEL_1:
       return kGMPH264Level1_0;
-    case H264_LEVEL::H264_LEVEL_1_1:
+    case H264_LEVEL_1_1:
       // H264_LEVEL_1_b has the same value as H264_LEVEL_1_1, while
       // kGMPH264Level1_B and kGMPH264Level1_1 differ. Since we can't tell the
       // difference, we just ignore the 1_b case.
       return kGMPH264Level1_1;
-    case H264_LEVEL::H264_LEVEL_1_2:
+    case H264_LEVEL_1_2:
       return kGMPH264Level1_2;
-    case H264_LEVEL::H264_LEVEL_1_3:
+    case H264_LEVEL_1_3:
       return kGMPH264Level1_3;
-    case H264_LEVEL::H264_LEVEL_2:
+    case H264_LEVEL_2:
       return kGMPH264Level2_0;
-    case H264_LEVEL::H264_LEVEL_2_1:
+    case H264_LEVEL_2_1:
       return kGMPH264Level2_1;
-    case H264_LEVEL::H264_LEVEL_2_2:
+    case H264_LEVEL_2_2:
       return kGMPH264Level2_2;
-    case H264_LEVEL::H264_LEVEL_3:
+    case H264_LEVEL_3:
       return kGMPH264Level3_0;
-    case H264_LEVEL::H264_LEVEL_3_1:
+    case H264_LEVEL_3_1:
       return kGMPH264Level3_1;
-    case H264_LEVEL::H264_LEVEL_3_2:
+    case H264_LEVEL_3_2:
       return kGMPH264Level3_2;
-    case H264_LEVEL::H264_LEVEL_4:
+    case H264_LEVEL_4:
       return kGMPH264Level4_0;
-    case H264_LEVEL::H264_LEVEL_4_1:
+    case H264_LEVEL_4_1:
       return kGMPH264Level4_1;
-    case H264_LEVEL::H264_LEVEL_4_2:
+    case H264_LEVEL_4_2:
       return kGMPH264Level4_2;
-    case H264_LEVEL::H264_LEVEL_5:
+    case H264_LEVEL_5:
       return kGMPH264Level5_0;
-    case H264_LEVEL::H264_LEVEL_5_1:
+    case H264_LEVEL_5_1:
       return kGMPH264Level5_1;
-    case H264_LEVEL::H264_LEVEL_5_2:
+    case H264_LEVEL_5_2:
       return kGMPH264Level5_2;
-    // 6.0 and above isn't supported.
     default:
       return kGMPH264LevelUnknown;
   }

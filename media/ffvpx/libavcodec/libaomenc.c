@@ -1396,25 +1396,6 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
         if (frame->pict_type == AV_PICTURE_TYPE_I)
             flags |= AOM_EFLAG_FORCE_KF;
-
-        AVDictionaryEntry*  en = av_dict_get(frame->metadata, "temporal_id", NULL, 0);
-        if (en) {
-            aom_svc_layer_id_t layer_id = {};
-            layer_id.temporal_layer_id = strtoul(en->value, NULL, 10);
-            av_log(avctx, AV_LOG_DEBUG, "Frame pts % " PRId64 " temporal layer id %d",
-                   frame->pts, layer_id.temporal_layer_id);
-            if (!ctx->svc_parameters) {
-                av_log(avctx, AV_LOG_WARNING,
-                       "Temporal SVC not enabled, but temporal layer id received.");
-            }
-            res = aom_codec_control(&ctx->encoder, AV1E_SET_SVC_LAYER_ID, &layer_id);
-            if (res != AOM_CODEC_OK) {
-                av_log(avctx, AV_LOG_ERROR,
-                       "Error setting temporal layer id %d on frame pts % " PRId64 "\n",
-                       layer_id.temporal_layer_id, frame->pts);
-                return res;
-            }
-        }
     }
 
     res = aom_codec_encode(&ctx->encoder, rawimg, timestamp, duration, flags);

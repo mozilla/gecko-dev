@@ -24,7 +24,7 @@ static already_AddRefed<MediaByteBuffer> GetExtraData() {
   // - constraint flags 0 and 1 set(0xc0) -- normal for baseline profile.
   // - level 4.0 (0x28 == 40).
   // - 1280 * 720 resolution.
-  return H264::CreateExtraData(0x42, 0xc0, H264_LEVEL{0x28}, {1280, 720});
+  return H264::CreateExtraData(0x42, 0xc0, 0x28, {1280, 720});
 }
 
 // Create an AVCC style sample with requested size in bytes. This sample is

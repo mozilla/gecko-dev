@@ -7,14 +7,12 @@
 #include <stdint.h>
 
 #include "CubebUtils.h"
-#include "H264.h"
 #include "ImageContainer.h"
 #include "MediaContainerType.h"
 #include "MediaResource.h"
 #include "PDMFactory.h"
 #include "TimeUnits.h"
 #include "mozilla/Base64.h"
-#include "mozilla/EnumeratedRange.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/SchedulerGroup.h"
@@ -449,7 +447,7 @@ bool ExtractVPXCodecDetails(const nsAString& aCodec, uint8_t& aProfile,
 }
 
 bool ExtractH264CodecDetails(const nsAString& aCodec, uint8_t& aProfile,
-                             uint8_t& aConstraint, H264_LEVEL& aLevel) {
+                             uint8_t& aConstraint, uint8_t& aLevel) {
   // H.264 codecs parameters have a type defined as avcN.PPCCLL, where
   // N = avc type. avc3 is avcc with SPS & PPS implicit (within stream)
   // PP = profile_idc, CC = constraint_set flags, LL = level_idc.
@@ -478,25 +476,13 @@ bool ExtractH264CodecDetails(const nsAString& aCodec, uint8_t& aProfile,
   aConstraint = Substring(aCodec, 7, 2).ToInteger(&rv, 16);
   NS_ENSURE_SUCCESS(rv, false);
 
-  uint8_t level = Substring(aCodec, 9, 2).ToInteger(&rv, 16);
+  aLevel = Substring(aCodec, 9, 2).ToInteger(&rv, 16);
   NS_ENSURE_SUCCESS(rv, false);
 
-  if (level == 9) {
-    level = static_cast<uint8_t>(H264_LEVEL::H264_LEVEL_1_b);
-  } else if (level <= 5) {
-    level *= 10;
-  }
-
-  // Check if valid level value
-  aLevel = static_cast<H264_LEVEL>(level);
-  if (aLevel < H264_LEVEL::H264_LEVEL_1 ||
-      aLevel > H264_LEVEL::H264_LEVEL_6_2) {
-    return false;
-  }
-  if ((level % 10) > 2) {
-    if (level != 13) {
-      return false;
-    }
+  if (aLevel == 9) {
+    aLevel = H264_LEVEL_1_b;
+  } else if (aLevel <= 5) {
+    aLevel *= 10;
   }
 
   return true;
@@ -1097,7 +1083,7 @@ static bool StartsWith(const nsACString& string, const char (&prefix)[N]) {
 bool IsH264CodecString(const nsAString& aCodec) {
   uint8_t profile = 0;
   uint8_t constraint = 0;
-  H264_LEVEL level;
+  uint8_t level = 0;
   return ExtractH264CodecDetails(aCodec, profile, constraint, level);
 }
 

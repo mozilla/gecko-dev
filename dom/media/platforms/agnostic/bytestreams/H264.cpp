@@ -1221,7 +1221,7 @@ bool H264::DecodeRecoverySEI(const mozilla::MediaByteBuffer* aSEI,
 }
 
 /*static */ already_AddRefed<mozilla::MediaByteBuffer> H264::CreateExtraData(
-    uint8_t aProfile, uint8_t aConstraints, H264_LEVEL aLevel,
+    uint8_t aProfile, uint8_t aConstraints, uint8_t aLevel,
     const gfx::IntSize& aSize) {
   // SPS of a 144p video.
   const uint8_t originSPS[] = {0x4d, 0x40, 0x0c, 0xe8, 0x80, 0x80, 0x9d,
@@ -1243,7 +1243,7 @@ bool H264::DecodeRecoverySEI(const mozilla::MediaByteBuffer* aSEI,
       aConstraints & ~0x3;  // Ensure reserved_zero_2bits are set to 0
   bw.WriteBits(aConstraints, 8);
   br.ReadBits(8);  // Skip original level_idc
-  bw.WriteU8(static_cast<uint8_t>(aLevel));
+  bw.WriteU8(aLevel);
   bw.WriteUE(br.ReadUE());  // seq_parameter_set_id (0 stored on 1 bit)
 
   if (aProfile == 100 || aProfile == 110 || aProfile == 122 ||
@@ -1296,7 +1296,7 @@ bool H264::DecodeRecoverySEI(const mozilla::MediaByteBuffer* aSEI,
   const uint8_t PPS[] = {0xeb, 0xef, 0x20};
 
   WriteExtraData(
-      extraData, aProfile, aConstraints, static_cast<uint8_t>(aLevel),
+      extraData, aProfile, aConstraints, aLevel,
       Span<const uint8_t>(encodedSPS->Elements(), encodedSPS->Length()),
       Span<const uint8_t>(PPS, sizeof(PPS)));
 

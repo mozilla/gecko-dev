@@ -26,7 +26,7 @@ enum H264_PROFILE {
   H264_PROFILE_HIGH = 0x64,
 };
 
-enum class H264_LEVEL {
+enum H264_LEVEL {
   H264_LEVEL_1 = 10,
   H264_LEVEL_1_b = 11,
   H264_LEVEL_1_1 = 11,
@@ -43,10 +43,7 @@ enum class H264_LEVEL {
   H264_LEVEL_4_2 = 42,
   H264_LEVEL_5 = 50,
   H264_LEVEL_5_1 = 51,
-  H264_LEVEL_5_2 = 52,
-  H264_LEVEL_6 = 60,
-  H264_LEVEL_6_1 = 61,
-  H264_LEVEL_6_2 = 62
+  H264_LEVEL_5_2 = 52
 };
 
 // Spec 7.4.2.1
@@ -532,7 +529,7 @@ class H264 {
   // Create a dummy extradata, useful to create a decoder and test the
   // capabilities of the decoder.
   static already_AddRefed<mozilla::MediaByteBuffer> CreateExtraData(
-      uint8_t aProfile, uint8_t aConstraints, H264_LEVEL aLevel,
+      uint8_t aProfile, uint8_t aConstraints, uint8_t aLevel,
       const gfx::IntSize& aSize);
   static void WriteExtraData(mozilla::MediaByteBuffer* aDestExtraData,
                              const uint8_t aProfile, const uint8_t aConstraints,

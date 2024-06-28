@@ -23,7 +23,6 @@ class FFmpegVideoEncoder : public MediaDataEncoder {};
 template <>
 class FFmpegVideoEncoder<LIBAV_VER> : public FFmpegDataEncoder<LIBAV_VER> {
   using DurationMap = SimpleMap<int64_t, int64_t, ThreadSafePolicy>;
-  using PtsMap = SimpleMap<int64_t, int64_t, NoOpPolicy>;
 
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(FFmpegVideoEncoder, final);
@@ -52,7 +51,6 @@ class FFmpegVideoEncoder<LIBAV_VER> : public FFmpegDataEncoder<LIBAV_VER> {
     // A key-value pair for av_opt_set.
     std::pair<nsCString, nsCString> mSettingKeyValue;
   };
-  bool SvcEnabled() const;
   Maybe<SVCSettings> GetSVCSettings();
   struct H264Settings {
     int mProfile;
@@ -63,20 +61,13 @@ class FFmpegVideoEncoder<LIBAV_VER> : public FFmpegDataEncoder<LIBAV_VER> {
   H264Settings GetH264Settings(const H264Specific& aH264Specific);
   struct SVCInfo {
     explicit SVCInfo(nsTArray<uint8_t>&& aTemporalLayerIds)
-        : mTemporalLayerIds(std::move(aTemporalLayerIds)), mCurrentIndex(0) {}
+        : mTemporalLayerIds(std::move(aTemporalLayerIds)), mNextIndex(0) {}
     const nsTArray<uint8_t> mTemporalLayerIds;
-    size_t mCurrentIndex;
-    void UpdateTemporalLayerId();
-    void ResetTemporalLayerId();
-    uint8_t CurrentTemporalLayerId();
+    size_t mNextIndex;
+    // Return the current temporal layer id and update the next.
+    uint8_t UpdateTemporalLayerId();
   };
   Maybe<SVCInfo> mSVCInfo{};
-  // Some codecs use the input frames pts for rate control. We'd rather only use
-  // the duration. Synthetize fake pts based on integrating over the duration of
-  // input frames.
-  int64_t mFakePts = 0;
-  int64_t mCurrentFramePts = 0;
-  PtsMap mPtsMap;
 };
 
 }  // namespace mozilla
