@@ -75,6 +75,9 @@ class ExtensionPolicyService final : public nsIAddonPolicyService,
   static RefPtr<extensions::WebExtensionPolicyCore> GetCoreByHost(
       const nsACString& aHost);
 
+  static RefPtr<extensions::WebExtensionPolicyCore> GetCoreByURL(
+      const extensions::URLInfo& aURL);
+
   WebExtensionPolicy* GetByID(nsAtom* aAddonId) {
     return mExtensions.GetWeak(aAddonId);
   }
