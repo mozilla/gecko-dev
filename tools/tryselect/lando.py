@@ -419,7 +419,7 @@ def push_to_lando_try(
     # Get the time when the push was initiated, not including Auth0 login time.
     push_start_time = time.perf_counter()
 
-    with vcs.try_commit(commit_message) as head:
+    with vcs.try_commit(commit_message, changed_files) as head:
         try:
             base_commit, patches = get_stack_info(vcs, head)
         except ValueError as exc:
