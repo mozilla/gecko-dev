@@ -1048,6 +1048,36 @@ pocket:
     send_in_pings:
       - spoc
 
+  thumb_voting_interaction:
+      type: event
+      description: >
+        Recorded when a thumbs up/down on a tile is clicked.
+        Only happens on click. Not on middle-click. Not on "Open in new Tab"-like
+        options in the context menu.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1902099
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1902099
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - mcrawford@mozilla.com
+      expires: never
+      extra_keys:
+        newtab_visit_id: *newtab_visit_id
+        recommendation_id: *recommendation_id
+        tile_id: *pocket_tile_id
+        thumbs_up:
+          description: >
+            If the user clicked thumbs up.
+          type: boolean
+        thumbs_down:
+          description: >
+            If the user clicked thumbs down.
+          type: boolean
+      send_in_pings:
+        - newtab
+
 messaging_system:
   event_context_parse_error:
     type: counter

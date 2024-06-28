@@ -180,6 +180,13 @@ module.exports = function (config) {
                 functions: 0,
                 branches: 0,
               },
+            "content-src/components/DiscoveryStreamComponents/DSCard/DSCard.jsx":
+              {
+                statements: 85.05,
+                lines: 84.62,
+                functions: 90.48,
+                branches: 67.44,
+              },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,
               lines: 90.48,
@@ -190,6 +197,15 @@ module.exports = function (config) {
              * WallpaperSection.jsx is tested via an xpcshell test
              */
             "content-src/components/WallpapersSection/*.jsx": {
+              statements: 0,
+              lines: 0,
+              functions: 0,
+              branches: 0,
+            },
+            /**
+             * Notifications.jsx is tested via an xpcshell test
+             */
+            "content-src/components/Notifications/**/*.jsx": {
               statements: 0,
               lines: 0,
               functions: 0,

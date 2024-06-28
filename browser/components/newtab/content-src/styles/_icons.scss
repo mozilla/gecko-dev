@@ -161,6 +161,10 @@
     background-image: url('chrome://global/skin/icons/check.svg');
   }
 
+  &.icon-check-filled {
+    background-image: url('chrome://global/skin/icons/check-filled.svg');
+  }
+
   &.icon-download {
     background-image: url('chrome://browser/skin/downloads/downloads.svg');
   }
@@ -225,5 +229,14 @@
 
   &.icon-arrow {
     background-image: url('chrome://global/skin/icons/arrow-right-12.svg');
+  }
+
+  &.icon-thumbs-up {
+    transform: rotate(180deg);
+    background-image: url('chrome://browser/skin/thumb-down.svg');
+  }
+
+  &.icon-thumbs-down {
+    background-image: url('chrome://browser/skin/thumb-down.svg');
   }
 }

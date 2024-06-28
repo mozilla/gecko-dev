@@ -155,6 +155,7 @@ for (const type of [
   "HANDOFF_SEARCH_TO_AWESOMEBAR",
   "HIDE_PERSONALIZE",
   "HIDE_PRIVACY_INFO",
+  "HIDE_TOAST_MESSAGE",
   "INIT",
   "NEW_TAB_INIT",
   "NEW_TAB_INITIAL_STATE",
@@ -178,6 +179,8 @@ for (const type of [
   "POCKET_CTA",
   "POCKET_LINK_DELETED_OR_ARCHIVED",
   "POCKET_LOGGED_IN",
+  "POCKET_THUMBS_DOWN",
+  "POCKET_THUMBS_UP",
   "POCKET_WAITING_FOR_SPOC",
   "PREFS_INITIAL_VALUES",
   "PREF_CHANGED",
@@ -205,6 +208,7 @@ for (const type of [
   "SHOW_PERSONALIZE",
   "SHOW_PRIVACY_INFO",
   "SHOW_SEARCH",
+  "SHOW_TOAST_MESSAGE",
   "SKIPPED_SIGNIN",
   "SOV_UPDATED",
   "SUBMIT_EMAIL",
@@ -2703,6 +2707,7 @@ const DSMessageFooter = props => {
 
 
 
+
 const READING_WPM = 220;
 
 /**
@@ -2770,7 +2775,10 @@ const DefaultMeta = ({
   saveToPocketCard,
   ctaButtonVariant,
   dispatch,
-  spocMessageVariant
+  spocMessageVariant,
+  mayHaveThumbsUpDown,
+  onThumbsUpClick,
+  onThumbsDownClick
 }) => /*#__PURE__*/external_React_default().createElement("div", {
   className: "meta"
 }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -2786,7 +2794,19 @@ const DefaultMeta = ({
   className: "title clamp"
 }, title), excerpt && /*#__PURE__*/external_React_default().createElement("p", {
   className: "excerpt clamp"
-}, excerpt)), !newSponsoredLabel && /*#__PURE__*/external_React_default().createElement(DSContextFooter, {
+}, excerpt)), mayHaveThumbsUpDown && /*#__PURE__*/external_React_default().createElement("div", {
+  className: "card-stp-thumbs-buttons-wrapper"
+}, !sponsor && /*#__PURE__*/external_React_default().createElement("div", {
+  className: "card-stp-thumbs-buttons"
+}, /*#__PURE__*/external_React_default().createElement("button", {
+  onClick: onThumbsUpClick,
+  className: "card-stp-thumbs-button icon icon-thumbs-up",
+  "data-l10n-id": "newtab-pocket-thumbs-up-tooltip"
+}), /*#__PURE__*/external_React_default().createElement("button", {
+  onClick: onThumbsDownClick,
+  className: "card-stp-thumbs-button icon icon-thumbs-down",
+  "data-l10n-id": "newtab-pocket-thumbs-down-tooltip"
+}))), !newSponsoredLabel && /*#__PURE__*/external_React_default().createElement(DSContextFooter, {
   context_type: context_type,
   context: context,
   sponsor: sponsor,
@@ -2807,6 +2827,8 @@ class _DSCard extends (external_React_default()).PureComponent {
     this.onSaveClick = this.onSaveClick.bind(this);
     this.onMenuUpdate = this.onMenuUpdate.bind(this);
     this.onMenuShow = this.onMenuShow.bind(this);
+    this.onThumbsUpClick = this.onThumbsUpClick.bind(this);
+    this.onThumbsDownClick = this.onThumbsDownClick.bind(this);
     this.setContextMenuButtonHostRef = element => {
       this.contextMenuButtonHostElement = element;
     };
@@ -2917,6 +2939,74 @@ class _DSCard extends (external_React_default()).PureComponent {
           recommendation_id: this.props.recommendation_id
         }]
       }));
+    }
+  }
+  onThumbsUpClick() {
+    // Record thumbs up telemetry event
+    this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
+      event: "POCKET_THUMBS_UP",
+      source: "THUMBS_UI",
+      value: {
+        recommendation_id: this.props.recommendation_id,
+        tile_id: this.props.id,
+        thumbs_up: true,
+        thumbs_down: false
+      }
+    }));
+
+    // Show Toast
+    this.props.dispatch(actionCreators.OnlyToOneContent({
+      type: actionTypes.SHOW_TOAST_MESSAGE,
+      data: {
+        showNotifications: true,
+        toastId: "thumbsUpToast"
+      }
+    }, "ActivityStream:Content"));
+  }
+  onThumbsDownClick() {
+    if (this.props.dispatch && this.props.type && this.props.id && this.props.url) {
+      const index = 0;
+      const source = this.props.type.toUpperCase();
+      const spocData = {
+        url: this.props.url,
+        guid: this.props.id
+      };
+      const blockUrlOption = LinkMenuOptions.BlockUrl(spocData, index, source);
+      const {
+        action,
+        impression,
+        userEvent
+      } = blockUrlOption;
+      this.props.dispatch(action);
+      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
+        event: userEvent,
+        source,
+        action_position: index
+      }));
+      if (impression) {
+        this.props.dispatch(impression);
+      }
+
+      // Record thumbs down telemetry event
+      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
+        event: "POCKET_THUMBS_DOWN",
+        source: "THUMBS_UI",
+        value: {
+          recommendation_id: this.props.recommendation_id,
+          tile_id: this.props.id,
+          thumbs_up: false,
+          thumbs_down: true
+        }
+      }));
+
+      // Show Toast
+      this.props.dispatch(actionCreators.OnlyToOneContent({
+        type: actionTypes.SHOW_TOAST_MESSAGE,
+        data: {
+          showNotifications: true,
+          toastId: "thumbsDownToast"
+        }
+      }, "ActivityStream:Content"));
     }
   }
   onMenuUpdate(showContextMenu) {
@@ -3085,7 +3175,10 @@ class _DSCard extends (external_React_default()).PureComponent {
       saveToPocketCard: saveToPocketCard,
       ctaButtonVariant: ctaButtonVariant,
       dispatch: this.props.dispatch,
-      spocMessageVariant: this.props.spocMessageVariant
+      spocMessageVariant: this.props.spocMessageVariant,
+      mayHaveThumbsUpDown: this.props.mayHaveThumbsUpDown,
+      onThumbsUpClick: this.onThumbsUpClick,
+      onThumbsDownClick: this.onThumbsDownClick
     }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "card-stp-button-hover-background"
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -3391,6 +3484,7 @@ const TopicsWidget = (0,external_ReactRedux_namespaceObject.connect)(state => ({
 
 
 const PREF_ONBOARDING_EXPERIENCE_DISMISSED = "discoverystream.onboardingExperience.dismissed";
+const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const CardGrid_INTERSECTION_RATIO = 0.5;
 const CardGrid_VISIBLE = "visible";
 const CardGrid_VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -3663,6 +3757,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
     } = DiscoveryStream;
     const showRecentSaves = prefs.showRecentSaves && recentSavesEnabled;
     const isOnboardingExperienceDismissed = prefs[PREF_ONBOARDING_EXPERIENCE_DISMISSED];
+    const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
     const recs = this.props.data.recommendations.slice(0, items);
     const cards = [];
     let essentialReadsCards = [];
@@ -3701,7 +3796,8 @@ class _CardGrid extends (external_React_default()).PureComponent {
         ctaButtonVariant: ctaButtonVariant,
         spocMessageVariant: spocMessageVariant,
         recommendation_id: rec.recommendation_id,
-        firstVisibleTimestamp: this.props.firstVisibleTimestamp
+        firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+        mayHaveThumbsUpDown: mayHaveThumbsUpDown
       }));
     }
     if (widgets?.positions?.length && widgets?.data?.length) {
@@ -5618,6 +5714,14 @@ const INITIAL_STATE = {
     isUserLoggedIn: false,
     recentSavesEnabled: false,
   },
+  Notifications: {
+    showNotifications: false,
+    toastCounter: 0,
+    toastId: "",
+    // This queue is reset each time SHOW_TOAST_MESSAGE is ran.
+    // For can be a queue in the future, but for now is one item
+    toastQueue: [],
+  },
   Personalization: {
     lastUpdated: null,
     initialized: false,
@@ -6404,6 +6508,26 @@ function Wallpapers(prevState = INITIAL_STATE.Wallpapers, action) {
   }
 }
 
+function Notifications(prevState = INITIAL_STATE.Notifications, action) {
+  switch (action.type) {
+    case actionTypes.SHOW_TOAST_MESSAGE:
+      return {
+        ...prevState,
+        showNotifications: action.data.showNotifications,
+        toastCounter: prevState.toastCounter + 1,
+        toastId: action.data.toastId,
+        toastQueue: [action.data.toastId],
+      };
+    case actionTypes.HIDE_TOAST_MESSAGE:
+      return {
+        ...prevState,
+        showNotifications: action.data.showNotifications,
+      };
+    default:
+      return prevState;
+  }
+}
+
 function Weather(prevState = INITIAL_STATE.Weather, action) {
   switch (action.type) {
     case actionTypes.WEATHER_UPDATE:
@@ -6433,6 +6557,7 @@ const reducers = {
   Prefs,
   Dialog,
   Sections,
+  Notifications,
   Pocket,
   Personalization: Reducers_sys_Personalization,
   DiscoveryStream,
@@ -10207,6 +10332,103 @@ const Weather_Weather = (0,external_ReactRedux_namespaceObject.connect)(state =>
   IntersectionObserver: globalThis.IntersectionObserver,
   document: globalThis.document
 }))(_Weather);
+;// CONCATENATED MODULE: ./content-src/components/Notifications/Toasts/ThumbsUpToast.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function ThumbsUpToast({
+  onDismissClick
+}) {
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    className: "notification-feed-item is-success"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "icon icon-check-filled icon-themed"
+  }), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "notification-feed-item-text",
+    "data-l10n-id": "newtab-toast-thumbs-up-or-down"
+  }), /*#__PURE__*/external_React_default().createElement("button", {
+    onClick: onDismissClick,
+    className: "icon icon-dismiss",
+    "data-l10n-id": "newtab-toast-dismiss-button"
+  }));
+}
+
+;// CONCATENATED MODULE: ./content-src/components/Notifications/Toasts/ThumbsDownToast.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function ThumbsDownToast({
+  onDismissClick
+}) {
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    className: "notification-feed-item is-success"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "icon icon-dismiss icon-themed"
+  }), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "notification-feed-item-text",
+    "data-l10n-id": "newtab-toast-thumbs-up-or-down"
+  }), /*#__PURE__*/external_React_default().createElement("button", {
+    onClick: onDismissClick,
+    className: "icon icon-dismiss",
+    "data-l10n-id": "newtab-toast-dismiss-button"
+  }));
+}
+
+;// CONCATENATED MODULE: ./content-src/components/Notifications/Notifications.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
+function Notifications_Notifications({
+  dispatch
+}) {
+  const toastQueue = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Notifications.toastQueue);
+  const toastCounter = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Notifications.toastCounter);
+  const onDismissClick = (0,external_React_namespaceObject.useCallback)(() => {
+    dispatch(actionCreators.OnlyToOneContent({
+      type: actionTypes.HIDE_TOAST_MESSAGE,
+      data: {
+        showNotifications: false
+      }
+    }, "ActivityStream:Content"));
+  }, [dispatch]);
+  const getToast = (0,external_React_namespaceObject.useCallback)(() => {
+    // Note: This architecture could expand to support multiple toast notifications at once
+    const latestToastItem = toastQueue[toastQueue.length - 1];
+    switch (latestToastItem) {
+      case "thumbsDownToast":
+        return /*#__PURE__*/external_React_default().createElement(ThumbsDownToast, {
+          onDismissClick: onDismissClick,
+          key: toastCounter
+        });
+      case "thumbsUpToast":
+        return /*#__PURE__*/external_React_default().createElement(ThumbsUpToast, {
+          onDismissClick: onDismissClick,
+          key: toastCounter
+        });
+      default:
+        throw new Error("No toast found");
+    }
+  }, [onDismissClick, toastCounter, toastQueue]);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    getToast();
+  }, [toastQueue, getToast]);
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    className: "notification-wrapper"
+  }, /*#__PURE__*/external_React_default().createElement("ul", {
+    className: "notification-feed"
+  }, getToast()));
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/FeatureHighlight/WallpaperFeatureHighlight.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -10342,6 +10564,7 @@ function Base_extends() { Base_extends = Object.assign ? Object.assign.bind() : 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -10752,7 +10975,9 @@ class BaseContent extends (external_React_default()).PureComponent {
       locale: props.App.locale,
       mayHaveSponsoredStories: mayHaveSponsoredStories,
       firstVisibleTimestamp: this.state.firstVisibleTimestamp
-    })) : /*#__PURE__*/external_React_default().createElement(Sections_Sections, null)), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null), wallpapersEnabled && this.renderWallpaperAttribution()), /*#__PURE__*/external_React_default().createElement("aside", null, weatherEnabled && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Weather_Weather, null)))));
+    })) : /*#__PURE__*/external_React_default().createElement(Sections_Sections, null)), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null), wallpapersEnabled && this.renderWallpaperAttribution()), /*#__PURE__*/external_React_default().createElement("aside", null, weatherEnabled && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Weather_Weather, null)), this.props.Notifications?.showNotifications && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Notifications_Notifications, {
+      dispatch: this.props.dispatch
+    })))));
   }
 }
 BaseContent.defaultProps = {
@@ -10763,6 +10988,7 @@ const Base = (0,external_ReactRedux_namespaceObject.connect)(state => ({
   Prefs: state.Prefs,
   Sections: state.Sections,
   DiscoveryStream: state.DiscoveryStream,
+  Notifications: state.Notifications,
   Search: state.Search,
   Wallpapers: state.Wallpapers,
   Weather: state.Weather

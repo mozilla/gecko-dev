@@ -15,7 +15,7 @@ import {
 } from "../DSContextFooter/DSContextFooter.jsx";
 import { FluentOrText } from "../../FluentOrText/FluentOrText.jsx";
 import { connect } from "react-redux";
-
+import { LinkMenuOptions } from "content-src/lib/link-menu-options";
 const READING_WPM = 220;
 
 /**
@@ -85,6 +85,9 @@ export const DefaultMeta = ({
   ctaButtonVariant,
   dispatch,
   spocMessageVariant,
+  mayHaveThumbsUpDown,
+  onThumbsUpClick,
+  onThumbsDownClick,
 }) => (
   <div className="meta">
     <div className="info-wrap">
@@ -101,6 +104,25 @@ export const DefaultMeta = ({
       <header className="title clamp">{title}</header>
       {excerpt && <p className="excerpt clamp">{excerpt}</p>}
     </div>
+    {mayHaveThumbsUpDown && (
+      <div className="card-stp-thumbs-buttons-wrapper">
+        {/* Only show to non-sponsored content */}
+        {!sponsor && (
+          <div className="card-stp-thumbs-buttons">
+            <button
+              onClick={onThumbsUpClick}
+              className="card-stp-thumbs-button icon icon-thumbs-up"
+              data-l10n-id="newtab-pocket-thumbs-up-tooltip"
+            ></button>
+            <button
+              onClick={onThumbsDownClick}
+              className="card-stp-thumbs-button icon icon-thumbs-down"
+              data-l10n-id="newtab-pocket-thumbs-down-tooltip"
+            ></button>
+          </div>
+        )}
+      </div>
+    )}
     {!newSponsoredLabel && (
       <DSContextFooter
         context_type={context_type}
@@ -134,6 +156,8 @@ export class _DSCard extends React.PureComponent {
     this.onSaveClick = this.onSaveClick.bind(this);
     this.onMenuUpdate = this.onMenuUpdate.bind(this);
     this.onMenuShow = this.onMenuShow.bind(this);
+    this.onThumbsUpClick = this.onThumbsUpClick.bind(this);
+    this.onThumbsDownClick = this.onThumbsDownClick.bind(this);
 
     this.setContextMenuButtonHostRef = element => {
       this.contextMenuButtonHostElement = element;
@@ -265,6 +289,96 @@ export class _DSCard extends React.PureComponent {
             },
           ],
         })
+      );
+    }
+  }
+
+  onThumbsUpClick() {
+    // Record thumbs up telemetry event
+    this.props.dispatch(
+      ac.DiscoveryStreamUserEvent({
+        event: "POCKET_THUMBS_UP",
+        source: "THUMBS_UI",
+        value: {
+          recommendation_id: this.props.recommendation_id,
+          tile_id: this.props.id,
+          thumbs_up: true,
+          thumbs_down: false,
+        },
+      })
+    );
+
+    // Show Toast
+    this.props.dispatch(
+      ac.OnlyToOneContent(
+        {
+          type: at.SHOW_TOAST_MESSAGE,
+          data: {
+            showNotifications: true,
+            toastId: "thumbsUpToast",
+          },
+        },
+        "ActivityStream:Content"
+      )
+    );
+  }
+
+  onThumbsDownClick() {
+    if (
+      this.props.dispatch &&
+      this.props.type &&
+      this.props.id &&
+      this.props.url
+    ) {
+      const index = 0;
+      const source = this.props.type.toUpperCase();
+      const spocData = {
+        url: this.props.url,
+        guid: this.props.id,
+      };
+      const blockUrlOption = LinkMenuOptions.BlockUrl(spocData, index, source);
+
+      const { action, impression, userEvent } = blockUrlOption;
+
+      this.props.dispatch(action);
+
+      this.props.dispatch(
+        ac.DiscoveryStreamUserEvent({
+          event: userEvent,
+          source,
+          action_position: index,
+        })
+      );
+      if (impression) {
+        this.props.dispatch(impression);
+      }
+
+      // Record thumbs down telemetry event
+      this.props.dispatch(
+        ac.DiscoveryStreamUserEvent({
+          event: "POCKET_THUMBS_DOWN",
+          source: "THUMBS_UI",
+          value: {
+            recommendation_id: this.props.recommendation_id,
+            tile_id: this.props.id,
+            thumbs_up: false,
+            thumbs_down: true,
+          },
+        })
+      );
+
+      // Show Toast
+      this.props.dispatch(
+        ac.OnlyToOneContent(
+          {
+            type: at.SHOW_TOAST_MESSAGE,
+            data: {
+              showNotifications: true,
+              toastId: "thumbsDownToast",
+            },
+          },
+          "ActivityStream:Content"
+        )
       );
     }
   }
@@ -467,6 +581,9 @@ export class _DSCard extends React.PureComponent {
           ctaButtonVariant={ctaButtonVariant}
           dispatch={this.props.dispatch}
           spocMessageVariant={this.props.spocMessageVariant}
+          mayHaveThumbsUpDown={this.props.mayHaveThumbsUpDown}
+          onThumbsUpClick={this.onThumbsUpClick}
+          onThumbsDownClick={this.onThumbsDownClick}
         />
 
         <div className="card-stp-button-hover-background">

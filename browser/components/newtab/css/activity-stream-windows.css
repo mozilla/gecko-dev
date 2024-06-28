@@ -232,6 +232,9 @@ input {
 .icon.icon-check {
   background-image: url("chrome://global/skin/icons/check.svg");
 }
+.icon.icon-check-filled {
+  background-image: url("chrome://global/skin/icons/check-filled.svg");
+}
 .icon.icon-download {
   background-image: url("chrome://browser/skin/downloads/downloads.svg");
 }
@@ -282,6 +285,13 @@ input {
 }
 .icon.icon-arrow {
   background-image: url("chrome://global/skin/icons/arrow-right-12.svg");
+}
+.icon.icon-thumbs-up {
+  transform: rotate(180deg);
+  background-image: url("chrome://browser/skin/thumb-down.svg");
+}
+.icon.icon-thumbs-down {
+  background-image: url("chrome://browser/skin/thumb-down.svg");
 }
 
 html {
@@ -3446,6 +3456,58 @@ main section {
   transition: box-shadow 150ms;
 }
 
+.notification-wrapper {
+  position: fixed;
+  inset-inline-end: var(--space-medium);
+  inset-block-end: var(--space-medium);
+}
+
+.notification-feed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+}
+
+.notification-feed-item {
+  position: relative;
+  padding: var(--space-small) var(--space-large);
+  border: 1px solid var(--border-color-interactive);
+  display: flex;
+  max-width: 280px;
+  border-radius: var(--border-radius-small);
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-small);
+  animation: toastSlideInSlideOut 4s ease-in-out forwards;
+}
+.notification-feed-item .icon {
+  flex-shrink: 0;
+}
+.notification-feed-item .notification-feed-item-text {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight);
+}
+.notification-feed-item.is-success {
+  background-color: var(--background-color-success);
+}
+.notification-feed-item.is-success .icon.icon-themed {
+  fill: var(--icon-color-success);
+}
+.notification-feed-item button {
+  appearance: none;
+  border: 0;
+}
+
+@keyframes toastSlideInSlideOut {
+  0%, 100% {
+    opacity: 0;
+    top: 50%;
+  }
+  15%, 85% {
+    opacity: 1;
+    top: 0;
+  }
+}
 .ds-onboarding-container,
 .ds-card-grid .ds-card {
   background: #FFF;
@@ -4315,6 +4377,35 @@ main section {
 .ds-card .card-stp-button-hover-background button {
   cursor: pointer;
 }
+.ds-card .card-stp-thumbs-buttons-wrapper {
+  margin-top: var(--space-medium);
+  z-index: 1;
+  visibility: hidden;
+  opacity: 0;
+}
+.ds-card .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-buttons {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: end;
+  gap: var(--space-medium);
+  padding-inline-end: var(--space-medium);
+}
+.ds-card .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-button {
+  pointer-events: auto;
+  opacity: 0.8;
+  -moz-context-properties: fill;
+}
+.ds-card .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-button:hover, .ds-card .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-button:focus-visible {
+  opacity: 1;
+}
+.ds-card .card-stp-thumbs-buttons-wrapper .icon-thumbs-up,
+.ds-card .card-stp-thumbs-buttons-wrapper .icon-thumbs-down {
+  display: block;
+  border: 0;
+  background-color: transparent;
+  fill: light-dark(var(--color-gray-70), var(--color-gray-05));
+}
 .ds-card .context-menu-button {
   position: static;
   transition: none;
@@ -4343,6 +4434,10 @@ main section {
 .ds-card.active .card-stp-button-hover-background .context-menu-button, .ds-card:focus-within .card-stp-button-hover-background .context-menu-button, .ds-card:hover .card-stp-button-hover-background .context-menu-button {
   opacity: 1;
   transform: scale(1);
+}
+.ds-card.active .card-stp-thumbs-buttons-wrapper, .ds-card:focus-within .card-stp-thumbs-buttons-wrapper, .ds-card:hover .card-stp-thumbs-buttons-wrapper {
+  visibility: visible;
+  opacity: 1;
 }
 .ds-card.active header, .ds-card:focus-within header, .ds-card:hover header {
   color: var(--newtab-primary-action-background);

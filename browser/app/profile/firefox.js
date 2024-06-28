@@ -1860,6 +1860,9 @@ pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.enabled"
 pref("browser.newtabpage.activity-stream.discoverystream.onboardingExperience.dismissed", false);
 pref("browser.newtabpage.activity-stream.discoverystream.onboardingExperience.enabled", false);
 
+// Allow users to give thumbs up/down on recommended stories
+pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.enabled", false);
+
 // User pref to show stories on newtab (feeds.system.topstories has to be set to true as well)
 pref("browser.newtabpage.activity-stream.feeds.section.topstories", true);
 

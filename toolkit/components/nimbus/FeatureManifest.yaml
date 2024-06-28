@@ -1015,6 +1015,12 @@ pocketNewtab:
         browser.newtabpage.activity-stream.discoverystream.pocket-feed-parameters
       description: >-
         Add parameters to Pocket feed URL.
+    thumbsUpDown:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.enabled
+      description: Display thumbs up and down buttons on recommended stories
 
 saveToPocket:
   description: The save to Pocket feature

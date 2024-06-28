@@ -761,6 +761,16 @@ export class TelemetryFeed {
         }
         break;
       }
+      case "POCKET_THUMBS_DOWN":
+      case "POCKET_THUMBS_UP":
+        Glean.pocket.thumbVotingInteraction.record({
+          newtab_visit_id: session.session_id,
+          recommendation_id: action.data.value?.recommendation_id,
+          tile_id: action.data.value?.tile_id,
+          thumbs_up: action.data.value?.thumbs_up,
+          thumbs_down: action.data.value?.thumbs_down,
+        });
+        break;
       case "SAVE_TO_POCKET":
         Glean.pocket.save.record({
           newtab_visit_id: session.session_id,

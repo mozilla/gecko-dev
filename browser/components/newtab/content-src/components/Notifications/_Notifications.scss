@@ -1,0 +1,61 @@
+.notification-wrapper {
+  position: fixed;
+  inset-inline-end: var(--space-medium);
+  inset-block-end: var(--space-medium);
+}
+
+.notification-feed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+}
+
+.notification-feed-item {
+  position: relative;
+  padding: var(--space-small) var(--space-large);
+  border: 1px solid var(--border-color-interactive);
+  display: flex;
+  max-width: 280px;
+  border-radius: var(--border-radius-small);
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-small);
+  animation: toastSlideInSlideOut 4s ease-in-out forwards;
+
+  .icon {
+    flex-shrink: 0;
+  }
+
+  .notification-feed-item-text {
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight);
+  }
+
+  &.is-success {
+    background-color: var(--background-color-success);
+
+    .icon.icon-themed {
+      fill: var(--icon-color-success);
+    }
+  }
+
+  button {
+    appearance: none;
+    border: 0;
+  }
+
+
+
+}
+
+@keyframes toastSlideInSlideOut {
+  0%, 100% {
+    opacity: 0;
+    top: 50%;
+  }
+
+  15%, 85% {
+    opacity: 1;
+    top: 0;
+  }
+}

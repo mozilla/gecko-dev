@@ -13,6 +13,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { connect, useSelector } from "react-redux";
 const PREF_ONBOARDING_EXPERIENCE_DISMISSED =
   "discoverystream.onboardingExperience.dismissed";
+const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const INTERSECTION_RATIO = 0.5;
 const VISIBLE = "visible";
 const VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -333,6 +334,7 @@ export class _CardGrid extends React.PureComponent {
     const showRecentSaves = prefs.showRecentSaves && recentSavesEnabled;
     const isOnboardingExperienceDismissed =
       prefs[PREF_ONBOARDING_EXPERIENCE_DISMISSED];
+    const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
 
     const recs = this.props.data.recommendations.slice(0, items);
     const cards = [];
@@ -376,6 +378,7 @@ export class _CardGrid extends React.PureComponent {
             spocMessageVariant={spocMessageVariant}
             recommendation_id={rec.recommendation_id}
             firstVisibleTimestamp={this.props.firstVisibleTimestamp}
+            mayHaveThumbsUpDown={mayHaveThumbsUpDown}
           />
         )
       );

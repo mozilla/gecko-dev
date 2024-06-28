@@ -93,6 +93,42 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     }
   }
 
+  .card-stp-thumbs-buttons-wrapper {
+    margin-top: var(--space-medium);
+    z-index: 1;
+    visibility: hidden;
+    opacity: 0;
+
+    .card-stp-thumbs-buttons {
+      display: flex;
+      height: 100%;
+      align-items: center;
+      justify-content: end;
+      gap: var(--space-medium);
+      padding-inline-end: var(--space-medium);
+    }
+
+    .card-stp-thumbs-button {
+      pointer-events: auto;
+      opacity: 0.8;
+      -moz-context-properties: fill;
+
+      &:hover,
+      &:focus-visible {
+        opacity: 1;
+      }
+    }
+
+    .icon-thumbs-up,
+    .icon-thumbs-down {
+      display: block;
+      border: 0;
+      background-color: transparent;
+      fill: light-dark(var(--color-gray-70), var(--color-gray-05));
+    }
+
+  }
+
   // Override note: The colors set here are intentionally static
   // due to transparency issues over images.
   .context-menu-button {
@@ -137,6 +173,11 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
         opacity: 1;
         transform: scale(1);
       }
+    }
+
+    .card-stp-thumbs-buttons-wrapper {
+      visibility: visible;
+      opacity: 1;
     }
 
     header {
