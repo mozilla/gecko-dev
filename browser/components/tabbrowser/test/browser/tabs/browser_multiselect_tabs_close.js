@@ -14,25 +14,6 @@ async function openTabMenuFor(tab) {
   return tabMenu;
 }
 
-function checkTabCloseButtonTooltip(
-  tab,
-  expectedTabCount = 1 /* not multiselected */
-) {
-  const l10nAttrs = document.l10n.getAttributes(
-    tab.querySelector(".tab-close-button")
-  );
-  Assert.deepEqual(
-    l10nAttrs,
-    {
-      id: "tabbrowser-close-tabs-tooltip",
-      args: {
-        tabCount: expectedTabCount,
-      },
-    },
-    `Close tab button has an expected accessible name with ${expectedTabCount} tabs (multi) selected.`
-  );
-}
-
 add_task(async function setPref() {
   await SpecialPowers.pushPrefEnv({
     set: [[PREF_WARN_ON_CLOSE, false]],
@@ -46,46 +27,37 @@ add_task(async function usingTabCloseButton() {
   let tab4 = await addTab();
 
   is(gBrowser.multiSelectedTabsCount, 0, "Zero multiselected tabs");
-  checkTabCloseButtonTooltip(tab1);
 
   await BrowserTestUtils.switchTab(gBrowser, tab1);
   await triggerClickOn(tab2, { ctrlKey: true });
 
   ok(tab1.multiselected, "Tab1 is multiselected");
-  checkTabCloseButtonTooltip(tab1, 2);
   ok(tab2.multiselected, "Tab2 is multiselected");
-  checkTabCloseButtonTooltip(tab2, 2);
   ok(!tab3.multiselected, "Tab3 is not multiselected");
-  checkTabCloseButtonTooltip(tab3);
   ok(!tab4.multiselected, "Tab4 is not multiselected");
-  checkTabCloseButtonTooltip(tab4);
   is(gBrowser.multiSelectedTabsCount, 2, "Two multiselected tabs");
   is(gBrowser.selectedTab, tab1, "Tab1 is active");
 
   await triggerClickOn(tab3, { ctrlKey: true });
   is(gBrowser.multiSelectedTabsCount, 3, "Three multiselected tabs");
-  checkTabCloseButtonTooltip(tab1, 3);
   gBrowser.hideTab(tab3);
   is(
     gBrowser.multiSelectedTabsCount,
     2,
     "Two multiselected tabs after hiding one tab"
   );
-  checkTabCloseButtonTooltip(tab1, 2);
   gBrowser.showTab(tab3);
   is(
     gBrowser.multiSelectedTabsCount,
     3,
     "Three multiselected tabs after re-showing hidden tab"
   );
-  checkTabCloseButtonTooltip(tab1, 3);
   await triggerClickOn(tab3, { ctrlKey: true });
   is(
     gBrowser.multiSelectedTabsCount,
     2,
     "Two multiselected tabs after ctrl-clicking multiselected tab"
   );
-  checkTabCloseButtonTooltip(tab1, 2);
 
   // Closing a tab which is not multiselected
   let tab4CloseBtn = tab4.closeButton;
