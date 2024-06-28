@@ -22,9 +22,6 @@ open class NimbusMessagingController(
     private val messagingStorage: NimbusMessagingStorage,
     private val deepLinkScheme: String,
 ) : NimbusMessagingControllerInterface {
-    /**
-     * Records telemetry and metadata for a newly processed displayed message.
-     */
     override suspend fun onMessageDisplayed(displayedMessage: Message, bootIdentifier: String?): Message {
         sendShownMessageTelemetry(displayedMessage.id)
         val nextMessage = messagingStorage.onMessageDisplayed(displayedMessage, bootIdentifier)
@@ -34,12 +31,6 @@ open class NimbusMessagingController(
         return nextMessage
     }
 
-    /**
-     * Called when a message has been dismissed by the user.
-     *
-     * Records a messageDismissed event, and records that the message
-     * has been dismissed.
-     */
     override suspend fun onMessageDismissed(message: Message) {
         val messageMetadata = message.metadata
         sendDismissedMessageTelemetry(messageMetadata.id)
@@ -47,12 +38,6 @@ open class NimbusMessagingController(
         messagingStorage.updateMetadata(updatedMetadata)
     }
 
-    /**
-     * Called when a microsurvey attached to a message has been completed by the user.
-     *
-     * @param message The message containing the microsurvey that was completed.
-     * @param answer The user's response to the microsurvey question.
-     */
     override suspend fun onMicrosurveyCompleted(message: Message, answer: String) {
         val messageMetadata = message.metadata
         sendMicrosurveyCompletedTelemetry(messageMetadata.id, answer)
@@ -72,23 +57,11 @@ open class NimbusMessagingController(
         messagingStorage.updateMetadata(updatedMetadata)
     }
 
-    /**
-     * Create and return the relevant [Intent] for the given [Message].
-     *
-     * @param message the [Message] to create the [Intent] for.
-     * @return an [Intent] using the processed [Message].
-     */
     override fun getIntentForMessage(message: Message) = Intent(
         Intent.ACTION_VIEW,
         processMessageActionToUri(message),
     )
 
-    /**
-     * Will attempt to get the [Message] for the given [id].
-     *
-     * @param id the [Message.id] of the [Message] to try to match.
-     * @return the [Message] with a matching [id], or null if no [Message] has a matching [id].
-     */
     override suspend fun getMessage(id: String): Message? {
         return messagingStorage.getMessage(id)
     }
