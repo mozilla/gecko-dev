@@ -291,6 +291,7 @@ export class UserCharacteristicsPageService {
         "jsErrors",
         "pointerType",
         "anyPointerType",
+        "iceFoundations",
       ],
     };
 
