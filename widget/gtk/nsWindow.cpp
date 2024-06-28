@@ -2382,7 +2382,7 @@ nsWindow::WaylandPopupGetPositionFromLayout() {
   nsMenuPopupFrame* popupFrame = GetMenuPopupFrame(GetFrame());
 
   const bool isTopContextMenu = mPopupContextMenu && !mPopupAnchored;
-  const bool isRTL = IsPopupDirectionRTL();
+  const bool isRTL = popupFrame->IsDirectionRTL();
   const bool anchored = popupFrame->IsAnchored();
   int8_t popupAlign = POPUPALIGNMENT_TOPLEFT;
   int8_t anchorAlign = POPUPALIGNMENT_BOTTOMRIGHT;
@@ -2391,7 +2391,7 @@ nsWindow::WaylandPopupGetPositionFromLayout() {
     popupAlign = popupFrame->GetPopupAlignment();
     anchorAlign = popupFrame->GetPopupAnchor();
   }
-  if (isRTL && (anchored || isTopContextMenu)) {
+  if (isRTL) {
     popupAlign = -popupAlign;
     anchorAlign = -anchorAlign;
   }
