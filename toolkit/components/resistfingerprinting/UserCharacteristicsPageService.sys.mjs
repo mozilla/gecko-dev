@@ -162,6 +162,22 @@ export class UserCharacteristicsPageService {
 
   createContentPage() {
     lazy.console.debug("called createContentPage");
+
+    lazy.console.debug("Registering actor");
+    ChromeUtils.registerWindowActor("UserCharacteristics", {
+      parent: {
+        esModuleURI: "resource://gre/actors/UserCharacteristicsParent.sys.mjs",
+      },
+      child: {
+        esModuleURI: "resource://gre/actors/UserCharacteristicsChild.sys.mjs",
+        events: {
+          UserCharacteristicsDataDone: { wantUntrusted: true },
+        },
+      },
+      matches: ["about:fingerprintingprotection"],
+      remoteTypes: ["privilegedabout"],
+    });
+
     return this._browserManager.withHiddenBrowser(async browser => {
       lazy.console.debug(`In withHiddenBrowser`);
       try {
@@ -193,12 +209,14 @@ export class UserCharacteristicsPageService {
 
         await this.populateAndCollectErrors(browser, data);
 
-        lazy.console.debug("Unregistering actor");
+        // Notify test observers that the data has been populated.
         Services.obs.notifyObservers(
           null,
           "user-characteristics-populating-data-done"
         );
       } finally {
+        lazy.console.debug("Unregistering actor");
+        ChromeUtils.unregisterWindowActor("UserCharacteristics");
         this._backgroundBrowsers.delete(browser);
       }
     });
