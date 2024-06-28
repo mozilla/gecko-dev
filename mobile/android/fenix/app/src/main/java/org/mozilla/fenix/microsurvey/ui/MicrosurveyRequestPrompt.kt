@@ -44,11 +44,13 @@ import org.mozilla.fenix.theme.FirefoxTheme
  *
  * @param microsurvey Contains the required microsurvey data for the UI.
  * @param onStartSurveyClicked Handles the on click event of the start survey button.
+ * @param onCloseButtonClicked Invoked when the user clicks on the close button.
  */
 @Composable
 fun MicrosurveyRequestPrompt(
     microsurvey: MicrosurveyUIData,
     onStartSurveyClicked: () -> Unit = {},
+    onCloseButtonClicked: () -> Unit,
 ) {
     // Using the keyboard state (open/closed) to determine if the microsurvey is visible.
     val isKeyboardVisible by keyboardAsState()
@@ -68,7 +70,7 @@ fun MicrosurveyRequestPrompt(
                     .background(color = FirefoxTheme.colors.layer1)
                     .padding(all = 16.dp),
             ) {
-                Header(microsurvey.promptTitle)
+                Header(microsurvey.promptTitle) { onCloseButtonClicked() }
                 Spacer(modifier = Modifier.height(8.dp))
                 PrimaryButton(text = stringResource(id = R.string.micro_survey_continue_button_label)) {
                     onStartSurveyClicked()
@@ -81,6 +83,7 @@ fun MicrosurveyRequestPrompt(
 @Composable
 private fun Header(
     title: String,
+    onCloseButtonClicked: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -101,7 +104,7 @@ private fun Header(
         )
 
         IconButton(
-            onClick = {}, // todo FXDROID-1947.
+            onClick = { onCloseButtonClicked() },
             modifier = Modifier.size(20.dp),
         ) {
             Icon(
@@ -119,13 +122,15 @@ private fun Header(
 private fun MicrosurveyRequestPromptPreview() {
     FirefoxTheme {
         MicrosurveyRequestPrompt(
-            MicrosurveyUIData(
+            microsurvey = MicrosurveyUIData(
                 id = "",
                 promptTitle = "Help make printing in Firefox better. It only takes a sec.",
                 icon = R.drawable.mozac_ic_lightbulb_24,
                 question = "",
                 answers = emptyList(),
             ),
+            onStartSurveyClicked = {},
+            onCloseButtonClicked = {},
         )
     }
 }

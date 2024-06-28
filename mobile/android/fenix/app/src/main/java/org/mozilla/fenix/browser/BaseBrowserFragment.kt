@@ -23,6 +23,8 @@ import androidx.annotation.CallSuper
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
@@ -1374,11 +1376,23 @@ abstract class BaseBrowserFragment :
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        currentMicrosurvey?.let {
-                            MicrosurveyRequestPrompt(microsurvey = it) {
-                                findNavController().nav(
-                                    R.id.browserFragment,
-                                    BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
+                        val shouldShowMicrosurveyPrompt =
+                            remember { mutableStateOf(context.settings().shouldShowMicrosurveyPrompt) }
+
+                        if (shouldShowMicrosurveyPrompt.value) {
+                            currentMicrosurvey?.let {
+                                MicrosurveyRequestPrompt(
+                                    microsurvey = it,
+                                    onStartSurveyClicked = {
+                                        findNavController().nav(
+                                            R.id.browserFragment,
+                                            BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
+                                        )
+                                    },
+                                    onCloseButtonClicked = {
+                                        context.settings().shouldShowMicrosurveyPrompt = false
+                                        shouldShowMicrosurveyPrompt.value = false
+                                    },
                                 )
                             }
                         }
@@ -1523,11 +1537,23 @@ abstract class BaseBrowserFragment :
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        currentMicrosurvey?.let {
-                            MicrosurveyRequestPrompt(microsurvey = it) {
-                                findNavController().nav(
-                                    R.id.browserFragment,
-                                    BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
+                        val shouldShowMicrosurveyPrompt =
+                            remember { mutableStateOf(context.settings().shouldShowMicrosurveyPrompt) }
+
+                        if (shouldShowMicrosurveyPrompt.value) {
+                            currentMicrosurvey?.let {
+                                MicrosurveyRequestPrompt(
+                                    microsurvey = it,
+                                    onStartSurveyClicked = {
+                                        findNavController().nav(
+                                            R.id.browserFragment,
+                                            BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
+                                        )
+                                    },
+                                    onCloseButtonClicked = {
+                                        context.settings().shouldShowMicrosurveyPrompt = false
+                                        shouldShowMicrosurveyPrompt.value = false
+                                    },
                                 )
                             }
                         }
