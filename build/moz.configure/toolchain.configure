@@ -3250,31 +3250,6 @@ add_flag(
 )
 
 
-# Always included configuration file
-# ==============================================================
-@depends(c_compiler, asm_flags, build_environment, build_project)
-def defines_cpp_flags(c_compiler, asm_flags, build_environment, build_project):
-    if build_project == "js":
-        config_h = "js/src/js-confdefs.h"
-    else:
-        config_h = "mozilla-config.h"
-
-    if c_compiler.type == "clang-cl":
-        flag = "-FI"
-    else:
-        flag = "-include"
-
-    flags = ["-DMOZILLA_CLIENT", flag, f"{build_environment.topobjdir}/{config_h}"]
-
-    asm_flags.asflags.extend(flags)
-
-    return flags
-
-
-set_config("OS_COMPILE_CFLAGS", defines_cpp_flags)
-set_config("OS_COMPILE_CXXFLAGS", defines_cpp_flags)
-
-
 # Support various fuzzing options
 # ==============================================================
 option("--enable-fuzzing", help="Enable fuzzing support")
