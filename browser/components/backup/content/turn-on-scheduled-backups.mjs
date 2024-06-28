@@ -95,7 +95,6 @@ export default class TurnOnScheduledBackups extends MozLitElement {
   handleConfirm() {
     /**
      * TODO:
-     * If encryption is enabled via this dialog, ensure a password is set and pass it to BackupUIParent (bug 1895981).
      * Before confirmation, verify passwords match and FxA format rules (bug 1896772).
      */
     let detail = {

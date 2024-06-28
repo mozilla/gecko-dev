@@ -102,14 +102,17 @@
     display: flex;
     flex-direction: column;
     margin-inline-start: var(--margin-inline-start-checkbox-content);
+    row-gap: var(--space-large);
 
-    & > #new-password-label, #repeat-password-label {
+    > #new-password-label,
+    > #repeat-password-label {
       display: flex;
       flex-direction: column;
     }
 
-    & > #new-password-label > input, #repeat-password-label > input {
-      margin-inline-start: 0px;
+    > #new-password-label > input,
+    > #repeat-password-label > input {
+      margin-inline-start: 0;
     }
   }
 

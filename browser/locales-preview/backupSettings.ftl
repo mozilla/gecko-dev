@@ -18,6 +18,8 @@ settings-data-toggle-encryption-label = Back up your sensitive data
 settings-data-toggle-encryption-description = Back up your passwords, payment methods, and cookies with encryption.
 settings-data-toggle-encryption-support-link = Learn more
 
+settings-data-change-password = Change password…
+
 ## These strings are displayed in a modal when users want to turn on scheduled backups.
 
 turn-on-scheduled-backups-header = Turn on backup
@@ -74,6 +76,21 @@ restore-from-backup-password-description = This unlocks your encrypted backup.
 
 restore-from-backup-cancel-button = Cancel
 restore-from-backup-confirm-button = Restore and restart
+
+## These strings are displayed in a modal when users want to enable encryption or change the password for an existing backup.
+
+enable-backup-encryption-header = Back up your sensitive data
+enable-backup-encryption-description = Back up your passwords, payment methods, and cookies, plus keep all your data safe with encryption.
+enable-backup-encryption-support-link = Learn more
+
+enable-backup-encryption-create-password-label = Password
+# Users will be prompted to re-type a password, to ensure that the password is entered correctly.
+enable-backup-encryption-repeat-password-label = Repeat password
+
+enable-backup-encryption-cancel-button = Cancel
+enable-backup-encryption-confirm-button = Save
+
+change-backup-encryption-header = Change backup password
 
 ## These strings are displayed in a modal when users want to disable encryption for an existing backup.
 

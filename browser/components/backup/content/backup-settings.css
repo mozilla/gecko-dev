@@ -13,6 +13,7 @@
 }
 
 #turn-off-scheduled-backups-dialog,
+#enable-backup-encryption-dialog,
 #disable-backup-encryption-dialog {
   width: 23.94rem;
 }

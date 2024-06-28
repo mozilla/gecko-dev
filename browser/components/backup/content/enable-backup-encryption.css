@@ -1,0 +1,55 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this
+* file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+@import url("chrome://global/skin/in-content/common.css");
+
+#backup-enable-encryption-wrapper {
+  display: grid;
+  grid-template-areas:
+    "header"
+    "content"
+    "button-group";
+  grid-template-rows: auto auto auto;
+
+  & fieldset {
+    border: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+#backup-enable-encryption-header {
+  grid-area: header;
+  margin: 0;
+}
+
+#backup-enable-encryption-content {
+  display: flex;
+  flex-direction: column;
+  grid-area: content;
+  margin-block-start: var(--space-small);
+  margin-block-end: var(--space-large);
+  row-gap: var(--space-large);
+}
+
+#backup-enable-encryption-button-group {
+  grid-area: button-group;
+}
+
+#passwords {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-large);
+
+  > #new-password-label,
+  > #repeat-password-label {
+    display: flex;
+    flex-direction: column;
+  }
+
+  > #new-password-label > input,
+  > #repeat-password-label > input {
+    margin-inline-start: 0;
+  }
+}

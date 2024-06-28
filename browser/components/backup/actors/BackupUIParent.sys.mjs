@@ -165,7 +165,7 @@ export class BackupUIParent extends JSWindowActorParent {
          */
       }
     } else if (message.name == "ToggleEncryption") {
-      let { isEncryptionEnabled } = message.data;
+      let { isEncryptionEnabled, password } = message.data;
 
       if (!isEncryptionEnabled) {
         try {
@@ -181,9 +181,22 @@ export class BackupUIParent extends JSWindowActorParent {
            */
           return null;
         }
-
-        return true;
+      } else {
+        try {
+          this.#bs.enableEncryption(password);
+          /**
+           * TODO: (Bug 1901640) after enabling encryption, recreate the backup,
+           * this time with sensitive data.
+           */
+        } catch (e) {
+          /**
+           * TODO: (Bug 1901308) maybe display an error if there is a problem with
+           * enabling encryption.
+           */
+          return null;
+        }
       }
+      return true;
     }
 
     return null;

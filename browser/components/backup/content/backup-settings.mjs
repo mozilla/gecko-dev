@@ -12,6 +12,8 @@ import "chrome://browser/content/backup/turn-off-scheduled-backups.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/backup/restore-from-backup.mjs";
 // eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/backup/enable-backup-encryption.mjs";
+// eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/backup/disable-backup-encryption.mjs";
 
 /**
@@ -21,13 +23,17 @@ import "chrome://browser/content/backup/disable-backup-encryption.mjs";
 export default class BackupSettings extends MozLitElement {
   static properties = {
     backupServiceState: { type: Object },
+    _enableEncryptionTypeAttr: { type: String },
   };
 
   static get queries() {
     return {
       scheduledBackupsButtonEl: "#backup-toggle-scheduled-button",
+      changePasswordButtonEl: "#backup-change-password-button",
       disableBackupEncryptionEl: "disable-backup-encryption",
       disableBackupEncryptionDialogEl: "#disable-backup-encryption-dialog",
+      enableBackupEncryptionEl: "enable-backup-encryption",
+      enableBackupEncryptionDialogEl: "#enable-backup-encryption-dialog",
       turnOnScheduledBackupsDialogEl: "#turn-on-scheduled-backups-dialog",
       turnOnScheduledBackupsEl: "turn-on-scheduled-backups",
       turnOffScheduledBackupsEl: "turn-off-scheduled-backups",
@@ -58,6 +64,7 @@ export default class BackupSettings extends MozLitElement {
       encryptionEnabled: false,
       scheduledBackupsEnabled: false,
     };
+    this._enableEncryptionTypeAttr = "";
   }
 
   /**
@@ -74,6 +81,7 @@ export default class BackupSettings extends MozLitElement {
     this.addEventListener("turnOffScheduledBackups", this);
     this.addEventListener("dialogCancel", this);
     this.addEventListener("getBackupFileInfo", this);
+    this.addEventListener("enableEncryption", this);
     this.addEventListener("disableEncryption", this);
     this.addEventListener("restoreFromBackupConfirm", this);
     this.addEventListener("restoreFromBackupChooseFile", this);
@@ -115,6 +123,8 @@ export default class BackupSettings extends MozLitElement {
           this.restoreFromBackupDialogEl.close();
         } else if (this.disableBackupEncryptionDialogEl.open) {
           this.disableBackupEncryptionDialogEl.close();
+        } else if (this.enableBackupEncryptionDialogEl.open) {
+          this.enableBackupEncryptionDialogEl.close();
         }
         break;
       case "restoreFromBackupConfirm":
@@ -149,6 +159,19 @@ export default class BackupSettings extends MozLitElement {
           })
         );
         break;
+      case "enableEncryption":
+        this.enableBackupEncryptionDialogEl.close();
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:ToggleEncryption", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              ...event.detail,
+              isEncryptionEnabled: true,
+            },
+          })
+        );
+        break;
       case "disableEncryption":
         this.disableBackupEncryptionDialogEl.close();
         this.dispatchEvent(
@@ -178,7 +201,7 @@ export default class BackupSettings extends MozLitElement {
     }
   }
 
-  handleToggleBackupEncryption(event) {
+  async handleToggleBackupEncryption(event) {
     event.preventDefault();
 
     // Checkbox was unchecked, meaning encryption is already enabled and should be disabled.
@@ -187,8 +210,19 @@ export default class BackupSettings extends MozLitElement {
 
     if (toggledToDisable && this.disableBackupEncryptionDialogEl) {
       this.disableBackupEncryptionDialogEl.showModal();
+    } else {
+      this._enableEncryptionTypeAttr = "set-password";
+      await this.updateComplete;
+      this.enableBackupEncryptionDialogEl.showModal();
     }
-    // TODO: else, show enable encryption dialog (bug 1893295)
+  }
+
+  async handleChangePassword() {
+    if (this.enableBackupEncryptionDialogEl) {
+      this._enableEncryptionTypeAttr = "change-password";
+      await this.updateComplete;
+      this.enableBackupEncryptionDialogEl.showModal();
+    }
   }
 
   turnOnScheduledBackupsDialogTemplate() {
@@ -238,6 +272,14 @@ export default class BackupSettings extends MozLitElement {
     }
   }
 
+  enableBackupEncryptionDialogTemplate() {
+    return html`<dialog id="enable-backup-encryption-dialog">
+      <enable-backup-encryption
+        type=${this._enableEncryptionTypeAttr}
+      ></enable-backup-encryption>
+    </dialog>`;
+  }
+
   disableBackupEncryptionDialogTemplate() {
     return html`<dialog id="disable-backup-encryption-dialog">
       <disable-backup-encryption></disable-backup-encryption>
@@ -261,6 +303,7 @@ export default class BackupSettings extends MozLitElement {
 
         ${this.turnOnScheduledBackupsDialogTemplate()}
         ${this.turnOffScheduledBackupsDialogTemplate()}
+        ${this.enableBackupEncryptionDialogTemplate()}
         ${this.disableBackupEncryptionDialogTemplate()}
 
         <moz-button
@@ -305,6 +348,13 @@ export default class BackupSettings extends MozLitElement {
             ></a>
           </div>
         </div>
+        ${this.backupServiceState.encryptionEnabled
+          ? html`<moz-button
+              id="backup-change-password-button"
+              @click=${this.handleChangePassword}
+              data-l10n-id="settings-data-change-password"
+            ></moz-button>`
+          : null}
       </div>`;
   }
 }
