@@ -54,7 +54,7 @@ fun MicroSurveyHeader(
         ) {
             Image(
                 painter = painterResource(R.drawable.ic_firefox),
-                contentDescription = null, // todo update to string res once a11y strings are available.
+                contentDescription = stringResource(id = R.string.microsurvey_app_icon_content_description),
                 modifier = Modifier.size(24.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -67,7 +67,7 @@ fun MicroSurveyHeader(
         IconButton(onClick = onCloseButtonClick) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_close),
-                contentDescription = null, // todo update to string res once a11y strings are available.
+                contentDescription = stringResource(id = R.string.microsurvey_close_button_content_description),
                 tint = FirefoxTheme.colors.iconPrimary,
                 modifier = Modifier.size(20.dp),
             )

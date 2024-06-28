@@ -68,7 +68,7 @@ fun MicrosurveyBottomSheet(
         ) {
             BottomSheetHandle(
                 onRequestDismiss = {},
-                contentDescription = stringResource(R.string.review_quality_check_close_handle_content_description),
+                contentDescription = stringResource(R.string.microsurvey_close_handle_content_description),
                 modifier = Modifier
                     .fillMaxWidth(BOTTOM_SHEET_HANDLE_WIDTH_PERCENT)
                     .align(Alignment.CenterHorizontally)

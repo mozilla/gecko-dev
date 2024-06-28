@@ -86,7 +86,7 @@ private fun Header(icon: Int, question: String) {
     ) {
         Image(
             painter = painterResource(icon),
-            contentDescription = null,
+            contentDescription = stringResource(id = R.string.microsurvey_feature_icon_content_description),
             modifier = Modifier.size(24.dp),
         )
 
