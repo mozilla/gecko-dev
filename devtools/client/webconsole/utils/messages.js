@@ -850,11 +850,8 @@ function getWarningGroupLabel(firstMessage) {
     return replaceURL(firstMessage.messageText, "<URL>");
   }
 
-  if (isCookieSameSiteMessage(firstMessage)) {
-    if (Services.prefs.getBoolPref("network.cookie.sameSite.laxByDefault")) {
-      return l10n.getStr("webconsole.group.cookieSameSiteLaxByDefaultEnabled2");
-    }
-    return l10n.getStr("webconsole.group.cookieSameSiteLaxByDefaultDisabled2");
+  if (isCookieMessage(firstMessage)) {
+    return l10n.getStr("webconsole.group.cookie");
   }
 
   if (isCSPMessage(firstMessage)) {
@@ -925,7 +922,7 @@ function getWarningGroupType(message) {
 
   if (
     message.level !== MESSAGE_LEVEL.WARN &&
-    // CookieSameSite messages are not warnings but infos
+    // Cookie messages are both warnings and infos
     message.level !== MESSAGE_LEVEL.INFO
   ) {
     return null;
@@ -943,8 +940,8 @@ function getWarningGroupType(message) {
     return MESSAGE_TYPE.TRACKING_PROTECTION_GROUP;
   }
 
-  if (isCookieSameSiteMessage(message)) {
-    return MESSAGE_TYPE.COOKIE_SAMESITE_GROUP;
+  if (isCookieMessage(message)) {
+    return MESSAGE_TYPE.COOKIE_GROUP;
   }
 
   if (isCSPMessage(message)) {
@@ -980,7 +977,7 @@ function isWarningGroup(message) {
     message.type === MESSAGE_TYPE.CONTENT_BLOCKING_GROUP ||
     message.type === MESSAGE_TYPE.STORAGE_ISOLATION_GROUP ||
     message.type === MESSAGE_TYPE.TRACKING_PROTECTION_GROUP ||
-    message.type === MESSAGE_TYPE.COOKIE_SAMESITE_GROUP ||
+    message.type === MESSAGE_TYPE.COOKIE_GROUP ||
     message.type === MESSAGE_TYPE.CORS_GROUP ||
     message.type === MESSAGE_TYPE.CSP_GROUP
   );
@@ -1026,9 +1023,11 @@ function isTrackingProtectionMessage(message) {
  * @param {ConsoleMessage} message
  * @returns {Boolean}
  */
-function isCookieSameSiteMessage(message) {
+function isCookieMessage(message) {
   const { category } = message;
-  return category == "cookieSameSite";
+  return ["cookiesCHIPS", "cookiesOversize", "cookieSameSite"].includes(
+    category
+  );
 }
 
 /**

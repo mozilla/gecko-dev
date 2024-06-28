@@ -5,6 +5,8 @@ const SAMESITE_PATH = "browser/netwerk/cookie/test/browser/";
 const SAMESITE_TOP_PAGE = SAMESITE_DOMAIN + SAMESITE_PATH + "sameSite.sjs";
 
 add_task(async _ => {
+  Services.cookies.removeAll();
+
   await SpecialPowers.pushPrefEnv({
     set: [
       ["network.cookie.sameSite.laxByDefault", true],
