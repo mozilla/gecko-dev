@@ -601,7 +601,7 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
   int64_t duration = holder->Duration();
   int64_t defaultDuration = holder->DefaultDuration();
   if (aType == TrackInfo::TrackType::kVideoTrack) {
-    WEBM_DEBUG("GetNextPacket(video): tstamp=%" PRId64 ", duration=%" PRId64
+    WEBM_DEBUG("video: tstamp=%" PRId64 ", duration=%" PRId64
                ", defaultDuration=%" PRId64,
                tstamp, duration, defaultDuration);
   }
@@ -656,6 +656,8 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
     calculateNextTimestamp(&WebMDemuxer::PushAudioPacket, mLastAudioFrameTime,
                            mInfo.mAudio.mDuration.ToMicroseconds());
   } else {
+    WEBM_DEBUG("next_holder %c mLastVideoFrameTime %c", next_holder ? 'Y' : 'N',
+               mLastVideoFrameTime ? 'Y' : 'N');
     calculateNextTimestamp(&WebMDemuxer::PushVideoPacket, mLastVideoFrameTime,
                            mInfo.mVideo.mDuration.ToMicroseconds());
   }
@@ -762,6 +764,8 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
     sample->mTime = TimeUnit::FromMicroseconds(tstamp);
     if (next_tstamp > tstamp) {
       sample->mDuration = TimeUnit::FromMicroseconds(next_tstamp - tstamp);
+    } else {
+      WEBM_DEBUG("tstamp >= next_tstamp");
     }
     sample->mOffset = holder->Offset();
     sample->mKeyframe = isKeyframe;

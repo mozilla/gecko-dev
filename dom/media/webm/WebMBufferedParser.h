@@ -59,10 +59,7 @@ struct WebMBufferedParser {
 
   // If this parser is not expected to parse a segment info, it must be told
   // the appropriate timecode scale to use from elsewhere.
-  void SetTimecodeScale(uint32_t aTimecodeScale) {
-    mTimecodeScale = aTimecodeScale;
-    mGotTimecodeScale = true;
-  }
+  void SetTimecodeScale(uint32_t aTimecodeScale);
 
   // Steps the parser through aLength bytes of data.  Always consumes
   // aLength bytes.  Updates mCurrentOffset before returning.

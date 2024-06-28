@@ -2394,7 +2394,7 @@ uint32_t TrackBuffersManager::RemoveFrames(const TimeIntervals& aIntervals,
     if (intervals.ContainsStrict(sample->mTime)) {
       // The start of this existing frame will be overwritten, we drop that
       // entire frame.
-      MSE_DEBUGV("overridding start of frame [%" PRId64 ",%" PRId64
+      MSE_DEBUGV("overriding start of frame [%" PRId64 ",%" PRId64
                  "] with [%" PRId64 ",%" PRId64 "] dropping",
                  sample->mTime.ToMicroseconds(),
                  sample->GetEndTime().ToMicroseconds(),

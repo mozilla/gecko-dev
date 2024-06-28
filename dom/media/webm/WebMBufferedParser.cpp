@@ -69,6 +69,12 @@ WebMBufferedParser::WebMBufferedParser(int64_t aOffset)
   }
 }
 
+void WebMBufferedParser::SetTimecodeScale(uint32_t aTimecodeScale) {
+  mTimecodeScale = aTimecodeScale;
+  WEBM_DEBUG("%" PRIu32, mTimecodeScale);
+  mGotTimecodeScale = true;
+}
+
 MediaResult WebMBufferedParser::Append(const unsigned char* aBuffer,
                                        uint32_t aLength,
                                        nsTArray<WebMTimeDataOffset>& aMapping) {
@@ -266,6 +272,7 @@ MediaResult WebMBufferedParser::Append(const unsigned char* aBuffer,
                              "TimecodeScale appeared before SegmentInfo");
         }
         mTimecodeScale = mVInt.mValue;
+        WEBM_DEBUG("READ_TIMECODESCALE %" PRIu32, mTimecodeScale);
         mState = READ_ELEMENT_ID;
         break;
       case READ_CLUSTER_TIMECODE:
