@@ -420,24 +420,23 @@ def detect_rustc_target(
 
 
 @imports("os")
-@imports(_from="tempfile", _import="mkstemp")
 @imports(_from="textwrap", _import="dedent")
 @imports(_from="mozbuild.configure.util", _import="LineIO")
+@imports(_from="__builtin__", _import="open")
 def assert_rust_compile(host_or_target, rustc_target, rustc):
     # Check to see whether our rustc has a reasonably functional stdlib
     # for our chosen target.
     target_arg = "--target=" + rustc_target
-    in_fd, in_path = mkstemp(prefix="conftest", suffix=".rs", text=True)
-    out_fd, out_path = mkstemp(prefix="conftest", suffix=".rlib")
-    os.close(out_fd)
-    try:
-        source = b'pub extern fn hello() { println!("Hello world"); }'
-        log.debug("Creating `%s` with content:", in_path)
-        with LineIO(lambda l: log.debug("| %s", l)) as out:
-            out.write(source)
+    with create_temporary_file(suffix=".rs") as in_path, create_temporary_file(
+        suffix=".rlib"
+    ) as out_path:
+        with open(in_path, "w") as fd:
+            source = b'pub extern fn hello() { println!("Hello world"); }'
+            log.debug("Creating `%s` with content:", in_path)
+            with LineIO(lambda l: log.debug("| %s", l)) as out:
+                out.write(source)
 
-        os.write(in_fd, source)
-        os.close(in_fd)
+            fd.write(source.decode())
 
         cmd = [
             rustc,
@@ -467,9 +466,6 @@ def assert_rust_compile(host_or_target, rustc_target, rustc):
         check_cmd_output(*cmd, onerror=failed)
         if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
             failed()
-    finally:
-        os.remove(in_path)
-        os.remove(out_path)
 
 
 @depends(
