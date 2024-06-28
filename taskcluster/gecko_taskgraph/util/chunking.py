@@ -28,10 +28,10 @@ if os.path.exists(os.path.join(GECKO, "taskcluster", "kinds", "test", "variants.
     TEST_VARIANTS = load_yaml(GECKO, "taskcluster", "kinds", "test", "variants.yml")
 
 WPT_SUBSUITES = {
-    "canvas": "html/canvas",
-    "webgpu": "_mozilla/webgpu",
-    "privatebrowsing": "/service-workers/cache-storage",
-    "webcodecs": "webcodecs",
+    "canvas": ["html/canvas"],
+    "webgpu": ["_mozilla/webgpu"],
+    "privatebrowsing": ["/service-workers/cache-storage"],
+    "webcodecs": ["webcodecs"],
 }
 
 
@@ -275,11 +275,18 @@ class DefaultLoader(BaseManifestLoader):
             for t in tests:
                 if subsuite:
                     # add specific directories
-                    if WPT_SUBSUITES[subsuite[0]] in t["manifest"]:
+                    if any(x in t["manifest"] for x in WPT_SUBSUITES[subsuite[0]]):
                         manifests.add(t["manifest"])
                 else:
-                    if any(x in t["manifest"] for x in WPT_SUBSUITES.values()):
+                    containsSubsuite = False
+                    for subsuites in WPT_SUBSUITES.values():
+                        if any(subsuite in t["manifest"] for subsuite in subsuites):
+                            containsSubsuite = True
+                            break
+
+                    if containsSubsuite:
                         continue
+
                     manifests.add(t["manifest"])
             return {
                 "active": list(manifests),

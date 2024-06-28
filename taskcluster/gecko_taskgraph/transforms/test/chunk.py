@@ -133,7 +133,10 @@ def set_test_manifests(config, tasks):
                         key for key in WPT_SUBSUITES if key in task["test-name"]
                     ]
                     if found_subsuite:
-                        if WPT_SUBSUITES[found_subsuite[0]] in m:
+                        if any(
+                            test_subsuite in m
+                            for test_subsuite in WPT_SUBSUITES[found_subsuite[0]]
+                        ):
                             yield task
                     else:
                         if not isinstance(loader, DefaultLoader):
