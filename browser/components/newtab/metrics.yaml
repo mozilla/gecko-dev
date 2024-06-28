@@ -865,6 +865,7 @@ pocket:
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
       - lina@mozilla.com
+      - sdowne@mozilla.com
     expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
@@ -885,6 +886,20 @@ pocket:
           For organic Pocket recommendations it is an opaque id produced by
           Pocket's recommendation systems.
           For sponsored Pocket content it is Kevel's "ad ID".
+        type: quantity
+      scheduled_corpus_item_id: &scheduled_corpus_item_id
+        description: >
+          A content identifier.
+          For organic Pocket recommendations it is an opaque id produced by
+          Pocket's recommendation systems.
+          For sponsored Pocket content it is Kevel's "ad ID".
+          This is the replacement for tile_id.
+        type: string
+      received_rank: &received_rank
+        description: The rank or order of the recommendation at the time it was sent to the client.
+        type: quantity
+      recommended_at: &recommended_at
+        description: The time in milliseconds the recomendation was recommended at.
         type: quantity
     send_in_pings:
       - newtab
@@ -912,6 +927,7 @@ pocket:
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
       - lina@mozilla.com
+      - sdowne@mozilla.com
     expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
@@ -919,6 +935,34 @@ pocket:
       position: *pocket_position
       recommendation_id: *recommendation_id
       tile_id: *pocket_tile_id
+      scheduled_corpus_item_id: *scheduled_corpus_item_id
+      received_rank: *received_rank
+      recommended_at: *recommended_at
+    send_in_pings:
+      - newtab
+
+  dismiss:
+    type: event
+    description: >
+      Recorded when a pocket tile is dismissed.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - sdowne@mozilla.com
+    expires: never
+    extra_keys:
+      newtab_visit_id: *newtab_visit_id
+      is_sponsored: *is_sponsored_pocket
+      position: *pocket_position
+      recommendation_id: *recommendation_id
+      tile_id: *pocket_tile_id
+      scheduled_corpus_item_id: *scheduled_corpus_item_id
+      received_rank: *received_rank
+      recommended_at: *recommended_at
     send_in_pings:
       - newtab
 
@@ -953,6 +997,9 @@ pocket:
       position: *pocket_position
       recommendation_id: *recommendation_id
       tile_id: *pocket_tile_id
+      scheduled_corpus_item_id: *scheduled_corpus_item_id
+      received_rank: *received_rank
+      recommended_at: *recommended_at
     send_in_pings:
       - newtab
 
@@ -1049,34 +1096,37 @@ pocket:
       - spoc
 
   thumb_voting_interaction:
-      type: event
-      description: >
-        Recorded when a thumbs up/down on a tile is clicked.
-        Only happens on click. Not on middle-click. Not on "Open in new Tab"-like
-        options in the context menu.
-      bugs:
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1902099
-      data_reviews:
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1902099
-      data_sensitivity:
-        - interaction
-      notification_emails:
-        - mcrawford@mozilla.com
-      expires: never
-      extra_keys:
-        newtab_visit_id: *newtab_visit_id
-        recommendation_id: *recommendation_id
-        tile_id: *pocket_tile_id
-        thumbs_up:
-          description: >
-            If the user clicked thumbs up.
-          type: boolean
-        thumbs_down:
-          description: >
-            If the user clicked thumbs down.
-          type: boolean
-      send_in_pings:
-        - newtab
+    type: event
+    description: >
+      Recorded when a thumbs up/down on a tile is clicked.
+      Only happens on click. Not on middle-click. Not on "Open in new Tab"-like
+      options in the context menu.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902099
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902099
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - mcrawford@mozilla.com
+    expires: never
+    extra_keys:
+      newtab_visit_id: *newtab_visit_id
+      recommendation_id: *recommendation_id
+      tile_id: *pocket_tile_id
+      thumbs_up:
+        description: >
+          If the user clicked thumbs up.
+        type: boolean
+      thumbs_down:
+        description: >
+          If the user clicked thumbs down.
+        type: boolean
+      scheduled_corpus_item_id: *scheduled_corpus_item_id
+      received_rank: *received_rank
+      recommended_at: *recommended_at
+    send_in_pings:
+      - newtab
 
 messaging_system:
   event_context_parse_error:

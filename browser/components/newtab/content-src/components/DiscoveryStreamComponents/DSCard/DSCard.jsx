@@ -221,6 +221,9 @@ export class _DSCard extends React.PureComponent {
               : {}),
             fetchTimestamp: this.props.fetchTimestamp,
             firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+            scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+            recommended_at: this.props.recommended_at,
+            received_rank: this.props.received_rank,
           },
         })
       );
@@ -270,6 +273,9 @@ export class _DSCard extends React.PureComponent {
               : {}),
             fetchTimestamp: this.props.fetchTimestamp,
             firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+            scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+            recommended_at: this.props.recommended_at,
+            received_rank: this.props.received_rank,
           },
         })
       );
@@ -302,6 +308,9 @@ export class _DSCard extends React.PureComponent {
         value: {
           recommendation_id: this.props.recommendation_id,
           tile_id: this.props.id,
+          scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+          recommended_at: this.props.recommended_at,
+          received_rank: this.props.received_rank,
           thumbs_up: true,
           thumbs_down: false,
         },
@@ -330,11 +339,18 @@ export class _DSCard extends React.PureComponent {
       this.props.id &&
       this.props.url
     ) {
-      const index = 0;
+      const index = this.props.pos;
       const source = this.props.type.toUpperCase();
       const spocData = {
         url: this.props.url,
         guid: this.props.id,
+        type: "CardGrid",
+        card_type: "organic",
+        recommendation_id: this.props.recommendation_id,
+        tile_id: this.props.id,
+        scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+        recommended_at: this.props.recommended_at,
+        received_rank: this.props.received_rank,
       };
       const blockUrlOption = LinkMenuOptions.BlockUrl(spocData, index, source);
 
@@ -361,6 +377,9 @@ export class _DSCard extends React.PureComponent {
           value: {
             recommendation_id: this.props.recommendation_id,
             tile_id: this.props.id,
+            scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+            recommended_at: this.props.recommended_at,
+            received_rank: this.props.received_rank,
             thumbs_up: false,
             thumbs_down: true,
           },
@@ -557,6 +576,9 @@ export class _DSCard extends React.PureComponent {
                   : {}),
                 recommendation_id: this.props.recommendation_id,
                 fetchTimestamp: this.props.fetchTimestamp,
+                scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+                recommended_at: this.props.recommended_at,
+                received_rank: this.props.received_rank,
               },
             ]}
             dispatch={this.props.dispatch}
@@ -598,6 +620,7 @@ export class _DSCard extends React.PureComponent {
               title={this.props.title}
               source={source}
               type={this.props.type}
+              card_type={this.props.flightId ? "spoc" : "organic"}
               pocket_id={this.props.pocket_id}
               shim={this.props.shim}
               bookmarkGuid={this.props.bookmarkGuid}
@@ -610,6 +633,11 @@ export class _DSCard extends React.PureComponent {
               saveToPocketCard={saveToPocketCard}
               pocket_button_enabled={pocketButtonEnabled}
               isRecentSave={isRecentSave}
+              recommendation_id={this.props.recommendation_id}
+              tile_id={this.props.id}
+              scheduled_corpus_item_id={this.props.scheduled_corpus_item_id}
+              recommended_at={this.props.recommended_at}
+              received_rank={this.props.received_rank}
             />
           </div>
         </div>

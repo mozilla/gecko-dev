@@ -1543,8 +1543,16 @@ const LinkMenuOptions = {
         url: site.original_url || site.open_url || site.url,
         // pocket_id is only for pocket stories being in highlights, and then dismissed.
         pocket_id: site.pocket_id,
+        tile_id: site.tile_id,
+        recommendation_id: site.recommendation_id,
+        scheduled_corpus_item_id: site.scheduled_corpus_item_id,
+        received_rank: site.received_rank,
+        recommended_at: site.recommended_at,
         // used by PlacesFeed and TopSitesFeed for sponsored top sites blocking.
         isSponsoredTopSite: site.sponsored_position,
+        type: site.type,
+        card_type: site.card_type,
+        ...(site.shim && site.shim.delete ? { shim: site.shim.delete } : {}),
         ...(site.flight_id ? { flight_id: site.flight_id } : {}),
         // If not sponsored, hostname could be anything (Cat3 Data!).
         // So only put in advertiser_name for sponsored topsites.
@@ -2033,9 +2041,15 @@ class DSLinkMenu extends (external_React_default()).PureComponent {
         url: this.props.url,
         guid: this.props.id,
         pocket_id: this.props.pocket_id,
+        card_type: this.props.card_type,
         shim: this.props.shim,
         bookmarkGuid: this.props.bookmarkGuid,
-        flight_id: this.props.flightId
+        flight_id: this.props.flightId,
+        tile_id: this.props.tile_id,
+        recommendation_id: this.props.recommendation_id,
+        scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+        recommended_at: this.props.recommended_at,
+        received_rank: this.props.received_rank
       }
     })));
   }
@@ -2173,7 +2187,10 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
             shim: link.shim
           } : {}),
           recommendation_id: link.recommendation_id,
-          fetchTimestamp: link.fetchTimestamp
+          fetchTimestamp: link.fetchTimestamp,
+          scheduled_corpus_item_id: link.scheduled_corpus_item_id,
+          recommended_at: link.recommended_at,
+          received_rank: link.received_rank
         })),
         firstVisibleTimestamp: this.props.firstVisibleTimestamp
       }));
@@ -2881,7 +2898,10 @@ class _DSCard extends (external_React_default()).PureComponent {
             shim: this.props.shim.click
           } : {}),
           fetchTimestamp: this.props.fetchTimestamp,
-          firstVisibleTimestamp: this.props.firstVisibleTimestamp
+          firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+          scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+          recommended_at: this.props.recommended_at,
+          received_rank: this.props.received_rank
         }
       }));
       this.props.dispatch(actionCreators.ImpressionStats({
@@ -2924,7 +2944,10 @@ class _DSCard extends (external_React_default()).PureComponent {
             shim: this.props.shim.save
           } : {}),
           fetchTimestamp: this.props.fetchTimestamp,
-          firstVisibleTimestamp: this.props.firstVisibleTimestamp
+          firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+          scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+          recommended_at: this.props.recommended_at,
+          received_rank: this.props.received_rank
         }
       }));
       this.props.dispatch(actionCreators.ImpressionStats({
@@ -2949,6 +2972,9 @@ class _DSCard extends (external_React_default()).PureComponent {
       value: {
         recommendation_id: this.props.recommendation_id,
         tile_id: this.props.id,
+        scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+        recommended_at: this.props.recommended_at,
+        received_rank: this.props.received_rank,
         thumbs_up: true,
         thumbs_down: false
       }
@@ -2965,11 +2991,18 @@ class _DSCard extends (external_React_default()).PureComponent {
   }
   onThumbsDownClick() {
     if (this.props.dispatch && this.props.type && this.props.id && this.props.url) {
-      const index = 0;
+      const index = this.props.pos;
       const source = this.props.type.toUpperCase();
       const spocData = {
         url: this.props.url,
-        guid: this.props.id
+        guid: this.props.id,
+        type: "CardGrid",
+        card_type: "organic",
+        recommendation_id: this.props.recommendation_id,
+        tile_id: this.props.id,
+        scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+        recommended_at: this.props.recommended_at,
+        received_rank: this.props.received_rank
       };
       const blockUrlOption = LinkMenuOptions.BlockUrl(spocData, index, source);
       const {
@@ -2994,6 +3027,9 @@ class _DSCard extends (external_React_default()).PureComponent {
         value: {
           recommendation_id: this.props.recommendation_id,
           tile_id: this.props.id,
+          scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+          recommended_at: this.props.recommended_at,
+          received_rank: this.props.received_rank,
           thumbs_up: false,
           thumbs_down: true
         }
@@ -3155,7 +3191,10 @@ class _DSCard extends (external_React_default()).PureComponent {
           shim: this.props.shim.impression
         } : {}),
         recommendation_id: this.props.recommendation_id,
-        fetchTimestamp: this.props.fetchTimestamp
+        fetchTimestamp: this.props.fetchTimestamp,
+        scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+        recommended_at: this.props.recommended_at,
+        received_rank: this.props.received_rank
       }],
       dispatch: this.props.dispatch,
       source: this.props.type,
@@ -3191,6 +3230,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       title: this.props.title,
       source: source,
       type: this.props.type,
+      card_type: this.props.flightId ? "spoc" : "organic",
       pocket_id: this.props.pocket_id,
       shim: this.props.shim,
       bookmarkGuid: this.props.bookmarkGuid,
@@ -3200,7 +3240,12 @@ class _DSCard extends (external_React_default()).PureComponent {
       onMenuShow: this.onMenuShow,
       saveToPocketCard: saveToPocketCard,
       pocket_button_enabled: pocketButtonEnabled,
-      isRecentSave: isRecentSave
+      isRecentSave: isRecentSave,
+      recommendation_id: this.props.recommendation_id,
+      tile_id: this.props.id,
+      scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+      recommended_at: this.props.recommended_at,
+      received_rank: this.props.received_rank
     }))));
   }
 }
@@ -3797,7 +3842,10 @@ class _CardGrid extends (external_React_default()).PureComponent {
         spocMessageVariant: spocMessageVariant,
         recommendation_id: rec.recommendation_id,
         firstVisibleTimestamp: this.props.firstVisibleTimestamp,
-        mayHaveThumbsUpDown: mayHaveThumbsUpDown
+        mayHaveThumbsUpDown: mayHaveThumbsUpDown,
+        scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
+        recommended_at: rec.recommended_at,
+        received_rank: rec.received_rank
       }));
     }
     if (widgets?.positions?.length && widgets?.data?.length) {

@@ -177,6 +177,9 @@ describe("<DSCard>", () => {
             tile_id: "fooidx",
             fetchTimestamp: DEFAULT_PROPS.fetchTimestamp,
             firstVisibleTimestamp: DEFAULT_PROPS.firstVisibleTimestamp,
+            scheduled_corpus_item_id: undefined,
+            recommended_at: undefined,
+            received_rank: undefined,
           },
         })
       );
@@ -217,6 +220,9 @@ describe("<DSCard>", () => {
             tile_id: "fooidx",
             fetchTimestamp: DEFAULT_PROPS.fetchTimestamp,
             firstVisibleTimestamp: DEFAULT_PROPS.firstVisibleTimestamp,
+            scheduled_corpus_item_id: undefined,
+            recommended_at: undefined,
+            received_rank: undefined,
           },
         })
       );
@@ -265,6 +271,9 @@ describe("<DSCard>", () => {
             shim: "click shim",
             fetchTimestamp: DEFAULT_PROPS.fetchTimestamp,
             firstVisibleTimestamp: DEFAULT_PROPS.firstVisibleTimestamp,
+            scheduled_corpus_item_id: undefined,
+            recommended_at: undefined,
+            received_rank: undefined,
           },
         })
       );
@@ -405,6 +414,9 @@ describe("<DSCard>", () => {
             tile_id: "fooidx",
             fetchTimestamp: undefined,
             firstVisibleTimestamp: DEFAULT_PROPS.firstVisibleTimestamp,
+            scheduled_corpus_item_id: undefined,
+            recommended_at: undefined,
+            received_rank: undefined,
           },
         })
       );

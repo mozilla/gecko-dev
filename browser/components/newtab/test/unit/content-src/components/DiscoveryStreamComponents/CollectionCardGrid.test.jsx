@@ -110,7 +110,14 @@ describe("<CollectionCardGrid>", () => {
     let expected = ["123", "456", "789"].map(url => ({
       url,
       pocket_id: undefined,
+      tile_id: undefined,
+      recommendation_id: undefined,
+      scheduled_corpus_item_id: undefined,
+      received_rank: undefined,
+      recommended_at: undefined,
       isSponsoredTopSite: undefined,
+      type: undefined,
+      card_type: undefined,
       position: 0,
       is_pocket_card: false,
     }));

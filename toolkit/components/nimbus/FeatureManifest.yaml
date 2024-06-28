@@ -975,6 +975,16 @@ pocketNewtab:
       fallbackPref: >-
         browser.newtabpage.activity-stream.discoverystream.region-bff-config
       description: A comma-separated list of regions to get stories from the recommendations BFF. Also requires region-stories-config.
+    merinoProviderEnabled:
+      type: string
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.merino-provider.enabled
+      description: Sets the recommendations provider service to Merino.
+    merinoProviderEndpoint:
+      type: string
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.merino-provider.endpoint
+      description: Merino endpoint to use for recommendations.
     regionStoriesBlock:
       description: A comma-separated list of regions that do not get stories, regardless of locale-list-config.
       type: string

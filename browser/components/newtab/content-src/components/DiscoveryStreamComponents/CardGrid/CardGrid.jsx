@@ -379,6 +379,9 @@ export class _CardGrid extends React.PureComponent {
             recommendation_id={rec.recommendation_id}
             firstVisibleTimestamp={this.props.firstVisibleTimestamp}
             mayHaveThumbsUpDown={mayHaveThumbsUpDown}
+            scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
+            recommended_at={rec.recommended_at}
+            received_rank={rec.received_rank}
           />
         )
       );

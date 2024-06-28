@@ -142,6 +142,9 @@ describe("<ImpressionStats>", () => {
         type: "organic",
         recommendation_id: undefined,
         fetchTimestamp: TEST_FETCH_TIMESTAMP,
+        scheduled_corpus_item_id: undefined,
+        recommended_at: undefined,
+        received_rank: undefined,
       },
       {
         id: 2,
@@ -149,6 +152,9 @@ describe("<ImpressionStats>", () => {
         type: "organic",
         recommendation_id: undefined,
         fetchTimestamp: TEST_FETCH_TIMESTAMP,
+        scheduled_corpus_item_id: undefined,
+        recommended_at: undefined,
+        received_rank: undefined,
       },
       {
         id: 3,
@@ -156,6 +162,9 @@ describe("<ImpressionStats>", () => {
         type: "organic",
         recommendation_id: undefined,
         fetchTimestamp: TEST_FETCH_TIMESTAMP,
+        scheduled_corpus_item_id: undefined,
+        recommended_at: undefined,
+        received_rank: undefined,
       },
     ]);
     assert.equal(
@@ -241,6 +250,9 @@ describe("<ImpressionStats>", () => {
         pos: 0,
         type: "organic",
         recommendation_id: undefined,
+        scheduled_corpus_item_id: undefined,
+        recommended_at: undefined,
+        received_rank: undefined,
         fetchTimestamp: TEST_FETCH_TIMESTAMP,
       },
       {
@@ -248,6 +260,9 @@ describe("<ImpressionStats>", () => {
         pos: 1,
         type: "organic",
         recommendation_id: undefined,
+        scheduled_corpus_item_id: undefined,
+        recommended_at: undefined,
+        received_rank: undefined,
         fetchTimestamp: TEST_FETCH_TIMESTAMP,
       },
       {
@@ -255,6 +270,9 @@ describe("<ImpressionStats>", () => {
         pos: 2,
         type: "organic",
         recommendation_id: undefined,
+        scheduled_corpus_item_id: undefined,
+        recommended_at: undefined,
+        received_rank: undefined,
         fetchTimestamp: TEST_FETCH_TIMESTAMP,
       },
     ]);
