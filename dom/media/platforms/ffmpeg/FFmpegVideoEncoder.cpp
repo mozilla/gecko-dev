@@ -15,7 +15,9 @@
 #include "ImageContainer.h"
 #include "libavutil/error.h"
 #include "libavutil/pixfmt.h"
+#include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/ImageUtils.h"
+#include "mozilla/dom/VideoFrameBinding.h"
 #include "nsPrintfCString.h"
 #include "ImageConversion.h"
 #include "libyuv.h"
@@ -302,6 +304,21 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
 
   // And now the video-specific part
   mCodecContext->pix_fmt = ffmpeg::FFMPEG_PIX_FMT_YUV420P;
+  // // TODO: do this properly, based on the colorspace of the frame. Setting this like that crashes encoders.
+  // if (mConfig.mCodec != CodecType::AV1) {
+  //     if (mConfig.mPixelFormat == dom::ImageBitmapFormat::RGBA32 ||
+  //         mConfig.mPixelFormat == dom::ImageBitmapFormat::BGRA32) {
+  //       mCodecContext->color_primaries = AVCOL_PRI_BT709;
+  //       mCodecContext->colorspace = AVCOL_SPC_RGB;
+  //   #ifdef FFVPX_VERSION
+  //       mCodecContext->color_trc = AVCOL_TRC_IEC61966_2_1;
+  //   #endif
+  //     } else {
+  //       mCodecContext->color_primaries = AVCOL_PRI_BT709;
+  //       mCodecContext->colorspace = AVCOL_SPC_BT709;
+  //       mCodecContext->color_trc = AVCOL_TRC_BT709;
+  //     }
+  // }
   mCodecContext->width = static_cast<int>(mConfig.mSize.width);
   mCodecContext->height = static_cast<int>(mConfig.mSize.height);
   mCodecContext->gop_size = static_cast<int>(mConfig.mKeyframeInterval);
