@@ -690,32 +690,38 @@ void SharedScreenCastStreamPrivate::ProcessBuffer(pw_buffer* buffer) {
     const struct spa_meta_cursor* cursor =
         static_cast<struct spa_meta_cursor*>(spa_buffer_find_meta_data(
             spa_buffer, SPA_META_Cursor, sizeof(*cursor)));
-    if (cursor && spa_meta_cursor_is_valid(cursor)) {
-      struct spa_meta_bitmap* bitmap = nullptr;
 
-      if (cursor->bitmap_offset)
-        bitmap =
-            SPA_MEMBER(cursor, cursor->bitmap_offset, struct spa_meta_bitmap);
+    if (cursor) {
+      if (spa_meta_cursor_is_valid(cursor)) {
+        struct spa_meta_bitmap* bitmap = nullptr;
 
-      if (bitmap && bitmap->size.width > 0 && bitmap->size.height > 0) {
-        const uint8_t* bitmap_data =
-            SPA_MEMBER(bitmap, bitmap->offset, uint8_t);
-        BasicDesktopFrame* mouse_frame = new BasicDesktopFrame(
-            DesktopSize(bitmap->size.width, bitmap->size.height));
-        mouse_frame->CopyPixelsFrom(
-            bitmap_data, bitmap->stride,
-            DesktopRect::MakeWH(bitmap->size.width, bitmap->size.height));
-        mouse_cursor_ = std::make_unique<MouseCursor>(
-            mouse_frame, DesktopVector(cursor->hotspot.x, cursor->hotspot.y));
+        if (cursor->bitmap_offset)
+          bitmap =
+              SPA_MEMBER(cursor, cursor->bitmap_offset, struct spa_meta_bitmap);
+
+        if (bitmap && bitmap->size.width > 0 && bitmap->size.height > 0) {
+          const uint8_t* bitmap_data =
+              SPA_MEMBER(bitmap, bitmap->offset, uint8_t);
+          BasicDesktopFrame* mouse_frame = new BasicDesktopFrame(
+              DesktopSize(bitmap->size.width, bitmap->size.height));
+          mouse_frame->CopyPixelsFrom(
+              bitmap_data, bitmap->stride,
+              DesktopRect::MakeWH(bitmap->size.width, bitmap->size.height));
+          mouse_cursor_ = std::make_unique<MouseCursor>(
+              mouse_frame, DesktopVector(cursor->hotspot.x, cursor->hotspot.y));
+
+          if (observer_) {
+            observer_->OnCursorShapeChanged();
+          }
+        }
+        mouse_cursor_position_.set(cursor->position.x, cursor->position.y);
 
         if (observer_) {
-          observer_->OnCursorShapeChanged();
+          observer_->OnCursorPositionChanged();
         }
-      }
-      mouse_cursor_position_.set(cursor->position.x, cursor->position.y);
-
-      if (observer_) {
-        observer_->OnCursorPositionChanged();
+      } else {
+        // Indicate an invalid cursor
+        mouse_cursor_position_.set(-1, -1);
       }
     }
   }
