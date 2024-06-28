@@ -1029,11 +1029,12 @@ class GitRepository(Repository):
             cmd,
             cwd=self.path,
             env=self._env,
-            input=fast_import,
-            text=True,
+            # text=True changes line endings on Windows, and git fast-import
+            # doesn't like \r\n.
+            input=fast_import.encode("utf-8"),
         )
 
-        try_head = stdout.strip()
+        try_head = stdout.decode("ascii").strip()
         yield try_head
 
         # Keep trace of the temporary push in the reflog, as if we did actually commit.

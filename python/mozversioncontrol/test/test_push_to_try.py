@@ -33,12 +33,24 @@ def test_push_to_try(repo, monkeypatch):
             return "1234567890123456789012345678901234567890"
         if os.path.basename(cmd[0]).startswith("hg") and cmd[1] == "--version":
             return "version 6.7"
+        return ""
+
+    def normalize_fake_run(*args, **kwargs):
+        if (
+            kwargs.get("text")
+            or kwargs.get("universal_newlines")
+            or kwargs.get("encoding")
+        ):
+            return fake_run(*args, **kwargs)
+        if input := kwargs.get("input"):
+            kwargs["input"] = input.decode("utf-8")
+        return fake_run(*args, **kwargs).encode("utf-8")
 
     def fake_uuid():
         return "974284fd-f395-4a15-a9d7-814a71241242"
 
-    monkeypatch.setattr(subprocess, "check_output", fake_run)
-    monkeypatch.setattr(subprocess, "check_call", fake_run)
+    monkeypatch.setattr(subprocess, "check_output", normalize_fake_run)
+    monkeypatch.setattr(subprocess, "check_call", normalize_fake_run)
     monkeypatch.setattr(uuid, "uuid4", fake_uuid)
 
     vcs.push_to_try(
