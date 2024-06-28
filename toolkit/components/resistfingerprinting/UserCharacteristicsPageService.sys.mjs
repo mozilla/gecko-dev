@@ -212,6 +212,7 @@ export class UserCharacteristicsPageService {
       [this.populateMapableData, [data.output]],
       [this.populateGamepads, [data.output.gamepads]],
       [this.populateClientInfo, []],
+      [this.populateCPUInfo, []],
     ];
     const results = await Promise.allSettled(
       populateFuncs.map(([f, args]) => f(...args))
@@ -367,6 +368,12 @@ export class UserCharacteristicsPageService {
       Services.sysinfo.getProperty("version")
     );
     Glean.characteristics.buildDate.set(buildDate);
+  }
+
+  async populateCPUInfo() {
+    Glean.characteristics.cpuModel.set(
+      await Services.sysinfo.processInfo.then(r => r.name)
+    );
   }
 
   async pageLoaded(browsingContext, data) {
