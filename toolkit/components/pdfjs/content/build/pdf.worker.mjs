@@ -23164,7 +23164,7 @@ function createOS2Table(properties, charstrings, override) {
     lastCharIndex = 255;
   }
   const bbox = properties.bbox || [0, 0, 0, 0];
-  const unitsPerEm = override.unitsPerEm || (properties.fontMatrix ? 1 / Math.max(...properties.fontMatrix.slice(0, 4)) : 1000);
+  const unitsPerEm = override.unitsPerEm || (properties.fontMatrix ? 1 / Math.max(...properties.fontMatrix.slice(0, 4).map(Math.abs)) : 1000);
   const scale = properties.ascentScaled ? 1.0 : unitsPerEm / PDF_GLYPH_SPACE_UNITS;
   const typoAscent = override.ascent || Math.round(scale * (properties.ascent || bbox[3]));
   let typoDescent = override.descent || Math.round(scale * (properties.descent || bbox[1]));
@@ -24858,7 +24858,7 @@ class Font {
       }
       properties.seacMap = seacMap;
     }
-    const unitsPerEm = properties.fontMatrix ? 1 / Math.max(...properties.fontMatrix.slice(0, 4)) : 1000;
+    const unitsPerEm = properties.fontMatrix ? 1 / Math.max(...properties.fontMatrix.slice(0, 4).map(Math.abs)) : 1000;
     const builder = new OpenTypeFileBuilder("\x4F\x54\x54\x4F");
     builder.addTable("CFF ", font.data);
     builder.addTable("OS/2", createOS2Table(properties, newCharCodeToGlyphId));
@@ -55665,7 +55665,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "4.4.111";
+    const workerVersion = "4.4.140";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -56228,8 +56228,8 @@ if (typeof window === "undefined" && !isNodeJS && typeof self !== "undefined" &&
 
 ;// CONCATENATED MODULE: ./src/pdf.worker.js
 
-const pdfjsVersion = "4.4.111";
-const pdfjsBuild = "f9ff613e5";
+const pdfjsVersion = "4.4.140";
+const pdfjsBuild = "2fbd61944";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };

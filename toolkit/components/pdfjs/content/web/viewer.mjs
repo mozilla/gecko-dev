@@ -1308,28 +1308,45 @@ class EventBus {
     }
   }
 }
-class AutomationEventBus extends EventBus {
+class FirefoxEventBus extends EventBus {
+  #externalServices;
+  #globalEventNames;
+  #isInAutomation;
+  constructor(globalEventNames, externalServices, isInAutomation) {
+    super();
+    this.#globalEventNames = globalEventNames;
+    this.#externalServices = externalServices;
+    this.#isInAutomation = isInAutomation;
+  }
   dispatch(eventName, data) {
     super.dispatch(eventName, data);
-    const detail = Object.create(null);
-    if (data) {
-      for (const key in data) {
-        const value = data[key];
-        if (key === "source") {
-          if (value === window || value === document) {
-            return;
+    if (this.#isInAutomation) {
+      const detail = Object.create(null);
+      if (data) {
+        for (const key in data) {
+          const value = data[key];
+          if (key === "source") {
+            if (value === window || value === document) {
+              return;
+            }
+            continue;
           }
-          continue;
+          detail[key] = value;
         }
-        detail[key] = value;
       }
+      const event = new CustomEvent(eventName, {
+        bubbles: true,
+        cancelable: true,
+        detail
+      });
+      document.dispatchEvent(event);
     }
-    const event = new CustomEvent(eventName, {
-      bubbles: true,
-      cancelable: true,
-      detail
-    });
-    document.dispatchEvent(event);
+    if (this.#globalEventNames?.has(eventName)) {
+      this.#externalServices.dispatchGlobalEvent({
+        eventName,
+        detail: data
+      });
+    }
   }
 }
 
@@ -1354,6 +1371,10 @@ class BaseExternalServices {
     throw new Error("Not implemented: updateEditorStates");
   }
   async getNimbusExperimentData() {}
+  async getGlobalEventNames() {
+    return null;
+  }
+  dispatchGlobalEvent(_event) {}
 }
 
 ;// CONCATENATED MODULE: ./web/preferences.js
@@ -1469,6 +1490,7 @@ class BasePreferences {
 ;// CONCATENATED MODULE: ./web/l10n.js
 class L10n {
   #dir;
+  #elements = new Set();
   #lang;
   #l10n;
   constructor({
@@ -1503,10 +1525,18 @@ class L10n {
     return messages?.[0].value || fallback;
   }
   async translate(element) {
+    this.#elements.add(element);
     try {
       this.#l10n.connectRoot(element);
       await this.#l10n.translateRoots();
     } catch {}
+  }
+  async destroy() {
+    for (const element of this.#elements) {
+      this.#l10n.disconnectRoot(element);
+    }
+    this.#elements.clear();
+    this.#l10n.pauseObserving();
   }
   pause() {
     this.#l10n.pauseObserving();
@@ -1825,6 +1855,12 @@ class ExternalServices extends BaseExternalServices {
   }
   async getNimbusExperimentData() {
     return null;
+  }
+  async getGlobalEventNames() {
+    return FirefoxCom.requestAsync("getGlobalEventNames", null);
+  }
+  dispatchGlobalEvent(event) {
+    FirefoxCom.request("dispatchGlobalEvent", event);
   }
 }
 
@@ -8438,7 +8474,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.4.111";
+    const viewerVersion = "4.4.140";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -10533,6 +10569,7 @@ const PDFViewerApplication = {
   isViewerEmbedded: window.parent !== window,
   url: "",
   baseUrl: "",
+  _allowedGlobalEventsPromise: null,
   _downloadUrl: "",
   _eventBusAbortController: null,
   _windowAbortController: null,
@@ -10558,6 +10595,7 @@ const PDFViewerApplication = {
   async initialize(appConfig) {
     let l10nPromise;
     l10nPromise = this.externalServices.createL10n();
+    this._allowedGlobalEventsPromise = this.externalServices.getGlobalEventNames();
     this.appConfig = appConfig;
     try {
       await this.preferences.initializedPromise;
@@ -10661,7 +10699,9 @@ const PDFViewerApplication = {
       externalServices,
       l10n
     } = this;
-    const eventBus = AppOptions.get("isInAutomation") ? new AutomationEventBus() : new EventBus();
+    let eventBus;
+    eventBus = new FirefoxEventBus(await this._allowedGlobalEventsPromise, externalServices, AppOptions.get("isInAutomation"));
+    this._allowedGlobalEventsPromise = null;
     this.eventBus = eventBus;
     this.overlayManager = new OverlayManager();
     const pdfRenderingQueue = new PDFRenderingQueue();
@@ -11857,13 +11897,12 @@ const PDFViewerApplication = {
     this._windowAbortController = null;
   },
   async testingClose() {
-    this.l10n?.pause();
-    this.findBar?.close();
     this.unbindEvents();
     this.unbindWindowEvents();
     this._globalAbortController?.abort();
     this._globalAbortController = null;
-    await this.close();
+    this.findBar?.close();
+    await Promise.all([this.l10n?.destroy(), this.close()]);
   },
   _accumulateTicks(ticks, prop) {
     if (this[prop] > 0 && ticks < 0 || this[prop] < 0 && ticks > 0) {
@@ -12610,8 +12649,8 @@ function webViewerReportTelemetry({
 
 
 
-const pdfjsVersion = "4.4.111";
-const pdfjsBuild = "f9ff613e5";
+const pdfjsVersion = "4.4.140";
+const pdfjsBuild = "2fbd61944";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
