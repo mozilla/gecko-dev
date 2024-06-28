@@ -18,6 +18,7 @@
   accent-color: var(--fc-accent-color);
   // Make sure HTML content uses non-native theming, even in chrome windows.
   -moz-theme: non-native;
+  -moz-window-shadow: none;
 
   @media (prefers-color-scheme: dark) {
     @include dark-theme;
@@ -551,7 +552,6 @@
     background: transparent;
     outline: 1px solid var(--fc-border);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 15%);
-    -moz-window-shadow: none;
   }
 
   // the 'filled' arrow box

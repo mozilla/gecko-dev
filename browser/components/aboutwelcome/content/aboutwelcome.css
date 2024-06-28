@@ -35,6 +35,7 @@
   color: var(--fc-color);
   accent-color: var(--fc-accent-color);
   -moz-theme: non-native;
+  -moz-window-shadow: none;
   --arrow-width: 33.9411px;
   --arrow-square-size: calc(var(--arrow-width) / sqrt(2));
   --extra-width-from-rotation: calc(var(--arrow-width) - var(--arrow-square-size));
@@ -591,7 +592,6 @@ panel#feature-callout::part(content) {
   background: transparent;
   outline: 1px solid var(--fc-border);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  -moz-window-shadow: none;
 }
 #feature-callout .background-arrow-box {
   z-index: 1;
