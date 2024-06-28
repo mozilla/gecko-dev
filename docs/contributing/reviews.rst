@@ -179,6 +179,9 @@ Review groups
    * - #search-reviewers
      - `Search </mots/index.html#search>`__
      - `Member list <https://phabricator.services.mozilla.com/project/members/169/>`__
+   * - #sessionstore or #sessionstore-reviewers
+     - `Firefox: Session Restore </mots/index.html#session-restore>`__
+     - `Member list <https://phabricator.services.mozilla.com/project/members/179/>`__
    * - #spidermonkey-reviewers
      - SpiderMonkey JS/Wasm Engine
      - `Member list <https://phabricator.services.mozilla.com/project/members/173/>`__
@@ -191,6 +194,12 @@ Review groups
    * - #supply-chain-reviewers
      - Third-party audits and vendoring (cargo-vet, supply_chain).
      - `Member list <https://phabricator.services.mozilla.com/project/members/164/>`__
+   * - #tabbrowser or #tabbrowser-reviewers
+     - `Firefox: Tabbed Browser </mots/index.html#tabbed-browser>`__
+     - `Member list <https://phabricator.services.mozilla.com/project/members/180/>`__
+   * - #theme or #desktop-theme-reviewers
+     - `Firefox: Theme and Toolkit: Themes </mots/index.html#desktop-theme>`__
+     - `Member list <https://phabricator.services.mozilla.com/project/members/141/>`__
    * - #urlbar-reviewers
      - `Urlbar (Address Bar) </mots/index.html#address-bar>`__
      - `Member list <https://phabricator.services.mozilla.com/project/members/211/>`__
