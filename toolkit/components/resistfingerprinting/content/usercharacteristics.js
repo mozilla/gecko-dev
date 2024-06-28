@@ -893,17 +893,45 @@ const LocalFiraSans = new FontFace(
   const font = await LocalFiraSans.load();
   document.fonts.add(font);
 
+  const errors = [];
   // Data contains key: (Promise<any> | any) pairs. The keys are identifiers
   // for the data and the values are either a promise that returns a value,
   // or a value. Promises are awaited and values are resolved immediately.
-  const data = {
-    ...populateTestCanvases(),
-    ...populateWebGLCanvases(),
-    ...populateFingerprintJSCanvases(),
-    ...populateVoiceList(),
-    ...populateMediaCapabilities(),
-    ...populateAudioFingerprint(),
-  };
+  const data = {};
+  const sources = [
+    populateTestCanvases,
+    populateWebGLCanvases,
+    populateFingerprintJSCanvases,
+    populateVoiceList,
+    populateMediaCapabilities,
+    populateAudioFingerprint,
+  ];
+  // Catches errors in promise-creating functions. E.g. if populateVoiceList
+  // throws an error before returning any of its `key: (Promise<any> | any)`
+  // pairs, we catch it here. This also catches non-async function errors
+  for (const source of sources) {
+    try {
+      Object.assign(data, source());
+    } catch (error) {
+      if (error instanceof Error) {
+        const stack = (error.stack ?? "").replaceAll(
+          /@chrome.+?usercharacteristics.js:/g,
+          ""
+        );
+        errors.push(`${source.name}: ${error.toString()} ${stack}`);
+        continue;
+      }
+      // A hacky attempt to extract as much as info from error
+      const errStr = await (async () => {
+        const asStr = await (async () => error.toString())().catch(() => "");
+        const asJson = await (async () => JSON.stringify(error))().catch(
+          () => ""
+        );
+        return asStr.length > asJson.len ? asStr : asJson;
+      })();
+      errors.push(`${source.name}: ${errStr}`);
+    }
+  }
 
   debug("Awaiting", Object.keys(data).length, "data promises.");
   await Promise.allSettled(Object.values(data));
@@ -916,8 +944,24 @@ const LocalFiraSans = new FontFace(
       debug(key, output[key].length);
     } catch (e) {
       debug("Promise rejected for", key, "Error:", e);
+      if (e instanceof Error) {
+        const stack = (e.stack ?? "").replaceAll(
+          /@chrome.+?usercharacteristics.js:/g,
+          ""
+        );
+        errors.push(`${key}: ${e.toString()} ${stack}`);
+        continue;
+      }
+      // A hacky attempt to extract as much as info from error
+      const errStr = await (async () => {
+        const asStr = await (async () => e.toString())().catch(() => "");
+        const asJson = await (async () => JSON.stringify(e))().catch(() => "");
+        return asStr.length > asJson.len ? asStr : asJson;
+      })();
+      errors.push(`${key}: ${errStr}`);
     }
   }
+  output.jsErrors = JSON.stringify(errors);
 
   document.dispatchEvent(
     new CustomEvent("UserCharacteristicsDataDone", {

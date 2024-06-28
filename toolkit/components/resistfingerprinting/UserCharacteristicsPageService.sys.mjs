@@ -223,6 +223,7 @@ export class UserCharacteristicsPageService {
           Glean.characteristics.audioFingerprint.set(
             data.output.audioFingerprint
           );
+          Glean.characteristics.jsErrors.set(data.output.jsErrors);
         } catch (e) {
           // Grab the exception and send it to the console
           // (we don't see it otherwise)
