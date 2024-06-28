@@ -879,7 +879,6 @@ export class BackupService extends EventTarget {
     }
 
     this.#backupInProgress = true;
-    const backupTimer = Glean.browserBackup.totalBackupTime.start();
 
     try {
       lazy.logConsole.debug(`Creating backup for profile at ${profilePath}`);
@@ -1034,16 +1033,12 @@ export class BackupService extends EventTarget {
       let nowSeconds = Math.floor(Date.now() / 1000);
       Services.prefs.setIntPref(LAST_BACKUP_TIMESTAMP_PREF_NAME, nowSeconds);
       this.#_state.lastBackupDate = nowSeconds;
-      Glean.browserBackup.totalBackupTime.stopAndAccumulate(backupTimer);
 
       return {
         stagingPath: renamedStagingPath,
         compressedStagingPath,
         archivePath,
       };
-    } catch {
-      Glean.browserBackup.totalBackupTime.cancel(backupTimer);
-      return null;
     } finally {
       this.#backupInProgress = false;
     }
