@@ -5,6 +5,8 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  cleanupCacheBypassState:
+    "chrome://remote/content/shared/NetworkCacheManager.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   RecommendedPreferences:
@@ -165,6 +167,9 @@ export class WebDriverBiDi {
       this.#agent.server.registerPathHandler(this.#session.path, null);
       lazy.logger.debug(`Unregistered session handler: ${this.#session.path}`);
     }
+
+    // For multiple session check first if the last session was closed.
+    lazy.cleanupCacheBypassState();
 
     this.#session.destroy();
     this.#session = null;

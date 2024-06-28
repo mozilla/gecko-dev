@@ -18,8 +18,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/ChallengeHeaderParser.sys.mjs",
   parseURLPattern:
     "chrome://remote/content/shared/webdriver/URLPattern.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   truncate: "chrome://remote/content/shared/Format.sys.mjs",
+  updateCacheBypassStatus:
+    "chrome://remote/content/shared/NetworkCacheManager.sys.mjs",
   WindowGlobalMessageHandler:
     "chrome://remote/content/shared/messagehandler/WindowGlobalMessageHandler.sys.mjs",
 });
@@ -1042,6 +1045,66 @@ class NetworkModule extends Module {
     }
 
     this.#interceptMap.delete(intercept);
+  }
+
+  /**
+   * Bypasses the network cache for certain contexts.
+   *
+   * @param {object=} options
+   * @param {boolean} options.bypass
+   *     The flag to enable or disable bypassing of the network cache.
+   * @param {Array<string>=} options.contexts
+   *     The list of browsing context ids where the network cache
+   *     should be bypassed.
+   *
+   * @throws {InvalidArgumentError}
+   *     Raised if an argument is of an invalid type or value.
+   * @throws {NoSuchFrameError}
+   *     If the browsing context cannot be found.
+   * @throws {UnsupportedOperationError}
+   *     If unsupported configuration is passed.
+   */
+  setCacheBypass(options = {}) {
+    const { bypass, contexts: contextIds = null } = options;
+
+    lazy.assert.boolean(
+      bypass,
+      lazy.pprint`Expected "bypass" to be a boolean, got ${bypass}`
+    );
+
+    if (contextIds === null) {
+      lazy.updateCacheBypassStatus(bypass);
+    } else {
+      lazy.assert.array(
+        contextIds,
+        lazy.pprint`Expected "contexts" to be an array, got ${contextIds}`
+      );
+
+      if (!contextIds.length) {
+        throw new lazy.error.InvalidArgumentError(
+          'Expected "contexts" to contain at least one item, got an empty array'
+        );
+      }
+
+      const contexts = new Set();
+      for (const contextId of contextIds) {
+        lazy.assert.string(
+          contextId,
+          lazy.pprint`Expected elements of "contexts" to be a string, got ${contextId}`
+        );
+        const context = this.#getBrowsingContext(contextId);
+
+        if (context.parent) {
+          throw new lazy.error.InvalidArgumentError(
+            lazy.pprint`Context with id ${contextId} is not a top-level browsing context`
+          );
+        }
+
+        contexts.add(context);
+      }
+
+      lazy.updateCacheBypassStatus(bypass, contexts);
+    }
   }
 
   /**
