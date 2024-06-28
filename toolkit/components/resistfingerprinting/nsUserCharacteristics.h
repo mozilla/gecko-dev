@@ -18,6 +18,7 @@ class nsUserCharacteristics {
    *   it will not submit the data, and SubmitPing must be called explicitly.
    *   This is perfect because that's what we want for the gtest.
    */
+  static bool ShouldSubmit();
   static void PopulateDataAndEventuallySubmit(bool aUpdatePref = true,
                                               bool aTesting = false);
   static void SubmitPing();
