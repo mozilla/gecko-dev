@@ -182,6 +182,12 @@ this.test = class extends ExtensionAPI {
           );
         },
 
+        async zoomToFocusedInput(tabId) {
+          await getActorForTab(tabId, "TestSupport").sendQuery(
+            "ZoomToFocusedInput"
+          );
+        },
+
         async promiseAllPaintsDone(tabId) {
           await getActorForTab(tabId, "TestSupport").sendQuery(
             "PromiseAllPaintsDone"

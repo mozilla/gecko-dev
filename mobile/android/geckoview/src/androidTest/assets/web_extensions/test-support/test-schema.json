@@ -203,6 +203,18 @@
         ]
       },
       {
+        "name": "zoomToFocusedInput",
+        "type": "function",
+        "async": true,
+        "description": "Invokes nsIDOMWindowUtils.zoomToFocusedInput for the document of the tabId.",
+        "parameters": [
+          {
+            "type": "number",
+            "name": "tabId"
+          }
+        ]
+      },
+      {
         "name": "promiseAllPaintsDone",
         "type": "function",
         "async": true,

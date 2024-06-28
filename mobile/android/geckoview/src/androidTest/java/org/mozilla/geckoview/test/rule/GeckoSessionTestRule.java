@@ -2765,6 +2765,11 @@ public class GeckoSessionTestRule implements TestRule {
     webExtensionApiCall(session, "FlushApzRepaints", null);
   }
 
+  /** Invokes nsIDOMWindowUtils.zoomToFocusedInput. */
+  public void zoomToFocusedInput(final GeckoSession session) {
+    webExtensionApiCall(session, "ZoomToFocusedInput", null);
+  }
+
   /** Invokes a simplified version of promiseAllPaintsDone in paint_listener.js. */
   public void promiseAllPaintsDone(final GeckoSession session) {
     webExtensionApiCall(session, "PromiseAllPaintsDone", null);

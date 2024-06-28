@@ -389,6 +389,31 @@ class DynamicToolbarTest : BaseSessionTest() {
         })
     }
 
+    @WithDisplay(height = 600, width = 600)
+    @Test
+    fun hideDynamicToolbarToRevealFocusedInput() {
+        // The <input> element on the test page is 80 CSS pixels tall.
+        // Its height in screen pixels is that amount multiplied by the device
+        // scale, which can be as high as 3 on some devices.
+        // Ensure the dynamic toolbar is taller than that.
+        val dynamicToolbarMaxHeight = 300
+        sessionRule.display?.run { setDynamicToolbarMaxHeight(dynamicToolbarMaxHeight) }
+
+        // Set active since setVerticalClipping call affects only for forground tab.
+        mainSession.setActive(true)
+
+        mainSession.loadTestPath(HIDE_DYNAMIC_TOOLBAR_HTML_PATH)
+        mainSession.waitForPageStop()
+        mainSession.evaluateJS("document.getElementById('input1').focus();")
+        mainSession.zoomToFocusedInput()
+
+        mainSession.waitUntilCalled(object : ContentDelegate {
+            @AssertCalled(count = 1)
+            override fun onHideDynamicToolbar(session: GeckoSession) {
+            }
+        })
+    }
+
     @WithDisplay(height = SCREEN_HEIGHT, width = SCREEN_WIDTH)
     @Test
     fun showDynamicToolbarOnOverflowHidden() {

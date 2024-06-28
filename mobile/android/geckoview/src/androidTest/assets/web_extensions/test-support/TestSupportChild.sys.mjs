@@ -24,6 +24,8 @@ export class TestSupportChild extends GeckoViewActorChild {
             repaintDone();
           }
         });
+      case "ZoomToFocusedInput":
+        return this.contentWindow.windowUtils.zoomToFocusedInput();
       case "PromiseAllPaintsDone":
         return new Promise(resolve => {
           const window = this.contentWindow;

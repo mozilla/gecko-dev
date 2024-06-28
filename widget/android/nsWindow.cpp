@@ -1923,6 +1923,15 @@ void GeckoViewSupport::OnShowDynamicToolbar() const {
   window->OnShowDynamicToolbar();
 }
 
+void GeckoViewSupport::OnHideDynamicToolbar() const {
+  GeckoSession::Window::LocalRef window(mGeckoViewWindow);
+  if (!window) {
+    return;
+  }
+
+  window->OnHideDynamicToolbar();
+}
+
 void GeckoViewSupport::OnReady(jni::Object::Param aQueue) {
   GeckoSession::Window::LocalRef window(mGeckoViewWindow);
   if (!window) {
@@ -2845,6 +2854,15 @@ void nsWindow::UpdateOverscrollOffset(const float aX, const float aY) {
           compositor->UpdateOverscrollOffset(aX, aY);
         });
   }
+}
+
+void nsWindow::HideDynamicToolbar() {
+  auto acc(mGeckoViewSupport.Access());
+  if (!acc) {
+    return;
+  }
+
+  acc->OnHideDynamicToolbar();
 }
 
 void* nsWindow::GetNativeData(uint32_t aDataType) {

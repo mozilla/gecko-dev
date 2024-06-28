@@ -38,6 +38,7 @@ class AndroidContentController final
   void UpdateOverscrollOffset(const ScrollableLayerGuid& aGuid, const float aX,
                               const float aY,
                               const bool aIsRootContent) override;
+  void HideDynamicToolbar(const ScrollableLayerGuid& aGuid) override;
   void NotifyAPZStateChange(const ScrollableLayerGuid& aGuid,
                             APZStateChange aChange, int aArg,
                             Maybe<uint64_t> aInputBlockId) override;

@@ -7,6 +7,7 @@
 #ifndef mozilla_layers_AsyncPanZoomController_h
 #define mozilla_layers_AsyncPanZoomController_h
 
+#include "Units.h"
 #include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/layers/RepaintRequest.h"
 #include "mozilla/layers/SampleTime.h"
@@ -1373,6 +1374,8 @@ class AsyncPanZoomController {
    */
   std::tuple<ParentLayerPoint, ScreenPoint> GetDisplacementsForPanGesture(
       const PanGestureInput& aEvent);
+
+  CSSCoord ToCSSPixels(ParentLayerCoord value) const;
 
  private:
   friend class AutoApplyAsyncTestAttributes;

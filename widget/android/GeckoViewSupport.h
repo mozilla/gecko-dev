@@ -93,6 +93,7 @@ class GeckoViewSupport final
                      bool aIsTopLevel) const -> java::GeckoResult::LocalRef;
 
   void OnShowDynamicToolbar() const;
+  void OnHideDynamicToolbar() const;
 
   void PassExternalResponse(java::WebResponse::Param aResponse);
 

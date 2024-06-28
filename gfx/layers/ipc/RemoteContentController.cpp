@@ -8,6 +8,7 @@
 
 #include "CompositorThread.h"
 #include "MainThreadUtils.h"
+#include "ipc/RemoteContentController.h"
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/layers/APZCTreeManagerParent.h"  // for APZCTreeManagerParent
@@ -322,6 +323,47 @@ void RemoteContentController::UpdateOverscrollOffset(
       MOZ_RELEASE_ASSERT(rootController->IsRemote());
       Unused << static_cast<RemoteContentController*>(rootController)
                     ->SendUpdateOverscrollOffset(aGuid, aX, aY, aIsRootContent);
+    }
+  }
+}
+
+void RemoteContentController::HideDynamicToolbar(
+    const ScrollableLayerGuid& aGuid) {
+  // We always want these to go to the parent process
+  if (XRE_IsParentProcess()) {
+#ifdef MOZ_WIDGET_ANDROID
+    if (!NS_IsMainThread()) {
+      mozilla::jni::DispatchToGeckoPriorityQueue(
+          NewRunnableMethod<ScrollableLayerGuid>(
+              "layers::RemoteContentController::HideDynamicToolbar", this,
+              &RemoteContentController::HideDynamicToolbar, aGuid));
+      return;
+    }
+#endif
+
+    MOZ_RELEASE_ASSERT(NS_IsMainThread());
+    RefPtr<GeckoContentController> rootController =
+        CompositorBridgeParent::GetGeckoContentControllerForRoot(
+            aGuid.mLayersId);
+    if (rootController) {
+      rootController->HideDynamicToolbar(aGuid);
+    }
+  } else if (XRE_IsGPUProcess()) {
+    if (!mCompositorThread->IsOnCurrentThread()) {
+      mCompositorThread->Dispatch(NewRunnableMethod<ScrollableLayerGuid>(
+          "layers::RemoteContentController::HideDynamicToolbar", this,
+          &RemoteContentController::HideDynamicToolbar, aGuid));
+      return;
+    }
+
+    MOZ_RELEASE_ASSERT(mCompositorThread->IsOnCurrentThread());
+    GeckoContentController* rootController =
+        CompositorBridgeParent::GetGeckoContentControllerForRoot(
+            aGuid.mLayersId);
+    if (rootController) {
+      MOZ_RELEASE_ASSERT(rootController->IsRemote());
+      Unused << static_cast<RemoteContentController*>(rootController)
+                    ->SendHideDynamicToolbar();
     }
   }
 }

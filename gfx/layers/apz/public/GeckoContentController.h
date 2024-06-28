@@ -157,12 +157,20 @@ class GeckoContentController {
   virtual void NotifyScaleGestureComplete(const ScrollableLayerGuid& aGuid,
                                           float aScale) = 0;
 
+  /**
+   * Following functions with empty implementations are Android-specific
+   * and handled in the parent process. They are overridden by
+   * AndroidContentController in the parent process,
+   * and by RemoteContentController for the purpose of routing them from
+   * the compositor process to the parent process.
+   */
   virtual void UpdateOverscrollVelocity(const ScrollableLayerGuid& aGuid,
                                         float aX, float aY,
                                         bool aIsRootContent) {}
   virtual void UpdateOverscrollOffset(const ScrollableLayerGuid& aGuid,
                                       float aX, float aY, bool aIsRootContent) {
   }
+  virtual void HideDynamicToolbar(const ScrollableLayerGuid& aGuid) {}
 
   GeckoContentController() = default;
 

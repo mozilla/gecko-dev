@@ -120,6 +120,8 @@ class nsWindow final : public nsBaseWidget {
   void UpdateOverscrollVelocity(const float aX, const float aY);
   void UpdateOverscrollOffset(const float aX, const float aY);
 
+  void HideDynamicToolbar();
+
   mozilla::widget::EventDispatcher* GetEventDispatcher() const;
 
   void PassExternalResponse(mozilla::java::WebResponse::Param aResponse);

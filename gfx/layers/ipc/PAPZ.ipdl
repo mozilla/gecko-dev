@@ -60,6 +60,8 @@ child:
 
   async UpdateOverscrollOffset(ScrollableLayerGuid aGuid, float aX, float aY, bool aIsRootContent);
 
+  async HideDynamicToolbar();
+
   async NotifyMozMouseScrollEvent(ViewID aScrollId, nsString aEvent);
 
   async NotifyAPZStateChange(ScrollableLayerGuid aGuid, GeckoContentController_APZStateChange aChange, int aArg, uint64_t? aInputBlockId);

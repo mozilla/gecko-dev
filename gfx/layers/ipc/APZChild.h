@@ -7,6 +7,7 @@
 #ifndef mozilla_layers_APZChild_h
 #define mozilla_layers_APZChild_h
 
+#include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/PAPZChild.h"
 #include "mozilla/layers/APZTaskRunnable.h"
 
@@ -39,6 +40,8 @@ class APZChild final : public PAPZChild {
   mozilla::ipc::IPCResult RecvUpdateOverscrollOffset(
       const ScrollableLayerGuid& aGuid, const float& aX, const float& aY,
       const bool& aIsRootContent);
+
+  mozilla::ipc::IPCResult RecvHideDynamicToolbar();
 
   mozilla::ipc::IPCResult RecvNotifyMozMouseScrollEvent(const ViewID& aScrollId,
                                                         const nsString& aEvent);

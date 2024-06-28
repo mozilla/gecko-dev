@@ -68,6 +68,8 @@ class RemoteContentController : public GeckoContentController,
   void UpdateOverscrollOffset(const ScrollableLayerGuid& aGuid, float aX,
                               float aY, bool aIsRootContent) override;
 
+  void HideDynamicToolbar(const ScrollableLayerGuid& aGuid) override;
+
   void NotifyMozMouseScrollEvent(const ScrollableLayerGuid::ViewID& aScrollId,
                                  const nsString& aEvent) override;
 

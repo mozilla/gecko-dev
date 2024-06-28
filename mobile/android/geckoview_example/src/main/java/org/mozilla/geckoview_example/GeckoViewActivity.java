@@ -2174,6 +2174,14 @@ public class GeckoViewActivity extends AppCompatActivity
     }
 
     @Override
+    public void onHideDynamicToolbar(final GeckoSession session) {
+      final View toolbar = findViewById(R.id.toolbar);
+      if (toolbar != null) {
+        toolbar.setTranslationY(toolbar.getHeight());
+      }
+    }
+
+    @Override
     public void onCookieBannerDetected(final GeckoSession session) {
       Log.d("BELL", "A cookie banner was detected on this website");
     }

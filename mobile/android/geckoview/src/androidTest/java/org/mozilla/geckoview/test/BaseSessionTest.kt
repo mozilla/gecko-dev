@@ -122,6 +122,7 @@ open class BaseSessionTest(
         const val OVERSCROLL_BEHAVIOR_NONE_NON_ROOT_HTML_PATH = "/assets/www/overscroll-behavior-none-on-non-root.html"
         const val SCROLL_HANDOFF_HTML_PATH = "/assets/www/scroll-handoff.html"
         const val SHOW_DYNAMIC_TOOLBAR_HTML_PATH = "/assets/www/showDynamicToolbar.html"
+        const val HIDE_DYNAMIC_TOOLBAR_HTML_PATH = "/assets/www/hideDynamicToolbar.html"
         const val CONTEXT_MENU_AUDIO_HTML_PATH = "/assets/www/context_menu_audio.html"
         const val CONTEXT_MENU_IMAGE_NESTED_HTML_PATH = "/assets/www/context_menu_image_nested.html"
         const val CONTEXT_MENU_IMAGE_HTML_PATH = "/assets/www/context_menu_image.html"
@@ -271,6 +272,8 @@ open class BaseSessionTest(
     }
 
     fun GeckoSession.flushApzRepaints() = sessionRule.flushApzRepaints(this)
+
+    fun GeckoSession.zoomToFocusedInput() = sessionRule.zoomToFocusedInput(this)
 
     fun GeckoSession.promiseAllPaintsDone() = sessionRule.promiseAllPaintsDone(this)
 

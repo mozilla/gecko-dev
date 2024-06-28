@@ -1606,6 +1606,22 @@ public class GeckoSession {
             }
           });
     }
+
+    @WrapForJNI(calledFrom = "gecko")
+    private void onHideDynamicToolbar() {
+      final Window self = this;
+      ThreadUtils.runOnUiThread(
+          () -> {
+            final GeckoSession session = self.mOwner.get();
+            if (session == null) {
+              return;
+            }
+            final ContentDelegate delegate = session.getContentDelegate();
+            if (delegate != null) {
+              delegate.onHideDynamicToolbar(session);
+            }
+          });
+    }
   }
 
   private class Listener implements BundleEventListener {
@@ -4517,6 +4533,14 @@ public class GeckoSession {
      */
     @UiThread
     default void onShowDynamicToolbar(@NonNull final GeckoSession geckoSession) {}
+
+    /**
+     * The app should hide its dynamic toolbar.
+     *
+     * @param geckoSession GeckoSession that initiated the callback.
+     */
+    @UiThread
+    default void onHideDynamicToolbar(@NonNull final GeckoSession geckoSession) {}
 
     /**
      * This method is called when a cookie banner was detected.
