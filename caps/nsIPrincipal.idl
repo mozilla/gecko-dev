@@ -175,11 +175,12 @@ interface nsIPrincipal : nsISupports
      * If the load is allowed this function does nothing. If the load is not
      * allowed the function throws NS_ERROR_DOM_BAD_URI.
      *
+     * May be called from any thread.
+     *
      * NOTE: Other policies might override this, such as the Access-Control
      *       specification.
      * NOTE: The 'domain' attribute has no effect on the behaviour of this
      *       function.
-     * NOTE: Main-Thread Only.
      *
      *
      * @param uri    The URI about to be loaded.

@@ -252,14 +252,6 @@ interface nsIProtocolHandler : nsISupports
     const unsigned long URI_IS_POTENTIALLY_TRUSTWORTHY = (1<<17);
 
     /**
-     * This URI may be fetched and the contents are visible to anyone. This is
-     * semantically equivalent to the resource being served with all-access CORS
-     * headers.  This is only used in MV2 Extensions and should not otherwise
-     * be used.
-     */
-    const unsigned long URI_FETCHABLE_BY_ANYONE = (1 << 18);
-
-    /**
      * If this flag is set, then the origin for this protocol is the full URI
      * spec, not just the scheme + host + port.
      *
@@ -311,7 +303,7 @@ interface nsIProtocolHandler : nsISupports
      */
     const unsigned long DYNAMIC_URI_FLAGS =
         URI_LOADABLE_BY_ANYONE | URI_DANGEROUS_TO_LOAD |
-        URI_IS_POTENTIALLY_TRUSTWORTHY | URI_FETCHABLE_BY_ANYONE |
-        URI_LOADABLE_BY_EXTENSIONS | URI_DISALLOW_IN_PRIVATE_CONTEXT |
-        WEBEXT_URI_WEB_ACCESSIBLE | URI_HAS_WEB_EXPOSED_ORIGIN;
+        URI_IS_POTENTIALLY_TRUSTWORTHY | URI_LOADABLE_BY_EXTENSIONS |
+        URI_DISALLOW_IN_PRIVATE_CONTEXT | WEBEXT_URI_WEB_ACCESSIBLE |
+        URI_HAS_WEB_EXPOSED_ORIGIN;
 };
