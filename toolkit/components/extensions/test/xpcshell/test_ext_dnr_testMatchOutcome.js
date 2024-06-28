@@ -180,6 +180,11 @@ add_task(async function resource_type_validation() {
   });
 });
 
+// This test confirms that there are several URLs that cannot be affected by DNR
+// despite having the maximal permissions (host_permissions:"<all_urls>") and
+// using the "block" action (which has the least permission requirements, as
+// opposed to redirect and modifyHeaders, which require host permissions for
+// the request and initiator URL).
 add_task(async function url_validation() {
   await runAsDNRExtension({
     background: async dnrTestUtils => {
@@ -198,12 +203,14 @@ add_task(async function url_validation() {
         // While host permissions permits more (e.g. file:, moz-extension:),
         // we don't list them here since they are not hooked up to the network.
         // Trying to match such URLs is undefined behavior for now.
+        // For file:-URLs, test coverage exists in test_ext_dnr_file_access.js.
       ];
       const supportedInitiators = [
         // Supported URLs are also supported initiators.
         ...supportedUrls,
         // Note: moz-extension: has more tests in match_initiator_moz_extension.
         `moz-extension://${location.host}`,
+        // Note: file: has more tests in test_ext_dnr_file_access.js.
         "file:///tmp/",
         // data:-URIs have a null principal.
         "data:text/plain,",

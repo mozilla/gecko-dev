@@ -223,6 +223,8 @@ skip-if = ["os == 'android'"] # Android: downloads.download goes through the emb
 
 ["test_ext_dnr_dynamic_rules.js"]
 
+["test_ext_dnr_file_access.js"]
+
 ["test_ext_dnr_modifyHeaders.js"]
 
 ["test_ext_dnr_private_browsing.js"]
