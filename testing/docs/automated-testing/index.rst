@@ -75,7 +75,7 @@ Functional testing
    "``M(remote)``", "Mochitest Remote Protocol", "All", "Parent, Allow", "Browser", "Yes", "High", "Firefox Remote Protocol (Implements parts of Chrome dev-tools protocol). Based on Mochitest browser-chrome."
    "``SM(...), SM(pkg)``", "`SpiderMonkey automation <https://wiki.mozilla.org/Javascript:Automation_Builds>`__", "Desktop", "N/A", "JSShell", "N/A", "Low", "SpiderMonkey engine shell tests and JSAPI tests."
    "``W``", "`web-platform-tests </web-platform/index.html>`__", "Desktop", "Child", "Content", "Yes", "Low", "Standardized features exposed to ECMAScript in web content; tests are shared with other vendors."
-   "``Wr``", "`web-platform-tests </web-platform/writing-tests/reftests.html>`__", "All", "Child", "Content", "Yes", "Low", "Layout and graphic correctness for standardized features; tests are shared with other vendors."
+   "``Wr``", "`web-platform-tests <https://web-platform-tests.org/writing-tests/reftests.html>`__", "All", "Child", "Content", "Yes", "Low", "Layout and graphic correctness for standardized features; tests are shared with other vendors."
    "``Mn``", "`Marionette </testing/marionette/Testing.html>`__", "Desktop", "?", "Content, Browser", "?", "High", "Large out-of-process function integration tests and tests that do communication with multiple remote Gecko processes."
    "``Fxfn``", "`Firefox UI Tests </remote/Testing.html#puppeteer-tests>`__", "Desktop", "?", "Content, Browser", "Yes", "High", "Integration tests with a focus on the user interface and localization."
    "``tt(c)``", "`telemetry-tests-client </toolkit/components/telemetry/internals/tests.html>`__", "Desktop", "N/A", "Content, Browser", "Yes", "High", "Integration tests for the Firefox Telemetry client."
