@@ -16,6 +16,7 @@
 #include "CookieCommons.h"
 
 class nsIArray;
+class nsIConsoleReportCollector;
 class nsICookie;
 class nsICookieTransactionCallback;
 class nsIPrefBranch;

@@ -6,6 +6,7 @@
 #include "Cookie.h"
 #include "CookieCommons.h"
 #include "CookieLogging.h"
+#include "CookieParser.h"
 #include "CookieService.h"
 #include "mozilla/net/CookieServiceChild.h"
 #include "ErrorList.h"
@@ -697,7 +698,7 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
   do {
     CookieStruct cookieData;
     bool canSetCookie = false;
-    moreCookies = CookieService::CanSetCookie(
+    moreCookies = CookieParser::CanSetCookie(
         aHostURI, baseDomain, cookieData, requireHostMatch, cookieStatus,
         cookieString, true, isForeignAndNotAddon, mustBePartitioned,
         storagePrincipalOriginAttributes.IsPrivateBrowsing(), crc,

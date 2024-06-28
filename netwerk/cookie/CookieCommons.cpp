@@ -6,6 +6,7 @@
 #include "Cookie.h"
 #include "CookieCommons.h"
 #include "CookieLogging.h"
+#include "CookieParser.h"
 #include "CookieService.h"
 #include "mozilla/ConsoleReportCollector.h"
 #include "mozilla/ContentBlockingNotifier.h"
@@ -397,7 +398,7 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
   CookieStruct cookieData;
   MOZ_ASSERT(cookieData.creationTime() == 0, "Must be initialized to 0");
   bool canSetCookie = false;
-  CookieService::CanSetCookie(
+  CookieParser::CanSetCookie(
       principalURI, baseDomain, cookieData, requireHostMatch, cookieStatus,
       cookieString, false, isForeignAndNotAddon, mustBePartitioned,
       aDocument->IsInPrivateBrowsing(), crc, canSetCookie);
@@ -751,6 +752,25 @@ bool CookieCommons::IsSchemeSupported(nsIURI* aURI) {
 bool CookieCommons::IsSchemeSupported(const nsACString& aScheme) {
   return aScheme.Equals("https") || aScheme.Equals("http") ||
          aScheme.Equals("file");
+}
+
+static bool ContainsUnicodeChars(const nsCString& str) {
+  const auto* start = str.BeginReading();
+  const auto* end = str.EndReading();
+
+  return std::find_if(start, end, [](unsigned char c) { return c >= 0x80; }) !=
+         end;
+}
+
+// static
+void CookieCommons::RecordUnicodeTelemetry(const CookieStruct& cookieData) {
+  auto label = Telemetry::LABELS_NETWORK_COOKIE_UNICODE_BYTE::none;
+  if (ContainsUnicodeChars(cookieData.name())) {
+    label = Telemetry::LABELS_NETWORK_COOKIE_UNICODE_BYTE::unicodeName;
+  } else if (ContainsUnicodeChars(cookieData.value())) {
+    label = Telemetry::LABELS_NETWORK_COOKIE_UNICODE_BYTE::unicodeValue;
+  }
+  Telemetry::AccumulateCategorical(label);
 }
 
 }  // namespace net

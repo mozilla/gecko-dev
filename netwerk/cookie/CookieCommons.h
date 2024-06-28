@@ -15,7 +15,6 @@
 #include "mozilla/net/NeckoChannelParams.h"
 
 class nsIChannel;
-class nsIConsoleReportCollector;
 class nsICookieJarSettings;
 class nsIEffectiveTLDService;
 class nsIPrincipal;
@@ -134,6 +133,8 @@ class CookieCommons final {
   // redirect before the final URI.
   static bool IsSameSiteForeign(nsIChannel* aChannel, nsIURI* aHostURI,
                                 bool* aHadCrossSiteRedirects);
+
+  static void RecordUnicodeTelemetry(const CookieStruct& cookieData);
 };
 
 }  // namespace net
