@@ -1737,29 +1737,31 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
         ContentProcessSandboxParams::ForThisProcess(aBroker));
   }
 #  elif defined(XP_WIN)
-  // Library required for timely audio processing.
-  ::LoadLibraryW(L"avrt.dll");
-  // Libraries required by Network Security Services (NSS).
-  ::LoadLibraryW(L"freebl3.dll");
-  ::LoadLibraryW(L"softokn3.dll");
-  // Library required by DirectWrite in some fall-back scenarios.
-  ::LoadLibraryW(L"textshaping.dll");
-  // Libraries that are required for WMF software encoding.
-  ::LoadLibraryW(L"mozavcodec.dll");
-  ::LoadLibraryW(L"mozavutil.dll");
-  ::LoadLibraryW(L"mfplat.dll");
-  ::LoadLibraryW(L"mf.dll");
-  ::LoadLibraryW(L"dxva2.dll");
-  ::LoadLibraryW(L"evr.dll");
-  ::LoadLibraryW(L"mfh264enc.dll");
-  // Cache value that is retrieved from a registry entry.
-  Unused << GetCpuFrequencyMHz();
+  if (GetEffectiveContentSandboxLevel() > 7) {
+    // Library required for timely audio processing.
+    ::LoadLibraryW(L"avrt.dll");
+    // Libraries required by Network Security Services (NSS).
+    ::LoadLibraryW(L"freebl3.dll");
+    ::LoadLibraryW(L"softokn3.dll");
+    // Library required by DirectWrite in some fall-back scenarios.
+    ::LoadLibraryW(L"textshaping.dll");
+    // Libraries that are required for WMF software encoding.
+    ::LoadLibraryW(L"mozavcodec.dll");
+    ::LoadLibraryW(L"mozavutil.dll");
+    ::LoadLibraryW(L"mfplat.dll");
+    ::LoadLibraryW(L"mf.dll");
+    ::LoadLibraryW(L"dxva2.dll");
+    ::LoadLibraryW(L"evr.dll");
+    ::LoadLibraryW(L"mfh264enc.dll");
+    // Cache value that is retrieved from a registry entry.
+    Unused << GetCpuFrequencyMHz();
 #    if defined(DEBUG)
-  // Library used in some debug testing.
-  ::LoadLibraryW(L"dbghelp.dll");
-  // Required for WMF shutdown, not required for opt due to quick exit.
-  ::LoadLibraryW(L"ole32.dll");
+    // Library used in some debug testing.
+    ::LoadLibraryW(L"dbghelp.dll");
+    // Required for WMF shutdown, not required for opt due to quick exit.
+    ::LoadLibraryW(L"ole32.dll");
 #    endif
+  }
   mozilla::SandboxTarget::Instance()->StartSandbox();
 #  elif defined(XP_MACOSX)
   sandboxEnabled = (GetEffectiveContentSandboxLevel() >= 1);
