@@ -281,6 +281,17 @@ addAccessibleTask(
     );
     testTextAtOffset(
       kCaretOffset,
+      BOUNDARY_CLUSTER,
+      "",
+      6,
+      6,
+      textarea,
+      kOk,
+      kOk,
+      kOk
+    );
+    testTextAtOffset(
+      kCaretOffset,
       BOUNDARY_WORD_START,
       "cd ",
       3,
