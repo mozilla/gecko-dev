@@ -7,7 +7,6 @@ const RELATIVE_DIR = "toolkit/components/pdfjs/test/";
 const TESTROOT = "http://example.com/browser/" + RELATIVE_DIR;
 
 var MockFilePicker = SpecialPowers.MockFilePicker;
-MockFilePicker.init(window.browsingContext);
 
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/toolkit/content/tests/browser/common/mockTransfer.js",
@@ -38,6 +37,7 @@ function createPromiseForTransferComplete(expectedFileName, destFile) {
 let tempDir = createTemporarySaveDirectory();
 
 add_setup(async function () {
+  MockFilePicker.init(window.browsingContext);
   mockTransferRegisterer.register();
   registerCleanupFunction(function () {
     mockTransferRegisterer.unregister();

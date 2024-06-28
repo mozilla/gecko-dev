@@ -134,6 +134,12 @@ interface nsITransfer : nsIWebProgressListener2 {
      *        associated with the downloaded file.
      */
     void setRedirects(in nsIArray aRedirects);
+
+    /*
+     * Returns a promise that resolves to the download object associated with
+     * this transfer.
+     */
+    readonly attribute Promise downloadPromise;
 };
 
 %{C++

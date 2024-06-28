@@ -440,6 +440,10 @@ DownloadLegacyTransfer.prototype = {
       .catch(console.error);
   },
 
+  get downloadPromise() {
+    return this._promiseDownload;
+  },
+
   setSha256Hash(hash) {
     this._sha256Hash = hash;
   },

@@ -114,11 +114,11 @@ export class PdfjsParent extends JSWindowActorParent {
   }
 
   _saveURL(aMsg) {
-    const data = aMsg.data;
+    const { blobUrl, originalUrl, filename } = aMsg.data;
     this.browser.ownerGlobal.saveURL(
-      data.blobUrl /* aURL */,
-      data.originalUrl /* aOriginalURL */,
-      data.filename /* aFileName */,
+      blobUrl /* aURL */,
+      originalUrl /* aOriginalURL */,
+      filename /* aFileName */,
       null /* aFilePickerTitleKey */,
       true /* aShouldBypassCache */,
       false /* aSkipPrompt */,
@@ -128,7 +128,13 @@ export class PdfjsParent extends JSWindowActorParent {
       lazy.PrivateBrowsingUtils.isBrowserPrivate(
         this.browser
       ) /* aIsContentWindowPrivate */,
-      Services.scriptSecurityManager.getSystemPrincipal() /* aPrincipal */
+      Services.scriptSecurityManager.getSystemPrincipal() /* aPrincipal */,
+      () => {
+        if (blobUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(blobUrl);
+        }
+        Services.obs.notifyObservers(null, "pdfjs:saveComplete");
+      }
     );
   }
 

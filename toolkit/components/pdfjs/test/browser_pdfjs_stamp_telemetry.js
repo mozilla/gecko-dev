@@ -10,10 +10,16 @@ Services.scriptloader.loadSubScript(
 );
 
 const MockFilePicker = SpecialPowers.MockFilePicker;
-MockFilePicker.init(window.browsingContext);
-MockFilePicker.returnValue = MockFilePicker.returnOK;
 const file = new FileUtils.File(getTestFilePath("moz.png"));
-MockFilePicker.setFiles([file]);
+
+add_setup(async function () {
+  MockFilePicker.init(window.browsingContext);
+  MockFilePicker.setFiles([file]);
+  MockFilePicker.returnValue = MockFilePicker.returnOK;
+  registerCleanupFunction(function () {
+    MockFilePicker.cleanup();
+  });
+});
 
 // Test telemetry.
 add_task(async function test() {

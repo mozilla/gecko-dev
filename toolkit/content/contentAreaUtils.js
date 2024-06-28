@@ -77,7 +77,8 @@ function saveURL(
   aCookieJarSettings,
   aSourceDocument,
   aIsContentWindowPrivate,
-  aPrincipal
+  aPrincipal,
+  aSaveCompleteCallback
 ) {
   internalSave(
     aURL,
@@ -95,7 +96,8 @@ function saveURL(
     aSkipPrompt,
     null,
     aIsContentWindowPrivate,
-    aPrincipal
+    aPrincipal,
+    aSaveCompleteCallback
   );
 }
 
@@ -256,6 +258,8 @@ XPCOMUtils.defineConstant(this, "kSaveAsType_Text", kSaveAsType_Text);
  *        This parameter is provided when neither aDocument nor
  *        aInitiatingDocument is provided. Used to determine what level of
  *        privilege to load the URI with.
+ * @param aSaveCompleteCallback [optional]
+ *        A callback function to call when the save is complete.
  */
 function internalSave(
   aURL,
@@ -273,7 +277,8 @@ function internalSave(
   aSkipPrompt,
   aCacheKey,
   aIsContentWindowPrivate,
-  aPrincipal
+  aPrincipal,
+  aSaveCompleteCallback
 ) {
   if (aSkipPrompt == undefined) {
     aSkipPrompt = false;
@@ -331,6 +336,7 @@ function internalSave(
     promiseTargetFile(fpParams, aSkipPrompt, relatedURI)
       .then(aDialogAccepted => {
         if (!aDialogAccepted) {
+          aSaveCompleteCallback?.();
           return;
         }
 
@@ -389,6 +395,7 @@ function internalSave(
       contentPolicyType,
       cookieJarSettings: aCookieJarSettings,
       isPrivate,
+      saveCompleteCallback: aSaveCompleteCallback,
     };
 
     // Start the actual save process
@@ -432,6 +439,8 @@ function internalSave(
  *        If true, the document will always be refetched from the server
  * @param persistArgs.isPrivate
  *        Indicates whether this is taking place in a private browsing context.
+ * @param persistArgs.saveCompleteCallback [optional]
+ *        A callback function to call when the save is complete.
  */
 function internalPersist(persistArgs) {
   var persist = makeWebBrowserPersist();
@@ -467,6 +476,13 @@ function internalPersist(persistArgs) {
     persistArgs.sourceReferrerInfo
   );
   persist.progressListener = new DownloadListener(window, tr);
+  const { saveCompleteCallback } = persistArgs;
+  if (saveCompleteCallback) {
+    tr.downloadPromise
+      .then(aDownload => aDownload.whenSucceeded())
+      .catch(console.error)
+      .finally(saveCompleteCallback);
+  }
 
   if (persistArgs.sourceDocument) {
     // Saving a Document, not a URI:
