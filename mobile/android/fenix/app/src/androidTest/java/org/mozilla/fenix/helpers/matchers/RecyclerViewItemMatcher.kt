@@ -31,3 +31,16 @@ fun hasItem(matcher: Matcher<View?>): Matcher<View?>? {
         }
     }
 }
+
+fun hasItemsCount(expected: Int): Matcher<View> {
+    return object : BoundedMatcher<View, RecyclerView>(RecyclerView::class.java) {
+
+        override fun describeTo(description: Description?) {
+            description?.appendText("has items count $expected: ")
+        }
+
+        override fun matchesSafely(view: RecyclerView): Boolean {
+            return (view.adapter?.itemCount ?: -1) == expected
+        }
+    }
+}

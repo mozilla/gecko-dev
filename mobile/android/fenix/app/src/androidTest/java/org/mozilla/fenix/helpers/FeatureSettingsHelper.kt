@@ -83,6 +83,11 @@ interface FeatureSettingsHelper {
      */
     var isLocationPermissionEnabled: SitePermissionsRules.Action
 
+    /**
+     * Enable or disable the new navigation toolbar.
+     */
+    var isNavigationToolbarEnabled: Boolean
+
     fun applyFlagUpdates()
 
     fun resetAllFeatureFlags()

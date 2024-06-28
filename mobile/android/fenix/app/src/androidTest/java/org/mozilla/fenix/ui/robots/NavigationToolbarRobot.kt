@@ -18,6 +18,7 @@ import androidx.test.espresso.assertion.ViewAssertions
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.matcher.ViewMatchers
+import androidx.test.espresso.matcher.ViewMatchers.Visibility
 import androidx.test.espresso.matcher.ViewMatchers.hasDescendant
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
@@ -50,6 +51,7 @@ import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.TestHelper.waitForObjects
 import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
+import org.mozilla.fenix.helpers.matchers.hasItemsCount
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
 
 /**
@@ -69,6 +71,22 @@ class NavigationToolbarRobot {
             .check(matches(hasDescendant(withText("New private tab"))))
             .check(matches(hasDescendant(withText("New tab"))))
         Log.i(TAG, "verifyTabButtonShortcutMenuItems: Verified tab counter shortcut options")
+    }
+
+    fun verifyTabButtonShortcutMenuItemsForNormalHomescreen() {
+        Log.i(TAG, "verifyTabButtonShortcutMenuItemsForNormalHomescreen: Trying to verify tab counter shortcut options")
+        onView(withId(R.id.mozac_browser_menu_recyclerView))
+            .check(matches(hasItemsCount(1)))
+            .check(matches(hasDescendant(withText("New private tab"))))
+        Log.i(TAG, "verifyTabButtonShortcutMenuItemsForNormalHomescreen: Verified tab counter shortcut options")
+    }
+
+    fun verifyTabButtonShortcutMenuItemsForPrivateHomescreen() {
+        Log.i(TAG, "verifyTabButtonShortcutMenuItemsForPrivateHomescreen: Trying to verify tab counter shortcut options")
+        onView(withId(R.id.mozac_browser_menu_recyclerView))
+            .check(matches(hasItemsCount(1)))
+            .check(matches(hasDescendant(withText("New tab"))))
+        Log.i(TAG, "verifyTabButtonShortcutMenuItemsForPrivateHomescreen: Verified tab counter shortcut options")
     }
 
     fun verifyReaderViewDetected(visible: Boolean = false) {
@@ -460,7 +478,12 @@ private fun awesomeBar() =
     mDevice.findObject(UiSelector().resourceId("$packageName:id/mozac_browser_toolbar_edit_url_view"))
 private fun threeDotButton() = onView(withId(R.id.mozac_browser_toolbar_menu))
 private fun tabTrayButton() = onView(withId(R.id.tab_button))
-private fun tabsCounter() = onView(withId(R.id.mozac_browser_toolbar_browser_actions))
+private fun tabsCounter() = onView(
+    allOf(
+        withId(R.id.counter_root),
+        withEffectiveVisibility(Visibility.VISIBLE),
+    ),
+)
 private fun fillLinkButton() = onView(withId(R.id.fill_link_from_clipboard))
 private fun clearAddressBarButton() = itemWithResId("$packageName:id/mozac_browser_toolbar_clear_view")
 private fun readerViewToggle() =

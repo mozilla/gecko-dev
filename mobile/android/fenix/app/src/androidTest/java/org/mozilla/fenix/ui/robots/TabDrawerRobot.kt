@@ -59,6 +59,14 @@ import org.mozilla.fenix.helpers.matchers.BottomSheetBehaviorHalfExpandedMaxRati
 import org.mozilla.fenix.helpers.matchers.BottomSheetBehaviorStateMatcher
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
 
+fun tabDrawer(
+    composeTestRule: HomeActivityComposeTestRule,
+    interact: TabDrawerRobot.() -> Unit,
+): TabDrawerRobot.Transition {
+    TabDrawerRobot(composeTestRule).interact()
+    return TabDrawerRobot.Transition(composeTestRule)
+}
+
 /**
  * Implementation of Robot Pattern for the Tabs Tray.
  */

@@ -43,6 +43,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         etpPolicy = getETPPolicy(settings),
         composeTopSitesEnabled = settings.enableComposeTopSites,
         isLocationPermissionEnabled = getFeaturePermission(PhoneFeature.LOCATION, settings),
+        isNavigationToolbarEnabled = settings.navigationToolbarEnabled,
     )
 
     /**
@@ -72,6 +73,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
     override var etpPolicy: ETPPolicy by updatedFeatureFlags::etpPolicy
     override var composeTopSitesEnabled: Boolean by updatedFeatureFlags::composeTopSitesEnabled
     override var isLocationPermissionEnabled: SitePermissionsRules.Action by updatedFeatureFlags::isLocationPermissionEnabled
+    override var isNavigationToolbarEnabled: Boolean by updatedFeatureFlags::isNavigationToolbarEnabled
 
     override fun applyFlagUpdates() {
         Log.i(TAG, "applyFlagUpdates: Trying to apply the updated feature flags: $updatedFeatureFlags")
@@ -100,6 +102,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         settings.deleteSitePermissions = featureFlags.isDeleteSitePermissionsEnabled
         settings.shouldShowOpenInAppBanner = featureFlags.isOpenInAppBannerEnabled
         settings.enableComposeTopSites = featureFlags.composeTopSitesEnabled
+        settings.navigationToolbarEnabled = featureFlags.isNavigationToolbarEnabled
         setETPPolicy(featureFlags.etpPolicy)
         setPermissions(PhoneFeature.LOCATION, featureFlags.isLocationPermissionEnabled)
     }
@@ -120,6 +123,7 @@ private data class FeatureFlags(
     var etpPolicy: ETPPolicy,
     var composeTopSitesEnabled: Boolean,
     var isLocationPermissionEnabled: SitePermissionsRules.Action,
+    var isNavigationToolbarEnabled: Boolean,
 )
 
 internal fun getETPPolicy(settings: Settings): ETPPolicy {

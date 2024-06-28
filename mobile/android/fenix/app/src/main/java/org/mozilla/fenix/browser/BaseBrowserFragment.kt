@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getColor
 import androidx.core.content.getSystemService
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -149,6 +150,7 @@ import org.mozilla.fenix.components.toolbar.BrowserFragmentStore
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.DefaultBrowserToolbarController
 import org.mozilla.fenix.components.toolbar.DefaultBrowserToolbarMenuController
+import org.mozilla.fenix.components.toolbar.FenixTabCounterMenu
 import org.mozilla.fenix.components.toolbar.ToolbarIntegration
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
@@ -1389,9 +1391,24 @@ abstract class BaseBrowserFragment :
 
                         BrowserNavBar(
                             isPrivateMode = activity.browsingModeManager.mode.isPrivate,
+                            isFeltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
                             showNewTabButton = FeatureFlags.navigationToolbarNewTabButtonEnabled,
                             browserStore = context.components.core.store,
                             menuButton = menuButton,
+                            tabsCounterMenu = FenixTabCounterMenu(
+                                context = context,
+                                onItemTapped = { item ->
+                                    browserToolbarInteractor.onTabCounterMenuItemTapped(item)
+                                },
+                                iconColor = when (activity.browsingModeManager.mode.isPrivate) {
+                                    true -> getColor(context, R.color.fx_mobile_private_icon_color_primary)
+                                    else -> null
+                                },
+                            ).also {
+                                it.updateMenu(
+                                    toolbarPosition = context.settings().toolbarPosition,
+                                )
+                            },
                             onBackButtonClick = {
                                 NavigationBar.browserBackTapped.record(NoExtras())
                                 browserToolbarInteractor.onBrowserToolbarMenuItemTapped(

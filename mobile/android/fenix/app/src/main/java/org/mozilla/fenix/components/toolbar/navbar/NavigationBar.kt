@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.toolbar.navbar
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -14,10 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.LocalContentColor
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
@@ -34,11 +34,11 @@ import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.lib.state.ext.observeAsState
+import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.LongPressIconButton
-import org.mozilla.fenix.compose.TabCounter
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.utils.KeyboardState
 import org.mozilla.fenix.compose.utils.keyboardAsState
@@ -51,10 +51,13 @@ import org.mozilla.fenix.theme.ThemeManager
  * Top-level UI for displaying the navigation bar.
  *
  * @param isPrivateMode If browsing in [BrowsingMode.Private].
+ * @param isFeltPrivateBrowsingEnabled Whether the felt private browsing feature is enabled.
  * @param showNewTabButton Whether or not to show the new tab button instead of the home button.
  * @param browserStore The [BrowserStore] instance used to observe tabs state.
  * @param menuButton A [MenuButton] to be used as an [AndroidView]. The view implementation
  * contains the builder for the menu, so for the time being we are not implementing it as a composable.
+ * @param tabsCounterMenu A [TabCounterMenu] to be used as an [AndroidView] for when the user
+ * long taps on the tab counter.
  * @param onBackButtonClick Invoked when the user clicks on the back button in the navigation bar.
  * @param onBackButtonLongPress Invoked when the user long-presses the back button in the navigation bar.
  * @param onForwardButtonClick Invoked when the user clicks on the forward button in the navigation bar.
@@ -69,9 +72,11 @@ import org.mozilla.fenix.theme.ThemeManager
 @Composable
 fun BrowserNavBar(
     isPrivateMode: Boolean,
+    isFeltPrivateBrowsingEnabled: Boolean,
     showNewTabButton: Boolean,
     browserStore: BrowserStore,
     menuButton: MenuButton,
+    tabsCounterMenu: TabCounterMenu,
     onBackButtonClick: () -> Unit,
     onBackButtonLongPress: () -> Unit,
     onForwardButtonClick: () -> Unit,
@@ -117,10 +122,12 @@ fun BrowserNavBar(
             )
         }
 
-        TabsButton(
-            onTabsButtonClick = onTabsButtonClick,
+        ToolbarTabCounterButton(
             tabCount = tabCount,
             isPrivateMode = isPrivateMode,
+            isFeltPrivateBrowsingEnabled = isFeltPrivateBrowsingEnabled,
+            onClick = onTabsButtonClick,
+            menu = tabsCounterMenu,
         )
 
         MenuButton(
@@ -135,20 +142,26 @@ fun BrowserNavBar(
  * Top-level UI for displaying the navigation bar.
  *
  * @param isPrivateMode If browsing in [BrowsingMode.Private].
+ * @param isFeltPrivateBrowsingEnabled Whether the felt private browsing feature is enabled.
  * @param browserStore The [BrowserStore] instance used to observe tabs state.
  * @param menuButton A [MenuButton] to be used as an [AndroidView]. The view implementation
  * contains the builder for the menu, so for the time being we are not implementing it as a composable.
+ * @param tabsCounterMenu A [TabCounterMenu] to be used as an [AndroidView] for when the user
+ * long taps on the tab counter.
  * @param onSearchButtonClick Invoked when the user clicks the search button in the nav bar. The button
  * is visible only on home screen and activates [SearchDialogFragment].
  * @param onTabsButtonClick Invoked when the user clicks the tabs button in the nav bar.
  * @param onMenuButtonClick Invoked when the user clicks on the menu button in the navigation bar.
  * @param isMenuRedesignEnabled Whether or not the menu redesign is enabled.
  */
+@Suppress("LongParameterList")
 @Composable
 fun HomeNavBar(
     isPrivateMode: Boolean,
+    isFeltPrivateBrowsingEnabled: Boolean,
     browserStore: BrowserStore,
     menuButton: MenuButton,
+    tabsCounterMenu: TabCounterMenu,
     onSearchButtonClick: () -> Unit,
     onTabsButtonClick: () -> Unit,
     onMenuButtonClick: () -> Unit,
@@ -189,10 +202,12 @@ fun HomeNavBar(
             onSearchButtonClick = onSearchButtonClick,
         )
 
-        TabsButton(
-            onTabsButtonClick = onTabsButtonClick,
+        ToolbarTabCounterButton(
             tabCount = tabCount,
             isPrivateMode = isPrivateMode,
+            isFeltPrivateBrowsingEnabled = isFeltPrivateBrowsingEnabled,
+            onClick = onTabsButtonClick,
+            menu = tabsCounterMenu,
         )
 
         MenuButton(
@@ -276,6 +291,7 @@ private fun NavBar(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
             content = content,
         )
     }
@@ -389,22 +405,6 @@ private fun MenuButton(
 }
 
 @Composable
-private fun TabsButton(
-    onTabsButtonClick: () -> Unit,
-    tabCount: Int,
-    isPrivateMode: Boolean,
-) {
-    CompositionLocalProvider(LocalContentColor provides FirefoxTheme.colors.iconPrimary) {
-        IconButton(onClick = { onTabsButtonClick() }) {
-            TabCounter(
-                tabCount = tabCount,
-                showPrivacyBadge = isPrivateMode && components.settings.feltPrivateBrowsingEnabled,
-            )
-        }
-    }
-}
-
-@Composable
 private fun OpenInBrowserButton(
     onOpenInBrowserButtonClick: () -> Unit,
 ) {
@@ -420,7 +420,10 @@ private fun OpenInBrowserButton(
 }
 
 @Composable
-private fun HomeNavBarPreviewRoot(isPrivateMode: Boolean) {
+private fun HomeNavBarPreviewRoot(
+    isPrivateMode: Boolean,
+    isFeltPrivateBrowsingEnabled: Boolean = false,
+) {
     val context = LocalContext.current
     val colorId = if (isPrivateMode) {
         // private mode preview keeps using black colour as textPrimary
@@ -436,11 +439,14 @@ private fun HomeNavBarPreviewRoot(isPrivateMode: Boolean) {
             ),
         )
     }
+    val tabsCounterMenu = TabCounterMenu(context, onItemTapped = {})
 
     HomeNavBar(
-        isPrivateMode = false,
+        isPrivateMode = isPrivateMode,
+        isFeltPrivateBrowsingEnabled = isFeltPrivateBrowsingEnabled,
         browserStore = BrowserStore(),
         menuButton = menuButton,
+        tabsCounterMenu = tabsCounterMenu,
         onSearchButtonClick = {},
         onTabsButtonClick = {},
         onMenuButtonClick = {},
@@ -465,12 +471,15 @@ private fun OpenTabNavBarNavBarPreviewRoot(isPrivateMode: Boolean) {
             ),
         )
     }
+    val tabsCounterMenu = TabCounterMenu(context, onItemTapped = {})
 
     BrowserNavBar(
         isPrivateMode = false,
+        isFeltPrivateBrowsingEnabled = false,
         showNewTabButton = false,
         browserStore = BrowserStore(),
         menuButton = menuButton,
+        tabsCounterMenu = tabsCounterMenu,
         onBackButtonClick = {},
         onBackButtonLongPress = {},
         onForwardButtonClick = {},
@@ -523,11 +532,19 @@ private fun HomeNavBarPreview() {
     }
 }
 
-@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun HomeNavBarPrivatePreview() {
     FirefoxTheme(theme = Theme.Private) {
         HomeNavBarPreviewRoot(isPrivateMode = true)
+    }
+}
+
+@Preview
+@Composable
+private fun HomeNavBarWithFeltPrivateBrowsingPreview() {
+    FirefoxTheme(theme = Theme.Private) {
+        HomeNavBarPreviewRoot(isPrivateMode = true, isFeltPrivateBrowsingEnabled = true)
     }
 }
 
@@ -539,7 +556,7 @@ private fun OpenTabNavBarPreview() {
     }
 }
 
-@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun OpenTabNavBarPrivatePreview() {
     FirefoxTheme(theme = Theme.Private) {
@@ -555,7 +572,7 @@ private fun CustomTabNavBarPreview() {
     }
 }
 
-@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun CustomTabNavBarPrivatePreview() {
     FirefoxTheme(theme = Theme.Private) {

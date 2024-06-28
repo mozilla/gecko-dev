@@ -236,7 +236,7 @@
 
     <!-- Icon -->
     <!-- Primary icon -->
-    <color name="fx_mobile_private_icon_color_primary" tools:ignore="UnusedResources">@color/photonLightGrey05</color>
+    <color name="fx_mobile_private_icon_color_primary">@color/photonLightGrey05</color>
     <!-- Inactive tab -->
     <color name="fx_mobile_private_icon_color_primary_inactive" tools:ignore="UnusedResources">@color/photonLightGrey05A60</color>
     <!-- Secondary icon -->

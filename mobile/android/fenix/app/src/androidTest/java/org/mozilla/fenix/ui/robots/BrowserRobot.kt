@@ -20,10 +20,13 @@ import androidx.test.espresso.action.ViewActions.longClick
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.contrib.PickerActions
 import androidx.test.espresso.matcher.RootMatchers.isDialog
+import androidx.test.espresso.matcher.ViewMatchers.Visibility
 import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
+import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.By.text
 import androidx.test.uiautomator.UiObject
@@ -33,6 +36,7 @@ import androidx.test.uiautomator.Until
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.mediasession.MediaSession
+import org.hamcrest.CoreMatchers.allOf
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -227,13 +231,14 @@ class BrowserRobot {
         }
     }
 
-    fun verifyTabCounter(expectedText: String) =
-        assertUIObjectExists(
-            itemWithResIdContainingText(
-                "$packageName:id/counter_text",
-                expectedText,
+    fun verifyTabCounter(numberOfOpenTabs: String) =
+        onView(
+            allOf(
+                withId(R.id.counter_text),
+                withText(numberOfOpenTabs),
+                withEffectiveVisibility(Visibility.VISIBLE),
             ),
-        )
+        ).check(matches(isDisplayed()))
 
     fun verifyContextMenuForLocalHostLinks(containsURL: Uri) {
         // If the link is directing to another local asset the "Download link" option is not available
