@@ -2302,3 +2302,89 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
+
+  version:
+    type: string
+    description: >
+      Firefox build version
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901260
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901260#c2
+    expires: never
+    data_sensitivity:
+      - technical
+
+  channel:
+    type: string
+    description: >
+      Firefox build channel
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901260
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901260#c2
+    expires: never
+    data_sensitivity:
+      - technical
+
+  build_date:
+    type: quantity
+    unit: int
+    description: >
+      Firefox build's build date in unix time
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901260
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901260#c2
+    expires: never
+    data_sensitivity:
+      - technical
+
+  os_name:
+    type: string
+    description: >
+      User's OS name
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901260
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901260#c2
+    expires: never
+    data_sensitivity:
+      - technical
+
+  os_version:
+    type: string
+    description: >
+      User's OS version
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901260
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901260#c2
+    expires: never
+    data_sensitivity:
+      - technical
