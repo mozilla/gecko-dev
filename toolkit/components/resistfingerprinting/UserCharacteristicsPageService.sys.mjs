@@ -234,6 +234,7 @@ export class UserCharacteristicsPageService {
       [this.populateGamepads, [data.output.gamepads]],
       [this.populateClientInfo, []],
       [this.populateCPUInfo, []],
+      [this.populateScreenInfo, []],
     ];
     const results = await Promise.allSettled(
       populateFuncs.map(([f, args]) =>
@@ -253,6 +254,77 @@ export class UserCharacteristicsPageService {
     }
 
     Glean.characteristics.jsErrors.set(JSON.stringify(errors));
+  }
+
+  async populateScreenInfo() {
+    // We use two different methods to get any loaded document.
+    // First one is, DOMContentLoaded event. If the user loads
+    // a new document after actor registration, we will get it.
+    // Second one is, we iterate over all open windows and tabs
+    // and try to get the screen info from them.
+    // The reason we do both is, for DOMContentLoaded, we can't
+    // guarantee that all the documents were not loaded before the
+    // actor registration.
+    // We could only use the second method and add a load event
+    // listener, but that assumes the user won't close already
+    // existing tabs and continue on a new one before the page
+    // is loaded. This is a rare case, but we want to cover it.
+
+    if (Cu.isInAutomation) {
+      // To safeguard against any possible weird empty
+      // documents, we check if the document is empty. If it is
+      // we wait for a valid document to be loaded.
+      // During testing, we load empty.html which doesn't
+      // have any body. So, we end up waiting forever.
+      // Because of this, we skip this part during automation.
+      return;
+    }
+
+    const { promise, resolve } = Promise.withResolvers();
+
+    Services.obs.addObserver(function observe(_subject, topic, data) {
+      Services.obs.removeObserver(observe, topic);
+      ChromeUtils.unregisterWindowActor("UserCharacteristicsScreenInfo");
+      resolve(data.split(","));
+    }, "user-characteristics-screen-info-done");
+
+    ChromeUtils.registerWindowActor("UserCharacteristicsScreenInfo", {
+      parent: {
+        esModuleURI: "resource://gre/actors/UserCharacteristicsParent.sys.mjs",
+      },
+      child: {
+        esModuleURI:
+          "resource://gre/actors/UserCharacteristicsScreenInfoChild.sys.mjs",
+        events: {
+          DOMContentLoaded: {},
+        },
+      },
+    });
+
+    for (const win of Services.wm.getEnumerator("navigator:browser")) {
+      if (!win.closed) {
+        for (const tab of win.gBrowser.tabs) {
+          const actor =
+            tab.linkedBrowser.browsingContext?.currentWindowGlobal.getActor(
+              "UserCharacteristicsScreenInfo"
+            );
+
+          if (!actor) {
+            continue;
+          }
+
+          actor.sendAsyncMessage("ScreenInfo:PopulateFromDocument");
+        }
+      }
+    }
+
+    const result = await promise;
+    Glean.characteristics.outerHeight.set(result[0]);
+    Glean.characteristics.innerHeight.set(result[1]);
+    Glean.characteristics.outerWidth.set(result[2]);
+    Glean.characteristics.innerWidth.set(result[3]);
+    Glean.characteristics.availHeight.set(result[4]);
+    Glean.characteristics.availWidth.set(result[5]);
   }
 
   async populateZoomPrefs() {
