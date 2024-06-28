@@ -848,11 +848,10 @@ static void RevealFileViaDBusPortal(nsIFile* aFile) {
 
 nsresult nsGIOService::RevealFile(nsIFile* aFile) {
 #ifdef MOZ_ENABLE_DBUS
-  if (NS_SUCCEEDED(RevealDirectory(aFile, /* aForce = */ false))) {
-    return NS_OK;
-  }
   if (ShouldUsePortal(widget::PortalKind::OpenUri)) {
     RevealFileViaDBusPortal(aFile);
+  } else if (NS_SUCCEEDED(RevealDirectory(aFile, /* aForce = */ false))) {
+    return NS_OK;
   } else {
     RevealFileViaDBusClassic(aFile);
   }
