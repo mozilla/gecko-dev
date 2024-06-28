@@ -39,7 +39,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[0],
     "GET",
-    HTTPS_CONTENT_TYPE_SJS + "?fmt=xml",
+    CONTENT_TYPE_SJS + "?fmt=xml",
     {
       status: 200,
       statusText: "OK",
@@ -54,7 +54,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[1],
     "GET",
-    HTTPS_CONTENT_TYPE_SJS + "?fmt=css",
+    CONTENT_TYPE_SJS + "?fmt=css",
     {
       status: 200,
       statusText: "OK",
@@ -69,7 +69,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[2],
     "GET",
-    HTTPS_CONTENT_TYPE_SJS + "?fmt=js",
+    CONTENT_TYPE_SJS + "?fmt=js",
     {
       status: 200,
       statusText: "OK",
@@ -84,7 +84,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[3],
     "GET",
-    HTTPS_CONTENT_TYPE_SJS + "?fmt=json",
+    CONTENT_TYPE_SJS + "?fmt=json",
     {
       status: 200,
       statusText: "OK",
@@ -99,7 +99,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[4],
     "GET",
-    HTTPS_CONTENT_TYPE_SJS + "?fmt=bogus",
+    CONTENT_TYPE_SJS + "?fmt=bogus",
     {
       status: 404,
       statusText: "Not Found",
@@ -114,7 +114,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[5],
     "GET",
-    HTTPS_TEST_IMAGE,
+    TEST_IMAGE,
     {
       fuzzyUrl: true,
       status: 200,
@@ -130,7 +130,7 @@ add_task(async function () {
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[6],
     "GET",
-    HTTPS_CONTENT_TYPE_SJS + "?fmt=gzip",
+    CONTENT_TYPE_SJS + "?fmt=gzip",
     {
       status: 200,
       statusText: "OK",

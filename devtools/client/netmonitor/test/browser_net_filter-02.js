@@ -34,7 +34,7 @@ const REQUESTS_WITH_MEDIA_AND_FLASH_AND_WS =
 const EXPECTED_REQUESTS = [
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=html",
+    url: CONTENT_TYPE_SJS + "?fmt=html",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -45,7 +45,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=xhtml",
+    url: CONTENT_TYPE_SJS + "?fmt=xhtml",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -56,7 +56,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=css",
+    url: CONTENT_TYPE_SJS + "?fmt=css",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -67,7 +67,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=js",
+    url: CONTENT_TYPE_SJS + "?fmt=js",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -78,7 +78,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=font",
+    url: CONTENT_TYPE_SJS + "?fmt=font",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -89,7 +89,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=image",
+    url: CONTENT_TYPE_SJS + "?fmt=image",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -100,7 +100,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=audio",
+    url: CONTENT_TYPE_SJS + "?fmt=audio",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -111,7 +111,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=video",
+    url: CONTENT_TYPE_SJS + "?fmt=video",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -122,7 +122,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=flash",
+    url: CONTENT_TYPE_SJS + "?fmt=flash",
     data: {
       fuzzyUrl: true,
       status: 200,
@@ -133,7 +133,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: HTTPS_CONTENT_TYPE_SJS + "?fmt=ws",
+    url: CONTENT_TYPE_SJS + "?fmt=ws",
     data: {
       fuzzyUrl: true,
       status: 101,
