@@ -366,9 +366,6 @@ def moz_fix_link_paths(target, build_env):
         return []
     if target.kernel == "WINNT":
         return []
-    if target.kernel == "OpenBSD":
-        X11BASE = environ.get("X11BASE", "/usr/X11R6")
-        flags.append(f"-Wl,-rpath-link,{X11BASE}/lib")
     if target.kernel == "SunOS":
         return [f"-L{dist}/bin"]
     if target.os == "WASI":

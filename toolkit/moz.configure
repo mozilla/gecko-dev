@@ -1602,16 +1602,32 @@ def x11_libs(webrtc):
     return libs
 
 
-x11_headers = pkg_check_modules(
+x11 = pkg_check_modules(
     "MOZ_X11",
     x11_libs,
     allow_missing=toolkit_gtk_x11_optional,
     when=toolkit_gtk_x11,
+    config=False,  # set after the OpenBSD hook below
 )
 
 
-set_config("MOZ_X11", True, when=x11_headers)
-set_define("MOZ_X11", True, when=x11_headers)
+@depends(x11, target_is_openbsd)
+def moz_x11_libs(x11, target_is_openbsd):
+    if not x11:
+        return []
+    if target_is_openbsd:
+        rpath = tuple(
+            f"-Wl,-rpath-link,{flag[2:]}" for flag in x11.libs if flag.startswith("-L")
+        )
+    else:
+        rpath = ()
+    return x11.libs + rpath
+
+
+set_config("MOZ_X11_CFLAGS", x11.cflags)
+set_config("MOZ_X11_LIBS", moz_x11_libs)
+set_config("MOZ_X11", True, when=x11)
+set_define("MOZ_X11", True, when=x11)
 
 pkg_check_modules(
     "MOZ_X11_SM",
