@@ -12,7 +12,10 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StorageAccess.h"
+#include "mozilla/dom/nsMixedContentBlocker.h"
+#include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/net/CookieJarSettings.h"
 #include "mozilla/Telemetry.h"
 #include "mozIThirdPartyUtil.h"
@@ -754,6 +757,33 @@ void CookieCommons::RecordUnicodeTelemetry(const CookieStruct& cookieData) {
     label = Telemetry::LABELS_NETWORK_COOKIE_UNICODE_BYTE::unicodeValue;
   }
   Telemetry::AccumulateCategorical(label);
+}
+
+// static
+bool CookieCommons::ChipsLimitEnabledAndChipsCookie(
+    const Cookie& cookie, dom::BrowsingContext* aBrowsingContext) {
+  bool tcpEnabled = false;
+  if (aBrowsingContext) {
+    dom::CanonicalBrowsingContext* canonBC = aBrowsingContext->Canonical();
+    if (canonBC) {
+      dom::WindowGlobalParent* windowParent = canonBC->GetCurrentWindowGlobal();
+      if (windowParent) {
+        nsCOMPtr<nsICookieJarSettings> cjs = windowParent->CookieJarSettings();
+        tcpEnabled = cjs->GetPartitionForeign();
+      }
+    }
+  } else {
+    // calls coming from addNative have no document, channel or browsingContext
+    // to determine if TCP is enabled, so we just create a cookieJarSettings to
+    // check the pref.
+    nsCOMPtr<nsICookieJarSettings> cjs;
+    cjs = CookieJarSettings::Create(CookieJarSettings::eRegular, false);
+    tcpEnabled = cjs->GetPartitionForeign();
+  }
+
+  return StaticPrefs::network_cookie_CHIPS_enabled() &&
+         StaticPrefs::network_cookie_chips_partitionLimitEnabled() &&
+         cookie.IsPartitioned() && cookie.RawIsPartitioned() && tcpEnabled;
 }
 
 }  // namespace net

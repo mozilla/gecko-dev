@@ -136,6 +136,9 @@ class CookieCommons final {
                                 bool* aHadCrossSiteRedirects);
 
   static void RecordUnicodeTelemetry(const CookieStruct& cookieData);
+
+  static bool ChipsLimitEnabledAndChipsCookie(
+      const Cookie& cookie, dom::BrowsingContext* aBrowsingContext);
 };
 
 }  // namespace net

@@ -120,6 +120,10 @@ class Cookie final : public nsICookie {
   }
   inline void SetHost(const nsACString& aHost) { mData.host() = aHost; }
 
+  uint32_t NameAndValueBytes() {
+    return mData.name().Length() + mData.value().Length();
+  }
+
   bool IsStale() const;
 
   const CookieStruct& ToIPC() const { return mData; }

@@ -253,6 +253,26 @@ networking:
       - edgul@mozilla.com
     expires: 134
 
+  cookie_chips_partition_limit_overflow:
+    type: custom_distribution
+    description: >
+      The number of cookie bytes exceeding chips partition limit capacity for a single partition
+    range_min: 0
+    range_max: 16000000
+    bucket_count: 22
+    histogram_type: exponential
+    unit: integer
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1878391
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1878391
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - edgul@mozilla.com
+    expires: 134
+
   set_cookie:
     type: counter
     description: >

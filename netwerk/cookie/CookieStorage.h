@@ -93,6 +93,9 @@ class CookieStorage : public nsIObserver, public nsSupportsWeakReference {
   uint32_t CountCookiesFromHost(const nsACString& aBaseDomain,
                                 uint32_t aPrivateBrowsingId);
 
+  uint32_t CountCookieBytesNotMatchingCookie(const Cookie& cookie,
+                                             const nsACString& baseDomain);
+
   void GetAll(nsTArray<RefPtr<nsICookie>>& aResult) const;
 
   void GetCookiesFromHost(const nsACString& aBaseDomain,
@@ -128,6 +131,19 @@ class CookieStorage : public nsIObserver, public nsSupportsWeakReference {
                  int64_t aCurrentTimeInUsec, nsIURI* aHostURI,
                  const nsACString& aCookieHeader, bool aFromHttp,
                  bool aIsThirdParty, dom::BrowsingContext* aBrowsingContext);
+
+  // return true if we finish within the byte limit
+  bool RemoveCookiesFromBackUntilUnderLimit(
+      nsTArray<CookieListIter>& aCookieListIter, Cookie* aCookie,
+      const nsACString& aBaseDomain, nsCOMPtr<nsIArray>& aPurgedList);
+
+  void RemoveOlderCookiesUntilUnderLimit(CookieEntry* aEntry, Cookie* aCookie,
+                                         const nsACString& aBaseDomain,
+                                         nsCOMPtr<nsIArray>& aPurgedList);
+
+  int32_t PartitionLimitExceededBytes(Cookie* aCookie,
+                                      const nsACString& aBaseDomain);
+
 
   static void CreateOrUpdatePurgeList(nsCOMPtr<nsIArray>& aPurgedList,
                                       nsICookie* aCookie);
