@@ -1436,10 +1436,6 @@ panelview .toolbarbutton-1 {
     text-align: start;
     padding-inline-start: .5em;
   }
-
-  > #stop-reload-button > .toolbarbutton-1 {
-    flex: 1;
-  }
 }
 
 #widget-overflow-list > toolbarspring {

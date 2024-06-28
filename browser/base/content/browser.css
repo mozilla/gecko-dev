@@ -4,6 +4,24 @@
 
 @namespace html url("http://www.w3.org/1999/xhtml");
 
+#reload-button:not([displaystop]) + #stop-button,
+#reload-button[displaystop] {
+  display: none;
+}
+
+/* The reload-button is only disabled temporarily when it becomes visible
+   to prevent users from accidentally clicking it. We don't however need
+   to show this disabled state, as the flicker that it generates is short
+   enough to be visible but not long enough to explain anything to users. */
+#reload-button[disabled]:not(:-moz-window-inactive) > .toolbarbutton-icon {
+  opacity: 1 !important;
+}
+
+/* Ensure stop-button and reload-button are displayed correctly when in the overflow menu */
+.widget-overflow-list > #stop-reload-button > .toolbarbutton-1 {
+  flex: 1;
+}
+
 /* Hide menu elements intended for keyboard access support */
 #main-menubar[openedwithkey=false] .show-only-for-keyboard {
   display: none;
