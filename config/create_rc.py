@@ -9,6 +9,7 @@ from datetime import datetime
 
 import buildconfig
 from mozbuild.preprocessor import Preprocessor
+from variables import get_buildid
 
 TEMPLATE = """
 // This Source Code Form is subject to the terms of the Mozilla Public
@@ -93,12 +94,6 @@ def parse_module_ver(path, defines):
         entry, value = content.split("=", 1)
         result[entry.strip()] = value.strip()
     return result
-
-
-def get_buildid():
-    path = os.path.join(buildconfig.topobjdir, "buildid.h")
-    define, MOZ_BUILDID, buildid = io.open(path, "r", encoding="utf-8").read().split()
-    return buildid
 
 
 def last_winversion_segment(buildid, app_version_display):

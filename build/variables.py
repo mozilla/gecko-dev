@@ -10,6 +10,14 @@ from datetime import datetime
 SOURCESTAMP_FILENAME = "sourcestamp.txt"
 
 
+def get_buildid():
+    import buildconfig
+
+    path = os.path.join(buildconfig.topobjdir, "buildid.h")
+    _define, _MOZ_BUILDID, buildid = open(path, "r", encoding="utf-8").read().split()
+    return buildid
+
+
 def buildid_header(output):
     buildid = os.environ.get("MOZ_BUILD_DATE")
     if buildid and len(buildid) != 14:
@@ -17,6 +25,7 @@ def buildid_header(output):
         buildid = None
     if not buildid:
         buildid = datetime.now().strftime("%Y%m%d%H%M%S")
+    # If this output changes, be sure to update `get_buildid()`.
     output.write("#define MOZ_BUILDID %s\n" % buildid)
 
 
