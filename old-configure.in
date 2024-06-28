@@ -352,10 +352,6 @@ if test -z "$MOZ_OPTIMIZE_FLAGS"; then
 fi
 
 
-if test -n "$COMPILE_ENVIRONMENT"; then
-    MOZ_COMPILER_OPTS
-fi
-
 dnl Mozilla specific options
 dnl ========================================================
 dnl The macros used for command line options
