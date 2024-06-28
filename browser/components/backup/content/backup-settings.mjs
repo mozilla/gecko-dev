@@ -82,6 +82,7 @@ export default class BackupSettings extends MozLitElement {
     this.addEventListener("dialogCancel", this);
     this.addEventListener("getBackupFileInfo", this);
     this.addEventListener("enableEncryption", this);
+    this.addEventListener("rerunEncryption", this);
     this.addEventListener("disableEncryption", this);
     this.addEventListener("restoreFromBackupConfirm", this);
     this.addEventListener("restoreFromBackupChooseFile", this);
@@ -168,6 +169,18 @@ export default class BackupSettings extends MozLitElement {
             detail: {
               ...event.detail,
               isEncryptionEnabled: true,
+            },
+          })
+        );
+        break;
+      case "rerunEncryption":
+        this.enableBackupEncryptionDialogEl.close();
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:RerunEncryption", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              ...event.detail,
             },
           })
         );

@@ -75,18 +75,29 @@ export default class EnableBackupEncryption extends MozLitElement {
   }
 
   handleConfirm() {
-    if (this.type == VALID_TYPES.SET_PASSWORD) {
-      this.dispatchEvent(
-        new CustomEvent("enableEncryption", {
-          bubbles: true,
-          composed: true,
-          detail: {
-            password: this.inputNewPasswordEl.value,
-          },
-        })
-      );
-    } else {
-      // TODO: dispatch event to update existing recovery code
+    switch (this.type) {
+      case VALID_TYPES.SET_PASSWORD:
+        this.dispatchEvent(
+          new CustomEvent("enableEncryption", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              password: this.inputNewPasswordEl.value,
+            },
+          })
+        );
+        break;
+      case VALID_TYPES.CHANGE_PASSWORD:
+        this.dispatchEvent(
+          new CustomEvent("rerunEncryption", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              password: this.inputNewPasswordEl.value,
+            },
+          })
+        );
+        break;
     }
     this.resetChanges();
   }

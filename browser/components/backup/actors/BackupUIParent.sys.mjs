@@ -169,7 +169,7 @@ export class BackupUIParent extends JSWindowActorParent {
 
       if (!isEncryptionEnabled) {
         try {
-          this.#bs.disableEncryption();
+          await this.#bs.disableEncryption();
           /**
            * TODO: (Bug 1901640) after disabling encryption, recreate the backup,
            * this time without sensitive data.
@@ -179,11 +179,10 @@ export class BackupUIParent extends JSWindowActorParent {
            * TODO: (Bug 1901308) maybe display an error if there is a problem with
            * disabling encryption.
            */
-          return null;
         }
       } else {
         try {
-          this.#bs.enableEncryption(password);
+          await this.#bs.enableEncryption(password);
           /**
            * TODO: (Bug 1901640) after enabling encryption, recreate the backup,
            * this time with sensitive data.
@@ -193,10 +192,24 @@ export class BackupUIParent extends JSWindowActorParent {
            * TODO: (Bug 1901308) maybe display an error if there is a problem with
            * enabling encryption.
            */
-          return null;
         }
       }
-      return true;
+    } else if (message.name == "RerunEncryption") {
+      let { password } = message.data;
+
+      try {
+        await this.#bs.disableEncryption();
+        await this.#bs.enableEncryption(password);
+        /**
+         * TODO: (Bug 1901640) after enabling encryption, recreate the backup,
+         * this time with the new password.
+         */
+      } catch (e) {
+        /**
+         * TODO: (Bug 1901308) maybe display an error if there is a problem with
+         * re-encryption.
+         */
+      }
     }
 
     return null;
