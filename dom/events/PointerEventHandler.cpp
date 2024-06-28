@@ -101,7 +101,6 @@ void PointerEventHandler::UpdateActivePointerState(WidgetMouseEvent* aEvent,
                 aTargetContent ? aTargetContent->OwnerDoc() : nullptr));
         MaybeCacheSpoofedPointerID(pointerEvent->mInputSource,
                                    pointerEvent->pointerId);
-        nsUserCharacteristics::StealPointerEvent(*pointerEvent);
       }
       break;
     case ePointerCancel:
@@ -727,6 +726,7 @@ void PointerEventHandler::DispatchPointerFromMouseOrTouch(
       }
     }
   }
+  nsUserCharacteristics::StealPointerEvent(aMouseOrTouchEvent);
 }
 
 /* static */
