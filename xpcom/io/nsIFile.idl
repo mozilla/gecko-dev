@@ -129,17 +129,6 @@ interface nsIFile : nsISupports
     readonly attribute AString displayName;
 
     /**
-     * Linux/Flatpak specific
-     * Returns path as exists on the host. Translates path provided by the document
-     * portal to the path it represents on the host.
-     * @returns {Promise<nsCString, nsresult>} that resolves with translated path
-     * if applicable or path as it is. Rejects when Firefox runs as Flatpak and we
-     * failed to translate the path.
-     */
-    [implicit_jscontext]
-    Promise hostPath();
-
-    /**
      *  copyTo[Native]
      *
      *  This will copy this file to the specified newParentDir.

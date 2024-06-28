@@ -3606,73 +3606,46 @@ var gMainPane = {
         ]);
       }
     }
-
-    if (file) {
-      let displayName = file.path;
-
-      // Attempt to translate path to the path as exists on the host
-      // in case the provided path comes from the document portal
-      if (AppConstants.platform == "linux") {
-        try {
-          displayName = await file.hostPath();
-        } catch (error) {
-          /* ignored */
-        }
-
-        if (displayName) {
-          if (displayName == downloadsDir.path) {
-            firefoxLocalizedName = await document.l10n.formatValues([
-              { id: "downloads-folder-name" },
-            ]);
-          } else if (displayName == desktopDir.path) {
-            firefoxLocalizedName = await document.l10n.formatValues([
-              { id: "desktop-folder-name" },
-            ]);
-          }
-        }
+    if (firefoxLocalizedName) {
+      let folderDisplayName, leafName;
+      // Either/both of these can throw, so check for failures in both cases
+      // so we don't just break display of the download pref:
+      try {
+        folderDisplayName = file.displayName;
+      } catch (ex) {
+        /* ignored */
+      }
+      try {
+        leafName = file.leafName;
+      } catch (ex) {
+        /* ignored */
       }
 
+      // If we found a localized name that's different from the leaf name,
+      // use that:
+      if (folderDisplayName && folderDisplayName != leafName) {
+        return { file, folderDisplayName };
+      }
+
+      // Otherwise, check if we've got a localized name ourselves.
       if (firefoxLocalizedName) {
-        let folderDisplayName, leafName;
-        // Either/both of these can throw, so check for failures in both cases
-        // so we don't just break display of the download pref:
-        try {
-          folderDisplayName = file.displayName;
-        } catch (ex) {
-          /* ignored */
-        }
-        try {
-          leafName = file.leafName;
-        } catch (ex) {
-          /* ignored */
-        }
-
-        // If we found a localized name that's different from the leaf name,
-        // use that:
-        if (folderDisplayName && folderDisplayName != leafName) {
-          return { file, folderDisplayName };
-        }
-
-        // Otherwise, check if we've got a localized name ourselves.
-        if (firefoxLocalizedName) {
-          // You can't move the system download or desktop dir on macOS,
-          // so if those are in use just display them. On other platforms
-          // only do so if the folder matches the localized name.
-          if (
-            AppConstants.platform == "macosx" ||
-            leafName == firefoxLocalizedName
-          ) {
-            return { file, folderDisplayName: firefoxLocalizedName };
-          }
+        // You can't move the system download or desktop dir on macOS,
+        // so if those are in use just display them. On other platforms
+        // only do so if the folder matches the localized name.
+        if (
+          AppConstants.platform == "macosx" ||
+          leafName == firefoxLocalizedName
+        ) {
+          return { file, folderDisplayName: firefoxLocalizedName };
         }
       }
-
-      // If we get here, attempts to use a "pretty" name failed. Just display
-      // the full path:
-      // Force the left-to-right direction when displaying a custom path.
-      return { file, folderDisplayName: `\u2066${displayName}\u2069` };
     }
-
+    // If we get here, attempts to use a "pretty" name failed. Just display
+    // the full path:
+    if (file) {
+      // Force the left-to-right direction when displaying a custom path.
+      return { file, folderDisplayName: `\u2066${file.path}\u2069` };
+    }
     // Don't even have a file - fall back to desktop directory for the
     // use of the icon, and an empty label:
     file = desktopDir;

@@ -3521,11 +3521,6 @@ nsLocalFile::SetNativeLeafName(const nsACString& aLeafName) {
   return rv;
 }
 
-NS_IMETHODIMP
-nsLocalFile::HostPath(JSContext* aCx, dom::Promise** aPromise) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
 nsString nsLocalFile::NativePath() { return mWorkingPath; }
 
 nsCString nsIFile::HumanReadablePath() {

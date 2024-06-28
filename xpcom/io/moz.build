@@ -60,7 +60,6 @@ else:
     UNIFIED_SOURCES += [
         "nsLocalFileUnix.cpp",
     ]
-    CXXFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]
 
 XPIDL_MODULE = "xpcom_io"
 

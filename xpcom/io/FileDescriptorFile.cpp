@@ -164,11 +164,6 @@ FileDescriptorFile::SetNativeLeafName(const nsACString& aLeafName) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP
-FileDescriptorFile::HostPath(JSContext* aCx, dom::Promise** aPromise) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
 nsresult FileDescriptorFile::InitWithPath(const nsAString& aPath) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
