@@ -27,6 +27,13 @@ class OnboardingTelemetryRecorder {
     }
 
     /**
+     * Records "onboarding_started" telemetry event.
+     */
+    fun onOnboardingStarted() {
+        Onboarding.started.record()
+    }
+
+    /**
      * Records impression events for a given [OnboardingPageUiData.Type].
      * @param sequenceId The identifier of the onboarding sequence shown to the user.
      * @param pageType The page type for which the impression occurred.

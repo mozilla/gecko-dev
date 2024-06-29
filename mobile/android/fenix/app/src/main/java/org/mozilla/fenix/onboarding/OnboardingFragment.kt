@@ -85,6 +85,8 @@ class OnboardingFragment : Fragment() {
                 promptToSetAsDefaultBrowser()
             }
         }
+
+        telemetryRecorder.onOnboardingStarted()
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
