@@ -182,9 +182,6 @@
     <dimen name="credit_cards_saved_cards_item_margin_start">16dp</dimen>
     <dimen name="credit_cards_saved_cards_item_margin_end">48dp</dimen>
 
-    <!-- DisplayToolbar -->
-    <dimen name="mozac_browser_toolbar_background_margin_end">8dp</dimen>
-
     <!-- a11y -->
     <dimen name="accessibility_min_height">48dp</dimen>
     <dimen name="tap_increase_16">16dp</dimen>
