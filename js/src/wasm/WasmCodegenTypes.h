@@ -283,6 +283,18 @@ struct TrapSiteVectorArray
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
 
+struct CallFarJump {
+  uint32_t targetFuncIndex;
+  uint32_t jumpOffset;
+  WASM_CHECK_CACHEABLE_POD(targetFuncIndex, jumpOffset);
+
+  CallFarJump(uint32_t targetFuncIndex, uint32_t jumpOffset)
+      : targetFuncIndex(targetFuncIndex), jumpOffset(jumpOffset) {}
+};
+WASM_DECLARE_CACHEABLE_POD(CallFarJump);
+
+using CallFarJumpVector = Vector<CallFarJump, 0, SystemAllocPolicy>;
+
 // On trap, the bytecode offset to be reported in callstacks is saved.
 
 struct TrapData {

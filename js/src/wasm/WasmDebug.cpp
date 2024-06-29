@@ -43,7 +43,6 @@ DebugState::DebugState(const Code& code, const Module& module)
       enterFrameTrapsEnabled_(false),
       enterAndLeaveFrameTrapsCounter_(0) {
   MOZ_RELEASE_ASSERT(code.codeMeta().debugEnabled);
-  MOZ_RELEASE_ASSERT(code.hasTier(Tier::Debug));
 }
 
 void DebugState::trace(JSTracer* trc) {
@@ -72,13 +71,12 @@ static const CallSite* SlowCallSiteSearchByOffset(const CodeBlock& code,
 }
 
 bool DebugState::getLineOffsets(size_t lineno, Vector<uint32_t>* offsets) {
-  const CallSite* callsite =
-      SlowCallSiteSearchByOffset(code(Tier::Debug), lineno);
+  const CallSite* callsite = SlowCallSiteSearchByOffset(debugCode(), lineno);
   return !(callsite && !offsets->append(lineno));
 }
 
 bool DebugState::getAllColumnOffsets(Vector<ExprLoc>* offsets) {
-  for (const CallSite& callSite : code(Tier::Debug).callSites) {
+  for (const CallSite& callSite : debugCode().callSites) {
     if (callSite.kind() != CallSite::Breakpoint) {
       continue;
     }
@@ -95,7 +93,7 @@ bool DebugState::getAllColumnOffsets(Vector<ExprLoc>* offsets) {
 
 bool DebugState::getOffsetLocation(uint32_t offset, uint32_t* lineno,
                                    JS::LimitedColumnNumberOneOrigin* column) {
-  if (!SlowCallSiteSearchByOffset(code(Tier::Debug), offset)) {
+  if (!SlowCallSiteSearchByOffset(debugCode(), offset)) {
     return false;
   }
   *lineno = offset;
@@ -131,7 +129,7 @@ bool DebugState::incrementStepperCount(JSContext* cx, Instance* instance,
 void DebugState::decrementStepperCount(JS::GCContext* gcx, Instance* instance,
                                        uint32_t funcIndex) {
   const CodeRange& codeRange =
-      codeRanges(Tier::Debug)[funcToCodeRangeIndex(funcIndex)];
+      debugCode().codeRanges[funcToCodeRangeIndex(funcIndex)];
   MOZ_ASSERT(codeRange.isFunction());
 
   MOZ_ASSERT(!stepperCounters_.empty());
@@ -148,7 +146,7 @@ void DebugState::decrementStepperCount(JS::GCContext* gcx, Instance* instance,
   bool anyEnterAndLeave = enterAndLeaveFrameTrapsCounter_ > 0;
 
   bool keepDebugging = false;
-  for (const CallSite& callSite : callSites(Tier::Debug)) {
+  for (const CallSite& callSite : debugCode().callSites) {
     if (callSite.kind() != CallSite::Breakpoint) {
       continue;
     }
@@ -167,19 +165,18 @@ void DebugState::decrementStepperCount(JS::GCContext* gcx, Instance* instance,
 }
 
 bool DebugState::hasBreakpointTrapAtOffset(uint32_t offset) {
-  return SlowCallSiteSearchByOffset(code(Tier::Debug), offset);
+  return SlowCallSiteSearchByOffset(debugCode(), offset);
 }
 
 void DebugState::toggleBreakpointTrap(JSRuntime* rt, Instance* instance,
                                       uint32_t offset, bool enabled) {
-  const CallSite* callSite =
-      SlowCallSiteSearchByOffset(code(Tier::Debug), offset);
+  const CallSite* callSite = SlowCallSiteSearchByOffset(debugCode(), offset);
   if (!callSite) {
     return;
   }
   size_t debugTrapOffset = callSite->returnAddressOffset();
 
-  const CodeSegment& codeSegment = code_->segment(Tier::Debug);
+  const CodeSegment& codeSegment = debugSegment();
   const CodeRange* codeRange =
       code_->lookupFuncRange(codeSegment.base() + debugTrapOffset);
   MOZ_ASSERT(codeRange);
@@ -299,8 +296,8 @@ void DebugState::disableDebuggingForFunction(Instance* instance,
 }
 
 void DebugState::enableDebugTrap(Instance* instance) {
-  instance->setDebugTrapHandler(code_->segment(Tier::Debug).base() +
-                                code(Tier::Debug).debugTrapOffset);
+  instance->setDebugTrapHandler(code_->sharedStubs().segment->base() +
+                                code_->sharedStubs().debugTrapOffset);
 }
 
 void DebugState::disableDebugTrap(Instance* instance) {
@@ -339,10 +336,10 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
            !iter.done() && !mustLeaveEnabled; iter.next()) {
         WasmBreakpointSite* site = iter.get().value();
         const CallSite* callSite =
-            SlowCallSiteSearchByOffset(code(Tier::Debug), site->offset);
+            SlowCallSiteSearchByOffset(debugCode(), site->offset);
         if (callSite) {
           size_t debugTrapOffset = callSite->returnAddressOffset();
-          const CodeSegment& codeSegment = code_->segment(Tier::Debug);
+          const CodeSegment& codeSegment = debugSegment();
           const CodeRange* codeRange =
               code_->lookupFuncRange(codeSegment.base() + debugTrapOffset);
           MOZ_ASSERT(codeRange);
@@ -390,7 +387,7 @@ bool DebugState::debugGetLocalTypes(uint32_t funcIndex, ValTypeVector* locals,
 
   // Decode local var types from wasm binary function body.
   const CodeRange& range =
-      codeRanges(Tier::Debug)[funcToCodeRangeIndex(funcIndex)];
+      debugCode().codeRanges[funcToCodeRangeIndex(funcIndex)];
   // In wasm, the Code points to the function start via funcLineOrBytecode.
   size_t offsetInModule = range.funcLineOrBytecode();
   Decoder d(bytecode().begin() + offsetInModule, bytecode().end(),

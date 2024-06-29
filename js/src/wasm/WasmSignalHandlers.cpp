@@ -525,7 +525,7 @@ struct AutoHandlingTrap {
 
   Trap trap;
   BytecodeOffset bytecode;
-  if (!codeBlock->code->lookupTrap(pc, &trap, &bytecode)) {
+  if (!codeBlock->lookupTrap(pc, &trap, &bytecode)) {
     return false;
   }
 

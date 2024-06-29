@@ -1700,7 +1700,6 @@ static bool WasmExtractCode(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   wasm::Tier tier = module->module().code().stableTier();
-  ;
   if (args.length() > 1 &&
       !ConvertToTier(cx, args[1], module->module().code(), &tier)) {
     args.rval().setNull();
@@ -1772,10 +1771,9 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
 
     js::wasm::Instance& inst = fun->wasmInstance();
     const js::wasm::Code& code = inst.code();
-    js::wasm::Tier tier = code.bestTier();
-    const js::wasm::CodeBlock& codeBlock = inst.code(tier);
-    const js::wasm::CodeSegment& segment = code.segment(tier);
     const uint32_t funcIndex = code.getFuncIndex(&*fun);
+    const js::wasm::CodeBlock& codeBlock = inst.code().funcCodeBlock(funcIndex);
+    const js::wasm::CodeSegment& segment = *codeBlock.segment;
     const js::wasm::FuncExport& func = codeBlock.lookupFuncExport(funcIndex);
     const js::wasm::CodeRange& codeRange = codeBlock.codeRange(func);
 
@@ -1885,11 +1883,6 @@ static bool ComputeTier(JSContext* cx, const wasm::Code& code,
     return false;
   }
 
-  if (!code.hasTier(*tier)) {
-    JS_ReportErrorASCII(cx, "function missing selected tier");
-    return false;
-  }
-
   return true;
 }
 
@@ -1922,13 +1915,18 @@ static bool WasmDisassembleFunction(JSContext* cx, const HandleFunction& func,
                                     HandleValue tierSelection, bool asString,
                                     MutableHandleValue rval) {
   wasm::Instance& instance = wasm::ExportedFunctionToInstance(func);
+  uint32_t funcIndex = wasm::ExportedFunctionToFuncIndex(func);
   wasm::Tier tier;
 
   if (!ComputeTier(cx, instance.code(), tierSelection, &tier)) {
     return false;
   }
 
-  uint32_t funcIndex = wasm::ExportedFunctionToFuncIndex(func);
+  if (!instance.code().funcHasTier(funcIndex, tier)) {
+    JS_ReportErrorASCII(cx, "function missing selected tier");
+    return false;
+  }
+
   return DisassembleIt(
       cx, asString, rval, [&](void (*captureText)(const char*)) {
         instance.disassembleExport(cx, funcIndex, tier, captureText);

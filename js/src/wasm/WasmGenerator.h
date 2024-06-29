@@ -169,12 +169,6 @@ struct CompileTask : public HelperThreadTask {
 class MOZ_STACK_CLASS ModuleGenerator {
   using CompileTaskVector = Vector<CompileTask, 0, SystemAllocPolicy>;
   using CodeOffsetVector = Vector<jit::CodeOffset, 0, SystemAllocPolicy>;
-  struct CallFarJump {
-    uint32_t funcIndex;
-    jit::CodeOffset jump;
-    CallFarJump(uint32_t fi, jit::CodeOffset j) : funcIndex(fi), jump(j) {}
-  };
-  using CallFarJumpVector = Vector<CallFarJump, 0, SystemAllocPolicy>;
   // Encapsulates the macro assembler state so that we can create a new one for
   // each code block. Not heap allocated because the macro assembler is a
   // 'stack class'.
@@ -194,7 +188,10 @@ class MOZ_STACK_CLASS ModuleGenerator {
   CodeMetadata* const codeMeta_;
   CompilerEnvironment* const compilerEnv_;
 
-  // The metadata to be used for compiling functions
+  // Data that is moved into the Module/Code as the result of finish()
+  FuncImportVector funcImports_;
+  UniqueLinkData sharedStubsLinkData_;
+  UniqueCodeBlock sharedStubsCodeBlock_;
   MutableCodeMetadataForAsmJS codeMetaForAsmJS_;
 
   // Data that is used to construct a CodeBlock
@@ -226,6 +223,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   bool linkCallSites();
   void noteCodeRange(uint32_t codeRangeIndex, const CodeRange& codeRange);
   bool linkCompiledCode(CompiledCode& code);
+  [[nodiscard]] bool initTasks();
   bool locallyCompileCurrentTask();
   bool finishTask(CompileTask* task);
   bool launchBatchCompile();
@@ -233,11 +231,15 @@ class MOZ_STACK_CLASS ModuleGenerator {
 
   // Begins the creation of a code block. All code compiled during this time
   // will go into this code block. All previous code blocks must be finished.
-  [[nodiscard]] bool startCodeBlock();
+  [[nodiscard]] bool startCodeBlock(CodeBlockKind kind);
   // Finish the creation of a code block. This will move all the compiled code
   // and metadata into the code block and initialize it. Returns a `linkData`
   // through an out-param that can be serialized with the code block.
   UniqueCodeBlock finishCodeBlock(UniqueLinkData* linkData);
+
+  // Generate a code block containing all stubs that are shared between the
+  // different tiers.
+  [[nodiscard]] bool generateSharedStubs();
 
   // Starts the creation of a complete tier of wasm code. Every function
   // defined in this module must be compiled, then finishCompleteTier must be

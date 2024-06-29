@@ -188,10 +188,10 @@ void Table::setFuncRef(uint32_t index, JSFunction* fun) {
   // produce the same function object as was imported.
   WasmInstanceObject* instanceObj = ExportedFunctionToInstanceObject(fun);
   Instance& instance = instanceObj->instance();
-  Tier tier = instance.code().bestTier();
-  const CodeRange& calleeCodeRange =
-      instanceObj->getExportedFunctionCodeRange(fun, tier);
-  void* code = instance.codeBase(tier) + calleeCodeRange.funcCheckedCallEntry();
+  uint8_t* codeRangeBase;
+  const CodeRange* codeRange;
+  instanceObj->getExportedFunctionCodeRange(fun, &codeRange, &codeRangeBase);
+  void* code = codeRangeBase + codeRange->funcCheckedCallEntry();
   setFuncRef(index, code, &instance);
 }
 
@@ -239,11 +239,10 @@ void Table::fillFuncRef(uint32_t index, uint32_t fillCount, FuncRef ref,
 #endif
 
   Instance& instance = instanceObj->instance();
-  Tier tier = instance.code().bestTier();
-  const CodeBlock& codeBlock = instance.code(tier);
+  const CodeBlock& codeBlock = instance.code().funcCodeBlock(funcIndex);
   const CodeRange& codeRange =
       codeBlock.codeRange(codeBlock.lookupFuncExport(funcIndex));
-  void* code = instance.codeBase(tier) + codeRange.funcCheckedCallEntry();
+  void* code = codeBlock.segment->base() + codeRange.funcCheckedCallEntry();
   for (uint32_t i = index, end = index + fillCount; i != end; i++) {
     setFuncRef(i, code, &instance);
   }
