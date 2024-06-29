@@ -148,6 +148,10 @@ class CodeBlock;
 class ModuleSegment;
 class LazyStubSegment;
 
+using UniqueCodeBlock = UniquePtr<CodeBlock>;
+using UniqueConstCodeBlock = UniquePtr<const CodeBlock>;
+using UniqueCodeBlockVector = Vector<UniqueCodeBlock, 0, SystemAllocPolicy>;
+
 // CodeSegment contains common helpers for determining the base and length of a
 // code segment and if a pc belongs to this segment. It is inherited by:
 // - ModuleSegment, i.e. the code segment of a Module, generated
@@ -333,12 +337,13 @@ using LazyFuncExportVector = Vector<LazyFuncExport, 0, SystemAllocPolicy>;
 
 class LazyStubTier {
   LazyStubSegmentVector stubSegments_;
+  UniqueCodeBlockVector codeBlocks_;
   LazyFuncExportVector exports_;
   size_t lastStubSegmentIndex_;
 
   [[nodiscard]] bool createManyEntryStubs(const Uint32Vector& funcExportIndices,
                                           const CodeMetadata& codeMeta,
-                                          const CodeBlock& codeBlock,
+                                          const CodeBlock& tierCodeBlock,
                                           size_t* stubSegmentIndex);
 
  public:
@@ -348,7 +353,7 @@ class LazyStubTier {
   // will be set to the lazily-generated one.
   [[nodiscard]] bool createOneEntryStub(uint32_t funcExportIndex,
                                         const CodeMetadata& codeMeta,
-                                        const CodeBlock& codeBlock);
+                                        const CodeBlock& tierCodeBlock);
 
   bool entryStubsEmpty() const { return stubSegments_.empty(); }
   bool hasEntryStub(uint32_t funcIndex) const;
@@ -362,7 +367,7 @@ class LazyStubTier {
   // setJitEntries() is actually called, after the Code owner has committed
   // tier2.
   [[nodiscard]] bool createTier2(const CodeMetadata& codeMeta,
-                                 const CodeBlock& codeBlock,
+                                 const CodeBlock& tierCodeBlock,
                                  Maybe<size_t>* stubSegmentIndex);
   void setJitEntries(const Maybe<size_t>& stubSegmentIndex, const Code& code);
 
@@ -373,8 +378,7 @@ class LazyStubTier {
 // CodeBlock contains all the data related to a given compilation tier. It is
 // built during module generation and then immutably stored in a Code.
 
-using UniqueCodeBlock = UniquePtr<CodeBlock>;
-using UniqueConstCodeBlock = UniquePtr<const CodeBlock>;
+enum class CodeBlockKind { BaselineTier, OptimizedTier, LazyStubs };
 
 class CodeBlock {
  public:
@@ -382,8 +386,8 @@ class CodeBlock {
   const Code* code;
 
   // The following information is all serialized
+  const CodeBlockKind kind;
   SharedCodeSegment segment;
-  const Tier tier;
   Uint32Vector funcToCodeRange;
   CodeRangeVector codeRanges;
   CallSiteVector callSites;
@@ -397,14 +401,35 @@ class CodeBlock {
   // Debug information, not serialized.
   uint32_t debugTrapOffset;
 
-  explicit CodeBlock(Tier tier)
-      : code(nullptr), tier(tier), debugTrapOffset(0) {}
+  static constexpr CodeBlockKind kindFromTier(Tier tier) {
+    if (tier == Tier::Optimized) {
+      return CodeBlockKind::OptimizedTier;
+    }
+    MOZ_ASSERT(tier == Tier::Baseline);
+    return CodeBlockKind::BaselineTier;
+  }
+
+  explicit CodeBlock(CodeBlockKind kind)
+      : code(nullptr), kind(kind), debugTrapOffset(0) {}
+  explicit CodeBlock(Tier tier) : CodeBlock(kindFromTier(tier)) {}
 
   bool initialized() const { return !!code && segment->initialized(); }
   bool initializeModule(const Code& code, const LinkData& linkData,
                         const CodeMetadata& codeMeta,
                         const CodeMetadataForAsmJS* codeMetaForAsmJS);
   bool initializeLazyStubs();
+
+  // Gets the tier for this code block. Only valid for non-lazy stub code.
+  Tier tier() const {
+    switch (kind) {
+      case CodeBlockKind::BaselineTier:
+        return Tier::Baseline;
+      case CodeBlockKind::OptimizedTier:
+        return Tier::Optimized;
+      default:
+        MOZ_CRASH();
+    }
+  }
 
   const ModuleSegment& moduleSegment() const { return *segment->asModule(); }
   const LazyStubSegment& lazyStubSegment() const {

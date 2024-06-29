@@ -169,7 +169,7 @@ void Module::startTier2(const CompileArgs& args, const ShareableBytes& bytecode,
 bool Module::finishTier2(const LinkData& linkData2,
                          UniqueCodeBlock code2) const {
   MOZ_ASSERT(code().bestTier() == Tier::Baseline &&
-             code2->tier == Tier::Optimized);
+             code2->tier() == Tier::Optimized);
 
   // Install the data in the data structures. They will not be visible
   // until commitTier2().
