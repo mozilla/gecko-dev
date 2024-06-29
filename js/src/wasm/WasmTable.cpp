@@ -240,9 +240,9 @@ void Table::fillFuncRef(uint32_t index, uint32_t fillCount, FuncRef ref,
 
   Instance& instance = instanceObj->instance();
   Tier tier = instance.code().bestTier();
-  const CodeTier& codeTier = instance.code(tier);
+  const CodeBlock& codeBlock = instance.code(tier);
   const CodeRange& codeRange =
-      codeTier.codeRange(codeTier.lookupFuncExport(funcIndex));
+      codeBlock.codeRange(codeBlock.lookupFuncExport(funcIndex));
   void* code = instance.codeBase(tier) + codeRange.funcCheckedCallEntry();
   for (uint32_t i = index, end = index + fillCount; i != end; i++) {
     setFuncRef(i, code, &instance);

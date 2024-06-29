@@ -364,7 +364,7 @@ class alignas(16) Instance {
   void setDebugFilter(uint32_t funcIndex, bool value);
 
   const Code& code() const { return *code_; }
-  inline const CodeTier& code(Tier t) const;
+  inline const CodeBlock& code(Tier t) const;
   inline uint8_t* codeBase(Tier t) const;
   inline const CodeMetadata& codeMeta() const;
   inline const CodeMetadataForAsmJS* codeMetaForAsmJS() const;

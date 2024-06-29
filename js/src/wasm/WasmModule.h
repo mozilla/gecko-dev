@@ -154,7 +154,7 @@ class Module : public JS::WasmModule {
   ~Module() override;
 
   const Code& code() const { return *code_; }
-  const CodeTier& code(Tier t) const { return code_->codeTier(t); }
+  const CodeBlock& code(Tier t) const { return code_->codeBlock(t); }
   const ModuleSegment& moduleSegment(Tier t) const { return code_->segment(t); }
   const ModuleMetadata& moduleMeta() const { return *moduleMeta_; }
   const CodeMetadata& codeMeta() const { return code_->codeMeta(); }
@@ -178,7 +178,7 @@ class Module : public JS::WasmModule {
 
   void startTier2(const CompileArgs& args, const ShareableBytes& bytecode,
                   JS::OptimizedEncodingListener* listener);
-  bool finishTier2(const LinkData& linkData2, UniqueCodeTier code2) const;
+  bool finishTier2(const LinkData& linkData2, UniqueCodeBlock code2) const;
 
   void testingBlockOnTier2Complete() const;
   bool testingTier2Active() const { return testingTier2Active_; }

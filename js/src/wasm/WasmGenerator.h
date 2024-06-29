@@ -185,7 +185,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
 
   // Data that is moved into the result of finish()
   UniqueLinkData linkData_;
-  UniqueCodeTier codeTier_;
+  UniqueCodeBlock codeBlock_;
   MutableCodeMetadataForAsmJS codeMetaForAsmJS_;
 
   // Data scoped to the ModuleGenerator's lifetime
@@ -222,7 +222,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   bool finishOutstandingTask();
   bool finishCodegen();
   bool finishMetadataTier();
-  UniqueCodeTier finishCodeTier();
+  UniqueCodeBlock finishCodeBlock();
   bool finishCodeMetadata(const Bytes& bytecode);
 
   bool isAsmJS() const { return codeMeta_->isAsmJS(); }

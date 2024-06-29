@@ -14,7 +14,7 @@
 namespace js {
 namespace wasm {
 
-const CodeTier& Instance::code(Tier t) const { return code_->codeTier(t); }
+const CodeBlock& Instance::code(Tier t) const { return code_->codeBlock(t); }
 
 uint8_t* Instance::codeBase(Tier t) const { return code_->segment(t).base(); }
 
