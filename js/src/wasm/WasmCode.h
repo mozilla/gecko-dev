@@ -297,8 +297,7 @@ class LazyStubSegment : public CodeSegment {
                               const Uint32Vector& funcExportIndices,
                               const FuncExportVector& funcExports,
                               const CodeRangeVector& codeRanges,
-                              uint8_t** codePtr,
-                              size_t* indexFirstInsertedCodeRange);
+                              uint8_t** codePtr, size_t* offsetInSegment);
 
   const CodeRangeVector& codeRanges() const { return codeRanges_; }
   [[nodiscard]] const CodeRange* lookupRange(const void* pc) const;
@@ -313,15 +312,15 @@ class LazyStubSegment : public CodeSegment {
 
 struct LazyFuncExport {
   size_t funcIndex;
-  size_t lazyStubSegmentIndex;
+  size_t lazyStubBlockIndex;
   size_t funcCodeRangeIndex;
   // Used to make sure we only upgrade a lazy stub from baseline to ion.
   mozilla::DebugOnly<Tier> tier;
 
-  LazyFuncExport(size_t funcIndex, size_t lazyStubSegmentIndex,
+  LazyFuncExport(size_t funcIndex, size_t lazyStubBlockIndex,
                  size_t funcCodeRangeIndex, Tier tier)
       : funcIndex(funcIndex),
-        lazyStubSegmentIndex(lazyStubSegmentIndex),
+        lazyStubBlockIndex(lazyStubBlockIndex),
         funcCodeRangeIndex(funcCodeRangeIndex),
         tier(tier) {}
 };
@@ -339,15 +338,14 @@ class LazyStubTier {
   LazyStubSegmentVector stubSegments_;
   UniqueCodeBlockVector codeBlocks_;
   LazyFuncExportVector exports_;
-  size_t lastStubSegmentIndex_;
 
   [[nodiscard]] bool createManyEntryStubs(const Uint32Vector& funcExportIndices,
                                           const CodeMetadata& codeMeta,
                                           const CodeBlock& tierCodeBlock,
-                                          size_t* stubSegmentIndex);
+                                          size_t* stubBlockIndex);
 
  public:
-  LazyStubTier() : lastStubSegmentIndex_(0) {}
+  LazyStubTier() = default;
 
   // Creates one lazy stub for the exported function, for which the jit entry
   // will be set to the lazily-generated one.
@@ -355,7 +353,7 @@ class LazyStubTier {
                                         const CodeMetadata& codeMeta,
                                         const CodeBlock& tierCodeBlock);
 
-  bool entryStubsEmpty() const { return stubSegments_.empty(); }
+  bool entryStubsEmpty() const { return codeBlocks_.empty(); }
   bool hasEntryStub(uint32_t funcIndex) const;
 
   // Returns a pointer to the raw interpreter entry of a given function for
@@ -368,8 +366,8 @@ class LazyStubTier {
   // tier2.
   [[nodiscard]] bool createTier2(const CodeMetadata& codeMeta,
                                  const CodeBlock& tierCodeBlock,
-                                 Maybe<size_t>* stubSegmentIndex);
-  void setJitEntries(const Maybe<size_t>& stubSegmentIndex, const Code& code);
+                                 Maybe<size_t>* outStubBlockIndex);
+  void setJitEntries(const Maybe<size_t>& stubBlockIndex, const Code& code);
 
   void addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
                      size_t* data) const;
