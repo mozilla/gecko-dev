@@ -645,7 +645,7 @@ static const wasm::TryNote* FindNonDelegateTryNote(const wasm::Code& code,
   const wasm::TryNote* tryNote = code.lookupTryNote((void*)pc, tier);
   while (tryNote && tryNote->isDelegate()) {
     const wasm::CodeTier& codeTier = code.codeTier(*tier);
-    pc = codeTier.segment().base() + tryNote->delegateOffset();
+    pc = codeTier.segment->base() + tryNote->delegateOffset();
     const wasm::TryNote* delegateTryNote = code.lookupTryNote((void*)pc, tier);
     MOZ_RELEASE_ASSERT(delegateTryNote == nullptr ||
                        delegateTryNote->tryBodyBegin() <
@@ -971,7 +971,7 @@ static int32_t CoerceInPlace_JitEntry(int funcExportIndex, Instance* instance,
 
   const Code& code = instance->code();
   const FuncExport& fe =
-      code.metadata(code.stableTier()).funcExports[funcExportIndex];
+      code.codeTier(code.stableTier()).funcExports[funcExportIndex];
   const FuncType& funcType = code.codeMeta().getFuncExportType(fe);
 
   for (size_t i = 0; i < funcType.args().length(); i++) {

@@ -390,7 +390,7 @@ bool WasmFrameIter::debugEnabled() const {
 
   // Only non-imported functions can have debug frames.
   if (codeRange_->funcIndex() <
-      code_->metadata(Tier::Debug).funcImports.length()) {
+      code_->codeTier(Tier::Debug).funcImports.length()) {
     return false;
   }
 

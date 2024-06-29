@@ -60,9 +60,9 @@ void DebugState::finalize(JS::GCContext* gcx) {
   }
 }
 
-static const CallSite* SlowCallSiteSearchByOffset(const MetadataTier& metadata,
+static const CallSite* SlowCallSiteSearchByOffset(const CodeTier& code,
                                                   uint32_t offset) {
-  for (const CallSite& callSite : metadata.callSites) {
+  for (const CallSite& callSite : code.callSites) {
     if (callSite.lineOrBytecode() == offset &&
         callSite.kind() == CallSiteDesc::Breakpoint) {
       return &callSite;
@@ -73,12 +73,12 @@ static const CallSite* SlowCallSiteSearchByOffset(const MetadataTier& metadata,
 
 bool DebugState::getLineOffsets(size_t lineno, Vector<uint32_t>* offsets) {
   const CallSite* callsite =
-      SlowCallSiteSearchByOffset(metadata(Tier::Debug), lineno);
+      SlowCallSiteSearchByOffset(code(Tier::Debug), lineno);
   return !(callsite && !offsets->append(lineno));
 }
 
 bool DebugState::getAllColumnOffsets(Vector<ExprLoc>* offsets) {
-  for (const CallSite& callSite : metadata(Tier::Debug).callSites) {
+  for (const CallSite& callSite : code(Tier::Debug).callSites) {
     if (callSite.kind() != CallSite::Breakpoint) {
       continue;
     }
@@ -95,7 +95,7 @@ bool DebugState::getAllColumnOffsets(Vector<ExprLoc>* offsets) {
 
 bool DebugState::getOffsetLocation(uint32_t offset, uint32_t* lineno,
                                    JS::LimitedColumnNumberOneOrigin* column) {
-  if (!SlowCallSiteSearchByOffset(metadata(Tier::Debug), offset)) {
+  if (!SlowCallSiteSearchByOffset(code(Tier::Debug), offset)) {
     return false;
   }
   *lineno = offset;
@@ -167,13 +167,13 @@ void DebugState::decrementStepperCount(JS::GCContext* gcx, Instance* instance,
 }
 
 bool DebugState::hasBreakpointTrapAtOffset(uint32_t offset) {
-  return SlowCallSiteSearchByOffset(metadata(Tier::Debug), offset);
+  return SlowCallSiteSearchByOffset(code(Tier::Debug), offset);
 }
 
 void DebugState::toggleBreakpointTrap(JSRuntime* rt, Instance* instance,
                                       uint32_t offset, bool enabled) {
   const CallSite* callSite =
-      SlowCallSiteSearchByOffset(metadata(Tier::Debug), offset);
+      SlowCallSiteSearchByOffset(code(Tier::Debug), offset);
   if (!callSite) {
     return;
   }
@@ -300,7 +300,7 @@ void DebugState::disableDebuggingForFunction(Instance* instance,
 
 void DebugState::enableDebugTrap(Instance* instance) {
   instance->setDebugTrapHandler(code_->segment(Tier::Debug).base() +
-                                metadata(Tier::Debug).debugTrapOffset);
+                                code(Tier::Debug).debugTrapOffset);
 }
 
 void DebugState::disableDebugTrap(Instance* instance) {
@@ -339,7 +339,7 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
            !iter.done() && !mustLeaveEnabled; iter.next()) {
         WasmBreakpointSite* site = iter.get().value();
         const CallSite* callSite =
-            SlowCallSiteSearchByOffset(metadata(Tier::Debug), site->offset);
+            SlowCallSiteSearchByOffset(code(Tier::Debug), site->offset);
         if (callSite) {
           size_t debugTrapOffset = callSite->returnAddressOffset();
           const ModuleSegment& codeSegment = code_->segment(Tier::Debug);

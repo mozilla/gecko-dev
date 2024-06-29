@@ -11465,7 +11465,7 @@ AttachDecision CallIRGenerator::tryAttachWasmCall(HandleFunction calleeFunc) {
 
   auto bestTier = inst.code().bestTier();
   const wasm::FuncExport& funcExport =
-      inst.metadata(bestTier).lookupFuncExport(funcIndex);
+      inst.code(bestTier).lookupFuncExport(funcIndex);
   const wasm::FuncType& sig = inst.codeMeta().getFuncExportType(funcExport);
 
   MOZ_ASSERT(!IsInsideNursery(inst.object()));

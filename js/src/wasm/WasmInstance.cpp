@@ -229,7 +229,7 @@ bool Instance::callImport(JSContext* cx, uint32_t funcImportIndex,
 
   Tier tier = code().bestTier();
 
-  const FuncImport& fi = metadata(tier).funcImports[funcImportIndex];
+  const FuncImport& fi = code(tier).funcImports[funcImportIndex];
   const FuncType& funcType = codeMeta().getFuncImportType(fi);
 
   ArgTypeVector argTypes(funcType);
@@ -1018,16 +1018,16 @@ bool Instance::iterElemsFunctions(const ModuleElemSegment& seg,
   }
 
   Tier tier = code().bestTier();
-  const MetadataTier& metadataTier = metadata(tier);
-  const FuncImportVector& funcImports = metadataTier.funcImports;
-  const CodeRangeVector& codeRanges = metadataTier.codeRanges;
-  const Uint32Vector& funcToCodeRange = metadataTier.funcToCodeRange;
+  const CodeTier& codeTier = code(tier);
+  const FuncImportVector& funcImports = codeTier.funcImports;
+  const CodeRangeVector& codeRanges = codeTier.codeRanges;
+  const Uint32Vector& funcToCodeRange = codeTier.funcToCodeRange;
   const Uint32Vector& elemIndices = seg.elemIndices;
 
   uint8_t* codeBaseTier = codeBase(tier);
   for (uint32_t i = 0; i < seg.numElements(); i++) {
     uint32_t elemIndex = elemIndices[i];
-    if (elemIndex < metadataTier.funcImports.length()) {
+    if (elemIndex < codeTier.funcImports.length()) {
       FuncImportInstanceData& import =
           funcImportInstanceData(funcImports[elemIndex]);
       MOZ_ASSERT(import.callable->isCallable());
@@ -1347,8 +1347,8 @@ static int32_t MemDiscardShared(Instance* instance, I byteOffset, I byteLen,
   JSContext* cx = instance->cx();
 
   Tier tier = instance->code().bestTier();
-  const MetadataTier& metadataTier = instance->metadata(tier);
-  const FuncImportVector& funcImports = metadataTier.funcImports;
+  const CodeTier& codeTier = instance->code(tier);
+  const FuncImportVector& funcImports = codeTier.funcImports;
 
   // If this is an import, we need to recover the original function to maintain
   // reference equality between a re-exported function and 'ref.func'. The
@@ -2299,7 +2299,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 
 #ifdef DEBUG
   for (auto t : code_->tiers()) {
-    MOZ_ASSERT(funcImports.length() == metadata(t).funcImports.length());
+    MOZ_ASSERT(funcImports.length() == code(t).funcImports.length());
   }
 #endif
   MOZ_ASSERT(tables_.length() == codeMeta().tables.length());
@@ -2391,13 +2391,13 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 
   // Initialize function imports in the instance data
   Tier callerTier = code_->bestTier();
-  for (size_t i = 0; i < metadata(callerTier).funcImports.length(); i++) {
+  for (size_t i = 0; i < code(callerTier).funcImports.length(); i++) {
     JSObject* f = funcImports[i];
 
 #ifdef ENABLE_WASM_JSPI
     if (JSObject* suspendingObject = MaybeUnwrapSuspendingObject(f)) {
       // Compile suspending function Wasm wrapper.
-      const FuncImport& fi = metadata(callerTier).funcImports[i];
+      const FuncImport& fi = code(callerTier).funcImports[i];
       const FuncType& funcType = codeMeta().getFuncImportType(fi);
       RootedObject wrapped(cx, suspendingObject);
       RootedFunction wrapper(
@@ -2411,7 +2411,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 #endif
 
     MOZ_ASSERT(f->isCallable());
-    const FuncImport& fi = metadata(callerTier).funcImports[i];
+    const FuncImport& fi = code(callerTier).funcImports[i];
     const FuncType& funcType = codeMeta().getFuncImportType(fi);
     FuncImportInstanceData& import = funcImportInstanceData(fi);
     import.callable = f;
@@ -2717,7 +2717,7 @@ void Instance::tracePrivate(JSTracer* trc) {
 
   // OK to just do one tier here; though the tiers have different funcImports
   // tables, they share the instance object.
-  for (const FuncImport& fi : metadata(code().stableTier()).funcImports) {
+  for (const FuncImport& fi : code(code().stableTier()).funcImports) {
     TraceNullableEdge(trc, &funcImportInstanceData(fi).callable, "wasm import");
   }
 
@@ -2925,7 +2925,7 @@ static bool EnsureEntryStubs(const Instance& instance, uint32_t funcIndex,
 
   size_t funcExportIndex;
   *funcExport =
-      &instance.metadata(tier).lookupFuncExport(funcIndex, &funcExportIndex);
+      &instance.code(tier).lookupFuncExport(funcIndex, &funcExportIndex);
 
   const FuncExport& fe = **funcExport;
   if (fe.hasEagerStubs()) {
@@ -3459,11 +3459,10 @@ void Instance::destroyBreakpointSite(JS::GCContext* gcx, uint32_t offset) {
 
 void Instance::disassembleExport(JSContext* cx, uint32_t funcIndex, Tier tier,
                                  PrintCallback printString) const {
-  const MetadataTier& metadataTier = metadata(tier);
-  const FuncExport& funcExport = metadataTier.lookupFuncExport(funcIndex);
-  const CodeRange& range = metadataTier.codeRange(funcExport);
   const CodeTier& codeTier = code(tier);
-  const ModuleSegment& segment = codeTier.segment();
+  const FuncExport& funcExport = codeTier.lookupFuncExport(funcIndex);
+  const CodeRange& range = codeTier.codeRange(funcExport);
+  const ModuleSegment& segment = *codeTier.segment;
 
   MOZ_ASSERT(range.begin() < segment.length());
   MOZ_ASSERT(range.end() < segment.length());

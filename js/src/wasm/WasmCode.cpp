@@ -338,8 +338,7 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedBytes,
 bool ModuleSegment::initialize(const CodeTier& codeTier,
                                const LinkData& linkData,
                                const CodeMetadata& codeMeta,
-                               const CodeMetadataForAsmJS* codeMetaForAsmJS,
-                               const MetadataTier& metadataTier) {
+                               const CodeMetadataForAsmJS* codeMetaForAsmJS) {
   if (!StaticallyLink(*this, linkData)) {
     return false;
   }
@@ -353,10 +352,10 @@ bool ModuleSegment::initialize(const CodeTier& codeTier,
   }
 
   SendCodeRangesToProfiler(*this, codeMeta, codeMetaForAsmJS,
-                           metadataTier.codeRanges);
+                           codeTier.codeRanges);
 
   // See comments in CodeSegment::initialize() for why this must be last.
-  return CodeSegment::initialize(codeTier.code());
+  return CodeSegment::initialize(*codeTier.code);
 }
 
 const CodeTier& ModuleSegment::codeTier() const {
@@ -376,18 +375,6 @@ const CodeRange* ModuleSegment::lookupRange(const void* pc) const {
 
 size_t CacheableChars::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
   return mallocSizeOf(get());
-}
-
-size_t MetadataTier::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
-  return funcToCodeRange.sizeOfExcludingThis(mallocSizeOf) +
-         codeRanges.sizeOfExcludingThis(mallocSizeOf) +
-         callSites.sizeOfExcludingThis(mallocSizeOf) +
-         tryNotes.sizeOfExcludingThis(mallocSizeOf) +
-         codeRangeUnwindInfos.sizeOfExcludingThis(mallocSizeOf) +
-         trapSites.sizeOfExcludingThis(mallocSizeOf) +
-         stackMaps.sizeOfExcludingThis(mallocSizeOf) +
-         funcImports.sizeOfExcludingThis(mallocSizeOf) +
-         funcExports.sizeOfExcludingThis(mallocSizeOf);
 }
 
 UniqueLazyStubSegment LazyStubSegment::create(const Code& code, size_t length) {
@@ -515,9 +502,8 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     PadCodeForSingleStub(masm);
   }
 
-  const MetadataTier& metadataTier = codeTier.metadata();
-  const FuncExportVector& funcExports = metadataTier.funcExports;
-  uint8_t* moduleSegmentBase = codeTier.segment().base();
+  const FuncExportVector& funcExports = codeTier.funcExports;
+  uint8_t* moduleSegmentBase = codeTier.segment->base();
 
   CodeRangeVector codeRanges;
   DebugOnly<uint32_t> numExpectedRanges = 0;
@@ -527,7 +513,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     // Exports that don't support a jit entry get only the interp entry.
     numExpectedRanges += (funcType.canHaveJitEntry() ? 2 : 1);
     void* calleePtr =
-        moduleSegmentBase + metadataTier.codeRange(fe).funcUncheckedCallEntry();
+        moduleSegmentBase + codeTier.codeRange(fe).funcUncheckedCallEntry();
     Maybe<ImmPtr> callee;
     callee.emplace(calleePtr, ImmPtr::NoCheckToken());
     if (!GenerateEntryStubs(masm, funcExportIndex, fe, funcType, callee,
@@ -556,7 +542,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
       !stubSegments_[lastStubSegmentIndex_]->hasSpace(codeLength)) {
     size_t newSegmentSize = std::max(codeLength, ExecutableCodePageSize);
     UniqueLazyStubSegment newSegment =
-        LazyStubSegment::create(codeTier.code(), newSegmentSize);
+        LazyStubSegment::create(*codeTier.code, newSegmentSize);
     if (!newSegment) {
       return false;
     }
@@ -600,7 +586,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     MOZ_ASSERT(cr.value.funcIndex() == fe.funcIndex());
 
     LazyFuncExport lazyExport(fe.funcIndex(), *stubSegmentIndex,
-                              interpRangeIndex, codeTier.tier());
+                              interpRangeIndex, codeTier.tier);
 
     // Exports that don't support a jit entry get only the interp entry.
     interpRangeIndex += (funcType.canHaveJitEntry() ? 2 : 1);
@@ -642,7 +628,7 @@ bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
   const UniqueLazyStubSegment& segment = stubSegments_[stubSegmentIndex];
   const CodeRangeVector& codeRanges = segment->codeRanges();
 
-  const FuncExport& fe = codeTier.metadata().funcExports[funcExportIndex];
+  const FuncExport& fe = codeTier.funcExports[funcExportIndex];
   const FuncType& funcType = codeMeta.getFuncExportType(fe);
 
   // Exports that don't support a jit entry get only the interp entry.
@@ -658,7 +644,7 @@ bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
   const CodeRange& cr = codeRanges[codeRanges.length() - 1];
   MOZ_ASSERT(cr.isJitEntry());
 
-  codeTier.code().setJitEntry(cr.funcIndex(), segment->base() + cr.begin());
+  codeTier.code->setJitEntry(cr.funcIndex(), segment->base() + cr.begin());
   return true;
 }
 
@@ -678,7 +664,7 @@ bool LazyStubTier::createTier2(const CodeMetadata& codeMeta,
     const LazyFuncExport& lfe = exports_[i];
     MOZ_ASSERT(lfe.tier == Tier::Baseline);
     size_t funcExportIndex;
-    codeTier.metadata().lookupFuncExport(lfe.funcIndex, &funcExportIndex);
+    codeTier.lookupFuncExport(lfe.funcIndex, &funcExportIndex);
     funcExportIndices.infallibleAppend(funcExportIndex);
   }
 
@@ -740,6 +726,55 @@ void LazyStubTier::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
   }
 }
 
+bool CodeTier::initialize(const Code& code, const LinkData& linkData,
+                          const CodeMetadata& codeMeta,
+                          const CodeMetadataForAsmJS* codeMetaForAsmJS) {
+  MOZ_ASSERT(!initialized());
+  this->code = &code;
+
+  // See comments in CodeSegment::initialize() for why this must be last.
+  if (!segment->initialize(*this, linkData, codeMeta, codeMetaForAsmJS)) {
+    return false;
+  }
+
+  MOZ_ASSERT(initialized());
+  return true;
+}
+
+void CodeTier::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
+                             size_t* data) const {
+  segment->addSizeOfMisc(mallocSizeOf, code, data);
+  *data += funcToCodeRange.sizeOfExcludingThis(mallocSizeOf) +
+           codeRanges.sizeOfExcludingThis(mallocSizeOf) +
+           callSites.sizeOfExcludingThis(mallocSizeOf) +
+           tryNotes.sizeOfExcludingThis(mallocSizeOf) +
+           codeRangeUnwindInfos.sizeOfExcludingThis(mallocSizeOf) +
+           trapSites.sizeOfExcludingThis(mallocSizeOf) +
+           stackMaps.sizeOfExcludingThis(mallocSizeOf) +
+           funcImports.sizeOfExcludingThis(mallocSizeOf) +
+           funcExports.sizeOfExcludingThis(mallocSizeOf);
+  ;
+}
+
+const CodeRange* CodeTier::lookupRange(const void* pc) const {
+  CodeRange::OffsetInCode target((uint8_t*)pc - segment->base());
+  return LookupInSorted(codeRanges, target);
+}
+
+const wasm::TryNote* CodeTier::lookupTryNote(const void* pc) const {
+  size_t target = (uint8_t*)pc - segment->base();
+
+  // We find the first hit (there may be multiple) to obtain the innermost
+  // handler, which is why we cannot binary search here.
+  for (const auto& tryNote : tryNotes) {
+    if (tryNote.offsetWithinTryBody(target)) {
+      return &tryNote;
+    }
+  }
+
+  return nullptr;
+}
+
 struct ProjectFuncIndex {
   const FuncExportVector& funcExports;
   explicit ProjectFuncIndex(const FuncExportVector& funcExports)
@@ -749,7 +784,7 @@ struct ProjectFuncIndex {
   }
 };
 
-FuncExport& MetadataTier::lookupFuncExport(
+FuncExport& CodeTier::lookupFuncExport(
     uint32_t funcIndex, size_t* funcExportIndex /* = nullptr */) {
   size_t match;
   if (!BinarySearch(ProjectFuncIndex(funcExports), 0, funcExports.length(),
@@ -762,52 +797,10 @@ FuncExport& MetadataTier::lookupFuncExport(
   return funcExports[match];
 }
 
-const FuncExport& MetadataTier::lookupFuncExport(
-    uint32_t funcIndex, size_t* funcExportIndex) const {
-  return const_cast<MetadataTier*>(this)->lookupFuncExport(funcIndex,
-                                                           funcExportIndex);
-}
-
-bool CodeTier::initialize(const Code& code, const LinkData& linkData,
-                          const CodeMetadata& codeMeta,
-                          const CodeMetadataForAsmJS* codeMetaForAsmJS) {
-  MOZ_ASSERT(!initialized());
-  code_ = &code;
-
-  // See comments in CodeSegment::initialize() for why this must be last.
-  if (!segment_->initialize(*this, linkData, codeMeta, codeMetaForAsmJS,
-                            *metadata_)) {
-    return false;
-  }
-
-  MOZ_ASSERT(initialized());
-  return true;
-}
-
-void CodeTier::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
-                             size_t* data) const {
-  segment_->addSizeOfMisc(mallocSizeOf, code, data);
-  *data += metadata_->sizeOfExcludingThis(mallocSizeOf);
-}
-
-const CodeRange* CodeTier::lookupRange(const void* pc) const {
-  CodeRange::OffsetInCode target((uint8_t*)pc - segment_->base());
-  return LookupInSorted(metadata_->codeRanges, target);
-}
-
-const wasm::TryNote* CodeTier::lookupTryNote(const void* pc) const {
-  size_t target = (uint8_t*)pc - segment_->base();
-  const TryNoteVector& tryNotes = metadata_->tryNotes;
-
-  // We find the first hit (there may be multiple) to obtain the innermost
-  // handler, which is why we cannot binary search here.
-  for (const auto& tryNote : tryNotes) {
-    if (tryNote.offsetWithinTryBody(target)) {
-      return &tryNote;
-    }
-  }
-
-  return nullptr;
+const FuncExport& CodeTier::lookupFuncExport(uint32_t funcIndex,
+                                             size_t* funcExportIndex) const {
+  return const_cast<CodeTier*>(this)->lookupFuncExport(funcIndex,
+                                                       funcExportIndex);
 }
 
 bool JumpTables::init(CompileMode mode, const ModuleSegment& ms,
@@ -880,8 +873,8 @@ bool Code::initialize(const LinkData& linkData) {
 bool Code::setAndBorrowTier2(UniqueCodeTier tier2, const LinkData& linkData,
                              const CodeTier** borrowedTier) const {
   MOZ_RELEASE_ASSERT(!hasTier2());
-  MOZ_RELEASE_ASSERT(tier2->tier() == Tier::Optimized &&
-                     tier1_->tier() == Tier::Baseline);
+  MOZ_RELEASE_ASSERT(tier2->tier == Tier::Optimized &&
+                     tier1_->tier == Tier::Baseline);
 
   if (!tier2->initialize(*this, linkData, *codeMeta_, codeMetaForAsmJS_)) {
     return false;
@@ -914,37 +907,37 @@ uint32_t Code::getFuncIndex(JSFunction* fun) const {
 
 Tiers Code::tiers() const {
   if (hasTier2()) {
-    return Tiers(tier1_->tier(), tier2_->tier());
+    return Tiers(tier1_->tier, tier2_->tier);
   }
-  return Tiers(tier1_->tier());
+  return Tiers(tier1_->tier);
 }
 
 bool Code::hasTier(Tier t) const {
-  if (hasTier2() && tier2_->tier() == t) {
+  if (hasTier2() && tier2_->tier == t) {
     return true;
   }
-  return tier1_->tier() == t;
+  return tier1_->tier == t;
 }
 
-Tier Code::stableTier() const { return tier1_->tier(); }
+Tier Code::stableTier() const { return tier1_->tier; }
 
 Tier Code::bestTier() const {
   if (hasTier2()) {
-    return tier2_->tier();
+    return tier2_->tier;
   }
-  return tier1_->tier();
+  return tier1_->tier;
 }
 
 const CodeTier& Code::codeTier(Tier tier) const {
   switch (tier) {
     case Tier::Baseline:
-      if (tier1_->tier() == Tier::Baseline) {
+      if (tier1_->tier == Tier::Baseline) {
         MOZ_ASSERT(tier1_->initialized());
         return *tier1_;
       }
       MOZ_CRASH("No code segment at this tier");
     case Tier::Optimized:
-      if (tier1_->tier() == Tier::Optimized) {
+      if (tier1_->tier == Tier::Optimized) {
         MOZ_ASSERT(tier1_->initialized());
         return *tier1_;
       }
@@ -982,12 +975,12 @@ const CallSite* Code::lookupCallSite(void* returnAddress) const {
   for (Tier t : tiers()) {
     uint32_t target = ((uint8_t*)returnAddress) - segment(t).base();
     size_t lowerBound = 0;
-    size_t upperBound = metadata(t).callSites.length();
+    size_t upperBound = codeTier(t).callSites.length();
 
     size_t match;
-    if (BinarySearch(CallSiteRetAddrOffset(metadata(t).callSites), lowerBound,
+    if (BinarySearch(CallSiteRetAddrOffset(codeTier(t).callSites), lowerBound,
                      upperBound, target, &match)) {
-      return &metadata(t).callSites[match];
+      return &codeTier(t).callSites[match];
     }
   }
 
@@ -1006,7 +999,7 @@ const CodeRange* Code::lookupFuncRange(void* pc) const {
 
 const StackMap* Code::lookupStackMap(uint8_t* nextPC) const {
   for (Tier t : tiers()) {
-    const StackMap* result = metadata(t).stackMaps.findMap(nextPC);
+    const StackMap* result = codeTier(t).stackMaps.findMap(nextPC);
     if (result) {
       return result;
     }
@@ -1035,7 +1028,7 @@ struct TrapSitePCOffset {
 bool Code::lookupTrap(void* pc, Trap* trapOut, BytecodeOffset* bytecode) const {
   for (Tier t : tiers()) {
     uint32_t target = ((uint8_t*)pc) - segment(t).base();
-    const TrapSiteVectorArray& trapSitesArray = metadata(t).trapSites;
+    const TrapSiteVectorArray& trapSitesArray = codeTier(t).trapSites;
     for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
       const TrapSiteVector& trapSites = trapSitesArray[trap];
 
@@ -1061,9 +1054,8 @@ bool Code::lookupFunctionTier(const CodeRange* codeRange, Tier* tier) const {
   MOZ_ASSERT(codeRange->isFunction());
   for (Tier t : tiers()) {
     const CodeTier& code = codeTier(t);
-    const MetadataTier& metadata = code.metadata();
-    if (codeRange >= metadata.codeRanges.begin() &&
-        codeRange < metadata.codeRanges.end()) {
+    if (codeRange >= code.codeRanges.begin() &&
+        codeRange < code.codeRanges.end()) {
       *tier = t;
       return true;
     }
@@ -1082,7 +1074,7 @@ const CodeRangeUnwindInfo* Code::lookupUnwindInfo(void* pc) const {
   for (Tier t : tiers()) {
     uint32_t target = ((uint8_t*)pc) - segment(t).base();
     const CodeRangeUnwindInfoVector& unwindInfoArray =
-        metadata(t).codeRangeUnwindInfos;
+        codeTier(t).codeRangeUnwindInfos;
     size_t match;
     const CodeRangeUnwindInfo* info = nullptr;
     if (BinarySearch(UnwindInfoPCOffset(unwindInfoArray), 0,
@@ -1123,7 +1115,7 @@ void Code::ensureProfilingLabels(bool profilingEnabled) const {
   // Any tier will do, we only need tier-invariant data that are incidentally
   // stored with the code ranges.
 
-  for (const CodeRange& codeRange : metadata(stableTier()).codeRanges) {
+  for (const CodeRange& codeRange : codeTier(stableTier()).codeRanges) {
     if (!codeRange.isFunction()) {
       continue;
     }
@@ -1215,11 +1207,10 @@ void Code::addSizeOfMiscIfNotSeen(
 
 void Code::disassemble(JSContext* cx, Tier tier, int kindSelection,
                        PrintCallback printString) const {
-  const MetadataTier& metadataTier = metadata(tier);
   const CodeTier& codeTier = this->codeTier(tier);
-  const ModuleSegment& segment = codeTier.segment();
+  const ModuleSegment& segment = *codeTier.segment;
 
-  for (const CodeRange& range : metadataTier.codeRanges) {
+  for (const CodeRange& range : codeTier.codeRanges) {
     if (kindSelection & (1 << range.kind())) {
       MOZ_ASSERT(range.begin() < segment.length());
       MOZ_ASSERT(range.end() < segment.length());
@@ -1287,20 +1278,20 @@ MetadataAnalysisHashMap Code::metadataAnalysis(JSContext* cx) const {
   }
 
   for (auto t : tiers()) {
-    size_t length = metadata(t).funcToCodeRange.length();
-    length += metadata(t).codeRanges.length();
-    length += metadata(t).callSites.length();
-    length += metadata(t).trapSites.sumOfLengths();
-    length += metadata(t).funcImports.length();
-    length += metadata(t).funcExports.length();
-    length += metadata(t).stackMaps.length();
-    length += metadata(t).tryNotes.length();
+    size_t length = codeTier(t).funcToCodeRange.length();
+    length += codeTier(t).codeRanges.length();
+    length += codeTier(t).callSites.length();
+    length += codeTier(t).trapSites.sumOfLengths();
+    length += codeTier(t).funcImports.length();
+    length += codeTier(t).funcExports.length();
+    length += codeTier(t).stackMaps.length();
+    length += codeTier(t).tryNotes.length();
 
     hashmap.putNewInfallible("metadata length", length);
 
     // Iterate over the Code Ranges and accumulate all pieces of code.
     size_t code_size = 0;
-    for (const CodeRange& codeRange : metadata(stableTier()).codeRanges) {
+    for (const CodeRange& codeRange : codeTier(stableTier()).codeRanges) {
       if (!codeRange.isFunction()) {
         continue;
       }
@@ -1308,41 +1299,39 @@ MetadataAnalysisHashMap Code::metadataAnalysis(JSContext* cx) const {
     }
 
     hashmap.putNewInfallible("stackmaps number",
-                             this->metadata(t).stackMaps.length());
+                             this->codeTier(t).stackMaps.length());
     hashmap.putNewInfallible("trapSites number",
-                             this->metadata(t).trapSites.sumOfLengths());
+                             this->codeTier(t).trapSites.sumOfLengths());
     hashmap.putNewInfallible("codeRange size in bytes", code_size);
     hashmap.putNewInfallible("code segment length",
-                             this->codeTier(t).segment().length());
+                             this->codeTier(t).segment->length());
 
     auto mallocSizeOf = cx->runtime()->debuggerMallocSizeOf;
 
-    hashmap.putNewInfallible("metadata total size",
-                             metadata(t).sizeOfExcludingThis(mallocSizeOf));
     hashmap.putNewInfallible(
         "funcToCodeRange size",
-        metadata(t).funcToCodeRange.sizeOfExcludingThis(mallocSizeOf));
+        codeTier(t).funcToCodeRange.sizeOfExcludingThis(mallocSizeOf));
     hashmap.putNewInfallible(
         "codeRanges size",
-        metadata(t).codeRanges.sizeOfExcludingThis(mallocSizeOf));
+        codeTier(t).codeRanges.sizeOfExcludingThis(mallocSizeOf));
     hashmap.putNewInfallible(
         "callSites size",
-        metadata(t).callSites.sizeOfExcludingThis(mallocSizeOf));
+        codeTier(t).callSites.sizeOfExcludingThis(mallocSizeOf));
     hashmap.putNewInfallible(
         "tryNotes size",
-        metadata(t).tryNotes.sizeOfExcludingThis(mallocSizeOf));
+        codeTier(t).tryNotes.sizeOfExcludingThis(mallocSizeOf));
     hashmap.putNewInfallible(
         "trapSites size",
-        metadata(t).trapSites.sizeOfExcludingThis(mallocSizeOf));
+        codeTier(t).trapSites.sizeOfExcludingThis(mallocSizeOf));
     hashmap.putNewInfallible(
         "stackMaps size",
-        metadata(t).stackMaps.sizeOfExcludingThis(mallocSizeOf));
+        codeTier(t).stackMaps.sizeOfExcludingThis(mallocSizeOf));
     hashmap.putNewInfallible(
         "funcImports size",
-        metadata(t).funcImports.sizeOfExcludingThis(mallocSizeOf));
+        codeTier(t).funcImports.sizeOfExcludingThis(mallocSizeOf));
     hashmap.putNewInfallible(
         "funcExports size",
-        metadata(t).funcExports.sizeOfExcludingThis(mallocSizeOf));
+        codeTier(t).funcExports.sizeOfExcludingThis(mallocSizeOf));
   }
 
   return hashmap;
