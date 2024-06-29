@@ -1532,6 +1532,15 @@ export var UrlbarUtils = {
     return "unknown";
   },
 
+  searchEngagementTelemetryAction(result, index) {
+    let action =
+      index == 0
+        ? lazy.UrlbarProvidersManager.getGlobalAction()
+        : result.payload.action;
+
+    return action?.key ?? "none";
+  },
+
   _getQuickSuggestTelemetryType(result) {
     if (result.payload.telemetryType == "weather") {
       // Return "weather" without the usual source prefix for consistency with

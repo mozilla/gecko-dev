@@ -907,6 +907,13 @@ export class UrlbarInput {
       return;
     }
     if (element?.dataset.action && element?.dataset.action != "tabswitch") {
+      this.controller.engagementEvent.record(event, {
+        result,
+        element,
+        searchString: this._lastSearchString,
+        selType: "action",
+        searchSource: this.getSearchSource(event),
+      });
       this.view.close();
       let provider = lazy.UrlbarProvidersManager.getActionProvider(
         element.dataset.providerName

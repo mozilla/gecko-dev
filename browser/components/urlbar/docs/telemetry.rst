@@ -520,9 +520,13 @@ following documents for the details.
 .. _Abandonment: https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/metrics/urlbar_abandonment
 
 Changelog
+  Firefox 128
+    The "actions" key was added to the engagement event. [Bug `1893067`_]
+
   Firefox 125
     The "impression" engagement event has been removed. [Bug `1878983`_]
 
+.. _1893067: https://bugzilla.mozilla.org/show_bug.cgi?id=1893067
 .. _1878983: https://bugzilla.mozilla.org/show_bug.cgi?id=1878983
 
 

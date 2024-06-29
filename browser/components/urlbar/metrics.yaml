@@ -145,6 +145,15 @@ urlbar:
           `url`,
           `weather`
         type: string
+      actions:
+        description: >
+          Comma separated list of actions keys in the order they were shown to
+          the user. Possible keys are: `addons`, `bookmarks`, `clear`, `downloads`,
+          `extensions`, `inspect`, `logins`, `plugins`, `print`, `private`,
+          `refresh`, `restart`, `savepdf`, `screenshot`, `settings`, `tabswitch`,
+          `themes`, `update`, `viewsource`.
+          If there is no action shown in a position that is denoted with `none`.
+        type: string
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1800414
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1805717
@@ -223,7 +232,6 @@ urlbar:
         description: >
           The type of the result the user selected. The `unknown` type should
           not occur and indicates a bug. The possible types are:
-          `action`,
           `addon`,
           `autofill_about`,
           `autofill_adaptive`,
@@ -278,15 +286,11 @@ urlbar:
           `unit`,
           `url`,
           `weather`
-        type: string
-      selected_result_subtype:
-        description: >
-          The subtype of the result the user selected. Currently, only the
-          action of the quick actions is the target to this. The possible values
-          are: `addon`, `bookmarks`, `clear`, `downloads`, `extensions`,
-          `inspect`, `logins`, `plugins`, `print`, `private`, `refresh`,
-          `restart`, `screenshot`, `settings`, `themes`, `update` and
-          `viewsource`. Otherwise, an empty string is returned.
+          If the user has selected an action this will be set with an action
+          prefix as followed
+          `action_*`
+          Where the wildcard(*) will be replaced by one of the values
+          documented in the actions field.
         type: string
       selected_position:
         description: >
@@ -345,7 +349,6 @@ urlbar:
           Comma separated list of result types in the order they were shown to
           the user. The `unknown` type should not occur and indicates a bug. The
           possible types are:
-          `action`,
           `addon`,
           `autofill_about`,
           `autofill_adaptive`,
@@ -396,6 +399,15 @@ urlbar:
           `unit`,
           `url`,
           `weather`
+        type: string
+      actions:
+        description: >
+          Comma separated list of actions keys in the order they were shown to
+          the user. Possible keys are: `addons`, `bookmarks`, `clear`, `downloads`,
+          `extensions`, `inspect`, `logins`, `plugins`, `print`, `private`,
+          `refresh`, `restart`, `savepdf`, `screenshot`, `settings`, `tabswitch`,
+          `themes`, `update`, `viewsource`.
+          If there is no action shown in a position that is denoted with `none`.
         type: string
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1797265
