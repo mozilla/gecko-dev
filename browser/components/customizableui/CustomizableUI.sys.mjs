@@ -1178,10 +1178,6 @@ var CustomizableUIInternal = {
           continue;
         }
 
-        if (!inPrivateWindow && widget?.hideInNonPrivateBrowsing) {
-          continue;
-        }
-
         this.ensureButtonContextMenu(node, aAreaNode);
 
         // This needs updating in case we're resetting / undoing a reset.
@@ -1414,21 +1410,12 @@ var CustomizableUIInternal = {
     let showInPrivateBrowsing = gPalette.has(aWidgetId)
       ? gPalette.get(aWidgetId).showInPrivateBrowsing
       : true;
-    let hideInNonPrivateBrowsing =
-      gPalette.get(aWidgetId)?.hideInNonPrivateBrowsing ?? false;
 
     for (let areaNode of areaNodes) {
       let window = areaNode.ownerGlobal;
       if (
         !showInPrivateBrowsing &&
         lazy.PrivateBrowsingUtils.isWindowPrivate(window)
-      ) {
-        continue;
-      }
-
-      if (
-        hideInNonPrivateBrowsing &&
-        !lazy.PrivateBrowsingUtils.isWindowPrivate(window)
       ) {
         continue;
       }
@@ -1610,19 +1597,10 @@ var CustomizableUIInternal = {
     let showInPrivateBrowsing = gPalette.has(aWidgetId)
       ? gPalette.get(aWidgetId).showInPrivateBrowsing
       : true;
-    let hideInNonPrivateBrowsing =
-      gPalette.get(aWidgetId)?.hideInNonPrivateBrowsing ?? false;
 
     if (
       !showInPrivateBrowsing &&
       lazy.PrivateBrowsingUtils.isWindowPrivate(window)
-    ) {
-      return;
-    }
-
-    if (
-      hideInNonPrivateBrowsing &&
-      !lazy.PrivateBrowsingUtils.isWindowPrivate(window)
     ) {
       return;
     }
@@ -1885,12 +1863,6 @@ var CustomizableUIInternal = {
     if (
       !aWidget.showInPrivateBrowsing &&
       lazy.PrivateBrowsingUtils.isWindowPrivate(aDocument.defaultView)
-    ) {
-      return null;
-    }
-    if (
-      aWidget.hideInNonPrivateBrowsing &&
-      !lazy.PrivateBrowsingUtils.isWindowPrivate(aDocument.defaultView)
     ) {
       return null;
     }
@@ -2392,10 +2364,7 @@ var CustomizableUIInternal = {
     // gPalette.
     for (let [id, widget] of gPalette) {
       if (!widget.currentArea) {
-        if (
-          (isWindowPrivate && widget.showInPrivateBrowsing) ||
-          (!isWindowPrivate && !widget.hideInNonPrivateBrowsing)
-        ) {
+        if (widget.showInPrivateBrowsing || !isWindowPrivate) {
           widgets.add(id);
         }
       }
@@ -3022,7 +2991,6 @@ var CustomizableUIInternal = {
       tooltiptext: null,
       l10nId: null,
       showInPrivateBrowsing: true,
-      hideInNonPrivateBrowsing: false,
       _introducedInVersion: -1,
       _introducedByPref: null,
       keepBroadcastAttributesWhenCustomizing: false,
@@ -3065,7 +3033,6 @@ var CustomizableUIInternal = {
     const kOptBoolProps = [
       "removable",
       "showInPrivateBrowsing",
-      "hideInNonPrivateBrowsing",
       "overflows",
       "tabSpecific",
       "locationSpecific",
@@ -3600,12 +3567,7 @@ var CustomizableUIInternal = {
     // that are present. This avoids including items that don't exist (e.g. ids
     // of add-on items that the user has uninstalled).
     let orderedPlacements = CustomizableUI.getWidgetIdsInArea(container.id);
-    return orderedPlacements.filter(w => {
-      return (
-        currentWidgets.has(w) ||
-        this.getWidgetProvider(w) == CustomizableUI.PROVIDER_API
-      );
-    });
+    return orderedPlacements.filter(w => currentWidgets.has(w));
   },
 
   get inDefaultState() {
@@ -4247,8 +4209,6 @@ export var CustomizableUI = {
    *                  as the "$shortcut" variable to the fluent message.
    * - showInPrivateBrowsing: whether to show the widget in private browsing
    *                          mode (optional, default: true)
-   * - hideInNonPrivateBrowsing: whether to hide the widget in non private
-   *                             browsing mode windows (optional, default: false)
    * - tabSpecific:      If true, closes the panel if the tab changes.
    * - locationSpecific: If true, closes the panel if the location changes.
    *                     This is similar to tabSpecific, but also if the location
@@ -4303,8 +4263,6 @@ export var CustomizableUI = {
    * - tooltiptext:   for API-provided widgets, the tooltip of the widget;
    * - showInPrivateBrowsing: for API-provided widgets, whether the widget is
    *                          visible in private browsing;
-   * - hideInNonPrivateBrowsing: for API-provided widgets, whether the widget is
-   *                             hidden in non-private browsing;
    *
    * Single window wrappers obtained through forWindow(someWindow) or from the
    * instances array have the following properties
@@ -5011,7 +4969,6 @@ function WidgetGroupWrapper(aWidget) {
     "label",
     "tooltiptext",
     "showInPrivateBrowsing",
-    "hideInNonPrivateBrowsing",
     "viewId",
     "disallowSubView",
     "webExtension",

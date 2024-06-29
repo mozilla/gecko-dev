@@ -192,6 +192,10 @@
 
 #reset-pbm-toolbar-button {
   list-style-image: url("chrome://browser/skin/flame.svg");
+
+  :root:not([privatebrowsingmode]) & {
+    display: none;
+  }
 }
 
 #email-link-button {
