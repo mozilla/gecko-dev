@@ -185,7 +185,15 @@ class CodeSegment : public ShareableBase<CodeSegment> {
     MOZ_ASSERT(isModule());
     return (ModuleSegment*)this;
   }
+  ModuleSegment* asModule() {
+    MOZ_ASSERT(isModule());
+    return (ModuleSegment*)this;
+  }
   const LazyStubSegment* asLazyStub() const {
+    MOZ_ASSERT(isLazyStubs());
+    return (LazyStubSegment*)this;
+  }
+  LazyStubSegment* asLazyStub() {
     MOZ_ASSERT(isLazyStubs());
     return (LazyStubSegment*)this;
   }
@@ -204,6 +212,8 @@ class CodeSegment : public ShareableBase<CodeSegment> {
 
   void addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code) const;
 };
+
+using SharedCodeSegment = RefPtr<CodeSegment>;
 
 // A wasm ModuleSegment owns the allocated executable code for a wasm module.
 
@@ -372,7 +382,7 @@ class CodeBlock {
   const Code* code;
 
   // The following information is all serialized
-  SharedModuleSegment segment;
+  SharedCodeSegment segment;
   const Tier tier;
   Uint32Vector funcToCodeRange;
   CodeRangeVector codeRanges;
@@ -391,9 +401,15 @@ class CodeBlock {
       : code(nullptr), tier(tier), debugTrapOffset(0) {}
 
   bool initialized() const { return !!code && segment->initialized(); }
-  bool initialize(const Code& code, const LinkData& linkData,
-                  const CodeMetadata& codeMeta,
-                  const CodeMetadataForAsmJS* codeMetaForAsmJS);
+  bool initializeModule(const Code& code, const LinkData& linkData,
+                        const CodeMetadata& codeMeta,
+                        const CodeMetadataForAsmJS* codeMetaForAsmJS);
+  bool initializeLazyStubs();
+
+  const ModuleSegment& moduleSegment() const { return *segment->asModule(); }
+  const LazyStubSegment& lazyStubSegment() const {
+    return *segment->asLazyStub();
+  }
 
   const CodeRange& codeRange(const FuncExport& funcExport) const {
     return codeRanges[funcToCodeRange[funcExport.funcIndex()]];
@@ -597,7 +613,7 @@ class Code : public ShareableBase<Code> {
   }
 
   const ModuleSegment& segment(Tier iter) const {
-    return *codeBlock(iter).segment.get();
+    return *codeBlock(iter).segment->asModule();
   }
 
   const RWExclusiveData<LazyStubTier>& lazyStubs() const { return lazyStubs_; }

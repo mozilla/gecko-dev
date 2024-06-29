@@ -726,14 +726,16 @@ void LazyStubTier::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
   }
 }
 
-bool CodeBlock::initialize(const Code& code, const LinkData& linkData,
-                           const CodeMetadata& codeMeta,
-                           const CodeMetadataForAsmJS* codeMetaForAsmJS) {
+bool CodeBlock::initializeModule(const Code& code, const LinkData& linkData,
+                                 const CodeMetadata& codeMeta,
+                                 const CodeMetadataForAsmJS* codeMetaForAsmJS) {
+  MOZ_ASSERT(segment->isModule());
   MOZ_ASSERT(!initialized());
   this->code = &code;
 
   // See comments in CodeSegment::initialize() for why this must be last.
-  if (!segment->initialize(*this, linkData, codeMeta, codeMetaForAsmJS)) {
+  if (!segment->asModule()->initialize(*this, linkData, codeMeta,
+                                       codeMetaForAsmJS)) {
     return false;
   }
 
@@ -741,9 +743,18 @@ bool CodeBlock::initialize(const Code& code, const LinkData& linkData,
   return true;
 }
 
+bool CodeBlock::initializeLazyStubs() {
+  MOZ_ASSERT(segment->isLazyStubs());
+  return true;
+}
+
 void CodeBlock::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
                               size_t* data) const {
-  segment->addSizeOfMisc(mallocSizeOf, code, data);
+  if (segment->isModule()) {
+    segment->asModule()->addSizeOfMisc(mallocSizeOf, code, data);
+  } else {
+    segment->asLazyStub()->addSizeOfMisc(mallocSizeOf, code, data);
+  }
   *data += funcToCodeRange.sizeOfExcludingThis(mallocSizeOf) +
            codeRanges.sizeOfExcludingThis(mallocSizeOf) +
            callSites.sizeOfExcludingThis(mallocSizeOf) +
@@ -860,7 +871,8 @@ Code::Code(const CodeMetadata& codeMeta,
 bool Code::initialize(const LinkData& linkData) {
   MOZ_ASSERT(!initialized());
 
-  if (!tier1_->initialize(*this, linkData, *codeMeta_, codeMetaForAsmJS_)) {
+  if (!tier1_->initializeModule(*this, linkData, *codeMeta_,
+                                codeMetaForAsmJS_)) {
     return false;
   }
 
@@ -876,7 +888,8 @@ bool Code::setAndBorrowTier2(UniqueCodeBlock tier2, const LinkData& linkData,
   MOZ_RELEASE_ASSERT(tier2->tier == Tier::Optimized &&
                      tier1_->tier == Tier::Baseline);
 
-  if (!tier2->initialize(*this, linkData, *codeMeta_, codeMetaForAsmJS_)) {
+  if (!tier2->initializeModule(*this, linkData, *codeMeta_,
+                               codeMetaForAsmJS_)) {
     return false;
   }
 
@@ -1208,7 +1221,7 @@ void Code::addSizeOfMiscIfNotSeen(
 void Code::disassemble(JSContext* cx, Tier tier, int kindSelection,
                        PrintCallback printString) const {
   const CodeBlock& codeBlock = this->codeBlock(tier);
-  const ModuleSegment& segment = *codeBlock.segment;
+  const ModuleSegment& segment = this->segment(tier);
 
   for (const CodeRange& range : codeBlock.codeRanges) {
     if (kindSelection & (1 << range.kind())) {

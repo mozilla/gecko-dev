@@ -1003,28 +1003,28 @@ CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
 
 template <CoderMode mode>
 CoderResult CodeModuleSegment(Coder<mode>& coder,
-                              CoderArg<mode, wasm::SharedModuleSegment> item,
+                              CoderArg<mode, wasm::ModuleSegment> item,
                               const wasm::LinkData& linkData) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ModuleSegment, 48);
   STATIC_ASSERT_ENCODING_OR_SIZING;
-  MOZ_ASSERT((*item)->tier() == Tier::Serialized);
+  MOZ_ASSERT(item->tier() == Tier::Serialized);
 
   // Mark that we're encoding a ModuleSegment
   MOZ_TRY(Magic(coder, Marker::ModuleSegment));
 
   // Encode the length
-  size_t length = (*item)->length();
+  size_t length = item->length();
   MOZ_TRY(CodePod(coder, &length));
 
   if constexpr (mode == MODE_SIZE) {
     // Just calculate the length of bytes written
-    MOZ_TRY(coder.writeBytes((*item)->base(), length));
+    MOZ_TRY(coder.writeBytes(item->base(), length));
   } else {
     // Get the start of where the code bytes will be written
     uint8_t* serializedBase = coder.buffer_;
 
     // Write the code bytes
-    MOZ_TRY(coder.writeBytes((*item)->base(), length));
+    MOZ_TRY(coder.writeBytes(item->base(), length));
 
     // Unlink the code bytes written to the buffer
     StaticallyUnlink(serializedBase, linkData);
@@ -1126,7 +1126,9 @@ CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
     return Err(OutOfMemory());
   }
   MOZ_TRY(Magic(coder, Marker::CodeBlock));
-  MOZ_TRY(CodeModuleSegment(coder, &(*item)->segment, linkData));
+  SharedModuleSegment moduleSegment;
+  MOZ_TRY(CodeModuleSegment(coder, &moduleSegment, linkData));
+  (*item)->segment = moduleSegment;
   MOZ_TRY(CodePodVector(coder, &(*item)->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &(*item)->codeRanges));
   MOZ_TRY(CodePodVector(coder, &(*item)->callSites));
@@ -1146,7 +1148,7 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 248);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY(Magic(coder, Marker::CodeBlock));
-  MOZ_TRY(CodeModuleSegment(coder, &item->segment, linkData));
+  MOZ_TRY(CodeModuleSegment(coder, &item->moduleSegment(), linkData));
   MOZ_TRY(CodePodVector(coder, &item->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &item->codeRanges));
   MOZ_TRY(CodePodVector(coder, &item->callSites));
@@ -1180,7 +1182,7 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
 
   // Initialize the jump tables
   JumpTables jumpTables;
-  if (!jumpTables.init(CompileMode::Once, *codeBlock->segment,
+  if (!jumpTables.init(CompileMode::Once, codeBlock->moduleSegment(),
                        codeBlock->codeRanges)) {
     return Err(OutOfMemory());
   }
