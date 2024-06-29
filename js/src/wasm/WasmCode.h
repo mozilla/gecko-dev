@@ -22,6 +22,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
@@ -164,20 +165,20 @@ class CodeSegment {
       : bytes_(std::move(bytes)),
         length_(length),
         kind_(kind),
-        codeTier_(nullptr),
+        code_(nullptr),
         unregisterOnDestroy_(false) {}
 
-  bool initialize(const CodeTier& codeTier);
+  bool initialize(const Code& code);
 
  private:
   const UniqueCodeBytes bytes_;
   const uint32_t length_;
   const Kind kind_;
-  const CodeTier* codeTier_;
+  const Code* code_;
   bool unregisterOnDestroy_;
 
  public:
-  bool initialized() const { return !!codeTier_; }
+  bool initialized() const { return !!code_; }
   ~CodeSegment();
 
   bool isLazyStubs() const { return kind_ == Kind::LazyStubs; }
@@ -201,11 +202,7 @@ class CodeSegment {
     return pc >= base() && pc < (base() + length_);
   }
 
-  const CodeTier& codeTier() const {
-    MOZ_ASSERT(initialized());
-    return *codeTier_;
-  }
-  const Code& code() const;
+  const Code& code() const { return *code_; }
 
   void addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code) const;
 };
@@ -233,6 +230,8 @@ class ModuleSegment : public CodeSegment {
                   const MetadataTier& metadataTier);
 
   Tier tier() const { return tier_; }
+
+  const CodeTier& codeTier() const;
 
   // Pointers to stubs to which PC is redirected from the signal-handler.
 
@@ -309,8 +308,7 @@ class LazyStubSegment : public CodeSegment {
       : CodeSegment(std::move(bytes), length, CodeSegment::Kind::LazyStubs),
         usedBytes_(0) {}
 
-  static UniqueLazyStubSegment create(const CodeTier& codeTier,
-                                      size_t codeLength);
+  static UniqueLazyStubSegment create(const Code& code, size_t codeLength);
 
   static size_t AlignBytesNeeded(size_t bytes) {
     return AlignBytes(bytes, gc::SystemPageSize());
@@ -339,11 +337,15 @@ struct LazyFuncExport {
   size_t funcIndex;
   size_t lazyStubSegmentIndex;
   size_t funcCodeRangeIndex;
+  // Used to make sure we only upgrade a lazy stub from baseline to ion.
+  mozilla::DebugOnly<Tier> tier;
+
   LazyFuncExport(size_t funcIndex, size_t lazyStubSegmentIndex,
-                 size_t funcCodeRangeIndex)
+                 size_t funcCodeRangeIndex, Tier tier)
       : funcIndex(funcIndex),
         lazyStubSegmentIndex(lazyStubSegmentIndex),
-        funcCodeRangeIndex(funcCodeRangeIndex) {}
+        funcCodeRangeIndex(funcCodeRangeIndex),
+        tier(tier) {}
 };
 
 using LazyFuncExportVector = Vector<LazyFuncExport, 0, SystemAllocPolicy>;
@@ -385,8 +387,7 @@ class LazyStubTier {
   // them in a single stub. Jit entries won't be used until
   // setJitEntries() is actually called, after the Code owner has committed
   // tier2.
-  [[nodiscard]] bool createTier2(const Uint32Vector& funcExportIndices,
-                                 const CodeMetadata& codeMeta,
+  [[nodiscard]] bool createTier2(const CodeMetadata& codeMeta,
                                  const CodeTier& codeTier,
                                  Maybe<size_t>* stubSegmentIndex);
   void setJitEntries(const Maybe<size_t>& stubSegmentIndex, const Code& code);
@@ -408,23 +409,11 @@ class CodeTier {
   const UniqueMetadataTier metadata_;
   const UniqueModuleSegment segment_;
 
-  // Lazy stubs, not serialized.
-  RWExclusiveData<LazyStubTier> lazyStubs_;
-
-  static const MutexId& mutexForTier(Tier tier) {
-    if (tier == Tier::Baseline) {
-      return mutexid::WasmLazyStubsTier1;
-    }
-    MOZ_ASSERT(tier == Tier::Optimized);
-    return mutexid::WasmLazyStubsTier2;
-  }
-
  public:
   CodeTier(UniqueMetadataTier metadata, UniqueModuleSegment segment)
       : code_(nullptr),
         metadata_(std::move(metadata)),
-        segment_(std::move(segment)),
-        lazyStubs_(mutexForTier(segment_->tier())) {}
+        segment_(std::move(segment)) {}
 
   bool initialized() const { return !!code_ && segment_->initialized(); }
   bool initialize(const Code& code, const LinkData& linkData,
@@ -432,7 +421,6 @@ class CodeTier {
                   const CodeMetadataForAsmJS* codeMetaForAsmJS);
 
   Tier tier() const { return segment_->tier(); }
-  const RWExclusiveData<LazyStubTier>& lazyStubs() const { return lazyStubs_; }
   const MetadataTier& metadata() const { return *metadata_.get(); }
   const ModuleSegment& segment() const { return *segment_.get(); }
   const Code& code() const {
@@ -584,6 +572,9 @@ class Code : public ShareableBase<Code> {
   ExclusiveData<CacheableCharsVector> profilingLabels_;
   JumpTables jumpTables_;
 
+  // Lazy stubs, not serialized.
+  RWExclusiveData<LazyStubTier> lazyStubs_;
+
  public:
   Code(const CodeMetadata& codeMeta,
        const CodeMetadataForAsmJS* codeMetaForAsmJS, UniqueCodeTier tier1,
@@ -636,6 +627,8 @@ class Code : public ShareableBase<Code> {
   const MetadataTier& metadata(Tier iter) const {
     return codeTier(iter).metadata();
   }
+
+  const RWExclusiveData<LazyStubTier>& lazyStubs() const { return lazyStubs_; }
 
   // Metadata lookup functions:
 

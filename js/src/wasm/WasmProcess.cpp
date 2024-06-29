@@ -223,7 +223,7 @@ class ProcessCodeSegmentMap {
 static Atomic<ProcessCodeSegmentMap*> sProcessCodeSegmentMap(nullptr);
 
 bool wasm::RegisterCodeSegment(const CodeSegment* cs) {
-  MOZ_ASSERT(cs->codeTier().code().initialized());
+  MOZ_ASSERT(cs->code().initialized());
 
   // This function cannot race with startup/shutdown.
   ProcessCodeSegmentMap* map = sProcessCodeSegmentMap;

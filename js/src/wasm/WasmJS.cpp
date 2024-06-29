@@ -2078,30 +2078,7 @@ static bool WasmCall(JSContext* cx, unsigned argc, Value* vp) {
  *
  *    The locking protocol ensuring that all stubs are upgraded properly and
  *    that the system switches to creating tier-2 stubs is implemented in
- *    Module::finishTier2() and EnsureEntryStubs():
- *
- *    There are two locks, one per code tier.
- *
- *    EnsureEntryStubs() is attempting to create a tier-appropriate lazy stub,
- *    so it takes the lock for the current best tier, checks to see if there is
- *    a stub, and exits if there is.  If the tier changed racily it takes the
- *    other lock too, since that is now the lock for the best tier.  Then it
- *    creates the stub, installs it, and releases the locks.  Thus at most one
- *    stub per tier can be created at a time.
- *
- *    Module::finishTier2() takes both locks (tier-1 before tier-2), thus
- *    preventing EnsureEntryStubs() from creating stubs while stub upgrading is
- *    going on, and itself waiting until EnsureEntryStubs() is not active.  Once
- *    it has both locks, it upgrades all lazy stubs and makes tier-2 the new
- *    best tier.  Should EnsureEntryStubs subsequently enter, it will find that
- *    a stub already exists at tier-2 and will exit early.
- *
- * (It would seem that the locking protocol could be simplified a little by
- * having only one lock, hanging off the Code object, or by unconditionally
- * taking both locks in EnsureEntryStubs().  However, in some cases where we
- * acquire a lock the Code object is not readily available, so plumbing would
- * have to be added, and in EnsureEntryStubs(), there are sometimes not two code
- * tiers.)
+ *    Module::finishTier2() and EnsureEntryStubs().
  *
  * ## Stub lifetimes and serialization
  *
