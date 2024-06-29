@@ -257,6 +257,77 @@ struct LazyFuncExport {
 
 using LazyFuncExportVector = Vector<LazyFuncExport, 0, SystemAllocPolicy>;
 
+static const uint32_t BAD_CODE_RANGE = UINT32_MAX;
+
+class FuncToCodeRangeMap {
+  uint32_t startFuncIndex_ = 0;
+  Uint32Vector funcToCodeRange_;
+
+  bool denseHasFuncIndex(uint32_t funcIndex) const {
+    return funcIndex >= startFuncIndex_ &&
+           funcIndex - startFuncIndex_ < funcToCodeRange_.length();
+  }
+
+  FuncToCodeRangeMap(uint32_t startFuncIndex, Uint32Vector&& funcToCodeRange)
+      : startFuncIndex_(startFuncIndex),
+        funcToCodeRange_(std::move(funcToCodeRange)) {}
+
+ public:
+  [[nodiscard]] static bool createDense(uint32_t startFuncIndex,
+                                        uint32_t numFuncs,
+                                        FuncToCodeRangeMap* result) {
+    Uint32Vector funcToCodeRange;
+    if (!funcToCodeRange.appendN(BAD_CODE_RANGE, numFuncs)) {
+      return false;
+    }
+    *result = FuncToCodeRangeMap(startFuncIndex, std::move(funcToCodeRange));
+    return true;
+  }
+
+  FuncToCodeRangeMap() = default;
+  FuncToCodeRangeMap(FuncToCodeRangeMap&& rhs) = default;
+  FuncToCodeRangeMap& operator=(FuncToCodeRangeMap&& rhs) = default;
+  FuncToCodeRangeMap(const FuncToCodeRangeMap& rhs) = delete;
+  FuncToCodeRangeMap& operator=(const FuncToCodeRangeMap& rhs) = delete;
+
+  uint32_t lookup(uint32_t funcIndex) const {
+    if (!denseHasFuncIndex(funcIndex)) {
+      return BAD_CODE_RANGE;
+    }
+    return funcToCodeRange_[funcIndex - startFuncIndex_];
+  }
+
+  uint32_t operator[](uint32_t funcIndex) const { return lookup(funcIndex); }
+
+  [[nodiscard]] bool insert(uint32_t funcIndex, uint32_t codeRangeIndex) {
+    if (!denseHasFuncIndex(funcIndex)) {
+      return false;
+    }
+    funcToCodeRange_[funcIndex - startFuncIndex_] = codeRangeIndex;
+    return true;
+  }
+  void insertInfallible(uint32_t funcIndex, uint32_t codeRangeIndex) {
+    bool result = insert(funcIndex, codeRangeIndex);
+    MOZ_RELEASE_ASSERT(result);
+  }
+
+  void shrinkStorageToFit() { funcToCodeRange_.shrinkStorageToFit(); }
+
+  void assertAllInitialized() {
+    for (uint32_t codeRangeIndex : funcToCodeRange_) {
+      MOZ_ASSERT(codeRangeIndex != BAD_CODE_RANGE);
+    }
+  }
+
+  size_t sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
+    return funcToCodeRange_.sizeOfExcludingThis(mallocSizeOf);
+  }
+
+  size_t numEntries() const { return funcToCodeRange_.length(); }
+
+  WASM_DECLARE_FRIEND_SERIALIZE(FuncToCodeRangeMap);
+};
+
 // CodeBlock contains all the data related to a given compilation tier. It is
 // built during module generation and then immutably stored in a Code.
 //
@@ -285,7 +356,7 @@ class CodeBlock {
 
   // Metadata about the code we've put in the segment. All offsets are
   // temporarily relative to the segment base, not our block base.
-  Uint32Vector funcToCodeRange;
+  FuncToCodeRangeMap funcToCodeRange;
   CodeRangeVector codeRanges;
   CallSiteVector callSites;
   TrapSiteVectorArray trapSites;

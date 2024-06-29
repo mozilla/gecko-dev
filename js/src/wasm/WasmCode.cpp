@@ -1232,7 +1232,7 @@ MetadataAnalysisHashMap Code::metadataAnalysis(JSContext* cx) const {
   }
 
   for (auto t : tiers()) {
-    size_t length = codeBlock(t).funcToCodeRange.length();
+    size_t length = codeBlock(t).funcToCodeRange.numEntries();
     length += codeBlock(t).codeRanges.length();
     length += codeBlock(t).callSites.length();
     length += codeBlock(t).trapSites.sumOfLengths();

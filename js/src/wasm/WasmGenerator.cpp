@@ -67,7 +67,6 @@ bool CompiledCode::swap(MacroAssembler& masm) {
 
 static const unsigned GENERATOR_LIFO_DEFAULT_CHUNK_SIZE = 4 * 1024;
 static const unsigned COMPILATION_LIFO_DEFAULT_CHUNK_SIZE = 64 * 1024;
-static const uint32_t BAD_CODE_RANGE = UINT32_MAX;
 
 ModuleGenerator::ModuleGenerator(const CompileArgs& args,
                                  CodeMetadata* codeMeta,
@@ -177,8 +176,8 @@ bool ModuleGenerator::init(CodeMetadataForAsmJS* codeMetaForAsmJS) {
   // funcToCodeRange maps function indices to code-range indices and all
   // elements will be initialized by the time module generation is finished.
 
-  if (!codeBlock_->funcToCodeRange.appendN(BAD_CODE_RANGE,
-                                           codeMeta_->funcs.length())) {
+  if (!FuncToCodeRangeMap::createDense(0, codeMeta_->funcs.length(),
+                                       &codeBlock_->funcToCodeRange)) {
     return false;
   }
 
@@ -417,7 +416,8 @@ void ModuleGenerator::noteCodeRange(uint32_t codeRangeIndex,
     case CodeRange::Function:
       MOZ_ASSERT(codeBlock_->funcToCodeRange[codeRange.funcIndex()] ==
                  BAD_CODE_RANGE);
-      codeBlock_->funcToCodeRange[codeRange.funcIndex()] = codeRangeIndex;
+      codeBlock_->funcToCodeRange.insertInfallible(codeRange.funcIndex(),
+                                                   codeRangeIndex);
       break;
     case CodeRange::InterpEntry:
       codeBlock_->lookupFuncExport(codeRange.funcIndex())
@@ -917,9 +917,7 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock() {
   }
 
 #ifdef DEBUG
-  for (uint32_t codeRangeIndex : codeBlock_->funcToCodeRange) {
-    MOZ_ASSERT(codeRangeIndex != BAD_CODE_RANGE);
-  }
+  codeBlock_->funcToCodeRange.assertAllInitialized();
 #endif
 
   // Now that all imports/exports are known, we can generate a special
