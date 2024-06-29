@@ -52,6 +52,7 @@ version = "1"
 features = ["serde_derive"]
 
 [features]
+counters = []
 fragile-send-sync-non-atomic-wasm = []
 strict_asserts = []
 

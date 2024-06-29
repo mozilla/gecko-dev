@@ -619,18 +619,6 @@ impl<A: HalApi> LifetimeTracker<A> {
             &mut trackers.textures,
             |maps| &mut maps.textures,
         );
-
-        // We may have been suspected because a texture view or bind group
-        // referring to us was dropped. Remove stale weak references, so that
-        // the backlink table doesn't grow without bound.
-        for texture in self.suspected_resources.textures.values() {
-            texture.views.lock().retain(|view| view.strong_count() > 0);
-            texture
-                .bind_groups
-                .lock()
-                .retain(|bg| bg.strong_count() > 0);
-        }
-
         self
     }
 
@@ -655,14 +643,6 @@ impl<A: HalApi> LifetimeTracker<A> {
             &mut trackers.buffers,
             |maps| &mut maps.buffers,
         );
-
-        // We may have been suspected because a bind group referring to us was
-        // dropped. Remove stale weak references, so that the backlink table
-        // doesn't grow without bound.
-        for buffer in self.suspected_resources.buffers.values() {
-            buffer.bind_groups.lock().retain(|bg| bg.strong_count() > 0);
-        }
-
         self
     }
 
@@ -835,8 +815,8 @@ impl<A: HalApi> LifetimeTracker<A> {
         for buffer in self.mapped.drain(..) {
             let submit_index = buffer.info.submission_index();
             log::trace!(
-                "Mapping of {:?} at submission {:?} gets assigned to active {:?}",
-                buffer.info.id(),
+                "Mapping of {} at submission {:?} gets assigned to active {:?}",
+                buffer.error_ident(),
                 submit_index,
                 self.active.iter().position(|a| a.index == submit_index)
             );

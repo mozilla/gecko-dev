@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    command::RecordedComputePass,
+    command::{RecordedComputePass, RecordedRenderPass},
     error::{ErrMsg, ErrorBuffer, ErrorBufferType},
     wgpu_string, AdapterInformation, ByteBuf, CommandEncoderAction, DeviceAction, DropAction,
     QueueWriteAction, SwapChainId, TextureAction,
@@ -568,7 +568,7 @@ pub extern "C" fn wgpu_server_buffer_unmap(
             // WebGPU spec. previously, but this doesn't seem formally specified now. :confused:
             //
             // TODO: upstream this; see <https://bugzilla.mozilla.org/show_bug.cgi?id=1842297>.
-            BufferAccessError::Invalid => (),
+            BufferAccessError::InvalidBufferId(_) => (),
             other => error_buf.init(other),
         }
     }
@@ -1000,9 +1000,9 @@ impl Global {
                 timestamp_writes,
                 occlusion_query_set_id,
             } => {
-                if let Err(err) = self.render_pass_end_impl::<A>(
+                if let Err(err) = self.render_pass_end_with_unresolved_commands::<A>(
                     self_id,
-                    base.as_ref(),
+                    base,
                     &target_colors,
                     target_depth_stencil.as_ref(),
                     timestamp_writes.as_ref(),
@@ -1087,9 +1087,30 @@ pub unsafe extern "C" fn wgpu_server_render_pass(
     error_buf: ErrorBuffer,
 ) {
     let pass = bincode::deserialize(byte_buf.as_slice()).unwrap();
-    let action = crate::command::replay_render_pass(encoder_id, &pass).into_command();
 
-    gfx_select!(encoder_id => global.command_encoder_action(encoder_id, action, error_buf));
+    trait ReplayRenderPass {
+        fn replay_render_pass<A>(
+            &self,
+            encoder_id: id::CommandEncoderId,
+            src_pass: &RecordedRenderPass,
+            error_buf: ErrorBuffer,
+        ) where
+            A: wgc::hal_api::HalApi;
+    }
+    impl ReplayRenderPass for Global {
+        fn replay_render_pass<A>(
+            &self,
+            encoder_id: id::CommandEncoderId,
+            src_pass: &RecordedRenderPass,
+            error_buf: ErrorBuffer,
+        ) where
+            A: wgc::hal_api::HalApi,
+        {
+            crate::command::replay_render_pass::<A>(self, encoder_id, src_pass, error_buf);
+        }
+    }
+
+    gfx_select!(encoder_id => global.replay_render_pass(encoder_id, &pass, error_buf));
 }
 
 #[no_mangle]

@@ -63,28 +63,18 @@ mod compat {
                     bgl::Origin::Derived => "implicit",
                     bgl::Origin::Pool => "explicit",
                 };
-                let expected_label = expected_bgl.label();
                 diff.push(format!(
-                    "Should be compatible an with an {expected_bgl_type} bind group layout {}",
-                    if expected_label.is_empty() {
-                        "without label".to_string()
-                    } else {
-                        format!("with label = `{}`", expected_label)
-                    }
+                    "Should be compatible an with an {expected_bgl_type} {}",
+                    expected_bgl.error_ident()
                 ));
                 if let Some(assigned_bgl) = self.assigned.as_ref() {
                     let assigned_bgl_type = match assigned_bgl.origin {
                         bgl::Origin::Derived => "implicit",
                         bgl::Origin::Pool => "explicit",
                     };
-                    let assigned_label = assigned_bgl.label();
                     diff.push(format!(
-                        "Assigned {assigned_bgl_type} bind group layout {}",
-                        if assigned_label.is_empty() {
-                            "without label".to_string()
-                        } else {
-                            format!("with label = `{}`", assigned_label)
-                        }
+                        "Assigned {assigned_bgl_type} {}",
+                        assigned_bgl.error_ident()
                     ));
                     for (id, e_entry) in expected_bgl.entries.iter() {
                         if let Some(a_entry) = assigned_bgl.entries.get(*id) {
@@ -325,9 +315,7 @@ impl<A: HalApi> Binder<A> {
         bind_group: &Arc<BindGroup<A>>,
         offsets: &[wgt::DynamicOffset],
     ) -> &'a [EntryPayload<A>] {
-        let bind_group_id = bind_group.as_info().id();
-        log::trace!("\tBinding [{}] = group {:?}", index, bind_group_id);
-        debug_assert_eq!(A::VARIANT, bind_group_id.backend());
+        log::trace!("\tBinding [{}] = group {}", index, bind_group.error_ident());
 
         let payload = &mut self.payloads[index];
         payload.group = Some(bind_group.clone());

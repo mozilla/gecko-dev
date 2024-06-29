@@ -1,22 +1,13 @@
-/*! Draw structures - shared between render passes and bundles.
-!*/
-
 use crate::{
-    binding_model::{BindGroup, LateMinBufferBindingSizeMismatch, PushConstantUploadError},
+    binding_model::{LateMinBufferBindingSizeMismatch, PushConstantUploadError},
     error::ErrorFormatter,
-    hal_api::HalApi,
     id,
-    pipeline::RenderPipeline,
-    resource::{Buffer, QuerySet},
-    track::UsageConflict,
-    validation::{MissingBufferUsageError, MissingTextureUsageError},
+    resource::{DestroyedResourceError, MissingBufferUsageError, MissingTextureUsageError},
+    track::ResourceUsageCompatibilityError,
 };
-use wgt::{BufferAddress, BufferSize, Color, VertexStepMode};
+use wgt::VertexStepMode;
 
-use std::{num::NonZeroU32, sync::Arc};
 use thiserror::Error;
-
-use super::RenderBundle;
 
 /// Error validating a draw call.
 #[derive(Clone, Debug, Error, Eq, PartialEq)]
@@ -69,8 +60,10 @@ pub enum DrawError {
 #[derive(Clone, Debug, Error)]
 #[non_exhaustive]
 pub enum RenderCommandError {
-    #[error("Bind group {0:?} is invalid")]
-    InvalidBindGroup(id::BindGroupId),
+    #[error("BufferId {0:?} is invalid")]
+    InvalidBufferId(id::BufferId),
+    #[error("BindGroupId {0:?} is invalid")]
+    InvalidBindGroupId(id::BindGroupId),
     #[error("Render bundle {0:?} is invalid")]
     InvalidRenderBundle(id::RenderBundleId),
     #[error("Bind group index {index} is greater than the device's requested `max_bind_group` limit {max}")]
@@ -90,9 +83,9 @@ pub enum RenderCommandError {
     #[error("Pipeline writes to depth/stencil, while the pass has read-only depth/stencil")]
     IncompatiblePipelineRods,
     #[error(transparent)]
-    UsageConflict(#[from] UsageConflict),
-    #[error("Buffer {0:?} is destroyed")]
-    DestroyedBuffer(id::BufferId),
+    ResourceUsageCompatibility(#[from] ResourceUsageCompatibilityError),
+    #[error(transparent)]
+    DestroyedResource(#[from] DestroyedResourceError),
     #[error(transparent)]
     MissingBufferUsage(#[from] MissingBufferUsageError),
     #[error(transparent)]
@@ -112,18 +105,11 @@ impl crate::error::PrettyError for RenderCommandError {
     fn fmt_pretty(&self, fmt: &mut ErrorFormatter) {
         fmt.error(self);
         match *self {
-            Self::InvalidBindGroup(id) => {
+            Self::InvalidBindGroupId(id) => {
                 fmt.bind_group_label(&id);
             }
             Self::InvalidPipeline(id) => {
                 fmt.render_pipeline_label(&id);
-            }
-            Self::UsageConflict(UsageConflict::TextureInvalid { id }) => {
-                fmt.texture_label(&id);
-            }
-            Self::UsageConflict(UsageConflict::BufferInvalid { id })
-            | Self::DestroyedBuffer(id) => {
-                fmt.buffer_label(&id);
             }
             _ => {}
         };
@@ -137,227 +123,4 @@ pub struct Rect<T> {
     pub y: T,
     pub w: T,
     pub h: T,
-}
-
-#[doc(hidden)]
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum RenderCommand {
-    SetBindGroup {
-        index: u32,
-        num_dynamic_offsets: usize,
-        bind_group_id: id::BindGroupId,
-    },
-    SetPipeline(id::RenderPipelineId),
-    SetIndexBuffer {
-        buffer_id: id::BufferId,
-        index_format: wgt::IndexFormat,
-        offset: BufferAddress,
-        size: Option<BufferSize>,
-    },
-    SetVertexBuffer {
-        slot: u32,
-        buffer_id: id::BufferId,
-        offset: BufferAddress,
-        size: Option<BufferSize>,
-    },
-    SetBlendConstant(Color),
-    SetStencilReference(u32),
-    SetViewport {
-        rect: Rect<f32>,
-        //TODO: use half-float to reduce the size?
-        depth_min: f32,
-        depth_max: f32,
-    },
-    SetScissor(Rect<u32>),
-
-    /// Set a range of push constants to values stored in [`BasePass::push_constant_data`].
-    ///
-    /// See [`wgpu::RenderPass::set_push_constants`] for a detailed explanation
-    /// of the restrictions these commands must satisfy.
-    SetPushConstant {
-        /// Which stages we are setting push constant values for.
-        stages: wgt::ShaderStages,
-
-        /// The byte offset within the push constant storage to write to.  This
-        /// must be a multiple of four.
-        offset: u32,
-
-        /// The number of bytes to write. This must be a multiple of four.
-        size_bytes: u32,
-
-        /// Index in [`BasePass::push_constant_data`] of the start of the data
-        /// to be written.
-        ///
-        /// Note: this is not a byte offset like `offset`. Rather, it is the
-        /// index of the first `u32` element in `push_constant_data` to read.
-        ///
-        /// `None` means zeros should be written to the destination range, and
-        /// there is no corresponding data in `push_constant_data`. This is used
-        /// by render bundles, which explicitly clear out any state that
-        /// post-bundle code might see.
-        values_offset: Option<u32>,
-    },
-    Draw {
-        vertex_count: u32,
-        instance_count: u32,
-        first_vertex: u32,
-        first_instance: u32,
-    },
-    DrawIndexed {
-        index_count: u32,
-        instance_count: u32,
-        first_index: u32,
-        base_vertex: i32,
-        first_instance: u32,
-    },
-    MultiDrawIndirect {
-        buffer_id: id::BufferId,
-        offset: BufferAddress,
-        /// Count of `None` represents a non-multi call.
-        count: Option<NonZeroU32>,
-        indexed: bool,
-    },
-    MultiDrawIndirectCount {
-        buffer_id: id::BufferId,
-        offset: BufferAddress,
-        count_buffer_id: id::BufferId,
-        count_buffer_offset: BufferAddress,
-        max_count: u32,
-        indexed: bool,
-    },
-    PushDebugGroup {
-        color: u32,
-        len: usize,
-    },
-    PopDebugGroup,
-    InsertDebugMarker {
-        color: u32,
-        len: usize,
-    },
-    WriteTimestamp {
-        query_set_id: id::QuerySetId,
-        query_index: u32,
-    },
-    BeginOcclusionQuery {
-        query_index: u32,
-    },
-    EndOcclusionQuery,
-    BeginPipelineStatisticsQuery {
-        query_set_id: id::QuerySetId,
-        query_index: u32,
-    },
-    EndPipelineStatisticsQuery,
-    ExecuteBundle(id::RenderBundleId),
-}
-
-/// Equivalent to `RenderCommand` with the Ids resolved into resource Arcs.
-#[doc(hidden)]
-#[derive(Clone, Debug)]
-pub enum ArcRenderCommand<A: HalApi> {
-    SetBindGroup {
-        index: u32,
-        num_dynamic_offsets: usize,
-        bind_group: Arc<BindGroup<A>>,
-    },
-    SetPipeline(Arc<RenderPipeline<A>>),
-    SetIndexBuffer {
-        buffer: Arc<Buffer<A>>,
-        index_format: wgt::IndexFormat,
-        offset: BufferAddress,
-        size: Option<BufferSize>,
-    },
-    SetVertexBuffer {
-        slot: u32,
-        buffer: Arc<Buffer<A>>,
-        offset: BufferAddress,
-        size: Option<BufferSize>,
-    },
-    SetBlendConstant(Color),
-    SetStencilReference(u32),
-    SetViewport {
-        rect: Rect<f32>,
-        depth_min: f32,
-        depth_max: f32,
-    },
-    SetScissor(Rect<u32>),
-
-    /// Set a range of push constants to values stored in [`BasePass::push_constant_data`].
-    ///
-    /// See [`wgpu::RenderPass::set_push_constants`] for a detailed explanation
-    /// of the restrictions these commands must satisfy.
-    SetPushConstant {
-        /// Which stages we are setting push constant values for.
-        stages: wgt::ShaderStages,
-
-        /// The byte offset within the push constant storage to write to.  This
-        /// must be a multiple of four.
-        offset: u32,
-
-        /// The number of bytes to write. This must be a multiple of four.
-        size_bytes: u32,
-
-        /// Index in [`BasePass::push_constant_data`] of the start of the data
-        /// to be written.
-        ///
-        /// Note: this is not a byte offset like `offset`. Rather, it is the
-        /// index of the first `u32` element in `push_constant_data` to read.
-        ///
-        /// `None` means zeros should be written to the destination range, and
-        /// there is no corresponding data in `push_constant_data`. This is used
-        /// by render bundles, which explicitly clear out any state that
-        /// post-bundle code might see.
-        values_offset: Option<u32>,
-    },
-    Draw {
-        vertex_count: u32,
-        instance_count: u32,
-        first_vertex: u32,
-        first_instance: u32,
-    },
-    DrawIndexed {
-        index_count: u32,
-        instance_count: u32,
-        first_index: u32,
-        base_vertex: i32,
-        first_instance: u32,
-    },
-    MultiDrawIndirect {
-        buffer: Arc<Buffer<A>>,
-        offset: BufferAddress,
-        /// Count of `None` represents a non-multi call.
-        count: Option<NonZeroU32>,
-        indexed: bool,
-    },
-    MultiDrawIndirectCount {
-        buffer: Arc<Buffer<A>>,
-        offset: BufferAddress,
-        count_buffer: Arc<Buffer<A>>,
-        count_buffer_offset: BufferAddress,
-        max_count: u32,
-        indexed: bool,
-    },
-    PushDebugGroup {
-        color: u32,
-        len: usize,
-    },
-    PopDebugGroup,
-    InsertDebugMarker {
-        color: u32,
-        len: usize,
-    },
-    WriteTimestamp {
-        query_set: Arc<QuerySet<A>>,
-        query_index: u32,
-    },
-    BeginOcclusionQuery {
-        query_index: u32,
-    },
-    EndOcclusionQuery,
-    BeginPipelineStatisticsQuery {
-        query_set: Arc<QuerySet<A>>,
-        query_index: u32,
-    },
-    EndPipelineStatisticsQuery,
-    ExecuteBundle(Arc<RenderBundle<A>>),
 }
