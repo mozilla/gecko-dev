@@ -58,12 +58,6 @@ size_t LinkData::SymbolicLinkArray::sizeOfExcludingThis(
   return size;
 }
 
-CodeSegment::~CodeSegment() {
-  if (unregisterOnDestroy_) {
-    UnregisterCodeSegment(this);
-  }
-}
-
 static uint32_t RoundupCodeLength(uint32_t codeLength) {
   // AllocateExecutableMemory() requires a multiple of ExecutableCodePageSize.
   return RoundUp(codeLength, ExecutableCodePageSize);
@@ -115,18 +109,6 @@ bool CodeSegment::initialize(const Code& code) {
   MOZ_ASSERT(!initialized());
   code_ = &code;
   MOZ_ASSERT(initialized());
-
-  // In the case of tiering, RegisterCodeSegment() immediately makes this code
-  // segment live to access from other threads executing the containing
-  // module. So only call once the CodeSegment is fully initialized.
-  if (!RegisterCodeSegment(this)) {
-    return false;
-  }
-
-  // This bool is only used by the destructor which cannot be called racily
-  // and so it is not a problem to mutate it after RegisterCodeSegment().
-  MOZ_ASSERT(!unregisterOnDestroy_);
-  unregisterOnDestroy_ = true;
   return true;
 }
 
@@ -564,6 +546,8 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     return false;
   }
   stubCodeBlock->segment = segment;
+  stubCodeBlock->codeBase = segment->base() + offsetInSegment;
+  stubCodeBlock->codeLength = codeLength;
   stubCodeBlock->codeRanges = std::move(codeRanges);
 
   {
@@ -624,6 +608,14 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
                                 std::move(lazyExport))) {
       return false;
     }
+  }
+
+  // Initialization makes the code block visible to the whole process through
+  // the process code map. We must wait until we're no longer initializing the
+  // code block to do it.
+  if (!stubCodeBlock->initialize(*tierCodeBlock.code, nullptr, codeMeta,
+                                 nullptr)) {
+    return false;
   }
 
   return codeBlocks_.append(std::move(stubCodeBlock));
@@ -747,25 +739,37 @@ void LazyStubTier::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
   }
 }
 
-bool CodeBlock::initializeModule(const Code& code, const LinkData& linkData,
-                                 const CodeMetadata& codeMeta,
-                                 const CodeMetadataForAsmJS* codeMetaForAsmJS) {
-  MOZ_ASSERT(segment->isModule());
+CodeBlock::~CodeBlock() {
+  if (unregisterOnDestroy_) {
+    UnregisterCodeBlock(this);
+  }
+}
+
+bool CodeBlock::initialize(const Code& code, const LinkData* linkData,
+                           const CodeMetadata& codeMeta,
+                           const CodeMetadataForAsmJS* codeMetaForAsmJS) {
+  MOZ_ASSERT_IF(!!linkData, segment->isModule());
   MOZ_ASSERT(!initialized());
   this->code = &code;
 
-  // See comments in CodeSegment::initialize() for why this must be last.
-  if (!segment->asModule()->initialize(*this, linkData, codeMeta,
-                                       codeMetaForAsmJS)) {
+  if (linkData && !segment->asModule()->initialize(*this, *linkData, codeMeta,
+                                                   codeMetaForAsmJS)) {
     return false;
   }
 
-  MOZ_ASSERT(initialized());
-  return true;
-}
+  // In the case of tiering, RegisterCodeBlock() immediately makes this code
+  // block live to access from other threads executing the containing
+  // module. So only call once the CodeBlock is fully initialized.
+  if (!RegisterCodeBlock(this)) {
+    return false;
+  }
 
-bool CodeBlock::initializeLazyStubs() {
-  MOZ_ASSERT(segment->isLazyStubs());
+  // This bool is only used by the destructor which cannot be called racily
+  // and so it is not a problem to mutate it after RegisterCodeBlock().
+  MOZ_ASSERT(!unregisterOnDestroy_);
+  unregisterOnDestroy_ = true;
+
+  MOZ_ASSERT(initialized());
   return true;
 }
 
@@ -892,8 +896,7 @@ Code::Code(const CodeMetadata& codeMeta,
 bool Code::initialize(const LinkData& linkData) {
   MOZ_ASSERT(!initialized());
 
-  if (!tier1_->initializeModule(*this, linkData, *codeMeta_,
-                                codeMetaForAsmJS_)) {
+  if (!tier1_->initialize(*this, &linkData, *codeMeta_, codeMetaForAsmJS_)) {
     return false;
   }
 
@@ -909,8 +912,7 @@ bool Code::setAndBorrowTier2(UniqueCodeBlock tier2, const LinkData& linkData,
   MOZ_RELEASE_ASSERT(tier2->tier() == Tier::Optimized &&
                      tier1_->tier() == Tier::Baseline);
 
-  if (!tier2->initializeModule(*this, linkData, *codeMeta_,
-                               codeMetaForAsmJS_)) {
+  if (!tier2->initialize(*this, &linkData, *codeMeta_, codeMetaForAsmJS_)) {
     return false;
   }
 
@@ -984,16 +986,6 @@ const CodeBlock& Code::codeBlock(Tier tier) const {
       return *tier2_;
   }
   MOZ_CRASH();
-}
-
-bool Code::containsCodePC(const void* pc) const {
-  for (Tier t : tiers()) {
-    const ModuleSegment& ms = segment(t);
-    if (ms.containsCodePC(pc)) {
-      return true;
-    }
-  }
-  return false;
 }
 
 struct CallSiteRetAddrOffset {
@@ -1070,7 +1062,7 @@ bool Code::lookupTrap(void* pc, Trap* trapOut, BytecodeOffset* bytecode) const {
       size_t match;
       if (BinarySearch(TrapSitePCOffset(trapSites), 0, upperBound, target,
                        &match)) {
-        MOZ_ASSERT(segment(t).containsCodePC(pc));
+        MOZ_ASSERT(codeBlock(t).containsCodePC(pc));
         *trapOut = trap;
         *bytecode = trapSites[match].bytecode;
         return true;

@@ -1004,6 +1004,8 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock() {
 #endif
 
   codeBlock_->segment = std::move(segment);
+  codeBlock_->codeBase = codeBlock_->segment->base();
+  codeBlock_->codeLength = codeBlock_->segment->length();
   return std::move(codeBlock_);
 }
 

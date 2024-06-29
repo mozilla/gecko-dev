@@ -1184,18 +1184,14 @@ static bool CanUnwindSignatureCheck(uint8_t* fp) {
   return code && !codeRange->isEntry();
 }
 
-static bool GetUnwindInfo(const CodeSegment* codeSegment,
+static bool GetUnwindInfo(const CodeBlock* codeBlock,
                           const CodeRange* codeRange, uint8_t* pc,
                           const CodeRangeUnwindInfo** info) {
-  if (!codeSegment->isModule()) {
-    return false;
-  }
   if (!codeRange->isFunction() || !codeRange->funcHasUnwindInfo()) {
     return false;
   }
 
-  const ModuleSegment* segment = codeSegment->asModule();
-  *info = segment->code().lookupUnwindInfo(pc);
+  *info = codeBlock->code->lookupUnwindInfo(pc);
   return *info;
 }
 
@@ -1252,13 +1248,13 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
   // thunk, then execution must be entering from or leaving to the C++ caller
   // that pushed the JitActivation.
   const CodeRange* codeRange;
-  uint8_t* codeBase;
+  const uint8_t* codeBase;
   const Code* code = nullptr;
 
-  const CodeSegment* codeSegment = LookupCodeSegment(pc, &codeRange);
-  if (codeSegment) {
-    code = &codeSegment->code();
-    codeBase = codeSegment->base();
+  const CodeBlock* codeBlock = LookupCodeBlock(pc, &codeRange);
+  if (codeBlock) {
+    code = codeBlock->code;
+    codeBase = codeBlock->segment->base();
     MOZ_ASSERT(codeRange);
   } else if (!LookupBuiltinThunk(pc, &codeRange, &codeBase)) {
     return false;
@@ -1459,8 +1455,7 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
         }
 
         const CodeRangeUnwindInfo* unwindInfo;
-        if (codeSegment &&
-            GetUnwindInfo(codeSegment, codeRange, pc, &unwindInfo)) {
+        if (codeBlock && GetUnwindInfo(codeBlock, codeRange, pc, &unwindInfo)) {
           switch (unwindInfo->unwindHow()) {
             case CodeRangeUnwindInfo::RestoreFpRa:
               fixedPC = (uint8_t*)registers.tempRA;

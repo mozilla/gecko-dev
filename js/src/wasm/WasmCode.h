@@ -167,8 +167,7 @@ class CodeSegment : public ShareableBase<CodeSegment> {
       : bytes_(std::move(bytes)),
         length_(length),
         kind_(kind),
-        code_(nullptr),
-        unregisterOnDestroy_(false) {}
+        code_(nullptr) {}
 
   bool initialize(const Code& code);
 
@@ -177,11 +176,9 @@ class CodeSegment : public ShareableBase<CodeSegment> {
   const uint32_t length_;
   const Kind kind_;
   const Code* code_;
-  bool unregisterOnDestroy_;
 
  public:
   bool initialized() const { return !!code_; }
-  ~CodeSegment();
 
   bool isLazyStubs() const { return kind_ == Kind::LazyStubs; }
   bool isModule() const { return kind_ == Kind::Module; }
@@ -206,10 +203,6 @@ class CodeSegment : public ShareableBase<CodeSegment> {
   uint32_t length() const {
     MOZ_ASSERT(length_ != UINT32_MAX);
     return length_;
-  }
-
-  bool containsCodePC(const void* pc) const {
-    return pc >= base() && pc < (base() + length_);
   }
 
   const Code& code() const { return *code_; }
@@ -384,8 +377,17 @@ class CodeBlock {
   const Code* code;
 
   // The following information is all serialized
+  // Which kind of code is being stored in this block. Most consumers don't
+  // care about this.
   const CodeBlockKind kind;
+
+  // The code segment our code is inside, along with the range we're occupying.
   SharedCodeSegment segment;
+  const uint8_t* codeBase;
+  size_t codeLength;
+
+  // Metadata about the code we've put in the segment. All offsets are
+  // temporarily relative to the segment base, not our block base.
   Uint32Vector funcToCodeRange;
   CodeRangeVector codeRanges;
   CallSiteVector callSites;
@@ -399,6 +401,9 @@ class CodeBlock {
   // Debug information, not serialized.
   uint32_t debugTrapOffset;
 
+  // Track whether we are registered in the process map of code blocks.
+  bool unregisterOnDestroy_;
+
   static constexpr CodeBlockKind kindFromTier(Tier tier) {
     if (tier == Tier::Optimized) {
       return CodeBlockKind::OptimizedTier;
@@ -408,14 +413,17 @@ class CodeBlock {
   }
 
   explicit CodeBlock(CodeBlockKind kind)
-      : code(nullptr), kind(kind), debugTrapOffset(0) {}
+      : code(nullptr),
+        kind(kind),
+        debugTrapOffset(0),
+        unregisterOnDestroy_(false) {}
   explicit CodeBlock(Tier tier) : CodeBlock(kindFromTier(tier)) {}
+  ~CodeBlock();
 
   bool initialized() const { return !!code && segment->initialized(); }
-  bool initializeModule(const Code& code, const LinkData& linkData,
-                        const CodeMetadata& codeMeta,
-                        const CodeMetadataForAsmJS* codeMetaForAsmJS);
-  bool initializeLazyStubs();
+  bool initialize(const Code& code, const LinkData* linkData,
+                  const CodeMetadata& codeMeta,
+                  const CodeMetadataForAsmJS* codeMetaForAsmJS);
 
   // Gets the tier for this code block. Only valid for non-lazy stub code.
   Tier tier() const {
@@ -427,6 +435,12 @@ class CodeBlock {
       default:
         MOZ_CRASH();
     }
+  }
+
+  const uint8_t* base() const { return codeBase; }
+  uint32_t length() const { return codeLength; }
+  bool containsCodePC(const void* pc) const {
+    return pc >= base() && pc < (base() + length());
   }
 
   const ModuleSegment& moduleSegment() const { return *segment->asModule(); }
@@ -647,7 +661,6 @@ class Code : public ShareableBase<Code> {
   const CodeRange* lookupFuncRange(void* pc) const;
   const StackMap* lookupStackMap(uint8_t* nextPC) const;
   const TryNote* lookupTryNote(void* pc, Tier* tier) const;
-  bool containsCodePC(const void* pc) const;
   bool lookupTrap(void* pc, Trap* trap, BytecodeOffset* bytecode) const;
   const CodeRangeUnwindInfo* lookupUnwindInfo(void* pc) const;
   bool lookupFunctionTier(const CodeRange* codeRange, Tier* tier) const;

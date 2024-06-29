@@ -2432,14 +2432,14 @@ void Simulator::softwareInterrupt(SimInstruction* instr) {
 }
 
 void Simulator::canonicalizeNaN(double* value) {
-  if (!wasm::CodeExists && !wasm::LookupCodeSegment(get_pc_as<void*>()) &&
+  if (!wasm::CodeExists && !wasm::LookupCodeBlock(get_pc_as<void*>()) &&
       FPSCR_default_NaN_mode_) {
     *value = JS::CanonicalizeNaN(*value);
   }
 }
 
 void Simulator::canonicalizeNaN(float* value) {
-  if (!wasm::CodeExists && !wasm::LookupCodeSegment(get_pc_as<void*>()) &&
+  if (!wasm::CodeExists && !wasm::LookupCodeBlock(get_pc_as<void*>()) &&
       FPSCR_default_NaN_mode_) {
     *value = JS::CanonicalizeNaN(*value);
   }
