@@ -347,8 +347,13 @@ TooltipsOverlay.prototype = {
       type === TOOLTIP_VARIABLE_TYPE &&
       nodeInfo.value.value.startsWith("--")
     ) {
-      const { variable, registeredProperty } = nodeInfo.value;
-      await this._setVariablePreviewTooltip(variable, registeredProperty);
+      const { variable, registeredProperty, startingStyleVariable } =
+        nodeInfo.value;
+      await this._setVariablePreviewTooltip({
+        topSectionText: variable,
+        registeredProperty,
+        startingStyle: startingStyleVariable,
+      });
 
       this.sendOpenScalarToTelemetry(type);
 
@@ -539,17 +544,16 @@ TooltipsOverlay.prototype = {
   /**
    * Set the content of the preview tooltip to display a variable preview.
    *
-   * @param {String} text
-   *        The text to display for the variable tooltip
+   * @param {Object} tooltipParams
+   *        See VariableTooltipHelper#setVariableTooltip `params`.
    * @return {Promise} A promise that resolves when the preview tooltip content is ready
    */
-  async _setVariablePreviewTooltip(text, registeredProperty) {
+  async _setVariablePreviewTooltip(tooltipParams) {
     const doc = this.view.inspector.panelDoc;
     await setVariableTooltip(
       this.getTooltip("previewTooltip"),
       doc,
-      text,
-      registeredProperty
+      tooltipParams
     );
   },
 

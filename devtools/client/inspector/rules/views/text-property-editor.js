@@ -611,6 +611,7 @@ TextPropertyEditor.prototype = {
           varName,
           this.rule.pseudoElement
         ),
+      inStartingStyleRule: this.rule.isInStartingStyle(),
     };
     const frag = outputParser.parseCssProperty(name, val, parserOptions);
 

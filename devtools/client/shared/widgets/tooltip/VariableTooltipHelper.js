@@ -14,23 +14,57 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
  *         The tooltip instance on which the text preview content should be set.
  * @param  {Document} doc
  *         A document element to create the HTML elements needed for the tooltip.
- * @param  {String} text
- *         Text to display in tooltip.
+ * @param  {Object} params
+ * @param  {String} params.topSectionText
+ *         Text to display in the top section of tooltip (e.g. "--x = blue" or "--x is not defined").
+ * @param  {Object} params.registeredProperty
+ *         Contains the registered property data, if the variable was registered (@property or CSS.registerProperty)
+ * @param  {String} params.registeredProperty.syntax
+ *         The registered property `syntax` value
+ * @param  {Boolean} params.registeredProperty.inherits
+ *         The registered property `inherits` value
+ * @param  {String} params.registeredProperty.initialValue
+ *         The registered property `initial-value`
+ * @param  {String} params.startingStyle
+ *         The text for @starting-style value (e.g. `--x = red`)
  */
-function setVariableTooltip(tooltip, doc, text, registeredProperty) {
+function setVariableTooltip(
+  tooltip,
+  doc,
+  { topSectionText, registeredProperty, startingStyle }
+) {
   // Create tooltip content
   const div = doc.createElementNS(XHTML_NS, "div");
   div.classList.add("devtools-monospace", "devtools-tooltip-css-variable");
 
   const valueEl = doc.createElementNS(XHTML_NS, "section");
   valueEl.classList.add("variable-value");
-  valueEl.append(doc.createTextNode(text));
+  valueEl.append(doc.createTextNode(topSectionText));
   div.appendChild(valueEl);
 
   // A registered property always have a non-falsy syntax
+  if (typeof startingStyle !== "undefined") {
+    const section = doc.createElementNS(XHTML_NS, "section");
+    section.classList.add("starting-style", "variable-tooltip-section");
+
+    const h2 = doc.createElementNS(XHTML_NS, "h2");
+    h2.append(doc.createTextNode("@starting-style"));
+    const startingStyleValue = doc.createElementNS(XHTML_NS, "div");
+    startingStyleValue.append(doc.createTextNode(startingStyle));
+    section.append(h2, startingStyleValue);
+
+    div.appendChild(section);
+  }
+
+  // A registered property always have a non-falsy syntax
   if (registeredProperty?.syntax) {
+    const section = doc.createElementNS(XHTML_NS, "section");
+    section.classList.add("registered-property", "variable-tooltip-section");
+
+    const h2 = doc.createElementNS(XHTML_NS, "h2");
+    h2.append(doc.createTextNode("@property"));
+
     const dl = doc.createElementNS(XHTML_NS, "dl");
-    dl.classList.add("registered-property");
     const addProperty = (label, value, lineBreak = true) => {
       const dt = doc.createElementNS(XHTML_NS, "dt");
       dt.append(doc.createTextNode(label));
@@ -50,7 +84,8 @@ function setVariableTooltip(tooltip, doc, text, registeredProperty) {
       addProperty("initial-value:", registeredProperty.initialValue, false);
     }
 
-    div.appendChild(dl);
+    section.append(h2, dl);
+    div.appendChild(section);
   }
 
   tooltip.panel.innerHTML = "";

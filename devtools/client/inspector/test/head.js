@@ -999,6 +999,82 @@ async function assertTooltipHiddenOnMouseOut(tooltip, target) {
 }
 
 /**
+ * Check the content of a `var()` tooltip on a given rule and property name.
+ *
+ * @param {CssRuleView} view
+ * @param {String} ruleSelector
+ * @param {String} propertyName
+ * @param {Object} tooltipExpected
+ * @param {String} tooltipExpected.header: The text that is displayed in the top section
+ *        (might be the only section when the variable is not a registered property and
+ *        there is no starting-style).
+ * @param {String} tooltipExpected.startingStyle: The text that is displayed in the starting-style
+ *        section. Pass undefined if the tooltip isn't supposed to have a `@starting-style` section.
+ * @param {Array<String>} tooltipExpected.registeredProperty: Array of the registered property
+ *        fields (e.g. [`syntax:"<color>"`, `inherits:true`, `initial-value:aqua`]).
+ *        Pass undefined if the tooltip isn't supposed to have a @property section.
+ */
+async function assertVariableTooltipForProperty(
+  view,
+  ruleSelector,
+  propertyName,
+  { header, registeredProperty, startingStyle }
+) {
+  // retrieve tooltip target
+  const variableEl = await waitFor(() =>
+    getRuleViewProperty(
+      view,
+      ruleSelector,
+      propertyName
+    ).valueSpan.querySelector(".ruleview-variable,.ruleview-unmatched-variable")
+  );
+
+  const previewTooltip = await assertShowPreviewTooltip(view, variableEl);
+  const valueEl = previewTooltip.panel.querySelector(".variable-value");
+  const startingStyleEl = previewTooltip.panel.querySelector(
+    ".starting-style div"
+  );
+  const registeredPropertyEl = previewTooltip.panel.querySelector(
+    ".registered-property dl"
+  );
+  is(
+    valueEl.textContent,
+    header,
+    `CSS variable preview tooltip has expected header text for ${propertyName} in ${ruleSelector}`
+  );
+
+  if (!registeredProperty) {
+    is(
+      registeredPropertyEl,
+      null,
+      `CSS variable preview tooltip doesn't have registered property section for ${propertyName} in ${ruleSelector}`
+    );
+  } else {
+    is(
+      registeredPropertyEl.innerText,
+      registeredProperty.join("\n"),
+      `CSS variable preview tooltip has expected registered property section for ${propertyName} in ${ruleSelector}`
+    );
+  }
+
+  if (!startingStyle) {
+    is(
+      startingStyleEl,
+      null,
+      `CSS variable preview tooltip doesn't have a starting-style section for ${propertyName} in ${ruleSelector}`
+    );
+  } else {
+    is(
+      startingStyleEl.innerText,
+      startingStyle,
+      `CSS variable preview tooltip has expected starting-style section for ${propertyName} in ${ruleSelector}`
+    );
+  }
+
+  await assertTooltipHiddenOnMouseOut(previewTooltip, variableEl);
+}
+
+/**
  * Get the text displayed for a given DOM Element's textContent within the
  * markup view.
  *

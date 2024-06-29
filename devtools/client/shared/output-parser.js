@@ -297,31 +297,57 @@ class OutputParser {
     const secondOpts = {};
 
     let varData;
-    let varValue;
     let varFallbackValue;
+    let varSubsitutedValue;
 
     // Get the variable value if it is in use.
     if (tokens && tokens.length === 1) {
       varData = options.getVariableData(tokens[0].text);
-      varValue =
+      const varValue =
         typeof varData.value === "string"
           ? varData.value
           : varData.registeredProperty?.initialValue;
+
+      const varStartingStyleValue =
+        typeof varData.startingStyle === "string"
+          ? varData.startingStyle
+          : // If the variable is not set in starting style, then it will default to either:
+            // - a declaration in a "regular" rule
+            // - or if there's no declaration in regular rule, to the registered property initial-value.
+            varValue;
+
+      varSubsitutedValue = options.inStartingStyleRule
+        ? varStartingStyleValue
+        : varValue;
     }
 
     // Get the variable name.
     const varName = text.substring(tokens[0].startOffset, tokens[0].endOffset);
 
-    if (typeof varValue === "string") {
+    if (typeof varSubsitutedValue === "string") {
       // The variable value is valid, set the variable name's title of the first argument
       // in var() to display the variable name and value.
       firstOpts["data-variable"] = STYLE_INSPECTOR_L10N.getFormatStr(
         "rule.variableValue",
         varName,
-        varValue
+        varSubsitutedValue
       );
       firstOpts.class = options.matchedVariableClass;
       secondOpts.class = options.unmatchedVariableClass;
+
+      // Display starting-style value when not in a starting style rule
+      if (
+        !options.inStartingStyleRule &&
+        typeof varData.startingStyle === "string"
+      ) {
+        firstOpts["data-starting-style-variable"] =
+          STYLE_INSPECTOR_L10N.getFormatStr(
+            "rule.variableValue",
+            varName,
+            varData.startingStyle
+          );
+      }
+
       if (varData.registeredProperty) {
         const { initialValue, syntax, inherits } = varData.registeredProperty;
         firstOpts["data-registered-property-initial-value"] = initialValue;
@@ -363,7 +389,7 @@ class OutputParser {
 
     return {
       node: variableNode,
-      value: varValue,
+      value: varSubsitutedValue,
       fallbackValue: varFallbackValue,
     };
   }
@@ -2074,6 +2100,7 @@ class OutputParser {
       baseURI: undefined,
       getVariableData: null,
       unmatchedVariableClass: null,
+      inStartingStyleRule: false,
     };
 
     for (const item in overrides) {

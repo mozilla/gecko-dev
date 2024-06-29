@@ -62,6 +62,7 @@ class ElementStyle {
     this.rules = [];
     this.cssProperties = this.ruleView.cssProperties;
     this.variablesMap = new Map();
+    this.startingStyleVariablesMap = new Map();
 
     // We don't want to overwrite this.store.userProperties so we only create it
     // if it doesn't already exist.
@@ -306,6 +307,9 @@ class ElementStyle {
 
     // CSS Variables inherits from the normal element in case of pseudo element.
     const variables = new Map(pseudo ? this.variablesMap.get("") : null);
+    const startingStyleVariables = new Map(
+      pseudo ? this.startingStyleVariablesMap.get("") : null
+    );
 
     // Walk over the computed properties. As we see a property name
     // for the first time, mark that property's name as taken by this
@@ -377,6 +381,10 @@ class ElementStyle {
           earlierInStartingStyle._overriddenDirty =
             !earlierInStartingStyle._overriddenDirty;
           earlierInStartingStyle.overridden = true;
+          // which means we also need to remove the variable from startingStyleVariables
+          if (isCssVariable(computedProp.name)) {
+            startingStyleVariables.delete(computedProp.name);
+          }
         }
 
         // This computed property is overridden if:
@@ -407,12 +415,13 @@ class ElementStyle {
           // get the initial value from the registered property definition.
           if (
             isCssVariable(computedProp.name) &&
-            !computedProp.textProp.invisible &&
-            // variables set in starting-style rules should only impact the starting style
-            // value, not the "final" one.
-            !isPropInStartingStyle
+            !computedProp.textProp.invisible
           ) {
-            variables.set(computedProp.name, computedProp.value);
+            if (!isPropInStartingStyle) {
+              variables.set(computedProp.name, computedProp.value);
+            } else {
+              startingStyleVariables.set(computedProp.name, computedProp.value);
+            }
           }
         }
       }
@@ -425,8 +434,17 @@ class ElementStyle {
         k => variables.get(k) !== previousVariablesMap.get(k)
       )
     );
+    const previousStartingStyleVariablesMap = new Map(
+      this.startingStyleVariablesMap.get(pseudo)
+    );
+    const changedStartingStyleVariableNamesSet = new Set(
+      [...variables.keys(), ...previousStartingStyleVariablesMap.keys()].filter(
+        k => variables.get(k) !== previousStartingStyleVariablesMap.get(k)
+      )
+    );
 
     this.variablesMap.set(pseudo, variables);
+    this.startingStyleVariablesMap.set(pseudo, startingStyleVariables);
 
     // For each TextProperty, mark it overridden if all of its computed
     // properties are marked overridden. Update the text property's associated
@@ -440,7 +458,11 @@ class ElementStyle {
       // of the updated CSS variable names.
       if (
         this._updatePropertyOverridden(textProp) ||
-        this._hasUpdatedCSSVariable(textProp, changedVariableNamesSet)
+        this._hasUpdatedCSSVariable(textProp, changedVariableNamesSet) ||
+        this._hasUpdatedCSSVariable(
+          textProp,
+          changedStartingStyleVariableNamesSet
+        )
       ) {
         textProp.updateEditor();
       }
@@ -912,6 +934,7 @@ class ElementStyle {
    */
   getVariableData(name, pseudo = "") {
     const variables = this.variablesMap.get(pseudo);
+    const startingStyleVariables = this.startingStyleVariablesMap.get(pseudo);
     const registeredPropertiesMap =
       this.ruleView.getRegisteredPropertiesForSelectedNodeTarget();
 
@@ -920,6 +943,9 @@ class ElementStyle {
       // XXX Check what to do in case the value doesn't match the registered property syntax.
       // Will be handled in Bug 1866712
       data.value = variables.get(name);
+    }
+    if (startingStyleVariables?.has(name)) {
+      data.startingStyle = startingStyleVariables.get(name);
     }
     if (registeredPropertiesMap?.has(name)) {
       data.registeredProperty = registeredPropertiesMap.get(name);
@@ -939,26 +965,51 @@ class ElementStyle {
    */
   getAllCustomProperties(pseudo = "") {
     let customProperties = this.variablesMap.get(pseudo);
+    const startingStyleCustomProperties =
+      this.startingStyleVariablesMap.get(pseudo);
 
     const registeredPropertiesMap =
       this.ruleView.getRegisteredPropertiesForSelectedNodeTarget();
 
-    // If there's no registered properties, we can return the Map as is
-    if (!registeredPropertiesMap || registeredPropertiesMap.size === 0) {
+    // If there's no registered properties nor starting style ones, we can return the Map as is
+    if (
+      (!registeredPropertiesMap || registeredPropertiesMap.size === 0) &&
+      (!startingStyleCustomProperties ||
+        startingStyleCustomProperties.size === 0)
+    ) {
       return customProperties;
     }
 
     let newMapCreated = false;
-    for (const [name, propertyDefinition] of registeredPropertiesMap) {
-      // Only set the registered property if it's not defined (i.e. not in this.variablesMap)
-      if (!customProperties.has(name)) {
-        // Since we want to return registered property, we need to create a new Map
-        // to not modify the one in this.variablesMap.
-        if (!newMapCreated) {
-          customProperties = new Map(customProperties);
-          newMapCreated = true;
+
+    if (startingStyleCustomProperties) {
+      for (const [name, value] of startingStyleCustomProperties) {
+        // Only set the starting style property if it's not defined (i.e. not in the "main"
+        // variable map)
+        if (!customProperties.has(name)) {
+          // Since we want to return starting style variables, we need to create a new Map
+          // to not modify the one in the main map.
+          if (!newMapCreated) {
+            customProperties = new Map(customProperties);
+            newMapCreated = true;
+          }
+          customProperties.set(name, value);
         }
-        customProperties.set(name, propertyDefinition.initialValue);
+      }
+    }
+
+    if (registeredPropertiesMap) {
+      for (const [name, propertyDefinition] of registeredPropertiesMap) {
+        // Only set the registered property if it's not defined (i.e. not in the variable map)
+        if (!customProperties.has(name)) {
+          // Since we want to return registered property, we need to create a new Map
+          // to not modify the one in the variable map.
+          if (!newMapCreated) {
+            customProperties = new Map(customProperties);
+            newMapCreated = true;
+          }
+          customProperties.set(name, propertyDefinition.initialValue);
+        }
       }
     }
 
