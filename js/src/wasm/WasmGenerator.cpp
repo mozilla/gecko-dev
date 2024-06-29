@@ -206,23 +206,19 @@ bool ModuleGenerator::init(CodeMetadataForAsmJS* codeMetaForAsmJS) {
     freeTasks_.infallibleAppend(&tasks_[i]);
   }
 
-  // Fill in function stubs for each import so that imported functions can be
-  // used in all the places that normal function definitions can (table
-  // elements, export calls, etc).
+  // Generate the stubs for the module first
+  CompiledCode& stubCode = tasks_[0].output;
+  MOZ_ASSERT(stubCode.empty());
 
-  CompiledCode& importCode = tasks_[0].output;
-  MOZ_ASSERT(importCode.empty());
-
-  if (!GenerateImportFunctions(*codeMeta_, codeBlock_->funcImports,
-                               &importCode)) {
+  if (!GenerateStubs(*codeMeta_, codeBlock_->funcImports, &stubCode)) {
     return false;
   }
 
-  if (!linkCompiledCode(importCode)) {
+  if (!linkCompiledCode(stubCode)) {
     return false;
   }
 
-  importCode.clear();
+  stubCode.clear();
   return true;
 }
 
@@ -453,7 +449,8 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
 
   masm_->haltingAlign(CodeAlignment);
   const size_t offsetInModule = masm_->size();
-  if (!masm_->appendRawCode(code.bytes.begin(), code.bytes.length())) {
+  if (code.bytes.length() != 0 &&
+      !masm_->appendRawCode(code.bytes.begin(), code.bytes.length())) {
     return false;
   }
 
@@ -998,14 +995,13 @@ UniqueCodeBlock ModuleGenerator::finishCompleteTier(UniqueLinkData* linkData) {
   codeBlock_->funcToCodeRange.assertAllInitialized();
 #endif
 
-  // Now that all imports/exports are known, we can generate a special
-  // CompiledCode containing stubs.
+  // Now that all funcs have been compiled, we can generate entry stubs for
+  // the ones that have been exported.
 
   CompiledCode& stubCode = tasks_[0].output;
   MOZ_ASSERT(stubCode.empty());
 
-  if (!GenerateStubs(*codeMeta_, codeBlock_->funcImports,
-                     codeBlock_->funcExports, &stubCode)) {
+  if (!GenerateEntryStubs(*codeMeta_, codeBlock_->funcExports, &stubCode)) {
     return nullptr;
   }
 
