@@ -302,7 +302,7 @@ ModuleSegment::ModuleSegment(Tier tier, UniqueCodeBytes codeBytes,
       trapCode_(base() + linkData.trapOffset) {}
 
 /* static */
-UniqueModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
+SharedModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
                                           const LinkData& linkData) {
   uint32_t codeLength = masm.bytesNeeded();
 
@@ -314,12 +314,12 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
 
   masm.executableCopy(codeBytes.get());
 
-  return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
-                                       linkData);
+  return js_new<ModuleSegment>(tier, std::move(codeBytes), codeLength,
+                               linkData);
 }
 
 /* static */
-UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedBytes,
+SharedModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedBytes,
                                           const LinkData& linkData) {
   uint32_t codeLength = unlinkedBytes.length();
 
@@ -331,8 +331,8 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedBytes,
 
   memcpy(codeBytes.get(), unlinkedBytes.begin(), codeLength);
 
-  return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
-                                       linkData);
+  return js_new<ModuleSegment>(tier, std::move(codeBytes), codeLength,
+                               linkData);
 }
 
 bool ModuleSegment::initialize(const CodeBlock& codeBlock,
@@ -377,14 +377,14 @@ size_t CacheableChars::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
   return mallocSizeOf(get());
 }
 
-UniqueLazyStubSegment LazyStubSegment::create(const Code& code, size_t length) {
+SharedLazyStubSegment LazyStubSegment::create(const Code& code, size_t length) {
   Maybe<AutoMarkJitCodeWritableForThread> writable;
   UniqueCodeBytes codeBytes = AllocateCodeBytes(writable, length);
   if (!codeBytes) {
     return nullptr;
   }
 
-  auto segment = js::MakeUnique<LazyStubSegment>(std::move(codeBytes), length);
+  auto* segment = js_new<LazyStubSegment>(std::move(codeBytes), length);
   if (!segment || !segment->initialize(code)) {
     return nullptr;
   }
@@ -541,7 +541,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
   if (!stubSegments_.length() ||
       !stubSegments_[lastStubSegmentIndex_]->hasSpace(codeLength)) {
     size_t newSegmentSize = std::max(codeLength, ExecutableCodePageSize);
-    UniqueLazyStubSegment newSegment =
+    SharedLazyStubSegment newSegment =
         LazyStubSegment::create(*codeBlock.code, newSegmentSize);
     if (!newSegment) {
       return false;
@@ -625,7 +625,7 @@ bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
     return false;
   }
 
-  const UniqueLazyStubSegment& segment = stubSegments_[stubSegmentIndex];
+  const SharedLazyStubSegment& segment = stubSegments_[stubSegmentIndex];
   const CodeRangeVector& codeRanges = segment->codeRanges();
 
   const FuncExport& fe = codeBlock.funcExports[funcExportIndex];
@@ -683,7 +683,7 @@ void LazyStubTier::setJitEntries(const Maybe<size_t>& stubSegmentIndex,
   if (!stubSegmentIndex) {
     return;
   }
-  const UniqueLazyStubSegment& segment = stubSegments_[*stubSegmentIndex];
+  const SharedLazyStubSegment& segment = stubSegments_[*stubSegmentIndex];
   for (const CodeRange& cr : segment->codeRanges()) {
     if (!cr.isJitEntry()) {
       continue;
@@ -721,7 +721,7 @@ void LazyStubTier::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
                                  size_t* data) const {
   *data += sizeof(*this);
   *data += exports_.sizeOfExcludingThis(mallocSizeOf);
-  for (const UniqueLazyStubSegment& stub : stubSegments_) {
+  for (const SharedLazyStubSegment& stub : stubSegments_) {
     stub->addSizeOfMisc(mallocSizeOf, code, data);
   }
 }

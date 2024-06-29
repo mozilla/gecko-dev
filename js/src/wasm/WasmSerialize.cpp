@@ -972,7 +972,7 @@ CoderResult CodeLinkData(Coder<mode>& coder,
 }
 
 CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
-                              wasm::UniqueModuleSegment* item,
+                              wasm::SharedModuleSegment* item,
                               const wasm::LinkData& linkData) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ModuleSegment, 48);
   // Assert we're decoding a ModuleSegment
@@ -993,8 +993,8 @@ CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
   MOZ_TRY(coder.readBytes(bytes.get(), length));
 
   // Initialize the ModuleSegment
-  *item = js::MakeUnique<ModuleSegment>(Tier::Serialized, std::move(bytes),
-                                        length, linkData);
+  *item = js_new<ModuleSegment>(Tier::Serialized, std::move(bytes), length,
+                                linkData);
   if (!*item) {
     return Err(OutOfMemory());
   }
@@ -1003,7 +1003,7 @@ CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
 
 template <CoderMode mode>
 CoderResult CodeModuleSegment(Coder<mode>& coder,
-                              CoderArg<mode, wasm::UniqueModuleSegment> item,
+                              CoderArg<mode, wasm::SharedModuleSegment> item,
                               const wasm::LinkData& linkData) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ModuleSegment, 48);
   STATIC_ASSERT_ENCODING_OR_SIZING;
