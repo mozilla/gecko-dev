@@ -104,11 +104,12 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val addBookmarkUseCase = components.useCases.bookmarksUseCases.addBookmark
                     val addPinnedSiteUseCase = components.useCases.topSitesUseCase.addPinnedSites
                     val removePinnedSiteUseCase = components.useCases.topSitesUseCase.removeTopSites
-                    val topSitesMaxLimit = components.settings.topSitesMaxLimit
+                    val webAppUseCases = components.useCases.webAppUseCases
                     val printContentUseCase = components.useCases.sessionUseCases.printContent
                     val saveToPdfUseCase = components.useCases.sessionUseCases.saveToPdf
                     val selectedTab = browserStore.state.selectedTab
                     val settings = components.settings
+                    val topSitesMaxLimit = settings.topSitesMaxLimit
 
                     val navHostController = rememberNavController()
                     val coroutineScope = rememberCoroutineScope()
@@ -143,6 +144,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     navHostController = navHostController,
                                     browsingModeManager = browsingModeManager,
                                     openToBrowser = ::openToBrowser,
+                                    webAppUseCases = webAppUseCases,
+                                    settings = settings,
                                     scope = coroutineScope,
                                 ),
                                 MenuTelemetryMiddleware(
@@ -281,7 +284,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         store.dispatch(MenuAction.RemoveShortcut)
                                     }
                                 },
-                                onAddToHomeScreenMenuClick = {},
+                                onAddToHomeScreenMenuClick = {
+                                    store.dispatch(MenuAction.Navigate.AddToHomeScreen)
+                                },
                                 onSaveToCollectionMenuClick = {
                                     store.dispatch(
                                         MenuAction.Navigate.SaveToCollection(

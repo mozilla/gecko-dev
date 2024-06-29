@@ -137,6 +137,11 @@ sealed class MenuAction : Action {
         data object EditBookmark : Navigate()
 
         /**
+         * [Navigate] action dispatched when navigating to add site to home screen.
+         */
+        data object AddToHomeScreen : Navigate()
+
+        /**
          * [Navigate] action dispatched when navigating to save a site to a collection.
          *
          * @property hasCollection Whether or not there are any existing tab collections.

@@ -1562,6 +1562,9 @@
             <action
                 android:id="@+id/action_menuDialogFragment_to_translationsDialogFragment"
                 app:destination="@id/translationsDialogFragment" />
+            <action
+                android:id="@+id/action_menuDialogFragment_to_createShortcutFragment"
+                app:destination="@id/createShortcutFragment" />
         </dialog>
     </navigation>
 </navigation>

@@ -83,6 +83,15 @@ class MenuTelemetryMiddlewareTest {
         assertTelemetryRecorded(Events.browserMenuAction, item = "remove_from_top_sites")
     }
 
+    fun `WHEN navigating to add site to home screen THEN record the add_to_homescreen browser menu telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.Navigate.AddToHomeScreen).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "add_to_homescreen")
+    }
+
     @Test
     fun `WHEN navigating to customize homepage THEN record the customize homepage telemetry`() {
         val store = createStore()

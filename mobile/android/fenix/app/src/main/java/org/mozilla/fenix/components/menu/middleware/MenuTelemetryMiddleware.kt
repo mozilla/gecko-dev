@@ -56,6 +56,12 @@ class MenuTelemetryMiddleware(
                 ),
             )
 
+            MenuAction.Navigate.AddToHomeScreen -> Events.browserMenuAction.record(
+                Events.BrowserMenuActionExtra(
+                    item = "add_to_homescreen",
+                ),
+            )
+
             MenuAction.Navigate.Bookmarks -> Events.browserMenuAction.record(
                 Events.BrowserMenuActionExtra(
                     item = "bookmarks",
