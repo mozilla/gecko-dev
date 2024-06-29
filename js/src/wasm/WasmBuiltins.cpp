@@ -1906,6 +1906,12 @@ Mutex initBuiltinThunks(mutexid::WasmInitBuiltinThunks);
 Atomic<const BuiltinThunks*> builtinThunks;
 
 bool wasm::EnsureBuiltinThunksInitialized() {
+  AutoMarkJitCodeWritableForThread writable;
+  return EnsureBuiltinThunksInitialized(writable);
+}
+
+bool wasm::EnsureBuiltinThunksInitialized(
+    AutoMarkJitCodeWritableForThread& writable) {
   LockGuard<Mutex> guard(initBuiltinThunks);
   if (builtinThunks) {
     return true;
@@ -2009,8 +2015,6 @@ bool wasm::EnsureBuiltinThunksInitialized() {
   if (!thunks->codeBase) {
     return false;
   }
-
-  AutoMarkJitCodeWritableForThread writable;
 
   masm.executableCopy(thunks->codeBase);
   memset(thunks->codeBase + masm.bytesNeeded(), 0,

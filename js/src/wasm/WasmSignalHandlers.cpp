@@ -549,10 +549,7 @@ struct AutoHandlingTrap {
   // will call finishWasmTrap().
   jit::JitActivation* activation = cx->activation()->asJit();
   activation->startWasmTrap(trap, bytecode.offset(), ToRegisterState(context));
-  // If we found a trap, we should always be in a module segment that has a
-  // trap handler set.
-  MOZ_RELEASE_ASSERT(codeBlock->moduleSegment().trapCode() != nullptr);
-  SetContextPC(context, codeBlock->moduleSegment().trapCode());
+  SetContextPC(context, codeBlock->code->trapCode());
   return true;
 }
 
@@ -1040,10 +1037,7 @@ bool wasm::MemoryAccessTraps(const RegisterState& regs, uint8_t* addr,
   JSContext* cx = TlsContext.get();  // Cold simulator helper function
   jit::JitActivation* activation = cx->activation()->asJit();
   activation->startWasmTrap(trap, bytecode.offset(), regs);
-  // If we found a trap, we should always be in a module segment that has a
-  // trap handler set.
-  MOZ_RELEASE_ASSERT(codeBlock->moduleSegment().trapCode() != nullptr);
-  *newPC = codeBlock->moduleSegment().trapCode();
+  *newPC = codeBlock->code->trapCode();
   return true;
 #endif
 }
@@ -1067,10 +1061,7 @@ bool wasm::HandleIllegalInstruction(const RegisterState& regs,
   JSContext* cx = TlsContext.get();  // Cold simulator helper function
   jit::JitActivation* activation = cx->activation()->asJit();
   activation->startWasmTrap(trap, bytecode.offset(), regs);
-  // If we found a trap, we should always be in a module segment that has a
-  // trap handler set.
-  MOZ_RELEASE_ASSERT(codeBlock->moduleSegment().trapCode() != nullptr);
-  *newPC = codeBlock->moduleSegment().trapCode();
+  *newPC = codeBlock->code->trapCode();
   return true;
 #endif
 }

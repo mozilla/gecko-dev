@@ -344,14 +344,14 @@ bool Module::extractCode(JSContext* cx, Tier tier,
     return true;
   }
 
-  const ModuleSegment& moduleSegment = code_->segment(tier);
-  RootedObject codeObj(cx, JS_NewUint8Array(cx, moduleSegment.length()));
+  const CodeSegment& codeSegment = code_->segment(tier);
+  RootedObject codeObj(cx, JS_NewUint8Array(cx, codeSegment.lengthBytes()));
   if (!codeObj) {
     return false;
   }
 
   memcpy(codeObj->as<TypedArrayObject>().dataPointerUnshared(),
-         moduleSegment.base(), moduleSegment.length());
+         codeSegment.base(), codeSegment.lengthBytes());
 
   RootedValue value(cx, ObjectValue(*codeObj));
   if (!JS_DefineProperty(cx, result, "code", value, JSPROP_ENUMERATE)) {

@@ -25,6 +25,7 @@
 
 namespace js {
 namespace jit {
+class AutoMarkJitCodeWritableForThread;
 struct ResumeFromException;
 }
 namespace wasm {
@@ -312,6 +313,8 @@ bool LookupBuiltinThunk(void* pc, const CodeRange** codeRange,
 // executable code has been released.
 
 bool EnsureBuiltinThunksInitialized();
+bool EnsureBuiltinThunksInitialized(
+    jit::AutoMarkJitCodeWritableForThread& writable);
 
 bool HandleThrow(JSContext* cx, WasmFrameIter& iter,
                  jit::ResumeFromException* rfe);

@@ -3462,10 +3462,10 @@ void Instance::disassembleExport(JSContext* cx, uint32_t funcIndex, Tier tier,
   const CodeBlock& codeBlock = code(tier);
   const FuncExport& funcExport = codeBlock.lookupFuncExport(funcIndex);
   const CodeRange& range = codeBlock.codeRange(funcExport);
-  const ModuleSegment& segment = codeBlock.moduleSegment();
+  const CodeSegment& segment = *codeBlock.segment;
 
-  MOZ_ASSERT(range.begin() < segment.length());
-  MOZ_ASSERT(range.end() < segment.length());
+  MOZ_ASSERT(range.begin() < segment.lengthBytes());
+  MOZ_ASSERT(range.end() < segment.lengthBytes());
 
   uint8_t* functionCode = segment.base() + range.begin();
   jit::Disassemble(functionCode, range.end() - range.begin(), printString);

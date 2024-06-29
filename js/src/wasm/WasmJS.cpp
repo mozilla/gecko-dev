@@ -1009,7 +1009,7 @@ const JSFunctionSpec WasmModuleObject::static_methods[] = {
 /* static */
 void WasmModuleObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   const Module& module = obj->as<WasmModuleObject>().module();
-  obj->zone()->decJitMemory(module.codeLength(module.code().stableTier()));
+  obj->zone()->decJitMemory(module.codeMemoryUsed(module.code().stableTier()));
   gcx->release(obj, &module, module.gcMallocBytesExcludingCode(),
                MemoryUse::WasmModule);
 }
@@ -1419,7 +1419,7 @@ WasmModuleObject* WasmModuleObject::create(JSContext* cx, const Module& module,
 
   // Bug 1569888: We account for the first tier here; the second tier, if
   // different, also needs to be accounted for.
-  cx->zone()->incJitMemory(module.codeLength(module.code().stableTier()));
+  cx->zone()->incJitMemory(module.codeMemoryUsed(module.code().stableTier()));
   return obj;
 }
 
