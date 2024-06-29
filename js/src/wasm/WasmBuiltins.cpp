@@ -639,14 +639,13 @@ static WasmExceptionObject* GetOrWrapWasmException(JitActivation* activation,
   return nullptr;
 }
 
-static const wasm::TryNote* FindNonDelegateTryNote(const wasm::Code& code,
-                                                   const uint8_t* pc,
-                                                   Tier* tier) {
-  const wasm::TryNote* tryNote = code.lookupTryNote((void*)pc, tier);
+static const wasm::TryNote* FindNonDelegateTryNote(
+    const wasm::Code& code, const uint8_t* pc, const CodeBlock** codeBlock) {
+  const wasm::TryNote* tryNote = code.lookupTryNote((void*)pc, codeBlock);
   while (tryNote && tryNote->isDelegate()) {
-    const wasm::CodeBlock& codeBlock = code.codeBlock(*tier);
-    pc = codeBlock.segment->base() + tryNote->delegateOffset();
-    const wasm::TryNote* delegateTryNote = code.lookupTryNote((void*)pc, tier);
+    pc = (*codeBlock)->segment->base() + tryNote->delegateOffset();
+    const wasm::TryNote* delegateTryNote =
+        code.lookupTryNote((void*)pc, codeBlock);
     MOZ_RELEASE_ASSERT(delegateTryNote == nullptr ||
                        delegateTryNote->tryBodyBegin() <
                            tryNote->tryBodyBegin());
@@ -710,10 +709,11 @@ bool wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
 
     // Only look for an exception handler if there's a catchable exception.
     if (wasmExn) {
-      Tier tier;
       const wasm::Code& code = iter.instance()->code();
       const uint8_t* pc = iter.resumePCinCurrentFrame();
-      const wasm::TryNote* tryNote = FindNonDelegateTryNote(code, pc, &tier);
+      const wasm::CodeBlock* codeBlock = nullptr;
+      const wasm::TryNote* tryNote =
+          FindNonDelegateTryNote(code, pc, &codeBlock);
 
       if (tryNote) {
 #ifdef ENABLE_WASM_TAIL_CALLS
@@ -736,7 +736,7 @@ bool wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
         rfe->stackPointer =
             (uint8_t*)(rfe->framePointer - tryNote->landingPadFramePushed());
         rfe->target =
-            iter.instance()->codeBase(tier) + tryNote->landingPadEntryPoint();
+            codeBlock->segment->base() + tryNote->landingPadEntryPoint();
 
         // Make sure to clear trapping state if we got here due to a trap.
         if (activation->isWasmTrapping()) {

@@ -639,7 +639,8 @@ bool Code::finishCompleteTier2(const LinkData& linkData,
 
     // Publish this code to the process wide map.
     if (!tier2Code->initialize(*this) ||
-        !guard->blocks.append(std::move(tier2Code))) {
+        !guard->blocks.append(std::move(tier2Code)) ||
+        !blockMap_.insert(borrowedTier2Code)) {
       return false;
     }
 
@@ -765,6 +766,32 @@ const CodeRange* CodeBlock::lookupRange(const void* pc) const {
   return LookupInSorted(codeRanges, target);
 }
 
+struct CallSiteRetAddrOffset {
+  const CallSiteVector& callSites;
+  explicit CallSiteRetAddrOffset(const CallSiteVector& callSites)
+      : callSites(callSites) {}
+  uint32_t operator[](size_t index) const {
+    return callSites[index].returnAddressOffset();
+  }
+};
+
+const CallSite* CodeBlock::lookupCallSite(void* pc) const {
+  uint32_t target = ((uint8_t*)pc) - segment->base();
+  size_t lowerBound = 0;
+  size_t upperBound = callSites.length();
+
+  size_t match;
+  if (BinarySearch(CallSiteRetAddrOffset(callSites), lowerBound, upperBound,
+                   target, &match)) {
+    return &callSites[match];
+  }
+  return nullptr;
+}
+
+const StackMap* CodeBlock::lookupStackMap(uint8_t* pc) const {
+  return stackMaps.findMap(pc);
+}
+
 const wasm::TryNote* CodeBlock::lookupTryNote(const void* pc) const {
   size_t target = (uint8_t*)pc - segment->base();
 
@@ -777,6 +804,61 @@ const wasm::TryNote* CodeBlock::lookupTryNote(const void* pc) const {
   }
 
   return nullptr;
+}
+
+struct TrapSitePCOffset {
+  const TrapSiteVector& trapSites;
+  explicit TrapSitePCOffset(const TrapSiteVector& trapSites)
+      : trapSites(trapSites) {}
+  uint32_t operator[](size_t index) const { return trapSites[index].pcOffset; }
+};
+
+bool CodeBlock::lookupTrap(void* pc, Trap* trapOut,
+                           BytecodeOffset* bytecode) const {
+  uint32_t target = ((uint8_t*)pc) - segment->base();
+  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
+    const TrapSiteVector& trapSitesForKind = trapSites[trap];
+
+    size_t upperBound = trapSitesForKind.length();
+    size_t match;
+    if (BinarySearch(TrapSitePCOffset(trapSitesForKind), 0, upperBound, target,
+                     &match)) {
+      MOZ_ASSERT(containsCodePC(pc));
+      *trapOut = trap;
+      *bytecode = trapSitesForKind[match].bytecode;
+      return true;
+    }
+  }
+  return false;
+}
+
+struct UnwindInfoPCOffset {
+  const CodeRangeUnwindInfoVector& info;
+  explicit UnwindInfoPCOffset(const CodeRangeUnwindInfoVector& info)
+      : info(info) {}
+  uint32_t operator[](size_t index) const { return info[index].offset(); }
+};
+
+const CodeRangeUnwindInfo* CodeBlock::lookupUnwindInfo(void* pc) const {
+  uint32_t target = ((uint8_t*)pc) - segment->base();
+  size_t match;
+  const CodeRangeUnwindInfo* info = nullptr;
+  if (BinarySearch(UnwindInfoPCOffset(codeRangeUnwindInfos), 0,
+                   codeRangeUnwindInfos.length(), target, &match)) {
+    info = &codeRangeUnwindInfos[match];
+  } else {
+    // Exact match is not found, using insertion point to get the previous
+    // info entry; skip if info is outside of codeRangeUnwindInfos.
+    if (match == 0) return nullptr;
+    if (match == codeRangeUnwindInfos.length()) {
+      MOZ_ASSERT(
+          codeRangeUnwindInfos[codeRangeUnwindInfos.length() - 1].unwindHow() ==
+          CodeRangeUnwindInfo::Normal);
+      return nullptr;
+    }
+    info = &codeRangeUnwindInfos[match - 1];
+  }
+  return info->unwindHow() == CodeRangeUnwindInfo::Normal ? nullptr : info;
 }
 
 struct ProjectFuncIndex {
@@ -873,7 +955,8 @@ bool Code::initialize(const LinkData& linkData, UniqueCodeBlock tierCodeBlock) {
   tier1_ = tierCodeBlock.get();
   trapCode_ = tier1_->segment->base() + linkData.trapOffset;
   if (!jumpTables_.initialize(mode_, *tier1_) ||
-      !guard->blocks.append(std::move(tierCodeBlock))) {
+      !guard->blocks.append(std::move(tierCodeBlock)) ||
+      !blockMap_.insert(tier1_)) {
     // Reset the tier1 pointer to maintain the initialization invariant
     tier1_ = nullptr;
     MOZ_ASSERT(!initialized());
@@ -948,91 +1031,6 @@ const CodeBlock& Code::codeBlock(Tier tier) const {
   MOZ_CRASH();
 }
 
-struct CallSiteRetAddrOffset {
-  const CallSiteVector& callSites;
-  explicit CallSiteRetAddrOffset(const CallSiteVector& callSites)
-      : callSites(callSites) {}
-  uint32_t operator[](size_t index) const {
-    return callSites[index].returnAddressOffset();
-  }
-};
-
-const CallSite* Code::lookupCallSite(void* returnAddress) const {
-  for (Tier t : tiers()) {
-    uint32_t target = ((uint8_t*)returnAddress) - segment(t).base();
-    size_t lowerBound = 0;
-    size_t upperBound = codeBlock(t).callSites.length();
-
-    size_t match;
-    if (BinarySearch(CallSiteRetAddrOffset(codeBlock(t).callSites), lowerBound,
-                     upperBound, target, &match)) {
-      return &codeBlock(t).callSites[match];
-    }
-  }
-
-  return nullptr;
-}
-
-const CodeRange* Code::lookupFuncRange(void* pc) const {
-  for (Tier t : tiers()) {
-    const CodeRange* result = codeBlock(t).lookupRange(pc);
-    if (result && result->isFunction()) {
-      return result;
-    }
-  }
-  return nullptr;
-}
-
-const StackMap* Code::lookupStackMap(uint8_t* nextPC) const {
-  for (Tier t : tiers()) {
-    const StackMap* result = codeBlock(t).stackMaps.findMap(nextPC);
-    if (result) {
-      return result;
-    }
-  }
-  return nullptr;
-}
-
-const wasm::TryNote* Code::lookupTryNote(void* pc, Tier* tier) const {
-  for (Tier t : tiers()) {
-    const TryNote* result = codeBlock(t).lookupTryNote(pc);
-    if (result) {
-      *tier = t;
-      return result;
-    }
-  }
-  return nullptr;
-}
-
-struct TrapSitePCOffset {
-  const TrapSiteVector& trapSites;
-  explicit TrapSitePCOffset(const TrapSiteVector& trapSites)
-      : trapSites(trapSites) {}
-  uint32_t operator[](size_t index) const { return trapSites[index].pcOffset; }
-};
-
-bool Code::lookupTrap(void* pc, Trap* trapOut, BytecodeOffset* bytecode) const {
-  for (Tier t : tiers()) {
-    uint32_t target = ((uint8_t*)pc) - segment(t).base();
-    const TrapSiteVectorArray& trapSitesArray = codeBlock(t).trapSites;
-    for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
-      const TrapSiteVector& trapSites = trapSitesArray[trap];
-
-      size_t upperBound = trapSites.length();
-      size_t match;
-      if (BinarySearch(TrapSitePCOffset(trapSites), 0, upperBound, target,
-                       &match)) {
-        MOZ_ASSERT(codeBlock(t).containsCodePC(pc));
-        *trapOut = trap;
-        *bytecode = trapSites[match].bytecode;
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
 bool Code::lookupFunctionTier(const CodeRange* codeRange, Tier* tier) const {
   // This logic only works if the codeRange is a function, and therefore only
   // exists in metadata and not a lazy stub tier. Generalizing to access lazy
@@ -1047,39 +1045,6 @@ bool Code::lookupFunctionTier(const CodeRange* codeRange, Tier* tier) const {
     }
   }
   return false;
-}
-
-struct UnwindInfoPCOffset {
-  const CodeRangeUnwindInfoVector& info;
-  explicit UnwindInfoPCOffset(const CodeRangeUnwindInfoVector& info)
-      : info(info) {}
-  uint32_t operator[](size_t index) const { return info[index].offset(); }
-};
-
-const CodeRangeUnwindInfo* Code::lookupUnwindInfo(void* pc) const {
-  for (Tier t : tiers()) {
-    uint32_t target = ((uint8_t*)pc) - segment(t).base();
-    const CodeRangeUnwindInfoVector& unwindInfoArray =
-        codeBlock(t).codeRangeUnwindInfos;
-    size_t match;
-    const CodeRangeUnwindInfo* info = nullptr;
-    if (BinarySearch(UnwindInfoPCOffset(unwindInfoArray), 0,
-                     unwindInfoArray.length(), target, &match)) {
-      info = &unwindInfoArray[match];
-    } else {
-      // Exact match is not found, using insertion point to get the previous
-      // info entry; skip if info is outside of codeRangeUnwindInfos.
-      if (match == 0) continue;
-      if (match == unwindInfoArray.length()) {
-        MOZ_ASSERT(unwindInfoArray[unwindInfoArray.length() - 1].unwindHow() ==
-                   CodeRangeUnwindInfo::Normal);
-        continue;
-      }
-      info = &unwindInfoArray[match - 1];
-    }
-    return info->unwindHow() == CodeRangeUnwindInfo::Normal ? nullptr : info;
-  }
-  return nullptr;
 }
 
 // When enabled, generate profiling labels for every name in funcNames_ that is
