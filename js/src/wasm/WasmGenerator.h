@@ -20,6 +20,7 @@
 #define wasm_generator_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 
 #include "jit/MacroAssembler.h"
@@ -174,6 +175,16 @@ class MOZ_STACK_CLASS ModuleGenerator {
     CallFarJump(uint32_t fi, jit::CodeOffset j) : funcIndex(fi), jump(j) {}
   };
   using CallFarJumpVector = Vector<CallFarJump, 0, SystemAllocPolicy>;
+  // Encapsulates the macro assembler state so that we can create a new one for
+  // each code block. Not heap allocated because the macro assembler is a
+  // 'stack class'.
+  struct MacroAssemblerScope {
+    jit::TempAllocator masmAlloc;
+    jit::WasmMacroAssembler masm;
+
+    explicit MacroAssemblerScope(LifoAlloc& lifo);
+    ~MacroAssemblerScope() = default;
+  };
 
   // Constant parameters
   SharedCompileArgs const compileArgs_;
@@ -183,16 +194,15 @@ class MOZ_STACK_CLASS ModuleGenerator {
   CodeMetadata* const codeMeta_;
   CompilerEnvironment* const compilerEnv_;
 
-  // Data that is moved into the result of finish()
-  UniqueLinkData linkData_;
-  UniqueCodeBlock codeBlock_;
+  // The metadata to be used for compiling functions
   MutableCodeMetadataForAsmJS codeMetaForAsmJS_;
 
-  // Data scoped to the ModuleGenerator's lifetime
-  CompileTaskState taskState_;
+  // Data that is used to construct a CodeBlock
+  UniqueCodeBlock codeBlock_;
+  UniqueLinkData linkData_;
   LifoAlloc lifo_;
-  jit::TempAllocator masmAlloc_;
-  jit::WasmMacroAssembler masm_;
+  Maybe<MacroAssemblerScope> masmScope_;
+  jit::WasmMacroAssembler* masm_;
   uint32_t debugTrapCodeOffset_;
   CallFarJumpVector callFarJumps_;
   CallSiteTargetVector callSiteTargets_;
@@ -202,6 +212,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   // Parallel compilation
   bool parallel_;
   uint32_t outstanding_;
+  CompileTaskState taskState_;
   CompileTaskVector tasks_;
   CompileTaskPtrVector freeTasks_;
   CompileTask* currentTask_;
@@ -210,8 +221,8 @@ class MOZ_STACK_CLASS ModuleGenerator {
   // Assertions
   DebugOnly<bool> finishedFuncDefs_;
 
-  bool funcIsCompiled(uint32_t funcIndex) const;
-  const CodeRange& funcCodeRange(uint32_t funcIndex) const;
+  bool funcIsCompiledInBlock(uint32_t funcIndex) const;
+  const CodeRange& funcCodeRangeInBlock(uint32_t funcIndex) const;
   bool linkCallSites();
   void noteCodeRange(uint32_t codeRangeIndex, const CodeRange& codeRange);
   bool linkCompiledCode(CompiledCode& code);
@@ -219,9 +230,23 @@ class MOZ_STACK_CLASS ModuleGenerator {
   bool finishTask(CompileTask* task);
   bool launchBatchCompile();
   bool finishOutstandingTask();
-  bool finishCodegen();
-  bool finishMetadataTier();
-  UniqueCodeBlock finishCodeBlock();
+
+  // Begins the creation of a code block. All code compiled during this time
+  // will go into this code block. All previous code blocks must be finished.
+  [[nodiscard]] bool startCodeBlock();
+  // Finish the creation of a code block. This will move all the compiled code
+  // and metadata into the code block and initialize it. Returns a `linkData`
+  // through an out-param that can be serialized with the code block.
+  UniqueCodeBlock finishCodeBlock(UniqueLinkData* linkData);
+
+  // Starts the creation of a complete tier of wasm code. Every function
+  // defined in this module must be compiled, then finishCompleteTier must be
+  // called.
+  [[nodiscard]] bool startCompleteTier();
+  // Finishes a complete tier of wasm code. Returns a `linkData` through an
+  // out-param that can be serialized with the code block.
+  UniqueCodeBlock finishCompleteTier(UniqueLinkData* linkData);
+
   bool finishCodeMetadata(const Bytes& bytecode);
 
   bool isAsmJS() const { return codeMeta_->isAsmJS(); }

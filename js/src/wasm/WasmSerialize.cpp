@@ -970,9 +970,6 @@ CoderResult CodeLinkData(Coder<mode>& coder,
   // often. Exclude symbolicLinks field from trip wire value calculation.
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(
       wasm::LinkData, 48 + sizeof(wasm::LinkData::SymbolicLinkArray));
-  if constexpr (mode == MODE_ENCODE) {
-    MOZ_ASSERT(item->tier == Tier::Serialized);
-  }
   MOZ_TRY(CodePod(coder, &item->pod()));
   MOZ_TRY(CodePodVector(coder, &item->internalLinks));
   MOZ_TRY(CodeSymbolicLinkArray(coder, &item->symbolicLinks));
@@ -1237,7 +1234,7 @@ CoderResult CodeModule(Coder<MODE_DECODE>& coder, MutableModule* item) {
       (CodeVector<MODE_DECODE, CustomSection, &CodeCustomSection<MODE_DECODE>>(
           coder, &customSections)));
 
-  LinkData linkData(Tier::Serialized);
+  LinkData linkData;
   MOZ_TRY(Magic(coder, Marker::LinkData));
   MOZ_TRY(CodeLinkData(coder, &linkData));
 

@@ -98,7 +98,7 @@ WASM_DECLARE_CACHEABLE_POD(LinkDataCacheablePod);
 WASM_CHECK_CACHEABLE_POD_PADDING(LinkDataCacheablePod)
 
 struct LinkData : LinkDataCacheablePod {
-  explicit LinkData(Tier tier) : tier(tier) {}
+  LinkData() = default;
 
   LinkDataCacheablePod& pod() { return *this; }
   const LinkDataCacheablePod& pod() const { return *this; }
@@ -119,12 +119,24 @@ struct LinkData : LinkDataCacheablePod {
 
   struct SymbolicLinkArray : EnumeratedArray<SymbolicAddress, Uint32Vector,
                                              size_t(SymbolicAddress::Limit)> {
+    bool isEmpty() const {
+      for (const Uint32Vector& symbolicLinks : *this) {
+        if (symbolicLinks.length() != 0) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
   };
 
-  const Tier tier;
   InternalLinkVector internalLinks;
   SymbolicLinkArray symbolicLinks;
+
+  bool isEmpty() const {
+    return internalLinks.length() == 0 && symbolicLinks.isEmpty();
+  }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
