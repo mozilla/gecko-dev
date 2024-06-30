@@ -275,5 +275,6 @@
   "gFindBar",
   "gFindBarInitialized",
   "gFindBarPromise",
-  "BrowserSearch"
+  "BrowserSearch",
+  "PBMExitStatus"
 ]
