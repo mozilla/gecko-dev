@@ -274,7 +274,9 @@ div.CodeMirror span.eval-text {
   background-color: #556;
 }
 
-.cm-s-mozilla .CodeMirror-linenumber { /* line number text */
+.cm-s-mozilla .CodeMirror-linenumber, /* line number text */
+/* Codemirror 6 */
+.cm-editor .cm-gutterElement {
   color: var(--grey-40);
 }
 
