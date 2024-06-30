@@ -362,6 +362,10 @@
   }
 }
 
+.cm-editor .cm-gutter.cm-lineNumbers {
+  user-select: none;
+}
+
 .cm-editor .cm-foldPlaceholder {
   font-family: sans-serif;
   padding: 0 2px;
