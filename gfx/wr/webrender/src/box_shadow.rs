@@ -1,16 +1,106 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ use api::{BorderRadius, BoxShadowClipMode, ClipMode, ColorF, ColorU, PrimitiveKeyKind, PropertyBinding};
+ use api::units::*;
+ use crate::clip::{ClipItemKey, ClipItemKeyKind, ClipNodeId};
+ use crate::intern::{Handle as InternHandle, InternDebug, Internable};
+ use crate::prim_store::{InternablePrimitive, PrimKey, PrimTemplate, PrimTemplateCommonData};
+ use crate::prim_store::{PrimitiveInstanceKind, PrimitiveStore};
+ use crate::scene_building::{SceneBuilder, IsVisible};
+ use crate::spatial_tree::SpatialNodeIndex;
+ use crate::gpu_types::BoxShadowStretchMode;
+ use crate::render_task_graph::RenderTaskId;
+ use crate::internal_types::LayoutPrimitiveInfo;
 
-use api::{BorderRadius, BoxShadowClipMode, ClipMode, ColorF, PrimitiveKeyKind};
-use api::PropertyBinding;
-use api::units::*;
-use crate::clip::{ClipItemKey, ClipItemKeyKind, ClipNodeId};
-use crate::scene_building::SceneBuilder;
-use crate::spatial_tree::SpatialNodeIndex;
-use crate::gpu_types::BoxShadowStretchMode;
-use crate::render_task_graph::RenderTaskId;
-use crate::internal_types::LayoutPrimitiveInfo;
+pub type BoxShadowKey = PrimKey<BoxShadow>;
+
+impl BoxShadowKey {
+    pub fn new(
+        info: &LayoutPrimitiveInfo,
+        shadow: BoxShadow,
+    ) -> Self {
+        BoxShadowKey {
+            common: info.into(),
+            kind: shadow,
+        }
+    }
+}
+
+impl InternDebug for BoxShadowKey {}
+
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+#[derive(Debug, Clone, MallocSizeOf, Hash, Eq, PartialEq)]
+pub struct BoxShadow {
+    pub color: ColorU,
+    pub blur_radius: Au,
+    pub clip_mode: BoxShadowClipMode,
+}
+
+impl IsVisible for BoxShadow {
+    fn is_visible(&self) -> bool {
+        true
+    }
+}
+
+pub type BoxShadowDataHandle = InternHandle<BoxShadow>;
+
+impl InternablePrimitive for BoxShadow {
+    fn into_key(
+        self,
+        info: &LayoutPrimitiveInfo,
+    ) -> BoxShadowKey {
+        BoxShadowKey::new(info, self)
+    }
+
+    fn make_instance_kind(
+        _key: BoxShadowKey,
+        data_handle: BoxShadowDataHandle,
+        _prim_store: &mut PrimitiveStore,
+    ) -> PrimitiveInstanceKind {
+        PrimitiveInstanceKind::BoxShadow {
+            data_handle,
+        }
+    }
+}
+
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+#[derive(Debug, MallocSizeOf)]
+pub struct BoxShadowData {
+    pub color: ColorF,
+    pub blur_radius: f32,
+    pub clip_mode: BoxShadowClipMode,
+}
+
+impl From<BoxShadow> for BoxShadowData {
+    fn from(shadow: BoxShadow) -> Self {
+        BoxShadowData {
+            color: shadow.color.into(),
+            blur_radius: shadow.blur_radius.to_f32_px(),
+            clip_mode: shadow.clip_mode,
+        }
+    }
+}
+
+pub type BoxShadowTemplate = PrimTemplate<BoxShadowData>;
+
+impl Internable for BoxShadow {
+    type Key = BoxShadowKey;
+    type StoreData = BoxShadowTemplate;
+    type InternData = ();
+    const PROFILE_COUNTER: usize = crate::profiler::INTERNED_BOX_SHADOWS;
+}
+
+impl From<BoxShadowKey> for BoxShadowTemplate {
+    fn from(shadow: BoxShadowKey) -> Self {
+        BoxShadowTemplate {
+            common: PrimTemplateCommonData::with_key_common(shadow.common),
+            kind: shadow.kind.into(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, MallocSizeOf)]
 #[cfg_attr(feature = "capture", derive(Serialize))]

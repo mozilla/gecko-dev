@@ -3493,6 +3493,7 @@ impl TileCacheInstance {
             }
             PrimitiveInstanceKind::LineDecoration { .. } |
             PrimitiveInstanceKind::NormalBorder { .. } |
+            PrimitiveInstanceKind::BoxShadow { .. } |
             PrimitiveInstanceKind::TextRun { .. } => {
                 // These don't contribute dependencies
             }

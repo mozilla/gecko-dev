@@ -50,7 +50,8 @@ bool gecko_profiler_thread_is_being_profiled();
   macro(filterdata);                       \
   macro(backdrop_capture);                 \
   macro(backdrop_render);                  \
-  macro(polyon);
+  macro(polyon);                           \
+  macro(box_shadow);
 
 // Prelude of types necessary before including webrender_ffi_generated.h
 namespace mozilla {

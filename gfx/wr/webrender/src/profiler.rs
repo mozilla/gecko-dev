@@ -233,53 +233,53 @@ pub const INTERNED_FILTER_DATA: usize = 97;
 pub const INTERNED_BACKDROP_CAPTURES: usize = 98;
 pub const INTERNED_BACKDROP_RENDERS: usize = 99;
 pub const INTERNED_POLYGONS: usize = 100;
+pub const INTERNED_BOX_SHADOWS: usize = 101;
+pub const DEPTH_TARGETS_MEM: usize = 102;
 
-pub const DEPTH_TARGETS_MEM: usize = 101;
+pub const SHADER_BUILD_TIME: usize = 103;
 
-pub const SHADER_BUILD_TIME: usize = 102;
+pub const RENDER_REASON_FIRST: usize = 104;
+pub const RENDER_REASON_SCENE: usize = 104;
+pub const RENDER_REASON_ANIMATED_PROPERTY: usize = 105;
+pub const RENDER_REASON_RESOURCE_UPDATE: usize = 106;
+pub const RENDER_REASON_ASYNC_IMAGE: usize = 107;
+pub const RENDER_REASON_CLEAR_RESOURCES: usize = 108;
+pub const RENDER_REASON_APZ: usize = 109;
+pub const RENDER_REASON_RESIZE: usize = 110;
+pub const RENDER_REASON_WIDGET: usize = 111;
+pub const RENDER_REASON_TEXTURE_CACHE_FLUSH: usize = 112;
+pub const RENDER_REASON_SNAPSHOT: usize = 113;
+pub const RENDER_REASON_POST_RESOURCE_UPDATE_HOOKS: usize = 114;
+pub const RENDER_REASON_CONFIG_CHANGE: usize = 115;
+pub const RENDER_REASON_CONTENT_SYNC: usize = 116;
+pub const RENDER_REASON_FLUSH: usize = 117;
+pub const RENDER_REASON_TESTING: usize = 118;
+pub const RENDER_REASON_OTHER: usize = 119;
+pub const RENDER_REASON_VSYNC: usize = 120;
 
-pub const RENDER_REASON_FIRST: usize = 103;
-pub const RENDER_REASON_SCENE: usize = 103;
-pub const RENDER_REASON_ANIMATED_PROPERTY: usize = 104;
-pub const RENDER_REASON_RESOURCE_UPDATE: usize = 105;
-pub const RENDER_REASON_ASYNC_IMAGE: usize = 106;
-pub const RENDER_REASON_CLEAR_RESOURCES: usize = 107;
-pub const RENDER_REASON_APZ: usize = 108;
-pub const RENDER_REASON_RESIZE: usize = 109;
-pub const RENDER_REASON_WIDGET: usize = 110;
-pub const RENDER_REASON_TEXTURE_CACHE_FLUSH: usize = 111;
-pub const RENDER_REASON_SNAPSHOT: usize = 112;
-pub const RENDER_REASON_POST_RESOURCE_UPDATE_HOOKS: usize = 113;
-pub const RENDER_REASON_CONFIG_CHANGE: usize = 114;
-pub const RENDER_REASON_CONTENT_SYNC: usize = 115;
-pub const RENDER_REASON_FLUSH: usize = 116;
-pub const RENDER_REASON_TESTING: usize = 117;
-pub const RENDER_REASON_OTHER: usize = 118;
-pub const RENDER_REASON_VSYNC: usize = 119;
+pub const TEXTURES_CREATED: usize = 121;
+pub const TEXTURES_DELETED: usize = 122;
 
-pub const TEXTURES_CREATED: usize = 120;
-pub const TEXTURES_DELETED: usize = 121;
+pub const SLOW_FRAME_CPU_COUNT: usize = 123;
+pub const SLOW_FRAME_GPU_COUNT: usize = 124;
+pub const SLOW_FRAME_BUILD_COUNT: usize = 125;
+pub const SLOW_UPLOAD_COUNT: usize = 126;
+pub const SLOW_RENDER_COUNT: usize = 127;
+pub const SLOW_DRAW_CALLS_COUNT: usize = 128;
+pub const SLOW_TARGETS_COUNT: usize = 129;
+pub const SLOW_BLOB_COUNT: usize = 130;
+pub const SLOW_SCROLL_AFTER_SCENE_COUNT: usize = 131;
 
-pub const SLOW_FRAME_CPU_COUNT: usize = 122;
-pub const SLOW_FRAME_GPU_COUNT: usize = 123;
-pub const SLOW_FRAME_BUILD_COUNT: usize = 124;
-pub const SLOW_UPLOAD_COUNT: usize = 125;
-pub const SLOW_RENDER_COUNT: usize = 126;
-pub const SLOW_DRAW_CALLS_COUNT: usize = 127;
-pub const SLOW_TARGETS_COUNT: usize = 128;
-pub const SLOW_BLOB_COUNT: usize = 129;
-pub const SLOW_SCROLL_AFTER_SCENE_COUNT: usize = 130;
+pub const GPU_CACHE_MEM: usize = 132;
+pub const GPU_BUFFER_MEM: usize = 133;
+pub const GPU_TOTAL_MEM: usize = 134;
 
-pub const GPU_CACHE_MEM: usize = 131;
-pub const GPU_BUFFER_MEM: usize = 132;
-pub const GPU_TOTAL_MEM: usize = 133;
+pub const GPU_CACHE_PREPARE_TIME: usize = 135;
 
-pub const GPU_CACHE_PREPARE_TIME: usize = 134;
+pub const FRAME_SEND_TIME: usize = 136;
+pub const UPDATE_DOCUMENT_TIME: usize = 137;
 
-pub const FRAME_SEND_TIME: usize = 135;
-pub const UPDATE_DOCUMENT_TIME: usize = 136;
-
-pub const NUM_PROFILER_EVENTS: usize = 137;
+pub const NUM_PROFILER_EVENTS: usize = 138;
 
 pub struct Profiler {
     counters: Vec<Counter>,
@@ -453,6 +453,7 @@ impl Profiler {
             int("Interned backdrop captures", "", INTERNED_BACKDROP_CAPTURES, Expected::none()),
             int("Interned backdrop renders", "", INTERNED_BACKDROP_RENDERS, Expected::none()),
             int("Interned polygons", "", INTERNED_POLYGONS, Expected::none()),
+            int("Interned box-shadows", "", INTERNED_BOX_SHADOWS, Expected::none()),
 
             float("Depth targets mem", "MB", DEPTH_TARGETS_MEM, Expected::none()),
             float("Shader build time", "ms", SHADER_BUILD_TIME, Expected::none()),

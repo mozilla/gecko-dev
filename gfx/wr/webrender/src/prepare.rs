@@ -254,6 +254,7 @@ fn prepare_prim_for_render(
 
                 *no_quads
             }
+            PrimitiveInstanceKind::BoxShadow { .. } |
             PrimitiveInstanceKind::Picture { .. } => false,
             _ => true,
         };
@@ -320,6 +321,9 @@ fn prepare_interned_prim_for_render(
     let device_pixel_scale = frame_state.surfaces[pic_context.surface_index.0].device_pixel_scale;
 
     match &mut prim_instance.kind {
+        PrimitiveInstanceKind::BoxShadow { .. } => {
+            unreachable!("Native box shadow prims are not enabled yet");
+        }
         PrimitiveInstanceKind::LineDecoration { data_handle, ref mut render_task, .. } => {
             profile_scope!("LineDecoration");
             let prim_data = &mut data_stores.line_decoration[*data_handle];
@@ -1268,6 +1272,9 @@ fn update_clip_task_for_brush(
     device_pixel_scale: DevicePixelScale,
 ) -> Option<ClipTaskIndex> {
     let segments = match instance.kind {
+        PrimitiveInstanceKind::BoxShadow { .. } => {
+            unreachable!("BUG: box-shadows should not hit legacy brush clip path");
+        }
         PrimitiveInstanceKind::Picture { .. } |
         PrimitiveInstanceKind::TextRun { .. } |
         PrimitiveInstanceKind::Clear { .. } |
@@ -1737,6 +1744,9 @@ fn build_segments_if_needed(
         PrimitiveInstanceKind::BackdropRender { .. } => {
             // These primitives don't support / need segments.
             return;
+        }
+        PrimitiveInstanceKind::BoxShadow { .. } => {
+            unreachable!("BUG: box-shadows should not hit legacy brush clip path");
         }
     };
 

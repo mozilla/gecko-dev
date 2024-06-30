@@ -400,6 +400,7 @@ macro_rules! enumerate_interners {
             backdrop_capture: BackdropCapture,
             backdrop_render: BackdropRender,
             polygon: PolygonIntern,
+            box_shadow: BoxShadow,
         }
     }
 }

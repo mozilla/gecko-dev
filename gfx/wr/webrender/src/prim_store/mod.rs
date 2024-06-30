@@ -49,6 +49,7 @@ use image::{ImageDataHandle, ImageInstance, YuvImageDataHandle};
 use line_dec::LineDecorationDataHandle;
 use picture::PictureDataHandle;
 use text_run::{TextRunDataHandle, TextRunPrimitive};
+use crate::box_shadow::BoxShadowDataHandle;
 
 pub const VECS_PER_SEGMENT: usize = 2;
 
@@ -1050,6 +1051,9 @@ pub enum PrimitiveInstanceKind {
         data_handle: BackdropRenderDataHandle,
         pic_index: PictureIndex,
     },
+    BoxShadow {
+        data_handle: BoxShadowDataHandle,
+    },
 }
 
 impl PrimitiveInstanceKind {
@@ -1148,6 +1152,9 @@ impl PrimitiveInstance {
                 data_handle.uid()
             }
             PrimitiveInstanceKind::BackdropRender { data_handle, .. } => {
+                data_handle.uid()
+            }
+            PrimitiveInstanceKind::BoxShadow { data_handle, .. } => {
                 data_handle.uid()
             }
         }

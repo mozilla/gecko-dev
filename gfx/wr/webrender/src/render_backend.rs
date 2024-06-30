@@ -16,6 +16,7 @@ use api::{FramePublishId, PrimitiveKeyKind, RenderReasons};
 use api::units::*;
 use api::channel::{single_msg_channel, Sender, Receiver};
 use crate::AsyncPropertySampler;
+use crate::box_shadow::BoxShadow;
 #[cfg(any(feature = "capture", feature = "replay"))]
 use crate::render_api::CaptureBits;
 #[cfg(feature = "replay")]
@@ -283,6 +284,10 @@ impl DataStores {
             }
             PrimitiveInstanceKind::BackdropRender { data_handle, .. } => {
                 let prim_data = &self.backdrop_render[data_handle];
+                &prim_data.common
+            }
+            PrimitiveInstanceKind::BoxShadow { data_handle, .. } => {
+                let prim_data = &self.box_shadow[data_handle];
                 &prim_data.common
             }
         }
