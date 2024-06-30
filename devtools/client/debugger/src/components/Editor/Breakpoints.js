@@ -22,22 +22,6 @@ const classnames = require("resource://devtools/client/shared/classnames.js");
 
 const isMacOS = Services.appinfo.OS === "Darwin";
 
-const breakpointSvg = document.createElement("div");
-const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-svg.setAttribute("viewBox", "0 0 60 15");
-svg.setAttribute("width", 60);
-svg.setAttribute("height", 15);
-
-const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-path.setAttributeNS(
-  null,
-  "d",
-  "M53.07.5H1.5c-.54 0-1 .46-1 1v12c0 .54.46 1 1 1h51.57c.58 0 1.15-.26 1.53-.7l4.7-6.3-4.7-6.3c-.38-.44-.95-.7-1.53-.7z"
-);
-
-svg.appendChild(path);
-breakpointSvg.appendChild(svg);
-
 class Breakpoints extends Component {
   static get propTypes() {
     return {
@@ -55,8 +39,16 @@ class Breakpoints extends Component {
     super(props);
   }
 
+  componentDidMount() {
+    this.setMarkers();
+  }
+
   componentDidUpdate() {
-    const { selectedSource, breakpoints, editor } = this.props;
+    this.setMarkers();
+  }
+
+  setMarkers() {
+    const { selectedSource, editor, breakpoints } = this.props;
 
     // Only for codemirror 6
     if (!features.codemirrorNext) {
@@ -81,7 +73,7 @@ class Breakpoints extends Component {
             bp => bp.location.line === lineNumber
           );
 
-          const breakpointNode = breakpointSvg.cloneNode(true);
+          const breakpointNode = document.createElement("div");
           breakpointNode.appendChild(document.createTextNode(lineNumber));
           breakpointNode.className = classnames("breakpoint-marker", {
             "breakpoint-disabled": breakpoint.disabled,

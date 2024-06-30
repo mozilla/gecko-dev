@@ -240,7 +240,21 @@ class Editor extends PureComponent {
     } else {
       editor.setUpdateListener(this.onEditorUpdated);
       editor.setGutterEventListeners({
-        click: (event, cm, line) => this.onGutterClick(cm, line, null, event),
+        click: (event, cm, line) => {
+          // Ignore clicks on the code folding button
+          if (
+            event.target.className.includes("cm6-dt-foldgutter__toggle-button")
+          ) {
+            return;
+          }
+          // Clicking any where on the fold gutter (except on a code folding button)
+          // should toggle the breakpoint for this line, if possible.
+          if (event.target.className.includes("cm-foldGutter")) {
+            this.props.toggleBreakpointAtLine(line);
+            return;
+          }
+          this.onGutterClick(cm, line, null, event);
+        },
         contextmenu: (event, cm, line) => this.openMenu(event, line),
       });
       editor.addEditorDOMEventListeners({
@@ -508,8 +522,8 @@ class Editor extends PureComponent {
 
     if (
       // handles codemirror 6
-      (target.classList.contains("cm-gutterElement") &&
-        target.closest(".cm-gutter.cm-lineNumbers")) ||
+      target.classList.contains("cm-gutter") ||
+      target.classList.contains("cm-gutterElement") ||
       // handles codemirror 5
       target.classList.contains("CodeMirror-linenumber")
     ) {

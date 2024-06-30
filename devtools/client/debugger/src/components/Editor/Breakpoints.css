@@ -36,7 +36,77 @@
   pointer-events: none;
 }
 
-.editor-wrapper :not(.empty-line, .new-breakpoint .cm6-gutter-breakpoint)
+/* CM6 */
+.cm-lineNumbers .cm-gutterElement:not(.empty-line, .cm6-gutter-breakpoint):hover {
+  background: url(chrome://devtools/content/debugger/images/breakpoint.svg) no-repeat;
+  background-size: auto 15px;
+  background-position: right;
+  -moz-context-properties: fill, stroke;
+  fill: var(--gutter-hover-background-color);
+  stroke: var(--gutter-hover-background-color);
+}
+
+.editor-wrapper .cm-lineNumbers .cm-gutterElement {
+  min-width: 40px;
+  /*
+   * Since we're toggling breakpoint when the __code folding__ gutter is clicked
+   * we want to show the "preview breakpoint" on hover when hovering the code folding gutter too.
+   * The different gutters (line and code folding) are sibling divs which
+   * are laid out side-by-side:
+   * |1 | ▼|
+   * |2 |  |
+   * |3 | ▶︎|
+   * …
+   * so we don't have a simple way to target the line number element when hovering
+   * the code folding gutter.
+   * The solution is to make the line number take the whole gutters element width,
+   * using a pseudo-element so it will widen the :hover target for line number elements.
+   */
+  :is(
+    &:not(.cm6-gutter-breakpoint),
+    &.cm6-gutter-breakpoint .breakpoint-marker
+    )::after {
+      content: "";
+      position: absolute;
+      height: 1lh;
+      right: 0;
+      left: 0;
+    }
+}
+
+/* CodeMirror puts a padding on the line gutter, but we want the breakpoint to take the whole gutter */
+.cm-lineNumbers .cm-gutterElement.cm6-gutter-breakpoint {
+  padding: 0;
+}
+/* Put the same padding on lines with and without breakpoints */
+.cm-lineNumbers .cm-gutterElement:not(.cm6-gutter-breakpoint),
+/* For lines with breakpoints, put the padding inside the marker */
+.cm-lineNumbers .cm-gutterElement.cm6-gutter-breakpoint .breakpoint-marker {
+  padding: 0 13px 0 10px;
+}
+
+.cm6-gutter-breakpoint .breakpoint-marker {
+  background: url(chrome://devtools/content/debugger/images/breakpoint.svg) no-repeat;
+  background-size: auto 15px;
+  background-position: right;
+  -moz-context-properties: fill, stroke;
+  fill: var(--breakpoint-fill);
+  stroke: var(--breakpoint-stroke);
+  color: white;
+}
+
+.cm6-gutter-breakpoint .breakpoint-marker.has-condition {
+  fill: var(--breakpoint-condition-fill);
+  stroke: var(--breakpoint-condition-stroke);
+}
+
+.cm6-gutter-breakpoint .breakpoint-marker.has-log {
+  fill: var(--logpoint-fill);
+  stroke: var(--logpoint-stroke);
+}
+/* End CM6 */
+
+.editor-wrapper :not(.new-breakpoint)
   > .CodeMirror-gutter-wrapper
   > .CodeMirror-linenumber:hover::after {
   content: "";
@@ -55,19 +125,8 @@
   mask-position: right;
 }
 
-/* Codemirror 6*/
-.cm6-gutter-breakpoint .breakpoint-marker svg {
-  fill: var(--breakpoint-fill);
-  stroke: var(--breakpoint-stroke);
-  height: 14px;
-  position: absolute;
-  right: -8px;
-  z-index: -99;
-}
-
 /* set the linenumber white when there is a breakpoint */
-.editor-wrapper:not(.skip-pausing) .new-breakpoint .CodeMirror-gutter-wrapper .CodeMirror-linenumber,
- .editor-wrapper:not(.skip-pausing) .cm6-gutter-breakpoint {
+.editor-wrapper:not(.skip-pausing) .new-breakpoint .CodeMirror-gutter-wrapper .CodeMirror-linenumber {
   color: white;
 }
 
@@ -95,16 +154,12 @@
   right: -16px;
 }
 
-.new-breakpoint.has-condition .CodeMirror-gutter-wrapper svg,
-/* Codemirror 6*/
-.cm6-gutter-breakpoint .breakpoint-marker.has-condition svg {
+.new-breakpoint.has-condition .CodeMirror-gutter-wrapper svg {
   fill: var(--breakpoint-condition-fill);
   stroke: var(--breakpoint-condition-stroke);
 }
 
-.new-breakpoint.has-log .CodeMirror-gutter-wrapper svg,
-/* Codemirror 6*/
-.cm6-gutter-breakpoint .breakpoint-marker.has-log svg {
+.new-breakpoint.has-log .CodeMirror-gutter-wrapper svg {
   fill: var(--logpoint-fill);
   stroke: var(--logpoint-stroke);
 }

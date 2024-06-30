@@ -637,6 +637,7 @@ class Editor extends EventEmitter {
     const positionContentMarkersCompartment = new Compartment();
     const searchHighlightCompartment = new Compartment();
     const domEventHandlersCompartment = new Compartment();
+    const foldGutterCompartment = new Compartment();
 
     this.#compartments = {
       tabSizeCompartment,
@@ -648,6 +649,7 @@ class Editor extends EventEmitter {
       positionContentMarkersCompartment,
       searchHighlightCompartment,
       domEventHandlersCompartment,
+      foldGutterCompartment,
     };
 
     const indentStr = (this.config.indentWithTabs ? "\t" : " ").repeat(
@@ -666,15 +668,7 @@ class Editor extends EventEmitter {
       codemirrorLanguage.codeFolding({
         placeholderText: "↔",
       }),
-      codemirrorLanguage.foldGutter({
-        class: "cm6-dt-foldgutter",
-        markerDOM: open => {
-          const button = this.#ownerDoc.createElement("button");
-          button.classList.add("cm6-dt-foldgutter__toggle-button");
-          button.setAttribute("aria-expanded", open);
-          return button;
-        },
-      }),
+      foldGutterCompartment.of([]),
       codemirrorLanguage.syntaxHighlighting(lezerHighlight.classHighlighter),
       EditorView.updateListener.of(v => {
         if (v.viewportChanged || v.docChanged) {
@@ -1133,6 +1127,7 @@ class Editor extends EventEmitter {
     const cm = editors.get(this);
     const {
       codemirrorView: { lineNumbers },
+      codemirrorLanguage: { foldGutter },
     } = this.#CodeMirror6;
 
     for (const eventName in domEventHandlers) {
@@ -1144,9 +1139,26 @@ class Editor extends EventEmitter {
     }
 
     cm.dispatch({
-      effects: this.#compartments.lineWrapCompartment.reconfigure(
-        lineNumbers({ domEventHandlers })
-      ),
+      effects: [
+        this.#compartments.lineWrapCompartment.reconfigure(
+          lineNumbers({ domEventHandlers })
+        ),
+        this.#compartments.foldGutterCompartment.reconfigure(
+          foldGutter({
+            class: "cm6-dt-foldgutter",
+            markerDOM: open => {
+              if (!this.#ownerDoc) {
+                return null;
+              }
+              const button = this.#ownerDoc.createElement("button");
+              button.classList.add("cm6-dt-foldgutter__toggle-button");
+              button.setAttribute("aria-expanded", open);
+              return button;
+            },
+            domEventHandlers,
+          })
+        ),
+      ],
     });
   }
 
