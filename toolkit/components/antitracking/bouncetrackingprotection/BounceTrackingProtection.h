@@ -22,6 +22,10 @@ class BounceTrackingProtectionStorage;
 class ClearDataCallback;
 class OriginAttributes;
 
+namespace dom {
+class WindowContext;
+}
+
 using ClearDataMozPromise = MozPromise<nsCString, uint32_t, true>;
 
 extern LazyLogModule gBounceTrackingProtectionLog;
@@ -46,8 +50,17 @@ class BounceTrackingProtection final : public nsIObserver,
   // Stores a user activation flag with a timestamp for the given principal. The
   // timestamp defaults to the current time, but can be overridden via
   // aActivationTime.
+  // Parent process only. Prefer the WindowContext variant if possible.
   [[nodiscard]] static nsresult RecordUserActivation(
       nsIPrincipal* aPrincipal, Maybe<PRTime> aActivationTime = Nothing());
+
+  // Same as above but can be called from any process given a WindowContext.
+  // Gecko callers should prefer this method because it takes care of IPC and
+  // gets the principal user activation. IPC messages from the content to parent
+  // passing a principal should be avoided for security reasons. aActivationTime
+  // defaults to PR_Now().
+  [[nodiscard]] static nsresult RecordUserActivation(
+      dom::WindowContext* aWindowContext);
 
   // Clears expired user interaction flags for the given state global. If
   // aStateGlobal == nullptr, clears expired user interaction flags for all
