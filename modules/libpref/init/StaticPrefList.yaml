@@ -11842,7 +11842,7 @@
 # with userinfo
 - name: network.auth.confirmAuth.enabled
   type: bool
-  value: false
+  value: true
   mirror: always
 
 # Whether to display auth prompts if X-Frame-Options header will block loading
