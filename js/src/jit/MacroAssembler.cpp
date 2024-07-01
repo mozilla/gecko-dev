@@ -3726,15 +3726,15 @@ void MacroAssembler::convertValueToFloatingPoint(ValueOperand value,
                                                  FloatRegister output,
                                                  Label* fail,
                                                  MIRType outputType) {
-  Label isDouble, isInt32, isBool, isNull, done;
+  Label isDouble, isInt32OrBool, isNull, done;
 
   {
     ScratchTagScope tag(*this, value);
     splitTagForTest(value, tag);
 
     branchTestDouble(Assembler::Equal, tag, &isDouble);
-    branchTestInt32(Assembler::Equal, tag, &isInt32);
-    branchTestBoolean(Assembler::Equal, tag, &isBool);
+    branchTestInt32(Assembler::Equal, tag, &isInt32OrBool);
+    branchTestBoolean(Assembler::Equal, tag, &isInt32OrBool);
     branchTestNull(Assembler::Equal, tag, &isNull);
     branchTestUndefined(Assembler::NotEqual, tag, fail);
   }
@@ -3755,15 +3755,7 @@ void MacroAssembler::convertValueToFloatingPoint(ValueOperand value,
   }
   jump(&done);
 
-  bind(&isBool);
-  if (outputType == MIRType::Float32) {
-    convertInt32ToFloat32(value.payloadOrValueReg(), output);
-  } else {
-    convertInt32ToDouble(value.payloadOrValueReg(), output);
-  }
-  jump(&done);
-
-  bind(&isInt32);
+  bind(&isInt32OrBool);
   if (outputType == MIRType::Float32) {
     convertInt32ToFloat32(value.payloadOrValueReg(), output);
   } else {
