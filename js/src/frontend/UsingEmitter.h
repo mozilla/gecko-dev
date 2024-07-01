@@ -12,6 +12,7 @@
 namespace js::frontend {
 
 struct BytecodeEmitter;
+class EmitterScope;
 
 class MOZ_STACK_CLASS UsingEmitter {
  private:
@@ -36,6 +37,8 @@ class MOZ_STACK_CLASS UsingEmitter {
   [[nodiscard]] bool prepareForForOfLoopIteration();
 
   [[nodiscard]] bool prepareForForOfIteratorCloseOnThrow();
+
+  [[nodiscard]] bool emitNonLocalJump(EmitterScope* present);
 
   [[nodiscard]] bool emitEnd();
 };

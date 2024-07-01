@@ -7,6 +7,7 @@
 #include "frontend/EmitterScope.h"
 
 #include "frontend/AbstractScopePtr.h"
+#include "frontend/BytecodeControlStructures.h"
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/ModuleSharedContext.h"
 #include "frontend/TDZCheckCache.h"
@@ -335,14 +336,13 @@ void EmitterScope::dump(BytecodeEmitter* bce) {
 }
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-bool EmitterScope::prepareForDisposableScopeBody(BytecodeEmitter* bce,
-                                                 IsSwitchBlock isSwitchBlock) {
+bool EmitterScope::prepareForDisposableScopeBody(BytecodeEmitter* bce) {
   if (hasDisposables()) {
     if (!usingEmitter_->prepareForDisposableScopeBody()) {
       return false;
     }
 
-    if (isSwitchBlock == IsSwitchBlock::Yes) {
+    if (isSwitchBlock_ == IsSwitchBlock::Yes) {
       // If there are disposables inside the switch case
       // and if an exception is thrown we would need to unwind
       // to the environment right before the switch statement for that
@@ -380,18 +380,42 @@ bool EmitterScope::prepareForForOfIteratorCloseOnThrow() {
   return true;
 }
 
-bool EmitterScope::emitDisposableScopeBodyEnd(BytecodeEmitter* bce,
-                                              IsSwitchBlock isSwitchBlock) {
+bool EmitterScope::emitSwitchBlockEndForDisposableScopeBodyEnd(
+    BytecodeEmitter* bce) {
+  MOZ_ASSERT(hasDisposables());
+
+  if (isSwitchBlock_ == IsSwitchBlock::Yes) {
+    // See `JSOp::Dup` in EmitterScope::prepareForDisposableScopeBody.
+    if (!bce->emit1(JSOp::Pop)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool EmitterScope::emitDisposableScopeBodyEndForNonLocalJump(
+    BytecodeEmitter* bce) {
+  if (hasDisposables()) {
+    if (!usingEmitter_->emitNonLocalJump(this)) {
+      return false;
+    };
+
+    if (!emitSwitchBlockEndForDisposableScopeBodyEnd(bce)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool EmitterScope::emitDisposableScopeBodyEnd(BytecodeEmitter* bce) {
   if (hasDisposables()) {
     if (!usingEmitter_->emitEnd()) {
       return false;
     }
 
-    if (isSwitchBlock == IsSwitchBlock::Yes) {
-      // See `JSOp::Dup` in EmitterScope::prepareForDisposableScopeBody.
-      if (!bce->emit1(JSOp::Pop)) {
-        return false;
-      }
+    if (!emitSwitchBlockEndForDisposableScopeBodyEnd(bce)) {
+      return false;
     }
   }
   return true;
@@ -475,7 +499,9 @@ bool EmitterScope::enterLexical(BytecodeEmitter* bce, ScopeKind kind,
   }
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  if (!prepareForDisposableScopeBody(bce, isSwitchBlock)) {
+  isSwitchBlock_ = isSwitchBlock;
+
+  if (!prepareForDisposableScopeBody(bce)) {
     return false;
   }
 #endif
@@ -1005,12 +1031,7 @@ bool EmitterScope::deadZoneFrameSlots(BytecodeEmitter* bce) const {
   return deadZoneFrameSlotRange(bce, frameSlotStart(), frameSlotEnd());
 }
 
-bool EmitterScope::leave(BytecodeEmitter* bce, bool nonLocal
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-                         ,
-                         IsSwitchBlock isSwitchBlock
-#endif
-) {
+bool EmitterScope::leave(BytecodeEmitter* bce, bool nonLocal) {
   // If we aren't leaving the scope due to a non-local jump (e.g., break),
   // we must be the innermost scope.
   MOZ_ASSERT_IF(!nonLocal, this == bce->innermostEmitterScopeNoCheck());
@@ -1024,8 +1045,14 @@ bool EmitterScope::leave(BytecodeEmitter* bce, bool nonLocal
     case ScopeKind::ClassBody:
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-      if (!emitDisposableScopeBodyEnd(bce, isSwitchBlock)) {
-        return false;
+      if (nonLocal) {
+        if (!emitDisposableScopeBodyEndForNonLocalJump(bce)) {
+          return false;
+        }
+      } else {
+        if (!emitDisposableScopeBodyEnd(bce)) {
+          return false;
+        }
       }
 #endif
 

@@ -397,13 +397,7 @@ bool SwitchEmitter::emitEnd() {
     return false;
   }
 
-  if (emitterScope_ && !emitterScope_->leave(bce_
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-                                             ,
-                                             /* nonLocal = */ false,
-                                             EmitterScope::IsSwitchBlock::Yes
-#endif
-                                             )) {
+  if (emitterScope_ && !emitterScope_->leave(bce_)) {
     return false;
   }
 

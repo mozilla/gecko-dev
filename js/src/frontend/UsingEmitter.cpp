@@ -50,6 +50,14 @@ bool UsingEmitter::prepareForForOfIteratorCloseOnThrow() {
   return true;
 }
 
+bool UsingEmitter::emitNonLocalJump(EmitterScope* present) {
+  MOZ_ASSERT(present->hasDisposables());
+  if (!bce_->emit1(JSOp::DisposeDisposables)) {
+    return false;
+  }
+  return true;
+}
+
 bool UsingEmitter::emitEnd() {
   MOZ_ASSERT(bce_->innermostEmitterScopeNoCheck()->hasDisposables());
   MOZ_ASSERT(disposableStart_.valid());

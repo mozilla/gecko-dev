@@ -53,6 +53,12 @@ class EmitterScope : public Nestable<EmitterScope> {
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
   mozilla::Maybe<UsingEmitter> usingEmitter_;
+
+ public:
+  enum class IsSwitchBlock : uint8_t { No, Yes };
+
+ private:
+  IsSwitchBlock isSwitchBlock_ = IsSwitchBlock::No;
 #endif
 
   // The number of enclosing environments. Used for error checking.
@@ -128,9 +134,6 @@ class EmitterScope : public Nestable<EmitterScope> {
 
   void dump(BytecodeEmitter* bce);
 
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  enum class IsSwitchBlock : uint8_t { No, Yes };
-#endif
   [[nodiscard]] bool enterLexical(
       BytecodeEmitter* bce, ScopeKind kind, LexicalScope::ParserData* bindings
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
@@ -153,12 +156,7 @@ class EmitterScope : public Nestable<EmitterScope> {
   [[nodiscard]] bool enterWith(BytecodeEmitter* bce);
   [[nodiscard]] bool deadZoneFrameSlots(BytecodeEmitter* bce) const;
 
-  [[nodiscard]] bool leave(BytecodeEmitter* bce, bool nonLocal = false
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-                           ,
-                           IsSwitchBlock isSwitchBlock = IsSwitchBlock::No
-#endif
-  );
+  [[nodiscard]] bool leave(BytecodeEmitter* bce, bool nonLocal = false);
 
   GCThingIndex index() const {
     MOZ_ASSERT(scopeIndex_ != ScopeNote::NoScopeIndex,
@@ -178,11 +176,15 @@ class EmitterScope : public Nestable<EmitterScope> {
   // Disposable Scope here refers to any scope
   // with using bindings in it for now that is
   // a lexical scope and a module scope.
-  [[nodiscard]] bool prepareForDisposableScopeBody(
-      BytecodeEmitter* bce, IsSwitchBlock isSwitchBlock = IsSwitchBlock::No);
+  [[nodiscard]] bool prepareForDisposableScopeBody(BytecodeEmitter* bce);
 
-  [[nodiscard]] bool emitDisposableScopeBodyEnd(
-      BytecodeEmitter* bce, IsSwitchBlock isSwitchBlock = IsSwitchBlock::No);
+  [[nodiscard]] bool emitSwitchBlockEndForDisposableScopeBodyEnd(
+      BytecodeEmitter* bce);
+
+  [[nodiscard]] bool emitDisposableScopeBodyEnd(BytecodeEmitter* bce);
+
+  [[nodiscard]] bool emitDisposableScopeBodyEndForNonLocalJump(
+      BytecodeEmitter* bce);
 
  public:
   [[nodiscard]] bool prepareForModuleDisposableScopeBody(BytecodeEmitter* bce);
