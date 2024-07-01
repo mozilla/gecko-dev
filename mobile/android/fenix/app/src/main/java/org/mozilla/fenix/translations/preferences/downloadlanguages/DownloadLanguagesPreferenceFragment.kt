@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
@@ -31,6 +32,7 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.utils.AccessibilityUtils.moveFocusToBackNavButton
 import java.util.Locale
 
 /**
@@ -113,6 +115,11 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                                 )
                             } else {
                                 deleteOrDownloadModel(downloadLanguageItemPreference)
+                            }
+
+                            val activity = activity as? AppCompatActivity
+                            if (activity != null) {
+                                moveFocusToBackNavButton(activity)
                             }
                         }
                     },
