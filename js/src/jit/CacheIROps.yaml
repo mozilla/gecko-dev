@@ -1993,7 +1993,7 @@
     argc: Int32Id
     flags: CallFlagsImm
     argcFixed: UInt32Imm
-    funcType: RawPointerField
+    funcExport: RawPointerField
     instance: ObjectField
 
 - name: GuardWasmArg

@@ -55,7 +55,9 @@ namespace wasm {
 struct ModuleMetadata;
 struct CodeMetadata;
 class CodeRange;
-class CodeBlock;
+class CodeTier;
+class ModuleSegment;
+struct MetadataTier;
 class Decoder;
 class GeneratedSourceMap;
 class Instance;

@@ -20,6 +20,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/BinarySearch.h"
+#include "mozilla/ScopeExit.h"
 
 #include "gc/Memory.h"
 #include "threading/ExclusiveData.h"
@@ -37,77 +38,253 @@ using namespace wasm;
 
 using mozilla::BinarySearchIf;
 
-Atomic<bool> wasm::CodeExists(false);
-
-// Per-process map from values of program-counter (pc) to CodeBlocks.
+// Per-process map from values of program-counter (pc) to CodeSegments.
 //
-// Whenever a new CodeBlock is ready to use, it has to be registered so that
-// we can have fast lookups from pc to CodeBlocks in numerous places. Since
+// Whenever a new CodeSegment is ready to use, it has to be registered so that
+// we can have fast lookups from pc to CodeSegments in numerous places. Since
 // wasm compilation may be tiered, and the second tier doesn't have access to
 // any JSContext/JS::Compartment/etc lying around, we have to use a process-wide
 // map instead.
 
-// This field is only atomic to handle buggy scenarios where we crash during
-// startup or shutdown and thus racily perform wasm::LookupCodeBlock() from
-// the crashing thread.
+using CodeSegmentVector = Vector<const CodeSegment*, 0, SystemAllocPolicy>;
 
-static Atomic<ThreadSafeCodeBlockMap*> sThreadSafeCodeBlockMap(nullptr);
+Atomic<bool> wasm::CodeExists(false);
 
-bool wasm::RegisterCodeBlock(const CodeBlock* cs) {
-  MOZ_ASSERT(cs->code->initialized());
+// Because of profiling, the thread running wasm might need to know to which
+// CodeSegment the current PC belongs, during a call to lookup(). A lookup
+// is a read-only operation, and we don't want to take a lock then
+// (otherwise, we could have a deadlock situation if an async lookup
+// happened on a given thread that was holding mutatorsMutex_ while getting
+// sampled). Since the writer could be modifying the data that is getting
+// looked up, the writer functions use spin-locks to know if there are any
+// observers (i.e. calls to lookup()) of the atomic data.
 
-  if (cs->length() == 0) {
+static Atomic<size_t> sNumActiveLookups(0);
+
+class ProcessCodeSegmentMap {
+  // Since writes (insertions or removals) can happen on any background
+  // thread at the same time, we need a lock here.
+
+  Mutex mutatorsMutex_ MOZ_UNANNOTATED;
+
+  CodeSegmentVector segments1_;
+  CodeSegmentVector segments2_;
+
+  // Except during swapAndWait(), there are no lookup() observers of the
+  // vector pointed to by mutableCodeSegments_
+
+  CodeSegmentVector* mutableCodeSegments_;
+  Atomic<const CodeSegmentVector*> readonlyCodeSegments_;
+
+  struct CodeSegmentPC {
+    const void* pc;
+    explicit CodeSegmentPC(const void* pc) : pc(pc) {}
+    int operator()(const CodeSegment* cs) const {
+      if (cs->containsCodePC(pc)) {
+        return 0;
+      }
+      if (pc < cs->base()) {
+        return -1;
+      }
+      return 1;
+    }
+  };
+
+  void swapAndWait() {
+    // Both vectors are consistent for lookup at this point although their
+    // contents are different: there is no way for the looked up PC to be
+    // in the code segment that is getting registered, because the code
+    // segment is not even fully created yet.
+
+    // If a lookup happens before this instruction, then the
+    // soon-to-become-former read-only pointer is used during the lookup,
+    // which is valid.
+
+    mutableCodeSegments_ = const_cast<CodeSegmentVector*>(
+        readonlyCodeSegments_.exchange(mutableCodeSegments_));
+
+    // If a lookup happens after this instruction, then the updated vector
+    // is used, which is valid:
+    // - in case of insertion, it means the new vector contains more data,
+    // but it's fine since the code segment is getting registered and thus
+    // isn't even fully created yet, so the code can't be running.
+    // - in case of removal, it means the new vector contains one less
+    // entry, but it's fine since unregistering means the code segment
+    // isn't used by any live instance anymore, thus PC can't be in the
+    // to-be-removed code segment's range.
+
+    // A lookup could have happened on any of the two vectors. Wait for
+    // observers to be done using any vector before mutating.
+
+    while (sNumActiveLookups > 0) {
+    }
+  }
+
+ public:
+  ProcessCodeSegmentMap()
+      : mutatorsMutex_(mutexid::WasmCodeSegmentMap),
+        mutableCodeSegments_(&segments1_),
+        readonlyCodeSegments_(&segments2_) {}
+
+  ~ProcessCodeSegmentMap() {
+    MOZ_RELEASE_ASSERT(sNumActiveLookups == 0);
+    MOZ_ASSERT(segments1_.empty());
+    MOZ_ASSERT(segments2_.empty());
+    segments1_.clearAndFree();
+    segments2_.clearAndFree();
+  }
+
+  bool insert(const CodeSegment* cs) {
+    LockGuard<Mutex> lock(mutatorsMutex_);
+
+    size_t index;
+    MOZ_ALWAYS_FALSE(BinarySearchIf(*mutableCodeSegments_, 0,
+                                    mutableCodeSegments_->length(),
+                                    CodeSegmentPC(cs->base()), &index));
+
+    if (!mutableCodeSegments_->insert(mutableCodeSegments_->begin() + index,
+                                      cs)) {
+      return false;
+    }
+
+    CodeExists = true;
+
+    swapAndWait();
+
+#ifdef DEBUG
+    size_t otherIndex;
+    MOZ_ALWAYS_FALSE(BinarySearchIf(*mutableCodeSegments_, 0,
+                                    mutableCodeSegments_->length(),
+                                    CodeSegmentPC(cs->base()), &otherIndex));
+    MOZ_ASSERT(index == otherIndex);
+#endif
+
+    // Although we could simply revert the insertion in the read-only
+    // vector, it is simpler to just crash and given that each CodeSegment
+    // consumes multiple pages, it is unlikely this insert() would OOM in
+    // practice
+    AutoEnterOOMUnsafeRegion oom;
+    if (!mutableCodeSegments_->insert(mutableCodeSegments_->begin() + index,
+                                      cs)) {
+      oom.crash("when inserting a CodeSegment in the process-wide map");
+    }
+
     return true;
   }
 
-  // This function cannot race with startup/shutdown.
-  ThreadSafeCodeBlockMap* map = sThreadSafeCodeBlockMap;
-  MOZ_RELEASE_ASSERT(map);
-  bool result = map->insert(cs);
-  if (result) {
-    CodeExists = true;
+  void remove(const CodeSegment* cs) {
+    LockGuard<Mutex> lock(mutatorsMutex_);
+
+    size_t index;
+    MOZ_ALWAYS_TRUE(BinarySearchIf(*mutableCodeSegments_, 0,
+                                   mutableCodeSegments_->length(),
+                                   CodeSegmentPC(cs->base()), &index));
+
+    mutableCodeSegments_->erase(mutableCodeSegments_->begin() + index);
+
+    if (!mutableCodeSegments_->length()) {
+      CodeExists = false;
+    }
+
+    swapAndWait();
+
+#ifdef DEBUG
+    size_t otherIndex;
+    MOZ_ALWAYS_TRUE(BinarySearchIf(*mutableCodeSegments_, 0,
+                                   mutableCodeSegments_->length(),
+                                   CodeSegmentPC(cs->base()), &otherIndex));
+    MOZ_ASSERT(index == otherIndex);
+#endif
+
+    mutableCodeSegments_->erase(mutableCodeSegments_->begin() + index);
   }
-  return result;
+
+  const CodeSegment* lookup(const void* pc) {
+    const CodeSegmentVector* readonly = readonlyCodeSegments_;
+
+    size_t index;
+    if (!BinarySearchIf(*readonly, 0, readonly->length(), CodeSegmentPC(pc),
+                        &index)) {
+      return nullptr;
+    }
+
+    // It is fine returning a raw CodeSegment*, because we assume we are
+    // looking up a live PC in code which is on the stack, keeping the
+    // CodeSegment alive.
+
+    return (*readonly)[index];
+  }
+};
+
+// This field is only atomic to handle buggy scenarios where we crash during
+// startup or shutdown and thus racily perform wasm::LookupCodeSegment() from
+// the crashing thread.
+
+static Atomic<ProcessCodeSegmentMap*> sProcessCodeSegmentMap(nullptr);
+
+bool wasm::RegisterCodeSegment(const CodeSegment* cs) {
+  MOZ_ASSERT(cs->codeTier().code().initialized());
+
+  // This function cannot race with startup/shutdown.
+  ProcessCodeSegmentMap* map = sProcessCodeSegmentMap;
+  MOZ_RELEASE_ASSERT(map);
+  return map->insert(cs);
 }
 
-void wasm::UnregisterCodeBlock(const CodeBlock* cs) {
-  if (cs->length() == 0) {
-    return;
-  }
-
+void wasm::UnregisterCodeSegment(const CodeSegment* cs) {
   // This function cannot race with startup/shutdown.
-  ThreadSafeCodeBlockMap* map = sThreadSafeCodeBlockMap;
+  ProcessCodeSegmentMap* map = sProcessCodeSegmentMap;
   MOZ_RELEASE_ASSERT(map);
-  size_t newCount = map->remove(cs);
-  if (newCount == 0) {
-    CodeExists = false;
-  }
+  map->remove(cs);
 }
 
-const CodeBlock* wasm::LookupCodeBlock(
+const CodeSegment* wasm::LookupCodeSegment(
     const void* pc, const CodeRange** codeRange /*= nullptr */) {
-  ThreadSafeCodeBlockMap* map = sThreadSafeCodeBlockMap;
+  // Since wasm::LookupCodeSegment() can race with wasm::ShutDown(), we must
+  // additionally keep sNumActiveLookups above zero for the duration we're
+  // using the ProcessCodeSegmentMap. wasm::ShutDown() spin-waits on
+  // sNumActiveLookups getting to zero.
+
+  auto decObserver = mozilla::MakeScopeExit([&] {
+    MOZ_ASSERT(sNumActiveLookups > 0);
+    sNumActiveLookups--;
+  });
+  sNumActiveLookups++;
+
+  ProcessCodeSegmentMap* map = sProcessCodeSegmentMap;
   if (!map) {
     return nullptr;
   }
 
-  return map->lookup(pc, codeRange);
+  if (const CodeSegment* found = map->lookup(pc)) {
+    if (codeRange) {
+      *codeRange = found->isModule() ? found->asModule()->lookupRange(pc)
+                                     : found->asLazyStub()->lookupRange(pc);
+    }
+    return found;
+  }
+
+  if (codeRange) {
+    *codeRange = nullptr;
+  }
+
+  return nullptr;
 }
 
 const Code* wasm::LookupCode(const void* pc,
                              const CodeRange** codeRange /* = nullptr */) {
-  const CodeBlock* found = LookupCodeBlock(pc, codeRange);
+  const CodeSegment* found = LookupCodeSegment(pc, codeRange);
   MOZ_ASSERT_IF(!found && codeRange, !*codeRange);
-  return found ? found->code : nullptr;
+  return found ? &found->code() : nullptr;
 }
 
 bool wasm::InCompiledCode(void* pc) {
-  if (LookupCodeBlock(pc)) {
+  if (LookupCodeSegment(pc)) {
     return true;
   }
 
   const CodeRange* codeRange;
-  const uint8_t* codeBase;
+  uint8_t* codeBase;
   return LookupBuiltinThunk(pc, &codeRange, &codeBase);
 }
 
@@ -247,7 +424,7 @@ static bool InitTagForJSValue() {
 }
 
 bool wasm::Init() {
-  MOZ_RELEASE_ASSERT(!sThreadSafeCodeBlockMap);
+  MOZ_RELEASE_ASSERT(!sProcessCodeSegmentMap);
 
   // Assert invariants that should universally hold true, but cannot be checked
   // at compile time.
@@ -258,7 +435,7 @@ bool wasm::Init() {
   ConfigureHugeMemory();
 
   AutoEnterOOMUnsafeRegion oomUnsafe;
-  ThreadSafeCodeBlockMap* map = js_new<ThreadSafeCodeBlockMap>();
+  ProcessCodeSegmentMap* map = js_new<ProcessCodeSegmentMap>();
   if (!map) {
     oomUnsafe.crash("js::wasm::Init");
   }
@@ -272,7 +449,7 @@ bool wasm::Init() {
     oomUnsafe.crash("js::wasm::Init");
   }
 
-  sThreadSafeCodeBlockMap = map;
+  sProcessCodeSegmentMap = map;
 
   if (!InitTagForJSValue()) {
     oomUnsafe.crash("js::wasm::Init");
@@ -298,12 +475,12 @@ void wasm::ShutDown() {
     sWrappedJSValueTagType = nullptr;
   }
 
-  // After signalling shutdown by clearing sThreadSafeCodeBlockMap, wait for
-  // concurrent wasm::LookupCodeBlock()s to finish.
-  ThreadSafeCodeBlockMap* map = sThreadSafeCodeBlockMap;
+  // After signalling shutdown by clearing sProcessCodeSegmentMap, wait for
+  // concurrent wasm::LookupCodeSegment()s to finish.
+  ProcessCodeSegmentMap* map = sProcessCodeSegmentMap;
   MOZ_RELEASE_ASSERT(map);
-  sThreadSafeCodeBlockMap = nullptr;
-  while (map->numActiveLookups() > 0) {
+  sProcessCodeSegmentMap = nullptr;
+  while (sNumActiveLookups > 0) {
   }
 
   ReleaseBuiltinThunks();

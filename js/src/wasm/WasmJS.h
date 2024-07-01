@@ -111,7 +111,6 @@ bool IsWasmExportedFunction(JSFunction* fun);
 Instance& ExportedFunctionToInstance(JSFunction* fun);
 WasmInstanceObject* ExportedFunctionToInstanceObject(JSFunction* fun);
 uint32_t ExportedFunctionToFuncIndex(JSFunction* fun);
-const wasm::TypeDef& ExportedFunctionToTypeDef(JSFunction* fun);
 
 bool IsSharedWasmMemoryObject(JSObject* obj);
 
@@ -251,9 +250,8 @@ class WasmInstanceObject : public NativeObject {
       JSContext* cx, Handle<WasmInstanceObject*> instanceObj,
       uint32_t funcIndex, MutableHandleFunction fun);
 
-  void getExportedFunctionCodeRange(JSFunction* fun,
-                                    const wasm::CodeRange** range,
-                                    uint8_t** codeBase);
+  const wasm::CodeRange& getExportedFunctionCodeRange(JSFunction* fun,
+                                                      wasm::Tier tier);
 
   static WasmInstanceScope* getScope(JSContext* cx,
                                      Handle<WasmInstanceObject*> instanceObj);
