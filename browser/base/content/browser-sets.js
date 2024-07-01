@@ -244,6 +244,46 @@ document.addEventListener(
             break;
         }
       });
+
+    document.getElementById("mainKeyset").addEventListener("command", event => {
+      switch (event.target.id) {
+        case "goHome":
+          BrowserCommands.home();
+          break;
+        case "bookmarkAllTabsKb":
+          PlacesCommandHook.bookmarkTabs();
+          break;
+        case "viewBookmarksSidebarKb":
+          SidebarController.toggle("viewBookmarksSidebar");
+          break;
+        case "viewBookmarksToolbarKb":
+          BookmarkingUI.toggleBookmarksToolbar("shortcut");
+          break;
+        case "key_gotoHistory":
+          SidebarController.toggle("viewHistorySidebar");
+          break;
+
+        case "key_selectTab1":
+        case "key_selectTab2":
+        case "key_selectTab3":
+        case "key_selectTab4":
+        case "key_selectTab5":
+        case "key_selectTab6":
+        case "key_selectTab7":
+        case "key_selectTab8": {
+          let index = event.target.id.at(-1) - 1;
+          gBrowser.selectTabAtIndex(index, event);
+          break;
+        }
+        case "key_selectLastTab":
+          gBrowser.selectTabAtIndex(-1, event);
+          break;
+
+        case "key_openHelpMac":
+          openHelpLink("firefox-osxkey");
+          break;
+      }
+    });
   },
   { once: true }
 );
