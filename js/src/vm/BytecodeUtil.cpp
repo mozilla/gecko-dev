@@ -2141,6 +2141,11 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
         return write("HasOwn(") && decompilePCForStackOperand(pc, -2) &&
                write(", ") && decompilePCForStackOperand(pc, -1) && write(")");
 
+#  ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+      case JSOp::AddDisposable:
+        return decompilePCForStackOperand(pc, -1);
+#  endif
+
       default:
         break;
     }
