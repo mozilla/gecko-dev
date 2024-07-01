@@ -38,8 +38,6 @@ parent:
                nsString displaySpecialDirectory, nsString okButtonLabel,
                CaptureTarget capture);
 
-    async Close();
-
 child:
     async __delete__(MaybeInputData data, ResultCode result);
 };

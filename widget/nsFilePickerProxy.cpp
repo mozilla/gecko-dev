@@ -146,13 +146,6 @@ nsFilePickerProxy::Open(nsIFilePickerShownCallback* aCallback) {
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsFilePickerProxy::Close() {
-  SendClose();
-
-  return NS_OK;
-}
-
 mozilla::ipc::IPCResult nsFilePickerProxy::Recv__delete__(
     const MaybeInputData& aData, const nsIFilePicker::ResultCode& aResult) {
   auto* inner = mBrowsingContext->GetDOMWindow()

@@ -574,16 +574,6 @@ nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsFilePicker::Close() {
-  if (mFileChooser) {
-    // Call ourself as done.
-    Done(mFileChooser, GTK_RESPONSE_CLOSE);
-  }
-
-  return NS_OK;
-}
-
 /* static */
 void nsFilePicker::OnResponse(void* file_chooser, gint response_id,
                               gpointer user_data) {
