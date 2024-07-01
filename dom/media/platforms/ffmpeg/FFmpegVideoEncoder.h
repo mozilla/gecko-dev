@@ -51,6 +51,7 @@ class FFmpegVideoEncoder<LIBAV_VER> : public FFmpegDataEncoder<LIBAV_VER> {
     // A key-value pair for av_opt_set.
     std::pair<nsCString, nsCString> mSettingKeyValue;
   };
+  bool SvcEnabled() const;
   Maybe<SVCSettings> GetSVCSettings();
   struct H264Settings {
     int mProfile;

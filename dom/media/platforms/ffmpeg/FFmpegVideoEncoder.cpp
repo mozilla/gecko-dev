@@ -284,6 +284,10 @@ nsCString FFmpegVideoEncoder<LIBAV_VER>::GetDescriptionName() const {
 #endif
 }
 
+bool FFmpegVideoEncoder<LIBAV_VER>::SvcEnabled() const {
+  return mConfig.mScalabilityMode != ScalabilityMode::None;
+}
+
 nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
 
