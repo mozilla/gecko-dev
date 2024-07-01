@@ -158,9 +158,9 @@ struct SVCLayerSettings {
   Maybe<CodecAppendix> mCodecAppendix;
 };
 
-static Maybe<SVCLayerSettings> GetSVCLayerSettings(CodecType aCodec,
-                                                   const ScalabilityMode& aMode,
-                                                   uint32_t aBitPerSec) {
+static SVCLayerSettings GetSVCLayerSettings(CodecType aCodec,
+                                            const ScalabilityMode& aMode,
+                                            uint32_t aBitPerSec) {
   // TODO: Apply more sophisticated bitrate allocation, like SvcRateAllocator:
   // https://searchfox.org/mozilla-central/rev/3bd65516eb9b3a9568806d846ba8c81a9402a885/third_party/libwebrtc/modules/video_coding/svc/svc_rate_allocator.h#26
 
@@ -242,9 +242,13 @@ static Maybe<SVCLayerSettings> GetSVCLayerSettings(CodecType aCodec,
 
   MOZ_ASSERT(layers == bitrates.Length(),
              "Bitrate must be assigned to each layer");
-  return Some(SVCLayerSettings{1, layers, periodicity, std::move(layerIds),
-                               std::move(rateDecimators), std::move(bitrates),
-                               appendix});
+  return SVCLayerSettings{1,
+                          layers,
+                          periodicity,
+                          std::move(layerIds),
+                          std::move(rateDecimators),
+                          std::move(bitrates),
+                          appendix};
 }
 
 void FFmpegVideoEncoder<LIBAV_VER>::SVCInfo::UpdateTemporalLayerId() {
@@ -779,12 +783,8 @@ FFmpegVideoEncoder<LIBAV_VER>::GetSVCSettings() {
     return Nothing();
   }
 
-  Maybe<SVCLayerSettings> svc = GetSVCLayerSettings(
+  SVCLayerSettings svc = GetSVCLayerSettings(
       codecType, mConfig.mScalabilityMode, mConfig.mBitrate);
-  if (!svc) {
-    FFMPEGV_LOG("No SVC settings obtained. Skip");
-    return Nothing();
-  }
 
   nsAutoCString name;
   nsAutoCString parameters;
@@ -797,53 +797,53 @@ FFmpegVideoEncoder<LIBAV_VER>::GetSVCSettings() {
       if (mConfig.mCodecSpecific->is<VP8Specific>()) {
         MOZ_ASSERT(
             mConfig.mCodecSpecific->as<VP8Specific>().mNumTemporalLayers ==
-            svc->mNumberTemporalLayers);
+            svc.mNumberTemporalLayers);
       } else if (mConfig.mCodecSpecific->is<VP9Specific>()) {
         MOZ_ASSERT(
             mConfig.mCodecSpecific->as<VP9Specific>().mNumTemporalLayers ==
-            svc->mNumberTemporalLayers);
+            svc.mNumberTemporalLayers);
       }
     }
 
     // Form an SVC setting string for libvpx.
     name = "ts-parameters"_ns;
     parameters.Append("ts_target_bitrate=");
-    for (size_t i = 0; i < svc->mTargetBitrates.Length(); ++i) {
+    for (size_t i = 0; i < svc.mTargetBitrates.Length(); ++i) {
       if (i > 0) {
         parameters.Append(",");
       }
-      parameters.AppendPrintf("%d", svc->mTargetBitrates[i]);
+      parameters.AppendPrintf("%d", svc.mTargetBitrates[i]);
     }
     parameters.AppendPrintf(
         ":ts_layering_mode=%u",
-        svc->mCodecAppendix->as<VPXSVCAppendix>().mLayeringMode);
+        svc.mCodecAppendix->as<VPXSVCAppendix>().mLayeringMode);
   }
 
   if (codecType == CodecType::AV1) {
     // Form an SVC setting string for libaom.
     name = "svc-parameters"_ns;
     parameters.AppendPrintf("number_spatial_layers=%zu",
-                            svc->mNumberSpatialLayers);
+                            svc.mNumberSpatialLayers);
     parameters.AppendPrintf(":number_temporal_layers=%zu",
-                            svc->mNumberTemporalLayers);
+                            svc.mNumberTemporalLayers);
     parameters.Append(":framerate_factor=");
-    for (size_t i = 0; i < svc->mRateDecimators.Length(); ++i) {
+    for (size_t i = 0; i < svc.mRateDecimators.Length(); ++i) {
       if (i > 0) {
         parameters.Append(",");
       }
-      parameters.AppendPrintf("%d", svc->mRateDecimators[i]);
+      parameters.AppendPrintf("%d", svc.mRateDecimators[i]);
     }
     parameters.Append(":layer_target_bitrate=");
-    for (size_t i = 0; i < svc->mTargetBitrates.Length(); ++i) {
+    for (size_t i = 0; i < svc.mTargetBitrates.Length(); ++i) {
       if (i > 0) {
         parameters.Append(",");
       }
-      parameters.AppendPrintf("%d", svc->mTargetBitrates[i]);
+      parameters.AppendPrintf("%d", svc.mTargetBitrates[i]);
     }
   }
 
   return Some(
-      SVCSettings{std::move(svc->mLayerIds),
+      SVCSettings{std::move(svc.mLayerIds),
                   std::make_pair(std::move(name), std::move(parameters))});
 }
 
