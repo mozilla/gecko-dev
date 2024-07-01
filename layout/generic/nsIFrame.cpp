@@ -6289,51 +6289,6 @@ static bool ShouldApplyAutomaticMinimumOnInlineAxis(
   return !aDisplay->IsScrollableOverflow() && aPosition->MinISize(aWM).IsAuto();
 }
 
-struct MinMaxSize {
-  nscoord mMinSize = 0;
-  nscoord mMaxSize = NS_UNCONSTRAINEDSIZE;
-
-  nscoord ClampSizeToMinAndMax(nscoord aSize) const {
-    return NS_CSS_MINMAX(aSize, mMinSize, mMaxSize);
-  }
-};
-static MinMaxSize ComputeTransferredMinMaxInlineSize(
-    const WritingMode aWM, const AspectRatio& aAspectRatio,
-    const MinMaxSize& aMinMaxBSize, const LogicalSize& aBoxSizingAdjustment) {
-  // Note: the spec mentions that
-  // 1. This transferred minimum is capped by any definite preferred or maximum
-  //    size in the destination axis.
-  // 2. This transferred maximum is floored by any definite preferred or minimum
-  //    size in the destination axis
-  //
-  // https://drafts.csswg.org/css-sizing-4/#aspect-ratio
-  //
-  // The spec requires us to clamp these by the specified size (it calls it the
-  // preferred size). However, we actually don't need to worry about that,
-  // because we only use this if the inline size is indefinite.
-  //
-  // We do not need to clamp the transferred minimum and maximum as long as we
-  // always apply the transferred min/max size before the explicit min/max size,
-  // the result will be identical.
-
-  MinMaxSize transferredISize;
-
-  if (aMinMaxBSize.mMinSize > 0) {
-    transferredISize.mMinSize = aAspectRatio.ComputeRatioDependentSize(
-        LogicalAxis::Inline, aWM, aMinMaxBSize.mMinSize, aBoxSizingAdjustment);
-  }
-
-  if (aMinMaxBSize.mMaxSize != NS_UNCONSTRAINEDSIZE) {
-    transferredISize.mMaxSize = aAspectRatio.ComputeRatioDependentSize(
-        LogicalAxis::Inline, aWM, aMinMaxBSize.mMaxSize, aBoxSizingAdjustment);
-  }
-
-  // Minimum size wins over maximum size.
-  transferredISize.mMaxSize =
-      std::max(transferredISize.mMinSize, transferredISize.mMaxSize);
-  return transferredISize;
-}
-
 /* virtual */
 nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
@@ -6443,15 +6398,9 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
     // apply aspect ratio for all other values.
     // https://drafts.csswg.org/css-grid/#grid-item-sizing
     if (!stretch && mayUseAspectRatio) {
-      // Note: we don't need to handle aspect ratio for inline axis if both
-      // width/height are auto. The default ratio-dependent axis is block axis
-      // in this case, so we can simply get the block size from the non-auto
-      // |styleBSize|.
-      auto bSize = nsLayoutUtils::ComputeBSizeValue(
-          aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
-          styleBSize.AsLengthPercentage());
-      result.ISize(aWM) = aspectRatio.ComputeRatioDependentSize(
-          LogicalAxis::Inline, aWM, bSize, boxSizingAdjust);
+      result.ISize(aWM) = ComputeISizeValueFromAspectRatio(
+          aWM, aCBSize, boxSizingAdjust, styleBSize.AsLengthPercentage(),
+          aspectRatio);
       aspectRatioUsage = AspectRatioUsage::ToComputeISize;
     }
 
@@ -6464,11 +6413,16 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
       }
     }
   } else if (aspectRatio && !isAutoBSize) {
-    auto bSize = nsLayoutUtils::ComputeBSizeValue(
-        aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
-        styleBSize.AsLengthPercentage());
-    result.ISize(aWM) = aspectRatio.ComputeRatioDependentSize(
-        LogicalAxis::Inline, aWM, bSize, boxSizingAdjust);
+    // Note: if both the inline size and the block size are auto, the block axis
+    // is the ratio-dependent axis by default. That means we only need to
+    // transfer the resolved inline size via aspect-ratio to block axis later in
+    // this method, but not the other way around.
+    //
+    // In this branch, we transfer the non-auto block size via aspect-ration to
+    // inline axis.
+    result.ISize(aWM) = ComputeISizeValueFromAspectRatio(
+        aWM, aCBSize, boxSizingAdjust, styleBSize.AsLengthPercentage(),
+        aspectRatio);
     aspectRatioUsage = AspectRatioUsage::ToComputeISize;
   }
 
@@ -6503,20 +6457,34 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   const bool isAutoMaxBSize =
       nsLayoutUtils::IsAutoBSize(maxBSizeCoord, aCBSize.BSize(aWM));
   if (aspectRatio && !isDefiniteISize) {
-    const MinMaxSize minMaxBSize{
+    // Note: the spec mentions that
+    // 1. This transferred minimum is capped by any definite preferred or
+    //    maximum size in the destination axis.
+    // 2. This transferred maximum is floored by any definite preferred or
+    //    minimum size in the destination axis.
+    //
+    // https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers
+    //
+    // The spec requires us to clamp these by the specified size (it calls it
+    // the preferred size). However, we actually don't need to worry about that,
+    // because we are here only if the inline size is indefinite.
+    //
+    // We do not need to clamp the transferred minimum and maximum as long as we
+    // always apply the transferred min/max size before the explicit min/max
+    // size; the result will be identical.
+    const nscoord transferredMinISize =
         isAutoMinBSize ? 0
-                       : nsLayoutUtils::ComputeBSizeValue(
-                             aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
-                             minBSizeCoord.AsLengthPercentage()),
-        isAutoMaxBSize ? NS_UNCONSTRAINEDSIZE
-                       : nsLayoutUtils::ComputeBSizeValue(
-                             aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
-                             maxBSizeCoord.AsLengthPercentage())};
-    MinMaxSize transferredMinMaxISize = ComputeTransferredMinMaxInlineSize(
-        aWM, aspectRatio, minMaxBSize, boxSizingAdjust);
+                       : ComputeISizeValueFromAspectRatio(
+                             aWM, aCBSize, boxSizingAdjust,
+                             minBSizeCoord.AsLengthPercentage(), aspectRatio);
+    const nscoord transferredMaxISize =
+        isAutoMaxBSize ? nscoord_MAX
+                       : ComputeISizeValueFromAspectRatio(
+                             aWM, aCBSize, boxSizingAdjust,
+                             maxBSizeCoord.AsLengthPercentage(), aspectRatio);
 
-    result.ISize(aWM) =
-        transferredMinMaxISize.ClampSizeToMinAndMax(result.ISize(aWM));
+    result.ISize(aWM) = NS_CSS_MINMAX(result.ISize(aWM), transferredMinISize,
+                                      transferredMaxISize);
   }
 
   // Flex items ignore their min & max sizing properties in their
