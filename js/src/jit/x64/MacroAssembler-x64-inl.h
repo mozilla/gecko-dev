@@ -1068,31 +1068,6 @@ void MacroAssemblerX64::loadInt32OrDouble(const T& src, FloatRegister dest) {
   bind(&end);
 }
 
-// If source is a double, load it into dest. If source is int32,
-// convert it to double. Else, branch to failure.
-void MacroAssemblerX64::ensureDouble(const ValueOperand& source,
-                                     FloatRegister dest, Label* failure) {
-  Label isDouble, done;
-  {
-    ScratchTagScope tag(asMasm(), source);
-    splitTagForTest(source, tag);
-    asMasm().branchTestDouble(Assembler::Equal, tag, &isDouble);
-    asMasm().branchTestInt32(Assembler::NotEqual, tag, failure);
-  }
-
-  {
-    ScratchRegisterScope scratch(asMasm());
-    unboxInt32(source, scratch);
-    convertInt32ToDouble(scratch, dest);
-  }
-  jump(&done);
-
-  bind(&isDouble);
-  unboxDouble(source, dest);
-
-  bind(&done);
-}
-
 }  // namespace jit
 }  // namespace js
 

@@ -1363,23 +1363,6 @@ void MacroAssemblerX86::loadUnboxedValue(const T& src, MIRType type,
   }
 }
 
-// If source is a double, load it into dest. If source is int32,
-// convert it to double. Else, branch to failure.
-void MacroAssemblerX86::ensureDouble(const ValueOperand& source,
-                                     FloatRegister dest, Label* failure) {
-  Label isDouble, done;
-  asMasm().branchTestDouble(Assembler::Equal, source.typeReg(), &isDouble);
-  asMasm().branchTestInt32(Assembler::NotEqual, source.typeReg(), failure);
-
-  convertInt32ToDouble(source.payloadReg(), dest);
-  jump(&done);
-
-  bind(&isDouble);
-  unboxDouble(source, dest);
-
-  bind(&done);
-}
-
 }  // namespace jit
 }  // namespace js
 

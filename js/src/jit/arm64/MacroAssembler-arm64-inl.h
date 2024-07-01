@@ -4104,29 +4104,6 @@ void MacroAssemblerCompat::branchStackPtrRhs(Condition cond,
   B(label, Assembler::InvertCondition(cond));
 }
 
-// If source is a double, load into dest.
-// If source is int32, convert to double and store in dest.
-// Else, branch to failure.
-void MacroAssemblerCompat::ensureDouble(const ValueOperand& source,
-                                        FloatRegister dest, Label* failure) {
-  Label isDouble, done;
-
-  {
-    ScratchTagScope tag(asMasm(), source);
-    splitTagForTest(source, tag);
-    asMasm().branchTestDouble(Assembler::Equal, tag, &isDouble);
-    asMasm().branchTestInt32(Assembler::NotEqual, tag, failure);
-  }
-
-  convertInt32ToDouble(source.valueReg(), dest);
-  jump(&done);
-
-  bind(&isDouble);
-  unboxDouble(source, dest);
-
-  bind(&done);
-}
-
 void MacroAssemblerCompat::unboxValue(const ValueOperand& src, AnyRegister dest,
                                       JSValueType type) {
   if (dest.isFloat()) {

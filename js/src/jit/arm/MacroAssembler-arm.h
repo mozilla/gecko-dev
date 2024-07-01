@@ -1329,11 +1329,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM {
 
   void checkStackAlignment();
 
-  // If source is a double, load it into dest. If source is int32, convert it
-  // to double. Else, branch to failure.
-  void ensureDouble(const ValueOperand& source, FloatRegister dest,
-                    Label* failure);
-
   void emitSet(Assembler::Condition cond, Register dest) {
     ma_mov(Imm32(0), dest);
     ma_mov(Imm32(1), dest, cond);

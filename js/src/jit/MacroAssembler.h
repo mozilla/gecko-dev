@@ -5460,7 +5460,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // This function clobbers the input register.
   void clampDoubleToUint8(FloatRegister input, Register output) PER_ARCH;
 
-  using MacroAssemblerSpecific::ensureDouble;
+  // If source is a double, load into dest.
+  // If source is int32, convert to double and store in dest.
+  // Else, branch to failure.
+  inline void ensureDouble(const ValueOperand& source, FloatRegister dest,
+                           Label* failure);
 
   template <typename S>
   void ensureDouble(const S& source, FloatRegister dest, Label* failure) {

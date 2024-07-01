@@ -993,6 +993,26 @@ void MacroAssembler::fallibleUnboxBigInt(const T& src, Register dest,
 //}}} check_macroassembler_style
 // ===============================================================
 
+void MacroAssembler::ensureDouble(const ValueOperand& source,
+                                  FloatRegister dest, Label* failure) {
+  Label isDouble, done;
+
+  {
+    ScratchTagScope tag(*this, source);
+    splitTagForTest(source, tag);
+    branchTestDouble(Assembler::Equal, tag, &isDouble);
+    branchTestInt32(Assembler::NotEqual, tag, failure);
+  }
+
+  convertInt32ToDouble(source.payloadOrValueReg(), dest);
+  jump(&done);
+
+  bind(&isDouble);
+  unboxDouble(source, dest);
+
+  bind(&done);
+}
+
 #ifndef JS_CODEGEN_ARM64
 
 template <typename T>

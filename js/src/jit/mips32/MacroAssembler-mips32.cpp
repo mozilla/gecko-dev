@@ -1695,22 +1695,6 @@ void MacroAssemblerMIPSCompat::storeTypeTag(ImmTag tag, const BaseIndex& dest) {
 
 void MacroAssemblerMIPSCompat::breakpoint() { as_break(0); }
 
-void MacroAssemblerMIPSCompat::ensureDouble(const ValueOperand& source,
-                                            FloatRegister dest,
-                                            Label* failure) {
-  Label isDouble, done;
-  asMasm().branchTestDouble(Assembler::Equal, source.typeReg(), &isDouble);
-  asMasm().branchTestInt32(Assembler::NotEqual, source.typeReg(), failure);
-
-  convertInt32ToDouble(source.payloadReg(), dest);
-  jump(&done);
-
-  bind(&isDouble);
-  unboxDouble(source, dest);
-
-  bind(&done);
-}
-
 void MacroAssemblerMIPSCompat::checkStackAlignment() {
 #ifdef DEBUG
   Label aligned;

@@ -1723,27 +1723,6 @@ void MacroAssemblerMIPS64Compat::popValue(ValueOperand val) {
 
 void MacroAssemblerMIPS64Compat::breakpoint() { as_break(0); }
 
-void MacroAssemblerMIPS64Compat::ensureDouble(const ValueOperand& source,
-                                              FloatRegister dest,
-                                              Label* failure) {
-  Label isDouble, done;
-  {
-    ScratchTagScope tag(asMasm(), source);
-    splitTagForTest(source, tag);
-    asMasm().branchTestDouble(Assembler::Equal, tag, &isDouble);
-    asMasm().branchTestInt32(Assembler::NotEqual, tag, failure);
-  }
-
-  unboxInt32(source, ScratchRegister);
-  convertInt32ToDouble(ScratchRegister, dest);
-  jump(&done);
-
-  bind(&isDouble);
-  unboxDouble(source, dest);
-
-  bind(&done);
-}
-
 void MacroAssemblerMIPS64Compat::checkStackAlignment() {
 #ifdef DEBUG
   Label aligned;

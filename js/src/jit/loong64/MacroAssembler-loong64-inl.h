@@ -2125,29 +2125,6 @@ void MacroAssemblerLOONG64Compat::retn(Imm32 n) {
   as_jirl(zero, ra, BOffImm16(0));
 }
 
-// If source is a double, load into dest.
-// If source is int32, convert to double and store in dest.
-// Else, branch to failure.
-void MacroAssemblerLOONG64Compat::ensureDouble(const ValueOperand& source,
-                                               FloatRegister dest,
-                                               Label* failure) {
-  Label isDouble, done;
-  {
-    ScratchTagScope tag(asMasm(), source);
-    splitTagForTest(source, tag);
-    asMasm().branchTestDouble(Assembler::Equal, tag, &isDouble);
-    asMasm().branchTestInt32(Assembler::NotEqual, tag, failure);
-  }
-
-  convertInt32ToDouble(source.valueReg(), dest);
-  jump(&done);
-
-  bind(&isDouble);
-  unboxDouble(source, dest);
-
-  bind(&done);
-}
-
 }  // namespace jit
 }  // namespace js
 

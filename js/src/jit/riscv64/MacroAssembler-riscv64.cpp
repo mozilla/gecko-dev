@@ -1860,28 +1860,6 @@ void MacroAssemblerRiscv64Compat::popValue(ValueOperand val) {
 
 void MacroAssemblerRiscv64Compat::breakpoint(uint32_t value) { break_(value); }
 
-void MacroAssemblerRiscv64Compat::ensureDouble(const ValueOperand& source,
-                                               FloatRegister dest,
-                                               Label* failure) {
-  Label isDouble, done;
-  {
-    ScratchTagScope tag(asMasm(), source);
-    splitTagForTest(source, tag);
-    asMasm().branchTestDouble(Assembler::Equal, tag, &isDouble);
-    asMasm().branchTestInt32(Assembler::NotEqual, tag, failure);
-  }
-  UseScratchRegisterScope temps(this);
-  Register ScratchRegister = temps.Acquire();
-  unboxInt32(source, ScratchRegister);
-  convertInt32ToDouble(ScratchRegister, dest);
-  jump(&done);
-
-  bind(&isDouble);
-  unboxDouble(source, dest);
-
-  bind(&done);
-}
-
 void MacroAssemblerRiscv64Compat::handleFailureWithHandlerTail(
     Label* profilerExitTail, Label* bailoutTail) {
   // Reserve space for exception information.

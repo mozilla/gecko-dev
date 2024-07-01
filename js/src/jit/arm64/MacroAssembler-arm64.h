@@ -487,9 +487,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     return scratch;
   }
 
-  inline void ensureDouble(const ValueOperand& source, FloatRegister dest,
-                           Label* failure);
-
   void emitSet(Condition cond, Register dest) {
     Cset(ARMRegister(dest, 64), cond);
   }

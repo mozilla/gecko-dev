@@ -798,11 +798,6 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
 
   static void calculateAlignedStackPointer(void** stackPointer);
 
-  // If source is a double, load it into dest. If source is int32,
-  // convert it to double. Else, branch to failure.
-  void ensureDouble(const ValueOperand& source, FloatRegister dest,
-                    Label* failure);
-
   void cmpPtrSet(Assembler::Condition cond, Address lhs, ImmPtr rhs,
                  Register dest);
   void cmpPtrSet(Assembler::Condition cond, Register lhs, Address rhs,

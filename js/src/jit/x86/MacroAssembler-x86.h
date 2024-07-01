@@ -1152,9 +1152,6 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared {
     addl(Imm32(1), payloadOf(addr));
   }
 
-  inline void ensureDouble(const ValueOperand& source, FloatRegister dest,
-                           Label* failure);
-
  public:
   // Used from within an Exit frame to handle a pending exception.
   void handleFailureWithHandlerTail(Label* profilerExitTail,

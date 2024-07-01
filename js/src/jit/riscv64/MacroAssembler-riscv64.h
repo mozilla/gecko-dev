@@ -867,9 +867,6 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
     return scratch;
   }
 
-  void ensureDouble(const ValueOperand& source, FloatRegister dest,
-                    Label* failure);
-
   void loadInt32OrDouble(const Address& src, FloatRegister dest);
   void loadInt32OrDouble(const BaseIndex& addr, FloatRegister dest);
   void loadConstantDouble(double dp, FloatRegister dest);
