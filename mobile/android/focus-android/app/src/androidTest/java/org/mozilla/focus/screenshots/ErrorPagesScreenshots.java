@@ -7,7 +7,7 @@ package org.mozilla.focus.screenshots;
 import android.os.Build;
 
 import androidx.test.espresso.web.webdriver.Locator;
-import androidx.test.runner.AndroidJUnit4;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.uiautomator.UiObject;
 import androidx.test.uiautomator.UiSelector;
 

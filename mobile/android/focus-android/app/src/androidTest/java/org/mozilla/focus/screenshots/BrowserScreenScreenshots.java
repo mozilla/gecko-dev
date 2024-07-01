@@ -7,7 +7,7 @@ package org.mozilla.focus.screenshots;
 import android.os.SystemClock;
 
 import androidx.test.espresso.NoMatchingViewException;
-import androidx.test.runner.AndroidJUnit4;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiObject;
 import androidx.test.uiautomator.UiObjectNotFoundException;
