@@ -155,7 +155,7 @@ class LazyStubSegment;
 // - LazyStubSegment, i.e. the code segment of entry stubs that are lazily
 // generated.
 
-class CodeSegment {
+class CodeSegment : public ShareableBase<CodeSegment> {
  protected:
   enum class Kind { LazyStubs, Module };
 
@@ -207,7 +207,7 @@ class CodeSegment {
 
 // A wasm ModuleSegment owns the allocated executable code for a wasm module.
 
-using UniqueModuleSegment = UniquePtr<ModuleSegment>;
+using SharedModuleSegment = RefPtr<ModuleSegment>;
 
 class ModuleSegment : public CodeSegment {
   const Tier tier_;
@@ -217,9 +217,9 @@ class ModuleSegment : public CodeSegment {
   ModuleSegment(Tier tier, UniqueCodeBytes codeBytes, uint32_t codeLength,
                 const LinkData& linkData);
 
-  static UniqueModuleSegment create(Tier tier, jit::MacroAssembler& masm,
+  static SharedModuleSegment create(Tier tier, jit::MacroAssembler& masm,
                                     const LinkData& linkData);
-  static UniqueModuleSegment create(Tier tier, const Bytes& unlinkedBytes,
+  static SharedModuleSegment create(Tier tier, const Bytes& unlinkedBytes,
                                     const LinkData& linkData);
 
   bool initialize(const CodeBlock& codeBlock, const LinkData& linkData,
@@ -259,9 +259,9 @@ extern void StaticallyUnlink(uint8_t* base, const LinkData& linkData);
 // isn't (64KiB), a given stub segment can contain entry stubs of many
 // functions.
 
-using UniqueLazyStubSegment = UniquePtr<LazyStubSegment>;
+using SharedLazyStubSegment = RefPtr<LazyStubSegment>;
 using LazyStubSegmentVector =
-    Vector<UniqueLazyStubSegment, 0, SystemAllocPolicy>;
+    Vector<SharedLazyStubSegment, 0, SystemAllocPolicy>;
 
 class LazyStubSegment : public CodeSegment {
   CodeRangeVector codeRanges_;
@@ -272,7 +272,7 @@ class LazyStubSegment : public CodeSegment {
       : CodeSegment(std::move(bytes), length, CodeSegment::Kind::LazyStubs),
         usedBytes_(0) {}
 
-  static UniqueLazyStubSegment create(const Code& code, size_t codeLength);
+  static SharedLazyStubSegment create(const Code& code, size_t codeLength);
 
   static size_t AlignBytesNeeded(size_t bytes) {
     return AlignBytes(bytes, gc::SystemPageSize());
@@ -372,7 +372,7 @@ class CodeBlock {
   const Code* code;
 
   // The following information is all serialized
-  UniqueModuleSegment segment;
+  SharedModuleSegment segment;
   const Tier tier;
   Uint32Vector funcToCodeRange;
   CodeRangeVector codeRanges;

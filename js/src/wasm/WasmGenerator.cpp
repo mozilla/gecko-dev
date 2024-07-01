@@ -947,7 +947,7 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock() {
     return nullptr;
   }
 
-  UniqueModuleSegment segment =
+  SharedModuleSegment segment =
       ModuleSegment::create(tier(), masm_, *linkData_);
   if (!segment) {
     warnf("failed to allocate executable memory for module");
