@@ -6788,10 +6788,15 @@ Maybe<nscoord> nsIFrame::ComputeISizeValueFromAspectRatio(
 
 nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
     gfxContext* aRenderingContext, const WritingMode aWM,
-    const LogicalSize& aContainingBlockSize,
-    const LogicalSize& aContentEdgeToBoxSizing, nscoord aBoxSizingToMarginEdge,
-    ExtremumLength aSize, Maybe<nscoord> aAvailableISizeOverride,
+    const LogicalSize& aCBSize, const LogicalSize& aContentEdgeToBoxSizing,
+    nscoord aBoxSizingToMarginEdge, ExtremumLength aSize,
+    Maybe<nscoord> aAvailableISizeOverride,
     const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) {
+  auto GetAvailableISize = [&]() {
+    return aCBSize.ISize(aWM) - aBoxSizingToMarginEdge -
+           aContentEdgeToBoxSizing.ISize(aWM);
+  };
+
   // If 'this' is a container for font size inflation, then shrink
   // wrapping inside of it should not apply font size inflation.
   AutoMaybeDisableFontInflation an(this);
@@ -6801,9 +6806,8 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
   Maybe<nscoord> iSizeFromAspectRatio =
       aSize == ExtremumLength::MozAvailable
           ? Nothing()
-          : ComputeISizeValueFromAspectRatio(aWM, aContainingBlockSize,
-                                             aContentEdgeToBoxSizing,
-                                             aSizeOverrides, aFlags);
+          : ComputeISizeValueFromAspectRatio(
+                aWM, aCBSize, aContentEdgeToBoxSizing, aSizeOverrides, aFlags);
   nscoord result;
   switch (aSize) {
     case ExtremumLength::MaxContent:
@@ -6818,10 +6822,7 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
       NS_ASSERTION(result >= 0, "inline-size less than zero");
       if (MOZ_UNLIKELY(
               aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize))) {
-        auto available =
-            aContainingBlockSize.ISize(aWM) -
-            (aBoxSizingToMarginEdge + aContentEdgeToBoxSizing.ISize(aWM));
-        result = std::min(available, result);
+        result = std::min(GetAvailableISize(), result);
       }
       return {result, iSizeFromAspectRatio ? AspectRatioUsage::ToComputeISize
                                            : AspectRatioUsage::None};
@@ -6838,12 +6839,8 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
         min = GetMinISize(aRenderingContext);
       }
 
-      nscoord fill = aAvailableISizeOverride
-                         ? *aAvailableISizeOverride
-                         : aContainingBlockSize.ISize(aWM) -
-                               (aBoxSizingToMarginEdge +
-                                aContentEdgeToBoxSizing.ISize(aWM));
-
+      const nscoord fill = aAvailableISizeOverride ? *aAvailableISizeOverride
+                                                   : GetAvailableISize();
       if (MOZ_UNLIKELY(
               aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize))) {
         min = std::min(min, fill);
@@ -6853,26 +6850,24 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
       return {result};
     }
     case ExtremumLength::MozAvailable:
-      return {aContainingBlockSize.ISize(aWM) -
-              (aBoxSizingToMarginEdge + aContentEdgeToBoxSizing.ISize(aWM))};
+      return {GetAvailableISize()};
   }
   MOZ_ASSERT_UNREACHABLE("Unknown extremum length?");
   return {};
 }
 
 nscoord nsIFrame::ComputeISizeValue(const WritingMode aWM,
-                                    const LogicalSize& aContainingBlockSize,
+                                    const LogicalSize& aCBSize,
                                     const LogicalSize& aContentEdgeToBoxSizing,
-                                    const LengthPercentage& aSize) {
+                                    const LengthPercentage& aSize) const {
   LAYOUT_WARN_IF_FALSE(
-      aContainingBlockSize.ISize(aWM) != NS_UNCONSTRAINEDSIZE,
+      aCBSize.ISize(aWM) != NS_UNCONSTRAINEDSIZE,
       "have unconstrained inline-size; this should only result from "
       "very large sizes, not attempts at intrinsic inline-size "
       "calculation");
-  NS_ASSERTION(aContainingBlockSize.ISize(aWM) >= 0,
-               "inline-size less than zero");
+  NS_ASSERTION(aCBSize.ISize(aWM) >= 0, "inline-size less than zero");
 
-  nscoord result = aSize.Resolve(aContainingBlockSize.ISize(aWM));
+  nscoord result = aSize.Resolve(aCBSize.ISize(aWM));
   // The result of a calc() expression might be less than 0; we
   // should clamp at runtime (below).  (Percentages and coords that
   // are less than 0 have already been dropped by the parser.)
