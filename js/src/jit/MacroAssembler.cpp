@@ -3715,9 +3715,8 @@ void MacroAssembler::printf(const char* output, Register value) {
 void MacroAssembler::convertInt32ValueToDouble(ValueOperand val) {
   Label done;
   branchTestInt32(Assembler::NotEqual, val, &done);
-  unboxInt32(val, val.scratchReg());
   ScratchDoubleScope fpscratch(*this);
-  convertInt32ToDouble(val.scratchReg(), fpscratch);
+  convertInt32ToDouble(val.payloadOrValueReg(), fpscratch);
   boxDouble(fpscratch, val, fpscratch);
   bind(&done);
 }
