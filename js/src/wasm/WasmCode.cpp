@@ -489,7 +489,7 @@ static constexpr unsigned LAZY_STUB_LIFO_DEFAULT_CHUNK_SIZE = 8 * 1024;
 
 bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
                                         const CodeMetadata& codeMeta,
-                                        const CodeBlock& codeBlock,
+                                        const CodeBlock& tierCodeBlock,
                                         size_t* stubSegmentIndex) {
   MOZ_ASSERT(funcExportIndices.length());
 
@@ -502,8 +502,8 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     PadCodeForSingleStub(masm);
   }
 
-  const FuncExportVector& funcExports = codeBlock.funcExports;
-  uint8_t* moduleSegmentBase = codeBlock.segment->base();
+  const FuncExportVector& funcExports = tierCodeBlock.funcExports;
+  uint8_t* moduleSegmentBase = tierCodeBlock.segment->base();
 
   CodeRangeVector codeRanges;
   DebugOnly<uint32_t> numExpectedRanges = 0;
@@ -512,8 +512,8 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     const FuncType& funcType = codeMeta.getFuncExportType(fe);
     // Exports that don't support a jit entry get only the interp entry.
     numExpectedRanges += (funcType.canHaveJitEntry() ? 2 : 1);
-    void* calleePtr =
-        moduleSegmentBase + codeBlock.codeRange(fe).funcUncheckedCallEntry();
+    void* calleePtr = moduleSegmentBase +
+                      tierCodeBlock.codeRange(fe).funcUncheckedCallEntry();
     Maybe<ImmPtr> callee;
     callee.emplace(calleePtr, ImmPtr::NoCheckToken());
     if (!GenerateEntryStubs(masm, funcExportIndex, fe, funcType, callee,
@@ -542,7 +542,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
       !stubSegments_[lastStubSegmentIndex_]->hasSpace(codeLength)) {
     size_t newSegmentSize = std::max(codeLength, ExecutableCodePageSize);
     SharedLazyStubSegment newSegment =
-        LazyStubSegment::create(*codeBlock.code, newSegmentSize);
+        LazyStubSegment::create(*tierCodeBlock.code, newSegmentSize);
     if (!newSegment) {
       return false;
     }
@@ -559,6 +559,17 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
   uint8_t* codePtr = nullptr;
   if (!segment->addStubs(codeMeta, codeLength, funcExportIndices, funcExports,
                          codeRanges, &codePtr, &interpRangeIndex)) {
+    return false;
+  }
+
+  UniqueCodeBlock stubCodeBlock =
+      MakeUnique<CodeBlock>(CodeBlockKind::LazyStubs);
+  if (!stubCodeBlock) {
+    return false;
+  }
+  stubCodeBlock->segment = segment;
+  stubCodeBlock->codeRanges = std::move(codeRanges);
+  if (!codeBlocks_.append(std::move(stubCodeBlock))) {
     return false;
   }
 
@@ -586,7 +597,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     MOZ_ASSERT(cr.value.funcIndex() == fe.funcIndex());
 
     LazyFuncExport lazyExport(fe.funcIndex(), *stubSegmentIndex,
-                              interpRangeIndex, codeBlock.tier);
+                              interpRangeIndex, tierCodeBlock.tier());
 
     // Exports that don't support a jit entry get only the interp entry.
     interpRangeIndex += (funcType.canHaveJitEntry() ? 2 : 1);
@@ -613,14 +624,14 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
 
 bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
                                       const CodeMetadata& codeMeta,
-                                      const CodeBlock& codeBlock) {
+                                      const CodeBlock& tierCodeBlock) {
   Uint32Vector funcExportIndexes;
   if (!funcExportIndexes.append(funcExportIndex)) {
     return false;
   }
 
   size_t stubSegmentIndex;
-  if (!createManyEntryStubs(funcExportIndexes, codeMeta, codeBlock,
+  if (!createManyEntryStubs(funcExportIndexes, codeMeta, tierCodeBlock,
                             &stubSegmentIndex)) {
     return false;
   }
@@ -628,7 +639,7 @@ bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
   const SharedLazyStubSegment& segment = stubSegments_[stubSegmentIndex];
   const CodeRangeVector& codeRanges = segment->codeRanges();
 
-  const FuncExport& fe = codeBlock.funcExports[funcExportIndex];
+  const FuncExport& fe = tierCodeBlock.funcExports[funcExportIndex];
   const FuncType& funcType = codeMeta.getFuncExportType(fe);
 
   // Exports that don't support a jit entry get only the interp entry.
@@ -644,12 +655,12 @@ bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
   const CodeRange& cr = codeRanges[codeRanges.length() - 1];
   MOZ_ASSERT(cr.isJitEntry());
 
-  codeBlock.code->setJitEntry(cr.funcIndex(), segment->base() + cr.begin());
+  tierCodeBlock.code->setJitEntry(cr.funcIndex(), segment->base() + cr.begin());
   return true;
 }
 
 bool LazyStubTier::createTier2(const CodeMetadata& codeMeta,
-                               const CodeBlock& codeBlock,
+                               const CodeBlock& tierCodeBlock,
                                Maybe<size_t>* outStubSegmentIndex) {
   if (!exports_.length()) {
     return true;
@@ -664,12 +675,12 @@ bool LazyStubTier::createTier2(const CodeMetadata& codeMeta,
     const LazyFuncExport& lfe = exports_[i];
     MOZ_ASSERT(lfe.tier == Tier::Baseline);
     size_t funcExportIndex;
-    codeBlock.lookupFuncExport(lfe.funcIndex, &funcExportIndex);
+    tierCodeBlock.lookupFuncExport(lfe.funcIndex, &funcExportIndex);
     funcExportIndices.infallibleAppend(funcExportIndex);
   }
 
   size_t stubSegmentIndex;
-  if (!createManyEntryStubs(funcExportIndices, codeMeta, codeBlock,
+  if (!createManyEntryStubs(funcExportIndices, codeMeta, tierCodeBlock,
                             &stubSegmentIndex)) {
     return false;
   }
@@ -885,8 +896,8 @@ bool Code::initialize(const LinkData& linkData) {
 bool Code::setAndBorrowTier2(UniqueCodeBlock tier2, const LinkData& linkData,
                              const CodeBlock** borrowedTier) const {
   MOZ_RELEASE_ASSERT(!hasTier2());
-  MOZ_RELEASE_ASSERT(tier2->tier == Tier::Optimized &&
-                     tier1_->tier == Tier::Baseline);
+  MOZ_RELEASE_ASSERT(tier2->tier() == Tier::Optimized &&
+                     tier1_->tier() == Tier::Baseline);
 
   if (!tier2->initializeModule(*this, linkData, *codeMeta_,
                                codeMetaForAsmJS_)) {
@@ -920,37 +931,37 @@ uint32_t Code::getFuncIndex(JSFunction* fun) const {
 
 Tiers Code::tiers() const {
   if (hasTier2()) {
-    return Tiers(tier1_->tier, tier2_->tier);
+    return Tiers(tier1_->tier(), tier2_->tier());
   }
-  return Tiers(tier1_->tier);
+  return Tiers(tier1_->tier());
 }
 
 bool Code::hasTier(Tier t) const {
-  if (hasTier2() && tier2_->tier == t) {
+  if (hasTier2() && tier2_->tier() == t) {
     return true;
   }
-  return tier1_->tier == t;
+  return tier1_->tier() == t;
 }
 
-Tier Code::stableTier() const { return tier1_->tier; }
+Tier Code::stableTier() const { return tier1_->tier(); }
 
 Tier Code::bestTier() const {
   if (hasTier2()) {
-    return tier2_->tier;
+    return tier2_->tier();
   }
-  return tier1_->tier;
+  return tier1_->tier();
 }
 
 const CodeBlock& Code::codeBlock(Tier tier) const {
   switch (tier) {
     case Tier::Baseline:
-      if (tier1_->tier == Tier::Baseline) {
+      if (tier1_->tier() == Tier::Baseline) {
         MOZ_ASSERT(tier1_->initialized());
         return *tier1_;
       }
       MOZ_CRASH("No code segment at this tier");
     case Tier::Optimized:
-      if (tier1_->tier == Tier::Optimized) {
+      if (tier1_->tier() == Tier::Optimized) {
         MOZ_ASSERT(tier1_->initialized());
         return *tier1_;
       }
