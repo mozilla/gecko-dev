@@ -712,7 +712,7 @@ impl DebugOverlayState {
 /// Tracks buffer damage rects over a series of frames.
 #[derive(Debug, Default)]
 pub(crate) struct BufferDamageTracker {
-    damage_rects: [DeviceRect; 2],
+    damage_rects: [DeviceRect; 4],
     current_offset: usize,
 }
 
@@ -6024,7 +6024,6 @@ mod tests {
         assert_eq!(tracker.get_damage_rect(1), Some(DeviceRect::zero()));
         assert_eq!(tracker.get_damage_rect(2), Some(DeviceRect::zero()));
         assert_eq!(tracker.get_damage_rect(3), Some(DeviceRect::zero()));
-        assert_eq!(tracker.get_damage_rect(4), None);
 
         let damage1 = DeviceRect::from_origin_and_size(DevicePoint::new(10.0, 10.0), DeviceSize::new(10.0, 10.0));
         let damage2 = DeviceRect::from_origin_and_size(DevicePoint::new(20.0, 20.0), DeviceSize::new(10.0, 10.0));
@@ -6035,13 +6034,11 @@ mod tests {
         assert_eq!(tracker.get_damage_rect(1), Some(DeviceRect::zero()));
         assert_eq!(tracker.get_damage_rect(2), Some(damage1));
         assert_eq!(tracker.get_damage_rect(3), Some(damage1));
-        assert_eq!(tracker.get_damage_rect(4), None);
 
         tracker.push_dirty_rect(&damage2);
         assert_eq!(tracker.get_damage_rect(0), None);
         assert_eq!(tracker.get_damage_rect(1), Some(DeviceRect::zero()));
         assert_eq!(tracker.get_damage_rect(2), Some(damage2));
         assert_eq!(tracker.get_damage_rect(3), Some(combined));
-        assert_eq!(tracker.get_damage_rect(4), None);
     }
 }
