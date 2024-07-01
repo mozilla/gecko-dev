@@ -121,11 +121,12 @@ static bool SetRealtime(VTCompressionSessionRef& aSession, bool aEnabled) {
                                 kVTCompressionPropertyKey_AllowFrameReordering,
                                 kCFBooleanFalse) == noErr;
   }
+  // Disable bframes for now.
   return VTSessionSetProperty(aSession, kVTCompressionPropertyKey_RealTime,
                               kCFBooleanFalse) == noErr &&
          VTSessionSetProperty(aSession,
                               kVTCompressionPropertyKey_AllowFrameReordering,
-                              kCFBooleanTrue) == noErr;
+                              kCFBooleanFalse) == noErr;
 }
 
 static bool SetProfileLevel(VTCompressionSessionRef& aSession,
@@ -192,6 +193,15 @@ RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
     return InitPromise::CreateAndReject(
         MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                     "fail to create encoder session"),
+        __func__);
+  }
+
+  if (VTSessionSetProperty(mSession,
+                           kVTCompressionPropertyKey_AllowFrameReordering,
+                           kCFBooleanFalse) != noErr) {
+    LOGE("Couldn't disable bframes");
+    return InitPromise::CreateAndReject(
+        MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "Couldn't disable bframes"),
         __func__);
   }
 
