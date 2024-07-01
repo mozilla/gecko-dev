@@ -376,6 +376,32 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
     if (mConfig.mCodec == CodecType::VP8 || mConfig.mCodec == CodecType::VP9) {
       mLib->av_opt_set(mCodecContext->priv_data, "error-resilient", "1", 0);
     }
+    if (mConfig.mCodec == CodecType::AV1) {
+      mLib->av_opt_set(mCodecContext->priv_data, "error-resilience", "1", 0);
+      // This sets usage to AOM_USAGE_REALTIME
+      mLib->av_opt_set(mCodecContext->priv_data, "usage", "1", 0);
+      // Allow the bitrate to swing 50% up and down the target
+      mLib->av_opt_set(mCodecContext->priv_data, "rc_undershoot_percent", "50",
+                       0);
+      mLib->av_opt_set(mCodecContext->priv_data, "rc_overshoot_percent", "50",
+                       0);
+      // Row multithreading -- note that we do single threaded encoding for now,
+      // so this doesn't do much
+      mLib->av_opt_set(mCodecContext->priv_data, "row_mt", "1", 0);
+      // Cyclic refresh adaptive quantization
+      mLib->av_opt_set(mCodecContext->priv_data, "aq-mode", "3", 0);
+      // optimized for real-time, 7 for regular, lower: more cpu use -> higher
+      // compression ratio
+      mLib->av_opt_set(mCodecContext->priv_data, "cpu-used", "9", 0);
+      // disable, this is to handle camera motion, unlikely for our use case
+      mLib->av_opt_set(mCodecContext->priv_data, "enable-global-motion", "0",
+                       0);
+      mLib->av_opt_set(mCodecContext->priv_data, "enable-cfl-intra", "0", 0);
+      // TODO: Set a number of tiles appropriate for the number of threads used
+      // -- disable tiling if using a single thread.
+      mLib->av_opt_set(mCodecContext->priv_data, "tile-columns", "0", 0);
+      mLib->av_opt_set(mCodecContext->priv_data, "tile-rows", "0", 0);
+    }
   }
 
   if (SvcEnabled()) {
@@ -438,16 +464,11 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
     }
   }
 
-  // TODO: keyint_min, max_b_frame?
   // - if mConfig.mDenoising is set: av_opt_set_int(mCodecContext->priv_data,
   // "noise_sensitivity", x, 0), where the x is from 0(disabled) to 6.
   // - if mConfig.mAdaptiveQp is set: av_opt_set_int(mCodecContext->priv_data,
   // "aq_mode", x, 0), where x is from 0 to 3: 0 - Disabled, 1 - Variance
   // AQ(default), 2 - Complexity AQ, 3 - Cycle AQ.
-  // - if min and max rates are known (VBR?),
-  // av_opt_set(mCodecContext->priv_data, "minrate", x, 0) and
-  // av_opt_set(mCodecContext->priv_data, "maxrate", y, 0)
-  // TODO: AV1 specific settings.
 
   // Our old version of libaom-av1 is considered experimental by the recent
   // ffmpeg we use. Allow experimental codecs for now until we decide on an AV1
