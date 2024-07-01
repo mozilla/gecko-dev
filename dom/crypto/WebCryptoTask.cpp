@@ -86,6 +86,7 @@ enum TelemetryAlgorithm {
   TA_ECDSA = 22,
   TA_HKDF = 23,
   TA_DH = 24,
+  TA_ED25519 = 25,
 };
 
 // Convenience functions for extracting / converting information
@@ -1125,6 +1126,7 @@ class AsymmetricSignVerifyTask : public WebCryptoTask {
       }
     } else if (algName.EqualsLiteral(WEBCRYPTO_ALG_ED25519)) {
       mAlgorithm = Algorithm::ED25519;
+      Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_ED25519);
       CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_ED25519);
     } else {
       // This shouldn't happen; CreateSignVerifyTask shouldn't create

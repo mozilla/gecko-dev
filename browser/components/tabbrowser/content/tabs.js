@@ -1244,6 +1244,7 @@
               popup.removeAttribute("id");
               popup.className = "new-tab-popup";
               popup.setAttribute("position", "after_end");
+              popup.addEventListener("popupshowing", CreateContainerTabMenu);
               parent.prepend(popup);
               parent.setAttribute("type", "menu");
               // Update tooltip text

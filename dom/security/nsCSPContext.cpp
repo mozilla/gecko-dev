@@ -1347,6 +1347,8 @@ nsresult nsCSPContext::FireViolationEvent(
     if (aViolationEventInit.ToJSON(json)) {
       aCSPEventListener->OnCSPViolationEvent(json);
     }
+
+    return NS_OK;
   }
 
   // 1. If target is not null, and global is a Window, and target’s
@@ -1607,6 +1609,10 @@ class CSPReportSenderRunnable final : public Runnable {
  * topic that a violation occurred.  Also triggers report sending and console
  * logging.  All asynchronous on the main thread.
  *
+ * @param aCSPEventListener Should be null when the violation stems from a
+ *                          Window. Is required when the violation stems from a
+ *                          Worker to be potentially notified about the
+ *                          violation event.
  * @param aOriginalUri
  *        The original URI if the blocked content is a redirect, else null
  * @param aViolatedDirectiveName
