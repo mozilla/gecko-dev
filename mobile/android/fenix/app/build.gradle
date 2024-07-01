@@ -718,6 +718,12 @@ dependencies {
 
     implementation FenixDependencies.androidx_profileinstaller
 
+    constraints {
+        implementation (ComponentsDependencies.androidx_tracing) {
+            because 'AndroidX Test gets force-downgraded to 1.0.0 and breaks otherwise'
+        }
+    }
+
     androidTestImplementation FenixDependencies.fastlane
     // This Falcon version is added to maven central now required for Screengrab
     androidTestImplementation FenixDependencies.falcon

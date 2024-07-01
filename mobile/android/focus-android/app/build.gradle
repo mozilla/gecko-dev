@@ -390,6 +390,12 @@ dependencies {
     androidTestImplementation FocusDependencies.fastlane
     androidTestImplementation FocusDependencies.falcon // Required by fastlane
 
+    constraints {
+        implementation (ComponentsDependencies.androidx_tracing) {
+            because 'AndroidX Test gets force-downgraded to 1.0.0 and breaks otherwise'
+        }
+    }
+
     testImplementation ComponentsDependencies.androidx_test_core
     testImplementation ComponentsDependencies.androidx_test_runner
     testImplementation ComponentsDependencies.androidx_test_rules
