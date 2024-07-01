@@ -63,6 +63,8 @@ support-files = [
 
 ["test_getRegisteredCustomProperties.html"]
 
+["test_getRegisteredCustomProperty.html"]
+
 ["test_getRelativeRuleLine.html"]
 
 ["test_getRuleIndex.html"]

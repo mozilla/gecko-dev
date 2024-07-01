@@ -1045,6 +1045,37 @@ void InspectorUtils::GetCSSRegisteredProperties(
 }
 
 /* static */
+void InspectorUtils::GetCSSRegisteredProperty(
+    GlobalObject& aGlobalObject, Document& aDocument, const nsACString& aName,
+    Nullable<InspectorCSSPropertyDefinition>& aResult) {
+  StylePropDef result{StyleAtom(NS_Atomize(aName))};
+
+  // Update the rules before looking up @property rules.
+  ServoStyleSet& styleSet = aDocument.EnsureStyleSet();
+  styleSet.UpdateStylistIfNeeded();
+
+  if (!Servo_GetRegisteredCustomProperty(styleSet.RawData(), &aName, &result)) {
+    aResult.SetNull();
+    return;
+  }
+
+  InspectorCSSPropertyDefinition& propDef = aResult.SetValue();
+
+  // Servo does not include the "--" prefix in the property definition name.
+  // Add it back as it's easier for DevTools to handle them _with_ "--".
+  propDef.mName.AssignLiteral("--");
+  propDef.mName.Append(nsAtomCString(result.name.AsAtom()));
+  propDef.mSyntax.Append(result.syntax);
+  propDef.mInherits = result.inherits;
+  if (result.has_initial_value) {
+    propDef.mInitialValue.Append(result.initial_value);
+  } else {
+    propDef.mInitialValue.SetIsVoid(true);
+  }
+  propDef.mFromJS = result.from_js;
+}
+
+/* static */
 bool InspectorUtils::ValueMatchesSyntax(GlobalObject&, Document& aDocument,
                                         const nsACString& aValue,
                                         const nsACString& aSyntax) {

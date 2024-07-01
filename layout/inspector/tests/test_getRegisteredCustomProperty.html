@@ -1,0 +1,133 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <title>Test InspectorUtils.getCSSRegisteredProperty</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <style>
+    @property --color-1 {
+      syntax: "<color>";
+      inherits: true;
+      initial-value: blue;
+    }
+
+    @property --color-2 {
+      syntax: "*";
+      inherits: false;
+    }
+  </style>
+</head>
+
+<body>
+  <code>InspectorUtils.getCSSRegisteredProperty</code>
+
+  <script>
+    "use strict";
+
+    /** Test for InspectorUtils.getCSSRegisteredProperty **/
+
+    const { Assert } = SpecialPowers.ChromeUtils.importESModule(
+      "resource://testing-common/Assert.sys.mjs"
+    );
+    const InspectorUtils = SpecialPowers.InspectorUtils;
+
+    CSS.registerProperty({
+      name: "--length-1",
+      syntax: "<length>",
+      initialValue: "10px",
+      inherits: true,
+    });
+    CSS.registerProperty({
+      name: "--length-2",
+      syntax: "foo | <integer>+ | <percentage> | <length># | auto",
+      initialValue: "100vw",
+      inherits: true
+    });
+    CSS.registerProperty({
+      name: "--length-3",
+      syntax: "*",
+      inherits: false
+    });
+    CSS.registerProperty({
+      name: "--length-4",
+      syntax: "*",
+      initialValue: "",
+      inherits: false
+    });
+
+    is(
+      InspectorUtils.getCSSRegisteredProperty(document, "--unknown"),
+      null,
+      "Returns null when the name does not match a registered property"
+    );
+    is(
+      InspectorUtils.getCSSRegisteredProperty(document, ""),
+      null,
+      "Returns null when passed an empty string"
+    );
+    is(
+      InspectorUtils.getCSSRegisteredProperty(document, "color-1"),
+      null,
+      "Returns null when passed a property name without leading --"
+    );
+
+    Assert.deepEqual(
+      InspectorUtils.getCSSRegisteredProperty(document, "--color-1"), {
+      name: "--color-1",
+      syntax: "<color>",
+      inherits: true,
+      initialValue: "blue",
+      fromJS: false,
+    }, `Got expected registered property definition for "${"--color-1"}"`);
+
+    Assert.deepEqual(
+      InspectorUtils.getCSSRegisteredProperty(document, "--color-2"), {
+      name: "--color-2",
+      syntax: "*",
+      inherits: false,
+      initialValue: null,
+      fromJS: false,
+    }, `Got expected registered property definition for "${"--color-2"}"`);
+
+    Assert.deepEqual(
+      InspectorUtils.getCSSRegisteredProperty(document, "--length-1"), {
+      name: "--length-1",
+      syntax: "<length>",
+      inherits: true,
+      initialValue: "10px",
+      fromJS: true,
+    }, `Got expected registered property definition for "${"--length-1"}"`);
+
+    Assert.deepEqual(
+      InspectorUtils.getCSSRegisteredProperty(document, "--length-2"), {
+      name: "--length-2",
+      syntax: "foo | <integer>+ | <percentage> | <length># | auto",
+      inherits: true,
+      initialValue: "100vw",
+      fromJS: true,
+    }, `Got expected registered property definition for "${"--length-2"}"`);
+
+    Assert.deepEqual(
+      InspectorUtils.getCSSRegisteredProperty(document, "--length-3"), {
+      name: "--length-3",
+      syntax: "*",
+      inherits: false,
+      initialValue: null,
+      fromJS: true,
+    }, `Got expected registered property definition for "${"--length-3"}"`);
+
+    Assert.deepEqual(
+      InspectorUtils.getCSSRegisteredProperty(document, "--length-4"), {
+      name: "--length-4",
+      syntax: "*",
+      inherits: false,
+      initialValue: "",
+      fromJS: true,
+    }, `Got expected registered property definition for "${"--length-4"}"`);
+
+  </script>
+  </pre>
+</body>
+
+</html>

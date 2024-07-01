@@ -273,6 +273,13 @@ class InspectorUtils {
       nsTArray<InspectorCSSPropertyDefinition>& aResult);
 
   /**
+   * Get a single registered CSS property
+   */
+  static void GetCSSRegisteredProperty(
+      GlobalObject& aGlobal, Document& aDocument, const nsACString& aName,
+      Nullable<InspectorCSSPropertyDefinition>& aResult);
+
+  /**
    * Returns whether or not a CSS property value is valid for the passed syntax
    */
   static bool ValueMatchesSyntax(GlobalObject&, Document& aDocument,

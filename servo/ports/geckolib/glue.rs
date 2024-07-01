@@ -9212,6 +9212,35 @@ pub extern "C" fn Servo_GetRegisteredCustomProperties(
     }
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn Servo_GetRegisteredCustomProperty(
+    per_doc_data: &PerDocumentStyleData,
+    name: &nsACString,
+    custom_property: &mut PropDef,
+) -> bool {
+    let name = name.as_str_unchecked();
+    if !name.starts_with("--") {
+        return false;
+    }
+    // We store registered property names without the leading "--".
+    let name = Atom::from(&name[2..]);
+
+    let stylist = &per_doc_data.borrow().stylist;
+    if let Some(property_registration) = stylist.custom_property_script_registry().get(&name) {
+        *custom_property = PropDef::new(name, property_registration, /* from_js */ true);
+        return true;
+    }
+
+    for (cascade_data, _) in stylist.iter_origins() {
+        if let Some(property_registration) = cascade_data.custom_property_registrations().get(&name) {
+            *custom_property = PropDef::new(name, property_registration, /* from_js */ false);
+            return true;
+        }
+    }
+
+    false
+}
+
 
 #[no_mangle]
 pub unsafe extern "C" fn Servo_Value_Matches_Syntax(
