@@ -405,7 +405,10 @@ export const GeckoViewTranslationsSettings = {
             Promise.all(results).then(models => {
               const response = [];
               models.forEach(item => {
-                response.push(item);
+                // Ensures unactionable models do not appear in the list
+                if (parseInt(item.size) !== 0) {
+                  response.push(item);
+                }
               });
               aCallback.onSuccess({ models: response });
             });
