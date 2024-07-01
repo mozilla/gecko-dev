@@ -82,11 +82,11 @@ object Versions {
         const val localbroadcastmanager = "1.0.0"
         const val swiperefreshlayout = "1.1.0"
         const val datastore="1.1.1"
-        const val test = "1.5.0"
-        const val test_ext = "1.1.5"
-        const val test_espresso = "3.5.1"
-        const val test_orchestrator = "1.4.2"
-        const val test_runner = "1.5.2"
+        const val test = "1.6.1"
+        const val test_ext = "1.2.1"
+        const val test_espresso = "3.6.1"
+        const val test_orchestrator = "1.5.0"
+        const val test_runner = "1.6.1"
         const val test_uiautomator = "2.3.0"
     }
 
