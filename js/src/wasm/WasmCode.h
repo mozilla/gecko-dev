@@ -255,52 +255,6 @@ struct LazyFuncExport {
 
 using LazyFuncExportVector = Vector<LazyFuncExport, 0, SystemAllocPolicy>;
 
-// LazyStubTier contains all the necessary information for lazy function entry
-// stubs that are generated at runtime. None of its data are ever serialized.
-//
-// It must be protected by a lock, because the main thread can both read and
-// write lazy stubs at any time while a background thread can regenerate lazy
-// stubs for tier2 at any time.
-
-class LazyStubTier {
-  CodeSegmentVector stubSegments_;
-  UniqueCodeBlockVector codeBlocks_;
-  LazyFuncExportVector exports_;
-
-  [[nodiscard]] bool createManyEntryStubs(const Uint32Vector& funcExportIndices,
-                                          const CodeMetadata& codeMeta,
-                                          const CodeBlock& tierCodeBlock,
-                                          size_t* stubBlockIndex);
-
- public:
-  LazyStubTier() = default;
-
-  // Creates one lazy stub for the exported function, for which the jit entry
-  // will be set to the lazily-generated one.
-  [[nodiscard]] bool createOneEntryStub(uint32_t funcExportIndex,
-                                        const CodeMetadata& codeMeta,
-                                        const CodeBlock& tierCodeBlock);
-
-  bool entryStubsEmpty() const { return codeBlocks_.empty(); }
-  bool hasEntryStub(uint32_t funcIndex) const;
-
-  // Returns a pointer to the raw interpreter entry of a given function for
-  // which stubs have been lazily generated.
-  [[nodiscard]] void* lookupInterpEntry(uint32_t funcIndex) const;
-
-  // Create one lazy stub for all the functions in funcExportIndices, putting
-  // them in a single stub. Jit entries won't be used until
-  // setJitEntries() is actually called, after the Code owner has committed
-  // tier2.
-  [[nodiscard]] bool createTier2(const CodeMetadata& codeMeta,
-                                 const CodeBlock& tierCodeBlock,
-                                 Maybe<size_t>* outStubBlockIndex);
-  void setJitEntries(const Maybe<size_t>& stubBlockIndex, const Code& code);
-
-  void addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
-                     size_t* data) const;
-};
-
 // CodeBlock contains all the data related to a given compilation tier. It is
 // built during module generation and then immutably stored in a Code.
 
@@ -496,6 +450,18 @@ using MetadataAnalysisHashMap =
     HashMap<const char*, uint32_t, mozilla::CStringHasher, SystemAllocPolicy>;
 
 class Code : public ShareableBase<Code> {
+  struct ProtectedData {
+    CodeSegmentVector segments;
+    UniqueCodeBlockVector blocks;
+    LazyFuncExportVector lazyExports;
+  };
+  using ReadGuard = RWExclusiveData<ProtectedData>::ReadGuard;
+  using WriteGuard = RWExclusiveData<ProtectedData>::WriteGuard;
+
+  // Core data that is not thread-safe and must acquire a lock in order to
+  // access.
+  RWExclusiveData<ProtectedData> data_;
+
   // These have the same lifetime end as Code itself -- they can be dropped
   // when Code itself is dropped.  FIXME: should these be MutableCodeXX?
   //
@@ -504,6 +470,7 @@ class Code : public ShareableBase<Code> {
   // This is null for a wasm module, non-null for asm.js
   SharedCodeMetadataForAsmJS codeMetaForAsmJS_;
 
+  UniqueCodeBlock tier1_;
   // [SMDOC] Tier-2 data
   //
   // hasTier2_ and tier2_ implement a three-state protocol for broadcasting
@@ -524,16 +491,31 @@ class Code : public ShareableBase<Code> {
   mutable UniqueConstCodeBlock tier2_;
   mutable Atomic<bool> hasTier2_;
 
-  UniqueCodeBlock tier1_;
-
   ExclusiveData<CacheableCharsVector> profilingLabels_;
   JumpTables jumpTables_;
 
-  // Lazy stubs, not serialized.
-  RWExclusiveData<LazyStubTier> lazyStubs_;
-
   // Where to redirect PC to for handling traps from the signal handler.
   uint8_t* trapCode_;
+
+  // Returns a pointer to the raw interpreter entry of a given function for
+  // which stubs have been lazily generated.
+  [[nodiscard]] void* lookupLazyInterpEntry(const WriteGuard& guard,
+                                            uint32_t funcIndex) const;
+
+  [[nodiscard]] bool createOneLazyEntryStub(const WriteGuard& guard,
+                                            uint32_t funcExportIndex,
+                                            const CodeBlock& tierCodeBlock,
+                                            void** interpEntry) const;
+  [[nodiscard]] bool createManyLazyEntryStubs(
+      const WriteGuard& guard, const Uint32Vector& funcExportIndices,
+      const CodeBlock& tierCodeBlock, size_t* stubBlockIndex) const;
+  // Create one lazy stub for all the functions in funcExportIndices, putting
+  // them in a single stub. Jit entries won't be used until
+  // setJitEntries() is actually called, after the Code owner has committed
+  // tier2.
+  [[nodiscard]] bool createTier2LazyEntryStubs(
+      const WriteGuard& guard, const CodeBlock& tier2Code,
+      Maybe<size_t>* outStubBlockIndex) const;
 
  public:
   Code(const CodeMetadata& codeMeta,
@@ -543,14 +525,14 @@ class Code : public ShareableBase<Code> {
 
   bool initialize(const LinkData& linkData);
 
-  void setTieringEntry(size_t i, void* target) const {
-    jumpTables_.setTieringEntry(i, target);
-  }
+  [[nodiscard]] bool getOrCreateInterpEntry(uint32_t funcIndex,
+                                            const FuncExport** funcExport,
+                                            void** interpEntry) const;
+  [[nodiscard]] bool finishCompleteTier2(const LinkData& linkData,
+                                         UniqueCodeBlock tierCodeBlock) const;
+
   void** tieringJumpTable() const { return jumpTables_.tiering(); }
 
-  void setJitEntry(size_t i, void* target) const {
-    jumpTables_.setJitEntry(i, target);
-  }
   void setJitEntryIfNull(size_t i, void* target) const {
     jumpTables_.setJitEntryIfNull(i, target);
   }
@@ -560,14 +542,6 @@ class Code : public ShareableBase<Code> {
   uint32_t getFuncIndex(JSFunction* fun) const;
 
   uint8_t* trapCode() const { return trapCode_; }
-
-  // Install the tier2 code without committing it.  To maintain the invariant
-  // that tier2_ is never accessed without the tier having been committed, this
-  // returns a pointer to the installed tier that the caller can use for
-  // subsequent operations.
-  bool setAndBorrowTier2(UniqueCodeBlock tier2, const LinkData& linkData,
-                         const CodeBlock** borrowedTier) const;
-  void commitTier2() const;
 
   bool hasTier2() const { return hasTier2_; }
   Tiers tiers() const;
@@ -586,8 +560,6 @@ class Code : public ShareableBase<Code> {
   const CodeSegment& segment(Tier iter) const {
     return *codeBlock(iter).segment;
   }
-
-  const RWExclusiveData<LazyStubTier>& lazyStubs() const { return lazyStubs_; }
 
   // Metadata lookup functions:
 

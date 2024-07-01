@@ -29,6 +29,7 @@
 
 #include "jit/Disassemble.h"
 #include "jit/ExecutableAllocator.h"
+#include "jit/FlushICache.h"  // for FlushExecutionContextForAllThreads
 #include "jit/MacroAssembler.h"
 #include "jit/PerfSpewer.h"
 #include "util/Poison.h"
@@ -370,10 +371,10 @@ static void PadCodeForSingleStub(MacroAssembler& masm) {
 
 static constexpr unsigned LAZY_STUB_LIFO_DEFAULT_CHUNK_SIZE = 8 * 1024;
 
-bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
-                                        const CodeMetadata& codeMeta,
-                                        const CodeBlock& tierCodeBlock,
-                                        size_t* stubBlockIndex) {
+bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
+                                    const Uint32Vector& funcExportIndices,
+                                    const CodeBlock& tierCodeBlock,
+                                    size_t* stubBlockIndex) const {
   MOZ_ASSERT(funcExportIndices.length());
 
   LifoAlloc lifo(LAZY_STUB_LIFO_DEFAULT_CHUNK_SIZE);
@@ -392,7 +393,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
   DebugOnly<uint32_t> numExpectedRanges = 0;
   for (uint32_t funcExportIndex : funcExportIndices) {
     const FuncExport& fe = funcExports[funcExportIndex];
-    const FuncType& funcType = codeMeta.getFuncExportType(fe);
+    const FuncType& funcType = codeMeta_->getFuncExportType(fe);
     // Exports that don't support a jit entry get only the interp entry.
     numExpectedRanges += (funcType.canHaveJitEntry() ? 2 : 1);
     void* calleePtr =
@@ -421,19 +422,19 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
 
   size_t codeLength = CodeSegment::AlignBytesNeeded(masm.bytesNeeded());
 
-  if (stubSegments_.length() == 0 ||
-      !stubSegments_[stubSegments_.length() - 1]->hasSpace(codeLength)) {
+  if (guard->segments.length() == 0 ||
+      !guard->segments[guard->segments.length() - 1]->hasSpace(codeLength)) {
     SharedCodeSegment newSegment = CodeSegment::createEmpty(codeLength);
     if (!newSegment) {
       return false;
     }
-    if (!stubSegments_.emplaceBack(std::move(newSegment))) {
+    if (!guard->segments.emplaceBack(std::move(newSegment))) {
       return false;
     }
   }
 
-  MOZ_ASSERT(stubSegments_.length() > 0);
-  CodeSegment* segment = stubSegments_[stubSegments_.length() - 1].get();
+  MOZ_ASSERT(guard->segments.length() > 0);
+  CodeSegment* segment = guard->segments[guard->segments.length() - 1].get();
 
   uint8_t* codePtr = nullptr;
   segment->claimSpace(codeLength, &codePtr);
@@ -464,12 +465,12 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     return false;
   }
 
-  *stubBlockIndex = codeBlocks_.length();
+  *stubBlockIndex = guard->blocks.length();
 
   uint32_t codeRangeIndex = 0;
   for (uint32_t funcExportIndex : funcExportIndices) {
     const FuncExport& fe = funcExports[funcExportIndex];
-    const FuncType& funcType = codeMeta.getFuncExportType(fe);
+    const FuncType& funcType = codeMeta_->getFuncExportType(fe);
 
     LazyFuncExport lazyExport(fe.funcIndex(), *stubBlockIndex, codeRangeIndex,
                               tierCodeBlock.tier());
@@ -496,15 +497,16 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     const uint32_t targetFunctionIndex = fe.funcIndex();
 
     if (BinarySearchIf(
-            exports_, 0, exports_.length(),
+            guard->lazyExports, 0, guard->lazyExports.length(),
             [targetFunctionIndex](const LazyFuncExport& funcExport) {
               return targetFunctionIndex - funcExport.funcIndex;
             },
             &exportIndex)) {
-      MOZ_ASSERT(exports_[exportIndex].tier == Tier::Baseline);
-      exports_[exportIndex] = std::move(lazyExport);
-    } else if (!exports_.insert(exports_.begin() + exportIndex,
-                                std::move(lazyExport))) {
+      MOZ_ASSERT(guard->lazyExports[exportIndex].tier == Tier::Baseline);
+      guard->lazyExports[exportIndex] = std::move(lazyExport);
+    } else if (!guard->lazyExports.insert(
+                   guard->lazyExports.begin() + exportIndex,
+                   std::move(lazyExport))) {
       return false;
     }
   }
@@ -516,70 +518,102 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     return false;
   }
 
-  return codeBlocks_.append(std::move(stubCodeBlock));
+  return guard->blocks.append(std::move(stubCodeBlock));
 }
 
-bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
-                                      const CodeMetadata& codeMeta,
-                                      const CodeBlock& tierCodeBlock) {
+bool Code::createOneLazyEntryStub(const WriteGuard& guard,
+                                  uint32_t funcExportIndex,
+                                  const CodeBlock& tierCodeBlock,
+                                  void** interpEntry) const {
   Uint32Vector funcExportIndexes;
   if (!funcExportIndexes.append(funcExportIndex)) {
     return false;
   }
 
   size_t stubBlockIndex;
-  if (!createManyEntryStubs(funcExportIndexes, codeMeta, tierCodeBlock,
-                            &stubBlockIndex)) {
+  if (!createManyLazyEntryStubs(guard, funcExportIndexes, tierCodeBlock,
+                                &stubBlockIndex)) {
     return false;
   }
 
-  const CodeBlock& block = *codeBlocks_[stubBlockIndex];
+  const CodeBlock& block = *guard->blocks[stubBlockIndex];
   const CodeSegment& segment = *block.segment;
   const CodeRangeVector& codeRanges = block.codeRanges;
 
   const FuncExport& fe = tierCodeBlock.funcExports[funcExportIndex];
-  const FuncType& funcType = codeMeta.getFuncExportType(fe);
+  const FuncType& funcType = codeMeta_->getFuncExportType(fe);
 
-  // Exports that don't support a jit entry get only the interp entry.
-  if (!funcType.canHaveJitEntry()) {
-    MOZ_ASSERT(codeRanges.length() >= 1);
-    MOZ_ASSERT(codeRanges.back().isInterpEntry());
-    return true;
+  // We created one or two stubs, depending on the function type.
+  uint32_t funcEntryRanges = funcType.canHaveJitEntry() ? 2 : 1;
+  MOZ_ASSERT(codeRanges.length() >= funcEntryRanges);
+
+  // The first created range is the interp entry
+  const CodeRange& interpRange =
+      codeRanges[codeRanges.length() - funcEntryRanges];
+  MOZ_ASSERT(interpRange.isInterpEntry());
+  *interpEntry = segment.base() + interpRange.begin();
+
+  // The second created range is the jit entry
+  if (funcType.canHaveJitEntry()) {
+    const CodeRange& jitRange =
+        codeRanges[codeRanges.length() - funcEntryRanges + 1];
+    MOZ_ASSERT(jitRange.isJitEntry());
+    jumpTables_.setJitEntry(jitRange.funcIndex(),
+                            segment.base() + jitRange.begin());
   }
-
-  MOZ_ASSERT(codeRanges.length() >= 2);
-  MOZ_ASSERT(codeRanges[codeRanges.length() - 2].isInterpEntry());
-
-  const CodeRange& cr = codeRanges[codeRanges.length() - 1];
-  MOZ_ASSERT(cr.isJitEntry());
-
-  tierCodeBlock.code->setJitEntry(cr.funcIndex(), segment.base() + cr.begin());
   return true;
 }
 
-bool LazyStubTier::createTier2(const CodeMetadata& codeMeta,
-                               const CodeBlock& tierCodeBlock,
-                               Maybe<size_t>* outStubBlockIndex) {
-  if (!exports_.length()) {
+bool Code::getOrCreateInterpEntry(uint32_t funcIndex,
+                                  const FuncExport** funcExport,
+                                  void** interpEntry) const {
+  Tier tier = bestTier();
+
+  size_t funcExportIndex;
+  *funcExport = &codeBlock(tier).lookupFuncExport(funcIndex, &funcExportIndex);
+
+  const FuncExport& fe = **funcExport;
+  if (fe.hasEagerStubs()) {
+    *interpEntry = segment(tier).base() + fe.eagerInterpEntryOffset();
+    return true;
+  }
+
+  MOZ_ASSERT(!codeMetaForAsmJS_, "only wasm can lazily export functions");
+
+  auto guard = data_.writeLock();
+  *interpEntry = lookupLazyInterpEntry(guard, funcIndex);
+  if (*interpEntry) {
+    return true;
+  }
+
+  const CodeBlock& tierCodeBlock = codeBlock(tier);
+  return createOneLazyEntryStub(guard, funcExportIndex, tierCodeBlock,
+                                interpEntry);
+}
+
+bool Code::createTier2LazyEntryStubs(const WriteGuard& guard,
+                                     const CodeBlock& tier2Code,
+                                     Maybe<size_t>* outStubBlockIndex) const {
+  if (!guard->lazyExports.length()) {
     return true;
   }
 
   Uint32Vector funcExportIndices;
-  if (!funcExportIndices.reserve(exports_.length())) {
+  if (!funcExportIndices.reserve(guard->lazyExports.length())) {
     return false;
   }
 
-  for (size_t i = 0; i < exports_.length(); i++) {
-    const LazyFuncExport& lfe = exports_[i];
+  for (size_t i = 0; i < guard->lazyExports.length(); i++) {
+    const LazyFuncExport& lfe = guard->lazyExports[i];
     MOZ_ASSERT(lfe.tier == Tier::Baseline);
     size_t funcExportIndex;
-    tierCodeBlock.lookupFuncExport(lfe.funcIndex, &funcExportIndex);
+    tier2Code.lookupFuncExport(lfe.funcIndex, &funcExportIndex);
     funcExportIndices.infallibleAppend(funcExportIndex);
   }
 
   size_t stubBlockIndex;
-  if (!createManyEntryStubs(funcExportIndices, codeMeta, tierCodeBlock,
-                            &stubBlockIndex)) {
+  if (!createManyLazyEntryStubs(guard, funcExportIndices, tier2Code,
+                                &stubBlockIndex)) {
     return false;
   }
 
@@ -587,54 +621,90 @@ bool LazyStubTier::createTier2(const CodeMetadata& codeMeta,
   return true;
 }
 
-void LazyStubTier::setJitEntries(const Maybe<size_t>& stubBlockIndex,
-                                 const Code& code) {
-  if (!stubBlockIndex) {
-    return;
+bool Code::finishCompleteTier2(const LinkData& linkData,
+                               UniqueCodeBlock tier2Code) const {
+  MOZ_RELEASE_ASSERT(bestTier() == Tier::Baseline &&
+                     tier2Code->tier() == Tier::Optimized);
+  // Publish this code to the process wide map.
+  if (!tier2Code->initialize(*this)) {
+    return false;
   }
-  const CodeBlock& block = *codeBlocks_[*stubBlockIndex];
-  const CodeSegment& segment = *block.segment;
-  for (const CodeRange& cr : block.codeRanges) {
-    if (!cr.isJitEntry()) {
-      continue;
+
+  // Acquire the write guard before we start mutating anything. We hold this
+  // for the minimum amount of time necessary.
+  {
+    auto guard = data_.writeLock();
+
+    // Before we can make tier-2 live, we need to compile tier2 versions of any
+    // extant tier1 lazy stubs (otherwise, tiering would break the assumption
+    // that any extant exported wasm function has had a lazy entry stub already
+    // compiled for it).
+    //
+    // Also see doc block for stubs in WasmJS.cpp.
+    Maybe<size_t> stub2Index;
+    if (!createTier2LazyEntryStubs(guard, *tier2Code.get(), &stub2Index)) {
+      return false;
     }
-    code.setJitEntry(cr.funcIndex(), segment.base() + cr.begin());
+
+    // Initializing the code above will have flushed the icache for all cores.
+    // However, there could still be stale data in the execution pipeline of
+    // other cores on some platforms. Force an execution context flush on all
+    // threads to fix this before we commit the code.
+    //
+    // This is safe due to the check in `PlatformCanTier` in WasmCompile.cpp
+    jit::FlushExecutionContextForAllThreads();
+
+    // Now that we can't fail or otherwise abort tier2, make it live.
+    tier2_ = std::move(tier2Code);
+    hasTier2_ = true;
+    MOZ_ASSERT(hasTier2());
+
+    // Update jump vectors with pointers to tier-2 lazy entry stubs, if any.
+    if (stub2Index) {
+      const CodeBlock& block = *guard->blocks[*stub2Index];
+      const CodeSegment& segment = *block.segment;
+      for (const CodeRange& cr : block.codeRanges) {
+        if (!cr.isJitEntry()) {
+          continue;
+        }
+        jumpTables_.setJitEntry(cr.funcIndex(), segment.base() + cr.begin());
+      }
+    }
   }
+
+  // And we update the jump vectors with pointers to tier-2 functions and eager
+  // stubs.  Callers will continue to invoke tier-1 code until, suddenly, they
+  // will invoke tier-2 code.  This is benign.
+  uint8_t* base = segment(Tier::Optimized).base();
+  for (const CodeRange& cr : codeBlock(Tier::Optimized).codeRanges) {
+    // These are racy writes that we just want to be visible, atomically,
+    // eventually.  All hardware we care about will do this right.  But
+    // we depend on the compiler not splitting the stores hidden inside the
+    // set*Entry functions.
+    if (cr.isFunction()) {
+      jumpTables_.setTieringEntry(cr.funcIndex(), base + cr.funcTierEntry());
+    } else if (cr.isJitEntry()) {
+      jumpTables_.setJitEntry(cr.funcIndex(), base + cr.begin());
+    }
+  }
+  return true;
 }
 
-bool LazyStubTier::hasEntryStub(uint32_t funcIndex) const {
-  size_t match;
-  return BinarySearchIf(
-      exports_, 0, exports_.length(),
-      [funcIndex](const LazyFuncExport& funcExport) {
-        return funcIndex - funcExport.funcIndex;
-      },
-      &match);
-}
-
-void* LazyStubTier::lookupInterpEntry(uint32_t funcIndex) const {
+void* Code::lookupLazyInterpEntry(const WriteGuard& guard,
+                                  uint32_t funcIndex) const {
   size_t match;
   if (!BinarySearchIf(
-          exports_, 0, exports_.length(),
+          guard->lazyExports, 0, guard->lazyExports.length(),
           [funcIndex](const LazyFuncExport& funcExport) {
             return funcIndex - funcExport.funcIndex;
           },
           &match)) {
     return nullptr;
   }
-  const LazyFuncExport& fe = exports_[match];
-  const CodeBlock& block = *codeBlocks_[fe.lazyStubBlockIndex];
+  const LazyFuncExport& fe = guard->lazyExports[match];
+  const CodeBlock& block = *guard->blocks[fe.lazyStubBlockIndex];
   const CodeSegment& segment = *block.segment;
   return segment.base() + block.codeRanges[fe.funcCodeRangeIndex].begin();
-}
-
-void LazyStubTier::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
-                                 size_t* data) const {
-  *data += sizeof(*this);
-  *data += exports_.sizeOfExcludingThis(mallocSizeOf);
-  for (const SharedCodeSegment& stub : stubSegments_) {
-    stub->addSizeOfMisc(mallocSizeOf, code, data);
-  }
 }
 
 CodeBlock::~CodeBlock() {
@@ -774,13 +844,13 @@ bool JumpTables::initialize(CompileMode mode, const CodeBlock& tier1) {
 Code::Code(const CodeMetadata& codeMeta,
            const CodeMetadataForAsmJS* codeMetaForAsmJS, UniqueCodeBlock tier1,
            JumpTables&& maybeJumpTables)
-    : codeMeta_(&codeMeta),
+    : data_(mutexid::WasmCodeProtected),
+      codeMeta_(&codeMeta),
       codeMetaForAsmJS_(codeMetaForAsmJS),
       tier1_(std::move(tier1)),
       profilingLabels_(mutexid::WasmCodeProfilingLabels,
                        CacheableCharsVector()),
       jumpTables_(std::move(maybeJumpTables)),
-      lazyStubs_(mutexid::WasmLazyStubsTier1),
       trapCode_(nullptr) {}
 
 bool Code::initialize(const LinkData& linkData) {
@@ -791,37 +861,8 @@ bool Code::initialize(const LinkData& linkData) {
   }
   trapCode_ = tier1_->segment->base() + linkData.trapOffset;
 
-  MOZ_ASSERT(lazyStubs_.readLock()->entryStubsEmpty());
-
   MOZ_ASSERT(initialized());
   return true;
-}
-
-bool Code::setAndBorrowTier2(UniqueCodeBlock tier2, const LinkData& linkData,
-                             const CodeBlock** borrowedTier) const {
-  MOZ_RELEASE_ASSERT(!hasTier2());
-  MOZ_RELEASE_ASSERT(tier2->tier() == Tier::Optimized &&
-                     tier1_->tier() == Tier::Baseline);
-
-  if (!tier2->initialize(*this)) {
-    return false;
-  }
-
-  tier2_ = std::move(tier2);
-  *borrowedTier = &*tier2_;
-
-  return true;
-}
-
-void Code::commitTier2() const {
-  MOZ_RELEASE_ASSERT(!hasTier2());
-  hasTier2_ = true;
-  MOZ_ASSERT(hasTier2());
-
-  // To maintain the invariant that tier2_ is never read without the tier having
-  // been committed, this checks tier2_ here instead of before setting hasTier2_
-  // (as would be natural).  See comment in WasmCode.h.
-  MOZ_RELEASE_ASSERT(tier2_.get());
 }
 
 uint32_t Code::getFuncIndex(JSFunction* fun) const {
@@ -1107,15 +1148,18 @@ void Code::addSizeOfMiscIfNotSeen(
   bool ok = seenCode->add(p, this);
   (void)ok;  // oh well
 
+  auto guard = data_.readLock();
   *data +=
       mallocSizeOf(this) +
-      codeMeta().sizeOfIncludingThisIfNotSeen(mallocSizeOf, seenCodeMeta) +
+      guard->lazyExports.sizeOfExcludingThis(mallocSizeOf) +
       (codeMetaForAsmJS() ? codeMetaForAsmJS()->sizeOfIncludingThisIfNotSeen(
                                 mallocSizeOf, seenCodeMetaForAsmJS)
                           : 0) +
       profilingLabels_.lock()->sizeOfExcludingThis(mallocSizeOf) +
       jumpTables_.sizeOfMiscExcludingThis();
-  lazyStubs_.readLock()->addSizeOfMisc(mallocSizeOf, code, data);
+  for (const SharedCodeSegment& stub : guard->segments) {
+    stub->addSizeOfMisc(mallocSizeOf, code, data);
+  }
 
   for (auto t : tiers()) {
     codeBlock(t).addSizeOfMisc(mallocSizeOf, code, data);

@@ -2918,46 +2918,14 @@ WasmInstanceObject* Instance::objectUnbarriered() const {
 
 WasmInstanceObject* Instance::object() const { return object_; }
 
-static bool EnsureEntryStubs(const Instance& instance, uint32_t funcIndex,
-                             const FuncExport** funcExport,
-                             void** interpEntry) {
-  Tier tier = instance.code().bestTier();
-
-  size_t funcExportIndex;
-  *funcExport =
-      &instance.code(tier).lookupFuncExport(funcIndex, &funcExportIndex);
-
-  const FuncExport& fe = **funcExport;
-  if (fe.hasEagerStubs()) {
-    *interpEntry = instance.codeBase(tier) + fe.eagerInterpEntryOffset();
-    return true;
-  }
-
-  MOZ_ASSERT(!instance.isAsmJS(), "only wasm can lazily export functions");
-
-  auto stubs = instance.code().lazyStubs().writeLock();
-  *interpEntry = stubs->lookupInterpEntry(fe.funcIndex());
-  if (*interpEntry) {
-    return true;
-  }
-
-  const CodeMetadata& codeMeta = instance.codeMeta();
-  const CodeBlock& codeBlock = instance.code(tier);
-  if (!stubs->createOneEntryStub(funcExportIndex, codeMeta, codeBlock)) {
-    return false;
-  }
-  *interpEntry = stubs->lookupInterpEntry(fe.funcIndex());
-  MOZ_ASSERT(*interpEntry);
-  return true;
-}
-
 static bool GetInterpEntryAndEnsureStubs(JSContext* cx, Instance& instance,
                                          uint32_t funcIndex,
                                          const CallArgs& args,
                                          void** interpEntry,
                                          const FuncType** funcType) {
   const FuncExport* funcExport;
-  if (!EnsureEntryStubs(instance, funcIndex, &funcExport, interpEntry)) {
+  if (!instance.code().getOrCreateInterpEntry(funcIndex, &funcExport,
+                                              interpEntry)) {
     return false;
   }
 

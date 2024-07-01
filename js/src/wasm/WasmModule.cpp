@@ -20,7 +20,6 @@
 
 #include <chrono>
 
-#include "jit/FlushICache.h"  // for FlushExecutionContextForAllThreads
 #include "js/BuildId.h"       // JS::BuildIdCharVector
 #include "js/experimental/TypedData.h"  // JS_NewUint8Array
 #include "js/friend/ErrorMessages.h"    // js::GetErrorMessage, JSMSG_*
@@ -168,66 +167,8 @@ void Module::startTier2(const CompileArgs& args, const ShareableBytes& bytecode,
 
 bool Module::finishTier2(const LinkData& linkData2,
                          UniqueCodeBlock code2) const {
-  MOZ_ASSERT(code().bestTier() == Tier::Baseline &&
-             code2->tier() == Tier::Optimized);
-
-  // Install the data in the data structures. They will not be visible
-  // until commitTier2().
-
-  const CodeBlock* borrowedTier2;
-  if (!code().setAndBorrowTier2(std::move(code2), linkData2, &borrowedTier2)) {
+  if (!code_->finishCompleteTier2(linkData2, std::move(code2))) {
     return false;
-  }
-
-  // Before we can make tier-2 live, we need to compile tier2 versions of any
-  // extant tier1 lazy stubs (otherwise, tiering would break the assumption
-  // that any extant exported wasm function has had a lazy entry stub already
-  // compiled for it).
-  //
-  // Also see doc block for stubs in WasmJS.cpp.
-  {
-    // We need to prevent new tier1 stubs generation until we've committed
-    // the newer tier2 stubs, otherwise we might not generate one tier2
-    // stub that has been generated for tier1 before we committed.
-
-    auto lazyStubs = code().lazyStubs().writeLock();
-
-    Maybe<size_t> stub2Index;
-    if (!lazyStubs->createTier2(codeMeta(), *borrowedTier2, &stub2Index)) {
-      return false;
-    }
-
-    // Initializing the code above will have flushed the icache for all cores.
-    // However, there could still be stale data in the execution pipeline of
-    // other cores on some platforms. Force an execution context flush on all
-    // threads to fix this before we commit the code.
-    //
-    // This is safe due to the check in `PlatformCanTier` in WasmCompile.cpp
-    jit::FlushExecutionContextForAllThreads();
-
-    // Now that we can't fail or otherwise abort tier2, make it live.
-
-    MOZ_ASSERT(!code().hasTier2());
-    code().commitTier2();
-
-    lazyStubs->setJitEntries(stub2Index, code());
-  }
-
-  // And we update the jump vectors with pointers to tier-2 functions and eager
-  // stubs.  Callers will continue to invoke tier-1 code until, suddenly, they
-  // will invoke tier-2 code.  This is benign.
-
-  uint8_t* base = code().segment(Tier::Optimized).base();
-  for (const CodeRange& cr : code(Tier::Optimized).codeRanges) {
-    // These are racy writes that we just want to be visible, atomically,
-    // eventually.  All hardware we care about will do this right.  But
-    // we depend on the compiler not splitting the stores hidden inside the
-    // set*Entry functions.
-    if (cr.isFunction()) {
-      code().setTieringEntry(cr.funcIndex(), base + cr.funcTierEntry());
-    } else if (cr.isJitEntry()) {
-      code().setJitEntry(cr.funcIndex(), base + cr.begin());
-    }
   }
 
   // Tier-2 is done; let everyone know. Mark tier-2 active for testing

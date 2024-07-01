@@ -23,7 +23,7 @@
   _(WellKnownParserAtomsInit, 100)    \
                                       \
   _(WasmInitBuiltinThunks, 250)       \
-  _(WasmLazyStubsTier1, 250)          \
+  _(WasmCodeProtected, 250)           \
   _(WasmLazyStubsTier2, 251)          \
                                       \
   _(StoreBuffer, 275)                 \
