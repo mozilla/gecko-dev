@@ -2,3 +2,9 @@
 
 ["browser_permission_dismiss.js"]
 support-files = ["notification.html"]
+
+["browser_userContextId_openWindow.js"]
+support-files = [
+  "empty.html",
+  "file_userContextId_openWindow.js",
+]

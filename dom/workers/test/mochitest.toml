@@ -50,10 +50,6 @@ support-files = [
   "navigator_languages_worker.js",
   "navigator_worker.js",
   "newError_worker.js",
-  "notification_worker.js",
-  "notification_worker_child-child.js",
-  "notification_worker_child-parent.js",
-  "notification_permission_worker.js",
   "onLine_worker.js",
   "onLine_worker_child.js",
   "onLine_worker_head.js",
@@ -279,18 +275,6 @@ support-files = [
 ["test_navigator_workers_hardwareConcurrency.html"]
 
 ["test_newError.html"]
-
-["test_notification.html"]
-skip-if = [
-  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
-]
-
-["test_notification_child.html"]
-skip-if = [
-  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
-]
-
-["test_notification_permission.html"]
 
 ["test_onLine.html"]
 

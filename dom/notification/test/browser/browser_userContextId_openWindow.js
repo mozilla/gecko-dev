@@ -4,8 +4,10 @@ let swm = Cc["@mozilla.org/serviceworkers/manager;1"].getService(
   Ci.nsIServiceWorkerManager
 );
 
-const URI = "https://example.com/browser/dom/serviceworkers/test/empty.html";
+const URI =
+  "https://example.com/browser/dom/notification/test/browser/empty.html";
 const MOCK_CID = Components.ID("{2a0f83c4-8818-4914-a184-f1172b4eaaa7}");
+const SYSTEM_CID = Components.ID("{a0ccaaf8-09da-44d8-b250-9ac3e93c8117}");
 const ALERTS_SERVICE_CONTRACT_ID = "@mozilla.org/alerts-service;1";
 const USER_CONTEXT_ID = 3;
 
@@ -39,10 +41,9 @@ let mockAlertsService = {
 };
 
 registerCleanupFunction(() => {
-  Cm.QueryInterface(Ci.nsIComponentRegistrar).unregisterFactory(
-    MOCK_CID,
-    mockAlertsService
-  );
+  const registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
+  registrar.unregisterFactory(MOCK_CID, mockAlertsService);
+  registrar.registerFactory(SYSTEM_CID, "", ALERTS_SERVICE_CONTRACT_ID, null);
 });
 
 add_setup(async function () {

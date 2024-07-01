@@ -116,21 +116,11 @@ support-files = [
   "bug1151916_worker.js",
   "bug1151916_driver.html",
   "bug1240436_worker.js",
-  "notificationclick.html",
-  "notificationclick-otherwindow.html",
-  "notificationclick.js",
-  "notificationclick_focus.html",
-  "notificationclick_focus.js",
-  "notificationclose.html",
-  "notificationclose.js",
   "worker_updatefoundevent.js",
   "worker_updatefoundevent2.js",
   "updatefoundevent.html",
   "empty.html",
   "empty.js",
-  "notification_constructor_error.js",
-  "notification_get_sw.js",
-  "notification/register.html",
   "sanitize/frame.html",
   "sanitize/register.html",
   "sanitize/example_check_and_unregister.html",
@@ -183,9 +173,7 @@ support-files = [
   "xslt/*",
   "unresolved_fetch_worker.js",
   "header_checker.sjs",
-  "openWindow_worker.js",
   "redirect.sjs",
-  "open_window/client.sjs",
   "lorem_script.js",
   "file_blob_response_worker.js",
   "file_js_cache_cleanup.js",
@@ -349,36 +337,6 @@ skip-if = ["os == 'linux' && bits == 64 && debug"] # Bug 1749068
 
 ["test_not_intercept_plugin.html"]
 skip-if = ["serviceworker_e10s"] # leaks InterceptedHttpChannel and others things
-
-["test_notification_constructor_error.html"]
-
-["test_notification_get.html"]
-skip-if = ["xorigin"] # Bug 1792790
-
-["test_notification_openWindow.html"]
-skip-if = [
-  "os == 'android'",  # Bug 1620052
-  "xorigin",  # JavaScript error: http://mochi.xorigin-test:8888/tests/SimpleTest/TestRunner.js, line 157: SecurityError: Permission denied to access property "wrappedJSObject" on cross-origin object
-  "http3",
-  "http2",
-]
-support-files = [
-  "notification_openWindow_worker.js",
-  "file_notification_openWindow.html",
-]
-tags = "openwindow"
-
-["test_notificationclick-otherwindow.html"]
-skip-if = ["xorigin"] # Bug 1792790
-
-["test_notificationclick.html"]
-skip-if = ["xorigin"] # Bug 1792790
-
-["test_notificationclick_focus.html"]
-skip-if = ["xorigin"] # Bug 1792790
-
-["test_notificationclose.html"]
-skip-if = ["xorigin"] # Bug 1792790
 
 ["test_onmessageerror.html"]
 skip-if = ["xorigin"] # Bug 1792790

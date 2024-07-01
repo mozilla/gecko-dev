@@ -39,7 +39,7 @@ const RESPONSE = `
       }
 
       var iframe = document.createElement('iframe');
-      iframe.src = "http://mochi.test:8888/tests/dom/serviceworkers/test/open_window/client.sjs";
+      iframe.src = "http://mochi.test:8888/tests/dom/notification/test/mochitest/open_window/client.sjs";
       document.body.appendChild(iframe);
     }
   }

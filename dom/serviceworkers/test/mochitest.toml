@@ -39,16 +39,6 @@ skip-if = ["condprof"]  #: timed out
 ["test_importscript_mixedcontent.html"]
 tags = "mcb"
 
-["test_openWindow.html"]
-skip-if = [
-  "os == 'android'", # Bug 1620052
-  "xorigin", # Bug 1792790
-  "condprof",  #: timed out
-  "http3",
-  "http2",
-]
-tags = "openwindow"
-
 ["test_sanitize_domain.html"]
 skip-if = [
   "http3",
