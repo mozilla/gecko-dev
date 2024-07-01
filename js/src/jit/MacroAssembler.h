@@ -5834,41 +5834,17 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void printf(const char* output);
   void printf(const char* output, Register value);
 
-#define DISPATCH_FLOATING_POINT_OP(method, type, arg1d, arg1f, arg2) \
-  MOZ_ASSERT(IsFloatingPointType(type));                             \
-  if (type == MIRType::Double)                                       \
-    method##Double(arg1d, arg2);                                     \
-  else                                                               \
-    method##Float32(arg1f, arg2);
-
-  void loadConstantFloatingPoint(double d, float f, FloatRegister dest,
-                                 MIRType destType) {
-    DISPATCH_FLOATING_POINT_OP(loadConstant, destType, d, f, dest);
-  }
-  void boolValueToFloatingPoint(ValueOperand value, FloatRegister dest,
-                                MIRType destType) {
-    DISPATCH_FLOATING_POINT_OP(boolValueTo, destType, value, value, dest);
-  }
-  void int32ValueToFloatingPoint(ValueOperand value, FloatRegister dest,
-                                 MIRType destType) {
-    DISPATCH_FLOATING_POINT_OP(int32ValueTo, destType, value, value, dest);
-  }
-  void convertInt32ToFloatingPoint(Register src, FloatRegister dest,
-                                   MIRType destType) {
-    DISPATCH_FLOATING_POINT_OP(convertInt32To, destType, src, src, dest);
-  }
-
-#undef DISPATCH_FLOATING_POINT_OP
-
-  void convertValueToFloatingPoint(ValueOperand value, FloatRegister output,
-                                   Label* fail, MIRType outputType);
-
   void outOfLineTruncateSlow(FloatRegister src, Register dest,
                              bool widenFloatToDouble, bool compilingWasm,
                              wasm::BytecodeOffset callOffset);
 
   void convertInt32ValueToDouble(ValueOperand val);
 
+ private:
+  void convertValueToFloatingPoint(ValueOperand value, FloatRegister output,
+                                   Label* fail, MIRType outputType);
+
+ public:
   void convertValueToDouble(ValueOperand value, FloatRegister output,
                             Label* fail) {
     convertValueToFloatingPoint(value, output, fail, MIRType::Double);

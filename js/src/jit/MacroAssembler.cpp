@@ -3740,20 +3740,35 @@ void MacroAssembler::convertValueToFloatingPoint(ValueOperand value,
   }
 
   // fall-through: undefined
-  loadConstantFloatingPoint(GenericNaN(), float(GenericNaN()), output,
-                            outputType);
+  if (outputType == MIRType::Float32) {
+    loadConstantFloat32(float(GenericNaN()), output);
+  } else {
+    loadConstantDouble(GenericNaN(), output);
+  }
   jump(&done);
 
   bind(&isNull);
-  loadConstantFloatingPoint(0.0, 0.0f, output, outputType);
+  if (outputType == MIRType::Float32) {
+    loadConstantFloat32(0.0f, output);
+  } else {
+    loadConstantDouble(0.0, output);
+  }
   jump(&done);
 
   bind(&isBool);
-  boolValueToFloatingPoint(value, output, outputType);
+  if (outputType == MIRType::Float32) {
+    boolValueToFloat32(value, output);
+  } else {
+    boolValueToDouble(value, output);
+  }
   jump(&done);
 
   bind(&isInt32);
-  int32ValueToFloatingPoint(value, output, outputType);
+  if (outputType == MIRType::Float32) {
+    int32ValueToFloat32(value, output);
+  } else {
+    int32ValueToDouble(value, output);
+  }
   jump(&done);
 
   // On some non-multiAlias platforms, unboxDouble may use the scratch register,
