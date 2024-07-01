@@ -4,7 +4,7 @@
 https://bugzilla.mozilla.org/show_bug.cgi?id=916893
 -->
 <head>
-  <title>Bug 1114554 - Test ServiceWorkerGlobalScope.notificationclick event.</title>
+  <title>Bug 1144660 - Test client.focus() permissions on notification click</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
   <script type="text/javascript" src="/tests/dom/notification/test/mochitest/NotificationTest.js"></script>
@@ -17,7 +17,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
 </div>
 <pre id="test">
 </pre>
-<script src="utils.js"></script>
+<script src="/tests/dom/serviceworkers/test/utils.js"></script>
 <script type="text/javascript">
   SimpleTest.requestFlakyTimeout("Mock alert service dispatches show and click events.");
 
@@ -28,7 +28,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
       window.callback = null;
       document.body.removeChild(iframe);
       iframe = null;
-      ok(result, "Got notificationclick event with correct data.");
+      ok(result, "All tests passed.");
       await registration.unregister();
       SimpleTest.finish();
     };
@@ -43,15 +43,15 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
       await MockAlertsService.register();
       await MockAlertsService.enableAutoClick();
       registration = await navigator.serviceWorker.register(
-        "notificationclick.js",
-        { scope: "notificationclick-otherwindow.html" }
+        "notificationclick_focus.js",
+        { scope: "notificationclick_focus.html" }
       );
       await waitForState(registration.installing, 'activated');
     } catch (e) {
       ok(false, "registration should have passed!");
       SimpleTest.finish();
     }
-    testFrame('notificationclick-otherwindow.html');
+    testFrame('notificationclick_focus.html');
   };
 
   SimpleTest.waitForExplicitFinish();
@@ -59,6 +59,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.serviceWorkers.enabled", true],
     ["dom.serviceWorkers.testing.enabled", true],
+    ["dom.serviceWorkers.disable_open_click_delay", 1000],
   ]}, runTest);
 </script>
 </body>

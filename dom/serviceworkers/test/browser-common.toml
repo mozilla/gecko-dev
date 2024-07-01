@@ -9,7 +9,6 @@ support-files = [
   "download_canceled/server-stream-download.sjs",
   "download_canceled/sw_download_canceled.js",
   "fetch.js",
-  "file_userContextId_openWindow.js",
   "force_refresh_browser_worker.js",
   "ForceRefreshChild.sys.mjs",
   "ForceRefreshParent.sys.mjs",
@@ -59,5 +58,3 @@ skip-if = ["true"] # Crashes: @ mozilla::dom::ServiceWorkerManagerService::Propa
 ["browser_storage_recovery.js"]
 
 ["browser_unregister_with_containers.js"]
-
-["browser_userContextId_openWindow.js"]

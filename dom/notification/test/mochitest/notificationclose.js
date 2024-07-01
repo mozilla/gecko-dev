@@ -5,7 +5,7 @@ onnotificationclose = function (e) {
   e.waitUntil(
     (async function () {
       let windowOpened = true;
-      await clients.openWindow("hello.html").catch(err => {
+      await clients.openWindow("blank.html").catch(err => {
         windowOpened = false;
       });
 

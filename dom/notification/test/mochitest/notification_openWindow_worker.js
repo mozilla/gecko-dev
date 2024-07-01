@@ -1,5 +1,5 @@
-const gRoot = "http://mochi.test:8888/tests/dom/serviceworkers/test/";
-const gTestURL = gRoot + "test_notification_openWindow.html";
+const gRoot = "http://mochi.test:8888/tests/dom/notification/test/mochitest/";
+const gTestURL = gRoot + "test_notification_serviceworker_openWindow.html";
 const gClientURL = gRoot + "file_notification_openWindow.html";
 
 onmessage = function (event) {
