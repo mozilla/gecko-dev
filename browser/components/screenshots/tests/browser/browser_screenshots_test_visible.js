@@ -420,6 +420,7 @@ add_task(async function test_visibleScreenshotRTL() {
 
       // click toolbar button so panel shows
       helper.triggerUIFromToolbar();
+      await helper.waitForOverlay();
 
       let panel = await helper.waitForPanel();
 
