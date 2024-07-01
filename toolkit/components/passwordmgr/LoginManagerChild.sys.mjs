@@ -1812,9 +1812,6 @@ export class LoginManagerChild extends JSWindowActorChild {
     // document receives two `DOMFormHasPossibleEvent`, we add one counter to both
     // bucket 1 & 2.
     let docState = this.stateForDocument(document);
-    Services.telemetry
-      .getHistogramById("PWMGR_NUM_FORM_HAS_POSSIBLE_USERNAME_EVENT_PER_DOC")
-      .add(++docState.numFormHasPossibleUsernameEvent);
 
     // Infer whether a form is a username-only form is expensive, so we restrict the
     // number of form looked up per document.
