@@ -21,6 +21,8 @@ add_task(async function () {
 
   const { ui } = await openStyleEditor();
 
+  await waitUntil(() => ui.editors.length > 1);
+
   info("Selecting the second editor");
   await ui.selectStyleSheet(ui.editors[1].styleSheet);
 
