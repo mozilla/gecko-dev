@@ -2541,7 +2541,7 @@ nsresult nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
       // RESULTS_AS_TAGS_ROOT has date columns
       resultNode->mDateAdded = aRow->AsInt64(kGetInfoIndex_ItemDateAdded);
       resultNode->mLastModified = aRow->AsInt64(kGetInfoIndex_ItemLastModified);
-      if (resultNode->IsFolder()) {
+      if (resultNode->IsFolderOrShortcut()) {
         // If it's a simple folder node (i.e. a shortcut to another folder),
         // apply our options for it. However, if the parent type was tag query,
         // we do not apply them, because it would not yield any results.

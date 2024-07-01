@@ -20,7 +20,7 @@
 #include "nsINavHistoryService.h"
 #include "nsTHashMap.h"
 #include "nsCycleCollectionParticipant.h"
-#include "mozilla/storage.h"
+#include "mozIStoragePendingStatement.h"
 #include "Helpers.h"
 
 class nsNavHistory;
@@ -335,55 +335,45 @@ class nsNavHistoryResultNode : public nsINavHistoryResultNode {
   nsNavHistoryResult* GetResult();
   void SetTags(const nsAString& aTags);
 
-  // These functions test the type. We don't use a virtual function since that
-  // would take a vtable slot for every one of (potentially very many) nodes.
-  // Note that GetType() already has a vtable slot because its on the iface.
-  bool IsTypeContainer(uint32_t type) {
+  bool IsContainer() {
+    uint32_t type;
+    GetType(&type);
     return type == nsINavHistoryResultNode::RESULT_TYPE_QUERY ||
            type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER ||
            type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER_SHORTCUT;
   }
-  bool IsContainer() {
-    uint32_t type;
-    GetType(&type);
-    return IsTypeContainer(type);
-  }
-  static bool IsTypeURI(uint32_t type) {
-    return type == nsINavHistoryResultNode::RESULT_TYPE_URI;
-  }
+
   bool IsURI() {
     uint32_t type;
     GetType(&type);
-    return IsTypeURI(type);
+    return type == nsINavHistoryResultNode::RESULT_TYPE_URI;
   }
-  static bool IsTypeFolder(uint32_t type) {
+
+  bool IsFolderOrShortcut() {
+    uint32_t type;
+    GetType(&type);
     return type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER ||
            type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER_SHORTCUT;
   }
-  bool IsFolder() {
-    uint32_t type;
-    GetType(&type);
-    return IsTypeFolder(type);
-  }
-  static bool IsTypeQuery(uint32_t type) {
-    return type == nsINavHistoryResultNode::RESULT_TYPE_QUERY;
-  }
+
   bool IsQuery() {
     uint32_t type;
     GetType(&type);
-    return IsTypeQuery(type);
+    return type == nsINavHistoryResultNode::RESULT_TYPE_QUERY;
   }
+
   bool IsSeparator() {
     uint32_t type;
     GetType(&type);
     return type == nsINavHistoryResultNode::RESULT_TYPE_SEPARATOR;
   }
+
   nsNavHistoryContainerResultNode* GetAsContainer() {
     NS_ASSERTION(IsContainer(), "Not a container");
     return reinterpret_cast<nsNavHistoryContainerResultNode*>(this);
   }
   nsNavHistoryFolderResultNode* GetAsFolder() {
-    NS_ASSERTION(IsFolder(), "Not a folder");
+    NS_ASSERTION(IsFolderOrShortcut(), "Not a folder");
     return reinterpret_cast<nsNavHistoryFolderResultNode*>(this);
   }
   nsNavHistoryQueryResultNode* GetAsQuery() {
@@ -534,7 +524,6 @@ class nsNavHistoryContainerResultNode
   // Sets this container as parent of aNode, propagating the appropriate
   // options.
   void SetAsParentOfNode(nsNavHistoryResultNode* aNode);
-  nsresult ReverseUpdateStats(int32_t aAccessCountChange);
 
   // Sorting methods.
   using SortComparator = nsCOMArray<nsNavHistoryResultNode>::TComparatorFunc;
