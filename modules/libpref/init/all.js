@@ -197,6 +197,10 @@ pref("pdfjs.enableHighlightEditor", true);
   pref("pdfjs.enableHighlightFloatingButton", false);
 #endif
 
+#if defined(XP_WIN)
+pref("pdfjs.enableHWA", true);
+#endif
+
 // Disable support for MathML
 pref("mathml.disabled",    false);
 
