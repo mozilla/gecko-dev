@@ -3645,15 +3645,9 @@ var XULBrowserWindow = {
 
     SaveToPocket.onLocationChange(window);
 
-    let originalURI;
-    if (aRequest instanceof Ci.nsIChannel) {
-      originalURI = aRequest.originalURI;
-    }
-
     UrlbarProviderSearchTips.onLocationChange(
       window,
       aLocationURI,
-      originalURI,
       aWebProgress,
       aFlags
     );

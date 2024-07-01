@@ -102,8 +102,6 @@ async function setUpTelemetryTest({
       // button and closes the new tab, which interferes with the expected
       // indexes of quick suggest results, so disable them.
       ["browser.urlbar.suggest.openpage", false],
-      // Disable the persisted-search-terms search tip because it can interfere.
-      ["browser.urlbar.tipShownCount.searchTip_persist", 999],
     ],
   });
 

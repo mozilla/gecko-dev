@@ -853,10 +853,6 @@ export class UrlbarInput {
       anchorElement?.closest("#urlbar") &&
       this.window.gBrowser.selectedBrowser.searchTerms
     ) {
-      // The Persist Search Tip can be open while a PopupNotification is queued
-      // to appear, so ensure that the tip is closed.
-      this.view.close();
-
       this.handleRevert(true);
       Services.telemetry.scalarAdd(
         "urlbar.persistedsearchterms.revert_by_popup_count",

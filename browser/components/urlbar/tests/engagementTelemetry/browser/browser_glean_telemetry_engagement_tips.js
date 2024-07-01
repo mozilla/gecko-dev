@@ -29,10 +29,6 @@ add_task(async function selected_result_tip() {
       expected: "tip_onboard",
     },
     {
-      type: "searchTip_persist",
-      expected: "tip_persist",
-    },
-    {
       type: "searchTip_redirect",
       expected: "tip_redirect",
     },

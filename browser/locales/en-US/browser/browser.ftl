@@ -131,9 +131,6 @@ urlbar-result-menu-tip-get-help =
 urlbar-search-tips-onboard = Type less, find more: Search { $engineName } right from your address bar.
 urlbar-search-tips-redirect-2 = Start your search in the address bar to see suggestions from { $engineName } and your browsing history.
 
-# Make sure to match the name of the Search panel in settings.
-urlbar-search-tips-persist = Searching just got simpler. Try making your search more specific here in the address bar. To show the URL instead, visit Search, in settings.
-
 # Prompts users to use the Urlbar when they are typing in the domain of a
 # search engine, e.g. google.com or amazon.com.
 urlbar-tabtosearch-onboard = Select this shortcut to find what you need faster.

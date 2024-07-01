@@ -165,15 +165,7 @@ add_task(async function focus_and_unfocus_modified() {
 // persist in the Urlbar.
 add_task(async function focus_after_top_sites() {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      // Prevent the persist tip from interrupting clicking the Urlbar
-      // after the the SERP has been loaded.
-      [
-        `browser.urlbar.tipShownCount.${UrlbarProviderSearchTips.TIP_TYPE.PERSIST}`,
-        10000,
-      ],
-      ["browser.newtabpage.activity-stream.feeds.topsites", true],
-    ],
+    set: [["browser.newtabpage.activity-stream.feeds.topsites", true]],
   });
 
   // Populate Top Sites on a clean version of Places.

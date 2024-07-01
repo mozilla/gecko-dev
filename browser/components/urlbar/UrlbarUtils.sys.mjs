@@ -1496,8 +1496,6 @@ export var UrlbarUtils = {
         switch (result.payload.type) {
           case lazy.UrlbarProviderSearchTips.TIP_TYPE.ONBOARD:
             return "tip_onboard";
-          case lazy.UrlbarProviderSearchTips.TIP_TYPE.PERSIST:
-            return "tip_persist";
           case lazy.UrlbarProviderSearchTips.TIP_TYPE.REDIRECT:
             return "tip_redirect";
           case "dismissalAcknowledgment":
@@ -2074,7 +2072,6 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
           "intervention_update_restart",
           "intervention_update_web",
           "searchTip_onboard",
-          "searchTip_persist",
           "searchTip_redirect",
           "test", // for tests only
         ],
