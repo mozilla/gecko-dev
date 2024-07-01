@@ -110,6 +110,7 @@ const extraBrowserTestPaths = [
   "browser/base/content/test/protectionsUI/",
   "browser/base/content/test/referrer/",
   "browser/base/content/test/sanitize/",
+  "browser/base/content/test/scroll-to-text-fragment/",
   "browser/base/content/test/sidebar/",
   "browser/base/content/test/siteIdentity/",
   "browser/base/content/test/startup/",

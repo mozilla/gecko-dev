@@ -8,6 +8,7 @@
 #include <cstdint>
 #include "RangeBoundary.h"
 #include "mozilla/Assertions.h"
+#include "BasePrincipal.h"
 #include "Document.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
@@ -256,12 +257,6 @@ bool FragmentDirective::IsTextDirectiveAllowedToBeScrolledTo() {
   DBG("Consumed Document's TextDirectiveUserActivation flag (value=%s)",
       textDirectiveUserActivation ? "true" : "false");
 
-  // Gecko does not implement user involvement yet. This line only has the
-  // purpose of following the spec as close as possible wrt. variable names and
-  // to indicate that user involvement still needs to be implemented.
-  // (See https://bugzil.la/1901045 for this)
-  const bool isUserInvolved = textDirectiveUserActivation;
-
   // 4. If document's content type is not a text directive allowing MIME type,
   // return false.
   const bool isAllowedMIMEType = [doc = this->mDocument, func = __FUNCTION__] {
@@ -294,13 +289,26 @@ bool FragmentDirective::IsTextDirectiveAllowedToBeScrolledTo() {
   //
   // See sec-fetch-site [0] for a related discussion on how this applies.
   // [0] https://w3c.github.io/webappsec-fetch-metadata/#directly-user-initiated
+  // ---
+  // Gecko does not implement user involvement as defined in the spec.
+  // However, if the triggering principal is the system principal, the load
+  // has been triggered from browser chrome. This should be good enough for now.
+  auto* triggeringPrincipal =
+      loadInfo ? loadInfo->TriggeringPrincipal() : nullptr;
+  const bool isTriggeredFromBrowserUI =
+      triggeringPrincipal && triggeringPrincipal->IsSystemPrincipal();
 
+  if (isTriggeredFromBrowserUI) {
+    DBG("The load is triggered from browser UI. Scrolling allowed.");
+    return true;
+  }
+  DBG("The load is not triggered from browser UI.");
   // 6. If is user involved is false, return false.
   // ---
   // same-document navigation is not mentioned in the spec. However, we run this
   // code also in same-document navigation cases.
   // Same-document navigation is allowed even without any user interaction.
-  if (!isUserInvolved && !isSameDocumentNavigation) {
+  if (!textDirectiveUserActivation && !isSameDocumentNavigation) {
     DBG("User involvement is false and not same-document navigation. Scrolling "
         "not allowed.");
     return false;
@@ -319,14 +327,10 @@ bool FragmentDirective::IsTextDirectiveAllowedToBeScrolledTo() {
   }
   // 8. If initiator origin is non-null and document's origin is same origin
   // with initiator origin, return true.
-  const bool isSameOrigin = [loadInfo, doc = mDocument] {
-    if (!loadInfo) {
-      return false;
-    }
-    auto* triggeringPrincipal = loadInfo->TriggeringPrincipal();
+  const bool isSameOrigin = [doc = this->mDocument, triggeringPrincipal] {
     auto* docPrincipal = doc->GetPrincipal();
     return triggeringPrincipal && docPrincipal &&
-           triggeringPrincipal->Equals(docPrincipal);
+           docPrincipal->Equals(triggeringPrincipal);
   }();
 
   if (isSameOrigin) {
