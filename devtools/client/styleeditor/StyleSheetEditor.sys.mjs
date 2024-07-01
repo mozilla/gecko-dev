@@ -418,7 +418,15 @@ StyleSheetEditor.prototype = {
     }
 
     if (this.sourceEditor) {
-      await this._fetchSourceText();
+      try {
+        await this._fetchSourceText();
+      } catch (e) {
+        if (this._isDestroyed) {
+          // Source editor was destroyed while trying to apply an update, bail.
+          return;
+        }
+        throw e;
+      }
 
       // sourceEditor is already loaded, so we can prettify immediately.
       this._prettifySourceTextIfNeeded();
