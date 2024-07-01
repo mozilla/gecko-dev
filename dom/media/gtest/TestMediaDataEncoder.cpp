@@ -534,12 +534,15 @@ TEST_F(MediaDataEncoderTest, VP8EncodeWithScalabilityModeL1T2) {
 
     const nsTArray<uint8_t> pattern({0, 1});
     MediaDataEncoder::EncodedData output = Encode(e, NUM_FRAMES, mData);
+    int temporal_idx = 0;
     EXPECT_EQ(output.Length(), NUM_FRAMES);
     for (size_t i = 0; i < output.Length(); ++i) {
       const RefPtr<MediaRawData> frame = output[i];
-
+      if (frame->mKeyframe) {
+        temporal_idx = 0;
+      }
       EXPECT_TRUE(frame->mTemporalLayerId);
-      size_t idx = i % pattern.Length();
+      size_t idx = temporal_idx++ % pattern.Length();
       EXPECT_EQ(frame->mTemporalLayerId.value(), pattern[idx]);
     }
     WaitForShutdown(e);
@@ -563,11 +566,14 @@ TEST_F(MediaDataEncoderTest, VP8EncodeWithScalabilityModeL1T3) {
     const nsTArray<uint8_t> pattern({0, 2, 1, 2});
     MediaDataEncoder::EncodedData output = Encode(e, NUM_FRAMES, mData);
     EXPECT_EQ(output.Length(), NUM_FRAMES);
+    int temporal_idx = 0;
     for (size_t i = 0; i < output.Length(); ++i) {
       const RefPtr<MediaRawData> frame = output[i];
-
+      if (frame->mKeyframe) {
+        temporal_idx = 0;
+      }
       EXPECT_TRUE(frame->mTemporalLayerId);
-      size_t idx = i % pattern.Length();
+      size_t idx = temporal_idx++ % pattern.Length();
       EXPECT_EQ(frame->mTemporalLayerId.value(), pattern[idx]);
     }
     WaitForShutdown(e);
@@ -699,11 +705,15 @@ TEST_F(MediaDataEncoderTest, VP9EncodeWithScalabilityModeL1T2) {
 
     const nsTArray<uint8_t> pattern({0, 1});
     MediaDataEncoder::EncodedData output = Encode(e, NUM_FRAMES, mData);
+    int temporal_idx = 0;
     EXPECT_EQ(output.Length(), NUM_FRAMES);
     for (size_t i = 0; i < output.Length(); ++i) {
       const RefPtr<MediaRawData> frame = output[i];
+      if (frame->mKeyframe) {
+        temporal_idx = 0;
+      }
       EXPECT_TRUE(frame->mTemporalLayerId);
-      size_t idx = i % pattern.Length();
+      size_t idx = temporal_idx++ % pattern.Length();
       EXPECT_EQ(frame->mTemporalLayerId.value(), pattern[idx]);
     }
     WaitForShutdown(e);
@@ -730,11 +740,15 @@ TEST_F(MediaDataEncoderTest, VP9EncodeWithScalabilityModeL1T3) {
 
     const nsTArray<uint8_t> pattern({0, 2, 1, 2});
     MediaDataEncoder::EncodedData output = Encode(e, NUM_FRAMES, mData);
+    int temporal_idx = 0;
     EXPECT_EQ(output.Length(), NUM_FRAMES);
     for (size_t i = 0; i < output.Length(); ++i) {
       const RefPtr<MediaRawData> frame = output[i];
+      if (frame->mKeyframe) {
+        temporal_idx = 0;
+      }
       EXPECT_TRUE(frame->mTemporalLayerId);
-      size_t idx = i % pattern.Length();
+      size_t idx = temporal_idx++ % pattern.Length();
       EXPECT_EQ(frame->mTemporalLayerId.value(), pattern[idx]);
     }
     WaitForShutdown(e);

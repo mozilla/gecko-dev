@@ -257,12 +257,19 @@ static Maybe<SVCLayerSettings> GetSVCLayerSettings(CodecType aCodec,
                                appendix});
 }
 
-uint8_t FFmpegVideoEncoder<LIBAV_VER>::SVCInfo::UpdateTemporalLayerId() {
+void FFmpegVideoEncoder<LIBAV_VER>::SVCInfo::UpdateTemporalLayerId() {
   MOZ_ASSERT(!mTemporalLayerIds.IsEmpty());
+  mCurrentIndex = (mCurrentIndex + 1) % mTemporalLayerIds.Length();
+}
 
-  size_t currentIndex = mNextIndex % mTemporalLayerIds.Length();
-  mNextIndex += 1;
-  return static_cast<uint8_t>(mTemporalLayerIds[currentIndex]);
+uint8_t FFmpegVideoEncoder<LIBAV_VER>::SVCInfo::CurrentTemporalLayerId() {
+  MOZ_ASSERT(!mTemporalLayerIds.IsEmpty());
+  return mTemporalLayerIds[mCurrentIndex];
+}
+
+void FFmpegVideoEncoder<LIBAV_VER>::SVCInfo::ResetTemporalLayerId() {
+  MOZ_ASSERT(!mTemporalLayerIds.IsEmpty());
+  mCurrentIndex = 0;
 }
 
 FFmpegVideoEncoder<LIBAV_VER>::FFmpegVideoEncoder(
@@ -623,6 +630,21 @@ Result<MediaDataEncoder::EncodedData, nsresult> FFmpegVideoEncoder<
 #  endif
   Duration(mFrame) = aSample->mDuration.ToMicroseconds();
 
+  AVDictionary* dict = nullptr;
+  // VP8/VP9 use a mode that handles the temporal layer id sequence internally,
+  // and don't require setting explicitly setting the metadata. Other codecs
+  // such as AV1 via libaom however requires manual frame tagging.
+  if (SvcEnabled() && mConfig.mCodec != CodecType::VP8 &&
+      mConfig.mCodec != CodecType::VP9) {
+    if (aSample->mKeyframe) {
+      FFMPEGV_LOG("Key frame requested, reseting temporal layer id");
+      mSVCInfo->ResetTemporalLayerId();
+    }
+    nsPrintfCString str("%d", mSVCInfo->CurrentTemporalLayerId());
+    mLib->av_dict_set(&dict, "temporal_id", str.get(), 0);
+    mFrame->metadata = dict;
+  }
+
   // Now send the AVFrame to ffmpeg for encoding, same code for audio and video.
   return FFmpegDataEncoder<LIBAV_VER>::EncodeWithModernAPIs();
 }
@@ -638,8 +660,14 @@ RefPtr<MediaRawData> FFmpegVideoEncoder<LIBAV_VER>::ToMediaRawData(
   // TODO: Is it possible to retrieve temporal layer id from underlying codec
   // instead?
   if (mSVCInfo) {
-    uint8_t temporalLayerId = mSVCInfo->UpdateTemporalLayerId();
+    if (data->mKeyframe) {
+      FFMPEGV_LOG(
+          "Encoded packet is key frame, reseting temporal layer id sequence");
+      mSVCInfo->ResetTemporalLayerId();
+    }
+    uint8_t temporalLayerId = mSVCInfo->CurrentTemporalLayerId();
     data->mTemporalLayerId.emplace(temporalLayerId);
+    mSVCInfo->UpdateTemporalLayerId();
   }
 
   return data;
