@@ -14,24 +14,26 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.navArgs
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import kotlinx.coroutines.launch
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.messaging.MicrosurveyMessageController
+import org.mozilla.fenix.microsurvey.ui.ext.toMicrosurveyUIData
 import org.mozilla.fenix.theme.FirefoxTheme
-
-/**
- * todo pass question and icon values from messaging FXDROID-1945.
- * todo add dismiss request FXDROID-1946.
- */
 
 /**
  * A bottom sheet fragment for displaying a microsurvey.
  */
 class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
+
+    private val args by navArgs<MicrosurveyBottomSheetFragmentArgs>()
 
     private val microsurveyMessageController by lazy {
         MicrosurveyMessageController(requireComponents.appStore, (activity as HomeActivity))
@@ -55,34 +57,32 @@ class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View = ComposeView(requireContext()).apply {
-        val answers = listOf(
-            getString(R.string.likert_scale_option_1),
-            getString(R.string.likert_scale_option_2),
-            getString(R.string.likert_scale_option_3),
-            getString(R.string.likert_scale_option_4),
-            getString(R.string.likert_scale_option_5),
-            getString(R.string.likert_scale_option_6),
-        )
+        val messaging = context.components.nimbus.messaging
+        val microsurveyId = args.microsurveyId
 
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        lifecycleScope.launch {
+            val microsurveyUIData = messaging.getMessage(microsurveyId)?.toMicrosurveyUIData()
+            microsurveyUIData?.let {
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
-        setContent {
-            FirefoxTheme {
-                MicrosurveyBottomSheet(
-                    question = "How satisfied are you with printing in Firefox?", // todo get value from messaging
-                    icon = R.drawable.ic_print, // todo get value from messaging
-                    answers = answers, // todo get value from messaging
-                    onPrivacyPolicyLinkClick = {
-                        closeBottomSheet
-                        // todo get value from messaging
-                        microsurveyMessageController.onPrivacyPolicyLinkClicked("homepage")
-                    },
-                    onCloseButtonClicked = {
-                        context.settings().shouldShowMicrosurveyPrompt = false
-                        dismiss()
-                    },
-                    modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection()),
-                )
+                setContent {
+                    FirefoxTheme {
+                        MicrosurveyBottomSheet(
+                            question = it.question,
+                            icon = it.icon,
+                            answers = it.answers,
+                            onPrivacyPolicyLinkClick = {
+                                closeBottomSheet
+                                microsurveyMessageController.onPrivacyPolicyLinkClicked(it.utmContent)
+                            },
+                            onCloseButtonClicked = {
+                                context.settings().shouldShowMicrosurveyPrompt = false
+                                dismiss()
+                            },
+                            modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection()),
+                        )
+                    }
+                }
             }
         }
     }

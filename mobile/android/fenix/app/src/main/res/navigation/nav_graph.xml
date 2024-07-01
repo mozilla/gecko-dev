@@ -257,7 +257,12 @@
 
     <dialog
         android:id="@+id/microsurveyDialogFragment"
-        android:name="org.mozilla.fenix.microsurvey.ui.MicrosurveyBottomSheetFragment" />
+        android:name="org.mozilla.fenix.microsurvey.ui.MicrosurveyBottomSheetFragment">
+        <argument
+            android:name="microsurvey_id"
+            app:argType="string"
+            app:nullable="false" />
+    </dialog>
 
     <dialog
         android:id="@+id/searchDialogFragment"

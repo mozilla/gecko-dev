@@ -1386,7 +1386,7 @@ abstract class BaseBrowserFragment :
                                     onStartSurveyClicked = {
                                         findNavController().nav(
                                             R.id.browserFragment,
-                                            BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
+                                            BrowserFragmentDirections.actionGlobalMicrosurveyDialog(it.id),
                                         )
                                     },
                                     onCloseButtonClicked = {
@@ -1547,7 +1547,7 @@ abstract class BaseBrowserFragment :
                                     onStartSurveyClicked = {
                                         findNavController().nav(
                                             R.id.browserFragment,
-                                            BrowserFragmentDirections.actionGlobalMicrosurveyDialog(),
+                                            BrowserFragmentDirections.actionGlobalMicrosurveyDialog(it.id),
                                         )
                                     },
                                     onCloseButtonClicked = {

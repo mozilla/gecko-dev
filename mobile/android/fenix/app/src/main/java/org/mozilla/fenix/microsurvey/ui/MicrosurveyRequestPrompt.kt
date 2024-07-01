@@ -52,12 +52,11 @@ fun MicrosurveyRequestPrompt(
     onStartSurveyClicked: () -> Unit = {},
     onCloseButtonClicked: () -> Unit,
 ) {
-    // Using the keyboard state (open/closed) to determine if the microsurvey is visible.
     val isKeyboardVisible by keyboardAsState()
     var isMicrosurveyVisible by remember { mutableStateOf(true) }
     isMicrosurveyVisible = isKeyboardVisible == KeyboardState.Closed
 
-    // Adding animation properties for the microsurvey's visibility transitions.
+    // Animation properties for the microsurvey's visibility transitions.
     AnimatedVisibility(
         visible = isMicrosurveyVisible,
         enter = slideInVertically(initialOffsetY = { it }),
@@ -65,13 +64,16 @@ fun MicrosurveyRequestPrompt(
     ) {
         Column {
             Divider()
+
             Column(
                 modifier = Modifier
                     .background(color = FirefoxTheme.colors.layer1)
                     .padding(all = 16.dp),
             ) {
                 Header(microsurvey.promptTitle) { onCloseButtonClicked() }
+
                 Spacer(modifier = Modifier.height(8.dp))
+
                 PrimaryButton(text = stringResource(id = R.string.micro_survey_continue_button_label)) {
                     onStartSurveyClicked()
                 }

@@ -616,7 +616,7 @@ class HomeFragment : Fragment() {
                                         onStartSurveyClicked = {
                                             findNavController().nav(
                                                 R.id.homeFragment,
-                                                HomeFragmentDirections.actionGlobalMicrosurveyDialog(),
+                                                HomeFragmentDirections.actionGlobalMicrosurveyDialog(it.id),
                                             )
                                         },
                                         onCloseButtonClicked = {
@@ -767,7 +767,7 @@ class HomeFragment : Fragment() {
                                         onStartSurveyClicked = {
                                             findNavController().nav(
                                                 R.id.homeFragment,
-                                                HomeFragmentDirections.actionGlobalMicrosurveyDialog(),
+                                                HomeFragmentDirections.actionGlobalMicrosurveyDialog(it.id),
                                             )
                                         },
                                         onCloseButtonClicked = {
@@ -821,9 +821,6 @@ class HomeFragment : Fragment() {
 
     private fun shouldShowMicrosurveyPrompt(context: Context) =
         context.components.settings.shouldShowMicrosurveyPrompt
-
-    private fun isToolbarAtBottom(context: Context) =
-        context.components.settings.toolbarPosition == ToolbarPosition.BOTTOM
 
     /**
      * Returns a [TopSitesConfig] which specifies how many top sites to display and whether or
