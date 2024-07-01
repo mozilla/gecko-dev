@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.microsurvey.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,11 +25,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
+
+private val shape = RoundedCornerShape(8.dp)
 
 /**
  * The microsurvey view to show the survey was submitted.
@@ -39,16 +41,15 @@ import org.mozilla.fenix.theme.FirefoxTheme
 fun MicrosurveyCompleted(
     backgroundColor: Color = FirefoxTheme.colors.layer2,
 ) {
-    val shape = RoundedCornerShape(8.dp)
-    val elevation: Dp = 5.dp
-
     Card(
+        border = BorderStroke(1.dp, FirefoxTheme.colors.borderPrimary),
+        elevation = 0.dp,
         shape = shape,
         backgroundColor = backgroundColor,
-        elevation = elevation,
         modifier = Modifier
             .wrapContentHeight()
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
