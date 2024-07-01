@@ -1075,9 +1075,7 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
 
         // +null is 0.
         masm.bind(&isNull);
-        {
-          masm.storeValue(DoubleValue(0.), jitArgAddr);
-        }
+        { masm.storeValue(DoubleValue(0.), jitArgAddr); }
         break;
       }
       case ValType::Ref: {
