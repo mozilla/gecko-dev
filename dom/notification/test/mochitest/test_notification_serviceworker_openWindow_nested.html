@@ -32,11 +32,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
   }
 
   function setupMessageHandler(ctx) {
-    return new Promise(function(res, rej) {
+    return new Promise(res => {
       navigator.serviceWorker.onmessage = function(event) {
         navigator.serviceWorker.onmessage = null;
-        for (i = 0; i < event.data.length; i++) {
-          ok(event.data[i].result, event.data[i].message);
+        for (const data of event.data) {
+          ok(data.result, data.message);
         }
         res(ctx);
       }
@@ -59,11 +59,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
   }
 
   function checkNumberOfWindows(ctx) {
-    return new Promise(function(res, rej) {
+    return new Promise(res => {
       navigator.serviceWorker.onmessage = function(event) {
         navigator.serviceWorker.onmessage = null;
-        for (i = 0; i < event.data.length; i++) {
-          ok(event.data[i].result, event.data[i].message);
+        for (const data of event.data) {
+          ok(data.result, data.message);
         }
         res(ctx);
       }

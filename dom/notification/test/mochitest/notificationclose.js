@@ -1,11 +1,13 @@
 // Any copyright is dedicated to the Public Domain.
 // http://creativecommons.org/publicdomain/zero/1.0/
 //
+/* eslint-env serviceworker */
+
 onnotificationclose = function (e) {
   e.waitUntil(
     (async function () {
       let windowOpened = true;
-      await clients.openWindow("blank.html").catch(err => {
+      await clients.openWindow("blank.html").catch(() => {
         windowOpened = false;
       });
 

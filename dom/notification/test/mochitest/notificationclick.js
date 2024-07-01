@@ -1,6 +1,9 @@
 // Any copyright is dedicated to the Public Domain.
 // http://creativecommons.org/publicdomain/zero/1.0/
 //
+
+/* eslint-env serviceworker */
+
 onnotificationclick = function (e) {
   self.clients.matchAll().then(function (clients) {
     if (clients.length === 0) {
