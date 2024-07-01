@@ -2034,6 +2034,11 @@ class XPCShellTests(object):
                 # Run tests sequentially, with MOZ_CHAOSMODE enabled.
                 sequential_tests = []
                 self.env["MOZ_CHAOSMODE"] = "0xfb"
+
+                # for android, adjust flags to avoid slow down
+                if self.env.get("MOZ_ANDROID_DATA_DIR", ""):
+                    self.env["MOZ_CHAOSMODE"] = "0x3b"
+
                 # chaosmode runs really slow, allow tests extra time to pass
                 kwargs["harness_timeout"] = self.harness_timeout * 2
                 for i in range(VERIFY_REPEAT):
