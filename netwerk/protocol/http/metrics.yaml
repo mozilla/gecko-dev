@@ -54,6 +54,18 @@ netwerk:
       - necko@mozilla.com
       - manuel@mozilla.com
     expires: never
+  parent_connect_timeout:
+    type: counter
+    description: >
+      Counts how often the parent-connect-timeout timer is necessary to clear up EarlyHintPreloader
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1813630
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1813630
+    notification_emails:
+      - necko@mozilla.com
+      - manuel@mozilla.com
+    expires: never
 
   eh_response_version:
     type: labeled_counter
