@@ -54,6 +54,8 @@
 #  include <sys/signalfd.h>
 #endif
 
+#include "mozilla/Alignment.h"
+
 static const char kCommandQuit = 'x';
 
 namespace google_breakpad {
@@ -212,7 +214,7 @@ CrashGenerationServer::ClientEvent(short revents)
 
   struct msghdr msg = {0};
   struct iovec iov[1];
-  char crash_context[kCrashContextSize];
+  MOZ_ALIGNED_DECL(16, char crash_context[kCrashContextSize]);
   char control[kControlMsgSize];
   const ssize_t expected_msg_size = sizeof(crash_context);
 
