@@ -229,10 +229,18 @@ AVCodec* FFmpegDataEncoder<LIBAV_VER>::InitCommon() {
 }
 
 MediaResult FFmpegDataEncoder<LIBAV_VER>::FinishInitCommon(AVCodec* aCodec) {
-  mCodecContext->bit_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
   if (mConfig.mBitrateMode == BitrateMode::Constant) {
     mCodecContext->rc_max_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
     mCodecContext->rc_min_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
+    mCodecContext->bit_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
+    FFMPEG_LOG("Encoding in CBR: %d", mConfig.mBitrate);
+  } else {
+    mCodecContext->rc_max_rate =
+        static_cast<FFmpegBitRate>(mConfig.mBitrate);
+    mCodecContext->rc_min_rate = 0;
+    mCodecContext->bit_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
+    FFMPEG_LOG("Encoding in VBR: [%d;%d]", (int)mCodecContext->rc_min_rate,
+               (int)mCodecContext->rc_max_rate);
   }
 #if LIBAVCODEC_VERSION_MAJOR >= 60
   mCodecContext->flags |= AV_CODEC_FLAG_FRAME_DURATION;
