@@ -1609,6 +1609,10 @@ class CSPReportSenderRunnable final : public Runnable {
  * topic that a violation occurred.  Also triggers report sending and console
  * logging.  All asynchronous on the main thread.
  *
+ * @param aCSPEventListener Should be null when the violation stems from a
+ *                          Window. Is required when the violation stems from a
+ *                          Worker to be potentially notified about the
+ *                          violation event.
  * @param aOriginalUri
  *        The original URI if the blocked content is a redirect, else null
  * @param aViolatedDirectiveName
