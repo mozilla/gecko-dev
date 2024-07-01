@@ -1056,7 +1056,8 @@ SharedModule ModuleGenerator::finishModule(
   }
 
   JumpTables jumpTables;
-  if (!jumpTables.init(mode(), *codeBlock->segment, codeBlock->codeRanges)) {
+  if (!jumpTables.init(mode(), codeBlock->moduleSegment(),
+                       codeBlock->codeRanges)) {
     return nullptr;
   }
 
