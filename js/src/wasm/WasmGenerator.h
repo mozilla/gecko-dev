@@ -193,7 +193,6 @@ class MOZ_STACK_CLASS ModuleGenerator {
   LifoAlloc lifo_;
   jit::TempAllocator masmAlloc_;
   jit::WasmMacroAssembler masm_;
-  Uint32Vector funcToCodeRange_;
   uint32_t debugTrapCodeOffset_;
   CallFarJumpVector callFarJumps_;
   CallSiteTargetVector callSiteTargets_;

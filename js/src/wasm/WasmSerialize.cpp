@@ -1117,6 +1117,15 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
 
 // WasmCode.h
 
+template <CoderMode mode>
+CoderResult CodeFuncToCodeRangeMap(
+    Coder<mode>& coder, CoderArg<mode, wasm::FuncToCodeRangeMap> item) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::FuncToCodeRangeMap, 0);
+  MOZ_TRY(CodePod(coder, &item->startFuncIndex_));
+  MOZ_TRY(CodePodVector(coder, &item->funcToCodeRange_));
+  return Ok();
+}
+
 CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
                           wasm::UniqueCodeBlock* item,
                           const wasm::LinkData& linkData) {
@@ -1131,7 +1140,7 @@ CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
   (*item)->segment = codeSegment;
   (*item)->codeBase = codeSegment->base();
   (*item)->codeLength = codeSegment->lengthBytes();
-  MOZ_TRY(CodePodVector(coder, &(*item)->funcToCodeRange));
+  MOZ_TRY(CodeFuncToCodeRangeMap(coder, &(*item)->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &(*item)->codeRanges));
   MOZ_TRY(CodePodVector(coder, &(*item)->callSites));
   MOZ_TRY(CodeTrapSiteVectorArray(coder, &(*item)->trapSites));
@@ -1155,7 +1164,7 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
   MOZ_ASSERT(item->codeBase == item->segment->base() &&
              item->codeLength == item->segment->lengthBytes());
   MOZ_TRY(CodeCodeSegment(coder, &item->segment, linkData));
-  MOZ_TRY(CodePodVector(coder, &item->funcToCodeRange));
+  MOZ_TRY(CodeFuncToCodeRangeMap(coder, &item->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &item->codeRanges));
   MOZ_TRY(CodePodVector(coder, &item->callSites));
   MOZ_TRY(CodeTrapSiteVectorArray(coder, &item->trapSites));

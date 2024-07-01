@@ -1021,7 +1021,7 @@ bool Instance::iterElemsFunctions(const ModuleElemSegment& seg,
   const CodeBlock& codeBlock = code(tier);
   const FuncImportVector& funcImports = codeBlock.funcImports;
   const CodeRangeVector& codeRanges = codeBlock.codeRanges;
-  const Uint32Vector& funcToCodeRange = codeBlock.funcToCodeRange;
+  const FuncToCodeRangeMap& funcToCodeRange = codeBlock.funcToCodeRange;
   const Uint32Vector& elemIndices = seg.elemIndices;
 
   uint8_t* codeBaseTier = codeBase(tier);
