@@ -1001,14 +1001,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   void boolValueToDouble(const ValueOperand& operand, FloatRegister dest) {
     convertInt32ToDouble(operand.valueReg(), dest);
   }
-  void int32ValueToDouble(const ValueOperand& operand, FloatRegister dest) {
-    convertInt32ToDouble(operand.valueReg(), dest);
-  }
-
   void boolValueToFloat32(const ValueOperand& operand, FloatRegister dest) {
-    convertInt32ToFloat32(operand.valueReg(), dest);
-  }
-  void int32ValueToFloat32(const ValueOperand& operand, FloatRegister dest) {
     convertInt32ToFloat32(operand.valueReg(), dest);
   }
 

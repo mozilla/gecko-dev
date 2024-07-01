@@ -16596,9 +16596,11 @@ void CodeGenerator::visitOutOfLineUnboxFloatingPoint(
     bailoutFrom(&bail, ins->snapshot());
   }
   if (ins->type() == MIRType::Float32) {
-    masm.int32ValueToFloat32(value, ToFloatRegister(ins->output()));
+    masm.convertInt32ToFloat32(value.payloadOrValueReg(),
+                               ToFloatRegister(ins->output()));
   } else {
-    masm.int32ValueToDouble(value, ToFloatRegister(ins->output()));
+    masm.convertInt32ToDouble(value.payloadOrValueReg(),
+                              ToFloatRegister(ins->output()));
   }
   masm.jump(ool->rejoin());
 }

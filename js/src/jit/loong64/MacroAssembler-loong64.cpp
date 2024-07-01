@@ -5146,21 +5146,11 @@ void MacroAssemblerLOONG64Compat::boolValueToDouble(const ValueOperand& operand,
   convertInt32ToDouble(scratch, dest);
 }
 
-void MacroAssemblerLOONG64Compat::int32ValueToDouble(
-    const ValueOperand& operand, FloatRegister dest) {
-  convertInt32ToDouble(operand.valueReg(), dest);
-}
-
 void MacroAssemblerLOONG64Compat::boolValueToFloat32(
     const ValueOperand& operand, FloatRegister dest) {
   ScratchRegisterScope scratch(asMasm());
   convertBoolToInt32(operand.valueReg(), scratch);
   convertInt32ToFloat32(scratch, dest);
-}
-
-void MacroAssemblerLOONG64Compat::int32ValueToFloat32(
-    const ValueOperand& operand, FloatRegister dest) {
-  convertInt32ToFloat32(operand.valueReg(), dest);
 }
 
 void MacroAssemblerLOONG64Compat::loadConstantFloat32(float f,

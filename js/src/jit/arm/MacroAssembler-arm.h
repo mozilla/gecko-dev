@@ -926,7 +926,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM {
   }
 
   void boolValueToDouble(const ValueOperand& operand, FloatRegister dest);
-  void int32ValueToDouble(const ValueOperand& operand, FloatRegister dest);
   void loadInt32OrDouble(const Address& src, FloatRegister dest);
   void loadInt32OrDouble(Register base, Register index, FloatRegister dest,
                          int32_t shift = defaultShift);
@@ -940,7 +939,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM {
   Condition testBigIntTruthy(bool truthy, const ValueOperand& value);
 
   void boolValueToFloat32(const ValueOperand& operand, FloatRegister dest);
-  void int32ValueToFloat32(const ValueOperand& operand, FloatRegister dest);
   void loadConstantFloat32(float f, FloatRegister dest);
 
   void loadUnboxedValue(Address address, MIRType type, AnyRegister dest) {

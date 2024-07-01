@@ -2888,16 +2888,6 @@ void MacroAssemblerARMCompat::boolValueToDouble(const ValueOperand& operand,
   as_vsub(d, d, d, Equal);
 }
 
-void MacroAssemblerARMCompat::int32ValueToDouble(const ValueOperand& operand,
-                                                 FloatRegister dest) {
-  // Transfer the integral value to a floating point register.
-  VFPRegister vfpdest = VFPRegister(dest);
-  as_vxfer(operand.payloadReg(), InvalidReg, vfpdest.sintOverlay(),
-           CoreToFloat);
-  // Convert the value to a double.
-  as_vcvt(vfpdest, vfpdest.sintOverlay());
-}
-
 void MacroAssemblerARMCompat::boolValueToFloat32(const ValueOperand& operand,
                                                  FloatRegister dest) {
   VFPRegister d = VFPRegister(dest).singleOverlay();
@@ -2905,16 +2895,6 @@ void MacroAssemblerARMCompat::boolValueToFloat32(const ValueOperand& operand,
   as_cmp(operand.payloadReg(), Imm8(0));
   // If the source is 0, then subtract the dest from itself, producing 0.
   as_vsub(d, d, d, Equal);
-}
-
-void MacroAssemblerARMCompat::int32ValueToFloat32(const ValueOperand& operand,
-                                                  FloatRegister dest) {
-  // Transfer the integral value to a floating point register.
-  VFPRegister vfpdest = VFPRegister(dest).singleOverlay();
-  as_vxfer(operand.payloadReg(), InvalidReg, vfpdest.sintOverlay(),
-           CoreToFloat);
-  // Convert the value to a float.
-  as_vcvt(vfpdest, vfpdest.sintOverlay());
 }
 
 void MacroAssemblerARMCompat::loadConstantFloat32(float f, FloatRegister dest) {

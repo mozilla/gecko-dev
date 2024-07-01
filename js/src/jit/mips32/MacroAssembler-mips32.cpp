@@ -1451,20 +1451,10 @@ void MacroAssemblerMIPSCompat::boolValueToDouble(const ValueOperand& operand,
   convertInt32ToDouble(ScratchRegister, dest);
 }
 
-void MacroAssemblerMIPSCompat::int32ValueToDouble(const ValueOperand& operand,
-                                                  FloatRegister dest) {
-  convertInt32ToDouble(operand.payloadReg(), dest);
-}
-
 void MacroAssemblerMIPSCompat::boolValueToFloat32(const ValueOperand& operand,
                                                   FloatRegister dest) {
   convertBoolToInt32(operand.payloadReg(), ScratchRegister);
   convertInt32ToFloat32(ScratchRegister, dest);
-}
-
-void MacroAssemblerMIPSCompat::int32ValueToFloat32(const ValueOperand& operand,
-                                                   FloatRegister dest) {
-  convertInt32ToFloat32(operand.payloadReg(), dest);
 }
 
 void MacroAssemblerMIPSCompat::loadConstantFloat32(float f,

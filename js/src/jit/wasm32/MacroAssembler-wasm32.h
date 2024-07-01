@@ -481,8 +481,6 @@ class MacroAssemblerWasm32 : public Assembler {
 
   void boolValueToDouble(ValueOperand, FloatRegister) { MOZ_CRASH(); }
   void boolValueToFloat32(ValueOperand, FloatRegister) { MOZ_CRASH(); }
-  void int32ValueToDouble(ValueOperand, FloatRegister) { MOZ_CRASH(); }
-  void int32ValueToFloat32(ValueOperand, FloatRegister) { MOZ_CRASH(); }
 
   void loadConstantDouble(double, FloatRegister) { MOZ_CRASH(); }
   void loadConstantFloat32(float, FloatRegister) { MOZ_CRASH(); }

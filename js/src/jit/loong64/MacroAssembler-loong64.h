@@ -712,13 +712,11 @@ class MacroAssemblerLOONG64Compat : public MacroAssemblerLOONG64 {
                            Label* failure);
 
   void boolValueToDouble(const ValueOperand& operand, FloatRegister dest);
-  void int32ValueToDouble(const ValueOperand& operand, FloatRegister dest);
   void loadInt32OrDouble(const Address& src, FloatRegister dest);
   void loadInt32OrDouble(const BaseIndex& addr, FloatRegister dest);
   void loadConstantDouble(double dp, FloatRegister dest);
 
   void boolValueToFloat32(const ValueOperand& operand, FloatRegister dest);
-  void int32ValueToFloat32(const ValueOperand& operand, FloatRegister dest);
   void loadConstantFloat32(float f, FloatRegister dest);
 
   void testNullSet(Condition cond, const ValueOperand& value, Register dest);

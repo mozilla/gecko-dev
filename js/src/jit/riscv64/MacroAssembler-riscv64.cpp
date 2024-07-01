@@ -1656,22 +1656,12 @@ void MacroAssemblerRiscv64Compat::boolValueToDouble(const ValueOperand& operand,
   convertInt32ToDouble(ScratchRegister, dest);
 }
 
-void MacroAssemblerRiscv64Compat::int32ValueToDouble(
-    const ValueOperand& operand, FloatRegister dest) {
-  convertInt32ToDouble(operand.valueReg(), dest);
-}
-
 void MacroAssemblerRiscv64Compat::boolValueToFloat32(
     const ValueOperand& operand, FloatRegister dest) {
   UseScratchRegisterScope temps(this);
   Register ScratchRegister = temps.Acquire();
   convertBoolToInt32(operand.valueReg(), ScratchRegister);
   convertInt32ToFloat32(ScratchRegister, dest);
-}
-
-void MacroAssemblerRiscv64Compat::int32ValueToFloat32(
-    const ValueOperand& operand, FloatRegister dest) {
-  convertInt32ToFloat32(operand.valueReg(), dest);
 }
 
 void MacroAssemblerRiscv64Compat::loadConstantFloat32(float f,
