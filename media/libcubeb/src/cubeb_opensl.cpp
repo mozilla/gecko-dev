@@ -10,6 +10,7 @@
 #include <dlfcn.h>
 #include <errno.h>
 #include <math.h>
+#include <memory>
 #include <pthread.h>
 #include <stdlib.h>
 #include <time.h>

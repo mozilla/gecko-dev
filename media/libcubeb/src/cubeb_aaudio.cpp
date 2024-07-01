@@ -51,7 +51,6 @@ using namespace std;
   X(AAudioStream_read)                                                         \
   X(AAudioStream_requestStart)                                                 \
   X(AAudioStream_requestPause)                                                 \
-  X(AAudioStream_setBufferSizeInFrames)                                        \
   X(AAudioStream_getTimestamp)                                                 \
   X(AAudioStream_requestFlush)                                                 \
   X(AAudioStream_requestStop)                                                  \
@@ -69,8 +68,8 @@ using namespace std;
   X(AAudioStreamBuilder_setUsage)                                              \
   X(AAudioStreamBuilder_setFramesPerDataCallback)
 
-// not needed or added later on
-// X(AAudioStreamBuilder_setDeviceId)              \
+// not needed or added later on                      \
+  // X(AAudioStreamBuilder_setDeviceId)              \
   // X(AAudioStreamBuilder_setSamplesPerFrame)       \
   // X(AAudioStream_getSamplesPerFrame)              \
   // X(AAudioStream_getDeviceId)                     \
@@ -85,6 +84,7 @@ using namespace std;
   // X(AAudioStream_getContentType)                  \
   // X(AAudioStream_getInputPreset)                  \
   // X(AAudioStream_getSessionId)                    \
+  // X(AAudioStream_setBufferSizeInFrames)           \
 // END: not needed or added later on
 
 #define MAKE_TYPEDEF(x) static decltype(x) * cubeb_##x;
@@ -1096,8 +1096,10 @@ aaudio_stream_init_impl(cubeb_stream * stm, lock_guard<mutex> & lock)
   std::unique_ptr<AAudioStreamBuilder, StreamBuilderDestructor> sbPtr(sb);
 
   WRAP(AAudioStreamBuilder_setErrorCallback)(sb, aaudio_error_cb, stm);
+  // Capacity should be at least twice the frames-per-callback to allow double
+  // buffering.
   WRAP(AAudioStreamBuilder_setBufferCapacityInFrames)
-  (sb, static_cast<int32_t>(stm->latency_frames));
+  (sb, static_cast<int32_t>(3 * stm->latency_frames));
 
   AAudioStream_dataCallback in_data_callback{};
   AAudioStream_dataCallback out_data_callback{};
@@ -1150,18 +1152,6 @@ aaudio_stream_init_impl(cubeb_stream * stm, lock_guard<mutex> & lock)
       return res_err;
     }
 
-    int32_t output_burst_size =
-        WRAP(AAudioStream_getFramesPerBurst)(stm->ostream);
-    LOG("AAudio output burst size: %d", output_burst_size);
-    // 3 times the burst size seems to be robust.
-    res = WRAP(AAudioStream_setBufferSizeInFrames)(stm->ostream,
-                                                   output_burst_size * 3);
-    if (res < 0) {
-      LOG("AAudioStream_setBufferSizeInFrames error (ostream): %s",
-          WRAP(AAudio_convertResultToText)(res));
-      // Not fatal
-    }
-
     int rate = WRAP(AAudioStream_getSampleRate)(stm->ostream);
     LOG("AAudio output stream sharing mode: %d",
         WRAP(AAudioStream_getSharingMode)(stm->ostream));
@@ -1203,18 +1193,6 @@ aaudio_stream_init_impl(cubeb_stream * stm, lock_guard<mutex> & lock)
                                  &stm->istream, &frame_size);
     if (res_err) {
       return res_err;
-    }
-
-    int32_t input_burst_size =
-        WRAP(AAudioStream_getFramesPerBurst)(stm->istream);
-    LOG("AAudio input burst size: %d", input_burst_size);
-    // 3 times the burst size seems to be robust.
-    res = WRAP(AAudioStream_setBufferSizeInFrames)(stm->istream,
-                                                   input_burst_size * 3);
-    if (res < AAUDIO_OK) {
-      LOG("AAudioStream_setBufferSizeInFrames error (istream): %s",
-          WRAP(AAudio_convertResultToText)(res));
-      // Not fatal
     }
 
     int bcap = WRAP(AAudioStream_getBufferCapacityInFrames)(stm->istream);
