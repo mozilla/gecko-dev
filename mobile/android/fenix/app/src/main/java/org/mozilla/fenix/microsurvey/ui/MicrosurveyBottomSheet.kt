@@ -7,6 +7,7 @@ package org.mozilla.fenix.microsurvey.ui
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -59,7 +60,7 @@ fun MicrosurveyBottomSheet(
     var isSubmitted by remember { mutableStateOf(false) }
 
     Surface(
-        modifier = modifier,
+        modifier = modifier.fillMaxHeight(),
         color = FirefoxTheme.colors.layer1,
         shape = bottomSheetShape,
     ) {
