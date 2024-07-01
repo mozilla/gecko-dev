@@ -998,37 +998,58 @@ TextLeafPoint TextLeafPoint::FindNextWordStartSameAcc(
 
 /* static */
 TextLeafPoint TextLeafPoint::GetCaret(Accessible* aAcc) {
-  HyperTextAccessibleBase* ht;
-  int32_t htOffset;
-  bool isEndOfLine;
   if (LocalAccessible* localAcc = aAcc->AsLocal()) {
     // Use HyperTextAccessible::CaretOffset. Eventually, we'll want to move
     // that code into TextLeafPoint, but existing code depends on it living in
     // HyperTextAccessible (including caret events).
-    ht = HyperTextFor(localAcc);
+    HyperTextAccessible* ht = HyperTextFor(localAcc);
     if (!ht) {
       return TextLeafPoint();
     }
-    htOffset = ht->CaretOffset();
+    int32_t htOffset = ht->CaretOffset();
     if (htOffset == -1) {
       return TextLeafPoint();
     }
-    // Use HyperTextAccessible::IsCaretAtEndOfLine. Eventually, we'll want to
-    // move that code into TextLeafPoint, but existing code depends on it living
-    // in HyperTextAccessible (including caret events).
-    isEndOfLine = localAcc->AsHyperText()->IsCaretAtEndOfLine();
-  } else {
-    // Ideally, we'd cache the caret as a leaf, but our events are based on
-    // HyperText for now.
-    DocAccessibleParent* remoteDoc = aAcc->AsRemote()->Document();
-    std::tie(ht, htOffset) = remoteDoc->GetCaret();
-    if (!ht) {
-      return TextLeafPoint();
+    TextLeafPoint point = ht->ToTextLeafPoint(htOffset);
+    if (!point) {
+      // Bug 1905021: This happens in the wild, but we don't understand why.
+      // ToTextLeafPoint should only fail if the HyperText offset is invalid,
+      // but CaretOffset shouldn't return an invalid offset.
+      MOZ_ASSERT_UNREACHABLE(
+          "Got HyperText CaretOffset but ToTextLeafPoint failed");
+      return point;
     }
-    isEndOfLine = remoteDoc->IsCaretAtEndOfLine();
+    nsIFrame* frame = ht->GetFrame();
+    RefPtr<nsFrameSelection> sel = frame ? frame->GetFrameSelection() : nullptr;
+    if (sel && sel->GetHint() == CaretAssociationHint::Before) {
+      // CaretAssociationHint::Before can mean that the caret is at the end of
+      // a line. However, it can also mean that the caret is before the start
+      // of a node in the middle of a line. This happens when moving the cursor
+      // forward to a new node.
+      if (point.mOffset == 0) {
+        // The caret is before the start of a node. The caret is at the end of a
+        // line if the node is at the start of a line but not at the start of a
+        // paragraph.
+        point.mIsEndOfLineInsertionPoint =
+            IsLocalAccAtLineStart(point.mAcc->AsLocal()) &&
+            !point.IsParagraphStart();
+      } else {
+        // This isn't the start of a node, so we must be at the end of a line.
+        point.mIsEndOfLineInsertionPoint = true;
+      }
+    }
+    return point;
+  }
+
+  // Ideally, we'd cache the caret as a leaf, but our events are based on
+  // HyperText for now.
+  DocAccessibleParent* remoteDoc = aAcc->AsRemote()->Document();
+  auto [ht, htOffset] = remoteDoc->GetCaret();
+  if (!ht) {
+    return TextLeafPoint();
   }
   TextLeafPoint point = ht->ToTextLeafPoint(htOffset);
-  point.mIsEndOfLineInsertionPoint = isEndOfLine;
+  point.mIsEndOfLineInsertionPoint = remoteDoc->IsCaretAtEndOfLine();
   return point;
 }
 
