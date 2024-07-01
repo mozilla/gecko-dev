@@ -3745,8 +3745,7 @@ static bool NewString(JSContext* cx, unsigned argc, Value* vp) {
           return nullptr;
         }
         mozilla::PodCopy(news.get(), chars, len);
-        Rooted<JSString::OwnedChars<CharT>> owned(cx, std::move(news), len,
-                                                  true);
+        Rooted<JSString::OwnedChars<CharT>> owned(cx, std::move(news), len);
         return JSLinearString::newValidLength<CanGC, CharT>(cx, &owned, heap);
       };
 

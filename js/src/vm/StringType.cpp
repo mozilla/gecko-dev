@@ -654,19 +654,21 @@ static MOZ_ALWAYS_INLINE JSString::OwnedChars<CharT> AllocChars(JSContext* cx,
         cx->zone(), length * sizeof(CharT), js::StringBufferArena);
     if (!buffer) {
       ReportOutOfMemory(cx);
-      return {nullptr, 0, false, false};
+      return {};
     }
 
-    return {static_cast<CharT*>(buffer), length, isMalloced, isMalloced};
+    using Kind = typename JSString::OwnedChars<CharT>::Kind;
+    Kind kind = isMalloced ? Kind::Malloc : Kind::Nursery;
+    return {static_cast<CharT*>(buffer), length, kind};
   }
 
   auto buffer = cx->make_pod_arena_array<CharT>(js::StringBufferArena, length);
   if (!buffer) {
     ReportOutOfMemory(cx);
-    return {nullptr, 0, false, false};
+    return {};
   }
 
-  return {std::move(buffer), length, true};
+  return {std::move(buffer), length};
 }
 
 template <typename CharT>
@@ -1870,7 +1872,7 @@ JSLinearString* js::NewStringDontDeflate(
   }
 
   JS::Rooted<JSString::OwnedChars<CharT>> ownedChars(cx, std::move(chars),
-                                                     length, true);
+                                                     length);
   return JSLinearString::new_<allowGC, CharT>(cx, &ownedChars, heap);
 }
 

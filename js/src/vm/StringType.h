@@ -218,31 +218,50 @@ class JSString : public js::gc::CellWithLengthAndFlags {
   // malloc heap before the nursery is reset.
   template <typename CharT>
   class OwnedChars {
+   public:
+    enum class Kind {
+      // Not owning any chars. chars_ should not be used.
+      Uninitialized,
+
+      // chars_ is a buffer allocated in the nursery.
+      Nursery,
+
+      // chars_ is a buffer allocated in the malloc heap. This pointer should be
+      // passed to js_free() if OwnedChars dies while still possessing
+      // ownership.
+      Malloc,
+    };
+
+   private:
     mozilla::Span<CharT> chars_;
-    bool needsFree_;
-    bool isMalloced_;
+    Kind kind_ = Kind::Uninitialized;
 
    public:
-    // needsFree: the chars pointer should be passed to js_free() if OwnedChars
-    // dies while still possessing ownership.
-    //
-    // isMalloced: the chars pointer does not point into the nursery.
-    //
-    // These are not quite the same, since you might have non-nursery characters
-    // that are owned by something else. needsFree implies isMalloced.
-    OwnedChars(CharT* chars, size_t length, bool isMalloced, bool needsFree);
-    OwnedChars(js::UniquePtr<CharT[], JS::FreePolicy>&& chars, size_t length,
-               bool isMalloced);
+    OwnedChars() = default;
+    OwnedChars(CharT* chars, size_t length, Kind kind);
+    OwnedChars(js::UniquePtr<CharT[], JS::FreePolicy>&& chars, size_t length);
     OwnedChars(OwnedChars&&);
     OwnedChars(const OwnedChars&) = delete;
     ~OwnedChars() { reset(); }
 
-    explicit operator bool() const { return !chars_.empty(); }
-    mozilla::Span<CharT> span() const { return chars_; }
-    CharT* data() const { return chars_.data(); }
-    size_t length() const { return chars_.Length(); }
+    explicit operator bool() const {
+      MOZ_ASSERT_IF(kind_ != Kind::Uninitialized, !chars_.empty());
+      return kind_ != Kind::Uninitialized;
+    }
+    mozilla::Span<CharT> span() const {
+      MOZ_ASSERT(kind_ != Kind::Uninitialized);
+      return chars_;
+    }
+    CharT* data() const {
+      MOZ_ASSERT(kind_ != Kind::Uninitialized);
+      return chars_.data();
+    }
+    size_t length() const {
+      MOZ_ASSERT(kind_ != Kind::Uninitialized);
+      return chars_.Length();
+    }
     size_t size() const { return length() * sizeof(CharT); }
-    bool isMalloced() const { return isMalloced_; }
+    bool isMalloced() const { return kind_ == Kind::Malloc; }
 
     // Return the data and release ownership to the caller.
     inline CharT* release();
