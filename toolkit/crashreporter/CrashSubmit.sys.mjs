@@ -214,6 +214,9 @@ Submitter.prototype = {
             Glean.crashSubmission.collectorErrors[errMsg].add();
             failmsg = `received bad response: ${xhr.status} ${err}`;
           }
+          if (xhr.status === 0) {
+            Glean.crashSubmission.channelStatus[xhr.channel.status].add();
+          }
         }
         let submitted = !!ret.CrashID;
         let p = Promise.resolve();

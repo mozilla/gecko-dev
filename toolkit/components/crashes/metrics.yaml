@@ -909,3 +909,17 @@ crash_submission:
     data_sensitivity:
       - technical
     expires: never
+  channel_status:
+    type: labeled_counter
+    description: >
+      Collecting XHR channel status on error code when statusCode == 0.
+    notification_emails:
+      - crash-reporting-wg@mozilla.org
+      - stability@mozilla.org
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905633
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905633
+    data_sensitivity:
+      - technical
+    expires: never
