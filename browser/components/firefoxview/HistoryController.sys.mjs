@@ -81,7 +81,7 @@ export class HistoryController {
   }
 
   hostDisconnected() {
-    ChromeUtils.idleDispatch(() => this.placesQuery.close());
+    this.placesQuery.close();
   }
 
   deleteFromHistory() {
@@ -131,7 +131,11 @@ export class HistoryController {
     const entries = searchQuery
       ? await this.#getVisitsForSearchQuery(searchQuery)
       : await this.#getVisitsForSortOption(sortOption, historyMap);
-    if (this.searchQuery !== searchQuery || this.sortOption !== sortOption) {
+    if (
+      this.searchQuery !== searchQuery ||
+      this.sortOption !== sortOption ||
+      !entries
+    ) {
       // This query is stale, discard results and do not update the cache / UI.
       return;
     }
@@ -182,7 +186,11 @@ export class HistoryController {
 
   async #getVisitsForSortOption(sortOption, historyMap) {
     if (!historyMap) {
-      historyMap = await this.#fetchHistory();
+      const fetchedHistory = await this.#fetchHistory();
+      if (!fetchedHistory) {
+        return null;
+      }
+      historyMap = fetchedHistory;
     }
     switch (sortOption) {
       case "date":
