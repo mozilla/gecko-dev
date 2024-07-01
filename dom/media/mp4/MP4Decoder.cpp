@@ -23,7 +23,8 @@
 namespace mozilla {
 
 static bool IsWhitelistedH264Codec(const nsAString& aCodec) {
-  uint8_t profile = 0, constraint = 0, level = 0;
+  uint8_t profile = 0, constraint = 0;
+  H264_LEVEL level;
 
   if (!ExtractH264CodecDetails(aCodec, profile, constraint, level)) {
     return false;
@@ -39,7 +40,8 @@ static bool IsWhitelistedH264Codec(const nsAString& aCodec) {
   // any potential errors, the level limit being rather arbitrary.
   // We also report that we can play Extended profile, as there are
   // bitstreams that are Extended compliant that are also Baseline compliant.
-  return level >= H264_LEVEL_1 && level <= H264_LEVEL_5_2 &&
+  return level >= H264_LEVEL::H264_LEVEL_1 &&
+         level <= H264_LEVEL::H264_LEVEL_5_2 &&
          (profile == H264_PROFILE_BASE || profile == H264_PROFILE_MAIN ||
           profile == H264_PROFILE_EXTENDED || profile == H264_PROFILE_HIGH);
 }
@@ -133,7 +135,8 @@ nsTArray<UniquePtr<TrackInfo>> MP4Decoder::GetTracksInfo(
       auto trackInfo =
           CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
               "video/avc"_ns, aType);
-      uint8_t profile = 0, constraint = 0, level = 0;
+      uint8_t profile = 0, constraint = 0;
+      H264_LEVEL level;
       MOZ_ALWAYS_TRUE(
           ExtractH264CodecDetails(codec, profile, constraint, level));
       uint32_t width = aType.ExtendedType().GetWidth().refOr(1280);
