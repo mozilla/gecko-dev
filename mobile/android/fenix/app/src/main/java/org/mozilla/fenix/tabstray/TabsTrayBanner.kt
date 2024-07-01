@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
+import androidx.compose.material.LocalContentAlpha
+import androidx.compose.material.LocalContentColor
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
@@ -194,6 +196,7 @@ private fun TabPageBanner(
 ) {
     val selectedColor = FirefoxTheme.colors.iconActive
     val inactiveColor = FirefoxTheme.colors.iconPrimaryInactive
+    val tabCounterAlpha = LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
     var showMenu by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
@@ -231,7 +234,11 @@ private fun TabPageBanner(
                         selectedContentColor = selectedColor,
                         unselectedContentColor = inactiveColor,
                     ) {
-                        TabCounter(tabCount = normalTabCount)
+                        TabCounter(
+                            tabCount = normalTabCount,
+                            textColor = tabCounterAlpha,
+                            iconColor = tabCounterAlpha,
+                        )
                     }
 
                     Tab(

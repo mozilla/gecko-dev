@@ -10,12 +10,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
-import androidx.compose.material.LocalContentAlpha
-import androidx.compose.material.LocalContentColor
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -50,10 +49,17 @@ private const val TAB_TEXT_BOTTOM_PADDING_RATIO = 6
 *
 * @param tabCount the number to be displayed inside the counter.
 * @param showPrivacyBadge if true, show the privacy badge.
+* @param textColor the color of the text inside of tab counter.
+* @param iconColor the border color of the tab counter.
 */
 
 @Composable
-fun TabCounter(tabCount: Int, showPrivacyBadge: Boolean = false) {
+fun TabCounter(
+    tabCount: Int,
+    showPrivacyBadge: Boolean = false,
+    textColor: Color = FirefoxTheme.colors.textPrimary,
+    iconColor: Color = FirefoxTheme.colors.iconPrimary,
+) {
     val formattedTabCount = tabCount.toLocaleString()
     val normalTabCountText: String
     val tabCountTextRatio: Float
@@ -112,12 +118,13 @@ fun TabCounter(tabCount: Int, showPrivacyBadge: Boolean = false) {
                 id = mozilla.components.ui.tabcounter.R.drawable.mozac_ui_tabcounter_box,
             ),
             contentDescription = normalTabsContentDescription,
+            tint = iconColor,
         )
 
         Text(
             text = normalTabCountText,
             modifier = normalTabsTextModifier,
-            color = LocalContentColor.current.copy(alpha = LocalContentAlpha.current),
+            color = textColor,
             fontSize = with(LocalDensity.current) { counterTabsTextSize.toDp().toSp() },
             fontWeight = FontWeight.W700,
             textAlign = TextAlign.Center,
