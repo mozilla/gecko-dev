@@ -111,9 +111,9 @@ UniqueCodeBytes wasm::AllocateCodeBytes(
   return UniqueCodeBytes((uint8_t*)p, FreeCode(roundedCodeLength));
 }
 
-bool CodeSegment::initialize(const CodeTier& codeTier) {
+bool CodeSegment::initialize(const Code& code) {
   MOZ_ASSERT(!initialized());
-  codeTier_ = &codeTier;
+  code_ = &code;
   MOZ_ASSERT(initialized());
 
   // In the case of tiering, RegisterCodeSegment() immediately makes this code
@@ -128,11 +128,6 @@ bool CodeSegment::initialize(const CodeTier& codeTier) {
   MOZ_ASSERT(!unregisterOnDestroy_);
   unregisterOnDestroy_ = true;
   return true;
-}
-
-const Code& CodeSegment::code() const {
-  MOZ_ASSERT(codeTier_);
-  return codeTier_->code();
 }
 
 void CodeSegment::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code) const {
@@ -361,7 +356,12 @@ bool ModuleSegment::initialize(const CodeTier& codeTier,
                            metadataTier.codeRanges);
 
   // See comments in CodeSegment::initialize() for why this must be last.
-  return CodeSegment::initialize(codeTier);
+  return CodeSegment::initialize(codeTier.code());
+}
+
+const CodeTier& ModuleSegment::codeTier() const {
+  MOZ_ASSERT(initialized());
+  return code().codeTier(tier());
 }
 
 void ModuleSegment::addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf,
@@ -390,8 +390,7 @@ size_t MetadataTier::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
          funcExports.sizeOfExcludingThis(mallocSizeOf);
 }
 
-UniqueLazyStubSegment LazyStubSegment::create(const CodeTier& codeTier,
-                                              size_t length) {
+UniqueLazyStubSegment LazyStubSegment::create(const Code& code, size_t length) {
   Maybe<AutoMarkJitCodeWritableForThread> writable;
   UniqueCodeBytes codeBytes = AllocateCodeBytes(writable, length);
   if (!codeBytes) {
@@ -399,7 +398,7 @@ UniqueLazyStubSegment LazyStubSegment::create(const CodeTier& codeTier,
   }
 
   auto segment = js::MakeUnique<LazyStubSegment>(std::move(codeBytes), length);
-  if (!segment || !segment->initialize(codeTier)) {
+  if (!segment || !segment->initialize(code)) {
     return nullptr;
   }
 
@@ -557,7 +556,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
       !stubSegments_[lastStubSegmentIndex_]->hasSpace(codeLength)) {
     size_t newSegmentSize = std::max(codeLength, ExecutableCodePageSize);
     UniqueLazyStubSegment newSegment =
-        LazyStubSegment::create(codeTier, newSegmentSize);
+        LazyStubSegment::create(codeTier.code(), newSegmentSize);
     if (!newSegment) {
       return false;
     }
@@ -592,11 +591,6 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     return false;
   }
 
-  // Create lazy function exports for funcIndex -> entry lookup.
-  if (!exports_.reserve(exports_.length() + funcExportIndices.length())) {
-    return false;
-  }
-
   for (uint32_t funcExportIndex : funcExportIndices) {
     const FuncExport& fe = funcExports[funcExportIndex];
     const FuncType& funcType = codeMeta.getFuncExportType(fe);
@@ -606,21 +600,26 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     MOZ_ASSERT(cr.value.funcIndex() == fe.funcIndex());
 
     LazyFuncExport lazyExport(fe.funcIndex(), *stubSegmentIndex,
-                              interpRangeIndex);
-
-    size_t exportIndex;
-    const uint32_t targetFunctionIndex = fe.funcIndex();
-    MOZ_ALWAYS_FALSE(BinarySearchIf(
-        exports_, 0, exports_.length(),
-        [targetFunctionIndex](const LazyFuncExport& funcExport) {
-          return targetFunctionIndex - funcExport.funcIndex;
-        },
-        &exportIndex));
-    MOZ_ALWAYS_TRUE(
-        exports_.insert(exports_.begin() + exportIndex, std::move(lazyExport)));
+                              interpRangeIndex, codeTier.tier());
 
     // Exports that don't support a jit entry get only the interp entry.
     interpRangeIndex += (funcType.canHaveJitEntry() ? 2 : 1);
+
+    size_t exportIndex;
+    const uint32_t targetFunctionIndex = fe.funcIndex();
+
+    if (BinarySearchIf(
+            exports_, 0, exports_.length(),
+            [targetFunctionIndex](const LazyFuncExport& funcExport) {
+              return targetFunctionIndex - funcExport.funcIndex;
+            },
+            &exportIndex)) {
+      MOZ_ASSERT(exports_[exportIndex].tier == Tier::Baseline);
+      exports_[exportIndex] = std::move(lazyExport);
+    } else if (!exports_.insert(exports_.begin() + exportIndex,
+                                std::move(lazyExport))) {
+      return false;
+    }
   }
 
   return true;
@@ -663,12 +662,24 @@ bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
   return true;
 }
 
-bool LazyStubTier::createTier2(const Uint32Vector& funcExportIndices,
-                               const CodeMetadata& codeMeta,
+bool LazyStubTier::createTier2(const CodeMetadata& codeMeta,
                                const CodeTier& codeTier,
                                Maybe<size_t>* outStubSegmentIndex) {
-  if (!funcExportIndices.length()) {
+  if (!exports_.length()) {
     return true;
+  }
+
+  Uint32Vector funcExportIndices;
+  if (!funcExportIndices.reserve(exports_.length())) {
+    return false;
+  }
+
+  for (size_t i = 0; i < exports_.length(); i++) {
+    const LazyFuncExport& lfe = exports_[i];
+    MOZ_ASSERT(lfe.tier == Tier::Baseline);
+    size_t funcExportIndex;
+    codeTier.metadata().lookupFuncExport(lfe.funcIndex, &funcExportIndex);
+    funcExportIndices.infallibleAppend(funcExportIndex);
   }
 
   size_t stubSegmentIndex;
@@ -763,8 +774,6 @@ bool CodeTier::initialize(const Code& code, const LinkData& linkData,
   MOZ_ASSERT(!initialized());
   code_ = &code;
 
-  MOZ_ASSERT(lazyStubs_.readLock()->entryStubsEmpty());
-
   // See comments in CodeSegment::initialize() for why this must be last.
   if (!segment_->initialize(*this, linkData, codeMeta, codeMetaForAsmJS,
                             *metadata_)) {
@@ -778,7 +787,6 @@ bool CodeTier::initialize(const Code& code, const LinkData& linkData,
 void CodeTier::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
                              size_t* data) const {
   segment_->addSizeOfMisc(mallocSizeOf, code, data);
-  lazyStubs_.readLock()->addSizeOfMisc(mallocSizeOf, code, data);
   *data += metadata_->sizeOfExcludingThis(mallocSizeOf);
 }
 
@@ -853,7 +861,8 @@ Code::Code(const CodeMetadata& codeMeta,
       tier1_(std::move(tier1)),
       profilingLabels_(mutexid::WasmCodeProfilingLabels,
                        CacheableCharsVector()),
-      jumpTables_(std::move(maybeJumpTables)) {}
+      jumpTables_(std::move(maybeJumpTables)),
+      lazyStubs_(mutexid::WasmLazyStubsTier1) {}
 
 bool Code::initialize(const LinkData& linkData) {
   MOZ_ASSERT(!initialized());
@@ -861,6 +870,8 @@ bool Code::initialize(const LinkData& linkData) {
   if (!tier1_->initialize(*this, linkData, *codeMeta_, codeMetaForAsmJS_)) {
     return false;
   }
+
+  MOZ_ASSERT(lazyStubs_.readLock()->entryStubsEmpty());
 
   MOZ_ASSERT(initialized());
   return true;
@@ -1195,6 +1206,7 @@ void Code::addSizeOfMiscIfNotSeen(
                           : 0) +
       profilingLabels_.lock()->sizeOfExcludingThis(mallocSizeOf) +
       jumpTables_.sizeOfMiscExcludingThis();
+  lazyStubs_.readLock()->addSizeOfMisc(mallocSizeOf, code, data);
 
   for (auto t : tiers()) {
     codeTier(t).addSizeOfMisc(mallocSizeOf, code, data);

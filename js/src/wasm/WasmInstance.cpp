@@ -2935,58 +2935,18 @@ static bool EnsureEntryStubs(const Instance& instance, uint32_t funcIndex,
 
   MOZ_ASSERT(!instance.isAsmJS(), "only wasm can lazily export functions");
 
-  // If the best tier is Ion, life is simple: background compilation has
-  // already completed and has been committed, so there's no risk of race
-  // conditions here.
-  //
-  // If the best tier is Baseline, there could be a background compilation
-  // happening at the same time. The background compilation will lock the
-  // first tier lazy stubs first to stop new baseline stubs from being
-  // generated, then the second tier stubs to generate them.
-  //
-  // - either we take the tier1 lazy stub lock before the background
-  // compilation gets it, then we generate the lazy stub for tier1. When the
-  // background thread gets the tier1 lazy stub lock, it will see it has a
-  // lazy stub and will recompile it for tier2.
-  // - or we don't take the lock here first. Background compilation won't
-  // find a lazy stub for this function, thus won't generate it. So we'll do
-  // it ourselves after taking the tier2 lock.
-  //
-  // Also see doc block for stubs in WasmJS.cpp.
-
-  auto stubs = instance.code(tier).lazyStubs().writeLock();
+  auto stubs = instance.code().lazyStubs().writeLock();
   *interpEntry = stubs->lookupInterpEntry(fe.funcIndex());
   if (*interpEntry) {
     return true;
   }
 
-  // The best tier might have changed after we've taken the lock.
-  Tier prevTier = tier;
-  tier = instance.code().bestTier();
   const CodeMetadata& codeMeta = instance.codeMeta();
   const CodeTier& codeTier = instance.code(tier);
-  if (tier == prevTier) {
-    if (!stubs->createOneEntryStub(funcExportIndex, codeMeta, codeTier)) {
-      return false;
-    }
-
-    *interpEntry = stubs->lookupInterpEntry(fe.funcIndex());
-    MOZ_ASSERT(*interpEntry);
-    return true;
-  }
-
-  MOZ_RELEASE_ASSERT(prevTier == Tier::Baseline && tier == Tier::Optimized);
-  auto stubs2 = instance.code(tier).lazyStubs().writeLock();
-
-  // If it didn't have a stub in the first tier, background compilation
-  // shouldn't have made one in the second tier.
-  MOZ_ASSERT(!stubs2->hasEntryStub(fe.funcIndex()));
-
-  if (!stubs2->createOneEntryStub(funcExportIndex, codeMeta, codeTier)) {
+  if (!stubs->createOneEntryStub(funcExportIndex, codeMeta, codeTier)) {
     return false;
   }
-
-  *interpEntry = stubs2->lookupInterpEntry(fe.funcIndex());
+  *interpEntry = stubs->lookupInterpEntry(fe.funcIndex());
   MOZ_ASSERT(*interpEntry);
   return true;
 }
