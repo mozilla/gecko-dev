@@ -346,8 +346,8 @@ already_AddRefed<PerformanceMark> Performance::Mark(
 
   if (profiler_thread_is_being_profiled_for_markers()) {
     Maybe<uint64_t> innerWindowId;
-    if (GetOwner()) {
-      innerWindowId = Some(GetOwner()->WindowID());
+    if (nsGlobalWindowInner* owner = GetOwnerWindow()) {
+      innerWindowId = Some(owner->WindowID());
     }
     TimeStamp startTimeStamp =
         CreationTimeStamp() +
@@ -800,8 +800,8 @@ already_AddRefed<PerformanceMeasure> Performance::Measure(
     }
 
     Maybe<uint64_t> innerWindowId;
-    if (GetOwner()) {
-      innerWindowId = Some(GetOwner()->WindowID());
+    if (nsGlobalWindowInner* owner = GetOwnerWindow()) {
+      innerWindowId = Some(owner->WindowID());
     }
     profiler_add_marker("UserTiming", geckoprofiler::category::DOM,
                         {MarkerTiming::Interval(startTimeStamp, endTimeStamp),
@@ -842,10 +842,8 @@ void Performance::TimingNotification(PerformanceEntry* aEntry,
 
   RefPtr<PerformanceEntryEvent> perfEntryEvent =
       PerformanceEntryEvent::Constructor(this, u"performanceentry"_ns, init);
-
-  nsCOMPtr<EventTarget> et = do_QueryInterface(GetOwner());
-  if (et) {
-    et->DispatchEvent(*perfEntryEvent);
+  if (RefPtr<nsGlobalWindowInner> owner = GetOwnerWindow()) {
+    owner->DispatchEvent(*perfEntryEvent);
   }
 }
 

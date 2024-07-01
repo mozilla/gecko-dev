@@ -5,22 +5,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsThreadUtils.h"
-#include "nsXPCOMCIDInternal.h"
 #include "OnlineSpeechRecognitionService.h"
-#include "nsIFile.h"
 #include "SpeechGrammar.h"
 #include "SpeechRecognition.h"
 #include "SpeechRecognitionAlternative.h"
 #include "SpeechRecognitionResult.h"
 #include "SpeechRecognitionResultList.h"
-#include "nsIObserverService.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/StaticPrefs_media.h"
-#include "mozilla/Services.h"
-#include "nsDirectoryServiceDefs.h"
-#include "nsDirectoryServiceUtils.h"
 #include "nsNetUtil.h"
 #include "nsContentUtils.h"
 #include "nsIChannel.h"
@@ -28,10 +21,9 @@
 #include "nsIPrincipal.h"
 #include "nsIStreamListener.h"
 #include "nsIUploadChannel2.h"
-#include "mozilla/dom/ClientIPCTypes.h"
 #include "nsStringStream.h"
 #include "nsIOutputStream.h"
-#include "nsStreamUtils.h"
+#include "nsGlobalWindowInner.h"
 #include "OpusTrackEncoder.h"
 #include "OggWriter.h"
 #include "nsIClassOfService.h"
@@ -316,7 +308,7 @@ void OnlineSpeechRecognitionService::DoSTT() {
       nsIRequest::LOAD_NORMAL | nsIChannel::LOAD_BYPASS_SERVICE_WORKER;
   nsContentPolicyType contentPolicy = nsIContentPolicy::TYPE_OTHER;
 
-  nsPIDOMWindowInner* window = mRecognition->GetOwner();
+  nsGlobalWindowInner* window = mRecognition->GetOwnerWindow();
   if (NS_WARN_IF(!window)) {
     mRecognition->DispatchError(
         SpeechRecognition::EVENT_RECOGNITIONSERVICE_ERROR,

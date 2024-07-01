@@ -13,6 +13,7 @@
 #include "PaymentRequest.h"
 #include "PaymentRequestManager.h"
 #include "PaymentRequestUtils.h"
+#include "nsGlobalWindowInner.h"
 #include "mozilla/EventStateManager.h"
 
 namespace mozilla::dom {
@@ -122,7 +123,7 @@ void PaymentResponse::GetDetails(JSContext* aCx,
           !rawData.billingAddress.recipient.IsEmpty() ||
           !rawData.billingAddress.phone.IsEmpty()) {
         basicCardResponse.mBillingAddress = new PaymentAddress(
-            GetOwner(), rawData.billingAddress.country,
+            GetOwnerWindow(), rawData.billingAddress.country,
             rawData.billingAddress.addressLine, rawData.billingAddress.region,
             rawData.billingAddress.regionCode, rawData.billingAddress.city,
             rawData.billingAddress.dependentLocality,
@@ -198,13 +199,7 @@ already_AddRefed<Promise> PaymentResponse::Complete(PaymentComplete result,
     return nullptr;
   }
 
-  if (NS_WARN_IF(!GetOwner())) {
-    aRv.ThrowAbortError("Global object should exist");
-    return nullptr;
-  }
-
-  nsIGlobalObject* global = GetOwner()->AsGlobal();
-  RefPtr<Promise> promise = Promise::Create(global, aRv);
+  RefPtr<Promise> promise = Promise::Create(GetOwnerGlobal(), aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -229,8 +224,7 @@ already_AddRefed<Promise> PaymentResponse::Retry(
     return nullptr;
   }
 
-  nsIGlobalObject* global = GetOwner()->AsGlobal();
-  RefPtr<Promise> promise = Promise::Create(global, aRv);
+  RefPtr<Promise> promise = Promise::Create(GetOwnerGlobal(), aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -292,7 +286,7 @@ void PaymentResponse::RespondRetry(const nsAString& aMethodName,
   mPayerEmail = aPayerEmail;
   mPayerPhone = aPayerPhone;
 
-  if (NS_WARN_IF(!GetOwner())) {
+  if (NS_WARN_IF(!GetOwnerGlobal())) {
     return;
   }
 

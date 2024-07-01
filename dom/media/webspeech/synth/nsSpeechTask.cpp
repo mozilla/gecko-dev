@@ -11,6 +11,7 @@
 #include "nsXULAppAPI.h"
 #include "SharedBuffer.h"
 #include "SpeechSynthesis.h"
+#include "nsGlobalWindowInner.h"
 
 #undef LOG
 extern mozilla::LogModule* GetSpeechSynthLog();
@@ -335,7 +336,7 @@ void nsSpeechTask::CreateAudioChannelAgent() {
   }
 
   mAudioChannelAgent = new AudioChannelAgent();
-  mAudioChannelAgent->InitWithWeakCallback(mUtterance->GetOwner(), this);
+  mAudioChannelAgent->InitWithWeakCallback(mUtterance->GetOwnerWindow(), this);
 
   nsresult rv = mAudioChannelAgent->NotifyStartedPlaying(
       AudioChannelService::AudibleState::eAudible);

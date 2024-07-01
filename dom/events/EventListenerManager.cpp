@@ -670,7 +670,7 @@ void EventListenerManager::ProcessApzAwareEventListenerAdd() {
   }
   if (!doc) {
     if (nsCOMPtr<DOMEventTargetHelper> helper = do_QueryInterface(mTarget)) {
-      if (nsPIDOMWindowInner* window = helper->GetOwner()) {
+      if (nsPIDOMWindowInner* window = helper->GetOwnerWindow()) {
         doc = window->GetExtantDoc();
       }
     }

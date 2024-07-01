@@ -14,9 +14,9 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Performance.h"
+#include "nsGlobalWindowInner.h"
 
-using namespace mozilla;
-using namespace mozilla::dom;
+namespace mozilla::dom {
 
 MIDIOutput::MIDIOutput(nsPIDOMWindowInner* aWindow) : MIDIPort(aWindow) {}
 
@@ -54,13 +54,13 @@ void MIDIOutput::Send(const Sequence<uint8_t>& aData,
   // message ASAP.
   TimeStamp timestamp;
   if (aTimestamp.WasPassed() && aTimestamp.Value() != 0) {
-    nsCOMPtr<Document> doc = GetOwner()->GetDoc();
+    nsCOMPtr<Document> doc = GetOwnerWindow()->GetDoc();
     if (!doc) {
       aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
       return;
     }
     TimeDuration ts_diff = TimeDuration::FromMilliseconds(aTimestamp.Value());
-    timestamp = GetOwner()
+    timestamp = GetOwnerWindow()
                     ->GetPerformance()
                     ->GetDOMTiming()
                     ->GetNavigationStartTimeStamp() +
@@ -100,3 +100,5 @@ void MIDIOutput::Clear() {
   }
   Port()->SendClear();
 }
+
+}  // namespace mozilla::dom

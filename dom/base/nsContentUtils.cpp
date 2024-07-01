@@ -9925,11 +9925,9 @@ nsIDocShell* nsContentUtils::GetDocShellForEventTarget(EventTarget* aTarget) {
         do_QueryInterface(node->OwnerDoc()->GetScriptHandlingObject(ignore));
   } else if ((innerWindow = nsPIDOMWindowInner::FromEventTarget(aTarget))) {
     // Nothing else to do
-  } else {
-    nsCOMPtr<DOMEventTargetHelper> helper = do_QueryInterface(aTarget);
-    if (helper) {
-      innerWindow = helper->GetOwner();
-    }
+  } else if (nsCOMPtr<DOMEventTargetHelper> helper =
+                 do_QueryInterface(aTarget)) {
+    innerWindow = helper->GetOwnerWindow();
   }
 
   if (innerWindow) {

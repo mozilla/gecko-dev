@@ -11,6 +11,7 @@
 #include "nsRefreshDriver.h"
 #include "nsCSSProps.h"
 #include "mozilla/dom/AnimationEffect.h"
+#include "nsGlobalWindowInner.h"
 
 using namespace mozilla;
 
@@ -185,8 +186,8 @@ void AnimationEventInfo::MaybeAddMarker() const {
         DOM,
         MarkerOptions(
             MarkerTiming::Interval(startTime, mScheduledEventTimeStamp),
-            mAnimation->GetOwner()
-                ? MarkerInnerWindowId(mAnimation->GetOwner()->WindowID())
+            mAnimation->GetOwnerWindow()
+                ? MarkerInnerWindowId(mAnimation->GetOwnerWindow()->WindowID())
                 : MarkerInnerWindowId::NoId()),
         CSSAnimationMarker, name, NS_ConvertUTF16toUTF8(target), properties,
         oncompositor);
@@ -226,8 +227,8 @@ void AnimationEventInfo::MaybeAddMarker() const {
               mScheduledEventTimeStamp -
                   TimeDuration::FromSeconds(data.mElapsedTime),
               mScheduledEventTimeStamp),
-          mAnimation->GetOwner()
-              ? MarkerInnerWindowId(mAnimation->GetOwner()->WindowID())
+          mAnimation->GetOwnerWindow()
+              ? MarkerInnerWindowId(mAnimation->GetOwnerWindow()->WindowID())
               : MarkerInnerWindowId::NoId()),
       CSSTransitionMarker, NS_ConvertUTF16toUTF8(target), property,
       onCompositor, message == eTransitionCancel);

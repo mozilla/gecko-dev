@@ -1242,7 +1242,7 @@ mozilla::ipc::IPCResult BackgroundDatabaseChild::RecvVersionChange(
   RefPtr<IDBDatabase> kungFuDeathGrip = mDatabase;
 
   // Handle bfcache'd windows.
-  if (nsPIDOMWindowInner* owner = kungFuDeathGrip->GetOwner()) {
+  if (nsPIDOMWindowInner* owner = kungFuDeathGrip->GetOwnerWindow()) {
     // The database must be closed if the window is already frozen.
     bool shouldAbortAndClose = owner->IsFrozen();
 

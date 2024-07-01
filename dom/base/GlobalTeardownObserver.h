@@ -8,15 +8,12 @@
 #define DOM_BASE_GLOBALTEARDOWNOBSERVER_H_
 
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/EventTarget.h"
 #include "mozilla/RefPtr.h"
-#include "nsCycleCollectionParticipant.h"
 #include "nsID.h"
 #include "nsIGlobalObject.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsISupports.h"
 #include "nsISupportsUtils.h"
-#include "nsPIDOMWindow.h"
 
 #define NS_GLOBALTEARDOWNOBSERVER_IID                \
   {                                                  \
@@ -37,9 +34,9 @@ class GlobalTeardownObserver
   explicit GlobalTeardownObserver(nsIGlobalObject* aGlobalObject,
                                   bool aHasOrHasHadOwnerWindow = false);
 
-  nsPIDOMWindowInner* GetOwner() const { return mOwnerWindow; }
+  nsGlobalWindowInner* GetOwnerWindow() const { return mOwnerWindow; }
   nsIGlobalObject* GetOwnerGlobal() const { return mParentObject; }
-  bool HasOrHasHadOwner() { return mHasOrHasHadOwnerWindow; }
+  bool HasOrHasHadOwnerWindow() const { return mHasOrHasHadOwnerWindow; }
 
   void GetParentObject(nsIScriptGlobalObject** aParentObject) {
     if (mParentObject) {
@@ -75,7 +72,7 @@ class GlobalTeardownObserver
   // mParentObject pre QI-ed and cached (inner window)
   // (it is needed for off main thread access)
   // It is obtained in BindToOwner and reset in DisconnectFromOwner.
-  nsPIDOMWindowInner* MOZ_NON_OWNING_REF mOwnerWindow = nullptr;
+  nsGlobalWindowInner* MOZ_NON_OWNING_REF mOwnerWindow = nullptr;
   bool mHasOrHasHadOwnerWindow = false;
 };
 

@@ -8,6 +8,7 @@
 #include "mozilla/dom/AudioProcessingEventBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "AudioContext.h"
+#include "nsGlobalWindowInner.h"
 
 namespace mozilla::dom {
 
@@ -35,8 +36,8 @@ JSObject* AudioProcessingEvent::WrapObjectInternal(
 already_AddRefed<AudioBuffer> AudioProcessingEvent::LazilyCreateBuffer(
     uint32_t aNumberOfChannels, ErrorResult& aRv) {
   RefPtr<AudioBuffer> buffer = AudioBuffer::Create(
-      mNode->Context()->GetOwner(), aNumberOfChannels, mNode->BufferSize(),
-      mNode->Context()->SampleRate(), aRv);
+      mNode->Context()->GetOwnerWindow(), aNumberOfChannels,
+      mNode->BufferSize(), mNode->Context()->SampleRate(), aRv);
   MOZ_ASSERT(buffer || aRv.ErrorCodeIs(NS_ERROR_OUT_OF_MEMORY));
   return buffer.forget();
 }

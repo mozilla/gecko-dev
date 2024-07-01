@@ -403,8 +403,8 @@ void IDBFactory::UpdateActiveDatabaseCount(int32_t aDelta) {
                         (mActiveDatabaseCount + aDelta) < mActiveDatabaseCount);
   mActiveDatabaseCount += aDelta;
 
-  if (GetOwner()) {
-    GetOwner()->UpdateActiveIndexedDBDatabaseCount(aDelta);
+  if (nsGlobalWindowInner* win = GetOwnerWindow()) {
+    win->UpdateActiveIndexedDBDatabaseCount(aDelta);
   }
 }
 

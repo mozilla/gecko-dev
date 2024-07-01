@@ -36,14 +36,13 @@ class nsDOMDataChannel final : public mozilla::DOMEventTargetHelper,
 
   // EventTarget
   using EventTarget::EventListenerAdded;
-  virtual void EventListenerAdded(nsAtom* aType) override;
+  void EventListenerAdded(nsAtom* aType) override;
 
   using EventTarget::EventListenerRemoved;
-  virtual void EventListenerRemoved(nsAtom* aType) override;
+  void EventListenerRemoved(nsAtom* aType) override;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aGivenProto) override;
-  nsPIDOMWindowInner* GetParentObject() const { return GetOwner(); }
+  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  nsIGlobalObject* GetParentObject() const { return GetOwnerGlobal(); }
 
   // WebIDL
   void GetLabel(nsAString& aLabel);

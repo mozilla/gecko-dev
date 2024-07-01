@@ -14,6 +14,8 @@
 #include "TCPServerSocket.h"
 #include "TCPSocket.h"
 #include "nsComponentManagerUtils.h"
+#include "nsGlobalWindowInner.h"
+
 
 using namespace mozilla::dom;
 
@@ -139,7 +141,7 @@ TCPServerSocket::OnSocketAccepted(nsIServerSocket* aServer,
 NS_IMETHODIMP
 TCPServerSocket::OnStopListening(nsIServerSocket* aServer, nsresult aStatus) {
   if (aStatus != NS_BINDING_ABORTED) {
-    RefPtr<Event> event = new Event(GetOwner());
+    RefPtr<Event> event = new Event(GetOwnerWindow());
     event->InitEvent(u"error"_ns, false, false);
     event->SetTrusted(true);
     DispatchEvent(*event);

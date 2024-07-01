@@ -366,7 +366,7 @@ void DOMMediaStream::RemoveTrack(MediaStreamTrack& aTrack) {
 }
 
 already_AddRefed<DOMMediaStream> DOMMediaStream::Clone() {
-  auto newStream = MakeRefPtr<DOMMediaStream>(GetOwner());
+  auto newStream = MakeRefPtr<DOMMediaStream>(GetOwnerWindow());
 
   LOG(LogLevel::Info,
       ("DOMMediaStream %p created clone %p", this, newStream.get()));
@@ -418,11 +418,11 @@ void DOMMediaStream::RemoveTrackInternal(MediaStreamTrack* aTrack) {
 }
 
 already_AddRefed<nsIPrincipal> DOMMediaStream::GetPrincipal() {
-  if (!GetOwner()) {
+  nsGlobalWindowInner* win = GetOwnerWindow();
+  if (!win) {
     return nullptr;
   }
-  nsCOMPtr<nsIPrincipal> principal =
-      nsGlobalWindowInner::Cast(GetOwner())->GetPrincipal();
+  nsCOMPtr<nsIPrincipal> principal = win->GetPrincipal();
   for (const auto& t : mTracks) {
     if (t->Ended()) {
       continue;

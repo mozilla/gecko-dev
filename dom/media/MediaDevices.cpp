@@ -48,7 +48,8 @@ already_AddRefed<Promise> MediaDevices::GetUserMedia(
     ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
   // Get the relevant global for the promise from the wrapper cache because
-  // DOMEventTargetHelper::GetOwner() returns null if the document is unloaded.
+  // DOMEventTargetHelper::GetOwnerWindow() returns null if the document is
+  // unloaded.
   // We know the wrapper exists because it is being used for |this| from JS.
   // See https://github.com/heycam/webidl/issues/932 for why the relevant
   // global is used instead of the current global.
@@ -185,7 +186,7 @@ void MediaDevices::MaybeResumeDeviceExposure() {
       !mHaveUnprocessedDeviceListChange) {
     return;
   }
-  nsPIDOMWindowInner* window = GetOwner();
+  nsPIDOMWindowInner* window = GetOwnerWindow();
   if (!window || !window->IsFullyActive()) {
     return;
   }
@@ -229,7 +230,7 @@ void MediaDevices::MaybeResumeDeviceExposure() {
 
 RefPtr<MediaDeviceSetRefCnt> MediaDevices::FilterExposedDevices(
     const MediaDeviceSet& aDevices) const {
-  nsPIDOMWindowInner* window = GetOwner();
+  nsPIDOMWindowInner* window = GetOwnerWindow();
   RefPtr exposed = new MediaDeviceSetRefCnt();
   if (!window) {
     return exposed;  // Promises will be left pending
@@ -394,7 +395,7 @@ bool MediaDevices::ShouldQueueDeviceChange(
 void MediaDevices::ResumeEnumerateDevices(
     nsTArray<RefPtr<Promise>>&& aPromises,
     RefPtr<const MediaDeviceSetRefCnt> aExposedDevices) const {
-  nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
+  nsCOMPtr<nsPIDOMWindowInner> window = GetOwnerWindow();
   if (!window) {
     return;  // Leave Promise pending after navigation by design.
   }
@@ -421,7 +422,7 @@ void MediaDevices::ResumeEnumerateDevices(
 
 void MediaDevices::ResolveEnumerateDevicesPromise(
     Promise* aPromise, const LocalMediaDeviceSet& aDevices) const {
-  nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
+  nsCOMPtr<nsPIDOMWindowInner> window = GetOwnerWindow();
   auto windowId = window->WindowID();
   nsTArray<RefPtr<MediaDeviceInfo>> infos;
   bool legacy = StaticPrefs::media_devices_enumerate_legacy_enabled();
@@ -659,7 +660,7 @@ RefPtr<MediaDevices::SinkInfoPromise> MediaDevices::GetSinkDevice(
           GetCurrentSerialEventTarget(), __func__,
           [self = RefPtr(this), this,
            aDeviceId](RefPtr<const MediaDeviceSetRefCnt> aRawDevices) {
-            nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
+            nsCOMPtr<nsPIDOMWindowInner> window = GetOwnerWindow();
             if (!window) {
               return LocalDeviceSetPromise::CreateAndReject(
                   new MediaMgrError(MediaMgrError::Name::AbortError), __func__);
@@ -728,7 +729,7 @@ void MediaDevices::OnDeviceChange() {
   if (nsContentUtils::ShouldResistFingerprinting(
           "Guarding the more expensive RFP check with a simple one",
           RFPTarget::MediaDevices)) {
-    nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
+    nsCOMPtr<nsPIDOMWindowInner> window = GetOwnerWindow();
     auto* wrapper = GetWrapper();
     if (!window && wrapper) {
       nsCOMPtr<nsIGlobalObject> global = xpc::NativeGlobal(wrapper);
@@ -757,7 +758,7 @@ void MediaDevices::SetupDeviceChangeListener() {
     return;
   }
 
-  nsPIDOMWindowInner* window = GetOwner();
+  nsPIDOMWindowInner* window = GetOwnerWindow();
   if (!window) {
     return;
   }

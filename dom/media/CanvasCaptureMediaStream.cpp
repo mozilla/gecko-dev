@@ -10,11 +10,10 @@
 #include "MediaTrackGraph.h"
 #include "Tracing.h"
 #include "VideoSegment.h"
-#include "gfxPlatform.h"
-#include "mozilla/Atomics.h"
 #include "mozilla/dom/CanvasCaptureMediaStreamBinding.h"
 #include "mozilla/gfx/2D.h"
 #include "nsContentUtils.h"
+#include "nsGlobalWindowInner.h"
 
 using namespace mozilla::layers;
 using namespace mozilla::gfx;
@@ -172,7 +171,7 @@ void CanvasCaptureMediaStream::RequestFrame() {
 nsresult CanvasCaptureMediaStream::Init(const dom::Optional<double>& aFPS,
                                         nsIPrincipal* aPrincipal) {
   MediaTrackGraph* graph = MediaTrackGraph::GetInstance(
-      MediaTrackGraph::SYSTEM_THREAD_DRIVER, GetOwner(),
+      MediaTrackGraph::SYSTEM_THREAD_DRIVER, GetOwnerWindow(),
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE,
       MediaTrackGraph::DEFAULT_OUTPUT_DEVICE);
   SourceMediaTrack* source = graph->CreateSourceTrack(MediaSegment::VIDEO);

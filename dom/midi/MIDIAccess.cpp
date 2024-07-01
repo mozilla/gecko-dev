@@ -21,6 +21,7 @@
 #include "mozilla/dom/PContent.h"
 #include "mozilla/dom/Document.h"
 #include "nsPIDOMWindow.h"
+#include "nsGlobalWindowInner.h"
 #include "nsContentPermissionHelper.h"
 #include "nsISupportsImpl.h"  // for MOZ_COUNT_CTOR, MOZ_COUNT_DTOR
 #include "ipc/IPCMessageUtils.h"
@@ -150,7 +151,7 @@ void MIDIAccess::MaybeCreateMIDIPort(const MIDIPortInfo& aInfo,
       // We already have the port in our map.
       return;
     }
-    port = MIDIInput::Create(GetOwner(), this, aInfo, mSysexEnabled);
+    port = MIDIInput::Create(GetOwnerWindow(), this, aInfo, mSysexEnabled);
     if (NS_WARN_IF(!port)) {
       LOG("Couldn't create input port");
       aRv.Throw(NS_ERROR_FAILURE);
@@ -169,7 +170,7 @@ void MIDIAccess::MaybeCreateMIDIPort(const MIDIPortInfo& aInfo,
       // We already have the port in our map.
       return;
     }
-    port = MIDIOutput::Create(GetOwner(), this, aInfo, mSysexEnabled);
+    port = MIDIOutput::Create(GetOwnerWindow(), this, aInfo, mSysexEnabled);
     if (NS_WARN_IF(!port)) {
       LOG("Couldn't create output port");
       aRv.Throw(NS_ERROR_FAILURE);
@@ -205,7 +206,7 @@ void MIDIAccess::MaybeCreateMIDIPort(const MIDIPortInfo& aInfo,
 // request removal from MIDIAccess's maps.
 void MIDIAccess::Notify(const MIDIPortList& aEvent) {
   LOG("MIDIAcess::Notify");
-  if (!GetOwner()) {
+  if (!GetOwnerWindow()) {
     // Do nothing if we've already been disconnected from the document.
     return;
   }

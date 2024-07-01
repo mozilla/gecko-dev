@@ -11,8 +11,8 @@
 #include "PlayingRefChangeHandler.h"
 #include "AlignmentUtils.h"
 #include "nsPrintfCString.h"
+#include "nsGlobalWindowInner.h"
 
-#include "nsGkAtoms.h"
 #include "Tracing.h"
 
 namespace mozilla::dom {
@@ -151,8 +151,8 @@ IIRFilterNode::IIRFilterNode(AudioContext* aContext,
   elements[0] = 1.0;
 
   uint64_t windowID = 0;
-  if (aContext->GetParentObject()) {
-    windowID = aContext->GetParentObject()->WindowID();
+  if (nsGlobalWindowInner* win = aContext->GetOwnerWindow()) {
+    windowID = win->WindowID();
   }
   IIRFilterNodeEngine* engine = new IIRFilterNodeEngine(
       this, aContext->Destination(), mFeedforward, mFeedback, windowID);

@@ -13,6 +13,7 @@
 #include "nsIPermissionManager.h"
 #include "PermissionObserver.h"
 #include "PermissionUtils.h"
+#include "nsGlobalWindowInner.h"
 
 namespace mozilla::dom {
 
@@ -70,7 +71,7 @@ RefPtr<PermissionStatus::SimplePromise> PermissionStatus::UpdateState() {
   // does not exactly match what the spec has. (Not passing "permission key" for
   // example)
 
-  nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
+  RefPtr<nsGlobalWindowInner> window = GetOwnerWindow();
   if (NS_WARN_IF(!window)) {
     return SimplePromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
   }
@@ -100,7 +101,7 @@ RefPtr<PermissionStatus::SimplePromise> PermissionStatus::UpdateState() {
 
 bool PermissionStatus::MaybeUpdatedBy(nsIPermission* aPermission) const {
   NS_ENSURE_TRUE(aPermission, false);
-  nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
+  RefPtr<nsGlobalWindowInner> window = GetOwnerWindow();
   if (NS_WARN_IF(!window)) {
     return false;
   }

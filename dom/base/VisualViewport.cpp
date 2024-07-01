@@ -11,6 +11,7 @@
 #include "mozilla/ScrollContainerFrame.h"
 #include "mozilla/ToString.h"
 #include "nsIDocShell.h"
+#include "nsGlobalWindowInner.h"
 #include "nsPresContext.h"
 #include "nsRefreshDriver.h"
 #include "DocumentInlines.h"
@@ -49,7 +50,7 @@ void VisualViewport::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
   // Only our special internal events are allowed to escape the
   // Visual Viewport and be dispatched further up the DOM tree.
   if (msg == eMozVisualScroll || msg == eMozVisualResize) {
-    if (nsPIDOMWindowInner* win = GetOwner()) {
+    if (nsPIDOMWindowInner* win = GetOwnerWindow()) {
       if (Document* doc = win->GetExtantDoc()) {
         parentTarget = doc;
       }
@@ -136,7 +137,7 @@ double VisualViewport::OffsetTop() const {
 }
 
 Document* VisualViewport::GetDocument() const {
-  nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
+  nsCOMPtr<nsPIDOMWindowInner> window = GetOwnerWindow();
   if (!window) {
     return nullptr;
   }

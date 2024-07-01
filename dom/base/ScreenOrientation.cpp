@@ -168,7 +168,7 @@ ScreenOrientation::LockOrientationTask::Run() {
     return NS_OK;
   }
 
-  nsCOMPtr<nsPIDOMWindowInner> owner = mScreenOrientation->GetOwner();
+  nsCOMPtr<nsPIDOMWindowInner> owner = mScreenOrientation->GetOwnerWindow();
   if (!owner || !owner->IsFullyActive()) {
     mPromise->MaybeRejectWithAbortError("The document is not fully active.");
     return NS_OK;
@@ -441,7 +441,7 @@ already_AddRefed<Promise> ScreenOrientation::LockInternal(
   // If document is not fully active, return a promise rejected with an
   // "InvalidStateError" DOMException.
 
-  nsCOMPtr<nsPIDOMWindowInner> owner = GetOwner();
+  nsCOMPtr<nsPIDOMWindowInner> owner = GetOwnerWindow();
   if (NS_WARN_IF(!owner)) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
@@ -560,12 +560,12 @@ already_AddRefed<Promise> ScreenOrientation::LockInternal(
 
 RefPtr<GenericNonExclusivePromise> ScreenOrientation::LockDeviceOrientation(
     hal::ScreenOrientation aOrientation, bool aIsFullscreen) {
-  if (!GetOwner()) {
+  if (!GetOwnerWindow()) {
     return GenericNonExclusivePromise::CreateAndReject(NS_ERROR_DOM_ABORT_ERR,
                                                        __func__);
   }
 
-  nsCOMPtr<EventTarget> target = GetOwner()->GetDoc();
+  nsCOMPtr<EventTarget> target = GetOwnerWindow()->GetDoc();
   // We need to register a listener so we learn when we leave fullscreen
   // and when we will have to unlock the screen.
   // This needs to be done before LockScreenOrientation call to make sure
@@ -608,13 +608,13 @@ void ScreenOrientation::UnlockDeviceOrientation() {
 }
 
 void ScreenOrientation::CleanupFullscreenListener() {
-  if (!mFullscreenListener || !GetOwner()) {
+  if (!mFullscreenListener || !GetOwnerWindow()) {
     mFullscreenListener = nullptr;
     return;
   }
 
   // Remove event listener in case of fullscreen lock.
-  if (nsCOMPtr<EventTarget> target = GetOwner()->GetDoc()) {
+  if (nsCOMPtr<EventTarget> target = GetOwnerWindow()->GetDoc()) {
     target->RemoveSystemEventListener(u"fullscreenchange"_ns,
                                       mFullscreenListener,
                                       /* useCapture */ true);
@@ -675,7 +675,7 @@ uint16_t ScreenOrientation::GetAngle(CallerType aCallerType,
 
 ScreenOrientation::LockPermission
 ScreenOrientation::GetLockOrientationPermission(bool aCheckSandbox) const {
-  nsCOMPtr<nsPIDOMWindowInner> owner = GetOwner();
+  nsCOMPtr<nsPIDOMWindowInner> owner = GetOwnerWindow();
   if (!owner) {
     return LOCK_DENIED;
   }
@@ -707,7 +707,7 @@ ScreenOrientation::GetLockOrientationPermission(bool aCheckSandbox) const {
 }
 
 Document* ScreenOrientation::GetResponsibleDocument() const {
-  nsCOMPtr<nsPIDOMWindowInner> owner = GetOwner();
+  nsCOMPtr<nsPIDOMWindowInner> owner = GetOwnerWindow();
   if (!owner) {
     return nullptr;
   }

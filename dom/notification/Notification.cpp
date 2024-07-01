@@ -984,11 +984,10 @@ nsIPrincipal* Notification::GetPrincipal() {
   AssertIsOnMainThread();
   if (mWorkerPrivate) {
     return mWorkerPrivate->GetPrincipal();
-  } else {
-    nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(GetOwner());
-    NS_ENSURE_TRUE(sop, nullptr);
-    return sop->GetPrincipal();
   }
+  nsGlobalWindowInner* win = GetOwnerWindow();
+  NS_ENSURE_TRUE(win, nullptr);
+  return win->GetPrincipal();
 }
 
 class WorkerNotificationObserver final : public MainThreadNotificationObserver {
@@ -1163,7 +1162,7 @@ MainThreadNotificationObserver::Observe(nsISupports* aSubject,
   Notification* notification = mNotificationRef->GetNotification();
   MOZ_ASSERT(notification);
   if (!strcmp("alertclickcallback", aTopic)) {
-    nsCOMPtr<nsPIDOMWindowInner> window = notification->GetOwner();
+    nsCOMPtr<nsPIDOMWindowInner> window = notification->GetOwnerWindow();
     if (NS_WARN_IF(!window || !window->IsCurrentInnerWindow())) {
       // Window has been closed, this observer is not valid anymore
       return NS_ERROR_FAILURE;
@@ -1320,8 +1319,8 @@ bool Notification::IsInPrivateBrowsing() {
 
   if (mWorkerPrivate) {
     doc = mWorkerPrivate->GetDocument();
-  } else if (GetOwner()) {
-    doc = GetOwner()->GetExtantDoc();
+  } else if (nsGlobalWindowInner* win = GetOwnerWindow()) {
+    doc = win->GetExtantDoc();
   }
 
   if (doc) {
@@ -1374,7 +1373,7 @@ void Notification::ShowInternal() {
   if (mWorkerPrivate) {
     permission = GetPermissionInternal(mWorkerPrivate->GetPrincipal(), result);
   } else {
-    permission = GetPermissionInternal(GetOwner(), result);
+    permission = GetPermissionInternal(GetOwnerWindow(), result);
   }
   // We rely on GetPermissionInternal returning Denied on all failure codepaths.
   MOZ_ASSERT_IF(result.Failed(), permission == NotificationPermission::Denied);
@@ -2344,11 +2343,8 @@ Notification::Observe(nsISupports* aSubject, const char* aTopic,
 
   if (!strcmp(aTopic, DOM_WINDOW_DESTROYED_TOPIC) ||
       !strcmp(aTopic, DOM_WINDOW_FROZEN_TOPIC)) {
-    nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
-    if (SameCOMIdentity(aSubject, window)) {
-      nsCOMPtr<nsIObserverService> obs =
-          mozilla::services::GetObserverService();
-      if (obs) {
+    if (SameCOMIdentity(aSubject, ToSupports(GetOwnerWindow()))) {
+      if (nsCOMPtr<nsIObserverService> obs = services::GetObserverService()) {
         obs->RemoveObserver(this, DOM_WINDOW_DESTROYED_TOPIC);
         obs->RemoveObserver(this, DOM_WINDOW_FROZEN_TOPIC);
       }

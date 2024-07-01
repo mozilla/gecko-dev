@@ -678,8 +678,8 @@ EventSourceImpl::Observe(nsISupports* aSubject, const char* aTopic,
   MOZ_ASSERT(mIsMainThread);
   {
     auto lock = mSharedData.Lock();
-    if (!lock->mEventSource->GetOwner() ||
-        window != lock->mEventSource->GetOwner()) {
+    if (!lock->mEventSource->GetOwnerWindow() ||
+        window != lock->mEventSource->GetOwnerWindow()) {
       return NS_OK;
     }
   }
@@ -961,8 +961,8 @@ EventSourceImpl::GetInterface(const nsIID& aIID, void** aResult) {
       rv = lock->mEventSource->CheckCurrentGlobalCorrectness();
       NS_ENSURE_SUCCESS(rv, NS_ERROR_UNEXPECTED);
 
-      if (lock->mEventSource->GetOwner()) {
-        window = lock->mEventSource->GetOwner()->GetOuterWindow();
+      if (nsGlobalWindowInner* win = lock->mEventSource->GetOwnerWindow()) {
+        window = win->GetOuterWindow();
       }
     }
 

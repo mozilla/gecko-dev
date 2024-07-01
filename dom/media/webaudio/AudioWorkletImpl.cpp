@@ -21,13 +21,12 @@ namespace mozilla {
     dom::AudioContext* aContext, ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsCOMPtr<nsPIDOMWindowInner> window = aContext->GetOwner();
+  nsGlobalWindowInner* window = aContext->GetOwnerWindow();
   if (NS_WARN_IF(!window)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
   }
-  nsCOMPtr<nsIPrincipal> principal =
-      nsGlobalWindowInner::Cast(window)->GetPrincipal();
+  nsIPrincipal* principal = window->GetPrincipal();
   if (NS_WARN_IF(!principal)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;

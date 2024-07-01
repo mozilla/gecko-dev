@@ -69,7 +69,7 @@ already_AddRefed<TextTrack> TextTrackList::AddTextTrack(
     TextTrackMode aMode, TextTrackReadyState aReadyState,
     TextTrackSource aTextTrackSource, const CompareTextTracks& aCompareTT) {
   RefPtr<TextTrack> track =
-      new TextTrack(GetOwner(), this, aKind, aLabel, aLanguage, aMode,
+      new TextTrack(GetOwnerWindow(), this, aKind, aLabel, aLanguage, aMode,
                     aReadyState, aTextTrackSource);
   AddTextTrack(track, aCompareTT);
   return track.forget();
@@ -121,7 +121,7 @@ nsresult TextTrackList::DispatchTrackEvent(Event* aEvent) {
 
 void TextTrackList::CreateAndDispatchChangeEvent() {
   MOZ_ASSERT(NS_IsMainThread());
-  nsPIDOMWindowInner* win = GetOwner();
+  nsPIDOMWindowInner* win = GetOwnerWindow();
   if (!win) {
     return;
   }

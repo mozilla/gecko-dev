@@ -640,7 +640,7 @@ already_AddRefed<nsSpeechTask> nsSynthVoiceRegistry::SpeakUtterance(
   float volume = aUtterance.Volume();
   RefPtr<AudioChannelService> service = AudioChannelService::GetOrCreate();
   if (service) {
-    if (nsCOMPtr<nsPIDOMWindowInner> topWindow = aUtterance.GetOwner()) {
+    if (nsCOMPtr<nsPIDOMWindowInner> topWindow = aUtterance.GetOwnerWindow()) {
       // TODO : use audio channel agent, open new bug to fix it.
       AudioPlaybackConfig config =
           service->GetMediaConfig(topWindow->GetOuterWindow());

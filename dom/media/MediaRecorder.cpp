@@ -34,6 +34,7 @@
 #include "nsIScriptError.h"
 #include "nsMimeTypes.h"
 #include "nsProxyRelease.h"
+#include "nsGlobalWindowInner.h"
 #include "nsServiceManagerUtils.h"
 #include "nsTArray.h"
 
@@ -166,10 +167,10 @@ NS_IMPL_RELEASE_INHERITED(MediaRecorder, DOMEventTargetHelper)
 
 namespace {
 bool PrincipalSubsumes(MediaRecorder* aRecorder, nsIPrincipal* aPrincipal) {
-  if (!aRecorder->GetOwner()) {
+  if (!aRecorder->GetOwnerWindow()) {
     return false;
   }
-  nsCOMPtr<Document> doc = aRecorder->GetOwner()->GetExtantDoc();
+  nsCOMPtr<Document> doc = aRecorder->GetOwnerWindow()->GetExtantDoc();
   if (!doc) {
     return false;
   }
@@ -197,8 +198,9 @@ bool MediaStreamTracksPrincipalSubsumes(
 bool AudioNodePrincipalSubsumes(MediaRecorder* aRecorder,
                                 AudioNode* aAudioNode) {
   MOZ_ASSERT(aAudioNode);
-  Document* doc =
-      aAudioNode->GetOwner() ? aAudioNode->GetOwner()->GetExtantDoc() : nullptr;
+  Document* doc = aAudioNode->GetOwnerWindow()
+                      ? aAudioNode->GetOwnerWindow()->GetExtantDoc()
+                      : nullptr;
   nsCOMPtr<nsIPrincipal> principal = doc ? doc->NodePrincipal() : nullptr;
   return PrincipalSubsumes(aRecorder, principal);
 }
@@ -1192,7 +1194,7 @@ MediaRecorder::MediaRecorder(nsPIDOMWindowInner* aOwnerWindow)
 }
 
 void MediaRecorder::RegisterActivityObserver() {
-  if (nsPIDOMWindowInner* window = GetOwner()) {
+  if (nsPIDOMWindowInner* window = GetOwnerWindow()) {
     mDocument = window->GetExtantDoc();
     if (mDocument) {
       mDocument->RegisterActivityObserver(
@@ -1823,7 +1825,7 @@ void MediaRecorder::RemoveSession(Session* aSession) {
 }
 
 void MediaRecorder::NotifyOwnerDocumentActivityChanged() {
-  nsPIDOMWindowInner* window = GetOwner();
+  nsPIDOMWindowInner* window = GetOwnerWindow();
   NS_ENSURE_TRUE_VOID(window);
   Document* doc = window->GetExtantDoc();
   NS_ENSURE_TRUE_VOID(doc);

@@ -147,11 +147,11 @@ class AudioContext final : public DOMEventTargetHelper,
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioContext, DOMEventTargetHelper)
   MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf)
 
-  nsPIDOMWindowInner* GetParentObject() const { return GetOwner(); }
+  nsIGlobalObject* GetParentObject() const { return GetOwnerGlobal(); }
 
   nsISerialEventTarget* GetMainThread() const;
 
-  virtual void DisconnectFromOwner() override;
+  void DisconnectFromOwner() override;
 
   void OnWindowDestroy();  // idempotent
 

@@ -21,12 +21,11 @@
 #include "mozilla/dom/PerformanceResourceTiming.h"
 #include "mozilla/dom/PerformanceTiming.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/PresShell.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"
 #include "nsIDocShell.h"
-#include "nsTextFrame.h"
+#include "nsGlobalWindowInner.h"
 #include "nsContainerFrame.h"
 
 namespace mozilla::dom {
@@ -110,7 +109,7 @@ PerformanceMainThread::PerformanceMainThread(nsPIDOMWindowInner* aWindow,
   CreateNavigationTimingEntry();
 
   if (StaticPrefs::dom_enable_largest_contentful_paint()) {
-    nsCOMPtr<nsPIDOMWindowInner> owner = GetOwner();
+    nsGlobalWindowInner* owner = GetOwnerWindow();
     MarkerInnerWindowId innerWindowID =
         owner ? MarkerInnerWindowId(owner->WindowID())
               : MarkerInnerWindowId::NoId();
@@ -418,7 +417,7 @@ void PerformanceMainThread::InsertUserEntry(PerformanceEntry* aEntry) {
   if (StaticPrefs::dom_performance_enable_user_timing_logging() ||
       StaticPrefs::dom_performance_enable_notify_performance_timing()) {
     nsresult rv = NS_ERROR_FAILURE;
-    nsCOMPtr<nsPIDOMWindowInner> owner = GetOwner();
+    nsGlobalWindowInner* owner = GetOwnerWindow();
     if (owner && owner->GetDocumentURI()) {
       rv = owner->GetDocumentURI()->GetHost(uri);
     }

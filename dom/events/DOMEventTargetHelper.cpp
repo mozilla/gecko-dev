@@ -12,6 +12,7 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/Likely.h"
+#include "nsGlobalWindowInner.h"
 #include "MainThreadUtils.h"
 
 namespace mozilla {
@@ -24,8 +25,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(DOMEventTargetHelper)
   if (MOZ_UNLIKELY(cb.WantDebugInfo())) {
     char name[512];
     nsAutoString uri;
-    if (tmp->GetOwner() && tmp->GetOwner()->GetExtantDoc()) {
-      Unused << tmp->GetOwner()->GetExtantDoc()->GetDocumentURI(uri);
+    if (tmp->GetOwnerWindow() && tmp->GetOwnerWindow()->GetExtantDoc()) {
+      Unused << tmp->GetOwnerWindow()->GetExtantDoc()->GetDocumentURI(uri);
     }
 
     nsXPCOMCycleCollectionParticipant* participant = nullptr;
@@ -93,8 +94,9 @@ DOMEventTargetHelper::DOMEventTargetHelper(nsIGlobalObject* aGlobalObject)
     : GlobalTeardownObserver(aGlobalObject) {}
 
 DOMEventTargetHelper::DOMEventTargetHelper(DOMEventTargetHelper* aOther)
-    : GlobalTeardownObserver(aOther ? aOther->GetParentObject() : nullptr,
-                             aOther ? aOther->HasOrHasHadOwner() : false) {}
+    : GlobalTeardownObserver(
+          aOther ? aOther->GetParentObject() : nullptr,
+          aOther ? aOther->HasOrHasHadOwnerWindow() : false) {}
 
 DOMEventTargetHelper::~DOMEventTargetHelper() {
   if (mListenerManager) {
@@ -115,12 +117,15 @@ void DOMEventTargetHelper::DisconnectFromOwner() {
   MaybeDontKeepAlive();
 }
 
+nsPIDOMWindowOuter* DOMEventTargetHelper::GetOwnerGlobalForBindingsInternal() {
+  return nsPIDOMWindowOuter::GetFromCurrentInner(GetOwnerWindow());
+}
+
 nsPIDOMWindowInner* DOMEventTargetHelper::GetWindowIfCurrent() const {
   if (NS_FAILED(CheckCurrentGlobalCorrectness())) {
     return nullptr;
   }
-
-  return GetOwner();
+  return GetOwnerWindow();
 }
 
 Document* DOMEventTargetHelper::GetDocumentIfCurrent() const {

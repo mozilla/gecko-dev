@@ -12,6 +12,7 @@
 #include "nsComponentManagerUtils.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/intl/Bidi.h"
+#include "nsGlobalWindowInner.h"
 
 extern mozilla::LazyLogModule gTextTrackLog;
 
@@ -94,7 +95,7 @@ TextTrackCue::~TextTrackCue() = default;
  *  keep getting it from our window.
  */
 nsresult TextTrackCue::StashDocument() {
-  nsPIDOMWindowInner* window = GetOwner();
+  nsPIDOMWindowInner* window = GetOwnerWindow();
   if (!window) {
     return NS_ERROR_NO_INTERFACE;
   }

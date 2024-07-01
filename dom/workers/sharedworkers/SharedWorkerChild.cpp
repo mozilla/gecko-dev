@@ -17,6 +17,7 @@
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/WorkerError.h"
 #include "mozilla/dom/locks/LockManagerChild.h"
+#include "nsGlobalWindowInner.h"
 
 namespace mozilla {
 
@@ -74,7 +75,7 @@ IPCResult SharedWorkerChild::RecvError(const ErrorValue& aValue) {
     return IPC_OK();
   }
 
-  nsPIDOMWindowInner* window = mParent->GetOwner();
+  nsPIDOMWindowInner* window = mParent->GetOwnerWindow();
   uint64_t innerWindowId = window ? window->WindowID() : 0;
 
   if (aValue.type() == ErrorValue::TCSPViolation) {
@@ -153,7 +154,7 @@ IPCResult SharedWorkerChild::RecvNotifyLock(bool aCreated) {
     return IPC_OK();
   }
 
-  locks::LockManagerChild::NotifyBFCacheOnMainThread(mParent->GetOwner(),
+  locks::LockManagerChild::NotifyBFCacheOnMainThread(mParent->GetOwnerWindow(),
                                                      aCreated);
 
   return IPC_OK();
@@ -164,7 +165,7 @@ IPCResult SharedWorkerChild::RecvNotifyWebTransport(bool aCreated) {
     return IPC_OK();
   }
 
-  WebTransport::NotifyBFCacheOnMainThread(mParent->GetOwner(), aCreated);
+  WebTransport::NotifyBFCacheOnMainThread(mParent->GetOwnerWindow(), aCreated);
 
   return IPC_OK();
 }

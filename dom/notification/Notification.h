@@ -177,10 +177,9 @@ class Notification : public DOMEventTargetHelper,
 
   void Close();
 
-  nsPIDOMWindowInner* GetParentObject() { return GetOwner(); }
+  nsIGlobalObject* GetParentObject() const { return GetOwnerGlobal(); }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   bool RequireInteraction() const;
 

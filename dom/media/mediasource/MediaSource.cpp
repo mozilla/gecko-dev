@@ -14,13 +14,11 @@
 #include "MediaContainerType.h"
 #include "MediaResult.h"
 #include "MediaSourceDemuxer.h"
-#include "MediaSourceUtils.h"
 #include "SourceBuffer.h"
 #include "SourceBufferList.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Logging.h"
-#include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/HTMLMediaElement.h"
@@ -32,7 +30,7 @@
 #include "nsIScriptObjectPrincipal.h"
 #include "nsMimeTypes.h"
 #include "nsPIDOMWindow.h"
-#include "nsServiceManagerUtils.h"
+#include "nsGlobalWindowInner.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
 
@@ -282,11 +280,11 @@ already_AddRefed<SourceBuffer> MediaSource::AddSourceBuffer(
   MOZ_ASSERT(NS_IsMainThread());
   DecoderDoctorDiagnostics diagnostics;
   IsTypeSupported(aType, &diagnostics, aRv);
-  RecordTypeForTelemetry(aType, GetOwner());
+  RecordTypeForTelemetry(aType, GetOwnerWindow());
   bool supported = !aRv.Failed();
   diagnostics.StoreFormatDiagnostics(
-      GetOwner() ? GetOwner()->GetExtantDoc() : nullptr, aType, supported,
-      __func__);
+      GetOwnerWindow() ? GetOwnerWindow()->GetExtantDoc() : nullptr, aType,
+      supported, __func__);
   MSE_API("AddSourceBuffer(aType=%s)%s", NS_ConvertUTF16toUTF8(aType).get(),
           supported ? "" : " [not supported]");
   if (!supported) {
@@ -653,12 +651,12 @@ void MediaSource::DurationChange(double aNewDuration, ErrorResult& aRv) {
 
 already_AddRefed<Promise> MediaSource::MozDebugReaderData(ErrorResult& aRv) {
   // Creating a JS promise
-  nsPIDOMWindowInner* win = GetOwner();
+  nsGlobalWindowInner* win = GetOwnerWindow();
   if (!win) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return nullptr;
   }
-  RefPtr<Promise> domPromise = Promise::Create(win->AsGlobal(), aRv);
+  RefPtr<Promise> domPromise = Promise::Create(win, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -677,7 +675,9 @@ already_AddRefed<Promise> MediaSource::MozDebugReaderData(ErrorResult& aRv) {
   return domPromise.forget();
 }
 
-nsPIDOMWindowInner* MediaSource::GetParentObject() const { return GetOwner(); }
+nsPIDOMWindowInner* MediaSource::GetParentObject() const {
+  return GetOwnerWindow();
+}
 
 JSObject* MediaSource::WrapObject(JSContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {

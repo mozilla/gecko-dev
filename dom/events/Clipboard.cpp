@@ -330,22 +330,17 @@ already_AddRefed<Promise> Clipboard::ReadHelper(nsIPrincipal& aSubjectPrincipal,
                                                 ReadRequestType aType,
                                                 ErrorResult& aRv) {
   // Create a new promise
-  RefPtr<Promise> p = dom::Promise::Create(GetOwnerGlobal(), aRv);
-  if (aRv.Failed() || !p) {
+  nsGlobalWindowInner* owner = GetOwnerWindow();
+  RefPtr<Promise> p = dom::Promise::Create(owner, aRv);
+  if (aRv.Failed()) {
     return nullptr;
-  }
-
-  nsPIDOMWindowInner* owner = GetOwner();
-  if (!owner) {
-    p->MaybeRejectWithUndefined();
-    return p.forget();
   }
 
   // If a "paste" clipboard event is actively being processed, we're
   // intentionally skipping permission/user-activation checks and giving the
   // webpage access to the clipboard.
   if (RefPtr<DataTransfer> dataTransfer =
-          nsGlobalWindowInner::Cast(owner)->GetCurrentPasteDataTransfer()) {
+          owner->GetCurrentPasteDataTransfer()) {
     // If there is valid nsIClipboardDataSnapshot, use it directly.
     if (nsCOMPtr<nsIClipboardDataSnapshot> clipboardDataSnapshot =
             dataTransfer->GetClipboardDataSnapshot()) {
@@ -685,13 +680,13 @@ already_AddRefed<Promise> Clipboard::Write(
     const Sequence<OwningNonNull<ClipboardItem>>& aData,
     nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv) {
   // Create a promise
-  RefPtr<Promise> p = dom::Promise::Create(GetOwnerGlobal(), aRv);
+  RefPtr<nsGlobalWindowInner> owner = GetOwnerWindow();
+  RefPtr<Promise> p = dom::Promise::Create(owner, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
 
-  RefPtr<nsPIDOMWindowInner> owner = GetOwner();
-  Document* doc = owner ? owner->GetDoc() : nullptr;
+  Document* doc = owner->GetDoc();
   if (!doc) {
     p->MaybeRejectWithUndefined();
     return p.forget();
@@ -751,7 +746,7 @@ already_AddRefed<Promise> Clipboard::Write(
       [owner, request, context, principal = RefPtr{&aSubjectPrincipal}](
           const nsTArray<NativeEntry>& aEntries) {
         RefPtr<DataTransfer> dataTransfer =
-            new DataTransfer(owner, eCopy,
+            new DataTransfer(ToSupports(owner), eCopy,
                              /* is external */ true,
                              /* clipboard type */ -1);
 
@@ -800,7 +795,8 @@ already_AddRefed<Promise> Clipboard::WriteText(const nsAString& aData,
 
   nsTArray<OwningNonNull<ClipboardItem>> sequence;
   RefPtr<ClipboardItem> item = MakeRefPtr<ClipboardItem>(
-      GetOwner(), PresentationStyle::Unspecified, std::move(items));
+      ToSupports(GetOwnerWindow()), PresentationStyle::Unspecified,
+      std::move(items));
   sequence.AppendElement(*item);
 
   return Write(std::move(sequence), aSubjectPrincipal, aRv);

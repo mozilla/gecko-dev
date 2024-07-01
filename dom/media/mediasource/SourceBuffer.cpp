@@ -12,12 +12,12 @@
 #include "MediaSourceUtils.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/FloatingPoint.h"
-#include "mozilla/Preferences.h"
 #include "mozilla/dom/MediaSourceBinding.h"
 #include "mozilla/dom/TimeRanges.h"
 #include "mozilla/dom/TypedArray.h"
 #include "nsError.h"
 #include "nsIRunnable.h"
+#include "nsGlobalWindowInner.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Logging.h"
 #include <time.h>
@@ -389,8 +389,9 @@ void SourceBuffer::ChangeType(const nsAString& aType, ErrorResult& aRv) {
   MediaSource::IsTypeSupported(aType, &diagnostics, aRv);
   bool supported = !aRv.Failed();
   diagnostics.StoreFormatDiagnostics(
-      mMediaSource->GetOwner() ? mMediaSource->GetOwner()->GetExtantDoc()
-                               : nullptr,
+      mMediaSource->GetOwnerWindow()
+          ? mMediaSource->GetOwnerWindow()->GetExtantDoc()
+          : nullptr,
       aType, supported, __func__);
   MSE_API("ChangeType(aType=%s)%s", NS_ConvertUTF16toUTF8(aType).get(),
           supported ? "" : " [not supported]");

@@ -38,6 +38,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsServiceManagerUtils.h"
 #include "nsQueryObject.h"
+#include "nsGlobalWindowInner.h"
 #include "SpeechTrackListener.h"
 
 #include <algorithm>
@@ -160,7 +161,7 @@ SpeechRecognition::SpeechRecognition(nsPIDOMWindowInner* aOwnerWindow)
       mEndpointer(kSAMPLE_RATE),
       mAudioSamplesPerChunk(mEndpointer.FrameSize()),
       mSpeechDetectionTimer(NS_NewTimer()),
-      mSpeechGrammarList(new SpeechGrammarList(GetOwner())),
+      mSpeechGrammarList(new SpeechGrammarList(GetOwnerGlobal())),
       mContinuous(false),
       mInterimResults(false),
       mMaxAlternatives(1) {
@@ -830,7 +831,7 @@ void SpeechRecognition::Start(const Optional<NonNull<DOMMediaStream>>& aStream,
     }
   } else {
     mTrackIsOwned = true;
-    nsPIDOMWindowInner* win = GetOwner();
+    nsPIDOMWindowInner* win = GetOwnerWindow();
     if (!win || !win->IsFullyActive()) {
       aRv.ThrowInvalidStateError("The document is not fully active.");
       return;
@@ -885,7 +886,7 @@ void SpeechRecognition::Start(const Optional<NonNull<DOMMediaStream>>& aStream,
 }
 
 bool SpeechRecognition::SetRecognitionService(ErrorResult& aRv) {
-  if (!GetOwner()) {
+  if (!GetOwnerWindow()) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return false;
   }
@@ -896,7 +897,7 @@ bool SpeechRecognition::SetRecognitionService(ErrorResult& aRv) {
   if (!mLang.IsEmpty()) {
     lang = mLang;
   } else {
-    nsCOMPtr<Document> document = GetOwner()->GetExtantDoc();
+    nsCOMPtr<Document> document = GetOwnerWindow()->GetExtantDoc();
     if (!document) {
       aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
       return false;
@@ -911,7 +912,7 @@ bool SpeechRecognition::SetRecognitionService(ErrorResult& aRv) {
     element->GetLang(lang);
   }
 
-  auto result = CreateSpeechRecognitionService(GetOwner(), this, lang);
+  auto result = CreateSpeechRecognitionService(GetOwnerWindow(), this, lang);
 
   if (result.isErr()) {
     switch (result.unwrapErr()) {

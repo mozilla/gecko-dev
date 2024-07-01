@@ -41,8 +41,7 @@ MIDIPort::MIDIPort(nsPIDOMWindowInner* aWindow)
       mKeepAlive(false) {
   MOZ_ASSERT(aWindow);
 
-  Document* aDoc = GetOwner()->GetExtantDoc();
-  if (aDoc) {
+  if (Document* aDoc = aWindow->GetExtantDoc()) {
     aDoc->DisallowBFCaching();
   }
 }
@@ -158,13 +157,10 @@ bool MIDIPort::SysexEnabled() const {
 already_AddRefed<Promise> MIDIPort::Open(ErrorResult& aError) {
   LOG("MIDIPort::Open");
   MOZ_ASSERT(Port());
-  RefPtr<Promise> p;
   if (mOpeningPromise) {
-    p = mOpeningPromise;
-    return p.forget();
+    return do_AddRef(mOpeningPromise);
   }
-  nsCOMPtr<nsIGlobalObject> go = do_QueryInterface(GetOwner());
-  p = Promise::Create(go, aError);
+  RefPtr<Promise> p = Promise::Create(GetOwnerGlobal(), aError);
   if (aError.Failed()) {
     return nullptr;
   }
@@ -176,13 +172,10 @@ already_AddRefed<Promise> MIDIPort::Open(ErrorResult& aError) {
 already_AddRefed<Promise> MIDIPort::Close(ErrorResult& aError) {
   LOG("MIDIPort::Close");
   MOZ_ASSERT(Port());
-  RefPtr<Promise> p;
   if (mClosingPromise) {
-    p = mClosingPromise;
-    return p.forget();
+    return do_AddRef(mClosingPromise);
   }
-  nsCOMPtr<nsIGlobalObject> go = do_QueryInterface(GetOwner());
-  p = Promise::Create(go, aError);
+  RefPtr<Promise> p = Promise::Create(GetOwnerGlobal(), aError);
   if (aError.Failed()) {
     return nullptr;
   }
@@ -199,7 +192,7 @@ void MIDIPort::Notify(const void_t& aVoid) {
 }
 
 void MIDIPort::FireStateChangeEvent() {
-  if (!GetOwner()) {
+  if (!GetOwnerWindow()) {
     return;  // Ignore changes once we've been disconnected from the owner
   }
 

@@ -18,8 +18,8 @@ class BatteryInformation;
 
 namespace dom::battery {
 
-class BatteryManager : public DOMEventTargetHelper,
-                       public hal::BatteryObserver {
+class BatteryManager final : public DOMEventTargetHelper,
+                             public hal::BatteryObserver {
  public:
   explicit BatteryManager(nsPIDOMWindowInner* aWindow);
 
@@ -33,10 +33,9 @@ class BatteryManager : public DOMEventTargetHelper,
    * WebIDL Interface
    */
 
-  nsPIDOMWindowInner* GetParentObject() const { return GetOwner(); }
+  nsIGlobalObject* GetParentObject() const { return GetOwnerGlobal(); }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   bool Charging() const;
 

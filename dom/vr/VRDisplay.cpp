@@ -25,8 +25,8 @@
 #include "VRManagerChild.h"
 #include "VRDisplayPresentation.h"
 #include "nsIObserverService.h"
-#include "nsIFrame.h"
 #include "nsISupportsPrimitives.h"
+#include "nsGlobalWindowInner.h"
 
 using namespace mozilla::gfx;
 
@@ -507,7 +507,7 @@ VRDisplay::Observe(nsISupports* aSubject, const char* aTopic,
     nsresult rv = wrapper->GetData(&innerID);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (!GetOwner() || GetOwner()->WindowID() == innerID) {
+    if (!GetOwnerWindow() || GetOwnerWindow()->WindowID() == innerID) {
       Shutdown();
     }
 

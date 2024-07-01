@@ -81,7 +81,7 @@ TextTrack::TextTrack(nsPIDOMWindowInner* aOwnerWindow,
 TextTrack::~TextTrack() = default;
 
 void TextTrack::SetDefaultSettings() {
-  nsPIDOMWindowInner* ownerWindow = GetOwner();
+  nsPIDOMWindowInner* ownerWindow = GetOwnerWindow();
   mCueList = new TextTrackCueList(ownerWindow);
   mActiveCueList = new TextTrackCueList(ownerWindow);
   mCuePos = 0;
@@ -246,14 +246,15 @@ void TextTrack::GetLanguage(nsAString& aLanguage) const {
 }
 
 void TextTrack::DispatchAsyncTrustedEvent(const nsString& aEventName) {
-  nsPIDOMWindowInner* win = GetOwner();
+  nsGlobalWindowInner* win = GetOwnerWindow();
   if (!win) {
     return;
   }
-  RefPtr<TextTrack> self = this;
-  nsGlobalWindowInner::Cast(win)->Dispatch(NS_NewRunnableFunction(
-      "dom::TextTrack::DispatchAsyncTrustedEvent",
-      [self, aEventName]() { self->DispatchTrustedEvent(aEventName); }));
+  win->Dispatch(
+      NS_NewRunnableFunction("dom::TextTrack::DispatchAsyncTrustedEvent",
+                             [self = RefPtr{this}, aEventName]() {
+                               self->DispatchTrustedEvent(aEventName);
+                             }));
 }
 
 bool TextTrack::IsLoaded() {

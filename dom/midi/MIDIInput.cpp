@@ -10,6 +10,7 @@
 #include "mozilla/dom/MIDIInputBinding.h"
 #include "mozilla/dom/MIDIMessageEvent.h"
 #include "mozilla/dom/MIDIMessageEventBinding.h"
+#include "nsGlobalWindowInner.h"
 
 #include "MIDILog.h"
 
@@ -38,11 +39,11 @@ JSObject* MIDIInput::WrapObject(JSContext* aCx,
 }
 
 void MIDIInput::Receive(const nsTArray<MIDIMessage>& aMsgs) {
-  if (!GetOwner()) {
+  if (!GetOwnerWindow()) {
     return;  // Ignore messages once we've been disconnected from the owner
   }
 
-  nsCOMPtr<Document> doc = GetOwner()->GetDoc();
+  nsCOMPtr<Document> doc = GetOwnerWindow()->GetDoc();
   if (!doc) {
     NS_WARNING("No document available to send MIDIMessageEvent to!");
     return;

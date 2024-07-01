@@ -13,6 +13,7 @@
 #include "mozilla/dom/BatteryManagerBinding.h"
 #include "mozilla/Preferences.h"
 #include "nsContentUtils.h"
+#include "nsGlobalWindowInner.h"
 #include "mozilla/dom/Document.h"
 
 /**
@@ -113,7 +114,7 @@ void BatteryManager::UpdateFromBatteryInfo(
   mLevel = aBatteryInfo.level();
 
   // Round to the nearest ten percent for non-chrome.
-  Document* doc = GetOwner() ? GetOwner()->GetDoc() : nullptr;
+  Document* doc = GetOwnerWindow() ? GetOwnerWindow()->GetDoc() : nullptr;
 
   mCharging = aBatteryInfo.charging();
   mRemainingTime = aBatteryInfo.remainingTime();

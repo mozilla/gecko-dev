@@ -351,7 +351,7 @@ PaymentRequestChild* PaymentRequestManager::GetPaymentChild(
     return child;
   }
 
-  nsPIDOMWindowInner* win = aRequest->GetOwner();
+  nsPIDOMWindowInner* win = aRequest->GetOwnerWindow();
   NS_ENSURE_TRUE(win, nullptr);
   BrowserChild* browserChild = BrowserChild::GetFrom(win->GetDocShell());
   NS_ENSURE_TRUE(browserChild, nullptr);

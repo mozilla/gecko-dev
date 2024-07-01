@@ -272,7 +272,7 @@ void XRSystem::OnXRPermissionRequestCancel() {
 }
 
 bool XRSystem::FeaturePolicyBlocked() const {
-  nsGlobalWindowInner* win = nsGlobalWindowInner::Cast(GetOwner());
+  nsGlobalWindowInner* win = GetOwnerWindow();
   if (!win) {
     return true;
   }
@@ -332,11 +332,11 @@ void XRSystem::ResolveSessionRequests(
       if (request->ResolveSupport(display, enabledReferenceSpaceTypes)) {
         if (request->IsImmersive()) {
           session = XRSession::CreateImmersiveSession(
-              GetOwner(), this, display, request->GetPresentationGroup(),
+              GetOwnerWindow(), this, display, request->GetPresentationGroup(),
               enabledReferenceSpaceTypes);
           mActiveImmersiveSession = session;
         } else {
-          session = XRSession::CreateInlineSession(GetOwner(), this,
+          session = XRSession::CreateInlineSession(GetOwnerWindow(), this,
                                                    enabledReferenceSpaceTypes);
           mInlineSessions.AppendElement(session);
         }
@@ -445,8 +445,7 @@ void XRSystem::ProcessSessionRequestsWaitingForRuntimeDetection() {
      * allowing xr-spatial-tracking for inline sessions do not
      * present a modal XR permission UI. (eg. Android Firefox Reality)
      */
-    nsGlobalWindowInner* win = nsGlobalWindowInner::Cast(GetOwner());
-    win->RequestXRPermission();
+    GetOwnerWindow()->RequestXRPermission();
   }
 }
 

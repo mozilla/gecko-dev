@@ -11,10 +11,10 @@
 #include "AudioNodeEngine.h"
 #include "AudioNodeTrack.h"
 #include "AudioProcessingEvent.h"
-#include "WebAudioUtils.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/PodOperations.h"
+#include "nsGlobalWindowInner.h"
 #include <deque>
 #include "Tracing.h"
 
@@ -400,7 +400,7 @@ class ScriptProcessorNodeEngine final : public AudioNodeEngine {
         }
 
         AutoJSAPI jsapi;
-        if (NS_WARN_IF(!jsapi.Init(aNode->GetOwner()))) {
+        if (NS_WARN_IF(!jsapi.Init(aNode->GetOwnerWindow()))) {
           return;
         }
         JSContext* cx = jsapi.cx();
@@ -411,7 +411,7 @@ class ScriptProcessorNodeEngine final : public AudioNodeEngine {
         if (mInputBuffer) {
           ErrorResult rv;
           inputBuffer = AudioBuffer::Create(
-              context->GetOwner(), inputChannelCount, aNode->BufferSize(),
+              context->GetOwnerWindow(), inputChannelCount, aNode->BufferSize(),
               context->SampleRate(), mInputBuffer.forget(), rv);
           if (rv.Failed()) {
             rv.SuppressException();

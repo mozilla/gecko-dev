@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GlobalTeardownObserver.h"
-#include "mozilla/Sprintf.h"
+#include "nsGlobalWindowInner.h"
 #include "mozilla/dom/Document.h"
 
 namespace mozilla {
@@ -29,41 +29,36 @@ void GlobalTeardownObserver::BindToOwner(nsIGlobalObject* aOwner) {
   if (aOwner) {
     mParentObject = aOwner;
     aOwner->AddGlobalTeardownObserver(this);
-    // Let's cache the result of this QI for fast access and off main thread
-    // usage
-    mOwnerWindow =
-        nsCOMPtr<nsPIDOMWindowInner>(do_QueryInterface(aOwner)).get();
-    if (mOwnerWindow) {
-      mHasOrHasHadOwnerWindow = true;
-    }
+    const bool isWindow = !!aOwner->GetAsInnerWindow();
+    MOZ_ASSERT_IF(!isWindow, !mHasOrHasHadOwnerWindow);
+    mHasOrHasHadOwnerWindow = isWindow;
   }
 }
 
 void GlobalTeardownObserver::DisconnectFromOwner() {
   if (mParentObject) {
     mParentObject->RemoveGlobalTeardownObserver(this);
+    mParentObject = nullptr;
   }
-  mOwnerWindow = nullptr;
-  mParentObject = nullptr;
 }
 
 nsresult GlobalTeardownObserver::CheckCurrentGlobalCorrectness() const {
-  NS_ENSURE_STATE(!mHasOrHasHadOwnerWindow || mOwnerWindow);
+  if (!mParentObject) {
+    if (NS_IsMainThread() && !HasOrHasHadOwnerWindow()) {
+      return NS_OK;
+    }
+    return NS_ERROR_FAILURE;
+  }
 
   // Main-thread.
-  if (mOwnerWindow && !mOwnerWindow->IsCurrentInnerWindow()) {
-    return NS_ERROR_FAILURE;
+  if (mHasOrHasHadOwnerWindow) {
+    auto* ownerWin = static_cast<nsGlobalWindowInner*>(mParentObject);
+    if (!ownerWin->IsCurrentInnerWindow()) {
+      return NS_ERROR_FAILURE;
+    }
   }
 
-  if (NS_IsMainThread()) {
-    return NS_OK;
-  }
-
-  if (!mParentObject) {
-    return NS_ERROR_FAILURE;
-  }
-
-  if (mParentObject->IsDying()) {
+  if (mParentObject->IsDying() && !NS_IsMainThread()) {
     return NS_ERROR_FAILURE;
   }
 

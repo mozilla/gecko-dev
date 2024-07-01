@@ -13,6 +13,7 @@
 #include "nsContentUtils.h"
 #include "nsIScriptError.h"
 #include "nsID.h"
+#include "nsGlobalWindowInner.h"
 #include "Tracing.h"
 
 namespace mozilla::dom {
@@ -102,7 +103,7 @@ void MediaStreamAudioSourceNode::AttachToTrack(
   }
 
   if (NS_WARN_IF(Context()->Graph() != aTrack->Graph())) {
-    nsCOMPtr<nsPIDOMWindowInner> pWindow = Context()->GetParentObject();
+    nsGlobalWindowInner* pWindow = Context()->GetOwnerWindow();
     Document* document = pWindow ? pWindow->GetExtantDoc() : nullptr;
     nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "Web Audio"_ns,
                                     document, nsContentUtils::eDOM_PROPERTIES,
@@ -228,7 +229,7 @@ void MediaStreamAudioSourceNode::PrincipalChanged(
 
   bool subsumes = false;
   Document* doc = nullptr;
-  if (nsPIDOMWindowInner* parent = Context()->GetParentObject()) {
+  if (nsGlobalWindowInner* parent = Context()->GetOwnerWindow()) {
     doc = parent->GetExtantDoc();
     if (doc) {
       nsIPrincipal* docPrincipal = doc->NodePrincipal();

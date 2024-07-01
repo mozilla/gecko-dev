@@ -49,7 +49,7 @@ class UDPSocket final : public DOMEventTargetHelper,
   NS_DECL_NSIUDPSOCKETINTERNAL
 
  public:
-  nsPIDOMWindowInner* GetParentObject() const { return GetOwner(); }
+  nsIGlobalObject* GetParentObject() const { return GetOwnerGlobal(); }
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;

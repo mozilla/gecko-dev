@@ -8,8 +8,8 @@
 
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/net/Cookie.h"
 #include "mozilla/StaticPrefs_network.h"
-#include "mozilla/Telemetry.h"
 #include "nsIConsoleReportCollector.h"
 #include "nsIScriptError.h"
 #include "nsIURI.h"

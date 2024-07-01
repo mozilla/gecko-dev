@@ -181,7 +181,7 @@ void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
     return;
   }
 
-  nsPIDOMWindowInner* window = GetOwner();
+  nsPIDOMWindowInner* window = GetOwnerWindow();
   if (NS_WARN_IF(!window || !window->GetExtantDoc())) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;

@@ -26,6 +26,7 @@
 #include "nsIURLParser.h"
 #include "nsNetCID.h"
 #include "nsServiceManagerUtils.h"
+#include "nsGlobalWindowInner.h"
 #include "mozilla/dom/MerchantValidationEvent.h"
 #include "PaymentResponse.h"
 
@@ -808,8 +809,8 @@ void PaymentRequest::RespondShowPayment(const nsAString& aMethodName,
                             aDetails, aPayerName, aPayerEmail, aPayerPhone);
   } else if (mAcceptPromise) {
     RefPtr<PaymentResponse> paymentResponse = new PaymentResponse(
-        GetOwner(), this, mId, aMethodName, mShippingOption, mShippingAddress,
-        aDetails, aPayerName, aPayerEmail, aPayerPhone);
+        GetOwnerWindow(), this, mId, aMethodName, mShippingOption,
+        mShippingAddress, aDetails, aPayerName, aPayerEmail, aPayerPhone);
     mResponse = paymentResponse;
     mAcceptPromise->MaybeResolve(paymentResponse);
   } else {
@@ -1063,10 +1064,10 @@ nsresult PaymentRequest::UpdateShippingAddress(
     const nsAString& aPhone) {
   nsTArray<nsString> emptyArray;
   mShippingAddress = new PaymentAddress(
-      GetOwner(), aCountry, emptyArray, aRegion, aRegionCode, aCity,
+      GetOwnerWindow(), aCountry, emptyArray, aRegion, aRegionCode, aCity,
       aDependentLocality, aPostalCode, aSortingCode, u""_ns, u""_ns, u""_ns);
   mFullShippingAddress =
-      new PaymentAddress(GetOwner(), aCountry, aAddressLine, aRegion,
+      new PaymentAddress(GetOwnerWindow(), aCountry, aAddressLine, aRegion,
                          aRegionCode, aCity, aDependentLocality, aPostalCode,
                          aSortingCode, aOrganization, aRecipient, aPhone);
   // Fire shippingaddresschange event
@@ -1190,7 +1191,7 @@ bool PaymentRequest::InFullyActiveDocument() {
 }
 
 void PaymentRequest::RegisterActivityObserver() {
-  if (nsPIDOMWindowInner* window = GetOwner()) {
+  if (nsPIDOMWindowInner* window = GetOwnerWindow()) {
     mDocument = window->GetExtantDoc();
     if (mDocument) {
       mDocument->RegisterActivityObserver(
@@ -1207,7 +1208,7 @@ void PaymentRequest::UnregisterActivityObserver() {
 }
 
 void PaymentRequest::NotifyOwnerDocumentActivityChanged() {
-  nsPIDOMWindowInner* window = GetOwner();
+  nsPIDOMWindowInner* window = GetOwnerWindow();
   NS_ENSURE_TRUE_VOID(window);
   Document* doc = window->GetExtantDoc();
   NS_ENSURE_TRUE_VOID(doc);

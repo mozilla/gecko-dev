@@ -353,7 +353,7 @@ void BroadcastChannel::RemoveDocFromBFCache() {
     return;
   }
 
-  if (nsPIDOMWindowInner* window = GetOwner()) {
+  if (nsPIDOMWindowInner* window = GetOwnerWindow()) {
     window->RemoveFromBFCacheSync();
   }
 }

@@ -16,6 +16,7 @@
 #include "mozilla/dom/Document.h"
 #include "CaptureTask.h"
 #include "MediaEngineSource.h"
+#include "nsGlobalWindowInner.h"
 
 namespace mozilla {
 
@@ -189,23 +190,12 @@ nsresult ImageCapture::PostErrorEvent(uint16_t aErrorCode, nsresult aReason) {
 
 bool ImageCapture::CheckPrincipal() {
   MOZ_ASSERT(NS_IsMainThread());
-
   nsCOMPtr<nsIPrincipal> principal = mTrack->GetPrincipal();
-
-  if (!GetOwner()) {
+  if (!GetOwnerWindow()) {
     return false;
   }
-  nsCOMPtr<Document> doc = GetOwner()->GetExtantDoc();
-  if (!doc || !principal) {
-    return false;
-  }
-
-  bool subsumes;
-  if (NS_FAILED(doc->NodePrincipal()->Subsumes(principal, &subsumes))) {
-    return false;
-  }
-
-  return subsumes;
+  nsCOMPtr<Document> doc = GetOwnerWindow()->GetExtantDoc();
+  return doc && principal && doc->NodePrincipal()->Subsumes(principal);
 }
 
 }  // namespace dom

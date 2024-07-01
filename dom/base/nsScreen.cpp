@@ -49,7 +49,7 @@ int32_t nsScreen::PixelDepth() {
 }
 
 nsPIDOMWindowOuter* nsScreen::GetOuter() const {
-  if (nsPIDOMWindowInner* inner = GetOwner()) {
+  if (nsPIDOMWindowInner* inner = GetOwnerWindow()) {
     return inner->GetOuterWindow();
   }
   return nullptr;
@@ -67,7 +67,7 @@ CSSIntRect nsScreen::GetRect() {
 
   // Here we manipulate the value of aRect to represent the screen size,
   // if in RDM.
-  if (nsPIDOMWindowInner* owner = GetOwner()) {
+  if (nsPIDOMWindowInner* owner = GetOwnerWindow()) {
     if (Document* doc = owner->GetExtantDoc()) {
       Maybe<CSSIntSize> deviceSize =
           nsGlobalWindowOuter::GetRDMDeviceSize(*doc);
@@ -96,7 +96,7 @@ CSSIntRect nsScreen::GetAvailRect() {
 
   // Here we manipulate the value of aRect to represent the screen size,
   // if in RDM.
-  if (nsPIDOMWindowInner* owner = GetOwner()) {
+  if (nsPIDOMWindowInner* owner = GetOwnerWindow()) {
     if (Document* doc = owner->GetExtantDoc()) {
       Maybe<CSSIntSize> deviceSize =
           nsGlobalWindowOuter::GetRDMDeviceSize(*doc);
@@ -166,7 +166,7 @@ JSObject* nsScreen::WrapObject(JSContext* aCx,
 }
 
 CSSIntRect nsScreen::GetWindowInnerRect() {
-  nsCOMPtr<nsPIDOMWindowInner> win = GetOwner();
+  nsCOMPtr<nsPIDOMWindowInner> win = GetOwnerWindow();
   if (!win) {
     return {};
   }
@@ -180,7 +180,6 @@ CSSIntRect nsScreen::GetWindowInnerRect() {
 }
 
 bool nsScreen::ShouldResistFingerprinting(RFPTarget aTarget) const {
-  nsCOMPtr<nsPIDOMWindowInner> owner = GetOwner();
-  return owner &&
-         nsGlobalWindowInner::Cast(owner)->ShouldResistFingerprinting(aTarget);
+  nsGlobalWindowInner* owner = GetOwnerWindow();
+  return owner && owner->ShouldResistFingerprinting(aTarget);
 }

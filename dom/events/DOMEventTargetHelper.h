@@ -10,7 +10,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/GlobalTeardownObserver.h"
-#include "mozilla/LinkedList.h"
 #include "mozilla/RefPtr.h"
 #include "nsAtom.h"
 #include "nsCOMPtr.h"
@@ -19,9 +18,7 @@
 #include "nsGkAtoms.h"
 #include "nsID.h"
 #include "nsIGlobalObject.h"
-#include "nsIScriptGlobalObject.h"
 #include "nsISupports.h"
-#include "nsISupportsUtils.h"
 #include "nsPIDOMWindow.h"
 #include "nsStringFwd.h"
 #include "nsTArray.h"
@@ -61,8 +58,8 @@ class DOMEventTargetHelper : public dom::EventTarget,
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_WRAPPERCACHE_CLASS_AMBIGUOUS(
       DOMEventTargetHelper, dom::EventTarget)
 
-  virtual EventListenerManager* GetExistingListenerManager() const override;
-  virtual EventListenerManager* GetOrCreateListenerManager() override;
+  EventListenerManager* GetExistingListenerManager() const override;
+  EventListenerManager* GetOrCreateListenerManager() override;
 
   bool ComputeDefaultWantsUntrusted(ErrorResult& aRv) override;
 
@@ -102,9 +99,7 @@ class DOMEventTargetHelper : public dom::EventTarget,
 
   bool HasListenersFor(nsAtom* aTypeWithOn) const;
 
-  virtual nsPIDOMWindowOuter* GetOwnerGlobalForBindingsInternal() override {
-    return nsPIDOMWindowOuter::GetFromCurrentInner(GetOwner());
-  }
+  nsPIDOMWindowOuter* GetOwnerGlobalForBindingsInternal() override;
 
   // Like GetOwner, but only returns non-null if the window being returned is
   // current (in the "current document" sense of the HTML spec).
@@ -116,9 +111,9 @@ class DOMEventTargetHelper : public dom::EventTarget,
   void DisconnectFromOwner() override;
   using EventTarget::GetParentObject;
 
-  virtual void EventListenerAdded(nsAtom* aType) override;
+  void EventListenerAdded(nsAtom* aType) override;
 
-  virtual void EventListenerRemoved(nsAtom* aType) override;
+  void EventListenerRemoved(nsAtom* aType) override;
 
   // Dispatch a trusted, non-cancellable and non-bubbling event to |this|.
   nsresult DispatchTrustedEvent(const nsAString& aEventName);

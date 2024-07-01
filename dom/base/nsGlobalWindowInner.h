@@ -31,7 +31,6 @@
 #include "prclist.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/ChromeMessageBroadcaster.h"
-#include "mozilla/dom/Credential.h"
 #include "mozilla/dom/DebuggerNotificationManager.h"
 #include "mozilla/dom/GamepadHandle.h"
 #include "mozilla/dom/Location.h"
@@ -102,6 +101,7 @@ namespace dom {
 class BarProp;
 class BrowsingContext;
 struct ChannelPixelLayout;
+class Credential;
 class ClientSource;
 class Console;
 class Crypto;

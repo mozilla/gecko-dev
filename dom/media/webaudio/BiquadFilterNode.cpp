@@ -17,6 +17,7 @@
 #include "mozilla/ErrorResult.h"
 #include "AudioParamTimeline.h"
 #include "Tracing.h"
+#include "nsGlobalWindowInner.h"
 
 namespace mozilla::dom {
 
@@ -235,8 +236,8 @@ BiquadFilterNode::BiquadFilterNode(AudioContext* aContext)
   mGain = CreateAudioParam(BiquadFilterNodeEngine::GAIN, u"gain"_ns, 0.f);
 
   uint64_t windowID = 0;
-  if (aContext->GetParentObject()) {
-    windowID = aContext->GetParentObject()->WindowID();
+  if (nsGlobalWindowInner* win = aContext->GetOwnerWindow()) {
+    windowID = win->WindowID();
   }
   BiquadFilterNodeEngine* engine =
       new BiquadFilterNodeEngine(this, aContext->Destination(), windowID);

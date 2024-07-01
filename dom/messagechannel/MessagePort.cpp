@@ -119,10 +119,8 @@ class PostMessageRunnable final : public CancelableRunnable {
     }
 
     // Create the event
-    nsCOMPtr<mozilla::dom::EventTarget> eventTarget =
-        do_QueryInterface(mPort->GetOwner());
     RefPtr<MessageEvent> event =
-        new MessageEvent(eventTarget, nullptr, nullptr);
+        new MessageEvent(mPort->GetOwnerWindow(), nullptr, nullptr);
 
     Sequence<OwningNonNull<MessagePort>> ports;
     if (!mData->TakeTransferredPortsAsSequence(ports)) {
@@ -813,7 +811,7 @@ void MessagePort::RemoveDocFromBFCache() {
     return;
   }
 
-  if (nsPIDOMWindowInner* window = GetOwner()) {
+  if (nsPIDOMWindowInner* window = GetOwnerWindow()) {
     window->RemoveFromBFCacheSync();
   }
 }
