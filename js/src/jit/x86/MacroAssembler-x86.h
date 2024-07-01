@@ -971,13 +971,6 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared {
     convertDoubleToInt32(src, dest, fail, negativeZeroCheck);
   }
 
-  void boolValueToDouble(const ValueOperand& operand, FloatRegister dest) {
-    convertInt32ToDouble(operand.payloadReg(), dest);
-  }
-  void boolValueToFloat32(const ValueOperand& operand, FloatRegister dest) {
-    convertInt32ToFloat32(operand.payloadReg(), dest);
-  }
-
   void loadConstantDouble(double d, FloatRegister dest);
   void loadConstantFloat32(float f, FloatRegister dest);
 

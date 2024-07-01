@@ -3757,9 +3757,9 @@ void MacroAssembler::convertValueToFloatingPoint(ValueOperand value,
 
   bind(&isBool);
   if (outputType == MIRType::Float32) {
-    boolValueToFloat32(value, output);
+    convertInt32ToFloat32(value.payloadOrValueReg(), output);
   } else {
-    boolValueToDouble(value, output);
+    convertInt32ToDouble(value.payloadOrValueReg(), output);
   }
   jump(&done);
 

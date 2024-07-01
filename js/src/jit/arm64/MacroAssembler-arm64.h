@@ -1476,13 +1476,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   void unboxBigInt(const Address& src, Register dest) {
     unboxNonDouble(src, dest, JSVAL_TYPE_BIGINT);
   }
-  // These two functions use the low 32-bits of the full value register.
-  void boolValueToDouble(const ValueOperand& operand, FloatRegister dest) {
-    convertInt32ToDouble(operand.valueReg(), dest);
-  }
-  void boolValueToFloat32(const ValueOperand& operand, FloatRegister dest) {
-    convertInt32ToFloat32(operand.valueReg(), dest);
-  }
 
   void loadConstantDouble(double d, FloatRegister dest) {
     ARMFPRegister r(dest, 64);

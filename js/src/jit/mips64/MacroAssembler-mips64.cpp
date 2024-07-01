@@ -1535,18 +1535,6 @@ void MacroAssemblerMIPS64Compat::boxNonDouble(JSValueType type, Register src,
   boxValue(type, src, dest.valueReg());
 }
 
-void MacroAssemblerMIPS64Compat::boolValueToDouble(const ValueOperand& operand,
-                                                   FloatRegister dest) {
-  convertBoolToInt32(operand.valueReg(), ScratchRegister);
-  convertInt32ToDouble(ScratchRegister, dest);
-}
-
-void MacroAssemblerMIPS64Compat::boolValueToFloat32(const ValueOperand& operand,
-                                                    FloatRegister dest) {
-  convertBoolToInt32(operand.valueReg(), ScratchRegister);
-  convertInt32ToFloat32(ScratchRegister, dest);
-}
-
 void MacroAssemblerMIPS64Compat::loadConstantFloat32(float f,
                                                      FloatRegister dest) {
   ma_lis(dest, f);

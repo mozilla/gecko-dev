@@ -997,14 +997,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   inline void unboxValue(const ValueOperand& src, AnyRegister dest,
                          JSValueType type);
 
-  // These two functions use the low 32-bits of the full value register.
-  void boolValueToDouble(const ValueOperand& operand, FloatRegister dest) {
-    convertInt32ToDouble(operand.valueReg(), dest);
-  }
-  void boolValueToFloat32(const ValueOperand& operand, FloatRegister dest) {
-    convertInt32ToFloat32(operand.valueReg(), dest);
-  }
-
   void loadConstantDouble(double d, FloatRegister dest);
   void loadConstantFloat32(float f, FloatRegister dest);
 

@@ -2879,24 +2879,6 @@ void MacroAssemblerARMCompat::boxNonDouble(JSValueType type, Register src,
   ma_mov(ImmType(type), dest.typeReg());
 }
 
-void MacroAssemblerARMCompat::boolValueToDouble(const ValueOperand& operand,
-                                                FloatRegister dest) {
-  VFPRegister d = VFPRegister(dest);
-  loadConstantDouble(1.0, dest);
-  as_cmp(operand.payloadReg(), Imm8(0));
-  // If the source is 0, then subtract the dest from itself, producing 0.
-  as_vsub(d, d, d, Equal);
-}
-
-void MacroAssemblerARMCompat::boolValueToFloat32(const ValueOperand& operand,
-                                                 FloatRegister dest) {
-  VFPRegister d = VFPRegister(dest).singleOverlay();
-  loadConstantFloat32(1.0, dest);
-  as_cmp(operand.payloadReg(), Imm8(0));
-  // If the source is 0, then subtract the dest from itself, producing 0.
-  as_vsub(d, d, d, Equal);
-}
-
 void MacroAssemblerARMCompat::loadConstantFloat32(float f, FloatRegister dest) {
   ma_vimm_f32(f, dest);
 }

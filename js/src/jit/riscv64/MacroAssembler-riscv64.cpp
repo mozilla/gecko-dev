@@ -1648,22 +1648,6 @@ void MacroAssemblerRiscv64Compat::boxNonDouble(JSValueType type, Register src,
   boxValue(type, src, dest.valueReg());
 }
 
-void MacroAssemblerRiscv64Compat::boolValueToDouble(const ValueOperand& operand,
-                                                    FloatRegister dest) {
-  UseScratchRegisterScope temps(this);
-  Register ScratchRegister = temps.Acquire();
-  convertBoolToInt32(operand.valueReg(), ScratchRegister);
-  convertInt32ToDouble(ScratchRegister, dest);
-}
-
-void MacroAssemblerRiscv64Compat::boolValueToFloat32(
-    const ValueOperand& operand, FloatRegister dest) {
-  UseScratchRegisterScope temps(this);
-  Register ScratchRegister = temps.Acquire();
-  convertBoolToInt32(operand.valueReg(), ScratchRegister);
-  convertInt32ToFloat32(ScratchRegister, dest);
-}
-
 void MacroAssemblerRiscv64Compat::loadConstantFloat32(float f,
                                                       FloatRegister dest) {
   ma_lis(dest, f);
