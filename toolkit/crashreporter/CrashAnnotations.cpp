@@ -8,27 +8,23 @@
 #include <cstring>
 #include <iterator>
 
-#include "nsString.h"
-
 using std::begin;
 using std::end;
 using std::find_if;
 
 namespace CrashReporter {
 
-using mozilla::Nothing;
-using mozilla::Some;
-
-Maybe<Annotation> AnnotationFromString(const nsACString& aValue) {
+bool AnnotationFromString(Annotation& aResult, const char* aValue) {
   const auto* elem = find_if(
       begin(kAnnotationStrings), end(kAnnotationStrings),
-      [&aValue](const char* aString) { return aValue.Equals(aString); });
+      [&aValue](const char* aString) { return strcmp(aString, aValue) == 0; });
 
   if (elem == end(kAnnotationStrings)) {
-    return Nothing();
+    return false;
   }
 
-  return Some(static_cast<Annotation>(elem - begin(kAnnotationStrings)));
+  aResult = static_cast<Annotation>(elem - begin(kAnnotationStrings));
+  return true;
 }
 
 bool IsAnnotationAllowedForPing(Annotation aAnnotation) {

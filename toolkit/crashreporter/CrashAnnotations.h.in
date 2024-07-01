@@ -8,12 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "mozilla/Maybe.h"
-#include "nsStringFwd.h"
-
 namespace CrashReporter {
-
-using mozilla::Maybe;
 
 // Typed enum representing all crash annotations
 enum class Annotation : uint32_t {
@@ -77,10 +72,12 @@ static inline const char* AnnotationToString(Annotation aAnnotation) {
 /**
  * Converts a string to its corresponding crash annotation.
  *
+ * @param aResult a reference where the annotation will be stored
  * @param aValue the string to be converted
- * @return the annotation corresponding to the string or nothing
+ * @return true if the string was successfully converted, false if it did not
+ *         correspond to any known annotation
  */
-Maybe<Annotation> AnnotationFromString(const nsACString& aValue);
+bool AnnotationFromString(Annotation& aResult, const char* aValue);
 
 /**
  * Checks if the given crash annotation is allowed for inclusion in the crash
