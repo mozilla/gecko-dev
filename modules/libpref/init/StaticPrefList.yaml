@@ -8978,7 +8978,7 @@
 #   2 - Symmetrical spacing, half added to each side
 - name: layout.css.letter-spacing.model
   type: int32_t
-#ifdef NIGHTLY_BUILD
+#if defined(MOZ_DEV_EDITION) || defined(EARLY_BETA_OR_EARLIER)
   value: 2
 #else
   value: 0
