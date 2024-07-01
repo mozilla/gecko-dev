@@ -290,6 +290,63 @@ document.addEventListener(
       .addEventListener("command", event => {
         gUnifiedExtensions.onContextMenuCommand(event.currentTarget, event);
       });
+
+    mainPopupSet.addEventListener("popupshowing", event => {
+      switch (event.target.id) {
+        case "context_sendTabToDevicePopupMenu":
+          gSync.populateSendTabToDevicesMenu(
+            event.target,
+            TabContextMenu.contextTab.linkedBrowser.currentURI,
+            TabContextMenu.contextTab.linkedBrowser.contentTitle,
+            TabContextMenu.contextTab.multiselected
+          );
+          break;
+        case "context_reopenInContainerPopupMenu":
+          TabContextMenu.createReopenInContainerMenu(event);
+          break;
+        case "backForwardMenu":
+          FillHistoryMenu(event);
+          break;
+        case "new-tab-button-popup":
+          CreateContainerTabMenu(event);
+          break;
+        case "toolbar-context-menu":
+          onViewToolbarsPopupShowing(
+            event,
+            document.getElementById("viewToolbarsMenuSeparator")
+          );
+          ToolbarContextMenu.updateDownloadsAutoHide(event.target);
+          ToolbarContextMenu.updateDownloadsAlwaysOpenPanel(event.target);
+          ToolbarContextMenu.updateExtension(event.target, event);
+          break;
+        case "blockedPopupOptions":
+          gPopupBlockerObserver.fillPopupList(event);
+          break;
+        case "pageActionContextMenu":
+          BrowserPageActions.onContextMenuShowing(event, event.target);
+          break;
+        case "tabbrowser-tab-tooltip":
+          gBrowser.createTooltip(event);
+          break;
+        case "dynamic-shortcut-tooltip":
+          UpdateDynamicShortcutTooltipText(event.target);
+          break;
+        case "SyncedTabsOpenSelectedInContainerTabMenu":
+          createUserContextMenu(event, { isContextMenu: true });
+          break;
+        case "unified-extensions-context-menu":
+          gUnifiedExtensions.updateContextMenu(event.target, event);
+          break;
+      }
+    });
+
+    document
+      .getElementById("tabContextMenu")
+      .addEventListener("popupshowing", event => {
+        if (event.target.id == "tabContextMenu") {
+          TabContextMenu.updateContextMenu(event.target);
+        }
+      });
   },
   { once: true }
 );

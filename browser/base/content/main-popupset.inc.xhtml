@@ -6,7 +6,6 @@
   <script src="chrome://browser/content/main-popupset.js" />
 
   <menupopup id="tabContextMenu"
-             onpopupshowing="if (event.target == this) TabContextMenu.updateContextMenu(this);"
              onpopuphidden="if (event.target == this) TabContextMenu.contextTab = null;">
     <menuitem id="context_openANewTab" data-lazy-l10n-id="tab-context-new-tab"/>
     <menuseparator/>
@@ -46,14 +45,12 @@
           class="sync-ui-item"
           data-lazy-l10n-id="tab-context-send-tabs-to-device"
           data-l10n-args='{"tabCount": 1}'>
-      <menupopup id="context_sendTabToDevicePopupMenu"
-                 onpopupshowing="gSync.populateSendTabToDevicesMenu(event.target, TabContextMenu.contextTab.linkedBrowser.currentURI, TabContextMenu.contextTab.linkedBrowser.contentTitle, TabContextMenu.contextTab.multiselected);"/>
+      <menupopup id="context_sendTabToDevicePopupMenu"/>
     </menu>
     <menu id="context_reopenInContainer"
           data-lazy-l10n-id="tab-context-open-in-new-container-tab"
           hidden="true">
-      <menupopup id="context_reopenInContainerPopupMenu"
-                 onpopupshowing="TabContextMenu.createReopenInContainerMenu(event);"/>
+      <menupopup id="context_reopenInContainerPopupMenu"/>
     </menu>
     <menuitem id="context_selectAllTabs" data-lazy-l10n-id="select-all-tabs"/>
     <menuseparator/>
@@ -86,13 +83,12 @@
   </menupopup>
 
   <!-- This node can be cloned by SetClickAndHoldHandlers. -->
-  <menupopup id="backForwardMenu"
-             onpopupshowing="return FillHistoryMenu(event.target);"/>
+  <menupopup id="backForwardMenu"/>
   <tooltip id="aHTMLTooltip" page="true"/>
   <tooltip id="remoteBrowserTooltip"/>
 
-  <menupopup id="new-tab-button-popup"
-             onpopupshowing="return CreateContainerTabMenu(event);"/>
+  <!-- This node can be cloned by MozTabbrowserTabs.observes. -->
+  <menupopup id="new-tab-button-popup"/>
   <!-- for search and content formfill/pw manager -->
 
   <panel is="autocomplete-richlistbox-popup"
@@ -260,8 +256,7 @@
               contexttype="extension-action"/>
   </menupopup>
 
-  <menupopup id="toolbar-context-menu"
-             onpopupshowing="if (event.target == this) { onViewToolbarsPopupShowing(event, document.getElementById('viewToolbarsMenuSeparator')) }; ToolbarContextMenu.updateDownloadsAutoHide(this); ToolbarContextMenu.updateDownloadsAlwaysOpenPanel(this); ToolbarContextMenu.updateExtension(this, event)">
+  <menupopup id="toolbar-context-menu">
     <menuitem id="toolbar-context-manage-extension"
               data-lazy-l10n-id="toolbar-context-menu-manage-extension"
               contexttype="toolbaritem"
@@ -339,7 +334,6 @@
   </menupopup>
 
   <menupopup id="blockedPopupOptions"
-             onpopupshowing="gPopupBlockerObserver.fillPopupList(event);"
              onpopuphiding="gPopupBlockerObserver.onPopupHiding(event);">
     <menuitem id="blockedPopupAllowSite"/>
     <menuitem id="blockedPopupEdit"
@@ -429,8 +423,7 @@
     </panel>
   </html:template>
 
-  <menupopup id="pageActionContextMenu"
-             onpopupshowing="BrowserPageActions.onContextMenuShowing(event, this);">
+  <menupopup id="pageActionContextMenu">
     <menuitem id="pageActionContextMenuManageExtension"
               class="pageActionContextMenuItem extensionPinned extensionUnpinned manageExtensionItem"
               data-l10n-id="page-action-manage-extension2"/>
@@ -443,7 +436,6 @@
 
   <tooltip id="tabbrowser-tab-tooltip"
            class="places-tooltip"
-           onpopupshowing="gBrowser.createTooltip(event);"
            onpopuphiding="this.removeAttribute('position')">
     <box class="places-tooltip-box">
       <description class="tooltip-label places-tooltip-title"/>
@@ -475,8 +467,7 @@
 #include ../../components/translations/content/fullPageTranslationsPanel.inc.xhtml
 #include ../../components/tabbrowser/content/browser-allTabsMenu.inc.xhtml
 
-  <tooltip id="dynamic-shortcut-tooltip"
-           onpopupshowing="UpdateDynamicShortcutTooltipText(this);"/>
+  <tooltip id="dynamic-shortcut-tooltip"/>
 
   <menupopup id="SyncedTabsSidebarContext">
     <menuitem data-lazy-l10n-id="synced-tabs-context-open"
@@ -486,8 +477,7 @@
     <menu data-lazy-l10n-id="synced-tabs-context-open-in-container-tab"
           id="syncedTabsOpenSelectedInContainerTab"
           hidden="true">
-      <menupopup id="SyncedTabsOpenSelectedInContainerTabMenu"
-                 onpopupshowing="createUserContextMenu(event, { isContextMenu: true });"/>
+      <menupopup id="SyncedTabsOpenSelectedInContainerTabMenu"/>
     </menu>
     <menuitem data-lazy-l10n-id="synced-tabs-context-open-in-window"
               id="syncedTabsOpenSelectedInWindow" where="window"/>
@@ -573,8 +563,7 @@
 
   #include ../../../toolkit/components/pictureinpicture/content/pictureInPicturePanel.inc.xhtml
 
-  <menupopup id="unified-extensions-context-menu"
-             onpopupshowing="gUnifiedExtensions.updateContextMenu(this, event)">
+  <menupopup id="unified-extensions-context-menu">
     <menuitem id="unified-extensions-context-menu-pin-to-toolbar"
               data-lazy-l10n-id="unified-extensions-context-menu-pin-to-toolbar"
               type="checkbox"
