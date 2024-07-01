@@ -109,11 +109,14 @@ JSString* js::CopyStringPure(JSContext* cx, JSString* str) {
     if (str->hasStringBuffer()) {
       RefPtr<mozilla::StringBuffer> buffer(str->asLinear().stringBuffer());
       if (str->hasLatin1Chars()) {
+        Rooted<JSString::OwnedChars<Latin1Char>> owned(cx, std::move(buffer),
+                                                       len);
         return JSLinearString::newValidLength<CanGC, Latin1Char>(
-            cx, std::move(buffer), len, gc::Heap::Default);
+            cx, &owned, gc::Heap::Default);
       }
-      return JSLinearString::newValidLength<CanGC, char16_t>(
-          cx, std::move(buffer), len, gc::Heap::Default);
+      Rooted<JSString::OwnedChars<char16_t>> owned(cx, std::move(buffer), len);
+      return JSLinearString::newValidLength<CanGC, char16_t>(cx, &owned,
+                                                             gc::Heap::Default);
     }
 
     /* Only use AutoStableStringChars if the NoGC allocation fails. */

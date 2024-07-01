@@ -199,6 +199,9 @@ void JSString::OwnedChars<CharT>::reset() {
     case Kind::Malloc:
       js_free(chars_.data());
       break;
+    case Kind::StringBuffer:
+      mozilla::StringBuffer::FromData(chars_.data())->Release();
+      break;
   }
   chars_ = {};
   kind_ = Kind::Uninitialized;
@@ -226,6 +229,16 @@ template <typename CharT>
 JSString::OwnedChars<CharT>::OwnedChars(
     js::UniquePtr<CharT[], JS::FreePolicy>&& chars, size_t length)
     : OwnedChars(chars.release(), length, Kind::Malloc) {}
+
+template <typename CharT>
+JSString::OwnedChars<CharT>::OwnedChars(RefPtr<mozilla::StringBuffer>&& buffer,
+                                        size_t length)
+    : OwnedChars(static_cast<CharT*>(buffer->Data()), length,
+                 Kind::StringBuffer) {
+  // Transfer the reference from |buffer| to this OwnedChars.
+  mozilla::StringBuffer* buf;
+  buffer.forget(&buf);
+}
 
 MOZ_ALWAYS_INLINE bool JSString::validateLength(JSContext* maybecx,
                                                 size_t length) {
@@ -433,15 +446,19 @@ inline JSLinearString::JSLinearString(
   // nursery to the malloc heap when allocating the Cell that this constructor
   // is initializing.
   MOZ_ASSERT(chars.data());
-  checkStringCharsArena(chars.data(), /* usesStringBuffer = */ false);
+  checkStringCharsArena(chars.data(), chars.hasStringBuffer());
   if (isTenured()) {
     chars.ensureNonNursery();
   }
+  uint32_t flags = INIT_LINEAR_FLAGS;
+  if (chars.hasStringBuffer()) {
+    flags |= HAS_STRING_BUFFER_BIT;
+  }
   if constexpr (std::is_same_v<CharT, char16_t>) {
-    setLengthAndFlags(chars.length(), INIT_LINEAR_FLAGS);
+    setLengthAndFlags(chars.length(), flags);
     d.s.u2.nonInlineCharsTwoByte = chars.data();
   } else {
-    setLengthAndFlags(chars.length(), INIT_LINEAR_FLAGS | LATIN1_CHARS_BIT);
+    setLengthAndFlags(chars.length(), flags | LATIN1_CHARS_BIT);
     d.s.u2.nonInlineCharsLatin1 = chars.data();
   }
 }
@@ -477,17 +494,6 @@ MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::new_(
 }
 
 template <js::AllowGC allowGC, typename CharT>
-MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::new_(
-    JSContext* cx, RefPtr<mozilla::StringBuffer>&& buffer, size_t length,
-    js::gc::Heap heap) {
-  if (MOZ_UNLIKELY(!validateLengthInternal<allowGC>(cx, length))) {
-    return nullptr;
-  }
-
-  return newValidLength<allowGC, CharT>(cx, std::move(buffer), length, heap);
-}
-
-template <js::AllowGC allowGC, typename CharT>
 MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::newValidLength(
     JSContext* cx, JS::MutableHandle<JSString::OwnedChars<CharT>> chars,
     js::gc::Heap heap) {
@@ -502,8 +508,13 @@ MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::newValidLength(
     // If the following registration fails, the string is partially initialized
     // and must be made valid, or its finalizer may attempt to free
     // uninitialized memory.
-    if (chars.isMalloced() &&
-        !cx->nursery().registerMallocedBuffer(chars.data(), chars.size())) {
+    bool ok = true;
+    if (chars.isMalloced()) {
+      ok = cx->nursery().registerMallocedBuffer(chars.data(), chars.size());
+    } else if (chars.hasStringBuffer()) {
+      ok = cx->nursery().addStringBuffer(str);
+    }
+    if (!ok) {
       str->disownCharsBecauseError();
       if (allowGC) {
         ReportOutOfMemory(cx);
@@ -511,56 +522,13 @@ MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::newValidLength(
       return nullptr;
     }
   } else {
+    // Note: this will overcount if the same StringBuffer is used by multiple JS
+    // strings. Unfortunately we don't have a good way to avoid this.
     cx->zone()->addCellMemory(str, chars.size(), js::MemoryUse::StringContents);
   }
 
   // Either the tenured Cell or the nursery's registry owns the chars now.
   chars.release();
-
-  return str;
-}
-
-template <js::AllowGC allowGC, typename CharT>
-MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::newValidLength(
-    JSContext* cx, RefPtr<mozilla::StringBuffer>&& buffer, size_t length,
-    js::gc::Heap heap) {
-  MOZ_ASSERT(!cx->zone()->isAtomsZone());
-  MOZ_ASSERT(!JSInlineString::lengthFits<CharT>(length));
-
-  static_assert(std::is_same_v<CharT, JS::Latin1Char> ||
-                std::is_same_v<CharT, char16_t>);
-  const auto* chars = static_cast<const CharT*>(buffer->Data());
-
-  JSLinearString* str = cx->newCell<JSLinearString, allowGC>(
-      heap, chars, length, /* hasBuffer = */ true);
-  if (!str) {
-    return nullptr;
-  }
-
-  if (!str->isTenured()) {
-    // If the following registration fails, the string is partially initialized
-    // and must be made valid, or its finalizer may attempt to free
-    // uninitialized memory.
-    if (!cx->nursery().addStringBuffer(str)) {
-      str->disownCharsBecauseError();
-      if (allowGC) {
-        ReportOutOfMemory(cx);
-      }
-      return nullptr;
-    }
-  } else {
-    // Note: this will overcount if the same buffer is used by multiple JS
-    // strings. Unfortunately we don't have a good way to avoid this.
-    cx->zone()->addCellMemory(str, length * sizeof(CharT),
-                              js::MemoryUse::StringContents);
-  }
-
-  MOZ_ASSERT(str->stringBuffer() == buffer.get());
-
-  // Either the tenured Cell or the nursery's registry owns the chars now, so
-  // transfer the reference.
-  mozilla::StringBuffer* buf;
-  buffer.forget(&buf);
 
   return str;
 }

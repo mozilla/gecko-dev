@@ -3679,11 +3679,13 @@ static bool NewString(JSContext* cx, unsigned argc, Value* vp) {
     }
     RefPtr<mozilla::StringBuffer> buffer = src->asLinear().stringBuffer();
     if (src->hasLatin1Chars()) {
-      dest = JSLinearString::newValidLength<CanGC, Latin1Char>(
-          cx, std::move(buffer), len, heap);
+      Rooted<JSString::OwnedChars<Latin1Char>> owned(cx, std::move(buffer),
+                                                     len);
+      dest =
+          JSLinearString::newValidLength<CanGC, Latin1Char>(cx, &owned, heap);
     } else {
-      dest = JSLinearString::newValidLength<CanGC, char16_t>(
-          cx, std::move(buffer), len, heap);
+      Rooted<JSString::OwnedChars<char16_t>> owned(cx, std::move(buffer), len);
+      dest = JSLinearString::newValidLength<CanGC, char16_t>(cx, &owned, heap);
     }
   } else {
     AutoStableStringChars stable(cx);
@@ -3713,8 +3715,8 @@ static bool NewString(JSContext* cx, unsigned argc, Value* vp) {
           return nullptr;
         }
 
-        return JSLinearString::newValidLength<CanGC, CharT>(
-            cx, std::move(buffer), len, heap);
+        Rooted<JSString::OwnedChars<CharT>> owned(cx, std::move(buffer), len);
+        return JSLinearString::newValidLength<CanGC, CharT>(cx, &owned, heap);
       };
       if (stable.isLatin1()) {
         dest = allocString(stable.latin1Chars());

@@ -210,12 +210,12 @@ class JSString : public js::gc::CellWithLengthAndFlags {
   uint32_t flags() const { return headerFlagsField(); }
 
   // Class for temporarily holding character data that will be used for JSString
-  // contents. The data may be allocated in the nursery, the malloc heap, or in
-  // externally owned memory (perhaps on the stack). The class instance must be
-  // passed to the JSString constructor as a MutableHandle, so that if a GC
-  // occurs between the construction of the content and the construction of the
-  // JSString Cell to hold it, the contents can be transparently moved to the
-  // malloc heap before the nursery is reset.
+  // contents. The data may be allocated in the nursery, the malloc heap, or as
+  // a StringBuffer. The class instance must be passed to the JSString
+  // constructor as a MutableHandle, so that if a GC occurs between the
+  // construction of the content and the construction of the JSString Cell to
+  // hold it, the contents can be transparently moved to the malloc heap before
+  // the nursery is reset.
   template <typename CharT>
   class OwnedChars {
    public:
@@ -230,6 +230,10 @@ class JSString : public js::gc::CellWithLengthAndFlags {
       // passed to js_free() if OwnedChars dies while still possessing
       // ownership.
       Malloc,
+
+      // chars_ is allocated as a refcounted StringBuffer. The reference must be
+      // released if OwnedChars dies while still possessing ownership.
+      StringBuffer,
     };
 
    private:
@@ -240,6 +244,7 @@ class JSString : public js::gc::CellWithLengthAndFlags {
     OwnedChars() = default;
     OwnedChars(CharT* chars, size_t length, Kind kind);
     OwnedChars(js::UniquePtr<CharT[], JS::FreePolicy>&& chars, size_t length);
+    OwnedChars(RefPtr<mozilla::StringBuffer>&& buffer, size_t length);
     OwnedChars(OwnedChars&&);
     OwnedChars(const OwnedChars&) = delete;
     ~OwnedChars() { reset(); }
@@ -262,6 +267,7 @@ class JSString : public js::gc::CellWithLengthAndFlags {
     }
     size_t size() const { return length() * sizeof(CharT); }
     bool isMalloced() const { return kind_ == Kind::Malloc; }
+    bool hasStringBuffer() const { return kind_ == Kind::StringBuffer; }
 
     // Return the data and release ownership to the caller.
     inline CharT* release();
@@ -933,6 +939,7 @@ class WrappedPtrOperations<JSString::OwnedChars<CharT>, Wrapper> {
   size_t length() const { return get().length(); }
   size_t size() const { return get().size(); }
   bool isMalloced() const { return get().isMalloced(); }
+  bool hasStringBuffer() const { return get().hasStringBuffer(); }
 };
 
 template <typename Wrapper, typename CharT>
@@ -1083,18 +1090,8 @@ class JSLinearString : public JSString {
                                      js::gc::Heap heap);
 
   template <js::AllowGC allowGC, typename CharT>
-  static inline JSLinearString* new_(JSContext* cx,
-                                     RefPtr<mozilla::StringBuffer>&& buffer,
-                                     size_t length, js::gc::Heap heap);
-
-  template <js::AllowGC allowGC, typename CharT>
   static inline JSLinearString* newValidLength(
       JSContext* cx, JS::MutableHandle<OwnedChars<CharT>> chars,
-      js::gc::Heap heap);
-
-  template <js::AllowGC allowGC, typename CharT>
-  static inline JSLinearString* newValidLength(
-      JSContext* cx, RefPtr<mozilla::StringBuffer>&& buffer, size_t length,
       js::gc::Heap heap);
 
   // Convert a plain linear string to an extensible string. For testing. The

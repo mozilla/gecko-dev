@@ -2313,8 +2313,8 @@ static JSString* NewStringFromBuffer(JSContext* cx,
                                   gc::Heap::Default);
   }
 
-  return JSLinearString::new_<CanGC, CharT>(cx, std::move(buffer), length,
-                                            gc::Heap::Default);
+  Rooted<JSString::OwnedChars<CharT>> owned(cx, std::move(buffer), length);
+  return JSLinearString::new_<CanGC, CharT>(cx, &owned, gc::Heap::Default);
 }
 
 JS_PUBLIC_API JSString* JS::NewStringFromLatin1Buffer(
