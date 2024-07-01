@@ -683,9 +683,6 @@ bool ToInt32Policy::staticAdjustInputs(TempAllocator& alloc,
       if (conversion == IntConversionInputKind::Any) {
         return true;
       }
-      if (conversion == IntConversionInputKind::NumbersOrBoolsOnly) {
-        return true;
-      }
       break;
     case MIRType::Object:
     case MIRType::String:

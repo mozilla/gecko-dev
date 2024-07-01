@@ -2986,9 +2986,7 @@ void LIRGenerator::visitToNumberInt32(MToNumberInt32* convert) {
       break;
 
     case MIRType::Boolean:
-      MOZ_ASSERT(convert->conversion() == IntConversionInputKind::Any ||
-                 convert->conversion() ==
-                     IntConversionInputKind::NumbersOrBoolsOnly);
+      MOZ_ASSERT(convert->conversion() == IntConversionInputKind::Any);
       redefine(convert, opd);
       break;
 

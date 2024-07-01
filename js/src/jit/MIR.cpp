@@ -3965,8 +3965,7 @@ MDefinition* MToNumberInt32::foldsTo(TempAllocator& alloc) {
         }
         break;
       case MIRType::Boolean:
-        if (conversion() == IntConversionInputKind::Any ||
-            conversion() == IntConversionInputKind::NumbersOrBoolsOnly) {
+        if (conversion() == IntConversionInputKind::Any) {
           return MConstant::New(alloc, Int32Value(cst->toBoolean()));
         }
         break;

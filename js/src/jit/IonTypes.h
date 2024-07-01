@@ -494,7 +494,7 @@ enum class IntConversionBehavior {
   ClampToUint8,
 };
 
-enum class IntConversionInputKind { NumbersOnly, NumbersOrBoolsOnly, Any };
+enum class IntConversionInputKind { NumbersOnly, Any };
 
 // The ordering of this enumeration is important: Anything < Value is a
 // specialized type. Furthermore, anything < String has trivial conversion to

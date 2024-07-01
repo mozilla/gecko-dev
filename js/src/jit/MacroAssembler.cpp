@@ -3882,8 +3882,7 @@ void MacroAssembler::convertValueToInt(
     splitTagForTest(value, tag);
 
     branchTestInt32(Equal, tag, &isInt32);
-    if (conversion == IntConversionInputKind::Any ||
-        conversion == IntConversionInputKind::NumbersOrBoolsOnly) {
+    if (conversion == IntConversionInputKind::Any) {
       branchTestBoolean(Equal, tag, &isBool);
     }
     branchTestDouble(Equal, tag, &isDouble);
