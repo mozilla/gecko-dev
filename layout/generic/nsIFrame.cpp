@@ -6413,9 +6413,10 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   // fill the CB.
   const bool shouldComputeISize = !isAutoISize && !isSubgriddedInInlineAxis;
   if (shouldComputeISize) {
-    auto iSizeResult = ComputeISizeValue(
-        aRenderingContext, aWM, aCBSize, boxSizingAdjust,
-        boxSizingToMarginEdgeISize, styleISize, aSizeOverrides, aFlags);
+    auto iSizeResult =
+        ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,
+                          boxSizingToMarginEdgeISize, styleISize, styleBSize,
+                          aspectRatio, aFlags);
     result.ISize(aWM) = iSizeResult.mISize;
     aspectRatioUsage = iSizeResult.mAspectRatioUsage;
   } else if (MOZ_UNLIKELY(isGridItem) && !IsTrueOverflowContainer()) {
@@ -6532,7 +6533,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   if (!maxISizeCoord.IsNone() && !shouldIgnoreMinMaxISize) {
     maxISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
                                  boxSizingAdjust, boxSizingToMarginEdgeISize,
-                                 maxISizeCoord, aSizeOverrides, aFlags)
+                                 maxISizeCoord, styleBSize, aspectRatio, aFlags)
                    .mISize;
     result.ISize(aWM) = std::min(maxISize, result.ISize(aWM));
   }
@@ -6542,7 +6543,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   if (!minISizeCoord.IsAuto() && !shouldIgnoreMinMaxISize) {
     minISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
                                  boxSizingAdjust, boxSizingToMarginEdgeISize,
-                                 minISizeCoord, aSizeOverrides, aFlags)
+                                 minISizeCoord, styleBSize, aspectRatio, aFlags)
                    .mISize;
   } else if (MOZ_UNLIKELY(
                  aFlags.contains(ComputeSizeFlag::IApplyAutoMinSize))) {
@@ -6760,38 +6761,23 @@ nscoord nsIFrame::ShrinkISizeToFit(gfxContext* aRenderingContext,
   return result;
 }
 
-Maybe<nscoord> nsIFrame::ComputeISizeValueFromAspectRatio(
+nscoord nsIFrame::ComputeISizeValueFromAspectRatio(
     WritingMode aWM, const LogicalSize& aCBSize,
-    const LogicalSize& aContentEdgeToBoxSizing,
-    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) const {
-  const AspectRatio aspectRatio = aSizeOverrides.mAspectRatio
-                                      ? *aSizeOverrides.mAspectRatio
-                                      : GetAspectRatio();
-  if (!aspectRatio) {
-    return Nothing();
-  }
-
-  const StyleSize& styleBSize = aSizeOverrides.mStyleBSize
-                                    ? *aSizeOverrides.mStyleBSize
-                                    : StylePosition()->BSize(aWM);
-  if (nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM))) {
-    return Nothing();
-  }
-
-  MOZ_ASSERT(styleBSize.IsLengthPercentage());
-  nscoord bSize = nsLayoutUtils::ComputeBSizeValue(
-      aCBSize.BSize(aWM), aContentEdgeToBoxSizing.BSize(aWM),
-      styleBSize.AsLengthPercentage());
-  return Some(aspectRatio.ComputeRatioDependentSize(
-      LogicalAxis::Inline, aWM, bSize, aContentEdgeToBoxSizing));
+    const LogicalSize& aContentEdgeToBoxSizing, const LengthPercentage& aBSize,
+    const AspectRatio& aAspectRatio) const {
+  MOZ_ASSERT(aAspectRatio, "Must have a valid AspectRatio!");
+  const nscoord bSize = nsLayoutUtils::ComputeBSizeValue(
+      aCBSize.BSize(aWM), aContentEdgeToBoxSizing.BSize(aWM), aBSize);
+  return aAspectRatio.ComputeRatioDependentSize(LogicalAxis::Inline, aWM, bSize,
+                                                aContentEdgeToBoxSizing);
 }
 
 nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
     gfxContext* aRenderingContext, const WritingMode aWM,
     const LogicalSize& aCBSize, const LogicalSize& aContentEdgeToBoxSizing,
     nscoord aBoxSizingToMarginEdge, ExtremumLength aSize,
-    Maybe<nscoord> aAvailableISizeOverride,
-    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) {
+    Maybe<nscoord> aAvailableISizeOverride, const StyleSize& aStyleBSize,
+    const AspectRatio& aAspectRatio, ComputeSizeFlags aFlags) {
   auto GetAvailableISize = [&]() {
     return aCBSize.ISize(aWM) - aBoxSizingToMarginEdge -
            aContentEdgeToBoxSizing.ISize(aWM);
@@ -6803,11 +6789,21 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
   // If we have an aspect-ratio and a definite block size, we should use them to
   // resolve the sizes with intrinsic keywords.
   // https://github.com/w3c/csswg-drafts/issues/5032
-  Maybe<nscoord> iSizeFromAspectRatio =
-      aSize == ExtremumLength::MozAvailable
-          ? Nothing()
-          : ComputeISizeValueFromAspectRatio(
-                aWM, aCBSize, aContentEdgeToBoxSizing, aSizeOverrides, aFlags);
+  Maybe<nscoord> iSizeFromAspectRatio = [&]() -> Maybe<nscoord> {
+    if (aSize == ExtremumLength::MozAvailable) {
+      return Nothing();
+    }
+    if (!aAspectRatio) {
+      return Nothing();
+    }
+    if (nsLayoutUtils::IsAutoBSize(aStyleBSize, aCBSize.BSize(aWM))) {
+      return Nothing();
+    }
+    return Some(ComputeISizeValueFromAspectRatio(
+        aWM, aCBSize, aContentEdgeToBoxSizing, aStyleBSize.AsLengthPercentage(),
+        aAspectRatio));
+  }();
+
   nscoord result;
   switch (aSize) {
     case ExtremumLength::MaxContent:

@@ -163,8 +163,9 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
   const LogicalSize zeroSize(aWM);
   if (maxISize.ConvertsToLength() || nsIFrame::ToExtremumLength(maxISize)) {
     nscoord c = aFrame
-                    ->ComputeISizeValue(aRenderingContext, aWM, zeroSize,
-                                        zeroSize, 0, maxISize)
+                    ->ComputeISizeValue(
+                        aRenderingContext, aWM, zeroSize, zeroSize, 0, maxISize,
+                        stylePos->BSize(aWM), aFrame->GetAspectRatio())
                     .mISize;
     minCoord = std::min(c, minCoord);
     prefCoord = std::min(c, prefCoord);
@@ -188,8 +189,9 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
 
   if (minISize.ConvertsToLength() || nsIFrame::ToExtremumLength(minISize)) {
     nscoord c = aFrame
-                    ->ComputeISizeValue(aRenderingContext, aWM, zeroSize,
-                                        zeroSize, 0, minISize)
+                    ->ComputeISizeValue(
+                        aRenderingContext, aWM, zeroSize, zeroSize, 0, minISize,
+                        stylePos->BSize(aWM), aFrame->GetAspectRatio())
                     .mISize;
     minCoord = std::max(c, minCoord);
     prefCoord = std::max(c, prefCoord);

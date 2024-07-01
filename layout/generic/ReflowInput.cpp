@@ -271,7 +271,8 @@ nscoord SizeComputationInput::ComputeISizeValue(
   return mFrame
       ->ComputeISizeValue(mRenderingContext, wm, aContainingBlockSize,
                           contentEdgeToBoxSizing, boxSizingToMarginEdgeISize,
-                          aSize)
+                          aSize, mFrame->StylePosition()->BSize(wm),
+                          mFrame->GetAspectRatio())
       .mISize;
 }
 
@@ -1289,7 +1290,9 @@ void ReflowInput::CalculateHypotheticalPosition(
               ->ComputeISizeValue(mRenderingContext, wm, blockContentSize,
                                   LogicalSize(wm, contentEdgeToBoxSizingISize,
                                               contentEdgeToBoxSizingBSize),
-                                  boxSizingToMarginEdgeISize, styleISize)
+                                  boxSizingToMarginEdgeISize, styleISize,
+                                  mStylePosition->BSize(wm),
+                                  mFrame->GetAspectRatio())
               .mISize;
       boxISize.emplace(contentISize + contentEdgeToBoxSizingISize +
                        boxSizingToMarginEdgeISize);

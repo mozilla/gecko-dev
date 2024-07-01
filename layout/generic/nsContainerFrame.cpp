@@ -2260,7 +2260,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
   if (!isAutoOrMaxContentISize) {
     iSize = ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,
                               boxSizingToMarginEdgeISize, styleISize,
-                              aSizeOverrides, aFlags)
+                              styleBSize, aspectRatio, aFlags)
                 .mISize;
   } else if (MOZ_UNLIKELY(isGridItem) &&
              !parentFrame->IsMasonry(isOrthogonal ? LogicalAxis::Block
@@ -2294,7 +2294,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
       !(isFlexItem && flexMainAxis == LogicalAxis::Inline)) {
     maxISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
                                  boxSizingAdjust, boxSizingToMarginEdgeISize,
-                                 maxISizeCoord, aSizeOverrides, aFlags)
+                                 maxISizeCoord, styleBSize, aspectRatio, aFlags)
                    .mISize;
   } else {
     maxISize = nscoord_MAX;
@@ -2310,7 +2310,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
       !(isFlexItem && flexMainAxis == LogicalAxis::Inline)) {
     minISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
                                  boxSizingAdjust, boxSizingToMarginEdgeISize,
-                                 minISizeCoord, aSizeOverrides, aFlags)
+                                 minISizeCoord, styleBSize, aspectRatio, aFlags)
                    .mISize;
   } else {
     // Treat "min-width: auto" as 0.
