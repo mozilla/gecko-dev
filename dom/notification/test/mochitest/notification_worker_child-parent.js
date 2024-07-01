@@ -17,7 +17,7 @@ if (self.Notification) {
     postMessage(e.data);
   };
 
-  onmessage = function (e) {
+  onmessage = () => {
     child.postMessage("start");
   };
 } else {

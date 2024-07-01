@@ -28,12 +28,7 @@ let mockAlertsService = {
     this.showAlert(alert, alertListener);
   },
 
-  QueryInterface(aIID) {
-    if (aIID.equals(Ci.nsISupports) || aIID.equals(Ci.nsIAlertsService)) {
-      return this;
-    }
-    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
-  },
+  QueryInterface: ChromeUtils.generateQI(["nsIAlertsService"]),
 
   createInstance(aIID) {
     return this.QueryInterface(aIID);

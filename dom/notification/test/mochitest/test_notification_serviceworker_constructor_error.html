@@ -16,7 +16,7 @@
 <script class="testbody" type="text/javascript">
 
   function simpleRegister() {
-    return navigator.serviceWorker.register("notification_constructor_error.js", { scope: "notification_constructor_error/" }).then(function(swr) {
+    return navigator.serviceWorker.register("notification_constructor_error.js", { scope: "notification_constructor_error/" }).then(() => {
       ok(false, "Registration should fail.");
     }, function(e) {
       is(e.name, 'TypeError', "Registration should fail with a TypeError.");

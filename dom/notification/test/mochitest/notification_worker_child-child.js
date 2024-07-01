@@ -68,7 +68,7 @@ if (self.Notification) {
     },
   ];
 
-  onmessage = function (e) {
+  onmessage = () => {
     var context = {};
     (function executeRemainingTests(remainingTests) {
       if (!remainingTests.length) {
