@@ -56,7 +56,6 @@ struct ModuleMetadata;
 struct CodeMetadata;
 class CodeRange;
 class CodeBlock;
-class ModuleSegment;
 class Decoder;
 class GeneratedSourceMap;
 class Instance;

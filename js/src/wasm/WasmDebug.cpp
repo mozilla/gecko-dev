@@ -179,7 +179,7 @@ void DebugState::toggleBreakpointTrap(JSRuntime* rt, Instance* instance,
   }
   size_t debugTrapOffset = callSite->returnAddressOffset();
 
-  const ModuleSegment& codeSegment = code_->segment(Tier::Debug);
+  const CodeSegment& codeSegment = code_->segment(Tier::Debug);
   const CodeRange* codeRange =
       code_->lookupFuncRange(codeSegment.base() + debugTrapOffset);
   MOZ_ASSERT(codeRange);
@@ -342,7 +342,7 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
             SlowCallSiteSearchByOffset(code(Tier::Debug), site->offset);
         if (callSite) {
           size_t debugTrapOffset = callSite->returnAddressOffset();
-          const ModuleSegment& codeSegment = code_->segment(Tier::Debug);
+          const CodeSegment& codeSegment = code_->segment(Tier::Debug);
           const CodeRange* codeRange =
               code_->lookupFuncRange(codeSegment.base() + debugTrapOffset);
           MOZ_ASSERT(codeRange);

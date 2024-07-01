@@ -75,8 +75,8 @@ struct ImportValues {
 // where the LinkData is also available, which is primarily (1) at the end of
 // module generation, (2) at the end of tier-2 compilation.
 //
-// Fully linked-and-instantiated code (represented by SharedCode and its owned
-// ModuleSegment) can be shared between instances.
+// Fully linked-and-instantiated code (represented by SharedCode) can be shared
+// between instances.
 
 class Module : public JS::WasmModule {
   // This has the same lifetime end as Module itself -- it can be dropped when
@@ -155,7 +155,6 @@ class Module : public JS::WasmModule {
 
   const Code& code() const { return *code_; }
   const CodeBlock& code(Tier t) const { return code_->codeBlock(t); }
-  const ModuleSegment& moduleSegment(Tier t) const { return code_->segment(t); }
   const ModuleMetadata& moduleMeta() const { return *moduleMeta_; }
   const CodeMetadata& codeMeta() const { return code_->codeMeta(); }
   const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
@@ -163,7 +162,9 @@ class Module : public JS::WasmModule {
   }
   const CustomSectionVector& customSections() const { return customSections_; }
   const Bytes& debugBytecode() const { return debugBytecode_->bytes; }
-  uint32_t codeLength(Tier t) const { return code_->segment(t).length(); }
+  uint32_t codeMemoryUsed(Tier t) const {
+    return code_->segment(t).capacityBytes();
+  }
 
   // Instantiate this module with the given imports:
 

@@ -947,8 +947,7 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock() {
     return nullptr;
   }
 
-  SharedModuleSegment segment =
-      ModuleSegment::create(tier(), masm_, *linkData_);
+  SharedCodeSegment segment = CodeSegment::createFromMasm(masm_, *linkData_);
   if (!segment) {
     warnf("failed to allocate executable memory for module");
     return nullptr;
@@ -1005,7 +1004,7 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock() {
 
   codeBlock_->segment = std::move(segment);
   codeBlock_->codeBase = codeBlock_->segment->base();
-  codeBlock_->codeLength = codeBlock_->segment->length();
+  codeBlock_->codeLength = codeBlock_->segment->lengthBytes();
   return std::move(codeBlock_);
 }
 
@@ -1058,8 +1057,7 @@ SharedModule ModuleGenerator::finishModule(
   }
 
   JumpTables jumpTables;
-  if (!jumpTables.init(mode(), codeBlock->moduleSegment(),
-                       codeBlock->codeRanges)) {
+  if (!jumpTables.initialize(mode(), *codeBlock)) {
     return nullptr;
   }
 

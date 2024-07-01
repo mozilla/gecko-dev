@@ -121,6 +121,14 @@ CoderResult Coder<MODE_DECODE>::readBytes(void* dest, size_t length) {
   return Ok();
 }
 
+CoderResult Coder<MODE_DECODE>::readBytesRef(size_t length,
+                                             const uint8_t** bytesBegin) {
+  MOZ_RELEASE_ASSERT(buffer_ + length <= end_);
+  *bytesBegin = buffer_;
+  buffer_ += length;
+  return Ok();
+}
+
 // Cacheable POD coding functions
 
 template <typename T,
@@ -150,7 +158,7 @@ enum class Marker : uint32_t {
   ModuleMetadata,
   CodeMetadata,
   CodeBlock,
-  ModuleSegment,
+  CodeSegment,
 };
 
 template <CoderMode mode>
@@ -971,30 +979,23 @@ CoderResult CodeLinkData(Coder<mode>& coder,
   return Ok();
 }
 
-CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
-                              wasm::SharedModuleSegment* item,
-                              const wasm::LinkData& linkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ModuleSegment, 48);
-  // Assert we're decoding a ModuleSegment
-  MOZ_TRY(Magic(coder, Marker::ModuleSegment));
+CoderResult CodeCodeSegment(Coder<MODE_DECODE>& coder,
+                            wasm::SharedCodeSegment* item,
+                            const wasm::LinkData& linkData) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeSegment, 48);
+  // Assert we're decoding a CodeSegment
+  MOZ_TRY(Magic(coder, Marker::CodeSegment));
 
   // Decode the code bytes length
   size_t length;
   MOZ_TRY(CodePod(coder, &length));
 
-  // Allocate the code bytes
-  Maybe<jit::AutoMarkJitCodeWritableForThread> writable;
-  UniqueCodeBytes bytes = AllocateCodeBytes(writable, length);
-  if (!bytes) {
-    return Err(OutOfMemory());
-  }
-
   // Decode the code bytes
-  MOZ_TRY(coder.readBytes(bytes.get(), length));
+  const uint8_t* codeBytes;
+  MOZ_TRY(coder.readBytesRef(length, &codeBytes));
 
-  // Initialize the ModuleSegment
-  *item = js_new<ModuleSegment>(Tier::Serialized, std::move(bytes), length,
-                                linkData);
+  // Initialize the CodeSegment
+  *item = CodeSegment::createFromBytes(codeBytes, length, linkData);
   if (!*item) {
     return Err(OutOfMemory());
   }
@@ -1002,29 +1003,28 @@ CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
 }
 
 template <CoderMode mode>
-CoderResult CodeModuleSegment(Coder<mode>& coder,
-                              CoderArg<mode, wasm::ModuleSegment> item,
-                              const wasm::LinkData& linkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ModuleSegment, 48);
+CoderResult CodeCodeSegment(Coder<mode>& coder,
+                            CoderArg<mode, wasm::SharedCodeSegment> item,
+                            const wasm::LinkData& linkData) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeSegment, 48);
   STATIC_ASSERT_ENCODING_OR_SIZING;
-  MOZ_ASSERT(item->tier() == Tier::Serialized);
 
-  // Mark that we're encoding a ModuleSegment
-  MOZ_TRY(Magic(coder, Marker::ModuleSegment));
+  // Mark that we're encoding a CodeSegment
+  MOZ_TRY(Magic(coder, Marker::CodeSegment));
 
   // Encode the length
-  size_t length = item->length();
+  size_t length = (*item)->lengthBytes();
   MOZ_TRY(CodePod(coder, &length));
 
   if constexpr (mode == MODE_SIZE) {
     // Just calculate the length of bytes written
-    MOZ_TRY(coder.writeBytes(item->base(), length));
+    MOZ_TRY(coder.writeBytes((*item)->base(), length));
   } else {
     // Get the start of where the code bytes will be written
     uint8_t* serializedBase = coder.buffer_;
 
     // Write the code bytes
-    MOZ_TRY(coder.writeBytes(item->base(), length));
+    MOZ_TRY(coder.writeBytes((*item)->base(), length));
 
     // Unlink the code bytes written to the buffer
     StaticallyUnlink(serializedBase, linkData);
@@ -1126,11 +1126,11 @@ CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
     return Err(OutOfMemory());
   }
   MOZ_TRY(Magic(coder, Marker::CodeBlock));
-  SharedModuleSegment moduleSegment;
-  MOZ_TRY(CodeModuleSegment(coder, &moduleSegment, linkData));
-  (*item)->segment = moduleSegment;
-  (*item)->codeBase = moduleSegment->base();
-  (*item)->codeLength = moduleSegment->length();
+  SharedCodeSegment codeSegment;
+  MOZ_TRY(CodeCodeSegment(coder, &codeSegment, linkData));
+  (*item)->segment = codeSegment;
+  (*item)->codeBase = codeSegment->base();
+  (*item)->codeLength = codeSegment->lengthBytes();
   MOZ_TRY(CodePodVector(coder, &(*item)->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &(*item)->codeRanges));
   MOZ_TRY(CodePodVector(coder, &(*item)->callSites));
@@ -1150,12 +1150,11 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 248);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY(Magic(coder, Marker::CodeBlock));
-  const ModuleSegment& moduleSegment = item->moduleSegment();
   // We don't support serializing sub-ranges yet. These only happen with
   // lazy stubs, which we don't serialize.
-  MOZ_ASSERT(item->codeBase == moduleSegment.base() &&
-             item->codeLength == moduleSegment.length());
-  MOZ_TRY(CodeModuleSegment(coder, &item->moduleSegment(), linkData));
+  MOZ_ASSERT(item->codeBase == item->segment->base() &&
+             item->codeLength == item->segment->lengthBytes());
+  MOZ_TRY(CodeCodeSegment(coder, &item->segment, linkData));
   MOZ_TRY(CodePodVector(coder, &item->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &item->codeRanges));
   MOZ_TRY(CodePodVector(coder, &item->callSites));
@@ -1189,8 +1188,7 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
 
   // Initialize the jump tables
   JumpTables jumpTables;
-  if (!jumpTables.init(CompileMode::Once, codeBlock->moduleSegment(),
-                       codeBlock->codeRanges)) {
+  if (!jumpTables.initialize(CompileMode::Once, *codeBlock)) {
     return Err(OutOfMemory());
   }
 
