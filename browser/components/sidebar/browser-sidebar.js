@@ -274,6 +274,10 @@ var SidebarController = {
         this.toggleTabstrip();
       }
     } else {
+      this._switcherCloseButton = document.getElementById("sidebar-close");
+      this._switcherCloseButton.addEventListener("command", () => {
+        this.hide();
+      });
       this._switcherTarget.addEventListener("command", () => {
         this.toggleSwitcherPanel();
       });
