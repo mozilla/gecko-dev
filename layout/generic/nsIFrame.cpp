@@ -6534,13 +6534,13 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   } else if (aspectRatioUsage == AspectRatioUsage::ToComputeISize &&
              ShouldApplyAutomaticMinimumOnInlineAxis(aWM, disp, stylePos)) {
     // This means we successfully applied aspect-ratio and now need to check
-    // if we need to apply the implied minimum size:
+    // if we need to apply the automatic content-based minimum size:
     // https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum
     MOZ_ASSERT(!HasReplacedSizing(),
                "aspect-ratio minimums should not apply to replaced elements");
-    // The inline size computed by aspect-ratio shouldn't less than the content
-    // size.
-    minISize = GetMinISize(aRenderingContext);
+    // The inline size computed by aspect-ratio shouldn't less than the
+    // min-content size, which should be capped by its maximum inline size.
+    minISize = std::min(GetMinISize(aRenderingContext), maxISize);
   } else {
     // Treat "min-width: auto" as 0.
     // NOTE: Technically, "auto" is supposed to behave like "min-content" on
