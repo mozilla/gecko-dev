@@ -17,7 +17,7 @@
 }
 
 #leftBox {
-  background-image: url("chrome://branding/content/about-logo.png");
+  background-image: image-set(url("chrome://branding/content/about-logo.png"), url("chrome://branding/content/about-logo@2x.png") 2x);
   background-repeat: no-repeat;
   background-size: 192px auto;
   background-position: center 40px;
@@ -29,12 +29,6 @@
   margin-inline-start: 30px;
 }
 
-@media (min-resolution: 2dppx) {
-  #leftBox {
-    background-image: url("chrome://branding/content/about-logo@2x.png");
-  }
-}
-
 #rightBox {
   background-image: url("chrome://branding/content/about-wordmark.svg");
   background-repeat: no-repeat;
@@ -42,10 +36,15 @@
   /* padding-top creates room for the wordmark */
   padding-top: 38px;
   margin-top: 20px;
-}
+  /* We don't want this box to contribute arbitrarily to the intrinsic size of
+   * the dialog, so set the width to a reasonable size, but let it flex to take
+   * all available space. */
+  width: 430px;
+  flex: 1 auto;
 
-#rightBox:-moz-locale-dir(rtl) {
-  background-position: 100% 0;
+  &:-moz-locale-dir(rtl) {
+    background-position: 100% 0;
+  }
 }
 
 #clientBox {
@@ -71,10 +70,10 @@
   user-select: text;
   -moz-user-focus: normal;
   cursor: text;
-}
 
-#version.update {
-  font-weight: normal;
+  &.update {
+    font-weight: normal;
+  }
 }
 
 #distribution,
@@ -101,6 +100,10 @@
 
 #updateDeck {
   align-items: center;
+
+  description {
+    margin: 0;
+  }
 }
 
 #updateButton {
@@ -108,36 +111,14 @@
   padding-inline-start: 0;
 }
 
-#updateDeck description {
-  margin: 0;
-}
-
-#rightBox {
-  /* We don't want this box to contribute arbitrarily to the intrinsic size of
-   * the dialog, so set the width to a reasonable size, but let it flex to take
-   * all available space. */
-  width: 430px;
-  flex: 1 auto;
-}
-
-.update-throbber {
-  width: 16px;
-  min-height: 16px;
-  margin-inline-end: 3px;
-  vertical-align: middle;
-  content: url("chrome://global/skin/icons/loading.svg");
-  -moz-context-properties: fill;
-  fill: currentColor;
-}
-
 .text-link {
-  color: #fff !important;
+  color: inherit !important;
   text-decoration: underline;
-}
 
-description > .text-link {
-  margin: 0;
-  padding: 0;
+  description > & {
+    margin: 0;
+    padding: 0;
+  }
 }
 
 #submit-feedback {
@@ -166,26 +147,32 @@ description > .text-link {
   grid-row-end: 2;
   grid-column-start: 1;
   grid-column-end: 2;
-}
 
-#icons > .icon {
-  vertical-align: middle;
-  -moz-context-properties: fill;
-  margin: 0px 5px;
-  width: 16px;
-  height: 16px;
-}
+  > .icon {
+    vertical-align: middle;
+    -moz-context-properties: fill;
+    fill: currentColor;
+    width: 16px;
+    height: 16px;
+    margin-inline: 5px;
+  }
 
-#icons:not(.checkingForUpdates, .downloading, .applying, .restarting) > .update-throbber,
-#icons:not(.noUpdatesFound) > .noUpdatesFound,
-#icons:not(.apply) > .apply {
-  display: none;
-}
+  &:not(.checkingForUpdates, .downloading, .applying, .restarting) > .update-throbber,
+  &:not(.noUpdatesFound) > .noUpdatesFound,
+  &:not(.apply) > .apply {
+    display: none;
+  }
 
-#icons > .noUpdatesFound {
-  fill: #30e60b;
-}
+  > .noUpdatesFound {
+    content: url("chrome://global/skin/icons/check.svg");
+    fill: #30e60b;
+  }
 
-#icons > .apply {
-  fill: white;
+  > .apply {
+    content: url("chrome://global/skin/icons/reload.svg");
+  }
+
+  > .update-throbber {
+    content: url("chrome://global/skin/icons/loading.svg");
+  }
 }
