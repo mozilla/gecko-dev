@@ -5,8 +5,7 @@
 <popupset id="mainPopupSet">
   <script src="chrome://browser/content/main-popupset.js" />
 
-  <menupopup id="tabContextMenu"
-             onpopuphidden="if (event.target == this) TabContextMenu.contextTab = null;">
+  <menupopup id="tabContextMenu">
     <menuitem id="context_openANewTab" data-lazy-l10n-id="tab-context-new-tab"/>
     <menuseparator/>
     <menuitem id="context_reloadTab" data-lazy-l10n-id="reload-tab"/>
@@ -333,8 +332,7 @@
               data-lazy-l10n-id="full-screen-exit"/>
   </menupopup>
 
-  <menupopup id="blockedPopupOptions"
-             onpopuphiding="gPopupBlockerObserver.onPopupHiding(event);">
+  <menupopup id="blockedPopupOptions">
     <menuitem id="blockedPopupAllowSite"/>
     <menuitem id="blockedPopupEdit"
               data-l10n-id="edit-popup-settings"/>
@@ -435,8 +433,7 @@
 #include ../../components/places/content/bookmarksHistoryTooltip.inc.xhtml
 
   <tooltip id="tabbrowser-tab-tooltip"
-           class="places-tooltip"
-           onpopuphiding="this.removeAttribute('position')">
+           class="places-tooltip">
     <box class="places-tooltip-box">
       <description class="tooltip-label places-tooltip-title"/>
       <hbox>
@@ -535,8 +532,7 @@
            orient="vertical"
            ignorekeys="true"
            consumeoutsideclicks="never"
-           norolluponanchor="true"
-           onpopupshown="gSharedTabWarning.sharedTabWarningShown();">
+           norolluponanchor="true">
       <hbox type="window" align="start">
         <image class="screen-icon popup-notification-icon"></image>
         <vbox flex="1" pack="start">
@@ -586,9 +582,7 @@
               id="unified-extensions-context-menu-report-extension"/>
   </menupopup>
 
-  <menupopup id="full-page-translations-panel-settings-menupopup"
-             onpopupshown="FullPageTranslationsPanel.handleSettingsPopupShownEvent()"
-             onpopuphidden="FullPageTranslationsPanel.handleSettingsPopupHiddenEvent()">
+  <menupopup id="full-page-translations-panel-settings-menupopup">
     <menuitem class="always-offer-translations-menuitem"
               data-l10n-id="translations-panel-settings-always-offer-translation"
               type="checkbox"

@@ -347,6 +347,39 @@ document.addEventListener(
           TabContextMenu.updateContextMenu(event.target);
         }
       });
+
+    mainPopupSet.addEventListener("popupshown", event => {
+      switch (event.target.id) {
+        case "sharing-tabs-warning-panel":
+          gSharedTabWarning.sharedTabWarningShown();
+          break;
+        case "full-page-translations-panel-settings-menupopup":
+          FullPageTranslationsPanel.handleSettingsPopupShownEvent();
+          break;
+      }
+    });
+
+    mainPopupSet.addEventListener("popuphiding", event => {
+      switch (event.target.id) {
+        case "blockedPopupOptions":
+          gPopupBlockerObserver.onPopupHiding(event);
+          break;
+        case "tabbrowser-tab-tooltip":
+          event.target.removeAttribute("position");
+          break;
+      }
+    });
+
+    mainPopupSet.addEventListener("popuphidden", event => {
+      switch (event.target.id) {
+        case "tabContextMenu":
+          TabContextMenu.contextTab = null;
+          break;
+        case "full-page-translations-panel-settings-menupopup":
+          FullPageTranslationsPanel.handleSettingsPopupHiddenEvent();
+          break;
+      }
+    });
   },
   { once: true }
 );
