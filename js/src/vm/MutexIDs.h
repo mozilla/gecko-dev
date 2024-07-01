@@ -23,7 +23,7 @@
   _(WellKnownParserAtomsInit, 100)    \
                                       \
   _(WasmInitBuiltinThunks, 250)       \
-  _(WasmCodeProtected, 250)           \
+  _(WasmLazyStubsTier1, 250)          \
   _(WasmLazyStubsTier2, 251)          \
                                       \
   _(StoreBuffer, 275)                 \
@@ -64,7 +64,7 @@
   _(SharedImmutableStringsCache, 600) \
   _(IrregexpLazyStatic, 600)          \
   _(ThreadId, 600)                    \
-  _(WasmCodeBlockMap, 600)            \
+  _(WasmCodeSegmentMap, 600)          \
   _(VTuneLock, 600)                   \
   _(ShellTelemetry, 600)              \
   _(ShellUseCounters, 600)

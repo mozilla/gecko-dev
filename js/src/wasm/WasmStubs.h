@@ -251,13 +251,13 @@ extern bool GenerateBuiltinThunk(jit::MacroAssembler& masm,
                                  ExitReason exitReason, void* funcPtr,
                                  CallableOffsets* offsets);
 
+extern bool GenerateImportFunctions(const CodeMetadata& codeMeta,
+                                    const FuncImportVector& imports,
+                                    CompiledCode* code);
+
 extern bool GenerateStubs(const CodeMetadata& codeMeta,
                           const FuncImportVector& imports,
                           const FuncExportVector& exports, CompiledCode* code);
-
-extern bool GenerateEntryStubs(const CodeMetadata& codeMeta,
-                               const FuncExportVector& exports,
-                               CompiledCode* code);
 
 extern bool GenerateEntryStubs(jit::MacroAssembler& masm,
                                size_t funcExportIndex, const FuncExport& fe,

@@ -20,7 +20,8 @@
 
 #include <chrono>
 
-#include "js/BuildId.h"                 // JS::BuildIdCharVector
+#include "jit/FlushICache.h"  // for FlushExecutionContextForAllThreads
+#include "js/BuildId.h"       // JS::BuildIdCharVector
 #include "js/experimental/TypedData.h"  // JS_NewUint8Array
 #include "js/friend/ErrorMessages.h"    // js::GetErrorMessage, JSMSG_*
 #include "js/Printf.h"                  // JS_smprintf
@@ -165,11 +166,88 @@ void Module::startTier2(const CompileArgs& args, const ShareableBytes& bytecode,
   StartOffThreadWasmTier2Generator(std::move(task));
 }
 
-bool Module::finishTier2(const LinkData& sharedStubsLinkData,
-                         const LinkData& linkData2,
-                         UniqueCodeBlock code2) const {
-  if (!code_->finishCompleteTier2(linkData2, std::move(code2))) {
+bool Module::finishTier2(const LinkData& linkData2,
+                         UniqueCodeTier code2) const {
+  MOZ_ASSERT(code().bestTier() == Tier::Baseline &&
+             code2->tier() == Tier::Optimized);
+
+  // Install the data in the data structures. They will not be visible
+  // until commitTier2().
+
+  const CodeTier* borrowedTier2;
+  if (!code().setAndBorrowTier2(std::move(code2), linkData2, &borrowedTier2)) {
     return false;
+  }
+
+  // Before we can make tier-2 live, we need to compile tier2 versions of any
+  // extant tier1 lazy stubs (otherwise, tiering would break the assumption
+  // that any extant exported wasm function has had a lazy entry stub already
+  // compiled for it).
+  //
+  // Also see doc block for stubs in WasmJS.cpp.
+  {
+    // We need to prevent new tier1 stubs generation until we've committed
+    // the newer tier2 stubs, otherwise we might not generate one tier2
+    // stub that has been generated for tier1 before we committed.
+
+    const MetadataTier& metadataTier1 = metadata(Tier::Baseline);
+
+    auto stubs1 = code().codeTier(Tier::Baseline).lazyStubs().readLock();
+    auto stubs2 = borrowedTier2->lazyStubs().writeLock();
+
+    MOZ_ASSERT(stubs2->entryStubsEmpty());
+
+    Uint32Vector funcExportIndices;
+    for (size_t i = 0; i < metadataTier1.funcExports.length(); i++) {
+      const FuncExport& fe = metadataTier1.funcExports[i];
+      if (fe.hasEagerStubs()) {
+        continue;
+      }
+      if (!stubs1->hasEntryStub(fe.funcIndex())) {
+        continue;
+      }
+      if (!funcExportIndices.emplaceBack(i)) {
+        return false;
+      }
+    }
+
+    Maybe<size_t> stub2Index;
+    if (!stubs2->createTier2(funcExportIndices, codeMeta(), *borrowedTier2,
+                             &stub2Index)) {
+      return false;
+    }
+
+    // Initializing the code above will have flushed the icache for all cores.
+    // However, there could still be stale data in the execution pipeline of
+    // other cores on some platforms. Force an execution context flush on all
+    // threads to fix this before we commit the code.
+    //
+    // This is safe due to the check in `PlatformCanTier` in WasmCompile.cpp
+    jit::FlushExecutionContextForAllThreads();
+
+    // Now that we can't fail or otherwise abort tier2, make it live.
+
+    MOZ_ASSERT(!code().hasTier2());
+    code().commitTier2();
+
+    stubs2->setJitEntries(stub2Index, code());
+  }
+
+  // And we update the jump vectors with pointers to tier-2 functions and eager
+  // stubs.  Callers will continue to invoke tier-1 code until, suddenly, they
+  // will invoke tier-2 code.  This is benign.
+
+  uint8_t* base = code().segment(Tier::Optimized).base();
+  for (const CodeRange& cr : metadata(Tier::Optimized).codeRanges) {
+    // These are racy writes that we just want to be visible, atomically,
+    // eventually.  All hardware we care about will do this right.  But
+    // we depend on the compiler not splitting the stores hidden inside the
+    // set*Entry functions.
+    if (cr.isFunction()) {
+      code().setTieringEntry(cr.funcIndex(), base + cr.funcTierEntry());
+    } else if (cr.isJitEntry()) {
+      code().setJitEntry(cr.funcIndex(), base + cr.begin());
+    }
   }
 
   // Tier-2 is done; let everyone know. Mark tier-2 active for testing
@@ -178,7 +256,7 @@ bool Module::finishTier2(const LinkData& sharedStubsLinkData,
 
   if (tier2Listener_) {
     Bytes bytes;
-    if (serialize(sharedStubsLinkData, linkData2, &bytes)) {
+    if (serialize(linkData2, &bytes)) {
       tier2Listener_->storeOptimizedEncoding(bytes.begin(), bytes.length());
     }
     tier2Listener_ = nullptr;
@@ -281,22 +359,21 @@ bool Module::extractCode(JSContext* cx, Tier tier,
   // block on tiered compilation to complete.
   testingBlockOnTier2Complete();
 
-  if (!code_->hasCompleteTier(tier)) {
+  if (!code_->hasTier(tier)) {
     vp.setNull();
     return true;
   }
 
-  const CodeBlock& codeBlock = code_->completeTierCodeBlock(tier);
-  const CodeSegment& codeSegment = *codeBlock.segment;
-  RootedObject codeObj(cx, JS_NewUint8Array(cx, codeSegment.lengthBytes()));
-  if (!codeObj) {
+  const ModuleSegment& moduleSegment = code_->segment(tier);
+  RootedObject code(cx, JS_NewUint8Array(cx, moduleSegment.length()));
+  if (!code) {
     return false;
   }
 
-  memcpy(codeObj->as<TypedArrayObject>().dataPointerUnshared(),
-         codeSegment.base(), codeSegment.lengthBytes());
+  memcpy(code->as<TypedArrayObject>().dataPointerUnshared(),
+         moduleSegment.base(), moduleSegment.length());
 
-  RootedValue value(cx, ObjectValue(*codeObj));
+  RootedValue value(cx, ObjectValue(*code));
   if (!JS_DefineProperty(cx, result, "code", value, JSPROP_ENUMERATE)) {
     return false;
   }
@@ -306,7 +383,7 @@ bool Module::extractCode(JSContext* cx, Tier tier,
     return false;
   }
 
-  for (const CodeRange& p : codeBlock.codeRanges) {
+  for (const CodeRange& p : metadata(tier).codeRanges) {
     RootedObject segment(cx, NewPlainObjectWithProto(cx, nullptr));
     if (!segment) {
       return false;
@@ -378,14 +455,18 @@ static const Import& FindImportFunction(const ImportVector& imports,
 bool Module::instantiateFunctions(JSContext* cx,
                                   const JSObjectVector& funcImports) const {
 #ifdef DEBUG
-  MOZ_ASSERT(funcImports.length() == code().funcImports().length());
+  for (auto t : code().tiers()) {
+    MOZ_ASSERT(funcImports.length() == metadata(t).funcImports.length());
+  }
 #endif
 
   if (codeMeta().isAsmJS()) {
     return true;
   }
 
-  for (size_t i = 0; i < code().funcImports().length(); i++) {
+  Tier tier = code().stableTier();
+
+  for (size_t i = 0; i < metadata(tier).funcImports.length(); i++) {
     if (!funcImports[i]->is<JSFunction>()) {
       continue;
     }
@@ -397,10 +478,12 @@ bool Module::instantiateFunctions(JSContext* cx,
 
     uint32_t funcIndex = ExportedFunctionToFuncIndex(f);
     Instance& instance = ExportedFunctionToInstance(f);
+    Tier otherTier = instance.code().stableTier();
 
-    const TypeDef& exportFuncType =
-        instance.code().getFuncExportTypeDef(funcIndex);
-    const TypeDef& importFuncType = code().getFuncImportTypeDef(i);
+    const TypeDef& exportFuncType = instance.codeMeta().getFuncExportTypeDef(
+        instance.metadata(otherTier).lookupFuncExport(funcIndex));
+    const TypeDef& importFuncType =
+        codeMeta().getFuncImportTypeDef(metadata(tier).funcImports[i]);
 
     if (!TypeDef::isSubTypeOf(&exportFuncType, &importFuncType)) {
       const Import& import = FindImportFunction(moduleMeta().imports, i);
