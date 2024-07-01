@@ -2148,7 +2148,7 @@ void* wasm::MaybeGetBuiltinThunk(JSFunction* f, const FuncType& funcType) {
 }
 
 bool wasm::LookupBuiltinThunk(void* pc, const CodeRange** codeRange,
-                              uint8_t** codeBase) {
+                              const uint8_t** codeBase) {
   if (!builtinThunks) {
     return false;
   }

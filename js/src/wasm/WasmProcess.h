@@ -28,18 +28,18 @@ namespace wasm {
 
 class Code;
 class CodeRange;
-class CodeSegment;
+class CodeBlock;
 class TagType;
 
 extern const TagType* sWrappedJSValueTagType;
 static constexpr uint32_t WrappedJSValueTagType_ValueOffset = 0;
 
-// These methods return the wasm::CodeSegment (resp. wasm::Code) containing
+// These methods return the wasm::CodeBlock (resp. wasm::Code) containing
 // the given pc, if any exist in the process. These methods do not take a lock,
 // and thus are safe to use in a profiling context.
 
-const CodeSegment* LookupCodeSegment(const void* pc,
-                                     const CodeRange** codeRange = nullptr);
+const CodeBlock* LookupCodeBlock(const void* pc,
+                                 const CodeRange** codeRange = nullptr);
 
 const Code* LookupCode(const void* pc, const CodeRange** codeRange = nullptr);
 
@@ -52,12 +52,12 @@ bool InCompiledCode(void* pc);
 
 extern mozilla::Atomic<bool> CodeExists;
 
-// These methods allow to (un)register CodeSegments so they can be looked up
+// These methods allow to (un)register CodeBlocks so they can be looked up
 // via pc in the methods described above.
 
-bool RegisterCodeSegment(const CodeSegment* cs);
+bool RegisterCodeBlock(const CodeBlock* cs);
 
-void UnregisterCodeSegment(const CodeSegment* cs);
+void UnregisterCodeBlock(const CodeBlock* cs);
 
 // Whether this process is configured to use huge memory or not.  Note that this
 // is not precise enough to tell whether a particular memory uses huge memory,

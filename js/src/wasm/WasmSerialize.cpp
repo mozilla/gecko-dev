@@ -1129,6 +1129,8 @@ CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
   SharedModuleSegment moduleSegment;
   MOZ_TRY(CodeModuleSegment(coder, &moduleSegment, linkData));
   (*item)->segment = moduleSegment;
+  (*item)->codeBase = moduleSegment->base();
+  (*item)->codeLength = moduleSegment->length();
   MOZ_TRY(CodePodVector(coder, &(*item)->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &(*item)->codeRanges));
   MOZ_TRY(CodePodVector(coder, &(*item)->callSites));
@@ -1148,6 +1150,11 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 248);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY(Magic(coder, Marker::CodeBlock));
+  const ModuleSegment& moduleSegment = item->moduleSegment();
+  // We don't support serializing sub-ranges yet. These only happen with
+  // lazy stubs, which we don't serialize.
+  MOZ_ASSERT(item->codeBase == moduleSegment.base() &&
+             item->codeLength == moduleSegment.length());
   MOZ_TRY(CodeModuleSegment(coder, &item->moduleSegment(), linkData));
   MOZ_TRY(CodePodVector(coder, &item->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &item->codeRanges));
