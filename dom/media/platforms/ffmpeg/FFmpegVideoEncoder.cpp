@@ -318,6 +318,9 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
   // }
   mCodecContext->width = static_cast<int>(mConfig.mSize.width);
   mCodecContext->height = static_cast<int>(mConfig.mSize.height);
+  // Reasonnable default for the quantization range.
+  mCodecContext->qmin = 10;
+  mCodecContext->qmax = 56;
   if (mConfig.mUsage == Usage::Realtime) {
     mCodecContext->thread_count = 1;
   } else {
