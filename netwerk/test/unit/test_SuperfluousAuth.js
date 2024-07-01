@@ -73,6 +73,7 @@ function run_test() {
   do_get_profile();
 
   Services.prefs.setBoolPref("network.http.rcwn.enabled", false);
+  Services.prefs.setBoolPref("network.auth.confirmAuth.enabled", true);
 
   httpServer = new HttpServer();
   httpServer.registerPathHandler("/content", contentHandler);

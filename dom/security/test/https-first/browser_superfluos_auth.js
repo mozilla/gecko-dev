@@ -44,7 +44,10 @@ function checkBrowserLoad(browser) {
 
 add_task(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["dom.security.https_first", true]],
+    set: [
+      ["dom.security.https_first", true],
+      ["network.auth.confirmAuth.enabled", true],
+    ],
   });
 
   respondMockPromptWithYes = false;
