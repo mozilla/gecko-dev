@@ -23,7 +23,10 @@ class AppStoreReducerTest {
             inactiveTabsExpanded = true,
         )
 
-        var updatedState = AppStoreReducer.reduce(initialState, UpdateInactiveExpanded(false))
+        var updatedState = AppStoreReducer.reduce(
+            state = initialState,
+            action = UpdateInactiveExpanded(false),
+        )
         assertFalse(updatedState.inactiveTabsExpanded)
 
         updatedState = AppStoreReducer.reduce(updatedState, UpdateInactiveExpanded(true))

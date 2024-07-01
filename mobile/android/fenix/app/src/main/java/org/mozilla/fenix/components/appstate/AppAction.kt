@@ -33,6 +33,11 @@ import org.mozilla.fenix.wallpapers.Wallpaper
  * [Action] implementation related to [AppStore].
  */
 sealed class AppAction : Action {
+    /**
+     * Updates the [AppState.inactiveTabsExpanded] boolean
+     *
+     * @property expanded The updated boolean to [AppState.inactiveTabsExpanded]
+     */
     data class UpdateInactiveExpanded(val expanded: Boolean) : AppAction()
 
     /**

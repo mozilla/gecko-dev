@@ -19,6 +19,8 @@ import org.mozilla.fenix.tabstray.syncedtabs.SyncedTabsListItem
  * @property mode Whether the browser tab list is in multi-select mode or not with the set of
  * currently selected tabs.
  * @property inactiveTabs The list of tabs are considered inactive.
+ * @property inactiveTabsExpanded A flag to know if the Inactive Tabs section of the Tabs Tray
+ * should be expanded when the tray is opened.
  * @property normalTabs The list of normal tabs that do not fall under [inactiveTabs].
  * @property privateTabs The list of tabs that are [ContentState.private].
  * @property syncedTabs The list of synced tabs.
@@ -29,6 +31,7 @@ data class TabsTrayState(
     val selectedPage: Page = Page.NormalTabs,
     val mode: Mode = Mode.Normal,
     val inactiveTabs: List<TabSessionState> = emptyList(),
+    val inactiveTabsExpanded: Boolean = false,
     val normalTabs: List<TabSessionState> = emptyList(),
     val privateTabs: List<TabSessionState> = emptyList(),
     val syncedTabs: List<SyncedTabsListItem> = emptyList(),
@@ -134,6 +137,13 @@ sealed class TabsTrayAction : Action {
     object SyncCompleted : TabsTrayAction()
 
     /**
+     * Updates the [TabsTrayState.inactiveTabsExpanded] boolean
+     *
+     * @property expanded The updated boolean to [TabsTrayState.inactiveTabsExpanded]
+     */
+    data class UpdateInactiveExpanded(val expanded: Boolean) : TabsTrayAction()
+
+    /**
      * Updates the list of tabs in [TabsTrayState.inactiveTabs].
      */
     data class UpdateInactiveTabs(val tabs: List<TabSessionState>) : TabsTrayAction()
@@ -189,6 +199,8 @@ internal object TabsTrayReducer {
                 state.copy(syncing = true)
             is TabsTrayAction.SyncCompleted ->
                 state.copy(syncing = false)
+            is TabsTrayAction.UpdateInactiveExpanded ->
+                state.copy(inactiveTabsExpanded = action.expanded)
             is TabsTrayAction.UpdateInactiveTabs ->
                 state.copy(inactiveTabs = action.tabs)
             is TabsTrayAction.UpdateNormalTabs ->

@@ -32,9 +32,6 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.storage.sync.TabEntry
 import mozilla.components.lib.state.ext.observeAsState
-import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
-import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.tabstray.ext.isNormalTab
@@ -47,7 +44,6 @@ import org.mozilla.fenix.tabstray.syncedtabs.OnTabCloseClick as OnSyncedTabClose
 /**
  * Top-level UI for displaying the Tabs Tray feature.
  *
- * @param appStore [AppStore] used to listen for changes to [AppState].
  * @param tabsTrayStore [TabsTrayStore] used to listen for changes to [TabsTrayState].
  * @param displayTabsInGrid Whether the normal and private tabs should be displayed in a grid.
  * @param isInDebugMode True for debug variant or if secret menu is enabled for this session.
@@ -96,7 +92,6 @@ import org.mozilla.fenix.tabstray.syncedtabs.OnTabCloseClick as OnSyncedTabClose
 @Suppress("LongMethod", "LongParameterList", "ComplexMethod")
 @Composable
 fun TabsTray(
-    appStore: AppStore,
     tabsTrayStore: TabsTrayStore,
     displayTabsInGrid: Boolean,
     isInDebugMode: Boolean,
@@ -199,7 +194,6 @@ fun TabsTray(
                 when (Page.positionToPage(position)) {
                     Page.NormalTabs -> {
                         NormalTabsPage(
-                            appStore = appStore,
                             tabsTrayStore = tabsTrayStore,
                             displayTabsInGrid = displayTabsInGrid,
                             onTabClose = onTabClose,
@@ -331,19 +325,13 @@ private fun TabsTrayPreviewRoot(
 ) {
     var showInactiveTabsAutoCloseDialogState by remember { mutableStateOf(showInactiveTabsAutoCloseDialog) }
 
-    val appStore = remember {
-        AppStore(
-            initialState = AppState(
-                inactiveTabsExpanded = inactiveTabsExpanded,
-            ),
-        )
-    }
     val tabsTrayStore = remember {
         TabsTrayStore(
             initialState = TabsTrayState(
                 selectedPage = selectedPage,
                 mode = mode,
                 inactiveTabs = inactiveTabs,
+                inactiveTabsExpanded = inactiveTabsExpanded,
                 normalTabs = normalTabs,
                 privateTabs = privateTabs,
                 syncedTabs = syncedTabs,
@@ -355,7 +343,6 @@ private fun TabsTrayPreviewRoot(
     FirefoxTheme {
         Box {
             TabsTray(
-                appStore = appStore,
                 tabsTrayStore = tabsTrayStore,
                 displayTabsInGrid = displayTabsInGrid,
                 isInDebugMode = false,
@@ -392,7 +379,7 @@ private fun TabsTrayPreviewRoot(
                     tabsTrayStore.dispatch(TabsTrayAction.AddSelectTab(tab))
                 },
                 onInactiveTabsHeaderClick = { expanded ->
-                    appStore.dispatch(AppAction.UpdateInactiveExpanded(expanded))
+                    tabsTrayStore.dispatch(TabsTrayAction.UpdateInactiveExpanded(expanded))
                 },
                 onDeleteAllInactiveTabsClick = {
                     tabsTrayStore.dispatch(TabsTrayAction.UpdateInactiveTabs(emptyList()))

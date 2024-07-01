@@ -13,13 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.lib.state.ext.observeAsState
-import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.tabstray.inactivetabs.InactiveTabsList
 
 /**
  * UI for displaying the Normal Tabs Page in the Tabs Tray.
  *
- * @param appStore [AppStore] used to listen for changes to [AppState].
  * @param tabsTrayStore [TabsTrayStore] used to listen for changes to [TabsTrayState].
  * @param displayTabsInGrid Whether the normal and private tabs should be displayed in a grid.
  * @param onTabClose Invoked when the user clicks to close a tab.
@@ -46,7 +44,6 @@ import org.mozilla.fenix.tabstray.inactivetabs.InactiveTabsList
 @Composable
 @Suppress("LongParameterList")
 internal fun NormalTabsPage(
-    appStore: AppStore,
     tabsTrayStore: TabsTrayStore,
     displayTabsInGrid: Boolean,
     onTabClose: (TabSessionState) -> Unit,
@@ -67,8 +64,8 @@ internal fun NormalTabsPage(
     onInactiveTabsCFRClick: () -> Unit,
     onInactiveTabsCFRDismiss: () -> Unit,
 ) {
-    val inactiveTabsExpanded by appStore.observeAsState(
-        initialValue = appStore.state.inactiveTabsExpanded,
+    val inactiveTabsExpanded by tabsTrayStore.observeAsState(
+        initialValue = tabsTrayStore.state.inactiveTabsExpanded,
     ) { state -> state.inactiveTabsExpanded }
     val selectedTabId by tabsTrayStore.observeAsState(
         initialValue = tabsTrayStore.state.selectedTabId,

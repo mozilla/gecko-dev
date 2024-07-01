@@ -93,6 +93,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
     @VisibleForTesting internal lateinit var trayBehaviorManager: TabSheetBehaviorManager
 
     private val tabLayoutMediator = ViewBoundFeatureWrapper<TabLayoutMediator>()
+    private val inactiveTabsBinding = ViewBoundFeatureWrapper<InactiveTabsBinding>()
     private val tabCounterBinding = ViewBoundFeatureWrapper<TabCounterBinding>()
     private val floatingActionButtonBinding = ViewBoundFeatureWrapper<FloatingActionButtonBinding>()
     private val selectionBannerBinding = ViewBoundFeatureWrapper<SelectionBannerBinding>()
@@ -148,6 +149,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         }
         val initialPage = args.page
         val activity = activity as HomeActivity
+        val initialInactiveExpanded = requireComponents.appStore.state.inactiveTabsExpanded
 
         tabsTrayStore = StoreProvider.get(this) {
             TabsTrayStore(
@@ -155,6 +157,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                     selectedPage = initialPage,
                     mode = initialMode,
                     selectedTabId = requireComponents.core.store.state.selectedTabId,
+                    inactiveTabsExpanded = initialInactiveExpanded,
                 ),
                 middlewares = listOf(
                     TabsTrayMiddleware(),
@@ -245,7 +248,6 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             tabsTrayComposeBinding.root.setContent {
                 FirefoxTheme(theme = Theme.getTheme(allowPrivateTheme = false)) {
                     TabsTray(
-                        appStore = requireComponents.appStore,
                         tabsTrayStore = tabsTrayStore,
                         displayTabsInGrid = requireContext().settings().gridTabView,
                         isInDebugMode = Config.channel.isDebug ||
@@ -544,6 +546,15 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                 view = view,
             )
         }
+
+        inactiveTabsBinding.set(
+            feature = InactiveTabsBinding(
+                tabsTrayStore = tabsTrayStore,
+                appStore = requireComponents.appStore,
+            ),
+            owner = this,
+            view = view,
+        )
 
         tabsFeature.set(
             feature = TabsFeature(

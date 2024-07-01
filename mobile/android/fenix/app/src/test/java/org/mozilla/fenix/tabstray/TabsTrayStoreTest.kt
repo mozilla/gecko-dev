@@ -5,6 +5,7 @@
 package org.mozilla.fenix.tabstray
 
 import mozilla.components.browser.state.state.createTab
+import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -148,5 +149,16 @@ class TabsTrayStoreTest {
         store.waitUntilIdle()
 
         assertEquals(expected, store.state.selectedTabId)
+    }
+
+    @Test
+    fun `WHEN UpdateInactiveExpanded is dispatched THEN update inactiveTabsExpanded`() {
+        val tabsTrayStore = TabsTrayStore(initialState = TabsTrayState(inactiveTabsExpanded = false))
+
+        assertFalse(tabsTrayStore.state.inactiveTabsExpanded)
+
+        tabsTrayStore.dispatch(TabsTrayAction.UpdateInactiveExpanded(true)).joinBlocking()
+
+        assertTrue(tabsTrayStore.state.inactiveTabsExpanded)
     }
 }

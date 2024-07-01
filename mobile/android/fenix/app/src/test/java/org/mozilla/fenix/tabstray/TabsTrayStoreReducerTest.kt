@@ -6,6 +6,8 @@ package org.mozilla.fenix.tabstray
 
 import mozilla.components.browser.state.state.createTab
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mozilla.fenix.tabstray.syncedtabs.getFakeSyncedTabList
 
@@ -25,6 +27,22 @@ class TabsTrayStoreReducerTest {
         )
 
         assertEquals(expectedState, resultState)
+    }
+
+    @Test
+    fun `GIVEN a new value for inactiveTabsExpanded WHEN UpdateInactiveExpanded is called THEN update the current value`() {
+        val initialState = TabsTrayState(
+            inactiveTabsExpanded = true,
+        )
+
+        var updatedState = TabsTrayReducer.reduce(
+            initialState,
+            TabsTrayAction.UpdateInactiveExpanded(false),
+        )
+        assertFalse(updatedState.inactiveTabsExpanded)
+
+        updatedState = TabsTrayReducer.reduce(updatedState, TabsTrayAction.UpdateInactiveExpanded(true))
+        assertTrue(updatedState.inactiveTabsExpanded)
     }
 
     @Test
