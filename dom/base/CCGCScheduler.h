@@ -530,7 +530,7 @@ class CCGCScheduler {
 
   // Configuration parameters
 
-  TimeDuration mActiveIntersliceGCBudget = TimeDuration::FromMilliseconds(10);
+  TimeDuration mActiveIntersliceGCBudget = TimeDuration::FromMilliseconds(5);
 };
 
 }  // namespace mozilla

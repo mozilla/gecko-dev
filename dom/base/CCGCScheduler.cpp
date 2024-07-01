@@ -705,18 +705,18 @@ JS::SliceBudget CCGCScheduler::ComputeCCSliceBudget(
 
 JS::SliceBudget CCGCScheduler::ComputeInterSliceGCBudget(TimeStamp aDeadline,
                                                          TimeStamp aNow) {
+  // We use longer budgets when the CC has been locked out but the CC has
+  // tried to run since that means we may have a significant amount of
+  // garbage to collect and it's better to GC in several longer slices than
+  // in a very long one.
   TimeDuration budget =
-      aDeadline.IsNull() ? mActiveIntersliceGCBudget : aDeadline - aNow;
+      aDeadline.IsNull() ? mActiveIntersliceGCBudget * 2 : aDeadline - aNow;
   if (!mCCBlockStart) {
     return CreateGCSliceBudget(budget, !aDeadline.IsNull(), false);
   }
 
-  // Use longer budgets when the CC has tried to run but been locked out, since
-  // that means we may have a significant amount of garbage to collect and it's
-  // better to GC in multiple longer slices than one very long one.
-
   TimeDuration blockedTime = aNow - mCCBlockStart;
-  TimeDuration maxSliceGCBudget = mActiveIntersliceGCBudget * 5;
+  TimeDuration maxSliceGCBudget = mActiveIntersliceGCBudget * 10;
   double percentOfBlockedTime =
       std::min(blockedTime / kMaxCCLockedoutTime, 1.0);
   TimeDuration extendedBudget =
@@ -726,7 +726,7 @@ JS::SliceBudget CCGCScheduler::ComputeInterSliceGCBudget(TimeStamp aDeadline,
   }
 
   // If the budget is being extended, do not allow it to be interrupted.
-  auto result = js::SliceBudget(js::TimeBudget(extendedBudget), nullptr);
+  auto result = JS::SliceBudget(JS::TimeBudget(extendedBudget), nullptr);
   result.idle = !aDeadline.IsNull();
   result.extended = true;
   return result;
