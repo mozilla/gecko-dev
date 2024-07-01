@@ -375,9 +375,12 @@ TextureData* TextureData::Create(TextureForwarder* aAllocator,
   if (aAllocFlags & ALLOC_FORCE_REMOTE) {
     RefPtr<CanvasChild> canvasChild = aAllocator->GetCanvasChild();
     if (canvasChild) {
-      return new RecordedTextureData(canvasChild.forget(), aSize, aFormat,
-                                     textureType,
-                                     layers::TexTypeForWebgl(aKnowsCompositor));
+      TextureType webglTextureType = TexTypeForWebgl(aKnowsCompositor);
+      if (canvasChild->EnsureRecorder(aSize, aFormat, textureType,
+                                      webglTextureType)) {
+        return new RecordedTextureData(canvasChild.forget(), aSize, aFormat,
+                                       textureType, webglTextureType);
+      }
     }
     // If we must be remote, but there is no canvas child, then falling back
     // is not possible.

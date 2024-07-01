@@ -60,8 +60,9 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
    * Ensures that the DrawEventRecorder has been created.
    *
    * @params aTextureType the TextureType to create in the CanvasTranslator.
+   * @returns true if the recorder was successfully created
    */
-  void EnsureRecorder(gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
+  bool EnsureRecorder(gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
                       TextureType aTextureType, TextureType aWebglTextureType);
 
   /**

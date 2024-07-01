@@ -25,9 +25,7 @@ RecordedTextureData::RecordedTextureData(
     already_AddRefed<CanvasChild> aCanvasChild, gfx::IntSize aSize,
     gfx::SurfaceFormat aFormat, TextureType aTextureType,
     TextureType aWebglTextureType)
-    : mCanvasChild(aCanvasChild), mSize(aSize), mFormat(aFormat) {
-  mCanvasChild->EnsureRecorder(aSize, aFormat, aTextureType, aWebglTextureType);
-}
+    : mCanvasChild(aCanvasChild), mSize(aSize), mFormat(aFormat) {}
 
 RecordedTextureData::~RecordedTextureData() {
   // We need the translator to drop its reference for the DrawTarget first,

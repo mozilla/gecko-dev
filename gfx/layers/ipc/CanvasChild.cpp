@@ -315,7 +315,7 @@ ipc::IPCResult CanvasChild::RecvBlockCanvas() {
   return IPC_OK();
 }
 
-void CanvasChild::EnsureRecorder(gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
+bool CanvasChild::EnsureRecorder(gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
                                  TextureType aTextureType,
                                  TextureType aWebglTextureType) {
   NS_ASSERT_OWNINGTHREAD(CanvasChild);
@@ -326,16 +326,23 @@ void CanvasChild::EnsureRecorder(gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
     auto recorder = MakeRefPtr<CanvasDrawEventRecorder>(mWorkerRef);
     if (!recorder->Init(aTextureType, aWebglTextureType, backendType,
                         MakeUnique<RecorderHelpers>(this))) {
-      return;
+      return false;
     }
 
     mRecorder = recorder.forget();
   }
 
-  MOZ_RELEASE_ASSERT(mRecorder->GetTextureType() == aTextureType,
-                     "We only support one remote TextureType currently.");
+  if (NS_WARN_IF(mRecorder->GetTextureType() != aTextureType)) {
+    // The recorder has already been initialized with a different type. This can
+    // happen if there is a device reset or fallback that causes a switch to a
+    // different unaccelerated texture type (i.e. unknown). In that case, just
+    // fall back to non-remote rendering.
+    return false;
+  }
 
   EnsureDataSurfaceShmem(aSize, aFormat);
+
+  return true;
 }
 
 void CanvasChild::ActorDestroy(ActorDestroyReason aWhy) {
