@@ -7828,36 +7828,58 @@ void LIRGenerator::visitWasmNewArrayObject(MWasmNewArrayObject* ins) {
 
 #ifdef FUZZING_JS_FUZZILLI
 void LIRGenerator::visitFuzzilliHash(MFuzzilliHash* ins) {
-  MDefinition* value = ins->getOperand(0);
+  MDefinition* value = ins->input();
 
-  if (value->type() == MIRType::Undefined || value->type() == MIRType::Null) {
-    define(new (alloc()) LFuzzilliHashT(LAllocation(), temp(), tempDouble()),
-           ins);
-  } else if (value->type() == MIRType::Int32 ||
-             value->type() == MIRType::Double ||
-             value->type() == MIRType::Float32 ||
-             value->type() == MIRType::Boolean ||
-             value->type() == MIRType::BigInt) {
-    define(new (alloc())
-               LFuzzilliHashT(useRegister(value), temp(), tempDouble()),
-           ins);
-  } else if (value->type() == MIRType::Object) {
-    LFuzzilliHashT* lir =
-        new (alloc()) LFuzzilliHashT(useRegister(value), temp(), tempDouble());
-    define(lir, ins);
-    assignSafepoint(lir, ins);
-  } else if (value->type() == MIRType::Value) {
-    LFuzzilliHashV* lir =
-        new (alloc()) LFuzzilliHashV(useBox(value), temp(), tempDouble());
-    define(lir, ins);
-    assignSafepoint(lir, ins);
-  } else {
-    define(new (alloc()) LInteger(0), ins);
+  switch (value->type()) {
+    case MIRType::Undefined:
+    case MIRType::Null: {
+      auto* lir =
+          new (alloc()) LFuzzilliHashT(LAllocation(), temp(), tempDouble());
+      define(lir, ins);
+      break;
+    }
+
+    case MIRType::Int32:
+    case MIRType::Double:
+    case MIRType::Float32:
+    case MIRType::Boolean: {
+      auto* lir = new (alloc())
+          LFuzzilliHashT(useRegister(value), temp(), tempDouble());
+      define(lir, ins);
+      break;
+    }
+
+    case MIRType::BigInt:
+    case MIRType::Object: {
+      auto* lir = new (alloc())
+          LFuzzilliHashT(useRegister(value), LDefinition::BogusTemp(),
+                         LDefinition::BogusTemp());
+      define(lir, ins);
+      assignSafepoint(lir, ins);
+      break;
+    }
+
+    case MIRType::Value: {
+      auto* lir =
+          new (alloc()) LFuzzilliHashV(useBox(value), temp(), tempDouble());
+      define(lir, ins);
+      assignSafepoint(lir, ins);
+      break;
+    }
+
+    case MIRType::String:
+    case MIRType::Symbol: {
+      define(new (alloc()) LInteger(0), ins);
+      break;
+    }
+
+    default:
+      MOZ_CRASH("Bad type");
   }
 }
 
 void LIRGenerator::visitFuzzilliHashStore(MFuzzilliHashStore* ins) {
-  MDefinition* value = ins->getOperand(0);
+  MDefinition* value = ins->input();
   MOZ_ASSERT(value->type() == MIRType::Int32);
   add(new (alloc()) LFuzzilliHashStore(useRegister(value), temp(), temp()),
       ins);

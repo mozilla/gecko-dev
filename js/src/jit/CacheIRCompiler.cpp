@@ -10448,169 +10448,110 @@ bool CacheIRCompiler::emitAssertPropertyLookup(ObjOperandId objId,
 bool CacheIRCompiler::emitFuzzilliHashResult(ValOperandId valId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
 
+  AutoCallVM callvm(masm, this, allocator);
+  const AutoOutputRegister& output = callvm.output();
+
   ValueOperand input = allocator.useValueRegister(masm, valId);
   AutoScratchRegister scratch(allocator, masm);
-  AutoScratchRegister scratchJSContext(allocator, masm);
+  AutoScratchRegisterMaybeOutput scratch2(allocator, masm, output);
+  AutoScratchRegisterMaybeOutputType scratchJSContext(allocator, masm, output);
   AutoScratchFloatRegister floatReg(this);
-#  ifdef JS_PUNBOX64
-  AutoScratchRegister64 scratch64(allocator, masm);
-#  else
-  AutoScratchRegister scratch2(allocator, masm);
-#  endif
 
-  Label addFloat, updateHash, done;
+  Label hashDouble, updateHash, done;
 
+  Label isInt32, isDouble, isNull, isUndefined, isBoolean, isBigInt, isObject;
   {
     ScratchTagScope tag(masm, input);
     masm.splitTagForTest(input, tag);
 
-    Label notInt32;
-    masm.branchTestInt32(Assembler::NotEqual, tag, &notInt32);
-    {
-      ScratchTagScopeRelease _(&tag);
+    masm.branchTestInt32(Assembler::Equal, tag, &isInt32);
+    masm.branchTestDouble(Assembler::Equal, tag, &isDouble);
+    masm.branchTestNull(Assembler::Equal, tag, &isNull);
+    masm.branchTestUndefined(Assembler::Equal, tag, &isUndefined);
+    masm.branchTestBoolean(Assembler::Equal, tag, &isBoolean);
+    masm.branchTestBigInt(Assembler::Equal, tag, &isBigInt);
+    masm.branchTestObject(Assembler::Equal, tag, &isObject);
 
-      masm.unboxInt32(input, scratch);
-      masm.convertInt32ToDouble(scratch, floatReg);
-      masm.jump(&addFloat);
-    }
-    masm.bind(&notInt32);
-
-    Label notDouble;
-    masm.branchTestDouble(Assembler::NotEqual, tag, &notDouble);
-    {
-      ScratchTagScopeRelease _(&tag);
-
-      masm.unboxDouble(input, floatReg);
-      masm.canonicalizeDouble(floatReg);
-      masm.jump(&addFloat);
-    }
-    masm.bind(&notDouble);
-
-    Label notNull;
-    masm.branchTestNull(Assembler::NotEqual, tag, &notNull);
-    {
-      ScratchTagScopeRelease _(&tag);
-
-      masm.move32(Imm32(1), scratch);
-      masm.convertInt32ToDouble(scratch, floatReg);
-      masm.jump(&addFloat);
-    }
-    masm.bind(&notNull);
-
-    Label notUndefined;
-    masm.branchTestUndefined(Assembler::NotEqual, tag, &notUndefined);
-    {
-      ScratchTagScopeRelease _(&tag);
-
-      masm.move32(Imm32(2), scratch);
-      masm.convertInt32ToDouble(scratch, floatReg);
-      masm.jump(&addFloat);
-    }
-    masm.bind(&notUndefined);
-
-    Label notBoolean;
-    masm.branchTestBoolean(Assembler::NotEqual, tag, &notBoolean);
-    {
-      ScratchTagScopeRelease _(&tag);
-
-      masm.unboxBoolean(input, scratch);
-      masm.add32(Imm32(3), scratch);
-      masm.convertInt32ToDouble(scratch, floatReg);
-      masm.jump(&addFloat);
-    }
-    masm.bind(&notBoolean);
-
-    Label notBigInt;
-    masm.branchTestBigInt(Assembler::NotEqual, tag, &notBigInt);
-    {
-      ScratchTagScopeRelease _(&tag);
-
-      masm.unboxBigInt(input, scratch);
-
-      LiveRegisterSet volatileRegs = liveVolatileRegs();
-      masm.PushRegsInMask(volatileRegs);
-      // TODO: remove floatReg, scratch, scratchJS?
-
-      using Fn = uint32_t (*)(BigInt* bigInt);
-      masm.setupUnalignedABICall(scratchJSContext);
-      masm.loadJSContext(scratchJSContext);
-      masm.passABIArg(scratch);
-      masm.callWithABI<Fn, js::FuzzilliHashBigInt>();
-      masm.storeCallInt32Result(scratch);
-
-      LiveRegisterSet ignore;
-      ignore.add(scratch);
-      ignore.add(scratchJSContext);
-      masm.PopRegsInMaskIgnore(volatileRegs, ignore);
-      masm.jump(&updateHash);
-    }
-    masm.bind(&notBigInt);
-
-    Label notObject;
-    masm.branchTestObject(Assembler::NotEqual, tag, &notObject);
-    {
-      ScratchTagScopeRelease _(&tag);
-
-      AutoCallVM callvm(masm, this, allocator);
-      Register obj = allocator.allocateRegister(masm);
-      masm.unboxObject(input, obj);
-
-      callvm.prepare();
-      masm.Push(obj);
-
-      using Fn = void (*)(JSContext* cx, JSObject* o);
-      callvm.callNoResult<Fn, js::FuzzilliHashObject>();
-      allocator.releaseRegister(obj);
-
-      masm.jump(&done);
-    }
-    masm.bind(&notObject);
-    {
-      masm.move32(Imm32(0), scratch);
-      masm.jump(&updateHash);
-    }
+    // Symbol or String.
+    masm.move32(Imm32(0), scratch);
+    masm.jump(&updateHash);
   }
 
+  masm.bind(&isInt32);
   {
-    masm.bind(&addFloat);
-
-    masm.loadJSContext(scratchJSContext);
-    Address addrExecHash(scratchJSContext, offsetof(JSContext, executionHash));
-
-#  ifdef JS_PUNBOX64
-    masm.moveDoubleToGPR64(floatReg, scratch64);
-    masm.move32(scratch64.get().reg, scratch);
-    masm.rshift64(Imm32(32), scratch64);
-    masm.add32(scratch64.get().reg, scratch);
-#  else
-    Register64 scratch64(scratch, scratch2);
-    masm.moveDoubleToGPR64(floatReg, scratch64);
-    masm.add32(scratch2, scratch);
-#  endif
+    masm.unboxInt32(input, scratch);
+    masm.convertInt32ToDouble(scratch, floatReg);
+    masm.jump(&hashDouble);
   }
 
+  masm.bind(&isDouble);
   {
-    masm.bind(&updateHash);
-
-    masm.loadJSContext(scratchJSContext);
-    Address addrExecHash(scratchJSContext, offsetof(JSContext, executionHash));
-    masm.load32(addrExecHash, scratchJSContext);
-    masm.add32(scratchJSContext, scratch);
-    masm.rotateLeft(Imm32(1), scratch, scratch);
-    masm.loadJSContext(scratchJSContext);
-    masm.store32(scratch, addrExecHash);
-
-    // stats
-    Address addrExecHashInputs(scratchJSContext,
-                               offsetof(JSContext, executionHashInputs));
-    masm.load32(addrExecHashInputs, scratch);
-    masm.add32(Imm32(1), scratch);
-    masm.store32(scratch, addrExecHashInputs);
+    masm.unboxDouble(input, floatReg);
+    masm.jump(&hashDouble);
   }
+
+  masm.bind(&isNull);
+  {
+    masm.loadConstantDouble(1.0, floatReg);
+    masm.jump(&hashDouble);
+  }
+
+  masm.bind(&isUndefined);
+  {
+    masm.loadConstantDouble(2.0, floatReg);
+    masm.jump(&hashDouble);
+  }
+
+  masm.bind(&isBoolean);
+  {
+    masm.unboxBoolean(input, scratch);
+    masm.add32(Imm32(3), scratch);
+    masm.convertInt32ToDouble(scratch, floatReg);
+    masm.jump(&hashDouble);
+  }
+
+  masm.bind(&isBigInt);
+  {
+    masm.unboxBigInt(input, scratch);
+
+    LiveRegisterSet volatileRegs = liveVolatileRegs();
+    masm.PushRegsInMask(volatileRegs);
+
+    using Fn = uint32_t (*)(BigInt* bigInt);
+    masm.setupUnalignedABICall(scratchJSContext);
+    masm.loadJSContext(scratchJSContext);
+    masm.passABIArg(scratch);
+    masm.callWithABI<Fn, js::FuzzilliHashBigInt>();
+    masm.storeCallInt32Result(scratch);
+
+    LiveRegisterSet ignore;
+    ignore.add(scratch);
+    ignore.add(scratchJSContext);
+    masm.PopRegsInMaskIgnore(volatileRegs, ignore);
+    masm.jump(&updateHash);
+  }
+
+  masm.bind(&isObject);
+  {
+    masm.unboxObject(input, scratch);
+
+    callvm.prepare();
+    masm.Push(scratch);
+
+    using Fn = void (*)(JSContext* cx, JSObject* o);
+    callvm.callNoResult<Fn, js::FuzzilliHashObject>();
+
+    masm.jump(&done);
+  }
+
+  masm.bind(&hashDouble);
+  masm.fuzzilliHashDouble(floatReg, scratch, scratch2);
+
+  masm.bind(&updateHash);
+  masm.fuzzilliStoreHash(scratch, scratchJSContext, scratch2);
 
   masm.bind(&done);
 
-  AutoOutputRegister output(*this);
   masm.moveValue(UndefinedValue(), output.valueReg());
   return true;
 }

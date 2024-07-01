@@ -5931,6 +5931,12 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // the value in the low bits.
   void debugAssertCanonicalInt32(Register r);
 #endif
+
+#ifdef FUZZING_JS_FUZZILLI
+  void fuzzilliHashDouble(FloatRegister src, Register result, Register temp);
+
+  void fuzzilliStoreHash(Register value, Register temp1, Register temp2);
+#endif
 };
 
 // StackMacroAssembler checks no GC will happen while it's on the stack.

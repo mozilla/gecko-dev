@@ -9070,6 +9070,46 @@ void MacroAssembler::touchFrameValues(Register numStackValues,
   moveToStackPtr(scratch2);
 }
 
+#ifdef FUZZING_JS_FUZZILLI
+void MacroAssembler::fuzzilliHashDouble(FloatRegister src, Register result,
+                                        Register temp) {
+  canonicalizeDouble(src);
+
+#  ifdef JS_PUNBOX64
+  Register64 r64(temp);
+#  else
+  Register64 r64(temp, result);
+#  endif
+
+  moveDoubleToGPR64(src, r64);
+
+#  ifdef JS_PUNBOX64
+  // Move the high word into |result|.
+  move64(r64, Register64(result));
+  rshift64(Imm32(32), Register64(result));
+#  endif
+
+  // Add the high and low words of |r64|.
+  add32(temp, result);
+}
+
+void MacroAssembler::fuzzilliStoreHash(Register value, Register temp1,
+                                       Register temp2) {
+  loadJSContext(temp1);
+
+  // stats
+  Address addrExecHashInputs(temp1, offsetof(JSContext, executionHashInputs));
+  add32(Imm32(1), addrExecHashInputs);
+
+  // hash
+  Address addrExecHash(temp1, offsetof(JSContext, executionHash));
+  load32(addrExecHash, temp2);
+  add32(value, temp2);
+  rotateLeft(Imm32(1), temp2, temp2);
+  store32(temp2, addrExecHash);
+}
+#endif
+
 namespace js {
 namespace jit {
 
