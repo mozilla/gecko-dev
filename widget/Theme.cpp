@@ -226,7 +226,7 @@ std::tuple<sRGBColor, sRGBColor, sRGBColor> Theme::ComputeCheckboxColors(
     if (isDisabled) {
       auto bg = ComputeBorderColor(aState, aColors, OutlineCoversBorder::No);
       auto fg = aColors.HighContrast()
-                    ? aColors.System(StyleSystemColor::Graytext)
+                    ? aColors.System(StyleSystemColor::Buttonface)
                     : sRGBColor::White(aColors.IsDark() ? .4f : .8f);
       return std::make_tuple(bg, bg, fg);
     }

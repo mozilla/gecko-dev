@@ -227,14 +227,12 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       idx = COLOR_BACKGROUND;
       break;
     case ColorID::Buttonface:
-    case ColorID::Field:
     case ColorID::MozButtonhoverface:
     case ColorID::MozButtonactiveface:
     case ColorID::MozButtondisabledface:
     case ColorID::MozColheader:
     case ColorID::MozColheaderhover:
     case ColorID::MozColheaderactive:
-    case ColorID::MozDisabledfield:
       idx = COLOR_BTNFACE;
       break;
     case ColorID::Buttonhighlight:
@@ -244,7 +242,6 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       idx = COLOR_BTNSHADOW;
       break;
     case ColorID::Buttontext:
-    case ColorID::Fieldtext:
     case ColorID::MozButtonhovertext:
     case ColorID::MozButtonactivetext:
       idx = COLOR_BTNTEXT;
@@ -334,6 +331,16 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       break;
     case ColorID::Windowtext:
       idx = COLOR_WINDOWTEXT;
+      break;
+    case ColorID::MozDisabledfield:
+      idx = nsUXThemeData::IsHighContrastOn() ? COLOR_BTNFACE : COLOR_3DLIGHT;
+      break;
+    case ColorID::Field:
+      idx = nsUXThemeData::IsHighContrastOn() ? COLOR_BTNFACE : COLOR_WINDOW;
+      break;
+    case ColorID::Fieldtext:
+      idx =
+          nsUXThemeData::IsHighContrastOn() ? COLOR_BTNTEXT : COLOR_WINDOWTEXT;
       break;
     case ColorID::MozEventreerow:
     case ColorID::MozOddtreerow:
