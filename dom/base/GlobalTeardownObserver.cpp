@@ -23,6 +23,12 @@ GlobalTeardownObserver::~GlobalTeardownObserver() {
   }
 }
 
+nsGlobalWindowInner* GlobalTeardownObserver::GetOwnerWindow() const {
+  return mHasOrHasHadOwnerWindow
+             ? static_cast<nsGlobalWindowInner*>(mParentObject)
+             : nullptr;
+}
+
 void GlobalTeardownObserver::BindToOwner(nsIGlobalObject* aOwner) {
   MOZ_ASSERT(!mParentObject);
 
