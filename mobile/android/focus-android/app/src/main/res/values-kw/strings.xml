@@ -52,6 +52,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">Dilea a skochfordhow</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Dewisyow</string>
     <string name="menu_about">A-dro</string>
     <string name="menu_help">Gweres</string>
@@ -82,10 +83,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">Kevrenna dre</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">Dilea istori peuri</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -905,7 +902,8 @@
 
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user. -->
-    <string name="tip_autocomplete_url">Eskowlwul DAK rag gwivaow a usydh yn fenowgh %1$s Hirwask py DAK pynag y\'n barr trigva</string>
+    <string name="tip_autocomplete_url">Eskowlwul DAK rag gwivaow a usydh yn fenowgh\n
+        Hirwask py DAK pynag y\'n barr trigva</string>
 
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user. -->

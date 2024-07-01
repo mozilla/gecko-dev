@@ -2304,6 +2304,10 @@
     <string name="review_quality_check_explanation_body_adjusted_grading"><![CDATA[<b>Oikaistu arvosana</b> perustuu vain niihin arvosteluihin, jotka koemme luotettaviksi.]]></string>
     <!-- Paragraph explaining product review highlights. First parameter is the name of the retailer (e.g. Amazon). -->
     <string name="review_quality_check_explanation_body_highlights"><![CDATA[<b>Kohokohdat</b> ovat %s arvostelusta viimeisten 80 päivän ajalta, joiden uskomme olevan luotettavia.]]></string>
+    <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
+    <string name="review_quality_check_info_learn_more">Lue lisää %s.</string>
+    <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->
+    <string name="review_quality_check_info_learn_more_link_2">miten %s määrittää arvostelujen laadun</string>
     <!-- Text for title of settings section. -->
     <string name="review_quality_check_settings_title">Asetukset</string>
     <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->

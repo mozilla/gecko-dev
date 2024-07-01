@@ -156,8 +156,6 @@
 
     <!-- Shortcut action to open Passwords screen -->
     <string name="home_screen_shortcut_passwords">Ewan taq tzij</string>
-    <!-- Shortcut action to open Passwords screen -->
-    <string name="home_screen_shortcut_open_password_screen" moz:removedIn="126" tools:ignore="UnusedResources">Choj okem pa ewan tzij</string>
 
     <!-- Recent Tabs -->
     <!-- Header text for jumping back into the recent tab in the home screen -->
@@ -198,14 +196,10 @@
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">Tiq\'at</string>
 
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons" moz:removedIn="126" tools:ignore="UnusedResources">Taq tz\'aqat</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Taq k\'amal</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Rutzijol rub\'i\' taqoya\'l</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons" moz:removedIn="126" tools:ignore="UnusedResources">Majun tz\'aqat wakami</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">To\'ïk</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -221,8 +215,6 @@
     <string name="browser_menu_open_in_regular_tab">Tijaq pa jun choj ruwi\'</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Titz\'aqatisäx pa ri Rutikirib\'al ruwa</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen" moz:removedIn="126" tools:ignore="UnusedResources">Tiyak</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Tixim chik</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -383,8 +375,6 @@
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text">Firefox ichinan rutzijol</string>
-    <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text_2" moz:removedIn="125" tools:ignore="UnusedResources">Tetamäx chik pa ri rutzijol qichinanem</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Niqa chi qawäch chi atqajikib\'an</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
@@ -572,7 +562,7 @@
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Rub\'i\' taqoya\'l</string>
     <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">Cholsamajib\'äl</string>
+    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Cholsamajib\'äl</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Wachinel</string>
     <!-- Preference for customizing the home screen -->
@@ -591,7 +581,7 @@
     <!-- Preference for language -->
     <string name="preferences_language">Ch\'ab\'äl</string>
     <!-- Preference for translation -->
-    <string name="preferences_translation">Tzalq\'omanïk</string>
+    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">Tzalq\'omanïk</string>
     <!-- Preference for data choices -->
     <string name="preferences_data_choices">Rucha\'ik tzij</string>
     <!-- Preference for data collection -->
@@ -641,13 +631,8 @@
     <!-- Message to indicate users that we are quitting the application to apply the changes -->
     <string name="quit_application">Tajin nel pa ri okisanel richin yejikib\'äx taq jaloj…</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons" moz:removedIn="126" tools:ignore="UnusedResources">Taq tz’aqat</string>
-
     <!-- Preference for extensions -->
     <string name="preferences_extensions">Taq k\'amal</string>
-    <!-- Preference for installing a local add-on -->
-    <string name="preferences_install_local_addon" moz:removedIn="126" tools:ignore="UnusedResources">Tiyak ri tz\'aqat rik\'in ri yakb\'äl</string>
     <!-- Preference for installing a local extension -->
     <string name="preferences_install_local_extension">Tiyak k\'amal rik\'in yakb\'äl</string>
     <!-- Preference for notifications -->
@@ -662,9 +647,6 @@
     <!-- The title of the required permissions section from addon's permissions screen -->
     <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">Rajowaxik</string>
 
-    <!-- Add-on Preferences -->
-    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
-    <string name="preferences_customize_amo_collection" moz:removedIn="126" tools:ignore="UnusedResources">Kimolik ichinan taq Tz\'aqat</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">ÜTZ</string>
     <!-- Button caption to abort the add-on collection configuration -->
@@ -675,8 +657,6 @@
 
     <!-- Hint displayed on input field for custom collection user ID-->
     <string name="customize_addon_collection_user_hint">Rajaw Mol (Winäq ID)</string>
-    <!-- Toast shown after confirming the custom add-on collection configuration -->
-    <string name="toast_customize_addon_collection_done" moz:removedIn="126" tools:ignore="UnusedResources">Xjal kimolaj tz\'aqat. Nitz\'apïx chokoy richin yesamajïx ri taq jaloj…</string>
 
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
@@ -717,7 +697,7 @@
     <!-- Description text for the artist series wallpapers with learn more link. The first parameter is the learn more string defined in wallpaper_learn_more. "Independent voices" is the name of the wallpaper collection -->
     <string name="wallpaper_artist_series_description_with_learn_more">Ri Jamäl ch\'ab\'äl molb\'äl. %s</string>
     <!-- Description text for the artist series wallpapers. "Independent voices" is the name of the wallpaper collection -->
-    <string name="wallpaper_artist_series_description">Ri Jamäl Ch\'ab\'äl molb\'äl. %s</string>
+    <string name="wallpaper_artist_series_description">Ri Jamäl Ch\'ab\'äl molb\'äl.</string>
     <!-- Wallpaper onboarding dialog header text. -->
     <string name="wallpapers_onboarding_dialog_title_text">Tatojtob\'ej jun rub\'onil pa rub\'eyal</string>
 
@@ -726,22 +706,8 @@
     <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
     <string name="wallpapers_onboarding_dialog_explore_more_button_text">Kekanöx ch\'aqa\' rupam ruwäch</string>
 
-    <!-- Add-ons general availability nimbus message-->
-    <!-- Title of the Nimbus message for add-ons general availability-->
-    <string name="addon_ga_message_title" moz:removedIn="126" tools:ignore="UnusedResources">K\'ak\'a\' taq tz\'aqa ewachel wakami</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
     <string name="addon_ga_message_body" tools:ignore="UnusedResources">Ke\'awila\'  +100 k\'ak\'a\' taq k\'amal ri nikiya\' q\'ij chawe\' nawichinaj Firefox.</string>
-    <!-- Button text of the Nimbus message for add-ons general availability. -->
-    <string name="addon_ga_message_button" moz:removedIn="126" tools:ignore="UnusedResources">Kenik\'öx taq tz\'aqat</string>
-
-    <!-- Extension process crash dialog to user -->
-    <!-- Title of a dialog shown to the user when enough errors have occurred with addons and they need to be temporarily disabled -->
-    <string name="addon_process_crash_dialog_title" moz:removedIn="126" tools:ignore="UnusedResources">Echupun jumej ri taq tz\'aqat</string>
-    <!-- This will cause the add-ons to try restarting but the dialog will reappear if it is unsuccessful again -->
-    <string name="addon_process_crash_dialog_retry_button_text" moz:removedIn="126" tools:ignore="UnusedResources">Tatojtob\'ej ye\'atzïj chik ri taq tz\'aqat</string>
-
-    <!-- The user will continue with all add-ons disabled -->
-    <string name="addon_process_crash_dialog_disable_addons_button_text" moz:removedIn="126" tools:ignore="UnusedResources">Kesamajïx chik ri chupun taq tz\'aqat</string>
 
     <!-- Account Preferences -->
     <!-- Preference for managing your account via accounts.firefox.com -->
@@ -756,8 +722,6 @@
     <string name="preferences_sync_history">Natab\'äl</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">Taq yaketal</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins" moz:RemovedIn="125" tools:ignore="UnusedResources">Ketikirisäx molojri\'ïl</string>
     <!-- Preference for syncing passwords -->
     <string name="preferences_sync_logins_2">Ewan taq tzij</string>
     <!-- Preference for syncing tabs -->
@@ -785,8 +749,6 @@
         and the third is the device model. -->
     <string name="default_device_name_2">%1$s pa %2$s %3$s</string>
 
-    <!-- Preference for syncing credit cards -->
-    <string name="preferences_sync_credit_cards" moz:RemovedIn="125" tools:ignore="UnusedResources">Rutarjeta\' kre\'ito\'</string>
     <!-- Preference for syncing payment methods -->
     <string name="preferences_sync_credit_cards_2">Rub\'eyal tojïk</string>
     <!-- Preference for syncing addresses -->
@@ -863,7 +825,7 @@
     <string name="preference_gestures_dynamic_toolbar">Taq\'axaj richin nawewaj ri ajkajtz\'ik</string>
 
     <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs">Tiq\'axäx ri ajkajtz\'ik chi taq ruchi\' richin nijal ruwi\'</string>
+    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Tiq\'axäx ri ajkajtz\'ik chi taq ruchi\' richin nijal ruwi\'</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Tiq\'axäx ri ajkatz\'ik ajsik richin yejaq taq ruwi\'</string>
 
@@ -1447,10 +1409,6 @@
     <string name="qr_scanner_dialog_invalid_ok">ÜTZ</string>
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">¿La kan nawajo\' nayuj %1$s?</string>
-    <!-- Collection and tab deletion prompt dialog message. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_message">Rik\'in niyuj re ruwi\' re\' xkeyuj ronojel ri mol. Yatikïr ye\'atz\'ük k\'ak\'a\' taq mol xab\'achike ramaj.</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">¿La niyuj %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Tiyuj</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
@@ -1723,11 +1681,7 @@
     <string name="add_to_homescreen_description_2">Anin yatikïr naya\' re ajk\'amaya\'l pa ri Rutikirib\'al ruxaq okisab\'al richin aninäq nawokisaj chuqa\' aninäq yatok pa k\'amaya\'l, achi\'el ta xa jun chokoy.</string>
 
     <!-- Preference for managing the settings for logins and passwords in Fenix -->
-    <string name="preferences_passwords_logins_and_passwords" moz:RemovedIn="125" tools:ignore="UnusedResources">Kitikirisaxik molojri\'ïl chuqa\' ewan taq tzij</string>
-    <!-- Preference for managing the settings for logins and passwords in Fenix -->
     <string name="preferences_passwords_logins_and_passwords_2">Ewan taq tzij</string>
-    <!-- Preference for managing the saving of logins and passwords in Fenix -->
-    <string name="preferences_passwords_save_logins" moz:RemovedIn="125" tools:ignore="UnusedResources">Keyak kitikirisaxik molojri\'ïl chuqa\' ewan taq tzij</string>
     <!-- Preference for managing the saving of logins and passwords in Fenix -->
     <string name="preferences_passwords_save_logins_2">Keyak ewan taq tzij</string>
     <!-- Preference option for asking to save passwords in Fenix -->
@@ -1739,38 +1693,20 @@
     <string name="preferences_passwords_autofill2">Tinojisäx ruyonil pa %1$s</string>
     <!-- Preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill">Titz\'aqatisäx ruyon pa ch\'aqa\' chik taq okisab\'äl.</string>
-    <!-- Preference option for adding a login -->
-    <string name="preferences_logins_add_login" moz:RemovedIn="125" tools:ignore="UnusedResources">Tatz\'aqatisaj rutikirib\'al molojri\'ïl</string>
 
     <!-- Preference option for adding a password -->
     <string name="preferences_logins_add_login_2">Titz\'aqatisäx ewan tzij</string>
 
     <!-- Preference for syncing saved passwords in Fenix -->
-    <string name="preferences_passwords_sync_logins" moz:RemovedIn="125" tools:ignore="UnusedResources">Sync tikirisanïk molojri\'ïl</string>
-    <!-- Preference for syncing saved passwords in Fenix -->
     <string name="preferences_passwords_sync_logins_2">Kexim ewan taq tzij</string>
-    <!-- Preference for syncing saved logins in Fenix, when not signed in-->
-    <string name="preferences_passwords_sync_logins_across_devices" moz:RemovedIn="125" tools:ignore="UnusedResources">Sync rutikirib\'al molojri\'ïl rik\'in okisaxel</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins" moz:RemovedIn="125" tools:ignore="UnusedResources">Xeyak kitikirisaxik mojojri\'ïl</string>
     <!-- Preference to access list of saved passwords -->
     <string name="preferences_passwords_saved_logins_2">Xeyak ewan taq tzij</string>
-    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
-    <string name="preferences_passwords_saved_logins_description_empty_text" moz:RemovedIn="125" tools:ignore="UnusedResources">Wawe\' xkeq\'alajin ri taq tikirisanïk molojri\'ïl xke\'ayäk o xke\'axïm rik\'in %s.</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link" moz:RemovedIn="125" tools:ignore="UnusedResources">Tawetamaj ch\'aqa\' chik chi rij ri Sync.</string>
     <!-- Clickable text for opening an external link for more information about Sync. -->
     <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Tawetamaj ch\'aqa\' chik chi rij ri sync</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Taq man relik ta</string>
-    <!-- Empty description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description_empty" moz:RemovedIn="125" tools:ignore="UnusedResources">Wawe\' xkeq\'alajin ri taq tikirisanïk molojri\'ïl chuqa\' ri ewan taq tzij man yeyak ta.</string>
-    <!-- Description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description" moz:RemovedIn="125" tools:ignore="UnusedResources">Man xkeyak ta ri taq tikirisanïk molojri\'ïl chuqa\' ri ewan taq kitzij re taq ruxaq re\'.</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">Tiyuj ronojel man relik ta</string>
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search" moz:RemovedIn="125" tools:ignore="UnusedResources">Kekanöx tikirib\'äl taq molojri\'ïl</string>
     <!-- Hint for search box in passwords list -->
     <string name="preferences_passwords_saved_logins_search_2">Kekanöx ewan taq tzij</string>
     <!-- The header for the site that a login is for -->
@@ -1800,14 +1736,8 @@
     <string name="saved_login_reveal_password">Tik\'ut ewan tzij</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">Tewäx ewan tzij</string>
-    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their logins -->
-    <string name="logins_biometric_prompt_message" moz:RemovedIn="125" tools:ignore="UnusedResources">Man tiq\'at chik richin ye\'atz\'ët ri tikirib\'äl amolojri\'ïl e\'ayakon</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their passwords -->
     <string name="logins_biometric_prompt_message_2">Man tiq\'at chik richin ye\'atz\'ët ri ewan taq tzij e\'ayakon</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_title" moz:RemovedIn="125" tools:ignore="UnusedResources">Ke\'ajikib\'a\' kitikirisaxik amolojri\'ïl chuqa\' ewan taq atzij</string>
-    <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_message" moz:RemovedIn="125" tools:ignore="UnusedResources">Tab\'ana\' runuk\'ulem jun retal ruq\'atoj okisab\'äl, jun PIN o jun ewan tzij richin nachajij ri kitikirib\'al amolojri\'ïl chuqa\' ewan taq atzij e\'ayakon we xa ta k\'o xtichapo ri awokisab\'al.</string>
     <!-- Message of warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_message_2">Tab\'ana\' runuk\'ulem jun retal ruq\'atoj okisab\'äl, jun PIN o jun ewan tzij richin nachajij ri ewan taq atzij e\'ayakon we xa ta k\'o xtichapo ri awokisab\'al.</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
@@ -1828,34 +1758,22 @@
 
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">Ruk\'isib\'äl mul xokisäx</string>
-    <!-- Content description (not visible, for screen readers etc.): Sort saved logins dropdown menu chevron icon -->
-    <string name="saved_logins_menu_dropdown_chevron_icon_content_description" moz:RemovedIn="125" tools:ignore="UnusedResources">Ticholajïx ruk\'utsamaj rutikirib\'al molojri\'ïl</string>
 
     <!-- Autofill -->
     <!-- Preference and title for managing the autofill settings -->
     <string name="preferences_autofill">Nunojisaj pa ruyonil</string>
     <!-- Preference and title for managing the settings for addresses -->
     <string name="preferences_addresses">Taq ochochib\'äl</string>
-    <!-- Preference and title for managing the settings for credit cards -->
-    <string name="preferences_credit_cards" moz:RemovedIn="125" tools:ignore="UnusedResources">Rutarjeta\' kre\'ito\'</string>
     <!-- Preference and title for managing the settings for payment methods -->
     <string name="preferences_credit_cards_2">Rub\'eyal tojïk</string>
-    <!-- Preference for saving and autofilling credit cards -->
-    <string name="preferences_credit_cards_save_and_autofill_cards" moz:RemovedIn="125" tools:ignore="UnusedResources">Keyak chuqa\' ruyon kenojisäx ri tarjeta\'</string>
 
-    <!-- Preference summary for saving and autofilling credit card data -->
-    <string name="preferences_credit_cards_save_and_autofill_cards_summary" moz:RemovedIn="125" tools:ignore="UnusedResources">Ewan kisik\'ixik ri taq tzij</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
     <string name="preferences_credit_cards_sync_cards_across_devices">Sync tarjeta\' chi kikojol okisab\'äl</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
     <string name="preferences_credit_cards_sync_cards">Sync taq tarjeta\'</string>
-    <!-- Preference option for adding a credit card -->
-    <string name="preferences_credit_cards_add_credit_card" moz:RemovedIn="125" tools:ignore="UnusedResources">Titz\'aqatisäx rutarjeta\' kre\'ito\'</string>
 
     <!-- Preference option for adding a card -->
     <string name="preferences_credit_cards_add_credit_card_2">Titz\'aqatisäx tarjeta\'</string>
-    <!-- Preference option for managing saved credit cards -->
-    <string name="preferences_credit_cards_manage_saved_cards" moz:RemovedIn="125" tools:ignore="UnusedResources">Kenuk\'samajïx yakon taq tarjeta\'</string>
 
     <!-- Preference option for managing saved cards -->
     <string name="preferences_credit_cards_manage_saved_cards_2">Kenuk\'samajïx taq tarjeta\'</string>
@@ -1863,8 +1781,6 @@
     <string name="preferences_addresses_add_address">Titz\'aqatisäx ochochib\'äl</string>
     <!-- Preference option for managing saved addresses -->
     <string name="preferences_addresses_manage_addresses">Kenuk\'samajïx taq ochochib\'äl</string>
-    <!-- Preference for saving and autofilling addresses -->
-    <string name="preferences_addresses_save_and_autofill_addresses" moz:RemovedIn="125" tools:ignore="UnusedResources">Keyak chuqa\' ruyon kenojisäx ri ochochib\'äl</string>
 
     <!-- Preference for saving and filling addresses -->
     <string name="preferences_addresses_save_and_autofill_addresses_2">Keyak chuqa\' kenojisäx ri ochochib\'äl</string>
@@ -1902,17 +1818,10 @@
     <!-- Title of the "Saved cards" screen -->
     <string name="credit_cards_saved_cards">Keyak tarjeta\'</string>
 
-    <!-- Error message for credit card number validation -->
-    <string name="credit_cards_number_validation_error_message" moz:RemovedIn="125" tools:ignore="UnusedResources">Titz\'ib\'äx jun okel rajilab\'al rutarjeta\' kre\'ito\'</string>
-
-    <!-- Error message for credit card name on card validation -->
-    <string name="credit_cards_name_on_card_validation_error_message" moz:RemovedIn="125" tools:ignore="UnusedResources">Tanojisaj re k\'ojlem re\'</string>
     <!-- Error message for card name on card validation -->
     <string name="credit_cards_name_on_card_validation_error_message_2">Titz\'aqatisäx jun b\'i\'aj</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
     <string name="credit_cards_biometric_prompt_message">Man tiq\'at chik richin ye\'atz\'ët ri tarjeta\' e\'ayakon</string>
-    <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="credit_cards_warning_dialog_message" moz:RemovedIn="125" tools:ignore="UnusedResources">Tab\'ana\' runuk\'ulem jun retal ruq\'atoj okisab\'äl, jun PIN o jun ewan tzij richin nachajij ri kre\'ito\' tarjeta\' e\'ayakon we xa ta k\'o xtichapo ri awokisab\'al.</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_set_up_now">Tib\'an runuk\'ulem wakami</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
@@ -1926,12 +1835,6 @@
     <string name="addresses_edit_address">Tinuk\' ochochib\'äl</string>
     <!-- Title of the "Manage addresses" screen -->
     <string name="addresses_manage_addresses">Kenuk\'samajïx taq ochochib\'äl</string>
-    <!-- The header for the first name of an address -->
-    <string name="addresses_first_name" moz:removedIn="125" tools:ignore="UnusedResources">Nab\'ey B\'i\'aj</string>
-    <!-- The header for the middle name of an address -->
-    <string name="addresses_middle_name" moz:removedIn="125" tools:ignore="UnusedResources">Ruka\'n B\'i\'aj</string>
-    <!-- The header for the last name of an address -->
-    <string name="addresses_last_name" moz:removedIn="125" tools:ignore="UnusedResources">Ruka\'n B\'i\'aj</string>
     <!-- The header for the name of an address. Name represents a person's full name, typically made up of a first, middle and last name, e.g. John Joe Doe. -->
     <string name="addresses_name">B\'i\'aj</string>
     <!-- The header for the street address of an address -->
@@ -1956,8 +1859,6 @@
     <string name="addresses_cancel_button">Tiq\'at</string>
     <!-- The text for the "Delete address" button for deleting an address -->
     <string name="addressess_delete_address_button">Keyuj ochochib\'äl</string>
-    <!-- The title for the "Delete address" confirmation dialog -->
-    <string name="addressess_confirm_dialog_message" moz:RemovedIn="125" tools:ignore="UnusedResources">¿La at jikil chi nawajo\' nayüj re ochochib\'äl re\'?</string>
     <!-- The text for the positive button on "Delete address" dialog -->
     <string name="addressess_confirm_dialog_ok_button">Tiyuj</string>
     <!-- The text for the negative button on "Delete address" dialog -->
@@ -2047,40 +1948,20 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
     <string name="login_menu_delete_button">Tiyuj</string>
     <!-- Login overflow menu edit button -->
     <string name="login_menu_edit_button">Tinuk\'</string>
-    <!-- Message in delete confirmation dialog for logins -->
-    <string name="login_deletion_confirmation" moz:RemovedIn="125" tools:ignore="UnusedResources">¿La kan nawajo\' chi niyuj el re tikirib\'äl molojri\'ïl re\'?</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">Tiyuj</string>
     <!-- Negative action of a dialog asking to delete login -->
     <string name="dialog_delete_negative">Tiq\'at</string>
-    <!--  The saved login options menu description. -->
-    <string name="login_options_menu" moz:RemovedIn="125" tools:ignore="UnusedResources">Taq rucha\'oj rutikirib\'al molojri\'ïl</string>
-    <!--  The editable text field for a login's web address. -->
-    <string name="saved_login_hostname_description" moz:RemovedIn="125" tools:ignore="UnusedResources">Ruk\'ojlem nuk\'el rutz\'ib\'axik rochochib\'al ajk\'amaya\'l pa ri rutikirib\'al molojri\'ïl.</string>
-    <!--  The editable text field for a login's username. -->
-    <string name="saved_login_username_description" moz:RemovedIn="125" tools:ignore="UnusedResources">Ruk\'ojlem nuk\'el rutz\'ib\'axik rub\'i\' winäq pa ri rutikirib\'al molojri\'ïl.</string>
-    <!--  The editable text field for a login's password. -->
-    <string name="saved_login_password_description" moz:RemovedIn="125" tools:ignore="UnusedResources">Ruk\'ojlem nuk\'el rutz\'ib\'axik ewan tzij pa ri rutikirib\'al molojri\'ïl.</string>
     <!--  The editable text field for a login's password. -->
     <string name="saved_login_password_description_2">Ruk\'ojlem nuk\'el rutz\'ib\'axik ewan tzij.</string>
-    <!--  The button description to save changes to an edited login. -->
-    <string name="save_changes_to_login" moz:RemovedIn="125" tools:ignore="UnusedResources">Keyaj taq jaloj richin ri rutikirib\'al molojri\'ïl.</string>
     <!--  The button description to save changes to an edited password. -->
     <string name="save_changes_to_login_2">Keyak taq jaloj.</string>
-    <!--  The page title for editing a saved login. -->
-    <string name="edit" moz:RemovedIn="125" tools:ignore="UnusedResources">Tinuk\'</string>
     <!--  The page title for editing a saved password. -->
     <string name="edit_2">Tinuk\' ewan tzij</string>
-    <!--  The page title for adding new login. -->
-    <string name="add_login" moz:RemovedIn="125" tools:ignore="UnusedResources">Titz\'aqatisäx k\'ak\'a\' rub\'i\' taqoya\'l</string>
     <!--  The page title for adding new password. -->
     <string name="add_login_2">Titz\'aqatisäx ewan tzij</string>
-    <!--  The error message in add/edit login view when password field is blank. -->
-    <string name="saved_login_password_required" moz:RemovedIn="125" tools:ignore="UnusedResources">Najowäx ewan tzij</string>
     <!--  Error text displayed underneath the password field when it is in an error case. -->
     <string name="saved_login_password_required_2">Titz\'ib\'äx jun ewan tzij</string>
-    <!--  The error message in add login view when username field is blank. -->
-    <string name="saved_login_username_required" moz:RemovedIn="125" tools:ignore="UnusedResources">Najowäx rub\'i\' okisanel</string>
     <!--  The error message in add login view when username field is blank. -->
     <string name="saved_login_username_required_2">Titz\'ib\'äx jun ewan rutzij okisaxel</string>
     <!--  The error message in add login view when hostname field is blank. -->
@@ -2256,5 +2137,6 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
 
 
     <!-- Micro survey -->
+
 
     </resources>

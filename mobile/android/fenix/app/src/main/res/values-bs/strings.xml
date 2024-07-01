@@ -1128,7 +1128,7 @@
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">Oprostite. %1$s ne može učitati stranicu.</string>
     <!-- Send crash report checkbox text on the tab crash page -->
-    <string name="tab_crash_send_report">Pošalji izvještaj o rušenju %1$s-i</string>
+    <string name="tab_crash_send_report">Pošalji izvještaj o rušenju Mozilla-i</string>
     <!-- Close tab button text on the tab crash page -->
     <string name="tab_crash_close">Zatvori tab</string>
     <!-- Restore tab button text on the tab crash page -->
