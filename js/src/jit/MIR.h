@@ -3272,33 +3272,10 @@ class MBindFunction
 };
 
 class MToFPInstruction : public MUnaryInstruction, public ToDoublePolicy::Data {
- public:
-  // Types of values which can be converted.
-  enum ConversionKind { NonStringPrimitives, NumbersOnly };
-
- private:
-  ConversionKind conversion_;
-
  protected:
-  MToFPInstruction(Opcode op, MDefinition* def,
-                   ConversionKind conversion = NonStringPrimitives)
-      : MUnaryInstruction(op, def), conversion_(conversion) {}
-
- public:
-  ConversionKind conversion() const { return conversion_; }
-};
-
-// Converts a primitive (either typed or untyped) to a double. If the input is
-// not primitive at runtime, a bailout occurs.
-class MToDouble : public MToFPInstruction {
- private:
-  TruncateKind implicitTruncate_;
-
-  explicit MToDouble(MDefinition* def,
-                     ConversionKind conversion = NonStringPrimitives)
-      : MToFPInstruction(classOpcode, def, conversion),
-        implicitTruncate_(TruncateKind::NoTruncate) {
-    setResultType(MIRType::Double);
+  MToFPInstruction(Opcode op, MDefinition* def, MIRType resultType)
+      : MUnaryInstruction(op, def) {
+    setResultType(resultType);
     setMovable();
 
     // Guard unless the conversion is known to be non-effectful & non-throwing.
@@ -3308,6 +3285,16 @@ class MToDouble : public MToFPInstruction {
       setGuard();
     }
   }
+};
+
+// Converts a primitive (either typed or untyped) to a double. If the input is
+// not primitive at runtime, a bailout occurs.
+class MToDouble : public MToFPInstruction {
+ private:
+  TruncateKind implicitTruncate_ = TruncateKind::NoTruncate;
+
+  explicit MToDouble(MDefinition* def)
+      : MToFPInstruction(classOpcode, def, MIRType::Double) {}
 
  public:
   INSTRUCTION_HEADER(ToDouble)
@@ -3315,9 +3302,6 @@ class MToDouble : public MToFPInstruction {
 
   MDefinition* foldsTo(TempAllocator& alloc) override;
   bool congruentTo(const MDefinition* ins) const override {
-    if (!ins->isToDouble() || ins->toToDouble()->conversion() != conversion()) {
-      return false;
-    }
     return congruentIfOperandsEqual(ins);
   }
   AliasSet getAliasSet() const override { return AliasSet::None(); }
@@ -3358,22 +3342,10 @@ class MToDouble : public MToFPInstruction {
 // Converts a primitive (either typed or untyped) to a float32. If the input is
 // not primitive at runtime, a bailout occurs.
 class MToFloat32 : public MToFPInstruction {
-  bool mustPreserveNaN_;
+  bool mustPreserveNaN_ = false;
 
-  explicit MToFloat32(MDefinition* def,
-                      ConversionKind conversion = NonStringPrimitives)
-      : MToFPInstruction(classOpcode, def, conversion),
-        mustPreserveNaN_(false) {
-    setResultType(MIRType::Float32);
-    setMovable();
-
-    // Guard unless the conversion is known to be non-effectful & non-throwing.
-    if (!def->definitelyType({MIRType::Undefined, MIRType::Null,
-                              MIRType::Boolean, MIRType::Int32, MIRType::Double,
-                              MIRType::Float32, MIRType::String})) {
-      setGuard();
-    }
-  }
+  explicit MToFloat32(MDefinition* def)
+      : MToFPInstruction(classOpcode, def, MIRType::Float32) {}
 
   explicit MToFloat32(MDefinition* def, bool mustPreserveNaN)
       : MToFloat32(def) {
@@ -3389,9 +3361,7 @@ class MToFloat32 : public MToFPInstruction {
     if (!congruentIfOperandsEqual(ins)) {
       return false;
     }
-    auto* other = ins->toToFloat32();
-    return other->conversion() == conversion() &&
-           other->mustPreserveNaN_ == mustPreserveNaN_;
+    return ins->toToFloat32()->mustPreserveNaN_ == mustPreserveNaN_;
   }
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 

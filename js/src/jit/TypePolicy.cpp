@@ -624,33 +624,16 @@ bool ToDoublePolicy::staticAdjustInputs(TempAllocator& alloc,
   MOZ_ASSERT(ins->isToDouble() || ins->isToFloat32());
 
   MDefinition* in = ins->getOperand(0);
-  MToFPInstruction::ConversionKind conversion;
-  if (ins->isToDouble()) {
-    conversion = ins->toToDouble()->conversion();
-  } else {
-    conversion = ins->toToFloat32()->conversion();
-  }
-
   switch (in->type()) {
     case MIRType::Int32:
     case MIRType::Float32:
     case MIRType::Double:
     case MIRType::Value:
-      // No need for boxing for these types.
-      return true;
     case MIRType::Null:
-      // No need for boxing, when we will convert.
-      if (conversion == MToFPInstruction::NonStringPrimitives) {
-        return true;
-      }
-      break;
     case MIRType::Undefined:
     case MIRType::Boolean:
-      // No need for boxing, when we will convert.
-      if (conversion == MToFPInstruction::NonStringPrimitives) {
-        return true;
-      }
-      break;
+      // No need for boxing for these types.
+      return true;
     case MIRType::Object:
     case MIRType::String:
     case MIRType::Symbol:

@@ -2877,8 +2877,6 @@ void LIRGenerator::visitOsrArgumentsObject(MOsrArgumentsObject* object) {
 
 void LIRGenerator::visitToDouble(MToDouble* convert) {
   MDefinition* opd = convert->input();
-  mozilla::DebugOnly<MToFPInstruction::ConversionKind> conversion =
-      convert->conversion();
 
   switch (opd->type()) {
     case MIRType::Value: {
@@ -2889,19 +2887,14 @@ void LIRGenerator::visitToDouble(MToDouble* convert) {
     }
 
     case MIRType::Null:
-      MOZ_ASSERT(conversion == MToFPInstruction::NonStringPrimitives);
       lowerConstantDouble(0, convert);
       break;
 
     case MIRType::Undefined:
-      MOZ_ASSERT(conversion == MToFPInstruction::NonStringPrimitives);
       lowerConstantDouble(GenericNaN(), convert);
       break;
 
     case MIRType::Boolean:
-      MOZ_ASSERT(conversion == MToFPInstruction::NonStringPrimitives);
-      [[fallthrough]];
-
     case MIRType::Int32: {
       LInt32ToDouble* lir =
           new (alloc()) LInt32ToDouble(useRegisterAtStart(opd));
@@ -2929,8 +2922,6 @@ void LIRGenerator::visitToDouble(MToDouble* convert) {
 
 void LIRGenerator::visitToFloat32(MToFloat32* convert) {
   MDefinition* opd = convert->input();
-  mozilla::DebugOnly<MToFloat32::ConversionKind> conversion =
-      convert->conversion();
 
   switch (opd->type()) {
     case MIRType::Value: {
@@ -2941,19 +2932,14 @@ void LIRGenerator::visitToFloat32(MToFloat32* convert) {
     }
 
     case MIRType::Null:
-      MOZ_ASSERT(conversion == MToFPInstruction::NonStringPrimitives);
       lowerConstantFloat32(0, convert);
       break;
 
     case MIRType::Undefined:
-      MOZ_ASSERT(conversion == MToFPInstruction::NonStringPrimitives);
       lowerConstantFloat32(GenericNaN(), convert);
       break;
 
     case MIRType::Boolean:
-      MOZ_ASSERT(conversion == MToFPInstruction::NonStringPrimitives);
-      [[fallthrough]];
-
     case MIRType::Int32: {
       LInt32ToFloat32* lir =
           new (alloc()) LInt32ToFloat32(useRegisterAtStart(opd));
