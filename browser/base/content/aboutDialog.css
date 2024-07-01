@@ -141,38 +141,28 @@
   display: grid;
 }
 
-#icons {
+#updateIcon {
   align-self: center;
   grid-row-start: 1;
   grid-row-end: 2;
   grid-column-start: 1;
   grid-column-end: 2;
+  -moz-context-properties: fill;
+  fill: currentColor;
+  width: 16px;
+  height: 16px;
+  margin-inline: 5px;
 
-  > .icon {
-    vertical-align: middle;
-    -moz-context-properties: fill;
-    fill: currentColor;
-    width: 16px;
-    height: 16px;
-    margin-inline: 5px;
-  }
-
-  &:not(.checkingForUpdates, .downloading, .applying, .restarting) > .update-throbber,
-  &:not(.noUpdatesFound) > .noUpdatesFound,
-  &:not(.apply) > .apply {
-    display: none;
-  }
-
-  > .noUpdatesFound {
+  &.noUpdatesFound {
     content: url("chrome://global/skin/icons/check.svg");
     fill: #30e60b;
   }
 
-  > .apply {
+  &.apply {
     content: url("chrome://global/skin/icons/reload.svg");
   }
 
-  > .update-throbber {
+  &:is(.checkingForUpdates, .downloading, .applying, .restarting) {
     content: url("chrome://global/skin/icons/loading.svg");
   }
 }

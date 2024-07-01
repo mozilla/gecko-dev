@@ -185,17 +185,16 @@ appUpdater.prototype = {
   },
 
   /**
-   * Sets the panel of the updateDeck and the visibility of icons
-   * in the #icons element.
+   * Sets the panel of the updateDeck and the icon class.
    *
    * @param  aChildID
    *         The id of the deck's child to select, e.g. "apply".
    */
   selectPanel(aChildID) {
     let panel = document.getElementById(aChildID);
-    let icons = document.getElementById("icons");
-    if (icons) {
-      icons.className = aChildID;
+    let icon = document.getElementById("updateIcon");
+    if (icon) {
+      icon.className = aChildID;
     }
 
     // Make sure to select the panel before potentially auto-focusing the button.

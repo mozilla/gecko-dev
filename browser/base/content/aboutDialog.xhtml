@@ -60,11 +60,7 @@
         <vbox id="detailsBox">
           <hbox id="updateBox">
 #ifdef MOZ_UPDATER
-            <html:div id="icons">
-              <html:img class="icon update-throbber" role="presentation"/>
-              <html:img class="icon noUpdatesFound" role="presentation"/>
-              <html:img class="icon apply" role="presentation"/>
-            </html:div>
+            <html:img id="updateIcon" role="presentation"/>
             <vbox id="updateInfo">
               <deck id="updateDeck" orient="vertical">
                 <description id="checkForUpdates">
