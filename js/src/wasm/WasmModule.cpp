@@ -20,7 +20,7 @@
 
 #include <chrono>
 
-#include "js/BuildId.h"       // JS::BuildIdCharVector
+#include "js/BuildId.h"                 // JS::BuildIdCharVector
 #include "js/experimental/TypedData.h"  // JS_NewUint8Array
 #include "js/friend/ErrorMessages.h"    // js::GetErrorMessage, JSMSG_*
 #include "js/Printf.h"                  // JS_smprintf
