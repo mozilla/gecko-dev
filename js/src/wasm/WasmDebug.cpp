@@ -60,7 +60,7 @@ void DebugState::finalize(JS::GCContext* gcx) {
   }
 }
 
-static const CallSite* SlowCallSiteSearchByOffset(const CodeTier& code,
+static const CallSite* SlowCallSiteSearchByOffset(const CodeBlock& code,
                                                   uint32_t offset) {
   for (const CallSite& callSite : code.callSites) {
     if (callSite.lineOrBytecode() == offset &&

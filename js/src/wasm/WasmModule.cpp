@@ -167,14 +167,14 @@ void Module::startTier2(const CompileArgs& args, const ShareableBytes& bytecode,
 }
 
 bool Module::finishTier2(const LinkData& linkData2,
-                         UniqueCodeTier code2) const {
+                         UniqueCodeBlock code2) const {
   MOZ_ASSERT(code().bestTier() == Tier::Baseline &&
              code2->tier == Tier::Optimized);
 
   // Install the data in the data structures. They will not be visible
   // until commitTier2().
 
-  const CodeTier* borrowedTier2;
+  const CodeBlock* borrowedTier2;
   if (!code().setAndBorrowTier2(std::move(code2), linkData2, &borrowedTier2)) {
     return false;
   }

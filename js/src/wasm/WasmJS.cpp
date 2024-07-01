@@ -1126,7 +1126,7 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
 
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
   const CodeMetadata& codeMeta = module->codeMeta();
-  const CodeTier& codeTier = module->code(module->code().stableTier());
+  const CodeBlock& codeBlock = module->code(module->code().stableTier());
 
   size_t numFuncImport = 0;
   size_t numMemoryImport = 0;
@@ -1168,7 +1168,7 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
       case DefinitionKind::Function: {
         size_t funcIndex = numFuncImport++;
         const FuncType& funcType =
-            codeMeta.getFuncImportType(codeTier.funcImports[funcIndex]);
+            codeMeta.getFuncImportType(codeBlock.funcImports[funcIndex]);
         typeObj = FuncTypeToObject(cx, funcType);
         break;
       }
@@ -1248,7 +1248,7 @@ bool WasmModuleObject::exports(JSContext* cx, unsigned argc, Value* vp) {
 
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
   const CodeMetadata& codeMeta = module->codeMeta();
-  const CodeTier& codeTier = module->code(module->code().stableTier());
+  const CodeBlock& codeBlock = module->code(module->code().stableTier());
 #endif  // ENABLE_WASM_TYPE_REFLECTIONS
 
   for (const Export& exp : moduleMeta.exports) {
@@ -1275,7 +1275,7 @@ bool WasmModuleObject::exports(JSContext* cx, unsigned argc, Value* vp) {
     RootedObject typeObj(cx);
     switch (exp.kind()) {
       case DefinitionKind::Function: {
-        const FuncExport& fe = codeTier.lookupFuncExport(exp.funcIndex());
+        const FuncExport& fe = codeBlock.lookupFuncExport(exp.funcIndex());
         const FuncType& funcType = codeMeta.getFuncExportType(fe);
         typeObj = FuncTypeToObject(cx, funcType);
         break;
@@ -1949,7 +1949,7 @@ static bool WasmCall(JSContext* cx, unsigned argc, Value* vp) {
  *
  * The explicitly exported functions have stubs created for them eagerly.  Eager
  * stubs are created with their tier when the module is compiled, see
- * ModuleGenerator::finishCodeTier(), which calls wasm::GenerateStubs(), which
+ * ModuleGenerator::finishCodeBlock(), which calls wasm::GenerateStubs(), which
  * generates stubs for functions with eager stubs.
  *
  * An eager stub for tier-1 is upgraded to tier-2 if the module tiers up, see
@@ -2164,12 +2164,12 @@ bool WasmInstanceObject::getExportedFunction(
   fun->setExtendedSlot(FunctionExtended::WASM_STV_SLOT,
                        PrivateValue((void*)funcTypeDef.superTypeVector()));
 
-  const CodeTier& codeTier =
-      instance.code().codeTier(instance.code().bestTier());
-  const CodeRange& codeRange = codeTier.codeRange(funcExport);
+  const CodeBlock& codeBlock =
+      instance.code().codeBlock(instance.code().bestTier());
+  const CodeRange& codeRange = codeBlock.codeRange(funcExport);
 
   fun->setExtendedSlot(FunctionExtended::WASM_FUNC_UNCHECKED_ENTRY_SLOT,
-                       PrivateValue(codeTier.segment->base() +
+                       PrivateValue(codeBlock.segment->base() +
                                     codeRange.funcUncheckedCallEntry()));
 
   if (!instanceObj->exports().putNew(funcIndex, fun)) {
@@ -2184,7 +2184,7 @@ const CodeRange& WasmInstanceObject::getExportedFunctionCodeRange(
     JSFunction* fun, Tier tier) {
   uint32_t funcIndex = ExportedFunctionToFuncIndex(fun);
   MOZ_ASSERT(exports().lookup(funcIndex)->value() == fun);
-  const CodeTier& code = instance().code(tier);
+  const CodeBlock& code = instance().code(tier);
   return code.codeRange(code.lookupFuncExport(funcIndex));
 }
 

@@ -1018,16 +1018,16 @@ bool Instance::iterElemsFunctions(const ModuleElemSegment& seg,
   }
 
   Tier tier = code().bestTier();
-  const CodeTier& codeTier = code(tier);
-  const FuncImportVector& funcImports = codeTier.funcImports;
-  const CodeRangeVector& codeRanges = codeTier.codeRanges;
-  const Uint32Vector& funcToCodeRange = codeTier.funcToCodeRange;
+  const CodeBlock& codeBlock = code(tier);
+  const FuncImportVector& funcImports = codeBlock.funcImports;
+  const CodeRangeVector& codeRanges = codeBlock.codeRanges;
+  const Uint32Vector& funcToCodeRange = codeBlock.funcToCodeRange;
   const Uint32Vector& elemIndices = seg.elemIndices;
 
   uint8_t* codeBaseTier = codeBase(tier);
   for (uint32_t i = 0; i < seg.numElements(); i++) {
     uint32_t elemIndex = elemIndices[i];
-    if (elemIndex < codeTier.funcImports.length()) {
+    if (elemIndex < codeBlock.funcImports.length()) {
       FuncImportInstanceData& import =
           funcImportInstanceData(funcImports[elemIndex]);
       MOZ_ASSERT(import.callable->isCallable());
@@ -1347,8 +1347,8 @@ static int32_t MemDiscardShared(Instance* instance, I byteOffset, I byteLen,
   JSContext* cx = instance->cx();
 
   Tier tier = instance->code().bestTier();
-  const CodeTier& codeTier = instance->code(tier);
-  const FuncImportVector& funcImports = codeTier.funcImports;
+  const CodeBlock& codeBlock = instance->code(tier);
+  const FuncImportVector& funcImports = codeBlock.funcImports;
 
   // If this is an import, we need to recover the original function to maintain
   // reference equality between a re-exported function and 'ref.func'. The
@@ -2942,8 +2942,8 @@ static bool EnsureEntryStubs(const Instance& instance, uint32_t funcIndex,
   }
 
   const CodeMetadata& codeMeta = instance.codeMeta();
-  const CodeTier& codeTier = instance.code(tier);
-  if (!stubs->createOneEntryStub(funcExportIndex, codeMeta, codeTier)) {
+  const CodeBlock& codeBlock = instance.code(tier);
+  if (!stubs->createOneEntryStub(funcExportIndex, codeMeta, codeBlock)) {
     return false;
   }
   *interpEntry = stubs->lookupInterpEntry(fe.funcIndex());
@@ -3459,10 +3459,10 @@ void Instance::destroyBreakpointSite(JS::GCContext* gcx, uint32_t offset) {
 
 void Instance::disassembleExport(JSContext* cx, uint32_t funcIndex, Tier tier,
                                  PrintCallback printString) const {
-  const CodeTier& codeTier = code(tier);
-  const FuncExport& funcExport = codeTier.lookupFuncExport(funcIndex);
-  const CodeRange& range = codeTier.codeRange(funcExport);
-  const ModuleSegment& segment = *codeTier.segment;
+  const CodeBlock& codeBlock = code(tier);
+  const FuncExport& funcExport = codeBlock.lookupFuncExport(funcIndex);
+  const CodeRange& range = codeBlock.codeRange(funcExport);
+  const ModuleSegment& segment = *codeBlock.segment;
 
   MOZ_ASSERT(range.begin() < segment.length());
   MOZ_ASSERT(range.end() < segment.length());

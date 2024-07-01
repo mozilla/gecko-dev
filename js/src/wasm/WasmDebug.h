@@ -161,7 +161,7 @@ class DebugState {
 
   // Accessors for commonly used elements of linked structures.
 
-  const CodeTier& code(Tier t) const { return code_->codeTier(t); }
+  const CodeBlock& code(Tier t) const { return code_->codeBlock(t); }
   const CodeMetadata& codeMeta() const { return code_->codeMeta(); }
   const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
     return code_->codeMetaForAsmJS();
