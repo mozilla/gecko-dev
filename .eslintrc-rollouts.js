@@ -1664,6 +1664,7 @@ const rollouts = [
       "dom/serviceworkers/test/fetch/requesturl/redirect.sjs",
       "dom/serviceworkers/test/fetch_event_worker.js",
       "dom/serviceworkers/test/opaque_intercept_worker.js",
+      "dom/serviceworkers/test/openWindow_worker.js",
       "dom/serviceworkers/test/simpleregister/index.html",
       "dom/serviceworkers/test/test_hsts_upgrade_intercept.html",
       "dom/serviceworkers/test/test_installation_simple.html",

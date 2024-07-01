@@ -1,7 +1,6 @@
 // Any copyright is dedicated to the Public Domain.
 // http://creativecommons.org/publicdomain/zero/1.0/
 //
-/* eslint-env serviceworker */
 
 function promisifyTimerFocus(client, delay) {
   return new Promise(function (resolve, reject) {
@@ -26,7 +25,7 @@ onnotificationclick = function (e) {
 
       var afterTimeout = promisifyTimerFocus(clients[0], 2000).then(
         function () {
-          throw new Error("Should have failed!");
+          throw "Should have failed!";
         },
         function () {
           return Promise.resolve();

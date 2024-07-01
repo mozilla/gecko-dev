@@ -1,6 +1,8 @@
 [DEFAULT]
 
 support-files = [
+  "blank.html",
+  "create_notification.html",
   "MockAlertsService.js",
   "NotificationTest.js",
 ]
@@ -13,7 +15,6 @@ skip-if = [
 ]
 
 ["test_notification_crossorigin_iframe.html"]
-support-files = ["blank.html"]
 scheme = "https"
 # This test needs to be run on HTTP (not HTTPS).
 
@@ -24,103 +25,10 @@ skip-if = [
 ]
 
 ["test_notification_permissions.html"]
-support-files = ["blank.html"]
 scheme = "https"
-
-["test_notification_serviceworker_constructor_error.html"]
-support-files = ["notification_constructor_error.js"]
-
-["test_notification_serviceworker_get.html"]
-skip-if = ["xorigin"] # Bug 1792790
-support-files = [
-  "notification_get_sw.js",
-  "notification/register.html",
-]
-
-["test_notification_serviceworker_openWindow_nested.html"]
-skip-if = [
-  "os == 'android'", # Bug 1620052
-  "xorigin", # Bug 1792790
-  "condprof",  #: timed out
-  "http3",
-  "http2",
-]
-support-files = [
-  "openWindow_worker.js",
-  "open_window/client.sjs",
-  "redirect.sjs",
-  "!/dom/serviceworkers/test/utils.js",
-]
-tags = "openwindow"
-
-["test_notification_serviceworker_openWindow.html"]
-skip-if = [
-  "os == 'android'",  # Bug 1620052
-  "xorigin",  # JavaScript error: http://mochi.xorigin-test:8888/tests/SimpleTest/TestRunner.js, line 157: SecurityError: Permission denied to access property "wrappedJSObject" on cross-origin object
-  "http3",
-  "http2",
-]
-support-files = [
-  "notification_openWindow_worker.js",
-  "file_notification_openWindow.html",
-  "!/dom/serviceworkers/test/utils.js",
-]
-tags = "openwindow"
-
-["test_notification_worker_child.html"]
-skip-if = [
-  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
-]
-support-files = [
-  "notification_worker_child-child.js",
-  "notification_worker_child-parent.js",
-]
-
-["test_notification_worker_permission.html"]
-support-files = ["notification_permission_worker.js"]
-
-["test_notification_worker.html"]
-skip-if = [
-  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
-]
-support-files = ["notification_worker.js"]
-
-["test_notificationclick_focus.html"]
-skip-if = ["xorigin"] # Bug 1792790
-support-files = [
-  "notificationclick_focus.html",
-  "notificationclick_focus.js",
-  "!/dom/serviceworkers/test/utils.js",
-]
-
-["test_notificationclick_otherwindow.html"]
-skip-if = ["xorigin"] # Bug 1792790
-support-files = [
-  "notificationclick-otherwindow.html",
-  "notificationclick.js",
-  "!/dom/serviceworkers/test/utils.js",
-]
-
-["test_notificationclick.html"]
-skip-if = ["xorigin"] # Bug 1792790
-support-files = [
-  "notificationclick.html",
-  "notificationclick.js",
-  "!/dom/serviceworkers/test/utils.js",
-]
-
-["test_notificationclose.html"]
-skip-if = ["xorigin"] # Bug 1792790
-support-files = [
-  "blank.html",
-  "notificationclose.html",
-  "notificationclose.js",
-  "!/dom/serviceworkers/test/utils.js",
-]
 
 ["test_notification_tag.html"]
 skip-if = [
   "http3",
   "http2",
 ]
-support-files = ["create_notification.html"]

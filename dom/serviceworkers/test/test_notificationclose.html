@@ -1,34 +1,36 @@
 <!DOCTYPE HTML>
 <html>
 <!--
-https://bugzilla.mozilla.org/show_bug.cgi?id=916893
+https://bugzilla.mozilla.org/show_bug.cgi?id=1265841
 -->
 <head>
-  <title>Bug 1114554 - Test ServiceWorkerGlobalScope.notificationclick event.</title>
+  <title>Bug 1265841 - Test ServiceWorkerGlobalScope.notificationclose event.</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
   <script type="text/javascript" src="/tests/dom/notification/test/mochitest/NotificationTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1114554">Bug 1114554</a>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1265841">Bug 1265841</a>
 <p id="display"></p>
 <div id="content" style="display: none">
 </div>
 <pre id="test">
 </pre>
-<script src="/tests/dom/serviceworkers/test/utils.js"></script>
+<script src="utils.js"></script>
 <script type="text/javascript">
-  SimpleTest.requestFlakyTimeout("Mock alert service dispatches show and click events.");
+  SimpleTest.requestFlakyTimeout("Mock alert service dispatches show, click, and close events.");
 
   function testFrame(src) {
     var iframe = document.createElement("iframe");
     iframe.src = src;
-    window.callback = async function(result) {
+    window.callback = async function(data) {
       window.callback = null;
       document.body.removeChild(iframe);
       iframe = null;
-      ok(result, "Got notificationclick event with correct data.");
+      ok(data.result, "Got notificationclose event with correct data.");
+      ok(!data.windowOpened,
+         "Shouldn't allow to openWindow in notificationclose");
       await registration.unregister();
       SimpleTest.finish();
     };
@@ -43,15 +45,15 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
       await MockAlertsService.register();
       await MockAlertsService.enableAutoClick();
       registration = await navigator.serviceWorker.register(
-        "notificationclick.js",
-        { scope: "notificationclick-otherwindow.html" }
+        "notificationclose.js",
+        { scope: "notificationclose.html" }
       );
       await waitForState(registration.installing, 'activated');
     } catch (e) {
       ok(false, "registration should have passed!");
       SimpleTest.finish();
     }
-    testFrame('notificationclick-otherwindow.html');
+    testFrame('notificationclose.html');
   };
 
   SimpleTest.waitForExplicitFinish();

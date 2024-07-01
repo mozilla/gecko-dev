@@ -1,4 +1,3 @@
-/* eslint-env serviceworker */
 // the worker won't shut down between events because we increased
 // the timeout values.
 var client;
@@ -7,7 +6,7 @@ var expected_window_count = 9;
 var isolated_window_count = 0;
 var expected_isolated_window_count = 2;
 var resolve_got_all_windows = null;
-var got_all_windows = new Promise(res => {
+var got_all_windows = new Promise(function (res, rej) {
   resolve_got_all_windows = res;
 });
 
@@ -63,14 +62,13 @@ onmessage = function (event) {
     var promises = [];
     promises.push(testForUrl("about:blank", "TypeError", null, results));
     promises.push(
-      // eslint-disable-next-line @microsoft/sdl/no-insecure-url
       testForUrl("http://example.com", "InvalidAccessError", null, results)
     );
     promises.push(
       testForUrl("_._*`InvalidURL", "InvalidAccessError", null, results)
     );
     event.waitUntil(
-      Promise.all(promises).then(() => {
+      Promise.all(promises).then(function (e) {
         client.postMessage(results);
       })
     );
@@ -103,8 +101,8 @@ onmessage = function (event) {
               message: `The number of isolated windows is correct. ${isolated_window_count} == ${expected_isolated_window_count}`,
             },
           ]);
-          for (const windowClient of cl) {
-            windowClient.postMessage("CLOSE");
+          for (i = 0; i < cl.length; i++) {
+            cl[i].postMessage("CLOSE");
           }
         })
     );
@@ -116,15 +114,13 @@ onnotificationclick = function (e) {
   var promises = [];
 
   var redirect =
-    "http://mochi.test:8888/tests/dom/notification/test/mochitest/redirect.sjs?";
+    "http://mochi.test:8888/tests/dom/serviceworkers/test/redirect.sjs?";
   var redirect_xorigin =
-    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
-    "http://example.com/tests/dom/notification/test/mochitest/redirect.sjs?";
+    "http://example.com/tests/dom/serviceworkers/test/redirect.sjs?";
   var same_origin =
-    "http://mochi.test:8888/tests/dom/notification/test/mochitest/open_window/client.sjs";
+    "http://mochi.test:8888/tests/dom/serviceworkers/test/open_window/client.sjs";
   var different_origin =
-    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
-    "http://example.com/tests/dom/notification/test/mochitest/open_window/client.sjs";
+    "http://example.com/tests/dom/serviceworkers/test/open_window/client.sjs";
 
   promises.push(testForUrl("about:blank", "TypeError", null, results));
   promises.push(testForUrl(different_origin, null, null, results));

@@ -27,7 +27,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=782211
   function mockServicesChromeScript() {
     /* eslint-env mozilla/chrome-script */
     const MOCK_CID = Components.ID("{dbe37e64-d9a3-402c-8d8a-0826c619f7ad}");
-    const SYSTEM_CID = Components.ID("{a0ccaaf8-09da-44d8-b250-9ac3e93c8117}");
     const ALERTS_SERVICE_CONTRACT_ID = "@mozilla.org/alerts-service;1";
 
     var notificationsCreated = [];
@@ -67,7 +66,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=782211
 
           // Register original alerts service.
           registrar.unregisterFactory(MOCK_CID, this);
-          registrar.registerFactory(SYSTEM_CID, "", ALERTS_SERVICE_CONTRACT_ID, null);
 
           sendAsyncMessage("mock-alert-service:unregistered");
         }

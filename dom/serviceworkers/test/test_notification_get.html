@@ -16,7 +16,7 @@
   SimpleTest.requestFlakyTimeout("untriaged");
 
   function testFrame(src) {
-    return new Promise(resolve => {
+    return new Promise(function(resolve, reject) {
       var iframe = document.createElement("iframe");
       iframe.src = src;
       window.callback = function(result) {

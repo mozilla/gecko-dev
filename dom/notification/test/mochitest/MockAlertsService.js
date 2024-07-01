@@ -8,7 +8,6 @@ function mockServicesChromeScript() {
   const MOCK_ALERTS_CID = Components.ID(
     "{48068bc2-40ab-4904-8afd-4cdfb3a385f3}"
   );
-  const SYSTEM_CID = Components.ID("{a0ccaaf8-09da-44d8-b250-9ac3e93c8117}");
   const ALERTS_SERVICE_CONTRACT_ID = "@mozilla.org/alerts-service;1";
 
   const { setTimeout } = ChromeUtils.importESModule(
@@ -117,8 +116,6 @@ function mockServicesChromeScript() {
     closeAllNotifications();
     activeNotifications = null;
     registrar.unregisterFactory(MOCK_ALERTS_CID, mockAlertsService);
-    // Revive the system one
-    registrar.registerFactory(SYSTEM_CID, "", ALERTS_SERVICE_CONTRACT_ID, null);
     sendAsyncMessage("mock-alert-service:unregistered");
   });
 

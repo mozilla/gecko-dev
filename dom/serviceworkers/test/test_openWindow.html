@@ -17,7 +17,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
 </div>
 <pre id="test">
 </pre>
-<script src="/tests/dom/serviceworkers/test/utils.js"></script>
+<script src="utils.js"></script>
 <script type="text/javascript">
   SimpleTest.requestFlakyTimeout("Mock alert service dispatches show and click events.");
 
@@ -32,11 +32,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
   }
 
   function setupMessageHandler(ctx) {
-    return new Promise(res => {
+    return new Promise(function(res, rej) {
       navigator.serviceWorker.onmessage = function(event) {
         navigator.serviceWorker.onmessage = null;
-        for (const data of event.data) {
-          ok(data.result, data.message);
+        for (i = 0; i < event.data.length; i++) {
+          ok(event.data[i].result, event.data[i].message);
         }
         res(ctx);
       }
@@ -59,11 +59,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
   }
 
   function checkNumberOfWindows(ctx) {
-    return new Promise(res => {
+    return new Promise(function(res, rej) {
       navigator.serviceWorker.onmessage = function(event) {
         navigator.serviceWorker.onmessage = null;
-        for (const data of event.data) {
-          ok(data.result, data.message);
+        for (i = 0; i < event.data.length; i++) {
+          ok(event.data[i].result, event.data[i].message);
         }
         res(ctx);
       }
@@ -103,7 +103,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
     ["dom.serviceWorkers.idle_timeout", 299999],
     ["dom.serviceWorkers.idle_extended_timeout", 299999],
     ["dom.securecontext.allowlist", "mochi.test,example.com"],
-    ["network.cookie.cookieBehavior", 0], // XXX: Doesn't work with dFPI
   ]}, runTest);
 </script>
 </body>

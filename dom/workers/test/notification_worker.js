@@ -79,7 +79,7 @@ if (self.Notification) {
     },
   ];
 
-  onmessage = () => {
+  onmessage = function (e) {
     var context = {};
     (function executeRemainingTests(remainingTests) {
       if (!remainingTests.length) {

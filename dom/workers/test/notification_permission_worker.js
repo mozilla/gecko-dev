@@ -23,14 +23,14 @@ if (self.Notification) {
       );
 
       var n = new Notification("Hello");
-      n.onerror = () => {
+      n.onerror = function (e) {
         ok(true, "error called due to permission denied.");
         done();
       };
     },
   ];
 
-  onmessage = () => {
+  onmessage = function (e) {
     var context = {};
     (function executeRemainingTests(remainingTests) {
       if (!remainingTests.length) {
