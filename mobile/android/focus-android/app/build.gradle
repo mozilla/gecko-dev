@@ -382,15 +382,6 @@ dependencies {
     testImplementation ComponentsDependencies.androidx_arch_core_testing
     testImplementation project(':support-test')
     testImplementation project(':support-test-libstate')
-    androidTestImplementation ComponentsDependencies.androidx_espresso_core, {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    }
-    androidTestImplementation FocusDependencies.espresso_idling_resource
-    androidTestImplementation FocusDependencies.espresso_web, {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    }
-    androidTestImplementation FocusDependencies.espresso_intents
-
 
     androidTestImplementation ComponentsDependencies.testing_mockwebserver
     testImplementation ComponentsDependencies.testing_mockwebserver
@@ -399,23 +390,19 @@ dependencies {
     androidTestImplementation FocusDependencies.fastlane
     androidTestImplementation FocusDependencies.falcon // Required by fastlane
 
-    androidTestImplementation FocusDependencies.espresso_contrib, {
-        exclude module: 'appcompat-v7'
-        exclude module: 'support-v4'
-        exclude module: 'support-annotations'
-        exclude module: 'recyclerview-v7'
-        exclude module: 'design'
-        exclude module: 'espresso-core'
-    }
     testImplementation ComponentsDependencies.androidx_test_core
     testImplementation ComponentsDependencies.androidx_test_runner
     testImplementation ComponentsDependencies.androidx_test_rules
 
+    androidTestImplementation ComponentsDependencies.androidx_espresso_core
+    androidTestImplementation ComponentsDependencies.androidx_espresso_idling_resource
+    androidTestImplementation ComponentsDependencies.androidx_espresso_intents
+    androidTestImplementation ComponentsDependencies.androidx_espresso_web
     androidTestImplementation ComponentsDependencies.androidx_test_core
     androidTestImplementation ComponentsDependencies.androidx_test_junit
     androidTestImplementation ComponentsDependencies.androidx_test_uiautomator
     androidTestImplementation ComponentsDependencies.androidx_test_runner
-    androidTestUtil FocusDependencies.androidx_orchestrator
+    androidTestUtil ComponentsDependencies.androidx_test_orchestrator
 
     lintChecks project(':tooling-lint')
 }

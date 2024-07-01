@@ -718,39 +718,24 @@ dependencies {
 
     implementation FenixDependencies.androidx_profileinstaller
 
-    androidTestImplementation ComponentsDependencies.androidx_test_uiautomator
     androidTestImplementation FenixDependencies.fastlane
     // This Falcon version is added to maven central now required for Screengrab
     androidTestImplementation FenixDependencies.falcon
 
-    androidTestImplementation ComponentsDependencies.androidx_compose_ui_test
-
-    androidTestImplementation ComponentsDependencies.androidx_espresso_core, {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    }
-
-    androidTestImplementation(FenixDependencies.espresso_contrib) {
-        exclude module: 'appcompat-v7'
-        exclude module: 'support-v4'
-        exclude module: 'support-annotations'
-        exclude module: 'recyclerview-v7'
-        exclude module: 'design'
-        exclude module: 'espresso-core'
+    androidTestImplementation(ComponentsDependencies.androidx_espresso_contrib) {
         exclude module: 'protobuf-lite'
     }
-
+    androidTestImplementation ComponentsDependencies.androidx_espresso_core
+    androidTestImplementation ComponentsDependencies.androidx_espresso_idling_resource
+    androidTestImplementation ComponentsDependencies.androidx_espresso_intents
     androidTestImplementation ComponentsDependencies.androidx_test_core
-    androidTestImplementation FenixDependencies.espresso_idling_resources
-    androidTestImplementation FenixDependencies.espresso_intents
-
-    androidTestImplementation ComponentsDependencies.androidx_test_runner
-    androidTestImplementation ComponentsDependencies.androidx_test_rules
-    androidTestUtil FenixDependencies.orchestrator
-    androidTestImplementation ComponentsDependencies.androidx_espresso_core, {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    }
-
     androidTestImplementation ComponentsDependencies.androidx_test_junit
+    androidTestImplementation ComponentsDependencies.androidx_test_rules
+    androidTestImplementation ComponentsDependencies.androidx_test_runner
+    androidTestImplementation ComponentsDependencies.androidx_test_uiautomator
+    androidTestUtil ComponentsDependencies.androidx_test_orchestrator
+
+    androidTestImplementation ComponentsDependencies.androidx_compose_ui_test
     androidTestImplementation ComponentsDependencies.androidx_work_testing
     androidTestImplementation FenixDependencies.androidx_benchmark_junit4
     androidTestImplementation ComponentsDependencies.testing_mockwebserver

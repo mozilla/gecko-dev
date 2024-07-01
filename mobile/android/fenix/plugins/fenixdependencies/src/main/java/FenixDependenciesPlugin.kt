@@ -66,23 +66,6 @@ object FenixDependencies {
     const val falcon = "com.jraska:falcon:${FenixVersions.falcon}"
     const val fastlane = "tools.fastlane:screengrab:${FenixVersions.fastlane}"
 
-    // --- START AndroidX test dependencies --- //
-    // N.B.: the versions of these dependencies appear to be pinned together. To avoid bugs, they
-    // should always be updated together based on the latest version from the Android test releases page:
-    //   https://developer.android.com/jetpack/androidx/releases/test
-    // For the full IDs of these test dependencies, see:
-    //   https://developer.android.com/training/testing/set-up-project#android-test-dependencies
-    private const val androidx_test_orchestrator = "1.4.2"
-    private const val androidx_espresso_version = "3.5.1"
-    const val espresso_contrib = "androidx.test.espresso:espresso-contrib:$androidx_espresso_version"
-    const val espresso_idling_resources = "androidx.test.espresso:espresso-idling-resource:$androidx_espresso_version"
-    const val espresso_intents = "androidx.test.espresso:espresso-intents:$androidx_espresso_version"
-    // Monitor is unused
-    const val orchestrator = "androidx.test:orchestrator:$androidx_test_orchestrator"
-    // Truth is unused
-    // Test services is unused
-    // --- END AndroidX test dependencies --- //
-
     const val google_ads_id = "com.google.android.gms:play-services-ads-identifier:${FenixVersions.google_ads_id_version}"
 
     const val junitApi = "org.junit.jupiter:junit-jupiter-api:${FenixVersions.junit}"
