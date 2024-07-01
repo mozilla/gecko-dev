@@ -538,12 +538,18 @@ class JSString : public js::gc::CellWithLengthAndFlags {
  protected:
   template <typename CharT>
   MOZ_ALWAYS_INLINE void setNonInlineChars(const CharT* chars,
-                                           bool checkArena = true);
+                                           bool usesStringBuffer);
 
   template <typename CharT>
-  static MOZ_ALWAYS_INLINE void checkStringCharsArena(const CharT* chars) {
+  static MOZ_ALWAYS_INLINE void checkStringCharsArena(const CharT* chars,
+                                                      bool usesStringBuffer) {
 #ifdef MOZ_DEBUG
-    js::AssertJSStringBufferInCorrectArena(chars);
+    // Check that the new buffer is located in the StringBufferArena.
+    // For now ignore this for StringBuffers because they're allocated in the
+    // main jemalloc arena.
+    if (!usesStringBuffer) {
+      js::AssertJSStringBufferInCorrectArena(chars);
+    }
 #endif
   }
 
@@ -1243,10 +1249,9 @@ class JSDependentString : public JSLinearString {
 
   template <typename T>
   void relocateBaseAndChars(JSLinearString* base, T chars, size_t offset) {
-    // StringBuffers are not yet allocated in the jemalloc string arena.
-    bool checkArena = !base->hasStringBuffer();
     MOZ_ASSERT(base->assertIsValidBase());
-    setNonInlineChars(chars + offset, checkArena);
+    bool usesStringBuffer = base->hasStringBuffer();
+    setNonInlineChars(chars + offset, usesStringBuffer);
     setBase(base);
   }
 
@@ -2302,20 +2307,20 @@ MOZ_ALWAYS_INLINE bool JSAtom::lengthFitsInline<char16_t>(size_t length) {
 
 template <>
 MOZ_ALWAYS_INLINE void JSString::setNonInlineChars(const char16_t* chars,
-                                                   bool checkArena) {
+                                                   bool usesStringBuffer) {
   // Check that the new buffer is located in the StringBufferArena
-  if (checkArena && !(isAtomRef() && atom()->isInline())) {
-    checkStringCharsArena(chars);
+  if (!(isAtomRef() && atom()->isInline())) {
+    checkStringCharsArena(chars, usesStringBuffer);
   }
   d.s.u2.nonInlineCharsTwoByte = chars;
 }
 
 template <>
 MOZ_ALWAYS_INLINE void JSString::setNonInlineChars(const JS::Latin1Char* chars,
-                                                   bool checkArena) {
+                                                   bool usesStringBuffer) {
   // Check that the new buffer is located in the StringBufferArena
-  if (checkArena && !(isAtomRef() && atom()->isInline())) {
-    checkStringCharsArena(chars);
+  if (!(isAtomRef() && atom()->isInline())) {
+    checkStringCharsArena(chars, usesStringBuffer);
   }
   d.s.u2.nonInlineCharsLatin1 = chars;
 }

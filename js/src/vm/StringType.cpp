@@ -1043,7 +1043,7 @@ finish_node: {
   MOZ_ASSERT(pos >= wholeChars);
   CharT* chars = pos - str->length();
   JSRope* strParent = str->d.s.u2.parent;
-  str->setNonInlineChars(chars);
+  str->setNonInlineChars(chars, /* usesStringBuffer = */ false);
 
   MOZ_ASSERT(str->asRope().isBeingFlattened());
   mozilla::DebugOnly<bool> visitRight = str->flags() & FLATTEN_VISIT_RIGHT;
@@ -1084,7 +1084,7 @@ finish_root:
 
   root->setLengthAndFlags(wholeLength,
                           StringFlagsForCharType<CharT>(EXTENSIBLE_FLAGS));
-  root->setNonInlineChars(wholeChars);
+  root->setNonInlineChars(wholeChars, /* usesStringBuffer = */ false);
   root->d.s.u3.capacity = wholeCapacity;
   AddCellMemory(root, root->asLinear().allocSize(), MemoryUse::StringContents);
 
@@ -2659,10 +2659,10 @@ bool JSString::tryReplaceWithAtomRef(JSAtom* atom) {
   if (atom->hasLatin1Chars()) {
     flags |= LATIN1_CHARS_BIT;
     setLengthAndFlags(length(), flags);
-    setNonInlineChars(atom->chars<Latin1Char>(nogc));
+    setNonInlineChars(atom->chars<Latin1Char>(nogc), atom->hasStringBuffer());
   } else {
     setLengthAndFlags(length(), flags);
-    setNonInlineChars(atom->chars<char16_t>(nogc));
+    setNonInlineChars(atom->chars<char16_t>(nogc), atom->hasStringBuffer());
   }
   // Redundant, but just a reminder that this needs to be true or else we need
   // to check and conditionally put ourselves in the store buffer
