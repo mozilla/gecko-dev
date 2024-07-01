@@ -149,7 +149,6 @@ enum class Marker : uint32_t {
   Metadata,
   ModuleMetadata,
   CodeMetadata,
-  MetadataTier,
   CodeTier,
   ModuleSegment,
 };
@@ -1033,24 +1032,6 @@ CoderResult CodeModuleSegment(Coder<mode>& coder,
   return Ok();
 }
 
-template <CoderMode mode>
-CoderResult CodeMetadataTier(Coder<mode>& coder,
-                             CoderArg<mode, wasm::MetadataTier> item,
-                             const uint8_t* codeStart) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::MetadataTier, 896);
-  MOZ_TRY(Magic(coder, Marker::MetadataTier));
-  MOZ_TRY(CodePodVector(coder, &item->funcToCodeRange));
-  MOZ_TRY(CodePodVector(coder, &item->codeRanges));
-  MOZ_TRY(CodePodVector(coder, &item->callSites));
-  MOZ_TRY(CodeTrapSiteVectorArray(coder, &item->trapSites));
-  MOZ_TRY(CodePodVector(coder, &item->funcImports));
-  MOZ_TRY(CodePodVector(coder, &item->funcExports));
-  MOZ_TRY(CodeStackMaps(coder, &item->stackMaps, codeStart));
-  MOZ_TRY(CodePodVector(coder, &item->tryNotes));
-  MOZ_TRY(CodePodVector(coder, &item->codeRangeUnwindInfos));
-  return Ok();
-}
-
 // WasmMetadata.h
 
 template <CoderMode mode>
@@ -1139,16 +1120,21 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
 CoderResult CodeCodeTier(Coder<MODE_DECODE>& coder, wasm::UniqueCodeTier* item,
                          const wasm::LinkData& linkData) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeTier, 248);
-  UniqueMetadataTier metadata;
-  UniqueModuleSegment segment;
-  MOZ_TRY(Magic(coder, Marker::CodeTier));
-  MOZ_TRY(CodeModuleSegment(coder, &segment, linkData));
-  MOZ_TRY((CodeUniquePtr<MODE_DECODE, MetadataTier>(
-      coder, &metadata, &CodeMetadataTier<MODE_DECODE>, segment->base())));
-  *item = js::MakeUnique<CodeTier>(std::move(metadata), std::move(segment));
+  *item = js::MakeUnique<CodeTier>(Tier::Serialized);
   if (!*item) {
     return Err(OutOfMemory());
   }
+  MOZ_TRY(Magic(coder, Marker::CodeTier));
+  MOZ_TRY(CodeModuleSegment(coder, &(*item)->segment, linkData));
+  MOZ_TRY(CodePodVector(coder, &(*item)->funcToCodeRange));
+  MOZ_TRY(CodePodVector(coder, &(*item)->codeRanges));
+  MOZ_TRY(CodePodVector(coder, &(*item)->callSites));
+  MOZ_TRY(CodeTrapSiteVectorArray(coder, &(*item)->trapSites));
+  MOZ_TRY(CodePodVector(coder, &(*item)->funcImports));
+  MOZ_TRY(CodePodVector(coder, &(*item)->funcExports));
+  MOZ_TRY(CodeStackMaps(coder, &(*item)->stackMaps, (*item)->segment->base()));
+  MOZ_TRY(CodePodVector(coder, &(*item)->tryNotes));
+  MOZ_TRY(CodePodVector(coder, &(*item)->codeRangeUnwindInfos));
   return Ok();
 }
 
@@ -1159,10 +1145,16 @@ CoderResult CodeCodeTier(Coder<mode>& coder,
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeTier, 248);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY(Magic(coder, Marker::CodeTier));
-  MOZ_TRY(CodeModuleSegment(coder, &item->segment_, linkData));
-  MOZ_TRY((CodeUniquePtr<mode, MetadataTier>(coder, &item->metadata_,
-                                             &CodeMetadataTier<mode>,
-                                             item->segment_->base())));
+  MOZ_TRY(CodeModuleSegment(coder, &item->segment, linkData));
+  MOZ_TRY(CodePodVector(coder, &item->funcToCodeRange));
+  MOZ_TRY(CodePodVector(coder, &item->codeRanges));
+  MOZ_TRY(CodePodVector(coder, &item->callSites));
+  MOZ_TRY(CodeTrapSiteVectorArray(coder, &item->trapSites));
+  MOZ_TRY(CodePodVector(coder, &item->funcImports));
+  MOZ_TRY(CodePodVector(coder, &item->funcExports));
+  MOZ_TRY(CodeStackMaps(coder, &item->stackMaps, item->segment->base()));
+  MOZ_TRY(CodePodVector(coder, &item->tryNotes));
+  MOZ_TRY(CodePodVector(coder, &item->codeRangeUnwindInfos));
   return Ok();
 }
 
@@ -1187,8 +1179,8 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
 
   // Initialize the jump tables
   JumpTables jumpTables;
-  if (!jumpTables.init(CompileMode::Once, codeTier->segment(),
-                       codeTier->metadata().codeRanges)) {
+  if (!jumpTables.init(CompileMode::Once, *codeTier->segment,
+                       codeTier->codeRanges)) {
     return Err(OutOfMemory());
   }
 

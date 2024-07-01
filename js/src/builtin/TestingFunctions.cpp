@@ -1773,13 +1773,11 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
     js::wasm::Instance& inst = fun->wasmInstance();
     const js::wasm::Code& code = inst.code();
     js::wasm::Tier tier = code.bestTier();
-
-    const js::wasm::MetadataTier& meta = inst.metadata(tier);
-
+    const js::wasm::CodeTier& codeTier = inst.code(tier);
     const js::wasm::CodeSegment& segment = code.segment(tier);
     const uint32_t funcIndex = code.getFuncIndex(&*fun);
-    const js::wasm::FuncExport& func = meta.lookupFuncExport(funcIndex);
-    const js::wasm::CodeRange& codeRange = meta.codeRange(func);
+    const js::wasm::FuncExport& func = codeTier.lookupFuncExport(funcIndex);
+    const js::wasm::CodeRange& codeRange = codeTier.codeRange(func);
 
     jit_begin = segment.base() + codeRange.begin();
     jit_end = segment.base() + codeRange.end();

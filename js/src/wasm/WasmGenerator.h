@@ -185,7 +185,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
 
   // Data that is moved into the result of finish()
   UniqueLinkData linkData_;
-  UniqueMetadataTier metadataTier_;
+  UniqueCodeTier codeTier_;
   MutableCodeMetadataForAsmJS codeMetaForAsmJS_;
 
   // Data scoped to the ModuleGenerator's lifetime

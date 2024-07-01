@@ -77,8 +77,6 @@ class MacroAssembler;
 
 namespace wasm {
 
-struct MetadataTier;
-
 // LinkData contains all the metadata necessary to patch all the locations
 // that depend on the absolute address of a ModuleSegment. This happens in a
 // "linking" step after compilation and after the module's code is serialized.
@@ -226,8 +224,7 @@ class ModuleSegment : public CodeSegment {
 
   bool initialize(const CodeTier& codeTier, const LinkData& linkData,
                   const CodeMetadata& codeMeta,
-                  const CodeMetadataForAsmJS* codeMetaForAsmJS,
-                  const MetadataTier& metadataTier);
+                  const CodeMetadataForAsmJS* codeMetaForAsmJS);
 
   Tier tier() const { return tier_; }
 
@@ -254,39 +251,6 @@ extern void StaticallyUnlink(uint8_t* base, const LinkData& linkData);
 // MetadataTier holds all the data that is needed to describe compiled wasm
 // code at runtime (as opposed to data that is only used to statically link or
 // instantiate a module), for one specific tier (baseline or Ion) of code.
-
-struct MetadataTier {
-  explicit MetadataTier(Tier tier = Tier::Serialized)
-      : tier(tier), debugTrapOffset(0) {}
-
-  const Tier tier;
-
-  Uint32Vector funcToCodeRange;
-  CodeRangeVector codeRanges;
-  CallSiteVector callSites;
-  TrapSiteVectorArray trapSites;
-  FuncImportVector funcImports;
-  FuncExportVector funcExports;
-  StackMaps stackMaps;
-  TryNoteVector tryNotes;
-  CodeRangeUnwindInfoVector codeRangeUnwindInfos;
-
-  // Debug information, not serialized.
-  uint32_t debugTrapOffset;
-
-  FuncExport& lookupFuncExport(uint32_t funcIndex,
-                               size_t* funcExportIndex = nullptr);
-  const FuncExport& lookupFuncExport(uint32_t funcIndex,
-                                     size_t* funcExportIndex = nullptr) const;
-
-  const CodeRange& codeRange(const FuncExport& funcExport) const {
-    return codeRanges[funcToCodeRange[funcExport.funcIndex()]];
-  }
-
-  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
-};
-
-using UniqueMetadataTier = UniquePtr<MetadataTier>;
 
 // LazyStubSegment is a code segment lazily generated for function entry stubs
 // (both interpreter and jit ones).
@@ -403,33 +367,44 @@ using UniqueCodeTier = UniquePtr<CodeTier>;
 using UniqueConstCodeTier = UniquePtr<const CodeTier>;
 
 class CodeTier {
-  const Code* code_;
-
-  // Serialized information.
-  const UniqueMetadataTier metadata_;
-  const UniqueModuleSegment segment_;
-
  public:
-  CodeTier(UniqueMetadataTier metadata, UniqueModuleSegment segment)
-      : code_(nullptr),
-        metadata_(std::move(metadata)),
-        segment_(std::move(segment)) {}
+  // Weak reference to the code that owns us, not serialized.
+  const Code* code;
 
-  bool initialized() const { return !!code_ && segment_->initialized(); }
+  // The following information is all serialized
+  UniqueModuleSegment segment;
+  const Tier tier;
+  Uint32Vector funcToCodeRange;
+  CodeRangeVector codeRanges;
+  CallSiteVector callSites;
+  TrapSiteVectorArray trapSites;
+  FuncImportVector funcImports;
+  FuncExportVector funcExports;
+  StackMaps stackMaps;
+  TryNoteVector tryNotes;
+  CodeRangeUnwindInfoVector codeRangeUnwindInfos;
+
+  // Debug information, not serialized.
+  uint32_t debugTrapOffset;
+
+  explicit CodeTier(Tier tier)
+      : code(nullptr), tier(tier), debugTrapOffset(0) {}
+
+  bool initialized() const { return !!code && segment->initialized(); }
   bool initialize(const Code& code, const LinkData& linkData,
                   const CodeMetadata& codeMeta,
                   const CodeMetadataForAsmJS* codeMetaForAsmJS);
 
-  Tier tier() const { return segment_->tier(); }
-  const MetadataTier& metadata() const { return *metadata_.get(); }
-  const ModuleSegment& segment() const { return *segment_.get(); }
-  const Code& code() const {
-    MOZ_ASSERT(initialized());
-    return *code_;
+  const CodeRange& codeRange(const FuncExport& funcExport) const {
+    return codeRanges[funcToCodeRange[funcExport.funcIndex()]];
   }
 
   const CodeRange* lookupRange(const void* pc) const;
   const TryNote* lookupTryNote(const void* pc) const;
+  FuncExport& lookupFuncExport(uint32_t funcIndex,
+                               size_t* funcExportIndex = nullptr);
+  const FuncExport& lookupFuncExport(uint32_t funcIndex,
+                                     size_t* funcExportIndex = nullptr) const;
 
   void addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
                      size_t* data) const;
@@ -622,10 +597,7 @@ class Code : public ShareableBase<Code> {
   }
 
   const ModuleSegment& segment(Tier iter) const {
-    return codeTier(iter).segment();
-  }
-  const MetadataTier& metadata(Tier iter) const {
-    return codeTier(iter).metadata();
+    return *codeTier(iter).segment.get();
   }
 
   const RWExclusiveData<LazyStubTier>& lazyStubs() const { return lazyStubs_; }

@@ -18,10 +18,6 @@ const CodeTier& Instance::code(Tier t) const { return code_->codeTier(t); }
 
 uint8_t* Instance::codeBase(Tier t) const { return code_->segment(t).base(); }
 
-const MetadataTier& Instance::metadata(Tier t) const {
-  return code_->metadata(t);
-}
-
 const CodeMetadata& Instance::codeMeta() const { return code_->codeMeta(); }
 const CodeMetadataForAsmJS* Instance::codeMetaForAsmJS() const {
   return code_->codeMetaForAsmJS();

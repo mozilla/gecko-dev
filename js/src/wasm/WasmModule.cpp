@@ -169,7 +169,7 @@ void Module::startTier2(const CompileArgs& args, const ShareableBytes& bytecode,
 bool Module::finishTier2(const LinkData& linkData2,
                          UniqueCodeTier code2) const {
   MOZ_ASSERT(code().bestTier() == Tier::Baseline &&
-             code2->tier() == Tier::Optimized);
+             code2->tier == Tier::Optimized);
 
   // Install the data in the data structures. They will not be visible
   // until commitTier2().
@@ -218,7 +218,7 @@ bool Module::finishTier2(const LinkData& linkData2,
   // will invoke tier-2 code.  This is benign.
 
   uint8_t* base = code().segment(Tier::Optimized).base();
-  for (const CodeRange& cr : metadata(Tier::Optimized).codeRanges) {
+  for (const CodeRange& cr : code(Tier::Optimized).codeRanges) {
     // These are racy writes that we just want to be visible, atomically,
     // eventually.  All hardware we care about will do this right.  But
     // we depend on the compiler not splitting the stores hidden inside the
@@ -345,15 +345,15 @@ bool Module::extractCode(JSContext* cx, Tier tier,
   }
 
   const ModuleSegment& moduleSegment = code_->segment(tier);
-  RootedObject code(cx, JS_NewUint8Array(cx, moduleSegment.length()));
-  if (!code) {
+  RootedObject codeObj(cx, JS_NewUint8Array(cx, moduleSegment.length()));
+  if (!codeObj) {
     return false;
   }
 
-  memcpy(code->as<TypedArrayObject>().dataPointerUnshared(),
+  memcpy(codeObj->as<TypedArrayObject>().dataPointerUnshared(),
          moduleSegment.base(), moduleSegment.length());
 
-  RootedValue value(cx, ObjectValue(*code));
+  RootedValue value(cx, ObjectValue(*codeObj));
   if (!JS_DefineProperty(cx, result, "code", value, JSPROP_ENUMERATE)) {
     return false;
   }
@@ -363,7 +363,7 @@ bool Module::extractCode(JSContext* cx, Tier tier,
     return false;
   }
 
-  for (const CodeRange& p : metadata(tier).codeRanges) {
+  for (const CodeRange& p : code(tier).codeRanges) {
     RootedObject segment(cx, NewPlainObjectWithProto(cx, nullptr));
     if (!segment) {
       return false;
@@ -436,7 +436,7 @@ bool Module::instantiateFunctions(JSContext* cx,
                                   const JSObjectVector& funcImports) const {
 #ifdef DEBUG
   for (auto t : code().tiers()) {
-    MOZ_ASSERT(funcImports.length() == metadata(t).funcImports.length());
+    MOZ_ASSERT(funcImports.length() == code(t).funcImports.length());
   }
 #endif
 
@@ -446,7 +446,7 @@ bool Module::instantiateFunctions(JSContext* cx,
 
   Tier tier = code().stableTier();
 
-  for (size_t i = 0; i < metadata(tier).funcImports.length(); i++) {
+  for (size_t i = 0; i < code(tier).funcImports.length(); i++) {
     if (!funcImports[i]->is<JSFunction>()) {
       continue;
     }
@@ -461,9 +461,9 @@ bool Module::instantiateFunctions(JSContext* cx,
     Tier otherTier = instance.code().stableTier();
 
     const TypeDef& exportFuncType = instance.codeMeta().getFuncExportTypeDef(
-        instance.metadata(otherTier).lookupFuncExport(funcIndex));
+        instance.code(otherTier).lookupFuncExport(funcIndex));
     const TypeDef& importFuncType =
-        codeMeta().getFuncImportTypeDef(metadata(tier).funcImports[i]);
+        codeMeta().getFuncImportTypeDef(code(tier).funcImports[i]);
 
     if (!TypeDef::isSubTypeOf(&exportFuncType, &importFuncType)) {
       const Import& import = FindImportFunction(moduleMeta().imports, i);

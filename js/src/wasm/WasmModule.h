@@ -154,13 +154,13 @@ class Module : public JS::WasmModule {
   ~Module() override;
 
   const Code& code() const { return *code_; }
+  const CodeTier& code(Tier t) const { return code_->codeTier(t); }
   const ModuleSegment& moduleSegment(Tier t) const { return code_->segment(t); }
   const ModuleMetadata& moduleMeta() const { return *moduleMeta_; }
   const CodeMetadata& codeMeta() const { return code_->codeMeta(); }
   const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
     return code_->codeMetaForAsmJS();
   }
-  const MetadataTier& metadata(Tier t) const { return code_->metadata(t); }
   const CustomSectionVector& customSections() const { return customSections_; }
   const Bytes& debugBytecode() const { return debugBytecode_->bytes; }
   uint32_t codeLength(Tier t) const { return code_->segment(t).length(); }
