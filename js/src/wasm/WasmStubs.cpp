@@ -1286,11 +1286,11 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
     // unify the BuiltinThunk's interface we call it here with wasm abi.
     jit::WasmABIArgIter<MIRTypeVector> argsIter(coerceArgTypes);
 
-    // argument 0: function export index.
+    // argument 0: function index.
     if (argsIter->kind() == ABIArg::GPR) {
-      masm.movePtr(ImmWord(funcExportIndex), argsIter->gpr());
+      masm.movePtr(ImmWord(fe.funcIndex()), argsIter->gpr());
     } else {
-      masm.storePtr(ImmWord(funcExportIndex),
+      masm.storePtr(ImmWord(fe.funcIndex()),
                     Address(sp, argsIter->offsetFromArgBase()));
     }
     argsIter++;
@@ -1340,7 +1340,7 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
                                      Register scratch, uint32_t* callOffset) {
   MOZ_ASSERT(!IsCompilingWasm());
 
-  const FuncType& funcType = inst.codeMeta().getFuncExportType(fe);
+  const FuncType& funcType = inst.code().getFuncExportType(fe);
 
   size_t framePushedAtStart = masm.framePushed();
 
@@ -1492,7 +1492,7 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
   masm.loadWasmPinnedRegsFromInstance();
 
   // Actual call.
-  const CodeBlock& codeBlock = inst.code().codeBlock(inst.code().bestTier());
+  const CodeBlock& codeBlock = inst.code().funcCodeBlock(fe.funcIndex());
   const CodeRange& codeRange = codeBlock.codeRange(fe);
   void* callee = codeBlock.segment->base() + codeRange.funcUncheckedCallEntry();
 
@@ -2973,7 +2973,8 @@ bool wasm::GenerateProvisionalLazyJitEntryStub(MacroAssembler& masm,
 }
 
 bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
-                         const FuncImportVector& imports, CompiledCode* code) {
+                         const FuncImportVector& imports,
+                         const FuncExportVector& exports, CompiledCode* code) {
   LifoAlloc lifo(STUBS_LIFO_DEFAULT_CHUNK_SIZE);
   TempAllocator alloc(&lifo);
   JitContext jcx;
@@ -3030,6 +3031,21 @@ bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
     }
     if (!code->codeRanges.emplaceBack(CodeRange::ImportJitExit, funcIndex,
                                       jitOffsets)) {
+      return false;
+    }
+  }
+
+  JitSpew(JitSpew_Codegen, "# Emitting wasm entry stubs");
+
+  Maybe<ImmPtr> noAbsolute;
+  for (size_t i = 0; i < exports.length(); i++) {
+    const FuncExport& fe = exports[i];
+    const FuncType& funcType = (*codeMeta.types)[fe.typeIndex()].funcType();
+    if (!fe.hasEagerStubs()) {
+      continue;
+    }
+    if (!GenerateEntryStubs(masm, i, fe, funcType, noAbsolute,
+                            codeMeta.isAsmJS(), &code->codeRanges)) {
       return false;
     }
   }

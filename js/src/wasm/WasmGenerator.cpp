@@ -138,7 +138,10 @@ ModuleGenerator::~ModuleGenerator() {
 }
 
 bool ModuleGenerator::init(CodeMetadataForAsmJS* codeMetaForAsmJS) {
-  // Perform fallible metadata, linkdata, assumption allocations.
+  // Initialize our task system
+  if (!initTasks()) {
+    return false;
+  }
 
   // If codeMetaForAsmJS is null, we're compiling wasm; else we're compiling
   // asm.js, in whih case it contains wasm::Code-lifetime asm.js-specific
@@ -173,52 +176,26 @@ bool ModuleGenerator::init(CodeMetadataForAsmJS* codeMetaForAsmJS) {
     return false;
   }
 
+  // Initialize function import metadata
+  if (!funcImports_.resize(codeMeta_->numFuncImports)) {
+    return false;
+  }
+
+  for (size_t i = 0; i < codeMeta_->numFuncImports; i++) {
+    funcImports_[i] = FuncImport(codeMeta_->funcs[i].typeIndex,
+                                 codeMeta_->offsetOfFuncImportInstanceData(i));
+  }
+
+  // Generate the shared stubs block
+  if (!generateSharedStubs()) {
+    return false;
+  }
+
   // Start creating a code block for a complete tier of code
   if (!startCompleteTier()) {
     return false;
   }
 
-  // Determine whether parallel or sequential compilation is to be used and
-  // initialize the CompileTasks that will be used in either mode.
-
-  MOZ_ASSERT(GetHelperThreadCount() > 1);
-
-  uint32_t numTasks;
-  if (CanUseExtraThreads() && GetHelperThreadCPUCount() > 1) {
-    parallel_ = true;
-    numTasks = 2 * GetMaxWasmCompilationThreads();
-  } else {
-    numTasks = 1;
-  }
-
-  if (!tasks_.initCapacity(numTasks)) {
-    return false;
-  }
-  for (size_t i = 0; i < numTasks; i++) {
-    tasks_.infallibleEmplaceBack(*codeMeta_, *compilerEnv_, taskState_,
-                                 COMPILATION_LIFO_DEFAULT_CHUNK_SIZE);
-  }
-
-  if (!freeTasks_.reserve(numTasks)) {
-    return false;
-  }
-  for (size_t i = 0; i < numTasks; i++) {
-    freeTasks_.infallibleAppend(&tasks_[i]);
-  }
-
-  // Generate the stubs for the module first
-  CompiledCode& stubCode = tasks_[0].output;
-  MOZ_ASSERT(stubCode.empty());
-
-  if (!GenerateStubs(*codeMeta_, codeBlock_->funcImports, &stubCode)) {
-    return false;
-  }
-
-  if (!linkCompiledCode(stubCode)) {
-    return false;
-  }
-
-  stubCode.clear();
   return true;
 }
 
@@ -308,7 +285,7 @@ bool ModuleGenerator::linkCallSites() {
           Offsets offsets;
           offsets.begin = masm_->currentOffset();
           if (!callFarJumps_.emplaceBack(target.funcIndex(),
-                                         masm_->farJumpWithPatch())) {
+                                         masm_->farJumpWithPatch().offset())) {
             return false;
           }
           offsets.end = masm_->currentOffset();
@@ -351,11 +328,10 @@ void ModuleGenerator::noteCodeRange(uint32_t codeRangeIndex,
       // Nothing to do: jit entries are linked in the jump tables.
       break;
     case CodeRange::ImportJitExit:
-      codeBlock_->funcImports[codeRange.funcIndex()].initJitExitOffset(
-          codeRange.begin());
+      funcImports_[codeRange.funcIndex()].initJitExitOffset(codeRange.begin());
       break;
     case CodeRange::ImportInterpExit:
-      codeBlock_->funcImports[codeRange.funcIndex()].initInterpExitOffset(
+      funcImports_[codeRange.funcIndex()].initInterpExitOffset(
           codeRange.begin());
       break;
     case CodeRange::DebugTrap:
@@ -592,6 +568,37 @@ ThreadType CompileTask::threadType() {
   }
 }
 
+bool ModuleGenerator::initTasks() {
+  // Determine whether parallel or sequential compilation is to be used and
+  // initialize the CompileTasks that will be used in either mode.
+
+  MOZ_ASSERT(GetHelperThreadCount() > 1);
+
+  uint32_t numTasks;
+  if (CanUseExtraThreads() && GetHelperThreadCPUCount() > 1) {
+    parallel_ = true;
+    numTasks = 2 * GetMaxWasmCompilationThreads();
+  } else {
+    numTasks = 1;
+  }
+
+  if (!tasks_.initCapacity(numTasks)) {
+    return false;
+  }
+  for (size_t i = 0; i < numTasks; i++) {
+    tasks_.infallibleEmplaceBack(*codeMeta_, *compilerEnv_, taskState_,
+                                 COMPILATION_LIFO_DEFAULT_CHUNK_SIZE);
+  }
+
+  if (!freeTasks_.reserve(numTasks)) {
+    return false;
+  }
+  for (size_t i = 0; i < numTasks; i++) {
+    freeTasks_.infallibleAppend(&tasks_[i]);
+  }
+  return true;
+}
+
 bool ModuleGenerator::locallyCompileCurrentTask() {
   if (!ExecuteCompileTask(currentTask_, error_)) {
     return false;
@@ -823,12 +830,12 @@ static void CheckCodeBlock(const CodeBlock& codeBlock) {
 #endif
 }
 
-bool ModuleGenerator::startCodeBlock() {
+bool ModuleGenerator::startCodeBlock(CodeBlockKind kind) {
   MOZ_ASSERT(!masmScope_ && !linkData_ && !codeBlock_);
   masmScope_.emplace(lifo_);
   masm_ = &masmScope_->masm;
   linkData_ = js::MakeUnique<LinkData>();
-  codeBlock_ = js::MakeUnique<CodeBlock>(tier());
+  codeBlock_ = js::MakeUnique<CodeBlock>(kind);
   return !!linkData_ && !!codeBlock_;
 }
 
@@ -843,10 +850,17 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
 
   for (CallFarJump far : callFarJumps_) {
     masm_->patchFarJump(
-        far.jump, funcCodeRangeInBlock(far.funcIndex).funcUncheckedCallEntry());
+        jit::CodeOffset(far.jumpOffset),
+        funcCodeRangeInBlock(far.targetFuncIndex).funcUncheckedCallEntry());
   }
 
   codeBlock_->debugTrapOffset = debugTrapCodeOffset_;
+  debugTrapCodeOffset_ = UINT32_MAX;
+
+  lastPatchedCallSite_ = 0;
+  startOfUnpatchedCallsites_ = 0;
+  callSiteTargets_.clear();
+  callFarJumps_.clear();
 
   // None of the linking or far-jump operations should emit masm metadata.
 
@@ -881,7 +895,8 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
     codeBlock_->trapSites[trap].shrinkStorageToFit();
   }
 
-  SharedCodeSegment segment = CodeSegment::createFromMasm(*masm_, *linkData_);
+  SharedCodeSegment segment = CodeSegment::createFromMasm(
+      *masm_, *linkData_, sharedStubsCodeBlock_.get());
   if (!segment) {
     warnf("failed to allocate executable memory for module");
     return nullptr;
@@ -903,16 +918,68 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
   return std::move(codeBlock_);
 }
 
+bool ModuleGenerator::generateSharedStubs() {
+  if (!startCodeBlock(CodeBlockKind::SharedStubs)) {
+    return false;
+  }
+
+  // The shared stubs code will contains function definitions for each imported
+  // function.
+  if (!FuncToCodeRangeMap::createDense(0, codeMeta_->numFuncImports,
+                                       &codeBlock_->funcToCodeRange)) {
+    return false;
+  }
+
+  uint32_t exportedFuncCount = 0;
+  for (uint32_t funcIndex = 0; funcIndex < codeMeta_->numFuncImports;
+       funcIndex++) {
+    const FuncDesc& func = codeMeta_->funcs[funcIndex];
+    if (func.isExported()) {
+      exportedFuncCount++;
+    }
+  }
+  if (!codeBlock_->funcExports.reserve(exportedFuncCount)) {
+    return false;
+  }
+
+  for (uint32_t funcIndex = 0; funcIndex < codeMeta_->numFuncImports;
+       funcIndex++) {
+    const FuncDesc& func = codeMeta_->funcs[funcIndex];
+    if (!func.isExported()) {
+      continue;
+    }
+
+    codeBlock_->funcExports.infallibleEmplaceBack(
+        FuncExport(func.typeIndex, funcIndex, func.isEager()));
+  }
+
+  // Generate the stubs for the module first
+  CompiledCode& stubCode = tasks_[0].output;
+  MOZ_ASSERT(stubCode.empty());
+
+  if (!GenerateStubs(*codeMeta_, funcImports_, codeBlock_->funcExports,
+                     &stubCode) ||
+      !linkCompiledCode(stubCode)) {
+    return false;
+  }
+  stubCode.clear();
+
+  sharedStubsCodeBlock_ = finishCodeBlock(&sharedStubsLinkData_);
+  return !!sharedStubsCodeBlock_;
+}
+
 bool ModuleGenerator::startCompleteTier() {
-  if (!startCodeBlock()) {
+  if (!startCodeBlock(CodeBlock::kindFromTier(tier()))) {
     return false;
   }
 
   // funcToCodeRange maps function indices to code-range indices and all
   // elements will be initialized by the time module generation is finished.
 
-  if (!FuncToCodeRangeMap::createDense(0, codeMeta_->funcs.length(),
-                                       &codeBlock_->funcToCodeRange)) {
+  if (!FuncToCodeRangeMap::createDense(
+          codeMeta_->numFuncImports,
+          codeMeta_->funcs.length() - codeMeta_->numFuncImports,
+          &codeBlock_->funcToCodeRange)) {
     return false;
   }
 
@@ -938,17 +1005,6 @@ bool ModuleGenerator::startCompleteTier() {
   (void)codeBlock_->trapSites[Trap::OutOfBounds].reserve(codeSectionSize /
                                                          ByteCodesPerOOBTrap);
 
-  // Initialize function import metadata
-  if (!codeBlock_->funcImports.resize(codeMeta_->numFuncImports)) {
-    return false;
-  }
-
-  for (size_t i = 0; i < codeMeta_->numFuncImports; i++) {
-    codeBlock_->funcImports[i] =
-        FuncImport(codeMeta_->funcs[i].typeIndex,
-                   codeMeta_->offsetOfFuncImportInstanceData(i));
-  }
-
   // Accumulate all exported functions:
   // - explicitly marked as such;
   // - implicitly exported by being an element of function tables;
@@ -958,7 +1014,9 @@ bool ModuleGenerator::startCompleteTier() {
   // transfer it to the FuncExportVector stored in Metadata.
 
   uint32_t exportedFuncCount = 0;
-  for (const FuncDesc& func : codeMeta_->funcs) {
+  for (uint32_t funcIndex = codeMeta_->numFuncImports;
+       funcIndex < codeMeta_->funcs.length(); funcIndex++) {
+    const FuncDesc& func = codeMeta_->funcs[funcIndex];
     if (func.isExported()) {
       exportedFuncCount++;
     }
@@ -967,8 +1025,8 @@ bool ModuleGenerator::startCompleteTier() {
     return false;
   }
 
-  for (uint32_t funcIndex = 0; funcIndex < codeMeta_->funcs.length();
-       funcIndex++) {
+  for (uint32_t funcIndex = codeMeta_->numFuncImports;
+       funcIndex < codeMeta_->funcs.length(); funcIndex++) {
     const FuncDesc& func = codeMeta_->funcs[funcIndex];
 
     if (!func.isExported()) {
@@ -1115,7 +1173,9 @@ SharedModule ModuleGenerator::finishModule(
   }
 
   MutableCode code = js_new<Code>(mode(), *codeMeta_, codeMetaForAsmJS_);
-  if (!code || !code->initialize(*tier1LinkData, std::move(tier1Code))) {
+  if (!code || !code->initialize(std::move(funcImports_),
+                                 std::move(sharedStubsCodeBlock_),
+                                 *sharedStubsLinkData_, std::move(tier1Code))) {
     return nullptr;
   }
 
@@ -1142,7 +1202,8 @@ SharedModule ModuleGenerator::finishModule(
                        tier() == Tier::Serialized);
 
     Bytes serializedBytes;
-    if (!module->serialize(*tier1LinkData, &serializedBytes)) {
+    if (!module->serialize(*sharedStubsLinkData_, *tier1LinkData,
+                           &serializedBytes)) {
       return nullptr;
     }
 
@@ -1166,7 +1227,7 @@ SharedModule ModuleGenerator::finishModule(
     module->startTier2(*compileArgs_, bytecode, maybeTier2Listener);
   } else if (tier() == Tier::Serialized && maybeTier2Listener) {
     Bytes bytes;
-    if (module->serialize(*tier1LinkData, &bytes)) {
+    if (module->serialize(*sharedStubsLinkData_, *tier1LinkData, &bytes)) {
       maybeTier2Listener->storeOptimizedEncoding(bytes.begin(), bytes.length());
     }
   }
@@ -1197,7 +1258,8 @@ bool ModuleGenerator::finishTier2(const Module& module) {
     ThisThread::SleepMilliseconds(500);
   }
 
-  return module.finishTier2(*tier2LinkData, std::move(tier2Code));
+  return module.finishTier2(*sharedStubsLinkData_, *tier2LinkData,
+                            std::move(tier2Code));
 }
 
 void ModuleGenerator::warnf(const char* msg, ...) {

@@ -11461,12 +11461,11 @@ AttachDecision CallIRGenerator::tryAttachWasmCall(HandleFunction calleeFunc) {
   }
 
   wasm::Instance& inst = wasm::ExportedFunctionToInstance(calleeFunc);
-  uint32_t funcIndex = inst.code().getFuncIndex(calleeFunc);
-
-  auto bestTier = inst.code().bestTier();
-  const wasm::FuncExport& funcExport =
-      inst.code(bestTier).lookupFuncExport(funcIndex);
-  const wasm::FuncType& sig = inst.codeMeta().getFuncExportType(funcExport);
+  uint32_t funcIndex = wasm::ExportedFunctionToFuncIndex(calleeFunc);
+  const wasm::CodeBlock& codeBlock = inst.code().funcCodeBlock(funcIndex);
+  const wasm::FuncExport& funcExport = codeBlock.lookupFuncExport(funcIndex);
+  const wasm::FuncType& sig =
+      wasm::ExportedFunctionToTypeDef(calleeFunc).funcType();
 
   MOZ_ASSERT(!IsInsideNursery(inst.object()));
   MOZ_ASSERT(sig.canHaveJitEntry(), "Function should allow a Wasm JitEntry");

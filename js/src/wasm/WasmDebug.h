@@ -161,16 +161,17 @@ class DebugState {
 
   // Accessors for commonly used elements of linked structures.
 
-  const CodeBlock& code(Tier t) const { return code_->codeBlock(t); }
+  const CodeBlock& debugCode() const { return code_->debugCodeBlock(); }
+  const CodeSegment& debugSegment() const {
+    return *code_->debugCodeBlock().segment;
+  }
   const CodeMetadata& codeMeta() const { return code_->codeMeta(); }
   const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
     return code_->codeMetaForAsmJS();
   }
-  const CodeRangeVector& codeRanges(Tier t) const { return code(t).codeRanges; }
-  const CallSiteVector& callSites(Tier t) const { return code(t).callSites; }
 
   uint32_t funcToCodeRangeIndex(uint32_t funcIndex) const {
-    return code(Tier::Debug).funcToCodeRange[funcIndex];
+    return debugCode().funcToCodeRange[funcIndex];
   }
 
   // about:memory reporting:

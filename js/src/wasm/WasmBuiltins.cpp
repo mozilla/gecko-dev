@@ -965,14 +965,12 @@ static void* BoxValue_Anyref(Value* rawVal) {
   return result.get().forCompiledCode();
 }
 
-static int32_t CoerceInPlace_JitEntry(int funcExportIndex, Instance* instance,
+static int32_t CoerceInPlace_JitEntry(int funcIndex, Instance* instance,
                                       Value* argv) {
   JSContext* cx = TlsContext.get();  // Cold code
 
   const Code& code = instance->code();
-  const FuncExport& fe =
-      code.codeBlock(code.stableTier()).funcExports[funcExportIndex];
-  const FuncType& funcType = code.codeMeta().getFuncExportType(fe);
+  const FuncType& funcType = code.getFuncExportType(funcIndex);
 
   for (size_t i = 0; i < funcType.args().length(); i++) {
     HandleValue arg = HandleValue::fromMarkedLocation(&argv[i]);

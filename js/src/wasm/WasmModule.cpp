@@ -165,7 +165,8 @@ void Module::startTier2(const CompileArgs& args, const ShareableBytes& bytecode,
   StartOffThreadWasmTier2Generator(std::move(task));
 }
 
-bool Module::finishTier2(const LinkData& linkData2,
+bool Module::finishTier2(const LinkData& sharedStubsLinkData,
+                         const LinkData& linkData2,
                          UniqueCodeBlock code2) const {
   if (!code_->finishCompleteTier2(linkData2, std::move(code2))) {
     return false;
@@ -177,7 +178,7 @@ bool Module::finishTier2(const LinkData& linkData2,
 
   if (tier2Listener_) {
     Bytes bytes;
-    if (serialize(linkData2, &bytes)) {
+    if (serialize(sharedStubsLinkData, linkData2, &bytes)) {
       tier2Listener_->storeOptimizedEncoding(bytes.begin(), bytes.length());
     }
     tier2Listener_ = nullptr;
@@ -280,12 +281,13 @@ bool Module::extractCode(JSContext* cx, Tier tier,
   // block on tiered compilation to complete.
   testingBlockOnTier2Complete();
 
-  if (!code_->hasTier(tier)) {
+  if (!code_->hasCompleteTier(tier)) {
     vp.setNull();
     return true;
   }
 
-  const CodeSegment& codeSegment = code_->segment(tier);
+  const CodeBlock& codeBlock = code_->completeTierCodeBlock(tier);
+  const CodeSegment& codeSegment = *codeBlock.segment;
   RootedObject codeObj(cx, JS_NewUint8Array(cx, codeSegment.lengthBytes()));
   if (!codeObj) {
     return false;
@@ -304,7 +306,7 @@ bool Module::extractCode(JSContext* cx, Tier tier,
     return false;
   }
 
-  for (const CodeRange& p : code(tier).codeRanges) {
+  for (const CodeRange& p : codeBlock.codeRanges) {
     RootedObject segment(cx, NewPlainObjectWithProto(cx, nullptr));
     if (!segment) {
       return false;
@@ -376,18 +378,14 @@ static const Import& FindImportFunction(const ImportVector& imports,
 bool Module::instantiateFunctions(JSContext* cx,
                                   const JSObjectVector& funcImports) const {
 #ifdef DEBUG
-  for (auto t : code().tiers()) {
-    MOZ_ASSERT(funcImports.length() == code(t).funcImports.length());
-  }
+  MOZ_ASSERT(funcImports.length() == code().funcImports().length());
 #endif
 
   if (codeMeta().isAsmJS()) {
     return true;
   }
 
-  Tier tier = code().stableTier();
-
-  for (size_t i = 0; i < code(tier).funcImports.length(); i++) {
+  for (size_t i = 0; i < code().funcImports().length(); i++) {
     if (!funcImports[i]->is<JSFunction>()) {
       continue;
     }
@@ -399,12 +397,10 @@ bool Module::instantiateFunctions(JSContext* cx,
 
     uint32_t funcIndex = ExportedFunctionToFuncIndex(f);
     Instance& instance = ExportedFunctionToInstance(f);
-    Tier otherTier = instance.code().stableTier();
 
-    const TypeDef& exportFuncType = instance.codeMeta().getFuncExportTypeDef(
-        instance.code(otherTier).lookupFuncExport(funcIndex));
-    const TypeDef& importFuncType =
-        codeMeta().getFuncImportTypeDef(code(tier).funcImports[i]);
+    const TypeDef& exportFuncType =
+        instance.code().getFuncExportTypeDef(funcIndex);
+    const TypeDef& importFuncType = code().getFuncImportTypeDef(i);
 
     if (!TypeDef::isSubTypeOf(&exportFuncType, &importFuncType)) {
       const Import& import = FindImportFunction(moduleMeta().imports, i);

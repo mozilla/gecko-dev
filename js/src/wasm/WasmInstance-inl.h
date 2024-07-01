@@ -14,10 +14,6 @@
 namespace js {
 namespace wasm {
 
-const CodeBlock& Instance::code(Tier t) const { return code_->codeBlock(t); }
-
-uint8_t* Instance::codeBase(Tier t) const { return code_->segment(t).base(); }
-
 const CodeMetadata& Instance::codeMeta() const { return code_->codeMeta(); }
 const CodeMetadataForAsmJS* Instance::codeMetaForAsmJS() const {
   return code_->codeMetaForAsmJS();

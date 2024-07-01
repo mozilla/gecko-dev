@@ -227,10 +227,8 @@ bool Instance::callImport(JSContext* cx, uint32_t funcImportIndex,
                           unsigned argc, uint64_t* argv) {
   AssertRealmUnchanged aru(cx);
 
-  Tier tier = code().bestTier();
-
-  const FuncImport& fi = code(tier).funcImports[funcImportIndex];
-  const FuncType& funcType = codeMeta().getFuncImportType(fi);
+  const FuncImport& fi = code().funcImport(funcImportIndex);
+  const FuncType& funcType = code().getFuncImportType(funcImportIndex);
 
   ArgTypeVector argTypes(funcType);
   InvokeArgs args(cx);
@@ -317,14 +315,11 @@ bool Instance::callImport(JSContext* cx, uint32_t funcImportIndex,
 #endif
 
   // The import may already have become optimized.
-  for (auto t : code().tiers()) {
-    void* jitExitCode = codeBase(t) + fi.jitExitCodeOffset();
-    if (import.code == jitExitCode) {
-      return true;
-    }
+  void* jitExitCode =
+      code().sharedStubs().segment->base() + fi.jitExitCodeOffset();
+  if (import.code == jitExitCode) {
+    return true;
   }
-
-  void* jitExitCode = codeBase(tier) + fi.jitExitCodeOffset();
 
   if (!importCallable->is<JSFunction>()) {
     return true;
@@ -1017,20 +1012,16 @@ bool Instance::iterElemsFunctions(const ModuleElemSegment& seg,
     return true;
   }
 
-  Tier tier = code().bestTier();
-  const CodeBlock& codeBlock = code(tier);
-  const FuncImportVector& funcImports = codeBlock.funcImports;
-  const CodeRangeVector& codeRanges = codeBlock.codeRanges;
-  const FuncToCodeRangeMap& funcToCodeRange = codeBlock.funcToCodeRange;
-  const Uint32Vector& elemIndices = seg.elemIndices;
+  const FuncImportVector& funcImports = code().funcImports();
 
-  uint8_t* codeBaseTier = codeBase(tier);
   for (uint32_t i = 0; i < seg.numElements(); i++) {
-    uint32_t elemIndex = elemIndices[i];
-    if (elemIndex < codeBlock.funcImports.length()) {
+    uint32_t elemFuncIndex = seg.elemIndices[i];
+
+    if (elemFuncIndex < funcImports.length()) {
       FuncImportInstanceData& import =
-          funcImportInstanceData(funcImports[elemIndex]);
+          funcImportInstanceData(funcImports[elemFuncIndex]);
       MOZ_ASSERT(import.callable->isCallable());
+
       if (import.callable->is<JSFunction>()) {
         JSFunction* fun = &import.callable->as<JSFunction>();
         if (IsWasmExportedFunction(fun)) {
@@ -1043,11 +1034,11 @@ bool Instance::iterElemsFunctions(const ModuleElemSegment& seg,
           WasmInstanceObject* calleeInstanceObj =
               ExportedFunctionToInstanceObject(fun);
           Instance& calleeInstance = calleeInstanceObj->instance();
-          Tier calleeTier = calleeInstance.code().bestTier();
-          const CodeRange& calleeCodeRange =
-              calleeInstanceObj->getExportedFunctionCodeRange(fun, calleeTier);
-          void* code = calleeInstance.codeBase(calleeTier) +
-                       calleeCodeRange.funcCheckedCallEntry();
+          uint8_t* codeRangeBase;
+          const CodeRange* codeRange;
+          calleeInstanceObj->getExportedFunctionCodeRange(fun, &codeRange,
+                                                          &codeRangeBase);
+          void* code = codeRangeBase + codeRange->funcCheckedCallEntry();
           if (!onFunc(i, code, &calleeInstance)) {
             return false;
           }
@@ -1056,8 +1047,12 @@ bool Instance::iterElemsFunctions(const ModuleElemSegment& seg,
       }
     }
 
-    void* code = codeBaseTier +
-                 codeRanges[funcToCodeRange[elemIndex]].funcCheckedCallEntry();
+    const CodeBlock& codeBlock = code().funcCodeBlock(elemFuncIndex);
+    const CodeRangeVector& codeRanges = codeBlock.codeRanges;
+    const FuncToCodeRangeMap& funcToCodeRange = codeBlock.funcToCodeRange;
+    void* code =
+        codeBlock.segment->base() +
+        codeRanges[funcToCodeRange[elemFuncIndex]].funcCheckedCallEntry();
     if (!onFunc(i, code, this)) {
       return false;
     }
@@ -1346,9 +1341,7 @@ static int32_t MemDiscardShared(Instance* instance, I byteOffset, I byteLen,
   MOZ_ASSERT(SASigRefFunc.failureMode == FailureMode::FailOnInvalidRef);
   JSContext* cx = instance->cx();
 
-  Tier tier = instance->code().bestTier();
-  const CodeBlock& codeBlock = instance->code(tier);
-  const FuncImportVector& funcImports = codeBlock.funcImports;
+  const FuncImportVector& funcImports = instance->code().funcImports();
 
   // If this is an import, we need to recover the original function to maintain
   // reference equality between a re-exported function and 'ref.func'. The
@@ -2297,11 +2290,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
                     const ModuleElemSegmentVector& elemSegments) {
   MOZ_ASSERT(!!maybeDebug_ == codeMeta().debugEnabled);
 
-#ifdef DEBUG
-  for (auto t : code_->tiers()) {
-    MOZ_ASSERT(funcImports.length() == code(t).funcImports.length());
-  }
-#endif
+  MOZ_ASSERT(funcImports.length() == code().funcImports().length());
   MOZ_ASSERT(tables_.length() == codeMeta().tables.length());
 
   cx_ = cx;
@@ -2390,15 +2379,13 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
   }
 
   // Initialize function imports in the instance data
-  Tier callerTier = code_->bestTier();
-  for (size_t i = 0; i < code(callerTier).funcImports.length(); i++) {
+  for (size_t i = 0; i < code().funcImports().length(); i++) {
     JSObject* f = funcImports[i];
 
 #ifdef ENABLE_WASM_JSPI
     if (JSObject* suspendingObject = MaybeUnwrapSuspendingObject(f)) {
       // Compile suspending function Wasm wrapper.
-      const FuncImport& fi = code(callerTier).funcImports[i];
-      const FuncType& funcType = codeMeta().getFuncImportType(fi);
+      const FuncType& funcType = code().getFuncImportType(i);
       RootedObject wrapped(cx, suspendingObject);
       RootedFunction wrapper(
           cx, WasmSuspendingFunctionCreate(cx, wrapped, funcType));
@@ -2411,8 +2398,8 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 #endif
 
     MOZ_ASSERT(f->isCallable());
-    const FuncImport& fi = code(callerTier).funcImports[i];
-    const FuncType& funcType = codeMeta().getFuncImportType(fi);
+    const FuncImport& fi = code().funcImport(i);
+    const FuncType& funcType = code().getFuncImportType(i);
     FuncImportInstanceData& import = funcImportInstanceData(fi);
     import.callable = f;
     if (f->is<JSFunction>()) {
@@ -2421,14 +2408,13 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
         WasmInstanceObject* calleeInstanceObj =
             ExportedFunctionToInstanceObject(fun);
         Instance& calleeInstance = calleeInstanceObj->instance();
-        Tier calleeTier = calleeInstance.code().bestTier();
-        const CodeRange& codeRange =
-            calleeInstanceObj->getExportedFunctionCodeRange(
-                &f->as<JSFunction>(), calleeTier);
+        uint8_t* codeRangeBase;
+        const CodeRange* codeRange;
+        calleeInstanceObj->getExportedFunctionCodeRange(
+            &f->as<JSFunction>(), &codeRange, &codeRangeBase);
         import.instance = &calleeInstance;
         import.realm = fun->realm();
-        import.code = calleeInstance.codeBase(calleeTier) +
-                      codeRange.funcUncheckedCallEntry();
+        import.code = codeRangeBase + codeRange->funcUncheckedCallEntry();
       } else if (void* thunk = MaybeGetBuiltinThunk(fun, funcType)) {
         import.instance = this;
         import.realm = fun->realm();
@@ -2436,12 +2422,14 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
       } else {
         import.instance = this;
         import.realm = fun->realm();
-        import.code = codeBase(callerTier) + fi.interpExitCodeOffset();
+        import.code =
+            code().sharedStubs().segment->base() + fi.interpExitCodeOffset();
       }
     } else {
       import.instance = this;
       import.realm = f->nonCCWRealm();
-      import.code = codeBase(callerTier) + fi.interpExitCodeOffset();
+      import.code =
+          code().sharedStubs().segment->base() + fi.interpExitCodeOffset();
     }
   }
 
@@ -2717,7 +2705,7 @@ void Instance::tracePrivate(JSTracer* trc) {
 
   // OK to just do one tier here; though the tiers have different funcImports
   // tables, they share the instance object.
-  for (const FuncImport& fi : code(code().stableTier()).funcImports) {
+  for (const FuncImport& fi : code().funcImports()) {
     TraceNullableEdge(trc, &funcImportInstanceData(fi).callable, "wasm import");
   }
 
@@ -2929,7 +2917,7 @@ static bool GetInterpEntryAndEnsureStubs(JSContext* cx, Instance& instance,
     return false;
   }
 
-  *funcType = &instance.codeMeta().getFuncExportType(*funcExport);
+  *funcType = &instance.code().getFuncExportType(funcIndex);
 
 #ifdef DEBUG
   // EnsureEntryStubs() has ensured proper jit-entry stubs have been created and
@@ -3427,7 +3415,7 @@ void Instance::destroyBreakpointSite(JS::GCContext* gcx, uint32_t offset) {
 
 void Instance::disassembleExport(JSContext* cx, uint32_t funcIndex, Tier tier,
                                  PrintCallback printString) const {
-  const CodeBlock& codeBlock = code(tier);
+  const CodeBlock& codeBlock = code().funcCodeBlock(funcIndex);
   const FuncExport& funcExport = codeBlock.lookupFuncExport(funcIndex);
   const CodeRange& range = codeBlock.codeRange(funcExport);
   const CodeSegment& segment = *codeBlock.segment;
