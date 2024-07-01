@@ -209,9 +209,8 @@ void MacroAssembler::loadFromTypedArray(Scalar::Type arrayType, const T& src,
       tagValue(JSVAL_TYPE_INT32, dest.scratchReg(), dest);
       break;
     case Scalar::Uint32:
-      // Don't clobber dest when we could fail, instead use temp.
-      load32(src, temp);
-      boxUint32(temp, dest, uint32Mode, fail);
+      load32(src, dest.scratchReg());
+      boxUint32(dest.scratchReg(), dest, uint32Mode, fail);
       break;
     case Scalar::Float32: {
       ScratchDoubleScope dscratch(*this);
