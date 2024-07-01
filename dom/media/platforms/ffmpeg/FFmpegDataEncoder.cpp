@@ -235,8 +235,7 @@ MediaResult FFmpegDataEncoder<LIBAV_VER>::FinishInitCommon(AVCodec* aCodec) {
     mCodecContext->bit_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
     FFMPEG_LOG("Encoding in CBR: %d", mConfig.mBitrate);
   } else {
-    mCodecContext->rc_max_rate =
-        static_cast<FFmpegBitRate>(mConfig.mBitrate);
+    mCodecContext->rc_max_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
     mCodecContext->rc_min_rate = 0;
     mCodecContext->bit_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
     FFMPEG_LOG("Encoding in VBR: [%d;%d]", (int)mCodecContext->rc_min_rate,

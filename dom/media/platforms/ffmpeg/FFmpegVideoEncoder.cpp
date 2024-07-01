@@ -303,8 +303,8 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
 
   // And now the video-specific part
   mCodecContext->pix_fmt = ffmpeg::FFMPEG_PIX_FMT_YUV420P;
-  // // TODO: do this properly, based on the colorspace of the frame. Setting this like that crashes encoders.
-  // if (mConfig.mCodec != CodecType::AV1) {
+  // // TODO: do this properly, based on the colorspace of the frame. Setting
+  // this like that crashes encoders. if (mConfig.mCodec != CodecType::AV1) {
   //     if (mConfig.mPixelFormat == dom::ImageBitmapFormat::RGBA32 ||
   //         mConfig.mPixelFormat == dom::ImageBitmapFormat::BGRA32) {
   //       mCodecContext->color_primaries = AVCOL_PRI_BT709;
