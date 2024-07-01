@@ -731,6 +731,7 @@ void FFmpegVideoEncoder<LIBAV_VER>::ForceEnablingFFmpegDebugLogs() {
 Maybe<FFmpegVideoEncoder<LIBAV_VER>::SVCSettings>
 FFmpegVideoEncoder<LIBAV_VER>::GetSVCSettings() {
   MOZ_ASSERT(!mCodecName.IsEmpty());
+  MOZ_ASSERT(SvcEnabled());
 
   CodecType codecType = CodecType::Unknown;
   if (mCodecName == "libvpx") {
