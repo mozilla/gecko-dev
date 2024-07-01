@@ -448,8 +448,7 @@ bool BaselineCacheIRCompiler::emitGuardSpecificAtom(StringOperandId strId,
 
   // We have a non-atomized string with the same length. Call a helper
   // function to do the comparison.
-  LiveRegisterSet volatileRegs(GeneralRegisterSet::Volatile(),
-                               liveVolatileFloatRegs());
+  LiveRegisterSet volatileRegs = liveVolatileRegs();
   masm.PushRegsInMask(volatileRegs);
 
   using Fn = bool (*)(JSString* str1, JSString* str2);
@@ -899,8 +898,7 @@ bool BaselineCacheIRCompiler::emitAddAndStoreSlotShared(
       return false;
     }
 
-    LiveRegisterSet save(GeneralRegisterSet::Volatile(),
-                         liveVolatileFloatRegs());
+    LiveRegisterSet save = liveVolatileRegs();
     masm.PushRegsInMask(save);
 
     using Fn = bool (*)(JSContext* cx, NativeObject* obj, uint32_t newCount);
@@ -1477,8 +1475,7 @@ void BaselineCacheIRCompiler::emitAtomizeString(Register str, Register temp,
   masm.bind(&notCachedAtom);
 
   {
-    LiveRegisterSet save(GeneralRegisterSet::Volatile(),
-                         liveVolatileFloatRegs());
+    LiveRegisterSet save = liveVolatileRegs();
     masm.PushRegsInMask(save);
 
     using Fn = JSAtom* (*)(JSContext* cx, JSString* str);

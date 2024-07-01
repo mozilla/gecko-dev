@@ -837,8 +837,7 @@ bool IonCacheIRCompiler::emitGuardSpecificAtom(StringOperandId strId,
     return false;
   }
 
-  LiveRegisterSet volatileRegs(GeneralRegisterSet::Volatile(),
-                               liveVolatileFloatRegs());
+  LiveRegisterSet volatileRegs = liveVolatileRegs();
   volatileRegs.takeUnchecked(scratch);
 
   masm.guardSpecificAtom(str, atom, scratch, volatileRegs, failure->label());
@@ -1415,8 +1414,7 @@ bool IonCacheIRCompiler::emitAddAndStoreSlotShared(
     int32_t numNewSlots = int32StubField(*numNewSlotsOffset);
     MOZ_ASSERT(numNewSlots > 0);
 
-    LiveRegisterSet save(GeneralRegisterSet::Volatile(),
-                         liveVolatileFloatRegs());
+    LiveRegisterSet save = liveVolatileRegs();
     masm.PushRegsInMask(save);
 
     using Fn = bool (*)(JSContext* cx, NativeObject* obj, uint32_t newCount);
@@ -1543,8 +1541,7 @@ bool IonCacheIRCompiler::emitLoadStringCharResult(StringOperandId strId,
     // modifying the stack and expect that no other stack manipulations are
     // made. Therefore we need to use an ABI call instead of a VM call here.
 
-    LiveRegisterSet volatileRegs(GeneralRegisterSet::Volatile(),
-                                 liveVolatileFloatRegs());
+    LiveRegisterSet volatileRegs = liveVolatileRegs();
     volatileRegs.takeUnchecked(scratch1);
     volatileRegs.takeUnchecked(scratch2);
     volatileRegs.takeUnchecked(scratch3);
