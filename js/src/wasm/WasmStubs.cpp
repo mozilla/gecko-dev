@@ -1960,38 +1960,6 @@ static bool GenerateImportFunction(jit::MacroAssembler& masm,
 
 static const unsigned STUBS_LIFO_DEFAULT_CHUNK_SIZE = 4 * 1024;
 
-bool wasm::GenerateImportFunctions(const CodeMetadata& codeMeta,
-                                   const FuncImportVector& imports,
-                                   CompiledCode* code) {
-  LifoAlloc lifo(STUBS_LIFO_DEFAULT_CHUNK_SIZE);
-  TempAllocator alloc(&lifo);
-  WasmMacroAssembler masm(alloc);
-
-  for (uint32_t funcIndex = 0; funcIndex < imports.length(); funcIndex++) {
-    const FuncImport& fi = imports[funcIndex];
-    const FuncType& funcType = *codeMeta.funcs[funcIndex].type;
-    CallIndirectId callIndirectId =
-        CallIndirectId::forFunc(codeMeta, funcIndex);
-
-    FuncOffsets offsets;
-    if (!GenerateImportFunction(masm, fi, funcType, callIndirectId, &offsets,
-                                &code->stackMaps)) {
-      return false;
-    }
-    if (!code->codeRanges.emplaceBack(funcIndex, /* bytecodeOffset = */ 0,
-                                      offsets, /* hasUnwindInfo = */ false)) {
-      return false;
-    }
-  }
-
-  masm.finish();
-  if (masm.oom()) {
-    return false;
-  }
-
-  return code->swap(masm);
-}
-
 // Generate a stub that is called via the internal ABI derived from the
 // signature of the import and calls into an appropriate callImport C++
 // function, having boxed all the ABI arguments into a homogeneous Value array.
@@ -2900,6 +2868,43 @@ static bool GenerateDebugTrapStub(MacroAssembler& masm, Label* throwLabel,
   return FinishOffsets(masm, offsets);
 }
 
+bool wasm::GenerateEntryStubs(const CodeMetadata& codeMeta,
+                              const FuncExportVector& exports,
+                              CompiledCode* code) {
+  LifoAlloc lifo(STUBS_LIFO_DEFAULT_CHUNK_SIZE);
+  TempAllocator alloc(&lifo);
+  JitContext jcx;
+  WasmMacroAssembler masm(alloc);
+  AutoCreatedBy acb(masm, "wasm::GenerateEntryStubs");
+
+  // Swap in already-allocated empty vectors to avoid malloc/free.
+  if (!code->swap(masm)) {
+    return false;
+  }
+
+  JitSpew(JitSpew_Codegen, "# Emitting wasm export stubs");
+
+  Maybe<ImmPtr> noAbsolute;
+  for (size_t i = 0; i < exports.length(); i++) {
+    const FuncExport& fe = exports[i];
+    const FuncType& funcType = (*codeMeta.types)[fe.typeIndex()].funcType();
+    if (!fe.hasEagerStubs()) {
+      continue;
+    }
+    if (!GenerateEntryStubs(masm, i, fe, funcType, noAbsolute,
+                            codeMeta.isAsmJS(), &code->codeRanges)) {
+      return false;
+    }
+  }
+
+  masm.finish();
+  if (masm.oom()) {
+    return false;
+  }
+
+  return code->swap(masm);
+}
+
 bool wasm::GenerateEntryStubs(MacroAssembler& masm, size_t funcExportIndex,
                               const FuncExport& fe, const FuncType& funcType,
                               const Maybe<ImmPtr>& callee, bool isAsmJS,
@@ -2968,8 +2973,7 @@ bool wasm::GenerateProvisionalLazyJitEntryStub(MacroAssembler& masm,
 }
 
 bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
-                         const FuncImportVector& imports,
-                         const FuncExportVector& exports, CompiledCode* code) {
+                         const FuncImportVector& imports, CompiledCode* code) {
   LifoAlloc lifo(STUBS_LIFO_DEFAULT_CHUNK_SIZE);
   TempAllocator alloc(&lifo);
   JitContext jcx;
@@ -2988,6 +2992,20 @@ bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
   for (uint32_t funcIndex = 0; funcIndex < imports.length(); funcIndex++) {
     const FuncImport& fi = imports[funcIndex];
     const FuncType& funcType = *codeMeta.funcs[funcIndex].type;
+
+    CallIndirectId callIndirectId =
+        CallIndirectId::forFunc(codeMeta, funcIndex);
+
+    FuncOffsets wrapperOffsets;
+    if (!GenerateImportFunction(masm, fi, funcType, callIndirectId,
+                                &wrapperOffsets, &code->stackMaps)) {
+      return false;
+    }
+    if (!code->codeRanges.emplaceBack(funcIndex, /* bytecodeOffset = */ 0,
+                                      wrapperOffsets,
+                                      /* hasUnwindInfo = */ false)) {
+      return false;
+    }
 
     CallableOffsets interpOffsets;
     if (!GenerateImportInterpExit(masm, fi, funcType, funcIndex, &throwLabel,
@@ -3016,22 +3034,7 @@ bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
     }
   }
 
-  JitSpew(JitSpew_Codegen, "# Emitting wasm export stubs");
-
-  Maybe<ImmPtr> noAbsolute;
-  for (size_t i = 0; i < exports.length(); i++) {
-    const FuncExport& fe = exports[i];
-    const FuncType& funcType = (*codeMeta.types)[fe.typeIndex()].funcType();
-    if (!fe.hasEagerStubs()) {
-      continue;
-    }
-    if (!GenerateEntryStubs(masm, i, fe, funcType, noAbsolute,
-                            codeMeta.isAsmJS(), &code->codeRanges)) {
-      return false;
-    }
-  }
-
-  JitSpew(JitSpew_Codegen, "# Emitting wasm exit stubs");
+  JitSpew(JitSpew_Codegen, "# Emitting wasm trap and throw stubs");
 
   Offsets offsets;
 
