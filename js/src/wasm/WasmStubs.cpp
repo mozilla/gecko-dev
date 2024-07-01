@@ -986,56 +986,53 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
     Label next;
     switch (funcType.args()[i].kind()) {
       case ValType::I32: {
-        ScratchTagScope tag(masm, scratchV);
-        masm.splitTagForTest(scratchV, tag);
+        Label isDouble, isUndefinedOrNull, isBoolean;
+        {
+          ScratchTagScope tag(masm, scratchV);
+          masm.splitTagForTest(scratchV, tag);
 
-        // For int32 inputs, just skip.
-        masm.branchTestInt32(Assembler::Equal, tag, &next);
+          // For int32 inputs, just skip.
+          masm.branchTestInt32(Assembler::Equal, tag, &next);
+
+          masm.branchTestDouble(Assembler::Equal, tag, &isDouble);
+          masm.branchTestUndefined(Assembler::Equal, tag, &isUndefinedOrNull);
+          masm.branchTestNull(Assembler::Equal, tag, &isUndefinedOrNull);
+          masm.branchTestBoolean(Assembler::Equal, tag, &isBoolean);
+
+          // Other types (symbol, object, strings) go to the C++ call.
+          masm.jump(&oolCall);
+        }
+
+        Label storeBack;
 
         // For double inputs, unbox, truncate and store back.
-        Label storeBack, notDouble;
-        masm.branchTestDouble(Assembler::NotEqual, tag, &notDouble);
+        masm.bind(&isDouble);
         {
-          ScratchTagScopeRelease _(&tag);
           masm.unboxDouble(scratchV, scratchF);
           masm.branchTruncateDoubleMaybeModUint32(scratchF, scratchG, &oolCall);
           masm.jump(&storeBack);
         }
-        masm.bind(&notDouble);
 
         // For null or undefined, store 0.
-        Label nullOrUndefined, notNullOrUndefined;
-        masm.branchTestUndefined(Assembler::Equal, tag, &nullOrUndefined);
-        masm.branchTestNull(Assembler::NotEqual, tag, &notNullOrUndefined);
-        masm.bind(&nullOrUndefined);
+        masm.bind(&isUndefinedOrNull);
         {
-          ScratchTagScopeRelease _(&tag);
           masm.storeValue(Int32Value(0), jitArgAddr);
+          masm.jump(&next);
         }
-        masm.jump(&next);
-        masm.bind(&notNullOrUndefined);
 
-        // For booleans, store the number value back. Other types (symbol,
-        // object, strings) go to the C++ call.
-        masm.branchTestBoolean(Assembler::NotEqual, tag, &oolCall);
+        // For booleans, store the number value back.
+        masm.bind(&isBoolean);
         masm.unboxBoolean(scratchV, scratchG);
         // fallthrough:
 
         masm.bind(&storeBack);
-        {
-          ScratchTagScopeRelease _(&tag);
-          masm.storeValue(JSVAL_TYPE_INT32, scratchG, jitArgAddr);
-        }
+        masm.storeValue(JSVAL_TYPE_INT32, scratchG, jitArgAddr);
         break;
       }
       case ValType::I64: {
-        ScratchTagScope tag(masm, scratchV);
-        masm.splitTagForTest(scratchV, tag);
-
         // For BigInt inputs, just skip. Otherwise go to C++ for other
         // types that require creating a new BigInt or erroring.
-        masm.branchTestBigInt(Assembler::NotEqual, tag, &oolCall);
-        masm.jump(&next);
+        masm.branchTestBigInt(Assembler::NotEqual, scratchV, &oolCall);
         break;
       }
       case ValType::F32:
@@ -1043,52 +1040,43 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
         // Note we can reuse the same code for f32/f64 here, since for the
         // case of f32, the conversion of f64 to f32 will happen in the
         // second loop.
-        ScratchTagScope tag(masm, scratchV);
-        masm.splitTagForTest(scratchV, tag);
 
-        // For double inputs, just skip.
-        masm.branchTestDouble(Assembler::Equal, tag, &next);
-
-        // For int32 inputs, convert and rebox.
-        Label storeBack, notInt32;
+        Label isInt32OrBoolean, isUndefined, isNull;
         {
-          ScratchTagScopeRelease _(&tag);
-          masm.branchTestInt32(Assembler::NotEqual, scratchV, &notInt32);
-          masm.int32ValueToDouble(scratchV, scratchF);
-          masm.jump(&storeBack);
+          ScratchTagScope tag(masm, scratchV);
+          masm.splitTagForTest(scratchV, tag);
+
+          // For double inputs, just skip.
+          masm.branchTestDouble(Assembler::Equal, tag, &next);
+
+          masm.branchTestInt32(Assembler::Equal, tag, &isInt32OrBoolean);
+          masm.branchTestUndefined(Assembler::Equal, tag, &isUndefined);
+          masm.branchTestNull(Assembler::Equal, tag, &isNull);
+          masm.branchTestBoolean(Assembler::Equal, tag, &isInt32OrBoolean);
+
+          // Other types (symbol, object, strings) go to the C++ call.
+          masm.jump(&oolCall);
         }
-        masm.bind(&notInt32);
+
+        // For int32 and boolean inputs, convert and rebox.
+        masm.bind(&isInt32OrBoolean);
+        {
+          masm.convertInt32ToDouble(scratchV.payloadOrValueReg(), scratchF);
+          masm.boxDouble(scratchF, jitArgAddr);
+          masm.jump(&next);
+        }
 
         // For undefined (missing argument), store NaN.
-        Label notUndefined;
-        masm.branchTestUndefined(Assembler::NotEqual, tag, &notUndefined);
+        masm.bind(&isUndefined);
         {
-          ScratchTagScopeRelease _(&tag);
           masm.storeValue(DoubleValue(JS::GenericNaN()), jitArgAddr);
           masm.jump(&next);
         }
-        masm.bind(&notUndefined);
 
         // +null is 0.
-        Label notNull;
-        masm.branchTestNull(Assembler::NotEqual, tag, &notNull);
+        masm.bind(&isNull);
         {
-          ScratchTagScopeRelease _(&tag);
           masm.storeValue(DoubleValue(0.), jitArgAddr);
-        }
-        masm.jump(&next);
-        masm.bind(&notNull);
-
-        // For booleans, store the number value back. Other types (symbol,
-        // object, strings) go to the C++ call.
-        masm.branchTestBoolean(Assembler::NotEqual, tag, &oolCall);
-        masm.boolValueToDouble(scratchV, scratchF);
-        // fallthrough:
-
-        masm.bind(&storeBack);
-        {
-          ScratchTagScopeRelease _(&tag);
-          masm.boxDouble(scratchF, jitArgAddr);
         }
         break;
       }
