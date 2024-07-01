@@ -2327,8 +2327,8 @@ static bool GenerateImportJitExit(MacroAssembler& masm, const FuncImport& fi,
         masm.breakpoint();
         break;
       case ValType::F32:
-        masm.convertValueToFloat(JSReturnOperand, ReturnFloat32Reg,
-                                 &oolConvert);
+        masm.convertValueToFloat32(JSReturnOperand, ReturnFloat32Reg,
+                                   &oolConvert);
         GenPrintF32(DebugChannel::Import, masm, ReturnFloat32Reg);
         break;
       case ValType::F64:

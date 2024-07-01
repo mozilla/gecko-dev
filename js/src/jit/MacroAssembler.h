@@ -5854,8 +5854,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
     convertValueToFloatingPoint(value, output, fail, MIRType::Double);
   }
 
-  void convertValueToFloat(ValueOperand value, FloatRegister output,
-                           Label* fail) {
+  void convertValueToFloat32(ValueOperand value, FloatRegister output,
+                             Label* fail) {
     convertValueToFloatingPoint(value, output, fail, MIRType::Float32);
   }
 

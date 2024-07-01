@@ -1043,7 +1043,7 @@ void CodeGenerator::visitValueToFloat32(LValueToFloat32* lir) {
   FloatRegister output = ToFloatRegister(lir->output());
 
   Label fail;
-  masm.convertValueToFloat(operand, output, &fail);
+  masm.convertValueToFloat32(operand, output, &fail);
   bailoutFrom(&fail, lir->snapshot());
 }
 
