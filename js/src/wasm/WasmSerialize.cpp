@@ -1186,16 +1186,10 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
     MOZ_RELEASE_ASSERT(codeMeta->funcNames.empty());
   }
 
-  // Initialize the jump tables
-  JumpTables jumpTables;
-  if (!jumpTables.initialize(CompileMode::Once, *codeBlock)) {
-    return Err(OutOfMemory());
-  }
-
   // Create and initialize the code
-  MutableCode code = js_new<Code>(*codeMeta, /*codeMetaForAsmJS=*/nullptr,
-                                  std::move(codeBlock), std::move(jumpTables));
-  if (!code || !code->initialize(linkData)) {
+  MutableCode code =
+      js_new<Code>(CompileMode::Once, *codeMeta, /*codeMetaForAsmJS=*/nullptr);
+  if (!code || !code->initialize(linkData, std::move(codeBlock))) {
     return Err(OutOfMemory());
   }
   *item = code;

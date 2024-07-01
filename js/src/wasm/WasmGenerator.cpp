@@ -1056,11 +1056,6 @@ SharedModule ModuleGenerator::finishModule(
     return nullptr;
   }
 
-  JumpTables jumpTables;
-  if (!jumpTables.initialize(mode(), *codeBlock)) {
-    return nullptr;
-  }
-
   // Copy over data from the Bytecode, which is going away at the end of
   // compilation.
   //
@@ -1114,9 +1109,8 @@ SharedModule ModuleGenerator::finishModule(
     return nullptr;
   }
 
-  MutableCode code = js_new<Code>(*codeMeta_, codeMetaForAsmJS_,
-                                  std::move(codeBlock), std::move(jumpTables));
-  if (!code || !code->initialize(*linkData_)) {
+  MutableCode code = js_new<Code>(mode(), *codeMeta_, codeMetaForAsmJS_);
+  if (!code || !code->initialize(*linkData_, std::move(codeBlock))) {
     return nullptr;
   }
 
