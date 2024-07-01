@@ -10564,7 +10564,7 @@
 # Allow using ffmpeg encoder
 -   name: media.ffmpeg.encoder.enabled
     type: RelaxedAtomicBool
-#if defined(MOZ_WIDGET_GTK) || defined(XP_WIN)
+#if !defined(MOZ_WIDGET_ANDROID)
     value: @IS_NIGHTLY_BUILD@
 #else
     value: false
