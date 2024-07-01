@@ -1347,6 +1347,8 @@ nsresult nsCSPContext::FireViolationEvent(
     if (aViolationEventInit.ToJSON(json)) {
       aCSPEventListener->OnCSPViolationEvent(json);
     }
+
+    return NS_OK;
   }
 
   // 1. If target is not null, and global is a Window, and target’s
