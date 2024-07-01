@@ -44,44 +44,30 @@ async function runTest(useDryRunMode) {
     },
   });
 
-  info("Purge event telemetry is only recorded on early beta or nightly.");
-  if (AppConstants.EARLY_BETA_OR_EARLIER) {
-    let events = Glean.bounceTrackingProtection.purgeAction.testGetValue();
-    is(events.length, 1, "There should be one purge event after bounce.");
+  let events = Glean.bounceTrackingProtection.purgeAction.testGetValue();
+  is(events.length, 1, "There should be one purge event after bounce.");
 
-    let [event] = events;
-    is(
-      event.extra.site_host,
-      "itisatracker.org",
-      "The site host should be correct."
-    );
-    ok(event.extra.success, "Purging should have succeeded");
-    // Confusingly all extra fields are converted to strings.
-    is(
-      event.extra.is_dry_run,
-      useDryRunMode ? "true" : "false",
-      "The purge should not be a dry run."
-    );
+  let [event] = events;
+  is(
+    event.extra.site_host,
+    "itisatracker.org",
+    "The site host should be correct."
+  );
+  ok(event.extra.success, "Purging should have succeeded");
+  // Confusingly all extra fields are converted to strings.
+  is(
+    event.extra.is_dry_run,
+    useDryRunMode ? "true" : "false",
+    "The purge should not be a dry run."
+  );
 
-    let bounceTimeInt = Number.parseInt(event.extra.bounce_time, 10);
-    Assert.greater(
-      bounceTimeInt,
-      0,
-      "The bounce time should be greater than 0."
-    );
-    Assert.less(
-      bounceTimeInt,
-      Date.now() / 1000,
-      "The bounce time should be before the current time."
-    );
-  } else {
-    // Late Beta or Release
-    is(
-      Glean.bounceTrackingProtection.purgeAction.testGetValue(),
-      null,
-      "There should still be no purge events after bounce on late beta or release."
-    );
-  }
+  let bounceTimeInt = Number.parseInt(event.extra.bounce_time, 10);
+  Assert.greater(bounceTimeInt, 0, "The bounce time should be greater than 0.");
+  Assert.less(
+    bounceTimeInt,
+    Date.now() / 1000,
+    "The bounce time should be before the current time."
+  );
 
   // Cleanup
   // runTestBounceHelper already cleans up bounce tracking protection state.

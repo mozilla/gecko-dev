@@ -76,8 +76,7 @@ bounce.tracking.protection:
   purge_action:
     type: event
     description: >
-      Dispatched whenever a bounce tracker site is purged. Only collected in
-      early Beta and Nightly.
+      Dispatched whenever a bounce tracker site is purged.
     bugs:
       - https://bugzilla.mozilla.org/1889444
     data_reviews:

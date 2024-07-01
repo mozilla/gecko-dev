@@ -349,10 +349,8 @@ BounceTrackingProtection::Observe(nsISupports* aSubject, const char* aTopic,
           ("%s: aTopic: %s", __FUNCTION__, aTopic));
 
   if (!strcmp(aTopic, "idle-daily")) {
-#if defined(EARLY_BETA_OR_EARLIER)
     // Submit custom telemetry ping.
     glean_pings::BounceTrackingProtection.Submit();
-#endif  // defined(EARLY_BETA_OR_EARLIER)
   }
   return NS_OK;
 }

@@ -177,9 +177,7 @@ ClearDataCallback::OnClassifyComplete(
 }
 
 void ClearDataCallback::RecordPurgeEventTelemetry(bool aSuccess) {
-// Record a glean event for the clear action. This is only recorded in
-// pre-release channels.
-#if defined(EARLY_BETA_OR_EARLIER)
+  // Record a glean event for the clear action.
   glean::bounce_tracking_protection::PurgeActionExtra extra = {
       .bounceTime = Some(mBounceTime / PR_USEC_PER_SEC),
       .isDryRun = Some(
@@ -188,5 +186,4 @@ void ClearDataCallback::RecordPurgeEventTelemetry(bool aSuccess) {
       .success = Some(aSuccess),
   };
   glean::bounce_tracking_protection::purge_action.Record(Some(extra));
-#endif  // defined(EARLY_BETA_OR_EARLIER)
 }
