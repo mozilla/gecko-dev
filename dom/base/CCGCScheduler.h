@@ -175,18 +175,12 @@ class CCGCScheduler {
   void KillCCRunner();
   void KillAllTimersAndRunners();
 
-  enum IsIdle { eNotIdle = false, eIdle = true };
-  enum IsExtended { eNormalBudget = false, eExtendedBudget = true };
-  enum IsInterruptible { eNonInterruptible = false, eInterruptible = true };
   JS::SliceBudget CreateGCSliceBudget(mozilla::TimeDuration aDuration,
-                                      IsIdle aIsIdle, IsExtended aIsExtended,
-                                      IsInterruptible aIsInterruptible) {
+                                      bool isIdle, bool isExtended) {
     mInterruptRequested = false;
-    auto budget = JS::SliceBudget(aDuration, aIsInterruptible == eInterruptible
-                                                 ? &mInterruptRequested
-                                                 : nullptr);
-    budget.idle = aIsIdle == eIdle;
-    budget.extended = aIsExtended == eExtendedBudget;
+    auto budget = JS::SliceBudget(aDuration, &mInterruptRequested);
+    budget.idle = isIdle;
+    budget.extended = isExtended;
     return budget;
   }
 

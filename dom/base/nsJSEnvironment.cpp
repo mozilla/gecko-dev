@@ -1839,8 +1839,7 @@ static bool ConsumeStream(JSContext* aCx, JS::Handle<JSObject*> aObj,
 static JS::SliceBudget CreateGCSliceBudget(JS::GCReason aReason,
                                            int64_t aMillis) {
   return sScheduler->CreateGCSliceBudget(
-      mozilla::TimeDuration::FromMilliseconds(aMillis), CCGCScheduler::eNotIdle,
-      CCGCScheduler::eNormalBudget, CCGCScheduler::eInterruptible);
+      mozilla::TimeDuration::FromMilliseconds(aMillis), false, false);
 }
 
 void nsJSContext::EnsureStatics() {
