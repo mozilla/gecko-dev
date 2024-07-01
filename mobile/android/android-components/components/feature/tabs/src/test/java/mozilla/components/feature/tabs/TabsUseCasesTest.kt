@@ -296,6 +296,35 @@ class TabsUseCasesTest {
     }
 
     @Test
+    fun `GIVEN a tab is added with a parent loadURL will include the parent`() {
+        val parentTabId = tabsUseCases.addTab(url = "https://www.firefox.com")
+        store.waitUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        verify(engineSession, times(1)).loadUrl(
+            url = "https://www.firefox.com",
+            parent = null,
+            flags = LoadUrlFlags.none(),
+            additionalHeaders = null,
+        )
+
+        assertEquals(1, store.state.tabs.size)
+
+        tabsUseCases.addTab(url = "https://www.mozilla.org", parentId = parentTabId)
+
+        store.waitUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(2, store.state.tabs.size)
+        verify(engineSession, times(1)).loadUrl(
+            url = "https://www.mozilla.org",
+            parent = engineSession,
+            flags = LoadUrlFlags.none(),
+            additionalHeaders = null,
+        )
+    }
+
+    @Test
     fun `RemoveAllTabsUseCase will remove all sessions`() {
         val tab = createTab("https://mozilla.org")
         store.dispatch(TabListAction.AddTabAction(tab)).joinBlocking()

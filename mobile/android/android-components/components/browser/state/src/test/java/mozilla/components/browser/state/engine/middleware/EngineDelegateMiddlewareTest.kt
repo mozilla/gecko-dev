@@ -237,7 +237,47 @@ class EngineDelegateMiddlewareTest {
     }
 
     @Test
-    fun `LoadUrlAction for tab with parent tab`() {
+    fun `LoadUrlAction omits parent tab when includeParent is false`() {
+        val engineSession: EngineSession = mock()
+        val engine: Engine = mock()
+        doReturn(engineSession).`when`(engine).createSession()
+
+        val parentEngineSession: EngineSession = mock()
+
+        val parent = createTab("https://getpocket.com", id = "parent-tab").copy(
+            engineState = EngineState(parentEngineSession),
+        )
+        val tab = createTab("https://www.mozilla.org", id = "test-tab", parent = parent)
+
+        val store = BrowserStore(
+            middleware = EngineMiddleware.create(
+                engine = engine,
+                scope = scope,
+            ),
+            initialState = BrowserState(
+                tabs = listOf(parent, tab),
+            ),
+        )
+
+        store.dispatch(
+            EngineAction.LoadUrlAction(
+                "test-tab",
+                "https://www.firefox.com",
+                includeParent = false,
+            ),
+        ).joinBlocking()
+
+        dispatcher.scheduler.advanceUntilIdle()
+        store.waitUntilIdle()
+
+        verify(engine).createSession(private = false, contextId = null)
+        verify(engineSession, times(1)).loadUrl("https://www.firefox.com", null)
+        assertEquals(parentEngineSession, store.state.tabs[0].engineState.engineSession)
+        assertEquals(engineSession, store.state.tabs[1].engineState.engineSession)
+    }
+
+    @Test
+    fun `LoadUrlAction includes parent tab when includeParent is true`() {
         val engineSession: EngineSession = mock()
         val engine: Engine = mock()
         doReturn(engineSession).`when`(engine).createSession()
