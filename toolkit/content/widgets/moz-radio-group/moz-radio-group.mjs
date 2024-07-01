@@ -73,12 +73,15 @@ export class MozRadioGroup extends MozLitElement {
   }
 
   get focusableIndex() {
-    if (!this.#value) {
-      return this.#radioButtons.findIndex(button => !button.disabled);
+    if (this.#value) {
+      let selectedIndex = this.#radioButtons.findIndex(
+        button => button.value === this.#value && !button.disabled
+      );
+      if (selectedIndex !== -1) {
+        return selectedIndex;
+      }
     }
-    return this.#radioButtons.findIndex(
-      button => button.value === this.#value && !button.disabled
-    );
+    return this.#radioButtons.findIndex(button => !button.disabled);
   }
 
   constructor() {

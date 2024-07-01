@@ -221,11 +221,6 @@
       await keyboardNavigate("up");
       validateActiveElement(secondButton);
 
-      thirdButton.checked = true;
-      await radioGroup.updateComplete;
-      is(radioGroup.focusableIndex, -1, "Cannot focus group since checked radio is disabled");
-
-      secondButton.checked = true;
       thirdButton.disabled = false;
       await radioGroup.updateComplete;
 
@@ -328,6 +323,60 @@
         document.activeElement,
         thirdRadioButton,
         "First non-disabled radio button is focusable when all buttons are un-checked."
+      );
+    });
+
+    // Verify second radio button is focusable when first radio button is disabled.
+    add_task(async function testKeyboardNavigationDisabledFirstButton() {
+      let disabledTemplate = html`
+        <button id="before">before group</button>
+        <moz-radio-group name="test-name" label="Radio group label">
+          <moz-radio disabled checked value="first" label="First"></moz-radio>
+          <moz-radio value="second" label="Second"></moz-radio>
+          <moz-radio value="third" label="Third"></moz-radio>
+        </moz-radio-group>
+        <button id="after">after group</button>
+      `;
+      let { radioGroup, radioButtons } = await renderRadioElements(disabledTemplate);
+      let [firstRadioButton, secondRadioButton, thirdRadioButton] = radioButtons;
+
+      let afterButton = document.getElementById("after");
+      let beforeButton = document.getElementById("before");
+      beforeButton.focus();
+      synthesizeKey("KEY_Tab", {});
+      is(
+        document.activeElement,
+        secondRadioButton,
+        "The second radio button should receive focus when the first radio button is disabled"
+      );
+      is(
+        firstRadioButton.disabled,
+        true,
+        "First radio button should still be disabled"
+      );
+
+      synthesizeKey("KEY_ArrowDown", {});
+      is(
+        document.activeElement,
+        thirdRadioButton,
+        "Focus should move to the third radio button"
+      );
+      await radioGroup.updateComplete;
+      ok(thirdRadioButton.checked, "Third radio button gets checked");
+      is(radioGroup.value, thirdRadioButton.value, "Radio group value is updated");
+
+      synthesizeKey("KEY_Tab", {});
+      is(
+        document.activeElement,
+        afterButton,
+        "Focus should be outside of the radio group"
+      );
+
+      synthesizeKey("KEY_Tab", { shiftKey: true });
+      is(
+        document.activeElement,
+        thirdRadioButton,
+        "Focus should move back to the checked radio button"
       );
     });
 
