@@ -1639,6 +1639,13 @@ export class StyleEditorUI extends EventEmitter {
           e => e.resourceId === update.resourceId
         );
 
+        if (!editor) {
+          console.warn(
+            "Could not find StyleEditor to apply STYLESHEET resource update"
+          );
+          continue;
+        }
+
         switch (update.updateType) {
           case "style-applied": {
             editor.onStyleApplied(update);
