@@ -5,7 +5,6 @@
 
 // Via webext-panels.xhtml
 /* import-globals-from browser.js */
-/* import-globals-from nsContextMenu.js */
 
 ChromeUtils.defineESModuleGetters(this, {
   ExtensionParent: "resource://gre/modules/ExtensionParent.sys.mjs",

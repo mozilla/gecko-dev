@@ -49,6 +49,8 @@ ChromeUtils.defineESModuleGetters(this, {
   NewTabPagePreloading: "resource:///modules/NewTabPagePreloading.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  nsContextMenu: "chrome://browser/content/nsContextMenu.sys.mjs",
+  openContextMenu: "chrome://browser/content/nsContextMenu.sys.mjs",
   OpenInTabsUtils: "resource:///modules/OpenInTabsUtils.sys.mjs",
   PageActions: "resource:///modules/PageActions.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
@@ -224,11 +226,6 @@ XPCOMUtils.defineLazyScriptGetter(
   this,
   "gBrowserThumbnails",
   "chrome://browser/content/browser-thumbnails.js"
-);
-XPCOMUtils.defineLazyScriptGetter(
-  this,
-  ["openContextMenu", "nsContextMenu"],
-  "chrome://browser/content/nsContextMenu.js"
 );
 XPCOMUtils.defineLazyScriptGetter(
   this,

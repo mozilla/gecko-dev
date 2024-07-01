@@ -23,7 +23,6 @@ var { getScriptGlobals } = require("./utils");
 // These are scripts not loaded from browser.xhtml or global-scripts.inc
 // but via other includes.
 const EXTRA_SCRIPTS = [
-  "browser/base/content/nsContextMenu.js",
   "browser/components/downloads/content/downloads.js",
   "browser/components/downloads/content/indicator.js",
   "toolkit/content/customElements.js",

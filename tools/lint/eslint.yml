@@ -12,7 +12,6 @@ eslint:
         - '.eslintignore'
         - 'tools/lint/eslint/**'
         # Files that can influence global variables
-        - 'browser/base/content/nsContextMenu.js'
         - 'browser/base/content/utilityOverlay.js'
         - 'browser/components/customizableui/content/panelUI.js'
         - 'browser/components/downloads/content/downloads.js'
