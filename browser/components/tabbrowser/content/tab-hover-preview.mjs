@@ -157,13 +157,7 @@ export default class TabHoverPreviewPanel {
         this._updatePreview();
         break;
       case "TabSelect":
-        if (
-          this._thumbnailElement &&
-          !this._hasValidThumbnailState(this._tab)
-        ) {
-          this._thumbnailElement.remove();
-          this._thumbnailElement = null;
-        }
+        this.deactivate();
         break;
     }
   }

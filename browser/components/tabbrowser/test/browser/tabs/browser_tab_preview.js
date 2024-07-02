@@ -158,6 +158,44 @@ add_task(async function hoverTests() {
 });
 
 /**
+ * Tab preview should be dismissed when a new tab is focused/selected
+ */
+add_task(async function focusTests() {
+  const tab1 = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "about:blank"
+  );
+  const tab2 = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "about:blank"
+  );
+  const previewPanel = document.getElementById("tab-preview-panel");
+
+  await openPreview(tab1);
+  Assert.equal(previewPanel.state, "open", "Preview is open");
+
+  let previewHidden = BrowserTestUtils.waitForPopupEvent(
+    previewPanel,
+    "hidden"
+  );
+  tab1.click();
+  await previewHidden;
+  Assert.equal(
+    previewPanel.state,
+    "closed",
+    "Preview is closed after selecting tab"
+  );
+
+  BrowserTestUtils.removeTab(tab1);
+  BrowserTestUtils.removeTab(tab2);
+
+  // Move the mouse outside of the tab strip.
+  EventUtils.synthesizeMouseAtCenter(document.documentElement, {
+    type: "mouseover",
+  });
+});
+
+/**
  * Verify that the pid and activeness statuses are not shown
  * when the flag is not enabled.
  */
