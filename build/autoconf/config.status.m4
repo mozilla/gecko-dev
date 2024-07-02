@@ -106,8 +106,11 @@ EOF
 
 dnl confdefs.pytmp contains AC_DEFINEs, in the expected format, but
 dnl lacks the final comma (see above).
-sed 's/$/,/' confdefs.pytmp >> $CONFIG_STATUS
-rm confdefs.pytmp confdefs.h
+if test -e confdefs.pytmp; then
+    sed 's/$/,/' confdefs.pytmp >> $CONFIG_STATUS
+    rm confdefs.pytmp
+fi
+rm -f confdefs.h
 
 cat >> $CONFIG_STATUS <<\EOF
 ]
