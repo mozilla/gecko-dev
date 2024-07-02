@@ -16,6 +16,10 @@ add_task(async function basic() {
     value: "",
   });
   await UrlbarTestUtils.openSearchModeSwitcher(window);
+  Assert.ok(
+    !BrowserTestUtils.isVisible(gURLBar.view.panel),
+    "The UrlbarView is not visible"
+  );
 
   info("Press on the bing menu button and enter search mode");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);

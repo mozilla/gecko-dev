@@ -90,6 +90,10 @@
   width: calc(100% - 2 * (5px + var(--urlbar-container-padding)));
   /* Match urlbar-background's border. */
   border-inline: 1px solid transparent;
+
+  &[hide-temporarily] {
+    display: none;
+  }
 }
 
 .urlbarView-body-inner {

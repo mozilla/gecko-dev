@@ -500,6 +500,23 @@ export class UrlbarView {
   }
 
   /**
+   * Hide the popup that shows the Urlbar results. The popup is still
+   * considered "open", this will not trigger abandonment telemetry
+   * but will not be shown to the user.
+   */
+  hideTemporarily() {
+    this.panel.toggleAttribute("hide-temporarily", true);
+  }
+
+  /**
+   * Show the Urlbar results popup after being hidden by
+   * `hideTemporarily`
+   */
+  restoreVisibility() {
+    this.panel.toggleAttribute("hide-temporarily", false);
+  }
+
+  /**
    * Closes the view, cancelling the query if necessary.
    *
    * @param {object} options Options object

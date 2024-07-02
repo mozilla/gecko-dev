@@ -58,11 +58,14 @@ class _SearchModeSwitcher {
     }
     if (anchor.getAttribute("open") != "true") {
       win.gURLBar.inputField.addEventListener("searchmodechanged", this);
+      win.gURLBar.view.hideTemporarily();
+
       this.#getPopup(win).addEventListener(
         "popuphidden",
         () => {
           win.gURLBar.inputField.removeEventListener("searchmodechanged", this);
           anchor.removeAttribute("open");
+          win.gURLBar.view.restoreVisibility();
         },
         { once: true }
       );
