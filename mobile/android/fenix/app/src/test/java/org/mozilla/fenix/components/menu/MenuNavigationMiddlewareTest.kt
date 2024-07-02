@@ -15,7 +15,6 @@ import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.prompt.ShareData
-import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.pwa.WebAppUseCases
 import mozilla.components.service.fxa.manager.AccountState.Authenticated
 import mozilla.components.service.fxa.manager.AccountState.AuthenticationProblem
@@ -538,20 +537,6 @@ class MenuNavigationMiddlewareTest {
             navController.nav(
                 R.id.menuDialogFragment,
                 MenuDialogFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
-            )
-        }
-    }
-
-    @Test
-    fun `WHEN navigate to addon details is dispatched THEN navigate to the addon details`() = runTest {
-        val addon = Addon(id = "ext1")
-        val store = createStore()
-        store.dispatch(MenuAction.Navigate.AddonDetails(addon = addon)).join()
-
-        verify {
-            navController.nav(
-                R.id.menuDialogFragment,
-                MenuDialogFragmentDirections.actionMenuDialogFragmenToAddonDetailsFragment(addon = addon),
             )
         }
     }

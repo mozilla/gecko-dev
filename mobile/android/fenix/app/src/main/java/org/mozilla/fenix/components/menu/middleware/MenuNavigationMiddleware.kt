@@ -224,13 +224,6 @@ class MenuNavigationMiddleware(
 
                 is MenuAction.Navigate.NewPrivateTab -> openNewTab(isPrivate = true)
 
-                is MenuAction.Navigate.AddonDetails -> navController.nav(
-                    R.id.menuDialogFragment,
-                    MenuDialogFragmentDirections.actionMenuDialogFragmenToAddonDetailsFragment(
-                        addon = action.addon,
-                    ),
-                )
-
                 else -> Unit
             }
         }

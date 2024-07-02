@@ -31,15 +31,8 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.AddShortcut,
         is MenuAction.RemoveShortcut,
         is MenuAction.DeleteBrowsingDataAndQuit,
-        is MenuAction.InstallAddon,
         is MenuAction.Navigate,
         -> state
-
-        is MenuAction.UpdateExtensionState -> state.copyWithExtensionMenuState {
-            it.copy(
-                recommendedAddons = action.recommendedAddons,
-            )
-        }
 
         is MenuAction.UpdateBookmarkState -> state.copyWithBrowserMenuState {
             it.copy(bookmarkState = action.bookmarkState)
@@ -56,11 +49,4 @@ internal inline fun MenuState.copyWithBrowserMenuState(
     crossinline update: (BrowserMenuState) -> BrowserMenuState,
 ): MenuState {
     return this.copy(browserMenuState = this.browserMenuState?.let { update(it) })
-}
-
-@VisibleForTesting
-internal inline fun MenuState.copyWithExtensionMenuState(
-    crossinline update: (ExtensionMenuState) -> ExtensionMenuState,
-): MenuState {
-    return this.copy(extensionMenuState = update(this.extensionMenuState))
 }

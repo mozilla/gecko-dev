@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -42,8 +43,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.TabCollectionStorage
-import org.mozilla.fenix.components.appstate.AppAction.ShoppingAction
-import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
@@ -58,9 +58,9 @@ import org.mozilla.fenix.settings.quicksettings.protections.cookiebanners.getCoo
 import org.mozilla.fenix.shopping.DefaultShoppingExperienceFeature
 import org.mozilla.fenix.shopping.ReviewQualityCheckFeature
 import org.mozilla.fenix.shortcut.PwaOnboardingObserver
-import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
-import org.mozilla.fenix.snackbar.SnackbarBinding
 import org.mozilla.fenix.theme.ThemeManager
+import org.mozilla.fenix.translations.TranslationsDialogFragment.Companion.SESSION_ID
+import org.mozilla.fenix.translations.TranslationsDialogFragment.Companion.TRANSLATION_IN_PROGRESS
 
 /**
  * Fragment used for browsing the web within the main app.
@@ -73,7 +73,6 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         ViewBoundFeatureWrapper<StandardSnackbarErrorBinding>()
     private val reviewQualityCheckFeature = ViewBoundFeatureWrapper<ReviewQualityCheckFeature>()
     private val translationsBinding = ViewBoundFeatureWrapper<TranslationsBinding>()
-    private val snackbarBinding = ViewBoundFeatureWrapper<SnackbarBinding>()
 
     private var readerModeAvailable = false
     private var reviewQualityCheckAvailable = false
@@ -87,6 +86,8 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     private var backAction: BrowserToolbar.TwoStateButton? = null
     private var refreshAction: BrowserToolbar.TwoStateButton? = null
     private var isTablet: Boolean = false
+
+    private var translationSnackbar: FenixSnackbar? = null
 
     @Suppress("LongMethod")
     override fun initializeUI(view: View, tab: SessionState) {
@@ -214,17 +215,26 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             view = binding.root,
         )
 
-        snackbarBinding.set(
-            feature = SnackbarBinding(
-                browserStore = context.components.core.store,
-                appStore = context.components.appStore,
-                snackbarDelegate = FenixSnackbarDelegate(binding.dynamicSnackbarContainer),
-                navController = findNavController(),
-                customTabSessionId = customTabSessionId,
-            ),
-            owner = this,
-            view = view,
-        )
+        setTranslationFragmentResultListener()
+    }
+
+    private fun setTranslationFragmentResultListener() {
+        setFragmentResultListener(
+            TRANSLATION_IN_PROGRESS,
+        ) { _, result ->
+            result.getString(SESSION_ID)?.let {
+                if (it == getCurrentTab()?.id) {
+                    translationSnackbar = FenixSnackbar.make(
+                        view = binding.dynamicSnackbarContainer,
+                        duration = FenixSnackbar.LENGTH_INDEFINITE,
+                        isDisplayedWithBrowserToolbar = true,
+                    )
+                        .setText(requireContext().getString(R.string.translation_in_progress_snackbar))
+
+                    translationSnackbar?.show()
+                }
+            }
+        }
     }
 
     private fun initSharePageAction(context: Context) {
@@ -297,11 +307,16 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
 
                     safeInvalidateBrowserToolbarView()
 
-                    if (!it.isTranslateProcessing) {
-                        requireComponents.appStore.dispatch(SnackbarAction.SnackbarDismissed)
+                    if (!it.isTranslateProcessing && translationSnackbar?.isShown == true) {
+                        translationSnackbar?.dismiss()
                     }
                 },
-                onShowTranslationsDialog = browserToolbarInteractor::onTranslationsButtonClicked,
+                onShowTranslationsDialog = {
+                    if (translationSnackbar?.isShown == true) {
+                        translationSnackbar?.dismiss()
+                    }
+                    browserToolbarInteractor.onTranslationsButtonClicked()
+                },
             ),
             owner = this,
             view = view,
@@ -374,7 +389,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                 weight = { REVIEW_QUALITY_CHECK_WEIGHT },
                 listener = { _ ->
                     requireComponents.appStore.dispatch(
-                        ShoppingAction.ShoppingSheetStateUpdated(expanded = true),
+                        AppAction.ShoppingAction.ShoppingSheetStateUpdated(expanded = true),
                     )
 
                     findNavController().navigate(

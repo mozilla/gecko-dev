@@ -7,18 +7,14 @@ package org.mozilla.fenix.components.appstate
 import io.mockk.mockk
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.lib.crash.Crash.NativeCodeCrash
-import mozilla.components.support.test.ext.joinBlocking
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
-import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.AddNonFatalCrash
 import org.mozilla.fenix.components.appstate.AppAction.RemoveAllNonFatalCrashes
 import org.mozilla.fenix.components.appstate.AppAction.RemoveNonFatalCrash
 import org.mozilla.fenix.components.appstate.AppAction.UpdateInactiveExpanded
-import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 
 class AppStoreReducerTest {
     @Test
@@ -143,34 +139,5 @@ class AppStoreReducerTest {
         )
 
         assertFalse(updatedState.isSearchDialogVisible)
-    }
-
-    @Test
-    fun `WHEN translation started action is dispatched THEN snackbar state is updated`() {
-        val appStore = AppStore()
-        val sessionId = "sessionId"
-
-        appStore.dispatch(
-            AppAction.TranslationsAction.TranslationStarted(sessionId = sessionId),
-        ).joinBlocking()
-
-        assertEquals(
-            SnackbarState.TranslationInProgress(sessionId = sessionId),
-            appStore.state.snackbarState,
-        )
-    }
-
-    @Test
-    fun `WHEN bookmark added action is dispatched THEN snackbar state is updated`() {
-        val appStore = AppStore()
-        val guidToEdit = "guidToEdit"
-
-        appStore.dispatch(AppAction.BookmarkAction.BookmarkAdded(guidToEdit = guidToEdit))
-            .joinBlocking()
-
-        assertEquals(
-            SnackbarState.BookmarkAdded(guidToEdit = guidToEdit),
-            appStore.state.snackbarState,
-        )
     }
 }

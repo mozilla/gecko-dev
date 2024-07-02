@@ -155,8 +155,6 @@ class MenuTelemetryMiddleware(
             )
 
             MenuAction.InitAction,
-            is MenuAction.InstallAddon,
-            is MenuAction.Navigate.AddonDetails,
             MenuAction.Navigate.Back,
             MenuAction.Navigate.DiscoverMoreExtensions,
             MenuAction.Navigate.Extensions,
@@ -164,7 +162,6 @@ class MenuTelemetryMiddleware(
             MenuAction.Navigate.Save,
             MenuAction.Navigate.Tools,
             is MenuAction.UpdateBookmarkState,
-            is MenuAction.UpdateExtensionState,
             is MenuAction.UpdatePinnedState,
             -> Unit
         }

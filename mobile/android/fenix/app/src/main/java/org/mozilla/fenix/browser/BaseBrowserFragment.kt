@@ -434,7 +434,6 @@ abstract class BaseBrowserFragment :
         )
         val browserToolbarController = DefaultBrowserToolbarController(
             store = store,
-            appStore = context.components.appStore,
             tabsUseCases = requireComponents.useCases.tabsUseCases,
             activity = activity,
             settings = context.settings(),
