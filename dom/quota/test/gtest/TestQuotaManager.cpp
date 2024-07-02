@@ -1005,6 +1005,66 @@ TEST_F(TestQuotaManager, InitializeStorage_OngoingWithScheduledShutdown) {
 }
 
 // Test InitializeStorage when a storage initialization is already ongoing and
+// storage shutdown is scheduled after that. The tested InitializeStorage call
+// is delayed to the point when storage shutdown is about to finish.
+TEST_F(TestQuotaManager,
+       InitializeStorage_OngoingWithScheduledShutdown_Delayed) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  PerformOnBackgroundThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    nsTArray<RefPtr<BoolPromise>> promises;
+
+    promises.AppendElement(quotaManager->InitializeStorage());
+
+    OriginOperationCallbackOptions callbackOptions;
+    callbackOptions.mWantWillFinishSync = true;
+
+    OriginOperationCallbacks callbacks;
+    promises.AppendElement(quotaManager->ShutdownStorage(Some(callbackOptions),
+                                                         SomeRef(callbacks)));
+
+    promises.AppendElement(callbacks.mWillFinishSyncPromise.ref()->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [quotaManager = RefPtr(quotaManager)](
+            const ExclusiveBoolPromise::ResolveOrRejectValue& aValue) {
+          return InvokeAsync(
+              GetCurrentSerialEventTarget(), __func__,
+              [quotaManager]() { return quotaManager->InitializeStorage(); });
+        }));
+
+    bool done = false;
+
+    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
+        ->Then(
+            GetCurrentSerialEventTarget(), __func__,
+            [&done](const CopyableTArray<bool>& aResolveValues) {
+              QuotaManager* quotaManager = QuotaManager::Get();
+              ASSERT_TRUE(quotaManager);
+
+              ASSERT_TRUE(quotaManager->IsStorageInitialized());
+
+              done = true;
+            },
+            [&done](nsresult aRejectValue) {
+              ASSERT_TRUE(false);
+
+              done = true;
+            });
+
+    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test InitializeStorage when a storage initialization is already ongoing and
 // an exclusive directory lock is requested after that.
 TEST_F(TestQuotaManager, InitializeStorage_OngoingWithExclusiveDirectoryLock) {
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
