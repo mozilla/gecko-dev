@@ -7319,8 +7319,6 @@ static void AppendScrollPositionsForSnap(
                                  // what we need here is (0, 0), so we use an
                                  // empty size.
                                  nsSize());
-  logicalScrollRange = logicalScrollRange.ConvertTo(
-      writingMode, aWritingModeOnScroller, nsSize());
 
   Maybe<nscoord> blockDirectionPosition;
   const nsStyleDisplay* styleDisplay = aFrame->StyleDisplay();
@@ -7328,14 +7326,11 @@ static void AppendScrollPositionsForSnap(
   switch (styleDisplay->mScrollSnapAlign.block) {
     case StyleScrollSnapAlignKeyword::None:
       break;
-    case StyleScrollSnapAlignKeyword::Start: {
-      nscoord candidate = std::clamp(logicalTargetRect.BStart(writingMode),
-                                     logicalScrollRange.BStart(writingMode),
-                                     logicalScrollRange.BEnd(writingMode));
-      blockDirectionPosition.emplace(writingMode.IsVerticalRL() ? -candidate
-                                                                : candidate);
+    case StyleScrollSnapAlignKeyword::Start:
+      blockDirectionPosition.emplace(
+          writingMode.IsVerticalRL() ? -logicalTargetRect.BStart(writingMode)
+                                     : logicalTargetRect.BStart(writingMode));
       break;
-    }
     case StyleScrollSnapAlignKeyword::End: {
       nscoord candidate = std::clamp(
           // What we need here is the scroll position instead of the snap
@@ -7372,14 +7367,12 @@ static void AppendScrollPositionsForSnap(
   switch (styleDisplay->mScrollSnapAlign.inline_) {
     case StyleScrollSnapAlignKeyword::None:
       break;
-    case StyleScrollSnapAlignKeyword::Start: {
-      nscoord candidate = std::clamp(logicalTargetRect.IStart(writingMode),
-                                     logicalScrollRange.IStart(writingMode),
-                                     logicalScrollRange.IEnd(writingMode));
+    case StyleScrollSnapAlignKeyword::Start:
       inlineDirectionPosition.emplace(
-          writingMode.IsInlineReversed() ? -candidate : candidate);
+          writingMode.IsInlineReversed()
+              ? -logicalTargetRect.IStart(writingMode)
+              : logicalTargetRect.IStart(writingMode));
       break;
-    }
     case StyleScrollSnapAlignKeyword::End: {
       nscoord candidate = std::clamp(
           // Same as above BEnd case, we subtract containerISize.
