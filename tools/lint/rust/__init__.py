@@ -41,7 +41,7 @@ Try to update it:
 def parse_issues(config, output, paths):
     RustfmtDiff = namedtuple("RustfmtDiff", ["file", "line", "diff"])
     issues = []
-    diff_line = re.compile("^Diff in (.*) at line ([0-9]*):")
+    diff_line = re.compile("^Diff in (.*)(?: at line |:)([0-9]*):")
     file = ""
     line_no = 0
     diff = ""
