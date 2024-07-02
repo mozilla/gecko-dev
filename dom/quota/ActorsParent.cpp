@@ -4986,8 +4986,13 @@ RefPtr<BoolPromise> QuotaManager::InitializeStorage(
     RefPtr<UniversalDirectoryLock> aDirectoryLock) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aDirectoryLock);
+  MOZ_ASSERT(aDirectoryLock->Acquired());
 
-  if (mStorageInitialized && !mShutdownStorageOpCount) {
+  // If storage is initialized and the directory lock for the initialize
+  // storage operation is acquired, we can immediately resolve the promise and
+  // return from the function because there can't be a clear storage or
+  // shutdown storage operation which would uninitialize storage.
+  if (mStorageInitialized) {
     DropDirectoryLock(aDirectoryLock);
 
     return BoolPromise::CreateAndResolve(true, __func__);
@@ -5509,8 +5514,14 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryStorage(
     RefPtr<UniversalDirectoryLock> aDirectoryLock) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aDirectoryLock);
+  MOZ_ASSERT(aDirectoryLock->Acquired());
 
-  if (mTemporaryStorageInitialized && !mShutdownStorageOpCount) {
+  // If temporary storage is initialized and the directory lock for the
+  // initialize temporary storage operation is acquired, we can immediately
+  // resolve the promise and return from the function because there can't be a
+  // clear storage or shutdown storage operation which would uninitialize
+  // temporary storage.
+  if (mTemporaryStorageInitialized) {
     DropDirectoryLock(aDirectoryLock);
 
     return BoolPromise::CreateAndResolve(true, __func__);
