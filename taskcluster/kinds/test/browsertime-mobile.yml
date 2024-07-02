@@ -434,6 +434,7 @@ browsertime-benchmark-speedometer3-mobile:
         by-app:
             fenix: 2
             geckoview: 2
+            cstm-car-m: 2
             default: 3
     run-on-projects:
         by-app:
@@ -497,7 +498,11 @@ browsertime-benchmark-motionmark-1-3:
                     android-hw-a51-.*aarch64-shippable-qr.*: [mozilla-central]
                     default: []
     treeherder-symbol: Btime()
-    tier: 2
+    tier:
+        by-app:
+            fenix: 2
+            geckoview: 2
+            default: 3
 
 browsertime-benchmark-unity-webgl-mobile:
     description: Browsertime Unity WebGL on Android
