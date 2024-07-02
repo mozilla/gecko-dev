@@ -5669,7 +5669,9 @@ RefPtr<BoolPromise> QuotaManager::ClearStorage() {
       });
 }
 
-RefPtr<BoolPromise> QuotaManager::ShutdownStorage() {
+RefPtr<BoolPromise> QuotaManager::ShutdownStorage(
+    Maybe<OriginOperationCallbackOptions> aCallbackOptions,
+    Maybe<OriginOperationCallbacks&> aCallbacks) {
   AssertIsOnOwningThread();
 
   auto shutdownStorageOp =
@@ -5680,6 +5682,10 @@ RefPtr<BoolPromise> QuotaManager::ShutdownStorage() {
   shutdownStorageOp->RunImmediately();
 
   mShutdownStorageOpCount++;
+
+  if (aCallbackOptions.isSome() && aCallbacks.isSome()) {
+    aCallbacks.ref() = shutdownStorageOp->GetCallbacks(aCallbackOptions.ref());
+  }
 
   return shutdownStorageOp->OnResults()->Then(
       GetCurrentSerialEventTarget(), __func__,
