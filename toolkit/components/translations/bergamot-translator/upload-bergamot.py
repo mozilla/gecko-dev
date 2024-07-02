@@ -11,8 +11,9 @@ run ./build-bergamot.py first to generate the wasm artifact.
 
 Log in to Remote Settings via LDAP to either dev or prod:
 
-    Dev: https://remote-settings-dev.allizom.org/v1/admin
-    Prod: https://remote-settings.mozilla.org/v1/admin
+    Dev:   https://remote-settings-dev.allizom.org/v1/admin
+    Stage: https://remote-settings.allizom.org/v1/admin
+    Prod:  https://remote-settings.mozilla.org/v1/admin
 
 In the header click the little clipboard icon to get the authentication header.
 Set the BEARER_TOKEN environment variable to use the bearer token. In zsh this can
@@ -44,6 +45,7 @@ REMOTE_SETTINGS_VERSION = "1.1"
 COLLECTION_NAME = "translations-wasm"
 DEV_SERVER = "https://remote-settings-dev.allizom.org/v1"
 PROD_SERVER = "https://remote-settings.mozilla.org/v1"
+STAGE_SERVER = "https://remote-settings.allizom.org/v1"
 
 DIR_PATH = os.path.realpath(os.path.dirname(__file__))
 MOZ_YAML_PATH = os.path.join(DIR_PATH, "moz.yaml")
@@ -59,7 +61,7 @@ parser = argparse.ArgumentParser(
     # Preserves whitespace in the help text.
     formatter_class=argparse.RawTextHelpFormatter,
 )
-parser.add_argument("--server", help='Set to either "dev" or "prod"')
+parser.add_argument("--server", help='Set to either "dev", "stage", or "prod"')
 parser.add_argument(
     "--dry_run", action="store_true", help="Verify the login, but do not upload"
 )
@@ -269,10 +271,12 @@ async def main():
 
     if args.server == "prod":
         server = PROD_SERVER
+    elif args.server == "stage":
+        server = STAGE_SERVER
     elif args.server == "dev":
         server = DEV_SERVER
     else:
-        print_error('The server must either be "prod" or "dev"')
+        print_error('The server must either be "dev", "stage", or "prod"')
         parser.print_help(sys.stderr)
         sys.exit(1)
 
