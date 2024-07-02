@@ -78,7 +78,8 @@ class OpenStorageDirectoryHelper : public Base {
   RefPtr<BoolPromise> OpenStorageDirectory(
       const Nullable<PersistenceType>& aPersistenceType,
       const OriginScope& aOriginScope,
-      const Nullable<Client::Type>& aClientType, bool aExclusive);
+      const Nullable<Client::Type>& aClientType, bool aExclusive,
+      DirectoryLockCategory aCategory = DirectoryLockCategory::None);
 
   RefPtr<UniversalDirectoryLock> mDirectoryLock;
 };
@@ -892,10 +893,10 @@ template <class Base>
 RefPtr<BoolPromise> OpenStorageDirectoryHelper<Base>::OpenStorageDirectory(
     const Nullable<PersistenceType>& aPersistenceType,
     const OriginScope& aOriginScope, const Nullable<Client::Type>& aClientType,
-    bool aExclusive) {
+    bool aExclusive, const DirectoryLockCategory aCategory) {
   return Base::mQuotaManager
       ->OpenStorageDirectory(aPersistenceType, aOriginScope, aClientType,
-                             aExclusive)
+                             aExclusive, aCategory)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [self = RefPtr(this)](
                  UniversalDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
@@ -1046,7 +1047,7 @@ RefPtr<BoolPromise> ShutdownStorageOp::OpenDirectory() {
   mDirectoryLock = mQuotaManager->CreateDirectoryLockInternal(
       Nullable<PersistenceType>(), OriginScope::FromNull(),
       Nullable<Client::Type>(),
-      /* aExclusive */ true);
+      /* aExclusive */ true, DirectoryLockCategory::UninitStorage);
 
   return mDirectoryLock->Acquire();
 }
@@ -1886,7 +1887,8 @@ RefPtr<BoolPromise> ClearStorageOp::OpenDirectory() {
 
   return OpenStorageDirectory(Nullable<PersistenceType>(),
                               OriginScope::FromNull(), Nullable<Client::Type>(),
-                              /* aExclusive */ true);
+                              /* aExclusive */ true,
+                              DirectoryLockCategory::UninitStorage);
 }
 
 nsresult ClearStorageOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
