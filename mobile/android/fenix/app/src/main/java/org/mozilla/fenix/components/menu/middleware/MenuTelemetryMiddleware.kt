@@ -162,6 +162,7 @@ class MenuTelemetryMiddleware(
             MenuAction.Navigate.Save,
             MenuAction.Navigate.Tools,
             is MenuAction.UpdateBookmarkState,
+            is MenuAction.UpdateExtensionState,
             is MenuAction.UpdatePinnedState,
             -> Unit
         }

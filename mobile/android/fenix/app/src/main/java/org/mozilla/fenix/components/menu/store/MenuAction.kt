@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.menu.store
 
+import mozilla.components.feature.addons.Addon
 import mozilla.components.lib.state.Action
 import mozilla.components.service.fxa.manager.AccountState
 import org.mozilla.fenix.components.menu.MenuAccessPoint
@@ -54,6 +55,15 @@ sealed class MenuAction : Action {
      * [MenuAction] dispatched to delete browsing data and quit the browser.
      */
     data object DeleteBrowsingDataAndQuit : MenuAction()
+
+    /**
+     * [MenuAction] dispatched when the extension state is updated.
+     *
+     * @property recommendedAddons The recommended [Addon]s to suggest.
+     */
+    data class UpdateExtensionState(
+        val recommendedAddons: List<Addon>,
+    ) : MenuAction()
 
     /**
      * [MenuAction] dispatched when a navigation event occurs for a specific destination.

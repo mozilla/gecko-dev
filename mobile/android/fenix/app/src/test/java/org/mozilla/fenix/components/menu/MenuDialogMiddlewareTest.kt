@@ -7,6 +7,8 @@ package org.mozilla.fenix.components.menu
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.storage.BookmarksStorage
+import mozilla.components.feature.addons.Addon
+import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesUseCases
@@ -45,6 +47,8 @@ class MenuDialogMiddlewareTest {
     private val bookmarksStorage: BookmarksStorage = FakeBookmarksStorage()
     private val addBookmarkUseCase: AddBookmarksUseCase =
         spy(AddBookmarksUseCase(storage = bookmarksStorage))
+
+    private val addonManager: AddonManager = mock()
     private val onDeleteAndQuit: () -> Unit = mock()
 
     private lateinit var pinnedSiteStorage: PinnedSiteStorage
@@ -139,7 +143,30 @@ class MenuDialogMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN recommended addons are available WHEN init action is dispatched THEN initial extension state is updated`() = runTestOnMain {
+        val addon = Addon(id = "ext1")
+        whenever(addonManager.getAddons()).thenReturn(listOf(addon))
+
+        val store = createStore(
+            menuState = MenuState(),
+        )
+
+        assertEquals(0, store.state.extensionMenuState.recommendedAddons.size)
+
+        // Wait for InitAction and middleware
+        store.waitUntilIdle()
+
+        // Wait for UpdateExtensionState and middleware
+        store.waitUntilIdle()
+
+        assertEquals(1, store.state.extensionMenuState.recommendedAddons.size)
+        assertEquals(addon, store.state.extensionMenuState.recommendedAddons.first())
+    }
+
+    @Test
     fun `WHEN add bookmark action is dispatched for a selected tab THEN bookmark is added`() = runTestOnMain {
+        whenever(addonManager.getAddons()).thenReturn(emptyList())
+
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
         var dismissWasCalled = false
@@ -175,6 +202,8 @@ class MenuDialogMiddlewareTest {
 
     @Test
     fun `GIVEN selected tab is bookmarked WHEN add bookmark action is dispatched THEN add bookmark use case is never called`() = runTestOnMain {
+        whenever(addonManager.getAddons()).thenReturn(emptyList())
+
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
         var dismissWasCalled = false
@@ -294,6 +323,7 @@ class MenuDialogMiddlewareTest {
         val title = "Mozilla"
 
         whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(emptyList())
+        whenever(addonManager.getAddons()).thenReturn(emptyList())
 
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
@@ -408,6 +438,7 @@ class MenuDialogMiddlewareTest {
         )
 
         whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(listOf(topSite))
+        whenever(addonManager.getAddons()).thenReturn(emptyList())
 
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
@@ -483,6 +514,8 @@ class MenuDialogMiddlewareTest {
 
     @Test
     fun `WHEN delete browsing data and quit action is dispatched THEN onDeleteAndQuit is invoked`() = runTestOnMain {
+        whenever(addonManager.getAddons()).thenReturn(emptyList())
+
         val store = createStore(
             menuState = MenuState(
                 browserMenuState = null,
@@ -504,6 +537,7 @@ class MenuDialogMiddlewareTest {
         middleware = listOf(
             MenuDialogMiddleware(
                 appStore = appStore,
+                addonManager = addonManager,
                 bookmarksStorage = bookmarksStorage,
                 pinnedSiteStorage = pinnedSiteStorage,
                 addBookmarkUseCase = addBookmarkUseCase,
