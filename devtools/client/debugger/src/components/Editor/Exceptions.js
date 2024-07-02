@@ -6,14 +6,8 @@ import React, { Component } from "devtools/client/shared/vendor/react";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 import { connect } from "devtools/client/shared/vendor/react-redux";
 
-import {
-  toEditorPosition,
-  fromEditorLine,
-  getDocument,
-} from "../../utils/editor/index";
-import { createLocation } from "../../utils/location";
+import { getDocument } from "../../utils/editor/index";
 import { markerTypes } from "../../constants";
-
 import { features } from "../../utils/prefs";
 
 import Exception from "./Exception";
@@ -75,23 +69,7 @@ class Exceptions extends Component {
     editor.setLineContentMarker({
       id: markerTypes.LINE_EXCEPTION_MARKER,
       lineClassName: "line-exception",
-      condition: line => {
-        const lineNumber = fromEditorLine(selectedSource.id, line);
-
-        const exception = exceptions.find(e => e.lineNumber == lineNumber);
-        if (!exception) {
-          return false;
-        }
-        const exceptionLocation = createLocation({
-          source: selectedSource,
-          line: exception.lineNumber,
-          // Exceptions are reported with column being 1-based
-          // while the frontend uses 0-based column.
-          column: exception.columnNumber - 1,
-        });
-        const editorLocation = toEditorPosition(exceptionLocation);
-        return editorLocation.line == lineNumber;
-      },
+      lines: exceptions.map(e => e.lineNumber),
     });
 
     editor.setPositionContentMarker({
@@ -99,6 +77,8 @@ class Exceptions extends Component {
       positionClassName: "mark-text-exception",
       positions: exceptions.map(e => ({
         line: e.lineNumber,
+        // Exceptions are reported with column being 1-based
+        // while the frontend uses 0-based column.
         column: e.columnNumber - 1,
       })),
     });

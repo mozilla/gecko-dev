@@ -166,6 +166,7 @@ class Editor extends EventEmitter {
 
   #CodeMirror6;
   #compartments;
+  #effects;
   #lastDirty;
   #loadedKeyMaps;
   #ownerDoc;
@@ -633,7 +634,6 @@ class Editor extends EventEmitter {
     const lineWrapCompartment = new Compartment();
     const lineNumberCompartment = new Compartment();
     const lineNumberMarkersCompartment = new Compartment();
-    const lineContentMarkerCompartment = new Compartment();
     const positionContentMarkersCompartment = new Compartment();
     const searchHighlightCompartment = new Compartment();
     const domEventHandlersCompartment = new Compartment();
@@ -645,12 +645,16 @@ class Editor extends EventEmitter {
       lineWrapCompartment,
       lineNumberCompartment,
       lineNumberMarkersCompartment,
-      lineContentMarkerCompartment,
       positionContentMarkersCompartment,
       searchHighlightCompartment,
       domEventHandlersCompartment,
       foldGutterCompartment,
     };
+
+    const { lineContentMarkerEffect, lineContentMarkerExtension } =
+      this.#createlineContentMarkersExtension();
+
+    this.#effects = { lineContentMarkerEffect };
 
     const indentStr = (this.config.indentWithTabs ? "\t" : " ").repeat(
       this.config.indentUnit || 2
@@ -685,7 +689,7 @@ class Editor extends EventEmitter {
       }),
       domEventHandlersCompartment.of(EditorView.domEventHandlers({})),
       lineNumberMarkersCompartment.of([]),
-      lineContentMarkerCompartment.of(this.#lineContentMarkersExtension([])),
+      lineContentMarkerExtension,
       positionContentMarkersCompartment.of(
         this.#positionContentMarkersExtension([])
       ),
@@ -707,17 +711,20 @@ class Editor extends EventEmitter {
   }
 
   /**
-   * This creates the extension used to manage the rendering of markers
-   * for in editor line content.
-   * @param   {Array}             lineMarkers - The current list of markers
-   * @returns {Array<ViewPlugin>}  An extension which is an array containing the view
-   *                               which manages the rendering of the line content markers.
+   * This creates the extension which handles marking of lines within the editor.
+   *
+   * @returns {Object} The object contains an extension and effects which used to trigger updates to the extension
+   *          {Object} - lineContentMarkerExtension - The line content marker extension
+   *          {Object} - lineContentMarkerEffect - The effects to add and remove markers
+   *
    */
-  #lineContentMarkersExtension(lineMarkers) {
+  #createlineContentMarkersExtension() {
     const {
-      codemirrorView: { Decoration, ViewPlugin, WidgetType },
-      codemirrorState: { RangeSetBuilder, RangeSet },
+      codemirrorView: { Decoration, WidgetType, EditorView },
+      codemirrorState: { StateField, StateEffect },
     } = this.#CodeMirror6;
+
+    const lineContentMarkers = this.#lineContentMarkers;
 
     class LineContentWidget extends WidgetType {
       constructor(line, createElementNode) {
@@ -726,58 +733,189 @@ class Editor extends EventEmitter {
       }
     }
 
-    // Build and return the decoration set
-    function buildDecorations(view) {
-      if (!lineMarkers) {
-        return RangeSet.empty;
+    /**
+     * Uses the marker and current decoration list to create a new decoration list
+     *
+     * @param {Array} markerDecorations - List of the current marker decorations
+     * @param {Object} marker - The marker to be used to create the new decoration
+     * @param {Transaction} transaction - The transaction object
+     * @param {Array} newMarkerDecorations - List of the new marker decorations being built
+     */
+    function _buildDecorationsForMarker(
+      markerDecorations,
+      marker,
+      transaction,
+      newMarkerDecorations
+    ) {
+      const vStartLine = transaction.state.doc.lineAt(
+        marker._view.viewport.from
+      );
+      const vEndLine = transaction.state.doc.lineAt(marker._view.viewport.to);
+
+      let decorationLines;
+      if (marker.shouldMarkAllLines) {
+        decorationLines = [];
+        for (let i = vStartLine.number; i < vEndLine.number; i++) {
+          decorationLines.push(i);
+        }
+      } else {
+        decorationLines = marker.lines;
       }
-      const builder = new RangeSetBuilder();
-      for (const { from, to } of view.visibleRanges) {
-        for (let pos = from; pos <= to; ) {
-          const line = view.state.doc.lineAt(pos);
-          for (const marker of lineMarkers) {
-            if (marker.condition(line.number)) {
-              if (marker.lineClassName) {
-                const classDecoration = Decoration.line({
-                  class: marker.lineClassName,
-                });
-                builder.add(line.from, line.from, classDecoration);
-              }
-              if (marker.createLineElementNode) {
-                const nodeDecoration = Decoration.widget({
-                  widget: new LineContentWidget(
-                    line.number,
-                    marker.createLineElementNode
-                  ),
-                });
-                builder.add(line.to, line.to, nodeDecoration);
-              }
-            }
-          }
-          pos = line.to + 1;
+
+      for (const line of decorationLines) {
+        // Make sure the position is within the viewport
+        if (line < vStartLine.number || line > vEndLine.number) {
+          continue;
+        }
+
+        const lo = transaction.state.doc.line(line);
+        if (marker.lineClassName) {
+          // Markers used:
+          // 1) blackboxed-line-marker
+          // 2) multi-highlight-line-marker
+          // 3) highlight-line-marker
+          // 4) line-exception-marker
+          // 5) debug-line-marker
+          const classDecoration = Decoration.line({
+            class: marker.lineClassName,
+          });
+          classDecoration.markerType = marker.id;
+          newMarkerDecorations.push(classDecoration.range(lo.from));
+        } else if (marker.createLineElementNode) {
+          // Markers used:
+          // 1) conditional-breakpoint-panel-marker
+          // 2) inline-preview-marker
+          const nodeDecoration = Decoration.widget({
+            widget: new LineContentWidget(line, marker.createLineElementNode),
+            // Render the widget after the cursor
+            side: 1,
+            // Render the widget inline (on the same line)
+            block: false,
+          });
+          nodeDecoration.markerType = marker.id;
+          newMarkerDecorations.push(nodeDecoration.range(lo.to));
         }
       }
-      return builder.finish();
     }
 
-    // The view which handles events, rendering and updating the
-    // markers decorations
-    const lineContentMarkersView = ViewPlugin.fromClass(
-      class {
-        decorations;
-        constructor(view) {
-          this.decorations = buildDecorations(view);
-        }
-        update(update) {
-          if (update.docChanged || update.viewportChanged) {
-            this.decorations = buildDecorations(update.view);
+    /**
+     * This updates the decorations for the marker specified
+     *
+     * @param {Array} markerDecorations - The current decorations displayed in the document
+     * @param {Array} marker - The current marker whose decoration should be update
+     * @param {Transaction} transaction
+     * @returns
+     */
+    function updateDecorations(markerDecorations, marker, transaction) {
+      const newDecorations = [];
+      _buildDecorationsForMarker(
+        markerDecorations,
+        marker,
+        transaction,
+        newDecorations
+      );
+
+      return markerDecorations.update({
+        // Filter out old decorations for the specified marker
+        filter: (from, to, decoration) => {
+          return decoration.markerType !== marker.id;
+        },
+        add: newDecorations,
+        sort: true,
+      });
+    }
+
+    /**
+     * This updates all the decorations for all the markers. This
+     * used in scenarios when an update to view (e.g vertically scrolling into a new viewport)
+     * requires all the marker decoraions.
+     *
+     * @param {Array} markerDecorations - The current decorations displayed in the document
+     * @param {Array} allMarkers - All the cached markers
+     * @param {Object} transaction
+     * @returns
+     */
+    function updateDecorationsForAllMarkers(
+      markerDecorations,
+      allMarkers,
+      transaction
+    ) {
+      const allNewDecorations = [];
+
+      for (const marker of allMarkers) {
+        _buildDecorationsForMarker(
+          markerDecorations,
+          marker,
+          transaction,
+          allNewDecorations
+        );
+      }
+
+      return markerDecorations.update({
+        // This filters out all the old decorations
+        filter: () => false,
+        add: allNewDecorations,
+        sort: true,
+      });
+    }
+
+    function removeDecorations(markerDecorations, markerId) {
+      return markerDecorations.update({
+        filter: (from, to, decoration) => {
+          return decoration.markerType !== markerId;
+        },
+      });
+    }
+
+    // The effects used to create the transaction when markers are
+    // either added and removed.
+    const addEffect = StateEffect.define();
+    const removeEffect = StateEffect.define();
+
+    const lineContentMarkerExtension = StateField.define({
+      create() {
+        return Decoration.none;
+      },
+      update(markerDecorations, transaction) {
+        // Map the decorations through the transaction changes, this is important
+        // as it remaps the decorations from positions in the old document to
+        // positions in the new document.
+        markerDecorations = markerDecorations.map(transaction.changes);
+        for (const effect of transaction.effects) {
+          // When a new marker is added
+          if (effect.is(addEffect)) {
+            markerDecorations = updateDecorations(
+              markerDecorations,
+              effect.value,
+              transaction
+            );
+          } else if (effect.is(removeEffect)) {
+            // when a marker is removed
+            markerDecorations = removeDecorations(
+              markerDecorations,
+              effect.value
+            );
+          } else {
+            const cachedMarkers = lineContentMarkers.values();
+            // For updates that are not related to this marker decoration,
+            // we want to update the decorations when the editor is scrolled
+            // and a new viewport is loaded.
+            markerDecorations = updateDecorationsForAllMarkers(
+              markerDecorations,
+              cachedMarkers,
+              transaction
+            );
           }
         }
+        return markerDecorations;
       },
-      { decorations: v => v.decorations }
-    );
+      provide: field => EditorView.decorations.from(field),
+    });
 
-    return [lineContentMarkersView];
+    return {
+      lineContentMarkerExtension,
+      lineContentMarkerEffect: { addEffect, removeEffect },
+    };
   }
 
   #createEventHandlers() {
@@ -910,25 +1048,29 @@ class Editor extends EventEmitter {
 
   /**
    * This adds a marker used to add classes to editor line based on a condition.
-   *   @property {object}     marker           - The rule rendering a marker or class.
-   *   @property {object}     marker.id       - The unique identifier for this marker
-   *   @property {string}     marker.lineClassName - The css class to add to the line
-   *   @property {function}   marker.condition - The condition that decides if the marker/class gets added or removed.
-   *                                             The line is passed as an argument.
-   *   @property {function}   marker.createLineElementNode - This should return the DOM element which
-   *                                            is used for the marker. The line number is passed as a parameter.
-   *                                            This is optional.
+   *   @property {object}             marker
+   *                                  The rule rendering a marker or class.
+   *   @property {object}             marker.id
+   *                                  The unique identifier for this marker
+   *   @property {string}             marker.lineClassName
+   *                                  The css class to apply to the line
+   *   @property {Array<Number>}      marker.lines
+   *                                  The lines to add markers to
+   *   @property {Boolean=}           marker.shouldMarkAllLines
+   *                                  Set to true to apply the marker to all the lines. In such case, `positions` is ignored. This is optional.
+   *   @property {function}           marker.createLineElementNode
+   *                                  This should return the DOM element which is used for the marker. The line number is passed as a parameter.
+   *                                  This is optional.
+
    */
   setLineContentMarker(marker) {
     const cm = editors.get(this);
+    // We store the marker an the view state, this is gives access to view data
+    // when defining updates to the StateField.
+    marker._view = cm;
     this.#lineContentMarkers.set(marker.id, marker);
-
     cm.dispatch({
-      effects: this.#compartments.lineContentMarkerCompartment.reconfigure(
-        this.#lineContentMarkersExtension(
-          Array.from(this.#lineContentMarkers.values())
-        )
-      ),
+      effects: this.#effects.lineContentMarkerEffect.addEffect.of(marker),
     });
   }
 
@@ -939,13 +1081,8 @@ class Editor extends EventEmitter {
   removeLineContentMarker(markerId) {
     const cm = editors.get(this);
     this.#lineContentMarkers.delete(markerId);
-
     cm.dispatch({
-      effects: this.#compartments.lineContentMarkerCompartment.reconfigure(
-        this.#lineContentMarkersExtension(
-          Array.from(this.#lineContentMarkers.values())
-        )
-      ),
+      effects: this.#effects.lineContentMarkerEffect.removeEffect.of(markerId),
     });
   }
 

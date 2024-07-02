@@ -15,7 +15,6 @@ import { Component } from "devtools/client/shared/vendor/react";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 import {
   toEditorLine,
-  fromEditorLine,
   endOperation,
   startOperation,
 } from "../../utils/editor/index";
@@ -140,10 +139,7 @@ export class HighlightLine extends Component {
       editor.setLineContentMarker({
         id: markerTypes.HIGHLIGHT_LINE_MARKER,
         lineClassName: "highlight-line",
-        condition(line) {
-          const lineNumber = fromEditorLine(sourceId, line);
-          return selectedLocation.line == lineNumber;
-        },
+        lines: [selectedLocation.line],
       });
     } else {
       const doc = getDocument(sourceId);

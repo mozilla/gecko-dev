@@ -15,6 +15,7 @@ import { getIndentation } from "../../utils/indentation";
 import { isWasm } from "../../utils/wasm";
 import { features } from "../../utils/prefs";
 import { markerTypes } from "../../constants";
+import { asSettled, isFulfilled, isRejected } from "../../utils/async-value";
 
 import {
   getActiveSearch,
@@ -336,28 +337,47 @@ class Editor extends PureComponent {
         ]);
       }
 
-      function condition(line) {
-        const lineNumber = fromEditorLine(selectedSource.id, line);
-
-        return isLineBlackboxed(
-          blackboxedRanges[selectedSource.url],
-          lineNumber,
-          isSourceOnIgnoreList
-        );
-      }
-
       editor.setLineGutterMarkers([
         {
           id: markerTypes.BLACKBOX_LINE_GUTTER_MARKER,
           lineClassName: "blackboxed-line",
-          condition,
+          condition: line => {
+            const lineNumber = fromEditorLine(selectedSource.id, line);
+            return isLineBlackboxed(
+              blackboxedRanges[selectedSource.url],
+              lineNumber,
+              isSourceOnIgnoreList
+            );
+          },
         },
       ]);
-      editor.setLineContentMarker({
-        id: markerTypes.BLACKBOX_LINE_MARKER,
-        lineClassName: "blackboxed-line",
-        condition,
-      });
+
+      if (
+        prevProps.selectedSource?.id !== selectedSource.id ||
+        prevProps.blackboxedRanges[selectedSource.url]?.length !==
+          blackboxedRanges[selectedSource.url]?.length ||
+        (!prevState.editor && !!editor)
+      ) {
+        if (blackboxedRanges[selectedSource.url] == undefined) {
+          editor.removeLineContentMarker(markerTypes.BLACKBOX_LINE_MARKER);
+          return;
+        }
+
+        const lines = [];
+        for (const range of blackboxedRanges[selectedSource.url]) {
+          for (let i = range.start.line; i <= range.end.line; i++) {
+            lines.push(i);
+          }
+        }
+
+        editor.setLineContentMarker({
+          id: markerTypes.BLACKBOX_LINE_MARKER,
+          lineClassName: "blackboxed-line",
+          // If the the whole source is blackboxed, lets just mark all positions.
+          shouldMarkAllLines: !blackboxedRanges[selectedSource.url].length,
+          lines,
+        });
+      }
     }
   }
 
@@ -741,7 +761,7 @@ class Editor extends PureComponent {
       return;
     }
 
-    if (selectedSourceTextContent.state === "rejected") {
+    if (isRejected(selectedSourceTextContent)) {
       let { value } = selectedSourceTextContent;
       if (typeof value !== "string") {
         value = "Unexpected source error";
@@ -839,6 +859,7 @@ class Editor extends PureComponent {
       isSourceOnIgnoreList,
       selectedSourceIsBlackBoxed,
       mapScopesEnabled,
+      selectedSourceTextContent,
     } = this.props;
     const { editor } = this.state;
 
@@ -847,6 +868,14 @@ class Editor extends PureComponent {
     }
 
     if (features.codemirrorNext) {
+      // Only load the sub components if the content has loaded without issues.
+      if (
+        selectedSourceTextContent &&
+        !isFulfilled(selectedSourceTextContent)
+      ) {
+        return null;
+      }
+
       return React.createElement(
         React.Fragment,
         null,
@@ -987,10 +1016,14 @@ const mapStateToProps = state => {
   const selectedSource = getSelectedSource(state);
   const selectedLocation = getSelectedLocation(state);
 
+  const selectedSourceTextContent = getSelectedSourceTextContent(state);
+
   return {
     selectedLocation,
     selectedSource,
-    selectedSourceTextContent: getSelectedSourceTextContent(state),
+    // Settled means the content loaded succesfully (fulfilled) or the there was
+    // error (rejected)
+    selectedSourceTextContent: asSettled(selectedSourceTextContent),
     selectedSourceIsBlackBoxed: selectedSource
       ? isSourceBlackBoxed(state, selectedSource)
       : null,

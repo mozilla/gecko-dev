@@ -6,7 +6,6 @@ import { PureComponent } from "devtools/client/shared/vendor/react";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 import {
   toEditorPosition,
-  fromEditorLine,
   getDocument,
   hasDocument,
   startOperation,
@@ -23,7 +22,6 @@ import {
   getSourceTextContent,
   getCurrentThread,
 } from "../../selectors/index";
-import { isWasm } from "../../utils/wasm";
 import { features } from "../../utils/prefs";
 
 export class DebugLine extends PureComponent {
@@ -35,6 +33,7 @@ export class DebugLine extends PureComponent {
       selectedSource: PropTypes.object,
       location: PropTypes.object,
       why: PropTypes.object,
+      sourceTextContent: PropTypes.object,
     };
   }
 
@@ -69,21 +68,12 @@ export class DebugLine extends PureComponent {
       }
 
       const { lineClass, markTextClass } = this.getTextClasses(why);
-      const isSourceWasm = isWasm(selectedSource.id);
+      const editorLocation = toEditorPosition(location);
       editor.setLineContentMarker({
         id: markerTypes.DEBUG_LINE_MARKER,
         lineClassName: lineClass,
-        condition(line) {
-          const lineNumber = fromEditorLine(
-            selectedSource.id,
-            line,
-            isSourceWasm
-          );
-          const editorLocation = toEditorPosition(location);
-          return editorLocation.line == lineNumber;
-        },
+        lines: [editorLocation.line],
       });
-      const editorLocation = toEditorPosition(location);
       editor.setPositionContentMarker({
         id: markerTypes.DEBUG_POSITION_MARKER,
         positionClassName: markTextClass,
@@ -165,7 +155,13 @@ export class DebugLine extends PureComponent {
 }
 
 function isDocumentReady(location, sourceTextContent) {
-  return location && sourceTextContent && hasDocument(location.source.id);
+  const contentAvailable = location && sourceTextContent;
+  // With CM6, the codemirror document is no longer cached
+  // so no need to check if its available
+  if (features.codemirrorNext) {
+    return contentAvailable;
+  }
+  return contentAvailable && hasDocument(location.source.id);
 }
 
 const mapStateToProps = state => {
@@ -177,15 +173,13 @@ const mapStateToProps = state => {
     return {};
   }
   const sourceTextContent = getSourceTextContent(state, location);
-  if (
-    !features.codemirrorNext &&
-    !isDocumentReady(location, sourceTextContent)
-  ) {
+  if (!isDocumentReady(location, sourceTextContent)) {
     return {};
   }
   return {
     location,
     why: getPauseReason(state, getCurrentThread(state)),
+    sourceTextContent,
   };
 };
 
