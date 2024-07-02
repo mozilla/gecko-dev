@@ -45,9 +45,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -295,10 +293,6 @@ private fun TabItem(
                 .clickable { onSelectedTabClick(state.id) }
                 .semantics {
                     role = Role.Tab
-                    selected = state.isSelected
-                    if (!state.isSelected) {
-                        contentDescription = "Not selected"
-                    }
                 },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
