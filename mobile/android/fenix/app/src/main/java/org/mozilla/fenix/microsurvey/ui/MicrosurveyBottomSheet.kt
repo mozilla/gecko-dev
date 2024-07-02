@@ -22,8 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
@@ -45,7 +43,6 @@ private val bottomSheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.
  * @param icon The icon that represents the feature for the given [question].
  * @param onPrivacyPolicyLinkClick Invoked when the privacy policy link is clicked.
  * @param onCloseButtonClicked Invoked when the close button is clicked.
- * @param modifier [Modifier] to be applied to the layout.
  */
 @Composable
 fun MicrosurveyBottomSheet(
@@ -54,13 +51,12 @@ fun MicrosurveyBottomSheet(
     @DrawableRes icon: Int,
     onPrivacyPolicyLinkClick: () -> Unit,
     onCloseButtonClicked: () -> Unit,
-    modifier: Modifier,
 ) {
     var selectedAnswer by remember { mutableStateOf<String?>(null) }
     var isSubmitted by remember { mutableStateOf(false) }
 
     Surface(
-        modifier = modifier.fillMaxHeight(),
+        modifier = Modifier.fillMaxHeight(),
         color = FirefoxTheme.colors.layer1,
         shape = bottomSheetShape,
     ) {
@@ -112,7 +108,6 @@ fun MicrosurveyBottomSheet(
 private fun MicroSurveyBottomSheetPreview() {
     FirefoxTheme {
         MicrosurveyBottomSheet(
-            modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection()),
             question = "How satisfied are you with printing in Firefox?",
             icon = R.drawable.ic_print,
             onPrivacyPolicyLinkClick = {},

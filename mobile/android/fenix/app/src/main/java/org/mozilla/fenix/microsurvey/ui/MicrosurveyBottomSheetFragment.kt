@@ -9,11 +9,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -78,7 +75,6 @@ class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
                                 context.settings().shouldShowMicrosurveyPrompt = false
                                 dismiss()
                             },
-                            modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection()),
                         )
                     }
                 }
