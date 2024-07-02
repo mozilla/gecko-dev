@@ -211,7 +211,10 @@ class EngineDispatcher {
     }
     // In automated tests, the engine is manually destroyed.
     if (!Cu.isInAutomation) {
-      this.#keepAliveTimeout = lazy.setTimeout(this.terminate, this.timeoutMS);
+      this.#keepAliveTimeout = lazy.setTimeout(
+        this.terminate.bind(this),
+        this.timeoutMS
+      );
     }
   }
 
