@@ -5,6 +5,5 @@ support-files = [
   "head.js",
   "!/accessible/tests/mochitest/*.js",
 ]
-prefs = ["javascript.options.asyncstack_capture_debuggee_only=false"]
 
 ["browser_pivot.js"]

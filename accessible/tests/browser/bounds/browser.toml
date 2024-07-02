@@ -6,7 +6,6 @@ support-files = [
   "!/accessible/tests/mochitest/*.js",
   "!/accessible/tests/mochitest/letters.gif",
 ]
-prefs = ["javascript.options.asyncstack_capture_debuggee_only=false"]
 
 ["browser_accessible_moved.js"]
 

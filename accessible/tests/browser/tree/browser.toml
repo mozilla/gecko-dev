@@ -7,7 +7,6 @@ support-files = [
   "!/accessible/tests/mochitest/moz.png",
 ]
 prefs = [
-  "javascript.options.asyncstack_capture_debuggee_only=false",
   "layout.css.content.alt-text.enabled=true",
 ]
 
