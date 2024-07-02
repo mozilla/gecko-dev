@@ -2,4 +2,6 @@
 <resources>
     <string name="mozac_feature_customtabs_exit_button">කලින් යෙදුමට ආපසු</string>
     <string name="mozac_feature_customtabs_share_link">සබැඳිය බෙදාගන්න</string>
+    <!-- Content description (not visible, for screen readers etc.): Description of the refresh button in the Custom Tabs toolbar -->
+    <string name="mozac_feature_customtabs_refresh_button">නැවුම් කරන්න</string>
 </resources>
