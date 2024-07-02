@@ -226,8 +226,8 @@ class StringTest {
     }
 
     @Test
-    fun `WHEN a string contains utf 8 encoded characters decode decodes it`() {
-        // List of pairs of encoded strings and their expected decoded results
+    fun `WHEN a string contains utf 8 encoded characters or illegal filename characters decode decodes it`() {
+        // List of pairs of encoded strings or illegal filename characters and their expected decoded results
         val testCases = listOf(
             "hello%20world" to "hello world",
             "wow%21amazing" to "wow!amazing",
