@@ -59,23 +59,7 @@ class MessagingMiddleware(
 
             is MessageDismissed -> onMessageDismissed(context, action.message)
 
-            is MicrosurveyAction.Shown -> onMicrosurveyShown(action.id)
-
-            is MicrosurveyAction.OnPrivacyNoticeTapped -> onPrivacyNoticeTapped(action.id)
-
-            is MicrosurveyAction.Dismissed -> {
-                context.store.state.messaging.messages.find { it.id == action.id }?.let { message ->
-                    onMicrosurveyDismissed(context, message)
-                }
-            }
-
-            is MicrosurveyAction.Completed -> {
-                context.store.state.messaging.messages.find { it.id == action.id }?.let { message ->
-                    onMicrosurveyCompleted(context, message, action.answer)
-                }
-            }
-
-            is MicrosurveyAction.SentConfirmationShown -> onMicrosurveyConfirmationShown(action.id)
+            is MicrosurveyAction.Completed -> onMicrosurveyCompleted(context, action.message, action.answer)
 
             is MicrosurveyAction.Started -> onMicrosurveyStarted(action.id)
 
@@ -96,36 +80,6 @@ class MessagingMiddleware(
         consumeMessageToShowIfNeeded(context, message)
         coroutineScope.launch {
             controller.onMicrosurveyCompleted(message, answer)
-        }
-    }
-
-    private fun onMicrosurveyShown(id: String) {
-        coroutineScope.launch {
-            controller.onMicrosurveyShown(id)
-        }
-    }
-
-    private fun onMicrosurveyDismissed(
-        context: AppStoreMiddlewareContext,
-        message: Message,
-    ) {
-        val newMessages = removeMessage(context, message)
-        context.store.dispatch(UpdateMessages(newMessages))
-        consumeMessageToShowIfNeeded(context, message)
-        coroutineScope.launch {
-            controller.onMicrosurveyDismissed(message)
-        }
-    }
-
-    private fun onMicrosurveyConfirmationShown(id: String) {
-        coroutineScope.launch {
-            controller.onMicrosurveySentConfirmationShown(id)
-        }
-    }
-
-    private fun onPrivacyNoticeTapped(id: String) {
-        coroutineScope.launch {
-            controller.onMicrosurveyPrivacyNoticeTapped(id)
         }
     }
 

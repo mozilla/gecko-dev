@@ -24,12 +24,10 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.Evaluate
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MessageClicked
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MessageDismissed
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction
-import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction.Dismissed
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.Restore
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
@@ -171,105 +169,6 @@ class MessagingMiddlewareTest {
     }
 
     @Test
-    fun `WHEN onMicrosurveyDismissed THEN update storage`() = runTestOnMain {
-        val metadata = createMetadata(displayCount = 1, "same-id")
-        val message = createMessage(metadata)
-        val store = AppStore(
-            AppState(
-                messaging = MessagingState(
-                    messages = listOf(message),
-                ),
-            ),
-            listOf(
-                MessagingMiddleware(controller, coroutineScope),
-            ),
-        )
-        store.dispatch(Dismissed(message.id)).joinBlocking()
-        store.waitUntilIdle()
-
-        assertTrue(store.state.messaging.messages.isEmpty())
-        coVerify { controller.onMicrosurveyDismissed(message = message) }
-    }
-
-    @Test
-    fun `GIVEN a microsurvey WHEN onMicrosurveyShown THEN only notify the controller`() =
-        runTestOnMain {
-            val message = createMessage()
-            val store = AppStore(
-                AppState(
-                    messaging = MessagingState(
-                        messages = listOf(message),
-                        messageToShow = mapOf(message.id to message),
-                    ),
-                ),
-                listOf(
-                    MessagingMiddleware(controller, coroutineScope),
-                ),
-            )
-
-            assertEquals(message, store.state.messaging.messages.first())
-
-            store.dispatch(AppAction.MessagingAction.MicrosurveyAction.Shown(message.id))
-                .joinBlocking()
-            store.waitUntilIdle()
-
-            assertFalse(store.state.messaging.messages.isEmpty())
-            coVerify { controller.onMicrosurveyShown(id = message.id) }
-        }
-
-    @Test
-    fun `GVIEN a microsurvey WHEN onMicrosurveyConfirmationShown THEN only notify the controller`() =
-        runTestOnMain {
-            val message = createMessage()
-            val store = AppStore(
-                AppState(
-                    messaging = MessagingState(
-                        messages = listOf(message),
-                        messageToShow = mapOf(message.id to message),
-                    ),
-                ),
-                listOf(
-                    MessagingMiddleware(controller, coroutineScope),
-                ),
-            )
-
-            assertEquals(message, store.state.messaging.messages.first())
-
-            store.dispatch(AppAction.MessagingAction.MicrosurveyAction.SentConfirmationShown(message.id))
-                .joinBlocking()
-            store.waitUntilIdle()
-
-            assertFalse(store.state.messaging.messages.isEmpty())
-            coVerify { controller.onMicrosurveySentConfirmationShown(id = message.id) }
-        }
-
-    @Test
-    fun `GVIEN a microsurvey WHEN onPrivacyNoticeTapped THEN only notify the controller`() =
-        runTestOnMain {
-            val message = createMessage()
-            val store = AppStore(
-                AppState(
-                    messaging = MessagingState(
-                        messages = listOf(message),
-                        messageToShow = mapOf(message.id to message),
-                    ),
-                ),
-                listOf(
-                    MessagingMiddleware(controller, coroutineScope),
-                ),
-            )
-
-            assertEquals(message, store.state.messaging.messages.first())
-
-            store.dispatch(AppAction.MessagingAction.MicrosurveyAction.OnPrivacyNoticeTapped(message.id))
-                .joinBlocking()
-            store.waitUntilIdle()
-
-            assertFalse(store.state.messaging.messages.isEmpty())
-            coVerify { controller.onMicrosurveyPrivacyNoticeTapped(id = message.id) }
-        }
-
-    @Test
     fun `WHEN onMessageDismissed THEN remove the message from storage and state`() = runTestOnMain {
         val message = createMessage(createMetadata(displayCount = 1))
         val store = AppStore(
@@ -287,32 +186,6 @@ class MessagingMiddlewareTest {
         )
 
         store.dispatch(MessageDismissed(message)).joinBlocking()
-        store.waitUntilIdle()
-
-        // removeMessages causes messages size to be 0
-        assertEquals(0, store.state.messaging.messages.size)
-        // consumeMessageToShowIfNeeded causes messageToShow map size to be 0
-        assertEquals(0, store.state.messaging.messageToShow.size)
-    }
-
-    @Test
-    fun `WHEN onMicrosurveyDismissed THEN remove the message from storage and state`() = runTestOnMain {
-        val message = createMessage(createMetadata(displayCount = 1))
-        val store = AppStore(
-            AppState(
-                messaging = MessagingState(
-                    messages = listOf(
-                        message,
-                    ),
-                    messageToShow = mapOf(message.surface to message),
-                ),
-            ),
-            listOf(
-                MessagingMiddleware(controller, coroutineScope),
-            ),
-        )
-
-        store.dispatch(Dismissed(message.id)).joinBlocking()
         store.waitUntilIdle()
 
         // removeMessages causes messages size to be 0

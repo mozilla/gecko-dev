@@ -624,9 +624,6 @@ class HomeFragment : Fragment() {
                                             )
                                         },
                                         onCloseButtonClicked = {
-                                            context.components.appStore.dispatch(
-                                                MicrosurveyAction.Dismissed(it.id),
-                                            )
                                             context.settings().shouldShowMicrosurveyPrompt = false
                                             shouldShowMicrosurveyPrompt.value = false
                                         },
@@ -779,9 +776,6 @@ class HomeFragment : Fragment() {
                                             )
                                         },
                                         onCloseButtonClicked = {
-                                            context.components.appStore.dispatch(
-                                                MicrosurveyAction.Dismissed(it.id),
-                                            )
                                             context.settings().shouldShowMicrosurveyPrompt = false
                                             shouldShowMicrosurveyPrompt.value = false
                                         },

@@ -8,7 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import androidx.core.net.toUri
-import mozilla.components.service.nimbus.GleanMetrics.Microsurvey
+import mozilla.components.service.nimbus.GleanMetrics.MicroSurvey
 import mozilla.components.service.nimbus.GleanMetrics.Messaging as GleanMessaging
 
 /**
@@ -45,14 +45,6 @@ open class NimbusMessagingController(
         messagingStorage.updateMetadata(updatedMetadata)
     }
 
-    override suspend fun onMicrosurveyShown(id: String) {
-        Microsurvey.shown.record(Microsurvey.ShownExtra(surveyId = id))
-    }
-
-    override suspend fun onMicrosurveyPrivacyNoticeTapped(id: String) {
-        Microsurvey.privacyNoticeTapped.record(Microsurvey.PrivacyNoticeTappedExtra(surveyId = id))
-    }
-
     /**
      * Called once the user has clicked on a message.
      *
@@ -63,17 +55,6 @@ open class NimbusMessagingController(
         val messageMetadata = message.metadata
         val updatedMetadata = messageMetadata.copy(pressed = true)
         messagingStorage.updateMetadata(updatedMetadata)
-    }
-
-    override suspend fun onMicrosurveyDismissed(message: Message) {
-        Microsurvey.dismissButtonTapped.record(Microsurvey.DismissButtonTappedExtra(surveyId = message.id))
-        val messageMetadata = message.metadata
-        val updatedMetadata = messageMetadata.copy(dismissed = true)
-        messagingStorage.updateMetadata(updatedMetadata)
-    }
-
-    override suspend fun onMicrosurveySentConfirmationShown(id: String) {
-        Microsurvey.confirmationShown.record(Microsurvey.ConfirmationShownExtra(surveyId = id))
     }
 
     override suspend fun onMicrosurveyStarted(id: String) {
@@ -123,12 +104,7 @@ open class NimbusMessagingController(
     }
 
     private fun sendMicrosurveyCompletedTelemetry(messageId: String, answer: String?) {
-        Microsurvey.submitButtonTapped.record(
-            Microsurvey.SubmitButtonTappedExtra(
-                surveyId = messageId,
-                userSelection = answer,
-            ),
-        )
+        MicroSurvey.response.record(MicroSurvey.ResponseExtra(surveyId = messageId, userSelection = answer))
     }
 
     private fun convertActionIntoDeepLinkSchemeUri(action: String): Uri =
