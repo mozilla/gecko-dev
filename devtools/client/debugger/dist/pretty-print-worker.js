@@ -9668,7 +9668,30 @@
       #writeToken(token) {
         if (token.type.label == "string") {
           this.#write(
-            `'${sanitize(token.value)}'`,
+            `'${stringSanitize(token.value)}'`,
+            token.loc.start.line,
+            token.loc.start.column,
+            true
+          );
+        } else if (token.type.label == "template") {
+          // The backticks, '${', '}' and the template literal's string content are
+          // all separate tokens.
+          //
+          // For example, `AAA${BBB}CCC` becomes the following token sequence,
+          // where the first template's token.value being 'AAA' and the second
+          // template's token.value being 'CCC'.
+          //
+          //  * token.type.label == '`'
+          //  * token.type.label == 'template'
+          //  * token.type.label == '${'
+          //  * token.type.label == 'name'
+          //  * token.type.label == '}'
+          //  * token.type.label == 'template'
+          //  * token.type.label == '`'
+          //
+          // So, just sanitize the token.value without enclosing with backticks.
+          this.#write(
+            templateSanitize(token.value),
             token.loc.start.line,
             token.loc.start.column,
             true
@@ -10471,11 +10494,9 @@
       );
     }
 
-    const escapeCharacters = {
+    const commonEscapeCharacters = {
       // Backslash
       "\\": "\\\\",
-      // Newlines
-      "\n": "\\n",
       // Carriage return
       "\r": "\\r",
       // Tab
@@ -10490,24 +10511,53 @@
       "\u2028": "\\u2028",
       // Paragraph separator
       "\u2029": "\\u2029",
+    };
+
+    const stringEscapeCharacters = {
+      ...commonEscapeCharacters,
+
+      // Newlines
+      "\n": "\\n",
       // Single quotes
       "'": "\\'",
     };
 
-    // eslint-disable-next-line prefer-template
-    const regExpString = "(" + Object.values(escapeCharacters).join("|") + ")";
-    const escapeCharactersRegExp = new RegExp(regExpString, "g");
+    const templateEscapeCharacters = {
+      ...commonEscapeCharacters,
 
-    function sanitizerReplaceFunc(_, c) {
-      return escapeCharacters[c];
+      // backtick
+      "`": "\\`",
+    };
+
+    const stringRegExpString = `(${Object.values(stringEscapeCharacters).join(
+  "|"
+)})`;
+    const templateRegExpString = `(${Object.values(templateEscapeCharacters).join(
+  "|"
+)})`;
+
+    const stringEscapeCharactersRegExp = new RegExp(stringRegExpString, "g");
+    const templateEscapeCharactersRegExp = new RegExp(templateRegExpString, "g");
+
+    function stringSanitizerReplaceFunc(_, c) {
+      return stringEscapeCharacters[c];
+    }
+    function templateSanitizerReplaceFunc(_, c) {
+      return templateEscapeCharacters[c];
     }
 
     /**
      * Make sure that we output the escaped character combination inside string
      * literals instead of various problematic characters.
      */
-    function sanitize(str) {
-      return str.replace(escapeCharactersRegExp, sanitizerReplaceFunc);
+    function stringSanitize(str) {
+      return str.replace(stringEscapeCharactersRegExp, stringSanitizerReplaceFunc);
+    }
+    function templateSanitize(str) {
+      return str.replace(
+        templateEscapeCharactersRegExp,
+        templateSanitizerReplaceFunc
+      );
     }
 
     /**
