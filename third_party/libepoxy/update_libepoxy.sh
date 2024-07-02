@@ -3,11 +3,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+set -Eeuo pipefail
 mkdir _build_temp
 cd _build_temp
 # Generate `config.h` and the ninja build files
 # To build with glx or x11 remove the meson configuration (-D) options
-meson -Dglx=no -Dx11=false
+meson -Dglx=no -Degl=yes -Dx11=false
 cp "src/config.h" "../src/config.h"
 
 # Generate the source files we need
