@@ -155,6 +155,7 @@ class MenuTelemetryMiddleware(
             )
 
             MenuAction.InitAction,
+            is MenuAction.Navigate.AddonDetails,
             MenuAction.Navigate.Back,
             MenuAction.Navigate.DiscoverMoreExtensions,
             MenuAction.Navigate.Extensions,

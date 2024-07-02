@@ -189,5 +189,14 @@ sealed class MenuAction : Action {
          * [Navigate] action dispatched when navigating to the new private tab.
          */
         data object NewPrivateTab : Navigate()
+
+        /**
+         * [Navigate] action dispatched when navigating to the given [addon] details.
+         *
+         * @property addon The [Addon] details to display.
+         */
+        data class AddonDetails(
+            val addon: Addon,
+        ) : Navigate()
     }
 }

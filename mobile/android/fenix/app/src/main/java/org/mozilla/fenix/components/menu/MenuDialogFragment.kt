@@ -325,7 +325,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 onManageExtensionsMenuClick = {
                                     store.dispatch(MenuAction.Navigate.ManageExtensions)
                                 },
-                                onAddonClick = {},
+                                onAddonClick = { addon ->
+                                    store.dispatch(MenuAction.Navigate.AddonDetails(addon = addon))
+                                },
                                 onInstallAddonClick = {},
                                 onDiscoverMoreExtensionsMenuClick = {
                                     store.dispatch(MenuAction.Navigate.DiscoverMoreExtensions)
