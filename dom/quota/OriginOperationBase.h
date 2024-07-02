@@ -12,6 +12,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/quota/Config.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
+#include "mozilla/dom/quota/OriginOperationCallbacks.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/StringifyUtils.h"
 #include "nsISupportsImpl.h"
@@ -21,6 +22,7 @@ namespace mozilla::dom::quota {
 class QuotaManager;
 
 class OriginOperationBase : public BackgroundThreadObject,
+                            public OriginOperationCallbackHolders,
                             public Stringifyable {
  protected:
   const NotNull<RefPtr<QuotaManager>> mQuotaManager;
@@ -53,6 +55,9 @@ class OriginOperationBase : public BackgroundThreadObject,
 #endif
 
   void RunImmediately();
+
+  OriginOperationCallbacks GetCallbacks(
+      const OriginOperationCallbackOptions& aCallbackOptions);
 
  protected:
   OriginOperationBase(MovingNotNull<RefPtr<QuotaManager>>&& aQuotaManager,

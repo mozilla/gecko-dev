@@ -59,6 +59,7 @@ EXPORTS.mozilla.dom.quota += [
     "InitializationTypes.h",
     "IPCStreamCipherStrategy.h",
     "NSSCipherStrategy.h",
+    "OriginOperationCallbacks.h",
     "OriginScope.h",
     "PersistenceType.h",
     "PromiseUtils.h",

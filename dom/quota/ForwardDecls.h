@@ -36,6 +36,8 @@ class MozPromise;
 using BoolPromise = MozPromise<bool, nsresult, false>;
 using Int64Promise = MozPromise<int64_t, nsresult, false>;
 
+using ExclusiveBoolPromise = MozPromise<bool, nsresult, true>;
+
 namespace ipc {
 
 class BoolResponse;

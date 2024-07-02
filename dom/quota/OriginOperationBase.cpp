@@ -9,6 +9,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/dom/fs/TargetPtrHolder.h"
+#include "mozilla/dom/quota/OriginOperationCallbacks.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "nsError.h"
@@ -16,6 +17,28 @@
 #include "nsThreadUtils.h"
 
 namespace mozilla::dom::quota {
+
+namespace {
+
+template <class T>
+void ResolveOrRejectCallback(const BoolPromise::ResolveOrRejectValue& aValue,
+                             MozPromiseHolder<T>& aPromiseHolder) {
+  if (aPromiseHolder.IsEmpty()) {
+    return;
+  }
+
+  if constexpr (std::is_same_v<T, ExclusiveBoolPromise>) {
+    aPromiseHolder.UseSynchronousTaskDispatch(__func__);
+  }
+
+  if (aValue.IsResolve()) {
+    aPromiseHolder.Resolve(true, __func__);
+  } else {
+    aPromiseHolder.Reject(aValue.RejectValue(), __func__);
+  }
+}
+
+}  // namespace
 
 OriginOperationBase::OriginOperationBase(
     MovingNotNull<RefPtr<QuotaManager>>&& aQuotaManager, const char* aName)
@@ -81,17 +104,31 @@ void OriginOperationBase::RunImmediately() {
 
                return BoolPromise::CreateAndResolve(true, __func__);
              })
-      ->Then(GetCurrentSerialEventTarget(), __func__,
-             [self = RefPtr(this)](
-                 const BoolPromise::ResolveOrRejectValue& aValue) {
-               if (aValue.IsReject()) {
-                 MOZ_ASSERT(NS_SUCCEEDED(self->mResultCode));
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [self =
+               RefPtr(this)](const BoolPromise::ResolveOrRejectValue& aValue) {
+            if (aValue.IsReject()) {
+              MOZ_ASSERT(NS_SUCCEEDED(self->mResultCode));
 
-                 self->mResultCode = aValue.RejectValue();
-               }
+              self->mResultCode = aValue.RejectValue();
+            }
 
-               self->UnblockOpen();
-             });
+            ResolveOrRejectCallback(aValue, self->mWillFinishPromiseHolder);
+            ResolveOrRejectCallback(aValue, self->mWillFinishSyncPromiseHolder);
+
+            self->UnblockOpen();
+
+            ResolveOrRejectCallback(aValue, self->mDidFinishPromiseHolder);
+            ResolveOrRejectCallback(aValue, self->mDidFinishSyncPromiseHolder);
+          });
+}
+
+OriginOperationCallbacks OriginOperationBase::GetCallbacks(
+    const OriginOperationCallbackOptions& aCallbackOptions) {
+  AssertIsOnOwningThread();
+
+  return OriginOperationCallbackHolders::GetCallbacks(aCallbackOptions);
 }
 
 nsresult OriginOperationBase::DoInit(QuotaManager& aQuotaManager) {
