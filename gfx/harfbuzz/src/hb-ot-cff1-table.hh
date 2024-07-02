@@ -51,9 +51,6 @@ namespace CFF {
 enum EncodingID { StandardEncoding = 0, ExpertEncoding = 1 };
 enum CharsetID { ISOAdobeCharset = 0, ExpertCharset = 1, ExpertSubsetCharset = 2 };
 
-typedef CFFIndex<HBUINT16>  CFF1Index;
-
-typedef CFFIndex<HBUINT16> CFF1Index;
 typedef CFF1Index          CFF1CharStrings;
 typedef Subrs<HBUINT16>    CFF1Subrs;
 
@@ -1179,6 +1176,7 @@ struct cff1
 	  if (unlikely (!font_interp.interpret (*font)))   goto fail;
 	  PRIVDICTVAL *priv = &privateDicts[i];
 	  const hb_ubytes_t privDictStr = StructAtOffsetOrNull<UnsizedByteStr> (cff, font->privateDictInfo.offset, sc, font->privateDictInfo.size).as_ubytes (font->privateDictInfo.size);
+	  if (unlikely (privDictStr == (const unsigned char *) &Null (UnsizedByteStr))) goto fail;
 	  num_interp_env_t env2 (privDictStr);
 	  dict_interpreter_t<PRIVOPSET, PRIVDICTVAL> priv_interp (env2);
 	  priv->init ();
@@ -1193,6 +1191,7 @@ struct cff1
 	PRIVDICTVAL *priv = &privateDicts[0];
 
 	const hb_ubytes_t privDictStr = StructAtOffsetOrNull<UnsizedByteStr> (cff, font->privateDictInfo.offset, sc, font->privateDictInfo.size).as_ubytes (font->privateDictInfo.size);
+	if (unlikely (privDictStr == (const unsigned char *) &Null (UnsizedByteStr))) goto fail;
 	num_interp_env_t env (privDictStr);
 	dict_interpreter_t<PRIVOPSET, PRIVDICTVAL> priv_interp (env);
 	priv->init ();
