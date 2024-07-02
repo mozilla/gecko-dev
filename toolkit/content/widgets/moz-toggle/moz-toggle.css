@@ -7,7 +7,7 @@
 :host {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xsmall);
 }
 
 :host([disabled]) {
@@ -22,7 +22,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-small);
 }
 
 .description-wrapper,
