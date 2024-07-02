@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/CSSPageRule.h"
 #include "mozilla/dom/CSSPageRuleBinding.h"
+#include "mozilla/dom/CSSPageDescriptorsBinding.h"
 
 #include "mozilla/DeclarationBlock.h"
 #include "mozilla/ServoBindings.h"
@@ -48,6 +49,11 @@ nsINode* CSSPageRuleDeclaration::GetAssociatedNode() const {
 
 nsISupports* CSSPageRuleDeclaration::GetParentObject() const {
   return Rule()->GetParentObject();
+}
+
+JSObject* CSSPageRuleDeclaration::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+  return CSSPageDescriptors_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 DeclarationBlock* CSSPageRuleDeclaration::GetOrCreateCSSDeclaration(
@@ -191,8 +197,6 @@ void CSSPageRule::SetSelectorText(const nsACString& aSelectorText) {
 already_AddRefed<StyleLockedCssRules> CSSPageRule::GetOrCreateRawRules() {
   return Servo_PageRule_GetRules(mRawRule).Consume();
 }
-
-nsICSSDeclaration* CSSPageRule::Style() { return &mDecls; }
 
 JSObject* CSSPageRule::WrapObject(JSContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {

@@ -11,5 +11,5 @@
 [Exposed=Window]
 interface CSSPageRule : CSSGroupingRule {
   attribute UTF8String selectorText;
-  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
+  [SameObject, PutForwards=cssText] readonly attribute CSSPageDescriptors style;
 };

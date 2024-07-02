@@ -393,6 +393,7 @@ with Files("WebTransport*"):
 
 GENERATED_WEBIDL_FILES = [
     "CSS2Properties.webidl",
+    "CSSPageDescriptors.webidl",
 ]
 
 PREPROCESSED_WEBIDL_FILES = [
