@@ -8,6 +8,45 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
+function scrollOverTab(tab) {
+  const tabs = document.getElementById("tabbrowser-tabs");
+
+  // Copied from apz_test_native_event_utils.js
+  let message = 0;
+  switch (AppConstants.platform) {
+    case "win":
+      message = 0x020a;
+      break;
+    case "linux":
+      message = 4;
+      break;
+    case "macosx":
+      message = 1;
+      break;
+  }
+
+  let rect = tab.getBoundingClientRect();
+  let screenRect = window.windowUtils.toScreenRect(
+    rect.x,
+    rect.y,
+    rect.width,
+    rect.height
+  );
+
+  window.windowUtils.sendNativeMouseScrollEvent(
+    screenRect.left + rect.width / 2,
+    screenRect.bottom - rect.height / 2,
+    message,
+    0,
+    3,
+    0,
+    0,
+    Ci.nsIDOMWindowUtils.MOUSESCROLL_SCROLL_LINES,
+    tabs,
+    null
+  );
+}
+
 async function openPreview(tab, win = window) {
   const previewShown = BrowserTestUtils.waitForPopupEvent(
     win.document.getElementById("tab-preview-panel"),
@@ -439,57 +478,45 @@ add_task(async function panelSuppressionOnPanelTests() {
  * Wheel events at the document-level of the window should hide the preview.
  */
 add_task(async function wheelTests() {
-  const tabUrl1 = "about:blank";
-  const tab1 = await BrowserTestUtils.openNewForegroundTab(gBrowser, tabUrl1);
-  const tabUrl2 = "about:blank";
-  const tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser, tabUrl2);
+  const previewPanel = document.getElementById("tab-preview-panel");
+  const tab1 = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "about:blank"
+  );
 
+  Assert.ok(
+    !previewPanel.hasAttribute("rolluponmousewheel"),
+    "Panel does not have rolluponmousewheel when no overflow"
+  );
+
+  await BrowserTestUtils.overflowTabs(registerCleanupFunction, window, {
+    overflowAtStart: false,
+  });
   await openPreview(tab1);
 
-  const tabs = document.getElementById("tabbrowser-tabs");
+  Assert.equal(
+    previewPanel.getAttribute("rolluponmousewheel"),
+    "true",
+    "Panel has rolluponmousewheel=true when tabs overflow"
+  );
+
   const previewHidden = BrowserTestUtils.waitForPopupEvent(
-    document.getElementById("tab-preview-panel"),
+    previewPanel,
     "hidden"
   );
 
-  // Copied from apz_test_native_event_utils.js
-  let message = 0;
-  switch (AppConstants.platform) {
-    case "win":
-      message = 0x020a;
-      break;
-    case "linux":
-      message = 4;
-      break;
-    case "macosx":
-      message = 1;
-      break;
-  }
-
-  let rect = tabs.getBoundingClientRect();
-  let screenRect = window.windowUtils.toScreenRect(
-    rect.x,
-    rect.y,
-    rect.width,
-    rect.height
-  );
-  window.windowUtils.sendNativeMouseScrollEvent(
-    screenRect.left,
-    screenRect.bottom,
-    message,
-    0,
-    3,
-    0,
-    0,
-    Ci.nsIDOMWindowUtils.MOUSESCROLL_SCROLL_LINES,
-    tabs,
-    null
-  );
-
+  scrollOverTab(tab1);
   await previewHidden;
+  Assert.equal(
+    previewPanel.state,
+    "closed",
+    "Preview is closed after scrolling"
+  );
 
-  BrowserTestUtils.removeTab(tab1);
-  BrowserTestUtils.removeTab(tab2);
+  // Clean up extra tabs
+  while (gBrowser.tabs.length > 1) {
+    BrowserTestUtils.removeTab(gBrowser.tabs[0]);
+  }
   await SpecialPowers.popPrefEnv();
 
   // Move the mouse outside of the tab strip.

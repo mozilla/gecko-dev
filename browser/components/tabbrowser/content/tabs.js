@@ -1145,6 +1145,7 @@
 
     _initializeArrowScrollbox() {
       let arrowScrollbox = this.arrowScrollbox;
+      let previewElement = document.getElementById("tab-preview-panel");
       arrowScrollbox.shadowRoot.addEventListener(
         "underflow",
         event => {
@@ -1161,6 +1162,7 @@
           }
 
           this.removeAttribute("overflow");
+          previewElement?.removeAttribute("rolluponmousewheel");
 
           if (this._lastTabClosedByMouse) {
             this._expandSpacerBy(this._scrollButtonWidth);
@@ -1189,6 +1191,7 @@
         }
 
         this.toggleAttribute("overflow", true);
+        previewElement?.setAttribute("rolluponmousewheel", true);
         this._positionPinnedTabs();
         this._updateCloseButtons();
         this._handleTabSelect(true);
