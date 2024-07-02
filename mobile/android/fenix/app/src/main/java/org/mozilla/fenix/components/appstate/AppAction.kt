@@ -318,4 +318,38 @@ sealed class AppAction : Action {
          */
         data class UpdateLastTabClosed(val private: Boolean?) : TabStripAction()
     }
+
+    /**
+     * [AppAction]s related to translations.
+     */
+    sealed class TranslationsAction : AppAction() {
+
+        /**
+         * [TranslationsAction] dispatched when a translation is in progress.
+         *
+         * @property sessionId The ID of the session being translated.
+         */
+        data class TranslationStarted(val sessionId: String?) : TranslationsAction()
+    }
+
+    /**
+     * [AppAction]s related to the snackbar.
+     */
+    sealed class SnackbarAction : AppAction() {
+
+        /**
+         * [SnackbarAction] dispatched to dismiss the snackbar.
+         */
+        data object SnackbarDismissed : SnackbarAction()
+
+        /**
+         * [SnackbarAction] dispatched when a snackbar is shown.
+         */
+        data object SnackbarShown : SnackbarAction()
+
+        /**
+         * [SnackbarAction] dispatched to reset the [AppState.snackbarState] to its default state.
+         */
+        data object Reset : SnackbarAction()
+    }
 }

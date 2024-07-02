@@ -15,6 +15,7 @@ import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import org.mozilla.fenix.browser.StandardSnackbarError
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.appstate.shopping.ShoppingState
+import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
@@ -58,6 +59,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property wallpaperState The [WallpaperState] to display in the [HomeFragment].
  * @property standardSnackbarError A snackbar error message to display.
  * @property shoppingState Holds state for shopping feature that's required to live the lifetime of a session.
+ * @property snackbarState The [SnackbarState] to display.
  * @property wasLastTabClosedPrivate Whether the last remaining tab that was closed in private mode. This is used to
  * display an undo snackbar message relevant to the browsing mode. If null, no snackbar is shown.
  */
@@ -86,5 +88,6 @@ data class AppState(
     val wallpaperState: WallpaperState = WallpaperState.default,
     val standardSnackbarError: StandardSnackbarError? = null,
     val shoppingState: ShoppingState = ShoppingState(),
+    val snackbarState: SnackbarState = SnackbarState.None,
     val wasLastTabClosedPrivate: Boolean? = null,
 ) : State

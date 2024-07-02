@@ -51,6 +51,8 @@ import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.SimpleBrowsingModeManager
 import org.mozilla.fenix.browser.readermode.ReaderModeController
+import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
@@ -97,6 +99,7 @@ class DefaultBrowserToolbarControllerTest {
     private lateinit var settings: Settings
 
     private lateinit var store: BrowserStore
+    private lateinit var appStore: AppStore
     private val captureMiddleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
 
     @get:Rule
@@ -130,6 +133,7 @@ class DefaultBrowserToolbarControllerTest {
             ),
             middleware = listOf(captureMiddleware),
         )
+        appStore = AppStore()
     }
 
     @After
@@ -456,6 +460,8 @@ class DefaultBrowserToolbarControllerTest {
         controller.handleTranslationsButtonClick()
 
         verify {
+            appStore.dispatch(SnackbarAction.SnackbarDismissed)
+
             navController.navigate(
                 BrowserFragmentDirections.actionBrowserFragmentToTranslationsDialogFragment(),
             )
@@ -501,6 +507,7 @@ class DefaultBrowserToolbarControllerTest {
         customTabSessionId: String? = null,
     ) = DefaultBrowserToolbarController(
         store = store,
+        appStore = appStore,
         tabsUseCases = tabsUseCases,
         activity = activity,
         settings = settings,
