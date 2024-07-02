@@ -3139,6 +3139,8 @@ pref("startup.homepage_override_url_nimbus", "");
 // These prefs are referring to the Fx update version
 pref("startup.homepage_override_nimbus_maxVersion", "");
 pref("startup.homepage_override_nimbus_minVersion", "");
+// Pref to disable all What's New pages
+pref("startup.homepage_override_nimbus_disable_wnp", false);
 
 // Pref to enable the content relevancy feature.
 pref("toolkit.contentRelevancy.enabled", false);

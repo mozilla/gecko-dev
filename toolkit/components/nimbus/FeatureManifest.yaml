@@ -1414,6 +1414,14 @@ whatsNewPage:
       setPref:
         branch: user
         pref: startup.homepage_override_nimbus_minVersion
+    disableWNP:
+      description: >-
+        Block all What's New Pages. Used to compare no-WNP control branches to
+        WNP treatment branches.
+      type: boolean
+      setPref:
+        branch: user
+        pref: startup.homepage_override_nimbus_disable_wnp
 
 pbNewtab:
   description: "A Firefox Messaging System message for the pbNewtab message channel"
