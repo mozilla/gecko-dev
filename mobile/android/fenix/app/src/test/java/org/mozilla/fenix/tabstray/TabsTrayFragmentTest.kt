@@ -106,14 +106,14 @@ class TabsTrayFragmentTest {
 
             verify {
                 lifecycleScope.allowUndo(
-                    view,
-                    testContext.getString(R.string.snackbar_private_tab_closed),
-                    testContext.getString(R.string.snackbar_deleted_undo),
-                    any(),
-                    any(),
-                    fabButtonBinding.newTabButton,
-                    TabsTrayFragment.ELEVATION,
-                    false,
+                    view = view,
+                    message = testContext.getString(R.string.snackbar_private_tab_closed),
+                    undoActionTitle = testContext.getString(R.string.snackbar_deleted_undo),
+                    onCancel = any(),
+                    operation = any(),
+                    anchorView = fabButtonBinding.newTabButton,
+                    elevation = TabsTrayFragment.ELEVATION,
+                    paddedForBottomToolbar = false,
                 )
             }
         } finally {
@@ -138,14 +138,14 @@ class TabsTrayFragmentTest {
 
             verify {
                 lifecycleScope.allowUndo(
-                    view,
-                    testContext.getString(R.string.snackbar_private_tab_closed),
-                    testContext.getString(R.string.snackbar_deleted_undo),
-                    any(),
-                    any(),
-                    null,
-                    TabsTrayFragment.ELEVATION,
-                    false,
+                    view = view,
+                    message = testContext.getString(R.string.snackbar_private_tab_closed),
+                    undoActionTitle = testContext.getString(R.string.snackbar_deleted_undo),
+                    onCancel = any(),
+                    operation = any(),
+                    anchorView = null,
+                    elevation = TabsTrayFragment.ELEVATION,
+                    paddedForBottomToolbar = false,
                 )
             }
         } finally {
@@ -171,14 +171,14 @@ class TabsTrayFragmentTest {
 
             verify {
                 lifecycleScope.allowUndo(
-                    view,
-                    testContext.getString(R.string.snackbar_tab_closed),
-                    testContext.getString(R.string.snackbar_deleted_undo),
-                    any(),
-                    any(),
-                    fabButtonBinding.newTabButton,
-                    TabsTrayFragment.ELEVATION,
-                    false,
+                    view = view,
+                    message = testContext.getString(R.string.snackbar_tab_closed),
+                    undoActionTitle = testContext.getString(R.string.snackbar_deleted_undo),
+                    onCancel = any(),
+                    operation = any(),
+                    anchorView = fabButtonBinding.newTabButton,
+                    elevation = TabsTrayFragment.ELEVATION,
+                    paddedForBottomToolbar = false,
                 )
             }
         } finally {
@@ -203,14 +203,79 @@ class TabsTrayFragmentTest {
 
             verify {
                 lifecycleScope.allowUndo(
-                    view,
-                    testContext.getString(R.string.snackbar_tab_closed),
-                    testContext.getString(R.string.snackbar_deleted_undo),
-                    any(),
-                    any(),
-                    null,
-                    TabsTrayFragment.ELEVATION,
-                    false,
+                    view = view,
+                    message = testContext.getString(R.string.snackbar_tab_closed),
+                    undoActionTitle = testContext.getString(R.string.snackbar_deleted_undo),
+                    onCancel = any(),
+                    operation = any(),
+                    anchorView = null,
+                    elevation = TabsTrayFragment.ELEVATION,
+                    paddedForBottomToolbar = false,
+                )
+            }
+        } finally {
+            unmockkStatic("org.mozilla.fenix.utils.UndoKt")
+            unmockkStatic("androidx.lifecycle.LifecycleOwnerKt")
+        }
+    }
+
+    @Test
+    fun `WHEN showUndoSnackbarForInactiveTab is called for one inactive tab THEN an appropriate snackbar is shown`() {
+        try {
+            mockkStatic("org.mozilla.fenix.utils.UndoKt")
+            mockkStatic("androidx.lifecycle.LifecycleOwnerKt")
+            val lifecycleScope: LifecycleCoroutineScope = mockk(relaxed = true)
+            every { any<LifecycleOwner>().lifecycleScope } returns lifecycleScope
+            every { fragment.context } returns testContext // needed for getString()
+            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any(), any()) } just Runs
+            every { fragment.requireView() } returns view
+            every { testContext.settings().enableTabsTrayToCompose } returns false
+
+            fragment.showUndoSnackbarForInactiveTab(numClosed = 1)
+
+            verify {
+                lifecycleScope.allowUndo(
+                    view = view,
+                    message = testContext.getString(R.string.snackbar_tab_closed),
+                    undoActionTitle = testContext.getString(R.string.snackbar_deleted_undo),
+                    onCancel = any(),
+                    operation = any(),
+                    anchorView = null,
+                    elevation = TabsTrayFragment.ELEVATION,
+                    paddedForBottomToolbar = false,
+                )
+            }
+        } finally {
+            unmockkStatic("org.mozilla.fenix.utils.UndoKt")
+            unmockkStatic("androidx.lifecycle.LifecycleOwnerKt")
+        }
+    }
+
+    @Test
+    fun `WHEN showUndoSnackbarForInactiveTab is called for two inactive tabs THEN an appropriate snackbar is shown`() {
+        try {
+            mockkStatic("org.mozilla.fenix.utils.UndoKt")
+            mockkStatic("androidx.lifecycle.LifecycleOwnerKt")
+            val lifecycleScope: LifecycleCoroutineScope = mockk(relaxed = true)
+            every { any<LifecycleOwner>().lifecycleScope } returns lifecycleScope
+            every { fragment.context } returns testContext // needed for getString()
+            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any(), any()) } just Runs
+            every { fragment.requireView() } returns view
+            every { testContext.settings().enableTabsTrayToCompose } returns false
+
+            val numClosed = 2
+            fragment.showUndoSnackbarForInactiveTab(numClosed = numClosed)
+
+            verify {
+                lifecycleScope.allowUndo(
+                    view = view,
+                    message = testContext.getString(R.string.snackbar_num_tabs_closed, numClosed),
+                    undoActionTitle = testContext.getString(R.string.snackbar_deleted_undo),
+                    onCancel = any(),
+                    operation = any(),
+                    anchorView = null,
+                    elevation = TabsTrayFragment.ELEVATION,
+                    paddedForBottomToolbar = false,
                 )
             }
         } finally {

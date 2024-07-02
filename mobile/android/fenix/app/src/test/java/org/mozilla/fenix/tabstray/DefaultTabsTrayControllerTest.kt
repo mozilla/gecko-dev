@@ -930,7 +930,7 @@ class DefaultTabsTrayControllerTest {
     fun `WHEN all inactive tabs are closed THEN perform the deletion and report the telemetry event and show a Snackbar`() {
         var showSnackbarInvoked = false
         val controller = createController(
-            showUndoSnackbarForTab = {
+            showUndoSnackbarForInactiveTab = {
                 showSnackbarInvoked = true
             },
         )
@@ -1217,6 +1217,7 @@ class DefaultTabsTrayControllerTest {
         selectTabPosition: (Int, Boolean) -> Unit = { _, _ -> },
         dismissTray: () -> Unit = { },
         showUndoSnackbarForTab: (Boolean) -> Unit = { _ -> },
+        showUndoSnackbarForInactiveTab: (Int) -> Unit = { _ -> },
         showUndoSnackbarForSyncedTab: (CloseTabsUseCases.UndoableOperation) -> Unit = { _ -> },
         showCancelledDownloadWarning: (Int, String?, String?) -> Unit = { _, _, _ -> },
         showCollectionSnackbar: (Int, Boolean) -> Unit = { _, _ -> },
@@ -1241,6 +1242,7 @@ class DefaultTabsTrayControllerTest {
             selectTabPosition = selectTabPosition,
             dismissTray = dismissTray,
             showUndoSnackbarForTab = showUndoSnackbarForTab,
+            showUndoSnackbarForInactiveTab = showUndoSnackbarForInactiveTab,
             showUndoSnackbarForSyncedTab = showUndoSnackbarForSyncedTab,
             showCancelledDownloadWarning = showCancelledDownloadWarning,
             showCollectionSnackbar = showCollectionSnackbar,

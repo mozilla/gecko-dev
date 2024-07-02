@@ -194,6 +194,7 @@ interface TabsTrayController : SyncedTabsController, InactiveTabsController, Tab
  * @param selectTabPosition Lambda used to scroll the tabs tray to the desired position.
  * @param dismissTray Lambda used to dismiss/minimize the tabs tray.
  * @param showUndoSnackbarForTab Lambda used to display an undo snackbar when a normal or private tab is closed.
+ * @param showUndoSnackbarForInactiveTab Lambda used to display an undo snackbar when an inactive tab is closed.
  * @param showUndoSnackbarForSyncedTab Lambda used to display an undo snackbar when a synced tab is closed.
  * @property showCancelledDownloadWarning Lambda used to display a cancelled download warning.
  * @param showBookmarkSnackbar Lambda used to display a snackbar upon saving tabs as bookmarks.
@@ -221,6 +222,7 @@ class DefaultTabsTrayController(
     private val selectTabPosition: (Int, Boolean) -> Unit,
     private val dismissTray: () -> Unit,
     private val showUndoSnackbarForTab: (Boolean) -> Unit,
+    private val showUndoSnackbarForInactiveTab: (Int) -> Unit,
     private val showUndoSnackbarForSyncedTab: (CloseTabsUseCases.UndoableOperation) -> Unit,
     internal val showCancelledDownloadWarning: (downloadCount: Int, tabId: String?, source: String?) -> Unit,
     private val showBookmarkSnackbar: (tabSize: Int) -> Unit,
@@ -618,11 +620,13 @@ class DefaultTabsTrayController(
     }
 
     override fun handleDeleteAllInactiveTabsClicked() {
+        val numTabs: Int
         TabsTray.closeAllInactiveTabs.record(NoExtras())
         browserStore.state.potentialInactiveTabs.map { it.id }.let {
             tabsUseCases.removeTabs(it)
+            numTabs = it.size
         }
-        showUndoSnackbarForTab(false)
+        showUndoSnackbarForInactiveTab(numTabs)
     }
 
     /**

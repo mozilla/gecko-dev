@@ -194,6 +194,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             selectTabPosition = ::selectTabPosition,
             dismissTray = ::dismissTabsTray,
             showUndoSnackbarForTab = ::showUndoSnackbarForTab,
+            showUndoSnackbarForInactiveTab = ::showUndoSnackbarForInactiveTab,
             showUndoSnackbarForSyncedTab = ::showUndoSnackbarForSyncedTab,
             showCancelledDownloadWarning = ::showCancelledDownloadWarning,
             showCollectionSnackbar = ::showCollectionSnackbar,
@@ -678,6 +679,35 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                 } else {
                     tabLayoutMediator.withFeature {
                         it.selectTabAtPosition(pagePosition)
+                    }
+                }
+            },
+            operation = { },
+            elevation = ELEVATION,
+            anchorView = getSnackbarAnchor(),
+        )
+    }
+
+    @VisibleForTesting
+    internal fun showUndoSnackbarForInactiveTab(numClosed: Int) {
+        val snackbarMessage =
+            when (numClosed == 1) {
+                true -> getString(R.string.snackbar_tab_closed)
+                false -> getString(R.string.snackbar_num_tabs_closed, numClosed.toString())
+            }
+
+        lifecycleScope.allowUndo(
+            view = requireView(),
+            message = snackbarMessage,
+            undoActionTitle = getString(R.string.snackbar_deleted_undo),
+            onCancel = {
+                requireComponents.useCases.tabsUseCases.undo.invoke()
+
+                if (requireContext().settings().enableTabsTrayToCompose) {
+                    tabsTrayStore.dispatch(TabsTrayAction.PageSelected(Page.positionToPage(Page.NormalTabs.ordinal)))
+                } else {
+                    tabLayoutMediator.withFeature {
+                        it.selectTabAtPosition(Page.NormalTabs.ordinal)
                     }
                 }
             },
