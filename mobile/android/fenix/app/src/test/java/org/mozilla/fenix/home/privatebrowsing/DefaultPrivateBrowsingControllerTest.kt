@@ -5,6 +5,7 @@
 package org.mozilla.fenix.home.privatebrowsing
 
 import androidx.navigation.NavController
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -16,6 +17,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.ext.joinBlocking
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
@@ -29,6 +31,7 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.privatebrowsing.controller.DefaultPrivateBrowsingController
 import org.mozilla.fenix.utils.Settings
 
+@RunWith(AndroidJUnit4::class)
 class DefaultPrivateBrowsingControllerTest {
 
     private val activity: HomeActivity = mockk(relaxed = true)

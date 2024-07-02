@@ -11,6 +11,8 @@ import mozilla.components.service.pocket.ext.recordNewImpression
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.shopping.ShoppingStateReducer
+import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
+import org.mozilla.fenix.components.appstate.snackbar.SnackbarStateReducer
 import org.mozilla.fenix.ext.filterOutTab
 import org.mozilla.fenix.ext.getFilteredStories
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
@@ -238,12 +240,18 @@ internal object AppStoreReducer {
             standardSnackbarError = action.standardSnackbarError,
         )
 
-        is AppAction.ShoppingAction -> ShoppingStateReducer.reduce(state, action)
-
         is AppAction.TabStripAction.UpdateLastTabClosed -> state.copy(
             wasLastTabClosedPrivate = action.private,
         )
+
         is AppAction.UpdateSearchDialogVisibility -> state.copy(isSearchDialogVisible = action.isVisible)
+
+        is AppAction.TranslationsAction.TranslationStarted -> state.copy(
+            snackbarState = SnackbarState.TranslationInProgress(sessionId = action.sessionId),
+        )
+
+        is AppAction.ShoppingAction -> ShoppingStateReducer.reduce(state, action)
+        is AppAction.SnackbarAction -> SnackbarStateReducer.reduce(state, action)
     }
 }
 
