@@ -4,8 +4,12 @@
 
 package org.mozilla.fenix.debugsettings.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.draggable2D
+import androidx.compose.foundation.gestures.rememberDraggable2DState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.DrawerValue
 import androidx.compose.material.ModalDrawer
@@ -27,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -39,6 +44,17 @@ import org.mozilla.fenix.compose.button.FloatingActionButton
 import org.mozilla.fenix.debugsettings.navigation.DebugDrawerDestination
 import org.mozilla.fenix.debugsettings.store.DrawerStatus
 import org.mozilla.fenix.theme.FirefoxTheme
+import kotlin.math.roundToInt
+
+/**
+ * The initial x offset of the debug drawer FAB from [Alignment.CenterStart].
+ */
+private const val INITIAL_FAB_OFFSET_X = 0f
+
+/**
+ * The initial y offset of the debug drawer FAB from [Alignment.CenterStart].
+ */
+private const val INITIAL_FAB_OFFSET_Y = 0f
 
 /**
  * Overlay for presenting app-wide debugging content.
@@ -51,6 +67,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param onDrawerClose Invoked when the drawer is closed.
  * @param onDrawerBackButtonClick Invoked when the user taps on the back button in the app bar.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DebugOverlay(
     navController: NavHostController,
@@ -62,6 +79,8 @@ fun DebugOverlay(
 ) {
     val snackbarState = remember { SnackbarHostState() }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    var debugDrawerFabOffsetX by remember { mutableStateOf(INITIAL_FAB_OFFSET_X) }
+    var debugDrawerFabOffsetY by remember { mutableStateOf(INITIAL_FAB_OFFSET_Y) }
 
     LaunchedEffect(drawerStatus) {
         if (drawerStatus == DrawerStatus.Open) {
@@ -85,7 +104,14 @@ fun DebugOverlay(
             icon = painterResource(R.drawable.ic_debug_transparent_fire_24),
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .padding(start = 16.dp),
+                .padding(start = 16.dp)
+                .offset { IntOffset(debugDrawerFabOffsetX.roundToInt(), debugDrawerFabOffsetY.roundToInt()) }
+                .draggable2D(
+                    state = rememberDraggable2DState { offset ->
+                        debugDrawerFabOffsetX += offset.x
+                        debugDrawerFabOffsetY += offset.y
+                    },
+                ),
             onClick = {
                 onDrawerOpen()
             },
