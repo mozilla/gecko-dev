@@ -1,6 +1,9 @@
 [DEFAULT]
 tags = "webextensions in-process-webextensions"
-prefs = ["extensions.webextensions.remote=false"]
+prefs = [
+  "extensions.webextensions.remote=false",
+  "javascript.options.asyncstack_capture_debuggee_only=false",
+]
 dupe-manifest = true
 
 ["include:mochitest-common.toml"]
