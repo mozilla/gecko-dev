@@ -657,8 +657,11 @@ class HomeFragment : Fragment() {
                                 dismissOnClickOutside = false,
                                 indicatorArrowStartOffset = 130.dp,
                             ),
-                            onCFRShown = { },
-                            onDismiss = { context.settings().shouldShowNavigationBarCFR = false },
+                            onCFRShown = { NavigationBar.navigationBarCfrShown.record(NoExtras()) },
+                            onDismiss = {
+                                NavigationBar.navigationBarCfrDismissed.record(NoExtras())
+                                context.settings().shouldShowNavigationBarCFR = false
+                            },
                             title = {
                                 FirefoxTheme {
                                     Text(

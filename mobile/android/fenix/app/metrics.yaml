@@ -11674,6 +11674,32 @@ debug_drawer:
     expires: never
 
 navigation_bar:
+  navigation_bar_cfr_shown:
+    type: event
+    description: |
+      Navigation bar CFR was shown to the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1889474
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D211225
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  navigation_bar_cfr_dismissed:
+    type: event
+    description: |
+      A user has dismissed the navigation bar CFR.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1889474
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D211225
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
   home_search_tapped:
     type: event
     description: |
