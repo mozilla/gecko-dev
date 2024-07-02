@@ -1131,6 +1131,14 @@
             app:argType="string"
             app:nullable="true" />
     </dialog>
+    <fragment
+        android:id="@+id/addonDetailsFragment"
+        android:name="org.mozilla.fenix.addons.AddonDetailsFragment"
+        tools:layout="@layout/fragment_add_on_details">
+        <argument
+            android:name="addon"
+            app:argType="mozilla.components.feature.addons.Addon" />
+    </fragment>
 
     <navigation
         android:id="@+id/site_permissions_exceptions_graph"
@@ -1231,14 +1239,6 @@
             android:id="@+id/addonInternalSettingsFragment"
             android:name="org.mozilla.fenix.addons.AddonInternalSettingsFragment"
             tools:layout="@layout/fragment_add_on_internal_settings">
-            <argument
-                android:name="addon"
-                app:argType="mozilla.components.feature.addons.Addon" />
-        </fragment>
-        <fragment
-            android:id="@+id/addonDetailsFragment"
-            android:name="org.mozilla.fenix.addons.AddonDetailsFragment"
-            tools:layout="@layout/fragment_add_on_details">
             <argument
                 android:name="addon"
                 app:argType="mozilla.components.feature.addons.Addon" />
@@ -1570,6 +1570,9 @@
             <action
                 android:id="@+id/action_menuDialogFragment_to_createShortcutFragment"
                 app:destination="@id/createShortcutFragment" />
+            <action
+                android:id="@+id/action_menuDialogFragmen_to_addonDetailsFragment"
+                app:destination="@id/addonDetailsFragment" />
         </dialog>
     </navigation>
 </navigation>
