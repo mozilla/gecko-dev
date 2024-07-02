@@ -447,6 +447,22 @@ features:
         type: Boolean
         default: false
 
+  suggest-shipped-domains:
+    description: Feature that suggests domains from the shipped domain list.
+    variables:
+      enabled:
+        description: >
+          Suggest domains from the shipped domain list.
+        type: Boolean
+        default: true
+    defaults:
+      - channel: nightly
+        value:
+          enabled: false
+      - channel: developer
+        value:
+          enabled: false
+
 types:
   objects: {}
 

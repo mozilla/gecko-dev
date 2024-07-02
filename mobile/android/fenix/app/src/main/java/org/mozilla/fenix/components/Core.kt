@@ -439,7 +439,12 @@ class Core(
     val bookmarksStorage: PlacesBookmarksStorage get() = lazyBookmarksStorage.value
     val passwordsStorage: SyncableLoginsStorage get() = lazyPasswordsStorage.value
     val autofillStorage: AutofillCreditCardsAddressesStorage get() = lazyAutofillStorage.value
-    val domainsAutocompleteProvider: BaseDomainAutocompleteProvider get() = lazyDomainsAutocompleteProvider.value
+    val domainsAutocompleteProvider: BaseDomainAutocompleteProvider? get() =
+        if (FxNimbus.features.suggestShippedDomains.value().enabled) {
+            lazyDomainsAutocompleteProvider.value
+        } else {
+            null
+        }
     val sessionAutocompleteProvider: SessionAutocompleteProvider get() = lazySessionAutocompleteProvider.value
 
     val tabCollectionStorage by lazyMonitored {
