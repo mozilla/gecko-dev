@@ -4,6 +4,10 @@ const { ExtensionPermissions } = ChromeUtils.importESModule(
   "resource://gre/modules/ExtensionPermissions.sys.mjs"
 );
 
+const { ExtensionUninstallTracker } = ChromeUtils.importESModule(
+  "resource://testing-common/ExtensionTestCommon.sys.mjs"
+);
+
 AddonTestUtils.init(this);
 AddonTestUtils.overrideCertDB();
 AddonTestUtils.createAppInfo(
@@ -47,7 +51,7 @@ async function getStoredPermissions(extensionId) {
   return null;
 }
 
-add_task(async function setup() {
+add_setup(async function setup() {
   // Bug 1646182: Force ExtensionPermissions to run in rkv mode, the legacy
   // storage mode will run in xpcshell-legacy-ep.toml
   await ExtensionPermissions._uninit();
@@ -154,4 +158,126 @@ add_task(async function test_permissions_removed() {
     null,
     "Permissions not saved"
   );
+});
+
+// Regression test for bug 1902011: Verifies that a slow write does not result
+// in the extension permissions continuing to be around post extension unload.
+add_task(async function test_simulate_slow_storage() {
+  await ExtensionPermissions._uninit();
+  const interceptedStorePutCalls = [];
+  const deferredPut = Promise.withResolvers();
+  let store = ExtensionPermissions._getStore();
+  let originalPut = store.put;
+  store.put = async function (extensionId, permissions) {
+    // _setupStartupPermissions in Extension.sys.mjs will call us indirectly as
+    // part as granting host_permissions of the MV3 test extension.
+    interceptedStorePutCalls.push({ extensionId, permissions });
+    info("Intercepted and suspended store.put call");
+    await deferredPut.promise;
+    info("Continuing store.put call");
+    return originalPut.apply(this, arguments);
+  };
+
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      manifest_version: 3,
+      host_permissions: ["*://slow.example.com/*"],
+    },
+    useAddonManager: "temporary",
+  });
+  await extension.startup();
+  const id = extension.id;
+
+  // We are simulating slow writes, but don't delay reads. As part of loading
+  // an extension for the first time there is an ExtensionPermissions.get call
+  // that initializes the cached permissions (before host_permissions are
+  // granted via _setupStartupPermissions in Extension.sys.mjs).
+  Assert.deepEqual(
+    await getCachedPermissions(id),
+    { permissions: [], origins: [] },
+    "Cached permissions should be present despite simulated slow storage"
+  );
+  Assert.deepEqual(
+    await getStoredPermissions(id),
+    null,
+    "No stored permissions due to the simulated slow storage"
+  );
+
+  let cleanupDone = false;
+  let removeAllDone = false;
+  Management.once("cleanupAfterUninstall", (_, addonId, tasks) => {
+    equal(addonId, id, "Got cleanupAfterUninstall for expected extension");
+    ok(!cleanupDone, "Extension cleanup has not finished yet");
+    const name = `Clear ExtensionPermissions for ${addonId}`;
+    let removeAllPromise = tasks.find(t => t.name === name).promise;
+    removeAllPromise.then(() => {
+      removeAllDone = true;
+    });
+    // Delay for a bit to allow any other async tasks to potentially complete
+    // and potentially pollute any state.
+    // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+    setTimeout(() => {
+      ok(!removeAllDone, "ExtensionPermissions.removeAll() is still pending");
+      ok(!cleanupDone, "Extension cleanup has still not finished yet");
+      deferredPut.resolve();
+    }, 1000);
+  });
+
+  const uninstallTracker = new ExtensionUninstallTracker(id);
+  await extension.unload();
+
+  let unrelatedExt = ExtensionTestUtils.loadExtension({
+    manifest: {
+      manifest_version: 2,
+      permissions: ["tabs", "*://example.com/*"],
+      optional_permissions: ["webNavigation"],
+      browser_specific_settings: { gecko: { id: "unrelated@ext-id" } },
+    },
+    useAddonManager: "temporary",
+  });
+  // As explained earlier, ExtensionPermissions.get is called for the first
+  // startup. unrelatedExt's startup should not be affected by the write
+  // operation of |extension|.
+  info("Unrelated extension can start up without delay");
+  await unrelatedExt.startup();
+
+  // Note: waitForUninstallCleanupDone() depends on removeAll()'s completion,
+  // which should not resolve until we call deferredPut.resolve().
+  ok(!removeAllDone, "ExtensionPermissions.removeAll() not done yet");
+  await uninstallTracker.waitForUninstallCleanupDone();
+  cleanupDone = true;
+  ok(removeAllDone, "ExtensionPermissions.removeAll() completed");
+  Assert.deepEqual(
+    await getCachedPermissions(id),
+    null,
+    "No cached permissions past extension uninstall"
+  );
+  Assert.deepEqual(
+    await getStoredPermissions(id),
+    null,
+    "No stored permissions past extension uninstall"
+  );
+
+  store.put = originalPut;
+  Assert.deepEqual(
+    interceptedStorePutCalls,
+    [
+      {
+        extensionId: id,
+        permissions: {
+          permissions: [],
+          origins: ["*://slow.example.com/*"],
+        },
+      },
+    ],
+    "Observed attempt to write host_permissions through ExtensionPermissions"
+  );
+
+  // Now verify that the unrelated extension can unload as usual now that we
+  // have the usual non-delayed writes.
+  const uninstallTracker2 = new ExtensionUninstallTracker(unrelatedExt.id);
+  await unrelatedExt.unload();
+  info("Unrelated extension unloaded, waiting for cleanup");
+  await uninstallTracker2.waitForUninstallCleanupDone();
+  info("Unrelated extension managed to uninstall and cleanup");
 });

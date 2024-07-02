@@ -156,7 +156,7 @@ const ExtensionTestAssertions = {
  *   await extension.shutdown();
  *   await uninstallTracker.waitForUninstallCleanupDone();
  */
-class ExtensionUninstallTracker {
+export class ExtensionUninstallTracker {
   #resolveOnCleanupDone;
   constructor(addonId) {
     this.id = addonId;
