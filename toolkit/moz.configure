@@ -1122,7 +1122,7 @@ with only_when(target_is_osx):
     set_config("MOZ_CHILD_PROCESS_BUNDLE", "plugin-container.app/Contents/MacOS/")
     set_config(
         "MOZ_CHILD_PROCESS_BUNDLEID",
-        depends("--with-distribution-id")(lambda v: f"{v}.plugincontainer"),
+        depends("--with-distribution-id")(lambda v: f"{v[0]}.plugincontainer"),
     )
     set_config("MOZ_CHILD_PROCESS_BUNDLENAME", "plugin-container.app")
 
