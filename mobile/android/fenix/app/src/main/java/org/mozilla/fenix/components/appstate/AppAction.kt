@@ -333,6 +333,18 @@ sealed class AppAction : Action {
     }
 
     /**
+     * [AppAction]s related to bookmarks.
+     */
+    sealed class BookmarkAction : AppAction() {
+        /**
+         * [BookmarkAction] dispatched when a bookmark is added.
+         *
+         * @property guidToEdit The guid of the newly added bookmark or null.
+         */
+        data class BookmarkAdded(val guidToEdit: String?) : BookmarkAction()
+    }
+
+    /**
      * [AppAction]s related to the snackbar.
      */
     sealed class SnackbarAction : AppAction() {

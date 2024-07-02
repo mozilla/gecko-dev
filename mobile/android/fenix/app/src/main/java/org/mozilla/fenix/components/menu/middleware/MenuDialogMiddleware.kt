@@ -15,6 +15,8 @@ import mozilla.components.feature.top.sites.TopSitesUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
+import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.bookmarks.BookmarksUseCase
 import org.mozilla.fenix.components.menu.store.BookmarkState
 import org.mozilla.fenix.components.menu.store.MenuAction
@@ -24,6 +26,7 @@ import org.mozilla.fenix.components.menu.store.MenuState
  * [Middleware] implementation for handling [MenuAction] and managing the [MenuState] for the menu
  * dialog.
  *
+ * @param appStore The [AppStore] used to dispatch actions to update the global state.
  * @param bookmarksStorage An instance of the [BookmarksStorage] used
  * to query matching bookmarks.
  * @param pinnedSiteStorage An instance of the [PinnedSiteStorage] used
@@ -36,10 +39,12 @@ import org.mozilla.fenix.components.menu.store.MenuState
  * selected tab from pinned shortcuts.
  * @param topSitesMaxLimit The maximum number of top sites the user can have.
  * @param onDeleteAndQuit Callback invoked to delete browsing data and quit the browser.
+ * @param onDismiss Callback invoked to dismiss the menu dialog.
  * @param scope [CoroutineScope] used to launch coroutines.
  */
 @Suppress("LongParameterList")
 class MenuDialogMiddleware(
+    private val appStore: AppStore,
     private val bookmarksStorage: BookmarksStorage,
     private val pinnedSiteStorage: PinnedSiteStorage,
     private val addBookmarkUseCase: BookmarksUseCase.AddBookmarksUseCase,
@@ -47,6 +52,7 @@ class MenuDialogMiddleware(
     private val removePinnedSitesUseCase: TopSitesUseCases.RemoveTopSiteUseCase,
     private val topSitesMaxLimit: Int,
     private val onDeleteAndQuit: () -> Unit,
+    private val onDismiss: suspend () -> Unit,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) : Middleware<MenuState, MenuAction> {
 
@@ -117,10 +123,18 @@ class MenuDialogMiddleware(
         val selectedTab = browserMenuState.selectedTab
         val url = selectedTab.getUrl() ?: return@launch
 
-        addBookmarkUseCase(
+        val guidToEdit = addBookmarkUseCase(
             url = url,
             title = selectedTab.content.title,
         )
+
+        appStore.dispatch(
+            BookmarkAction.BookmarkAdded(
+                guidToEdit = guidToEdit,
+            ),
+        )
+
+        onDismiss()
     }
 
     private fun addShortcut(

@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.snackbar
 
+import androidx.navigation.NavController
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -12,11 +13,14 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.lib.state.helpers.AbstractBinding
 import mozilla.components.ui.widgets.SnackbarDelegate
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
+import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.navigateWithBreadcrumb
 
 /**
  * A binding for observing the [SnackbarState] in the [AppStore] and displaying the snackbar.
@@ -24,6 +28,7 @@ import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
  * @param browserStore The [BrowserStore] used to get the current session.
  * @param appStore The [AppStore] used to observe the [SnackbarState].
  * @param snackbarDelegate The [SnackbarDelegate] used to display a snackbar.
+ * @param navController [NavController] used for navigation.
  * @param customTabSessionId Optional custom tab session ID if navigating from a custom tab or null
  * if the selected session should be used.
  */
@@ -31,6 +36,7 @@ class SnackbarBinding(
     private val browserStore: BrowserStore,
     private val appStore: AppStore,
     private val snackbarDelegate: FenixSnackbarDelegate,
+    private val navController: NavController,
     private val customTabSessionId: String?,
 ) : AbstractBinding<AppState>(appStore) {
 
@@ -42,6 +48,33 @@ class SnackbarBinding(
             .distinctUntilChanged()
             .collect { state ->
                 when (state) {
+                    is SnackbarState.BookmarkAdded -> {
+                        if (state.guidToEdit != null) {
+                            snackbarDelegate.show(
+                                text = R.string.bookmark_saved_snackbar,
+                                duration = FenixSnackbar.LENGTH_LONG,
+                                action = R.string.edit_bookmark_snackbar_action,
+                            ) { view ->
+                                navController.navigateWithBreadcrumb(
+                                    directions = BrowserFragmentDirections.actionGlobalBookmarkEditFragment(
+                                        guidToEdit = state.guidToEdit,
+                                        requiresSnackbarPaddingForToolbar = true,
+                                    ),
+                                    navigateFrom = "BrowserFragment",
+                                    navigateTo = "ActionGlobalBookmarkEditFragment",
+                                    crashReporter = view.context.components.analytics.crashReporter,
+                                )
+                            }
+                        } else {
+                            snackbarDelegate.show(
+                                text = R.string.bookmark_invalid_url_error,
+                                duration = FenixSnackbar.LENGTH_LONG,
+                            )
+                        }
+
+                        appStore.dispatch(SnackbarAction.SnackbarShown)
+                    }
+
                     is SnackbarState.Dismiss -> {
                         snackbarDelegate.dismiss()
                         appStore.dispatch(SnackbarAction.Reset)

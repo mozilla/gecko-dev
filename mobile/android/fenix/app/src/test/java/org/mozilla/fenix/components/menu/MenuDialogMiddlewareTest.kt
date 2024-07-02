@@ -10,6 +10,7 @@ import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesUseCases
+import mozilla.components.support.test.any
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -25,6 +26,8 @@ import org.junit.Test
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
+import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.bookmarks.BookmarksUseCase.AddBookmarksUseCase
 import org.mozilla.fenix.components.menu.fake.FakeBookmarksStorage
 import org.mozilla.fenix.components.menu.middleware.MenuDialogMiddleware
@@ -139,6 +142,7 @@ class MenuDialogMiddlewareTest {
     fun `WHEN add bookmark action is dispatched for a selected tab THEN bookmark is added`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
+        var dismissWasCalled = false
 
         whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(emptyList())
 
@@ -148,22 +152,32 @@ class MenuDialogMiddlewareTest {
                 title = title,
             ),
         )
+        val appStore = spy(AppStore())
         val store = createStore(
+            appStore = appStore,
             menuState = MenuState(
                 browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissWasCalled = true },
         )
 
         store.dispatch(MenuAction.AddBookmark)
         store.waitUntilIdle()
 
         verify(addBookmarkUseCase).invoke(url = url, title = title)
+        verify(appStore).dispatch(
+            BookmarkAction.BookmarkAdded(
+                guidToEdit = any(),
+            ),
+        )
+        assertTrue(dismissWasCalled)
     }
 
     @Test
     fun `GIVEN selected tab is bookmarked WHEN add bookmark action is dispatched THEN add bookmark use case is never called`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
+        var dismissWasCalled = false
 
         whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(emptyList())
 
@@ -180,10 +194,13 @@ class MenuDialogMiddlewareTest {
                 title = title,
             ),
         )
+        val appStore = spy(AppStore())
         val store = createStore(
+            appStore = appStore,
             menuState = MenuState(
                 browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissWasCalled = true },
         )
 
         // Wait for InitAction and middleware
@@ -199,6 +216,12 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(addBookmarkUseCase, never()).invoke(url = url, title = title)
+        verify(appStore, never()).dispatch(
+            BookmarkAction.BookmarkAdded(
+                guidToEdit = any(),
+            ),
+        )
+        assertFalse(dismissWasCalled)
     }
 
     @Test
@@ -473,11 +496,14 @@ class MenuDialogMiddlewareTest {
     }
 
     private fun createStore(
+        appStore: AppStore = AppStore(),
         menuState: MenuState = MenuState(),
+        onDismiss: suspend () -> Unit = {},
     ) = MenuStore(
         initialState = menuState,
         middleware = listOf(
             MenuDialogMiddleware(
+                appStore = appStore,
                 bookmarksStorage = bookmarksStorage,
                 pinnedSiteStorage = pinnedSiteStorage,
                 addBookmarkUseCase = addBookmarkUseCase,
@@ -485,6 +511,7 @@ class MenuDialogMiddlewareTest {
                 removePinnedSitesUseCase = removePinnedSiteUseCase,
                 topSitesMaxLimit = TOP_SITES_MAX_COUNT,
                 onDeleteAndQuit = onDeleteAndQuit,
+                onDismiss = onDismiss,
                 scope = scope,
             ),
         ),
