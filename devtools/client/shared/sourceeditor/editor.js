@@ -634,7 +634,6 @@ class Editor extends EventEmitter {
     const lineWrapCompartment = new Compartment();
     const lineNumberCompartment = new Compartment();
     const lineNumberMarkersCompartment = new Compartment();
-    const positionContentMarkersCompartment = new Compartment();
     const searchHighlightCompartment = new Compartment();
     const domEventHandlersCompartment = new Compartment();
     const foldGutterCompartment = new Compartment();
@@ -645,7 +644,6 @@ class Editor extends EventEmitter {
       lineWrapCompartment,
       lineNumberCompartment,
       lineNumberMarkersCompartment,
-      positionContentMarkersCompartment,
       searchHighlightCompartment,
       domEventHandlersCompartment,
       foldGutterCompartment,
@@ -654,7 +652,10 @@ class Editor extends EventEmitter {
     const { lineContentMarkerEffect, lineContentMarkerExtension } =
       this.#createlineContentMarkersExtension();
 
-    this.#effects = { lineContentMarkerEffect };
+    const { positionContentMarkerEffect, positionContentMarkerExtension } =
+      this.#createPositionContentMarkersExtension();
+
+    this.#effects = { lineContentMarkerEffect, positionContentMarkerEffect };
 
     const indentStr = (this.config.indentWithTabs ? "\t" : " ").repeat(
       this.config.indentUnit || 2
@@ -690,9 +691,7 @@ class Editor extends EventEmitter {
       domEventHandlersCompartment.of(EditorView.domEventHandlers({})),
       lineNumberMarkersCompartment.of([]),
       lineContentMarkerExtension,
-      positionContentMarkersCompartment.of(
-        this.#positionContentMarkersExtension([])
-      ),
+      positionContentMarkerExtension,
       searchHighlightCompartment.of(this.#searchHighlighterExtension([])),
       // keep last so other extension take precedence
       codemirror.minimalSetup,
@@ -1089,16 +1088,19 @@ class Editor extends EventEmitter {
   /**
    * This creates the extension used to manage the rendering of markers
    * at specific positions with the editor. e.g used for column breakpoints
-   * @param   {Array}             markers - The current list of markers
-   * @returns {Array<ViewPlugin>} An extension which is an array containing the view
-   *                              which manages the rendering of the position content markers.
+   *
+   * @returns {Object} The object contains an extension and effects which used to trigger updates to the extension
+   *          {Object} - positionContentMarkerExtension - The position content marker extension
+   *          {Object} - positionContentMarkerEffect - The effects to add and remove markers
    */
-  #positionContentMarkersExtension(markers) {
+  #createPositionContentMarkersExtension() {
     const {
-      codemirrorView: { Decoration, ViewPlugin, WidgetType },
-      codemirrorState: { RangeSet },
+      codemirrorView: { Decoration, EditorView, WidgetType },
+      codemirrorState: { StateField, StateEffect },
       codemirrorLanguage: { syntaxTree },
     } = this.#CodeMirror6;
+
+    const cachedPositionContentMarkers = this.#posContentMarkers;
 
     class NodeWidget extends WidgetType {
       constructor(line, column, createElementNode, domNode) {
@@ -1119,98 +1121,202 @@ class Editor extends EventEmitter {
       return lineMatch[0].length;
     }
 
-    // Build and return the decoration set
-    function buildDecorations(view) {
-      const ranges = [];
-      const { from, to } = view.viewport;
-      const vStartLine = view.state.doc.lineAt(from);
-      const vEndLine = view.state.doc.lineAt(to);
-      for (const marker of markers) {
-        for (const position of marker.positions) {
-          // If codemirror positions are provided (e.g from search cursor)
-          // compare that directly.
-          if (position?.from >= from && position?.to <= to) {
-            if (marker.positionClassName) {
-              const classDecoration = Decoration.mark({
-                class: marker.positionClassName,
-              });
-              ranges.push({
-                from: position.from,
-                to: position.to,
-                value: classDecoration,
-              });
-            }
-            continue;
-          }
-          // If line and column are provided
-          if (
-            position.line >= vStartLine.number &&
-            position.line <= vEndLine.number
-          ) {
-            const line = view.state.doc.line(position.line);
-            // Make sure to track any indentation at the beginning of the line
-            const column = Math.max(position.column, getIndentation(line.text));
-            const pos = line.from + column;
+    function _buildDecorationsForPositionMarkers(
+      markerDecorations,
+      marker,
+      transaction,
+      newMarkerDecorations
+    ) {
+      const viewport = marker._view.viewport;
+      const vStartLine = transaction.state.doc.lineAt(viewport.from);
+      const vEndLine = transaction.state.doc.lineAt(viewport.to);
 
-            if (marker.createPositionElementNode) {
-              const nodeDecoration = Decoration.widget({
-                widget: new NodeWidget(
-                  position.line,
-                  position.column,
-                  marker.createPositionElementNode
-                ),
-                // Make sure the widget is rendered after the cursor
-                // see https://codemirror.net/docs/ref/#view.Decoration^widget^spec.side for details.
-                side: 1,
-              });
-              ranges.push({ from: pos, to: pos, value: nodeDecoration });
-            }
+      for (const position of marker.positions) {
+        // If codemirror positions are provided (e.g from search cursor)
+        // compare that directly.
+        if (position.from && position.to) {
+          if (position.from >= viewport.from && position.to <= viewport.to) {
             if (marker.positionClassName) {
-              const tokenAtPos = syntaxTree(view.state).resolve(pos, 1);
-              const tokenString = line.text.slice(
-                position.column,
-                tokenAtPos.to - line.from
-              );
-              // ignore opening braces
-              if (tokenString === "{" || tokenString === "[") {
-                continue;
-              }
+              // Markers used:
+              // 1. active-selection-marker
               const classDecoration = Decoration.mark({
                 class: marker.positionClassName,
               });
-              ranges.push({
-                from: pos,
-                to: tokenAtPos.to,
-                value: classDecoration,
-              });
+              classDecoration.markerType = marker.id;
+              newMarkerDecorations.push(
+                classDecoration.range(position.from, position.to)
+              );
             }
+          }
+          continue;
+        }
+        // If line and column are provided
+        if (
+          position.line >= vStartLine.number &&
+          position.line <= vEndLine.number
+        ) {
+          const line = transaction.state.doc.line(position.line);
+          // Make sure to track any indentation at the beginning of the line
+          const column = Math.max(position.column, getIndentation(line.text));
+          const pos = line.from + column;
+
+          if (marker.createPositionElementNode) {
+            // Markers used:
+            // 1. column-breakpoint-marker
+            const nodeDecoration = Decoration.widget({
+              widget: new NodeWidget(
+                position.line,
+                position.column,
+                marker.createPositionElementNode
+              ),
+              // Make sure the widget is rendered after the cursor
+              // see https://codemirror.net/docs/ref/#view.Decoration^widget^spec.side for details.
+              side: 1,
+            });
+            nodeDecoration.markerType = marker.id;
+            newMarkerDecorations.push(nodeDecoration.range(pos, pos));
+          }
+          if (marker.positionClassName) {
+            // Markers used:
+            // 1. exception-position-marker
+            // 2. debug-position-marker
+            const tokenAtPos = syntaxTree(transaction.state).resolve(pos, 1);
+            const tokenString = line.text.slice(
+              position.column,
+              tokenAtPos.to - line.from
+            );
+            // Ignore any empty strings and opening braces
+            if (
+              tokenString === "" ||
+              tokenString === "{" ||
+              tokenString === "["
+            ) {
+              continue;
+            }
+            const classDecoration = Decoration.mark({
+              class: marker.positionClassName,
+            });
+            classDecoration.markerType = marker.id;
+            newMarkerDecorations.push(
+              classDecoration.range(pos, tokenAtPos.to)
+            );
           }
         }
       }
-      // Make sure to sort the rangeset as its required to render in order
-      return RangeSet.of(ranges, /*sort*/ true);
     }
 
-    // The view which handles rendering and updating the
-    // markers decorations
-    const positionContentMarkersView = ViewPlugin.fromClass(
-      class {
-        decorations;
-        constructor(view) {
-          this.decorations = buildDecorations(view);
-        }
-        update(update) {
-          if (update.docChanged || update.viewportChanged) {
-            this.decorations = buildDecorations(update.view);
+    /**
+     * This updates the decorations for the marker specified
+     *
+     * @param {Array} markerDecorations - The current decorations displayed in the document
+     * @param {Array} marker - The current marker whose decoration should be update
+     * @param {Transaction} transaction
+     * @returns
+     */
+    function updateDecorations(markerDecorations, marker, transaction) {
+      const newDecorations = [];
+
+      _buildDecorationsForPositionMarkers(
+        markerDecorations,
+        marker,
+        transaction,
+        newDecorations
+      );
+      return markerDecorations.update({
+        filter: (from, to, decoration) => {
+          return decoration.markerType !== marker.id;
+        },
+        add: newDecorations,
+        sort: true,
+      });
+    }
+
+    /**
+     * This updates all the decorations for all the markers. This
+     * used in scenarios when an update to view (e.g vertically scrolling into a new viewport)
+     * requires all the marker decoraions.
+     *
+     * @param {Array} markerDecorations - The current decorations displayed in the document
+     * @param {Array} markers - All the cached markers
+     * @param {Object} transaction
+     * @returns
+     */
+    function updateDecorationsForAllMarkers(
+      markerDecorations,
+      markers,
+      transaction
+    ) {
+      const allNewDecorations = [];
+
+      for (const marker of markers) {
+        _buildDecorationsForPositionMarkers(
+          markerDecorations,
+          marker,
+          transaction,
+          allNewDecorations
+        );
+      }
+      return markerDecorations.update({
+        filter: () => false,
+        add: allNewDecorations,
+        sort: true,
+      });
+    }
+
+    function removeDecorations(markerDecorations, markerId) {
+      return markerDecorations.update({
+        filter: (from, to, decoration) => {
+          return decoration.markerType !== markerId;
+        },
+      });
+    }
+
+    const addEffect = StateEffect.define();
+    const removeEffect = StateEffect.define();
+
+    const positionContentMarkerExtension = StateField.define({
+      create() {
+        return Decoration.none;
+      },
+      update(markerDecorations, transaction) {
+        // Map the decorations through the transaction changes, this is important
+        // as it remaps the decorations from positions in the old document to
+        // positions in the new document.
+        markerDecorations = markerDecorations.map(transaction.changes);
+        for (const effect of transaction.effects) {
+          if (effect.is(addEffect)) {
+            // When a new marker is added
+            markerDecorations = updateDecorations(
+              markerDecorations,
+              effect.value,
+              transaction
+            );
+          } else if (effect.is(removeEffect)) {
+            // When a marker is removed
+            markerDecorations = removeDecorations(
+              markerDecorations,
+              effect.value
+            );
+          } else {
+            // For updates that are not related to this marker decoration,
+            // we want to update the decorations when the editor is scrolled
+            // and a new viewport is loaded.
+            markerDecorations = updateDecorationsForAllMarkers(
+              markerDecorations,
+              cachedPositionContentMarkers.values(),
+              transaction
+            );
           }
         }
+        return markerDecorations;
       },
-      {
-        decorations: v => v.decorations,
-      }
-    );
+      provide: field => EditorView.decorations.from(field),
+    });
 
-    return [positionContentMarkersView];
+    return {
+      positionContentMarkerExtension,
+      positionContentMarkerEffect: { addEffect, removeEffect },
+    };
   }
 
   /**
@@ -1223,14 +1329,13 @@ class Editor extends EventEmitter {
    */
   setPositionContentMarker(marker) {
     const cm = editors.get(this);
-    this.#posContentMarkers.set(marker.id, marker);
 
+    // We store the marker an the view state, this is gives access to viewport data
+    // when defining updates to the StateField.
+    marker._view = cm;
+    this.#posContentMarkers.set(marker.id, marker);
     cm.dispatch({
-      effects: this.#compartments.positionContentMarkersCompartment.reconfigure(
-        this.#positionContentMarkersExtension(
-          Array.from(this.#posContentMarkers.values())
-        )
-      ),
+      effects: this.#effects.positionContentMarkerEffect.addEffect.of(marker),
     });
   }
 
@@ -1239,17 +1344,11 @@ class Editor extends EventEmitter {
    * @param {string} markerId - The unique identifier for this marker
    */
   removePositionContentMarker(markerId) {
-    if (!this.#posContentMarkers.has(markerId)) {
-      return;
-    }
     const cm = editors.get(this);
     this.#posContentMarkers.delete(markerId);
     cm.dispatch({
-      effects: this.#compartments.positionContentMarkersCompartment.reconfigure(
-        this.#positionContentMarkersExtension(
-          Array.from(this.#posContentMarkers.values())
-        )
-      ),
+      effects:
+        this.#effects.positionContentMarkerEffect.removeEffect.of(markerId),
     });
   }
 
@@ -1877,6 +1976,9 @@ class Editor extends EventEmitter {
     }
 
     if (this.config.cm6) {
+      if (cm.state.doc.toString() == value) {
+        return;
+      }
       cm.dispatch({
         changes: { from: 0, to: cm.state.doc.length, insert: value },
         selection: { anchor: 0 },
