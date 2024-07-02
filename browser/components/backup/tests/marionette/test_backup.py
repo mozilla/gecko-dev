@@ -43,6 +43,12 @@ class BackupTest(MarionetteTestCase):
         self.add_test_preferences()
         self.add_test_permissions()
 
+        # Restart the browser to force all of the test data we just added
+        # to be flushed to disk and to be made ready for backup
+        self.marionette.quit()
+        self.marionette.start_session()
+        self.marionette.set_context("chrome")
+
         self.marionette.execute_script(
             """
           const DefaultBackupResources = ChromeUtils.importESModule("resource:///modules/backup/BackupResources.sys.mjs");
