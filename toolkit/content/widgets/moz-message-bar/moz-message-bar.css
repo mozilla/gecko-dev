@@ -45,10 +45,10 @@
 
 .container {
   display: flex;
-  gap: 8px;
+  gap: var(--space-small);
   min-height: var(--message-bar-container-min-height);
-  padding-inline: 16px 8px;
-  padding-block: 8px;
+  padding-inline: var(--space-large) var(--space-small);
+  padding-block: var(--space-small);
 }
 
 .content {
@@ -56,19 +56,19 @@
   flex-grow: 1;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
-  margin-inline-start: 24px;
+  gap: var(--space-small) var(--space-medium);
+  margin-inline-start: var(--space-xlarge);
 }
 
 .text-container {
   display: flex;
-  gap: 4px 8px;
+  gap: var(--space-xsmall) var(--space-small);
   padding-block: calc((var(--message-bar-container-min-height) - var(--message-bar-text-line-height)) / 2);
 }
 
 .text-content {
   display: inline-flex;
-  gap: 4px 8px;
+  gap: var(--space-xsmall) var(--space-small);
   flex-wrap: wrap;
   word-break: break-word;
   line-height: var(--message-bar-text-line-height);
@@ -81,7 +81,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-inline-start: -24px;
+  margin-inline-start: calc(-1 * var(--space-xlarge));
 }
 
 .icon {
@@ -104,7 +104,7 @@
 /* MozMessageBar message style */
 
 .message {
-  margin-inline-end: 4px;
+  margin-inline-end: var(--space-xsmall);
 }
 
 /* MozMessageBar link style */
@@ -114,7 +114,7 @@
 }
 
 .link ::slotted(a) {
-  margin-inline-end: 4px;
+  margin-inline-end: var(--space-xsmall);
 }
 
 /* MozMessageBar actions style */
@@ -125,7 +125,7 @@
 
 .actions.active {
   display: inline-flex;
-  gap: 8px;
+  gap: var(--space-small);
 }
 
 .actions ::slotted(button) {
@@ -133,7 +133,7 @@
   min-width: fit-content !important;
 
   margin: 0 !important;
-  padding: 4px 16px !important;
+  padding: var(--space-xsmall) var(--space-large) !important;
 }
 
 /* Close icon styles */
