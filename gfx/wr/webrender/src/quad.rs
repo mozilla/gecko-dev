@@ -12,7 +12,7 @@ use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureCont
 use crate::gpu_types::{PrimitiveInstanceData, QuadInstance, QuadSegment, TransformPaletteId, ZBufferId};
 use crate::intern::DataStore;
 use crate::internal_types::TextureSource;
-use crate::pattern::{Pattern, PatternKind, PatternShaderInput};
+use crate::pattern::{Pattern, PatternBuilder, PatternBuilderContext, PatternBuilderState, PatternKind, PatternShaderInput};
 use crate::prim_store::{PrimitiveInstanceIndex, PrimitiveScratchBuffer};
 use crate::render_task::{MaskSubPass, RenderTask, RenderTaskAddress, RenderTaskKind, SubPass};
 use crate::render_task_graph::{RenderTaskGraph, RenderTaskId};
@@ -34,7 +34,7 @@ const MAX_TILES_PER_QUAD: usize = 4;
 ///
 /// Each segment can opt in or out of masking independently.
 #[derive(Debug, Copy, Clone)]
-enum QuadRenderStrategy {
+pub enum QuadRenderStrategy {
     /// The quad is not affected by any mask and is drawn directly in the destination
     /// target.
     Direct,
@@ -59,7 +59,7 @@ enum QuadRenderStrategy {
 }
 
 pub fn prepare_quad(
-    pattern: &Pattern,
+    pattern_builder: &dyn PatternBuilder,
     local_rect: &LayoutRect,
     prim_instance_index: PrimitiveInstanceIndex,
     prim_spatial_node_index: SpatialNodeIndex,
@@ -74,8 +74,20 @@ pub fn prepare_quad(
     frame_state: &mut FrameBuildingState,
     pic_state: &mut PictureState,
     scratch: &mut PrimitiveScratchBuffer,
-
 ) {
+    let ctx = PatternBuilderContext {
+        scene_properties: frame_context.scene_properties,
+    };
+
+    let mut state = PatternBuilderState {
+        frame_gpu_data: frame_state.frame_gpu_data,
+    };
+
+    let pattern = pattern_builder.build(
+        &ctx,
+        &mut state,
+    );
+
     let map_prim_to_raster = frame_context.spatial_tree.get_relative_transform(
         prim_spatial_node_index,
         pic_context.raster_spatial_node_index,
@@ -171,7 +183,7 @@ pub fn prepare_quad(
             //  - in layout space for the render task,
             //  - in device space for the instance that draw into the destination picture.
             let task_id = add_render_task_with_mask(
-                pattern,
+                &pattern,
                 clipped_surface_rect.size(),
                 clipped_surface_rect.min.to_f32(),
                 clip_chain.clips_range,
@@ -189,7 +201,7 @@ pub fn prepare_quad(
             let rect = clipped_surface_rect.to_f32().cast_unit();
             let is_masked = true;
             add_composite_prim(
-                pattern,
+                &pattern,
                 is_masked,
                 prim_instance_index,
                 rect,
@@ -389,7 +401,7 @@ pub fn prepare_quad(
                         scratch.quad_direct_segments.push(QuadSegment { rect: rect.cast_unit(), task_id: RenderTaskId::INVALID });
                     } else {
                         let task_id = add_render_task_with_mask(
-                            pattern,
+                            &pattern,
                             int_rect.round().to_i32().size(),
                             rect.min,
                             clip_chain.clips_range,
@@ -417,7 +429,7 @@ pub fn prepare_quad(
                 let device_prim_rect: DeviceRect = local_to_device.map_rect(&local_rect);
 
                 add_pattern_prim(
-                    pattern,
+                    &pattern,
                     local_to_device.inverse(),
                     prim_instance_index,
                     device_prim_rect.cast_unit(),
@@ -431,7 +443,7 @@ pub fn prepare_quad(
 
             if !scratch.quad_indirect_segments.is_empty() {
                 add_composite_prim(
-                    pattern,
+                    &pattern,
                     true,       // is_masked
                     prim_instance_index,
                     clip_coverage_rect.cast_unit(),
@@ -538,7 +550,7 @@ pub fn prepare_quad(
 
                     if should_create_task(mode, x, y) {
                         let task_id = add_render_task_with_mask(
-                            pattern,
+                            &pattern,
                             device_rect.size(),
                             device_rect.min.to_f32(),
                             clip_chain.clips_range,
@@ -567,7 +579,7 @@ pub fn prepare_quad(
 
             if !scratch.quad_direct_segments.is_empty() {
                 add_pattern_prim(
-                    pattern,
+                    &pattern,
                     local_to_device.inverse(),
                     prim_instance_index,
                     device_prim_rect.cast_unit(),
@@ -582,7 +594,7 @@ pub fn prepare_quad(
             if !scratch.quad_indirect_segments.is_empty() {
                 let is_masked = true;
                 add_composite_prim(
-                    pattern,
+                    &pattern,
                     is_masked,
                     prim_instance_index,
                     clip_coverage_rect.cast_unit(),

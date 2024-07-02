@@ -4,6 +4,8 @@
 
 use api::ColorF;
 
+use crate::{renderer::GpuBufferBuilder, scene::SceneProperties};
+
 #[repr(u32)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
@@ -40,7 +42,23 @@ impl Default for PatternShaderInput {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+pub struct PatternBuilderContext<'a> {
+    pub scene_properties: &'a SceneProperties,
+}
+
+pub struct PatternBuilderState<'a> {
+    pub frame_gpu_data: &'a mut GpuBufferBuilder,
+}
+
+pub trait PatternBuilder {
+    fn build(
+        &self,
+        _ctx: &PatternBuilderContext,
+        _state: &mut PatternBuilderState,
+    ) -> Pattern;
+}
+
+#[derive(Clone, Debug)]
 pub struct Pattern {
     pub kind: PatternKind,
     pub shader_input: PatternShaderInput,

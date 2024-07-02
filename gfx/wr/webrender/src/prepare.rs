@@ -27,8 +27,7 @@ use crate::picture::{PrimitiveList, PrimitiveCluster, SurfaceIndex, TileCacheIns
 use crate::prim_store::line_dec::MAX_LINE_DECORATION_RESOLUTION;
 use crate::prim_store::*;
 use crate::quad;
-use crate::pattern::Pattern;
-use crate::prim_store::gradient::{radial_gradient_pattern, conic_gradient_pattern, GradientGpuBlockBuilder};
+use crate::prim_store::gradient::GradientGpuBlockBuilder;
 use crate::render_backend::DataStores;
 use crate::render_task_graph::RenderTaskId;
 use crate::render_task_cache::RenderTaskCacheKeyKind;
@@ -636,16 +635,8 @@ fn prepare_interned_prim_for_render(
             } else {
                 let prim_data = &data_stores.prim[*data_handle];
 
-                let pattern = match prim_data.kind {
-                    PrimitiveTemplateKind::Clear => Pattern::clear(),
-                    PrimitiveTemplateKind::Rectangle { ref color, .. } => {
-                        let color = frame_context.scene_properties.resolve_color(color);
-                        Pattern::color(color)
-                    }
-                };
-
                 quad::prepare_quad(
-                    &pattern,
+                    prim_data,
                     &prim_data.common.prim_rect,
                     prim_instance_index,
                     prim_spatial_node_index,
@@ -813,21 +804,8 @@ fn prepare_interned_prim_for_render(
             let prim_data = &mut data_stores.radial_grad[*data_handle];
 
             if !*cached {
-                // The scaling parameter is used to compensate for when we reduce the size
-                // of the render task for cached gradients. Here we aren't applying any.
-                let no_scale = DeviceVector2D::one();
-
-                let pattern = radial_gradient_pattern(
-                    prim_data.center,
-                    no_scale,
-                    &prim_data.params,
-                    prim_data.extend_mode,
-                    &prim_data.stops,
-                    &mut frame_state.frame_gpu_data,
-                );
-
                 quad::prepare_quad(
-                    &pattern,
+                    prim_data,
                     &prim_data.common.prim_rect,
                     prim_instance_index,
                     prim_spatial_node_index,
@@ -877,21 +855,8 @@ fn prepare_interned_prim_for_render(
             let prim_data = &mut data_stores.conic_grad[*data_handle];
 
             if !*cached {
-                // The scaling parameter is used to compensate for when we reduce the size
-                // of the render task for cached gradients. Here we aren't applying any.
-                let no_scale = DeviceVector2D::one();
-
-                let pattern = conic_gradient_pattern(
-                    prim_data.center,
-                    no_scale,
-                    &prim_data.params,
-                    prim_data.extend_mode,
-                    &prim_data.stops,
-                    &mut frame_state.frame_gpu_data,
-                );
-
                 quad::prepare_quad(
-                    &pattern,
+                    prim_data,
                     &prim_data.common.prim_rect,
                     prim_instance_index,
                     prim_spatial_node_index,

@@ -11,6 +11,7 @@ use euclid::{SideOffsets2D, Size2D};
 use malloc_size_of::MallocSizeOf;
 use crate::composite::CompositorSurfaceKind;
 use crate::clip::ClipLeafId;
+use crate::pattern::{Pattern, PatternBuilder, PatternBuilderContext, PatternBuilderState};
 use crate::quad::QuadTileClassifier;
 use crate::segment::EdgeAaSegmentMask;
 use crate::border::BorderSegmentCacheKey;
@@ -568,6 +569,22 @@ pub struct PrimTemplate<T> {
 pub struct PrimitiveTemplate {
     pub common: PrimTemplateCommonData,
     pub kind: PrimitiveTemplateKind,
+}
+
+impl PatternBuilder for PrimitiveTemplate {
+    fn build(
+        &self,
+        ctx: &PatternBuilderContext,
+        _state: &mut PatternBuilderState,
+    ) -> crate::pattern::Pattern {
+        match self.kind {
+            PrimitiveTemplateKind::Clear => Pattern::clear(),
+            PrimitiveTemplateKind::Rectangle { ref color, .. } => {
+                let color = ctx.scene_properties.resolve_color(color);
+                Pattern::color(color)
+            }
+        }
+    }
 }
 
 impl ops::Deref for PrimitiveTemplate {
@@ -1225,6 +1242,7 @@ pub struct PrimitiveScratchBuffer {
 
     /// Temporary buffers for building segments in to during prepare pass
     pub quad_direct_segments: Vec<QuadSegment>,
+    pub quad_color_segments: Vec<QuadSegment>,
     pub quad_indirect_segments: Vec<QuadSegment>,
 
     /// A retained classifier for checking which segments of a tiled primitive
@@ -1245,6 +1263,7 @@ impl Default for PrimitiveScratchBuffer {
             messages: Vec::new(),
             required_sub_graphs: FastHashSet::default(),
             quad_direct_segments: Vec::new(),
+            quad_color_segments: Vec::new(),
             quad_indirect_segments: Vec::new(),
             quad_tile_classifier: QuadTileClassifier::new(),
         }
@@ -1261,6 +1280,7 @@ impl PrimitiveScratchBuffer {
         self.gradient_tiles.recycle(recycler);
         recycler.recycle_vec(&mut self.debug_items);
         recycler.recycle_vec(&mut self.quad_direct_segments);
+        recycler.recycle_vec(&mut self.quad_color_segments);
         recycler.recycle_vec(&mut self.quad_indirect_segments);
     }
 
@@ -1271,6 +1291,7 @@ impl PrimitiveScratchBuffer {
         self.clip_mask_instances.clear();
         self.clip_mask_instances.push(ClipMaskKind::None);
         self.quad_direct_segments.clear();
+        self.quad_color_segments.clear();
         self.quad_indirect_segments.clear();
 
         self.border_cache_handles.clear();

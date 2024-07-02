@@ -11,7 +11,7 @@
 use euclid::vec2;
 use api::{ColorF, ExtendMode, GradientStop, PremultipliedColorF};
 use api::units::*;
-use crate::pattern::{Pattern, PatternKind, PatternShaderInput};
+use crate::pattern::{Pattern, PatternBuilder, PatternBuilderContext, PatternBuilderState, PatternKind, PatternShaderInput};
 use crate::scene_building::IsVisible;
 use crate::frame_builder::FrameBuildingState;
 use crate::intern::{Internable, InternDebug, Handle as InternHandle};
@@ -99,6 +99,27 @@ pub struct ConicGradientTemplate {
     pub stops_opacity: PrimitiveOpacity,
     pub stops: Vec<GradientStop>,
     pub src_color: Option<RenderTaskId>,
+}
+
+impl PatternBuilder for ConicGradientTemplate {
+    fn build(
+        &self,
+        _ctx: &PatternBuilderContext,
+        state: &mut PatternBuilderState,
+    ) -> Pattern {
+        // The scaling parameter is used to compensate for when we reduce the size
+        // of the render task for cached gradients. Here we aren't applying any.
+        let no_scale = DeviceVector2D::one();
+
+        conic_gradient_pattern(
+            self.center,
+            no_scale,
+            &self.params,
+            self.extend_mode,
+            &self.stops,
+            state.frame_gpu_data,
+        )
+    }
 }
 
 impl Deref for ConicGradientTemplate {
