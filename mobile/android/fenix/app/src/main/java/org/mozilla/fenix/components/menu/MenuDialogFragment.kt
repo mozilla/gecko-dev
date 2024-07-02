@@ -101,6 +101,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val appStore = components.appStore
                     val browserStore = components.core.store
                     val syncStore = components.backgroundServices.syncStore
+                    val addonManager = components.addonManager
                     val bookmarksStorage = components.core.bookmarksStorage
                     val pinnedSiteStorage = components.core.pinnedSiteStorage
                     val tabCollectionStorage = components.core.tabCollectionStorage
@@ -128,6 +129,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             middleware = listOf(
                                 MenuDialogMiddleware(
                                     appStore = appStore,
+                                    addonManager = addonManager,
                                     bookmarksStorage = bookmarksStorage,
                                     pinnedSiteStorage = pinnedSiteStorage,
                                     addBookmarkUseCase = addBookmarkUseCase,
