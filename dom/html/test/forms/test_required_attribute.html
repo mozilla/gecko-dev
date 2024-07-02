@@ -20,21 +20,25 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=345822
 
 /** Test for Bug 345822 **/
 
+function fmtElement(element) {
+  return `<${element.tagName} type='${element.type}' value='${element.value}'>`;
+}
+
 function checkNotSufferingFromBeingMissing(element, doNotApply)
 {
   ok(!element.validity.valueMissing,
-    "Element should not suffer from value missing");
-  ok(element.validity.valid, "Element should be valid");
-  ok(element.checkValidity(), "Element should be valid");
+    `${fmtElement(element)} should not suffer from value missing`);
+  ok(element.validity.valid, `${fmtElement(element)} should be valid`);
+  ok(element.checkValidity(), `${fmtElement(element)} should be valid`);
   is(element.validationMessage, "",
-    "Validation message should be the empty string");
+    "Validation message should be the empty string for " + fmtElement(element));
 
   if (doNotApply) {
-    ok(!element.matches(':valid'), ":valid should not apply");
-    ok(!element.matches(':invalid'), ":invalid should not apply");
+    ok(!element.matches(':valid'), ":valid should not apply to " + fmtElement(element));
+    ok(!element.matches(':invalid'), ":invalid should not apply to " + fmtElement(element));
   } else {
-    ok(element.matches(':valid'), ":valid should apply");
-    ok(!element.matches(':invalid'), ":invalid should not apply");
+    ok(element.matches(':valid'), ":valid should apply to " + fmtElement(element));
+    ok(!element.matches(':invalid'), ":invalid should not apply to " + fmtElement(element));
   }
 }
 
@@ -146,6 +150,30 @@ function checkInputRequiredNotApply(type, isBarred)
   checkNotSufferingFromBeingMissing(element, isBarred);
 }
 
+function getValidExampleInputValue(type)
+{
+  switch (type) {
+    case 'email':
+      return 'foo@bar.com';
+    case 'url':
+      return 'http://mozilla.org/';
+    case 'number':
+      return '42';
+    case 'date':
+      return '2010-10-10';
+    case 'time':
+      return '21:21';
+    case 'datetime-local':
+      return '2010-10-10T21:21';
+    case 'month':
+      return '2010-10';
+    case 'week':
+      return '2010-W42';
+    default:
+      return 'foo';
+  }
+}
+
 function checkInputRequiredValidity(type)
 {
   var element = document.createElement('input');
@@ -165,23 +193,7 @@ function checkInputRequiredValidity(type)
   element.readOnly = false;
   checkSufferingFromBeingMissing(element);
 
-  if (element.type == 'email') {
-    SpecialPowers.wrap(element).value = 'foo@bar.com';
-  } else if (element.type == 'url') {
-    SpecialPowers.wrap(element).value = 'http://mozilla.org/';
-  } else if (element.type == 'number') {
-    SpecialPowers.wrap(element).value = '42';
-  } else if (element.type == 'date') {
-    SpecialPowers.wrap(element).value = '2010-10-10';
-  } else if (element.type == 'time') {
-    SpecialPowers.wrap(element).value = '21:21';
-  // TODO: Bug 1864327. This test is wrong, and needs fixing properly.
-  // eslint-disable-next-line no-cond-assign
-  } else if (element.type = 'month') {
-    SpecialPowers.wrap(element).value = '2010-10';
-  } else {
-    SpecialPowers.wrap(element).value = 'foo';
-  }
+  SpecialPowers.wrap(element).value = getValidExampleInputValue(type);
   checkNotSufferingFromBeingMissing(element);
 
   SpecialPowers.wrap(element).value = '';
