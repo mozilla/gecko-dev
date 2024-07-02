@@ -673,13 +673,9 @@ function _setProperties(root, hasTheme, themeData) {
         lwtProperty,
         fallbackProperty,
         fallbackColor,
-        optionalElementID,
         processColor,
         isColor = true,
       } = definition;
-      let elem = optionalElementID
-        ? doc.getElementById(optionalElementID)
-        : root;
       let val = propertyOverrides.get(lwtProperty) || themeData[lwtProperty];
       if (isColor) {
         val = _cssColorToRGBA(doc, val);
@@ -690,7 +686,7 @@ function _setProperties(root, hasTheme, themeData) {
           val = _cssColorToRGBA(doc, fallbackColor);
         }
         if (processColor) {
-          val = processColor(val, elem, propertyOverrides);
+          val = processColor(val, root, propertyOverrides);
         } else {
           val = _rgbaToString(val);
         }
@@ -699,7 +695,7 @@ function _setProperties(root, hasTheme, themeData) {
       // Add processed color to themeData.
       themeData._processedColors[lwtProperty] = val;
 
-      _setProperty(elem, hasTheme, cssVarName, val);
+      _setProperty(root, hasTheme, cssVarName, val);
     }
   }
 }

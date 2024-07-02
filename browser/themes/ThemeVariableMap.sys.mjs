@@ -27,7 +27,6 @@ export const ThemeVariableMap = [
     "--tab-loading-fill",
     {
       lwtProperty: "tab_loading",
-      optionalElementID: "tabbrowser-tabs",
     },
   ],
   [
