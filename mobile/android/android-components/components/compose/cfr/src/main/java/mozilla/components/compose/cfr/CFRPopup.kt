@@ -61,6 +61,7 @@ data class CFRPopupProperties(
  * @param properties [CFRPopupProperties] allowing to customize the popup appearance and behavior.
  * @param onDismiss Callback for when the popup is dismissed indicating also if the dismissal
  * was explicit - by tapping the "X" button or not.
+ * @param title Optional [Text] composable to show just above the popup text.
  * @param text [Text] already styled and ready to be shown in the popup.
  * @param action Optional other composable to show just below the popup text.
  */
@@ -68,6 +69,7 @@ class CFRPopup(
     @get:VisibleForTesting internal val anchor: View,
     @get:VisibleForTesting internal val properties: CFRPopupProperties,
     @get:VisibleForTesting internal val onDismiss: (Boolean) -> Unit = {},
+    @get:VisibleForTesting internal val title: @Composable (() -> Unit)? = null,
     @get:VisibleForTesting internal val text: @Composable (() -> Unit),
     @get:VisibleForTesting internal val action: @Composable (() -> Unit) = {},
 ) {
@@ -96,7 +98,14 @@ class CFRPopup(
                 return@post
             }
 
-            CFRPopupFullscreenLayout(anchor, properties, onDismiss, text, action).apply {
+            CFRPopupFullscreenLayout(
+                anchor = anchor,
+                properties = properties,
+                onDismiss = onDismiss,
+                title = title,
+                text = text,
+                action = action,
+            ).apply {
                 this.show()
                 popup = WeakReference(this)
             }

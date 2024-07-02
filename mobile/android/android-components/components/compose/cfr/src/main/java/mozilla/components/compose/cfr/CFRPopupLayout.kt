@@ -40,6 +40,7 @@ typealias DismissAction = () -> Unit
  * @param onCFRShown Invoked when the CFR is displayed.
  * @param onDismiss Invoked when the CFR is dismissed. Returns true if the dismissal was
  * explicit (e.g. clicked via the "X" button).
+ * @param title Optional [Text] composable to show just above the popup text.
  * @param text [Text] block containing the CFR's message.
  * @param action Optional Composable displayed below [text]. Provides a [DismissAction] if the CFR needs
  * to be dismissed after the action is invoked.
@@ -51,6 +52,7 @@ fun CFRPopupLayout(
     properties: CFRPopupProperties,
     onCFRShown: () -> Unit,
     onDismiss: (Boolean) -> Unit,
+    title: @Composable (() -> Unit)? = null,
     text: @Composable () -> Unit,
     action: @Composable (dismissCFR: DismissAction) -> Unit = {},
     anchorContent: @Composable () -> Unit,
@@ -85,6 +87,7 @@ fun CFRPopupLayout(
                                 onDismiss(dismissFromButton)
                                 hasDismissedCFR = true
                             },
+                            title = title,
                             text = text,
                             action = {
                                 action(invokeDismiss)

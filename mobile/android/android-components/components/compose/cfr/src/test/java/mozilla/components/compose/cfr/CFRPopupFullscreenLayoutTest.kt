@@ -57,6 +57,7 @@ class CFRPopupFullscreenLayoutTest {
                 anchor = anchor,
                 properties = mock(),
                 onDismiss = mock(),
+                title = { },
                 text = { },
                 action = { },
             ),

@@ -78,6 +78,7 @@ internal data class PopupHorizontalBounds(
  * @param properties [CFRPopupProperties] allowing to customize the popup behavior.
  * @param onDismiss Callback for when the popup is dismissed indicating also if the dismissal
  * was explicit - by tapping the "X" button or not.
+ * @param title Optional [Text] composable to show just above the popup text.
  * @param text [Text] already styled and ready to be shown in the popup.
  * @param action Optional other composable to show just below the popup text.
  */
@@ -86,6 +87,7 @@ internal class CFRPopupFullscreenLayout(
     private val anchor: View,
     private val properties: CFRPopupProperties,
     private val onDismiss: (Boolean) -> Unit,
+    private val title: @Composable (() -> Unit)? = null,
     private val text: @Composable (() -> Unit),
     private val action: @Composable (() -> Unit) = {},
 ) : AbstractComposeView(anchor.context), ViewRootForInspector {
@@ -204,6 +206,7 @@ internal class CFRPopupFullscreenLayout(
                 } else {
                     properties.popupWidth
                 },
+                title = title,
                 text = text,
                 action = action,
             )

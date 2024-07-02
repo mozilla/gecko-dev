@@ -8,6 +8,8 @@ import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -47,6 +50,7 @@ import mozilla.components.ui.icons.R as iconsR
  * If there isn't enough space this could automatically be overridden up to 0.
  * @param onDismiss  Callback for when the popup is dismissed indicating also if the dismissal
  * was explicit - by tapping the "X" button or not.
+ * @param title Optional [Text] composable to show just above the popup text.
  * @param text [Text] already styled and ready to be shown in the popup.
  * @param action Optional other composable to show just below the popup text.
  */
@@ -61,6 +65,7 @@ fun CFRPopupContent(
     indicatorArrowStartOffset: Dp,
     onDismiss: (Boolean) -> Unit,
     popupWidth: Dp = CFRPopup.DEFAULT_WIDTH.dp,
+    title: @Composable (() -> Unit)? = null,
     text: @Composable (() -> Unit),
     action: @Composable (() -> Unit) = {},
 ) {
@@ -112,7 +117,15 @@ fun CFRPopupContent(
                         end = if (showDismissButton) 24.dp else 16.dp, // 8.dp extra padding to the "X" icon
                     ),
                 ) {
-                    text()
+                    Column {
+                        title?.let {
+                            title()
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        text()
+                    }
                 }
 
                 action()
@@ -182,5 +195,30 @@ private fun CFRPopupBelowPreview() {
         indicatorArrowStartOffset = CFRPopup.DEFAULT_INDICATOR_START_OFFSET.dp,
         onDismiss = { },
         text = { Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod") },
+    )
+}
+
+@Composable
+@Preview(locale = "en", name = "LTR")
+@Preview(locale = "ar", name = "RTL")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark theme")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light theme")
+private fun CFRPopupBelowPreviewWithTitle() {
+    CFRPopupContent(
+        popupBodyColors = listOf(Color.Cyan.toArgb(), Color.Blue.toArgb()),
+        showDismissButton = true,
+        dismissButtonColor = Color.Black.toArgb(),
+        indicatorDirection = UP,
+        indicatorArrowStartOffset = CFRPopup.DEFAULT_INDICATOR_START_OFFSET.dp,
+        onDismiss = { },
+        title = {
+            Text(
+                text = "This is the title",
+                fontWeight = FontWeight.SemiBold,
+            )
+        },
+        text = {
+            Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod")
+        },
     )
 }
