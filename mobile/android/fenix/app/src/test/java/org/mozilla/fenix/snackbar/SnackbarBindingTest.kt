@@ -4,10 +4,13 @@
 
 package org.mozilla.fenix.snackbar
 
+import androidx.navigation.NavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.support.test.any
+import mozilla.components.support.test.eq
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -22,6 +25,7 @@ import org.mockito.Mockito.verify
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.FenixSnackbar
+import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.appstate.AppAction.TranslationsAction
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
@@ -32,10 +36,12 @@ class SnackbarBindingTest {
     val coroutineRule = MainCoroutineRule()
 
     private lateinit var snackbarDelegate: FenixSnackbarDelegate
+    private lateinit var navController: NavController
 
     @Before
     fun setUp() {
         snackbarDelegate = mock()
+        navController = mock()
     }
 
     @Test
@@ -54,6 +60,7 @@ class SnackbarBindingTest {
             browserStore = browserStore,
             appStore = appStore,
             snackbarDelegate = snackbarDelegate,
+            navController = navController,
             customTabSessionId = null,
         )
 
@@ -92,6 +99,7 @@ class SnackbarBindingTest {
             browserStore = browserStore,
             appStore = appStore,
             snackbarDelegate = snackbarDelegate,
+            navController = navController,
             customTabSessionId = null,
         )
 
@@ -119,6 +127,7 @@ class SnackbarBindingTest {
             browserStore = mock(),
             appStore = appStore,
             snackbarDelegate = snackbarDelegate,
+            navController = navController,
             customTabSessionId = null,
         )
 
@@ -133,5 +142,66 @@ class SnackbarBindingTest {
 
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
         verify(snackbarDelegate).dismiss()
+    }
+
+    @Test
+    fun `GIVEN bookmark is added WHEN the bookmark added state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
+        val appStore = AppStore()
+        val binding = SnackbarBinding(
+            browserStore = mock(),
+            appStore = appStore,
+            snackbarDelegate = snackbarDelegate,
+            navController = navController,
+            customTabSessionId = null,
+        )
+
+        binding.start()
+
+        appStore.dispatch(
+            BookmarkAction.BookmarkAdded(guidToEdit = "1"),
+        )
+
+        // Wait for BookmarkAction.BookmarkAdded(guidToEdit = "1"),
+        appStore.waitUntilIdle()
+        // Wait for SnackbarAction.SnackbarShown
+        appStore.waitUntilIdle()
+
+        assertEquals(SnackbarState.None, appStore.state.snackbarState)
+
+        verify(snackbarDelegate).show(
+            text = eq(R.string.bookmark_saved_snackbar),
+            duration = eq(FenixSnackbar.LENGTH_LONG),
+            action = eq(R.string.edit_bookmark_snackbar_action),
+            listener = any(),
+        )
+    }
+
+    @Test
+    fun `GIVEN no bookmark is added WHEN the bookmark added state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
+        val appStore = AppStore()
+        val binding = SnackbarBinding(
+            browserStore = mock(),
+            appStore = appStore,
+            snackbarDelegate = snackbarDelegate,
+            navController = navController,
+            customTabSessionId = null,
+        )
+
+        binding.start()
+
+        appStore.dispatch(
+            BookmarkAction.BookmarkAdded(guidToEdit = null),
+        )
+
+        // Wait for BookmarkAction.BookmarkAdded(guidToEdit = null),
+        appStore.waitUntilIdle()
+        // Wait for SnackbarAction.SnackbarShown
+        appStore.waitUntilIdle()
+
+        assertEquals(SnackbarState.None, appStore.state.snackbarState)
+        verify(snackbarDelegate).show(
+            text = R.string.bookmark_invalid_url_error,
+            duration = FenixSnackbar.LENGTH_LONG,
+        )
     }
 }

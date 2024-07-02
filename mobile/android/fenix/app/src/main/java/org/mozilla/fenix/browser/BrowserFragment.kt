@@ -219,6 +219,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                 browserStore = context.components.core.store,
                 appStore = context.components.appStore,
                 snackbarDelegate = FenixSnackbarDelegate(binding.dynamicSnackbarContainer),
+                navController = findNavController(),
                 customTabSessionId = customTabSessionId,
             ),
             owner = this,

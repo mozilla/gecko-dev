@@ -19,6 +19,13 @@ sealed class SnackbarState {
     data object Dismiss : SnackbarState()
 
     /**
+     * Display a snackbar of the newly added bookmark.
+     *
+     * @property guidToEdit The guid of the newly added bookmark or null.
+     */
+    data class BookmarkAdded(val guidToEdit: String?) : SnackbarState()
+
+    /**
      * There is a translation in progression for the given [sessionId].
      *
      * @property sessionId The ID of the session being translated.

@@ -159,4 +159,18 @@ class AppStoreReducerTest {
             appStore.state.snackbarState,
         )
     }
+
+    @Test
+    fun `WHEN bookmark added action is dispatched THEN snackbar state is updated`() {
+        val appStore = AppStore()
+        val guidToEdit = "guidToEdit"
+
+        appStore.dispatch(AppAction.BookmarkAction.BookmarkAdded(guidToEdit = guidToEdit))
+            .joinBlocking()
+
+        assertEquals(
+            SnackbarState.BookmarkAdded(guidToEdit = guidToEdit),
+            appStore.state.snackbarState,
+        )
+    }
 }

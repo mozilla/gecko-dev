@@ -21,6 +21,8 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
@@ -96,6 +98,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
         setContent {
             FirefoxTheme {
                 MenuDialogBottomSheet(onRequestDismiss = {}) {
+                    val appStore = components.appStore
                     val browserStore = components.core.store
                     val syncStore = components.backgroundServices.syncStore
                     val bookmarksStorage = components.core.bookmarksStorage
@@ -124,9 +127,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             ),
                             middleware = listOf(
                                 MenuDialogMiddleware(
+                                    appStore = appStore,
                                     bookmarksStorage = bookmarksStorage,
                                     pinnedSiteStorage = pinnedSiteStorage,
                                     addBookmarkUseCase = addBookmarkUseCase,
+                                    addPinnedSiteUseCase = addPinnedSiteUseCase,
+                                    removePinnedSitesUseCase = removePinnedSiteUseCase,
+                                    topSitesMaxLimit = topSitesMaxLimit,
                                     onDeleteAndQuit = {
                                         deleteAndQuit(
                                             activity = activity as HomeActivity,
@@ -134,9 +141,11 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                             snackbar = null,
                                         )
                                     },
-                                    addPinnedSiteUseCase = addPinnedSiteUseCase,
-                                    removePinnedSitesUseCase = removePinnedSiteUseCase,
-                                    topSitesMaxLimit = topSitesMaxLimit,
+                                    onDismiss = {
+                                        withContext(Dispatchers.Main) {
+                                            this@MenuDialogFragment.dismiss()
+                                        }
+                                    },
                                     scope = coroutineScope,
                                 ),
                                 MenuNavigationMiddleware(
