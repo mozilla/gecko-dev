@@ -3,17 +3,63 @@
 
 "use strict";
 
-add_task(async function () {
-  let mainFolder = await PlacesUtils.bookmarks.insert({
-    title: "mainFolder",
-    type: PlacesUtils.bookmarks.TYPE_FOLDER,
-    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
-  });
+let gMainFolder;
+
+add_setup(async function () {
+  // Ensure default bookmarks don't influence the test.
+  let placesInitCompleteObserved = TestUtils.topicObserved(
+    "places-browser-init-complete"
+  );
+  Cc["@mozilla.org/browser/browserglue;1"]
+    .getService(Ci.nsIObserver)
+    .observe(null, "browser-glue-test", "places-browser-init-complete");
+  await placesInitCompleteObserved;
+
+  await PlacesUtils.bookmarks.eraseEverything();
 
   registerCleanupFunction(async function () {
     await PlacesUtils.bookmarks.eraseEverything();
   });
 
+  gMainFolder = await PlacesUtils.bookmarks.insert({
+    title: "mainFolder",
+    type: PlacesUtils.bookmarks.TYPE_FOLDER,
+    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+  });
+
+  info("Create tree of: folderA => subFolderA => 3 bookmarkItems");
+  await PlacesUtils.bookmarks.insertTree({
+    guid: gMainFolder.guid,
+    children: [
+      {
+        title: "FolderA",
+        type: PlacesUtils.bookmarks.TYPE_FOLDER,
+        children: [
+          {
+            title: "subFolderA",
+            type: PlacesUtils.bookmarks.TYPE_FOLDER,
+            children: [
+              {
+                title: "firstBM",
+                url: "http://example.com/1",
+              },
+              {
+                title: "secondBM",
+                url: "http://example.com/2",
+              },
+              {
+                title: "thirdBM",
+                url: "http://example.com/3",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+});
+
+add_task(async function test_sidebar() {
   await withSidebarTree("bookmarks", async function (tree) {
     const selectedNodeComparator = {
       equalTitle: itemNode => {
@@ -44,41 +90,10 @@ add_task(async function () {
     };
     let urlType = Ci.nsINavHistoryResultNode.RESULT_TYPE_URI;
 
-    info("Create tree of: folderA => subFolderA => 3 bookmarkItems");
-    await PlacesUtils.bookmarks.insertTree({
-      guid: mainFolder.guid,
-      children: [
-        {
-          title: "FolderA",
-          type: PlacesUtils.bookmarks.TYPE_FOLDER,
-          children: [
-            {
-              title: "subFolderA",
-              type: PlacesUtils.bookmarks.TYPE_FOLDER,
-              children: [
-                {
-                  title: "firstBM",
-                  url: "http://example.com/1",
-                },
-                {
-                  title: "secondBM",
-                  url: "http://example.com/2",
-                },
-                {
-                  title: "thirdBM",
-                  url: "http://example.com/3",
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
-
     info("Sanity check folderA, subFolderA, bookmarkItems");
-    tree.selectItems([mainFolder.guid]);
+    tree.selectItems([gMainFolder.guid]);
     PlacesUtils.asContainer(tree.selectedNode).containerOpen = true;
-    selectedNodeComparator.equalTitle(mainFolder);
+    selectedNodeComparator.equalTitle(gMainFolder);
     selectedNodeComparator.equalChildCount(1);
 
     let sourceFolder = tree.selectedNode.getChild(0);
@@ -105,13 +120,13 @@ add_task(async function () {
       tree.controller.copy();
     }, PlacesUtils.TYPE_X_MOZ_PLACE);
 
-    tree.selectItems([mainFolder.guid]);
+    tree.selectItems([gMainFolder.guid]);
 
     info("Paste copy of folderA");
     await tree.controller.paste();
 
     info("Sanity check copy/paste operation - mainFolder has 2 children");
-    tree.selectItems([mainFolder.guid]);
+    tree.selectItems([gMainFolder.guid]);
     PlacesUtils.asContainer(tree.selectedNode).containerOpen = true;
     selectedNodeComparator.equalChildCount(2);
 
@@ -136,7 +151,7 @@ add_task(async function () {
 
     info("Undo copy operation");
     await PlacesTransactions.undo();
-    tree.selectItems([mainFolder.guid]);
+    tree.selectItems([gMainFolder.guid]);
     PlacesUtils.asContainer(tree.selectedNode).containerOpen = true;
 
     info("Sanity check undo operation - mainFolder has 1 child");
@@ -144,7 +159,7 @@ add_task(async function () {
 
     info("Redo copy operation");
     await PlacesTransactions.redo();
-    tree.selectItems([mainFolder.guid]);
+    tree.selectItems([gMainFolder.guid]);
     PlacesUtils.asContainer(tree.selectedNode).containerOpen = true;
 
     info("Sanity check redo operation - mainFolder has 2 children");
@@ -169,4 +184,78 @@ add_task(async function () {
     selectedNodeComparator.equalTitle(copyBm_2);
     selectedNodeComparator.equalType(urlType);
   });
+});
+
+add_task(async function test_library_text() {
+  let library = await promiseLibrary();
+  registerCleanupFunction(async function () {
+    await promiseLibraryClosed(library);
+  });
+
+  let PlacesOrganizer = library.PlacesOrganizer;
+  PlacesOrganizer.selectLeftPaneBuiltIn("BookmarksToolbar");
+  // Remove any child node up to gMainFolder, as it may be some default
+  // bookmark.
+  let treeView = PlacesOrganizer._places;
+  for (;;) {
+    let child = treeView.selectedNode.getChild(0);
+    if (child.bookmarkGuid == gMainFolder.guid) {
+      break;
+    }
+    info("remove" + child.bookmarkGuid);
+    await PlacesUtils.bookmarks.remove({ guid: child.bookmarkGuid });
+  }
+
+  info("Insert a looping folder shortcut");
+  await PlacesUtils.bookmarks.insert({
+    parentGuid: gMainFolder.guid,
+    url: `place:parent=${PlacesUtils.bookmarks.toolbarGuid}`,
+    title: "Toolbar shortcut",
+  });
+
+  for (let testCase of [
+    {
+      flavor: PlacesUtils.TYPE_PLAINTEXT,
+      expectedData:
+        "toolbar\nmainFolder\nFolderA\nsubFolderA\nhttp://example.com/1\nhttp://example.com/2\nhttp://example.com/3\nFolderA\nsubFolderA\nhttp://example.com/1\nhttp://example.com/2\nhttp://example.com/3\nToolbar shortcut\n",
+    },
+    {
+      flavor: PlacesUtils.TYPE_HTML,
+      expectedData:
+        '<DL><DT>toolbar</DT>\n<DD>\n<DL><DT>mainFolder</DT>\n<DD>\n<DL><DT>FolderA</DT>\n<DD>\n<DL><DT>subFolderA</DT>\n<DD>\n<A HREF="http://example.com/1">firstBM</A>\n</DD>\n<DD>\n<A HREF="http://example.com/2">secondBM</A>\n</DD>\n<DD>\n<A HREF="http://example.com/3">thirdBM</A>\n</DD>\n</DL>\n</DD>\n</DL>\n</DD>\n<DD>\n<DL><DT>FolderA</DT>\n<DD>\n<DL><DT>subFolderA</DT>\n<DD>\n<A HREF="http://example.com/1">firstBM</A>\n</DD>\n<DD>\n<A HREF="http://example.com/2">secondBM</A>\n</DD>\n<DD>\n<A HREF="http://example.com/3">thirdBM</A>\n</DD>\n</DL>\n</DD>\n</DL>\n</DD>\n<DD>\n<DL><DT>Toolbar shortcut</DT>\n</DL>\n</DD>\n</DL>\n</DD>\n</DL>\n',
+    },
+  ]) {
+    await promiseClipboard(function () {
+      library.PlacesOrganizer._places.controller.copy();
+    }, PlacesUtils.TYPE_X_MOZ_PLACE);
+
+    info("get data from the clipboard");
+    let xferable = Cc["@mozilla.org/widget/transferable;1"].createInstance(
+      Ci.nsITransferable
+    );
+    xferable.init(null);
+    // This order matters here!  It controls the preferred flavors for this
+    // paste operation.
+    [testCase.flavor].forEach(type => xferable.addDataFlavor(type));
+    Services.clipboard.getData(xferable, Ci.nsIClipboard.kGlobalClipboard);
+    let data = {};
+    let type = {};
+    xferable.getAnyTransferData(type, data);
+    data = data.value.QueryInterface(Ci.nsISupportsString).data;
+    type = type.value;
+    Assert.equal(type, testCase.flavor);
+    if (testCase.flavor == PlacesUtils.TYPE_HTML) {
+      // There's a couple facts to consider here:
+      //   1. on Windows the DataObj component adds html header and footer
+      //   2. the newline characters (\r\n) usage varies per platform
+      // Thus we don't use a direct comparison here.
+      Assert.ok(
+        data
+          .replaceAll(/(\n|\r)/g, "")
+          .includes(testCase.expectedData.replaceAll(/\n/g, ""))
+      );
+    } else {
+      Assert.equal(data, testCase.expectedData);
+    }
+  }
 });

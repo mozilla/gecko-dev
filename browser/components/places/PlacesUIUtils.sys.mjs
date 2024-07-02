@@ -941,7 +941,7 @@ export var PlacesUIUtils = {
 
     // Is it a query pointing to one of the special root folders?
     if (lazy.PlacesUtils.nodeIsQuery(parentNode)) {
-      if (lazy.PlacesUtils.nodeIsFolder(aNode)) {
+      if (lazy.PlacesUtils.nodeIsFolderOrShortcut(aNode)) {
         let guid = lazy.PlacesUtils.getConcreteItemGuid(aNode);
         // If the parent folder is not a folder, it must be a query, and so this node
         // cannot be removed.
@@ -984,7 +984,7 @@ export var PlacesUIUtils = {
   isFolderReadOnly(placesNode) {
     if (
       typeof placesNode != "object" ||
-      !lazy.PlacesUtils.nodeIsFolder(placesNode)
+      !lazy.PlacesUtils.nodeIsFolderOrShortcut(placesNode)
     ) {
       throw new Error("invalid value for placesNode");
     }

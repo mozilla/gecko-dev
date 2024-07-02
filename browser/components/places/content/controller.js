@@ -217,15 +217,15 @@ PlacesController.prototype = {
           ) &&
           (PlacesUtils.nodeIsTagQuery(selectedNode) ||
             PlacesUtils.nodeIsBookmark(selectedNode) ||
-            (PlacesUtils.nodeIsFolder(selectedNode) &&
-              !PlacesUtils.isQueryGeneratedFolder(selectedNode)))
+            (PlacesUtils.nodeIsFolderOrShortcut(selectedNode) &&
+              !PlacesUtils.nodeIsQueryGeneratedFolder(selectedNode)))
         );
       }
       case "placesCmd_sortBy:name": {
         let selectedNode = this._view.selectedNode;
         return (
           selectedNode &&
-          PlacesUtils.nodeIsFolder(selectedNode) &&
+          PlacesUtils.nodeIsFolderOrShortcut(selectedNode) &&
           !PlacesUIUtils.isFolderReadOnly(selectedNode) &&
           this._view.result.sortingMode ==
             Ci.nsINavHistoryQueryOptions.SORT_BY_NONE
@@ -906,7 +906,7 @@ PlacesController.prototype = {
         // History deletes are not undoable, so we don't have a transaction.
       } else {
         // This is a common bookmark item.
-        if (PlacesUtils.nodeIsFolder(node)) {
+        if (PlacesUtils.nodeIsFolderOrShortcut(node)) {
           // If this is a folder we add it to our array of folders, used
           // to skip nodes that are children of an already removed folder.
           removedFolders.push(node);
@@ -1039,7 +1039,7 @@ PlacesController.prototype = {
 
     var root = this._view.result.root;
 
-    if (PlacesUtils.nodeIsFolder(root)) {
+    if (PlacesUtils.nodeIsFolderOrShortcut(root)) {
       await this._removeRowsFromBookmarks();
     } else if (PlacesUtils.nodeIsQuery(root)) {
       var queryType = PlacesUtils.asQuery(root).queryOptions.queryType;
@@ -1170,7 +1170,7 @@ PlacesController.prototype = {
       if (this._shouldSkipNode(node, copiedFolders)) {
         return;
       }
-      if (PlacesUtils.nodeIsFolder(node)) {
+      if (PlacesUtils.nodeIsFolderOrShortcut(node)) {
         copiedFolders.push(node);
       }
 
@@ -1344,7 +1344,7 @@ PlacesController.prototype = {
     // Allow dropping into Tag containers and editable folders.
     return (
       !PlacesUtils.nodeIsTagQuery(container) &&
-      (!PlacesUtils.nodeIsFolder(container) ||
+      (!PlacesUtils.nodeIsFolderOrShortcut(container) ||
         PlacesUIUtils.isFolderReadOnly(container))
     );
   },
@@ -1376,7 +1376,7 @@ PlacesController.prototype = {
     }
 
     return (
-      (PlacesUtils.nodeIsFolder(parentNode) &&
+      (PlacesUtils.nodeIsFolderOrShortcut(parentNode) &&
         !PlacesUIUtils.isFolderReadOnly(parentNode)) ||
       PlacesUtils.nodeIsQuery(parentNode)
     );

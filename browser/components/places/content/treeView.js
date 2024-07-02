@@ -1693,7 +1693,7 @@ PlacesTreeView.prototype = {
     // folders. One example of this is the subscriptions view. In these cases,
     // this rule doesn't allow you to sort those sub-folders by their natural
     // order.
-    let allowTriState = PlacesUtils.nodeIsFolder(this._result.root);
+    let allowTriState = PlacesUtils.nodeIsFolderOrShortcut(this._result.root);
 
     let oldSort = this._result.sortingMode;
     let newSort;
@@ -1818,7 +1818,7 @@ PlacesTreeView.prototype = {
     if (
       PlacesUtils.nodeIsSeparator(node) ||
       PlacesUtils.isRootItem(itemGuid) ||
-      PlacesUtils.isQueryGeneratedFolder(node)
+      PlacesUtils.nodeIsQueryGeneratedFolder(node)
     ) {
       return false;
     }

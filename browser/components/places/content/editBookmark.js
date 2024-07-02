@@ -93,7 +93,7 @@ var gEditItemOverlay = {
         );
       }
       let parent = node.parent;
-      isParentReadOnly = !PlacesUtils.nodeIsFolder(parent);
+      isParentReadOnly = !PlacesUtils.nodeIsFolderOrShortcut(parent);
       // Note this may be an empty string, that'd the case for the root node
       // of a search, or a virtual root node, like the Library left pane.
       parentGuid = parent.bookmarkGuid;
@@ -453,7 +453,8 @@ var gEditItemOverlay = {
       this._bookmarkState = this.makeNewStateObject({
         children: aInfo.node?.children,
         index: aInfo.node?.index,
-        isFolder: aInfo.node != null && PlacesUtils.nodeIsFolder(aInfo.node),
+        isFolder:
+          aInfo.node != null && PlacesUtils.nodeIsFolderOrShortcut(aInfo.node),
       });
       if (isBookmark || bulkTagging) {
         await this._initAllTags();

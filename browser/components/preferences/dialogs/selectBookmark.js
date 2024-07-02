@@ -97,7 +97,7 @@ var SelectBookmarkDialog = {
     var urls = [];
     var names = [];
     var selectedNode = bookmarks.selectedNode;
-    if (PlacesUtils.nodeIsFolder(selectedNode)) {
+    if (PlacesUtils.nodeIsFolderOrShortcut(selectedNode)) {
       let concreteGuid = PlacesUtils.getConcreteItemGuid(selectedNode);
       var contents = PlacesUtils.getFolderContents(concreteGuid).root;
       var cc = contents.childCount;

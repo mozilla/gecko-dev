@@ -287,7 +287,7 @@ function closingPopupEndsDrag(popup) {
       let resultNode = this._placesNode;
 
       if (
-        !PlacesUtils.nodeIsFolder(resultNode) ||
+        !PlacesUtils.nodeIsFolderOrShortcut(resultNode) ||
         this._rootView.controller.disallowInsertion(resultNode)
       ) {
         return null;
@@ -329,7 +329,7 @@ function closingPopupEndsDrag(popup) {
         ? elt._placesNode.title
         : null;
       if (
-        (PlacesUtils.nodeIsFolder(elt._placesNode) &&
+        (PlacesUtils.nodeIsFolderOrShortcut(elt._placesNode) &&
           !PlacesUIUtils.isFolderReadOnly(elt._placesNode)) ||
         PlacesUtils.nodeIsTagQuery(elt._placesNode)
       ) {

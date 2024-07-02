@@ -178,7 +178,7 @@ var test = {
 
   validateQueryNode1: function validateQueryNode1(aNode) {
     Assert.equal(aNode.title, this._queryTitle1);
-    Assert.ok(PlacesUtils.nodeIsFolder(aNode));
+    Assert.ok(PlacesUtils.nodeIsFolderOrShortcut(aNode));
 
     aNode.QueryInterface(Ci.nsINavHistoryContainerResultNode);
     aNode.containerOpen = true;

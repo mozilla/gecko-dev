@@ -335,7 +335,7 @@ function getNodeForToolbarItem(itemGuid, validator) {
 
       // Don't search in queries, they could contain our item in a
       // different position.  Search only folders
-      if (PlacesUtils.nodeIsFolder(child._placesNode)) {
+      if (PlacesUtils.nodeIsFolderOrShortcut(child._placesNode)) {
         var popup = child.menupopup;
         popup.openPopup();
         var foundNode = findNode(popup);
@@ -382,7 +382,7 @@ function getNodeForMenuItem(itemGuid, validator) {
 
       // Don't search in queries, they could contain our item in a
       // different position.  Search only folders
-      if (PlacesUtils.nodeIsFolder(child._placesNode)) {
+      if (PlacesUtils.nodeIsFolderOrShortcut(child._placesNode)) {
         var popup = child.lastElementChild;
         fakeOpenPopup(popup);
         var foundNode = findNode(popup);
@@ -429,7 +429,7 @@ function getNodeForSidebarItem(itemGuid, validator) {
         return [node, i - tree.view.getParentIndex(i) - 1, valid];
       }
 
-      if (PlacesUtils.nodeIsFolder(node)) {
+      if (PlacesUtils.nodeIsFolderOrShortcut(node)) {
         // Open container.
         tree.view.toggleOpenState(i);
         // Search inside it.
