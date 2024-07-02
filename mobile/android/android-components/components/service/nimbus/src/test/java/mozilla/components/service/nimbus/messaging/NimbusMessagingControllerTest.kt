@@ -119,6 +119,52 @@ class NimbusMessagingControllerTest {
         }
 
     @Test
+    fun `WHEN calling onMicrosurveyDismissed THEN record a messageDismissed event and update metadata`() =
+        coroutineScope.runTest {
+            val message = createMessage("id-1")
+            assertNull(Microsurvey.dismissButtonTapped.testGetValue())
+
+            controller.onMicrosurveyDismissed(message)
+
+            val event = Microsurvey.dismissButtonTapped.testGetValue()!!
+            assertNotNull(event)
+            assertEquals(1, event.size)
+            assertEquals(message.id, event.single().extra!!["survey_id"])
+
+            verify(storage).updateMetadata(message.metadata.copy(dismissed = true))
+        }
+
+    @Test
+    fun `GIVEN microsurvey WHEN calling onMicrosurveyShown THEN report telemetry`() =
+        coroutineScope.runTest {
+            assertNull(Microsurvey.shown.testGetValue())
+
+            controller.onMicrosurveyShown("id-1")
+
+            assertNotNull(Microsurvey.shown.testGetValue())
+        }
+
+    @Test
+    fun `GIVEN microsurvey WHEN calling onMicrosurveySentConfirmationShown THEN report telemetry`() =
+        coroutineScope.runTest {
+            assertNull(Microsurvey.confirmationShown.testGetValue())
+
+            controller.onMicrosurveySentConfirmationShown("id-1")
+
+            assertNotNull(Microsurvey.confirmationShown.testGetValue())
+        }
+
+    @Test
+    fun `GIVEN microsurvey WHEN calling onMicrosurveyPrivacyNoticeTapped THEN report telemetry`() =
+        coroutineScope.runTest {
+            assertNull(Microsurvey.privacyNoticeTapped.testGetValue())
+
+            controller.onMicrosurveyPrivacyNoticeTapped("id-1")
+
+            assertNotNull(Microsurvey.privacyNoticeTapped.testGetValue())
+        }
+
+    @Test
     fun `GIVEN action is URL WHEN calling processMessageActionToUri THEN record a clicked telemetry event`() {
         val message = createMessage("id-1")
 

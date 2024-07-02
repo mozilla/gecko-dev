@@ -199,12 +199,12 @@ sealed class AppAction : Action {
          */
         sealed class MicrosurveyAction : MessagingAction() {
             /**
-             * Indicates that the microsurvey associated with the [message] has been completed.
+             * Indicates that the microsurvey associated with the [id] has been completed.
              *
-             * @property message The message associated with the completed microsurvey.
+             * @property id The id message associated with the completed microsurvey.
              * @property answer The answer provided for the microsurvey.
              */
-            data class Completed(val message: Message, val answer: String) : MicrosurveyAction()
+            data class Completed(val id: String, val answer: String) : MicrosurveyAction()
 
             /**
              * Indicates the microsurvey associated with this [id] has been started.
@@ -212,6 +212,34 @@ sealed class AppAction : Action {
              * @property id The id of the message associated with the started microsurvey.
              */
             data class Started(val id: String) : MicrosurveyAction()
+
+            /**
+             * Indicates the microsurvey associated with the [id] has been shown.
+             *
+             * @property id The id of the message associated with the shown microsurvey.
+             */
+            data class Shown(val id: String) : MicrosurveyAction()
+
+            /**
+             * Indicates the microsurvey associated with the [id] has been dismissed.
+             *
+             * @property id The id of the message associated with the microsurvey.
+             */
+            data class Dismissed(val id: String) : MicrosurveyAction()
+
+            /**
+             * Indicates the sent confirmation message for this microsurvey [id] has been shown.
+             *
+             * @property id The id of the message associated with the microsurvey.
+             */
+            data class SentConfirmationShown(val id: String) : MicrosurveyAction()
+
+            /**
+             * Indicates the privacy notice of microsurveys has been tapped.
+             *
+             * @property id The id of the message associated with the microsurvey.
+             */
+            data class OnPrivacyNoticeTapped(val id: String) : MicrosurveyAction()
         }
     }
 

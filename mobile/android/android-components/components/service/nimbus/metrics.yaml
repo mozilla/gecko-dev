@@ -109,8 +109,79 @@ messaging:
       - interaction
     expires: never
 
-micro_survey:
-  response:
+# Microsurvey
+microsurvey:
+  shown:
+    type: event
+    description: |
+      The survey surface was shown and visible.
+    extra_keys:
+      survey_id:
+        description: The id of the survey.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905435
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D215259
+    notification_emails:
+      - android-probes@mozilla.com
+    data_sensitivity:
+      - interaction
+    expires: never
+
+  privacy_notice_tapped:
+    type: event
+    description: |
+      Records that the user tapped on the privacy notice.
+    extra_keys:
+      survey_id:
+        description: The id of the survey.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905435
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D215259
+    notification_emails:
+      - android-probes@mozilla.com
+    data_sensitivity:
+      - interaction
+    expires: never
+
+  dismiss_button_tapped:
+    type: event
+    description: |
+      Records that the user tapped on the close button to dismiss the survey.
+    extra_keys:
+      survey_id:
+        description: The id of the survey.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905435
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D215259
+    notification_emails:
+      - android-probes@mozilla.com
+    data_sensitivity:
+      - interaction
+    expires: never
+
+  confirmation_shown:
+    type: event
+    description: |
+      Records that the confirmation message in the survey has been viewed by the user.
+    extra_keys:
+      survey_id:
+        description: The id of the survey.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905435
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D215259
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  submit_button_tapped:
     type: event
     description: User response data for a micro survey.
     extra_keys:
