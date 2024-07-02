@@ -173,9 +173,9 @@
 #endif
 
 #if defined(MOZ_DEV_EDITION) || defined(EARLY_BETA_OR_EARLIER)
-#define DEV_EDITION_OR_EARLY_BETA_OR_EARLIER true
+#define IS_DEV_EDITION_OR_EARLY_BETA_OR_EARLIER true
 #else
-#define DEV_EDITION_OR_EARLY_BETA_OR_EARLIER false
+#define IS_DEV_EDITION_OR_EARLY_BETA_OR_EARLIER false
 #endif
 
 #ifdef ANDROID
@@ -10685,7 +10685,7 @@
 # 2 : enable for encrypted only, 3 : enable for clear only
 -   name: media.wmf.media-engine.enabled
     type: RelaxedAtomicUint32
-#if defined(DEV_EDITION_OR_EARLY_BETA_OR_EARLIER)
+#if defined(MOZ_DEV_EDITION) || defined(EARLY_BETA_OR_EARLIER)
     value: 2
 #else
     value: 0
@@ -10739,8 +10739,8 @@
 # Enable PlayReady DRM for EME
 -   name: media.eme.playready.enabled
     type: RelaxedAtomicBool
-#if defined(MOZ_WMF_CDM) && defined(DEV_EDITION_OR_EARLY_BETA_OR_EARLIER)
-    value: true
+#if defined(MOZ_WMF_CDM)
+    value: @IS_DEV_EDITION_OR_EARLY_BETA_OR_EARLIER@
 #else
     value: false
 #endif
