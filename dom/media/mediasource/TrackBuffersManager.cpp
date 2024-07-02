@@ -109,7 +109,7 @@ TrackBuffersManager::TrackBuffersManager(MediaSourceDecoder* aParentDecoder,
       mAbstractMainThread(aParentDecoder->AbstractMainThread()),
       mEnded(false),
       mVideoEvictionThreshold(Preferences::GetUint(
-          "media.mediasource.eviction_threshold.video", 100 * 1024 * 1024)),
+          "media.mediasource.eviction_threshold.video", 150 * 1024 * 1024)),
       mAudioEvictionThreshold(Preferences::GetUint(
           "media.mediasource.eviction_threshold.audio", 20 * 1024 * 1024)),
       mEvictionState(EvictionState::NO_EVICTION_NEEDED),
