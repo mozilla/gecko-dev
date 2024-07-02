@@ -718,6 +718,8 @@
   /* Adjust outline so it doesn't conflate with the color swatch, which could have a similar background
      color as the outline */
   outline-offset: 2px;
+  /* Make sure that the background color is properly set in High Contrast Mode */
+  forced-color-adjust: none;
 }
 
 .ruleview-bezierswatch {

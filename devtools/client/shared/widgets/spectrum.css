@@ -41,12 +41,18 @@
     );
   background-size: 12px 12px;
   background-position: 0 0, 6px 6px;
+  /* Make sure that the background color is properly set in High Contrast Mode */
+  forced-color-adjust: none;
 }
 
 .spectrum-box {
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 2px;
   background-clip: content-box;
+
+  :root[forced-colors-active] & {
+    border-color: initial;
+  }
 }
 
 /* Elements */
@@ -92,6 +98,8 @@
     linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%);
   background-size: 12px 12px;
   background-position: 0 0, 6px 6px;
+  /* Make sure that the background color is properly set in High Contrast Mode */
+  forced-color-adjust: none;
 }
 
 .spectrum-color-preview.high-luminance {
@@ -113,6 +121,8 @@ http://www.briangrinstead.com/blog/keep-aspect-ratio-with-html-and-css */
   position: relative;
   width: 205px;
   height: 120px;
+  /* Make sure that the background color is properly set in High Contrast Mode */
+  forced-color-adjust: none;
 }
 
 .spectrum-color {
@@ -182,6 +192,8 @@ http://www.briangrinstead.com/blog/keep-aspect-ratio-with-html-and-css */
     #ff00ff 83%,
     #ff0000 100%
   );
+  /* Make sure that the background color is properly set in High Contrast Mode */
+  forced-color-adjust: none;
 }
 
 .spectrum-sat {
