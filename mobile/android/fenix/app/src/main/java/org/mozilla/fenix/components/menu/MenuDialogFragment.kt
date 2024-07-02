@@ -170,6 +170,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val accountState by syncStore.observeAsState(initialValue = NotAuthenticated) { state ->
                         state.accountState
                     }
+                    val recommendedAddons by store.observeAsState(initialValue = emptyList()) { state ->
+                        state.extensionMenuState.recommendedAddons
+                    }
                     val isBookmarked by store.observeAsState(initialValue = false) { state ->
                         state.browserMenuState != null && state.browserMenuState.bookmarkState.isBookmarked
                     }
@@ -315,12 +318,15 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
                         composable(route = EXTENSIONS_MENU_ROUTE) {
                             ExtensionsSubmenu(
+                                recommendedAddons = recommendedAddons,
                                 onBackButtonClick = {
                                     store.dispatch(MenuAction.Navigate.Back)
                                 },
                                 onManageExtensionsMenuClick = {
                                     store.dispatch(MenuAction.Navigate.ManageExtensions)
                                 },
+                                onAddonClick = {},
+                                onInstallAddonClick = {},
                                 onDiscoverMoreExtensionsMenuClick = {
                                     store.dispatch(MenuAction.Navigate.DiscoverMoreExtensions)
                                 },
