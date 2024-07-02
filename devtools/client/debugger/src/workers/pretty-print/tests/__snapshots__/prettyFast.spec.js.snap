@@ -714,6 +714,20 @@ Array [
 ]
 `;
 
+exports[`Escaped line feed in template strings 1`] = `
+"\`
+\`
+"
+`;
+
+exports[`Escaped line feed in template strings 2`] = `
+Array [
+  "(1, 0) -> (1, 0)",
+  "(1, 1) -> (1, 1)",
+  "(2, 0) -> (1, 3)",
+]
+`;
+
 exports[`Escaping backslashes in strings 1`] = `
 "'\\\\\\\\'
 "
@@ -722,6 +736,32 @@ exports[`Escaping backslashes in strings 1`] = `
 exports[`Escaping backslashes in strings 2`] = `
 Array [
   "(1, 0) -> (1, 0)",
+]
+`;
+
+exports[`Escaping backslashes in template strings 1`] = `
+"\`\\\\\\\\\`
+"
+`;
+
+exports[`Escaping backslashes in template strings 2`] = `
+Array [
+  "(1, 0) -> (1, 0)",
+  "(1, 1) -> (1, 1)",
+  "(1, 3) -> (1, 3)",
+]
+`;
+
+exports[`Escaping backtick character in template strings 1`] = `
+"\`\\\\\`\`
+"
+`;
+
+exports[`Escaping backtick character in template strings 2`] = `
+Array [
+  "(1, 0) -> (1, 0)",
+  "(1, 1) -> (1, 1)",
+  "(1, 3) -> (1, 3)",
 ]
 `;
 
@@ -736,6 +776,19 @@ Array [
 ]
 `;
 
+exports[`Escaping carriage return in template strings 1`] = `
+"\`\\\\r\`
+"
+`;
+
+exports[`Escaping carriage return in template strings 2`] = `
+Array [
+  "(1, 0) -> (1, 0)",
+  "(1, 1) -> (1, 1)",
+  "(1, 3) -> (1, 3)",
+]
+`;
+
 exports[`Escaping form feed in strings 1`] = `
 "'\\\\f'
 "
@@ -747,12 +800,49 @@ Array [
 ]
 `;
 
+exports[`Escaping form feed in template strings 1`] = `
+"\`\\\\f\`
+"
+`;
+
+exports[`Escaping form feed in template strings 2`] = `
+Array [
+  "(1, 0) -> (1, 0)",
+  "(1, 1) -> (1, 1)",
+  "(1, 3) -> (1, 3)",
+]
+`;
+
 exports[`Escaping null character in strings 1`] = `
 "'\\\\x00'
 "
 `;
 
 exports[`Escaping null character in strings 2`] = `
+Array [
+  "(1, 0) -> (1, 0)",
+]
+`;
+
+exports[`Escaping null character in template strings 1`] = `
+"\`\\\\x00\`
+"
+`;
+
+exports[`Escaping null character in template strings 2`] = `
+Array [
+  "(1, 0) -> (1, 0)",
+  "(1, 1) -> (1, 1)",
+  "(1, 5) -> (1, 3)",
+]
+`;
+
+exports[`Escaping single quote character in strings 1`] = `
+"'\\\\''
+"
+`;
+
+exports[`Escaping single quote character in strings 2`] = `
 Array [
   "(1, 0) -> (1, 0)",
 ]
@@ -769,6 +859,19 @@ Array [
 ]
 `;
 
+exports[`Escaping tab in template strings 1`] = `
+"\`\\\\t\`
+"
+`;
+
+exports[`Escaping tab in template strings 2`] = `
+Array [
+  "(1, 0) -> (1, 0)",
+  "(1, 1) -> (1, 1)",
+  "(1, 3) -> (1, 3)",
+]
+`;
+
 exports[`Escaping vertical tab in strings 1`] = `
 "'\\\\v'
 "
@@ -777,6 +880,19 @@ exports[`Escaping vertical tab in strings 1`] = `
 exports[`Escaping vertical tab in strings 2`] = `
 Array [
   "(1, 0) -> (1, 0)",
+]
+`;
+
+exports[`Escaping vertical tab in template strings 1`] = `
+"\`\\\\v\`
+"
+`;
+
+exports[`Escaping vertical tab in template strings 2`] = `
+Array [
+  "(1, 0) -> (1, 0)",
+  "(1, 1) -> (1, 1)",
+  "(1, 3) -> (1, 3)",
 ]
 `;
 
@@ -1547,6 +1663,21 @@ Array [
   "(14, 31) -> (14, 12)",
   "(15, 2) -> (15, 8)",
   "(16, 0) -> (16, 6)",
+]
+`;
+
+exports[`Raw line feed in template strings 1`] = `
+"\`
+
+\`
+"
+`;
+
+exports[`Raw line feed in template strings 2`] = `
+Array [
+  "(1, 0) -> (1, 0)",
+  "(1, 1) -> (1, 1)",
+  "(3, 0) -> (2, 0)",
 ]
 `;
 

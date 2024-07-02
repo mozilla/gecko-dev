@@ -243,6 +243,46 @@ const cases = [
     input: "'\\0'\n",
   },
   {
+    name: "Escaping single quote character in strings",
+    input: "'\\''\n",
+  },
+  {
+    name: "Escaping backslashes in template strings",
+    input: "`\\\\`\n",
+  },
+  {
+    name: "Escaping carriage return in template strings",
+    input: "`\\r`\n",
+  },
+  {
+    name: "Escaped line feed in template strings",
+    input: "`\\n`\n",
+  },
+  {
+    name: "Raw line feed in template strings",
+    input: "`\n`\n",
+  },
+  {
+    name: "Escaping tab in template strings",
+    input: "`\\t`\n",
+  },
+  {
+    name: "Escaping vertical tab in template strings",
+    input: "`\\v`\n",
+  },
+  {
+    name: "Escaping form feed in template strings",
+    input: "`\\f`\n",
+  },
+  {
+    name: "Escaping null character in template strings",
+    input: "`\\0`\n",
+  },
+  {
+    name: "Escaping backtick character in template strings",
+    input: "`\\``\n",
+  },
+  {
     name: "Bug 977082 - space between grouping operator and dot notation",
     input: `JSON.stringify(3).length;
            ([1,2,3]).length;
