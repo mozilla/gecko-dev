@@ -179,6 +179,10 @@ skip-if = [
 ["browser_net_columns_last_column.js"]
 
 ["browser_net_columns_pref.js"]
+skip-if = [
+  # Frequent intermittents on win + beta after enabling throttling. See Bug 1902326
+  "release_or_beta && os == 'win'",
+]
 
 ["browser_net_columns_reset.js"]
 
@@ -297,6 +301,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_net_headers-resize.js"]
+skip-if = [
+  # Frequent intermittents on win + beta after enabling throttling. See Bug 1902326
+  "release_or_beta && os == 'win'",
+]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_net_headers_filter.js"]
@@ -509,6 +517,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = ["true"] # TODO: fix the test
 
 ["browser_net_timing-division.js"]
+skip-if = [
+  # Frequent intermittents on win + beta after enabling throttling. See Bug 1902326
+  "release_or_beta && os == 'win'",
+]
 
 ["browser_net_tracking-resources.js"]
 
