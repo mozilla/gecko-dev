@@ -161,9 +161,6 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   }
 
   nscoord GetIntrinsicISize() {
-    if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
-      return *containISize;
-    }
     return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);
   }
 
