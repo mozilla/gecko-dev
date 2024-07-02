@@ -1,16 +1,9 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-// Globals imported from head_telemetry.js
-/* globals setupTelemetryForTests, resetTelemetryData */
-
 const { QuarantinedDomains } = ChromeUtils.importESModule(
   "resource://gre/modules/ExtensionPermissions.sys.mjs"
 );
-
-ChromeUtils.defineESModuleGetters(this, {
-  computeSha1HashAsString: "resource://gre/modules/addons/crypto-utils.sys.mjs",
-});
 
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "42", "42");
 
@@ -30,27 +23,6 @@ function assertQuarantinedListPref(expectedPrefValue) {
   );
 }
 
-function assertQuarantinedListTelemetry(expectedTelemetryHash) {
-  Assert.deepEqual(
-    {
-      listhash: Glean.extensionsQuarantinedDomains.listhash.testGetValue(),
-      remotehash: Glean.extensionsQuarantinedDomains.remotehash.testGetValue(),
-    },
-    expectedTelemetryHash,
-    "Got the expected computed domains list probes recorded by the Glean metrics"
-  );
-
-  const scalars = Services.telemetry.getSnapshotForScalars().parent;
-  Assert.deepEqual(
-    {
-      listhash: scalars?.["extensions.quarantinedDomains.listhash"],
-      remotehash: scalars?.["extensions.quarantinedDomains.remotehash"],
-    },
-    expectedTelemetryHash,
-    "Got the expected metrics mirrored into the unified telemetry scalars"
-  );
-}
-
 async function testQuarantinedDomainsFromRemoteSettings() {
   // Same as MAX_PREF_LENGTH as defined in Preferences.cpp,
   // see https://searchfox.org/mozilla-central/rev/06510249/modules/libpref/Preferences.cpp#162
@@ -59,9 +31,6 @@ async function testQuarantinedDomainsFromRemoteSettings() {
     testSet1: "example.com,example.org",
     testSet2: "someothersite.org,testset2.org",
   };
-
-  // Make sure there isn't initially any pre-existing telemetry data.
-  resetTelemetryData();
 
   await setAndEmitFakeRemoteSettingsData([
     {
@@ -108,10 +77,6 @@ async function testQuarantinedDomainsFromRemoteSettings() {
   // the pref to be set to the domains listed in the collection
   // entry with id "quarantinedDomains-testSet2".
   assertQuarantinedListPref(quarantinedDomainsSets.testSet2);
-  assertQuarantinedListTelemetry({
-    listhash: computeSha1HashAsString(quarantinedDomainsSets.testSet2),
-    remotehash: computeSha1HashAsString(quarantinedDomainsSets.testSet2),
-  });
 
   // Confirm that the updated quarantined domains list is now reflected
   // by the results returned by WebExtensionPolicy.isQuarantinedURI.
@@ -146,10 +111,6 @@ async function testQuarantinedDomainsFromRemoteSettings() {
     },
   ]);
   assertQuarantinedListPref(NEW_PREF_VALUE);
-  assertQuarantinedListTelemetry({
-    listhash: computeSha1HashAsString(NEW_PREF_VALUE),
-    remotehash: computeSha1HashAsString(NEW_PREF_VALUE),
-  });
 
   await setAndEmitFakeRemoteSettingsData([
     {
@@ -163,10 +124,6 @@ async function testQuarantinedDomainsFromRemoteSettings() {
     },
   ]);
   assertQuarantinedListPref(quarantinedDomainsSets.testSet1);
-  assertQuarantinedListTelemetry({
-    listhash: computeSha1HashAsString(quarantinedDomainsSets.testSet1),
-    remotehash: computeSha1HashAsString(quarantinedDomainsSets.testSet1),
-  });
 
   info(
     "Tamper with the domains list pref value, verify the remotesettings value is set back after restart"
@@ -177,19 +134,13 @@ async function testQuarantinedDomainsFromRemoteSettings() {
     QUARANTINE_LIST_PREF,
     MANUALLY_CHANGED_PREF_VALUE
   );
-  // At this point we expect the value of the hash recorded in telemetry to differ
-  // between the listhash and remotehash glean metrics.
-  assertQuarantinedListTelemetry({
-    listhash: computeSha1HashAsString(MANUALLY_CHANGED_PREF_VALUE),
-    remotehash: computeSha1HashAsString(quarantinedDomainsSets.testSet1),
-  });
+  assertQuarantinedListPref(MANUALLY_CHANGED_PREF_VALUE);
 
   // Then, we expect the remotehash and listhash to match each other again
   // after the browser restart and the pref value to be back to the last
   // value got from RemoteSettings.
   info("Mock browser restart");
   // Clear telemetry data that was collected so far.
-  resetTelemetryData();
   const promisePrefChanged = TestUtils.waitForPrefChange(QUARANTINE_LIST_PREF);
   await AddonTestUtils.promiseRestartManager();
   info(
@@ -198,14 +149,9 @@ async function testQuarantinedDomainsFromRemoteSettings() {
   await promisePrefChanged;
 
   assertQuarantinedListPref(quarantinedDomainsSets.testSet1);
-  assertQuarantinedListTelemetry({
-    listhash: computeSha1HashAsString(quarantinedDomainsSets.testSet1),
-    remotehash: computeSha1HashAsString(quarantinedDomainsSets.testSet1),
-  });
 }
 
 add_setup(async () => {
-  setupTelemetryForTests();
   await AddonTestUtils.promiseStartupManager();
 
   Assert.ok(

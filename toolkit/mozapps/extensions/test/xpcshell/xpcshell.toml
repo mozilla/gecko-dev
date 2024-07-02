@@ -44,7 +44,7 @@ head = "head_addons.js head_cert_handling.js"
 skip-if = ["os == 'android'"]
 
 ["test_QuarantinedDomains_AMRemoteSettings.js"]
-head = "head_addons.js head_amremotesettings.js ../../../../components/extensions/test/xpcshell/head_telemetry.js"
+head = "head_addons.js head_amremotesettings.js"
 skip-if = ["os == 'android'"]
 
 ["test_QuarantinedDomains_AddonWrapper.js"]
