@@ -66,6 +66,13 @@ sealed class MenuAction : Action {
     ) : MenuAction()
 
     /**
+     * [MenuAction] dispatched when an addon is to be installed.
+     *
+     * @property addon The [Addon] to install.
+     */
+    data class InstallAddon(val addon: Addon) : MenuAction()
+
+    /**
      * [MenuAction] dispatched when a navigation event occurs for a specific destination.
      */
     sealed class Navigate : MenuAction() {
