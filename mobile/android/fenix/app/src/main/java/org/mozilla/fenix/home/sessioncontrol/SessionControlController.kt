@@ -470,7 +470,7 @@ class DefaultSessionControlController(
     }
 
     override fun handleShowWallpapersOnboardingDialog(state: WallpaperState): Boolean {
-        return if (activity.browsingModeManager.mode.isPrivate) {
+        return if (activity.browsingModeManager.mode.isPrivate || settings.shouldShowNavigationBarCFR) {
             false
         } else {
             state.availableWallpapers.filter { wallpaper ->

@@ -610,7 +610,7 @@ class HomeFragment : Fragment() {
                         val shouldShowMicrosurveyPrompt =
                             remember { mutableStateOf(context.settings().shouldShowMicrosurveyPrompt) }
 
-                        if (shouldShowMicrosurveyPrompt.value) {
+                        if (shouldShowMicrosurveyPrompt.value && !context.settings().shouldShowNavigationBarCFR) {
                             currentMicrosurvey.let {
                                 if (it == null) {
                                     binding.bottomBarShadow.visibility = View.VISIBLE
@@ -644,7 +644,7 @@ class HomeFragment : Fragment() {
                         }
 
                         CFRPopupLayout(
-                            showCFR = false,
+                            showCFR = context.settings().shouldShowNavigationBarCFR,
                             properties = CFRPopupProperties(
                                 popupBodyColors = listOf(
                                     FirefoxTheme.colors.layerGradientEnd.toArgb(),
@@ -658,7 +658,7 @@ class HomeFragment : Fragment() {
                                 indicatorArrowStartOffset = 130.dp,
                             ),
                             onCFRShown = { },
-                            onDismiss = { },
+                            onDismiss = { context.settings().shouldShowNavigationBarCFR = false },
                             title = {
                                 FirefoxTheme {
                                     Text(
@@ -800,7 +800,7 @@ class HomeFragment : Fragment() {
                         val shouldShowMicrosurveyPrompt =
                             remember { mutableStateOf(context.settings().shouldShowMicrosurveyPrompt) }
 
-                        if (shouldShowMicrosurveyPrompt.value) {
+                        if (shouldShowMicrosurveyPrompt.value && !context.settings().shouldShowNavigationBarCFR) {
                             currentMicrosurvey.let {
                                 if (it == null) {
                                     binding.bottomBarShadow.visibility = View.VISIBLE

@@ -172,6 +172,7 @@ class HomeScreenTest : TestSetup() {
     fun verifyJumpBackInContextualHintTest() {
         activityTestRule.activityRule.applySettingsExceptions {
             it.isJumpBackInCFREnabled = true
+            it.isNavigationBarCFREnabled = false
         }
 
         val genericPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)

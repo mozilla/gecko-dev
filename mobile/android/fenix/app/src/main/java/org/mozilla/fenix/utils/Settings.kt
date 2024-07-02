@@ -1757,6 +1757,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if the navigation bar CFR should be displayed to the user.
+     */
+    var shouldShowNavigationBarCFR by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_should_navbar_cfr),
+        default = true,
+    )
+
+    /**
      * Time in milliseconds when the user was first presented the review quality check feature CFR.
      */
     var reviewQualityCheckCfrDisplayTimeInMillis by longPreference(

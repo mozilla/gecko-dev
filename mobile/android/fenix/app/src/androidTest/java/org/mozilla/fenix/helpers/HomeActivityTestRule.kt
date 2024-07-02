@@ -50,6 +50,7 @@ class HomeActivityTestRule(
             FenixOnboarding(appContext).userHasBeenOnboarded(),
         isPocketEnabled: Boolean = settings.showPocketRecommendationsFeature,
         isJumpBackInCFREnabled: Boolean = settings.shouldShowJumpBackInCFR,
+        isNavigationBarCFREnabled: Boolean = settings.shouldShowNavigationBarCFR,
         isRecentTabsFeatureEnabled: Boolean = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled: Boolean = settings.historyMetadataUIFeature,
         isPWAsPromptEnabled: Boolean = !settings.userKnowsAboutPwas,
@@ -65,6 +66,7 @@ class HomeActivityTestRule(
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
         this.isJumpBackInCFREnabled = isJumpBackInCFREnabled
+        this.isNavigationBarCFREnabled = isNavigationBarCFREnabled
         this.isRecentTabsFeatureEnabled = isRecentTabsFeatureEnabled
         this.isRecentlyVisitedFeatureEnabled = isRecentlyVisitedFeatureEnabled
         this.isPWAsPromptEnabled = isPWAsPromptEnabled
@@ -165,6 +167,7 @@ class HomeActivityIntentTestRule internal constructor(
             FenixOnboarding(appContext).userHasBeenOnboarded(),
         isPocketEnabled: Boolean = settings.showPocketRecommendationsFeature,
         isJumpBackInCFREnabled: Boolean = settings.shouldShowJumpBackInCFR,
+        isNavigationBarCFREnabled: Boolean = settings.shouldShowNavigationBarCFR,
         isRecentTabsFeatureEnabled: Boolean = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled: Boolean = settings.historyMetadataUIFeature,
         isPWAsPromptEnabled: Boolean = !settings.userKnowsAboutPwas,
@@ -180,6 +183,7 @@ class HomeActivityIntentTestRule internal constructor(
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
         this.isJumpBackInCFREnabled = isJumpBackInCFREnabled
+        this.isNavigationBarCFREnabled = isNavigationBarCFREnabled
         this.isRecentTabsFeatureEnabled = isRecentTabsFeatureEnabled
         this.isRecentlyVisitedFeatureEnabled = isRecentlyVisitedFeatureEnabled
         this.isPWAsPromptEnabled = isPWAsPromptEnabled
@@ -251,6 +255,7 @@ class HomeActivityIntentTestRule internal constructor(
             settings.showHomeOnboardingDialog && FenixOnboarding(appContext).userHasBeenOnboarded()
         isPocketEnabled = settings.showPocketRecommendationsFeature
         isJumpBackInCFREnabled = settings.shouldShowJumpBackInCFR
+        isNavigationBarCFREnabled = settings.shouldShowNavigationBarCFR
         isRecentTabsFeatureEnabled = settings.showRecentTabsFeature
         isRecentlyVisitedFeatureEnabled = settings.historyMetadataUIFeature
         isPWAsPromptEnabled = !settings.userKnowsAboutPwas
