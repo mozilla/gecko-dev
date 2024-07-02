@@ -205,6 +205,13 @@ sealed class AppAction : Action {
              * @property answer The answer provided for the microsurvey.
              */
             data class Completed(val message: Message, val answer: String) : MicrosurveyAction()
+
+            /**
+             * Indicates the microsurvey associated with this [id] has been started.
+             *
+             * @property id The id of the message associated with the started microsurvey.
+             */
+            data class Started(val id: String) : MicrosurveyAction()
         }
     }
 

@@ -57,6 +57,10 @@ open class NimbusMessagingController(
         messagingStorage.updateMetadata(updatedMetadata)
     }
 
+    override suspend fun onMicrosurveyStarted(id: String) {
+        sendClickedMessageTelemetry(id, null)
+    }
+
     override fun getIntentForMessage(message: Message) = Intent(
         Intent.ACTION_VIEW,
         processMessageActionToUri(message),

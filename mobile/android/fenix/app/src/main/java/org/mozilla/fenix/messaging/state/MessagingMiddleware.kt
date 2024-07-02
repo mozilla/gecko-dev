@@ -61,6 +61,8 @@ class MessagingMiddleware(
 
             is MicrosurveyAction.Completed -> onMicrosurveyCompleted(context, action.message, action.answer)
 
+            is MicrosurveyAction.Started -> onMicrosurveyStarted(action.id)
+
             else -> {
                 // no-op
             }
@@ -121,6 +123,14 @@ class MessagingMiddleware(
         val newMessages = removeMessage(context, message)
         context.store.dispatch(UpdateMessages(newMessages))
         consumeMessageToShowIfNeeded(context, message)
+    }
+
+    private fun onMicrosurveyStarted(
+        id: String,
+    ) {
+        coroutineScope.launch {
+            controller.onMicrosurveyStarted(id)
+        }
     }
 
     private fun consumeMessageToShowIfNeeded(

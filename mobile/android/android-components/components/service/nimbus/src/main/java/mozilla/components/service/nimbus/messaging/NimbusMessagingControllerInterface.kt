@@ -69,6 +69,14 @@ interface NimbusMessagingControllerInterface {
     suspend fun onMessageClicked(message: Message)
 
     /**
+     * Called once the user has clicked to start a microsurvey.
+     * @param id the id of the microsurvey.
+     *
+     * This records that the microsurvey has been clicked to be started.
+     */
+    suspend fun onMicrosurveyStarted(id: String)
+
+    /**
      * Create and return the relevant [Intent] for the given [Message].
      *
      * @param message the [Message] to create the [Intent] for.

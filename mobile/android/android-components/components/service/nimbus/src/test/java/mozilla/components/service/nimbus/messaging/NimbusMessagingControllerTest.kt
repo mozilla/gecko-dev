@@ -8,6 +8,7 @@ import android.content.Intent
 import androidx.core.net.toUri
 import kotlinx.coroutines.test.runTest
 import mozilla.components.service.glean.testing.GleanTestRule
+import mozilla.components.service.nimbus.GleanMetrics.MicroSurvey
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.robolectric.testContext
@@ -21,6 +22,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mozilla.experiments.nimbus.NullVariables
@@ -206,7 +208,7 @@ class NimbusMessagingControllerTest {
     }
 
     @Test
-    fun `WHEN calling onMessageClicked THEN update stored metadata for message`() =
+    fun `GIVEN message WHEN calling onMessageClicked THEN update stored metadata for message`() =
         coroutineScope.runTest {
             val message = createMessage("id-1")
             assertFalse(message.metadata.pressed)
@@ -215,6 +217,20 @@ class NimbusMessagingControllerTest {
 
             val updatedMetadata = message.metadata.copy(pressed = true)
             verify(storage).updateMetadata(updatedMetadata)
+        }
+
+    @Test
+    fun `GIVEN microsurvey WHEN calling onMicrosurveyStarted THEN report telemetry`() =
+        coroutineScope.runTest {
+            val messageData = MessageData(microsurveyConfig = mock())
+            val message = createMessage("id-1", messageData = messageData)
+            assertFalse(message.metadata.pressed)
+
+            controller.onMicrosurveyStarted(message.id)
+
+            val updatedMetadata = message.metadata.copy(pressed = true)
+            verify(storage, times(0)).updateMetadata(updatedMetadata)
+            assertNull(MicroSurvey.response.testGetValue())
         }
 
     @Test

@@ -27,6 +27,7 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.Evaluate
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MessageClicked
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MessageDismissed
+import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.Restore
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
@@ -120,6 +121,31 @@ class MessagingMiddlewareTest {
         assertTrue(store.state.messaging.messages.isEmpty())
         coVerify { controller.onMessageClicked(message = message) }
     }
+
+    @Test
+    fun `GVIEN a microsurvey WHEN Started THEN only notify the controller`() =
+        runTestOnMain {
+            val message = createMessage(data = mockk<MessageData>(relaxed = true))
+            val store = AppStore(
+                AppState(
+                    messaging = MessagingState(
+                        messages = listOf(message),
+                        messageToShow = mapOf(message.id to message),
+                    ),
+                ),
+                listOf(
+                    MessagingMiddleware(controller, coroutineScope),
+                ),
+            )
+
+            assertEquals(message, store.state.messaging.messages.first())
+
+            store.dispatch(MicrosurveyAction.Started(message.id)).joinBlocking()
+            store.waitUntilIdle()
+
+            assertFalse(store.state.messaging.messages.isEmpty())
+            coVerify { controller.onMicrosurveyStarted(id = message.id) }
+        }
 
     @Test
     fun `WHEN MessageDismissed THEN update storage`() = runTestOnMain {
