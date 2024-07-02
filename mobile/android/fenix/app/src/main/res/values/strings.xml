@@ -114,9 +114,9 @@
 
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_title" tools:ignore="UnusedResources">Browse faster with new navigation</string>
+    <string name="navbar_cfr_title">Browse faster with new navigation</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" tools:ignore="UnusedResources">This bar tucks away as you scroll down for extra browsing space.</string>
+    <string name="navbar_cfr_message">This bar tucks away as you scroll down for extra browsing space.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Camera access needed. Go to Android settings, tap permissions, and tap allow.</string>

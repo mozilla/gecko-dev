@@ -35,6 +35,7 @@ class HomeScreenWithNavbarTest : TestSetup() {
         composeTestRule.activityRule.applySettingsExceptions {
             it.isJumpBackInCFREnabled = false
             it.isNavigationToolbarEnabled = true
+            it.isNavigationBarCFREnabled = false
         }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
@@ -49,6 +50,7 @@ class HomeScreenWithNavbarTest : TestSetup() {
     fun verifyTabCounterClickFromNavbarInNormalModeTest() {
         composeTestRule.activityRule.applySettingsExceptions {
             it.isNavigationToolbarEnabled = true
+            it.isNavigationBarCFREnabled = false
         }
         restartApp(composeTestRule.activityRule)
 
@@ -66,6 +68,7 @@ class HomeScreenWithNavbarTest : TestSetup() {
     fun verifyTabCounterClickFromNavbarInPrivateModeTest() {
         composeTestRule.activityRule.applySettingsExceptions {
             it.isNavigationToolbarEnabled = true
+            it.isNavigationBarCFREnabled = false
         }
         restartApp(composeTestRule.activityRule)
         homeScreen { }.togglePrivateBrowsingMode()
@@ -84,6 +87,7 @@ class HomeScreenWithNavbarTest : TestSetup() {
     fun verifyTabsCounterShortcutMenuOptionFromNavbarInNormalModeTest() {
         composeTestRule.activityRule.applySettingsExceptions {
             it.isNavigationToolbarEnabled = true
+            it.isNavigationBarCFREnabled = false
         }
         restartApp(composeTestRule.activityRule)
 
@@ -97,6 +101,7 @@ class HomeScreenWithNavbarTest : TestSetup() {
     fun verifyTabsCounterShortcutMenuOptionFromNavbarInPrivateModeTest() {
         composeTestRule.activityRule.applySettingsExceptions {
             it.isNavigationToolbarEnabled = true
+            it.isNavigationBarCFREnabled = false
         }
         restartApp(composeTestRule.activityRule)
         homeScreen { }.togglePrivateBrowsingMode()
@@ -111,6 +116,7 @@ class HomeScreenWithNavbarTest : TestSetup() {
     fun verifyTabsCounterShortcutMenuFromNavbarRecordsTelemetry() {
         composeTestRule.activityRule.applySettingsExceptions {
             it.isNavigationToolbarEnabled = true
+            it.isNavigationBarCFREnabled = false
         }
         restartApp(composeTestRule.activityRule)
 

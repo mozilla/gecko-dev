@@ -29,7 +29,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -70,6 +72,7 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.cfr.CFRPopup
+import mozilla.components.compose.cfr.CFRPopupLayout
 import mozilla.components.compose.cfr.CFRPopupProperties
 import mozilla.components.concept.storage.FrecencyThresholdOption
 import mozilla.components.concept.sync.AccountObserver
@@ -640,69 +643,105 @@ class HomeFragment : Fragment() {
                             Divider()
                         }
 
-                        HomeNavBar(
-                            isPrivateMode = activity.browsingModeManager.mode.isPrivate,
-                            isFeltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
-                            browserStore = context.components.core.store,
-                            menuButton = menuButton,
-                            tabsCounterMenu = FenixTabCounterMenu(
-                                context = context,
-                                onItemTapped = { item ->
-                                    if (item is TabCounterMenu.Item.NewTab) {
-                                        browsingModeManager.mode = BrowsingMode.Normal
-                                    } else if (item is TabCounterMenu.Item.NewPrivateTab) {
-                                        browsingModeManager.mode = BrowsingMode.Private
-                                    }
-                                },
-                                iconColor = when (activity.browsingModeManager.mode.isPrivate) {
-                                    true -> getColor(context, R.color.fx_mobile_private_icon_color_primary)
-                                    else -> null
-                                },
-                            ).also {
-                                it.updateMenu(
-                                    showOnly = when (browsingModeManager.mode) {
-                                        BrowsingMode.Normal -> BrowsingMode.Private
-                                        BrowsingMode.Private -> BrowsingMode.Normal
-                                    },
-                                )
-                            },
-                            onSearchButtonClick = {
-                                NavigationBar.homeSearchTapped.record(NoExtras())
-                                val directions =
-                                    NavGraphDirections.actionGlobalSearchDialog(
-                                        sessionId = null,
+                        CFRPopupLayout(
+                            showCFR = false,
+                            properties = CFRPopupProperties(
+                                popupBodyColors = listOf(
+                                    FirefoxTheme.colors.layerGradientEnd.toArgb(),
+                                    FirefoxTheme.colors.layerGradientStart.toArgb(),
+                                ),
+                                dismissButtonColor = FirefoxTheme.colors.iconOnColor.toArgb(),
+                                indicatorDirection = CFRPopup.IndicatorDirection.DOWN,
+                                popupVerticalOffset = 10.dp,
+                                dismissOnBackPress = true,
+                                dismissOnClickOutside = false,
+                                indicatorArrowStartOffset = 130.dp,
+                            ),
+                            onCFRShown = { },
+                            onDismiss = { },
+                            title = {
+                                FirefoxTheme {
+                                    Text(
+                                        text = stringResource(R.string.navbar_cfr_title),
+                                        color = FirefoxTheme.colors.textOnColorPrimary,
+                                        style = FirefoxTheme.typography.subtitle2,
                                     )
-
-                                findNavController().nav(
-                                    findNavController().currentDestination?.id,
-                                    directions,
-                                    BrowserAnimator.getToolbarNavOptions(activity),
-                                )
+                                }
                             },
-                            onTabsButtonClick = {
-                                NavigationBar.homeTabTrayTapped.record(NoExtras())
-                                findNavController().nav(
-                                    findNavController().currentDestination?.id,
-                                    NavGraphDirections.actionGlobalTabsTrayFragment(
-                                        page = when (browsingModeManager.mode) {
-                                            BrowsingMode.Normal -> Page.NormalTabs
-                                            BrowsingMode.Private -> Page.PrivateTabs
+                            text = {
+                                FirefoxTheme {
+                                    Text(
+                                        text = stringResource(R.string.navbar_cfr_message),
+                                        color = FirefoxTheme.colors.textOnColorPrimary,
+                                        style = FirefoxTheme.typography.body2,
+                                    )
+                                }
+                            },
+                        ) {
+                            HomeNavBar(
+                                isPrivateMode = activity.browsingModeManager.mode.isPrivate,
+                                isFeltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
+                                browserStore = context.components.core.store,
+                                menuButton = menuButton,
+                                tabsCounterMenu = FenixTabCounterMenu(
+                                    context = context,
+                                    onItemTapped = { item ->
+                                        if (item is TabCounterMenu.Item.NewTab) {
+                                            browsingModeManager.mode = BrowsingMode.Normal
+                                        } else if (item is TabCounterMenu.Item.NewPrivateTab) {
+                                            browsingModeManager.mode = BrowsingMode.Private
+                                        }
+                                    },
+                                    iconColor = when (activity.browsingModeManager.mode.isPrivate) {
+                                        true -> getColor(context, R.color.fx_mobile_private_icon_color_primary)
+                                        else -> null
+                                    },
+                                ).also {
+                                    it.updateMenu(
+                                        showOnly = when (browsingModeManager.mode) {
+                                            BrowsingMode.Normal -> BrowsingMode.Private
+                                            BrowsingMode.Private -> BrowsingMode.Normal
                                         },
-                                    ),
-                                )
-                            },
-                            onTabsButtonLongPress = {
-                                NavigationBar.homeTabTrayLongTapped.record(NoExtras())
-                            },
-                            onMenuButtonClick = {
-                                findNavController().nav(
-                                    findNavController().currentDestination?.id,
-                                    HomeFragmentDirections.actionGlobalMenuDialogFragment(
-                                        accesspoint = MenuAccessPoint.Home,
-                                    ),
-                                )
-                            },
-                        )
+                                    )
+                                },
+                                onSearchButtonClick = {
+                                    NavigationBar.homeSearchTapped.record(NoExtras())
+                                    val directions =
+                                        NavGraphDirections.actionGlobalSearchDialog(
+                                            sessionId = null,
+                                        )
+
+                                    findNavController().nav(
+                                        findNavController().currentDestination?.id,
+                                        directions,
+                                        BrowserAnimator.getToolbarNavOptions(activity),
+                                    )
+                                },
+                                onTabsButtonClick = {
+                                    NavigationBar.homeTabTrayTapped.record(NoExtras())
+                                    findNavController().nav(
+                                        findNavController().currentDestination?.id,
+                                        NavGraphDirections.actionGlobalTabsTrayFragment(
+                                            page = when (browsingModeManager.mode) {
+                                                BrowsingMode.Normal -> Page.NormalTabs
+                                                BrowsingMode.Private -> Page.PrivateTabs
+                                            },
+                                        ),
+                                    )
+                                },
+                                onTabsButtonLongPress = {
+                                    NavigationBar.homeTabTrayLongTapped.record(NoExtras())
+                                },
+                                onMenuButtonClick = {
+                                    findNavController().nav(
+                                        findNavController().currentDestination?.id,
+                                        HomeFragmentDirections.actionGlobalMenuDialogFragment(
+                                            accesspoint = MenuAccessPoint.Home,
+                                        ),
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             },
@@ -1525,7 +1564,7 @@ class HomeFragment : Fragment() {
         const val ALL_PRIVATE_TABS = "all_private"
 
         // Navigation arguments passed to HomeFragment
-        private const val FOCUS_ON_ADDRESS_BAR = "focusOnAddressBar"
+        const val FOCUS_ON_ADDRESS_BAR = "focusOnAddressBar"
         private const val SCROLL_TO_COLLECTION = "scrollToCollection"
 
         // Delay for scrolling to the collection header

@@ -34,6 +34,7 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     fun closingPrivateTabsFromNavbarTest() {
         composeTestRule.activityRule.applySettingsExceptions {
             it.isNavigationToolbarEnabled = true
+            it.isNavigationBarCFREnabled = false
         }
         val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
@@ -120,6 +121,7 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     fun tabsCounterShortcutMenuNewPrivateTabFromNavbarTest() {
         composeTestRule.activityRule.applySettingsExceptions {
             it.isNavigationToolbarEnabled = true
+            it.isNavigationBarCFREnabled = false
         }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
@@ -158,6 +160,7 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     fun privateTabsCounterShortcutMenuNewPrivateTabFromNavbarTest() {
         composeTestRule.activityRule.applySettingsExceptions {
             it.isNavigationToolbarEnabled = true
+            it.isNavigationBarCFREnabled = false
         }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
@@ -180,6 +183,7 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     fun privateTabsCounterShortcutMenuNewTabFromNavbarTest() {
         composeTestRule.activityRule.applySettingsExceptions {
             it.isNavigationToolbarEnabled = true
+            it.isNavigationBarCFREnabled = false
         }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
