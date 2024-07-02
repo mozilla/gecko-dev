@@ -559,6 +559,14 @@ CssComputedView.prototype = {
     const viewedElement = this._viewedElement;
 
     return Promise.all([
+      // Create the properties views only once for the whole lifecycle of the inspector
+      // via `_createPropertyViews`.
+      // The properties are created without backend data. This queries typical property
+      // names via `DOMWindow.getComputedStyle` on the frontend inspector document.
+      // We then have to manually update the list of PropertyView's for custom properties
+      // based on backend data (`getComputed()`/`computed`).
+      // Also note that PropertyView/PropertyView are refreshed via their refresh method
+      // which will ultimately query `CssComputedView._computed`, which we update in this method.
       this._createPropertyViews(),
       this.viewedElementPageStyle.getComputed(this._viewedElement, {
         filter: this._sourceFilter,
@@ -1097,6 +1105,24 @@ class PropertyView {
   }
 
   /**
+   * Is the property invalid at computed value time
+   *
+   * @returns {Boolean}
+   */
+  get invalidAtComputedValueTime() {
+    return this.tree._computed[this.name].invalidAtComputedValueTime;
+  }
+
+  /**
+   * If this is a registered property, returns its syntax (e.g. "<color>")
+   *
+   * @returns {Text|undefined}
+   */
+  get registeredPropertySyntax() {
+    return this.tree._computed[this.name].registeredPropertySyntax;
+  }
+
+  /**
    * Create DOM elements for a property
    *
    * @return {Element} The <li> element
@@ -1192,11 +1218,23 @@ class PropertyView {
     valueSeparator.classList.add("visually-hidden");
     valueSeparator.textContent = ";";
 
+    valueContainer.append(this.valueNode, valueSeparator);
+
+    // If the value is invalid at computed value time (IACVT), display the same
+    // warning icon that we have in the rules view for IACVT declarations.
+    if (this.isCustomProperty) {
+      this.invalidAtComputedValueTimeNode = doc.createElement("div");
+      this.invalidAtComputedValueTimeNode.classList.add(
+        "invalid-at-computed-value-time-warning"
+      );
+      this.refreshInvalidAtComputedValueTime();
+      valueContainer.append(this.invalidAtComputedValueTimeNode);
+    }
+
     // Build the matched selectors container
     this.matchedSelectorsContainer = doc.createElement("div");
     this.matchedSelectorsContainer.classList.add("matchedselectors");
 
-    valueContainer.append(this.valueNode, valueSeparator);
     this.element.append(
       this.matchedExpander,
       nameContainer,
@@ -1247,6 +1285,7 @@ class PropertyView {
     this.valueNode.innerHTML = "";
     this.valueNode.appendChild(frag);
 
+    this.refreshInvalidAtComputedValueTime();
     this.refreshMatchedSelectors();
   }
 
@@ -1289,6 +1328,29 @@ class PropertyView {
     this.matchedExpander.setAttribute("aria-label", L10N_TWISTY_EXPAND_LABEL);
     this.tree.inspector.emit("computed-view-property-collapsed");
     return Promise.resolve(undefined);
+  }
+
+  /**
+   * Show/Hide IACVT icon and sets its title attribute
+   */
+  refreshInvalidAtComputedValueTime() {
+    if (!this.isCustomProperty) {
+      return;
+    }
+
+    if (!this.invalidAtComputedValueTime) {
+      this.invalidAtComputedValueTimeNode.setAttribute("hidden", "");
+      this.invalidAtComputedValueTimeNode.removeAttribute("title");
+    } else {
+      this.invalidAtComputedValueTimeNode.removeAttribute("hidden", "");
+      this.invalidAtComputedValueTimeNode.setAttribute(
+        "title",
+        STYLE_INSPECTOR_L10N.getFormatStr(
+          "rule.warningInvalidAtComputedValueTime.title",
+          `"${this.registeredPropertySyntax}"`
+        )
+      );
+    }
   }
 
   get matchedSelectors() {
@@ -1343,6 +1405,18 @@ class PropertyView {
           "fix-get-selection computed-other-property-value theme-fg-color1",
       });
       valueDiv.appendChild(selector.outputFragment);
+
+      // If the value is invalid at computed value time (IACVT), display the same
+      // warning icon that we have in the rules view for IACVT declarations.
+      if (selector.selectorInfo.invalidAtComputedValueTime) {
+        createChild(status, "div", {
+          class: "invalid-at-computed-value-time-warning",
+          title: STYLE_INSPECTOR_L10N.getFormatStr(
+            "rule.warningInvalidAtComputedValueTime.title",
+            `"${selector.selectorInfo.registeredPropertySyntax}"`
+          ),
+        });
+      }
     }
 
     this.matchedSelectorsContainer.innerHTML = "";

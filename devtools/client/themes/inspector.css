@@ -6,6 +6,9 @@
   --min-container-width: 300px;
   --pseudo-class-text-color: var(--yellow-75);
 
+  --invalid-at-computed-value-time-icon: url(resource://devtools-shared-images/error-small.svg);
+  --invalid-at-computed-value-time-fill-color: var(--theme-highlight-red);
+
   &.theme-dark {
     --pseudo-class-text-color: var(--yellow-50);
   }

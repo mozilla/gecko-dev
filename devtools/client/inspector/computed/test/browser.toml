@@ -26,6 +26,7 @@ support-files = [
 ["browser_computed_browser-styles.js"]
 
 ["browser_computed_custom_properties.js"]
+fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_computed_cycle_color.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled

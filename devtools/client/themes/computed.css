@@ -140,6 +140,23 @@
   outline: 0 !important;
 }
 
+.invalid-at-computed-value-time-warning {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  vertical-align: middle;
+  margin-inline-start: 4px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  -moz-context-properties: fill;
+  background-image: var(--invalid-at-computed-value-time-icon);
+  fill: var(--invalid-at-computed-value-time-fill-color);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
 .matchedselectors {
   width: 100%;
   padding-inline-start: 12px;
@@ -206,9 +223,6 @@
   text-decoration: line-through;
 }
 
-.rule-text.parentmatch {
-  opacity: 0.5;
-}
 
 #computed-no-results {
   height: 100%;

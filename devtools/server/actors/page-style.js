@@ -252,6 +252,7 @@ class PageStyleActor extends Actor {
     this.cssLogic.sourceFilter = options.filter || SharedCssLogic.FILTER.UA;
     this.cssLogic.highlight(node.rawNode);
     const computed = this.cssLogic.computedStyle || [];
+    const targetDocument = this.inspector.targetActor.window.document;
 
     Array.prototype.forEach.call(computed, name => {
       if (
@@ -264,6 +265,24 @@ class PageStyleActor extends Actor {
         value: computed.getPropertyValue(name),
         priority: computed.getPropertyPriority(name) || undefined,
       };
+
+      if (name.startsWith("--")) {
+        const registeredProperty = InspectorUtils.getCSSRegisteredProperty(
+          targetDocument,
+          name
+        );
+        if (
+          registeredProperty &&
+          !InspectorUtils.valueMatchesSyntax(
+            targetDocument,
+            ret[name].value,
+            registeredProperty.syntax
+          )
+        ) {
+          ret[name].invalidAtComputedValueTime = true;
+          ret[name].registeredPropertySyntax = registeredProperty.syntax;
+        }
+      }
     });
 
     if (options.markMatched || options.onlyMatched) {
@@ -459,8 +478,17 @@ class PageStyleActor extends Actor {
     this.cssLogic.highlight(node.rawNode);
 
     const rules = new Set();
-
     const matched = [];
+
+    const targetDocument = this.inspector.targetActor.window.document;
+    let registeredProperty;
+    if (property.startsWith("--")) {
+      registeredProperty = InspectorUtils.getCSSRegisteredProperty(
+        targetDocument,
+        property
+      );
+    }
+
     const propInfo = this.cssLogic.getPropertyInfo(property);
     for (const selectorInfo of propInfo.matchedSelectors) {
       const cssRule = selectorInfo.selector.cssRule;
@@ -469,14 +497,26 @@ class PageStyleActor extends Actor {
       const rule = this._styleRef(domRule);
       rules.add(rule);
 
-      matched.push({
+      const match = {
         rule,
         sourceText: this.getSelectorSource(selectorInfo, node.rawNode),
         selector: selectorInfo.selector.text,
         name: selectorInfo.property,
         value: selectorInfo.value,
         status: selectorInfo.status,
-      });
+      };
+      if (
+        registeredProperty &&
+        !InspectorUtils.valueMatchesSyntax(
+          targetDocument,
+          match.value,
+          registeredProperty.syntax
+        )
+      ) {
+        match.invalidAtComputedValueTime = true;
+        match.registeredPropertySyntax = registeredProperty.syntax;
+      }
+      matched.push(match);
     }
 
     return {

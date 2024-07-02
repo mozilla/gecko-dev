@@ -516,8 +516,8 @@
 }
 
 .ruleview-invalid-at-computed-value-time-warning {
-    background-image: url(resource://devtools-shared-images/error-small.svg);
-    fill: var(--theme-highlight-red);
+    background-image: var(--invalid-at-computed-value-time-icon);
+    fill: var(--invalid-at-computed-value-time-fill-color);
 }
 
 
