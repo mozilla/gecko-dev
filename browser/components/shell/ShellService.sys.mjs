@@ -327,6 +327,10 @@ let ShellServiceInternal = {
       lazy.NimbusFeatures.shellService.getVariable(
         "setDefaultGuidanceNotifications"
       ) &&
+      // Do not show guidance if one-click set to default is enabled
+      !lazy.NimbusFeatures.shellService.getVariable(
+        "setDefaultBrowserUserChoiceRegRename"
+      ) &&
       // Disable showing toast notification from Firefox Background Tasks.
       !lazy.BackgroundTasks?.isBackgroundTaskMode
     ) {
