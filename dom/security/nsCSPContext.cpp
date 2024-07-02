@@ -752,13 +752,6 @@ nsCSPContext::LogViolationDetails(
       continue;
     }
 
-    nsAutoString violatedDirectiveName;
-    nsAutoString violatedDirectiveNameAndValue;
-    bool reportSample = false;
-    mPolicies[p]->getViolatedDirectiveInformation(
-        SCRIPT_SRC_DIRECTIVE, violatedDirectiveName,
-        violatedDirectiveNameAndValue, &reportSample);
-
     CSPViolationData cspViolationData{
         p,
         CSPViolationData::Resource{blockedContentSource},
@@ -769,12 +762,26 @@ nsCSPContext::LogViolationDetails(
         aTriggeringElement,
         aScriptSample};
 
-    AsyncReportViolation(aCSPEventListener, std::move(cspViolationData),
-                         nullptr, violatedDirectiveName,
-                         violatedDirectiveNameAndValue, observerSubject,
-                         reportSample);
+    LogViolationDetailsUnchecked(aCSPEventListener, std::move(cspViolationData),
+                                 observerSubject);
   }
   return NS_OK;
+}
+
+void nsCSPContext::LogViolationDetailsUnchecked(
+    nsICSPEventListener* aCSPEventListener,
+    CSPViolationData&& aCSPViolationData, const nsAString& aObserverSubject) {
+  nsAutoString violatedDirectiveName;
+  nsAutoString violatedDirectiveNameAndValue;
+  bool reportSample = false;
+  mPolicies[aCSPViolationData.mViolatedPolicyIndex]
+      ->getViolatedDirectiveInformation(
+          aCSPViolationData.mEffectiveDirective, violatedDirectiveName,
+          violatedDirectiveNameAndValue, &reportSample);
+
+  AsyncReportViolation(aCSPEventListener, std::move(aCSPViolationData), nullptr,
+                       violatedDirectiveName, violatedDirectiveNameAndValue,
+                       aObserverSubject, reportSample);
 }
 
 #undef CASE_CHECK_AND_REPORT
@@ -1604,23 +1611,6 @@ class CSPReportSenderRunnable final : public Runnable {
   RefPtr<nsCSPContext> mCSPContext;
 };
 
-/**
- * Asynchronously notifies any nsIObservers listening to the CSP violation
- * topic that a violation occurred.  Also triggers report sending and console
- * logging.  All asynchronous on the main thread.
- *
- * @param aCSPEventListener Should be null when the violation stems from a
- *                          Window. Is required when the violation stems from a
- *                          Worker to be potentially notified about the
- *                          violation event.
- * @param aOriginalUri
- *        The original URI if the blocked content is a redirect, else null
- * @param aViolatedDirectiveName
- *        the directive that was violated (string).
- * @param aObserverSubject
- *        optional, subject sent to the nsIObservers listening to the CSP
- *        violation topic.
- */
 nsresult nsCSPContext::AsyncReportViolation(
     nsICSPEventListener* aCSPEventListener,
     mozilla::dom::CSPViolationData&& aCSPViolationData, nsIURI* aOriginalURI,

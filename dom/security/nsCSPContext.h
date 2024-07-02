@@ -106,6 +106,23 @@ class nsCSPContext : public nsIContentSecurityPolicy {
       const mozilla::dom::SecurityPolicyViolationEventInit&
           aViolationEventInit);
 
+  /**
+   * Asynchronously notifies any nsIObservers listening to the CSP violation
+   * topic that a violation occurred.  Also triggers report sending and console
+   * logging.  All asynchronous on the main thread.
+   *
+   * @param aCSPEventListener Should be null when the violation stems from a
+   *                          Window. Is required when the violation stems from
+   *                          a Worker to be potentially notified about the
+   *                          violation event.
+   * @param aOriginalUri
+   *        The original URI if the blocked content is a redirect, else null
+   * @param aViolatedDirectiveName
+   *        the directive that was violated (string).
+   * @param aObserverSubject
+   *        optional, subject sent to the nsIObservers listening to the CSP
+   *        violation topic.
+   */
   nsresult AsyncReportViolation(
       nsICSPEventListener* aCSPEventListener,
       mozilla::dom::CSPViolationData&& aCSPViolationData, nsIURI* aOriginalURI,
@@ -131,6 +148,15 @@ class nsCSPContext : public nsIContentSecurityPolicy {
       nsTArray<mozilla::ipc::ContentSecurityPolicy>& aPolicies);
 
  private:
+  /**
+   * @param aCSPEventListener see `nsCSPContext::AsyncReportViolation`'s csp
+   *                          event listener argument.
+   */
+  void LogViolationDetailsUnchecked(
+      nsICSPEventListener* aCSPEventListener,
+      mozilla::dom::CSPViolationData&& aCSPViolationData,
+      const nsAString& aObserverSubject);
+
   bool ShouldThrottleReport(
       const mozilla::dom::SecurityPolicyViolationEventInit&
           aViolationEventInit);

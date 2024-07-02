@@ -1829,10 +1829,11 @@ bool nsCSPPolicy::ShouldCreateViolationForNewTrustedTypesPolicy(
 }
 
 /*
- * Use this function only after ::allows() returned 'false'. Most and
- * foremost it's used to get the violated directive before sending reports.
- * The parameter aDirectiveName is the equivalent of 'outViolatedDirective'
- * for the ::permits() function family.
+ * Use this function only after ::allows() returned 'false' or if ensured by
+ * other means that the directive is violated. First and foremost it's used to
+ * get the violated directive before sending reports. The parameter
+ * aDirectiveName is the equivalent of 'outViolatedDirective' for the
+ * ::permits() function family.
  */
 void nsCSPPolicy::getViolatedDirectiveInformation(
     CSPDirective aDirective, nsAString& aDirectiveName,
