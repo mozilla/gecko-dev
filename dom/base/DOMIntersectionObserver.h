@@ -190,7 +190,14 @@ class DOMIntersectionObserver final : public nsISupports,
   // We keep a set and an array because we need ordered access, but also
   // constant time lookup.
   nsTArray<Element*> mObservationTargets;
-  nsTHashSet<Element*> mObservationTargetSet;
+
+  // Value can be:
+  //   -2:   Makes sure next calculated threshold always differs, leading to a
+  //         notification task being scheduled.
+  //   -1:   Non-intersecting.
+  //   >= 0: Intersecting, valid index of aObserver->mThresholds.
+  enum ObservationState : int32_t { Uninitialized = -2, NotIntersecting = -1 };
+  nsTHashMap<Element*, int32_t> mObservationTargetMap;
 
   nsTArray<RefPtr<DOMIntersectionObserverEntry>> mQueuedEntries;
   bool mConnected = false;

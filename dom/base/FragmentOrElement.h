@@ -74,6 +74,7 @@ class nsNodeSupportsWeakRefTearoff final : public nsISupportsWeakReference {
  */
 namespace mozilla::dom {
 
+class DOMIntersectionObserver;
 class ShadowRoot;
 
 class FragmentOrElement : public nsIContent {
@@ -258,8 +259,17 @@ class FragmentOrElement : public nsIContent {
     bool mTemporarilyVisibleForScrolledIntoViewDescendant = false;
 
     /**
+     * The .dataset attribute.
+     * @see nsGenericHTMLElement::GetDataset
+     */
+    nsDOMStringMap* MOZ_UNSAFE_REF("ClearDataSet clears it") mDataset = nullptr;
+
+    /** An object implementing the .part property for this element. */
+    RefPtr<nsDOMTokenList> mPart;
+
+    /**
      * Explicitly set attr-elements, see
-     * https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#explicitly-set-attr-element
+     * https://html.spec.whatwg.org/#explicitly-set-attr-element
      */
     nsTHashMap<RefPtr<nsAtom>, nsWeakPtr> mExplicitlySetAttrElements;
   };
@@ -282,12 +292,6 @@ class FragmentOrElement : public nsIContent {
     nsCOMPtr<nsICSSDeclaration> mStyle;
 
     /**
-     * The .dataset attribute.
-     * @see nsGenericHTMLElement::GetDataset
-     */
-    nsDOMStringMap* mDataset;  // [Weak]
-
-    /**
      * @see Element::Attributes
      */
     RefPtr<nsDOMAttributeMap> mAttributeMap;
@@ -301,11 +305,6 @@ class FragmentOrElement : public nsIContent {
      * An object implementing the .classList property for this element.
      */
     RefPtr<nsDOMTokenList> mClassList;
-
-    /**
-     * An object implementing the .part property for this element.
-     */
-    RefPtr<nsDOMTokenList> mPart;
   };
 
   /**

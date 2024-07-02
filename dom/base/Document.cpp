@@ -17338,16 +17338,6 @@ bool Document::IsExtensionPage() const {
   return BasePrincipal::Cast(NodePrincipal())->AddonPolicy();
 }
 
-void Document::AddResizeObserver(ResizeObserver& aObserver) {
-  MOZ_ASSERT(!mResizeObservers.Contains(&aObserver));
-  mResizeObservers.AppendElement(&aObserver);
-}
-
-void Document::RemoveResizeObserver(ResizeObserver& aObserver) {
-  MOZ_ASSERT(mResizeObservers.Contains(&aObserver));
-  mResizeObservers.RemoveElement(&aObserver);
-}
-
 PermissionDelegateHandler* Document::GetPermissionDelegateHandler() {
   if (!mPermissionDelegateHandler) {
     mPermissionDelegateHandler = MakeAndAddRef<PermissionDelegateHandler>(this);

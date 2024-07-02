@@ -3704,16 +3704,15 @@ class Document : public nsINode,
            GetDocGroup() == GetInProcessParentDocument()->GetDocGroup();
   }
 
-  void AddIntersectionObserver(DOMIntersectionObserver* aObserver) {
-    MOZ_ASSERT(!mIntersectionObservers.Contains(aObserver),
+  void AddIntersectionObserver(DOMIntersectionObserver& aObserver) {
+    MOZ_ASSERT(!mIntersectionObservers.Contains(&aObserver),
                "Intersection observer already in the list");
-    mIntersectionObservers.Insert(aObserver);
+    mIntersectionObservers.AppendElement(&aObserver);
   }
-
-  void RemoveIntersectionObserver(DOMIntersectionObserver* aObserver) {
-    mIntersectionObservers.Remove(aObserver);
+  void RemoveIntersectionObserver(DOMIntersectionObserver& aObserver) {
+    MOZ_ASSERT(mIntersectionObservers.Contains(&aObserver));
+    mIntersectionObservers.RemoveElement(&aObserver);
   }
-
   bool HasIntersectionObservers() const {
     return !mIntersectionObservers.IsEmpty();
   }
@@ -3745,10 +3744,17 @@ class Document : public nsINode,
   bool IsScriptTracking(JSContext* aCx) const;
 
   // ResizeObserver usage.
-  void AddResizeObserver(ResizeObserver&);
-  void RemoveResizeObserver(ResizeObserver&);
-  void ScheduleResizeObserversNotification() const;
+  void AddResizeObserver(ResizeObserver& aObserver) {
+    MOZ_ASSERT(!mResizeObservers.Contains(&aObserver));
+    mResizeObservers.AppendElement(&aObserver);
+  }
+  void RemoveResizeObserver(ResizeObserver& aObserver) {
+    MOZ_ASSERT(mResizeObservers.Contains(&aObserver));
+    mResizeObservers.RemoveElement(&aObserver);
+  }
   bool HasResizeObservers() const { return !mResizeObservers.IsEmpty(); }
+
+  void ScheduleResizeObserversNotification() const;
   /**
    * Calls GatherActiveObservations(aDepth) for all ResizeObservers.
    * All observations in each ResizeObserver with element's depth more than
@@ -5185,10 +5191,9 @@ class Document : public nsINode,
   // is a weak reference to avoid leaks due to circular references.
   nsWeakPtr mScopeObject;
 
-  // Array of intersection observers
-  nsTHashSet<DOMIntersectionObserver*> mIntersectionObservers;
-
-  // Array of resize observers
+  // Array of intersection observers with active observations.
+  nsTArray<DOMIntersectionObserver*> mIntersectionObservers;
+  // Array of resize observers with active observations.
   nsTArray<ResizeObserver*> mResizeObservers;
 
   RefPtr<DOMIntersectionObserver> mLazyLoadObserver;

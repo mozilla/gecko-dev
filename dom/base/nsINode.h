@@ -1369,6 +1369,23 @@ class nsINode : public mozilla::dom::EventTarget {
    */
   virtual nsresult Clone(mozilla::dom::NodeInfo*, nsINode** aResult) const = 0;
 
+  // A callback that gets called when we are forcefully unbound from a node (due
+  // to the node going away). You shouldn't take a strong ref to the node from
+  // the callback.
+  using UnbindCallback = void (*)(nsISupports*, nsINode*);
+  // We should keep alive these objects.
+  struct BoundObject {
+    nsCOMPtr<nsISupports> mObject;
+    UnbindCallback mDtor = nullptr;
+
+    BoundObject(nsISupports* aObject, UnbindCallback aDtor)
+        : mObject(aObject), mDtor(aDtor) {}
+
+    bool operator==(nsISupports* aOther) const {
+      return mObject.get() == aOther;
+    }
+  };
+
   // This class can be extended by subclasses that wish to store more
   // information in the slots.
   class nsSlots {
@@ -1399,6 +1416,9 @@ class nsINode : public mozilla::dom::EventTarget {
      * nsNodeWeakReference.
      */
     nsNodeWeakReference* MOZ_NON_OWNING_REF mWeakReference;
+
+    /** A list of objects that we should keep alive. See Bind/UnbindObject. */
+    nsTArray<BoundObject> mBoundObjects;
 
     /**
      * A set of ranges which are in the selection and which have this node as
@@ -2151,10 +2171,11 @@ class nsINode : public mozilla::dom::EventTarget {
   void ClearSubtreeRootPointer() { mSubtreeRoot = nullptr; }
 
  public:
-  // Makes nsINode object to keep aObject alive.
-  void BindObject(nsISupports* aObject);
-  // After calling UnbindObject nsINode object doesn't keep
-  // aObject alive anymore.
+  // Makes nsINode object keep aObject alive. If a callback is provided, it's
+  // called before deleting the node.
+  void BindObject(nsISupports* aObject, UnbindCallback = nullptr);
+  // After calling UnbindObject nsINode, object doesn't keep aObject alive
+  // anymore.
   void UnbindObject(nsISupports* aObject);
 
   void GenerateXPath(nsAString& aResult);

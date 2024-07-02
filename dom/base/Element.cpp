@@ -605,22 +605,18 @@ void Element::ClearStyleStateLocks() {
 nsINode* Element::GetScopeChainParent() const { return OwnerDoc(); }
 
 nsDOMTokenList* Element::ClassList() {
-  Element::nsDOMSlots* slots = DOMSlots();
-
+  nsDOMSlots* slots = DOMSlots();
   if (!slots->mClassList) {
     slots->mClassList = new nsDOMTokenList(this, nsGkAtoms::_class);
   }
-
   return slots->mClassList;
 }
 
 nsDOMTokenList* Element::Part() {
-  Element::nsDOMSlots* slots = DOMSlots();
-
+  nsExtendedDOMSlots* slots = ExtendedDOMSlots();
   if (!slots->mPart) {
     slots->mPart = new nsDOMTokenList(this, nsGkAtoms::part);
   }
-
   return slots->mPart;
 }
 
@@ -4279,93 +4275,20 @@ ReferrerPolicy Element::ReferrerPolicyFromAttr(
 }
 
 already_AddRefed<nsDOMStringMap> Element::Dataset() {
-  nsDOMSlots* slots = DOMSlots();
-
+  nsExtendedDOMSlots* slots = ExtendedDOMSlots();
   if (!slots->mDataset) {
     // mDataset is a weak reference so assignment will not AddRef.
     // AddRef is called before returning the pointer.
     slots->mDataset = new nsDOMStringMap(this);
   }
-
-  RefPtr<nsDOMStringMap> ret = slots->mDataset;
-  return ret.forget();
+  return do_AddRef(slots->mDataset);
 }
 
 void Element::ClearDataset() {
-  nsDOMSlots* slots = GetExistingDOMSlots();
-
+  nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots();
   MOZ_ASSERT(slots && slots->mDataset,
              "Slots should exist and dataset should not be null.");
   slots->mDataset = nullptr;
-}
-
-enum nsPreviousIntersectionThreshold {
-  eUninitialized = -2,
-  eNonIntersecting = -1
-};
-
-static void IntersectionObserverPropertyDtor(void* aObject,
-                                             nsAtom* aPropertyName,
-                                             void* aPropertyValue,
-                                             void* aData) {
-  auto* element = static_cast<Element*>(aObject);
-  auto* observers = static_cast<IntersectionObserverList*>(aPropertyValue);
-  for (DOMIntersectionObserver* observer : observers->Keys()) {
-    observer->UnlinkTarget(*element);
-  }
-  delete observers;
-}
-
-void Element::RegisterIntersectionObserver(DOMIntersectionObserver* aObserver) {
-  IntersectionObserverList* observers = static_cast<IntersectionObserverList*>(
-      GetProperty(nsGkAtoms::intersectionobserverlist));
-
-  if (!observers) {
-    observers = new IntersectionObserverList();
-    observers->InsertOrUpdate(aObserver, eUninitialized);
-    SetProperty(nsGkAtoms::intersectionobserverlist, observers,
-                IntersectionObserverPropertyDtor, /* aTransfer = */ true);
-    return;
-  }
-
-  // Value can be:
-  //   -2:   Makes sure next calculated threshold always differs, leading to a
-  //         notification task being scheduled.
-  //   -1:   Non-intersecting.
-  //   >= 0: Intersecting, valid index of aObserver->mThresholds.
-  observers->LookupOrInsert(aObserver, eUninitialized);
-}
-
-void Element::UnregisterIntersectionObserver(
-    DOMIntersectionObserver* aObserver) {
-  auto* observers = static_cast<IntersectionObserverList*>(
-      GetProperty(nsGkAtoms::intersectionobserverlist));
-  if (observers) {
-    observers->Remove(aObserver);
-    if (observers->IsEmpty()) {
-      RemoveProperty(nsGkAtoms::intersectionobserverlist);
-    }
-  }
-}
-
-void Element::UnlinkIntersectionObservers() {
-  // IntersectionObserverPropertyDtor takes care of the hard work.
-  RemoveProperty(nsGkAtoms::intersectionobserverlist);
-}
-
-bool Element::UpdateIntersectionObservation(DOMIntersectionObserver* aObserver,
-                                            int32_t aThreshold) {
-  auto* observers = static_cast<IntersectionObserverList*>(
-      GetProperty(nsGkAtoms::intersectionobserverlist));
-  if (!observers) {
-    return false;
-  }
-  bool updated = false;
-  if (auto entry = observers->Lookup(aObserver)) {
-    updated = entry.Data() != aThreshold;
-    entry.Data() = aThreshold;
-  }
-  return updated;
 }
 
 template <class T>

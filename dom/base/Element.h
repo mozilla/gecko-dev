@@ -144,8 +144,6 @@ template <typename T>
 class Optional;
 enum class CallerType : uint32_t;
 enum class ReferrerPolicy : uint8_t;
-typedef nsTHashMap<nsRefPtrHashKey<DOMIntersectionObserver>, int32_t>
-    IntersectionObserverList;
 }  // namespace dom
 }  // namespace mozilla
 
@@ -1821,12 +1819,6 @@ class Element : public FragmentOrElement {
   // Callback for destructor of dataset to ensure to null out our weak pointer
   // to it.
   void ClearDataset();
-
-  void RegisterIntersectionObserver(DOMIntersectionObserver* aObserver);
-  void UnregisterIntersectionObserver(DOMIntersectionObserver* aObserver);
-  void UnlinkIntersectionObservers();
-  bool UpdateIntersectionObservation(DOMIntersectionObserver* aObserver,
-                                     int32_t threshold);
 
   // A number of methods to cast to various XUL interfaces. They return a
   // pointer only if the element implements that interface.

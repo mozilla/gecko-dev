@@ -204,13 +204,28 @@ nsINode::nsSlots::~nsSlots() {
 void nsINode::nsSlots::Traverse(nsCycleCollectionTraversalCallback& cb) {
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mSlots->mChildNodes");
   cb.NoteXPCOMChild(mChildNodes);
+  for (auto& object : mBoundObjects) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mSlots->mBoundObjects[i]");
+    cb.NoteXPCOMChild(object.mObject);
+  }
 }
 
-void nsINode::nsSlots::Unlink(nsINode&) {
+static void ClearBoundObjects(nsINode::nsSlots& aSlots, nsINode& aNode) {
+  auto objects = std::move(aSlots.mBoundObjects);
+  for (auto& object : objects) {
+    if (object.mDtor) {
+      object.mDtor(object.mObject, &aNode);
+    }
+  }
+  MOZ_ASSERT(aSlots.mBoundObjects.IsEmpty());
+}
+
+void nsINode::nsSlots::Unlink(nsINode& aNode) {
   if (mChildNodes) {
     mChildNodes->InvalidateCacheIfAvailable();
     ImplCycleCollectionUnlink(mChildNodes);
   }
+  ClearBoundObjects(*this, aNode);
 }
 
 //----------------------------------------------------------------------
@@ -714,7 +729,7 @@ void nsINode::LastRelease() {
         iter->NodeWillBeDestroyed(this);
       }
     }
-
+    ClearBoundObjects(*slots, *this);
     if (IsContent()) {
       nsIContent* content = AsContent();
       if (HTMLSlotElement* slot = content->GetManualSlotAssignment()) {
@@ -1503,22 +1518,13 @@ bool nsINode::Traverse(nsINode* tmp, nsCycleCollectionTraversalCallback& cb) {
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNextSibling)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_RAWPTR(GetParent())
 
-  nsSlots* slots = tmp->GetExistingSlots();
-  if (slots) {
+  if (nsSlots* slots = tmp->GetExistingSlots()) {
     slots->Traverse(cb);
   }
 
   if (tmp->HasProperties()) {
-    nsCOMArray<nsISupports>* objects = static_cast<nsCOMArray<nsISupports>*>(
-        tmp->GetProperty(nsGkAtoms::keepobjectsalive));
-    if (objects) {
-      for (int32_t i = 0; i < objects->Count(); ++i) {
-        cb.NoteXPCOMChild(objects->ObjectAt(i));
-      }
-    }
-
 #ifdef ACCESSIBILITY
-    AccessibleNode* anode = static_cast<AccessibleNode*>(
+    auto* anode = static_cast<AccessibleNode*>(
         tmp->GetProperty(nsGkAtoms::accessiblenode));
     if (anode) {
       cb.NoteXPCOMChild(anode);
@@ -1549,7 +1555,6 @@ void nsINode::Unlink(nsINode* tmp) {
   }
 
   if (tmp->HasProperties()) {
-    tmp->RemoveProperty(nsGkAtoms::keepobjectsalive);
     tmp->RemoveProperty(nsGkAtoms::accessiblenode);
   }
 }
@@ -2929,22 +2934,13 @@ nsINode* nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
   return result;
 }
 
-void nsINode::BindObject(nsISupports* aObject) {
-  nsCOMArray<nsISupports>* objects = static_cast<nsCOMArray<nsISupports>*>(
-      GetProperty(nsGkAtoms::keepobjectsalive));
-  if (!objects) {
-    objects = new nsCOMArray<nsISupports>();
-    SetProperty(nsGkAtoms::keepobjectsalive, objects,
-                nsINode::DeleteProperty<nsCOMArray<nsISupports>>, true);
-  }
-  objects->AppendObject(aObject);
+void nsINode::BindObject(nsISupports* aObject, UnbindCallback aDtor) {
+  Slots()->mBoundObjects.EmplaceBack(aObject, aDtor);
 }
 
 void nsINode::UnbindObject(nsISupports* aObject) {
-  nsCOMArray<nsISupports>* objects = static_cast<nsCOMArray<nsISupports>*>(
-      GetProperty(nsGkAtoms::keepobjectsalive));
-  if (objects) {
-    objects->RemoveObject(aObject);
+  if (auto* slots = GetExistingSlots()) {
+    slots->mBoundObjects.RemoveElement(aObject);
   }
 }
 
