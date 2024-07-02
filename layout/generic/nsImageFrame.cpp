@@ -1470,19 +1470,14 @@ nscoord nsImageFrame::GetMinISize(gfxContext* aRenderingContext) {
   // XXX The caller doesn't account for constraints of the block-size,
   // min-block-size, and max-block-size properties.
   EnsureIntrinsicSizeAndRatio();
-  const auto& iSize = GetWritingMode().IsVertical() ? mIntrinsicSize.height
-                                                    : mIntrinsicSize.width;
-  return iSize.valueOr(0);
+  return mIntrinsicSize.ISize(GetWritingMode()).valueOr(0);
 }
 
 nscoord nsImageFrame::GetPrefISize(gfxContext* aRenderingContext) {
   // XXX The caller doesn't account for constraints of the block-size,
   // min-block-size, and max-block-size properties.
   EnsureIntrinsicSizeAndRatio();
-  const auto& iSize = GetWritingMode().IsVertical() ? mIntrinsicSize.height
-                                                    : mIntrinsicSize.width;
-  // convert from normal twips to scaled twips (printing...)
-  return iSize.valueOr(0);
+  return mIntrinsicSize.ISize(GetWritingMode()).valueOr(0);
 }
 
 void nsImageFrame::ReflowChildren(nsPresContext* aPresContext,

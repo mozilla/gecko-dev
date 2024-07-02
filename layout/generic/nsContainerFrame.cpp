@@ -2245,17 +2245,14 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
   Stretch stretchB = eNoStretch;  // stretch behavior in the block axis
 
   const bool isOrthogonal = aWM.IsOrthogonalTo(parentFrame->GetWritingMode());
-  const bool isVertical = aWM.IsVertical();
   const LogicalSize fallbackIntrinsicSize(aWM, kFallbackIntrinsicSize);
-  const auto& isizeCoord =
-      isVertical ? aIntrinsicSize.height : aIntrinsicSize.width;
-  const bool hasIntrinsicISize = isizeCoord.isSome();
-  nscoord intrinsicISize = std::max(0, isizeCoord.valueOr(0));
+  const Maybe<nscoord>& maybeIntrinsicISize = aIntrinsicSize.ISize(aWM);
+  const bool hasIntrinsicISize = maybeIntrinsicISize.isSome();
+  nscoord intrinsicISize = std::max(0, maybeIntrinsicISize.valueOr(0));
 
-  const auto& bsizeCoord =
-      isVertical ? aIntrinsicSize.width : aIntrinsicSize.height;
-  const bool hasIntrinsicBSize = bsizeCoord.isSome();
-  nscoord intrinsicBSize = std::max(0, bsizeCoord.valueOr(0));
+  const auto& maybeIntrinsicBSize = aIntrinsicSize.BSize(aWM);
+  const bool hasIntrinsicBSize = maybeIntrinsicBSize.isSome();
+  nscoord intrinsicBSize = std::max(0, maybeIntrinsicBSize.valueOr(0));
 
   if (!isAutoOrMaxContentISize) {
     iSize = ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,

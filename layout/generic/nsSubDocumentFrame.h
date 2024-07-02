@@ -157,20 +157,14 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   bool IsInline() const { return mIsInline; }
 
   nscoord GetIntrinsicBSize() {
-    auto size = GetIntrinsicSize();
-    Maybe<nscoord> bSize =
-        GetWritingMode().IsVertical() ? size.width : size.height;
-    return bSize.valueOr(0);
+    return GetIntrinsicSize().BSize(GetWritingMode()).valueOr(0);
   }
 
   nscoord GetIntrinsicISize() {
     if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
       return *containISize;
     }
-    auto size = GetIntrinsicSize();
-    Maybe<nscoord> iSize =
-        GetWritingMode().IsVertical() ? size.height : size.width;
-    return iSize.valueOr(0);
+    return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);
   }
 
   // Show our document viewer. The document viewer is hidden via a script
