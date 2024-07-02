@@ -169,6 +169,11 @@ async function updateZoomUI(aBrowser, aAnimate = false) {
   let label = win.gNavigatorBundle.getFormattedString("zoom-button.label", [
     zoomFactor,
   ]);
+  let accessibilityLabel = win.gNavigatorBundle.getFormattedString(
+    "zoom-button.aria-label",
+    [zoomFactor]
+  );
+
   if (appMenuZoomReset) {
     appMenuZoomReset.setAttribute("label", label);
   }
@@ -182,6 +187,7 @@ async function updateZoomUI(aBrowser, aAnimate = false) {
       urlbarZoomButton.removeAttribute("animate");
     }
     urlbarZoomButton.setAttribute("label", label);
+    urlbarZoomButton.setAttribute("aria-label", accessibilityLabel);
   }
 
   win.FullZoom.updateCommands();
