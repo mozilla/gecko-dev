@@ -11,7 +11,9 @@ ChromeUtils.defineESModuleGetters(this, {
 
 let delayedStartupTimeoutId = null;
 
-function OpenBrowserWindowFromDockMenu(options) {
+function OpenBrowserWindowFromDockMenu(options = {}) {
+  let existingWindow = BrowserWindowTracker.getTopWindow();
+  options.openerWindow = existingWindow || window;
   let win = OpenBrowserWindow(options);
   win.addEventListener(
     "load",

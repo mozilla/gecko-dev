@@ -17,6 +17,9 @@ support-files = ["head.js"]
 
 ["browser_sidebar_context_menu.js"]
 
+["browser_sidebar_macmenu.js"]
+run-if = ["os == 'mac'"] # Mac only feature
+
 ["browser_sidebar_max_width.js"]
 
 ["browser_sidebar_panel_header.js"]
