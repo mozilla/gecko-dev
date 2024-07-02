@@ -77,9 +77,7 @@ class TextControlElement : public nsGenericHTMLFormControlElementWithState {
    * @return the number of columns to use
    */
   virtual Maybe<int32_t> GetCols() = 0;
-  int32_t GetColsOrDefault() {
-    return GetCols().valueOr(DEFAULT_COLS);
-  }
+  int32_t GetColsOrDefault() { return GetCols().valueOr(DEFAULT_COLS); }
 
   /**
    * Get the column index to wrap at, or -1 if we shouldn't wrap
