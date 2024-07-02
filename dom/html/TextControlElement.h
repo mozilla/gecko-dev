@@ -217,10 +217,10 @@ class TextControlElement : public nsGenericHTMLFormControlElementWithState {
   MOZ_CAN_RUN_SCRIPT virtual nsresult SetValueFromSetRangeText(
       const nsAString& aValue) = 0;
 
-  static const int32_t DEFAULT_COLS = 20;
-  static const int32_t DEFAULT_ROWS = 1;
-  static const int32_t DEFAULT_ROWS_TEXTAREA = 2;
-  static const int32_t DEFAULT_UNDO_CAP = 1000;
+  inline static constexpr int32_t DEFAULT_COLS = 20;
+  inline static constexpr int32_t DEFAULT_ROWS = 1;
+  inline static constexpr int32_t DEFAULT_ROWS_TEXTAREA = 2;
+  inline static constexpr int32_t DEFAULT_UNDO_CAP = 1000;
 
   // wrap can be one of these three values.
   typedef enum {
