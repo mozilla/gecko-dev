@@ -29,6 +29,12 @@ const shellStub = sinon
   .stub(ShellService, "shellService")
   .value({ setDefaultBrowser: setDefaultStub });
 
+const sendTriggerStub = sinon.stub(ASRouter, "sendTriggerMessage");
+const maybeShowSpy = sinon.spy(
+  ShellService,
+  "_maybeShowSetDefaultGuidanceNotification"
+);
+
 registerCleanupFunction(() => {
   defaultAgentStub.restore();
   _userChoiceImpossibleTelemetryResultStub.restore();
@@ -149,18 +155,15 @@ add_task(async function ensure_fallback() {
 });
 
 async function setUpNotificationTests(guidanceEnabled, oneClick) {
-  const sandbox = sinon.createSandbox();
-  const sendTriggerStub = sandbox.stub(ASRouter, "sendTriggerMessage");
-  const maybeShowSpy = sandbox.spy(
-    ShellService,
-    "_maybeShowSetDefaultGuidanceNotification"
-  );
+  setDefaultStub.resetHistory();
+  sendTriggerStub.resetHistory();
+
   const doCleanup = await ExperimentFakes.enrollWithFeatureConfig(
     {
       featureId: NimbusFeatures.shellService.featureId,
       value: {
-        setDefaultBrowserUserChoice: false,
         setDefaultGuidanceNotifications: guidanceEnabled,
+        setDefaultBrowserUserChoice: oneClick,
         setDefaultBrowserUserChoiceRegRename: oneClick,
         enabled: true,
       },
@@ -169,76 +172,78 @@ async function setUpNotificationTests(guidanceEnabled, oneClick) {
   );
 
   await ShellService.setDefaultBrowser();
-  // We don't await the return of _maybeShowSetDefaultGuidanceNotification when setting the default browser, so ensure it's been called before proceeding.
-  await TestUtils.waitForCondition(() => maybeShowSpy.callCount);
-  return { doCleanup, sandbox, sendTriggerStub };
+  return doCleanup;
 }
 
 add_task(
   async function show_notification_when_set_to_default_guidance_enabled_and_one_click_disabled() {
-    if (AppConstants.isPlatformAndVersionAtLeast("win", 10)) {
-      info("Nothing to test on non-Windows");
+    if (!AppConstants.isPlatformAndVersionAtLeast("win", 10)) {
+      info("Nothing to test on non-Windows or older Windows versions");
       return;
     }
-
-    let { doCleanup, sandbox, sendTriggerStub } = await setUpNotificationTests(
+    let doCleanup = await setUpNotificationTests(
       true, // guidance enabled
       false // one-click disabled
     );
 
+    Assert.ok(setDefaultStub.called, "Fallback method used to set default");
+
     Assert.equal(
       sendTriggerStub.firstCall.args[0].id,
       "deeplinkedToWindowsSettingsUI",
-      `Set to default guidance message trigger was sent.`
+      `Set to default guidance message trigger was sent`
     );
 
-    sandbox.restore();
+    sinon.restore();
     await doCleanup();
   }
 );
 
 add_task(
   async function do_not_show_notification_when_set_to_default_guidance_disabled_and_one_click_enabled() {
-    if (AppConstants.isPlatformAndVersionAtLeast("win", 10)) {
-      info("Nothing to test on non-Windows");
+    if (!AppConstants.isPlatformAndVersionAtLeast("win", 10)) {
+      info("Nothing to test on non-Windows or older Windows versions");
       return;
     }
 
-    let { doCleanup, sandbox, sendTriggerStub } = await setUpNotificationTests(
+    let doCleanup = await setUpNotificationTests(
       false, // guidance disabled
       true // one-click enabled
     );
 
+    Assert.ok(setDefaultStub.notCalled, "Fallback method not called");
+
     Assert.equal(
       sendTriggerStub.callCount,
       0,
-      `Set to default guidance message trigger was not sent.`
+      `Set to default guidance message trigger was not sent`
     );
 
-    sandbox.restore();
+    sinon.restore();
     await doCleanup();
   }
 );
 
 add_task(
   async function do_not_show_notification_when_set_to_default_guidance_enabled_and_one_click_enabled() {
-    if (AppConstants.isPlatformAndVersionAtLeast("win", 10)) {
-      info("Nothing to test on non-Windows");
+    if (!AppConstants.isPlatformAndVersionAtLeast("win", 10)) {
+      info("Nothing to test on non-Windows or older Windows versions");
       return;
     }
 
-    let { doCleanup, sandbox, sendTriggerStub } = await setUpNotificationTests(
+    let doCleanup = await setUpNotificationTests(
       true, // guidance enabled
       true // one-click enabled
     );
 
+    Assert.ok(setDefaultStub.notCalled, "Fallback method not called");
     Assert.equal(
       sendTriggerStub.callCount,
       0,
-      `Set to default guidance message trigger was not sent.`
+      `Set to default guidance message trigger was not sent`
     );
 
-    sandbox.restore();
+    sinon.restore();
     await doCleanup();
   }
 );
