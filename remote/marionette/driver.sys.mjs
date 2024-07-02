@@ -2870,9 +2870,9 @@ GeckoDriver.prototype._handleUserPrompts = async function () {
   }
 
   const userPromptHandler = this.currentSession.userPromptHandler;
-  const handler = userPromptHandler.getPromptHandler(type);
+  const handlerConfig = userPromptHandler.getPromptHandler(type);
 
-  switch (handler.handler) {
+  switch (handlerConfig.handler) {
     case lazy.PromptHandlers.Accept:
       await this.acceptDialog();
       break;
@@ -2883,9 +2883,9 @@ GeckoDriver.prototype._handleUserPrompts = async function () {
       break;
   }
 
-  if (handler.notify) {
+  if (handlerConfig.notify) {
     throw new lazy.error.UnexpectedAlertOpenError(
-      `Unexpected ${promptType} dialog detected. Performed handler "${handler.handler}"`,
+      `Unexpected ${promptType} dialog detected. Performed handler "${handlerConfig.handler}"`,
       {
         text: textContent,
       }

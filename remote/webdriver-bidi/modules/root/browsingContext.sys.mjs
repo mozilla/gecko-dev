@@ -17,6 +17,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   EventPromise: "chrome://remote/content/shared/Sync.sys.mjs",
   getTimeoutMultiplier: "chrome://remote/content/shared/AppInfo.sys.mjs",
+  getWebDriverSessionById:
+    "chrome://remote/content/shared/webdriver/Session.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   modal: "chrome://remote/content/shared/Prompt.sys.mjs",
   registerNavigationId:
@@ -1884,10 +1886,11 @@ class BrowsingContextModule extends Module {
   #onPromptOpened = async (eventName, data) => {
     if (this.#subscribedEvents.has("browsingContext.userPromptOpened")) {
       const { contentBrowser, prompt } = data;
+      const type = prompt.promptType;
 
       // Do not send opened event for unsupported prompt types.
-      if (!(prompt.promptType in UserPromptType)) {
-        lazy.logger.trace(`Prompt type "${prompt.promptType}" not supported`);
+      if (!(type in UserPromptType)) {
+        lazy.logger.trace(`Prompt type "${type}" not supported`);
         return;
       }
 
@@ -1900,11 +1903,16 @@ class BrowsingContextModule extends Module {
         type: lazy.WindowGlobalMessageHandler.type,
       };
 
-      const type = prompt.promptType;
+      const session = lazy.getWebDriverSessionById(
+        this.messageHandler.sessionId
+      );
+      const handlerConfig = session.userPromptHandler.getPromptHandler(type);
+
       const eventPayload = {
         context: contextId,
-        type,
+        handler: handlerConfig.handler,
         message: await prompt.getText(),
+        type,
       };
 
       if (type === "prompt") {
