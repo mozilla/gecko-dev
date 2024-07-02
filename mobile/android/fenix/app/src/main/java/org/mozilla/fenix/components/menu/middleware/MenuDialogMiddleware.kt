@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.ext.getUrl
+import mozilla.components.concept.engine.webextension.InstallationMethod
 import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
@@ -75,6 +76,7 @@ class MenuDialogMiddleware(
             is MenuAction.AddShortcut -> addShortcut(context.store)
             is MenuAction.RemoveShortcut -> removeShortcut(context.store)
             is MenuAction.DeleteBrowsingDataAndQuit -> deleteBrowsingDataAndQuit()
+            is MenuAction.InstallAddon -> installAddon(action.addon)
             else -> Unit
         }
 
@@ -212,6 +214,18 @@ class MenuDialogMiddleware(
 
     private fun deleteBrowsingDataAndQuit() = scope.launch {
         onDeleteAndQuit()
+    }
+
+    private fun installAddon(
+        addon: Addon,
+    ) = scope.launch {
+        addonManager.installAddon(
+            url = addon.downloadUrl,
+            installationMethod = InstallationMethod.MANAGER,
+            onError = { e ->
+                logger.error("Failed to install addon", e)
+            },
+        )
     }
 
     companion object {

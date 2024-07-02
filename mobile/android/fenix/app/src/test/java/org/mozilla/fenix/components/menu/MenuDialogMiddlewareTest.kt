@@ -6,6 +6,7 @@ package org.mozilla.fenix.components.menu
 
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.state.createTab
+import mozilla.components.concept.engine.webextension.InstallationMethod
 import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
@@ -13,6 +14,7 @@ import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesUseCases
 import mozilla.components.support.test.any
+import mozilla.components.support.test.eq
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -526,6 +528,24 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(onDeleteAndQuit).invoke()
+    }
+
+    @Test
+    fun `WHEN install addon action is dispatched THEN addon is installed`() = runTestOnMain {
+        whenever(addonManager.getAddons()).thenReturn(emptyList())
+
+        val addon = Addon(id = "ext1", downloadUrl = "downloadUrl")
+        val store = createStore()
+
+        store.dispatch(MenuAction.InstallAddon(addon))
+        store.waitUntilIdle()
+
+        verify(addonManager).installAddon(
+            url = eq(addon.downloadUrl),
+            installationMethod = eq(InstallationMethod.MANAGER),
+            onSuccess = any(),
+            onError = any(),
+        )
     }
 
     private fun createStore(
