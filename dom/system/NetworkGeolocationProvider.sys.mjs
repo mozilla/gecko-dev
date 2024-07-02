@@ -136,16 +136,14 @@ var gDebugCacheReasoning = ""; // for logging the caching logic
 // inputs, so base the decision on that.
 function isCachedRequestMoreAccurateThanServerRequest(newCell, newWifiList) {
   gDebugCacheReasoning = "";
-  let isNetworkRequestCacheEnabled = true;
-  try {
-    // Mochitest needs this pref to simulate request failure
-    isNetworkRequestCacheEnabled = Services.prefs.getBoolPref(
-      "geo.provider.network.debug.requestCache.enabled"
-    );
-    if (!isNetworkRequestCacheEnabled) {
-      gCachedRequest = null;
-    }
-  } catch (e) {}
+  let isNetworkRequestCacheEnabled = Services.prefs.getBoolPref(
+    "geo.provider.network.debug.requestCache.enabled",
+    true
+  );
+  // Mochitest needs this pref to simulate request failure
+  if (!isNetworkRequestCacheEnabled) {
+    gCachedRequest = null;
+  }
 
   if (!gCachedRequest || !isNetworkRequestCacheEnabled) {
     gDebugCacheReasoning = "No cached data";
@@ -351,7 +349,7 @@ NetworkGeolocationProvider.prototype = {
 
   setHighAccuracy(enable) {
     // Mochitest wants to check this value
-    if (Services.prefs.getBoolPref("geo.provider.testing")) {
+    if (Services.prefs.getBoolPref("geo.provider.testing", false)) {
       Services.obs.notifyObservers(
         null,
         "testing-geolocation-high-accuracy",
