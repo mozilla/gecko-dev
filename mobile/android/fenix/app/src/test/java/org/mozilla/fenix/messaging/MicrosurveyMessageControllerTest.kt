@@ -19,6 +19,10 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MessageClicked
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction.Completed
+import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction.Dismissed
+import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction.OnPrivacyNoticeTapped
+import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction.SentConfirmationShown
+import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction.Shown
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.SupportUtils
 
@@ -73,8 +77,9 @@ class MicrosurveyMessageControllerTest {
 
     @Test
     fun `GIVEN no utmContent WHEN calling onPrivacyPolicyLinkClicked THEN open the privacy URL in a new tab`() {
-        microsurveyMessageController.onPrivacyPolicyLinkClicked()
+        microsurveyMessageController.onPrivacyPolicyLinkClicked(message.id)
 
+        verify { appStore.dispatch(OnPrivacyNoticeTapped(message.id)) }
         verify {
             homeActivity.openToBrowserAndLoad(
                 searchTermOrURL = PRIVACY_POLICY_URL,
@@ -87,8 +92,23 @@ class MicrosurveyMessageControllerTest {
     @Test
     fun `WHEN calling onSurveyCompleted THEN update the app store with the SurveyCompleted action`() {
         val answer = "satisfied"
-        microsurveyMessageController.onSurveyCompleted(message, answer)
+        microsurveyMessageController.onSurveyCompleted(message.id, answer)
 
-        verify { appStore.dispatch(Completed(message, answer)) }
+        verify { appStore.dispatch(SentConfirmationShown(message.id)) }
+        verify { appStore.dispatch(Completed(message.id, answer)) }
+    }
+
+    @Test
+    fun `WHEN calling onMicrosurveyShown THEN update the app store with the Survey Shown action`() {
+        microsurveyMessageController.onMicrosurveyShown(message.id)
+
+        verify { appStore.dispatch(Shown(message.id)) }
+    }
+
+    @Test
+    fun `WHEN calling onMicrosurveyDismissed THEN update the app store with the Survey Dismissed action`() {
+        microsurveyMessageController.onMicrosurveyDismissed(message.id)
+
+        verify { appStore.dispatch(Dismissed(message.id)) }
     }
 }

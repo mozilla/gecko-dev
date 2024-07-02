@@ -1393,6 +1393,9 @@ abstract class BaseBrowserFragment :
                                         )
                                     },
                                     onCloseButtonClicked = {
+                                        context.components.appStore.dispatch(
+                                            MicrosurveyAction.Dismissed(it.id),
+                                        )
                                         context.settings().shouldShowMicrosurveyPrompt = false
                                         shouldShowMicrosurveyPrompt.value = false
                                     },
@@ -1555,6 +1558,9 @@ abstract class BaseBrowserFragment :
                                         )
                                     },
                                     onCloseButtonClicked = {
+                                        context.components.appStore.dispatch(
+                                            MicrosurveyAction.Dismissed(it.id),
+                                        )
                                         context.settings().shouldShowMicrosurveyPrompt = false
                                         shouldShowMicrosurveyPrompt.value = false
                                     },
