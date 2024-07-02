@@ -1361,10 +1361,20 @@ panelview .toolbarbutton-1 {
   min-width: 0;
 }
 
-.remotetabs-icon {
-  width: 20px;
-  margin-inline-end: 4px;
-  padding: 4px;
+.remote-tabs-close-button {
+  -moz-context-properties: fill;
+  fill: currentColor;
+  /* To match the nav elements in the panel */
+  opacity: 0.6;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.remote-tabs-undo-button {
+  font-size: 0.8em;
+  font-weight: var(--font-weight-bold);
 }
 
 #PanelUI-fxa-menu-account-settings-button > .toolbarbutton-icon {

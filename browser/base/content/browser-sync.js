@@ -276,12 +276,19 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
 
   _createSyncedTabElement(tabInfo, index, device, canCloseTabs) {
     let tabContainer = document.createXULElement("hbox");
-    tabContainer.setAttribute("class", "PanelUI-tabitem-container");
+    tabContainer.setAttribute(
+      "class",
+      "PanelUI-tabitem-container all-tabs-item"
+    );
 
     let item = document.createXULElement("toolbarbutton");
     let tooltipText = (tabInfo.title ? tabInfo.title + "\n" : "") + tabInfo.url;
     item.setAttribute("itemtype", "tab");
-    item.setAttribute("class", "subviewbutton");
+    item.classList.add(
+      "all-tabs-button",
+      "subviewbutton",
+      "subviewbutton-iconic"
+    );
     item.setAttribute("targetURI", tabInfo.url);
     item.setAttribute(
       "label",
@@ -315,12 +322,12 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
     // We should only add an X button next to tabs if the device
     // is broadcasting that it can remotely close tabs
     if (canCloseTabs) {
-      tabContainer.appendChild(
-        this._createCloseTabElement(tabInfo.url, device)
-      );
-      tabContainer.appendChild(
-        this._createUndoCloseTabElement(tabInfo.url, device)
-      );
+      let closeBtn = this._createCloseTabElement(tabInfo.url, device);
+      closeBtn.tab = item;
+      tabContainer.appendChild(closeBtn);
+      let undoBtn = this._createUndoCloseTabElement(tabInfo.url, device);
+      undoBtn.tab = item;
+      tabContainer.appendChild(undoBtn);
     }
     return tabContainer;
   }
@@ -378,18 +385,23 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
   }
 
   _createCloseTabElement(url, device) {
-    let closeBtn = document.createXULElement("image");
-    closeBtn.setAttribute("class", "close-icon remotetabs-icon");
+    let closeBtn = document.createXULElement("toolbarbutton");
+    closeBtn.classList.add(
+      "remote-tabs-close-button",
+      "all-tabs-close-button",
+      "subviewbutton"
+    );
+    closeBtn.setAttribute("closemenu", "none");
     closeBtn.addEventListener("click", e => {
       e.stopPropagation();
 
       let tabContainer = closeBtn.parentNode;
       let tabList = tabContainer.parentNode;
 
-      let undoBtn = tabContainer.querySelector(".undo-icon.remotetabs-icon");
+      let undoBtn = tabContainer.querySelector(".remote-tabs-undo-button");
 
       let prevClose = tabList.querySelector(
-        ".undo-icon.remotetabs-icon:not([hidden])"
+        ".remote-tabs-undo-button:not([hidden])"
       );
       if (prevClose) {
         let prevCloseContainer = prevClose.parentNode;
@@ -400,6 +412,11 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
       }
       closeBtn.hidden = true;
       undoBtn.hidden = false;
+      // This tab has been closed so we prevent the user from
+      // interacting with it
+      if (closeBtn.tab) {
+        closeBtn.tab.disabled = true;
+      }
       // The user could be hitting multiple tabs across multiple devices, with a few
       // seconds in-between -- we should not immediately fire off pushes, so we
       // add it to a queue and send in bulk at a later time
@@ -409,18 +426,21 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
   }
 
   _createUndoCloseTabElement(url, device) {
-    let undoBtn = document.createXULElement("image");
-    undoBtn.setAttribute("class", "undo-icon remotetabs-icon");
+    let undoBtn = document.createXULElement("toolbarbutton");
+    undoBtn.classList.add("remote-tabs-undo-button", "subviewbutton");
+    undoBtn.setAttribute("closemenu", "none");
+    undoBtn.setAttribute("data-l10n-id", "text-action-undo");
     undoBtn.hidden = true;
 
     undoBtn.addEventListener("click", function (e) {
       e.stopPropagation();
 
       undoBtn.hidden = true;
-      let closeBtn = undoBtn.parentNode.querySelector(
-        ".close-icon.remotetabs-icon"
-      );
+      let closeBtn = undoBtn.parentNode.querySelector(".all-tabs-close-button");
       closeBtn.hidden = false;
+      if (undoBtn.tab) {
+        undoBtn.tab.disabled = false;
+      }
 
       // remove this tab from being remotely closed
       SyncedTabsManagement.removePendingTabToClose(device.id, url);
