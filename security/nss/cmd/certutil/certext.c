@@ -280,6 +280,7 @@ parseNextCmdInput(const char *const *valueArray, int *value, char **nextPos,
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
+    *critical = PR_FALSE;
     thisPos = *nextPos;
     while (1) {
         if ((*nextPos = strchr(thisPos, ',')) == NULL) {
@@ -288,16 +289,10 @@ parseNextCmdInput(const char *const *valueArray, int *value, char **nextPos,
             keyLen = *nextPos - thisPos;
             *nextPos += 1;
         }
-        /* if critical keyword is found, go for another loop,
-         * but check, if it is the last keyword of
-         * the string.*/
+        /* if critical keyword is found, return without setting value */
         if (!strncmp("critical", thisPos, keyLen)) {
             *critical = PR_TRUE;
-            if (*nextPos == NULL) {
-                return SECSuccess;
-            }
-            thisPos = *nextPos;
-            continue;
+            return SECSuccess;
         }
         break;
     }
@@ -322,13 +317,35 @@ static const char *const
                                NULL };
 
 static SECStatus
+parseKeyUsage(const char *const *wordArray, const char *userSuppliedValue,
+              unsigned char *keyUsage, PRBool *isCriticalExt)
+{
+    int value = 0;
+    char *nextPos = (char *)userSuppliedValue;
+    PRBool readCriticalToken;
+    while (1) {
+        if (parseNextCmdInput(wordArray, &value, &nextPos,
+                              &readCriticalToken) == SECFailure) {
+            return SECFailure;
+        }
+        if (readCriticalToken == PR_TRUE) {
+            *isCriticalExt = PR_TRUE;
+        } else {
+            *keyUsage |= (0x80 >> value);
+        }
+        if (!nextPos)
+            break;
+    }
+    return SECSuccess;
+}
+
+static SECStatus
 AddKeyUsage(void *extHandle, const char *userSuppliedValue)
 {
     SECItem bitStringValue;
     unsigned char keyUsage = 0x0;
     char buffer[5];
     int value;
-    char *nextPos = (char *)userSuppliedValue;
     PRBool isCriticalExt = PR_FALSE;
 
     if (!userSuppliedValue) {
@@ -360,14 +377,10 @@ AddKeyUsage(void *extHandle, const char *userSuppliedValue)
         }
         isCriticalExt = GetYesNo("Is this a critical extension [y/N]?");
     } else {
-        while (1) {
-            if (parseNextCmdInput(keyUsageKeyWordArray, &value, &nextPos,
-                                  &isCriticalExt) == SECFailure) {
-                return SECFailure;
-            }
-            keyUsage |= (0x80 >> value);
-            if (!nextPos)
-                break;
+        SECStatus rv = parseKeyUsage(keyUsageKeyWordArray, userSuppliedValue,
+                                     &keyUsage, &isCriticalExt);
+        if (rv != SECSuccess) {
+            return rv;
         }
     }
 
@@ -552,9 +565,17 @@ AddExtKeyUsage(void *extHandle, const char *userSuppliedValue)
                 }
             }
         } else {
+            PRBool readCriticalToken = PR_FALSE;
             if (parseNextCmdInput(extKeyUsageKeyWordArray, &value, &nextPos,
-                                  &isCriticalExt) == SECFailure) {
+                                  &readCriticalToken) == SECFailure) {
                 return SECFailure;
+            }
+            if (readCriticalToken == PR_TRUE) {
+                isCriticalExt = PR_TRUE;
+                if (!nextPos) {
+                    goto endloop;
+                }
+                continue;
             }
         }
 
@@ -665,7 +686,6 @@ AddNscpCertType(void *extHandle, const char *userSuppliedValue)
     unsigned char keyUsage = 0x0;
     char buffer[5];
     int value;
-    char *nextPos = (char *)userSuppliedValue;
     PRBool isCriticalExt = PR_FALSE;
 
     if (!userSuppliedValue) {
@@ -698,14 +718,10 @@ AddNscpCertType(void *extHandle, const char *userSuppliedValue)
         }
         isCriticalExt = GetYesNo("Is this a critical extension [y/N]?");
     } else {
-        while (1) {
-            if (parseNextCmdInput(nsCertTypeKeyWordArray, &value, &nextPos,
-                                  &isCriticalExt) == SECFailure) {
-                return SECFailure;
-            }
-            keyUsage |= (0x80 >> value);
-            if (!nextPos)
-                break;
+        SECStatus rv = parseKeyUsage(nsCertTypeKeyWordArray, userSuppliedValue,
+                                     &keyUsage, &isCriticalExt);
+        if (rv != SECSuccess) {
+            return rv;
         }
     }
 

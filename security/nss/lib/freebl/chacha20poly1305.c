@@ -104,6 +104,9 @@ ChaCha20_InitContext(ChaCha20Context *ctx, const unsigned char *key,
     PORT_Memcpy(ctx->key, key, sizeof(ctx->key));
     PORT_Memcpy(ctx->nonce, nonce, sizeof(ctx->nonce));
 
+    NSS_CLASSIFY(ctx->nonce, sizeof(ctx->nonce));
+    NSS_CLASSIFY(ctx->key, sizeof(ctx->key));
+
     return SECSuccess;
 #endif
 }
@@ -162,6 +165,8 @@ ChaCha20Poly1305_InitContext(ChaCha20Poly1305Context *ctx,
 
     PORT_Memcpy(ctx->key, key, sizeof(ctx->key));
     ctx->tagLen = tagLen;
+
+    NSS_CLASSIFY(ctx->key, sizeof(ctx->key));
 
     return SECSuccess;
 #endif

@@ -1533,7 +1533,9 @@ secu_PrintSubjectPublicKeyInfo(FILE *out, PLArenaPool *arena,
         SECU_PrintErrMsg(out, level, "Error", "Parsing public key");
     loser:
         if (i->subjectPublicKey.data) {
-            SECU_PrintAny(out, &i->subjectPublicKey, "Raw", level);
+            SECItem tmp = i->subjectPublicKey;
+            DER_ConvertBitString(&tmp);
+            SECU_PrintAny(out, &tmp, "Raw", level);
         }
     }
 }
