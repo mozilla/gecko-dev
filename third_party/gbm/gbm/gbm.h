@@ -264,7 +264,76 @@ enum gbm_bo_flags {
     * with pixel data.
     */
    GBM_BO_USE_FRONT_RENDERING = (1 << 6),
+
+   /**
+    * Allow the driver to select fixed-rate compression parameters.
+    */
+   GBM_BO_FIXED_COMPRESSION_DEFAULT = (1 << 7),
+
+   /**
+    * Fixed-rate compression: at least 1bpc, less than 2bpc
+    */
+   GBM_BO_FIXED_COMPRESSION_1BPC = (2 << 7),
+
+   /**
+    * Fixed-rate compression: at least 2bpc, less than 3bpc
+    */
+   GBM_BO_FIXED_COMPRESSION_2BPC = (3 << 7),
+
+   /**
+    * Fixed-rate compression: at least 3bpc, less than 4bpc
+    */
+   GBM_BO_FIXED_COMPRESSION_3BPC = (4 << 7),
+
+   /**
+    * Fixed-rate compression: at least 4bpc, less than 5bpc
+    */
+   GBM_BO_FIXED_COMPRESSION_4BPC = (5 << 7),
+
+   /**
+    * Fixed-rate compression: at least 5bpc, less than 6bpc
+    */
+   GBM_BO_FIXED_COMPRESSION_5BPC = (6 << 7),
+
+   /**
+    * Fixed-rate compression: at least 6bpc, less than 7bpc
+    */
+   GBM_BO_FIXED_COMPRESSION_6BPC = (7 << 7),
+
+   /**
+    * Fixed-rate compression: at least 7bpc, less than 8bpc
+    */
+   GBM_BO_FIXED_COMPRESSION_7BPC = (8 << 7),
+
+   /**
+    * Fixed-rate compression: at least 8bpc, less than 9bpc
+    */
+   GBM_BO_FIXED_COMPRESSION_8BPC = (9 << 7),
+
+   /**
+    * Fixed-rate compression: at least 9bpc, less than 10bpc
+    */
+   GBM_BO_FIXED_COMPRESSION_9BPC = (10 << 7),
+
+   /**
+    * Fixed-rate compression: at least 10bpc, less than 11bpc
+    */
+   GBM_BO_FIXED_COMPRESSION_10BPC = (11 << 7),
+
+   /**
+    * Fixed-rate compression: at least 11bpc, less than 12bpc
+    */
+   GBM_BO_FIXED_COMPRESSION_11BPC = (12 << 7),
+
+   /**
+    * Fixed-rate compression: at least 12bpc, no maximum rate
+    */
+   GBM_BO_FIXED_COMPRESSION_12BPC = (13 << 7),
+
+   /* next available value is (1 << 11) */
 };
+
+#define GBM_BO_FIXED_COMPRESSION_MASK (((1 << 11) - 1) & ~((1 << 7) - 1))
 
 int
 gbm_device_get_fd(struct gbm_device *gbm);
