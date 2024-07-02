@@ -18,7 +18,7 @@ button {
   fill: var(--icon-color);
   display: grid;
   grid-template-columns: min-content 1fr;
-  gap: 12px;
+  gap: var(--space-medium);
   align-items: center;
   font-size: inherit;
   width: 100%;
