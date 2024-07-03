@@ -87,6 +87,8 @@ bool LoadLoadableRoots(const nsCString& dir);
  */
 bool LoadOSClientCertsModule(const nsCString& dir);
 
+extern const char* kOSClientCertsModuleName;
+
 /**
  * Loads the IPC client certs module.
  *
@@ -96,6 +98,8 @@ bool LoadOSClientCertsModule(const nsCString& dir);
  * @return true if the module was successfully loaded, false otherwise.
  */
 bool LoadIPCClientCertsModule(const nsCString& dir);
+
+extern const char* kIPCClientCertsModuleName;
 
 /**
  * Unloads the loadable roots module and os client certs module, if loaded.
