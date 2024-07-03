@@ -25,7 +25,6 @@ import mozilla.components.feature.prompts.dialog.KEY_PROMPT_UID
 import mozilla.components.feature.prompts.dialog.KEY_SESSION_ID
 import mozilla.components.feature.prompts.dialog.PromptDialogFragment
 import mozilla.components.feature.prompts.dialog.emitGeneratedPasswordFilledFact
-import mozilla.components.support.utils.ext.getParcelableCompat
 
 private const val GENERATED_PASSWORD = "GENERATED_PASSWORD"
 private const val URL = "URL"
@@ -36,12 +35,12 @@ private const val URL = "URL"
  */
 internal class PasswordGeneratorDialogFragment : PromptDialogFragment() {
 
-    private val generatedPassword: String? by lazy {
-        safeArguments.getParcelableCompat(GENERATED_PASSWORD, String::class.java)!!
+    private val generatedPassword: String by lazy {
+        safeArguments.getString(GENERATED_PASSWORD, "")
     }
 
-    private val currentUrl: String? by lazy {
-        safeArguments.getParcelableCompat(URL, String::class.java)!!
+    private val currentUrl: String by lazy {
+        safeArguments.getString(URL, "")
     }
 
     private var onSavedGeneratedPassword: () -> Unit = {}
@@ -71,13 +70,13 @@ internal class PasswordGeneratorDialogFragment : PromptDialogFragment() {
         setContent {
             val colors = if (isSystemInDarkTheme()) darkColors() else lightColors()
             MaterialTheme(colors) {
-                if (generatedPassword != null && currentUrl != null) {
+                if (generatedPassword.isNotEmpty() && currentUrl.isNotEmpty()) {
                     PasswordGeneratorBottomSheet(
-                        generatedStrongPassword = generatedPassword!!,
+                        generatedStrongPassword = generatedPassword,
                         onUsePassword = {
                             onUsePassword(
-                                generatedPassword = generatedPassword!!,
-                                currentUrl = currentUrl!!,
+                                generatedPassword = generatedPassword,
+                                currentUrl = currentUrl,
                             )
                         },
                         onCancelDialog = { onCancelDialog() },
