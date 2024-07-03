@@ -45,14 +45,14 @@ module.exports = {
 
   overrides: [
     {
-      // System mjs files and jsm files are not loaded in the browser scope,
+      // System mjs files files are not loaded in the browser scope,
       // so we turn that off for those. Though we do have our own special
       // environment for them.
       env: {
         browser: false,
         "mozilla/sysmjs": true,
       },
-      files: ["**/*.sys.mjs", "**/*.jsm"],
+      files: ["**/*.sys.mjs"],
       rules: {
         "mozilla/lazy-getter-object-name": "error",
         "mozilla/reject-eager-module-in-lazy-getter": "error",
@@ -64,12 +64,12 @@ module.exports = {
         "mozilla/reject-mixing-eager-and-lazy": "error",
         "mozilla/reject-top-level-await": "error",
         // TODO: Bug 1575506 turn `builtinGlobals` on here.
-        // We can enable builtinGlobals for jsms due to their scopes.
+        // We can enable builtinGlobals for mjs files due to their scopes.
         "no-redeclare": ["error", { builtinGlobals: false }],
       },
     },
     {
-      files: ["**/*.mjs", "**/*.jsx", "**/*.jsm", "**/?(*.)worker.?(m)js"],
+      files: ["**/*.mjs", "**/*.jsx", "**/?(*.)worker.?(m)js"],
       rules: {
         // Modules and workers are far easier to check for no-unused-vars on a
         // global scope, than our content files. Hence we turn that on here.
@@ -101,12 +101,6 @@ module.exports = {
         // This rule defaults to not allowing "use strict" in module files since
         // they are always loaded in strict mode.
         strict: "error",
-      },
-    },
-    {
-      files: ["**/*.jsm"],
-      rules: {
-        "mozilla/mark-exported-symbols-as-used": "error",
       },
     },
     {

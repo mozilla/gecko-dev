@@ -272,6 +272,43 @@ module.exports = {
         "@microsoft/sdl/no-insecure-url": "off",
       },
     },
+    // JSM Handling. This handles the obsolete JSM files whilst we await the
+    // removal of JSM. These reflect some of the rules in recommended.js but
+    // are moved here to simplify reworking the configuration for flat config.
+    {
+      // System mjs files and jsm files are not loaded in the browser scope,
+      // so we turn that off for those. Though we do have our own special
+      // environment for them.
+      env: {
+        browser: false,
+        "mozilla/sysmjs": true,
+      },
+      files: ["**/*.jsm"],
+      rules: {
+        "mozilla/lazy-getter-object-name": "error",
+        "mozilla/mark-exported-symbols-as-used": "error",
+        "mozilla/reject-eager-module-in-lazy-getter": "error",
+        "mozilla/reject-global-this": "error",
+        "mozilla/reject-globalThis-modification": "error",
+        // For all system modules, we expect no properties to need importing,
+        // hence reject everything.
+        "mozilla/reject-importGlobalProperties": ["error", "everything"],
+        "mozilla/reject-mixing-eager-and-lazy": "error",
+        "mozilla/reject-top-level-await": "error",
+        // TODO: Bug 1575506 turn `builtinGlobals` on here.
+        // We can enable builtinGlobals for jsms due to their scopes.
+        "no-redeclare": ["error", { builtinGlobals: false }],
+        // Modules and workers are far easier to check for no-unused-vars on a
+        // global scope, than our content files. Hence we turn that on here.
+        "no-unused-vars": [
+          "error",
+          {
+            argsIgnorePattern: "^_",
+            vars: "all",
+          },
+        ],
+      },
+    },
     ...rollouts,
   ],
 };
