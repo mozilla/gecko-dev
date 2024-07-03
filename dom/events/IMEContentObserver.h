@@ -482,6 +482,24 @@ class IMEContentObserver final : public nsStubMutationObserver,
       return mContainerNode && !mContent;
     }
 
+    /**
+     * Compute flattened text length starting from first content of aRootElement
+     * and ending at end of aContent.
+     *
+     * @param aContent          This will be set to mContent which points the
+     *                          last child content node which participates in
+     *                          the computed mFlatTextLength.
+     * @param aRootElement      The root element of the editor, i.e., editing
+     *                          host or the anonymous <div> in a text control.
+     *                          (This is required to suppress
+     *                          ContentEventHandler to generate a line break
+     *                          caused by open tag of the editable root element
+     *                          due to not editable.  Therefore, we need to call
+     *                          ContentEventHandler methods with this.)
+     */
+    [[nodiscard]] nsresult ComputeAndCacheFlatTextLengthBeforeEndOfContent(
+        const nsIContent& aContent, const dom::Element* aRootElement);
+
     void CacheFlatTextLengthBeforeEndOfContent(const nsIContent& aContent,
                                                uint32_t aFlatTextLength) {
       mContainerNode = aContent.GetParentNode();
@@ -490,6 +508,23 @@ class IMEContentObserver final : public nsStubMutationObserver,
       MOZ_ASSERT(IsCachingToEndOfContent());
     }
 
+    /**
+     * Compute flattened text length starting from first content of aRootElement
+     * and ending at start of the first content of aContainer.
+     *
+     * @param aContainer        This will be set to mContainer and mContent will
+     *                          be set to nullptr.
+     * @param aRootElement      The root element of the editor, i.e., editing
+     *                          host or the anonymous <div> in a text control.
+     *                          (This is required to suppress
+     *                          ContentEventHandler to generate a line break
+     *                          caused by open tag of the editable root element
+     *                          due to not editable.  Therefore, we need to call
+     *                          ContentEventHandler methods with this.)
+     */
+    [[nodiscard]] nsresult ComputeAndCacheFlatTextLengthBeforeFirstContent(
+        const nsINode& aContainer, const dom::Element* aRootElement);
+
     void CacheFlatTextLengthBeforeFirstContent(const nsINode& aContainer,
                                                uint32_t aFlatTextLength) {
       mContainerNode = const_cast<nsINode*>(&aContainer);
@@ -497,6 +532,21 @@ class IMEContentObserver final : public nsStubMutationObserver,
       mFlatTextLength = aFlatTextLength;
       MOZ_ASSERT(IsCachingToStartOfContainer());
     }
+
+    /**
+     * Return flattened text length of aRemovingContent.  This is designed
+     * only for the case when aRemovingContent is being removed from the tree.
+     *
+     * @param aRemovingContent  The content node which is being removed.
+     * @param aRootElement      The root element of the editor, i.e., editing
+     *                          host or the anonymous <div> in a text control.
+     *                          For avoiding to generate a redundant line break
+     *                          at open tag of this element, this is required
+     *                          to call methods of ContentEventHandler.
+     */
+    [[nodiscard]] static Result<uint32_t, nsresult>
+    ComputeTextLengthOfRemovingContent(const nsIContent& aRemovingContent,
+                                       const dom::Element* aRootElement);
 
     [[nodiscard]] bool CachesTextLengthBeforeContent(
         const nsIContent& aContent) const {
