@@ -1078,8 +1078,11 @@ bool SVGUtils::GetNonScalingStrokeTransform(const nsIFrame* aFrame,
 
   MOZ_ASSERT(aFrame->GetContent()->IsSVGElement(), "should be an SVG element");
 
-  *aUserToOuterSVG = ThebesMatrix(
-      SVGContentUtils::GetCTM(static_cast<SVGElement*>(aFrame->GetContent())));
+  SVGElement* content = static_cast<SVGElement*>(aFrame->GetContent());
+  *aUserToOuterSVG =
+      ThebesMatrix(aFrame->StyleSVGReset()->mVectorEffect.IsScreen()
+                       ? SVGContentUtils::GetScreenCTM(content)
+                       : SVGContentUtils::GetCTM(content));
 
   return aUserToOuterSVG->HasNonTranslation() && !aUserToOuterSVG->IsSingular();
 }

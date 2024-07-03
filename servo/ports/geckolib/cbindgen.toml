@@ -307,6 +307,7 @@ include = [
   "ComputedLinearStop",
   "PiecewiseLinearFunction",
   "BeforeFlag",
+  "VectorEffect",
   "XTextScale",
   "Zoom",
   "TransitionProperty",
@@ -553,6 +554,15 @@ renaming_overrides_prefixing = true
   inline bool IsUnder() const;
   inline bool IsLeft() const;
   inline bool IsRight() const;
+"""
+
+"VectorEffect" = """
+  StyleVectorEffect()
+    : effect_type(StyleVectorEffectType::NONE),
+      coordinate_space(StyleCoordinateSpace::Viewport) {}
+
+  bool HasNonScalingStroke() const { return bool(effect_type & StyleVectorEffectType::NON_SCALING_STROKE); }
+  bool IsScreen() const { return coordinate_space == StyleCoordinateSpace::Screen; }
 """
 
 # TODO(emilio): Add hooks to cbindgen to be able to generate [[nodiscard]]
