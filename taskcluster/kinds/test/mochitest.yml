@@ -69,7 +69,7 @@ mochitest-plain:
                 by-test-platform:
                     .*(asan|ccov|wayland).*: []
                     linux1804-64(-shippable)?-qr/opt: ['trunk']
-                    windows11-64.*(-shippable)?-qr/opt: ['trunk']
+                    windows11-64.*(-shippable)?-qr/opt: []
                     default: []
             xorigin:
                 by-test-platform:
