@@ -150,15 +150,6 @@ dnl ==============================================================
 MOZ_ARCH_OPTS
 
 dnl ========================================================
-dnl System overrides of the defaults for host
-dnl ========================================================
-case "$host" in
-*mingw*)
-    HOST_BIN_SUFFIX=.exe
-    ;;
-esac
-
-dnl ========================================================
 dnl System overrides of the defaults for target
 dnl ========================================================
 
@@ -234,7 +225,6 @@ case "$target" in
     AC_DEFINE(WIN32_LEAN_AND_MEAN)
     dnl See http://support.microsoft.com/kb/143208 to use STL
     AC_DEFINE(NOMINMAX)
-    BIN_SUFFIX='.exe'
 
     case "$host_os" in
     cygwin*|msvc*|mks*)
@@ -371,9 +361,7 @@ AC_SUBST_LIST(OS_LDFLAGS)
 
 AC_SUBST(HOST_CC)
 AC_SUBST(HOST_CXX)
-AC_SUBST(HOST_BIN_SUFFIX)
 
-AC_SUBST(BIN_SUFFIX)
 AC_SUBST(WIN32_CONSOLE_EXE_LDFLAGS)
 AC_SUBST(WIN32_GUI_EXE_LDFLAGS)
 

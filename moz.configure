@@ -346,15 +346,15 @@ set_config("HOST_IMPORT_LIB_SUFFIX", host_library_name_info.import_lib.suffix)
 set_config("WASM_OBJ_SUFFIX", "wasm")
 
 
-@depends(target)
-def bin_suffix(target):
-    if target.os == "WINNT":
-        return ".exe"
-    else:
-        return ""
+@template
+def bin_suffix(host_or_target):
+    return depends(host_or_target)(
+        lambda host_or_target: ".exe" if host_or_target.os == "WINNT" else ""
+    )
 
 
-set_config("BIN_SUFFIX", bin_suffix)
+set_config("BIN_SUFFIX", bin_suffix(target))
+set_config("HOST_BIN_SUFFIX", bin_suffix(host))
 
 
 @template

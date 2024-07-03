@@ -1104,7 +1104,7 @@ project_flag(
 
 # Child Process Name for IPC
 # ==============================================================
-@depends(toolkit, bin_suffix)
+@depends(toolkit, bin_suffix(target))
 def moz_child_process_name(toolkit, bin_suffix):
     if toolkit != "android":
         return f"plugin-container{bin_suffix}"
