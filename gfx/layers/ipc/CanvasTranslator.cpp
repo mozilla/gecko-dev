@@ -1489,14 +1489,7 @@ CanvasTranslator::LookupSourceSurfaceFromSurfaceDescriptor(
     auto& usedSurf = mUsedDataSurfaceForSurfaceDescriptor;
     auto& usedDescriptor = mUsedSurfaceDescriptorForSurfaceDescriptor;
 
-    if (usedDescriptor.isSome() && usedDescriptor.ref() == sdrd) {
-      MOZ_ASSERT(usedSurf);
-      MOZ_ASSERT(texture->GetSize() == usedSurf->GetSize());
-
-      // Since the data is the same as before, the DataSourceSurfaceWrapper can
-      // be reused.
-      return do_AddRef(usedSurf);
-    }
+    // TODO reuse DataSourceSurface if no update.
 
     usedSurf = textureHostD3D11->GetAsSurfaceWithDevice(mDevice);
     if (!usedSurf) {
