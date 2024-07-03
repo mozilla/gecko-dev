@@ -603,7 +603,7 @@ class HomeFragment : Fragment() {
             context = context,
             parent = binding.homeLayout,
             hideOnScroll = false,
-            composableContent = {
+            content = {
                 FirefoxTheme {
                     Column {
                         val shouldShowMicrosurveyPrompt =
@@ -797,7 +797,7 @@ class HomeFragment : Fragment() {
         _bottomToolbarContainerView = BottomToolbarContainerView(
             context = context,
             parent = binding.homeLayout,
-            composableContent = {
+            content = {
                 FirefoxTheme {
                     Column {
                         val shouldShowMicrosurveyPrompt =

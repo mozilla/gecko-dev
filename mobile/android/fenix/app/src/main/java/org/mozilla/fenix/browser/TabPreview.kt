@@ -71,7 +71,7 @@ class TabPreview @JvmOverloads constructor(
             BottomToolbarContainerView(
                 context = context,
                 parent = this,
-                composableContent = {
+                content = {
                     FirefoxTheme {
                         Column {
                             if (!isToolbarAtTop) {

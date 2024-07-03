@@ -1404,7 +1404,7 @@ abstract class BaseBrowserFragment :
             context = context,
             parent = binding.browserLayout,
             hideOnScroll = isToolbarDynamic(context),
-            composableContent = {
+            content = {
                 FirefoxTheme {
                     Column {
                         val shouldShowMicrosurveyPrompt =
@@ -1573,7 +1573,7 @@ abstract class BaseBrowserFragment :
             context = context,
             parent = binding.browserLayout,
             hideOnScroll = isToolbarDynamic(context),
-            composableContent = {
+            content = {
                 FirefoxTheme {
                     Column {
                         val shouldShowMicrosurveyPrompt =

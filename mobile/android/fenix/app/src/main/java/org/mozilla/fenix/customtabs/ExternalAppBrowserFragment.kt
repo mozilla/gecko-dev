@@ -90,7 +90,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
             }
 
             val isToolbarAtBottom = requireComponents.settings.toolbarPosition == ToolbarPosition.BOTTOM
-            bottomToolbarContainerView.composeView.setContent {
+            bottomToolbarContainerView.updateContent {
                 FirefoxTheme {
                     Column {
                         if (isToolbarAtBottom) {

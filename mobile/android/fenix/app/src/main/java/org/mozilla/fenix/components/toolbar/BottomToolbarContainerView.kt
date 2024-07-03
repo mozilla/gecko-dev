@@ -24,19 +24,19 @@ import mozilla.components.ui.widgets.behavior.ViewPosition
  * @param context The [Context] the view is running in.
  * @param parent The [ViewGroup] into which the composable will be added.
  * @param hideOnScroll If the container should react to the EngineView content being scrolled.
- * @param composableContent The content of the toolbar to display.
+ * @param content The content of the toolbar to display.
  */
 class BottomToolbarContainerView(
     private val context: Context,
     private val parent: ViewGroup,
     private val hideOnScroll: Boolean = false,
-    private val composableContent: @Composable () -> Unit,
+    private val content: @Composable () -> Unit,
 ) {
 
     val toolbarContainerView = ToolbarContainerView(context)
-    val composeView = ComposeView(context).apply {
+    private val composeView = ComposeView(context).apply {
         setContent {
-            composableContent()
+            content()
         }
         toolbarContainerView.addView(this)
     }
@@ -53,6 +53,15 @@ class BottomToolbarContainerView(
         }
 
         parent.addView(toolbarContainerView)
+    }
+
+    /**
+     * Updates the Composable content of the [composeView].
+     */
+    fun updateContent(content: @Composable () -> Unit) {
+        composeView.setContent {
+            content()
+        }
     }
 }
 
