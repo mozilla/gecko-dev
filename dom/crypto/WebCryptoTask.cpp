@@ -1387,7 +1387,10 @@ class ImportKeyTask : public WebCryptoTask {
 
   static bool JwkCompatible(const JsonWebKey& aJwk, const CryptoKey* aKey) {
     // Check 'alg'
-    if (!aJwk.mKty.EqualsLiteral(JWK_TYPE_OKP) && aJwk.mAlg.WasPassed() &&
+    if (!aJwk.mKty.EqualsLiteral(JWK_TYPE_OKP) &&
+        !(aJwk.mKty.EqualsLiteral(JWK_TYPE_EC) &&
+          aKey->Algorithm().Mechanism() == CKM_ECDH1_DERIVE) &&
+        aJwk.mAlg.WasPassed() &&
         aJwk.mAlg.Value() != aKey->Algorithm().JwkAlg()) {
       return false;
     }
