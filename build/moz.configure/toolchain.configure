@@ -22,6 +22,14 @@ option(
 )
 
 
+option(
+    env="HOST_LDFLAGS",
+    help="Extra flags for linking host object files.",
+    nargs=1,
+    default="",
+)
+
+
 # Code optimization
 # ==============================================================
 
@@ -2103,7 +2111,6 @@ linker_ldflags = linker_ldflags_tmpl(target)
 add_old_configure_assignment("LINKER_LDFLAGS", linker_ldflags)
 
 host_linker_ldflags = linker_ldflags_tmpl(host)
-add_old_configure_assignment("HOST_LINKER_LDFLAGS", host_linker_ldflags)
 
 
 # There's a wrinkle with MinGW: linker configuration is not enabled, so

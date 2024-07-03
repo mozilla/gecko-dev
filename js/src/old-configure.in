@@ -22,7 +22,6 @@ CFLAGS="${CFLAGS=}"
 CPPFLAGS="${CPPFLAGS=}"
 CXXFLAGS="${CXXFLAGS=}"
 LDFLAGS="${LDFLAGS=}"
-HOST_LDFLAGS="${HOST_LDFLAGS=}"
 
 dnl Propagate extra android flags
 dnl =============================
@@ -41,7 +40,6 @@ dnl ========================================================
 W32API_VERSION=3.14
 
 LDFLAGS="$LDFLAGS $LINKER_LDFLAGS $PACK_REL_RELOC_FLAGS"
-HOST_LDFLAGS="$HOST_LDFLAGS $HOST_LINKER_LDFLAGS"
 
 if test -z "$JS_STANDALONE"; then
   autoconfmk=autoconf-js.mk
@@ -159,19 +157,6 @@ dnl ========================================================
 case "$host" in
 *mingw*)
     HOST_BIN_SUFFIX=.exe
-
-    case "${host_cpu}" in
-    i*86)
-        if test "$HOST_CC_TYPE" = clang-cl; then
-            HOST_LDFLAGS="$HOST_LDFLAGS -MACHINE:X86"
-        fi
-        ;;
-    x86_64)
-        if test "$HOST_CC_TYPE" = clang-cl; then
-            HOST_LDFLAGS="$HOST_LDFLAGS -MACHINE:X64"
-        fi
-        ;;
-    esac
     ;;
 esac
 
@@ -384,10 +369,6 @@ LDFLAGS=`echo \
     $LDFLAGS \
     $_COMPILATION_LDFLAGS`
 
-HOST_LDFLAGS=`echo \
-    $HOST_LDFLAGS \
-    $_COMPILATION_HOST_LDFLAGS`
-
 OS_CFLAGS="$CFLAGS"
 OS_CXXFLAGS="$CXXFLAGS"
 OS_CPPFLAGS="$CPPFLAGS"
@@ -400,7 +381,6 @@ AC_SUBST_LIST(OS_LDFLAGS)
 AC_SUBST(HOST_CC)
 AC_SUBST(HOST_CXX)
 AC_SUBST_LIST(HOST_CPPFLAGS)
-AC_SUBST(HOST_LDFLAGS)
 AC_SUBST(HOST_BIN_SUFFIX)
 
 AC_SUBST(BIN_SUFFIX)

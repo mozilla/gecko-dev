@@ -589,6 +589,20 @@ def host_cflags(base_cxxflags, compilation_flags, host_common_flags):
     return flags
 
 
+@depends("HOST_LDFLAGS", linker_flags, host_linker_ldflags, host, host_c_compiler)
+@imports(_from="mozbuild.shellutil", _import="split")
+def host_ldflags(env_ldflags, linker_flags, host_linker_ldflags, host, compiler):
+    flags = split(env_ldflags[0])
+    flags += host_linker_ldflags
+    if host.kernel == "WINNT" and compiler.type == "clang-cl":
+        if host.cpu == "x86":
+            flags += ["-MACHINE:X86"]
+        elif host.cpu == "x86_64":
+            flags += ["-MACHINE:X64"]
+    flags += linker_flags.host_ldflags
+    return flags
+
+
 # Please keep these last in this file.
 add_old_configure_assignment("_COMPILATION_ASFLAGS", asm_flags.asflags)
 add_old_configure_assignment("_COMPILATION_HOST_ASFLAGS", asm_flags.host_asflags)
@@ -596,11 +610,11 @@ add_old_configure_assignment("_COMPILATION_LDFLAGS", linker_flags.ldflags)
 add_old_configure_assignment(
     "_COMPILATION_OPTIMIZE_LDFLAGS", linker_optimize_flags.ldflags
 )
-add_old_configure_assignment("_COMPILATION_HOST_LDFLAGS", linker_flags.host_ldflags)
 
 add_old_configure_assignment("_COMPILATION_CFLAGS", compilation_flags.cflags)
 add_old_configure_assignment("_COMPILATION_CXXFLAGS", compilation_flags.cxxflags)
 
 set_config("HOST_CFLAGS", host_cflags)
 set_config("HOST_CXXFLAGS", host_cflags)
+set_config("HOST_LDFLAGS", host_ldflags)
 set_config("DSO_LDOPTS", dso_flags.ldopts)
