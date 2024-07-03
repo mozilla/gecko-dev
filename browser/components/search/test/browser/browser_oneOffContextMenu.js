@@ -28,7 +28,7 @@ add_setup(async function () {
 });
 
 add_task(async function telemetry() {
-  document.querySelector(".searchbar-textbox").value = "abc";
+  searchbar.value = "abc";
 
   let searchPopup = document.getElementById("PopupSearchAutoComplete");
   let oneOffInstance = searchPopup.oneOffButtons;
