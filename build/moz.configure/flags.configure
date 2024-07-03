@@ -625,7 +625,6 @@ def os_asflags(env_asflags, asm_flags, android_flags, all_arm_flags):
 
 
 # Please keep these last in this file.
-add_old_configure_assignment("_COMPILATION_HOST_ASFLAGS", asm_flags.host_asflags)
 add_old_configure_assignment("_COMPILATION_LDFLAGS", linker_flags.ldflags)
 add_old_configure_assignment(
     "_COMPILATION_OPTIMIZE_LDFLAGS", linker_optimize_flags.ldflags

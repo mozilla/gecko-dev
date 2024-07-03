@@ -300,7 +300,6 @@ def check_and_add_flags(
         elif mode == "assemble":
             lang, list_of_flags = {
                 c_compiler: ("C", flags_collection.asflags),
-                host_c_compiler: ("host C", flags_collection.host_asflags),
             }[c]
         elif mode == "link":
             lang, list_of_flags = {
@@ -451,7 +450,7 @@ def add_flag(warning, compiler=None, when=None):
 # Like the compilation checks above, but for asm flags.
 @dependable
 def asm_flags():
-    return namespace(asflags=[], host_asflags=[])
+    return namespace(asflags=[])
 
 
 # Tests the given assembler flag is supported; if the flag
