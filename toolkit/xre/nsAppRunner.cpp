@@ -1790,38 +1790,26 @@ nsXULAppInfo::GetExtraFileForID(const nsAString& aId, nsIFile** aExtraFile) {
 NS_IMETHODIMP
 nsXULAppInfo::AnnotateCrashReport(const nsACString& key,
                                   const nsACString& data) {
-  CrashReporter::Annotation annotation;
-
-  if (!AnnotationFromString(annotation, PromiseFlatCString(key).get())) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  CrashReporter::RecordAnnotationNSCString(annotation, data);
+  auto annotation = CrashReporter::AnnotationFromString(key);
+  NS_ENSURE_TRUE(annotation.isSome(), NS_ERROR_INVALID_ARG);
+  CrashReporter::RecordAnnotationNSCString(*annotation, data);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsXULAppInfo::RemoveCrashReportAnnotation(const nsACString& key) {
-  CrashReporter::Annotation annotation;
-
-  if (!AnnotationFromString(annotation, PromiseFlatCString(key).get())) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  CrashReporter::UnrecordAnnotation(annotation);
+  auto annotation = CrashReporter::AnnotationFromString(key);
+  NS_ENSURE_TRUE(annotation.isSome(), NS_ERROR_INVALID_ARG);
+  CrashReporter::UnrecordAnnotation(*annotation);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsXULAppInfo::IsAnnotationAllowedForPing(const nsACString& aValue,
                                          bool* aIsAllowed) {
-  CrashReporter::Annotation annotation;
-
-  if (!AnnotationFromString(annotation, PromiseFlatCString(aValue).get())) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  *aIsAllowed = CrashReporter::IsAnnotationAllowedForPing(annotation);
+  auto annotation = CrashReporter::AnnotationFromString(aValue);
+  NS_ENSURE_TRUE(annotation.isSome(), NS_ERROR_INVALID_ARG);
+  *aIsAllowed = CrashReporter::IsAnnotationAllowedForPing(*annotation);
 
   return NS_OK;
 }
