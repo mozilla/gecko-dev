@@ -5,17 +5,7 @@
 #ifndef nsNSSCertHelper_h
 #define nsNSSCertHelper_h
 
-#ifndef INET6_ADDRSTRLEN
-#  define INET6_ADDRSTRLEN 46
-#endif
-
-#include "certt.h"
 #include "nsString.h"
-
-extern const char* kRootModuleName;
-extern const size_t kRootModuleNameLen;
-
-class nsIX509Cert;
 
 // If input is valid UTF-8, converts from UTF-8 to UTF-16. Otherwise,
 // converts from Latin1 to UTF-16.

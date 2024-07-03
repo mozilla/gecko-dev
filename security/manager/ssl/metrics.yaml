@@ -222,6 +222,22 @@ verification_used_cert_from:
       - dkeeler@mozilla.com
     expires: never
     denominator_metric: tls.certificate_verifications
+
+pkcs11:
+  third_party_modules_loaded:
+    type: quantity
+    description:
+      The number of third-party PKCS#11 modules loaded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905453
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905453
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - dkeeler@mozilla.com
+    expires: never
+    unit: modules
   nss_cert_db:
     type: rate
     description: >

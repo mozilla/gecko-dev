@@ -13,6 +13,7 @@
 #include "ExtendedValidation.h"
 #include "MultiLogCTVerifier.h"
 #include "NSSErrorsService.h"
+#include "PKCS11ModuleDB.h"
 #include "PublicKeyPinningService.h"
 #include "cert.h"
 #include "cert_storage/src/cert_storage.h"
@@ -37,7 +38,6 @@
 #include "nsCRTGlue.h"
 #include "nsIObserverService.h"
 #include "nsNSSCallbacks.h"
-#include "nsNSSCertHelper.h"
 #include "nsNSSCertificate.h"
 #include "nsNSSCertificateDB.h"
 #include "nsNSSIOLayer.h"
@@ -102,7 +102,7 @@ NSSCertDBTrustDomain::NSSCertDBTrustDomain(
       mHostname(hostname),
       mCertStorage(do_GetService(NS_CERT_STORAGE_CID)),
       mOCSPStaplingStatus(CertVerifier::OCSP_STAPLING_NEVER_CHECKED),
-      mBuiltInRootsModule(SECMOD_FindModule(kRootModuleName)),
+      mBuiltInRootsModule(SECMOD_FindModule(kRootModuleName.get())),
       mOCSPFetchStatus(OCSPFetchStatus::NotFetched) {}
 
 static void FindRootsWithSubject(UniqueSECMODModule& rootsModule,
@@ -1686,6 +1686,8 @@ SECStatus InitializeNSS(const nsACString& dir, NSSDBConfig nssDbConfig,
     }
   }
 
+  CollectThirdPartyPKCS11ModuleTelemetry();
+
   return SECSuccess;
 }
 
@@ -1750,8 +1752,6 @@ bool LoadUserModuleAt(const char* moduleName, const char* libraryName,
   return true;
 }
 
-const char* kIPCClientCertsModuleName = "IPC Client Cert Module";
-
 bool LoadIPCClientCertsModule(const nsCString& dir) {
   // The IPC client certs module needs to be able to call back into gecko to be
   // able to communicate with the parent process over IPC. This is achieved by
@@ -1759,14 +1759,14 @@ bool LoadIPCClientCertsModule(const nsCString& dir) {
   // extra string parameter that will be available when C_Initialize is called
   // on IPC client certs.
   nsPrintfCString addrs("%p,%p", DoFindObjects, DoSign);
-  if (!LoadUserModuleAt(kIPCClientCertsModuleName, "ipcclientcerts", dir,
+  if (!LoadUserModuleAt(kIPCClientCertsModuleName.get(), "ipcclientcerts", dir,
                         addrs.get())) {
     return false;
   }
   RunOnShutdown(
       []() {
         UniqueSECMODModule ipcClientCertsModule(
-            SECMOD_FindModule(kIPCClientCertsModuleName));
+            SECMOD_FindModule(kIPCClientCertsModuleName.get()));
         if (ipcClientCertsModule) {
           SECMOD_UnloadUserModule(ipcClientCertsModule.get());
         }
@@ -1775,14 +1775,12 @@ bool LoadIPCClientCertsModule(const nsCString& dir) {
   return true;
 }
 
-const char* kOSClientCertsModuleName = "OS Client Cert Module";
-
 bool LoadOSClientCertsModule(const nsCString& dir) {
   nsLiteralCString params =
       StaticPrefs::security_osclientcerts_assume_rsa_pss_support()
           ? "RSA-PSS"_ns
           : ""_ns;
-  return LoadUserModuleAt(kOSClientCertsModuleName, "osclientcerts", dir,
+  return LoadUserModuleAt(kOSClientCertsModuleName.get(), "osclientcerts", dir,
                           params.get());
 }
 
@@ -1794,7 +1792,7 @@ bool LoadLoadableRoots(const nsCString& dir) {
   // "Root Certs" module allows us to load the correct one. See bug 1406396.
   int unusedModType;
   Unused << SECMOD_DeleteModule("Root Certs", &unusedModType);
-  return LoadUserModuleAt(kRootModuleName, "nssckbi", dir, nullptr);
+  return LoadUserModuleAt(kRootModuleName.get(), "nssckbi", dir, nullptr);
 }
 
 nsresult DefaultServerNicknameForCert(const CERTCertificate* cert,

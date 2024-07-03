@@ -6,6 +6,7 @@
 
 #include "EnterpriseRoots.h"
 
+#include "PKCS11ModuleDB.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Casting.h"
@@ -13,7 +14,6 @@
 #include "mozilla/Unused.h"
 #include "mozpkix/Result.h"
 #include "nsCRT.h"
-#include "nsNSSCertHelper.h"
 #include "nsThreadUtils.h"
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -498,7 +498,7 @@ nsresult GatherEnterpriseCerts(nsTArray<EnterpriseCert>& certs) {
   }
 
   certs.Clear();
-  UniqueSECMODModule rootsModule(SECMOD_FindModule(kRootModuleName));
+  UniqueSECMODModule rootsModule(SECMOD_FindModule(kRootModuleName.get()));
 #ifdef XP_WIN
   GatherEnterpriseCertsWindows(certs, rootsModule);
 #endif  // XP_WIN
