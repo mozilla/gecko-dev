@@ -383,6 +383,31 @@ class InactivePropertyHelper {
         fixId: "inactive-css-not-display-block-on-floated-fix",
         msgId: "inactive-css-not-display-block-on-floated-2",
       },
+      // float property used on non-floating elements.
+      {
+        invalidProperties: ["float"],
+        when: () => this.gridItem || this.flexItem,
+        fixId: "inactive-css-only-non-grid-or-flex-item-fix",
+        msgId: "inactive-css-only-non-grid-or-flex-item",
+      },
+      // clear property used on non-floating elements.
+      {
+        invalidProperties: ["clear"],
+        when: () => !this.isBlockLevel(),
+        fixId: "inactive-css-not-block-fix",
+        msgId: "inactive-css-not-block",
+      },
+      // shape-image-threshold, shape-margin, shape-outside properties used on non-floated elements.
+      {
+        invalidProperties: [
+          "shape-image-threshold",
+          "shape-margin",
+          "shape-outside",
+        ],
+        when: () => !this.isFloated,
+        fixId: "inactive-css-not-floated-fix",
+        msgId: "inactive-css-not-floated",
+      },
       // The property is impossible to override due to :visited restriction.
       {
         invalidProperties: VISITED_INVALID_PROPERTIES,
@@ -933,6 +958,19 @@ class InactivePropertyHelper {
     const { style } = this.cssRule;
 
     return values.some(value => style[propName] === value);
+  }
+
+  /**
+   *  Check if the current node is an block-level box.
+   */
+  isBlockLevel() {
+    return this.checkComputedStyle("display", [
+      "block",
+      "flow-root",
+      "flex",
+      "grid",
+      "table",
+    ]);
   }
 
   /**

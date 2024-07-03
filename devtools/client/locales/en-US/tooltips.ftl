@@ -45,6 +45,12 @@ inactive-css-property-because-of-display = <strong>{ $property }</strong> has no
 
 inactive-css-not-display-block-on-floated-2 = The <strong>display</strong> value has been changed by the engine to <strong>{ $display }</strong> because the element is <strong>floated</strong>.
 
+inactive-css-only-non-grid-or-flex-item = <strong>{ $property }</strong> has no effect because it cannot be used on grid or flex items.
+
+inactive-css-not-block = <strong>{ $property }</strong> has no effect on this element because it only applies to block-level elements.
+
+inactive-css-not-floated = <strong>{ $property }</strong> has no effect because it only applies to floated elements.
+
 inactive-css-property-is-impossible-to-override-in-visited = It’s impossible to override <strong>{ $property }</strong> due to <strong>:visited</strong> restriction.
 
 inactive-css-position-property-on-unpositioned-box = <strong>{ $property }</strong> has no effect on this element since it’s not a positioned element.
@@ -119,6 +125,12 @@ inactive-css-non-replaced-inline-or-table-row-or-row-group-fix = Try adding <str
 inactive-css-non-replaced-inline-or-table-column-or-column-group-fix = Try adding <strong>display:inline-block</strong>. { learn-more }
 
 inactive-css-not-display-block-on-floated-fix = Try removing <strong>float</strong> or adding <strong>display:block</strong>. { learn-more }
+
+inactive-css-only-non-grid-or-flex-item-fix = Try changing the value of <strong>display</strong> of the element’s container to something else than <strong>flex</strong>, <strong>grid</strong>, <strong>inline-flex</strong>, or <strong>inline-grid</strong>, or removing <strong>float</strong>. { learn-more }
+
+inactive-css-not-block-fix = Try adding properties like <strong>display:block</strong> or <strong>float:left</strong>. { learn-more }
+
+inactive-css-not-floated-fix = Try adding the <strong>float</strong> property with a value other than <strong>none</strong>. { learn-more }
 
 inactive-css-position-property-on-unpositioned-box-fix = Try setting its <strong>position</strong> property to something other than <strong>static</strong>. { learn-more }
 
