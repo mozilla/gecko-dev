@@ -204,7 +204,7 @@
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Chisó ya´a nuu kajie´e</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-    <string name="browser_menu_add_to_homescreen_2">Chisó ya´a nuu kajie´e...</string>
+    <string name="browser_menu_add_to_homescreen_2">Chisó ya´a nuu kajie´e…</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Resincronizar</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -262,7 +262,7 @@
     <string name="browser_menu_save">Chuva´a</string>
 
     <!-- Browser menu label that the saves the currently visited page as a PDF -->
-    <string name="browser_menu_save_as_pdf">Chuva´a kua PDF...</string>
+    <string name="browser_menu_save_as_pdf">Chuva´a kua PDF…</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Nátava…</string>
 

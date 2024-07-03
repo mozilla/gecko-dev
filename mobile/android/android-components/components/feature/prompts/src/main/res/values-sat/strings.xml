@@ -126,6 +126,18 @@
     <string name="mozac_feature_prompts_suggest_strong_password_title">ᱟᱸᱴᱷ ᱫᱟᱱᱟᱝ ᱥᱟᱵᱟᱫᱽ ᱵᱮᱵᱷᱟᱨ ᱟ ᱥᱮ ?</string>
 
 
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description">ᱟᱢ ᱢᱤᱫᱴᱟᱹᱝ ᱠᱮᱴᱮᱡ, ᱦᱟᱱᱰᱮᱱᱟᱰᱮ ᱠᱷᱚᱱ ᱛᱮᱭᱟᱨ ᱫᱟᱱᱟᱝ ᱥᱟᱵᱟᱫᱽ ᱛᱮᱭᱟᱨ ᱠᱟᱛᱮ ᱟᱢᱟᱜ ᱠᱷᱟᱛᱟ ᱨᱩᱠᱷᱤᱭᱟᱹᱭ ᱢᱮ ᱾ ᱟᱢᱟᱜ ᱮᱠᱟᱣᱱᱴ ᱨᱮ ᱥᱟᱧᱪᱟᱣ ᱠᱟᱛᱮ ᱟᱢᱟᱜ ᱫᱟᱱᱟᱝ ᱥᱟᱵᱟᱫᱽᱠᱚ ᱞᱚᱜᱚᱱ ᱯᱟᱱᱛᱮᱧᱟᱢ ᱢᱮ ᱾</string>
+    <!-- Pressing this will use the suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_use_password">ᱫᱟᱱᱟᱝ ᱥᱟᱵᱟᱫᱽ ᱵᱮᱵᱷᱟᱨ ᱢᱮ</string>
+    <!-- Pressing this will dismiss the suggested strong password dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_dismiss">ᱱᱤᱛᱚᱜ ᱫᱚ ᱵᱟᱝᱟ</string>
+    <!-- Title for showing the suggest strong password saved confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">ᱫᱟᱱᱟᱝ ᱥᱟᱵᱟᱫ ᱥᱟᱧᱪᱟᱣ ᱮᱱᱟ</string>
+    <!-- Title for showing the suggest strong password updated confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">ᱫᱟᱱᱟᱝ ᱥᱟᱵᱟᱫ ᱦᱟᱹᱞᱤᱭᱟᱹᱠ ᱮᱱᱟ</string>
+
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">ᱱᱚᱶᱟ ᱥᱟᱭᱤᱴ ᱞᱟᱹᱜᱤᱫ ᱰᱟᱴᱟ ᱫᱩᱦᱲᱟᱹ ᱵᱷᱮᱡᱟᱭ ᱟᱢ‌ ᱥᱮ?</string>
     <string name="mozac_feature_prompt_repost_message">ᱥᱟᱦᱴᱟ ᱨᱤᱯᱷᱨᱮᱥ ᱞᱮᱠᱷᱟᱱ ᱱᱤᱛᱚᱜᱟᱜ ᱠᱟᱹᱢᱤ ᱠᱚ ᱰᱩᱯᱞᱤᱠᱮᱴ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱭ, ᱡᱮᱢᱚᱱ ᱯᱩᱭᱥᱟᱹ ᱵᱷᱮᱡᱟ ᱠᱚ ᱟᱨ ᱵᱟᱝ ᱠᱚᱢᱮᱴ ᱠᱚ ᱵᱟᱨ ᱡᱮᱠᱷᱟ ᱵᱷᱮᱡᱟ ᱠᱚ ᱾</string>
