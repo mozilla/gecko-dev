@@ -54,6 +54,8 @@ internal fun MenuHeader(
 
         Divider(modifier = Modifier.size(width = 2.dp, height = 32.dp))
 
+        Spacer(modifier = Modifier.width(4.dp))
+
         IconButton(
             onClick = onHelpButtonClick,
         ) {
