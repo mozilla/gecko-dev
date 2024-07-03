@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <script>
+      ok(
+        SpecialPowers.getBoolPref("dom.webgpu.enabled"),
+        "Pref should be enabled."
+      );
+
+      async function testBody() {
+        const adapter = await navigator.gpu.requestAdapter();
+        const device = await adapter.requestDevice();
+
+        let buffer = device.createBuffer({
+          size: 48,
+          usage: GPUBufferUsage.MAP_READ,
+          mappedAtCreation: true,
+        });
+        let view1 = buffer.getMappedRange(16, 24);
+
+        function bad_overlap(start, size, complaint) {
+          SimpleTest.doesThrow(() => {
+            buffer.getMappedRange(start, size);
+          }, complaint);
+        }
+
+        bad_overlap(8, 16, "overlap start of prior");
+        bad_overlap(32, 16, "overlap end of prior");
+        bad_overlap(8, 40, "enclose prior");
+        bad_overlap(24, 8, "enclosed by prior");
+
+        // Not really an overlap, but this checks for a mistake in
+        // an early revision of the patch that introduces this test.
+        SimpleTest.doesThrow(() => {
+          buffer.getMappedRange(64, 8);
+        }, "offset beyond mapped range");
+
+        // should be fine
+        ok(
+          typeof buffer.getMappedRange(0, 16) == "object",
+          "no overlap before"
+        );
+        ok(typeof buffer.getMappedRange(40, 8) == "object", "no overlap after");
+      }
+
+      SimpleTest.waitForExplicitFinish();
+      testBody()
+        .catch(e => ok(false, "Unhandled exception " + e))
+        .finally(() => SimpleTest.finish());
+    </script>
+  </body>
+</html>

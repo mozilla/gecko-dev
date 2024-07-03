@@ -15,6 +15,40 @@
 #include <memory>
 
 namespace mozilla {
+namespace webgpu {
+struct MappedView;
+}  // namespace webgpu
+}  // namespace mozilla
+
+// Give `nsTArray` some advice on how to handle `MappedInfo::mViews`.
+//
+// In the `mozilla::webgpu` namespace, `MappedInfo::mViews` is an
+// `nsTArray<MappedView>`, and `MappedView::mArrayBuffer` is a `JS::Heap`
+// pointer. This arrangement requires special handling.
+//
+// Normally, `nsTArray` wants its element type to be movable with simple byte
+// copies, so that an `nsTArray` can efficiently resize its element buffer.
+// However, `JS::Heap` is marked `MOZ_NON_MEMMOVABLE`, meaning that it cannot be
+// safely moved by a simple byte-by-byte copy. Normally, this would cause
+// `nsTArray` to reject `JS::Heap` as an element type, but `nsTArray.h`
+// specializes `nsTArray_RelocationStrategy` to indicate that `JS::Heap` can be
+// moved safely using its move constructor. This causes `nsTArray<JS::Heap<T>>`
+// to perform element buffer moves using element-by-element move constructor
+// application: slower, but safe for `JS::Heap`.
+//
+// However, while `MappedView` is automatically marked `MOZ_NON_MEMMOVABLE`
+// because of its `mArrayBuffer` member, the `nsTArray_RelocationStrategy`
+// specialization is not somehow similarly magically carried over from
+// `JS::Heap` to `MappedView`. To use `MappedView` in `nsTArray`, we must spell
+// out a relocation strategy for it.
+template <>
+struct nsTArray_RelocationStrategy<mozilla::webgpu::MappedView> {
+  // The default move constructors are fine for MappedView.
+  using Type =
+      nsTArray_RelocateUsingMoveConstructor<mozilla::webgpu::MappedView>;
+};
+
+namespace mozilla {
 class ErrorResult;
 
 namespace dom {
@@ -28,11 +62,23 @@ namespace webgpu {
 
 class Device;
 
+// A portion of the current mapped buffer range that is currently
+// visible to JS as an ArrayBuffer.
+struct MappedView {
+  BufferAddress mOffset;
+  BufferAddress mRangeEnd;
+  JS::Heap<JSObject*> mArrayBuffer;
+
+  MappedView(BufferAddress aOffset, BufferAddress aRangeEnd,
+             JSObject* aArrayBuffer)
+      : mOffset(aOffset), mRangeEnd(aRangeEnd), mArrayBuffer(aArrayBuffer) {}
+};
+
 struct MappedInfo {
   // True if mapping is requested for writing.
   bool mWritable = false;
   // Populated by `GetMappedRange`.
-  nsTArray<JS::Heap<JSObject*>> mArrayBuffers;
+  nsTArray<MappedView> mViews;
   BufferAddress mOffset;
   BufferAddress mSize;
   MappedInfo() = default;
@@ -84,8 +130,22 @@ class Buffer final : public ObjectBase, public ChildOf<Device> {
   // Information about the currently active mapping.
   Maybe<MappedInfo> mMapped;
   RefPtr<dom::Promise> mMapRequest;
-  // mShmem does not point to a shared memory segment if the buffer is not
-  // mappable.
+
+  // A shared memory mapping for the entire buffer, or a zero-length
+  // mapping.
+  //
+  // If `mUsage` contains `MAP_READ` or `MAP_WRITE`, this mapping is
+  // created at `Buffer` construction, and destroyed at `Buffer`
+  // destruction.
+  //
+  // If `mUsage` contains neither of those flags, but `this` is mapped
+  // at creation, this mapping is created at `Buffer` construction,
+  // and destroyed when we first unmap the buffer, by clearing this
+  // `shared_ptr`.
+  //
+  // Otherwise, this points to `WritableSharedMemoryMapping()` (the
+  // default constructor), a zero-length mapping that doesn't point to
+  // any shared memory.
   std::shared_ptr<ipc::WritableSharedMemoryMapping> mShmem;
 };
 

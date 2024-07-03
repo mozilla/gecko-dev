@@ -24,6 +24,8 @@ scheme = "https"
 
 ["test_buffer_mapping_invalid_device.html"]
 
+["test_buffer_mapping_overlapping_views.html"]
+
 ["test_command_buffer_creation.html"]
 
 ["test_compilation_message_pos.html"]
