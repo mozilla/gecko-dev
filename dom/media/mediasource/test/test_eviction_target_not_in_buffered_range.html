@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html><head>
+<title>MSE: Auto eviction for a new playback position not in the current buffered range</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script type="text/javascript" src="mediasource.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<script class="testbody" type="text/javascript">
+
+// This test is used to ensure that the auto eviction will kick in after seeking
+// to a new position which is not in the current buffered range and the buffer
+// is already near full. If we don't evict enough data for this case, we would
+// not be able to append new data for the new range which contains the seek
+// target.
+SimpleTest.waitForExplicitFinish();
+
+addMSEPrefs(
+  // Set this to a low value in order to reproduce the issue quickly.
+  ["media.mediasource.eviction_threshold.video", 200000],
+);
+
+runWithMSE(async (ms, el) => {
+  el.controls = true;
+  await once(ms, "sourceopen");
+  ok(true, "Receive a sourceopen event");
+
+  const videosb = ms.addSourceBuffer("video/mp4");
+  await fetchAndLoad(videosb, "bipbop/bipbop_video", ["init"], ".mp4");
+
+  // After appending those data, the buffered range will be (1.601667, 7.208333)
+  // and the buffer will be almost full (191kB/195kB)
+  for (let idx = 3; idx < 10; idx++) {
+    info(`Loading range [${idx}:${idx+1}]`);
+    await fetchAndLoad(videosb, "bipbop/bipbop_video", range(idx, idx +1), ".m4s");
+  }
+
+  // Seek to the position which is before the buffer's start time, and it should
+  // trigger the auto eviction in order to allow us to append more data later.
+  info(`Seek to the position which is earlier than the buffer's start`);
+  await seekAndFetchData(el, 0, videosb, range(1, 2));
+
+  info(`Seek to the position which is later than the buffer's end`);
+  await seekAndFetchData(el, 7.5, videosb, range(10, 11));
+
+  SimpleTest.finish();
+});
+
+// Helper functions
+async function seekAndFetchData(el, seekTime, sb, range) {
+  const promise = once(el, "seeked");
+  el.currentTime = seekTime;
+  // We need to wait for the data eviction finish first.
+  await monitorBufferedChange(sb);
+  try {
+    info(`Append the data containing the seek target`);
+    await fetchAndLoad(sb, "bipbop/bipbop_video", range, ".m4s");
+  } catch (error) {
+    ok(error.name == "QuotaExceededError", "We shouldn't get other error");
+    ok(false, "Should be able to append new data due to the auto eviction");
+  }
+  await promise;
+  info(`Succefully append new data and seek to the desired position`);
+}
+
+function monitorBufferedChange(sourceBuffer) {
+  return new Promise((resolve) => {
+    const lastBuffered = sourceBuffer.buffered;
+    const checkBufferedChange = () => {
+      if (sourceBuffer.buffered !== lastBuffered) {
+        ok(true, `Source buffered range has changed`);
+        clearInterval(intervalId);
+        resolve();
+      }
+    };
+    const intervalId = setInterval(checkBufferedChange, 100);
+  });
+}
+
+</script>
+</body>
+</html>

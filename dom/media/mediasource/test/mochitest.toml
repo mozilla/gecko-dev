@@ -230,6 +230,8 @@ support-files = [
 
 ["test_Eviction_mp4.html"]
 
+["test_eviction_target_not_in_buffered_range.html"]
+
 ["test_ExperimentalAsync.html"]
 
 ["test_FrameSelection_mp4.html"]
