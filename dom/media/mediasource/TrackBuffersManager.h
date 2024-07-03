@@ -111,6 +111,11 @@ class TrackBuffersManager final
   EvictDataResult EvictData(const media::TimeUnit& aPlaybackTime, int64_t aSize,
                             TrackType aType);
 
+  // Schedule data eviction if necessary and the size of eviction would be
+  // determined automatically. This is currently used when the buffer's size is
+  // close to full and the normal procedure to evict data is not enough.
+  void EvictDataWithoutSize(TrackType aType, const media::TimeUnit& aTarget);
+
   // Queue a task to run ChangeType
   void ChangeType(const MediaContainerType& aType);
 
@@ -296,7 +301,8 @@ class TrackBuffersManager final
   void MaybeDispatchEncryptedEvent(
       const nsTArray<RefPtr<MediaRawData>>& aSamples);
 
-  void DoEvictData(const media::TimeUnit& aPlaybackTime, int64_t aSizeToEvict)
+  void DoEvictData(const media::TimeUnit& aPlaybackTime,
+                   Maybe<int64_t> aSizeToEvict)
       MOZ_REQUIRES(mTaskQueueCapability);
 
   void GetDebugInfo(dom::TrackBuffersManagerDebugInfo& aInfo) const
@@ -542,6 +548,8 @@ class TrackBuffersManager final
   Atomic<int64_t> mSizeSourceBuffer;
   const int64_t mVideoEvictionThreshold;
   const int64_t mAudioEvictionThreshold;
+  // A ratio of buffer fullness that we use for the auto eviction,
+  const double mEvictionBufferWatermarkRatio;
   enum class EvictionState {
     NO_EVICTION_NEEDED,
     EVICTION_NEEDED,

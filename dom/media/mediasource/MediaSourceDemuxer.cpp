@@ -401,6 +401,9 @@ RefPtr<MediaSourceTrackDemuxer::SeekPromise> MediaSourceTrackDemuxer::DoSeek(
             DumpTimeRanges(buffered).get());
   if (!buffered.ContainsWithStrictEnd(seekTime)) {
     if (!buffered.ContainsWithStrictEnd(aTime)) {
+      // Target isn't in the buffered range, so we can perform an eviction if
+      // needed.
+      mManager->EvictDataWithoutSize(mType, seekTime);
       // We don't have the data to seek to.
       return SeekPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA,
                                           __func__);

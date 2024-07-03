@@ -11,6 +11,7 @@
 #include "SourceBufferAttributes.h"
 #include "TimeUnits.h"
 #include "MediaResult.h"
+#include "mozilla/Maybe.h"
 
 #include <utility>
 
@@ -93,14 +94,19 @@ class RangeRemovalTask : public SourceBufferTask {
 class EvictDataTask : public SourceBufferTask {
  public:
   EvictDataTask(const media::TimeUnit& aPlaybackTime, int64_t aSizetoEvict)
-      : mPlaybackTime(aPlaybackTime), mSizeToEvict(aSizetoEvict) {}
+      : mPlaybackTime(aPlaybackTime), mSizeToEvict(Some(aSizetoEvict)) {}
+
+  explicit EvictDataTask(const media::TimeUnit& aPlaybackTime)
+      : mPlaybackTime(aPlaybackTime), mSizeToEvict(Nothing()) {}
 
   static const Type sType = Type::EvictData;
   Type GetType() const override { return Type::EvictData; }
   const char* GetTypeName() const override { return "EvictData"; }
 
   media::TimeUnit mPlaybackTime;
-  int64_t mSizeToEvict;
+  // If not present, that means the size of eviction will be determined
+  // automatically depends on the current buffer condition.
+  Maybe<int64_t> mSizeToEvict;
 };
 
 class DetachTask : public SourceBufferTask {

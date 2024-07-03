@@ -112,6 +112,7 @@ TrackBuffersManager::TrackBuffersManager(MediaSourceDecoder* aParentDecoder,
           "media.mediasource.eviction_threshold.video", 150 * 1024 * 1024)),
       mAudioEvictionThreshold(Preferences::GetUint(
           "media.mediasource.eviction_threshold.audio", 20 * 1024 * 1024)),
+      mEvictionBufferWatermarkRatio(0.9),
       mEvictionState(EvictionState::NO_EVICTION_NEEDED),
       mMutex("TrackBuffersManager"),
       mTaskQueue(aParentDecoder->GetDemuxer()->GetTaskQueue()),
@@ -391,6 +392,37 @@ TrackBuffersManager::EvictDataResult TrackBuffersManager::EvictData(
   return result;
 }
 
+void TrackBuffersManager::EvictDataWithoutSize(TrackType aType,
+                                               const media::TimeUnit& aTarget) {
+  MOZ_ASSERT(OnTaskQueue());
+  auto& track = GetTracksData(aType);
+  const auto bufferedSz = track.mSizeBuffer;
+  const auto evictionSize = EvictionThreshold(aType);
+  const double watermarkRatio = bufferedSz / (double)(evictionSize);  // can > 1
+
+  MSE_DEBUG(
+      "EvictDataWithoutSize, track=%s, buffered=%u"
+      "kB, eviction threshold=%" PRId64 "kB, wRatio=%f, target=%" PRId64
+      ", bufferedRange=%s",
+      TrackTypeToStr(aType), bufferedSz / 1024, evictionSize / 1024,
+      watermarkRatio, aTarget.ToMicroseconds(),
+      DumpTimeRanges(track.mBufferedRanges).get());
+
+  // This type of eviction MUST only be used when the target is not in the
+  // current buffered range, which means all data are evictable. Otherwise, we
+  // have to calculate the amount of evictable data.
+  MOZ_ASSERT(track.mBufferedRanges.Find(aTarget) == TimeIntervals::NoIndex);
+
+  // This type of eviction is introduced to mitigate the pressure of the buffer
+  // nearly being full. If the buffer is still far from being full, we do
+  // nothing.
+  if (watermarkRatio < mEvictionBufferWatermarkRatio) {
+    return;
+  }
+  MSE_DEBUG("Queued EvictDataTask to evict size automatically");
+  QueueTask(new EvictDataTask(aTarget));
+}
+
 void TrackBuffersManager::ChangeType(const MediaContainerType& aType) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -515,9 +547,10 @@ int64_t TrackBuffersManager::EvictionThreshold(
 }
 
 void TrackBuffersManager::DoEvictData(const TimeUnit& aPlaybackTime,
-                                      int64_t aSizeToEvict) {
+                                      Maybe<int64_t> aSizeToEvict) {
   mTaskQueueCapability->AssertOnCurrentThread();
   AUTO_PROFILER_LABEL("TrackBuffersManager::DoEvictData", MEDIA_PLAYBACK);
+  MSE_DEBUG("DoEvictData, time=%" PRId64, aPlaybackTime.ToMicroseconds());
 
   mEvictionState = EvictionState::EVICTION_COMPLETED;
 
@@ -538,11 +571,50 @@ void TrackBuffersManager::DoEvictData(const TimeUnit& aPlaybackTime,
     RemoveAllCodedFrames();
     return;
   }
+
+  // The playback time isn't in the buffered range yet, we're waiting for the
+  // data so all data in current buffered range are evictable.
+  if (!aSizeToEvict) {
+    MOZ_ASSERT(track.mBufferedRanges.Find(aPlaybackTime) ==
+               TimeIntervals::NoIndex);
+    // Evict data until the size falls below the threshold we set.
+    const int64_t sizeToEvict =
+        GetSize() - static_cast<int64_t>(EvictionThreshold() *
+                                         mEvictionBufferWatermarkRatio);
+    uint32_t lastKeyFrameIndex = 0;
+    int64_t toEvict = sizeToEvict;
+    int64_t partialEvict = 0;
+    for (uint32_t i = 0; i < buffer.Length(); i++) {
+      const auto& frame = buffer[i];
+      if (frame->mKeyframe) {
+        lastKeyFrameIndex = i;
+        toEvict -= partialEvict;
+        if (toEvict < 0) {
+          break;
+        }
+        partialEvict = 0;
+      }
+      partialEvict +=
+          AssertedCast<int64_t>(frame->ComputedSizeOfIncludingThis());
+    }
+    TimeUnit start = track.mBufferedRanges[0].mStart;
+    TimeUnit end =
+        buffer[lastKeyFrameIndex]->mTime - TimeUnit::FromMicroseconds(1);
+    MSE_DEBUG("Auto evicting %" PRId64 " bytes from [%" PRId64 ", %" PRId64 "]",
+              sizeToEvict - toEvict, start.ToMicroseconds(),
+              end.ToMicroseconds());
+    if (end > start) {
+      CodedFrameRemoval(TimeInterval(start, end));
+    }
+    return;
+  }
+
   // Remove any data we've already played, or before the next sample to be
   // demuxed whichever is lowest.
   TimeUnit lowerLimit = std::min(track.mNextSampleTime, aPlaybackTime);
   uint32_t lastKeyFrameIndex = 0;
-  int64_t toEvict = aSizeToEvict;
+  int64_t sizeToEvict = *aSizeToEvict;
+  int64_t toEvict = sizeToEvict;
   int64_t partialEvict = 0;
   for (uint32_t i = 0; i < buffer.Length(); i++) {
     const auto& frame = buffer[i];
@@ -560,11 +632,11 @@ void TrackBuffersManager::DoEvictData(const TimeUnit& aPlaybackTime,
     partialEvict += AssertedCast<int64_t>(frame->ComputedSizeOfIncludingThis());
   }
 
-  const int64_t finalSize = mSizeSourceBuffer - aSizeToEvict;
+  const int64_t finalSize = mSizeSourceBuffer - sizeToEvict;
 
   if (lastKeyFrameIndex > 0) {
     MSE_DEBUG("Step1. Evicting %" PRId64 " bytes prior currentTime",
-              aSizeToEvict - toEvict);
+              sizeToEvict - toEvict);
     TimeUnit start = track.mBufferedRanges[0].mStart;
     TimeUnit end =
         buffer[lastKeyFrameIndex]->mTime - TimeUnit::FromMicroseconds(1);
@@ -574,6 +646,7 @@ void TrackBuffersManager::DoEvictData(const TimeUnit& aPlaybackTime,
   }
 
   if (mSizeSourceBuffer <= finalSize) {
+    MSE_DEBUG("Total buffer size is already smaller than final size");
     return;
   }
 
@@ -589,7 +662,7 @@ void TrackBuffersManager::DoEvictData(const TimeUnit& aPlaybackTime,
   futureBuffered.SetFuzz(MediaSourceDemuxer::EOS_FUZZ / 2);
   if (futureBuffered.Length() <= 1) {
     // We have one continuous segment ahead of us:
-    // nothing further can be evicted.
+    MSE_DEBUG("Nothing in future can be evicted");
     return;
   }
 
@@ -2738,6 +2811,7 @@ TimeUnit TrackBuffersManager::HighestEndTime(
 
 void TrackBuffersManager::ResetEvictionIndex(TrackData& aTrackData) {
   MutexAutoLock mut(mMutex);
+  MSE_DEBUG("ResetEvictionIndex for %s", aTrackData.mInfo->mMimeType.get());
   aTrackData.mEvictionIndex.Reset();
 }
 
@@ -2758,6 +2832,10 @@ void TrackBuffersManager::UpdateEvictionIndex(TrackData& aTrackData,
   aTrackData.mEvictionIndex.mLastIndex = currentIndex;
   MutexAutoLock mut(mMutex);
   aTrackData.mEvictionIndex.mEvictable += evictable;
+  MSE_DEBUG("UpdateEvictionIndex for %s (idx=%u, evictable=%u)",
+            aTrackData.mInfo->mMimeType.get(),
+            aTrackData.mEvictionIndex.mLastIndex,
+            aTrackData.mEvictionIndex.mEvictable);
 }
 
 const TrackBuffersManager::TrackBuffer& TrackBuffersManager::GetTrackBuffer(
