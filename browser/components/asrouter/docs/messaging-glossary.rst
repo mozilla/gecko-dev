@@ -1,12 +1,11 @@
 =========================
 Messaging System Glossary
 =========================
-
 .. glossary::
     :sorted:
 
     `Advanced Targeting <https://experimenter.info/targeting/advanced-targeting>`_
-        Advanced Targeting uses custom criteria to determine user eligibility for messages or experiments in Firefox. Unlike regular targeting, which uses simpler, predefined criteria, advanced targeting leverages custom JEXL (JavaScript Expression Language) expressions for precise segmentation based on user attributes and conditions. The resulting user segments are often referred to as `custom audiences <#term-Custom-Audiences>`_.
+        Advanced Targeting uses custom criteria to determine user eligibility for messages or experiments in Firefox. Unlike regular targeting, which uses simpler, predefined criteria, advanced targeting leverages custom JEXL (JavaScript Expression Language) expressions for precise segmentation based on user attributes and conditions. The resulting user segments are often referred to as :term:`custom audiences`.
 
     `ASRouter (ASR) <index.html>`_
         ASRouter (Activity Stream Router) is the component within Firefox responsible for delivering various types of messages to users based on predefined actions and triggers. It determines when and how messages should be displayed, ensuring relevant content is shown at appropriate times.
@@ -51,7 +50,7 @@ Messaging System Glossary
         First startup is a Windows-only technical process that occurs before the first application window of Firefox appears. It is invoked by the Windows installer to perform essential initializations and ensures that all necessary background tasks are completed before the user interacts with the browser.
 
     Forced Enrollment
-        Forced Enrollment is a method used in experiments to ensure that specific users are enrolled into an experiment or receive a particular message. Forced enrollment ignores `advanced targeting <#term-Advanced-Targeting>`_ used for `natural enrollment <#term-Natural-Enrollment>`_. It is often used during testing phases to verify the correct functioning and impact of messages or features before broader deployment. Forced Enrollment can be initiated through specific URLs or browser configurations.
+        Forced Enrollment is a method used in experiments to ensure that specific users are enrolled into an experiment or receive a particular message. Forced enrollment ignores :term:`advanced targeting` used for :term:`natural enrollment`. It is often used during testing phases to verify the correct functioning and impact of messages or features before broader deployment. Forced Enrollment can be initiated through specific URLs or browser configurations.
 
     `Frequency Capping <https://experimenter.info/messaging/frequency-cap>`_
         Frequency capping limits the number of times a message is shown to a user to avoid overexposure and annoyance. This ensures a better user experience.
