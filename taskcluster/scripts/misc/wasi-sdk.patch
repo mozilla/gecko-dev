@@ -29,7 +29,7 @@ index f350ecb..3b73115 100644
  CFLAGS += -fno-trapping-math
  # Add all warnings, but disable a few which occur in third-party code.
 -CFLAGS += -Wall -Wextra -Werror \
-+CFLAGS += -mno-reference-types -Wall -Wextra \
++CFLAGS += -Wall -Wextra \
    -Wno-null-pointer-arithmetic \
    -Wno-unused-parameter \
    -Wno-sign-compare \
