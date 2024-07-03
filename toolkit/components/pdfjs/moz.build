@@ -16,6 +16,10 @@ EXTRA_JS_MODULES += [
     "pdfjs.sys.mjs",
 ]
 
+JS_PREFERENCE_PP_FILES += [
+    "PdfJsDefaultPrefs.js",
+]
+
 XPCOM_MANIFESTS += [
     "components.conf",
 ]

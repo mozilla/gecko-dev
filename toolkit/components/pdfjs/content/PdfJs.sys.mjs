@@ -36,35 +36,6 @@ XPCOMUtils.defineLazyServiceGetter(
   "@mozilla.org/uriloader/handler-service;1",
   "nsIHandlerService"
 );
-const lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
-  PdfJsDefaultPreferences: "resource://pdf.js/PdfJsDefaultPreferences.sys.mjs",
-});
-
-function initializeDefaultPreferences() {
-  var defaultBranch = Services.prefs.getDefaultBranch("pdfjs.");
-  var defaultValue;
-  for (var key in lazy.PdfJsDefaultPreferences) {
-    // Skip prefs that are already defined, so we can enable/disable things
-    // in all.js.
-    let prefType = defaultBranch.getPrefType(key);
-    if (prefType !== Ci.nsIPrefBranch.PREF_INVALID) {
-      continue;
-    }
-    defaultValue = lazy.PdfJsDefaultPreferences[key];
-    switch (typeof defaultValue) {
-      case "boolean":
-        defaultBranch.setBoolPref(key, defaultValue);
-        break;
-      case "number":
-        defaultBranch.setIntPref(key, defaultValue);
-        break;
-      case "string":
-        defaultBranch.setCharPref(key, defaultValue);
-        break;
-    }
-  }
-}
 
 // We're supposed to get this type of thing from the OS, and generally we do.
 // But doing so is expensive, so on startup paths we can use this to make the
@@ -117,8 +88,6 @@ export var PdfJs = {
 
     // Listen for when a different pdf handler is chosen.
     Services.obs.addObserver(this, TOPIC_PDFJS_HANDLER_CHANGED);
-
-    initializeDefaultPreferences();
   },
 
   uninit: function uninit() {

@@ -1,7 +1,6 @@
 pdfjs.jar:
 % resource pdf.js %content/
  content/PdfJs.sys.mjs (content/PdfJs.sys.mjs)
- content/PdfJsDefaultPreferences.sys.mjs (content/PdfJsDefaultPreferences.sys.mjs)
  content/PdfJsNetwork.sys.mjs (content/PdfJsNetwork.sys.mjs)
  content/PdfJsTelemetry.sys.mjs (content/PdfJsTelemetry.sys.mjs)
  content/PdfSandbox.sys.mjs (content/PdfSandbox.sys.mjs)

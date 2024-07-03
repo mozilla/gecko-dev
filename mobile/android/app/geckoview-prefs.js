@@ -377,12 +377,6 @@ pref("network.protocol-handler.warn-external.vnd.youtube", false);
 // (bug 888268)
 pref("network.tickle-wifi.enabled", true);
 
-// Editing PDFs is not supported on mobile
-pref("pdfjs.annotationEditorMode", -1);
-
-// Enable the floating PDF.js toolbar on GeckoView (bug 1829366)
-pref("pdfjs.enableFloatingToolbar", true);
-
 // Try to convert PDFs sent as octet-stream (bug 1754499)
 pref("pdfjs.handleOctetStream", true);
 

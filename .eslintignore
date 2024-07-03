@@ -261,6 +261,8 @@ toolkit/mozapps/extensions/test/xpcshell/data/test_AddonRepository_fail.json
 toolkit/components/pdfjs/content/build
 toolkit/components/pdfjs/content/web
 
+toolkit/components/pdfjs/PdfJsOverridePrefs.js
+
 # Uses preprocessing
 toolkit/components/reader/Readerable.sys.mjs
 
