@@ -1,0 +1,133 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test text change notification when inserting text containing line breaks</title>
+<script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+<script>
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+SimpleTest.waitForFocus(async () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  const TIP = SpecialPowers.Cc["@mozilla.org/text-input-processor;1"].createInstance(
+    SpecialPowers.Ci.nsITextInputProcessor
+  );
+  let textChanges = [];
+  function recTextChanges(aTIP, aNotification) {
+    switch (aNotification.type) {
+      case "request-to-commit":
+        aTIP.commitComposition();
+        break;
+      case "request-to-cancel":
+        aTIP.cancelComposition();
+        break;
+      case "notify-text-change":
+        textChanges.push({
+          offset: aNotification.offset,
+          removedLength: aNotification.removedLength,
+          addedLength: aNotification.addedLength
+        });
+        break;
+    }
+    return true;
+  }
+  editingHost.focus();
+  // Wait for initializing the HTMLEditor.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  TIP.beginInputTransactionForTests(window, recTextChanges);
+
+  function stringifyTextChanges(aChanges) {
+    if (!aChanges.length) {
+      return "[]";
+    }
+    function stringifyTextChange(aChange) {
+      return `{ offset: ${aChange.offset}, removedLength: ${aChange.removedLength}, addedLength: ${aChange.addedLength} }`;
+    }
+    let result = "";
+    for (const change of aChanges) {
+      if (result == "") {
+        result = "[ ";
+      } else {
+        result += ", ";
+      }
+      result += stringifyTextChange(change);
+    }
+    return result + " ]";
+  }
+
+  for (const whiteSpace of ["normal", "pre"]) {
+    editingHost.style.whiteSpace = whiteSpace;
+    for (const collapseAt of [0, 1, 2, 3]) {
+      for (const insertingText of ["\nabc\ndef",
+                                  "abc\ndef",
+                                  "abc\ndef\n",
+                                  "\n\nabc",
+                                  "abc\n\ndef"]) {
+        editingHost.textContent = "XYZ";
+        getSelection().collapse(editingHost.firstChild, collapseAt);
+        await new Promise(resolve => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve));
+        });
+        textChanges = [];
+        document.execCommand("insertText", false, insertingText);
+        await new Promise(resolve => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve));
+        });
+        const middleOfText = collapseAt > 0 && collapseAt < "XYZ".length;
+        const firstLineLength = insertingText.indexOf("\n");
+        const rightTextLength = middleOfText
+          // First, the `Text` is split.  At this time, the right half is removed from the
+          // `Text` and then, added it with new `Text`.  Therefore, there is non-zero removed
+          // length.
+          ? "XYZ".length - collapseAt
+          // However, if collapsed at start or end of a `Text`, we don't split the `Text`.
+          : 0;
+        is(
+          stringifyTextChanges(textChanges),
+          stringifyTextChanges([
+            {
+              offset: collapseAt,
+              removedLength: rightTextLength,
+              addedLength: insertingText.length + rightTextLength,
+            },
+          ]),
+          `white-space:${whiteSpace}: inserting text is "${
+            insertingText.replaceAll("\n", "\\n")
+          }" to offset ${collapseAt} in the Text`
+        );
+        textChanges = [];
+        document.execCommand("undo");
+        await new Promise(resolve => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve));
+        });
+        // Finally, removing the inserted `Text` nodes and <br> elements causes joining the
+        // `Text` nodes around the inserted text.  Therefore, the offset is always 0.  Removed
+        // length is the inserted text length and right text length at first split.  Then, added
+        // text length is the right text length.
+        const joinText = middleOfText || (firstLineLength > 0 && collapseAt == "XYZ".length);
+        const removeDataFromText = collapseAt == "XYZ".length && firstLineLength > 0;
+        is(
+          stringifyTextChanges(textChanges),
+          stringifyTextChanges([
+            {
+              offset: collapseAt == "XYZ".length ? collapseAt : 0,
+              removedLength: insertingText.length + (joinText && !removeDataFromText ? "XYZ".length : 0),
+              addedLength: joinText && !removeDataFromText ? "XYZ".length : 0,
+            },
+          ]),
+          `white-space:${whiteSpace}: undoing inserted text is "${
+            insertingText.replaceAll("\n", "\\n")
+          }" to offset ${collapseAt} in the Text`
+        );
+      }
+    }
+  }
+  SimpleTest.finish();
+});
+</script>
+</head>
+<body>
+<div contenteditable></div>
+</body>
+</html>
