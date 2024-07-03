@@ -43,7 +43,6 @@ private val bottomSheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.
  * @param icon The icon that represents the feature for the given [question].
  * @param onPrivacyPolicyLinkClick Invoked when the privacy policy link is clicked.
  * @param onCloseButtonClicked Invoked when the close button is clicked.
- * @param onSubmitButtonClicked Invoked when the submit button is clicked.
  */
 @Composable
 fun MicrosurveyBottomSheet(
@@ -52,7 +51,6 @@ fun MicrosurveyBottomSheet(
     @DrawableRes icon: Int,
     onPrivacyPolicyLinkClick: () -> Unit,
     onCloseButtonClicked: () -> Unit,
-    onSubmitButtonClicked: (String) -> Unit,
 ) {
     var selectedAnswer by remember { mutableStateOf<String?>(null) }
     var isSubmitted by remember { mutableStateOf(false) }
@@ -97,12 +95,7 @@ fun MicrosurveyBottomSheet(
                     isSubmitted = isSubmitted,
                     isContentAnswerSelected = selectedAnswer != null,
                     onPrivacyPolicyLinkClick = onPrivacyPolicyLinkClick,
-                    onButtonClick = {
-                        selectedAnswer?.let {
-                            onSubmitButtonClicked(it)
-                            isSubmitted = true
-                        }
-                    },
+                    onButtonClick = { isSubmitted = true },
                 )
             }
         }
@@ -119,7 +112,6 @@ private fun MicroSurveyBottomSheetPreview() {
             icon = R.drawable.ic_print,
             onPrivacyPolicyLinkClick = {},
             onCloseButtonClicked = {},
-            onSubmitButtonClicked = {},
             answers = listOf(
                 stringResource(id = R.string.likert_scale_option_1),
                 stringResource(id = R.string.likert_scale_option_2),

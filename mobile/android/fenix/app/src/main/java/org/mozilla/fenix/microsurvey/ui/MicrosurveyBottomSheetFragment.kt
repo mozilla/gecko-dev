@@ -60,7 +60,7 @@ class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
             val microsurveyUIData = messaging.getMessage(microsurveyId)?.toMicrosurveyUIData()
             microsurveyUIData?.let {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-                microsurveyMessageController.onMicrosurveyShown(it.id)
+
                 setContent {
                     FirefoxTheme {
                         MicrosurveyBottomSheet(
@@ -68,20 +68,12 @@ class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
                             icon = it.icon,
                             answers = it.answers,
                             onPrivacyPolicyLinkClick = {
-                                closeBottomSheet()
-                                microsurveyMessageController.onPrivacyPolicyLinkClicked(
-                                    it.id,
-                                    it.utmContent,
-                                )
+                                closeBottomSheet
+                                microsurveyMessageController.onPrivacyPolicyLinkClicked(it.utmContent)
                             },
                             onCloseButtonClicked = {
-                                microsurveyMessageController.onMicrosurveyDismissed(it.id)
                                 context.settings().shouldShowMicrosurveyPrompt = false
                                 dismiss()
-                            },
-                            onSubmitButtonClicked = { answer ->
-                                context.settings().shouldShowMicrosurveyPrompt = false
-                                microsurveyMessageController.onSurveyCompleted(it.id, answer)
                             },
                         )
                     }
