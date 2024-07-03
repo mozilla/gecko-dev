@@ -1363,7 +1363,7 @@ bool WasmModuleObject::customSections(JSContext* cx, unsigned argc, Value* vp) {
 
   RootedValueVector elems(cx);
   Rooted<ArrayBufferObject*> buf(cx);
-  for (const CustomSection& cs : module->customSections()) {
+  for (const CustomSection& cs : module->moduleMeta().customSections) {
     if (name.length() != cs.name.length()) {
       continue;
     }

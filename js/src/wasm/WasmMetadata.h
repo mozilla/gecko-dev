@@ -136,8 +136,16 @@ struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
   // length as CodeMetadata::elemSegmentTypes.
   ModuleElemSegmentVector elemSegments;
 
-  // Fields decoded as part of the wasm module tail:
+  // Info about data segments needed for instantiation.  These wind up having
+  // the same length.  Initially both are empty.  `dataSegmentRanges` is
+  // filled in during validation, and `dataSegments` remains empty.  Later, at
+  // module-generation time, `dataSegments` is filled in, by copying the
+  // underlying data blocks, and so the two vectors have the same length after
+  // that.
   DataSegmentRangeVector dataSegmentRanges;
+  DataSegmentVector dataSegments;
+
+  CustomSectionVector customSections;
 
   explicit ModuleMetadata() = default;
 
@@ -211,8 +219,11 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   CacheableChars sourceMapURL;
   // namePayload points at the name section's CustomSection::payload so that
   // the Names (which are use payload-relative offsets) can be used
-  // independently of the Module without duplicating the name section.
-  SharedBytes namePayload;
+  // independently of the Module without duplicating the name section.  This
+  // is marked `mutable` only because CodeModule (WasmSerialize.cpp) has to
+  // update the field during deserialization, after the containing
+  // CodeMetadata has been deserialized and marked `const`.
+  mutable SharedBytes namePayload;
   Maybe<Name> moduleName;
   NameVector funcNames;
 
@@ -240,12 +251,12 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // to optimize for this.
   Uint32Vector asmJSSigToTableIndex;
 
-  // Bytecode ranges for the code section?  FIXME check
-  MaybeSectionRange
-      codeSection;  // !!!! moved, but the doc doesn't specify that
+  // Bytecode ranges for the code section.
+  MaybeSectionRange codeSection;
 
-  // Bytecode ranges for custom sections?  FIXME check
-  CustomSectionRangeVector customSectionRanges;  // !!!! also moved
+  // Bytecode ranges for custom sections.  FIXME: is it feasible to move this
+  // to ModuleMetadata?
+  CustomSectionRangeVector customSectionRanges;
 
   // Indicates whether the branch hint section was successfully parsed.
   bool parsedBranchHints;

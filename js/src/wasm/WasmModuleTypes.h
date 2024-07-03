@@ -485,20 +485,20 @@ using InstanceElemSegmentVector =
     GCVector<InstanceElemSegment, 0, SystemAllocPolicy>;
 
 // DataSegmentRange holds the initial results of decoding a data segment from
-// the bytecode and is stored in the ModuleMetadata during compilation.  It
-// contains the bytecode bounds of the data segment, and some auxiliary
-// information, but not the segment contents itself.
+// the bytecode and is stored in the ModuleMetadata.  It contains the bytecode
+// bounds of the data segment, and some auxiliary information, but not the
+// segment contents itself.
 //
 // When compilation completes, each DataSegmentRange is transformed into a
-// DataSegment, which are then transferred to the wasm::Module.  DataSegment
+// DataSegment, which are also stored in the ModuleMetadata.  DataSegment
 // contains the same information as DataSegmentRange but additionally contains
 // the segment contents itself.  This allows non-compilation uses of wasm
 // validation to avoid expensive copies.
 //
-// A DataSegment that is "passive" is shared between a wasm::Module and its
+// A DataSegment that is "passive" is shared between a ModuleMetadata and its
 // wasm::Instances.  To allow each segment to be released as soon as the last
-// Instance mem.drops it and the Module is destroyed, each DataSegment is
-// individually atomically ref-counted.
+// Instance mem.drops it and the Module (hence, also the ModuleMetadata) is
+// destroyed, each DataSegment is individually atomically ref-counted.
 
 constexpr uint32_t InvalidMemoryIndex = UINT32_MAX;
 static_assert(InvalidMemoryIndex > MaxMemories, "Invariant");
@@ -532,6 +532,7 @@ struct DataSegment : AtomicRefCounted<DataSegment> {
         return false;
       }
     }
+    MOZ_ASSERT(bytes.length() == 0);
     return bytes.append(bytecode.begin() + src.bytecodeOffset, src.length);
   }
 

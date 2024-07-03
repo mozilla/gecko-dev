@@ -257,13 +257,14 @@ void Module::addSizeOfMisc(MallocSizeOf mallocSizeOf,
                            size_t* data) const {
   code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenCodeMeta,
                                 seenCodeMetaForAsmJS, seenCode, code, data);
-  *data += mallocSizeOf(this) +
-           // FIXME: should this accounting be migrated to ModuleMetadata now?
-           // SizeOfVectorExcludingThis(imports_, mallocSizeOf) +
-           // SizeOfVectorExcludingThis(exports_, mallocSizeOf) +
-           SizeOfVectorExcludingThis(dataSegments_, mallocSizeOf) +
-           SizeOfVectorExcludingThis(elemSegments_, mallocSizeOf) +
-           SizeOfVectorExcludingThis(customSections_, mallocSizeOf);
+  *data += mallocSizeOf(
+      this);  // +
+              // FIXME: should this accounting be migrated to ModuleMetadata
+              // now? SizeOfVectorExcludingThis(imports_, mallocSizeOf) +
+              // SizeOfVectorExcludingThis(exports_, mallocSizeOf) +
+              // SizeOfVectorExcludingThis(dataSegments_, mallocSizeOf) +
+              // SizeOfVectorExcludingThis(elemSegments_, mallocSizeOf) +
+              // SizeOfVectorExcludingThis(customSections_, mallocSizeOf);
 }
 
 // Extracting machine code as JS object. The result has the "code" property, as
@@ -933,10 +934,10 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
   }
 
   instance.set(WasmInstanceObject::create(
-      cx, code_, dataSegments_, elemSegments_, codeMeta().instanceDataLength,
-      memories, std::move(tables), imports.funcs, codeMeta().globals,
-      imports.globalValues, imports.globalObjs, imports.tagObjs, instanceProto,
-      std::move(maybeDebug)));
+      cx, code_, moduleMeta().dataSegments, moduleMeta().elemSegments,
+      codeMeta().instanceDataLength, memories, std::move(tables), imports.funcs,
+      codeMeta().globals, imports.globalValues, imports.globalObjs,
+      imports.tagObjs, instanceProto, std::move(maybeDebug)));
   if (!instance) {
     return false;
   }
@@ -961,7 +962,8 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
   // constructed since this can make the instance live to content (even if the
   // start function fails).
 
-  if (!instance->instance().initSegments(cx, dataSegments_, elemSegments_)) {
+  if (!instance->instance().initSegments(cx, moduleMeta().dataSegments,
+                                         moduleMeta().elemSegments)) {
     return false;
   }
 

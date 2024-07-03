@@ -83,10 +83,8 @@ class Module : public JS::WasmModule {
   // Module itself is dropped.
   const SharedModuleMetadata moduleMeta_;
 
+  // This contains all compilation artifacts for the module.
   const SharedCode code_;
-  const DataSegmentVector dataSegments_;
-  const ModuleElemSegmentVector elemSegments_;
-  const CustomSectionVector customSections_;
 
   // This field is only meaningful when code_->codeMeta().debugEnabled.
 
@@ -136,16 +134,10 @@ class Module : public JS::WasmModule {
 
  public:
   Module(const ModuleMetadata& moduleMeta, const Code& code,
-         DataSegmentVector&& dataSegments,
-         ModuleElemSegmentVector&& elemSegments,
-         CustomSectionVector&& customSections,
          const ShareableBytes* debugBytecode = nullptr,
          bool loggingDeserialized = false)
       : moduleMeta_(&moduleMeta),
         code_(&code),
-        dataSegments_(std::move(dataSegments)),
-        elemSegments_(std::move(elemSegments)),
-        customSections_(std::move(customSections)),
         debugBytecode_(debugBytecode),
         loggingDeserialized_(loggingDeserialized),
         testingTier2Active_(false) {
@@ -159,7 +151,6 @@ class Module : public JS::WasmModule {
   const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
     return code_->codeMetaForAsmJS();
   }
-  const CustomSectionVector& customSections() const { return customSections_; }
   const Bytes& debugBytecode() const { return debugBytecode_->bytes; }
   uint32_t tier1CodeMemoryUsed() const { return code_->tier1CodeMemoryUsed(); }
 

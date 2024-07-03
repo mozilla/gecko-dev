@@ -476,7 +476,8 @@ bool DebugState::getSourceMappingURL(JSContext* cx,
                                      MutableHandleString result) const {
   result.set(nullptr);
 
-  for (const CustomSection& customSection : module_->customSections()) {
+  for (const CustomSection& customSection :
+       module_->moduleMeta().customSections) {
     const Bytes& sectionName = customSection.name;
     if (strlen(SourceMappingURLSectionName) != sectionName.length() ||
         memcmp(SourceMappingURLSectionName, sectionName.begin(),
