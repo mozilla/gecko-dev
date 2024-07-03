@@ -3128,24 +3128,22 @@ nsresult ContentEventHandler::GetFlatTextLengthInRange(
       if (endPosition.Container()->HasChildren()) {
         // When the end node has some children, move the end position to before
         // the open tag of its first child.
-        nsINode* firstChild = endPosition.Container()->GetFirstChild();
+        nsIContent* const firstChild = endPosition.Container()->GetFirstChild();
         if (NS_WARN_IF(!firstChild)) {
           return NS_ERROR_FAILURE;
         }
-        endPosition = RawNodePositionBefore(firstChild, 0u);
+        endPosition = RawNodePosition::Before(*firstChild);
       } else {
         // When the end node is empty, move the end position after the node.
-        nsIContent* parentContent = endPosition.Container()->GetParent();
+        if (NS_WARN_IF(!endPosition.Container()->IsContent())) {
+          return NS_ERROR_FAILURE;
+        }
+        nsIContent* const parentContent = endPosition.Container()->GetParent();
         if (NS_WARN_IF(!parentContent)) {
           return NS_ERROR_FAILURE;
         }
-        Maybe<uint32_t> indexInParent =
-            parentContent->ComputeIndexOf(endPosition.Container());
-        if (MOZ_UNLIKELY(NS_WARN_IF(indexInParent.isNothing()))) {
-          return NS_ERROR_FAILURE;
-        }
-        MOZ_ASSERT(*indexInParent != UINT32_MAX);
-        endPosition = RawNodePositionBefore(parentContent, *indexInParent + 1u);
+        endPosition =
+            RawNodePosition::After(*endPosition.Container()->AsContent());
       }
     }
 
