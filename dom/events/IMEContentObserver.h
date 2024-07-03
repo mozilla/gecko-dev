@@ -247,6 +247,8 @@ class IMEContentObserver final : public nsStubMutationObserver,
     return mDocumentObserver && mDocumentObserver->IsUpdating();
   }
 
+  [[nodiscard]] bool EditorIsHandlingEditSubAction() const;
+
   void PostFocusSetNotification();
   void MaybeNotifyIMEOfFocusSet();
   void PostTextChangeNotification();
@@ -264,14 +266,53 @@ class IMEContentObserver final : public nsStubMutationObserver,
   void ContentAdded(nsINode* aContainer, nsIContent* aFirstContent,
                     nsIContent* aLastContent);
 
+  struct MOZ_STACK_CLASS OffsetAndLengthAdjustments {
+    [[nodiscard]] uint32_t AdjustedOffset(uint32_t aOffset) const {
+      MOZ_ASSERT_IF(mOffsetAdjustment < 0, aOffset >= mOffsetAdjustment);
+      return aOffset + mOffsetAdjustment;
+    }
+    [[nodiscard]] uint32_t AdjustedLength(uint32_t aLength) const {
+      MOZ_ASSERT_IF(mOffsetAdjustment < 0, aLength >= mLengthAdjustment);
+      return aLength + mLengthAdjustment;
+    }
+    [[nodiscard]] uint32_t AdjustedEndOffset(uint32_t aEndOffset) const {
+      MOZ_ASSERT_IF(mOffsetAdjustment + mLengthAdjustment < 0,
+                    aEndOffset >= mOffsetAdjustment + mLengthAdjustment);
+      return aEndOffset + (mOffsetAdjustment + mLengthAdjustment);
+    }
+
+    int64_t mOffsetAdjustment = 0;
+    int64_t mLengthAdjustment = 0;
+  };
+
   /**
-   * NotifyIMEOfCachedConsecutiveNewNodes() sends a text change notification
-   * caused by new inserted nodes which are consecutive between
-   * mFirstAddedContent and mLastAddedContent.  Note that "consecutive nodes"
-   * means that all nodes which can get with calling nsINode::GetNextNode() for
-   * each result starting from mFirstAddedContent until mLastAddedContent.
+   * Posts a text change caused by cached added content in mAddedContentCache.
+   *
+   * @param aOffsetOfFirstContent
+   *                            Flattened text offset of mFirst.  This can be
+   *                            different value from the computed value in the
+   *                            current tree.  However, in the case,
+   *                            aAdjustments should have the difference. If this
+   *                            is Nothing, it's computed with the current DOM.
+   * @param aLengthOfContentNNodes
+   *                            Flattened text length starting from mFirst and
+   *                            ending by end of mLast. This can be different
+   *                            value from the computed value in the current
+   *                            tree.  However, in the case, aAdjustments should
+   *                            have the difference. If this is Nothing, it's
+   *                            computed with the current DOM.
+   * @param aAdjustments        When aOffsetOfFirstContent and/or
+   *                            aLengthOfContentNodes are specified different
+   *                            value(s) from the computed value(s) in the
+   *                            current DOM, these members should have non-zero
+   *                            values of the differences.
    */
-  void NotifyIMEOfCachedConsecutiveNewNodes(const char* aCallerName);
+  void NotifyIMEOfCachedConsecutiveNewNodes(
+      const char* aCallerName,
+      const Maybe<uint32_t>& aOffsetOfFirstContent = Nothing(),
+      const Maybe<uint32_t>& aLengthOfContentNNodes = Nothing(),
+      const OffsetAndLengthAdjustments& aAdjustments =
+          OffsetAndLengthAdjustments{0, 0});
 
   void ObserveEditableNode();
   /**
@@ -689,9 +730,25 @@ class IMEContentObserver final : public nsStubMutationObserver,
     [[nodiscard]] bool HasCache() const { return mFirst && mLast; }
 
     /**
-     * Try to cache the range represented by aFirstContent and aLastContent
-     * (from the start of aFirstContent to the end of aLastContent).  If there
-     * is a cache, this will extend the caching range to contain the new range.
+     * Return true if aFirstContent and aLastContent can be merged into the
+     * cached range.  This should be called only when the instance caches
+     * something.
+     */
+    [[nodiscard]] bool CanMergeWith(const nsIContent& aFirstContent,
+                                    const nsIContent& aLastContent,
+                                    const dom::Element* aRootElement) const;
+
+    /**
+     * Return true if aContent is in the cached range.  aContent can be not
+     * a child of the common container of the caching range.
+     */
+    [[nodiscard]] bool IsInRange(const nsIContent& aContent,
+                                 const dom::Element* aRootElement) const;
+
+    /**
+     * Try to cache the range represented by aFirstContent and aLastContent.
+     * If there is a cache, this will extend the caching range to contain
+     * the new range.
      *
      * @return          true if cached, otherwise, false.
      */
@@ -699,29 +756,42 @@ class IMEContentObserver final : public nsStubMutationObserver,
                     const nsIContent& aLastContent,
                     const dom::Element* aRootElement);
 
-    MOZ_DEFINE_DBG(AddedContentCache, mFirst, mLast);
+    /**
+     * Called when aContent is removed from the DOM.  If aContent is the first
+     * node or the last node of the range, this updates the cached range.
+     *
+     * @return true if aContent was in the cached range.
+     */
+    [[nodiscard]] bool ContentRemoved(const nsIContent& aContent,
+                                      const nsIContent* aPreviousSibling,
+                                      const dom::Element* aRootElement);
 
     /**
-     * Return true if the next content node of aContent is aMaybeNextNode.
-     * This tries to avoid using `nsINode::GetNextNode` as far as possible
-     * because it may climb the tree a lot in the worst scenario.
+     * Compute offset and length of the cached range before the nodes between
+     * aNewFirstContent and aNewLastContent are inserted.
+     *
+     * @return The first one is offset, the other is length.
      */
-    [[nodiscard]] static bool ContentIsPrevNodeOf(
-        const nsIContent& aContent, const nsIContent& aMaybeNextNode,
-        const dom::Element* aRootElement);
+    [[nodiscard]] Result<std::pair<uint32_t, uint32_t>, nsresult>
+    ComputeFlatTextRangeBeforeInsertingNewContent(
+        const nsIContent& aNewFirstContent, const nsIContent& aNewLastContent,
+        const dom::Element* aRootElement,
+        OffsetAndLengthAdjustments& aDifferences) const;
+
+    MOZ_DEFINE_DBG(AddedContentCache, mFirst, mLast);
 
     nsCOMPtr<nsIContent> mFirst;
     nsCOMPtr<nsIContent> mLast;
   };
 
-  // Caches the first node and the last node of new inserted nodes during a
-  // document change.  Therefore, the range means that all nodes between the
-  // first node and the last node (when you traverse with nsINode::GetNextNode()
-  // calls from the first one to the last one) are added into the tree, but not
+  // Caches the first node and the last node of new inserted nodes while editor
+  // handles an editing command/operation.  Therefore, the range is always in
+  // the same container node.  So, the range means that the direct siblings
+  // between the first node and the last node are the inserted nodes, but not
   // yet post a text change notification.
-  // FYI: This is cleared when a document change ends which is always happen in
-  // a short time after it starts.  Therefore, the strong pointers in this
-  // member don't need to be added to the cycle collection.
+  // FYI: This is cleared when editor ends handling current edit
+  // operation/command.  Therefore, the strong pointers in this member don't
+  // need to be added to the cycle collection.
   AddedContentCache mAddedContentCache;
 
   TextChangeData mTextChangeData;
