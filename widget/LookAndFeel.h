@@ -555,6 +555,8 @@ class LookAndFeel {
     }
   }
 
+  static nsresult GetKeyboardLayout(nsACString& aLayout);
+
  protected:
   static void DoHandleGlobalThemeChange();
   // Set to true when ThemeChanged needs to be called on mTheme (and other
