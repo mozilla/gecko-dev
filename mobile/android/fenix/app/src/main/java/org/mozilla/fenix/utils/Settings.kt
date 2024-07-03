@@ -2089,6 +2089,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if the microsurvey feature is enabled.
+     */
+    var microsurveyFeatureEnabled by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_microsurvey_feature_enabled),
+        default = false,
+    )
+
+    /**
      * Indicates if a microsurvey should be shown to the user.
      */
     var shouldShowMicrosurveyPrompt by booleanPreference(

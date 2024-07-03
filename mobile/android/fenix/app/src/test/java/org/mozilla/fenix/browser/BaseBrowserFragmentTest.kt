@@ -262,10 +262,11 @@ class BaseBrowserFragmentTest {
     @Test
     fun `WHEN isMicrosurveyEnabled and isExperimentationEnabled are true GIVEN a call to setupMicrosurvey THEN messagingFeature is initialized`() {
         every { testContext.settings().isExperimentationEnabled } returns true
+        every { testContext.settings().microsurveyFeatureEnabled } returns true
 
         assertNull(fragment.messagingFeatureMicrosurvey.get())
 
-        fragment.initializeMicrosurveyFeature(testContext, microsurveyEnabled = true)
+        fragment.initializeMicrosurveyFeature(testContext)
 
         assertNotNull(fragment.messagingFeatureMicrosurvey.get())
     }
@@ -273,10 +274,11 @@ class BaseBrowserFragmentTest {
     @Test
     fun `WHEN isMicrosurveyEnabled and isExperimentationEnabled are false GIVEN a call to setupMicrosurvey THEN messagingFeature is not initialized`() {
         every { testContext.settings().isExperimentationEnabled } returns false
+        every { testContext.settings().microsurveyFeatureEnabled } returns false
 
         assertNull(fragment.messagingFeatureMicrosurvey.get())
 
-        fragment.initializeMicrosurveyFeature(testContext, microsurveyEnabled = false)
+        fragment.initializeMicrosurveyFeature(testContext)
 
         assertNull(fragment.messagingFeatureMicrosurvey.get())
     }
@@ -284,10 +286,11 @@ class BaseBrowserFragmentTest {
     @Test
     fun `WHEN isMicrosurveyEnabled is true and isExperimentationEnabled false GIVEN a call to setupMicrosurvey THEN messagingFeature is not initialized`() {
         every { testContext.settings().isExperimentationEnabled } returns false
+        every { testContext.settings().microsurveyFeatureEnabled } returns true
 
         assertNull(fragment.messagingFeatureMicrosurvey.get())
 
-        fragment.initializeMicrosurveyFeature(testContext, microsurveyEnabled = true)
+        fragment.initializeMicrosurveyFeature(testContext)
 
         assertNull(fragment.messagingFeatureMicrosurvey.get())
     }
@@ -295,10 +298,11 @@ class BaseBrowserFragmentTest {
     @Test
     fun `WHEN isMicrosurveyEnabled is false and isExperimentationEnabled true GIVEN a call to setupMicrosurvey THEN messagingFeature is not initialized`() {
         every { testContext.settings().isExperimentationEnabled } returns true
+        every { testContext.settings().microsurveyFeatureEnabled } returns false
 
         assertNull(fragment.messagingFeatureMicrosurvey.get())
 
-        fragment.initializeMicrosurveyFeature(testContext, microsurveyEnabled = false)
+        fragment.initializeMicrosurveyFeature(testContext)
 
         assertNull(fragment.messagingFeatureMicrosurvey.get())
     }

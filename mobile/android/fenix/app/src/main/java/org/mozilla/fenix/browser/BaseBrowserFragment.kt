@@ -540,7 +540,7 @@ abstract class BaseBrowserFragment :
             )
         }
 
-        if (FeatureFlags.microsurveysEnabled) {
+        if (context.settings().microsurveyFeatureEnabled) {
             listenForMicrosurveyMessage(
                 browserToolbar = browserToolbarView.view,
                 view = view,
@@ -1509,11 +1509,8 @@ abstract class BaseBrowserFragment :
     }
 
     @VisibleForTesting
-    internal fun initializeMicrosurveyFeature(
-        context: Context,
-        microsurveyEnabled: Boolean = FeatureFlags.microsurveysEnabled,
-    ) {
-        if (context.settings().isExperimentationEnabled && microsurveyEnabled) {
+    internal fun initializeMicrosurveyFeature(context: Context) {
+        if (context.settings().isExperimentationEnabled && context.settings().microsurveyFeatureEnabled) {
             messagingFeatureMicrosurvey.set(
                 feature = MessagingFeature(
                     appStore = requireComponents.appStore,

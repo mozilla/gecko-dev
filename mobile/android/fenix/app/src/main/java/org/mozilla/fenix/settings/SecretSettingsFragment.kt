@@ -149,6 +149,13 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             isChecked = context.settings().useProductionRemoteSettingsServer
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
+
+        // This is only available in Nightly or Debug builds for verification.
+        requirePreference<SwitchPreference>(R.string.pref_key_microsurvey_feature_enabled).apply {
+            isVisible = Config.channel.isNightlyOrDebug
+            isChecked = context.settings().microsurveyFeatureEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
     }
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {

@@ -95,11 +95,6 @@ object FeatureFlags {
     const val menuRedesignEnabled = false
 
     /**
-     * Enables microsurveys.
-     */
-    val microsurveysEnabled = Config.channel.isDebug
-
-    /**
      * Enables the Compose Homepage.
      */
     const val composeHomepage = false

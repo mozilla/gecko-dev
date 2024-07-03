@@ -91,7 +91,6 @@ import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.ui.colors.PhotonColors
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.BrowserDirection
-import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.Homepage
 import org.mozilla.fenix.GleanMetrics.Logins
@@ -344,7 +343,7 @@ class HomeFragment : Fragment() {
                 view = binding.root,
             )
 
-            initializeMicrosurveyFeature()
+            initializeMicrosurveyFeature(requireContext().settings().microsurveyFeatureEnabled)
         }
 
         if (requireContext().settings().showTopSitesFeature) {
@@ -495,7 +494,7 @@ class HomeFragment : Fragment() {
             initializeNavBar(activity)
         }
 
-        if (FeatureFlags.microsurveysEnabled) {
+        if (requireContext().settings().microsurveyFeatureEnabled) {
             listenForMicrosurveyMessage(requireContext())
         }
 
@@ -774,9 +773,7 @@ class HomeFragment : Fragment() {
     }
 
     @VisibleForTesting
-    internal fun initializeMicrosurveyFeature(
-        isMicrosurveyEnabled: Boolean = FeatureFlags.microsurveysEnabled,
-    ) {
+    internal fun initializeMicrosurveyFeature(isMicrosurveyEnabled: Boolean) {
         if (isMicrosurveyEnabled) {
             messagingFeatureMicrosurvey.set(
                 feature = MessagingFeature(
