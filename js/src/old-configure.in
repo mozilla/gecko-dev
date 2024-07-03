@@ -372,13 +372,6 @@ AC_SUBST_LIST(MOZ_OPTIMIZE_LDFLAGS)
 AC_SUBST_LIST(MOZ_PGO_OPTIMIZE_FLAGS)
 
 dnl ========================================================
-dnl instruments
-dnl ========================================================
-if test -n "$MOZ_INSTRUMENTS"; then
-    LIBS="$LIBS -framework CoreFoundation"
-fi
-
-dnl ========================================================
 dnl = Enable using the clang plugin to build
 dnl ========================================================
 
@@ -432,12 +425,10 @@ OS_CFLAGS="$CFLAGS"
 OS_CXXFLAGS="$CXXFLAGS"
 OS_CPPFLAGS="$CPPFLAGS"
 OS_LDFLAGS="$LDFLAGS"
-OS_LIBS="$LIBS"
 AC_SUBST_LIST(OS_CFLAGS)
 AC_SUBST_LIST(OS_CXXFLAGS)
 AC_SUBST_LIST(OS_CPPFLAGS)
 AC_SUBST_LIST(OS_LDFLAGS)
-AC_SUBST(OS_LIBS)
 
 AC_SUBST(HOST_CC)
 AC_SUBST(HOST_CXX)
@@ -469,7 +460,7 @@ JS_LIBRARY_NAME="mozjs-$MOZILLA_SYMBOLVERSION"
 else
 JS_LIBRARY_NAME="mozjs"
 fi
-JS_CONFIG_LIBS="$NSPR_LIBS $LIBS"
+JS_CONFIG_LIBS="$NSPR_LIBS $MOZ_INSTRUMENTS_LIBS"
 if test "$CC_TYPE" != clang-cl ; then
 JS_CONFIG_MOZ_JS_LIBS='-L${libdir} -l${JS_LIBRARY_NAME}'
 else

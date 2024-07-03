@@ -494,6 +494,7 @@ if CONFIG["JS_HAS_INTL_API"]:
     ]
 
 if CONFIG["MOZ_INSTRUMENTS"]:
+    OS_LIBS += ["-framework CoreFoundation"]
     SOURCES += [
         "devtools/Instruments.cpp",
     ]

@@ -387,7 +387,11 @@ def instruments(value, target):
 
 set_config("MOZ_INSTRUMENTS", instruments)
 set_define("MOZ_INSTRUMENTS", instruments)
-add_old_configure_assignment("MOZ_INSTRUMENTS", instruments)
+add_old_configure_assignment(
+    "MOZ_INSTRUMENTS_LIBS",
+    ["-framework", "CoreFoundation"],
+    when=instruments,
+)
 imply_option("--enable-profiling", instruments, reason="--enable-instruments")
 
 option("--enable-callgrind", env="MOZ_CALLGRIND", help="Enable callgrind profiling")
