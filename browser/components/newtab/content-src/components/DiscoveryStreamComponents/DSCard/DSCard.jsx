@@ -88,6 +88,7 @@ export const DefaultMeta = ({
   mayHaveThumbsUpDown,
   onThumbsUpClick,
   onThumbsDownClick,
+  state,
 }) => (
   <div className="meta">
     <div className="info-wrap">
@@ -111,12 +112,16 @@ export const DefaultMeta = ({
           <div className="card-stp-thumbs-buttons">
             <button
               onClick={onThumbsUpClick}
-              className="card-stp-thumbs-button icon icon-thumbs-up"
+              className={`card-stp-thumbs-button icon icon-thumbs-up ${
+                state.isThumbsUpActive ? "is-active" : null
+              }`}
               data-l10n-id="newtab-pocket-thumbs-up-tooltip"
             ></button>
             <button
               onClick={onThumbsDownClick}
-              className="card-stp-thumbs-button icon icon-thumbs-down"
+              className={`card-stp-thumbs-button icon icon-thumbs-down ${
+                state.isThumbsDownActive ? "is-active" : null
+              }`}
               data-l10n-id="newtab-pocket-thumbs-down-tooltip"
             ></button>
           </div>
@@ -168,6 +173,8 @@ export class _DSCard extends React.PureComponent {
 
     this.state = {
       isSeen: false,
+      isThumbsUpActive: false,
+      isThumbsDownActive: false,
     };
 
     // If this is for the about:home startup cache, then we always want
@@ -300,6 +307,16 @@ export class _DSCard extends React.PureComponent {
   }
 
   onThumbsUpClick() {
+    // Toggle active state for thumbs up button to show CSS animation
+    const currentState = this.state.isThumbsUpActive;
+
+    // If thumbs up has been clicked already, do nothing.
+    if (currentState) {
+      return;
+    }
+
+    this.setState({ isThumbsUpActive: !currentState });
+
     // Record thumbs up telemetry event
     this.props.dispatch(
       ac.DiscoveryStreamUserEvent({
@@ -333,6 +350,11 @@ export class _DSCard extends React.PureComponent {
   }
 
   onThumbsDownClick() {
+    // Toggle active state for thumbs down button to show CSS animation
+    const currentState = this.state.isThumbsDownActive;
+    this.setState({ isThumbsDownActive: !currentState });
+
+    // Run dismiss event after 0.5 second delay
     if (
       this.props.dispatch &&
       this.props.type &&
@@ -356,15 +378,18 @@ export class _DSCard extends React.PureComponent {
 
       const { action, impression, userEvent } = blockUrlOption;
 
-      this.props.dispatch(action);
+      setTimeout(() => {
+        this.props.dispatch(action);
 
-      this.props.dispatch(
-        ac.DiscoveryStreamUserEvent({
-          event: userEvent,
-          source,
-          action_position: index,
-        })
-      );
+        this.props.dispatch(
+          ac.DiscoveryStreamUserEvent({
+            event: userEvent,
+            source,
+            action_position: index,
+          })
+        );
+      }, 500);
+
       if (impression) {
         this.props.dispatch(impression);
       }
@@ -606,6 +631,7 @@ export class _DSCard extends React.PureComponent {
           mayHaveThumbsUpDown={this.props.mayHaveThumbsUpDown}
           onThumbsUpClick={this.onThumbsUpClick}
           onThumbsDownClick={this.onThumbsDownClick}
+          state={this.state}
         />
 
         <div className="card-stp-button-hover-background">

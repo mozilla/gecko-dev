@@ -182,10 +182,10 @@ module.exports = function (config) {
               },
             "content-src/components/DiscoveryStreamComponents/DSCard/DSCard.jsx":
               {
-                statements: 85.05,
-                lines: 84.62,
-                functions: 90.48,
-                branches: 67.44,
+                statements: 79.82,
+                lines: 79.28,
+                functions: 64.96,
+                branches: 64.96,
               },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,

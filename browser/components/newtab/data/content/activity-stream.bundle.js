@@ -2795,7 +2795,8 @@ const DefaultMeta = ({
   spocMessageVariant,
   mayHaveThumbsUpDown,
   onThumbsUpClick,
-  onThumbsDownClick
+  onThumbsDownClick,
+  state
 }) => /*#__PURE__*/external_React_default().createElement("div", {
   className: "meta"
 }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -2817,11 +2818,11 @@ const DefaultMeta = ({
   className: "card-stp-thumbs-buttons"
 }, /*#__PURE__*/external_React_default().createElement("button", {
   onClick: onThumbsUpClick,
-  className: "card-stp-thumbs-button icon icon-thumbs-up",
+  className: `card-stp-thumbs-button icon icon-thumbs-up ${state.isThumbsUpActive ? "is-active" : null}`,
   "data-l10n-id": "newtab-pocket-thumbs-up-tooltip"
 }), /*#__PURE__*/external_React_default().createElement("button", {
   onClick: onThumbsDownClick,
-  className: "card-stp-thumbs-button icon icon-thumbs-down",
+  className: `card-stp-thumbs-button icon icon-thumbs-down ${state.isThumbsDownActive ? "is-active" : null}`,
   "data-l10n-id": "newtab-pocket-thumbs-down-tooltip"
 }))), !newSponsoredLabel && /*#__PURE__*/external_React_default().createElement(DSContextFooter, {
   context_type: context_type,
@@ -2853,7 +2854,9 @@ class _DSCard extends (external_React_default()).PureComponent {
       this.placeholderElement = element;
     };
     this.state = {
-      isSeen: false
+      isSeen: false,
+      isThumbsUpActive: false,
+      isThumbsDownActive: false
     };
 
     // If this is for the about:home startup cache, then we always want
@@ -2965,6 +2968,17 @@ class _DSCard extends (external_React_default()).PureComponent {
     }
   }
   onThumbsUpClick() {
+    // Toggle active state for thumbs up button to show CSS animation
+    const currentState = this.state.isThumbsUpActive;
+
+    // If thumbs up has been clicked already, do nothing.
+    if (currentState) {
+      return;
+    }
+    this.setState({
+      isThumbsUpActive: !currentState
+    });
+
     // Record thumbs up telemetry event
     this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
       event: "POCKET_THUMBS_UP",
@@ -2990,6 +3004,13 @@ class _DSCard extends (external_React_default()).PureComponent {
     }, "ActivityStream:Content"));
   }
   onThumbsDownClick() {
+    // Toggle active state for thumbs down button to show CSS animation
+    const currentState = this.state.isThumbsDownActive;
+    this.setState({
+      isThumbsDownActive: !currentState
+    });
+
+    // Run dismiss event after 0.5 second delay
     if (this.props.dispatch && this.props.type && this.props.id && this.props.url) {
       const index = this.props.pos;
       const source = this.props.type.toUpperCase();
@@ -3010,12 +3031,14 @@ class _DSCard extends (external_React_default()).PureComponent {
         impression,
         userEvent
       } = blockUrlOption;
-      this.props.dispatch(action);
-      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
-        event: userEvent,
-        source,
-        action_position: index
-      }));
+      setTimeout(() => {
+        this.props.dispatch(action);
+        this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
+          event: userEvent,
+          source,
+          action_position: index
+        }));
+      }, 500);
       if (impression) {
         this.props.dispatch(impression);
       }
@@ -3217,7 +3240,8 @@ class _DSCard extends (external_React_default()).PureComponent {
       spocMessageVariant: this.props.spocMessageVariant,
       mayHaveThumbsUpDown: this.props.mayHaveThumbsUpDown,
       onThumbsUpClick: this.onThumbsUpClick,
-      onThumbsDownClick: this.onThumbsDownClick
+      onThumbsDownClick: this.onThumbsDownClick,
+      state: this.state
     }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "card-stp-button-hover-background"
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -10415,7 +10439,7 @@ function ThumbsDownToast({
   return /*#__PURE__*/external_React_default().createElement("div", {
     className: "notification-feed-item is-success"
   }, /*#__PURE__*/external_React_default().createElement("div", {
-    className: "icon icon-dismiss icon-themed"
+    className: "icon icon-check-filled icon-themed"
   }), /*#__PURE__*/external_React_default().createElement("div", {
     className: "notification-feed-item-text",
     "data-l10n-id": "newtab-toast-thumbs-up-or-down"

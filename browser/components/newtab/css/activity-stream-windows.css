@@ -287,11 +287,10 @@ input {
   background-image: url("chrome://global/skin/icons/arrow-right-12.svg");
 }
 .icon.icon-thumbs-up {
-  transform: rotate(180deg);
-  background-image: url("chrome://browser/skin/thumb-down.svg");
+  background-image: url("chrome://global/skin/icons/thumbs-up-20.svg");
 }
 .icon.icon-thumbs-down {
-  background-image: url("chrome://browser/skin/thumb-down.svg");
+  background-image: url("chrome://global/skin/icons/thumbs-down-20.svg");
 }
 
 html {
@@ -4389,7 +4388,6 @@ main section {
   align-items: center;
   justify-content: end;
   gap: var(--space-medium);
-  padding-inline-end: var(--space-medium);
 }
 .ds-card .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-button {
   pointer-events: auto;
@@ -4404,7 +4402,24 @@ main section {
   display: block;
   border: 0;
   background-color: transparent;
+  background-size: var(--icon-size-default);
+  background-position: center;
+  padding: var(--space-small);
   fill: light-dark(var(--color-gray-70), var(--color-gray-05));
+  transition: fill 0.3s ease-in-out;
+}
+.ds-card .card-stp-thumbs-buttons-wrapper .icon-thumbs-up:hover,
+.ds-card .card-stp-thumbs-buttons-wrapper .icon-thumbs-down:hover {
+  fill: light-dark(var(--color-gray-100), var(--text-color));
+}
+.ds-card .card-stp-thumbs-buttons-wrapper .icon-thumbs-up:hover:active,
+.ds-card .card-stp-thumbs-buttons-wrapper .icon-thumbs-down:hover:active {
+  fill: var(--color-accent-primary);
+}
+.ds-card .card-stp-thumbs-buttons-wrapper .icon-thumbs-up.is-active,
+.ds-card .card-stp-thumbs-buttons-wrapper .icon-thumbs-down.is-active {
+  animation: iconBounce 0.2s ease-in-out;
+  fill: var(--color-accent-primary);
 }
 .ds-card .context-menu-button {
   position: static;
@@ -4581,6 +4596,14 @@ main section {
   margin: 0;
 }
 
+@keyframes iconBounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.6);
+  }
+}
 .story-footer {
   color: var(--newtab-text-secondary-color);
   inset-inline-start: 0;

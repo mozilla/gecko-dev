@@ -105,7 +105,6 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       align-items: center;
       justify-content: end;
       gap: var(--space-medium);
-      padding-inline-end: var(--space-medium);
     }
 
     .card-stp-thumbs-button {
@@ -124,10 +123,28 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       display: block;
       border: 0;
       background-color: transparent;
+      background-size: var(--icon-size-default);
+      background-position: center;
+      padding: var(--space-small);
       fill: light-dark(var(--color-gray-70), var(--color-gray-05));
-    }
+      transition: fill 0.3s ease-in-out;
 
+      &:hover {
+        fill: light-dark(var(--color-gray-100), var(--text-color));
+      }
+
+      &:hover:active {
+        fill: var(--color-accent-primary);
+      }
+
+      &.is-active {
+        animation: iconBounce 0.2s ease-in-out;
+        fill: var(--color-accent-primary);
+      }
+    }
   }
+
+
 
   // Override note: The colors set here are intentionally static
   // due to transparency issues over images.
@@ -356,3 +373,15 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     margin: 0;
   }
 }
+
+// Animations for thumbs up/down
+@keyframes iconBounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(0.6);
+  }
+}
+

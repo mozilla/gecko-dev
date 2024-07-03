@@ -7,7 +7,7 @@ import React from "react";
 function ThumbsDownToast({ onDismissClick }) {
   return (
     <div className="notification-feed-item is-success">
-      <div className="icon icon-dismiss icon-themed"></div>
+      <div className="icon icon-check-filled icon-themed"></div>
       <div
         className="notification-feed-item-text"
         data-l10n-id="newtab-toast-thumbs-up-or-down"
