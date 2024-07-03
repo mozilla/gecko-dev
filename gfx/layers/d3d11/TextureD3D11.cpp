@@ -1029,6 +1029,25 @@ DXGITextureHostD3D11::GetAsSurfaceWithDevice(ID3D11Device* const aDevice) {
     return nullptr;
   }
 
+  RefPtr<ID3D11DeviceContext> context;
+  device->GetImmediateContext(getter_AddRefs(context));
+
+  auto* queryMap = GpuProcessD3D11QueryMap::Get();
+  if (queryMap && mGpuProcessQueryId.isSome()) {
+    auto query = queryMap->GetQuery(mGpuProcessQueryId.ref());
+    if (query) {
+      // Wait ID3D11Query of D3D11Texture2D copy complete just before blitting
+      // for video overlay with non Intel GPUs. See Bug 1817617.
+      BOOL result;
+      bool ret = layers::WaitForFrameGPUQuery(device, context, query, &result);
+      if (!ret) {
+        gfxCriticalNoteOnce << "WaitForFrameGPUQuery() failed";
+      }
+    } else {
+      gfxCriticalNoteOnce << "Failed to get ID3D11Query";
+    }
+  }
+
   nsAutoCString error;
   std::unique_ptr<DXVA2Manager> manager(
       DXVA2Manager::CreateD3D11DXVA(nullptr, error, device));

@@ -51,8 +51,6 @@ void GpuProcessD3D11QueryMap::Unregister(GpuProcessQueryId aQueryId) {
 
 RefPtr<ID3D11Query> GpuProcessD3D11QueryMap::GetQuery(
     GpuProcessQueryId aQueryId) {
-  MOZ_ASSERT(wr::RenderThread::IsInRenderThread());
-
   MonitorAutoLock lock(mMonitor);
 
   auto it = mD3D11QueriesById.find(aQueryId);
