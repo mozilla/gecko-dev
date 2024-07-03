@@ -238,15 +238,6 @@ class IMEContentObserver final : public nsStubMutationObserver,
   // Following methods manages added nodes during a document change.
 
   /**
-   * NotifyIMEOfAddedContentTextLengthDuringDocumentChange() sends a text
-   * change notification caused by the nodes added between mFirstAddedContent in
-   * mFirstAddedContainer and mLastAddedContent in
-   * mLastAddedContainer and forgets the range.
-   */
-  void NotifyIMEOfAddedContentTextLengthDuringDocumentChange(
-      const char* aCallerName);
-
-  /**
    * IsInDocumentChange() returns true while the DOM tree is being modified
    * with mozAutoDocUpdate.  E.g., it's being modified by setting innerHTML or
    * insertAdjacentHTML().  This returns false when user types something in
@@ -291,8 +282,18 @@ class IMEContentObserver final : public nsStubMutationObserver,
   void CancelNotifyingIMEOfPositionChange();
   void PostCompositionEventHandledNotification();
 
-  void NotifyContentAdded(nsINode* aContainer, nsIContent* aFirstContent,
-                          nsIContent* aLastContent);
+  void ContentAdded(nsINode* aContainer, nsIContent* aFirstContent,
+                    nsIContent* aLastContent);
+
+  /**
+   * NotifyIMEOfCachedConsecutiveNewNodes() sends a text change notification
+   * caused by new inserted nodes which are consecutive between
+   * mFirstAddedContent and mLastAddedContent.  Note that "consecutive nodes"
+   * means that all nodes which can get with calling nsINode::GetNextNode() for
+   * each result starting from mFirstAddedContent until mLastAddedContent.
+   */
+  void NotifyIMEOfCachedConsecutiveNewNodes(const char* aCallerName);
+
   void ObserveEditableNode();
   /**
    *  NotifyIMEOfBlur() notifies IME of blur.
@@ -638,6 +639,19 @@ class IMEContentObserver final : public nsStubMutationObserver,
     void AssertValidCache(const dom::Element* aRootElement) const;
 
     /**
+     * Called when content nodes from aFirstContent to aLastContent are added.
+     * aAddedFlatTextLength may be flattened text length from start of
+     * aFirstContent to end of aLastContent if it's computed by the caller.
+     * Note that aFirstContent and aLastContent can be in different container
+     * nodes, but this method is currently called with (maybe indirect) siblings
+     * in the same container.
+     */
+    void ContentAdded(const char* aCallerName, const nsIContent& aFirstContent,
+                      const nsIContent& aLastContent,
+                      const Maybe<uint32_t>& aAddedFlatTextLength,
+                      const dom::Element* aRootElement);
+
+    /**
      * Called when aContent is removed. aFlatTextLengthOfContent is flattened
      * text length of aContent.
      */
@@ -646,6 +660,7 @@ class IMEContentObserver final : public nsStubMutationObserver,
                         uint32_t aFlatTextLengthOfContent,
                         const dom::Element* aRootElement);
 
+   public:
     // mContainerNode is parent node of mContent when it's cached.
     nsCOMPtr<nsINode> mContainerNode;
     // mContent points to the last child which participates in the current

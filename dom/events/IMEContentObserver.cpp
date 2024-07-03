@@ -858,7 +858,7 @@ void IMEContentObserver::CharacterDataWillChange(
   // flush them since this change may occur before or in the range.  So, it's
   // safe to flush pending computation of mTextChangeData before handling this.
   if (HasAddedNodesDuringDocumentChange()) {
-    NotifyIMEOfAddedContentTextLengthDuringDocumentChange(__FUNCTION__);
+    NotifyIMEOfCachedConsecutiveNewNodes(__FUNCTION__);
   }
 
   mPreCharacterDataChangeLength = ContentEventHandler::GetNativeTextLength(
@@ -936,9 +936,9 @@ void IMEContentObserver::CharacterDataChanged(
   MaybeNotifyIMEOfTextChange(data);
 }
 
-void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
-                                            nsIContent* aFirstContent,
-                                            nsIContent* aLastContent) {
+void IMEContentObserver::ContentAdded(nsINode* aContainer,
+                                      nsIContent* aFirstContent,
+                                      nsIContent* aLastContent) {
   if (!NeedsTextChangeNotification() ||
       !nsContentUtils::IsInSameAnonymousTree(mRootElement, aFirstContent)) {
     return;
@@ -947,95 +947,113 @@ void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
   MOZ_ASSERT_IF(aFirstContent, aFirstContent->GetParentNode() == aContainer);
   MOZ_ASSERT_IF(aLastContent, aLastContent->GetParentNode() == aContainer);
 
-  mStartOfRemovingTextRangeCache.Clear(__FUNCTION__);
+  // While a document change, new nodes should be added consecutively.  If so,
+  // we can cache the first added node and the last added node until ending the
+  // document change.  Then, we can avoid to compute first added node offset in
+  // the flattened text repeatedly.
+  MOZ_ASSERT(IsInDocumentChange());
+  mEndOfAddedTextCache.ContentAdded(__FUNCTION__, *aFirstContent, *aLastContent,
+                                    Nothing(), mRootElement);
+  mStartOfRemovingTextRangeCache.ContentAdded(
+      __FUNCTION__, *aFirstContent, *aLastContent, Nothing(), mRootElement);
 
-  // If it's in a document change, nodes are added consecutively.  Therefore,
-  // if we cache the first node and the last node, we need to compute the
-  // range once.
-  // FYI: This is not true if the change caused by an operation in the editor.
-  if (IsInDocumentChange()) {
-    // Now, mEndOfAddedTextCache may be invalid if node is added before
-    // the last node in mEndOfAddedTextCache.  Clear it.
-    mEndOfAddedTextCache.Clear(__FUNCTION__);
-    if (!HasAddedNodesDuringDocumentChange()) {
-      mFirstAddedContainer = mLastAddedContainer = aContainer;
-      mFirstAddedContent = aFirstContent;
-      mLastAddedContent = aLastContent;
-      MOZ_LOG(sIMECOLog, LogLevel::Debug,
-              ("0x%p   NotifyContentAdded(), starts to store consecutive added "
-               "nodes",
-               this));
-      MOZ_LOG(sCacheLog, LogLevel::Info,
-              ("NotifyContentAdded: called during a document change "
-               "(aFirstContent=%s, aLastContent=%s)",
-               ToString(RefPtr<nsINode>(aFirstContent)).c_str(),
-               ToString(RefPtr<nsINode>(aLastContent)).c_str()));
-      return;
-    }
-    // If first node being added is not next node of the last node,
-    // notify IME of the previous range first, then, restart to cache the
-    // range.
-    if (NS_WARN_IF(!IsNextNodeOfLastAddedNode(aContainer, aFirstContent))) {
-      // Flush the old range first.
-      MOZ_LOG(sCacheLog, LogLevel::Info,
-              ("NotifyContentAdded: called during a document change flushed "
-               "previous added nodes (aFirstContent=%s, aLastContent=%s)",
-               ToString(RefPtr<nsINode>(aFirstContent)).c_str(),
-               ToString(RefPtr<nsINode>(aLastContent)).c_str()));
-      NotifyIMEOfAddedContentTextLengthDuringDocumentChange(__FUNCTION__);
-      mFirstAddedContainer = aContainer;
-      mFirstAddedContent = aFirstContent;
-      MOZ_LOG(sIMECOLog, LogLevel::Debug,
-              ("0x%p   NotifyContentAdded(), starts to store consecutive added "
-               "nodes",
-               this));
-    }
-    mLastAddedContainer = aContainer;
+  if (!HasAddedNodesDuringDocumentChange()) {
+    mFirstAddedContainer = mLastAddedContainer = aContainer;
+    mFirstAddedContent = aFirstContent;
     mLastAddedContent = aLastContent;
+    MOZ_LOG(sIMECOLog, LogLevel::Debug,
+            ("0x%p   ContentAdded(), starts to store consecutive added "
+             "nodes",
+             this));
     MOZ_LOG(sCacheLog, LogLevel::Info,
-            ("NotifyContentAdded: called during a "
-             "document change and updated (aFirstContent=%s, aLastContent=%s)",
+            ("ContentAdded: called during a document change "
+             "(aFirstContent=%s, aLastContent=%s)",
              ToString(RefPtr<nsINode>(aFirstContent)).c_str(),
              ToString(RefPtr<nsINode>(aLastContent)).c_str()));
     return;
   }
-  MOZ_ASSERT(!HasAddedNodesDuringDocumentChange(),
-             "The cache should be cleared when document change finished");
+
+  // If new nodes are not consecutive nodes of the cached range, notify IME of
+  // the previous range first, then, restart to cache the range.
+  if (NS_WARN_IF(!IsNextNodeOfLastAddedNode(aContainer, aFirstContent))) {
+    // Flush the old range first.
+    MOZ_LOG(sCacheLog, LogLevel::Info,
+            ("ContentAdded: called during a document change flushed "
+             "previous added nodes (aFirstContent=%s, aLastContent=%s)",
+             ToString(RefPtr<nsINode>(aFirstContent)).c_str(),
+             ToString(RefPtr<nsINode>(aLastContent)).c_str()));
+    NotifyIMEOfCachedConsecutiveNewNodes(__FUNCTION__);
+    mFirstAddedContainer = aContainer;
+    mFirstAddedContent = aFirstContent;
+    MOZ_LOG(sIMECOLog, LogLevel::Debug,
+            ("0x%p   ContentAdded(), starts to store consecutive added "
+             "nodes",
+             this));
+  }
+  mLastAddedContainer = aContainer;
+  mLastAddedContent = aLastContent;
+  MOZ_LOG(sCacheLog, LogLevel::Info,
+          ("ContentAdded: called during a document change and updated "
+           "(aFirstContent=%s, aLastContent=%s)",
+           ToString(RefPtr<nsINode>(aFirstContent)).c_str(),
+           ToString(RefPtr<nsINode>(aLastContent)).c_str()));
+}
+
+void IMEContentObserver::NotifyIMEOfCachedConsecutiveNewNodes(
+    const char* aCallerName) {
+  MOZ_ASSERT(HasAddedNodesDuringDocumentChange());
+
+  MOZ_LOG(sIMECOLog, LogLevel::Debug,
+          ("0x%p "
+           "IMEContentObserver::NotifyIMEOfCachedConsecutiveNewNodes(), "
+           "flushing stored consecutive nodes",
+           this));
+  MOZ_LOG(sCacheLog, LogLevel::Info,
+          ("NotifyIMEOfCachedConsecutiveNewNodes: called by %s "
+           "(mFirstAddedContent=%s, mLastAddedContent=%s)",
+           aCallerName, ToString(mFirstAddedContent).c_str(),
+           ToString(mLastAddedContent).c_str()));
 
   // If 2 <div> elements are inserted into the DOM, we wan't the text length
   // from start of the first <div> (including line break caused by its open
   // tag) to end of the second <div>.  I.e., we want to compute:
   // ...{<div>.....</div><div>......</div>}...
   //    ^  ^               ^              ^
-  //    |  aFirstContent   |              |
-  //    |                  aLastContent   |
+  //    |  mFirstAddedContent             |
+  //    |                  |              |
+  //    |             mLastAddedContent   |
   //    offset                            (offset + length)
-  Maybe<uint32_t> offset = mEndOfAddedTextCache.GetFlatTextOffsetOnInsertion(
-      *aFirstContent, *aLastContent, mRootElement);
+  Maybe<uint32_t> offset = mEndOfAddedTextCache.GetFlatTextLengthBeforeContent(
+      *mFirstAddedContent, mFirstAddedContent->GetPreviousSibling(),
+      mRootElement);
   if (offset.isNothing()) {
     Result<uint32_t, nsresult> textLengthBeforeFirstContentOrError =
-        FlatTextCache::ComputeTextLengthBeforeContent(*aFirstContent,
+        FlatTextCache::ComputeTextLengthBeforeContent(*mFirstAddedContent,
                                                       mRootElement);
     if (NS_WARN_IF(textLengthBeforeFirstContentOrError.isErr())) {
       mEndOfAddedTextCache.Clear(__FUNCTION__);
+      mStartOfRemovingTextRangeCache.Clear(__FUNCTION__);
       MOZ_LOG(sCacheLog, LogLevel::Error,
               ("NotifyContentAdded: failed to compute text length before "
-               "aFirstContent (%s)",
-               ToString(RefPtr<nsINode>(aFirstContent)).c_str()));
+               "mFirstAddedContent (%s)",
+               ToString(mFirstAddedContent).c_str()));
+      ClearAddedNodesDuringDocumentChange();
       return;
     }
     offset = Some(textLengthBeforeFirstContentOrError.unwrap());
   }
   Result<uint32_t, nsresult> addingLengthOrError =
       FlatTextCache::ComputeTextLengthStartOfContentToEndOfContent(
-          *aFirstContent, *aLastContent, mRootElement);
+          *mFirstAddedContent, *mLastAddedContent, mRootElement);
   if (NS_WARN_IF(addingLengthOrError.isErr())) {
     mEndOfAddedTextCache.Clear(__FUNCTION__);
+    mStartOfRemovingTextRangeCache.Clear(__FUNCTION__);
     MOZ_LOG(sCacheLog, LogLevel::Error,
             ("NotifyContentAdded: failed to compute text length of added nodes "
-             "(aFirstContent=%s, aLastContent=%s)",
-             ToString(RefPtr<nsINode>(aFirstContent)).c_str(),
-             ToString(RefPtr<nsINode>(aLastContent)).c_str()));
+             "(mFirstAddedContent=%s, mLastAddedContent=%s)",
+             ToString(mFirstAddedContent).c_str(),
+             ToString(mLastAddedContent).c_str()));
+    ClearAddedNodesDuringDocumentChange();
     return;
   }
 
@@ -1044,8 +1062,13 @@ void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
   // length can skip to compute the text length before the adding node and
   // before of it.
   mEndOfAddedTextCache.CacheFlatTextLengthBeforeEndOfContent(
-      __FUNCTION__, *aLastContent, *offset + addingLengthOrError.inspect(),
+      __FUNCTION__, *mLastAddedContent, *offset + addingLengthOrError.inspect(),
       mRootElement);
+  mStartOfRemovingTextRangeCache.ContentAdded(
+      __FUNCTION__, *mFirstAddedContent, *mLastAddedContent,
+      Some(*offset + addingLengthOrError.inspect()), mRootElement);
+
+  ClearAddedNodesDuringDocumentChange();
 
   if (!addingLengthOrError.inspect()) {
     return;
@@ -1060,12 +1083,12 @@ void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
 void IMEContentObserver::ContentAppended(nsIContent* aFirstNewContent) {
   nsIContent* parent = aFirstNewContent->GetParent();
   MOZ_ASSERT(parent);
-  NotifyContentAdded(parent, aFirstNewContent, parent->GetLastChild());
+  ContentAdded(parent, aFirstNewContent, parent->GetLastChild());
 }
 
 void IMEContentObserver::ContentInserted(nsIContent* aChild) {
   MOZ_ASSERT(aChild);
-  NotifyContentAdded(aChild->GetParentNode(), aChild, aChild);
+  ContentAdded(aChild->GetParentNode(), aChild, aChild);
 }
 
 void IMEContentObserver::ContentRemoved(nsIContent* aChild,
@@ -1076,7 +1099,9 @@ void IMEContentObserver::ContentRemoved(nsIContent* aChild,
   }
 
   if (HasAddedNodesDuringDocumentChange()) {
-    NotifyIMEOfAddedContentTextLengthDuringDocumentChange(__FUNCTION__);
+    mEndOfAddedTextCache.Clear(__FUNCTION__);
+    mStartOfRemovingTextRangeCache.Clear(__FUNCTION__);
+    NotifyIMEOfCachedConsecutiveNewNodes(__FUNCTION__);
   }
 
   nsINode* containerNode = aChild->GetParentNode();
@@ -1192,55 +1217,6 @@ bool IMEContentObserver::IsNextNodeOfLastAddedNode(nsINode* aParent,
   return true;
 }
 
-void IMEContentObserver::NotifyIMEOfAddedContentTextLengthDuringDocumentChange(
-    const char* aCallerName) {
-  MOZ_ASSERT(HasAddedNodesDuringDocumentChange());
-
-  MOZ_LOG(sIMECOLog, LogLevel::Debug,
-          ("0x%p "
-           "IMEContentObserver::MaybeNotifyIMEOfAddedTextDuringDocumentChange()"
-           ", flushing stored consecutive nodes",
-           this));
-  MOZ_LOG(sCacheLog, LogLevel::Info,
-          ("NotifyIMEOfAddedContentTextLengthDuringDocumentChange: called "
-           "by %s (mFirstAddedContent=%s, mLastAddedContent=%s)",
-           aCallerName, ToString(mFirstAddedContent).c_str(),
-           ToString(mLastAddedContent).c_str()));
-
-  // Notify IME of text change which is caused by added nodes now.
-
-  // If 2 <div> elements are inserted into the DOM, we wan't the text length
-  // from start of the first <div> (including line break caused by its open
-  // tag) to end of the second <div>.  I.e., we want to compute:
-  // ...{<div>.....</div><div>......</div>}...
-  //    ^  ^               ^              ^
-  //    |  aFirstContent   |              |
-  //    |                  aLastContent   |
-  //    offset                            (offset + length)
-  Result<uint32_t, nsresult> offsetOrError =
-      FlatTextCache::ComputeTextLengthBeforeContent(*mFirstAddedContent,
-                                                    mRootElement);
-  if (NS_WARN_IF(offsetOrError.isErr())) {
-    ClearAddedNodesDuringDocumentChange();
-    return;
-  }
-  Result<uint32_t, nsresult> lengthOrError =
-      FlatTextCache::ComputeTextLengthStartOfContentToEndOfContent(
-          *mFirstAddedContent, *mLastAddedContent, mRootElement);
-  if (NS_WARN_IF(lengthOrError.isErr())) {
-    ClearAddedNodesDuringDocumentChange();
-    return;
-  }
-
-  // Finally, try to notify IME of the range.
-  TextChangeData data(offsetOrError.inspect(), offsetOrError.inspect(),
-                      offsetOrError.inspect() + lengthOrError.inspect(),
-                      IsEditorHandlingEventForComposition(),
-                      IsEditorComposing());
-  MaybeNotifyIMEOfTextChange(data);
-  ClearAddedNodesDuringDocumentChange();
-}
-
 void IMEContentObserver::OnTextControlValueChangedWhileNotObservable(
     const nsAString& aNewValue) {
   MOZ_ASSERT(mEditorBase);
@@ -1263,7 +1239,7 @@ void IMEContentObserver::BeginDocumentUpdate() {
   if (HasAddedNodesDuringDocumentChange()) {
     // Flush any changes currently pending before entering a nested document
     // update.
-    NotifyIMEOfAddedContentTextLengthDuringDocumentChange(__FUNCTION__);
+    NotifyIMEOfCachedConsecutiveNewNodes(__FUNCTION__);
   }
 }
 
@@ -1273,7 +1249,7 @@ void IMEContentObserver::EndDocumentUpdate() {
            this, ToChar(HasAddedNodesDuringDocumentChange())));
 
   if (HasAddedNodesDuringDocumentChange()) {
-    NotifyIMEOfAddedContentTextLengthDuringDocumentChange(__FUNCTION__);
+    NotifyIMEOfCachedConsecutiveNewNodes(__FUNCTION__);
   }
 }
 
@@ -2348,12 +2324,8 @@ IMEContentObserver::FlatTextCache::GetFlatTextLengthBeforeContent(
     const nsIContent& aContent, const nsIContent* aPreviousSibling,
     const dom::Element* aRootElement) const {
   MOZ_ASSERT(aRootElement);
-
-  // Currently, this is tested only when aContent is being removed.  When you
-  // start using this method for connected nodes, feel free to remove this
-  // assertion and assert if aPreviousSibling is same as
-  // aContent.GetPreviousSibling().
-  MOZ_ASSERT(aContent.IsBeingRemoved());
+  MOZ_ASSERT_IF(!aContent.IsBeingRemoved(),
+                aContent.GetPreviousSibling() == aPreviousSibling);
 
   if (!mContainerNode) {
     return Nothing();
@@ -2603,6 +2575,60 @@ void IMEContentObserver::FlatTextCache::AssertValidCache(
 #endif  // #ifdef DEBUG
 }
 
+void IMEContentObserver::FlatTextCache::ContentAdded(
+    const char* aCallerName, const nsIContent& aFirstContent,
+    const nsIContent& aLastContent, const Maybe<uint32_t>& aAddedFlatTextLength,
+    const Element* aRootElement) {
+  MOZ_ASSERT(nsContentUtils::ComparePoints(
+                 RawRangeBoundary(aFirstContent.GetParentNode(),
+                                  aFirstContent.GetPreviousSibling()),
+                 RawRangeBoundary(aLastContent.GetParentNode(),
+                                  aLastContent.GetPreviousSibling()))
+                 .value() <= 0);
+  if (!mContainerNode) {
+    return;  // No cache.
+  }
+
+  // We can keep cache without anything if the next sibling is the first added
+  // content.
+  if (mContent && &aFirstContent == mContent->GetNextSibling()) {
+    return;
+  }
+
+  if (IsCachingToStartOfContainer()) {
+    MOZ_ASSERT(!mContent);
+    // We can keep the cache if added nodes are children of mContainerNode since
+    // we cache the text length before its first child.
+    if (mContainerNode == aFirstContent.GetParentNode()) {
+      AssertValidCache(aRootElement);
+      return;
+    }
+
+    // Let's clear the cache for avoiding to do anything expensive for a hot
+    // path only for not frequent cases.  Be aware, this is a hot code path
+    // here.  Therefore, expensive computation would make the DOM mutation
+    // slower.
+    Clear(aCallerName);
+    return;
+  }
+
+  MOZ_ASSERT(IsCachingToEndOfContent());
+  MOZ_ASSERT(mContent);
+  if (aAddedFlatTextLength.isSome() &&
+      aLastContent.GetNextSibling() == mContent) {
+    // If we cache test length before end of next sibling of the last added
+    // content node, we can update the cached text simply.
+    CacheFlatTextLengthBeforeEndOfContent(
+        aCallerName, *mContent, mFlatTextLength + *aAddedFlatTextLength,
+        aRootElement);
+    return;
+  }
+  // Let's clear the cache for avoiding to do anything expensive for a hot
+  // path only for not frequent cases.  Be aware, this is a hot code path here.
+  // Therefore, expensive computation would make the DOM mutation slower.
+  Clear(aCallerName);
+}
+
 void IMEContentObserver::FlatTextCache::ContentRemoved(
     const nsIContent& aContent, const nsIContent* aPreviousSibling,
     uint32_t aFlatTextLengthOfContent, const Element* aRootElement) {
@@ -2631,8 +2657,9 @@ void IMEContentObserver::FlatTextCache::ContentRemoved(
     }
 
     // Let's clear the cache for avoiding to do anything expensive for a hot
-    // path only for not frequent cases.  Be aware, we are in a hot path here.
-    // Therefore, expensive computation would make the DOM mutation slower.
+    // path only for not frequent cases.  Be aware, this is a hot code path
+    // here.  Therefore, expensive computation would make the DOM mutation
+    // slower.
     Clear("FlatTextCache::ContentRemoved");
     return;
   }
@@ -2662,7 +2689,7 @@ void IMEContentObserver::FlatTextCache::ContentRemoved(
     return;
   }
   // Let's clear the cache for avoiding to do anything expensive for a hot
-  // path only for not frequent cases.  Be aware, we are in a hot path here.
+  // path only for not frequent cases.  Be aware, this is a hot code path here.
   // Therefore, expensive computation would make the DOM mutation slower.
   Clear("FlatTextCache::ContentRemoved");
 }
