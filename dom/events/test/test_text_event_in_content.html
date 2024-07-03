@@ -12,7 +12,10 @@
 <div contenteditable id="editor"><p><br></p></div>
 <script>
 SimpleTest.waitForExplicitFinish();
-SimpleTest.waitForFocus(function doTests() {
+SimpleTest.waitForFocus(async function doTests() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.ime_content_observer.assert_invalid_cache", true]],
+  });
   for (let editorId of ["input", "textarea", "editor"]) {
     let editor = document.getElementById(editorId);
     editor.focus();

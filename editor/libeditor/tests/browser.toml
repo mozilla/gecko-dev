@@ -1,4 +1,5 @@
 [DEFAULT]
+prefs = ["test.ime_content_observer.assert_invalid_cache=true"]
 skip-if = ["os == 'android'"]
 
 ["browser_bug527935.js"]
