@@ -332,7 +332,11 @@ def copy_contents(srcdir, dstdir, ignore_dangling_symlinks=False):
                     linkto = os.readlink(srcname)
                     os.symlink(linkto, dstname)
                 elif os.path.isdir(srcname):
-                    copy_contents(srcname, dstname)
+                    copy_contents(
+                        srcname,
+                        dstname,
+                        ignore_dangling_symlinks=ignore_dangling_symlinks,
+                    )
                 else:
                     _call_windows_retry(shutil.copy2, (srcname, dstname))
             except OSError as why:

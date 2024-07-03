@@ -604,7 +604,9 @@ class VendorManifest(MozbuildObject):
                 # Then copy over the directories
                 if self.should_perform_step("move-contents"):
                     self.logInfo({"d": vendor_dir}, "Copying to {d}.")
-                    mozfile.copy_contents(tmpextractdir.name, vendor_dir)
+                    mozfile.copy_contents(
+                        tmpextractdir.name, vendor_dir, ignore_dangling_symlinks=True
+                    )
                 else:
                     self.logInfo({}, "Skipping copying contents into tree.")
                     self._extract_directory = lambda: tmpextractdir.name
