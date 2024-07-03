@@ -238,12 +238,13 @@ class IMEContentObserver final : public nsStubMutationObserver,
   // Following methods manages added nodes during a document change.
 
   /**
-   * MaybeNotifyIMEOfAddedTextDuringDocumentChange() may send text change
-   * notification caused by the nodes added between mFirstAddedContent in
+   * NotifyIMEOfAddedContentTextLengthDuringDocumentChange() sends a text
+   * change notification caused by the nodes added between mFirstAddedContent in
    * mFirstAddedContainer and mLastAddedContent in
    * mLastAddedContainer and forgets the range.
    */
-  void MaybeNotifyIMEOfAddedTextDuringDocumentChange();
+  void NotifyIMEOfAddedContentTextLengthDuringDocumentChange(
+      const char* aCallerName);
 
   /**
    * IsInDocumentChange() returns true while the DOM tree is being modified
@@ -458,11 +459,12 @@ class IMEContentObserver final : public nsStubMutationObserver,
    */
   struct FlatTextCache {
    public:
-    void Clear() {
-      mContainerNode = nullptr;
-      mContent = nullptr;
-      mFlatTextLength = 0;
-    }
+    explicit FlatTextCache(const char* aInstanceName)
+        : mInstanceName(aInstanceName) {}
+
+    void Clear(const char* aCallerName);
+
+    [[nodiscard]] bool HasCache() const { return !!mContainerNode; }
 
     /**
      * Return true if mFlatTextLength caches flattened text length starting from
@@ -498,17 +500,12 @@ class IMEContentObserver final : public nsStubMutationObserver,
      *                          ContentEventHandler methods with this.)
      */
     [[nodiscard]] nsresult ComputeAndCacheFlatTextLengthBeforeEndOfContent(
-        const nsIContent& aContent, const dom::Element* aRootElement);
+        const char* aCallerName, const nsIContent& aContent,
+        const dom::Element* aRootElement);
 
     void CacheFlatTextLengthBeforeEndOfContent(
-        const nsIContent& aContent, uint32_t aFlatTextLength,
-        const dom::Element* aRootElement) {
-      mContainerNode = aContent.GetParentNode();
-      mContent = const_cast<nsIContent*>(&aContent);
-      mFlatTextLength = aFlatTextLength;
-      MOZ_ASSERT(IsCachingToEndOfContent());
-      AssertValidCache(aRootElement);
-    }
+        const char* aCallerName, const nsIContent& aContent,
+        uint32_t aFlatTextLength, const dom::Element* aRootElement);
 
     /**
      * Compute flattened text length starting from first content of aRootElement
@@ -525,17 +522,12 @@ class IMEContentObserver final : public nsStubMutationObserver,
      *                          ContentEventHandler methods with this.)
      */
     [[nodiscard]] nsresult ComputeAndCacheFlatTextLengthBeforeFirstContent(
-        const nsINode& aContainer, const dom::Element* aRootElement);
+        const char* aCallerName, const nsINode& aContainer,
+        const dom::Element* aRootElement);
 
     void CacheFlatTextLengthBeforeFirstContent(
-        const nsINode& aContainer, uint32_t aFlatTextLength,
-        const dom::Element* aRootElement) {
-      mContainerNode = const_cast<nsINode*>(&aContainer);
-      mContent = nullptr;
-      mFlatTextLength = aFlatTextLength;
-      MOZ_ASSERT(IsCachingToStartOfContainer());
-      AssertValidCache(aRootElement);
-    }
+        const char* aCallerName, const nsINode& aContainer,
+        uint32_t aFlatTextLength, const dom::Element* aRootElement);
 
     /**
      * Return flattened text length of aRemovingContent.  This is designed
@@ -572,6 +564,29 @@ class IMEContentObserver final : public nsStubMutationObserver,
                                    const dom::Element* aRootElement);
 
     /**
+     * Return flattened text length starting from first content of aRootElement
+     * and ending at start of the first content of aContainer.  This means that
+     * if ContentEventHandler generates a line break at the open tag of
+     * aContainer, the result includes the line break length.
+     * NOTE: The difference from ComputeTextLengthBeforeContent() is, result of
+     * this method includes a line break caused by the open tag of aContainer
+     * if and only if it's an element node and ContentEventHandler generates
+     * a line break for its open tag.
+     *
+     * @param aContainer        The container node which you want to compute the
+     *                          flattened text length before the first content
+     *                          of.
+     * @param aRootElement      The root element of the editor, i.e., editing
+     *                          host or the anonymous <div> in a text control.
+     *                          For avoiding to generate a redundant line break
+     *                          at open tag of this element, this is required
+     *                          to call methods of ContentEventHandler.
+     */
+    [[nodiscard]] static Result<uint32_t, nsresult>
+    ComputeTextLengthBeforeFirstContentOf(const nsINode& aContainer,
+                                          const dom::Element* aRootElement);
+
+    /**
      * Return flattened text length of starting from start of aStartContent and
      * ending at end of aEndContent.  If ContentEventHandler generates a line
      * break at open tag of aStartContent, the result includes the line break
@@ -593,25 +608,6 @@ class IMEContentObserver final : public nsStubMutationObserver,
     ComputeTextLengthStartOfContentToEndOfContent(
         const nsIContent& aStartContent, const nsIContent& aEndContent,
         const dom::Element* aRootElement);
-
-    /**
-     * Return flattened text length starting from first content of aRootElement
-     * and ending at start of the first content of aContainer.  So, if
-     * ContentEventHandler generates a line break at the open tag of aContainer,
-     * the result includes the line break length.
-     *
-     * @param aContainer        The container node which you want to compute the
-     *                          flattened text length before the first content
-     *                          of.
-     * @param aRootElement      The root element of the editor, i.e., editing
-     *                          host or the anonymous <div> in a text control.
-     *                          For avoiding to generate a redundant line break
-     *                          at open tag of this element, this is required
-     *                          to call methods of ContentEventHandler.
-     */
-    [[nodiscard]] static Result<uint32_t, nsresult>
-    ComputeTextLengthBeforeFirstContentOf(const nsINode& aContainer,
-                                          const dom::Element* aRootElement);
 
     [[nodiscard]] bool CachesTextLengthBeforeContent(
         const nsIContent& aContent) const {
@@ -654,18 +650,27 @@ class IMEContentObserver final : public nsStubMutationObserver,
     // observing node (typically editing host or the anonymous <div> of
     // TextEditor) and the end of mContent.
     uint32_t mFlatTextLength = 0;
+    MOZ_DEFINE_DBG(FlatTextCache, mContainerNode, mContent, mFlatTextLength);
+
+   private:
+    const char* mInstanceName;
   };
+
+  friend std::ostream& operator<<(std::ostream& aStream,
+                                  const FlatTextCache& aCache);
+
   // mEndOfAddedTextCache caches text length from the start of the observing
   // node to the end of the last added content only while an edit action is
   // being handled by the editor and no other mutation (e.g., removing node)
   // occur.
-  FlatTextCache mEndOfAddedTextCache;
+  FlatTextCache mEndOfAddedTextCache = FlatTextCache("mEndOfAddedTextCache");
   // mStartOfRemovingTextRangeCache caches text length from the start of the
   // observing node to the start of the last removed content only while an edit
   // action is being handled by the editor and no other mutation (e.g., adding
   // node) occur.  In other words, this caches text length before end of
   // mContent or before first child of mContainerNode.
-  FlatTextCache mStartOfRemovingTextRangeCache;
+  FlatTextCache mStartOfRemovingTextRangeCache =
+      FlatTextCache("mStartOfRemovingTextRangeCache");
 
   // mFirstAddedContainer is parent node of first added node in current
   // document change.  So, this is not nullptr only when a node was added
