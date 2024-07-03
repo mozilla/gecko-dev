@@ -17,6 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mozilla.components.browser.menu.view.MenuButton
+import mozilla.components.browser.state.state.CustomTabSessionState
+import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
@@ -163,25 +165,66 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
             view = view,
         )
 
-        hideToolbarFeature.set(
-            feature = WebAppHideToolbarFeature(
-                store = requireComponents.core.store,
-                customTabsStore = requireComponents.core.customTabsStore,
-                tabId = customTabSessionId,
-                manifest = manifest,
-            ) { toolbarVisible ->
-                browserToolbarView.view.isVisible = toolbarVisible
-                webAppToolbarShouldBeVisible = toolbarVisible
-                if (!toolbarVisible) {
-                    binding.engineView.setDynamicToolbarMaxHeight(0)
-                    val browserEngine =
-                        binding.swipeRefresh.layoutParams as CoordinatorLayout.LayoutParams
-                    browserEngine.bottomMargin = 0
-                }
-            },
-            owner = this,
-            view = browserToolbarView.view,
-        )
+        val customTabSession = (tab as? CustomTabSessionState)
+        val isPwaTabOrTwaTab = customTabSession?.config?.externalAppType == ExternalAppType.PROGRESSIVE_WEB_APP ||
+            customTabSession?.config?.externalAppType == ExternalAppType.TRUSTED_WEB_ACTIVITY
+
+        // Only set hideToolbarFeature if isPwaTabOrTwaTab
+        if (isPwaTabOrTwaTab) {
+            hideToolbarFeature.set(
+                feature = WebAppHideToolbarFeature(
+                    store = requireComponents.core.store,
+                    customTabsStore = requireComponents.core.customTabsStore,
+                    tabId = customTabSessionId,
+                    manifest = manifest,
+                ) { toolbarVisible ->
+
+                    browserToolbarView.view.isVisible = toolbarVisible
+                    webAppToolbarShouldBeVisible = toolbarVisible
+                    if (isNavBarEnabled) {
+                        bottomToolbarContainerView.toolbarContainerView.isVisible = toolbarVisible
+                    }
+
+                    val browserEngine = binding.swipeRefresh.layoutParams as CoordinatorLayout.LayoutParams
+                    val settings = activity.settings()
+                    val isToolbarAtBottom = settings.toolbarPosition == ToolbarPosition.BOTTOM
+
+                    if (!toolbarVisible) {
+                        binding.engineView.setDynamicToolbarMaxHeight(0)
+                        if (isToolbarAtBottom) {
+                            browserEngine.bottomMargin = 0
+                        } else {
+                            browserEngine.topMargin = 0
+                            // The value of translationY of swipeRefresh was changed in EngineViewClippingBehavior.
+                            binding.swipeRefresh.translationY = 0f
+
+                            if (isNavBarEnabled) {
+                                browserEngine.bottomMargin = 0
+                            }
+                        }
+                    } else {
+                        val bottomToolbarHeight = settings.getBottomToolbarHeight()
+                        val topToolbarHeight = settings.getTopToolbarHeight(false)
+                        binding.engineView.setDynamicToolbarMaxHeight(topToolbarHeight + bottomToolbarHeight)
+                        val isToolbarDynamic = !settings.shouldUseFixedTopToolbar && settings.isDynamicToolbarEnabled
+
+                        if (!isToolbarDynamic) {
+                            if (isToolbarAtBottom) {
+                                browserEngine.bottomMargin = bottomToolbarHeight
+                            } else {
+                                browserEngine.topMargin = topToolbarHeight
+
+                                if (isNavBarEnabled) {
+                                    browserEngine.bottomMargin = bottomToolbarHeight
+                                }
+                            }
+                        }
+                    }
+                },
+                owner = this,
+                view = browserToolbarView.view,
+            )
+        }
 
         if (manifest != null) {
             activity.lifecycle.addObservers(

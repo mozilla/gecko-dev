@@ -256,7 +256,7 @@ class BrowserToolbarView(
     fun setToolbarBehavior(shouldDisableScroll: Boolean = false) {
         when (settings.toolbarPosition) {
             ToolbarPosition.BOTTOM -> {
-                if (settings.isDynamicToolbarEnabled && !isPwaTabOrTwaTab && !settings.shouldUseFixedTopToolbar) {
+                if (settings.isDynamicToolbarEnabled && !settings.shouldUseFixedTopToolbar) {
                     setDynamicToolbarBehavior(MozacToolbarPosition.BOTTOM)
                 } else {
                     expandToolbarAndMakeItFixed()
