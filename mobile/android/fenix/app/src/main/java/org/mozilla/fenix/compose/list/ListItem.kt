@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
@@ -209,6 +210,7 @@ fun FaviconListItem(
  * @param description An optional description text below the label.
  * @param enabled Controls the enabled state of the list item. When `false`, the list item will not
  * be clickable.
+ * @param minHeight An optional minimum height for the list item.
  * @param onClick Called when the user clicks on the item.
  * @param beforeIconPainter [Painter] used to display an [Icon] before the list item.
  * @param beforeIconDescription Content description of the icon.
@@ -229,6 +231,7 @@ fun IconListItem(
     maxLabelLines: Int = 1,
     description: String? = null,
     enabled: Boolean = true,
+    minHeight: Dp = LIST_ITEM_HEIGHT,
     onClick: (() -> Unit)? = null,
     beforeIconPainter: Painter,
     beforeIconDescription: String? = null,
@@ -246,6 +249,7 @@ fun IconListItem(
         maxLabelLines = maxLabelLines,
         description = description,
         enabled = enabled,
+        minHeight = minHeight,
         onClick = onClick,
         beforeListAction = {
             Icon(
@@ -438,6 +442,7 @@ private fun SelectableItemIcon(
  * @param maxDescriptionLines An optional maximum number of lines for the description text to span.
  * @param enabled Controls the enabled state of the list item. When `false`, the list item will not
  * be clickable.
+ * @param minHeight An optional minimum height for the list item.
  * @param onClick Called when the user clicks on the item.
  * @param beforeListAction Optional Composable for adding UI before the list item.
  * @param afterListAction Optional Composable for adding UI to the end of the list item.
@@ -451,6 +456,7 @@ private fun ListItem(
     description: String? = null,
     maxDescriptionLines: Int = 1,
     enabled: Boolean = true,
+    minHeight: Dp = LIST_ITEM_HEIGHT,
     onClick: (() -> Unit)? = null,
     beforeListAction: @Composable RowScope.() -> Unit = {},
     afterListAction: @Composable RowScope.() -> Unit = {},
@@ -458,7 +464,7 @@ private fun ListItem(
     Row(
         modifier = modifier
             .height(IntrinsicSize.Min)
-            .defaultMinSize(minHeight = LIST_ITEM_HEIGHT)
+            .defaultMinSize(minHeight = minHeight)
             .thenConditional(
                 modifier = Modifier.clickable { onClick?.invoke() },
                 predicate = { onClick != null && enabled },

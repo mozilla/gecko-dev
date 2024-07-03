@@ -22,6 +22,10 @@ import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.list.IconListItem
 import org.mozilla.fenix.theme.FirefoxTheme
 
+private val MENU_ITEM_HEIGHT_WITHOUT_DESC = 52.dp
+
+private val MENU_ITEM_HEIGHT_WITH_DESC = 56.dp
+
 /**
  * An [IconListItem] wrapper for menu items in a [MenuGroup] with an optional icon at the end.
  *
@@ -61,6 +65,11 @@ internal fun MenuItem(
         maxLabelLines = 2,
         description = description,
         enabled = enabled,
+        minHeight = if (description != null) {
+            MENU_ITEM_HEIGHT_WITH_DESC
+        } else {
+            MENU_ITEM_HEIGHT_WITHOUT_DESC
+        },
         onClick = onClick,
         beforeIconPainter = beforeIconPainter,
         beforeIconDescription = beforeIconDescription,
