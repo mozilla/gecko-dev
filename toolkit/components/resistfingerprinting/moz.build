@@ -59,6 +59,14 @@ XPIDL_SOURCES += [
 
 include("/ipc/chromium/chromium-config.mozbuild")
 
+if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
+    CXXFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]
+    CFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]
+
+if CONFIG["MOZ_WAYLAND"]:
+    CFLAGS += CONFIG["MOZ_WAYLAND_CFLAGS"]
+    CXXFLAGS += CONFIG["MOZ_WAYLAND_CFLAGS"]
+
 GeneratedFile(
     "RFPTargetConstants.sys.mjs",
     script="extract_rfp_targets.py",

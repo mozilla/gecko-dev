@@ -72,10 +72,6 @@ class nsXPLookAndFeel : public mozilla::LookAndFeel {
 
   virtual void GetThemeInfo(nsACString&) {}
 
-  virtual nsresult GetKeyboardLayoutImpl(nsACString& aLayout) {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
  protected:
   nsXPLookAndFeel() = default;
 
