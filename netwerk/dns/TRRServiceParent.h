@@ -26,7 +26,10 @@ class TRRServiceParent : public TRRServiceBase,
 
   TRRServiceParent() = default;
   void Init();
-  void UpdateParentalControlEnabled();
+
+  // For testing purposes only
+  void ReloadParentalControlsEnabled();
+
   static void PrefsChanged(const char* aName, void* aSelf);
   void SetDetectedTrrURI(const nsACString& aURI);
   bool MaybeSetPrivateURI(const nsACString& aURI) override;
