@@ -59,6 +59,8 @@ void CSP_LogMessage(const nsAString& aMessage, const nsAString& aSourceName,
 #define STYLE_NONCE_VIOLATION_OBSERVER_TOPIC "Inline Style had invalid nonce"
 #define SCRIPT_HASH_VIOLATION_OBSERVER_TOPIC "Inline Script had invalid hash"
 #define STYLE_HASH_VIOLATION_OBSERVER_TOPIC "Inline Style had invalid hash"
+#define TRUSTED_TYPES_VIOLATION_OBSERVER_TOPIC \
+  u"Tried to create a trusted-types policy with a forbidden policy name"_ns
 
 // these strings map to the CSPDirectives in nsIContentSecurityPolicy
 // NOTE: When implementing a new directive, you will need to add it here but

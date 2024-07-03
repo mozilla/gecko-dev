@@ -23,9 +23,14 @@ webidl Document;
 
 %{C++
 class nsCSPPolicy;
+namespace mozilla::dom {
+struct CSPViolationData;
+}
 %}
 
 [ptr] native CSPPolicyPtr(const nsCSPPolicy);
+
+native CSPViolationData(mozilla::dom::CSPViolationData&&);
 
 [scriptable, builtinclass, uuid(1d632008-6c97-48ae-a51c-16e2daa0f4f6)]
 interface nsIContentSecurityPolicy : nsISerializable
@@ -233,6 +238,22 @@ interface nsIContentSecurityPolicy : nsISerializable
 
   const unsigned short VIOLATION_TYPE_EVAL                   = 1;
   const unsigned short VIOLATION_TYPE_WASM_EVAL              = 2;
+
+  /**
+   * Log violation details for the Trusted Types directive. No check happens
+   * that the policy is indeed violated. Requires the Trusted Types directive to
+   * belong to the policy referrenced by aCSPViolationData.
+   *
+   * Notifies observers, logs on the error console, sends a report to the
+   * directive's report-uris and may fire a violation event.
+   *
+   * @param aCSPEventListener Should be null for Windows
+   *                          (https://html.spec.whatwg.org/multipage/nav-history-apis.html#window),
+   *                          and non-null for Workers.
+   */
+  [noscript] void logTrustedTypesViolationDetailsUnchecked(
+    in CSPViolationData aCSPViolationData,
+    in nsICSPEventListener aCSPEventListener);
 
   /**
    * Called after the CSP object is created to fill in appropriate request

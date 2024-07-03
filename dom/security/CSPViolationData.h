@@ -30,6 +30,7 @@ struct CSPViolationData {
     Eval,
     Self,
     WasmEval,
+    TrustedTypesPolicy,
   };
 
   using Resource = mozilla::Variant<nsCOMPtr<nsIURI>, BlockedContentSource>;

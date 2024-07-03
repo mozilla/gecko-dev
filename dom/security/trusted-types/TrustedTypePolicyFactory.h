@@ -49,7 +49,7 @@ class TrustedTypePolicyFactory : public nsWrapperCache {
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-createpolicy
   already_AddRefed<TrustedTypePolicy> CreatePolicy(
-      const nsAString& aPolicyName,
+      JSContext* aJSContext, const nsAString& aPolicyName,
       const TrustedTypePolicyOptions& aPolicyOptions, ErrorResult& aRv);
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-ishtml
@@ -92,9 +92,11 @@ class TrustedTypePolicyFactory : public nsWrapperCache {
   // Required because this class is ref-counted.
   virtual ~TrustedTypePolicyFactory() = default;
 
+  enum class PolicyCreation { Blocked, Allowed };
+
   // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-should-trusted-type-policy-creation-be-blocked-by-content-security-policy
-  bool ShouldTrustedTypePolicyCreationBeBlockedByCSP(
-      const nsAString& aPolicyName) const;
+  PolicyCreation ShouldTrustedTypePolicyCreationBeBlockedByCSP(
+      JSContext* aJSContext, const nsAString& aPolicyName) const;
 
   RefPtr<nsIGlobalObject> mGlobalObject;
 

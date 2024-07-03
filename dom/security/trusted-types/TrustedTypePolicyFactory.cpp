@@ -6,11 +6,16 @@
 
 #include "mozilla/dom/TrustedTypePolicyFactory.h"
 
+#include <utility>
+
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/dom/CSPViolationData.h"
 #include "mozilla/dom/TrustedTypePolicy.h"
 #include "mozilla/dom/nsCSPUtils.h"
+
+#include "jsapi.h"
 
 namespace mozilla::dom {
 
@@ -21,8 +26,43 @@ JSObject* TrustedTypePolicyFactory::WrapObject(
   return TrustedTypePolicyFactory_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-bool TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
-    const nsAString& aPolicyName) const {
+constexpr size_t kCreatePolicyCSPViolationMaxSampleLength = 40;
+
+static CSPViolationData CreateCSPViolationData(JSContext* aJSContext,
+                                               uint32_t aPolicyIndex,
+                                               const nsAString& aPolicyName) {
+  JS::AutoFilename autoFilename;
+  nsAutoString fileName;
+  uint32_t lineNumber{0};
+  JS::ColumnNumberOneOrigin columnNumber;
+  if (JS::DescribeScriptedCaller(aJSContext, &autoFilename, &lineNumber,
+                                 &columnNumber)) {
+    if (const char* file = autoFilename.get()) {
+      CopyUTF8toUTF16(nsDependentCString(file), fileName);
+    }
+  }
+
+  const nsAString& sample =
+      Substring(aPolicyName, /* aStartPos */ 0,
+                /* aLength */ kCreatePolicyCSPViolationMaxSampleLength);
+
+  // According to https://github.com/w3c/webappsec-csp/issues/442 column- and
+  // line-numbers are expected to be 1-origin.
+
+  return {aPolicyIndex,
+          CSPViolationData::Resource{
+              CSPViolationData::BlockedContentSource::TrustedTypesPolicy},
+          nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE,
+          fileName,
+          lineNumber,
+          columnNumber.oneOriginValue(),
+          /* aElement */ nullptr,
+          sample};
+}
+
+auto TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
+    JSContext* aJSContext,
+    const nsAString& aPolicyName) const -> PolicyCreation {
   // CSP-support for Workers will be added in
   // <https://bugzilla.mozilla.org/show_bug.cgi?id=1901492>.
   // That is, currently only Windows are supported.
@@ -30,6 +70,8 @@ bool TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
       mGlobalObject->GetAsInnerWindow()
           ? mGlobalObject->GetAsInnerWindow()->GetCsp()
           : nullptr;
+
+  auto result = PolicyCreation::Allowed;
 
   if (csp) {
     uint32_t numPolicies = 0;
@@ -41,24 +83,32 @@ bool TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
               nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE)) {
         if (policy->ShouldCreateViolationForNewTrustedTypesPolicy(
                 aPolicyName, mCreatedPolicyNames)) {
-          // TODO: create violation, populate it with data and report it. See
-          // <https://bugzilla.mozilla.org/show_bug.cgi?id=1901510>.
+          // Only required for Workers;
+          // https://bugzilla.mozilla.org/show_bug.cgi?id=1901492.
+          nsICSPEventListener* cspEventListener{nullptr};
+
+          CSPViolationData cspViolationData{
+              CreateCSPViolationData(aJSContext, i, aPolicyName)};
+
+          csp->LogTrustedTypesViolationDetailsUnchecked(
+              std::move(cspViolationData), cspEventListener);
 
           if (policy->getDisposition() == nsCSPPolicy::Disposition::Enforce) {
-            return true;
+            result = PolicyCreation::Blocked;
           }
         }
       }
     }
   }
 
-  return false;
+  return result;
 }
 
 already_AddRefed<TrustedTypePolicy> TrustedTypePolicyFactory::CreatePolicy(
-    const nsAString& aPolicyName,
+    JSContext* aJSContext, const nsAString& aPolicyName,
     const TrustedTypePolicyOptions& aPolicyOptions, ErrorResult& aRv) {
-  if (ShouldTrustedTypePolicyCreationBeBlockedByCSP(aPolicyName)) {
+  if (PolicyCreation::Blocked ==
+      ShouldTrustedTypePolicyCreationBeBlockedByCSP(aJSContext, aPolicyName)) {
     nsCString errorMessage =
         "Content-Security-Policy blocked creating policy named '"_ns +
         NS_ConvertUTF16toUTF8(aPolicyName) + "'"_ns;

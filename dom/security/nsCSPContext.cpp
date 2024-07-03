@@ -124,6 +124,9 @@ static void BlockedContentSourceToString(
     case CSPViolationData::BlockedContentSource::WasmEval:
       aString.AssignLiteral("wasm-eval");
       break;
+    case CSPViolationData::BlockedContentSource::TrustedTypesPolicy:
+      aString.AssignLiteral("trusted-types-policy");
+      break;
   }
 }
 
@@ -763,14 +766,17 @@ nsCSPContext::LogViolationDetails(
         aScriptSample};
 
     LogViolationDetailsUnchecked(aCSPEventListener, std::move(cspViolationData),
-                                 observerSubject);
+                                 observerSubject, ForceReportSample::No);
   }
   return NS_OK;
 }
 
 void nsCSPContext::LogViolationDetailsUnchecked(
     nsICSPEventListener* aCSPEventListener,
-    CSPViolationData&& aCSPViolationData, const nsAString& aObserverSubject) {
+    mozilla::dom::CSPViolationData&& aCSPViolationData,
+    const nsAString& aObserverSubject, ForceReportSample aForceReportSample) {
+  EnsureIPCPoliciesRead();
+
   nsAutoString violatedDirectiveName;
   nsAutoString violatedDirectiveNameAndValue;
   bool reportSample = false;
@@ -779,9 +785,27 @@ void nsCSPContext::LogViolationDetailsUnchecked(
           aCSPViolationData.mEffectiveDirective, violatedDirectiveName,
           violatedDirectiveNameAndValue, &reportSample);
 
+  if (aForceReportSample == ForceReportSample::Yes) {
+    reportSample = true;
+  }
+
   AsyncReportViolation(aCSPEventListener, std::move(aCSPViolationData), nullptr,
                        violatedDirectiveName, violatedDirectiveNameAndValue,
                        aObserverSubject, reportSample);
+}
+
+NS_IMETHODIMP nsCSPContext::LogTrustedTypesViolationDetailsUnchecked(
+    CSPViolationData&& aCSPViolationData,
+    nsICSPEventListener* aCSPEventListener) {
+  EnsureIPCPoliciesRead();
+
+  nsLiteralString observerSubject(TRUSTED_TYPES_VIOLATION_OBSERVER_TOPIC);
+
+  // Trusted types don't support the "report-sample" keyword
+  // (https://github.com/w3c/trusted-types/issues/531#issuecomment-2194166146).
+  LogViolationDetailsUnchecked(aCSPEventListener, std::move(aCSPViolationData),
+                               observerSubject, ForceReportSample::Yes);
+  return NS_OK;
 }
 
 #undef CASE_CHECK_AND_REPORT
@@ -1545,6 +1569,18 @@ class CSPReportSenderRunnable final : public Runnable {
         mCSPContext->logToConsole(
             mReportOnlyFlag ? "CSPROWasmEvalScriptViolation"
                             : "CSPWasmEvalScriptViolation",
+            params, mCSPViolationData.mSourceFile, mCSPViolationData.mSample,
+            mCSPViolationData.mLineNumber, mCSPViolationData.mColumnNumber,
+            nsIScriptError::errorFlag);
+        break;
+      }
+
+      case CSPViolationData::BlockedContentSource::TrustedTypesPolicy: {
+        AutoTArray<nsString, 1> params = {mViolatedDirectiveNameAndValue};
+
+        mCSPContext->logToConsole(
+            mReportOnlyFlag ? "CSPROTrustedTypesPolicyViolation"
+                            : "CSPTrustedTypesPolicyViolation",
             params, mCSPViolationData.mSourceFile, mCSPViolationData.mSample,
             mCSPViolationData.mLineNumber, mCSPViolationData.mColumnNumber,
             nsIScriptError::errorFlag);

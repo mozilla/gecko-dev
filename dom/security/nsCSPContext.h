@@ -148,6 +148,8 @@ class nsCSPContext : public nsIContentSecurityPolicy {
       nsTArray<mozilla::ipc::ContentSecurityPolicy>& aPolicies);
 
  private:
+  enum class ForceReportSample { Yes, No };
+
   /**
    * @param aCSPEventListener see `nsCSPContext::AsyncReportViolation`'s csp
    *                          event listener argument.
@@ -155,7 +157,7 @@ class nsCSPContext : public nsIContentSecurityPolicy {
   void LogViolationDetailsUnchecked(
       nsICSPEventListener* aCSPEventListener,
       mozilla::dom::CSPViolationData&& aCSPViolationData,
-      const nsAString& aObserverSubject);
+      const nsAString& aObserverSubject, ForceReportSample aForceReportSample);
 
   bool ShouldThrottleReport(
       const mozilla::dom::SecurityPolicyViolationEventInit&
