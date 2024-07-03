@@ -878,6 +878,16 @@ auto nsLookAndFeel::ComputeTitlebarColors() -> TitlebarColors {
   return result;
 }
 
+nsresult nsLookAndFeel::GetKeyboardLayoutImpl(nsACString& aLayout) {
+  char layout[KL_NAMELENGTH];
+  if (!::GetKeyboardLayoutNameA(layout)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  aLayout.Assign(layout);
+
+  return NS_OK;
+}
+
 void nsLookAndFeel::EnsureInit() {
   if (mInitialized) {
     return;
