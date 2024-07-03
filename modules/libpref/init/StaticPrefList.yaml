@@ -15312,17 +15312,17 @@
 
 - name: security.tls.enable_certificate_compression_zlib
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 - name: security.tls.enable_certificate_compression_brotli
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 - name: security.tls.enable_certificate_compression_zstd
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 - name: security.ssl.treat_unsafe_negotiation_as_broken
