@@ -52,7 +52,11 @@ export default class TabHoverPreviewPanel {
 
   getPrettyURI(uri) {
     try {
-      const url = new URL(uri);
+      let url = new URL(uri);
+      if (url.protocol == "about:" && url.pathname == "reader") {
+        url = new URL(url.searchParams.get("url"));
+      }
+
       if (url.protocol === "about:") {
         return url.href;
       }
