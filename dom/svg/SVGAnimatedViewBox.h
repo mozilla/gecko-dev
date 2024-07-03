@@ -34,6 +34,9 @@ struct SVGViewBox {
   SVGViewBox(float aX, float aY, float aWidth, float aHeight)
       : x(aX), y(aY), width(aWidth), height(aHeight), none(false) {}
   bool operator==(const SVGViewBox& aOther) const;
+  SVGViewBox operator*(const float m) const {
+    return SVGViewBox(x * m, y * m, width * m, height * m);
+  }
 
   static nsresult FromString(const nsAString& aStr, SVGViewBox* aViewBox);
 };

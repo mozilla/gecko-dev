@@ -222,8 +222,10 @@ AspectRatio SVGOuterSVGFrame::GetIntrinsicRatio() const {
     // 2. width and height are non-negative numbers.
     // Otherwise, we use the viewbox rect.
     // https://github.com/w3c/csswg-drafts/issues/6286
-    const float w = width.GetAnimValue(content);
-    const float h = height.GetAnimValue(content);
+    // Note width/height may have different units and therefore be
+    // affected by zoom in different ways.
+    const float w = width.GetAnimValueWithZoom(content);
+    const float h = height.GetAnimValueWithZoom(content);
     if (w > 0.0f && h > 0.0f) {
       return AspectRatio::FromSize(w, h);
     }
@@ -231,7 +233,8 @@ AspectRatio SVGOuterSVGFrame::GetIntrinsicRatio() const {
 
   const auto& viewBox = content->GetViewBoxInternal();
   if (viewBox.HasRect()) {
-    const auto& anim = viewBox.GetAnimValue();
+    float zoom = Style()->EffectiveZoom().ToFloat();
+    const auto& anim = viewBox.GetAnimValue() * zoom;
     return AspectRatio::FromSize(anim.width, anim.height);
   }
 

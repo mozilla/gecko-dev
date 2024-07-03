@@ -183,19 +183,18 @@ gfx::Matrix SVGViewportElement::GetViewBoxTransform() const {
 // SVGViewportElement
 
 float SVGViewportElement::GetLength(uint8_t aCtxType) const {
-  const SVGViewBox* viewbox = GetViewBoxInternal().HasRect()
-                                  ? &GetViewBoxInternal().GetAnimValue()
-                                  : nullptr;
-
+  const auto& animatedViewBox = GetViewBoxInternal();
   float h = 0.0f, w = 0.0f;
   bool shouldComputeWidth =
            (aCtxType == SVGContentUtils::X || aCtxType == SVGContentUtils::XY),
        shouldComputeHeight =
            (aCtxType == SVGContentUtils::Y || aCtxType == SVGContentUtils::XY);
 
-  if (viewbox) {
-    w = viewbox->width;
-    h = viewbox->height;
+  if (animatedViewBox.HasRect()) {
+    float zoom = UserSpaceMetrics::GetZoom(this);
+    const auto& viewbox = animatedViewBox.GetAnimValue() * zoom;
+    w = viewbox.width;
+    h = viewbox.height;
   } else if (IsInner()) {
     // Resolving length for inner <svg> is exactly the same as other
     // ordinary element. We shouldn't use the SVGViewportElement overload
@@ -317,8 +316,10 @@ bool SVGViewportElement::ShouldSynthesizeViewBox() const {
 
 SVGViewBox SVGViewportElement::GetViewBoxWithSynthesis(
     float aViewportWidth, float aViewportHeight) const {
-  if (GetViewBoxInternal().HasRect()) {
-    return GetViewBoxInternal().GetAnimValue();
+  const auto& animatedViewBox = GetViewBoxInternal();
+  if (animatedViewBox.HasRect()) {
+    float zoom = UserSpaceMetrics::GetZoom(this);
+    return animatedViewBox.GetAnimValue() * zoom;
   }
 
   if (ShouldSynthesizeViewBox()) {

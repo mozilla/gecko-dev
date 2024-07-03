@@ -178,7 +178,8 @@ gfx::Matrix SVGMarkerElement::GetMarkerTransform(float aStrokeWidth,
 
 SVGViewBox SVGMarkerElement::GetViewBox() {
   if (mViewBox.HasRect()) {
-    return mViewBox.GetAnimValue();
+    float zoom = UserSpaceMetrics::GetZoom(this);
+    return mViewBox.GetAnimValue() * zoom;
   }
   return SVGViewBox(
       0, 0, mLengthAttributes[MARKERWIDTH].GetAnimValueWithZoom(mCoordCtx),
