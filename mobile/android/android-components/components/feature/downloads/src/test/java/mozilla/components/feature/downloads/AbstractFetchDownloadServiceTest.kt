@@ -645,6 +645,7 @@ class AbstractFetchDownloadServiceTest {
 
         // Simulate a failure
         var downloadJobState = service.downloadJobs[providedDownload.value.state.id]!!
+        downloadJobState.currentBytesCopied = 1000
         service.setDownloadJobStatus(downloadJobState, FAILED)
         service.downloadJobs[providedDownload.value.state.id]?.job?.cancel()
 
@@ -663,6 +664,7 @@ class AbstractFetchDownloadServiceTest {
 
         downloadJobState = service.downloadJobs[providedDownload.value.state.id]!!
         assertEquals(DOWNLOADING, service.getDownloadJobStatus(downloadJobState))
+        assertEquals(0, downloadJobState.currentBytesCopied)
 
         // Make sure the download job is completed (break out of copyInChunks)
         service.setDownloadJobStatus(downloadJobState, DownloadState.Status.PAUSED)
