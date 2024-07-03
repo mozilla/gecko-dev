@@ -89,6 +89,13 @@ add_setup(async function () {
     "browser.newtabpage.activity-stream.newtabWallpapers.v2.enabled",
     false
   );
+  // While this is on in nightly only, we still want to be testing what's going to release.
+  // Once this is on in release, we should update this test to also test against the new data,
+  // including updating the static data in topstories.json to match what Merino returns.
+  Services.prefs.setBoolPref(
+    "browser.newtabpage.activity-stream.discoverystream.merino-provider.enabled",
+    false
+  );
 
   let defaultDSConfig = JSON.parse(
     PREFS_CONFIG.get("discoverystream.config").getValue({
