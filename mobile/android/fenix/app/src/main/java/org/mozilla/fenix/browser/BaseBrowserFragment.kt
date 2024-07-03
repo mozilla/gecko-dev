@@ -1399,6 +1399,13 @@ abstract class BaseBrowserFragment :
                                         )
                                         context.settings().shouldShowMicrosurveyPrompt = false
                                         shouldShowMicrosurveyPrompt.value = false
+
+                                        resumeDownloadDialogState(
+                                            getCurrentTab()?.id,
+                                            context.components.core.store,
+                                            context,
+                                            context.settings().getBottomToolbarHeight(),
+                                        )
                                     },
                                 )
                             }
@@ -1561,6 +1568,13 @@ abstract class BaseBrowserFragment :
                                         )
                                         context.settings().shouldShowMicrosurveyPrompt = false
                                         shouldShowMicrosurveyPrompt.value = false
+
+                                        resumeDownloadDialogState(
+                                            getCurrentTab()?.id,
+                                            context.components.core.store,
+                                            context,
+                                            context.settings().getBottomToolbarHeight(),
+                                        )
                                     },
                                 )
                             }

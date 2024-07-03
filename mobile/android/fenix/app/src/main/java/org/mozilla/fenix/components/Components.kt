@@ -223,6 +223,7 @@ class Components(private val context: Context) {
                 ),
                 MessagingMiddleware(
                     controller = nimbus.messaging,
+                    settings = settings,
                 ),
                 MetricsMiddleware(metrics = analytics.metrics),
             ),

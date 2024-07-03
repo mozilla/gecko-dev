@@ -2023,19 +2023,36 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Returns the height of the bottom toolbar.
      *
-     * The bottom toolbar can consist of a navigation bar,
-     * a combination of a navigation and address bar, or be absent.
+     * The bottom toolbar can consist of:
+     *  - a navigation bar.
+     *  - a combination of a navigation and address bar.
+     *  - a combination of a navigation and address bar & a microsurvey.
+     *  - a combination of address bar & a microsurvey.
+     *  - be absent.
      */
     fun getBottomToolbarHeight(): Int {
-        val isNavBarEnabled = navigationToolbarEnabled
+        val isNavbarEnabled = navigationToolbarEnabled
+        val isMicrosurveyEnabled = shouldShowMicrosurveyPrompt
         val isToolbarAtBottom = toolbarPosition == ToolbarPosition.BOTTOM
-        val toolbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_toolbar_height)
+
         val navbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
+        val microsurveyHeight =
+            appContext.resources.getDimensionPixelSize(R.dimen.browser_microsurvey_height)
+        val toolbarHeight =
+            appContext.resources.getDimensionPixelSize(R.dimen.browser_toolbar_height)
 
         return when {
-            isNavBarEnabled && isToolbarAtBottom -> toolbarHeight + navbarHeight
-            isNavBarEnabled -> navbarHeight
+            isNavbarEnabled && isMicrosurveyEnabled && isToolbarAtBottom ->
+                navbarHeight + microsurveyHeight + toolbarHeight
+
+            isNavbarEnabled && isMicrosurveyEnabled -> navbarHeight + microsurveyHeight
+            isNavbarEnabled && isToolbarAtBottom -> navbarHeight + toolbarHeight
+            isMicrosurveyEnabled && isToolbarAtBottom -> microsurveyHeight + toolbarHeight
+
+            isNavbarEnabled -> navbarHeight
+            isMicrosurveyEnabled -> microsurveyHeight
             isToolbarAtBottom -> toolbarHeight
+
             else -> 0
         }
     }

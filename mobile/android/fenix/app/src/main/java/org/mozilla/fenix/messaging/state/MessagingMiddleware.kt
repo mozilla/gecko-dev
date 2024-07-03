@@ -21,11 +21,13 @@ import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.Restore
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.UpdateMessageToShow
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.UpdateMessages
 import org.mozilla.fenix.components.appstate.AppState
+import org.mozilla.fenix.utils.Settings
 
 typealias AppStoreMiddlewareContext = MiddlewareContext<AppState, AppAction>
 
 class MessagingMiddleware(
     private val controller: NimbusMessagingControllerInterface,
+    private val settings: Settings,
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) : Middleware<AppState, AppAction> {
 
@@ -138,12 +140,15 @@ class MessagingMiddleware(
             val newMessages = if (!newMessage.isExpired) {
                 updateMessage(context, oldMessage, newMessage)
             } else {
+                if (newMessage.isMicrosurvey()) settings.shouldShowMicrosurveyPrompt = false
                 consumeMessageToShowIfNeeded(context, oldMessage)
                 removeMessage(context, oldMessage)
             }
             context.store.dispatch(UpdateMessages(newMessages))
         }
     }
+
+    private fun Message.isMicrosurvey() = surface == "microsurvey"
 
     private fun onMessageDismissed(
         context: AppStoreMiddlewareContext,

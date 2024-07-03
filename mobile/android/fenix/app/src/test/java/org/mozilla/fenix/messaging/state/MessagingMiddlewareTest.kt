@@ -8,6 +8,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.advanceUntilIdle
 import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.service.nimbus.messaging.MessageData
@@ -34,16 +35,19 @@ import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.Restore
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.messaging.MessagingState
+import org.mozilla.fenix.utils.Settings
 
 class MessagingMiddlewareTest {
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
     private val coroutineScope = coroutinesTestRule.scope
     private lateinit var controller: NimbusMessagingController
+    private lateinit var settings: Settings
 
     @Before
     fun setUp() {
         controller = mockk(relaxed = true)
+        settings = mockk(relaxed = true)
     }
 
     @Test
@@ -55,7 +59,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
         val message = createMessage()
@@ -81,7 +85,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
 
@@ -111,7 +115,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
 
@@ -136,7 +140,7 @@ class MessagingMiddlewareTest {
                     ),
                 ),
                 listOf(
-                    MessagingMiddleware(controller, coroutineScope),
+                    MessagingMiddleware(controller, settings, coroutineScope),
                 ),
             )
 
@@ -160,7 +164,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
         store.dispatch(MessageDismissed(message)).joinBlocking()
@@ -181,7 +185,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
         store.dispatch(Dismissed(message.id)).joinBlocking()
@@ -203,7 +207,7 @@ class MessagingMiddlewareTest {
                     ),
                 ),
                 listOf(
-                    MessagingMiddleware(controller, coroutineScope),
+                    MessagingMiddleware(controller, settings, coroutineScope),
                 ),
             )
 
@@ -229,7 +233,7 @@ class MessagingMiddlewareTest {
                     ),
                 ),
                 listOf(
-                    MessagingMiddleware(controller, coroutineScope),
+                    MessagingMiddleware(controller, settings, coroutineScope),
                 ),
             )
 
@@ -255,7 +259,7 @@ class MessagingMiddlewareTest {
                     ),
                 ),
                 listOf(
-                    MessagingMiddleware(controller, coroutineScope),
+                    MessagingMiddleware(controller, settings, coroutineScope),
                 ),
             )
 
@@ -282,7 +286,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
 
@@ -308,7 +312,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
 
@@ -334,7 +338,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
 
@@ -358,7 +362,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
 
@@ -396,7 +400,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
 
@@ -435,7 +439,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
 
@@ -476,7 +480,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
 
@@ -502,6 +506,40 @@ class MessagingMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN a microsurvey message that surpassed the maxDisplayCount WHEN onMessagedDisplayed THEN remove the message, consume it & reset the pref`() = runTestOnMain {
+        val message = createMessage(metadata = createMetadata(displayCount = 4), data = MessageData(surface = "microsurvey"))
+        val messageDisplayed = createMessage(createMetadata(displayCount = 5), data = MessageData(surface = "microsurvey"))
+
+        assertFalse(message.isExpired)
+        assertTrue(messageDisplayed.isExpired)
+        settings.shouldShowMicrosurveyPrompt = true
+        verify { settings.shouldShowMicrosurveyPrompt = true }
+
+        val store = AppStore(
+            AppState(
+                messaging = MessagingState(
+                    messages = listOf(message),
+                    messageToShow = mapOf(message.surface to message),
+                ),
+            ),
+            listOf(MessagingMiddleware(controller, settings, coroutineScope)),
+        )
+
+        every { controller.getNextMessage(FenixMessageSurfaceId.MICROSURVEY, any()) } returns message
+        coEvery { controller.onMessageDisplayed(message, any()) } returns incrementDisplayCount(
+            message,
+        )
+        coEvery { controller.onMessageDisplayed(eq(message), any()) } returns messageDisplayed
+
+        store.dispatch(Evaluate(FenixMessageSurfaceId.MICROSURVEY)).joinBlocking()
+        store.waitUntilIdle()
+
+        verify { settings.shouldShowMicrosurveyPrompt = false }
+        assertEquals(0, store.state.messaging.messages.size)
+        assertEquals(0, store.state.messaging.messageToShow.size)
+    }
+
+    @Test
     fun `GIVEN message is not found WHEN updateMessage THEN do not update the message list`() = runTestOnMain {
         val message = createMessage(messageId = "1")
         val message2 = createMessage(messageId = "2")
@@ -514,7 +552,7 @@ class MessagingMiddlewareTest {
                 ),
             ),
             listOf(
-                MessagingMiddleware(controller, coroutineScope),
+                MessagingMiddleware(controller, settings, coroutineScope),
             ),
         )
 
