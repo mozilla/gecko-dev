@@ -828,8 +828,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-other-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -1373,8 +1373,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-bcv-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -1755,8 +1755,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -2001,8 +2001,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-other-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -2247,8 +2247,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-other-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -2679,8 +2679,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-damp-inspector-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **talos-damp-other**
@@ -2689,8 +2689,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-damp-other-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **talos-damp-webconsole**
@@ -2699,8 +2699,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-damp-webconsole-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -2953,8 +2953,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-g4-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -3732,8 +3732,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -4114,8 +4114,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -4892,8 +4892,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -5275,8 +5275,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -5658,8 +5658,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -6041,8 +6041,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -6424,8 +6424,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -6807,8 +6807,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -7190,8 +7190,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -7573,8 +7573,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -7956,8 +7956,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -8339,8 +8339,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -8722,8 +8722,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -9105,8 +9105,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -9488,8 +9488,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-webgl-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -10427,8 +10427,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-pdfpaint-1-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **talos-pdfpaint-10**
@@ -10437,8 +10437,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-pdfpaint-10-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **talos-pdfpaint-2**
@@ -10447,8 +10447,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-pdfpaint-2-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **talos-pdfpaint-3**
@@ -10457,8 +10457,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-pdfpaint-3-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **talos-pdfpaint-4**
@@ -10467,8 +10467,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-pdfpaint-4-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **talos-pdfpaint-5**
@@ -10477,8 +10477,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-pdfpaint-5-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **talos-pdfpaint-6**
@@ -10487,8 +10487,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-pdfpaint-6-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **talos-pdfpaint-7**
@@ -10497,8 +10497,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-pdfpaint-7-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **talos-pdfpaint-8**
@@ -10507,8 +10507,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-pdfpaint-8-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **talos-pdfpaint-9**
@@ -10517,8 +10517,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-pdfpaint-9-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -10803,8 +10803,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-perf-reftest-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -11280,8 +11280,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-g4-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -11538,8 +11538,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-g4-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -11807,8 +11807,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-other-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -12035,8 +12035,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-sessionrestore-many-windows-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -12264,8 +12264,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-other-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -12509,8 +12509,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-other-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -12745,8 +12745,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-other-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -13220,8 +13220,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-other-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -13822,8 +13822,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-svgr-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -14245,8 +14245,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-tp5o-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -14561,8 +14561,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-g1-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -14790,8 +14790,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-g5-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -15314,8 +15314,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-other-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -15556,8 +15556,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-g5-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -15823,8 +15823,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-svgr-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -16075,8 +16075,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-svgr-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -16358,8 +16358,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-svgr-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -16630,8 +16630,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-svgr-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -16884,8 +16884,8 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
       * - **talos-other-swr**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
