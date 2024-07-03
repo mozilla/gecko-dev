@@ -15633,13 +15633,6 @@
   value: false
   mirror: always
 
-# Enable assertions in IMEContentObserver::FlatTextCache on debug builds.
-# If this pref is enabled, DOM mutation becomes much slower.
-- name: test.ime_content_observer.assert_valid_cache
-  type: bool
-  value: false
-  mirror: always
-
 - name: test.mousescroll
   type: RelaxedAtomicBool
   value: false

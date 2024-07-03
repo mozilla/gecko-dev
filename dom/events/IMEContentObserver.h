@@ -11,7 +11,6 @@
 #include "mozilla/EditorBase.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Selection.h"
-#include "mozilla/dom/Text.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDocShell.h"  // XXX Why does only this need to be included here?
@@ -238,6 +237,14 @@ class IMEContentObserver final : public nsStubMutationObserver,
   // Following methods manages added nodes during a document change.
 
   /**
+   * MaybeNotifyIMEOfAddedTextDuringDocumentChange() may send text change
+   * notification caused by the nodes added between mFirstAddedContent in
+   * mFirstAddedContainer and mLastAddedContent in
+   * mLastAddedContainer and forgets the range.
+   */
+  void MaybeNotifyIMEOfAddedTextDuringDocumentChange();
+
+  /**
    * IsInDocumentChange() returns true while the DOM tree is being modified
    * with mozAutoDocUpdate.  E.g., it's being modified by setting innerHTML or
    * insertAdjacentHTML().  This returns false when user types something in
@@ -247,7 +254,26 @@ class IMEContentObserver final : public nsStubMutationObserver,
     return mDocumentObserver && mDocumentObserver->IsUpdating();
   }
 
-  [[nodiscard]] bool EditorIsHandlingEditSubAction() const;
+  /**
+   * Forget the range of added nodes during a document change.
+   */
+  void ClearAddedNodesDuringDocumentChange();
+
+  /**
+   * HasAddedNodesDuringDocumentChange() returns true when this stores range
+   * of nodes which were added into the DOM tree during a document change but
+   * have not been sent to IME.  Note that this should always return false when
+   * IsInDocumentChange() returns false.
+   */
+  bool HasAddedNodesDuringDocumentChange() const {
+    return mFirstAddedContainer && mLastAddedContainer;
+  }
+
+  /**
+   * Returns true if the passed-in node in aParent is the next node of
+   * mLastAddedContent in pre-order tree traversal of the DOM.
+   */
+  bool IsNextNodeOfLastAddedNode(nsINode* aParent, nsIContent* aChild) const;
 
   void PostFocusSetNotification();
   void MaybeNotifyIMEOfFocusSet();
@@ -263,57 +289,8 @@ class IMEContentObserver final : public nsStubMutationObserver,
   void CancelNotifyingIMEOfPositionChange();
   void PostCompositionEventHandledNotification();
 
-  void ContentAdded(nsINode* aContainer, nsIContent* aFirstContent,
-                    nsIContent* aLastContent);
-
-  struct MOZ_STACK_CLASS OffsetAndLengthAdjustments {
-    [[nodiscard]] uint32_t AdjustedOffset(uint32_t aOffset) const {
-      MOZ_ASSERT_IF(mOffsetAdjustment < 0, aOffset >= mOffsetAdjustment);
-      return aOffset + mOffsetAdjustment;
-    }
-    [[nodiscard]] uint32_t AdjustedLength(uint32_t aLength) const {
-      MOZ_ASSERT_IF(mOffsetAdjustment < 0, aLength >= mLengthAdjustment);
-      return aLength + mLengthAdjustment;
-    }
-    [[nodiscard]] uint32_t AdjustedEndOffset(uint32_t aEndOffset) const {
-      MOZ_ASSERT_IF(mOffsetAdjustment + mLengthAdjustment < 0,
-                    aEndOffset >= mOffsetAdjustment + mLengthAdjustment);
-      return aEndOffset + (mOffsetAdjustment + mLengthAdjustment);
-    }
-
-    int64_t mOffsetAdjustment = 0;
-    int64_t mLengthAdjustment = 0;
-  };
-
-  /**
-   * Posts a text change caused by cached added content in mAddedContentCache.
-   *
-   * @param aOffsetOfFirstContent
-   *                            Flattened text offset of mFirst.  This can be
-   *                            different value from the computed value in the
-   *                            current tree.  However, in the case,
-   *                            aAdjustments should have the difference. If this
-   *                            is Nothing, it's computed with the current DOM.
-   * @param aLengthOfContentNNodes
-   *                            Flattened text length starting from mFirst and
-   *                            ending by end of mLast. This can be different
-   *                            value from the computed value in the current
-   *                            tree.  However, in the case, aAdjustments should
-   *                            have the difference. If this is Nothing, it's
-   *                            computed with the current DOM.
-   * @param aAdjustments        When aOffsetOfFirstContent and/or
-   *                            aLengthOfContentNodes are specified different
-   *                            value(s) from the computed value(s) in the
-   *                            current DOM, these members should have non-zero
-   *                            values of the differences.
-   */
-  void NotifyIMEOfCachedConsecutiveNewNodes(
-      const char* aCallerName,
-      const Maybe<uint32_t>& aOffsetOfFirstContent = Nothing(),
-      const Maybe<uint32_t>& aLengthOfContentNNodes = Nothing(),
-      const OffsetAndLengthAdjustments& aAdjustments =
-          OffsetAndLengthAdjustments{0, 0});
-
+  void NotifyContentAdded(nsINode* aContainer, nsIContent* aFirstContent,
+                          nsIContent* aLastContent);
   void ObserveEditableNode();
   /**
    *  NotifyIMEOfBlur() notifies IME of blur.
@@ -468,331 +445,71 @@ class IMEContentObserver final : public nsStubMutationObserver,
   RefPtr<DocumentObserver> mDocumentObserver;
 
   /**
-   * FlatTextCache stores length of flattened text starting from start of
-   * the observing node (typically editing host or the anonymous <div> of
-   * TextEditor) to:
-   * - end of mContent if it's set (IsCachingToEndOfContent() returns true)
-   * - before first content of mContainerNode if mContent is not set
-   * (IsCachingToStartOfContainer() returns true).  In this case, the text
-   * length includes a line break length which is caused by the open tag of
-   * mContainerNode if and only if it's an element node and the open tag causes
-   * a line break.
+   * FlatTextCache stores flat text length from start of the content to
+   * mNodeOffset of mContainerNode.
    */
   struct FlatTextCache {
-   public:
-    explicit FlatTextCache(const char* aInstanceName)
-        : mInstanceName(aInstanceName) {}
-
-    void Clear(const char* aCallerName);
-
-    [[nodiscard]] bool HasCache() const { return !!mContainerNode; }
-
-    /**
-     * Return true if mFlatTextLength caches flattened text length starting from
-     * start of the observing node to the end of mContent.
-     */
-    [[nodiscard]] bool IsCachingToEndOfContent() const {
-      return mContainerNode && mContent;
-    }
-
-    /**
-     * Return true if mFlatTextLength caches flattened text length starting from
-     * start of the observing node to the start of mContainerNode.  Note that if
-     * mContainerNode is an element and whose open tag causes a line break,
-     * mFlatTextLength includes the line break length too.
-     */
-    [[nodiscard]] bool IsCachingToStartOfContainer() const {
-      return mContainerNode && !mContent;
-    }
-
-    /**
-     * Compute flattened text length starting from first content of aRootElement
-     * and ending at end of aContent.
-     *
-     * @param aContent          This will be set to mContent which points the
-     *                          last child content node which participates in
-     *                          the computed mFlatTextLength.
-     * @param aRootElement      The root element of the editor, i.e., editing
-     *                          host or the anonymous <div> in a text control.
-     *                          (This is required to suppress
-     *                          ContentEventHandler to generate a line break
-     *                          caused by open tag of the editable root element
-     *                          due to not editable.  Therefore, we need to call
-     *                          ContentEventHandler methods with this.)
-     */
-    [[nodiscard]] nsresult ComputeAndCacheFlatTextLengthBeforeEndOfContent(
-        const char* aCallerName, const nsIContent& aContent,
-        const dom::Element* aRootElement);
-
-    void CacheFlatTextLengthBeforeEndOfContent(
-        const char* aCallerName, const nsIContent& aContent,
-        uint32_t aFlatTextLength, const dom::Element* aRootElement);
-
-    /**
-     * Compute flattened text length starting from first content of aRootElement
-     * and ending at start of the first content of aContainer.
-     *
-     * @param aContainer        This will be set to mContainer and mContent will
-     *                          be set to nullptr.
-     * @param aRootElement      The root element of the editor, i.e., editing
-     *                          host or the anonymous <div> in a text control.
-     *                          (This is required to suppress
-     *                          ContentEventHandler to generate a line break
-     *                          caused by open tag of the editable root element
-     *                          due to not editable.  Therefore, we need to call
-     *                          ContentEventHandler methods with this.)
-     */
-    [[nodiscard]] nsresult ComputeAndCacheFlatTextLengthBeforeFirstContent(
-        const char* aCallerName, const nsINode& aContainer,
-        const dom::Element* aRootElement);
-
-    void CacheFlatTextLengthBeforeFirstContent(
-        const char* aCallerName, const nsINode& aContainer,
-        uint32_t aFlatTextLength, const dom::Element* aRootElement);
-
-    /**
-     * Return flattened text length of aContent.  I.e., the length includes a
-     * line break caused by the open tag of aContent if it's an element node.
-     *
-     * @param aRemovingContent  The content node which is being removed.
-     * @param aRootElement      The root element of the editor, i.e., editing
-     *                          host or the anonymous <div> in a text control.
-     *                          For avoiding to generate a redundant line break
-     *                          at open tag of this element, this is required
-     *                          to call methods of ContentEventHandler.
-     */
-    [[nodiscard]] static Result<uint32_t, nsresult> ComputeTextLengthOfContent(
-        const nsIContent& aContent, const dom::Element* aRootElement);
-
-    /**
-     * Return flattened text length of starting from first content of
-     * aRootElement and ending at before aContent (if ContentEventHandler
-     * generates a line break at open tag of aContent, the result does not
-     * contain the line break length).
-     *
-     * @param aContent          The content node which is immediately after a
-     *                          content which you want to compute the flattened
-     *                          text length before end of it.
-     * @param aRootElement      The root element of the editor, i.e., editing
-     *                          host or the anonymous <div> in a text control.
-     *                          For avoiding to generate a redundant line break
-     *                          at open tag of this element, this is required
-     *                          to call methods of ContentEventHandler.
-     */
-    [[nodiscard]] static Result<uint32_t, nsresult>
-    ComputeTextLengthBeforeContent(const nsIContent& aContent,
-                                   const dom::Element* aRootElement);
-
-    /**
-     * Return flattened text length starting from first content of aRootElement
-     * and ending at start of the first content of aContainer.  This means that
-     * if ContentEventHandler generates a line break at the open tag of
-     * aContainer, the result includes the line break length.
-     * NOTE: The difference from ComputeTextLengthBeforeContent() is, result of
-     * this method includes a line break caused by the open tag of aContainer
-     * if and only if it's an element node and ContentEventHandler generates
-     * a line break for its open tag.
-     *
-     * @param aContainer        The container node which you want to compute the
-     *                          flattened text length before the first content
-     *                          of.
-     * @param aRootElement      The root element of the editor, i.e., editing
-     *                          host or the anonymous <div> in a text control.
-     *                          For avoiding to generate a redundant line break
-     *                          at open tag of this element, this is required
-     *                          to call methods of ContentEventHandler.
-     */
-    [[nodiscard]] static Result<uint32_t, nsresult>
-    ComputeTextLengthBeforeFirstContentOf(const nsINode& aContainer,
-                                          const dom::Element* aRootElement);
-
-    /**
-     * Return flattened text length of starting from start of aStartContent and
-     * ending at end of aEndContent.  If ContentEventHandler generates a line
-     * break at open tag of aStartContent, the result includes the line break
-     * length.
-     *
-     * @param aStartContent     The first content node of consecutive nodes
-     *                          which you want to compute flattened text length
-     *                          starting from.
-     * @param aEndContent       The last content node of consecutive nodes
-     *                          which you want to compute flattened text length
-     *                          ending at.
-     * @param aRootElement      The root element of the editor, i.e., editing
-     *                          host or the anonymous <div> in a text control.
-     *                          For avoiding to generate a redundant line break
-     *                          at open tag of this element, this is required
-     *                          to call methods of ContentEventHandler.
-     */
-    [[nodiscard]] static Result<uint32_t, nsresult>
-    ComputeTextLengthStartOfContentToEndOfContent(
-        const nsIContent& aStartContent, const nsIContent& aEndContent,
-        const dom::Element* aRootElement);
-
-    [[nodiscard]] uint32_t GetFlatTextLength() const { return mFlatTextLength; }
-
-    /**
-     * Return text length if it's exactly cached or can compute it quickly from
-     * the cached data.  aContent must not be new node which is inserted before
-     * mContent because the cached text length does not include the text length
-     * of aContent in such case.
-     */
-    [[nodiscard]] Maybe<uint32_t> GetFlatTextLengthBeforeContent(
-        const nsIContent& aContent, const nsIContent* aPreviousSibling,
-        const dom::Element* aRootElement) const;
-
-    /**
-     * Return text length before aFirstContent if it's exactly cached or can
-     * compute it quickly from the caching data.  This is called when the nodes
-     * between aFirstContent and aLastContent are inserted into the tree.
-     */
-    [[nodiscard]] Maybe<uint32_t> GetFlatTextOffsetOnInsertion(
-        const nsIContent& aFirstContent, const nsIContent& aLastContent,
-        const dom::Element* aRootElement) const;
-
-    /**
-     * This works only in the debug build and
-     * test.ime_content_observer.assert_valid_cache pref is enabled.  This
-     * checks with expensive computation, therefore, the pref is enabled only
-     * when running automated tests for editors.
-     */
-    void AssertValidCache(const dom::Element* aRootElement) const;
-
-    /**
-     * Called when content nodes from aFirstContent to aLastContent are added.
-     * aAddedFlatTextLength may be flattened text length from start of
-     * aFirstContent to end of aLastContent if it's computed by the caller.
-     * Note that aFirstContent and aLastContent can be in different container
-     * nodes, but this method is currently called with (maybe indirect) siblings
-     * in the same container.
-     */
-    void ContentAdded(const char* aCallerName, const nsIContent& aFirstContent,
-                      const nsIContent& aLastContent,
-                      const Maybe<uint32_t>& aAddedFlatTextLength,
-                      const dom::Element* aRootElement);
-
-    /**
-     * Called when aContent is removed. aFlatTextLengthOfContent is flattened
-     * text length of aContent.
-     */
-    void ContentRemoved(const nsIContent& aContent,
-                        const nsIContent* aPreviousSibling,
-                        uint32_t aFlatTextLengthOfContent,
-                        const dom::Element* aRootElement);
-
-   public:
-    // mContainerNode is parent node of mContent when it's cached.
+    // mContainerNode and mNode represent a point in DOM tree.  E.g.,
+    // if mContainerNode is a div element, mNode is a child.
     nsCOMPtr<nsINode> mContainerNode;
-    // mContent points to the last child which participates in the current
-    // mFlatTextLength.  If this is nullptr, mFlatTextLength means that it
-    // length before the first content of mContainerNode, i.e., including the
-    // line break of that caused by the open tag of mContainerNode.
-    nsCOMPtr<nsIContent> mContent;
+    // mNode points to the last child which participates in the current
+    // mFlatTextLength. If mNode is null, then that means that the end point for
+    // mFlatTextLength is immediately before the first child of mContainerNode.
+    nsCOMPtr<nsINode> mNode;
+    // Length of flat text generated from contents between the start of content
+    // and a child node whose index is mNodeOffset of mContainerNode.
+    uint32_t mFlatTextLength;
 
-   private:
-    // Length of flat text generated from contents between the start of the
-    // observing node (typically editing host or the anonymous <div> of
-    // TextEditor) and the end of mContent.
-    uint32_t mFlatTextLength = 0;
-    MOZ_DEFINE_DBG(FlatTextCache, mContainerNode, mContent, mFlatTextLength);
+    FlatTextCache() : mFlatTextLength(0) {}
 
-    const char* mInstanceName;
+    void Clear() {
+      mContainerNode = nullptr;
+      mNode = nullptr;
+      mFlatTextLength = 0;
+    }
+
+    void Cache(nsINode* aContainer, nsINode* aNode, uint32_t aFlatTextLength) {
+      MOZ_ASSERT(aContainer, "aContainer must not be null");
+      MOZ_ASSERT(!aNode || aNode->GetParentNode() == aContainer,
+                 "aNode must be either null or a child of aContainer");
+      mContainerNode = aContainer;
+      mNode = aNode;
+      mFlatTextLength = aFlatTextLength;
+    }
+
+    bool Match(nsINode* aContainer, nsINode* aNode) const {
+      return aContainer == mContainerNode && aNode == mNode;
+    }
   };
-
-  friend std::ostream& operator<<(std::ostream& aStream,
-                                  const FlatTextCache& aCache);
-
-  // mEndOfAddedTextCache caches text length from the start of the observing
-  // node to the end of the last added content only while an edit action is
-  // being handled by the editor and no other mutation (e.g., removing node)
+  // mEndOfAddedTextCache caches text length from the start of content to
+  // the end of the last added content only while an edit action is being
+  // handled by the editor and no other mutation (e.g., removing node)
   // occur.
-  FlatTextCache mEndOfAddedTextCache = FlatTextCache("mEndOfAddedTextCache");
-  // mStartOfRemovingTextRangeCache caches text length from the start of the
-  // observing node to the start of the last removed content only while an edit
-  // action is being handled by the editor and no other mutation (e.g., adding
-  // node) occur.  In other words, this caches text length before end of
-  // mContent or before first child of mContainerNode.
-  FlatTextCache mStartOfRemovingTextRangeCache =
-      FlatTextCache("mStartOfRemovingTextRangeCache");
+  FlatTextCache mEndOfAddedTextCache;
+  // mStartOfRemovingTextRangeCache caches text length from the start of content
+  // to the start of the last removed content only while an edit action is being
+  // handled by the editor and no other mutation (e.g., adding node) occur.
+  FlatTextCache mStartOfRemovingTextRangeCache;
 
-  /**
-   * Caches the DOM node ranges with storing the first node and the last node.
-   * This is designed for mAddedContentCache.  See comment at declaration of it
-   * for the detail.
-   */
-  struct AddedContentCache {
-    /**
-     * Clear the range. Callers should call this with __FUNCTION__ which will be
-     * used to log which caller did it.
-     */
-    void Clear(const char* aCallerName);
+  // mFirstAddedContainer is parent node of first added node in current
+  // document change.  So, this is not nullptr only when a node was added
+  // during a document change and the change has not been included into
+  // mTextChangeData yet.
+  // Note that this shouldn't be in cycle collection since this is not nullptr
+  // only during a document change.
+  nsCOMPtr<nsINode> mFirstAddedContainer;
+  // mLastAddedContainer is parent node of last added node in current
+  // document change.  So, this is not nullptr only when a node was added
+  // during a document change and the change has not been included into
+  // mTextChangeData yet.
+  // Note that this shouldn't be in cycle collection since this is not nullptr
+  // only during a document change.
+  nsCOMPtr<nsINode> mLastAddedContainer;
 
-    [[nodiscard]] bool HasCache() const { return mFirst && mLast; }
-
-    /**
-     * Return true if aFirstContent and aLastContent can be merged into the
-     * cached range.  This should be called only when the instance caches
-     * something.
-     */
-    [[nodiscard]] bool CanMergeWith(const nsIContent& aFirstContent,
-                                    const nsIContent& aLastContent,
-                                    const dom::Element* aRootElement) const;
-
-    /**
-     * Return true if aContent is in the cached range.  aContent can be not
-     * a child of the common container of the caching range.
-     */
-    [[nodiscard]] bool IsInRange(const nsIContent& aContent,
-                                 const dom::Element* aRootElement) const;
-
-    /**
-     * Try to cache the range represented by aFirstContent and aLastContent.
-     * If there is a cache, this will extend the caching range to contain
-     * the new range.
-     *
-     * @return          true if cached, otherwise, false.
-     */
-    bool TryToCache(const nsIContent& aFirstContent,
-                    const nsIContent& aLastContent,
-                    const dom::Element* aRootElement);
-
-    /**
-     * Called when aContent is removed from the DOM.  If aContent is the first
-     * node or the last node of the range, this updates the cached range.
-     *
-     * @return true if aContent was in the cached range.
-     */
-    [[nodiscard]] bool ContentRemoved(const nsIContent& aContent,
-                                      const nsIContent* aPreviousSibling,
-                                      const dom::Element* aRootElement);
-
-    /**
-     * Compute offset and length of the cached range before the nodes between
-     * aNewFirstContent and aNewLastContent are inserted.
-     *
-     * @return The first one is offset, the other is length.
-     */
-    [[nodiscard]] Result<std::pair<uint32_t, uint32_t>, nsresult>
-    ComputeFlatTextRangeBeforeInsertingNewContent(
-        const nsIContent& aNewFirstContent, const nsIContent& aNewLastContent,
-        const dom::Element* aRootElement,
-        OffsetAndLengthAdjustments& aDifferences) const;
-
-    MOZ_DEFINE_DBG(AddedContentCache, mFirst, mLast);
-
-    nsCOMPtr<nsIContent> mFirst;
-    nsCOMPtr<nsIContent> mLast;
-  };
-
-  // Caches the first node and the last node of new inserted nodes while editor
-  // handles an editing command/operation.  Therefore, the range is always in
-  // the same container node.  So, the range means that the direct siblings
-  // between the first node and the last node are the inserted nodes, but not
-  // yet post a text change notification.
-  // FYI: This is cleared when editor ends handling current edit
-  // operation/command.  Therefore, the strong pointers in this member don't
-  // need to be added to the cycle collection.
-  AddedContentCache mAddedContentCache;
+  // mFirstAddedContent is the first node added in mFirstAddedContainer.
+  nsCOMPtr<nsIContent> mFirstAddedContent;
+  // mLastAddedContent is the last node added in mLastAddedContainer;
+  nsCOMPtr<nsIContent> mLastAddedContent;
 
   TextChangeData mTextChangeData;
 

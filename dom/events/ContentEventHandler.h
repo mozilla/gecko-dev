@@ -212,70 +212,11 @@ class MOZ_STACK_CLASS ContentEventHandler {
     bool mAfterOpenTag = true;
 
     RawNodePosition() = default;
-    MOZ_IMPLICIT RawNodePosition(const RawNodePosition& aOther)
+    explicit RawNodePosition(const RawNodePosition& aOther)
         : RawRangeBoundary(aOther),
           mAfterOpenTag(aOther.mAfterOpenTag)
     // Don't use the copy constructor of mAssertNoGC.
     {}
-
-    /**
-     * Factory method returning a RawNodePosition object which points start of
-     * first content of aContainer (first child or first character in the data).
-     * I.e., if aContainer is an element node, the result points before the
-     * first child but after the open tag, e.g., <div>{}abc</div> if aContainer
-     * is the <div>.  This is important to understand the difference with the
-     * result of Before().
-     */
-    static RawNodePosition BeforeFirstContentOf(const nsINode& aContainer) {
-      return RawNodePosition(const_cast<nsINode*>(&aContainer), 0u);
-    }
-
-    /**
-     * Factory method returning a RawNodePosition object which points after
-     * aContent.  I.e., if aContent is an element node, the result points after
-     * its close tag, e.g., `<div>abc</div>{}` if aContent is the <div>.
-     */
-    static RawNodePosition After(const nsIContent& aContent) {
-      RawNodePosition it(aContent.GetParentNode(),
-                         const_cast<nsIContent*>(&aContent));
-      it.mAfterOpenTag = false;
-      return it;
-    }
-
-    /**
-     * Factory method returning a RawNodePosition object which points end of
-     * aContainer.  If aContainer is an element node, the result points before
-     * its close tag, e.g., `<div>abc{}</div>` if aContainer is the <div>.
-     */
-    static RawNodePosition AtEndOf(const nsINode& aContainer) {
-      return RawNodePosition(const_cast<nsINode*>(&aContainer),
-                             aContainer.IsText()
-                                 ? aContainer.AsText()->TextDataLength()
-                                 : aContainer.GetChildCount());
-    }
-
-    /**
-     * Factory method returning a RawNodePosition object which points before
-     * aContent.  I.e., if aContent is an element node, the result points
-     * before its open tag, e.g., `{}<div>abc</div>` if aContent is the <div>.
-     * Note that this sets different containers whether aContent is being
-     * removed or not.  If aContent is being removed, i.e., this is used in
-     * nsIMutationObserver::ContentRemoved(), aContent is already not a child
-     * of its ex-parent.  Therefore, the container becomes aContent, but
-     * indicates that it points before the container with mAfterOpenTag.
-     * On the other hand, if it's not being removed, the container is set to
-     * the parent node of aContent.  So, in this case, it points after the
-     * previous sibling of aContent actually.
-     */
-    static RawNodePosition Before(const nsIContent& aContent) {
-      if (!aContent.IsBeingRemoved()) {
-        return RawNodePosition(aContent.GetParentNode(),
-                               aContent.GetPreviousSibling());
-      }
-      RawNodePosition ret(const_cast<nsIContent*>(&aContent), 0u);
-      ret.mAfterOpenTag = false;
-      return ret;
-    }
 
     RawNodePosition(nsINode* aContainer, uint32_t aOffset)
         : RawRangeBoundary(aContainer, aOffset) {}
@@ -318,42 +259,44 @@ class MOZ_STACK_CLASS ContentEventHandler {
 #endif  // #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   };
 
-  /**
-   * Get the flatten text length in the range.
-   * @param aStartPosition      Start node and offset in the node of the range.
-   *                            If the container is an element node, it's
-   *                            important to start from before or after its open
-   *                            tag because open tag of some elements causes a
-   *                            line break in the result.  If you need the line
-   *                            break, you need to use
-   *                            RawNodePosition::Before().
-   * @param aEndPosition        End node and offset in the node of the range.
-   *                            If you don't want to include line break which is
-   *                            caused by the open tag of the container when
-   *                            you specify start of an element node, you need
-   *                            to use RawNodePosition::Before().
-   * @param aRootElement        The root element of the editor or document.
-   *                            aRootElement won't cause any text including
-   *                            line breaks.
-   * @param aLength             The result of the flatten text length of the
-   *                            range.
-   * @param aLineBreakType      Whether this computes flatten text length with
-   *                            native line breakers on the platform or
-   *                            with XP line breaker (\n).
-   * @param aIsRemovingNode     Should be true only when this is called from
-   *                            nsIMutationObserver::ContentRemoved().
-   *                            When this is true, the container of
-   *                            aStartPosition should be the removing node and
-   *                            points start of it and the container of
-   *                            aEndPosition must be same as the container of
-   *                            aStartPosition and points end of the container.
-   */
+  // RawNodePositionBefore isn't good name if Container() isn't an element node
+  // nor Offset() is not 0, though, when Container() is an element node and
+  // mOffset is 0, this is treated as before the open tag of Container().
+  struct MOZ_STACK_CLASS RawNodePositionBefore final : public RawNodePosition {
+    RawNodePositionBefore(nsINode* aContainer, uint32_t aOffset)
+        : RawNodePosition(aContainer, aOffset) {
+      mAfterOpenTag = false;
+    }
+
+    RawNodePositionBefore(nsINode* aContainer, nsIContent* aRef)
+        : RawNodePosition(aContainer, aRef) {
+      mAfterOpenTag = false;
+    }
+  };
+
+  // Get the flatten text length in the range.
+  // @param aStartPosition      Start node and offset in the node of the range.
+  // @param aEndPosition        End node and offset in the node of the range.
+  // @param aRootElement        The root element of the editor or document.
+  //                            aRootElement won't cause any text including
+  //                            line breaks.
+  // @param aLength             The result of the flatten text length of the
+  //                            range.
+  // @param aLineBreakType      Whether this computes flatten text length with
+  //                            native line breakers on the platform or
+  //                            with XP line breaker (\n).
+  // @param aIsRemovingNode     Should be true only when this is called from
+  //                            nsIMutationObserver::ContentRemoved().
+  //                            When this is true, aStartPosition.mNode should
+  //                            be the root node of removing nodes and mOffset
+  //                            should be 0 and aEndPosition.mNode should be
+  //                            same as aStartPosition.mNode and mOffset should
+  //                            be number of the children of mNode.
   static nsresult GetFlatTextLengthInRange(
       const RawNodePosition& aStartPosition,
       const RawNodePosition& aEndPosition, const Element* aRootElement,
       uint32_t* aLength, LineBreakType aLineBreakType,
       bool aIsRemovingNode = false);
-
   // Computes the native text length between aStartOffset and aEndOffset of
   // aTextNode.
   static uint32_t GetNativeTextLength(const dom::Text& aTextNode,

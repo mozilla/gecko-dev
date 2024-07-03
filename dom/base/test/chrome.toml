@@ -59,8 +59,6 @@ support-files = ["file_navigator_resolve_identity_xrays.xhtml"]
 
 ["test_serializer_noscript.html"]
 
-["test_text_change_notifications_when_inserting_text_containing_line_breaks.html"]
-
 ["test_urgent_start.html"]
 skip-if = [ #leaks Bug 1571583
   "os == 'win' && debug",

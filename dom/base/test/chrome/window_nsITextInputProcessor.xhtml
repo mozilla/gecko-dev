@@ -4966,10 +4966,6 @@ async function runTextNotificationChangesDuringNoFrame() {
 
 async function runTests()
 {
-  await SpecialPowers.pushPrefEnv({
-    set: [["test.ime_content_observer.assert_invalid_cache", true]],
-  });
-
   textareaInFrame = iframe.contentDocument.getElementById("textarea");
   runBeginInputTransactionMethodTests();
   runReleaseTests();

@@ -10214,17 +10214,11 @@ async function runIMEContentObserverTest()
     await waitNotifications;
     ensureToRemovePrecedingPositionChangeNotification();
     if (isDefaultParagraphSeparatorBlock) {
-      // First, the text node is split to "aB" and "d", i.e., "d" is removed from the text node.
-      // Then, "d" is added after "aB" as new text node.  So, this won't appear as a text change
-      // notification.  Next, a padding <br> is inserted between the text node.  This does not
-      // appear as a text change notification because of invisible node from ContentEventHandler.
-      // Finally, the <block> is split and remove the unnecessary padding <br> from the left
-      // block.  So, one line break caused by the open tag of <block> appears with text length of
-      // "d".
+      // Splitting current block causes removing "d</block>" and inserting "</block><block>d</block>".
       checkTextChangeNotification(notifications[0], description, {
         offset: offsetAtContainer + "aB".length,
-        removedLength: getNativeText("d").length,
-        addedLength: getNativeText("\nd").length,
+        removedLength: getNativeText("d\n").length,
+        addedLength: getNativeText("\nd\n").length,
       });
     } else {
       // Inserting <br> causes removing "d" and inserting "<br>d"
@@ -10276,17 +10270,11 @@ async function runIMEContentObserverTest()
     await waitNotifications;
     ensureToRemovePrecedingPositionChangeNotification();
     if (isDefaultParagraphSeparatorBlock) {
-      // First, the text node is split to "a" and "d" after deleting "B", i.e., "Bd" is removed
-      // from the text node.  Then, "d" is added after "aB" as new text node.  So, this won't
-      // appear as a text change notification.  Next, a padding <br> is inserted between the text
-      // node.  This does not appear as a text change notification because of invisible node from
-      // ContentEventHandler.  Finally, the <block> is split and remove the unnecessary padding
-      // <br> from the left block.  So, one line break caused by the open tag of <block> appears
-      // with text length of "d".
+      // Splitting current block causes removing "Bd</block>" and inserting "</block><block>d</block>".
       checkTextChangeNotification(notifications[0], description, {
         offset: offsetAtContainer + "a".length,
-        removedLength: getNativeText("Bd").length,
-        addedLength: getNativeText("\nd").length,
+        removedLength: getNativeText("Bd\n").length,
+        addedLength: getNativeText("\nd\n").length,
       });
     } else {
       checkTextChangeNotification(notifications[0], description, {
@@ -10530,96 +10518,6 @@ async function runIMEContentObserverTest()
     checkTextChangeNotification(notifications[0], description, { offset: getNativeText("\nabc\n\n").length + offsetAtStart, removedLength: getNativeText("\n\n").length, addedLength: 0 });
     checkPositionChangeNotification(notifications[1], description);
     dumpUnexpectedNotifications(description, 2);
-
-    await (async function test_insert_multiple_consecutive_siblings() {
-      aElement.innerHTML = "<p><br></p>";
-      const p = aElement.querySelector("p");
-      sel.collapse(p, 0);
-      await flushNotifications();
-      description = aDescription + "Insert multiple consecutive siblings from DOMNodeInserted event listener";
-      aElement.addEventListener("DOMNodeInserted", () => {
-        const span1 = doc.createElement("span");
-        span1.textContent = "a";
-        p.insertBefore(span1, p.firstChild);
-        const span2 = doc.createElement("span");
-        span2.textContent = "b";
-        p.insertBefore(span2, p.firstChild);
-        const span3 = doc.createElement("span");
-        span3.textContent = "c";
-        p.insertBefore(span3, p.firstChild);
-        const span4 = doc.createElement("span");
-        span4.textContent = "d";
-        p.insertBefore(span4, p.firstChild);
-        // Now, span4 should be cached as first added node and <br> should be
-        // cached as the last added node in IMEContentObserver.
-        // span2 is not adjacent sibling of the caching range boundaries.
-        // Therefore, this requires to compute index of span2 in the <p>.
-        // We want to check the path.
-        const span5 = doc.createElement("span");
-        span5.textContent = "e";
-        span2.insertBefore(span5, span2.firstChild);
-      }, {once: true});
-      waitNotifications = promiseReceiveNotifications();
-      synthesizeKey("KEY_Enter", { shiftKey: true }, win, callback);  // For setting the callback to recode notifications
-      ensureToRemovePrecedingPositionChangeNotification();
-      is(
-        aElement.innerHTML,
-        "<p><span>d</span><span>c</span><span><span>e</span>b</span><span>a</span><br><br></p>",
-        description + " <span> elements should be inserted before the new <br>"
-      );
-      checkTextChangeNotification(
-        notifications[0],
-        description,
-        {
-          offset: getNativeText("\n").length + offsetAtStart,
-          removedLength: 0,
-          addedLength: getNativeText("dceba\n").length,
-        }
-      );
-    })();
-
-    await (async function test_insert_multiple_indirect_siblings() {
-      aElement.innerHTML = "<p><span>a</span><br><br></p>";
-      const p = aElement.querySelector("p");
-      sel.collapse(p, 2);
-      await flushNotifications();
-      description = aDescription + "Insert multiple indirect siblings from DOMNodeInserted event listener";
-      aElement.addEventListener("DOMNodeInserted", () => {
-        const span0 = p.querySelector("span");
-        const newBR = p.querySelector("br + br");
-        const span1 = doc.createElement("span");
-        span1.textContent = "b";
-        p.insertBefore(span1, newBR);
-        const span2 = doc.createElement("span");
-        span2.textContent = "c";
-        p.insertBefore(span2, newBR);
-        // Now, span1 should be cached as first added node and <br> should be
-        // cached as the last added node in IMEContentObserver.
-        // Then, inserting new node before the first <br> which is before the
-        // span1 (first added node), it should be
-        const span3 = doc.createElement("span");
-        span3.textContent = "d";
-        span0.insertBefore(span3, span0.firstChild);
-      }, {once: true});
-      waitNotifications = promiseReceiveNotifications();
-      synthesizeKey("KEY_Enter", { shiftKey: true }, win, callback);  // For setting the callback to recode notifications
-      ensureToRemovePrecedingPositionChangeNotification();
-      is(
-        aElement.innerHTML,
-        "<p><span><span>d</span>a</span><br><span>b</span><span>c</span><br><br></p>",
-        description + " <span> elements should be inserted before the new <br>"
-      );
-      // However, the text changes should be merged into one notification.
-      checkTextChangeNotification(
-        notifications[0],
-        description,
-        {
-          offset: getNativeText("\n").length + offsetAtStart,
-          removedLength: "a\n".length,
-          addedLength: getNativeText("da\nbc\n").length,
-        }
-      );
-    })();
   }
 
   await testWithPlaintextEditor("runIMEContentObserverTest with input element: ", input, false);
@@ -10972,10 +10870,7 @@ async function runInputModeTest()
 async function runTest()
 {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["dom.events.textevent.enabled", true],
-      ["test.ime_content_observer.assert_invalid_cache", true],
-    ],
+    set: [["dom.events.textevent.enabled", true]],
   });
 
   window.addEventListener("unload", window.arguments[0].SimpleTest.finish, {once: true, capture: true});

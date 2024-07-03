@@ -1,5 +1,4 @@
 [DEFAULT]
-prefs = ["test.ime_content_observer.assert_invalid_cache=true"]
 skip-if = ["os == 'android'"]
 
 ["test_bug489202.xhtml"]
