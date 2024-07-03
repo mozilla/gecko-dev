@@ -180,7 +180,25 @@ class HomeScreenTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericPage.url) {
         }.goToHomescreen {
-            verifyJumpBackInMessage(activityTestRule)
+            verifyJumpBackInMessage(activityTestRule, exists = true)
+        }
+    }
+
+    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2651349
+    @Test
+    fun verifyJumpBackCFRIsNotDisplayedWhileSearchFragmentIsEnableTest() {
+        activityTestRule.activityRule.applySettingsExceptions {
+            it.isJumpBackInCFREnabled = true
+        }
+
+        val genericPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(genericPage.url) {
+        }.openNavigationToolbar {
+        }
+        homeScreen {
+            verifyJumpBackInMessage(activityTestRule, exists = false)
         }
     }
 }

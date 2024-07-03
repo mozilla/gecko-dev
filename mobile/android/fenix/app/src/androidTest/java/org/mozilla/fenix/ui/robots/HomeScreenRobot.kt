@@ -585,13 +585,22 @@ class HomeScreenRobot {
         }
     }
 
-    fun verifyJumpBackInMessage(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "verifyJumpBackInMessage: Trying to verify jump back in contextual message")
-        composeTestRule
-            .onNodeWithText(
-                getStringResource(R.string.onboarding_home_screen_jump_back_contextual_hint_2),
-            ).assertExists()
-        Log.i(TAG, "verifyJumpBackInMessage: Verified jump back in contextual message")
+    fun verifyJumpBackInMessage(composeTestRule: ComposeTestRule, exists: Boolean) {
+        if (exists) {
+            Log.i(TAG, "verifyJumpBackInMessage: Trying to verify that the jump back in contextual message exists")
+            composeTestRule
+                .onNodeWithText(
+                    getStringResource(R.string.onboarding_home_screen_jump_back_contextual_hint_2),
+                ).assertExists()
+            Log.i(TAG, "verifyJumpBackInMessage: Verified that the jump back in contextual message exists")
+        } else {
+            Log.i(TAG, "verifyJumpBackInMessage: Trying to verify that the jump back in contextual message does not exist")
+            composeTestRule
+                .onNodeWithText(
+                    getStringResource(R.string.onboarding_home_screen_jump_back_contextual_hint_2),
+                ).assertDoesNotExist()
+            Log.i(TAG, "verifyJumpBackInMessage: Verified that the jump back in contextual message does not exist")
+        }
     }
 
     fun getProvokingStoryPublisher(position: Int): String {
