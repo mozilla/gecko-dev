@@ -1031,6 +1031,13 @@ pocketNewtab:
         branch: user
         pref: browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.enabled
       description: Display thumbs up and down buttons on recommended stories
+    thumbsUpDownCompactLayout:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.searchTopsitesCompact
+      description: >-
+        Change the layout of the sections to be more compact to account for the added card height with the thumbs up/down enabled.
 
 saveToPocket:
   description: The save to Pocket feature

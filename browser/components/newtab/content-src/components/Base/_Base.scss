@@ -164,3 +164,58 @@ main {
     }
   }
 }
+
+// Thumbs Up/Down UI Overrides across the entire page
+.thumbs-ui-compact {
+
+  // Base.scss
+
+  // Edge case for if search is turned off
+  &.no-search main {
+    margin-top: var(--space-xxlarge);
+  }
+
+  section {
+    margin-bottom: 0;
+  }
+
+  // CollapsibleSection.scss
+  .collapsible-section {
+    padding: 0 $section-horizontal-padding;
+    margin-bottom: var(--space-xxlarge);
+  }
+
+  // _Search.scss
+  .search-wrapper {
+    padding: 0;
+    margin: var(--space-xxlarge) 0;
+
+    .logo-and-wordmark {
+      margin-bottom: var(--space-xxlarge);
+    }
+
+    @media (height <=700px) {
+      padding: 0;
+      margin-top: 0;
+    }
+
+    @media (height > 700px) {
+      padding: 0;
+    }
+  }
+
+  &.fixed-search .search-wrapper {
+    margin-top: 0;
+  }
+
+  // _TopSites.scss
+  .top-site-outer {
+    margin-block-end: 0;
+
+    .top-site-inner > a {
+      // Setting individual properties to negative undefined variable reference ($half-base-gutter)
+      padding-top: var(--space-xsmall);
+      padding-bottom: var(--space-xsmall);
+    }
+  }
+}

@@ -467,6 +467,14 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.thumbsUpDown.searchTopsitesCompact",
+    {
+      title:
+        "A compact layout of the search/topsites/stories sections to account for new height from thumbs up/down icons ",
+      value: false,
+    },
+  ],
+  [
     "discoverystream.region-basic-layout",
     {
       title: "Decision to use basic layout based on region.",

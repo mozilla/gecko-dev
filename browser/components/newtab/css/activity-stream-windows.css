@@ -569,6 +569,45 @@ main section {
   text-decoration: none;
 }
 
+.thumbs-ui-compact.no-search main {
+  margin-top: var(--space-xxlarge);
+}
+.thumbs-ui-compact section {
+  margin-bottom: 0;
+}
+.thumbs-ui-compact .collapsible-section {
+  padding: 0 25px;
+  margin-bottom: var(--space-xxlarge);
+}
+.thumbs-ui-compact .search-wrapper {
+  padding: 0;
+  margin: var(--space-xxlarge) 0;
+}
+.thumbs-ui-compact .search-wrapper .logo-and-wordmark {
+  margin-bottom: var(--space-xxlarge);
+}
+@media (height <= 700px) {
+  .thumbs-ui-compact .search-wrapper {
+    padding: 0;
+    margin-top: 0;
+  }
+}
+@media (height > 700px) {
+  .thumbs-ui-compact .search-wrapper {
+    padding: 0;
+  }
+}
+.thumbs-ui-compact.fixed-search .search-wrapper {
+  margin-top: 0;
+}
+.thumbs-ui-compact .top-site-outer {
+  margin-block-end: 0;
+}
+.thumbs-ui-compact .top-site-outer .top-site-inner > a {
+  padding-top: var(--space-xsmall);
+  padding-bottom: var(--space-xsmall);
+}
+
 .as-error-fallback {
   align-items: center;
   border-radius: 3px;

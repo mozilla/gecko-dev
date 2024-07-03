@@ -1870,6 +1870,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.onboardingExperience.en
 
 // Allow users to give thumbs up/down on recommended stories
 pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.searchTopsitesCompact", false);
 
 // User pref to show stories on newtab (feeds.system.topstories has to be set to true as well)
 pref("browser.newtabpage.activity-stream.feeds.section.topstories", true);
