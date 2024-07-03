@@ -9,7 +9,7 @@ use minidump_writer::minidump_writer::MinidumpWriter;
 use std::ffi::{CStr, CString};
 use std::mem::{self, MaybeUninit};
 use std::os::raw::c_char;
-use std::ptr::null_mut;
+use std::ptr::{copy_nonoverlapping, null_mut};
 
 // This function will be exposed to C++
 #[no_mangle]
@@ -88,13 +88,13 @@ pub unsafe extern "C" fn write_minidump_linux_with_context(
     let mut crash_context: MaybeUninit<crash_context::CrashContext> = mem::MaybeUninit::zeroed();
     let cc = &mut *crash_context.as_mut_ptr();
 
-    core::ptr::copy_nonoverlapping(siginfo, &mut cc.siginfo, 1);
-    core::ptr::copy_nonoverlapping(ucontext, &mut cc.context, 1);
+    copy_nonoverlapping(ucontext, &mut cc.context, 1);
     #[cfg(not(target_arch = "arm"))]
-    core::ptr::copy_nonoverlapping(float_state, &mut cc.float_state, 1);
-
+    copy_nonoverlapping(float_state, &mut cc.float_state, 1);
+    copy_nonoverlapping(siginfo, &mut cc.siginfo, 1);
     cc.pid = child;
     cc.tid = child_thread;
+
     let crash_context = crash_context.assume_init();
     let crash_context = CrashContext {
         inner: crash_context,
