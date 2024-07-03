@@ -17,9 +17,13 @@ exclude: true
 - Added [`ERROR_ADMIN_INSTALL_ONLY`][129.1] to `WebExtension.InstallException.ErrorCodes`. ([bug 1902222]({{bugzilla}}1902222))
 - Added [`ContentDelegate.onHideDynamicToolbar`][129.2] to notify
   the app that it must fully-collapse its dynamic toolbar ([bug 1855990]({{bugzilla}}1855990))
+- Added [`PURGED_BOUNCETRACKER`][129.3] and [`BLOCKED_SUSPICIOUS_FINGERPRINTING`][129.4]
+  to `ContentBlockingController.Event`. ([bug 1901808]({{bugzilla}}1901808))
 
 [129.1]: {{javadoc_uri}}/WebExtension.InstallException.ErrorCodes.html#ERROR_ADMIN_INSTALL_ONLY
 [129.2]: {{javadoc_uri}}/GeckoSession.ContentDelegate.html#onHideDynamicToolbar(org.mozilla.geckoview.GeckoSession)
+[129.3]: {{javadoc_uri}}/ContentBlockingController.Event.html#PURGED_BOUNCETRACKER
+[129.4]: {{javadoc_uri}}/ContentBlockingController.Event.html#BLOCKED_SUSPICIOUS_FINGERPRINTING
 
 ## v128
 - ⚠️ Removed deprecated [`GeckoSession.NavigationDelegate.onLocationChange`][128.1]
@@ -1579,4 +1583,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: df1c42b393736fbba4f1533bc754f7317cac329f
+[api-version]: e5657049256d78169432f7eafe2f8855db73ab6f

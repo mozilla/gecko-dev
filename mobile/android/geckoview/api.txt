@@ -611,6 +611,7 @@ package org.mozilla.geckoview {
     field public static final int BLOCKED_EMAILTRACKING_CONTENT = 4194304;
     field public static final int BLOCKED_FINGERPRINTING_CONTENT = 64;
     field public static final int BLOCKED_SOCIALTRACKING_CONTENT = 65536;
+    field public static final int BLOCKED_SUSPICIOUS_FINGERPRINTING = 4;
     field public static final int BLOCKED_TRACKING_CONTENT = 4096;
     field public static final int BLOCKED_UNSAFE_CONTENT = 16384;
     field public static final int COOKIES_BLOCKED_ALL = 1073741824;
@@ -629,6 +630,7 @@ package org.mozilla.geckoview {
     field public static final int LOADED_LEVEL_1_TRACKING_CONTENT = 8192;
     field public static final int LOADED_LEVEL_2_TRACKING_CONTENT = 1048576;
     field public static final int LOADED_SOCIALTRACKING_CONTENT = 131072;
+    field public static final int PURGED_BOUNCETRACKER = 7;
     field public static final int REPLACED_TRACKING_CONTENT = 16;
   }
 

@@ -3638,8 +3638,10 @@ class GeckoEngineTest {
 
         val blockedTrackingContent = createBlockingData(Event.BLOCKED_TRACKING_CONTENT)
         val blockedFingerprintingContent = createBlockingData(Event.BLOCKED_FINGERPRINTING_CONTENT)
+        val blockedSuspiciousFingerprinting = createBlockingData(Event.BLOCKED_SUSPICIOUS_FINGERPRINTING)
         val blockedCyptominingContent = createBlockingData(Event.BLOCKED_CRYPTOMINING_CONTENT)
         val blockedSocialContent = createBlockingData(Event.BLOCKED_SOCIALTRACKING_CONTENT)
+        val purgedBounceTracker = createBlockingData(Event.PURGED_BOUNCETRACKER)
 
         val loadedTrackingLevel1Content = createBlockingData(Event.LOADED_LEVEL_1_TRACKING_CONTENT)
         val loadedTrackingLevel2Content = createBlockingData(Event.LOADED_LEVEL_2_TRACKING_CONTENT)
@@ -3654,11 +3656,13 @@ class GeckoEngineTest {
             loadedTrackingLevel2Content,
             blockedFingerprintingContent,
             loadedFingerprintingContent,
+            blockedSuspiciousFingerprinting,
             blockedCyptominingContent,
             loadedCyptominingContent,
             blockedCookiePermission,
             blockedSocialContent,
             loadedSocialContent,
+            purgedBounceTracker,
             loadedCookieSocialTracker,
             blockedCookieSocialTracker,
             unBlockedBySmartBlock,
