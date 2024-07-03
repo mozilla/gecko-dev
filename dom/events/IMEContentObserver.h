@@ -530,8 +530,8 @@ class IMEContentObserver final : public nsStubMutationObserver,
         uint32_t aFlatTextLength, const dom::Element* aRootElement);
 
     /**
-     * Return flattened text length of aRemovingContent.  This is designed
-     * only for the case when aRemovingContent is being removed from the tree.
+     * Return flattened text length of aContent.  I.e., the length includes a
+     * line break caused by the open tag of aContent if it's an element node.
      *
      * @param aRemovingContent  The content node which is being removed.
      * @param aRootElement      The root element of the editor, i.e., editing
@@ -540,9 +540,8 @@ class IMEContentObserver final : public nsStubMutationObserver,
      *                          at open tag of this element, this is required
      *                          to call methods of ContentEventHandler.
      */
-    [[nodiscard]] static Result<uint32_t, nsresult>
-    ComputeTextLengthOfRemovingContent(const nsIContent& aRemovingContent,
-                                       const dom::Element* aRootElement);
+    [[nodiscard]] static Result<uint32_t, nsresult> ComputeTextLengthOfContent(
+        const nsIContent& aContent, const dom::Element* aRootElement);
 
     /**
      * Return flattened text length of starting from first content of
@@ -609,27 +608,26 @@ class IMEContentObserver final : public nsStubMutationObserver,
         const nsIContent& aStartContent, const nsIContent& aEndContent,
         const dom::Element* aRootElement);
 
-    [[nodiscard]] bool CachesTextLengthBeforeContent(
-        const nsIContent& aContent) const {
-      MOZ_ASSERT(!aContent.IsBeingRemoved());
-      return CachesTextLengthBeforeContent(aContent,
-                                           aContent.GetPreviousSibling());
-    }
-    [[nodiscard]] bool CachesTextLengthBeforeContent(
-        const nsIContent& aContent, const nsIContent* aPreviousSibling) const {
-      MOZ_ASSERT_IF(!aContent.IsBeingRemoved(),
-                    aContent.GetPreviousSibling() == aPreviousSibling);
-      if (!mContainerNode || mContainerNode != aContent.GetParentNode()) {
-        return false;
-      }
-      if (IsCachingToStartOfContainer()) {
-        MOZ_ASSERT(!mContent);
-        return !aPreviousSibling;
-      }
-      MOZ_ASSERT(mContent);
-      return mContainerNode == aContent.GetParentNode() &&
-             mContent == aPreviousSibling;
-    }
+    [[nodiscard]] uint32_t GetFlatTextLength() const { return mFlatTextLength; }
+
+    /**
+     * Return text length if it's exactly cached or can compute it quickly from
+     * the cached data.  aContent must not be new node which is inserted before
+     * mContent because the cached text length does not include the text length
+     * of aContent in such case.
+     */
+    [[nodiscard]] Maybe<uint32_t> GetFlatTextLengthBeforeContent(
+        const nsIContent& aContent, const nsIContent* aPreviousSibling,
+        const dom::Element* aRootElement) const;
+
+    /**
+     * Return text length before aFirstContent if it's exactly cached or can
+     * compute it quickly from the caching data.  This is called when the nodes
+     * between aFirstContent and aLastContent are inserted into the tree.
+     */
+    [[nodiscard]] Maybe<uint32_t> GetFlatTextOffsetOnInsertion(
+        const nsIContent& aFirstContent, const nsIContent& aLastContent,
+        const dom::Element* aRootElement) const;
 
     /**
      * This works only in the debug build and
@@ -646,13 +644,14 @@ class IMEContentObserver final : public nsStubMutationObserver,
     // length before the first content of mContainerNode, i.e., including the
     // line break of that caused by the open tag of mContainerNode.
     nsCOMPtr<nsIContent> mContent;
+
+   private:
     // Length of flat text generated from contents between the start of the
     // observing node (typically editing host or the anonymous <div> of
     // TextEditor) and the end of mContent.
     uint32_t mFlatTextLength = 0;
     MOZ_DEFINE_DBG(FlatTextCache, mContainerNode, mContent, mFlatTextLength);
 
-   private:
     const char* mInstanceName;
   };
 
