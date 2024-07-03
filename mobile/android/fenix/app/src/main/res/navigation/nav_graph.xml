@@ -50,8 +50,7 @@
 
     <action
         android:id="@+id/action_global_microsurvey_dialog"
-        app:destination="@id/microsurveyDialogFragment"
-        app:popUpTo="@id/homeFragment" />
+        app:destination="@id/microsurveyDialogFragment" />
 
     <action
         android:id="@+id/action_global_search_dialog"
