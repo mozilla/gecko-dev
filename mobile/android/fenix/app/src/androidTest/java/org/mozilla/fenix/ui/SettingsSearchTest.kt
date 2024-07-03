@@ -9,6 +9,7 @@ import androidx.test.espresso.Espresso.pressBack
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -123,6 +124,7 @@ class SettingsSearchTest : TestSetup() {
     }
 
     // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/233586
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1905976")
     @Test
     fun verifyUrlAutocompleteToggleTest() {
         homeScreen {
