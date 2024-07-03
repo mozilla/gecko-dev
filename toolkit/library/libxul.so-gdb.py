@@ -20,16 +20,17 @@ libxul_dir = dirname(__file__)
 objdir = None
 for relpath in ("../../..", "../.."):
     objdir = abspath(libxul_dir + "/" + relpath)
-    if exists(objdir + "/build/.gdbinit"):
-        break
+    if not exists(objdir + "/build/.gdbinit"):
+        continue
+
+    if objdir is not None:
+        m = re.search(r"[\w ]+: (.*)", gdb.execute("show directories", False, True))
+        if m and (objdir not in m.group(1).split(":")):
+            gdb.execute("set directories {}:{}".format(objdir, m.group(1)))
 else:
     gdb.write("Warning: Gecko objdir not found\n")
 
 if objdir is not None:
-    m = re.search(r"[\w ]+: (.*)", gdb.execute("show directories", False, True))
-    if m and objdir not in m.group(1).split(":"):
-        gdb.execute("set directories {}:{}".format(objdir, m.group(1)))
-
     # When running from a random directory, the toplevel Gecko .gdbinit may
     # not have been loaded. Load it now.
     gdb.execute("source -s build/.gdbinit.loader")
