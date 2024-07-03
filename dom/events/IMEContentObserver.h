@@ -247,27 +247,6 @@ class IMEContentObserver final : public nsStubMutationObserver,
     return mDocumentObserver && mDocumentObserver->IsUpdating();
   }
 
-  /**
-   * Forget the range of added nodes during a document change.
-   */
-  void ClearAddedNodesDuringDocumentChange();
-
-  /**
-   * HasAddedNodesDuringDocumentChange() returns true when this stores range
-   * of nodes which were added into the DOM tree during a document change but
-   * have not been sent to IME.  Note that this should always return false when
-   * IsInDocumentChange() returns false.
-   */
-  bool HasAddedNodesDuringDocumentChange() const {
-    return mFirstAddedContainer && mLastAddedContainer;
-  }
-
-  /**
-   * Returns true if the passed-in node in aParent is the next node of
-   * mLastAddedContent in pre-order tree traversal of the DOM.
-   */
-  bool IsNextNodeOfLastAddedNode(nsINode* aParent, nsIContent* aChild) const;
-
   void PostFocusSetNotification();
   void MaybeNotifyIMEOfFocusSet();
   void PostTextChangeNotification();
@@ -695,25 +674,55 @@ class IMEContentObserver final : public nsStubMutationObserver,
   FlatTextCache mStartOfRemovingTextRangeCache =
       FlatTextCache("mStartOfRemovingTextRangeCache");
 
-  // mFirstAddedContainer is parent node of first added node in current
-  // document change.  So, this is not nullptr only when a node was added
-  // during a document change and the change has not been included into
-  // mTextChangeData yet.
-  // Note that this shouldn't be in cycle collection since this is not nullptr
-  // only during a document change.
-  nsCOMPtr<nsINode> mFirstAddedContainer;
-  // mLastAddedContainer is parent node of last added node in current
-  // document change.  So, this is not nullptr only when a node was added
-  // during a document change and the change has not been included into
-  // mTextChangeData yet.
-  // Note that this shouldn't be in cycle collection since this is not nullptr
-  // only during a document change.
-  nsCOMPtr<nsINode> mLastAddedContainer;
+  /**
+   * Caches the DOM node ranges with storing the first node and the last node.
+   * This is designed for mAddedContentCache.  See comment at declaration of it
+   * for the detail.
+   */
+  struct AddedContentCache {
+    /**
+     * Clear the range. Callers should call this with __FUNCTION__ which will be
+     * used to log which caller did it.
+     */
+    void Clear(const char* aCallerName);
 
-  // mFirstAddedContent is the first node added in mFirstAddedContainer.
-  nsCOMPtr<nsIContent> mFirstAddedContent;
-  // mLastAddedContent is the last node added in mLastAddedContainer;
-  nsCOMPtr<nsIContent> mLastAddedContent;
+    [[nodiscard]] bool HasCache() const { return mFirst && mLast; }
+
+    /**
+     * Try to cache the range represented by aFirstContent and aLastContent
+     * (from the start of aFirstContent to the end of aLastContent).  If there
+     * is a cache, this will extend the caching range to contain the new range.
+     *
+     * @return          true if cached, otherwise, false.
+     */
+    bool TryToCache(const nsIContent& aFirstContent,
+                    const nsIContent& aLastContent,
+                    const dom::Element* aRootElement);
+
+    MOZ_DEFINE_DBG(AddedContentCache, mFirst, mLast);
+
+    /**
+     * Return true if the next content node of aContent is aMaybeNextNode.
+     * This tries to avoid using `nsINode::GetNextNode` as far as possible
+     * because it may climb the tree a lot in the worst scenario.
+     */
+    [[nodiscard]] static bool ContentIsPrevNodeOf(
+        const nsIContent& aContent, const nsIContent& aMaybeNextNode,
+        const dom::Element* aRootElement);
+
+    nsCOMPtr<nsIContent> mFirst;
+    nsCOMPtr<nsIContent> mLast;
+  };
+
+  // Caches the first node and the last node of new inserted nodes during a
+  // document change.  Therefore, the range means that all nodes between the
+  // first node and the last node (when you traverse with nsINode::GetNextNode()
+  // calls from the first one to the last one) are added into the tree, but not
+  // yet post a text change notification.
+  // FYI: This is cleared when a document change ends which is always happen in
+  // a short time after it starts.  Therefore, the strong pointers in this
+  // member don't need to be added to the cycle collection.
+  AddedContentCache mAddedContentCache;
 
   TextChangeData mTextChangeData;
 
