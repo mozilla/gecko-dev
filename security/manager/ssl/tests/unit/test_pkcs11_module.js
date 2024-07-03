@@ -13,15 +13,7 @@ const gModuleDB = Cc["@mozilla.org/security/pkcs11moduledb;1"].getService(
   Ci.nsIPKCS11ModuleDB
 );
 
-add_task(async function test_pkcs11_module() {
-  Services.fog.initializeFOG();
-
-  equal(
-    0,
-    await Glean.pkcs11.thirdPartyModulesLoaded.testGetValue(),
-    "should have no third-party modules to begin with"
-  );
-
+function run_test() {
   // Check that if we have never added the test module, that we don't find it
   // in the module list.
   checkPKCS11ModuleNotPresent("PKCS11 Test Module", "pkcs11testmodule");
@@ -31,11 +23,6 @@ add_task(async function test_pkcs11_module() {
   libraryFile.append("pkcs11testmodule");
   libraryFile.append(ctypes.libraryName("pkcs11testmodule"));
   loadPKCS11Module(libraryFile, "PKCS11 Test Module", true);
-  equal(
-    1,
-    await Glean.pkcs11.thirdPartyModulesLoaded.testGetValue(),
-    "should have one third-party module after loading it"
-  );
   let testModule = checkPKCS11ModuleExists(
     "PKCS11 Test Module",
     "pkcs11testmodule"
@@ -63,14 +50,9 @@ add_task(async function test_pkcs11_module() {
     Ci.nsIPKCS11ModuleDB
   );
   pkcs11ModuleDB.deleteModule("PKCS11 Test Module");
-  equal(
-    0,
-    await Glean.pkcs11.thirdPartyModulesLoaded.testGetValue(),
-    "should have no third-party modules after unloading it"
-  );
   checkPKCS11ModuleNotPresent("PKCS11 Test Module", "pkcs11testmodule");
 
   // Check miscellaneous module DB methods and attributes.
   ok(!gModuleDB.canToggleFIPS, "It should NOT be possible to toggle FIPS");
   ok(!gModuleDB.isFIPSEnabled, "FIPS should not be enabled");
-});
+}

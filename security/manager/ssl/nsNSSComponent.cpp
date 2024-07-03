@@ -11,7 +11,6 @@
 #include "EnterpriseRoots.h"
 #include "ExtendedValidation.h"
 #include "NSSCertDBTrustDomain.h"
-#include "PKCS11ModuleDB.h"
 #include "SSLTokensCache.h"
 #include "ScopedNSSTypes.h"
 #include "SharedSSLState.h"
@@ -616,7 +615,7 @@ void AsyncLoadOrUnloadOSClientCertsModule(bool load) {
     Unused << task->Dispatch();
   } else {
     UniqueSECMODModule osClientCertsModule(
-        SECMOD_FindModule(kOSClientCertsModuleName.get()));
+        SECMOD_FindModule(kOSClientCertsModuleName));
     if (osClientCertsModule) {
       SECMOD_UnloadUserModule(osClientCertsModule.get());
     }

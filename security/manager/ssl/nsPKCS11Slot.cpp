@@ -213,10 +213,8 @@ nsPKCS11Module::nsPKCS11Module(SECMODModule* module) {
 static nsresult NormalizeModuleNameOut(const char* moduleNameIn,
                                        nsACString& moduleNameOut) {
   // Easy case: this isn't the builtin roots module.
-  if (strnlen(moduleNameIn, kRootModuleName.Length() + 1) !=
-          kRootModuleName.Length() ||
-      strncmp(kRootModuleName.get(), moduleNameIn, kRootModuleName.Length()) !=
-          0) {
+  if (strnlen(moduleNameIn, kRootModuleNameLen + 1) != kRootModuleNameLen ||
+      strncmp(kRootModuleName, moduleNameIn, kRootModuleNameLen) != 0) {
     moduleNameOut.Assign(moduleNameIn);
     return NS_OK;
   }
