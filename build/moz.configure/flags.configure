@@ -603,6 +603,13 @@ def host_ldflags(env_ldflags, linker_flags, host_linker_ldflags, host, compiler)
     return flags
 
 
+@depends("CPPFLAGS")
+@imports(_from="mozbuild.shellutil", _import="split")
+def os_cppflags(env_cppflags):
+    flags = split(env_cppflags[0])
+    return flags
+
+
 # Please keep these last in this file.
 add_old_configure_assignment("_COMPILATION_ASFLAGS", asm_flags.asflags)
 add_old_configure_assignment("_COMPILATION_HOST_ASFLAGS", asm_flags.host_asflags)
@@ -611,10 +618,13 @@ add_old_configure_assignment(
     "_COMPILATION_OPTIMIZE_LDFLAGS", linker_optimize_flags.ldflags
 )
 
+add_old_configure_assignment("CPPFLAGS", os_cppflags)
+
 add_old_configure_assignment("_COMPILATION_CFLAGS", compilation_flags.cflags)
 add_old_configure_assignment("_COMPILATION_CXXFLAGS", compilation_flags.cxxflags)
 
 set_config("HOST_CFLAGS", host_cflags)
 set_config("HOST_CXXFLAGS", host_cflags)
 set_config("HOST_LDFLAGS", host_ldflags)
+set_config("OS_CPPFLAGS", os_cppflags)
 set_config("DSO_LDOPTS", dso_flags.ldopts)

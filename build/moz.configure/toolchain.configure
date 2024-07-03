@@ -30,6 +30,14 @@ option(
 )
 
 
+option(
+    env="CPPFLAGS",
+    help="Extra flags for preprocessing sources.",
+    nargs=1,
+    default="",
+)
+
+
 # Code optimization
 # ==============================================================
 
