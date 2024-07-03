@@ -9,6 +9,9 @@ permalink: /changelog/
 * **browser-engine-gecko**
     * Added `WebExtensionInstallException.AdminInstallOnly` to handle the `ERROR_ADMIN_INSTALL_ONLY` error returned by Gecko when the add-on can only be installed via Enterprise Policies.
 
+* **browser-icons**
+  * Increased size of single-letter fallback-favicon, see [Bug 1905393](https://bugzilla.mozilla.org/show_bug.cgi?id=1905393).
+
 * **feature-accounts-push**
   * `CloseTabsUseCases.close()` now returns an `UndoableOperation`.
   * 🆕 New `CloseTabsCommandReceiver` class for processing "close synced tabs" commands received from other devices.

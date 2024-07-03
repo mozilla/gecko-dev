@@ -52,8 +52,8 @@ class DefaultIconGenerator(
 
         val character = request.url.getRepresentativeCharacter()
 
-        // The text size is calculated dynamically based on the target icon size (1/8th). For an icon
-        // size of 112dp we'd use a text size of 14dp (112 / 8).
+        // The text size is calculated dynamically based on the target icon size (1/5th). For an icon
+        // size of 100dp we'd use a text size of 20dp (100 / 5).
         val textSize = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
             size * TARGET_ICON_RATIO,
@@ -101,6 +101,6 @@ class DefaultIconGenerator(
     }
 
     companion object {
-        private const val TARGET_ICON_RATIO = 1 / 8f
+        private const val TARGET_ICON_RATIO = 1 / 5f
     }
 }
