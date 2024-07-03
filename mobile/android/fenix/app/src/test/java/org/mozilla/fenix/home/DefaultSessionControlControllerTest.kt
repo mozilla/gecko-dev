@@ -465,6 +465,30 @@ class DefaultSessionControlControllerTest {
     }
 
     @Test
+    fun `GIVEN homepage as a new tab is enabled WHEN Default TopSite is selected THEN open top site in existing tab`() {
+        val topSite = TopSite.Default(
+            id = 1L,
+            title = "Mozilla",
+            url = "mozilla.org",
+            createdAt = 0,
+        )
+        val controller = spyk(createController())
+
+        every { controller.getAvailableSearchEngines() } returns listOf(searchEngine)
+        every { settings.enableHomepageAsNewTab } returns true
+
+        controller.handleSelectTopSite(topSite, position = 0)
+
+        verify {
+            activity.openToBrowserAndLoad(
+                searchTermOrURL = topSite.url,
+                newTab = false,
+                from = BrowserDirection.FromHome,
+            )
+        }
+    }
+
+    @Test
     fun `GIVEN existing tab for url WHEN Default TopSite selected THEN open new tab`() {
         val url = "mozilla.org"
         val existingTabForUrl = createTab(url = url)

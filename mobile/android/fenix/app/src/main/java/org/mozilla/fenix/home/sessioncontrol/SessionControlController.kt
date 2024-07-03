@@ -379,30 +379,39 @@ class DefaultSessionControlController(
             )
         }
 
-        val existingTabForUrl = when (topSite) {
-            is TopSite.Frecent, is TopSite.Pinned -> {
-                store.state.tabs.firstOrNull { topSite.url == it.content.url }
-            }
-
-            else -> null
-        }
-
-        if (existingTabForUrl == null) {
-            TopSites.openInNewTab.record(NoExtras())
-
-            val tabId = addTabUseCase.invoke(
-                url = appendSearchAttributionToUrlIfNeeded(topSite.url),
-                selectTab = true,
-                startLoading = true,
+        if (settings.enableHomepageAsNewTab) {
+            activity.openToBrowserAndLoad(
+                searchTermOrURL = appendSearchAttributionToUrlIfNeeded(topSite.url),
+                newTab = false,
+                from = BrowserDirection.FromHome,
             )
-
-            if (settings.openNextTabInDesktopMode) {
-                activity.handleRequestDesktopMode(tabId)
-            }
         } else {
-            selectTabUseCase.invoke(existingTabForUrl.id)
+            val existingTabForUrl = when (topSite) {
+                is TopSite.Frecent, is TopSite.Pinned -> {
+                    store.state.tabs.firstOrNull { topSite.url == it.content.url }
+                }
+
+                else -> null
+            }
+
+            if (existingTabForUrl == null) {
+                TopSites.openInNewTab.record(NoExtras())
+
+                val tabId = addTabUseCase.invoke(
+                    url = appendSearchAttributionToUrlIfNeeded(topSite.url),
+                    selectTab = true,
+                    startLoading = true,
+                )
+
+                if (settings.openNextTabInDesktopMode) {
+                    activity.handleRequestDesktopMode(tabId)
+                }
+            } else {
+                selectTabUseCase.invoke(existingTabForUrl.id)
+            }
+
+            navController.navigate(R.id.browserFragment)
         }
-        navController.navigate(R.id.browserFragment)
     }
 
     @VisibleForTesting
