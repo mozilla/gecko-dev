@@ -22,7 +22,6 @@ CFLAGS="${CFLAGS=}"
 CPPFLAGS="${CPPFLAGS=}"
 CXXFLAGS="${CXXFLAGS=}"
 LDFLAGS="${LDFLAGS=}"
-HOST_CFLAGS="${HOST_CFLAGS=}"
 HOST_CXXFLAGS="${HOST_CXXFLAGS=}"
 HOST_LDFLAGS="${HOST_LDFLAGS=}"
 
@@ -164,12 +163,6 @@ dnl System overrides of the defaults for host
 dnl ========================================================
 case "$host" in
 *mingw*)
-    if test "$HOST_CC_TYPE" = clang-cl; then
-        HOST_CFLAGS="$HOST_CFLAGS"
-    else
-        HOST_CFLAGS="$HOST_CFLAGS -mwindows"
-    fi
-    HOST_CFLAGS="$HOST_CFLAGS -DXP_WIN -DWIN32 -D_WIN32 -D_CRT_SECURE_NO_WARNINGS"
     HOST_BIN_SUFFIX=.exe
 
     case "${host_cpu}" in
@@ -182,21 +175,8 @@ case "$host" in
         if test "$HOST_CC_TYPE" = clang-cl; then
             HOST_LDFLAGS="$HOST_LDFLAGS -MACHINE:X64"
         fi
-        HOST_CFLAGS="$HOST_CFLAGS -D_AMD64_"
         ;;
     esac
-    ;;
-
-*-darwin*)
-    HOST_CFLAGS="$HOST_CFLAGS -DXP_UNIX -DXP_MACOSX"
-    ;;
-
-*-linux*|*-kfreebsd*-gnu|*-gnu*)
-    HOST_CFLAGS="$HOST_CFLAGS -DXP_UNIX"
-    ;;
-
-*)
-    HOST_CFLAGS="$HOST_CFLAGS -DXP_UNIX"
     ;;
 esac
 
@@ -554,10 +534,6 @@ ASFLAGS=`echo \
     $_COMPILATION_ASFLAGS \
     $ASFLAGS`
 
-HOST_CFLAGS=`echo \
-    $_COMPILATION_HOST_CFLAGS \
-    $HOST_CFLAGS`
-
 HOST_CXXFLAGS=`echo \
     $_COMPILATION_HOST_CXXFLAGS \
     $HOST_CXXFLAGS`
@@ -581,7 +557,6 @@ AC_SUBST_LIST(OS_LDFLAGS)
 
 AC_SUBST(HOST_CC)
 AC_SUBST(HOST_CXX)
-AC_SUBST_LIST(HOST_CFLAGS)
 AC_SUBST_LIST(HOST_CPPFLAGS)
 AC_SUBST_LIST(HOST_CXXFLAGS)
 AC_SUBST(HOST_LDFLAGS)

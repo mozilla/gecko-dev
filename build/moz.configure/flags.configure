@@ -542,7 +542,7 @@ set_config("OS_COMPILE_CMFLAGS", compilation_flags.cmflags)
 set_config("OS_COMPILE_CMMFLAGS", compilation_flags.cmmflags)
 
 
-# Default host optimization flags
+# Final flags settings
 # ---------------------------------
 @depends(host_c_compiler)
 def host_optimize_flags(compiler):
@@ -553,6 +553,26 @@ def host_optimize_flags(compiler):
 
 
 set_config("HOST_OPTIMIZE_FLAGS", host_optimize_flags)
+
+
+@depends("HOST_CFLAGS", compilation_flags, host, host_c_compiler)
+@imports(_from="mozbuild.shellutil", _import="split")
+def host_cflags(base_cflags, compilation_flags, host, compiler):
+    flags = list(compilation_flags.host_cflags)
+    flags += split(base_cflags[0])
+
+    if host.kernel == "WINNT":
+        if compiler.type != "clang-cl":
+            flags += ["-mwindows"]
+        flags += ["-DXP_WIN", "-DWIN32", "-D_WIN32", "-D_CRT_SECURE_NO_WARNINGS"]
+        if host.cpu == "x86_64":
+            flags += ["-D_AMD64_"]
+    elif host.kernel == "Darwin":
+        flags += ["-DXP_UNIX", "-DXP_MACOSX"]
+    else:
+        flags += ["-DXP_UNIX"]
+    return flags
+
 
 # Please keep these last in this file.
 add_old_configure_assignment("_COMPILATION_ASFLAGS", asm_flags.asflags)
@@ -565,9 +585,9 @@ add_old_configure_assignment("_COMPILATION_HOST_LDFLAGS", linker_flags.host_ldfl
 
 add_old_configure_assignment("_COMPILATION_CFLAGS", compilation_flags.cflags)
 add_old_configure_assignment("_COMPILATION_CXXFLAGS", compilation_flags.cxxflags)
-add_old_configure_assignment("_COMPILATION_HOST_CFLAGS", compilation_flags.host_cflags)
 add_old_configure_assignment(
     "_COMPILATION_HOST_CXXFLAGS", compilation_flags.host_cxxflags
 )
 
+set_config("HOST_CFLAGS", host_cflags)
 set_config("DSO_LDOPTS", dso_flags.ldopts)
