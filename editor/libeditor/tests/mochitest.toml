@@ -1,6 +1,7 @@
 [DEFAULT]
 prefs = [
   "apz.zoom-to-focused-input.enabled=false",
+  "test.ime_content_observer.assert_invalid_cache=true",
   "ui.dragThresholdX=4", # Bug 1873142
   "ui.dragThresholdY=4", # Bug 1873142
 ]
