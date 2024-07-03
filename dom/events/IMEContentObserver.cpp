@@ -14,6 +14,7 @@
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/StaticPrefs_test.h"
 #include "mozilla/TextComposition.h"
 #include "mozilla/TextControlElement.h"
 #include "mozilla/TextEvents.h"
@@ -1016,7 +1017,7 @@ void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
   // length can skip to compute the text length before the adding node and
   // before of it.
   mEndOfAddedTextCache.CacheFlatTextLengthBeforeEndOfContent(
-      *aLastContent, offset + addingLengthOrError.inspect());
+      *aLastContent, offset + addingLengthOrError.inspect(), mRootElement);
 
   if (!addingLengthOrError.inspect()) {
     return;
@@ -2218,7 +2219,7 @@ nsresult IMEContentObserver::FlatTextCache::
     return rv;
   }
 
-  CacheFlatTextLengthBeforeEndOfContent(aContent, length);
+  CacheFlatTextLengthBeforeEndOfContent(aContent, length, aRootElement);
   return NS_OK;
 }
 
@@ -2229,20 +2230,18 @@ nsresult IMEContentObserver::FlatTextCache::
 
   Clear();
 
-  uint32_t lengthIncludingLineBreakCausedByOpenTagOfContainer = 0;
-  nsresult rv = ContentEventHandler::GetFlatTextLengthInRange(
-      RawNodePosition::BeforeFirstContentOf(*aRootElement),
-      // Include the line break caused by open tag of aContainer if it's an
-      // element when we cache text length before first content of aContainer.
-      RawNodePosition(const_cast<nsINode*>(&aContainer), nullptr), aRootElement,
-      &lengthIncludingLineBreakCausedByOpenTagOfContainer,
-      LineBreakType::LINE_BREAK_TYPE_NATIVE);
-  if (NS_FAILED(rv)) {
-    return rv;
+  const Result<uint32_t, nsresult>
+      lengthIncludingLineBreakCausedByOpenTagOfContainer =
+          FlatTextCache::ComputeTextLengthBeforeFirstContentOf(aContainer,
+                                                               aRootElement);
+  if (MOZ_UNLIKELY(
+          lengthIncludingLineBreakCausedByOpenTagOfContainer.isErr())) {
+    return lengthIncludingLineBreakCausedByOpenTagOfContainer.inspectErr();
   }
 
   CacheFlatTextLengthBeforeFirstContent(
-      aContainer, lengthIncludingLineBreakCausedByOpenTagOfContainer);
+      aContainer, lengthIncludingLineBreakCausedByOpenTagOfContainer.inspect(),
+      aRootElement);
   return NS_OK;
 }
 
@@ -2306,6 +2305,84 @@ Result<uint32_t, nsresult> IMEContentObserver::FlatTextCache::
     return Err(rv);
   }
   return textLength;
+}
+
+/* static */
+Result<uint32_t, nsresult>
+IMEContentObserver::FlatTextCache::ComputeTextLengthBeforeFirstContentOf(
+    const nsINode& aContainer, const dom::Element* aRootElement) {
+  uint32_t lengthIncludingLineBreakCausedByOpenTagOfContent = 0;
+  nsresult rv = ContentEventHandler::GetFlatTextLengthInRange(
+      RawNodePosition::BeforeFirstContentOf(*aRootElement),
+      // Include the line break caused by open tag of aContainer if it's an
+      // element when we cache text length before first content of aContainer.
+      RawNodePosition(const_cast<nsINode*>(&aContainer), nullptr), aRootElement,
+      &lengthIncludingLineBreakCausedByOpenTagOfContent,
+      LineBreakType::LINE_BREAK_TYPE_NATIVE);
+  if (NS_FAILED(rv)) {
+    return Err(rv);
+  }
+  return lengthIncludingLineBreakCausedByOpenTagOfContent;
+}
+
+void IMEContentObserver::FlatTextCache::AssertValidCache(
+    const Element* aRootElement) const {
+#ifdef DEBUG
+  if (MOZ_LIKELY(
+          !StaticPrefs::test_ime_content_observer_assert_valid_cache())) {
+    return;
+  }
+  MOZ_ASSERT(aRootElement);
+  if (!mContainerNode) {
+    return;
+  }
+  MOZ_ASSERT(mContainerNode->IsInclusiveDescendantOf(aRootElement));
+  MOZ_ASSERT_IF(mContent, mContent->IsInclusiveDescendantOf(aRootElement));
+
+  if (IsCachingToEndOfContent()) {
+    MOZ_ASSERT(mContent);
+    Result<uint32_t, nsresult> offset =
+        FlatTextCache::ComputeTextLengthBeforeContent(*mContent, aRootElement);
+    MOZ_ASSERT(offset.isOk());
+    Result<uint32_t, nsresult> length =
+        FlatTextCache::ComputeTextLengthStartOfContentToEndOfContent(
+            *mContent, *mContent, aRootElement);
+    MOZ_ASSERT(length.isOk());
+    if (mFlatTextLength != offset.inspect() + length.inspect()) {
+      nsAutoString innerHTMLOfEditable;
+      const_cast<Element*>(aRootElement)
+          ->GetInnerHTML(innerHTMLOfEditable, IgnoreErrors());
+      NS_WARNING(
+          nsPrintfCString(
+              "mFlatTextLength=%u, offset: %u, length: %u, mContainerNode:%s, "
+              "mContent=%s (%s)",
+              mFlatTextLength, offset.inspect(), length.inspect(),
+              ToString(mContainerNode).c_str(), ToString(*mContent).c_str(),
+              NS_ConvertUTF16toUTF8(innerHTMLOfEditable).get())
+              .get());
+    }
+    MOZ_ASSERT(mFlatTextLength == offset.inspect() + length.inspect());
+    return;
+  }
+
+  MOZ_ASSERT(!mContent);
+  MOZ_ASSERT(mContainerNode->IsContent());
+  Result<uint32_t, nsresult> offset =
+      ComputeTextLengthBeforeFirstContentOf(*mContainerNode, aRootElement);
+  MOZ_ASSERT(offset.isOk());
+  if (mFlatTextLength != offset.inspect()) {
+    nsAutoString innerHTMLOfEditable;
+    const_cast<Element*>(aRootElement)
+        ->GetInnerHTML(innerHTMLOfEditable, IgnoreErrors());
+    NS_WARNING(nsPrintfCString(
+                   "mFlatTextLength=%u, offset: %u, mContainerNode:%s (%s)",
+                   mFlatTextLength, offset.inspect(),
+                   ToString(mContainerNode).c_str(),
+                   NS_ConvertUTF16toUTF8(innerHTMLOfEditable).get())
+                   .get());
+  }
+  MOZ_ASSERT(mFlatTextLength == offset.inspect());
+#endif  // #ifdef DEBUG
 }
 
 }  // namespace mozilla

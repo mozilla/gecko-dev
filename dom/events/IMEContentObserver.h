@@ -500,12 +500,14 @@ class IMEContentObserver final : public nsStubMutationObserver,
     [[nodiscard]] nsresult ComputeAndCacheFlatTextLengthBeforeEndOfContent(
         const nsIContent& aContent, const dom::Element* aRootElement);
 
-    void CacheFlatTextLengthBeforeEndOfContent(const nsIContent& aContent,
-                                               uint32_t aFlatTextLength) {
+    void CacheFlatTextLengthBeforeEndOfContent(
+        const nsIContent& aContent, uint32_t aFlatTextLength,
+        const dom::Element* aRootElement) {
       mContainerNode = aContent.GetParentNode();
       mContent = const_cast<nsIContent*>(&aContent);
       mFlatTextLength = aFlatTextLength;
       MOZ_ASSERT(IsCachingToEndOfContent());
+      AssertValidCache(aRootElement);
     }
 
     /**
@@ -525,12 +527,14 @@ class IMEContentObserver final : public nsStubMutationObserver,
     [[nodiscard]] nsresult ComputeAndCacheFlatTextLengthBeforeFirstContent(
         const nsINode& aContainer, const dom::Element* aRootElement);
 
-    void CacheFlatTextLengthBeforeFirstContent(const nsINode& aContainer,
-                                               uint32_t aFlatTextLength) {
+    void CacheFlatTextLengthBeforeFirstContent(
+        const nsINode& aContainer, uint32_t aFlatTextLength,
+        const dom::Element* aRootElement) {
       mContainerNode = const_cast<nsINode*>(&aContainer);
       mContent = nullptr;
       mFlatTextLength = aFlatTextLength;
       MOZ_ASSERT(IsCachingToStartOfContainer());
+      AssertValidCache(aRootElement);
     }
 
     /**
@@ -590,6 +594,25 @@ class IMEContentObserver final : public nsStubMutationObserver,
         const nsIContent& aStartContent, const nsIContent& aEndContent,
         const dom::Element* aRootElement);
 
+    /**
+     * Return flattened text length starting from first content of aRootElement
+     * and ending at start of the first content of aContainer.  So, if
+     * ContentEventHandler generates a line break at the open tag of aContainer,
+     * the result includes the line break length.
+     *
+     * @param aContainer        The container node which you want to compute the
+     *                          flattened text length before the first content
+     *                          of.
+     * @param aRootElement      The root element of the editor, i.e., editing
+     *                          host or the anonymous <div> in a text control.
+     *                          For avoiding to generate a redundant line break
+     *                          at open tag of this element, this is required
+     *                          to call methods of ContentEventHandler.
+     */
+    [[nodiscard]] static Result<uint32_t, nsresult>
+    ComputeTextLengthBeforeFirstContentOf(const nsINode& aContainer,
+                                          const dom::Element* aRootElement);
+
     [[nodiscard]] bool CachesTextLengthBeforeContent(
         const nsIContent& aContent) const {
       MOZ_ASSERT(!aContent.IsBeingRemoved());
@@ -611,6 +634,14 @@ class IMEContentObserver final : public nsStubMutationObserver,
       return mContainerNode == aContent.GetParentNode() &&
              mContent == aPreviousSibling;
     }
+
+    /**
+     * This works only in the debug build and
+     * test.ime_content_observer.assert_valid_cache pref is enabled.  This
+     * checks with expensive computation, therefore, the pref is enabled only
+     * when running automated tests for editors.
+     */
+    void AssertValidCache(const dom::Element* aRootElement) const;
 
     // mContainerNode is parent node of mContent when it's cached.
     nsCOMPtr<nsINode> mContainerNode;
