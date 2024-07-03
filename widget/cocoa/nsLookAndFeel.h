@@ -31,8 +31,6 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
     RecordAccessibilityTelemetry();
   }
 
-  nsresult GetKeyboardLayoutImpl(nsACString& aLayout) override;
-
   // Having a separate, static method allows us to rely on the same
   // chunk of telemetry logging code at initialization and when we
   // recieve an event that changes the value of our telemetry probe.

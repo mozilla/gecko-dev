@@ -2295,59 +2295,6 @@ bool nsLookAndFeel::WidgetUsesImage(WidgetNodeType aNodeType) {
   return false;
 }
 
-nsresult nsLookAndFeel::GetKeyboardLayoutImpl(nsACString& aLayout) {
-  if (mozilla::widget::GdkIsX11Display()) {
-#if defined(MOZ_X11)
-    Display* display = gdk_x11_get_default_xdisplay();
-    if (!display) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-    XkbDescRec* kbdDesc = XkbAllocKeyboard();
-    if (!kbdDesc) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-    auto cleanup = MakeScopeExit([&] { XkbFreeKeyboard(kbdDesc, 0, true); });
-
-    XkbStateRec state;
-    XkbGetState(display, XkbUseCoreKbd, &state);
-    uint32_t group = state.group;
-
-    XkbGetNames(display, XkbGroupNamesMask, kbdDesc);
-
-    if (!kbdDesc->names || !kbdDesc->names->groups[group]) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    char* layout = XGetAtomName(display, kbdDesc->names->groups[group]);
-
-    aLayout.Assign(layout);
-#endif
-  } else {
-#if defined(MOZ_WAYLAND)
-    struct xkb_context* context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    if (!context) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-    auto cleanupContext = MakeScopeExit([&] { xkb_context_unref(context); });
-
-    struct xkb_keymap* keymap = xkb_keymap_new_from_names(
-        context, nullptr, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    if (!keymap) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-    auto cleanupKeymap = MakeScopeExit([&] { xkb_keymap_unref(keymap); });
-
-    const char* layout = xkb_keymap_layout_get_name(keymap, 0);
-
-    if (layout) {
-      aLayout.Assign(layout);
-    }
-#endif
-  }
-
-  return NS_OK;
-}
-
 void nsLookAndFeel::RecordLookAndFeelSpecificTelemetry() {
   // Gtk version we're on.
   nsString version;
