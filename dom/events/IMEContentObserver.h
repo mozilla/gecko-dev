@@ -637,6 +637,15 @@ class IMEContentObserver final : public nsStubMutationObserver,
      */
     void AssertValidCache(const dom::Element* aRootElement) const;
 
+    /**
+     * Called when aContent is removed. aFlatTextLengthOfContent is flattened
+     * text length of aContent.
+     */
+    void ContentRemoved(const nsIContent& aContent,
+                        const nsIContent* aPreviousSibling,
+                        uint32_t aFlatTextLengthOfContent,
+                        const dom::Element* aRootElement);
+
     // mContainerNode is parent node of mContent when it's cached.
     nsCOMPtr<nsINode> mContainerNode;
     // mContent points to the last child which participates in the current
