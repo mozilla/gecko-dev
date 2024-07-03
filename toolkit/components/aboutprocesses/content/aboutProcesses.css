@@ -207,6 +207,7 @@ th.clickable:hover:active {
 
 tr.process > td.type {
   font-weight: bold;
+  user-select: text;
 }
 tr.thread {
   font-size-adjust: 0.5;
