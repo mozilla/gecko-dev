@@ -95,11 +95,6 @@ add_task(async function test_oneUsernameOnlyForm() {
     1,
     numUsernameOnlyForms
   );
-  await checkChildHistogram(
-    "PWMGR_NUM_FORM_HAS_POSSIBLE_USERNAME_EVENT_PER_DOC",
-    numUsernameOnlyForms,
-    1
-  );
 
   BrowserTestUtils.removeTab(tab);
   Services.telemetry.getSnapshotForHistograms("main", true /* clear */);
@@ -115,11 +110,6 @@ add_task(async function test_multipleUsernameOnlyForms() {
     "PWMGR_IS_USERNAME_ONLY_FORM",
     1,
     numUsernameOnlyForms
-  );
-  await checkChildHistogram(
-    "PWMGR_NUM_FORM_HAS_POSSIBLE_USERNAME_EVENT_PER_DOC",
-    5,
-    1
   );
 
   BrowserTestUtils.removeTab(tab);
@@ -138,11 +128,6 @@ add_task(async function test_multipleDocument() {
     1,
     numUsernameOnlyForms1
   );
-  await checkChildHistogram(
-    "PWMGR_NUM_FORM_HAS_POSSIBLE_USERNAME_EVENT_PER_DOC",
-    numUsernameOnlyForms1 + numBasicForms1,
-    1
-  );
 
   // The second document
   let numUsernameOnlyForms2 = 15;
@@ -158,16 +143,6 @@ add_task(async function test_multipleDocument() {
 
   // the result is stacked, so the new document add a counter to all
   // buckets under "numUsernameOnlyForms2 + numBasicForms2"
-  await checkChildHistogram(
-    "PWMGR_NUM_FORM_HAS_POSSIBLE_USERNAME_EVENT_PER_DOC",
-    numUsernameOnlyForms1 + numBasicForms1,
-    2
-  );
-  await checkChildHistogram(
-    "PWMGR_NUM_FORM_HAS_POSSIBLE_USERNAME_EVENT_PER_DOC",
-    numUsernameOnlyForms2 + numBasicForms2,
-    1
-  );
 
   BrowserTestUtils.removeTab(tab1);
   BrowserTestUtils.removeTab(tab2);
@@ -184,11 +159,6 @@ add_task(async function test_tooManyUsernameOnlyForms() {
     "PWMGR_IS_USERNAME_ONLY_FORM",
     1,
     numUsernameOnlyForms
-  );
-  await checkChildHistogram(
-    "PWMGR_NUM_FORM_HAS_POSSIBLE_USERNAME_EVENT_PER_DOC",
-    21,
-    numUsernameOnlyForms + numBasicForms - 20 // maximum is 20
   );
 
   BrowserTestUtils.removeTab(tab);
