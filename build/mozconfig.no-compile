@@ -12,6 +12,7 @@ unset CXX
 unset HOST_CC
 unset HOST_CXX
 unset HOST_CFLAGS
+unset HOST_CXXFLAGS
 unset LINKER
 unset RUSTFLAGS
 unset TOOLCHAIN_PREFIX

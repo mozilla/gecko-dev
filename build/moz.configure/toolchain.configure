@@ -14,6 +14,14 @@ option(
 )
 
 
+option(
+    env="HOST_CXXFLAGS",
+    help="Extra flags for compiling host C++ sources.",
+    nargs=1,
+    default="",
+)
+
+
 # Code optimization
 # ==============================================================
 
