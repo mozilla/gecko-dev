@@ -1,10 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-const lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
-  EveryWindow: "resource:///modules/EveryWindow.sys.mjs",
-});
+
 /**
  * Methods for setting up and tearing down page event listeners. These are used
  * to dismiss Feature Callouts when the callout's anchor element is clicked.
@@ -67,28 +64,9 @@ export class PageEventManager {
         passive: !options.preventDefault,
         signal: controller.signal,
       };
-      if (options?.every_window) {
-        // Using unique ID for each listener in case there are multiple
-        // listeners with the same type
-        let uuid = Services.uuid.generateUUID().number;
-        lazy.EveryWindow.registerCallback(
-          uuid,
-          win => {
-            for (const target of win.document.querySelectorAll(selectors)) {
-              target.addEventListener(type, callback, opt);
-            }
-          },
-          win => {
-            for (const target of win.document.querySelectorAll(selectors)) {
-              target.removeEventListener(type, callback, opt);
-            }
-          }
-        );
-        listener.uninit = () => lazy.EveryWindow.unregisterCallback(uuid, true);
-      } else {
-        for (const target of this.doc.querySelectorAll(selectors)) {
-          target.addEventListener(type, callback, opt);
-        }
+      const targets = this.doc.querySelectorAll(selectors);
+      for (const target of targets) {
+        target.addEventListener(type, callback, opt);
       }
       listener.controller = controller;
     } else if (["timeout", "interval"].includes(type) && options.interval) {
@@ -116,7 +94,6 @@ export class PageEventManager {
     if (!listener) {
       return;
     }
-    listener.uninit?.();
     listener.controller?.abort();
     this._listeners.delete(params);
   }
