@@ -229,10 +229,6 @@ case "$target" in
     # certain versions of cygwin's makedepend barf on the
     # #include <string> vs -I./dist/include/string issue so don't use it
     if test "$CC_TYPE" != clang-cl ; then
-        # != clang-cl will match gcc and clang
-        if test "$CC_TYPE" = gcc; then
-            AC_MSG_ERROR(Firefox cannot be built with mingw-gcc and requires a mingw-clang toolchain to work)
-        fi
 
         MOZ_OPTIMIZE_FLAGS="-O2"
 

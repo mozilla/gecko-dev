@@ -1560,6 +1560,11 @@ def compiler(
                     % (host_or_target.alias, info.version)
                 )
 
+        if host_or_target.os == "WINNT" and info.type == "gcc":
+            raise FatalCheckError(
+                "Firefox cannot be built with mingw-gcc and requires a mingw-clang toolchain to work."
+            )
+
         if info.flags:
             raise FatalCheckError("Unknown compiler or compiler not supported.")
 
