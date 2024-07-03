@@ -409,6 +409,9 @@ export class UserCharacteristicsPageService {
         "motionFreq",
         "orientationFreq",
         "orientationabsFreq",
+        "audioFrames",
+        "audioRate",
+        "audioChannels",
       ],
     };
 
