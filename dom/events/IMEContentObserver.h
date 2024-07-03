@@ -11,6 +11,7 @@
 #include "mozilla/EditorBase.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Selection.h"
+#include "mozilla/dom/Text.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDocShell.h"  // XXX Why does only this need to be included here?
@@ -445,50 +446,102 @@ class IMEContentObserver final : public nsStubMutationObserver,
   RefPtr<DocumentObserver> mDocumentObserver;
 
   /**
-   * FlatTextCache stores flat text length from start of the content to
-   * mNodeOffset of mContainerNode.
+   * FlatTextCache stores length of flattened text starting from start of
+   * the observing node (typically editing host or the anonymous <div> of
+   * TextEditor) to:
+   * - end of mContent if it's set (IsCachingToEndOfContent() returns true)
+   * - before first content of mContainerNode if mContent is not set
+   * (IsCachingToStartOfContainer() returns true).  In this case, the text
+   * length includes a line break length which is caused by the open tag of
+   * mContainerNode if and only if it's an element node and the open tag causes
+   * a line break.
    */
   struct FlatTextCache {
-    // mContainerNode and mNode represent a point in DOM tree.  E.g.,
-    // if mContainerNode is a div element, mNode is a child.
-    nsCOMPtr<nsINode> mContainerNode;
-    // mNode points to the last child which participates in the current
-    // mFlatTextLength. If mNode is null, then that means that the end point for
-    // mFlatTextLength is immediately before the first child of mContainerNode.
-    nsCOMPtr<nsINode> mNode;
-    // Length of flat text generated from contents between the start of content
-    // and a child node whose index is mNodeOffset of mContainerNode.
-    uint32_t mFlatTextLength;
-
-    FlatTextCache() : mFlatTextLength(0) {}
-
+   public:
     void Clear() {
       mContainerNode = nullptr;
-      mNode = nullptr;
+      mContent = nullptr;
       mFlatTextLength = 0;
     }
 
-    void Cache(nsINode* aContainer, nsINode* aNode, uint32_t aFlatTextLength) {
-      MOZ_ASSERT(aContainer, "aContainer must not be null");
-      MOZ_ASSERT(!aNode || aNode->GetParentNode() == aContainer,
-                 "aNode must be either null or a child of aContainer");
-      mContainerNode = aContainer;
-      mNode = aNode;
-      mFlatTextLength = aFlatTextLength;
+    /**
+     * Return true if mFlatTextLength caches flattened text length starting from
+     * start of the observing node to the end of mContent.
+     */
+    [[nodiscard]] bool IsCachingToEndOfContent() const {
+      return mContainerNode && mContent;
     }
 
-    bool Match(nsINode* aContainer, nsINode* aNode) const {
-      return aContainer == mContainerNode && aNode == mNode;
+    /**
+     * Return true if mFlatTextLength caches flattened text length starting from
+     * start of the observing node to the start of mContainerNode.  Note that if
+     * mContainerNode is an element and whose open tag causes a line break,
+     * mFlatTextLength includes the line break length too.
+     */
+    [[nodiscard]] bool IsCachingToStartOfContainer() const {
+      return mContainerNode && !mContent;
     }
+
+    void CacheFlatTextLengthBeforeEndOfContent(const nsIContent& aContent,
+                                               uint32_t aFlatTextLength) {
+      mContainerNode = aContent.GetParentNode();
+      mContent = const_cast<nsIContent*>(&aContent);
+      mFlatTextLength = aFlatTextLength;
+      MOZ_ASSERT(IsCachingToEndOfContent());
+    }
+
+    void CacheFlatTextLengthBeforeFirstContent(const nsINode& aContainer,
+                                               uint32_t aFlatTextLength) {
+      mContainerNode = const_cast<nsINode*>(&aContainer);
+      mContent = nullptr;
+      mFlatTextLength = aFlatTextLength;
+      MOZ_ASSERT(IsCachingToStartOfContainer());
+    }
+
+    [[nodiscard]] bool CachesTextLengthBeforeContent(
+        const nsIContent& aContent) const {
+      MOZ_ASSERT(!aContent.IsBeingRemoved());
+      return CachesTextLengthBeforeContent(aContent,
+                                           aContent.GetPreviousSibling());
+    }
+    [[nodiscard]] bool CachesTextLengthBeforeContent(
+        const nsIContent& aContent, const nsIContent* aPreviousSibling) const {
+      MOZ_ASSERT_IF(!aContent.IsBeingRemoved(),
+                    aContent.GetPreviousSibling() == aPreviousSibling);
+      if (!mContainerNode || mContainerNode != aContent.GetParentNode()) {
+        return false;
+      }
+      if (IsCachingToStartOfContainer()) {
+        MOZ_ASSERT(!mContent);
+        return !aPreviousSibling;
+      }
+      MOZ_ASSERT(mContent);
+      return mContainerNode == aContent.GetParentNode() &&
+             mContent == aPreviousSibling;
+    }
+
+    // mContainerNode is parent node of mContent when it's cached.
+    nsCOMPtr<nsINode> mContainerNode;
+    // mContent points to the last child which participates in the current
+    // mFlatTextLength.  If this is nullptr, mFlatTextLength means that it
+    // length before the first content of mContainerNode, i.e., including the
+    // line break of that caused by the open tag of mContainerNode.
+    nsCOMPtr<nsIContent> mContent;
+    // Length of flat text generated from contents between the start of the
+    // observing node (typically editing host or the anonymous <div> of
+    // TextEditor) and the end of mContent.
+    uint32_t mFlatTextLength = 0;
   };
-  // mEndOfAddedTextCache caches text length from the start of content to
-  // the end of the last added content only while an edit action is being
-  // handled by the editor and no other mutation (e.g., removing node)
+  // mEndOfAddedTextCache caches text length from the start of the observing
+  // node to the end of the last added content only while an edit action is
+  // being handled by the editor and no other mutation (e.g., removing node)
   // occur.
   FlatTextCache mEndOfAddedTextCache;
-  // mStartOfRemovingTextRangeCache caches text length from the start of content
-  // to the start of the last removed content only while an edit action is being
-  // handled by the editor and no other mutation (e.g., adding node) occur.
+  // mStartOfRemovingTextRangeCache caches text length from the start of the
+  // observing node to the start of the last removed content only while an edit
+  // action is being handled by the editor and no other mutation (e.g., adding
+  // node) occur.  In other words, this caches text length before end of
+  // mContent or before first child of mContainerNode.
   FlatTextCache mStartOfRemovingTextRangeCache;
 
   // mFirstAddedContainer is parent node of first added node in current
