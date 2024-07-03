@@ -802,8 +802,10 @@ class HomeFragment : Fragment() {
                     Column {
                         val shouldShowMicrosurveyPrompt =
                             remember { mutableStateOf(context.settings().shouldShowMicrosurveyPrompt) }
+                        val shouldShowNavBarCFR =
+                            context.shouldAddNavigationBar() && context.settings().shouldShowNavigationBarCFR
 
-                        if (shouldShowMicrosurveyPrompt.value && !context.settings().shouldShowNavigationBarCFR) {
+                        if (shouldShowMicrosurveyPrompt.value && !shouldShowNavBarCFR) {
                             currentMicrosurvey.let {
                                 if (it == null) {
                                     binding.bottomBarShadow.visibility = View.VISIBLE
