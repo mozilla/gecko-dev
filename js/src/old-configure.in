@@ -221,13 +221,6 @@ case "$target" in
 *-*linux*)
     MOZ_PGO_OPTIMIZE_FLAGS="-O3"
     MOZ_OPTIMIZE_FLAGS="-O3"
-
-    case "${target_cpu}" in
-    alpha*)
-    	CFLAGS="$CFLAGS -mieee"
-    	CXXFLAGS="$CXXFLAGS -mieee"
-    ;;
-    esac
     ;;
 
 *-mingw*)

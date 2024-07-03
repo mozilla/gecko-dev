@@ -77,6 +77,11 @@ def check_libstdcxx_linkage():
     die("Firefox does not support linking statically with libstdc++")
 
 
+check_and_add_flag(
+    "-mieee",
+    when=target_has_linux_kernel & depends(target.cpu)(lambda cpu: cpu == "Alpha"),
+)
+
 # Identical Code Folding
 option(
     "--enable-icf",
