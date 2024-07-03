@@ -28,6 +28,10 @@ fun Context.isTabStripEnabled(): Boolean =
  * Returns true if the the device has the prerequisites to enable the tab strip.
  */
 private fun Context.isTabStripEligible(): Boolean =
+    // Tab Strip is currently disabled on foldable devices, while we work on improving the
+    // Homescreen / Toolbar / Browser screen to better support the feature. There is also
+    // an emulator bug that causes the doesDeviceHaveHinge check to return true on emulators,
+    // causing it to be disabled on emulator tablets.
     isLargeScreenSize() && !doesDeviceHaveHinge()
 
 /**
