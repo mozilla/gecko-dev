@@ -70,7 +70,9 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(IMEContentObserver)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mEditorBase)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocumentObserver)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mEndOfAddedTextCache.mContainerNode)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mEndOfAddedTextCache.mContent)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mStartOfRemovingTextRangeCache.mContainerNode)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mStartOfRemovingTextRangeCache.mContent)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
 
   tmp->mIMENotificationRequests = nullptr;
@@ -87,8 +89,10 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(IMEContentObserver)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mEditorBase)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocumentObserver)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mEndOfAddedTextCache.mContainerNode)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mEndOfAddedTextCache.mContent)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(
       mStartOfRemovingTextRangeCache.mContainerNode)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStartOfRemovingTextRangeCache.mContent)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(IMEContentObserver)
@@ -988,8 +992,7 @@ void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
   //    offset                            (offset + length)
   uint32_t offset = 0;
   nsresult rv = NS_OK;
-  if (!mEndOfAddedTextCache.Match(aContainer,
-                                  aFirstContent->GetPreviousSibling())) {
+  if (!mEndOfAddedTextCache.CachesTextLengthBeforeContent(*aFirstContent)) {
     mEndOfAddedTextCache.Clear();
     rv = ContentEventHandler::GetFlatTextLengthInRange(
         RawNodePosition::BeforeFirstContentOf(*mRootElement),
@@ -1015,7 +1018,8 @@ void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
   // NotifyContentAdded() is for adding next node.  Therefore, caching the text
   // length can skip to compute the text length before the adding node and
   // before of it.
-  mEndOfAddedTextCache.Cache(aContainer, aLastContent, offset + addingLength);
+  mEndOfAddedTextCache.CacheFlatTextLengthBeforeEndOfContent(
+      *aLastContent, offset + addingLength);
 
   if (!addingLength) {
     return;
@@ -1053,7 +1057,8 @@ void IMEContentObserver::ContentRemoved(nsIContent* aChild,
 
   uint32_t offset = 0;
   nsresult rv = NS_OK;
-  if (!mStartOfRemovingTextRangeCache.Match(containerNode, aPreviousSibling)) {
+  if (!mStartOfRemovingTextRangeCache.CachesTextLengthBeforeContent(
+          *aChild, aPreviousSibling)) {
     // At removing a child node of aContainer, we need the line break caused
     // by open tag of aContainer.  Be careful when aPreviousSibling is nullptr.
 
@@ -1070,8 +1075,14 @@ void IMEContentObserver::ContentRemoved(nsIContent* aChild,
       mStartOfRemovingTextRangeCache.Clear();
       return;
     }
-    mStartOfRemovingTextRangeCache.Cache(containerNode, aPreviousSibling,
-                                         offset);
+    if (aPreviousSibling) {
+      mStartOfRemovingTextRangeCache.CacheFlatTextLengthBeforeEndOfContent(
+          *aPreviousSibling, offset);
+    } else {
+      MOZ_DIAGNOSTIC_ASSERT(aChild->GetParentNode());
+      mStartOfRemovingTextRangeCache.CacheFlatTextLengthBeforeFirstContent(
+          *aChild->GetParentNode(), offset);
+    }
   } else {
     offset = mStartOfRemovingTextRangeCache.mFlatTextLength;
   }
