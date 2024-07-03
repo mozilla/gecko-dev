@@ -57,8 +57,7 @@ void TRRServiceParent::Init() {
   TRRService::AddObserver(this, obs);
 
   bool captiveIsPassed = TRRService::CheckCaptivePortalIsPassed();
-  bool parentalControlEnabled =
-      TRRService::GetParentalControlsEnabledInternal();
+  bool parentalControlEnabled = TRRService::GetParentalControlEnabledInternal();
 
   nsCOMPtr<nsINetworkLinkService> nls =
       do_GetService(NS_NETWORK_LINK_SERVICE_CONTRACTID);
@@ -146,8 +145,8 @@ void TRRServiceParent::GetURI(nsACString& aURI) {
   aURI = mPrivateURI;
 }
 
-void TRRServiceParent::ReloadParentalControlsEnabled() {
-  bool enabled = TRRService::ReloadParentalControlsEnabled();
+void TRRServiceParent::UpdateParentalControlEnabled() {
+  bool enabled = TRRService::GetParentalControlEnabledInternal();
   RefPtr<TRRServiceParent> self = this;
   gIOService->CallOrWaitForSocketProcess([self, enabled]() {
     Unused << self->SendUpdateParentalControlEnabled(enabled);
