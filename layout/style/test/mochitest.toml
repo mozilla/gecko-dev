@@ -701,6 +701,8 @@ skip-if = ["os == 'linux' && tsan && verify"] # intermittent in chaos mode
 
 ["test_transitions_replacement_with_setKeyframes.html"]
 
+["test_transitions_reversing_omta.html"]
+
 ["test_transitions_step_functions.html"]
 
 ["test_unclosed_parentheses.html"]

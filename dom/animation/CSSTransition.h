@@ -145,6 +145,13 @@ class CSSTransition final : public Animation {
   // transitions at the current time.
   bool UpdateStartValueFromReplacedTransition();
 
+  // Compute the output progress based on the ReplacedTransitionProperties
+  // object.
+  // https://drafts.csswg.org/web-animations-1/#calculating-the-transformed-progress
+  static Maybe<double> ComputeTransformedProgress(
+      const AnimationTimeline& aTimeline,
+      const CSSTransition::ReplacedTransitionProperties& aProperties);
+
  protected:
   virtual ~CSSTransition() {
     MOZ_ASSERT(!mOwningElement.IsSet(),

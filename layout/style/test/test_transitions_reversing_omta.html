@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=1859660
+-->
+<head>
+  <meta charset=utf-8>
+  <title>Test for bug 1859660</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+  <script src="animation_utils.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css">
+  <style>
+    #target {
+      height: 100px;
+      width: 100px;
+      background: green;
+      transition: translate 10s linear;
+      translate: 50px;
+    }
+  </style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+'use strict';
+
+SimpleTest.waitForExplicitFinish();
+
+const OMTAPrefKey = 'layers.offmainthreadcomposition.async-animations';
+const omtaEnabled =
+  SpecialPowers.DOMWindowUtils.layerManagerRemote &&
+  SpecialPowers.getBoolPref(OMTAPrefKey);
+
+function waitForAnimationFrames(aFrameCount) {
+  const timeAtStart = window.document.timeline.currentTime;
+  return new Promise(function (resolve, reject) {
+    function handleFrame() {
+      if (
+        timeAtStart != window.document.timeline.currentTime &&
+        --aFrameCount <= 0
+      ) {
+        resolve();
+      } else {
+        window.requestAnimationFrame(handleFrame); // wait another frame
+      }
+    }
+    window.requestAnimationFrame(handleFrame);
+  });
+}
+
+window.addEventListener('load', async function() {
+  if (!omtaEnabled) {
+    ok(true, 'Skipping the test since OMTA is disabled');
+    SimpleTest.finish();
+    return;
+  }
+
+  const div = document.getElementById('target');
+
+  // Start first transition.
+  div.style.translate = '400px';
+  const firstTransition = div.getAnimations()[0];
+
+  // Wait for the transition to start running on the main thread and
+  // compositor.
+  await firstTransition.ready;
+  await waitForPaints();
+  // Wait for a while to let the transition run a little bit on the compositor.
+  // Note that we throttle the transition so we don't compose its transition
+  // rule on the main thread. In general, we only compose the transition on the
+  // main thread once after creating the transition, so its value could be 1px
+  // (equal to its start value) now.
+  await waitForAnimationFrames(20);
+
+  // Start second transition, which is a reversing transition from the current
+  // value to `translate: 1px`. Note that the current value shouldn't be 1px;
+  // otherwise, there is no transition.
+  div.style.translate = '';
+  const secondTransitions = div.getAnimations();
+
+  ok(secondTransitions.length == 1, "should have a reversing transition");
+  if (secondTransitions.length == 1) {
+    await secondTransitions[0].ready;
+    await waitForPaints();
+    await waitForAnimationFrames(2);
+
+    let matrix = SpecialPowers.DOMWindowUtils.getOMTAStyle(div, "translate");
+    ok(!matricesRoughlyEqual(convertTo3dMatrix(matrix),
+                             convertTo3dMatrix("matrix(1, 0, 0, 1, 50, 0)")),
+       "translate is set on compositor thread after reversing");
+  }
+
+  SimpleTest.finish();
+});
+
+</script>
+</body>
+</html>

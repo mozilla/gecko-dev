@@ -296,18 +296,8 @@ bool CSSTransition::UpdateStartValueFromReplacedTransition() {
              "Should have a timeline if we are replacing transition start "
              "values");
 
-  ComputedTiming computedTiming = AnimationEffect::GetComputedTimingAt(
-      CSSTransition::GetCurrentTimeAt(*mTimeline, TimeStamp::Now(),
-                                      mReplacedTransition->mStartTime,
-                                      mReplacedTransition->mPlaybackRate),
-      mReplacedTransition->mTiming, mReplacedTransition->mPlaybackRate,
-      Animation::ProgressTimelinePosition::NotBoundary);
-
-  if (!computedTiming.mProgress.IsNull()) {
-    double valuePosition = StyleComputedTimingFunction::GetPortion(
-        mReplacedTransition->mTimingFunction, computedTiming.mProgress.Value(),
-        computedTiming.mBeforeFlag);
-
+  if (Maybe<double> valuePosition =
+          ComputeTransformedProgress(*mTimeline, *mReplacedTransition)) {
     // FIXME: Bug 1634945. We may have to use the last value on the compositor
     // to replace the start value.
     const AnimationValue& replacedFrom = mReplacedTransition->mFromValue;
@@ -315,7 +305,7 @@ bool CSSTransition::UpdateStartValueFromReplacedTransition() {
     AnimationValue startValue;
     startValue.mServo =
         Servo_AnimationValues_Interpolate(replacedFrom.mServo,
-                                          replacedTo.mServo, valuePosition)
+                                          replacedTo.mServo, *valuePosition)
             .Consume();
 
     mEffect->AsKeyframeEffect()->ReplaceTransitionStartValue(
@@ -325,6 +315,25 @@ bool CSSTransition::UpdateStartValueFromReplacedTransition() {
   mReplacedTransition.reset();
 
   return true;
+}
+
+/* static*/
+Maybe<double> CSSTransition::ComputeTransformedProgress(
+    const AnimationTimeline& aTimeline,
+    const ReplacedTransitionProperties& aProperties) {
+  ComputedTiming computedTiming = AnimationEffect::GetComputedTimingAt(
+      CSSTransition::GetCurrentTimeAt(aTimeline, TimeStamp::Now(),
+                                      aProperties.mStartTime,
+                                      aProperties.mPlaybackRate),
+      aProperties.mTiming, aProperties.mPlaybackRate,
+      Animation::ProgressTimelinePosition::NotBoundary);
+  if (computedTiming.mProgress.IsNull()) {
+    return Nothing();
+  }
+
+  return Some(StyleComputedTimingFunction::GetPortion(
+      aProperties.mTimingFunction, computedTiming.mProgress.Value(),
+      computedTiming.mBeforeFlag));
 }
 
 void CSSTransition::SetEffectFromStyle(KeyframeEffect* aEffect) {
