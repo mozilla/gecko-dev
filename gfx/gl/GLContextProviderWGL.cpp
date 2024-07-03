@@ -472,7 +472,9 @@ already_AddRefed<GLContext> GLContextProviderWGL::CreateHeadless(
   int chosenFormat;
   UINT foundFormats = 0;
 
-  if (!foundFormats) {
+  bool forbidHardware =
+      static_cast<bool>(desc.flags & CreateContextFlags::FORBID_HARDWARE);
+  if (!foundFormats && forbidHardware) {
     const int kAttribs[] = {LOCAL_WGL_DRAW_TO_PBUFFER_ARB,
                             true,
                             LOCAL_WGL_SUPPORT_OPENGL_ARB,

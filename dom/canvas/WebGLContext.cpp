@@ -287,6 +287,11 @@ bool WebGLContext::CreateAndInitGL(
     flags |= gl::CreateContextFlags::FORBID_SOFTWARE;
   }
 
+  if (mOptions.forceSoftwareRendering) {
+    flags |= gl::CreateContextFlags::FORBID_HARDWARE;
+    flags &= ~gl::CreateContextFlags::FORBID_SOFTWARE;
+  }
+
   if (forceEnabled) {
     flags &= ~gl::CreateContextFlags::FORBID_HARDWARE;
     flags &= ~gl::CreateContextFlags::FORBID_SOFTWARE;

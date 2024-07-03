@@ -312,13 +312,15 @@ static TextureType ChooseTextureType(gfx::SurfaceFormat aFormat,
 #endif
 
 #ifdef XP_MACOSX
-  if (StaticPrefs::gfx_use_iosurface_textures_AtStartup()) {
+  if (StaticPrefs::gfx_use_iosurface_textures_AtStartup() &&
+      !aKnowsCompositor->UsingSoftwareWebRender()) {
     return TextureType::MacIOSurface;
   }
 #endif
 
 #ifdef MOZ_WIDGET_ANDROID
-  if (StaticPrefs::gfx_use_surfacetexture_textures_AtStartup()) {
+  if (StaticPrefs::gfx_use_surfacetexture_textures_AtStartup() &&
+      !aKnowsCompositor->UsingSoftwareWebRender()) {
     return TextureType::AndroidNativeWindow;
   }
 #endif
@@ -1492,6 +1494,7 @@ already_AddRefed<TextureClient> TextureClient::CreateForRawBufferAccess(
                            aMoz2DBackend == gfx::BackendType::DIRECT2D1_1,
                        "Unsupported TextureClient backend type");
 
+  // For future changes, check aAllocFlags aAllocFlags & ALLOC_DO_NOT_ACCELERATE
   TextureData* texData = BufferTextureData::Create(
       aSize, aFormat, gfx::BackendType::SKIA, aLayersBackend, aTextureFlags,
       aAllocFlags, aAllocator);

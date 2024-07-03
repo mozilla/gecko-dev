@@ -1678,19 +1678,35 @@ already_AddRefed<DrawTarget> gfxPlatform::CreateDrawTargetForBackend(
 }
 
 already_AddRefed<DrawTarget> gfxPlatform::CreateOffscreenCanvasDrawTarget(
-    const IntSize& aSize, SurfaceFormat aFormat) {
+    const IntSize& aSize, SurfaceFormat aFormat, bool aRequireSoftwareRender) {
   NS_ASSERTION(mPreferredCanvasBackend != BackendType::NONE, "No backend.");
 
+  BackendType backend = mFallbackCanvasBackend;
   // If we are using remote canvas we don't want to use acceleration in
   // canvas DrawTargets we are not remoting, so we always use the fallback
   // software one.
   if (!gfxPlatform::UseRemoteCanvas() ||
       !gfxPlatform::IsBackendAccelerated(mPreferredCanvasBackend)) {
-    RefPtr<DrawTarget> target =
-        CreateDrawTargetForBackend(mPreferredCanvasBackend, aSize, aFormat);
-    if (target || mFallbackCanvasBackend == BackendType::NONE) {
-      return target.forget();
-    }
+    backend = mPreferredCanvasBackend;
+  }
+
+  if (aRequireSoftwareRender) {
+    backend = gfxPlatform::IsBackendAccelerated(mPreferredCanvasBackend)
+                  ? mFallbackCanvasBackend
+                  : mPreferredCanvasBackend;
+  }
+
+#ifdef XP_WIN
+  // On Windows, the fallback backend (Cairo) should use its image backend.
+  RefPtr<DrawTarget> target =
+      Factory::CreateDrawTarget(backend, aSize, aFormat);
+#else
+  RefPtr<DrawTarget> target =
+      CreateDrawTargetForBackend(backend, aSize, aFormat);
+#endif
+
+  if (target || mFallbackCanvasBackend == BackendType::NONE) {
+    return target.forget();
   }
 
 #ifdef XP_WIN
