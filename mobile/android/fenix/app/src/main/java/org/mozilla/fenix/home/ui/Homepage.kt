@@ -5,12 +5,25 @@
 package org.mozilla.fenix.home.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.lib.state.ext.observeAsState
+import org.mozilla.fenix.R
 import org.mozilla.fenix.components.components
+import org.mozilla.fenix.compose.home.HomeSectionHeader
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.ext.shouldShowRecentTabs
+import org.mozilla.fenix.home.recenttabs.interactor.RecentTabInteractor
+import org.mozilla.fenix.home.recenttabs.view.RecentTabMenuItem
+import org.mozilla.fenix.home.recenttabs.view.RecentTabs
 import org.mozilla.fenix.home.sessioncontrol.SessionControlInteractor
 import org.mozilla.fenix.home.sessioncontrol.viewholders.FeltPrivacyModeInfoCard
 import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescription
@@ -40,7 +53,7 @@ fun Homepage(
         state.wallpaperState
     }
 
-    Column {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         if (isPrivateMode) {
             if (settings.feltPrivateBrowsingEnabled) {
                 FeltPrivacyModeInfoCard(
@@ -52,7 +65,8 @@ fun Homepage(
                 )
             }
         } else {
-            if (settings.showTopSitesFeature && topSites.isNotEmpty()) {
+            val showTopSites = settings.showTopSitesFeature && topSites.isNotEmpty()
+            if (showTopSites) {
                 TopSites(
                     topSites = topSites,
                     topSiteColors = TopSiteColors.colors(wallpaperState = wallpaperState),
@@ -71,6 +85,46 @@ fun Homepage(
                     onTopSitesItemBound = onTopSitesItemBound,
                 )
             }
+
+            val showRecentTabs = appStore.state.shouldShowRecentTabs(settings)
+            if (showRecentTabs) {
+                RecentTabsSection(
+                    interactor = interactor,
+                    wallpaperState = wallpaperState,
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun RecentTabsSection(
+    interactor: RecentTabInteractor,
+    wallpaperState: WallpaperState,
+) {
+    val recentTabs = components.appStore.observeAsComposableState { state -> state.recentTabs }
+
+    Spacer(modifier = Modifier.height(40.dp))
+
+    HomeSectionHeader(
+        headerText = stringResource(R.string.recent_tabs_header),
+        description = stringResource(R.string.recent_tabs_show_all_content_description_2),
+        onShowAllClick = {
+            interactor.onRecentTabShowAllClicked()
+        },
+    )
+
+    Spacer(Modifier.height(16.dp))
+
+    RecentTabs(
+        recentTabs = recentTabs.value ?: emptyList(),
+        backgroundColor = wallpaperState.wallpaperCardColor,
+        onRecentTabClick = { interactor.onRecentTabClicked(it) },
+        menuItems = listOf(
+            RecentTabMenuItem(
+                title = stringResource(id = R.string.recent_tab_menu_item_remove),
+                onClick = { tab -> interactor.onRemoveRecentTab(tab) },
+            ),
+        ),
+    )
 }
