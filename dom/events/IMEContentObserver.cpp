@@ -1010,8 +1010,9 @@ void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
   //    |  aFirstContent   |              |
   //    |                  aLastContent   |
   //    offset                            (offset + length)
-  uint32_t offset = 0;
-  if (!mEndOfAddedTextCache.CachesTextLengthBeforeContent(*aFirstContent)) {
+  Maybe<uint32_t> offset = mEndOfAddedTextCache.GetFlatTextOffsetOnInsertion(
+      *aFirstContent, *aLastContent, mRootElement);
+  if (offset.isNothing()) {
     Result<uint32_t, nsresult> textLengthBeforeFirstContentOrError =
         FlatTextCache::ComputeTextLengthBeforeContent(*aFirstContent,
                                                       mRootElement);
@@ -1023,9 +1024,7 @@ void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
                ToString(RefPtr<nsINode>(aFirstContent)).c_str()));
       return;
     }
-    offset = textLengthBeforeFirstContentOrError.unwrap();
-  } else {
-    offset = mEndOfAddedTextCache.mFlatTextLength;
+    offset = Some(textLengthBeforeFirstContentOrError.unwrap());
   }
   Result<uint32_t, nsresult> addingLengthOrError =
       FlatTextCache::ComputeTextLengthStartOfContentToEndOfContent(
@@ -1045,14 +1044,14 @@ void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
   // length can skip to compute the text length before the adding node and
   // before of it.
   mEndOfAddedTextCache.CacheFlatTextLengthBeforeEndOfContent(
-      __FUNCTION__, *aLastContent, offset + addingLengthOrError.inspect(),
+      __FUNCTION__, *aLastContent, *offset + addingLengthOrError.inspect(),
       mRootElement);
 
   if (!addingLengthOrError.inspect()) {
     return;
   }
 
-  TextChangeData data(offset, offset, offset + addingLengthOrError.inspect(),
+  TextChangeData data(*offset, *offset, *offset + addingLengthOrError.inspect(),
                       IsEditorHandlingEventForComposition(),
                       IsEditorComposing());
   MaybeNotifyIMEOfTextChange(data);
@@ -1084,43 +1083,56 @@ void IMEContentObserver::ContentRemoved(nsIContent* aChild,
   nsINode* containerNode = aChild->GetParentNode();
   MOZ_ASSERT(containerNode);
 
-  if (mStartOfRemovingTextRangeCache.CachesTextLengthBeforeContent(
-          *aChild, aPreviousSibling)) {
-    // Okay, we can use the cached offset.
-  } else if (aPreviousSibling) {
-    // When we compute preceding text length of the removing content node, we
-    // cannot make the range cross the removing node boundary because
-    // containerNode->ComputeIndexOf(aChild) returns Nothing so that
-    // ContentEventHandler fails to compute the length.  Therefore, if a <div>
-    // is being removed, we want to compute the length of `...}<div>`.
-    if (NS_WARN_IF(NS_FAILED(
-            mStartOfRemovingTextRangeCache
-                .ComputeAndCacheFlatTextLengthBeforeEndOfContent(
-                    __FUNCTION__, *aPreviousSibling, mRootElement)))) {
-      return;
+  Maybe<uint32_t> offset =
+      mStartOfRemovingTextRangeCache.GetFlatTextLengthBeforeContent(
+          *aChild, aPreviousSibling, mRootElement);
+  if (offset.isSome()) {
+    // Update the cache because next remove may be the previous or the next
+    // sibling removal.  So, caching offset of currently removing content node
+    // makes us skip computing offset of next removal.
+    if (aPreviousSibling) {
+      mStartOfRemovingTextRangeCache.CacheFlatTextLengthBeforeEndOfContent(
+          __FUNCTION__, *aPreviousSibling, *offset, mRootElement);
+    } else {
+      mStartOfRemovingTextRangeCache.CacheFlatTextLengthBeforeFirstContent(
+          __FUNCTION__, *containerNode, *offset, mRootElement);
     }
   } else {
-    // At removing a child node of containerNode, we need the line break caused
-    // by open tag of containerNode.  Be careful when aPreviousSibling is
-    // nullptr.
-    if (NS_WARN_IF(
-            NS_FAILED(mStartOfRemovingTextRangeCache
-                          .ComputeAndCacheFlatTextLengthBeforeFirstContent(
-                              __FUNCTION__, *containerNode, mRootElement)))) {
-      return;
+    if (aPreviousSibling) {
+      // When we compute preceding text length of the removing content node, we
+      // cannot make the range cross the removing node boundary because
+      // containerNode->ComputeIndexOf(aChild) returns Nothing so that
+      // ContentEventHandler fails to compute the length.  Therefore, if a <div>
+      // is being removed, we want to compute the length of `...}<div>`.
+      if (NS_WARN_IF(NS_FAILED(
+              mStartOfRemovingTextRangeCache
+                  .ComputeAndCacheFlatTextLengthBeforeEndOfContent(
+                      __FUNCTION__, *aPreviousSibling, mRootElement)))) {
+        return;
+      }
+    } else {
+      // At removing a child node of containerNode, we need the line break
+      // caused by open tag of containerNode.  Be careful when aPreviousSibling
+      // is nullptr.
+      if (NS_WARN_IF(
+              NS_FAILED(mStartOfRemovingTextRangeCache
+                            .ComputeAndCacheFlatTextLengthBeforeFirstContent(
+                                __FUNCTION__, *containerNode, mRootElement)))) {
+        return;
+      }
     }
+    offset = Some(mStartOfRemovingTextRangeCache.GetFlatTextLength());
   }
-  const uint32_t offset = mStartOfRemovingTextRangeCache.mFlatTextLength;
 
   // get offset at the end of the deleted node
   const Result<uint32_t, nsresult> textLengthOrError =
-      FlatTextCache::ComputeTextLengthOfRemovingContent(*aChild, mRootElement);
+      FlatTextCache::ComputeTextLengthOfContent(*aChild, mRootElement);
   if (NS_WARN_IF(textLengthOrError.isErr())) {
     mStartOfRemovingTextRangeCache.Clear(__FUNCTION__);
     return;
   }
 
-  TextChangeData data(offset, offset + textLengthOrError.inspect(), offset,
+  TextChangeData data(*offset, *offset + textLengthOrError.inspect(), *offset,
                       IsEditorHandlingEventForComposition(),
                       IsEditorComposing());
   MaybeNotifyIMEOfTextChange(data);
@@ -2323,35 +2335,155 @@ void IMEContentObserver::FlatTextCache::CacheFlatTextLengthBeforeFirstContent(
   AssertValidCache(aRootElement);
 }
 
-/* static */
-Result<uint32_t, nsresult>
-IMEContentObserver::FlatTextCache::ComputeTextLengthOfRemovingContent(
-    const nsIContent& aRemovingContent, const dom::Element* aRootElement) {
-  MOZ_ASSERT(aRemovingContent.IsBeingRemoved());
+Maybe<uint32_t>
+IMEContentObserver::FlatTextCache::GetFlatTextLengthBeforeContent(
+    const nsIContent& aContent, const nsIContent* aPreviousSibling,
+    const dom::Element* aRootElement) const {
   MOZ_ASSERT(aRootElement);
 
-  if (const Text* removingTextNode = Text::FromNode(aRemovingContent)) {
-    return ContentEventHandler::GetNativeTextLength(*removingTextNode);
+  // Currently, this is tested only when aContent is being removed.  When you
+  // start using this method for connected nodes, feel free to remove this
+  // assertion and assert if aPreviousSibling is same as
+  // aContent.GetPreviousSibling().
+  MOZ_ASSERT(aContent.IsBeingRemoved());
+
+  if (!mContainerNode) {
+    return Nothing();
   }
 
-  // When we compute the text length of the removing content node, we need to
-  // select all children in the removing node because of the same reason
-  // above.  Therefore, if a <div> is being removed, we want to compute
-  // `{<div>...}</div>`.  In this case, we want to include the open tag of
-  // aRemovingContent if it's an element to add the line break if it's caused by
-  // the open tag.  However, we have no way to specify it with RawNodePosition,
-  // but ContentEventHandler::GetFlatTextLengthInRange() treats the range as
-  // the start container is selected.  Therefore, we should use
-  // RawNodePositionBefore with setting its container to the removed node.
-  uint32_t textLength = 0;
-  nsresult rv = ContentEventHandler::GetFlatTextLengthInRange(
-      RawNodePosition::Before(aRemovingContent),
-      RawNodePosition::AtEndOf(aRemovingContent), aRootElement, &textLength,
-      LineBreakType::LINE_BREAK_TYPE_NATIVE, true);
-  if (NS_FAILED(rv)) {
-    return Err(rv);
+  if (IsCachingToStartOfContainer()) {
+    MOZ_ASSERT(!mContent);
+    // If aContent is the first child of mContainerNode and we're caching text
+    // length before first child of mContainerNode, we're caching the result
+    // as-is..  Note that aContent may be being removed.  If so,
+    // mContainerNode->GetFirstChild() won't return aContent.  Therefore, we
+    // need to check whether there is a previous sibling.
+    if (!aPreviousSibling && mContainerNode == aContent.GetParentNode()) {
+      return Some(mFlatTextLength);
+    }
+    return Nothing();
   }
-  return textLength;
+
+  MOZ_ASSERT(IsCachingToEndOfContent());
+  MOZ_ASSERT(mContent);
+
+  // If we're caching text length before end of previous sibling of aContent,
+  // the cached length is the result of this call.
+  if (mContent == aPreviousSibling) {
+    return Some(mFlatTextLength);
+  }
+
+  // If we're caching text length before end of aContent, aContent siblings
+  // may be being removed backward because aContent is the previous sibling of
+  // previously removed node.  We should return the length with computing the
+  // text length of aContent because it's much faster than computing the length
+  // starting from the root element especially when there are a lot of preceding
+  // content.
+  if (mContent == &aContent) {
+    const Result<uint32_t, nsresult> textLength =
+        FlatTextCache::ComputeTextLengthOfContent(aContent, aRootElement);
+    if (NS_WARN_IF(textLength.isErr()) ||
+        NS_WARN_IF(mFlatTextLength < textLength.inspect())) {
+      return Nothing();
+    }
+    return Some(mFlatTextLength - textLength.inspect());
+  }
+  return Nothing();
+}
+
+Maybe<uint32_t> IMEContentObserver::FlatTextCache::GetFlatTextOffsetOnInsertion(
+    const nsIContent& aFirstContent, const nsIContent& aLastContent,
+    const dom::Element* aRootElement) const {
+  MOZ_ASSERT(aRootElement);
+  MOZ_ASSERT(aFirstContent.GetParentNode() == aLastContent.GetParentNode());
+  MOZ_ASSERT(!aFirstContent.IsBeingRemoved());
+  MOZ_ASSERT(!aLastContent.IsBeingRemoved());
+
+  if (!mContainerNode || mContainerNode != aFirstContent.GetParentNode()) {
+    return Nothing();
+  }
+
+  if (IsCachingToStartOfContainer()) {
+    MOZ_ASSERT(!mContent);
+    // If aFirstContent is the first child of mContainerNode, we're caching the
+    // result as-is.
+    if (mContainerNode->GetFirstChild() == &aFirstContent) {
+      return Some(mFlatTextLength);
+    }
+    return Nothing();
+  }
+
+  MOZ_ASSERT(IsCachingToEndOfContent());
+  MOZ_ASSERT(mContent);
+  MOZ_ASSERT(mContent != &aFirstContent);
+  MOZ_ASSERT(mContent != &aLastContent);
+
+  // When the content nodes are inserted forward, we may cache text length
+  // before end of last inserted content.  If so, mContent should be the
+  // previous sibling of aFirstContent.  Then, we can return the cached length
+  // simply.
+  if (mContent == aFirstContent.GetPreviousSibling()) {
+    return Some(mFlatTextLength);
+  }
+  // When the content nodes inserted backward, we may cache text length before
+  // the end of the last inserted content which is next or latter sibling of
+  // aLastContent.  In this case, we can compute the length with the cache with
+  // computing text length starting from the next sibling of aLastContent to
+  // mContent which were previously inserted.  That must be faster than
+  // computing the length starting from the root element.
+  if (mContent == aLastContent.GetNextSibling() ||
+      aLastContent.ComputeIndexInParentNode().valueOr(UINT32_MAX) <
+          mContent->ComputeIndexInParentNode().valueOr(0u)) {
+    Result<uint32_t, nsresult> previouslyInsertedTextLengthOrError =
+        FlatTextCache::ComputeTextLengthStartOfContentToEndOfContent(
+            *aLastContent.GetNextSibling(), *mContent, aRootElement);
+    if (NS_WARN_IF(previouslyInsertedTextLengthOrError.isErr()) ||
+        NS_WARN_IF(mFlatTextLength <
+                   previouslyInsertedTextLengthOrError.inspect())) {
+      return Nothing();
+    }
+    // mFlatTextLength contains the last inserted text length, but it does not
+    // contain text length starting from aFirstContent to aLastContent.
+    // Therefore, subtracting the last inserted text length from mFlatTextLength
+    // equals the text length before aFirstContent.
+    return Some(mFlatTextLength - previouslyInsertedTextLengthOrError.unwrap());
+  }
+  return Nothing();
+}
+
+/* static */
+Result<uint32_t, nsresult>
+IMEContentObserver::FlatTextCache::ComputeTextLengthOfContent(
+    const nsIContent& aContent, const dom::Element* aRootElement) {
+  MOZ_ASSERT(aRootElement);
+
+  if (const Text* textNode = Text::FromNode(&aContent)) {
+    return ContentEventHandler::GetNativeTextLength(*textNode);
+  }
+
+  if (aContent.IsBeingRemoved()) {
+    // When we compute the text length of the removing content node, we need to
+    // select all children in the removing node because of the same reason
+    // above.  Therefore, if a <div> is being removed, we want to compute
+    // `{<div>...}</div>`.  In this case, we want to include the open tag of
+    // aRemovingContent if it's an element to add the line break if it's caused
+    // by the open tag.  However, we have no way to specify it with
+    // RawNodePosition, but ContentEventHandler::GetFlatTextLengthInRange()
+    // treats the range as the start container is selected.  Therefore, we
+    // should use RawNodePositionBefore with setting its container to the
+    // removed node.
+    uint32_t textLength = 0;
+    nsresult rv = ContentEventHandler::GetFlatTextLengthInRange(
+        RawNodePosition::Before(aContent), RawNodePosition::AtEndOf(aContent),
+        aRootElement, &textLength, LineBreakType::LINE_BREAK_TYPE_NATIVE, true);
+    if (NS_FAILED(rv)) {
+      return Err(rv);
+    }
+    return textLength;
+  }
+
+  return ComputeTextLengthStartOfContentToEndOfContent(aContent, aContent,
+                                                       aRootElement);
 }
 
 /* static */
