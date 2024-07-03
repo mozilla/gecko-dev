@@ -439,18 +439,6 @@ AC_SUBST_LIST(MOZ_OPTIMIZE_FLAGS)
 AC_SUBST_LIST(MOZ_OPTIMIZE_LDFLAGS)
 AC_SUBST_LIST(MOZ_PGO_OPTIMIZE_FLAGS)
 
-case "${OS_TARGET}" in
-Android|WINNT|Darwin)
-  MOZ_GLUE_IN_PROGRAM=
-  ;;
-*)
-  dnl On !Android !Windows !OSX, we only want to link executables against mozglue
-  MOZ_GLUE_IN_PROGRAM=1
-  AC_DEFINE(MOZ_GLUE_IN_PROGRAM)
-  ;;
-esac
-AC_SUBST(MOZ_GLUE_IN_PROGRAM)
-
 dnl ========================================================
 dnl = Enable using the clang plugin to build
 dnl ========================================================

@@ -383,27 +383,6 @@ AC_SUBST_LIST(MOZ_OPTIMIZE_LDFLAGS)
 AC_SUBST_LIST(MOZ_PGO_OPTIMIZE_FLAGS)
 
 dnl ========================================================
-dnl = Enable jemalloc
-dnl ========================================================
-
-if test "$JS_STANDALONE" -a -z "$MOZ_MEMORY"; then
-  MOZ_GLUE_IN_PROGRAM=
-else
-  case "${OS_TARGET}" in
-  Android|WINNT|Darwin)
-    MOZ_GLUE_IN_PROGRAM=
-    ;;
-  *)
-    dnl On !Android !Windows !OSX, we only want to link executables against mozglue
-    MOZ_GLUE_IN_PROGRAM=1
-    AC_DEFINE(MOZ_GLUE_IN_PROGRAM)
-    ;;
-  esac
-fi
-
-AC_SUBST(MOZ_GLUE_IN_PROGRAM)
-
-dnl ========================================================
 dnl instruments
 dnl ========================================================
 if test -n "$MOZ_INSTRUMENTS"; then

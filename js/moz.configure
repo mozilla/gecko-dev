@@ -1476,6 +1476,20 @@ with only_when(compile_environment):
         ),
     )
 
+
+# link executables against mozglue
+# ==============================================================
+@depends(
+    target_is_android | target_is_windows | target_is_darwin,
+    js_standalone & ~depends(when="--enable-jemalloc")(True),
+)
+def moz_glue_in_program(is_excluded_target, is_js_without_jemalloc):
+    return not is_excluded_target and not is_js_without_jemalloc
+
+
+set_define("MOZ_GLUE_IN_PROGRAM", True, when=moz_glue_in_program)
+set_config("MOZ_GLUE_IN_PROGRAM", True, when=moz_glue_in_program)
+
 #
 # Checks for library functions
 # ==============================================================
