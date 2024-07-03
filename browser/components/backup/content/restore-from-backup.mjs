@@ -61,6 +61,7 @@ export default class RestoreFromBackup extends MozLitElement {
 
   willUpdate(changedProperties) {
     if (changedProperties.has("backupFileToRestore")) {
+      this.backupFileInfo = null;
       this.getBackupFileInfo();
     }
   }
@@ -210,13 +211,15 @@ export default class RestoreFromBackup extends MozLitElement {
   }
 
   descriptionTemplate() {
+    let { date } = this.backupFileInfo;
+    let dateTime = date && new Date(date).getTime();
     return html`
       <div id="restore-from-backup-description">
         <span
           id="restore-from-backup-description-span"
           data-l10n-id="restore-from-backup-description-with-metadata"
           data-l10n-args=${JSON.stringify({
-            date: new Date(this.backupFileInfo?.date).getTime(),
+            date: dateTime,
           })}
         ></span>
         <a

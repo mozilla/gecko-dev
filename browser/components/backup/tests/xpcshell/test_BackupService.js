@@ -520,3 +520,42 @@ add_task(async function test_checkForPostRecovery() {
   await IOUtils.remove(testProfilePath, { recursive: true });
   sandbox.restore();
 });
+
+/**
+ * Tests that getBackupFileInfo updates backupFileInfo in the state with a subset
+ * of info from the fake SampleArchiveResult returned by sampleArchive().
+ */
+add_task(async function test_getBackupFileInfo() {
+  let sandbox = sinon.createSandbox();
+
+  const DATE = "2024-06-25T21:59:11.777Z";
+  const IS_ENCRYPTED = true;
+
+  let fakeSampleArchiveResult = {
+    isEncrypted: IS_ENCRYPTED,
+    startByteOffset: 26985,
+    contentType: "multipart/mixed",
+    archiveJSON: { version: 1, meta: { date: DATE }, encConfig: {} },
+  };
+
+  sandbox
+    .stub(BackupService.prototype, "sampleArchive")
+    .resolves(fakeSampleArchiveResult);
+
+  let bs = new BackupService();
+
+  await bs.getBackupFileInfo("fake-archive.html");
+
+  Assert.ok(
+    BackupService.prototype.sampleArchive.calledOnce,
+    "sampleArchive was called once"
+  );
+
+  Assert.deepEqual(
+    bs.state.backupFileInfo,
+    { isEncrypted: IS_ENCRYPTED, date: DATE },
+    "State should match a subset from the archive sample."
+  );
+
+  sandbox.restore();
+});

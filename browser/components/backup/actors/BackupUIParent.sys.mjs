@@ -146,8 +146,14 @@ export class BackupUIParent extends JSWindowActorParent {
         iconURL,
       };
     } else if (message.name == "GetBackupFileInfo") {
-      // TODO: Call sampleArchive method in BackupService
-      // once it is implemented in Bug 1901132 and pass date and isEncrypted.
+      let { backupFile } = message.data;
+      try {
+        await this.#bs.getBackupFileInfo(backupFile);
+      } catch (e) {
+        /**
+         * TODO: (Bug 1905156) display a localized version of error in the restore dialog.
+         */
+      }
     } else if (message.name == "RestoreFromBackupChooseFile") {
       const window = this.browsingContext.topChromeWindow;
       this.#bs.filePickerForRestore(window);
