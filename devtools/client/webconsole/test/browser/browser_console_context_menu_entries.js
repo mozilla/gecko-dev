@@ -13,6 +13,7 @@ add_task(async function () {
   await pushPref("devtools.browsertoolbox.scope", "everything");
   // Enable net messages in the console for this test.
   await pushPref("devtools.browserconsole.filter.net", true);
+  await pushPref("devtools.browserconsole.filter.netxhr", true);
   // This is required for testing the text input in the browser console:
   await pushPref("devtools.chrome.enabled", true);
 
@@ -29,8 +30,8 @@ add_task(async function () {
     "test-console.html",
     ".network"
   );
-  SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
-    content.wrappedJSObject.location.reload();
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async () => {
+    await content.wrappedJSObject.fetch("./test-console.html");
   });
   const networkMessage = await onNetworkMessage;
 
@@ -52,6 +53,7 @@ add_task(async function () {
     expectedContextMenu.join("\n"),
     "The context menu has the expected entries for a network message"
   );
+  await hideContextMenu(hud);
 
   info("Logging a text message in the content window");
   const onLogMessage = waitForMessageByType(
@@ -79,6 +81,7 @@ add_task(async function () {
     expectedContextMenu.join("\n"),
     "The context menu has the expected entries for a simple log message"
   );
+  await hideContextMenu(hud);
 
   menuPopup = await openContextMenu(hud, hud.jsterm.node);
 
@@ -99,6 +102,7 @@ add_task(async function () {
     actualEntries[5],
     "#editmenu-selectAll (text-action-select-all) [disabled]"
   );
+  await hideContextMenu(hud);
 
   const node = hud.jsterm.node;
   const inputContainer = node.closest(".jsterm-input-container");
