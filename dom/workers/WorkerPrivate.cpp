@@ -5925,7 +5925,7 @@ void WorkerPrivate::SetWorkerPrivateInWorkerThread(
   if (!mPreStartRunnables.IsEmpty()) {
     for (uint32_t index = 0; index < mPreStartRunnables.Length(); index++) {
       MOZ_ALWAYS_SUCCEEDS(mThread->DispatchAnyThread(
-          WorkerThreadFriendKey{}, mPreStartRunnables[index].forget()));
+          WorkerThreadFriendKey{}, mPreStartRunnables[index]));
     }
     // Don't clear mPreStartRunnables here, it will be cleared in the beginning
     // of WorkerPrivate::DoRunLoop() or when in WorkerPrivate::RunLoopNeverRan()
