@@ -12,6 +12,9 @@ import android.content.Intent.EXTRA_INITIAL_INTENTS
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.net.Uri
 import android.provider.MediaStore.EXTRA_OUTPUT
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.VisualMediaType
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.fragment.app.Fragment
@@ -19,6 +22,8 @@ import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.File
+import mozilla.components.concept.engine.prompt.isPhotoRequest
+import mozilla.components.concept.engine.prompt.isVideoRequest
 import mozilla.components.feature.prompts.PromptContainer
 import mozilla.components.feature.prompts.consumePromptFrom
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
@@ -51,6 +56,8 @@ internal class FilePicker(
     private val store: BrowserStore,
     private var sessionId: String? = null,
     private var fileUploadsDirCleaner: FileUploadsDirCleaner,
+    @get:VisibleForTesting
+    internal var androidPhotoPicker: AndroidPhotoPicker? = null,
     override val onNeedToRequestPermissions: OnNeedToRequestPermissions,
 ) : PermissionsFeature {
 
@@ -218,11 +225,11 @@ internal class FilePicker(
         if (grantResults.isNotEmpty() && grantResults.any { it == PERMISSION_GRANTED }) {
             // at least one permission was granted
             onPermissionsGranted(currentRequest as File)
+            currentRequest = null
         } else {
             // all permissions were denied, either when requested or already permanently denied
             onPermissionsDenied()
         }
-        currentRequest = null
     }
 
     /**
@@ -245,8 +252,68 @@ internal class FilePicker(
      */
     @VisibleForTesting
     internal fun onPermissionsDenied() {
-        // Nothing left to do. Consume / cleanup the requests.
+        if (canUseAndroidPhotoPicker()) {
+            launchAndroidPhotoPicker()
+        } else {
+            // Nothing left to do. Consume / cleanup the requests.
+            dismissRequest()
+        }
+    }
+
+    @VisibleForTesting
+    internal fun canUseAndroidPhotoPicker(): Boolean {
+        return androidPhotoPicker != null &&
+            isPhotoOrVideoRequest(currentRequest) &&
+            androidPhotoPicker?.isPhotoPickerAvailable == true
+    }
+
+    @VisibleForTesting
+    internal fun isPhotoOrVideoRequest(request: PromptRequest?): Boolean {
+        return request.isPhotoRequest() || request.isVideoRequest()
+    }
+
+    @VisibleForTesting
+    internal fun getVisualMediaType(request: PromptRequest?): VisualMediaType {
+        val mimeTypes = (request as? File)?.mimeTypes ?: emptyArray()
+
+        val isPhotoRequest = request.isPhotoRequest()
+        val isVideoRequest = request.isVideoRequest()
+
+        if (mimeTypes.size == 1 && (isPhotoRequest || isVideoRequest)) {
+            return ActivityResultContracts.PickVisualMedia.SingleMimeType(
+                mimeTypes[0],
+            )
+        }
+
+        return when {
+            isPhotoRequest && isVideoRequest -> ActivityResultContracts.PickVisualMedia.ImageAndVideo
+            isPhotoRequest -> ActivityResultContracts.PickVisualMedia.ImageOnly
+            isVideoRequest -> ActivityResultContracts.PickVisualMedia.VideoOnly
+            else -> throw IllegalStateException(
+                "Unexpected state: getVisualMediaType should only be called if isPhotoOrVideoRequest is true",
+            )
+        }
+    }
+
+    private fun launchAndroidPhotoPicker() {
+        if ((currentRequest as File).isMultipleFilesSelection) {
+            androidPhotoPicker?.multipleMediaPicker?.launch(
+                PickVisualMediaRequest(
+                    getVisualMediaType(currentRequest),
+                ),
+            )
+        } else {
+            androidPhotoPicker?.singleMediaPicker?.launch(
+                PickVisualMediaRequest(
+                    getVisualMediaType(currentRequest),
+                ),
+            )
+        }
+    }
+
+    private fun dismissRequest() {
         store.consumePromptFrom<File>(sessionId) { request ->
+            currentRequest = null
             request.onDismiss()
         }
     }
@@ -296,6 +363,16 @@ internal class FilePicker(
         val contentResolver = context.contentResolver
         val fileName = uri.getFileName(contentResolver)
         fileUploadsDirCleaner.enqueueForCleanup(fileName)
+    }
+
+    fun onAndroidPhotoPickerResult(uriList: Array<Uri>) {
+        if (uriList.size == 1) {
+            (currentRequest as? File)?.onSingleFileSelected?.let { it(container.context, uriList[0]) }
+        } else {
+            (currentRequest as? File)?.onMultipleFilesSelected?.let { it(container.context, uriList) }
+        }
+
+        dismissRequest()
     }
 
     companion object {

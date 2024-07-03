@@ -6,6 +6,7 @@ package mozilla.components.feature.prompts
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.core.view.isVisible
@@ -76,6 +77,7 @@ import mozilla.components.feature.prompts.facts.emitPromptDismissedFact
 import mozilla.components.feature.prompts.facts.emitPromptDisplayedFact
 import mozilla.components.feature.prompts.facts.emitSuccessfulAddressAutofillFormDetectedFact
 import mozilla.components.feature.prompts.facts.emitSuccessfulCreditCardAutofillFormDetectedFact
+import mozilla.components.feature.prompts.file.AndroidPhotoPicker
 import mozilla.components.feature.prompts.file.FilePicker
 import mozilla.components.feature.prompts.file.FileUploadsDirCleaner
 import mozilla.components.feature.prompts.identitycredential.DialogColors
@@ -203,6 +205,7 @@ class PromptFeature private constructor(
     private val addressDelegate: AddressDelegate = DefaultAddressDelegate(),
     private val fileUploadsDirCleaner: FileUploadsDirCleaner,
     onNeedToRequestPermissions: OnNeedToRequestPermissions,
+    androidPhotoPicker: AndroidPhotoPicker?,
 ) : LifecycleAwareFeature,
     PermissionsFeature,
     Prompter,
@@ -258,6 +261,7 @@ class PromptFeature private constructor(
         addressDelegate: AddressDelegate = DefaultAddressDelegate(),
         fileUploadsDirCleaner: FileUploadsDirCleaner,
         onNeedToRequestPermissions: OnNeedToRequestPermissions,
+        androidPhotoPicker: AndroidPhotoPicker? = null,
     ) : this(
         container = PromptContainer.Activity(activity),
         store = store,
@@ -286,6 +290,7 @@ class PromptFeature private constructor(
         passwordGeneratorColorsProvider = passwordGeneratorColorsProvider,
         creditCardDelegate = creditCardDelegate,
         addressDelegate = addressDelegate,
+        androidPhotoPicker = androidPhotoPicker,
     )
 
     constructor(
@@ -314,6 +319,7 @@ class PromptFeature private constructor(
         creditCardDelegate: CreditCardDelegate = object : CreditCardDelegate {},
         addressDelegate: AddressDelegate = DefaultAddressDelegate(),
         fileUploadsDirCleaner: FileUploadsDirCleaner,
+        androidPhotoPicker: AndroidPhotoPicker? = null,
         onNeedToRequestPermissions: OnNeedToRequestPermissions,
     ) : this(
         container = PromptContainer.Fragment(fragment),
@@ -330,8 +336,6 @@ class PromptFeature private constructor(
         isCreditCardAutofillEnabled = isCreditCardAutofillEnabled,
         isAddressAutofillEnabled = isAddressAutofillEnabled,
         loginExceptionStorage = loginExceptionStorage,
-        fileUploadsDirCleaner = fileUploadsDirCleaner,
-        onNeedToRequestPermissions = onNeedToRequestPermissions,
         loginDelegate = loginDelegate,
         suggestStrongPasswordDelegate = suggestStrongPasswordDelegate,
         isSuggestStrongPasswordEnabled = isSuggestStrongPasswordEnabled,
@@ -341,10 +345,21 @@ class PromptFeature private constructor(
         onSavedGeneratedPassword = onSavedGeneratedPassword,
         creditCardDelegate = creditCardDelegate,
         addressDelegate = addressDelegate,
+        fileUploadsDirCleaner = fileUploadsDirCleaner,
+        onNeedToRequestPermissions = onNeedToRequestPermissions,
+        androidPhotoPicker = androidPhotoPicker,
     )
 
-    private val filePicker =
-        FilePicker(container, store, customTabId, fileUploadsDirCleaner, onNeedToRequestPermissions)
+    @VisibleForTesting
+    // var for testing purposes
+    internal var filePicker = FilePicker(
+        container,
+        store,
+        customTabId,
+        fileUploadsDirCleaner,
+        androidPhotoPicker,
+        onNeedToRequestPermissions,
+    )
 
     @VisibleForTesting(otherwise = PRIVATE)
     internal var loginPicker =
@@ -1204,6 +1219,16 @@ class PromptFeature private constructor(
         }
 
         return result
+    }
+
+    /**
+     * Handles the result received from the Android photo picker.
+     *
+     * @param listOf An array of [Uri] objects representing the selected photos.
+     */
+
+    fun onAndroidPhotoPickerResult(uriList: Array<Uri>) {
+        filePicker.onAndroidPhotoPickerResult(uriList)
     }
 
     companion object {

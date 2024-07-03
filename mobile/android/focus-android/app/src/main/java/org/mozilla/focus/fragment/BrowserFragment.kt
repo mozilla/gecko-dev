@@ -23,6 +23,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
@@ -51,6 +52,7 @@ import mozilla.components.feature.downloads.manager.FetchDownloadManager
 import mozilla.components.feature.downloads.temporary.ShareDownloadFeature
 import mozilla.components.feature.media.fullscreen.MediaSessionFullscreenFeature
 import mozilla.components.feature.prompts.PromptFeature
+import mozilla.components.feature.prompts.file.AndroidPhotoPicker
 import mozilla.components.feature.session.PictureInPictureFeature
 import mozilla.components.feature.session.SessionFeature
 import mozilla.components.feature.sitepermissions.SitePermissionsFeature
@@ -166,6 +168,28 @@ class BrowserFragment :
         get() = requireComponents.store.state.findTabOrCustomTab(tabId)
             // Workaround for tab not existing temporarily.
             ?: createTab("about:blank")
+
+    // Registers a photo picker activity launcher in single-select mode.
+    private val singleMediaPicker =
+        AndroidPhotoPicker.singleMediaPicker(
+            { getFragment() },
+            { getPromptFeature() },
+        )
+
+    // Registers a photo picker activity launcher in multi-select mode.
+    private val multipleMediaPicker =
+        AndroidPhotoPicker.multipleMediaPicker(
+            { getFragment() },
+            { getPromptFeature() },
+        )
+
+    private fun getFragment(): Fragment {
+        return this
+    }
+
+    private fun getPromptFeature(): PromptFeature? {
+        return promptFeature.get()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -339,6 +363,11 @@ class BrowserFragment :
                         )
                     }
                 },
+                androidPhotoPicker = AndroidPhotoPicker(
+                    requireContext(),
+                    singleMediaPicker,
+                    multipleMediaPicker,
+                ),
             ),
             this,
             view,

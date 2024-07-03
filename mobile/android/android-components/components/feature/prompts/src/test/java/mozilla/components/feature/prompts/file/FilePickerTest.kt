@@ -13,6 +13,7 @@ import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_DENIED
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -40,6 +41,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.anyInt
+import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
@@ -193,7 +195,7 @@ class FilePickerTest {
     }
 
     @Test
-    fun `onPermissionsDeny will call onDismiss and consume the file PromptRequest of the actual session`() {
+    fun `onPermissionsDeny will call onDismiss and consume the file PromptRequest of the actual session if androidPhotoPicker is null`() {
         var onDismissWasCalled = false
         val filePickerRequest = request.copy {
             onDismissWasCalled = true
@@ -324,6 +326,8 @@ class FilePickerTest {
     @Test
     fun `onRequestPermissionsResult with FILE_PICKER_REQUEST and PERMISSION_DENIED will call onPermissionsDeny`() {
         filePicker = spy(filePicker)
+        doNothing().`when`(filePicker).onPermissionsDenied()
+
         filePicker.onPermissionsResult(emptyArray(), IntArray(1) { PERMISSION_DENIED })
 
         verify(filePicker).onPermissionsDenied()
@@ -334,7 +338,12 @@ class FilePickerTest {
         val permissions = setOf("PermissionA")
         var permissionsRequested = emptyArray<String>()
         filePicker = spy(
-            FilePicker(fragment, store, null, fileUploadsDirCleaner = mock()) { requested ->
+            FilePicker(
+                fragment,
+                store,
+                null,
+                fileUploadsDirCleaner = mock(),
+            ) { requested ->
                 permissionsRequested = requested
             },
         )
@@ -455,6 +464,177 @@ class FilePickerTest {
         assertNull(captureUri)
     }
 
+    @Test
+    fun `canUseAndroidPhotoPicker returns true when conditions are met`() {
+        val mockAndroidPhotoPicker = mock<AndroidPhotoPicker>()
+
+        val filePickerSpy = spy(filePicker)
+        filePickerSpy.currentRequest = request
+        filePickerSpy.androidPhotoPicker = mockAndroidPhotoPicker
+
+        whenever(filePickerSpy.isPhotoOrVideoRequest(request)).thenReturn(true)
+        whenever(mockAndroidPhotoPicker.isPhotoPickerAvailable).thenReturn(true)
+
+        val result = filePickerSpy.canUseAndroidPhotoPicker()
+
+        assertTrue(result)
+    }
+
+    @Test
+    fun `canUseAndroidPhotoPicker returns false when the request is not for photo or video`() {
+        val mockAndroidPhotoPicker = mock<AndroidPhotoPicker>()
+
+        val filePickerSpy = spy(filePicker)
+        filePickerSpy.currentRequest = request
+        filePickerSpy.androidPhotoPicker = mockAndroidPhotoPicker
+
+        whenever(filePickerSpy.isPhotoOrVideoRequest(request)).thenReturn(false)
+        whenever(mockAndroidPhotoPicker.isPhotoPickerAvailable).thenReturn(true)
+
+        val result = filePickerSpy.canUseAndroidPhotoPicker()
+
+        assertFalse(result)
+    }
+
+    @Test
+    fun `canUseAndroidPhotoPicker returns false when photo picker is not available`() {
+        val mockAndroidPhotoPicker = mock<AndroidPhotoPicker>()
+
+        val filePickerSpy = spy(filePicker)
+        filePickerSpy.currentRequest = request
+        filePickerSpy.androidPhotoPicker = mockAndroidPhotoPicker
+
+        whenever(filePickerSpy.isPhotoOrVideoRequest(request)).thenReturn(true)
+        whenever(mockAndroidPhotoPicker.isPhotoPickerAvailable).thenReturn(false)
+
+        val result = filePickerSpy.canUseAndroidPhotoPicker()
+
+        assertFalse(result)
+    }
+
+    @Test
+    fun `canUseAndroidPhotoPicker returns false when androidPhotoPicker is null`() {
+        val mockAndroidPhotoPicker = mock<AndroidPhotoPicker>()
+
+        val filePickerSpy = spy(filePicker)
+        filePickerSpy.currentRequest = request
+        filePickerSpy.androidPhotoPicker = null
+
+        whenever(filePickerSpy.isPhotoOrVideoRequest(request)).thenReturn(true)
+        whenever(mockAndroidPhotoPicker.isPhotoPickerAvailable).thenReturn(false)
+
+        val result = filePickerSpy.canUseAndroidPhotoPicker()
+
+        assertFalse(result)
+    }
+
+    @Test
+    fun `isPhotoOrVideoRequest returns true for image and video mime types`() {
+        val request = PromptRequest.File(
+            arrayOf("image/png", "video/mp4"),
+            onSingleFileSelected = noopSingle,
+            onMultipleFilesSelected = noopMulti,
+            onDismiss = {},
+        )
+
+        val filePickerSpy = spy(filePicker)
+
+        val result = filePickerSpy.isPhotoOrVideoRequest(request)
+
+        assertTrue(result)
+    }
+
+    @Test
+    fun `isPhotoOrVideoRequest returns false for non-image and non-video mime types`() {
+        val request = PromptRequest.File(
+            arrayOf("application/pdf"),
+            onSingleFileSelected = noopSingle,
+            onMultipleFilesSelected = noopMulti,
+            onDismiss = {},
+        )
+
+        val filePickerSpy = spy(filePicker)
+
+        val result = filePickerSpy.isPhotoOrVideoRequest(request)
+
+        assertFalse(result)
+    }
+
+    @Test
+    fun `getVisualMediaType returns SingleMimeType when mime types contain only one mime type`() {
+        val request = PromptRequest.File(
+            arrayOf("image/png"),
+            onSingleFileSelected = { _, _ -> },
+            onMultipleFilesSelected = { _, _ -> },
+            onDismiss = {},
+        )
+
+        val result = filePicker.getVisualMediaType(request)
+
+        assertTrue(result is ActivityResultContracts.PickVisualMedia.SingleMimeType)
+        assertEquals(
+            "image/png",
+            (result as ActivityResultContracts.PickVisualMedia.SingleMimeType).mimeType,
+        )
+    }
+
+    @Test
+    fun `getVisualMediaType returns ImageAndVideo when mime types contain both image and video`() {
+        val request = PromptRequest.File(
+            arrayOf("image/png", "video/mp4"),
+            onSingleFileSelected = { _, _ -> },
+            onMultipleFilesSelected = { _, _ -> },
+            onDismiss = {},
+        )
+
+        val result = filePicker.getVisualMediaType(request)
+
+        assertEquals(
+            ActivityResultContracts.PickVisualMedia.ImageAndVideo,
+            result,
+        )
+    }
+
+    @Test
+    fun `getVisualMediaType returns ImageOnly when mime types contain only image`() {
+        val request = PromptRequest.File(
+            arrayOf("image/png", "image/jpeg"),
+            onSingleFileSelected = { _, _ -> },
+            onMultipleFilesSelected = { _, _ -> },
+            onDismiss = {},
+        )
+
+        val result = filePicker.getVisualMediaType(request)
+
+        assertEquals(ActivityResultContracts.PickVisualMedia.ImageOnly, result)
+    }
+
+    @Test
+    fun `getVisualMediaType returns VideoOnly when mime types contain only video`() {
+        val request = PromptRequest.File(
+            arrayOf("video/mp4", "video/avi"),
+            onSingleFileSelected = { _, _ -> },
+            onMultipleFilesSelected = { _, _ -> },
+            onDismiss = {},
+        )
+
+        val result = filePicker.getVisualMediaType(request)
+
+        assertEquals(ActivityResultContracts.PickVisualMedia.VideoOnly, result)
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun `getVisualMediaType throws IllegalStateException when mime types do not contain image or video`() {
+        val request = PromptRequest.File(
+            arrayOf("application/pdf"),
+            onSingleFileSelected = { _, _ -> },
+            onMultipleFilesSelected = { _, _ -> },
+            onDismiss = {},
+        )
+
+        filePicker.getVisualMediaType(request)
+    }
+
     private fun prepareSelectedSession(request: PromptRequest? = null): TabSessionState {
         val promptRequest: PromptRequest = request ?: mock()
         val content: ContentState = mock()
@@ -469,6 +649,10 @@ class FilePickerTest {
     private fun stubContext() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         doReturn(context).`when`(fragment).context
-        filePicker = FilePicker(fragment, store, fileUploadsDirCleaner = fileUploadsDirCleaner) {}
+        filePicker = FilePicker(
+            fragment,
+            store,
+            fileUploadsDirCleaner = fileUploadsDirCleaner,
+        ) {}
     }
 }

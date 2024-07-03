@@ -10,8 +10,12 @@ import mozilla.components.concept.engine.prompt.PromptRequest.Confirm
 import mozilla.components.concept.engine.prompt.PromptRequest.Popup
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
+import mozilla.components.concept.engine.prompt.isPhotoRequest
+import mozilla.components.concept.engine.prompt.isVideoRequest
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.reflect.KClass
 
@@ -51,5 +55,53 @@ class PromptRequestTest {
         choice.executeIfWindowedPrompt { invocations++ }
 
         assertEquals(0, invocations)
+    }
+
+    @Test
+    fun `isPhotoRequest returns true when mime types contain image`() {
+        val request = PromptRequest.File(
+            arrayOf("image/png"),
+            onSingleFileSelected = { _, _ -> },
+            onMultipleFilesSelected = { _, _ -> },
+            onDismiss = {},
+        )
+
+        assertTrue(request.isPhotoRequest())
+    }
+
+    @Test
+    fun `isPhotoRequest returns false when mime types do not contain image`() {
+        val request = PromptRequest.File(
+            arrayOf("video/mp4"),
+            onSingleFileSelected = { _, _ -> },
+            onMultipleFilesSelected = { _, _ -> },
+            onDismiss = {},
+        )
+
+        assertFalse(request.isPhotoRequest())
+    }
+
+    @Test
+    fun `isVideoRequest returns true when mime types contain video`() {
+        val request = PromptRequest.File(
+            arrayOf("video/mp4"),
+            onSingleFileSelected = { _, _ -> },
+            onMultipleFilesSelected = { _, _ -> },
+            onDismiss = {},
+        )
+
+        assertTrue(request.isVideoRequest())
+    }
+
+    @Test
+    fun `isVideoRequest returns false when mime types do not contain video`() {
+        val request = PromptRequest.File(
+            arrayOf("image/png"),
+            onSingleFileSelected = { _, _ -> },
+            onMultipleFilesSelected = { _, _ -> },
+            onDismiss = {},
+        )
+
+        assertFalse(request.isVideoRequest())
     }
 }
