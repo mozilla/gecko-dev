@@ -2904,6 +2904,17 @@ void ClientWebGLContext::BlendColor(GLclampf r, GLclampf g, GLclampf b,
   if (IsContextLost()) return;
   auto& state = State();
 
+  const bool unclamped =
+      (mIsWebGL2 ||
+       IsExtensionEnabled(WebGLExtensionID::WEBGL_color_buffer_float) ||
+       IsExtensionEnabled(WebGLExtensionID::EXT_color_buffer_half_float));
+  if (!unclamped) {
+    r = std::clamp(r, 0.0f, 1.0f);
+    g = std::clamp(g, 0.0f, 1.0f);
+    b = std::clamp(b, 0.0f, 1.0f);
+    a = std::clamp(a, 0.0f, 1.0f);
+  }
+
   auto& cache = state.mBlendColor;
   cache[0] = r;
   cache[1] = g;

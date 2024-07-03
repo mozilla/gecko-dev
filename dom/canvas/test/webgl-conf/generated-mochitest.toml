@@ -16283,7 +16283,6 @@ subsuite = "webgl1-core"
 
 ["generated/test_conformance__rendering__blending.html"]
 subsuite = "webgl1-core"
-fail-if = ["true"]
 
 ["generated/test_conformance__rendering__canvas-alpha-bug.html"]
 subsuite = "webgl1-core"

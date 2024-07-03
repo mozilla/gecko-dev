@@ -102,10 +102,6 @@ fail-if = ["true"]
 # Ditto
 fail-if = ["true"]
 
-["generated/test_conformance__rendering__blending.html"]
-# Expected [1,1,1,1], was [1000,1,1,1]
-fail-if = ["true"]
-
 ["generated/test_2_conformance2__reading__read-pixels-into-pixel-pack-buffer.html"]
 # getError expected: INVALID_ENUM. Was INVALID_OPERATION : Format should not be able to read as DEPTH_STENCIL
 fail-if = ["true"]
