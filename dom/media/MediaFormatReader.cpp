@@ -2184,7 +2184,7 @@ void MediaFormatReader::HandleDemuxedSamples(
     return;
   }
 
-  LOGV("Input:%" PRId64 " (dts:%" PRId64 " kf:%d)",
+  LOGV("%s Input:%" PRId64 " (dts:%" PRId64 " kf:%d)", TrackTypeToStr(aTrack),
        sample->mTime.ToMicroseconds(), sample->mTimecode.ToMicroseconds(),
        sample->mKeyframe);
   decoder.mNumSamplesInput++;
