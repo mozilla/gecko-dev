@@ -215,6 +215,9 @@ export const AbuseReporter = {
       case lazy.AddonManager.SIGNEDSTATE_PRIVILEGED:
         data.addon_signature = "privileged";
         break;
+      case lazy.AddonManager.SIGNEDSTATE_NOT_REQUIRED:
+        data.addon_signature = "not_required";
+        break;
       default:
         data.addon_signature = `unknown: ${addon.signedState}`;
     }

@@ -188,6 +188,35 @@ add_task(async function test_addon_report_data() {
   await extension3.unload();
 });
 
+add_task(
+  {
+    skip_if: () => AppConstants.platform === "android",
+  },
+  async function test_dictionary_report_data() {
+    info("Verify 'addon_signature' report property for a dictionary");
+    const dict = await promiseInstallWebExtension({
+      manifest: {
+        name: "Dictionary",
+        browser_specific_settings: { gecko: { id: "dictionary@mozilla.com" } },
+        dictionaries: {
+          und: "und.dic",
+        },
+      },
+      files: {
+        "und.dic": "",
+        "und.aff": "",
+      },
+    });
+    const dataDict = await AbuseReporter.getReportData(dict);
+    equal(
+      dataDict.addon_signature,
+      "not_required",
+      "Got expected 'addon_signature' for dictionary"
+    );
+    await dict.uninstall();
+  }
+);
+
 // This tests verifies how the addon installTelemetryInfo values are being
 // normalized into the addon_install_source and addon_install_method
 // expected by the API endpoint.
