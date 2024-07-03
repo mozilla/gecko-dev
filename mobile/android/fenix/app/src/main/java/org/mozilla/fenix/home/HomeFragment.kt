@@ -756,7 +756,7 @@ class HomeFragment : Fragment() {
             val searchFragmentAlreadyAdded = parentFragmentManager.fragments.any { it is SearchDialogFragment }
             val searchFragmentShouldBeAdded = !isConfigChange && bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR)
             val shouldShowNavbar = !isToolbarAtBottom || !searchFragmentAlreadyAdded && !searchFragmentShouldBeAdded
-            composeView.isVisible = shouldShowNavbar
+            toolbarContainerView.isVisible = shouldShowNavbar
         }
 
         bottomToolbarContainerIntegration.set(
