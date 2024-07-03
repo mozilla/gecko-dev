@@ -15,6 +15,7 @@ Performance Testing
   mozperftest
   perf-sheriffing
   performance-infrastructure
+  perftest-in-a-nutshell
   raptor
   talos
 
@@ -32,6 +33,7 @@ For more detailed information about each test suite and project, see their docum
   * :doc:`mozperftest`
   * :doc:`perf-sheriffing`
   * :doc:`performance-infrastructure`
+  * :doc:`perftest-in-a-nutshell`
   * :doc:`raptor`
   * :doc:`talos`
 
