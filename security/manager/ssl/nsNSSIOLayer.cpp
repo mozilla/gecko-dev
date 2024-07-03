@@ -44,7 +44,6 @@
 #include "nsContentUtils.h"
 #include "nsISocketProvider.h"
 #include "nsIWebProgressListener.h"
-#include "nsNSSCertHelper.h"
 #include "nsNSSComponent.h"
 #include "nsNSSHelper.h"
 #include "nsPrintfCString.h"

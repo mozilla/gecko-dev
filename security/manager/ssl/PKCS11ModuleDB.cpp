@@ -7,6 +7,7 @@
 #include "PKCS11ModuleDB.h"
 
 #include "ScopedNSSTypes.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIMutableArray.h"
 #include "nsNSSCertHelper.h"
@@ -33,7 +34,7 @@ static nsresult NormalizeModuleNameIn(const nsAString& moduleNameIn,
     return rv;
   }
   if (moduleNameIn.Equals(localizedRootModuleName)) {
-    moduleNameOut.Assign(kRootModuleName);
+    moduleNameOut.Assign(kRootModuleName.get());
     return NS_OK;
   }
   moduleNameOut.Assign(NS_ConvertUTF16toUTF8(moduleNameIn));
@@ -58,6 +59,8 @@ PKCS11ModuleDB::DeleteModule(const nsAString& aModuleName) {
   if (srv != SECSuccess) {
     return NS_ERROR_FAILURE;
   }
+
+  CollectThirdPartyPKCS11ModuleTelemetry();
 
   return NS_OK;
 }
@@ -103,6 +106,9 @@ PKCS11ModuleDB::AddModule(const nsAString& aModuleName,
   if (srv != SECSuccess) {
     return NS_ERROR_FAILURE;
   }
+
+  CollectThirdPartyPKCS11ModuleTelemetry();
+
   return NS_OK;
 }
 
@@ -178,6 +184,33 @@ PKCS11ModuleDB::GetIsFIPSEnabled(bool* aIsFIPSEnabled) {
 
   *aIsFIPSEnabled = PK11_IsFIPS();
   return NS_OK;
+}
+
+const nsLiteralCString kBuiltInModuleNames[] = {
+    kNSSInternalModuleName,
+    kRootModuleName,
+    kOSClientCertsModuleName,
+    kIPCClientCertsModuleName,
+};
+
+void CollectThirdPartyPKCS11ModuleTelemetry() {
+  size_t thirdPartyModulesLoaded = 0;
+  AutoSECMODListReadLock lock;
+  for (SECMODModuleList* list = SECMOD_GetDefaultModuleList(); list;
+       list = list->next) {
+    bool isThirdParty = true;
+    for (const auto& builtInModuleName : kBuiltInModuleNames) {
+      if (builtInModuleName.Equals(list->module->commonName)) {
+        isThirdParty = false;
+        break;
+      }
+    }
+    if (isThirdParty) {
+      thirdPartyModulesLoaded++;
+    }
+  }
+  mozilla::glean::pkcs11::third_party_modules_loaded.Set(
+      thirdPartyModulesLoaded);
 }
 
 }  // namespace psm

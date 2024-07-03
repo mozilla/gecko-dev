@@ -7,6 +7,7 @@
 #define PKCS11ModuleDB_h
 
 #include "nsIPKCS11ModuleDB.h"
+#include "nsTLiteralString.h"
 
 namespace mozilla {
 namespace psm {
@@ -28,6 +29,13 @@ class PKCS11ModuleDB : public nsIPKCS11ModuleDB {
  protected:
   virtual ~PKCS11ModuleDB() = default;
 };
+
+const nsLiteralCString kIPCClientCertsModuleName("IPC Client Cert Module");
+const nsLiteralCString kNSSInternalModuleName("NSS Internal PKCS #11 Module");
+const nsLiteralCString kOSClientCertsModuleName("OS Client Cert Module");
+const nsLiteralCString kRootModuleName("Builtin Roots Module");
+
+void CollectThirdPartyPKCS11ModuleTelemetry();
 
 }  // namespace psm
 }  // namespace mozilla
