@@ -542,6 +542,18 @@ set_config("OS_COMPILE_CMFLAGS", compilation_flags.cmflags)
 set_config("OS_COMPILE_CMMFLAGS", compilation_flags.cmmflags)
 
 
+# Default host optimization flags
+# ---------------------------------
+@depends(host_c_compiler)
+def host_optimize_flags(compiler):
+    if compiler.type == "clang-cl":
+        return ["-O2"]
+    else:
+        return ["-O3"]
+
+
+set_config("HOST_OPTIMIZE_FLAGS", host_optimize_flags)
+
 # Please keep these last in this file.
 add_old_configure_assignment("_COMPILATION_ASFLAGS", asm_flags.asflags)
 add_old_configure_assignment("_COMPILATION_HOST_ASFLAGS", asm_flags.host_asflags)
