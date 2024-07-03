@@ -7,6 +7,14 @@
 # Environment variables that impact the compilation step
 # ==============================================================
 option(
+    env="HOST_CPPFLAGS",
+    help="Extra flags for Preprocessing host sources.",
+    nargs=1,
+    default="",
+)
+
+
+option(
     env="HOST_CFLAGS",
     help="Extra flags for compiling host C sources.",
     nargs=1,

@@ -11,6 +11,7 @@ unset CC
 unset CXX
 unset HOST_CC
 unset HOST_CXX
+unset HOST_CPPFLAGS
 unset HOST_CFLAGS
 unset HOST_CXXFLAGS
 unset HOST_LDFLAGS

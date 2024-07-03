@@ -555,8 +555,9 @@ def host_optimize_flags(compiler):
 set_config("HOST_OPTIMIZE_FLAGS", host_optimize_flags)
 
 
-@depends(host, host_c_compiler)
-def host_common_flags(host, compiler):
+@depends("HOST_CPPFLAGS", host, host_c_compiler)
+@imports(_from="mozbuild.shellutil", _import="split")
+def host_cppflags(base_cppflags, host, compiler):
     flags = []
     if host.kernel == "WINNT":
         if compiler.type != "clang-cl":
@@ -568,24 +569,23 @@ def host_common_flags(host, compiler):
         flags += ["-DXP_UNIX", "-DXP_MACOSX"]
     else:
         flags += ["-DXP_UNIX"]
+    flags += split(base_cppflags[0])
     return flags
 
 
-@depends("HOST_CFLAGS", compilation_flags, host_common_flags)
+@depends("HOST_CFLAGS", compilation_flags)
 @imports(_from="mozbuild.shellutil", _import="split")
-def host_cflags(base_cflags, compilation_flags, host_common_flags):
+def host_cflags(base_cflags, compilation_flags):
     flags = list(compilation_flags.host_cflags)
     flags += split(base_cflags[0])
-    flags += host_common_flags
     return flags
 
 
-@depends("HOST_CXXFLAGS", compilation_flags, host_common_flags)
+@depends("HOST_CXXFLAGS", compilation_flags)
 @imports(_from="mozbuild.shellutil", _import="split")
-def host_cflags(base_cxxflags, compilation_flags, host_common_flags):
+def host_cflags(base_cxxflags, compilation_flags):
     flags = list(compilation_flags.host_cxxflags)
     flags += split(base_cxxflags[0])
-    flags += host_common_flags
     return flags
 
 
@@ -635,6 +635,7 @@ add_old_configure_assignment("CPPFLAGS", os_cppflags)
 add_old_configure_assignment("_COMPILATION_CFLAGS", compilation_flags.cflags)
 add_old_configure_assignment("_COMPILATION_CXXFLAGS", compilation_flags.cxxflags)
 
+set_config("HOST_CPPFLAGS", host_cppflags)
 set_config("HOST_CFLAGS", host_cflags)
 set_config("HOST_CXXFLAGS", host_cflags)
 set_config("HOST_LDFLAGS", host_ldflags)
