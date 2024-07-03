@@ -284,10 +284,6 @@ add_old_configure_assignment(
     "ANDROID_LDFLAGS", depends(android_flags)(lambda f: f.ldflags)
 )
 
-add_old_configure_assignment(
-    "ANDROID_ASFLAGS", depends(android_flags)(lambda f: f.asflags)
-)
-
 
 @depends(extra_toolchain_flags)
 def bindgen_cflags_android(toolchain_flags):

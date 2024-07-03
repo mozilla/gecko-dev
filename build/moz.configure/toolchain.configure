@@ -38,6 +38,14 @@ option(
 )
 
 
+option(
+    env="ASFLAGS",
+    help="Extra flags for assembling sources.",
+    nargs=1,
+    default="",
+)
+
+
 # Code optimization
 # ==============================================================
 

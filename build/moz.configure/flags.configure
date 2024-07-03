@@ -610,8 +610,21 @@ def os_cppflags(env_cppflags):
     return flags
 
 
+@depends("ASFLAGS", asm_flags, android_flags, all_arm_flags)
+@imports(_from="mozbuild.shellutil", _import="split")
+def os_asflags(env_asflags, asm_flags, android_flags, all_arm_flags):
+    flags = []
+    if android_flags:
+        flags.extend(android_flags.asflags)
+        flags.append("-DANDROID")
+    if all_arm_flags:
+        flags.extend(all_arm_flags)
+    flags.extend(asm_flags.asflags)
+    flags.extend(split(env_asflags[0]))
+    return flags
+
+
 # Please keep these last in this file.
-add_old_configure_assignment("_COMPILATION_ASFLAGS", asm_flags.asflags)
 add_old_configure_assignment("_COMPILATION_HOST_ASFLAGS", asm_flags.host_asflags)
 add_old_configure_assignment("_COMPILATION_LDFLAGS", linker_flags.ldflags)
 add_old_configure_assignment(
@@ -627,4 +640,5 @@ set_config("HOST_CFLAGS", host_cflags)
 set_config("HOST_CXXFLAGS", host_cflags)
 set_config("HOST_LDFLAGS", host_ldflags)
 set_config("OS_CPPFLAGS", os_cppflags)
+set_config("ASFLAGS", os_asflags)
 set_config("DSO_LDOPTS", dso_flags.ldopts)

@@ -30,7 +30,6 @@ case "$target" in
     LDFLAGS="$ANDROID_LDFLAGS $LDFLAGS"
     CFLAGS="$ANDROID_CFLAGS $CFLAGS"
     CXXFLAGS="$ANDROID_CXXFLAGS $CXXFLAGS"
-    ASFLAGS="$ANDROID_ASFLAGS -DANDROID $ASFLAGS"
     ;;
 esac
 
@@ -403,7 +402,6 @@ dnl = Maintainer debug option (no --enable equivalent)
 dnl =
 dnl ========================================================
 
-AC_SUBST_LIST(ASFLAGS)
 AC_SUBST_LIST(MOZ_DEBUG_LDFLAGS)
 
 dnl ========================================================
@@ -512,10 +510,6 @@ CFLAGS=`echo \
 CXXFLAGS=`echo \
     $_COMPILATION_CXXFLAGS \
     $CXXFLAGS`
-
-ASFLAGS=`echo \
-    $_COMPILATION_ASFLAGS \
-    $ASFLAGS`
 
 LDFLAGS=`echo \
     $LDFLAGS \
