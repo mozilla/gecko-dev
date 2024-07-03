@@ -22,6 +22,7 @@ tasks-from:
     - linux.yml
     - macosx.yml
     - windows.yml
+    - windows11.yml
 
 task-defaults:
     attributes:
