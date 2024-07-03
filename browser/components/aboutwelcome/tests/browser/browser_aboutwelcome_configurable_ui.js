@@ -790,3 +790,27 @@ add_task(async function test_aboutwelcome_reverse_dismiss() {
   doExperimentCleanup();
   browser.closeBrowser();
 });
+
+/**
+ * Test rendering a screen with that uses fullscreen mode
+ */
+add_task(async function test_aboutwelcome_fullscreen_property() {
+  let screens = [makeTestContent(`TEST_FULLSCREEN`, { fullscreen: true })];
+
+  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId: "aboutwelcome",
+    value: { enabled: true, screens },
+  });
+
+  let browser = await openAboutWelcome();
+
+  await test_screen_content(
+    browser,
+    "render screen with 'fullscreen' attribute",
+    // Expected selectors:
+    ["main.TEST_FULLSCREEN[fullscreen]"]
+  );
+
+  doExperimentCleanup();
+  browser.closeBrowser();
+});

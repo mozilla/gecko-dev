@@ -1365,11 +1365,11 @@ html {
 .onboardingContainer .screen:not([pos=split]) .welcome-text:empty {
   margin: 0;
 }
-.onboardingContainer .screen[pos=split] {
+.onboardingContainer .screen[pos=split]:where(:not([fullscreen])) {
   margin: auto;
   min-height: 550px;
 }
-.onboardingContainer .screen[pos=split]::before {
+.onboardingContainer .screen[pos=split]:where(:not([fullscreen]))::before {
   content: "";
   position: absolute;
   box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.2);
@@ -1581,7 +1581,6 @@ html {
   z-index: 1;
 }
 .onboardingContainer .screen[pos=split] .section-main .main-content .steps.progress-bar {
-  width: 400px;
   margin-inline: -35px;
 }
 @media (prefers-contrast) {
@@ -1732,6 +1731,78 @@ html {
   border-radius: 8px 0 0 8px;
   margin: auto;
   margin-inline-start: 0;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .section-secondary,
+.onboardingContainer .screen[pos=split][fullscreen] .section-main {
+  width: 50%;
+  height: 100%;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content {
+  border-radius: 0;
+  padding: 0;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content h1 {
+  width: auto;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content .main-content-inner {
+  min-height: 0;
+  flex-grow: 0;
+  padding-inline: 110px;
+  margin-block: auto;
+  max-width: 400px;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content .action-buttons {
+  position: static;
+  height: auto;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content .action-buttons .secondary-cta {
+  inset-block-end: 26px;
+  inset-inline-end: 30px;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .section-secondary {
+  --mr-secondary-position: center center / 50%;
+  border-radius: 0;
+  margin: 0;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .section-secondary .hero-image {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .section-secondary .hero-image img {
+  width: 30%;
+}
+@media only screen and (width <= 800px) {
+  .onboardingContainer .screen[pos=split][fullscreen] .section-main,
+  .onboardingContainer .screen[pos=split][fullscreen] .section-secondary {
+    width: 100%;
+  }
+  .onboardingContainer .screen[pos=split][fullscreen] .section-main {
+    height: 75%;
+  }
+  .onboardingContainer .screen[pos=split][fullscreen] .section-main[hide-secondary-section=responsive] {
+    height: 100%;
+  }
+  .onboardingContainer .screen[pos=split][fullscreen] .section-main[hide-secondary-section=responsive] .main-content {
+    border-radius: 0;
+    padding: 0;
+  }
+  .onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content .action-buttons .secondary-cta {
+    inset-block-end: 0;
+    inset-inline-end: 0;
+  }
+  .onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content .main-content-inner {
+    padding-inline: 55px;
+    margin-inline: auto;
+  }
+  .onboardingContainer .screen[pos=split][fullscreen] .section-secondary {
+    --mr-secondary-position: center var(--mr-secondary-background-position-y) / 50%;
+  }
+  .onboardingContainer .screen[pos=split][fullscreen] .section-secondary .hero-image img {
+    width: 25%;
+    max-height: 75%;
+  }
 }
 @media only screen and (width <= 800px) {
   .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) {

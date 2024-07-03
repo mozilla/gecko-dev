@@ -114,6 +114,7 @@ module.exports = {
           "reverse-split",
           "no-rdm",
           "above-button",
+          "fullscreen",
         ],
       },
     ],

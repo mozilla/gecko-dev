@@ -511,6 +511,7 @@ export class ProtonScreen extends React.PureComponent {
         className={`screen ${this.props.id || ""}
           ${screenClassName} ${textColorClass}`}
         reverse-split={content.reverse_split ? "" : null}
+        fullscreen={content.fullscreen ? "" : null}
         role={ariaRole ?? "alertdialog"}
         layout={content.layout}
         pos={content.position || "center"}
@@ -563,7 +564,9 @@ export class ProtonScreen extends React.PureComponent {
                 : null,
             }}
           >
-            {content.logo ? this.renderPicture(content.logo) : null}
+            {content.logo && !content.fullscreen
+              ? this.renderPicture(content.logo)
+              : null}
 
             {isRtamo ? (
               <div className="rtamo-icon">
@@ -585,6 +588,9 @@ export class ProtonScreen extends React.PureComponent {
                 justifyContent: content.split_content_justify_content,
               }}
             >
+              {content.logo && content.fullscreen
+                ? this.renderPicture(content.logo)
+                : null}
               {content.title || content.subtitle ? (
                 <div className={`welcome-text ${content.title_style || ""}`}>
                   {content.title ? this.renderTitle(content) : null}
