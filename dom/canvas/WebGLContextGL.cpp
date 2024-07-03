@@ -1291,7 +1291,10 @@ void WebGLContext::UniformData(
   // -
 
   const auto& link = mActiveProgramLinkInfo;
-  if (!link) return;
+  if (!link) {
+    GenerateError(LOCAL_GL_INVALID_OPERATION, "Active program is not linked.");
+    return;
+  }
 
   const auto locInfo = MaybeFind(link->locationMap, loc);
   if (!locInfo) {

@@ -10930,7 +10930,6 @@ subsuite = "webgl2-core"
 
 ["generated/test_2_conformance__programs__program-handling.html"]
 subsuite = "webgl2-core"
-fail-if = ["true"]
 
 ["generated/test_2_conformance__programs__program-infolog.html"]
 subsuite = "webgl2-core"
@@ -16232,7 +16231,6 @@ subsuite = "webgl1-core"
 
 ["generated/test_conformance__programs__program-handling.html"]
 subsuite = "webgl1-core"
-fail-if = ["true"]
 
 ["generated/test_conformance__programs__program-infolog.html"]
 subsuite = "webgl1-core"
