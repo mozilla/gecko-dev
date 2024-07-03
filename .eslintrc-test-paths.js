@@ -53,7 +53,6 @@ const extraXpcshellTestPaths = [
   "ipc/testshell/tests/",
   "memory/replace/dmd/test/",
   "netwerk/test/httpserver/test/",
-  "testing/modules/tests/xpcshell/",
   "toolkit/components/backgroundhangmonitor/tests/",
   "toolkit/components/downloads/test/data/",
   "toolkit/components/mozintl/test/",
