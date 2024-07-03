@@ -1075,13 +1075,23 @@ void IMEContentObserver::ContentRemoved(nsIContent* aChild,
     return;
   }
 
-  mEndOfAddedTextCache.Clear(__FUNCTION__);
   if (HasAddedNodesDuringDocumentChange()) {
     NotifyIMEOfAddedContentTextLengthDuringDocumentChange(__FUNCTION__);
   }
 
   nsINode* containerNode = aChild->GetParentNode();
   MOZ_ASSERT(containerNode);
+
+  Result<uint32_t, nsresult> textLengthOrError =
+      FlatTextCache::ComputeTextLengthOfContent(*aChild, mRootElement);
+  if (NS_WARN_IF(textLengthOrError.isErr())) {
+    mEndOfAddedTextCache.Clear(__FUNCTION__);
+    mStartOfRemovingTextRangeCache.Clear(__FUNCTION__);
+    return;
+  }
+
+  mEndOfAddedTextCache.ContentRemoved(
+      *aChild, aPreviousSibling, textLengthOrError.inspect(), mRootElement);
 
   Maybe<uint32_t> offset =
       mStartOfRemovingTextRangeCache.GetFlatTextLengthBeforeContent(
@@ -1124,11 +1134,9 @@ void IMEContentObserver::ContentRemoved(nsIContent* aChild,
     offset = Some(mStartOfRemovingTextRangeCache.GetFlatTextLength());
   }
 
-  // get offset at the end of the deleted node
-  const Result<uint32_t, nsresult> textLengthOrError =
-      FlatTextCache::ComputeTextLengthOfContent(*aChild, mRootElement);
-  if (NS_WARN_IF(textLengthOrError.isErr())) {
-    mStartOfRemovingTextRangeCache.Clear(__FUNCTION__);
+  // We do not need a text change notification since removing aChild does not
+  // change flattened text.
+  if (textLengthOrError.inspect() == 0u) {
     return;
   }
 
@@ -2593,6 +2601,70 @@ void IMEContentObserver::FlatTextCache::AssertValidCache(
   }
   MOZ_ASSERT(mFlatTextLength == offset.inspect());
 #endif  // #ifdef DEBUG
+}
+
+void IMEContentObserver::FlatTextCache::ContentRemoved(
+    const nsIContent& aContent, const nsIContent* aPreviousSibling,
+    uint32_t aFlatTextLengthOfContent, const Element* aRootElement) {
+  if (!mContainerNode) {
+    return;  // No cache.
+  }
+
+  MOZ_ASSERT_IF(aPreviousSibling,
+                aContent.GetPreviousSibling() != aPreviousSibling);
+  MOZ_ASSERT_IF(aPreviousSibling,
+                aPreviousSibling->GetNextSibling() != &aContent);
+
+  // We can keep the cache without anything if the next sibling is removed.
+  if (mContent && mContent == aPreviousSibling) {
+    return;
+  }
+
+  if (IsCachingToStartOfContainer()) {
+    MOZ_ASSERT(!mContent);
+    // We're caching text length before first child of mContainerNode.
+    // Therefore, if a child of mContainerNode is being removed, we can keep the
+    // cache.
+    if (mContainerNode == aContent.GetParentNode()) {
+      AssertValidCache(aRootElement);
+      return;
+    }
+
+    // Let's clear the cache for avoiding to do anything expensive for a hot
+    // path only for not frequent cases.  Be aware, we are in a hot path here.
+    // Therefore, expensive computation would make the DOM mutation slower.
+    Clear("FlatTextCache::ContentRemoved");
+    return;
+  }
+
+  MOZ_ASSERT(IsCachingToEndOfContent());
+  if (&aContent == mContent) {
+    MOZ_ASSERT(mFlatTextLength >= aFlatTextLengthOfContent);
+    if (NS_WARN_IF(mFlatTextLength < aFlatTextLengthOfContent)) {
+      Clear("FlatTextCache::ContentRemoved");
+      return;
+    }
+    // We're caching text length before end of aContent.  So, if there is a
+    // previous sibling, we can cache text length before aContent with
+    // subtracting the text length caused by aContent from the cached value.
+    if (aPreviousSibling) {
+      CacheFlatTextLengthBeforeEndOfContent(
+          "FlatTextCache::ContentRemoved", *aPreviousSibling,
+          mFlatTextLength - aFlatTextLengthOfContent, aRootElement);
+      return;
+    }
+    // Otherwise, i.e., if aContent is first child of mContainerNode, we can
+    // cache text length before first content of mContainerNode with subtracting
+    // the text length caused by aContent from the cached value.
+    CacheFlatTextLengthBeforeFirstContent(
+        "FlatTextCache::ContentRemoved", *mContainerNode,
+        mFlatTextLength - aFlatTextLengthOfContent, aRootElement);
+    return;
+  }
+  // Let's clear the cache for avoiding to do anything expensive for a hot
+  // path only for not frequent cases.  Be aware, we are in a hot path here.
+  // Therefore, expensive computation would make the DOM mutation slower.
+  Clear("FlatTextCache::ContentRemoved");
 }
 
 }  // namespace mozilla
