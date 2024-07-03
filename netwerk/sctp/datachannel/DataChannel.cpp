@@ -1295,11 +1295,15 @@ bool DataChannelConnection::SendDeferredMessages() {
   uint32_t end = i;
   do {
     channel = mChannels.Get(i);
+    if (!channel) {
+      continue;
+    }
+
     // Note that `channel->mConnection` is `this`. This is just here to satisfy
     // the thread safety annotations on DataChannel.
     channel->mConnection->mLock.AssertCurrentThreadOwns();
     // Should already be cleared if closing/closed
-    if (!channel || channel->mBufferedData.IsEmpty()) {
+    if (channel->mBufferedData.IsEmpty()) {
       i = UpdateCurrentStreamIndex();
       continue;
     }
@@ -2126,19 +2130,20 @@ void DataChannelConnection::ClearResets() {
   mStreamsResetting.Clear();
 }
 
-void DataChannelConnection::ResetOutgoingStream(uint16_t stream) {
+void DataChannelConnection::ResetOutgoingStream(DataChannel& aChannel) {
   uint32_t i;
 
   mLock.AssertCurrentThreadOwns();
-  DC_DEBUG(
-      ("Connection %p: Resetting outgoing stream %u", (void*)this, stream));
+  DC_DEBUG(("Connection %p: Resetting outgoing stream %u", (void*)this,
+            aChannel.mStream));
+  aChannel.SetHasSentStreamReset();
   // Rarely has more than a couple items and only for a short time
   for (i = 0; i < mStreamsResetting.Length(); ++i) {
-    if (mStreamsResetting[i] == stream) {
+    if (mStreamsResetting[i] == aChannel.mStream) {
       return;
     }
   }
-  mStreamsResetting.AppendElement(stream);
+  mStreamsResetting.AppendElement(aChannel.mStream);
 }
 
 void DataChannelConnection::SendOutgoingStreamReset() {
@@ -2202,17 +2207,19 @@ void DataChannelConnection::HandleStreamResetEvent(
           //    I believe this is impossible, as we don't have an input stream
           //    yet.
 
-          DC_DEBUG(("Incoming: Channel %u  closed", channel->mStream));
-          if (mChannels.Remove(channel)) {
-            // Mark the stream for reset (the reset is sent below)
-            ResetOutgoingStream(channel->mStream);
+          DC_DEBUG(("Connection %p: stream %u closed", this, channel->mStream));
+          if (mChannels.Remove(channel) && !channel->HasSentStreamReset()) {
+            // If we haven't already started closing this channel, mark the
+            // stream for reset (the reset is sent below)
+            ResetOutgoingStream(*channel);
           }
 
           DC_DEBUG(("Disconnected DataChannel %p from connection %p",
                     (void*)channel.get(), (void*)channel->mConnection.get()));
           channel->StreamClosedLocked();
         } else {
-          DC_WARN(("Can't find incoming channel %d", i));
+          DC_WARN(("Connection %p: Can't find incoming stream %d", this,
+                   strrst->strreset_stream_list[i]));
         }
       }
     }
@@ -2980,7 +2987,7 @@ void DataChannelConnection::CloseLocked(DataChannel* aChannel) {
   }
 
   if (channel->mStream != INVALID_STREAM) {
-    ResetOutgoingStream(channel->mStream);
+    ResetOutgoingStream(*channel);
     if (GetState() != DataChannelConnectionState::Closed) {
       // Individual channel is being closed, send reset now.
       SendOutgoingStreamReset();
