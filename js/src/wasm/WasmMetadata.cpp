@@ -19,10 +19,12 @@ using namespace js::wasm;
 
 size_t ModuleMetadata::sizeOfExcludingThis(
     mozilla::MallocSizeOf mallocSizeOf) const {
-  // FIXME: do other fields need to be considered?  How can we know/check?
   return imports.sizeOfExcludingThis(mallocSizeOf) +
          exports.sizeOfExcludingThis(mallocSizeOf) +
-         dataSegmentRanges.sizeOfExcludingThis(mallocSizeOf);
+         elemSegments.sizeOfExcludingThis(mallocSizeOf) +
+         dataSegmentRanges.sizeOfExcludingThis(mallocSizeOf) +
+         dataSegments.sizeOfExcludingThis(mallocSizeOf) +
+         customSections.sizeOfExcludingThis(mallocSizeOf);
 }
 
 // CodeMetadata helpers -- adding functions.
@@ -237,12 +239,18 @@ bool CodeMetadata::getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
 
 size_t CodeMetadata::sizeOfExcludingThis(
     mozilla::MallocSizeOf mallocSizeOf) const {
-  // FIXME: do other fields need to be considered?  How can we know/check?
-  return types->sizeOfExcludingThis(mallocSizeOf) +
+  return memories.sizeOfExcludingThis(mallocSizeOf) +
+         types->sizeOfExcludingThis(mallocSizeOf) +
          globals.sizeOfExcludingThis(mallocSizeOf) +
-         tables.sizeOfExcludingThis(mallocSizeOf) +
          tags.sizeOfExcludingThis(mallocSizeOf) +
-         funcNames.sizeOfExcludingThis(mallocSizeOf) +
+         tables.sizeOfExcludingThis(mallocSizeOf) +
          filename.sizeOfExcludingThis(mallocSizeOf) +
-         sourceMapURL.sizeOfExcludingThis(mallocSizeOf);
+         sourceMapURL.sizeOfExcludingThis(mallocSizeOf) +
+         namePayload->sizeOfExcludingThis(mallocSizeOf) +
+         funcNames.sizeOfExcludingThis(mallocSizeOf) +
+         funcs.sizeOfExcludingThis(mallocSizeOf) +
+         elemSegmentTypes.sizeOfExcludingThis(mallocSizeOf) +
+         asmJSSigToTableIndex.sizeOfExcludingThis(mallocSizeOf) +
+         customSectionRanges.sizeOfExcludingThis(mallocSizeOf) +
+         debugFuncTypeIndices.sizeOfExcludingThis(mallocSizeOf);
 }

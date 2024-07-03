@@ -405,9 +405,14 @@ struct js::CodeMetadataForAsmJSImpl : CodeMetadataForAsmJS {
     return name->append(p, strlen(p));
   }
 
-  // FIXME: no idea if this is correct.  Probably not!
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
-    return 0;
+    return asmJSGlobals.sizeOfExcludingThis(mallocSizeOf) +
+           asmJSImports.sizeOfExcludingThis(mallocSizeOf) +
+           asmJSExports.sizeOfExcludingThis(mallocSizeOf) +
+           asmJSFuncNames.sizeOfExcludingThis(mallocSizeOf) +
+           globalArgumentName.sizeOfExcludingThis(mallocSizeOf) +
+           importArgumentName.sizeOfExcludingThis(mallocSizeOf) +
+           bufferArgumentName.sizeOfExcludingThis(mallocSizeOf);
   }
 };
 

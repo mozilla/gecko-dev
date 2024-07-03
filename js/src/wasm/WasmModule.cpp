@@ -257,14 +257,7 @@ void Module::addSizeOfMisc(MallocSizeOf mallocSizeOf,
                            size_t* data) const {
   code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenCodeMeta,
                                 seenCodeMetaForAsmJS, seenCode, code, data);
-  *data += mallocSizeOf(
-      this);  // +
-              // FIXME: should this accounting be migrated to ModuleMetadata
-              // now? SizeOfVectorExcludingThis(imports_, mallocSizeOf) +
-              // SizeOfVectorExcludingThis(exports_, mallocSizeOf) +
-              // SizeOfVectorExcludingThis(dataSegments_, mallocSizeOf) +
-              // SizeOfVectorExcludingThis(elemSegments_, mallocSizeOf) +
-              // SizeOfVectorExcludingThis(customSections_, mallocSizeOf);
+  *data += mallocSizeOf(this);
 }
 
 // Extracting machine code as JS object. The result has the "code" property, as

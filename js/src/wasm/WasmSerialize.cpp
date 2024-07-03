@@ -1363,16 +1363,13 @@ void Module::initGCMallocBytesExcludingCode() {
   // can be ignored until the end.
   constexpr CoderMode MODE = MODE_SIZE;
   Coder<MODE> coder(codeMeta().types.get());
-  // FIXME: we should reinstate these with something.  But what?
-  //(void)CodeVector<MODE, Import, &CodeImport<MODE>>(coder, &imports_);
-  //(void)CodeVector<MODE, Export, &CodeExport<MODE>>(coder, &exports_);
-  //(void)CodeVector<MODE, SharedDataSegment,
-  //               &CodeRefPtr<MODE, const DataSegment, CodeDataSegment<MODE>>>(
-  //    coder, &dataSegments_);
-  //(void)CodeVector<MODE, ModuleElemSegment, CodeModuleElemSegment<MODE>>(
-  //    coder, &elemSegments_);
-  //(void)CodeVector<MODE, CustomSection, &CodeCustomSection<MODE>>(
-  //    coder, &customSections_);
+
+  // Add the size of the ModuleMetadata
+  (void)CodeModuleMetadata<MODE>(coder, moduleMeta_);
+  // .. and the size of the CodeMetadata, but not of the Code itself
+  if (!code().codeMeta().isAsmJS()) {
+    (void)CodeCodeMetadata<MODE>(coder, &code().codeMeta());
+  }
 
   // Overflow really shouldn't be possible here, but handle it anyways.
   size_t serializedSize = coder.size_.isValid() ? coder.size_.value() : 0;
