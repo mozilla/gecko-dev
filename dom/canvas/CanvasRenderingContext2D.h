@@ -857,6 +857,8 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   // Whether the application expects to use operations that perform poorly with
   // acceleration.
   bool mWillReadFrequently = false;
+  // Whether to force software rendering
+  bool mForceSoftwareRendering = false;
   // Whether or not we have already shutdown.
   bool mHasShutdown = false;
   // Whether or not remote canvas is currently unavailable.
