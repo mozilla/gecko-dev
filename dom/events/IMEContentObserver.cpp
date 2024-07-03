@@ -1055,66 +1055,42 @@ void IMEContentObserver::ContentRemoved(nsIContent* aChild,
   nsINode* containerNode = aChild->GetParentNode();
   MOZ_ASSERT(containerNode);
 
-  uint32_t offset = 0;
-  nsresult rv = NS_OK;
-  if (!mStartOfRemovingTextRangeCache.CachesTextLengthBeforeContent(
+  if (mStartOfRemovingTextRangeCache.CachesTextLengthBeforeContent(
           *aChild, aPreviousSibling)) {
-    // At removing a child node of aContainer, we need the line break caused
-    // by open tag of aContainer.  Be careful when aPreviousSibling is nullptr.
-
+    // Okay, we can use the cached offset.
+  } else if (aPreviousSibling) {
     // When we compute preceding text length of the removing content node, we
     // cannot make the range cross the removing node boundary because
     // containerNode->ComputeIndexOf(aChild) returns Nothing so that
     // ContentEventHandler fails to compute the length.  Therefore, if a <div>
     // is being removed, we want to compute the length of `...}<div>`.
-    rv = ContentEventHandler::GetFlatTextLengthInRange(
-        RawNodePosition::BeforeFirstContentOf(*mRootElement),
-        RawNodePosition(containerNode, aPreviousSibling), mRootElement, &offset,
-        LINE_BREAK_TYPE_NATIVE);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      mStartOfRemovingTextRangeCache.Clear();
+    if (NS_WARN_IF(
+            NS_FAILED(mStartOfRemovingTextRangeCache
+                          .ComputeAndCacheFlatTextLengthBeforeEndOfContent(
+                              *aPreviousSibling, mRootElement)))) {
       return;
     }
-    if (aPreviousSibling) {
-      mStartOfRemovingTextRangeCache.CacheFlatTextLengthBeforeEndOfContent(
-          *aPreviousSibling, offset);
-    } else {
-      MOZ_DIAGNOSTIC_ASSERT(aChild->GetParentNode());
-      mStartOfRemovingTextRangeCache.CacheFlatTextLengthBeforeFirstContent(
-          *aChild->GetParentNode(), offset);
-    }
   } else {
-    offset = mStartOfRemovingTextRangeCache.mFlatTextLength;
+    // At removing a child node of aContainer, we need the line break caused
+    // by open tag of aContainer.  Be careful when aPreviousSibling is nullptr.
+    if (NS_WARN_IF(
+            NS_FAILED(mStartOfRemovingTextRangeCache
+                          .ComputeAndCacheFlatTextLengthBeforeFirstContent(
+                              *containerNode, mRootElement)))) {
+      return;
+    }
   }
+  const uint32_t offset = mStartOfRemovingTextRangeCache.mFlatTextLength;
 
   // get offset at the end of the deleted node
-  uint32_t textLength = 0;
-  if (const Text* textNode = Text::FromNode(aChild)) {
-    textLength = ContentEventHandler::GetNativeTextLength(*textNode);
-  } else {
-    // When we compute the text length of the removing content node, we need to
-    // select all children in the removing node because of the same reason
-    // above.  Therefore, if a <div> is being removed, we want to compute
-    // `{<div>...}</div>`.  In this case, we want to include the open tag of
-    // aChild if it's an element to add the line break if it's caused by the
-    // open tag.  However, we have no way to specify it with RawNodePosition,
-    // but ContentEventHandler::GetFlatTextLengthInRange() treats the range as
-    // the start container is selected.  Therefore, we should use
-    // RawNodePositionBefore with setting its container to the removed node.
-    nsresult rv = ContentEventHandler::GetFlatTextLengthInRange(
-        RawNodePosition::Before(*aChild), RawNodePosition::AtEndOf(*aChild),
-        mRootElement, &textLength, LINE_BREAK_TYPE_NATIVE, true);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      mStartOfRemovingTextRangeCache.Clear();
-      return;
-    }
-  }
-
-  if (!textLength) {
+  const Result<uint32_t, nsresult> textLengthOrError =
+      FlatTextCache::ComputeTextLengthOfRemovingContent(*aChild, mRootElement);
+  if (NS_WARN_IF(textLengthOrError.isErr())) {
+    mStartOfRemovingTextRangeCache.Clear();
     return;
   }
 
-  TextChangeData data(offset, offset + textLength, offset,
+  TextChangeData data(offset, offset + textLengthOrError.inspect(), offset,
                       IsEditorHandlingEventForComposition(),
                       IsEditorComposing());
   MaybeNotifyIMEOfTextChange(data);
@@ -2225,6 +2201,86 @@ void IMEContentObserver::DocumentObserver::EndUpdate(Document* aDocument) {
   }
   mDocumentUpdating--;
   mIMEContentObserver->EndDocumentUpdate();
+}
+
+/******************************************************************************
+ * mozilla::IMEContentObserver::FlatTextCache
+ ******************************************************************************/
+
+nsresult IMEContentObserver::FlatTextCache::
+    ComputeAndCacheFlatTextLengthBeforeEndOfContent(
+        const nsIContent& aContent, const Element* aRootElement) {
+  MOZ_ASSERT(aRootElement);
+  MOZ_ASSERT(aContent.GetParentNode());
+
+  Clear();
+
+  uint32_t length = 0;
+  nsresult rv = ContentEventHandler::GetFlatTextLengthInRange(
+      RawNodePosition::BeforeFirstContentOf(*aRootElement),
+      RawNodePosition::After(aContent), aRootElement, &length,
+      LineBreakType::LINE_BREAK_TYPE_NATIVE);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  CacheFlatTextLengthBeforeEndOfContent(aContent, length);
+  return NS_OK;
+}
+
+nsresult IMEContentObserver::FlatTextCache::
+    ComputeAndCacheFlatTextLengthBeforeFirstContent(
+        const nsINode& aContainer, const Element* aRootElement) {
+  MOZ_ASSERT(aRootElement);
+
+  Clear();
+
+  uint32_t lengthIncludingLineBreakCausedByOpenTagOfContainer = 0;
+  nsresult rv = ContentEventHandler::GetFlatTextLengthInRange(
+      RawNodePosition::BeforeFirstContentOf(*aRootElement),
+      // Include the line break caused by open tag of aContainer if it's an
+      // element when we cache text length before first content of aContainer.
+      RawNodePosition(const_cast<nsINode*>(&aContainer), nullptr), aRootElement,
+      &lengthIncludingLineBreakCausedByOpenTagOfContainer,
+      LineBreakType::LINE_BREAK_TYPE_NATIVE);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  CacheFlatTextLengthBeforeFirstContent(
+      aContainer, lengthIncludingLineBreakCausedByOpenTagOfContainer);
+  return NS_OK;
+}
+
+/* static */
+Result<uint32_t, nsresult>
+IMEContentObserver::FlatTextCache::ComputeTextLengthOfRemovingContent(
+    const nsIContent& aRemovingContent, const dom::Element* aRootElement) {
+  MOZ_ASSERT(aRemovingContent.IsBeingRemoved());
+  MOZ_ASSERT(aRootElement);
+
+  if (const Text* removingTextNode = Text::FromNode(aRemovingContent)) {
+    return ContentEventHandler::GetNativeTextLength(*removingTextNode);
+  }
+
+  // When we compute the text length of the removing content node, we need to
+  // select all children in the removing node because of the same reason
+  // above.  Therefore, if a <div> is being removed, we want to compute
+  // `{<div>...}</div>`.  In this case, we want to include the open tag of
+  // aRemovingContent if it's an element to add the line break if it's caused by
+  // the open tag.  However, we have no way to specify it with RawNodePosition,
+  // but ContentEventHandler::GetFlatTextLengthInRange() treats the range as
+  // the start container is selected.  Therefore, we should use
+  // RawNodePositionBefore with setting its container to the removed node.
+  uint32_t textLength = 0;
+  nsresult rv = ContentEventHandler::GetFlatTextLengthInRange(
+      RawNodePosition::Before(aRemovingContent),
+      RawNodePosition::AtEndOf(aRemovingContent), aRootElement, &textLength,
+      LineBreakType::LINE_BREAK_TYPE_NATIVE, true);
+  if (NS_FAILED(rv)) {
+    return Err(rv);
+  }
+  return textLength;
 }
 
 }  // namespace mozilla
