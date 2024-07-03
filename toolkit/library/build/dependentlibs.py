@@ -132,6 +132,8 @@ def gen_list(output, lib):
 
     deps = dependentlibs(lib, libpaths, func)
     base_lib = mozpath.basename(lib)
+    if not deps:
+        raise RuntimeError(f"Couldn't find any dependencies of {base_lib}")
     deps[base_lib] = mozpath.join(libpaths[0], base_lib)
     output.write("\n".join(deps.keys()) + "\n")
 
