@@ -177,7 +177,7 @@ add_task(async function enterOnEmptySearchBar() {
   await BrowserTestUtils.closeWindow(win);
 });
 
-add_task(async function openSettingsWithEnter() {
+add_task(async function test_open_settings_with_enter() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const searchBar = win.BrowserSearch.searchBar;
   const searchPopup = win.document.getElementById("PopupSearchAutoComplete");

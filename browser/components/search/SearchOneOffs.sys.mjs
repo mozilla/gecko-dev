@@ -975,9 +975,6 @@ export class SearchOneOffs {
       return;
     }
 
-    if (!this.textbox.value) {
-      return;
-    }
     // Select the clicked button so that consumers can easily tell which
     // button was acted on.
     this.selectedButton = button;
@@ -1014,9 +1011,6 @@ export class SearchOneOffs {
     }
 
     if (target.classList.contains("search-one-offs-context-open-in-new-tab")) {
-      if (!this.textbox.value) {
-        return;
-      }
       // Select the context-clicked button so that consumers can easily
       // tell which button was acted on.
       this.selectedButton = target.closest("menupopup")._triggerButton;
