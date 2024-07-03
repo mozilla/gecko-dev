@@ -500,6 +500,11 @@ void nsDNSAsyncRequest::OnResolveHostComplete(nsHostResolver* resolver,
   if (NS_SUCCEEDED(status) ||
       mFlags & nsIDNSService::RESOLVE_WANT_RECORD_ON_ERROR) {
     MOZ_ASSERT(hostRecord, "no host record");
+    if (!hostRecord) {
+      mListener->OnLookupComplete(this, nullptr, NS_ERROR_UNKNOWN_HOST);
+      mListener = nullptr;
+      return;
+    }
     if (hostRecord->type != nsDNSService::RESOLVE_TYPE_DEFAULT) {
       rec = new nsDNSByTypeRecord(hostRecord);
     } else {

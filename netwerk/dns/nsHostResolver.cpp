@@ -474,6 +474,10 @@ already_AddRefed<nsHostRecord> nsHostResolver::InitLoopbackRecord(
 already_AddRefed<nsHostRecord> nsHostResolver::InitMockHTTPSRecord(
     const nsHostKey& key) {
   MOZ_ASSERT(IS_OTHER_TYPE(key.type));
+  if (key.type != nsIDNSService::RESOLVE_TYPE_HTTPSSVC) {
+    return nullptr;
+  }
+
   RefPtr<nsHostRecord> rec = InitRecord(key);
   LOG(("InitMockHTTPSRecord host=%s\n", rec->host.get()));
 
