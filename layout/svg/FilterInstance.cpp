@@ -137,9 +137,12 @@ WrFiltersStatus FilterInstance::BuildWebRenderFilters(
     nsIFrame* aFilteredFrame, Span<const StyleFilter> aFilters,
     StyleFilterType aStyleFilterType, WrFiltersHolder& aWrFilters,
     const nsPoint& aOffsetForSVGFilters) {
-  WrFiltersStatus status =
-      BuildWebRenderSVGFiltersImpl(aFilteredFrame, aFilters, aStyleFilterType,
-                                   aWrFilters, aOffsetForSVGFilters);
+  WrFiltersStatus status = WrFiltersStatus::BLOB_FALLBACK;
+  if (StaticPrefs::gfx_webrender_svg_filter_effects()) {
+    status =
+        BuildWebRenderSVGFiltersImpl(aFilteredFrame, aFilters, aStyleFilterType,
+                                     aWrFilters, aOffsetForSVGFilters);
+  }
   if (status == WrFiltersStatus::BLOB_FALLBACK) {
     status = BuildWebRenderFiltersImpl(aFilteredFrame, aFilters,
                                        aStyleFilterType, aWrFilters);
