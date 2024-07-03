@@ -3451,8 +3451,8 @@ class Document : public nsINode,
    * @param aY Vertical point at which to determine the caret position, in
    *           page coordinates.
    */
-  already_AddRefed<nsDOMCaretPosition> CaretPositionFromPoint(float aX,
-                                                              float aY);
+  already_AddRefed<nsDOMCaretPosition> CaretPositionFromPoint(
+      float aX, float aY, const CaretPositionFromPointOptions& aOptions);
 
   Element* GetScrollingElement();
   // A way to check whether a given element is what would get returned from

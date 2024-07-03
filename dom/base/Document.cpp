@@ -13881,8 +13881,9 @@ already_AddRefed<TouchList> Document::CreateTouchList(
   return retval.forget();
 }
 
+// https://drafts.csswg.org/cssom-view/Overview#dom-document-caretpositionfrompoint
 already_AddRefed<nsDOMCaretPosition> Document::CaretPositionFromPoint(
-    float aX, float aY) {
+    float aX, float aY, const CaretPositionFromPointOptions& aOptions) {
   using FrameForPointOption = nsLayoutUtils::FrameForPointOption;
 
   nscoord x = nsPresContext::CSSPixelsToAppUnits(aX);
@@ -13922,34 +13923,59 @@ already_AddRefed<nsDOMCaretPosition> Document::CaretPositionFromPoint(
   nsIFrame::ContentOffsets offsets =
       ptFrame->GetContentOffsetsFromPoint(adjustedPoint);
 
-  nsCOMPtr<nsIContent> node = offsets.content;
+  nsCOMPtr<nsINode> node = offsets.content;
   uint32_t offset = offsets.offset;
-  nsCOMPtr<nsIContent> anonNode = node;
+  nsCOMPtr<nsINode> anonNode = node;
   bool nodeIsAnonymous = node && node->IsInNativeAnonymousSubtree();
   if (nodeIsAnonymous) {
     node = ptFrame->GetContent();
-    nsIContent* nonanon = node->FindFirstNonChromeOnlyAccessContent();
-    HTMLTextAreaElement* textArea = HTMLTextAreaElement::FromNode(nonanon);
-    nsITextControlFrame* textFrame = do_QueryFrame(nonanon->GetPrimaryFrame());
-    if (textFrame) {
-      // If the anonymous content node has a child, then we need to make sure
-      // that we get the appropriate child, as otherwise the offset may not be
-      // correct when we construct a range for it.
-      nsCOMPtr<nsIContent> firstChild = anonNode->GetFirstChild();
-      if (firstChild) {
-        anonNode = firstChild;
-      }
+    nsINode* nonChrome =
+        node->AsContent()->FindFirstNonChromeOnlyAccessContent();
+    HTMLTextAreaElement* textArea = HTMLTextAreaElement::FromNode(nonChrome);
+    nsITextControlFrame* textFrame =
+        do_QueryFrame(nonChrome->AsContent()->GetPrimaryFrame());
 
-      if (textArea) {
-        offset =
-            nsContentUtils::GetAdjustedOffsetInTextControl(ptFrame, offset);
-      }
-
-      node = nonanon;
-    } else {
-      node = nullptr;
-      offset = 0;
+    if (!textFrame) {
+      return nullptr;
     }
+
+    // If the anonymous content node has a child, then we need to make sure
+    // that we get the appropriate child, as otherwise the offset may not be
+    // correct when we construct a range for it.
+    nsCOMPtr<nsINode> firstChild = anonNode->GetFirstChild();
+    if (firstChild) {
+      anonNode = firstChild;
+    }
+
+    if (textArea) {
+      offset = nsContentUtils::GetAdjustedOffsetInTextControl(ptFrame, offset);
+    }
+
+    node = nonChrome;
+  }
+
+  bool offsetAndNodeNeedsAdjustment = false;
+
+  if (StaticPrefs::
+          dom_shadowdom_new_caretPositionFromPoint_behavior_enabled()) {
+    while (node->IsInShadowTree() &&
+           !aOptions.mShadowRoots.Contains(node->GetContainingShadow())) {
+      node = node->GetContainingShadowHost();
+      offsetAndNodeNeedsAdjustment = true;
+    }
+  }
+
+  if (offsetAndNodeNeedsAdjustment) {
+    const Maybe<uint32_t> maybeIndex = node->ComputeIndexInParentContent();
+    if (MOZ_UNLIKELY(maybeIndex.isNothing())) {
+      // Unlikely to happen, but still return nullptr to avoid leaking
+      // information about the shadow tree.
+      return nullptr;
+    }
+    // 5.3.1: Set startOffset to index of startNode’s root's host.
+    offset = maybeIndex.value();
+    // 5.3.2: Set startNode to startNode’s root's host's parent.
+    node = node->GetParentNode();
   }
 
   RefPtr<nsDOMCaretPosition> aCaretPos = new nsDOMCaretPosition(node, offset);

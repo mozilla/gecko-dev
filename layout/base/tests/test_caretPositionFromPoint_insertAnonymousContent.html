@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Test for caretPositionFromPoint with anonymous content</title>
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="/tests/SimpleTest/EventUtils.js"></script>
+    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <script>
+      info("Inserting anonymous content into the document frame");
+      let chromeDoc = SpecialPowers.wrap(document);
+      let anonymousContent = chromeDoc.insertAnonymousContent();
+      let div = document.createElement("div");
+      div.style.position = "fixed";
+      div.style.top = "0";
+      div.style.left = "0";
+      div.style.width = "100%";
+      div.style.height = "100%";
+      div.style.pointerEvents = "auto";
+      div.style.backgroundColor = "red";
+      anonymousContent.root.appendChild(div);
+      let caretPos = document.caretPositionFromPoint(
+        innerWidth / 2,
+        innerHeight / 2
+      );
+      is(caretPos, null, "caretPos should be null");
+      info("Removing the anonymous content");
+      chromeDoc.removeAnonymousContent(anonymousContent);
+    </script>
+  </body>
+</html>

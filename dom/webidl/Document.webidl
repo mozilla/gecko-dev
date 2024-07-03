@@ -379,9 +379,14 @@ partial interface Document {
     undefined enableStyleSheetsForSet (DOMString? name);
 };
 
+dictionary CaretPositionFromPointOptions {
+  [Pref="dom.shadowdom.new_caretPositionFromPoint_behavior.enabled"]
+  sequence<ShadowRoot> shadowRoots = [];
+};
+
 // https://drafts.csswg.org/cssom-view/#extensions-to-the-document-interface
 partial interface Document {
-    CaretPosition? caretPositionFromPoint (float x, float y);
+    CaretPosition? caretPositionFromPoint(float x, float y, optional CaretPositionFromPointOptions options = {});
 
     readonly attribute Element? scrollingElement;
 };
