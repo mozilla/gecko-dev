@@ -125,7 +125,7 @@ class ConceptFetchDetector : Detector(), SourceCodeScanner {
 
     private fun PsiElement?.isTryWithResources(): Boolean {
         return this != null &&
-            isJava(this) &&
+            isJava(this.language) &&
             PsiTreeUtil.getParentOfType(this, PsiResourceVariable::class.java) != null
     }
 
