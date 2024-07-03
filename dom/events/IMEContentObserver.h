@@ -548,6 +548,48 @@ class IMEContentObserver final : public nsStubMutationObserver,
     ComputeTextLengthOfRemovingContent(const nsIContent& aRemovingContent,
                                        const dom::Element* aRootElement);
 
+    /**
+     * Return flattened text length of starting from first content of
+     * aRootElement and ending at before aContent (if ContentEventHandler
+     * generates a line break at open tag of aContent, the result does not
+     * contain the line break length).
+     *
+     * @param aContent          The content node which is immediately after a
+     *                          content which you want to compute the flattened
+     *                          text length before end of it.
+     * @param aRootElement      The root element of the editor, i.e., editing
+     *                          host or the anonymous <div> in a text control.
+     *                          For avoiding to generate a redundant line break
+     *                          at open tag of this element, this is required
+     *                          to call methods of ContentEventHandler.
+     */
+    [[nodiscard]] static Result<uint32_t, nsresult>
+    ComputeTextLengthBeforeContent(const nsIContent& aContent,
+                                   const dom::Element* aRootElement);
+
+    /**
+     * Return flattened text length of starting from start of aStartContent and
+     * ending at end of aEndContent.  If ContentEventHandler generates a line
+     * break at open tag of aStartContent, the result includes the line break
+     * length.
+     *
+     * @param aStartContent     The first content node of consecutive nodes
+     *                          which you want to compute flattened text length
+     *                          starting from.
+     * @param aEndContent       The last content node of consecutive nodes
+     *                          which you want to compute flattened text length
+     *                          ending at.
+     * @param aRootElement      The root element of the editor, i.e., editing
+     *                          host or the anonymous <div> in a text control.
+     *                          For avoiding to generate a redundant line break
+     *                          at open tag of this element, this is required
+     *                          to call methods of ContentEventHandler.
+     */
+    [[nodiscard]] static Result<uint32_t, nsresult>
+    ComputeTextLengthStartOfContentToEndOfContent(
+        const nsIContent& aStartContent, const nsIContent& aEndContent,
+        const dom::Element* aRootElement);
+
     [[nodiscard]] bool CachesTextLengthBeforeContent(
         const nsIContent& aContent) const {
       MOZ_ASSERT(!aContent.IsBeingRemoved());

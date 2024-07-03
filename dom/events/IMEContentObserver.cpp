@@ -991,25 +991,22 @@ void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
   //    |                  aLastContent   |
   //    offset                            (offset + length)
   uint32_t offset = 0;
-  nsresult rv = NS_OK;
   if (!mEndOfAddedTextCache.CachesTextLengthBeforeContent(*aFirstContent)) {
     mEndOfAddedTextCache.Clear();
-    rv = ContentEventHandler::GetFlatTextLengthInRange(
-        RawNodePosition::BeforeFirstContentOf(*mRootElement),
-        RawNodePosition::Before(*aFirstContent), mRootElement, &offset,
-        LINE_BREAK_TYPE_NATIVE);
-    if (NS_WARN_IF(NS_FAILED((rv)))) {
+    Result<uint32_t, nsresult> textLengthBeforeFirstContentOrError =
+        FlatTextCache::ComputeTextLengthBeforeContent(*aFirstContent,
+                                                      mRootElement);
+    if (NS_WARN_IF(textLengthBeforeFirstContentOrError.isErr())) {
       return;
     }
+    offset = textLengthBeforeFirstContentOrError.unwrap();
   } else {
     offset = mEndOfAddedTextCache.mFlatTextLength;
   }
-  uint32_t addingLength = 0;
-  rv = ContentEventHandler::GetFlatTextLengthInRange(
-      RawNodePosition::Before(*aFirstContent),
-      RawNodePosition::After(*aLastContent), mRootElement, &addingLength,
-      LINE_BREAK_TYPE_NATIVE);
-  if (NS_WARN_IF(NS_FAILED((rv)))) {
+  Result<uint32_t, nsresult> addingLengthOrError =
+      FlatTextCache::ComputeTextLengthStartOfContentToEndOfContent(
+          *aFirstContent, *aLastContent, mRootElement);
+  if (NS_WARN_IF(addingLengthOrError.isErr())) {
     mEndOfAddedTextCache.Clear();
     return;
   }
@@ -1019,13 +1016,13 @@ void IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
   // length can skip to compute the text length before the adding node and
   // before of it.
   mEndOfAddedTextCache.CacheFlatTextLengthBeforeEndOfContent(
-      *aLastContent, offset + addingLength);
+      *aLastContent, offset + addingLengthOrError.inspect());
 
-  if (!addingLength) {
+  if (!addingLengthOrError.inspect()) {
     return;
   }
 
-  TextChangeData data(offset, offset, offset + addingLength,
+  TextChangeData data(offset, offset, offset + addingLengthOrError.inspect(),
                       IsEditorHandlingEventForComposition(),
                       IsEditorComposing());
   MaybeNotifyIMEOfTextChange(data);
@@ -1163,27 +1160,24 @@ void IMEContentObserver::MaybeNotifyIMEOfAddedTextDuringDocumentChange() {
   //    |  aFirstContent   |              |
   //    |                  aLastContent   |
   //    offset                            (offset + length)
-  uint32_t offset;
-  nsresult rv = ContentEventHandler::GetFlatTextLengthInRange(
-      RawNodePosition::BeforeFirstContentOf(*mRootElement),
-      RawNodePosition::Before(*mFirstAddedContent), mRootElement, &offset,
-      LINE_BREAK_TYPE_NATIVE);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  Result<uint32_t, nsresult> offsetOrError =
+      FlatTextCache::ComputeTextLengthBeforeContent(*mFirstAddedContent,
+                                                    mRootElement);
+  if (NS_WARN_IF(offsetOrError.isErr())) {
     ClearAddedNodesDuringDocumentChange();
     return;
   }
-  uint32_t length;
-  rv = ContentEventHandler::GetFlatTextLengthInRange(
-      RawNodePosition::Before(*mFirstAddedContent),
-      RawNodePosition::After(*mLastAddedContent), mRootElement, &length,
-      LINE_BREAK_TYPE_NATIVE);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  Result<uint32_t, nsresult> lengthOrError =
+      FlatTextCache::ComputeTextLengthStartOfContentToEndOfContent(
+          *mFirstAddedContent, *mLastAddedContent, mRootElement);
+  if (NS_WARN_IF(lengthOrError.isErr())) {
     ClearAddedNodesDuringDocumentChange();
     return;
   }
 
   // Finally, try to notify IME of the range.
-  TextChangeData data(offset, offset, offset + length,
+  TextChangeData data(offsetOrError.inspect(), offsetOrError.inspect(),
+                      offsetOrError.inspect() + lengthOrError.inspect(),
                       IsEditorHandlingEventForComposition(),
                       IsEditorComposing());
   MaybeNotifyIMEOfTextChange(data);
@@ -2277,6 +2271,37 @@ IMEContentObserver::FlatTextCache::ComputeTextLengthOfRemovingContent(
       RawNodePosition::Before(aRemovingContent),
       RawNodePosition::AtEndOf(aRemovingContent), aRootElement, &textLength,
       LineBreakType::LINE_BREAK_TYPE_NATIVE, true);
+  if (NS_FAILED(rv)) {
+    return Err(rv);
+  }
+  return textLength;
+}
+
+/* static */
+Result<uint32_t, nsresult>
+IMEContentObserver::FlatTextCache::ComputeTextLengthBeforeContent(
+    const nsIContent& aContent, const dom::Element* aRootElement) {
+  uint32_t textLengthBeforeContent = 0;
+  nsresult rv = ContentEventHandler::GetFlatTextLengthInRange(
+      RawNodePosition::BeforeFirstContentOf(*aRootElement),
+      RawNodePosition::Before(aContent), aRootElement, &textLengthBeforeContent,
+      LineBreakType::LINE_BREAK_TYPE_NATIVE);
+  if (NS_FAILED(rv)) {
+    return Err(rv);
+  }
+  return textLengthBeforeContent;
+}
+
+/* static */
+Result<uint32_t, nsresult> IMEContentObserver::FlatTextCache::
+    ComputeTextLengthStartOfContentToEndOfContent(
+        const nsIContent& aStartContent, const nsIContent& aEndContent,
+        const dom::Element* aRootElement) {
+  uint32_t textLength = 0;
+  nsresult rv = ContentEventHandler::GetFlatTextLengthInRange(
+      RawNodePosition::Before(aStartContent),
+      RawNodePosition::After(aEndContent), aRootElement, &textLength,
+      LineBreakType::LINE_BREAK_TYPE_NATIVE);
   if (NS_FAILED(rv)) {
     return Err(rv);
   }
