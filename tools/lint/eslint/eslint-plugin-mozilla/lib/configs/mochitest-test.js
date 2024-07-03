@@ -23,12 +23,9 @@ module.exports = {
       files: ["*.js"],
     },
   ],
-  plugins: ["mozilla", "@microsoft/sdl"],
+  plugins: ["mozilla"],
 
   rules: {
-    "mozilla/import-content-task-globals": "error",
-    "mozilla/import-headjs-globals": "error",
-    "mozilla/mark-test-function-used": "error",
     // Turn off no-define-cc-etc for mochitests as these don't have Cc etc defined in the
     // global scope.
     "mozilla/no-define-cc-etc": "off",
@@ -39,9 +36,5 @@ module.exports = {
     // available.
     "mozilla/use-chromeutils-generateqi": "off",
     "no-shadow": "error",
-    // Turn off no-unsanitized for tests, as we do want to be able to use
-    // these for testing.
-    "no-unsanitized/method": "off",
-    "no-unsanitized/property": "off",
   },
 };

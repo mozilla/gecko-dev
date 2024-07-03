@@ -70,22 +70,14 @@ module.exports = {
     },
   ],
 
-  plugins: ["mozilla", "@microsoft/sdl"],
+  plugins: ["mozilla"],
 
   rules: {
-    "mozilla/import-content-task-globals": "error",
-    "mozilla/import-headjs-globals": "error",
-    "mozilla/mark-test-function-used": "error",
     "mozilla/no-addtask-setup": "error",
-    "mozilla/no-arbitrary-setTimeout": "error",
     "mozilla/no-comparison-or-assignment-inside-ok": "error",
     "mozilla/no-redeclare-with-import-autofix": [
       "error",
       { errorForNonImports: false },
     ],
-    // Turn off no-unsanitized for tests, as we do want to be able to use
-    // these for testing.
-    "no-unsanitized/method": "off",
-    "no-unsanitized/property": "off",
   },
 };

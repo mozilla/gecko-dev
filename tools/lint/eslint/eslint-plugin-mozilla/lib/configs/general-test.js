@@ -4,6 +4,8 @@
 "use strict";
 
 module.exports = {
+  plugins: ["mozilla", "@microsoft/sdl", "no-unsanitized"],
+
   rules: {
     // No using of insecure url, so no http urls.
     // Note: This is turned off for xpcshell-tests as it is not considered
@@ -27,6 +29,7 @@ module.exports = {
       },
     ],
 
+    "mozilla/import-content-task-globals": "error",
     "mozilla/import-headjs-globals": "error",
     "mozilla/mark-test-function-used": "error",
     "mozilla/no-arbitrary-setTimeout": "error",
