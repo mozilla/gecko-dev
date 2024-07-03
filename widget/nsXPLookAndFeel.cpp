@@ -1550,4 +1550,9 @@ void LookAndFeel::SetData(widget::FullLookAndFeel&& aTables) {
   nsLookAndFeel::GetInstance()->SetDataImpl(std::move(aTables));
 }
 
+// static
+nsresult LookAndFeel::GetKeyboardLayout(nsACString& aLayout) {
+  return nsLookAndFeel::GetInstance()->GetKeyboardLayoutImpl(aLayout);
+}
+
 }  // namespace mozilla
