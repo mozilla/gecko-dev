@@ -30,6 +30,7 @@
 #include "mozilla/MemoryReportingProcess.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/RecursiveMutex.h"
+#include "mozilla/Result.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
@@ -44,6 +45,7 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsIObserver.h"
 #include "nsIRemoteTab.h"
+#include "nsITransferable.h"
 #include "nsIDOMGeoPositionCallback.h"
 #include "nsIDOMGeoPositionErrorCallback.h"
 #include "nsRefPtrHashtable.h"
@@ -229,6 +231,12 @@ class ContentParent final : public PContentParent,
       bool aPreferUsed = false, uint64_t aBrowserId = 0);
 
   /**
+   * Create an nsITransferable with the specified data flavor types.
+   */
+  static mozilla::Result<nsCOMPtr<nsITransferable>, nsresult>
+  CreateClipboardTransferable(const nsTArray<nsCString>& aTypes);
+
+  /**
    * Asynchronously wait for this content process to finish launching, such that
    * the ContentParent actor is ready for IPC.
    *
@@ -343,6 +351,7 @@ class ContentParent final : public PContentParent,
   // been updated and so full reflows are in order.
   static void NotifyUpdatedFonts(bool aFullRebuild);
 
+  mozilla::ipc::IPCResult RecvCreateClipboardContentAnalysis();
   mozilla::ipc::IPCResult RecvCreateGMPService();
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(ContentParent, nsIObserver)
@@ -1510,6 +1519,9 @@ class ContentParent final : public PContentParent,
 
   // True if we already created a GMP service.
   uint8_t mGMPCreated : 1;
+  // True if we already created the
+  // ClipboardContentAnalysis actor
+  uint8_t mClipboardContentAnalysisCreated : 1;
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   bool mBlockShutdownCalled;
@@ -1590,6 +1602,8 @@ class ContentParent final : public PContentParent,
 
   bool mIsSignaledImpendingShutdown = false;
   bool mIsNotifiedShutdownSuccess = false;
+
+  nsCOMPtr<nsIThread> mClipboardContentAnalysisThread;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(ContentParent, NS_CONTENTPARENT_IID)
