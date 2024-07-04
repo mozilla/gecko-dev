@@ -49,20 +49,9 @@ class BackupTest(MarionetteTestCase):
         self.marionette.start_session()
         self.marionette.set_context("chrome")
 
-        self.marionette.execute_script(
-            """
-          const DefaultBackupResources = ChromeUtils.importESModule("resource:///modules/backup/BackupResources.sys.mjs");
-          let resourceKeys = [];
-          for (const resourceName in DefaultBackupResources) {
-            let resource = DefaultBackupResources[resourceName];
-            resourceKeys.push(resource.key);
-          }
-          return resourceKeys;
-        """
-        )
-
+        archiveDestPath = os.path.join(tempfile.gettempdir(), "backup-dest")
         recoveryCode = "This is a test password"
-        originalArchivePath = self.marionette.execute_async_script(
+        archivePath = self.marionette.execute_async_script(
             """
           const { OSKeyStore } = ChromeUtils.importESModule(
             "resource://gre/modules/OSKeyStore.sys.mjs"
@@ -73,7 +62,9 @@ class BackupTest(MarionetteTestCase):
             throw new Error("Could not get initialized BackupService.");
           }
 
-          let [recoveryCode, outerResolve] = arguments;
+          let [archiveDestPath, recoveryCode, outerResolve] = arguments;
+          bs.setParentDirPath(archiveDestPath);
+
           (async () => {
             // This is some hackery to make it so that OSKeyStore doesn't kick
             // off an OS authentication dialog in our test, and also to make
@@ -94,20 +85,8 @@ class BackupTest(MarionetteTestCase):
             return archivePath;
           })().then(outerResolve);
         """,
-            script_args=[recoveryCode],
+            script_args=[archiveDestPath, recoveryCode],
         )
-
-        # When we switch over to the recovered profile, the Marionette framework
-        # will blow away the profile directory of the one that we created the
-        # backup on, which ruins our ability to do postRecovery work, since
-        # that relies on the prior profile sticking around. We work around this
-        # by moving the backup archive we got back to the OS temporary
-        # directory, and telling the recovery method to use that instead of the
-        # one from the profile directory.
-        archivePath = os.path.join(tempfile.gettempdir(), "archive.html")
-        # Delete the destination folder if it exists already
-        shutil.rmtree(archivePath, ignore_errors=True)
-        shutil.move(originalArchivePath, archivePath)
 
         recoveryPath = os.path.join(tempfile.gettempdir(), "recovery")
         shutil.rmtree(recoveryPath, ignore_errors=True)
