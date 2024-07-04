@@ -46,6 +46,7 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.click
@@ -102,6 +103,7 @@ class DownloadRobot {
                 "$packageName:id/download_dialog_action_button",
                 getStringResource(R.string.mozac_feature_downloads_button_try_again),
             ),
+            waitingTime = waitingTimeLong,
         )
 
     fun clickTryAgainButton() {
