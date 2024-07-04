@@ -7,15 +7,14 @@
 #ifndef DOM_SVG_SVGPATHSEGUTILS_H_
 #define DOM_SVG_SVGPATHSEGUTILS_H_
 
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/Span.h"
-#include "nsStringFwd.h"
 
 namespace mozilla {
 template <typename Angle, typename LP>
 struct StyleGenericShapeCommand;
+using StylePathCommand = StyleGenericShapeCommand<float, float>;
 
 /**
  * Code that works with path segments can use an instance of this class to
@@ -76,9 +75,8 @@ class SVGPathSegUtils {
    * Traverse the given path segment and update the SVGPathTraversalState
    * object. This is identical to the above one but accepts StylePathCommand.
    */
-  static void TraversePathSegment(
-      const StyleGenericShapeCommand<float, float>& aCommand,
-      SVGPathTraversalState& aState);
+  static void TraversePathSegment(const StylePathCommand&,
+                                  SVGPathTraversalState&);
 };
 
 /// Detect whether the path represents a rectangle (for both filling AND
@@ -86,15 +84,14 @@ class SVGPathSegUtils {
 ///
 /// This is typically useful for google slides which has many of these rectangle
 /// shaped paths. It handles the same scenarios as skia's
-/// SkPathPriv::IsRectContour which it is inspried from, including zero-length
+/// SkPathPriv::IsRectContour which it is inspired from, including zero-length
 /// edges and multiple points on edges of the rectangle, and doesn't attempt to
 /// detect flat curves (that could easily be added but the expectation is that
 /// since skia doesn't fast path it we're not likely to run into it in
 /// practice).
 ///
 /// We could implement something similar for polygons.
-Maybe<gfx::Rect> SVGPathToAxisAlignedRect(
-    Span<const StyleGenericShapeCommand<float, float>> aPath);
+Maybe<gfx::Rect> SVGPathToAxisAlignedRect(Span<const StylePathCommand>);
 
 }  // namespace mozilla
 

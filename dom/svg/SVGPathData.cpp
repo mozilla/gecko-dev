@@ -38,14 +38,6 @@ void SVGPathData::GetValueAsString(nsACString& aValue) const {
   Servo_SVGPathData_ToString(&mData, &aValue);
 }
 
-float SVGPathData::GetPathLength() const {
-  SVGPathTraversalState state;
-  for (const auto& segment : AsSpan()) {
-    SVGPathSegUtils::TraversePathSegment(segment, state);
-  }
-  return state.length;
-}
-
 bool SVGPathData::GetDistancesFromOriginToEndsOfVisibleSegments(
     FallibleTArray<double>* aOutput) const {
   return GetDistancesFromOriginToEndsOfVisibleSegments(AsSpan(), aOutput);
@@ -78,27 +70,6 @@ bool SVGPathData::GetDistancesFromOriginToEndsOfVisibleSegments(
   }
 
   return true;
-}
-
-/* static */
-uint32_t SVGPathData::GetPathSegAtLength(Span<const StylePathCommand> aPath,
-                                         float aDistance) {
-  // TODO [SVGWG issue] get specified what happen if 'aDistance' < 0, or
-  // 'aDistance' > the length of the path, or the seg list is empty.
-  // Return -1? Throwing would better help authors avoid tricky bugs (DOM
-  // could do that if we return -1).
-  uint32_t segIndex = 0;
-  SVGPathTraversalState state;
-
-  for (const auto& cmd : aPath) {
-    SVGPathSegUtils::TraversePathSegment(cmd, state);
-    if (state.length >= aDistance) {
-      return segIndex;
-    }
-    segIndex++;
-  }
-
-  return std::max(1U, segIndex) - 1;
 }
 
 /**

@@ -112,13 +112,6 @@ class SVGPathData {
   StyleSVGPathData& RawData() { return mData; }
   const StyleSVGPathData& RawData() const { return mData; }
 
-  float GetPathLength() const;
-
-  uint32_t GetPathSegAtLength(float aDistance) const;
-
-  static uint32_t GetPathSegAtLength(Span<const StylePathCommand> aPath,
-                                     float aDistance);
-
   void GetMarkerPositioningData(float aZoom, nsTArray<SVGMark>* aMarks) const;
 
   static void GetMarkerPositioningData(Span<const StylePathCommand> aPath,
