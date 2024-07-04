@@ -1149,6 +1149,15 @@ class PropertyView {
   }
 
   /**
+   * If this is a registered property, return its initial-value
+   *
+   * @returns {Text|undefined}
+   */
+  get registeredPropertyInitialValue() {
+    return this.#tree.computed[this.name].registeredPropertyInitialValue;
+  }
+
+  /**
    * Create DOM elements for a property
    *
    * @return {Element} The <li> element
@@ -1299,20 +1308,9 @@ class PropertyView {
 
     this.#tree.numVisibleProperties++;
 
-    const outputParser = this.#tree.outputParser;
-    const frag = outputParser.parseCssProperty(
-      this.propertyInfo.name,
-      this.propertyInfo.value,
-      {
-        colorSwatchClass: "computed-colorswatch",
-        colorClass: "computed-color",
-        urlClass: "theme-link",
-        fontFamilyClass: "computed-font-family",
-        // No need to use baseURI here as computed URIs are never relative.
-      }
-    );
     this.valueNode.innerHTML = "";
-    this.valueNode.appendChild(frag);
+    // No need to pass the baseURI argument here as computed URIs are never relative.
+    this.valueNode.appendChild(this.#parseValue(this.propertyInfo.value));
 
     this.refreshInvalidAtComputedValueTime();
     this.refreshMatchedSelectors();
@@ -1433,7 +1431,12 @@ class PropertyView {
         class:
           "fix-get-selection computed-other-property-value theme-fg-color1",
       });
-      valueDiv.appendChild(selector.outputFragment);
+      valueDiv.appendChild(
+        this.#parseValue(
+          selector.selectorInfo.value,
+          selector.selectorInfo.rule.href
+        )
+      );
 
       // If the value is invalid at computed value time (IACVT), display the same
       // warning icon that we have in the rules view for IACVT declarations.
@@ -1448,8 +1451,50 @@ class PropertyView {
       }
     }
 
+    if (this.registeredPropertyInitialValue !== undefined) {
+      const p = createChild(frag, "p");
+      const status = createChild(p, "span", {
+        dir: "ltr",
+        class: "rule-text theme-fg-color3",
+      });
+
+      createChild(status, "div", {
+        class: "fix-get-selection",
+        textContent: "initial-value",
+      });
+
+      const valueDiv = createChild(status, "div", {
+        class:
+          "fix-get-selection computed-other-property-value theme-fg-color1",
+      });
+      valueDiv.appendChild(
+        this.#parseValue(this.registeredPropertyInitialValue)
+      );
+    }
+
     this.matchedSelectorsContainer.innerHTML = "";
     this.matchedSelectorsContainer.appendChild(frag);
+  }
+
+  /**
+   * Parse a property value using the OutputParser.
+   *
+   * @param {String} value
+   * @param {String} baseURI
+   * @returns {DocumentFragment}
+   */
+  #parseValue(value, baseURI) {
+    // Sadly, because this fragment is added to the template by DOM Templater
+    // we lose any events that are attached. This means that URLs will open in a
+    // new window. At some point we should fix this by stopping using the
+    // templater.
+    return this.#tree.outputParser.parseCssProperty(this.name, value, {
+      colorSwatchClass: "computed-colorswatch",
+      colorClass: "computed-color",
+      urlClass: "theme-link",
+      fontFamilyClass: "computed-font-family",
+      baseURI,
+    });
   }
 
   /**
@@ -1629,26 +1674,6 @@ class SelectorView {
 
   get value() {
     return this.selectorInfo.value;
-  }
-
-  get outputFragment() {
-    // Sadly, because this fragment is added to the template by DOM Templater
-    // we lose any events that are attached. This means that URLs will open in a
-    // new window. At some point we should fix this by stopping using the
-    // templater.
-    const outputParser = this.#tree.outputParser;
-    const frag = outputParser.parseCssProperty(
-      this.selectorInfo.name,
-      this.selectorInfo.value,
-      {
-        colorSwatchClass: "computed-colorswatch",
-        colorClass: "computed-color",
-        urlClass: "theme-link",
-        fontFamilyClass: "computed-font-family",
-        baseURI: this.selectorInfo.rule.href,
-      }
-    );
-    return frag;
   }
 
   /**

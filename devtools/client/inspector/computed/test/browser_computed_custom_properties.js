@@ -93,6 +93,11 @@ add_task(async function () {
           value: "1em",
           invalidAtComputedValueTime: true,
         },
+        {
+          selector: "initial-value",
+          value: "rgb(200, 100, 00)",
+          invalidAtComputedValueTime: false,
+        },
       ],
     },
   ]);
@@ -123,6 +128,11 @@ add_task(async function () {
           selector: "body",
           value: "1em",
           invalidAtComputedValueTime: true,
+        },
+        {
+          selector: "initial-value",
+          value: "rgb(200, 100, 00)",
+          invalidAtComputedValueTime: false,
         },
       ],
     },
@@ -162,6 +172,11 @@ add_task(async function () {
           value: "1em",
           invalidAtComputedValueTime: true,
         },
+        {
+          selector: "initial-value",
+          value: "rgb(200, 100, 00)",
+          invalidAtComputedValueTime: false,
+        },
       ],
     },
   ]);
@@ -182,6 +197,13 @@ add_task(async function () {
     {
       name: "--registered-color",
       value: "rgb(0, 100, 200)",
+      matchedRules: [
+        {
+          selector: "initial-value",
+          value: "rgb(0, 100, 200)",
+          invalidAtComputedValueTime: false,
+        },
+      ],
     },
     {
       name: "--registered-color-secondary",
@@ -203,11 +225,23 @@ add_task(async function () {
           value: "1em",
           invalidAtComputedValueTime: true,
         },
+        {
+          selector: "initial-value",
+          value: "rgb(200, 100, 00)",
+          invalidAtComputedValueTime: false,
+        },
       ],
     },
     {
       name: "--registered-length",
       value: "10px",
+      matchedRules: [
+        {
+          selector: "initial-value",
+          value: "10px",
+          invalidAtComputedValueTime: false,
+        },
+      ],
     },
   ]);
 

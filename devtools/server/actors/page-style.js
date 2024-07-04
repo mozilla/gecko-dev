@@ -277,16 +277,19 @@ class PageStyleActor extends Actor {
           targetDocument,
           name
         );
-        if (
-          registeredProperty &&
-          !InspectorUtils.valueMatchesSyntax(
-            targetDocument,
-            ret[name].value,
-            registeredProperty.syntax
-          )
-        ) {
-          ret[name].invalidAtComputedValueTime = true;
-          ret[name].registeredPropertySyntax = registeredProperty.syntax;
+        if (registeredProperty) {
+          ret[name].registeredPropertyInitialValue =
+            registeredProperty.initialValue;
+          if (
+            !InspectorUtils.valueMatchesSyntax(
+              targetDocument,
+              ret[name].value,
+              registeredProperty.syntax
+            )
+          ) {
+            ret[name].invalidAtComputedValueTime = true;
+            ret[name].registeredPropertySyntax = registeredProperty.syntax;
+          }
         }
       }
     }
