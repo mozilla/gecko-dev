@@ -52,7 +52,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ArchiveUtils: "resource:///modules/backup/ArchiveUtils.sys.mjs",
   BasePromiseWorker: "resource://gre/modules/PromiseWorker.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
-  DownloadPaths: "resource://gre/modules/DownloadPaths.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
@@ -518,13 +517,6 @@ export class BackupService extends EventTarget {
   static #backupFolderName = null;
 
   /**
-   * The name of the backup archive file. Should be localized.
-   *
-   * @see BACKUP_FILE_NAME
-   */
-  static #backupFileName = null;
-
-  /**
    * Set to true if a backup is currently in progress. Causes stateUpdate()
    * to be called.
    *
@@ -627,26 +619,10 @@ export class BackupService extends EventTarget {
    */
   static get BACKUP_DIR_NAME() {
     if (!BackupService.#backupFolderName) {
-      BackupService.#backupFolderName = lazy.DownloadPaths.sanitize(
-        lazy.gFluentStrings.formatValueSync("backup-folder-name")
-      );
+      BackupService.#backupFolderName =
+        lazy.gFluentStrings.formatValueSync("backup-folder-name");
     }
     return BackupService.#backupFolderName;
-  }
-
-  /**
-   * The localized name for the user's backup archive file. This will have
-   * `.html` appended to it before writing the archive file.
-   *
-   * @returns {string} The localized backup file name
-   */
-  static get BACKUP_FILE_NAME() {
-    if (!BackupService.#backupFileName) {
-      BackupService.#backupFileName = lazy.DownloadPaths.sanitize(
-        lazy.gFluentStrings.formatValueSync("backup-file-name")
-      );
-    }
-    return BackupService.#backupFileName;
   }
 
   /**
@@ -879,115 +855,6 @@ export class BackupService extends EventTarget {
   }
 
   /**
-   * Attempts to find the right folder to write the single-file archive to, and
-   * if it does not exist, to create it.
-   *
-   * If the configured destination's parent folder does not exist and cannot
-   * be recreated, we will fall back to the `defaultParentDirPath`. If
-   * `defaultParentDirPath` happens to not exist or cannot be created, we will
-   * fall back to the home directory. If _that_ folder does not exist and cannot
-   * be recreated, this method will reject.
-   *
-   * @param {string} configuredDestFolderPath
-   *   The currently configured destination folder for the archive.
-   * @returns {Promise<string, Error>}
-   */
-  async resolveArchiveDestFolderPath(configuredDestFolderPath) {
-    lazy.logConsole.log(
-      "Resolving configured archive destination folder: ",
-      configuredDestFolderPath
-    );
-
-    // Try to create the configured folder ancestry. If that fails, we clear
-    // configuredDestFolderPath so that we can try the fallback paths, as
-    // if the folder was never set.
-    try {
-      await IOUtils.makeDirectory(configuredDestFolderPath, {
-        createAncestors: true,
-        ignoreExisting: true,
-      });
-      return configuredDestFolderPath;
-    } catch (e) {
-      lazy.logConsole.warn("Could not create configured destination path: ", e);
-    }
-
-    lazy.logConsole.warn(
-      "The destination directory was invalid. Attempting to fall back to " +
-        "default parent folder: ",
-      BackupService.DEFAULT_PARENT_DIR_PATH
-    );
-    let fallbackFolderPath = PathUtils.join(
-      BackupService.DEFAULT_PARENT_DIR_PATH,
-      BackupService.BACKUP_DIR_NAME
-    );
-    try {
-      await IOUtils.makeDirectory(fallbackFolderPath, {
-        createAncestors: true,
-        ignoreExisting: true,
-      });
-      return fallbackFolderPath;
-    } catch (e) {
-      lazy.logConsole.warn("Could not create fallback destination path: ", e);
-    }
-
-    let homeDirPath = PathUtils.join(
-      Services.dirsvc.get("Home", Ci.nsIFile).path,
-      BackupService.BACKUP_DIR_NAME
-    );
-    lazy.logConsole.warn(
-      "The destination directory was invalid. Attempting to fall back to " +
-        "Home folder: ",
-      homeDirPath
-    );
-    try {
-      await IOUtils.makeDirectory(homeDirPath, {
-        createAncestors: true,
-        ignoreExisting: true,
-      });
-      return homeDirPath;
-    } catch (e) {
-      lazy.logConsole.warn("Could not create Home destination path: ", e);
-      throw new Error(
-        "Could not resolve to a writable destination folder path."
-      );
-    }
-  }
-
-  /**
-   * Computes the appropriate link to place in the single-file archive for
-   * downloading a version of this application for the same update channel.
-   *
-   * When bug 1905909 lands, we'll first check to see if there are download
-   * links available in Remote Settings.
-   *
-   * If there aren't any, we will fallback by looking for preference values at
-   * browser.backup.template.fallback-download.${updateChannel}.
-   *
-   * If no such preference exists, a final "ultimate" fallback download link is
-   * chosen for the release channel.
-   *
-   * @param {string} updateChannel
-   *  The current update channel for the application, as provided by
-   *  AppConstants.MOZ_UPDATE_CHANNEL.
-   * @returns {Promise<string>}
-   */
-  async resolveDownloadLink(updateChannel) {
-    // If all else fails, this is the download link we'll put into the rendered
-    // template.
-    const ULTIMATE_FALLBACK_DOWNLOAD_URL =
-      "https://www.mozilla.org/firefox/download/thanks/?s=direct&utm_medium=firefox-desktop&utm_source=backup&utm_campaign=firefox-backup-2024&utm_content=control";
-    const FALLBACK_DOWNLOAD_URL = Services.prefs.getStringPref(
-      `browser.backup.template.fallback-download.${updateChannel}`,
-      ULTIMATE_FALLBACK_DOWNLOAD_URL
-    );
-
-    // Bug 1905909: Once we set up the download links in RemoteSettings, we can
-    // query for them here.
-
-    return FALLBACK_DOWNLOAD_URL;
-  }
-
-  /**
    * @typedef {object} CreateBackupResult
    * @property {string} stagingPath
    *   The staging path for where the backup was created.
@@ -1020,14 +887,6 @@ export class BackupService extends EventTarget {
 
     try {
       lazy.logConsole.debug(`Creating backup for profile at ${profilePath}`);
-
-      let archiveDestFolderPath = await this.resolveArchiveDestFolderPath(
-        lazy.backupDirPref
-      );
-      lazy.logConsole.debug(
-        `Destination for archive: ${archiveDestFolderPath}`
-      );
-
       let manifest = await this.#createBackupManifest();
 
       // First, check to see if a `backups` directory already exists in the
@@ -1164,21 +1023,15 @@ export class BackupService extends EventTarget {
       );
 
       // Now create the single-file archive. For now, we'll stash this in the
-      // backups folder while it gets written. Once that's done, we'll attempt
-      // to move it to the user's configured backup path.
-      let archiveTmpPath = PathUtils.join(backupDirPath, "archive.html");
-      lazy.logConsole.log("Exporting single-file archive to ", archiveTmpPath);
+      // backups folder while we test this. It'll eventually get moved to the
+      // user's configured backup path once that part is built out.
+      let archivePath = PathUtils.join(backupDirPath, "archive.html");
+      lazy.logConsole.log("Exporting single-file archive to ", archivePath);
       await this.createArchive(
-        archiveTmpPath,
+        archivePath,
         BackupService.ARCHIVE_TEMPLATE,
         compressedStagingPath,
         this.#encState,
-        manifest.meta
-      );
-
-      let archivePath = await this.finalizeSingleFileArchive(
-        archiveTmpPath,
-        archiveDestFolderPath,
         manifest.meta
       );
 
@@ -1194,88 +1047,6 @@ export class BackupService extends EventTarget {
     } finally {
       this.#backupInProgress = false;
     }
-  }
-
-  /**
-   * Generates a string from a Date in the form of:
-   *
-   * YYYYMMDD-HHMM
-   *
-   * @param {Date} date
-   *   The date to convert into the archive date suffix.
-   * @returns {string}
-   */
-  generateArchiveDateSuffix(date) {
-    let year = date.getFullYear().toString();
-
-    // In all cases, months or days with single digits are expected to start
-    // with a 0.
-
-    // Note that getMonth() is 0-indexed for some reason, so we increment by 1.
-    let month = `${date.getMonth() + 1}`.padStart(2, "0");
-
-    let day = `${date.getDate()}`.padStart(2, "0");
-    let hours = `${date.getHours()}`.padStart(2, "0");
-    let minutes = `${date.getMinutes()}`.padStart(2, "0");
-
-    return `${year}${month}${day}-${hours}${minutes}`;
-  }
-
-  /**
-   * Moves the single-file archive into its configured location with a filename
-   * that is sanitized and contains a timecode. This also removes any existing
-   * single-file archives in that same folder after the move completes.
-   *
-   * @param {string} sourcePath
-   *   The file system location of the single-file archive prior to the move.
-   * @param {string} destFolder
-   *   The folder that the single-file archive is configured to be eventually
-   *   written to.
-   * @param {object} metadata
-   *   The metadata for the backup. See the BackupManifest schema for details.
-   * @returns {Promise<string>}
-   *   Resolves with the path that the single-file archive was moved to.
-   */
-  async finalizeSingleFileArchive(sourcePath, destFolder, metadata) {
-    let archiveDateSuffix = this.generateArchiveDateSuffix(
-      new Date(metadata.date)
-    );
-
-    let existingChildren = await IOUtils.getChildren(destFolder);
-
-    const FILENAME_PREFIX = `${BackupService.BACKUP_FILE_NAME}_${metadata.profileName}`;
-    const FILENAME = `${FILENAME_PREFIX}_${archiveDateSuffix}.html`;
-    let destPath = PathUtils.join(destFolder, FILENAME);
-    lazy.logConsole.log("Moving single-file archive to ", destPath);
-    await IOUtils.move(sourcePath, destPath);
-
-    for (let childFilePath of existingChildren) {
-      let childFileName = PathUtils.filename(childFilePath);
-      // We check both the prefix and the suffix, because the prefix encodes
-      // the profile name in it. If there are other profiles from the same
-      // application performing backup, we don't want to accidentally remove
-      // those.
-      if (
-        childFileName.startsWith(FILENAME_PREFIX) &&
-        childFileName.endsWith(".html")
-      ) {
-        if (childFileName == FILENAME) {
-          // Since filenames don't include seconds, this might occur if a
-          // backup was created seconds after the last one during the same
-          // minute. That tends not to happen in practice, but might occur
-          // during testing, in which case, we'll skip clearing this file.
-          lazy.logConsole.warn(
-            "Collided with a pre-existing archive name, so not clearing: ",
-            FILENAME
-          );
-          continue;
-        }
-        lazy.logConsole.debug("Getting rid of ", childFilePath);
-        await IOUtils.remove(childFilePath);
-      }
-    }
-
-    return destPath;
   }
 
   /**
@@ -1508,11 +1279,7 @@ export class BackupService extends EventTarget {
       Services.locale.appLocaleAsBCP47
     );
 
-    let downloadLink = templateDOM.querySelector("#download-moz-browser");
-    downloadLink.href = await this.resolveDownloadLink(
-      AppConstants.MOZ_UPDATE_CHANNEL
-    );
-
+    // TODO: insert download link (bug 1903117)
     let supportLinkHref =
       Services.urlFormatter.formatURLPref("app.support.baseURL") +
       "recover-from-backup";

@@ -54,7 +54,7 @@ ol > li {
   margin-block: 1.5rem;
 }
 
-a.button-link {
+button {
   appearance: none;
   color: #fbfbfe;
   border: 1px solid transparent;
@@ -63,13 +63,12 @@ a.button-link {
   padding: calc(2 * 0.267rem) calc(4 * 0.267rem);
   font-size: inherit;
   margin-inline-start: 18px;
-  text-decoration: none;
+}
 
-  &:hover {
-    background-color: #0250bb;
-  }
+button:hover {
+  background-color: #0250bb;
+}
 
-  &:active {
-    background-color: #073072;
-  }
+button:active {
+  background-color: #073072;
 }

@@ -42,9 +42,6 @@ const FAKE_METADATA = {
 
 do_get_profile();
 
-// Configure any backup files to get written into a temporary folder.
-Services.prefs.setStringPref("browser.backup.location", PathUtils.tempDir);
-
 /**
  * Some fake backup resource classes to test with.
  */
