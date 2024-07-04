@@ -16,6 +16,7 @@
 #include "WidgetUtilsGtk.h"
 #include "gfxConfig.h"
 #include "nsIGfxInfo.h"
+#include "GfxInfo.h"
 #include "mozilla/Components.h"
 #include "mozilla/ClearOnShutdown.h"
 
@@ -180,6 +181,18 @@ void DMABufDevice::Configure() {
     LOGDMABUF(("GbmLib is not available!"));
     mFailureId = "FEATURE_FAILURE_NO_LIBGBM";
     return;
+  }
+
+  // See Bug 1865747 for details.
+  if (auto* gbmBackend = getenv("GBM_BACKEND")) {
+    const nsCOMPtr<nsIGfxInfo> gfxInfo = components::GfxInfo::Service();
+    nsAutoString vendorID;
+    gfxInfo->GetAdapterVendorID(vendorID);
+    if (vendorID != GfxDriverInfo::GetDeviceVendor(DeviceVendor::NVIDIA)) {
+      if (strstr(gbmBackend, "nvidia")) {
+        unsetenv("GBM_BACKEND");
+      }
+    }
   }
 
   mDrmRenderNode = nsAutoCString(getenv("MOZ_DRM_DEVICE"));
