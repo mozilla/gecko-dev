@@ -35,6 +35,7 @@
 #include "nsWindowsHelpers.h"
 
 #define LOG(...) MOZ_LOG(sPDMLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
+#define LOGV(...) MOZ_LOG(sPDMLog, mozilla::LogLevel::Verbose, (__VA_ARGS__))
 
 using mozilla::layers::Image;
 using mozilla::layers::IMFYCbCrImage;
@@ -500,6 +501,8 @@ WMFVideoMFTManager::Input(MediaRawData* aSample) {
       aSample->mTime.ToMicroseconds(), aSample->mDuration.ToMicroseconds(),
       &inputSample);
   NS_ENSURE_TRUE(SUCCEEDED(hr) && inputSample != nullptr, hr);
+  LOGV("WMFVIdeoMFTManager(%p)::Input: %s", this,
+       aSample->mDuration.ToString().get());
 
   if (!mColorSpace && aSample->mTrackInfo) {
     // The colorspace definition is found in the H264 SPS NAL, available out of
@@ -510,7 +513,9 @@ WMFVideoMFTManager::Input(MediaRawData* aSample) {
   }
   mLastDuration = aSample->mDuration;
 
-  mPTSQueue.InsertElementSorted(aSample->mTime.ToMicroseconds());
+  if (mKeepOriginalPts) {
+    mPTSQueue.InsertElementSorted(aSample->mTime.ToMicroseconds());
+  }
 
   // Forward sample data to the decoder.
   return mDecoder->Input(inputSample);
@@ -804,10 +809,12 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset, RefPtr<MediaData>& aOutData) {
   while (true) {
     hr = mDecoder->Output(&sample);
     if (hr == MF_E_TRANSFORM_NEED_MORE_INPUT) {
+      LOGV("WMFVideoMFTManager(%p)::Output: need more input", this);
       return MF_E_TRANSFORM_NEED_MORE_INPUT;
     }
 
     if (hr == MF_E_TRANSFORM_STREAM_CHANGE) {
+      LOGV("WMFVideoMFTManager(%p)::Output: transform stream change", this);
       MOZ_ASSERT(!sample);
       // Video stream output type change, probably geometric aperture change or
       // pixel type.
@@ -894,6 +901,7 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset, RefPtr<MediaData>& aOutData) {
         LOG("Couldn't get pts from IMFSample, falling back on container pts");
         pts = TimeUnit::Zero();
       }
+      LOG("WMFVIdeoMFTManager(%p)::Output: %s", this, pts.ToString().get());
       TimeUnit duration = GetSampleDurationOrLastKnownDuration(sample);
 
       // AV1 MFT fix: Sample duration after seeking is always equal to the
@@ -941,10 +949,10 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset, RefPtr<MediaData>& aOutData) {
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
   NS_ENSURE_TRUE(frame, E_FAIL);
 
-  MOZ_ASSERT(!mPTSQueue.IsEmpty());
-  int64_t originalPts = mPTSQueue[0];
-  mPTSQueue.RemoveElementAt(0);
-  if (frame->mTime.ToMicroseconds() != originalPts && mKeepOriginalPts) {
+  if (mKeepOriginalPts) {
+    MOZ_ASSERT(!mPTSQueue.IsEmpty());
+    int64_t originalPts = mPTSQueue[0];
+    mPTSQueue.RemoveElementAt(0);
     LOG("Overriding decoded pts of %s with original pts of %" PRId64,
         frame->mTime.ToString().get(), originalPts);
     frame->mTime = TimeUnit::FromMicroseconds(originalPts);
