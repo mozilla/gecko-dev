@@ -114,6 +114,12 @@
     <string name="erase_action_cfr_message">Tapiwch yma i ddechrau sesiwn breifat newydd. Bydd yn dileu eich hanes, cwcis — popeth.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Porwch yn gyflymach gyda llywio newydd</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">Mae\'r bar hwn yn cuddio wrth i chi sgrolio i lawr am le pori ychwanegol.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Mae angen mynediad i’r camera. Ewch i osodiadau Android, tapiwch Permissions, a thapio Allow.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1415,21 +1421,16 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Cau tabiau preifat</string>
 
-    <!-- Microsuverys -->
-    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abrevation for "second". -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Helpwch i wella argraffu yn Firefox. Dim ond eiliad mae\'n ei gymryd</string>
-    <!-- Text shown in prompt for printing microsurvey. 'Firefox' intentionally hardcoded here--> --&gt;
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Pa mor fodlon ydych chi gydag argraffu yn Firefox?</string>
     <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources">Niwtral</string>
+    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Niwtral</string>
     <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources">Anfodlon Iawn</string>
+    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Anfodlon Iawn</string>
     <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources">Anfodlon</string>
+    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Anfodlon</string>
     <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources">Bodlon</string>
+    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Bodlon</string>
     <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources">Bodlon Iawn</string>
+    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Bodlon Iawn</string>
 
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
@@ -1479,6 +1480,8 @@
     <string name="snackbar_tab_closed">Tab wedi’i gau</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Tab wedi’i gau</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Tabiau ar gau: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Nodau tudalen wedi’u cadw!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2727,15 +2730,23 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Dydw i ddim yn ei ddefnyddio</string>
-    <!-- Text shown in prompt for homepage microsurvey. 'Firefox' intentionally hardcoded here- -->
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Pa mor fodlon ydych chi gyda\'ch cartref Firefox?</string>
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Helpwch i wella argraffu yn Firefox. Dim ond eiliad mae\'n ei gymryd</string>
+    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Pa mor fodlon ydych chi gydag argraffu yn Firefox?</string>
     <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">Logo Firefox</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">Eicon nodwedd arolwg</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources">Agor arolwg</string>
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Agor arolwg</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
-    <string name="microsurvey_close_handle_content_description" tools:ignore="UnusedResources">Cau\'r arolwg</string>
+    <string name="microsurvey_close_handle_content_description">Cau\'r arolwg</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
-    <string name="microsurvey_close_button_content_description" tools:ignore="UnusedResources">Cau</string>
+    <string name="microsurvey_close_button_content_description">Cau</string>
 
     <!-- Debug drawer logins -->
     <!-- The title of the Logins feature in the Debug Drawer. -->

@@ -2097,6 +2097,9 @@
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
     <string name="other_default_search_engine_suggestion_header">%s සෙවුම</string>
 
+    <!-- Default browser experiment -->
+    <!-- Default browser card title -->
+    <string name="default_browser_experiment_card_title">පෙරනිමි අතිරික්සුව මාරු කරන්න</string>
     <!-- Default browser card text -->
     <string name="default_browser_experiment_card_text">ෆයර්ෆොක්ස් අතිරික්සුවේ ස්වයංක්‍රීයව විවෘත වීමට පණිවිඩ, වි-තැපැල් සහ අඩවිවල සබැඳි සකසන්න.</string>
 
@@ -2385,6 +2388,37 @@
     <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_private">පෞද්. පටිති වෙත දමන්න</string>
 
     <!-- Micro survey -->
+
+    <!-- The continue button label -->
+    <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">ඉදිරියට</string>
+    <!-- Survey view -->
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">මෙම සමීක්ෂණය සම්පූර්ණ කරන්න</string>
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header_2">කරුණාකර සමීක්ෂණය සම්පූර්ණ කරන්න</string>
+    <!-- The privacy notice link -->
+    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">පෞද්ගලිකත්‍ව දැන්වීම</string>
+    <!-- The privacy notice link -->
+    <string name="micro_survey_privacy_notice_2">පෞද්ගලිකත්‍ව දැන්වීම</string>
+    <!-- The submit button label text -->
+    <string name="micro_survey_submit_button_label">යොමන්න</string>
+    <!-- The close button label text -->
+    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">වසන්න</string>
+    <!-- The survey completion header -->
+    <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">සමීක්ෂණය සම්පූර්ණයි</string>
+    <!-- The survey completion confirmation text -->
+    <string name="micro_survey_feedback_confirmation">ඔබගේ ප්‍රතිපෝෂණයට ස්තූතියි!</string>
+    <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">ෆයර්ෆොක්ස් ලාංඡනය</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">සමීක්ෂණ විශේෂාංගයේ නිරූපකය</string>
+    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">සමීක්ෂණය අරින්න</string>
+    <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
+    <string name="microsurvey_close_handle_content_description">සමීක්ෂණය වසන්න</string>
+    <!-- Content description for "X" button that is closing microsurvey. -->
+    <string name="microsurvey_close_button_content_description">වසන්න</string>
 
     <!-- Debug drawer logins -->
     <!-- The title of the Logins feature in the Debug Drawer. -->

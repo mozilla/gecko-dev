@@ -1420,21 +1420,16 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Fechar abas privativas</string>
 
-    <!-- Microsuverys -->
-    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abrevation for "second". -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Ajude a melhorar a impressão no Firefox, é bem rápido</string>
-    <!-- Text shown in prompt for printing microsurvey. 'Firefox' intentionally hardcoded here--> --&gt;
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Qual é seu nível de satisfação com impressão no Firefox?</string>
     <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources">Neutro</string>
+    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Neutro</string>
     <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources">Muito insatisfeito</string>
+    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Muito insatisfeito</string>
     <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources">Insatisfeito</string>
+    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Insatisfeito</string>
     <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources">Satisfeito</string>
+    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Satisfeito</string>
     <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources">Muito satisfeito</string>
+    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Muito satisfeito</string>
 
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
@@ -2745,15 +2740,23 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Eu não uso</string>
-    <!-- Text shown in prompt for homepage microsurvey. 'Firefox' intentionally hardcoded here- -->
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Qual é seu nível de satisfação com a tela inicial do Firefox?</string>
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Ajude a melhorar a impressão no Firefox, é bem rápido</string>
+    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Qual é seu nível de satisfação com impressão no Firefox?</string>
     <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">Logotipo do Firefox</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">Ícone de recurso de pesquisa de opinião</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources">Abrir pesquisa de opinião</string>
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Abrir pesquisa de opinião</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
-    <string name="microsurvey_close_handle_content_description" tools:ignore="UnusedResources">Fechar pesquisa de opinião</string>
+    <string name="microsurvey_close_handle_content_description">Fechar pesquisa de opinião</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
-    <string name="microsurvey_close_button_content_description" tools:ignore="UnusedResources">Fechar</string>
+    <string name="microsurvey_close_button_content_description">Fechar</string>
 
     <!-- Debug drawer logins -->
     <!-- The title of the Logins feature in the Debug Drawer. -->

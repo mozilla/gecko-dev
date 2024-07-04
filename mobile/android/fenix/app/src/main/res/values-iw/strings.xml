@@ -114,6 +114,12 @@
     <string name="erase_action_cfr_message">יש להקיש כאן כדי להתחיל הפעלה פרטית חדשה. פעולה זו תמחק את ההיסטוריה והעוגיות שלך - הכל.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">גלישה מהירה יותר עם ניווט חדש</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">סרגל זה מתחבא בעת גלילה כלפי מטה, לקבלת שטח גלישה נוסף.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">דרושה גישה למצלמה. יש לעבור להגדרות ה־Android, להקיש על הרשאות ולאחר מכן על ״לאפשר״.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1418,21 +1424,16 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">סגירת לשוניות פרטיות</string>
 
-    <!-- Microsuverys -->
-    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abrevation for "second". -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">עזרו לשפר את יכולות ההדפסה ב־Firefox. זה ייקח רק שנייה</string>
-    <!-- Text shown in prompt for printing microsurvey. 'Firefox' intentionally hardcoded here--> --&gt;
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">עד כמה הינך מרוצה מההדפסה ב־Firefox?</string>
     <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources">נטרלי</string>
+    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">נטרלי</string>
     <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources">מאוד לא מרוצה</string>
+    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">מאוד לא מרוצה</string>
     <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources">לא מרוצה</string>
+    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">לא מרוצה</string>
     <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources">מרוצה</string>
+    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">מרוצה</string>
     <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources">מאוד מרוצה</string>
+    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">מאוד מרוצה</string>
 
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
@@ -1484,6 +1485,8 @@
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">הלשוניות נסגרו</string>
 
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">לשוניות שנסגרו: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">הסימניות נשמרו!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2738,15 +2741,23 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">אין לי שימוש בזה</string>
-    <!-- Text shown in prompt for homepage microsurvey. 'Firefox' intentionally hardcoded here- -->
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">עד כמה הינך מרוצה מדף הבית שלך ב־Firefox?</string>
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">עזרו לשפר את יכולות ההדפסה ב־Firefox. זה ייקח רק שנייה</string>
+    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">עד כמה הינך מרוצה מההדפסה ב־Firefox?</string>
     <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">הסמל של Firefox</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">סמל של סקר על תכונות</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources">פתיחת סקר</string>
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">פתיחת סקר</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
-    <string name="microsurvey_close_handle_content_description" tools:ignore="UnusedResources">סגירת סקר</string>
+    <string name="microsurvey_close_handle_content_description">סגירת סקר</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
-    <string name="microsurvey_close_button_content_description" tools:ignore="UnusedResources">סגירה</string>
+    <string name="microsurvey_close_button_content_description">סגירה</string>
 
     <!-- Debug drawer logins -->
     <!-- The title of the Logins feature in the Debug Drawer. -->

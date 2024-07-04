@@ -95,9 +95,6 @@
     <!-- Shortcut action to open new private tab -->
     <string name="home_screen_shortcut_open_new_private_tab_2">Filă privată nouă</string>
 
-    <!-- Shortcut action to open Passwords screens -->
-    <string name="home_screen_shortcut_open_password_screen">Comandă rapidă pentru parole</string>
-
     <!-- Recent Tabs -->
     <!-- Header text for jumping back into the recent tab in the home screen -->
     <string name="recent_tabs_header">Revino la această filă</string>
@@ -121,10 +118,6 @@
     <string name="browser_menu_refresh">Reîmprospătare</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">Oprire</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">Suplimente</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">Nu există suplimente aici</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">Ajutor</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -139,8 +132,6 @@
     <string name="browser_menu_open_in_regular_tab">Deschide într-o filă nouă</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Adaugă în ecranul de start</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">Instalează</string>
     <!-- Browser menu button that opens the find in page menu -->
     <string name="browser_menu_find_in_page">Caută în pagină</string>
     <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
@@ -290,7 +281,7 @@
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Cont</string>
     <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">Bară de unelte</string>
+    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Bară de unelte</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Temă</string>
     <!-- Preference for customizing the home screen -->
@@ -326,9 +317,6 @@
     <!-- Preference for open download with an external download manager app -->
     <string name="preferences_external_download_manager">Manager extern pentru descărcări</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons">Suplimente</string>
-
     <!-- Preference for notifications -->
     <string name="preferences_notifications">Notificări</string>
 
@@ -338,7 +326,7 @@
     <string name="customize_addon_collection_hint">Numele colecției</string>
 
     <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks">Marcaje recente</string>
+    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">Marcaje recente</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">Vizitate recent</string>
@@ -355,8 +343,6 @@
     <string name="preferences_sync_history">Istoric</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">Marcaje</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins" moz:RemovedIn="125" tools:ignore="UnusedResources">Date de autentificare</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">File deschise</string>
     <!-- Preference for signing out -->
@@ -787,6 +773,9 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Închide filele private</string>
 
+    <!-- Preference for not taking the short survey. -->
+    <string name="preferences_not_take_survey">Nu, mulțumesc</string>
+
     <!-- Snackbar -->
     <!-- Text shown in snackbar when user deletes a collection -->
     <string name="snackbar_collection_deleted">Colecție ștersă</string>
@@ -813,10 +802,6 @@
     <string name="qr_scanner_dialog_negative">REFUZĂ</string>
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">Sigur vrei să ștergi %1$s?</string>
-    <!-- Collection and tab deletion prompt dialog message. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_message">Ștergerea acestei file va șterge toată colecția. Poți crea în orice moment colecții noi.</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">Ștergi %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Șterge</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
@@ -1034,35 +1019,15 @@
     <!-- Describes the add to homescreen functionality -->
     <string name="add_to_homescreen_description_2">Poți adăuga cu ușurință acest site web în ecranul de start al dispozitivului pentru acces instant și o navigare mai rapidă, ca și cum ai fi într-o aplicație.</string>
 
-    <!-- Preference for managing the settings for logins and passwords in Fenix -->
-    <string name="preferences_passwords_logins_and_passwords" moz:RemovedIn="125" tools:ignore="UnusedResources">Date de autentificare și parole</string>
-    <!-- Preference for managing the saving of logins and passwords in Fenix -->
-    <string name="preferences_passwords_save_logins" moz:RemovedIn="125" tools:ignore="UnusedResources">Salvează datele de autentificare și parolele</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">Întreabă pentru salvare</string>
     <!-- Preference option for never saving passwords in Fenix -->
     <string name="preferences_passwords_save_logins_never_save">Nu salva niciodată</string>
 
-    <!-- Preference for syncing saved passwords in Fenix -->
-    <string name="preferences_passwords_sync_logins" moz:RemovedIn="125" tools:ignore="UnusedResources">Sincronizează datele de autentificare</string>
-    <!-- Preference for syncing saved logins in Fenix, when not signed in-->
-    <string name="preferences_passwords_sync_logins_across_devices" moz:RemovedIn="125" tools:ignore="UnusedResources">Sincronizează datele de autentificare între dispozitive</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins" moz:RemovedIn="125" tools:ignore="UnusedResources">Date de autentificare salvate</string>
-    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
-    <string name="preferences_passwords_saved_logins_description_empty_text" moz:RemovedIn="125" tools:ignore="UnusedResources">Aici vor apărea datele de autentificare pe care le salvezi sau le sincronizezi în %s.</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link" moz:RemovedIn="125" tools:ignore="UnusedResources">Află mai multe despre Sync.</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Excepții</string>
-    <!-- Empty description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description_empty" moz:RemovedIn="125" tools:ignore="UnusedResources">Aici vor apărea datele de autentificare și parolele nesalvate.</string>
-    <!-- Description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description" moz:RemovedIn="125" tools:ignore="UnusedResources">Datele de autentificare și parolele nu vor fi salvate pentru aceste site-uri.</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">Șterge toate excepțiile</string>
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search" moz:RemovedIn="125" tools:ignore="UnusedResources">Caută date de autentificare</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">Site</string>
     <!-- The header for the username for a login -->
@@ -1083,13 +1048,7 @@
     <string name="saved_login_reveal_password">Afișeză parola</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">Ascunde parola</string>
-    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their logins -->
-    <string name="logins_biometric_prompt_message" moz:RemovedIn="125" tools:ignore="UnusedResources">Deblochează pentru a vizualiza datele de autentificare salvate</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_title" moz:RemovedIn="125" tools:ignore="UnusedResources">Securizează-ți datele de autentificare și parolele</string>
 
-    <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_message" moz:RemovedIn="125" tools:ignore="UnusedResources">Configurează un șablon de blocare a dispozitivului, un PIN sau o parolă pentru a-ți proteja datele de autentificare și parolele salvate împotriva accesării de către altcineva care are dispozitivul.</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">Mai târziu</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -1105,8 +1064,6 @@
     <string name="saved_logins_sort_strategy_alphabetically">Denumire (A-Z)</string>
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">Folosite ultima dată</string>
-    <!-- Content description (not visible, for screen readers etc.): Sort saved logins dropdown menu chevron icon -->
-    <string name="saved_logins_menu_dropdown_chevron_icon_content_description" moz:RemovedIn="125" tools:ignore="UnusedResources">Meniu de sortare a datelor de autentificare</string>
 
     <!-- Preference and title for managing the settings for payment methods -->
     <string name="preferences_credit_cards_2">Metode de plată</string>
@@ -1169,25 +1126,9 @@
     <string name="login_menu_delete_button">Șterge</string>
     <!-- Login overflow menu edit button -->
     <string name="login_menu_edit_button">Editează</string>
-    <!-- Message in delete confirmation dialog for logins -->
-    <string name="login_deletion_confirmation" moz:RemovedIn="125" tools:ignore="UnusedResources">Sigur vrei să ștergi aceste date de autentificare?</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">Șterge</string>
 
-    <!--  The saved login options menu description. -->
-    <string name="login_options_menu" moz:RemovedIn="125" tools:ignore="UnusedResources">Opțiuni de autentificare</string>
-    <!--  The editable text field for a login's web address. -->
-    <string name="saved_login_hostname_description" moz:RemovedIn="125" tools:ignore="UnusedResources">Câmpul de text editabil pentru adresa web a datelor de autentificare.</string>
-    <!--  The editable text field for a login's username. -->
-    <string name="saved_login_username_description" moz:RemovedIn="125" tools:ignore="UnusedResources">Câmpul de text editabil pentru numele de utilizator al datelor de autentificare.</string>
-    <!--  The editable text field for a login's password. -->
-    <string name="saved_login_password_description" moz:RemovedIn="125" tools:ignore="UnusedResources">Câmp de text editabil pentru parola datelor de autentificare.</string>
-    <!--  The button description to save changes to an edited login. -->
-    <string name="save_changes_to_login" moz:RemovedIn="125" tools:ignore="UnusedResources">Salvează modificările datelor de autentificare.</string>
-    <!--  The page title for editing a saved login. -->
-    <string name="edit" moz:RemovedIn="125" tools:ignore="UnusedResources">Editează</string>
-    <!--  The error message in add/edit login view when password field is blank. -->
-    <string name="saved_login_password_required" moz:RemovedIn="125" tools:ignore="UnusedResources">Necesită o parolă</string>
     <!-- Voice search button content description  -->
     <string name="voice_search_content_description">Căutare vocală</string>
     <!-- Voice search prompt description displayed after the user presses the voice search button -->
