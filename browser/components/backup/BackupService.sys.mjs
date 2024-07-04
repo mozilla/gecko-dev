@@ -954,6 +954,40 @@ export class BackupService extends EventTarget {
   }
 
   /**
+   * Computes the appropriate link to place in the single-file archive for
+   * downloading a version of this application for the same update channel.
+   *
+   * When bug 1905909 lands, we'll first check to see if there are download
+   * links available in Remote Settings.
+   *
+   * If there aren't any, we will fallback by looking for preference values at
+   * browser.backup.template.fallback-download.${updateChannel}.
+   *
+   * If no such preference exists, a final "ultimate" fallback download link is
+   * chosen for the release channel.
+   *
+   * @param {string} updateChannel
+   *  The current update channel for the application, as provided by
+   *  AppConstants.MOZ_UPDATE_CHANNEL.
+   * @returns {Promise<string>}
+   */
+  async resolveDownloadLink(updateChannel) {
+    // If all else fails, this is the download link we'll put into the rendered
+    // template.
+    const ULTIMATE_FALLBACK_DOWNLOAD_URL =
+      "https://www.mozilla.org/firefox/download/thanks/?s=direct&utm_medium=firefox-desktop&utm_source=backup&utm_campaign=firefox-backup-2024&utm_content=control";
+    const FALLBACK_DOWNLOAD_URL = Services.prefs.getStringPref(
+      `browser.backup.template.fallback-download.${updateChannel}`,
+      ULTIMATE_FALLBACK_DOWNLOAD_URL
+    );
+
+    // Bug 1905909: Once we set up the download links in RemoteSettings, we can
+    // query for them here.
+
+    return FALLBACK_DOWNLOAD_URL;
+  }
+
+  /**
    * @typedef {object} CreateBackupResult
    * @property {string} stagingPath
    *   The staging path for where the backup was created.
@@ -1474,7 +1508,11 @@ export class BackupService extends EventTarget {
       Services.locale.appLocaleAsBCP47
     );
 
-    // TODO: insert download link (bug 1903117)
+    let downloadLink = templateDOM.querySelector("#download-moz-browser");
+    downloadLink.href = await this.resolveDownloadLink(
+      AppConstants.MOZ_UPDATE_CHANNEL
+    );
+
     let supportLinkHref =
       Services.urlFormatter.formatURLPref("app.support.baseURL") +
       "recover-from-backup";
