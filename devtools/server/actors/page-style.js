@@ -255,17 +255,17 @@ class PageStyleActor extends Actor {
   getComputed(node, options) {
     const ret = Object.create(null);
 
+    const filterProperties = Array.isArray(options.filterProperties)
+      ? options.filterProperties
+      : null;
     this.cssLogic.sourceFilter = options.filter || SharedCssLogic.FILTER.UA;
     this.cssLogic.highlight(node.rawNode);
     const computed = this.cssLogic.computedStyle || [];
     const targetDocument = this.inspector.targetActor.window.document;
 
-    Array.prototype.forEach.call(computed, name => {
-      if (
-        Array.isArray(options.filterProperties) &&
-        !options.filterProperties.includes(name)
-      ) {
-        return;
+    for (const name of computed) {
+      if (filterProperties && !filterProperties.includes(name)) {
+        continue;
       }
       ret[name] = {
         value: computed.getPropertyValue(name),
@@ -289,12 +289,12 @@ class PageStyleActor extends Actor {
           ret[name].registeredPropertySyntax = registeredProperty.syntax;
         }
       }
-    });
+    }
 
     if (options.markMatched || options.onlyMatched) {
       const matched = this.cssLogic.hasMatchedSelectors(Object.keys(ret));
       for (const key in ret) {
-        if (matched[key]) {
+        if (matched.has(key)) {
           ret[key].matched = options.markMatched ? true : undefined;
         } else if (options.onlyMatched) {
           delete ret[key];
