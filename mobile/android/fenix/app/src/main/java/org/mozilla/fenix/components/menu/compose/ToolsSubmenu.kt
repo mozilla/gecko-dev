@@ -25,6 +25,7 @@ internal const val TOOLS_MENU_ROUTE = "tools_menu"
 internal fun ToolsSubmenu(
     isReaderViewActive: Boolean,
     isTranslated: Boolean,
+    translatedLanguage: String,
     onBackButtonClick: () -> Unit,
     onReaderViewMenuClick: () -> Unit,
     onTranslatePageMenuClick: () -> Unit,
@@ -50,6 +51,7 @@ internal fun ToolsSubmenu(
 
             TranslationMenuItem(
                 isTranslated = isTranslated,
+                translatedLanguage = translatedLanguage,
                 onClick = onTranslatePageMenuClick,
             )
         }
@@ -104,13 +106,14 @@ private fun ReaderViewMenuItem(
 @Composable
 private fun TranslationMenuItem(
     isTranslated: Boolean,
+    translatedLanguage: String,
     onClick: () -> Unit,
 ) {
     if (isTranslated) {
         MenuItem(
             label = stringResource(
                 id = R.string.browser_menu_translated_to,
-                stringResource(id = R.string.app_name),
+                translatedLanguage,
             ),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_translate_24),
             state = MenuItemState.ACTIVE,
@@ -135,6 +138,7 @@ private fun ToolsSubmenuPreview() {
             ToolsSubmenu(
                 isReaderViewActive = false,
                 isTranslated = false,
+                translatedLanguage = "",
                 onBackButtonClick = {},
                 onReaderViewMenuClick = {},
                 onTranslatePageMenuClick = {},
@@ -156,6 +160,7 @@ private fun ToolsSubmenuPrivatePreview() {
             ToolsSubmenu(
                 isReaderViewActive = false,
                 isTranslated = false,
+                translatedLanguage = "",
                 onBackButtonClick = {},
                 onReaderViewMenuClick = {},
                 onTranslatePageMenuClick = {},

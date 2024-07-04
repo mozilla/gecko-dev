@@ -24,6 +24,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.selector.selectedTab
+import mozilla.components.concept.engine.translate.TranslationSupport
+import mozilla.components.concept.engine.translate.findLanguage
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
 import mozilla.components.support.ktx.android.util.dpToPx
@@ -114,6 +116,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val selectedTab = browserStore.state.selectedTab
                     val settings = components.settings
                     val topSitesMaxLimit = settings.topSitesMaxLimit
+                    val supportedLanguages = components.core.store.state.translationEngine.supportedLanguages
+                    val translateLanguageCode = selectedTab?.translationsState?.translationEngineState
+                        ?.requestedTranslationPair?.toLanguage
 
                     val navHostController = rememberNavController()
                     val coroutineScope = rememberCoroutineScope()
@@ -255,7 +260,15 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         composable(route = TOOLS_MENU_ROUTE) {
                             ToolsSubmenu(
                                 isReaderViewActive = false,
-                                isTranslated = false,
+                                isTranslated = selectedTab?.translationsState?.isTranslated ?: false,
+                                translatedLanguage = if (translateLanguageCode != null && supportedLanguages != null) {
+                                    TranslationSupport(
+                                        fromLanguages = supportedLanguages.fromLanguages,
+                                        toLanguages = supportedLanguages.toLanguages,
+                                    ).findLanguage(translateLanguageCode)?.localizedDisplayName ?: ""
+                                } else {
+                                    ""
+                                },
                                 onBackButtonClick = {
                                     store.dispatch(MenuAction.Navigate.Back)
                                 },
