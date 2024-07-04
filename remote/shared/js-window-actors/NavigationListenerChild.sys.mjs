@@ -102,10 +102,9 @@ export class NavigationListenerChild extends JSWindowActorChild {
   #onLocationChange = (progress, request, location, stateFlags) => {
     if (stateFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) {
       const context = progress.browsingContext;
-
-      lazy.logger.trace(
-        `[${context.id}] NavigationListener onLocationChange,` +
-          lazy.truncate` location: ${location.spec}`
+      this.#trace(
+        context.id,
+        lazy.truncate`Location=sameDocument: ${location.spec}`
       );
 
       this.sendAsyncMessage("NavigationListenerChild:locationChanged", {
@@ -127,10 +126,10 @@ export class NavigationListenerChild extends JSWindowActorChild {
       const isNetwork = !!(
         stateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK
       );
-      lazy.logger.trace(
-        `[${context.id}] NavigationListener onStateChange,` +
-          ` stateFlags: ${stateFlags}, status: ${status}, isStart: ${isStart},` +
-          ` isStop: ${isStop}, isNetwork: ${isNetwork},` +
+      this.#trace(
+        context.id,
+        `Loading state: flags: ${stateFlags}, status: ${status}, ` +
+          ` isStart: ${isStart}, isStop: ${isStop}, isNetwork: ${isNetwork},` +
           ` isBindingAborted: ${isBindingAborted},` +
           lazy.truncate` targetURI: ${targetURI?.spec}`
       );
@@ -164,4 +163,8 @@ export class NavigationListenerChild extends JSWindowActorChild {
       throw e;
     }
   };
+
+  #trace(contextId, message) {
+    lazy.logger.trace(`[${contextId}] ${this.constructor.name} ${message}`);
+  }
 }
