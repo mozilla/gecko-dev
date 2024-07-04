@@ -89,10 +89,9 @@ class UpdateProcess {
     this.onDone = options.onDone || function () {};
     this.onCancel = options.onCancel || function () {};
     this.threshold = options.threshold || 45;
-
-    this.canceled = false;
   }
 
+  #canceled = false;
   #timeout = null;
 
   /**
@@ -104,7 +103,7 @@ class UpdateProcess {
    * Schedule a new batch on the main loop.
    */
   schedule() {
-    if (this.canceled) {
+    if (this.#canceled) {
       return;
     }
     this.#timeout = setTimeout(() => this.#timeoutHandler(), 0);
@@ -119,7 +118,7 @@ class UpdateProcess {
       clearTimeout(this.#timeout);
       this.#timeout = null;
     }
-    this.canceled = true;
+    this.#canceled = true;
     this.onCancel();
   }
 
@@ -135,7 +134,7 @@ class UpdateProcess {
 
   #runBatch() {
     const time = Date.now();
-    while (!this.canceled) {
+    while (!this.#canceled) {
       const next = this.#next();
       if (next === UpdateProcess.ITERATION_DONE) {
         return next;
@@ -990,21 +989,23 @@ class PropertyInfo {
    *        The CSS property name
    */
   constructor(tree, name) {
-    this.tree = tree;
+    this.#tree = tree;
     this.name = name;
   }
+
+  #tree;
 
   get isSupported() {
     // There can be a mismatch between the list of properties
     // supported on the server and on the client.
     // Ideally we should build PropertyInfo only for property names supported on
     // the server. See Bug 1722348.
-    return this.tree.computed && this.name in this.tree.computed;
+    return this.#tree.computed && this.name in this.#tree.computed;
   }
 
   get value() {
     if (this.isSupported) {
-      const value = this.tree.computed[this.name].value;
+      const value = this.#tree.computed[this.name].value;
       return value;
     }
     return null;
@@ -1025,7 +1026,7 @@ class PropertyView {
    *        Set to true if this will represent a custom property.
    */
   constructor(tree, name, isCustomProperty = false) {
-    this.tree = tree;
+    this.#tree = tree;
     this.name = name;
 
     this.isCustomProperty = isCustomProperty;
@@ -1035,15 +1036,12 @@ class PropertyView {
     }
 
     this.#propertyInfo = new PropertyInfo(tree, name);
-    const win = this.tree.styleWindow;
+    const win = this.#tree.styleWindow;
     this.#abortController = new win.AbortController();
   }
 
   // The parent element which contains the open attribute
   element = null;
-
-  // Property header node
-  propertyHeader = null;
 
   // Destination for property values
   valueNode = null;
@@ -1058,7 +1056,7 @@ class PropertyView {
   #matchedSelectorResponse = null;
 
   // Matched selector expando
-  matchedExpander = null;
+  #matchedExpander = null;
 
   // AbortController for event listeners
   #abortController = null;
@@ -1071,6 +1069,8 @@ class PropertyView {
 
   // PropertyInfo
   #propertyInfo = null;
+
+  #tree;
 
   /**
    * Get the computed style for the current property.
@@ -1093,22 +1093,22 @@ class PropertyView {
    * Does the property have any matched selectors?
    */
   get hasMatchedSelectors() {
-    return this.tree.matchedProperties.has(this.name);
+    return this.#tree.matchedProperties.has(this.name);
   }
 
   /**
    * Should this property be visible?
    */
   get visible() {
-    if (!this.tree.viewedElement) {
+    if (!this.#tree.viewedElement) {
       return false;
     }
 
-    if (!this.tree.includeBrowserStyles && !this.hasMatchedSelectors) {
+    if (!this.#tree.includeBrowserStyles && !this.hasMatchedSelectors) {
       return false;
     }
 
-    const searchTerm = this.tree.searchField.value.toLowerCase();
+    const searchTerm = this.#tree.searchField.value.toLowerCase();
     const isValidSearchTerm = !!searchTerm.trim().length;
     if (
       isValidSearchTerm &&
@@ -1136,7 +1136,7 @@ class PropertyView {
    * @returns {Boolean}
    */
   get invalidAtComputedValueTime() {
-    return this.tree.computed[this.name].invalidAtComputedValueTime;
+    return this.#tree.computed[this.name].invalidAtComputedValueTime;
   }
 
   /**
@@ -1145,7 +1145,7 @@ class PropertyView {
    * @returns {Text|undefined}
    */
   get registeredPropertySyntax() {
-    return this.tree.computed[this.name].registeredPropertySyntax;
+    return this.#tree.computed[this.name].registeredPropertySyntax;
   }
 
   /**
@@ -1154,7 +1154,7 @@ class PropertyView {
    * @return {Element} The <li> element
    */
   createListItemElement() {
-    const doc = this.tree.styleDocument;
+    const doc = this.#tree.styleDocument;
     const baseEventListenerConfig = { signal: this.#abortController.signal };
 
     // Build the container element
@@ -1170,7 +1170,7 @@ class PropertyView {
     // Make it keyboard navigable
     this.element.setAttribute("tabindex", "0");
     this.shortcuts = new KeyShortcuts({
-      window: this.tree.styleWindow,
+      window: this.#tree.styleWindow,
       target: this.element,
     });
     this.shortcuts.on("F1", event => {
@@ -1186,11 +1186,11 @@ class PropertyView {
     nameContainer.className = "computed-property-name-container";
 
     // Build the twisty expand/collapse
-    this.matchedExpander = doc.createElement("div");
-    this.matchedExpander.className = "computed-expander theme-twisty";
-    this.matchedExpander.setAttribute("role", "button");
-    this.matchedExpander.setAttribute("aria-label", L10N_TWISTY_EXPAND_LABEL);
-    this.matchedExpander.addEventListener(
+    this.#matchedExpander = doc.createElement("div");
+    this.#matchedExpander.className = "computed-expander theme-twisty";
+    this.#matchedExpander.setAttribute("role", "button");
+    this.#matchedExpander.setAttribute("aria-label", L10N_TWISTY_EXPAND_LABEL);
+    this.#matchedExpander.addEventListener(
       "click",
       this.onMatchedToggle,
       baseEventListenerConfig
@@ -1262,7 +1262,7 @@ class PropertyView {
     this.matchedSelectorsContainer.classList.add("matchedselectors");
 
     this.element.append(
-      this.matchedExpander,
+      this.#matchedExpander,
       nameContainer,
       valueContainer,
       this.matchedSelectorsContainer
@@ -1280,23 +1280,26 @@ class PropertyView {
       this.element.className = className;
     }
 
-    if (this.#prevViewedElement !== this.tree.viewedElement) {
+    if (this.#prevViewedElement !== this.#tree.viewedElement) {
       this.#matchedSelectorViews = null;
-      this.#prevViewedElement = this.tree.viewedElement;
+      this.#prevViewedElement = this.#tree.viewedElement;
     }
 
-    if (!this.tree.viewedElement || !this.visible) {
+    if (!this.#tree.viewedElement || !this.visible) {
       this.valueNode.textContent = this.valueNode.title = "";
       this.matchedSelectorsContainer.parentNode.hidden = true;
       this.matchedSelectorsContainer.textContent = "";
-      this.matchedExpander.removeAttribute("open");
-      this.matchedExpander.setAttribute("aria-label", L10N_TWISTY_EXPAND_LABEL);
+      this.#matchedExpander.removeAttribute("open");
+      this.#matchedExpander.setAttribute(
+        "aria-label",
+        L10N_TWISTY_EXPAND_LABEL
+      );
       return;
     }
 
-    this.tree.numVisibleProperties++;
+    this.#tree.numVisibleProperties++;
 
-    const outputParser = this.tree.outputParser;
+    const outputParser = this.#tree.outputParser;
     const frag = outputParser.parseCssProperty(
       this.propertyInfo.name,
       this.propertyInfo.value,
@@ -1323,14 +1326,14 @@ class PropertyView {
     this.matchedSelectorsContainer.parentNode.hidden = !hasMatchedSelectors;
 
     if (hasMatchedSelectors) {
-      this.matchedExpander.classList.add("computed-expandable");
+      this.#matchedExpander.classList.add("computed-expandable");
     } else {
-      this.matchedExpander.classList.remove("computed-expandable");
+      this.#matchedExpander.classList.remove("computed-expandable");
     }
 
     if (this.matchedExpanded && hasMatchedSelectors) {
-      return this.tree.viewedElementPageStyle
-        .getMatchedSelectors(this.tree.viewedElement, this.name)
+      return this.#tree.viewedElementPageStyle
+        .getMatchedSelectors(this.#tree.viewedElement, this.name)
         .then(matched => {
           if (!this.matchedExpanded) {
             return;
@@ -1339,20 +1342,20 @@ class PropertyView {
           this.#matchedSelectorResponse = matched;
 
           this.#buildMatchedSelectors();
-          this.matchedExpander.setAttribute("open", "");
-          this.matchedExpander.setAttribute(
+          this.#matchedExpander.setAttribute("open", "");
+          this.#matchedExpander.setAttribute(
             "aria-label",
             L10N_TWISTY_COLLAPSE_LABEL
           );
-          this.tree.inspector.emit("computed-view-property-expanded");
+          this.#tree.inspector.emit("computed-view-property-expanded");
         })
         .catch(console.error);
     }
 
     this.matchedSelectorsContainer.innerHTML = "";
-    this.matchedExpander.removeAttribute("open");
-    this.matchedExpander.setAttribute("aria-label", L10N_TWISTY_EXPAND_LABEL);
-    this.tree.inspector.emit("computed-view-property-collapsed");
+    this.#matchedExpander.removeAttribute("open");
+    this.#matchedExpander.setAttribute("aria-label", L10N_TWISTY_EXPAND_LABEL);
+    this.#tree.inspector.emit("computed-view-property-collapsed");
     return Promise.resolve(undefined);
   }
 
@@ -1402,7 +1405,7 @@ class PropertyView {
       });
       link.addEventListener("click", selector.openStyleEditor);
       const shortcuts = new KeyShortcuts({
-        window: this.tree.styleWindow,
+        window: this.#tree.styleWindow,
         target: link,
       });
       shortcuts.on("Return", () => selector.openStyleEditor());
@@ -1457,7 +1460,7 @@ class PropertyView {
     if (!this.#matchedSelectorViews) {
       this.#matchedSelectorViews = [];
       this.#matchedSelectorResponse.forEach(selectorInfo => {
-        const selectorView = new SelectorView(this.tree, selectorInfo);
+        const selectorView = new SelectorView(this.#tree, selectorInfo);
         this.#matchedSelectorViews.push(selectorView);
       }, this);
     }
@@ -1511,7 +1514,7 @@ class PropertyView {
 
     this.shortcuts = null;
     this.element = null;
-    this.matchedExpander = null;
+    this.#matchedExpander = null;
     this.valueNode = null;
   }
 }
@@ -1526,7 +1529,7 @@ class SelectorView {
    * @param selectorInfo
    */
   constructor(tree, selectorInfo) {
-    this.tree = tree;
+    this.#tree = tree;
     this.selectorInfo = selectorInfo;
     this.#cacheStatusNames();
 
@@ -1543,24 +1546,25 @@ class SelectorView {
       this.source = CssLogic.shortSource(sheet) + sourceSuffix;
       this.longSource = CssLogic.longSource(sheet) + sourceSuffix;
 
-      this.generatedLocation = {
+      this.#generatedLocation = {
         sheet,
         href: sheet.href || sheet.nodeHref,
         line: rule.line,
         column: rule.column,
       };
-      this.sourceMapURLService =
-        this.tree.inspector.toolbox.sourceMapURLService;
-      this.#unsubscribeCallback = this.sourceMapURLService.subscribeByID(
-        this.generatedLocation.sheet.resourceId,
-        this.generatedLocation.line,
-        this.generatedLocation.column,
-        this.#updateLocation
-      );
+      this.#unsubscribeCallback =
+        this.#tree.inspector.toolbox.sourceMapURLService.subscribeByID(
+          this.#generatedLocation.sheet.resourceId,
+          this.#generatedLocation.line,
+          this.#generatedLocation.column,
+          this.#updateLocation
+        );
     }
   }
 
+  #generatedLocation;
   #href;
+  #tree;
   #unsubscribeCallback;
 
   /**
@@ -1632,7 +1636,7 @@ class SelectorView {
     // we lose any events that are attached. This means that URLs will open in a
     // new window. At some point we should fix this by stopping using the
     // templater.
-    const outputParser = this.tree.outputParser;
+    const outputParser = this.#tree.outputParser;
     const frag = outputParser.parseCssProperty(
       this.selectorInfo.name,
       this.selectorInfo.value,
@@ -1656,27 +1660,27 @@ class SelectorView {
    *        The original position object (url/line/column) or null.
    */
   #updateLocation = originalLocation => {
-    if (!this.tree.element) {
+    if (!this.#tree.element) {
       return;
     }
 
     // Update |currentLocation| to be whichever location is being
     // displayed at the moment.
-    let currentLocation = this.generatedLocation;
+    let currentLocation = this.#generatedLocation;
     if (originalLocation) {
       const { url, line, column } = originalLocation;
       currentLocation = { href: url, line, column };
     }
 
     const selector = '[sourcelocation="' + this.source + '"]';
-    const link = this.tree.element.querySelector(selector);
+    const link = this.#tree.element.querySelector(selector);
     if (link) {
       const text =
         CssLogic.shortSource(currentLocation) + ":" + currentLocation.line;
       link.textContent = text;
     }
 
-    this.tree.inspector.emit("computed-view-sourcelinks-updated");
+    this.#tree.inspector.emit("computed-view-sourcelinks-updated");
   };
 
   /**
@@ -1688,7 +1692,7 @@ class SelectorView {
    *   style editor.
    */
   openStyleEditor() {
-    const inspector = this.tree.inspector;
+    const inspector = this.#tree.inspector;
     const rule = this.selectorInfo.rule;
 
     // The style editor can only display stylesheets coming from content because
@@ -1702,7 +1706,7 @@ class SelectorView {
       return;
     }
 
-    const { sheet, line, column } = this.generatedLocation;
+    const { sheet, line, column } = this.#generatedLocation;
     if (ToolDefinitions.styleEditor.isToolSupported(inspector.toolbox)) {
       inspector.toolbox.viewSourceInStyleEditorByResource(sheet, line, column);
     }
