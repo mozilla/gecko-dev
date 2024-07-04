@@ -142,6 +142,7 @@
 }
 
 #updateIcon {
+  display: none;
   align-self: center;
   grid-row-start: 1;
   grid-row-end: 2;
@@ -154,15 +155,18 @@
   margin-inline: 5px;
 
   &.noUpdatesFound {
+    display: block;
     content: url("chrome://global/skin/icons/check.svg");
     fill: #30e60b;
   }
 
   &.apply {
+    display: block;
     content: url("chrome://global/skin/icons/reload.svg");
   }
 
   &:is(.checkingForUpdates, .downloading, .applying, .restarting) {
+    display: block;
     content: url("chrome://global/skin/icons/loading.svg");
   }
 }
