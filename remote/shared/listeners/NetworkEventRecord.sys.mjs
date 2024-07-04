@@ -58,12 +58,17 @@ export class NetworkEventRecord {
     this.#networkListener = networkListener;
     this.#networkEventsMap = networkEventsMap;
 
-    if (
-      this.#request.redirectCount &&
-      this.#networkEventsMap.has(this.#requestId)
-    ) {
+    if (this.#networkEventsMap.has(this.#requestId)) {
       const previousEvent = this.#networkEventsMap.get(this.#requestId);
-      previousEvent.notifyRedirect();
+      if (this.redirectCount != previousEvent.redirectCount) {
+        // If redirect count is set, this is a redirect from the previous request.
+        // notifyRedirect will complete the previous request.
+        previousEvent.notifyRedirect();
+      } else {
+        // Otherwise if there is no redirect count or if it is identical to the
+        // previously detected request, this is an authentication attempt.
+        previousEvent.notifyAuthenticationAttempt();
+      }
     }
 
     this.#networkEventsMap.set(this.#requestId, this);
@@ -85,6 +90,10 @@ export class NetworkEventRecord {
 
   get #requestId() {
     return this.#request.requestId;
+  }
+
+  get redirectCount() {
+    return this.#request.redirectCount;
   }
 
   /**
@@ -219,6 +228,22 @@ export class NetworkEventRecord {
    * Not used for RemoteAgent.
    */
   addServiceWorkerTimings() {}
+
+  /**
+   * Complete response in case of an authentication attempt.
+   *
+   * This method is required to be called on the previous event.
+   */
+  notifyAuthenticationAttempt() {
+    // TODO: Bug 1899604, behavior might change based on spec issue
+    // https://github.com/w3c/webdriver-bidi/issues/722
+
+    // For now, in case of authentication attempts, we mark the current event as
+    // completed and skip its responseCompleted event.
+    // This way, only the last successful/failed authentication attempt will
+    // emit a response completed event.
+    this.#markRequestComplete();
+  }
 
   /**
    * Complete response in case of redirect.

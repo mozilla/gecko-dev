@@ -2569,13 +2569,6 @@
     "comment": "TODO: add a comment explaining why this expectation is required (include links to issues)"
   },
   {
-    "testIdPattern": "[network.spec] network Page.authenticate should allow disable authentication",
-    "platforms": ["darwin", "linux", "win32"],
-    "parameters": ["firefox", "webDriverBiDi"],
-    "expectations": ["FAIL"],
-    "comment": "The Puppeteer implementation does not expect 2 responseCompleted events (that AuthRequired triggered)"
-  },
-  {
     "testIdPattern": "[network.spec] network Page.authenticate should fail if wrong credentials",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["cdp", "firefox"],
