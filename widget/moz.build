@@ -153,6 +153,7 @@ EXPORTS += [
     "nsBaseDragService.h",
     "nsBaseFilePicker.h",
     "nsBaseWidget.h",
+    "nsDragServiceProxy.h",
     "nsIDeviceContextSpec.h",
     "nsIRollupListener.h",
     "nsIWidget.h",
