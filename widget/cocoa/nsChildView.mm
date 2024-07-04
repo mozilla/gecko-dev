@@ -4359,11 +4359,10 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
   if (dragService) {
     RefPtr<nsIDragSession> dragSession;
     nsIWidget* widget = mGeckoChild;
-    dragService->GetCurrentSession(widget,
-                                    getter_AddRefs(dragSession));
+    dragService->GetCurrentSession(widget, getter_AddRefs(dragSession));
     if (dragSession) {
       MOZ_ASSERT(aSession == static_cast<nsDragSession*>(dragSession.get())
-                                ->GetNSDraggingSession());
+                                 ->GetNSDraggingSession());
       dragSession->DragMoved(aPoint.x, aPoint.y);
     }
   }
