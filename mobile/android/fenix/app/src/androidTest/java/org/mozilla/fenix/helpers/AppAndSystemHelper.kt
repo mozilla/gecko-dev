@@ -309,6 +309,9 @@ object AppAndSystemHelper {
                 Log.i(TAG, "assertExternalAppOpens: Matched open intent to $appPackageName.")
             } catch (e: AssertionFailedError) {
                 Log.i(TAG, "assertExternalAppOpens: Intent match failure. ${e.message}")
+            } finally {
+                // Stop the app from running in the background
+                forceCloseApp(appPackageName)
             }
         } else {
             Log.i(TAG, "assertExternalAppOpens: Trying to verify the \"Could not open file\" message.")
@@ -332,6 +335,9 @@ object AppAndSystemHelper {
                     .waitForExists(waitingTime),
             )
             Log.i(TAG, "assertNativeAppOpens: App package name matched.")
+
+            // Stop the app from running in the background
+            forceCloseApp(appPackageName)
         } else {
             Log.i(TAG, "assertNativeAppOpens: Trying to verify the page redirect URL.")
             BrowserRobot().verifyUrl(url)
@@ -343,6 +349,15 @@ object AppAndSystemHelper {
         Log.i(TAG, "assertYoutubeAppOpens: Trying to check the intent to YouTube.")
         intended(toPackage(YOUTUBE_APP))
         Log.i(TAG, "assertYoutubeAppOpens: Verified the intent matches YouTube.")
+
+        // Stop the app from running in the background
+        forceCloseApp(YOUTUBE_APP)
+    }
+
+    fun forceCloseApp(appPackageName: String) {
+        Log.i(TAG, "forceCloseApp: Trying to stop the $appPackageName app from running in the background.")
+        mDevice.executeShellCommand("am force-stop $appPackageName")
+        Log.i(TAG, "forceCloseApp: Force-stopped the $appPackageName app.")
     }
 
     /**
