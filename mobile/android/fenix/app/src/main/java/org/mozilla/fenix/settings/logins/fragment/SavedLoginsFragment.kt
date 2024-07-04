@@ -125,6 +125,10 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
             deletedGuid.add(removedLoginGuid.toString())
         }
         consumeFrom(savedLoginsStore) { loginsListState ->
+            if (!this::sortingStrategyMenu.isInitialized) {
+                sortingStrategyMenu =
+                    SavedLoginsSortingStrategyMenu(requireContext(), savedLoginsInteractor)
+            }
             sortingStrategyMenu.updateMenu(savedLoginsStore.state.highlightedItem)
             loginState = loginsListState
             val currentList = loginState.filteredItems.toMutableList()
@@ -143,6 +147,7 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
 
     override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.login_list, menu)
+
         val searchItem = menu.findItem(R.id.search)
         val searchView: SearchView = searchItem.actionView as SearchView
         searchView.imeOptions = EditorInfo.IME_ACTION_DONE
