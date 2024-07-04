@@ -69,6 +69,12 @@ Equally, if you need to change a string pref:
 ./mach mochitest --setpref="webgl.osmesa=string with whitespace" somePath/someTestFile.html
 ```
 
+To change more than one pref, you can add a `--setpref` argument for each:
+
+```
+./mach mochitest --setpref="some.boolpref=true" --setpref="some.stringpref=string with whitespace" somePath/someTestFile.html
+```
+
 ## Can tests be run under a chrome URL?
 
 Yes, use [mochitest-chrome](../chrome-tests/index.rst).
