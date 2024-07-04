@@ -786,6 +786,53 @@ void nsWindow::ReparentNativeWidget(nsIWidget* aNewParent) {
   GtkWindowSetTransientFor(GTK_WINDOW(mShell), newParentWidget);
 }
 
+static void InitPenEvent(WidgetMouseEvent& aGeckoEvent, GdkEvent* aEvent) {
+  // Find the source of the event
+  GdkDevice* device = gdk_event_get_source_device(aEvent);
+  GdkInputSource eSource = gdk_device_get_source(device);
+  gdouble value;
+
+  // We distinguish touch screens from pens using the event type
+  // Eraser corresponds to the pen with the "erase" button pressed
+  if (eSource != GDK_SOURCE_PEN && eSource != GDK_SOURCE_ERASER) {
+    bool XWaylandPen = false;
+#ifdef MOZ_X11
+    // Workaround : When using Xwayland, pens are reported as
+    // GDK_SOURCE_TOUCHSCREEN If eSource is GDK_SOURCE_TOUCHSCREEN and the
+    // GDK_AXIS_XTILT and GDK_AXIS_YTILT axes are reported then it's a pen and
+    // not a finger on a screen. Yes, that's a stupid heuristic but it works...
+    // Note, however, that the tilt values are not reliable
+    // Another approach could be use the device tool type, but that's only
+    // available in GTK > 3.22
+    XWaylandPen = (eSource == GDK_SOURCE_TOUCHSCREEN && GdkIsX11Display() &&
+                   gdk_event_get_axis(aEvent, GDK_AXIS_XTILT, &value) &&
+                   gdk_event_get_axis(aEvent, GDK_AXIS_YTILT, &value));
+#endif
+    if (!XWaylandPen) {
+      return;
+    }
+    LOGW("InitPenEvent(): Is XWayland pen");
+  }
+
+  aGeckoEvent.mInputSource = dom::MouseEvent_Binding::MOZ_SOURCE_PEN;
+  aGeckoEvent.pointerId = 1;
+
+  // The range of xtilt and ytilt are -1 to 1. Normalize it to -90 to 90.
+  if (gdk_event_get_axis(aEvent, GDK_AXIS_XTILT, &value)) {
+    aGeckoEvent.tiltX = int32_t(NS_round(value * 90));
+  }
+  if (gdk_event_get_axis(aEvent, GDK_AXIS_YTILT, &value)) {
+    aGeckoEvent.tiltY = int32_t(NS_round(value * 90));
+  }
+  if (gdk_event_get_axis(aEvent, GDK_AXIS_PRESSURE, &value)) {
+    aGeckoEvent.mPressure = (float)value;
+    // Make sure the pression is acceptable
+    MOZ_ASSERT(aGeckoEvent.mPressure >= 0.0 && aGeckoEvent.mPressure <= 1.0);
+  }
+
+  LOGW("InitPenEvent(): pressure %f\n", aGeckoEvent.mPressure);
+}
+
 void nsWindow::SetModal(bool aModal) {
   LOG("nsWindow::SetModal %d\n", aModal);
   if (mIsDestroyed) {
@@ -4489,6 +4536,7 @@ void nsWindow::OnMotionNotifyEvent(GdkEventMotion* aEvent) {
   event.AssignEventTime(GetWidgetEventTime(aEvent->time));
 
   KeymapWrapper::InitInputEvent(event, aEvent->state);
+  InitPenEvent(event, (GdkEvent*)aEvent);
 
   DispatchInputEvent(&event);
 }
@@ -4772,6 +4820,7 @@ void nsWindow::OnButtonPressEvent(GdkEventButton* aEvent) {
   InitButtonEvent(event, aEvent, refPoint);
   event.mPressure = mLastMotionPressure;
 
+  InitPenEvent(event, (GdkEvent*)aEvent);
   nsIWidget::ContentAndAPZEventStatus eventStatus = DispatchInputEvent(&event);
 
   const bool defaultPrevented =
@@ -4840,6 +4889,8 @@ void nsWindow::OnButtonReleaseEvent(GdkEventButton* aEvent) {
   // The mRefPoint is manipulated in DispatchInputEvent, we're saving it
   // to use it for the doubleclick position check.
   const LayoutDeviceIntPoint pos = event.mRefPoint;
+
+  InitPenEvent(event, (GdkEvent*)aEvent);
 
   nsIWidget::ContentAndAPZEventStatus eventStatus = DispatchInputEvent(&event);
 
