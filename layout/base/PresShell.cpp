@@ -5758,7 +5758,13 @@ static BrowserBridgeChild* GetChildBrowser(nsView* aView) {
 
 void PresShell::ProcessSynthMouseMoveEvent(bool aFromScroll) {
   // If drag session has started, we shouldn't synthesize mousemove event.
-  nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession();
+  nsView* rootView = mViewManager ? mViewManager->GetRootView() : nullptr;
+  if (!rootView || !rootView->HasWidget()) {
+    mSynthMouseMoveEvent.Forget();
+    return;
+  }
+  nsCOMPtr<nsIDragSession> dragSession =
+      nsContentUtils::GetDragSession(rootView->GetWidget());
   if (dragSession) {
     mSynthMouseMoveEvent.Forget();
     return;
@@ -5770,9 +5776,8 @@ void PresShell::ProcessSynthMouseMoveEvent(bool aFromScroll) {
     mSynthMouseMoveEvent.Forget();
   }
 
-  nsView* rootView = mViewManager ? mViewManager->GetRootView() : nullptr;
   if (mMouseLocation == nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE) ||
-      !rootView || !rootView->HasWidget() || !mPresContext) {
+      !mPresContext) {
     mSynthMouseMoveEvent.Forget();
     return;
   }
@@ -8521,7 +8526,8 @@ bool PresShell::EventHandler::PrepareToDispatchEvent(
       return true;
     }
     case eDrop: {
-      nsCOMPtr<nsIDragSession> session = nsContentUtils::GetDragSession();
+      nsCOMPtr<nsIDragSession> session =
+          nsContentUtils::GetDragSession(GetPresContext());
       if (session) {
         bool onlyChromeDrop = false;
         session->GetOnlyChromeDrop(&onlyChromeDrop);

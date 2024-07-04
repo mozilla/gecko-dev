@@ -1892,7 +1892,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealDragEvent(
   WidgetDragEvent localEvent(aEvent);
   localEvent.mWidget = mPuppetWidget;
 
-  nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession();
+  nsCOMPtr<nsIDragSession> dragSession = GetDragSession();
   if (dragSession) {
     dragSession->SetDragAction(aDragAction);
     dragSession->SetTriggeringPrincipal(aPrincipal);
@@ -3793,6 +3793,12 @@ BrowserChild::ContentTransformsReceived(JSContext* aCx,
   MOZ_ASSERT(globalObject == mContentTransformPromise->GetGlobalObject());
   NS_IF_ADDREF(*aPromise = mContentTransformPromise);
   return rv.StealNSResult();
+}
+
+already_AddRefed<nsIDragSession> BrowserChild::GetDragSession() {
+  RefPtr<nsIDragSession> session =
+      nsContentUtils::GetDragSession(mPuppetWidget);
+  return session.forget();
 }
 
 BrowserChildMessageManager::BrowserChildMessageManager(
