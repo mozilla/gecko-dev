@@ -12,6 +12,7 @@ import {
   BYTES_IN_MEGABYTE,
   BYTES_IN_MEBIBYTE,
 } from "resource:///modules/backup/MeasurementUtils.sys.mjs";
+import { ERRORS } from "resource:///modules/backup/BackupConstants.mjs";
 
 const BACKUP_DIR_PREF_NAME = "browser.backup.location";
 const SCHEDULED_BACKUPS_ENABLED_PREF_NAME = "browser.backup.scheduled.enabled";
@@ -735,7 +736,9 @@ export class BackupService extends EventTarget {
     } else if (schemaType == SCHEMAS.ARCHIVE_JSON_BLOCK) {
       schemaURL = `chrome://browser/content/backup/ArchiveJSONBlock.${version}.schema.json`;
     } else {
-      throw new Error(`Did not recognize SCHEMAS constant: ${schemaType}`);
+      throw new Error(`Did not recognize SCHEMAS constant: ${schemaType}`, {
+        cause: ERRORS.UNKNOWN,
+      });
     }
 
     let response = await fetch(schemaURL);
@@ -792,7 +795,9 @@ export class BackupService extends EventTarget {
    */
   static get() {
     if (!this.#instance) {
-      throw new Error("BackupService not initialized");
+      throw new Error("BackupService not initialized", {
+        cause: ERRORS.UNINITIALIZED,
+      });
     }
     return this.#instance;
   }
@@ -1179,7 +1184,7 @@ export class BackupService extends EventTarget {
       await IOUtils.remove(recoveryFilePath, {
         retryReadonly: true,
       });
-      throw new Error("Corrupt archive.");
+      throw new Error("Corrupt archive.", { cause: ERRORS.CORRUPTED_ARCHIVE });
     }
 
     await this.#decompressChildren(recoveryFolderDestPath, "", recoveryArchive);
@@ -1342,7 +1347,9 @@ export class BackupService extends EventTarget {
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */`;
     if (!stylesText.includes(MPL_LICENSE)) {
-      throw new Error("Expected the MPL license block within archive.css");
+      throw new Error("Expected the MPL license block within archive.css", {
+        cause: ERRORS.UNKNOWN,
+      });
     }
 
     stylesText = stylesText.replace(MPL_LICENSE, "");
@@ -1421,6 +1428,12 @@ export class BackupService extends EventTarget {
           chunkSize,
         },
       ]);
+    } catch (e) {
+      // TODO: Bug 1906169 - errors in archive service worker should be more
+      // specific than a general "unknown" error cause
+      throw new Error("Backup archive creation failed", {
+        cause: ERRORS.UNKNOWN,
+      });
     } finally {
       worker.terminate();
     }
@@ -1581,7 +1594,11 @@ export class BackupService extends EventTarget {
               let archiveMetadata = JSON.parse(this._buffer);
               resolve(archiveMetadata);
             } catch (e) {
-              reject(new Error("Could not parse archive metadata."));
+              reject(
+                new Error("Could not parse archive metadata.", {
+                  cause: ERRORS.CORRUPTED_ARCHIVE,
+                })
+              );
             }
             // No need to load anything else - abort reading in more
             // attachments.
@@ -1669,7 +1686,9 @@ export class BackupService extends EventTarget {
     );
 
     if (!(await IOUtils.exists(archivePath))) {
-      throw new Error("Archive file does not exist at path " + archivePath);
+      throw new Error("Archive file does not exist at path " + archivePath, {
+        cause: ERRORS.UNKNOWN,
+      });
     }
 
     try {
@@ -1687,11 +1706,16 @@ export class BackupService extends EventTarget {
         );
 
         if (!archiveJSON.version) {
-          throw new Error("Missing version in the archive JSON block.");
+          throw new Error("Missing version in the archive JSON block.", {
+            cause: ERRORS.CORRUPTED_ARCHIVE,
+          });
         }
         if (archiveJSON.version > lazy.ArchiveUtils.SCHEMA_VERSION) {
           throw new Error(
-            `Archive JSON block is a version newer than we can interpret: ${archiveJSON.version}`
+            `Archive JSON block is a version newer than we can interpret: ${archiveJSON.version}`,
+            {
+              cause: ERRORS.UNSUPPORTED_BACKUP_VERSION,
+            }
           );
         }
 
@@ -1719,12 +1743,13 @@ export class BackupService extends EventTarget {
 
           // TODO: Collect telemetry for this case. (bug 1891817)
           throw new Error(
-            `Archive JSON block does not conform to schema version ${archiveJSON.version}`
+            `Archive JSON block does not conform to schema version ${archiveJSON.version}`,
+            { cause: ERRORS.CORRUPTED_ARCHIVE }
           );
         }
       } catch (e) {
         lazy.logConsole.error(e);
-        throw new Error("Backup archive is corrupted.");
+        throw e;
       }
 
       lazy.logConsole.debug("Read out archive JSON: ", archiveJSON);
@@ -1769,7 +1794,10 @@ export class BackupService extends EventTarget {
     let decryptor = null;
     if (isEncrypted) {
       if (!recoveryCode) {
-        throw new Error("A recovery code is required to decrypt this archive.");
+        throw new Error(
+          "A recovery code is required to decrypt this archive.",
+          { cause: ERRORS.UNAUTHORIZED }
+        );
       }
       decryptor = await lazy.ArchiveDecryptor.initialize(
         recoveryCode,
@@ -1852,7 +1880,9 @@ export class BackupService extends EventTarget {
       lazy.logConsole.error(
         `Something went wrong while finalizing the staging folder. ${e}`
       );
-      throw e;
+      throw new Error("Failed to finalize staging folder", {
+        cause: ERRORS.FILE_SYSTEM_ERROR,
+      });
     }
   }
 
@@ -2050,12 +2080,17 @@ export class BackupService extends EventTarget {
       );
       let manifest = await IOUtils.readJSON(manifestPath);
       if (!manifest.version) {
-        throw new Error("Backup manifest version not found");
+        throw new Error("Backup manifest version not found", {
+          cause: ERRORS.CORRUPTED_ARCHIVE,
+        });
       }
 
       if (manifest.version > lazy.ArchiveUtils.SCHEMA_VERSION) {
         throw new Error(
-          "Cannot recover from a manifest newer than the current schema version"
+          "Cannot recover from a manifest newer than the current schema version",
+          {
+            cause: ERRORS.UNSUPPORTED_BACKUP_VERSION,
+          }
         );
       }
 
@@ -2076,7 +2111,9 @@ export class BackupService extends EventTarget {
           schemaValidationResult
         );
         // TODO: Collect telemetry for this case. (bug 1891817)
-        throw new Error("Cannot recover from an invalid backup manifest");
+        throw new Error("Cannot recover from an invalid backup manifest", {
+          cause: ERRORS.CORRUPTED_ARCHIVE,
+        });
       }
 
       // In the future, if we ever bump the ArchiveUtils.SCHEMA_VERSION and need
@@ -2087,7 +2124,10 @@ export class BackupService extends EventTarget {
 
       if (meta.appName != AppConstants.MOZ_APP_NAME) {
         throw new Error(
-          `Cannot recover a backup from ${meta.appName} in ${AppConstants.MOZ_APP_NAME}`
+          `Cannot recover a backup from ${meta.appName} in ${AppConstants.MOZ_APP_NAME}`,
+          {
+            cause: ERRORS.UNSUPPORTED_BACKUP_VERSION,
+          }
         );
       }
 
@@ -2095,7 +2135,10 @@ export class BackupService extends EventTarget {
         Services.vc.compare(AppConstants.MOZ_APP_VERSION, meta.appVersion) < 0
       ) {
         throw new Error(
-          `Cannot recover a backup created on version ${meta.appVersion} in ${AppConstants.MOZ_APP_VERSION}`
+          `Cannot recover a backup created on version ${meta.appVersion} in ${AppConstants.MOZ_APP_VERSION}`,
+          {
+            cause: ERRORS.UNSUPPORTED_BACKUP_VERSION,
+          }
         );
       }
 
@@ -2472,15 +2515,21 @@ export class BackupService extends EventTarget {
     lazy.logConsole.debug("Enabling encryption.");
     let encState = await this.loadEncryptionState(profilePath);
     if (encState) {
-      throw new Error("Encryption is already enabled.");
+      throw new Error("Encryption is already enabled.", {
+        cause: ERRORS.ENCRYPTION_ALREADY_ENABLED,
+      });
     }
 
     if (!password) {
-      throw new Error("Cannot supply a blank password.");
+      throw new Error("Cannot supply a blank password.", {
+        cause: ERRORS.INVALID_PASSWORD,
+      });
     }
 
     if (password.length < 8) {
-      throw new Error("Password must be at least 8 characters.");
+      throw new Error("Password must be at least 8 characters.", {
+        cause: ERRORS.INVALID_PASSWORD,
+      });
     }
 
     // TODO: Enforce other password rules here, such as ensuring that the
@@ -2489,7 +2538,9 @@ export class BackupService extends EventTarget {
       password
     ));
     if (!encState) {
-      throw new Error("Failed to construct ArchiveEncryptionState");
+      throw new Error("Failed to construct ArchiveEncryptionState", {
+        cause: ERRORS.UNKNOWN,
+      });
     }
 
     this.#encState = encState;
@@ -2520,7 +2571,9 @@ export class BackupService extends EventTarget {
     lazy.logConsole.debug("Disabling encryption.");
     let encState = await this.loadEncryptionState(profilePath);
     if (!encState) {
-      throw new Error("Encryption is already disabled.");
+      throw new Error("Encryption is already disabled.", {
+        cause: ERRORS.ENCRYPTION_ALREADY_DISABLED,
+      });
     }
 
     let encStateFile = PathUtils.join(
