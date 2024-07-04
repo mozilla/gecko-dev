@@ -195,20 +195,30 @@ class CssComputedView {
       "browser-style-checkbox"
     );
 
+    this.#abortController = new AbortController();
+    const opts = { signal: this.#abortController.signal };
+
     this.shortcuts = new KeyShortcuts({ window: this.styleWindow });
-    this.shortcuts.on("CmdOrCtrl+F", event =>
-      this.#onShortcut("CmdOrCtrl+F", event)
+    this.shortcuts.on(
+      "CmdOrCtrl+F",
+      event => this.#onShortcut("CmdOrCtrl+F", event),
+      opts
     );
-    this.shortcuts.on("Escape", event => this.#onShortcut("Escape", event));
-    this.styleDocument.addEventListener("copy", this.#onCopy);
-    this.styleDocument.addEventListener("mousedown", this.focusWindow);
-    this.element.addEventListener("click", this.#onClick);
-    this.element.addEventListener("contextmenu", this.#onContextMenu);
-    this.searchField.addEventListener("input", this.#onFilterStyles);
-    this.searchClearButton.addEventListener("click", this.#onClearSearch);
+    this.shortcuts.on(
+      "Escape",
+      event => this.#onShortcut("Escape", event),
+      opts
+    );
+    this.styleDocument.addEventListener("copy", this.#onCopy, opts);
+    this.styleDocument.addEventListener("mousedown", this.focusWindow, opts);
+    this.element.addEventListener("click", this.#onClick, opts);
+    this.element.addEventListener("contextmenu", this.#onContextMenu, opts);
+    this.searchField.addEventListener("input", this.#onFilterStyles, opts);
+    this.searchClearButton.addEventListener("click", this.#onClearSearch, opts);
     this.includeBrowserStylesCheckbox.addEventListener(
       "input",
-      this.#onIncludeBrowserStyles
+      this.#onIncludeBrowserStyles,
+      opts
     );
 
     if (flags.testing) {
@@ -220,24 +230,24 @@ class CssComputedView {
         () => {
           this.highlighters.addToView(this);
         },
-        { once: true }
+        { once: true, signal: this.#abortController.signal }
       );
     }
 
     if (!this.inspector.is3PaneModeEnabled) {
       // When the rules view is added in 3 pane mode, refresh the Computed view whenever
       // the rules are changed.
-      this.inspector.on(
+      this.inspector.once(
         "ruleview-added",
         () => {
-          this.ruleView.on("ruleview-changed", this.refreshPanel);
+          this.ruleView.on("ruleview-changed", this.refreshPanel, opts);
         },
-        { once: true }
+        opts
       );
     }
 
     if (this.ruleView) {
-      this.ruleView.on("ruleview-changed", this.refreshPanel);
+      this.ruleView.on("ruleview-changed", this.refreshPanel, opts);
     }
 
     this.searchClearButton.hidden = true;
@@ -248,7 +258,11 @@ class CssComputedView {
     // Refresh panel when color unit changed or pref for showing
     // original sources changes.
     this.#prefObserver = new PrefObserver("devtools.");
-    this.#prefObserver.on("devtools.defaultColorUnit", this.#handlePrefChange);
+    this.#prefObserver.on(
+      "devtools.defaultColorUnit",
+      this.#handlePrefChange,
+      opts
+    );
 
     // The PageStyle front related to the currently selected element
     this.viewedElementPageStyle = null;
@@ -275,6 +289,7 @@ class CssComputedView {
     }
   }
 
+  #abortController;
   #contextMenu;
   #computed;
   #createViewsProcess;
@@ -380,7 +395,9 @@ class CssComputedView {
       this.viewedElementPageStyle.off("stylesheet-updated", this.refreshPanel);
     }
     this.viewedElementPageStyle = element.inspectorFront.pageStyle;
-    this.viewedElementPageStyle.on("stylesheet-updated", this.refreshPanel);
+    this.viewedElementPageStyle.on("stylesheet-updated", this.refreshPanel, {
+      signal: this.#abortController.signal,
+    });
 
     this.#viewedElement = element;
 
@@ -915,13 +932,14 @@ class CssComputedView {
    */
   destroy() {
     this.#viewedElement = null;
+    this.#abortController.abort();
+    this.#abortController = null;
+
     if (this.viewedElementPageStyle) {
-      this.viewedElementPageStyle.off("stylesheet-updated", this.refreshPanel);
       this.viewedElementPageStyle = null;
     }
     this.#outputParser = null;
 
-    this.#prefObserver.off("devtools.defaultColorUnit", this.#handlePrefChange);
     this.#prefObserver.destroy();
 
     // Cancel tree construction
@@ -943,22 +961,6 @@ class CssComputedView {
     }
 
     this.tooltips.destroy();
-
-    // Remove bound listeners
-    this.element.removeEventListener("click", this.#onClick);
-    this.element.removeEventListener("contextmenu", this.#onContextMenu);
-    this.searchField.removeEventListener("input", this.#onFilterStyles);
-    this.searchClearButton.removeEventListener("click", this.#onClearSearch);
-    this.styleDocument.removeEventListener("copy", this.#onCopy);
-    this.styleDocument.removeEventListener("mousedown", this.focusWindow);
-    this.includeBrowserStylesCheckbox.removeEventListener(
-      "input",
-      this.#onIncludeBrowserStyles
-    );
-
-    if (this.ruleView) {
-      this.ruleView.off("ruleview-changed", this.refreshPanel);
-    }
 
     // Nodes used in templating
     this.element = null;
