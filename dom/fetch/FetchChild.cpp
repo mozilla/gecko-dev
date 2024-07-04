@@ -5,6 +5,7 @@
 #include "FetchChild.h"
 #include "FetchLog.h"
 #include "FetchObserver.h"
+#include "FetchUtil.h"
 #include "InternalResponse.h"
 #include "Request.h"
 #include "Response.h"
@@ -228,6 +229,7 @@ RefPtr<FetchChild> FetchChild::CreateForWorker(
     RefPtr<AbortSignalImpl> aSignalImpl, RefPtr<FetchObserver> aObserver) {
   MOZ_DIAGNOSTIC_ASSERT(aWorkerPrivate);
   aWorkerPrivate->AssertIsOnWorkerThread();
+  FETCH_LOG(("FetchChild::CreateForWorker [%p]", aWorkerPrivate));
 
   RefPtr<FetchChild> actor = MakeRefPtr<FetchChild>(
       std::move(aPromise), std::move(aSignalImpl), std::move(aObserver));
@@ -254,6 +256,8 @@ RefPtr<FetchChild> FetchChild::CreateForMainThread(
   RefPtr<FetchChild> actor = MakeRefPtr<FetchChild>(
       std::move(aPromise), std::move(aSignalImpl), std::move(aObserver));
   actor->mIsKeepAliveRequest = true;
+  FETCH_LOG(("FetchChild::CreateForMainThread actor[%p]", actor.get()));
+
   return actor;
 }
 
@@ -398,6 +402,12 @@ void FetchChild::RunAbortAlgorithm() {
 
 void FetchChild::DoFetchOp(const FetchOpArgs& aArgs) {
   FETCH_LOG(("FetchChild::DoFetchOp [%p]", this));
+  // we need to store this for keepalive request
+  // as we need to update the load group during actor termination
+  if (mIsKeepAliveRequest) {
+    mKeepaliveRequestSize =
+        aArgs.request().bodySize() > 0 ? aArgs.request().bodySize() : 0;
+  }
   if (mSignalImpl) {
     if (mSignalImpl->Aborted()) {
       Unused << SendAbortFetchOp();
@@ -446,6 +456,22 @@ void FetchChild::Shutdown() {
 
 void FetchChild::ActorDestroy(ActorDestroyReason aReason) {
   FETCH_LOG(("FetchChild::ActorDestroy [%p]", this));
+  // for keepalive request decrement the pending keepalive count
+  if (mIsKeepAliveRequest) {
+    // we only support keepalive for main thread fetch requests
+    // See Bug 1901759
+    // For workers we need to dispatch a runnable to the main thread for
+    // updating the loadgroup
+
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(mPromise->GetGlobalObject());
+    nsCOMPtr<nsILoadGroup> loadGroup =
+        FetchUtil::GetLoadGroupFromGlobal(mPromise->GetGlobalObject());
+    if (loadGroup) {
+      FetchUtil::DecrementPendingKeepaliveRequestSize(loadGroup,
+                                                      mKeepaliveRequestSize);
+    }
+  }
   mPromise = nullptr;
   mFetchObserver = nullptr;
   mSignalImpl = nullptr;

@@ -67,6 +67,13 @@ interface nsILoadGroup : nsIRequest
     readonly attribute nsISimpleEnumerator requests;
 
     /**
+    * Sum total of content length of all pending keepalive
+    * requests in the fetch group group.
+    * See https://fetch.spec.whatwg.org/#ref-for-request-keepalive-flag%E2%91%A0
+    */
+    attribute unsigned long long totalKeepAliveBytes;
+
+    /**
      * Returns the count of "active" requests (ie. requests without the
      * LOAD_BACKGROUND bit set).
      */

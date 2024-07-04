@@ -77,6 +77,52 @@ static bool PushOverLine(nsACString::const_iterator& aStart,
 }
 
 // static
+bool FetchUtil::IncrementPendingKeepaliveRequestSize(
+    nsILoadGroup* aLoadGroup, const uint64_t aBodyLength) {
+  uint64_t pendingKeepaliveRequestSize = 0;
+  MOZ_ASSERT(aLoadGroup);
+
+  aLoadGroup->GetTotalKeepAliveBytes(&pendingKeepaliveRequestSize);
+  pendingKeepaliveRequestSize += aBodyLength;
+
+  if (pendingKeepaliveRequestSize > FETCH_KEEPALIVE_MAX_SIZE) {
+    return false;
+  }
+
+  aLoadGroup->SetTotalKeepAliveBytes(pendingKeepaliveRequestSize);
+  return true;
+}
+
+// static
+void FetchUtil::DecrementPendingKeepaliveRequestSize(
+    nsILoadGroup* aLoadGroup, const uint64_t aBodyLength) {
+  MOZ_ASSERT(aLoadGroup);
+
+  uint64_t pendingKeepaliveRequestSize = 0;
+  aLoadGroup->GetTotalKeepAliveBytes(&pendingKeepaliveRequestSize);
+  MOZ_ASSERT(pendingKeepaliveRequestSize >= aBodyLength);
+  pendingKeepaliveRequestSize -= aBodyLength;
+  aLoadGroup->SetTotalKeepAliveBytes(pendingKeepaliveRequestSize);
+}
+
+// static
+nsCOMPtr<nsILoadGroup> FetchUtil::GetLoadGroupFromGlobal(
+    nsIGlobalObject* aGlobalObject) {
+  MOZ_ASSERT(NS_IsMainThread());
+  nsCOMPtr<nsILoadGroup> loadGroup = nullptr;
+  auto* innerWindow = aGlobalObject->GetAsInnerWindow();
+
+  if (innerWindow) {
+    Document* doc = innerWindow->GetExtantDoc();
+    if (doc) {
+      loadGroup = doc->GetDocumentLoadGroup();
+    }
+  }
+
+  return loadGroup;
+}
+
+// static
 bool FetchUtil::ExtractHeader(nsACString::const_iterator& aStart,
                               nsACString::const_iterator& aEnd,
                               nsCString& aHeaderName, nsCString& aHeaderValue,

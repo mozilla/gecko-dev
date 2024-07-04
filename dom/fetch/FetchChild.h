@@ -83,6 +83,7 @@ class FetchChild final : public PFetchChild, public AbortFollower {
 
   RefPtr<ThreadSafeWorkerRef> mWorkerRef;
   bool mIsKeepAliveRequest{false};
+  uint64_t mKeepaliveRequestSize{0};
   RefPtr<Promise> mPromise;
   RefPtr<AbortSignalImpl> mSignalImpl;
   RefPtr<FetchObserver> mFetchObserver;

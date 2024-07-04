@@ -46,6 +46,7 @@
 
 #include "BodyExtractor.h"
 #include "FetchChild.h"
+#include "FetchUtil.h"
 #include "FetchObserver.h"
 #include "InternalRequest.h"
 #include "InternalResponse.h"
@@ -603,6 +604,28 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
     // keepalive is set to true, route the request through PFetch
     // We plan to route all main-thread fetch request through PFetch.
     // See Bug 1897129.
+
+    uint64_t bodyLength =
+        internalRequest->BodyLength() > 0 ? internalRequest->BodyLength() : 0;
+
+    nsCOMPtr<nsILoadGroup> loadGroup =
+        FetchUtil::GetLoadGroupFromGlobal(aGlobal);
+
+    if (loadGroup && !FetchUtil::IncrementPendingKeepaliveRequestSize(
+                         loadGroup, bodyLength)) {
+      p->MaybeRejectWithTypeError<MSG_FETCH_FAILED>();
+      return p.forget();
+    };
+
+    if (!loadGroup) {
+      // if there is no load group for this request ensure that the request
+      // size does not exceed FETCH_KEEPALIVE_MAX_SIZE
+      if (bodyLength > FETCH_KEEPALIVE_MAX_SIZE) {
+        p->MaybeRejectWithTypeError<MSG_FETCH_FAILED>();
+        return p.forget();
+      }
+    }
+
     RefPtr<FetchChild> actor =
         FetchChild::CreateForMainThread(p, signalImpl, observer);
     if (!actor) {

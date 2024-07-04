@@ -99,6 +99,9 @@ class nsLoadGroup : public nsILoadGroup,
   bool mExternalRequestContext{false};
   bool mNotifyObserverAboutBackgroundRequests{false};
 
+  // size of requests with keepalive flag for this load group
+  uint64_t mPendingKeepaliveRequestSize{0};
+
   /* Telemetry */
   mozilla::TimeStamp mDefaultRequestCreationTime;
   uint32_t mTimedRequests{0};

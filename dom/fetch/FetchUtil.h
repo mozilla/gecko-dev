@@ -24,6 +24,8 @@ class Document;
 class InternalRequest;
 class WorkerPrivate;
 
+#define FETCH_KEEPALIVE_MAX_SIZE 65536
+
 class FetchUtil final {
  private:
   FetchUtil() = delete;
@@ -76,6 +78,23 @@ class FetchUtil final {
    * untyped 'size_t' instead of Gecko 'nsresult'.
    */
   static void ReportJSStreamError(JSContext* aCx, size_t aErrorCode);
+
+  /**
+   * Implements fetch spec
+   * https://fetch.spec.whatwg.org/#http-network-or-cache-fetch for
+   * bounding the keepalive request size
+   */
+  static bool IncrementPendingKeepaliveRequestSize(nsILoadGroup* aLoadGroup,
+                                                   const uint64_t aBodyLength);
+
+  static void DecrementPendingKeepaliveRequestSize(nsILoadGroup* aLoadGroup,
+                                                   const uint64_t aBodyLength);
+
+  /**
+   * Wrapper to fetch loadgroup from the global object
+   */
+  static nsCOMPtr<nsILoadGroup> GetLoadGroupFromGlobal(
+      nsIGlobalObject* aGlobal);
 };
 
 }  // namespace mozilla::dom

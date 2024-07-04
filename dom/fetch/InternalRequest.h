@@ -8,6 +8,7 @@
 #define mozilla_dom_InternalRequest_h
 
 #include "mozilla/dom/HeadersBinding.h"
+#include "mozilla/dom/InternalResponse.h"
 #include "mozilla/dom/InternalHeaders.h"
 #include "mozilla/dom/RequestBinding.h"
 #include "mozilla/dom/SafeRefPtr.h"
@@ -306,6 +307,8 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
     }
   }
 
+  int64_t BodyLength() const { return mBodyLength; }
+
   void SetBodyBlobURISpec(nsACString& aBlobURISpec) {
     mBodyBlobURISpec = aBlobURISpec;
   }
@@ -434,7 +437,7 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   nsCString mBodyBlobURISpec;
   nsString mBodyLocalPath;
   nsCOMPtr<nsIInputStream> mBodyStream;
-  int64_t mBodyLength;
+  int64_t mBodyLength{InternalResponse::UNKNOWN_BODY_SIZE};
 
   nsCString mPreferredAlternativeDataType;
 
