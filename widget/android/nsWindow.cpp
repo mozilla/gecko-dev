@@ -2705,8 +2705,7 @@ void nsWindow::OnDragEvent(int32_t aAction, int64_t aTime, float aX, float aY,
     nsDragService::SetDropData(dropData);
   }
 
-  nsCOMPtr<nsIDragSession> dragSession;
-  dragService->GetCurrentSession(getter_AddRefs(dragSession));
+  nsCOMPtr<nsIDragSession> dragSession = dragService->GetCurrentSession(this);
   if (dragSession) {
     switch (message) {
       case eDragOver:
