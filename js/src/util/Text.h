@@ -36,7 +36,11 @@ class JSLinearString;
 
 template <typename CharT>
 static constexpr MOZ_ALWAYS_INLINE size_t js_strlen(const CharT* s) {
-  return std::char_traits<CharT>::length(s);
+  if constexpr (std::is_same_v<CharT, JS::Latin1Char>) {
+    return std::char_traits<char>::length(reinterpret_cast<const char*>(s));
+  } else {
+    return std::char_traits<CharT>::length(s);
+  }
 }
 
 template <typename CharT>
