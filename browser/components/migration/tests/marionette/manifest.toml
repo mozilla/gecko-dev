@@ -1,4 +1,5 @@
 [DEFAULT]
 run-if = ["buildapp == 'browser'"]
+tags = "os_integration"
 
 ["test_refresh_firefox.py"]
