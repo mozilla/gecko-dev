@@ -3877,7 +3877,7 @@ async function synthesizePlainDragAndDrop(aParams) {
     await new Promise(r => setTimeout(r, 0));
 
     if (srcWindowUtils.dragSession) {
-      const sourceNode = ds.sourceNode;
+      const sourceNode = srcWindowUtils.dragSession.sourceNode;
       let dragEndEvent;
       function onDragEnd(aEvent) {
         dragEndEvent = aEvent;
@@ -3909,8 +3909,9 @@ async function synthesizePlainDragAndDrop(aParams) {
         if (!expectSrcElementDisconnected && !dragEndEvent) {
           // eslint-disable-next-line no-unsafe-finally
           throw new Error(
-            `"dragend" event is not fired by nsIDragService.endDragSession()${
-              ds.sourceNode && !ds.sourceNode.isConnected
+            `"dragend" event is not fired by nsIDragSession.endDragSession()${
+              srcWindowUtils.dragSession.sourceNode &&
+              !srcWindowUtils.dragSession.sourceNode.isConnected
                 ? "(sourceNode was disconnected)"
                 : ""
             }`
