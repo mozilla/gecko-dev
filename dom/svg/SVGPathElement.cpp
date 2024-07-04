@@ -130,8 +130,10 @@ void SVGPathElement::GetAsSimplePath(SimplePath* aSimplePath) {
       auto pathData = styleSVGReset->mD.AsPath()._0.AsSpan();
       auto maybeRect = SVGPathToAxisAlignedRect(pathData);
       if (maybeRect.isSome()) {
-        Rect r = maybeRect.value();
-        aSimplePath->SetRect(r.x, r.y, r.width, r.height);
+        const Rect& r = *maybeRect;
+        float zoom = s->EffectiveZoom().ToFloat();
+        aSimplePath->SetRect(r.x * zoom, r.y * zoom, r.width * zoom,
+                             r.height * zoom);
       }
     }
   };
