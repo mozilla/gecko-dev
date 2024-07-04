@@ -350,8 +350,8 @@ export class ProgressListener {
   }
 
   onLocationChange(progress, request, location, flag) {
-    // If an error page has been loaded abort the navigation.
     if (flag & Ci.nsIWebProgressListener.LOCATION_CHANGE_ERROR_PAGE) {
+      // If an error page has been loaded abort the navigation.
       const errorName = this.#errorName || this.#getErrorName(this.documentURI);
       this.#trace(
         lazy.truncate`Location=errorPage, error=${errorName}, url=${this.documentURI.spec}`
@@ -360,11 +360,21 @@ export class ProgressListener {
       return;
     }
 
-    // If location has changed in the same document the navigation is done.
     if (flag & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) {
-      this.#targetURI = location;
-      this.#trace(`Location=sameDocument: ${this.targetURI?.spec}`);
-      this.stop();
+      const stop = type => {
+        this.#targetURI = location;
+        this.#trace(`Location=${type}: ${this.#targetURI?.spec}`);
+        this.stop();
+      };
+
+      if (location.hasRef) {
+        // If the target URL contains a hash, handle the navigation as a
+        // fragment navigation.
+        stop("fragmentNavigated");
+        return;
+      }
+
+      stop("sameDocument");
     }
   }
 
