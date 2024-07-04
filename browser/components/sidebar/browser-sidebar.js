@@ -8,8 +8,9 @@
  * and provides APIs for sidebar extensions, etc.
  */
 const defaultTools = {
-  viewHistorySidebar: "history",
+  viewGenaiChatSidebar: "aichat",
   viewTabsSidebar: "syncedtabs",
+  viewHistorySidebar: "history",
   viewBookmarksSidebar: "bookmarks",
 };
 
@@ -46,6 +47,8 @@ var SidebarController = {
       } else {
         switcherMenuitem?.remove();
       }
+
+      window.dispatchEvent(new CustomEvent("SidebarItemChanged"));
     };
 
     // Detect pref changes and handle initial state.
@@ -928,6 +931,10 @@ var SidebarController = {
         iconUrl: sidebar.iconUrl,
         l10nId: sidebar.revampL10nId,
         disabled,
+        // Reflect the current tool state defaulting to visible
+        get hidden() {
+          return !(sidebar.visible ?? true);
+        },
       };
     });
   },
@@ -1213,7 +1220,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarRevampTools",
   "sidebar.main.tools",
-  "history, syncedtabs"
+  "aichat,syncedtabs,history"
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,

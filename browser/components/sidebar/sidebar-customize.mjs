@@ -10,6 +10,7 @@ import { SidebarPage } from "./sidebar-page.mjs";
 import "chrome://global/content/elements/moz-radio-group.mjs";
 
 const l10nMap = new Map([
+  ["viewGenaiChatSidebar", "sidebar-menu-genai-chat-label"],
   ["viewHistorySidebar", "sidebar-menu-history-label"],
   ["viewTabsSidebar", "sidebar-menu-synced-tabs-label"],
   ["viewBookmarksSidebar", "sidebar-menu-bookmarks-label"],
@@ -87,6 +88,9 @@ export class SidebarCustomize extends SidebarPage {
   }
 
   inputTemplate(tool) {
+    if (tool.hidden) {
+      return null;
+    }
     return html`
       <moz-checkbox
         type="checkbox"

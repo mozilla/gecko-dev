@@ -18,8 +18,8 @@ add_task(async function test_tools_prefs() {
 
   is(
     Services.prefs.getStringPref("sidebar.main.tools"),
-    "history,syncedtabs",
-    "Default tools should be history and syncedtabs"
+    "aichat,syncedtabs,history",
+    "Default tools pref unchanged"
   );
 
   // Open customize sidebar
@@ -66,9 +66,10 @@ add_task(async function test_tools_prefs() {
     );
   }
 
+  const updatedTools = Services.prefs.getStringPref("sidebar.main.tools");
   is(
-    Services.prefs.getStringPref("sidebar.main.tools"),
-    "bookmarks",
+    updatedTools,
+    "aichat,bookmarks",
     "History and syncedtabs have been removed from the pref, and bookmarks added"
   );
 
@@ -115,9 +116,31 @@ add_task(async function test_tools_prefs() {
 
   is(
     Services.prefs.getStringPref("sidebar.main.tools"),
-    "bookmarks",
-    "Only bookmarks should be present in the pref"
+    updatedTools,
+    "Previously set tools should still be the same"
   );
 
   await BrowserTestUtils.closeWindow(newWin);
+});
+
+/**
+ * Check that conditional sidebar tools are added and removed on pref change
+ */
+add_task(async function test_conditional_tools() {
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const sidebar = win.document.querySelector("sidebar-main");
+  await sidebar.updateComplete;
+
+  const origCount = sidebar.toolButtons.length;
+  is(origCount, 1, "Expected number of initial tools");
+
+  await SpecialPowers.pushPrefEnv({ set: [["browser.ml.chat.enabled", true]] });
+  is(sidebar.toolButtons.length, origCount + 1, "Enabled tool added");
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.chat.enabled", false]],
+  });
+  is(sidebar.toolButtons.length, origCount, "Disabled tool removed");
+
+  await BrowserTestUtils.closeWindow(win);
 });

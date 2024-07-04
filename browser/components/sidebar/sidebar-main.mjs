@@ -191,7 +191,7 @@ export default class SidebarMain extends MozLitElement {
   }
 
   entrypointTemplate(action) {
-    if (action.disabled) {
+    if (action.disabled || action.hidden) {
       return null;
     }
     const isActiveView = this.open && action.view === this.selectedView;
