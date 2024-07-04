@@ -221,7 +221,7 @@ class WebMDemuxer : public MediaDataDemuxer,
   uint64_t mSeekPreroll;
 
   // Calculate the frame duration from the last decodeable frame using the
-  // previous frame's timestamp.  In NS.
+  // previous frame's timestamp.  In microseconds.
   Maybe<int64_t> mLastAudioFrameTime;
   Maybe<int64_t> mLastVideoFrameTime;
 
@@ -231,6 +231,9 @@ class WebMDemuxer : public MediaDataDemuxer,
   int mAudioCodec;
   // Codec ID of video track
   int mVideoCodec;
+  // Default durations of blocks for each track, in microseconds
+  int64_t mAudioDefaultDuration;
+  int64_t mVideoDefaultDuration;
 
   // Booleans to indicate if we have audio and/or video data
   bool mHasVideo;

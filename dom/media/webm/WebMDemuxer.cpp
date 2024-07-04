@@ -42,6 +42,8 @@ using media::TimeUnit;
 
 LazyLogModule gNesteggLog("Nestegg");
 
+#define NSECS_PER_USEC 1000
+
 // How far ahead will we look when searching future keyframe. In microseconds.
 // This value is based on what appears to be a reasonable value as most webm
 // files encountered appear to have keyframes located < 4s.
@@ -253,6 +255,17 @@ void WebMDemuxer::Reset(TrackInfo::TrackType aType) {
   }
 }
 
+static int64_t GetDefaultDuration(nestegg* aContext, unsigned aTrackNumber) {
+  uint64_t durationNanoSecs;
+  // https://www.webmproject.org/docs/container/#DefaultDuration
+  if (0 != nestegg_track_default_duration(aContext, aTrackNumber,
+                                          &durationNanoSecs)) {
+    return -1;
+  }
+
+  return AssertedCast<int64_t>(durationNanoSecs / NSECS_PER_USEC);
+}
+
 nsresult WebMDemuxer::ReadMetadata() {
   int r = mVideoContext.Init();
   if (r == -1) {
@@ -310,6 +323,7 @@ nsresult WebMDemuxer::ReadMetadata() {
         WEBM_DEBUG("nestegg_track_video_params error");
         return NS_ERROR_FAILURE;
       }
+      mVideoDefaultDuration = GetDefaultDuration(context, track);
       mVideoCodec = nestegg_track_codec_id(context, track);
       switch (mVideoCodec) {
         case NESTEGG_CODEC_VP8:
@@ -418,13 +432,14 @@ nsresult WebMDemuxer::ReadMetadata() {
 
       mAudioTrack = track;
       mHasAudio = true;
+      mAudioDefaultDuration = GetDefaultDuration(context, track);
       mAudioCodec = nestegg_track_codec_id(context, track);
       if (mAudioCodec == NESTEGG_CODEC_VORBIS) {
         mInfo.mAudio.mCodecSpecificConfig =
             AudioCodecSpecificVariant{VorbisCodecSpecificData{}};
         mInfo.mAudio.mMimeType = "audio/vorbis";
       } else if (mAudioCodec == NESTEGG_CODEC_OPUS) {
-        uint64_t codecDelayUs = params.codec_delay / 1000;
+        uint64_t codecDelayUs = params.codec_delay / NSECS_PER_USEC;
         mInfo.mAudio.mMimeType = "audio/opus";
         OpusCodecSpecificData opusCodecSpecificData;
         opusCodecSpecificData.mContainerCodecDelayFrames =
@@ -599,11 +614,10 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
   }
   int64_t tstamp = holder->Timestamp();
   int64_t duration = holder->Duration();
-  int64_t defaultDuration = holder->DefaultDuration();
   if (aType == TrackInfo::TrackType::kVideoTrack) {
     WEBM_DEBUG("video: tstamp=%" PRId64 ", duration=%" PRId64
-               ", defaultDuration=%" PRId64,
-               tstamp, duration, defaultDuration);
+               ", mVideoDefaultDuration=%" PRId64,
+               tstamp, duration, mVideoDefaultDuration);
   }
 
   // The end time of this frame is the start time of the next frame. Fetch
@@ -618,15 +632,18 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
   }
 
   int64_t next_tstamp = INT64_MIN;
-  auto calculateNextTimestamp = [&](auto&& pushPacket, auto&& lastFrameTime,
+  auto calculateNextTimestamp = [&](auto pushPacket,
+                                    Maybe<int64_t>* lastFrameTime,
+                                    int64_t defaultDuration,
                                     int64_t trackEndTime) {
+    MOZ_ASSERT(lastFrameTime);
     if (next_holder) {
       next_tstamp = next_holder->Timestamp();
       (this->*pushPacket)(next_holder);
     } else if (duration >= 0) {
       next_tstamp = tstamp + duration;
-    } else if (lastFrameTime.isSome()) {
-      next_tstamp = tstamp + (tstamp - lastFrameTime.ref());
+    } else if (lastFrameTime->isSome()) {
+      next_tstamp = tstamp + (tstamp - lastFrameTime->value());
     } else if (defaultDuration >= 0) {
       next_tstamp = tstamp + defaultDuration;
     } else if (mVideoFrameEndTimeBeforeReset) {
@@ -649,16 +666,18 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
       }
       next_tstamp = std::max<int64_t>(tstamp, trackEndTime);
     }
-    lastFrameTime = Some(tstamp);
+    *lastFrameTime = Some(tstamp);
   };
 
   if (aType == TrackInfo::kAudioTrack) {
-    calculateNextTimestamp(&WebMDemuxer::PushAudioPacket, mLastAudioFrameTime,
+    calculateNextTimestamp(&WebMDemuxer::PushAudioPacket, &mLastAudioFrameTime,
+                           mAudioDefaultDuration,
                            mInfo.mAudio.mDuration.ToMicroseconds());
   } else {
     WEBM_DEBUG("next_holder %c mLastVideoFrameTime %c", next_holder ? 'Y' : 'N',
                mLastVideoFrameTime ? 'Y' : 'N');
-    calculateNextTimestamp(&WebMDemuxer::PushVideoPacket, mLastVideoFrameTime,
+    calculateNextTimestamp(&WebMDemuxer::PushVideoPacket, &mLastVideoFrameTime,
+                           mVideoDefaultDuration,
                            mInfo.mVideo.mDuration.ToMicroseconds());
   }
 
@@ -957,7 +976,7 @@ nsresult WebMDemuxer::DemuxPacket(TrackInfo::TrackType aType,
 
   int64_t offset = Resource(aType).Tell();
   RefPtr<NesteggPacketHolder> holder = new NesteggPacketHolder();
-  if (!holder->Init(packet, Context(aType), offset, track, false)) {
+  if (!holder->Init(packet, offset, track, false)) {
     WEBM_DEBUG("NesteggPacketHolder::Init: error");
     return NS_ERROR_DOM_MEDIA_DEMUXER_ERR;
   }
