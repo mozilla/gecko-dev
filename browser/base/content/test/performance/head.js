@@ -46,7 +46,15 @@ async function recordReflows(testPromise, win = window) {
       // Gather information about the current code path.
       reflows.push(new Error().stack);
 
-      // Just in case, dirty the frame now that we've reflowed.
+      // Just in case, dirty the frame now that we've reflowed. This will
+      // allow us to detect additional reflows that occur in this same tick
+      // of the event loop.
+      ChromeUtils.addProfilerMarker(
+        "dirtyFrame",
+        { category: "Test" },
+        "Intentionally dirtying the frame to help ensure that synchrounous " +
+          "reflows will be detected."
+      );
       dirtyFrame(win);
     },
 
