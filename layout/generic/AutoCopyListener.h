@@ -29,30 +29,24 @@ class AutoCopyListener final {
                                 dom::Selection& aSelection, int16_t aReason);
 
   /**
-   * Init() initializes all static members of this class.  Should be called
-   * only once.
+   * IsEnabled() returns true if the auto-copy feature is enabled.
    */
-  static void Init(int16_t aClipboardID) {
-    MOZ_ASSERT(IsValidClipboardID(aClipboardID));
-    static bool sInitialized = false;
-    if (!sInitialized && IsValidClipboardID(aClipboardID)) {
-      sClipboardID = aClipboardID;
-      sInitialized = true;
-    }
+  static bool IsEnabled() {
+#ifdef XP_MACOSX
+    return true;
+#else
+    return StaticPrefs::clipboard_autocopy();
+#endif
   }
-
-  /**
-   * IsPrefEnabled() returns true if the pref enables auto-copy feature.
-   */
-  static bool IsPrefEnabled() { return StaticPrefs::clipboard_autocopy(); }
 
  private:
-  static bool IsValidClipboardID(int16_t aClipboardID) {
-    return aClipboardID >= nsIClipboard::kSelectionClipboard &&
-           aClipboardID <= nsIClipboard::kSelectionCache;
-  }
-
-  static int16_t sClipboardID;
+#ifdef XP_MACOSX
+  // On macOS, cache the current selection to send to service menu of macOS.
+  static const int16_t sClipboardID = nsIClipboard::kSelectionCache;
+#else
+  // Make the normal Selection notifies auto-copy listener of its changes.
+  static const int16_t sClipboardID = nsIClipboard::kSelectionClipboard;
+#endif
 };
 
 }  // namespace mozilla

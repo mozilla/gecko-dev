@@ -354,20 +354,7 @@ nsFrameSelection::nsFrameSelection(PresShell* aPresShell, nsIContent* aLimiter,
     mDomSelections[i] = new Selection(kPresentSelectionTypes[i], this);
   }
 
-#ifdef XP_MACOSX
-  // On macOS, cache the current selection to send to service menu of macOS.
-  bool enableAutoCopy = true;
-  AutoCopyListener::Init(nsIClipboard::kSelectionCache);
-#else   // #ifdef XP_MACOSX
-  // Check to see if the auto-copy pref is enabled and make the normal
-  // Selection notifies auto-copy listener of its changes.
-  bool enableAutoCopy = AutoCopyListener::IsPrefEnabled();
-  if (enableAutoCopy) {
-    AutoCopyListener::Init(nsIClipboard::kSelectionClipboard);
-  }
-#endif  // #ifdef XP_MACOSX #else
-
-  if (enableAutoCopy) {
+  if (AutoCopyListener::IsEnabled()) {
     int8_t index = GetIndexFromSelectionType(SelectionType::eNormal);
     if (mDomSelections[index]) {
       mDomSelections[index]->NotifyAutoCopy();
@@ -3037,8 +3024,6 @@ static nsresult UpdateSelectionCacheOnRepaintSelection(Selection* aSel) {
 
 // mozilla::AutoCopyListener
 
-int16_t AutoCopyListener::sClipboardID = -1;
-
 /*
  * What we do now:
  * On every selection change, we copy to the clipboard anew, creating a
@@ -3076,7 +3061,7 @@ int16_t AutoCopyListener::sClipboardID = -1;
 void AutoCopyListener::OnSelectionChange(Document* aDocument,
                                          Selection& aSelection,
                                          int16_t aReason) {
-  MOZ_ASSERT(IsValidClipboardID(sClipboardID));
+  MOZ_ASSERT(IsEnabled());
 
   // For now, we should prevent any updates caused by a call of Selection API.
   // We should allow this in some cases later, though. See the valid usage in
