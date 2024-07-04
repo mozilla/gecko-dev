@@ -1232,11 +1232,6 @@ interface WEBGL_provoking_vertex {
     undefined provokingVertexWEBGL(GLenum provokeMode);
 };
 
-[Exposed=(Window,Worker), LegacyNoInterfaceObject]
-interface EXT_depth_clamp {
-    const GLenum DEPTH_CLAMP_EXT = 0x864F;
-};
-
 // https://immersive-web.github.io/webxr/#dom-webglcontextattributes-xrcompatible
 partial dictionary WebGLContextAttributes {
     [Pref="dom.vr.webxr.enabled"]
