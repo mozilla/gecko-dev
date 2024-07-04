@@ -21,24 +21,15 @@ def match_capabilities(add_browser_capabilities):
 
 
 @pytest_asyncio.fixture
-async def bidi_client(browser):
+async def bidi_client():
     bidi_session = None
-    current_browser = browser(use_bidi=True)
 
-    async def bidi_client(capabilities={}):
-        nonlocal current_browser
-
-        # Launch the browser again if it's not running.
-        if current_browser.is_running is False:
-            current_browser = browser(use_bidi=True)
-
-        server_host = current_browser.remote_agent_host
-        server_port = current_browser.remote_agent_port
-
+    async def bidi_client(current_browser, capabilities={}):
         nonlocal bidi_session
 
         bidi_session = BidiSession.bidi_only(
-            f"ws://{server_host}:{server_port}", requested_capabilities=capabilities
+            current_browser.websocket_url,
+            requested_capabilities=capabilities,
         )
         bidi_session.current_browser = current_browser
 
@@ -53,17 +44,20 @@ async def bidi_client(browser):
 
 
 @pytest_asyncio.fixture
-async def new_session(bidi_client):
+async def new_session(bidi_client, browser):
     """Start bidi client and create a new session.
     At the moment, it throws an error if the session was already started,
     since multiple sessions are not supported.
     """
     bidi_session = None
 
-    async def new_session(capabilities):
+    async def new_session(capabilities, browser_args=None):
         nonlocal bidi_session
 
-        bidi_session = await bidi_client(capabilities)
+        browser_args = browser_args or {}
+        current_browser = browser(use_bidi=True, **browser_args)
+
+        bidi_session = await bidi_client(current_browser, capabilities=capabilities)
         await bidi_session.start()
 
         return bidi_session

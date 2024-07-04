@@ -35,9 +35,13 @@ async def setup_beforeunload_page(url):
     return setup_beforeunload_page
 
 
-async def test_close_browser(new_session, add_browser_capabilities):
+@pytest.mark.parametrize("marionette_enabled", [False, True])
+async def test_with_marionette_enabled(
+    new_session, add_browser_capabilities, marionette_enabled
+):
     bidi_session = await new_session(
-        capabilities={"alwaysMatch": add_browser_capabilities({})}
+        capabilities={"alwaysMatch": add_browser_capabilities({})},
+        browser_args={"use_marionette": marionette_enabled},
     )
 
     await bidi_session.browser.close()

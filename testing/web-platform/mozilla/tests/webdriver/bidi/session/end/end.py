@@ -4,18 +4,28 @@ from webdriver.bidi.error import InvalidSessionIDError
 pytestmark = pytest.mark.asyncio
 
 
-async def test_session_end(new_session, add_browser_capabilities, bidi_client):
+@pytest.mark.parametrize("marionette_enabled", [False, True])
+async def test_with_marionette_enabled(
+    new_session, add_browser_capabilities, bidi_client, marionette_enabled
+):
     bidi_session = await new_session(
-        capabilities={"alwaysMatch": add_browser_capabilities({})}
+        capabilities={"alwaysMatch": add_browser_capabilities({})},
+        browser_args={"use_marionette": marionette_enabled},
     )
 
     await bidi_session.session.end()
 
     # Connect the client again.
-    not_active_bidi_session = await bidi_client()
-    response = await not_active_bidi_session.session.status()
+    not_active_bidi_session = await bidi_client(
+        current_browser=bidi_session.current_browser
+    )
+
+    # Make sure that command will fail, since the session was closed.
+    with pytest.raises(InvalidSessionIDError):
+        await not_active_bidi_session.session.end()
 
     # Make sure that session can be created.
+    response = await not_active_bidi_session.session.status()
     assert response["ready"] is True
 
 
@@ -40,14 +50,16 @@ async def test_send_the_command_after_session_end(
     new_session, add_browser_capabilities, bidi_client
 ):
     bidi_session = await new_session(
-        capabilities={"alwaysMatch": add_browser_capabilities({})}
+        capabilities={"alwaysMatch": add_browser_capabilities({})},
     )
 
     await bidi_session.session.end()
 
     # Connect the client again.
-    not_active_bidi_session = await bidi_client()
+    not_active_bidi_session = await bidi_client(
+        current_browser=bidi_session.current_browser
+    )
 
     # Make sure that command will fail, since the session was closed.
     with pytest.raises(InvalidSessionIDError):
-        await not_active_bidi_session.browsing_context.create(type_hint="tab")
+        await not_active_bidi_session.session.end()

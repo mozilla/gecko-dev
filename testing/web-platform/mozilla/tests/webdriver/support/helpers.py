@@ -22,33 +22,29 @@ class Browser:
         self,
         binary,
         profile,
-        use_bidi=False,
-        use_cdp=False,
+        env=None,
         extra_args=None,
         extra_prefs=None,
-        env=None,
+        use_bidi=False,
+        use_cdp=False,
+        use_marionette=False,
     ):
         self.profile = profile
-        self.use_bidi = use_bidi
-        self.bidi_port_file = None
-        self.use_cdp = use_cdp
-        self.cdp_port_file = None
+
         self.extra_args = extra_args
         self.extra_prefs = extra_prefs
+        self.use_bidi = use_bidi
+        self.use_cdp = use_cdp
+        self.use_marionette = use_marionette
 
+        self.bidi_port_file = None
+        self.cdp_port_file = None
         self.debugger_address = None
         self.remote_agent_host = None
         self.remote_agent_port = None
 
         active_protocols = 0
-
-        if use_cdp:
-            active_protocols += 2
-            self.cdp_port_file = os.path.join(
-                self.profile.profile, "DevToolsActivePort"
-            )
-            with suppress(FileNotFoundError):
-                os.remove(self.cdp_port_file)
+        cmdargs = ["-no-remote"]
 
         if use_bidi:
             active_protocols += 1
@@ -58,20 +54,39 @@ class Browser:
             with suppress(FileNotFoundError):
                 os.remove(self.webdriver_bidi_file)
 
+        if use_cdp:
+            active_protocols += 2
+            self.cdp_port_file = os.path.join(
+                self.profile.profile, "DevToolsActivePort"
+            )
+            with suppress(FileNotFoundError):
+                os.remove(self.cdp_port_file)
+
+        if use_marionette:
+            cmdargs.extend(["-marionette"])
+
         # Avoid modifying extra_prefs to prevent side-effects with the "browser" fixture,
         # which checks session equality and would create a new session each time.
         prefs = self.extra_prefs or {}
         prefs.update({"remote.active-protocols": active_protocols})
         self.profile.set_preferences(prefs)
 
-        cmdargs = ["-no-remote"]
         if self.use_bidi or self.use_cdp:
             cmdargs.extend(["--remote-debugging-port", "0"])
         if self.extra_args is not None:
             cmdargs.extend(self.extra_args)
+
+        print(f"Run command: {binary} {cmdargs}")
         self.runner = FirefoxRunner(
             binary=binary, profile=self.profile, cmdargs=cmdargs, env=env
         )
+
+    @property
+    def websocket_url(self):
+        if self.remote_agent_host is None or self.remote_agent_port is None:
+            raise Exception("No WebSocket server running")
+
+        return f"ws://{self.remote_agent_host}:{self.remote_agent_port}"
 
     @property
     def is_running(self):
