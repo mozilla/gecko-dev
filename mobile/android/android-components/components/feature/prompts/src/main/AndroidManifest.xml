@@ -4,8 +4,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Needed for uploading media files on devices with Android 13 and later. -->
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
     <!-- Used for requesting partial video/image files access on devices with Android 14 and later. -->
