@@ -136,6 +136,38 @@ class NavigationRegistry extends EventEmitter {
   }
 
   /**
+   * Called when a fragment navigation is recorded from the
+   * NavigationListener actors.
+   *
+   * This entry point is only intended to be called from
+   * NavigationListenerParent, to avoid setting up observers or listeners,
+   * which are unnecessary since NavigationManager has to be a singleton.
+   *
+   * @param {object} data
+   * @param {BrowsingContext} data.context
+   *     The browsing context for which the navigation event was recorded.
+   * @param {string} data.url
+   *     The URL as string for the navigation.
+   * @returns {NavigationInfo}
+   *     The navigation created for this hash changed navigation.
+   */
+  notifyFragmentNavigated(data) {
+    const { contextDetails, url } = data;
+
+    const context = this.#getContextFromContextDetails(contextDetails);
+    const navigable = lazy.TabManager.getNavigableForBrowsingContext(context);
+    const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
+
+    const navigationId = this.#getOrCreateNavigationId(navigableId);
+    const navigation = { finished: true, navigationId, url };
+    this.#navigations.set(navigable, navigation);
+
+    // Hash change navigations are immediately done, fire a single event.
+    this.emit("fragment-navigated", { navigationId, navigableId, url });
+
+    return navigation;
+  }
+  /**
    * Called when a same-document navigation is recorded from the
    * NavigationListener actors.
    *
@@ -151,7 +183,7 @@ class NavigationRegistry extends EventEmitter {
    * @returns {NavigationInfo}
    *     The navigation created for this same-document navigation.
    */
-  notifyLocationChanged(data) {
+  notifySameDocumentChanged(data) {
     const { contextDetails, url } = data;
 
     const context = this.#getContextFromContextDetails(contextDetails);
@@ -163,7 +195,8 @@ class NavigationRegistry extends EventEmitter {
     this.#navigations.set(navigable, navigation);
 
     // Same document navigations are immediately done, fire a single event.
-    this.emit("location-changed", { navigationId, navigableId, url });
+
+    this.emit("same-document-changed", { navigationId, navigableId, url });
 
     return navigation;
   }
@@ -311,14 +344,25 @@ class NavigationRegistry extends EventEmitter {
 const navigationRegistry = new NavigationRegistry();
 
 /**
- * See NavigationRegistry.notifyLocationChanged.
+ * See NavigationRegistry.notifyHashChanged.
  *
  * This entry point is only intended to be called from NavigationListenerParent,
  * to avoid setting up observers or listeners, which are unnecessary since
  * NavigationRegistry has to be a singleton.
  */
-export function notifyLocationChanged(data) {
-  return navigationRegistry.notifyLocationChanged(data);
+export function notifyFragmentNavigated(data) {
+  return navigationRegistry.notifyFragmentNavigated(data);
+}
+
+/**
+ * See NavigationRegistry.notifySameDocumentChanged.
+ *
+ * This entry point is only intended to be called from NavigationListenerParent,
+ * to avoid setting up observers or listeners, which are unnecessary since
+ * NavigationRegistry has to be a singleton.
+ */
+export function notifySameDocumentChanged(data) {
+  return navigationRegistry.notifySameDocumentChanged(data);
 }
 
 /**
@@ -391,9 +435,10 @@ export class NavigationManager extends EventEmitter {
 
     this.#monitoring = true;
     navigationRegistry.startMonitoring(this);
+    navigationRegistry.on("fragment-navigated", this.#onNavigationEvent);
     navigationRegistry.on("navigation-started", this.#onNavigationEvent);
-    navigationRegistry.on("location-changed", this.#onNavigationEvent);
     navigationRegistry.on("navigation-stopped", this.#onNavigationEvent);
+    navigationRegistry.on("same-document-changed", this.#onNavigationEvent);
   }
 
   stopMonitoring() {
@@ -403,9 +448,10 @@ export class NavigationManager extends EventEmitter {
 
     this.#monitoring = false;
     navigationRegistry.stopMonitoring(this);
+    navigationRegistry.off("fragment-navigated", this.#onNavigationEvent);
     navigationRegistry.off("navigation-started", this.#onNavigationEvent);
-    navigationRegistry.off("location-changed", this.#onNavigationEvent);
     navigationRegistry.off("navigation-stopped", this.#onNavigationEvent);
+    navigationRegistry.off("same-document-changed", this.#onNavigationEvent);
   }
 
   #onNavigationEvent = (eventName, data) => {

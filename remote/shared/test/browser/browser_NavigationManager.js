@@ -249,9 +249,10 @@ add_task(async function test_sameDocumentNavigation() {
   const onEvent = (name, data) => events.push({ name, data });
 
   const navigationManager = new NavigationManager();
+  navigationManager.on("fragment-navigated", onEvent);
   navigationManager.on("navigation-started", onEvent);
-  navigationManager.on("location-changed", onEvent);
   navigationManager.on("navigation-stopped", onEvent);
+  navigationManager.on("same-document-changed", onEvent);
 
   const url = "https://example.com/document-builder.sjs?html=test";
   const tab = addTab(gBrowser, url);
@@ -264,9 +265,9 @@ add_task(async function test_sameDocumentNavigation() {
   is(events.length, 0, "No event recorded");
 
   info("Perform a same-document navigation");
-  let onLocationChanged = navigationManager.once("location-changed");
+  let onFragmentNavigated = navigationManager.once("fragment-navigated");
   BrowserTestUtils.startLoadingURIString(browser, url + "#hash");
-  await onLocationChanged;
+  await onFragmentNavigated;
 
   const hashNavigation = navigationManager.getNavigationForBrowsingContext(
     browser.browsingContext
@@ -297,10 +298,10 @@ add_task(async function test_sameDocumentNavigation() {
     navigableId
   );
 
-  info("Perform another same-document navigation");
-  onLocationChanged = navigationManager.once("location-changed");
+  info("Perform another hash navigation");
+  onFragmentNavigated = navigationManager.once("fragment-navigated");
   BrowserTestUtils.startLoadingURIString(browser, url + "#foo");
-  await onLocationChanged;
+  await onFragmentNavigated;
 
   const otherHashNavigation = navigationManager.getNavigationForBrowsingContext(
     browser.browsingContext
@@ -309,9 +310,9 @@ add_task(async function test_sameDocumentNavigation() {
   is(events.length, 4, "Recorded 1 additional navigation event");
 
   info("Perform a same-hash navigation");
-  onLocationChanged = navigationManager.once("location-changed");
+  onFragmentNavigated = navigationManager.once("fragment-navigated");
   BrowserTestUtils.startLoadingURIString(browser, url + "#foo");
-  await onLocationChanged;
+  await onFragmentNavigated;
 
   const sameHashNavigation = navigationManager.getNavigationForBrowsingContext(
     browser.browsingContext
@@ -333,9 +334,10 @@ add_task(async function test_sameDocumentNavigation() {
     sameHashNavigation,
   ]);
 
+  navigationManager.off("fragment-navigated", onEvent);
   navigationManager.off("navigation-started", onEvent);
-  navigationManager.off("location-changed", onEvent);
   navigationManager.off("navigation-stopped", onEvent);
+  navigationManager.off("same-document-changed", onEvent);
 
   navigationManager.stopMonitoring();
 });

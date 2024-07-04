@@ -14,9 +14,10 @@ add_task(async function testDocumentOpenWriteClose() {
   const onEvent = (name, data) => events.push({ name, data });
 
   const navigationManager = new NavigationManager();
-  navigationManager.on("location-changed", onEvent);
+  navigationManager.on("fragment-navigated", onEvent);
   navigationManager.on("navigation-started", onEvent);
   navigationManager.on("navigation-stopped", onEvent);
+  navigationManager.on("same-document-changed", onEvent);
 
   const url = "https://example.com/document-builder.sjs?html=test";
 
@@ -53,8 +54,9 @@ add_task(async function testDocumentOpenWriteClose() {
   // document.open/write/close is identical to same-url + same-hash navigations.
   todo_is(events.length, 2, "Recorded navigation events");
 
-  navigationManager.off("location-changed", onEvent);
+  navigationManager.off("fragment-navigated", onEvent);
   navigationManager.off("navigation-started", onEvent);
   navigationManager.off("navigation-stopped", onEvent);
+  navigationManager.off("same-document-changed", onEvent);
   navigationManager.stopMonitoring();
 });

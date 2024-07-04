@@ -6,7 +6,9 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   Log: "chrome://remote/content/shared/Log.sys.mjs",
-  notifyLocationChanged:
+  notifyFragmentNavigated:
+    "chrome://remote/content/shared/NavigationManager.sys.mjs",
+  notifySameDocumentChanged:
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
   notifyNavigationStarted:
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
@@ -18,31 +20,33 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 
 export class NavigationListenerParent extends JSWindowActorParent {
   async receiveMessage(message) {
+    const { data, name } = message;
+
     try {
-      switch (message.name) {
-        case "NavigationListenerChild:locationChanged": {
-          lazy.notifyLocationChanged({
-            contextDetails: message.data.contextDetails,
-            url: message.data.url,
-          });
+      const payload = {
+        contextDetails: data.contextDetails,
+        url: data.url,
+      };
+
+      switch (name) {
+        case "NavigationListenerChild:fragmentNavigated": {
+          lazy.notifyFragmentNavigated(payload);
+          break;
+        }
+        case "NavigationListenerChild:sameDocumentChanged": {
+          lazy.notifySameDocumentChanged(payload);
           break;
         }
         case "NavigationListenerChild:navigationStarted": {
-          lazy.notifyNavigationStarted({
-            contextDetails: message.data.contextDetails,
-            url: message.data.url,
-          });
+          lazy.notifyNavigationStarted(payload);
           break;
         }
         case "NavigationListenerChild:navigationStopped": {
-          lazy.notifyNavigationStopped({
-            contextDetails: message.data.contextDetails,
-            url: message.data.url,
-          });
+          lazy.notifyNavigationStopped(payload);
           break;
         }
         default:
-          throw new Error("Unsupported message:" + message.name);
+          throw new Error("Unsupported message:" + name);
       }
     } catch (e) {
       if (e instanceof TypeError) {

@@ -75,15 +75,20 @@ function assertNavigationEvents(
     `Found ${expectedEvents} events for navigationId ${navigationId}`
   );
 
+  const sameDocumentEvents = ["fragment-navigated", "same-document-changed"];
+
   if (isSameDocument) {
     // Check there are no navigation-started/stopped events.
     ok(!navigationEvents.some(e => e.name === "navigation-started"));
     ok(!navigationEvents.some(e => e.name === "navigation-stopped"));
 
-    const locationChanged = navigationEvents.find(
-      e => e.name === "location-changed"
+    const locationChanged = navigationEvents.find(e =>
+      sameDocumentEvents.includes(e.name)
     );
-    is(locationChanged.name, "location-changed", "event has the expected name");
+    ok(
+      sameDocumentEvents.includes(locationChanged.name),
+      "event has the expected name"
+    );
     is(locationChanged.data.url, url, "event has the expected url");
     is(
       locationChanged.data.navigableId,
@@ -91,8 +96,8 @@ function assertNavigationEvents(
       "event has the expected navigable"
     );
   } else {
-    // Check there is no location-changed event.
-    ok(!navigationEvents.some(e => e.name === "location-changed"));
+    // Check there is no fragment-navigated/same-document-changed event.
+    ok(!navigationEvents.some(e => sameDocumentEvents.includes(e.name)));
 
     const started = navigationEvents.find(e => e.name === "navigation-started");
     const stopped = navigationEvents.find(e => e.name === "navigation-stopped");

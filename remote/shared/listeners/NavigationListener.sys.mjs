@@ -29,11 +29,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * ```
  *
  * @fires message
- *    The NavigationListener emits "navigation-started", "location-changed" and
- *    "navigation-stopped" events, with the following object as payload:
- *      - {string} navigationId - The UUID for the navigation.
- *      - {string} navigableId - The UUID for the navigable.
- *      - {string} url - The target url for the navigation.
+ *     The NavigationListener emits "fragment-navigated", "navigation-started",
+ *     "navigation-stopped", and "same-document-changed" events,
+ *     with the following object as payload:
+ *       - {string} navigationId - The UUID for the navigation.
+ *       - {string} navigableId - The UUID for the navigable.
+ *       - {string} url - The target url for the navigation.
  */
 export class NavigationListener {
   #listening;
@@ -65,9 +66,10 @@ export class NavigationListener {
       return;
     }
 
+    this.#navigationManager.on("fragment-navigated", this.#forwardEvent);
     this.#navigationManager.on("navigation-started", this.#forwardEvent);
     this.#navigationManager.on("navigation-stopped", this.#forwardEvent);
-    this.#navigationManager.on("location-changed", this.#forwardEvent);
+    this.#navigationManager.on("same-document-changed", this.#forwardEvent);
 
     this.#listening = true;
   }
@@ -77,9 +79,10 @@ export class NavigationListener {
       return;
     }
 
+    this.#navigationManager.off("fragment-navigated", this.#forwardEvent);
     this.#navigationManager.off("navigation-started", this.#forwardEvent);
     this.#navigationManager.off("navigation-stopped", this.#forwardEvent);
-    this.#navigationManager.off("location-changed", this.#forwardEvent);
+    this.#navigationManager.off("same-document-changed", this.#forwardEvent);
 
     this.#listening = false;
   }

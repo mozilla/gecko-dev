@@ -102,15 +102,36 @@ export class NavigationListenerChild extends JSWindowActorChild {
   #onLocationChange = (progress, request, location, stateFlags) => {
     if (stateFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) {
       const context = progress.browsingContext;
-      this.#trace(
-        context.id,
-        lazy.truncate`Location=sameDocument: ${location.spec}`
-      );
 
-      this.sendAsyncMessage("NavigationListenerChild:locationChanged", {
+      const payload = {
         contextDetails: this.#getBrowsingContextDetails(context),
         url: location.spec,
-      });
+      };
+
+      if (location.hasRef) {
+        // If the target URL contains a hash, handle the navigation as a
+        // fragment navigation.
+        this.#trace(
+          context.id,
+          lazy.truncate`Location=fragmentNavigated: ${location.spec}`
+        );
+
+        this.sendAsyncMessage(
+          "NavigationListenerChild:fragmentNavigated",
+          payload
+        );
+        return;
+      }
+
+      this.#trace(
+        context.id,
+        lazy.truncate`Location=sameDocumentChanged: ${location.spec}`
+      );
+
+      this.sendAsyncMessage(
+        "NavigationListenerChild:sameDocumentChanged",
+        payload
+      );
     }
   };
 

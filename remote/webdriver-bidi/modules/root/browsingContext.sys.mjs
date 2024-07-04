@@ -175,12 +175,15 @@ class BrowsingContextModule extends Module {
     this.#contextListener.on("attached", this.#onContextAttached);
     this.#contextListener.on("discarded", this.#onContextDiscarded);
 
-    // Create the navigation listener and listen to "navigation-started" and
-    // "location-changed" events.
+    // Create the navigation listener and listen to "fragment-navigated" and
+    // "navigation-started" events.
     this.#navigationListener = new lazy.NavigationListener(
       this.messageHandler.navigationManager
     );
-    this.#navigationListener.on("location-changed", this.#onLocationChanged);
+    this.#navigationListener.on(
+      "fragment-navigated",
+      this.#onFragmentNavigated
+    );
     this.#navigationListener.on(
       "navigation-started",
       this.#onNavigationStarted
@@ -202,6 +205,16 @@ class BrowsingContextModule extends Module {
     this.#contextListener.off("attached", this.#onContextAttached);
     this.#contextListener.off("discarded", this.#onContextDiscarded);
     this.#contextListener.destroy();
+
+    this.#navigationListener.off(
+      "fragment-navigated",
+      this.#onFragmentNavigated
+    );
+    this.#navigationListener.off(
+      "navigation-started",
+      this.#onNavigationStarted
+    );
+    this.#navigationListener.destroy();
 
     this.#promptListener.off("closed", this.#onPromptClosed);
     this.#promptListener.off("opened", this.#onPromptOpened);
@@ -1833,7 +1846,7 @@ class BrowsingContextModule extends Module {
     }
   };
 
-  #onLocationChanged = async (eventName, data) => {
+  #onFragmentNavigated = async (eventName, data) => {
     const { navigationId, navigableId, url } = data;
     const context = this.#getBrowsingContext(navigableId);
 
