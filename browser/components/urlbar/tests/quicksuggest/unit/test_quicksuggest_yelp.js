@@ -12,7 +12,7 @@ const REMOTE_SETTINGS_RECORDS = [
   {
     type: "yelp-suggestions",
     attachment: {
-      subjects: ["ramen", "ab", "alongerkeyword"],
+      subjects: ["ramen", "ab", "alongerkeyword", "1234"],
       preModifiers: ["best"],
       postModifiers: ["delivery"],
       locationSigns: [
@@ -46,16 +46,18 @@ add_setup(async function () {
 
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: REMOTE_SETTINGS_RECORDS,
-    prefs: [
-      ["quicksuggest.rustEnabled", true],
-      ["suggest.quicksuggest.sponsored", true],
-      ["suggest.yelp", true],
-      ["yelp.featureGate", true],
-      ["yelp.minKeywordLength", 5],
-    ],
+    prefs: [["suggest.quicksuggest.sponsored", true]],
   });
 
   await MerinoTestUtils.initGeolocation();
+
+  // Many parts of this test assume the default minKeywordLength is 4. Please
+  // update it if the default changes.
+  Assert.equal(
+    UrlbarPrefs.get("yelp.minKeywordLength"),
+    4,
+    "Sanity check: This test assumes the default minKeywordLength is 4"
+  );
 });
 
 add_task(async function basic() {
@@ -109,13 +111,31 @@ add_task(async function basic() {
       expected: null,
     },
     {
-      description: "Query too short, no subject exact match: rame",
+      description: "Query length == minKeywordLength, no subject exact match",
       query: "rame",
-      expected: null,
+      expected: {
+        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
+        originalUrl: "https://www.yelp.com/search?find_desc=ramen",
+        displayUrl:
+          "yelp.com/search?find_desc=ramen&find_loc=Yokohama,+Kanagawa",
+        title: "ramen in Yokohama, Kanagawa",
+      },
     },
     {
       description:
-        "Query length == minKeywordLength, subject exact match: ramen",
+        "Query length == minKeywordLength, subject exact match: 1234",
+      query: "1234",
+      expected: {
+        url: "https://www.yelp.com/search?find_desc=1234&find_loc=Yokohama%2C+Kanagawa",
+        originalUrl: "https://www.yelp.com/search?find_desc=1234",
+        displayUrl:
+          "yelp.com/search?find_desc=1234&find_loc=Yokohama,+Kanagawa",
+        title: "1234 in Yokohama, Kanagawa",
+      },
+    },
+    {
+      description:
+        "Query length > minKeywordLength, subject exact match: ramen",
       query: "ramen",
       expected: {
         url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
@@ -166,6 +186,19 @@ add_task(async function basic() {
     {
       description:
         "Subject exact match with length == minKeywordLength, showLessFrequentlyCount non-zero",
+      query: "1234",
+      showLessFrequentlyCount: 1,
+      expected: {
+        url: "https://www.yelp.com/search?find_desc=1234&find_loc=Yokohama%2C+Kanagawa",
+        originalUrl: "https://www.yelp.com/search?find_desc=1234",
+        displayUrl:
+          "yelp.com/search?find_desc=1234&find_loc=Yokohama,+Kanagawa",
+        title: "1234 in Yokohama, Kanagawa",
+      },
+    },
+    {
+      description:
+        "Subject exact match with length > minKeywordLength, showLessFrequentlyCount non-zero",
       query: "ramen",
       showLessFrequentlyCount: 1,
       expected: {
@@ -177,40 +210,45 @@ add_task(async function basic() {
       },
     },
     {
-      description: "Query too short: alon",
-      query: "alon",
+      description: "Query too short: alo",
+      query: "alo",
       expected: null,
     },
     {
       description: "Query length == minKeywordLength, subject not exact match",
+      query: "alon",
+      expected: ALONGERKEYWORD_RESULT,
+    },
+    {
+      description: "Query length > minKeywordLength, subject not exact match",
       query: "along",
       expected: ALONGERKEYWORD_RESULT,
     },
     {
       description:
         "Query length == minKeywordLength, subject not exact match, showLessFrequentlyCount non-zero",
+      query: "alon",
+      showLessFrequentlyCount: 1,
+      expected: ALONGERKEYWORD_RESULT,
+    },
+    {
+      description:
+        "Query length == minKeywordLength + showLessFrequentlyCount, subject not exact match",
       query: "along",
       showLessFrequentlyCount: 1,
       expected: ALONGERKEYWORD_RESULT,
     },
     {
       description:
-        "Query length == minKeywordLength + showLessFrequentlyCount, subject not exact match",
-      query: "alonge",
-      showLessFrequentlyCount: 1,
-      expected: ALONGERKEYWORD_RESULT,
-    },
-    {
-      description:
         "Query length < minKeywordLength + showLessFrequentlyCount, subject not exact match",
-      query: "alonge",
+      query: "along",
       showLessFrequentlyCount: 2,
       expected: ALONGERKEYWORD_RESULT,
     },
     {
       description:
         "Query length == minKeywordLength + showLessFrequentlyCount, subject not exact match",
-      query: "alonger",
+      query: "alonge",
       showLessFrequentlyCount: 2,
       expected: ALONGERKEYWORD_RESULT,
     },
@@ -466,11 +504,13 @@ add_task(async function yelpSuggestPriority() {
 });
 
 // Tests the `yelpSuggestNonPriorityIndex` Nimbus variable, which controls the
-// group-relative suggestedIndex. The default Yelp suggestedIndex is 0, unlike
-// most other Suggest suggestion types, which use -1.
+// group-relative suggestedIndex.
 add_task(async function nimbusSuggestedIndex() {
+  // When the Nimbus variable is defined, it should override the default
+  // suggested index used for Yelp. We use -2 here since that's unlikely to ever
+  // be the default Yelp index.
   const cleanUpNimbusEnable = await UrlbarTestUtils.initNimbusFeature({
-    yelpSuggestNonPriorityIndex: -1,
+    yelpSuggestNonPriorityIndex: -2,
   });
   await QuickSuggestTestUtils.forceSync();
 
@@ -484,7 +524,7 @@ add_task(async function nimbusSuggestedIndex() {
         url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
         title: "ramen in tokyo",
         isTopPick: false,
-        suggestedIndex: -1,
+        suggestedIndex: -2,
       }),
     ],
   });
@@ -492,6 +532,8 @@ add_task(async function nimbusSuggestedIndex() {
   await cleanUpNimbusEnable();
   await QuickSuggestTestUtils.forceSync();
 
+  // When the Nimbus variable isn't defined, the suggested index should be the
+  // default index used for Yelp, which is the sponsored suggestions index, 0.
   await check_results({
     context: createContext("ramen in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
@@ -616,7 +658,6 @@ add_task(async function showLessFrequently() {
   UrlbarPrefs.clear("yelp.minKeywordLength");
 
   let cleanUpNimbus = await UrlbarTestUtils.initNimbusFeature({
-    yelpMinKeywordLength: 0,
     yelpShowLessFrequentlyCap: 3,
   });
 
@@ -640,7 +681,7 @@ add_task(async function showLessFrequently() {
       before: {
         canShowLessFrequently: true,
         showLessFrequentlyCount: 0,
-        minKeywordLength: 0,
+        minKeywordLength: 4,
       },
       after: {
         canShowLessFrequently: true,
@@ -771,10 +812,10 @@ add_task(async function rustProviders() {
   await QuickSuggestTestUtils.forceSync();
 });
 
-add_task(async function minKeywordLength_noPrefValue() {
+add_task(async function minKeywordLength_defaultPrefValue() {
   await doMinKeywordLengthTest({
-    // expected min length: 5 (Nimbus value)
-    prefValue: null,
+    // expected min length: 5 (Nimbus value should override default pref value)
+    prefUserValue: null,
     nimbusValue: 5,
     tests: [
       {
@@ -820,11 +861,11 @@ add_task(async function minKeywordLength_noPrefValue() {
   });
 });
 
-add_task(async function minKeywordLength_smallerPrefValue() {
+add_task(async function minKeywordLength_smallerPrefUserValue() {
   await doMinKeywordLengthTest({
-    // expected min length: 4 (pref value)
-    prefValue: 4,
-    nimbusValue: 5,
+    // expected min length: 5 (pref user value)
+    prefUserValue: 5,
+    nimbusValue: 6,
     tests: [
       {
         query: "al",
@@ -836,7 +877,7 @@ add_task(async function minKeywordLength_smallerPrefValue() {
       },
       {
         query: "alon",
-        expected: ALONGERKEYWORD_RESULT,
+        expected: null,
       },
       {
         query: "along",
@@ -869,10 +910,10 @@ add_task(async function minKeywordLength_smallerPrefValue() {
   });
 });
 
-add_task(async function minKeywordLength_largerPrefValue() {
+add_task(async function minKeywordLength_largerPrefUserValue() {
   await doMinKeywordLengthTest({
-    // expected min length: 6 (pref value)
-    prefValue: 6,
+    // expected min length: 6 (pref user value)
+    prefUserValue: 6,
     nimbusValue: 5,
     tests: [
       {
@@ -924,8 +965,8 @@ add_task(async function minKeywordLength_largerPrefValue() {
 
 add_task(async function minKeywordLength_onlyPrefValue() {
   await doMinKeywordLengthTest({
-    // expected min length: 5 (pref value)
-    prefValue: 5,
+    // expected min length: 5 (pref user value)
+    prefUserValue: 5,
     nimbusValue: null,
     tests: [
       {
@@ -971,21 +1012,19 @@ add_task(async function minKeywordLength_onlyPrefValue() {
   });
 });
 
-// When no min length is defined in Nimbus or the pref, we should fall back to
-// the hardcoded value of 2 in the Rust component.
-add_task(async function minKeywordLength_noNimbusOrPrefValue() {
+add_task(async function minKeywordLength_noNimbusOrPrefUserValue() {
   await doMinKeywordLengthTest({
-    // expected min length: 2 (hardcoded)
-    prefValue: null,
+    // expected min length: 4 (pref default value)
+    prefUserValue: null,
     nimbusValue: null,
     tests: [
       {
         query: "al",
-        expected: ALONGERKEYWORD_RESULT,
+        expected: null,
       },
       {
         query: "alo",
-        expected: ALONGERKEYWORD_RESULT,
+        expected: null,
       },
       {
         query: "alon",
@@ -1022,15 +1061,15 @@ add_task(async function minKeywordLength_noNimbusOrPrefValue() {
   });
 });
 
-async function doMinKeywordLengthTest({ prefValue, nimbusValue, tests }) {
+async function doMinKeywordLengthTest({ prefUserValue, nimbusValue, tests }) {
   // Set or clear the pref.
-  let originalPrefValue = Services.prefs.prefHasUserValue(
+  let originalPrefUserValue = Services.prefs.prefHasUserValue(
     "browser.urlbar.yelp.minKeywordLength"
   )
     ? UrlbarPrefs.get("yelp.minKeywordLength")
     : null;
-  if (typeof prefValue == "number") {
-    UrlbarPrefs.set("yelp.minKeywordLength", prefValue);
+  if (typeof prefUserValue == "number") {
+    UrlbarPrefs.set("yelp.minKeywordLength", prefUserValue);
   } else {
     UrlbarPrefs.clear("yelp.minKeywordLength");
   }
@@ -1056,10 +1095,10 @@ async function doMinKeywordLengthTest({ prefValue, nimbusValue, tests }) {
 
   await cleanUpNimbus?.();
 
-  if (originalPrefValue === null) {
+  if (originalPrefUserValue === null) {
     UrlbarPrefs.clear("yelp.minKeywordLength");
   } else {
-    UrlbarPrefs.set("yelp.minKeywordLength", originalPrefValue);
+    UrlbarPrefs.set("yelp.minKeywordLength", originalPrefUserValue);
   }
 }
 

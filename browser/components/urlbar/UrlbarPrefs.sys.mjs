@@ -495,7 +495,7 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
   // The minimum prefix length of a Yelp keyword the user must type to trigger
   // the suggestion. 0 means the min length should be taken from Nimbus.
-  ["yelp.minKeywordLength", 0],
+  ["yelp.minKeywordLength", 4],
 
   // Whether Yelp suggestions should be shown as top picks. This is a fallback
   // pref for the `yelpSuggestPriority` Nimbus variable.
@@ -504,11 +504,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // The number of times the user has clicked the "Show less frequently" command
   // for Yelp suggestions.
   ["yelp.showLessFrequentlyCount", 0],
-
-  // The group-relative suggestedIndex of Yelp suggestions within the Firefox
-  // Suggest section. Ignored when Yelp suggestions are shown as top picks. This
-  // is a fallback pref for the `yelpSuggestNonPriorityIndex` Nimbus variable.
-  ["yelp.suggestedIndex", 0],
 ]);
 
 const PREF_OTHER_DEFAULTS = new Map([
@@ -535,7 +530,8 @@ const NIMBUS_DEFAULTS = {
   weatherKeywordsMinimumLength: 0,
   weatherKeywordsMinimumLengthCap: 0,
   weatherSimpleUI: false,
-  yelpMinKeywordLength: 0,
+  yelpMinKeywordLength: null,
+  yelpSuggestNonPriorityIndex: null,
 };
 
 // Maps preferences under browser.urlbar.suggest to behavior names, as defined

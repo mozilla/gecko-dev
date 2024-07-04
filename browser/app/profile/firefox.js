@@ -635,18 +635,14 @@ pref("browser.urlbar.suggest.addons", true);
 pref("browser.urlbar.suggest.mdn", true);
 
 // Feature gate pref for Yelp suggestions in the urlbar.
-pref("browser.urlbar.yelp.featureGate", false);
+pref("browser.urlbar.yelp.featureGate", true);
 
 // The minimum prefix length of a Yelp keyword the user must type to trigger the
 // suggestion. 0 means the min length should be taken from Nimbus.
-pref("browser.urlbar.yelp.minKeywordLength", 0);
+pref("browser.urlbar.yelp.minKeywordLength", 4);
 
 // Whether Yelp suggestions should be shown as top picks.
 pref("browser.urlbar.yelp.priority", false);
-
-// The group-relative suggestedIndex of Yelp suggestions within the Firefox
-// Suggest section. Ignored when Yelp suggestions are shown as top picks.
-pref("browser.urlbar.yelp.suggestedIndex", 0);
 
 // If `browser.urlbar.yelp.featureGate` is true, this controls whether
 // Yelp suggestions are turned on.

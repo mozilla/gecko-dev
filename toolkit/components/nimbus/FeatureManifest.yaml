@@ -479,7 +479,6 @@ urlbar:
         command without any limit.
     yelpSuggestNonPriorityIndex:
       type: int
-      fallbackPref: browser.urlbar.yelp.suggestedIndex
       description: >-
         The group-relative suggestedIndex of Yelp suggestions within the Firefox
         Suggest section. Ignored when `yelpSuggestPriority` is true.
