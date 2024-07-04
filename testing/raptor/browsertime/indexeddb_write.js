@@ -4,48 +4,52 @@
 
 /* eslint-env node */
 
-module.exports = async function (context, commands) {
-  context.log.info("Starting a indexedDB write");
-  const post_startup_delay = context.options.browsertime.post_startup_delay;
-  console.log("context options", context.options);
+const { logTest } = require("./utils/profiling");
 
-  const test_url = context.options.browsertime.url;
-  const chunk_size = context.options.browsertime.chunk_size;
-  const iterations = context.options.browsertime.iterations;
-  const buffer_type = context.options.browsertime.buffer_type;
-  const atomic_value = context.options.browsertime.atomic;
-  if (atomic_value * atomic_value != atomic_value) {
-    throw Error("Value of atomic shall be 0 for falsehood, 1 for truth.");
-  }
-  const atomic = 0 != atomic_value;
+module.exports = logTest(
+  "indexedDB write test",
+  async function (context, commands) {
+    context.log.info("Starting a indexedDB write");
+    const post_startup_delay = context.options.browsertime.post_startup_delay;
+    console.log("context options", context.options);
 
-  const accepted_buffers = ["Array", "ArrayBuffer", "Blob"];
-  if (!accepted_buffers.includes(buffer_type)) {
-    throw Error("Buffer type " + buffer_type + " is unknown.");
-  }
+    const test_url = context.options.browsertime.url;
+    const chunk_size = context.options.browsertime.chunk_size;
+    const iterations = context.options.browsertime.iterations;
+    const buffer_type = context.options.browsertime.buffer_type;
+    const atomic_value = context.options.browsertime.atomic;
+    if (atomic_value * atomic_value != atomic_value) {
+      throw Error("Value of atomic shall be 0 for falsehood, 1 for truth.");
+    }
+    const atomic = 0 != atomic_value;
 
-  context.log.info("IndexedDB write URL = " + test_url);
-  context.log.info("IndexedDB write chunk size = " + chunk_size);
-  context.log.info("IndexedDB write iterations = " + iterations);
-  context.log.info(
-    "IndexedDB writes " +
-      (atomic ? "all in one big transaction" : "in separate transactions")
-  );
-  context.log.info("IndexedDB write data format " + buffer_type);
+    const accepted_buffers = ["Array", "ArrayBuffer", "Blob"];
+    if (!accepted_buffers.includes(buffer_type)) {
+      throw Error("Buffer type " + buffer_type + " is unknown.");
+    }
 
-  context.log.info(
-    "Waiting for %d ms (post_startup_delay)",
-    post_startup_delay
-  );
+    context.log.info("IndexedDB write URL = " + test_url);
+    context.log.info("IndexedDB write chunk size = " + chunk_size);
+    context.log.info("IndexedDB write iterations = " + iterations);
+    context.log.info(
+      "IndexedDB writes " +
+        (atomic ? "all in one big transaction" : "in separate transactions")
+    );
+    context.log.info("IndexedDB write data format " + buffer_type);
 
-  await commands.navigate(test_url);
+    context.log.info(
+      "Waiting for %d ms (post_startup_delay)",
+      post_startup_delay
+    );
 
-  const seleniumDriver = context.selenium.driver;
+    await commands.navigate(test_url);
 
-  await commands.wait.byTime(post_startup_delay);
+    const seleniumDriver = context.selenium.driver;
 
-  await commands.measure.start();
-  const time_duration = await seleniumDriver.executeAsyncScript(`
+    await commands.wait.byTime(post_startup_delay);
+
+    await commands.measure.start();
+    const time_duration = await seleniumDriver.executeAsyncScript(`
         const notifyDone = arguments[arguments.length - 1];
 
         const iterations = ${iterations};
@@ -140,14 +144,15 @@ module.exports = async function (context, commands) {
           notifyDone(performance.now() - startTime);
         });
       `);
-  await commands.measure.stop();
+    await commands.measure.stop();
 
-  console.log("Time duration was ", time_duration);
+    console.log("Time duration was ", time_duration);
 
-  await commands.measure.addObject({
-    custom_data: { time_duration },
-  });
+    await commands.measure.addObject({
+      custom_data: { time_duration },
+    });
 
-  context.log.info("IndexedDB write ended.");
-  return true;
-};
+    context.log.info("IndexedDB write ended.");
+    return true;
+  }
+);

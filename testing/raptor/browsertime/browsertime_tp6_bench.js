@@ -4,26 +4,31 @@
 
 /* eslint-env node */
 
-module.exports = async function (context, commands) {
-  let urlstr = context.options.browsertime.url;
-  const parsedUrls = urlstr.split(",");
+const { logTest } = require("./utils/profiling");
 
-  let startTime = await commands.js.run(
-    `return performance.timeOrigin + performance.now();`
-  );
-  for (let count = 0; count < parsedUrls.length; count++) {
-    context.log.info("Navigating to url:" + parsedUrls[count]);
-    context.log.info("Cycle %d, starting the measure", count);
-    await commands.measure.start(parsedUrls[count]);
+module.exports = logTest(
+  "browsertime pageload benchmark",
+  async function (context, commands) {
+    let urlstr = context.options.browsertime.url;
+    const parsedUrls = urlstr.split(",");
+
+    let startTime = await commands.js.run(
+      `return performance.timeOrigin + performance.now();`
+    );
+    for (let count = 0; count < parsedUrls.length; count++) {
+      context.log.info("Navigating to url:" + parsedUrls[count]);
+      context.log.info("Cycle %d, starting the measure", count);
+      await commands.measure.start(parsedUrls[count]);
+    }
+
+    let endTime = await commands.js.run(
+      `return performance.timeOrigin + performance.now();`
+    );
+
+    context.log.info("Browsertime pageload benchmark ended.");
+    await commands.measure.add("pageload-benchmark", {
+      totalTime: endTime - startTime,
+    });
+    return true;
   }
-
-  let endTime = await commands.js.run(
-    `return performance.timeOrigin + performance.now();`
-  );
-
-  context.log.info("Browsertime pageload benchmark ended.");
-  await commands.measure.add("pageload-benchmark", {
-    totalTime: endTime - startTime,
-  });
-  return true;
-};
+);

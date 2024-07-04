@@ -6,34 +6,37 @@
 
 const fs = require("fs");
 const path = require("path");
+const { logTest } = require("./utils/profiling");
 
-module.exports = async function (context, commands) {
-  context.log.info(
-    "Starting a pageload for which we will first enable the dev tools network throttler"
-  );
-
-  const url = "https://en.wikipedia.org/wiki/Barack_Obama";
-
-  await commands.navigate("about:blank");
-  await commands.wait.byTime(1000);
-
-  // Load the throttling script
-  let throttler_script = null;
-  let throttlerScriptPath = path.join(
-    `${path.resolve(__dirname)}`,
-    "utils",
-    "NetworkThrottlingUtils.js"
-  );
-  try {
-    throttler_script = fs.readFileSync(throttlerScriptPath, "utf8");
-  } catch (error) {
-    throw Error(
-      `Failed to load network throttler script ${throttlerScriptPath}`
+module.exports = logTest(
+  "throttled pageload",
+  async function (context, commands) {
+    context.log.info(
+      "Starting a pageload for which we will first enable the dev tools network throttler"
     );
-  }
 
-  // Create a throttler and configure the network
-  let usage = `
+    const url = "https://en.wikipedia.org/wiki/Barack_Obama";
+
+    await commands.navigate("about:blank");
+    await commands.wait.byTime(1000);
+
+    // Load the throttling script
+    let throttler_script = null;
+    let throttlerScriptPath = path.join(
+      `${path.resolve(__dirname)}`,
+      "utils",
+      "NetworkThrottlingUtils.js"
+    );
+    try {
+      throttler_script = fs.readFileSync(throttlerScriptPath, "utf8");
+    } catch (error) {
+      throw Error(
+        `Failed to load network throttler script ${throttlerScriptPath}`
+      );
+    }
+
+    // Create a throttler and configure the network
+    let usage = `
     let networkThrottler = new NetworkThrottler();
     let throttleData = {
       latencyMean: 50,
@@ -46,11 +49,12 @@ module.exports = async function (context, commands) {
     networkThrottler.start(throttleData);
   `;
 
-  throttler_script += usage;
-  commands.js.runPrivileged(throttler_script);
+    throttler_script += usage;
+    commands.js.runPrivileged(throttler_script);
 
-  await commands.measure.start(url);
+    await commands.measure.start(url);
 
-  context.log.info("Throttled pageload test finished.");
-  return true;
-};
+    context.log.info("Throttled pageload test finished.");
+    return true;
+  }
+);

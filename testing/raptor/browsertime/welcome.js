@@ -4,27 +4,34 @@
 
 /* eslint-env node */
 
-module.exports = async function (context, commands) {
-  context.log.info("Starting a first-install test");
-  let page_cycles = context.options.browsertime.page_cycles;
+const { logTest, logTask } = require("./utils/profiling");
 
-  for (let count = 0; count < page_cycles; count++) {
-    context.log.info("Navigating to about:blank");
+module.exports = logTest(
+  "first-install test",
+  async function (context, commands) {
+    context.log.info("Starting a first-install test");
+    let page_cycles = context.options.browsertime.page_cycles;
 
-    // See bug 1717754
-    context.log.info(await commands.js.run(`return document.documentURI;`));
+    for (let count = 0; count < page_cycles; count++) {
+      await logTask(context, "cycle " + count, async function () {
+        context.log.info("Navigating to about:blank");
 
-    await commands.navigate("about:blank");
+        // See bug 1717754
+        context.log.info(await commands.js.run(`return document.documentURI;`));
 
-    await commands.measure.start();
-    await commands.wait.byTime(1000);
-    await commands.navigate("about:welcome");
-    await commands.wait.byTime(2000);
-    await commands.measure.stop();
+        await commands.navigate("about:blank");
 
-    await commands.wait.byTime(2000);
+        await commands.measure.start();
+        await commands.wait.byTime(1000);
+        await commands.navigate("about:welcome");
+        await commands.wait.byTime(2000);
+        await commands.measure.stop();
+
+        await commands.wait.byTime(2000);
+      });
+    }
+
+    context.log.info("First-install test ended.");
+    return true;
   }
-
-  context.log.info("First-install test ended.");
-  return true;
-};
+);

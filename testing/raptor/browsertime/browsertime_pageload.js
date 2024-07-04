@@ -6,6 +6,7 @@
 
 const fs = require("fs");
 const http = require("http");
+const { logTest, logTask } = require("./utils/profiling");
 
 const URL = "/secrets/v1/secret/project/perftest/gecko/level-";
 const SECRET = "/perftest-login";
@@ -333,80 +334,93 @@ async function perform_live_login(context, commands) {
   await login(context, commands, final_button);
 }
 
-module.exports = async function (context, commands) {
-  context.log.info("Starting a browsertime pageload");
-  let test_url = context.options.browsertime.url;
-  let secondary_url = context.options.browsertime.secondary_url;
-  let page_cycles = context.options.browsertime.page_cycles;
-  let page_cycle_delay = context.options.browsertime.page_cycle_delay;
-  let post_startup_delay = context.options.browsertime.post_startup_delay;
-  let chimera_mode = context.options.browsertime.chimera;
-  let test_bytecode_cache = context.options.browsertime.test_bytecode_cache;
-  let login_required = context.options.browsertime.loginRequired;
-  let live_site = context.options.browsertime.liveSite;
-  let test_name = context.options.browsertime.testName;
+module.exports = logTest(
+  "browsertime pageload",
+  async function (context, commands) {
+    context.log.info("Starting a browsertime pageload");
+    let test_url = context.options.browsertime.url;
+    let secondary_url = context.options.browsertime.secondary_url;
+    let page_cycles = context.options.browsertime.page_cycles;
+    let page_cycle_delay = context.options.browsertime.page_cycle_delay;
+    let post_startup_delay = context.options.browsertime.post_startup_delay;
+    let chimera_mode = context.options.browsertime.chimera;
+    let test_bytecode_cache = context.options.browsertime.test_bytecode_cache;
+    let login_required = context.options.browsertime.loginRequired;
+    let live_site = context.options.browsertime.liveSite;
+    let test_name = context.options.browsertime.testName;
 
-  context.log.info(
-    "Waiting for %d ms (post_startup_delay)",
-    post_startup_delay
-  );
-  await commands.wait.byTime(post_startup_delay);
-  let cached = false;
+    context.log.info(
+      "Waiting for %d ms (post_startup_delay)",
+      post_startup_delay
+    );
+    await commands.wait.byTime(post_startup_delay);
+    let cached = false;
 
-  // Login once before testing the test_url/secondary_url cycles
-  // If the user has RAPTOR_LOGINS configured correctly, a local login pageload
-  // test can be attempted. Otherwise if attempting it in CI, only sites with the
-  // associated MOZ_SCM_LEVEL will be attempted (e.g. Try = 1, autoland = 3).
-  // In addition, ensure login sequence is only attempted on live sites and for sites
-  // that we have Taskcluster secrets for.
-  if (
-    login_required == "True" &&
-    live_site == "True" &&
-    SCM_LOGIN_SITES.includes(test_name)
-  ) {
-    await perform_live_login(context, commands);
-  }
-
-  for (let count = 0; count < page_cycles; count++) {
-    if (count !== 0 && secondary_url !== undefined) {
-      context.log.info("Navigating to secondary url:" + secondary_url);
-      await commands.navigate(secondary_url);
-      await commands.wait.byTime(1000);
-      await commands.js.runAndWait(`
-      (function() {
-        const white = document.createElement('div');
-        white.id = 'raptor-white';
-        white.style.position = 'absolute';
-        white.style.top = '0';
-        white.style.left = '0';
-        white.style.width = Math.max(document.documentElement.clientWidth, document.body.clientWidth) + 'px';
-        white.style.height = Math.max(document.documentElement.clientHeight,document.body.clientHeight) + 'px';
-        white.style.backgroundColor = 'white';
-        white.style.zIndex = '2147483647';
-        document.body.appendChild(white);
-        document.body.style.display = '';
-      })();`);
-      await commands.wait.byTime(1000);
-    } else {
-      context.log.info("Navigating to about:blank, count: " + count);
-      await commands.navigate("about:blank");
+    // Login once before testing the test_url/secondary_url cycles
+    // If the user has RAPTOR_LOGINS configured correctly, a local login pageload
+    // test can be attempted. Otherwise if attempting it in CI, only sites with the
+    // associated MOZ_SCM_LEVEL will be attempted (e.g. Try = 1, autoland = 3).
+    // In addition, ensure login sequence is only attempted on live sites and for sites
+    // that we have Taskcluster secrets for.
+    if (
+      login_required == "True" &&
+      live_site == "True" &&
+      SCM_LOGIN_SITES.includes(test_name)
+    ) {
+      await perform_live_login(context, commands);
     }
 
-    context.log.info("Navigating to primary url:" + test_url);
-    context.log.info("Cycle %d, waiting for %d ms", count, page_cycle_delay);
-    await commands.wait.byTime(page_cycle_delay);
+    for (let count = 0; count < page_cycles; count++) {
+      await logTask(context, "cycle " + count, async function () {
+        if (count !== 0 && secondary_url !== undefined) {
+          context.log.info("Navigating to secondary url:" + secondary_url);
+          await commands.navigate(secondary_url);
+          await commands.wait.byTime(1000);
+          await commands.js.runAndWait(`
+        (function() {
+          const white = document.createElement('div');
+          white.id = 'raptor-white';
+          white.style.position = 'absolute';
+          white.style.top = '0';
+          white.style.left = '0';
+          white.style.width = Math.max(document.documentElement.clientWidth, document.body.clientWidth) + 'px';
+          white.style.height = Math.max(document.documentElement.clientHeight,document.body.clientHeight) + 'px';
+          white.style.backgroundColor = 'white';
+          white.style.zIndex = '2147483647';
+          document.body.appendChild(white);
+          document.body.style.display = '';
+        })();`);
+          await commands.wait.byTime(1000);
+        } else {
+          context.log.info("Navigating to about:blank, count: " + count);
+          await commands.navigate("about:blank");
+        }
 
-    context.log.info("Cycle %d, starting the measure", count);
-    await commands.measure.start(test_url);
+        context.log.info("Navigating to primary url:" + test_url);
+        context.log.info(
+          "Cycle %d, waiting for %d ms",
+          count,
+          page_cycle_delay
+        );
+        await commands.wait.byTime(page_cycle_delay);
 
-    // Wait 20 seconds to populate bytecode cache
-    if (test_bytecode_cache == "true" && chimera_mode == "true" && !cached) {
-      context.log.info("Waiting 20s to populate bytecode cache...");
-      await commands.wait.byTime(20000);
-      cached = true;
+        context.log.info("Cycle %d, starting the measure", count);
+        await commands.measure.start(test_url);
+
+        // Wait 20 seconds to populate bytecode cache
+        if (
+          test_bytecode_cache == "true" &&
+          chimera_mode == "true" &&
+          !cached
+        ) {
+          context.log.info("Waiting 20s to populate bytecode cache...");
+          await commands.wait.byTime(20000);
+          cached = true;
+        }
+      });
     }
-  }
 
-  context.log.info("Browsertime pageload ended.");
-  return true;
-};
+    context.log.info("Browsertime pageload ended.");
+    return true;
+  }
+);

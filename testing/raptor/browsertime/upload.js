@@ -4,6 +4,8 @@
 
 /* eslint-env node */
 
+const { logTest, logTask } = require("./utils/profiling");
+
 const path = require("path");
 
 async function waitForUpload(timeout, commands, context) {
@@ -35,52 +37,56 @@ async function waitForUpload(timeout, commands, context) {
   };
 }
 
-module.exports = async function (context, commands) {
+module.exports = logTest("upload test", async function (context, commands) {
   let uploadSiteUrl = "https://uploadtest-381620.uc.r.appspot.com";
   let iterations = `${context.options.browsertime.upload_iterations}`;
 
   await commands.measure.start(uploadSiteUrl);
   let accumulatedResults = [];
   for (let iteration = 0; iteration < iterations; iteration++) {
-    await commands.navigate(uploadSiteUrl);
+    await logTask(context, "cycle " + iteration, async function () {
+      await commands.navigate(uploadSiteUrl);
 
-    const driver = context.selenium.driver;
-    const webdriver = context.selenium.webdriver;
+      const driver = context.selenium.driver;
+      const webdriver = context.selenium.webdriver;
 
-    const uploadItem = await driver.findElement(webdriver.By.id("fileUpload"));
-
-    if (context.options.browsertime.moz_fetch_dir == "None") {
-      context.log.error(
-        "This test depends on the fetch task. Download the file, 'https://github.com/mozilla/perf-automation/raw/master/test_files/upload-test-32MB.dat' and set the os environment variable MOZ_FETCHES_DIR to that directory."
+      const uploadItem = await driver.findElement(
+        webdriver.By.id("fileUpload")
       );
-    }
 
-    let localFilePath = path.join(
-      `${context.options.browsertime.moz_fetch_dir}`,
-      "upload-test-32MB.dat"
-    );
+      if (context.options.browsertime.moz_fetch_dir == "None") {
+        context.log.error(
+          "This test depends on the fetch task. Download the file, 'https://github.com/mozilla/perf-automation/raw/master/test_files/upload-test-32MB.dat' and set the os environment variable MOZ_FETCHES_DIR to that directory."
+        );
+      }
 
-    context.log.info("Sending file path: " + localFilePath);
-    await uploadItem.sendKeys(localFilePath);
+      let localFilePath = path.join(
+        `${context.options.browsertime.moz_fetch_dir}`,
+        "upload-test-32MB.dat"
+      );
 
-    // Start the test and wait for the upload to complete
-    let results = await waitForUpload(120000, commands, context);
-    let uploadTime = results.end - results.start;
+      context.log.info("Sending file path: " + localFilePath);
+      await uploadItem.sendKeys(localFilePath);
 
-    // Store result in megabit/seconds, (Upload is a 50 MB file)
-    let uploadBandwidth = (50 * 8) / (uploadTime / 1000.0);
-    context.log.info(
-      "upload results: " +
-        results.upload_status +
-        " duration: " +
-        uploadTime +
-        " uploadBandwidth: " +
-        uploadBandwidth
-    );
-    accumulatedResults.push(uploadBandwidth);
+      // Start the test and wait for the upload to complete
+      let results = await waitForUpload(120000, commands, context);
+      let uploadTime = results.end - results.start;
+
+      // Store result in megabit/seconds, (Upload is a 50 MB file)
+      let uploadBandwidth = (50 * 8) / (uploadTime / 1000.0);
+      context.log.info(
+        "upload results: " +
+          results.upload_status +
+          " duration: " +
+          uploadTime +
+          " uploadBandwidth: " +
+          uploadBandwidth
+      );
+      accumulatedResults.push(uploadBandwidth);
+    });
   }
 
   commands.measure.addObject({
     custom_data: { "upload-bandwidth": accumulatedResults },
   });
-};
+});
