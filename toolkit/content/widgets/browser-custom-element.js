@@ -557,9 +557,11 @@
     }
 
     get contentTitle() {
-      return this.isRemoteBrowser
-        ? this.browsingContext?.currentWindowGlobal?.documentTitle
-        : this.contentDocument.title;
+      return (
+        (this.isRemoteBrowser
+          ? this.browsingContext?.currentWindowGlobal?.documentTitle
+          : this.contentDocument.title) ?? ""
+      );
     }
 
     forceEncodingDetection() {
