@@ -93,10 +93,12 @@ class UpdateProcess {
     this.canceled = false;
   }
 
+  #timeout = null;
+
   /**
-   * Error thrown when the array of items to process is empty.
+   * Symbol returned when the array of items to process is empty.
    */
-  ERROR_ITERATION_DONE = new Error("UpdateProcess iteration done");
+  static ITERATION_DONE = Symbol("UpdateProcess iteration done");
 
   /**
    * Schedule a new batch on the main loop.
@@ -105,7 +107,7 @@ class UpdateProcess {
     if (this.canceled) {
       return;
     }
-    this._timeout = setTimeout(this._timeoutHandler.bind(this), 0);
+    this.#timeout = setTimeout(() => this.#timeoutHandler(), 0);
   }
 
   /**
@@ -113,51 +115,50 @@ class UpdateProcess {
    * and onCancel will be called.
    */
   cancel() {
-    if (this._timeout) {
-      clearTimeout(this._timeout);
-      this._timeout = 0;
+    if (this.#timeout) {
+      clearTimeout(this.#timeout);
+      this.#timeout = null;
     }
     this.canceled = true;
     this.onCancel();
   }
 
-  _timeoutHandler() {
-    this._timeout = null;
-    try {
-      this._runBatch();
-      this.schedule();
-    } catch (e) {
-      if (e === this.ERROR_ITERATION_DONE) {
-        this.onBatch();
-        this.onDone();
-        return;
-      }
-      console.error(e);
-      throw e;
+  #timeoutHandler() {
+    this.#timeout = null;
+    if (this.#runBatch() === UpdateProcess.ITERATION_DONE) {
+      this.onBatch();
+      this.onDone();
+      return;
     }
+    this.schedule();
   }
 
-  _runBatch() {
+  #runBatch() {
     const time = Date.now();
     while (!this.canceled) {
-      const next = this._next();
+      const next = this.#next();
+      if (next === UpdateProcess.ITERATION_DONE) {
+        return next;
+      }
+
       this.onItem(next);
       if (Date.now() - time > this.threshold) {
         this.onBatch();
-        return;
+        return null;
       }
     }
+    return null;
   }
 
   /**
    * Returns the item at the current index and increases the index.
-   * If all items have already been processed, will throw ERROR_ITERATION_DONE.
+   * If all items have already been processed, will return ITERATION_DONE.
    */
-  _next() {
+  #next() {
     if (this.index < this.array.length) {
       return this.array[this.index++];
     }
-    throw this.ERROR_ITERATION_DONE;
+    return UpdateProcess.ITERATION_DONE;
   }
 }
 
