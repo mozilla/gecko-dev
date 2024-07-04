@@ -8,6 +8,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
+  CacheBehavior: "chrome://remote/content/shared/NetworkCacheManager.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
   matchURLPattern:
@@ -21,7 +22,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   truncate: "chrome://remote/content/shared/Format.sys.mjs",
-  updateCacheBypassStatus:
+  updateCacheBehavior:
     "chrome://remote/content/shared/NetworkCacheManager.sys.mjs",
   WindowGlobalMessageHandler:
     "chrome://remote/content/shared/messagehandler/WindowGlobalMessageHandler.sys.mjs",
@@ -1048,11 +1049,11 @@ class NetworkModule extends Module {
   }
 
   /**
-   * Bypasses the network cache for certain contexts.
+   * Configures the network cache behavior for certain requests.
    *
    * @param {object=} options
-   * @param {boolean} options.bypass
-   *     The flag to enable or disable bypassing of the network cache.
+   * @param {CacheBehavior} options.cacheBehavior
+   *     An enum value to set the network cache behavior.
    * @param {Array<string>=} options.contexts
    *     The list of browsing context ids where the network cache
    *     should be bypassed.
@@ -1064,47 +1065,52 @@ class NetworkModule extends Module {
    * @throws {UnsupportedOperationError}
    *     If unsupported configuration is passed.
    */
-  setCacheBypass(options = {}) {
-    const { bypass, contexts: contextIds = null } = options;
+  setCacheBehavior(options = {}) {
+    const { cacheBehavior: behavior, contexts: contextIds = null } = options;
 
-    lazy.assert.boolean(
-      bypass,
-      lazy.pprint`Expected "bypass" to be a boolean, got ${bypass}`
-    );
+    if (!Object.values(lazy.CacheBehavior).includes(behavior)) {
+      throw new lazy.error.InvalidArgumentError(
+        `Expected "cacheBehavior" to be one of ${Object.values(
+          lazy.CacheBehavior
+        )}` + lazy.pprint` got ${behavior}`
+      );
+    }
 
     if (contextIds === null) {
-      lazy.updateCacheBypassStatus(bypass);
-    } else {
-      lazy.assert.array(
-        contextIds,
-        lazy.pprint`Expected "contexts" to be an array, got ${contextIds}`
-      );
-
-      if (!contextIds.length) {
-        throw new lazy.error.InvalidArgumentError(
-          'Expected "contexts" to contain at least one item, got an empty array'
-        );
-      }
-
-      const contexts = new Set();
-      for (const contextId of contextIds) {
-        lazy.assert.string(
-          contextId,
-          lazy.pprint`Expected elements of "contexts" to be a string, got ${contextId}`
-        );
-        const context = this.#getBrowsingContext(contextId);
-
-        if (context.parent) {
-          throw new lazy.error.InvalidArgumentError(
-            lazy.pprint`Context with id ${contextId} is not a top-level browsing context`
-          );
-        }
-
-        contexts.add(context);
-      }
-
-      lazy.updateCacheBypassStatus(bypass, contexts);
+      // Set the default behavior if no specific context is specified.
+      lazy.updateCacheBehavior(behavior);
+      return;
     }
+
+    lazy.assert.array(
+      contextIds,
+      lazy.pprint`Expected "contexts" to be an array, got ${contextIds}`
+    );
+
+    if (!contextIds.length) {
+      throw new lazy.error.InvalidArgumentError(
+        'Expected "contexts" to contain at least one item, got an empty array'
+      );
+    }
+
+    const contexts = new Set();
+    for (const contextId of contextIds) {
+      lazy.assert.string(
+        contextId,
+        lazy.pprint`Expected elements of "contexts" to be a string, got ${contextId}`
+      );
+      const context = this.#getBrowsingContext(contextId);
+
+      if (context.parent) {
+        throw new lazy.error.InvalidArgumentError(
+          lazy.pprint`Context with id ${contextId} is not a top-level browsing context`
+        );
+      }
+
+      contexts.add(context);
+    }
+
+    lazy.updateCacheBehavior(behavior, contexts);
   }
 
   /**

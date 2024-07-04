@@ -12,6 +12,17 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 /**
+ * Enum of possible network cache behaviors.
+ *
+ * @readonly
+ * @enum {CacheBehavior}
+ */
+export const CacheBehavior = {
+  Default: "default",
+  Bypass: "bypass",
+};
+
+/**
  * The NetworkCacheManager is responsible for managing the cache status (enabling/disabling cache)
  * for navigables. It's meant to be a singleton, and the consumers can use the exported
  * methods to change the cache status or perform the state cleanup.
@@ -20,16 +31,16 @@ ChromeUtils.defineESModuleGetters(lazy, {
  */
 class NetworkCacheManager {
   #contextListener;
-  #defaultCacheBypass;
-  #navigableCacheBypassSet;
+  #defaultCacheBehavior;
+  #navigableCacheBehaviorMap;
 
   constructor() {
     this.#contextListener = new lazy.BrowsingContextListener();
     this.#contextListener.on("attached", this.#onContextAttached);
 
-    this.#defaultCacheBypass = false;
-    // WeakSet of navigables in which network caches are bypassed.
-    this.#navigableCacheBypassSet = new WeakSet();
+    this.#defaultCacheBehavior = CacheBehavior.Default;
+    // WeakMap from navigables to cache behavior settings (CacheBehavior).
+    this.#navigableCacheBehaviorMap = new WeakMap();
   }
 
   destroy() {
@@ -39,29 +50,34 @@ class NetworkCacheManager {
     this.cleanup();
   }
 
-  #getLoadFlags(bypassValue) {
-    return bypassValue
+  #getLoadFlags(behavior) {
+    return behavior === CacheBehavior.Bypass
       ? Ci.nsIRequest.LOAD_BYPASS_CACHE
       : Ci.nsIRequest.LOAD_NORMAL;
   }
 
+  #getWeakMapSize(weakMap) {
+    return ChromeUtils.nondeterministicGetWeakMapKeys(weakMap).length;
+  }
+
   #onContextAttached = (eventName, data = {}) => {
-    if (this.#defaultCacheBypass) {
+    if (this.#defaultCacheBehavior === CacheBehavior.Bypass) {
       this.#setLoadFlagsForBrowsingContext(
         data.browsingContext,
-        this.#getLoadFlags(true)
+        this.#getLoadFlags(CacheBehavior.Bypass)
       );
     }
   };
 
-  #setDefaultCacheBypass(value) {
-    if (this.#defaultCacheBypass === value) {
+  #setDefaultCacheBehavior(behavior) {
+    if (this.#defaultCacheBehavior === behavior) {
       return;
     }
 
-    this.#defaultCacheBypass = value;
+    this.#defaultCacheBehavior = behavior;
+    this.#navigableCacheBehaviorMap = new WeakMap();
 
-    const loadFlags = this.#getLoadFlags(value);
+    const loadFlags = this.#getLoadFlags(behavior);
 
     // Update cache settings for all existing navigables.
     for (const browser of lazy.TabManager.browsers) {
@@ -70,7 +86,7 @@ class NetworkCacheManager {
 
     // In case the cache is globally disabled we have to listen to all
     // newly attached contexts and disable cache for them.
-    if (value) {
+    if (this.#defaultCacheBehavior === CacheBehavior.Bypass) {
       this.#contextListener.startListening();
     } else {
       this.#contextListener.stopListening();
@@ -87,25 +103,32 @@ class NetworkCacheManager {
    * Reset network cache bypassing logic.
    */
   cleanup() {
-    this.#setDefaultCacheBypass(false);
+    this.#setDefaultCacheBehavior(CacheBehavior.Default);
 
-    if (this.#navigableCacheBypassSet.size > 0) {
-      const loadFlags = this.#getLoadFlags(false);
-
-      for (const navigable of this.#navigableCacheBypassSet) {
-        this.#setLoadFlagsForBrowsingContext(navigable, loadFlags);
-      }
-
-      this.#navigableCacheBypassSet.clear();
+    if (this.#getWeakMapSize(this.#navigableCacheBehaviorMap) === 0) {
+      return;
     }
+
+    const loadFlags = this.#getLoadFlags(CacheBehavior.Default);
+
+    for (const browser of lazy.TabManager.browsers) {
+      if (this.#navigableCacheBehaviorMap.has(browser.browsingContext)) {
+        this.#setLoadFlagsForBrowsingContext(
+          browser.browsingContext,
+          loadFlags
+        );
+      }
+    }
+
+    this.#navigableCacheBehaviorMap = new WeakMap();
   }
 
   /**
    * Set network cache bypassing logic to a provided value
    * and optionally specified contexts.
    *
-   * @param {boolean} bypass
-   *     The flag to enable or disable bypassing of the network cache.
+   * @param {CacheBehavior} behavior
+   *     An enum value to set the network cache behavior.
    * @param {Array<BrowsingContext>=} contexts
    *     The list of browsing contexts where the network cache
    *     should be bypassed.
@@ -113,37 +136,42 @@ class NetworkCacheManager {
    * @throws {UnsupportedOperationError}
    *     If unsupported configuration is passed.
    */
-  setCacheBypass(bypass, contexts = null) {
+  updateCacheBehavior(behavior, contexts = null) {
     if (contexts === null) {
       // TODO: Bug 1905307. Add support for such case.
-      if (
-        ChromeUtils.nondeterministicGetWeakSetKeys(
-          this.#navigableCacheBypassSet
-        ).length
-      ) {
+      if (this.#getWeakMapSize(this.#navigableCacheBehaviorMap) > 0) {
         throw new lazy.error.UnsupportedOperationError(
-          "Updating cache bypassing globally when the cache is already enabled for individual contexts is not supported yet"
-        );
-      }
-      this.#setDefaultCacheBypass(bypass);
-    } else {
-      // TODO: Bug 1905307. Add support for such case.
-      if (this.#defaultCacheBypass) {
-        throw new lazy.error.UnsupportedOperationError(
-          "Updating cache bypassing for individual contexts when it's already enabled globally is not supported yet"
+          "Updating the cache behavior globally when the cache behavior" +
+            " is already set for individual contexts is not supported yet"
         );
       }
 
-      const loadFlags = this.#getLoadFlags(bypass);
+      this.#setDefaultCacheBehavior(behavior);
+      this.#navigableCacheBehaviorMap = new WeakMap();
+      return;
+    }
 
-      for (const context of contexts) {
-        if (bypass) {
-          this.#navigableCacheBypassSet.add(context);
-        } else {
-          this.#navigableCacheBypassSet.delete(context);
-        }
+    // TODO: Bug 1905307. Add support for such case.
+    if (this.#defaultCacheBehavior === CacheBehavior.Bypass) {
+      throw new lazy.error.UnsupportedOperationError(
+        "Updating the cache behavior for individual contexts when it's" +
+          " already set globally is not supported yet"
+      );
+    }
 
-        this.#setLoadFlagsForBrowsingContext(context, loadFlags);
+    const loadFlags = this.#getLoadFlags(behavior);
+
+    for (const context of contexts) {
+      if (this.#navigableCacheBehaviorMap.get(context) === behavior) {
+        continue;
+      }
+
+      this.#setLoadFlagsForBrowsingContext(context, loadFlags);
+
+      if (behavior === CacheBehavior.Default) {
+        this.#navigableCacheBehaviorMap.delete(context);
+      } else {
+        this.#navigableCacheBehaviorMap.set(context, behavior);
       }
     }
   }
@@ -152,8 +180,8 @@ class NetworkCacheManager {
 // Create a private NetworkCacheManager singleton.
 const networkCacheManager = new NetworkCacheManager();
 
-export function updateCacheBypassStatus(bypass, contexts) {
-  return networkCacheManager.setCacheBypass(bypass, contexts);
+export function updateCacheBehavior(behavior, contexts) {
+  return networkCacheManager.updateCacheBehavior(behavior, contexts);
 }
 
 export function cleanupCacheBypassState() {
