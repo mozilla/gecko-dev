@@ -1323,6 +1323,20 @@ const BASE_MESSAGES = () => [
       "os.isWindows && os.windowsVersion >= 10.0 && os.windowsBuildNumber >= 22000",
     trigger: { id: "deeplinkedToWindowsSettingsUI" },
   },
+  {
+    id: "FXA_ACCOUNTS_BADGE_REVISED",
+    template: "toolbar_badge",
+    content: {
+      delay: 1000,
+      target: "fxa-toolbar-menu-button",
+    },
+    skip_in_tests: "covered by browser_asrouter_toolbarbadge.js",
+    targeting:
+      "source == 'newtab' && !hasAccessedFxAPanel && !usesFirefoxSync && isFxAEnabled && !isFxASignedIn",
+    trigger: {
+      id: "defaultBrowserCheck",
+    },
+  },
 ];
 
 // Eventually, move Feature Callout messages to their own provider
