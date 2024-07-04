@@ -549,16 +549,16 @@ CssComputedView.prototype = {
    * Refresh the panel content. This could be called by a "ruleview-changed" event, but
    * we avoid the extra processing unless the panel is visible.
    */
-  refreshPanel() {
+  async refreshPanel() {
     if (!this._viewedElement || !this.isPanelVisible()) {
-      return Promise.resolve();
+      return;
     }
 
     // Capture the current viewed element to return from the promise handler
     // early if it changed
     const viewedElement = this._viewedElement;
 
-    return Promise.all([
+    try {
       // Create the properties views only once for the whole lifecycle of the inspector
       // via `_createPropertyViews`.
       // The properties are created without backend data. This queries typical property
@@ -567,134 +567,136 @@ CssComputedView.prototype = {
       // based on backend data (`getComputed()`/`computed`).
       // Also note that PropertyView/PropertyView are refreshed via their refresh method
       // which will ultimately query `CssComputedView._computed`, which we update in this method.
-      this._createPropertyViews(),
-      this.viewedElementPageStyle.getComputed(this._viewedElement, {
-        filter: this._sourceFilter,
-        onlyMatched: !this.includeBrowserStyles,
-        markMatched: true,
-      }),
-    ])
-      .then(([, computed]) => {
-        if (viewedElement !== this._viewedElement) {
-          return Promise.resolve();
+      const [computed] = await Promise.all([
+        this.viewedElementPageStyle.getComputed(this._viewedElement, {
+          filter: this._sourceFilter,
+          onlyMatched: !this.includeBrowserStyles,
+          markMatched: true,
+        }),
+        this._createPropertyViews(),
+      ]);
+
+      if (viewedElement !== this._viewedElement) {
+        return;
+      }
+
+      this._computed = computed;
+      this._matchedProperties = new Set();
+      const customProperties = new Set();
+
+      for (const name in computed) {
+        if (computed[name].matched) {
+          this._matchedProperties.add(name);
+        }
+        if (name.startsWith("--")) {
+          customProperties.add(name);
+        }
+      }
+
+      // Removing custom property PropertyViews which won't be used
+      let customPropertiesStartIndex;
+      for (let i = this.propertyViews.length - 1; i >= 0; i--) {
+        const propView = this.propertyViews[i];
+
+        // custom properties are displayed at the bottom of the list, and we're looping
+        // backward through propertyViews, so if the current item does not represent
+        // a custom property, we can stop looping.
+        if (!propView.isCustomProperty) {
+          customPropertiesStartIndex = i + 1;
+          break;
         }
 
-        this._computed = computed;
-        this._matchedProperties = new Set();
-        const customProperties = new Set();
-
-        for (const name in computed) {
-          if (computed[name].matched) {
-            this._matchedProperties.add(name);
-          }
-          if (name.startsWith("--")) {
-            customProperties.add(name);
-          }
+        // If the custom property will be used, move to the next item.
+        if (customProperties.has(propView.name)) {
+          customProperties.delete(propView.name);
+          continue;
         }
 
-        // Removing custom property PropertyViews which won't be used
-        let customPropertiesStartIndex;
-        for (let i = this.propertyViews.length - 1; i >= 0; i--) {
-          const propView = this.propertyViews[i];
-
-          // custom properties are displayed at the bottom of the list, and we're looping
-          // backward through propertyViews, so if the current item does not represent
-          // a custom property, we can stop looping.
-          if (!propView.isCustomProperty) {
-            customPropertiesStartIndex = i + 1;
-            break;
-          }
-
-          // If the custom property will be used, move to the next item.
-          if (customProperties.has(propView.name)) {
-            customProperties.delete(propView.name);
-            continue;
-          }
-
-          // Otherwise remove property view element
-          if (propView.element) {
-            propView.element.remove();
-          }
-
-          propView.destroy();
-          this.propertyViews.splice(i, 1);
+        // Otherwise remove property view element
+        if (propView.element) {
+          propView.element.remove();
         }
 
-        // At this point, `customProperties` only contains custom property names for
-        // which we don't have a PropertyView yet.
-        let insertIndex = customPropertiesStartIndex;
-        for (const customPropertyName of Array.from(customProperties).sort()) {
-          const propertyView = new PropertyView(
-            this,
-            customPropertyName,
-            // isCustomProperty
-            true
-          );
+        propView.destroy();
+        this.propertyViews.splice(i, 1);
+      }
 
-          const len = this.propertyViews.length;
-          if (insertIndex !== len) {
-            for (let i = insertIndex; i <= len; i++) {
-              const existingPropView = this.propertyViews[i];
-              if (
-                !existingPropView ||
-                !existingPropView.isCustomProperty ||
-                customPropertyName < existingPropView.name
-              ) {
-                insertIndex = i;
-                break;
-              }
+      // At this point, `customProperties` only contains custom property names for
+      // which we don't have a PropertyView yet.
+      let insertIndex = customPropertiesStartIndex;
+      for (const customPropertyName of Array.from(customProperties).sort()) {
+        const propertyView = new PropertyView(
+          this,
+          customPropertyName,
+          // isCustomProperty
+          true
+        );
+
+        const len = this.propertyViews.length;
+        if (insertIndex !== len) {
+          for (let i = insertIndex; i <= len; i++) {
+            const existingPropView = this.propertyViews[i];
+            if (
+              !existingPropView ||
+              !existingPropView.isCustomProperty ||
+              customPropertyName < existingPropView.name
+            ) {
+              insertIndex = i;
+              break;
             }
           }
-          this.propertyViews.splice(insertIndex, 0, propertyView);
-
-          // Insert the custom property PropertyView at the right spot so we
-          // keep the list ordered.
-          const previousSibling = this.element.childNodes[insertIndex - 1];
-          previousSibling.insertAdjacentElement(
-            "afterend",
-            propertyView.createListItemElement()
-          );
         }
+        this.propertyViews.splice(insertIndex, 0, propertyView);
 
-        if (this._refreshProcess) {
-          this._refreshProcess.cancel();
-        }
+        // Insert the custom property PropertyView at the right spot so we
+        // keep the list ordered.
+        const previousSibling = this.element.childNodes[insertIndex - 1];
+        previousSibling.insertAdjacentElement(
+          "afterend",
+          propertyView.createListItemElement()
+        );
+      }
 
-        this.noResults.hidden = true;
+      if (this._refreshProcess) {
+        this._refreshProcess.cancel();
+      }
 
-        // Reset visible property count
-        this.numVisibleProperties = 0;
+      this.noResults.hidden = true;
 
-        return new Promise((resolve, reject) => {
-          this._refreshProcess = new UpdateProcess(
-            this.styleWindow,
-            this.propertyViews,
-            {
-              onItem: propView => {
-                propView.refresh();
-              },
-              onCancel: () => {
-                reject("_refreshProcess of computed view cancelled");
-              },
-              onDone: () => {
-                this._refreshProcess = null;
-                this.noResults.hidden = this.numVisibleProperties > 0;
+      // Reset visible property count
+      this.numVisibleProperties = 0;
 
-                const searchBox = this.searchField.parentNode;
-                searchBox.classList.toggle(
-                  "devtools-searchbox-no-match",
-                  !!this.searchField.value.length && !this.numVisibleProperties
-                );
+      await new Promise((resolve, reject) => {
+        this._refreshProcess = new UpdateProcess(
+          this.styleWindow,
+          this.propertyViews,
+          {
+            onItem: propView => {
+              propView.refresh();
+            },
+            onCancel: () => {
+              reject("_refreshProcess of computed view cancelled");
+            },
+            onDone: () => {
+              this._refreshProcess = null;
+              this.noResults.hidden = this.numVisibleProperties > 0;
 
-                this.inspector.emit("computed-view-refreshed");
-                resolve(undefined);
-              },
-            }
-          );
-          this._refreshProcess.schedule();
-        });
-      })
-      .catch(console.error);
+              const searchBox = this.searchField.parentNode;
+              searchBox.classList.toggle(
+                "devtools-searchbox-no-match",
+                !!this.searchField.value.length && !this.numVisibleProperties
+              );
+
+              this.inspector.emit("computed-view-refreshed");
+              resolve(undefined);
+            },
+          }
+        );
+        this._refreshProcess.schedule();
+      });
+    } catch (e) {
+      console.error(e);
+    }
   },
 
   /**
