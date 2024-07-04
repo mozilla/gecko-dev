@@ -255,7 +255,8 @@ void WebMDemuxer::Reset(TrackInfo::TrackType aType) {
   }
 }
 
-static int64_t GetDefaultDuration(nestegg* aContext, unsigned aTrackNumber) {
+int64_t WebMDemuxer::FloorDefaultDurationToTimecodeScale(
+    nestegg* aContext, unsigned aTrackNumber) {
   uint64_t durationNanoSecs;
   // https://www.webmproject.org/docs/container/#DefaultDuration
   if (0 != nestegg_track_default_duration(aContext, aTrackNumber,
@@ -263,7 +264,24 @@ static int64_t GetDefaultDuration(nestegg* aContext, unsigned aTrackNumber) {
     return -1;
   }
 
-  return AssertedCast<int64_t>(durationNanoSecs / NSECS_PER_USEC);
+  // https://www.webmproject.org/docs/container/#TimecodeScale
+  uint64_t timecodeScale = 0;
+  nestegg_tstamp_scale(aContext, &timecodeScale);
+  if (timecodeScale == 0) {
+    // Zero TimecodeScale would make timestamps all zero.
+    // The Segment should have triggered an error before now, but use the
+    // specified default if that has not happened.
+    // https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-21.html#name-timestampscale-element
+    WEBM_DEBUG("Zero timecode scale");
+    timecodeScale = PR_NSEC_PER_MSEC;
+  }
+  // Round down to nearest multiple of TimecodeScale.
+  // Round down again to microseconds.
+  // This avoids having block end times unintentionally overlap subsequent
+  // frame start times, which would cause subsequent frames to be removed from
+  // MediaSource buffers.
+  return AssertedCast<int64_t>(durationNanoSecs / timecodeScale *
+                               timecodeScale / NSECS_PER_USEC);
 }
 
 nsresult WebMDemuxer::ReadMetadata() {
@@ -323,7 +341,8 @@ nsresult WebMDemuxer::ReadMetadata() {
         WEBM_DEBUG("nestegg_track_video_params error");
         return NS_ERROR_FAILURE;
       }
-      mVideoDefaultDuration = GetDefaultDuration(context, track);
+      mVideoDefaultDuration =
+          FloorDefaultDurationToTimecodeScale(context, track);
       mVideoCodec = nestegg_track_codec_id(context, track);
       switch (mVideoCodec) {
         case NESTEGG_CODEC_VP8:
@@ -432,7 +451,8 @@ nsresult WebMDemuxer::ReadMetadata() {
 
       mAudioTrack = track;
       mHasAudio = true;
-      mAudioDefaultDuration = GetDefaultDuration(context, track);
+      mAudioDefaultDuration =
+          FloorDefaultDurationToTimecodeScale(context, track);
       mAudioCodec = nestegg_track_codec_id(context, track);
       if (mAudioCodec == NESTEGG_CODEC_VORBIS) {
         mInfo.mAudio.mCodecSpecificConfig =

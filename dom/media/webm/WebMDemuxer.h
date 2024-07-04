@@ -162,6 +162,8 @@ class WebMDemuxer : public MediaDataDemuxer,
 
   ~WebMDemuxer();
   void InitBufferedState();
+  int64_t FloorDefaultDurationToTimecodeScale(nestegg* aContext,
+                                              unsigned aTrackNumber);
   nsresult ReadMetadata();
   void NotifyDataArrived() override;
   void NotifyDataRemoved() override;
