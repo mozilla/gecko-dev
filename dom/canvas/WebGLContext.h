@@ -1228,6 +1228,8 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
   std::bitset<webgl::kMaxDrawBuffers> mColorWriteMaskNonzero = -1;
   std::bitset<webgl::kMaxDrawBuffers> mBlendEnabled = 0;
 
+  std::unordered_set<GLenum> mIsEnabledMapKeys;
+
   GLint mViewportX = 0;
   GLint mViewportY = 0;
   GLsizei mViewportWidth = 0;

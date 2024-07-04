@@ -105,6 +105,8 @@ class ClientWebGLExtensionDebugShaders : public ClientWebGLExtensionBase {
   }
 };
 
+DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionDepthClamp)
+
 DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionDepthTexture)
 
 DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionElementIndexUint)

@@ -118,6 +118,12 @@ class WebGLExtensionDebugShaders : public WebGLExtensionBase {
       : WebGLExtensionBase(webgl) {}
 };
 
+class WebGLExtensionDepthClamp : public WebGLExtensionBase {
+ public:
+  explicit WebGLExtensionDepthClamp(WebGLContext* webgl)
+      : WebGLExtensionBase(webgl) {}
+};
+
 class WebGLExtensionDepthTexture : public WebGLExtensionBase {
  public:
   explicit WebGLExtensionDepthTexture(WebGLContext*);
