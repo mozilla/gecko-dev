@@ -3136,8 +3136,6 @@ class PresShell final : public nsStubDocumentObserver,
   // For all documents we initially lock down painting.
   bool mPaintingSuppressed : 1;
 
-  bool mLastRootReflowHadUnconstrainedBSize : 1;
-
   // Indicates that it is safe to unlock painting once all pending reflows
   // have been processed.
   bool mShouldUnsuppressPainting : 1;
