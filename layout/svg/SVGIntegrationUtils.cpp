@@ -432,7 +432,7 @@ static bool PaintMaskSurface(const PaintFramesParams& aParams,
                              const ComputedStyle* aSC,
                              const nsTArray<SVGMaskFrame*>& aMaskFrames,
                              const nsPoint& aOffsetToUserSpace) {
-  MOZ_ASSERT(aMaskFrames.Length() > 0);
+  MOZ_ASSERT(!aMaskFrames.IsEmpty());
   MOZ_ASSERT(aMaskDT->GetFormat() == SurfaceFormat::A8);
   MOZ_ASSERT(aOpacity == 1.0 || aMaskFrames.Length() == 1);
 
@@ -508,13 +508,13 @@ static MaskPaintResult CreateAndPaintMaskSurface(
     const nsTArray<SVGMaskFrame*>& aMaskFrames,
     const nsPoint& aOffsetToUserSpace) {
   const nsStyleSVGReset* svgReset = aSC->StyleSVGReset();
-  MOZ_ASSERT(aMaskFrames.Length() > 0);
+  MOZ_ASSERT(!aMaskFrames.IsEmpty());
   MaskPaintResult paintResult;
 
   gfxContext& ctx = aParams.ctx;
 
   // Optimization for single SVG mask.
-  if (((aMaskFrames.Length() == 1) && aMaskFrames[0])) {
+  if (aMaskFrames.Length() == 1 && aMaskFrames[0]) {
     gfxMatrix cssPxToDevPxMatrix =
         SVGUtils::GetCSSPxToDevPxMatrix(aParams.frame);
     paintResult.opacityApplied = true;

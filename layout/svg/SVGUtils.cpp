@@ -584,6 +584,9 @@ void SVGUtils::PaintFrameWithEffects(nsIFrame* aFrame, gfxContext& aContext,
     if (!svg->HasValidDimensions()) {
       return;
     }
+    if (aFrame->IsSVGSymbolFrame() && !svg->IsInSVGUseShadowTree()) {
+      return;
+    }
   }
 
   /* SVG defines the following rendering model:
