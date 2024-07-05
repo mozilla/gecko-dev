@@ -634,6 +634,9 @@ static nsresult GetFileInfo(const nsString& aName,
   aInfo->size = fileData.nFileSizeHigh;
   aInfo->size = (aInfo->size << 32) + fileData.nFileSizeLow;
 
+  // modifyTime must be initialized before creationTime refers it.
+  FileTimeToPRTime(&fileData.ftLastWriteTime, &aInfo->modifyTime);
+
   if (0 == fileData.ftCreationTime.dwLowDateTime &&
       0 == fileData.ftCreationTime.dwHighDateTime) {
     aInfo->creationTime = aInfo->modifyTime;
@@ -642,7 +645,6 @@ static nsresult GetFileInfo(const nsString& aName,
   }
 
   FileTimeToPRTime(&fileData.ftLastAccessTime, &aInfo->accessTime);
-  FileTimeToPRTime(&fileData.ftLastWriteTime, &aInfo->modifyTime);
 
   return NS_OK;
 }
@@ -2389,17 +2391,11 @@ nsresult nsLocalFile::GetDateImpl(PRTime* aTime,
   FileInfo* pInfo;
 
   if (aFollowLinks) {
-    if (nsresult rv = GetFileInfo(mWorkingPath, &symlinkInfo); NS_FAILED(rv)) {
-      return rv;
-    }
-
-    pInfo = &symlinkInfo;
-  } else {
-    if (nsresult rv = ResolveAndStat(); NS_FAILED(rv)) {
-      return rv;
-    }
-
+    MOZ_TRY(ResolveAndStat());
     pInfo = &mFileInfo;
+  } else {
+    MOZ_TRY(GetFileInfo(mWorkingPath, &symlinkInfo));
+    pInfo = &symlinkInfo;
   }
 
   switch (aTimeField) {
