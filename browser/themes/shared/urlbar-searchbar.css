@@ -1108,6 +1108,8 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   list-style-image: url("chrome://global/skin/icons/close-12.svg");
   pointer-events: all;
   display: none;
+  -moz-context-properties: fill;
+  fill: var(--text-color-deemphasized);
 
   #urlbar[searchmode] & {
     display: inline-flex;
