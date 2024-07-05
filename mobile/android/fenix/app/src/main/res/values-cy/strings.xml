@@ -118,7 +118,7 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Porwch yn gyflymach gyda llywio newydd</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">Mae\'r bar hwn yn cuddio wrth i chi sgrolio i lawr am le pori ychwanegol.</string>
+    <string name="navbar_cfr_message">Mae\'r bar hwn yn diflannu wrth i chi sgrolio i lawr ac yn creu lle pori ychwanegol.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Mae angen mynediad i’r camera. Ewch i osodiadau Android, tapiwch Permissions, a thapio Allow.</string>

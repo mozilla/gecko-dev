@@ -117,6 +117,12 @@
     <string name="erase_action_cfr_message">點擊此處即可開啟新的隱私瀏覽階段。使用結束後即可清除瀏覽紀錄、Cookie 等一切上網資料。</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">使用新的導航列，上網更快更方便</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">當您捲動頁面時，這一列會自動隱藏，讓您有更多空間可瀏覽內容。</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">需要相機使用權限。請到 Android 系統設定點擊「權限」，然後點擊「允許」。</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1504,6 +1510,8 @@
     <string name="snackbar_tab_closed">已關閉分頁</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">已關閉分頁</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">已關閉 %1$s 個分頁</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">已加入書籤！</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->

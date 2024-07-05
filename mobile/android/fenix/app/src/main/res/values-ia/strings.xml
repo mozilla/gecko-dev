@@ -1515,6 +1515,8 @@
     <string name="snackbar_tab_closed">Scheda claudite</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Schedas claudite</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Schedas claudite: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Marcapaginas salvate!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->

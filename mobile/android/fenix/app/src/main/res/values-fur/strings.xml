@@ -115,6 +115,13 @@
     <string name="erase_action_cfr_message">Tocje chi par inviâ une gnove session privade. Elimine cronologjie, cookies… dut.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Navighe plui svelt cul gnûf sisteme di navigazion</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">Cheste sbare e ven platade a pene che tu scoris in jù, lassant plui spazi pe navigazion.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Al covente l’acès ae fotocjamare. Va tes impostazions di Android, va te schede dai permès e tocje permet.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1481,6 +1488,8 @@
     <string name="snackbar_tab_closed">Schede sierade</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Schedis sieradis</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Schedis sieradis: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Segnelibris salvâts!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->

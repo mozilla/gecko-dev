@@ -115,6 +115,12 @@
     <string name="erase_action_cfr_message">Ýttu hér til að hefja nýja einkalotu. Eyddu ferlinum þínum, vefkökum - öllu.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Vafraðu hraðar með nýjum flakkeiginleikum</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">Þessi stika víkur frá þegar þú flettir niður til að fá meira pláss undir efnið.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Aðgangur að myndavél er nauðsynlegur. Farðu í stillingar Android, farðu í Heimildir og gefðu leyfi.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1470,6 +1476,8 @@
     <string name="snackbar_tab_closed">Flipa lokað</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Flipum lokað</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Flipum lokað: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Bókamerki vistuð!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->

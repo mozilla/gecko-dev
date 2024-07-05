@@ -116,6 +116,12 @@
     <string name="erase_action_cfr_message">Ťuknutím sem spustíte novú súkromnú reláciu. Vymažte svoju históriu, súbory cookie – všetko.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Prehliadajte rýchlejšie s novou navigáciou</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">Tento panel sa pri posúvaní nadol skryje, aby ste získali ďalší priestor na prehliadanie.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Vyžaduje sa prístup ku fotoaparátu. Prejdite do nastavení Androidu a udeľte aplikácii dané povolenie.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1491,6 +1497,8 @@
     <string name="snackbar_tab_closed">Karta bola zavretá</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Karty boli zavreté</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Zatvorené karty: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Záložky boli uložené!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->

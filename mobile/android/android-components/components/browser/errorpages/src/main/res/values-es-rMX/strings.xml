@@ -162,7 +162,7 @@
         <li>Verifica que la dirección no contenga error, por ejemplo:
           <strong>ww</strong>.ejemplo.com en lugar de
           <strong>www</strong>.ejemplo.com.</li>
-        <li>Si no puedes cargar ninguna página, revisa la conexión wifi o los datos de tu dispositivo móvil.</li>
+        <li>Si no puedes cargar ninguna página, revisa la conexión Wifi o los datos de tu dispositivo móvil.</li>
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
