@@ -662,10 +662,13 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
       (this->*pushPacket)(next_holder);
     } else if (duration >= 0) {
       next_tstamp = tstamp + duration;
-    } else if (lastFrameTime->isSome()) {
-      next_tstamp = tstamp + (tstamp - lastFrameTime->value());
     } else if (defaultDuration >= 0) {
       next_tstamp = tstamp + defaultDuration;
+    } else if (lastFrameTime->isSome()) {
+      // This is a poor estimate, and overestimation overlaps the subsequent
+      // block, which can cause cause removal of subsequent frames from
+      // MediaSource buffers.
+      next_tstamp = tstamp + (tstamp - lastFrameTime->value());
     } else if (mVideoFrameEndTimeBeforeReset) {
       WEBM_DEBUG("Setting next timestamp to be %" PRId64 " us",
                  mVideoFrameEndTimeBeforeReset->ToMicroseconds());
