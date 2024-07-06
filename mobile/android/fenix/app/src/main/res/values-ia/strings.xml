@@ -116,6 +116,12 @@
     <string name="erase_action_cfr_message">Tocca ci pro initiar un nove session de navigation private. Dele tu chronologia, cookies – toto.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Naviga plus velocemente con le nove systema de navigation</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">Iste barra es celate quando tu glissa verso basso, lassante te plus spatio pro le navigation.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Accesso al camera necessari. Vade al parametros de Android, tocca Permissiones e tocca Permitter.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

@@ -52,6 +52,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">Eliminar de los accesos directos</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Configuración</string>
     <string name="menu_about">Acerca de</string>
     <string name="menu_help">Ayuda</string>
@@ -82,10 +83,13 @@
          sharing an URL. -->
     <string name="share_dialog_title">Compartir vía</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
+    <string name="notification_erase_title_android_14">¿Eliminar historial de navegación?</string>
+    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Toca o elimina esta notificación para borrar de forma segura tu historial de navegación.</string>
+
+    <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
+    for Android 14+. -->
+    <string name="notification_erase_text_android_14_1">Toca o desliza esta notificación para borrar de forma segura tu historial de navegación.</string>
+
     <string name="notification_erase_text">Eliminar historial de navegación</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -487,7 +491,10 @@
 
 
 
-  <string name="error_hostLookup_title">No se encontró el servidor</string>
+  <!-- Snackbar that will be displayed after a website has been added to shortcuts. -->
+    <string name="snackbar_added_to_shortcuts">¡Agregado a los accesos directos!</string>
+
+    <string name="error_hostLookup_title">No se encontró el servidor</string>
 
 
 

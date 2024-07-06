@@ -115,6 +115,12 @@
     <string name="erase_action_cfr_message">Tik hjir om in nije priveesesje te begjinnen. Wiskje jo skiednis, cookies – alles.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Sneup flugger mei nije navigaasje</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">Dizze balke wurdt as jo omleech skowe ferstoppe foar ekstra sneupromte.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kameratagong fereaske. Gean nei jo Android-ynstellingen, tik op machtigingen en tik op toestaan.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1471,6 +1477,8 @@
     <string name="snackbar_tab_closed">Ljepblêd sluten</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Ljepblêden sluten</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Sluten ljepblêden: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Blêdwizers bewarre!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2735,6 +2743,8 @@ Dizze analyze sil jo allinnich helpe om de beoardielingskwaliteit te beoardielen
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description">Firefox-logo</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">Piktogram fan enkêtefunksje</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
     <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Enkête iepenje</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
