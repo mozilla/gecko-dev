@@ -117,6 +117,13 @@
     <string name="erase_action_cfr_message">بۇ جاي چېكىلسە يېڭى شەخسىي سۆزلەشكۈنى باشلايدۇ. تارىخ، cookies-دەك ھەممە ئۇچۇرلىرىڭىزنى ئۆچۈرىدۇ.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">يېڭى يولباشچى ئىشلىتىلسە، تور كۆرگۈ تېزلىشىدۇ</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">بەتنى دومىلاتقىنىڭىزدا بۇ بالداق ئۆزلۈكىدىن يوشۇرۇلۇپ كۆز يۈگۈرتۈشكە تېخىمۇ كۆپ بوشلۇق ئاجرىتىدۇ.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">كامېرا ئىجازىتى زۆرۈر. ئاندىرويىد تەڭشىكىگە يۆتكىلىپ، ئىجازەتنى چېكىپ، ئاندىن يول قوينى چېكىڭ.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1469,6 +1476,8 @@
     <string name="snackbar_tab_closed">بەتكۈچ تاقالدى</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">بەتكۈچ تاقالدى</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">بەتكۈچ تاقالدى: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">خەتكۈچ ساقلاندى!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->

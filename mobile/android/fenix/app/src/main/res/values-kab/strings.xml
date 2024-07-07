@@ -119,6 +119,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="erase_action_cfr_message">Sit dagi i usenker n tɣimit tamaynut. Kkes azray-ik·im, inagan n tuqqna — kullec.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Rbeḥ akud s unagraw amaynut n tunigin</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Isɛa anekcum ɣer tkamiṛat. Ddu ɣer iɣewwaṛen Android, sit ɣef tisirag, sakin senned sireg.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -407,6 +411,9 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="juno_onboarding_privacy_notice_text">Tasertit tabaḍnit n Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Nḥemmel ad teqqimeḍ d aɣellsan</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Wali ayɣer aṭas i iḥemmlen Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Tunigin tusligt s wugar n yifranen</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -675,6 +682,9 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
     <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Sireg  meṛṛa ismal</string>
 
+    <!-- The text shown when an extension does not require permissions -->
+    <string name="addons_does_not_require_permissions">Asiɣzef ur yesri kra n tsiregt.</string>
+
     <!-- Add-on Preferences -->
     <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
     <string name="preferences_customize_extension_collection">Sagen tagrumma n yisiɣzaf</string>
@@ -890,6 +900,11 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Err agalis n yifecka deg tama i ubeddel n waccaren</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Err agalis n yifecka deg usawen i twaledyawt n waccaren</string>
+
+    <!-- Preference for using the dynamic toolbars -->
+    <string name="preference_gestures_dynamic_toolbar_2">Drurem ɣer i wakken ad teffreḍ afeggag n tansiwin d ufeggag n yifecka</string>
+    <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Err afeggag n tansiwin deg tama i ubeddel n waccaren</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
@@ -1406,15 +1421,15 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
 
 
     <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources">War tamawt</string>
+    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">War tamawt</string>
     <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources">Texseṛ-as akk nniya</string>
+    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Texseṛ-as akk nniya</string>
     <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources">Ur yumir ara</string>
+    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Ur yumir ara</string>
     <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources">Y·Tumer</string>
+    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Y·Tumer</string>
     <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources">Yumer aṭas</string>
+    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Yumer aṭas</string>
 
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
@@ -1466,6 +1481,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="snackbar_tab_closed">Iccer imdel</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Medlen iccaren</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Accaren imedlen: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Ticraḍ n yisebtar ttwakelsent!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -1800,6 +1817,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="preferences_passwords_sync_logins_across_devices_2">Mtawi awalen n uεeddi gar yibenkan</string>
     <!-- Preference to access list of saved passwords -->
     <string name="preferences_passwords_saved_logins_2">Awalen uffiren yettwakelsen</string>
+    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
+    <string name="preferences_passwords_saved_logins_description_empty_text_2">Awalen n uεeddi i yettwaskelsen neɣ yemtawan s %s ttwabdaren-d dagi. Akk awalen n uεeddi i teskelseḍ ttwawgelhen.</string>
     <!-- Clickable text for opening an external link for more information about Sync. -->
     <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Issin ugar ɣef umtawi</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2627,18 +2646,24 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Ur t-sseqdaceɣ ara</string>
     <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">Alugu Firefox</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">Tignit n tmahilt n uḥedqis</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources">Ldi aḥedqis</string>
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Ldi aḥedqis</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
-    <string name="microsurvey_close_handle_content_description" tools:ignore="UnusedResources">Mdel aḥedqis</string>
+    <string name="microsurvey_close_handle_content_description">Mdel aḥedqis</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
-    <string name="microsurvey_close_button_content_description" tools:ignore="UnusedResources">Mdel</string>
+    <string name="microsurvey_close_button_content_description">Mdel</string>
 
     <!-- Debug drawer logins -->
     <!-- The title of the Logins feature in the Debug Drawer. -->
     <string name="debug_drawer_logins_title">Inekcam</string>
     <!-- The title of the logins section in the Logins feature, where the parameter will be the site domain  -->
     <string name="debug_drawer_logins_current_domain_label">Taɣult-a: %s</string>
+    <!-- The label for a button to add a new fake login for the current domain in the Logins feature. -->
+    <string name="debug_drawer_logins_add_login_button">Rnu meffer anekcum i taɣult-a</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Kkes anekcum s yisem n useqdac %s</string>
 </resources>

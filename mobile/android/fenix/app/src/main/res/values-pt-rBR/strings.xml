@@ -116,6 +116,13 @@
     <string name="erase_action_cfr_message">Toque aqui para iniciar uma nova sessão privativa. Exclua o histórico, cookies, tudo.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Navegue mais rápido com o novo sistema de navegação</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">Esta barra é escondida quando você desliza a tela para baixo, para ter mais espaço de navegação.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">É necessário acesso à câmera. Use as configurações do Android para mudar as permissões para permitir acesso.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1480,6 +1487,8 @@
     <string name="snackbar_tab_closed">Aba fechada</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Abas fechadas</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Abas fechadas: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Favoritos salvos!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->

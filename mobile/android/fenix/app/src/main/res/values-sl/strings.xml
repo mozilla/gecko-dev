@@ -116,6 +116,12 @@
     <string name="erase_action_cfr_message">Tapnite tukaj za začetek nove zasebne seje. Izbrišite zgodovino, piškotke – vse.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Brskajte hitreje z novo navigacijo</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">Ta vrstica se umakne, ko se pomaknete navzdol, da napravi prostor za brskanje.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Potreben je dostop do kamere. Odprite nastavitve sistema Android in v dovoljenjih tapnite Dovoli.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1484,6 +1490,8 @@
     <string name="snackbar_tab_closed">Zavihek zaprt</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Zavihki zaprti</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Zaprtih zavihkov: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Zaznamki shranjeni!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -1726,7 +1734,7 @@
     <string name="enhanced_tracking_protection_exceptions">Izboljšana zaščita pred sledenjem je za ta spletna mesta izključena</string>
     <!-- Content description (not visible, for screen readers etc.): Navigate
     back from ETP details (Ex: Tracking content) -->
-    <string name="etp_back_button_content_description">Krmari nazaj</string>
+    <string name="etp_back_button_content_description">Pojdi nazaj</string>
 
     <!-- About page link text to open what's new link -->
     <string name="about_whats_new">Kaj je novega v %su</string>
@@ -2639,6 +2647,11 @@
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Prekliči</string>
 
+    <!-- Title for the data saving mode warning dialog used by the translations feature.
+    This dialog will be presented when the user attempts to download a language or perform
+    a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
+    The first parameter is the size in kilobytes or megabytes of the language file.-->
+    <string name="download_language_file_dialog_title">Prenesem v načinu varčevanja s podatki (%1$s)?</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Dele jezikov prenesemo v vaš predpomnilnik, da prevodi ostanejo zasebni.</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
@@ -2686,6 +2699,10 @@
     <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">Vnesite pozitivno celo število</string>
     <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
     <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">Vnesite število, večje od nič</string>
+    <!-- The error message of the text field in the tab creation tool when the text field is a
+        quantity greater than the max tabs. The first parameter is the maximum number of tabs
+        that can be generated in one operation.-->
+    <string name="debug_drawer_tab_tools_tab_quantity_exceed_max_error">Preseženo je največje število zavihkov (%1$s), ki jih je mogoče ustvariti v enem dejanju</string>
     <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
     <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">Dodaj med dejavne zavihke</string>
     <!-- The button text to add tabs to the inactive tab group in the tab creation tool. -->

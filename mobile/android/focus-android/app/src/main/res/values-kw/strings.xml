@@ -83,6 +83,13 @@
          sharing an URL. -->
     <string name="share_dialog_title">Kevrenna dre</string>
 
+    <string name="notification_erase_title_android_14">Dilea istori peuri?</string>
+    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Tapp po gordhyllo an gwarnyans ma dhe dhilea dha istori peuri yn tiogel.</string>
+
+    <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
+    for Android 14+. -->
+    <string name="notification_erase_text_android_14_1">Tapp po tenna an gwarnyans ma dhe dhilea dha istori peuri yn tiogel.</string>
+
     <string name="notification_erase_text">Dilea istori peuri</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->

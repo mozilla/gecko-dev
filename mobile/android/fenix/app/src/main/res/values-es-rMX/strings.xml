@@ -54,6 +54,14 @@
     <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
     <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">Eliminar</string>
 
+    <!-- Home - Bookmarks -->
+    <!-- Title for the home screen section with bookmarks. -->
+    <string name="home_bookmarks_title">Marcadores</string>
+    <!-- Content description for the button which navigates the user to show all of their bookmarks. -->
+    <string name="home_bookmarks_show_all_content_description">Mostrar todos los marcadores</string>
+    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
+    <string name="home_bookmarks_menu_item_remove">Eliminar</string>
+
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
     <string name="about_content">%1$s es producido por Mozilla.</string>
 
@@ -104,6 +112,13 @@
     <string name="erase_action_cfr_message">Toca aquí para iniciar una nueva sesión privada. Elimina tu historial, cookies — todo.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Navegá más rápido con la nueva navegación</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">Esta barra se oculta a medida que te desplazas hacia abajo para tener más espacio de navegación.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Se necesita acceso a la cámara. Ve a los ajustes de Android, presiona permisos y permitir.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -141,6 +156,9 @@
     <string name="home_screen_shortcut_open_new_tab_2">Nueva pestaña</string>
     <!-- Shortcut action to open new private tab -->
     <string name="home_screen_shortcut_open_new_private_tab_2">Pestaña privada</string>
+
+    <!-- Shortcut action to open Passwords screen -->
+    <string name="home_screen_shortcut_passwords">Contraseñas</string>
 
     <!-- Recent Tabs -->
     <!-- Header text for jumping back into the recent tab in the home screen -->
@@ -184,6 +202,10 @@
     <string name="browser_menu_stop">Detener</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Extensiones</string>
+    <!-- Browser menu button that opens the extensions manager -->
+    <string name="browser_menu_manage_extensions">Administrar extensiones</string>
+    <!-- Browser menu button that opens AMO in a tab -->
+    <string name="browser_menu_discover_more_extensions">Descubrir más extensiones</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Información de la cuenta</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -201,16 +223,24 @@
     <string name="browser_menu_open_in_regular_tab">Abrir en pestaña normal</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Agregar a pantalla de inicio</string>
+    <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
+    <string name="browser_menu_add_to_homescreen_2">Agregar a la pantalla de inicio…</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Resincronizar</string>
     <!-- Browser menu button that opens the find in page menu -->
     <string name="browser_menu_find_in_page">Encontrar en página</string>
+    <!-- Browser menu button that opens the find in page menu -->
+    <string name="browser_menu_find_in_page_2">Buscar en la página…</string>
     <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
     <string name="browser_menu_translations">Traducir página</string>
+    <!-- Browser menu button that saves the current tab to a collection -->
+    <string name="browser_menu_save_to_collection">Guardar en la colección…</string>
     <!-- Browser menu button that saves the current tab to a collection -->
     <string name="browser_menu_save_to_collection_2">Guardar en colección</string>
     <!-- Browser menu button that open a share menu to share the current site -->
     <string name="browser_menu_share">Compartir</string>
+    <!-- Browser menu button that open a share menu to share the current site -->
+    <string name="browser_menu_share_2">Compartir…</string>
     <!-- Browser menu button shown in custom tabs that opens the current tab in Fenix
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="browser_menu_open_in_fenix">Abrir en %1$s</string>
@@ -241,6 +271,42 @@
     <string name="browser_menu_sign_in">Iniciar sesión</string>
     <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
     <string name="browser_menu_sign_in_caption">Sincronizar contraseñas, pestañas y más</string>
+
+    <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
+    <string name="browser_menu_sign_back_in_to_sync">Vuelve a iniciar sesión para sincronizar</string>
+    <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
+    <string name="browser_menu_syncing_paused_caption">Sincronización pausada</string>
+    <!-- Browser menu label that creates a private tab -->
+    <string name="browser_menu_new_private_tab">Nueva pestaña privada</string>
+    <!-- Browser menu label that navigates to the Password screen -->
+    <string name="browser_menu_passwords">Contraseñas</string>
+    <!-- Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
+         The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="browser_menu_new_in_firefox">Nuevo en %1$s</string>
+    <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
+    <string name="browser_menu_switch_to_desktop_site">Cambiar al sitio de escritorio</string>
+    <!-- Browser menu label that navigates to the page tools sub-menu -->
+    <string name="browser_menu_tools">Herramientas</string>
+    <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
+         bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
+    <string name="browser_menu_save">Guardar</string>
+    <!-- Browser menu label that bookmarks the currently visited page -->
+    <string name="browser_menu_bookmark_this_page">Agregar esta página a marcadores</string>
+    <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
+    <string name="browser_menu_edit_bookmark">Editar marcador</string>
+    <!-- Browser menu label that the saves the currently visited page as a PDF -->
+    <string name="browser_menu_save_as_pdf">Guardar como PDF…</string>
+    <!-- Browser menu label for turning ON reader view of the current visited page -->
+    <string name="browser_menu_turn_on_reader_view">Activar vista de lectura</string>
+    <!-- Browser menu label for turning OFF reader view of the current visited page -->
+    <string name="browser_menu_turn_off_reader_view">Desactivar vista de lectura</string>
+    <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+    <string name="browser_menu_translate_page">Traducir página…</string>
+    <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
+         The first parameter is the name of the language that page was translated to (e.g. English). -->
+    <string name="browser_menu_translated_to">Traducido al %1$s</string>
+    <!-- Browser menu label for the print feature -->
+    <string name="browser_menu_print">Imprimir…</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -514,7 +580,7 @@
     <!-- Title shown in the error page for when trying to access a http website while https only mode is enabled. -->
     <string name="errorpage_httpsonly_title">Sitio seguro no disponible</string>
     <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
-    <string name="errorpage_httpsonly_message_title">Lo más probable es que el sitio web simplemente no sea compatible con HTTPs.</string>
+    <string name="errorpage_httpsonly_message_title">Lo más probable es que el sitio web simplemente no sea compatible con HTTPS.</string>
     <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the second. -->
     <string name="errorpage_httpsonly_message_summary">Sin embargo, también es posible que un atacante esté involucrado. Si continúas en el sitio web, no debes ingresar ninguna información confidencial. Si continúas, el modo HTTPS se desactivará temporalmente para el sitio.</string>
     <!-- Preference for accessibility -->
@@ -529,6 +595,8 @@
     <string name="preferences_category_account">Cuenta</string>
     <!-- Preference for changing where the toolbar is positioned -->
     <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Barra de herramientas</string>
+    <!-- Preference for changing where the AddressBar is positioned -->
+    <string name="preferences_toolbar_2">Ubicación de la barra de direcciones</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Tema</string>
     <!-- Preference for customizing the home screen -->
@@ -545,6 +613,10 @@
     <string name="preferences_account_sync_error">Volver a conectarse para reanudar la sincronización</string>
     <!-- Preference for language -->
     <string name="preferences_language">Idioma</string>
+    <!-- Preference for translation -->
+    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">Traducción</string>
+    <!-- Preference for translations -->
+    <string name="preferences_translations">Traducciones</string>
     <!-- Preference for data choices -->
     <string name="preferences_data_choices">Opciones de datos</string>
 
@@ -609,6 +681,18 @@
     <!-- Summary for notification preference indicating notifications are not allowed -->
     <string name="notifications_not_allowed_summary">No permitido</string>
 
+    <!-- Add-on Permissions -->
+    <!-- The title of the required permissions section from addon's permissions screen -->
+    <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">Requerido</string>
+    <!-- The title of the optional permissions section from addon's permissions screen -->
+    <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">Opcional</string>
+    <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
+    <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Permitir para todos los sitios</string>
+    <!-- The subtitle for the allow for all sites preference toggle -->
+    <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">Si confías en esta extensión, puedes autorizarla para todos los sitios web.</string>
+    <!-- The text shown when an extension does not require permissions -->
+    <string name="addons_does_not_require_permissions">Esta extensión no requiere ningún permiso.</string>
+
     <!-- Add-on Preferences -->
     <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
     <string name="preferences_customize_extension_collection">Colección de extensiones personalizadas</string>
@@ -629,6 +713,8 @@
     <string name="customize_toggle_jump_back_in">Regresar hacía atrás</string>
     <!-- Title for the customize home screen section with recently saved bookmarks. -->
     <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">Marcadores recientes</string>
+    <!-- Title for the customize home screen section with bookmarks. -->
+    <string name="customize_toggle_bookmarks">Marcadores</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">Visitados recientemente</string>
@@ -680,6 +766,8 @@
     <!-- Add-ons general availability nimbus message-->
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Nuevas extensiones ya disponibles</string>
+    <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
+    <string name="addon_ga_message_body" tools:ignore="UnusedResources">Descubre más de 100 nuevas extensiones que te permiten personalizar Firefox a tu manera.</string>
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Explorar extensiones</string>
 
@@ -750,6 +838,14 @@
     <!-- %s is the device name -->
     <string name="fxa_tab_received_from_notification_name">Pestaña de %s</string>
 
+    <!-- Close Synced Tabs -->
+    <!-- The title for a notification shown when the user closes tabs that are currently
+    open on this device from another device that's signed in to the same Mozilla account.
+    %1$s is a placeholder for the app name; %2$d is the number of tabs closed.  -->
+    <string name="fxa_tabs_closed_notification_title">%1$s pestañas cerradas: %2$d</string>
+    <!-- The body for a "closed synced tabs" notification. -->
+    <string name="fxa_tabs_closed_text">Ver pestañas cerradas recientemente</string>
+
     <!-- Advanced Preferences -->
     <!-- Preference for tracking protection exceptions -->
     <string name="preferences_tracking_protection_exceptions">Excepciones</string>
@@ -811,6 +907,11 @@
     <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Deslizar la barra hacia los lados para cambiar de pestaña</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Deslizar la barra hacia arriba para abrir pestañas</string>
+
+    <!-- Preference for using the dynamic toolbars -->
+    <string name="preference_gestures_dynamic_toolbar_2">Desplazar para ocultar la barra de direcciones y la barra de herramientas</string>
+    <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Deslizar la barra de direcciones hacia los costados para cambiar de pestaña</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
@@ -1317,6 +1418,17 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Cerrar pestañas privadas</string>
 
+    <!-- Text for option one, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Neutral</string>
+    <!-- Text for option two, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Muy insatisfecho</string>
+    <!-- Text for option three, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Insatisfecho</string>
+    <!-- Text for option four, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Satisfecho</string>
+    <!-- Text for option five, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Muy satisfecho</string>
+
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">¿Cerrar pestañas privadas?</string>
     <string name="notification_erase_text_android_14">Toque o deslice esta notificación para cerrar las pestañas privadas.</string>
@@ -1365,6 +1477,8 @@
     <string name="snackbar_tab_closed">Pestaña cerrada</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Pestañas cerradas</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Pestañas cerradas: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">¡Marcadores guardados!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -1742,6 +1856,8 @@
     <string name="logins_biometric_prompt_message_2">Desbloquea para ver tus contraseñas guardadas</string>
     <!-- Title of warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_title_2">Protege tus contraseñas guardadas</string>
+    <!-- Message of warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_message_2">Establece un patrón de bloqueo, PIN o contraseña en tu dispositivo para proteger tus contraseñas guardadas y evitar que sean accedidas si alguien más tiene tu dispositivo.</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">Más tarde</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -1821,6 +1937,8 @@
     <!-- Title of the "Saved cards" screen -->
     <string name="credit_cards_saved_cards">Tarjetas guardadas</string>
 
+    <!-- Error message for card number validation -->
+    <string name="credit_cards_number_validation_error_message_2">Ingresa un número de tarjeta válido</string>
     <!-- Error message for card name on card validation -->
     <string name="credit_cards_name_on_card_validation_error_message_2">Agregar un nombre</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
@@ -2153,8 +2271,104 @@
     <string name="review_quality_check_explanation_title">Cómo determinamos la calidad de las reseñas</string>
     <!-- Paragraph explaining how we analyze the reliability of a product's reviews. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
     <string name="review_quality_check_explanation_body_reliability">Utilizamos tecnología de inteligencia artificial de %s de Mozilla para analizar la confiabilidad de las reseñas de productos. Este análisis solo ayudará a evaluar la calidad de las reseñas, no la calidad del producto.</string>
+    <!-- Paragraph explaining the grading system we use to classify the reliability of a product's reviews. -->
+    <string name="review_quality_check_info_review_grade_header"><![CDATA[Asignamos a las reseñas de cada producto una <b>calificación con letras</b> de la A a la F.]]></string>
+    <!-- Description explaining grades A and B for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_AB">Revisiones confiables. Creemos que las reseñas son de clientes reales, honestos e imparciales.</string>
+    <!-- Description explaining grade C for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_C">Creemos que hay una mezcla de reseñas confiables y falsas.</string>
+    <!-- Description explaining grades D and F for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_DF">Reseñas poco confiables. Creemos que las reseñas probablemente son falsas o provienen de revisores sesgados.</string>
+    <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
+    <string name="review_quality_check_explanation_body_adjusted_grading"><![CDATA[La <b>calificación ajustada</b>esta basada en las reseñas que consideramos confiables.]]></string>
+    <!-- Paragraph explaining product review highlights. First parameter is the name of the retailer (e.g. Amazon). -->
+    <string name="review_quality_check_explanation_body_highlights"><![CDATA[Los <b>puntos destacados</b> provienen de reseñas de %s de los últimos 80 días que creemos que son confiables.]]></string>
+    <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
+    <string name="review_quality_check_info_learn_more">Aprende más sobre %s.</string>
+    <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->
+    <string name="review_quality_check_info_learn_more_link_2">cómo determina %s la calidad de las reseñas</string>
+    <!-- Text for title of settings section. -->
+    <string name="review_quality_check_settings_title">Ajustes</string>
+    <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
+    <string name="review_quality_check_settings_recommended_products">Mostrar anuncios en el verificador de reseñas</string>
+    <!-- Description for switch preference to show recommended products from review quality check settings section. First parameter is for clickable text defined in review_quality_check_settings_recommended_products_learn_more.-->
+    <string name="review_quality_check_settings_recommended_products_description_2" tools:ignore="UnusedResources">Verás anuncios ocasionales de productos relevantes. Solo anunciaremos productos con reseñas confiables. %s</string>
+    <!-- Clickable text that links to review quality check recommended products support article. -->
+    <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">Saber más</string>
+    <!-- Text for turning sidebar off button from review quality check settings section. -->
+    <string name="review_quality_check_settings_turn_off">Desactivar el verificador de reseñas</string>
+    <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
+    <string name="review_quality_check_ad_title" tools:ignore="UnusedResources">Más para considerar</string>
+    <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
+    <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">Anuncio de %s</string>
+    <!-- Caption for review quality check panel. First parameter is for clickable text defined in review_quality_check_powered_by_link. -->
+    <string name="review_quality_check_powered_by_2">El verificador de reseñas funciona con %s</string>
+    <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_powered_by_link" tools:ignore="UnusedResources">%s de Mozilla</string>
+    <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
+    <string name="review_quality_check_outdated_analysis_warning_title" tools:ignore="UnusedResources">Nueva información para revisar</string>
+    <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
+    <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">Revisar ahora</string>
+    <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_title">Aún no hay suficientes reseñas</string>
+    <!-- Text for body of warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_body">Cuando este producto tenga más reseñas, podremos analizar su calidad.</string>
+    <!-- Title for warning card informing the user that the current product is currently not available. -->
+    <string name="review_quality_check_product_availability_warning_title">El producto no está disponible</string>
+    <!-- Text for the body of warning card informing the user that the current product is currently not available. -->
+    <string name="review_quality_check_product_availability_warning_body">Si ves que este producto vuelve a estar disponible, avísanos y trabajaremos para actualizar el análisis.</string>
+    <!-- Clickable text for warning card informing the user that the current product is currently not available. Clicking this should inform the server that the product is available. -->
+    <string name="review_quality_check_product_availability_warning_action_2">Informar que el producto está en stock</string>
+    <!-- Title for warning card informing the user that the current product's analysis is still processing. The parameter is the percentage progress (0-100%) of the analysis process (e.g. 56%). -->
+    <string name="review_quality_check_analysis_in_progress_warning_title_2">Comprobando la calidad de la reseña (%s)</string>
+    <!-- Text for body of warning card informing the user that the current product's analysis is still processing. -->
+    <string name="review_quality_check_analysis_in_progress_warning_body">Esto podría tardar unos 60 segundos.</string>
+    <!-- Title for info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_title">¡Gracias por reportar!</string>
+    <!-- Text for body of info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_body">Deberíamos tener información sobre las reseñas de este producto en 24 horas. Por favor, vuelve a comprobarlo más tarde.</string>
+    <!-- Title for info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
+    <string name="review_quality_check_not_analyzable_info_title">No podemos revisar estas reseñas</string>
+    <!-- Text for body of info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
+    <string name="review_quality_check_not_analyzable_info_body">Lamentablemente, no podemos verificar la calidad de las reseñas para ciertos tipos de productos. Por ejemplo, tarjetas de regalo y transmisión de vídeo, música y juegos.</string>
+    <!-- Title for info card displayed when another user reported the displayed product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_other_user_info_title" tools:ignore="UnusedResources">Información próximamente disponible</string>
+    <!-- Text for body of info card displayed when another user reported the displayed product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_other_user_info_body" tools:ignore="UnusedResources">Deberíamos tener información sobre las reseñas de este producto en 24 horas. Por favor, vuelve a comprobarlo más tarde.</string>
+    <!-- Title for info card displayed to the user when analysis finished updating. -->
+    <string name="review_quality_check_analysis_updated_confirmation_title" tools:ignore="UnusedResources">El análisis está actualizado</string>
+    <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
+    <string name="review_quality_check_analysis_updated_confirmation_action" tools:ignore="UnusedResources">Entendido</string>
+    <!-- Title for error card displayed to the user when an error occurred. -->
+    <string name="review_quality_check_generic_error_title">No hay información disponible en este momento</string>
+    <!-- Text for body of error card displayed to the user when an error occurred. -->
+    <string name="review_quality_check_generic_error_body">Estamos trabajando para resolver el problema. Por favor, vuelve a comprobarlo más tarde.</string>
+    <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
+    <string name="review_quality_check_no_connection_title">Sin conexión de red</string>
+    <!-- Text for body of error card displayed to the user when the device is disconnected from the network. -->
+    <string name="review_quality_check_no_connection_body">Verifica tu conexión de red y luego intenta recargar la página.</string>
+    <!-- Title for card displayed to the user for products whose reviews were not analyzed yet. -->
+    <string name="review_quality_check_no_analysis_title">Aún no hay información sobre estas reseñas</string>
+    <!-- Text for the body of card displayed to the user for products whose reviews were not analyzed yet. -->
+    <string name="review_quality_check_no_analysis_body">Para saber si las reseñas de este producto son confiables, verifica la calidad de las reseñas. Sólo te lleva unos 60 segundos.</string>
+    <!-- Text for button from body of card displayed to the user for products whose reviews were not analyzed yet. Clicking this should trigger a product analysis. -->
+    <string name="review_quality_check_no_analysis_link">Comprobar la calidad de la reseña</string>
+    <!-- Headline for review quality check contextual onboarding card. -->
+    <string name="review_quality_check_contextual_onboarding_title">Prueba nuestra guía confiable de reseñas de productos</string>
+    <!-- Description for review quality check contextual onboarding card. The first and last two parameters are for retailer names (e.g. Amazon, Walmart). The second parameter is for the name of the application (e.g. Firefox). -->
+    <string name="review_quality_check_contextual_onboarding_description">Mira que tan confiables son las reseñas de productos en %1$s antes de comprar. El verificador de reseñas, una función experimental de %2$s, está integrada en el navegador. También funciona en %3$s y %4$s.</string>
+    <!-- Description for review quality check contextual onboarding card. The first parameters is for retailer name (e.g. Amazon). The second parameter is for the name of the application (e.g. Firefox). -->
+    <string name="review_quality_check_contextual_onboarding_description_one_vendor">Mira que tan confiables son las reseñas de productos en %1$s antes de comprar. El verificador de reseñas, una función experimental de %2$s, está integrado en el navegador.</string>
+    <!-- Paragraph presenting review quality check feature. First parameter is the Fakespot product name. Second parameter is for clickable text defined in review_quality_check_contextual_onboarding_learn_more_link. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_contextual_onboarding_learn_more">Utilizando la tecnología de %1$s de Mozilla, te ayudamos a evitar reseñas sesgadas y falsas. Nuestro modelo de IA siempre mejora para protegerte mientras compras. %2$s</string>
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Saber más</string>
+    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
+    <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">Si seleccionas “Sí, pruébalo” aceptas los %2$s de %1$s y los %4$s de %3$s.</string>
+    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
+    <string name="review_quality_check_contextual_onboarding_caption_4">Si seleccionas “Sí, pruébalo” aceptas los %2$s de %1$s y los %4$s de %3$s.</string>
+    <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
+    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">política de privacidad</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
     <string name="review_quality_check_contextual_onboarding_terms_use">términos de uso</string>
     <!-- Text for opt-in button from the review quality check contextual onboarding card. -->
@@ -2162,11 +2376,48 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Ahora no</string>
 
+    <!-- Text for the first CFR presenting the review quality check feature. -->
+    <string name="review_quality_check_first_cfr_message">Descubre si puedes confiar en las reseñas de este producto — antes de comprarlo.</string>
+    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
+    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Probar el verificador de reseñas</string>
+    <!-- Text for the second CFR presenting the review quality check feature. -->
+    <string name="review_quality_check_second_cfr_message">¿Son confiables estas reseñas? Verifica ahora para ver una calificación ajustada.</string>
+    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
+    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Abrir el verificador de reseñas</string>
+    <!-- Flag showing that the review quality check feature is work in progress. -->
+    <string name="review_quality_check_beta_flag">Beta</string>
+    <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
+    <string name="review_quality_check_open_handle_content_description">Abrir verificador de reseñas</string>
+    <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
+    <string name="review_quality_check_close_handle_content_description">Cerrar verificador de reseñas</string>
+    <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. First parameter is the number of stars (1-5) representing the rating. -->
+    <string name="review_quality_check_star_rating_content_description">%1$s de 5 estrellas</string>
+    <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
+    <string name="review_quality_check_highlights_show_less">Mostrar menos</string>
+    <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
+    <string name="review_quality_check_highlights_show_more">Mostrar más</string>
+    <!-- Text for highlights card quality category header. Reviews shown under this header should refer the product's quality. -->
+    <string name="review_quality_check_highlights_type_quality">Calidad</string>
+    <!-- Text for highlights card price category header. Reviews shown under this header should refer the product's price. -->
+    <string name="review_quality_check_highlights_type_price">Precio</string>
+    <!-- Text for highlights card shipping category header. Reviews shown under this header should refer the product's shipping. -->
+    <string name="review_quality_check_highlights_type_shipping">Envío</string>
+    <!-- Text for highlights card packaging and appearance category header. Reviews shown under this header should refer the product's packaging and appearance. -->
+    <string name="review_quality_check_highlights_type_packaging_appearance">Embalaje y apariencia</string>
+    <!-- Text for highlights card competitiveness category header. Reviews shown under this header should refer the product's competitiveness. -->
+    <string name="review_quality_check_highlights_type_competitiveness">Competitividad</string>
+    <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting"   -->
+    <string name="surrounded_with_quotes">“%s”</string>
+
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->
     <string name="a11y_action_label_collapse">contraer</string>
+    <!-- Current state for elements that can be collapsed if interacting with them. Talkback will dictate this after a state change. -->
+    <string name="a11y_state_label_collapsed">colapsado</string>
     <!-- Action label for elements that can be expanded if interacting with them. Talkback will append this to say "Double tap to expand". -->
     <string name="a11y_action_label_expand">aumentar</string>
+    <!-- Current state for elements that can be expanded if interacting with them. Talkback will dictate this after a state change. -->
+    <string name="a11y_state_label_expanded">expandido</string>
     <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
     <string name="a11y_action_label_wallpaper_collection_learn_more">abrir enlace para saber más sobre esta colección</string>
     <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
@@ -2174,7 +2425,333 @@
     <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
     <string name="a11y_action_label_pocket_learn_more">abrir enlace para saber más</string>
 
+    <!-- Content description for headings announced by accessibility service. The first parameter is the text of the heading. Talkback will announce the first parameter and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
+    <string name="a11y_heading">%s, Cabecera</string>
+    <!-- Title for dialog displayed when trying to access links present in a text. -->
+    <string name="a11y_links_title">Enlaces</string>
+    <!-- Additional content description for text bodies that contain urls. -->
+    <string name="a11y_links_available">Enlaces disponibles</string>
+
     <!-- Translations feature-->
 
 
-    </resources>
+    <!-- Translation request dialog -->
+    <!-- Title for the translation dialog that allows a user to translate the webpage. -->
+    <string name="translations_bottom_sheet_title">¿Traducir esta página?</string>
+    <!-- Title for the translation dialog after a translation was completed successfully.
+    The first parameter is the name of the language that the page was translated from, for example, "French".
+    The second parameter is the name of the language that the page was translated to, for example, "English". -->
+    <string name="translations_bottom_sheet_title_translation_completed">Página traducida de %1$s a %2$s</string>
+    <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. The first parameter is the name of the application, for example, "Fenix". -->
+    <string name="translations_bottom_sheet_title_first_time">Prueba traducciones privadas en %1$s</string>
+    <!-- Additional information on the translation dialog that appears when a user uses the translation feature the first time. The first parameter is clickable text with a link, for example, "Learn more". -->
+    <string name="translations_bottom_sheet_info_message">Para tu privacidad, las traducciones nunca salen de tu dispositivo. ¡Próximamente nuevos idiomas y mejoras! %1$s</string>
+    <!-- Text that links to additional information about the Firefox translations feature. -->
+    <string name="translations_bottom_sheet_info_message_learn_more">Aprende más</string>
+    <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->
+    <string name="translations_bottom_sheet_translate_from">Traducir de</string>
+    <!-- Label for the dropdown to select which language to translate to on the translations dialog. Usually the translate to language selected will be the user's preferred language. -->
+    <string name="translations_bottom_sheet_translate_to">Traducir a</string>
+    <!-- Label for the dropdown to select which language to translate from on the translations dialog when the page language is not supported. This selection is to allow the user to select another language, in case we automatically detected the page language incorrectly. -->
+    <string name="translations_bottom_sheet_translate_from_unsupported_language">Pruebe con otro idioma de origen</string>
+    <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
+    <string name="translations_bottom_sheet_negative_button">Ahora no</string>
+    <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->
+    <string name="translations_bottom_sheet_negative_button_restore">Ver original</string>
+    <!-- Accessibility announcement (not visible, for screen readers etc.) for the translations dialog after restore button was pressed that indicates the original untranslated page was loaded. -->
+    <string name="translations_bottom_sheet_restore_accessibility_announcement">Se cargó la página original sin traducir</string>
+    <!-- Button text on the translations dialog when a translation error appears, used to dismiss the dialog and return to the browser. -->
+    <string name="translations_bottom_sheet_negative_button_error">Hecho</string>
+    <!-- Button text on the translations dialog to begin a translation of the website. -->
+    <string name="translations_bottom_sheet_positive_button">Traducir</string>
+    <!-- Button text on the translations dialog when a translation error appears. -->
+    <string name="translations_bottom_sheet_positive_button_error">Intentar de nuevo</string>
+    <!-- Inactive button text on the translations dialog that indicates a translation is currently in progress. This button will be accompanied by a loading icon. -->
+    <string name="translations_bottom_sheet_translating_in_progress">Traduciendo</string>
+    <!-- Button content description (not visible, for screen readers etc.) for the translations dialog translate button that indicates a translation is currently in progress. -->
+    <string name="translations_bottom_sheet_translating_in_progress_content_description">Traducción en curso</string>
+    <!-- Default dropdown option when initially selecting a language from the translations dialog language selection dropdown. -->
+    <string name="translations_bottom_sheet_default_dropdown_selection">Selecciona un idioma</string>
+    <!-- The title of the warning card informs the user that a translation could not be completed. -->
+    <string name="translation_error_could_not_translate_warning_text">Hubo un problema al traducir. Por favor, vuelve a intentarlo.</string>
+    <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
+    <string name="translation_error_could_not_load_languages_warning_text">No se pudieron cargar los idiomas. Verifica tu conexión a Internet y vuelve a intentarlo.</string>
+    <!-- The title of the warning card informs the user that a language is not supported. The first parameter is the name of the language that is not supported. -->
+    <string name="translation_error_language_not_supported_warning_text">Lo sentimos, %1$s aún no está disponible.</string>
+    <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
+    <string name="translation_in_progress_snackbar">Traduciendo…</string>
+    <!-- Title for the data saving mode warning dialog used in the translation request dialog.
+    This dialog will be presented when the user attempts to perform
+    a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
+    The first parameter is the size in kilobytes or megabytes of the language file. -->
+    <string name="translations_download_language_file_dialog_title">¿Descargar idioma en modo de ahorro de datos (%1$s)?</string>
+
+
+    <!-- Translations options dialog -->
+    <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
+    <string name="translation_option_bottom_sheet_title_heading">Opciones de traducción</string>
+    <!-- Toggle switch label that allows a user to set the setting if they would like the browser to always offer or suggest translations when available. -->
+    <string name="translation_option_bottom_sheet_always_translate">Ofrecer siempre traducir</string>
+
+    <!-- Toggle switch label that allows a user to set if they would like a given language to automatically translate or not. The first parameter is the language name, for example, "Spanish". -->
+    <string name="translation_option_bottom_sheet_always_translate_in_language">Siempre traducir %1$s</string>
+    <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. The first parameter is the language name, for example, "Spanish". -->
+    <string name="translation_option_bottom_sheet_never_translate_in_language">Nunca traducir %1$s</string>
+    <!-- Toggle switch label that allows a user to set the setting if they would like the browser to never translate the site the user is currently visiting. -->
+    <string name="translation_option_bottom_sheet_never_translate_site">Nunca traducir este sitio</string>
+    <!-- Toggle switch description that will appear under the "Never translate these sites" settings toggle switch to provide more information on how this setting interacts with other settings. -->
+    <string name="translation_option_bottom_sheet_switch_never_translate_site_description">Anula todas las demás configuraciones</string>
+    <!-- Toggle switch description that will appear under the "Never translate" and "Always translate" toggle switch settings to provide more information on how these  settings interacts with other settings. -->
+    <string name="translation_option_bottom_sheet_switch_description">Anula las ofertas de traducción</string>
+    <!-- Button text for the button that will take the user to the translation settings dialog. -->
+    <string name="translation_option_bottom_sheet_translation_settings">Ajustes de traducción</string>
+    <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. The first parameter is the name of the application, for example, "Fenix". -->
+    <string name="translation_option_bottom_sheet_about_translations">Acerca de las traducciones en %1$s</string>
+
+    <!-- Content description (not visible, for screen readers etc.) for closing the translations bottom sheet. -->
+    <string name="translation_option_bottom_sheet_close_content_description">Cerrar hoja de traducciones</string>
+
+    <!-- The title of the warning card informs the user that an error has occurred at page settings. -->
+    <string name="translation_option_bottom_sheet_error_warning_text">Algunos ajustes no están disponibles temporalmente.</string>
+
+    <!-- Translation settings dialog -->
+    <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
+    <string name="translation_settings_toolbar_title">Traducciones</string>
+    <!-- Toggle switch label that indicates that the browser should signal or indicate when a translation is possible for any page. -->
+    <string name="translation_settings_offer_to_translate">Ofrecer traducción cuando sea posible</string>
+    <!-- Toggle switch label that indicates that downloading files required for translating is permitted when using data saver mode in Android. -->
+    <string name="translation_settings_always_download">Descarga siempre idiomas en modo de ahorro de datos</string>
+    <!-- Section header text that begins the section of a list of different options the user may select to adjust their translation preferences. -->
+    <string name="translation_settings_translation_preference">Preferencias de Traducción</string>
+    <!-- Button text for the button that will take the user to the automatic translations settings dialog. On the automatic translations settings dialog, the user can set if translations should occur automatically for a given language. -->
+    <string name="translation_settings_automatic_translation">Traducción automática</string>
+    <!-- Button text for the button that will take the user to the never translate these sites dialog. On the never translate these sites dialog, the user can set if translations should never occur on certain websites. -->
+    <string name="translation_settings_automatic_never_translate_sites">Nunca traducir estos sitios</string>
+    <!-- Button text for the button that will take the user to the download languages dialog. On the download languages dialog, the user can manage which languages they would like to download for translations. -->
+    <string name="translation_settings_download_language">Descargar idiomas</string>
+
+    <!-- Automatic translation preference screen -->
+    <!-- Title of the automatic translation preference screen that will appear on the toolbar.-->
+    <string name="automatic_translation_toolbar_title_preference">Traducción automática</string>
+    <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
+    <string name="automatic_translation_header_preference">Selecciona un idioma para administrar las preferencias de ”siempre traducir“ y ”nunca traducir“.</string>
+
+    <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
+    <string name="automatic_translation_error_warning_text">No se han podido cargar los idiomas. Inténtalo de nuevo más tarde.</string>
+
+    <!-- Automatic translation options preference screen -->
+    <!-- Preference option for offering to translate. Radio button title text.-->
+    <string name="automatic_translation_option_offer_to_translate_title_preference">Ofrecer traducción (predeterminado)</string>
+    <!-- Preference option for offering to translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="automatic_translation_option_offer_to_translate_summary_preference">%1$s ofrecerá traducir sitios en este idioma.</string>
+    <!-- Preference option for always translate. Radio button title text. -->
+    <string name="automatic_translation_option_always_translate_title_preference">Siempre traducir</string>
+    <!-- Preference option for always translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="automatic_translation_option_always_translate_summary_preference">%1$s traducirá este idioma automáticamente cuando se cargue la página.</string>
+    <!-- Preference option for never translate. Radio button title text.-->
+    <string name="automatic_translation_option_never_translate_title_preference">Nunca traducir</string>
+    <!-- Preference option for never translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="automatic_translation_option_never_translate_summary_preference">%1$s nunca ofrecerá traducir sitios en este idioma.</string>
+
+    <!-- Never translate site preference screen -->
+    <!-- Title of the never translate site preference screen that will appear on the toolbar.-->
+    <string name="never_translate_site_toolbar_title_preference">Nunca traducir estos sitios</string>
+    <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
+    <string name="never_translate_site_header_preference">Para añadir un sitio nuevo: visítalo y selecciona “No traducir nunca este sitio” en el menú de traducción.</string>
+    <!-- Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
+             The first parameter is web site url (for example:"wikipedia.com") -->
+    <string name="never_translate_site_item_list_content_description_preference">Eliminar %1$s</string>
+    <!-- The title of the warning card informs the user that an error has occurred at the never translate sites list. -->
+    <string name="never_translate_site_error_warning_text">No se han podido cargar los sitios. Inténtalo de nuevo más tarde.</string>
+    <!-- The Delete site dialogue title will appear when the user clicks on a list item.
+             The first parameter is web site url (for example:"wikipedia.com") -->
+    <string name="never_translate_site_dialog_title_preference">¿Eliminar %1$s?</string>
+    <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
+    <string name="never_translate_site_dialog_confirm_delete_preference">Eliminar</string>
+    <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
+    <string name="never_translate_site_dialog_cancel_preference">Cancelar</string>
+
+    <!-- Download languages preference screen -->
+    <!-- Title of the download languages preference screen toolbar.-->
+    <string name="download_languages_toolbar_title_preference">Descargar Idiomas</string>
+    <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
+    <string name="download_languages_header_preference">Descarga idiomas completos para traducciones más rápidas y para traducir sin conexión. %1$s</string>
+    <!-- Clickable text from the screen header that links to a website. -->
+    <string name="download_languages_header_learn_more_preference">Saber más</string>
+    <!-- The subhead of the download language preference screen will appear above the pivot language. -->
+    <string name="download_languages_available_languages_preference">Idiomas disponibles</string>
+    <!-- Text that will appear beside a core or pivot language package name to show that the language is necessary for the translation feature to function. -->
+    <string name="download_languages_default_system_language_require_preference">requerido</string>
+    <!-- A text for download language preference item.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)" or, if the language package name is a pivot language, "(required)". -->
+    <string name="download_languages_language_item_preference">%1$s (%2$s)</string>
+    <!-- The subhead of the download language preference screen will appear above the items that were not downloaded. -->
+    <string name="download_language_header_preference">Descargar Idiomas</string>
+    <!-- All languages list item. When the user presses this item, they can download all languages. -->
+    <string name="download_language_all_languages_item_preference">Todos los idiomas</string>
+    <!-- All languages list item. When the user presses this item, they can delete all languages that were downloaded. -->
+    <string name="download_language_all_languages_item_preference_to_delete">Eliminar todos los idiomas</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
+    <string name="download_languages_item_content_description_downloaded_state">Eliminar</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
+    <string name="download_languages_item_content_description_in_progress_state">En progreso</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
+    <string name="download_languages_item_content_description_not_downloaded_state">Descargar</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
+    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">Seleccionado</string>
+
+    <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
+    <string name="download_languages_fetch_error_warning_text">No se han podido cargar los idiomas. Inténtalo de nuevo más tarde.</string>
+    <!-- The title of the warning card informs the user that an error has occurred at downloading a language.
+      The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_error_warning_text"><![CDATA[No se ha pidodo descargar <b>%1$s</b>. Inténtalo de nuevo.]]></string>
+    <!-- The title of the warning card informs the user that an error has occurred at deleting a language.
+          The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_delete_error_warning_text"><![CDATA[No se ha podido borrar <b>%1$s</b>. Inténtalo de nuevo.]]></string>
+
+    <!-- Title for the dialog used by the translations feature to confirm deleting a language.
+    The dialog will be presented when the user requests deletion of a language.
+    The first parameter is the name of the language, for example, "Spanish" and the second parameter is the size in kilobytes or megabytes of the language file. -->
+    <string name="delete_language_file_dialog_title">¿Eliminar %1$s (%2$s)?</string>
+
+    <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. The first parameter is the name of the application, for example, "Fenix". -->
+    <string name="delete_language_file_dialog_message">Si eliminas este idioma, %1$s descargará idiomas parciales a tu caché mientras traduces.</string>
+    <!-- Title for the dialog used by the translations feature to confirm deleting all languages file.
+    The dialog will be presented when the user requests deletion of all languages file.
+    The first parameter is the size in kilobytes or megabytes of the language file. -->
+    <string name="delete_language_all_languages_file_dialog_title">¿Eliminar todos los idiomas (%1$s)?</string>
+    <!-- Additional information for the dialog used by the translations feature to confirm deleting all languages file. The first parameter is the name of the application, for example, "Fenix". -->
+    <string name="delete_language_all_languages_file_dialog_message">Si eliminas todos los idiomas, %1$s descargará idiomas parciales a tu caché mientras traduces.</string>
+    <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
+    <string name="delete_language_file_dialog_positive_button_text">Borrar</string>
+    <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
+    <string name="delete_language_file_dialog_negative_button_text">Cancelar</string>
+
+    <!-- Title for the data saving mode warning dialog used by the translations feature.
+    This dialog will be presented when the user attempts to download a language or perform
+    a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
+    The first parameter is the size in kilobytes or megabytes of the language file.-->
+    <string name="download_language_file_dialog_title">¿Descargar mientras estás en modo de ahorro de datos (%1$s)?</string>
+    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
+    <string name="download_language_file_dialog_message_all_languages">Descargamos idiomas parciales a tu caché para mantener las traducciones privadas.</string>
+    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
+    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Descargamos idiomas parciales para mantener las traducciones privadas.</string>
+    <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
+    <string name="download_language_file_dialog_checkbox_text">Descargar siempre en modo ahorro de datos</string>
+    <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
+    <string name="download_language_file_dialog_positive_button_text">Descargar</string>
+    <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file and perform a translation. -->
+    <string name="download_language_file_dialog_positive_button_text_all_languages">Descargar y traducir</string>
+    <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
+    <string name="download_language_file_dialog_negative_button_text">Cancelar</string>
+
+    <!-- Debug drawer -->
+    <!-- The user-facing title of the Debug Drawer feature. -->
+    <string name="debug_drawer_title">Herramientas de depuración</string>
+    <!-- Content description (not visible, for screen readers etc.): Navigate back within the debug drawer. -->
+    <string name="debug_drawer_back_button_content_description">Ir a la página anterior</string>
+
+    <!-- Content description (not visible, for screen readers etc.): Open debug drawer. -->
+    <string name="debug_drawer_fab_content_description">Abrir panel de depuración</string>
+
+    <!-- Debug drawer tabs tools -->
+    <!-- The title of the Tab Tools feature in the Debug Drawer. -->
+    <string name="debug_drawer_tab_tools_title">Herramientas de pestañas</string>
+
+    <!-- The title of the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_title">Número de pestañas</string>
+    <!-- The active tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">Activo</string>
+    <!-- The active tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_active">Activo</string>
+    <!-- The inactive tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_inactive">Inactivo</string>
+    <!-- The private tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_private">Privado</string>
+    <!-- The total tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_total">Total</string>
+    <!-- The title of the tab creation tool section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_title">Herramienta de creación de pestañas</string>
+    <!-- The label of the text field in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_text_field_label">Cantidad de pestañas a crear</string>
+    <!-- The error message of the text field in the tab creation tool when the text field is empty -->
+    <string name="debug_drawer_tab_tools_tab_quantity_empty_error">El campo de texto está vacío</string>
+    <!-- The error message of the text field in the tab creation tool when the text field has characters other than digits -->
+    <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">Por favor, ingresa solo números enteros positivos</string>
+    <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
+    <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">Introduce un número mayor que cero</string>
+    <!-- The error message of the text field in the tab creation tool when the text field is a
+        quantity greater than the max tabs. The first parameter is the maximum number of tabs
+        that can be generated in one operation.-->
+    <string name="debug_drawer_tab_tools_tab_quantity_exceed_max_error">Se ha superado el número máximo de pestañas (%1$s) que se pueden generar en una operación</string>
+    <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">Agregar a pestañas activas</string>
+    <!-- The button text to add tabs to the inactive tab group in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_inactive">Agregar a pestañas inactivas</string>
+    <!-- The button text to add tabs to the private tab group in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_private">Agregar a pestañas privadas</string>
+
+    <!-- Microsurvey -->
+    <!-- Prompt view -->
+    <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
+    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Ayúdanos a mejorar Firefox. Solo te llevará un minuto.</string>
+    <!-- The continue button label -->
+    <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Continuar</string>
+    <!-- Survey view -->
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Completa esta encuesta</string>
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header_2">Por favor, completa la encuesta</string>
+    <!-- The privacy notice link -->
+    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Política de privacidad</string>
+    <!-- The privacy notice link -->
+    <string name="micro_survey_privacy_notice_2">Aviso de Privacidad</string>
+    <!-- The submit button label text -->
+    <string name="micro_survey_submit_button_label">Enviar</string>
+    <!-- The close button label text -->
+    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Cerrar</string>
+    <!-- The survey completion header -->
+    <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Encuesta completada</string>
+    <!-- The survey completion confirmation text -->
+    <string name="micro_survey_feedback_confirmation">¡Gracias por tus comentarios!</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_1" tools:ignore="UnusedResources">Muy satisfecho</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_2" tools:ignore="UnusedResources">Satisfecho</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_3" tools:ignore="UnusedResources">Neutral</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_4" tools:ignore="UnusedResources">Insatisfecho</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_5" tools:ignore="UnusedResources">Muy insatisfecho</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_6" tools:ignore="UnusedResources">No lo uso</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">¿Estás satisfecho con la página de inicio de Firefox?</string>
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Ayuda a mejorar la impresión en Firefox. Solo te llevará un segundo</string>
+    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">¿Cómo estás de satisfecho con la impresión en Firefox?</string>
+    <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">Logo de Firefox</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">Ícono de la funcionalidad de encuesta</string>
+    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Abrir encuesta</string>
+    <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
+    <string name="microsurvey_close_handle_content_description">Cerrar encuesta</string>
+    <!-- Content description for "X" button that is closing microsurvey. -->
+    <string name="microsurvey_close_button_content_description">Cerrar</string>
+
+    <!-- Debug drawer logins -->
+    <!-- The title of the Logins feature in the Debug Drawer. -->
+    <string name="debug_drawer_logins_title">Inicios de sesión</string>
+    <!-- The title of the logins section in the Logins feature, where the parameter will be the site domain  -->
+    <string name="debug_drawer_logins_current_domain_label">Dominio actual: %s</string>
+    <!-- The label for a button to add a new fake login for the current domain in the Logins feature. -->
+    <string name="debug_drawer_logins_add_login_button">Agregar un inicio de sesión falso para este dominio</string>
+    <!-- Content description for delete button where parameter will be the username of the login -->
+    <string name="debug_drawer_logins_delete_login_button_content_description">Eliminar inicio de sesión con nombre de usuario %s</string>
+</resources>
