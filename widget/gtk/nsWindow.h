@@ -42,7 +42,6 @@
 #  include "base/thread.h"
 #  include "WaylandVsyncSource.h"
 #  include "nsClipboardWayland.h"
-#  include "MozContainerSurfaceLock.h"
 #endif
 
 #ifdef MOZ_LOGGING
@@ -421,8 +420,6 @@ class nsWindow final : public nsBaseWidget {
   static bool IsToplevelWindowTransparent();
 
   static nsWindow* GetFocusedWindow();
-
-  mozilla::UniquePtr<MozContainerSurfaceLock> LockSurface();
 
 #ifdef MOZ_WAYLAND
   // Use xdg-activation protocol to transfer focus from gFocusWindow to aWindow.
