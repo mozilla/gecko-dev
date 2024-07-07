@@ -48,7 +48,7 @@ fuzzy(0-8,0-1000000) == feGaussianBlur-1.svg feGaussianBlur-1-ref.svg
 fuzzy(0-8,0-1000000) == feGaussianBlur-2.svg feGaussianBlur-2-ref.svg
 # != feGaussianBlur-3.svg feGaussianBlur-3-ref.svg
 fuzzy-if(!useDrawSnapshot,2-5,4764-8168) fuzzy-if(Android&&device&&!swgl,5-5,8574-8574) fuzzy-if(gfxSVGFEGaussianBlur,0-4,0-1000000) == feGaussianBlur-4.svg feGaussianBlur-4-ref.svg
-fuzzy-if(geckoview,0-4,0-200) fuzzy-if(ggfxSVGFEGaussianBlur,0-4,0-1000000) == feGaussianBlur-5.svg feGaussianBlur-5-ref.svg
+fuzzy-if(geckoview,0-4,0-200) fuzzy-if(gfxSVGFEGaussianBlur,0-4,0-1000000) == feGaussianBlur-5.svg feGaussianBlur-5-ref.svg
 fuzzy-if(gfxSVGFEGaussianBlur,0-2,0-1000000) == feGaussianBlur-6.svg feGaussianBlur-6-ref.svg
 # SVGFE implementation deliberately does not cap blur radius (but resolution
 # degrades), the regular WebRender CSS filter also does not need to cap radius
