@@ -47,9 +47,9 @@ fuzzy(0-2,0-1000000) == feFlood-2.svg feFlood-2-ref.svg
 fuzzy(0-8,0-1000000) == feGaussianBlur-1.svg feGaussianBlur-1-ref.svg
 fuzzy(0-8,0-1000000) == feGaussianBlur-2.svg feGaussianBlur-2-ref.svg
 # != feGaussianBlur-3.svg feGaussianBlur-3-ref.svg
-fuzzy-if(!useDrawSnapshot,2-5,4764-8168) fuzzy-if(Android&&device&&!swgl,5-5,8574-8574) fuzzy-if(gfxSVGFEGaussianBlur,0-4,0-1000000) == feGaussianBlur-4.svg feGaussianBlur-4-ref.svg
-fuzzy-if(geckoview,0-4,0-200) fuzzy-if(gfxSVGFEGaussianBlur,0-4,0-1000000) == feGaussianBlur-5.svg feGaussianBlur-5-ref.svg
-fuzzy-if(gfxSVGFEGaussianBlur,0-2,0-1000000) == feGaussianBlur-6.svg feGaussianBlur-6-ref.svg
+fuzzy(0-4,0-1000000) == feGaussianBlur-4.svg feGaussianBlur-4-ref.svg
+fuzzy(0-4,0-1000000) == feGaussianBlur-5.svg feGaussianBlur-5-ref.svg
+fuzzy(0-2,0-1000000) == feGaussianBlur-6.svg feGaussianBlur-6-ref.svg
 # SVGFE implementation deliberately does not cap blur radius (but resolution
 # degrades), the regular WebRender CSS filter also does not need to cap radius
 # for the same reason, so this test is now only relevant to blob fallback
@@ -141,8 +141,7 @@ fuzzy(0-1,0-10000) == feTurbulence-zero-baseFreq-01.svg feTurbulence-zero-baseFr
 != feTurbulence-zero-baseFreq-02.svg about:blank
 
 == outside-sourcegraphic-1.svg outside-sourcegraphic-ref.svg
-# These failures are caused by bug 1586055 and fixed when the new SVGFE code path rolls out (bug 1906212)
-fails-if(!useDrawSnapshot&&!gfxSVGFE) == outside-sourcegraphic-2.svg outside-sourcegraphic-ref.svg
-fails-if(!useDrawSnapshot&&!gfxSVGFE) == outside-sourcegraphic-3.svg outside-sourcegraphic-ref.svg
+== outside-sourcegraphic-2.svg outside-sourcegraphic-ref.svg
+== outside-sourcegraphic-3.svg outside-sourcegraphic-ref.svg
 fuzzy-if(geckoview&&!emulator,0-4,0-124) == nested-filter.html nested-filter-ref.html
 == filter-giant.svg pass.svg

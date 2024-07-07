@@ -6,7 +6,7 @@ fuzzy(0-1,0-1000000) == blur.svg blur-ref.svg
 == blur-calc.html blur-calc-ref.html
 == blur-calc-negative.html blur-calc-negative-ref.html
 fuzzy-if(cocoaWidget,0-1,0-2) skip-if(winWidget) == blur-cap-large-radius-on-software.html blur-cap-large-radius-on-software-ref.html
-fuzzy-if(!useDrawSnapshot,2-5,4764-8168) fuzzy-if(Android&&device&&!swgl,5-5,8574-8574) fuzzy-if(gfxSVGFEGaussianBlur,0-0,0-0) == blur-clip-rect.html ../feGaussianBlur-4-ref.svg
+== blur-clip-rect.html ../feGaussianBlur-4-ref.svg
 fuzzy(0-1,0-1000000) == blur-em-radius.html blur-em-radius-ref.html
 == blur-invalid-radius.html blur-invalid-radius-ref.html
 fuzzy(0-1,0-1000000) == blur-rem-radius.html blur-rem-radius-ref.html
