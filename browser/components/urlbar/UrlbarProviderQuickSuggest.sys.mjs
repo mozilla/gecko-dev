@@ -397,11 +397,18 @@ class ProviderQuickSuggest extends UrlbarProvider {
         result.suggestedIndex = suggestion.position;
       } else {
         result.isSuggestedIndexRelativeToGroup = true;
-        result.suggestedIndex = lazy.UrlbarPrefs.get(
-          suggestion.is_sponsored
-            ? "quickSuggestSponsoredIndex"
-            : "quickSuggestNonSponsoredIndex"
-        );
+
+        if (suggestion.is_sponsored) {
+          result.suggestedIndex = lazy.UrlbarPrefs.get(
+            "showSearchSuggestionsFirst"
+          )
+            ? lazy.UrlbarPrefs.get("quickSuggestSponsoredIndex")
+            : -1;
+        } else {
+          result.suggestedIndex = lazy.UrlbarPrefs.get(
+            "quickSuggestNonSponsoredIndex"
+          );
+        }
       }
     }
 

@@ -379,8 +379,10 @@ urlbar:
       type: int
       fallbackPref: browser.urlbar.quicksuggest.sponsoredIndex
       description: >-
-        The index of sponsored QuickSuggest results within the general group. A
-        negative index is relative to the end of the group
+        The index of sponsored Firefox Suggest results within the Firefox Suggest
+        section when "Show search suggestions ahead of browsing history in
+        address bar results" is checked. When not checked, the index is hardcoded
+        as -1. Negative indexes are relative to the end of the section.
     quickSuggestSponsoredPriority:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.sponsoredPriority

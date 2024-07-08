@@ -84,8 +84,8 @@ function expectedNonSponsoredResult() {
   });
 }
 
-function expectedSponsoredResult() {
-  return makeAmpResult();
+function expectedSponsoredResult({ suggestedIndex } = {}) {
+  return makeAmpResult({ suggestedIndex });
 }
 
 function expectedSponsoredPriorityResult() {
@@ -561,7 +561,7 @@ add_tasks_with_rust(async function generalBeforeSuggestions_only() {
         query: SPONSORED_SEARCH_STRING,
         engineName: Services.search.defaultEngine.name,
       }),
-      expectedSponsoredResult(),
+      expectedSponsoredResult({ suggestedIndex: -1 }),
       makeSearchResult(context, {
         query: SPONSORED_SEARCH_STRING,
         suggestion: SPONSORED_SEARCH_STRING + " foo",
@@ -616,8 +616,8 @@ add_tasks_with_rust(async function generalBeforeSuggestions_others() {
         query: SPONSORED_SEARCH_STRING,
         engineName: Services.search.defaultEngine.name,
       }),
-      expectedSponsoredResult(),
       ...historyResults,
+      expectedSponsoredResult({ suggestedIndex: -1 }),
       makeSearchResult(context, {
         query: SPONSORED_SEARCH_STRING,
         suggestion: SPONSORED_SEARCH_STRING + " foo",
