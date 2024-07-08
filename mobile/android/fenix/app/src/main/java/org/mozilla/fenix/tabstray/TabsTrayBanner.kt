@@ -196,7 +196,6 @@ private fun TabPageBanner(
 ) {
     val selectedColor = FirefoxTheme.colors.iconActive
     val inactiveColor = FirefoxTheme.colors.iconPrimaryInactive
-    val tabCounterAlpha = LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
     var showMenu by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
@@ -234,6 +233,7 @@ private fun TabPageBanner(
                         selectedContentColor = selectedColor,
                         unselectedContentColor = inactiveColor,
                     ) {
+                        val tabCounterAlpha = LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
                         TabCounter(
                             tabCount = normalTabCount,
                             textColor = tabCounterAlpha,
