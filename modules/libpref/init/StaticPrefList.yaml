@@ -4770,9 +4770,9 @@
   value: true
   mirror: always
 
-- name: dom.webnotifications.privateBrowsing.enableDespiteLimitations
+- name: dom.webnotifications.privateBrowsing.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 - name: dom.webnotifications.requireuserinteraction

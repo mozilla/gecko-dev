@@ -491,10 +491,8 @@ NotificationPermissionRequest::Run() {
   bool blocked = false;
   if (isSystem) {
     mPermission = NotificationPermission::Granted;
-  } else if (
-      mPrincipal->GetPrivateBrowsingId() != 0 &&
-      !StaticPrefs::
-          dom_webnotifications_privateBrowsing_enableDespiteLimitations()) {
+  } else if (mPrincipal->GetPrivateBrowsingId() != 0 &&
+             !StaticPrefs::dom_webnotifications_privateBrowsing_enabled()) {
     mPermission = NotificationPermission::Denied;
     blocked = true;
   } else {
@@ -1576,8 +1574,7 @@ NotificationPermission Notification::GetPermissionInternal(
   }
 
   if (principal->GetPrivateBrowsingId() != 0 &&
-      !StaticPrefs::
-          dom_webnotifications_privateBrowsing_enableDespiteLimitations()) {
+      !StaticPrefs::dom_webnotifications_privateBrowsing_enabled()) {
     return NotificationPermission::Denied;
   }
   // Disallow showing notification if our origin is not the same origin as the
