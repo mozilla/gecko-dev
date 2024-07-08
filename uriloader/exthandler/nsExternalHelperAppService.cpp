@@ -274,22 +274,18 @@ static nsresult EnsureDirectoryExists(nsIFile* aDir) {
 };
 
 /**
- * Obtains the directory to use.  This tends to vary per platform, and
- * needs to be consistent throughout our codepaths. For platforms where
- * helper apps use the downloads directory, this should be kept in
- * sync with DownloadIntegration.sys.mjs.
+ * Obtains the final directory to save downloads to. This tends to vary per
+ * platform, and needs to be consistent throughout our codepaths. For platforms
+ * where helper apps use the downloads directory, this should be kept in sync
+ * with the function of the same name in DownloadIntegration.sys.mjs.
  *
  * Optionally skip availability of the directory and storage.
  */
-static Result<nsCOMPtr<nsIFile>, nsresult> GetDownloadDirectory(
+static Result<nsCOMPtr<nsIFile>, nsresult> GetPreferredDownloadsDirectory(
     bool aSkipChecks = false) {
 #if defined(ANDROID)
   return Err(NS_ERROR_FAILURE);
 #endif
-
-  if (StaticPrefs::browser_download_start_downloads_in_tmp_dir()) {
-    return GetOsTmpDownloadDirectory();
-  }
 
   nsresult rv;
   // Try to get the users download location, if it's set.
@@ -380,6 +376,26 @@ static Result<nsCOMPtr<nsIFile>, nsresult> GetDownloadDirectory(
   }
 
   return dir;
+}
+
+/**
+ * Obtains the initial directory to save downloads to. (This may differ from the
+ * actual download directory if "browser.download.start_downloads_in_tmp_dir" is
+ * set.)
+ *
+ * Optionally, skip availability of the directory and storage.
+ */
+static Result<nsCOMPtr<nsIFile>, nsresult> GetInitialDownloadDirectory(
+    bool aSkipChecks = false) {
+#if defined(ANDROID)
+  return Err(NS_ERROR_FAILURE);
+#endif
+
+  if (StaticPrefs::browser_download_start_downloads_in_tmp_dir()) {
+    return GetOsTmpDownloadDirectory();
+  }
+
+  return GetPreferredDownloadsDirectory(aSkipChecks);
 }
 
 /**
@@ -1396,7 +1412,7 @@ void nsExternalAppHandler::RetargetLoadNotifications(nsIRequest* request) {
 nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel* aChannel) {
   // First we need to try to get the destination directory for the temporary
   // file.
-  auto res = GetDownloadDirectory();
+  auto res = GetInitialDownloadDirectory();
   if (res.isErr()) return res.unwrapErr();
   mTempFile = res.unwrap();
 
@@ -2379,7 +2395,7 @@ nsresult nsExternalAppHandler::CreateFailedTransfer() {
   if (!mFinalFileDestination) {
     // If we don't have a download directory we're kinda screwed but it's OK
     // we'll still report the error via the prompter.
-    auto res = GetDownloadDirectory(true);
+    auto res = GetInitialDownloadDirectory(true);
     if (res.isErr()) return res.unwrapErr();
     nsCOMPtr<nsIFile> pseudoFile = res.unwrap();
 
@@ -2606,7 +2622,7 @@ NS_IMETHODIMP nsExternalAppHandler::SetDownloadToLaunch(
   if (aNewFileLocation) {
     fileToUse = aNewFileLocation;
   } else {
-    auto res = GetDownloadDirectory();
+    auto res = GetInitialDownloadDirectory();
     if (res.isErr()) return res.unwrapErr();
     fileToUse = res.unwrap();
 
