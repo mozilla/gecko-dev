@@ -82,14 +82,14 @@ abstract class ToolbarIntegration(
 
 @SuppressWarnings("LongParameterList")
 class DefaultToolbarIntegration(
-    context: Context,
-    toolbar: BrowserToolbar,
+    private val context: Context,
+    private val toolbar: BrowserToolbar,
     scrollableToolbar: ScrollableToolbar,
     toolbarMenu: ToolbarMenu,
-    lifecycleOwner: LifecycleOwner,
+    private val lifecycleOwner: LifecycleOwner,
     sessionId: String? = null,
-    isPrivate: Boolean,
-    interactor: BrowserToolbarInteractor,
+    private val isPrivate: Boolean,
+    private val interactor: BrowserToolbarInteractor,
 ) : ToolbarIntegration(
     context = context,
     toolbar = toolbar,
@@ -119,6 +119,10 @@ class DefaultToolbarIntegration(
             DisplayToolbar.Indicators.HIGHLIGHT,
         )
 
+        addTabCounterBrowserAction()
+    }
+
+    private fun addTabCounterBrowserAction() {
         val tabCounterMenu = FenixTabCounterMenu(
             context = context,
             onItemTapped = {
@@ -133,7 +137,7 @@ class DefaultToolbarIntegration(
             it.updateMenu(context.settings().toolbarPosition)
         }
 
-        val tabsAction = TabCounterToolbarButton(
+        val tabCounterAction = TabCounterToolbarButton(
             lifecycleOwner = lifecycleOwner,
             showTabs = {
                 toolbar.hideKeyboard()
@@ -151,9 +155,9 @@ class DefaultToolbarIntegration(
             store.state.normalTabs.size
         }
 
-        tabsAction.updateCount(tabCount)
+        tabCounterAction.updateCount(tabCount)
 
-        toolbar.addBrowserAction(tabsAction)
+        toolbar.addBrowserAction(tabCounterAction)
     }
 
     override fun start() {
