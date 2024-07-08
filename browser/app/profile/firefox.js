@@ -503,8 +503,10 @@ pref("browser.urlbar.quicksuggest.shouldShowOnboardingDialog", true);
 // Show QuickSuggest onboarding dialog on the nth browser restarts.
 pref("browser.urlbar.quicksuggest.showOnboardingDialogAfterNRestarts", 0);
 
-// The indexes of the sponsored and non-sponsored quick suggest results within
-// the general results group.
+// The index of sponsored Firefox Suggest results within the Firefox Suggest
+// section when "Show search suggestions ahead of browsing history in address bar
+// results" is checked. When not checked, the index is hardcoded as -1. Negative
+// indexes are relative to the end of the section.
 pref("browser.urlbar.quicksuggest.sponsoredIndex", 0);
 pref("browser.urlbar.quicksuggest.nonSponsoredIndex", 0);
 

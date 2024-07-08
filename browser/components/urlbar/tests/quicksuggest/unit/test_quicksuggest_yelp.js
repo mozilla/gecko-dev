@@ -550,6 +550,46 @@ add_task(async function nimbusSuggestedIndex() {
   });
 });
 
+// Tests the suggestedIndex if the browser.urlbar.showSearchSuggestionsFirst pref
+// is false.
+add_task(async function showSearchSuggestionsFirstDisabledSuggestedIndex() {
+  info("Disable browser.urlbar.showSearchSuggestionsFirst pref");
+  UrlbarPrefs.set("showSearchSuggestionsFirst", false);
+  await check_results({
+    context: createContext("ramen in tokyo", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [
+      makeExpectedResult({
+        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
+        title: "ramen in tokyo",
+        isTopPick: false,
+        suggestedIndex: -1,
+      }),
+    ],
+  });
+
+  info("Enable browser.urlbar.showSearchSuggestionsFirst pref");
+  UrlbarPrefs.set("showSearchSuggestionsFirst", true);
+  await check_results({
+    context: createContext("ramen in tokyo", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [
+      makeExpectedResult({
+        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
+        title: "ramen in tokyo",
+        isTopPick: false,
+        suggestedIndex: 0,
+      }),
+    ],
+  });
+
+  UrlbarPrefs.clear("showSearchSuggestionsFirst");
+});
+
 // Tests the "Not relevant" command: a dismissed suggestion shouldn't be added.
 add_task(async function notRelevant() {
   let result = makeExpectedResult({

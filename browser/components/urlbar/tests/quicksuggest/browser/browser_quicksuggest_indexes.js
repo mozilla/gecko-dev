@@ -83,9 +83,12 @@ add_task(async function suggestionsLast() {
     set: [[SUGGESTIONS_FIRST_PREF, false]],
   });
   await withSuggestions(async () => {
-    await doTestPermutations(({ withHistory, generalIndex }) => ({
+    await doTestPermutations(({ isSponsored, withHistory, generalIndex }) => ({
       expectedResultCount: withHistory ? MAX_RESULTS : 4,
-      expectedIndex: generalIndex == 0 || !withHistory ? 1 : MAX_RESULTS - 3,
+      expectedIndex:
+        (generalIndex == 0 && !isSponsored) || !withHistory
+          ? 1
+          : MAX_RESULTS - 3,
     }));
   });
   await SpecialPowers.popPrefEnv();
@@ -161,16 +164,16 @@ add_task(async function otherSuggestedIndex_suggestionsLast() {
       { heuristic: true },
       // TestProvider result
       { suggestedIndex: 1, resultSpan: 2 },
-      // quick suggest
-      {
-        type: UrlbarUtils.RESULT_TYPE.URL,
-        providerName: UrlbarProviderQuickSuggest.name,
-      },
       // history
       { type: UrlbarUtils.RESULT_TYPE.URL },
       { type: UrlbarUtils.RESULT_TYPE.URL },
       { type: UrlbarUtils.RESULT_TYPE.URL },
       { type: UrlbarUtils.RESULT_TYPE.URL },
+      // quick suggest
+      {
+        type: UrlbarUtils.RESULT_TYPE.URL,
+        providerName: UrlbarProviderQuickSuggest.name,
+      },
       // search suggestions
       {
         type: UrlbarUtils.RESULT_TYPE.SEARCH,
