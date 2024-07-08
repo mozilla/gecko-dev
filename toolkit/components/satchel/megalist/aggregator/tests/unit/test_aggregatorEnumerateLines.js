@@ -17,10 +17,15 @@ function splitLogins(logins, numSources) {
   return slicedLogins;
 }
 
-add_task(async function test_aggregatorEnumerateLines() {
+add_task(function test_aggregatorEnumerateLines() {
   const sources = [new MockLoginDataSource(), new MockLoginDataSource()];
 
-  const loginList = testData.loginList();
+  const loginList = testData.loginList().map((login, index) => {
+    return {
+      record: login,
+      id: index,
+    };
+  });
   const loginsPerSource = splitLogins(loginList, sources.length);
 
   const aggregator = new Aggregator();
@@ -38,12 +43,15 @@ add_task(async function test_aggregatorEnumerateLines() {
     "Aggregator enumerated all lines found in sources"
   );
 
-  const expectedResultWithSearchText = loginList.filter(login =>
-    MockLoginDataSource.match(login, "example.com")
-  );
+  const searchText = "EXAMPLE.COM";
+
+  const expectedResultWithSearchText = loginList.filter(login => {
+    const matchFn = loginMatch(searchText);
+    return matchFn(login.record);
+  });
 
   const actualResultWithSearchText = Array.from(
-    aggregator.enumerateLines("example.com")
+    aggregator.enumerateLines(searchText)
   );
 
   Assert.deepEqual(

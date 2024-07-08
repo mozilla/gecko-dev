@@ -2,6 +2,17 @@
 head = "head.js"
 
 ["test_aggregatorAttachAndDetachViewModels.js"]
+
 ["test_aggregatorCallFunction.js"]
+
 ["test_aggregatorEnumerateLines.js"]
+
 ["test_aggregatorRunActionOnViewModels.js"]
+
+["test_dataSourceBaseAddLines.js"]
+
+["test_dataSourceBaseEnumerateLinesForMatchingRecords.js"]
+
+["test_dataSourceBaseExpandHeaderLine.js"]
+
+["test_dataSourceBaseRemoveLine.js"]

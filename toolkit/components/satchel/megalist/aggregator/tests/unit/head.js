@@ -7,18 +7,46 @@
 const { Aggregator } = ChromeUtils.importESModule(
   "resource://gre/modules/megalist/aggregator/Aggregator.sys.mjs"
 );
+
+const { DataSourceBase } = ChromeUtils.importESModule(
+  "resource://gre/modules/megalist/aggregator/datasources/DataSourceBase.sys.mjs"
+);
+
 const { LoginTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/LoginTestUtils.sys.mjs"
 );
 
 const testData = LoginTestUtils.testData;
 
+function mockReloadData(dataSource, lines, linePrototype) {
+  dataSource.beforeReloadingDataSource();
+  lines.forEach(line =>
+    dataSource.addOrUpdateLine(line.record, line.id, linePrototype)
+  );
+  dataSource.afterReloadingDataSource();
+}
+
+function addLinesToDataSource(dataSourceBase, linePrototype) {
+  const loginList = testData.loginList();
+  const lines = loginList.reduce((accLines, curLogin, curIndex) => {
+    accLines.push(
+      { record: curLogin, id: `${curIndex}a` },
+      { record: curLogin, id: `${curIndex}b` },
+      { record: curLogin, id: `${curIndex}c` }
+    );
+    return accLines;
+  }, []);
+  mockReloadData(dataSourceBase, [...lines], linePrototype);
+  return lines;
+}
+
+const loginMatch = searchText => record =>
+  record.displayOrigin.toUpperCase().includes(searchText) ||
+  record.username.toUpperCase().includes(searchText) ||
+  record.password.toUpperCase().includes(searchText);
+
 class MockLoginDataSource {
   lines = [];
-  static match = (line, searchText) =>
-    line.displayOrigin.toUpperCase().includes(searchText) ||
-    line.username.toUpperCase().includes(searchText) ||
-    line.password.toUpperCase().includes(searchText);
 
   addLines(lines) {
     for (let line of lines) {
@@ -28,7 +56,8 @@ class MockLoginDataSource {
 
   *enumerateLines(searchText) {
     for (let line of this.lines) {
-      if (MockLoginDataSource.match(line, searchText)) {
+      const matchFn = loginMatch(searchText.toUpperCase());
+      if (matchFn(line.record)) {
         yield line;
       }
     }
