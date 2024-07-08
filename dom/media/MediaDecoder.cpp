@@ -814,22 +814,29 @@ void MediaDecoder::MetadataLoaded(
   Invalidate();
 
 #ifdef MOZ_WMF_MEDIA_ENGINE
-  if (mPendingStatusUpdateForNewlyCreatedStateMachine) {
-    mPendingStatusUpdateForNewlyCreatedStateMachine = false;
-    LOG("Set pending statuses if necessary (mLogicallySeeking=%d, "
-        "mLogicalPosition=%f, mPlaybackRate=%f)",
-        mLogicallySeeking.Ref(), mLogicalPosition, mPlaybackRate);
-    if (mLogicalPosition != 0) {
-      Seek(mLogicalPosition, SeekTarget::Accurate);
-    }
-    if (mPlaybackRate != 0 && mPlaybackRate != 1.0) {
-      mDecoderStateMachine->DispatchSetPlaybackRate(mPlaybackRate);
-    }
-  }
+  SetStatusUpdateForNewlyCreatedStateMachineIfNeeded();
 #endif
 
   EnsureTelemetryReported();
 }
+
+#ifdef MOZ_WMF_MEDIA_ENGINE
+void MediaDecoder::SetStatusUpdateForNewlyCreatedStateMachineIfNeeded() {
+  if (!mPendingStatusUpdateForNewlyCreatedStateMachine) {
+    return;
+  }
+  mPendingStatusUpdateForNewlyCreatedStateMachine = false;
+  LOG("Set pending statuses if necessary (mLogicallySeeking=%d, "
+      "mLogicalPosition=%f, mPlaybackRate=%f)",
+      mLogicallySeeking.Ref(), mLogicalPosition, mPlaybackRate);
+  if (mLogicalPosition != 0) {
+    Seek(mLogicalPosition, SeekTarget::Accurate);
+  }
+  if (mPlaybackRate != 0 && mPlaybackRate != 1.0) {
+    mDecoderStateMachine->DispatchSetPlaybackRate(mPlaybackRate);
+  }
+}
+#endif
 
 void MediaDecoder::EnsureTelemetryReported() {
   MOZ_ASSERT(NS_IsMainThread());

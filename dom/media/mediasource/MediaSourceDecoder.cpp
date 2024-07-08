@@ -372,6 +372,23 @@ bool MediaSourceDecoder::HadCrossOriginRedirects() {
   return false;
 }
 
+#ifdef MOZ_WMF_MEDIA_ENGINE
+void MediaSourceDecoder::MetadataLoaded(
+    UniquePtr<MediaInfo> aInfo, UniquePtr<MetadataTags> aTags,
+    MediaDecoderEventVisibility aEventVisibility) {
+  // If the metadata has been loaded before, we don't want to notify throughout
+  // that again when switching from media engine playback to normal playback.
+  if (mPendingStatusUpdateForNewlyCreatedStateMachine && mFiredMetadataLoaded) {
+    MSE_DEBUG(
+        "Metadata already loaded and being informed by previous state machine");
+    SetStatusUpdateForNewlyCreatedStateMachineIfNeeded();
+    return;
+  }
+  MediaDecoder::MetadataLoaded(std::move(aInfo), std::move(aTags),
+                               aEventVisibility);
+}
+#endif
+
 #undef MSE_DEBUG
 #undef MSE_DEBUGV
 
