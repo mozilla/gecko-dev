@@ -38,6 +38,16 @@ async function setup({ disabled = false, prefs = [] } = {}) {
 
 const PIPELINE_OPTIONS = new PipelineOptions({ taskName: "moz-echo" });
 
+async function checkForRemoteType(remoteType) {
+  let procinfo3 = await ChromeUtils.requestProcInfo();
+  for (const child of procinfo3.children) {
+    if (child.type === remoteType) {
+      return true;
+    }
+  }
+  return false;
+}
+
 add_task(async function test_ml_engine_basics() {
   const { cleanup, remoteClients } = await setup();
 
@@ -46,6 +56,9 @@ add_task(async function test_ml_engine_basics() {
 
   info("Get summarizer");
   const summarizer = mlEngineParent.getEngine(PIPELINE_OPTIONS);
+
+  info("Check the inference process is running");
+  Assert.equal(await checkForRemoteType("inference"), true);
 
   info("Run the summarizer");
   const inferencePromise = summarizer.run({ data: "This gets echoed." });

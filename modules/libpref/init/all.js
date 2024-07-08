@@ -1985,6 +1985,9 @@ pref("dom.ipc.processCount.webIsolated", 1);
 pref("dom.ipc.processCount.webIsolated", 4);
 #endif
 
+// For now we allow a single inference process
+pref("dom.ipc.processCount.inference", 1);
+
 // Keep a single privileged about process alive for performance reasons.
 // e.g. we do not want to throw content processes out every time we navigate
 // away from about:newtab.

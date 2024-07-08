@@ -181,6 +181,18 @@ Shared Web Content
 
 The shared web content process is used to host content which is not isolated into one of the other web content process types. This includes almost all web content with Fission disabled, and web content which cannot be attributed to a specific origin with Fission enabled, such as user-initiated ``data:`` URI loads.
 
+
+Inference Content
+"""""""""""""""""
+
+:remoteType: ``inference``
+:default count: 1 (``dom.ipc.processCount.inference``)
+
+The inference content process is used to isolate inference runtimes, currently ONNX runtime and Bergamot. This process hosts chrome workers that are running WASM runtimes along with some Javascript to perform inference tasks like translation or image-to-text.
+
+The models can allocate large amounts of memory, which can cause the process to be killed by the OS in memory-constrained environments like Android. This separation ensures other important processes like content processes are not killed.
+
+
 Isolated Web Content
 """"""""""""""""""""
 

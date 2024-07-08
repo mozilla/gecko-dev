@@ -20,6 +20,7 @@
 #define EXTENSION_REMOTE_TYPE "extension"_ns
 #define PRIVILEGEDABOUT_REMOTE_TYPE "privilegedabout"_ns
 #define PRIVILEGEDMOZILLA_REMOTE_TYPE "privilegedmozilla"_ns
+#define INFERENCE_REMOTE_TYPE "inference"_ns
 
 #define DEFAULT_REMOTE_TYPE WEB_REMOTE_TYPE
 
