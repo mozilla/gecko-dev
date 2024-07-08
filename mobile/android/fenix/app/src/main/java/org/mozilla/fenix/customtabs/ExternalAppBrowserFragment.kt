@@ -38,6 +38,7 @@ import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.CustomTabNavBar
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
@@ -76,7 +77,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
         // Updating the contents of the bottomToolbarContainer with CustomTabNavBar. The container gets initialized
         // during the super.initializeUI call with BrowserNavBar.
         // A follow up: https://bugzilla.mozilla.org/show_bug.cgi?id=1888300
-        if (isNavBarEnabled) {
+        if (requireContext().shouldAddNavigationBar()) {
             // We need a second menu button, but we could reuse the existing builder.
             val menuButton = MenuButton(requireContext()).apply {
                 menuBuilder = browserToolbarView.menuToolbar.menuBuilder
