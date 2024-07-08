@@ -184,13 +184,15 @@ void DMABufDevice::Configure() {
   }
 
   // See Bug 1865747 for details.
-  if (auto* gbmBackend = getenv("GBM_BACKEND")) {
-    const nsCOMPtr<nsIGfxInfo> gfxInfo = components::GfxInfo::Service();
-    nsAutoString vendorID;
-    gfxInfo->GetAdapterVendorID(vendorID);
-    if (vendorID != GfxDriverInfo::GetDeviceVendor(DeviceVendor::NVIDIA)) {
-      if (strstr(gbmBackend, "nvidia")) {
-        unsetenv("GBM_BACKEND");
+  if (XRE_IsParentProcess()) {
+    if (auto* gbmBackend = getenv("GBM_BACKEND")) {
+      const nsCOMPtr<nsIGfxInfo> gfxInfo = components::GfxInfo::Service();
+      nsAutoString vendorID;
+      gfxInfo->GetAdapterVendorID(vendorID);
+      if (vendorID != GfxDriverInfo::GetDeviceVendor(DeviceVendor::NVIDIA)) {
+        if (strstr(gbmBackend, "nvidia")) {
+          unsetenv("GBM_BACKEND");
+        }
       }
     }
   }
