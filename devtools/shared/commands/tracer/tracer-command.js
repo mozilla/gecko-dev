@@ -4,23 +4,15 @@
 
 "use strict";
 
-const EventEmitter = require("resource://devtools/shared/event-emitter.js");
-
-class TracerCommand extends EventEmitter {
+class TracerCommand {
   constructor({ commands }) {
-    super();
     this.#targetConfigurationCommand = commands.targetConfigurationCommand;
     this.#resourceCommand = commands.resourceCommand;
   }
 
-  // The tracer has been requested to start, but doesn't necessarily mean it actually started tracing JS executions.
-  // The tracer may wait for next user interaction/document load before being active.
-  isTracingEnabled = false;
-  // The tracer is actively tracking JS executions.
-  isTracingActive = false;
-
   #resourceCommand;
   #targetConfigurationCommand;
+  #isTracing = false;
 
   async initialize() {
     return this.#resourceCommand.watchResources(
@@ -28,7 +20,6 @@ class TracerCommand extends EventEmitter {
       { onAvailable: this.onResourcesAvailable }
     );
   }
-
   destroy() {
     this.#resourceCommand.unwatchResources(
       [this.#resourceCommand.TYPES.JSTRACER_STATE],
@@ -41,9 +32,7 @@ class TracerCommand extends EventEmitter {
       if (resource.resourceType != this.#resourceCommand.TYPES.JSTRACER_STATE) {
         continue;
       }
-      this.isTracingActive = resource.enabled;
-      // In case the tracer is started without the DevTools frontend, also force it to be reported as enabled
-      this.isTracingEnabled = resource.enabled;
+      this.#isTracing = resource.enabled;
 
       // Clear the list of collected frames each time we start a new tracer record.
       // The tracer will reset its frame counter to zero on stop, but on the frontend
@@ -51,8 +40,6 @@ class TracerCommand extends EventEmitter {
       if (resource.enabled) {
         resource.targetFront.getJsTracerCollectedFramesArray().length = 0;
       }
-
-      this.emit("toggle");
     }
   };
 
@@ -63,7 +50,7 @@ class TracerCommand extends EventEmitter {
    * @return {JSON}
    *         Configuration object.
    */
-  getTracingOptions() {
+  #getTracingOptions() {
     return {
       logMethod: Services.prefs.getStringPref(
         "devtools.debugger.javascript-tracing-log-method",
@@ -92,15 +79,10 @@ class TracerCommand extends EventEmitter {
    * Toggle JavaScript tracing for all targets.
    */
   async toggle() {
-    this.isTracingEnabled = !this.isTracingEnabled;
-
-    // May be wait for the web console to be fully initialized and listening to tracer resources before enabling it
-    await this.emitAsync("toggle");
+    this.#isTracing = !this.#isTracing;
 
     await this.#targetConfigurationCommand.updateConfiguration({
-      tracerOptions: this.isTracingEnabled
-        ? this.getTracingOptions()
-        : undefined,
+      tracerOptions: this.#isTracing ? this.#getTracingOptions() : undefined,
     });
   }
 }

@@ -9,13 +9,8 @@ const { JSTracer } = ChromeUtils.importESModule(
   { global: "contextual" }
 );
 
+const { LOG_METHODS } = require("resource://devtools/server/actors/tracer.js");
 const Targets = require("resource://devtools/server/actors/targets/index.js");
-loader.lazyRequireGetter(
-  this,
-  "TRACER_LOG_METHODS",
-  "resource://devtools/shared/specs/tracer.js",
-  true
-);
 
 class TracingStateWatcher {
   /**
@@ -80,7 +75,7 @@ class TracingStateWatcher {
         enabled,
         logMethod,
         profile:
-          logMethod == TRACER_LOG_METHODS.PROFILER && !enabled
+          logMethod == LOG_METHODS.PROFILER && !enabled
             ? tracerActor.getProfile()
             : undefined,
         timeStamp: ChromeUtils.dateNow(),

@@ -259,17 +259,6 @@ class ToolboxToolbar extends Component {
         onKeyDown: event => {
           onKeyDown(event);
         },
-        onContextMenu: event => {
-          const menu = command.getContextMenu();
-          if (!menu) {
-            return;
-          }
-
-          event.preventDefault();
-          event.stopPropagation();
-
-          menu.popup(event.screenX, event.screenY, window.parent.document);
-        },
       });
     });
 

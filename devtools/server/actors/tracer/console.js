@@ -26,13 +26,9 @@ ChromeUtils.defineESModuleGetters(
   { global: "contextual" }
 );
 
-const {
-  getActorIdForInternalSourceId,
-} = require("resource://devtools/server/actors/utils/dbg-source.js");
+const CONSOLE_THROTTLING_DELAY = 250;
 
-const THROTTLING_DELAY = 250;
-
-class ResourcesTracingListener {
+class ConsoleTracingListener {
   constructor({ targetActor, traceValues, traceActor }) {
     this.targetActor = targetActor;
     this.traceValues = traceValues;
@@ -42,7 +38,7 @@ class ResourcesTracingListener {
     // On workers, we don't have access to setTimeout and can't have throttling
     this.throttleEmitTraces = isWorker
       ? this.flushTraces.bind(this)
-      : throttle(this.flushTraces.bind(this), THROTTLING_DELAY);
+      : throttle(this.flushTraces.bind(this), CONSOLE_THROTTLING_DELAY);
   }
 
   // Collect pending data to be sent to the client in various arrays,
@@ -171,9 +167,7 @@ class ResourcesTracingListener {
     const frameIndex = this.#getFrameIndex(
       null,
       null,
-      caller
-        ? getActorIdForInternalSourceId(this.targetActor, caller.sourceId)
-        : null,
+      caller.sourceId,
       caller?.lineNumber,
       caller?.columnNumber,
       caller?.filename
@@ -224,7 +218,7 @@ class ResourcesTracingListener {
     const frameIndex = this.#getFrameIndex(
       frame.implementation,
       null,
-      getActorIdForInternalSourceId(this.targetActor, script.source.id),
+      script.source.id,
       lineNumber,
       column,
       url
@@ -313,10 +307,7 @@ class ResourcesTracingListener {
       this.#throttledTraces.push([
         "event",
         prefix,
-        null,
         ChromeUtils.dateNow(),
-        // Events are parent of any subsequent JS call, which has a 0 depth.
-        -1,
         currentDOMEvent,
       ]);
     }
@@ -339,15 +330,10 @@ class ResourcesTracingListener {
       }
     }
 
-    // In order for getActorIdForInternalSourceId to work reliably,
-    // we have to ensure creating a source actor for that source.
-    // It happens on Google Docs that some evaled sources aren't registered?
-    this.sourcesManager.getOrCreateSourceActor(script.source);
-
     const frameIndex = this.#getFrameIndex(
       frame.implementation,
       formatedDisplayName,
-      getActorIdForInternalSourceId(this.targetActor, script.source.id),
+      script.source.id,
       lineNumber,
       column,
       url
@@ -430,7 +416,7 @@ class ResourcesTracingListener {
     const frameIndex = this.#getFrameIndex(
       frame.implementation,
       formatedDisplayName,
-      getActorIdForInternalSourceId(this.targetActor, script.source.id),
+      script.source.id,
       lineNumber,
       column,
       url
@@ -451,4 +437,4 @@ class ResourcesTracingListener {
   }
 }
 
-exports.ResourcesTracingListener = ResourcesTracingListener;
+exports.ConsoleTracingListener = ConsoleTracingListener;

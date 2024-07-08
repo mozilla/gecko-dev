@@ -84,12 +84,6 @@ loader.lazyRequireGetter(
   "ResponsiveUIManager",
   "resource://devtools/client/responsive/manager.js"
 );
-loader.lazyRequireGetter(
-  this,
-  "TRACER_LOG_METHODS",
-  "resource://devtools/shared/specs/tracer.js",
-  true
-);
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -105,16 +99,6 @@ loader.lazyRequireGetter(
   "captureAndSaveScreenshot",
   "resource://devtools/client/shared/screenshot.js",
   true
-);
-loader.lazyRequireGetter(
-  this,
-  "Menu",
-  "resource://devtools/client/framework/menu.js"
-);
-loader.lazyRequireGetter(
-  this,
-  "MenuItem",
-  "resource://devtools/client/framework/menu-item.js"
 );
 
 const { LocalizationHelper } = require("resource://devtools/shared/l10n.js");
@@ -609,146 +593,6 @@ exports.ToolboxButtons = [
     "rulers"
   ),
   createHighlightButton(["MeasuringToolHighlighter"], "measure"),
-  {
-    id: "command-button-jstracer",
-    description: l10n(
-      "toolbox.buttons.jstracer",
-      osString == "Darwin" ? "Cmd+Shift+5" : "Ctrl+Shift+5"
-    ),
-    isToolSupported: toolbox =>
-      toolbox.commands.descriptorFront.isLocalTab &&
-      Services.prefs.getBoolPref(
-        "devtools.debugger.features.javascript-tracing",
-        false
-      ),
-    async onClick(event, toolbox) {
-      await toolbox.commands.tracerCommand.toggle();
-    },
-    isChecked(toolbox) {
-      const { tracerCommand } = toolbox.commands;
-      const button = toolbox.doc.getElementById("command-button-jstracer");
-      if (button) {
-        button.classList.toggle(
-          "pending",
-          tracerCommand.isTracingEnabled && !tracerCommand.isTracingActive
-        );
-      }
-      return tracerCommand.isTracingEnabled;
-    },
-    isToggle: true,
-    setup(toolbox, onChange) {
-      toolbox.commands.tracerCommand.on("toggle", onChange);
-    },
-    teardown(toolbox, onChange) {
-      toolbox.commands.tracerCommand.off("toggle", onChange);
-    },
-    getContextMenu(toolbox) {
-      const menu = new Menu();
-      const options = toolbox.commands.tracerCommand.getTracingOptions();
-      const { logMethod } = options;
-      menu.append(
-        new MenuItem({
-          id: "jstracer-menu-item-console",
-          label: l10n("traceInWebConsole"),
-          checked: logMethod == TRACER_LOG_METHODS.CONSOLE,
-          type: "radio",
-          click: () => {
-            Services.prefs.setStringPref(
-              "devtools.debugger.javascript-tracing-log-method",
-              TRACER_LOG_METHODS.CONSOLE
-            );
-          },
-        })
-      );
-      menu.append(
-        new MenuItem({
-          id: "jstracer-menu-item-profiler",
-          label: l10n("traceInProfiler"),
-          checked: logMethod == TRACER_LOG_METHODS.PROFILER,
-          type: "radio",
-          click: () => {
-            Services.prefs.setStringPref(
-              "devtools.debugger.javascript-tracing-log-method",
-              TRACER_LOG_METHODS.PROFILER
-            );
-          },
-        })
-      );
-      menu.append(
-        new MenuItem({
-          id: "jstracer-menu-item-stdout",
-          label: l10n("traceInStdout"),
-          type: "radio",
-          checked: logMethod == TRACER_LOG_METHODS.STDOUT,
-          click: () => {
-            Services.prefs.setStringPref(
-              "devtools.debugger.javascript-tracing-log-method",
-              TRACER_LOG_METHODS.STDOUT
-            );
-          },
-        })
-      );
-      menu.append(new MenuItem({ type: "separator" }));
-      menu.append(
-        new MenuItem({
-          id: "jstracer-menu-item-next-interaction",
-          label: l10n("traceOnNextInteraction"),
-          type: "checkbox",
-          checked: options.traceOnNextInteraction,
-          click: () => {
-            Services.prefs.setBoolPref(
-              "devtools.debugger.javascript-tracing-on-next-interaction",
-              !options.traceOnNextInteraction
-            );
-          },
-        })
-      );
-      menu.append(
-        new MenuItem({
-          id: "jstracer-menu-item-next-load",
-          label: l10n("traceOnNextLoad"),
-          type: "checkbox",
-          checked: options.traceOnNextLoad,
-          click: () => {
-            Services.prefs.setBoolPref(
-              "devtools.debugger.javascript-tracing-on-next-load",
-              !options.traceOnNextLoad
-            );
-          },
-        })
-      );
-      menu.append(new MenuItem({ type: "separator" }));
-      menu.append(
-        new MenuItem({
-          id: "jstracer-menu-item-log-values",
-          label: l10n("traceValues"),
-          type: "checkbox",
-          checked: options.traceValues,
-          click: () => {
-            Services.prefs.setBoolPref(
-              "devtools.debugger.javascript-tracing-values",
-              !options.traceValues
-            );
-          },
-        })
-      );
-      menu.append(
-        new MenuItem({
-          id: "jstracer-menu-item-function-return",
-          label: l10n("traceFunctionReturn"),
-          type: "checkbox",
-          checked: options.traceFunctionReturn,
-          click: () => {
-            Services.prefs.setBoolPref(
-              "devtools.debugger.javascript-tracing-function-return",
-              !options.traceFunctionReturn
-            );
-          },
-        })
-      );
-      return menu;
-    },
-  },
 ];
 
 function createHighlightButton(highlighters, id) {

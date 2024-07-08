@@ -383,11 +383,11 @@ function transformNetworkEventResource(networkEventResource) {
 
 function transformTraceResource(traceResource) {
   const { targetFront } = traceResource;
-  const type = traceResource[TRACER_FIELDS_INDEXES.TYPE];
+  const type = traceResource[0];
   const collectedFrames = targetFront.getJsTracerCollectedFramesArray();
   switch (type) {
     case "frame":
-      collectedFrames.push(traceResource);
+      collectedFrames.push(traceResource.slice(1));
       return null;
     case "enter": {
       const [, prefix, frameIndex, timeStamp, depth, args] = traceResource;
@@ -493,7 +493,7 @@ function transformTraceResource(traceResource) {
       });
     }
     case "event": {
-      const [, prefix, , timeStamp, , eventName] = traceResource;
+      const [, prefix, timeStamp, eventName] = traceResource;
       return new ConsoleMessage({
         targetFront,
         source: MESSAGE_SOURCE.JSTRACER,

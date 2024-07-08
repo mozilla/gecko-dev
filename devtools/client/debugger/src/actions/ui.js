@@ -222,6 +222,37 @@ export function copyToClipboard(location) {
   };
 }
 
+export function setJavascriptTracingLogMethod(value) {
+  return {
+    type: "SET_JAVASCRIPT_TRACING_LOG_METHOD",
+    value,
+  };
+}
+
+export function toggleJavascriptTracingValues() {
+  return {
+    type: "TOGGLE_JAVASCRIPT_TRACING_VALUES",
+  };
+}
+
+export function toggleJavascriptTracingOnNextInteraction() {
+  return {
+    type: "TOGGLE_JAVASCRIPT_TRACING_ON_NEXT_INTERACTION",
+  };
+}
+
+export function toggleJavascriptTracingFunctionReturn() {
+  return {
+    type: "TOGGLE_JAVASCRIPT_TRACING_FUNCTION_RETURN",
+  };
+}
+
+export function toggleJavascriptTracingOnNextLoad() {
+  return {
+    type: "TOGGLE_JAVASCRIPT_TRACING_ON_NEXT_LOAD",
+  };
+}
+
 export function setHideOrShowIgnoredSources(shouldHide) {
   return ({ dispatch }) => {
     dispatch({ type: "HIDE_IGNORED_SOURCES", shouldHide });

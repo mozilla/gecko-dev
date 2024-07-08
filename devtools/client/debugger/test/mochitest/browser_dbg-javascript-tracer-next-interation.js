@@ -16,11 +16,18 @@ add_task(async function testTracingOnNextInteraction() {
       encodeURIComponent(`<script>${jsCode}</script><body></body>`)
   );
 
-  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-next-interaction");
+  await openContextMenuInDebugger(dbg, "trace");
+  const toggled = waitForDispatch(
+    dbg.store,
+    "TOGGLE_JAVASCRIPT_TRACING_ON_NEXT_INTERACTION"
+  );
+  selectContextMenuItem(dbg, `#debugger-trace-menu-item-next-interaction`);
+  await toggled;
+  ok(true, "Toggled the trace on next interaction");
 
-  await toggleJsTracer(dbg.toolbox);
+  await clickElement(dbg, "trace");
 
-  const traceButton = dbg.toolbox.doc.getElementById("command-button-jstracer");
+  const traceButton = findElement(dbg, "trace");
   // Wait for the trace button to be highlighted
   await waitFor(() => {
     return traceButton.classList.contains("pending");
@@ -64,9 +71,8 @@ add_task(async function testTracingOnNextInteraction() {
   await hasConsoleMessage(dbg, "λ onmousedown");
   await hasConsoleMessage(dbg, "λ onclick");
 
-  is(
-    traceButton.getAttribute("aria-pressed"),
-    "true",
+  ok(
+    traceButton.classList.contains("active"),
     "The tracer button is still highlighted as active"
   );
   ok(
@@ -85,7 +91,7 @@ add_task(async function testTracingOnNextInteraction() {
   await hasConsoleMessage(dbg, "λ foo");
   ok(true, "foo was traced as expected");
 
-  await toggleJsTracer(dbg.toolbox);
+  await clickElement(dbg, "trace");
 
   topLevelThreadActorID =
     dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
@@ -94,9 +100,8 @@ add_task(async function testTracingOnNextInteraction() {
     return !dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
   });
 
-  is(
-    traceButton.getAttribute("aria-pressed"),
-    "false",
+  ok(
+    !traceButton.classList.contains("active"),
     "The tracer button is no longer highlighted as active"
   );
   ok(
@@ -117,7 +122,7 @@ add_task(async function testInteractionBetweenDebuggerAndConsole() {
   );
 
   info("Enable the tracing via the debugger button");
-  await toggleJsTracer(dbg.toolbox);
+  await clickElement(dbg, "trace");
 
   const topLevelThreadActorID =
     dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
@@ -165,7 +170,7 @@ add_task(async function testInteractionBetweenDebuggerAndConsole() {
   await hasConsoleMessage(dbg, "λ foo");
 
   info("Disable the tracing via the debugger button");
-  await toggleJsTracer(dbg.toolbox);
+  await clickElement(dbg, "trace");
 
   info("Wait for tracing to be disabled per debugger button");
   await waitForState(dbg, () => {
