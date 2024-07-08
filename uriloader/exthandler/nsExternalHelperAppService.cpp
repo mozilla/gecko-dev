@@ -188,6 +188,18 @@ static nsresult UnescapeFragment(const nsACString& aFragment, nsIURI* aURI,
 }
 
 /**
+ * Given an alleged download directory, either create it, or confirm that it
+ * already exists and is usable.
+ */
+static nsresult EnsureDirectoryExists(nsIFile* aDir) {
+  nsresult const rv = aDir->Create(nsIFile::DIRECTORY_TYPE, 0755);
+  if (rv == NS_ERROR_FILE_ALREADY_EXISTS || NS_SUCCEEDED(rv)) {
+    return NS_OK;
+  }
+  return rv;
+};
+
+/**
  * Obtains the directory to use.  This tends to vary per platform, and
  * needs to be consistent throughout our codepaths. For platforms where
  * helper apps use the downloads directory, this should be kept in
@@ -221,16 +233,12 @@ static Result<nsCOMPtr<nsIFile>, nsresult> GetDownloadDirectory(
                                 getter_AddRefs(dir));
         if (!dir) break;
 
-        // If we're not checking for availability we're done.
-        if (aSkipChecks) {
-          return dir;
+        // Check for availability if requested.
+        if (!aSkipChecks && NS_FAILED(EnsureDirectoryExists(dir))) {
+          break;
         }
 
-        // We have the directory, and now we need to make sure it exists
-        nsresult rv = dir->Create(nsIFile::DIRECTORY_TYPE, 0755);
-        if (rv == NS_ERROR_FILE_ALREADY_EXISTS || NS_SUCCEEDED(rv)) {
-          return dir;
-        }
+        return dir;
       } break;
 
       case NS_FOLDER_VALUE_DOWNLOADS:
@@ -275,16 +283,14 @@ static Result<nsCOMPtr<nsIFile>, nsresult> GetDownloadDirectory(
         sFallbackDownloadDir = copy.forget();
         ClearOnShutdown(&sFallbackDownloadDir);
       }
-      if (aSkipChecks) {
-        return dir;
-      }
 
-      // We have the directory, and now we need to make sure it exists
-      rv = dir->Create(nsIFile::DIRECTORY_TYPE, 0755);
-      if (rv == NS_ERROR_FILE_ALREADY_EXISTS || NS_SUCCEEDED(rv)) {
-        return dir;
+      // Check for availability if requested.
+      if (!aSkipChecks) {
+        if (nsresult rv = EnsureDirectoryExists(dir); NS_FAILED(rv)) {
+          return Err(rv);
+        }
       }
-      return Err(rv);
+      return dir;
     }
 
     return dir;
