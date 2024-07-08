@@ -119,6 +119,12 @@
     <string name="erase_action_cfr_message">ਤਾਜ਼ਾ ਪ੍ਰਾਈਵੇਟ ਸ਼ੈਸ਼ਨ ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਇੱਥੇ ਕਲਿੱਕ ਕਰੋ। ਆਪਣੇ ਅਤੀਤ, ਕੂਕੀਜ਼ — ਹਰ ਚੀਜ਼ ਹਟਾ ਦਿਓ।</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">ਨਵੀਂ ਨੈਵੀਗੇਸ਼ਨ ਨਾਲ ਵੱਧ ਤੇਜ਼ੀ ਨਾਲ ਬਰਾਊਜ਼ ਕਰੋ</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">ਵਾਧੂ ਬਰਾਊਜ਼ ਕਰਨ ਲਈ ਥਾਂ ਬਣਾਉਣ ਵਾਸਤੇ ਸਕਰੋਲ ਕਰਨ ਦੇ ਦੌਰਾਨ ਇਹ ਪੱਟੀ ਪਾਸੇ ਕਰ ਦਿੱਤੀ ਜਾਂਦੀ ਹੈ।</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">ਕੈਮਰੇ ਲਈ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ। Android ਸੈਟਿੰਗਾਂ ਉੱਤੇ ਜਾਓ, ਇਜਾਜ਼ਤਾਂ ਨੂੰ
 ਛੂਹੋ ਅਤੇ ਇਜਾਜ਼ਤ ਨੂੰ ਛੂਹੋ।</string>
@@ -1435,21 +1441,16 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">ਨਿੱਜੀ ਟੈਬਾਂ ਬੰਦ ਕਰੋ</string>
 
-    <!-- Microsuverys -->
-    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abrevation for "second". -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">ਮਦਦ Firefox ਵਿੱਚ ਪਰਿੰਟ ਕਰਨ ਨੂੰ ਬੇਤਹਰ ਬਣਾਉਂਦੀ ਹੈ। ਇਸ ਨੂੰ ਸਿਰਫ਼ ਸਕਿੰਟ ਹੀ ਲੱਗੇਗਾ</string>
-    <!-- Text shown in prompt for printing microsurvey. 'Firefox' intentionally hardcoded here--> --&gt;
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Firefox ਵਿੱਚ ਪਰਿੰਟ ਕਰਨ ਨਾਲ ਤੁਸੀਂ ਕਿੰਨੇ ਸੰਤੁਸ਼ਟ ਹੋ?</string>
     <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources">ਠੀਕ-ਠਾਕ</string>
+    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">ਠੀਕ-ਠਾਕ</string>
     <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources">ਬਹੁਤ ਅਸੰਤੁਸ਼ਟ</string>
+    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">ਬਹੁਤ ਅਸੰਤੁਸ਼ਟ</string>
     <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources">ਅਸੰਤੁਸ਼ਟ</string>
+    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">ਅਸੰਤੁਸ਼ਟ</string>
     <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources">ਸੰਤੁਸ਼ਟ</string>
+    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">ਸੰਤੁਸ਼ਟ</string>
     <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources">ਬਹੁਤ ਸੰਤੁਸ਼ਟ</string>
+    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">ਬਹੁਤ ਸੰਤੁਸ਼ਟ</string>
 
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
@@ -1499,6 +1500,8 @@
     <string name="snackbar_tab_closed">ਟੈਬ ਬੰਦ ਕੀਤੀ</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">ਟੈਬਾਂ ਬੰਦ ਕੀਤੀਆਂ</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">ਟੈਬ ਬੰਦ ਕੀਤਾ: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">ਬੁੱਕਮਾਰਕ ਸੰਭਾਲੇ ਗਏ!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2756,15 +2759,23 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">ਮੈ ਇਸ ਨੂੰ ਨਹੀਂ ਵਰਤਦਾ/ਵਰਤਦੀ ਹਾਂ</string>
-    <!-- Text shown in prompt for homepage microsurvey. 'Firefox' intentionally hardcoded here- -->
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Firefox ਮੁੱਖ-ਸਫ਼ੇ ਨਾਲ ਤੁਸੀਂ ਕਿੰਨੇ ਕੁ ਸੰਤੁਸ਼ਟ ਹੋ?</string>
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">ਮਦਦ Firefox ਵਿੱਚ ਪਰਿੰਟ ਕਰਨ ਨੂੰ ਬੇਤਹਰ ਬਣਾਉਂਦੀ ਹੈ। ਇਸ ਨੂੰ ਸਿਰਫ਼ ਸਕਿੰਟ ਹੀ ਲੱਗੇਗਾ</string>
+    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Firefox ਵਿੱਚ ਪਰਿੰਟ ਕਰਨ ਨਾਲ ਤੁਸੀਂ ਕਿੰਨੇ ਸੰਤੁਸ਼ਟ ਹੋ?</string>
     <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">Firefox ਲੋਗੋ</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">ਸਰਵੇਖਣ ਫ਼ੀਚਰ ਆਈਕਾਨ</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources">ਸਰਵੇਖਣ ਨੂੰ ਖੋਲ੍ਹੋ</string>
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">ਸਰਵੇਖਣ ਨੂੰ ਖੋਲ੍ਹੋ</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
-    <string name="microsurvey_close_handle_content_description" tools:ignore="UnusedResources">ਸਰਵੇਖਣ ਨੂੰ ਬੰਦ ਕਰੋ</string>
+    <string name="microsurvey_close_handle_content_description">ਸਰਵੇਖਣ ਨੂੰ ਬੰਦ ਕਰੋ</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
-    <string name="microsurvey_close_button_content_description" tools:ignore="UnusedResources">ਬੰਦ ਕਰੋ</string>
+    <string name="microsurvey_close_button_content_description">ਬੰਦ ਕਰੋ</string>
 
     <!-- Debug drawer logins -->
     <!-- The title of the Logins feature in the Debug Drawer. -->

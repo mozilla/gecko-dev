@@ -114,6 +114,12 @@
     <string name="erase_action_cfr_message">ᱢᱤᱫᱴᱟᱹᱝ ᱱᱟᱶᱟ ᱯᱚᱨᱤᱵᱮᱴ ᱠᱟᱹᱢᱤᱦᱚᱨᱟ ᱮᱛᱚᱦᱚᱵ ᱞᱟᱹᱜᱤᱫ ᱱᱚᱱᱰᱮ ᱚᱛᱟᱭ ᱢᱮ ᱾ ᱟᱢᱟᱜ ᱱᱟᱜᱟᱢ, ᱠᱩᱠᱤ ᱠᱚ ᱢᱮᱴᱟᱣ ᱢᱮ — ᱡᱚᱛᱚ ᱡᱤᱱᱤᱥ ᱾</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">ᱱᱟᱣᱟ ᱱᱮᱵᱷᱤᱜᱮᱥᱚᱱ ᱥᱟᱶᱛᱮ ᱩᱥᱟᱹᱨᱟᱛᱮ ᱵᱽᱨᱟᱣᱡᱽ ᱢᱮ</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">ᱱᱚᱣᱟ ᱵᱟᱨ ᱫᱚ ᱰᱷᱮᱨ ᱵᱽᱨᱟᱣᱡᱤᱝ ᱨᱮᱭᱟᱜ ᱡᱟᱭᱜᱟ ᱞᱟᱹᱜᱤᱫ ᱞᱟᱛᱟᱨ ᱥᱮᱫ ᱥᱠᱨᱚᱞ ᱟ ᱚᱱᱟ ᱫᱚ ᱠᱷᱚᱥᱨᱚᱫᱚᱜ ᱟ ᱾</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">ᱠᱚᱢᱨᱟ ᱵᱮᱵᱷᱟᱨ ᱫᱚᱨᱠᱟᱨ ᱾ ᱮᱸᱰᱨᱚᱭᱮᱰ ᱥᱟᱡᱟᱣ ᱛᱮ ᱪᱟᱹᱞᱟᱜ ᱢᱮ, ᱪᱷᱟᱹᱲ ᱨᱮ ᱚᱛᱟᱭ ᱢᱮ , ᱟᱨ ᱮᱞᱞᱟᱣ ᱨᱮ ᱚᱛᱟᱭ ᱢᱮ ᱾</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1422,22 +1428,17 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">ᱯᱨᱟᱭᱣᱮᱴ ᱴᱮᱵᱽ ᱠᱚ ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
 
-    <!-- Microsuverys -->
-    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abrevation for "second". -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Firefox ᱨᱮ ᱪᱷᱟᱯᱟ ᱜᱟᱱᱪᱷᱚ ᱞᱟᱹᱜᱤᱫ ᱜᱚᱲᱚ ᱮᱢᱚᱜ ᱢᱮ ᱾ ᱱᱚᱶᱟ ᱫᱚ ᱢᱤᱫ ᱴᱤᱡ ᱜᱟᱱ ᱚᱠᱛᱚ ᱤᱫᱤᱭᱟᱭ</string>
-    <!-- Text shown in prompt for printing microsurvey. 'Firefox' intentionally hardcoded here--> --&gt;
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Firefox ᱨᱮ ᱪᱷᱟᱯᱟ ᱠᱟᱹᱢᱤᱦᱟᱨᱟ ᱥᱟᱞᱟᱜ ᱛᱤᱱᱟᱹᱜ ᱨᱟᱹᱥᱠᱟᱹ ᱢᱮᱱᱟᱢᱟᱸ ?</string>
     <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources">ᱱᱤᱣᱴᱨᱟᱞ</string>
+    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">ᱱᱤᱣᱴᱨᱟᱞ</string>
     <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources">ᱟᱹᱰᱤ ᱵᱟᱱᱴᱷᱤᱠ</string>
+    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">ᱟᱹᱰᱤ ᱵᱟᱱᱴᱷᱤᱠ</string>
     <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources">ᱵᱟᱱᱴᱷᱤᱠ</string>
+    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">ᱵᱟᱱᱴᱷᱤᱠ</string>
 
     <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources">ᱨᱟᱹᱥᱠᱟᱹ</string>
+    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">ᱨᱟᱹᱥᱠᱟᱹ</string>
     <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources">ᱟᱹᱰᱤ ᱨᱟᱹᱥᱠᱟᱹ</string>
+    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">ᱟᱹᱰᱤ ᱨᱟᱹᱥᱠᱟᱹ</string>
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">ᱯᱨᱟᱭᱣᱮᱴ ᱴᱮᱵᱽ ᱠᱚ ᱵᱚᱸᱫᱚᱭᱟᱢ ᱥᱮ ?</string>
@@ -1487,6 +1488,8 @@
     <string name="snackbar_tab_closed">ᱴᱮᱵᱽ ᱵᱚᱸᱫᱚᱭᱮᱱᱟ</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">ᱴᱮᱵᱽ ᱠᱚ ᱵᱚᱸᱫᱚᱭᱮᱱᱟ</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">ᱛᱮᱵᱽ ᱵᱚᱸᱫ ᱟᱠᱟᱱᱟ: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">ᱵᱩᱻᱠᱢᱟᱨᱠ ᱠᱚ ᱥᱟᱺᱪᱟᱣ ᱮᱱᱟ!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2742,16 +2745,24 @@
     <string name="likert_scale_option_5" tools:ignore="UnusedResources">ᱟᱹᱰᱤ ᱵᱟᱱᱴᱷᱤᱠ</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">ᱤᱧ ᱚᱱᱟ ᱵᱟᱹᱧ ᱵᱮᱣᱦᱟᱨ ᱮᱫᱟ</string>
-    <!-- Text shown in prompt for homepage microsurvey. 'Firefox' intentionally hardcoded here- -->
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">ᱟᱢᱟᱜ Firefox ᱨᱮᱭᱟᱜ ᱚᱲᱟᱜᱥᱟᱦᱴᱟ ᱨᱮ ᱟᱢ ᱛᱤᱱᱟᱹᱜ ᱫᱷᱟᱹᱵᱤᱡ ᱥᱚᱦᱢᱚᱛ ᱜᱮᱭᱟᱢ ?</string>
 
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Firefox ᱨᱮ ᱪᱷᱟᱯᱟ ᱜᱟᱱᱪᱷᱚ ᱞᱟᱹᱜᱤᱫ ᱜᱚᱲᱚ ᱮᱢᱚᱜ ᱢᱮ ᱾ ᱱᱚᱶᱟ ᱫᱚ ᱢᱤᱫ ᱴᱤᱡ ᱜᱟᱱ ᱚᱠᱛᱚ ᱤᱫᱤᱭᱟᱭ</string>
+    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Firefox ᱨᱮ ᱪᱷᱟᱯᱟ ᱠᱟᱹᱢᱤᱦᱟᱨᱟ ᱥᱟᱞᱟᱜ ᱛᱤᱱᱟᱹᱜ ᱨᱟᱹᱥᱠᱟᱹ ᱢᱮᱱᱟᱢᱟᱸ ?</string>
     <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">Firefox ᱞᱚᱜᱚ</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">ᱥᱚᱨᱵᱷᱮ ᱯᱷᱤᱪᱚᱨ ᱪᱤᱱᱦᱟᱹ</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources">ᱥᱚᱨᱵᱷᱮ ᱠᱷᱩᱞᱟᱹᱭ ᱢᱮ</string>
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">ᱥᱚᱨᱵᱷᱮ ᱠᱷᱩᱞᱟᱹᱭ ᱢᱮ</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
-    <string name="microsurvey_close_handle_content_description" tools:ignore="UnusedResources">ᱥᱚᱨᱵᱷᱮ ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
+    <string name="microsurvey_close_handle_content_description">ᱥᱚᱨᱵᱷᱮ ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
-    <string name="microsurvey_close_button_content_description" tools:ignore="UnusedResources">ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
+    <string name="microsurvey_close_button_content_description">ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
 
     <!-- Debug drawer logins -->
     <!-- The title of the Logins feature in the Debug Drawer. -->

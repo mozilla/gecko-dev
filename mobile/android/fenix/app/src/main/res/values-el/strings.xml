@@ -120,6 +120,12 @@
     <string name="erase_action_cfr_message">Πατήστε εδώ για να ξεκινήσετε μια νέα ιδιωτική συνεδρία. Διαγράψτε το ιστορικό σας, τα cookie… τα πάντα.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Περιηγηθείτε ταχύτερα με τη νέα πλοήγηση</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">Αυτή η γραμμή αποκρύπτεται καθώς κάνετε κύλιση προς τα κάτω για επιπλέον χώρο περιήγησης.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Απαιτείται πρόσβαση στην κάμερα. Μεταβείτε στις Ρυθμίσεις Android, πατήστε «Δικαιώματα» και επιλέξτε «Να επιτρέπεται».</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1490,6 +1496,8 @@
     <string name="snackbar_tab_closed">Η καρτέλα έκλεισε</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Οι καρτέλες έκλεισαν</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Έκλεισαν %1$s καρτέλες</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Οι σελιδοδείκτες αποθηκεύτηκαν!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2762,6 +2770,8 @@
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description">Λογότυπο Firefox</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">Εικονίδιο λειτουργίας έρευνας</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
     <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Άνοιγμα έρευνας</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->

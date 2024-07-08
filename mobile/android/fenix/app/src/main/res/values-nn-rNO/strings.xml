@@ -1491,6 +1491,8 @@
     <string name="snackbar_tab_closed">Fane attlaten</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Faner attlatne</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Attlatne faner: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Bokmerke lagra!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->

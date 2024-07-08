@@ -115,6 +115,12 @@
     <string name="erase_action_cfr_message">Sakatu hemen nabigatze pribatuko saioa hasteko. Ezabatu zure historia, cookieak — dena.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Nabigatu azkarrago nabigazio berriarekin</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">Behera korritzean barra hau ezkutatu egiten da nabigatzeko toki gehiago egiteko.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kamerarako sarbidea behar da. Joan Androideko ezarpenetara, sakatu baimenetan eta sakatu baimendu.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -154,8 +160,6 @@
 
     <!-- Shortcut action to open Passwords screen -->
     <string name="home_screen_shortcut_passwords">Pasahitzak</string>
-    <!-- Shortcut action to open Passwords screen -->
-    <string name="home_screen_shortcut_open_password_screen" moz:removedIn="126" tools:ignore="UnusedResources">Pasahitzen lasterbidea</string>
 
     <!-- Recent Tabs -->
     <!-- Header text for jumping back into the recent tab in the home screen -->
@@ -195,8 +199,6 @@
     <string name="browser_menu_refresh">Berritu</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">Gelditu</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons" moz:removedIn="126" tools:ignore="UnusedResources">Gehigarriak</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Hedapenak</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -205,8 +207,6 @@
     <string name="browser_menu_discover_more_extensions">Deskubritu hedapen gehiago</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Kontuaren informazioa</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons" moz:removedIn="126" tools:ignore="UnusedResources">Gehigarririk ez hemen</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">Laguntza</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -223,8 +223,6 @@
     <string name="browser_menu_add_to_homescreen">Gehitu hasierako pantailan</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Gehitu hasierako pantailan…</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen" moz:removedIn="126" tools:ignore="UnusedResources">Instalatu</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Sinkronizatu berriro</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -601,7 +599,9 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Kontua</string>
     <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">Tresna-barra</string>
+    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Tresna-barra</string>
+    <!-- Preference for changing where the AddressBar is positioned -->
+    <string name="preferences_toolbar_2">Helbide-barraren kokapena</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Itxura</string>
     <!-- Preference for customizing the home screen -->
@@ -673,13 +673,8 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <!-- Message to indicate users that we are quitting the application to apply the changes -->
     <string name="quit_application">Aplikaziotik irteten aldaketak aplikatzeko…</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons" moz:removedIn="126" tools:ignore="UnusedResources">Gehigarriak</string>
-
     <!-- Preference for extensions -->
     <string name="preferences_extensions">Hedapenak</string>
-    <!-- Preference for installing a local add-on -->
-    <string name="preferences_install_local_addon" moz:removedIn="126" tools:ignore="UnusedResources">Instalatu gehigarria fitxategitik</string>
     <!-- Preference for installing a local extension -->
     <string name="preferences_install_local_extension">Instalatu hedapena fitxategitik</string>
     <!-- Preference for notifications -->
@@ -705,8 +700,6 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
 
     <!-- Add-on Preferences -->
     <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
-    <string name="preferences_customize_amo_collection" moz:removedIn="126" tools:ignore="UnusedResources">Gehigarrien bilduma pertsonalizatua</string>
-    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
     <string name="preferences_customize_extension_collection">Hedapenen bilduma pertsonalizatua</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">Ados</string>
@@ -716,8 +709,6 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <string name="customize_addon_collection_hint">Bildumaren izena</string>
     <!-- Hint displayed on input field for custom collection user ID-->
     <string name="customize_addon_collection_user_hint">Bildumaren jabea (erabiltzaile-IDa)</string>
-    <!-- Toast shown after confirming the custom add-on collection configuration -->
-    <string name="toast_customize_addon_collection_done" moz:removedIn="126" tools:ignore="UnusedResources">Gehigarrien bilduma aldatu egin da. Aplikaziotik irteten aldaketak aplikatzeko…</string>
 
     <!-- Toast shown after confirming the custom extension collection configuration -->
     <string name="toast_customize_extension_collection_done">Hedapenen bilduma aldatu egin da. Aplikaziotik irteten aldaketak aplikatzeko…</string>
@@ -776,35 +767,23 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <string name="wallpapers_onboarding_dialog_explore_more_button_text">Arakatu horma-paper gehiago</string>
 
     <!-- Add-ons general availability nimbus message-->
-    <!-- Title of the Nimbus message for add-ons general availability-->
-    <string name="addon_ga_message_title" moz:removedIn="126" tools:ignore="UnusedResources">Gehigarri berriak erabilgarri orain</string>
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Hedapen berriak erabilgarri orain</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
     <string name="addon_ga_message_body" tools:ignore="UnusedResources">Eman begiratua Firefox zure egiten lagunduko dizuten 100 gehigarri berri baino gehiagori.</string>
-    <!-- Button text of the Nimbus message for add-ons general availability. -->
-    <string name="addon_ga_message_button" moz:removedIn="126" tools:ignore="UnusedResources">Esploratu gehigarriak</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Arakatu hedapenak</string>
 
     <!-- Extension process crash dialog to user -->
-    <!-- Title of a dialog shown to the user when enough errors have occurred with addons and they need to be temporarily disabled -->
-    <string name="addon_process_crash_dialog_title" moz:removedIn="126" tools:ignore="UnusedResources">Gehigarriak aldi baterako desgaitu dira</string>
     <!-- Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled -->
     <string name="extension_process_crash_dialog_title">Hedapenak aldi baterako desgaitu dira</string>
-    <!-- The first parameter is the application name. This is a message shown to the user when too many errors have occurred with the addons process and they have been disabled. The user can decide if they would like to continue trying to start add-ons or if they'd rather continue without them. -->
-    <string name="addon_process_crash_dialog_message" moz:removedIn="126" tools:ignore="UnusedResources">Gehigarri bat edo gehiago ez dabil eta zure sistema desegonkortzen ari da. %1$s saiatu da gehigarriak berrabiarazten, arrakastarik gabe.\n\nEz da gehigarririk berrabiaraziko zure uneko saioan.\n\nGeghiarriak kendu edo desgaitzeak arazoa konpon lezake.</string>
     <!-- This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
     The first parameter is the application name. -->
     <string name="extension_process_crash_dialog_message">Hedapen bat edo gehiago ez dabil eta zure sistema desegonkortzen ari da. %1$s saiatu da hedapena(k) berrabiarazten, arrakastarik gabe.\n\nEz da hedapenik berrabiaraziko zure uneko saioan.\n\nHedapenak kendu edo desgaitzeak arazoa konpon lezake.</string>
-    <!-- This will cause the add-ons to try restarting but the dialog will reappear if it is unsuccessful again -->
-    <string name="addon_process_crash_dialog_retry_button_text" moz:removedIn="126" tools:ignore="UnusedResources">Probatu gehigarriak berrabiarazten</string>
     <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
     <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Saiatu hedapenak berrabiarazten</string>
-    <!-- The user will continue with all add-ons disabled -->
-    <string name="addon_process_crash_dialog_disable_addons_button_text" moz:removedIn="126" tools:ignore="UnusedResources">Jarraitu gehigarriak desgaituta</string>
 
     <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
     <string name="extension_process_crash_dialog_disable_extensions_button_text">Jarraitu hedapenak desgaituta</string>
@@ -934,9 +913,14 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <string name="preference_gestures_dynamic_toolbar">Korritu tresna-barra ezkutatzeko</string>
 
     <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs">Pasatu zeharka tresna-barra fitxak aldatzeko</string>
+    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Pasatu zeharka tresna-barra fitxak aldatzeko</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Pasatu gora tresna-barra fitxak irekitzeko</string>
+
+    <!-- Preference for using the dynamic toolbars -->
+    <string name="preference_gestures_dynamic_toolbar_2">Korritu helbide-barra eta tresna-barra ezkutatzeko</string>
+    <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Pasatu zeharka helbide-barra fitxak aldatzeko</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
@@ -1446,21 +1430,16 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Itxi fitxa pribatuak</string>
 
-    <!-- Microsuverys -->
-    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abrevation for "second". -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Lagundu Firefoxen inprimatzeko eginbidea hobetzen. Momentutxo bat bakarrik izango da</string>
-    <!-- Text shown in prompt for printing microsurvey. 'Firefox' intentionally hardcoded here--> --&gt;
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Zenbateraino zaude gustura Firefoxen inprimatzeko eginbidearekin?</string>
     <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources">Neutrala</string>
+    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Neutrala</string>
     <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources">Oso kontentagaitz</string>
+    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Oso kontentagaitz</string>
     <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources">Kontentagaitz</string>
+    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Kontentagaitz</string>
     <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources">Kontent</string>
+    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Kontent</string>
     <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources">Oso kontent</string>
+    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Oso kontent</string>
 
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
@@ -1511,6 +1490,8 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <string name="snackbar_tab_closed">Fitxa itxita</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Fitxak itxita</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Fitxak itxita: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Laster-markak gordeta!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2513,8 +2494,6 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <string name="translation_error_could_not_load_languages_warning_text">Ezin dira hizkuntzak kargatu. Egiaztatu zure Interneterako konexioa eta saiatu berriro.</string>
     <!-- The title of the warning card informs the user that a language is not supported. The first parameter is the name of the language that is not supported. -->
     <string name="translation_error_language_not_supported_warning_text">Barkatu, %1$s ez dugu onartzen oraindik.</string>
-    <!-- Button text on the warning card when a language is not supported. The link will take the user to a page to a support page about translations. -->
-    <string name="translation_error_language_not_supported_learn_more" moz:removedIn="126" tools:ignore="UnusedResources">Argibide gehiago</string>
 
     <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
     <string name="translation_in_progress_snackbar">Itzultzen…</string>
@@ -2527,8 +2506,6 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
 
 
     <!-- Translations options dialog -->
-    <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
-    <string name="translation_option_bottom_sheet_title" moz:removedIn="126" tools:ignore="UnusedResources">Itzulpenen aukerak</string>
     <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
     <string name="translation_option_bottom_sheet_title_heading">Itzulpenen aukerak</string>
     <!-- Toggle switch label that allows a user to set the setting if they would like the browser to always offer or suggest translations when available. -->
@@ -2642,6 +2619,15 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
     <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">Hautatuta</string>
 
+    <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
+    <string name="download_languages_fetch_error_warning_text">Ezin dira hizkuntzak kargatu. Saiatu berriro geroago mesedez.</string>
+    <!-- The title of the warning card informs the user that an error has occurred at downloading a language.
+      The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_error_warning_text"><![CDATA[Ezin da <b>%1$s</b> deskargatu. Saiatu berriro mesedez.]]></string>
+    <!-- The title of the warning card informs the user that an error has occurred at deleting a language.
+          The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_delete_error_warning_text"><![CDATA[Ezin da <b>%1$s</b> ezabatu. Saiatu berriro mesedez.]]></string>
+
     <!-- Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
     The first parameter is the name of the language, for example, "Spanish" and the second parameter is the size in kilobytes or megabytes of the language file. -->
@@ -2667,7 +2653,7 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Hizkuntzak erdizka deskargatzen ditugu zure cachera itzulpenak pribatu manten daitezen.</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache">Hizkuntzak erdizka deskargatzen ditugu itzulpenak pribatu manten daitezen.</string>
+    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Hizkuntzak erdizka deskargatzen ditugu itzulpenak pribatu manten daitezen.</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">Deskargatu beti datuak aurrezteko moduan</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2724,16 +2710,27 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
 
     <!-- Micro survey -->
 
+    <!-- Microsurvey -->
+    <!-- Prompt view -->
+    <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
+    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Lagun iezaguzu Firefox hobetzen. Minutu bat bakarrik izango da.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Jarraitu</string>
+    <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header">Burutu inkesta</string>
+    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Burutu inkesta</string>
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header_2">Bete inkesta mesedez</string>
     <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice">Pribatutasun-oharra</string>
+    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Pribatutasun-oharra</string>
+    <!-- The privacy notice link -->
+    <string name="micro_survey_privacy_notice_2">Pribatutasun-oharra</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Bidali</string>
     <!-- The close button label text -->
     <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Itxi</string>
+    <!-- The survey completion header -->
+    <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Inkesta burututa</string>
     <!-- The survey completion confirmation text -->
     <string name="micro_survey_feedback_confirmation">Eskerrik asko zure iritziagatik!</string>
     <!-- Option for likert scale -->
@@ -2747,13 +2744,25 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_5" tools:ignore="UnusedResources">Oso kontentagaitz</string>
 
-    <!-- Microsurvey accessibility -->
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_6" tools:ignore="UnusedResources">Ez dut erabiltzen</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Zenbateraino zaude pozik zure Firefoxen hasiera-orriarekin?</string>
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Lagundu Firefoxen inprimatzeko eginbidea hobetzen. Momentutxo bat bakarrik izango da</string>
+    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Zenbateraino zaude gustura Firefoxen inprimatzeko eginbidearekin?</string>
+    <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">Firefoxen logoa</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">Inkesta eginbidearen ikonoa</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources">Ireki inkesta</string>
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Ireki inkesta</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
-    <string name="microsurvey_close_handle_content_description" tools:ignore="UnusedResources">Itxi inkesta</string>
+    <string name="microsurvey_close_handle_content_description">Itxi inkesta</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
-    <string name="microsurvey_close_button_content_description" tools:ignore="UnusedResources">Itxi</string>
+    <string name="microsurvey_close_button_content_description">Itxi</string>
 
     <!-- Debug drawer logins -->
     <!-- The title of the Logins feature in the Debug Drawer. -->
