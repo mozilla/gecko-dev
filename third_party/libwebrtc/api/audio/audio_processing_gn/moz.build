@@ -31,7 +31,7 @@ LOCAL_INCLUDES += [
 ]
 
 UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/modules/audio_processing/include/audio_processing_statistics.cc"
+    "/third_party/libwebrtc/api/audio/audio_processing.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
@@ -57,6 +57,10 @@ if CONFIG["OS_TARGET"] == "Android":
     DEFINES["_GNU_SOURCE"] = True
     DEFINES["__STDC_CONSTANT_MACROS"] = True
     DEFINES["__STDC_FORMAT_MACROS"] = True
+
+    OS_LIBS += [
+        "log"
+    ]
 
 if CONFIG["OS_TARGET"] == "Darwin":
 
@@ -213,4 +217,4 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     DEFINES["_GNU_SOURCE"] = True
 
-Library("audio_processing_statistics_gn")
+Library("audio_processing_gn")
