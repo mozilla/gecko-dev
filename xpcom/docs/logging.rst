@@ -13,16 +13,28 @@ Enabling and configuring logging
 Caveat: sandboxing when logging to a file
 -----------------------------------------
 
-A sandboxed content process cannot write to ``stderr`` or any file.  The easiest
-way to log these processes is to disable the content sandbox by setting the
-preference ``security.sandbox.content.level`` to ``0``, or setting the environment
-variable ``MOZ_DISABLE_CONTENT_SANDBOX`` to ``1``.
+Sandboxed content processes (on all OSes) cannot write to files on disk, so it
+is recommended to log to the terminal, possibly by redirecting the output to a
+file.
+
+If the sandbox has been disabled and/or the logging statement are coming
+from the parent process, ``MOZ_LOG_FILE`` will work as expected. Otherwise,
+logging to the terminal works as expected on macOS and Linux on desktop.
 
 On Windows, you can still see child process messages by using DOS (not the
 ``MOZ_LOG_FILE`` variable defined below) to redirect output to a file.  For
-example: ``MOZ_LOG="CameraChild:5" mach run >& my_log_file.txt`` will include
+example: ``MOZ_LOG=CameraChild:5 mach run >& my_log_file.txt`` will include
 debug messages from the camera's child actor that lives in a (sandboxed) content
 process.
+
+Another way to do this and have output in the terminal when developing is by
+redirecting ``stderr`` to ``stdout`` and then ``stdout`` to another process,
+for example like so:
+
+::
+
+    MOZ_LOG=cubeb:4 ./mach run 2>&1 | tee
+
 
 Logging to the Firefox Profiler
 -------------------------------
