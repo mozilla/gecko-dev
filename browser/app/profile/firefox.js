@@ -508,7 +508,7 @@ pref("browser.urlbar.quicksuggest.showOnboardingDialogAfterNRestarts", 0);
 // results" is checked. When not checked, the index is hardcoded as -1. Negative
 // indexes are relative to the end of the section.
 pref("browser.urlbar.quicksuggest.sponsoredIndex", 0);
-pref("browser.urlbar.quicksuggest.nonSponsoredIndex", 0);
+pref("browser.urlbar.quicksuggest.nonSponsoredIndex", -1);
 
 // Whether quick suggest results can be shown in position specified in the
 // suggestions.

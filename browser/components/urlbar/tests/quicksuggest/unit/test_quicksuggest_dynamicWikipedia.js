@@ -79,7 +79,7 @@ function makeExpectedResult() {
     type: UrlbarUtils.RESULT_TYPE.URL,
     source: UrlbarUtils.RESULT_SOURCE.SEARCH,
     heuristic: false,
-    suggestedIndex: 0,
+    suggestedIndex: -1,
     payload: {
       telemetryType: "wikipedia",
       title: "title",
