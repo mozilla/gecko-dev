@@ -65,14 +65,16 @@ class Breakpoints extends Component {
         lineClassName: "cm6-gutter-breakpoint",
         condition: line => {
           const lineNumber = fromEditorLine(selectedSource.id, line);
-          return breakpoints.some(bp => bp.location.line === lineNumber);
-        },
-        createLineElementNode: line => {
-          const lineNumber = fromEditorLine(selectedSource.id, line);
           const breakpoint = breakpoints.find(
-            bp => bp.location.line === lineNumber
+            bp => getSelectedLocation(bp, selectedSource).line === lineNumber
           );
-
+          if (!breakpoint) {
+            return false;
+          }
+          return breakpoint;
+        },
+        createLineElementNode: (line, breakpoint) => {
+          const lineNumber = fromEditorLine(selectedSource.id, line);
           const breakpointNode = document.createElement("div");
           breakpointNode.appendChild(document.createTextNode(lineNumber));
           breakpointNode.className = classnames("breakpoint-marker", {

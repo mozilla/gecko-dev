@@ -1409,8 +1409,10 @@ class Editor extends EventEmitter {
    *   @property {object}     marker - The rule rendering a marker or class. This is required.
    *   @property {string}     marker.id - The unique identifier for this marker.
    *   @property {string}     marker.lineClassName - The css class to add to the line. This is required.
-   *   @property {function}   marker.condition - The condition that decides if the marker/class  gets added or removed.
-   *   @property {function=}  marker.createLineElementNode - This gets the line as an argument and should return the DOM element which
+   *   @property {function}   marker.condition - The condition that decides if the marker/class gets added or removed.
+   *                                              This should return `false` for lines where the marker should not be added and the
+   *                                              result of the condition for any other line.
+   *   @property {function=}  marker.createLineElementNode - This gets the line and the result of the condition as arguments and should return the DOM element which
    *                                            is used for the marker. This is optional.
    */
   setLineGutterMarkers(markers) {
@@ -1443,12 +1445,23 @@ class Editor extends EventEmitter {
     // This is set as the value for the Range https://codemirror.net/docs/ref/#state.Range
     // which represents the line.
     class LineGutterMarker extends GutterMarker {
-      constructor(className, lineNumber, createElementNode) {
+      constructor(className, lineNumber, createElementNode, conditionResult) {
         super();
         this.elementClass = className || null;
+        this.lineNumber = lineNumber;
+        this.createElementNode = createElementNode;
+        this.conditionResult = conditionResult;
+
         this.toDOM = createElementNode
-          ? () => createElementNode(lineNumber)
+          ? () => createElementNode(lineNumber, conditionResult)
           : null;
+      }
+
+      eq(marker) {
+        return (
+          marker.lineNumber == this.lineNumber &&
+          marker.conditionResult == this.conditionResult
+        );
       }
     }
 
@@ -1468,14 +1481,16 @@ class Editor extends EventEmitter {
         if (typeof condition !== "function") {
           throw new Error("The `condition` is not a valid function");
         }
-        if (condition(line.number)) {
+        const conditionResult = condition(line.number);
+        if (conditionResult !== false) {
           builder.add(
             line.from,
             line.to,
             new LineGutterMarker(
               lineClassName,
               line.number,
-              createLineElementNode
+              createLineElementNode,
+              conditionResult
             )
           );
         }
