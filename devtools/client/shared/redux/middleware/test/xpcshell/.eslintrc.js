@@ -6,5 +6,5 @@
 
 module.exports = {
   // Extend from the shared list of defined globals for mochitests.
-  extends: "../../../../../.eslintrc.xpcshell.js",
+  extends: "../../../../../../.eslintrc.xpcshell.js",
 };

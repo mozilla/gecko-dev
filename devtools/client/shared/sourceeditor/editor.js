@@ -624,6 +624,7 @@ class Editor extends EventEmitter {
       codemirror,
       codemirrorView: { EditorView, lineNumbers },
       codemirrorState: { EditorState, Compartment },
+      codemirrorSearch: { highlightSelectionMatches },
       codemirrorLanguage,
       codemirrorLangJavascript,
       lezerHighlight,
@@ -693,6 +694,7 @@ class Editor extends EventEmitter {
       lineContentMarkerExtension,
       positionContentMarkerExtension,
       searchHighlightCompartment.of(this.#searchHighlighterExtension([])),
+      highlightSelectionMatches(),
       // keep last so other extension take precedence
       codemirror.minimalSetup,
     ];

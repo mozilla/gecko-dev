@@ -30,6 +30,7 @@ export const ProcessType = Object.freeze({
     // Keys defined in dom/ipc/RemoteType.h
     extension: "process-type-extension",
     file: "process-type-file",
+    inference: "process-type-inference",
     prealloc: "process-type-prealloc",
     privilegedabout: "process-type-privilegedabout",
     privilegedmozilla: "process-type-privilegedmozilla",

@@ -38,9 +38,6 @@ extern crate gecko_profiler;
 #[cfg(feature = "gecko")]
 #[macro_use]
 pub mod gecko_string_cache;
-#[cfg(feature = "servo")]
-#[macro_use]
-extern crate html5ever;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -49,6 +46,9 @@ extern crate log;
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
+#[cfg(feature = "servo")]
+#[macro_use]
+extern crate markup5ever;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;
@@ -155,13 +155,13 @@ pub use servo_atoms::Atom;
 
 #[cfg(feature = "servo")]
 #[allow(missing_docs)]
-pub type LocalName = crate::values::GenericAtomIdent<html5ever::LocalNameStaticSet>;
+pub type LocalName = crate::values::GenericAtomIdent<markup5ever::LocalNameStaticSet>;
 #[cfg(feature = "servo")]
 #[allow(missing_docs)]
-pub type Namespace = crate::values::GenericAtomIdent<html5ever::NamespaceStaticSet>;
+pub type Namespace = crate::values::GenericAtomIdent<markup5ever::NamespaceStaticSet>;
 #[cfg(feature = "servo")]
 #[allow(missing_docs)]
-pub type Prefix = crate::values::GenericAtomIdent<html5ever::PrefixStaticSet>;
+pub type Prefix = crate::values::GenericAtomIdent<markup5ever::PrefixStaticSet>;
 
 pub use style_traits::arc_slice::ArcSlice;
 pub use style_traits::owned_slice::OwnedSlice;

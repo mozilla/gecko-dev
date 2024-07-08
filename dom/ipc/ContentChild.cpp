@@ -2701,6 +2701,8 @@ mozilla::ipc::IPCResult ContentChild::RecvRemoteType(
     SetProcessName("Privileged Content"_ns, nullptr, &aProfile);
   } else if (aRemoteType == PRIVILEGEDMOZILLA_REMOTE_TYPE) {
     SetProcessName("Privileged Mozilla"_ns, nullptr, &aProfile);
+  } else if (aRemoteType == INFERENCE_REMOTE_TYPE) {
+    SetProcessName("Inference"_ns, nullptr, &aProfile);
   } else if (remoteTypePrefix == WITH_COOP_COEP_REMOTE_TYPE) {
     // The profiler can sanitize out the eTLD+1
     nsDependentCSubstring etld =

@@ -282,7 +282,7 @@ export class EngineProcess {
     const browser = doc.createXULElement("browser");
     browser.setAttribute("id", id);
     browser.setAttribute("remote", "true");
-    browser.setAttribute("remoteType", "web");
+    browser.setAttribute("remoteType", "inference");
     browser.setAttribute("disableglobalhistory", "true");
     browser.setAttribute("type", "content");
     browser.setAttribute("src", url);

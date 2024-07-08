@@ -305,9 +305,11 @@
 }
 
 /* CodeMirror matchhighlight styling */
-.cm-matchhighlight {
+.cm-matchhighlight, .cm-selectionMatch {
   outline: 1px solid var(--theme-contrast-border);
   border-radius: 2px;
+  /* Override cm6 inline */
+  background-color: transparent !important; 
 }
 
 .cm-non-printable-char {

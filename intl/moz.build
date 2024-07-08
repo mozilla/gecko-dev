@@ -34,8 +34,8 @@ EXPORTS += [
 ]
 
 
-PERFTESTS_MANIFESTS += ["benchmarks/perftest.toml"]
-XPCSHELL_TESTS_MANIFESTS += ["benchmarks/xpcshell.toml"]
+PERFTESTS_MANIFESTS += ["benchmarks/test/xpcshell/perftest.toml"]
+XPCSHELL_TESTS_MANIFESTS += ["benchmarks/test/xpcshell/xpcshell.toml"]
 
 with Files("**"):
     BUG_COMPONENT = ("Core", "Internationalization")

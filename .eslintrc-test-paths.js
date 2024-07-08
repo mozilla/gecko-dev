@@ -48,7 +48,6 @@ const extraXpcshellTestPaths = [
   "devtools/platform/tests/xpcshell/",
   "dom/file/tests/",
   "dom/ipc/tests/",
-  "intl/benchmarks/",
   "intl/l10n/test/",
   "ipc/testshell/tests/",
   "memory/replace/dmd/test/",
@@ -67,7 +66,6 @@ const extraXpcshellTestPaths = [
   "toolkit/components/thumbnails/test/",
   "toolkit/modules/tests/modules/",
   "toolkit/mozapps/update/tests/data/",
-  "toolkit/profile/xpcshell/",
   "toolkit/xre/test/",
   "widget/headless/tests/",
 ];
@@ -267,7 +265,6 @@ const extraChromeTestPaths = [
   "toolkit/components/windowwatcher/test/",
   "toolkit/components/workerloader/tests/",
   "toolkit/content/tests/widgets/",
-  "toolkit/profile/test/",
   "widget/tests/",
   "xpfe/appshell/test/",
 ];

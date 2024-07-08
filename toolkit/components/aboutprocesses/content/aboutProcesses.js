@@ -531,6 +531,9 @@ var View = {
         case "utility":
           fluentName = "about-processes-utility-process";
           break;
+        case "inference":
+          fluentName = "about-processes-inference-process";
+          break;
         // The following are probably not going to show up for users
         // but let's handle the case anyway to avoid heisenoranges
         // during tests in case of a leftover process from a previous

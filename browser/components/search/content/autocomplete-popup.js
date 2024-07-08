@@ -69,6 +69,10 @@
         if (!engine) {
           return;
         }
+        // At this point, the click must have happened on the header.
+        if (!this.searchbar.value) {
+          return;
+        }
         this.oneOffButtons.handleSearchCommand(event, engine);
       });
 
