@@ -44,6 +44,7 @@ UNIFIED_SOURCES += [
     "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_packet/bye.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_packet/common_header.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_packet/compound_packet.cc",
+    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_packet/congestion_control_feedback.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_packet/dlrr.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_packet/extended_reports.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_packet/fir.cc",
