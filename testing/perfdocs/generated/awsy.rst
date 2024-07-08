@@ -17,6 +17,12 @@ Awsy tests
 .. dropdown:: base (FF)
    :class-container: anchor-id-base-Awsy-tests
 
+   * Command to Run Locally
+
+   .. code-block::
+
+      ./mach awsy-test --base
+
    **Owner**: :mccr8 and Perftest Team
 
    * **Test Task**:
@@ -55,6 +61,12 @@ Awsy tests
 
 .. dropdown:: dmd (FF)
    :class-container: anchor-id-dmd-Awsy-tests
+
+   * Command to Run Locally
+
+   .. code-block::
+
+      ./mach awsy-test --dmd
 
    **Owner**: :mccr8 and Perftest Team
 
@@ -95,6 +107,12 @@ Awsy tests
 .. dropdown:: tp5 (FF)
    :class-container: anchor-id-tp5-Awsy-tests
 
+   * Command to Run Locally
+
+   .. code-block::
+
+      ./mach awsy-test 
+
    **Owner**: :mccr8 and Perftest Team
 
    * **Test Task**:
@@ -117,6 +135,12 @@ Awsy tests
 
 .. dropdown:: tp6 (FF)
    :class-container: anchor-id-tp6-Awsy-tests
+
+   * Command to Run Locally
+
+   .. code-block::
+
+      ./mach awsy-test --tp6
 
    **Owner**: :mccr8 and Perftest Team
 

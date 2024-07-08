@@ -135,6 +135,24 @@ class FrameworkGatherer(object):
         """
         raise NotImplementedError
 
+    def build_command_to_run_locally(self, framework_command, title):
+        """
+        Each framework has specifics to running it locally. This command
+        passes arguments to this function to ensure we can construct those
+        commands consistently, and return it so it can be in the mozilla source docs.
+
+        :param str framework_command: A string that has the framework specific
+            commands needed to run tests
+        :param str title: A string of the test name, added on after the framework
+            specific commands (see above framework_command param:)
+        :return str: Returns the command to run locally, this output is added to
+            the mozilla source docs, and is formatted
+        """
+        command_to_run_locally = "   * Command to Run Locally\n\n"
+        command_to_run_locally += "   .. code-block::\n\n"
+        command_to_run_locally += f"      ./mach {framework_command} {title}\n\n"
+        return command_to_run_locally
+
 
 class RaptorGatherer(FrameworkGatherer):
     """
@@ -323,6 +341,7 @@ class RaptorGatherer(FrameworkGatherer):
 
         result = f".. dropdown:: {title}\n"
         result += f"   :class-container: anchor-id-{title}-{suite_name[0]}\n\n"
+        result += self.build_command_to_run_locally("raptor -t", title)
 
         for idx, description in enumerate(matcher):
             if description["name"] != title:
@@ -538,6 +557,7 @@ class TalosGatherer(FrameworkGatherer):
     ):
         result = f".. dropdown:: {title}\n"
         result += f"   :class-container: anchor-id-{title}\n\n"
+        result += self.build_command_to_run_locally("talos-test -a", title)
 
         yml_descriptions = [s.strip() for s in test_description.split("- ") if s]
         for description in yml_descriptions:
@@ -575,11 +595,6 @@ class TalosGatherer(FrameworkGatherer):
                         if isinstance(v, str) and "\\" in v:
                             value[k] = str(v).replace("\\", r"/")
                 result += r"   * " + key + r": " + str(value) + r"\n"
-
-        # Command
-        result += "   * Command\n\n"
-        result += "   .. code-block::\n\n"
-        result += f"      ./mach talos-test -a {title}\n\n"
 
         if self._task_list.get(title, []):
             result += "   * **Test Task**:\n\n"
@@ -661,6 +676,9 @@ class AwsyGatherer(FrameworkGatherer):
         dropdown_suite_name = suite_name.replace(" ", "-")
         result = f".. dropdown:: {title} ({test_description})\n"
         result += f"   :class-container: anchor-id-{title}-{dropdown_suite_name}\n\n"
+        result += self.build_command_to_run_locally(
+            "awsy-test", "" if title == "tp5" else f"--{title}"
+        )
 
         awsy_data = read_yaml(self._yaml_path)["suites"]["Awsy tests"]
         if "owner" in awsy_data.keys():
