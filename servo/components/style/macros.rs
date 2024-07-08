@@ -41,17 +41,17 @@ macro_rules! try_match_ident_ignore_ascii_case {
 #[cfg(feature = "servo")]
 macro_rules! local_name {
     ($s:tt) => {
-        $crate::values::GenericAtomIdent(html5ever::local_name!($s))
+        $crate::values::GenericAtomIdent(markup5ever::local_name!($s))
     };
 }
 
 #[cfg(feature = "servo")]
 macro_rules! ns {
     () => {
-        $crate::values::GenericAtomIdent(html5ever::ns!())
+        $crate::values::GenericAtomIdent(markup5ever::ns!())
     };
     ($s:tt) => {
-        $crate::values::GenericAtomIdent(html5ever::ns!($s))
+        $crate::values::GenericAtomIdent(markup5ever::ns!($s))
     };
 }
 

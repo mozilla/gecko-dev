@@ -27,9 +27,21 @@ gecko = [
     "style_traits/gecko",
     "toml"
 ]
-servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
-         "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "arrayvec/use_union",
-         "string_cache", "to_shmem/servo", "servo_arc/servo", "url"]
+servo = [
+    "arrayvec/use_union",
+    "cssparser/serde",
+    "encoding_rs",
+    "malloc_size_of/servo",
+    "markup5ever",
+    "serde",
+    "servo_arc/servo",
+    "servo_atoms",
+    "servo_config",
+    "string_cache",
+    "style_traits/servo",
+    "to_shmem/servo",
+    "url"
+]
 gecko_debug = []
 gecko_refcount_logging = []
 
@@ -46,7 +58,6 @@ new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.8", optional = true}
 euclid = "0.22"
 fxhash = "0.2"
-html5ever = {version = "0.24", optional = true}
 icu_segmenter = { version = "1.5", default-features = false, features = ["auto", "compiled_data"] }
 indexmap = {version = "2", features = ["std"]}
 itertools = "0.10"
@@ -55,6 +66,7 @@ lazy_static = "1"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../../../xpcom/rust/malloc_size_of_derive" }
+markup5ever = { version = "0.12", optional = true }
 matches = "0.1"
 nsstring = {path = "../../../xpcom/rust/nsstring/", optional = true}
 num_cpus = {version = "1.1.0"}
