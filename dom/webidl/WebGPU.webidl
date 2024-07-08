@@ -209,7 +209,7 @@ dictionary GPUBufferDescriptor
 typedef [EnforceRange] unsigned long GPUBufferUsageFlags;
 [Func="mozilla::webgpu::Instance::PrefEnabled",
  Exposed=(Window, DedicatedWorker), SecureContext]
-interface GPUBufferUsage {
+namespace GPUBufferUsage {
     const GPUFlagsConstant MAP_READ      = 0x0001;
     const GPUFlagsConstant MAP_WRITE     = 0x0002;
     const GPUFlagsConstant COPY_SRC      = 0x0004;
@@ -225,7 +225,7 @@ interface GPUBufferUsage {
 typedef [EnforceRange] unsigned long GPUMapModeFlags;
 [Func="mozilla::webgpu::Instance::PrefEnabled",
  Exposed=(Window, DedicatedWorker), SecureContext]
-interface GPUMapMode {
+namespace GPUMapMode {
     const GPUFlagsConstant READ  = 0x0001;
     const GPUFlagsConstant WRITE = 0x0002;
 };
@@ -268,7 +268,7 @@ enum GPUTextureDimension {
 typedef [EnforceRange] unsigned long GPUTextureUsageFlags;
 [Func="mozilla::webgpu::Instance::PrefEnabled",
  Exposed=(Window, DedicatedWorker), SecureContext]
-interface GPUTextureUsage {
+namespace GPUTextureUsage {
     const GPUFlagsConstant COPY_SRC          = 0x01;
     const GPUFlagsConstant COPY_DST          = 0x02;
     const GPUFlagsConstant TEXTURE_BINDING   = 0x04;
@@ -455,7 +455,7 @@ dictionary GPUBindGroupLayoutEntry {
 typedef [EnforceRange] unsigned long GPUShaderStageFlags;
 [Func="mozilla::webgpu::Instance::PrefEnabled",
  Exposed=(Window, DedicatedWorker), SecureContext]
-interface GPUShaderStage {
+namespace GPUShaderStage {
     const GPUFlagsConstant VERTEX   = 0x1;
     const GPUFlagsConstant FRAGMENT = 0x2;
     const GPUFlagsConstant COMPUTE  = 0x4;
@@ -692,7 +692,7 @@ dictionary GPUBlendState {
 typedef [EnforceRange] unsigned long GPUColorWriteFlags;
 [Func="mozilla::webgpu::Instance::PrefEnabled",
  Exposed=(Window, DedicatedWorker), SecureContext]
-interface GPUColorWrite {
+namespace GPUColorWrite {
     const GPUFlagsConstant RED   = 0x1;
     const GPUFlagsConstant GREEN = 0x2;
     const GPUFlagsConstant BLUE  = 0x4;
