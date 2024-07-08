@@ -64,9 +64,9 @@ pane-sync-title3 = Sync
 category-sync3 =
     .tooltiptext = { pane-sync-title3 }
 
-pane-experimental-title = { -brand-short-name } Experiments
-category-experimental =
-    .tooltiptext = { -brand-short-name } Experiments
+settings-pane-labs-title = { -firefoxlabs-brand-name }
+settings-category-labs =
+    .tooltiptext = { -firefoxlabs-brand-name }
 pane-experimental-description3 = Give our experimental features a try! They’re in development and evolving, which could impact how { -brand-short-name } works.
 
 pane-experimental-reset =
