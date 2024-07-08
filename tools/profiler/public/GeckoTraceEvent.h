@@ -1,7 +1,12 @@
-// Copyright (c) 2012 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file under third_party_mods/chromium or at:
-// http://src.chromium.org/svn/trunk/src/LICENSE
+/*
+ *  Copyright (c) 2024 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
 
 #ifndef GECKO_TRACE_EVENT_H_
 #define GECKO_TRACE_EVENT_H_
@@ -18,6 +23,18 @@
 #else
 #define RTC_TRACE_EVENTS_ENABLED 1
 #endif
+
+#define RTC_NOOP() \
+  do {             \
+  } while (0)
+
+// TODO(b/42226290): Add implementation for these events with Perfetto.
+#define TRACE_EVENT_BEGIN(category, name, ...) RTC_NOOP();
+#define TRACE_EVENT_END(category, ...) RTC_NOOP();
+#define TRACE_EVENT(category, name, ...) RTC_NOOP();
+#define TRACE_EVENT_INSTANT(category, name, ...) RTC_NOOP();
+#define TRACE_EVENT_CATEGORY_ENABLED(category) RTC_NOOP();
+#define TRACE_COUNTER(category, track, ...) RTC_NOOP();
 
 // Type values for identifying types in the TraceValue union.
 #define TRACE_VALUE_TYPE_BOOL (static_cast<unsigned char>(1))
@@ -167,21 +184,27 @@
   INTERNAL_TRACE_EVENT_ADD_SCOPED(category, name, arg1_name, arg1_val,         \
                                   arg2_name, arg2_val)
 
+// Enum reflecting the scope of an INSTANT event. Must fit within
+// TRACE_EVENT_FLAG_SCOPE_MASK.
+static constexpr uint8_t TRACE_EVENT_SCOPE_GLOBAL = 0u << 2;
+static constexpr uint8_t TRACE_EVENT_SCOPE_PROCESS = 1u << 2;
+static constexpr uint8_t TRACE_EVENT_SCOPE_THREAD = 2u << 2;
+
 // Records a single event called "name" immediately, with 0, 1 or 2
 // associated arguments. If the category is not enabled, then this
 // does nothing.
 // - category and name strings must have application lifetime (statics or
 //   literals). They may not include " chars.
-#define TRACE_EVENT_INSTANT0(category, name)                          \
+#define TRACE_EVENT_INSTANT0(category, name, scope)                   \
   INTERNAL_TRACE_EVENT_ADD(TRACE_EVENT_PHASE_INSTANT, category, name, \
                            TRACE_EVENT_FLAG_NONE)
-#define TRACE_EVENT_INSTANT1(category, name, arg1_name, arg1_val)     \
-  INTERNAL_TRACE_EVENT_ADD(TRACE_EVENT_PHASE_INSTANT, category, name, \
+#define TRACE_EVENT_INSTANT1(category, name, scope, arg1_name, arg1_val) \
+  INTERNAL_TRACE_EVENT_ADD(TRACE_EVENT_PHASE_INSTANT, category, name,    \
                            TRACE_EVENT_FLAG_NONE, arg1_name, arg1_val)
-#define TRACE_EVENT_INSTANT2(category, name, arg1_name, arg1_val, arg2_name, \
-                             arg2_val)                                       \
-  INTERNAL_TRACE_EVENT_ADD(TRACE_EVENT_PHASE_INSTANT, category, name,        \
-                           TRACE_EVENT_FLAG_NONE, arg1_name, arg1_val,       \
+#define TRACE_EVENT_INSTANT2(category, name, scope, arg1_name, arg1_val, \
+                             arg2_name, arg2_val)                        \
+  INTERNAL_TRACE_EVENT_ADD(TRACE_EVENT_PHASE_INSTANT, category, name,    \
+                           TRACE_EVENT_FLAG_NONE, arg1_name, arg1_val,   \
                            arg2_name, arg2_val)
 
 // Records a single BEGIN event called "name" immediately, with 0, 1 or 2
@@ -302,13 +325,14 @@
 // ASYNC_BEGIN event above. The `step` param identifies this step within the
 // async event. This should be called at the beginning of the next phase of an
 // asynchronous operation.
-#define TRACE_EVENT_ASYNC_STEP0(category, name, id, step)                   \
+#define TRACE_EVENT_ASYNC_STEP_INTO0(category, name, id, step)              \
   INTERNAL_TRACE_EVENT_ADD_WITH_ID(TRACE_EVENT_PHASE_ASYNC_STEP, category,  \
                                    name, id, TRACE_EVENT_FLAG_NONE, "step", \
                                    step)
-#define TRACE_EVENT_ASYNC_STEP1(category, name, id, step, arg1_name, arg1_val) \
-  INTERNAL_TRACE_EVENT_ADD_WITH_ID(TRACE_EVENT_PHASE_ASYNC_STEP, category,     \
-                                   name, id, TRACE_EVENT_FLAG_NONE, "step",    \
+#define TRACE_EVENT_ASYNC_STEP_INTO1(category, name, id, step, arg1_name,   \
+                                     arg1_val)                              \
+  INTERNAL_TRACE_EVENT_ADD_WITH_ID(TRACE_EVENT_PHASE_ASYNC_STEP, category,  \
+                                   name, id, TRACE_EVENT_FLAG_NONE, "step", \
                                    step, arg1_name, arg1_val)
 
 // Records a single ASYNC_END event for "name" immediately. If the category
@@ -719,16 +743,12 @@ class TraceEndOnScopeClose {
 
 }  // namespace trace_event_internal
 }  // namespace webrtc
+
 #else
 
 ////////////////////////////////////////////////////////////////////////////////
 // This section defines no-op alternatives to the tracing macros when
 // RTC_DISABLE_TRACE_EVENTS is defined.
-
-#define RTC_NOOP() \
-  do {             \
-  } while (0)
-
 
 #define TRACE_DISABLED_BY_DEFAULT(name) "disabled-by-default-" name
 
@@ -739,11 +759,12 @@ class TraceEndOnScopeClose {
 #define TRACE_EVENT2(category, name, arg1_name, arg1_val, arg2_name, arg2_val) \
   RTC_NOOP()
 
-#define TRACE_EVENT_INSTANT0(category, name) RTC_NOOP()
-#define TRACE_EVENT_INSTANT1(category, name, arg1_name, arg1_val) RTC_NOOP()
+#define TRACE_EVENT_INSTANT0(category, name, scope) RTC_NOOP()
+#define TRACE_EVENT_INSTANT1(category, name, scope, arg1_name, arg1_val) \
+  RTC_NOOP()
 
-#define TRACE_EVENT_INSTANT2(category, name, arg1_name, arg1_val, arg2_name, \
-                             arg2_val)                                       \
+#define TRACE_EVENT_INSTANT2(category, name, scope, arg1_name, arg1_val, \
+                             arg2_name, arg2_val)                        \
   RTC_NOOP()
 
 #define TRACE_EVENT_BEGIN0(category, name) RTC_NOOP()
@@ -777,8 +798,9 @@ class TraceEndOnScopeClose {
                                  arg2_name, arg2_val)                     \
   RTC_NOOP()
 
-#define TRACE_EVENT_ASYNC_STEP0(category, name, id, step) RTC_NOOP()
-#define TRACE_EVENT_ASYNC_STEP1(category, name, id, step, arg1_name, arg1_val) \
+#define TRACE_EVENT_ASYNC_STEP_INTO0(category, name, id, step) RTC_NOOP()
+#define TRACE_EVENT_ASYNC_STEP_INTO1(category, name, id, step, arg1_name, \
+                                     arg1_val)                            \
   RTC_NOOP()
 
 #define TRACE_EVENT_ASYNC_END0(category, name, id) RTC_NOOP()

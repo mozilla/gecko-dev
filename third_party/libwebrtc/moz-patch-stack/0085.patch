@@ -18,7 +18,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2f1a0ba74bf71cfa0
  6 files changed, 24 insertions(+), 4 deletions(-)
 
 diff --git a/api/frame_transformer_interface.h b/api/frame_transformer_interface.h
-index 102ac33334..4869ad6909 100644
+index 89356df383..4d628680b5 100644
 --- a/api/frame_transformer_interface.h
 +++ b/api/frame_transformer_interface.h
 @@ -60,6 +60,7 @@ class TransformableVideoFrameInterface : public TransformableFrameInterface {
@@ -45,7 +45,7 @@ index a398f16d46..8136730e4c 100644
      return flexfec_ssrc_;
    }
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
-index e02d18cc46..3ba14b2b74 100644
+index c60305888b..dfdf36434a 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
 @@ -157,6 +157,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
@@ -54,8 +54,8 @@ index e02d18cc46..3ba14b2b74 100644
                      rtp_sender_->SSRC(),
 +                    rtp_sender_->Rid(),
                      config.task_queue_factory)
-               : nullptr) {
-   if (frame_transformer_delegate_)
+               : nullptr),
+       enable_av1_even_split_(
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
 index 2bb71941f9..ff15840529 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc

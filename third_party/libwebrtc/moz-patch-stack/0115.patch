@@ -1,0 +1,35 @@
+From: Jan Grulich <jgrulich@redhat.com>
+Date: Sat, 15 Jun 2024 11:27:00 +0000
+Subject: Bug 1902618 - WebRTC backport: PipeWire capture: fix mmap arguments
+ r=pehrsons,webrtc-reviewers
+
+This is a simple backport of an WebRTC upstream change.
+
+Upstream commit: 3252f5d8e481b65571ebb95801754a10dc910632
+
+Differential Revision: https://phabricator.services.mozilla.com/D213751
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bfd83b29113903f4a4c7415fe6ec09609f5c6c9d
+---
+ modules/video_capture/linux/video_capture_pipewire.cc | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
+index 21cb83a160..d7cd50df66 100644
+--- a/modules/video_capture/linux/video_capture_pipewire.cc
++++ b/modules/video_capture/linux/video_capture_pipewire.cc
+@@ -418,11 +418,10 @@ void VideoCaptureModulePipeWire::ProcessBuffers() {
+       ScopedBuf frame;
+       frame.initialize(
+           static_cast<uint8_t*>(
+-              mmap(nullptr,
+-                   spaBuffer->datas[0].maxsize + spaBuffer->datas[0].mapoffset,
+-                   PROT_READ, MAP_PRIVATE, spaBuffer->datas[0].fd, 0)),
+-          spaBuffer->datas[0].maxsize + spaBuffer->datas[0].mapoffset,
+-          spaBuffer->datas[0].fd, spaBuffer->datas[0].type == SPA_DATA_DmaBuf);
++              mmap(nullptr, spaBuffer->datas[0].maxsize, PROT_READ, MAP_PRIVATE,
++                   spaBuffer->datas[0].fd, spaBuffer->datas[0].mapoffset)),
++          spaBuffer->datas[0].maxsize, spaBuffer->datas[0].fd,
++          spaBuffer->datas[0].type == SPA_DATA_DmaBuf);
+ 
+       if (!frame) {
+         RTC_LOG(LS_ERROR) << "Failed to mmap the memory: "

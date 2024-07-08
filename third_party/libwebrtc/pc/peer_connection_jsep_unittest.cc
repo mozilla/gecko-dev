@@ -20,6 +20,7 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+#include "api/audio/audio_device.h"
 #include "api/enable_media_with_defaults.h"
 #include "api/field_trials_view.h"
 #include "api/jsep.h"
@@ -40,7 +41,6 @@
 #include "media/base/media_engine.h"
 #include "media/base/stream_params.h"
 #include "media/engine/webrtc_media_engine.h"
-#include "modules/audio_device/include/audio_device.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/transport_info.h"

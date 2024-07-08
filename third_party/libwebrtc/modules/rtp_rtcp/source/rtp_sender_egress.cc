@@ -26,6 +26,15 @@ constexpr uint32_t kTimestampTicksPerMs = 90;
 constexpr TimeDelta kBitrateStatisticsWindow = TimeDelta::Seconds(1);
 constexpr size_t kRtpSequenceNumberMapMaxEntries = 1 << 13;
 constexpr TimeDelta kUpdateInterval = kBitrateStatisticsWindow;
+
+bool GetUseNtpTimeForAbsoluteSendTime(const FieldTrialsView* field_trials) {
+  if (field_trials != nullptr &&
+      field_trials->IsDisabled("WebRTC-UseNtpTimeAbsoluteSendTime")) {
+    return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 RtpSenderEgress::NonPacedPacketSender::NonPacedPacketSender(
@@ -104,7 +113,9 @@ RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
       rtp_sequence_number_map_(need_rtp_packet_infos_
                                    ? std::make_unique<RtpSequenceNumberMap>(
                                          kRtpSequenceNumberMapMaxEntries)
-                                   : nullptr) {
+                                   : nullptr),
+      use_ntp_time_for_absolute_send_time_(
+          GetUseNtpTimeForAbsoluteSendTime(config.field_trials)) {
   RTC_DCHECK(worker_queue_);
   RTC_DCHECK(config.transport_feedback_callback == nullptr)
       << "transport_feedback_callback is no longer used and will soon be "
@@ -209,7 +220,12 @@ void RtpSenderEgress::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
     packet->SetExtension<TransmissionOffset>(kTimestampTicksPerMs * diff.ms());
   }
   if (packet->HasExtension<AbsoluteSendTime>()) {
-    packet->SetExtension<AbsoluteSendTime>(AbsoluteSendTime::To24Bits(now));
+    if (use_ntp_time_for_absolute_send_time_) {
+      packet->SetExtension<AbsoluteSendTime>(
+          AbsoluteSendTime::To24Bits(clock_->ConvertTimestampToNtpTime(now)));
+    } else {
+      packet->SetExtension<AbsoluteSendTime>(AbsoluteSendTime::To24Bits(now));
+    }
   }
   if (packet->HasExtension<TransportSequenceNumber>() &&
       packet->transport_sequence_number()) {
@@ -457,16 +473,16 @@ void RtpSenderEgress::UpdateRtpStats(Timestamp now,
   } else if (packet_type == RtpPacketMediaType::kRetransmission) {
     counters->retransmitted.Add(counter);
   }
-    counters->transmitted.Add(counter);
+  counters->transmitted.Add(counter);
 
-    send_rates_[static_cast<size_t>(packet_type)].Update(packet_size, now);
-    if (bitrate_callback_) {
+  send_rates_[static_cast<size_t>(packet_type)].Update(packet_size, now);
+  if (bitrate_callback_) {
     send_rates = GetSendRates(now);
-    }
+  }
 
-    if (rtp_stats_callback_) {
-      rtp_stats_callback_->DataCountersUpdated(*counters, packet_ssrc);
-    }
+  if (rtp_stats_callback_) {
+    rtp_stats_callback_->DataCountersUpdated(*counters, packet_ssrc);
+  }
 
   // The bitrate_callback_ and rtp_stats_callback_ pointers in practice point
   // to the same object, so these callbacks could be consolidated into one.

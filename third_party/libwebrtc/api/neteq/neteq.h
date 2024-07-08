@@ -210,7 +210,7 @@ class NetEq {
   // Returns kOK on success, or kFail in case of an error.
   virtual int GetAudio(
       AudioFrame* audio_frame,
-      bool* muted,
+      bool* muted = nullptr,
       int* current_sample_rate_hz = nullptr,
       absl::optional<Operation> action_override = absl::nullopt) = 0;
 

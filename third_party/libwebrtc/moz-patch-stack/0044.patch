@@ -9,10 +9,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/de8c14e4972f717bf
  1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/modules/rtp_rtcp/source/source_tracker.cc b/modules/rtp_rtcp/source/source_tracker.cc
-index 51e8f1cd38..b54f6cacf8 100644
+index cd881f1443..d2bea8b0e4 100644
 --- a/modules/rtp_rtcp/source/source_tracker.cc
 +++ b/modules/rtp_rtcp/source/source_tracker.cc
-@@ -47,7 +47,8 @@ void SourceTracker::OnFrameDeliveredInternal(
+@@ -52,7 +52,8 @@ void SourceTracker::OnFrameDeliveredInternal(
        SourceKey key(RtpSourceType::CSRC, csrc);
        SourceEntry& entry = UpdateEntry(key);
  
@@ -22,7 +22,7 @@ index 51e8f1cd38..b54f6cacf8 100644
        entry.audio_level = packet_info.audio_level();
        entry.absolute_capture_time = packet_info.absolute_capture_time();
        entry.local_capture_clock_offset =
-@@ -86,6 +87,10 @@ std::vector<RtpSource> SourceTracker::GetSources() const {
+@@ -91,6 +92,10 @@ std::vector<RtpSource> SourceTracker::GetSources() const {
              .local_capture_clock_offset = entry.local_capture_clock_offset});
    }
  

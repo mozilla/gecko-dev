@@ -25,6 +25,8 @@
 #include "absl/functional/bind_front.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/audio/audio_device.h"
+#include "api/audio/audio_processing_statistics.h"
 #include "api/candidate.h"
 #include "api/dtls_transport_interface.h"
 #include "api/media_stream_interface.h"
@@ -39,8 +41,6 @@
 #include "common_video/include/quality_limitation_reason.h"
 #include "media/base/media_channel.h"
 #include "media/base/media_channel_impl.h"
-#include "modules/audio_device/include/audio_device.h"
-#include "modules/audio_processing/include/audio_processing_statistics.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "p2p/base/connection_info.h"
@@ -517,7 +517,7 @@ std::unique_ptr<RTCRemoteOutboundRtpStreamStats>
 CreateRemoteOutboundMediaStreamStats(
     const cricket::MediaReceiverInfo& media_receiver_info,
     const std::string& mid,
-    const std::string& kind,
+    cricket::MediaType media_type,
     const RTCInboundRtpStreamStats& inbound_audio_stats,
     const std::string& transport_id) {
   if (!media_receiver_info.last_sender_report_timestamp_ms.has_value()) {
@@ -531,13 +531,13 @@ CreateRemoteOutboundMediaStreamStats(
   // Create.
   auto stats = std::make_unique<RTCRemoteOutboundRtpStreamStats>(
       /*id=*/RTCRemoteOutboundRTPStreamStatsIDFromSSRC(
-          cricket::MEDIA_TYPE_AUDIO, media_receiver_info.ssrc()),
+          media_type, media_receiver_info.ssrc()),
       Timestamp::Millis(*media_receiver_info.last_sender_report_timestamp_ms));
 
   // Populate.
   // - RTCRtpStreamStats.
   stats->ssrc = media_receiver_info.ssrc();
-  stats->kind = kind;
+  stats->kind = cricket::MediaTypeToString(media_type);
   stats->transport_id = transport_id;
   if (inbound_audio_stats.codec_id.has_value()) {
     stats->codec_id = *inbound_audio_stats.codec_id;
@@ -1336,8 +1336,8 @@ void RTCStatsCollector::MergeNetworkReport_s() {
   // Trace WebRTC Stats when getStats is called on Javascript.
   // This allows access to WebRTC stats from trace logs. To enable them,
   // select the "webrtc_stats" category when recording traces.
-  TRACE_EVENT_INSTANT1("webrtc_stats", "webrtc_stats", "report",
-                       cached_report_->ToJson());
+  TRACE_EVENT_INSTANT1("webrtc_stats", "webrtc_stats", TRACE_EVENT_SCOPE_GLOBAL,
+                       "report", cached_report_->ToJson());
 
   // Deliver report and clear `requests_`.
   std::vector<RequestInfo> requests;
@@ -1711,7 +1711,8 @@ void RTCStatsCollector::ProduceAudioRTPStreamStats_n(
     }
     // Remote-outbound.
     auto remote_outbound_audio = CreateRemoteOutboundMediaStreamStats(
-        voice_receiver_info, mid, "audio", *inbound_audio_ptr, transport_id);
+        voice_receiver_info, mid, cricket::MEDIA_TYPE_AUDIO, *inbound_audio_ptr,
+        transport_id);
     // Add stats.
     if (remote_outbound_audio) {
       // When the remote outbound stats are available, the remote ID for the
@@ -1804,7 +1805,8 @@ void RTCStatsCollector::ProduceVideoRTPStreamStats_n(
     }
     // Remote-outbound.
     auto remote_outbound_video = CreateRemoteOutboundMediaStreamStats(
-        video_receiver_info, mid, "video", *inbound_video_ptr, transport_id);
+        video_receiver_info, mid, cricket::MEDIA_TYPE_VIDEO, *inbound_video_ptr,
+        transport_id);
     // Add stats.
     if (remote_outbound_video) {
       // When the remote outbound stats are available, the remote ID for the

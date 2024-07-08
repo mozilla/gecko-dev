@@ -63,6 +63,13 @@ uint8_t kUpdBufIdx[4] = {0, 0, 1, 0};
 // Maximum allowed PID difference for differnet per-layer frame-rate case.
 const int kMaxAllowedPidDiff = 30;
 
+namespace variable_framerate_screenshare {
+constexpr double kMinFps = 5.0;
+constexpr int kMinQP = 32;
+constexpr int kUndershootPct = 30;
+constexpr int kFramesBeforeSteadyState = 5;
+}  // namespace variable_framerate_screenshare
+
 // TODO(ilink): Tune these thresholds further.
 // Selected using ConverenceMotion_1280_720_50.yuv clip.
 // No toggling observed on any link capacity from 100-2000kbps.
@@ -113,7 +120,7 @@ std::unique_ptr<ScalableVideoController> CreateVp9ScalabilityStructure(
   }
 
   // Check spatial ratio.
-  if (num_spatial_layers > 1 && codec.spatialLayers[0].targetBitrate > 0) {
+  if (num_spatial_layers > 1) {
     if (codec.width != codec.spatialLayers[num_spatial_layers - 1].width ||
         codec.height != codec.spatialLayers[num_spatial_layers - 1].height) {
       RTC_LOG(LS_WARNING)
@@ -243,24 +250,21 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
       is_svc_(false),
       inter_layer_pred_(InterLayerPredMode::kOn),
       external_ref_control_(false),  // Set in InitEncode because of tests.
-      trusted_rate_controller_(
-          RateControlSettings::ParseFromKeyValueConfig(&env.field_trials())
-              .LibvpxVp9TrustedRateController()),
+      trusted_rate_controller_(RateControlSettings(env.field_trials())
+                                   .LibvpxVp9TrustedRateController()),
       first_frame_in_picture_(true),
       ss_info_needed_(false),
       force_all_active_layers_(false),
       num_cores_(0),
       is_flexible_mode_(false),
-      variable_framerate_experiment_(
-          ParseVariableFramerateConfig(env.field_trials())),
-      variable_framerate_controller_(
-          variable_framerate_experiment_.framerate_limit),
+      variable_framerate_controller_(variable_framerate_screenshare::kMinFps),
       quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
       external_ref_ctrl_(
           !env.field_trials().IsDisabled("WebRTC-Vp9ExternalRefCtrl")),
       performance_flags_(ParsePerformanceFlagsFromTrials(env.field_trials())),
       num_steady_state_frames_(0),
       config_changed_(true),
+      encoder_info_override_(env.field_trials()),
       svc_frame_drop_config_(ParseSvcFrameDropConfig(env.field_trials())) {
   codec_ = {};
   memset(&svc_params_, 0, sizeof(vpx_svc_extra_cfg_t));
@@ -298,12 +302,6 @@ int LibvpxVp9Encoder::Release() {
   return ret_val;
 }
 
-bool LibvpxVp9Encoder::ExplicitlyConfiguredSpatialLayers() const {
-  // We check target_bitrate_bps of the 0th layer to see if the spatial layers
-  // (i.e. bitrates) were explicitly configured.
-  return codec_.spatialLayers[0].targetBitrate > 0;
-}
-
 bool LibvpxVp9Encoder::SetSvcRates(
     const VideoBitrateAllocation& bitrate_allocation) {
   std::pair<size_t, size_t> current_layers =
@@ -330,66 +328,23 @@ bool LibvpxVp9Encoder::SetSvcRates(
 
   config_->rc_target_bitrate = bitrate_allocation.get_sum_kbps();
 
-  if (ExplicitlyConfiguredSpatialLayers()) {
-    for (size_t sl_idx = 0; sl_idx < num_spatial_layers_; ++sl_idx) {
-      const bool was_layer_active = (config_->ss_target_bitrate[sl_idx] > 0);
-      config_->ss_target_bitrate[sl_idx] =
-          bitrate_allocation.GetSpatialLayerSum(sl_idx) / 1000;
-
-      for (size_t tl_idx = 0; tl_idx < num_temporal_layers_; ++tl_idx) {
-        config_->layer_target_bitrate[sl_idx * num_temporal_layers_ + tl_idx] =
-            bitrate_allocation.GetTemporalLayerSum(sl_idx, tl_idx) / 1000;
-      }
-
-      if (!was_layer_active) {
-        // Reset frame rate controller if layer is resumed after pause.
-        framerate_controller_[sl_idx].Reset();
-      }
-
-      framerate_controller_[sl_idx].SetTargetRate(
-          codec_.spatialLayers[sl_idx].maxFramerate);
-    }
-  } else {
-    float rate_ratio[VPX_MAX_LAYERS] = {0};
-    float total = 0;
-    for (int i = 0; i < num_spatial_layers_; ++i) {
-      if (svc_params_.scaling_factor_num[i] <= 0 ||
-          svc_params_.scaling_factor_den[i] <= 0) {
-        RTC_LOG(LS_ERROR) << "Scaling factors not specified!";
-        return false;
-      }
-      rate_ratio[i] = static_cast<float>(svc_params_.scaling_factor_num[i]) /
-                      svc_params_.scaling_factor_den[i];
-      total += rate_ratio[i];
+  for (size_t sl_idx = 0; sl_idx < num_spatial_layers_; ++sl_idx) {
+    if (config_->ss_target_bitrate[sl_idx] == 0) {
+      // Reset frame rate controller if layer is resumed after pause.
+      framerate_controller_[sl_idx].Reset();
     }
 
-    for (int i = 0; i < num_spatial_layers_; ++i) {
-      RTC_CHECK_GT(total, 0);
-      config_->ss_target_bitrate[i] = static_cast<unsigned int>(
-          config_->rc_target_bitrate * rate_ratio[i] / total);
-      if (num_temporal_layers_ == 1) {
-        config_->layer_target_bitrate[i] = config_->ss_target_bitrate[i];
-      } else if (num_temporal_layers_ == 2) {
-        config_->layer_target_bitrate[i * num_temporal_layers_] =
-            config_->ss_target_bitrate[i] * 2 / 3;
-        config_->layer_target_bitrate[i * num_temporal_layers_ + 1] =
-            config_->ss_target_bitrate[i];
-      } else if (num_temporal_layers_ == 3) {
-        config_->layer_target_bitrate[i * num_temporal_layers_] =
-            config_->ss_target_bitrate[i] / 2;
-        config_->layer_target_bitrate[i * num_temporal_layers_ + 1] =
-            config_->layer_target_bitrate[i * num_temporal_layers_] +
-            (config_->ss_target_bitrate[i] / 4);
-        config_->layer_target_bitrate[i * num_temporal_layers_ + 2] =
-            config_->ss_target_bitrate[i];
-      } else {
-        RTC_LOG(LS_ERROR) << "Unsupported number of temporal layers: "
-                          << num_temporal_layers_;
-        return false;
-      }
+    config_->ss_target_bitrate[sl_idx] =
+        bitrate_allocation.GetSpatialLayerSum(sl_idx) / 1000;
 
-      framerate_controller_[i].SetTargetRate(codec_.maxFramerate);
+    for (size_t tl_idx = 0; tl_idx < num_temporal_layers_; ++tl_idx) {
+      config_->layer_target_bitrate[sl_idx * num_temporal_layers_ + tl_idx] =
+          bitrate_allocation.GetTemporalLayerSum(sl_idx, tl_idx) / 1000;
     }
+
+    framerate_controller_[sl_idx].SetTargetRate(
+        num_spatial_layers_ > 1 ? codec_.spatialLayers[sl_idx].maxFramerate
+                                : codec_.maxFramerate);
   }
 
   num_active_spatial_layers_ = 0;
@@ -784,7 +739,7 @@ int LibvpxVp9Encoder::InitAndSetControlSettings(const VideoCodec* inst) {
       svc_params_.scaling_factor_num[i] = stream_config.scaling_factor_num[i];
       svc_params_.scaling_factor_den[i] = stream_config.scaling_factor_den[i];
     }
-  } else if (ExplicitlyConfiguredSpatialLayers()) {
+  } else if (num_spatial_layers_ > 1) {
     for (int i = 0; i < num_spatial_layers_; ++i) {
       const auto& layer = codec_.spatialLayers[i];
       RTC_CHECK_GT(layer.width, 0);
@@ -818,15 +773,6 @@ int LibvpxVp9Encoder::InitAndSetControlSettings(const VideoCodec* inst) {
         RTC_DCHECK_GE(codec_.spatialLayers[i].maxFramerate,
                       codec_.spatialLayers[i - 1].maxFramerate);
       }
-    }
-  } else {
-    int scaling_factor_num = 256;
-    for (int i = num_spatial_layers_ - 1; i >= 0; --i) {
-      // 1:2 scaling in each dimension.
-      svc_params_.scaling_factor_num[i] = scaling_factor_num;
-      svc_params_.scaling_factor_den[i] = 256;
-      if (inst->mode != VideoCodecMode::kScreensharing)
-        scaling_factor_num /= 2;
     }
   }
 
@@ -1035,10 +981,9 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
       // interfere, they must be queried in order of increasing limit.
 
       bool use_steady_state_limiter =
-          variable_framerate_experiment_.enabled &&
           input_image.update_rect().IsEmpty() &&
           num_steady_state_frames_ >=
-              variable_framerate_experiment_.frames_before_steady_state;
+              variable_framerate_screenshare::kFramesBeforeSteadyState;
 
       // Need to check all frame limiters, even if lower layers are disabled,
       // because variable frame-rate limiter should be checked after the first
@@ -1049,7 +994,7 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
             framerate_controller_[layer_id.spatial_layer_id].GetTargetRate();
         // Use steady state rate-limiter at the correct place.
         if (use_steady_state_limiter &&
-            layer_fps > variable_framerate_experiment_.framerate_limit - 1e-9) {
+            layer_fps > variable_framerate_screenshare::kMinFps - 1e-9) {
           if (variable_framerate_controller_.DropFrame(frame_timestamp_ms)) {
             layer_id.spatial_layer_id = num_active_spatial_layers_;
           }
@@ -1846,9 +1791,8 @@ void LibvpxVp9Encoder::DeliverBufferedFrame(bool end_of_picture) {
       // Only frames on spatial layers, which may be limited in a steady state
       // are considered for steady state detection.
       if (framerate_controller_[spatial_idx].GetTargetRate() >
-          variable_framerate_experiment_.framerate_limit + 1e-9) {
-        if (encoded_image_.qp_ <=
-                variable_framerate_experiment_.steady_state_qp &&
+          variable_framerate_screenshare::kMinFps + 1e-9) {
+        if (encoded_image_.qp_ <= variable_framerate_screenshare::kMinQP &&
             encoded_image_.size() <= steady_state_size) {
           ++num_steady_state_frames_;
         } else {
@@ -1928,32 +1872,8 @@ size_t LibvpxVp9Encoder::SteadyStateSize(int sid, int tid) {
                         : codec_.maxFramerate;
   return static_cast<size_t>(
       bitrate_bps / (8 * fps) *
-          (100 -
-           variable_framerate_experiment_.steady_state_undershoot_percentage) /
-          100 +
+          (100 - variable_framerate_screenshare::kUndershootPct) / 100 +
       0.5);
-}
-
-// static
-LibvpxVp9Encoder::VariableFramerateExperiment
-LibvpxVp9Encoder::ParseVariableFramerateConfig(const FieldTrialsView& trials) {
-  FieldTrialFlag enabled = FieldTrialFlag("Enabled");
-  FieldTrialParameter<double> framerate_limit("min_fps", 5.0);
-  FieldTrialParameter<int> qp("min_qp", 32);
-  FieldTrialParameter<int> undershoot_percentage("undershoot", 30);
-  FieldTrialParameter<int> frames_before_steady_state(
-      "frames_before_steady_state", 5);
-  ParseFieldTrial({&enabled, &framerate_limit, &qp, &undershoot_percentage,
-                   &frames_before_steady_state},
-                  trials.Lookup("WebRTC-VP9VariableFramerateScreenshare"));
-  VariableFramerateExperiment config;
-  config.enabled = enabled.Get();
-  config.framerate_limit = framerate_limit.Get();
-  config.steady_state_qp = qp.Get();
-  config.steady_state_undershoot_percentage = undershoot_percentage.Get();
-  config.frames_before_steady_state = frames_before_steady_state.Get();
-
-  return config;
 }
 
 // static

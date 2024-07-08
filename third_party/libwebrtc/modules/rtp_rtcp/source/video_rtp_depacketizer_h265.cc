@@ -134,7 +134,7 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
         // https://datatracker.ietf.org/doc/html/rfc7798#section-3.1.1
         parsed_payload->video_header.frame_type =
             VideoFrameType::kVideoFrameKey;
-        ABSL_FALLTHROUGH_INTENDED;
+        break;
       case H265::NaluType::kSps: {
         // Copy any previous data first (likely just the first header).
         std::unique_ptr<rtc::Buffer> output_buffer(new rtc::Buffer());

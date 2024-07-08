@@ -15,8 +15,8 @@
 
 #import "components/audio/RTCAudioDevice.h"
 
+#include "api/audio/audio_device.h"
 #include "modules/audio_device/audio_device_buffer.h"
-#include "modules/audio_device/include/audio_device.h"
 #include "rtc_base/thread.h"
 
 @class ObjCAudioDeviceDelegate;

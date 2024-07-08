@@ -27,34 +27,30 @@ namespace dcsctp {
 // a lot, which is an indicator of a bad connection.
 class RetransmissionTimeout {
  public:
-  static constexpr int kRttShift = 3;
-  static constexpr int kRttVarShift = 2;
   explicit RetransmissionTimeout(const DcSctpOptions& options);
 
   // To be called when a RTT has been measured, to update the RTO value.
-  void ObserveRTT(webrtc::TimeDelta measured_rtt);
+  void ObserveRTT(webrtc::TimeDelta rtt);
 
-  // Returns the Retransmission Timeout (RTO) value, in milliseconds.
-  webrtc::TimeDelta rto() const { return webrtc::TimeDelta::Millis(rto_); }
+  // Returns the Retransmission Timeout (RTO) value.
+  webrtc::TimeDelta rto() const { return rto_; }
 
-  // Returns the smoothed RTT value, in milliseconds.
-  webrtc::TimeDelta srtt() const {
-    return webrtc::TimeDelta::Millis(scaled_srtt_ >> kRttShift);
-  }
+  // Returns the smoothed RTT value.
+  webrtc::TimeDelta srtt() const { return srtt_; }
 
  private:
   const webrtc::TimeDelta min_rto_;
   const webrtc::TimeDelta max_rto_;
   const webrtc::TimeDelta max_rtt_;
-  const int64_t min_rtt_variance_;
+  const webrtc::TimeDelta min_rtt_variance_;
   // If this is the first measurement
   bool first_measurement_ = true;
-  // Smoothed Round-Trip Time, shifted by kRttShift
-  int64_t scaled_srtt_;
-  // Round-Trip Time Variation, shifted by kRttVarShift
-  int64_t scaled_rtt_var_ = 0;
+  // Smoothed Round-Trip Time.
+  webrtc::TimeDelta srtt_;
+  // Round-Trip Time Variation.
+  webrtc::TimeDelta rtt_var_ = webrtc::TimeDelta::Zero();
   // Retransmission Timeout
-  int64_t rto_;
+  webrtc::TimeDelta rto_;
 };
 }  // namespace dcsctp
 

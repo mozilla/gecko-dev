@@ -4,7 +4,6 @@ srte@webrtc.org
 
 per-file audio_allocation_settings*=srte@webrtc.org
 per-file congestion_controller_experiment*=srte@webrtc.org
-per-file cpu_speed_experiment*=asapersson@webrtc.org
 per-file field_trial*=srte@webrtc.org
 per-file keyframe_interval_settings*=brandtr@webrtc.org
 per-file normalize_simulcast_size_experiment*=asapersson@webrtc.org

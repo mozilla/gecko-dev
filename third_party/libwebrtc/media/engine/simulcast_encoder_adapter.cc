@@ -44,18 +44,6 @@ namespace {
 // Max qp for lowest spatial resolution when doing simulcast.
 const unsigned int kLowestResMaxQp = 45;
 
-absl::optional<unsigned int> GetScreenshareBoostedQpValue(
-    const webrtc::FieldTrialsView& field_trials) {
-  std::string experiment_group =
-      field_trials.Lookup("WebRTC-BoostedScreenshareQp");
-  unsigned int qp;
-  if (sscanf(experiment_group.c_str(), "%u", &qp) != 1)
-    return absl::nullopt;
-  qp = std::min(qp, 63u);
-  qp = std::max(qp, 1u);
-  return qp;
-}
-
 uint32_t SumStreamMaxBitrate(int streams, const webrtc::VideoCodec& codec) {
   uint32_t bitrate_sum = 0;
   for (int i = 0; i < streams; ++i) {
@@ -258,14 +246,12 @@ SimulcastEncoderAdapter::SimulcastEncoderAdapter(
       total_streams_count_(0),
       bypass_mode_(false),
       encoded_complete_callback_(nullptr),
-      experimental_boosted_screenshare_qp_(
-          GetScreenshareBoostedQpValue(env_.field_trials())),
       boost_base_layer_quality_(
-          RateControlSettings::ParseFromKeyValueConfig(&env_.field_trials())
-              .Vp8BoostBaseLayerQuality()),
+          RateControlSettings(env_.field_trials()).Vp8BoostBaseLayerQuality()),
       prefer_temporal_support_on_base_layer_(env_.field_trials().IsEnabled(
           "WebRTC-Video-PreferTemporalSupportOnBaseLayer")),
-      per_layer_pli_(SupportsPerLayerPictureLossIndication(format.parameters)) {
+      per_layer_pli_(SupportsPerLayerPictureLossIndication(format.parameters)),
+      encoder_info_override_(env.field_trials()) {
   RTC_DCHECK(primary_factory);
 
   // The adapter is typically created on the worker thread, but operated on
@@ -824,11 +810,8 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
   // Settings that are based on stream/resolution.
   if (is_lowest_quality_stream) {
     // Settings for lowest spatial resolutions.
-    if (codec.mode == VideoCodecMode::kScreensharing) {
-      if (experimental_boosted_screenshare_qp_) {
-        codec_params.qpMax = *experimental_boosted_screenshare_qp_;
-      }
-    } else if (boost_base_layer_quality_) {
+    if (codec.mode == VideoCodecMode::kRealtimeVideo &&
+        boost_base_layer_quality_) {
       codec_params.qpMax = kLowestResMaxQp;
     }
   }

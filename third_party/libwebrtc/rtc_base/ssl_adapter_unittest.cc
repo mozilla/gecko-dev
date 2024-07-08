@@ -216,21 +216,25 @@ class SocketStream : public rtc::StreamInterface, public sigslot::has_slots<> {
 
  private:
   void OnConnectEvent(rtc::Socket* socket) {
+    RTC_DCHECK_RUN_ON(&callback_sequence_);
     RTC_DCHECK_EQ(socket, socket_.get());
-    SignalEvent(this, rtc::SE_OPEN | rtc::SE_READ | rtc::SE_WRITE, 0);
+    FireEvent(rtc::SE_OPEN | rtc::SE_READ | rtc::SE_WRITE, 0);
   }
 
   void OnReadEvent(rtc::Socket* socket) {
+    RTC_DCHECK_RUN_ON(&callback_sequence_);
     RTC_DCHECK_EQ(socket, socket_.get());
-    SignalEvent(this, rtc::SE_READ, 0);
+    FireEvent(rtc::SE_READ, 0);
   }
   void OnWriteEvent(rtc::Socket* socket) {
+    RTC_DCHECK_RUN_ON(&callback_sequence_);
     RTC_DCHECK_EQ(socket, socket_.get());
-    SignalEvent(this, rtc::SE_WRITE, 0);
+    FireEvent(rtc::SE_WRITE, 0);
   }
   void OnCloseEvent(rtc::Socket* socket, int err) {
+    RTC_DCHECK_RUN_ON(&callback_sequence_);
     RTC_DCHECK_EQ(socket, socket_.get());
-    SignalEvent(this, rtc::SE_CLOSE, err);
+    FireEvent(rtc::SE_CLOSE, err);
   }
 
   std::unique_ptr<rtc::Socket> socket_;
@@ -317,7 +321,7 @@ class SSLAdapterTestDummyServer : public sigslot::has_slots<> {
     DoHandshake(server_socket_->Accept(nullptr));
   }
 
-  void OnSSLStreamAdapterEvent(rtc::StreamInterface* stream, int sig, int err) {
+  void OnSSLStreamAdapterEvent(int sig, int err) {
     if (sig & rtc::SE_READ) {
       uint8_t buffer[4096] = "";
       size_t read;
@@ -325,7 +329,7 @@ class SSLAdapterTestDummyServer : public sigslot::has_slots<> {
 
       // Read data received from the client and store it in our internal
       // buffer.
-      rtc::StreamResult r = stream->Read(buffer, read, error);
+      rtc::StreamResult r = ssl_stream_adapter_->Read(buffer, read, error);
       if (r == rtc::SR_SUCCESS) {
         buffer[read] = '\0';
         // Here we assume that the buffer is interpretable as string.
@@ -361,8 +365,8 @@ class SSLAdapterTestDummyServer : public sigslot::has_slots<> {
 
     ssl_stream_adapter_->StartSSL();
 
-    ssl_stream_adapter_->SignalEvent.connect(
-        this, &SSLAdapterTestDummyServer::OnSSLStreamAdapterEvent);
+    ssl_stream_adapter_->SetEventCallback(
+        [this](int events, int err) { OnSSLStreamAdapterEvent(events, err); });
   }
 
   const rtc::SSLMode ssl_mode_;

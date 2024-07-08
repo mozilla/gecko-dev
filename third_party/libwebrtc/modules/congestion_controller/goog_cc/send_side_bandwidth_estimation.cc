@@ -33,7 +33,6 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/logging.h"
-#include "system_wrappers/include/field_trial.h"
 #include "system_wrappers/include/metrics.h"
 
 namespace webrtc {
@@ -67,21 +66,18 @@ const size_t kNumUmaRampupMetrics =
 
 const char kBweLosExperiment[] = "WebRTC-BweLossExperiment";
 
-bool BweLossExperimentIsEnabled() {
-  std::string experiment_string =
-      webrtc::field_trial::FindFullName(kBweLosExperiment);
-  // The experiment is enabled iff the field trial string begins with "Enabled".
-  return absl::StartsWith(experiment_string, "Enabled");
+bool BweLossExperimentIsEnabled(const FieldTrialsView& field_trials) {
+  return field_trials.IsEnabled(kBweLosExperiment);
 }
 
-bool ReadBweLossExperimentParameters(float* low_loss_threshold,
+bool ReadBweLossExperimentParameters(const FieldTrialsView& field_trials,
+                                     float* low_loss_threshold,
                                      float* high_loss_threshold,
                                      uint32_t* bitrate_threshold_kbps) {
   RTC_DCHECK(low_loss_threshold);
   RTC_DCHECK(high_loss_threshold);
   RTC_DCHECK(bitrate_threshold_kbps);
-  std::string experiment_string =
-      webrtc::field_trial::FindFullName(kBweLosExperiment);
+  std::string experiment_string = field_trials.Lookup(kBweLosExperiment);
   int parsed_values =
       sscanf(experiment_string.c_str(), "Enabled-%f,%f,%u", low_loss_threshold,
              high_loss_threshold, bitrate_threshold_kbps);
@@ -113,14 +109,6 @@ bool ReadBweLossExperimentParameters(float* low_loss_threshold,
 }
 }  // namespace
 
-LinkCapacityTracker::LinkCapacityTracker()
-    : tracking_rate("rate", TimeDelta::Seconds(10)) {
-  ParseFieldTrial({&tracking_rate},
-                  field_trial::FindFullName("WebRTC-Bwe-LinkCapacity"));
-}
-
-LinkCapacityTracker::~LinkCapacityTracker() {}
-
 void LinkCapacityTracker::UpdateDelayBasedEstimate(
     Timestamp at_time,
     DataRate delay_based_bitrate) {
@@ -145,7 +133,8 @@ void LinkCapacityTracker::OnRateUpdate(absl::optional<DataRate> acknowledged,
   DataRate acknowledged_target = std::min(*acknowledged, target);
   if (acknowledged_target.bps() > capacity_estimate_bps_) {
     TimeDelta delta = at_time - last_link_capacity_update_;
-    double alpha = delta.IsFinite() ? exp(-(delta / tracking_rate.Get())) : 0;
+    double alpha =
+        delta.IsFinite() ? exp(-(delta / TimeDelta::Seconds(10))) : 0;
     capacity_estimate_bps_ = alpha * capacity_estimate_bps_ +
                              (1 - alpha) * acknowledged_target.bps<double>();
   }
@@ -238,11 +227,11 @@ SendSideBandwidthEstimation::SendSideBandwidthEstimation(
       loss_based_state_(LossBasedState::kDelayBasedEstimate),
       disable_receiver_limit_caps_only_("Disabled") {
   RTC_DCHECK(event_log);
-  if (BweLossExperimentIsEnabled()) {
+  if (BweLossExperimentIsEnabled(*key_value_config_)) {
     uint32_t bitrate_threshold_kbps;
-    if (ReadBweLossExperimentParameters(&low_loss_threshold_,
-                                        &high_loss_threshold_,
-                                        &bitrate_threshold_kbps)) {
+    if (ReadBweLossExperimentParameters(
+            *key_value_config_, &low_loss_threshold_, &high_loss_threshold_,
+            &bitrate_threshold_kbps)) {
       RTC_LOG(LS_INFO) << "Enabled BweLossExperiment with parameters "
                        << low_loss_threshold_ << ", " << high_loss_threshold_
                        << ", " << bitrate_threshold_kbps;

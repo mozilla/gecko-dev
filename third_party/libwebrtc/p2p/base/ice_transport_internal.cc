@@ -123,13 +123,7 @@ int IceConfig::stun_keepalive_interval_or_default() const {
   return stun_keepalive_interval.value_or(STUN_KEEPALIVE_INTERVAL);
 }
 
-IceTransportInternal::IceTransportInternal() {
-  // Set up detector for use of SignalGatheringState rather than
-  // SetGatheringStateCallback, and behave accordingly
-  // TODO(bugs.webrtc.org/11943): remove when Signal removed
-  SignalGatheringState.connect(
-      this, &IceTransportInternal::SignalGatheringStateFired);
-}
+IceTransportInternal::IceTransportInternal() {}
 
 IceTransportInternal::~IceTransportInternal() = default;
 
@@ -141,6 +135,16 @@ void IceTransportInternal::SetIceCredentials(absl::string_view ice_ufrag,
 void IceTransportInternal::SetRemoteIceCredentials(absl::string_view ice_ufrag,
                                                    absl::string_view ice_pwd) {
   SetRemoteIceParameters(IceParameters(ice_ufrag, ice_pwd, false));
+}
+
+void IceTransportInternal::AddGatheringStateCallback(
+    const void* removal_tag,
+    absl::AnyInvocable<void(IceTransportInternal*)> callback) {
+  gathering_state_callback_list_.AddReceiver(removal_tag, std::move(callback));
+}
+void IceTransportInternal::RemoveGatheringStateCallback(
+    const void* removal_tag) {
+  gathering_state_callback_list_.RemoveReceivers(removal_tag);
 }
 
 }  // namespace cricket

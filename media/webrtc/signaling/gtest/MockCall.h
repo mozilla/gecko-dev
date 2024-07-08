@@ -301,7 +301,7 @@ class MockCall : public webrtc::Call {
 
   std::vector<webrtc::VideoStream> CreateEncoderStreams(int width, int height) {
     return mVideoSendEncoderConfig->video_stream_factory->CreateEncoderStreams(
-        width, height, *mVideoSendEncoderConfig);
+        mUnusedConfig, width, height, *mVideoSendEncoderConfig);
   }
 
   virtual const webrtc::FieldTrialsView& trials() const override {

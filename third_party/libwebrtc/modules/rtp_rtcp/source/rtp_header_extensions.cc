@@ -181,23 +181,6 @@ bool AudioLevelExtension::Write(rtc::ArrayView<uint8_t> data,
   return true;
 }
 
-bool AudioLevelExtension::Parse(rtc::ArrayView<const uint8_t> data,
-                                bool* voice_activity,
-                                uint8_t* audio_level) {
-  AudioLevel extension;
-  Parse(data, &extension);
-  *voice_activity = extension.voice_activity();
-  *audio_level = extension.level();
-  return true;
-}
-
-bool AudioLevelExtension::Write(rtc::ArrayView<uint8_t> data,
-                                bool voice_activity,
-                                uint8_t audio_level) {
-  AudioLevel extension(voice_activity, audio_level);
-  return Write(data, extension);
-}
-
 #if !defined(WEBRTC_MOZILLA_BUILD)
 // An RTP Header Extension for Mixer-to-Client Audio Level Indication
 //

@@ -167,6 +167,7 @@ class RtpSenderEgress {
   RepeatingTaskHandle update_task_ RTC_GUARDED_BY(worker_queue_);
   std::vector<Packet> packets_to_send_ RTC_GUARDED_BY(worker_queue_);
   ScopedTaskSafety task_safety_;
+  const bool use_ntp_time_for_absolute_send_time_;
 };
 
 }  // namespace webrtc

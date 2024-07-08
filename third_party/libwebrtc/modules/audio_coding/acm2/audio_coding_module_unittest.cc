@@ -506,6 +506,83 @@ TEST_F(AudioCodingModuleMtTestOldApi, MAYBE_DoTest) {
   EXPECT_TRUE(RunTest());
 }
 
+class AudioPacketizationCallbackMock : public AudioPacketizationCallback {
+ public:
+  MOCK_METHOD(int32_t,
+              SendData,
+              (AudioFrameType frame_type,
+               uint8_t payload_type,
+               uint32_t timestamp,
+               const uint8_t* payload_data,
+               size_t payload_len_bytes,
+               int64_t absolute_capture_timestamp_ms),
+              (override));
+};
+
+class AcmAbsoluteCaptureTimestamp : public ::testing::Test {
+ public:
+  AcmAbsoluteCaptureTimestamp() : audio_frame_(kSampleRateHz, kNumChannels) {}
+
+ protected:
+  static constexpr int kPTimeMs = 20;
+  static constexpr int kSampleRateHz = 48000;
+  static constexpr int kFrameSize = kSampleRateHz / 100;
+  static constexpr int kNumChannels = 2;
+
+  void SetUp() {
+    rtc::scoped_refptr<AudioEncoderFactory> codec_factory =
+        CreateBuiltinAudioEncoderFactory();
+    acm_ = AudioCodingModule::Create();
+    std::unique_ptr<AudioEncoder> encoder = codec_factory->MakeAudioEncoder(
+        111, SdpAudioFormat("OPUS", kSampleRateHz, kNumChannels),
+        absl::nullopt);
+    encoder->SetDtx(true);
+    encoder->SetReceiverFrameLengthRange(kPTimeMs, kPTimeMs);
+    acm_->SetEncoder(std::move(encoder));
+    acm_->RegisterTransportCallback(&transport_);
+    for (size_t k = 0; k < audio_.size(); ++k) {
+      audio_[k] = 10 * k;
+    }
+  }
+
+  const AudioFrame& GetAudioWithAbsoluteCaptureTimestamp(
+      int64_t absolute_capture_timestamp_ms) {
+    audio_frame_.ResetWithoutMuting();
+    audio_frame_.UpdateFrame(timestamp_, audio_.data(), kFrameSize,
+                             kSampleRateHz,
+                             AudioFrame::SpeechType::kNormalSpeech,
+                             AudioFrame::VADActivity::kVadActive, kNumChannels);
+    audio_frame_.set_absolute_capture_timestamp_ms(
+        absolute_capture_timestamp_ms);
+    timestamp_ += kFrameSize;
+    return audio_frame_;
+  }
+
+  std::unique_ptr<AudioCodingModule> acm_;
+  AudioPacketizationCallbackMock transport_;
+  AudioFrame audio_frame_;
+  std::array<int16_t, kFrameSize * kNumChannels> audio_;
+  uint32_t timestamp_ = 9873546;
+};
+
+TEST_F(AcmAbsoluteCaptureTimestamp, HaveBeginningOfFrameCaptureTime) {
+  constexpr int64_t first_absolute_capture_timestamp_ms = 123456789;
+
+  int64_t absolute_capture_timestamp_ms = first_absolute_capture_timestamp_ms;
+  EXPECT_CALL(transport_,
+              SendData(_, _, _, _, _, first_absolute_capture_timestamp_ms))
+      .Times(1);
+  EXPECT_CALL(
+      transport_,
+      SendData(_, _, _, _, _, first_absolute_capture_timestamp_ms + kPTimeMs))
+      .Times(1);
+  for (int k = 0; k < 5; ++k) {
+    acm_->Add10MsData(
+        GetAudioWithAbsoluteCaptureTimestamp(absolute_capture_timestamp_ms));
+    absolute_capture_timestamp_ms += 10;
+  }
+}
+
 // Disabling all of these tests on iOS until file support has been added.
 // See https://code.google.com/p/webrtc/issues/detail?id=4752 for details.
 #if !defined(WEBRTC_IOS)

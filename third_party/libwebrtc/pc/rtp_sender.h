@@ -206,7 +206,7 @@ class RtpSenderBase : public RtpSenderInternal, public ObserverInterface {
   // If the specified list is empty, this is a no-op.
   RTCError DisableEncodingLayers(const std::vector<std::string>& rid) override;
 
-  void SetEncoderToPacketizerFrameTransformer(
+  void SetFrameTransformer(
       rtc::scoped_refptr<FrameTransformerInterface> frame_transformer) override;
 
   void SetEncoderSelector(

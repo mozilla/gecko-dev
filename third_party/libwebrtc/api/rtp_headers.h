@@ -150,15 +150,11 @@ struct RTPHeaderExtension {
 
   // Audio Level includes both level in dBov and voiced/unvoiced bit. See:
   // https://tools.ietf.org/html/rfc6464#section-3
-  absl::optional<AudioLevel> audio_level() const;
+  absl::optional<AudioLevel> audio_level() const { return audio_level_; }
 
-  void set_audio_level(absl::optional<AudioLevel> audio_level);
-
-  // Direct use of the following members is discouraged and will be removed
-  // once downstream projects have been updated.
-  bool hasAudioLevel;
-  bool voiceActivity;
-  uint8_t audioLevel;
+  void set_audio_level(absl::optional<AudioLevel> audio_level) {
+    audio_level_ = audio_level;
+  }
 
   // For Coordination of Video Orientation. See
   // http://www.etsi.org/deliver/etsi_ts/126100_126199/126114/12.07.00_60/
@@ -188,6 +184,9 @@ struct RTPHeaderExtension {
   absl::optional<ColorSpace> color_space;
 
   CsrcAudioLevelList csrcAudioLevels;
+
+ private:
+  absl::optional<AudioLevel> audio_level_;
 };
 
 struct RTC_EXPORT RTPHeader {

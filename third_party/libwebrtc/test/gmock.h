@@ -14,7 +14,7 @@
 #include "rtc_base/ignore_wundef.h"
 
 RTC_PUSH_IGNORING_WUNDEF()
-#include "testing/gmock/include/gmock/gmock.h"
+#include "testing/gmock/include/gmock/gmock.h"  // IWYU pragma: export
 RTC_POP_IGNORING_WUNDEF()
 
 #endif  // TEST_GMOCK_H_

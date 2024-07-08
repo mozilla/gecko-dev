@@ -20,7 +20,12 @@ namespace webrtc {
 
 // Returns a non-null NetworkEmulationManager instance.
 std::unique_ptr<NetworkEmulationManager> CreateNetworkEmulationManager(
-    TimeMode time_mode = TimeMode::kRealTime,
+    NetworkEmulationManagerConfig config = NetworkEmulationManagerConfig());
+
+[[deprecated("Use version with NetworkEmulationManagerConfig)")]]
+std::unique_ptr<NetworkEmulationManager>
+CreateNetworkEmulationManager(
+    TimeMode time_mode,
     EmulatedNetworkStatsGatheringMode stats_gathering_mode =
         EmulatedNetworkStatsGatheringMode::kDefault,
     const FieldTrialsView* field_trials = nullptr);

@@ -1,5 +1,5 @@
 <!-- go/cmark -->
-<!--* freshness: {owner: 'danilchap' reviewed: '2022-01-17'} *-->
+<!--* freshness: {owner: 'danilchap' reviewed: '2024-04-17'} *-->
 
 # WebRTC coding style guide
 
@@ -14,10 +14,12 @@ If making large changes to such code, consider first cleaning it up in a
 WebRTC follows the [Chromium C++ style guide][chr-style] and the
 [Google C++ style guide][goog-style]. In cases where they conflict, the Chromium
 style guide trumps the Google style guide, and the rules in this file trump them
-both.
+both. In addition to style guides it is recommended to follow
+[best practices][goog-best-practice] when applicable.
 
 [chr-style]: https://chromium.googlesource.com/chromium/src/+/main/styleguide/c++/c++.md
 [goog-style]: https://google.github.io/styleguide/cppguide.html
+[goog-best-practice]: https://abseil.io/tips
 
 ### C++ version
 
@@ -84,6 +86,17 @@ Like so:
 std::pony PonyPlz(const std::pony_spec& ps);
 ```
 
+Prefer [ABSL_DEPRECATE_AND_INLINE] to deprecate an inline function definition
+or a type alias. This macro allows to automate inlining the functions's body or
+replacing the type where it is used downstream. e.g.,
+
+```cpp
+ABSL_DEPRECATE_AND_INLINE() inline int OldFunc(int x) {
+  return NewFunc(x, 0);
+}
+using OldTypeName ABSL_DEPRECATE_AND_INLINE() = NewTypeName;
+```
+
 NOTE 1: The annotation goes on the declaration in the `.h` file, not the
 definition in the `.cc` file!
 
@@ -109,6 +122,7 @@ readable way.
 
 [DEPRECATED]: https://en.cppreference.com/w/cpp/language/attributes/deprecated
 [ABSL_DEPRECATED]: https://source.chromium.org/chromium/chromium/src/+/main:third_party/abseil-cpp/absl/base/attributes.h?q=ABSL_DEPRECATED
+[ABSL_DEPRECATE_AND_INLINE]: https://source.chromium.org/chromium/chromium/src/+/main:third_party/abseil-cpp/absl/base/macros.h?q=ABSL_DEPRECATE_AND_INLINE
 
 ### ArrayView
 
@@ -169,7 +183,9 @@ held by the API user, `rtc::scoped_refptr` can be appropriate.
 ### `std::bind`
 
 Don't use `std::bind`—there are pitfalls, and lambdas are almost as succinct and
-already familiar to modern C++ programmers.
+already familiar to modern C++ programmers. See [Avoid std::bind][totw-108] for more.
+
+[totw-108]: https://abseil.io/tips/108
 
 ### `std::function`
 

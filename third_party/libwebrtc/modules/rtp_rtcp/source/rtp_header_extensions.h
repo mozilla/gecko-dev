@@ -27,6 +27,7 @@
 #include "api/video/video_rotation.h"
 #include "api/video/video_timing.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "system_wrappers/include/ntp_time.h"
 
 // This file contains class definitions for reading/writing each RTP header
 // extension. Each class must be defined such that it is compatible with being
@@ -56,6 +57,11 @@ class AbsoluteSendTime {
     RTC_DCHECK_GE(time6x18, 0);
     RTC_DCHECK_LT(time6x18, 1 << 24);
     return static_cast<uint32_t>(time6x18);
+  }
+
+  static uint32_t To24Bits(NtpTime ntp_time) {
+    uint64_t ntp_time32x32 = static_cast<uint64_t>(ntp_time);
+    return (ntp_time32x32 >> 14) & 0x00FF'FFFF;
   }
 
   static constexpr Timestamp ToTimestamp(uint32_t time_24bits) {
@@ -96,18 +102,6 @@ class AudioLevelExtension {
     return kValueSizeBytes;
   }
   static bool Write(rtc::ArrayView<uint8_t> data, const AudioLevel& extension);
-
-  [[deprecated("Use AudioLevel struct")]] static bool Parse(
-      rtc::ArrayView<const uint8_t> data,
-      bool* voice_activity,
-      uint8_t* audio_level);
-  [[deprecated("Use AudioLevel struct")]] static size_t ValueSize(
-      bool voice_activity,
-      uint8_t audio_level) {
-    return kValueSizeBytes;
-  }
-  [[deprecated("Use AudioLevel struct")]] static bool
-  Write(rtc::ArrayView<uint8_t> data, bool voice_activity, uint8_t audio_level);
 };
 
 #if !defined(WEBRTC_MOZILLA_BUILD)

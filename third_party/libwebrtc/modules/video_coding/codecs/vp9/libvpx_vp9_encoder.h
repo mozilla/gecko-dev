@@ -142,6 +142,7 @@ class LibvpxVp9Encoder : public VideoEncoder {
   uint8_t num_spatial_layers_;         // Number of configured SLs
   uint8_t num_active_spatial_layers_;  // Number of actively encoded SLs
   uint8_t first_active_layer_;
+  uint8_t last_active_layer_;
   bool layer_deactivation_requires_key_frame_;
   bool is_svc_;
   InterLayerPredMode inter_layer_pred_;
@@ -173,22 +174,6 @@ class LibvpxVp9Encoder : public VideoEncoder {
   std::array<RefFrameBuffer, kNumVp9Buffers> ref_buf_;
   std::vector<ScalableVideoController::LayerFrameConfig> layer_frames_;
 
-  // Variable frame-rate related fields and methods.
-  const struct VariableFramerateExperiment {
-    bool enabled;
-    // Framerate is limited to this value in steady state.
-    float framerate_limit;
-    // This qp or below is considered a steady state.
-    int steady_state_qp;
-    // Frames of at least this percentage below ideal for configured bitrate are
-    // considered in a steady state.
-    int steady_state_undershoot_percentage;
-    // Number of consecutive frames with good QP and size required to detect
-    // the steady state.
-    int frames_before_steady_state;
-  } variable_framerate_experiment_;
-  static VariableFramerateExperiment ParseVariableFramerateConfig(
-      const FieldTrialsView& trials);
   FramerateControllerDeprecated variable_framerate_controller_;
 
   const struct QualityScalerExperiment {

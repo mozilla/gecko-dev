@@ -40,7 +40,7 @@ std::vector<SdpVideoFormat> FakeVideoEncoderFactory::GetSupportedFormats()
 std::unique_ptr<VideoEncoder> FakeVideoEncoderFactory::Create(
     const Environment& env,
     const SdpVideoFormat& format) {
-  return std::make_unique<test::FakeEncoder>(&env.clock());
+  return std::make_unique<test::FakeEncoder>(env);
 }
 
 FakeVideoDecoderFactory::FakeVideoDecoderFactory() = default;

@@ -50,64 +50,11 @@ namespace {
 
 const int64_t kGetStatsTimeoutMs = 10000;
 
-const unsigned char* GetCategoryEnabledHandler(const char* name) {
-  if (strcmp("webrtc_stats", name) != 0) {
-    return reinterpret_cast<const unsigned char*>("");
-  }
-  return reinterpret_cast<const unsigned char*>(name);
-}
-
-class RTCStatsReportTraceListener {
- public:
-  static void SetUp() {
-    if (!traced_report_)
-      traced_report_ = new RTCStatsReportTraceListener();
-    traced_report_->last_trace_ = "";
-    SetupEventTracer(&GetCategoryEnabledHandler,
-                     &RTCStatsReportTraceListener::AddTraceEventHandler);
-  }
-
-  static const std::string& last_trace() {
-    RTC_DCHECK(traced_report_);
-    return traced_report_->last_trace_;
-  }
-
- private:
-  static void AddTraceEventHandler(
-      char phase,
-      const unsigned char* category_enabled,
-      const char* name,
-      unsigned long long id,  // NOLINT(runtime/int)
-      int num_args,
-      const char** arg_names,
-      const unsigned char* arg_types,
-      const unsigned long long* arg_values,  // NOLINT(runtime/int)
-      unsigned char flags) {
-    RTC_DCHECK(traced_report_);
-    EXPECT_STREQ("webrtc_stats",
-                 reinterpret_cast<const char*>(category_enabled));
-    EXPECT_STREQ("webrtc_stats", name);
-    EXPECT_EQ(1, num_args);
-    EXPECT_STREQ("report", arg_names[0]);
-    EXPECT_EQ(TRACE_VALUE_TYPE_COPY_STRING, arg_types[0]);
-
-    traced_report_->last_trace_ = reinterpret_cast<const char*>(arg_values[0]);
-  }
-
-  static RTCStatsReportTraceListener* traced_report_;
-  std::string last_trace_;
-};
-
-RTCStatsReportTraceListener* RTCStatsReportTraceListener::traced_report_ =
-    nullptr;
-
 class RTCStatsIntegrationTest : public ::testing::Test {
  public:
   RTCStatsIntegrationTest()
       : network_thread_(new rtc::Thread(&virtual_socket_server_)),
         worker_thread_(rtc::Thread::Create()) {
-    RTCStatsReportTraceListener::SetUp();
-
     RTC_CHECK(network_thread_->Start());
     RTC_CHECK(worker_thread_->Start());
 
@@ -1054,10 +1001,6 @@ TEST_F(RTCStatsIntegrationTest, GetStatsFromCaller) {
 
   rtc::scoped_refptr<const RTCStatsReport> report = GetStatsFromCaller();
   RTCStatsReportVerifier(report.get()).VerifyReport({});
-
-#if RTC_TRACE_EVENTS_ENABLED
-  EXPECT_EQ(report->ToJson(), RTCStatsReportTraceListener::last_trace());
-#endif
 }
 
 TEST_F(RTCStatsIntegrationTest, GetStatsFromCallee) {
@@ -1076,10 +1019,6 @@ TEST_F(RTCStatsIntegrationTest, GetStatsFromCallee) {
   };
   EXPECT_TRUE_WAIT(GetStatsReportAndReturnTrueIfRttIsDefined(), kMaxWaitMs);
   RTCStatsReportVerifier(report.get()).VerifyReport({});
-
-#if RTC_TRACE_EVENTS_ENABLED
-  EXPECT_EQ(report->ToJson(), RTCStatsReportTraceListener::last_trace());
-#endif
 }
 
 // These tests exercise the integration of the stats selection algorithm inside
@@ -1157,10 +1096,6 @@ TEST_F(RTCStatsIntegrationTest,
   // Any pending stats requests should have completed in the act of destroying
   // the peer connection.
   ASSERT_TRUE(stats_obtainer->report());
-#if RTC_TRACE_EVENTS_ENABLED
-  EXPECT_EQ(stats_obtainer->report()->ToJson(),
-            RTCStatsReportTraceListener::last_trace());
-#endif
 }
 
 TEST_F(RTCStatsIntegrationTest, GetsStatsWhileClosingPeerConnection) {
@@ -1172,10 +1107,6 @@ TEST_F(RTCStatsIntegrationTest, GetsStatsWhileClosingPeerConnection) {
   caller_->pc()->Close();
 
   ASSERT_TRUE(stats_obtainer->report());
-#if RTC_TRACE_EVENTS_ENABLED
-  EXPECT_EQ(stats_obtainer->report()->ToJson(),
-            RTCStatsReportTraceListener::last_trace());
-#endif
 }
 
 // GetStatsReferencedIds() is optimized to recognize what is or isn't a

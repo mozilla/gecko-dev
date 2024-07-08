@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "api/audio/audio_device.h"
 #include "api/fec_controller_override.h"
 #include "api/rtc_event_log_output_file.h"
 #include "api/task_queue/default_task_queue_factory.h"
@@ -30,14 +31,12 @@
 #include "api/video/builtin_video_bitrate_allocator_factory.h"
 #include "api/video_codecs/video_encoder.h"
 #include "call/fake_network_pipe.h"
-#include "call/simulated_network.h"
 #include "media/base/media_constants.h"
 #include "media/engine/adm_helpers.h"
 #include "media/engine/fake_video_codec_factory.h"
 #include "media/engine/internal_encoder_factory.h"
 #include "media/engine/simulcast_encoder_adapter.h"
 #include "media/engine/webrtc_video_engine.h"
-#include "modules/audio_device/include/audio_device.h"
 #include "modules/audio_mixer/audio_mixer_impl.h"
 #include "modules/video_coding/codecs/h264/include/h264.h"
 #include "modules/video_coding/codecs/vp8/include/vp8.h"
@@ -45,6 +44,7 @@
 #include "modules/video_coding/utility/ivf_file_writer.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/task_queue_for_test.h"
+#include "test/network/simulated_network.h"
 #include "test/platform_video_capturer.h"
 #include "test/test_flags.h"
 #include "test/testsupport/file_utils.h"
@@ -106,6 +106,7 @@ class VideoStreamFactory
 
  private:
   std::vector<VideoStream> CreateEncoderStreams(
+      const FieldTrialsView& /*field_trials*/,
       int frame_width,
       int frame_height,
       const VideoEncoderConfig& encoder_config) override {
@@ -591,7 +592,6 @@ VideoStream VideoQualityTest::DefaultThumbnailStream() {
   return stream;
 }
 
-// Static.
 void VideoQualityTest::FillScalabilitySettings(
     Params* params,
     size_t video_idx,
@@ -624,8 +624,8 @@ void VideoQualityTest::FillScalabilitySettings(
             params->screenshare[video_idx].enabled, true, encoder_info);
     params->ss[video_idx].streams =
         encoder_config.video_stream_factory->CreateEncoderStreams(
-            params->video[video_idx].width, params->video[video_idx].height,
-            encoder_config);
+            env().field_trials(), params->video[video_idx].width,
+            params->video[video_idx].height, encoder_config);
   } else {
     // Read VideoStream and SpatialLayer elements from a list of comma separated
     // lists. To use a default value for an element, use -1 or leave empty.
@@ -1045,6 +1045,10 @@ VideoQualityTest::CreateFrameGenerator(size_t video_idx) {
         kWidth, kHeight,
         params_.screenshare[video_idx].slide_change_interval *
             params_.video[video_idx].fps);
+  } else if (!params_.video[video_idx].clip_path.empty()) {
+    frame_generator = test::CreateFromYuvFileFrameGenerator(
+        {params_.video[video_idx].clip_path}, params_.video[video_idx].width,
+        params_.video[video_idx].height, 1);
   } else {
     std::vector<std::string> slides = params_.screenshare[video_idx].slides;
     if (slides.empty()) {

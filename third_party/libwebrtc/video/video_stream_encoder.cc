@@ -660,8 +660,7 @@ VideoStreamEncoder::VideoStreamEncoder(
       number_of_cores_(number_of_cores),
       settings_(settings),
       allocation_cb_type_(allocation_cb_type),
-      rate_control_settings_(
-          RateControlSettings::ParseFromKeyValueConfig(&env_.field_trials())),
+      rate_control_settings_(env_.field_trials()),
       encoder_selector_from_constructor_(encoder_selector),
       encoder_selector_from_factory_(
           encoder_selector_from_constructor_
@@ -1018,19 +1017,19 @@ void VideoStreamEncoder::ReconfigureEncoder() {
   if (encoder_config_.video_stream_factory) {
     // Note: only tests set their own EncoderStreamFactory...
     streams = encoder_config_.video_stream_factory->CreateEncoderStreams(
-        last_frame_info_->width, last_frame_info_->height, encoder_config_);
+        env_.field_trials(), last_frame_info_->width, last_frame_info_->height,
+        encoder_config_);
   } else {
-    rtc::scoped_refptr<VideoEncoderConfig::VideoStreamFactoryInterface>
-        factory = rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-            encoder_config_.video_format.name, encoder_config_.max_qp,
-            encoder_config_.content_type ==
-                webrtc::VideoEncoderConfig::ContentType::kScreen,
-            encoder_config_.legacy_conference_mode, encoder_->GetEncoderInfo(),
-            MergeRestrictions({latest_restrictions_, animate_restrictions_}),
-            &env_.field_trials());
+    auto factory = rtc::make_ref_counted<cricket::EncoderStreamFactory>(
+        encoder_config_.video_format.name, encoder_config_.max_qp,
+        encoder_config_.content_type ==
+            webrtc::VideoEncoderConfig::ContentType::kScreen,
+        encoder_config_.legacy_conference_mode, encoder_->GetEncoderInfo(),
+        MergeRestrictions({latest_restrictions_, animate_restrictions_}));
 
     streams = factory->CreateEncoderStreams(
-        last_frame_info_->width, last_frame_info_->height, encoder_config_);
+        env_.field_trials(), last_frame_info_->width, last_frame_info_->height,
+        encoder_config_);
   }
 
   // TODO(webrtc:14451) : Move AlignmentAdjuster into EncoderStreamFactory
@@ -2009,8 +2008,8 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
   }
   accumulated_update_rect_is_valid_ = true;
 
-  TRACE_EVENT_ASYNC_STEP0("webrtc", "Video", video_frame.render_time_ms(),
-                          "Encode");
+  TRACE_EVENT_ASYNC_STEP_INTO0("webrtc", "Video", video_frame.render_time_ms(),
+                               "Encode");
 
   stream_resource_manager_.OnEncodeStarted(out_frame, time_when_posted_us);
 
@@ -2021,8 +2020,9 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
       << send_codec_.height << " received a too small frame "
       << out_frame.width() << "x" << out_frame.height();
 
-  TRACE_EVENT1("webrtc", "VCMGenericEncoder::Encode", "timestamp",
-               out_frame.rtp_timestamp());
+  TRACE_EVENT2("webrtc", "webrtc::VideoEncoder::Encode", "rtp_timestamp",
+               out_frame.rtp_timestamp(), "storage_representation",
+               out_frame.video_frame_buffer()->storage_representation());
 
   frame_encode_metadata_writer_.OnEncodeStarted(out_frame);
 
@@ -2129,7 +2129,8 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
     const EncodedImage& encoded_image,
     const CodecSpecificInfo* codec_specific_info) {
   TRACE_EVENT_INSTANT1("webrtc", "VCMEncodedFrameCallback::Encoded",
-                       "timestamp", encoded_image.RtpTimestamp());
+                       TRACE_EVENT_SCOPE_GLOBAL, "timestamp",
+                       encoded_image.RtpTimestamp());
 
   const size_t simulcast_index = encoded_image.SimulcastIndex().value_or(0);
   const VideoCodecType codec_type = codec_specific_info

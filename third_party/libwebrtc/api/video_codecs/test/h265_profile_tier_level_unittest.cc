@@ -245,4 +245,53 @@ TEST(H265ProfileTierLevel, TestProfileTierLevelCompare) {
   EXPECT_FALSE(H265IsSameProfileTierLevel(params1, params2));
 }
 
+TEST(H265ProfileTierLevel, TestGetSupportedH265Level) {
+  // Test with 720p at 30fps
+  Resolution r{.width = 1280, .height = 720};
+  EXPECT_EQ(GetSupportedH265Level(r, 30).value_or(H265Level::kLevel1),
+            H265Level::kLevel3);
+
+  // Test with QCIF at 15fps
+  r.width = 176;
+  r.height = 144;
+  EXPECT_EQ(GetSupportedH265Level(r, 15).value_or(H265Level::kLevel2),
+            H265Level::kLevel1);
+
+  // Test with 1080p at 30fps
+  r.width = 1920;
+  r.height = 1080;
+  EXPECT_EQ(GetSupportedH265Level(r, 30).value_or(H265Level::kLevel1),
+            H265Level::kLevel3_1);
+
+  // Test with 1080p at 60fps
+  EXPECT_EQ(GetSupportedH265Level(r, 60).value_or(H265Level::kLevel1),
+            H265Level::kLevel3_1);
+
+  // Test with 4K at 30fps
+  r.width = 3840;
+  r.height = 2160;
+  EXPECT_EQ(GetSupportedH265Level(r, 30).value_or(H265Level::kLevel1),
+            H265Level::kLevel4_1);
+
+  // Test with 4K at 60fps
+  EXPECT_EQ(GetSupportedH265Level(r, 60).value_or(H265Level::kLevel1),
+            H265Level::kLevel4_1);
+
+  // Test with 8K at 30fps
+  r.width = 8192;
+  r.height = 4320;
+  EXPECT_EQ(GetSupportedH265Level(r, 30).value_or(H265Level::kLevel1),
+            H265Level::kLevel6);
+
+  // Test with 64x64 at 30fps
+  r.width = 64;
+  r.height = 64;
+  EXPECT_EQ(GetSupportedH265Level(r, 30), absl::nullopt);
+
+  // Test with extremly large width or height at 15fps
+  r.width = 16928;
+  r.height = 64;
+  EXPECT_EQ(GetSupportedH265Level(r, 15), absl::nullopt);
+}
+
 }  // namespace webrtc

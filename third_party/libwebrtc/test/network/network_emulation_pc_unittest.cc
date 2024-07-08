@@ -17,7 +17,6 @@
 #include "api/scoped_refptr.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "api/transport/field_trial_based_config.h"
-#include "call/simulated_network.h"
 #include "media/engine/webrtc_media_engine.h"
 #include "modules/audio_device/include/test_audio_device.h"
 #include "p2p/base/basic_packet_socket_factory.h"
@@ -30,6 +29,7 @@
 #include "test/gtest.h"
 #include "test/network/network_emulation.h"
 #include "test/network/network_emulation_manager.h"
+#include "test/network/simulated_network.h"
 
 namespace webrtc {
 namespace test {
@@ -111,8 +111,7 @@ TEST(NetworkEmulationManagerPCTest, Run) {
   signaling_thread->Start();
 
   // Setup emulated network
-  NetworkEmulationManagerImpl emulation(
-      TimeMode::kRealTime, EmulatedNetworkStatsGatheringMode::kDefault);
+  NetworkEmulationManagerImpl emulation({.time_mode = TimeMode::kRealTime});
 
   EmulatedNetworkNode* alice_node = emulation.CreateEmulatedNode(
       std::make_unique<SimulatedNetwork>(BuiltInNetworkBehaviorConfig()));
@@ -203,8 +202,7 @@ TEST(NetworkEmulationManagerPCTest, RunTURN) {
   signaling_thread->Start();
 
   // Setup emulated network
-  NetworkEmulationManagerImpl emulation(
-      TimeMode::kRealTime, EmulatedNetworkStatsGatheringMode::kDefault);
+  NetworkEmulationManagerImpl emulation({.time_mode = TimeMode::kRealTime});
 
   EmulatedNetworkNode* alice_node = emulation.CreateEmulatedNode(
       std::make_unique<SimulatedNetwork>(BuiltInNetworkBehaviorConfig()));

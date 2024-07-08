@@ -174,7 +174,7 @@ TEST(SvcConfig, AlwaysSendsAtLeastOneLayerPortrait) {
 
 TEST(SvcConfig, EnforcesMinimalRequiredParity) {
   const size_t max_num_spatial_layers = 3;
-  const size_t kOddSize = 1023;
+  const int kOddSize = 1023;
 
   std::vector<SpatialLayer> spatial_layers =
       GetSvcConfig(kOddSize, kOddSize, 30,

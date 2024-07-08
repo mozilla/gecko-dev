@@ -139,6 +139,7 @@ rtc_source_set("render_resolution") {
 rtc_source_set("resolution") {
   visibility = [ "*" ]
   public = [ "resolution.h" ]
+  deps = [ "../../rtc_base/system:rtc_export" ]
 }
 
 rtc_library("encoded_image") {

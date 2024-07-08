@@ -7,7 +7,7 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#include "modules/audio_processing/include/audio_processing.h"
+#include "api/audio/audio_processing.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -2198,7 +2198,8 @@ TEST_P(AudioProcessingTest, Formats) {
           // necessary.
           ASSERT_EQ(ref_length,
                     static_cast<size_t>(resampler.Resample(
-                        out_ptr, out_length, cmp_data.get(), ref_length)));
+                        rtc::ArrayView<const float>(out_ptr, out_length),
+                        rtc::ArrayView<float>(cmp_data.get(), ref_length))));
           out_ptr = cmp_data.get();
         }
 

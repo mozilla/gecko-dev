@@ -23,7 +23,6 @@
 #include "api/test/create_network_emulation_manager.h"
 #include "api/test/network_emulation_manager.h"
 #include "api/units/time_delta.h"
-#include "call/simulated_network.h"
 #include "net/dcsctp/public/dcsctp_options.h"
 #include "net/dcsctp/public/dcsctp_socket.h"
 #include "net/dcsctp/public/types.h"
@@ -327,7 +326,7 @@ class DcSctpSocketNetworkTest : public testing::Test {
   DcSctpSocketNetworkTest()
       : options_(MakeOptionsForTest()),
         emulation_(webrtc::CreateNetworkEmulationManager(
-            webrtc::TimeMode::kSimulated)) {}
+            {.time_mode = webrtc::TimeMode::kSimulated})) {}
 
   void MakeNetwork(const webrtc::BuiltInNetworkBehaviorConfig& config) {
     webrtc::EmulatedEndpoint* endpoint_a =

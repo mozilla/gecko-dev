@@ -13,24 +13,22 @@
 #ifndef PC_MEDIA_SESSION_H_
 #define PC_MEDIA_SESSION_H_
 
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "api/crypto/crypto_options.h"
 #include "api/media_types.h"
+#include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_direction.h"
-#include "media/base/media_constants.h"
+#include "media/base/codec.h"
 #include "media/base/rid_description.h"
 #include "media/base/stream_params.h"
 #include "p2p/base/ice_credentials_iterator.h"
 #include "p2p/base/transport_description.h"
 #include "p2p/base/transport_description_factory.h"
 #include "p2p/base/transport_info.h"
-#include "pc/jsep_transport.h"
-#include "pc/media_protocol_names.h"
 #include "pc/session_description.h"
 #include "pc/simulcast_description.h"
 #include "rtc_base/memory/always_valid_pointer.h"
@@ -90,6 +88,9 @@ struct MediaDescriptionOptions {
   std::vector<SenderOptions> sender_options;
   std::vector<webrtc::RtpCodecCapability> codec_preferences;
   std::vector<webrtc::RtpHeaderExtensionCapability> header_extensions;
+  // Codecs to include in a generated offer or answer.
+  // If this is used, session-level codec lists MUST be ignored.
+  std::vector<Codec> codecs_to_include;
 
  private:
   // Doesn't DCHECK on `type`.
@@ -148,16 +149,14 @@ class MediaSessionDescriptionFactory {
                                  rtc::UniqueRandomIdGenerator* ssrc_generator,
                                  const TransportDescriptionFactory* factory);
 
-  const AudioCodecs& audio_sendrecv_codecs() const;
-  const AudioCodecs& audio_send_codecs() const;
-  const AudioCodecs& audio_recv_codecs() const;
-  void set_audio_codecs(const AudioCodecs& send_codecs,
-                        const AudioCodecs& recv_codecs);
-  const VideoCodecs& video_sendrecv_codecs() const;
-  const VideoCodecs& video_send_codecs() const;
-  const VideoCodecs& video_recv_codecs() const;
-  void set_video_codecs(const VideoCodecs& send_codecs,
-                        const VideoCodecs& recv_codecs);
+  const Codecs& audio_sendrecv_codecs() const;
+  const Codecs& audio_send_codecs() const;
+  const Codecs& audio_recv_codecs() const;
+  void set_audio_codecs(const Codecs& send_codecs, const Codecs& recv_codecs);
+  const Codecs& video_sendrecv_codecs() const;
+  const Codecs& video_send_codecs() const;
+  const Codecs& video_recv_codecs() const;
+  void set_video_codecs(const Codecs& send_codecs, const Codecs& recv_codecs);
   RtpHeaderExtensions filtered_rtp_header_extensions(
       RtpHeaderExtensions extensions) const;
 
@@ -183,25 +182,25 @@ class MediaSessionDescriptionFactory {
     RtpHeaderExtensions video;
   };
 
-  const AudioCodecs& GetAudioCodecsForOffer(
+  const Codecs& GetAudioCodecsForOffer(
       const webrtc::RtpTransceiverDirection& direction) const;
-  const AudioCodecs& GetAudioCodecsForAnswer(
+  const Codecs& GetAudioCodecsForAnswer(
       const webrtc::RtpTransceiverDirection& offer,
       const webrtc::RtpTransceiverDirection& answer) const;
-  const VideoCodecs& GetVideoCodecsForOffer(
+  const Codecs& GetVideoCodecsForOffer(
       const webrtc::RtpTransceiverDirection& direction) const;
-  const VideoCodecs& GetVideoCodecsForAnswer(
+  const Codecs& GetVideoCodecsForAnswer(
       const webrtc::RtpTransceiverDirection& offer,
       const webrtc::RtpTransceiverDirection& answer) const;
   void GetCodecsForOffer(
       const std::vector<const ContentInfo*>& current_active_contents,
-      AudioCodecs* audio_codecs,
-      VideoCodecs* video_codecs) const;
+      Codecs* audio_codecs,
+      Codecs* video_codecs) const;
   void GetCodecsForAnswer(
       const std::vector<const ContentInfo*>& current_active_contents,
       const SessionDescription& remote_offer,
-      AudioCodecs* audio_codecs,
-      VideoCodecs* video_codecs) const;
+      Codecs* audio_codecs,
+      Codecs* video_codecs) const;
   AudioVideoRtpHeaderExtensions GetOfferedRtpHeaderExtensionsWithIds(
       const std::vector<const ContentInfo*>& current_active_contents,
       bool extmap_allow_mixed,
@@ -302,18 +301,18 @@ class MediaSessionDescriptionFactory {
   }
 
   bool is_unified_plan_ = false;
-  AudioCodecs audio_send_codecs_;
-  AudioCodecs audio_recv_codecs_;
+  Codecs audio_send_codecs_;
+  Codecs audio_recv_codecs_;
   // Intersection of send and recv.
-  AudioCodecs audio_sendrecv_codecs_;
+  Codecs audio_sendrecv_codecs_;
   // Union of send and recv.
-  AudioCodecs all_audio_codecs_;
-  VideoCodecs video_send_codecs_;
-  VideoCodecs video_recv_codecs_;
+  Codecs all_audio_codecs_;
+  Codecs video_send_codecs_;
+  Codecs video_recv_codecs_;
   // Intersection of send and recv.
-  VideoCodecs video_sendrecv_codecs_;
+  Codecs video_sendrecv_codecs_;
   // Union of send and recv.
-  VideoCodecs all_video_codecs_;
+  Codecs all_video_codecs_;
   // This object may or may not be owned by this class.
   webrtc::AlwaysValidPointer<rtc::UniqueRandomIdGenerator> const
       ssrc_generator_;

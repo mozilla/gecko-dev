@@ -37,10 +37,7 @@ namespace test {
 
 class NetworkEmulationManagerImpl : public NetworkEmulationManager {
  public:
-  NetworkEmulationManagerImpl(
-      TimeMode mode,
-      EmulatedNetworkStatsGatheringMode stats_gathering_mode,
-      const FieldTrialsView* field_trials = nullptr);
+  explicit NetworkEmulationManagerImpl(NetworkEmulationManagerConfig config);
   ~NetworkEmulationManagerImpl();
 
   EmulatedNetworkNode* CreateEmulatedNode(BuiltInNetworkBehaviorConfig config,
@@ -108,6 +105,7 @@ class NetworkEmulationManagerImpl : public NetworkEmulationManager {
   const EmulatedNetworkStatsGatheringMode stats_gathering_mode_;
   const std::unique_ptr<TimeController> time_controller_;
   Clock* const clock_;
+  const bool fake_dtls_handshake_sizes_;
   int next_node_id_;
 
   RepeatingTaskHandle process_task_handle_;

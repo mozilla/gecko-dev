@@ -85,10 +85,12 @@ RtpTransportControllerSend::RtpTransportControllerSend(
       controller_factory_override_(config.network_controller_factory),
       controller_factory_fallback_(
           std::make_unique<GoogCcNetworkControllerFactory>(
-              config.network_state_predictor_factory)),
+              GoogCcFactoryConfig{.network_state_predictor_factory =
+                                      config.network_state_predictor_factory})),
       process_interval_(controller_factory_fallback_->GetProcessInterval()),
       last_report_block_time_(
           Timestamp::Millis(env_.clock().TimeInMilliseconds())),
+      initial_config_(env_),
       reset_feedback_on_route_change_(
           !env_.field_trials().IsEnabled("WebRTC-Bwe-NoFeedbackReset")),
       add_pacing_to_cwin_(env_.field_trials().IsEnabled(
@@ -104,8 +106,6 @@ RtpTransportControllerSend::RtpTransportControllerSend(
       env_.field_trials().Lookup("WebRTC-Bwe-NetworkRouteConstraints"));
   initial_config_.constraints =
       ConvertConstraints(config.bitrate_config, &env_.clock());
-  initial_config_.event_log = &env_.event_log();
-  initial_config_.key_value_config = &env_.field_trials();
   RTC_DCHECK(config.bitrate_config.start_bitrate_bps > 0);
 
   pacer_.SetPacingRates(
@@ -262,6 +262,12 @@ void RtpTransportControllerSend::ReconfigureBandwidthEstimation(
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   bwe_settings_ = settings;
 
+  streams_config_.enable_repeated_initial_probing =
+      bwe_settings_.allow_probe_without_media;
+  bool allow_probe_without_media = bwe_settings_.allow_probe_without_media &&
+                                   packet_router_.SupportsRtxPayloadPadding();
+  pacer_.SetAllowProbeWithoutMediaPacket(allow_probe_without_media);
+
   if (controller_) {
     // Recreate the controller and handler.
     control_handler_ = nullptr;
@@ -275,9 +281,6 @@ void RtpTransportControllerSend::ReconfigureBandwidthEstimation(
       UpdateNetworkAvailability();
     }
   }
-  pacer_.SetAllowProbeWithoutMediaPacket(
-      bwe_settings_.allow_probe_without_media &&
-      packet_router_.SupportsRtxPayloadPadding());
 }
 
 void RtpTransportControllerSend::RegisterTargetTransferRateObserver(

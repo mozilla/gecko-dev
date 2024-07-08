@@ -22,10 +22,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0744d68b8c944e699
  8 files changed, 12 insertions(+), 6 deletions(-)
 
 diff --git a/audio/channel_send.cc b/audio/channel_send.cc
-index a6bbc9f806..f78205663b 100644
+index 09be50be79..d5e2db353e 100644
 --- a/audio/channel_send.cc
 +++ b/audio/channel_send.cc
-@@ -441,7 +441,7 @@ ChannelSend::ChannelSend(
+@@ -452,7 +452,7 @@ ChannelSend::ChannelSend(
    configuration.report_block_data_observer = this;
    configuration.network_link_rtcp_observer =
        transport_controller->GetRtcpObserver();
@@ -55,7 +55,7 @@ index a511eda7bd..75a4a1cac0 100644
  DegradedCall::~DegradedCall() {
    RTC_DCHECK_RUN_ON(call_->worker_thread());
 diff --git a/modules/audio_coding/acm2/acm_receiver.cc b/modules/audio_coding/acm2/acm_receiver.cc
-index 24a49024c8..4deabdf7ff 100644
+index 3474229f7f..93698e0a1b 100644
 --- a/modules/audio_coding/acm2/acm_receiver.cc
 +++ b/modules/audio_coding/acm2/acm_receiver.cc
 @@ -50,7 +50,7 @@ std::unique_ptr<NetEq> CreateNetEq(

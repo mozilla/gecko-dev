@@ -83,6 +83,11 @@ class TransformableAudioFrameInterface : public TransformableFrameInterface {
   // TODO(crbug.com/1456628): Change this to pure virtual after it
   // is implemented everywhere.
   virtual FrameType Type() const { return FrameType::kEmptyFrame; }
+
+  // Audio level in -dBov. Values range from 0 to 127, representing 0 to -127
+  // dBov. 127 represents digital silence. Only present on remote frames if
+  // the audio level header extension was included.
+  virtual absl::optional<uint8_t> AudioLevel() const = 0;
 };
 
 // Objects implement this interface to be notified with the transformed frame.
@@ -119,6 +124,18 @@ class FrameTransformerInterface : public rtc::RefCountInterface {
 
  protected:
   ~FrameTransformerInterface() override = default;
+};
+
+// An interface implemented by classes that can host a transform.
+// Currently this is implemented by the RTCRtpSender and RTCRtpReceiver.
+class FrameTransformerHost {
+ public:
+  virtual ~FrameTransformerHost() {}
+  virtual void SetFrameTransformer(
+      rtc::scoped_refptr<FrameTransformerInterface> frame_transformer) = 0;
+  // TODO: bugs.webrtc.org/15929 - To be added:
+  // virtual AddIncomingMediaType(RtpCodec codec) = 0;
+  // virtual AddOutgoingMediaType(RtpCodec codec) = 0;
 };
 
 }  // namespace webrtc

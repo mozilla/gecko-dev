@@ -49,7 +49,7 @@ class VideoQualityTest : public test::CallTest,
     return payload_type_map_;
   }
 
-  static void FillScalabilitySettings(
+  void FillScalabilitySettings(
       Params* params,
       size_t video_idx,
       const std::vector<std::string>& stream_descriptors,

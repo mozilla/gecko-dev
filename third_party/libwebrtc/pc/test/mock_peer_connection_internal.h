@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-#include "modules/audio_device/include/audio_device.h"
+#include "api/audio/audio_device.h"
 #include "pc/peer_connection_internal.h"
 #include "test/gmock.h"
 

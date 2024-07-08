@@ -130,9 +130,6 @@ class LibaomAv1Encoder final : public VideoEncoder {
   EncodedImageCallback* encoded_image_callback_;
   int64_t timestamp_;
   const LibaomAv1EncoderInfoSettings encoder_info_override_;
-  // TODO(webrtc:15225): Kill switch for disabling frame dropping. Remove it
-  // after frame dropping is fully rolled out.
-  bool disable_frame_dropping_;
   int max_consec_frame_drop_;
 };
 
@@ -180,8 +177,7 @@ LibaomAv1Encoder::LibaomAv1Encoder(const Environment& env,
       frame_for_encode_(nullptr),
       encoded_image_callback_(nullptr),
       timestamp_(0),
-      disable_frame_dropping_(env.field_trials().IsEnabled(
-          "WebRTC-LibaomAv1Encoder-DisableFrameDropping")),
+      encoder_info_override_(env.field_trials()),
       max_consec_frame_drop_(GetMaxConsecutiveFrameDrop(env.field_trials())) {}
 
 LibaomAv1Encoder::~LibaomAv1Encoder() {
@@ -248,9 +244,7 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
   cfg_.g_timebase.num = 1;
   cfg_.g_timebase.den = kRtpTicksPerSecond;
   cfg_.rc_target_bitrate = encoder_settings_.startBitrate;  // kilobits/sec.
-  cfg_.rc_dropframe_thresh =
-      (!disable_frame_dropping_ && encoder_settings_.GetFrameDropEnabled()) ? 30
-                                                                            : 0;
+  cfg_.rc_dropframe_thresh = encoder_settings_.GetFrameDropEnabled() ? 30 : 0;
   cfg_.g_input_bit_depth = kBitDepth;
   cfg_.kf_mode = AOM_KF_DISABLED;
   cfg_.rc_min_quantizer = kQpMin;

@@ -148,8 +148,11 @@ struct DcSctpOptions {
   // processing time of received packets and the clock granularity when setting
   // the delayed ack timer on the peer.
   //
-  // This is described for TCP in
+  // This is defined as "G" in the algorithm for TCP in
   // https://datatracker.ietf.org/doc/html/rfc6298#section-4.
+  //
+  // Note that this value will be further adjusted by scaling factors, so if you
+  // intend to change this, do it incrementally and measure the results.
   DurationMs min_rtt_variance = DurationMs(220);
 
   // The initial congestion window size, in number of MTUs.

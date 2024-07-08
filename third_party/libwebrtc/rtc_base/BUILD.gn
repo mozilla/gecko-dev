@@ -210,11 +210,18 @@ rtc_library("event_tracer") {
     ":platform_thread_types",
     ":rtc_event",
     ":timeutils",
+    "..:tracing",
     "../api:sequence_checker",
     "synchronization:mutex",
     "system:rtc_export",
   ]
   absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
+  if (rtc_use_perfetto) {
+    sources += [
+      "trace_categories.cc",
+      "trace_categories.h",
+    ]
+  }
 }
 
 rtc_library("histogram_percentile_counter") {
@@ -800,6 +807,8 @@ rtc_library("weak_ptr") {
     "weak_ptr.h",
   ]
   deps = [
+    ":checks",
+    ":macromagic",
     ":refcount",
     "../api:scoped_refptr",
     "../api:sequence_checker",
@@ -818,6 +827,7 @@ rtc_library("rtc_numerics") {
     "numerics/moving_average.h",
     "numerics/moving_percentile_filter.h",
     "numerics/percentile_filter.h",
+    "numerics/rational.h",
     "numerics/running_statistics.h",
     "numerics/sequence_number_unwrapper.h",
     "numerics/sequence_number_util.h",
@@ -1420,14 +1430,6 @@ rtc_library("dscp") {
   sources = [ "dscp.h" ]
 }
 
-rtc_library("proxy_info") {
-if (!build_with_mozilla) {
-  visibility = [ "*" ]
-  sources = [ "proxy_info.h" ]
-  deps = []
-}
-}
-
 rtc_library("file_rotating_stream") {
   sources = [
     "file_rotating_stream.cc",
@@ -1490,11 +1492,16 @@ rtc_library("stream") {
   deps = [
     ":buffer",
     ":checks",
+    ":logging",
     ":threading",
     "../api:array_view",
+    "../api:sequence_checker",
+    "system:no_unique_address",
     "system:rtc_export",
     "third_party/sigslot",
   ]
+
+  absl_deps = [ "//third_party/abseil-cpp/absl/functional:any_invocable" ]
 }
 
 rtc_library("rtc_certificate_generator") {
@@ -2166,6 +2173,7 @@ if (rtc_include_tests) {
           "ssl_identity_unittest.cc",
           "ssl_stream_adapter_unittest.cc",
         ]
+        deps += [ ":callback_list" ]
       }
       absl_deps = [
         "//third_party/abseil-cpp/absl/algorithm:container",
