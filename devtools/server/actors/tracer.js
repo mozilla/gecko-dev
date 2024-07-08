@@ -40,12 +40,15 @@ loader.lazyRequireGetter(
 
 // Indexes of each data type within the array describing a frame
 exports.TRACER_FIELDS_INDEXES = {
-  FRAME_IMPLEMENTATION: 0,
-  FRAME_NAME: 1,
-  FRAME_SOURCEID: 2,
-  FRAME_LINE: 3,
-  FRAME_COLUMN: 4,
-  FRAME_URL: 5,
+  // This is shared with all the data types
+  TYPE: 0,
+
+  FRAME_IMPLEMENTATION: 1,
+  FRAME_NAME: 2,
+  FRAME_SOURCEID: 3,
+  FRAME_LINE: 4,
+  FRAME_COLUMN: 5,
+  FRAME_URL: 6,
 };
 
 const VALID_LOG_METHODS = Object.values(TRACER_LOG_METHODS);
