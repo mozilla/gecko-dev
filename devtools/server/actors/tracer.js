@@ -14,7 +14,10 @@ ChromeUtils.defineESModuleGetters(
 );
 
 const { Actor } = require("resource://devtools/shared/protocol.js");
-const { tracerSpec } = require("resource://devtools/shared/specs/tracer.js");
+const {
+  tracerSpec,
+  TRACER_LOG_METHODS,
+} = require("resource://devtools/shared/specs/tracer.js");
 
 loader.lazyRequireGetter(
   this,
@@ -45,13 +48,7 @@ exports.TRACER_FIELDS_INDEXES = {
   FRAME_URL: 5,
 };
 
-const LOG_METHODS = {
-  STDOUT: "stdout",
-  CONSOLE: "console",
-  PROFILER: "profiler",
-};
-exports.LOG_METHODS = LOG_METHODS;
-const VALID_LOG_METHODS = Object.values(LOG_METHODS);
+const VALID_LOG_METHODS = Object.values(TRACER_LOG_METHODS);
 
 class TracerActor extends Actor {
   constructor(conn, targetActor) {
@@ -132,17 +129,17 @@ class TracerActor extends Actor {
       return;
     }
 
-    this.logMethod = options.logMethod || LOG_METHODS.STDOUT;
+    this.logMethod = options.logMethod || TRACER_LOG_METHODS.STDOUT;
 
     let ListenerClass = null;
     switch (this.logMethod) {
-      case LOG_METHODS.STDOUT:
+      case TRACER_LOG_METHODS.STDOUT:
         ListenerClass = StdoutTracingListener;
         break;
-      case LOG_METHODS.CONSOLE:
+      case TRACER_LOG_METHODS.CONSOLE:
         ListenerClass = ConsoleTracingListener;
         break;
-      case LOG_METHODS.PROFILER:
+      case TRACER_LOG_METHODS.PROFILER:
         ListenerClass = ProfilerTracingListener;
         // Recording function returns is mandatory when recording profiler output.
         // Otherwise frames are not closed and mixed up in the profiler frontend.

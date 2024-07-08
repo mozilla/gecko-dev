@@ -111,10 +111,6 @@ function forEachThread(iteratee) {
   return Promise.all(promises);
 }
 
-async function toggleTracing() {
-  return commands.tracerCommand.toggle();
-}
-
 function resume(thread) {
   return lookupThreadFront(thread).resume();
 }
@@ -475,7 +471,6 @@ const clientCommands = {
   loadObjectProperties,
   releaseActor,
   pauseGrip,
-  toggleTracing,
   resume,
   stepIn,
   stepOut,

@@ -39,7 +39,7 @@ add_task(async function testTracingWorker() {
   is(threadsEl.length, 2, "There are two threads in the thread panel");
 
   info("Enable tracing on all threads");
-  await clickElement(dbg, "trace");
+  await toggleJsTracer(dbg.toolbox);
   info("Wait for tracing to be enabled for the worker");
   await waitForState(dbg, () => {
     return dbg.selectors.getIsThreadCurrentlyTracing(

@@ -541,6 +541,26 @@
   background-image: url("chrome://devtools/skin/images/command-measure.svg");
 }
 
+#command-button-jstracer {
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
+
+  &::before {
+    background-image: url("chrome://devtools/content/debugger/images/trace.svg");
+  }
+
+  &.pending::after {
+    content: url("chrome://global/skin/icons/badge-blue.svg");
+    width: 14px;
+    height: 14px;
+    display: block;
+    position: absolute;
+    bottom: -2px;
+    right: 0;
+  }
+}
+
 #command-button-frames::before {
   background-image: url("chrome://devtools/skin/images/command-frames.svg");
   -moz-context-properties: fill, fill-opacity;
