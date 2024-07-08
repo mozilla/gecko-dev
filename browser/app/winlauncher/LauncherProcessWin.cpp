@@ -15,6 +15,7 @@
 #include "mozilla/glue/Debug.h"
 #include "mozilla/GeckoArgs.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/NativeNt.h"
 #include "mozilla/SafeMode.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WindowsConsole.h"
