@@ -50,6 +50,7 @@ import org.mozilla.fenix.databinding.ComponentTabstrayFabBinding
 import org.mozilla.fenix.databinding.FragmentTabTrayDialogBinding
 import org.mozilla.fenix.databinding.TabsTrayTabCounter2Binding
 import org.mozilla.fenix.databinding.TabstrayMultiselectItemsBinding
+import org.mozilla.fenix.ext.actualInactiveTabs
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
@@ -137,6 +138,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         setStyle(STYLE_NO_TITLE, R.style.TabTrayDialogStyle)
     }
 
+    @Suppress("LongMethod")
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val args by navArgs<TabsTrayFragmentArgs>()
         args.accessPoint.takeIf { it != TabsTrayAccessPoint.None }?.let {
@@ -150,14 +152,19 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         val initialPage = args.page
         val activity = activity as HomeActivity
         val initialInactiveExpanded = requireComponents.appStore.state.inactiveTabsExpanded
+        val inactiveTabs = requireComponents.core.store.state.actualInactiveTabs(requireContext().settings())
+        val normalTabs = requireComponents.core.store.state.normalTabs - inactiveTabs.toSet()
 
         tabsTrayStore = StoreProvider.get(this) {
             TabsTrayStore(
                 initialState = TabsTrayState(
                     selectedPage = initialPage,
                     mode = initialMode,
-                    selectedTabId = requireComponents.core.store.state.selectedTabId,
+                    inactiveTabs = inactiveTabs,
                     inactiveTabsExpanded = initialInactiveExpanded,
+                    normalTabs = normalTabs,
+                    privateTabs = requireComponents.core.store.state.privateTabs,
+                    selectedTabId = requireComponents.core.store.state.selectedTabId,
                 ),
                 middlewares = listOf(
                     TabsTrayMiddleware(),
