@@ -48,7 +48,6 @@ const extraXpcshellTestPaths = [
   "devtools/platform/tests/xpcshell/",
   "dom/file/tests/",
   "dom/ipc/tests/",
-  "intl/benchmarks/",
   "intl/l10n/test/",
   "ipc/testshell/tests/",
   "memory/replace/dmd/test/",
