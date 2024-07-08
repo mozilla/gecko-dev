@@ -1558,8 +1558,9 @@ class nsContentUtils {
   static bool IsPreloadType(nsContentPolicyType aType);
 
   /**
-   * Quick helper to determine whether there are any mutation listeners
-   * of a given type that apply to this content or any of its ancestors.
+   * Quick helper to determine whether mutation events are enabled and there are
+   * any mutation listeners of a given type that apply to this content or any of
+   * its ancestors.
    * The method has the side effect to call document's MayDispatchMutationEvent
    * using aTargetForSubtreeModified as the parameter.
    *
@@ -1570,8 +1571,8 @@ class nsContentUtils {
    *
    * @return true if there are mutation listeners of the specified type
    */
-  static bool HasMutationListeners(nsINode* aNode, uint32_t aType,
-                                   nsINode* aTargetForSubtreeModified);
+  static bool WantMutationEvents(nsINode* aNode, uint32_t aType,
+                                 nsINode* aTargetForSubtreeModified);
 
   /**
    * Quick helper to determine whether there are any mutation listeners

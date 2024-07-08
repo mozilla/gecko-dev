@@ -1358,7 +1358,7 @@ nsAttrValue SVGElement::WillChangeValue(
 
   // We only need to set the old value if we have listeners since otherwise it
   // isn't used.
-  if (attrValue && nsContentUtils::HasMutationListeners(
+  if (attrValue && nsContentUtils::WantMutationEvents(
                        this, NS_EVENT_BITS_MUTATION_ATTRMODIFIED, this)) {
     emptyOrOldAttrValue.SetToSerialized(*attrValue);
   }
@@ -1396,7 +1396,7 @@ void SVGElement::DidChangeValue(nsAtom* aName,
                                 const nsAttrValue& aEmptyOrOldValue,
                                 nsAttrValue& aNewValue,
                                 const mozAutoDocUpdate& aProofOfUpdate) {
-  bool hasListeners = nsContentUtils::HasMutationListeners(
+  bool hasListeners = nsContentUtils::WantMutationEvents(
       this, NS_EVENT_BITS_MUTATION_ATTRMODIFIED, this);
   uint8_t modType =
       HasAttr(aName) ? static_cast<uint8_t>(MutationEvent_Binding::MODIFICATION)
@@ -1413,7 +1413,7 @@ void SVGElement::DidChangeValue(nsAtom* aName,
 }
 
 void SVGElement::MaybeSerializeAttrBeforeRemoval(nsAtom* aName, bool aNotify) {
-  if (!aNotify || !nsContentUtils::HasMutationListeners(
+  if (!aNotify || !nsContentUtils::WantMutationEvents(
                       this, NS_EVENT_BITS_MUTATION_ATTRMODIFIED, this)) {
     return;
   }

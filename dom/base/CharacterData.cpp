@@ -234,7 +234,7 @@ nsresult CharacterData::SetTextInternal(
   mozAutoDocUpdate updateBatch(document, aNotify);
 
   bool haveMutationListeners =
-      aNotify && nsContentUtils::HasMutationListeners(
+      aNotify && nsContentUtils::WantMutationEvents(
                      this, NS_EVENT_BITS_MUTATION_CHARACTERDATAMODIFIED, this);
 
   RefPtr<nsAtom> oldValue;

@@ -1670,7 +1670,7 @@ void nsINode::InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
       MutationObservers::NotifyContentInserted(this, aKid);
     }
 
-    if (nsContentUtils::HasMutationListeners(
+    if (nsContentUtils::WantMutationEvents(
             aKid, NS_EVENT_BITS_MUTATION_NODEINSERTED, this)) {
       InternalMutationEvent mutation(true, eLegacyNodeInserted);
       mutation.mRelatedNode = this;

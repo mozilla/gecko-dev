@@ -2468,7 +2468,7 @@ bool Element::MaybeCheckSameAttrVal(int32_t aNamespaceID, const nsAtom* aName,
                                     bool* aOldValueSet) {
   bool modification = false;
   *aHasListeners =
-      aNotify && nsContentUtils::HasMutationListeners(
+      aNotify && nsContentUtils::WantMutationEvents(
                      this, NS_EVENT_BITS_MUTATION_ATTRMODIFIED, this);
   *aOldValueSet = false;
 
@@ -2982,7 +2982,7 @@ nsresult Element::UnsetAttr(int32_t aNameSpaceID, nsAtom* aName, bool aNotify) {
   BeforeSetAttr(aNameSpaceID, aName, nullptr, aNotify);
 
   bool hasMutationListeners =
-      aNotify && nsContentUtils::HasMutationListeners(
+      aNotify && nsContentUtils::WantMutationEvents(
                      this, NS_EVENT_BITS_MUTATION_ATTRMODIFIED, this);
 
   PreIdMaybeChange(aNameSpaceID, aName, nullptr);

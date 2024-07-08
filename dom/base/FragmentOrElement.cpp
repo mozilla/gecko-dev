@@ -1198,7 +1198,7 @@ void FragmentOrElement::FireNodeInserted(
     Document* aDoc, nsINode* aParent,
     const nsTArray<nsCOMPtr<nsIContent>>& aNodes) {
   for (const nsCOMPtr<nsIContent>& childContent : aNodes) {
-    if (nsContentUtils::HasMutationListeners(
+    if (nsContentUtils::WantMutationEvents(
             childContent, NS_EVENT_BITS_MUTATION_NODEINSERTED, aParent)) {
       InternalMutationEvent mutation(true, eLegacyNodeInserted);
       mutation.mRelatedNode = aParent;
