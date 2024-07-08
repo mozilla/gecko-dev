@@ -1,8 +1,9 @@
 //! Extension traits to provide parsing methods on foreign types.
 
 use crate::buffer::Cursor;
+use crate::error::Result;
+use crate::parse::ParseStream;
 use crate::parse::Peek;
-use crate::parse::{ParseStream, Result};
 use crate::sealed::lookahead;
 use crate::token::CustomToken;
 use proc_macro2::Ident;

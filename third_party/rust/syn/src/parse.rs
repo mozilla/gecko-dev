@@ -185,11 +185,11 @@ pub mod discouraged;
 use crate::buffer::{Cursor, TokenBuffer};
 use crate::error;
 use crate::lookahead;
-#[cfg(feature = "proc-macro")]
-use crate::proc_macro;
 use crate::punctuated::Punctuated;
 use crate::token::Token;
-use proc_macro2::{self, Delimiter, Group, Literal, Punct, Span, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Group, Literal, Punct, Span, TokenStream, TokenTree};
+#[cfg(feature = "printing")]
+use quote::ToTokens;
 use std::cell::Cell;
 use std::fmt::{self, Debug, Display};
 #[cfg(feature = "extra-traits")]
@@ -197,6 +197,7 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
+use std::panic::{RefUnwindSafe, UnwindSafe};
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -282,6 +283,9 @@ impl<'a> Debug for ParseBuffer<'a> {
         Debug::fmt(&self.cursor().token_stream(), f)
     }
 }
+
+impl<'a> UnwindSafe for ParseBuffer<'a> {}
+impl<'a> RefUnwindSafe for ParseBuffer<'a> {}
 
 /// Cursor state associated with speculative parsing.
 ///
@@ -614,11 +618,6 @@ impl<'a> ParseBuffer<'a> {
     /// ```
     pub fn peek2<T: Peek>(&self, token: T) -> bool {
         fn peek2(buffer: &ParseBuffer, peek: fn(Cursor) -> bool) -> bool {
-            if let Some(group) = buffer.cursor().group(Delimiter::None) {
-                if group.0.skip().map_or(false, peek) {
-                    return true;
-                }
-            }
             buffer.cursor().skip().map_or(false, peek)
         }
 
@@ -629,11 +628,6 @@ impl<'a> ParseBuffer<'a> {
     /// Looks at the third-next token in the parse stream.
     pub fn peek3<T: Peek>(&self, token: T) -> bool {
         fn peek3(buffer: &ParseBuffer, peek: fn(Cursor) -> bool) -> bool {
-            if let Some(group) = buffer.cursor().group(Delimiter::None) {
-                if group.0.skip().and_then(Cursor::skip).map_or(false, peek) {
-                    return true;
-                }
-            }
             buffer
                 .cursor()
                 .skip()
@@ -749,10 +743,12 @@ impl<'a> ParseBuffer<'a> {
         Punctuated::parse_terminated_with(self, parser)
     }
 
-    /// Returns whether there are tokens remaining in this stream.
+    /// Returns whether there are no more tokens remaining to be parsed from
+    /// this stream.
     ///
-    /// This method returns true at the end of the content of a set of
-    /// delimiters, as well as at the very end of the complete macro input.
+    /// This method returns true upon reaching the end of the content within a
+    /// set of delimiters, as well as at the end of the tokens provided to the
+    /// outermost parsing entry point.
     ///
     /// # Example
     ///
@@ -1160,14 +1156,14 @@ impl<'a> ParseBuffer<'a> {
     }
 }
 
-#[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
 impl<T: Parse> Parse for Box<T> {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse().map(Box::new)
     }
 }
 
-#[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
 impl<T: Parse + Token> Parse for Option<T> {
     fn parse(input: ParseStream) -> Result<Self> {
         if T::peek(input.cursor()) {
@@ -1178,14 +1174,14 @@ impl<T: Parse + Token> Parse for Option<T> {
     }
 }
 
-#[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
 impl Parse for TokenStream {
     fn parse(input: ParseStream) -> Result<Self> {
         input.step(|cursor| Ok((cursor.token_stream(), Cursor::empty())))
     }
 }
 
-#[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
 impl Parse for TokenTree {
     fn parse(input: ParseStream) -> Result<Self> {
         input.step(|cursor| match cursor.token_tree() {
@@ -1195,7 +1191,7 @@ impl Parse for TokenTree {
     }
 }
 
-#[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
 impl Parse for Group {
     fn parse(input: ParseStream) -> Result<Self> {
         input.step(|cursor| {
@@ -1209,7 +1205,7 @@ impl Parse for Group {
     }
 }
 
-#[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
 impl Parse for Punct {
     fn parse(input: ParseStream) -> Result<Self> {
         input.step(|cursor| match cursor.punct() {
@@ -1219,7 +1215,7 @@ impl Parse for Punct {
     }
 }
 
-#[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
 impl Parse for Literal {
     fn parse(input: ParseStream) -> Result<Self> {
         input.step(|cursor| match cursor.literal() {
@@ -1248,7 +1244,7 @@ pub trait Parser: Sized {
     /// This function will check that the input is fully parsed. If there are
     /// any unparsed tokens at the end of the stream, an error is returned.
     #[cfg(feature = "proc-macro")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "proc-macro")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "proc-macro")))]
     fn parse(self, tokens: proc_macro::TokenStream) -> Result<Self::Output> {
         self.parse2(proc_macro2::TokenStream::from(tokens))
     }
@@ -1268,7 +1264,6 @@ pub trait Parser: Sized {
 
     // Not public API.
     #[doc(hidden)]
-    #[cfg(any(feature = "full", feature = "derive"))]
     fn __parse_scoped(self, scope: Span, tokens: TokenStream) -> Result<Self::Output> {
         let _ = scope;
         self.parse2(tokens)
@@ -1300,7 +1295,6 @@ where
         }
     }
 
-    #[cfg(any(feature = "full", feature = "derive"))]
     fn __parse_scoped(self, scope: Span, tokens: TokenStream) -> Result<Self::Output> {
         let buf = TokenBuffer::new2(tokens);
         let cursor = buf.begin();
@@ -1316,7 +1310,6 @@ where
     }
 }
 
-#[cfg(any(feature = "full", feature = "derive"))]
 pub(crate) fn parse_scoped<F: Parser>(f: F, scope: Span, tokens: TokenStream) -> Result<F::Output> {
     f.__parse_scoped(scope, tokens)
 }
@@ -1359,8 +1352,28 @@ impl Parse for Nothing {
     }
 }
 
+#[cfg(feature = "printing")]
+#[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
+impl ToTokens for Nothing {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let _ = tokens;
+    }
+}
+
+#[cfg(feature = "clone-impls")]
+#[cfg_attr(docsrs, doc(cfg(feature = "clone-impls")))]
+impl Clone for Nothing {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+#[cfg(feature = "clone-impls")]
+#[cfg_attr(docsrs, doc(cfg(feature = "clone-impls")))]
+impl Copy for Nothing {}
+
 #[cfg(feature = "extra-traits")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl Debug for Nothing {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("Nothing")
@@ -1368,11 +1381,11 @@ impl Debug for Nothing {
 }
 
 #[cfg(feature = "extra-traits")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl Eq for Nothing {}
 
 #[cfg(feature = "extra-traits")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl PartialEq for Nothing {
     fn eq(&self, _other: &Self) -> bool {
         true
@@ -1380,7 +1393,7 @@ impl PartialEq for Nothing {
 }
 
 #[cfg(feature = "extra-traits")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl Hash for Nothing {
     fn hash<H: Hasher>(&self, _state: &mut H) {}
 }

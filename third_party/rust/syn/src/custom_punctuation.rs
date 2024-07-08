@@ -78,6 +78,7 @@
 macro_rules! custom_punctuation {
     ($ident:ident, $($tt:tt)+) => {
         pub struct $ident {
+            #[allow(dead_code)]
             pub spans: $crate::custom_punctuation_repr!($($tt)+),
         }
 
@@ -236,50 +237,51 @@ macro_rules! custom_punctuation_repr {
 #[macro_export]
 #[rustfmt::skip]
 macro_rules! custom_punctuation_len {
-    ($mode:ident, +)     => { 1 };
-    ($mode:ident, +=)    => { 2 };
     ($mode:ident, &)     => { 1 };
     ($mode:ident, &&)    => { 2 };
     ($mode:ident, &=)    => { 2 };
     ($mode:ident, @)     => { 1 };
-    ($mode:ident, !)     => { 1 };
     ($mode:ident, ^)     => { 1 };
     ($mode:ident, ^=)    => { 2 };
     ($mode:ident, :)     => { 1 };
-    ($mode:ident, ::)    => { 2 };
     ($mode:ident, ,)     => { 1 };
-    ($mode:ident, /)     => { 1 };
-    ($mode:ident, /=)    => { 2 };
+    ($mode:ident, $)     => { 1 };
     ($mode:ident, .)     => { 1 };
     ($mode:ident, ..)    => { 2 };
     ($mode:ident, ...)   => { 3 };
     ($mode:ident, ..=)   => { 3 };
     ($mode:ident, =)     => { 1 };
     ($mode:ident, ==)    => { 2 };
+    ($mode:ident, =>)    => { 2 };
     ($mode:ident, >=)    => { 2 };
     ($mode:ident, >)     => { 1 };
+    ($mode:ident, <-)    => { 2 };
     ($mode:ident, <=)    => { 2 };
     ($mode:ident, <)     => { 1 };
-    ($mode:ident, *=)    => { 2 };
+    ($mode:ident, -)     => { 1 };
+    ($mode:ident, -=)    => { 2 };
     ($mode:ident, !=)    => { 2 };
+    ($mode:ident, !)     => { 1 };
     ($mode:ident, |)     => { 1 };
     ($mode:ident, |=)    => { 2 };
     ($mode:ident, ||)    => { 2 };
+    ($mode:ident, ::)    => { 2 };
+    ($mode:ident, %)     => { 1 };
+    ($mode:ident, %=)    => { 2 };
+    ($mode:ident, +)     => { 1 };
+    ($mode:ident, +=)    => { 2 };
     ($mode:ident, #)     => { 1 };
     ($mode:ident, ?)     => { 1 };
     ($mode:ident, ->)    => { 2 };
-    ($mode:ident, <-)    => { 2 };
-    ($mode:ident, %)     => { 1 };
-    ($mode:ident, %=)    => { 2 };
-    ($mode:ident, =>)    => { 2 };
     ($mode:ident, ;)     => { 1 };
     ($mode:ident, <<)    => { 2 };
     ($mode:ident, <<=)   => { 3 };
     ($mode:ident, >>)    => { 2 };
     ($mode:ident, >>=)   => { 3 };
+    ($mode:ident, /)     => { 1 };
+    ($mode:ident, /=)    => { 2 };
     ($mode:ident, *)     => { 1 };
-    ($mode:ident, -)     => { 1 };
-    ($mode:ident, -=)    => { 2 };
+    ($mode:ident, *=)    => { 2 };
     ($mode:ident, ~)     => { 1 };
     (lenient, $tt:tt)    => { 0 };
     (strict, $tt:tt)     => {{ $crate::custom_punctuation_unexpected!($tt); 0 }};

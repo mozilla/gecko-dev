@@ -2,10 +2,12 @@ use proc_macro2::{Ident, Span, TokenStream};
 use std::str::FromStr;
 use syn::Result;
 
+#[track_caller]
 fn parse(s: &str) -> Result<Ident> {
     syn::parse2(TokenStream::from_str(s).unwrap())
 }
 
+#[track_caller]
 fn new(s: &str) -> Ident {
     Ident::new(s, Span::call_site())
 }

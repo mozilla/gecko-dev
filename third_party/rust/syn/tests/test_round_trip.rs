@@ -27,12 +27,12 @@ use rustc_ast::ast::{
     AngleBracketedArg, AngleBracketedArgs, Crate, GenericArg, GenericParamKind, Generics,
     WhereClause,
 };
-use rustc_ast::mut_visit::{self, MutVisitor};
+use rustc_ast::mut_visit::MutVisitor;
 use rustc_ast_pretty::pprust;
-use rustc_error_messages::{DiagnosticMessage, LazyFallbackBundle};
-use rustc_errors::{translation, Diagnostic, PResult};
+use rustc_data_structures::flat_map_in_place::FlatMapInPlace;
+use rustc_error_messages::{DiagMessage, LazyFallbackBundle};
+use rustc_errors::{translation, Diag, PResult};
 use rustc_session::parse::ParseSess;
-use rustc_span::source_map::FilePathMapping;
 use rustc_span::FileName;
 use std::borrow::Cow;
 use std::fs;
@@ -45,9 +45,7 @@ use std::time::Instant;
 #[macro_use]
 mod macros;
 
-#[allow(dead_code)]
 mod common;
-
 mod repo;
 
 #[test]
@@ -56,7 +54,7 @@ fn test_round_trip() {
     repo::clone_rust();
     let abort_after = common::abort_after();
     if abort_after == 0 {
-        panic!("Skipping all round_trip tests");
+        panic!("skipping all round_trip tests");
     }
 
     let failed = AtomicUsize::new(0);
@@ -70,28 +68,40 @@ fn test_round_trip() {
 }
 
 fn test(path: &Path, failed: &AtomicUsize, abort_after: usize) {
-    let content = fs::read_to_string(path).unwrap();
-
-    let start = Instant::now();
-    let (krate, elapsed) = match syn::parse_file(&content) {
-        Ok(krate) => (krate, start.elapsed()),
-        Err(msg) => {
-            errorf!("=== {}: syn failed to parse\n{:?}\n", path.display(), msg);
-            let prev_failed = failed.fetch_add(1, Ordering::Relaxed);
-            if prev_failed + 1 >= abort_after {
-                process::exit(1);
-            }
-            return;
+    let failed = || {
+        let prev_failed = failed.fetch_add(1, Ordering::Relaxed);
+        if prev_failed + 1 >= abort_after {
+            process::exit(1);
         }
     };
-    let back = quote!(#krate).to_string();
+
+    let content = fs::read_to_string(path).unwrap();
+
+    let (back, elapsed) = match panic::catch_unwind(|| {
+        let start = Instant::now();
+        let result = syn::parse_file(&content);
+        let elapsed = start.elapsed();
+        result.map(|krate| (quote!(#krate).to_string(), elapsed))
+    }) {
+        Err(_) => {
+            errorf!("=== {}: syn panic\n", path.display());
+            failed();
+            return;
+        }
+        Ok(Err(msg)) => {
+            errorf!("=== {}: syn failed to parse\n{:?}\n", path.display(), msg);
+            failed();
+            return;
+        }
+        Ok(Ok(result)) => result,
+    };
+
     let edition = repo::edition(path).parse().unwrap();
 
     rustc_span::create_session_if_not_set_then(edition, |_| {
         let equal = match panic::catch_unwind(|| {
             let locale_resources = rustc_driver::DEFAULT_LOCALE_RESOURCES.to_vec();
-            let file_path_mapping = FilePathMapping::empty();
-            let sess = ParseSess::new(locale_resources, file_path_mapping);
+            let sess = ParseSess::new(locale_resources);
             let before = match librustc_parse(content, &sess) {
                 Ok(before) => before,
                 Err(diagnostic) => {
@@ -106,7 +116,7 @@ fn test(path: &Path, failed: &AtomicUsize, abort_after: usize) {
             };
             let after = match librustc_parse(back, &sess) {
                 Ok(after) => after,
-                Err(mut diagnostic) => {
+                Err(diagnostic) => {
                     errorf!("=== {}: librustc failed to parse", path.display());
                     diagnostic.emit();
                     return Err(false);
@@ -141,10 +151,7 @@ fn test(path: &Path, failed: &AtomicUsize, abort_after: usize) {
             }
         };
         if !equal {
-            let prev_failed = failed.fetch_add(1, Ordering::Relaxed);
-            if prev_failed + 1 >= abort_after {
-                process::exit(1);
-            }
+            failed();
         }
     });
 }
@@ -153,10 +160,11 @@ fn librustc_parse(content: String, sess: &ParseSess) -> PResult<Crate> {
     static COUNTER: AtomicUsize = AtomicUsize::new(0);
     let counter = COUNTER.fetch_add(1, Ordering::Relaxed);
     let name = FileName::Custom(format!("test_round_trip{}", counter));
-    parse::parse_crate_from_source_str(name, content, sess)
+    let mut parser = parse::new_parser_from_source_str(sess, name, content).unwrap();
+    parser.parse_crate_mod()
 }
 
-fn translate_message(diagnostic: &Diagnostic) -> Cow<'static, str> {
+fn translate_message(diagnostic: &Diag) -> Cow<'static, str> {
     thread_local! {
         static FLUENT_BUNDLE: LazyFallbackBundle = {
             let locale_resources = rustc_driver::DEFAULT_LOCALE_RESOURCES.to_vec();
@@ -166,11 +174,11 @@ fn translate_message(diagnostic: &Diagnostic) -> Cow<'static, str> {
     }
 
     let message = &diagnostic.messages[0].0;
-    let args = translation::to_fluent_args(diagnostic.args());
+    let args = translation::to_fluent_args(diagnostic.args.iter());
 
     let (identifier, attr) = match message {
-        DiagnosticMessage::Str(msg) | DiagnosticMessage::Eager(msg) => return msg.clone(),
-        DiagnosticMessage::FluentIdentifier(identifier, attr) => (identifier, attr),
+        DiagMessage::Str(msg) | DiagMessage::Translated(msg) => return msg.clone(),
+        DiagMessage::FluentIdentifier(identifier, attr) => (identifier, attr),
     };
 
     FLUENT_BUNDLE.with(|fluent_bundle| {
@@ -210,7 +218,14 @@ fn normalize(krate: &mut Crate) {
                 },
                 AngleBracketedArg::Constraint(_) => Group::Constraints,
             });
-            mut_visit::noop_visit_angle_bracketed_parameter_data(e, self);
+            for arg in &mut e.args {
+                match arg {
+                    AngleBracketedArg::Arg(arg) => self.visit_generic_arg(arg),
+                    AngleBracketedArg::Constraint(constraint) => {
+                        self.visit_assoc_item_constraint(constraint);
+                    }
+                }
+            }
         }
 
         fn visit_generics(&mut self, e: &mut Generics) {
@@ -225,7 +240,9 @@ fn normalize(krate: &mut Crate) {
                     Group::TypesAndConsts
                 }
             });
-            mut_visit::noop_visit_generics(e, self);
+            e.params
+                .flat_map_in_place(|param| self.flat_map_generic_param(param));
+            self.visit_where_clause(&mut e.where_clause);
         }
 
         fn visit_where_clause(&mut self, e: &mut WhereClause) {

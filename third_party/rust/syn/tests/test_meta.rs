@@ -59,7 +59,7 @@ fn test_parse_meta_name_value() {
     }
     "###);
 
-    assert_eq!(meta, inner.into());
+    assert_eq!(meta, Meta::NameValue(inner));
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn test_parse_meta_item_list_lit() {
     }
     "###);
 
-    assert_eq!(meta, inner.into());
+    assert_eq!(meta, Meta::List(inner));
 }
 
 #[test]
@@ -131,7 +131,7 @@ fn test_parse_meta_item_multiple() {
     }
     "###);
 
-    assert_eq!(meta, inner.into());
+    assert_eq!(meta, Meta::List(inner));
 }
 
 #[test]

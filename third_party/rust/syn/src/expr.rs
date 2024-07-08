@@ -1,12 +1,33 @@
-use super::*;
+use crate::attr::Attribute;
+#[cfg(all(feature = "parsing", feature = "full"))]
+use crate::error::Result;
+#[cfg(feature = "full")]
+use crate::generics::BoundLifetimes;
+use crate::ident::Ident;
+#[cfg(feature = "full")]
+use crate::lifetime::Lifetime;
+use crate::lit::Lit;
+use crate::mac::Macro;
+use crate::op::{BinOp, UnOp};
+#[cfg(all(feature = "parsing", feature = "full"))]
+use crate::parse::ParseStream;
+#[cfg(feature = "full")]
+use crate::pat::Pat;
+use crate::path::{AngleBracketedGenericArguments, Path, QSelf};
 use crate::punctuated::Punctuated;
+#[cfg(feature = "full")]
+use crate::stmt::Block;
+use crate::token;
+#[cfg(feature = "full")]
+use crate::ty::ReturnType;
+use crate::ty::Type;
 use proc_macro2::{Span, TokenStream};
 #[cfg(feature = "printing")]
 use quote::IdentFragment;
 #[cfg(feature = "printing")]
 use std::fmt::{self, Display};
 use std::hash::{Hash, Hasher};
-#[cfg(feature = "parsing")]
+#[cfg(all(feature = "parsing", feature = "full"))]
 use std::mem;
 
 ast_enum_of_structs! {
@@ -84,7 +105,7 @@ ast_enum_of_structs! {
     /// A sign that you may not be choosing the right variable names is if you
     /// see names getting repeated in your code, like accessing
     /// `receiver.receiver` or `pat.pat` or `cond.cond`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     #[non_exhaustive]
     pub enum Expr {
         /// A slice literal expression: `[a, b, c, d]`.
@@ -223,12 +244,13 @@ ast_enum_of_structs! {
         // For testing exhaustiveness in downstream code, use the following idiom:
         //
         //     match expr {
+        //         #![cfg_attr(test, deny(non_exhaustive_omitted_patterns))]
+        //
         //         Expr::Array(expr) => {...}
         //         Expr::Assign(expr) => {...}
         //         ...
         //         Expr::Yield(expr) => {...}
         //
-        //         #[cfg_attr(test, deny(non_exhaustive_omitted_patterns))]
         //         _ => { /* some sane fallback */ }
         //     }
         //
@@ -241,7 +263,7 @@ ast_enum_of_structs! {
 
 ast_struct! {
     /// A slice literal expression: `[a, b, c, d]`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprArray #full {
         pub attrs: Vec<Attribute>,
         pub bracket_token: token::Bracket,
@@ -251,7 +273,7 @@ ast_struct! {
 
 ast_struct! {
     /// An assignment expression: `a = compute()`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprAssign #full {
         pub attrs: Vec<Attribute>,
         pub left: Box<Expr>,
@@ -262,7 +284,7 @@ ast_struct! {
 
 ast_struct! {
     /// An async block: `async { ... }`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprAsync #full {
         pub attrs: Vec<Attribute>,
         pub async_token: Token![async],
@@ -273,7 +295,7 @@ ast_struct! {
 
 ast_struct! {
     /// An await expression: `fut.await`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprAwait #full {
         pub attrs: Vec<Attribute>,
         pub base: Box<Expr>,
@@ -284,7 +306,7 @@ ast_struct! {
 
 ast_struct! {
     /// A binary operation: `a + b`, `a += b`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprBinary {
         pub attrs: Vec<Attribute>,
         pub left: Box<Expr>,
@@ -295,7 +317,7 @@ ast_struct! {
 
 ast_struct! {
     /// A blocked scope: `{ ... }`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprBlock #full {
         pub attrs: Vec<Attribute>,
         pub label: Option<Label>,
@@ -306,7 +328,7 @@ ast_struct! {
 ast_struct! {
     /// A `break`, with an optional label to break and an optional
     /// expression.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprBreak #full {
         pub attrs: Vec<Attribute>,
         pub break_token: Token![break],
@@ -317,7 +339,7 @@ ast_struct! {
 
 ast_struct! {
     /// A function call expression: `invoke(a, b)`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprCall {
         pub attrs: Vec<Attribute>,
         pub func: Box<Expr>,
@@ -328,7 +350,7 @@ ast_struct! {
 
 ast_struct! {
     /// A cast expression: `foo as f64`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprCast {
         pub attrs: Vec<Attribute>,
         pub expr: Box<Expr>,
@@ -339,7 +361,7 @@ ast_struct! {
 
 ast_struct! {
     /// A closure expression: `|a, b| a + b`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprClosure #full {
         pub attrs: Vec<Attribute>,
         pub lifetimes: Option<BoundLifetimes>,
@@ -357,7 +379,7 @@ ast_struct! {
 
 ast_struct! {
     /// A const block: `const { ... }`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprConst #full {
         pub attrs: Vec<Attribute>,
         pub const_token: Token![const],
@@ -367,7 +389,7 @@ ast_struct! {
 
 ast_struct! {
     /// A `continue`, with an optional label.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprContinue #full {
         pub attrs: Vec<Attribute>,
         pub continue_token: Token![continue],
@@ -378,7 +400,7 @@ ast_struct! {
 ast_struct! {
     /// Access of a named struct field (`obj.k`) or unnamed tuple struct
     /// field (`obj.0`).
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprField {
         pub attrs: Vec<Attribute>,
         pub base: Box<Expr>,
@@ -389,7 +411,7 @@ ast_struct! {
 
 ast_struct! {
     /// A for loop: `for pat in expr { ... }`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprForLoop #full {
         pub attrs: Vec<Attribute>,
         pub label: Option<Label>,
@@ -407,7 +429,7 @@ ast_struct! {
     /// This variant is important for faithfully representing the precedence
     /// of expressions and is related to `None`-delimited spans in a
     /// `TokenStream`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprGroup {
         pub attrs: Vec<Attribute>,
         pub group_token: token::Group,
@@ -421,7 +443,7 @@ ast_struct! {
     ///
     /// The `else` branch expression may only be an `If` or `Block`
     /// expression, not any of the other types of expression.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprIf #full {
         pub attrs: Vec<Attribute>,
         pub if_token: Token![if],
@@ -433,7 +455,7 @@ ast_struct! {
 
 ast_struct! {
     /// A square bracketed indexing expression: `vector[2]`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprIndex {
         pub attrs: Vec<Attribute>,
         pub expr: Box<Expr>,
@@ -444,7 +466,7 @@ ast_struct! {
 
 ast_struct! {
     /// The inferred value of a const generic argument, denoted `_`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprInfer #full {
         pub attrs: Vec<Attribute>,
         pub underscore_token: Token![_],
@@ -453,7 +475,7 @@ ast_struct! {
 
 ast_struct! {
     /// A `let` guard: `let Some(x) = opt`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprLet #full {
         pub attrs: Vec<Attribute>,
         pub let_token: Token![let],
@@ -465,7 +487,7 @@ ast_struct! {
 
 ast_struct! {
     /// A literal in place of an expression: `1`, `"foo"`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprLit {
         pub attrs: Vec<Attribute>,
         pub lit: Lit,
@@ -474,7 +496,7 @@ ast_struct! {
 
 ast_struct! {
     /// Conditionless loop: `loop { ... }`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprLoop #full {
         pub attrs: Vec<Attribute>,
         pub label: Option<Label>,
@@ -485,7 +507,7 @@ ast_struct! {
 
 ast_struct! {
     /// A macro invocation expression: `format!("{}", q)`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprMacro {
         pub attrs: Vec<Attribute>,
         pub mac: Macro,
@@ -494,7 +516,7 @@ ast_struct! {
 
 ast_struct! {
     /// A `match` expression: `match n { Some(n) => {}, None => {} }`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprMatch #full {
         pub attrs: Vec<Attribute>,
         pub match_token: Token![match],
@@ -506,7 +528,7 @@ ast_struct! {
 
 ast_struct! {
     /// A method call expression: `x.foo::<T>(a, b)`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprMethodCall {
         pub attrs: Vec<Attribute>,
         pub receiver: Box<Expr>,
@@ -520,7 +542,7 @@ ast_struct! {
 
 ast_struct! {
     /// A parenthesized expression: `(a + b)`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprParen {
         pub attrs: Vec<Attribute>,
         pub paren_token: token::Paren,
@@ -533,7 +555,7 @@ ast_struct! {
     /// parameters and a qualified self-type.
     ///
     /// A plain identifier like `x` is a path of length 1.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprPath {
         pub attrs: Vec<Attribute>,
         pub qself: Option<QSelf>,
@@ -543,7 +565,7 @@ ast_struct! {
 
 ast_struct! {
     /// A range expression: `1..2`, `1..`, `..2`, `1..=2`, `..=2`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprRange #full {
         pub attrs: Vec<Attribute>,
         pub start: Option<Box<Expr>>,
@@ -554,7 +576,7 @@ ast_struct! {
 
 ast_struct! {
     /// A referencing operation: `&a` or `&mut a`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprReference {
         pub attrs: Vec<Attribute>,
         pub and_token: Token![&],
@@ -565,7 +587,7 @@ ast_struct! {
 
 ast_struct! {
     /// An array literal constructed from one repeated element: `[0u8; N]`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprRepeat #full {
         pub attrs: Vec<Attribute>,
         pub bracket_token: token::Bracket,
@@ -577,7 +599,7 @@ ast_struct! {
 
 ast_struct! {
     /// A `return`, with an optional value to be returned.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprReturn #full {
         pub attrs: Vec<Attribute>,
         pub return_token: Token![return],
@@ -590,7 +612,7 @@ ast_struct! {
     ///
     /// The `rest` provides the value of the remaining fields as in `S { a:
     /// 1, b: 1, ..rest }`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprStruct {
         pub attrs: Vec<Attribute>,
         pub qself: Option<QSelf>,
@@ -604,7 +626,7 @@ ast_struct! {
 
 ast_struct! {
     /// A try-expression: `expr?`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprTry #full {
         pub attrs: Vec<Attribute>,
         pub expr: Box<Expr>,
@@ -614,7 +636,7 @@ ast_struct! {
 
 ast_struct! {
     /// A try block: `try { ... }`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprTryBlock #full {
         pub attrs: Vec<Attribute>,
         pub try_token: Token![try],
@@ -624,7 +646,7 @@ ast_struct! {
 
 ast_struct! {
     /// A tuple expression: `(a, b, c, d)`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprTuple #full {
         pub attrs: Vec<Attribute>,
         pub paren_token: token::Paren,
@@ -634,7 +656,7 @@ ast_struct! {
 
 ast_struct! {
     /// A unary operation: `!x`, `*x`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ExprUnary {
         pub attrs: Vec<Attribute>,
         pub op: UnOp,
@@ -644,7 +666,7 @@ ast_struct! {
 
 ast_struct! {
     /// An unsafe block: `unsafe { ... }`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprUnsafe #full {
         pub attrs: Vec<Attribute>,
         pub unsafe_token: Token![unsafe],
@@ -654,7 +676,7 @@ ast_struct! {
 
 ast_struct! {
     /// A while loop: `while expr { ... }`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprWhile #full {
         pub attrs: Vec<Attribute>,
         pub label: Option<Label>,
@@ -666,7 +688,7 @@ ast_struct! {
 
 ast_struct! {
     /// A yield expression: `yield expr`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct ExprYield #full {
         pub attrs: Vec<Attribute>,
         pub yield_token: Token![yield],
@@ -675,8 +697,26 @@ ast_struct! {
 }
 
 impl Expr {
-    #[cfg(feature = "parsing")]
-    const DUMMY: Self = Expr::Path(ExprPath {
+    /// An unspecified invalid expression.
+    ///
+    /// ```
+    /// use quote::ToTokens;
+    /// use std::mem;
+    /// use syn::{parse_quote, Expr};
+    ///
+    /// fn unparenthesize(e: &mut Expr) {
+    ///     while let Expr::Paren(paren) = e {
+    ///         *e = mem::replace(&mut *paren.expr, Expr::PLACEHOLDER);
+    ///     }
+    /// }
+    ///
+    /// fn main() {
+    ///     let mut e: Expr = parse_quote! { ((1 + 1)) };
+    ///     unparenthesize(&mut e);
+    ///     assert_eq!("1 + 1", e.to_token_stream().to_string());
+    /// }
+    /// ```
+    pub const PLACEHOLDER: Self = Expr::Path(ExprPath {
         attrs: Vec::new(),
         qself: None,
         path: Path {
@@ -684,6 +724,155 @@ impl Expr {
             segments: Punctuated::new(),
         },
     });
+
+    /// An alternative to the primary `Expr::parse` parser (from the [`Parse`]
+    /// trait) for ambiguous syntactic positions in which a trailing brace
+    /// should not be taken as part of the expression.
+    ///
+    /// [`Parse`]: crate::parse::Parse
+    ///
+    /// Rust grammar has an ambiguity where braces sometimes turn a path
+    /// expression into a struct initialization and sometimes do not. In the
+    /// following code, the expression `S {}` is one expression. Presumably
+    /// there is an empty struct `struct S {}` defined somewhere which it is
+    /// instantiating.
+    ///
+    /// ```
+    /// # struct S;
+    /// # impl std::ops::Deref for S {
+    /// #     type Target = bool;
+    /// #     fn deref(&self) -> &Self::Target {
+    /// #         &true
+    /// #     }
+    /// # }
+    /// let _ = *S {};
+    ///
+    /// // parsed by rustc as: `*(S {})`
+    /// ```
+    ///
+    /// We would want to parse the above using `Expr::parse` after the `=`
+    /// token.
+    ///
+    /// But in the following, `S {}` is *not* a struct init expression.
+    ///
+    /// ```
+    /// # const S: &bool = &true;
+    /// if *S {} {}
+    ///
+    /// // parsed by rustc as:
+    /// //
+    /// //    if (*S) {
+    /// //        /* empty block */
+    /// //    }
+    /// //    {
+    /// //        /* another empty block */
+    /// //    }
+    /// ```
+    ///
+    /// For that reason we would want to parse if-conditions using
+    /// `Expr::parse_without_eager_brace` after the `if` token. Same for similar
+    /// syntactic positions such as the condition expr after a `while` token or
+    /// the expr at the top of a `match`.
+    ///
+    /// The Rust grammar's choices around which way this ambiguity is resolved
+    /// at various syntactic positions is fairly arbitrary. Really either parse
+    /// behavior could work in most positions, and language designers just
+    /// decide each case based on which is more likely to be what the programmer
+    /// had in mind most of the time.
+    ///
+    /// ```
+    /// # struct S;
+    /// # fn doc() -> S {
+    /// if return S {} {}
+    /// # unreachable!()
+    /// # }
+    ///
+    /// // parsed by rustc as:
+    /// //
+    /// //    if (return (S {})) {
+    /// //    }
+    /// //
+    /// // but could equally well have been this other arbitrary choice:
+    /// //
+    /// //    if (return S) {
+    /// //    }
+    /// //    {}
+    /// ```
+    ///
+    /// Note the grammar ambiguity on trailing braces is distinct from
+    /// precedence and is not captured by assigning a precedence level to the
+    /// braced struct init expr in relation to other operators. This can be
+    /// illustrated by `return 0..S {}` vs `match 0..S {}`. The former parses as
+    /// `return (0..(S {}))` implying tighter precedence for struct init than
+    /// `..`, while the latter parses as `match (0..S) {}` implying tighter
+    /// precedence for `..` than struct init, a contradiction.
+    #[cfg(all(feature = "full", feature = "parsing"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "full", feature = "parsing"))))]
+    pub fn parse_without_eager_brace(input: ParseStream) -> Result<Expr> {
+        parsing::ambiguous_expr(input, parsing::AllowStruct(false))
+    }
+
+    /// An alternative to the primary `Expr::parse` parser (from the [`Parse`]
+    /// trait) for syntactic positions in which expression boundaries are placed
+    /// more eagerly than done by the typical expression grammar. This includes
+    /// expressions at the head of a statement or in the right-hand side of a
+    /// `match` arm.
+    ///
+    /// [`Parse`]: crate::parse::Parse
+    ///
+    /// Compare the following cases:
+    ///
+    /// 1.
+    ///   ```
+    ///   # let result = ();
+    ///   # let guard = false;
+    ///   # let cond = true;
+    ///   # let f = true;
+    ///   # let g = f;
+    ///   #
+    ///   let _ = match result {
+    ///       () if guard => if cond { f } else { g }
+    ///       () => false,
+    ///   };
+    ///   ```
+    ///
+    /// 2.
+    ///   ```
+    ///   # let cond = true;
+    ///   # let f = ();
+    ///   # let g = f;
+    ///   #
+    ///   let _ = || {
+    ///       if cond { f } else { g }
+    ///       ()
+    ///   };
+    ///   ```
+    ///
+    /// 3.
+    ///   ```
+    ///   # let cond = true;
+    ///   # let f = || ();
+    ///   # let g = f;
+    ///   #
+    ///   let _ = [if cond { f } else { g } ()];
+    ///   ```
+    ///
+    /// The same sequence of tokens `if cond { f } else { g } ()` appears in
+    /// expression position 3 times. The first two syntactic positions use eager
+    /// placement of expression boundaries, and parse as `Expr::If`, with the
+    /// adjacent `()` becoming `Pat::Tuple` or `Expr::Tuple`. In contrast, the
+    /// third case uses standard expression boundaries and parses as
+    /// `Expr::Call`.
+    ///
+    /// As with [`parse_without_eager_brace`], this ambiguity in the Rust
+    /// grammar is independent of precedence.
+    ///
+    /// [`parse_without_eager_brace`]: Self::parse_without_eager_brace
+    #[cfg(all(feature = "full", feature = "parsing"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "full", feature = "parsing"))))]
+    pub fn parse_with_earlier_boundary_rule(input: ParseStream) -> Result<Expr> {
+        parsing::parse_with_earlier_boundary_rule(input)
+    }
 
     #[cfg(all(feature = "parsing", feature = "full"))]
     pub(crate) fn replace_attrs(&mut self, new: Vec<Attribute>) -> Vec<Attribute> {
@@ -734,7 +923,7 @@ impl Expr {
 ast_enum! {
     /// A struct or tuple struct field accessed in a struct literal or field
     /// expression.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub enum Member {
         /// A named field like `self.x`.
         Named(Ident),
@@ -801,7 +990,7 @@ impl IdentFragment for Member {
 
 ast_struct! {
     /// The index of an unnamed tuple struct field.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct Index {
         pub index: u32,
         pub span: Span,
@@ -810,7 +999,7 @@ ast_struct! {
 
 impl From<usize> for Index {
     fn from(index: usize) -> Index {
-        assert!(index < u32::max_value() as usize);
+        assert!(index < u32::MAX as usize);
         Index {
             index: index as u32,
             span: Span::call_site(),
@@ -845,7 +1034,7 @@ impl IdentFragment for Index {
 
 ast_struct! {
     /// A field-value pair in a struct literal.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct FieldValue {
         pub attrs: Vec<Attribute>,
         pub member: Member,
@@ -861,7 +1050,7 @@ ast_struct! {
 #[cfg(feature = "full")]
 ast_struct! {
     /// A lifetime labeling a `for`, `while`, or `loop`.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct Label {
         pub name: Lifetime,
         pub colon_token: Token![:],
@@ -887,7 +1076,7 @@ ast_struct! {
     /// #   false
     /// # }
     /// ```
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub struct Arm {
         pub attrs: Vec<Attribute>,
         pub pat: Pat,
@@ -901,7 +1090,7 @@ ast_struct! {
 #[cfg(feature = "full")]
 ast_enum! {
     /// Limit types of a range, inclusive or exclusive.
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "full")))]
     pub enum RangeLimits {
         /// Inclusive at the beginning, exclusive at the end.
         HalfOpen(Token![..]),
@@ -910,116 +1099,55 @@ ast_enum! {
     }
 }
 
-#[cfg(any(feature = "parsing", feature = "printing"))]
-#[cfg(feature = "full")]
-pub(crate) fn requires_terminator(expr: &Expr) -> bool {
-    // see https://github.com/rust-lang/rust/blob/9a19e7604/compiler/rustc_ast/src/util/classify.rs#L7-L26
-    match expr {
-        Expr::If(_)
-        | Expr::Match(_)
-        | Expr::Block(_) | Expr::Unsafe(_) // both under ExprKind::Block in rustc
-        | Expr::While(_)
-        | Expr::Loop(_)
-        | Expr::ForLoop(_)
-        | Expr::TryBlock(_)
-        | Expr::Const(_) => false,
-        Expr::Array(_)
-        | Expr::Assign(_)
-        | Expr::Async(_)
-        | Expr::Await(_)
-        | Expr::Binary(_)
-        | Expr::Break(_)
-        | Expr::Call(_)
-        | Expr::Cast(_)
-        | Expr::Closure(_)
-        | Expr::Continue(_)
-        | Expr::Field(_)
-        | Expr::Group(_)
-        | Expr::Index(_)
-        | Expr::Infer(_)
-        | Expr::Let(_)
-        | Expr::Lit(_)
-        | Expr::Macro(_)
-        | Expr::MethodCall(_)
-        | Expr::Paren(_)
-        | Expr::Path(_)
-        | Expr::Range(_)
-        | Expr::Reference(_)
-        | Expr::Repeat(_)
-        | Expr::Return(_)
-        | Expr::Struct(_)
-        | Expr::Try(_)
-        | Expr::Tuple(_)
-        | Expr::Unary(_)
-        | Expr::Yield(_)
-        | Expr::Verbatim(_) => true
-    }
-}
-
-#[cfg(feature = "parsing")]
-mod precedence {
-    use super::BinOp;
-
-    pub(crate) enum Precedence {
-        Any,
-        Assign,
-        Range,
-        Or,
-        And,
-        Compare,
-        BitOr,
-        BitXor,
-        BitAnd,
-        Shift,
-        Arithmetic,
-        Term,
-        Cast,
-    }
-
-    impl Precedence {
-        pub(crate) fn of(op: &BinOp) -> Self {
-            match op {
-                BinOp::Add(_) | BinOp::Sub(_) => Precedence::Arithmetic,
-                BinOp::Mul(_) | BinOp::Div(_) | BinOp::Rem(_) => Precedence::Term,
-                BinOp::And(_) => Precedence::And,
-                BinOp::Or(_) => Precedence::Or,
-                BinOp::BitXor(_) => Precedence::BitXor,
-                BinOp::BitAnd(_) => Precedence::BitAnd,
-                BinOp::BitOr(_) => Precedence::BitOr,
-                BinOp::Shl(_) | BinOp::Shr(_) => Precedence::Shift,
-                BinOp::Eq(_)
-                | BinOp::Lt(_)
-                | BinOp::Le(_)
-                | BinOp::Ne(_)
-                | BinOp::Ge(_)
-                | BinOp::Gt(_) => Precedence::Compare,
-                BinOp::AddAssign(_)
-                | BinOp::SubAssign(_)
-                | BinOp::MulAssign(_)
-                | BinOp::DivAssign(_)
-                | BinOp::RemAssign(_)
-                | BinOp::BitXorAssign(_)
-                | BinOp::BitAndAssign(_)
-                | BinOp::BitOrAssign(_)
-                | BinOp::ShlAssign(_)
-                | BinOp::ShrAssign(_) => Precedence::Assign,
-            }
-        }
-    }
-}
-
 #[cfg(feature = "parsing")]
 pub(crate) mod parsing {
-    use super::precedence::Precedence;
-    use super::*;
+    #[cfg(feature = "full")]
+    use crate::attr;
+    use crate::attr::Attribute;
+    #[cfg(feature = "full")]
+    use crate::classify;
+    use crate::error::{Error, Result};
+    #[cfg(feature = "full")]
+    use crate::expr::{
+        Arm, ExprArray, ExprAssign, ExprAsync, ExprAwait, ExprBlock, ExprBreak, ExprClosure,
+        ExprConst, ExprContinue, ExprForLoop, ExprIf, ExprInfer, ExprLet, ExprLoop, ExprMatch,
+        ExprRange, ExprRepeat, ExprReturn, ExprTry, ExprTryBlock, ExprTuple, ExprUnsafe, ExprWhile,
+        ExprYield, Label, RangeLimits,
+    };
+    use crate::expr::{
+        Expr, ExprBinary, ExprCall, ExprCast, ExprField, ExprGroup, ExprIndex, ExprLit, ExprMacro,
+        ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprStruct, ExprUnary, FieldValue,
+        Index, Member,
+    };
     #[cfg(feature = "full")]
     use crate::ext::IdentExt as _;
+    #[cfg(feature = "full")]
+    use crate::generics::BoundLifetimes;
+    use crate::ident::Ident;
+    #[cfg(feature = "full")]
+    use crate::lifetime::Lifetime;
+    use crate::lit::{Lit, LitFloat, LitInt};
+    use crate::mac::{self, Macro};
+    use crate::op::BinOp;
     use crate::parse::discouraged::Speculative as _;
     #[cfg(feature = "full")]
     use crate::parse::ParseBuffer;
-    use crate::parse::{Parse, ParseStream, Result};
-    use crate::path;
-    use std::cmp::Ordering;
+    use crate::parse::{Parse, ParseStream};
+    #[cfg(feature = "full")]
+    use crate::pat::{Pat, PatType};
+    use crate::path::{self, AngleBracketedGenericArguments, Path, QSelf};
+    use crate::precedence::Precedence;
+    use crate::punctuated::Punctuated;
+    #[cfg(feature = "full")]
+    use crate::stmt::Block;
+    use crate::token;
+    use crate::ty;
+    #[cfg(feature = "full")]
+    use crate::ty::{ReturnType, Type};
+    use crate::verbatim;
+    #[cfg(feature = "full")]
+    use proc_macro2::TokenStream;
+    use std::mem;
 
     mod kw {
         crate::custom_keyword!(builtin);
@@ -1032,9 +1160,9 @@ pub(crate) mod parsing {
     // Struct literals are ambiguous in certain positions
     // https://github.com/rust-lang/rfcs/pull/92
     #[cfg(feature = "full")]
-    pub(crate) struct AllowStruct(bool);
+    pub(super) struct AllowStruct(pub bool);
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for Expr {
         fn parse(input: ParseStream) -> Result<Self> {
             ambiguous_expr(
@@ -1045,92 +1173,65 @@ pub(crate) mod parsing {
         }
     }
 
-    impl Expr {
-        /// An alternative to the primary `Expr::parse` parser (from the
-        /// [`Parse`] trait) for ambiguous syntactic positions in which a
-        /// trailing brace should not be taken as part of the expression.
-        ///
-        /// Rust grammar has an ambiguity where braces sometimes turn a path
-        /// expression into a struct initialization and sometimes do not. In the
-        /// following code, the expression `S {}` is one expression. Presumably
-        /// there is an empty struct `struct S {}` defined somewhere which it is
-        /// instantiating.
-        ///
-        /// ```
-        /// # struct S;
-        /// # impl std::ops::Deref for S {
-        /// #     type Target = bool;
-        /// #     fn deref(&self) -> &Self::Target {
-        /// #         &true
-        /// #     }
-        /// # }
-        /// let _ = *S {};
-        ///
-        /// // parsed by rustc as: `*(S {})`
-        /// ```
-        ///
-        /// We would want to parse the above using `Expr::parse` after the `=`
-        /// token.
-        ///
-        /// But in the following, `S {}` is *not* a struct init expression.
-        ///
-        /// ```
-        /// # const S: &bool = &true;
-        /// if *S {} {}
-        ///
-        /// // parsed by rustc as:
-        /// //
-        /// //    if (*S) {
-        /// //        /* empty block */
-        /// //    }
-        /// //    {
-        /// //        /* another empty block */
-        /// //    }
-        /// ```
-        ///
-        /// For that reason we would want to parse if-conditions using
-        /// `Expr::parse_without_eager_brace` after the `if` token. Same for
-        /// similar syntactic positions such as the condition expr after a
-        /// `while` token or the expr at the top of a `match`.
-        ///
-        /// The Rust grammar's choices around which way this ambiguity is
-        /// resolved at various syntactic positions is fairly arbitrary. Really
-        /// either parse behavior could work in most positions, and language
-        /// designers just decide each case based on which is more likely to be
-        /// what the programmer had in mind most of the time.
-        ///
-        /// ```
-        /// # struct S;
-        /// # fn doc() -> S {
-        /// if return S {} {}
-        /// # unreachable!()
-        /// # }
-        ///
-        /// // parsed by rustc as:
-        /// //
-        /// //    if (return (S {})) {
-        /// //    }
-        /// //
-        /// // but could equally well have been this other arbitrary choice:
-        /// //
-        /// //    if (return S) {
-        /// //    }
-        /// //    {}
-        /// ```
-        ///
-        /// Note the grammar ambiguity on trailing braces is distinct from
-        /// precedence and is not captured by assigning a precedence level to
-        /// the braced struct init expr in relation to other operators. This can
-        /// be illustrated by `return 0..S {}` vs `match 0..S {}`. The former
-        /// parses as `return (0..(S {}))` implying tighter precedence for
-        /// struct init than `..`, while the latter parses as `match (0..S) {}`
-        /// implying tighter precedence for `..` than struct init, a
-        /// contradiction.
-        #[cfg(feature = "full")]
-        #[cfg_attr(doc_cfg, doc(cfg(all(feature = "full", feature = "parsing"))))]
-        pub fn parse_without_eager_brace(input: ParseStream) -> Result<Expr> {
-            ambiguous_expr(input, AllowStruct(false))
+    #[cfg(feature = "full")]
+    pub(super) fn parse_with_earlier_boundary_rule(input: ParseStream) -> Result<Expr> {
+        let mut attrs = input.call(expr_attrs)?;
+        let mut expr = if input.peek(token::Group) {
+            let allow_struct = AllowStruct(true);
+            let atom = expr_group(input, allow_struct)?;
+            if continue_parsing_early(&atom) {
+                trailer_helper(input, atom)?
+            } else {
+                atom
+            }
+        } else if input.peek(Token![if]) {
+            Expr::If(input.parse()?)
+        } else if input.peek(Token![while]) {
+            Expr::While(input.parse()?)
+        } else if input.peek(Token![for])
+            && !(input.peek2(Token![<]) && (input.peek3(Lifetime) || input.peek3(Token![>])))
+        {
+            Expr::ForLoop(input.parse()?)
+        } else if input.peek(Token![loop]) {
+            Expr::Loop(input.parse()?)
+        } else if input.peek(Token![match]) {
+            Expr::Match(input.parse()?)
+        } else if input.peek(Token![try]) && input.peek2(token::Brace) {
+            Expr::TryBlock(input.parse()?)
+        } else if input.peek(Token![unsafe]) {
+            Expr::Unsafe(input.parse()?)
+        } else if input.peek(Token![const]) && input.peek2(token::Brace) {
+            Expr::Const(input.parse()?)
+        } else if input.peek(token::Brace) {
+            Expr::Block(input.parse()?)
+        } else if input.peek(Lifetime) {
+            atom_labeled(input)?
+        } else {
+            let allow_struct = AllowStruct(true);
+            unary_expr(input, allow_struct)?
+        };
+
+        if continue_parsing_early(&expr) {
+            attrs.extend(expr.replace_attrs(Vec::new()));
+            expr.replace_attrs(attrs);
+
+            let allow_struct = AllowStruct(true);
+            return parse_expr(input, expr, allow_struct, Precedence::Any);
         }
+
+        if input.peek(Token![.]) && !input.peek(Token![..]) || input.peek(Token![?]) {
+            expr = trailer_helper(input, expr)?;
+
+            attrs.extend(expr.replace_attrs(Vec::new()));
+            expr.replace_attrs(attrs);
+
+            let allow_struct = AllowStruct(true);
+            return parse_expr(input, expr, allow_struct, Precedence::Any);
+        }
+
+        attrs.extend(expr.replace_attrs(Vec::new()));
+        expr.replace_attrs(attrs);
+        Ok(expr)
     }
 
     #[cfg(feature = "full")]
@@ -1140,28 +1241,6 @@ pub(crate) mod parsing {
     impl Clone for AllowStruct {
         fn clone(&self) -> Self {
             *self
-        }
-    }
-
-    impl Copy for Precedence {}
-
-    impl Clone for Precedence {
-        fn clone(&self) -> Self {
-            *self
-        }
-    }
-
-    impl PartialEq for Precedence {
-        fn eq(&self, other: &Self) -> bool {
-            *self as u8 == *other as u8
-        }
-    }
-
-    impl PartialOrd for Precedence {
-        fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-            let this = *self as u8;
-            let other = *other as u8;
-            Some(this.cmp(&other))
         }
     }
 
@@ -1193,75 +1272,48 @@ pub(crate) mod parsing {
     ) -> Result<Expr> {
         loop {
             let ahead = input.fork();
-            if let Some(op) = match ahead.parse::<BinOp>() {
-                Ok(op) if Precedence::of(&op) >= base => Some(op),
-                _ => None,
-            } {
-                input.advance_to(&ahead);
-                let precedence = Precedence::of(&op);
-                let mut rhs = unary_expr(input, allow_struct)?;
-                loop {
-                    let next = peek_precedence(input);
-                    if next > precedence || next == precedence && precedence == Precedence::Assign {
-                        rhs = parse_expr(input, rhs, allow_struct, next)?;
-                    } else {
-                        break;
+            if let Expr::Range(ExprRange { end: Some(_), .. }) = lhs {
+                // A range with an upper bound cannot be the left-hand side of
+                // another binary operator.
+                break;
+            } else if let Ok(op) = ahead.parse::<BinOp>() {
+                let precedence = Precedence::of_binop(&op);
+                if precedence < base {
+                    break;
+                }
+                if precedence == Precedence::Compare {
+                    if let Expr::Binary(lhs) = &lhs {
+                        if Precedence::of_binop(&lhs.op) == Precedence::Compare {
+                            break;
+                        }
                     }
                 }
+                input.advance_to(&ahead);
+                let right = parse_binop_rhs(input, allow_struct, precedence)?;
                 lhs = Expr::Binary(ExprBinary {
                     attrs: Vec::new(),
                     left: Box::new(lhs),
                     op,
-                    right: Box::new(rhs),
+                    right,
                 });
-            } else if Precedence::Assign >= base
-                && input.peek(Token![=])
-                && !input.peek(Token![==])
-                && !input.peek(Token![=>])
+            } else if Precedence::Assign >= base && input.peek(Token![=]) && !input.peek(Token![=>])
             {
                 let eq_token: Token![=] = input.parse()?;
-                let mut rhs = unary_expr(input, allow_struct)?;
-                loop {
-                    let next = peek_precedence(input);
-                    if next >= Precedence::Assign {
-                        rhs = parse_expr(input, rhs, allow_struct, next)?;
-                    } else {
-                        break;
-                    }
-                }
+                let right = parse_binop_rhs(input, allow_struct, Precedence::Assign)?;
                 lhs = Expr::Assign(ExprAssign {
                     attrs: Vec::new(),
                     left: Box::new(lhs),
                     eq_token,
-                    right: Box::new(rhs),
+                    right,
                 });
             } else if Precedence::Range >= base && input.peek(Token![..]) {
                 let limits: RangeLimits = input.parse()?;
-                let rhs = if matches!(limits, RangeLimits::HalfOpen(_))
-                    && (input.is_empty()
-                        || input.peek(Token![,])
-                        || input.peek(Token![;])
-                        || input.peek(Token![.]) && !input.peek(Token![..])
-                        || !allow_struct.0 && input.peek(token::Brace))
-                {
-                    None
-                } else {
-                    let mut rhs = unary_expr(input, allow_struct)?;
-                    loop {
-                        let next = peek_precedence(input);
-                        if next > Precedence::Range {
-                            rhs = parse_expr(input, rhs, allow_struct, next)?;
-                        } else {
-                            break;
-                        }
-                    }
-                    Some(rhs)
-                };
+                let end = parse_range_end(input, &limits, allow_struct)?;
                 lhs = Expr::Range(ExprRange {
                     attrs: Vec::new(),
                     start: Some(Box::new(lhs)),
                     limits,
-                    end: rhs.map(Box::new),
+                    end,
                 });
             } else if Precedence::Cast >= base && input.peek(Token![as]) {
                 let as_token: Token![as] = input.parse()?;
@@ -1286,26 +1338,25 @@ pub(crate) mod parsing {
     fn parse_expr(input: ParseStream, mut lhs: Expr, base: Precedence) -> Result<Expr> {
         loop {
             let ahead = input.fork();
-            if let Some(op) = match ahead.parse::<BinOp>() {
-                Ok(op) if Precedence::of(&op) >= base => Some(op),
-                _ => None,
-            } {
-                input.advance_to(&ahead);
-                let precedence = Precedence::of(&op);
-                let mut rhs = unary_expr(input)?;
-                loop {
-                    let next = peek_precedence(input);
-                    if next > precedence || next == precedence && precedence == Precedence::Assign {
-                        rhs = parse_expr(input, rhs, next)?;
-                    } else {
-                        break;
+            if let Ok(op) = ahead.parse::<BinOp>() {
+                let precedence = Precedence::of_binop(&op);
+                if precedence < base {
+                    break;
+                }
+                if precedence == Precedence::Compare {
+                    if let Expr::Binary(lhs) = &lhs {
+                        if Precedence::of_binop(&lhs.op) == Precedence::Compare {
+                            break;
+                        }
                     }
                 }
+                input.advance_to(&ahead);
+                let right = parse_binop_rhs(input, precedence)?;
                 lhs = Expr::Binary(ExprBinary {
                     attrs: Vec::new(),
                     left: Box::new(lhs),
                     op,
-                    right: Box::new(rhs),
+                    right,
                 });
             } else if Precedence::Cast >= base && input.peek(Token![as]) {
                 let as_token: Token![as] = input.parse()?;
@@ -1326,9 +1377,35 @@ pub(crate) mod parsing {
         Ok(lhs)
     }
 
+    fn parse_binop_rhs(
+        input: ParseStream,
+        #[cfg(feature = "full")] allow_struct: AllowStruct,
+        precedence: Precedence,
+    ) -> Result<Box<Expr>> {
+        let mut rhs = unary_expr(
+            input,
+            #[cfg(feature = "full")]
+            allow_struct,
+        )?;
+        loop {
+            let next = peek_precedence(input);
+            if next > precedence || next == precedence && precedence == Precedence::Assign {
+                rhs = parse_expr(
+                    input,
+                    rhs,
+                    #[cfg(feature = "full")]
+                    allow_struct,
+                    next,
+                )?;
+            } else {
+                return Ok(Box::new(rhs));
+            }
+        }
+    }
+
     fn peek_precedence(input: ParseStream) -> Precedence {
         if let Ok(op) = input.fork().parse() {
-            Precedence::of(&op)
+            Precedence::of_binop(&op)
         } else if input.peek(Token![=]) && !input.peek(Token![=>]) {
             Precedence::Assign
         } else if input.peek(Token![..]) {
@@ -1341,7 +1418,7 @@ pub(crate) mod parsing {
     }
 
     // Parse an arbitrary expression.
-    fn ambiguous_expr(
+    pub(super) fn ambiguous_expr(
         input: ParseStream,
         #[cfg(feature = "full")] allow_struct: AllowStruct,
     ) -> Result<Expr> {
@@ -1663,11 +1740,11 @@ pub(crate) mod parsing {
         } else if input.peek(Token![continue]) {
             input.parse().map(Expr::Continue)
         } else if input.peek(Token![return]) {
-            expr_return(input, allow_struct).map(Expr::Return)
+            input.parse().map(Expr::Return)
         } else if input.peek(token::Bracket) {
             array_or_repeat(input)
         } else if input.peek(Token![let]) {
-            input.parse().map(Expr::Let)
+            expr_let(input, allow_struct).map(Expr::Let)
         } else if input.peek(Token![if]) {
             input.parse().map(Expr::If)
         } else if input.peek(Token![while]) {
@@ -1821,7 +1898,7 @@ pub(crate) mod parsing {
         }))
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprMacro {
         fn parse(input: ParseStream) -> Result<Self> {
             Ok(ExprMacro {
@@ -1916,7 +1993,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprArray {
         fn parse(input: ParseStream) -> Result<Self> {
             let content;
@@ -1942,7 +2019,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprRepeat {
         fn parse(input: ParseStream) -> Result<Self> {
             let content;
@@ -1954,67 +2031,6 @@ pub(crate) mod parsing {
                 len: content.parse()?,
             })
         }
-    }
-
-    #[cfg(feature = "full")]
-    pub(crate) fn expr_early(input: ParseStream) -> Result<Expr> {
-        let mut attrs = input.call(expr_attrs)?;
-        let mut expr = if input.peek(token::Group) {
-            let allow_struct = AllowStruct(true);
-            let atom = expr_group(input, allow_struct)?;
-            if continue_parsing_early(&atom) {
-                trailer_helper(input, atom)?
-            } else {
-                atom
-            }
-        } else if input.peek(Token![if]) {
-            Expr::If(input.parse()?)
-        } else if input.peek(Token![while]) {
-            Expr::While(input.parse()?)
-        } else if input.peek(Token![for])
-            && !(input.peek2(Token![<]) && (input.peek3(Lifetime) || input.peek3(Token![>])))
-        {
-            Expr::ForLoop(input.parse()?)
-        } else if input.peek(Token![loop]) {
-            Expr::Loop(input.parse()?)
-        } else if input.peek(Token![match]) {
-            Expr::Match(input.parse()?)
-        } else if input.peek(Token![try]) && input.peek2(token::Brace) {
-            Expr::TryBlock(input.parse()?)
-        } else if input.peek(Token![unsafe]) {
-            Expr::Unsafe(input.parse()?)
-        } else if input.peek(Token![const]) && input.peek2(token::Brace) {
-            Expr::Const(input.parse()?)
-        } else if input.peek(token::Brace) {
-            Expr::Block(input.parse()?)
-        } else if input.peek(Lifetime) {
-            atom_labeled(input)?
-        } else {
-            let allow_struct = AllowStruct(true);
-            unary_expr(input, allow_struct)?
-        };
-
-        if continue_parsing_early(&expr) {
-            attrs.extend(expr.replace_attrs(Vec::new()));
-            expr.replace_attrs(attrs);
-
-            let allow_struct = AllowStruct(true);
-            return parse_expr(input, expr, allow_struct, Precedence::Any);
-        }
-
-        if input.peek(Token![.]) && !input.peek(Token![..]) || input.peek(Token![?]) {
-            expr = trailer_helper(input, expr)?;
-
-            attrs.extend(expr.replace_attrs(Vec::new()));
-            expr.replace_attrs(attrs);
-
-            let allow_struct = AllowStruct(true);
-            return parse_expr(input, expr, allow_struct, Precedence::Any);
-        }
-
-        attrs.extend(expr.replace_attrs(Vec::new()));
-        expr.replace_attrs(attrs);
-        Ok(expr)
     }
 
     #[cfg(feature = "full")]
@@ -2036,7 +2052,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprLit {
         fn parse(input: ParseStream) -> Result<Self> {
             Ok(ExprLit {
@@ -2081,7 +2097,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprParen {
         fn parse(input: ParseStream) -> Result<Self> {
             expr_paren(input)
@@ -2098,66 +2114,85 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprLet {
         fn parse(input: ParseStream) -> Result<Self> {
-            Ok(ExprLet {
-                attrs: Vec::new(),
-                let_token: input.parse()?,
-                pat: Box::new(Pat::parse_multi_with_leading_vert(input)?),
-                eq_token: input.parse()?,
-                expr: Box::new({
-                    let allow_struct = AllowStruct(false);
-                    let lhs = unary_expr(input, allow_struct)?;
-                    parse_expr(input, lhs, allow_struct, Precedence::Compare)?
-                }),
-            })
+            let allow_struct = AllowStruct(true);
+            expr_let(input, allow_struct)
         }
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    fn expr_let(input: ParseStream, allow_struct: AllowStruct) -> Result<ExprLet> {
+        Ok(ExprLet {
+            attrs: Vec::new(),
+            let_token: input.parse()?,
+            pat: Box::new(Pat::parse_multi_with_leading_vert(input)?),
+            eq_token: input.parse()?,
+            expr: Box::new({
+                let lhs = unary_expr(input, allow_struct)?;
+                parse_expr(input, lhs, allow_struct, Precedence::Compare)?
+            }),
+        })
+    }
+
+    #[cfg(feature = "full")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprIf {
         fn parse(input: ParseStream) -> Result<Self> {
             let attrs = input.call(Attribute::parse_outer)?;
-            Ok(ExprIf {
-                attrs,
-                if_token: input.parse()?,
-                cond: Box::new(input.call(Expr::parse_without_eager_brace)?),
-                then_branch: input.parse()?,
-                else_branch: {
-                    if input.peek(Token![else]) {
-                        Some(input.call(else_block)?)
-                    } else {
-                        None
-                    }
-                },
-            })
+
+            let mut clauses = Vec::new();
+            let mut expr;
+            loop {
+                let if_token: Token![if] = input.parse()?;
+                let cond = input.call(Expr::parse_without_eager_brace)?;
+                let then_branch: Block = input.parse()?;
+
+                expr = ExprIf {
+                    attrs: Vec::new(),
+                    if_token,
+                    cond: Box::new(cond),
+                    then_branch,
+                    else_branch: None,
+                };
+
+                if !input.peek(Token![else]) {
+                    break;
+                }
+
+                let else_token: Token![else] = input.parse()?;
+                let lookahead = input.lookahead1();
+                if lookahead.peek(Token![if]) {
+                    expr.else_branch = Some((else_token, Box::new(Expr::PLACEHOLDER)));
+                    clauses.push(expr);
+                    continue;
+                } else if lookahead.peek(token::Brace) {
+                    expr.else_branch = Some((
+                        else_token,
+                        Box::new(Expr::Block(ExprBlock {
+                            attrs: Vec::new(),
+                            label: None,
+                            block: input.parse()?,
+                        })),
+                    ));
+                    break;
+                } else {
+                    return Err(lookahead.error());
+                }
+            }
+
+            while let Some(mut prev) = clauses.pop() {
+                *prev.else_branch.as_mut().unwrap().1 = Expr::If(expr);
+                expr = prev;
+            }
+            expr.attrs = attrs;
+            Ok(expr)
         }
     }
 
     #[cfg(feature = "full")]
-    fn else_block(input: ParseStream) -> Result<(Token![else], Box<Expr>)> {
-        let else_token: Token![else] = input.parse()?;
-
-        let lookahead = input.lookahead1();
-        let else_branch = if input.peek(Token![if]) {
-            input.parse().map(Expr::If)?
-        } else if input.peek(token::Brace) {
-            Expr::Block(ExprBlock {
-                attrs: Vec::new(),
-                label: None,
-                block: input.parse()?,
-            })
-        } else {
-            return Err(lookahead.error());
-        };
-
-        Ok((else_token, Box::new(else_branch)))
-    }
-
-    #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprInfer {
         fn parse(input: ParseStream) -> Result<Self> {
             Ok(ExprInfer {
@@ -2168,7 +2203,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprForLoop {
         fn parse(input: ParseStream) -> Result<Self> {
             let mut attrs = input.call(Attribute::parse_outer)?;
@@ -2198,7 +2233,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprLoop {
         fn parse(input: ParseStream) -> Result<Self> {
             let mut attrs = input.call(Attribute::parse_outer)?;
@@ -2220,7 +2255,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprMatch {
         fn parse(input: ParseStream) -> Result<Self> {
             let mut attrs = input.call(Attribute::parse_outer)?;
@@ -2254,7 +2289,7 @@ pub(crate) mod parsing {
         ) => {
             $(
                 #[cfg(all(feature = "full", feature = "printing"))]
-                #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+                #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
                 impl Parse for $expr_type {
                     fn parse(input: ParseStream) -> Result<Self> {
                         let mut expr: Expr = input.parse()?;
@@ -2286,7 +2321,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprUnary {
         fn parse(input: ParseStream) -> Result<Self> {
             let attrs = Vec::new();
@@ -2309,7 +2344,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprClosure {
         fn parse(input: ParseStream) -> Result<Self> {
             let allow_struct = AllowStruct(true);
@@ -2318,7 +2353,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprReference {
         fn parse(input: ParseStream) -> Result<Self> {
             let allow_struct = AllowStruct(true);
@@ -2332,7 +2367,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprBreak {
         fn parse(input: ParseStream) -> Result<Self> {
             let allow_struct = AllowStruct(true);
@@ -2341,16 +2376,25 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprReturn {
         fn parse(input: ParseStream) -> Result<Self> {
-            let allow_struct = AllowStruct(true);
-            expr_return(input, allow_struct)
+            Ok(ExprReturn {
+                attrs: Vec::new(),
+                return_token: input.parse()?,
+                expr: {
+                    if can_begin_expr(input) {
+                        Some(input.parse()?)
+                    } else {
+                        None
+                    }
+                },
+            })
         }
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprTryBlock {
         fn parse(input: ParseStream) -> Result<Self> {
             Ok(ExprTryBlock {
@@ -2362,7 +2406,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprYield {
         fn parse(input: ParseStream) -> Result<Self> {
             Ok(ExprYield {
@@ -2436,7 +2480,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprAsync {
         fn parse(input: ParseStream) -> Result<Self> {
             Ok(ExprAsync {
@@ -2485,7 +2529,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprWhile {
         fn parse(input: ParseStream) -> Result<Self> {
             let mut attrs = input.call(Attribute::parse_outer)?;
@@ -2509,7 +2553,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprConst {
         fn parse(input: ParseStream) -> Result<Self> {
             let const_token: Token![const] = input.parse()?;
@@ -2528,7 +2572,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for Label {
         fn parse(input: ParseStream) -> Result<Self> {
             Ok(Label {
@@ -2539,7 +2583,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for Option<Label> {
         fn parse(input: ParseStream) -> Result<Self> {
             if input.peek(Lifetime) {
@@ -2551,7 +2595,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprContinue {
         fn parse(input: ParseStream) -> Result<Self> {
             Ok(ExprContinue {
@@ -2571,7 +2615,7 @@ pub(crate) mod parsing {
         if label.is_some() && ahead.peek(Token![:]) {
             // Not allowed: `break 'label: loop {...}`
             // Parentheses are required. `break ('label: loop {...})`
-            let _ = ambiguous_expr(input, allow_struct)?;
+            let _: Expr = input.parse()?;
             let start_span = label.unwrap().apostrophe;
             let end_span = input.cursor().prev_span();
             return Err(crate::error::new2(
@@ -2583,8 +2627,7 @@ pub(crate) mod parsing {
 
         input.advance_to(&ahead);
         let expr = if can_begin_expr(input) && (allow_struct.0 || !input.peek(token::Brace)) {
-            let expr = ambiguous_expr(input, allow_struct)?;
-            Some(Box::new(expr))
+            Some(input.parse()?)
         } else {
             None
         };
@@ -2597,28 +2640,7 @@ pub(crate) mod parsing {
         })
     }
 
-    #[cfg(feature = "full")]
-    fn expr_return(input: ParseStream, allow_struct: AllowStruct) -> Result<ExprReturn> {
-        Ok(ExprReturn {
-            attrs: Vec::new(),
-            return_token: input.parse()?,
-            expr: {
-                if can_begin_expr(input) {
-                    // NOTE: return is greedy and eats blocks after it even when in a
-                    // position where structs are not allowed, such as in if statement
-                    // conditions. For example:
-                    //
-                    // if return { println!("A") } {} // Prints "A"
-                    let expr = ambiguous_expr(input, allow_struct)?;
-                    Some(Box::new(expr))
-                } else {
-                    None
-                }
-            },
-        })
-    }
-
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for FieldValue {
         fn parse(input: ParseStream) -> Result<Self> {
             let attrs = input.call(Attribute::parse_outer)?;
@@ -2647,7 +2669,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprStruct {
         fn parse(input: ParseStream) -> Result<Self> {
             let (qself, path) = path::parsing::qpath(input, true)?;
@@ -2701,7 +2723,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprUnsafe {
         fn parse(input: ParseStream) -> Result<Self> {
             let unsafe_token: Token![unsafe] = input.parse()?;
@@ -2720,7 +2742,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprBlock {
         fn parse(input: ParseStream) -> Result<Self> {
             let mut attrs = input.call(Attribute::parse_outer)?;
@@ -2742,18 +2764,7 @@ pub(crate) mod parsing {
     #[cfg(feature = "full")]
     fn expr_range(input: ParseStream, allow_struct: AllowStruct) -> Result<ExprRange> {
         let limits: RangeLimits = input.parse()?;
-        let end = if matches!(limits, RangeLimits::HalfOpen(_))
-            && (input.is_empty()
-                || input.peek(Token![,])
-                || input.peek(Token![;])
-                || input.peek(Token![.]) && !input.peek(Token![..])
-                || !allow_struct.0 && input.peek(token::Brace))
-        {
-            None
-        } else {
-            let to = ambiguous_expr(input, allow_struct)?;
-            Some(Box::new(to))
-        };
+        let end = parse_range_end(input, &limits, allow_struct)?;
         Ok(ExprRange {
             attrs: Vec::new(),
             start: None,
@@ -2763,7 +2774,27 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    fn parse_range_end(
+        input: ParseStream,
+        limits: &RangeLimits,
+        allow_struct: AllowStruct,
+    ) -> Result<Option<Box<Expr>>> {
+        if matches!(limits, RangeLimits::HalfOpen(_))
+            && (input.is_empty()
+                || input.peek(Token![,])
+                || input.peek(Token![;])
+                || input.peek(Token![.]) && !input.peek(Token![..])
+                || !allow_struct.0 && input.peek(token::Brace))
+        {
+            Ok(None)
+        } else {
+            let end = parse_binop_rhs(input, allow_struct, Precedence::Range)?;
+            Ok(Some(end))
+        }
+    }
+
+    #[cfg(feature = "full")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for RangeLimits {
         fn parse(input: ParseStream) -> Result<Self> {
             let lookahead = input.lookahead1();
@@ -2800,7 +2831,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ExprPath {
         fn parse(input: ParseStream) -> Result<Self> {
             #[cfg(not(feature = "full"))]
@@ -2814,7 +2845,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for Member {
         fn parse(input: ParseStream) -> Result<Self> {
             if input.peek(Ident) {
@@ -2828,7 +2859,7 @@ pub(crate) mod parsing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for Arm {
         fn parse(input: ParseStream) -> Result<Arm> {
             let requires_comma;
@@ -2846,8 +2877,8 @@ pub(crate) mod parsing {
                 },
                 fat_arrow_token: input.parse()?,
                 body: {
-                    let body = input.call(expr_early)?;
-                    requires_comma = requires_terminator(&body);
+                    let body = Expr::parse_with_earlier_boundary_rule(input)?;
+                    requires_comma = classify::requires_comma_to_be_match_arm(&body);
                     Box::new(body)
                 },
                 comma: {
@@ -2861,7 +2892,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for Index {
         fn parse(input: ParseStream) -> Result<Self> {
             let lit: LitInt = input.parse()?;
@@ -2895,7 +2926,7 @@ pub(crate) mod parsing {
             let part_end = offset + part.len();
             index.span = float_token.subspan(offset..part_end).unwrap_or(float_span);
 
-            let base = mem::replace(e, Expr::DUMMY);
+            let base = mem::replace(e, Expr::PLACEHOLDER);
             *e = Expr::Field(ExprField {
                 attrs: Vec::new(),
                 base: Box::new(base),
@@ -2947,24 +2978,32 @@ pub(crate) mod parsing {
 
 #[cfg(feature = "printing")]
 pub(crate) mod printing {
-    use super::*;
+    use crate::attr::Attribute;
     #[cfg(feature = "full")]
     use crate::attr::FilterAttrs;
-    use proc_macro2::{Literal, TokenStream};
-    use quote::{ToTokens, TokenStreamExt};
-
-    // If the given expression is a bare `ExprStruct`, wraps it in parenthesis
-    // before appending it to `TokenStream`.
+    use crate::classify;
     #[cfg(feature = "full")]
-    fn wrap_bare_struct(tokens: &mut TokenStream, e: &Expr) {
-        if let Expr::Struct(_) = *e {
-            token::Paren::default().surround(tokens, |tokens| {
-                e.to_tokens(tokens);
-            });
-        } else {
-            e.to_tokens(tokens);
-        }
-    }
+    use crate::expr::{
+        Arm, ExprArray, ExprAssign, ExprAsync, ExprAwait, ExprBlock, ExprBreak, ExprClosure,
+        ExprConst, ExprContinue, ExprForLoop, ExprIf, ExprInfer, ExprLet, ExprLoop, ExprMatch,
+        ExprRange, ExprRepeat, ExprReturn, ExprTry, ExprTryBlock, ExprTuple, ExprUnsafe, ExprWhile,
+        ExprYield, Label, RangeLimits,
+    };
+    use crate::expr::{
+        Expr, ExprBinary, ExprCall, ExprCast, ExprField, ExprGroup, ExprIndex, ExprLit, ExprMacro,
+        ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprStruct, ExprUnary, FieldValue,
+        Index, Member,
+    };
+    #[cfg(feature = "full")]
+    use crate::fixup::FixupContext;
+    use crate::op::BinOp;
+    use crate::path;
+    use crate::precedence::Precedence;
+    use crate::token;
+    #[cfg(feature = "full")]
+    use crate::ty::ReturnType;
+    use proc_macro2::{Literal, Span, TokenStream};
+    use quote::{ToTokens, TokenStreamExt};
 
     #[cfg(feature = "full")]
     pub(crate) fn outer_attrs_to_tokens(attrs: &[Attribute], tokens: &mut TokenStream) {
@@ -2980,7 +3019,108 @@ pub(crate) mod printing {
     pub(crate) fn outer_attrs_to_tokens(_attrs: &[Attribute], _tokens: &mut TokenStream) {}
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    fn print_condition(expr: &Expr, tokens: &mut TokenStream) {
+        print_subexpression(
+            expr,
+            classify::confusable_with_adjacent_block(expr),
+            tokens,
+            FixupContext::new_condition(),
+        );
+    }
+
+    fn print_subexpression(
+        expr: &Expr,
+        needs_group: bool,
+        tokens: &mut TokenStream,
+        #[cfg(feature = "full")] mut fixup: FixupContext,
+    ) {
+        #[cfg(not(feature = "full"))]
+        let do_print_expr = |tokens: &mut TokenStream| expr.to_tokens(tokens);
+
+        #[cfg(feature = "full")]
+        let do_print_expr = {
+            // If we are surrounding the whole cond in parentheses, such as:
+            //
+            //     if (return Struct {}) {}
+            //
+            // then there is no need for parenthesizing the individual struct
+            // expressions within. On the other hand if the whole cond is not
+            // parenthesized, then print_expr must parenthesize exterior struct
+            // literals.
+            //
+            //     if x == (Struct {}) {}
+            //
+            if needs_group {
+                fixup = FixupContext::NONE;
+            }
+            |tokens: &mut TokenStream| print_expr(expr, tokens, fixup)
+        };
+
+        if needs_group {
+            token::Paren::default().surround(tokens, do_print_expr);
+        } else {
+            do_print_expr(tokens);
+        }
+    }
+
+    #[cfg(feature = "full")]
+    pub(crate) fn print_expr(expr: &Expr, tokens: &mut TokenStream, mut fixup: FixupContext) {
+        let needs_group = fixup.would_cause_statement_boundary(expr);
+        if needs_group {
+            fixup = FixupContext::NONE;
+        }
+
+        let do_print_expr = |tokens: &mut TokenStream| match expr {
+            Expr::Array(e) => e.to_tokens(tokens),
+            Expr::Assign(e) => print_expr_assign(e, tokens, fixup),
+            Expr::Async(e) => e.to_tokens(tokens),
+            Expr::Await(e) => print_expr_await(e, tokens, fixup),
+            Expr::Binary(e) => print_expr_binary(e, tokens, fixup),
+            Expr::Block(e) => e.to_tokens(tokens),
+            Expr::Break(e) => print_expr_break(e, tokens, fixup),
+            Expr::Call(e) => print_expr_call(e, tokens, fixup),
+            Expr::Cast(e) => print_expr_cast(e, tokens, fixup),
+            Expr::Closure(e) => e.to_tokens(tokens),
+            Expr::Const(e) => e.to_tokens(tokens),
+            Expr::Continue(e) => e.to_tokens(tokens),
+            Expr::Field(e) => print_expr_field(e, tokens, fixup),
+            Expr::ForLoop(e) => e.to_tokens(tokens),
+            Expr::Group(e) => e.to_tokens(tokens),
+            Expr::If(e) => e.to_tokens(tokens),
+            Expr::Index(e) => print_expr_index(e, tokens, fixup),
+            Expr::Infer(e) => e.to_tokens(tokens),
+            Expr::Let(e) => print_expr_let(e, tokens, fixup),
+            Expr::Lit(e) => e.to_tokens(tokens),
+            Expr::Loop(e) => e.to_tokens(tokens),
+            Expr::Macro(e) => e.to_tokens(tokens),
+            Expr::Match(e) => e.to_tokens(tokens),
+            Expr::MethodCall(e) => print_expr_method_call(e, tokens, fixup),
+            Expr::Paren(e) => e.to_tokens(tokens),
+            Expr::Path(e) => e.to_tokens(tokens),
+            Expr::Range(e) => print_expr_range(e, tokens, fixup),
+            Expr::Reference(e) => print_expr_reference(e, tokens, fixup),
+            Expr::Repeat(e) => e.to_tokens(tokens),
+            Expr::Return(e) => print_expr_return(e, tokens, fixup),
+            Expr::Struct(e) => e.to_tokens(tokens),
+            Expr::Try(e) => print_expr_try(e, tokens, fixup),
+            Expr::TryBlock(e) => e.to_tokens(tokens),
+            Expr::Tuple(e) => e.to_tokens(tokens),
+            Expr::Unary(e) => print_expr_unary(e, tokens, fixup),
+            Expr::Unsafe(e) => e.to_tokens(tokens),
+            Expr::Verbatim(e) => e.to_tokens(tokens),
+            Expr::While(e) => e.to_tokens(tokens),
+            Expr::Yield(e) => print_expr_yield(e, tokens, fixup),
+        };
+
+        if needs_group {
+            token::Paren::default().surround(tokens, do_print_expr);
+        } else {
+            do_print_expr(tokens);
+        }
+    }
+
+    #[cfg(feature = "full")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprArray {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -2991,18 +3131,33 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprAssign {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.left.to_tokens(tokens);
-            self.eq_token.to_tokens(tokens);
-            self.right.to_tokens(tokens);
+            print_expr_assign(self, tokens, FixupContext::NONE);
         }
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    fn print_expr_assign(e: &ExprAssign, tokens: &mut TokenStream, fixup: FixupContext) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        print_subexpression(
+            &e.left,
+            Precedence::of(&e.left) <= Precedence::Assign,
+            tokens,
+            fixup.leftmost_subexpression(),
+        );
+        e.eq_token.to_tokens(tokens);
+        print_subexpression(
+            &e.right,
+            Precedence::of_rhs(&e.right) < Precedence::Assign,
+            tokens,
+            fixup.subsequent_subexpression(),
+        );
+    }
+
+    #[cfg(feature = "full")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprAsync {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3013,28 +3168,100 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprAwait {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.base.to_tokens(tokens);
-            self.dot_token.to_tokens(tokens);
-            self.await_token.to_tokens(tokens);
-        }
-    }
-
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
-    impl ToTokens for ExprBinary {
-        fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.left.to_tokens(tokens);
-            self.op.to_tokens(tokens);
-            self.right.to_tokens(tokens);
+            print_expr_await(self, tokens, FixupContext::NONE);
         }
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    fn print_expr_await(e: &ExprAwait, tokens: &mut TokenStream, fixup: FixupContext) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        print_subexpression(
+            &e.base,
+            Precedence::of(&e.base) < Precedence::Postfix,
+            tokens,
+            fixup.leftmost_subexpression_with_dot(),
+        );
+        e.dot_token.to_tokens(tokens);
+        e.await_token.to_tokens(tokens);
+    }
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
+    impl ToTokens for ExprBinary {
+        fn to_tokens(&self, tokens: &mut TokenStream) {
+            print_expr_binary(
+                self,
+                tokens,
+                #[cfg(feature = "full")]
+                FixupContext::NONE,
+            );
+        }
+    }
+
+    fn print_expr_binary(
+        e: &ExprBinary,
+        tokens: &mut TokenStream,
+        #[cfg(feature = "full")] fixup: FixupContext,
+    ) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+
+        let binop_prec = Precedence::of_binop(&e.op);
+        let left_prec = Precedence::of(&e.left);
+        let right_prec = Precedence::of_rhs(&e.right);
+        let (mut left_needs_group, right_needs_group) = if let Precedence::Assign = binop_prec {
+            (left_prec <= binop_prec, right_prec < binop_prec)
+        } else {
+            (left_prec < binop_prec, right_prec <= binop_prec)
+        };
+
+        // These cases require parenthesization independently of precedence.
+        match (&*e.left, &e.op) {
+            // `x as i32 < y` has the parser thinking that `i32 < y` is the
+            // beginning of a path type. It starts trying to parse `x as (i32 <
+            // y ...` instead of `(x as i32) < ...`. We need to convince it
+            // _not_ to do that.
+            (_, BinOp::Lt(_) | BinOp::Shl(_)) if classify::confusable_with_adjacent_lt(&e.left) => {
+                left_needs_group = true;
+            }
+
+            // We are given `(let _ = a) OP b`.
+            //
+            // - When `OP <= LAnd` we should print `let _ = a OP b` to avoid
+            //   redundant parens as the parser will interpret this as `(let _ =
+            //   a) OP b`.
+            //
+            // - Otherwise, e.g. when we have `(let a = b) < c` in AST, parens
+            //   are required since the parser would interpret `let a = b < c`
+            //   as `let a = (b < c)`. To achieve this, we force parens.
+            #[cfg(feature = "full")]
+            (Expr::Let(_), _) if binop_prec > Precedence::And => {
+                left_needs_group = true;
+            }
+
+            _ => {}
+        }
+
+        print_subexpression(
+            &e.left,
+            left_needs_group,
+            tokens,
+            #[cfg(feature = "full")]
+            fixup.leftmost_subexpression(),
+        );
+        e.op.to_tokens(tokens);
+        print_subexpression(
+            &e.right,
+            right_needs_group,
+            tokens,
+            #[cfg(feature = "full")]
+            fixup.subsequent_subexpression(),
+        );
+    }
+
+    #[cfg(feature = "full")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprBlock {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3047,39 +3274,91 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprBreak {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.break_token.to_tokens(tokens);
-            self.label.to_tokens(tokens);
-            self.expr.to_tokens(tokens);
-        }
-    }
-
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
-    impl ToTokens for ExprCall {
-        fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.func.to_tokens(tokens);
-            self.paren_token.surround(tokens, |tokens| {
-                self.args.to_tokens(tokens);
-            });
-        }
-    }
-
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
-    impl ToTokens for ExprCast {
-        fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.expr.to_tokens(tokens);
-            self.as_token.to_tokens(tokens);
-            self.ty.to_tokens(tokens);
+            print_expr_break(self, tokens, FixupContext::NONE);
         }
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    fn print_expr_break(e: &ExprBreak, tokens: &mut TokenStream, fixup: FixupContext) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        e.break_token.to_tokens(tokens);
+        e.label.to_tokens(tokens);
+        if let Some(expr) = &e.expr {
+            print_expr(expr, tokens, fixup.subsequent_subexpression());
+        }
+    }
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
+    impl ToTokens for ExprCall {
+        fn to_tokens(&self, tokens: &mut TokenStream) {
+            print_expr_call(
+                self,
+                tokens,
+                #[cfg(feature = "full")]
+                FixupContext::NONE,
+            );
+        }
+    }
+
+    fn print_expr_call(
+        e: &ExprCall,
+        tokens: &mut TokenStream,
+        #[cfg(feature = "full")] fixup: FixupContext,
+    ) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+
+        let precedence = if let Expr::Field(_) = &*e.func {
+            Precedence::Any
+        } else {
+            Precedence::Postfix
+        };
+        print_subexpression(
+            &e.func,
+            Precedence::of(&e.func) < precedence,
+            tokens,
+            #[cfg(feature = "full")]
+            fixup.leftmost_subexpression(),
+        );
+
+        e.paren_token.surround(tokens, |tokens| {
+            e.args.to_tokens(tokens);
+        });
+    }
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
+    impl ToTokens for ExprCast {
+        fn to_tokens(&self, tokens: &mut TokenStream) {
+            print_expr_cast(
+                self,
+                tokens,
+                #[cfg(feature = "full")]
+                FixupContext::NONE,
+            );
+        }
+    }
+
+    fn print_expr_cast(
+        e: &ExprCast,
+        tokens: &mut TokenStream,
+        #[cfg(feature = "full")] fixup: FixupContext,
+    ) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        print_subexpression(
+            &e.expr,
+            Precedence::of(&e.expr) < Precedence::Cast,
+            tokens,
+            #[cfg(feature = "full")]
+            fixup.leftmost_subexpression(),
+        );
+        e.as_token.to_tokens(tokens);
+        e.ty.to_tokens(tokens);
+    }
+
+    #[cfg(feature = "full")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprClosure {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3092,12 +3371,18 @@ pub(crate) mod printing {
             self.inputs.to_tokens(tokens);
             self.or2_token.to_tokens(tokens);
             self.output.to_tokens(tokens);
-            self.body.to_tokens(tokens);
+            if matches!(self.output, ReturnType::Default) || matches!(*self.body, Expr::Block(_)) {
+                self.body.to_tokens(tokens);
+            } else {
+                token::Brace::default().surround(tokens, |tokens| {
+                    print_expr(&self.body, tokens, FixupContext::new_stmt());
+                });
+            }
         }
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprConst {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3110,7 +3395,7 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprContinue {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3119,18 +3404,37 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprField {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.base.to_tokens(tokens);
-            self.dot_token.to_tokens(tokens);
-            self.member.to_tokens(tokens);
+            print_expr_field(
+                self,
+                tokens,
+                #[cfg(feature = "full")]
+                FixupContext::NONE,
+            );
         }
     }
 
+    fn print_expr_field(
+        e: &ExprField,
+        tokens: &mut TokenStream,
+        #[cfg(feature = "full")] fixup: FixupContext,
+    ) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        print_subexpression(
+            &e.base,
+            Precedence::of(&e.base) < Precedence::Postfix,
+            tokens,
+            #[cfg(feature = "full")]
+            fixup.leftmost_subexpression_with_dot(),
+        );
+        e.dot_token.to_tokens(tokens);
+        e.member.to_tokens(tokens);
+    }
+
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprForLoop {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3138,7 +3442,7 @@ pub(crate) mod printing {
             self.for_token.to_tokens(tokens);
             self.pat.to_tokens(tokens);
             self.in_token.to_tokens(tokens);
-            wrap_bare_struct(tokens, &self.expr);
+            print_condition(&self.expr, tokens);
             self.body.brace_token.surround(tokens, |tokens| {
                 inner_attrs_to_tokens(&self.attrs, tokens);
                 tokens.append_all(&self.body.stmts);
@@ -3146,7 +3450,7 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprGroup {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3157,38 +3461,76 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprIf {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
-            self.if_token.to_tokens(tokens);
-            wrap_bare_struct(tokens, &self.cond);
-            self.then_branch.to_tokens(tokens);
-            if let Some((else_token, else_)) = &self.else_branch {
+
+            let mut expr = self;
+            loop {
+                expr.if_token.to_tokens(tokens);
+                print_condition(&expr.cond, tokens);
+                expr.then_branch.to_tokens(tokens);
+
+                let (else_token, else_) = match &expr.else_branch {
+                    Some(else_branch) => else_branch,
+                    None => break,
+                };
+
                 else_token.to_tokens(tokens);
-                // If we are not one of the valid expressions to exist in an else
-                // clause, wrap ourselves in a block.
-                match **else_ {
-                    Expr::If(_) | Expr::Block(_) => else_.to_tokens(tokens),
-                    _ => token::Brace::default().surround(tokens, |tokens| else_.to_tokens(tokens)),
+                match &**else_ {
+                    Expr::If(next) => {
+                        expr = next;
+                    }
+                    Expr::Block(last) => {
+                        last.to_tokens(tokens);
+                        break;
+                    }
+                    // If this is not one of the valid expressions to exist in
+                    // an else clause, wrap it in a block.
+                    other => {
+                        token::Brace::default().surround(tokens, |tokens| {
+                            print_expr(other, tokens, FixupContext::new_stmt());
+                        });
+                        break;
+                    }
                 }
             }
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprIndex {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.expr.to_tokens(tokens);
-            self.bracket_token.surround(tokens, |tokens| {
-                self.index.to_tokens(tokens);
-            });
+            print_expr_index(
+                self,
+                tokens,
+                #[cfg(feature = "full")]
+                FixupContext::NONE,
+            );
         }
     }
 
+    fn print_expr_index(
+        e: &ExprIndex,
+        tokens: &mut TokenStream,
+        #[cfg(feature = "full")] fixup: FixupContext,
+    ) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        print_subexpression(
+            &e.expr,
+            Precedence::of(&e.expr) < Precedence::Postfix,
+            tokens,
+            #[cfg(feature = "full")]
+            fixup.leftmost_subexpression(),
+        );
+        e.bracket_token.surround(tokens, |tokens| {
+            e.index.to_tokens(tokens);
+        });
+    }
+
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprInfer {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3197,18 +3539,28 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprLet {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.let_token.to_tokens(tokens);
-            self.pat.to_tokens(tokens);
-            self.eq_token.to_tokens(tokens);
-            wrap_bare_struct(tokens, &self.expr);
+            print_expr_let(self, tokens, FixupContext::NONE);
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg(feature = "full")]
+    fn print_expr_let(e: &ExprLet, tokens: &mut TokenStream, fixup: FixupContext) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        e.let_token.to_tokens(tokens);
+        e.pat.to_tokens(tokens);
+        e.eq_token.to_tokens(tokens);
+        print_subexpression(
+            &e.expr,
+            fixup.needs_group_as_let_scrutinee(&e.expr),
+            tokens,
+            FixupContext::NONE,
+        );
+    }
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprLit {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3217,7 +3569,7 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprLoop {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3230,7 +3582,7 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprMacro {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3239,12 +3591,12 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprMatch {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
             self.match_token.to_tokens(tokens);
-            wrap_bare_struct(tokens, &self.expr);
+            print_condition(&self.expr, tokens);
             self.brace_token.surround(tokens, |tokens| {
                 inner_attrs_to_tokens(&self.attrs, tokens);
                 for (i, arm) in self.arms.iter().enumerate() {
@@ -3252,7 +3604,10 @@ pub(crate) mod printing {
                     // Ensure that we have a comma after a non-block arm, except
                     // for the last one.
                     let is_last = i == self.arms.len() - 1;
-                    if !is_last && requires_terminator(&arm.body) && arm.comma.is_none() {
+                    if !is_last
+                        && classify::requires_comma_to_be_match_arm(&arm.body)
+                        && arm.comma.is_none()
+                    {
                         <Token![,]>::default().to_tokens(tokens);
                     }
                 }
@@ -3260,21 +3615,40 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprMethodCall {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.receiver.to_tokens(tokens);
-            self.dot_token.to_tokens(tokens);
-            self.method.to_tokens(tokens);
-            self.turbofish.to_tokens(tokens);
-            self.paren_token.surround(tokens, |tokens| {
-                self.args.to_tokens(tokens);
-            });
+            print_expr_method_call(
+                self,
+                tokens,
+                #[cfg(feature = "full")]
+                FixupContext::NONE,
+            );
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    fn print_expr_method_call(
+        e: &ExprMethodCall,
+        tokens: &mut TokenStream,
+        #[cfg(feature = "full")] fixup: FixupContext,
+    ) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        print_subexpression(
+            &e.receiver,
+            Precedence::of(&e.receiver) < Precedence::Postfix,
+            tokens,
+            #[cfg(feature = "full")]
+            fixup.leftmost_subexpression_with_dot(),
+        );
+        e.dot_token.to_tokens(tokens);
+        e.method.to_tokens(tokens);
+        e.turbofish.to_tokens(tokens);
+        e.paren_token.surround(tokens, |tokens| {
+            e.args.to_tokens(tokens);
+        });
+    }
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprParen {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3284,7 +3658,7 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprPath {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3293,28 +3667,66 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprRange {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.start.to_tokens(tokens);
-            self.limits.to_tokens(tokens);
-            self.end.to_tokens(tokens);
-        }
-    }
-
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
-    impl ToTokens for ExprReference {
-        fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.and_token.to_tokens(tokens);
-            self.mutability.to_tokens(tokens);
-            self.expr.to_tokens(tokens);
+            print_expr_range(self, tokens, FixupContext::NONE);
         }
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    fn print_expr_range(e: &ExprRange, tokens: &mut TokenStream, fixup: FixupContext) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        if let Some(start) = &e.start {
+            print_subexpression(
+                start,
+                Precedence::of(start) <= Precedence::Range,
+                tokens,
+                fixup.leftmost_subexpression(),
+            );
+        }
+        e.limits.to_tokens(tokens);
+        if let Some(end) = &e.end {
+            print_subexpression(
+                end,
+                Precedence::of_rhs(end) <= Precedence::Range,
+                tokens,
+                fixup.subsequent_subexpression(),
+            );
+        }
+    }
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
+    impl ToTokens for ExprReference {
+        fn to_tokens(&self, tokens: &mut TokenStream) {
+            print_expr_reference(
+                self,
+                tokens,
+                #[cfg(feature = "full")]
+                FixupContext::NONE,
+            );
+        }
+    }
+
+    fn print_expr_reference(
+        e: &ExprReference,
+        tokens: &mut TokenStream,
+        #[cfg(feature = "full")] fixup: FixupContext,
+    ) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        e.and_token.to_tokens(tokens);
+        e.mutability.to_tokens(tokens);
+        print_subexpression(
+            &e.expr,
+            Precedence::of_rhs(&e.expr) < Precedence::Prefix,
+            tokens,
+            #[cfg(feature = "full")]
+            fixup.subsequent_subexpression(),
+        );
+    }
+
+    #[cfg(feature = "full")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprRepeat {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3327,16 +3739,23 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprReturn {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.return_token.to_tokens(tokens);
-            self.expr.to_tokens(tokens);
+            print_expr_return(self, tokens, FixupContext::NONE);
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg(feature = "full")]
+    fn print_expr_return(e: &ExprReturn, tokens: &mut TokenStream, fixup: FixupContext) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        e.return_token.to_tokens(tokens);
+        if let Some(expr) = &e.expr {
+            print_expr(expr, tokens, fixup.subsequent_subexpression());
+        }
+    }
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprStruct {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3354,17 +3773,27 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprTry {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.expr.to_tokens(tokens);
-            self.question_token.to_tokens(tokens);
+            print_expr_try(self, tokens, FixupContext::NONE);
         }
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    fn print_expr_try(e: &ExprTry, tokens: &mut TokenStream, fixup: FixupContext) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        print_subexpression(
+            &e.expr,
+            Precedence::of(&e.expr) < Precedence::Postfix,
+            tokens,
+            fixup.leftmost_subexpression_with_dot(),
+        );
+        e.question_token.to_tokens(tokens);
+    }
+
+    #[cfg(feature = "full")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprTryBlock {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3374,7 +3803,7 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprTuple {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3389,17 +3818,36 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprUnary {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.op.to_tokens(tokens);
-            self.expr.to_tokens(tokens);
+            print_expr_unary(
+                self,
+                tokens,
+                #[cfg(feature = "full")]
+                FixupContext::NONE,
+            );
         }
     }
 
+    fn print_expr_unary(
+        e: &ExprUnary,
+        tokens: &mut TokenStream,
+        #[cfg(feature = "full")] fixup: FixupContext,
+    ) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        e.op.to_tokens(tokens);
+        print_subexpression(
+            &e.expr,
+            Precedence::of_rhs(&e.expr) < Precedence::Prefix,
+            tokens,
+            #[cfg(feature = "full")]
+            fixup.subsequent_subexpression(),
+        );
+    }
+
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprUnsafe {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3412,13 +3860,13 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprWhile {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
             self.label.to_tokens(tokens);
             self.while_token.to_tokens(tokens);
-            wrap_bare_struct(tokens, &self.cond);
+            print_condition(&self.cond, tokens);
             self.body.brace_token.surround(tokens, |tokens| {
                 inner_attrs_to_tokens(&self.attrs, tokens);
                 tokens.append_all(&self.body.stmts);
@@ -3427,17 +3875,24 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ExprYield {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            outer_attrs_to_tokens(&self.attrs, tokens);
-            self.yield_token.to_tokens(tokens);
-            self.expr.to_tokens(tokens);
+            print_expr_yield(self, tokens, FixupContext::NONE);
         }
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    fn print_expr_yield(e: &ExprYield, tokens: &mut TokenStream, fixup: FixupContext) {
+        outer_attrs_to_tokens(&e.attrs, tokens);
+        e.yield_token.to_tokens(tokens);
+        if let Some(expr) = &e.expr {
+            print_expr(expr, tokens, fixup.subsequent_subexpression());
+        }
+    }
+
+    #[cfg(feature = "full")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for Arm {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             tokens.append_all(&self.attrs);
@@ -3447,12 +3902,12 @@ pub(crate) mod printing {
                 guard.to_tokens(tokens);
             }
             self.fat_arrow_token.to_tokens(tokens);
-            self.body.to_tokens(tokens);
+            print_expr(&self.body, tokens, FixupContext::new_match_arm());
             self.comma.to_tokens(tokens);
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for FieldValue {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             outer_attrs_to_tokens(&self.attrs, tokens);
@@ -3464,7 +3919,7 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for Index {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             let mut lit = Literal::i64_unsuffixed(i64::from(self.index));
@@ -3474,7 +3929,7 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for Label {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.name.to_tokens(tokens);
@@ -3482,7 +3937,7 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for Member {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             match self {
@@ -3493,7 +3948,7 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "full")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for RangeLimits {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             match self {

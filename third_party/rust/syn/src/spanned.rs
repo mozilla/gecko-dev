@@ -108,7 +108,7 @@ impl<T: ?Sized + ToTokens> Spanned for T {
 }
 
 mod private {
-    use super::*;
+    use crate::spanned::ToTokens;
 
     pub trait Sealed {}
     impl<T: ?Sized + ToTokens> Sealed for T {}

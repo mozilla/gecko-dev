@@ -185,7 +185,7 @@ impl Error {
     /// When in doubt it's recommended to stick to `Error::new` (or
     /// `ParseStream::error`)!
     #[cfg(feature = "printing")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     pub fn new_spanned<T: ToTokens, U: Display>(tokens: T, message: U) -> Self {
         return new_spanned(tokens.into_token_stream(), message.to_string());
 
@@ -280,7 +280,7 @@ impl ErrorMessage {
         };
 
         // ::core::compile_error!($message)
-        TokenStream::from_iter(vec![
+        TokenStream::from_iter([
             TokenTree::Punct({
                 let mut punct = Punct::new(':', Spacing::Joint);
                 punct.set_span(start);
@@ -310,7 +310,7 @@ impl ErrorMessage {
             }),
             TokenTree::Group({
                 let mut group = Group::new(Delimiter::Brace, {
-                    TokenStream::from_iter(vec![TokenTree::Literal({
+                    TokenStream::from_iter([TokenTree::Literal({
                         let mut string = Literal::string(&self.message);
                         string.set_span(end);
                         string
@@ -404,7 +404,7 @@ impl std::error::Error for Error {}
 
 impl From<LexError> for Error {
     fn from(err: LexError) -> Self {
-        Error::new(err.span(), "lex error")
+        Error::new(err.span(), err)
     }
 }
 

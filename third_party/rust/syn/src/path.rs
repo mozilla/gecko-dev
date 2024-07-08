@@ -1,9 +1,16 @@
-use super::*;
+#[cfg(feature = "parsing")]
+use crate::error::Result;
+use crate::expr::Expr;
+use crate::generics::TypeParamBound;
+use crate::ident::Ident;
+use crate::lifetime::Lifetime;
 use crate::punctuated::Punctuated;
+use crate::token;
+use crate::ty::{ReturnType, Type};
 
 ast_struct! {
     /// A path at which a named item is exported (e.g. `std::collections::HashMap`).
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct Path {
         pub leading_colon: Option<Token![::]>,
         pub segments: Punctuated<PathSegment, Token![::]>,
@@ -85,7 +92,7 @@ impl Path {
 
     /// An error if this path is not a single ident, as defined in `get_ident`.
     #[cfg(feature = "parsing")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     pub fn require_ident(&self) -> Result<&Ident> {
         self.get_ident().ok_or_else(|| {
             crate::error::new2(
@@ -99,7 +106,7 @@ impl Path {
 
 ast_struct! {
     /// A segment of a path together with any path arguments on that segment.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct PathSegment {
         pub ident: Ident,
         pub arguments: PathArguments,
@@ -128,7 +135,7 @@ ast_enum! {
     /// ## Parenthesized
     ///
     /// The `(A, B) -> C` in `Fn(A, B) -> C`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub enum PathArguments {
         None,
         /// The `<'a, T>` in `std::slice::iter<'a, T>`.
@@ -163,7 +170,7 @@ impl PathArguments {
 
 ast_enum! {
     /// An individual generic argument, like `'a`, `T`, or `Item = T`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     #[non_exhaustive]
     pub enum GenericArgument {
         /// A lifetime argument.
@@ -189,7 +196,7 @@ ast_enum! {
 ast_struct! {
     /// Angle bracketed arguments of a path segment: the `<K, V>` in `HashMap<K,
     /// V>`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct AngleBracketedGenericArguments {
         pub colon2_token: Option<Token![::]>,
         pub lt_token: Token![<],
@@ -201,7 +208,7 @@ ast_struct! {
 ast_struct! {
     /// A binding (equality constraint) on an associated type: the `Item = u8`
     /// in `Iterator<Item = u8>`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct AssocType {
         pub ident: Ident,
         pub generics: Option<AngleBracketedGenericArguments>,
@@ -213,7 +220,7 @@ ast_struct! {
 ast_struct! {
     /// An equality constraint on an associated constant: the `PANIC = false` in
     /// `Trait<PANIC = false>`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct AssocConst {
         pub ident: Ident,
         pub generics: Option<AngleBracketedGenericArguments>,
@@ -224,7 +231,7 @@ ast_struct! {
 
 ast_struct! {
     /// An associated type bound: `Iterator<Item: Display>`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct Constraint {
         pub ident: Ident,
         pub generics: Option<AngleBracketedGenericArguments>,
@@ -236,7 +243,7 @@ ast_struct! {
 ast_struct! {
     /// Arguments of a function path segment: the `(A, B) -> C` in `Fn(A,B) ->
     /// C`.
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct ParenthesizedGenericArguments {
         pub paren_token: token::Paren,
         /// `(A, B)`
@@ -263,7 +270,7 @@ ast_struct! {
     ///  ^~~~~~   ^
     ///  ty       position = 0
     /// ```
-    #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub struct QSelf {
         pub lt_token: Token![<],
         pub ty: Box<Type>,
@@ -275,19 +282,37 @@ ast_struct! {
 
 #[cfg(feature = "parsing")]
 pub(crate) mod parsing {
-    use super::*;
-
+    use crate::error::Result;
+    #[cfg(feature = "full")]
+    use crate::expr::ExprBlock;
+    use crate::expr::{Expr, ExprPath};
     use crate::ext::IdentExt as _;
-    use crate::parse::{Parse, ParseStream, Result};
+    #[cfg(feature = "full")]
+    use crate::generics::TypeParamBound;
+    use crate::ident::Ident;
+    use crate::lifetime::Lifetime;
+    use crate::lit::Lit;
+    use crate::parse::{Parse, ParseStream};
+    #[cfg(feature = "full")]
+    use crate::path::Constraint;
+    use crate::path::{
+        AngleBracketedGenericArguments, AssocConst, AssocType, GenericArgument,
+        ParenthesizedGenericArguments, Path, PathArguments, PathSegment, QSelf,
+    };
+    use crate::punctuated::Punctuated;
+    use crate::token;
+    use crate::ty::{ReturnType, Type};
+    #[cfg(not(feature = "full"))]
+    use crate::verbatim;
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for Path {
         fn parse(input: ParseStream) -> Result<Self> {
             Self::parse_helper(input, false)
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for GenericArgument {
         fn parse(input: ParseStream) -> Result<Self> {
             if input.peek(Lifetime) && !input.peek2(Token![+]) {
@@ -418,7 +443,7 @@ pub(crate) mod parsing {
         /// The ordinary [`Parse`] impl for `AngleBracketedGenericArguments`
         /// parses optional leading `::`.
         #[cfg(feature = "full")]
-        #[cfg_attr(doc_cfg, doc(cfg(all(feature = "parsing", feature = "full"))))]
+        #[cfg_attr(docsrs, doc(cfg(all(feature = "parsing", feature = "full"))))]
         pub fn parse_turbofish(input: ParseStream) -> Result<Self> {
             let colon2_token: Token![::] = input.parse()?;
             Self::do_parse(Some(colon2_token), input)
@@ -452,7 +477,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for AngleBracketedGenericArguments {
         fn parse(input: ParseStream) -> Result<Self> {
             let colon2_token: Option<Token![::]> = input.parse()?;
@@ -460,7 +485,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for ParenthesizedGenericArguments {
         fn parse(input: ParseStream) -> Result<Self> {
             let content;
@@ -472,7 +497,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for PathSegment {
         fn parse(input: ParseStream) -> Result<Self> {
             Self::parse_helper(input, false)
@@ -540,7 +565,7 @@ pub(crate) mod parsing {
         ///     }
         /// }
         /// ```
-        #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+        #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
         pub fn parse_mod_style(input: ParseStream) -> Result<Self> {
             Ok(Path {
                 leading_colon: input.parse()?,
@@ -663,7 +688,11 @@ pub(crate) mod parsing {
 
 #[cfg(feature = "printing")]
 pub(crate) mod printing {
-    use super::*;
+    use crate::generics;
+    use crate::path::{
+        AngleBracketedGenericArguments, AssocConst, AssocType, Constraint, GenericArgument,
+        ParenthesizedGenericArguments, Path, PathArguments, PathSegment, QSelf,
+    };
     use crate::print::TokensOrDefault;
     #[cfg(feature = "parsing")]
     use crate::spanned::Spanned;
@@ -673,7 +702,7 @@ pub(crate) mod printing {
     use quote::ToTokens;
     use std::cmp;
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for Path {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.leading_colon.to_tokens(tokens);
@@ -681,7 +710,7 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for PathSegment {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.ident.to_tokens(tokens);
@@ -689,7 +718,7 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for PathArguments {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             match self {
@@ -704,36 +733,16 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for GenericArgument {
         #[allow(clippy::match_same_arms)]
         fn to_tokens(&self, tokens: &mut TokenStream) {
             match self {
                 GenericArgument::Lifetime(lt) => lt.to_tokens(tokens),
                 GenericArgument::Type(ty) => ty.to_tokens(tokens),
-                GenericArgument::Const(expr) => match expr {
-                    Expr::Lit(expr) => expr.to_tokens(tokens),
-
-                    Expr::Path(expr)
-                        if expr.attrs.is_empty()
-                            && expr.qself.is_none()
-                            && expr.path.get_ident().is_some() =>
-                    {
-                        expr.to_tokens(tokens);
-                    }
-
-                    #[cfg(feature = "full")]
-                    Expr::Block(expr) => expr.to_tokens(tokens),
-
-                    #[cfg(not(feature = "full"))]
-                    Expr::Verbatim(expr) => expr.to_tokens(tokens),
-
-                    // ERROR CORRECTION: Add braces to make sure that the
-                    // generated code is valid.
-                    _ => token::Brace::default().surround(tokens, |tokens| {
-                        expr.to_tokens(tokens);
-                    }),
-                },
+                GenericArgument::Const(expr) => {
+                    generics::printing::print_const_argument(expr, tokens);
+                }
                 GenericArgument::AssocType(assoc) => assoc.to_tokens(tokens),
                 GenericArgument::AssocConst(assoc) => assoc.to_tokens(tokens),
                 GenericArgument::Constraint(constraint) => constraint.to_tokens(tokens),
@@ -741,7 +750,7 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for AngleBracketedGenericArguments {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.colon2_token.to_tokens(tokens);
@@ -784,7 +793,7 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for AssocType {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.ident.to_tokens(tokens);
@@ -794,17 +803,17 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for AssocConst {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.ident.to_tokens(tokens);
             self.generics.to_tokens(tokens);
             self.eq_token.to_tokens(tokens);
-            self.value.to_tokens(tokens);
+            generics::printing::print_const_argument(&self.value, tokens);
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for Constraint {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.ident.to_tokens(tokens);
@@ -814,7 +823,7 @@ pub(crate) mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for ParenthesizedGenericArguments {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.paren_token.surround(tokens, |tokens| {
@@ -859,7 +868,7 @@ pub(crate) mod printing {
     }
 
     #[cfg(feature = "parsing")]
-    #[cfg_attr(doc_cfg, doc(cfg(all(feature = "parsing", feature = "printing"))))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "parsing", feature = "printing"))))]
     impl Spanned for QSelf {
         fn span(&self) -> Span {
             struct QSelfDelimiters<'a>(&'a QSelf);

@@ -64,7 +64,7 @@
 /// Panics if the tokens fail to parse as the expected syntax tree type. The
 /// caller is responsible for ensuring that the input tokens are syntactically
 /// valid.
-#[cfg_attr(doc_cfg, doc(cfg(all(feature = "parsing", feature = "printing"))))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "parsing", feature = "printing"))))]
 #[macro_export]
 macro_rules! parse_quote {
     ($($tt:tt)*) => {
@@ -96,7 +96,7 @@ macro_rules! parse_quote {
 ///     };
 /// }
 /// ```
-#[cfg_attr(doc_cfg, doc(cfg(all(feature = "parsing", feature = "printing"))))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "parsing", feature = "printing"))))]
 #[macro_export]
 macro_rules! parse_quote_spanned {
     ($span:expr=> $($tt:tt)*) => {
@@ -107,11 +107,13 @@ macro_rules! parse_quote_spanned {
 ////////////////////////////////////////////////////////////////////////////////
 // Can parse any type that implements Parse.
 
-use crate::parse::{Parse, ParseStream, Parser, Result};
+use crate::error::Result;
+use crate::parse::{Parse, ParseStream, Parser};
 use proc_macro2::TokenStream;
 
 // Not public API.
 #[doc(hidden)]
+#[track_caller]
 pub fn parse<T: ParseQuote>(token_stream: TokenStream) -> T {
     let parser = T::parse;
     match parser.parse2(token_stream) {

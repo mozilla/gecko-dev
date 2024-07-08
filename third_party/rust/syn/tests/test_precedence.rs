@@ -1,17 +1,16 @@
-//! This test does the following for every file in the rust-lang/rust repo:
-//!
-//! 1. Parse the file using syn into a syn::File.
-//! 2. Extract every syn::Expr from the file.
-//! 3. Print each expr to a string of source code.
-//! 4. Parse the source code using librustc_parse into a rustc_ast::Expr.
-//! 5. For both the syn::Expr and rustc_ast::Expr, crawl the syntax tree to
-//!    insert parentheses surrounding every subexpression.
-//! 6. Serialize the fully parenthesized syn::Expr to a string of source code.
-//! 7. Parse the fully parenthesized source code using librustc_parse.
-//! 8. Compare the rustc_ast::Expr resulting from parenthesizing using rustc
-//!    data structures vs syn data structures, ignoring spans. If they agree,
-//!    rustc's parser and syn's parser have identical handling of expression
-//!    precedence.
+// This test does the following for every file in the rust-lang/rust repo:
+//
+// 1. Parse the file using syn into a syn::File.
+// 2. Extract every syn::Expr from the file.
+// 3. Print each expr to a string of source code.
+// 4. Parse the source code using librustc_parse into a rustc_ast::Expr.
+// 5. For both the syn::Expr and rustc_ast::Expr, crawl the syntax tree to
+//    insert parentheses surrounding every subexpression.
+// 6. Serialize the fully parenthesized syn::Expr to a string of source code.
+// 7. Parse the fully parenthesized source code using librustc_parse.
+// 8. Compare the rustc_ast::Expr resulting from parenthesizing using rustc data
+//    structures vs syn data structures, ignoring spans. If they agree, rustc's
+//    parser and syn's parser have identical handling of expression precedence.
 
 #![cfg(not(syn_disable_nightly_tests))]
 #![cfg(not(miri))]
@@ -53,9 +52,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 #[macro_use]
 mod macros;
 
-#[allow(dead_code)]
 mod common;
-
 mod repo;
 
 #[test]
@@ -64,7 +61,7 @@ fn test_rustc_precedence() {
     repo::clone_rust();
     let abort_after = common::abort_after();
     if abort_after == 0 {
-        panic!("Skipping all precedence tests");
+        panic!("skipping all precedence tests");
     }
 
     let passed = AtomicUsize::new(0);
@@ -189,13 +186,10 @@ fn librustc_parse_and_rewrite(input: &str) -> Option<P<ast::Expr>> {
 fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
     use rustc_ast::ast::{
         AssocItem, AssocItemKind, Attribute, BinOpKind, Block, BorrowKind, BoundConstness, Expr,
-        ExprField, ExprKind, GenericArg, GenericBound, ItemKind, Local, LocalKind, Pat, Stmt,
-        StmtKind, StructExpr, StructRest, TraitBoundModifiers, Ty,
+        ExprField, ExprKind, GenericArg, GenericBound, Local, LocalKind, Pat, Stmt, StmtKind,
+        StructExpr, StructRest, TraitBoundModifiers, Ty,
     };
-    use rustc_ast::mut_visit::{
-        noop_flat_map_assoc_item, noop_visit_generic_arg, noop_visit_item_kind, noop_visit_local,
-        noop_visit_param_bound, MutVisitor,
-    };
+    use rustc_ast::mut_visit::{noop_flat_map_item, MutVisitor};
     use rustc_data_structures::flat_map_in_place::FlatMapInPlace;
     use rustc_span::DUMMY_SP;
     use smallvec::SmallVec;
@@ -243,7 +237,6 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
     }
 
     fn noop_visit_expr<T: MutVisitor>(e: &mut Expr, vis: &mut T) {
-        use rustc_ast::mut_visit::{noop_visit_expr, visit_attrs};
         match &mut e.kind {
             ExprKind::AddrOf(BorrowKind::Raw, ..) => {}
             ExprKind::Struct(expr) => {
@@ -259,11 +252,8 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
                 if let StructRest::Base(rest) = rest {
                     vis.visit_expr(rest);
                 }
-                vis.visit_id(&mut e.id);
-                vis.visit_span(&mut e.span);
-                visit_attrs(&mut e.attrs, vis);
             }
-            _ => noop_visit_expr(e, vis),
+            _ => rustc_ast::mut_visit::noop_visit_expr(e, vis),
         }
     }
 
@@ -278,7 +268,7 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
                         e,
                         P(Expr {
                             id: ast::DUMMY_NODE_ID,
-                            kind: ExprKind::Err,
+                            kind: ExprKind::Dummy,
                             span: DUMMY_SP,
                             attrs: ThinVec::new(),
                             tokens: None,
@@ -291,13 +281,14 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
 
         fn visit_generic_arg(&mut self, arg: &mut GenericArg) {
             match arg {
+                GenericArg::Lifetime(_lifetime) => {}
+                GenericArg::Type(arg) => self.visit_ty(arg),
                 // Don't wrap unbraced const generic arg as that's invalid syntax.
                 GenericArg::Const(anon_const) => {
                     if let ExprKind::Block(..) = &mut anon_const.value.kind {
                         noop_visit_expr(&mut anon_const.value, self);
                     }
                 }
-                _ => noop_visit_generic_arg(arg, self),
             }
         }
 
@@ -309,8 +300,10 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
                         constness: BoundConstness::Maybe(_),
                         ..
                     },
-                ) => {}
-                _ => noop_visit_param_bound(bound, self),
+                )
+                | GenericBound::Outlives(..)
+                | GenericBound::Use(..) => {}
+                GenericBound::Trait(ty, _modifier) => self.visit_poly_trait_ref(ty),
             }
         }
 
@@ -323,18 +316,15 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
         }
 
         fn visit_local(&mut self, local: &mut P<Local>) {
-            match local.kind {
-                LocalKind::InitElse(..) => {}
-                _ => noop_visit_local(local, self),
-            }
-        }
-
-        fn visit_item_kind(&mut self, item: &mut ItemKind) {
-            match item {
-                ItemKind::Const(const_item)
-                    if !const_item.generics.params.is_empty()
-                        || !const_item.generics.where_clause.predicates.is_empty() => {}
-                _ => noop_visit_item_kind(item, self),
+            match &mut local.kind {
+                LocalKind::Decl => {}
+                LocalKind::Init(init) => {
+                    self.visit_expr(init);
+                }
+                LocalKind::InitElse(init, els) => {
+                    self.visit_expr(init);
+                    self.visit_block(els);
+                }
             }
         }
 
@@ -346,7 +336,7 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
                 {
                     SmallVec::from([item])
                 }
-                _ => noop_flat_map_assoc_item(item, self),
+                _ => noop_flat_map_item(item, self),
             }
         }
 
@@ -358,7 +348,7 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
                 {
                     SmallVec::from([item])
                 }
-                _ => noop_flat_map_assoc_item(item, self),
+                _ => noop_flat_map_item(item, self),
             }
         }
 

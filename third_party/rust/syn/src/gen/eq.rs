@@ -3,418 +3,429 @@
 
 #[cfg(any(feature = "derive", feature = "full"))]
 use crate::tt::TokenStreamHelper;
-use crate::*;
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Abi {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Abi {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Abi {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Abi {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for AngleBracketedGenericArguments {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::AngleBracketedGenericArguments {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for AngleBracketedGenericArguments {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::AngleBracketedGenericArguments {
     fn eq(&self, other: &Self) -> bool {
         self.colon2_token == other.colon2_token && self.args == other.args
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Arm {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Arm {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Arm {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Arm {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.pat == other.pat && self.guard == other.guard
             && self.body == other.body && self.comma == other.comma
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for AssocConst {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::AssocConst {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for AssocConst {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::AssocConst {
     fn eq(&self, other: &Self) -> bool {
         self.ident == other.ident && self.generics == other.generics
             && self.value == other.value
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for AssocType {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::AssocType {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for AssocType {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::AssocType {
     fn eq(&self, other: &Self) -> bool {
         self.ident == other.ident && self.generics == other.generics
             && self.ty == other.ty
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for AttrStyle {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::AttrStyle {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for AttrStyle {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::AttrStyle {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (AttrStyle::Outer, AttrStyle::Outer) => true,
-            (AttrStyle::Inner(_), AttrStyle::Inner(_)) => true,
+            (crate::AttrStyle::Outer, crate::AttrStyle::Outer) => true,
+            (crate::AttrStyle::Inner(_), crate::AttrStyle::Inner(_)) => true,
             _ => false,
         }
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Attribute {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Attribute {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Attribute {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Attribute {
     fn eq(&self, other: &Self) -> bool {
         self.style == other.style && self.meta == other.meta
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for BareFnArg {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::BareFnArg {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for BareFnArg {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::BareFnArg {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.name == other.name && self.ty == other.ty
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for BareVariadic {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::BareVariadic {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for BareVariadic {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::BareVariadic {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.name == other.name && self.comma == other.comma
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for BinOp {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::BinOp {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for BinOp {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::BinOp {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (BinOp::Add(_), BinOp::Add(_)) => true,
-            (BinOp::Sub(_), BinOp::Sub(_)) => true,
-            (BinOp::Mul(_), BinOp::Mul(_)) => true,
-            (BinOp::Div(_), BinOp::Div(_)) => true,
-            (BinOp::Rem(_), BinOp::Rem(_)) => true,
-            (BinOp::And(_), BinOp::And(_)) => true,
-            (BinOp::Or(_), BinOp::Or(_)) => true,
-            (BinOp::BitXor(_), BinOp::BitXor(_)) => true,
-            (BinOp::BitAnd(_), BinOp::BitAnd(_)) => true,
-            (BinOp::BitOr(_), BinOp::BitOr(_)) => true,
-            (BinOp::Shl(_), BinOp::Shl(_)) => true,
-            (BinOp::Shr(_), BinOp::Shr(_)) => true,
-            (BinOp::Eq(_), BinOp::Eq(_)) => true,
-            (BinOp::Lt(_), BinOp::Lt(_)) => true,
-            (BinOp::Le(_), BinOp::Le(_)) => true,
-            (BinOp::Ne(_), BinOp::Ne(_)) => true,
-            (BinOp::Ge(_), BinOp::Ge(_)) => true,
-            (BinOp::Gt(_), BinOp::Gt(_)) => true,
-            (BinOp::AddAssign(_), BinOp::AddAssign(_)) => true,
-            (BinOp::SubAssign(_), BinOp::SubAssign(_)) => true,
-            (BinOp::MulAssign(_), BinOp::MulAssign(_)) => true,
-            (BinOp::DivAssign(_), BinOp::DivAssign(_)) => true,
-            (BinOp::RemAssign(_), BinOp::RemAssign(_)) => true,
-            (BinOp::BitXorAssign(_), BinOp::BitXorAssign(_)) => true,
-            (BinOp::BitAndAssign(_), BinOp::BitAndAssign(_)) => true,
-            (BinOp::BitOrAssign(_), BinOp::BitOrAssign(_)) => true,
-            (BinOp::ShlAssign(_), BinOp::ShlAssign(_)) => true,
-            (BinOp::ShrAssign(_), BinOp::ShrAssign(_)) => true,
+            (crate::BinOp::Add(_), crate::BinOp::Add(_)) => true,
+            (crate::BinOp::Sub(_), crate::BinOp::Sub(_)) => true,
+            (crate::BinOp::Mul(_), crate::BinOp::Mul(_)) => true,
+            (crate::BinOp::Div(_), crate::BinOp::Div(_)) => true,
+            (crate::BinOp::Rem(_), crate::BinOp::Rem(_)) => true,
+            (crate::BinOp::And(_), crate::BinOp::And(_)) => true,
+            (crate::BinOp::Or(_), crate::BinOp::Or(_)) => true,
+            (crate::BinOp::BitXor(_), crate::BinOp::BitXor(_)) => true,
+            (crate::BinOp::BitAnd(_), crate::BinOp::BitAnd(_)) => true,
+            (crate::BinOp::BitOr(_), crate::BinOp::BitOr(_)) => true,
+            (crate::BinOp::Shl(_), crate::BinOp::Shl(_)) => true,
+            (crate::BinOp::Shr(_), crate::BinOp::Shr(_)) => true,
+            (crate::BinOp::Eq(_), crate::BinOp::Eq(_)) => true,
+            (crate::BinOp::Lt(_), crate::BinOp::Lt(_)) => true,
+            (crate::BinOp::Le(_), crate::BinOp::Le(_)) => true,
+            (crate::BinOp::Ne(_), crate::BinOp::Ne(_)) => true,
+            (crate::BinOp::Ge(_), crate::BinOp::Ge(_)) => true,
+            (crate::BinOp::Gt(_), crate::BinOp::Gt(_)) => true,
+            (crate::BinOp::AddAssign(_), crate::BinOp::AddAssign(_)) => true,
+            (crate::BinOp::SubAssign(_), crate::BinOp::SubAssign(_)) => true,
+            (crate::BinOp::MulAssign(_), crate::BinOp::MulAssign(_)) => true,
+            (crate::BinOp::DivAssign(_), crate::BinOp::DivAssign(_)) => true,
+            (crate::BinOp::RemAssign(_), crate::BinOp::RemAssign(_)) => true,
+            (crate::BinOp::BitXorAssign(_), crate::BinOp::BitXorAssign(_)) => true,
+            (crate::BinOp::BitAndAssign(_), crate::BinOp::BitAndAssign(_)) => true,
+            (crate::BinOp::BitOrAssign(_), crate::BinOp::BitOrAssign(_)) => true,
+            (crate::BinOp::ShlAssign(_), crate::BinOp::ShlAssign(_)) => true,
+            (crate::BinOp::ShrAssign(_), crate::BinOp::ShrAssign(_)) => true,
             _ => false,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Block {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Block {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Block {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Block {
     fn eq(&self, other: &Self) -> bool {
         self.stmts == other.stmts
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for BoundLifetimes {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::BoundLifetimes {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for BoundLifetimes {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::BoundLifetimes {
     fn eq(&self, other: &Self) -> bool {
         self.lifetimes == other.lifetimes
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ConstParam {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ConstParam {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ConstParam {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ConstParam {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.ident == other.ident && self.ty == other.ty
             && self.eq_token == other.eq_token && self.default == other.default
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Constraint {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Constraint {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Constraint {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Constraint {
     fn eq(&self, other: &Self) -> bool {
         self.ident == other.ident && self.generics == other.generics
             && self.bounds == other.bounds
     }
 }
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Data {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Data {}
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Data {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Data {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Data::Struct(self0), Data::Struct(other0)) => self0 == other0,
-            (Data::Enum(self0), Data::Enum(other0)) => self0 == other0,
-            (Data::Union(self0), Data::Union(other0)) => self0 == other0,
+            (crate::Data::Struct(self0), crate::Data::Struct(other0)) => self0 == other0,
+            (crate::Data::Enum(self0), crate::Data::Enum(other0)) => self0 == other0,
+            (crate::Data::Union(self0), crate::Data::Union(other0)) => self0 == other0,
             _ => false,
         }
     }
 }
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for DataEnum {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::DataEnum {}
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for DataEnum {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::DataEnum {
     fn eq(&self, other: &Self) -> bool {
         self.variants == other.variants
     }
 }
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for DataStruct {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::DataStruct {}
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for DataStruct {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::DataStruct {
     fn eq(&self, other: &Self) -> bool {
         self.fields == other.fields && self.semi_token == other.semi_token
     }
 }
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for DataUnion {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::DataUnion {}
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for DataUnion {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::DataUnion {
     fn eq(&self, other: &Self) -> bool {
         self.fields == other.fields
     }
 }
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for DeriveInput {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::DeriveInput {}
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for DeriveInput {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::DeriveInput {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis && self.ident == other.ident
             && self.generics == other.generics && self.data == other.data
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Expr {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Expr {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Expr {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Expr {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             #[cfg(feature = "full")]
-            (Expr::Array(self0), Expr::Array(other0)) => self0 == other0,
+            (crate::Expr::Array(self0), crate::Expr::Array(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Assign(self0), Expr::Assign(other0)) => self0 == other0,
+            (crate::Expr::Assign(self0), crate::Expr::Assign(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Async(self0), Expr::Async(other0)) => self0 == other0,
+            (crate::Expr::Async(self0), crate::Expr::Async(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Await(self0), Expr::Await(other0)) => self0 == other0,
-            (Expr::Binary(self0), Expr::Binary(other0)) => self0 == other0,
+            (crate::Expr::Await(self0), crate::Expr::Await(other0)) => self0 == other0,
+            (crate::Expr::Binary(self0), crate::Expr::Binary(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Block(self0), Expr::Block(other0)) => self0 == other0,
+            (crate::Expr::Block(self0), crate::Expr::Block(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Break(self0), Expr::Break(other0)) => self0 == other0,
-            (Expr::Call(self0), Expr::Call(other0)) => self0 == other0,
-            (Expr::Cast(self0), Expr::Cast(other0)) => self0 == other0,
+            (crate::Expr::Break(self0), crate::Expr::Break(other0)) => self0 == other0,
+            (crate::Expr::Call(self0), crate::Expr::Call(other0)) => self0 == other0,
+            (crate::Expr::Cast(self0), crate::Expr::Cast(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Closure(self0), Expr::Closure(other0)) => self0 == other0,
+            (crate::Expr::Closure(self0), crate::Expr::Closure(other0)) => {
+                self0 == other0
+            }
             #[cfg(feature = "full")]
-            (Expr::Const(self0), Expr::Const(other0)) => self0 == other0,
+            (crate::Expr::Const(self0), crate::Expr::Const(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Continue(self0), Expr::Continue(other0)) => self0 == other0,
-            (Expr::Field(self0), Expr::Field(other0)) => self0 == other0,
+            (crate::Expr::Continue(self0), crate::Expr::Continue(other0)) => {
+                self0 == other0
+            }
+            (crate::Expr::Field(self0), crate::Expr::Field(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::ForLoop(self0), Expr::ForLoop(other0)) => self0 == other0,
-            (Expr::Group(self0), Expr::Group(other0)) => self0 == other0,
+            (crate::Expr::ForLoop(self0), crate::Expr::ForLoop(other0)) => {
+                self0 == other0
+            }
+            (crate::Expr::Group(self0), crate::Expr::Group(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::If(self0), Expr::If(other0)) => self0 == other0,
-            (Expr::Index(self0), Expr::Index(other0)) => self0 == other0,
+            (crate::Expr::If(self0), crate::Expr::If(other0)) => self0 == other0,
+            (crate::Expr::Index(self0), crate::Expr::Index(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Infer(self0), Expr::Infer(other0)) => self0 == other0,
+            (crate::Expr::Infer(self0), crate::Expr::Infer(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Let(self0), Expr::Let(other0)) => self0 == other0,
-            (Expr::Lit(self0), Expr::Lit(other0)) => self0 == other0,
+            (crate::Expr::Let(self0), crate::Expr::Let(other0)) => self0 == other0,
+            (crate::Expr::Lit(self0), crate::Expr::Lit(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Loop(self0), Expr::Loop(other0)) => self0 == other0,
-            (Expr::Macro(self0), Expr::Macro(other0)) => self0 == other0,
+            (crate::Expr::Loop(self0), crate::Expr::Loop(other0)) => self0 == other0,
+            (crate::Expr::Macro(self0), crate::Expr::Macro(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Match(self0), Expr::Match(other0)) => self0 == other0,
-            (Expr::MethodCall(self0), Expr::MethodCall(other0)) => self0 == other0,
-            (Expr::Paren(self0), Expr::Paren(other0)) => self0 == other0,
-            (Expr::Path(self0), Expr::Path(other0)) => self0 == other0,
+            (crate::Expr::Match(self0), crate::Expr::Match(other0)) => self0 == other0,
+            (crate::Expr::MethodCall(self0), crate::Expr::MethodCall(other0)) => {
+                self0 == other0
+            }
+            (crate::Expr::Paren(self0), crate::Expr::Paren(other0)) => self0 == other0,
+            (crate::Expr::Path(self0), crate::Expr::Path(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Range(self0), Expr::Range(other0)) => self0 == other0,
-            (Expr::Reference(self0), Expr::Reference(other0)) => self0 == other0,
+            (crate::Expr::Range(self0), crate::Expr::Range(other0)) => self0 == other0,
+            (crate::Expr::Reference(self0), crate::Expr::Reference(other0)) => {
+                self0 == other0
+            }
             #[cfg(feature = "full")]
-            (Expr::Repeat(self0), Expr::Repeat(other0)) => self0 == other0,
+            (crate::Expr::Repeat(self0), crate::Expr::Repeat(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Return(self0), Expr::Return(other0)) => self0 == other0,
-            (Expr::Struct(self0), Expr::Struct(other0)) => self0 == other0,
+            (crate::Expr::Return(self0), crate::Expr::Return(other0)) => self0 == other0,
+            (crate::Expr::Struct(self0), crate::Expr::Struct(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Try(self0), Expr::Try(other0)) => self0 == other0,
+            (crate::Expr::Try(self0), crate::Expr::Try(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::TryBlock(self0), Expr::TryBlock(other0)) => self0 == other0,
+            (crate::Expr::TryBlock(self0), crate::Expr::TryBlock(other0)) => {
+                self0 == other0
+            }
             #[cfg(feature = "full")]
-            (Expr::Tuple(self0), Expr::Tuple(other0)) => self0 == other0,
-            (Expr::Unary(self0), Expr::Unary(other0)) => self0 == other0,
+            (crate::Expr::Tuple(self0), crate::Expr::Tuple(other0)) => self0 == other0,
+            (crate::Expr::Unary(self0), crate::Expr::Unary(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Unsafe(self0), Expr::Unsafe(other0)) => self0 == other0,
-            (Expr::Verbatim(self0), Expr::Verbatim(other0)) => {
+            (crate::Expr::Unsafe(self0), crate::Expr::Unsafe(other0)) => self0 == other0,
+            (crate::Expr::Verbatim(self0), crate::Expr::Verbatim(other0)) => {
                 TokenStreamHelper(self0) == TokenStreamHelper(other0)
             }
             #[cfg(feature = "full")]
-            (Expr::While(self0), Expr::While(other0)) => self0 == other0,
+            (crate::Expr::While(self0), crate::Expr::While(other0)) => self0 == other0,
             #[cfg(feature = "full")]
-            (Expr::Yield(self0), Expr::Yield(other0)) => self0 == other0,
+            (crate::Expr::Yield(self0), crate::Expr::Yield(other0)) => self0 == other0,
             _ => false,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprArray {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprArray {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprArray {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprArray {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.elems == other.elems
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprAssign {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprAssign {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprAssign {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprAssign {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.left == other.left && self.right == other.right
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprAsync {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprAsync {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprAsync {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprAsync {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.capture == other.capture
             && self.block == other.block
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprAwait {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprAwait {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprAwait {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprAwait {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.base == other.base
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprBinary {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprBinary {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprBinary {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprBinary {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.left == other.left && self.op == other.op
             && self.right == other.right
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprBlock {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprBlock {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprBlock {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprBlock {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.label == other.label
             && self.block == other.block
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprBreak {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprBreak {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprBreak {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprBreak {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.label == other.label && self.expr == other.expr
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprCall {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprCall {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprCall {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprCall {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.func == other.func && self.args == other.args
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprCast {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprCast {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprCast {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprCast {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.expr == other.expr && self.ty == other.ty
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprClosure {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprClosure {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprClosure {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprClosure {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.lifetimes == other.lifetimes
             && self.constness == other.constness && self.movability == other.movability
@@ -424,63 +435,63 @@ impl PartialEq for ExprClosure {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprConst {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprConst {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprConst {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprConst {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.block == other.block
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprContinue {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprContinue {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprContinue {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprContinue {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.label == other.label
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprField {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprField {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprField {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprField {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.base == other.base
             && self.member == other.member
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprForLoop {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprForLoop {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprForLoop {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprForLoop {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.label == other.label && self.pat == other.pat
             && self.expr == other.expr && self.body == other.body
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprGroup {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprGroup {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprGroup {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprGroup {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.expr == other.expr
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprIf {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprIf {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprIf {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprIf {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.cond == other.cond
             && self.then_branch == other.then_branch
@@ -488,81 +499,81 @@ impl PartialEq for ExprIf {
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprIndex {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprIndex {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprIndex {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprIndex {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.expr == other.expr && self.index == other.index
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprInfer {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprInfer {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprInfer {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprInfer {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprLet {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprLet {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprLet {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprLet {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.pat == other.pat && self.expr == other.expr
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprLit {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprLit {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprLit {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprLit {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.lit == other.lit
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprLoop {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprLoop {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprLoop {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprLoop {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.label == other.label && self.body == other.body
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprMacro {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprMacro {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprMacro {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprMacro {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.mac == other.mac
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprMatch {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprMatch {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprMatch {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprMatch {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.expr == other.expr && self.arms == other.arms
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprMethodCall {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprMethodCall {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprMethodCall {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprMethodCall {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.receiver == other.receiver
             && self.method == other.method && self.turbofish == other.turbofish
@@ -570,73 +581,73 @@ impl PartialEq for ExprMethodCall {
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprParen {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprParen {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprParen {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprParen {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.expr == other.expr
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprPath {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprPath {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprPath {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprPath {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.qself == other.qself && self.path == other.path
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprRange {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprRange {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprRange {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprRange {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.start == other.start
             && self.limits == other.limits && self.end == other.end
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprReference {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprReference {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprReference {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprReference {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.mutability == other.mutability
             && self.expr == other.expr
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprRepeat {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprRepeat {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprRepeat {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprRepeat {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.expr == other.expr && self.len == other.len
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprReturn {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprReturn {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprReturn {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprReturn {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.expr == other.expr
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprStruct {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprStruct {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprStruct {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprStruct {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.qself == other.qself && self.path == other.path
             && self.fields == other.fields && self.dot2_token == other.dot2_token
@@ -644,82 +655,82 @@ impl PartialEq for ExprStruct {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprTry {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprTry {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprTry {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprTry {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.expr == other.expr
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprTryBlock {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprTryBlock {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprTryBlock {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprTryBlock {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.block == other.block
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprTuple {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprTuple {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprTuple {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprTuple {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.elems == other.elems
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprUnary {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprUnary {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprUnary {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprUnary {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.op == other.op && self.expr == other.expr
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprUnsafe {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprUnsafe {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprUnsafe {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprUnsafe {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.block == other.block
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprWhile {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprWhile {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprWhile {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprWhile {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.label == other.label && self.cond == other.cond
             && self.body == other.body
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ExprYield {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ExprYield {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ExprYield {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ExprYield {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.expr == other.expr
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Field {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Field {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Field {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Field {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis
             && self.mutability == other.mutability && self.ident == other.ident
@@ -727,145 +738,160 @@ impl PartialEq for Field {
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for FieldMutability {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::FieldMutability {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for FieldMutability {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::FieldMutability {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (FieldMutability::None, FieldMutability::None) => true,
+            (crate::FieldMutability::None, crate::FieldMutability::None) => true,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for FieldPat {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::FieldPat {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for FieldPat {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::FieldPat {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.member == other.member
             && self.colon_token == other.colon_token && self.pat == other.pat
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for FieldValue {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::FieldValue {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for FieldValue {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::FieldValue {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.member == other.member
             && self.colon_token == other.colon_token && self.expr == other.expr
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Fields {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Fields {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Fields {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Fields {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Fields::Named(self0), Fields::Named(other0)) => self0 == other0,
-            (Fields::Unnamed(self0), Fields::Unnamed(other0)) => self0 == other0,
-            (Fields::Unit, Fields::Unit) => true,
+            (crate::Fields::Named(self0), crate::Fields::Named(other0)) => {
+                self0 == other0
+            }
+            (crate::Fields::Unnamed(self0), crate::Fields::Unnamed(other0)) => {
+                self0 == other0
+            }
+            (crate::Fields::Unit, crate::Fields::Unit) => true,
             _ => false,
         }
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for FieldsNamed {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::FieldsNamed {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for FieldsNamed {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::FieldsNamed {
     fn eq(&self, other: &Self) -> bool {
         self.named == other.named
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for FieldsUnnamed {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::FieldsUnnamed {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for FieldsUnnamed {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::FieldsUnnamed {
     fn eq(&self, other: &Self) -> bool {
         self.unnamed == other.unnamed
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for File {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::File {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for File {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::File {
     fn eq(&self, other: &Self) -> bool {
         self.shebang == other.shebang && self.attrs == other.attrs
             && self.items == other.items
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for FnArg {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::FnArg {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for FnArg {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::FnArg {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (FnArg::Receiver(self0), FnArg::Receiver(other0)) => self0 == other0,
-            (FnArg::Typed(self0), FnArg::Typed(other0)) => self0 == other0,
-            _ => false,
-        }
-    }
-}
-#[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ForeignItem {}
-#[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ForeignItem {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (ForeignItem::Fn(self0), ForeignItem::Fn(other0)) => self0 == other0,
-            (ForeignItem::Static(self0), ForeignItem::Static(other0)) => self0 == other0,
-            (ForeignItem::Type(self0), ForeignItem::Type(other0)) => self0 == other0,
-            (ForeignItem::Macro(self0), ForeignItem::Macro(other0)) => self0 == other0,
-            (ForeignItem::Verbatim(self0), ForeignItem::Verbatim(other0)) => {
-                TokenStreamHelper(self0) == TokenStreamHelper(other0)
+            (crate::FnArg::Receiver(self0), crate::FnArg::Receiver(other0)) => {
+                self0 == other0
             }
+            (crate::FnArg::Typed(self0), crate::FnArg::Typed(other0)) => self0 == other0,
             _ => false,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ForeignItemFn {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ForeignItem {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ForeignItemFn {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ForeignItem {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (crate::ForeignItem::Fn(self0), crate::ForeignItem::Fn(other0)) => {
+                self0 == other0
+            }
+            (crate::ForeignItem::Static(self0), crate::ForeignItem::Static(other0)) => {
+                self0 == other0
+            }
+            (crate::ForeignItem::Type(self0), crate::ForeignItem::Type(other0)) => {
+                self0 == other0
+            }
+            (crate::ForeignItem::Macro(self0), crate::ForeignItem::Macro(other0)) => {
+                self0 == other0
+            }
+            (
+                crate::ForeignItem::Verbatim(self0),
+                crate::ForeignItem::Verbatim(other0),
+            ) => TokenStreamHelper(self0) == TokenStreamHelper(other0),
+            _ => false,
+        }
+    }
+}
+#[cfg(feature = "full")]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ForeignItemFn {}
+#[cfg(feature = "full")]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ForeignItemFn {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis && self.sig == other.sig
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ForeignItemMacro {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ForeignItemMacro {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ForeignItemMacro {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ForeignItemMacro {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.mac == other.mac
             && self.semi_token == other.semi_token
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ForeignItemStatic {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ForeignItemStatic {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ForeignItemStatic {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ForeignItemStatic {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis
             && self.mutability == other.mutability && self.ident == other.ident
@@ -873,40 +899,68 @@ impl PartialEq for ForeignItemStatic {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ForeignItemType {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ForeignItemType {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ForeignItemType {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ForeignItemType {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis && self.ident == other.ident
             && self.generics == other.generics
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for GenericArgument {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::GenericArgument {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for GenericArgument {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::GenericArgument {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (GenericArgument::Lifetime(self0), GenericArgument::Lifetime(other0)) => {
+            (
+                crate::GenericArgument::Lifetime(self0),
+                crate::GenericArgument::Lifetime(other0),
+            ) => self0 == other0,
+            (
+                crate::GenericArgument::Type(self0),
+                crate::GenericArgument::Type(other0),
+            ) => self0 == other0,
+            (
+                crate::GenericArgument::Const(self0),
+                crate::GenericArgument::Const(other0),
+            ) => self0 == other0,
+            (
+                crate::GenericArgument::AssocType(self0),
+                crate::GenericArgument::AssocType(other0),
+            ) => self0 == other0,
+            (
+                crate::GenericArgument::AssocConst(self0),
+                crate::GenericArgument::AssocConst(other0),
+            ) => self0 == other0,
+            (
+                crate::GenericArgument::Constraint(self0),
+                crate::GenericArgument::Constraint(other0),
+            ) => self0 == other0,
+            _ => false,
+        }
+    }
+}
+#[cfg(any(feature = "derive", feature = "full"))]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::GenericParam {}
+#[cfg(any(feature = "derive", feature = "full"))]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::GenericParam {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                crate::GenericParam::Lifetime(self0),
+                crate::GenericParam::Lifetime(other0),
+            ) => self0 == other0,
+            (crate::GenericParam::Type(self0), crate::GenericParam::Type(other0)) => {
                 self0 == other0
             }
-            (GenericArgument::Type(self0), GenericArgument::Type(other0)) => {
-                self0 == other0
-            }
-            (GenericArgument::Const(self0), GenericArgument::Const(other0)) => {
-                self0 == other0
-            }
-            (GenericArgument::AssocType(self0), GenericArgument::AssocType(other0)) => {
-                self0 == other0
-            }
-            (GenericArgument::AssocConst(self0), GenericArgument::AssocConst(other0)) => {
-                self0 == other0
-            }
-            (GenericArgument::Constraint(self0), GenericArgument::Constraint(other0)) => {
+            (crate::GenericParam::Const(self0), crate::GenericParam::Const(other0)) => {
                 self0 == other0
             }
             _ => false,
@@ -914,46 +968,35 @@ impl PartialEq for GenericArgument {
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for GenericParam {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Generics {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for GenericParam {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (GenericParam::Lifetime(self0), GenericParam::Lifetime(other0)) => {
-                self0 == other0
-            }
-            (GenericParam::Type(self0), GenericParam::Type(other0)) => self0 == other0,
-            (GenericParam::Const(self0), GenericParam::Const(other0)) => self0 == other0,
-            _ => false,
-        }
-    }
-}
-#[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Generics {}
-#[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Generics {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Generics {
     fn eq(&self, other: &Self) -> bool {
         self.lt_token == other.lt_token && self.params == other.params
             && self.gt_token == other.gt_token && self.where_clause == other.where_clause
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ImplItem {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ImplItem {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ImplItem {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ImplItem {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (ImplItem::Const(self0), ImplItem::Const(other0)) => self0 == other0,
-            (ImplItem::Fn(self0), ImplItem::Fn(other0)) => self0 == other0,
-            (ImplItem::Type(self0), ImplItem::Type(other0)) => self0 == other0,
-            (ImplItem::Macro(self0), ImplItem::Macro(other0)) => self0 == other0,
-            (ImplItem::Verbatim(self0), ImplItem::Verbatim(other0)) => {
+            (crate::ImplItem::Const(self0), crate::ImplItem::Const(other0)) => {
+                self0 == other0
+            }
+            (crate::ImplItem::Fn(self0), crate::ImplItem::Fn(other0)) => self0 == other0,
+            (crate::ImplItem::Type(self0), crate::ImplItem::Type(other0)) => {
+                self0 == other0
+            }
+            (crate::ImplItem::Macro(self0), crate::ImplItem::Macro(other0)) => {
+                self0 == other0
+            }
+            (crate::ImplItem::Verbatim(self0), crate::ImplItem::Verbatim(other0)) => {
                 TokenStreamHelper(self0) == TokenStreamHelper(other0)
             }
             _ => false,
@@ -961,11 +1004,11 @@ impl PartialEq for ImplItem {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ImplItemConst {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ImplItemConst {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ImplItemConst {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ImplItemConst {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis
             && self.defaultness == other.defaultness && self.ident == other.ident
@@ -974,11 +1017,11 @@ impl PartialEq for ImplItemConst {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ImplItemFn {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ImplItemFn {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ImplItemFn {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ImplItemFn {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis
             && self.defaultness == other.defaultness && self.sig == other.sig
@@ -986,22 +1029,22 @@ impl PartialEq for ImplItemFn {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ImplItemMacro {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ImplItemMacro {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ImplItemMacro {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ImplItemMacro {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.mac == other.mac
             && self.semi_token == other.semi_token
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ImplItemType {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ImplItemType {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ImplItemType {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ImplItemType {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis
             && self.defaultness == other.defaultness && self.ident == other.ident
@@ -1009,39 +1052,45 @@ impl PartialEq for ImplItemType {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ImplRestriction {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ImplRestriction {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ImplRestriction {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ImplRestriction {
     fn eq(&self, _other: &Self) -> bool {
         match *self {}
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Item {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Item {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Item {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Item {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Item::Const(self0), Item::Const(other0)) => self0 == other0,
-            (Item::Enum(self0), Item::Enum(other0)) => self0 == other0,
-            (Item::ExternCrate(self0), Item::ExternCrate(other0)) => self0 == other0,
-            (Item::Fn(self0), Item::Fn(other0)) => self0 == other0,
-            (Item::ForeignMod(self0), Item::ForeignMod(other0)) => self0 == other0,
-            (Item::Impl(self0), Item::Impl(other0)) => self0 == other0,
-            (Item::Macro(self0), Item::Macro(other0)) => self0 == other0,
-            (Item::Mod(self0), Item::Mod(other0)) => self0 == other0,
-            (Item::Static(self0), Item::Static(other0)) => self0 == other0,
-            (Item::Struct(self0), Item::Struct(other0)) => self0 == other0,
-            (Item::Trait(self0), Item::Trait(other0)) => self0 == other0,
-            (Item::TraitAlias(self0), Item::TraitAlias(other0)) => self0 == other0,
-            (Item::Type(self0), Item::Type(other0)) => self0 == other0,
-            (Item::Union(self0), Item::Union(other0)) => self0 == other0,
-            (Item::Use(self0), Item::Use(other0)) => self0 == other0,
-            (Item::Verbatim(self0), Item::Verbatim(other0)) => {
+            (crate::Item::Const(self0), crate::Item::Const(other0)) => self0 == other0,
+            (crate::Item::Enum(self0), crate::Item::Enum(other0)) => self0 == other0,
+            (crate::Item::ExternCrate(self0), crate::Item::ExternCrate(other0)) => {
+                self0 == other0
+            }
+            (crate::Item::Fn(self0), crate::Item::Fn(other0)) => self0 == other0,
+            (crate::Item::ForeignMod(self0), crate::Item::ForeignMod(other0)) => {
+                self0 == other0
+            }
+            (crate::Item::Impl(self0), crate::Item::Impl(other0)) => self0 == other0,
+            (crate::Item::Macro(self0), crate::Item::Macro(other0)) => self0 == other0,
+            (crate::Item::Mod(self0), crate::Item::Mod(other0)) => self0 == other0,
+            (crate::Item::Static(self0), crate::Item::Static(other0)) => self0 == other0,
+            (crate::Item::Struct(self0), crate::Item::Struct(other0)) => self0 == other0,
+            (crate::Item::Trait(self0), crate::Item::Trait(other0)) => self0 == other0,
+            (crate::Item::TraitAlias(self0), crate::Item::TraitAlias(other0)) => {
+                self0 == other0
+            }
+            (crate::Item::Type(self0), crate::Item::Type(other0)) => self0 == other0,
+            (crate::Item::Union(self0), crate::Item::Union(other0)) => self0 == other0,
+            (crate::Item::Use(self0), crate::Item::Use(other0)) => self0 == other0,
+            (crate::Item::Verbatim(self0), crate::Item::Verbatim(other0)) => {
                 TokenStreamHelper(self0) == TokenStreamHelper(other0)
             }
             _ => false,
@@ -1049,11 +1098,11 @@ impl PartialEq for Item {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemConst {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemConst {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemConst {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemConst {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis && self.ident == other.ident
             && self.generics == other.generics && self.ty == other.ty
@@ -1061,55 +1110,55 @@ impl PartialEq for ItemConst {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemEnum {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemEnum {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemEnum {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemEnum {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis && self.ident == other.ident
             && self.generics == other.generics && self.variants == other.variants
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemExternCrate {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemExternCrate {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemExternCrate {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemExternCrate {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis && self.ident == other.ident
             && self.rename == other.rename
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemFn {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemFn {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemFn {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemFn {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis && self.sig == other.sig
             && self.block == other.block
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemForeignMod {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemForeignMod {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemForeignMod {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemForeignMod {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.unsafety == other.unsafety
             && self.abi == other.abi && self.items == other.items
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemImpl {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemImpl {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemImpl {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemImpl {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.defaultness == other.defaultness
             && self.unsafety == other.unsafety && self.generics == other.generics
@@ -1118,22 +1167,22 @@ impl PartialEq for ItemImpl {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemMacro {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemMacro {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemMacro {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemMacro {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.ident == other.ident && self.mac == other.mac
             && self.semi_token == other.semi_token
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemMod {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemMod {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemMod {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemMod {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis
             && self.unsafety == other.unsafety && self.ident == other.ident
@@ -1141,11 +1190,11 @@ impl PartialEq for ItemMod {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemStatic {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemStatic {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemStatic {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemStatic {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis
             && self.mutability == other.mutability && self.ident == other.ident
@@ -1153,11 +1202,11 @@ impl PartialEq for ItemStatic {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemStruct {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemStruct {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemStruct {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemStruct {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis && self.ident == other.ident
             && self.generics == other.generics && self.fields == other.fields
@@ -1165,11 +1214,11 @@ impl PartialEq for ItemStruct {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemTrait {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemTrait {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemTrait {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemTrait {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis
             && self.unsafety == other.unsafety && self.auto_token == other.auto_token
@@ -1179,239 +1228,250 @@ impl PartialEq for ItemTrait {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemTraitAlias {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemTraitAlias {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemTraitAlias {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemTraitAlias {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis && self.ident == other.ident
             && self.generics == other.generics && self.bounds == other.bounds
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemType {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemType {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemType {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemType {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis && self.ident == other.ident
             && self.generics == other.generics && self.ty == other.ty
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemUnion {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemUnion {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemUnion {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemUnion {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis && self.ident == other.ident
             && self.generics == other.generics && self.fields == other.fields
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ItemUse {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ItemUse {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ItemUse {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ItemUse {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.vis == other.vis
             && self.leading_colon == other.leading_colon && self.tree == other.tree
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Label {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Label {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Label {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Label {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for LifetimeParam {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::LifetimeParam {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for LifetimeParam {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::LifetimeParam {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.lifetime == other.lifetime
             && self.colon_token == other.colon_token && self.bounds == other.bounds
     }
 }
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Lit {}
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Lit {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Lit {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Lit {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Lit::Str(self0), Lit::Str(other0)) => self0 == other0,
-            (Lit::ByteStr(self0), Lit::ByteStr(other0)) => self0 == other0,
-            (Lit::Byte(self0), Lit::Byte(other0)) => self0 == other0,
-            (Lit::Char(self0), Lit::Char(other0)) => self0 == other0,
-            (Lit::Int(self0), Lit::Int(other0)) => self0 == other0,
-            (Lit::Float(self0), Lit::Float(other0)) => self0 == other0,
-            (Lit::Bool(self0), Lit::Bool(other0)) => self0 == other0,
-            (Lit::Verbatim(self0), Lit::Verbatim(other0)) => {
+            (crate::Lit::Str(self0), crate::Lit::Str(other0)) => self0 == other0,
+            (crate::Lit::ByteStr(self0), crate::Lit::ByteStr(other0)) => self0 == other0,
+            (crate::Lit::CStr(self0), crate::Lit::CStr(other0)) => self0 == other0,
+            (crate::Lit::Byte(self0), crate::Lit::Byte(other0)) => self0 == other0,
+            (crate::Lit::Char(self0), crate::Lit::Char(other0)) => self0 == other0,
+            (crate::Lit::Int(self0), crate::Lit::Int(other0)) => self0 == other0,
+            (crate::Lit::Float(self0), crate::Lit::Float(other0)) => self0 == other0,
+            (crate::Lit::Bool(self0), crate::Lit::Bool(other0)) => self0 == other0,
+            (crate::Lit::Verbatim(self0), crate::Lit::Verbatim(other0)) => {
                 self0.to_string() == other0.to_string()
             }
             _ => false,
         }
     }
 }
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for LitBool {}
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for LitBool {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::LitBool {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::LitBool {
     fn eq(&self, other: &Self) -> bool {
         self.value == other.value
     }
 }
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for LitByte {}
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for LitByteStr {}
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for LitChar {}
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for LitFloat {}
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for LitInt {}
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for LitStr {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::LitByte {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::LitByteStr {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::LitCStr {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::LitChar {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::LitFloat {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::LitInt {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::LitStr {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Local {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Local {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Local {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Local {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.pat == other.pat && self.init == other.init
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for LocalInit {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::LocalInit {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for LocalInit {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::LocalInit {
     fn eq(&self, other: &Self) -> bool {
         self.expr == other.expr && self.diverge == other.diverge
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Macro {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Macro {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Macro {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Macro {
     fn eq(&self, other: &Self) -> bool {
         self.path == other.path && self.delimiter == other.delimiter
             && TokenStreamHelper(&self.tokens) == TokenStreamHelper(&other.tokens)
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for MacroDelimiter {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::MacroDelimiter {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for MacroDelimiter {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::MacroDelimiter {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (MacroDelimiter::Paren(_), MacroDelimiter::Paren(_)) => true,
-            (MacroDelimiter::Brace(_), MacroDelimiter::Brace(_)) => true,
-            (MacroDelimiter::Bracket(_), MacroDelimiter::Bracket(_)) => true,
+            (crate::MacroDelimiter::Paren(_), crate::MacroDelimiter::Paren(_)) => true,
+            (crate::MacroDelimiter::Brace(_), crate::MacroDelimiter::Brace(_)) => true,
+            (crate::MacroDelimiter::Bracket(_), crate::MacroDelimiter::Bracket(_)) => {
+                true
+            }
             _ => false,
         }
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Meta {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Meta {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Meta {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Meta {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Meta::Path(self0), Meta::Path(other0)) => self0 == other0,
-            (Meta::List(self0), Meta::List(other0)) => self0 == other0,
-            (Meta::NameValue(self0), Meta::NameValue(other0)) => self0 == other0,
+            (crate::Meta::Path(self0), crate::Meta::Path(other0)) => self0 == other0,
+            (crate::Meta::List(self0), crate::Meta::List(other0)) => self0 == other0,
+            (crate::Meta::NameValue(self0), crate::Meta::NameValue(other0)) => {
+                self0 == other0
+            }
             _ => false,
         }
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for MetaList {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::MetaList {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for MetaList {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::MetaList {
     fn eq(&self, other: &Self) -> bool {
         self.path == other.path && self.delimiter == other.delimiter
             && TokenStreamHelper(&self.tokens) == TokenStreamHelper(&other.tokens)
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for MetaNameValue {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::MetaNameValue {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for MetaNameValue {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::MetaNameValue {
     fn eq(&self, other: &Self) -> bool {
         self.path == other.path && self.value == other.value
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ParenthesizedGenericArguments {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ParenthesizedGenericArguments {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ParenthesizedGenericArguments {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ParenthesizedGenericArguments {
     fn eq(&self, other: &Self) -> bool {
         self.inputs == other.inputs && self.output == other.output
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Pat {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Pat {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Pat {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Pat {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Pat::Const(self0), Pat::Const(other0)) => self0 == other0,
-            (Pat::Ident(self0), Pat::Ident(other0)) => self0 == other0,
-            (Pat::Lit(self0), Pat::Lit(other0)) => self0 == other0,
-            (Pat::Macro(self0), Pat::Macro(other0)) => self0 == other0,
-            (Pat::Or(self0), Pat::Or(other0)) => self0 == other0,
-            (Pat::Paren(self0), Pat::Paren(other0)) => self0 == other0,
-            (Pat::Path(self0), Pat::Path(other0)) => self0 == other0,
-            (Pat::Range(self0), Pat::Range(other0)) => self0 == other0,
-            (Pat::Reference(self0), Pat::Reference(other0)) => self0 == other0,
-            (Pat::Rest(self0), Pat::Rest(other0)) => self0 == other0,
-            (Pat::Slice(self0), Pat::Slice(other0)) => self0 == other0,
-            (Pat::Struct(self0), Pat::Struct(other0)) => self0 == other0,
-            (Pat::Tuple(self0), Pat::Tuple(other0)) => self0 == other0,
-            (Pat::TupleStruct(self0), Pat::TupleStruct(other0)) => self0 == other0,
-            (Pat::Type(self0), Pat::Type(other0)) => self0 == other0,
-            (Pat::Verbatim(self0), Pat::Verbatim(other0)) => {
+            (crate::Pat::Const(self0), crate::Pat::Const(other0)) => self0 == other0,
+            (crate::Pat::Ident(self0), crate::Pat::Ident(other0)) => self0 == other0,
+            (crate::Pat::Lit(self0), crate::Pat::Lit(other0)) => self0 == other0,
+            (crate::Pat::Macro(self0), crate::Pat::Macro(other0)) => self0 == other0,
+            (crate::Pat::Or(self0), crate::Pat::Or(other0)) => self0 == other0,
+            (crate::Pat::Paren(self0), crate::Pat::Paren(other0)) => self0 == other0,
+            (crate::Pat::Path(self0), crate::Pat::Path(other0)) => self0 == other0,
+            (crate::Pat::Range(self0), crate::Pat::Range(other0)) => self0 == other0,
+            (crate::Pat::Reference(self0), crate::Pat::Reference(other0)) => {
+                self0 == other0
+            }
+            (crate::Pat::Rest(self0), crate::Pat::Rest(other0)) => self0 == other0,
+            (crate::Pat::Slice(self0), crate::Pat::Slice(other0)) => self0 == other0,
+            (crate::Pat::Struct(self0), crate::Pat::Struct(other0)) => self0 == other0,
+            (crate::Pat::Tuple(self0), crate::Pat::Tuple(other0)) => self0 == other0,
+            (crate::Pat::TupleStruct(self0), crate::Pat::TupleStruct(other0)) => {
+                self0 == other0
+            }
+            (crate::Pat::Type(self0), crate::Pat::Type(other0)) => self0 == other0,
+            (crate::Pat::Verbatim(self0), crate::Pat::Verbatim(other0)) => {
                 TokenStreamHelper(self0) == TokenStreamHelper(other0)
             }
-            (Pat::Wild(self0), Pat::Wild(other0)) => self0 == other0,
+            (crate::Pat::Wild(self0), crate::Pat::Wild(other0)) => self0 == other0,
             _ => false,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PatIdent {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PatIdent {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PatIdent {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PatIdent {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.by_ref == other.by_ref
             && self.mutability == other.mutability && self.ident == other.ident
@@ -1419,202 +1479,202 @@ impl PartialEq for PatIdent {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PatOr {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PatOr {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PatOr {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PatOr {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.leading_vert == other.leading_vert
             && self.cases == other.cases
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PatParen {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PatParen {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PatParen {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PatParen {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.pat == other.pat
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PatReference {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PatReference {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PatReference {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PatReference {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.mutability == other.mutability
             && self.pat == other.pat
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PatRest {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PatRest {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PatRest {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PatRest {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PatSlice {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PatSlice {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PatSlice {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PatSlice {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.elems == other.elems
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PatStruct {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PatStruct {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PatStruct {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PatStruct {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.qself == other.qself && self.path == other.path
             && self.fields == other.fields && self.rest == other.rest
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PatTuple {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PatTuple {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PatTuple {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PatTuple {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.elems == other.elems
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PatTupleStruct {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PatTupleStruct {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PatTupleStruct {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PatTupleStruct {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.qself == other.qself && self.path == other.path
             && self.elems == other.elems
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PatType {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PatType {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PatType {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PatType {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.pat == other.pat && self.ty == other.ty
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PatWild {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PatWild {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PatWild {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PatWild {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Path {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Path {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Path {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Path {
     fn eq(&self, other: &Self) -> bool {
         self.leading_colon == other.leading_colon && self.segments == other.segments
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PathArguments {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PathArguments {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PathArguments {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PathArguments {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (PathArguments::None, PathArguments::None) => true,
+            (crate::PathArguments::None, crate::PathArguments::None) => true,
             (
-                PathArguments::AngleBracketed(self0),
-                PathArguments::AngleBracketed(other0),
+                crate::PathArguments::AngleBracketed(self0),
+                crate::PathArguments::AngleBracketed(other0),
             ) => self0 == other0,
             (
-                PathArguments::Parenthesized(self0),
-                PathArguments::Parenthesized(other0),
+                crate::PathArguments::Parenthesized(self0),
+                crate::PathArguments::Parenthesized(other0),
             ) => self0 == other0,
             _ => false,
         }
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PathSegment {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PathSegment {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PathSegment {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PathSegment {
     fn eq(&self, other: &Self) -> bool {
         self.ident == other.ident && self.arguments == other.arguments
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PredicateLifetime {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PredicateLifetime {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PredicateLifetime {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PredicateLifetime {
     fn eq(&self, other: &Self) -> bool {
         self.lifetime == other.lifetime && self.bounds == other.bounds
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for PredicateType {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::PredicateType {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for PredicateType {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::PredicateType {
     fn eq(&self, other: &Self) -> bool {
         self.lifetimes == other.lifetimes && self.bounded_ty == other.bounded_ty
             && self.bounds == other.bounds
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for QSelf {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::QSelf {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for QSelf {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::QSelf {
     fn eq(&self, other: &Self) -> bool {
         self.ty == other.ty && self.position == other.position
             && self.as_token == other.as_token
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for RangeLimits {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::RangeLimits {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for RangeLimits {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::RangeLimits {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (RangeLimits::HalfOpen(_), RangeLimits::HalfOpen(_)) => true,
-            (RangeLimits::Closed(_), RangeLimits::Closed(_)) => true,
+            (crate::RangeLimits::HalfOpen(_), crate::RangeLimits::HalfOpen(_)) => true,
+            (crate::RangeLimits::Closed(_), crate::RangeLimits::Closed(_)) => true,
             _ => false,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Receiver {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Receiver {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Receiver {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Receiver {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.reference == other.reference
             && self.mutability == other.mutability
@@ -1622,25 +1682,27 @@ impl PartialEq for Receiver {
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for ReturnType {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::ReturnType {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for ReturnType {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::ReturnType {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (ReturnType::Default, ReturnType::Default) => true,
-            (ReturnType::Type(_, self1), ReturnType::Type(_, other1)) => self1 == other1,
+            (crate::ReturnType::Default, crate::ReturnType::Default) => true,
+            (crate::ReturnType::Type(_, self1), crate::ReturnType::Type(_, other1)) => {
+                self1 == other1
+            }
             _ => false,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Signature {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Signature {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Signature {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Signature {
     fn eq(&self, other: &Self) -> bool {
         self.constness == other.constness && self.asyncness == other.asyncness
             && self.unsafety == other.unsafety && self.abi == other.abi
@@ -1650,86 +1712,97 @@ impl PartialEq for Signature {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for StaticMutability {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::StaticMutability {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for StaticMutability {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::StaticMutability {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (StaticMutability::Mut(_), StaticMutability::Mut(_)) => true,
-            (StaticMutability::None, StaticMutability::None) => true,
+            (crate::StaticMutability::Mut(_), crate::StaticMutability::Mut(_)) => true,
+            (crate::StaticMutability::None, crate::StaticMutability::None) => true,
             _ => false,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Stmt {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Stmt {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Stmt {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Stmt {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Stmt::Local(self0), Stmt::Local(other0)) => self0 == other0,
-            (Stmt::Item(self0), Stmt::Item(other0)) => self0 == other0,
-            (Stmt::Expr(self0, self1), Stmt::Expr(other0, other1)) => {
+            (crate::Stmt::Local(self0), crate::Stmt::Local(other0)) => self0 == other0,
+            (crate::Stmt::Item(self0), crate::Stmt::Item(other0)) => self0 == other0,
+            (crate::Stmt::Expr(self0, self1), crate::Stmt::Expr(other0, other1)) => {
                 self0 == other0 && self1 == other1
             }
-            (Stmt::Macro(self0), Stmt::Macro(other0)) => self0 == other0,
+            (crate::Stmt::Macro(self0), crate::Stmt::Macro(other0)) => self0 == other0,
             _ => false,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for StmtMacro {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::StmtMacro {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for StmtMacro {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::StmtMacro {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.mac == other.mac
             && self.semi_token == other.semi_token
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TraitBound {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TraitBound {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TraitBound {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TraitBound {
     fn eq(&self, other: &Self) -> bool {
         self.paren_token == other.paren_token && self.modifier == other.modifier
             && self.lifetimes == other.lifetimes && self.path == other.path
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TraitBoundModifier {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TraitBoundModifier {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TraitBoundModifier {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TraitBoundModifier {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (TraitBoundModifier::None, TraitBoundModifier::None) => true,
-            (TraitBoundModifier::Maybe(_), TraitBoundModifier::Maybe(_)) => true,
+            (crate::TraitBoundModifier::None, crate::TraitBoundModifier::None) => true,
+            (
+                crate::TraitBoundModifier::Maybe(_),
+                crate::TraitBoundModifier::Maybe(_),
+            ) => true,
             _ => false,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TraitItem {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TraitItem {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TraitItem {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TraitItem {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (TraitItem::Const(self0), TraitItem::Const(other0)) => self0 == other0,
-            (TraitItem::Fn(self0), TraitItem::Fn(other0)) => self0 == other0,
-            (TraitItem::Type(self0), TraitItem::Type(other0)) => self0 == other0,
-            (TraitItem::Macro(self0), TraitItem::Macro(other0)) => self0 == other0,
-            (TraitItem::Verbatim(self0), TraitItem::Verbatim(other0)) => {
+            (crate::TraitItem::Const(self0), crate::TraitItem::Const(other0)) => {
+                self0 == other0
+            }
+            (crate::TraitItem::Fn(self0), crate::TraitItem::Fn(other0)) => {
+                self0 == other0
+            }
+            (crate::TraitItem::Type(self0), crate::TraitItem::Type(other0)) => {
+                self0 == other0
+            }
+            (crate::TraitItem::Macro(self0), crate::TraitItem::Macro(other0)) => {
+                self0 == other0
+            }
+            (crate::TraitItem::Verbatim(self0), crate::TraitItem::Verbatim(other0)) => {
                 TokenStreamHelper(self0) == TokenStreamHelper(other0)
             }
             _ => false,
@@ -1737,11 +1810,11 @@ impl PartialEq for TraitItem {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TraitItemConst {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TraitItemConst {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TraitItemConst {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TraitItemConst {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.ident == other.ident
             && self.generics == other.generics && self.ty == other.ty
@@ -1749,33 +1822,33 @@ impl PartialEq for TraitItemConst {
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TraitItemFn {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TraitItemFn {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TraitItemFn {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TraitItemFn {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.sig == other.sig
             && self.default == other.default && self.semi_token == other.semi_token
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TraitItemMacro {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TraitItemMacro {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TraitItemMacro {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TraitItemMacro {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.mac == other.mac
             && self.semi_token == other.semi_token
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TraitItemType {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TraitItemType {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TraitItemType {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TraitItemType {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.ident == other.ident
             && self.generics == other.generics && self.colon_token == other.colon_token
@@ -1783,28 +1856,34 @@ impl PartialEq for TraitItemType {
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Type {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Type {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Type {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Type {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Type::Array(self0), Type::Array(other0)) => self0 == other0,
-            (Type::BareFn(self0), Type::BareFn(other0)) => self0 == other0,
-            (Type::Group(self0), Type::Group(other0)) => self0 == other0,
-            (Type::ImplTrait(self0), Type::ImplTrait(other0)) => self0 == other0,
-            (Type::Infer(self0), Type::Infer(other0)) => self0 == other0,
-            (Type::Macro(self0), Type::Macro(other0)) => self0 == other0,
-            (Type::Never(self0), Type::Never(other0)) => self0 == other0,
-            (Type::Paren(self0), Type::Paren(other0)) => self0 == other0,
-            (Type::Path(self0), Type::Path(other0)) => self0 == other0,
-            (Type::Ptr(self0), Type::Ptr(other0)) => self0 == other0,
-            (Type::Reference(self0), Type::Reference(other0)) => self0 == other0,
-            (Type::Slice(self0), Type::Slice(other0)) => self0 == other0,
-            (Type::TraitObject(self0), Type::TraitObject(other0)) => self0 == other0,
-            (Type::Tuple(self0), Type::Tuple(other0)) => self0 == other0,
-            (Type::Verbatim(self0), Type::Verbatim(other0)) => {
+            (crate::Type::Array(self0), crate::Type::Array(other0)) => self0 == other0,
+            (crate::Type::BareFn(self0), crate::Type::BareFn(other0)) => self0 == other0,
+            (crate::Type::Group(self0), crate::Type::Group(other0)) => self0 == other0,
+            (crate::Type::ImplTrait(self0), crate::Type::ImplTrait(other0)) => {
+                self0 == other0
+            }
+            (crate::Type::Infer(self0), crate::Type::Infer(other0)) => self0 == other0,
+            (crate::Type::Macro(self0), crate::Type::Macro(other0)) => self0 == other0,
+            (crate::Type::Never(self0), crate::Type::Never(other0)) => self0 == other0,
+            (crate::Type::Paren(self0), crate::Type::Paren(other0)) => self0 == other0,
+            (crate::Type::Path(self0), crate::Type::Path(other0)) => self0 == other0,
+            (crate::Type::Ptr(self0), crate::Type::Ptr(other0)) => self0 == other0,
+            (crate::Type::Reference(self0), crate::Type::Reference(other0)) => {
+                self0 == other0
+            }
+            (crate::Type::Slice(self0), crate::Type::Slice(other0)) => self0 == other0,
+            (crate::Type::TraitObject(self0), crate::Type::TraitObject(other0)) => {
+                self0 == other0
+            }
+            (crate::Type::Tuple(self0), crate::Type::Tuple(other0)) => self0 == other0,
+            (crate::Type::Verbatim(self0), crate::Type::Verbatim(other0)) => {
                 TokenStreamHelper(self0) == TokenStreamHelper(other0)
             }
             _ => false,
@@ -1812,21 +1891,21 @@ impl PartialEq for Type {
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeArray {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeArray {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeArray {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeArray {
     fn eq(&self, other: &Self) -> bool {
         self.elem == other.elem && self.len == other.len
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeBareFn {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeBareFn {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeBareFn {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeBareFn {
     fn eq(&self, other: &Self) -> bool {
         self.lifetimes == other.lifetimes && self.unsafety == other.unsafety
             && self.abi == other.abi && self.inputs == other.inputs
@@ -1834,61 +1913,61 @@ impl PartialEq for TypeBareFn {
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeGroup {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeGroup {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeGroup {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeGroup {
     fn eq(&self, other: &Self) -> bool {
         self.elem == other.elem
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeImplTrait {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeImplTrait {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeImplTrait {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeImplTrait {
     fn eq(&self, other: &Self) -> bool {
         self.bounds == other.bounds
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeInfer {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeInfer {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeInfer {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeInfer {
     fn eq(&self, _other: &Self) -> bool {
         true
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeMacro {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeMacro {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeMacro {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeMacro {
     fn eq(&self, other: &Self) -> bool {
         self.mac == other.mac
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeNever {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeNever {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeNever {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeNever {
     fn eq(&self, _other: &Self) -> bool {
         true
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeParam {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeParam {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeParam {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeParam {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.ident == other.ident
             && self.colon_token == other.colon_token && self.bounds == other.bounds
@@ -1896,250 +1975,265 @@ impl PartialEq for TypeParam {
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeParamBound {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeParamBound {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeParamBound {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeParamBound {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (TypeParamBound::Trait(self0), TypeParamBound::Trait(other0)) => {
-                self0 == other0
-            }
-            (TypeParamBound::Lifetime(self0), TypeParamBound::Lifetime(other0)) => {
-                self0 == other0
-            }
-            (TypeParamBound::Verbatim(self0), TypeParamBound::Verbatim(other0)) => {
-                TokenStreamHelper(self0) == TokenStreamHelper(other0)
-            }
+            (
+                crate::TypeParamBound::Trait(self0),
+                crate::TypeParamBound::Trait(other0),
+            ) => self0 == other0,
+            (
+                crate::TypeParamBound::Lifetime(self0),
+                crate::TypeParamBound::Lifetime(other0),
+            ) => self0 == other0,
+            (
+                crate::TypeParamBound::Verbatim(self0),
+                crate::TypeParamBound::Verbatim(other0),
+            ) => TokenStreamHelper(self0) == TokenStreamHelper(other0),
             _ => false,
         }
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeParen {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeParen {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeParen {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeParen {
     fn eq(&self, other: &Self) -> bool {
         self.elem == other.elem
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypePath {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypePath {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypePath {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypePath {
     fn eq(&self, other: &Self) -> bool {
         self.qself == other.qself && self.path == other.path
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypePtr {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypePtr {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypePtr {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypePtr {
     fn eq(&self, other: &Self) -> bool {
         self.const_token == other.const_token && self.mutability == other.mutability
             && self.elem == other.elem
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeReference {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeReference {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeReference {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeReference {
     fn eq(&self, other: &Self) -> bool {
         self.lifetime == other.lifetime && self.mutability == other.mutability
             && self.elem == other.elem
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeSlice {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeSlice {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeSlice {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeSlice {
     fn eq(&self, other: &Self) -> bool {
         self.elem == other.elem
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeTraitObject {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeTraitObject {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeTraitObject {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeTraitObject {
     fn eq(&self, other: &Self) -> bool {
         self.dyn_token == other.dyn_token && self.bounds == other.bounds
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for TypeTuple {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::TypeTuple {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for TypeTuple {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::TypeTuple {
     fn eq(&self, other: &Self) -> bool {
         self.elems == other.elems
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for UnOp {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::UnOp {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for UnOp {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::UnOp {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (UnOp::Deref(_), UnOp::Deref(_)) => true,
-            (UnOp::Not(_), UnOp::Not(_)) => true,
-            (UnOp::Neg(_), UnOp::Neg(_)) => true,
+            (crate::UnOp::Deref(_), crate::UnOp::Deref(_)) => true,
+            (crate::UnOp::Not(_), crate::UnOp::Not(_)) => true,
+            (crate::UnOp::Neg(_), crate::UnOp::Neg(_)) => true,
             _ => false,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for UseGlob {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::UseGlob {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for UseGlob {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::UseGlob {
     fn eq(&self, _other: &Self) -> bool {
         true
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for UseGroup {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::UseGroup {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for UseGroup {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::UseGroup {
     fn eq(&self, other: &Self) -> bool {
         self.items == other.items
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for UseName {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::UseName {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for UseName {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::UseName {
     fn eq(&self, other: &Self) -> bool {
         self.ident == other.ident
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for UsePath {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::UsePath {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for UsePath {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::UsePath {
     fn eq(&self, other: &Self) -> bool {
         self.ident == other.ident && self.tree == other.tree
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for UseRename {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::UseRename {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for UseRename {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::UseRename {
     fn eq(&self, other: &Self) -> bool {
         self.ident == other.ident && self.rename == other.rename
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for UseTree {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::UseTree {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for UseTree {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::UseTree {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (UseTree::Path(self0), UseTree::Path(other0)) => self0 == other0,
-            (UseTree::Name(self0), UseTree::Name(other0)) => self0 == other0,
-            (UseTree::Rename(self0), UseTree::Rename(other0)) => self0 == other0,
-            (UseTree::Glob(self0), UseTree::Glob(other0)) => self0 == other0,
-            (UseTree::Group(self0), UseTree::Group(other0)) => self0 == other0,
+            (crate::UseTree::Path(self0), crate::UseTree::Path(other0)) => {
+                self0 == other0
+            }
+            (crate::UseTree::Name(self0), crate::UseTree::Name(other0)) => {
+                self0 == other0
+            }
+            (crate::UseTree::Rename(self0), crate::UseTree::Rename(other0)) => {
+                self0 == other0
+            }
+            (crate::UseTree::Glob(self0), crate::UseTree::Glob(other0)) => {
+                self0 == other0
+            }
+            (crate::UseTree::Group(self0), crate::UseTree::Group(other0)) => {
+                self0 == other0
+            }
             _ => false,
         }
     }
 }
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Variadic {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Variadic {}
 #[cfg(feature = "full")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Variadic {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Variadic {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.pat == other.pat && self.comma == other.comma
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Variant {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Variant {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Variant {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Variant {
     fn eq(&self, other: &Self) -> bool {
         self.attrs == other.attrs && self.ident == other.ident
             && self.fields == other.fields && self.discriminant == other.discriminant
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for VisRestricted {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::VisRestricted {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for VisRestricted {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::VisRestricted {
     fn eq(&self, other: &Self) -> bool {
         self.in_token == other.in_token && self.path == other.path
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for Visibility {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::Visibility {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for Visibility {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::Visibility {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Visibility::Public(_), Visibility::Public(_)) => true,
-            (Visibility::Restricted(self0), Visibility::Restricted(other0)) => {
-                self0 == other0
-            }
-            (Visibility::Inherited, Visibility::Inherited) => true,
+            (crate::Visibility::Public(_), crate::Visibility::Public(_)) => true,
+            (
+                crate::Visibility::Restricted(self0),
+                crate::Visibility::Restricted(other0),
+            ) => self0 == other0,
+            (crate::Visibility::Inherited, crate::Visibility::Inherited) => true,
             _ => false,
         }
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for WhereClause {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::WhereClause {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for WhereClause {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::WhereClause {
     fn eq(&self, other: &Self) -> bool {
         self.predicates == other.predicates
     }
 }
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl Eq for WherePredicate {}
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Eq for crate::WherePredicate {}
 #[cfg(any(feature = "derive", feature = "full"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
-impl PartialEq for WherePredicate {
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl PartialEq for crate::WherePredicate {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (WherePredicate::Lifetime(self0), WherePredicate::Lifetime(other0)) => {
-                self0 == other0
-            }
-            (WherePredicate::Type(self0), WherePredicate::Type(other0)) => {
+            (
+                crate::WherePredicate::Lifetime(self0),
+                crate::WherePredicate::Lifetime(other0),
+            ) => self0 == other0,
+            (crate::WherePredicate::Type(self0), crate::WherePredicate::Type(other0)) => {
                 self0 == other0
             }
             _ => false,

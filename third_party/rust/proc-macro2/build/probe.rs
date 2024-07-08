@@ -6,8 +6,12 @@
 
 extern crate proc_macro;
 
-use core::ops::RangeBounds;
+use core::ops::{Range, RangeBounds};
 use proc_macro::{Literal, Span};
+
+pub fn byte_range(this: &Span) -> Range<usize> {
+    this.byte_range()
+}
 
 pub fn join(this: &Span, other: Span) -> Option<Span> {
     this.join(other)

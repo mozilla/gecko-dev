@@ -5628,7 +5628,7 @@ end = "2024-05-06"
 criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
 start = "2019-03-01"
-end = "2024-04-25"
+end = "2025-07-04"
 
 [[trusted.termcolor]]
 criteria = "safe-to-deploy"

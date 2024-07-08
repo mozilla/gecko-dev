@@ -1,10 +1,9 @@
+#[cfg(feature = "parsing")]
+use crate::lookahead;
 use proc_macro2::{Ident, Span};
 use std::cmp::Ordering;
 use std::fmt::{self, Display};
 use std::hash::{Hash, Hasher};
-
-#[cfg(feature = "parsing")]
-use crate::lookahead;
 
 /// A Rust lifetime: `'a`.
 ///
@@ -123,10 +122,11 @@ pub_if_not_doc! {
 
 #[cfg(feature = "parsing")]
 pub(crate) mod parsing {
-    use super::*;
-    use crate::parse::{Parse, ParseStream, Result};
+    use crate::error::Result;
+    use crate::lifetime::Lifetime;
+    use crate::parse::{Parse, ParseStream};
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for Lifetime {
         fn parse(input: ParseStream) -> Result<Self> {
             input.step(|cursor| {
@@ -140,11 +140,11 @@ pub(crate) mod parsing {
 
 #[cfg(feature = "printing")]
 mod printing {
-    use super::*;
+    use crate::lifetime::Lifetime;
     use proc_macro2::{Punct, Spacing, TokenStream};
     use quote::{ToTokens, TokenStreamExt};
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for Lifetime {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             let mut apostrophe = Punct::new('\'', Spacing::Joint);

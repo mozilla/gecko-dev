@@ -5,7 +5,9 @@ mod macros;
 
 use proc_macro2::{Delimiter, Group};
 use quote::{quote, ToTokens as _};
+use std::mem;
 use syn::punctuated::Punctuated;
+use syn::visit_mut::{self, VisitMut};
 use syn::{parse_quote, token, Expr, ExprRange, ExprTuple, Stmt, Token};
 
 #[test]
@@ -331,7 +333,7 @@ fn test_postfix_operator_after_cast() {
 }
 
 #[test]
-fn test_ranges() {
+fn test_range_kinds() {
     syn::parse_str::<Expr>("..").unwrap();
     syn::parse_str::<Expr>("..hi").unwrap();
     syn::parse_str::<Expr>("lo..").unwrap();
@@ -346,6 +348,44 @@ fn test_ranges() {
     syn::parse_str::<Expr>("...hi").unwrap_err();
     syn::parse_str::<Expr>("lo...").unwrap_err();
     syn::parse_str::<Expr>("lo...hi").unwrap_err();
+}
+
+#[test]
+fn test_range_precedence() {
+    snapshot!(".. .." as Expr, @r###"
+    Expr::Range {
+        limits: RangeLimits::HalfOpen,
+        end: Some(Expr::Range {
+            limits: RangeLimits::HalfOpen,
+        }),
+    }
+    "###);
+
+    snapshot!(".. .. ()" as Expr, @r###"
+    Expr::Range {
+        limits: RangeLimits::HalfOpen,
+        end: Some(Expr::Range {
+            limits: RangeLimits::HalfOpen,
+            end: Some(Expr::Tuple),
+        }),
+    }
+    "###);
+
+    snapshot!("() .. .." as Expr, @r###"
+    Expr::Range {
+        start: Some(Expr::Tuple),
+        limits: RangeLimits::HalfOpen,
+        end: Some(Expr::Range {
+            limits: RangeLimits::HalfOpen,
+        }),
+    }
+    "###);
+
+    // A range with a lower bound cannot be the upper bound of another range,
+    // and a range with an upper bound cannot be the lower bound of another
+    // range.
+    syn::parse_str::<Expr>(".. x ..").unwrap_err();
+    syn::parse_str::<Expr>("x .. x ..").unwrap_err();
 }
 
 #[test]
@@ -537,4 +577,116 @@ fn test_tuple_comma() {
         ],
     }
     "###);
+}
+
+#[test]
+fn test_binop_associativity() {
+    // Left to right.
+    snapshot!("() + () + ()" as Expr, @r###"
+    Expr::Binary {
+        left: Expr::Binary {
+            left: Expr::Tuple,
+            op: BinOp::Add,
+            right: Expr::Tuple,
+        },
+        op: BinOp::Add,
+        right: Expr::Tuple,
+    }
+    "###);
+
+    // Right to left.
+    snapshot!("() += () += ()" as Expr, @r###"
+    Expr::Binary {
+        left: Expr::Tuple,
+        op: BinOp::AddAssign,
+        right: Expr::Binary {
+            left: Expr::Tuple,
+            op: BinOp::AddAssign,
+            right: Expr::Tuple,
+        },
+    }
+    "###);
+
+    // Parenthesization is required.
+    syn::parse_str::<Expr>("() == () == ()").unwrap_err();
+}
+
+#[test]
+fn test_assign_range_precedence() {
+    // Range has higher precedence as the right-hand of an assignment, but
+    // ambiguous precedence as the left-hand of an assignment.
+    snapshot!("() = () .. ()" as Expr, @r###"
+    Expr::Assign {
+        left: Expr::Tuple,
+        right: Expr::Range {
+            start: Some(Expr::Tuple),
+            limits: RangeLimits::HalfOpen,
+            end: Some(Expr::Tuple),
+        },
+    }
+    "###);
+
+    snapshot!("() += () .. ()" as Expr, @r###"
+    Expr::Binary {
+        left: Expr::Tuple,
+        op: BinOp::AddAssign,
+        right: Expr::Range {
+            start: Some(Expr::Tuple),
+            limits: RangeLimits::HalfOpen,
+            end: Some(Expr::Tuple),
+        },
+    }
+    "###);
+
+    syn::parse_str::<Expr>("() .. () = ()").unwrap_err();
+    syn::parse_str::<Expr>("() .. () += ()").unwrap_err();
+}
+
+#[test]
+fn test_fixup() {
+    struct FlattenParens;
+
+    impl VisitMut for FlattenParens {
+        fn visit_expr_mut(&mut self, e: &mut Expr) {
+            while let Expr::Paren(paren) = e {
+                *e = mem::replace(&mut *paren.expr, Expr::PLACEHOLDER);
+            }
+            visit_mut::visit_expr_mut(self, e);
+        }
+    }
+
+    for tokens in [
+        quote! { 2 * (1 + 1) },
+        quote! { 0 + (0 + 0) },
+        quote! { (a = b) = c },
+        quote! { (x as i32) < 0 },
+        quote! { (1 + x as i32) < 0 },
+        quote! { (1 + 1).abs() },
+        quote! { (lo..hi)[..] },
+        quote! { (a..b)..(c..d) },
+        quote! { (&mut fut).await },
+        quote! { &mut (x as i32) },
+        quote! { -(x as i32) },
+        quote! { if (S {} == 1) {} },
+        quote! { { (m! {}) - 1 } },
+        quote! { match m { _ => ({}) - 1 } },
+        quote! { if let _ = (a && b) && c {} },
+        quote! { if let _ = (S {}) {} },
+    ] {
+        let original: Expr = syn::parse2(tokens).unwrap();
+
+        let mut flat = original.clone();
+        FlattenParens.visit_expr_mut(&mut flat);
+        let reconstructed: Expr = match syn::parse2(flat.to_token_stream()) {
+            Ok(reconstructed) => reconstructed,
+            Err(err) => panic!("failed to parse `{}`: {}", flat.to_token_stream(), err),
+        };
+
+        assert!(
+            original == reconstructed,
+            "original: {}\nreconstructed: {}",
+            original.to_token_stream(),
+            reconstructed.to_token_stream(),
+        );
+    }
 }

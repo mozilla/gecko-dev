@@ -2864,6 +2864,7 @@ impl Debug for Lite<syn::Lit> {
         match &self.value {
             syn::Lit::Str(_val) => write!(formatter, "{:?}", _val.value()),
             syn::Lit::ByteStr(_val) => write!(formatter, "{:?}", _val.value()),
+            syn::Lit::CStr(_val) => write!(formatter, "{:?}", _val.value()),
             syn::Lit::Byte(_val) => write!(formatter, "{:?}", _val.value()),
             syn::Lit::Char(_val) => write!(formatter, "{:?}", _val.value()),
             syn::Lit::Int(_val) => write!(formatter, "{}", _val),
@@ -2897,6 +2898,11 @@ impl Debug for Lite<syn::LitByte> {
     }
 }
 impl Debug for Lite<syn::LitByteStr> {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "{:?}", self.value.value())
+    }
+}
+impl Debug for Lite<syn::LitCStr> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "{:?}", self.value.value())
     }
