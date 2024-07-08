@@ -3629,6 +3629,10 @@ class Document : public nsINode,
   // If this is true, we're ignoring scrolling to a fragment.
   bool ForceLoadAtTop() const { return mForceLoadAtTop; }
 
+  // https://html.spec.whatwg.org/#concept-document-fire-mutation-events-flag
+  bool FireMutationEvents() const { return mFireMutationEvents; }
+  void SetFireMutationEvents(bool aFire) { mFireMutationEvents = aFire; }
+
   // This should be called when this document receives events which are likely
   // to be user interaction with the document, rather than the byproduct of
   // interaction with the browser (i.e. a keypress to scroll the view port,
@@ -4900,6 +4904,8 @@ class Document : public nsINode,
   bool mSuspendDOMNotifications : 1;
 
   bool mForceLoadAtTop : 1;
+
+  bool mFireMutationEvents : 1;
 
   // The fingerprinting protections overrides for this document. The value will
   // override the default enabled fingerprinting protections for this document.
