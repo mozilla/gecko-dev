@@ -60,7 +60,7 @@ static const LABELS_AVIF_YUV_COLOR_SPACE gColorSpaceLabel[] = {
     LABELS_AVIF_YUV_COLOR_SPACE::BT601, LABELS_AVIF_YUV_COLOR_SPACE::BT709,
     LABELS_AVIF_YUV_COLOR_SPACE::BT2020, LABELS_AVIF_YUV_COLOR_SPACE::identity};
 
-static MaybeIntSize GetImageSize(const Mp4parseAvifInfo& aInfo) {
+static Maybe<IntSize> GetImageSize(const Mp4parseAvifInfo& aInfo) {
   // Note this does not take cropping via CleanAperture (clap) into account
   const struct Mp4parseImageSpatialExtents* ispe = aInfo.spatial_extents;
 
@@ -1632,7 +1632,7 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
     orientation = Orientation{};
   }
 
-  MaybeIntSize ispeImageSize = GetImageSize(parsedInfo);
+  Maybe<IntSize> ispeImageSize = GetImageSize(parsedInfo);
 
   bool sendDecodeTelemetry = IsMetadataDecode();
   if (ispeImageSize.isSome()) {

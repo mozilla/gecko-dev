@@ -27,7 +27,6 @@ using mozilla::wr::ImageKey from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::wr::BlobImageKey from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::wr::WrRotation from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::wr::PipelineId from "mozilla/webrender/WebRenderTypes.h";
-using mozilla::gfx::MaybeIntSize from "mozilla/gfx/Point.h";
 using mozilla::LayoutDeviceRect from "Units.h";
 using mozilla::LayoutDeviceSize from "Units.h";
 using mozilla::ImageIntRect from "Units.h";

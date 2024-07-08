@@ -334,7 +334,6 @@ struct MOZ_EMPTY_BASES IntSizeTyped
   }
 };
 typedef IntSizeTyped<UnknownUnits> IntSize;
-typedef Maybe<IntSize> MaybeIntSize;
 
 template <class Units, class F = Float>
 struct MOZ_EMPTY_BASES SizeTyped
