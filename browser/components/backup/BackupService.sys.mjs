@@ -955,10 +955,9 @@ export class BackupService extends EventTarget {
 
   /**
    * @typedef {object} CreateBackupResult
-   * @property {string} stagingPath
-   *   The staging path for where the backup was created.
-   * @property {string} compressedStagingPath
-   *   The path to the file containing the compressed staging path.
+   * @property {object} manifest
+   *   The backup manifest data of the created backup. See BackupManifest
+   *   schema for specific details.
    * @property {string} archivePath
    *   The path to the single file archive that was created.
    */
@@ -972,8 +971,8 @@ export class BackupService extends EventTarget {
    *   The path to the profile to backup. By default, this is the current
    *   profile.
    * @returns {Promise<CreateBackupResult|null>}
-   *   A promise that resolves to an object containing the path to the staging
-   *   folder where the backup was created, or null if the backup failed.
+   *   A promise that resolves to information about the backup that was
+   *   created, or null if the backup failed.
    */
   async createBackup({ profilePath = PathUtils.profileDir } = {}) {
     // createBackup does not allow re-entry or concurrent backups.
@@ -1127,7 +1126,9 @@ export class BackupService extends EventTarget {
       let compressedStagingPath = await this.#compressStagingFolder(
         renamedStagingPath,
         backupDirPath
-      );
+      ).finally(async () => {
+        await IOUtils.remove(renamedStagingPath, { recursive: true });
+      });
 
       // Now create the single-file archive. For now, we'll stash this in the
       // backups folder while it gets written. Once that's done, we'll attempt
@@ -1140,7 +1141,9 @@ export class BackupService extends EventTarget {
         compressedStagingPath,
         this.#encState,
         manifest.meta
-      );
+      ).finally(async () => {
+        await IOUtils.remove(compressedStagingPath);
+      });
 
       let archivePath = await this.finalizeSingleFileArchive(
         archiveTmpPath,
@@ -1152,11 +1155,7 @@ export class BackupService extends EventTarget {
       Services.prefs.setIntPref(LAST_BACKUP_TIMESTAMP_PREF_NAME, nowSeconds);
       this.#_state.lastBackupDate = nowSeconds;
 
-      return {
-        stagingPath: renamedStagingPath,
-        compressedStagingPath,
-        archivePath,
-      };
+      return { manifest, archivePath };
     } finally {
       this.#backupInProgress = false;
     }
@@ -2083,7 +2082,8 @@ export class BackupService extends EventTarget {
 
   /**
    * Creates and resolves with a backup manifest object with an empty resources
-   * property.
+   * property. See the BackupManifest schema for the specific shape of the
+   * returned manifest object.
    *
    * @returns {Promise<object>}
    */
