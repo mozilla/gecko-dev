@@ -164,7 +164,7 @@ function makeWikipediaResult({
   blockId = 2,
   advertiser = "Wikipedia",
   iabCategory = "5 - Education",
-  suggestedIndex = 0,
+  suggestedIndex = -1,
   isSuggestedIndexRelativeToGroup = true,
 }) {
   let result = {
