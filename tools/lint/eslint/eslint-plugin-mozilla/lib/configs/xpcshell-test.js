@@ -56,10 +56,6 @@ module.exports = {
     // level tests.
     "@microsoft/sdl/no-insecure-url": "off",
 
-    // TODO: Bug 1906047. This is already turned on in the general-test
-    // configuration, however there are a few directories that don't conform
-    // to the `/tests?/` rule, so we need to explicitly enable this here.
-    "mozilla/import-headjs-globals": "error",
     "mozilla/no-comparison-or-assignment-inside-ok": "error",
     "mozilla/no-useless-run-test": "error",
     "no-shadow": "error",
