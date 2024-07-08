@@ -341,7 +341,6 @@ DIRS += [
     "/third_party/libwebrtc/rtc_base/event_tracer_gn",
     "/third_party/libwebrtc/rtc_base/experiments/alr_experiment_gn",
     "/third_party/libwebrtc/rtc_base/experiments/balanced_degradation_settings_gn",
-    "/third_party/libwebrtc/rtc_base/experiments/bandwidth_quality_scaler_settings_gn",
     "/third_party/libwebrtc/rtc_base/experiments/encoder_info_settings_gn",
     "/third_party/libwebrtc/rtc_base/experiments/field_trial_parser_gn",
     "/third_party/libwebrtc/rtc_base/experiments/keyframe_interval_settings_experiment_gn",
