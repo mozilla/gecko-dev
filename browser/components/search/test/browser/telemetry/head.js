@@ -23,6 +23,7 @@ ChromeUtils.defineESModuleGetters(this, {
   TELEMETRY_CATEGORIZATION_KEY:
     "resource:///modules/SearchSERPTelemetry.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
+  VISIBILITY_THRESHOLD: "resource:///actors/SearchSERPTelemetryChild.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(this, "UrlbarTestUtils", () => {
@@ -694,4 +695,14 @@ async function initSinglePageAppTest() {
       SPA_ADLINK_CHECK_TIMEOUT_MS
     );
   });
+}
+
+async function resizeWindow(win, width, height) {
+  let promise = BrowserTestUtils.waitForEvent(win, "resize");
+  win.resizeTo(width, height);
+  await promise;
+
+  // Wait two frames in hopes resizing is done.
+  await new Promise(resolve => win.requestAnimationFrame(resolve));
+  await new Promise(resolve => win.requestAnimationFrame(resolve));
 }

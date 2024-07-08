@@ -46,6 +46,8 @@ const CONDITIONS = {
   keydownEnter: event => event.key == "Enter",
 };
 
+export const VISIBILITY_THRESHOLD = 0.5;
+
 /**
  * SearchProviders looks after keeping track of the search provider information
  * received from the main process.
@@ -844,8 +846,11 @@ class SearchAdImpression {
    *
    * An ad is considered visible if the parent element containing the
    * component has non-zero dimensions, and all child element in the
-   * component have non-zero dimensions and fits within the window
-   * at the time when the impression was takent.
+   * component have non-zero dimensions and mostly (50% height) fits within
+   * the window at the time when the impression was taken. If the element is to
+   * the left of the visible area, we also consider it viewed as it's possible
+   * the user interacted with a carousel which typically scrolls new content
+   * leftward.
    *
    * For some components, like text ads, we don't send every child
    * element for visibility, just the first text ad. For other components
@@ -897,17 +902,18 @@ class SearchAdImpression {
       };
     }
 
-    // Since the parent element has dimensions but no child elements we want
-    // to inspect, check the parent itself is within the viewable area.
-    if (!childElements || !childElements.length) {
-      if (innerWindowHeight < elementRect.y + elementRect.height) {
-        return {
-          adsVisible: 0,
-          adsHidden: 0,
-        };
-      }
+    // If the element has no child elements, check if the element
+    // was ever viewed by the user at this moment.
+    if (!childElements?.length) {
+      // Most ads don't require horizontal scrolling to view it. Thus, we only
+      // check if it could've appeared with some vertical scrolling.
+      let visible = VisibilityHelper.elementWasVisibleVertically(
+        elementRect,
+        innerWindowHeight,
+        VISIBILITY_THRESHOLD
+      );
       return {
-        adsVisible: 1,
+        adsVisible: visible ? 1 : 0,
         adsHidden: 0,
       };
     }
@@ -924,17 +930,30 @@ class SearchAdImpression {
         continue;
       }
 
-      // If the child element is to the left of the containing element, or to
-      // the right of the containing element, skip it.
+      // If the child element is to the right of the containing element and
+      // can't be viewed, skip it. We do this check because some elements like
+      // carousels can hide additional content horizontally. We don't apply the
+      // same logic if the element is to the left because we assume carousels
+      // scroll elements to the left when the user wants to see more contents.
+      // Thus, the elements to the left must've been visible.
       if (
-        itemRect.x < elementRect.x ||
-        itemRect.x + itemRect.width > elementRect.x + elementRect.width
+        !VisibilityHelper.childElementWasVisibleHorizontally(
+          elementRect,
+          itemRect,
+          VISIBILITY_THRESHOLD
+        )
       ) {
         continue;
       }
 
-      // If the child element is too far down, skip it.
-      if (innerWindowHeight < itemRect.y + itemRect.height) {
+      // If the height of child element is not visible, skip it.
+      if (
+        !VisibilityHelper.elementWasVisibleVertically(
+          itemRect,
+          innerWindowHeight,
+          VISIBILITY_THRESHOLD
+        )
+      ) {
         continue;
       }
       ++adsVisible;
@@ -989,6 +1008,45 @@ class SearchAdImpression {
         childElements,
       });
     }
+  }
+}
+
+export class VisibilityHelper {
+  /**
+   * Whether the element was vertically visible. It assumes elements above the
+   * viewable area were visible at some point in time.
+   *
+   * @param {DOMRect} rect
+   *   The bounds of the element.
+   * @param {number} innerWindowHeight
+   *   The height of the window.
+   * @param {number} threshold
+   *   What percentage of the element should vertically be visible.
+   * @returns {boolean}
+   *   Whether the element was visible.
+   */
+  static elementWasVisibleVertically(rect, innerWindowHeight, threshold) {
+    return rect.top + rect.height * threshold <= innerWindowHeight;
+  }
+
+  /**
+   * Whether the child element was horizontally visible. It assumes elements to
+   * the left were visible at some point in time.
+   *
+   * @param {DOMRect} parentRect
+   *   The bounds of the element that contains the child.
+   * @param {DOMRect} childRect
+   *   The bounds of the child element.
+   * @param {number} threshold
+   *   What percentage of the child element should horizontally be visible.
+   * @returns {boolean}
+   *   Whether the child element was visible.
+   */
+  static childElementWasVisibleHorizontally(parentRect, childRect, threshold) {
+    return (
+      childRect.left + childRect.width * threshold <=
+      parentRect.left + parentRect.width
+    );
   }
 }
 
