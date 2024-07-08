@@ -37,9 +37,18 @@ class HTMLDetailsElement final : public nsGenericHTMLElement {
                     nsIPrincipal* aMaybeScriptedPrincipal,
                     bool aNotify) override;
 
+  nsresult BindToTree(BindContext&, nsINode& aParent) override;
+
   bool IsInteractiveHTMLContent() const override { return true; }
 
   // HTMLDetailsElement WebIDL
+
+  void SetName(const nsAString& aName, ErrorResult& aRv) {
+    SetHTMLAttr(nsGkAtoms::name, aName, aRv);
+  }
+
+  void GetName(nsAString& aName) { GetHTMLAttr(nsGkAtoms::name, aName); }
+
   bool Open() const { return GetBoolAttr(nsGkAtoms::open); }
 
   void SetOpen(bool aOpen, ErrorResult& aError) {
@@ -58,6 +67,12 @@ class HTMLDetailsElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLDetailsElement();
   void SetupShadowTree();
+
+  // https://html.spec.whatwg.org/#ensure-details-exclusivity-by-closing-the-given-element-if-needed
+  void CloseElementIfNeeded();
+
+  // https://html.spec.whatwg.org/#ensure-details-exclusivity-by-closing-other-elements-if-needed
+  void CloseOtherElementsIfNeeded();
 
   JSObject* WrapNode(JSContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;

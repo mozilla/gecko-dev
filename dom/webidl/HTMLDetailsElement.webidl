@@ -15,6 +15,9 @@
 interface HTMLDetailsElement : HTMLElement {
   [HTMLConstructor] constructor();
 
+  [CEReactions, SetterThrows, Pref="dom.details_group.enabled"]
+  attribute DOMString name;
+
   [CEReactions, SetterThrows]
   attribute boolean open;
 };
