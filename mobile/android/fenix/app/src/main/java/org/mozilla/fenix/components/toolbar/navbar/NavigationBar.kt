@@ -313,6 +313,7 @@ private fun BackButton(
         onClick = onBackButtonClick,
         onLongClick = onBackButtonLongPress,
         enabled = enabled,
+        modifier = Modifier.size(48.dp),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_back_24),
@@ -332,6 +333,7 @@ private fun ForwardButton(
         onClick = onForwardButtonClick,
         onLongClick = onForwardButtonLongPress,
         enabled = enabled,
+        modifier = Modifier.size(48.dp),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_forward_24),
@@ -347,6 +349,7 @@ private fun HomeButton(
 ) {
     IconButton(
         onClick = onHomeButtonClick,
+        modifier = Modifier.size(48.dp),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_home_24),
@@ -362,6 +365,7 @@ private fun NewTabButton(
 ) {
     IconButton(
         onClick = onClick,
+        modifier = Modifier.size(48.dp),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_plus_24),
@@ -395,6 +399,7 @@ private fun MenuButton(
     if (isMenuRedesignEnabled) {
         IconButton(
             onClick = onMenuButtonClick,
+            modifier = Modifier.size(48.dp),
         ) {
             Icon(
                 painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
