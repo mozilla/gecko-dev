@@ -187,6 +187,80 @@ static nsresult UnescapeFragment(const nsACString& aFragment, nsIURI* aURI,
   return rv;
 }
 
+static Result<nsCOMPtr<nsIFile>, nsresult> GetOsTmpDownloadDirectory() {
+  nsCOMPtr<nsIFile> dir;
+  MOZ_TRY(NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dir)));
+
+#if !defined(XP_MACOSX) && defined(XP_UNIX)
+  // Ensuring that only the current user can read the file names we end up
+  // creating. Note that creating directories with a specified permission is
+  // only supported on Unix platform right now. That's why the above check
+  // exists.
+
+  uint32_t permissions;
+  MOZ_TRY(dir->GetPermissions(&permissions));
+
+  if (permissions != PR_IRWXU) {
+    const char* userName = PR_GetEnv("USERNAME");
+    if (!userName || !*userName) {
+      userName = PR_GetEnv("USER");
+    }
+    if (!userName || !*userName) {
+      userName = PR_GetEnv("LOGNAME");
+    }
+    if (!userName || !*userName) {
+      userName = "mozillaUser";
+    }
+
+    nsAutoString userDir;
+    userDir.AssignLiteral("mozilla_");
+    userDir.AppendASCII(userName);
+    userDir.ReplaceChar(u"" FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
+
+    int counter = 0;
+    bool pathExists;
+    nsCOMPtr<nsIFile> finalPath;
+
+    while (true) {
+      nsAutoString countedUserDir(userDir);
+      countedUserDir.AppendInt(counter, 10);
+      dir->Clone(getter_AddRefs(finalPath));
+      finalPath->Append(countedUserDir);
+
+      MOZ_TRY(finalPath->Exists(&pathExists));
+
+      if (pathExists) {
+        // If this path has the right permissions, use it.
+        MOZ_TRY(finalPath->GetPermissions(&permissions));
+
+        // Ensuring the path is writable by the current user.
+        bool isWritable;
+        MOZ_TRY(finalPath->IsWritable(&isWritable));
+
+        if (permissions == PR_IRWXU && isWritable) {
+          dir = finalPath;
+          break;
+        }
+      }
+
+      nsresult const rv = finalPath->Create(nsIFile::DIRECTORY_TYPE, PR_IRWXU);
+      if (NS_SUCCEEDED(rv)) {
+        dir = finalPath;
+        break;
+      }
+      if (rv != NS_ERROR_FILE_ALREADY_EXISTS) {
+        // Unexpected error.
+        return Err(rv);
+      }
+      counter++;
+    }
+  }
+
+#endif
+  NS_ASSERTION(dir, "Somehow we didn't get a download directory!");
+  return dir;
+}
+
 /**
  * Given an alleged download directory, either create it, or confirm that it
  * already exists and is usable.
@@ -213,162 +287,86 @@ static Result<nsCOMPtr<nsIFile>, nsresult> GetDownloadDirectory(
   return Err(NS_ERROR_FAILURE);
 #endif
 
-  bool usePrefDir = !StaticPrefs::browser_download_start_downloads_in_tmp_dir();
+  if (StaticPrefs::browser_download_start_downloads_in_tmp_dir()) {
+    return GetOsTmpDownloadDirectory();
+  }
 
   nsresult rv;
-  if (usePrefDir) {
-    // Try to get the users download location, if it's set.
-    switch (Preferences::GetInt(NS_PREF_DOWNLOAD_FOLDERLIST, -1)) {
-      case NS_FOLDER_VALUE_DESKTOP: {
-        nsCOMPtr<nsIFile> dir;
-        if (NS_SUCCEEDED(NS_GetSpecialDirectory(NS_OS_DESKTOP_DIR,
-                                                getter_AddRefs(dir)))) {
-          return dir;
-        }
-      } break;
-
-      case NS_FOLDER_VALUE_CUSTOM: {
-        nsCOMPtr<nsIFile> dir;
-        Preferences::GetComplex(NS_PREF_DOWNLOAD_DIR, NS_GET_IID(nsIFile),
-                                getter_AddRefs(dir));
-        if (!dir) break;
-
-        // Check for availability if requested.
-        if (!aSkipChecks && NS_FAILED(EnsureDirectoryExists(dir))) {
-          break;
-        }
-
+  // Try to get the users download location, if it's set.
+  switch (Preferences::GetInt(NS_PREF_DOWNLOAD_FOLDERLIST, -1)) {
+    case NS_FOLDER_VALUE_DESKTOP: {
+      nsCOMPtr<nsIFile> dir;
+      if (NS_SUCCEEDED(
+              NS_GetSpecialDirectory(NS_OS_DESKTOP_DIR, getter_AddRefs(dir)))) {
         return dir;
-      } break;
-
-      case NS_FOLDER_VALUE_DOWNLOADS:
-        // This is just the OS default location, so fall out
-        break;
-    }
-
-    // Fallthrough: get OS default directory
-
-    nsCOMPtr<nsIFile> dir;
-    rv =
-        NS_GetSpecialDirectory(NS_OS_DEFAULT_DOWNLOAD_DIR, getter_AddRefs(dir));
-    if (NS_FAILED(rv)) {
-      // On some OSes, there is no guarantee this directory exists.
-      // Fall back to $HOME + Downloads.
-      if (sFallbackDownloadDir) {
-        MOZ_TRY(sFallbackDownloadDir->Clone(getter_AddRefs(dir)));
-      } else {
-        MOZ_TRY(NS_GetSpecialDirectory(NS_OS_HOME_DIR, getter_AddRefs(dir)));
-
-        nsCOMPtr<nsIStringBundleService> bundleService =
-            do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
-        MOZ_TRY(rv);
-
-        nsAutoString downloadLocalized;
-        nsCOMPtr<nsIStringBundle> downloadBundle;
-        rv = bundleService->CreateBundle(
-            "chrome://mozapps/locale/downloads/downloads.properties",
-            getter_AddRefs(downloadBundle));
-        if (NS_SUCCEEDED(rv)) {
-          rv = downloadBundle->GetStringFromName("downloadsFolder",
-                                                 downloadLocalized);
-        }
-        if (NS_FAILED(rv)) {
-          downloadLocalized.AssignLiteral("Downloads");
-        }
-        MOZ_TRY(dir->Append(downloadLocalized));
-
-        // Can't getter_AddRefs on StaticRefPtr, so do some copying.
-        nsCOMPtr<nsIFile> copy;
-        dir->Clone(getter_AddRefs(copy));
-        sFallbackDownloadDir = copy.forget();
-        ClearOnShutdown(&sFallbackDownloadDir);
       }
+    } break;
+
+    case NS_FOLDER_VALUE_CUSTOM: {
+      nsCOMPtr<nsIFile> dir;
+      Preferences::GetComplex(NS_PREF_DOWNLOAD_DIR, NS_GET_IID(nsIFile),
+                              getter_AddRefs(dir));
+      if (!dir) break;
 
       // Check for availability if requested.
-      if (!aSkipChecks) {
-        if (nsresult rv = EnsureDirectoryExists(dir); NS_FAILED(rv)) {
-          return Err(rv);
-        }
+      if (!aSkipChecks && NS_FAILED(EnsureDirectoryExists(dir))) {
+        break;
       }
+
       return dir;
+    } break;
+
+    default:
+    case NS_FOLDER_VALUE_DOWNLOADS:
+      // This is just the OS default location, so fall out
+      break;
+  }
+
+  // Fallthrough: get OS default directory
+
+  nsCOMPtr<nsIFile> dir;
+  rv = NS_GetSpecialDirectory(NS_OS_DEFAULT_DOWNLOAD_DIR, getter_AddRefs(dir));
+  if (NS_FAILED(rv)) {
+    // On some OSes, there is no guarantee this directory exists.
+    // Fall back to $HOME + Downloads.
+    if (sFallbackDownloadDir) {
+      MOZ_TRY(sFallbackDownloadDir->Clone(getter_AddRefs(dir)));
+    } else {
+      MOZ_TRY(NS_GetSpecialDirectory(NS_OS_HOME_DIR, getter_AddRefs(dir)));
+
+      nsCOMPtr<nsIStringBundleService> bundleService =
+          do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
+      MOZ_TRY(rv);
+
+      nsAutoString downloadLocalized;
+      nsCOMPtr<nsIStringBundle> downloadBundle;
+      rv = bundleService->CreateBundle(
+          "chrome://mozapps/locale/downloads/downloads.properties",
+          getter_AddRefs(downloadBundle));
+      if (NS_SUCCEEDED(rv)) {
+        rv = downloadBundle->GetStringFromName("downloadsFolder",
+                                               downloadLocalized);
+      }
+      if (NS_FAILED(rv)) {
+        downloadLocalized.AssignLiteral("Downloads");
+      }
+      MOZ_TRY(dir->Append(downloadLocalized));
+
+      // Can't getter_AddRefs on StaticRefPtr, so do some copying.
+      nsCOMPtr<nsIFile> copy;
+      dir->Clone(getter_AddRefs(copy));
+      sFallbackDownloadDir = copy.forget();
+      ClearOnShutdown(&sFallbackDownloadDir);
     }
 
-    return dir;
-    // temporary during refactor: NOLINTNEXTLINE(readability-else-after-return)
-  } else {
-    // !usePrefDir
-    nsCOMPtr<nsIFile> dir;
-    MOZ_TRY(NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dir)));
-
-#if !defined(XP_MACOSX) && defined(XP_UNIX)
-    // Ensuring that only the current user can read the file names we end up
-    // creating. Note that creating directories with a specified permission is
-    // only supported on Unix platform right now. That's why the above check
-    // exists.
-
-    uint32_t permissions;
-    MOZ_TRY(dir->GetPermissions(&permissions));
-
-    if (permissions != PR_IRWXU) {
-      const char* userName = PR_GetEnv("USERNAME");
-      if (!userName || !*userName) {
-        userName = PR_GetEnv("USER");
-      }
-      if (!userName || !*userName) {
-        userName = PR_GetEnv("LOGNAME");
-      }
-      if (!userName || !*userName) {
-        userName = "mozillaUser";
-      }
-
-      nsAutoString userDir;
-      userDir.AssignLiteral("mozilla_");
-      userDir.AppendASCII(userName);
-      userDir.ReplaceChar(u"" FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
-
-      int counter = 0;
-      bool pathExists;
-      nsCOMPtr<nsIFile> finalPath;
-
-      while (true) {
-        nsAutoString countedUserDir(userDir);
-        countedUserDir.AppendInt(counter, 10);
-        dir->Clone(getter_AddRefs(finalPath));
-        finalPath->Append(countedUserDir);
-
-        MOZ_TRY(finalPath->Exists(&pathExists));
-
-        if (pathExists) {
-          // If this path has the right permissions, use it.
-          MOZ_TRY(finalPath->GetPermissions(&permissions));
-
-          // Ensuring the path is writable by the current user.
-          bool isWritable;
-          MOZ_TRY(finalPath->IsWritable(&isWritable));
-
-          if (permissions == PR_IRWXU && isWritable) {
-            dir = finalPath;
-            break;
-          }
-        }
-
-        rv = finalPath->Create(nsIFile::DIRECTORY_TYPE, PR_IRWXU);
-        if (NS_SUCCEEDED(rv)) {
-          dir = finalPath;
-          break;
-        }
-        if (rv != NS_ERROR_FILE_ALREADY_EXISTS) {
-          // Unexpected error.
-          return Err(rv);
-        }
-        counter++;
-      }
+    // Check for availability if requested.
+    if (!aSkipChecks) {
+      MOZ_TRY(EnsureDirectoryExists(dir));
     }
-
-#endif
-    NS_ASSERTION(dir, "Somehow we didn't get a download directory!");
     return dir;
   }
+
+  return dir;
 }
 
 /**
