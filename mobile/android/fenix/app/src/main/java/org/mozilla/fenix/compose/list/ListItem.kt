@@ -5,6 +5,7 @@
 package org.mozilla.fenix.compose.list
 
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -54,6 +56,8 @@ import org.mozilla.fenix.theme.FirefoxTheme
 private val LIST_ITEM_HEIGHT = 56.dp
 
 private val ICON_SIZE = 24.dp
+
+private val TOAST_LENGTH = Toast.LENGTH_SHORT
 
 /**
  * List item used to display a label with an optional description text and an optional
@@ -529,12 +533,13 @@ private fun TextListItemWithDescriptionPreview() {
 private fun TextListItemWithIconPreview() {
     FirefoxTheme {
         Column(Modifier.background(FirefoxTheme.colors.layer1)) {
+            val context = LocalContext.current
             TextListItem(
                 label = "Label + right icon button",
                 onClick = {},
                 iconPainter = painterResource(R.drawable.mozac_ic_folder_24),
                 iconDescription = "click me",
-                onIconClick = { println("icon click") },
+                onIconClick = { Toast.makeText(context, "icon click", TOAST_LENGTH).show() },
             )
 
             TextListItem(
@@ -598,13 +603,14 @@ private fun IconListItemPreview() {
 private fun IconListItemWithAfterListActionPreview() {
     FirefoxTheme {
         Column(Modifier.background(FirefoxTheme.colors.layer1)) {
+            val context = LocalContext.current
             IconListItem(
                 label = "IconListItem + right icon + clicks",
                 beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
                 beforeIconDescription = null,
                 afterIconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
                 afterIconDescription = "click me",
-                onAfterIconClick = { println("icon click") },
+                onAfterIconClick = { Toast.makeText(context, "icon click", TOAST_LENGTH).show() },
             )
 
             IconListItem(
@@ -614,7 +620,7 @@ private fun IconListItemWithAfterListActionPreview() {
                 showDivider = true,
                 afterIconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
                 afterIconDescription = "click me",
-                onAfterIconClick = { println("icon click") },
+                onAfterIconClick = { Toast.makeText(context, "icon click", TOAST_LENGTH).show() },
             )
         }
     }
@@ -628,23 +634,24 @@ private fun IconListItemWithAfterListActionPreview() {
 private fun FaviconListItemPreview() {
     FirefoxTheme {
         Column(Modifier.background(FirefoxTheme.colors.layer1)) {
+            val context = LocalContext.current
             FaviconListItem(
                 label = "Favicon + right icon + clicks",
                 url = "",
                 description = "Description text",
-                onClick = { println("list item click") },
+                onClick = { Toast.makeText(context, "list item click", TOAST_LENGTH).show() },
                 iconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
-                onIconClick = { println("icon click") },
+                onIconClick = { Toast.makeText(context, "icon click", TOAST_LENGTH).show() },
             )
 
             FaviconListItem(
                 label = "Favicon + right icon + clicks",
                 url = "",
                 description = "Description text",
-                onClick = { println("list item click") },
+                onClick = { Toast.makeText(context, "list item click", TOAST_LENGTH).show() },
                 showDivider = true,
                 iconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
-                onIconClick = { println("icon click") },
+                onIconClick = { Toast.makeText(context, "icon click", TOAST_LENGTH).show() },
             )
 
             FaviconListItem(
@@ -652,7 +659,7 @@ private fun FaviconListItemPreview() {
                 url = "",
                 description = "Description text",
                 faviconPainter = painterResource(id = R.drawable.mozac_ic_collection_24),
-                onClick = { println("list item click") },
+                onClick = { Toast.makeText(context, "list item click", TOAST_LENGTH).show() },
             )
         }
     }
