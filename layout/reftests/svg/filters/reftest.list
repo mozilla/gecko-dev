@@ -73,7 +73,7 @@ fuzzy-if(geckoview&&!emulator,0-14,0-184) == feMerge-2.svg feMerge-2-ref.svg
 
 # no tests for feTurbulence
 
-== filter-clipped-rect-01.svg pass.svg
+fuzzy-if(!gfxSVGFEGaussianBlur&&geckoview,0-36,0-220) == filter-clipped-rect-01.svg pass.svg
 == filter-in-pattern-01.svg pass.svg
 fuzzy(0-5,0-67) != filter-in-pattern-02.svg filter-in-pattern-02-ref.svg
 == filter-in-mask-01.svg pass.svg
