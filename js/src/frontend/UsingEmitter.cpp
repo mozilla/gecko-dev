@@ -6,6 +6,7 @@
 
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/EmitterScope.h"
+#include "vm/DisposeJumpKind.h"
 
 using namespace js;
 using namespace js::frontend;
@@ -36,7 +37,8 @@ bool UsingEmitter::prepareForAssignment(Kind kind) {
 
 bool UsingEmitter::prepareForForOfLoopIteration() {
   MOZ_ASSERT(bce_->innermostEmitterScopeNoCheck()->hasDisposables());
-  if (!bce_->emit1(JSOp::DisposeDisposables)) {
+  if (!bce_->emit2(JSOp::DisposeDisposables,
+                   uint8_t(DisposeJumpKind::JumpOnError))) {
     return false;
   }
   return true;
@@ -44,7 +46,8 @@ bool UsingEmitter::prepareForForOfLoopIteration() {
 
 bool UsingEmitter::prepareForForOfIteratorCloseOnThrow() {
   MOZ_ASSERT(bce_->innermostEmitterScopeNoCheck()->hasDisposables());
-  if (!bce_->emit1(JSOp::DisposeDisposables)) {
+  if (!bce_->emit2(JSOp::DisposeDisposables,
+                   uint8_t(DisposeJumpKind::NoJumpOnError))) {
     return false;
   }
   return true;
@@ -52,7 +55,8 @@ bool UsingEmitter::prepareForForOfIteratorCloseOnThrow() {
 
 bool UsingEmitter::emitNonLocalJump(EmitterScope* present) {
   MOZ_ASSERT(present->hasDisposables());
-  if (!bce_->emit1(JSOp::DisposeDisposables)) {
+  if (!bce_->emit2(JSOp::DisposeDisposables,
+                   uint8_t(DisposeJumpKind::JumpOnError))) {
     return false;
   }
   return true;
@@ -67,7 +71,8 @@ bool UsingEmitter::emitEnd() {
     return false;
   }
 
-  if (!bce_->emit1(JSOp::DisposeDisposables)) {
+  if (!bce_->emit2(JSOp::DisposeDisposables,
+                   uint8_t(DisposeJumpKind::JumpOnError))) {
     return false;
   }
 

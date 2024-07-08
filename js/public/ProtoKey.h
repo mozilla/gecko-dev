@@ -86,6 +86,8 @@
   REAL(EvalError, ERROR_CLASP(JSEXN_EVALERR))                               \
   REAL(RangeError, ERROR_CLASP(JSEXN_RANGEERR))                             \
   REAL(ReferenceError, ERROR_CLASP(JSEXN_REFERENCEERR))                     \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(                                          \
+      REAL(SuppressedError, ERROR_CLASP(JSEXN_SUPPRESSEDERR)))              \
   REAL(SyntaxError, ERROR_CLASP(JSEXN_SYNTAXERR))                           \
   REAL(TypeError, ERROR_CLASP(JSEXN_TYPEERR))                               \
   REAL(URIError, ERROR_CLASP(JSEXN_URIERR))                                 \

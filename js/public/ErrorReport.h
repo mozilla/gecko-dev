@@ -62,24 +62,37 @@ enum ErrorArgumentsType {
  * using the generalized error reporting mechanism.  (One side effect of this
  * type is to not prepend 'Error:' to warning messages.)  This value can go away
  * if we ever decide to use an entirely separate mechanism for warnings.
+ *
+ * The errors and warnings are arranged in alphabetically within their
+ * respective categories as defined in the comments below.
  */
 enum JSExnType {
+  // Generic Errors
   JSEXN_ERR,
   JSEXN_FIRST = JSEXN_ERR,
+  // Internal Errors
   JSEXN_INTERNALERR,
+  // ECMAScript Errors
   JSEXN_AGGREGATEERR,
   JSEXN_EVALERR,
   JSEXN_RANGEERR,
   JSEXN_REFERENCEERR,
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  JSEXN_SUPPRESSEDERR,
+#endif
   JSEXN_SYNTAXERR,
   JSEXN_TYPEERR,
   JSEXN_URIERR,
+  // Debugger Errors
   JSEXN_DEBUGGEEWOULDRUN,
+  // WASM Errors
   JSEXN_WASMCOMPILEERROR,
   JSEXN_WASMLINKERROR,
   JSEXN_WASMRUNTIMEERROR,
   JSEXN_ERROR_LIMIT,
+  // Warnings
   JSEXN_WARN = JSEXN_ERROR_LIMIT,
+  // Error Notes
   JSEXN_NOTE,
   JSEXN_LIMIT
 };

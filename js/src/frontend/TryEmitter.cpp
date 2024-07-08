@@ -9,9 +9,12 @@
 #include "mozilla/Assertions.h"  // MOZ_ASSERT
 
 #include "frontend/BytecodeEmitter.h"  // BytecodeEmitter
-#include "frontend/IfEmitter.h"        // BytecodeEmitter
-#include "frontend/SharedContext.h"    // StatementKind
-#include "vm/Opcodes.h"                // JSOp
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+#  include "frontend/EmitterScope.h"  // EmitterScope
+#endif
+#include "frontend/IfEmitter.h"      // BytecodeEmitter
+#include "frontend/SharedContext.h"  // StatementKind
+#include "vm/Opcodes.h"              // JSOp
 
 using namespace js;
 using namespace js::frontend;
@@ -94,7 +97,12 @@ bool TryEmitter::emitTryEnd() {
   return true;
 }
 
-bool TryEmitter::emitCatch(ExceptionStack stack) {
+bool TryEmitter::emitCatch(ExceptionStack stack
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+                           ,
+                           ForForOfIteratorClose forForOfIteratorClose
+#endif
+) {
   MOZ_ASSERT(state_ == State::Try);
   if (!emitTryEnd()) {
     return false;
@@ -114,6 +122,18 @@ bool TryEmitter::emitCatch(ExceptionStack stack) {
       return false;
     }
   }
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  // Explicit Resource Management Proposal
+  // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-runtime-semantics-forin-div-ofbodyevaluation-lhs-stmt-iterator-lhskind-labelset
+  // Step 9.i.i.1 Set result to
+  // Completion(DisposeResources(iterationEnv.[[DisposeCapability]], result)).
+  if (forForOfIteratorClose == ForForOfIteratorClose::Yes) {
+    if (!bce_->innermostEmitterScope()->prepareForForOfIteratorCloseOnThrow()) {
+      return false;
+    }
+  }
+#endif
 
   if (stack == ExceptionStack::No) {
     if (!bce_->emit1(JSOp::Exception)) {

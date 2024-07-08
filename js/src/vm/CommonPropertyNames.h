@@ -175,6 +175,7 @@
   MACRO_(enumerate, "enumerate")                                               \
   MACRO_(era, "era")                                                           \
   MACRO_(eraYear, "eraYear")                                                   \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO_(error, "error"))                      \
   MACRO_(errors, "errors")                                                     \
   MACRO_(ErrorToStringWithTrailingNewline, "ErrorToStringWithTrailingNewline") \
   MACRO_(escape, "escape")                                                     \
@@ -542,6 +543,7 @@
   MACRO_(StructType, "StructType")                                             \
   MACRO_(style, "style")                                                       \
   MACRO_(super, "super")                                                       \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO_(suppressed, "suppressed"))            \
   MACRO_(switch_, "switch")                                                    \
   MACRO_(symmetricDifference, "symmetricDifference")                           \
   MACRO_(target, "target")                                                     \

@@ -38,7 +38,12 @@ bool ForOfLoopControl::emitBeginCodeNeedingIteratorClose(BytecodeEmitter* bce) {
 }
 
 bool ForOfLoopControl::emitEndCodeNeedingIteratorClose(BytecodeEmitter* bce) {
-  if (!tryCatch_->emitCatch(TryEmitter::ExceptionStack::Yes)) {
+  if (!tryCatch_->emitCatch(TryEmitter::ExceptionStack::Yes
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+                            ,
+                            TryEmitter::ForForOfIteratorClose::Yes
+#endif
+                            )) {
     //              [stack] ITER ... EXCEPTION STACK
     return false;
   }
@@ -48,15 +53,7 @@ bool ForOfLoopControl::emitEndCodeNeedingIteratorClose(BytecodeEmitter* bce) {
     //              [stack] ITER ... EXCEPTION STACK ITER
     return false;
   }
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  // Explicit Resource Management Proposal
-  // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-runtime-semantics-forin-div-ofbodyevaluation-lhs-stmt-iterator-lhskind-labelset
-  // Step 9.i.i.1 Set result to
-  // Completion(DisposeResources(iterationEnv.[[DisposeCapability]], result)).
-  if (!bce->innermostEmitterScope()->prepareForForOfIteratorCloseOnThrow()) {
-    return false;
-  }
-#endif
+
   if (!emitIteratorCloseInInnermostScopeWithTryNote(bce,
                                                     CompletionKind::Throw)) {
     return false;  // ITER ... EXCEPTION STACK

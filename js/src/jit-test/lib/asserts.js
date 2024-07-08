@@ -94,3 +94,45 @@ if (typeof assertArrayEq === 'undefined') {
     }
   };
 }
+
+if (typeof assertSuppressionChain === 'undefined' && typeof globalThis.SuppressedError !== 'undefined') {
+
+  function errorChainVerificationHelper(err, suppressions, verifier) {
+    let i = 0;
+    while (err instanceof SuppressedError) {
+      assertEq(verifier(err.error, suppressions[i]), true);
+      err = err.suppressed;
+      i++;
+    }
+    assertEq(verifier(err, suppressions[i]), true);
+    assertEq(i, suppressions.length - 1);
+  }
+
+  var assertSuppressionChain = function assertSuppressionChain(fn, suppressions) {
+    let caught = false;
+    try {
+      fn();
+    } catch (err) {
+      caught = true;
+      errorChainVerificationHelper(err, suppressions, function(err, suppression) {
+        return err === suppression;
+      });
+    } finally {
+      assertEq(caught, true);
+    }
+  }
+
+  var assertSuppressionChainErrorMessages = function assertSuppressionChainErrorMessages(fn, suppressions) {
+    let caught = false;
+    try {
+      fn();
+    } catch (err) {
+      caught = true;
+      errorChainVerificationHelper(err, suppressions, function(err, suppression) {
+        return err instanceof suppression.ctor && err.message === suppression.message;
+      });
+    } finally {
+      assertEq(caught, true);
+    }
+  }
+}
