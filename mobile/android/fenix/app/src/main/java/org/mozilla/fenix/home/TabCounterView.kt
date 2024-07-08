@@ -43,7 +43,7 @@ class TabCounterView(
             context = context,
             onItemTapped = ::onItemTapped,
             iconColor = if (browsingModeManager.mode == BrowsingMode.Private) {
-                ContextCompat.getColor(context, R.color.fx_mobile_private_text_color_primary)
+                ContextCompat.getColor(context, R.color.fx_mobile_private_icon_color_primary)
             } else {
                 null
             },
