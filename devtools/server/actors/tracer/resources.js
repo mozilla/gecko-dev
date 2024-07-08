@@ -26,9 +26,9 @@ ChromeUtils.defineESModuleGetters(
   { global: "contextual" }
 );
 
-const CONSOLE_THROTTLING_DELAY = 250;
+const THROTTLING_DELAY = 250;
 
-class ConsoleTracingListener {
+class ResourcesTracingListener {
   constructor({ targetActor, traceValues, traceActor }) {
     this.targetActor = targetActor;
     this.traceValues = traceValues;
@@ -38,7 +38,7 @@ class ConsoleTracingListener {
     // On workers, we don't have access to setTimeout and can't have throttling
     this.throttleEmitTraces = isWorker
       ? this.flushTraces.bind(this)
-      : throttle(this.flushTraces.bind(this), CONSOLE_THROTTLING_DELAY);
+      : throttle(this.flushTraces.bind(this), THROTTLING_DELAY);
   }
 
   // Collect pending data to be sent to the client in various arrays,
@@ -437,4 +437,4 @@ class ConsoleTracingListener {
   }
 }
 
-exports.ConsoleTracingListener = ConsoleTracingListener;
+exports.ResourcesTracingListener = ResourcesTracingListener;

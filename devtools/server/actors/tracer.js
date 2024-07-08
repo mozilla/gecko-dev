@@ -27,8 +27,8 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "ConsoleTracingListener",
-  "resource://devtools/server/actors/tracer/console.js",
+  "ResourcesTracingListener",
+  "resource://devtools/server/actors/tracer/resources.js",
   true
 );
 loader.lazyRequireGetter(
@@ -137,7 +137,7 @@ class TracerActor extends Actor {
         ListenerClass = StdoutTracingListener;
         break;
       case TRACER_LOG_METHODS.CONSOLE:
-        ListenerClass = ConsoleTracingListener;
+        ListenerClass = ResourcesTracingListener;
         break;
       case TRACER_LOG_METHODS.PROFILER:
         ListenerClass = ProfilerTracingListener;
