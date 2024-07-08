@@ -969,7 +969,6 @@
     "ja-JP-mac": {
         "pin": false,
         "platforms": [
-            "linux64-aarch64",
             "macosx64",
             "macosx64-devedition"
         ],
