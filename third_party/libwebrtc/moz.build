@@ -12,6 +12,7 @@ DIRS += [
     "/third_party/libwebrtc/api/async_dns_resolver_gn",
     "/third_party/libwebrtc/api/audio/aec3_config_gn",
     "/third_party/libwebrtc/api/audio/aec3_factory_gn",
+    "/third_party/libwebrtc/api/audio/audio_device_gn",
     "/third_party/libwebrtc/api/audio/audio_frame_api_gn",
     "/third_party/libwebrtc/api/audio/audio_frame_processor_gn",
     "/third_party/libwebrtc/api/audio/audio_mixer_api_gn",
