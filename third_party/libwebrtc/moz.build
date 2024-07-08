@@ -419,6 +419,7 @@ DIRS += [
     "/third_party/libwebrtc/system_wrappers/field_trial_gn",
     "/third_party/libwebrtc/system_wrappers/metrics_gn",
     "/third_party/libwebrtc/system_wrappers/system_wrappers_gn",
+    "/third_party/libwebrtc/test/network/simulated_network_gn",
     "/third_party/libwebrtc/test/rtp_test_utils_gn",
     "/third_party/libwebrtc/third_party/abseil-cpp/absl/algorithm/algorithm_gn",
     "/third_party/libwebrtc/third_party/abseil-cpp/absl/algorithm/container_gn",
