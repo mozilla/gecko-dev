@@ -1976,6 +1976,81 @@ add_task(async function test_getSha256Hash() {
 });
 
 /**
+ * The `toolkit/components/downloads` tests use a custom partial override of the
+ * directory service via `Integration.downloads`, defined in `./head.js`. The
+ * `nsIExternalHelperAppService` has no way of knowing about that, though, so
+ * we'll need to disable the override for the comparison test.
+ *
+ * This wrapper does that -- and more importantly, ensures that the override is
+ * reenabled afterwards, regardless of how the test exited.
+ *
+ * (Ideally we'd do this inside the test by registering a test-specific cleanup
+ * function, as with SimpleTest's `registerCurrentTaskCleanupFunction() -- but,
+ * at time of writing, the xpcshell test setup doesn't support those.)
+ *
+ * @param {() => Promise} innerTask the task to be run without directory-service
+ *                                  overrides active.
+ */
+function allowDirectoriesDuring(innerTask) {
+  return async () => {
+    DownloadIntegration.allowDirectories = true;
+    try {
+      return await innerTask();
+    } finally {
+      DownloadIntegration.allowDirectories = false;
+    }
+  };
+}
+
+/**
+ * Check that `DownloadIntegration` and the `nsIExternalHelperAppService` agree
+ * concerning the value of `getPreferredDownloadsDirectory()`.
+ */
+add_task(
+  {
+    // nsIExternalHelperAppService (q.v.) doesn't implement this on Android
+    skip_if: AppConstants.platform === "android",
+  },
+  allowDirectoriesDuring(
+    async function test_preferredDownloadsDirectoryMatches() {
+      const integrationDirectory =
+        await DownloadIntegration.getPreferredDownloadsDirectory();
+      Assert.ok(
+        !integrationDirectory || typeof integrationDirectory === "string"
+      );
+
+      /** @type nsIExternalHelperAppService */
+      const extHelperAppSvc = Cc[
+        "@mozilla.org/uriloader/external-helper-app-service;1"
+      ].getService(Ci.nsIExternalHelperAppService);
+
+      const externalHelperDirectory =
+        extHelperAppSvc.getPreferredDownloadsDirectory();
+      Assert.ok(
+        !externalHelperDirectory ||
+          externalHelperDirectory.QueryInterface(Ci.nsIFile)
+      );
+
+      Assert.equal(!externalHelperDirectory, !integrationDirectory);
+      if (externalHelperDirectory) {
+        Assert.equal(externalHelperDirectory.path, integrationDirectory);
+      }
+    }
+  )
+);
+
+/**
+ * Confirm that the mocking layer has been reenabled after the previous test.
+ */
+add_task(async function test_allowDirectoriesIsOnlyLocallySet() {
+  Assert.ok(!DownloadIntegration.allowDirectories);
+  Assert.equal(
+    DownloadIntegration._getDirectory("TmpD"),
+    DownloadIntegration._getDirectory("Home")
+  );
+});
+
+/**
  * Checks that application reputation blocks the download and the target file
  * does not exist.
  */

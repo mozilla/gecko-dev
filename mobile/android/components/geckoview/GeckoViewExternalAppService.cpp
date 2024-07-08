@@ -96,3 +96,9 @@ NS_IMETHODIMP GeckoViewExternalAppService::ApplyDecodingForExtension(
   *aApplyDecoding = true;
   return NS_OK;
 }
+
+NS_IMETHODIMP GeckoViewExternalAppService::GetPreferredDownloadsDirectory(
+    nsIFile** _retval) {
+  MOZ_ASSERT(false);
+  return nsresult::NS_ERROR_NOT_IMPLEMENTED;
+}

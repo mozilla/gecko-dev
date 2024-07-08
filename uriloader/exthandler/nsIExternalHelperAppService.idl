@@ -76,6 +76,17 @@ interface nsIExternalHelperAppService : nsISupports
   boolean applyDecodingForExtension(in AUTF8String aExtension,
                                     in ACString aEncodingType);
 
+  /**
+   * Returns the current downloads directory, given the current preferences. May
+   * perform synchronous I/O.
+   *
+   * Not implemented on platforms where the downloads directory is not used by
+   * external helper apps (currently only Android).
+   *
+   * For use from script, prefer the asynchronous function of this same name in
+   * `DownloadIntegration.sys.mjs`, which is implemented everywhere.
+   */
+  nsIFile getPreferredDownloadsDirectory();
 };
 
 /**

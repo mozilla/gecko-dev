@@ -378,6 +378,14 @@ static Result<nsCOMPtr<nsIFile>, nsresult> GetPreferredDownloadsDirectory(
   return dir;
 }
 
+NS_IMETHODIMP nsExternalHelperAppService::GetPreferredDownloadsDirectory(
+    nsIFile** aOutFile) {
+  auto res = ::GetPreferredDownloadsDirectory();
+  if (res.isErr()) return res.unwrapErr();
+  res.unwrap().forget(aOutFile);
+  return NS_OK;
+}
+
 /**
  * Obtains the initial directory to save downloads to. (This may differ from the
  * actual download directory if "browser.download.start_downloads_in_tmp_dir" is

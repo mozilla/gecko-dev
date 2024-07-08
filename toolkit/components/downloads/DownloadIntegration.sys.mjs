@@ -290,6 +290,10 @@ export var DownloadIntegration = {
   /**
    * Returns the user downloads directory asynchronously.
    *
+   * On platforms where external helper apps use the downloads directory, the
+   * behavior should match that of the synchronous function of the same name
+   * exposed by nsIExternalHelperAppService.
+   *
    * @return {Promise}
    * @resolves The downloads directory string path.
    */
