@@ -32,6 +32,7 @@
 #include "nsUnicharUtils.h"
 
 #ifdef XP_WIN
+#  include "PDMFactory.h"
 #  include "WMFDecoderModule.h"
 #endif
 #ifdef MOZ_WIDGET_ANDROID
@@ -346,9 +347,9 @@ static bool CanDecryptAndDecode(
     // and reject the MediaKeys request, since we assume Widevine
     // will be used with AAC.
     if (codec == KeySystemConfig::EME_CODEC_AAC &&
-        IsWidevineKeySystem(aKeySystem) &&
-        !WMFDecoderModule::CanCreateMFTDecoder(WMFStreamType::AAC)) {
-      if (aDiagnostics) {
+        IsWidevineKeySystem(aKeySystem) && aDiagnostics) {
+      auto pdmFactory = MakeRefPtr<PDMFactory>();
+      if (pdmFactory->SupportsMimeType("audio/mp4a-latm"_ns).isEmpty()) {
         aDiagnostics->SetKeySystemIssue(
             DecoderDoctorDiagnostics::eWidevineWithNoWMF);
       }
@@ -1023,17 +1024,19 @@ static bool GetSupportedConfig(const KeySystemConfig& aKeySystem,
   // request.
   if (IsWidevineKeySystem(aKeySystem.mKeySystem) &&
       (aCandidate.mAudioCapabilities.IsEmpty() ||
-       aCandidate.mVideoCapabilities.IsEmpty()) &&
-      !WMFDecoderModule::CanCreateMFTDecoder(WMFStreamType::AAC)) {
-    if (aDiagnostics) {
-      aDiagnostics->SetKeySystemIssue(
-          DecoderDoctorDiagnostics::eWidevineWithNoWMF);
+       aCandidate.mVideoCapabilities.IsEmpty())) {
+    auto pdmFactory = MakeRefPtr<PDMFactory>();
+    if (pdmFactory->SupportsMimeType("audio/mp4a-latm"_ns).isEmpty()) {
+      if (aDiagnostics) {
+        aDiagnostics->SetKeySystemIssue(
+            DecoderDoctorDiagnostics::eWidevineWithNoWMF);
+      }
+      EME_LOG(
+          "MediaKeySystemConfiguration (label='%s') rejected; "
+          "WMF required for Widevine decoding, but it's not available.",
+          NS_ConvertUTF16toUTF8(aCandidate.mLabel).get());
+      return false;
     }
-    EME_LOG(
-        "MediaKeySystemConfiguration (label='%s') rejected; "
-        "WMF required for Widevine decoding, but it's not available.",
-        NS_ConvertUTF16toUTF8(aCandidate.mLabel).get());
-    return false;
   }
 #endif
 
