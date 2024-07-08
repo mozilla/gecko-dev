@@ -47,8 +47,10 @@ import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.metrics.MetricsUtils
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.HomeFragmentDirections
 import org.mozilla.fenix.messaging.MessageController
@@ -479,7 +481,9 @@ class DefaultSessionControlController(
     }
 
     override fun handleShowWallpapersOnboardingDialog(state: WallpaperState): Boolean {
-        return if (activity.browsingModeManager.mode.isPrivate || settings.shouldShowNavigationBarCFR) {
+        val shouldShowNavBarCFR =
+            activity.shouldAddNavigationBar() && settings.shouldShowNavigationBarCFR
+        return if (activity.browsingModeManager.mode.isPrivate || shouldShowNavBarCFR) {
             false
         } else {
             state.availableWallpapers.filter { wallpaper ->
