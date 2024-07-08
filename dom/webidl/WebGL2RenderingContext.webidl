@@ -686,7 +686,7 @@ interface mixin WebGL2RenderingContextBase
     undefined clearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil);
 
     /* Query Objects */
-    WebGLQuery? createQuery();
+    WebGLQuery createQuery();
     undefined deleteQuery(WebGLQuery? query);
     [WebGLHandlesContextLoss] GLboolean isQuery(WebGLQuery? query);
     undefined beginQuery(GLenum target, WebGLQuery query);
@@ -695,7 +695,7 @@ interface mixin WebGL2RenderingContextBase
     any getQueryParameter(WebGLQuery query, GLenum pname);
 
     /* Sampler Objects */
-    WebGLSampler? createSampler();
+    WebGLSampler createSampler();
     undefined deleteSampler(WebGLSampler? sampler);
     [WebGLHandlesContextLoss] GLboolean isSampler(WebGLSampler? sampler);
     undefined bindSampler(GLuint unit, WebGLSampler? sampler);
@@ -712,7 +712,7 @@ interface mixin WebGL2RenderingContextBase
     any getSyncParameter(WebGLSync sync, GLenum pname);
 
     /* Transform Feedback */
-    WebGLTransformFeedback? createTransformFeedback();
+    WebGLTransformFeedback createTransformFeedback();
     undefined deleteTransformFeedback(WebGLTransformFeedback? tf);
     [WebGLHandlesContextLoss] GLboolean isTransformFeedback(WebGLTransformFeedback? tf);
     undefined bindTransformFeedback(GLenum target, WebGLTransformFeedback? tf);
@@ -738,7 +738,7 @@ interface mixin WebGL2RenderingContextBase
     undefined uniformBlockBinding(WebGLProgram program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
 
     /* Vertex Array Objects */
-    WebGLVertexArrayObject? createVertexArray();
+    WebGLVertexArrayObject createVertexArray();
     undefined deleteVertexArray(WebGLVertexArrayObject? vertexArray);
     [WebGLHandlesContextLoss] GLboolean isVertexArray(WebGLVertexArrayObject? vertexArray);
     undefined bindVertexArray(WebGLVertexArrayObject? array);

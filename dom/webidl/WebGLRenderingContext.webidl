@@ -591,12 +591,12 @@ interface mixin WebGLRenderingContextBase {
     undefined copyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                                 GLint x, GLint y, GLsizei width, GLsizei height);
 
-    WebGLBuffer? createBuffer();
-    WebGLFramebuffer? createFramebuffer();
-    WebGLProgram? createProgram();
-    WebGLRenderbuffer? createRenderbuffer();
+    WebGLBuffer createBuffer();
+    WebGLFramebuffer createFramebuffer();
+    WebGLProgram createProgram();
+    WebGLRenderbuffer createRenderbuffer();
     WebGLShader? createShader(GLenum type);
-    WebGLTexture? createTexture();
+    WebGLTexture createTexture();
 
     undefined cullFace(GLenum mode);
 
@@ -1123,7 +1123,7 @@ interface EXT_color_buffer_half_float
 interface OES_vertex_array_object {
     const GLenum VERTEX_ARRAY_BINDING_OES = 0x85B5;
 
-    WebGLVertexArrayObject? createVertexArrayOES();
+    WebGLVertexArrayObject createVertexArrayOES();
     undefined deleteVertexArrayOES(WebGLVertexArrayObject? arrayObject);
     [WebGLHandlesContextLoss] GLboolean isVertexArrayOES(WebGLVertexArrayObject? arrayObject);
     undefined bindVertexArrayOES(WebGLVertexArrayObject? arrayObject);
@@ -1161,7 +1161,7 @@ interface EXT_disjoint_timer_query {
     const GLenum TIMESTAMP_EXT = 0x8E28;
     const GLenum GPU_DISJOINT_EXT = 0x8FBB;
 
-    WebGLQuery? createQueryEXT();
+    WebGLQuery createQueryEXT();
     undefined deleteQueryEXT(WebGLQuery? query);
     [WebGLHandlesContextLoss] boolean isQueryEXT(WebGLQuery? query);
     undefined beginQueryEXT(GLenum target, WebGLQuery query);

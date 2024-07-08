@@ -1,17 +1,39 @@
+commit 0b9802ef024f72d78f1e350643f5ea00ac6a85f4
+Author: Kelsey Gilbert <kelsey.gilbert@mozilla.com>
+Date:   Wed May 22 16:17:44 2024 -0700
+
+    isObject(x) -> true only after bindObject(x).
+
+commit d6bde1a960c1b4c7d0866da317cd7122df4ec5dc
+Author: Kelsey Gilbert <kelsey.gilbert@mozilla.com>
+Date:   Mon May 20 13:19:11 2024 -0700
+
+    Test isObject() functions; Fix context-lost-worker choice of testFailed/testPassed
+
+commit 7c0bc377cbe9aa3767e71eca8457ce7615e24f70
+Author: Kelsey Gilbert <kelsey.gilbert@mozilla.com>
+Date:   Fri Apr 19 17:15:13 2024 -0700
+
+    Update tests: Infallible object creation.
+
+commit c44c16adec0a9bd5f5959786e976dff035a99380
+Author: Kelsey Gilbert <kelsey.gilbert@mozilla.com>
+Date:   Fri Apr 19 11:42:21 2024 -0700
+
+    Object creation in extensions made infallible.
+
+commit f4ed2d3e767c94ea8835c7a8b1e8aa580674435f
+Author: Kelsey Gilbert <kelsey.gilbert@mozilla.com>
+Date:   Wed Apr 10 12:46:16 2024 -0700
+
+    WebGLObject creation is infallible, and starts Lost iff context Lost.
+
+Above: cherries picked
+================================================================================
+Below: merge base from: moz/main
+
 commit cd04892d7d7ac986a83383b06bfa792c9c369f8c
 Author: Kelsey Gilbert <kelsey.gilbert@mozilla.com>
 Date:   Tue Apr 2 14:43:02 2024 -0700
 
     Remove more theora/.ogv from sdk/*.
-
-Above: cherries picked
-================================================================================
-Below: merge base from: ups/main
-
-commit 4c5b8bfe586d983fae6a0571cc702f43e5f5b719
-Author: Ken Russell <kbrussel@alum.mit.edu>
-Date:   Tue Apr 2 14:17:01 2024 -0700
-
-    Verify invalidated uniform locations when there is no current program. (#3633)
-    
-    Associated with crbug.com/331119482 .

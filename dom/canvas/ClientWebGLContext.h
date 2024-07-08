@@ -220,7 +220,7 @@ class ObjectJS {
  protected:
   bool mDeleteRequested = false;
 
-  explicit ObjectJS(const ClientWebGLContext&);
+  explicit ObjectJS(const ClientWebGLContext*);
   virtual ~ObjectJS() = default;
 
  public:
@@ -274,7 +274,7 @@ class WebGLBufferJS final : public nsWrapperCache, public webgl::ObjectJS {
   NS_DECL_CYCLE_COLLECTION_NATIVE_WRAPPERCACHE_CLASS(WebGLBufferJS)
 
   explicit WebGLBufferJS(const ClientWebGLContext& webgl)
-      : webgl::ObjectJS(webgl) {}
+      : webgl::ObjectJS(&webgl) {}
 
  private:
   ~WebGLBufferJS();
@@ -396,7 +396,7 @@ class WebGLQueryJS final : public nsWrapperCache,
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLQueryJS)
   NS_DECL_CYCLE_COLLECTION_NATIVE_WRAPPERCACHE_CLASS(WebGLQueryJS)
 
-  explicit WebGLQueryJS(const ClientWebGLContext& webgl)
+  explicit WebGLQueryJS(const ClientWebGLContext* const webgl)
       : webgl::ObjectJS(webgl) {}
 
  private:
@@ -420,7 +420,7 @@ class WebGLRenderbufferJS final : public nsWrapperCache,
   bool mHasBeenBound = false;  // !IsRenderbuffer until Bind
 
   explicit WebGLRenderbufferJS(const ClientWebGLContext& webgl)
-      : webgl::ObjectJS(webgl) {}
+      : webgl::ObjectJS(&webgl) {}
   ~WebGLRenderbufferJS();
 
  public:
@@ -436,7 +436,7 @@ class WebGLSamplerJS final : public nsWrapperCache, public webgl::ObjectJS {
   NS_DECL_CYCLE_COLLECTION_NATIVE_WRAPPERCACHE_CLASS(WebGLSamplerJS)
 
   explicit WebGLSamplerJS(const ClientWebGLContext& webgl)
-      : webgl::ObjectJS(webgl) {}
+      : webgl::ObjectJS(&webgl) {}
 
  private:
   ~WebGLSamplerJS();
@@ -497,7 +497,7 @@ class WebGLSyncJS final : public nsWrapperCache,
   NS_DECL_CYCLE_COLLECTION_NATIVE_WRAPPERCACHE_CLASS(WebGLSyncJS)
 
   explicit WebGLSyncJS(const ClientWebGLContext& webgl)
-      : webgl::ObjectJS(webgl) {}
+      : webgl::ObjectJS(&webgl) {}
 
  private:
   ~WebGLSyncJS();
@@ -518,7 +518,7 @@ class WebGLTextureJS final : public nsWrapperCache, public webgl::ObjectJS {
   NS_DECL_CYCLE_COLLECTION_NATIVE_WRAPPERCACHE_CLASS(WebGLTextureJS)
 
   explicit WebGLTextureJS(const ClientWebGLContext& webgl)
-      : webgl::ObjectJS(webgl) {}
+      : webgl::ObjectJS(&webgl) {}
 
  private:
   ~WebGLTextureJS();
@@ -571,7 +571,7 @@ class WebGLUniformLocationJS final : public nsWrapperCache,
   WebGLUniformLocationJS(const ClientWebGLContext& webgl,
                          std::weak_ptr<webgl::LinkResult> parent, uint32_t loc,
                          GLenum elemType)
-      : webgl::ObjectJS(webgl),
+      : webgl::ObjectJS(&webgl),
         mParent(parent),
         mLocation(loc),
         mValidUploadElemTypes(ValidUploadElemTypes(elemType)) {}
@@ -596,7 +596,7 @@ class WebGLVertexArrayJS final : public nsWrapperCache, public webgl::ObjectJS {
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLVertexArrayJS)
   NS_DECL_CYCLE_COLLECTION_NATIVE_WRAPPERCACHE_CLASS(WebGLVertexArrayJS)
 
-  explicit WebGLVertexArrayJS(const ClientWebGLContext&);
+  explicit WebGLVertexArrayJS(const ClientWebGLContext*);
 
  private:
   ~WebGLVertexArrayJS();
@@ -1013,7 +1013,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   already_AddRefed<mozilla::gfx::SourceSurface> GetSurfaceSnapshot(
       gfxAlphaType* out_alphaType) override;
 
-  void SetOpaqueValueFromOpaqueAttr(bool) override{};
+  void SetOpaqueValueFromOpaqueAttr(bool) override {};
   bool GetIsOpaque() override { return !mInitialOptions->alpha; }
 
   /**
