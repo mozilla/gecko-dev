@@ -27,6 +27,7 @@ EXTRA_JS_MODULES.backup += [
     "ArchiveEncryptionState.sys.mjs",
     "ArchiveUtils.sys.mjs",
     "BackupConstants.mjs",
+    "BackupError.mjs",
     "BackupResources.sys.mjs",
     "BackupService.sys.mjs",
     "MeasurementUtils.sys.mjs",

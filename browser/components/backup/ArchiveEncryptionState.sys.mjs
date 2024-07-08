@@ -16,6 +16,8 @@ ChromeUtils.defineLazyGetter(lazy, "logConsole", function () {
 ChromeUtils.defineESModuleGetters(lazy, {
   ArchiveUtils: "resource:///modules/backup/ArchiveUtils.sys.mjs",
   OSKeyStore: "resource://gre/modules/OSKeyStore.sys.mjs",
+  BackupError: "resource:///modules/backup/BackupError.mjs",
+  ERRORS: "resource:///modules/backup/BackupConstants.mjs",
 });
 
 /**
@@ -110,7 +112,10 @@ export class ArchiveEncryptionState {
 
   constructor() {
     if (!ArchiveEncryptionState.#isInternalConstructing) {
-      throw new Error("ArchiveEncryptionState is not constructable.");
+      throw new lazy.BackupError(
+        "ArchiveEncryptionState is not constructable.",
+        lazy.ERRORS.UNKNOWN
+      );
     }
     ArchiveEncryptionState.#isInternalConstructing = false;
   }
@@ -278,8 +283,9 @@ export class ArchiveEncryptionState {
     // have any need to do migrations just yet though, so any version that
     // doesn't match the one that we can accept is rejected.
     if (stateData.version != ArchiveEncryptionState.VERSION) {
-      throw new Error(
-        "The ArchiveEncryptionState version is from a newer version."
+      throw new lazy.BackupError(
+        "The ArchiveEncryptionState version is from a newer version.",
+        lazy.ERRORS.UNSUPPORTED_BACKUP_VERSION
       );
     }
 

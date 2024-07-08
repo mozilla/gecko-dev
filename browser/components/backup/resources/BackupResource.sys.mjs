@@ -8,6 +8,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
+  BackupError: "resource:///modules/backup/BackupError.mjs",
+  ERRORS: "resource:///modules/backup/BackupConstants.mjs",
 });
 
 // Convert from bytes to kilobytes (not kibibytes).
@@ -39,7 +41,10 @@ export class BackupResource {
    * @type {string}
    */
   static get key() {
-    throw new Error("BackupResource::key needs to be overridden.");
+    throw new lazy.BackupError(
+      "BackupResource::key needs to be overridden.",
+      lazy.ERRORS.INTERNAL_ERROR
+    );
   }
 
   /**
@@ -52,8 +57,9 @@ export class BackupResource {
    * @type {boolean}
    */
   static get requiresEncryption() {
-    throw new Error(
-      "BackupResource::requiresEncryption needs to be overridden."
+    throw new lazy.BackupError(
+      "BackupResource::requiresEncryption needs to be overridden.",
+      lazy.ERRORS.INTERNAL_ERROR
     );
   }
 
@@ -230,7 +236,10 @@ export class BackupResource {
    */
   // eslint-disable-next-line no-unused-vars
   async measure(profilePath) {
-    throw new Error("BackupResource::measure needs to be overridden.");
+    throw new lazy.BackupError(
+      "BackupResource::measure needs to be overridden.",
+      lazy.ERRORS.INTERNAL_ERROR
+    );
   }
 
   /**
@@ -259,7 +268,10 @@ export class BackupResource {
    */
   // eslint-disable-next-line no-unused-vars
   async backup(stagingPath, profilePath = null, isEncrypting = false) {
-    throw new Error("BackupResource::backup must be overridden");
+    throw new lazy.BackupError(
+      "BackupResource::backup must be overridden",
+      lazy.ERRORS.INTERNAL_ERROR
+    );
   }
 
   /**
@@ -292,7 +304,10 @@ export class BackupResource {
    */
   // eslint-disable-next-line no-unused-vars
   async recover(manifestEntry, recoveryPath, destProfilePath) {
-    throw new Error("BackupResource::recover must be overridden");
+    throw new lazy.BackupError(
+      "BackupResource::recover must be overridden",
+      lazy.ERRORS.INTERNAL_ERROR
+    );
   }
 
   /**

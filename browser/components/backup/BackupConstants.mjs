@@ -36,4 +36,9 @@ export const ERRORS = Object.freeze({
   ENCRYPTION_ALREADY_DISABLED: 10,
   /** User supplied a new password that is not a valid password */
   INVALID_PASSWORD: 12,
+  /**
+   * An error internal to the code that is likely caused by a bug
+   * or other programmer error.
+   */
+  INTERNAL_ERROR: 13,
 });

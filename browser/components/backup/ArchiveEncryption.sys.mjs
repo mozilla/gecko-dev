@@ -9,7 +9,17 @@
 // The ArchiveUtils module is designed to be imported in both worker and
 // main thread contexts.
 import { ArchiveUtils } from "resource:///modules/backup/ArchiveUtils.sys.mjs";
-import { ERRORS } from "resource:///modules/backup/BackupConstants.mjs";
+
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(
+  lazy,
+  {
+    BackupError: "resource:///modules/backup/BackupError.mjs",
+    ERRORS: "resource:///modules/backup/BackupConstants.mjs",
+  },
+  { global: "contextual" }
+);
 
 /**
  * Both ArchiveEncryptor and ArchiveDecryptor maintain an internal nonce used as
@@ -29,9 +39,10 @@ export const NonceUtils = {
    */
   setLastChunkOnNonce(nonce) {
     if (nonce[4] != 0) {
-      throw new Error("Last chunk byte on nonce already set!", {
-        cause: ERRORS.ENCRYPTION_FAILED,
-      });
+      throw new lazy.BackupError(
+        "Last chunk byte on nonce already set!",
+        lazy.ERRORS.ENCRYPTION_FAILED
+      );
     }
 
     // The nonce is 16 bytes so that we can use DataView / getBigUint64 for
@@ -71,9 +82,10 @@ export const NonceUtils = {
       nonceBigInt * BigInt(ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE) >
       BigInt(ArchiveUtils.ARCHIVE_MAX_BYTES_SIZE)
     ) {
-      throw new Error("Exceeded archive maximum size.", {
-        cause: ERRORS.ENCRYPTION_FAILED,
-      });
+      throw new lazy.BackupError(
+        "Exceeded archive maximum size.",
+        lazy.ERRORS.ENCRYPTION_FAILED
+      );
     }
 
     view.setBigUint64(0, nonceBigInt);
@@ -143,7 +155,10 @@ export class ArchiveEncryptor {
    */
   constructor() {
     if (!ArchiveEncryptor.#isInternalConstructing) {
-      throw new Error("ArchiveEncryptor is not constructable.");
+      throw new lazy.BackupError(
+        "ArchiveEncryptor is not constructable.",
+        lazy.ERRORS.UNKNOWN
+      );
     }
     ArchiveEncryptor.#isInternalConstructing = false;
   }
@@ -207,25 +222,25 @@ export class ArchiveEncryptor {
    */
   async encrypt(plaintextChunk, isLastChunk = false) {
     if (this.#isDone()) {
-      throw new Error(
+      throw new lazy.BackupError(
         "Cannot encrypt any more chunks with this ArchiveEncryptor.",
-        { cause: ERRORS.ENCRYPTION_FAILED }
+        lazy.ERRORS.ENCRYPTION_FAILED
       );
     }
 
     if (plaintextChunk.byteLength > ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE) {
-      throw new Error(
+      throw new lazy.BackupError(
         `Chunk is too large to encrypt: ${plaintextChunk.byteLength} bytes`,
-        { cause: ERRORS.ENCRYPTION_FAILED }
+        lazy.ERRORS.ENCRYPTION_FAILED
       );
     }
     if (
       plaintextChunk.byteLength != ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE &&
       !isLastChunk
     ) {
-      throw new Error(
+      throw new lazy.BackupError(
         "Only last chunk can be smaller than the chunk max size",
-        { cause: ERRORS.ENCRYPTION_FAILED }
+        lazy.ERRORS.ENCRYPTION_FAILED
       );
     }
 
@@ -247,9 +262,10 @@ export class ArchiveEncryptor {
         plaintextChunk
       );
     } catch (e) {
-      throw new Error("Failed to encrypt a chunk.", {
-        cause: ERRORS.ENCRYPTION_FAILED,
-      });
+      throw new lazy.BackupError(
+        "Failed to encrypt a chunk.",
+        lazy.ERRORS.ENCRYPTION_FAILED
+      );
     }
 
     NonceUtils.incrementNonce(this.#nonce);
@@ -369,7 +385,10 @@ export class ArchiveDecryptor {
    */
   constructor() {
     if (!ArchiveDecryptor.#isInternalConstructing) {
-      throw new Error("ArchiveDecryptor is not constructable.");
+      throw new lazy.BackupError(
+        "ArchiveDecryptor is not constructable.",
+        lazy.ERRORS.UNKNOWN
+      );
     }
     ArchiveDecryptor.#isInternalConstructing = false;
   }
@@ -381,8 +400,9 @@ export class ArchiveDecryptor {
    */
   get OSKeyStoreSecret() {
     if (!this.isDone()) {
-      throw new Error(
-        "Cannot access OSKeyStoreSecret until all chunks are decrypted."
+      throw new lazy.BackupError(
+        "Cannot access OSKeyStoreSecret until all chunks are decrypted.",
+        lazy.ERRORS.UNKNOWN
       );
     }
     return this.#_OSKeyStoreSecret;
@@ -403,9 +423,9 @@ export class ArchiveDecryptor {
    */
   async #initialize(recoveryCode, jsonBlock) {
     if (jsonBlock.version > ArchiveUtils.SCHEMA_VERSION) {
-      throw new Error(
+      throw new lazy.BackupError(
         `JSON block version ${jsonBlock.version} is greater than we can handle`,
-        { cause: ERRORS.UNSUPPORTED_BACKUP_VERSION }
+        lazy.ERRORS.UNSUPPORTED_BACKUP_VERSION
       );
     }
 
@@ -440,7 +460,7 @@ export class ArchiveDecryptor {
         )
       );
     } catch (e) {
-      throw new Error("Unauthenticated", { cause: ERRORS.UNAUTHORIZED });
+      throw new lazy.BackupError("Unauthenticated", lazy.ERRORS.UNAUTHORIZED);
     }
 
     let textDecoder = new TextDecoder();
@@ -483,9 +503,10 @@ export class ArchiveDecryptor {
     );
     if (!verified) {
       this.#poisonSelf();
-      throw new Error("Backup has been corrupted.", {
-        cause: ERRORS.CORRUPTED_ARCHIVE,
-      });
+      throw new lazy.BackupError(
+        "Backup has been corrupted.",
+        lazy.ERRORS.CORRUPTED_ARCHIVE
+      );
     }
   }
 
@@ -502,9 +523,9 @@ export class ArchiveDecryptor {
    */
   async decrypt(ciphertextChunk, isLastChunk = false) {
     if (this.isDone()) {
-      throw new Error(
+      throw new lazy.BackupError(
         "Cannot decrypt any more chunks with this ArchiveDecryptor.",
-        { cause: ERRORS.DECRYPTION_FAILED }
+        lazy.ERRORS.DECRYPTION_FAILED
       );
     }
 
@@ -512,9 +533,9 @@ export class ArchiveDecryptor {
       ciphertextChunk.byteLength >
       ArchiveUtils.ARCHIVE_CHUNK_MAX_BYTES_SIZE + ArchiveUtils.TAG_LENGTH_BYTES
     ) {
-      throw new Error(
+      throw new lazy.BackupError(
         `Chunk is too large to decrypt: ${ciphertextChunk.byteLength} bytes`,
-        { cause: ERRORS.DECRYPTION_FAILED }
+        lazy.ERRORS.DECRYPTION_FAILED
       );
     }
 
@@ -524,9 +545,9 @@ export class ArchiveDecryptor {
           ArchiveUtils.TAG_LENGTH_BYTES &&
       !isLastChunk
     ) {
-      throw new Error(
+      throw new lazy.BackupError(
         "Only last chunk can be smaller than the chunk max size",
-        { cause: ERRORS.DECRYPTION_FAILED }
+        lazy.ERRORS.DECRYPTION_FAILED
       );
     }
 
@@ -550,9 +571,10 @@ export class ArchiveDecryptor {
       );
     } catch (e) {
       this.#poisonSelf();
-      throw new Error("Failed to decrypt a chunk.", {
-        cause: ERRORS.DECRYPTION_FAILED,
-      });
+      throw new lazy.BackupError(
+        "Failed to decrypt a chunk.",
+        lazy.ERRORS.DECRYPTION_FAILED
+      );
     }
 
     NonceUtils.incrementNonce(this.#nonce);

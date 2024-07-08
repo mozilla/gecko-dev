@@ -9,6 +9,8 @@ import { PromiseWorker } from "resource://gre/modules/workers/PromiseWorker.mjs"
 /* eslint-disable mozilla/reject-import-system-module-from-non-system */
 import { ArchiveUtils } from "resource:///modules/backup/ArchiveUtils.sys.mjs";
 import { ArchiveEncryptor } from "resource:///modules/backup/ArchiveEncryption.sys.mjs";
+import { BackupError } from "resource:///modules/backup/BackupError.mjs";
+import { ERRORS } from "resource:///modules/backup/BackupConstants.mjs";
 
 /**
  * An ArchiveWorker is a PromiseWorker that tries to do most of the heavy
@@ -216,8 +218,9 @@ Content-Length: ${totalBase64Bytes}
     while (currentIndex < totalBytesToRead) {
       let bytesToRead = Math.min(chunkSize, totalBytesToRead - currentIndex);
       if (bytesToRead <= 0) {
-        throw new Error(
-          "Failed to calculate the right number of bytes to read."
+        throw new BackupError(
+          "Failed to calculate the right number of bytes to read.",
+          ERRORS.FILE_SYSTEM_ERROR
         );
       }
 
@@ -305,14 +308,17 @@ ${ArchiveUtils.INLINE_MIME_END_MARKER}
       /^<!DOCTYPE html>[\r\n]+<!-- Version: (\d+) -->[\r\n]+/;
     let headerMatches = decodedHeader.match(EXPECTED_HEADER);
     if (!headerMatches) {
-      throw new Error("Corrupt archive header");
+      throw new BackupError("Corrupt archive header", ERRORS.CORRUPTED_ARCHIVE);
     }
 
     let version = parseInt(headerMatches[1], 10);
     // In the future, if we ever bump the ARCHIVE_FILE_VERSION, this is where we
     // could place migrations / handlers for older archive versions.
     if (version != ArchiveUtils.ARCHIVE_FILE_VERSION) {
-      throw new Error("Unsupported archive version: " + version);
+      throw new BackupError(
+        "Unsupported archive version: " + version,
+        ERRORS.UNSUPPORTED_BACKUP_VERSION
+      );
     }
 
     // Now we have to scan forward, looking for the INLINE_MIME_MARKER_START
@@ -340,9 +346,10 @@ ${ArchiveUtils.INLINE_MIME_END_MARKER}
 
       // This shouldn't happen, but better safe than sorry.
       if (bytesToRead <= 0) {
-        throw new Error(
+        throw new BackupError(
           "Failed to calculate the proper number of bytes to read: " +
-            bytesToRead
+            bytesToRead,
+          ERRORS.UNKNOWN
         );
       }
 
@@ -401,7 +408,10 @@ ${ArchiveUtils.INLINE_MIME_END_MARKER}
     this.#worker = new PromiseWorker.AbstractWorker();
     this.#worker.dispatch = (method, args = []) => {
       if (!this[method]) {
-        throw new Error("Method does not exist: " + method);
+        throw new BackupError(
+          "Method does not exist: " + method,
+          ERRORS.INTERNAL_ERROR
+        );
       }
       return this[method](...args);
     };
