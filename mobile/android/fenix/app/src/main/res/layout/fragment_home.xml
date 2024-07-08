@@ -184,8 +184,7 @@
             android:clipChildren="false"
             app:layout_constraintTop_toTopOf="@id/bottom_bar"
             app:layout_constraintBottom_toBottomOf="@id/bottom_bar"
-            app:layout_constraintEnd_toStartOf="@+id/menuButton"
-            app:layout_constraintStart_toEndOf="@id/toolbar_wrapper"/>
+            app:layout_constraintEnd_toStartOf="@+id/menuButton" />
 
         <mozilla.components.browser.menu.view.MenuButton
             android:id="@+id/menuButton"

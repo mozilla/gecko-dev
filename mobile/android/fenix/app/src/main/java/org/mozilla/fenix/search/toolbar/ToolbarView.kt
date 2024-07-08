@@ -19,6 +19,7 @@ import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.Components
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.search.SearchEngineSource
 import org.mozilla.fenix.search.SearchFragmentState
 import org.mozilla.fenix.utils.Settings
@@ -75,6 +76,11 @@ class ToolbarView(
     init {
         view.apply {
             editMode()
+
+            if (context.settings().navigationToolbarEnabled) {
+                val toolbarPadding = context.resources.getDimensionPixelSize(R.dimen.toolbar_horizontal_margin_end)
+                setPadding(toolbarPadding, 0, toolbarPadding, 0)
+            }
 
             setOnUrlCommitListener {
                 // We're hiding the keyboard as early as possible to prevent the engine view
