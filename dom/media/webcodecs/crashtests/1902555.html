@@ -1,0 +1,12 @@
+<script>
+let buf = new ArrayBuffer(189)
+// Those parameters can cause overflow
+let data = new AudioData({
+  "format": "f32",
+  "sampleRate": 1.6214075570289102,
+  "numberOfFrames": 1000,
+  "numberOfChannels": 2147483648,
+  "timestamp": 0.8185515075055866,
+  "data": buf,
+})
+</script>

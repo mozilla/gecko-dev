@@ -168,18 +168,27 @@ Result<Ok, nsCString> IsValidAudioDataInit(const AudioDataInit& aInit) {
     return Err(msg);
   }
 
-  uint64_t totalSamples = aInit.mNumberOfFrames * aInit.mNumberOfChannels;
-  uint32_t bytesPerSamples = BytesPerSamples(aInit.mFormat);
-  uint64_t totalSize = totalSamples * bytesPerSamples;
+  CheckedInt<uint64_t> bytesNeeded = aInit.mNumberOfFrames;
+  bytesNeeded *= aInit.mNumberOfChannels;
+  bytesNeeded *= BytesPerSamples(aInit.mFormat);
+
+  if (!bytesNeeded.isValid()) {
+    auto msg = nsPrintfCString(
+        "Overflow when computing the number of bytes needed to hold audio "
+        "samples");
+    LOGD("%s", msg.get());
+    return Err(msg);
+  }
+
   uint64_t arraySizeBytes = ProcessTypedArraysFixed(
       aInit.mData, [&](const Span<uint8_t>& aData) -> uint64_t {
         return aData.LengthBytes();
       });
-  if (arraySizeBytes < totalSize) {
+  if (arraySizeBytes < bytesNeeded.value()) {
     auto msg =
         nsPrintfCString("Array of size %" PRIu64
                         " not big enough, should be at least %" PRIu64 " bytes",
-                        arraySizeBytes, totalSize);
+                        arraySizeBytes, bytesNeeded.value());
     LOGD("%s", msg.get());
     return Err(msg);
   }
