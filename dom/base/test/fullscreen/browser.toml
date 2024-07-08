@@ -52,6 +52,9 @@ skip-if = [
 ]
 
 ["browser_fullscreen-tab-close.js"]
+skip-if = [
+  "apple_silicon && !debug", # Bug 1809365
+]
 
 ["browser_fullscreen-window-open-race.js"]
 skip-if = ["os == 'mac'"] # test is checking for synchronous fullscreen completion
