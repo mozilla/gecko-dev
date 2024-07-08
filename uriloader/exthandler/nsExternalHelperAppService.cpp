@@ -326,44 +326,57 @@ static Result<nsCOMPtr<nsIFile>, nsresult> GetDownloadDirectory(
 
   nsCOMPtr<nsIFile> dir;
   rv = NS_GetSpecialDirectory(NS_OS_DEFAULT_DOWNLOAD_DIR, getter_AddRefs(dir));
-  if (NS_FAILED(rv)) {
-    // On some OSes, there is no guarantee this directory exists.
-    // Fall back to $HOME + Downloads.
-    if (sFallbackDownloadDir) {
-      MOZ_TRY(sFallbackDownloadDir->Clone(getter_AddRefs(dir)));
-    } else {
-      MOZ_TRY(NS_GetSpecialDirectory(NS_OS_HOME_DIR, getter_AddRefs(dir)));
-
-      nsCOMPtr<nsIStringBundleService> bundleService =
-          do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
-      MOZ_TRY(rv);
-
-      nsAutoString downloadLocalized;
-      nsCOMPtr<nsIStringBundle> downloadBundle;
-      rv = bundleService->CreateBundle(
-          "chrome://mozapps/locale/downloads/downloads.properties",
-          getter_AddRefs(downloadBundle));
-      if (NS_SUCCEEDED(rv)) {
-        rv = downloadBundle->GetStringFromName("downloadsFolder",
-                                               downloadLocalized);
-      }
-      if (NS_FAILED(rv)) {
-        downloadLocalized.AssignLiteral("Downloads");
-      }
-      MOZ_TRY(dir->Append(downloadLocalized));
-
-      // Can't getter_AddRefs on StaticRefPtr, so do some copying.
-      nsCOMPtr<nsIFile> copy;
-      dir->Clone(getter_AddRefs(copy));
-      sFallbackDownloadDir = copy.forget();
-      ClearOnShutdown(&sFallbackDownloadDir);
-    }
-
-    // Check for availability if requested.
-    if (!aSkipChecks) {
-      MOZ_TRY(EnsureDirectoryExists(dir));
-    }
+  if (NS_SUCCEEDED(rv)) {
     return dir;
+  }
+
+  // On some OSes, there is no guarantee that `NS_OS_DEFAULT_DOWNLOAD_DIR`
+  // exists. Fall back to $HOME + Downloads.
+
+  // If we've done this before, use the cached value:
+  if (sFallbackDownloadDir) {
+    MOZ_TRY(sFallbackDownloadDir->Clone(getter_AddRefs(dir)));
+    return dir;
+  }
+
+  MOZ_TRY(NS_GetSpecialDirectory(NS_OS_HOME_DIR, getter_AddRefs(dir)));
+
+  // Get the appropriate translation of "Downloads"...
+  nsAutoString downloadLocalized;
+  rv = [&downloadLocalized]() {
+    nsresult rv;
+
+    nsCOMPtr<nsIStringBundleService> bundleService =
+        do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIStringBundle> downloadBundle;
+    rv = bundleService->CreateBundle(
+        "chrome://mozapps/locale/downloads/downloads.properties",
+        getter_AddRefs(downloadBundle));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return downloadBundle->GetStringFromName("downloadsFolder",
+                                             downloadLocalized);
+  }();
+  // ... or, failing that, just use "Downloads".
+  if (NS_FAILED(rv)) {
+    downloadLocalized.AssignLiteral("Downloads");
+  }
+  MOZ_TRY(dir->Append(downloadLocalized));
+
+  // Cache the result for next time.
+  {
+    // Can't getter_AddRefs on StaticRefPtr, so do some copying.
+    nsCOMPtr<nsIFile> copy;
+    dir->Clone(getter_AddRefs(copy));
+    sFallbackDownloadDir = copy.forget();
+    ClearOnShutdown(&sFallbackDownloadDir);
+  }
+
+  // Check for availability if requested.
+  if (!aSkipChecks) {
+    MOZ_TRY(EnsureDirectoryExists(dir));
   }
 
   return dir;
