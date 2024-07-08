@@ -37,6 +37,8 @@ skip-if = ["apple_silicon && automation"] # bug 1729538
 
 ["test_BackupService_resolveArchiveDestFolderPath.js"]
 
+["test_BackupService_resolveDownloadLink.js"]
+
 ["test_BackupService_scheduler.js"]
 
 ["test_BackupService_schema_versions.js"]
