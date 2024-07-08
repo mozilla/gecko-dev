@@ -281,11 +281,11 @@ bool Compartment::getNonWrapperObjectForCurrentCompartment(
   // We're a bit worried about infinite recursion here, so we do a check -
   // see bug 809295.
   auto preWrap = cx->runtime()->wrapObjectCallbacks->preWrap;
-  AutoCheckRecursionLimit recursion(cx);
-  if (!recursion.checkSystem(cx)) {
-    return false;
-  }
   if (preWrap) {
+    AutoCheckRecursionLimit recursion(cx);
+    if (!recursion.checkSystem(cx)) {
+      return false;
+    }
     preWrap(cx, cx->global(), origObj, obj, objectPassedToWrap, obj);
     if (!obj) {
       return false;
