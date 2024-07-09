@@ -446,14 +446,13 @@ function accessibleTask(doc, task, options = {}) {
     }
 
     registerCleanupFunction(() => {
+      // XXX Bug 1906779: This will run once for each call to addAccessibleTask,
+      // but only after the entire test file has completed. This doesn't make
+      // sense and almost certainly wasn't the intent.
       for (let observer of Services.obs.enumerateObservers(
         "accessible-event"
       )) {
         Services.obs.removeObserver(observer, "accessible-event");
-      }
-      if (gPythonSocket) {
-        // Remove any globals set by Python code run in this test.
-        runPython(`__reset__`);
       }
     });
 
@@ -561,6 +560,14 @@ function accessibleTask(doc, task, options = {}) {
         );
       }
     );
+
+    if (gPythonSocket) {
+      // Remove any globals set by Python code run in this test. We do this here
+      // rather than using registerCleanupFunction because
+      // registerCleanupFunction runs after all tests in the file, whereas we
+      // need this to run after each task.
+      await runPython(`__reset__`);
+    }
   };
 }
 

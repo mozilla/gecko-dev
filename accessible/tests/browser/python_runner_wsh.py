@@ -61,6 +61,7 @@ def web_socket_transfer_data(request):
             return
         if code == "__reset__":
             namespace = cleanNamespace.copy()
+            send("return", None)
             continue
 
         if setupExc:
