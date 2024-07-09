@@ -1088,29 +1088,6 @@ public class TranslationsController {
       public final @NonNull Boolean hasVisibleChange;
 
       /**
-       * This constructor is deprecated, please use the [TranslationState] with [hasVisibleChange]
-       * parameter. This constructor will be removed in bug 1895275. Translation State constructor.
-       *
-       * @param requestedTranslationPair the language pair to translate
-       * @param error if an error occurred
-       * @param detectedLanguages detected language
-       * @param isEngineReady if the engine is ready for translations
-       */
-      @Deprecated
-      @DeprecationSchedule(version = 130, id = "translation-state-deprecated-constructor")
-      public TranslationState(
-          final @Nullable TranslationPair requestedTranslationPair,
-          final @Nullable String error,
-          final @Nullable DetectedLanguages detectedLanguages,
-          final @NonNull Boolean isEngineReady) {
-        this.requestedTranslationPair = requestedTranslationPair;
-        this.error = error;
-        this.detectedLanguages = detectedLanguages;
-        this.isEngineReady = isEngineReady;
-        this.hasVisibleChange = false;
-      }
-
-      /**
        * Translation State constructor.
        *
        * @param requestedTranslationPair the language pair to translate

@@ -2375,7 +2375,6 @@ package org.mozilla.geckoview {
   }
 
   public static class TranslationsController.SessionTranslation.TranslationState {
-    ctor @Deprecated @DeprecationSchedule(version=130,id="translation-state-deprecated-constructor") public TranslationState(@Nullable TranslationsController.SessionTranslation.TranslationPair, @Nullable String, @Nullable TranslationsController.SessionTranslation.DetectedLanguages, @NonNull Boolean);
     ctor public TranslationState(@Nullable TranslationsController.SessionTranslation.TranslationPair, @Nullable String, @Nullable TranslationsController.SessionTranslation.DetectedLanguages, @NonNull Boolean, @NonNull Boolean);
     field @Nullable public final TranslationsController.SessionTranslation.DetectedLanguages detectedLanguages;
     field @Nullable public final String error;
