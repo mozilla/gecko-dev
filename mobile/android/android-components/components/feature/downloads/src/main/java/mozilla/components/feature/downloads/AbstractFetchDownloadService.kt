@@ -320,6 +320,7 @@ abstract class AbstractFetchDownloadService : Service() {
     @VisibleForTesting
     internal fun cancelDownloadJob(
         currentDownloadJobState: DownloadJobState,
+        coroutineScope: CoroutineScope = CoroutineScope(IO),
     ) {
         currentDownloadJobState.lastNotificationUpdate = System.currentTimeMillis()
         setDownloadJobStatus(
@@ -327,10 +328,12 @@ abstract class AbstractFetchDownloadService : Service() {
             CANCELLED,
         )
         currentDownloadJobState.job?.cancel()
-        currentDownloadJobState.job = CoroutineScope(IO).launch {
-            deleteDownloadingFile(currentDownloadJobState.state)
-            currentDownloadJobState.downloadDeleted =
-                true
+        currentDownloadJobState.job?.invokeOnCompletion {
+            currentDownloadJobState.job = coroutineScope.launch {
+                deleteDownloadingFile(currentDownloadJobState.state)
+                currentDownloadJobState.downloadDeleted =
+                    true
+            }
         }
     }
 
@@ -467,7 +470,10 @@ abstract class AbstractFetchDownloadService : Service() {
 
     internal fun deleteDownloadingFile(downloadState: DownloadState) {
         val downloadedFile = File(downloadState.filePath)
-        downloadedFile.delete()
+        val deleted = downloadedFile.delete()
+        if (!deleted) {
+            logger.error("Unable to delete file with path: " + downloadState.filePath)
+        }
     }
 
     /**

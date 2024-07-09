@@ -22,6 +22,7 @@ import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -30,6 +31,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.browser.state.state.content.DownloadState.Status.CANCELLED
 import mozilla.components.browser.state.state.content.DownloadState.Status.COMPLETED
 import mozilla.components.browser.state.state.content.DownloadState.Status.DOWNLOADING
 import mozilla.components.browser.state.state.content.DownloadState.Status.FAILED
@@ -295,7 +297,10 @@ class AbstractFetchDownloadServiceTest {
 
         service.handleRemovePrivateDownloadIntent(downloadState)
 
-        verify(service).cancelDownloadJob(downloadJobState)
+        verify(service).cancelDownloadJob(
+            currentDownloadJobState = eq(downloadJobState),
+            coroutineScope = any(),
+        )
         verify(service).removeDownloadJob(downloadJobState)
         verify(browserStore).dispatch(DownloadAction.RemoveDownloadAction(downloadState.id))
     }
@@ -2225,6 +2230,27 @@ class AbstractFetchDownloadServiceTest {
 
         assertTrue(result.toString().endsWith("location/test.txt"))
     }
+
+    @Test
+    fun `WHEN cancelDownloadJob is called THEN deleteDownloadingFile must be called`() =
+        runTest(testsDispatcher) {
+            val downloadState = DownloadState(url = "mozilla.org/mozilla.txt")
+            val downloadJobState =
+                DownloadJobState(job = Job(), state = downloadState, status = DOWNLOADING)
+
+            doNothing().`when`(service)
+                .deleteDownloadingFile(downloadState.copy(status = CANCELLED))
+
+            service.downloadJobs[downloadState.id] = downloadJobState
+
+            service.cancelDownloadJob(
+                currentDownloadJobState = downloadJobState,
+                coroutineScope = CoroutineScope(coroutinesTestRule.testDispatcher),
+            )
+
+            verify(service).deleteDownloadingFile(downloadState.copy(status = CANCELLED))
+            assertTrue(downloadJobState.downloadDeleted)
+        }
 }
 
 @Implements(FileProvider::class)
