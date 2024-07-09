@@ -7,6 +7,69 @@
 # The result of evaluating default-value-jexl is exposed as
 # `defaultValue` and should match the default value of the pref
 # as set in the relevant .js prefs file or StaticPrefList.yaml.
+#
+# NOTE ON ORDERING
+# The ordering of the groups and controls in about:preferences is
+# determined by the ordering in this file. Groups will be ordered
+# based on the order of appearance in this file. Settings within
+# a group will also be determined by their order in this file.
+
+[genai-chat]
+group = "experimental-features-group-browsing"
+title = "genai-settings-chat-title"
+description = "genai-settings-chat-description"
+description-links = {connect= "https://connect.mozilla.org/t5/discussions/share-your-feedback-on-the-ai-services-experiment-in-nightly/m-p/60519#M21202"}
+restart-required = false
+preference = "browser.ml.chat.enabled"
+type = "boolean"
+bug-numbers = [1894999]
+is-public-jexl = "nightly_build"
+default-value-jexl = "false"
+
+[url-bar-ime-search]
+group = "experimental-features-group-browsing"
+title = "experimental-features-ime-search"
+description = "experimental-features-ime-search-description"
+restart-required = false
+preference = "browser.urlbar.keepPanelOpenDuringImeComposition"
+type = "boolean"
+bug-numbers = [1673971]
+is-public-jexl = "true"
+default-value-jexl = "false"
+
+[webrtc-global-mute-toggles]
+group = "experimental-features-group-browsing"
+title = "experimental-features-webrtc-global-mute-toggles"
+description = "experimental-features-webrtc-global-mute-toggles-description"
+restart-required = false
+preference = "privacy.webrtc.globalMuteToggles"
+type = "boolean"
+bug-numbers = [1643027]
+is-public-jexl = "nightly_build"
+default-value-jexl = "false"
+
+[cookie-samesite-none-requires-secure]
+group = "experimental-features-group-browsing"
+title = "experimental-features-cookie-samesite-none-requires-secure2"
+description = "experimental-features-cookie-samesite-none-requires-secure2-description"
+restart-required = false
+preference = "network.cookie.sameSite.noneRequiresSecure"
+type = "boolean"
+bug-numbers = [1618610, 1617609]
+is-public-jexl = "false"
+default-value-jexl = "nightly_build"
+
+[media-jxl]
+group = "experimental-features-group-webpage-display"
+title = "experimental-features-media-jxl"
+description = "experimental-features-media-jxl-description"
+description-links = {bugzilla = "https://bugzilla.mozilla.org/show_bug.cgi?id=1539075"}
+restart-required = false
+preference = "image.jxl.enabled"
+type = "boolean"
+bug-numbers = [1539075]
+is-public-jexl = "nightly_build"
+default-value-jexl = "false"
 
 [css-masonry]
 group = "experimental-features-group-webpage-display"
@@ -32,29 +95,6 @@ bug-numbers = [1616739]
 is-public-jexl = "nightly_build"
 default-value-jexl = "nightly_build"
 
-[media-jxl]
-group = "experimental-features-group-webpage-display"
-title = "experimental-features-media-jxl"
-description = "experimental-features-media-jxl-description"
-description-links = {bugzilla = "https://bugzilla.mozilla.org/show_bug.cgi?id=1539075"}
-restart-required = false
-preference = "image.jxl.enabled"
-type = "boolean"
-bug-numbers = [1539075]
-is-public-jexl = "nightly_build"
-default-value-jexl = "false"
-
-[cookie-samesite-none-requires-secure]
-group = "experimental-features-group-browsing"
-title = "experimental-features-cookie-samesite-none-requires-secure2"
-description = "experimental-features-cookie-samesite-none-requires-secure2-description"
-restart-required = false
-preference = "network.cookie.sameSite.noneRequiresSecure"
-type = "boolean"
-bug-numbers = [1618610, 1617609]
-is-public-jexl = "false"
-default-value-jexl = "nightly_build"
-
 [devtools-serviceworker-debugger-support]
 group = "experimental-features-group-developer-tools"
 title = "experimental-features-devtools-serviceworker-debugger-support"
@@ -63,39 +103,5 @@ restart-required = true
 preference = "devtools.debugger.features.windowless-service-workers"
 type = "boolean"
 bug-numbers = [1651607]
-is-public-jexl = "true"
-default-value-jexl = "false"
-
-[genai-chat]
-group = "experimental-features-group-browsing"
-title = "genai-settings-chat-title"
-description = "genai-settings-chat-description"
-description-links = {connect= "https://connect.mozilla.org/t5/discussions/share-your-feedback-on-the-ai-services-experiment-in-nightly/m-p/60519#M21202"}
-restart-required = false
-preference = "browser.ml.chat.enabled"
-type = "boolean"
-bug-numbers = [1894999]
-is-public-jexl = "nightly_build"
-default-value-jexl = "false"
-
-[webrtc-global-mute-toggles]
-group = "experimental-features-group-browsing"
-title = "experimental-features-webrtc-global-mute-toggles"
-description = "experimental-features-webrtc-global-mute-toggles-description"
-restart-required = false
-preference = "privacy.webrtc.globalMuteToggles"
-type = "boolean"
-bug-numbers = [1643027]
-is-public-jexl = "nightly_build"
-default-value-jexl = "false"
-
-[url-bar-ime-search]
-group = "experimental-features-group-browsing"
-title = "experimental-features-ime-search"
-description = "experimental-features-ime-search-description"
-restart-required = false
-preference = "browser.urlbar.keepPanelOpenDuringImeComposition"
-type = "boolean"
-bug-numbers = [1673971]
 is-public-jexl = "true"
 default-value-jexl = "false"
