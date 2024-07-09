@@ -221,10 +221,6 @@ const kEventConstructors = {
   MouseScrollEvent:                          { create: null
                                                // Cannot create untrusted event from JS
                                              },
-  MozApplicationEvent:                       { create (aName, aProps) {
-                                                         return new MozApplicationEvent(aName, aProps);
-                                                       },
-                                             },
   MozClirModeEvent:                          { create (aName, aProps) {
                                                          return new MozClirModeEvent(aName, aProps);
                                                        },
