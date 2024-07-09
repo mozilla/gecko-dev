@@ -129,6 +129,7 @@ export class ConditionalPanel extends PureComponent {
     editor.setLineContentMarker({
       id: markerTypes.CONDITIONAL_BP_MARKER,
       lines: [line],
+      renderAsBlock: true,
       createLineElementNode: () => {
         // Create a Codemirror 5 editor for the breakpoint panel
         // TODO: Switch to use Codemirror 6 version Bug 1890205
@@ -270,7 +271,10 @@ export class ConditionalPanel extends PureComponent {
     const defaultValue = this.getDefaultValue();
 
     const panel = document.createElement("div");
-    ReactDOM.render(
+    // CodeMirror6 can't have margin on a block widget, so we need to wrap the actual
+    // panel inside a container which won't have any margin
+    const reactElPanel = div(
+      { className: "conditional-breakpoint-panel-container" },
       div(
         {
           className: classnames("conditional-breakpoint-panel", {
@@ -289,9 +293,10 @@ export class ConditionalPanel extends PureComponent {
           defaultValue,
           ref: input => this.createEditor(input, editor),
         })
-      ),
-      panel
+      )
     );
+
+    ReactDOM.render(reactElPanel, panel);
     return panel;
   }
 

@@ -728,9 +728,15 @@ class Editor extends EventEmitter {
     const lineContentMarkers = this.#lineContentMarkers;
 
     class LineContentWidget extends WidgetType {
-      constructor(line, createElementNode) {
+      constructor(line, markerId, createElementNode) {
         super();
+        this.line = line;
+        this.markerId = markerId;
         this.toDOM = () => createElementNode(line);
+      }
+
+      eq(widget) {
+        return widget.line == this.line && widget.markerId == this.markerId;
       }
     }
 
@@ -787,11 +793,14 @@ class Editor extends EventEmitter {
           // 1) conditional-breakpoint-panel-marker
           // 2) inline-preview-marker
           const nodeDecoration = Decoration.widget({
-            widget: new LineContentWidget(line, marker.createLineElementNode),
+            widget: new LineContentWidget(
+              line,
+              marker.id,
+              marker.createLineElementNode
+            ),
             // Render the widget after the cursor
             side: 1,
-            // Render the widget inline (on the same line)
-            block: false,
+            block: !!marker.renderAsBlock,
           });
           nodeDecoration.markerType = marker.id;
           newMarkerDecorations.push(nodeDecoration.range(lo.to));
@@ -1057,9 +1066,11 @@ class Editor extends EventEmitter {
    *                                  The css class to apply to the line
    *   @property {Array<Number>}      marker.lines
    *                                  The lines to add markers to
-   *   @property {Boolean=}           marker.shouldMarkAllLines
+   *   @property {Boolean}           marker.renderAsBlock
+   *                                  The specifies that the widget should be rendered as a block element. defaults to `false`. This is optional.
+   *   @property {Boolean}           marker.shouldMarkAllLines
    *                                  Set to true to apply the marker to all the lines. In such case, `positions` is ignored. This is optional.
-   *   @property {function}           marker.createLineElementNode
+   *   @property {Function}           marker.createLineElementNode
    *                                  This should return the DOM element which is used for the marker. The line number is passed as a parameter.
    *                                  This is optional.
 
@@ -1105,9 +1116,20 @@ class Editor extends EventEmitter {
     const cachedPositionContentMarkers = this.#posContentMarkers;
 
     class NodeWidget extends WidgetType {
-      constructor(line, column, createElementNode, domNode) {
+      constructor(line, column, markerId, createElementNode) {
         super();
-        this.toDOM = () => createElementNode(line, column, domNode);
+        this.line = line;
+        this.column = column;
+        this.markerId = markerId;
+        this.toDOM = () => createElementNode(line, column);
+      }
+
+      eq(widget) {
+        return (
+          this.line == widget.line &&
+          this.column == widget.column &&
+          this.markerId == widget.markerId
+        );
       }
     }
 
@@ -1169,6 +1191,7 @@ class Editor extends EventEmitter {
               widget: new NodeWidget(
                 position.line,
                 position.column,
+                marker.id,
                 marker.createPositionElementNode
               ),
               // Make sure the widget is rendered after the cursor
