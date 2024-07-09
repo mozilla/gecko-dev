@@ -4,6 +4,8 @@
 
 #[cfg(not(target_os = "windows"))]
 extern crate libc;
+#[cfg(not(target_os = "windows"))]
+extern crate log;
 #[cfg(target_os = "windows")]
 extern crate winapi;
 
@@ -12,12 +14,13 @@ extern crate xpcom;
 
 use std::convert::TryInto;
 
-use nserror::{nsresult, NS_ERROR_FAILURE, NS_OK};
+use nserror::{nsresult, NS_ERROR_FAILURE, NS_ERROR_NOT_AVAILABLE, NS_OK};
 use xpcom::{interfaces::nsIProcessToolsService, xpcom, xpcom_method, RefPtr};
 
-// Separate this `use` to avoid build-breaking warnings.
-#[cfg(target_os = "windows")]
-use nserror::NS_ERROR_NOT_AVAILABLE;
+#[cfg(not(target_os = "windows"))]
+use log::error;
+#[cfg(not(target_os = "windows"))]
+use nserror::{NS_ERROR_CANNOT_CONVERT_DATA, NS_ERROR_UNEXPECTED};
 
 #[cfg(target_os = "windows")]
 struct Handle(winapi::um::winnt::HANDLE);
@@ -94,14 +97,27 @@ impl ProcessToolsService {
     }
 
     #[cfg(not(target_os = "windows"))]
-    pub fn kill(&self, pid: u64) -> Result<(), nsresult> {
-        let pid = pid.try_into().or(Err(NS_ERROR_FAILURE))?;
-        let result = unsafe { libc::kill(pid, libc::SIGKILL) };
+    fn do_kill(&self, pid: u64, signal: i32) -> Result<(), nsresult> {
+        let pid = pid.try_into().or(Err(NS_ERROR_CANNOT_CONVERT_DATA))?;
+        let result = unsafe { libc::kill(pid, signal) };
         if result == 0 {
             Ok(())
         } else {
-            Err(NS_ERROR_FAILURE)
+            match std::io::Error::last_os_error().raw_os_error() {
+                // Might happen if process is zombie/dead already
+                Some(libc::ESRCH) => Err(NS_ERROR_NOT_AVAILABLE),
+                Some(errno_value) => {
+                    error!("kill({}) failed: errno={}", pid, errno_value);
+                    Err(NS_ERROR_FAILURE)
+                }
+                None => Err(NS_ERROR_UNEXPECTED),
+            }
         }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    pub fn kill(&self, pid: u64) -> Result<(), nsresult> {
+        self.do_kill(pid, libc::SIGKILL)
     }
 
     // Method `crash`
@@ -168,13 +184,7 @@ impl ProcessToolsService {
 
     #[cfg(not(target_os = "windows"))]
     pub fn crash(&self, pid: u64) -> Result<(), nsresult> {
-        let pid = pid.try_into().or(Err(NS_ERROR_FAILURE))?;
-        let result = unsafe { libc::kill(pid, libc::SIGABRT) };
-        if result == 0 {
-            Ok(())
-        } else {
-            Err(NS_ERROR_FAILURE)
-        }
+        self.do_kill(pid, libc::SIGABRT)
     }
 
     // Attribute `pid`

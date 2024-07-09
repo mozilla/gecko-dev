@@ -13,3 +13,4 @@ winapi = "0.3.7"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+log = "0.4"

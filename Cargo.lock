@@ -4680,6 +4680,7 @@ name = "processtools"
 version = "0.1.0"
 dependencies = [
  "libc",
+ "log",
  "nserror",
  "winapi",
  "xpcom",

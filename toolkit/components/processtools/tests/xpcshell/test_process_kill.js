@@ -49,4 +49,16 @@ add_task(async function test_subprocess_kill() {
     isTerminated,
     "We have killed the process already, it shouldn't be running anymore."
   );
+
+  // Kill the process again, it should throw because it is gone.
+  try {
+    ProcessTools.kill(proc.pid);
+    Assert.ok(false, "kill() should have failed");
+  } catch (ex) {
+    Assert.equal(
+      ex.result,
+      Cr.NS_ERROR_NOT_AVAILABLE,
+      "Should have reported PID missing"
+    );
+  }
 });
