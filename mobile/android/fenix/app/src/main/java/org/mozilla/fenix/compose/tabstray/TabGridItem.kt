@@ -242,7 +242,7 @@ fun TabGridItem(
                                     painter = painterResource(id = R.drawable.mozac_ic_cross_20),
                                     contentDescription = stringResource(
                                         id = R.string.close_tab_title,
-                                        tab.content.title,
+                                        tab.toDisplayTitle(),
                                     ),
                                     tint = FirefoxTheme.colors.iconPrimary,
                                 )
