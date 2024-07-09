@@ -7,17 +7,15 @@
 var idnService;
 
 function expected_pass(inputIDN) {
-  var isASCII = {};
-  var displayIDN = idnService.convertToDisplayIDN(inputIDN, isASCII);
+  var displayIDN = idnService.convertToDisplayIDN(inputIDN);
   Assert.equal(displayIDN, inputIDN);
 }
 
 function expected_fail(inputIDN) {
-  var isASCII = {};
   var displayIDN = "";
 
   try {
-    displayIDN = idnService.convertToDisplayIDN(inputIDN, isASCII);
+    displayIDN = idnService.convertToDisplayIDN(inputIDN);
   } catch (e) {}
 
   Assert.notEqual(displayIDN, inputIDN);

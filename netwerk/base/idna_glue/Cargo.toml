@@ -1,0 +1,12 @@
+[package]
+name = "idna_glue"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+
+[dependencies]
+idna = "1.0.2"
+arraystring = "0.3.0"
+percent-encoding = "2.3.1"
+nsstring = { path = "../../../xpcom/rust/nsstring" }
+nserror = { path = "../../../xpcom/rust/nserror" }

@@ -290,7 +290,7 @@ EXTRA_JS_MODULES += [
     "NetUtil.sys.mjs",
 ]
 
-DIRS += ["mozurl", "rust-helper", "http-sfv"]
+DIRS += ["mozurl", "rust-helper", "http-sfv", "idna_glue"]
 
 include("/ipc/chromium/chromium-config.mozbuild")
 

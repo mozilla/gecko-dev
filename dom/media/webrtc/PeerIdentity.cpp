@@ -8,7 +8,7 @@
 
 #include "mozilla/DebugOnly.h"
 #include "nsCOMPtr.h"
-#include "nsIIDNService.h"
+#include "nsNetUtil.h"
 #include "nsNetCID.h"
 #include "nsServiceManagerUtils.h"
 
@@ -32,17 +32,10 @@ bool PeerIdentity::Equals(const nsAString& aOtherString) const {
   nsString otherHost;
   GetHost(aOtherString, otherHost);
 
-  nsresult rv;
-  nsCOMPtr<nsIIDNService> idnService =
-      do_GetService("@mozilla.org/network/idn-service;1", &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return host == otherHost;
-  }
-
   nsCString normHost;
-  GetNormalizedHost(idnService, host, normHost);
+  GetNormalizedHost(host, normHost);
   nsCString normOtherHost;
-  GetNormalizedHost(idnService, otherHost, normOtherHost);
+  GetNormalizedHost(otherHost, normOtherHost);
   return normHost == normOtherHost;
 }
 
@@ -67,12 +60,11 @@ void PeerIdentity::GetHost(const nsAString& aPeerIdentity, nsAString& aHost) {
 }
 
 /* static */
-void PeerIdentity::GetNormalizedHost(const nsCOMPtr<nsIIDNService>& aIdnService,
-                                     const nsAString& aHost,
+void PeerIdentity::GetNormalizedHost(const nsAString& aHost,
                                      nsACString& aNormalizedHost) {
   const nsCString chost = NS_ConvertUTF16toUTF8(aHost);
   DebugOnly<nsresult> rv =
-      aIdnService->ConvertUTF8toACE(chost, aNormalizedHost);
+      NS_DomainToASCIIAllowAnyGlyphfulASCII(chost, aNormalizedHost);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "Failed to convert UTF-8 host to ASCII");
 }

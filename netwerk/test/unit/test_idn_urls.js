@@ -171,7 +171,8 @@ const testcases = [
   ["\uD840\uDC00\uD840\uDC01\uD840\uDC02", "xn--j50icd", false, true, true],
 
   // Same with a lone high surrogate at the end
-  ["\uD840\uDC00\uD840\uDC01\uD840", "xn--zn7c0336bda", false, false, false],
+  // Throws due to unpaired surrogate
+  //  ["\uD840\uDC00\uD840\uDC01\uD840", "xn--zn7c0336bda", false, false, false],
 
   // Latin text and Bengali digits
   ["super৪", "xn--super-k2l", false, false, true],
@@ -186,7 +187,8 @@ const testcases = [
   ["5াব", "xn--5-h3d7c", false, true, true],
 
   // Mixed numbering systems
-  ["٢٠۰٠", "xn--8hbae38c", false, false, false],
+  // Throws due to bidi rule violation
+  // ["٢٠۰٠", "xn--8hbae38c", false, false, false],
 
   // Traditional Chinese
   ["萬城", "xn--uis754h", false, true, true],
@@ -346,20 +348,21 @@ const testcases = [
   ["ascii.䕮䕵䕶䕱", "ascii.xn--google", false, true, true],
   ["中国123.䕮䕵䕶䕱", "xn--123-u68dy61b.xn--google", false, true, true],
   ["䕮䕵䕶䕱.中国123", "xn--google.xn--123-u68dy61b", false, true, true],
-  [
-    "xn--accountlogin.䕮䕵䕶䕱",
-    "xn--accountlogin.xn--google",
-    false,
-    true,
-    true,
-  ],
-  [
-    "䕮䕵䕶䕱.xn--accountlogin",
-    "xn--google.xn--accountlogin",
-    false,
-    true,
-    true,
-  ],
+  // Throw due to bogus Punycode
+  // [
+  //   "xn--accountlogin.䕮䕵䕶䕱",
+  //   "xn--accountlogin.xn--google",
+  //   false,
+  //   true,
+  //   true,
+  // ],
+  // [
+  //   "䕮䕵䕶䕱.xn--accountlogin",
+  //   "xn--google.xn--accountlogin",
+  //   false,
+  //   true,
+  //   true,
+  // ],
 
   // Arabic diacritic not allowed in Latin text (bug 1370497)
   ["goo\u0650gle", "xn--google-yri", false, false, false],
@@ -399,11 +402,10 @@ function run_test() {
       var URL = test[0] + ".com";
       var punycodeURL = test[1] + ".com";
       var expectedUnicode = test[2 + i];
-      var isASCII = {};
 
       var result;
       try {
-        result = idnService.convertToDisplayIDN(URL, isASCII);
+        result = idnService.convertToDisplayIDN(URL);
       } catch (e) {
         result = ".com";
       }
@@ -418,7 +420,7 @@ function run_test() {
           expectedUnicode ? escape(URL) : escape(punycodeURL)
         );
 
-        result = idnService.convertToDisplayIDN(punycodeURL, isASCII);
+        result = idnService.convertToDisplayIDN(punycodeURL);
         Assert.equal(
           escape(result),
           expectedUnicode ? escape(URL) : escape(punycodeURL)

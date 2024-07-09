@@ -727,7 +727,7 @@ var gIdentityHandler = {
       );
     }
     try {
-      return this._IDNService.convertToDisplayIDN(this._uri.host, {});
+      return this._IDNService.convertToDisplayIDN(this._uri.host);
     } catch (e) {
       // If something goes wrong (e.g. host is an IP address) just fail back
       // to the full domain.

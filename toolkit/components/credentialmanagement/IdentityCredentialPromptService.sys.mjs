@@ -149,8 +149,7 @@ export class IdentityCredentialPromptService {
       for (const [providerIndex, provider] of identityProviders.entries()) {
         let providerURL = new URL(provider.configURL);
         let displayDomain = lazy.IDNService.convertToDisplayIDN(
-          providerURL.host,
-          {}
+          providerURL.host
         );
 
         let iconResult = iconResults[providerIndex];
@@ -204,10 +203,7 @@ export class IdentityCredentialPromptService {
     );
     for (const [providerIndex, provider] of identityProviders.entries()) {
       let providerURL = new URL(provider.configURL);
-      let displayDomain = lazy.IDNService.convertToDisplayIDN(
-        providerURL.host,
-        {}
-      );
+      let displayDomain = lazy.IDNService.convertToDisplayIDN(providerURL.host);
       let newItem = itemTemplate.content.firstElementChild.cloneNode(true);
 
       // Create the radio button,
@@ -358,8 +354,7 @@ export class IdentityCredentialPromptService {
 
       let providerURL = new URL(identityProvider.configURL);
       let providerDisplayDomain = lazy.IDNService.convertToDisplayIDN(
-        providerURL.host,
-        {}
+        providerURL.host
       );
       let currentBaseDomain =
         browsingContext.currentWindowContext.documentPrincipal.baseDomain;
@@ -540,10 +535,7 @@ export class IdentityCredentialPromptService {
     );
     const providerName = providerManifest?.branding?.name;
     let providerURL = new URL(provider.configURL);
-    let displayDomain = lazy.IDNService.convertToDisplayIDN(
-      providerURL.host,
-      {}
-    );
+    let displayDomain = lazy.IDNService.convertToDisplayIDN(providerURL.host);
 
     let headerIconResult = await this.loadIconFromManifest(
       providerManifest,

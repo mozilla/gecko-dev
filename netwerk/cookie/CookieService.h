@@ -21,7 +21,6 @@
 class nsIConsoleReportCollector;
 class nsICookieJarSettings;
 class nsIEffectiveTLDService;
-class nsIIDNService;
 class nsIURI;
 class nsIChannel;
 class mozIThirdPartyUtil;
@@ -125,7 +124,6 @@ class CookieService final : public nsICookieService,
   // cached members.
   nsCOMPtr<mozIThirdPartyUtil> mThirdPartyUtil;
   nsCOMPtr<nsIEffectiveTLDService> mTLDService;
-  nsCOMPtr<nsIIDNService> mIDNService;
 
   // we have two separate Cookie Storages: one for normal browsing and one for
   // private browsing.

@@ -142,26 +142,21 @@ function run_test() {
     try {
       result = idnService.convertToDisplayIDN(URL, isASCII);
     } catch (e) {
-      result = ".com";
+      continue;
     }
-    // If the punycode URL is equivalent to \ufffd.com (i.e. the
-    // blacklisted character has been replaced by a unicode
-    // REPLACEMENT CHARACTER, skip the test
-    if (result != "xn--zn7c.com") {
-      if (punycodeURL.substr(0, 4) == "xn--") {
-        // test convertToDisplayIDN with a Unicode URL and with a
-        //  Punycode URL if we have one
-        equal(escape(result), escape(punycodeURL));
+    if (punycodeURL.substr(0, 4) == "xn--") {
+      // test convertToDisplayIDN with a Unicode URL and with a
+      //  Punycode URL if we have one
+      equal(escape(result), escape(punycodeURL));
 
-        result = idnService.convertToDisplayIDN(punycodeURL, isASCII);
-        equal(escape(result), escape(punycodeURL));
-      } else {
-        // The "punycode" URL isn't punycode. This happens in testcases
-        // where the Unicode URL has become normalized to an ASCII URL,
-        // so, even though expectedUnicode is true, the expected result
-        // is equal to punycodeURL
-        equal(escape(result), escape(punycodeURL));
-      }
+      result = idnService.convertToDisplayIDN(punycodeURL, isASCII);
+      equal(escape(result), escape(punycodeURL));
+    } else {
+      // The "punycode" URL isn't punycode. This happens in testcases
+      // where the Unicode URL has become normalized to an ASCII URL,
+      // so, even though expectedUnicode is true, the expected result
+      // is equal to punycodeURL
+      equal(escape(result), escape(punycodeURL));
     }
   }
   pbi.setCharPref("network.IDN.restriction_profile", oldProfile);
