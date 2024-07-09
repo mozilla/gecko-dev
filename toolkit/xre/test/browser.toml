@@ -1,4 +1,5 @@
 [DEFAULT]
+tags = "os_integration"
 
 ["browser_checkdllblockliststate.js"]
 run-if = ["os == 'win'"]

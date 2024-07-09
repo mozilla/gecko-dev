@@ -1,5 +1,6 @@
 [DEFAULT]
 support-files = ["clipboard_helper.js"]
+tags = "os_integration"
 
 ["test_AltGr_key_events_in_web_content_on_windows.html"]
 run-if = ["os == 'win'"]
@@ -42,13 +43,13 @@ run-if = [
 ]
 skip-if = ["headless"] # headless widget doesn't dispatch contextmenu event by mouse event.
 
+["test_keypress_event_with_alt_on_mac.html"]
+run-if = ["os == 'mac'"]
+
 ["test_mouse_double_click_on_android.html"]
 run-if = [
   "os == 'android'",
 ]
-
-["test_keypress_event_with_alt_on_mac.html"]
-run-if = ["os == 'mac'"]
 
 ["test_mouse_event_with_control_on_mac.html"]
 run-if = ["os == 'mac'"]

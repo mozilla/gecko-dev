@@ -2,6 +2,7 @@
 head = "head.js"
 run-sequentially = "Bug 912235 - Intermittent failures"
 firefox-appdir = "browser"
+tags = "os_integration"
 
 ["test_badMIMEType.js"]
 run-if = ["buildapp == 'browser'"]

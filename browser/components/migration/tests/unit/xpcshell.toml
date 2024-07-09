@@ -1,6 +1,6 @@
 [DEFAULT]
 head = "head_migration.js"
-tags = "condprof"
+tags = "condprof os_integration"
 firefox-appdir = "browser"
 skip-if = ["os == 'android'"] # bug 1730213
 prefs = ["browser.migrate.showBookmarksToolbarAfterMigration=true"]

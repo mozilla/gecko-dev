@@ -763,7 +763,7 @@ tags = "cloneelementvisually"
 
 ["test_cloneElementVisually_resource_change.html"]
 skip-if = ["os == 'linux' && !(debug || asan || tsan)"] # Bug 1559308 - lower frequency intermittent
-tags = "cloneelementvisually"
+tags = "cloneelementvisually os_integration"
 
 ["test_clone_media_element.html"]
 skip-if = ["os == 'android'"] # bug 1108558, android(bug 1232305)
@@ -784,6 +784,7 @@ tags = "hls"
 ["test_hw_video_decoding.html"]
 skip-if = ["!mda_gpu"]
 scheme = "https"
+tags = "os_integration"
 
 ["test_imagecapture.html"]
 scheme = "https"
@@ -887,6 +888,7 @@ skip-if = ["os == 'win'"] # bug 1374189
 
 ["test_video_low_power_telemetry.html"]
 run-if = ["os == 'mac'"] # This telemetry is macOS-specific.
+tags = "os_integration"
 
 ["test_video_to_canvas.html"]
 skip-if = ["os == 'android'"] # android(bug 1232305), bugs 1320418,1347953,1347954,1348140,1348386

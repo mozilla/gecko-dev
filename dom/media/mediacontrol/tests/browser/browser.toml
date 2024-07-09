@@ -32,6 +32,7 @@ support-files = [
 ["browser_media_control_audio_focus_within_a_page.js"]
 
 ["browser_media_control_before_media_starts.js"]
+tags = "os_integration"
 
 ["browser_media_control_captured_audio.js"]
 

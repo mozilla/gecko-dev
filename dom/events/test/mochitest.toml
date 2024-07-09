@@ -30,8 +30,10 @@ support-files = [
 ]
 
 ["test_accel_virtual_modifier.html"]
+tags = "os_integration"
 
 ["test_accesskey.html"]
+tags = "os_integration"
 
 ["test_addEventListenerExtraArg.html"]
 
@@ -40,8 +42,10 @@ skip-if = [
   "http3",
   "http2",
 ]
+tags = "os_integration"
 
 ["test_auxclick_autoscroll_off.html"]
+tags = "os_integration"
 
 ["test_bug226361.xhtml"]
 
@@ -344,6 +348,7 @@ support-files = ["!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js
 
 ["test_click_hold_context_menus.html"]
 skip-if = ["os == 'mac'"]
+tags = "os_integration"
 
 ["test_click_on_reframed_generated_text.html"]
 
@@ -351,9 +356,11 @@ skip-if = ["os == 'mac'"]
 
 ["test_clickevent_on_input.html"]
 skip-if = ["os == 'android'"] #CRASH_DUMP, RANDOM
+tags = "os_integration"
 
 ["test_coalesce_mousewheel.html"]
 skip-if = ["os == 'android'"] # fail
+tags = "os_integration"
 
 ["test_coalesce_touchmove.html"]
 support-files = [
@@ -362,6 +369,7 @@ support-files = [
   "file_coalesce_touchmove_browserchild2.html",
 ]
 skip-if = ["debug"] #In order to be able to test touchmoves, the test needs to synthesize touchstart in a way which asserts
+tags = "os_integration"
 
 ["test_continuous_wheel_events.html"]
 skip-if = [
@@ -374,26 +382,33 @@ skip-if = [
 ["test_deltaMode_lines_always_enabled.html"]
 
 ["test_deviceSensor.html"]
+tags = "os_integration"
 
 ["test_disabled_events.html"]
 
 ["test_dnd_with_modifiers.html"]
+tags = "os_integration"
 
 ["test_dom_activate_event.html"]
 
 ["test_dom_keyboard_event.html"]
 skip-if = ["os == 'android'"] #CRASH_DUMP, RANDOM
+tags = "os_integration"
 
 ["test_dom_mouse_event.html"]
 skip-if = ["os == 'android'"] #CRASH_DUMP, RANDOM
+tags = "os_integration"
 
 ["test_dom_storage_event.html"]
+tags = "os_integration"
 
 ["test_dom_wheel_event.html"]
 skip-if = ["os == 'android'"] # wheel scroll isn't supported
+tags = "os_integration"
 
 ["test_drag_coords.html"]
 skip-if = ["os == 'android'"] # Need calculate screen coordinates.
+tags = "os_integration"
 
 ["test_drag_image_file.html"]
 skip-if = [
@@ -421,6 +436,7 @@ skip-if = ["os == 'android'"] # fail
 
 ["test_event_screenXY_with_zoom.html"]
 skip-if = ["os == 'android'"] # Android doesn't have full zoom.
+tags = "os_integration"
 
 ["test_eventctors.html"]
 skip-if = ["os == 'android'"] #CRASH_DUMP, RANDOM
@@ -434,6 +450,7 @@ skip-if = ["os == 'android'"] #CRASH_DUMP, RANDOM
 ["test_focus_blur_on_click_in_cross_origin_iframe.html"]
 support-files = ["file_focus_blur_on_click_in_cross_origin_iframe.html"]
 skip-if = ["os == 'android'"] # Bug 1701546
+tags = "os_integration"
 
 ["test_focus_blur_on_click_in_deep_cross_origin_iframe.html"]
 support-files = [
@@ -450,6 +467,7 @@ skip-if = [
 ["test_legacy_event.html"]
 
 ["test_legacy_touch_api.html"]
+tags = "os_integration"
 
 ["test_messageEvent.html"]
 
@@ -494,6 +512,7 @@ support-files = ["window_empty_document.html"]
 skip-if = ["os == 'android'"] # fail
 
 ["test_selection_after_right_click.html"]
+tags = "os_integration"
 
 ["test_slotted_mouse_event.html"]
 skip-if = ["os == 'android'"] # timeout
@@ -507,8 +526,10 @@ skip-if = ["os == 'android'"] # timeout
 ["test_unbound_before_in_active_chain.html"]
 
 ["test_unicode_input_on_windows_with_emulation.html"]
+tags = "os_integration"
 
 ["test_use_conflated_keypress_event_model_on_newer_Office_Online_Server.html"]
+tags = "os_integration"
 
 ["test_use_split_keypress_event_model_on_old_Confluence.html"]
 skip-if = ["!debug"] # The mode change event is available only on debug build

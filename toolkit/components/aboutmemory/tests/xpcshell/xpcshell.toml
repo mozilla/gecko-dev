@@ -1,5 +1,6 @@
 [DEFAULT]
 head =  ""
 run-if = ["os == 'win'"]
+tags = "os_integration"
 
 ["test_gpuprocess.js"]

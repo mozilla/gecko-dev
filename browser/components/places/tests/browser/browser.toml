@@ -55,6 +55,7 @@ https_first_disabled = true
 ["browser_bookmark_context_menu_contents.js"]
 
 ["browser_bookmark_copy_folder_tree.js"]
+tags = "os_integration"
 
 ["browser_bookmark_current_tabs.js"]
 

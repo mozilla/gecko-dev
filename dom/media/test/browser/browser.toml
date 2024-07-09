@@ -24,6 +24,7 @@ support-files = [
 skip-if = ["apple_silicon"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
 
 ["browser_glean_first_frame_loaded_time.js"]
+tags = "os_integration"
 
 ["browser_tab_visibility_and_play_time.js"]
 

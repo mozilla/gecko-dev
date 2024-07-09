@@ -8,6 +8,7 @@ support-files = [
   "crasher_subprocess_head.js",
   "crasher_subprocess_tail.js",
 ]
+tags = "os_integration"
 
 ["test_crash_AsyncShutdown.js"]
 

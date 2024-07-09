@@ -1,5 +1,6 @@
 [DEFAULT]
 head = ""
+tags = "os_integration"
 
 ["test_JumpListBuilder_obtainAndCacheFaviconAsync.js"]
 run-if = ["os == 'win'"]

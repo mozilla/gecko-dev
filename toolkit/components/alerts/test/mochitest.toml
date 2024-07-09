@@ -5,6 +5,7 @@ support-files = [
   "image.png",
   "image_server.sjs",
 ]
+tags = "os_integration"
 
 # Synchronous tests like test_alerts.html must come before
 # asynchronous tests like test_alerts_noobserve.html!

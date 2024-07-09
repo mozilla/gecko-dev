@@ -35,6 +35,7 @@ skip-if = ["os == 'win' && msix"] # Updater is disabled in MSIX builds
 ["browser_aboutDialog_AppUpdater_stop_swap.js"]
 
 ["browser_aboutDialog_bc_downloaded.js"]
+tags = "os_integration"
 
 ["browser_aboutDialog_bc_downloaded_staged.js"]
 
@@ -54,6 +55,7 @@ skip-if = ["os == 'win' && msix"] # Updater is disabled in MSIX builds
 
 ["browser_aboutDialog_fc_check_cantApply.js"]
 run-if = ["os == 'win'"] # "test must be able to prevent file deletion."
+tags = "os_integration"
 
 ["browser_aboutDialog_fc_check_malformedXML.js"]
 
@@ -61,6 +63,7 @@ run-if = ["os == 'win'"] # "test must be able to prevent file deletion."
 
 ["browser_aboutDialog_fc_check_otherInstance.js"]
 run-if = ["os == 'win'"] # "Windows only feature."
+tags = "os_integration"
 
 ["browser_aboutDialog_fc_check_unsupported.js"]
 
@@ -109,6 +112,7 @@ skip-if = ["tsan"] # Bug 1683730
 
 ["browser_aboutPrefs_fc_check_cantApply.js"]
 run-if = ["os == 'win'"] # "test must be able to prevent file deletion."
+tags = "os_integration"
 
 ["browser_aboutPrefs_fc_check_malformedXML.js"]
 
@@ -116,10 +120,12 @@ run-if = ["os == 'win'"] # "test must be able to prevent file deletion."
 
 ["browser_aboutPrefs_fc_check_otherInstance.js"]
 run-if = ["os == 'win'"] # "Windows only feature."
+tags = "os_integration"
 
 ["browser_aboutPrefs_fc_check_unsupported.js"]
 
 ["browser_aboutPrefs_fc_downloadAuto.js"]
+tags = "os_integration"
 
 ["browser_aboutPrefs_fc_downloadAuto_staging.js"]
 
@@ -147,6 +153,7 @@ run-if = ["os == 'win'"] # "Windows only feature."
 
 ["browser_doorhanger_bc_check_cantApply.js"]
 run-if = ["os == 'win'"] # "test must be able to prevent file deletion."
+tags = "os_integration"
 
 ["browser_doorhanger_bc_check_malformedXML.js"]
 
@@ -167,6 +174,7 @@ run-if = ["os == 'win'"] # "test must be able to prevent file deletion."
 ["browser_doorhanger_bc_downloaded_staged.js"]
 
 ["browser_doorhanger_bc_multiUpdate.js"]
+tags = "os_integration"
 
 ["browser_doorhanger_bc_multiUpdate_promptWaitTime.js"]
 
@@ -191,10 +199,12 @@ run-if = ["os == 'win'"] # "test must be able to prevent file deletion."
 # Elevation Dialog Tests
 
 ["browser_elevationDialog.js"]
+tags = "os_integration"
 
 # Memory Fallback Tests
 
 ["browser_memory_allocation_error_fallback.js"]
+tags = "os_integration"
 
 # Telemetry Update Ping Tests
 

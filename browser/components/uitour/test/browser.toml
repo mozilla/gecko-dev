@@ -36,6 +36,7 @@ fail-if = ["a11y_checks"] # Bug 1854526 clicked UITourTooltipClose may not be fo
 
 ["browser_UITour_modalDialog.js"]
 run-if = ["os == 'mac'"] # modal dialog disabling only working on OS X.
+tags = "os_integration"
 
 ["browser_UITour_observe.js"]
 
@@ -74,6 +75,7 @@ skip-if = ["os == 'linux' && os_version == '18.04' && !debug && verify"]
 skip-if = ["os == 'linux' && os_version == '18.04' && !debug && verify"]
 
 ["browser_fxa.js"]
+tags = "os_integration"
 
 ["browser_fxa_config.js"]
 

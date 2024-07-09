@@ -119,6 +119,7 @@ fail-if = [
 ["test_backbuffer_channels.html"]
 
 ["test_backends.html"]
+tags = "os_integration"
 
 ["test_canvas_size.html"]
 
@@ -178,6 +179,7 @@ skip-if = [
 
 ["test_renderer_strings.html"]
 skip-if = ["display == 'wayland'"]
+tags = "os_integration"
 
 ["test_sab_with_webgl.html"]
 

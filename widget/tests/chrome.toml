@@ -4,6 +4,7 @@ support-files = [
   "empty_window.xhtml",
   "clipboard_helper.js",
 ]
+tags = "os_integration"
 
 ["test_alwaysontop_focus.xhtml"]
 

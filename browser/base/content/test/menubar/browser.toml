@@ -3,6 +3,7 @@ prefs = [
   "browser.sessionstore.closedTabsFromAllWindows=true",
   "browser.sessionstore.closedTabsFromClosedWindows=true",
 ]
+tags = "os_integration"
 
 ["browser_file_close_tabs.js"]
 

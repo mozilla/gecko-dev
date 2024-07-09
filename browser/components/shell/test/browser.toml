@@ -6,6 +6,7 @@ skip-if = [
   "os != 'mac'",
   "verify",
 ]
+tags = "os_integration"
 
 ["browser_420786.js"]
 skip-if = ["os != 'linux'"]
@@ -25,6 +26,7 @@ skip-if = [
   "ccov",
   "tsan", #Bug 1429950 , Bug 1583315, Bug 1696109, Bug 1701449
 ]
+tags = "os_integration"
 
 ["browser_headless_screenshot_2.js"]
 support-files = [
@@ -86,10 +88,14 @@ skip-if = [
 
 ["browser_pinning.js"]
 run-if = ["os == 'win'"]
+tags = "os_integration"
 
 ["browser_setDefaultBrowser.js"]
+tags = "os_integration"
 
 ["browser_setDefaultPDFHandler.js"]
 run-if = ["os == 'win'"]
+tags = "os_integration"
 
 ["browser_setDesktopBackgroundPreview.js"]
+tags = "os_integration"

@@ -2,6 +2,7 @@
 head =  ''
 firefox-appdir = "browser"
 skip-if = ["os == 'android'"] # bug 1730213
+tags = "os_integration"
 
 ["test_E10SUtils_nested_URIs.js"]
 

@@ -13,5 +13,6 @@ run-if = [
     "os == 'linux'",
     "os == 'win'",
 ] # Due to testing menubar behavior with keyboard
+tags = "os_integration"
 
 ["browser_bug1754298.js"]

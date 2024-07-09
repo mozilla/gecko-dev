@@ -65,10 +65,12 @@ skip-if = ["true"] # Bug 1775616
 ["browser_background_tab_crash.js"]
 https_first_disabled = true
 run-if = ["crashreporter"]
+tags = "os_integration"
 
 ["browser_backup_recovery.js"]
 https_first_disabled = true
 skip-if = ["verify && debug && os == 'linux'"]
+tags = "os_integration"
 
 ["browser_bfcache_telemetry.js"]
 
@@ -121,6 +123,7 @@ skip-if = ["os == 'win'"] # bug 1331853
 ["browser_firefoxView_selected_restore.js"]
 
 ["browser_focus_after_restore.js"]
+tags = "os_integration"
 
 ["browser_forget_async_closings.js"]
 
@@ -174,6 +177,7 @@ skip-if = [
 
 ["browser_movePendingTabToNewWindow.js"]
 https_first_disabled = true
+tags = "os_integration"
 
 ["browser_multiple_navigateAndRestore.js"]
 skip-if = ["os == 'linux' && debug"] #Bug 1570468
@@ -211,6 +215,7 @@ skip-if = [
 ["browser_reopen_all_windows.js"]
 https_first_disabled = true
 skip-if = ["asan"] # high memory
+tags = "os_integration"
 
 ["browser_replace_load.js"]
 skip-if = ["true"] # Bug 1646894
@@ -264,6 +269,7 @@ skip-if = [
 ]
 
 ["browser_sessionStorage.js"]
+tags = "os_integration"
 
 ["browser_sessionStorage_size.js"]
 

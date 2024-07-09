@@ -5,6 +5,7 @@ prefs = [
   "dom.window.sizeToContent.enabled=true",
 ]
 support-files = ["../head-common.js"]
+tags = "os_integration"
 
 ["browser_aboutwelcome_behavior.js"]
 
