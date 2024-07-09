@@ -27,13 +27,23 @@
   &[lwt-tab-selected="dark"] {
     --tab-selected-color-scheme: dark;
   }
+  --tab-outline: 1px solid var(--tab-outline-color);
+  --tab-outline-color: transparent;
   --tab-selected-outline-color: transparent;
   --tab-hover-outline-color: transparent;
+  --tab-outline-offset: var(--toolbarbutton-outline-offset);
   @media (prefers-contrast) {
     --tab-selected-outline-color: currentColor;
     --tab-hover-outline-color: currentColor;
   }
+  @media (forced-colors) {
+    --tab-outline-color: ButtonText;
+    --tab-hover-outline-color: SelectedItem;
+    --tab-selected-outline-color: SelectedItem;
+  }
   &[lwtheme] {
+    --tab-outline-color: var(--lwt-tab-line-color, currentColor);
+    --tab-hover-outline-color: var(--lwt-tab-line-color, currentColor);
     --tab-selected-outline-color: var(--lwt-tab-line-color, currentColor);
   }
 }
@@ -83,7 +93,7 @@
 }
 
 .tabbrowser-tab {
-  --tab-label-mask-size: 2em;
+  --tab-label-mask-size: 1em;
 
   appearance: none;
   background-color: transparent;
@@ -506,17 +516,20 @@
   }
 }
 
-/* The following rulesets allow showing more of the tab title */
-.tabbrowser-tab:not([labelendaligned], :hover) > .tab-stack > .tab-content > .tab-close-button {
-  padding-inline-start: 0;
-  width: 18px;
-}
+/* The following rulesets allow showing more of the tab title by shrinking the
+ * width of the close button. We don't do this in forced-colors mode since
+ * the button has a visible outline shown. */
+@media not (forced-colors) {
+  .tabbrowser-tab:not([labelendaligned], :hover) > .tab-stack > .tab-content > .tab-close-button {
+    padding-inline-start: 0;
+    width: 18px;
+  }
 
-.tabbrowser-tab[visuallyselected]:not([labelendaligned]):hover,
-#tabbrowser-tabs:not([closebuttons=activetab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab:not([visuallyselected], [labelendaligned]):hover {
-  --tab-label-mask-size: 1em;
+  .tabbrowser-tab[visuallyselected]:not([labelendaligned]):hover,
+  #tabbrowser-tabs:not([closebuttons=activetab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab:not([visuallyselected], [labelendaligned]):hover {
+    --tab-label-mask-size: 2em;
+  }
 }
-
 
 .tab-secondary-label {
   font-size: .75em;
@@ -557,14 +570,15 @@
   border-radius: var(--tab-border-radius);
   margin-block: var(--tab-block-margin);
   min-height: var(--tab-min-height);
+  outline: var(--tab-outline);
+  outline-offset: var(--tab-outline-offset);
 }
 
 /* Selected tab and tab hover */
 
 .tabbrowser-tab:hover > .tab-stack > .tab-background:not([selected], [multiselected]) {
   background-color: color-mix(in srgb, currentColor 11%, transparent);
-  outline: 1px solid var(--tab-hover-outline-color);
-  outline-offset: -1px;
+  outline-color: var(--tab-hover-outline-color);
 }
 
 #TabsToolbar #firefox-view-button[open] > .toolbarbutton-icon,
@@ -573,8 +587,7 @@
   background-origin: border-box;
   background-repeat: repeat-x;
   box-shadow: 0 0 4px rgba(0,0,0,.4);
-  outline: 1px solid var(--tab-selected-outline-color);
-  outline-offset: -1px;
+  outline-color: var(--tab-selected-outline-color);
 
   #tabbrowser-tabs[noshadowfortests] & {
     box-shadow: none;

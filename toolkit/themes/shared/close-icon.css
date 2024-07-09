@@ -12,22 +12,25 @@
   padding: 2px;
   width: 20px;
   height: auto;
+  outline: var(--toolbarbutton-outline);
+
+  &:hover {
+    outline-color: var(--toolbarbutton-hover-outline-color);
+  }
+
+  &:hover:active {
+    outline-color: var(--toolbarbutton-active-outline-color);
+  }
 }
 
-@media not (prefers-contrast) {
+@media not (forced-colors) {
   .close-icon:hover {
     background-color: color-mix(in srgb, currentColor 10%, transparent);
   }
-}
 
-@media (prefers-contrast) {
-  .close-icon:hover {
-    outline: 1px solid currentColor;
+  .close-icon:hover:active {
+    background-color: color-mix(in srgb, currentColor 20%, transparent);
   }
-}
-
-.close-icon:hover:active {
-  background-color: color-mix(in srgb, currentColor 20%, transparent);
 }
 
 .close-icon > .button-icon,
