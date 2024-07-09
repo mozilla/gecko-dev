@@ -269,7 +269,7 @@ class QATests(SnapTestsBase):
             )
         )
 
-        if not self.is_esr():
+        if not self.is_esr_115():
             self._wait.until(
                 lambda d: d.execute_script(
                     'return window.getComputedStyle(document.querySelector(".loadingInput.start"), "::after").getPropertyValue("visibility");'
@@ -405,7 +405,7 @@ class QATests(SnapTestsBase):
             time.sleep(0.75)
 
             self._logger.info("assert {}".format(menu_id))
-            if self.is_esr() and menu_id == "documentProperties":
+            if self.is_esr_115() and menu_id == "documentProperties":
                 # on ESR pdf.js misreports in mm instead of inches
                 title = self._wait.until(
                     EC.visibility_of_element_located((By.ID, "titleField"))

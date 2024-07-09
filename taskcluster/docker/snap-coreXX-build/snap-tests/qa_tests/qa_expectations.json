@@ -1,6 +1,6 @@
 {
   "test_custom_fonts": {
-    "esr": {
+    "esr-115": {
       "reference": "test_custom_fonts_ref_esr.png"
     },
     "reference": "test_custom_fonts_ref.png"
@@ -11,7 +11,7 @@
   "test_mp3": {},
   "test_ogg": {},
   "test_pdf_navigation": {
-    "esr": {
+    "esr-115": {
       "base": {
         "reference": "test_pdf_navigation_base_esr.png"
       },
@@ -129,7 +129,7 @@
     }
   },
   "test_pdf_zoom": {
-    "esr": {
+    "esr-115": {
       "p1_50p": {
         "reference": "test_pdf_zoom_p1_50p_esr.png"
       },
@@ -181,7 +181,7 @@
     }
   },
   "test_pdf_download": {
-    "esr": {
+    "esr-115": {
       "reference": "test_pdf_download_base_esr.png"
     },
     "reference": "test_pdf_download_base.png"
