@@ -2832,14 +2832,6 @@ static Value RefTypeDefautValue(wasm::RefType tableType) {
   return tableType.isExtern() ? UndefinedValue() : NullValue();
 }
 
-static bool CheckRefTypeValue(JSContext* cx, wasm::RefType type,
-                              HandleValue value) {
-  RootedFunction fun(cx);
-  RootedAnyRef any(cx, AnyRef::null());
-
-  return CheckRefType(cx, type, value, &fun, &any);
-}
-
 /* static */
 WasmTableObject* WasmTableObject::create(JSContext* cx, uint32_t initialLength,
                                          Maybe<uint32_t> maximumLength,
@@ -2947,7 +2939,7 @@ bool WasmTableObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   // Initialize the table to a default value
   RootedValue initValue(
       cx, args.length() < 2 ? RefTypeDefautValue(tableType) : args[1]);
-  if (!CheckRefTypeValue(cx, tableType, initValue)) {
+  if (!wasm::CheckRefType(cx, tableType, initValue)) {
     return false;
   }
 
@@ -3100,7 +3092,7 @@ bool WasmTableObject::growImpl(JSContext* cx, const CallArgs& args) {
 
   RootedValue fillValue(
       cx, args.length() < 2 ? RefTypeDefautValue(table.elemType()) : args[1]);
-  if (!CheckRefTypeValue(cx, table.elemType(), fillValue)) {
+  if (!wasm::CheckRefType(cx, table.elemType(), fillValue)) {
     return false;
   }
 
@@ -3160,15 +3152,15 @@ bool WasmTableObject::fillRange(JSContext* cx, uint32_t index, uint32_t length,
   // bounds
   MOZ_ASSERT(uint64_t(index) + uint64_t(length) <= tab.length());
 
-  RootedFunction fun(cx);
   RootedAnyRef any(cx, AnyRef::null());
-  if (!CheckRefType(cx, tab.elemType(), value, &fun, &any)) {
+  if (!wasm::CheckRefType(cx, tab.elemType(), value, &any)) {
     return false;
   }
   switch (tab.repr()) {
     case TableRepr::Func:
       MOZ_RELEASE_ASSERT(!tab.isAsmJS());
-      tab.fillFuncRef(index, length, FuncRef::fromJSFunction(fun), cx);
+      tab.fillFuncRef(index, length, FuncRef::fromAnyRefUnchecked(any.get()),
+                      cx);
       break;
     case TableRepr::Ref:
       tab.fillAnyRef(index, length, any);
