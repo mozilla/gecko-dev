@@ -42,6 +42,14 @@ export class FeatureGateImplementation {
   }
 
   /**
+   * A Fluent string ID that will resolve to some text to identify this feature's group to users.
+   * @type string
+   */
+  get group() {
+    return this._definition.group;
+  }
+
+  /**
    * A Fluent string ID that will resolve to some text to identify this feature to users.
    * @type string
    */

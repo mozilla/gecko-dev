@@ -33,6 +33,7 @@ def minimal_definition(**kwargs):
     defaults = {
         "id": "test-feature",
         "title": "Test Feature",
+        "group": "Test Feature Group",
         "description": "A feature for testing things",
         "bug-numbers": [1479127],
         "restart-required": False,
@@ -102,8 +103,9 @@ class TestProcessFiles(unittest.TestCase):
         assert result == {
             "demo-feature": {
                 "id": "demo-feature",
-                "title": "Demo Feature",
-                "description": "A no-op feature to demo the feature gate system.",
+                "title": "demo-feature-title",
+                "group": "demo-feature-group",
+                "description": "demo-feature-description",
                 "restartRequired": False,
                 "preference": "foo.bar.baz",
                 "type": "boolean",
@@ -113,8 +115,9 @@ class TestProcessFiles(unittest.TestCase):
             },
             "minimal-feature": {
                 "id": "minimal-feature",
-                "title": "Minimal Feature",
-                "description": "The smallest feature that is valid",
+                "title": "minimal-feature-title",
+                "group": "minimal-feature-group",
+                "description": "minimal-feature-description",
                 "restartRequired": True,
                 "preference": "features.minimal-feature.enabled",
                 "type": "boolean",
@@ -243,8 +246,9 @@ class MainTests(unittest.TestCase):
         assert results == {
             "demo-feature": {
                 "id": "demo-feature",
-                "title": "Demo Feature",
-                "description": "A no-op feature to demo the feature gate system.",
+                "title": "demo-feature-title",
+                "group": "demo-feature-group",
+                "description": "demo-feature-description",
                 "restartRequired": False,
                 "preference": "foo.bar.baz",
                 "type": "boolean",
@@ -254,8 +258,9 @@ class MainTests(unittest.TestCase):
             },
             "minimal-feature": {
                 "id": "minimal-feature",
-                "title": "Minimal Feature",
-                "description": "The smallest feature that is valid",
+                "title": "minimal-feature-title",
+                "group": "minimal-feature-group",
+                "description": "minimal-feature-description",
                 "restartRequired": True,
                 "preference": "features.minimal-feature.enabled",
                 "type": "boolean",

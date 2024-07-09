@@ -9,6 +9,7 @@
 # as set in the relevant .js prefs file or StaticPrefList.yaml.
 
 [css-masonry]
+group = "experimental-features-group-webpage-display"
 title = "experimental-features-css-masonry2"
 description = "experimental-features-css-masonry-description"
 description-links = {explainer = "https://github.com/w3c/csswg-drafts/blob/master/css-grid-2/MASONRY-EXPLAINER.md", w3c-issue = "https://github.com/w3c/csswg-drafts/issues/4650", bug = "https://bugzilla.mozilla.org/show_bug.cgi?id=1607439"}
@@ -20,6 +21,7 @@ is-public-jexl = "nightly_build"
 default-value-jexl = "nightly_build || thunderbird"
 
 [web-api-webgpu]
+group = "experimental-features-group-webpage-display"
 title = "experimental-features-web-gpu2"
 description = "experimental-features-web-gpu-description3"
 description-links = {wikipedia-webgpu = "https://en.wikipedia.org/wiki/WebGPU", wikipedia-gpu = "https://en.wikipedia.org/wiki/Graphics_processing_unit", spec = "https://gpuweb.github.io/gpuweb/", bugzilla = "https://bugzilla.mozilla.org/show_bug.cgi?id=1616739"}
@@ -31,6 +33,7 @@ is-public-jexl = "nightly_build"
 default-value-jexl = "nightly_build"
 
 [media-jxl]
+group = "experimental-features-group-webpage-display"
 title = "experimental-features-media-jxl"
 description = "experimental-features-media-jxl-description"
 description-links = {bugzilla = "https://bugzilla.mozilla.org/show_bug.cgi?id=1539075"}
@@ -42,6 +45,7 @@ is-public-jexl = "nightly_build"
 default-value-jexl = "false"
 
 [cookie-samesite-none-requires-secure]
+group = "experimental-features-group-browsing"
 title = "experimental-features-cookie-samesite-none-requires-secure2"
 description = "experimental-features-cookie-samesite-none-requires-secure2-description"
 restart-required = false
@@ -52,6 +56,7 @@ is-public-jexl = "false"
 default-value-jexl = "nightly_build"
 
 [devtools-serviceworker-debugger-support]
+group = "experimental-features-group-developer-tools"
 title = "experimental-features-devtools-serviceworker-debugger-support"
 description = "experimental-features-devtools-serviceworker-debugger-support-description"
 restart-required = true
@@ -62,6 +67,7 @@ is-public-jexl = "true"
 default-value-jexl = "false"
 
 [genai-chat]
+group = "experimental-features-group-browsing"
 title = "genai-settings-chat-title"
 description = "genai-settings-chat-description"
 description-links = {connect= "https://connect.mozilla.org/t5/discussions/share-your-feedback-on-the-ai-services-experiment-in-nightly/m-p/60519#M21202"}
@@ -73,6 +79,7 @@ is-public-jexl = "nightly_build"
 default-value-jexl = "false"
 
 [webrtc-global-mute-toggles]
+group = "experimental-features-group-browsing"
 title = "experimental-features-webrtc-global-mute-toggles"
 description = "experimental-features-webrtc-global-mute-toggles-description"
 restart-required = false
@@ -83,6 +90,7 @@ is-public-jexl = "nightly_build"
 default-value-jexl = "false"
 
 [url-bar-ime-search]
+group = "experimental-features-group-browsing"
 title = "experimental-features-ime-search"
 description = "experimental-features-ime-search-description"
 restart-required = false

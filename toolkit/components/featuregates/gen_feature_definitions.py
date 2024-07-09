@@ -19,6 +19,7 @@ id_regex = re.compile(r"^[a-z0-9-]+$")
 feature_schema = Schema(
     {
         Match(id_regex): {
+            Required("group"): All(Text, Length(min=1)),
             Required("title"): All(Text, Length(min=1)),
             Required("description"): All(Text, Length(min=1)),
             Required("bug-numbers"): All(Length(min=1), [All(int, Range(min=1))]),

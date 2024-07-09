@@ -1,6 +1,7 @@
 [demo-feature]
-title = "Demo Feature"
-description = "A no-op feature to demo the feature gate system."
+title = "demo-feature-title"
+group = "demo-feature-group"
+description = "demo-feature-description"
 restart-required = false
 preference = "foo.bar.baz"
 type = "boolean"
@@ -9,8 +10,9 @@ is-public-jexl = "true"
 default-value-jexl = "false"
 
 [minimal-feature]
-title = "Minimal Feature"
-description = "The smallest feature that is valid"
+title = "minimal-feature-title"
+group = "minimal-feature-group"
+description = "minimal-feature-description"
 restart-required = true
 type = "boolean"
 bug-numbers = [1479127]
