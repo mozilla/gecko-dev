@@ -4,6 +4,7 @@
 package org.mozilla.focus.activity
 
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner
+import mozilla.components.concept.engine.utils.EngineReleaseChannel
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Before
@@ -12,13 +13,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.focus.activity.robots.homeScreen
 import org.mozilla.focus.activity.robots.searchScreen
+import org.mozilla.focus.ext.components
 import org.mozilla.focus.helpers.FeatureSettingsHelper
 import org.mozilla.focus.helpers.MainActivityFirstrunTestRule
 import org.mozilla.focus.helpers.MockWebServerHelper
 import org.mozilla.focus.helpers.RetryTestRule
 import org.mozilla.focus.helpers.TestAssetHelper.getStorageTestAsset
 import org.mozilla.focus.helpers.TestHelper.exitToTop
-import org.mozilla.focus.helpers.TestHelper.progressBar
 import org.mozilla.focus.helpers.TestHelper.waitingTime
 import org.mozilla.focus.testAnnotations.SmokeTest
 
@@ -124,7 +125,11 @@ class SettingsPrivacyTest {
         searchScreen {
         }.loadPage(crossSiteCookiesURL) {
             progressBar.waitUntilGone(waitingTime)
-            verifyCookiesEnabled("BLOCKED")
+            if (mActivityTestRule.activity.components.engine.version.releaseChannel !== EngineReleaseChannel.NIGHTLY) {
+                verifyCookiesEnabled("PARTITIONED")
+            } else {
+                verifyCookiesEnabled("BLOCKED")
+            }
         }.clearBrowsingData {
         }.openSearchBar {
         }.loadPage(sameSiteCookiesUrl) {
