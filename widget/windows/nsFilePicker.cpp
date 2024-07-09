@@ -226,7 +226,12 @@ static nsTArray<T> Copy(nsTArray<T> const& arr) {
 }
 
 // The possible execution strategies of AsyncExecute.
-enum Strategy { LocalOnly, RemoteOnly, RemoteWithFallback };
+enum Strategy {
+  LocalOnly,
+  RemoteOnly,
+  RemoteWithFallback,
+  FallbackUnlessCrash,
+};
 
 // Decode the relevant preference to determine the desired execution-
 // strategy.
@@ -236,6 +241,8 @@ static Strategy GetStrategy() {
   switch (pref) {
     case -1:
       return LocalOnly;
+    case 3:
+      return FallbackUnlessCrash;
     case 2:
       return RemoteOnly;
     case 1:
@@ -243,8 +250,8 @@ static Strategy GetStrategy() {
 
     default:
 #ifdef NIGHTLY_BUILD
-      // on Nightly builds, fall back to local on failure
-      return RemoteWithFallback;
+      // on Nightly builds, fall back to local on crash
+      return FallbackUnlessCrash;
 #else
       // on release and beta, remain local-only for now
       return LocalOnly;
@@ -455,6 +462,15 @@ static auto AsyncExecute(Fn1 local, Fn2 remote, Args const&... args) ->
 
     case RemoteWithFallback:
       useLocalFallback = [](Error const&) { return true; };
+      break;
+
+    case FallbackUnlessCrash:
+      useLocalFallback = [](Error const& err) {
+        // All remote crashes are reported as IPCError. The converse isn't
+        // necessarily true in theory, but (per telemetry) appears to be true in
+        // practice.
+        return err.kind != Error::IPCError;
+      };
       break;
   }
 

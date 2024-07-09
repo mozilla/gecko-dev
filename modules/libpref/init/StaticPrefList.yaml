@@ -16973,6 +16973,7 @@
 #  *  0: auto (possibly release-channel-dependent)
 #  *  1: remotely, falling back to locally
 #  *  2: remotely, no fallback
+#  *  3: remotely, falling back to locally except on crashes
 #  * -1: locally, no fallback
 - name: widget.windows.utility_process_file_picker
   type: RelaxedAtomicInt32
