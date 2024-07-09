@@ -31,6 +31,7 @@ const Template = ({
   maxTabsLength,
   primaryAction,
   secondaryAction,
+  secondaryActionClass,
   tabItems,
 }) => html`
   <style>
@@ -56,6 +57,7 @@ const Template = ({
       .maxTabsLength=${maxTabsLength}
       .tabItems=${tabItems}
       .updatesPaused=${false}
+      .secondaryActionClass=${secondaryActionClass}
       @fxview-tab-list-secondary-action=${secondaryAction}
       @fxview-tab-list-primary-action=${primaryAction}
     >
@@ -170,6 +172,7 @@ RelativeTime.args = {
   maxTabsLength: MAX_TABS_LENGTH,
   primaryAction,
   secondaryAction,
+  secondaryActionClass: "options-button",
   tabItems,
 };
 export const DateAndTime = Template.bind({});
@@ -179,6 +182,7 @@ DateAndTime.args = {
   maxTabsLength: MAX_TABS_LENGTH,
   primaryAction,
   secondaryAction,
+  secondaryActionClass: "options-button",
   tabItems,
 };
 export const DateOnly = Template.bind({});
@@ -189,6 +193,7 @@ DateOnly.args = {
   maxTabsLength: MAX_TABS_LENGTH,
   primaryAction,
   secondaryAction,
+  secondaryActionClass: "options-button",
   tabItems,
 };
 export const TimeOnly = Template.bind({});
@@ -199,6 +204,7 @@ TimeOnly.args = {
   maxTabsLength: MAX_TABS_LENGTH,
   primaryAction,
   secondaryAction,
+  secondaryActionClass: "options-button",
   tabItems,
 };
 export const RecentlyClosed = Template.bind({});
@@ -209,5 +215,6 @@ RecentlyClosed.args = {
   maxTabsLength: MAX_TABS_LENGTH,
   primaryAction,
   secondaryAction: () => {},
+  secondaryActionClass: "dismiss-button",
   tabItems: recentlyClosedItems,
 };
