@@ -9446,6 +9446,10 @@ void nsGridContainerFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
 
 nscoord nsGridContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
                                              IntrinsicISizeType aType) {
+  if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
+    return *containISize;
+  }
+
   // Calculate the sum of column sizes under intrinsic sizing.
   // http://dev.w3.org/csswg/css-grid/#intrinsic-sizes
   NormalizeChildLists();
@@ -9517,10 +9521,7 @@ nscoord nsGridContainerFrame::GetMinISize(gfxContext* aRC) {
   }
 
   if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    Maybe<nscoord> containISize = ContainIntrinsicISize();
-    mCachedMinISize = containISize
-                          ? *containISize
-                          : IntrinsicISize(aRC, IntrinsicISizeType::MinISize);
+    mCachedMinISize = IntrinsicISize(aRC, IntrinsicISizeType::MinISize);
   }
   return mCachedMinISize;
 }
@@ -9532,10 +9533,7 @@ nscoord nsGridContainerFrame::GetPrefISize(gfxContext* aRC) {
   }
 
   if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    Maybe<nscoord> containISize = ContainIntrinsicISize();
-    mCachedPrefISize = containISize
-                           ? *containISize
-                           : IntrinsicISize(aRC, IntrinsicISizeType::PrefISize);
+    mCachedPrefISize = IntrinsicISize(aRC, IntrinsicISizeType::PrefISize);
   }
   return mCachedPrefISize;
 }

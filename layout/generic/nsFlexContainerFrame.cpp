@@ -6415,6 +6415,10 @@ void nsFlexContainerFrame::ReflowPlaceholders(
 
 nscoord nsFlexContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
                                              IntrinsicISizeType aType) {
+  if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
+    return *containISize;
+  }
+
   nscoord containerISize = 0;
   const nsStylePosition* stylePos = StylePosition();
   const FlexboxAxisTracker axisTracker(this);
@@ -6477,12 +6481,8 @@ nscoord nsFlexContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
 /* virtual */
 nscoord nsFlexContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
   if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
-      mCachedMinISize = *containISize;
-    } else {
-      mCachedMinISize =
-          IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
-    }
+    mCachedMinISize =
+        IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
   }
 
   return mCachedMinISize;
@@ -6491,12 +6491,8 @@ nscoord nsFlexContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
 /* virtual */
 nscoord nsFlexContainerFrame::GetPrefISize(gfxContext* aRenderingContext) {
   if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
-      mCachedPrefISize = *containISize;
-    } else {
-      mCachedPrefISize =
-          IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
-    }
+    mCachedPrefISize =
+        IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
   }
 
   return mCachedPrefISize;
