@@ -438,16 +438,20 @@ toolbarbutton.bookmark-item:not(.subviewbutton) {
   border-radius: var(--toolbarbutton-border-radius);
   max-width: 13em;
   appearance: none;
+  outline: var(--toolbarbutton-outline);
+  outline-offset: var(--toolbarbutton-outline-offset);
 
   &:not([disabled], [open]):hover {
     background-color: var(--toolbarbutton-hover-background);
     color: inherit;
+    outline-color: var(--toolbarbutton-hover-outline-color);
   }
 
   &:hover:active:not([disabled]),
   &[open="true"] {
     background-color: var(--toolbarbutton-active-background);
     color: inherit;
+    outline-color: var(--toolbarbutton-active-outline-color);
   }
 
   &:focus-visible {
