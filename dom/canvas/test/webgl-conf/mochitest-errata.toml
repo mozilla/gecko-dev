@@ -7,19 +7,11 @@
 ##########
 # android_version strings
 #   https://en.wikipedia.org/wiki/Android_version_history
-#   * Android 'ICS' 4.0-4.0.2: 14 ('4.0' slaves, inactive)
-#   * Android 'Jelly Bean' 4.2: 17 ('4.2' slaves)
-#   * Android 'Jelly Bean' 4.3: 18 ('4.3' slaves)
-#   * Android 'Lollipop' 5.0: 21 ('5.0' slaves)
-#   * Android            8.0: 26 (pixel 2 phones)
 #   * Android           13.0: 33 (pixel 5 phones)
 
 ##########
 # os_version strings
 #   https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832%28v=vs.85%29.aspx
-#   * Windows 7: 6.1
-#   * Windows 8: 6.2
-#   * Windows 8.1: 6.3
 #   * Windows 10: 10.0
 
 [DEFAULT]
