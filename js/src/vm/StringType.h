@@ -583,8 +583,8 @@ class JSString : public js::gc::CellWithLengthAndFlags {
                                                       bool usesStringBuffer) {
 #ifdef MOZ_DEBUG
     // Check that the new buffer is located in the StringBufferArena.
-    // For now ignore this for StringBuffers because they're allocated in the
-    // main jemalloc arena.
+    // For now ignore this for StringBuffers because they can be allocated in
+    // the main jemalloc arena.
     if (!usesStringBuffer) {
       js::AssertJSStringBufferInCorrectArena(chars);
     }

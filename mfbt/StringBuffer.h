@@ -13,7 +13,9 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/RefCounted.h"
+#include "mozmemory.h"
 
 namespace mozilla {
 
@@ -51,13 +53,16 @@ class StringBuffer {
    *
    * @return new string buffer or null if out of memory.
    */
-  static already_AddRefed<StringBuffer> Alloc(size_t aSize) {
+  static already_AddRefed<StringBuffer> Alloc(
+      size_t aSize, mozilla::Maybe<arena_id_t> aArena = mozilla::Nothing()) {
     MOZ_ASSERT(aSize != 0, "zero capacity allocation not allowed");
     MOZ_ASSERT(sizeof(StringBuffer) + aSize <= size_t(uint32_t(-1)) &&
                    sizeof(StringBuffer) + aSize > aSize,
                "mStorageSize will truncate");
 
-    auto* hdr = (StringBuffer*)malloc(sizeof(StringBuffer) + aSize);
+    size_t bytes = sizeof(StringBuffer) + aSize;
+    auto* hdr = aArena ? (StringBuffer*)moz_arena_malloc(*aArena, bytes)
+                       : (StringBuffer*)malloc(bytes);
     if (hdr) {
       hdr->mRefCount = 1;
       hdr->mStorageSize = aSize;

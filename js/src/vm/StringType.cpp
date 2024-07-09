@@ -675,8 +675,8 @@ static MOZ_ALWAYS_INLINE JSString::OwnedChars<CharT> AllocChars(JSContext* cx,
   }
 
   // Note: StringBuffers must be null-terminated.
-  RefPtr<mozilla::StringBuffer> buffer =
-      mozilla::StringBuffer::Alloc((length + 1) * sizeof(CharT));
+  RefPtr<mozilla::StringBuffer> buffer = mozilla::StringBuffer::Alloc(
+      (length + 1) * sizeof(CharT), mozilla::Some(js::StringBufferArena));
   if (!buffer) {
     ReportOutOfMemory(cx);
     return {};
