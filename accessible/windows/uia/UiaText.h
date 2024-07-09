@@ -25,7 +25,7 @@ class UiaText : public ITextProvider {
       /* [retval][out] */ __RPC__deref_out_opt SAFEARRAY** aRetVal);
 
   virtual HRESULT STDMETHODCALLTYPE RangeFromChild(
-      /* [in] */ __RPC__in_opt IRawElementProviderSimple* childElement,
+      /* [in] */ __RPC__in_opt IRawElementProviderSimple* aChildElement,
       /* [retval][out] */ __RPC__deref_out_opt ITextRangeProvider** aRetVal);
 
   virtual HRESULT STDMETHODCALLTYPE RangeFromPoint(

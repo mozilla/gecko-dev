@@ -60,9 +60,25 @@ UiaText::GetVisibleRanges(__RPC__deref_out_opt SAFEARRAY** aRetVal) {
 }
 
 STDMETHODIMP
-UiaText::RangeFromChild(__RPC__in_opt IRawElementProviderSimple* childElement,
+UiaText::RangeFromChild(__RPC__in_opt IRawElementProviderSimple* aChildElement,
                         __RPC__deref_out_opt ITextRangeProvider** aRetVal) {
-  return E_NOTIMPL;
+  if (!aChildElement || !aRetVal) {
+    return E_INVALIDARG;
+  }
+  *aRetVal = nullptr;
+  Accessible* acc = Acc();
+  if (!acc) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  Accessible* child = MsaaAccessible::GetAccessibleFrom(aChildElement);
+  if (!child || !acc->IsAncestorOf(child)) {
+    return E_INVALIDARG;
+  }
+  TextLeafRange range({child, 0},
+                      {child, nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT});
+  RefPtr uiaRange = new UiaTextRange(range);
+  uiaRange.forget(aRetVal);
+  return S_OK;
 }
 
 STDMETHODIMP

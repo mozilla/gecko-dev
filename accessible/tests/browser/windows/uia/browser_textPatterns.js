@@ -1019,3 +1019,73 @@ addUiaTask(
     }
   }
 );
+
+/**
+ * Test the Text pattern's RangeFromChild method.
+ */
+addUiaTask(
+  `<div id="editable" contenteditable role="textbox">ab <mark id="cdef"><span>cd</span> <a id="ef" href="/">ef</a></mark> <img id="g" src="https://example.com/a11y/accessible/tests/mochitest/moz.png" alt="g"></div>`,
+  async function testTextRangeFromChild() {
+    await runPython(`
+      global doc, docText, editable, edText
+      doc = getDocUia()
+      docText = getUiaPattern(doc, "Text")
+      editable = findUiaByDomId(doc, "editable")
+      edText = getUiaPattern(editable, "Text")
+    `);
+    is(
+      await runPython(`docText.RangeFromChild(editable).GetText(-1)`),
+      `ab cd ef ${kEmbedChar}`,
+      "doc returned correct range for editable"
+    );
+    await testPythonRaises(
+      `edText.RangeFromChild(editable)`,
+      "editable correctly failed to return range for editable"
+    );
+    is(
+      await runPython(`docText.RangeFromChild(editable).GetText(-1)`),
+      `ab cd ef ${kEmbedChar}`,
+      "doc returned correct range for editable"
+    );
+    let text = await runPython(`
+      ab = uiaClient.RawViewWalker.GetFirstChildElement(editable)
+      range = docText.RangeFromChild(ab)
+      return range.GetText(-1)
+    `);
+    is(text, "ab ", "doc returned correct range for ab");
+    text = await runPython(`
+      global cdef
+      cdef = findUiaByDomId(doc, "cdef")
+      range = docText.RangeFromChild(cdef)
+      return range.GetText(-1)
+    `);
+    is(text, "cd ef", "doc returned correct range for cdef");
+    text = await runPython(`
+      cd = uiaClient.RawViewWalker.GetFirstChildElement(cdef)
+      range = docText.RangeFromChild(cd)
+      return range.GetText(-1)
+    `);
+    is(text, "cd", "doc returned correct range for cd");
+    text = await runPython(`
+      global efLink
+      efLink = findUiaByDomId(doc, "ef")
+      range = docText.RangeFromChild(efLink)
+      return range.GetText(-1)
+    `);
+    is(text, "ef", "doc returned correct range for ef link");
+    text = await runPython(`
+      efLeaf = uiaClient.RawViewWalker.GetFirstChildElement(efLink)
+      range = docText.RangeFromChild(efLeaf)
+      return range.GetText(-1)
+    `);
+    is(text, "ef", "doc returned correct range for ef leaf");
+    text = await runPython(`
+      g = findUiaByDomId(doc, "g")
+      range = docText.RangeFromChild(g)
+      return range.GetText(-1)
+    `);
+    is(text, kEmbedChar, "doc returned correct range for g");
+  },
+  // The IA2 -> UIA proxy has too many quirks/bugs here.
+  { uiaEnabled: true, uiaDisabled: false }
+);
