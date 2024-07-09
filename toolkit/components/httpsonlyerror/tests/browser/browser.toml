@@ -4,6 +4,9 @@ support-files = ["head.js"]
 ["browser_errorpage.js"]
 skip-if = ["os == 'linux' && asan && !debug"] # Bug 1658616
 
+["browser_errorpage_no_timeout.js"]
+support-files = ["file_errorpage_no_timeout_server.sjs", "file_https_telemetry_hsts.sjs"]
+
 ["browser_errorpage_timeout.js"]
 support-files = ["file_errorpage_timeout_server.sjs"]
 

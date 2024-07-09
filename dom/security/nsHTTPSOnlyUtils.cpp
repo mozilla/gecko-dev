@@ -1166,7 +1166,19 @@ TestHTTPAnswerRunnable::Notify(nsITimer* aTimer) {
       origHttpsOnlyStatus & nsILoadInfo::HTTPS_ONLY_TOP_LEVEL_LOAD_IN_PROGRESS;
   uint32_t downloadInProgress =
       origHttpsOnlyStatus & nsILoadInfo::HTTPS_ONLY_DOWNLOAD_IN_PROGRESS;
-  if (topLevelLoadInProgress || downloadInProgress) {
+  // If the upgrade is caused by HSTS we do not allow downgrades so we do not
+  // need to start a racing request.
+  // TODO: We should do the same for HTTPS RR but it is more difficult
+  // and the spec hasn't decided yet.
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=1906590
+  bool isClientRequestedUpgrade =
+      origHttpsOnlyStatus &
+      (nsILoadInfo::HTTPS_ONLY_UPGRADED_LISTENER_NOT_REGISTERED |
+       nsILoadInfo::HTTPS_ONLY_UPGRADED_LISTENER_REGISTERED |
+       nsILoadInfo::HTTPS_ONLY_UPGRADED_HTTPS_FIRST);
+
+  if (topLevelLoadInProgress || downloadInProgress ||
+      !isClientRequestedUpgrade) {
     return NS_OK;
   }
 
