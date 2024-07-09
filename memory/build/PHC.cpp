@@ -577,6 +577,9 @@ class PHC {
     // - InUse: must be kMaxTime.
     // - Freed: must be > 0 and < kMaxTime.
     Time mReuseTime;
+
+    // The next index for a free list of pages.`
+    Maybe<uintptr_t> mNextPage;
   };
 
  public:
@@ -601,6 +604,10 @@ class PHC {
     MutexAutoLock lock(mMutex);
 
     ForceSetNewAllocDelay(Rnd64ToDelay(mAvgFirstAllocDelay, Random64(lock)));
+
+    for (uintptr_t i = 0; i < kNumAllocPages; i++) {
+      AppendPageToFreeList(lock, i);
+    }
   }
 
   uint64_t Random64(PHCLock) { return mRNG.next(); }
@@ -656,6 +663,7 @@ class PHC {
     page.mAllocStack = Some(aAllocStack);
     page.mFreeStack = Nothing();
     page.mReuseTime = kMaxTime;
+    MOZ_ASSERT(!page.mNextPage);
   }
 
 #if PHC_LOGGING
@@ -679,6 +687,7 @@ class PHC {
     page.mAllocStack = Some(aAllocStack);
     // page.mFreeStack is not changed.
     // page.mReuseTime is not changed.
+    // page.mNextPage is not changed.
   };
 
   void SetPageFreed(PHCLock aLock, uintptr_t aIndex,
@@ -708,6 +717,9 @@ class PHC {
     mFreeTime[aIndex] = now;
 #endif
     page.mReuseTime = now + aReuseDelay;
+
+    MOZ_ASSERT(!page.mNextPage);
+    AppendPageToFreeList(aLock, aIndex);
   }
 
   static void CrashOnGuardPage(void* aPtr) {
@@ -1020,6 +1032,63 @@ class PHC {
 
   static Delay LastDelay() { return tlsLastDelay.get(); }
 
+  Maybe<uintptr_t> PopNextFreeIfAllocatable(const MutexAutoLock& lock,
+                                            Time now) {
+    if (!mFreePageListHead) {
+      return Nothing();
+    }
+
+    uintptr_t index = mFreePageListHead.value();
+
+    MOZ_RELEASE_ASSERT(index < kNumAllocPages);
+    AllocPageInfo& page = mAllocPages[index];
+    AssertAllocPageNotInUse(lock, page);
+
+    if (!IsPageAllocatable(lock, index, now)) {
+      return Nothing();
+    }
+
+    mFreePageListHead = page.mNextPage;
+    page.mNextPage = Nothing();
+    if (!mFreePageListHead) {
+      mFreePageListTail = Nothing();
+    }
+
+    return Some(index);
+  }
+
+  void UnpopNextFree(const MutexAutoLock& lock, uintptr_t index) {
+    AllocPageInfo& page = mAllocPages[index];
+    MOZ_ASSERT(!page.mNextPage);
+
+    page.mNextPage = mFreePageListHead;
+    mFreePageListHead = Some(index);
+    if (!mFreePageListTail) {
+      mFreePageListTail = Some(index);
+    }
+  }
+
+  void AppendPageToFreeList(const MutexAutoLock& lock, uintptr_t aIndex) {
+    MOZ_RELEASE_ASSERT(aIndex < kNumAllocPages);
+    AllocPageInfo& page = mAllocPages[aIndex];
+    MOZ_ASSERT(!page.mNextPage);
+    MOZ_ASSERT(mFreePageListHead != Some(aIndex) &&
+               mFreePageListTail != Some(aIndex));
+
+    if (!mFreePageListTail) {
+      // The list is empty this page will become the beginning and end.
+      MOZ_ASSERT(!mFreePageListHead);
+      mFreePageListHead = Some(aIndex);
+    } else {
+      MOZ_ASSERT(mFreePageListTail.value() < kNumAllocPages);
+      AllocPageInfo& tail_page = mAllocPages[mFreePageListTail.value()];
+      MOZ_ASSERT(!tail_page.mNextPage);
+      tail_page.mNextPage = Some(aIndex);
+    }
+    page.mNextPage = Nothing();
+    mFreePageListTail = Some(aIndex);
+  }
+
  private:
   template <int N>
   uint64_t RandomSeed() {
@@ -1049,6 +1118,7 @@ class PHC {
     MOZ_ASSERT(aPage.mAllocStack.isSome());
     MOZ_ASSERT(aPage.mFreeStack.isNothing());
     MOZ_ASSERT(aPage.mReuseTime == kMaxTime);
+    MOZ_ASSERT(!aPage.mNextPage);
   }
 
   void AssertAllocPageNotInUse(PHCLock, const AllocPageInfo& aPage) {
@@ -1088,6 +1158,13 @@ class PHC {
   // This is a raw pointer for the reason explained in the comment above
   // PHC's constructor. Don't change it to UniquePtr or anything like that.
   non_crypto::XorShift128PlusRNG mRNG;
+
+  // A linked list of free pages. Pages are allocated from the head of the list
+  // and returned to the tail. The list will naturally order itself by "last
+  // freed time" so if the head of the list can't satisfy an allocation due to
+  // time then none of the pages can.
+  Maybe<uintptr_t> mFreePageListHead;
+  Maybe<uintptr_t> mFreePageListTail;
 
 #if PHC_LOGGING
   // How many allocations that could have been page allocs actually were? As
@@ -1309,6 +1386,19 @@ static MOZ_ALWAYS_INLINE bool ShouldPageAllocHot(size_t aReqSize) {
   return true;
 }
 
+static void LogNoAlloc(size_t aReqSize, size_t aAlignment,
+                       Delay newAllocDelay) {
+  // No pages are available, or VirtualAlloc/mprotect failed.
+#if PHC_LOGGING
+  phc::PHCStats stats = PHC::sPHC->GetPageStats(lock);
+#endif
+  LOG("No PageAlloc(%zu, %zu), sAllocDelay <- %zu, fullness %zu/%zu/%zu, "
+      "hits %zu/%zu (%zu%%)\n",
+      aReqSize, aAlignment, size_t(newAllocDelay), stats.mSlotsAllocated,
+      stats.mSlotsFreed, kNumAllocPages, PHC::sPHC->PageAllocHits(lock),
+      PHC::sPHC->PageAllocAttempts(lock), PHC::sPHC->PageAllocHitRate(lock));
+}
+
 // Attempt a page allocation if the time and the size are right. Allocated
 // memory is zeroed if aZero is true. On failure, the caller should attempt a
 // normal allocation via MozJemalloc. Can be called in a context where
@@ -1358,85 +1448,74 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
     return nullptr;
   }
 
-  // We start at a random page alloc and wrap around, to ensure pages get even
-  // amounts of use.
-  uint8_t* ptr = nullptr;
-  uint8_t* pagePtr = nullptr;
-  for (uintptr_t n = 0, i = size_t(PHC::sPHC->Random64(lock)) % kNumAllocPages;
-       n < kNumAllocPages; n++, i = (i + 1) % kNumAllocPages) {
-    if (!PHC::sPHC->IsPageAllocatable(lock, i, now)) {
-      continue;
-    }
+  // Pages are allocated from a free list populated in order of when they're
+  // freed.  If the page at the head of the list is too recently freed to be
+  // reused then no other pages on the list will be either.
 
-#if PHC_LOGGING
-    Time lifetime = 0;
-#endif
-    pagePtr = PHC::sRegion->AllocPagePtr(i);
-    MOZ_ASSERT(pagePtr);
-    bool ok =
-#ifdef XP_WIN
-        !!VirtualAlloc(pagePtr, kPageSize, MEM_COMMIT, PAGE_READWRITE);
-#else
-        mprotect(pagePtr, kPageSize, PROT_READ | PROT_WRITE) == 0;
-#endif
-
-    if (!ok) {
-      pagePtr = nullptr;
-      continue;
-    }
-
-    size_t usableSize = MozJemalloc::malloc_good_size(aReqSize);
-    MOZ_ASSERT(usableSize > 0);
-
-    // Put the allocation as close to the end of the page as possible,
-    // allowing for alignment requirements.
-    ptr = pagePtr + kPageSize - usableSize;
-    if (aAlignment != 1) {
-      ptr = reinterpret_cast<uint8_t*>(
-          (reinterpret_cast<uintptr_t>(ptr) & ~(aAlignment - 1)));
-    }
-
-#if PHC_LOGGING
-    Time then = PHC::sPHC->GetFreeTime(i);
-    lifetime = then != 0 ? now - then : 0;
-#endif
-
-    PHC::sPHC->SetPageInUse(lock, i, aArenaId, ptr, allocStack);
-
-    if (aZero) {
-      memset(ptr, 0, usableSize);
-    } else {
-#ifdef DEBUG
-      memset(ptr, kAllocJunk, usableSize);
-#endif
-    }
-
-    PHC::sPHC->IncPageAllocHits(lock);
-#if PHC_LOGGING
-    phc::PHCStats stats = PHC::sPHC->GetPageStats(lock);
-#endif
-    LOG("PageAlloc(%zu, %zu) -> %p[%zu]/%p (%zu) (z%zu), sAllocDelay <- %zu, "
-        "fullness %zu/%zu/%zu, hits %zu/%zu (%zu%%), lifetime %zu\n",
-        aReqSize, aAlignment, pagePtr, i, ptr, usableSize,
-        size_t(newAllocDelay), size_t(PHC::SharedAllocDelay()),
-        stats.mSlotsAllocated, stats.mSlotsFreed, kNumAllocPages,
-        PHC::sPHC->PageAllocHits(lock), PHC::sPHC->PageAllocAttempts(lock),
-        PHC::sPHC->PageAllocHitRate(lock), lifetime);
-    break;
-  }
-
-  if (!pagePtr) {
-    // No pages are available, or VirtualAlloc/mprotect failed.
+  Maybe<uintptr_t> mb_index = PHC::sPHC->PopNextFreeIfAllocatable(lock, now);
+  if (!mb_index) {
     PHC::sPHC->IncPageAllocMisses(lock);
-#if PHC_LOGGING
-    phc::PHCStats stats = PHC::sPHC->GetPageStats(lock);
-#endif
-    LOG("No PageAlloc(%zu, %zu), sAllocDelay <- %zu, fullness %zu/%zu/%zu, "
-        "hits %zu/%zu (%zu%%)\n",
-        aReqSize, aAlignment, size_t(newAllocDelay), stats.mSlotsAllocated,
-        stats.mSlotsFreed, kNumAllocPages, PHC::sPHC->PageAllocHits(lock),
-        PHC::sPHC->PageAllocAttempts(lock), PHC::sPHC->PageAllocHitRate(lock));
+    LogNoAlloc(aReqSize, aAlignment, newAllocDelay);
+    return nullptr;
   }
+  uintptr_t index = mb_index.value();
+
+#if PHC_LOGGING
+  Time lifetime = 0;
+#endif
+  uint8_t* pagePtr = PHC::sRegion->AllocPagePtr(index);
+  MOZ_ASSERT(pagePtr);
+  bool ok =
+#ifdef XP_WIN
+      !!VirtualAlloc(pagePtr, kPageSize, MEM_COMMIT, PAGE_READWRITE);
+#else
+      mprotect(pagePtr, kPageSize, PROT_READ | PROT_WRITE) == 0;
+#endif
+
+  if (!ok) {
+    PHC::sPHC->UnpopNextFree(lock, index);
+    PHC::sPHC->IncPageAllocMisses(lock);
+    LogNoAlloc(aReqSize, aAlignment, newAllocDelay);
+    return nullptr;
+  }
+
+  size_t usableSize = MozJemalloc::malloc_good_size(aReqSize);
+  MOZ_ASSERT(usableSize > 0);
+
+  // Put the allocation as close to the end of the page as possible,
+  // allowing for alignment requirements.
+  uint8_t* ptr = pagePtr + kPageSize - usableSize;
+  if (aAlignment != 1) {
+    ptr = reinterpret_cast<uint8_t*>(
+        (reinterpret_cast<uintptr_t>(ptr) & ~(aAlignment - 1)));
+  }
+
+#if PHC_LOGGING
+  Time then = PHC::sPHC->GetFreeTime(i);
+  lifetime = then != 0 ? now - then : 0;
+#endif
+
+  PHC::sPHC->SetPageInUse(lock, index, aArenaId, ptr, allocStack);
+
+  if (aZero) {
+    memset(ptr, 0, usableSize);
+  } else {
+#ifdef DEBUG
+    memset(ptr, kAllocJunk, usableSize);
+#endif
+  }
+
+  PHC::sPHC->IncPageAllocHits(lock);
+#if PHC_LOGGING
+  phc::PHCStats stats = PHC::sPHC->GetPageStats(lock);
+#endif
+  LOG("PageAlloc(%zu, %zu) -> %p[%zu]/%p (%zu) (z%zu), sAllocDelay <- %zu, "
+      "fullness %zu/%zu/%zu, hits %zu/%zu (%zu%%), lifetime %zu\n",
+      aReqSize, aAlignment, pagePtr, i, ptr, usableSize, size_t(newAllocDelay),
+      size_t(PHC::SharedAllocDelay()), stats.mSlotsAllocated, stats.mSlotsFreed,
+      kNumAllocPages, PHC::sPHC->PageAllocHits(lock),
+      PHC::sPHC->PageAllocAttempts(lock), PHC::sPHC->PageAllocHitRate(lock),
+      lifetime);
 
   return ptr;
 }
