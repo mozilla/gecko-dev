@@ -46,38 +46,6 @@ export var FormAutofillContent = {
 
     // eslint-disable-next-line mozilla/balanced-listeners
     Services.cpmm.sharedData.addEventListener("change", this);
-
-    this.activeAutofillChild = null;
-  },
-
-  get activeFieldDetail() {
-    return this.activeAutofillChild?.activeFieldDetail;
-  },
-
-  get activeFormDetails() {
-    return this.activeAutofillChild?.activeFormDetails;
-  },
-
-  get activeInput() {
-    return this.activeAutofillChild?.activeInput;
-  },
-
-  get activeHandler() {
-    return this.activeAutofillChild?.activeHandler;
-  },
-
-  get activeSection() {
-    return this.activeAutofillChild?.activeSection;
-  },
-
-  set autofillPending(flag) {
-    if (this.activeAutofillChild) {
-      this.activeAutofillChild.autofillPending = flag;
-    }
-  },
-
-  updateActiveAutofillChild(autofillChild) {
-    this.activeAutofillChild = autofillChild;
   },
 
   showPopup() {
