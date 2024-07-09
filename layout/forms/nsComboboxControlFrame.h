@@ -117,8 +117,8 @@ class nsComboboxControlFrame final : public nsHTMLButtonControlFrame,
   nscoord GetLongestOptionISize(gfxContext*) const;
 
   // Helper for GetMinISize/GetPrefISize
-  nscoord GetIntrinsicISize(gfxContext* aRenderingContext,
-                            mozilla::IntrinsicISizeType aType);
+  nscoord IntrinsicISize(gfxContext* aRenderingContext,
+                         mozilla::IntrinsicISizeType aType);
 
   class RedisplayTextEvent : public mozilla::Runnable {
    public:

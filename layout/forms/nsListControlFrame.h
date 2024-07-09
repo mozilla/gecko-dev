@@ -264,6 +264,10 @@ class nsListControlFrame final : public mozilla::ScrollContainerFrame,
   // non-dropdown mode.
   nscoord CalcIntrinsicBSize(nscoord aBSizeOfARow, int32_t aNumberOfOptions);
 
+  // Helper for GetMinISize/GetPrefISize.
+  nscoord IntrinsicISize(gfxContext* aRenderingContext,
+                         mozilla::IntrinsicISizeType aType);
+
   // Dropped down stuff
   void SetComboboxItem(int32_t aIndex);
 

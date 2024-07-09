@@ -321,8 +321,8 @@ ImgDrawResult nsFieldSetFrame::PaintBorder(nsDisplayListBuilder* aBuilder,
   return result;
 }
 
-nscoord nsFieldSetFrame::GetIntrinsicISize(gfxContext* aRenderingContext,
-                                           IntrinsicISizeType aType) {
+nscoord nsFieldSetFrame::IntrinsicISize(gfxContext* aRenderingContext,
+                                        IntrinsicISizeType aType) {
   // Both inner and legend are children, and if the fieldset is
   // size-contained they should not contribute to the intrinsic size.
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
@@ -348,11 +348,11 @@ nscoord nsFieldSetFrame::GetIntrinsicISize(gfxContext* aRenderingContext,
 }
 
 nscoord nsFieldSetFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return GetIntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
+  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
 }
 
 nscoord nsFieldSetFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return GetIntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
+  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
 }
 
 /* virtual */

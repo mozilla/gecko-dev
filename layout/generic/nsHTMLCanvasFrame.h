@@ -88,6 +88,9 @@ class nsHTMLCanvasFrame final : public nsContainerFrame {
 
  protected:
   virtual ~nsHTMLCanvasFrame();
+
+  // Helper for GetMinISize/GetPrefISize.
+  nscoord IntrinsicISize(gfxContext* aRenderingContext);
 };
 
 #endif /* nsHTMLCanvasFrame_h___ */

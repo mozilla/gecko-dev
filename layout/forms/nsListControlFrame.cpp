@@ -228,35 +228,32 @@ nscoord nsListControlFrame::CalcBSizeOfARow() {
   return rowBSize;
 }
 
-nscoord nsListControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  // Always add scrollbar inline sizes to the pref-inline-size of the
+nscoord nsListControlFrame::IntrinsicISize(gfxContext* aRenderingContext,
+                                           IntrinsicISizeType aType) {
+  // Always add scrollbar inline sizes to the intrinsic isize of the
   // scrolled content. Combobox frames depend on this happening in the
   // dropdown, and standalone listboxes are overflow:scroll so they need
   // it too.
   WritingMode wm = GetWritingMode();
-  Maybe<nscoord> containISize = ContainIntrinsicISize();
-  nscoord result = containISize
-                       ? *containISize
-                       : GetScrolledFrame()->GetPrefISize(aRenderingContext);
+  nscoord result;
+  if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
+    result = *containISize;
+  } else if (aType == IntrinsicISizeType::MinISize) {
+    result = GetScrolledFrame()->GetMinISize(aRenderingContext);
+  } else {
+    result = GetScrolledFrame()->GetPrefISize(aRenderingContext);
+  }
   LogicalMargin scrollbarSize(wm, GetDesiredScrollbarSizes());
   result = NSCoordSaturatingAdd(result, scrollbarSize.IStartEnd(wm));
   return result;
 }
 
-nscoord nsListControlFrame::GetMinISize(gfxContext* aRenderingContext) {
-  // Always add scrollbar inline sizes to the min-inline-size of the
-  // scrolled content. Combobox frames depend on this happening in the
-  // dropdown, and standalone listboxes are overflow:scroll so they need
-  // it too.
-  WritingMode wm = GetWritingMode();
-  Maybe<nscoord> containISize = ContainIntrinsicISize();
-  nscoord result = containISize
-                       ? *containISize
-                       : GetScrolledFrame()->GetMinISize(aRenderingContext);
-  LogicalMargin scrollbarSize(wm, GetDesiredScrollbarSizes());
-  result += scrollbarSize.IStartEnd(wm);
+nscoord nsListControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
+  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
+}
 
-  return result;
+nscoord nsListControlFrame::GetMinISize(gfxContext* aRenderingContext) {
+  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
 }
 
 void nsListControlFrame::Reflow(nsPresContext* aPresContext,

@@ -366,34 +366,25 @@ nsIntSize nsHTMLCanvasFrame::GetCanvasSize() const {
   return size;
 }
 
-/* virtual */
-nscoord nsHTMLCanvasFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsHTMLCanvasFrame::IntrinsicISize(gfxContext* aRenderingContext) {
   // XXX The caller doesn't account for constraints of the height,
   // min-height, and max-height properties.
-  nscoord result;
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
-    result = *containISize;
-  } else {
-    bool vertical = GetWritingMode().IsVertical();
-    result = nsPresContext::CSSPixelsToAppUnits(
-        vertical ? GetCanvasSize().height : GetCanvasSize().width);
+    return *containISize;
   }
-  return result;
+  bool vertical = GetWritingMode().IsVertical();
+  return nsPresContext::CSSPixelsToAppUnits(vertical ? GetCanvasSize().height
+                                                     : GetCanvasSize().width);
+}
+
+/* virtual */
+nscoord nsHTMLCanvasFrame::GetMinISize(gfxContext* aRenderingContext) {
+  return IntrinsicISize(aRenderingContext);
 }
 
 /* virtual */
 nscoord nsHTMLCanvasFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  // XXX The caller doesn't account for constraints of the height,
-  // min-height, and max-height properties.
-  nscoord result;
-  if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
-    result = *containISize;
-  } else {
-    bool vertical = GetWritingMode().IsVertical();
-    result = nsPresContext::CSSPixelsToAppUnits(
-        vertical ? GetCanvasSize().height : GetCanvasSize().width);
-  }
-  return result;
+  return IntrinsicISize(aRenderingContext);
 }
 
 /* virtual */

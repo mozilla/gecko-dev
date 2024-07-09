@@ -170,8 +170,8 @@ nscoord nsComboboxControlFrame::GetLongestOptionISize(
   return maxOptionSize;
 }
 
-nscoord nsComboboxControlFrame::GetIntrinsicISize(gfxContext* aRenderingContext,
-                                                  IntrinsicISizeType aType) {
+nscoord nsComboboxControlFrame::IntrinsicISize(gfxContext* aRenderingContext,
+                                               IntrinsicISizeType aType) {
   Maybe<nscoord> containISize = ContainIntrinsicISize(NS_UNCONSTRAINEDSIZE);
   if (containISize && *containISize != NS_UNCONSTRAINEDSIZE) {
     return *containISize;
@@ -188,16 +188,11 @@ nscoord nsComboboxControlFrame::GetIntrinsicISize(gfxContext* aRenderingContext,
 }
 
 nscoord nsComboboxControlFrame::GetMinISize(gfxContext* aRenderingContext) {
-  nscoord minISize;
-  minISize = GetIntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
-  return minISize;
+  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
 }
 
 nscoord nsComboboxControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  nscoord prefISize;
-  prefISize =
-      GetIntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
-  return prefISize;
+  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
 }
 
 dom::HTMLSelectElement& nsComboboxControlFrame::Select() const {

@@ -238,22 +238,21 @@ void nsHTMLButtonControlFrame::BuildDisplayList(
   DisplaySelectionOverlay(aBuilder, aLists.Content());
 }
 
-nscoord nsHTMLButtonControlFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsHTMLButtonControlFrame::IntrinsicISize(
+    gfxContext* aRenderingContext, mozilla::IntrinsicISizeType aType) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
-  nsIFrame* kid = mFrames.FirstChild();
-  return nsLayoutUtils::IntrinsicForContainer(aRenderingContext, kid,
-                                              IntrinsicISizeType::MinISize);
+  return nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
+                                              mFrames.FirstChild(), aType);
+}
+
+nscoord nsHTMLButtonControlFrame::GetMinISize(gfxContext* aRenderingContext) {
+  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
 }
 
 nscoord nsHTMLButtonControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
-    return *containISize;
-  }
-  nsIFrame* kid = mFrames.FirstChild();
-  return nsLayoutUtils::IntrinsicForContainer(aRenderingContext, kid,
-                                              IntrinsicISizeType::PrefISize);
+  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
 }
 
 void nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
