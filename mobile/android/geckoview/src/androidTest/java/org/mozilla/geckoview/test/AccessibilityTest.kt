@@ -363,7 +363,7 @@ class AccessibilityTest : BaseSessionTest() {
         loadTestPage("test-text-entry-node")
         waitForInitialFocus()
 
-        mainSession.evaluateJS("document.querySelector('input[aria-label=Name]').focus()")
+        mainSession.evaluateJS("document.querySelector('input[aria-label=Naame]').focus()")
 
         sessionRule.waitUntilCalled(object : EventDelegate {
             @AssertCalled(count = 1)
@@ -378,7 +378,7 @@ class AccessibilityTest : BaseSessionTest() {
                 assertThat(
                     "Hint has field name",
                     node.extras.getString("AccessibilityNodeInfo.hint"),
-                    equalTo("Name description"),
+                    equalTo("Naame description"),
                 )
             }
         })
@@ -2175,13 +2175,13 @@ class AccessibilityTest : BaseSessionTest() {
         loadTestPage("test-text-entry-node")
         waitForInitialFocus()
 
-        mainSession.evaluateJS("document.querySelector('input[aria-label=Name]').focus()")
+        mainSession.evaluateJS("document.querySelector('input[aria-label=Naame]').focus()")
         sessionRule.waitUntilCalled(object : EventDelegate {
             @AssertCalled(count = 1)
             override fun onFocused(event: AccessibilityEvent) {}
         })
 
-        mainSession.evaluateJS("document.querySelector('input[aria-label=Name]').value = 'Tobiasas'")
+        mainSession.evaluateJS("document.querySelector('input[aria-label=Naame]').value = 'Tobiasas'")
 
         sessionRule.waitUntilCalled(object : EventDelegate {
             @AssertCalled(count = 1)
