@@ -179,6 +179,7 @@ let AVAILABLE_PIP_OVERRIDES;
 
     hulu: {
       "https://www.hulu.com/watch/*": {
+        policy: TOGGLE_POLICIES.ONE_QUARTER,
         videoWrapperScriptPath: "video-wrappers/hulu.js",
       },
     },
