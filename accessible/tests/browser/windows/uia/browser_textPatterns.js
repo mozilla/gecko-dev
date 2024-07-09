@@ -970,3 +970,52 @@ addUiaTask(
     }
   }
 );
+
+/**
+ * Test the TextRange pattern's GetChildren method.
+ */
+addUiaTask(
+  `<div id="editable" contenteditable role="textbox">ab <span id="cdef" role="button"><span>cd</span> <a id="ef" href="/">ef</a> </span><img id="g" src="https://example.com/a11y/accessible/tests/mochitest/moz.png" alt="g"></div>`,
+  async function testTextRangeGetChildren() {
+    info("Getting editable DocumentRange");
+    await runPython(`
+      doc = getDocUia()
+      editable = findUiaByDomId(doc, "editable")
+      text = getUiaPattern(editable, "Text")
+      global r
+      r = text.DocumentRange
+    `);
+    await isUiaElementArray(
+      `r.GetChildren()`,
+      ["cdef", "g"],
+      "Children are correct"
+    );
+    info("Expanding to word");
+    await runPython(`r.ExpandToEnclosingUnit(TextUnit_Word)`);
+    // Range is now "ab ".
+    await isUiaElementArray(`r.GetChildren()`, [], "Children are correct");
+    info("Moving 1 word");
+    await runPython(`r.Move(TextUnit_Word, 1)`);
+    // Range is now "cd ".
+    await isUiaElementArray(`r.GetChildren()`, [], "Children are correct");
+    info("Moving 1 word");
+    await runPython(`r.Move(TextUnit_Word, 1)`);
+    // Range is now "ef ". The range includes the link but is not completely
+    // enclosed by the link.
+    await isUiaElementArray(`r.GetChildren()`, ["ef"], "Children are correct");
+    info("Moving end -1 character");
+    await runPython(
+      `r.MoveEndpointByUnit(TextPatternRangeEndpoint_End, TextUnit_Character, -1)`
+    );
+    // Range is now "ef". The range encloses the link, so there are no children.
+    await isUiaElementArray(`r.GetChildren()`, [], "Children are correct");
+    info("Moving 1 word");
+    await runPython(`r.Move(TextUnit_Word, 1)`);
+    // Range is now the embedded object character for the img (g). The range is
+    // completely enclosed by the image.
+    // The IA2 -> UIA proxy gets this wrong.
+    if (gIsUiaEnabled) {
+      await isUiaElementArray(`r.GetChildren()`, [], "Children are correct");
+    }
+  }
+);

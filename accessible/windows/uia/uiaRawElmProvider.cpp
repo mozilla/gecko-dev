@@ -1458,12 +1458,10 @@ long uiaRawElmProvider::GetLiveSetting() const {
 }
 
 SAFEARRAY* a11y::AccessibleArrayToUiaArray(const nsTArray<Accessible*>& aAccs) {
-  if (aAccs.IsEmpty()) {
-    // The UIA documentation is unclear about this, but the UIA client
-    // framework seems to treat a null value the same as an empty array. This
-    // is also what Chromium does.
-    return nullptr;
-  }
+  // The UIA client framework seems to treat a null value the same as an empty
+  // array most of the time, but not always. In particular, Narrator breaks if
+  // ITextRangeProvider::GetChildren returns null instead of an empty array.
+  // Therefore, don't return null for an empty array.
   SAFEARRAY* uias = SafeArrayCreateVector(VT_UNKNOWN, 0, aAccs.Length());
   LONG indices[1] = {0};
   for (Accessible* acc : aAccs) {
