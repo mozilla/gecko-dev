@@ -1,0 +1,129 @@
+.card-stp-thumbs-buttons-wrapper {
+  margin-top: var(--space-medium);
+  z-index: 1;
+  visibility: hidden;
+  opacity: 0;
+
+  .card-stp-thumbs-buttons {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: end;
+    gap: var(--space-medium);
+  }
+
+  .card-stp-thumbs-button {
+    pointer-events: auto;
+    opacity: 0.8;
+    -moz-context-properties: fill;
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+    }
+  }
+
+  .icon-thumbs-up,
+  .icon-thumbs-down {
+    display: block;
+    border: 0;
+    background-color: transparent;
+    background-size: var(--icon-size-default);
+    background-position: center;
+    padding: var(--space-small);
+    fill: light-dark(var(--color-gray-70), var(--color-gray-05));
+    transition: fill 0.3s ease-in-out;
+
+    &:hover {
+      fill: light-dark(var(--color-gray-100), var(--text-color));
+    }
+
+    &:hover:active {
+      fill: var(--color-accent-primary);
+    }
+
+    &.is-active {
+      animation: iconBounce 0.2s ease-in-out;
+      fill: var(--color-accent-primary);
+    }
+  }
+}
+
+
+.ds-card {
+  &.active,
+  &:focus-within,
+  &:hover {
+    .card-stp-thumbs-buttons-wrapper {
+      visibility: visible;
+      opacity: 1;
+    }
+  }
+}
+
+// Animations for thumbs up/down
+@keyframes iconBounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(0.6);
+  }
+}
+
+// Thumbs Up/Down UI Overrides across the entire page
+.thumbs-ui-compact {
+
+  // Base.scss
+
+  // Edge case for if search is turned off
+  &.no-search main {
+    margin-top: var(--space-xxlarge);
+  }
+
+  section {
+    margin-bottom: 0;
+  }
+
+  // CollapsibleSection.scss
+  .collapsible-section {
+    padding: 0 $section-horizontal-padding;
+    margin-bottom: var(--space-xxlarge);
+  }
+
+  // _Search.scss
+  .search-wrapper {
+    padding: 0;
+    margin: var(--space-xxlarge) 0;
+
+    .logo-and-wordmark {
+      margin-bottom: var(--space-xxlarge);
+    }
+
+    @media (height <=700px) {
+      padding: 0;
+      margin-top: 0;
+    }
+
+    @media (height > 700px) {
+      padding: 0;
+    }
+  }
+
+  &.fixed-search .search-wrapper {
+    margin-top: 0;
+  }
+
+  // _TopSites.scss
+  .top-site-outer {
+    margin-block-end: 0;
+
+    .top-site-inner>a {
+      // Setting individual properties to negative undefined variable reference ($half-base-gutter)
+      padding-top: var(--space-xsmall);
+      padding-bottom: var(--space-xsmall);
+    }
+  }
+}

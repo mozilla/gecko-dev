@@ -93,59 +93,6 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     }
   }
 
-  .card-stp-thumbs-buttons-wrapper {
-    margin-top: var(--space-medium);
-    z-index: 1;
-    visibility: hidden;
-    opacity: 0;
-
-    .card-stp-thumbs-buttons {
-      display: flex;
-      height: 100%;
-      align-items: center;
-      justify-content: end;
-      gap: var(--space-medium);
-    }
-
-    .card-stp-thumbs-button {
-      pointer-events: auto;
-      opacity: 0.8;
-      -moz-context-properties: fill;
-
-      &:hover,
-      &:focus-visible {
-        opacity: 1;
-      }
-    }
-
-    .icon-thumbs-up,
-    .icon-thumbs-down {
-      display: block;
-      border: 0;
-      background-color: transparent;
-      background-size: var(--icon-size-default);
-      background-position: center;
-      padding: var(--space-small);
-      fill: light-dark(var(--color-gray-70), var(--color-gray-05));
-      transition: fill 0.3s ease-in-out;
-
-      &:hover {
-        fill: light-dark(var(--color-gray-100), var(--text-color));
-      }
-
-      &:hover:active {
-        fill: var(--color-accent-primary);
-      }
-
-      &.is-active {
-        animation: iconBounce 0.2s ease-in-out;
-        fill: var(--color-accent-primary);
-      }
-    }
-  }
-
-
-
   // Override note: The colors set here are intentionally static
   // due to transparency issues over images.
   .context-menu-button {
@@ -177,6 +124,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     }
   }
 
+  // Note: `.ds-card .active,:focus-within,:hover` is also utilized by DSThumbsUpDownButtons
   // The active class is added when the context menu is open.
   &.active,
   &:focus-within,
@@ -190,11 +138,6 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
         opacity: 1;
         transform: scale(1);
       }
-    }
-
-    .card-stp-thumbs-buttons-wrapper {
-      visibility: visible;
-      opacity: 1;
     }
 
     header {
@@ -373,15 +316,3 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     margin: 0;
   }
 }
-
-// Animations for thumbs up/down
-@keyframes iconBounce {
-  0%, 100% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(0.6);
-  }
-}
-

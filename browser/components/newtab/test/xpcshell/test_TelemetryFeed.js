@@ -3166,6 +3166,88 @@ add_task(
 );
 
 add_task(
+  async function test_handleDiscoveryStreamUserEvent_thumbs_down_event() {
+    info(
+      "TelemetryFeed.handleDiscoveryStreamUserEvent instruments a thumbs down" +
+        " event of an organic story"
+    );
+
+    let sandbox = sinon.createSandbox();
+    let instance = new TelemetryFeed();
+    Services.fog.testResetFOG();
+    const ACTION_POSITION = 42;
+    let action = ac.DiscoveryStreamUserEvent({
+      event: "POCKET_THUMBS_DOWN",
+      action_position: ACTION_POSITION,
+      value: {
+        card_type: "organic",
+        recommendation_id: "decaf-c0ff33",
+        tile_id: 314623757745896,
+        thumbs_down: true,
+        thumbs_up: false,
+      },
+    });
+
+    const SESSION_ID = "decafc0ffee";
+    sandbox.stub(instance.sessions, "get").returns({ session_id: SESSION_ID });
+
+    instance.handleDiscoveryStreamUserEvent(action);
+
+    let thumbVotes = Glean.pocket.thumbVotingInteraction.testGetValue();
+    Assert.equal(thumbVotes.length, 1, "Recorded 1 thumbs down");
+    Assert.deepEqual(thumbVotes[0].extra, {
+      newtab_visit_id: SESSION_ID,
+      recommendation_id: "decaf-c0ff33",
+      tile_id: String(314623757745896),
+      thumbs_down: String(true),
+      thumbs_up: String(false),
+    });
+
+    sandbox.restore();
+  }
+);
+
+add_task(async function test_handleDiscoveryStreamUserEvent_thumbs_up_event() {
+  info(
+    "TelemetryFeed.handleDiscoveryStreamUserEvent instruments a thumbs up" +
+      " event of an organic story"
+  );
+
+  let sandbox = sinon.createSandbox();
+  let instance = new TelemetryFeed();
+  Services.fog.testResetFOG();
+  const ACTION_POSITION = 42;
+  let action = ac.DiscoveryStreamUserEvent({
+    event: "POCKET_THUMBS_DOWN",
+    action_position: ACTION_POSITION,
+    value: {
+      card_type: "organic",
+      recommendation_id: "decaf-c0ff33",
+      tile_id: 314623757745896,
+      thumbs_down: false,
+      thumbs_up: true,
+    },
+  });
+
+  const SESSION_ID = "decafc0ffee";
+  sandbox.stub(instance.sessions, "get").returns({ session_id: SESSION_ID });
+
+  instance.handleDiscoveryStreamUserEvent(action);
+
+  let thumbVotes = Glean.pocket.thumbVotingInteraction.testGetValue();
+  Assert.equal(thumbVotes.length, 1, "Recorded 1 thumbs down");
+  Assert.deepEqual(thumbVotes[0].extra, {
+    newtab_visit_id: SESSION_ID,
+    recommendation_id: "decaf-c0ff33",
+    tile_id: String(314623757745896),
+    thumbs_down: String(false),
+    thumbs_up: String(true),
+  });
+
+  sandbox.restore();
+});
+
+add_task(
   async function test_handleAboutSponsoredTopSites_record_showPrivacyClick() {
     info(
       "TelemetryFeed.handleAboutSponsoredTopSites should record a Glean " +

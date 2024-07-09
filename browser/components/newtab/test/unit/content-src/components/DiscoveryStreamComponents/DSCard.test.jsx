@@ -10,6 +10,7 @@ import {
   StatusMessage,
   SponsorLabel,
 } from "content-src/components/DiscoveryStreamComponents/DSContextFooter/DSContextFooter";
+import { DSThumbsUpDownButtons } from "content-src/components/DiscoveryStreamComponents/DSThumbsUpDownButtons/DSThumbsUpDownButtons";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { DSLinkMenu } from "content-src/components/DiscoveryStreamComponents/DSLinkMenu/DSLinkMenu";
 import React from "react";
@@ -85,6 +86,42 @@ describe("<DSCard>", () => {
     const contextFooter = wrapper.find(DSContextFooter);
 
     assert.lengthOf(contextFooter.find(StatusMessage), 1);
+  });
+
+  it("should render thumbs up/down UI when not a spoc element ", () => {
+    wrapper = mount(<DSCard mayHaveThumbsUpDown={true} {...DEFAULT_PROPS} />);
+    wrapper.setState({ isSeen: true });
+    const thumbs_up_down_buttons_component = wrapper.find(
+      DSThumbsUpDownButtons
+    );
+    assert.ok(thumbs_up_down_buttons_component.exists());
+  });
+
+  it("thumbs up button should have active class when isThumbsUpActive is true", () => {
+    wrapper = mount(<DSCard mayHaveThumbsUpDown={true} {...DEFAULT_PROPS} />);
+    wrapper.setState({ isSeen: true, isThumbsUpActive: true });
+    const thumbs_up_down_buttons_component = wrapper.find(
+      DSThumbsUpDownButtons
+    );
+    const thumbs_up_active_button = thumbs_up_down_buttons_component.find(
+      ".icon-thumbs-up.is-active"
+    );
+    assert.ok(thumbs_up_active_button.exists());
+  });
+
+  it("should NOT render thumbs up/down UI when a spoc element ", () => {
+    wrapper = mount(
+      <DSCard mayHaveThumbsUpDown={true} sponsor="Mozilla" {...DEFAULT_PROPS} />
+    );
+    wrapper.setState({ isSeen: true });
+    // Note: The wrapper is still rendered for DSCard height but the contents is not
+    const thumbs_up_down_buttons_component = wrapper.find(
+      DSThumbsUpDownButtons
+    );
+    const thumbs_up_down_buttons = thumbs_up_down_buttons_component.find(
+      ".card-stp-thumbs-buttons"
+    );
+    assert.ok(!thumbs_up_down_buttons.exists());
   });
 
   it("should render Sponsored Context for a spoc element", () => {
@@ -434,6 +471,87 @@ describe("<DSCard>", () => {
           ],
         })
       );
+    });
+  });
+
+  describe("DSCard onThumbsUpClick", () => {
+    it("should update state.onThumbsUpClick for onThumbsUpClick", () => {
+      wrapper.setState({ isThumbsUpActive: false });
+      wrapper.instance().onThumbsUpClick();
+      assert.isTrue(wrapper.instance().state.isThumbsUpActive);
+    });
+
+    it("should not fire telemetry for onThumbsUpClick is clicked twice", () => {
+      wrapper.setState({ isThumbsUpActive: true });
+      wrapper.instance().onThumbsUpClick();
+
+      // state.isThumbsUpActive remains in active state
+      assert.isTrue(wrapper.instance().state.isThumbsUpActive);
+      assert.notCalled(dispatch);
+    });
+
+    it("should fire telemetry for onThumbsUpClick", () => {
+      wrapper.instance().onThumbsUpClick();
+
+      assert.calledTwice(dispatch);
+
+      let [action] = dispatch.firstCall.args;
+
+      assert.equal(action.type, "DISCOVERY_STREAM_USER_EVENT");
+      assert.equal(action.data.event, "POCKET_THUMBS_UP");
+      assert.equal(action.data.source, "THUMBS_UI");
+      assert.deepEqual(action.data.value.thumbs_up, true);
+      assert.deepEqual(action.data.value.thumbs_down, false);
+
+      [action] = dispatch.secondCall.args;
+
+      assert.equal(action.type, "SHOW_TOAST_MESSAGE");
+      assert.deepEqual(action.data.showNotifications, true);
+      assert.deepEqual(action.data.toastId, "thumbsUpToast");
+    });
+  });
+
+  describe("DSCard onThumbsDownClick", () => {
+    it("should fire telemetry for onThumbsDownClick", () => {
+      wrapper.setProps({
+        id: "fooidx",
+        pos: 1,
+        type: "foo",
+        fetchTimestamp: undefined,
+        url: "about:robots",
+        dispatch,
+      });
+
+      wrapper.instance().onThumbsDownClick();
+
+      assert.calledThrice(dispatch);
+
+      let [action] = dispatch.firstCall.args;
+
+      console.log(action);
+
+      assert.equal(action.type, "TELEMETRY_IMPRESSION_STATS");
+      assert.equal(action.data.source, "FOO");
+
+      [action] = dispatch.secondCall.args;
+
+      assert.equal(action.type, "DISCOVERY_STREAM_USER_EVENT");
+      assert.equal(action.data.event, "POCKET_THUMBS_DOWN");
+      assert.equal(action.data.source, "THUMBS_UI");
+      assert.deepEqual(action.data.value.thumbs_up, false);
+      assert.deepEqual(action.data.value.thumbs_down, true);
+
+      [action] = dispatch.thirdCall.args;
+
+      assert.equal(action.type, "SHOW_TOAST_MESSAGE");
+      assert.deepEqual(action.data.showNotifications, true);
+      assert.deepEqual(action.data.toastId, "thumbsDownToast");
+    });
+
+    it("should update state.onThumbsDownClick for onThumbsDownClick", () => {
+      wrapper.setState({ isThumbsDownActive: false });
+      wrapper.instance().onThumbsDownClick();
+      assert.isTrue(wrapper.instance().state.isThumbsDownActive);
     });
   });
 

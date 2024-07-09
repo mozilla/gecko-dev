@@ -13,6 +13,7 @@ import {
   SponsorLabel,
   DSMessageFooter,
 } from "../DSContextFooter/DSContextFooter.jsx";
+import { DSThumbsUpDownButtons } from "../DSThumbsUpDownButtons/DSThumbsUpDownButtons.jsx";
 import { FluentOrText } from "../../FluentOrText/FluentOrText.jsx";
 import { connect } from "react-redux";
 import { LinkMenuOptions } from "content-src/lib/link-menu-options";
@@ -106,27 +107,13 @@ export const DefaultMeta = ({
       {excerpt && <p className="excerpt clamp">{excerpt}</p>}
     </div>
     {mayHaveThumbsUpDown && (
-      <div className="card-stp-thumbs-buttons-wrapper">
-        {/* Only show to non-sponsored content */}
-        {!sponsor && (
-          <div className="card-stp-thumbs-buttons">
-            <button
-              onClick={onThumbsUpClick}
-              className={`card-stp-thumbs-button icon icon-thumbs-up ${
-                state.isThumbsUpActive ? "is-active" : null
-              }`}
-              data-l10n-id="newtab-pocket-thumbs-up-tooltip"
-            ></button>
-            <button
-              onClick={onThumbsDownClick}
-              className={`card-stp-thumbs-button icon icon-thumbs-down ${
-                state.isThumbsDownActive ? "is-active" : null
-              }`}
-              data-l10n-id="newtab-pocket-thumbs-down-tooltip"
-            ></button>
-          </div>
-        )}
-      </div>
+      <DSThumbsUpDownButtons
+        onThumbsDownClick={onThumbsDownClick}
+        onThumbsUpClick={onThumbsUpClick}
+        sponsor={sponsor}
+        isThumbsDownActive={state.isThumbsDownActive}
+        isThumbsUpActive={state.isThumbsUpActive}
+      />
     )}
     {!newSponsoredLabel && (
       <DSContextFooter
