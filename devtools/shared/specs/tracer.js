@@ -33,3 +33,10 @@ const tracerSpec = generateActorSpec({
 });
 
 exports.tracerSpec = tracerSpec;
+
+const TRACER_LOG_METHODS = {
+  STDOUT: "stdout",
+  CONSOLE: "console",
+  PROFILER: "profiler",
+};
+exports.TRACER_LOG_METHODS = TRACER_LOG_METHODS;

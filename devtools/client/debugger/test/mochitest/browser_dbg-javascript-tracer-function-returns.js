@@ -15,16 +15,9 @@ add_task(async function testTracingFunctionReturn() {
       encodeURIComponent(`<script>${jsCode}</script><body></body>`)
   );
 
-  await openContextMenuInDebugger(dbg, "trace");
-  let toggled = waitForDispatch(
-    dbg.store,
-    "TOGGLE_JAVASCRIPT_TRACING_FUNCTION_RETURN"
-  );
-  selectContextMenuItem(dbg, `#debugger-trace-menu-item-function-return`);
-  await toggled;
-  ok(true, "Toggled the trace of function returns");
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-function-return");
 
-  await clickElement(dbg, "trace");
+  await toggleJsTracer(dbg.toolbox);
 
   const topLevelThreadActorID =
     dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
@@ -39,20 +32,16 @@ add_task(async function testTracingFunctionReturn() {
   await hasConsoleMessage(dbg, "⟵ λ bar");
   await hasConsoleMessage(dbg, "⟵ λ foo");
 
-  await clickElement(dbg, "trace");
+  await toggleJsTracer(dbg.toolbox);
 
   info("Wait for tracing to be disabled");
   await waitForState(dbg, () => {
     return !dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
   });
 
-  await openContextMenuInDebugger(dbg, "trace");
-  toggled = waitForDispatch(dbg.store, "TOGGLE_JAVASCRIPT_TRACING_VALUES");
-  selectContextMenuItem(dbg, `#debugger-trace-menu-item-log-values`);
-  await toggled;
-  ok(true, "Toggled the log values setting");
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-log-values");
 
-  await clickElement(dbg, "trace");
+  await toggleJsTracer(dbg.toolbox);
 
   info("Wait for tracing to be re-enabled with logging of returned values");
   await waitForState(dbg, () => {
@@ -80,24 +69,14 @@ add_task(async function testTracingFunctionReturn() {
   );
 
   info("Stop tracing");
-  await clickElement(dbg, "trace");
+  await toggleJsTracer(dbg.toolbox);
   await waitForState(dbg, () => {
     return !dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
   });
 
   info("Toggle the two settings to the default value");
-  await openContextMenuInDebugger(dbg, "trace");
-  toggled = waitForDispatch(dbg.store, "TOGGLE_JAVASCRIPT_TRACING_VALUES");
-  selectContextMenuItem(dbg, `#debugger-trace-menu-item-log-values`);
-  await toggled;
-
-  await openContextMenuInDebugger(dbg, "trace");
-  toggled = waitForDispatch(
-    dbg.store,
-    "TOGGLE_JAVASCRIPT_TRACING_FUNCTION_RETURN"
-  );
-  selectContextMenuItem(dbg, `#debugger-trace-menu-item-function-return`);
-  await toggled;
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-log-values");
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-function-return");
 
   // Reset the trace on next interaction setting
   Services.prefs.clearUserPref(

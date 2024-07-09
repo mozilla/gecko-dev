@@ -26,7 +26,7 @@ add_task(async function () {
   );
 
   info("Enable the tracing");
-  await clickElement(dbg, "trace");
+  await toggleJsTracer(dbg.toolbox);
 
   const topLevelThreadActorID =
     dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
@@ -133,7 +133,7 @@ add_task(async function () {
 
   // Test Disabling tracing
   info("Disable the tracing");
-  await clickElement(dbg, "trace");
+  await toggleJsTracer(dbg.toolbox);
   info("Wait for tracing to be disabled");
   await waitForState(dbg, () => {
     return !dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
@@ -156,7 +156,7 @@ add_task(async function () {
   await navigate(dbg, "doc-sourcemaps2.html", "main.js", "main.min.js");
 
   info("Re-enable the tracing after navigation");
-  await clickElement(dbg, "trace");
+  await toggleJsTracer(dbg.toolbox);
 
   const newTopLevelThread =
     dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
@@ -189,26 +189,27 @@ add_task(async function () {
 
 add_task(async function testPersitentLogMethod() {
   let dbg = await initDebugger("doc-scripts.html");
+
   is(
-    dbg.selectors.getJavascriptTracingLogMethod(),
+    dbg.commands.tracerCommand.getTracingOptions().logMethod,
     "console",
     "By default traces are logged to the console"
   );
 
   info("Change the log method to stdout");
-  dbg.actions.setJavascriptTracingLogMethod("stdout");
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-stdout");
 
   await dbg.toolbox.closeToolbox();
 
   dbg = await initDebugger("doc-scripts.html");
   is(
-    dbg.selectors.getJavascriptTracingLogMethod(),
+    dbg.commands.tracerCommand.getTracingOptions().logMethod,
     "stdout",
     "The new setting has been persisted"
   );
 
   info("Reset back to the default value");
-  dbg.actions.setJavascriptTracingLogMethod("console");
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-console");
 });
 
 add_task(async function testPageKeyShortcut() {

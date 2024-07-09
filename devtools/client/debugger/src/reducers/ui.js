@@ -35,12 +35,6 @@ export const initialUIState = () => ({
   inlinePreviewEnabled: features.inlinePreview,
   editorWrappingEnabled: prefs.editorWrapping,
   javascriptEnabled: true,
-  javascriptTracingEnabled: false,
-  javascriptTracingLogMethod: prefs.javascriptTracingLogMethod,
-  javascriptTracingValues: prefs.javascriptTracingValues,
-  javascriptTracingOnNextInteraction: prefs.javascriptTracingOnNextInteraction,
-  javascriptTracingOnNextLoad: prefs.javascriptTracingOnNextLoad,
-  javascriptTracingFunctionReturn: prefs.javascriptTracingFunctionReturn,
   mutableSearchOptions: prefs.searchOptions || {
     [searchKeys.FILE_SEARCH]: {
       regexMatch: false,
@@ -161,53 +155,6 @@ function update(state = initialUIState(), action) {
         return { ...state, highlightedLineRange: null };
       }
       return state;
-    }
-
-    case "TOGGLE_TRACING": {
-      if (action.status === "start") {
-        return { ...state, javascriptTracingEnabled: action.enabled };
-      }
-      return state;
-    }
-
-    case "SET_JAVASCRIPT_TRACING_LOG_METHOD": {
-      prefs.javascriptTracingLogMethod = action.value;
-      return { ...state, javascriptTracingLogMethod: action.value };
-    }
-
-    case "TOGGLE_JAVASCRIPT_TRACING_VALUES": {
-      prefs.javascriptTracingValues = !prefs.javascriptTracingValues;
-      return {
-        ...state,
-        javascriptTracingValues: prefs.javascriptTracingValues,
-      };
-    }
-
-    case "TOGGLE_JAVASCRIPT_TRACING_ON_NEXT_INTERACTION": {
-      prefs.javascriptTracingOnNextInteraction =
-        !prefs.javascriptTracingOnNextInteraction;
-      return {
-        ...state,
-        javascriptTracingOnNextInteraction:
-          prefs.javascriptTracingOnNextInteraction,
-      };
-    }
-
-    case "TOGGLE_JAVASCRIPT_TRACING_ON_NEXT_LOAD": {
-      prefs.javascriptTracingOnNextLoad = !prefs.javascriptTracingOnNextLoad;
-      return {
-        ...state,
-        javascriptTracingOnNextLoad: prefs.javascriptTracingOnNextLoad,
-      };
-    }
-
-    case "TOGGLE_JAVASCRIPT_TRACING_FUNCTION_RETURN": {
-      prefs.javascriptTracingFunctionReturn =
-        !prefs.javascriptTracingFunctionReturn;
-      return {
-        ...state,
-        javascriptTracingFunctionReturn: prefs.javascriptTracingFunctionReturn,
-      };
     }
 
     case "SET_SEARCH_OPTIONS": {
