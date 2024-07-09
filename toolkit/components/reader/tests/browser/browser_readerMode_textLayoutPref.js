@@ -9,6 +9,16 @@ const TEST_PATH = getRootDirectory(gTestPath).replace(
   "https://example.com"
 );
 
+const defaultValues = {
+  "font-family": "Helvetica, Arial, sans-serif",
+  "font-weight": "normal",
+  "content-width": "30em",
+  "line-height": "1.6em",
+  "letter-spacing": "0.00em",
+  "word-spacing": "0.00em",
+  "text-alignment": "start",
+};
+
 async function testTextLayout(aPref, value, cssProp, cssValue) {
   // Enable the improved text and layout menu.
   Services.prefs.setBoolPref("reader.improved_text_menu.enabled", true);
@@ -57,6 +67,62 @@ async function testTextLayout(aPref, value, cssProp, cssValue) {
   );
 }
 
+async function testTextLayoutReset() {
+  // Enable the improved text and layout menu.
+  Services.prefs.setBoolPref("reader.improved_text_menu.enabled", true);
+
+  // Set all prefs to non-default values.
+  Services.prefs.setIntPref(`reader.font_size`, 15);
+  Services.prefs.setCharPref(`reader.font_type`, "serif");
+  Services.prefs.setCharPref(`reader.font_weight`, "bold");
+  Services.prefs.setIntPref(`reader.content_width`, 6);
+  Services.prefs.setIntPref(`reader.line_height`, 6);
+  Services.prefs.setIntPref(`reader.character_spacing`, 3);
+  Services.prefs.setIntPref(`reader.word_spacing`, 3);
+  Services.prefs.setCharPref(`reader.text_alignment`, "left");
+
+  // Open a browser tab, enter reader mode, and test if the reset button
+  // restores the page layout to the default pref values.
+  await BrowserTestUtils.withNewTab(
+    TEST_PATH + "readerModeArticle.html",
+    async function (browser) {
+      let pageShownPromise = BrowserTestUtils.waitForContentEvent(
+        browser,
+        "AboutReaderContentReady"
+      );
+
+      let readerButton = document.getElementById("reader-mode-button");
+      readerButton.click();
+      await pageShownPromise;
+
+      await SpecialPowers.spawn(
+        browser,
+        [Object.keys(defaultValues), defaultValues],
+        (props, defaults) => {
+          let resetButton = content.document.querySelector(
+            ".text-layout-reset-button"
+          );
+          resetButton.click();
+          let container = content.document.querySelector(".container");
+          let style = content.window.getComputedStyle(container);
+
+          for (let prop of props) {
+            let resetValue = style.getPropertyValue(`--${prop}`);
+            Assert.equal(resetValue, defaults[prop]);
+          }
+
+          // Cannot test font size because the font size reset happens asynchronously,
+          // but we can check that font size buttons are re-enabled.
+          let plusButton = content.document.querySelector(
+            ".text-size-plus-button"
+          );
+          Assert.equal(plusButton.hasAttribute("disabled"), false);
+        }
+      );
+    }
+  );
+}
+
 /**
  * Test that the layout and advanced layout pref selection updates
  * the document layout correctly.
@@ -75,4 +141,5 @@ add_task(async function () {
   await testTextLayout("character_spacing", 7, "letter-spacing", "0.18em");
   await testTextLayout("word_spacing", 7, "word-spacing", "0.30em");
   await testTextLayout("text_alignment", "right", "text-alignment", "right");
+  await testTextLayoutReset();
 });
