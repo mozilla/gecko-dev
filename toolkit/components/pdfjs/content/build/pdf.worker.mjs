@@ -2,7 +2,7 @@
  * @licstart The following is the entire license notice for the
  * JavaScript code in this page
  *
- * Copyright 2024 Mozilla Foundation
+ * Copyright 2023 Mozilla Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,6 @@ const RenderingIntentFlag = {
   ANNOTATIONS_FORMS: 0x10,
   ANNOTATIONS_STORAGE: 0x20,
   ANNOTATIONS_DISABLE: 0x40,
-  IS_EDITING: 0x80,
   OPLIST: 0x100
 };
 const AnnotationMode = {
@@ -16252,7 +16251,6 @@ function clearUnicodeCaches() {
 
 
 
-
 const SEAC_ANALYSIS_ENABLED = true;
 const FontFlags = {
   FixedPitch: 1,
@@ -16331,41 +16329,6 @@ function type1FontGlyphMapping(properties, builtInEncoding, glyphNames) {
 function normalizeFontName(name) {
   return name.replaceAll(/[,_]/g, "-").replaceAll(/\s/g, "");
 }
-const getVerticalPresentationForm = getLookupTableFactory(t => {
-  t[0x2013] = 0xfe32;
-  t[0x2014] = 0xfe31;
-  t[0x2025] = 0xfe30;
-  t[0x2026] = 0xfe19;
-  t[0x3001] = 0xfe11;
-  t[0x3002] = 0xfe12;
-  t[0x3008] = 0xfe3f;
-  t[0x3009] = 0xfe40;
-  t[0x300a] = 0xfe3d;
-  t[0x300b] = 0xfe3e;
-  t[0x300c] = 0xfe41;
-  t[0x300d] = 0xfe42;
-  t[0x300e] = 0xfe43;
-  t[0x300f] = 0xfe44;
-  t[0x3010] = 0xfe3b;
-  t[0x3011] = 0xfe3c;
-  t[0x3014] = 0xfe39;
-  t[0x3015] = 0xfe3a;
-  t[0x3016] = 0xfe17;
-  t[0x3017] = 0xfe18;
-  t[0xfe4f] = 0xfe34;
-  t[0xff01] = 0xfe15;
-  t[0xff08] = 0xfe35;
-  t[0xff09] = 0xfe36;
-  t[0xff0c] = 0xfe10;
-  t[0xff1a] = 0xfe13;
-  t[0xff1b] = 0xfe14;
-  t[0xff1f] = 0xfe16;
-  t[0xff3b] = 0xfe47;
-  t[0xff3d] = 0xfe48;
-  t[0xff3f] = 0xfe33;
-  t[0xff5b] = 0xfe37;
-  t[0xff5d] = 0xfe38;
-});
 
 ;// CONCATENATED MODULE: ./src/core/standard_fonts.js
 
@@ -24975,12 +24938,6 @@ class Font {
         warn(`charToGlyph - invalid fontCharCode: ${fontCharCode}`);
       }
     }
-    if (this.missingFile && this.vertical && fontChar.length === 1) {
-      const vertical = getVerticalPresentationForm()[fontChar.charCodeAt(0)];
-      if (vertical) {
-        fontChar = unicode = String.fromCharCode(vertical);
-      }
-    }
     glyph = new fonts_Glyph(charcode, fontChar, unicode, accent, width, vmetric, operatorListId, isSpace, isInFont);
     return this._glyphCache[charcode] = glyph;
   }
@@ -32466,9 +32423,6 @@ class PartialEvaluator {
           if (typeof token === "number") {
             map[charCode] = String.fromCodePoint(token);
             return;
-          }
-          if (token.length % 2 !== 0) {
-            token = "\u0000" + token;
           }
           const str = [];
           for (let k = 0; k < token.length; k += 2) {
@@ -49922,8 +49876,7 @@ class Annotation {
       subtype: params.subtype,
       hasOwnCanvas: false,
       noRotate: !!(this.flags & AnnotationFlag.NOROTATE),
-      noHTML: isLocked && isContentLocked,
-      isEditable: false
+      noHTML: isLocked && isContentLocked
     };
     if (params.collectFields) {
       const kids = dict.get("Kids");
@@ -49968,9 +49921,6 @@ class Annotation {
       return !noPrint;
     }
     return this.printable;
-  }
-  mustBeViewedWhenEditing(isEditing, modifiedIds = null) {
-    return isEditing ? !this.data.isEditable : !modifiedIds?.has(this.data.id);
   }
   get viewable() {
     if (this.data.quadPoints === null) {
@@ -50130,7 +50080,7 @@ class Annotation {
       });
     });
   }
-  async getOperatorList(evaluator, task, intent, annotationStorage) {
+  async getOperatorList(evaluator, task, intent, renderForms, annotationStorage) {
     const {
       hasOwnCanvas,
       id,
@@ -50685,8 +50635,8 @@ class WidgetAnnotation extends Annotation {
     }
     return str;
   }
-  async getOperatorList(evaluator, task, intent, annotationStorage) {
-    if (intent & RenderingIntentFlag.ANNOTATIONS_FORMS && !(this instanceof SignatureWidgetAnnotation) && !this.data.noHTML && !this.data.hasOwnCanvas) {
+  async getOperatorList(evaluator, task, intent, renderForms, annotationStorage) {
+    if (renderForms && !(this instanceof SignatureWidgetAnnotation) && !this.data.noHTML && !this.data.hasOwnCanvas) {
       return {
         opList: new OperatorList(),
         separateForm: true,
@@ -50694,11 +50644,11 @@ class WidgetAnnotation extends Annotation {
       };
     }
     if (!this._hasText) {
-      return super.getOperatorList(evaluator, task, intent, annotationStorage);
+      return super.getOperatorList(evaluator, task, intent, renderForms, annotationStorage);
     }
     const content = await this._getAppearance(evaluator, task, intent, annotationStorage);
     if (this.appearance && content === null) {
-      return super.getOperatorList(evaluator, task, intent, annotationStorage);
+      return super.getOperatorList(evaluator, task, intent, renderForms, annotationStorage);
     }
     const opList = new OperatorList();
     if (!this._defaultAppearance || content === null) {
@@ -51264,7 +51214,7 @@ class ButtonWidgetAnnotation extends WidgetAnnotation {
       warn("Invalid field flags for button widget annotation");
     }
   }
-  async getOperatorList(evaluator, task, intent, annotationStorage) {
+  async getOperatorList(evaluator, task, intent, renderForms, annotationStorage) {
     if (this.data.pushButton) {
       return super.getOperatorList(evaluator, task, intent, false, annotationStorage);
     }
@@ -51276,7 +51226,7 @@ class ButtonWidgetAnnotation extends WidgetAnnotation {
       rotation = storageEntry ? storageEntry.rotation : null;
     }
     if (value === null && this.appearance) {
-      return super.getOperatorList(evaluator, task, intent, annotationStorage);
+      return super.getOperatorList(evaluator, task, intent, renderForms, annotationStorage);
     }
     if (value === null || value === undefined) {
       value = this.data.checkBox ? this.data.fieldValue === this.data.exportValue : this.data.fieldValue === this.data.buttonValue;
@@ -51289,7 +51239,7 @@ class ButtonWidgetAnnotation extends WidgetAnnotation {
         appearance.dict.set("Matrix", this.getRotationMatrix(annotationStorage));
       }
       this.appearance = appearance;
-      const operatorList = super.getOperatorList(evaluator, task, intent, annotationStorage);
+      const operatorList = super.getOperatorList(evaluator, task, intent, renderForms, annotationStorage);
       this.appearance = savedAppearance;
       appearance.dict.set("Matrix", savedMatrix);
       return operatorList;
@@ -51906,8 +51856,7 @@ class PopupAnnotation extends Annotation {
 class FreeTextAnnotation extends MarkupAnnotation {
   constructor(params) {
     super(params);
-    this.data.hasOwnCanvas = this.data.noRotate;
-    this.data.isEditable = !this.data.noHTML;
+    this.data.hasOwnCanvas = !this.data.noHTML;
     this.data.noHTML = false;
     const {
       evaluatorOptions,
@@ -53893,8 +53842,7 @@ class Page {
     task,
     intent,
     cacheKey,
-    annotationStorage = null,
-    modifiedIds = null
+    annotationStorage = null
   }) {
     const contentStreamPromise = this.getContentStream();
     const resourcesPromise = this.loadResources(["ColorSpace", "ExtGState", "Font", "Pattern", "Properties", "Shading", "XObject"]);
@@ -53991,14 +53939,13 @@ class Page {
         };
       }
       const renderForms = !!(intent & RenderingIntentFlag.ANNOTATIONS_FORMS),
-        isEditing = !!(intent & RenderingIntentFlag.IS_EDITING),
         intentAny = !!(intent & RenderingIntentFlag.ANY),
         intentDisplay = !!(intent & RenderingIntentFlag.DISPLAY),
         intentPrint = !!(intent & RenderingIntentFlag.PRINT);
       const opListPromises = [];
       for (const annotation of annotations) {
-        if (intentAny || intentDisplay && annotation.mustBeViewed(annotationStorage, renderForms) && annotation.mustBeViewedWhenEditing(isEditing, modifiedIds) || intentPrint && annotation.mustBePrinted(annotationStorage)) {
-          opListPromises.push(annotation.getOperatorList(partialEvaluator, task, intent, annotationStorage).catch(function (reason) {
+        if (intentAny || intentDisplay && annotation.mustBeViewed(annotationStorage, renderForms) || intentPrint && annotation.mustBePrinted(annotationStorage)) {
+          opListPromises.push(annotation.getOperatorList(partialEvaluator, task, intent, renderForms, annotationStorage).catch(function (reason) {
             warn("getOperatorList - ignoring annotation data during " + `"${task.name}" task: "${reason}".`);
             return {
               opList: null,
@@ -55718,7 +55665,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "4.5.47";
+    const workerVersion = "4.4.140";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -56179,8 +56126,7 @@ class WorkerMessageHandler {
           task,
           intent: data.intent,
           cacheKey: data.cacheKey,
-          annotationStorage: data.annotationStorage,
-          modifiedIds: data.modifiedIds
+          annotationStorage: data.annotationStorage
         }).then(function (operatorListInfo) {
           finishWorkerTask(task);
           if (start) {
@@ -56282,8 +56228,8 @@ if (typeof window === "undefined" && !isNodeJS && typeof self !== "undefined" &&
 
 ;// CONCATENATED MODULE: ./src/pdf.worker.js
 
-const pdfjsVersion = "4.5.47";
-const pdfjsBuild = "1bdd6920f";
+const pdfjsVersion = "4.4.140";
+const pdfjsBuild = "2fbd61944";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };

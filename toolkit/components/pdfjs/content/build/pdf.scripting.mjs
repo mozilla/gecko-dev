@@ -2,7 +2,7 @@
  * @licstart The following is the entire license notice for the
  * JavaScript code in this page
  *
- * Copyright 2024 Mozilla Foundation
+ * Copyright 2023 Mozilla Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2502,11 +2502,10 @@ class Doc extends PDFObject {
     this._zoom = data.zoom || 100;
     this._actions = createActionsMap(data.actions);
     this._globalEval = data.globalEval;
-    this._pageActions = null;
+    this._pageActions = new Map();
     this._userActivation = false;
     this._disablePrinting = false;
     this._disableSaving = false;
-    this._otherPageActions = null;
   }
   _initActions() {
     const dontRun = new Set(["WillClose", "WillSave", "DidSave", "WillPrint", "DidPrint", "OpenAction"]);
@@ -2549,18 +2548,15 @@ class Doc extends PDFObject {
   }
   _dispatchPageEvent(name, actions, pageNumber) {
     if (name === "PageOpen") {
-      this._pageActions ||= new Map();
       if (!this._pageActions.has(pageNumber)) {
         this._pageActions.set(pageNumber, createActionsMap(actions));
       }
       this._pageNum = pageNumber - 1;
     }
-    for (const acts of [this._pageActions, this._otherPageActions]) {
-      actions = acts?.get(pageNumber)?.get(name);
-      if (actions) {
-        for (const action of actions) {
-          this._globalEval(action);
-        }
+    actions = this._pageActions.get(pageNumber)?.get(name);
+    if (actions) {
+      for (const action of actions) {
+        this._globalEval(action);
       }
     }
   }
@@ -2576,32 +2572,6 @@ class Doc extends PDFObject {
     this._fields.set(name, field);
     this._fieldNames.push(name);
     this._numFields++;
-    const po = field.obj._actions.get("PageOpen");
-    const pc = field.obj._actions.get("PageClose");
-    if (po || pc) {
-      this._otherPageActions ||= new Map();
-      let actions = this._otherPageActions.get(field.obj._page + 1);
-      if (!actions) {
-        actions = new Map();
-        this._otherPageActions.set(field.obj._page + 1, actions);
-      }
-      if (po) {
-        let poActions = actions.get("PageOpen");
-        if (!poActions) {
-          poActions = [];
-          actions.set("PageOpen", poActions);
-        }
-        poActions.push(...po);
-      }
-      if (pc) {
-        let pcActions = actions.get("PageClose");
-        if (!pcActions) {
-          pcActions = [];
-          actions.set("PageClose", pcActions);
-        }
-        pcActions.push(...pc);
-      }
-    }
   }
   _getDate(date) {
     if (!date || date.length < 15 || !date.startsWith("D:")) {
@@ -4001,8 +3971,8 @@ function initSandbox(params) {
 
 ;// CONCATENATED MODULE: ./src/pdf.scripting.js
 
-const pdfjsVersion = "4.5.47";
-const pdfjsBuild = "1bdd6920f";
+const pdfjsVersion = "4.4.140";
+const pdfjsBuild = "2fbd61944";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };

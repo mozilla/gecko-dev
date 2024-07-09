@@ -2,7 +2,7 @@
  * @licstart The following is the entire license notice for the
  * JavaScript code in this page
  *
- * Copyright 2024 Mozilla Foundation
+ * Copyright 2023 Mozilla Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -175,9 +175,6 @@ function watchScroll(viewAreaElement, callback, abortSignal = undefined) {
   viewAreaElement.addEventListener("scroll", debounceScroll, {
     useCapture: true,
     signal: abortSignal
-  });
-  abortSignal?.addEventListener("abort", () => window.cancelAnimationFrame(rAF), {
-    once: true
   });
   return state;
 }
@@ -574,10 +571,6 @@ const defaultOptions = {
     value: true,
     kind: OptionKind.BROWSER
   },
-  toolbarDensity: {
-    value: 0,
-    kind: OptionKind.BROWSER
-  },
   annotationEditorMode: {
     value: 0,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
@@ -610,15 +603,15 @@ const defaultOptions = {
     value: false,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
-  enableAltText: {
-    value: false,
-    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
-  },
   enableHighlightEditor: {
     value: false,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
   enableHighlightFloatingButton: {
+    value: false,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+  },
+  enableML: {
     value: false,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
@@ -631,6 +624,10 @@ const defaultOptions = {
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
   enableScripting: {
+    value: true,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+  },
+  enableStampEditor: {
     value: true,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
@@ -1193,10 +1190,12 @@ const {
   PermissionFlag,
   PixelsPerInch,
   RenderingCancelledException,
+  renderTextLayer,
   setLayerDimensions,
   shadow,
   TextLayer,
   UnexpectedResponseException,
+  updateTextLayer,
   Util,
   VerbosityLevel,
   version,
@@ -1389,8 +1388,7 @@ class BasePreferences {
     supportsIntegratedFind: false,
     supportsMouseWheelZoomCtrlKey: true,
     supportsMouseWheelZoomMetaKey: true,
-    supportsPinchToZoom: true,
-    toolbarDensity: 0
+    supportsPinchToZoom: true
   });
   #defaults = Object.freeze({
     annotationEditorMode: 0,
@@ -1399,12 +1397,13 @@ class BasePreferences {
     defaultZoomDelay: 400,
     defaultZoomValue: "",
     disablePageLabels: false,
-    enableAltText: false,
     enableHighlightEditor: false,
     enableHighlightFloatingButton: false,
+    enableML: false,
     enablePermissions: false,
     enablePrintAutoRotate: true,
     enableScripting: true,
+    enableStampEditor: true,
     externalLinkTarget: 0,
     highlightEditorColors: "yellow=#FFFF98,green=#53FFBC,blue=#80EBFF,pink=#FFCBE6,red=#FF4F5F",
     historyUpdateUrl: false,
@@ -1427,7 +1426,6 @@ class BasePreferences {
   });
   #prefs = Object.create(null);
   #initializedPromise = null;
-  static #eventToDispatch = new Set(["toolbarDensity"]);
   constructor() {
     if (this.constructor === BasePreferences) {
       throw new Error("Cannot initialize BasePreferences.");
@@ -1446,11 +1444,10 @@ class BasePreferences {
         options[name] = this.#prefs[name] = typeof prefVal === typeof val ? prefVal : val;
       }
       AppOptions.setAll(options, true);
+      window.addEventListener("updatedPreference", evt => {
+        this.#updatePref(evt.detail);
+      });
     });
-    window.addEventListener("updatedPreference", evt => {
-      this.#updatePref(evt.detail);
-    });
-    this.eventBus = null;
   }
   async _writeToStorage(prefObj) {
     throw new Error("Not implemented: _writeToStorage");
@@ -1458,11 +1455,10 @@ class BasePreferences {
   async _readFromStorage(prefObj) {
     throw new Error("Not implemented: _readFromStorage");
   }
-  async #updatePref({
+  #updatePref({
     name,
     value
   }) {
-    await this.#initializedPromise;
     if (name in this.#browserDefaults) {
       if (typeof value !== typeof this.#browserDefaults[name]) {
         return;
@@ -1476,12 +1472,6 @@ class BasePreferences {
       return;
     }
     AppOptions.set(name, value);
-    if (BasePreferences.#eventToDispatch.has(name)) {
-      this.eventBus?.dispatch(name.toLowerCase(), {
-        source: this,
-        value
-      });
-    }
   }
   async reset() {
     throw new Error("Please use `about:config` to change preferences.");
@@ -1820,15 +1810,6 @@ class FirefoxScripting {
   }
 }
 class MLManager {
-  #enabled = new Map();
-  constructor({
-    enableAltText
-  }) {
-    this.#enabled.set("altText", enableAltText);
-  }
-  isEnabledFor(name) {
-    return this.#enabled.get(name);
-  }
   guess(data) {
     return FirefoxCom.requestAsync("mlGuess", data);
   }
@@ -4396,9 +4377,6 @@ class AnnotationLayerBuilder {
     }
     this.div.hidden = true;
   }
-  hasEditableAnnotations() {
-    return !!this.annotationLayer?.hasEditableAnnotations();
-  }
   #updatePresentationModeState(state) {
     if (!this.div) {
       return;
@@ -5108,7 +5086,6 @@ class PDFPageView {
   #annotationMode = AnnotationMode.ENABLE_FORMS;
   #enableHWA = false;
   #hasRestrictedScaling = false;
-  #isEditing = false;
   #layerProperties = null;
   #loadingId = null;
   #previousRotation = null;
@@ -5238,9 +5215,6 @@ class PDFPageView {
   destroy() {
     this.reset();
     this.pdfPage?.cleanup();
-  }
-  hasEditableAnnotations() {
-    return !!this.annotationLayer?.hasEditableAnnotations();
   }
   get _textHighlighter() {
     return shadow(this, "_textHighlighter", new TextHighlighter({
@@ -5417,19 +5391,6 @@ class PDFPageView {
       }
       this._resetZoomLayer();
     }
-  }
-  toggleEditingMode(isEditing) {
-    if (!this.hasEditableAnnotations()) {
-      return;
-    }
-    this.#isEditing = isEditing;
-    this.reset({
-      keepZoomLayer: true,
-      keepAnnotationLayer: true,
-      keepAnnotationEditorLayer: true,
-      keepXfaLayer: true,
-      keepTextLayer: true
-    });
   }
   update({
     scale = 0,
@@ -5771,8 +5732,7 @@ class PDFPageView {
       annotationMode: this.#annotationMode,
       optionalContentConfigPromise: this._optionalContentConfigPromise,
       annotationCanvasMap: this._annotationCanvasMap,
-      pageColors,
-      isEditing: this.#isEditing
+      pageColors
     };
     const renderTask = this.renderTask = pdfPage.render(renderContext);
     renderTask.onContinue = renderContinueCallback;
@@ -5934,8 +5894,6 @@ class PDFViewer {
   #enablePermissions = false;
   #eventAbortController = null;
   #mlManager = null;
-  #onPageRenderedCallback = null;
-  #switchAnnotationEditorModeTimeoutId = null;
   #getAllTextInProgress = false;
   #hiddenCopyElement = null;
   #interruptCopyCondition = false;
@@ -5945,7 +5903,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.5.47";
+    const viewerVersion = "4.4.140";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -6517,7 +6475,6 @@ class PDFViewer {
     this.viewer.removeAttribute("lang");
     this.#hiddenCopyElement?.remove();
     this.#hiddenCopyElement = null;
-    this.#cleanupSwitchAnnotationEditorMode();
   }
   #ensurePageViewVisible() {
     if (this._scrollMode !== ScrollMode.PAGE) {
@@ -6884,34 +6841,6 @@ class PDFViewer {
       source: this,
       location: this._location
     });
-  }
-  #switchToEditAnnotationMode() {
-    const visible = this._getVisiblePages();
-    const pagesToRefresh = [];
-    const {
-      ids,
-      views
-    } = visible;
-    for (const page of views) {
-      const {
-        view
-      } = page;
-      if (!view.hasEditableAnnotations()) {
-        ids.delete(view.id);
-        continue;
-      }
-      pagesToRefresh.push(page);
-    }
-    if (pagesToRefresh.length === 0) {
-      return null;
-    }
-    this.renderingQueue.renderHighestPriority({
-      first: pagesToRefresh[0],
-      last: pagesToRefresh.at(-1),
-      views: pagesToRefresh,
-      ids
-    });
-    return ids;
   }
   containsElement(element) {
     return this.container.contains(element);
@@ -7315,16 +7244,6 @@ class PDFViewer {
   get containerTopLeft() {
     return this.#containerTopLeft ||= [this.container.offsetTop, this.container.offsetLeft];
   }
-  #cleanupSwitchAnnotationEditorMode() {
-    if (this.#onPageRenderedCallback) {
-      this.eventBus._off("pagerendered", this.#onPageRenderedCallback);
-      this.#onPageRenderedCallback = null;
-    }
-    if (this.#switchAnnotationEditorModeTimeoutId !== null) {
-      clearTimeout(this.#switchAnnotationEditorModeTimeoutId);
-      this.#switchAnnotationEditorModeTimeoutId = null;
-    }
-  }
   get annotationEditorMode() {
     return this.#annotationEditorUIManager ? this.#annotationEditorMode : AnnotationEditorType.DISABLE;
   }
@@ -7345,47 +7264,12 @@ class PDFViewer {
     if (!this.pdfDocument) {
       return;
     }
-    const {
-      eventBus
-    } = this;
-    const updater = () => {
-      this.#cleanupSwitchAnnotationEditorMode();
-      this.#annotationEditorMode = mode;
-      eventBus.dispatch("annotationeditormodechanged", {
-        source: this,
-        mode
-      });
-      this.#annotationEditorUIManager.updateMode(mode, editId, isFromKeyboard);
-    };
-    if (mode === AnnotationEditorType.NONE || this.#annotationEditorMode === AnnotationEditorType.NONE) {
-      const isEditing = mode !== AnnotationEditorType.NONE;
-      if (!isEditing) {
-        this.pdfDocument.annotationStorage.resetModifiedIds();
-      }
-      for (const pageView of this._pages) {
-        pageView.toggleEditingMode(isEditing);
-      }
-      const idsToRefresh = this.#switchToEditAnnotationMode();
-      if (isEditing && editId && idsToRefresh) {
-        this.#cleanupSwitchAnnotationEditorMode();
-        this.#onPageRenderedCallback = ({
-          pageNumber
-        }) => {
-          idsToRefresh.delete(pageNumber);
-          if (idsToRefresh.size === 0) {
-            this.#switchAnnotationEditorModeTimeoutId = setTimeout(updater, 0);
-          }
-        };
-        const {
-          signal
-        } = this.#eventAbortController;
-        eventBus._on("pagerendered", this.#onPageRenderedCallback, {
-          signal
-        });
-        return;
-      }
-    }
-    updater();
+    this.#annotationEditorMode = mode;
+    this.eventBus.dispatch("annotationeditormodechanged", {
+      source: this,
+      mode
+    });
+    this.#annotationEditorUIManager.updateMode(mode, editId, isFromKeyboard);
   }
   set annotationEditorParams({
     type,
@@ -7752,7 +7636,7 @@ const PDFViewerApplication = {
       l10n
     } = this;
     let eventBus;
-    eventBus = this.preferences.eventBus = new FirefoxEventBus(await this._allowedGlobalEventsPromise, externalServices, AppOptions.get("isInAutomation"));
+    eventBus = new FirefoxEventBus(await this._allowedGlobalEventsPromise, externalServices, AppOptions.get("isInAutomation"));
     this._allowedGlobalEventsPromise = null;
     this.eventBus = eventBus;
     this.overlayManager = new OverlayManager();
@@ -7841,6 +7725,9 @@ const PDFViewerApplication = {
     }
     if (appConfig.annotationEditorParams) {
       if (annotationEditorMode !== AnnotationEditorType.DISABLE) {
+        if (AppOptions.get("enableStampEditor")) {
+          appConfig.toolbar?.editorStampButton?.classList.remove("hidden");
+        }
         const editorHighlightButton = appConfig.toolbar?.editorHighlightButton;
         if (editorHighlightButton && AppOptions.get("enableHighlightEditor")) {
           editorHighlightButton.hidden = false;
@@ -7951,10 +7838,7 @@ const PDFViewerApplication = {
     return shadow(this, "externalServices", new ExternalServices());
   },
   get mlManager() {
-    const enableAltText = AppOptions.get("enableAltText");
-    return shadow(this, "mlManager", enableAltText === true ? new MLManager({
-      enableAltText
-    }) : null);
+    return shadow(this, "mlManager", AppOptions.get("enableML") === true ? new MLManager() : null);
   },
   get initialized() {
     return this._initializedCapability.settled;
@@ -9669,8 +9553,8 @@ function webViewerReportTelemetry({
 
 
 
-const pdfjsVersion = "4.5.47";
-const pdfjsBuild = "1bdd6920f";
+const pdfjsVersion = "4.4.140";
+const pdfjsBuild = "2fbd61944";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

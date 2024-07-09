@@ -188,32 +188,7 @@ async function waitForTelemetry(browser) {
  * @param {Object} browser
  * @param {string} name
  */
-async function enableEditor(browser, name, expectedPageRendered) {
-  info("Enable editor: " + name);
-  let loadPromise;
-  if (expectedPageRendered !== 0) {
-    loadPromise = new Promise(resolve => {
-      const removeEventListener = BrowserTestUtils.addContentEventListener(
-        browser,
-        "pagerendered",
-        () => {
-          expectedPageRendered -= 1;
-          if (expectedPageRendered === 0) {
-            removeEventListener();
-            resolve();
-          }
-        },
-        { capture: false, wantUntrusted: true }
-      );
-    });
-  }
-
-  const layerPromise = waitForSelector(
-    browser,
-    `.annotationEditorLayer.${name.toLowerCase()}Editing`,
-    "Wait for the annotation editor layer",
-    true
-  );
+async function enableEditor(browser, name) {
   const editingModePromise = BrowserTestUtils.waitForContentEvent(
     browser,
     "annotationeditormodechanged",
@@ -221,12 +196,16 @@ async function enableEditor(browser, name, expectedPageRendered) {
     null,
     true
   );
+  const editingStatePromise = BrowserTestUtils.waitForContentEvent(
+    browser,
+    "annotationeditorstateschanged",
+    false,
+    null,
+    true
+  );
   await clickOn(browser, `#editor${name}`);
   await editingModePromise;
-  await layerPromise;
-  if (loadPromise) {
-    await loadPromise;
-  }
+  await editingStatePromise;
   await TestUtils.waitForTick();
 }
 
@@ -296,7 +275,6 @@ async function countElements(browser, selector) {
  * @param {number} n
  */
 async function clickAt(browser, x, y, n = 1) {
-  info(`Click at: (${x}, ${y}), ${n} times`);
   await BrowserTestUtils.synthesizeMouseAtPoint(
     x,
     y,
@@ -354,21 +332,21 @@ function focusEditorLayer(browser) {
  * @returns
  */
 async function focus(browser, selector) {
-  info("Focus: " + selector);
-  return SpecialPowers.spawn(
-    browser,
-    [selector],
-    sel =>
-      new Promise(resolve => {
-        const el = content.document.querySelector(sel);
-        if (el === content.document.activeElement) {
-          resolve();
-        } else {
-          el.addEventListener("focus", () => resolve(), { once: true });
-          el.focus();
-        }
-      })
-  );
+  return SpecialPowers.spawn(browser, [selector], function (sel) {
+    const el = content.document.querySelector(sel);
+    if (el === content.document.activeElement) {
+      return Promise.resolve();
+    }
+    const promise = new Promise(resolve => {
+      const listener = () => {
+        el.removeEventListener("focus", listener);
+        resolve();
+      };
+      el.addEventListener("focus", listener);
+    });
+    el.focus();
+    return promise;
+  });
 }
 
 /**
@@ -391,7 +369,6 @@ async function hitKey(browser, char) {
  * @param {string} text
  */
 async function write(browser, text) {
-  info(`Write: ${text}`);
   for (const char of text.split("")) {
     hitKey(browser, char);
   }
@@ -401,7 +378,6 @@ async function write(browser, text) {
  * Hit escape key.
  */
 async function escape(browser) {
-  info("Escape");
   await hitKey(browser, "KEY_Escape");
 }
 
@@ -412,7 +388,6 @@ async function escape(browser) {
  * @param {Object} box
  */
 async function addFreeText(browser, text, box) {
-  info("Add FreeText: " + text);
   const { x, y, width, height } = box;
   const count = await countElements(browser, ".freeTextEditor");
   await focusEditorLayer(browser);
@@ -424,7 +399,6 @@ async function addFreeText(browser, text, box) {
 }
 
 async function waitForEditors(browser, selector, count) {
-  info(`Wait for ${count} editors`);
   await BrowserTestUtils.waitForCondition(
     async () => (await countElements(browser, selector)) === count
   );
