@@ -459,6 +459,7 @@ namespace xsimd
         XSIMD_INLINE batch<T, A> shuffle(batch<T, A> const& x, batch<T, A> const& y, batch_constant<ITy, A, Indices...>, requires_arch<generic>) noexcept
         {
             constexpr size_t bsize = sizeof...(Indices);
+            static_assert(bsize == batch<T, A>::size, "valid shuffle");
 
             // Detect common patterns
             XSIMD_IF_CONSTEXPR(detail::is_swizzle_fst(bsize, Indices...))
@@ -486,14 +487,15 @@ namespace xsimd
                 return select(batch_bool_constant<T, A, (Indices < bsize)...>(), x, y);
             }
 
-#if defined(__has_builtin)
-#if __has_builtin(__builtin_shuffle_vector)
-#define builtin_shuffle __builtin_shuffle_vector
+#if defined(__has_builtin) && !defined(XSIMD_WITH_EMULATED)
+#if __has_builtin(__builtin_shufflevector)
+#define builtin_shuffle __builtin_shufflevector
 #endif
 #endif
 
 #if defined(builtin_shuffle)
-            return builtin_shuffle(x.data, y.data, Indices...);
+            typedef T vty __attribute__((__vector_size__(sizeof(batch<T, A>))));
+            return (typename batch<T, A>::register_type)builtin_shuffle((vty)x.data, (vty)y.data, Indices...);
 
 // FIXME: my experiments show that GCC only correctly optimizes this builtin
 // starting at GCC 13, where it already has __builtin_shuffle_vector

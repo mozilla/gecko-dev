@@ -42,6 +42,10 @@ namespace xsimd
 #define ARCH_FIELD_EX(arch, field_name) \
     unsigned field_name;                \
     XSIMD_INLINE bool has(::xsimd::arch) const { return this->field_name; }
+
+#define ARCH_FIELD_EX_REUSE(arch, field_name) \
+    XSIMD_INLINE bool has(::xsimd::arch) const { return this->field_name; }
+
 #define ARCH_FIELD(name) ARCH_FIELD_EX(name, name)
 
             ARCH_FIELD(sse2)
@@ -72,8 +76,12 @@ namespace xsimd
             ARCH_FIELD(neon)
             ARCH_FIELD(neon64)
             ARCH_FIELD_EX(i8mm<::xsimd::neon64>, i8mm_neon64)
-            ARCH_FIELD(sve)
-            ARCH_FIELD(rvv)
+            ARCH_FIELD_EX(detail::sve<512>, sve)
+            ARCH_FIELD_EX_REUSE(detail::sve<256>, sve)
+            ARCH_FIELD_EX_REUSE(detail::sve<128>, sve)
+            ARCH_FIELD_EX(detail::rvv<512>, rvv)
+            ARCH_FIELD_EX_REUSE(detail::rvv<256>, rvv)
+            ARCH_FIELD_EX_REUSE(detail::rvv<128>, rvv)
             ARCH_FIELD(wasm)
 
 #undef ARCH_FIELD
