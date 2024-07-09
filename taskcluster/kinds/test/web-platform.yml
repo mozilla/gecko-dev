@@ -488,7 +488,6 @@ web-platform-tests-wdspec:
                     default: []
             default:
                 by-test-platform:
-                    android.*: []
                     .*wayland.*: []
                     default: built-projects
     tier:
