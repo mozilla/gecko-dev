@@ -2118,7 +2118,8 @@ abstract class BaseBrowserFragment :
         toolbar.dismissMenu()
 
         // If the navbar feature could be visible, we should update it's state.
-        val shouldUpdateNavBarState = requireContext().settings().navigationToolbarEnabled && !isTablet()
+        val shouldUpdateNavBarState =
+            requireContext().settings().navigationToolbarEnabled && !isTablet() && webAppToolbarShouldBeVisible
         if (shouldUpdateNavBarState) {
             updateNavBarForConfigurationChange(
                 parent = binding.browserLayout,
