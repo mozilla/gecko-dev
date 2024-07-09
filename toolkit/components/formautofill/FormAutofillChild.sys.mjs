@@ -19,7 +19,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FormScenarios: "resource://gre/modules/FormScenarios.sys.mjs",
   FormStateManager: "resource://gre/modules/shared/FormStateManager.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-  setTimeout: "resource://gre/modules/Timer.sys.mjs",
   FORM_SUBMISSION_REASON: "resource://gre/actors/FormHandlerChild.sys.mjs",
 });
 
@@ -42,7 +41,6 @@ export class FormAutofillChild extends JSWindowActorChild {
 
     this._nextHandleElements = [];
     this._hasDOMContentLoadedHandler = false;
-    this._hasPendingTask = false;
 
     this._hasRegisteredPageHide = new Set();
     /**
@@ -63,76 +61,66 @@ export class FormAutofillChild extends JSWindowActorChild {
    * Identifies and marks each autofill field
    */
   identifyAutofillFields() {
-    if (this._hasPendingTask) {
-      return;
+    if (
+      lazy.DELEGATE_AUTOCOMPLETE ||
+      !lazy.FormAutofillContent.savedFieldNames
+    ) {
+      this.debug("identifyAutofillFields: savedFieldNames are not known yet");
+
+      // Init can be asynchronous because we don't need anything from the parent
+      // at this point.
+      this.sendAsyncMessage("FormAutofill:InitStorage");
     }
-    this._hasPendingTask = true;
 
-    lazy.setTimeout(() => {
-      if (
-        lazy.DELEGATE_AUTOCOMPLETE ||
-        !lazy.FormAutofillContent.savedFieldNames
-      ) {
-        this.debug("identifyAutofillFields: savedFieldNames are not known yet");
+    for (const element of this._nextHandleElements) {
+      this.debug(
+        `identifyAutofillFields: ${element.ownerDocument.location?.hostname}`
+      );
 
-        // Init can be asynchronous because we don't need anything from the parent
-        // at this point.
-        this.sendAsyncMessage("FormAutofill:InitStorage");
+      const { handler, newFieldsIdentified } =
+        this._fieldDetailsManager.identifyAutofillFields(element);
+
+      // Bail out if there is nothing changed since last time we identified this element
+      // or there is no interested fields.
+      if (!newFieldsIdentified || !handler.fieldDetails.length) {
+        continue;
       }
 
-      for (const element of this._nextHandleElements) {
-        this.debug(
-          `identifyAutofillFields: ${element.ownerDocument.location?.hostname}`
-        );
+      const fieldDetails = handler.fieldDetails;
+      // Inform the autocomplete controller these fields are autofillable.
+      fieldDetails.forEach(detail => this.#markAsAutofillField(detail.element));
 
-        const { handler, newFieldsIdentified } =
-          this._fieldDetailsManager.identifyAutofillFields(element);
+      // Notify the parent when we detect autofillable fields.
+      this.sendAsyncMessage(
+        "FormAutofill:FieldsDetected",
+        fieldDetails.map(detail => detail.toVanillaObject())
+      );
 
-        // Bail out if there is nothing changed since last time we identified this element
-        // or there is no interested fields.
-        if (!newFieldsIdentified || !handler.fieldDetails.length) {
-          continue;
-        }
+      this.manager
+        .getActor("FormHandler")
+        .registerFormSubmissionInterest(this, {
+          includesFormRemoval: lazy.FormAutofill.captureOnFormRemoval,
+          includesPageNavigation: lazy.FormAutofill.captureOnPageNavigation,
+        });
 
-        const fieldDetails = handler.fieldDetails;
-        // Inform the autocomplete controller these fields are autofillable.
-        fieldDetails.forEach(detail =>
-          this.#markAsAutofillField(detail.element)
-        );
-
-        // Notify the parent when we detect autofillable fields.
-        this.sendAsyncMessage(
-          "FormAutofill:FieldsDetected",
-          fieldDetails.map(detail => detail.toVanillaObject())
-        );
-
-        this.manager
-          .getActor("FormHandler")
-          .registerFormSubmissionInterest(this, {
-            includesFormRemoval: lazy.FormAutofill.captureOnFormRemoval,
-            includesPageNavigation: lazy.FormAutofill.captureOnPageNavigation,
-          });
-
-        // TODO (Bug 1901486): Integrate pagehide to FormHandler.
-        if (!this._hasRegisteredPageHide.has(handler)) {
-          this.registerPageHide(handler);
-          this._hasRegisteredPageHide.add(true);
-        }
+      // TODO (Bug 1901486): Integrate pagehide to FormHandler.
+      if (!this._hasRegisteredPageHide.has(handler)) {
+        this.registerPageHide(handler);
+        this._hasRegisteredPageHide.add(true);
       }
+    }
 
-      if (
-        this._nextHandleElements.includes(lazy.FormAutofillContent.focusedInput)
-      ) {
-        this.#showCreditCardPopupIfEmpty(lazy.FormAutofillContent.focusedInput);
-      }
+    if (
+      this._nextHandleElements.includes(lazy.FormAutofillContent.focusedInput)
+    ) {
+      this.#showCreditCardPopupIfEmpty(lazy.FormAutofillContent.focusedInput);
+    }
 
-      this._hasPendingTask = false;
-      this._nextHandleElements = [];
+    this._nextHandleElements = [];
 
-      // This is for testing purpose only which sends a notification to indicate that the
-      // form has been identified, and ready to open popup.
-      this.sendAsyncMessage("FormAutofill:FieldsIdentified");
-    });
+    // This is for testing purpose only which sends a notification to indicate that the
+    // form has been identified, and ready to open popup.
+    this.sendAsyncMessage("FormAutofill:FieldsIdentified");
   }
 
   #showCreditCardPopupIfEmpty(element) {
