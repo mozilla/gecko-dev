@@ -44,8 +44,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -287,6 +289,7 @@ private fun TabItem(
             FirefoxTheme.colors.layer3
         }
     }
+    val closeTabLabel = stringResource(R.string.close_tab)
 
     TabStripCard(
         modifier = modifier.fillMaxSize(),
@@ -304,6 +307,14 @@ private fun TabItem(
                 .semantics {
                     role = Role.Tab
                     selected = state.isSelected
+                    customActions = listOf(
+                        CustomAccessibilityAction(
+                            label = closeTabLabel,
+                        ) {
+                            onCloseTabClick(state.id, state.isPrivate)
+                            true
+                        },
+                    )
                 },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
