@@ -553,7 +553,7 @@ abstract class BaseBrowserFragment :
             },
         )
 
-        val shouldAddNavigationBar = context.shouldAddNavigationBar()
+        val shouldAddNavigationBar = context.shouldAddNavigationBar() && webAppToolbarShouldBeVisible
         if (shouldAddNavigationBar) {
             initializeNavBar(
                 browserToolbar = browserToolbarView.view,
