@@ -250,9 +250,7 @@ nsresult CharacterData::SetTextInternal(
 
   auto oldDir = Directionality::Unset;
   const bool dirAffectsAncestor =
-      NodeType() == TEXT_NODE &&
-      TextNodeWillChangeDirection(static_cast<nsTextNode*>(this), &oldDir,
-                                  aOffset);
+      IsText() && TextNodeWillChangeDirection(AsText(), &oldDir, aOffset);
 
   if (aOffset == 0 && endOffset == textLength) {
     // Replacing whole text or old text was empty.
@@ -313,8 +311,8 @@ nsresult CharacterData::SetTextInternal(
   if (dirAffectsAncestor) {
     // dirAffectsAncestor being true implies that we have a text node, see
     // above.
-    MOZ_ASSERT(NodeType() == TEXT_NODE);
-    TextNodeChangedDirection(static_cast<nsTextNode*>(this), oldDir, aNotify);
+    MOZ_ASSERT(IsText());
+    TextNodeChangedDirection(AsText(), oldDir, aNotify);
   }
 
   // Notify observers

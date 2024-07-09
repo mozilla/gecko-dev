@@ -11,7 +11,6 @@
 #include "nsTextNode.h"
 #include "mozilla/dom/TextBinding.h"
 #include "nsContentUtils.h"
-#include "mozilla/dom/DirectionalityUtils.h"
 #include "mozilla/dom/Document.h"
 #include "nsThreadUtils.h"
 #include "nsStubMutationObserver.h"
@@ -112,20 +111,6 @@ nsresult nsTextNode::AppendTextForNormalize(const char16_t* aBuffer,
       CharacterDataChangeInfo::Details::eMerge, aNextSibling};
   return SetTextInternal(mText.GetLength(), 0, aBuffer, aLength, aNotify,
                          &details);
-}
-
-nsresult nsTextNode::BindToTree(BindContext& aContext, nsINode& aParent) {
-  nsresult rv = CharacterData::BindToTree(aContext, aParent);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  SetDirectionFromNewTextNode(this);
-
-  return NS_OK;
-}
-
-void nsTextNode::UnbindFromTree(UnbindContext& aContext) {
-  CharacterData::UnbindFromTree(aContext);
-  ResetDirectionSetByTextNode(this, aContext);
 }
 
 #ifdef MOZ_DOM_LIST

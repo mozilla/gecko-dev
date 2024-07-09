@@ -44,9 +44,6 @@ class nsTextNode : public mozilla::dom::Text {
   already_AddRefed<CharacterData> CloneDataNode(
       mozilla::dom::NodeInfo* aNodeInfo, bool aCloneText) const override;
 
-  nsresult BindToTree(BindContext&, nsINode& aParent) override;
-  void UnbindFromTree(UnbindContext&) override;
-
   nsresult AppendTextForNormalize(const char16_t* aBuffer, uint32_t aLength,
                                   bool aNotify, nsIContent* aNextSibling);
 

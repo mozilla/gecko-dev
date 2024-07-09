@@ -13,11 +13,11 @@
 class nsIContent;
 class nsINode;
 class nsAttrValue;
-class nsTextNode;
 
 namespace mozilla::dom {
 class Element;
 class HTMLSlotElement;
+class Text;
 struct UnbindContext;
 }  // namespace mozilla::dom
 
@@ -115,27 +115,27 @@ void WalkDescendantsClearAncestorDirAuto(nsIContent* aContent);
  *
  * @return whether the text node affects the directionality of any element
  */
-bool TextNodeWillChangeDirection(nsTextNode* aTextNode, Directionality* aOldDir,
+bool TextNodeWillChangeDirection(dom::Text* aTextNode, Directionality* aOldDir,
                                  uint32_t aOffset);
 
 /**
  * After the contents of a text node have changed, change the directionality
  * of any elements whose directionality is determined by that node
  */
-void TextNodeChangedDirection(nsTextNode* aTextNode, Directionality aOldDir,
+void TextNodeChangedDirection(dom::Text* aTextNode, Directionality aOldDir,
                               bool aNotify);
 
 /**
  * When a text node is appended to an element, find any ancestors with dir=auto
  * whose directionality will be determined by the text node
  */
-void SetDirectionFromNewTextNode(nsTextNode* aTextNode);
+void SetDirectionFromNewTextNode(dom::Text* aTextNode);
 
 /**
  * When a text node is removed from a document, find any ancestors whose
  * directionality it determined and redetermine their directionality
  */
-void ResetDirectionSetByTextNode(nsTextNode*, dom::UnbindContext&);
+void ResetDirectionSetByTextNode(dom::Text*, dom::UnbindContext&);
 
 /**
  * Set the directionality of an element according to the directionality of the

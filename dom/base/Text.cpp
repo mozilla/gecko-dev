@@ -124,6 +124,20 @@ already_AddRefed<Text> Text::Constructor(const GlobalObject& aGlobal,
   return window->GetDoc()->CreateTextNode(aData);
 }
 
+nsresult Text::BindToTree(BindContext& aContext, nsINode& aParent) {
+  nsresult rv = CharacterData::BindToTree(aContext, aParent);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  SetDirectionFromNewTextNode(this);
+
+  return NS_OK;
+}
+
+void Text::UnbindFromTree(UnbindContext& aContext) {
+  CharacterData::UnbindFromTree(aContext);
+  ResetDirectionSetByTextNode(this, aContext);
+}
+
 bool Text::HasTextForTranslation() {
   if (mText.Is2b()) {
     // The fragment contains non-8bit characters which means there

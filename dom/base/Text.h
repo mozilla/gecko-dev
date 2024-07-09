@@ -29,6 +29,9 @@ class Text : public CharacterData {
                                             const nsAString& aData,
                                             ErrorResult& aRv);
 
+  nsresult BindToTree(BindContext&, nsINode& aParent) override;
+  void UnbindFromTree(UnbindContext&) override;
+
   /**
    * Method to see if the text node contains data that is useful
    * for a translation: i.e., it consists of more than just whitespace,
