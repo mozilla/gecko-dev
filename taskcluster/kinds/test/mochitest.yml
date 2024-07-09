@@ -917,10 +917,6 @@ mochitest-webgl1-ext:
     treeherder-symbol: M(gl1e)
     schedules-component: mochitest-plain
     virtualization: virtual-with-gpu
-    chunks:
-        by-test-platform:
-            android.*: 2
-            default: 1
     test-manifest-loader: null  # don't load tests in the taskgraph
     loopback-video: true
     max-run-time: 2700
@@ -963,7 +959,6 @@ mochitest-webgl1-ext:
     allow-software-gl-layers: false
     mozharness:
         mochitest-flavor: plain
-        chunked: true
         extra-options:
             - --setpref=webgl.out-of-process=false
             - --setpref=security.sandbox.content.headless=false
