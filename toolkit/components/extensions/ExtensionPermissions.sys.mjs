@@ -580,6 +580,40 @@ export var OriginControls = {
   allDomains: new MatchPattern("*://*/*"),
 
   /**
+   * @typedef {object} NativeTab
+   * @property {MozBrowserElement} linkedBrowser
+   */
+
+  /**
+   * Determine if the given Manifest V3 extension has a host permissions for
+   * the given tab which was one expected to be granted at install time (by
+   * being listed in host_permissions or derived from match patterns for
+   * content scripts declared in the manifest).
+   *
+   * NOTE: this helper method is only used for additional checks only hit for
+   * MV3 extensions, but the implementation is technically not strictly MV3
+   * specific.
+   *
+   * @param {WebExtensionPolicy} policy
+   * @param {NativeTab} nativeTab
+   * @returns {boolean} Whether the extension has a non optional host
+   * permission for the given tab.
+   */
+  hasMV3RequestedOrigin(policy, nativeTab) {
+    const uri = nativeTab.linkedBrowser?.currentURI;
+
+    if (!uri) {
+      return false;
+    }
+
+    // Determine if that are host permissions that would have been granted
+    // as install time that are matching the tab URI.
+    const manifestOrigins =
+      policy.extension.getManifestOriginsMatchPatternSet();
+    return manifestOrigins.matches(uri);
+  },
+
+  /**
    * @typedef {object} OriginControlState
    * @param {boolean} noAccess        no options, can never access host.
    * @param {boolean} whenClicked     option to access host when clicked.
@@ -673,14 +707,18 @@ export var OriginControls = {
    */
   getAttentionState(policy, window) {
     if (policy?.manifestVersion >= 3) {
-      const state = this.getState(policy, window.gBrowser.selectedTab);
+      const { selectedTab } = window.gBrowser;
+      const state = this.getState(policy, selectedTab);
       // Request attention when the extension cannot access the current tab,
       // but has a host permission that could be granted.
       // Quarantined is always false when the feature is disabled.
       const quarantined = !!state.quarantined;
-      const attention =
+      let attention =
         quarantined ||
-        (!!state.alwaysOn && !state.hasAccess && !state.temporaryAccess);
+        (!!state.alwaysOn &&
+          !state.hasAccess &&
+          !state.temporaryAccess &&
+          this.hasMV3RequestedOrigin(policy, selectedTab));
 
       return { attention, quarantined };
     }
