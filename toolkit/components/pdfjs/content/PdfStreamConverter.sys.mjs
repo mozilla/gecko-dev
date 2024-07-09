@@ -19,8 +19,9 @@ const PDF_VIEWER_WEB_PAGE = "resource://pdf.js/web/viewer.html";
 const MAX_NUMBER_OF_PREFS = 50;
 const PDF_CONTENT_TYPE = "application/pdf";
 
-// Preferences
+// Preferences to observe
 const caretBrowsingModePref = "accessibility.browsewithcaret";
+const toolbarDensityPref = "browser.uidensity";
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
@@ -190,11 +191,9 @@ class PrefObserver {
   }
 
   #init() {
-    Services.prefs.addObserver(
-      caretBrowsingModePref,
-      this,
-      /* aHoldWeak = */ true
-    );
+    for (const pref of [caretBrowsingModePref, toolbarDensityPref]) {
+      Services.prefs.addObserver(pref, this, /* aHoldWeak = */ true);
+    }
   }
 
   observe(_aSubject, aTopic, aPrefName) {
@@ -214,6 +213,13 @@ class PrefObserver {
           value: Services.prefs.getBoolPref(caretBrowsingModePref),
         });
         break;
+      case toolbarDensityPref: {
+        actor.dispatchEvent(eventName, {
+          name: "toolbarDensity",
+          value: Services.prefs.getIntPref(toolbarDensityPref),
+        });
+        break;
+      }
     }
   }
 
@@ -362,6 +368,7 @@ class ChromeActions {
       supportsCaretBrowsingMode: Services.prefs.getBoolPref(
         caretBrowsingModePref
       ),
+      toolbarDensity: Services.prefs.getIntPref(toolbarDensityPref),
     };
   }
 
