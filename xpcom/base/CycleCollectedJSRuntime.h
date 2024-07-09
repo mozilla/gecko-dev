@@ -10,7 +10,6 @@
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/DeferredFinalize.h"
 #include "mozilla/HashTable.h"
-#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/RefPtr.h"
@@ -395,7 +394,7 @@ class CycleCollectedJSRuntime {
  public:
   void AddJSHolder(void* aHolder, nsScriptObjectTracer* aTracer,
                    JS::Zone* aZone);
-  void RemoveJSHolder(void* aHolder, ShouldClearJSRefs aClearRefs);
+  void RemoveJSHolder(void* aHolder);
 #ifdef DEBUG
   void AssertNoObjectsToTrace(void* aPossibleJSHolder);
 #endif

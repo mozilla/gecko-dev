@@ -1469,35 +1469,22 @@ struct ClearJSHolder : public TraceCallbacks {
   }
 };
 
+void CycleCollectedJSRuntime::RemoveJSHolder(void* aHolder) {
+  nsScriptObjectTracer* tracer = mJSHolders.Extract(aHolder);
+  if (tracer) {
+    // Bug 1531951: The analysis can't see through the virtual call but we know
+    // that the ClearJSHolder tracer will never GC.
+    JS::AutoSuppressGCAnalysis nogc;
+    tracer->Trace(aHolder, ClearJSHolder(), nullptr);
+  }
+}
+
 #ifdef DEBUG
 static void AssertNoGcThing(JS::GCCellPtr aGCThing, const char* aName,
                             void* aClosure) {
   MOZ_ASSERT(!aGCThing);
 }
-#endif
 
-void CycleCollectedJSRuntime::RemoveJSHolder(void* aHolder,
-                                             ShouldClearJSRefs aClearRefs) {
-  nsScriptObjectTracer* tracer = mJSHolders.Extract(aHolder);
-  if (!tracer) {
-    return;
-  }
-
-  // Bug 1531951: The analysis can't see through the virtual calls but we know
-  // that the these tracer callbacks will never GC.
-  JS::AutoSuppressGCAnalysis nogc;
-
-  if (aClearRefs == ShouldClearJSRefs::Clear) {
-    tracer->Trace(aHolder, ClearJSHolder(), nullptr);
-  } else {
-#ifdef DEBUG
-    // Check references to JS GC things were already cleared.
-    tracer->Trace(aHolder, TraceCallbackFunc(AssertNoGcThing), nullptr);
-#endif
-  }
-}
-
-#ifdef DEBUG
 void CycleCollectedJSRuntime::AssertNoObjectsToTrace(void* aPossibleJSHolder) {
   nsScriptObjectTracer* tracer = mJSHolders.Get(aPossibleJSHolder);
   if (tracer) {

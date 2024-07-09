@@ -21,17 +21,13 @@ class Zone;
 // Only HoldJSObjects and DropJSObjects should be called directly.
 
 namespace mozilla {
-
-enum class ShouldClearJSRefs : bool { Clear = true, AlreadyCleared = false };
-
 namespace cyclecollector {
 
 void HoldJSObjectsImpl(void* aHolder, nsScriptObjectTracer* aTracer,
                        JS::Zone* aZone = nullptr);
 void HoldJSObjectsImpl(nsISupports* aHolder);
-void DropJSObjectsImpl(void* aHolder,
-                       ShouldClearJSRefs aClearRefs = ShouldClearJSRefs::Clear);
-void DropJSObjectsImpl(nsISupports* aHolder, ShouldClearJSRefs aClearRefs);
+void DropJSObjectsImpl(void* aHolder);
+void DropJSObjectsImpl(nsISupports* aHolder);
 
 }  // namespace cyclecollector
 
@@ -42,9 +38,7 @@ struct HoldDropJSObjectsHelper {
     cyclecollector::HoldJSObjectsImpl(aHolder,
                                       NS_CYCLE_COLLECTION_PARTICIPANT(T));
   }
-  static void Drop(T* aHolder, ShouldClearJSRefs aClearRefs) {
-    cyclecollector::DropJSObjectsImpl(aHolder, aClearRefs);
-  }
+  static void Drop(T* aHolder) { cyclecollector::DropJSObjectsImpl(aHolder); }
 };
 
 template <class T>
@@ -52,8 +46,8 @@ struct HoldDropJSObjectsHelper<T, true> {
   static void Hold(T* aHolder) {
     cyclecollector::HoldJSObjectsImpl(ToSupports(aHolder));
   }
-  static void Drop(T* aHolder, ShouldClearJSRefs aClearRefs) {
-    cyclecollector::DropJSObjectsImpl(ToSupports(aHolder), aClearRefs);
+  static void Drop(T* aHolder) {
+    cyclecollector::DropJSObjectsImpl(ToSupports(aHolder));
   }
 };
 
@@ -66,16 +60,6 @@ struct HoldDropJSObjectsHelper<T, true> {
   For classes that are wrapper cached and hold no other strong references to JS
   GC things, there's no need to call these; it will be taken care of
   automatically by nsWrapperCache.
-
-  When called with one argument `DropJSObjects` will clear any references to JS
-  GC things. This is important because otherwise these would become dangling
-  references and accessing them after calling `DropJSObjects` could result in
-  use-after-free.
-
-  An optional second argument to `DropJSObjects` can be passed to skip clearing
-  these references in cases where this is guaranteed to have already happened.
-  This may help in places where performance is a concern. The default is to
-  clear these references and is the right thing to do in most circumstances.
 **/
 template <class T>
 void HoldJSObjects(T* aHolder) {
@@ -87,13 +71,12 @@ void HoldJSObjects(T* aHolder) {
 }
 
 template <class T>
-void DropJSObjects(T* aHolder,
-                   ShouldClearJSRefs aClearRefs = ShouldClearJSRefs::Clear) {
+void DropJSObjects(T* aHolder) {
   static_assert(!std::is_base_of<nsCycleCollectionParticipant, T>::value,
                 "Don't call this on the CC participant but on the object that "
                 "it's for (in an Unlink implementation it's usually stored in "
                 "a variable named 'tmp').");
-  HoldDropJSObjectsHelper<T>::Drop(aHolder, aClearRefs);
+  HoldDropJSObjectsHelper<T>::Drop(aHolder);
 }
 
 }  // namespace mozilla
