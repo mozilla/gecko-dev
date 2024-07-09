@@ -91,9 +91,6 @@ def is_applicable_telemetry_environment():
         # we don't want to collect telemetry again down here.
         return False
 
-    if any(e in os.environ for e in ("MOZ_AUTOMATION", "TASK_ID")):
-        return False
-
     return True
 
 

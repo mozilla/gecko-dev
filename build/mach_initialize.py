@@ -417,9 +417,13 @@ def _finalize_telemetry_glean(telemetry, is_bootstrap, success):
         get_vscode_running,
     )
 
+    moz_automation = any(e in os.environ for e in ("MOZ_AUTOMATION", "TASK_ID"))
+
     mach_metrics = telemetry.metrics(MACH_METRICS_PATH)
     mach_metrics.mach.duration.stop()
     mach_metrics.mach.success.set(success)
+    mach_metrics.mach.moz_automation.set(moz_automation)
+
     system_metrics = mach_metrics.mach.system
     cpu_brand = get_cpu_brand()
     if cpu_brand:

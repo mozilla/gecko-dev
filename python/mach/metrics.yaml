@@ -75,6 +75,20 @@ mach:
     expires: never
     send_in_pings:
       - usage
+  moz_automation:
+    type: boolean
+    description: True if this command is being run on Mozilla Automation/CI
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894154
+    data_reviews:
+      - TBD
+    notification_emails:
+      - build-telemetry@mozilla.com
+      - ahochheiden@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage
 
 mach.system:
   cpu_brand:
