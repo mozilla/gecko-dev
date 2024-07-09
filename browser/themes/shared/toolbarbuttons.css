@@ -11,6 +11,28 @@
 
   --toolbarbutton-hover-background: var(--button-hover-bgcolor);
   --toolbarbutton-active-background: var(--button-active-bgcolor);
+  --toolbarbutton-outline-color: transparent;
+  --toolbarbutton-hover-outline-color: transparent;
+  --toolbarbutton-active-outline-color: transparent;
+  --toolbarbutton-selected-outline-color: var(--toolbarbutton-active-outline-color);
+  --toolbarbutton-outline: 1px solid var(--toolbarbutton-outline-color);
+  --toolbarbutton-outline-offset: -1px;
+
+  @media (prefers-contrast) {
+    --toolbarbutton-hover-outline-color: currentColor;
+    --toolbarbutton-active-outline-color: currentColor;
+  }
+
+  @media (forced-colors) {
+    --toolbarbutton-outline-color: ButtonText;
+    --toolbarbutton-hover-outline-color: SelectedItem;
+    --toolbarbutton-active-outline-color: ButtonText;
+    --toolbarbutton-selected-outline-color: SelectedItem;
+
+    &[lwtheme] {
+      --toolbarbutton-outline-color: currentColor;
+    }
+  }
 
   --toolbarseparator-color: color-mix(in srgb, currentColor 60%, transparent);
 
@@ -63,6 +85,15 @@ toolbar .toolbarbutton-1 {
   padding: 0 var(--toolbarbutton-outer-padding);
   justify-content: center;
 
+  > .toolbarbutton-icon,
+  > .toolbarbutton-text,
+  > .toolbarbutton-badge-stack {
+    padding: var(--toolbarbutton-inner-padding);
+    border-radius: var(--toolbarbutton-border-radius);
+    outline: var(--toolbarbutton-outline);
+    outline-offset: var(--toolbarbutton-outline-offset);
+  }
+
   &:focus-visible {
     outline: none;
 
@@ -72,13 +103,6 @@ toolbar .toolbarbutton-1 {
       outline: var(--focus-outline);
       outline-offset: var(--focus-outline-inset);
     }
-  }
-
-  > .toolbarbutton-icon,
-  > .toolbarbutton-text,
-  > .toolbarbutton-badge-stack {
-    padding: var(--toolbarbutton-inner-padding);
-    border-radius: var(--toolbarbutton-border-radius);
   }
 
   > .toolbarbutton-icon {
@@ -105,11 +129,19 @@ toolbar .toolbarbutton-1 {
     &:hover > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
       background-color: var(--toolbarbutton-hover-background);
       color: inherit;
+      outline-color: var(--toolbarbutton-hover-outline-color);
     }
 
-    &:is([open], [checked], :hover:active) > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
+    &:hover:active > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
       background-color: var(--toolbarbutton-active-background);
       color: inherit;
+      outline-color: var(--toolbarbutton-active-outline-color);
+    }
+
+    &:is([open], [checked]) > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
+      background-color: var(--toolbarbutton-active-background);
+      color: inherit;
+      outline-color: var(--toolbarbutton-selected-outline-color);
     }
   }
 }

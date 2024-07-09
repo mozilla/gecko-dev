@@ -561,7 +561,6 @@
 
 /* Selected tab and tab hover */
 
-#TabsToolbar #firefox-view-button:hover:not([open]) > .toolbarbutton-icon,
 .tabbrowser-tab:hover > .tab-stack > .tab-background:not([selected], [multiselected]) {
   background-color: color-mix(in srgb, currentColor 11%, transparent);
   outline: 1px solid var(--tab-hover-outline-color);
