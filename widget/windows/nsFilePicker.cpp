@@ -394,7 +394,7 @@ struct AsyncExecuteInfo {
                        "remote promise must reject with a filedialog::Error");
 
   using ResolveT = typename InfoL::ResolveT;
-  using PromiseT = MozPromise<ResolveT, Unit, true>;
+  using PromiseT = MozPromise<ResolveT, filedialog::Error, true>;
 
   using RetT = RefPtr<PromiseT>;
 };
@@ -437,7 +437,7 @@ static auto AsyncExecute(Fn1 local, Fn2 remote, Args const&... args) ->
             MOZ_LOG(filedialog::sLogFileDialog, LogLevel::Info,
                     ("local file-dialog failed: where=%s, why=%08" PRIX32,
                      err.where.c_str(), err.why));
-            return Ok();
+            return err;
           });
     }
 
@@ -460,7 +460,7 @@ static auto AsyncExecute(Fn1 local, Fn2 remote, Args const&... args) ->
                     ("remote file-dialog failed: kind=%s, where=%s, "
                      "why=%08" PRIX32,
                      Error::KindName(err.kind), err.where.c_str(), err.why));
-            return PromiseT::CreateAndReject(Ok(), kFunctionName);
+            return PromiseT::CreateAndReject(err, kFunctionName);
           });
 
     case RemoteWithFallback:
@@ -501,7 +501,7 @@ static auto AsyncExecute(Fn1 local, Fn2 remote, Args const&... args) ->
               return PromiseT::CreateAndResolveOrReject(
                   val.IsResolve()
                       ? V::MakeResolve(std::move(val).ResolveValue())
-                      : V::MakeReject(Ok{}),
+                      : V::MakeReject(val.RejectValue()),
                   kFunctionName);
             });
       });
@@ -546,7 +546,7 @@ using fd_async::AsyncExecute;
  *          - resolves to false if the dialog was cancelled by the user;
  *          - is rejected with the associated HRESULT if some error occurred.
  */
-RefPtr<mozilla::MozPromise<bool, nsFilePicker::Unit, true>>
+RefPtr<mozilla::MozPromise<bool, nsFilePicker::Error, true>>
 nsFilePicker::ShowFolderPicker(const nsString& aInitialDir) {
   namespace fd = ::mozilla::widget::filedialog;
   nsTArray<fd::Command> commands = {
@@ -594,16 +594,14 @@ nsFilePicker::ShowFolderPicker(const nsString& aInitialDir) {
  *          - resolves to false if the dialog was cancelled by the user;
  *          - is rejected with the associated HRESULT if some error occurred.
  */
-RefPtr<mozilla::MozPromise<bool, nsFilePicker::Unit, true>>
+RefPtr<mozilla::MozPromise<bool, nsFilePicker::Error, true>>
 nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
   AUTO_PROFILER_LABEL("nsFilePicker::ShowFilePicker", OTHER);
 
-  using Promise = mozilla::MozPromise<bool, Unit, true>;
-  constexpr static auto Ok = [](bool val) {
-    return Promise::CreateAndResolve(val, "nsFilePicker::ShowFilePicker");
-  };
-  constexpr static auto NotOk = []() {
-    return Promise::CreateAndReject(Unit(), "nsFilePicker::ShowFilePicker");
+  using Promise = mozilla::MozPromise<bool, Error, true>;
+  constexpr static auto NotOk = [](Error error) -> RefPtr<Promise> {
+    return Promise::CreateAndReject(std::move(error),
+                                    "nsFilePicker::ShowFilePicker");
   };
 
   namespace fd = ::mozilla::widget::filedialog;
@@ -637,7 +635,8 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
 
       case modeGetFolder:
         MOZ_ASSERT(false, "file-picker opened in directory-picker mode");
-        return NotOk();
+        return NotOk(MOZ_FD_LOCAL_ERROR(
+            "file-picker opened in directory-picker mode", E_INVALIDARG));
     }
 
     commands.AppendElement(fd::SetOptions(fos));
@@ -694,12 +693,12 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
       &mozilla::detail::ShowFilePickerLocal,
       &mozilla::detail::ShowFilePickerRemote, shim.get(), type, commands);
 
-  return promise->Then(
+  return promise->Map(
       mozilla::GetMainThreadSerialEventTarget(), __PRETTY_FUNCTION__,
       [self = RefPtr(this), mode = mMode, shim = std::move(shim),
        awps = std::move(awps)](Maybe<Results> res_opt) {
         if (!res_opt) {
-          return Ok(false);
+          return false;  // operation cancelled by user
         }
         auto result = res_opt.extract();
 
@@ -713,9 +712,9 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
           if (!paths.IsEmpty()) {
             MOZ_ASSERT(paths.Length() == 1);
             self->mUnicodeFile = paths[0];
-            return Ok(true);
+            return true;
           }
-          return Ok(false);
+          return false;
         }
 
         // multiple selection
@@ -726,11 +725,7 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
           }
         }
 
-        return Ok(true);
-      },
-      [](Unit err) {
-        NS_WARNING("ShowFilePicker failed");
-        return NotOk();
+        return true;
       });
 }
 
@@ -989,7 +984,7 @@ nsresult nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
 
         callback->Done(retValue);
       },
-      [callback = RefPtr(aCallback)](Unit _) {
+      [callback = RefPtr(aCallback)](Error const& err) {
         // logging already handled
         callback->Done(ResultCode::returnCancel);
       });

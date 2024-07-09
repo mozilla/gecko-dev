@@ -140,6 +140,7 @@ struct Error {
         "ShowRemote: UtilityProcessManager::GetSingleton"_ns,
         "ShowRemote: invocation of CreateWinFileDialogActor"_ns,
         "UtilityProcessManager::CreateWinFileDialogActor"_ns,
+        "file-picker opened in directory-picker mode"_ns,
         "internal IPC failure?"_ns,
     };
     constexpr static size_t VALID_STRINGS_COUNT =

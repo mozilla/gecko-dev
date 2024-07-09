@@ -30,6 +30,7 @@ namespace mozilla::widget::filedialog {
 class Command;
 class Results;
 enum class FileDialogType : uint8_t;
+struct Error;
 }  // namespace mozilla::widget::filedialog
 
 class nsBaseWinFilePicker : public nsBaseFilePicker {
@@ -60,6 +61,7 @@ class nsFilePicker final : public nsBaseWinFilePicker {
   using Command = mozilla::widget::filedialog::Command;
   using Results = mozilla::widget::filedialog::Results;
   using FileDialogType = mozilla::widget::filedialog::FileDialogType;
+  using Error = mozilla::widget::filedialog::Error;
 
  public:
   nsFilePicker();
@@ -88,9 +90,9 @@ class nsFilePicker final : public nsBaseWinFilePicker {
 
  private:
   using Unit = mozilla::Ok;
-  RefPtr<mozilla::MozPromise<bool, Unit, true>> ShowFolderPicker(
+  RefPtr<mozilla::MozPromise<bool, Error, true>> ShowFolderPicker(
       const nsString& aInitialDir);
-  RefPtr<mozilla::MozPromise<bool, Unit, true>> ShowFilePicker(
+  RefPtr<mozilla::MozPromise<bool, Error, true>> ShowFilePicker(
       const nsString& aInitialDir);
 
   void ClearFiles();
