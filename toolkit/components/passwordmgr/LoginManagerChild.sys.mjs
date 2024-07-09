@@ -3126,7 +3126,7 @@ export class LoginManagerChild extends JSWindowActorChild {
   /**
    * Get the search options when searching for autocomplete entries in the parent
    *
-   * @param {HTMLInputElement} input - The input element to search for autocompelte entries
+   * @param {HTMLInputElement} input - The input element to search for autocomplete entries
    * @returns {object} the search options for the input
    */
   getAutoCompleteSearchOption(input, searchString) {
@@ -3173,7 +3173,7 @@ export class LoginManagerChild extends JSWindowActorChild {
    * Ask the provider whether it might have autocomplete entry to show
    * for the given input.
    *
-   * @param {HTMLInputElement} input - The input element to search for autocompelte entries
+   * @param {HTMLInputElement} input - The input element to search for autocomplete entries
    * @returns {boolean} true if we shold search for autocomplete entries
    */
   shouldSearchForAutoComplete(input, searchString) {
@@ -3206,7 +3206,7 @@ export class LoginManagerChild extends JSWindowActorChild {
    * Convert the search result to autocomplete results
    *
    * @param {string} searchString - The string to search for
-   * @param {HTMLInputElement} input - The input element to search for autocompelte entries
+   * @param {HTMLInputElement} input - The input element to search for autocomplete entries
    * @param {Array<object>} records - autocomplete records
    * @returns {AutocompleteResult}
    */

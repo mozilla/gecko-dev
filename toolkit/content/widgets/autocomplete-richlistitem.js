@@ -804,20 +804,12 @@
         this.removeAttribute("selected");
       }
 
-      let { AutoCompleteParent } = ChromeUtils.importESModule(
-        "resource://gre/actors/AutoCompleteParent.sys.mjs"
-      );
-
-      let actor = AutoCompleteParent.getCurrentActor();
-      if (!actor) {
-        return;
-      }
-
-      let popup = actor.openedPopup;
-
       setTimeout(() => {
-        let selectedIndex = popup ? popup.selectedIndex : -1;
-        actor.previewEntry(selectedIndex);
+        const { AutoCompleteParent } = ChromeUtils.importESModule(
+          "resource://gre/actors/AutoCompleteParent.sys.mjs"
+        );
+        const actor = AutoCompleteParent.getCurrentActor();
+        actor?.previewAutoCompleteEntry();
       }, 0);
     }
 
