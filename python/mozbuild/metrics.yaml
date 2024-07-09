@@ -138,3 +138,115 @@ mozbuild:
     expires: never
     send_in_pings:
       - usage
+  tier_artifact_duration:
+    type: timespan
+    description: How long it took for the artifact tier of the build to complete.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894153
+    data_reviews:
+      - TBD
+    notification_emails:
+      - build-telemetry@mozilla.com
+      - ahochheiden@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage
+  tier_pre_export_duration:
+    type: timespan
+    description: How long it took for the pre-export tier of the build to complete.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894153
+    data_reviews:
+      - TBD
+    notification_emails:
+      - build-telemetry@mozilla.com
+      - ahochheiden@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage
+  tier_export_duration:
+    type: timespan
+    description: How long it took for the export tier of the build to complete.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894153
+    data_reviews:
+      - TBD
+    notification_emails:
+      - build-telemetry@mozilla.com
+      - ahochheiden@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage
+  tier_misc_duration:
+    type: timespan
+    description: How long it took for the misc tier of the build to complete.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894153
+    data_reviews:
+      - TBD
+    notification_emails:
+      - build-telemetry@mozilla.com
+      - ahochheiden@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage
+  tier_libs_duration:
+    type: timespan
+    description: How long it took for the libs tier of the build to complete.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894153
+    data_reviews:
+      - TBD
+    notification_emails:
+      - build-telemetry@mozilla.com
+      - ahochheiden@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage
+  tier_tools_duration:
+    type: timespan
+    description: How long it took for the tools tier of the build to complete.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894153
+    data_reviews:
+      - TBD
+    notification_emails:
+      - build-telemetry@mozilla.com
+      - ahochheiden@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage
+  tier_configure_duration:
+    type: timespan
+    description: How long it took for the configure tier of the build to complete.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894153
+    data_reviews:
+      - TBD
+    notification_emails:
+      - build-telemetry@mozilla.com
+      - ahochheiden@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage
+  tier_compile_duration:
+    type: timespan
+    description: How long it took for the compile tier of the build to complete.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894153
+    data_reviews:
+      - TBD
+    notification_emails:
+      - build-telemetry@mozilla.com
+      - ahochheiden@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage

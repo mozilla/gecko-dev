@@ -99,11 +99,12 @@ class TierStatus(object):
     executes in the order it was defined, 1 at a time.
     """
 
-    def __init__(self, resources):
+    def __init__(self, resources, metrics):
         """Accepts a SystemResourceMonitor to record results against."""
         self.tiers = OrderedDict()
         self.tier_status = OrderedDict()
         self.resources = resources
+        self.metrics = metrics
 
     def set_tiers(self, tiers):
         """Record the set of known tiers."""
@@ -121,6 +122,10 @@ class TierStatus(object):
         t = self.tiers[tier]
         t["begin_time"] = time.monotonic()
         self.resources.begin_phase(tier)
+        metrics_tier_name = "tier_" + tier.replace("-", "_") + "_duration"
+        metrics_attribute = getattr(self.metrics.mozbuild, metrics_tier_name, None)
+        if metrics_attribute:
+            metrics_attribute.start()
 
     def finish_tier(self, tier):
         """Record that execution of a tier has finished."""
@@ -128,6 +133,10 @@ class TierStatus(object):
         t = self.tiers[tier]
         t["finish_time"] = time.monotonic()
         t["duration"] = self.resources.finish_phase(tier)
+        metrics_tier_name = "tier_" + tier.replace("-", "_") + "_duration"
+        metrics_attribute = getattr(self.metrics.mozbuild, metrics_tier_name, None)
+        if metrics_attribute:
+            metrics_attribute.stop()
 
 
 def record_cargo_timings(resource_monitor, timings_path):
@@ -178,7 +187,7 @@ def record_cargo_timings(resource_monitor, timings_path):
 class BuildMonitor(MozbuildObject):
     """Monitors the output of the build."""
 
-    def init(self, warnings_path, terminal):
+    def init(self, warnings_path, terminal, metrics):
         """Create a new monitor.
 
         warnings_path is a path of a warnings database to use.
@@ -190,7 +199,7 @@ class BuildMonitor(MozbuildObject):
         )
         self._resources_started = False
 
-        self.tiers = TierStatus(self.resources)
+        self.tiers = TierStatus(self.resources, metrics)
 
         self.warnings_database = WarningsDatabase()
         if os.path.exists(warnings_path):
@@ -1083,7 +1092,7 @@ class BuildDriver(MozbuildObject):
     ):
         warnings_path = self._get_state_filename("warnings.json")
         monitor = self._spawn(BuildMonitor)
-        monitor.init(warnings_path, self.log_manager.terminal)
+        monitor.init(warnings_path, self.log_manager.terminal, metrics)
         status = self._build(
             monitor,
             metrics,
