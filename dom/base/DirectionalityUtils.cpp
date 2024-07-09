@@ -5,135 +5,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
-  Static case
-  ===========
-  When we see a new content node with @dir=auto from the parser, we set the
-  NodeHasDirAuto flag on the node.  We won't have enough information to
-  decide the directionality of the node at this point.
+  This file contains most of the code to implement html directionality.
+  This includes default direction, inheritance, and auto directionality.
 
-  When we bind a new content node to the document, if its parent has either of
-  the NodeAncestorHasDirAuto or NodeHasDirAuto flags, we set the
-  NodeAncestorHasDirAuto flag on the node.
+  A useful perspective is separating the static and dynamic case.
+  In the static case, directionality is computed based on the current DOM,
+  closely following the specification, e.g. in ComputeAutoDirectionality.
+  Dynamic changes, e.g. OnSetDirAttr, are propagated to the impacted nodes,
+  for which the static case is re-run.
 
-  When a new input with @type=text/search/tel/url/email and @dir=auto is added
-  from the parser, we resolve the directionality based on its @value.
-
-  When a new text node with non-neutral content is appended to a textarea
-  element with NodeHasDirAuto, if the directionality of the textarea element
-  is still unresolved, it is resolved based on the value of the text node.
-  Elements with unresolved directionality behave as Ltr.
-
-  When a new text node with non-neutral content is appended to an element that
-  is not a textarea but has either of the NodeAncestorHasDirAuto or
-  NodeHasDirAuto flags, we walk up the parent chain while the
-  NodeAncestorHasDirAuto flag is present, and when we reach an element with
-  NodeHasDirAuto and no resolved directionality, we resolve the directionality
-  based on the contents of the text node and cease walking the parent chain.
-  Note that we should ignore elements with NodeHasDirAuto with resolved
-  directionality, so that the second text node in this example tree doesn't
-  affect the directionality of the div:
-
-  <div dir=auto>
-    <span>foo</span>
-    <span>بار</span>
-  </div>
-
-  The parent chain walk will be aborted if we hit a script or style element, or
-  if we hit an element with @dir=ltr or @dir=rtl.
-
-  I will call this algorithm "upward propagation".
-
-  Each text node keeps a flag if it might determine the directionality of any
-  ancestor. This is useful to make dynamic changes more efficient.
-
-  Handling dynamic changes
-  ========================
-
-  We need to handle the following cases:
-
-  1. When the value of an input element with @type=text/search/tel/url/email is
-  changed, if it has NodeHasDirAuto, we update the resolved directionality.
-
-  2. When the dir attribute is changed from something else (including the case
-  where it doesn't exist) to auto on a textarea or an input element with
-  @type=text/search/tel/url/email, we set the NodeHasDirAuto flag and resolve
-  the directionality based on the value of the element.
-
-  3. When the dir attribute is changed from something else (including the case
-  where it doesn't exist) to auto on any element except case 1 above and the bdi
-  element, we run the following algorithm:
-  * We set the NodeHasDirAuto flag.
-  * If the element doesn't have the NodeAncestorHasDirAuto flag, we set the
-  NodeAncestorHasDirAuto flag on all of its child nodes.  (Note that if the
-  element does have NodeAncestorHasDirAuto, all of its children should
-  already have this flag too.  We can assert this in debug builds.)
-  * To resolve the directionality of the element, we run the algorithm explained
-  in
-  http://www.whatwg.org/specs/web-apps/current-work/multipage/elements.html#the-dir-attribute
-  (I'll call this the "downward propagation algorithm".) by walking the child
-  subtree in tree order.  Note that an element with @dir=auto should not affect
-  other elements in its document with @dir=auto.  So there is no need to walk up
-  the parent chain in this case.
-
-  3a. When the dir attribute is set to any valid value on an element that didn't
-  have a valid dir attribute before, this means that any descendant of that
-  element will not affect the directionality of any of its ancestors. So we need
-  to check whether any text node descendants of the element can set the dir of
-  any ancestor, and whether the elements whose direction they set are ancestors
-  of the element. If so, we need to rerun the downward propagation algorithm for
-  those ancestors. That's done by OnSetDirAttr.
-
-  4.  When the dir attribute is changed from auto to something else (including
-  the case where it gets removed) on a textarea or an input element with
-  @type=text/search/tel/url/email, we unset the NodeHasDirAuto flag and
-  resolve the directionality based on the directionality of the value of the
-  @dir attribute on element itself or its parent element.
-
-  5. When the dir attribute is changed from auto to something else (including
-  the case where it gets removed) on any element except case 4 above and the bdi
-  element, we run the following algorithm:
-  * We unset the NodeHasDirAuto flag.
-  * If the element does not have the NodeAncestorHasDirAuto flag, we unset
-  the NodeAncestorHasDirAuto flag on all of its child nodes, except those
-  who are a descendant of another element with NodeHasDirAuto.  (Note that if
-  the element has the NodeAncestorHasDirAuto flag, all of its child nodes
-  should still retain the same flag.)
-  * We resolve the directionality of the element based on the value of the @dir
-  attribute on the element itself or its parent element.
-
-  5a. When the dir attribute is removed or set to an invalid value on any
-  element (except a bdi element) with the NodeAncestorHasDirAuto flag which
-  previously had a valid dir attribute, it might have a text node descendant
-  that did not previously affect the directionality of any of its ancestors but
-  should now begin to affect them. We run OnSetDirAttr.
-
-  6. When an element with @dir=auto is added to the document, we should handle
-  it similar to the case 2/3 above.
-
-  7. When an element with NodeHasDirAuto or NodeAncestorHasDirAuto is
-  removed from the document, we should handle it similar to the case 4/5 above,
-  except that we don't need to handle anything in the child subtree.
-
-  8. When the contents of a text node is changed either from script or by the
-  user, we need to run TextNode{WillChange,Changed}Direction, see inline docs
-  for details.
-
-  9. When a new text node is injected into a document, we need to run
-  SetDirectionFromNewTextNode.
-
-  10. When a text node is removed from a document, we need to run
-  ResetDirectionSetByTextNode.
-
-  11. If the value of the @dir attribute on a bdi element is changed to an
-  invalid value (or if it's removed), determine the new directionality similar
-  to the case 3 above.
-
-  == Implemention Notes ==
-  When a new node gets bound to the tree, the BindToTree function gets called.
-  The reverse case is UnbindFromTree.
-  When the contents of a text node change, CharacterData::SetTextInternal
-  gets called.
-  */
+  To minimize searching for dir=auto nodes impacted by a dynamic change, several
+  flags are maintained (see their declaration for documentation):
+  - NodeAncestorHasDirAuto and NodeAffectsDirAutoSlot apply to all nodes.
+    They are set when a node is placed somewhere in the tree and set or cleared
+    when a dir attribute changes.
+  - NS_MAY_SET_DIR_AUTO applies to text. It is set whenever a text node might be
+    responsible for the auto directionality of a dir=auto element. It is cleared
+    when the element is unbound.
+*/
 
 #include "mozilla/dom/DirectionalityUtils.h"
 
@@ -159,19 +48,6 @@ using mozilla::dom::HTMLInputElement;
 using mozilla::dom::HTMLSlotElement;
 using mozilla::dom::ShadowRoot;
 using mozilla::dom::Text;
-
-static nsIContent* GetParentOrHostOrSlot(const nsIContent* aContent) {
-  if (HTMLSlotElement* slot = aContent->GetAssignedSlot()) {
-    return slot;
-  }
-  if (nsIContent* parent = aContent->GetParent()) {
-    return parent;
-  }
-  if (const ShadowRoot* sr = ShadowRoot::FromNode(aContent)) {
-    return sr->GetHost();
-  }
-  return nullptr;
-}
 
 /**
  * Returns true if aElement is one of the elements whose text content should
@@ -398,10 +274,8 @@ Directionality ComputeAutoDirectionFromAssignedNodes(
 static Directionality ComputeAutoDirectionality(Element* aElement,
                                                 bool aNotify) {
   MOZ_ASSERT(aElement, "Must have an element");
-
-  if (!ParticipatesInAutoDirection(aElement)) {
-    return Directionality::Unset;
-  }
+  MOZ_ASSERT(ParticipatesInAutoDirection(aElement),
+             "Cannot compute auto directionality of this element");
 
   // Step 2. If element is a slot element whose root is a shadow root and
   // element's assigned nodes are not empty:
@@ -425,7 +299,7 @@ static Directionality ComputeAutoDirectionality(Element* aElement,
 }
 
 Directionality GetParentDirectionality(const Element* aElement) {
-  if (nsIContent* parent = GetParentOrHostOrSlot(aElement)) {
+  if (nsIContent* parent = aElement->GetParent()) {
     if (ShadowRoot* shadow = ShadowRoot::FromNode(parent)) {
       parent = shadow->GetHost();
     }
@@ -475,11 +349,41 @@ static inline bool IsBoundary(const Element& aElement) {
   return aElement.HasValidDir() || aElement.HasDirAuto();
 }
 
+static void ResetAutoDirection(Element* aElement, bool aNotify);
+
+/**
+ * Called when shadow root host changes direction. Reset auto directionality
+ * for dir=auto descendants whose direction may depend on the host
+ * directionality through a slot element.
+ *
+ * Dynamic update for https://html.spec.whatwg.org/#auto-directionality step 3.2
+ * If descendant is a slot element whose root is a shadow root, then return
+ * the directionality of that shadow root's host.
+ */
+static void ResetAutoDirectionForAncestorsOfSlotDescendants(ShadowRoot* aShadow,
+                                                            Directionality aDir,
+                                                            bool aNotify) {
+  // For now, reset auto directionality for all descendants, not only those
+  // that have a slot descendant.
+  for (nsIContent* cur = aShadow->GetFirstChild(); cur;
+       cur = cur->GetNextNode(aShadow)) {
+    if (Element* element = Element::FromNode(cur)) {
+      if (element->HasDirAuto() && element->GetDirectionality() != aDir &&
+          ParticipatesInAutoDirection(element)) {
+        ResetAutoDirection(element, aNotify);
+      }
+    }
+  }
+}
+
 static void SetDirectionalityOnDescendantsInternal(nsINode* aNode,
                                                    Directionality aDir,
                                                    bool aNotify) {
   if (auto* element = Element::FromNode(aNode)) {
     if (ShadowRoot* shadow = element->GetShadowRoot()) {
+      // host direction changed, propagate it through slots to dir=auto elements
+      ResetAutoDirectionForAncestorsOfSlotDescendants(shadow, aDir, aNotify);
+
       SetDirectionalityOnDescendantsInternal(shadow, aDir, aNotify);
     }
   }
@@ -491,31 +395,21 @@ static void SetDirectionalityOnDescendantsInternal(nsINode* aNode,
       continue;
     }
 
-    if (IsBoundary(*element) || element->GetAssignedSlot() ||
-        element->GetDirectionality() == aDir) {
-      // If the element is a directionality boundary, or it's assigned to a slot
-      // (in which case it doesn't inherit the directionality from its direct
-      // parent), or already has the right directionality, then we can skip the
-      // whole subtree.
+    if (IsBoundary(*element) || element->GetDirectionality() == aDir) {
+      // If the element is a directionality boundary, or already
+      // has the right directionality, then we can skip the whole subtree.
       child = child->GetNextNonChildNode(aNode);
       continue;
     }
+
+    element->SetDirectionality(aDir, aNotify);
+
     if (ShadowRoot* shadow = element->GetShadowRoot()) {
+      ResetAutoDirectionForAncestorsOfSlotDescendants(shadow, aDir, aNotify);
+
       SetDirectionalityOnDescendantsInternal(shadow, aDir, aNotify);
     }
 
-    if (auto* slot = HTMLSlotElement::FromNode(child)) {
-      for (const RefPtr<nsINode>& assignedNode : slot->AssignedNodes()) {
-        auto* assignedElement = Element::FromNode(*assignedNode);
-        if (assignedElement && !IsBoundary(*assignedElement)) {
-          assignedElement->SetDirectionality(aDir, aNotify);
-          SetDirectionalityOnDescendantsInternal(assignedElement, aDir,
-                                                 aNotify);
-        }
-      }
-    }
-
-    element->SetDirectionality(aDir, aNotify);
     child = child->GetNextNode(aNode);
   }
 }
@@ -529,29 +423,33 @@ void SetDirectionalityOnDescendants(Element* aElement, Directionality aDir,
 static void ResetAutoDirection(Element* aElement, bool aNotify) {
   MOZ_ASSERT(aElement->HasDirAuto());
   Directionality dir = ComputeAutoDirectionality(aElement, aNotify);
-  if (dir != Directionality::Unset) {
-    aElement->SetDirectionality(dir, aNotify);
-  } else {
-    aElement->SetDirectionality(Directionality::Ltr, aNotify);
+  if (dir == Directionality::Unset) {
+    dir = Directionality::Ltr;
   }
-
-  SetDirectionalityOnDescendants(aElement, aElement->GetDirectionality(),
-                                 aNotify);
+  if (dir != aElement->GetDirectionality()) {
+    aElement->SetDirectionality(dir, aNotify);
+    SetDirectionalityOnDescendants(aElement, aElement->GetDirectionality(),
+                                   aNotify);
+  }
 }
 
 /**
- * Walk the parent chain of a text node whose dir attribute has been removed or
- * added and reset the direction of any of its ancestors which have dir=auto and
- * whose directionality is determined by a text node descendant.
+ * Reset auto direction of the dir=auto elements that aElement might impact.
+ * Walk the parent chain till a dir=auto element is found, also reset dir=auto
+ * slots an ancestor might be assigned to.
  */
-void WalkAncestorsResetAutoDirection(Element* aElement, bool aNotify) {
-  for (nsIContent* parent = GetParentOrHostOrSlot(aElement);
-       parent && parent->NodeOrAncestorHasDirAuto();
-       parent = GetParentOrHostOrSlot(parent)) {
-    auto* parentElement = Element::FromNode(*parent);
-    if (parentElement && parentElement->HasDirAuto()) {
-      ResetAutoDirection(parentElement, aNotify);
-      break;
+static void WalkAncestorsResetAutoDirection(Element* aElement, bool aNotify) {
+  for (nsIContent* ancestor = aElement; AffectsDirAutoElement(ancestor);
+       ancestor = ancestor->GetParent()) {
+    if (HTMLSlotElement* slot = ancestor->GetAssignedSlot()) {
+      if (slot->HasDirAuto()) {
+        ResetAutoDirection(slot, aNotify);
+      }
+    }
+
+    auto* ancestorElement = Element::FromNode(*ancestor);
+    if (ancestorElement && ancestorElement->HasDirAuto()) {
+      ResetAutoDirection(ancestorElement, aNotify);
     }
   }
 }
@@ -643,6 +541,10 @@ void SlotAssignedNodeRemoved(HTMLSlotElement* aSlot,
   SlotStateChanged(aSlot);
 }
 
+/**
+ * When dir=auto was set on aElement, reset it's auto direction and set the
+ * flag on descendants
+ */
 void WalkDescendantsSetDirAuto(Element* aElement, bool aNotify) {
   MOZ_ASSERT(aElement->HasDirAuto());
   // Only test for ParticipatesInAutoDirection -- in other words, if aElement is
@@ -672,45 +574,61 @@ void WalkDescendantsClearAncestorDirAuto(nsIContent* aContent) {
   }
 }
 
-struct DirAutoElementResult {
-  Element* mElement = nullptr;
-  // This is false when we hit the top of the ancestor chain without finding a
-  // dir=auto element or an element with a fixed direction. This is useful when
-  // processing node removals, since we might need to look at the subtree we're
-  // removing from.
-  bool mAnswerIsDefinitive = false;
-};
+/**
+ * Returns whether answer is definitive, i.e. whether we found all dir=auto
+ * elements impacted by aContent.
+ * This is false when we hit the top of an ancestor chain without finding a
+ * dir=auto element or an element with a fixed direction.
+ * This is useful when processing node removals, since we might need to look at
+ * the subtree we're removing from.
+ */
+static bool FindDirAutoElementsFrom(nsIContent* aContent,
+                                    nsTArray<Element*>& aElements) {
+  if (!AffectsDirAutoElement(aContent)) {
+    return true;
+  }
 
-static DirAutoElementResult FindDirAutoElementFrom(nsIContent* aContent) {
-  for (nsIContent* parent = aContent;
-       parent && parent->NodeOrAncestorHasDirAuto();
-       parent = GetParentOrHostOrSlot(parent)) {
-    auto* parentElement = Element::FromNode(*parent);
-    if (!parentElement) {
-      continue;
+  for (nsIContent* ancestor = aContent; AffectsDirAutoElement(ancestor);
+       ancestor = ancestor->GetParent()) {
+    if (HTMLSlotElement* slot = ancestor->GetAssignedSlot()) {
+      if (slot->HasDirAuto()) {
+        aElements.AppendElement(slot);
+        // need to check whether there are more dir=auto slots or ancestors
+        nsIContent* parent = ancestor->GetParent();
+        MOZ_ASSERT(parent, "Slotted content must have a parent");
+        if (!parent->AffectsDirAutoSlot() &&
+            !ancestor->NodeOrAncestorHasDirAuto()) {
+          return true;
+        }
+      }
     }
-    if (!ParticipatesInAutoDirection(parentElement) ||
-        parentElement->HasFixedDir()) {
-      return {nullptr, true};
+
+    auto* ancestorElement = Element::FromNode(*ancestor);
+    if (ancestorElement && ancestorElement->HasDirAuto()) {
+      aElements.AppendElement(ancestorElement);
+      return true;
     }
-    if (parentElement->HasDirAuto()) {
-      return {parentElement, true};
+    if (ancestorElement && ancestorElement->IsInShadowTree() &&
+        ancestorElement->IsHTMLElement(nsGkAtoms::slot)) {
+      // further ancestors will inherit directionality from shadow host
+      // https://html.spec.whatwg.org/#auto-directionality step 3.2
+      // if descendant is a slot in a shadow DOM, return host directionality
+      return true;
     }
   }
-  return {nullptr, false};
+
+  return false;
 }
 
-static DirAutoElementResult FindDirAutoElementForText(Text* aTextNode) {
-  MOZ_ASSERT(aTextNode->IsText(), "Must be a text node");
-  return FindDirAutoElementFrom(GetParentOrHostOrSlot(aTextNode));
-}
-
-static DirAutoElementResult SetAncestorDirectionIfAuto(Text* aTextNode,
-                                                       Directionality aDir,
-                                                       bool aNotify = true) {
-  auto result = FindDirAutoElementForText(aTextNode);
-  if (Element* parentElement = result.mElement) {
-    if (parentElement->GetDirectionality() == aDir) {
+/**
+ * Reset auto directionality of ancestors of aTextNode
+ */
+static void SetAncestorDirectionIfAuto(Text* aTextNode, Directionality aDir,
+                                       bool aNotify = true) {
+  AutoTArray<Element*, 4> autoElements;
+  FindDirAutoElementsFrom(aTextNode, autoElements);
+  for (Element* autoElement : autoElements) {
+    if (autoElement->GetDirectionality() == aDir) {
       // If we know that the directionality is already correct, we don't need to
       // reset it. But we might be responsible for the directionality of
       // parentElement.
@@ -718,10 +636,9 @@ static DirAutoElementResult SetAncestorDirectionIfAuto(Text* aTextNode,
       aTextNode->SetMaySetDirAuto();
     } else {
       // Otherwise recompute the directionality of parentElement.
-      ResetAutoDirection(parentElement, aNotify);
+      ResetAutoDirection(autoElement, aNotify);
     }
   }
-  return result;
 }
 
 bool TextNodeWillChangeDirection(Text* aTextNode, Directionality* aOldDir,
@@ -775,19 +692,23 @@ void SetDirectionFromNewTextNode(Text* aTextNode) {
   }
 }
 
+/**
+ * Reset auto directionality for impacted elements when aTextNode is removed
+ */
 void ResetDirectionSetByTextNode(Text* aTextNode,
                                  dom::UnbindContext& aContext) {
   MOZ_ASSERT(!aTextNode->IsInComposedDoc(), "Should be disconnected already");
   if (!aTextNode->MaySetDirAuto()) {
     return;
   }
-  auto result = FindDirAutoElementForText(aTextNode);
-  if (result.mAnswerIsDefinitive) {
-    // The dir=auto element is in our (now detached) subtree. We're done, as
+  AutoTArray<Element*, 4> autoElements;
+  bool answerIsDefinitive = FindDirAutoElementsFrom(aTextNode, autoElements);
+
+  if (answerIsDefinitive) {
+    // All dir=auto elements are in our (now detached) subtree. We're done, as
     // nothing really changed for our purposes.
     return;
   }
-  MOZ_ASSERT(!result.mElement);
   // The dir=auto element might have been on the element we're unbinding from.
   // In any case, this text node is clearly no longer what determines its
   // directionality.
@@ -803,11 +724,15 @@ void ResetDirectionSetByTextNode(Text* aTextNode,
     return;
   }
 
-  result = FindDirAutoElementFrom(unboundFrom);
-  if (!result.mElement || result.mElement->GetDirectionality() != dir) {
-    return;
+  autoElements.Clear();
+  FindDirAutoElementsFrom(unboundFrom, autoElements);
+  for (Element* autoElement : autoElements) {
+    if (autoElement->GetDirectionality() != dir) {
+      // it's dir was not determined by this text node
+      continue;
+    }
+    ResetAutoDirection(autoElement, /* aNotify = */ true);
   }
-  ResetAutoDirection(result.mElement, /* aNotify = */ true);
 }
 
 void SetDirectionalityFromValue(Element* aElement, const nsAString& value,
@@ -879,8 +804,11 @@ void OnSetDirAttr(Element* aElement, const nsAttrValue* aNewValue,
     MaybeClearAffectsDirAutoSlot(aElement);
     WalkDescendantsSetDirAuto(aElement, aNotify);
   } else {
-    SetDirectionalityOnDescendants(
-        aElement, RecomputeDirectionality(aElement, aNotify), aNotify);
+    Directionality oldDir = aElement->GetDirectionality();
+    Directionality dir = RecomputeDirectionality(aElement, aNotify);
+    if (oldDir != dir) {
+      SetDirectionalityOnDescendants(aElement, dir, aNotify);
+    }
   }
 }
 
@@ -895,8 +823,12 @@ void SetDirOnBind(Element* aElement, nsIContent* aParent) {
     }
     DownwardPropagateDirAutoFlags(aElement);
 
-    if (aElement->GetFirstChild() || aElement->GetShadowRoot()) {
+    if (aElement->GetFirstChild() ||
+        (aElement->IsInShadowTree() && !aElement->HasValidDir() &&
+         aElement->IsHTMLElement(nsGkAtoms::slot))) {
       // We may also need to reset the direction of an ancestor with dir=auto
+      // as we are either an element with possible text descendants
+      // or a slot that provides it's host directionality
       WalkAncestorsResetAutoDirection(aElement, true);
     }
   }

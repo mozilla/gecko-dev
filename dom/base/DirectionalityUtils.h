@@ -49,10 +49,7 @@ Directionality RecomputeDirectionality(mozilla::dom::Element* aElement,
                                        bool aNotify = true);
 
 /**
- * Conceptually https://html.spec.whatwg.org/#parent-directionality, but a bit
- * different in how we deal with shadow DOM.
- *
- * FIXME(bug 1857719): Update directionality to the latest version of the spec.
+ * https://html.spec.whatwg.org/#parent-directionality
  */
 Directionality GetParentDirectionality(const mozilla::dom::Element* aElement);
 
@@ -77,9 +74,6 @@ void WalkDescendantsResetAutoDirection(mozilla::dom::Element* aElement);
 /**
  * In case a element was added to a slot it may change the directionality
  * of ancestors or assigned nodes.
- *
- * aAllAssignedNodesChanged forces the computation of the state for all of the
- * assigned descendants.
  */
 void SlotAssignedNodeAdded(dom::HTMLSlotElement* aSlot,
                            nsIContent& aAssignedNode);
