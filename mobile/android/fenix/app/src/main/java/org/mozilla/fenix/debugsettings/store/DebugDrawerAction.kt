@@ -42,6 +42,11 @@ sealed class DebugDrawerAction : Action {
          * [NavigateTo] action fired when the debug drawer needs to navigate to [LoginsScreen].
          */
         object Logins : NavigateTo()
+
+        /**
+         * [NavigateTo] action fired when the debug drawer needs to navigate to [CfrTools].
+         */
+        object CfrTools : NavigateTo()
     }
 
     /**

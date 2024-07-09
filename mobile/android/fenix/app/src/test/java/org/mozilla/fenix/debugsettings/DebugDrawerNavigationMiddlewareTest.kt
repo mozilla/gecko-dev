@@ -55,6 +55,20 @@ class DebugDrawerNavigationMiddlewareTest {
     }
 
     @Test
+    fun `WHEN the logins screen is the next destination THEN the logins screen is navigated to`() {
+        store.dispatch(DebugDrawerAction.NavigateTo.Logins).joinBlocking()
+
+        verify { navController.navigate(DebugDrawerRoute.Logins.route) }
+    }
+
+    @Test
+    fun `WHEN the CFR tools screen is the next destination THEN the CFR tools screen is navigated to`() {
+        store.dispatch(DebugDrawerAction.NavigateTo.CfrTools).joinBlocking()
+
+        verify { navController.navigate(DebugDrawerRoute.CfrTools.route) }
+    }
+
+    @Test
     fun `WHEN the back button is pressed THEN the drawer should go back one screen`() {
         store.dispatch(DebugDrawerAction.OnBackPressed).joinBlocking()
 

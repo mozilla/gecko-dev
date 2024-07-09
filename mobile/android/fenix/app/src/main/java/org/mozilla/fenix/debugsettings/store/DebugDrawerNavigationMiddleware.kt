@@ -37,8 +37,10 @@ class DebugDrawerNavigationMiddleware(
                 )
                 is DebugDrawerAction.NavigateTo.TabTools ->
                     navController.navigate(route = DebugDrawerRoute.TabTools.route)
-                DebugDrawerAction.NavigateTo.Logins ->
+                is DebugDrawerAction.NavigateTo.Logins ->
                     navController.navigate(route = DebugDrawerRoute.Logins.route)
+                is DebugDrawerAction.NavigateTo.CfrTools ->
+                    navController.navigate(route = DebugDrawerRoute.CfrTools.route)
                 is DebugDrawerAction.OnBackPressed -> navController.popBackStack()
                 is DebugDrawerAction.DrawerOpened, DebugDrawerAction.DrawerClosed -> Unit // no-op
             }

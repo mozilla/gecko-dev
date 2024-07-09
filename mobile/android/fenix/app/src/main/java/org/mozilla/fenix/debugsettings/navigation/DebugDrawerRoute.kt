@@ -13,6 +13,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.debugsettings.logins.LoginsTools
 import org.mozilla.fenix.debugsettings.store.DebugDrawerAction
 import org.mozilla.fenix.debugsettings.store.DebugDrawerStore
+import org.mozilla.fenix.debugsettings.cfrs.CfrTools as CfrToolsScreen
 import org.mozilla.fenix.debugsettings.tabs.TabTools as TabToolsScreen
 
 /**
@@ -33,6 +34,10 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
     Logins(
         route = "logins",
         title = R.string.debug_drawer_logins_title,
+    ),
+    CfrTools(
+        route = "cfr_tools",
+        title = R.string.debug_drawer_cfr_tools_title,
     ),
     ;
 
@@ -76,6 +81,15 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
                                 browserStore = browserStore,
                                 loginsStorage = loginsStorage,
                             )
+                        }
+                    }
+
+                    CfrTools -> {
+                        onClick = {
+                            debugDrawerStore.dispatch(DebugDrawerAction.NavigateTo.CfrTools)
+                        }
+                        content = {
+                            CfrToolsScreen()
                         }
                     }
                 }
