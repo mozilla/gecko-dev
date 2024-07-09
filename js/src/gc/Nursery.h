@@ -151,6 +151,11 @@ class Nursery {
   std::tuple<void*, bool> allocateBuffer(JS::Zone* zone, size_t nbytes,
                                          arena_id_t arenaId);
 
+  // Like allocateBuffer, but returns nullptr if the buffer can't be allocated
+  // in the nursery.
+  void* tryAllocateNurseryBuffer(JS::Zone* zone, size_t nbytes,
+                                 arena_id_t arenaId);
+
   // Allocate a buffer for a given Cell, using the nursery if possible and
   // owner is in the nursery.
   void* allocateBuffer(JS::Zone* zone, gc::Cell* owner, size_t nbytes,

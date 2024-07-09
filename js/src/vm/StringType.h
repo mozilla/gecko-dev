@@ -483,6 +483,19 @@ class JSString : public js::gc::CellWithLengthAndFlags {
 
   static const JS::Latin1Char MAX_LATIN1_CHAR = 0xff;
 
+  // Allocate a StringBuffer instead of using raw malloc for strings with
+  // length * sizeof(CharT) >= MIN_BYTES_FOR_BUFFER.
+  //
+  // StringBuffers can be shared more efficiently with DOM code, but have some
+  // additional overhead (StringBuffer header, null terminator) so for short
+  // strings we prefer malloc.
+  //
+  // Note that 514 was picked as a pretty conservative initial value. The value
+  // is just above 512 to ensure a Latin1 string of length 512 isn't bumped
+  // from jemalloc bucket size 512 to size 768. It's an even value because it's
+  // divided by 2 for char16_t strings.
+  static constexpr size_t MIN_BYTES_FOR_BUFFER = 514;
+
   /*
    * Helper function to validate that a string of a given length is
    * representable by a JSString. An allocation overflow is reported if false

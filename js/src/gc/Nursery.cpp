@@ -734,6 +734,19 @@ std::tuple<void*, bool> js::Nursery::allocateBuffer(Zone* zone, size_t nbytes,
   return {buffer, bool(buffer)};
 }
 
+void* js::Nursery::tryAllocateNurseryBuffer(JS::Zone* zone, size_t nbytes,
+                                            arena_id_t arenaId) {
+  MOZ_ASSERT(nbytes > 0);
+  MOZ_ASSERT(nbytes <= SIZE_MAX - gc::CellAlignBytes);
+  nbytes = RoundUp(nbytes, gc::CellAlignBytes);
+
+  if (nbytes <= MaxNurseryBufferSize) {
+    return allocate(nbytes);
+  }
+
+  return nullptr;
+}
+
 void* js::Nursery::allocateBuffer(Zone* zone, Cell* owner, size_t nbytes,
                                   arena_id_t arenaId) {
   MOZ_ASSERT(owner);

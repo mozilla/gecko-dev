@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <cstring>
+#include "mozilla/CheckedInt.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/AlreadyAddRefed.h"
@@ -63,6 +64,17 @@ class StringBuffer {
       detail::RefCountLogger::logAddRef(hdr, 1);
     }
     return already_AddRefed(hdr);
+  }
+
+  /**
+   * Returns true if (aLength + 1) * sizeof(CharT) is a valid allocation size
+   * for Alloc. Adds +1 to aLength for the null-terminator.
+   */
+  template <typename CharT>
+  static bool IsValidLength(size_t aLength) {
+    auto checkedSize =
+        (CheckedUint32(aLength) + 1) * sizeof(CharT) + sizeof(StringBuffer);
+    return checkedSize.isValid();
   }
 
   /**

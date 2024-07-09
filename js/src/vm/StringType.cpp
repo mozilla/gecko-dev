@@ -650,24 +650,38 @@ static MOZ_ALWAYS_INLINE JSString::OwnedChars<CharT> AllocChars(JSContext* cx,
                                                                 gc::Heap heap) {
   if (heap == gc::Heap::Default && cx->zone()->allocNurseryStrings()) {
     MOZ_ASSERT(cx->nursery().isEnabled());
-    auto [buffer, isMalloced] = cx->nursery().allocateBuffer(
+    void* buffer = cx->nursery().tryAllocateNurseryBuffer(
         cx->zone(), length * sizeof(CharT), js::StringBufferArena);
-    if (!buffer) {
-      ReportOutOfMemory(cx);
-      return {};
+    if (buffer) {
+      using Kind = typename JSString::OwnedChars<CharT>::Kind;
+      return {static_cast<CharT*>(buffer), length, Kind::Nursery};
     }
-
-    using Kind = typename JSString::OwnedChars<CharT>::Kind;
-    Kind kind = isMalloced ? Kind::Malloc : Kind::Nursery;
-    return {static_cast<CharT*>(buffer), length, kind};
   }
 
-  auto buffer = cx->make_pod_arena_array<CharT>(js::StringBufferArena, length);
+  static_assert(JSString::MIN_BYTES_FOR_BUFFER % sizeof(CharT) == 0);
+
+  if (length < JSString::MIN_BYTES_FOR_BUFFER / sizeof(CharT)) {
+    auto buffer =
+        cx->make_pod_arena_array<CharT>(js::StringBufferArena, length);
+    if (!buffer) {
+      return {};
+    }
+    return {std::move(buffer), length};
+  }
+
+  if (MOZ_UNLIKELY(!mozilla::StringBuffer::IsValidLength<CharT>(length))) {
+    ReportOversizedAllocation(cx, JSMSG_ALLOC_OVERFLOW);
+    return {};
+  }
+
+  // Note: StringBuffers must be null-terminated.
+  RefPtr<mozilla::StringBuffer> buffer =
+      mozilla::StringBuffer::Alloc((length + 1) * sizeof(CharT));
   if (!buffer) {
     ReportOutOfMemory(cx);
     return {};
   }
-
+  static_cast<CharT*>(buffer->Data())[length] = '\0';
   return {std::move(buffer), length};
 }
 
