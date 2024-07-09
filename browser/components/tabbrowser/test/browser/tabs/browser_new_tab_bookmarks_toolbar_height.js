@@ -26,17 +26,6 @@ async function expectHeightChanges(tab, expectedNewHeightChanges, msg) {
 }
 
 async function expectBmToolbarVisibilityChange(triggerFn, visible, msg) {
-  info("Adding a bookmark to the bookmarks toolbar.");
-  let addedBookmark = await PlacesUtils.bookmarks.insert({
-    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
-    title: "Test",
-    url: "https://example.com",
-  });
-
-  registerCleanupFunction(async () => {
-    await PlacesUtils.bookmarks.remove(addedBookmark);
-  });
-
   let collapsedState = BrowserTestUtils.waitForMutationCondition(
     BookmarkingUI.toolbar,
     { attributes: true, attributeFilter: ["collapsed"] },
