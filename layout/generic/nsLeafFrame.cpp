@@ -44,11 +44,3 @@ LogicalSize nsLeafFrame::ComputeAutoSize(
                      intrinsicSize.BSize(wm).valueOr(0));
   return result.ConvertTo(aWM, wm);
 }
-
-void nsLeafFrame::SizeToAvailSize(const ReflowInput& aReflowInput,
-                                  ReflowOutput& aDesiredSize) {
-  aDesiredSize.SetSize(aReflowInput.GetWritingMode(),
-                       aReflowInput.AvailableSize());
-  aDesiredSize.SetOverflowAreasToDesiredBounds();
-  FinishAndStoreOverflow(&aDesiredSize, aReflowInput.mStyleDisplay);
-}

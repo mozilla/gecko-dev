@@ -1300,10 +1300,11 @@ void nsHTMLFramesetBorderFrame::Reflow(nsPresContext* aPresContext,
   MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
   // Override Reflow(), since we don't want to deal with what our
-  // computed values are.
-  SizeToAvailSize(aReflowInput, aDesiredSize);
-
+  // computed values are. We just size to our available size.
+  aDesiredSize.SetSize(aReflowInput.GetWritingMode(),
+                       aReflowInput.AvailableSize());
   aDesiredSize.SetOverflowAreasToDesiredBounds();
+  FinishAndStoreOverflow(&aDesiredSize, aReflowInput.mStyleDisplay);
 }
 
 class nsDisplayFramesetBorder : public nsPaintedDisplayItem {
@@ -1474,10 +1475,11 @@ void nsHTMLFramesetBlankFrame::Reflow(nsPresContext* aPresContext,
   MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
   // Override Reflow(), since we don't want to deal with what our
-  // computed values are.
-  SizeToAvailSize(aReflowInput, aDesiredSize);
-
+  // computed values are. We just size to our available size.
+  aDesiredSize.SetSize(aReflowInput.GetWritingMode(),
+                       aReflowInput.AvailableSize());
   aDesiredSize.SetOverflowAreasToDesiredBounds();
+  FinishAndStoreOverflow(&aDesiredSize, aReflowInput.mStyleDisplay);
 }
 
 class nsDisplayFramesetBlank : public nsPaintedDisplayItem {

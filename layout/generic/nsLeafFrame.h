@@ -14,10 +14,7 @@
 #include "nsDisplayList.h"
 
 /**
- * Abstract class that provides simple fixed-size layout for leaf objects
- * (e.g. images, form elements, etc.). Deriviations provide the implementation
- * of the GetDesiredSize method. The rendering method knows how to render
- * borders and backgrounds.
+ * Abstract class that provides simple fixed-size layout for leaf objects.
  */
 class nsLeafFrame : public nsIFrame {
  public:
@@ -30,8 +27,8 @@ class nsLeafFrame : public nsIFrame {
   /**
    * Both GetMinISize and GetPrefISize will return our intrinsic inline size.
    */
-  virtual nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  virtual nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetMinISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
 
   /**
    * Our auto size is just the intrinsic size.
@@ -47,21 +44,15 @@ class nsLeafFrame : public nsIFrame {
   /**
    * Each of our subclasses should provide its own Reflow impl:
    */
-  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
-                      const ReflowInput& aReflowInput,
-                      nsReflowStatus& aStatus) override = 0;
+  void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
+              const ReflowInput& aReflowInput,
+              nsReflowStatus& aStatus) override = 0;
 
  protected:
   nsLeafFrame(ComputedStyle* aStyle, nsPresContext* aPresContext, ClassID aID)
       : nsIFrame(aStyle, aPresContext, aID) {}
 
   virtual ~nsLeafFrame();
-
-  /**
-   * Set aDesiredSize to be the available size
-   */
-  void SizeToAvailSize(const ReflowInput& aReflowInput,
-                       ReflowOutput& aDesiredSize);
 };
 
 #endif /* nsLeafFrame_h___ */
