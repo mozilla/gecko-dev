@@ -132,11 +132,11 @@ void SetDirectionFromNewTextNode(dom::Text* aTextNode);
 void ResetDirectionSetByTextNode(dom::Text*, dom::UnbindContext&);
 
 /**
- * Set the directionality of an element according to the directionality of the
- * text in aValue
+ * Update directionality of this and other affected elements.
  */
-void SetDirectionalityFromValue(mozilla::dom::Element* aElement,
-                                const nsAString& aValue, bool aNotify);
+void ResetDirFormAssociatedElement(mozilla::dom::Element* aElement,
+                                   bool aNotify, bool aHasDirAuto,
+                                   const nsAString* aKnownValue = nullptr);
 
 /**
  * Called when setting the dir attribute on an element, immediately after

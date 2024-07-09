@@ -650,6 +650,10 @@ class HTMLInputElement final : public TextControlElement,
                 ErrorResult& aRv);
   void GetValue(nsAString& aValue, CallerType aCallerType);
 
+  // Generic getter for the value that doesn't do experimental control type
+  // sanitization.
+  void GetValueInternal(nsAString& aValue, CallerType aCallerType) const;
+
   void GetValueAsDate(JSContext* aCx, JS::MutableHandle<JSObject*> aObj,
                       ErrorResult& aRv);
 
@@ -872,6 +876,13 @@ class HTMLInputElement final : public TextControlElement,
   // Parse a simple (hex) color.
   static mozilla::Maybe<nscolor> ParseSimpleColor(const nsAString& aColor);
 
+  /**
+   * https://html.spec.whatwg.org/#auto-directionality-form-associated-elements
+   */
+  bool IsAutoDirectionalityAssociated() const {
+    return IsAutoDirectionalityAssociated(mType);
+  }
+
  protected:
   MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual ~HTMLInputElement();
 
@@ -939,10 +950,6 @@ class HTMLInputElement final : public TextControlElement,
       const nsAString& aValue, const ValueSetterOptions& aOptions) {
     return SetValueInternal(aValue, nullptr, aOptions);
   }
-
-  // Generic getter for the value that doesn't do experimental control type
-  // sanitization.
-  void GetValueInternal(nsAString& aValue, CallerType aCallerType) const;
 
   // A getter for callers that know we're not dealing with a file input, so they
   // don't have to think about the caller type.
@@ -1107,13 +1114,6 @@ class HTMLInputElement final : public TextControlElement,
    */
   MOZ_CAN_RUN_SCRIPT
   nsresult SetDefaultValueAsValue();
-
-  /**
-   * Sets the direction from the input value. if aKnownValue is provided, it
-   * saves a GetValue call.
-   */
-  void SetAutoDirectionality(bool aNotify,
-                             const nsAString* aKnownValue = nullptr);
 
   /**
    * Returns the radio group container within the DOM tree that the element
@@ -1580,10 +1580,6 @@ class HTMLInputElement final : public TextControlElement,
       default:
         return false;
     }
-  }
-
-  bool IsAutoDirectionalityAssociated() const {
-    return IsAutoDirectionalityAssociated(mType);
   }
 
   static bool CreatesDateTimeWidget(FormControlType aType) {

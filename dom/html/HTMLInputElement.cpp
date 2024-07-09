@@ -1252,8 +1252,8 @@ void HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
       // default, we have to re-set it.
       if (!mValueChanged && GetValueMode() == VALUE_MODE_VALUE) {
         SetDefaultValueAsValue();
-      } else if (GetValueMode() == VALUE_MODE_DEFAULT && HasDirAuto()) {
-        SetAutoDirectionality(aNotify);
+      } else if (GetValueMode() == VALUE_MODE_DEFAULT) {
+        ResetDirFormAssociatedElement(this, aNotify, HasDirAuto());
       }
       // GetStepBase() depends on the `value` attribute if `min` is not present,
       // even if the value doesn't change.
@@ -1380,7 +1380,7 @@ void HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                  "HTML5 spec does not allow underflow for type=range");
     } else if (aName == nsGkAtoms::dir && aValue &&
                aValue->Equals(nsGkAtoms::_auto, eIgnoreCase)) {
-      SetAutoDirectionality(aNotify);
+      ResetDirFormAssociatedElement(this, aNotify, true);
     } else if (aName == nsGkAtoms::lang) {
       // FIXME(emilio, bug 1651070): This doesn't account for lang changes on
       // ancestors.
@@ -4383,9 +4383,7 @@ nsresult HTMLInputElement::BindToTree(BindContext& aContext, nsINode& aParent) {
   }
 
   // Set direction based on value if dir=auto
-  if (HasDirAuto()) {
-    SetAutoDirectionality(false);
-  }
+  ResetDirFormAssociatedElement(this, false, HasDirAuto());
 
   // An element can't suffer from value missing if it is not in a document.
   // We have to check if we suffer from that as we are now in a document.
@@ -4674,16 +4672,15 @@ void HTMLInputElement::HandleTypeChange(FormControlType aNewType,
 
   UpdateBarredFromConstraintValidation();
 
-  // Changing type may affect auto directionality, or non-auto directionality
-  // because of the special-case for <input type=tel>, as specified in
+  // Changing type might change auto directionality of this or the assigned slot
+  const bool autoDirAssociated = IsAutoDirectionalityAssociated(mType);
+  if (IsAutoDirectionalityAssociated(oldType) != autoDirAssociated) {
+    ResetDirFormAssociatedElement(this, aNotify, true);
+  }
+  // Special case for <input type=tel> as specified in
   // https://html.spec.whatwg.org/multipage/dom.html#the-directionality
-  if (HasDirAuto()) {
-    const bool autoDirAssociated = IsAutoDirectionalityAssociated(mType);
-    if (IsAutoDirectionalityAssociated(oldType) != autoDirAssociated) {
-      SetAutoDirectionality(aNotify);
-    }
-  } else if (oldType == FormControlType::InputTel ||
-             mType == FormControlType::InputTel) {
+  if (!HasDirAuto() && (oldType == FormControlType::InputTel ||
+                        mType == FormControlType::InputTel)) {
     RecomputeDirectionality(this, aNotify);
   }
 
@@ -5939,25 +5936,6 @@ nsresult HTMLInputElement::SetDefaultValueAsValue() {
   return SetValueInternal(resetVal, ValueSetterOption::ByInternalAPI);
 }
 
-// https://html.spec.whatwg.org/#auto-directionality
-void HTMLInputElement::SetAutoDirectionality(bool aNotify,
-                                             const nsAString* aKnownValue) {
-  if (!IsAutoDirectionalityAssociated()) {
-    return SetDirectionality(Directionality::Ltr, aNotify);
-  }
-  nsAutoString value;
-  if (!aKnownValue) {
-    // It's unclear if per spec we should use the sanitized or unsanitized
-    // value to set the directionality, but aKnownValue is unsanitized, so be
-    // consistent. Using what the user is seeing to determine directionality
-    // instead of the sanitized (empty if invalid) value probably makes more
-    // sense.
-    GetValueInternal(value, CallerType::System);
-    aKnownValue = &value;
-  }
-  SetDirectionalityFromValue(this, *aKnownValue, aNotify);
-}
-
 NS_IMETHODIMP
 HTMLInputElement::Reset() {
   // We should be able to reset all dirty flags regardless of the type.
@@ -7076,9 +7054,7 @@ void HTMLInputElement::OnValueChanged(ValueChangeKind aKind,
 
   UpdateAllValidityStates(true);
 
-  if (HasDirAuto()) {
-    SetAutoDirectionality(true, aKnownNewValue);
-  }
+  ResetDirFormAssociatedElement(this, true, HasDirAuto(), aKnownNewValue);
 }
 
 bool HTMLInputElement::HasCachedSelection() {

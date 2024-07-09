@@ -33,10 +33,12 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLInputElement.h"
 #include "mozilla/dom/HTMLSlotElement.h"
+#include "mozilla/dom/HTMLTextAreaElement.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/Text.h"
 #include "mozilla/dom/UnbindContext.h"
 #include "mozilla/intl/UnicodeProperties.h"
+#include "mozilla/Maybe.h"
 #include "nsUnicodeProperties.h"
 #include "nsTextFragment.h"
 #include "nsAttrValue.h"
@@ -70,6 +72,33 @@ static bool ParticipatesInAutoDirection(const nsIContent* aContent) {
   }
   return !aContent->IsAnyOfHTMLElements(nsGkAtoms::script, nsGkAtoms::style,
                                         nsGkAtoms::input, nsGkAtoms::textarea);
+}
+
+static bool IsAutoDirectionalityFormAssociatedElement(Element* aElement) {
+  if (HTMLInputElement* input = HTMLInputElement::FromNode(aElement)) {
+    return input->IsAutoDirectionalityAssociated();
+  }
+  return aElement->IsHTMLElement(nsGkAtoms::textarea);
+}
+
+static Maybe<nsAutoString> GetValueIfFormAssociatedElement(Element* aElement) {
+  Maybe<nsAutoString> result;
+  if (HTMLInputElement* input = HTMLInputElement::FromNode(aElement)) {
+    if (input->IsAutoDirectionalityAssociated()) {
+      // It's unclear if per spec we should use the sanitized or unsanitized
+      // value to set the directionality. But input may provide a known value
+      // to us, which is unsanitized, so be consistent. Using what the user is
+      // seeing to determine directionality instead of the sanitized
+      // (empty if invalid) value probably makes more sense.
+      result.emplace();
+      input->GetValueInternal(*result, dom::CallerType::System);
+    }
+  } else if (dom::HTMLTextAreaElement* ta =
+                 dom::HTMLTextAreaElement::FromNode(aElement)) {
+    result.emplace();
+    ta->GetValue(*result);
+  }
+  return result;
 }
 
 /**
@@ -248,7 +277,18 @@ Directionality ComputeAutoDirectionFromAssignedNodes(
       MOZ_ASSERT(assignedElement);
 
       // Step 2.1.3.2. Set childDirection to the auto directionality of child.
-      // TODO use value for input and textarea children
+      // Need to perform parts of the auto directionality algorithm here, as
+      // ComputeAutoDirectionality does not implement the whole algorithm.
+      if (Maybe<nsAutoString> maybe =
+              GetValueIfFormAssociatedElement(assignedElement)) {
+        const nsAutoString& value = maybe.value();
+        childDirection =
+            GetDirectionFromText(value.BeginReading(), value.Length());
+        if (childDirection == Directionality::Unset && !value.IsEmpty()) {
+          childDirection = Directionality::Ltr;
+        }
+      }
+      // Now recursively call into the remainder of auto directionality.
       if (ParticipatesInAutoDirection(assignedElement)) {
         childDirection = ComputeAutoDirectionality(assignedElement, aNotify);
       }
@@ -735,16 +775,41 @@ void ResetDirectionSetByTextNode(Text* aTextNode,
   }
 }
 
-void SetDirectionalityFromValue(Element* aElement, const nsAString& value,
-                                bool aNotify) {
-  Directionality dir =
-      GetDirectionFromText(value.BeginReading(), value.Length());
-  if (dir == Directionality::Unset) {
-    dir = Directionality::Ltr;
+void ResetDirFormAssociatedElement(Element* aElement, bool aNotify,
+                                   bool aHasDirAuto,
+                                   const nsAString* aKnownValue) {
+  if (aHasDirAuto) {
+    Directionality dir = Directionality::Unset;
+
+    if (aKnownValue && IsAutoDirectionalityFormAssociatedElement(aElement)) {
+      dir = GetDirectionFromText(aKnownValue->BeginReading(),
+                                 aKnownValue->Length());
+    } else if (!aKnownValue) {
+      if (Maybe<nsAutoString> maybe =
+              GetValueIfFormAssociatedElement(aElement)) {
+        dir = GetDirectionFromText(maybe.value().BeginReading(),
+                                   maybe.value().Length());
+      }
+    }
+
+    // https://html.spec.whatwg.org/#the-directionality
+    // If auto directionality returns null, then return ltr
+    if (dir == Directionality::Unset) {
+      dir = Directionality::Ltr;
+    }
+
+    if (aElement->GetDirectionality() != dir) {
+      aElement->SetDirectionality(dir, aNotify);
+    }
   }
 
-  if (aElement->GetDirectionality() != dir) {
-    aElement->SetDirectionality(dir, aNotify);
+  // If aElement is assigned to a dir=auto slot, it might determine its auto
+  // directionality
+  if (HTMLSlotElement* slot = aElement->GetAssignedSlot()) {
+    if (slot->HasDirAuto() &&
+        slot->GetDirectionality() != aElement->GetDirectionality()) {
+      ResetAutoDirection(slot, aNotify);
+    }
   }
 }
 

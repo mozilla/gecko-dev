@@ -626,16 +626,6 @@ nsresult HTMLTextAreaElement::SetValueFromSetRangeText(
                                    ValueSetterOption::SetValueChanged});
 }
 
-void HTMLTextAreaElement::SetDirectionFromValue(bool aNotify,
-                                                const nsAString* aKnownValue) {
-  nsAutoString value;
-  if (!aKnownValue) {
-    GetValue(value);
-    aKnownValue = &value;
-  }
-  SetDirectionalityFromValue(this, *aKnownValue, aNotify);
-}
-
 nsresult HTMLTextAreaElement::Reset() {
   nsAutoString resetVal;
   GetDefaultValue(resetVal, IgnoreErrors());
@@ -757,9 +747,7 @@ nsresult HTMLTextAreaElement::BindToTree(BindContext& aContext,
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Set direction based on value if dir=auto
-  if (HasDirAuto()) {
-    SetDirectionFromValue(false);
-  }
+  ResetDirFormAssociatedElement(this, false, HasDirAuto());
 
   // If there is a disabled fieldset in the parent chain, the element is now
   // barred from constraint validation and can't suffer from value missing.
@@ -897,7 +885,7 @@ void HTMLTextAreaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
       UpdatePlaceholderShownState();
     } else if (aName == nsGkAtoms::dir && aValue &&
                aValue->Equals(nsGkAtoms::_auto, eIgnoreCase)) {
-      SetDirectionFromValue(aNotify);
+      ResetDirFormAssociatedElement(this, aNotify, true);
     }
   }
 
@@ -1122,9 +1110,7 @@ void HTMLTextAreaElement::OnValueChanged(ValueChangeKind aKind,
   UpdateTooShortValidityState();
   UpdateValueMissingValidityState();
 
-  if (HasDirAuto()) {
-    SetDirectionFromValue(true, aKnownNewValue);
-  }
+  ResetDirFormAssociatedElement(this, true, HasDirAuto(), aKnownNewValue);
 
   if (validBefore != IsValid()) {
     UpdateValidityElementStates(true);
