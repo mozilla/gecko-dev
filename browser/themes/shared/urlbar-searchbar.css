@@ -561,16 +561,20 @@
   border-radius: var(--urlbar-icon-border-radius);
   padding: var(--urlbar-icon-padding);
   color: inherit;
+  outline: var(--toolbarbutton-outline);
+  outline-offset: var(--toolbarbutton-outline-offset);
 
   &:not([disabled]):hover {
     background-color: var(--urlbar-box-hover-bgcolor);
     color: var(--urlbar-box-hover-text-color);
+    outline-color: var(--toolbarbutton-hover-outline-color);
   }
 
   &:not([disabled])[open],
   &:not([disabled]):hover:active {
     background-color: var(--urlbar-box-active-bgcolor);
     color: var(--urlbar-box-hover-text-color);
+    outline-color: var(--toolbarbutton-active-outline-color);
   }
 }
 
