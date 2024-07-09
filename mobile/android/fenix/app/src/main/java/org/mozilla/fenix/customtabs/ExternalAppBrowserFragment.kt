@@ -182,7 +182,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
 
                     browserToolbarView.view.isVisible = toolbarVisible
                     webAppToolbarShouldBeVisible = toolbarVisible
-                    if (isNavBarEnabled) {
+                    if (requireContext().shouldAddNavigationBar()) {
                         bottomToolbarContainerView.toolbarContainerView.isVisible = toolbarVisible
                     }
 
