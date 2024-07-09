@@ -1246,6 +1246,7 @@ class BuildDriver(MozbuildObject):
             mozbuild_metrics.sccache.set(using_sccache)
             mozbuild_metrics.icecream.set(get_substs_flag("CXX_IS_ICECREAM"))
             mozbuild_metrics.project.set(substs.get("MOZ_BUILD_APP", ""))
+            mozbuild_metrics.target.set(target)
 
             all_backends = config.substs.get("BUILD_BACKENDS", [None])
             active_backend = all_backends[0]

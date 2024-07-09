@@ -483,6 +483,7 @@ def generate_telemetry_docs(command_context):
         os.path.join(topsrcdir, "python/mach/docs/"),
         os.path.join(topsrcdir, "python/mach/pings.yaml"),
         os.path.join(topsrcdir, "python/mach/metrics.yaml"),
+        os.path.join(topsrcdir, "python/mozbuild/metrics.yaml"),
     ]
     metrics_paths = [
         handler.metrics_path

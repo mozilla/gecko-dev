@@ -138,6 +138,20 @@ mozbuild:
     expires: never
     send_in_pings:
       - usage
+  target:
+    type: string
+    description: The target architecture for the build, such as "x86_64-pc-mingw32".
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1887885
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1893740#c1
+    notification_emails:
+      - build-telemetry@mozilla.com
+      - ahochheiden@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage
   tier_artifact_duration:
     type: timespan
     description: How long it took for the artifact tier of the build to complete.
