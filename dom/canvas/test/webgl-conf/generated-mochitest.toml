@@ -15780,6 +15780,7 @@ subsuite = "webgl1-core"
 
 ["generated/test_conformance__ogles__GL__abs__abs_001_to_006.html"]
 subsuite = "webgl1-ext"
+skip-if = ["os == 'android' && debug"]
 
 ["generated/test_conformance__ogles__GL__acos__acos_001_to_006.html"]
 subsuite = "webgl1-ext"

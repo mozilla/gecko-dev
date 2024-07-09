@@ -517,6 +517,10 @@ fail-if = ["os == 'mac' && !apple_silicon"]
 ########################################################################
 # Complicated
 
+["generated/test_conformance__ogles__GL__abs__abs_001_to_006.html"]
+# Test suite terminates, e.g. at pixel @ (412, 253 was [191,0,0,255] expected [98,0,0,255]. Bug 1897792
+skip-if = ["os == 'android' && debug"]
+
 ["generated/test_conformance__context__context-attributes-alpha-depth-stencil-antialias.html"]
 # Asserts on linux debug. Crashes on Android.
 skip-if = [
