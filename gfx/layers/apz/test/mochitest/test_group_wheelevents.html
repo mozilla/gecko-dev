@@ -56,6 +56,7 @@ var subtests = [
              ["apz.test.mac.synth_wheel_input", true]]},
   {"file": "helper_scroll_anchoring_on_wheel.html", prefs: smoothness_prefs},
   {"file": "helper_scroll_over_subframe.html?scroll=wheel", prefs: wheel_transaction_prefs},
+  {"file": "helper_scroll_over_subframe.html?oop=true&scroll=wheel", prefs: wheel_transaction_prefs},
 ];
 
 subtests.push(...buildRelativeScrollSmoothnessVariants("wheel", ["scrollBy", "scrollTo", "scrollTop"]));

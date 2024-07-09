@@ -387,6 +387,11 @@ void WheelBlockState::Update(ScrollWheelInput& aEvent) {
   mLastMouseMove = TimeStamp();
 }
 
+LayersId WheelBlockState::GetLayersId() const {
+  return (InTransaction() && TargetApzc()) ? TargetApzc()->GetLayersId()
+                                           : LayersId{0};
+}
+
 bool WheelBlockState::MustStayActive() { return !mTransactionEnded; }
 
 const char* WheelBlockState::Type() { return "scroll wheel"; }

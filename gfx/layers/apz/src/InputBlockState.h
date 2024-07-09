@@ -97,6 +97,8 @@ class InputBlockState : public RefCounted<InputBlockState> {
   virtual void UpdateTargetApzc(
       const RefPtr<AsyncPanZoomController>& aTargetApzc);
 
+  const AsyncPanZoomController* TargetApzc() const { return mTargetApzc.get(); }
+
  private:
   // Checks whether |aA| is an ancestor of |aB| (or the same as |aB|) in
   // |mOverscrollHandoffChain|.
@@ -270,6 +272,8 @@ class WheelBlockState : public CancelableBlockState {
   ScrollDirections GetAllowedScrollDirections() const {
     return mAllowedScrollDirections;
   }
+
+  LayersId GetLayersId() const;
 
  protected:
   void UpdateTargetApzc(
