@@ -123,6 +123,9 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">新导航方式让浏览更畅快</string>
 
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">导航栏会在向下滚动页面时收起，留出更多浏览空间。</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">需要访问相机。请前往 Android 设置，点按“权限”，然后点按“允许”。</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -649,7 +652,7 @@
     <!-- Preference title for switch preference to suggest bookmarks when searching -->
     <string name="preferences_search_bookmarks">搜索书签</string>
     <!-- Preference title for switch preference to suggest synced tabs when searching -->
-    <string name="preferences_search_synced_tabs">搜索受同步的标签页</string>
+    <string name="preferences_search_synced_tabs">搜索同步的标签页</string>
     <!-- Preference for account settings -->
     <string name="preferences_account_settings">账户设置</string>
 
@@ -1067,7 +1070,7 @@
     <!-- Title for the list of tabs in the current private session -->
     <string name="tabs_header_private_tabs_title">隐私标签页</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">受同步的标签页</string>
+    <string name="tabs_header_synced_tabs_title">同步的标签页</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">添加标签页</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1521,6 +1524,8 @@
     <string name="snackbar_tab_closed">标签页已关闭</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">标签页已关闭</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">已关闭 %1$s 个标签页</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">书签已保存！</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2796,6 +2801,11 @@
     <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">请帮助 Firefox 的打印更出色。只需片刻</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">您对在 Firefox 中打印的满意度如何？</string>
+    <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">Firefox 徽标</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">问卷功能图标</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
     <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">打开问卷</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
