@@ -647,6 +647,9 @@ class gfxUserFontEntry : public gfxFontEntry {
   // a valid font resource is found or all sources fail
   void Load();
 
+  // Invalidates appropriately when the load finishes.
+  void FontLoadComplete();
+
   // methods to expose some information to FontFaceSet::UserFontSet
   // since we can't make that class a friend
   void SetLoader(nsFontFaceLoader* aLoader) {
@@ -763,10 +766,6 @@ class gfxUserFontEntry : public gfxFontEntry {
   // font entry has been added to.  This will at least include the owner of this
   // user font entry.
   virtual void GetUserFontSets(nsTArray<RefPtr<gfxUserFontSet>>& aResult);
-
-  // Calls IncrementGeneration() on all user font sets that contain this
-  // user font entry.
-  void IncrementGeneration();
 
   // general load state
   UserFontLoadState mUserFontLoadState;
