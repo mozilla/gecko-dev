@@ -60,7 +60,7 @@ class nsTreeBodyFrame final : public mozilla::SimpleXULLeafFrame,
   explicit nsTreeBodyFrame(ComputedStyle* aStyle, nsPresContext* aPresContext);
   ~nsTreeBodyFrame();
 
-  nscoord GetIntrinsicBSize() override;
+  mozilla::IntrinsicSize GetIntrinsicSize() override;
 
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(nsTreeBodyFrame)

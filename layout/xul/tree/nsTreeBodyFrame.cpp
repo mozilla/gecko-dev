@@ -389,8 +389,12 @@ void nsTreeBodyFrame::ManageReflowCallback() {
   mHorzWidth = horzWidth;
 }
 
-nscoord nsTreeBodyFrame::GetIntrinsicBSize() {
-  return mHasFixedRowCount ? mRowHeight * mPageLength : 0;
+IntrinsicSize nsTreeBodyFrame::GetIntrinsicSize() {
+  IntrinsicSize intrinsicSize;
+  if (mHasFixedRowCount) {
+    intrinsicSize.BSize(GetWritingMode()).emplace(mRowHeight * mPageLength);
+  }
+  return intrinsicSize;
 }
 
 void nsTreeBodyFrame::DidReflow(nsPresContext* aPresContext,

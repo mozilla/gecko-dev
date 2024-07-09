@@ -6240,7 +6240,8 @@ nsIFrame::IntrinsicSizeOffsetData nsIFrame::IntrinsicBSizeOffsets(
 
 /* virtual */
 IntrinsicSize nsIFrame::GetIntrinsicSize() {
-  return IntrinsicSize();  // default is width/height set to eStyleUnit_None
+  // Defaults to no intrinsic size.
+  return IntrinsicSize();
 }
 
 AspectRatio nsIFrame::GetAspectRatio() const {

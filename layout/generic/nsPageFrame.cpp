@@ -1003,11 +1003,12 @@ nsPageBreakFrame::nsPageBreakFrame(ComputedStyle* aStyle,
 
 nsPageBreakFrame::~nsPageBreakFrame() = default;
 
-nscoord nsPageBreakFrame::GetIntrinsicISize() {
-  return nsPresContext::CSSPixelsToAppUnits(1);
+IntrinsicSize nsPageBreakFrame::GetIntrinsicSize() {
+  IntrinsicSize intrinsicSize;
+  intrinsicSize.ISize(GetWritingMode())
+      .emplace(nsPresContext::CSSPixelsToAppUnits(1));
+  return intrinsicSize;
 }
-
-nscoord nsPageBreakFrame::GetIntrinsicBSize() { return 0; }
 
 void nsPageBreakFrame::Reflow(nsPresContext* aPresContext,
                               ReflowOutput& aReflowOutput,
@@ -1041,7 +1042,7 @@ void nsPageBreakFrame::Reflow(nsPresContext* aPresContext,
       }
     }
   }
-  LogicalSize finalSize(wm, GetIntrinsicISize(), bSize);
+  LogicalSize finalSize(wm, *GetIntrinsicSize().ISize(wm), bSize);
   // round the height down to the nearest pixel
   // XXX(mats) why???
   finalSize.BSize(wm) -=

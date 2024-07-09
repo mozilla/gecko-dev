@@ -162,9 +162,7 @@ class nsPageBreakFrame final : public nsLeafFrame {
   nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
- protected:
-  nscoord GetIntrinsicISize() override;
-  nscoord GetIntrinsicBSize() override;
+  mozilla::IntrinsicSize GetIntrinsicSize() override;
 
   friend nsIFrame* NS_NewPageBreakFrame(mozilla::PresShell* aPresShell,
                                         ComputedStyle* aStyle);

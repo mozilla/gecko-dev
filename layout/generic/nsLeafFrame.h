@@ -28,14 +28,13 @@ class nsLeafFrame : public nsIFrame {
                         const nsDisplayListSet& aLists) override;
 
   /**
-   * Both GetMinISize and GetPrefISize will return whatever GetIntrinsicISize
-   * returns.
+   * Both GetMinISize and GetPrefISize will return our intrinsic inline size.
    */
   virtual nscoord GetMinISize(gfxContext* aRenderingContext) override;
   virtual nscoord GetPrefISize(gfxContext* aRenderingContext) override;
 
   /**
-   * Our auto size is just intrinsic width and intrinsic height.
+   * Our auto size is just the intrinsic size.
    */
   mozilla::LogicalSize ComputeAutoSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
@@ -57,22 +56,6 @@ class nsLeafFrame : public nsIFrame {
       : nsIFrame(aStyle, aPresContext, aID) {}
 
   virtual ~nsLeafFrame();
-
-  /**
-   * Return the intrinsic isize of the frame's content area. Note that this
-   * should not include borders or padding and should not depend on the applied
-   * styles.
-   */
-  virtual nscoord GetIntrinsicISize() = 0;
-
-  /**
-   * Return the intrinsic bsize of the frame's content area.  This should not
-   * include border or padding.  This will only matter if the specified bsize
-   * is auto.  Note that subclasses must either implement this or override
-   * Reflow and ComputeAutoSize; the default Reflow and ComputeAutoSize impls
-   * call this method.
-   */
-  virtual nscoord GetIntrinsicBSize();
 
   /**
    * Set aDesiredSize to be the available size

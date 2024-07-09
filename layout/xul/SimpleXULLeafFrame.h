@@ -22,10 +22,6 @@ class SimpleXULLeafFrame : public nsLeafFrame {
  public:
   NS_DECL_FRAMEARENA_HELPERS(SimpleXULLeafFrame)
 
-  // TODO: Look at appearance instead maybe?
-  nscoord GetIntrinsicISize() override { return 0; }
-  nscoord GetIntrinsicBSize() override { return 0; }
-
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;

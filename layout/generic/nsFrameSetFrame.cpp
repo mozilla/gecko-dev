@@ -108,8 +108,6 @@ class nsHTMLFramesetBorderFrame final : public nsLeafFrame {
   nsHTMLFramesetBorderFrame(ComputedStyle*, nsPresContext*, int32_t aWidth,
                             bool aVertical, bool aVisible);
   virtual ~nsHTMLFramesetBorderFrame();
-  virtual nscoord GetIntrinsicISize() override;
-  virtual nscoord GetIntrinsicBSize() override;
 
   // the prev and next neighbors are indexes into the row (for a horizontal
   // border) or col (for a vertical border) of nsHTMLFramesetFrames or
@@ -150,8 +148,6 @@ class nsHTMLFramesetBlankFrame final : public nsLeafFrame {
       : nsLeafFrame(aStyle, aPresContext, kClassID) {}
 
   virtual ~nsHTMLFramesetBlankFrame();
-  virtual nscoord GetIntrinsicISize() override;
-  virtual nscoord GetIntrinsicBSize() override;
 
   friend class nsHTMLFramesetFrame;
   friend class nsHTMLFrameset;
@@ -1290,16 +1286,6 @@ nsHTMLFramesetBorderFrame::~nsHTMLFramesetBorderFrame() {
 
 NS_IMPL_FRAMEARENA_HELPERS(nsHTMLFramesetBorderFrame)
 
-nscoord nsHTMLFramesetBorderFrame::GetIntrinsicISize() {
-  // No intrinsic width
-  return 0;
-}
-
-nscoord nsHTMLFramesetBorderFrame::GetIntrinsicBSize() {
-  // No intrinsic height
-  return 0;
-}
-
 void nsHTMLFramesetBorderFrame::SetVisibility(bool aVisibility) {
   mVisibility = aVisibility;
 }
@@ -1478,16 +1464,6 @@ NS_IMPL_FRAMEARENA_HELPERS(nsHTMLFramesetBlankFrame)
 
 nsHTMLFramesetBlankFrame::~nsHTMLFramesetBlankFrame() {
   // printf("nsHTMLFramesetBlankFrame destructor %p \n", this);
-}
-
-nscoord nsHTMLFramesetBlankFrame::GetIntrinsicISize() {
-  // No intrinsic width
-  return 0;
-}
-
-nscoord nsHTMLFramesetBlankFrame::GetIntrinsicBSize() {
-  // No intrinsic height
-  return 0;
 }
 
 void nsHTMLFramesetBlankFrame::Reflow(nsPresContext* aPresContext,
