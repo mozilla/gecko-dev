@@ -7,17 +7,15 @@
 var idnService;
 
 function expected_pass(inputIDN) {
-  var isASCII = {};
-  var displayIDN = idnService.convertToDisplayIDN(inputIDN, isASCII);
+  var displayIDN = idnService.convertToDisplayIDN(inputIDN);
   Assert.equal(displayIDN, inputIDN);
 }
 
 function expected_fail(inputIDN) {
-  var isASCII = {};
   var displayIDN = "";
 
   try {
-    displayIDN = idnService.convertToDisplayIDN(inputIDN, isASCII);
+    displayIDN = idnService.convertToDisplayIDN(inputIDN);
   } catch (e) {}
 
   Assert.notEqual(displayIDN, inputIDN);
@@ -38,9 +36,9 @@ function run_test() {
   // unassigned code point
   expected_fail("foo\u3040bar.com");
 
-  // unassigned code point in punycode. Should *pass* because the URL will not
-  // be converted to Unicode
-  expected_pass("xn--foobar-533e.com");
+  // unassigned code point in punycode. Should *fail* because Punycode
+  // is decoded and checked.
+  expected_fail("xn--foobar-533e.com");
 
   // code point assigned since Unicode 3.0
   // XXX This test will unexpectedly pass when we update to IDNAbis

@@ -990,7 +990,7 @@ LoginManagerAuthPrompter.prototype = {
     try {
       var uri = Services.io.newURI(aURIString);
       var baseDomain = Services.eTLD.getBaseDomain(uri);
-      displayHost = idnService.convertToDisplayIDN(baseDomain, {});
+      displayHost = idnService.convertToDisplayIDN(baseDomain);
     } catch (e) {
       this.log(`Couldn't process supplied URIString ${aURIString}.`);
     }

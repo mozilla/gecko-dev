@@ -30,7 +30,6 @@
 #include "nsICookiePermission.h"
 #include "nsIConsoleReportCollector.h"
 #include "nsIEffectiveTLDService.h"
-#include "nsIIDNService.h"
 #include "nsIScriptError.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIURI.h"
@@ -263,9 +262,6 @@ CookieService::CookieService() = default;
 nsresult CookieService::Init() {
   nsresult rv;
   mTLDService = mozilla::components::EffectiveTLD::Service(&rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  mIDNService = mozilla::components::IDN::Service(&rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mThirdPartyUtil = mozilla::components::ThirdPartyUtil::Service();
@@ -1278,21 +1274,14 @@ void CookieService::GetCookiesForURI(
  * private domain & permission compliance enforcement functions
  ******************************************************************************/
 
-// Normalizes the given hostname, component by component. ASCII/ACE
-// components are lower-cased, and UTF-8 components are normalized per
-// RFC 3454 and converted to ACE.
 nsresult CookieService::NormalizeHost(nsCString& aHost) {
-  if (!IsAscii(aHost)) {
-    nsAutoCString host;
-    nsresult rv = mIDNService->ConvertUTF8toACE(aHost, host);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    aHost = host;
+  nsAutoCString host;
+  nsresult rv = NS_DomainToASCIIAllowAnyGlyphfulASCII(aHost, host);
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
-  ToLowerCase(aHost);
+  aHost = host;
   return NS_OK;
 }
 

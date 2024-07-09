@@ -8,6 +8,7 @@ members = [
   "browser/app/nmhproxy/",
   "js/src/frontend/smoosh",
   "js/src/rust",
+  "netwerk/base/idna_glue",
   "netwerk/test/http3server",
   "security/manager/ssl/builtins",
   "security/manager/ssl/tests/unit/test_builtins",

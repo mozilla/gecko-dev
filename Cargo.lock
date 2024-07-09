@@ -146,6 +146,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4c527152e37cf757a3f78aae5a06fbeefdb07ccc535c980a3208ee3060dd544"
 
 [[package]]
+name = "arraystring"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d517c467117e1d8ca795bc8cc90857ff7f79790cca0e26f6e9462694ece0185"
+dependencies = [
+ "typenum",
+]
+
+[[package]]
 name = "arrayvec"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2315,6 +2324,7 @@ dependencies = [
  "geckoservo",
  "gkrust_utils",
  "http_sfv",
+ "idna_glue",
  "jog",
  "jsrust_shared",
  "kvstore",
@@ -2993,6 +3003,17 @@ dependencies = [
  "icu_properties",
  "smallvec",
  "utf8_iter",
+]
+
+[[package]]
+name = "idna_glue"
+version = "0.1.0"
+dependencies = [
+ "arraystring",
+ "idna",
+ "nserror",
+ "nsstring",
+ "percent-encoding",
 ]
 
 [[package]]

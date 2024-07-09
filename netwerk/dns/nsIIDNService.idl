@@ -5,48 +5,70 @@
 #include "nsISupports.idl"
 
 /**
- * nsIIDNService interface.
- *
  * IDN (Internationalized Domain Name) support. Provides facilities
- * for manipulating IDN hostnames according to the specification set
- * forth by the IETF.
+ * for manipulating IDN hostnames according to UTS #46 as parametrized
+ * by the WHATWG URL Standard.
  *
- * IDN effort:
- * http://www.ietf.org/html.characters/idn-charter.html
- * http://www.i-dns.net
+ * UTS #46: https://www.unicode.org/reports/tr46/
  *
- * IDNA specification:
- * http://search.ietf.org/internet-drafts/draft-ietf-idn-idna-06.txt
+ * URL Standard: https://url.spec.whatwg.org/
  */
 
 [scriptable, uuid(a592a60e-3621-4f19-a318-2bf233cfad3e)]
 interface nsIIDNService : nsISupports
 {
     /**
-     * Prepares the input hostname according to IDNA ToASCII operation,
-     * the input hostname is assumed to be UTF8-encoded.
+     * The UTS #46 ToASCII operation as parametrized by the WHATWG URL Standard,
+     * except allows any ASCII character that has a glyph.
+     *
+     * Use this function to prepare a host name for network protocols.
+     *
+     * Do not try to optimize and avoid calling this function if you already
+     * have ASCII. This function optimizes internally, and calling it is
+     * required for correctness!
+     *
+     * The function is available to C++ callers as `NS_DomainToASCIIAllowAnyGlyphfulASCII`.
+     *
+     * Rust callers that don't happen to be using XPCOM strings are better
+     * off using the `idna` crate directly.
      */
     ACString convertUTF8toACE(in AUTF8String input);
 
+    /**
+     * The UTS #46 ToUnicode operation as parametrized by the WHATWG URL Standard,
+     * except allows any ASCII character that has a glyph, except potentially misleading
+     * labels are treated according to ToASCII instead.
+     *
+     * Use this function to prepare a host name for display to the user.
+     *
+     * The function is available to C++ callers as `NS_DomainToDisplayAllowAnyGlyphfulASCII`.
+     *
+     * The function is available to privileged JavaScript callers via
+     * nsIIDNService.
+     *
+     * Rust callers that don't happen to be using XPCOM strings are better
+     * off using the `idna` crate directly. (See `idna_glue` for what policy
+     * closure to use.)
+     */
+    AUTF8String convertToDisplayIDN(in AUTF8String input);
 
     /**
-     * This is the ToUnicode operation as specified in the IDNA proposal,
-     * with an additional step to encode the result in UTF-8.
-     * It takes an ACE-encoded hostname and performs ToUnicode to it, then
-     * encodes the resulting string into UTF8.
+     * The UTS #46 ToUnicode operation as parametrized by the WHATWG URL Standard,
+     * except allows any ASCII character that has a glyph.
+     *
+     * It's most likely INCORRECT to call this function, and `NS_DomainToDisplay`
+     * should typically be called instead. Please avoid adding new callers, so
+     * that this conversion could be removed entirely!
+     *
+     * The function is available to C++ callers as `NS_DomainToUnicodeAllowAnyGlyphfulASCII`.
+     *
+     * Rust callers that don't happen to be using XPCOM strings are better
+     * off using the `idna` crate directly.
      */
     AUTF8String convertACEtoUTF8(in ACString input);
 
     /**
-     * Checks if the input string is ACE encoded or not.
+     * DO NOT USE! Checks if the input string is ACE encoded or not.
      */
     boolean isACE(in ACString input);
-
-    /**
-     * Normalizes and converts a host to UTF-8 if the host is in the IDN
-     * whitelist, otherwise converts it to ACE. This is useful for display
-     * purposes and to ensure an encoding consistent with nsIURI::GetHost().
-     * If the result is ASCII or ACE encoded, |isASCII| will be true.
-     */
-    AUTF8String convertToDisplayIDN(in AUTF8String input, out boolean isASCII);
 };

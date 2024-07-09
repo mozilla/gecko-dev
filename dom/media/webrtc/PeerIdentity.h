@@ -10,10 +10,6 @@
 #include "nsISupportsImpl.h"
 #include "nsString.h"
 
-template <class T>
-class nsCOMPtr;
-class nsIIDNService;
-
 namespace mozilla {
 
 /**
@@ -42,8 +38,7 @@ class PeerIdentity final {
   static void GetUser(const nsAString& aPeerIdentity, nsAString& aUser);
   static void GetHost(const nsAString& aPeerIdentity, nsAString& aHost);
 
-  static void GetNormalizedHost(const nsCOMPtr<nsIIDNService>& aIdnService,
-                                const nsAString& aHost,
+  static void GetNormalizedHost(const nsAString& aHost,
                                 nsACString& aNormalizedHost);
 
   nsString mPeerIdentity;

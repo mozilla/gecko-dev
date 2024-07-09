@@ -15,31 +15,21 @@
 #include "nsUnicharUtils.h"
 #include "nsUnicodeProperties.h"
 #include "harfbuzz/hb.h"
-#include "punycode.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Casting.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/TextUtils.h"
 #include "mozilla/Utf8.h"
-#include "mozilla/intl/FormatBuffer.h"
 #include "mozilla/intl/UnicodeProperties.h"
 #include "mozilla/intl/UnicodeScriptCodes.h"
-
-#include "ICUUtils.h"
+#include "nsNetUtil.h"
+#include "nsStandardURL.h"
 
 using namespace mozilla;
 using namespace mozilla::intl;
 using namespace mozilla::unicode;
 using namespace mozilla::net;
 using mozilla::Preferences;
-
-// Currently we use the non-transitional processing option -- see
-// http://unicode.org/reports/tr46/
-// To switch to transitional processing, change the value of this flag
-// and kTransitionalProcessing in netwerk/test/unit/test_idna2008.js to true
-// (revert bug 1218179).
-const intl::IDNA::ProcessingType kIDNA2008_DefaultProcessingType =
-    intl::IDNA::ProcessingType::NonTransitional;
 
 //-----------------------------------------------------------------------------
 // According to RFC 1034 - 3.1. Name space specifications and terminology
@@ -57,16 +47,33 @@ static const char kACEPrefix[] = "xn--";
 #define NS_NET_PREF_EXTRABLOCKED "network.IDN.extra_blocked_chars"
 #define NS_NET_PREF_IDNRESTRICTION "network.IDN.restriction_profile"
 
-static inline bool isOnlySafeChars(const nsString& in,
+template <int N>
+static inline bool TLDEqualsLiteral(mozilla::Span<const char32_t> aTLD,
+                                    const char (&aStr)[N]) {
+  if (aTLD.Length() != N - 1) {
+    return false;
+  }
+  const char* a = aStr;
+  for (const char32_t c : aTLD) {
+    if (c != char32_t(*a)) {
+      return false;
+    }
+    ++a;
+  }
+  return true;
+}
+
+static inline bool isOnlySafeChars(mozilla::Span<const char32_t> aLabel,
                                    const nsTArray<BlocklistRange>& aBlocklist) {
   if (aBlocklist.IsEmpty()) {
     return true;
   }
-  const char16_t* cur = in.BeginReading();
-  const char16_t* end = in.EndReading();
-
-  for (; cur < end; ++cur) {
-    if (CharInBlocklist(*cur, aBlocklist)) {
+  for (const char32_t c : aLabel) {
+    if (c > 0xFFFF) {
+      // The blocklist only support BMP!
+      continue;
+    }
+    if (CharInBlocklist(char16_t(c), aBlocklist)) {
       return false;
     }
   }
@@ -131,215 +138,18 @@ void nsIDNService::prefsChanged(const char* pref) {
   }
 }
 
-nsIDNService::nsIDNService() {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  auto createResult =
-      mozilla::intl::IDNA::TryCreate(kIDNA2008_DefaultProcessingType);
-  MOZ_ASSERT(createResult.isOk());
-  mIDNA = createResult.unwrap();
-}
+nsIDNService::nsIDNService() { MOZ_ASSERT(NS_IsMainThread()); }
 
 nsIDNService::~nsIDNService() = default;
 
-nsresult nsIDNService::IDNA2008ToUnicode(const nsACString& input,
-                                         nsAString& output) {
-  NS_ConvertUTF8toUTF16 inputStr(input);
-
-  Span<const char16_t> inputSpan{inputStr};
-  intl::nsTStringToBufferAdapter buffer(output);
-  auto result = mIDNA->LabelToUnicode(inputSpan, buffer);
-
-  nsresult rv = NS_OK;
-  if (result.isErr()) {
-    rv = ICUUtils::ICUErrorToNsResult(result.unwrapErr());
-    if (rv == NS_ERROR_FAILURE) {
-      rv = NS_ERROR_MALFORMED_URI;
-    }
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  intl::IDNA::Info info = result.unwrap();
-  if (info.HasErrors()) {
-    rv = NS_ERROR_MALFORMED_URI;
-  }
-
-  return rv;
-}
-
-nsresult nsIDNService::IDNA2008StringPrep(const nsAString& input,
-                                          nsAString& output,
-                                          stringPrepFlag flag) {
-  Span<const char16_t> inputSpan{input};
-  intl::nsTStringToBufferAdapter buffer(output);
-  auto result = mIDNA->LabelToUnicode(inputSpan, buffer);
-
-  nsresult rv = NS_OK;
-  if (result.isErr()) {
-    rv = ICUUtils::ICUErrorToNsResult(result.unwrapErr());
-    if (rv == NS_ERROR_FAILURE) {
-      rv = NS_ERROR_MALFORMED_URI;
-    }
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  intl::IDNA::Info info = result.unwrap();
-
-  // Output the result of nameToUnicode even if there were errors.
-  // But in the case of invalid punycode, the uidna_labelToUnicode result
-  // appears to get an appended U+FFFD REPLACEMENT CHARACTER, which will
-  // confuse our subsequent processing, so we drop that.
-  // (https://bugzilla.mozilla.org/show_bug.cgi?id=1399540#c9)
-  if ((info.HasInvalidPunycode() || info.HasInvalidAceLabel()) &&
-      !output.IsEmpty() && output.Last() == 0xfffd) {
-    output.Truncate(output.Length() - 1);
-  }
-
-  if (flag == eStringPrepIgnoreErrors) {
-    return NS_OK;
-  }
-
-  if (flag == eStringPrepForDNS) {
-    // We ignore errors if the result is empty, or if the errors were just
-    // invalid hyphens (not punycode-decoding failure or invalid chars).
-    if (!output.IsEmpty()) {
-      if (info.HasErrorsIgnoringInvalidHyphen()) {
-        output.Truncate();
-        rv = NS_ERROR_MALFORMED_URI;
-      }
-    }
-  } else {
-    if (info.HasErrors()) {
-      rv = NS_ERROR_MALFORMED_URI;
-    }
-  }
-
-  return rv;
-}
-
 NS_IMETHODIMP nsIDNService::ConvertUTF8toACE(const nsACString& input,
                                              nsACString& ace) {
-  return UTF8toACE(input, ace, eStringPrepForDNS);
-}
-
-nsresult nsIDNService::UTF8toACE(const nsACString& input, nsACString& ace,
-                                 stringPrepFlag flag) {
-  nsresult rv;
-  NS_ConvertUTF8toUTF16 ustr(input);
-
-  // map ideographic period to ASCII period etc.
-  normalizeFullStops(ustr);
-
-  uint32_t len, offset;
-  len = 0;
-  offset = 0;
-  nsAutoCString encodedBuf;
-
-  nsAString::const_iterator start, end;
-  ustr.BeginReading(start);
-  ustr.EndReading(end);
-  ace.Truncate();
-
-  // encode nodes if non ASCII
-  while (start != end) {
-    len++;
-    if (*start++ == (char16_t)'.') {
-      rv = stringPrepAndACE(Substring(ustr, offset, len - 1), encodedBuf, flag);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      ace.Append(encodedBuf);
-      ace.Append('.');
-      offset += len;
-      len = 0;
-    }
-  }
-
-  // encode the last node if non ASCII
-  if (len) {
-    rv = stringPrepAndACE(Substring(ustr, offset, len), encodedBuf, flag);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    ace.Append(encodedBuf);
-  }
-
-  return NS_OK;
+  return NS_DomainToASCIIAllowAnyGlyphfulASCII(input, ace);
 }
 
 NS_IMETHODIMP nsIDNService::ConvertACEtoUTF8(const nsACString& input,
                                              nsACString& _retval) {
-  return ACEtoUTF8(input, _retval, eStringPrepForDNS);
-}
-
-nsresult nsIDNService::ACEtoUTF8(const nsACString& input, nsACString& _retval,
-                                 stringPrepFlag flag) {
-  // RFC 3490 - 4.2 ToUnicode
-  // ToUnicode never fails.  If any step fails, then the original input
-  // sequence is returned immediately in that step.
-  //
-  // Note that this refers to the decoding of a single label.
-  // ACEtoUTF8 may be called with a sequence of labels separated by dots;
-  // this test applies individually to each label.
-
-  uint32_t len = 0, offset = 0;
-  nsAutoCString decodedBuf;
-
-  nsACString::const_iterator start, end;
-  input.BeginReading(start);
-  input.EndReading(end);
-  _retval.Truncate();
-
-  if (input.IsEmpty()) {
-    return NS_OK;
-  }
-
-  nsAutoCString tld;
-  nsCString::const_iterator it = end, tldEnd = end;
-  --it;
-  if (it != start && *it == (char16_t)'.') {
-    // This is an FQDN (ends in .)
-    // Skip this dot to extract the TLD
-    tldEnd = it;
-    --it;
-  }
-  // Find last . and compute TLD
-  while (it != start) {
-    if (*it == (char16_t)'.') {
-      ++it;
-      tld.Assign(Substring(it, tldEnd));
-      break;
-    }
-    --it;
-  }
-
-  // loop and decode nodes
-  while (start != end) {
-    len++;
-    if (*start++ == '.') {
-      nsDependentCSubstring origLabel(input, offset, len - 1);
-      if (NS_FAILED(decodeACE(origLabel, decodedBuf, flag, tld))) {
-        // If decoding failed, use the original input sequence
-        // for this label.
-        _retval.Append(origLabel);
-      } else {
-        _retval.Append(decodedBuf);
-      }
-
-      _retval.Append('.');
-      offset += len;
-      len = 0;
-    }
-  }
-  // decode the last node
-  if (len) {
-    nsDependentCSubstring origLabel(input, offset, len);
-    if (NS_FAILED(decodeACE(origLabel, decodedBuf, flag, tld))) {
-      _retval.Append(origLabel);
-    } else {
-      _retval.Append(decodedBuf);
-    }
-  }
-
-  return NS_OK;
+  return NS_DomainToUnicodeAllowAnyGlyphfulASCII(input, _retval);
 }
 
 NS_IMETHODIMP nsIDNService::IsACE(const nsACString& input, bool* _retval) {
@@ -368,293 +178,13 @@ NS_IMETHODIMP nsIDNService::IsACE(const nsACString& input, bool* _retval) {
   return NS_OK;
 }
 
-nsresult nsIDNService::Normalize(const nsACString& input, nsACString& output) {
-  // protect against bogus input
-  NS_ENSURE_TRUE(IsUtf8(input), NS_ERROR_UNEXPECTED);
-
-  NS_ConvertUTF8toUTF16 inUTF16(input);
-  normalizeFullStops(inUTF16);
-
-  // pass the domain name to stringprep label by label
-  nsAutoString outUTF16, outLabel;
-
-  uint32_t len = 0, offset = 0;
-  nsresult rv;
-  nsAString::const_iterator start, end;
-  inUTF16.BeginReading(start);
-  inUTF16.EndReading(end);
-
-  while (start != end) {
-    len++;
-    if (*start++ == char16_t('.')) {
-      rv = stringPrep(Substring(inUTF16, offset, len - 1), outLabel,
-                      eStringPrepIgnoreErrors);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      outUTF16.Append(outLabel);
-      outUTF16.Append(char16_t('.'));
-      offset += len;
-      len = 0;
-    }
-  }
-  if (len) {
-    rv = stringPrep(Substring(inUTF16, offset, len), outLabel,
-                    eStringPrepIgnoreErrors);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    outUTF16.Append(outLabel);
-  }
-
-  CopyUTF16toUTF8(outUTF16, output);
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString& input,
-                                                bool* _isASCII,
                                                 nsACString& _retval) {
-  // If host is ACE, then convert to UTF-8 if the host is in the IDN whitelist.
-  // Else, if host is already UTF-8, then make sure it is normalized per IDN.
-
-  nsresult rv = NS_OK;
-
-  // Even if the hostname is not ASCII, individual labels may still be ACE, so
-  // test IsACE before testing IsASCII
-  bool isACE;
-  IsACE(input, &isACE);
-
-  if (IsAscii(input)) {
-    // first, canonicalize the host to lowercase, for whitelist lookup
-    _retval = input;
-    ToLowerCase(_retval);
-
-    if (isACE && !StaticPrefs::network_IDN_show_punycode()) {
-      // ACEtoUTF8() can't fail, but might return the original ACE string
-      nsAutoCString temp(_retval);
-      // Convert from ACE to UTF8 only those labels which are considered safe
-      // for display
-      ACEtoUTF8(temp, _retval, eStringPrepForUI);
-      *_isASCII = IsAscii(_retval);
-    } else {
-      *_isASCII = true;
-    }
-  } else {
-    // We have to normalize the hostname before testing against the domain
-    // whitelist (see bug 315411), and to ensure the entire string gets
-    // normalized.
-    //
-    // Normalization and the tests for safe display below, assume that the
-    // input is Unicode, so first convert any ACE labels to UTF8
-    if (isACE) {
-      nsAutoCString temp;
-      ACEtoUTF8(input, temp, eStringPrepIgnoreErrors);
-      rv = Normalize(temp, _retval);
-    } else {
-      rv = Normalize(input, _retval);
-    }
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    if (StaticPrefs::network_IDN_show_punycode() &&
-        NS_SUCCEEDED(UTF8toACE(_retval, _retval, eStringPrepIgnoreErrors))) {
-      *_isASCII = true;
-      return NS_OK;
-    }
-
-    // normalization could result in an ASCII-only hostname. alternatively, if
-    // the host is converted to ACE by the normalizer, then the host may contain
-    // unsafe characters, so leave it ACE encoded. see bug 283016, bug 301694,
-    // and bug 309311.
-    *_isASCII = IsAscii(_retval);
-    if (!*_isASCII) {
-      // UTF8toACE with eStringPrepForUI may return a domain name where
-      // some labels are in UTF-8 and some are in ACE, depending on
-      // whether they are considered safe for display
-      rv = UTF8toACE(_retval, _retval, eStringPrepForUI);
-      *_isASCII = IsAscii(_retval);
-      return rv;
-    }
-  }
-
-  return NS_OK;
-}  // Will generate a mutex still-held warning
-
-//-----------------------------------------------------------------------------
-
-static nsresult utf16ToUcs4(const nsAString& in, uint32_t* out,
-                            uint32_t outBufLen, uint32_t* outLen) {
-  uint32_t i = 0;
-  nsAString::const_iterator start, end;
-  in.BeginReading(start);
-  in.EndReading(end);
-
-  while (start != end) {
-    char16_t curChar;
-
-    curChar = *start++;
-
-    if (start != end && NS_IS_SURROGATE_PAIR(curChar, *start)) {
-      out[i] = SURROGATE_TO_UCS4(curChar, *start);
-      ++start;
-    } else {
-      out[i] = curChar;
-    }
-
-    i++;
-    if (i >= outBufLen) {
-      return NS_ERROR_MALFORMED_URI;
-    }
-  }
-  out[i] = (uint32_t)'\0';
-  *outLen = i;
-  return NS_OK;
-}
-
-static nsresult punycode(const nsAString& in, nsACString& out) {
-  uint32_t ucs4Buf[kMaxULabelSize + 1];
-  uint32_t ucs4Len = 0u;
-  nsresult rv = utf16ToUcs4(in, ucs4Buf, kMaxULabelSize, &ucs4Len);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // need maximum 20 bits to encode 16 bit Unicode character
-  // (include null terminator)
-  const uint32_t kEncodedBufSize = kMaxULabelSize * 20 / 8 + 1 + 1;
-  char encodedBuf[kEncodedBufSize];
-  punycode_uint encodedLength = kEncodedBufSize;
-
-  enum punycode_status status =
-      punycode_encode(ucs4Len, ucs4Buf, nullptr, &encodedLength, encodedBuf);
-
-  if (punycode_success != status || encodedLength >= kEncodedBufSize) {
-    return NS_ERROR_MALFORMED_URI;
-  }
-
-  encodedBuf[encodedLength] = '\0';
-  out.Assign(nsDependentCString(kACEPrefix) + nsDependentCString(encodedBuf));
-
+  nsresult rv = NS_DomainToDisplayAllowAnyGlyphfulASCII(input, _retval);
   return rv;
 }
 
-// RFC 3454
-//
-// 1) Map -- For each character in the input, check if it has a mapping
-// and, if so, replace it with its mapping. This is described in section 3.
-//
-// 2) Normalize -- Possibly normalize the result of step 1 using Unicode
-// normalization. This is described in section 4.
-//
-// 3) Prohibit -- Check for any characters that are not allowed in the
-// output. If any are found, return an error. This is described in section
-// 5.
-//
-// 4) Check bidi -- Possibly check for right-to-left characters, and if any
-// are found, make sure that the whole string satisfies the requirements
-// for bidirectional strings. If the string does not satisfy the requirements
-// for bidirectional strings, return an error. This is described in section 6.
-//
-// 5) Check unassigned code points -- If allowUnassigned is false, check for
-// any unassigned Unicode points and if any are found return an error.
-// This is described in section 7.
-//
-nsresult nsIDNService::stringPrep(const nsAString& in, nsAString& out,
-                                  stringPrepFlag flag) {
-  return IDNA2008StringPrep(in, out, flag);
-}
-
-nsresult nsIDNService::stringPrepAndACE(const nsAString& in, nsACString& out,
-                                        stringPrepFlag flag) {
-  nsresult rv = NS_OK;
-
-  out.Truncate();
-
-  if (IsAscii(in)) {
-    LossyCopyUTF16toASCII(in, out);
-    // If label begins with xn-- we still want to check its validity
-    if (!StringBeginsWith(in, u"xn--"_ns, nsCaseInsensitiveStringComparator)) {
-      return NS_OK;
-    }
-  }
-
-  nsAutoString strPrep;
-  rv = stringPrep(in, strPrep, flag);
-  if (flag == eStringPrepForDNS) {
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  if (IsAscii(strPrep)) {
-    LossyCopyUTF16toASCII(strPrep, out);
-    return NS_OK;
-  }
-
-  if (flag == eStringPrepForUI && NS_SUCCEEDED(rv) && isLabelSafe(in, u""_ns)) {
-    CopyUTF16toUTF8(strPrep, out);
-    return NS_OK;
-  }
-
-  return punycode(strPrep, out);
-}
-
-// RFC 3490
-// 1) Whenever dots are used as label separators, the following characters
-//    MUST be recognized as dots: U+002E (full stop), U+3002 (ideographic full
-//    stop), U+FF0E (fullwidth full stop), U+FF61 (halfwidth ideographic full
-//    stop).
-
-void nsIDNService::normalizeFullStops(nsAString& s) {
-  nsAString::const_iterator start, end;
-  s.BeginReading(start);
-  s.EndReading(end);
-  int32_t index = 0;
-
-  while (start != end) {
-    switch (*start) {
-      case 0x3002:
-      case 0xFF0E:
-      case 0xFF61:
-        s.ReplaceLiteral(index, 1, u".");
-        break;
-      default:
-        break;
-    }
-    start++;
-    index++;
-  }
-}
-
-nsresult nsIDNService::decodeACE(const nsACString& in, nsACString& out,
-                                 stringPrepFlag flag, const nsACString& aTLD) {
-  bool isAce;
-  IsACE(in, &isAce);
-  if (!isAce) {
-    out.Assign(in);
-    return NS_OK;
-  }
-
-  nsAutoString utf16;
-  nsresult result = IDNA2008ToUnicode(in, utf16);
-  NS_ENSURE_SUCCESS(result, result);
-
-  NS_ConvertUTF8toUTF16 tld(aTLD);
-
-  if (flag != eStringPrepForUI || isLabelSafe(utf16, tld)) {
-    CopyUTF16toUTF8(utf16, out);
-  } else {
-    out.Assign(in);
-    return NS_OK;
-  }
-
-  // Validation: encode back to ACE and compare the strings
-  nsAutoCString ace;
-  nsresult rv = UTF8toACE(out, ace, flag);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (flag == eStringPrepForDNS &&
-      !ace.Equals(in, nsCaseInsensitiveCStringComparator)) {
-    return NS_ERROR_MALFORMED_URI;
-  }
-
-  return NS_OK;
-}
+//-----------------------------------------------------------------------------
 
 namespace mozilla::net {
 
@@ -678,31 +208,30 @@ enum ScriptCombo : int32_t {
 
 }  // namespace mozilla::net
 
-bool nsIDNService::isLabelSafe(const nsAString& label, const nsAString& tld) {
+bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
+                               mozilla::Span<const char32_t> aTLD) {
   restrictionProfile profile{eASCIIOnlyProfile};
   {
     AutoReadLock lock(mLock);
 
-    if (!isOnlySafeChars(PromiseFlatString(label), mIDNBlocklist)) {
+    if (!isOnlySafeChars(aLabel, mIDNBlocklist)) {
       return false;
     }
 
     // We should never get here if the label is ASCII
-    NS_ASSERTION(!IsAscii(label), "ASCII label in IDN checking");
     if (mRestrictionProfile == eASCIIOnlyProfile) {
       return false;
     }
     profile = mRestrictionProfile;
   }
 
-  nsAString::const_iterator current, end;
-  label.BeginReading(current);
-  label.EndReading(end);
+  mozilla::Span<const char32_t>::const_iterator current = aLabel.cbegin();
+  mozilla::Span<const char32_t>::const_iterator end = aLabel.cend();
 
   Script lastScript = Script::INVALID;
-  uint32_t previousChar = 0;
-  uint32_t baseChar = 0;  // last non-diacritic seen (base char for marks)
-  uint32_t savedNumberingSystem = 0;
+  char32_t previousChar = 0;
+  char32_t baseChar = 0;  // last non-diacritic seen (base char for marks)
+  char32_t savedNumberingSystem = 0;
 // Simplified/Traditional Chinese check temporarily disabled -- bug 857481
 #if 0
   HanVariantType savedHanVariant = HVT_NotHan;
@@ -711,11 +240,7 @@ bool nsIDNService::isLabelSafe(const nsAString& label, const nsAString& tld) {
   ScriptCombo savedScript = ScriptCombo::UNSET;
 
   while (current != end) {
-    uint32_t ch = *current++;
-
-    if (current != end && NS_IS_SURROGATE_PAIR(ch, *current)) {
-      ch = SURROGATE_TO_UCS4(ch, *current++);
-    }
+    char32_t ch = *current++;
 
     IdentifierType idType = GetIdentifierType(ch);
     if (idType == IDTYPE_RESTRICTED) {
@@ -754,15 +279,15 @@ bool nsIDNService::isLabelSafe(const nsAString& label, const nsAString& tld) {
     }
 
     // U+00B7 is only allowed on Catalan domains between two l's.
-    if (ch == 0xB7 && (!tld.EqualsLiteral("cat") || previousChar != 'l' ||
+    if (ch == 0xB7 && (!TLDEqualsLiteral(aTLD, "cat") || previousChar != 'l' ||
                        current == end || *current != 'l')) {
       return false;
     }
 
     // Disallow Icelandic confusables for domains outside Icelandic and Faroese
     // ccTLD (.is, .fo)
-    if ((ch == 0xFE || ch == 0xF0) && !tld.EqualsLiteral("is") &&
-        !tld.EqualsLiteral("fo")) {
+    if ((ch == 0xFE || ch == 0xF0) && !TLDEqualsLiteral(aTLD, "is") &&
+        !TLDEqualsLiteral(aTLD, "fo")) {
       return false;
     }
 
@@ -910,4 +435,13 @@ bool nsIDNService::illegalScriptCombo(restrictionProfile profile, Script script,
    */
   return ((savedScript == OTHR && profile == eHighlyRestrictiveProfile) ||
           savedScript == FAIL);
+}
+
+extern "C" MOZ_EXPORT bool mozilla_net_is_label_safe(const char32_t* aLabel,
+                                                     size_t aLabelLen,
+                                                     const char32_t* aTld,
+                                                     size_t aTldLen) {
+  return static_cast<nsIDNService*>(nsStandardURL::GetIDNService())
+      ->IsLabelSafe(mozilla::Span<const char32_t>(aLabel, aLabelLen),
+                    mozilla::Span<const char32_t>(aTld, aTldLen));
 }
