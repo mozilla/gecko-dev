@@ -198,8 +198,9 @@ add_task(async function check_fields_after_form_autofill() {
 
   synthesizeKey("KEY_ArrowDown");
   let osKeyStoreLoginShown = Promise.resolve();
-  if(OSKeyStore.canReauth()) {
+  if (OSKeyStore.canReauth()) {
     osKeyStoreLoginShown = waitForOSKeyStoreLogin(true);
+    await waitForOSKeyStoreLoginTestSetupComplete();
   }
   await new Promise(resolve => SimpleTest.executeSoon(resolve));
   await triggerAutofillAndCheckProfile(MOCK_STORAGE[1].cc);
@@ -208,16 +209,23 @@ add_task(async function check_fields_after_form_autofill() {
   SpecialPowers.clearUserPref("toolkit.osKeyStore.unofficialBuildOnlyLogin");
 });
 
-// Fallback to history search after autofill values (for non-empty fields).
+// Do not Fallback to history search after autofill values (for non-empty fields).
 add_task(async function check_fallback_after_form_autofill() {
   if (!canTest) {
     return;
   }
 
-  await setInput("#cc-name", "J", true);
+  const KEY = "J";
+  const FIELD = "cc-name";
+  await setInput(`#${FIELD}`, KEY, true);
   synthesizeKey("KEY_ArrowDown");
   await expectPopup();
-  checkMenuEntries(["John Smith"], false);
+  checkMenuEntriesComment(MOCK_STORAGE.filter(record => record.cc["cc-name"].startsWith(KEY)).map(patchRecordCCNumber).map(({ cc, expected }) => JSON.stringify({
+    primary: cc["cc-name"],
+    secondary: replaceStars(cc.ccNumberFmt),
+    ariaLabel: `${getCCTypeName(cc)} ${cc["cc-name"]} ${cc.ccNumberFmt}`,
+    image: expected.image,
+  })));
 });
 
 // Present credit card popup immediately when user blanks a field

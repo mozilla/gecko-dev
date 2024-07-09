@@ -163,6 +163,7 @@ add_task(async function clear_distinct_section() {
   let osKeyStoreLoginShown = Promise.resolve();
   if(OSKeyStore.canReauth()) {
     osKeyStoreLoginShown = waitForOSKeyStoreLogin(true);
+    await waitForOSKeyStoreLoginTestSetupComplete();
   }
   await triggerAutofillAndCheckProfile(MOCK_CC_STORAGE_EXPECTED_FILL[0]);
   await osKeyStoreLoginShown;

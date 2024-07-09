@@ -125,6 +125,11 @@ add_setup(async function () {
     ],
   });
 
+  const { FormHistory } = ChromeUtils.importESModule(
+    "resource://gre/modules/FormHistory.sys.mjs"
+  );
+  FormHistory.update({ op: "remove" });
+
   await setStorage(TEST_CREDIT_CARD_1);
 });
 

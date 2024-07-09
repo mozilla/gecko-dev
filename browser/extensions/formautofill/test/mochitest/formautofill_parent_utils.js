@@ -284,9 +284,9 @@ addMessageListener("FormAutofillTest:CanTestOSKeyStoreLogin", _msg => {
   return { canTest: OSKeyStoreTestUtils.canTestOSKeyStoreLogin() };
 });
 
-addMessageListener("FormAutofillTest:OSKeyStoreLogin", msg =>
-  OSKeyStoreTestUtils.waitForOSKeyStoreLogin(msg.login)
-);
+addMessageListener("FormAutofillTest:OSKeyStoreLogin", msg => {
+  OSKeyStoreTestUtils.waitForOSKeyStoreLogin(msg.login);
+});
 
 addMessageListener("setup", async _msg => ParentUtils.setup());
 
