@@ -1,0 +1,421 @@
+{
+  "attention/dot/color": {
+    "light": "#2ac3a2ff",
+    "dark": "#54ffbdff",
+    "forcedColors": "AccentColor"
+  },
+  "background/color/box": {
+    "light": "#ffffffff",
+    "dark": "#23222bff",
+    "forcedColors": "Canvas"
+  },
+  "background/color/canvas": {
+    "light": "#ffffffff",
+    "dark": "#1c1b22ff",
+    "forcedColors": "Canvas"
+  },
+  "background/color/critical": {
+    "light": "#ffe8e8ff",
+    "dark": "#690f22ff",
+    "forcedColors": "Canvas"
+  },
+  "background/color/information": {
+    "light": "#deeafcff",
+    "dark": "#003070ff",
+    "forcedColors": "Canvas"
+  },
+  "background/color/success": {
+    "light": "#d8eedcff",
+    "dark": "#004725ff",
+    "forcedColors": "Canvas"
+  },
+  "background/color/warning": {
+    "light": "#ffebcdff",
+    "dark": "#5a3100ff",
+    "forcedColors": "Canvas"
+  },
+  "border/color": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "CanvasText"
+  },
+  "border/color/interactive": {
+    "light": "#8f8f9dff",
+    "dark": "#bfbfc9ff",
+    "forcedColors": "ButtonText"
+  },
+  "border/color/interactive/hover": {
+    "light": "#8f8f9dff",
+    "dark": "#bfbfc9ff",
+    "forcedColors": "SelectedItem"
+  },
+  "border/color/interactive/active": {
+    "light": "#8f8f9dff",
+    "dark": "#bfbfc9ff",
+    "forcedColors": "ButtonText"
+  },
+  "border/color/interactive/disabled": {
+    "light": "#8f8f9dff",
+    "dark": "#bfbfc9ff",
+    "forcedColors": "GrayText"
+  },
+  "button/background/color": {
+    "light": "color-mix(in srgb, currentColor 7%, transparent)",
+    "dark": "color-mix(in srgb, currentColor 7%, transparent)",
+    "forcedColors": "ButtonFace"
+  },
+  "button/background/color/hover": {
+    "light": "color-mix(in srgb, currentColor 14%, transparent)",
+    "dark": "color-mix(in srgb, currentColor 14%, transparent)",
+    "forcedColors": "SelectedItemText"
+  },
+  "button/background/color/active": {
+    "light": "color-mix(in srgb, currentColor 21%, transparent)",
+    "dark": "color-mix(in srgb, currentColor 21%, transparent)",
+    "forcedColors": "SelectedItemText"
+  },
+  "button/background/color/disabled": {
+    "light": "color-mix(in srgb, currentColor 7%, transparent)",
+    "dark": "color-mix(in srgb, currentColor 7%, transparent)",
+    "forcedColors": "ButtonFace"
+  },
+  "button/background/color/primary": {
+    "light": "#0060dfff",
+    "dark": "#00ddffff",
+    "forcedColors": "ButtonText"
+  },
+  "button/background/color/primary/hover": {
+    "light": "#0250bbff",
+    "dark": "#80ebffff",
+    "forcedColors": "SelectedItem"
+  },
+  "button/background/color/primary/active": {
+    "light": "#054096ff",
+    "dark": "#aaf2ffff",
+    "forcedColors": "SelectedItem"
+  },
+  "button/background/color/primary/disabled": {
+    "light": "#0060dfff",
+    "dark": "#00ddffff",
+    "forcedColors": "GrayText"
+  },
+  "button/background/color/destructive": {
+    "light": "#d7264cff",
+    "dark": "#f37f98ff",
+    "forcedColors": "ButtonText"
+  },
+  "button/background/color/destructive/active": {
+    "light": "#8a1831ff",
+    "dark": "#ffe8e8ff",
+    "forcedColors": "SelectedItem"
+  },
+  "button/background/color/destructive/disabled": {
+    "light": "#d7264cff",
+    "dark": "#f37f98ff",
+    "forcedColors": "GrayText"
+  },
+  "button/background/color/destructive/hover": {
+    "light": "#ac1e3dff",
+    "dark": "#ffbdc5ff",
+    "forcedColors": "SelectedItem"
+  },
+  "button/background/color/ghost": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonFace"
+  },
+  "button/background/color/ghost/active": {
+    "light": "color-mix(in srgb, currentColor 21%, transparent)",
+    "dark": "color-mix(in srgb, currentColor 21%, transparent)",
+    "forcedColors": "SelectedItemText"
+  },
+  "button/background/color/ghost/disabled": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonFace"
+  },
+  "button/background/color/ghost/hover": {
+    "light": "color-mix(in srgb, currentColor 14%, transparent)",
+    "dark": "color-mix(in srgb, currentColor 14%, transparent)",
+    "forcedColors": "SelectedItemText"
+  },
+  "button/border/color": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonText"
+  },
+  "button/border/color/active": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonText"
+  },
+  "button/border/color/destructive": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonFace"
+  },
+  "button/border/color/destructive/active": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonText"
+  },
+  "button/border/color/destructive/disabled": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonFace"
+  },
+  "button/border/color/destructive/hover": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "SelectedItemText"
+  },
+  "button/border/color/disabled": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "GrayText"
+  },
+  "button/border/color/ghost": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonText"
+  },
+  "button/border/color/ghost/active": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonText"
+  },
+  "button/border/color/ghost/disabled": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "GrayText"
+  },
+  "button/border/color/ghost/hover": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "SelectedItem"
+  },
+  "button/border/color/hover": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "SelectedItem"
+  },
+  "button/border/color/primary": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonFace"
+  },
+  "button/border/color/primary/active": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonText"
+  },
+  "button/border/color/primary/disabled": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "ButtonFace"
+  },
+  "button/border/color/primary/hover": {
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "SelectedItemText"
+  },
+  "button/text/color": {
+    "light": "#15141aff",
+    "dark": "#fbfbfeff",
+    "forcedColors": "ButtonText"
+  },
+  "button/text/color/active": {
+    "light": "#15141aff",
+    "dark": "#fbfbfeff",
+    "forcedColors": "SelectedItem"
+  },
+  "button/text/color/destructive": {
+    "light": "#fbfbfeff",
+    "dark": "#15141aff",
+    "forcedColors": "ButtonFace"
+  },
+  "button/text/color/destructive/active": {
+    "light": "#fbfbfeff",
+    "dark": "#15141aff",
+    "forcedColors": "SelectedItemText"
+  },
+  "button/text/color/destructive/disabled": {
+    "light": "#fbfbfeff",
+    "dark": "#15141aff",
+    "forcedColors": "ButtonFace"
+  },
+  "button/text/color/destructive/hover": {
+    "light": "#fbfbfeff",
+    "dark": "#15141aff",
+    "forcedColors": "SelectedItemText"
+  },
+  "button/text/color/disabled": {
+    "light": "#15141aff",
+    "dark": "#fbfbfeff",
+    "forcedColors": "GrayText"
+  },
+  "button/text/color/ghost": {
+    "light": "#15141aff",
+    "dark": "#fbfbfeff",
+    "forcedColors": "ButtonText"
+  },
+  "button/text/color/ghost/active": {
+    "light": "#15141aff",
+    "dark": "#fbfbfeff",
+    "forcedColors": "SelectedItem"
+  },
+  "button/text/color/ghost/disabled": {
+    "light": "#15141aff",
+    "dark": "#fbfbfeff",
+    "forcedColors": "GrayText"
+  },
+  "button/text/color/ghost/hover": {
+    "light": "#15141aff",
+    "dark": "#fbfbfeff",
+    "forcedColors": "SelectedItem"
+  },
+  "button/text/color/hover": {
+    "light": "#15141aff",
+    "dark": "#fbfbfeff",
+    "forcedColors": "SelectedItem"
+  },
+  "button/text/color/primary": {
+    "light": "#fbfbfeff",
+    "dark": "#15141aff",
+    "forcedColors": "ButtonFace"
+  },
+  "button/text/color/primary/active": {
+    "light": "#fbfbfeff",
+    "dark": "#15141aff",
+    "forcedColors": "SelectedItemText"
+  },
+  "button/text/color/primary/disabled": {
+    "light": "#fbfbfeff",
+    "dark": "#15141aff",
+    "forcedColors": "ButtonFace"
+  },
+  "button/text/color/primary/hover": {
+    "light": "#fbfbfeff",
+    "dark": "#15141aff",
+    "forcedColors": "SelectedItemText"
+  },
+  "color/black/a10": "#0000001a",
+  "color/blue/30": "#73a7f3ff",
+  "color/blue/50": "#0060dfff",
+  "color/blue/60": "#0250bbff",
+  "color/blue/70": "#054096ff",
+  "color/blue/80": "#003070ff",
+  "color/blue/05": "#deeafcff",
+  "color/cyan/20": "#aaf2ffff",
+  "color/cyan/30": "#80ebffff",
+  "color/cyan/50": "#00ddffff",
+  "color/gray/50": "#bfbfc9ff",
+  "color/gray/60": "#8f8f9dff",
+  "color/gray/70": "#5b5b66ff",
+  "color/gray/80": "#23222bff",
+  "color/gray/90": "#1c1b22ff",
+  "color/gray/100": "#15141aff",
+  "color/gray/05": "#fbfbfeff",
+  "color/green/30": "#4dbc87ff",
+  "color/green/50": "#017a40ff",
+  "color/green/80": "#004725ff",
+  "color/green/05": "#d8eedcff",
+  "color/red/10": "#ffbdc5ff",
+  "color/red/20": "#ff9aa2ff",
+  "color/red/30": "#f37f98ff",
+  "color/red/50": "#d7264cff",
+  "color/red/60": "#ac1e3dff",
+  "color/red/70": "#8a1831ff",
+  "color/red/80": "#690f22ff",
+  "color/red/05": "#ffe8e8ff",
+  "color/yellow/30": "#e49c49ff",
+  "color/yellow/50": "#cd411eff",
+  "color/yellow/80": "#5a3100ff",
+  "color/yellow/05": "#ffebcdff",
+  "color/white": "#ffffffff",
+  "color/accent/primary": {
+    "light": "#0060dfff",
+    "dark": "#00ddffff",
+    "forcedColors": "ButtonText"
+  },
+  "color/accent/primary/hover": {
+    "light": "#0250bbff",
+    "dark": "#80ebffff",
+    "forcedColors": "SelectedItem"
+  },
+  "color/accent/primary/active": {
+    "light": "#054096ff",
+    "dark": "#aaf2ffff",
+    "forcedColors": "SelectedItem"
+  },
+  "focus/outline/color": {
+    "light": "#0060dfff",
+    "dark": "#00ddffff",
+    "forcedColors": "CanvasText"
+  },
+  "icon/color": {
+    "light": "#5b5b66ff",
+    "dark": "#fbfbfeff",
+    "forcedColors": "CanvasText"
+  },
+  "icon/color/information": {
+    "light": "#0060dfff",
+    "dark": "#73a7f3ff",
+    "forcedColors": "CanvasText"
+  },
+  "icon/color/success": {
+    "light": "#017a40ff",
+    "dark": "#4dbc87ff",
+    "forcedColors": "CanvasText"
+  },
+  "icon/color/warning": {
+    "light": "#cd411eff",
+    "dark": "#e49c49ff",
+    "forcedColors": "CanvasText"
+  },
+  "icon/color/critical": {
+    "light": "#d7264cff",
+    "dark": "#f37f98ff",
+    "forcedColors": "CanvasText"
+  },
+  "link/color": {
+    "light": "#0060dfff",
+    "dark": "#00ddffff",
+    "forcedColors": "LinkText"
+  },
+  "link/color/hover": {
+    "light": "#0250bbff",
+    "dark": "#80ebffff",
+    "forcedColors": "LinkText"
+  },
+  "link/color/active": {
+    "light": "#054096ff",
+    "dark": "#aaf2ffff",
+    "forcedColors": "ActiveText"
+  },
+  "link/color/visited": {
+    "light": "#0060dfff",
+    "dark": "#00ddffff",
+    "forcedColors": "LinkText"
+  },
+  "outline/color/error": {
+    "light": "#d7264cff",
+    "dark": "#ff9aa2ff",
+    "forcedColors": "CanvasText"
+  },
+  "text/color": {
+    "light": "#15141aff",
+    "dark": "#fbfbfeff",
+    "forcedColors": "CanvasText"
+  },
+  "text/color/deemphasized": {
+    "light": "color-mix(in srgb, currentColor 69%, transparent)",
+    "dark": "color-mix(in srgb, currentColor 69%, transparent)",
+    "forcedColors": "color-mix(in srgb, currentColor 69%, transparent)"
+  },
+  "text/color/error": {
+    "light": "#d7264cff",
+    "dark": "#ff9aa2ff",
+    "forcedColors": "inherit"
+  }
+}
