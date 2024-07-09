@@ -179,7 +179,7 @@ static nsIContent* GetParentOrHostOrSlot(const nsIContent* aContent) {
  *
  * Note that this does not include <bdi>, whose content does affect its own
  * direction when it has dir=auto (which it has by default), so one needs to
- * test for it separately, e.g. with AffectsDirectionOfAncestors.
+ * test for it separately, e.g. with EstablishesOwnDirection.
  * It *does* include textarea, because even if a textarea has dir=auto, it has
  * unicode-bidi: plaintext and is handled automatically in bidi resolution.
  * It also includes `input`, because it takes the `dir` value from its value
@@ -194,17 +194,6 @@ static bool ParticipatesInAutoDirection(const nsIContent* aContent) {
   }
   return !aContent->IsAnyOfHTMLElements(nsGkAtoms::script, nsGkAtoms::style,
                                         nsGkAtoms::input, nsGkAtoms::textarea);
-}
-
-/**
- * Returns true if aElement is one of the element whose text should affect the
- * direction of ancestors with dir=auto (though note that even if it returns
- * false it may affect its own direction, e.g. <bdi> or dir=auto itself)
- */
-static bool AffectsDirectionOfAncestors(const Element* aElement) {
-  return ParticipatesInAutoDirection(aElement) &&
-         !aElement->IsHTMLElement(nsGkAtoms::bdi) && !aElement->HasFixedDir() &&
-         !aElement->HasDirAuto();
 }
 
 /**
@@ -224,15 +213,30 @@ static Directionality GetDirectionFromChar(uint32_t ch) {
   }
 }
 
-inline static bool TextChildrenAffectDirAutoAncestor(nsIContent* aContent) {
-  return ParticipatesInAutoDirection(aContent) &&
-         aContent->NodeOrAncestorHasDirAuto();
+/**
+ * Returns true if aElement establishes its own direction or does not have one.
+ *
+ * From https://html.spec.whatwg.org/#auto-directionality step 3.1., this is
+ * bdi, script, style, textarea, and elements with auto, ltr or rtl dir.
+ * Additionally, it includes input as the class handles directionality itself.
+ */
+inline static bool EstablishesOwnDirection(const Element* aElement) {
+  return !ParticipatesInAutoDirection(aElement) ||
+         aElement->IsHTMLElement(nsGkAtoms::bdi) || aElement->HasFixedDir() ||
+         aElement->HasDirAuto();
 }
 
-inline static bool NodeAffectsDirAutoAncestor(Text* aTextNode) {
-  nsIContent* parent = GetParentOrHostOrSlot(aTextNode);
-  return parent && TextChildrenAffectDirAutoAncestor(parent) &&
-         !aTextNode->IsInNativeAnonymousSubtree();
+/**
+ * Returns true if aContent is dir=auto, affects a dir=auto ancestor, is
+ * assigned to a dir=auto slot, or has an ancestor assigned to a dir=auto slot.
+ *
+ * It's false for input and textarea as they handle their directionality
+ * themselves. We are concerned about steps 2 and 3 of
+ * https://html.spec.whatwg.org/#auto-directionality
+ */
+inline static bool AffectsDirAutoElement(nsIContent* aContent) {
+  return aContent && ParticipatesInAutoDirection(aContent) &&
+         aContent->NodeOrAncestorHasDirAuto();
 }
 
 Directionality GetDirectionFromText(const char16_t* aText,
@@ -307,8 +311,7 @@ static Text* WalkDescendantsAndGetDirectionFromText(
     nsINode* aRoot, Directionality* aDirectionality) {
   nsIContent* child = aRoot->GetFirstChild();
   while (child) {
-    if ((child->IsElement() &&
-         !AffectsDirectionOfAncestors(child->AsElement())) ||
+    if ((child->IsElement() && EstablishesOwnDirection(child->AsElement())) ||
         child->GetAssignedSlot()) {
       child = child->GetNextNonChildNode(aRoot);
       continue;
@@ -325,7 +328,7 @@ static Text* WalkDescendantsAndGetDirectionFromText(
             return text;
           }
         } else if (assignedNode->IsElement() &&
-                   AffectsDirectionOfAncestors(assignedNode->AsElement())) {
+                   !EstablishesOwnDirection(assignedNode->AsElement())) {
           Text* text = WalkDescendantsAndGetDirectionFromText(assignedNode,
                                                               aDirectionality);
           if (text) {
@@ -600,8 +603,7 @@ static void SetAncestorHasDirAutoOnDescendants(nsINode* aRoot) {
 
   nsIContent* child = aRoot->GetFirstChild();
   while (child) {
-    if (child->IsElement() &&
-        !AffectsDirectionOfAncestors(child->AsElement())) {
+    if (child->IsElement() && EstablishesOwnDirection(child->AsElement())) {
       child = child->GetNextNonChildNode(aRoot);
       continue;
     }
@@ -739,7 +741,7 @@ static DirAutoElementResult SetAncestorDirectionIfAuto(Text* aTextNode,
 
 bool TextNodeWillChangeDirection(Text* aTextNode, Directionality* aOldDir,
                                  uint32_t aOffset) {
-  if (!NodeAffectsDirAutoAncestor(aTextNode)) {
+  if (!AffectsDirAutoElement(aTextNode)) {
     return false;
   }
 
@@ -752,7 +754,7 @@ bool TextNodeWillChangeDirection(Text* aTextNode, Directionality* aOldDir,
 
 void TextNodeChangedDirection(Text* aTextNode, Directionality aOldDir,
                               bool aNotify) {
-  MOZ_ASSERT(NodeAffectsDirAutoAncestor(aTextNode), "Caller should check");
+  MOZ_ASSERT(AffectsDirAutoElement(aTextNode), "Caller should check");
   Directionality newDir = GetDirectionFromText(aTextNode);
   if (newDir == aOldDir) {
     return;
@@ -768,7 +770,8 @@ void TextNodeChangedDirection(Text* aTextNode, Directionality aOldDir,
 }
 
 void SetDirectionFromNewTextNode(Text* aTextNode) {
-  if (!NodeAffectsDirAutoAncestor(aTextNode)) {
+  // Need to check parent as aTextNode does not yet have flags set
+  if (!AffectsDirAutoElement(aTextNode->GetParent())) {
     return;
   }
 
@@ -802,7 +805,7 @@ void ResetDirectionSetByTextNode(Text* aTextNode,
   aTextNode->ClearMaySetDirAuto();
   auto* unboundFrom =
       nsIContent::FromNodeOrNull(aContext.GetOriginalSubtreeParent());
-  if (!unboundFrom || !TextChildrenAffectDirAutoAncestor(unboundFrom)) {
+  if (!unboundFrom || !AffectsDirAutoElement(unboundFrom)) {
     return;
   }
 
@@ -837,7 +840,16 @@ void OnSetDirAttr(Element* aElement, const nsAttrValue* aNewValue,
     return;
   }
 
-  if (aElement->AncestorHasDirAuto()) {
+  // If element was a boundary but is no more, inherit flags to it
+  if ((hadDirAuto || hadValidDir) && !EstablishesOwnDirection(aElement)) {
+    if (auto* parent = aElement->GetParent()) {
+      if (parent->NodeOrAncestorHasDirAuto()) {
+        SetAncestorHasDirAutoOnDescendants(parent);
+      }
+    }
+  }
+
+  if (AffectsDirAutoElement(aElement)) {
     // The element is a descendant of an element with dir = auto, is having its
     // dir attribute changed. Reset the direction of any of its ancestors whose
     // direction might be determined by a text node descendant
@@ -867,8 +879,7 @@ void OnSetDirAttr(Element* aElement, const nsAttrValue* aNewValue,
 }
 
 void SetDirOnBind(Element* aElement, nsIContent* aParent) {
-  // Set the AncestorHasDirAuto flag, unless this element shouldn't affect
-  // ancestors that have dir=auto
+  // Propagate flags from parent to new element
   if (ParticipatesInAutoDirection(aElement) &&
       !aElement->IsHTMLElement(nsGkAtoms::bdi) && aParent &&
       aParent->NodeOrAncestorHasDirAuto()) {
