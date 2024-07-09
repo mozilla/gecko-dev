@@ -30,13 +30,13 @@ void HoldJSObjectsImpl(nsISupports* aHolder) {
   HoldJSObjectsImpl(aHolder, participant);
 }
 
-void DropJSObjectsImpl(void* aHolder, ShouldClearJSRefs aClearRefs) {
+void DropJSObjectsImpl(void* aHolder) {
   CycleCollectedJSRuntime* rt = CycleCollectedJSRuntime::Get();
   MOZ_ASSERT(rt, "Should have a CycleCollectedJSRuntime by now");
-  rt->RemoveJSHolder(aHolder, aClearRefs);
+  rt->RemoveJSHolder(aHolder);
 }
 
-void DropJSObjectsImpl(nsISupports* aHolder, ShouldClearJSRefs aClearRefs) {
+void DropJSObjectsImpl(nsISupports* aHolder) {
 #ifdef DEBUG
   nsXPCOMCycleCollectionParticipant* participant = nullptr;
   CallQueryInterface(aHolder, &participant);
@@ -45,7 +45,7 @@ void DropJSObjectsImpl(nsISupports* aHolder, ShouldClearJSRefs aClearRefs) {
       participant->CheckForRightISupports(aHolder),
       "The result of QIing a JS holder should be the same as ToSupports");
 #endif
-  DropJSObjectsImpl(static_cast<void*>(aHolder), aClearRefs);
+  DropJSObjectsImpl(static_cast<void*>(aHolder));
 }
 
 }  // namespace cyclecollector
