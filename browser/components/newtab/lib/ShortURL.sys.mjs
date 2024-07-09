@@ -29,7 +29,7 @@ XPCOMUtils.defineLazyServiceGetter(
  */
 function handleIDNHost(hostname) {
   try {
-    return lazy.IDNService.convertToDisplayIDN(hostname);
+    return lazy.IDNService.convertToDisplayIDN(hostname, {});
   } catch (e) {
     // If something goes wrong (e.g. host is an IP address) just fail back
     // to the full domain.

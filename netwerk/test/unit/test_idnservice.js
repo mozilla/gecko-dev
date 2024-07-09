@@ -28,8 +28,12 @@ add_task(async function test_simple() {
 });
 
 add_task(async function test_extra_blocked() {
-  equal(idnService.convertToDisplayIDN("xn--gou-2lb.ro"), "goșu.ro");
+  let isAscii = {};
+  equal(idnService.convertToDisplayIDN("xn--gou-2lb.ro", isAscii), "goșu.ro");
   Services.prefs.setStringPref("network.IDN.extra_blocked_chars", "ș");
-  equal(idnService.convertToDisplayIDN("xn--gou-2lb.ro"), "xn--gou-2lb.ro");
+  equal(
+    idnService.convertToDisplayIDN("xn--gou-2lb.ro", isAscii),
+    "xn--gou-2lb.ro"
+  );
   Services.prefs.clearUserPref("network.IDN.extra_blocked_chars");
 });

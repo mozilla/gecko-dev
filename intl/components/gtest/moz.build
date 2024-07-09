@@ -12,6 +12,7 @@ UNIFIED_SOURCES += [
     "TestDateIntervalFormat.cpp",
     "TestDateTimeFormat.cpp",
     "TestDisplayNames.cpp",
+    "TestIDNA.cpp",
     "TestListFormat.cpp",
     "TestLocale.cpp",
     "TestLocaleCanonicalizer.cpp",

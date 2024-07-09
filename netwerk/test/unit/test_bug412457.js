@@ -33,11 +33,6 @@ function run_test() {
   newURI = newURI.mutate().setSpec("http://example.com/foo").finalize();
   Assert.equal(newURI.asciiHost, "example.com");
 
-  // Test an intuitively weird character that is not actually on the
-  // forbidden domain code point list in the WHATWG URL Standard.
-  newURI = newURI.mutate().setSpec("http://example.com%3bfoo").finalize();
-  Assert.equal(newURI.asciiHost, "example.com;foo");
-
   // Characters that are invalid in the host
   Assert.throws(
     () => {
@@ -49,6 +44,13 @@ function run_test() {
   Assert.throws(
     () => {
       newURI = newURI.mutate().setSpec("http://example.com%23foo").finalize();
+    },
+    /NS_ERROR_MALFORMED_URI/,
+    "bad escaped character"
+  );
+  Assert.throws(
+    () => {
+      newURI = newURI.mutate().setSpec("http://example.com%3bfoo").finalize();
     },
     /NS_ERROR_MALFORMED_URI/,
     "bad escaped character"

@@ -5996,11 +5996,6 @@ already_AddRefed<nsIURI> nsDocShell::AttemptURIFixup(
           //
           // Since we don't have access to the exact original string
           // that was entered by the user, this will just have to do.
-          //
-          // XXX: Since we are not trying to use the result as an
-          // actual domain name, label-wise Punycode decode would
-          // likely be more appropriate than the full ToUnicode
-          // operation.
           bool isACE;
           nsAutoCString utf8Host;
           nsCOMPtr<nsIIDNService> idnSrv =

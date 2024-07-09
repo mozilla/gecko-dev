@@ -12,6 +12,7 @@
 #include "HTMLSplitOnSpacesTokenizer.h"
 #include "nsContentUtils.h"
 #include "nsCRTGlue.h"
+#include "nsIIDNService.h"
 #include "nsIIOService.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
@@ -254,25 +255,34 @@ bool EmailInputType::PunycodeEncodeEmailAddress(const nsAString& aEmail,
     return true;
   }
 
+  nsCOMPtr<nsIIDNService> idnSrv = do_GetService(NS_IDNSERVICE_CONTRACTID);
+  if (!idnSrv) {
+    NS_ERROR("nsIIDNService isn't present!");
+    return false;
+  }
+
   uint32_t indexOfDomain = *aIndexOfAt + 1;
 
   const nsDependentCSubstring domain = Substring(value, indexOfDomain);
-  nsAutoCString domainACE;
-  NS_DomainToASCII(domain, domainACE);
-
-  // NS_DomainToASCII does not check length (removed in bug 1788115), so we
-  // check for that limit here as required by the spec:
-  // https://html.spec.whatwg.org/#valid-e-mail-address
-  nsCCharSeparatedTokenizer tokenizer(domainACE, '.');
-  while (tokenizer.hasMoreTokens()) {
-    // XXX should check each token for not starting or ending with hyphen;
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=1890466
-    if (tokenizer.nextToken().Length() > 63) {
+  bool ace;
+  if (NS_SUCCEEDED(idnSrv->IsACE(domain, &ace)) && !ace) {
+    nsAutoCString domainACE;
+    if (NS_FAILED(idnSrv->ConvertUTF8toACE(domain, domainACE))) {
       return false;
     }
-  }
 
-  value.Replace(indexOfDomain, domain.Length(), domainACE);
+    // Bug 1788115 removed the 63 character limit from the
+    // IDNService::ConvertUTF8toACE so we check for that limit here as required
+    // by the spec: https://html.spec.whatwg.org/#valid-e-mail-address
+    nsCCharSeparatedTokenizer tokenizer(domainACE, '.');
+    while (tokenizer.hasMoreTokens()) {
+      if (tokenizer.nextToken().Length() > 63) {
+        return false;
+      }
+    }
+
+    value.Replace(indexOfDomain, domain.Length(), domainACE);
+  }
 
   aEncodedEmail = value;
   return true;

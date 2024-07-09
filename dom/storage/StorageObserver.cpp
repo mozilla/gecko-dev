@@ -18,7 +18,7 @@
 #include "nsIObserverService.h"
 #include "nsIURI.h"
 #include "nsIPermission.h"
-#include "nsNetUtil.h"
+#include "nsIIDNService.h"
 #include "nsICookiePermission.h"
 
 #include "nsPrintfCString.h"
@@ -168,7 +168,16 @@ nsresult StorageObserver::GetOriginScope(const char16_t* aData,
   NS_ConvertUTF16toUTF8 domain(aData);
 
   nsAutoCString convertedDomain;
-  rv = NS_DomainToASCIIAllowAnyGlyphfulASCII(domain, convertedDomain);
+  nsCOMPtr<nsIIDNService> converter = do_GetService(NS_IDNSERVICE_CONTRACTID);
+  if (converter) {
+    // Convert the domain name to the ACE format
+    rv = converter->ConvertUTF8toACE(domain, convertedDomain);
+  } else {
+    // In case the IDN service is not available, this is the best we can come
+    // up with!
+    rv = NS_EscapeURL(domain, esc_OnlyNonASCII | esc_AlwaysCopy,
+                      convertedDomain, fallible);
+  }
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

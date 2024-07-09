@@ -135,7 +135,7 @@ add_task(async function test_trr_casing() {
   });
   await new TRRDNSListener("a.test.com", { expectedAnswer: "8.8.8.8" });
 
-  await trrServer.registerDoHAnswers("capital.com", "A", {
+  await trrServer.registerDoHAnswers("CAPITAL.COM", "A", {
     answers: [
       {
         name: "capital.com",

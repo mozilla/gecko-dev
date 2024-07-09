@@ -28,7 +28,6 @@
 #include "prio.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsNetAddr.h"
-#include "nsNetUtil.h"
 #include "nsProxyRelease.h"
 #include "nsQueryObject.h"
 #include "nsIObserverService.h"
@@ -898,6 +897,9 @@ nsDNSService::Init() {
     mTrrService = nullptr;
   }
 
+  nsCOMPtr<nsIIDNService> idn = do_GetService(NS_IDNSERVICE_CONTRACTID);
+  mIDN = idn;
+
   return NS_OK;
 }
 
@@ -956,6 +958,7 @@ already_AddRefed<nsHostResolver> nsDNSService::GetResolverLocked() {
 
 nsresult nsDNSService::PreprocessHostname(bool aLocalDomain,
                                           const nsACString& aInput,
+                                          nsIIDNService* aIDN,
                                           nsACString& aACE) {
   // Enforce RFC 7686
   if (mBlockDotOnion && StringEndsWith(aInput, ".onion"_ns)) {
@@ -980,7 +983,12 @@ nsresult nsDNSService::PreprocessHostname(bool aLocalDomain,
     }
   }
 
-  if (!NS_SUCCEEDED(NS_DomainToASCIIAllowAnyGlyphfulASCII(aInput, aACE))) {
+  if (!aIDN || IsAscii(aInput)) {
+    aACE = aInput;
+    return NS_OK;
+  }
+
+  if (!(IsUtf8(aInput) && NS_SUCCEEDED(aIDN->ConvertUTF8toACE(aInput, aACE)))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -1003,6 +1011,7 @@ nsresult nsDNSService::AsyncResolveInternal(
   // grab reference to global host resolver and IDN service.  beware
   // simultaneous shutdown!!
   RefPtr<nsHostResolver> res;
+  nsCOMPtr<nsIIDNService> idn;
   nsCOMPtr<nsIEventTarget> target = target_;
   nsCOMPtr<nsIDNSListener> listener = aListener;
   bool localDomain = false;
@@ -1014,6 +1023,7 @@ nsresult nsDNSService::AsyncResolveInternal(
     }
 
     res = mResolver;
+    idn = mIDN;
 
     localDomain = IsLocalDomain(aHostname);
   }
@@ -1039,7 +1049,7 @@ nsresult nsDNSService::AsyncResolveInternal(
   }
 
   nsCString hostname;
-  nsresult rv = PreprocessHostname(localDomain, aHostname, hostname);
+  nsresult rv = PreprocessHostname(localDomain, aHostname, idn, hostname);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -1091,6 +1101,7 @@ nsresult nsDNSService::CancelAsyncResolveInternal(
   // grab reference to global host resolver and IDN service.  beware
   // simultaneous shutdown!!
   RefPtr<nsHostResolver> res;
+  nsCOMPtr<nsIIDNService> idn;
   bool localDomain = false;
   {
     MutexAutoLock lock(mLock);
@@ -1100,6 +1111,7 @@ nsresult nsDNSService::CancelAsyncResolveInternal(
     }
 
     res = mResolver;
+    idn = mIDN;
     localDomain = IsLocalDomain(aHostname);
   }
   if (!res) {
@@ -1107,7 +1119,7 @@ nsresult nsDNSService::CancelAsyncResolveInternal(
   }
 
   nsCString hostname;
-  nsresult rv = PreprocessHostname(localDomain, aHostname, hostname);
+  nsresult rv = PreprocessHostname(localDomain, aHostname, idn, hostname);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -1230,10 +1242,12 @@ nsresult nsDNSService::ResolveInternal(
   // grab reference to global host resolver and IDN service.  beware
   // simultaneous shutdown!!
   RefPtr<nsHostResolver> res;
+  nsCOMPtr<nsIIDNService> idn;
   bool localDomain = false;
   {
     MutexAutoLock lock(mLock);
     res = mResolver;
+    idn = mIDN;
     localDomain = IsLocalDomain(aHostname);
   }
 
@@ -1244,7 +1258,7 @@ nsresult nsDNSService::ResolveInternal(
   NS_ENSURE_TRUE(res, NS_ERROR_OFFLINE);
 
   nsCString hostname;
-  nsresult rv = PreprocessHostname(localDomain, aHostname, hostname);
+  nsresult rv = PreprocessHostname(localDomain, aHostname, idn, hostname);
   if (NS_FAILED(rv)) {
     return rv;
   }

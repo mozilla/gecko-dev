@@ -10,6 +10,7 @@
 #include "DNSServiceBase.h"
 #include "nsClassHashtable.h"
 #include "nsPIDNSService.h"
+#include "nsIIDNService.h"
 #include "nsIMemoryReporter.h"
 #include "nsIObserver.h"
 #include "nsHostResolver.h"
@@ -81,7 +82,7 @@ class nsDNSService final : public mozilla::net::DNSServiceBase,
                           nsIDNSService::DNSFlags flags);
 
   nsresult PreprocessHostname(bool aLocalDomain, const nsACString& aInput,
-                              nsACString& aACE);
+                              nsIIDNService* aIDN, nsACString& aACE);
 
   bool IsLocalDomain(const nsACString& aHostname) const;
 
@@ -107,6 +108,7 @@ class nsDNSService final : public mozilla::net::DNSServiceBase,
   already_AddRefed<nsHostResolver> GetResolverLocked();
 
   RefPtr<nsHostResolver> mResolver;
+  nsCOMPtr<nsIIDNService> mIDN;
 
   // mLock protects access to mResolver, mLocalDomains, mIPv4OnlyDomains,
   // mFailedSVCDomainNames, and mMockHTTPSRRDomain.

@@ -44,7 +44,11 @@ class nsEffectiveTLDService final : public nsIEffectiveTLDService,
   nsresult GetBaseDomainInternal(nsCString& aHostname, int32_t aAdditionalParts,
                                  bool aOnlyKnownPublicSuffix,
                                  nsACString& aBaseDomain);
+  nsresult NormalizeHostname(nsCString& aHostname);
   ~nsEffectiveTLDService();
+
+  // Only set in `Init()` which is called during service construction.
+  nsCOMPtr<nsIIDNService> mIDNService;
 
   // The DAFSA provides a compact encoding of the rather large eTLD list.
   mozilla::Maybe<mozilla::Dafsa> mGraph MOZ_GUARDED_BY(mGraphLock);

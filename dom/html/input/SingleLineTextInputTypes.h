@@ -132,7 +132,7 @@ class EmailInputType : public SingleLineTextInputTypeBase {
    * Returns true in all cases unless an attempt to punycode encode fails. If
    * false is returned, aEncodedEmail has not been set.
    *
-   * This function exists because NS_DomainToASCII() splits on ".", meaning that
+   * This function exists because ConvertUTF8toACE() splits on ".", meaning that
    * for 'user.name@sld.tld' it would treat "name@sld" as a label. We want to
    * encode the domain part only.
    */

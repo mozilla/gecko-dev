@@ -994,7 +994,7 @@ export class LoginManagerPrompter {
     try {
       const uri = Services.io.newURI(aURIString);
       const baseDomain = Services.eTLD.getBaseDomain(uri);
-      displayHost = idnService.convertToDisplayIDN(baseDomain);
+      displayHost = idnService.convertToDisplayIDN(baseDomain, {});
     } catch (e) {
       lazy.log.warn(`Couldn't process supplied URIString: ${aURIString}`);
     }

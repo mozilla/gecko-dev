@@ -133,7 +133,7 @@ var IdentityHandler = {
     } catch (e) {}
 
     try {
-      result.host = lazy.IDNService.convertToDisplayIDN(uri.host);
+      result.host = lazy.IDNService.convertToDisplayIDN(uri.host, {});
     } catch (e) {
       result.host = uri.host;
     }

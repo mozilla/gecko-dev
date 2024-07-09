@@ -711,6 +711,20 @@ int32_t NS_GetRealPort(nsIURI* aURI) {
   return NS_GetDefaultPort(scheme.get());
 }
 
+nsresult NS_DomainToASCII(const nsACString& aHost, nsACString& aASCII) {
+  return nsStandardURL::GetIDNService()->ConvertUTF8toACE(aHost, aASCII);
+}
+
+nsresult NS_DomainToDisplay(const nsACString& aHost, nsACString& aDisplay) {
+  bool ignored;
+  return nsStandardURL::GetIDNService()->ConvertToDisplayIDN(aHost, &ignored,
+                                                             aDisplay);
+}
+
+nsresult NS_DomainToUnicode(const nsACString& aHost, nsACString& aUnicode) {
+  return nsStandardURL::GetIDNService()->ConvertACEtoUTF8(aHost, aUnicode);
+}
+
 nsresult NS_NewInputStreamChannelInternal(
     nsIChannel** outChannel, nsIURI* aUri,
     already_AddRefed<nsIInputStream> aStream, const nsACString& aContentType,

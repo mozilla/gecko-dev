@@ -5,7 +5,6 @@ function run_test() {
     Ci.nsIIDNService
   );
 
-  Assert.throws(() => {
-    idnService.convertToDisplayIDN("xn--");
-  }, /MALFORMED/);
+  var isASCII = {};
+  Assert.equal(idnService.convertToDisplayIDN("xn--", isASCII), "xn--");
 }
