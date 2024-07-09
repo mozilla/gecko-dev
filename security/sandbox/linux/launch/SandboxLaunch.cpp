@@ -43,6 +43,7 @@
 #include "nsThreadUtils.h"
 #include "prenv.h"
 #include "sandbox/linux/system_headers/linux_syscalls.h"
+#include "sandbox/linux/services/syscall_wrappers.h"
 
 #ifdef MOZ_X11
 #  ifndef MOZ_WIDGET_GTK
@@ -53,6 +54,11 @@
 #  include <gdk/gdkx.h>
 #  include "X11UndefineNone.h"
 #  include "gfxPlatform.h"
+#endif
+
+#if defined(__GLIBC__) && !defined(__UCLIBC__)
+// We really are using glibc, not uClibc pretending to be glibc.
+#  define LIBC_GLIBC 1
 #endif
 
 namespace mozilla {
@@ -448,6 +454,22 @@ static void ResetSignalHandlers() {
 
 namespace {
 
+#if defined(LIBC_GLIBC)
+/*
+ * The following is using imported code from Chromium's
+ * sandbox/linux/services/namespace_sandbox.cc
+ */
+
+#  if !defined(CHECK_EQ)
+#    define CHECK_EQ(a, b) MOZ_ASSERT((a) == (b))
+#  endif
+
+// for sys_gettid()
+using namespace sandbox;
+
+#  include "glibc_hack/namespace_sandbox.inc"
+#endif  // defined(LIBC_GLIBC)
+
 // The libc clone() routine insists on calling a provided function on
 // a new stack, even if the address space isn't shared and it would be
 // safe to expose the underlying system call's fork()-like behavior.
@@ -515,6 +537,9 @@ static pid_t ForkWithFlags(int aFlags) {
   }
   RestoreSignals(&oldSigs);
   // In the child and have longjmp'ed:
+#if defined(LIBC_GLIBC)
+  MaybeUpdateGlibcTidCache();
+#endif
   return ret;
 }
 
