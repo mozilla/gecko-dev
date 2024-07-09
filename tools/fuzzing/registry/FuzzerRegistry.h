@@ -30,12 +30,13 @@ class FuzzerRegistry {
                                  FuzzerInitFunc initFunc,
                                  FuzzerTestingFunc testingFunc);
   MOZ_EXPORT FuzzerFunctions getModuleFunctions(std::string& moduleName);
+  MOZ_EXPORT void printModuleNames();
 
   FuzzerRegistry(FuzzerRegistry const&) = delete;
   void operator=(FuzzerRegistry const&) = delete;
 
  private:
-  FuzzerRegistry(){};
+  FuzzerRegistry() {};
   std::map<std::string, FuzzerFunctions> moduleMap;
 };
 

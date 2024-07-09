@@ -23,4 +23,10 @@ FuzzerFunctions FuzzerRegistry::getModuleFunctions(std::string& moduleName) {
   return moduleMap[moduleName];
 }
 
+void FuzzerRegistry::printModuleNames() {
+  for (const auto& entry : moduleMap) {
+    printf("%s\n", entry.first.c_str());
+  }
+}
+
 }  // namespace mozilla

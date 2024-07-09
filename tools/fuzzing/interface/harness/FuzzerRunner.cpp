@@ -54,6 +54,16 @@ int FuzzerRunner::Run(int* argc, char*** argv) {
   }
 
   std::string moduleNameStr(fuzzerEnv);
+
+  // FUZZER=list will display available fuzzing targets and exit.
+  if (moduleNameStr == "list") {
+    printf("FUZZER=list detected, listing targets...\n");
+    printf("===== Targets =====\n");
+    FuzzerRegistry::getInstance().printModuleNames();
+    printf("===== End of list =====\n");
+    exit(0);
+  }
+
   FuzzerFunctions funcs =
       FuzzerRegistry::getInstance().getModuleFunctions(moduleNameStr);
   FuzzerInitFunc initFunc = funcs.first;
