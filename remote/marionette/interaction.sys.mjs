@@ -660,9 +660,7 @@ async function webdriverSendKeysToElement(
   if (el.type !== "file" || strictFileInteractability) {
     let containerEl = lazy.dom.getContainer(el);
 
-    if (!lazy.dom.isInView(containerEl)) {
-      lazy.dom.scrollIntoView(containerEl);
-    }
+    lazy.dom.scrollIntoView(containerEl);
 
     // TODO: Wait for element to be keyboard-interactible
     if (!interaction.isKeyboardInteractable(containerEl)) {
