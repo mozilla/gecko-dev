@@ -30,7 +30,19 @@ add_task(
       if (!pid) {
         return;
       }
-      ProcessTools.kill(pid);
+
+      try {
+        ProcessTools.kill(pid);
+      } catch (ex) {
+        info(`ProcessTools.kill(${pid}) returned: ${ex.result}`);
+
+        // NS_ERROR_NOT_AVAILABLE is thrown is the process disappeared (ESRCH)
+        // So we should be fine ignoring this
+        if (ex.result !== Cr.NS_ERROR_NOT_AVAILABLE) {
+          throw ex;
+        }
+      }
+
       // The privilegedabout process wouldn't be automatically re-created, so open a new tab to force creating a new process.
       openedTabs.push(BrowserTestUtils.addTab(gBrowser, "about:home"));
     });
