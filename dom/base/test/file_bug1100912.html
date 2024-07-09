@@ -92,7 +92,7 @@ rtlExpected(shadowRoot1.firstChild.lastChild); // span in the Shadow DOM
 const shadowRoot2 = host2.attachShadow({mode: 'closed'});
 shadowRoot2.innerHTML = '<div> 1 2 <span dir="ltr"><slot></slot></span></div>';
 rtlExpected(host2);
-ltrExpected(host2.firstChild);
+rtlExpected(host2.firstChild);
 
 // This is weird case, and we have similar behavior as Blink. dir= on <slot>
 // doesn't affect to UI since slot has display: contents by default.
@@ -102,9 +102,9 @@ rtlExpected(host3);
 
 const shadowRoot4 = host4.attachShadow({mode: 'closed'});
 shadowRoot4.innerHTML = '<div> &#1571;&#1582;&#1576;&#1575;&#1585; <span><slot></slot></span></div>';
-rtlExpected(host4);
-rtlExpected(host4.firstChild);
-rtlExpected(shadowRoot4.firstChild.lastChild);
+ltrExpected(host4);
+ltrExpected(host4.firstChild);
+ltrExpected(shadowRoot4.firstChild.lastChild);
 
 const shadowRoot5 = host5.attachShadow({mode: 'closed'});
 shadowRoot5.innerHTML = '<div> 1 2 <span><slot></slot></span></div>';
@@ -112,9 +112,6 @@ rtlExpected(host5);
 rtlExpected(host5.firstChild);
 rtlExpected(shadowRoot5.firstChild.lastChild);
 
-// This case is different to Blink since it doesn't deal with nodes which aren't
-// in the flattened tree, so it doesn't detect rtl in child nodes, which
-// aren't assigned to any slot.
 const shadowRoot6 = host6.attachShadow({mode: 'closed'});
 shadowRoot6.innerHTML = '<div> 1 2 <span></span></div>';
 rtlExpected(host6);
@@ -123,15 +120,15 @@ rtlExpected(shadowRoot6.firstChild.lastChild);
 
 const shadowRoot7 = host7.attachShadow({mode: 'closed'});
 shadowRoot7.innerHTML = '<div> &lrm;1 2 <span><slot></slot></span></div>';
-ltrExpected(host7);
-ltrExpected(host7.firstChild);
-ltrExpected(shadowRoot7.firstChild.lastChild);
+rtlExpected(host7);
+rtlExpected(host7.firstChild);
+rtlExpected(shadowRoot7.firstChild.lastChild);
 
 const shadowRoot8 = host8.attachShadow({mode: 'closed'});
 shadowRoot8.innerHTML = '<div><slot name="first"></slot><slot name="second"></slot></div>';
-rtlExpected(host8);
-rtlExpected(host8.firstChild);
-rtlExpected(shadowRoot8.firstChild.firstChild);
+ltrExpected(host8);
+ltrExpected(host8.firstChild);
+ltrExpected(shadowRoot8.firstChild.firstChild);
 
 const shadowRoot9 = host9.attachShadow({mode: 'closed'});
 shadowRoot9.innerHTML = '<div> 1 2 <span><slot></slot></span></div>';
@@ -140,8 +137,8 @@ rtlExpected(shadowRoot9.firstChild.lastChild);
 
 const shadowRoot10 = host10.attachShadow({mode: 'closed'});
 shadowRoot10.innerHTML = '<div> &#1571;&#1582;&#1576;&#1575;&#1585; <span><slot></slot></span></div>';
-rtlExpected(host10);
-rtlExpected(shadowRoot10.firstChild.lastChild);
+ltrExpected(host10);
+ltrExpected(shadowRoot10.firstChild.lastChild);
 
 opener.didRunTests();
 window.close();
