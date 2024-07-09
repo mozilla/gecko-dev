@@ -88,6 +88,7 @@ import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
+import mozilla.components.support.utils.ext.isLandscape
 import mozilla.components.ui.colors.PhotonColors
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.BrowserDirection
@@ -489,11 +490,6 @@ class HomeFragment : Fragment() {
             interactor = sessionControlInteractor,
         )
 
-        val shouldAddNavigationBar = requireContext().shouldAddNavigationBar()
-        if (shouldAddNavigationBar) {
-            initializeNavBar(activity)
-        }
-
         if (requireContext().settings().microsurveyFeatureEnabled) {
             listenForMicrosurveyMessage(requireContext())
         }
@@ -549,7 +545,7 @@ class HomeFragment : Fragment() {
                 reinitializeNavBar = ::reinitializeNavBar,
                 reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt(requireContext()) },
             )
-            toolbarView?.updateLayout()
+            updateToolbarForConfigurationChange()
         }
 
         // If the microsurvey feature is visible, we should update it's state.
@@ -844,6 +840,37 @@ class HomeFragment : Fragment() {
         )
     }
 
+    private fun updateToolbarForConfigurationChange() {
+        toolbarView?.updateLayout()
+        if (requireContext().isLandscape()) {
+            initializeToolbarMenuAndTabButtons(requireView())
+        } else {
+            homeMenuView = null
+            tabCounterView = null
+        }
+    }
+
+    private fun initializeToolbarMenuAndTabButtons(container: View) {
+        homeMenuView = HomeMenuView(
+            view = container,
+            context = container.context,
+            lifecycleOwner = viewLifecycleOwner,
+            homeActivity = activity as HomeActivity,
+            navController = findNavController(),
+            homeFragment = this,
+            menuButton = WeakReference(binding.menuButton),
+            onShowPinVerification = { intent -> savedLoginsLauncher.launch(intent) },
+            onBiometricAuthenticationSuccessful = { navigateToSavedLoginsFragment() },
+        ).also { it.build() }
+
+        tabCounterView = TabCounterView(
+            context = requireContext(),
+            browsingModeManager = browsingModeManager,
+            navController = findNavController(),
+            tabCounter = binding.tabButton,
+        )
+    }
+
     private var currentMicrosurvey: MicrosurveyUIData? = null
 
     /**
@@ -977,24 +1004,12 @@ class HomeFragment : Fragment() {
         observeSearchEngineNameChanges()
         observeWallpaperUpdates()
 
-        homeMenuView = HomeMenuView(
-            view = view,
-            context = view.context,
-            lifecycleOwner = viewLifecycleOwner,
-            homeActivity = activity as HomeActivity,
-            navController = findNavController(),
-            homeFragment = this,
-            menuButton = WeakReference(binding.menuButton),
-            onShowPinVerification = { intent -> savedLoginsLauncher.launch(intent) },
-            onBiometricAuthenticationSuccessful = { navigateToSavedLoginsFragment() },
-        ).also { it.build() }
-
-        tabCounterView = TabCounterView(
-            context = requireContext(),
-            browsingModeManager = browsingModeManager,
-            navController = findNavController(),
-            tabCounter = binding.tabButton,
-        )
+        val shouldAddNavigationBar = requireContext().shouldAddNavigationBar()
+        if (shouldAddNavigationBar) {
+            initializeNavBar(activity as HomeActivity)
+        } else {
+            initializeToolbarMenuAndTabButtons(view)
+        }
 
         toolbarView?.build()
         if (requireContext().isTabStripEnabled()) {

@@ -432,6 +432,13 @@ features:
           When the feature is enabled then the user will see the new navigation toolbar.
         type: Boolean
         default: false
+    defaults:
+      - channel: developer
+        value:
+          enabled: true
+      - channel: nightly
+        value:
+          enabled: true
 
   remote-tab-management:
     description: >
