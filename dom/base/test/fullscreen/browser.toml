@@ -28,6 +28,8 @@ support-files = [
 
 ["browser_fullscreen-document-mutation.js"]
 
+["browser_fullscreen-form-validation.js"]
+
 ["browser_fullscreen-navigation-history-race.js"]
 
 ["browser_fullscreen-navigation-history.js"]
