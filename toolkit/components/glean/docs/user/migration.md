@@ -380,10 +380,6 @@ avif:
     expires: never
 ```
 
-**N.B:** Glean Labels have a strict regex.
-You may have to transform some categories to
-`snake_case` so that they're safe for the data pipeline.
-
 **GIFFT:** This type of collection is mirrorable back to Firefox Telemetry via the
 [Glean Interface For Firefox Telemetry][gifft].
 See [the guide][gifft] for instructions.
@@ -526,10 +522,6 @@ urlbar:
       - searchtip_onboard_shown
     ...
 ```
-
-**N.B:** Glean Labels have a strict regex.
-You may have to transform some categories to
-`snake_case` so that they're safe for the data pipeline.
 
 **GIFFT:** This type of collection is mirrorable back to Firefox Telemetry via the
 [Glean Interface For Firefox Telemetry][gifft].
@@ -810,10 +802,6 @@ devtools.tool:
       - accessibility@mozilla.com
     expires: never
 ```
-
-**N.B:** Glean Labels have a strict regex.
-You may have to transform some categories to
-`snake_case` so that they're safe for the data pipeline.
 
 **GIFFT:** This type of collection is mirrorable back to Firefox Telemetry via the
 [Glean Interface For Firefox Telemetry][gifft].
