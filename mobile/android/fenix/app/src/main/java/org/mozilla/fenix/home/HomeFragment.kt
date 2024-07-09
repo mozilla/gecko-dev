@@ -88,7 +88,6 @@ import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
-import mozilla.components.support.utils.ext.isLandscape
 import mozilla.components.ui.colors.PhotonColors
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.BrowserDirection
@@ -249,11 +248,9 @@ class HomeFragment : Fragment() {
         get() = _sessionControlInteractor!!
 
     private var sessionControlView: SessionControlView? = null
-    private var tabCounterView: TabCounterView? = null
-    private var toolbarView: ToolbarView? = null
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal var homeMenuView: HomeMenuView? = null
+    internal var toolbarView: ToolbarView? = null
 
     private var lastAppliedWallpaperName: String = Wallpaper.defaultName
 
@@ -486,8 +483,11 @@ class HomeFragment : Fragment() {
 
         toolbarView = ToolbarView(
             binding = binding,
-            context = requireContext(),
             interactor = sessionControlInteractor,
+            homeFragment = this,
+            homeActivity = activity,
+            onShowPinVerification = { intent -> savedLoginsLauncher.launch(intent) },
+            onBiometricAuthenticationSuccessful = { navigateToSavedLoginsFragment() },
         )
 
         if (requireContext().settings().microsurveyFeatureEnabled) {
@@ -532,7 +532,7 @@ class HomeFragment : Fragment() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 
-        homeMenuView?.dismissMenu()
+        toolbarView?.dismissMenu()
 
         // If the navbar feature could be visible, we should update it's state.
         val shouldUpdateNavBarState =
@@ -545,7 +545,7 @@ class HomeFragment : Fragment() {
                 reinitializeNavBar = ::reinitializeNavBar,
                 reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt(requireContext()) },
             )
-            updateToolbarForConfigurationChange()
+            toolbarView?.updateButtonVisibility()
         }
 
         // If the microsurvey feature is visible, we should update it's state.
@@ -840,37 +840,6 @@ class HomeFragment : Fragment() {
         )
     }
 
-    private fun updateToolbarForConfigurationChange() {
-        toolbarView?.updateLayout()
-        if (requireContext().isLandscape()) {
-            initializeToolbarMenuAndTabButtons(requireView())
-        } else {
-            homeMenuView = null
-            tabCounterView = null
-        }
-    }
-
-    private fun initializeToolbarMenuAndTabButtons(container: View) {
-        homeMenuView = HomeMenuView(
-            view = container,
-            context = container.context,
-            lifecycleOwner = viewLifecycleOwner,
-            homeActivity = activity as HomeActivity,
-            navController = findNavController(),
-            homeFragment = this,
-            menuButton = WeakReference(binding.menuButton),
-            onShowPinVerification = { intent -> savedLoginsLauncher.launch(intent) },
-            onBiometricAuthenticationSuccessful = { navigateToSavedLoginsFragment() },
-        ).also { it.build() }
-
-        tabCounterView = TabCounterView(
-            context = requireContext(),
-            browsingModeManager = browsingModeManager,
-            navController = findNavController(),
-            tabCounter = binding.tabButton,
-        )
-    }
-
     private var currentMicrosurvey: MicrosurveyUIData? = null
 
     /**
@@ -1007,8 +976,6 @@ class HomeFragment : Fragment() {
         val shouldAddNavigationBar = requireContext().shouldAddNavigationBar()
         if (shouldAddNavigationBar) {
             initializeNavBar(activity as HomeActivity)
-        } else {
-            initializeToolbarMenuAndTabButtons(view)
         }
 
         toolbarView?.build()
@@ -1022,7 +989,7 @@ class HomeFragment : Fragment() {
         }
 
         consumeFrom(requireComponents.core.store) {
-            tabCounterView?.update(it)
+            toolbarView?.updateTabCounter(it)
             showCollectionsPlaceholder(it)
         }
 
@@ -1041,7 +1008,7 @@ class HomeFragment : Fragment() {
             requireComponents.appStore.dispatch(AppAction.TabStripAction.UpdateLastTabClosed(null))
         }
 
-        tabCounterView?.update(requireComponents.core.store.state)
+        toolbarView?.updateTabCounter(requireComponents.core.store.state)
 
         if (bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR)) {
             // If the fragment gets recreated by the activity, the search fragment might get recreated as well. Changing
@@ -1226,9 +1193,7 @@ class HomeFragment : Fragment() {
         super.onDestroyView()
 
         _sessionControlInteractor = null
-        homeMenuView = null
         sessionControlView = null
-        tabCounterView = null
         toolbarView = null
         _bottomToolbarContainerView = null
         _binding = null

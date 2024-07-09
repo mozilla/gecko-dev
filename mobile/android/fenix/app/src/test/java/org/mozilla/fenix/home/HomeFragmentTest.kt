@@ -118,7 +118,9 @@ class HomeFragmentTest {
     @Test
     fun `WHEN configuration changed THEN menu is dismissed`() {
         val homeMenuView: HomeMenuView = mockk(relaxed = true)
-        homeFragment.homeMenuView = homeMenuView
+        val toolbarView = ToolbarView(mockk(), mockk(), homeFragment, mockk(), {}, {})
+        toolbarView.homeMenuView = homeMenuView
+        homeFragment.toolbarView = toolbarView
 
         homeFragment.onConfigurationChanged(mockk(relaxed = true))
 

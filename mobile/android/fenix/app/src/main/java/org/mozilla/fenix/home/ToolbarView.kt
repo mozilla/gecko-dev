@@ -4,17 +4,21 @@
 
 package org.mozilla.fenix.home
 
-import android.content.Context
+import android.content.Intent
 import android.view.Gravity
 import android.view.ViewGroup
+import androidx.annotation.VisibleForTesting
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
+import androidx.navigation.fragment.findNavController
+import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.utils.ext.isLandscape
+import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
@@ -31,11 +35,24 @@ import java.lang.ref.WeakReference
  */
 class ToolbarView(
     private val binding: FragmentHomeBinding,
-    private val context: Context,
     private val interactor: ToolbarInteractor,
+    private val homeFragment: HomeFragment,
+    private val homeActivity: HomeActivity,
+    private val onShowPinVerification: (Intent) -> Unit,
+    private val onBiometricAuthenticationSuccessful: () -> Unit,
 ) {
+
+    private var context = homeFragment.requireContext()
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal var tabCounterView: TabCounterView? = null
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal var homeMenuView: HomeMenuView? = null
+
     init {
-        updateLayout()
+        initLayoutParameters()
+        updateMargins()
     }
 
     /**
@@ -58,15 +75,65 @@ class ToolbarView(
             )
             true
         }
+
+        updateButtonVisibility()
     }
 
-    internal fun updateLayout() {
-        val showBrowserActionButtonsAndMenu = !context.shouldAddNavigationBar()
-        binding.menuButton.isVisible = showBrowserActionButtonsAndMenu
-        binding.tabButton.isVisible = showBrowserActionButtonsAndMenu
+    /**
+     * Updates the visibility of the tab counter and menu buttons.
+     */
+    fun updateButtonVisibility() {
+        val showTabCounterAndMenu = !context.shouldAddNavigationBar()
+        binding.menuButton.isVisible = showTabCounterAndMenu
+        binding.tabButton.isVisible = showTabCounterAndMenu
 
-        updateMargins()
+        if (showTabCounterAndMenu) {
+            homeMenuView = buildHomeMenu()
+            tabCounterView = buildTabCounter()
+        } else {
+            homeMenuView = null
+            tabCounterView = null
+        }
+    }
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun buildHomeMenu() = HomeMenuView(
+        view = homeFragment.requireView(),
+        context = context,
+        lifecycleOwner = homeFragment.viewLifecycleOwner,
+        homeActivity = homeActivity,
+        navController = homeFragment.findNavController(),
+        homeFragment = homeFragment,
+        menuButton = WeakReference(binding.menuButton),
+        onShowPinVerification = { intent -> onShowPinVerification(intent) },
+        onBiometricAuthenticationSuccessful = { onBiometricAuthenticationSuccessful() },
+    ).also { it.build() }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun buildTabCounter() = TabCounterView(
+        context = context,
+        browsingModeManager = homeActivity.browsingModeManager,
+        navController = homeFragment.findNavController(),
+        tabCounter = binding.tabButton,
+    )
+
+    /**
+     * Dismisses the home menu.
+     */
+    fun dismissMenu() {
+        homeMenuView?.dismissMenu()
+    }
+
+    /**
+     * Updates the tab counter view based on the current browser state.
+     *
+     * @param browserState [BrowserState] is passed down to tab counter view to calculate the view state.
+     */
+    fun updateTabCounter(browserState: BrowserState) {
+        tabCounterView?.update(browserState)
+    }
+
+    private fun initLayoutParameters() {
         when (context.settings().toolbarPosition) {
             ToolbarPosition.TOP -> {
                 binding.toolbarLayout.layoutParams = CoordinatorLayout.LayoutParams(
