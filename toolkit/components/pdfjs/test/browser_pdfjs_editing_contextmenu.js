@@ -173,25 +173,16 @@ add_task(async function test_copy_paste_undo_redo() {
       await waitAndCheckEmptyContextMenu(browser);
       const spanBox = await getSpanBox(browser, "and found references");
 
-      await enableEditor(browser, "FreeText");
+      await enableEditor(browser, "FreeText", 1);
       await addFreeText(browser, "hello", spanBox);
-
-      await BrowserTestUtils.waitForCondition(
-        async () => (await countElements(browser, ".freeTextEditor")) !== 0
-      );
-
-      await TestUtils.waitForTick();
-
-      // The PDF already has a text annotation.
-      Assert.equal(await countElements(browser, ".freeTextEditor"), 2);
 
       // Unselect.
       await escape(browser);
 
+      info("Wait for the editor to be unselected");
       await BrowserTestUtils.waitForCondition(
         async () => (await countElements(browser, ".selectedEditor")) !== 1
       );
-
       Assert.equal(await countElements(browser, ".selectedEditor"), 0);
 
       let menuitems = await getContextMenuItems(browser, spanBox);
@@ -356,6 +347,7 @@ add_task(async function test_copy_paste_undo_redo() {
       );
 
       await waitForPdfJSClose(browser);
+      await SpecialPowers.popPrefEnv();
     }
   );
 });

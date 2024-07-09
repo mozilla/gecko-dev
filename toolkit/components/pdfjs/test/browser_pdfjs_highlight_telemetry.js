@@ -57,7 +57,7 @@ add_task(async function test() {
         "Should have no highlight"
       );
 
-      await enableEditor(browser, "Highlight");
+      await enableEditor(browser, "Highlight", 1);
       const strs = ["In production", "buildbot automation"];
       for (let i = 0; i < strs.length; i++) {
         const str = strs[i];
