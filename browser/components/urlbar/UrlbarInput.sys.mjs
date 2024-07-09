@@ -2658,10 +2658,6 @@ export class UrlbarInput {
   }
 
   _toggleActionOverride(event) {
-    // Ignore repeated KeyboardEvents.
-    if (event.repeat) {
-      return;
-    }
     if (
       event.keyCode == KeyEvent.DOM_VK_SHIFT ||
       event.keyCode == KeyEvent.DOM_VK_ALT ||
@@ -4122,17 +4118,26 @@ export class UrlbarInput {
   }
 
   _on_keydown(event) {
-    this.#allTextSelectedOnKeyDown = this.#allTextSelected;
-    this._isKeyDownWithMetaAndLeft =
-      event.keyCode == KeyEvent.DOM_VK_LEFT && event.metaKey;
-    if (event.keyCode === KeyEvent.DOM_VK_RETURN) {
-      if (this._keyDownEnterDeferred) {
-        this._keyDownEnterDeferred.reject();
+    // Repeated KeyboardEvents can easily cause subtle bugs in this logic, if
+    // not properly handled, so let's first handle things that should not be
+    // evaluated repeatedly.
+    if (!event.repeat) {
+      this.#allTextSelectedOnKeyDown = this.#allTextSelected;
+
+      this._isKeyDownWithMetaAndLeft =
+        event.keyCode == KeyEvent.DOM_VK_LEFT && event.metaKey;
+
+      if (event.keyCode === KeyEvent.DOM_VK_RETURN) {
+        if (this._keyDownEnterDeferred) {
+          this._keyDownEnterDeferred.reject();
+        }
+        this._keyDownEnterDeferred = Promise.withResolvers();
+        event._disableCanonization = this._isKeyDownWithCtrl;
+      } else if (event.keyCode !== KeyEvent.DOM_VK_CONTROL && event.ctrlKey) {
+        this._isKeyDownWithCtrl = true;
       }
-      this._keyDownEnterDeferred = Promise.withResolvers();
-      event._disableCanonization = this._isKeyDownWithCtrl;
-    } else if (event.keyCode !== KeyEvent.DOM_VK_CONTROL && event.ctrlKey) {
-      this._isKeyDownWithCtrl = true;
+
+      this._toggleActionOverride(event);
     }
 
     // Due to event deferring, it's possible preventDefault() won't be invoked
@@ -4145,7 +4150,6 @@ export class UrlbarInput {
     if (this.eventBufferer.shouldDeferEvent(event)) {
       this.controller.handleKeyNavigation(event, false);
     }
-    this._toggleActionOverride(event);
     this.eventBufferer.maybeDeferEvent(event, () => {
       this.controller.handleKeyNavigation(event);
     });

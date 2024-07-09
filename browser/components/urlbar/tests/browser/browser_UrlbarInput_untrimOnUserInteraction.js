@@ -116,6 +116,22 @@ let tests = [
     },
     shouldUntrim: true,
   },
+  {
+    description: "Test CTRL+L, repeated HOME untrims",
+    untrimmedValue: BrowserUIUtils.trimURLProtocol + "www.example.com/",
+    execute() {
+      EventUtils.synthesizeKey("l", { accelKey: true });
+      if (AppConstants.platform == "macosx") {
+        EventUtils.synthesizeKey("KEY_ArrowLeft", {
+          metaKey: true,
+          repeat: 3,
+        });
+      } else {
+        EventUtils.synthesizeKey("KEY_Home", { repeat: 3 });
+      }
+    },
+    shouldUntrim: true,
+  },
 ];
 
 add_task(async function test_untrim() {
