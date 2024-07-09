@@ -676,7 +676,7 @@ class HomeFragment : Fragment() {
                             text = {
                                 FirefoxTheme {
                                     Text(
-                                        text = stringResource(R.string.navbar_cfr_message_2),
+                                        text = stringResource(R.string.navbar_cfr_message),
                                         color = FirefoxTheme.colors.textOnColorPrimary,
                                         style = FirefoxTheme.typography.body2,
                                     )
