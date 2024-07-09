@@ -883,3 +883,90 @@ addUiaTask(
     ok(true, "input got TextChanged event");
   }
 );
+
+/**
+ * Test the TextRange pattern's GetEnclosingElement method.
+ */
+addUiaTask(
+  `<div id="editable" contenteditable role="textbox">ab <mark id="cdef"><span>cd</span> <a id="ef" href="/">ef</a></mark> <img id="g" src="https://example.com/a11y/accessible/tests/mochitest/moz.png" alt="g"></div>`,
+  async function testTextRangeGetEnclosingElement() {
+    info("Getting editable DocumentRange");
+    await runPython(`
+      doc = getDocUia()
+      editable = findUiaByDomId(doc, "editable")
+      text = getUiaPattern(editable, "Text")
+      global range
+      range = text.DocumentRange
+    `);
+    is(
+      await runPython(`range.GetEnclosingElement().CurrentAutomationId`),
+      "editable",
+      "EnclosingElement is editable"
+    );
+    info("Expanding to word");
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Word)`);
+    // Range is now "ab ".
+    // The IA2 -> UIA proxy gets this wrong.
+    if (gIsUiaEnabled) {
+      is(
+        await runPython(`range.GetEnclosingElement().CurrentName`),
+        "ab ",
+        "EnclosingElement is ab text leaf"
+      );
+    }
+    info("Moving 1 word");
+    await runPython(`range.Move(TextUnit_Word, 1)`);
+    // Range is now "cd ".
+    // The "cd" text leaf doesn't include the space, so the enclosing element is
+    // its parent.
+    is(
+      await runPython(`range.GetEnclosingElement().CurrentAutomationId`),
+      "cdef",
+      "EnclosingElement is cdef"
+    );
+    info("Moving end -1 character");
+    await runPython(
+      `range.MoveEndpointByUnit(TextPatternRangeEndpoint_End, TextUnit_Character, -1)`
+    );
+    // Range is now "cd".
+    // The IA2 -> UIA proxy gets this wrong.
+    if (gIsUiaEnabled) {
+      is(
+        await runPython(`range.GetEnclosingElement().CurrentName`),
+        "cd",
+        "EnclosingElement is cd text leaf"
+      );
+    }
+    info("Moving 1 word");
+    await runPython(`range.Move(TextUnit_Word, 1)`);
+    // Range is now "ef ".
+    // Neither the "ef" text leaf/link nor the "cdef" mark include the trailing
+    // space, so the enclosing element is cdef's parent.
+    is(
+      await runPython(`range.GetEnclosingElement().CurrentAutomationId`),
+      "editable",
+      "EnclosingElement is editable"
+    );
+    info("Moving end -1 character");
+    await runPython(
+      `range.MoveEndpointByUnit(TextPatternRangeEndpoint_End, TextUnit_Character, -1)`
+    );
+    // Range is now "ef".
+    is(
+      await runPython(`range.GetEnclosingElement().CurrentName`),
+      "ef",
+      "EnclosingElement is ef text leaf"
+    );
+    info("Moving 1 word");
+    await runPython(`range.Move(TextUnit_Word, 1)`);
+    // Range is now the embedded object character for the img (g).
+    // The IA2 -> UIA proxy gets this wrong.
+    if (gIsUiaEnabled) {
+      is(
+        await runPython(`range.GetEnclosingElement().CurrentAutomationId`),
+        "g",
+        "EnclosingElement is g"
+      );
+    }
+  }
+);

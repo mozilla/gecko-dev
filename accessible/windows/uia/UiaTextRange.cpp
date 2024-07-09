@@ -30,6 +30,34 @@ static TextLeafPoint GetEndpoint(TextLeafRange& aRange,
   return aRange.End();
 }
 
+static void RemoveExcludedAccessiblesFromRange(TextLeafRange& aRange) {
+  MOZ_ASSERT(aRange);
+  TextLeafPoint start = aRange.Start();
+  TextLeafPoint end = aRange.End();
+  if (start == end) {
+    // The range is collapsed. It doesn't include anything.
+    return;
+  }
+  if (end.mOffset != 0) {
+    return;
+  }
+  // end is at the start of its Accessible. This can happen because we always
+  // search for the start of a character, word, etc. Since the end of a range
+  // is exclusive, the range doesn't include anything in this Accessible.
+  // Move the end back so that it doesn't touch this Accessible at all. This
+  // is important when determining what Accessibles lie within this range
+  // because otherwise, we'd incorrectly consider an Accessible which the range
+  // doesn't actually cover.
+  // Move to the previous character.
+  end = end.FindBoundary(nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
+  // We want the position immediately after this character in the same
+  // Accessible.
+  ++end.mOffset;
+  if (start <= end) {
+    aRange.SetEnd(end);
+  }
+}
+
 // UiaTextRange
 
 UiaTextRange::UiaTextRange(TextLeafRange& aRange) {
@@ -277,7 +305,22 @@ UiaTextRange::GetBoundingRectangles(__RPC__deref_out_opt SAFEARRAY** aRetVal) {
 STDMETHODIMP
 UiaTextRange::GetEnclosingElement(
     __RPC__deref_out_opt IRawElementProviderSimple** aRetVal) {
-  return E_NOTIMPL;
+  if (!aRetVal) {
+    return E_INVALIDARG;
+  }
+  *aRetVal = nullptr;
+  TextLeafRange range = GetRange();
+  if (!range) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  RemoveExcludedAccessiblesFromRange(range);
+  if (Accessible* enclosing =
+          range.Start().mAcc->GetClosestCommonInclusiveAncestor(
+              range.End().mAcc)) {
+    RefPtr<IRawElementProviderSimple> uia = MsaaAccessible::GetFrom(enclosing);
+    uia.forget(aRetVal);
+  }
+  return S_OK;
 }
 
 STDMETHODIMP
