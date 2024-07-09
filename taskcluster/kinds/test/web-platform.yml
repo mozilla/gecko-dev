@@ -160,6 +160,7 @@ web-platform-tests-privatebrowsing:
             - --test-type=testharness
             - --default-exclude
             - --setpref=browser.privatebrowsing.autostart=true
+            - --setpref=dom.cache.privateBrowsing.enabled=true
             - --tag=privatebrowsing
 
 web-platform-tests-webcodecs:
