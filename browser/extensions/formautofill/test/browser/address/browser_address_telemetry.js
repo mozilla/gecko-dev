@@ -290,19 +290,19 @@ add_task(async function test_popup_opened() {
   );
 
   const fields = TEST_BASIC_ADDRESS_FORM_FIELDS;
-  await assertTelemetry([
+  await assertTelemetry(undefined, [
     ...formArgs("detected", {}, fields, "true", "false"),
     ...formArgs("popup_shown", { field_name: TEST_FOCUS_NAME_FIELD }),
   ]);
 
   TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("content"),
+    TelemetryTestUtils.getProcessScalars("parent"),
     SCALAR_DETECTED_SECTION_COUNT,
     1,
     "There should be 1 section detected."
   );
   TelemetryTestUtils.assertScalarUnset(
-    TelemetryTestUtils.getProcessScalars("content"),
+    TelemetryTestUtils.getProcessScalars("parent"),
     SCALAR_SUBMITTED_SECTION_COUNT,
     1
   );
@@ -325,19 +325,19 @@ add_task(async function test_popup_opened_form_without_autocomplete() {
   );
 
   const fields = TEST_BASIC_ADDRESS_FORM_FIELDS;
-  await assertTelemetry([
+  await assertTelemetry(undefined, [
     ...formArgs("detected", {}, fields, "0", "false"),
     ...formArgs("popup_shown", { field_name: TEST_FOCUS_NAME_FIELD }),
   ]);
 
   TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("content"),
+    TelemetryTestUtils.getProcessScalars("parent"),
     SCALAR_DETECTED_SECTION_COUNT,
     1,
     "There should be 1 section detected."
   );
   TelemetryTestUtils.assertScalarUnset(
-    TelemetryTestUtils.getProcessScalars("content"),
+    TelemetryTestUtils.getProcessScalars("parent"),
     SCALAR_SUBMITTED_SECTION_COUNT
   );
 
@@ -395,25 +395,43 @@ add_task(async function test_submit_autofill_profile_new() {
   Services.telemetry.getKeyedHistogramById(HISTOGRAM_PROFILE_NUM_USES).clear();
 
   const fields = TEST_BASIC_ADDRESS_FORM_FIELDS;
-  let expected_content = [
+  const expected_parent = [
     ...formArgs("detected", {}, fields, "true", "false"),
-    ...formArgs("submitted", {}, fields, "user_filled", "unavailable"),
+    ...formArgs(
+      "submitted",
+      {
+        street_address: "user_filled",
+        address_level1: "not_filled",
+        address_level2: "not_filled",
+        postal_code: "not_filled",
+        country: "not_filled",
+        given_name: "user_filled",
+        family_name: "not_filled",
+        organization: "user_filled",
+        email: "not_filled",
+        tel: "user_filled",
+      },
+      [],
+      "",
+      "unavailable"
+    ),
   ];
 
   await test_per_command(MAIN_BUTTON, undefined, { 1: 1 }, 1);
-  await assertTelemetry(expected_content, [
+  await assertTelemetry(undefined, [
+    ...expected_parent,
     [EVENT_CATEGORY, "show", "capture_doorhanger"],
     [EVENT_CATEGORY, "save", "capture_doorhanger"],
   ]);
 
   TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("content"),
+    TelemetryTestUtils.getProcessScalars("parent"),
     SCALAR_DETECTED_SECTION_COUNT,
     1,
     "There should be 1 sections detected."
   );
   TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("content"),
+    TelemetryTestUtils.getProcessScalars("parent"),
     SCALAR_SUBMITTED_SECTION_COUNT,
     1,
     "There should be 1 section submitted."
@@ -486,7 +504,7 @@ add_task(async function test_submit_autofill_profile_update() {
   Services.telemetry.getKeyedHistogramById(HISTOGRAM_PROFILE_NUM_USES).clear();
 
   const fields = TEST_BASIC_ADDRESS_FORM_FIELDS;
-  let expected_content = [
+  const expected_parent = [
     ...formArgs("detected", {}, fields, "true", "false"),
     ...formArgs("popup_shown", { field_name: TEST_FOCUS_NAME_FIELD }),
     ...formArgs(
@@ -515,13 +533,15 @@ add_task(async function test_submit_autofill_profile_update() {
   ];
 
   await test_per_command(MAIN_BUTTON, undefined, { 1: 1 }, 1);
-  await assertTelemetry(expected_content, [
+  await assertTelemetry(undefined, [
+    ...expected_parent,
     [EVENT_CATEGORY, "show", "update_doorhanger"],
     [EVENT_CATEGORY, "update", "update_doorhanger"],
   ]);
 
   await test_per_command(SECONDARY_BUTTON, undefined, { 0: 1 });
-  await assertTelemetry(expected_content, [
+  await assertTelemetry(undefined, [
+    ...expected_parent,
     [EVENT_CATEGORY, "show", "update_doorhanger"],
     [EVENT_CATEGORY, "cancel", "update_doorhanger"],
   ]);
@@ -688,6 +708,8 @@ add_task(async function test_click_doorhanger_menuitems() {
       expectedEvt: "pref",
     },
   ];
+
+  const fields = TEST_BASIC_ADDRESS_FORM_FIELDS;
   for (const TEST of TESTS) {
     await BrowserTestUtils.withNewTab(
       { gBrowser, url: TEST_BASIC_ADDRESS_FORM_URL },
@@ -700,7 +722,30 @@ add_task(async function test_click_doorhanger_menuitems() {
       }
     );
 
+    const expected_parent = [
+      ...formArgs("detected", {}, fields, "true", "false"),
+      ...formArgs(
+        "submitted",
+        {
+          street_address: "user_filled",
+          address_level1: "not_filled",
+          address_level2: "not_filled",
+          postal_code: "not_filled",
+          country: "not_filled",
+          given_name: "user_filled",
+          family_name: "user_filled",
+          organization: "user_filled",
+          email: "not_filled",
+          tel: "not_filled",
+        },
+        [],
+        "",
+        "unavailable"
+      ),
+    ];
+
     await assertTelemetry(undefined, [
+      ...expected_parent,
       [EVENT_CATEGORY, "show", "capture_doorhanger"],
       [EVENT_CATEGORY, TEST.expectedEvt, "capture_doorhanger"],
     ]);
@@ -724,7 +769,31 @@ add_task(async function test_show_edit_doorhanger() {
     }
   );
 
+  const fields = TEST_BASIC_ADDRESS_FORM_FIELDS;
+  const expected_parent = [
+    ...formArgs("detected", {}, fields, "true", "false"),
+    ...formArgs(
+      "submitted",
+      {
+        street_address: "user_filled",
+        address_level1: "not_filled",
+        address_level2: "not_filled",
+        postal_code: "not_filled",
+        country: "not_filled",
+        given_name: "user_filled",
+        family_name: "user_filled",
+        organization: "user_filled",
+        email: "not_filled",
+        tel: "not_filled",
+      },
+      [],
+      "",
+      "unavailable"
+    ),
+  ];
+
   await assertTelemetry(undefined, [
+    ...expected_parent,
     [EVENT_CATEGORY, "show", "capture_doorhanger"],
     [EVENT_CATEGORY, "show", "edit_doorhanger"],
     [EVENT_CATEGORY, "save", "edit_doorhanger"],

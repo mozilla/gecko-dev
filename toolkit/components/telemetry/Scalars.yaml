@@ -4487,7 +4487,7 @@ formautofill.addresses:
     products:
       - 'firefox'
     record_in_processes:
-      - 'content'
+      - 'main'
   submitted_sections_count:
     bug_numbers:
       - 1656344
@@ -4502,7 +4502,7 @@ formautofill.addresses:
     products:
       - 'firefox'
     record_in_processes:
-      - 'content'
+      - 'main'
   autofill_profiles_count:
     bug_numbers:
       - 1801039
@@ -4550,7 +4550,7 @@ formautofill.creditCards:
     products:
       - 'firefox'
     record_in_processes:
-      - 'content'
+      - 'main'
   submitted_sections_count:
     bug_numbers:
       - 1656344
@@ -4566,7 +4566,7 @@ formautofill.creditCards:
     products:
       - 'firefox'
     record_in_processes:
-      - 'content'
+      - 'main'
 
 # This section is for notification bars testing
 notificationbar:
