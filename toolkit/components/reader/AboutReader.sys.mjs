@@ -1175,6 +1175,11 @@ AboutReader.prototype = {
     const changeEvent = new Event("change", { bubbles: true });
 
     this._resetFontSize();
+    let plusButton = this._doc.querySelector(".text-size-plus-button");
+    let minusButton = this._doc.querySelector(".text-size-minus-button");
+    plusButton.removeAttribute("disabled");
+    minusButton.removeAttribute("disabled");
+
     let fontType = doc.getElementById("font-type-selector");
     fontType.value = initial.fontType;
     fontType.dispatchEvent(changeEvent);
