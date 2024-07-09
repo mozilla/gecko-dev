@@ -20,6 +20,9 @@ BEGIN_TEST(testStringBuffersLatin1) {
 
   auto* bufferChars = static_cast<const JS::Latin1Char*>(buffer->Data());
 
+  // Don't purge the ExternalStringCache.
+  js::gc::AutoSuppressGC suppress(cx);
+
   JS::Rooted<JSString*> str1(cx,
                              JS::NewStringFromLatin1Buffer(cx, buffer, len));
   CHECK(str1);
@@ -37,12 +40,18 @@ BEGIN_TEST(testStringBuffersLatin1) {
                              JS::NewStringFromLatin1Buffer(cx, buffer, len));
   CHECK(str2);
 
+  cx->zone()->externalStringCache().purge();
+
   JS::Rooted<JSString*> str3(cx,
                              JS::NewStringFromLatin1Buffer(cx, buffer, len));
   CHECK(str3);
 
+  // Check the ExternalStringCache works.
+  CHECK_EQUAL(str1, str2);
+
 #ifdef DEBUG
-  CHECK_EQUAL(buffer->RefCount(), 4u);  // |buffer| and the 3 JS strings.
+  // Three references: buffer, str1/str2, str3.
+  CHECK_EQUAL(buffer->RefCount(), 3u);
 #endif
 
   mozilla::StringBuffer* buf;
@@ -64,6 +73,9 @@ BEGIN_TEST(testStringBuffersTwoByte) {
 
   auto* bufferChars = static_cast<const char16_t*>(buffer->Data());
 
+  // Don't purge the ExternalStringCache.
+  js::gc::AutoSuppressGC suppress(cx);
+
   JS::Rooted<JSString*> str1(cx,
                              JS::NewStringFromTwoByteBuffer(cx, buffer, len));
   CHECK(str1);
@@ -81,12 +93,18 @@ BEGIN_TEST(testStringBuffersTwoByte) {
                              JS::NewStringFromTwoByteBuffer(cx, buffer, len));
   CHECK(str2);
 
+  cx->zone()->externalStringCache().purge();
+
   JS::Rooted<JSString*> str3(cx,
                              JS::NewStringFromTwoByteBuffer(cx, buffer, len));
   CHECK(str3);
 
+  // Check the ExternalStringCache works.
+  CHECK_EQUAL(str1, str2);
+
 #ifdef DEBUG
-  CHECK_EQUAL(buffer->RefCount(), 4u);  // |buffer| and the 3 JS strings.
+  // Three references: buffer, str1/str2, str3.
+  CHECK_EQUAL(buffer->RefCount(), 3u);
 #endif
 
   mozilla::StringBuffer* buf;
