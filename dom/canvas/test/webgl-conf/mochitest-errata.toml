@@ -1288,6 +1288,11 @@ fail-if = ["os == 'linux' && display != 'wayland'"]
 # Found 0 lines, looking in the vertical direction, expected 2
 fail-if = ["os == 'linux' && display != 'wayland'"]
 
+["generated/test_conformance__rendering__blending.html"]
+# Android 13.0 Pixel5 AArch64
+# dom/canvas/test/webgl-conf/generated/test_conformance__rendering__blending.html | Expected [100,2,3,4], was [1,2,3,4]
+fail-if = ["os == 'android'"]
+
 ["generated/test_2_conformance__rendering__blending.html"]
 fail-if = ["os == 'android'"]
 

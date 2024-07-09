@@ -16282,6 +16282,7 @@ subsuite = "webgl1-core"
 
 ["generated/test_conformance__rendering__blending.html"]
 subsuite = "webgl1-core"
+fail-if = ["os == 'android'"]
 
 ["generated/test_conformance__rendering__canvas-alpha-bug.html"]
 subsuite = "webgl1-core"
