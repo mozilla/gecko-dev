@@ -363,11 +363,9 @@ struct WebGLContextOptions final {
   dom::WebGLPowerPreference powerPreference =
       dom::WebGLPowerPreference::Default;
   std::optional<dom::PredefinedColorSpace> colorSpace;
-  bool forceSoftwareRendering = false;
   bool shouldResistFingerprinting = true;
 
   bool enableDebugRendererInfo = false;
-  PaddingField<uint8_t, 7> _padding;
 
   auto MutTiedFields() {
     // clang-format off
@@ -384,12 +382,9 @@ struct WebGLContextOptions final {
 
       powerPreference,
       colorSpace,
-      forceSoftwareRendering,
       shouldResistFingerprinting,
 
-      enableDebugRendererInfo,
-
-      _padding);
+      enableDebugRendererInfo);
     // clang-format on
   }
 

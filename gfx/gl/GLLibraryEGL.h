@@ -152,13 +152,13 @@ class GLLibraryEGL final {
   void InitLibExtensions();
 
   std::shared_ptr<EglDisplay> CreateDisplayLocked(
-      bool forceAccel, bool forceSoftware, nsACString* const out_failureId,
+      bool forceAccel, nsACString* const out_failureId,
       const StaticMutexAutoLock& aProofOfLock);
 
  public:
   Maybe<SymbolLoader> GetSymbolLoader() const;
 
-  std::shared_ptr<EglDisplay> CreateDisplay(bool forceAccel, bool forceSoftware,
+  std::shared_ptr<EglDisplay> CreateDisplay(bool forceAccel,
                                             nsACString* const out_failureId);
   std::shared_ptr<EglDisplay> CreateDisplay(ID3D11Device*);
   std::shared_ptr<EglDisplay> DefaultDisplay(nsACString* const out_failureId);

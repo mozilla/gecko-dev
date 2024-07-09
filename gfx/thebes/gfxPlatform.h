@@ -265,8 +265,7 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
       bool aFallback = false);
 
   already_AddRefed<DrawTarget> CreateOffscreenCanvasDrawTarget(
-      const mozilla::gfx::IntSize& aSize, mozilla::gfx::SurfaceFormat aFormat,
-      bool aRequireSoftwareRender = false);
+      const mozilla::gfx::IntSize& aSize, mozilla::gfx::SurfaceFormat aFormat);
 
   already_AddRefed<DrawTarget> CreateSimilarSoftwareDrawTarget(
       DrawTarget* aDT, const IntSize& aSize,
@@ -344,7 +343,7 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
    * available fonts on the platform; used to pass the list from chrome to
    * content process. Currently implemented only on MacOSX and Linux.
    */
-  virtual void ReadSystemFontList(mozilla::dom::SystemFontList*) {};
+  virtual void ReadSystemFontList(mozilla::dom::SystemFontList*){};
 
   /**
    * Rebuilds the system font lists (if aFullRebuild is true), or just notifies
@@ -780,7 +779,7 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   virtual void OnMemoryPressure(
       mozilla::layers::MemoryPressureReason aWhy) override;
 
-  virtual void EnsureDevicesInitialized() {};
+  virtual void EnsureDevicesInitialized(){};
   virtual bool DevicesInitialized() { return true; };
 
   virtual bool IsWaylandDisplay() { return false; }

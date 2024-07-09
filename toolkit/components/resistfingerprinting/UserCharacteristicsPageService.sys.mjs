@@ -160,7 +160,7 @@ export class UserCharacteristicsPageService {
 
   shutdown() {}
 
-  createContentPage(principal) {
+  createContentPage() {
     lazy.console.debug("called createContentPage");
 
     lazy.console.debug("Registering actor");
@@ -184,6 +184,7 @@ export class UserCharacteristicsPageService {
         let { promise, resolve } = Promise.withResolvers();
         this._backgroundBrowsers.set(browser, resolve);
 
+        let principal = Services.scriptSecurityManager.getSystemPrincipal();
         let loadURIOptions = {
           triggeringPrincipal: principal,
         };

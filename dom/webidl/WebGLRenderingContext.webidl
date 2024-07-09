@@ -56,9 +56,6 @@ dictionary WebGLContextAttributes {
     // We are experimenting here, though this should be close to where we end up.
     [Pref="webgl.colorspaces.prototype"]
     PredefinedColorSpace colorSpace; // = "srgb"; Default is gfx::ColorSpace2::UNKNOWN for now.
-
-    [Func="nsRFPService::IsSoftwareRenderingOptionExposed"]
-    GLboolean forceSoftwareRendering = false;
 };
 
 [Exposed=(Window,Worker),
