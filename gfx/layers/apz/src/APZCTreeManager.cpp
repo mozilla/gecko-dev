@@ -2016,7 +2016,8 @@ APZEventResult APZCTreeManager::InputHandlingState::Finish(
     mEvent.mLayersId = mHit.mLayersId;
   }
 
-  if (mEvent.mInputType == SCROLLWHEEL_INPUT) {
+  if (mEvent.mInputType == SCROLLWHEEL_INPUT ||
+      mEvent.mInputType == PANGESTURE_INPUT) {
     aTreeManager.MaybeOverrideLayersIdForWheelEvent(mEvent);
   }
 
@@ -2387,9 +2388,14 @@ void APZCTreeManager::SynthesizePinchGestureFromMouseWheel(
 
 void APZCTreeManager::MaybeOverrideLayersIdForWheelEvent(InputData& aEvent) {
   APZThreadUtils::AssertOnControllerThread();
-  MOZ_ASSERT(aEvent.mInputType == SCROLLWHEEL_INPUT);
 
-  WheelBlockState* txn = mInputQueue->GetActiveWheelTransaction();
+  InputBlockState* txn = nullptr;
+  if (aEvent.mInputType == SCROLLWHEEL_INPUT) {
+    txn = mInputQueue->GetActiveWheelTransaction();
+  } else if (aEvent.mInputType == PANGESTURE_INPUT) {
+    txn = mInputQueue->GetCurrentPanGestureBlock();
+  }
+
   APZCTM_LOG("Maybe override txn (0x%p) wheel transactions enabled=%d", txn,
              StaticPrefs::dom_event_wheel_event_groups_enabled());
 
@@ -2401,13 +2407,13 @@ void APZCTreeManager::MaybeOverrideLayersIdForWheelEvent(InputData& aEvent) {
     return;
   }
 
-  LayersId layersId = txn->GetLayersId();
+  Maybe<LayersId> layersId = txn->WheelTransactionLayersId();
 
   APZCTM_LOG("Maybe override layers id (%s) -> (%s)",
              ToString(aEvent.mLayersId).c_str(), ToString(layersId).c_str());
 
-  if (txn->GetLayersId() != LayersId{0}) {
-    aEvent.mLayersId = txn->GetLayersId();
+  if (layersId.isSome() && *layersId != LayersId{0}) {
+    aEvent.mLayersId = *layersId;
   }
 }
 

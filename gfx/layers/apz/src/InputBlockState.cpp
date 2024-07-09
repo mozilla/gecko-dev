@@ -387,9 +387,9 @@ void WheelBlockState::Update(ScrollWheelInput& aEvent) {
   mLastMouseMove = TimeStamp();
 }
 
-LayersId WheelBlockState::GetLayersId() const {
-  return (InTransaction() && TargetApzc()) ? TargetApzc()->GetLayersId()
-                                           : LayersId{0};
+Maybe<LayersId> WheelBlockState::WheelTransactionLayersId() const {
+  return (InTransaction() && TargetApzc()) ? Some(TargetApzc()->GetLayersId())
+                                           : Nothing();
 }
 
 bool WheelBlockState::MustStayActive() { return !mTransactionEnded; }
@@ -614,6 +614,10 @@ void PanGestureBlockState::SetBrowserGestureResponse(
     BrowserGestureResponse aResponse) {
   mWaitingForBrowserGestureResponse = false;
   mStartedBrowserGesture = bool(aResponse);
+}
+
+Maybe<LayersId> PanGestureBlockState::WheelTransactionLayersId() const {
+  return TargetApzc() ? Some(TargetApzc()->GetLayersId()) : Nothing();
 }
 
 PinchGestureBlockState::PinchGestureBlockState(

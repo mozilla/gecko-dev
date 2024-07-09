@@ -64,6 +64,7 @@ class InputBlockState : public RefCounted<InputBlockState> {
   virtual PanGestureBlockState* AsPanGestureBlock() { return nullptr; }
   virtual PinchGestureBlockState* AsPinchGestureBlock() { return nullptr; }
   virtual KeyboardBlockState* AsKeyboardBlock() { return nullptr; }
+  virtual Maybe<LayersId> WheelTransactionLayersId() const { return Nothing(); }
 
   virtual bool SetConfirmedTargetApzc(
       const RefPtr<AsyncPanZoomController>& aTargetApzc,
@@ -273,7 +274,7 @@ class WheelBlockState : public CancelableBlockState {
     return mAllowedScrollDirections;
   }
 
-  LayersId GetLayersId() const;
+  Maybe<LayersId> WheelTransactionLayersId() const override;
 
  protected:
   void UpdateTargetApzc(
@@ -363,6 +364,7 @@ class PanGestureBlockState : public CancelableBlockState {
   bool IsWaitingForContentResponse() const {
     return mWaitingForContentResponse;
   }
+  Maybe<LayersId> WheelTransactionLayersId() const override;
 
  private:
   bool mInterrupted;
