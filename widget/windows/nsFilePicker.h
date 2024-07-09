@@ -105,6 +105,8 @@ class nsFilePicker final : public nsBaseWinFilePicker {
   bool IsDefaultPathLink();
   bool IsDefaultPathHtml();
 
+  RefPtr<nsIFile> ComputeFallbackSavePath() const;
+
   nsCOMPtr<nsIWidget> mParentWidget;
   nsString mTitle;
   nsCString mFile;

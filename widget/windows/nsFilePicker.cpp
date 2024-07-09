@@ -30,6 +30,8 @@
 #include "nsCRT.h"
 #include "nsEnumeratorUtils.h"
 #include "nsIContentAnalysis.h"
+#include "nsCExternalHandlerService.h"
+#include "nsIExternalHelperAppService.h"
 #include "nsNetUtil.h"
 #include "nsPIDOMWindow.h"
 #include "nsPrintfCString.h"
@@ -649,8 +651,13 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
 
   // default filename
   if (!mDefaultFilename.IsEmpty()) {
-    // Prevent the shell from expanding environment variables by removing
-    // the % characters that are used to delimit them.
+    // Prevent the shell from expanding environment variables by removing the %
+    // characters that are used to delimit them.
+    //
+    // Note that we do _not_ need to preserve this sanitization for the fallback
+    // case where the file dialog fails. Variable-expansion only occurs in the
+    // file dialog specifically, and not when creating a file directly via other
+    // means.
     nsAutoString sanitizedFilename(mDefaultFilename);
     sanitizedFilename.ReplaceChar('%', '_');
 
@@ -984,9 +991,29 @@ nsresult nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
 
         callback->Done(retValue);
       },
-      [callback = RefPtr(aCallback)](Error const& err) {
-        // logging already handled
-        callback->Done(ResultCode::returnCancel);
+      [callback = RefPtr(aCallback), self = RefPtr{this}](Error const& err) {
+        // logging of the failure (and possibly also a telemetry ping) has
+        // already occurred
+        if (err.kind == Error::Kind::IPCError) {
+          // the file-dialog process (probably) crashed; try to "recover" with a
+          // fallback
+          ResultCode result = ResultCode::returnCancel;
+          RefPtr<nsIFile> path;
+          if (self->mMode == Mode::modeSave) {
+            if (auto maybe_path = self->ComputeFallbackSavePath()) {
+              path = maybe_path;
+              path->GetPath(self->mUnicodeFile);
+              result = ResultCode::returnOK;
+            }
+          }
+
+          // don't set sLastUsedUnicodeDirectory here; the user didn't select
+          // anything
+          callback->Done(result);
+        } else {
+          // logging already handled
+          callback->Done(ResultCode::returnCancel);
+        }
       });
 
   return NS_OK;
@@ -1166,4 +1193,57 @@ bool nsFilePicker::IsDefaultPathHtml() {
       return true;
   }
   return false;
+}
+
+RefPtr<nsIFile> nsFilePicker::ComputeFallbackSavePath() const {
+  using mozilla::Nothing;
+
+  // no need for any of this if we're not trying to save
+  if (mMode != Mode::modeSave) {
+    return nullptr;
+  }
+
+  // get a fallback download-location
+  RefPtr<nsIFile> location;
+  [&]() {
+    // try to query the helper service for the preferred downloads directory
+    nsresult rv;
+    nsCOMPtr<nsIExternalHelperAppService> svc =
+        do_GetService(NS_EXTERNALHELPERAPPSERVICE_CONTRACTID, &rv);
+    if (NS_WARN_IF(NS_FAILED(rv))) return;
+
+    rv = svc->GetPreferredDownloadsDirectory(getter_AddRefs(location));
+    if (NS_WARN_IF(NS_FAILED(rv))) return;
+  }();
+  if (!location) {
+    return nullptr;
+  }
+
+  constexpr static const auto EndsWithExtension =
+      [](nsAString const& path, nsAString const& extension) -> bool {
+    size_t const len = path.Length();
+    size_t const extLen = extension.Length();
+    if (extLen + 2 > len) {
+      // `path` is too short and can't possibly end with `extension`. (Note that
+      // we consider, _e.g._, ".jpg" not to end with the extension "jpg".)
+      return false;
+    }
+    if (path[len - extLen - 1] == L'.' &&
+        StringTail(path, extLen) == extension) {
+      return true;
+    }
+    return false;
+  };
+
+  nsString filename(mDefaultFilename);
+  if (!mDefaultExtension.IsEmpty() &&
+      !EndsWithExtension(filename, mDefaultExtension)) {
+    filename.AppendLiteral(".");
+    filename.Append(mDefaultExtension);
+  }
+
+  NS_ENSURE_SUCCESS(location->Append(filename), nullptr);
+  NS_ENSURE_SUCCESS(location->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600),
+                    nullptr);
+  return location;
 }
