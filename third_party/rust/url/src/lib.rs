@@ -134,7 +134,7 @@ url = { version = "2", features = ["debugger_visualizer"] }
 
 */
 
-#![doc(html_root_url = "https://docs.rs/url/2.5.0")]
+#![doc(html_root_url = "https://docs.rs/url/2.5.1")]
 #![cfg_attr(
     feature = "debugger_visualizer",
     debugger_visualizer(natvis_file = "../../debug_metadata/url.natvis")
@@ -146,15 +146,20 @@ pub use form_urlencoded;
 extern crate serde;
 
 use crate::host::HostInternal;
-use crate::parser::{to_u32, Context, Parser, SchemeType, PATH_SEGMENT, USERINFO};
+use crate::parser::{
+    to_u32, Context, Parser, SchemeType, PATH_SEGMENT, SPECIAL_PATH_SEGMENT, USERINFO,
+};
 use percent_encoding::{percent_decode, percent_encode, utf8_percent_encode};
 use std::borrow::Borrow;
 use std::cmp;
 use std::fmt::{self, Write};
 use std::hash;
+#[cfg(any(unix, windows, target_os = "redox", target_os = "wasi"))]
 use std::io;
 use std::mem;
-use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
+use std::net::IpAddr;
+#[cfg(any(unix, windows, target_os = "redox", target_os = "wasi"))]
+use std::net::{SocketAddr, ToSocketAddrs};
 use std::ops::{Range, RangeFrom, RangeTo};
 use std::path::{Path, PathBuf};
 use std::str;
@@ -214,6 +219,9 @@ pub struct ParseOptions<'a> {
 
 impl<'a> ParseOptions<'a> {
     /// Change the base URL
+    ///
+    /// See the notes of [`Url::join`] for more details about how this base is considered
+    /// when parsing.
     pub fn base_url(mut self, new: Option<&'a Url>) -> Self {
         self.base_url = new;
         self
@@ -365,9 +373,14 @@ impl Url {
     ///
     /// The inverse of this is [`make_relative`].
     ///
-    /// Note: a trailing slash is significant.
+    /// # Notes
+    ///
+    /// - A trailing slash is significant.
     /// Without it, the last path component is considered to be a “file” name
-    /// to be removed to get at the “directory” that is used as the base:
+    /// to be removed to get at the “directory” that is used as the base.
+    /// - A [scheme relative special URL](https://url.spec.whatwg.org/#scheme-relative-special-url-string)
+    /// as input replaces everything in the base URL after the scheme.
+    /// - An absolute URL (with a scheme) as input replaces the whole base URL (even the scheme).
     ///
     /// # Examples
     ///
@@ -375,14 +388,27 @@ impl Url {
     /// use url::Url;
     /// # use url::ParseError;
     ///
+    /// // Base without a trailing slash
     /// # fn run() -> Result<(), ParseError> {
     /// let base = Url::parse("https://example.net/a/b.html")?;
     /// let url = base.join("c.png")?;
     /// assert_eq!(url.as_str(), "https://example.net/a/c.png");  // Not /a/b.html/c.png
     ///
+    /// // Base with a trailing slash
     /// let base = Url::parse("https://example.net/a/b/")?;
     /// let url = base.join("c.png")?;
     /// assert_eq!(url.as_str(), "https://example.net/a/b/c.png");
+    ///
+    /// // Input as scheme relative special URL
+    /// let base = Url::parse("https://alice.com/a")?;
+    /// let url = base.join("//eve.com/b")?;
+    /// assert_eq!(url.as_str(), "https://eve.com/b");
+    ///
+    /// // Input as absolute URL
+    /// let base = Url::parse("https://alice.com/a")?;
+    /// let url = base.join("http://eve.com/b")?;
+    /// assert_eq!(url.as_str(), "http://eve.com/b");  // http instead of https
+
     /// # Ok(())
     /// # }
     /// # run().unwrap();
@@ -1250,6 +1276,7 @@ impl Url {
     ///     })
     /// }
     /// ```
+    #[cfg(any(unix, windows, target_os = "redox", target_os = "wasi"))]
     pub fn socket_addrs(
         &self,
         default_port_number: impl Fn() -> Option<u16>,
@@ -1524,7 +1551,8 @@ impl Url {
         }
     }
 
-    /// Change this URL’s query string.
+    /// Change this URL’s query string. If `query` is `None`, this URL's
+    /// query string will be cleared.
     ///
     /// # Examples
     ///
@@ -2816,7 +2844,7 @@ fn path_to_file_url_segments(
         serialization.push('/');
         serialization.extend(percent_encode(
             component.as_os_str().as_bytes(),
-            PATH_SEGMENT,
+            SPECIAL_PATH_SEGMENT,
         ));
     }
     if empty {

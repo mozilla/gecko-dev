@@ -11,8 +11,15 @@
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::net::{Ipv4Addr, Ipv6Addr};
+#[cfg(any(unix, windows, target_os = "redox", target_os = "wasi"))]
 use std::path::{Path, PathBuf};
 use url::{form_urlencoded, Host, Origin, Url};
+
+// https://rustwasm.github.io/wasm-bindgen/wasm-bindgen-test/usage.html
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+use wasm_bindgen_test::{wasm_bindgen_test as test, wasm_bindgen_test_configure};
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+wasm_bindgen_test_configure!(run_in_browser);
 
 #[test]
 fn size() {
@@ -117,6 +124,7 @@ fn test_set_empty_query() {
     assert_eq!(base.as_str(), "moz://example.com/path");
 }
 
+#[cfg(any(unix, windows, target_os = "redox", target_os = "wasi"))]
 macro_rules! assert_from_file_path {
     ($path: expr) => {
         assert_from_file_path!($path, $path)
@@ -130,6 +138,7 @@ macro_rules! assert_from_file_path {
 }
 
 #[test]
+#[cfg(any(unix, windows))]
 fn new_file_paths() {
     if cfg!(unix) {
         assert_eq!(Url::from_file_path(Path::new("relative")), Err(()));
@@ -146,6 +155,7 @@ fn new_file_paths() {
         assert_from_file_path!("/foo/bar");
         assert_from_file_path!("/foo/ba\0r", "/foo/ba%00r");
         assert_from_file_path!("/foo/ba%00r", "/foo/ba%2500r");
+        assert_from_file_path!("/foo/ba\\r", "/foo/ba%5Cr");
     }
 }
 
@@ -161,28 +171,28 @@ fn new_path_bad_utf8() {
 }
 
 #[test]
+#[cfg(windows)]
 fn new_path_windows_fun() {
-    if cfg!(windows) {
-        assert_from_file_path!(r"C:\foo\bar", "/C:/foo/bar");
-        assert_from_file_path!("C:\\foo\\ba\0r", "/C:/foo/ba%00r");
+    assert_from_file_path!(r"C:\foo\bar", "/C:/foo/bar");
+    assert_from_file_path!("C:\\foo\\ba\0r", "/C:/foo/ba%00r");
 
-        // Invalid UTF-8
-        assert!(Url::parse("file:///C:/foo/ba%80r")
-            .unwrap()
-            .to_file_path()
-            .is_err());
+    // Invalid UTF-8
+    assert!(Url::parse("file:///C:/foo/ba%80r")
+        .unwrap()
+        .to_file_path()
+        .is_err());
 
-        // test windows canonicalized path
-        let path = PathBuf::from(r"\\?\C:\foo\bar");
-        assert!(Url::from_file_path(path).is_ok());
+    // test windows canonicalized path
+    let path = PathBuf::from(r"\\?\C:\foo\bar");
+    assert!(Url::from_file_path(path).is_ok());
 
-        // Percent-encoded drive letter
-        let url = Url::parse("file:///C%3A/foo/bar").unwrap();
-        assert_eq!(url.to_file_path(), Ok(PathBuf::from(r"C:\foo\bar")));
-    }
+    // Percent-encoded drive letter
+    let url = Url::parse("file:///C%3A/foo/bar").unwrap();
+    assert_eq!(url.to_file_path(), Ok(PathBuf::from(r"C:\foo\bar")));
 }
 
 #[test]
+#[cfg(any(unix, windows))]
 fn new_directory_paths() {
     if cfg!(unix) {
         assert_eq!(Url::from_directory_path(Path::new("relative")), Err(()));
@@ -438,6 +448,7 @@ fn issue_61() {
 }
 
 #[test]
+#[cfg(any(unix, target_os = "redox", target_os = "wasi"))]
 #[cfg(not(windows))]
 /// https://github.com/servo/rust-url/issues/197
 fn issue_197() {
@@ -622,6 +633,7 @@ fn test_origin_unicode_serialization() {
 }
 
 #[test]
+#[cfg(any(unix, windows, target_os = "redox", target_os = "wasi"))]
 fn test_socket_addrs() {
     use std::net::ToSocketAddrs;
 
@@ -803,11 +815,8 @@ fn test_expose_internals() {
 }
 
 #[test]
+#[cfg(windows)]
 fn test_windows_unc_path() {
-    if !cfg!(windows) {
-        return;
-    }
-
     let url = Url::from_file_path(Path::new(r"\\host\share\path\file.txt")).unwrap();
     assert_eq!(url.as_str(), "file://host/share/path/file.txt");
 
@@ -927,6 +936,7 @@ fn test_url_from_file_path() {
 }
 
 /// https://github.com/servo/rust-url/issues/505
+#[cfg(any(unix, target_os = "redox", target_os = "wasi"))]
 #[cfg(not(windows))]
 #[test]
 fn test_url_from_file_path() {

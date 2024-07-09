@@ -1,6 +1,6 @@
 [
 {
-    "description": "These tests are copied from https://github.com/bestiejs/punycode.js/blob/master/tests/tests.js , used under the MIT license.",
+    "description": "These tests are copied from https://github.com/mathiasbynens/punycode.js/blob/main/tests/tests.js , used under the MIT license.",
     "decoded": "",
     "encoded": ""
 },

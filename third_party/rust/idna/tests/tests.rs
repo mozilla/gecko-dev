@@ -1,5 +1,6 @@
 use tester as test;
 
+mod deprecated;
 mod punycode;
 mod uts46;
 
@@ -19,6 +20,7 @@ fn main() {
             })
         };
         punycode::collect_tests(&mut add_test);
+        deprecated::collect_tests(&mut add_test);
         uts46::collect_tests(&mut add_test);
     }
     test::test_main(&std::env::args().collect::<Vec<_>>(), tests, None)

@@ -8,12 +8,61 @@
 
 //! Data-driven tests imported from web-platform-tests
 
+use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Write;
-use std::panic;
-
-use serde_json::Value;
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+use std::sync::Mutex;
 use url::Url;
+
+// https://rustwasm.github.io/wasm-bindgen/wasm-bindgen-test/usage.html
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+use wasm_bindgen_test::{console_log, wasm_bindgen_test, wasm_bindgen_test_configure};
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+wasm_bindgen_test_configure!(run_in_browser);
+
+// wpt has its own test driver, but we shoe-horn this into wasm_bindgen_test
+// which will discard stdout and stderr. So, we make println! go to
+// console.log(), so we see failures that do not result in panics.
+
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+static PRINT_BUF: Mutex<Option<String>> = Mutex::new(None);
+
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+macro_rules! print {
+    ($($arg:tt)*) => {
+        let v = format!($($arg)*);
+        {
+            let mut buf = PRINT_BUF.lock().unwrap();
+            if let Some(buf) = buf.as_mut() {
+                buf.push_str(&v);
+            } else {
+                *buf = Some(v);
+            }
+        }
+    };
+}
+
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+macro_rules! println {
+    () => {
+        let buf = PRINT_BUF.lock().unwrap().take();
+        match buf {
+            Some(buf) => console_log!("{buf}"),
+            None => console_log!(""),
+        }
+    };
+    ($($arg:tt)*) => {
+        let buf = PRINT_BUF.lock().unwrap().take();
+        match buf {
+            Some(buf) => {
+                let v = format!($($arg)*);
+                console_log!("{buf}{v}");
+            },
+            None => console_log!($($arg)*),
+        }
+    }
+}
 
 #[derive(Debug, serde::Deserialize)]
 struct UrlTest {
@@ -71,6 +120,7 @@ struct SetterTestExpected {
     hash: Option<String>,
 }
 
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test)]
 fn main() {
     let mut filter = None;
     let mut args = std::env::args().skip(1);
@@ -228,16 +278,16 @@ fn run_url_test(
 ) -> Result<(), String> {
     let base = match base {
         Some(base) => {
-            let base = panic::catch_unwind(|| Url::parse(&base))
-                .map_err(|_| "panicked while parsing base".to_string())?
-                .map_err(|e| format!("errored while parsing base: {}", e))?;
+            let base =
+                Url::parse(&base).map_err(|e| format!("errored while parsing base: {}", e))?;
             Some(base)
         }
         None => None,
     };
 
-    let res = panic::catch_unwind(move || Url::options().base_url(base.as_ref()).parse(&input))
-        .map_err(|_| "panicked while parsing input".to_string())?
+    let res = Url::options()
+        .base_url(base.as_ref())
+        .parse(&input)
         .map_err(|e| format!("errored while parsing input: {}", e));
 
     match result {
@@ -340,38 +390,34 @@ fn run_setter_test(
         expected,
     }: SetterTest,
 ) -> Result<(), String> {
-    let mut url = panic::catch_unwind(|| Url::parse(&href))
-        .map_err(|_| "panicked while parsing href".to_string())?
-        .map_err(|e| format!("errored while parsing href: {}", e))?;
+    let mut url = Url::parse(&href).map_err(|e| format!("errored while parsing href: {}", e))?;
 
-    let url = panic::catch_unwind(move || {
-        match kind {
-            "protocol" => {
-                url::quirks::set_protocol(&mut url, &new_value).ok();
-            }
-            "username" => {
-                url::quirks::set_username(&mut url, &new_value).ok();
-            }
-            "password" => {
-                url::quirks::set_password(&mut url, &new_value).ok();
-            }
-            "host" => {
-                url::quirks::set_host(&mut url, &new_value).ok();
-            }
-            "hostname" => {
-                url::quirks::set_hostname(&mut url, &new_value).ok();
-            }
-            "port" => {
-                url::quirks::set_port(&mut url, &new_value).ok();
-            }
-            "pathname" => url::quirks::set_pathname(&mut url, &new_value),
-            "search" => url::quirks::set_search(&mut url, &new_value),
-            "hash" => url::quirks::set_hash(&mut url, &new_value),
-            _ => panic!("unknown setter kind: {:?}", kind),
-        };
-        url
-    })
-    .map_err(|_| "panicked while setting value".to_string())?;
+    match kind {
+        "protocol" => {
+            url::quirks::set_protocol(&mut url, &new_value).ok();
+        }
+        "username" => {
+            url::quirks::set_username(&mut url, &new_value).ok();
+        }
+        "password" => {
+            url::quirks::set_password(&mut url, &new_value).ok();
+        }
+        "host" => {
+            url::quirks::set_host(&mut url, &new_value).ok();
+        }
+        "hostname" => {
+            url::quirks::set_hostname(&mut url, &new_value).ok();
+        }
+        "port" => {
+            url::quirks::set_port(&mut url, &new_value).ok();
+        }
+        "pathname" => url::quirks::set_pathname(&mut url, &new_value),
+        "search" => url::quirks::set_search(&mut url, &new_value),
+        "hash" => url::quirks::set_hash(&mut url, &new_value),
+        _ => {
+            return Err(format!("unknown setter kind: {:?}", kind));
+        }
+    }
 
     if let Some(expected_href) = expected.href {
         let href = url::quirks::href(&url);
