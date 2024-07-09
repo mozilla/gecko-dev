@@ -84,7 +84,7 @@ interface nsIExternalHelperAppService : nsISupports
    * external helper apps (currently only Android).
    *
    * For use from script, prefer the asynchronous function of this same name in
-   * `DownloadIntegration.sys.mjs`, which is implemented everywhere.
+   * `DownloadIntegration.sys.mjs`, which is implemented on all platforms.
    */
   nsIFile getPreferredDownloadsDirectory();
 };

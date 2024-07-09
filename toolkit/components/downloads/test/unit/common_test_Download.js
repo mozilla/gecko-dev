@@ -1988,8 +1988,8 @@ add_task(async function test_getSha256Hash() {
  * function, as with SimpleTest's `registerCurrentTaskCleanupFunction() -- but,
  * at time of writing, the xpcshell test setup doesn't support those.)
  *
- * @param {() => Promise} innerTask the task to be run without directory-service
- *                                  overrides active.
+ * @param {() => any} innerTask - The task to be run with directory-service
+ *                                overrides deactivated.
  */
 function allowDirectoriesDuring(innerTask) {
   return async () => {

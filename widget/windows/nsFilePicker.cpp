@@ -29,6 +29,7 @@
 #include "mozilla/WindowsVersion.h"
 #include "nsCRT.h"
 #include "nsEnumeratorUtils.h"
+#include "nsHashPropertyBag.h"
 #include "nsIContentAnalysis.h"
 #include "nsCExternalHandlerService.h"
 #include "nsIExternalHelperAppService.h"
@@ -992,28 +993,26 @@ nsresult nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
         callback->Done(retValue);
       },
       [callback = RefPtr(aCallback), self = RefPtr{this}](Error const& err) {
-        // logging of the failure (and possibly also a telemetry ping) has
-        // already occurred
-        if (err.kind == Error::Kind::IPCError) {
-          // the file-dialog process (probably) crashed; try to "recover" with a
-          // fallback
-          ResultCode result = ResultCode::returnCancel;
-          RefPtr<nsIFile> path;
-          if (self->mMode == Mode::modeSave) {
-            if (auto maybe_path = self->ComputeFallbackSavePath()) {
-              path = maybe_path;
-              path->GetPath(self->mUnicodeFile);
-              result = ResultCode::returnOK;
-            }
-          }
+        // The file-dialog process (probably) crashed. Report this fact to the
+        // user, and try to recover with a fallback rather than discarding the
+        // file.
+        //
+        // (Note that at this point, logging of the crash -- and possibly also a
+        // telemetry ping -- has already occurred.)
+        ResultCode resultCode = ResultCode::returnCancel;
 
-          // don't set sLastUsedUnicodeDirectory here; the user didn't select
-          // anything
-          callback->Done(result);
-        } else {
-          // logging already handled
-          callback->Done(ResultCode::returnCancel);
+        // This does not describe the original error, just the error when trying
+        // to select a fallback location -- no such attempt means no such error.
+        FallbackResult fallback{nullptr};
+
+        if (self->mMode == Mode::modeSave) {
+          fallback = self->ComputeFallbackSavePath();
+          // don't set sLastUsedUnicodeDirectory here: the user didn't
+          // actually select anything
         }
+
+        self->SendFailureNotification(resultCode, err, std::move(fallback));
+        callback->Done(resultCode);
       });
 
   return NS_OK;
@@ -1195,29 +1194,26 @@ bool nsFilePicker::IsDefaultPathHtml() {
   return false;
 }
 
-RefPtr<nsIFile> nsFilePicker::ComputeFallbackSavePath() const {
-  using mozilla::Nothing;
+auto nsFilePicker::ComputeFallbackSavePath() const -> FallbackResult {
+  using mozilla::Err;
 
-  // no need for any of this if we're not trying to save
+  // we shouldn't even be here if we're not trying to save
   if (mMode != Mode::modeSave) {
-    return nullptr;
+    return Err(NS_ERROR_FAILURE);
   }
 
   // get a fallback download-location
   RefPtr<nsIFile> location;
-  [&]() {
+  {
     // try to query the helper service for the preferred downloads directory
     nsresult rv;
     nsCOMPtr<nsIExternalHelperAppService> svc =
         do_GetService(NS_EXTERNALHELPERAPPSERVICE_CONTRACTID, &rv);
-    if (NS_WARN_IF(NS_FAILED(rv))) return;
+    MOZ_TRY(rv);
 
-    rv = svc->GetPreferredDownloadsDirectory(getter_AddRefs(location));
-    if (NS_WARN_IF(NS_FAILED(rv))) return;
-  }();
-  if (!location) {
-    return nullptr;
+    MOZ_TRY(svc->GetPreferredDownloadsDirectory(getter_AddRefs(location)));
   }
+  MOZ_ASSERT(location);
 
   constexpr static const auto EndsWithExtension =
       [](nsAString const& path, nsAString const& extension) -> bool {
@@ -1242,8 +1238,44 @@ RefPtr<nsIFile> nsFilePicker::ComputeFallbackSavePath() const {
     filename.Append(mDefaultExtension);
   }
 
-  NS_ENSURE_SUCCESS(location->Append(filename), nullptr);
-  NS_ENSURE_SUCCESS(location->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600),
-                    nullptr);
+  MOZ_TRY(location->Append(filename));
+  MOZ_TRY(location->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600));
   return location;
+}
+
+void nsFilePicker::SendFailureNotification(nsFilePicker::ResultCode aResult,
+                                           Error error,
+                                           FallbackResult aFallback) const {
+  if (MOZ_LOG_TEST(filedialog::sLogFileDialog, LogLevel::Info)) {
+    nsString msg;
+    if (aFallback.isOk()) {
+      nsString path;
+      aFallback.inspect()->GetPath(path);
+      msg = u"path: "_ns;
+      msg.Append(path);
+    } else {
+      msg.AppendPrintf("err: 0x%08" PRIX32, (uint32_t)aFallback.inspectErr());
+    }
+    MOZ_LOG(filedialog::sLogFileDialog, LogLevel::Info,
+            ("SendCrashNotification: %" PRIX16 ", %ls", aResult,
+             static_cast<wchar_t const*>(msg.get())));
+  }
+
+  nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
+  if (!obsSvc) return;  // normal during XPCOM shutdown
+
+  RefPtr<nsHashPropertyBag> props = new nsHashPropertyBag();
+  props->SetPropertyAsInterface(u"ctx"_ns, mBrowsingContext);
+  props->SetPropertyAsUint32(u"mode"_ns, mMode);
+  if (aFallback.isOk()) {
+    props->SetPropertyAsInterface(u"file"_ns, aFallback.unwrap().get());
+  } else {
+    props->SetPropertyAsUint32(u"file-error"_ns,
+                               (uint32_t)aFallback.unwrapErr());
+  }
+
+  props->SetPropertyAsBool(u"crash"_ns, error.kind == Error::IPCError);
+
+  nsIPropertyBag2* const iface = props;
+  obsSvc->NotifyObservers(iface, "file-picker-crashed", nullptr);
 }

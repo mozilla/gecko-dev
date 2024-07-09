@@ -45,6 +45,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FeatureGate: "resource://featuregates/FeatureGate.sys.mjs",
   FirefoxBridgeExtensionUtils:
     "resource:///modules/FirefoxBridgeExtensionUtils.sys.mjs",
+  // FilePickerCrashed is used by the `listeners` object below.
+  // eslint-disable-next-line mozilla/valid-lazy
+  FilePickerCrashed: "resource:///modules/FilePickerCrashed.sys.mjs",
   FormAutofillUtils: "resource://gre/modules/shared/FormAutofillUtils.sys.mjs",
   FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
   GenAI: "resource:///modules/GenAI.sys.mjs",
@@ -70,7 +73,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PlacesDBUtils: "resource://gre/modules/PlacesDBUtils.sys.mjs",
   PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
-  // PluginManager is used by listeners object below.
+  // PluginManager is used by the `listeners` object below.
   // eslint-disable-next-line mozilla/valid-lazy
   PluginManager: "resource:///actors/PluginParent.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
@@ -951,6 +954,7 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 
 const listeners = {
   observers: {
+    "file-picker-crashed": ["FilePickerCrashed"],
     "gmp-plugin-crash": ["PluginManager"],
     "plugin-crashed": ["PluginManager"],
   },

@@ -88,6 +88,10 @@ with Files("SitePermissions.sys.mjs"):
 with Files("TransientPrefs.sys.mjs"):
     BUG_COMPONENT = ("Firefox", "Settings UI")
 
+with Files("FilePickerCrashed.sys.mjs"):
+    BUG_COMPONENT = ("Core", "Widget: Win32")
+    SCHEDULES.exclusive = ["windows"]
+
 with Files("WindowsJumpLists.sys.mjs"):
     BUG_COMPONENT = ("Firefox", "Shell Integration")
     SCHEDULES.exclusive = ["windows"]
@@ -137,6 +141,7 @@ EXTRA_JS_MODULES += [
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     EXTRA_JS_MODULES += [
+        "FilePickerCrashed.sys.mjs",
         "WindowsJumpLists.sys.mjs",
         "WindowsPreviewPerTab.sys.mjs",
     ]

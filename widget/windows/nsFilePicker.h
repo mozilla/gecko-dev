@@ -105,7 +105,10 @@ class nsFilePicker final : public nsBaseWinFilePicker {
   bool IsDefaultPathLink();
   bool IsDefaultPathHtml();
 
-  RefPtr<nsIFile> ComputeFallbackSavePath() const;
+  using FallbackResult = mozilla::Result<RefPtr<nsIFile>, nsresult>;
+  FallbackResult ComputeFallbackSavePath() const;
+  void SendFailureNotification(ResultCode aResult, Error error,
+                               FallbackResult fallback) const;
 
   nsCOMPtr<nsIWidget> mParentWidget;
   nsString mTitle;
