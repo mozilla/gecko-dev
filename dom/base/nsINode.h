@@ -1941,11 +1941,14 @@ class nsINode : public mozilla::dom::EventTarget {
     // flags, because we can't use those to distinguish
     // <bdi dir="some-invalid-value"> and <bdi dir="auto">.
     NodeHasValidDirAttribute,
-    // Set if this node, which must be a text node, might be responsible for
-    // setting the directionality of a dir="auto" ancestor.
-    NodeMaySetDirAuto,
-    // Set if a node in the node's parent chain has dir=auto.
+    // Set if a node in the node's parent chain has dir=auto and nothing
+    // inbetween nor the node itself establishes its own direction.
     NodeAncestorHasDirAuto,
+    // Set if the node or an ancestor is assigned to a dir=auto slot and
+    // nothing between nor the node itself establishes its own direction.
+    // Except for when the node assigned to the dir=auto slot establishes
+    // its own direction, then the flag is still set.
+    NodeAffectsDirAutoSlot,
     // Set if the node is handling a click.
     NodeHandlingClick,
     // Set if the element has a parser insertion mode other than "in body",
@@ -2070,22 +2073,17 @@ class nsINode : public mozilla::dom::EventTarget {
   void SetHasValidDir() { SetBoolFlag(NodeHasValidDirAttribute); }
   void ClearHasValidDir() { ClearBoolFlag(NodeHasValidDirAttribute); }
   bool HasValidDir() const { return GetBoolFlag(NodeHasValidDirAttribute); }
-  void SetMaySetDirAuto() {
-    MOZ_ASSERT(IsText());
-    SetBoolFlag(NodeMaySetDirAuto);
-  }
-  bool MaySetDirAuto() const {
-    MOZ_ASSERT(IsText());
-    return GetBoolFlag(NodeMaySetDirAuto);
-  }
-  void ClearMaySetDirAuto() {
-    MOZ_ASSERT(IsText());
-    ClearBoolFlag(NodeMaySetDirAuto);
-  }
   void SetAncestorHasDirAuto() { SetBoolFlag(NodeAncestorHasDirAuto); }
   void ClearAncestorHasDirAuto() { ClearBoolFlag(NodeAncestorHasDirAuto); }
   bool AncestorHasDirAuto() const {
     return GetBoolFlag(NodeAncestorHasDirAuto);
+  }
+  void SetAffectsDirAutoSlot() { SetBoolFlag(NodeAffectsDirAutoSlot); }
+  void ClearAffectsDirAutoSlot() { ClearBoolFlag(NodeAffectsDirAutoSlot); }
+
+  // Set if the node or an ancestor is assigned to a dir=auto slot.
+  bool AffectsDirAutoSlot() const {
+    return GetBoolFlag(NodeAffectsDirAutoSlot);
   }
 
   // Implemented in nsIContentInlines.h.

@@ -75,21 +75,21 @@ void SetDirectionalityOnDescendants(mozilla::dom::Element* aElement,
 void WalkDescendantsResetAutoDirection(mozilla::dom::Element* aElement);
 
 /**
- * In case a slot element was added or removed it may change the directionality
+ * In case a element was added to a slot it may change the directionality
  * of ancestors or assigned nodes.
  *
  * aAllAssignedNodesChanged forces the computation of the state for all of the
  * assigned descendants.
  */
-void SlotStateChanged(dom::HTMLSlotElement* aSlot,
-                      bool aAllAssignedNodesChanged = true);
+void SlotAssignedNodeAdded(dom::HTMLSlotElement* aSlot,
+                           nsIContent& aAssignedNode);
 
 /**
- * When only a single node in a slot is reassigned we can save some work
- * compared to the above.
+ * In case a element was removed from a slot it may change the directionality
+ * of ancestors or assigned nodes.
  */
-void SlotAssignedNodeChanged(dom::HTMLSlotElement* aSlot,
-                             nsIContent& aAssignedNode);
+void SlotAssignedNodeRemoved(dom::HTMLSlotElement* aSlot,
+                             nsIContent& aUnassignedNode);
 
 /**
  * After setting dir=auto on an element, walk its descendants in tree order.
