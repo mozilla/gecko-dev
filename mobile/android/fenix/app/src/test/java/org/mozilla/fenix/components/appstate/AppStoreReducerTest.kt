@@ -173,4 +173,18 @@ class AppStoreReducerTest {
             appStore.state.snackbarState,
         )
     }
+
+    @Test
+    fun `WHEN delete and quit selected action is dispatched THEN snackbar state is updated`() {
+        val appStore = AppStore()
+
+        appStore.dispatch(
+            AppAction.DeleteAndQuitStarted,
+        ).joinBlocking()
+
+        assertEquals(
+            SnackbarState.DeletingBrowserDataInProgress,
+            appStore.state.snackbarState,
+        )
+    }
 }

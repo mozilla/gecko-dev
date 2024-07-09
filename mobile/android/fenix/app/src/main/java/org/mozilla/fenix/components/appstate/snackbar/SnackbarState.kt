@@ -19,6 +19,11 @@ sealed class SnackbarState {
     data object Dismiss : SnackbarState()
 
     /**
+     * Display a snackbar when deleting browsing data before quitting.
+     */
+    data object DeletingBrowserDataInProgress : SnackbarState()
+
+    /**
      * Display a snackbar of the newly added bookmark.
      *
      * @property guidToEdit The guid of the newly added bookmark or null.

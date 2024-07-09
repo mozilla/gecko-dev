@@ -21,6 +21,7 @@ import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
 import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.bookmarks.BookmarksUseCase
 import org.mozilla.fenix.components.menu.store.BookmarkState
@@ -213,7 +214,9 @@ class MenuDialogMiddleware(
     }
 
     private fun deleteBrowsingDataAndQuit() = scope.launch {
+        appStore.dispatch(AppAction.DeleteAndQuitStarted)
         onDeleteAndQuit()
+        onDismiss()
     }
 
     private fun installAddon(

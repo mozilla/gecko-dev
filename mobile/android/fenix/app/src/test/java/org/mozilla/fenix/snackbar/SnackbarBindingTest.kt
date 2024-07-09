@@ -25,6 +25,7 @@ import org.mockito.Mockito.verify
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.FenixSnackbar
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.appstate.AppAction.TranslationsAction
@@ -201,6 +202,35 @@ class SnackbarBindingTest {
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
         verify(snackbarDelegate).show(
             text = R.string.bookmark_invalid_url_error,
+            duration = FenixSnackbar.LENGTH_LONG,
+        )
+    }
+
+    @Test
+    fun `WHEN the delete and quit selected state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
+        val appStore = AppStore()
+        val binding = SnackbarBinding(
+            browserStore = mock(),
+            appStore = appStore,
+            snackbarDelegate = snackbarDelegate,
+            navController = navController,
+            customTabSessionId = null,
+        )
+
+        binding.start()
+
+        appStore.dispatch(
+            AppAction.DeleteAndQuitStarted,
+        )
+
+        // Wait for DeleteAndQuitAction.DeleteAndQuitSelected,
+        appStore.waitUntilIdle()
+        // Wait for SnackbarAction.SnackbarShown
+        appStore.waitUntilIdle()
+
+        assertEquals(SnackbarState.None, appStore.state.snackbarState)
+        verify(snackbarDelegate).show(
+            text = R.string.deleting_browsing_data_in_progress,
             duration = FenixSnackbar.LENGTH_LONG,
         )
     }

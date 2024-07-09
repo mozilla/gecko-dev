@@ -156,6 +156,11 @@ sealed class AppAction : Action {
     data class SelectedTabChanged(val tab: TabSessionState) : AppAction()
 
     /**
+     * Action dispatched when the browser is deleting its data and quitting.
+     */
+    data object DeleteAndQuitStarted : AppAction()
+
+    /**
      * [Action]s related to interactions with the Messaging Framework.
      */
     sealed class MessagingAction : AppAction() {

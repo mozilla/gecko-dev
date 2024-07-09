@@ -517,17 +517,22 @@ class MenuDialogMiddlewareTest {
     @Test
     fun `WHEN delete browsing data and quit action is dispatched THEN onDeleteAndQuit is invoked`() = runTestOnMain {
         whenever(addonManager.getAddons()).thenReturn(emptyList())
+        var dismissWasCalled = false
 
+        val appStore = spy(AppStore())
         val store = createStore(
+            appStore = appStore,
             menuState = MenuState(
                 browserMenuState = null,
             ),
+            onDismiss = { dismissWasCalled = true },
         )
 
         store.dispatch(MenuAction.DeleteBrowsingDataAndQuit).join()
         store.waitUntilIdle()
 
         verify(onDeleteAndQuit).invoke()
+        assertTrue(dismissWasCalled)
     }
 
     @Test
