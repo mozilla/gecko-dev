@@ -303,6 +303,8 @@ skip-if = ["true"] # Bug 1616418 Bug 1549985
 
 ["browser_tabReorder_overflow.js"]
 
+["browser_tabReorder_vertical.js"]
+
 ["browser_tabSpinnerProbe.js"]
 
 ["browser_tabSuccessors.js"]

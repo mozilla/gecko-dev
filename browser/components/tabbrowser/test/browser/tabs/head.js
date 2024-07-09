@@ -262,7 +262,8 @@ async function dragAndDrop(
   tab2,
   copy,
   destWindow = window,
-  afterTab = true
+  afterTab = true,
+  origWindow = window
 ) {
   let rect = tab2.getBoundingClientRect();
   let event = {
@@ -272,10 +273,10 @@ async function dragAndDrop(
     clientY: rect.top + rect.height / 2,
   };
 
-  if (destWindow != window) {
+  if (destWindow != origWindow) {
     // Make sure that both tab1 and tab2 are visible
-    window.focus();
-    window.moveTo(rect.left, rect.top + rect.height * 3);
+    origWindow.focus();
+    origWindow.moveTo(rect.left, rect.top + rect.height * 3);
   }
 
   let originalTPos = tab1._tPos;
@@ -284,18 +285,17 @@ async function dragAndDrop(
     tab2,
     null,
     copy ? "copy" : "move",
-    window,
+    origWindow,
     destWindow,
     event
   );
   // Ensure dnd suppression is cleared.
   EventUtils.synthesizeMouseAtCenter(tab2, { type: "mouseup" }, destWindow);
-  if (!copy && destWindow == window) {
-    await BrowserTestUtils.waitForCondition(
-      () => tab1._tPos != originalTPos,
-      "Waiting for tab position to be updated"
-    );
-  } else if (destWindow != window) {
+  if (!copy && destWindow == origWindow) {
+    await BrowserTestUtils.waitForCondition(() => {
+      return tab1._tPos != originalTPos;
+    }, "Waiting for tab position to be updated");
+  } else if (destWindow != origWindow) {
     await BrowserTestUtils.waitForCondition(
       () => tab1.closing,
       "Waiting for tab closing"

@@ -12,7 +12,7 @@
 const EXPECTED_REFLOWS = [
   {
     stack: [
-      "clientX@chrome://browser/content/tabbrowser/tabs.js",
+      "clientPos@chrome://browser/content/tabbrowser/tabs.js",
       "startTabDrag@chrome://browser/content/tabbrowser/tabs.js",
       "on_dragstart@chrome://browser/content/tabbrowser/tabs.js",
       "handleEvent@chrome://browser/content/tabbrowser/tabs.js",
