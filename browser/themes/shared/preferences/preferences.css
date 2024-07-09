@@ -65,6 +65,7 @@
   padding: 0;
 }
 
+html|div[data-category],
 groupbox[data-category] {
   margin: 0 0 32px;
 }
@@ -1081,7 +1082,7 @@ dialog > .sync-engines-list + hbox {
 }
 
 .visually-hidden {
-  visibility: collapse;
+  display: none !important;
 }
 
 menulist[indicator=true] > menupopup menuitem:not([image]) > .menu-iconic-left {
@@ -1205,27 +1206,17 @@ richlistitem .text-link:hover {
   height: 20px;
 }
 
-#pane-experimental-featureGates {
-  margin-top: var(--space-large);
-}
-
-.featureGate {
-  margin-bottom: var(--space-large);
-}
-
-.featureGateCheckbox {
-  font-size: 1.14em;
-  align-items: center;
-}
-
-.featureGateCheckbox > .checkbox-label-box {
-  align-items: center;
+#pane-experimental-featureGates > .featureGate:not(.visually-hidden) ~ .featureGate:not(.visually-hidden) {
+  margin-top: var(--space-xlarge);
 }
 
 .featureGateDescription {
-  margin-block: var(--space-small);
-  margin-inline-start: calc(var(--checkbox-size) + var(--checkbox-margin-inline));
   white-space: pre-wrap;
+}
+
+#genai-chat-provider {
+  width: min-content;
+  min-width: 20em;
 }
 
 .checkbox-row {

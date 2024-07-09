@@ -13,7 +13,7 @@
   <html:h1 data-l10n-id="settings-pane-labs-title"/>
 </vbox>
 
-<groupbox data-category="paneExperimental"
+<html:div data-category="paneExperimental"
           id="pane-experimental-featureGates"
           hidden="true">
   <label class="search-header" hidden="true">
@@ -25,28 +25,27 @@
             class="accessory-button"
             data-l10n-id="pane-experimental-reset"/>
   </hbox>
-</groupbox>
+</html:div>
 </html:template>
 
-<html:template id="template-featureGate">
-    <html:div class="featureGate">
-        <checkbox class="featureGateCheckbox"/>
-        <description class="text-deemphasized featureGateDescription"/>
-    </html:div>
+<html:template id="template-testFeatureGateExtra">
+  <html:div id="testFeatureGateExtraContent">Test extra content</html:div>
 </html:template>
 
 <html:template id="template-genai-chat">
-    <description class="featureGateDescription"
-                 data-l10n-id="genai-settings-chat-choose"/>
-    <menulist class="indent"
-              id="genai-chat-provider"
-              preference="browser.ml.chat.provider">
-        <menupopup>
-            <menuitem data-l10n-id="genai-settings-chat-choose-one-menuitem"
-                      value=""/>
-        </menupopup>
-    </menulist>
-    <description class="featureGateDescription tip-caption"
-                 data-l10n-id="genai-settings-chat-links"
-                 id="genai-chat-links"/>
+    <html:div>
+        <label class="indent"
+                    data-l10n-id="genai-settings-chat-choose"/>
+        <menulist class="indent"
+                  id="genai-chat-provider"
+                  preference="browser.ml.chat.provider">
+            <menupopup>
+                <menuitem data-l10n-id="genai-settings-chat-choose-one-menuitem"
+                          value=""/>
+            </menupopup>
+        </menulist>
+        <description class="featureGateDescription indent tip-caption"
+                    data-l10n-id="genai-settings-chat-links"
+                    id="genai-chat-links"/>
+    </html:div>
 </html:template>

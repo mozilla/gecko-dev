@@ -340,7 +340,8 @@ var gSearchResultsPane = {
           child.classList.remove("visually-hidden");
 
           // Show the preceding search-header if one exists.
-          let groupbox = child.closest("groupbox");
+          let groupbox =
+            child.closest("groupbox") || child.closest("[data-category]");
           let groupHeader =
             groupbox && groupbox.querySelector(".search-header");
           if (groupHeader) {

@@ -432,6 +432,7 @@ const Preferences = (window.Preferences = (function () {
       }
       if (
         aElement.localName == "checkbox" ||
+        aElement.localName == "moz-checkbox" ||
         (aElement.localName == "input" && aElement.type == "checkbox")
       ) {
         setValue(aElement, "checked", val);
@@ -469,6 +470,7 @@ const Preferences = (window.Preferences = (function () {
       let value;
       if (
         aElement.localName == "checkbox" ||
+        aElement.localName == "moz-checkbox" ||
         (aElement.localName == "input" && aElement.type == "checkbox")
       ) {
         value = getValue(aElement, "checked");
@@ -495,6 +497,7 @@ const Preferences = (window.Preferences = (function () {
         case "textarea":
         case "menulist":
         case "moz-toggle":
+        case "moz-checkbox":
           return true;
       }
       return false;

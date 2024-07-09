@@ -17,6 +17,7 @@ add_task(async function testFilterFeatures() {
       id: "test-featureA",
       preference: "test.featureA",
       title: "Experimental Feature 1",
+      group: "experimental-features-group-browsing",
       description: "This is a fun experimental feature you can enable",
       result: true,
     },
@@ -24,13 +25,16 @@ add_task(async function testFilterFeatures() {
       id: "test-featureB",
       preference: "test.featureB",
       title: "Experimental Thing 2",
+      group: "experimental-features-group-browsing",
       description: "This is a very boring experimental tool",
-      result: false,
+      // Visible since it's grouped with other features that match the search.
+      result: true,
     },
     {
       id: "test-featureC",
       preference: "test.featureC",
       title: "Experimental Thing 3",
+      group: "experimental-features-group-browsing",
       description: "This is a fun experimental feature for you can enable",
       result: true,
     },
@@ -38,12 +42,14 @@ add_task(async function testFilterFeatures() {
       id: "test-featureD",
       preference: "test.featureD",
       title: "Experimental Thing 4",
+      group: "experimental-features-group-developer-tools",
       description: "This is a not a checkbox that you should be enabling",
+      // Doesn't match search and isn't grouped with a matching feature.
       result: false,
     },
   ];
-  for (let { id, preference } of definitions) {
-    server.addDefinition({ id, preference, isPublicJexl: "true" });
+  for (let { id, preference, group } of definitions) {
+    server.addDefinition({ id, preference, isPublicJexl: "true", group });
   }
 
   await BrowserTestUtils.openNewForegroundTab(
@@ -91,21 +97,6 @@ add_task(async function testFilterFeatures() {
       } after first search`
     );
     info("Text for item was: " + doc.getElementById(definition.id).textContent);
-  }
-
-  // Further restrict the search to only a single item.
-  await enterSearch(doc, " you");
-
-  let shouldBeVisible = true;
-  for (let definition of definitions) {
-    checkVisibility(
-      doc.getElementById(definition.id),
-      shouldBeVisible,
-      `${definition.id} should be ${
-        shouldBeVisible ? "visible" : "hidden"
-      } after further search`
-    );
-    shouldBeVisible = false;
   }
 
   // Reset the search entirely.
