@@ -25,6 +25,7 @@ internal const val TOOLS_MENU_ROUTE = "tools_menu"
 internal fun ToolsSubmenu(
     isReaderViewActive: Boolean,
     isTranslated: Boolean,
+    isTranslationSupported: Boolean?,
     translatedLanguage: String,
     onBackButtonClick: () -> Unit,
     onReaderViewMenuClick: () -> Unit,
@@ -47,13 +48,15 @@ internal fun ToolsSubmenu(
                 onClick = onReaderViewMenuClick,
             )
 
-            Divider(color = FirefoxTheme.colors.borderSecondary)
+            if (isTranslationSupported == true) {
+                Divider(color = FirefoxTheme.colors.borderSecondary)
 
-            TranslationMenuItem(
-                isTranslated = isTranslated,
-                translatedLanguage = translatedLanguage,
-                onClick = onTranslatePageMenuClick,
-            )
+                TranslationMenuItem(
+                    isTranslated = isTranslated,
+                    translatedLanguage = translatedLanguage,
+                    onClick = onTranslatePageMenuClick,
+                )
+            }
         }
 
         MenuGroup {
@@ -138,6 +141,7 @@ private fun ToolsSubmenuPreview() {
             ToolsSubmenu(
                 isReaderViewActive = false,
                 isTranslated = false,
+                isTranslationSupported = false,
                 translatedLanguage = "",
                 onBackButtonClick = {},
                 onReaderViewMenuClick = {},
@@ -160,6 +164,7 @@ private fun ToolsSubmenuPrivatePreview() {
             ToolsSubmenu(
                 isReaderViewActive = false,
                 isTranslated = false,
+                isTranslationSupported = true,
                 translatedLanguage = "",
                 onBackButtonClick = {},
                 onReaderViewMenuClick = {},

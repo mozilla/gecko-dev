@@ -114,6 +114,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val printContentUseCase = components.useCases.sessionUseCases.printContent
                     val saveToPdfUseCase = components.useCases.sessionUseCases.saveToPdf
                     val selectedTab = browserStore.state.selectedTab
+                    val isTranslationSupported = browserStore.state.translationEngine.isEngineSupported
                     val settings = components.settings
                     val topSitesMaxLimit = settings.topSitesMaxLimit
                     val supportedLanguages = components.core.store.state.translationEngine.supportedLanguages
@@ -261,6 +262,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             ToolsSubmenu(
                                 isReaderViewActive = false,
                                 isTranslated = selectedTab?.translationsState?.isTranslated ?: false,
+                                isTranslationSupported = isTranslationSupported,
                                 translatedLanguage = if (translateLanguageCode != null && supportedLanguages != null) {
                                     TranslationSupport(
                                         fromLanguages = supportedLanguages.fromLanguages,
