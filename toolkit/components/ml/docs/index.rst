@@ -2,7 +2,13 @@ Machine Learning
 ================
 
 This component is an experimental machine learning local inference engine based on
-Transformers.js and the ONNX runtime.
+`Transformers.js <https://huggingface.co/docs/transformers.js/index>`_ and
+the `ONNX runtime <https://onnxruntime.ai/>`.
+
+You can use the component to leverage the inference runtime in the context
+of the browser. To try out some inference tasks, you can refer to the
+`1000+ models <https://huggingface.co/models?library=transformers.js>`_
+that are available in the Hugging Face Hub that are compatible with this runtime.
 
 
 Running the pipeline API
@@ -10,6 +16,9 @@ Running the pipeline API
 
 You can use the Transformer.js `pipeline` API directly to perform inference, as long
 as the model is in our model hub.
+
+The `Transformers.js documentation <https://huggingface.co/tasks
+>`_ provides a lot of examples that you can slightly adapt when running in Firefox.
 
 In the example below, a text summarization task is performed using the `summarization` task:
 
@@ -41,6 +50,10 @@ In the example below, a text summarization task is performed using the `summariz
   console.log(res[0]["summary_text"]);
 
 
+When running this code, Firefox will look for models in the Mozilla model hub located at https://model-hub.mozilla.org
+which contains a curated list of models.
+
+
 Using the Hugging Face model hub
 ::::::::::::::::::::::::::::::::
 
@@ -52,14 +65,16 @@ set to `1`, then set in `about:config` these two values:
 - `browser.ml.modelHubRootUrl` to `https://huggingface.co`
 - `browser.ml.modelHubUrlTemplate` to `{model}/resolve/{revision}`
 
+The inference engine will then look for models in the Hugging Face model hub.
+
 
 Running the internal APIs
 :::::::::::::::::::::::::
 
 Some inference tasks are doing more complex operations within the engine, such as image processing.
-For these tasks, you can use the internal APIs to run the inference.
+For these tasks, you can use the internal APIs to run the inference. Those tasks are prefixed with `moz`.
 
-In the example below, an image is converted to text using the `image-to-text` task.
+In the example below, an image is converted to text using the `moz-image-to-text` task.
 
 
 .. code-block:: javascript
@@ -86,6 +101,6 @@ In the example below, an image is converted to text using the `image-to-text` ta
   console.log(res);
 
 
-The following tasks are supported by the machine learning engine:
+The following internal tasks are supported by the machine learning engine:
 
 .. js:autofunction:: imageToText
