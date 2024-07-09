@@ -94,15 +94,18 @@ impl From<::idna::Errors> for ParseError {
 }
 
 macro_rules! syntax_violation_enum {
-    ($($name: ident => $description: expr,)+) => {
+    ($($name: ident => $description: literal,)+) => {
         /// Non-fatal syntax violations that can occur during parsing.
         ///
         /// This may be extended in the future so exhaustive matching is
-        /// discouraged with an unused variant.
+        /// forbidden.
         #[derive(PartialEq, Eq, Clone, Copy, Debug)]
         #[non_exhaustive]
         pub enum SyntaxViolation {
             $(
+                /// ```text
+                #[doc = $description]
+                /// ```
                 $name,
             )+
         }

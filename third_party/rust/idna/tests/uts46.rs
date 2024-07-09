@@ -6,10 +6,16 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![allow(clippy::assigning_clones)]
+
 use crate::test::TestFn;
 use std::char;
 use std::fmt::Write;
 
+use idna::uts46::verify_dns_length;
+use idna::uts46::ProcessingError;
+use idna::uts46::ProcessingSuccess;
+use idna::uts46::{AsciiDenyList, DnsLength, ErrorPolicy, Hyphens};
 use idna::Errors;
 
 pub fn collect_tests<F: FnMut(String, TestFn)>(add_test: &mut F) {
@@ -49,28 +55,11 @@ pub fn collect_tests<F: FnMut(String, TestFn)>(add_test: &mut F) {
             status(to_ascii_n_status)
         };
 
-        // ToAsciiT
-        let to_ascii_t = pieces.remove(0);
-        let to_ascii_t = if to_ascii_t.is_empty() {
-            to_ascii_n.clone()
-        } else {
-            to_ascii_t.to_owned()
-        };
-        let to_ascii_t_status = pieces.remove(0);
-        let to_ascii_t_status = if to_ascii_t_status.is_empty() {
-            to_ascii_n_status.clone()
-        } else {
-            status(to_ascii_t_status)
-        };
-
         let test_name = format!("UTS #46 line {}", i + 1);
         add_test(
             test_name,
             TestFn::DynTestFn(Box::new(move || {
-                let config = idna::Config::default()
-                    .use_std3_ascii_rules(true)
-                    .verify_dns_length(true)
-                    .check_hyphens(true);
+                let config = idna::uts46::Uts46::new();
 
                 // http://unicode.org/reports/tr46/#Deviations
                 // applications that perform IDNA2008 lookup are not required to check
@@ -86,29 +75,85 @@ pub fn collect_tests<F: FnMut(String, TestFn)>(add_test: &mut F) {
                 // This is not implemented yet, so we skip toUnicode X4_2 tests for now, too.
 
                 let (to_unicode_value, to_unicode_result) =
-                    config.transitional_processing(false).to_unicode(&source);
-                let to_unicode_result = to_unicode_result.map(|()| to_unicode_value);
+                    config.to_unicode(source.as_bytes(), AsciiDenyList::STD3, Hyphens::Check);
+                let to_unicode_result = to_unicode_result.map(|()| to_unicode_value.into_owned());
                 check(
                     &source,
                     (&to_unicode, &to_unicode_status),
                     to_unicode_result,
-                    |e| e.starts_with('C') || e == "V2" || e == "X4_2",
+                    |e| e == "X4_2",
                 );
 
-                let to_ascii_n_result = config.transitional_processing(false).to_ascii(&source);
+                let to_ascii_n_result = config.to_ascii(
+                    source.as_bytes(),
+                    AsciiDenyList::STD3,
+                    Hyphens::Check,
+                    DnsLength::VerifyAllowRootDot,
+                );
                 check(
                     &source,
                     (&to_ascii_n, &to_ascii_n_status),
-                    to_ascii_n_result,
-                    |e| e.starts_with('C') || e == "V2",
+                    to_ascii_n_result.map(|cow| cow.into_owned()),
+                    |_| false,
                 );
 
-                let to_ascii_t_result = config.transitional_processing(true).to_ascii(&source);
+                let mut to_unicode_simultaneous = String::new();
+                let mut to_ascii_simultaneous = String::new();
+                let (to_unicode_simultaneous_result, to_ascii_simultaneous_result) = match config
+                    .process(
+                        source.as_bytes(),
+                        AsciiDenyList::STD3,
+                        Hyphens::Check,
+                        ErrorPolicy::MarkErrors,
+                        |_, _, _| true,
+                        &mut to_unicode_simultaneous,
+                        Some(&mut to_ascii_simultaneous),
+                    ) {
+                    Ok(ProcessingSuccess::Passthrough) => (
+                        Ok(source.to_string()),
+                        if verify_dns_length(&source, true) {
+                            Ok(source.to_string())
+                        } else {
+                            Err(Errors::default())
+                        },
+                    ),
+                    Ok(ProcessingSuccess::WroteToSink) => {
+                        if to_ascii_simultaneous.is_empty() {
+                            (
+                                Ok(to_unicode_simultaneous.clone()),
+                                if verify_dns_length(&to_unicode_simultaneous, true) {
+                                    Ok(to_unicode_simultaneous)
+                                } else {
+                                    Err(Errors::default())
+                                },
+                            )
+                        } else {
+                            (
+                                Ok(to_unicode_simultaneous),
+                                if verify_dns_length(&to_ascii_simultaneous, true) {
+                                    Ok(to_ascii_simultaneous)
+                                } else {
+                                    Err(Errors::default())
+                                },
+                            )
+                        }
+                    }
+                    Err(ProcessingError::ValidityError) => {
+                        (Err(Errors::default()), Err(Errors::default()))
+                    }
+                    Err(ProcessingError::SinkError) => unreachable!(),
+                };
                 check(
                     &source,
-                    (&to_ascii_t, &to_ascii_t_status),
-                    to_ascii_t_result,
-                    |e| e.starts_with('C') || e == "V2",
+                    (&to_unicode, &to_unicode_status),
+                    to_unicode_simultaneous_result,
+                    |e| e == "X4_2",
+                );
+                check(
+                    &source,
+                    (&to_ascii_n, &to_ascii_n_status),
+                    to_ascii_simultaneous_result,
+                    |_| false,
                 );
             })),
         )

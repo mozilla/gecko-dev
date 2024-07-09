@@ -11,9 +11,9 @@
 
 [package]
 edition = "2018"
-rust-version = "1.56"
+rust-version = "1.67"
 name = "url"
-version = "2.5.0"
+version = "2.5.1"
 authors = ["The rust-url developers"]
 include = [
     "src/**/*",
@@ -57,7 +57,7 @@ harness = false
 version = "1.2.1"
 
 [dependencies.idna]
-version = "0.5.0"
+version = "1.0.0"
 
 [dependencies.percent-encoding]
 version = "2.3.1"
@@ -81,3 +81,6 @@ version = "1.0"
 debugger_visualizer = []
 default = []
 expose_internals = []
+
+[target."cfg(all(target_arch = \"wasm32\", target_os = \"unknown\"))".dev-dependencies.wasm-bindgen-test]
+version = "0.3"

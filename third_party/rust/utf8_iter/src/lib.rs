@@ -34,8 +34,11 @@
 //! ```
 
 mod indices;
+mod report;
 
 pub use crate::indices::Utf8CharIndices;
+pub use crate::report::ErrorReportingUtf8Chars;
+pub use crate::report::Utf8CharsError;
 use core::iter::FusedIterator;
 
 #[repr(align(64))] // Align to cache lines
@@ -159,6 +162,12 @@ impl<'a> Iterator for Utf8Chars<'a> {
 
     #[inline]
     fn next(&mut self) -> Option<char> {
+        // Not delegating directly to `ErrorReportingUtf8Chars` to avoid
+        // an extra branch in the common case based on a cursory inspection
+        // of generated code in a similar case. Be sure to inspect the
+        // generated code as inlined into an actual usage site carefully
+        // if attempting to consolidate the source code here.
+
         // This loop is only broken out of as goto forward
         #[allow(clippy::never_loop)]
         loop {

@@ -136,9 +136,6 @@ redox_users = { path = "build/rust/redox_users" }
 # Patch redox_syscall to an empty crate
 redox_syscall = { path = "build/rust/redox_syscall" }
 
-# Override tinyvec with smallvec
-tinyvec = { path = "build/rust/tinyvec" }
-
 # Patch base64 0.13 to 0.21
 base64 = { path = "build/rust/base64" }
 

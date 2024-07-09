@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use crate::test::TestFn;
-use idna::punycode::{decode, encode_str};
+use idna::punycode::{decode, decode_to_string, encode_str};
 use serde_json::map::Map;
 use serde_json::Value;
 use std::panic::catch_unwind;
@@ -26,6 +26,17 @@ fn one_test(decoded: &str, encoded: &str) {
                 decoded
             )
         }
+    }
+
+    match decode_to_string(encoded) {
+        None => panic!("Decoding {} failed.", encoded),
+        Some(result) => assert!(
+            result == decoded,
+            "Incorrect decoding of \"{}\":\n   \"{}\"\n!= \"{}\"\n",
+            encoded,
+            result,
+            decoded
+        ),
     }
 
     match encode_str(decoded) {
