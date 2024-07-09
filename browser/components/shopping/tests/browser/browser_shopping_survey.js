@@ -121,6 +121,7 @@ add_task(async function test_showSurvey_Enabled() {
     }
   );
   await SpecialPowers.popPrefEnv();
+  Services.fog.testResetFOG();
 });
 
 /**
@@ -192,6 +193,7 @@ add_task(async function test_showSurvey_Disabled() {
     }
   );
   await SpecialPowers.popPrefEnv();
+  Services.fog.testResetFOG();
 });
 
 /**
@@ -248,6 +250,7 @@ add_task(async function test_24_hr_since_optin_rule() {
     }
   );
   await SpecialPowers.popPrefEnv();
+  Services.fog.testResetFOG();
 });
 
 add_task(async function test_confirmation_screen() {
@@ -340,6 +343,7 @@ add_task(async function test_confirmation_screen() {
     }
   );
   await SpecialPowers.popPrefEnv();
+  Services.fog.testResetFOG();
 });
 
 add_task(async function test_onboarding_resets_after_opt_out() {
@@ -443,4 +447,5 @@ add_task(async function test_onboarding_resets_after_opt_out() {
     }
   );
   await SpecialPowers.popPrefEnv();
+  Services.fog.testResetFOG();
 });
