@@ -9254,6 +9254,48 @@ engine_tab:
       - android-probes@mozilla.com
     expires: never
 
+app_exit_info:
+  process_exited:
+    type: event
+    description: |
+      A process has exited.
+    extra_keys:
+      date:
+        type: string
+        description: |
+          The date of the process exit.
+      importance:
+        type: string
+        description: |
+          The process' importance for the OS at the time of exiting.
+          See ActivityManager.RunningAppProcessInfo.
+      process_type:
+        type: string
+        description: |
+          The type of process that experienced an exit.
+      pss:
+        type: quantity
+        description: |
+          The PSS (Proportional Set Size) of the process in megabytes at the time of exiting.
+      rss:
+        type: quantity
+        description: |
+          The RSS (Residential Set Size) of the process in megabytes at the time of exiting.
+      reason:
+        type: string
+        description: |
+          The reason why process has exited.
+          See ApplicationExitInfo for the reason values.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1836795
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D206782
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
 synced_tabs:
   synced_tabs_suggestion_clicked:
     type: event
