@@ -23,6 +23,7 @@
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/SSE.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/Unused.h"
 #include "mozilla/WindowsProcessMitigations.h"
 
 #include <intrin.h>
@@ -451,8 +452,8 @@ nsresult GfxInfo::Init() {
   const char* spoofedWindowsVersion =
       PR_GetEnv("MOZ_GFX_SPOOF_WINDOWS_VERSION");
   if (spoofedWindowsVersion) {
-    PR_sscanf(spoofedWindowsVersion, "%x,%u", &mWindowsVersion,
-              &mWindowsBuildNumber);
+    Unused << PR_sscanf(spoofedWindowsVersion, "%x,%u", &mWindowsVersion,
+                        &mWindowsBuildNumber);
   } else {
     OSVERSIONINFO vinfo;
     vinfo.dwOSVersionInfoSize = sizeof(vinfo);
