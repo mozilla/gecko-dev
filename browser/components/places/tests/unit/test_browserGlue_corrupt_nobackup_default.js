@@ -36,15 +36,14 @@ add_task(async function () {
   // The test will continue once import has finished.
   await promiseTopicObserved("places-browser-init-complete");
 
-  // Check that default bookmarks have been restored.
+  // Check that default bookmarks folder has been restored.
   let bm = await PlacesUtils.bookmarks.fetch({
-    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+    parentGuid: PlacesUtils.bookmarks.menuGuid,
     index: 0,
   });
 
-  // Bug 1283076: Nightly bookmark points to Get Involved page, not Getting Started one
   let chanTitle = AppConstants.NIGHTLY_BUILD
-    ? "Get Involved"
-    : "Getting Started";
-  Assert.equal(bm.title, chanTitle);
+    ? "Firefox Nightly Resources"
+    : "Mozilla Firefox";
+  Assert.equal(bm.title, chanTitle, "Default bookmarks folder restored.");
 });
