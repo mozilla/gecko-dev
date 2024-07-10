@@ -27,6 +27,7 @@
 #backup-sensitive-data-checkbox {
   display: flex;
   flex-direction: column;
+  flex: 1;
   row-gap: var(--space-xsmall);
 }
 
@@ -62,4 +63,9 @@
   align-items: center;
   gap: 10px;
   text-overflow: ellipsis ellipsis;
+}
+
+#backup-password-controls {
+  display: flex;
+  margin-block: var(--space-large);
 }

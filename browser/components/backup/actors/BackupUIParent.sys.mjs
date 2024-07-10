@@ -75,23 +75,34 @@ export class BackupUIParent extends JSWindowActorParent {
     } else if (message.name == "ToggleScheduledBackups") {
       let { isScheduledBackupsEnabled, parentDirPath, password } = message.data;
 
-      if (isScheduledBackupsEnabled && parentDirPath) {
-        this.#bs.setParentDirPath(parentDirPath);
-        /**
-         * TODO: display an error and do not attempt to toggle scheduled backups if there
-         * is a problem with setting the parent directory (bug 1901308).
-         */
-      }
-
-      if (password) {
-        try {
-          await this.#bs.enableEncryption(password);
-        } catch (e) {
+      if (isScheduledBackupsEnabled) {
+        if (parentDirPath) {
+          this.#bs.setParentDirPath(parentDirPath);
           /**
-           * TODO: display en error and do not attempt to toggle scheduled backups if there is a
-           * problem with enabling encryption (bug 1901308)
+           * TODO: display an error and do not attempt to toggle scheduled backups if there
+           * is a problem with setting the parent directory (bug 1901308).
            */
-          return null;
+        }
+
+        if (password) {
+          try {
+            await this.#bs.enableEncryption(password);
+          } catch (e) {
+            /**
+             * TODO: display en error and do not attempt to toggle scheduled backups if there is a
+             * problem with enabling encryption (bug 1901308)
+             */
+            return null;
+          }
+        }
+      } else {
+        try {
+          if (this.#bs.state.encryptionEnabled) {
+            await this.#bs.disableEncryption();
+          }
+          await this.#bs.deleteLastBackup();
+        } catch (e) {
+          // no-op so that scheduled backups can still be turned off
         }
       }
 

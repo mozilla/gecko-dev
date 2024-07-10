@@ -288,6 +288,62 @@
       locationEditButton.click();
       await sawEditEvent;
     });
+
+    /**
+     * Tests that the encryption checkbox and change password button are only
+     * visible when scheduled backups are enabled.
+     */
+    add_task(async function test_password_controls_visibility() {
+      let settings = document.getElementById("test-backup-settings");
+
+      // First check visibility when scheduled backups are disabled
+      settings.backupServiceState = {
+        defaultParent: {
+          path: PathUtils.join(PathUtils.tempDir, testDefaultName),
+          fileName: testDefaultName,
+        },
+        scheduledBackupsEnabled: false,
+      }
+      await settings.updateComplete;
+
+      ok(
+        !settings.passwordControlsEl,
+        "Password controls should not be found"
+      );
+
+      // Now check visibility when scheduled backups are enabled
+      settings.backupServiceState.scheduledBackupsEnabled = true;
+      await settings.requestUpdate();
+      await settings.updateComplete;
+
+      ok(settings.passwordControlsEl, "Password controls should be found");
+      ok(
+        settings.sensitiveDataCheckboxInputEl,
+        "Password controls should be found"
+      );
+      ok(
+        !settings.sensitiveDataCheckboxInputEl.checked,
+        "Sensitive data checkbox should not be checked"
+      );
+      ok(
+        !settings.changePasswordButtonEl,
+        "Change password button should not be found"
+      );
+
+      // Now pretend encryption is enabled
+      settings.backupServiceState.encryptionEnabled = true;
+      await settings.requestUpdate();
+      await settings.updateComplete;
+
+      ok(
+        settings.sensitiveDataCheckboxInputEl.checked,
+        "Sensitive data checkbox should be checked"
+      );
+      ok(
+        settings.changePasswordButtonEl,
+        "Change password button should be found"
+      );
+    });
   </script>
 </head>
 <body>

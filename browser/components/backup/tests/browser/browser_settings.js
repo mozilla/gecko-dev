@@ -7,6 +7,8 @@ const { MockRegistrar } = ChromeUtils.importESModule(
   "resource://testing-common/MockRegistrar.sys.mjs"
 );
 
+const SCHEDULED_BACKUPS_ENABLED_PREF = "browser.backup.scheduled.enabled";
+
 add_setup(async () => {
   MockFilePicker.init(window.browsingContext);
   registerCleanupFunction(() => {
@@ -61,6 +63,10 @@ add_task(async function test_disable_backup_encryption_confirm() {
       .stub(BackupService.prototype, "disableEncryption")
       .resolves(true);
 
+    await SpecialPowers.pushPrefEnv({
+      set: [[SCHEDULED_BACKUPS_ENABLED_PREF, true]],
+    });
+
     let settings = browser.contentDocument.querySelector("backup-settings");
 
     /**
@@ -73,7 +79,6 @@ add_task(async function test_disable_backup_encryption_confirm() {
      * the update explicitly.
      */
     settings.backupServiceState.encryptionEnabled = true;
-
     await settings.requestUpdate();
     await settings.updateComplete;
 
@@ -108,61 +113,6 @@ add_task(async function test_disable_backup_encryption_confirm() {
       "BackupService was called to disable encryption"
     );
     sandbox.restore();
-  });
-});
-
-/**
- * Tests that the turn off scheduled backups dialog can set
- * browser.backup.scheduled.enabled to false from the settings page.
- */
-add_task(async function test_turn_off_scheduled_backups_confirm() {
-  await BrowserTestUtils.withNewTab("about:preferences", async browser => {
-    const SCHEDULED_BACKUPS_ENABLED_PREF = "browser.backup.scheduled.enabled";
-
-    await SpecialPowers.pushPrefEnv({
-      set: [[SCHEDULED_BACKUPS_ENABLED_PREF, true]],
-    });
-
-    let settings = browser.contentDocument.querySelector("backup-settings");
-
-    await settings.updateComplete;
-
-    let turnOffButton = settings.scheduledBackupsButtonEl;
-
-    Assert.ok(
-      turnOffButton,
-      "Button to turn off scheduled backups should be found"
-    );
-
-    turnOffButton.click();
-
-    await settings.updateComplete;
-
-    let turnOffScheduledBackups = settings.turnOffScheduledBackupsEl;
-
-    Assert.ok(
-      turnOffScheduledBackups,
-      "turn-off-scheduled-backups should be found"
-    );
-
-    let confirmButton = turnOffScheduledBackups.confirmButtonEl;
-    let promise = BrowserTestUtils.waitForEvent(
-      window,
-      "turnOffScheduledBackups"
-    );
-
-    Assert.ok(confirmButton, "Confirm button should be found");
-
-    confirmButton.click();
-
-    await promise;
-    await settings.updateComplete;
-
-    let scheduledPrefVal = Services.prefs.getBoolPref(
-      SCHEDULED_BACKUPS_ENABLED_PREF
-    );
-    Assert.ok(!scheduledPrefVal, "Scheduled backups pref should be false");
-
     await SpecialPowers.popPrefEnv();
   });
 });
@@ -277,8 +227,6 @@ add_task(async function test_last_backup_info_and_location() {
     PathUtils.tempDir,
     "testLastBackupInfo"
   );
-
-  const SCHEDULED_BACKUPS_ENABLED_PREF = "browser.backup.scheduled.enabled";
 
   await SpecialPowers.pushPrefEnv({
     set: [[SCHEDULED_BACKUPS_ENABLED_PREF, true]],

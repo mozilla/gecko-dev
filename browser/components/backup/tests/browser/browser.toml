@@ -12,4 +12,6 @@ support-files = [
 
 ["browser_settings_enable_backup_encryption.js"]
 
+["browser_settings_turn_off_scheduled_backups.js"]
+
 ["browser_settings_turn_on_scheduled_backups.js"]

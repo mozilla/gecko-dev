@@ -44,6 +44,7 @@ export default class BackupSettings extends MozLitElement {
       restoreFromBackupButtonEl: "#backup-toggle-restore-button",
       restoreFromBackupDialogEl: "#restore-from-backup-dialog",
       sensitiveDataCheckboxInputEl: "#backup-sensitive-data-checkbox-input",
+      passwordControlsEl: "#backup-password-controls",
       lastBackupLocationInputEl: "#last-backup-location",
       lastBackupFileNameEl: "#last-backup-filename",
       lastBackupDateEl: "#last-backup-date",
@@ -380,6 +381,52 @@ export default class BackupSettings extends MozLitElement {
     `;
   }
 
+  sensitiveDataTemplate() {
+    return html` <div id="backup-password-controls">
+      <!-- TODO: we can use the moz-checkbox reusable component once it is ready (bug 1901635)-->
+      <div id="backup-sensitive-data-checkbox">
+        <label
+          id="backup-sensitive-data-checkbox-label"
+          for="backup-sensitive-data-checkbox-input"
+        >
+          <input
+            id="backup-sensitive-data-checkbox-input"
+            @click=${this.handleToggleBackupEncryption}
+            type="checkbox"
+            .checked=${this.backupServiceState.encryptionEnabled}
+          />
+          <span
+            id="backup-sensitive-data-checkbox-span"
+            data-l10n-id="settings-data-toggle-encryption-label"
+          ></span>
+        </label>
+        <div
+          id="backup-sensitive-data-checkbox-description"
+          class="text-deemphasized"
+        >
+          <span
+            id="backup-sensitive-data-checkbox-description-span"
+            data-l10n-id="settings-data-toggle-encryption-description"
+          ></span>
+          <!--TODO: finalize support page links (bug 1900467)-->
+          <a
+            id="settings-data-toggle-encryption-learn-more-link"
+            is="moz-support-link"
+            support-page="todo-backup"
+            data-l10n-id="settings-data-toggle-encryption-support-link"
+          ></a>
+        </div>
+      </div>
+      ${this.backupServiceState.encryptionEnabled
+        ? html`<moz-button
+            id="backup-change-password-button"
+            @click=${this.handleChangePassword}
+            data-l10n-id="settings-data-change-password"
+          ></moz-button>`
+        : null}
+    </div>`;
+  }
+
   updated() {
     if (this.backupServiceState.scheduledBackupsEnabled) {
       let input = this.lastBackupLocationInputEl;
@@ -426,48 +473,8 @@ export default class BackupSettings extends MozLitElement {
         ${this.backupServiceState.scheduledBackupsEnabled
           ? this.backupLocationTemplate()
           : null}
-
-        <!-- TODO: we can use the moz-checkbox reusable component once it is ready (bug 1901635)-->
-        <div id="backup-sensitive-data-checkbox">
-          <label
-            id="backup-sensitive-data-checkbox-label"
-            for="backup-sensitive-data-checkbox-input"
-          >
-            <input
-              id="backup-sensitive-data-checkbox-input"
-              @click=${this.handleToggleBackupEncryption}
-              type="checkbox"
-              .checked=${this.backupServiceState.encryptionEnabled}
-            />
-            <span
-              id="backup-sensitive-data-checkbox-span"
-              data-l10n-id="settings-data-toggle-encryption-label"
-            ></span>
-          </label>
-          <div
-            id="backup-sensitive-data-checkbox-description"
-            class="text-deemphasized"
-          >
-            <span
-              id="backup-sensitive-data-checkbox-description-span"
-              data-l10n-id="settings-data-toggle-encryption-description"
-            ></span>
-            <!--TODO: finalize support page links (bug 1900467)-->
-            <a
-              id="settings-data-toggle-encryption-learn-more-link"
-              is="moz-support-link"
-              support-page="todo-backup"
-              data-l10n-id="settings-data-toggle-encryption-support-link"
-            ></a>
-          </div>
-        </div>
-
-        ${this.backupServiceState.encryptionEnabled
-          ? html`<moz-button
-              id="backup-change-password-button"
-              @click=${this.handleChangePassword}
-              data-l10n-id="settings-data-change-password"
-            ></moz-button>`
+        ${this.backupServiceState.scheduledBackupsEnabled
+          ? this.sensitiveDataTemplate()
           : null}
         ${this.restoreFromBackupTemplate()}
       </div>`;

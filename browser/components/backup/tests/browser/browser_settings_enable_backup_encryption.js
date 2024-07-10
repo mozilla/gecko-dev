@@ -3,6 +3,8 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
+const SCHEDULED_BACKUPS_ENABLED_PREF = "browser.backup.scheduled.enabled";
+
 /**
  * Tests that the enable-backup-encryption dialog can enable encryption
  * from the settings page via the toggle checkbox.
@@ -13,6 +15,10 @@ add_task(async function test_enable_backup_encryption_checkbox_confirm() {
     let enableEncryptionStub = sandbox
       .stub(BackupService.prototype, "enableEncryption")
       .resolves(true);
+
+    await SpecialPowers.pushPrefEnv({
+      set: [[SCHEDULED_BACKUPS_ENABLED_PREF, true]],
+    });
 
     let settings = browser.contentDocument.querySelector("backup-settings");
 
@@ -26,7 +32,6 @@ add_task(async function test_enable_backup_encryption_checkbox_confirm() {
      * the update explicitly.
      */
     settings.backupServiceState.encryptionEnabled = false;
-
     await settings.requestUpdate();
     await settings.updateComplete;
 
@@ -93,13 +98,14 @@ add_task(async function test_enable_backup_encryption_checkbox_confirm() {
     );
 
     confirmButton.click();
-
     await encryptionPromise;
 
     Assert.ok(
       enableEncryptionStub.calledOnceWith(MOCK_PASSWORD),
       "BackupService was called to enable encryption with inputted password"
     );
+
+    await SpecialPowers.popPrefEnv();
     sandbox.restore();
   });
 });
@@ -119,9 +125,12 @@ add_task(
         .stub(BackupService.prototype, "disableEncryption")
         .resolves(true);
 
+      await SpecialPowers.pushPrefEnv({
+        set: [[SCHEDULED_BACKUPS_ENABLED_PREF, true]],
+      });
+
       let settings = browser.contentDocument.querySelector("backup-settings");
       settings.backupServiceState.encryptionEnabled = true;
-
       await settings.requestUpdate();
       await settings.updateComplete;
 
@@ -195,6 +204,8 @@ add_task(
         enableEncryptionStub.calledOnceWith(changedPassword),
         "BackupService was called to re-run encryption with changed password"
       );
+
+      await SpecialPowers.popPrefEnv();
       sandbox.restore();
     });
   }
