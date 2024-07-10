@@ -10089,7 +10089,7 @@ void nsWindow::OnMap() {
     OnScaleChanged(/* aNotify = */ false);
 
     if (mIsAlert) {
-      gdk_window_set_override_redirect(mGdkWindow, TRUE);
+      gdk_window_set_override_redirect(GetToplevelGdkWindow(), TRUE);
     }
 
 #ifdef MOZ_X11
