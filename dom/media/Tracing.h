@@ -32,36 +32,40 @@ void StopAudioCallbackTracing();
 
 #ifdef MOZ_REAL_TIME_TRACING
 #  define TRACE(aName) AutoTracer trace(gAudioCallbackTraceLogger, aName);
-#  define TRACE_COMMENT(aName, aFmt, ...)              \
-    AutoTracer trace(gAudioCallbackTraceLogger, aName, \
-                     AutoTracer::EventType::DURATION, aFmt, ##__VA_ARGS__);
-#  define TRACE_AUDIO_CALLBACK_BUDGET(aLocation, aFrames, aSampleRate) \
-    AutoTracer budget(gAudioCallbackTraceLogger, aLocation,            \
-                      AutoTracer::EventType::BUDGET, aFrames, aSampleRate);
+#  define TRACE_COMMENT(aName, aFmt, ...)                          \
+    AutoTracer trace(gAudioCallbackTraceLogger, aName,             \
+                     AutoTracer::DurationType::ELAPSED_TIME, aFmt, \
+                     ##__VA_ARGS__);
+#  define TRACE_AUDIO_CALLBACK_FRAME_COUNT(aLocation, aFrames, aSampleRate) \
+    do {                                                                    \
+      AutoTracer tracer(gAudioCallbackTraceLogger, aLocation,               \
+                        AutoTracer::DurationType::FRAME_COUNT, aFrames,     \
+                        aSampleRate);                                       \
+    } while (false)
 #else
 #  define TRACE(aName)
 #  define TRACE_COMMENT(aFmt, ...)
-#  define TRACE_AUDIO_CALLBACK_BUDGET(aLocation, aFrames, aSampleRate)
+#  define TRACE_AUDIO_CALLBACK_FRAME_COUNT(aLocation, aFrames, aSampleRate)
 #endif
 
 class MOZ_RAII AutoTracer {
  public:
   static const int32_t BUFFER_SIZE = 256;
 
-  enum class EventType { DURATION, BUDGET };
+  enum class DurationType { ELAPSED_TIME, FRAME_COUNT };
 
   AutoTracer(mozilla::AsyncLogger& aLogger, const char* aLocation,
-             EventType aEventType = EventType::DURATION,
+             DurationType aDurationType = DurationType::ELAPSED_TIME,
              const char* aComment = nullptr);
 
   template <typename... Args>
   AutoTracer(mozilla::AsyncLogger& aLogger, const char* aLocation,
-             EventType aEventType, const char* aFormat, Args... aArgs)
+             DurationType aDurationType, const char* aFormat, Args... aArgs)
       : mLogger(aLogger),
         mLocation(aLocation),
         mComment(mBuffer),
-        mEventType(aEventType) {
-    MOZ_ASSERT(aEventType == EventType::DURATION);
+        mDurationType(aDurationType) {
+    MOZ_ASSERT(aDurationType == DurationType::ELAPSED_TIME);
     if (aLogger.Enabled()) {
       int32_t size = snprintf(mBuffer, BUFFER_SIZE, aFormat, aArgs...);
       size = std::min(size, BUFFER_SIZE - 1);
@@ -72,7 +76,8 @@ class MOZ_RAII AutoTracer {
   }
 
   AutoTracer(mozilla::AsyncLogger& aLogger, const char* aLocation,
-             EventType aEventType, uint64_t aFrames, uint64_t aSampleRate);
+             DurationType aDurationType, uint64_t aFrames,
+             uint64_t aSampleRate);
 
   ~AutoTracer();
 
@@ -81,8 +86,9 @@ class MOZ_RAII AutoTracer {
                   const char* aComment,
                   mozilla::AsyncLogger::TracingPhase aPhase);
 
-  void PrintBudget(const char* aName, const char* aCategory, uint64_t aDuration,
-                   uint64_t aFrames, uint64_t aSampleRate);
+  void PrintDuration(const char* aName, const char* aCategory,
+                     uint64_t aDuration, uint64_t aFrames,
+                     uint64_t aSampleRate);
 
   // The logger to use. It musdt have a lifetime longer than the block an
   // instance of this class traces.
@@ -95,8 +101,8 @@ class MOZ_RAII AutoTracer {
   const char* mComment;
   // A buffer used to hold string-formatted traces.
   char mBuffer[BUFFER_SIZE];
-  // The event type, for now either a budget or a duration.
-  const EventType mEventType;
+  // The duration type, for now either elapsed time or frame count.
+  const DurationType mDurationType;
 };
 
 #endif /* TRACING_H */

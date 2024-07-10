@@ -42,43 +42,43 @@ void AutoTracer::PrintEvent(const char* aName, const char* aCategory,
 #endif
 }
 
-void AutoTracer::PrintBudget(const char* aName, const char* aCategory,
-                             uint64_t aDuration, uint64_t aFrames,
-                             uint64_t aSampleRate) {
+void AutoTracer::PrintDuration(const char* aName, const char* aCategory,
+                               uint64_t aDuration, uint64_t aFrames,
+                               uint64_t aSampleRate) {
 #ifdef MOZ_REAL_TIME_TRACING
   mLogger.LogDuration(aName, aCategory, aDuration, aFrames, aSampleRate);
 #endif
 }
 
 AutoTracer::AutoTracer(AsyncLogger& aLogger, const char* aLocation,
-                       EventType aEventType, uint64_t aFrames,
+                       DurationType aDurationType, uint64_t aFrames,
                        uint64_t aSampleRate)
     : mLogger(aLogger),
       mLocation(aLocation),
       mComment(nullptr),
-      mEventType(aEventType) {
-  MOZ_ASSERT(aEventType == EventType::BUDGET);
+      mDurationType(aDurationType) {
+  MOZ_ASSERT(aDurationType == DurationType::FRAME_COUNT);
 
   if (aLogger.Enabled()) {
     float durationUS = (static_cast<float>(aFrames) / aSampleRate) * 1e6;
-    PrintBudget(aLocation, "perf", durationUS, aFrames, aSampleRate);
+    PrintDuration(aLocation, "perf", durationUS, aFrames, aSampleRate);
   }
 }
 
 AutoTracer::AutoTracer(AsyncLogger& aLogger, const char* aLocation,
-                       EventType aEventType, const char* aComment)
+                       DurationType aDurationType, const char* aComment)
     : mLogger(aLogger),
       mLocation(aLocation),
       mComment(aComment),
-      mEventType(aEventType) {
-  MOZ_ASSERT(aEventType == EventType::DURATION);
+      mDurationType(aDurationType) {
+  MOZ_ASSERT(aDurationType == DurationType::ELAPSED_TIME);
   if (aLogger.Enabled()) {
     PrintEvent(aLocation, "perf", mComment, AsyncLogger::TracingPhase::BEGIN);
   }
 }
 
 AutoTracer::~AutoTracer() {
-  if (mEventType == EventType::DURATION) {
+  if (mDurationType == DurationType::ELAPSED_TIME) {
     if (mLogger.Enabled()) {
       PrintEvent(mLocation, "perf", mComment, AsyncLogger::TracingPhase::END);
     }

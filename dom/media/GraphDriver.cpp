@@ -908,8 +908,8 @@ long AudioCallbackDriver::DataCallback(const AudioDataValue* aInputBuffer,
   }
 
   MOZ_ASSERT(audioStreamState == AudioStreamState::Running);
-  TRACE_AUDIO_CALLBACK_BUDGET("AudioCallbackDriver real-time budget", aFrames,
-                              mSampleRate);
+  TRACE_AUDIO_CALLBACK_FRAME_COUNT("AudioCallbackDriver real-time budget",
+                                   aFrames, mSampleRate);
   TRACE("AudioCallbackDriver::DataCallback");
 
 #ifdef DEBUG
@@ -938,6 +938,9 @@ long AudioCallbackDriver::DataCallback(const AudioDataValue* aInputBuffer,
   GraphTime nextStateComputedTime =
       MediaTrackGraphImpl::RoundUpToEndOfAudioBlock(mStateComputedTime +
                                                     mBuffer.Available());
+  TRACE_AUDIO_CALLBACK_FRAME_COUNT("AudioCallbackDriver graph advance",
+                                   nextStateComputedTime - mStateComputedTime,
+                                   mSampleRate);
 
   auto iterationStart = mIterationEnd;
   // inGraph is the number of audio frames there is between the state time and
