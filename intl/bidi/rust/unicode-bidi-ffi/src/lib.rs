@@ -43,9 +43,7 @@ impl UnicodeBidi<'_> {
         };
         let adapter = BidiClassAdapter::new(maps::bidi_class());
         Box::new(UnicodeBidi {
-            paragraph_info: utf16::ParagraphBidiInfo::new_with_data_source(
-                &adapter, text, level,
-            ),
+            paragraph_info: utf16::ParagraphBidiInfo::new_with_data_source(&adapter, text, level),
             resolved: None,
         })
     }

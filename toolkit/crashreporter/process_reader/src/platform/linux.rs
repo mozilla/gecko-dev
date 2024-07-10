@@ -135,7 +135,9 @@ impl ProcessReader {
                 let notes_size = program_header.p_memsz as usize;
                 let notes_bytes = self.copy_array(notes_address, notes_size)?;
                 while notes_offset < notes_size {
-                    if let Ok((note, size)) = Note::try_from_ctx(&notes_bytes[notes_offset..notes_size], (4, context)) {
+                    if let Ok((note, size)) =
+                        Note::try_from_ctx(&notes_bytes[notes_offset..notes_size], (4, context))
+                    {
                         if note.n_type == note_type && note.name == note_name {
                             return Ok(notes_address + notes_offset);
                         }

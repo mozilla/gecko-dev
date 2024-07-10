@@ -262,9 +262,7 @@ impl WrVecU8 {
         //
         // For the empty case we follow this requirement rather than the more stringent
         // requirement from the `Vec::from_raw_parts` docs.
-        let vec = unsafe {
-            Vec::from_raw_parts(self.data, self.length, self.capacity)
-        };
+        let vec = unsafe { Vec::from_raw_parts(self.data, self.length, self.capacity) };
         self.data = ptr::NonNull::dangling().as_ptr();
         self.length = 0;
         self.capacity = 0;
@@ -2386,8 +2384,11 @@ pub extern "C" fn wr_api_stop_capture_sequence(dh: &mut DocumentHandle) {
 
 #[cfg(target_os = "windows")]
 fn read_font_descriptor(bytes: &mut WrVecU8, index: u32) -> NativeFontHandle {
-    let wchars: Vec<u16> =
-        bytes.as_slice().chunks_exact(2).map(|c| u16::from_ne_bytes([c[0], c[1]])).collect();
+    let wchars: Vec<u16> = bytes
+        .as_slice()
+        .chunks_exact(2)
+        .map(|c| u16::from_ne_bytes([c[0], c[1]]))
+        .collect();
     NativeFontHandle {
         path: PathBuf::from(OsString::from_wide(&wchars)),
         index,
@@ -2447,13 +2448,16 @@ pub extern "C" fn wr_resource_updates_add_font_instance(
     // Every FontVariation is 8 bytes: one u32 and one f32.
     // The code below would look better with slice::chunk_arrays:
     // https://github.com/rust-lang/rust/issues/74985
-    let variations: Vec<FontVariation> =
-        variations.as_slice().chunks_exact(8).map(|c| {
+    let variations: Vec<FontVariation> = variations
+        .as_slice()
+        .chunks_exact(8)
+        .map(|c| {
             assert_eq!(c.len(), 8);
             let tag = u32::from_ne_bytes([c[0], c[1], c[2], c[3]]);
             let value = f32::from_ne_bytes([c[4], c[5], c[6], c[7]]);
             FontVariation { tag, value }
-        }).collect();
+        })
+        .collect();
     txn.add_font_instance(
         key,
         font_key,
@@ -2837,18 +2841,18 @@ pub extern "C" fn wr_dp_define_sticky_frame(
     horizontal_bounds: StickyOffsetBounds,
     applied_offset: LayoutVector2D,
     key: SpatialTreeItemKey,
-    animation: *const WrAnimationProperty
+    animation: *const WrAnimationProperty,
 ) -> WrSpatialId {
     assert!(unsafe { is_in_main_thread() });
     let anim = unsafe { animation.as_ref() };
     let transform = anim.map(|anim| {
-      debug_assert!(anim.id > 0);
-      match anim.effect_type {
-        WrAnimationType::Transform => {
-          PropertyBinding::Binding(PropertyBindingKey::new(anim.id), LayoutTransform::identity())
-        },
-        _ => unreachable!("sticky elements can only have a transform animated")
-      }
+        debug_assert!(anim.id > 0);
+        match anim.effect_type {
+            WrAnimationType::Transform => {
+                PropertyBinding::Binding(PropertyBindingKey::new(anim.id), LayoutTransform::identity())
+            },
+            _ => unreachable!("sticky elements can only have a transform animated"),
+        }
     });
     let spatial_id = state.frame_builder.dl_builder.define_sticky_frame(
         parent_spatial_id.to_webrender(state.pipeline_id),
@@ -2863,7 +2867,7 @@ pub extern "C" fn wr_dp_define_sticky_frame(
         horizontal_bounds,
         applied_offset,
         key,
-        transform
+        transform,
     );
 
     WrSpatialId { id: spatial_id.0 }
