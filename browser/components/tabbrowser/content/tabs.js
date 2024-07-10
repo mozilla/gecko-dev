@@ -45,6 +45,7 @@
         false
       );
 
+      this.startupTime = Services.startup.getStartupInfo().start.getTime();
       this.arrowScrollbox = this.querySelector("arrowscrollbox");
       this.arrowScrollbox.addEventListener("wheel", this, true);
 
