@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Test for bug 1897589</title>
+<script src=/tests/SimpleTest/SimpleTest.js></script>
+<link rel=stylesheet type=text/css href=/tests/SimpleTest/test.css>
+<script>
+function forceGC() {
+  SpecialPowers.gc();
+  SpecialPowers.forceShrinkingGC();
+  SpecialPowers.forceCC();
+  SpecialPowers.gc();
+  SpecialPowers.forceShrinkingGC();
+  SpecialPowers.forceCC();
+}
+add_task(async function() {
+  let face = new FontFace('foo', `url("slow_load.sjs")`);
+  let p = face.load();
+  // Comment out the following line to fix it.
+  face = null;
+  forceGC();
+  try {
+    await p;
+    ok(false, "Resolved text/plain request?");
+  } catch (ex) {
+    ok(true, "Expect rejection due to wrong content-type");
+  }
+})
+</script>

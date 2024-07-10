@@ -9,12 +9,9 @@
 
 #include "mozilla/dom/FontFaceBinding.h"
 #include "mozilla/FontPropertyTypes.h"
-#include "mozilla/Maybe.h"
 #include "mozilla/RWLock.h"
 #include "mozilla/ServoStyleConsts.h"
 #include "gfxUserFontSet.h"
-#include "nsCSSPropertyID.h"
-#include "nsCSSValue.h"
 #include "nsTHashSet.h"
 
 class gfxFontFaceBufferSource;
@@ -291,10 +288,13 @@ class FontFaceImpl final {
 
   // Whether mUnicodeRange needs to be rebuilt before being returned from
   // GetUnicodeRangeAsCharacterMap.
-  bool mUnicodeRangeDirty;
+  bool mUnicodeRangeDirty = true;
 
   // Whether this FontFace appears in mFontFaceSet.
-  bool mInFontFaceSet;
+  bool mInFontFaceSet = false;
+
+  // Whether we're artificially keeping mOwner alive while we load.
+  bool mKeepingOwnerAlive = false;
 };
 
 }  // namespace mozilla::dom

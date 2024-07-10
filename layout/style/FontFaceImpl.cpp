@@ -9,17 +9,11 @@
 #include <algorithm>
 #include "gfxFontUtils.h"
 #include "gfxPlatformFontList.h"
-#include "mozilla/dom/CSSFontFaceRule.h"
 #include "mozilla/dom/FontFaceBinding.h"
 #include "mozilla/dom/FontFaceSetImpl.h"
-#include "mozilla/dom/TypedArray.h"
-#include "mozilla/dom/UnionTypes.h"
-#include "mozilla/ServoBindings.h"
 #include "mozilla/ServoCSSParser.h"
-#include "mozilla/ServoUtils.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/dom/Document.h"
-#include "nsStyleUtil.h"
 
 namespace mozilla {
 namespace dom {
@@ -62,9 +56,7 @@ FontFaceImpl::FontFaceImpl(FontFace* aOwner, FontFaceSetImpl* aFontFaceSet)
     : mOwner(aOwner),
       mStatus(FontFaceLoadStatus::Unloaded),
       mSourceType(SourceType(0)),
-      mFontFaceSet(aFontFaceSet),
-      mUnicodeRangeDirty(true),
-      mInFontFaceSet(false) {}
+      mFontFaceSet(aFontFaceSet) {}
 
 FontFaceImpl::~FontFaceImpl() {
   // Assert that we don't drop any FontFace objects during a Servo traversal,
@@ -81,6 +73,7 @@ void FontFaceImpl::AssertIsOnOwningThread() const {
 #endif
 
 void FontFaceImpl::Destroy() {
+  MOZ_DIAGNOSTIC_ASSERT(!mKeepingOwnerAlive);
   mInFontFaceSet = false;
   SetUserFontEntry(nullptr);
   mOwner = nullptr;
@@ -392,6 +385,7 @@ void FontFaceImpl::UpdateOwnerPromise() {
   }
 
   if (NS_WARN_IF(!mOwner)) {
+    MOZ_DIAGNOSTIC_ASSERT(!mKeepingOwnerAlive);
     return;
   }
 
@@ -402,6 +396,16 @@ void FontFaceImpl::UpdateOwnerPromise() {
       mOwner->MaybeReject(NS_ERROR_DOM_SYNTAX_ERR);
     } else {
       mOwner->MaybeReject(NS_ERROR_DOM_NETWORK_ERR);
+    }
+  }
+
+  const bool shouldKeepOwnerAlive = mStatus == FontFaceLoadStatus::Loading;
+  if (shouldKeepOwnerAlive != mKeepingOwnerAlive) {
+    mKeepingOwnerAlive = shouldKeepOwnerAlive;
+    if (shouldKeepOwnerAlive) {
+      mOwner->AddRef();
+    } else {
+      mOwner->Release();
     }
   }
 }

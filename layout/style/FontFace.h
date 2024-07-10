@@ -8,12 +8,8 @@
 #define mozilla_dom_FontFace_h
 
 #include "mozilla/dom/FontFaceBinding.h"
-#include "mozilla/FontPropertyTypes.h"
-#include "mozilla/Maybe.h"
 #include "mozilla/ServoStyleConsts.h"
 #include "gfxUserFontSet.h"
-#include "nsCSSPropertyID.h"
-#include "nsCSSValue.h"
 #include "nsWrapperCache.h"
 
 class gfxFontFaceBufferSource;
