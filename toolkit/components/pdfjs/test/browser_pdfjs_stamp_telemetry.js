@@ -70,7 +70,7 @@ add_task(async function test() {
         "Should have no stamp"
       );
 
-      await enableEditor(browser, "Stamp");
+      await enableEditor(browser, "Stamp", 1);
       await clickOn(browser, `#editorStampAddImage`);
       await waitForSelector(browser, ".altText");
 

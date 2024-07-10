@@ -51,7 +51,7 @@ add_task(async function test() {
       await Services.fog.testFlushAllChildren();
       Assert.equal(Glean.pdfjs.editing.freetext.testGetValue() || 0, 0);
 
-      await enableEditor(browser, "FreeText");
+      await enableEditor(browser, "FreeText", 1);
       await addFreeText(browser, "hello", spanBox);
 
       await BrowserTestUtils.waitForCondition(
