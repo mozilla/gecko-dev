@@ -75,6 +75,10 @@ export class BackupUIChild extends JSWindowActorChild {
       this.sendAsyncMessage("ToggleEncryption", event.detail);
     } else if (event.type == "BackupUI:RerunEncryption") {
       this.sendAsyncMessage("RerunEncryption", event.detail);
+    } else if (event.type == "BackupUI:ShowBackupLocation") {
+      this.sendAsyncMessage("ShowBackupLocation");
+    } else if (event.type == "BackupUI:EditBackupLocation") {
+      this.sendAsyncMessage("EditBackupLocation");
     }
   }
 

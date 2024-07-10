@@ -216,6 +216,11 @@ export class BackupUIParent extends JSWindowActorParent {
          * re-encryption.
          */
       }
+    } else if (message.name == "ShowBackupLocation") {
+      this.#bs.showBackupLocation();
+    } else if (message.name == "EditBackupLocation") {
+      const window = this.browsingContext.topChromeWindow;
+      this.#bs.editBackupLocation(window);
     }
 
     return null;

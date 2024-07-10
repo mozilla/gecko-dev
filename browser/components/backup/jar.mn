@@ -9,6 +9,7 @@ browser.jar:
 #endif
   content/browser/backup/ArchiveJSONBlock.1.schema.json          (content/ArchiveJSONBlock.1.schema.json)
   content/browser/backup/BackupManifest.1.schema.json            (content/BackupManifest.1.schema.json)
+  content/browser/backup/backup-common.css                       (content/backup-common.css)
   content/browser/backup/backup-settings.css                     (content/backup-settings.css)
   content/browser/backup/backup-settings.mjs                     (content/backup-settings.mjs)
   content/browser/backup/disable-backup-encryption.css           (content/disable-backup-encryption.css)

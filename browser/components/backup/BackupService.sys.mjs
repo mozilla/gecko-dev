@@ -23,6 +23,8 @@ const MINIMUM_TIME_BETWEEN_BACKUPS_SECONDS_PREF_NAME =
   "browser.backup.scheduled.minimum-time-between-backups-seconds";
 const LAST_BACKUP_TIMESTAMP_PREF_NAME =
   "browser.backup.scheduled.last-backup-timestamp";
+const LAST_BACKUP_FILE_NAME_PREF_NAME =
+  "browser.backup.scheduled.last-backup-file";
 
 const SCHEMAS = Object.freeze({
   BACKUP_MANIFEST: 1,
@@ -70,6 +72,10 @@ ChromeUtils.defineLazyGetter(lazy, "ZipReader", () =>
     "open"
   )
 );
+ChromeUtils.defineLazyGetter(lazy, "nsLocalFile", () =>
+  Components.Constructor("@mozilla.org/file/local;1", "nsIFile", "initWithPath")
+);
+
 ChromeUtils.defineLazyGetter(lazy, "BinaryInputStream", () =>
   Components.Constructor(
     "@mozilla.org/binaryinputstream;1",
@@ -575,6 +581,7 @@ export class BackupService extends EventTarget {
     encryptionEnabled: false,
     /** @type {number?} Number of seconds since UNIX epoch */
     lastBackupDate: null,
+    lastBackupFileName: "",
   };
 
   /**
@@ -951,7 +958,8 @@ export class BackupService extends EventTarget {
     } catch (e) {
       lazy.logConsole.warn("Could not create Home destination path: ", e);
       throw new Error(
-        "Could not resolve to a writable destination folder path."
+        "Could not resolve to a writable destination folder path.",
+        { cause: ERRORS.FILE_SYSTEM_ERROR }
       );
     }
   }
@@ -1250,6 +1258,11 @@ export class BackupService extends EventTarget {
     let destPath = PathUtils.join(destFolder, FILENAME);
     lazy.logConsole.log("Moving single-file archive to ", destPath);
     await IOUtils.move(sourcePath, destPath);
+
+    Services.prefs.setStringPref(LAST_BACKUP_FILE_NAME_PREF_NAME, FILENAME);
+    // It is expected that our caller will call stateUpdate(), so we skip doing
+    // that here. This is done via the backupInProgress setter in createBackup.
+    this.#_state.lastBackupFileName = FILENAME;
 
     for (let childFilePath of existingChildren) {
       let childFileName = PathUtils.filename(childFilePath);
@@ -2911,6 +2924,11 @@ export class BackupService extends EventTarget {
       this.#_state.lastBackupDate = lastBackupPrefValue;
     }
 
+    this.#_state.lastBackupFileName = Services.prefs.getStringPref(
+      LAST_BACKUP_FILE_NAME_PREF_NAME,
+      ""
+    );
+
     this.stateUpdate();
 
     // We'll default to 5 minutes of idle time unless otherwise configured.
@@ -3064,5 +3082,105 @@ export class BackupService extends EventTarget {
       date: archiveJSON?.meta?.date,
     };
     this.stateUpdate();
+  }
+
+  /*
+   * Attempts to open a native file explorer window at the last backup file's
+   * location on the filesystem.
+   */
+  async showBackupLocation() {
+    let backupFilePath = PathUtils.join(
+      lazy.backupDirPref,
+      this.#_state.lastBackupFileName
+    );
+    if (await IOUtils.exists(backupFilePath)) {
+      new lazy.nsLocalFile(backupFilePath).reveal();
+    } else {
+      let archiveDestFolderPath = await this.resolveArchiveDestFolderPath(
+        lazy.backupDirPref
+      );
+      new lazy.nsLocalFile(archiveDestFolderPath).reveal();
+    }
+  }
+
+  /**
+   * Shows a native folder picker to set the location to write the single-file
+   * archive files.
+   *
+   * @param {ChromeWindow} window
+   *   The top-level browsing window to associate the file picker with.
+   * @returns {Promise<undefined>}
+   */
+  async editBackupLocation(window) {
+    let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+    let mode = Ci.nsIFilePicker.modeGetFolder;
+    fp.init(window.browsingContext, "", mode);
+
+    let currentBackupDirPathParent = PathUtils.parent(
+      this.#_state.backupDirPath
+    );
+    if (await IOUtils.exists(currentBackupDirPathParent)) {
+      fp.displayDirectory = await IOUtils.getDirectory(
+        currentBackupDirPathParent
+      );
+    }
+
+    let result = await new Promise(resolve => fp.open(resolve));
+
+    if (result === Ci.nsIFilePicker.returnCancel) {
+      return;
+    }
+
+    let path = fp.file.path;
+
+    // If the same parent directory was chosen, this is a no-op.
+    if (
+      PathUtils.join(path, BackupService.BACKUP_DIR_NAME) == lazy.backupDirPref
+    ) {
+      return;
+    }
+
+    // If the location changed, delete the last backup there if one exists.
+    await this.deleteLastBackup();
+    this.setParentDirPath(path);
+  }
+
+  /**
+   * Will attempt to delete the last created single-file archive if it exists.
+   * Once done, this method will also check the parent folder to see if it's
+   * empty. If so, then the folder is removed.
+   *
+   * @returns {Promise<undefined>}
+   */
+  async deleteLastBackup() {
+    if (this.#_state.lastBackupFileName) {
+      let backupFilePath = PathUtils.join(
+        lazy.backupDirPref,
+        this.#_state.lastBackupFileName
+      );
+
+      lazy.logConsole.log(
+        "Attempting to delete last backup file at ",
+        backupFilePath
+      );
+      await IOUtils.remove(backupFilePath, { ignoreAbsent: true });
+
+      this.#_state.lastBackupDate = null;
+      this.#_state.lastBackupFileName = "";
+      this.stateUpdate();
+    } else {
+      lazy.logConsole.log(
+        "Not deleting last backup file, since none is known about."
+      );
+    }
+
+    if (await IOUtils.exists(lazy.backupDirPref)) {
+      // See if there are any other files lingering around in the destination
+      // folder. If not, delete that folder too.
+      let children = await IOUtils.getChildren(lazy.backupDirPref);
+      if (!children.length) {
+        await IOUtils.remove(lazy.backupDirPref);
+      }
+    }
   }
 }

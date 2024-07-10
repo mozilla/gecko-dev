@@ -19,24 +19,10 @@ const Template = ({ backupServiceState }) => html`
   <backup-settings .backupServiceState=${backupServiceState}></backup-settings>
 `;
 
-export const BackingUpNotInProgress = Template.bind({});
-BackingUpNotInProgress.args = {
+export const ScheduledBackupsDisabled = Template.bind({});
+ScheduledBackupsDisabled.args = {
   backupServiceState: {
     backupDirPath: "/Some/User/Documents",
-    backupInProgress: false,
-    defaultParent: {
-      path: "/Some/User/Documents",
-      fileName: "Documents",
-    },
-    scheduledBackupsEnabled: false,
-  },
-};
-
-export const BackingUpInProgress = Template.bind({});
-BackingUpInProgress.args = {
-  backupServiceState: {
-    backupDirPath: "/Some/User/Documents",
-    backupInProgress: true,
     defaultParent: {
       path: "/Some/User/Documents",
       fileName: "Documents",
@@ -49,7 +35,6 @@ export const ScheduledBackupsEnabled = Template.bind({});
 ScheduledBackupsEnabled.args = {
   backupServiceState: {
     backupDirPath: "/Some/User/Documents",
-    backupInProgress: false,
     defaultParent: {
       path: "/Some/User/Documents",
       fileName: "Documents",
@@ -58,16 +43,31 @@ ScheduledBackupsEnabled.args = {
   },
 };
 
+export const ExistingBackup = Template.bind({});
+ExistingBackup.args = {
+  backupServiceState: {
+    backupDirPath: "/Some/User/Documents",
+    defaultParent: {
+      path: "/Some/User/Documents",
+      fileName: "Documents",
+    },
+    scheduledBackupsEnabled: true,
+    lastBackupDate: 1719625747,
+    lastBackupFileName: "FirefoxBackup_default_123123123.html",
+  },
+};
+
 export const EncryptionEnabled = Template.bind({});
 EncryptionEnabled.args = {
   backupServiceState: {
     backupDirPath: "/Some/User/Documents",
-    backupInProgress: false,
     defaultParent: {
       path: "/Some/User/Documents",
       fileName: "Documents",
     },
     scheduledBackupsEnabled: true,
     encryptionEnabled: true,
+    lastBackupDate: 1719625747,
+    lastBackupFileName: "FirefoxBackup_default_123123123.html",
   },
 };

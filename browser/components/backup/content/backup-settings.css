@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
- @import url("chrome://global/skin/in-content/common.css");
+@import url("chrome://global/skin/in-content/common.css");
+@import url("chrome://browser/content/backup/backup-common.css");
 
 :host {
   --margin-inline-start-checkbox-content: calc(var(--checkbox-margin-inline) + var(--checkbox-size));
+  flex: 1;
 }
 
 #turn-on-scheduled-backups-dialog {
@@ -35,4 +37,29 @@
 
 #backup-sensitive-data-checkbox-description {
   margin-inline-start: var(--margin-inline-start-checkbox-content);
+}
+
+#scheduled-backups-control {
+  display: flex;
+}
+
+#scheduled-backups-enabled {
+  flex: 1;
+  align-content: center;
+}
+
+#last-backup-info {
+  color: var(--text-color-deemphasized);
+}
+
+#last-backup-location-control,
+#last-backup-info > div {
+  margin-block: 14px;
+}
+
+#last-backup-location-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-overflow: ellipsis ellipsis;
 }

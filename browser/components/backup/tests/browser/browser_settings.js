@@ -3,6 +3,10 @@
 
 "use strict";
 
+const { MockRegistrar } = ChromeUtils.importESModule(
+  "resource://testing-common/MockRegistrar.sys.mjs"
+);
+
 add_setup(async () => {
   MockFilePicker.init(window.browsingContext);
   registerCleanupFunction(() => {
@@ -257,6 +261,123 @@ add_task(async function test_restore_from_backup() {
       "BackupService was called to start a recovery from a backup archive."
     );
 
+    sandbox.restore();
+  });
+});
+
+/**
+ * Tests that the most recent backup information is shown inside of the
+ * component. Also tests that the "Show in folder" and "Edit" buttons open
+ * file pickers.
+ */
+add_task(async function test_last_backup_info_and_location() {
+  // We'll override the default location for writing backup archives so that
+  // we don't pollute this machine's Documents folder.
+  const TEST_PROFILE_PATH = await IOUtils.createUniqueDirectory(
+    PathUtils.tempDir,
+    "testLastBackupInfo"
+  );
+
+  const SCHEDULED_BACKUPS_ENABLED_PREF = "browser.backup.scheduled.enabled";
+
+  await SpecialPowers.pushPrefEnv({
+    set: [[SCHEDULED_BACKUPS_ENABLED_PREF, true]],
+  });
+
+  await BrowserTestUtils.withNewTab("about:preferences", async browser => {
+    let sandbox = sinon.createSandbox();
+    let bs = BackupService.get();
+
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.backup.location", TEST_PROFILE_PATH]],
+    });
+
+    Assert.ok(bs.state.backupDirPath, "Backup Dir Path was set");
+
+    let settings = browser.contentDocument.querySelector("backup-settings");
+    await settings.updateComplete;
+
+    let stateUpdated = BrowserTestUtils.waitForEvent(
+      bs,
+      "BackupService:StateUpdate",
+      false,
+      () => {
+        return bs.state.lastBackupDate && bs.state.lastBackupFileName;
+      }
+    );
+    let { archivePath } = await bs.createBackup();
+    registerCleanupFunction(async () => {
+      // No matter what happens after this, make sure to clean this file up.
+      await IOUtils.remove(archivePath);
+    });
+    await stateUpdated;
+
+    await settings.updateComplete;
+
+    let dateArgs = JSON.parse(
+      settings.lastBackupDateEl.getAttribute("data-l10n-args")
+    );
+    // The lastBackupDate is stored in seconds, but Fluent expects milliseconds,
+    // so we'll check that it was converted.
+    Assert.equal(
+      dateArgs.date,
+      bs.state.lastBackupDate * 1000,
+      "Should have the backup date as a Fluent arg, in milliseconds"
+    );
+
+    let locationArgs = JSON.parse(
+      settings.lastBackupFileNameEl.getAttribute("data-l10n-args")
+    );
+    Assert.equal(
+      locationArgs.fileName,
+      bs.state.lastBackupFileName,
+      "Should have the backup file name as a Fluent arg"
+    );
+
+    // Mocking out nsLocalFile isn't something that works very well, so we'll
+    // just stub out BackupService.showBackupLocation with something that'll
+    // resolve showBackupLocationPromise, and rely on manual testing for
+    // showing the location of the backup file.
+    let showBackupLocationPromise = new Promise(resolve => {
+      let showBackupLocationStub = sandbox.stub(bs, "showBackupLocation");
+      showBackupLocationStub.callsFake(() => {
+        resolve();
+      });
+    });
+
+    settings.backupLocationShowButtonEl.click();
+    await showBackupLocationPromise;
+
+    const TEST_NEW_BACKUP_PARENT_PATH = await IOUtils.createUniqueDirectory(
+      PathUtils.tempDir,
+      "testNewBackupParent"
+    );
+    let newBackupParent = await IOUtils.getDirectory(
+      TEST_NEW_BACKUP_PARENT_PATH
+    );
+
+    stateUpdated = BrowserTestUtils.waitForEvent(
+      bs,
+      "BackupService:StateUpdate",
+      false,
+      () => {
+        return bs.state.backupDirPath.startsWith(TEST_NEW_BACKUP_PARENT_PATH);
+      }
+    );
+    let filePickerShownPromise = new Promise(resolve => {
+      MockFilePicker.showCallback = async () => {
+        Assert.ok(true, "Filepicker shown");
+        MockFilePicker.setFiles([newBackupParent]);
+        resolve();
+      };
+    });
+    MockFilePicker.returnValue = MockFilePicker.returnOK;
+
+    settings.backupLocationEditButtonEl.click();
+    await filePickerShownPromise;
+    await stateUpdated;
+
+    await IOUtils.remove(TEST_NEW_BACKUP_PARENT_PATH);
     sandbox.restore();
   });
 });

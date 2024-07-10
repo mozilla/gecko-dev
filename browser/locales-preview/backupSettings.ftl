@@ -23,6 +23,17 @@ backup-file-name = { -brand-product-name }Backup
 
 settings-data-backup-header = Backup
 settings-data-backup-toggle = Manage backup
+settings-data-backup-scheduled-backups-on = Backup: ON
+settings-data-backup-scheduled-backups-off = Backup: OFF
+settings-data-backup-last-backup-date = Last backup: { DATETIME($date, timeStyle: "short") }, { DATETIME($date, dateStyle: "short") }
+# "Location" refers to the folder where backups are being written to.
+settings-data-backup-last-backup-location = Location
+settings-data-backup-last-backup-location-show-in-folder = Show in folder
+settings-data-backup-last-backup-location-edit = Edit…
+
+# Variables:
+#   $fileName (String) - The file name of the last backup that was created.
+settings-data-backup-last-backup-filename = Filename: { $fileName }
 
 settings-data-backup-restore-header = Restore your data
 settings-data-backup-restore-description = Use a { -brand-short-name } backup from another device to restore your data.

@@ -1,0 +1,26 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+/**
+ * This stylesheet is for shared rules across multiple backup components.
+ * It assumes that common.css has been imported into the same scope.
+ */
+
+.backup-location-filepicker-input {
+  flex: 1;
+  margin-block: var(--space-xsmall);
+  margin-inline-start: 0;
+  padding-inline-start: var(--space-xxlarge);
+  background-repeat: no-repeat;
+  background-size: var(--icon-size-default);
+  background-position: var(--space-small) 50%;
+
+  /* For the placeholder icon */
+  -moz-context-properties: fill;
+  fill: currentColor;
+
+  &:dir(rtl) {
+    background-position-x: right var(--space-small);
+  }
+}
