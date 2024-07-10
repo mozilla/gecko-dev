@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-06-28T15:23:29.920061+00:00'
+updated_at: '2024-07-10T15:47:32.256847+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -95,10 +95,6 @@ people:
     bmo_id: 446257
     name: Andrea Marchesini
     nick: baku
-  - &barret
-    bmo_id: 529428
-    name: Barret Rennie
-    nick: barret
   - &basschouten
     bmo_id: 272464
     name: Bas Schouten
@@ -115,6 +111,10 @@ people:
     bmo_id: 424312
     name: Ben Bangert
     nick: benbangert
+  - &beth
+    bmo_id: 529428
+    name: Beth Rennie
+    nick: beth
   - &beurdouche
     bmo_id: 622637
     name: Benjamin Beurdouche
@@ -1660,7 +1660,7 @@ modules:
         - Nicholas Nethercote
         - Gerald Squelart
         - Kannan Vijayan
-        - Barret Rennie
+        - Beth Rennie
         - Greg Tatum
       group: dev-platform
       url: https://firefox-source-docs.mozilla.org/tools/profiler/
@@ -3161,7 +3161,7 @@ modules:
       - *nika
     peers:
       - *kmag
-      - *barret
+      - *beth
       - *jstutte
       - *KrisWright
       - *mccr8
@@ -3452,7 +3452,7 @@ modules:
             - Firefox::Nimbus Desktop Client
           url: https://experimenter.info/
         owners:
-          - *barret
+          - *beth
         peers:
           - *Gijs
           - *emcminn
@@ -4359,5 +4359,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: de15e04637a519add2f6af14f301607271f0e4d3
-  export: d861fc2cbd0107ada2e09d09b8358bedcd2e44e7
+  config: c187a82ea9772e8a0e65611c0d64c164ccd7f60c
+  export: 7101ade973617f1b4aa16978462a432b059ffdcd
