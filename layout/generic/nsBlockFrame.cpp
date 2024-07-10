@@ -7377,15 +7377,6 @@ void nsBlockFrame::ReflowPushedFloats(BlockReflowState& aState,
     if (prevContinuation && prevContinuation->GetParent() == f->GetParent()) {
       floats->RemoveFrame(f);
       aState.AppendPushedFloatChain(f);
-      // AppendPushedFloatChain() can also push f's next-in-flows in our floats
-      // list to our pushed floats list. If all the floats in the floats list
-      // are pushed, the floats list will be deleted. Therefore, we need to get
-      // the floats list again to check its validity.
-      floats = GetFloats();
-      if (!floats) {
-        f = prev = nullptr;
-        break;
-      }
       if (floats->IsEmpty()) {
         StealFloats()->Delete(PresShell());
         floats = nullptr;
