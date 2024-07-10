@@ -945,7 +945,7 @@ class CorePS {
   PS_GET_AND_SET(const nsACString&, ProcessName)
   PS_GET_AND_SET(const nsACString&, ETLDplus1)
 #if !defined(XP_WIN)
-  PS_GET_AND_SET(const Maybe<nsCOMPtr<nsIFile>>&, AsyncSignalDumpDirectory)
+  PS_GET_AND_SET(const Maybe<nsCOMPtr<nsIFile>>&, DownloadDirectory)
 #endif
 
   static void SetBandwidthCounter(ProfilerBandwidthCounter* aBandwidthCounter) {
@@ -1011,7 +1011,7 @@ class CorePS {
 
   // Cached download directory for when we need to dump profiles to disk.
 #if !defined(XP_WIN)
-  Maybe<nsCOMPtr<nsIFile>> mAsyncSignalDumpDirectory;
+  Maybe<nsCOMPtr<nsIFile>> mDownloadDirectory;
 #endif
 };
 
@@ -5657,10 +5657,10 @@ Maybe<nsAutoCString> profiler_find_dump_path() {
     // Acquire the lock so that we can get things from CorePS
     PSAutoLock lock;
     Maybe<nsCOMPtr<nsIFile>> downloadDir = Nothing();
-    downloadDir = CorePS::AsyncSignalDumpDirectory(lock);
+    downloadDir = CorePS::DownloadDirectory(lock);
 
     // This needs to be done within the context of the lock, as otherwise
-    // another thread might modify CorePS::mAsyncSignalDumpDirectory while we're
+    // another thread might modify CorePS::mDownloadDirectory while we're
     // cloning the pointer.
     if (downloadDir) {
       nsCOMPtr<nsIFile> d;
@@ -6926,12 +6926,12 @@ bool profiler_is_paused() {
 }
 
 // See `ProfilerControl.h` for more details.
-void profiler_lookup_async_signal_dump_directory() {
+void profiler_lookup_download_directory() {
 // This implementation is causing issues on Windows (see Bug 1890154) but as it
 // only exists to support the posix signal handling (on non-windows platforms)
 // we can remove it for now.
 #if !defined(XP_WIN)
-  LOG("profiler_lookup_async_signal_dump_directory");
+  LOG("profiler_lookup_download_directory");
 
   MOZ_ASSERT(
       NS_IsMainThread(),
@@ -6942,45 +6942,16 @@ void profiler_lookup_async_signal_dump_directory() {
 
   // take the lock so that we can write to CorePS
   PSAutoLock lock;
-  nsresult rv;
 
-  // Check to see if we have a `MOZ_UPLOAD_DIR` first - i.e., check to see if
-  // we're running in CI.
-  LOG("Checking if MOZ_UPLOAD_DIR exists");
-  const char* mozUploadDir = getenv("MOZ_UPLOAD_DIR");
-  if (mozUploadDir && mozUploadDir[0] != '\0') {
-    LOG("Found MOZ_UPLOAD_DIR at: %s", mozUploadDir);
-    // We want to do the right thing, and turn this into an nsIFile. Go through
-    // the motions here:
-    nsCOMPtr<nsIFile> mozUploadDirFile =
-        do_CreateInstance("@mozilla.org/file/local;1", &rv);
-
-    if (NS_FAILED(rv)) {
-      LOG("Failed to create nsIFile for MOZ_UPLOAD_DIR: %s, Error: %s",
-          mozUploadDir, GetStaticErrorName(rv));
-    } else {
-      rv = mozUploadDirFile->InitWithNativePath(
-          nsDependentCString(mozUploadDir));
-      if (NS_FAILED(rv)) {
-        LOG("Failed to assign a filepath while creating MOZ_UPLOAD_DIR file "
-            "%s, Error %s ",
-            mozUploadDir, GetStaticErrorName(rv));
-      } else {
-        CorePS::SetAsyncSignalDumpDirectory(lock, Some(mozUploadDirFile));
-      }
-    }
+  nsCOMPtr<nsIFile> tDownloadDir;
+  nsresult rv = NS_GetSpecialDirectory(NS_OS_DEFAULT_DOWNLOAD_DIR,
+                                       getter_AddRefs(tDownloadDir));
+  if (NS_FAILED(rv)) {
+    LOG("Failed to find download directory. Profiler signal handling will not "
+        "be able to save to disk. Error: %s",
+        GetStaticErrorName(rv));
   } else {
-    LOG("Defaulting to the user's Download directory for profile dumps")
-    nsCOMPtr<nsIFile> tDownloadDir;
-    rv = NS_GetSpecialDirectory(NS_OS_DEFAULT_DOWNLOAD_DIR,
-                                getter_AddRefs(tDownloadDir));
-    if (NS_FAILED(rv)) {
-      LOG("Failed to find download directory. Profiler signal handling will "
-          "not be able to save to disk. Error: %s",
-          GetStaticErrorName(rv));
-    } else {
-      CorePS::SetAsyncSignalDumpDirectory(lock, Some(tDownloadDir));
-    }
+    CorePS::SetDownloadDirectory(lock, Some(tDownloadDir));
   }
 #endif
 }

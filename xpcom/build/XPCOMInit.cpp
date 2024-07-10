@@ -469,7 +469,7 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
   // Now that both the profiler and directory services have been started
   // we can find the download directory, where the profiler can write
   // profiles if necessary
-  profiler_lookup_async_signal_dump_directory();
+  profiler_lookup_download_directory();
 
   // Init mozilla::SharedThreadPool (which needs the service manager).
   mozilla::SharedThreadPool::InitStatics();
