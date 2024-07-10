@@ -608,6 +608,19 @@ static Result<CombinedBufferLayout, MediaResult> ParseVideoFrameCopyToOptions(
 
   const Sequence<PlaneLayout>* optLayout = OptionalToPointer(aOptions.mLayout);
 
+  VideoFrame::Format format(aFormat);
+  if (aOptions.mFormat.WasPassed()) {
+    if (aOptions.mFormat.Value() != VideoPixelFormat::RGBA &&
+        aOptions.mFormat.Value() != VideoPixelFormat::RGBX &&
+        aOptions.mFormat.Value() != VideoPixelFormat::BGRA &&
+        aOptions.mFormat.Value() != VideoPixelFormat::BGRX) {
+      nsAutoCString error(dom::GetEnumString(aOptions.mFormat.Value()).get());
+      error.Append(" is unsupported in ParseVideoFrameCopyToOptions");
+      return Err(MediaResult(NS_ERROR_DOM_NOT_SUPPORTED_ERR, error));
+    }
+    format = VideoFrame::Format(aOptions.mFormat.Value());
+  }
+
   return ComputeLayoutAndAllocationSize(parsedRect, aFormat, optLayout);
 }
 
@@ -1744,7 +1757,12 @@ uint32_t VideoFrame::AllocationSize(const VideoFrameCopyToOptions& aOptions,
   auto r = ParseVideoFrameCopyToOptions(aOptions, mVisibleRect, mCodedSize,
                                         mResource->mFormat.ref());
   if (r.isErr()) {
-    aRv.ThrowTypeError(r.unwrapErr().Message());
+    MediaResult error = r.unwrapErr();
+    if (error.Code() == NS_ERROR_DOM_NOT_SUPPORTED_ERR) {
+      aRv.ThrowNotSupportedError(error.Message());
+    } else {
+      aRv.ThrowTypeError(error.Message());
+    }
     return 0;
   }
   CombinedBufferLayout layout = r.unwrap();
@@ -1776,7 +1794,12 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
   auto r = ParseVideoFrameCopyToOptions(aOptions, mVisibleRect, mCodedSize,
                                         mResource->mFormat.ref());
   if (r.isErr()) {
-    p->MaybeRejectWithTypeError(r.unwrapErr().Message());
+    MediaResult error = r.unwrapErr();
+    if (error.Code() == NS_ERROR_DOM_NOT_SUPPORTED_ERR) {
+      p->MaybeRejectWithNotSupportedError(error.Message());
+    } else {
+      p->MaybeRejectWithTypeError(error.Message());
+    }
     return p.forget();
   }
   CombinedBufferLayout layout = r.unwrap();
