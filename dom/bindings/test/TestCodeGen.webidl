@@ -1083,6 +1083,9 @@ interface TestInterface {
   undefined passUnionArrayBuffer((DOMString or ArrayBuffer) foo);
   undefined passUnionAllowSharedArrayBuffer((DOMString or [AllowShared] ArrayBuffer) foo);
 
+  [Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+  attribute sequence<Element>? reflectedHTMLAttributeReturningFrozenArray;
+
   // If you add things here, add them to TestExampleGen as well
 };
 

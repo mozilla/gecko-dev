@@ -145,6 +145,7 @@ if CONFIG["MOZ_DEBUG"] and CONFIG["ENABLE_TESTS"]:
         "test/TestInterfaceObservableArray.h",
         "test/TestInterfaceSetlike.h",
         "test/TestInterfaceSetlikeNode.h",
+        "test/TestReflectedHTMLAttribute.h",
         "test/TestTrialInterface.h",
         "test/WrapperCachedNonISupportsTestInterface.h",
     ]
@@ -164,6 +165,7 @@ if CONFIG["MOZ_DEBUG"] and CONFIG["ENABLE_TESTS"]:
         "test/TestInterfaceObservableArray.cpp",
         "test/TestInterfaceSetlike.cpp",
         "test/TestInterfaceSetlikeNode.cpp",
+        "test/TestReflectedHTMLAttribute.cpp",
         "test/TestTrialInterface.cpp",
         "test/WrapperCachedNonISupportsTestInterface.cpp",
     ]

@@ -168,7 +168,19 @@ skip-if = ["!debug"]
 
 ["test_proxy_missing_prop.html"]
 
+["test_reflected_attribute_frozenarray.html"]
+support-files = [
+  "file_reflected_attribute_frozenarray.js",
+]
+skip-if = ["!debug"] # Test WebIDL interfaces are only available in debug builds
+
 ["test_remoteProxyAsPrototype.html"]
+
+["test_resizable_arraybufferview.html"]
+skip-if = [
+  "!debug",
+  "!nightly_build", # Bug 1670026
+]
 
 ["test_returnUnion.html"]
 skip-if = ["!debug"]
@@ -199,9 +211,3 @@ skip-if = ["!debug"]
 skip-if = ["!debug"]
 
 ["test_worker_UnwrapArg.html"]
-
-["test_resizable_arraybufferview.html"]
-skip-if = [
-  "!debug",
-  "!nightly_build", # Bug 1670026
-]

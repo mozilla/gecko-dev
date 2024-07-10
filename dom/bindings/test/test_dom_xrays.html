@@ -7,6 +7,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=787070
   <meta charset="utf-8">
   <title>Test for Bug 787070</title>
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="file_reflected_attribute_frozenarray.js"></script>
   <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
 </head>
 <body>
@@ -389,6 +390,11 @@ function test() {
   ok(!threw,
      "Calling an instance object for an interface marked with legacycaller shouldn't throw");
   checkXrayProperty(doc.all, 0, [ element ]);
+
+  let [ testObject, expectedValues ] = testReflectedAttributeWithFrozenArray(win);
+  checkReflectedAttributeWithFrozenArray(testObject.wrappedJSObject, expectedValues,
+                                         "on Xray and object",
+                                         (a, b) => a.wrappedJSObject == b);
 
   SimpleTest.finish();
 }

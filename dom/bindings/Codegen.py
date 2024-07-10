@@ -9644,8 +9644,10 @@ class CGPerSignatureCall(CGThing):
             # already-preserved wrapper.
             if (
                 self.idlNode.getExtendedAttribute("Cached")
-                and self.descriptor.wrapperCache
-            ):
+                or self.idlNode.getExtendedAttribute(
+                    "ReflectedHTMLAttributeReturningFrozenArray"
+                )
+            ) and self.descriptor.wrapperCache:
                 preserveWrapper = dedent(
                     """
                     PreserveWrapper(self);
@@ -10254,7 +10256,9 @@ class CGGetterCall(CGPerSignatureCall):
         argsPre=[],
         dontSetSlot=False,
         extendedAttributes=None,
+        preConversionCode=None,
     ):
+        self.preConversionCode = preConversionCode
         if attr.getExtendedAttribute("UseCounter"):
             useCounterName = "%s_%s_getter" % (
                 descriptor.interface.identifier.name,
@@ -10279,6 +10283,12 @@ class CGGetterCall(CGPerSignatureCall):
             errorReportingLabel=errorReportingLabel,
             additionalArgsPre=argsPre,
         )
+
+    def wrap_return_value(self):
+        wrap = CGPerSignatureCall.wrap_return_value(self)
+        if self.preConversionCode is not None:
+            wrap = self.preConversionCode + wrap
+        return wrap
 
 
 class FakeIdentifier:
@@ -11134,6 +11144,8 @@ class CGSpecializedGetterCommon(CGAbstractStaticMethod):
                 + prefix
             )
 
+        argsPre = [a.name for a in self.additionalArgs]
+        maybeReturnCachedVal = None
         if self.attr.slotIndices is not None:
             # We're going to store this return value in a slot on some object,
             # to cache it.  The question is, which object?  For dictionary and
@@ -11178,23 +11190,52 @@ class CGSpecializedGetterCommon(CGAbstractStaticMethod):
                     slotIndex=memberReservedSlot(self.attr, self.descriptor),
                 )
 
-            prefix += fill(
-                """
-                MOZ_ASSERT(JSCLASS_RESERVED_SLOTS(JS::GetClass(slotStorage)) > slotIndex);
-                {
-                  // Scope for cachedVal
-                  JS::Value cachedVal = JS::GetReservedSlot(slotStorage, slotIndex);
-                  if (!cachedVal.isUndefined()) {
-                    args.rval().set(cachedVal);
-                    // The cached value is in the compartment of slotStorage,
-                    // so wrap into the caller compartment as needed.
-                    return ${maybeWrap}(cx, args.rval());
-                  }
-                }
+            if self.attr.getExtendedAttribute(
+                "ReflectedHTMLAttributeReturningFrozenArray"
+            ):
+                argsPre.append("hasCachedValue ? &useCachedValue : nullptr")
+                prefix += dedent(
+                    """
+                    MOZ_ASSERT(slotIndex < JSCLASS_RESERVED_SLOTS(JS::GetClass(slotStorage)));
+                    JS::Rooted<JS::Value> cachedVal(cx, JS::GetReservedSlot(slotStorage, slotIndex));
+                    bool hasCachedValue = !cachedVal.isUndefined();
+                    bool useCachedValue = false;
+                    """
+                )
+                maybeReturnCachedVal = fill(
+                    """
+                    MOZ_ASSERT_IF(useCachedValue, hasCachedValue);
+                    if (hasCachedValue && useCachedValue) {
+                      args.rval().set(cachedVal);
+                      // The cached value is in the compartment of slotStorage,
+                      // so wrap into the caller compartment as needed.
+                      return ${maybeWrap}(cx, args.rval());
+                    }
 
-                """,
-                maybeWrap=getMaybeWrapValueFuncForType(self.attr.type),
-            )
+                    ${clearCachedValue}(self);
+
+                    """,
+                    maybeWrap=getMaybeWrapValueFuncForType(self.attr.type),
+                    clearCachedValue=MakeClearCachedValueNativeName(self.attr),
+                )
+            else:
+                prefix += fill(
+                    """
+                    MOZ_ASSERT(slotIndex < JSCLASS_RESERVED_SLOTS(JS::GetClass(slotStorage)));
+                    {
+                      // Scope for cachedVal
+                      JS::Value cachedVal = JS::GetReservedSlot(slotStorage, slotIndex);
+                      if (!cachedVal.isUndefined()) {
+                        args.rval().set(cachedVal);
+                        // The cached value is in the compartment of slotStorage,
+                        // so wrap into the caller compartment as needed.
+                        return ${maybeWrap}(cx, args.rval());
+                      }
+                    }
+
+                    """,
+                    maybeWrap=getMaybeWrapValueFuncForType(self.attr.type),
+                )
 
         return (
             prefix
@@ -11204,7 +11245,8 @@ class CGSpecializedGetterCommon(CGAbstractStaticMethod):
                 self.descriptor,
                 self.attr,
                 self.errorReportingLabel,
-                argsPre=[a.name for a in self.additionalArgs],
+                argsPre=argsPre,
+                preConversionCode=maybeReturnCachedVal,
             ).define()
         )
 
@@ -11855,11 +11897,11 @@ class CGMemberJITInfo(CGThing):
                 isAlwaysInSlot=toStringBool(alwaysInSlot),
                 isLazilyCachedInSlot=toStringBool(lazilyInSlot),
                 isTypedMethod=toStringBool(isTypedMethod),
-                slotIndex=slotIndex,
+                slotIndex="0" if slotIndex is None else slotIndex,
             )
             return initializer.rstrip()
 
-        if alwaysInSlot or lazilyInSlot:
+        if slotIndex is not None:
             slotAssert = fill(
                 """
                 static_assert(${slotIndex} <= JSJitInfo::maxSlotIndex, "We won't fit");
@@ -11950,16 +11992,24 @@ class CGMemberJITInfo(CGThing):
                 assert (
                     isAlwaysInSlot
                     or self.member.getExtendedAttribute("Cached")
+                    or self.member.getExtendedAttribute(
+                        "ReflectedHTMLAttributeReturningFrozenArray"
+                    )
                     or self.member.type.isObservableArray()
                 )
-                isLazilyCachedInSlot = not isAlwaysInSlot
+                isLazilyCachedInSlot = (
+                    not isAlwaysInSlot
+                    and not self.member.getExtendedAttribute(
+                        "ReflectedHTMLAttributeReturningFrozenArray"
+                    )
+                )
                 slotIndex = memberReservedSlot(self.member, self.descriptor)
                 # We'll statically assert that this is not too big in
                 # CGUpdateMemberSlotsMethod, in the case when
                 # isAlwaysInSlot is true.
             else:
                 isLazilyCachedInSlot = False
-                slotIndex = "0"
+                slotIndex = None
 
             result = self.defineJitInfo(
                 getterinfo,
@@ -12000,7 +12050,7 @@ class CGMemberJITInfo(CGThing):
                     "AliasEverything",
                     False,
                     False,
-                    "0",
+                    None,
                     [BuiltinTypes[IDLBuiltinType.Types.undefined]],
                     None,
                 )
@@ -12071,7 +12121,7 @@ class CGMemberJITInfo(CGThing):
                 aliasSet,
                 False,
                 False,
-                "0",
+                None,
                 [s[0] for s in sigs],
                 args,
             )
@@ -19829,6 +19879,14 @@ class CGExampleGetter(CGNativeMember):
             (attr.type, []),
             descriptor.getExtendedAttributes(attr, getter=True),
         )
+
+    def getArgs(self, returnType, argList):
+        args = CGNativeMember.getArgs(self, returnType, argList)
+        if self.member.getExtendedAttribute(
+            "ReflectedHTMLAttributeReturningFrozenArray"
+        ):
+            args.insert(0, Argument("bool*", "aUseCachedValue"))
+        return args
 
     def declare(self, cgClass):
         assert self.member.isAttr()

@@ -1152,6 +1152,11 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   void PassUnionAllowSharedArrayBuffer(
       const StringOrMaybeSharedArrayBuffer& foo);
 
+  void GetReflectedHTMLAttributeReturningFrozenArray(
+      bool*, Nullable<nsTArray<RefPtr<Element>>>&) const;
+  void SetReflectedHTMLAttributeReturningFrozenArray(
+      const Nullable<Sequence<OwningNonNull<Element>>>&);
+
  private:
   // We add signatures here that _could_ start matching if the codegen
   // got data types wrong.  That way if it ever does we'll have a call

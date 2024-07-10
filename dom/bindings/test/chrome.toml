@@ -9,7 +9,7 @@ support-files = [
 ["test_bug775543.html"]
 
 ["test_bug1123516_maplikesetlikechrome.xhtml"]
-skip-if = ["!debug"] # TestFunctions is only available in debug builds
+skip-if = ["!debug"] # Test WebIDL interfaces are only available in debug builds
 
 ["test_bug1287912.html"]
 
@@ -20,9 +20,12 @@ skip-if = ["!debug"] # TestFunctions is only available in debug builds
 ["test_document_location_via_xray_cached.html"]
 
 ["test_dom_xrays.html"]
-skip-if = ["debug == false"] # TestFunctions is only available in debug builds
+support-files = [
+  "file_reflected_attribute_frozenarray.js",
+]
+skip-if = ["!debug"] # Test WebIDL interfaces are only available in debug builds
 
 ["test_interfaceLength_chrome.html"]
-skip-if = ["debug == false"] # TestFunctions is only available in debug builds
+skip-if = ["!debug"] # Test WebIDL interfaces are only available in debug builds
 
 ["test_proxies_via_xray.html"]

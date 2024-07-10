@@ -870,6 +870,9 @@ interface TestExampleInterface {
   undefined passUnionArrayBuffer((DOMString or ArrayBuffer) foo);
   undefined passUnionAllowSharedArrayBuffer((DOMString or [AllowShared] ArrayBuffer) foo);
 
+  [Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+  attribute sequence<Element>? reflectedHTMLAttributeReturningFrozenArray;
+
   // If you add things here, add them to TestExampleGen. If they need to be
   // supported in JS-implemented WebIDL then you need to add them to
   // TestJSImplGen as well, if they are not supported in JS-implemented WebIDL

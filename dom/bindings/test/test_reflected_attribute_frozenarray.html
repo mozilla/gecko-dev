@@ -1,0 +1,24 @@
+<!-- Any copyright is dedicated to the Public Domain.
+- http://creativecommons.org/publicdomain/zero/1.0/ -->
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Test for bug 1773732</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="file_reflected_attribute_frozenarray.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<script>
+
+SimpleTest.waitForExplicitFinish();
+
+SpecialPowers.pushPrefEnv({ set: [["dom.expose_test_interfaces", true]] }, () => {
+  testReflectedAttributeWithFrozenArray(window)
+
+  SimpleTest.finish();
+});
+
+</script>
+</body>
+</html>

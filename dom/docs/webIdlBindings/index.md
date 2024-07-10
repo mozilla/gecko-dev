@@ -1987,6 +1987,54 @@ lexicographic order (which is specified by WebIDL).
 
 This should only ever be used on internal APIs that are not exposed to the Web!
 
+### `[ReflectedHTMLAttributeReturningFrozenArray]`
+
+Used to flag a HTML reflected IDL attribute as having a `FrozenArray<T>?` type,
+where `T` is either `Element` or an interface that inherits from `Element`. This
+should only be used to implement the algorithms for that kind of reflected IDL
+attributes.
+
+When this attribute's getter is called, it will cache the JS reflection of the
+returned value on the JS object. The C++ getter will be passed an additional
+`bool*` argument before the result argument. If this argument is not `null` then
+the implementation is supposed to set the `bool` that this argument is pointing
+to to whether the
+[attr-associated elements](https://html.spec.whatwg.org/#attr-associated-elements)
+and the
+[cached attr-associated elements](https://html.spec.whatwg.org/#cached-attr-associated-elements)
+are equal. If it is not `null`, and the getter sets the pointee to `true` then
+the cached JS value will be returned, and the result value from the C++ getter
+will be ignored (so there is no need to set the result's value). If it is
+`null`, or the getter sets the pointee to `false`, then the cached value will be
+set to the JS reflection of the result value from the C++ getter, and that JS
+value will then be returned.
+
+Note that this will not cause the JIT to directly get the cached value from the
+slot (as `[StoreInSlot]` or `[Cached]` would). The setter will also not clear
+the cached value from the slot.
+
+For example, this IDL:
+
+``` webidl
+interface Element {
+  [Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+  attribute sequence<Element>? reflectedHTMLAttribute;
+};
+```
+
+will require the following declarations in `Element`:
+
+``` cpp
+class Element {
+  // …
+  void GetReflectedHTMLAttribute(
+    bool* aUseCachedValue, Nullable<nsTArray<RefPtr<Element>>>& aResult);
+  void SetReflectedHTMLAttribute(
+    const Nullable<Sequence<OwningNonNull<Element>>>& aValue);
+};
+```
+
+
 ## Helper objects
 
 The C++ side of the bindings uses a number of helper objects.

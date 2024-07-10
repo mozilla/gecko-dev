@@ -146,6 +146,16 @@ interface TestFunctions {
   static boolean staticAndNonStaticOverload(optional unsigned long foo);
 };
 
+[Pref="dom.expose_test_interfaces",
+ Exposed=Window]
+interface TestReflectedHTMLAttribute {
+  constructor();
+
+  [Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+  attribute sequence<Element>? reflectedHTMLAttribute;
+  undefined setReflectedHTMLAttributeValue(sequence<Element> seq);
+};
+
 dictionary DictWithAllowSharedBufferSource {
   ArrayBuffer arrayBuffer;
   ArrayBufferView arrayBufferView;
