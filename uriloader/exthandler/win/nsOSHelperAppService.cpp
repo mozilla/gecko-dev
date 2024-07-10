@@ -454,9 +454,8 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
   bool haveMeaningfulMimeType =
       !aMIMEType.IsEmpty() &&
       !aMIMEType.LowerCaseEqualsLiteral(APPLICATION_OCTET_STREAM);
-  LOG("Extension lookup on '%S' with mimetype '%s'%s\n",
-      static_cast<const wchar_t*>(fileExtension.get()), flatType.get(),
-      haveMeaningfulMimeType ? " (treated as meaningful)" : "");
+  LOG("Extension lookup on '%S' with mimetype '%s'%s\n", fileExtension.getW(),
+      flatType.get(), haveMeaningfulMimeType ? " (treated as meaningful)" : "");
 
   RefPtr<nsMIMEInfoWin> mi;
 
@@ -488,13 +487,12 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
     usedMimeTypeExtensionForLookup = true;
     fileExtension = extensionFromMimeType;
     LOG("Now using '%s' mimetype's default file extension '%S' for lookup\n",
-        flatType.get(), static_cast<const wchar_t*>(fileExtension.get()));
+        flatType.get(), fileExtension.getW());
   }
 
   // If we have an extension, use it for lookup:
   mi = GetByExtension(fileExtension, flatType.get());
-  LOG("Extension lookup on '%S' found: 0x%p\n",
-      static_cast<const wchar_t*>(fileExtension.get()), mi.get());
+  LOG("Extension lookup on '%S' found: 0x%p\n", fileExtension.getW(), mi.get());
 
   if (mi) {
     bool hasDefault = false;
@@ -505,8 +503,7 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
       RefPtr<nsMIMEInfoWin> miFromMimeType =
           GetByExtension(extensionFromMimeType, flatType.get());
       LOG("Mime-based ext. lookup for '%S' found 0x%p\n",
-          static_cast<const wchar_t*>(extensionFromMimeType.get()),
-          miFromMimeType.get());
+          extensionFromMimeType.getW(), miFromMimeType.get());
       if (miFromMimeType) {
         nsAutoString desc;
         miFromMimeType->GetDefaultDescription(desc);
@@ -522,7 +519,7 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
   if (!extensionFromMimeType.IsEmpty() && !usedMimeTypeExtensionForLookup) {
     mi = GetByExtension(extensionFromMimeType, flatType.get());
     LOG("Mime-based ext. lookup for '%S' found 0x%p\n",
-        static_cast<const wchar_t*>(extensionFromMimeType.get()), mi.get());
+        extensionFromMimeType.getW(), mi.get());
   }
   if (mi) {
     mi.forget(aMIMEInfo);

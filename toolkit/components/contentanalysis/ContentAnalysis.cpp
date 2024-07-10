@@ -246,7 +246,7 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
     if (orgName) {
       auto dependentOrgName = nsDependentString(orgName.get());
       LOGD("Content analysis client signed with organization name \"%S\"",
-           static_cast<const wchar_t*>(dependentOrgName.get()));
+           dependentOrgName.getW());
       signatureMatches = aClientSignatureSetting.Equals(dependentOrgName);
     } else {
       LOGD("Content analysis client has no signature");

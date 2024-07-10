@@ -453,7 +453,7 @@ static void AddCachedDirRule(sandbox::TargetPolicy* aPolicy,
   if (sandbox::SBOX_ALL_OK != result) {
     NS_ERROR("Failed to add file policy rule.");
     LOG_E("Failed (ResultCode %d) to add %d access to: %S", result, aAccess,
-          static_cast<const wchar_t*>(rulePath.get()));
+          rulePath.getW());
   }
 }
 

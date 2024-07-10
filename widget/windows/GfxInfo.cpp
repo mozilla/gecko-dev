@@ -107,8 +107,7 @@ GfxInfo::GetCleartypeParameters(nsAString& aCleartypeParams) {
     ClearTypeParameterInfo& params = clearTypeParams[d];
 
     if (displayNames) {
-      outStr.AppendPrintf(
-          "%S [ ", static_cast<const wchar_t*>(params.displayName.get()));
+      outStr.AppendPrintf("%S [ ", params.displayName.getW());
     }
 
     if (params.gamma >= 0) {

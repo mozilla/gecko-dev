@@ -82,8 +82,7 @@ void OSKTabTipManager::ShowOnScreenKeyboard() {
         if (FAILED(hres) || !path) {
           return;
         }
-        commonProgramFilesPath =
-            static_cast<const wchar_t*>(nsDependentString(path).get());
+        commonProgramFilesPath = nsDependentString(path).getW();
         ::CoTaskMemFree(path);
       }
       wstrpath.replace(commonProgramFilesOffset,
