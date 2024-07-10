@@ -461,3 +461,90 @@
     opacity: 0.6;
   }
 }
+
+/**
+ * Fakespot suggestions
+ */
+
+.urlbarView-results[wrap] > .urlbarView-row[dynamicType=fakespot] > .urlbarView-row-inner {
+  flex-wrap: nowrap;
+}
+
+.urlbarView-dynamic-fakespot-body {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.urlbarView-dynamic-fakespot-description {
+  display: flex;
+  align-items: baseline;
+  font-size: var(--urlbarView-small-font-size);
+  margin-block: 0.18em;
+}
+
+.urlbarView-row-inner[selected] .urlbarView-dynamic-fakespot-rating-five-stars {
+  --icon-color: var(--urlbarView-highlight-color);
+}
+
+.urlbarView-dynamic-fakespot-rating-and-total-reviews {
+  margin-inline: 0.25em 1.23em;
+}
+
+.urlbarView-dynamic-fakespot-badge {
+  display: flex;
+  align-items: center;
+  color: #15141A;
+  font-size: 0.75em;
+  padding-inline: 0 1em;
+  padding-block: 0.27em;
+  border-radius: var(--border-radius-small);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+
+  &::before {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000000;
+    font-weight: 590;
+    padding: 0.27em 0.5em;
+    margin-inline: -1px 1em;
+    margin-block: calc(-0.27em - 1px);
+    border-start-start-radius: var(--border-radius-small);
+    border-end-start-radius: var(--border-radius-small);
+    border-block-start-style: solid;
+    border-block-end-style: solid;
+    border-inline-start-style: solid;
+    border-inline-end-style: none;
+    border-color: rgba(0, 0, 0, 0.15);
+    border-width: 1px;
+  }
+
+  &[grade=A] {
+    background-color: rgba(231, 255, 246, 0.7);
+    &::before {
+      content: "A";
+      background-color: rgb(179, 255, 227);
+    }
+  }
+  &[grade=B] {
+    background-color: rgba(222, 250, 255, 0.7);
+    &::before {
+      content: "B";
+      background-color: rgb(128, 235, 255);
+    }
+  }
+}
+
+.urlbarView-dynamic-fakespot-footer {
+  font-size: var(--urlbarView-small-font-size);
+}
+
+.urlbarView-row-inner:not([selected]) > .urlbarView-dynamic-fakespot-body {
+  > .urlbarView-dynamic-fakespot-description,
+  > .urlbarView-dynamic-fakespot-footer {
+    color: var(--urlbarView-secondary-text-color);
+  }
+}

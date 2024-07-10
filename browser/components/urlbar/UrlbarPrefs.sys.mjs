@@ -127,6 +127,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // amount of time in milliseconds for them to respond before timing out.
   ["extension.omnibox.timeout", 3000],
 
+  // Feature gate pref for Fakespot suggestions in the urlbar.
+  ["fakespot.featureGate", false],
+
   // When true, `javascript:` URLs are not included in search results.
   ["filter.javascript", true],
 
@@ -380,6 +383,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
   // Whether results will include search engines (e.g. tab-to-search).
   ["suggest.engines", true],
+
+  // If `browser.urlbar.fakespot.featureGate` is true, this controls whether
+  // Fakespot suggestions are turned on.
+  ["suggest.fakespot", true],
 
   // Whether results will include the user's history.
   ["suggest.history", true],

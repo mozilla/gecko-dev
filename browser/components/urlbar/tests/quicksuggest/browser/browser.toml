@@ -19,6 +19,8 @@ prefs = ["browser.bookmarks.testing.skipDefaultBookmarksImport=true"]
 
 ["browser_quicksuggest_configuration.js"]
 
+["browser_quicksuggest_fakespot.js"]
+
 ["browser_quicksuggest_indexes.js"]
 
 ["browser_quicksuggest_mdn.js"]

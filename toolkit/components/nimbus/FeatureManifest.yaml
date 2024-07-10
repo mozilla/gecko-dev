@@ -217,6 +217,12 @@ urlbar:
       enum:
         - best-match
         - ""
+    fakespotFeatureGate:
+      type: boolean
+      fallbackPref: browser.urlbar.fakespot.featureGate
+      description: >-
+        Feature gate that controls whether all aspects of the Fakespot suggestion
+        feature are exposed to the user.
     mdnFeatureGate:
       type: boolean
       setPref:

@@ -165,6 +165,33 @@ firefox-suggest-pocket-bottom-text = { -pocket-brand-name } · Related to <stron
 # Yelp.
 firefox-suggest-yelp-bottom-text = Yelp · Sponsored
 
+## These strings are used for Fakespot suggestions in the urlbar.
+
+# This string displays inside of the badge in Fakespot suggestion.
+firefox-suggest-fakespot-badge = RELIABLE REVIEWS
+
+## This string displays rating and total reviews as a label.
+## Variables:
+##  $rating (number) - The number of rating for the suggestion.
+##  $totalReviews (number) - The number of total reviews for the suggestion.
+
+# Show the exact number of reviews.
+firefox-suggest-fakespot-rating-and-total-reviews =
+  { $totalReviews ->
+     [one] { $rating } · ({ $totalReviews } review)
+    *[other] { $rating } · ({ $totalReviews } reviews)
+  }
+# Show an approximate number of reviews (e.g. 100,000+ reviews).
+firefox-suggest-fakespot-rating-and-total-reviews-overflow =
+  { $totalReviews ->
+     [one] { $rating } · ({ $totalReviews }+ review)
+    *[other] { $rating } · ({ $totalReviews }+ reviews)
+  }
+
+# This string is shown in Fakespot suggestion and indicates the suggestion is
+# sponsored.
+firefox-suggest-fakespot-sponsored = { -fakespot-brand-name } · Sponsored
+
 ## These strings are used in the preferences UI (about:preferences). Their names
 ## follow the naming conventions of other strings used in the preferences UI.
 
