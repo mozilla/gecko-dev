@@ -303,6 +303,11 @@ bool wasm::CodeCachingAvailable(JSContext* cx) {
   return false;
 #else
 
+  // We temporarily don't support caching with our new compile pipeline
+  if (ExperimentalCompilePipelineAvailable(cx)) {
+    return false;
+  }
+
   // At the moment, we require Ion support for code caching.  The main reason
   // for this is that wasm::CompileAndSerialize() does not have access to
   // information about which optimizing compiler it should use.  See comments in

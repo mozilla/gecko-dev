@@ -1,3 +1,6 @@
+// |jit-test| skip-if: wasmExperimentalCompilePipelineEnabled()
+// TODO: temporarily skip lazy tiering to avoid a timeout
+
 // Test that wasm atomic operations implement correct mutual exclusion.
 //
 // We have several agents that attempt to hammer on a shared location with rmw

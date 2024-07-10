@@ -179,7 +179,7 @@ bool BaseCompiler::addHotnessCheck() {
   masm.jump(&rejoin);
 
   masm.bind(&isHot);
-  masm.wasmTrap(wasm::Trap::CheckHotness, bytecodeOffset());
+  masm.wasmTrap(wasm::Trap::RequestTierUp, bytecodeOffset());
   if (!createStackMap("addHotnessCheck")) {
     freeI32(scratch);
     return false;

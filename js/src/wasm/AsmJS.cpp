@@ -2224,7 +2224,7 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
 
     ModuleGenerator mg(*args, codeMeta_, &compilerEnv_,
                        compilerEnv_.initialState(), nullptr, nullptr, nullptr);
-    if (!mg.init(codeMetaForAsmJS_.get())) {
+    if (!mg.initializeCompleteTier(codeMetaForAsmJS_.get())) {
       return nullptr;
     }
 

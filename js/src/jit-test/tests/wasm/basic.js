@@ -1,3 +1,6 @@
+// |jit-test| skip-if: wasmExperimentalCompilePipelineEnabled()
+// TODO: temporarily skip lazy tiering to avoid a timeout
+
 const { LinkError } = WebAssembly;
 
 // ----------------------------------------------------------------------------

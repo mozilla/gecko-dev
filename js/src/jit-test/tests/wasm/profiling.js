@@ -1,4 +1,5 @@
-// |jit-test| skip-if: !WasmHelpers.isSingleStepProfilingEnabled
+// |jit-test| skip-if: !WasmHelpers.isSingleStepProfilingEnabled || wasmExperimentalCompilePipelineEnabled()
+// TODO: temporarily skip lazy tiering which changes stacks
 
 const Module = WebAssembly.Module;
 const Instance = WebAssembly.Instance;

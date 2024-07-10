@@ -202,7 +202,7 @@ enum class Trap {
 
   // A function has crossed the hotness threshold and an optimized version
   // should be compiled.
-  CheckHotness,
+  RequestTierUp,
 
   // The wasm execution has potentially run too long and the engine must call
   // CheckForInterrupt(). This trap is resumable.
@@ -1231,7 +1231,10 @@ enum class CompileState {
   EagerTier2,
   // We're compiling the module eagerly using the lazy tiering mode. We're
   // compiling the first tier.
-  LazyTier1
+  LazyTier1,
+  // We're compiling the module eagerly using the lazy tiering strategy. We're
+  // compiling the second tier.
+  LazyTier2,
 };
 
 // Typed enum for whether debugging is enabled.

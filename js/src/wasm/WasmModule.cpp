@@ -116,8 +116,9 @@ class Module::Tier2GeneratorTaskImpl : public Tier2GeneratorTask {
       // okay.
       UniqueChars error;
       UniqueCharsVector warnings;
-      bool success = CompileTier2(*compileArgs_, bytecode_->bytes, *module_,
-                                  &error, &warnings, &cancelled_);
+      bool success =
+          CompileCompleteTier2(*compileArgs_, bytecode_->bytes, *module_,
+                               &error, &warnings, &cancelled_);
       if (!cancelled_) {
         // We could try to dispatch a runnable to the thread that started this
         // compilation, so as to report the warning/error using a JSContext*.
@@ -168,7 +169,7 @@ void Module::startTier2(const CompileArgs& args, const ShareableBytes& bytecode,
 bool Module::finishTier2(const LinkData& sharedStubsLinkData,
                          const LinkData& linkData2,
                          UniqueCodeBlock code2) const {
-  if (!code_->finishCompleteTier2(linkData2, std::move(code2))) {
+  if (!code_->finishTier2(linkData2, std::move(code2))) {
     return false;
   }
 
@@ -977,7 +978,8 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
   cx->runtime()->setUseCounter(instance, useCounter);
   SetUseCountersForFeatureUsage(cx, instance, codeMeta().featureUsage);
 
-  if (cx->options().testWasmAwaitTier2()) {
+  if (cx->options().testWasmAwaitTier2() &&
+      code().mode() != CompileMode::LazyTiering) {
     testingBlockOnTier2Complete();
   }
 

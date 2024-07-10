@@ -208,8 +208,7 @@ class CodeSegment : public ShareableBase<CodeSegment> {
   const Code* code_;
 
   bool linkAndMakeExecutable(jit::AutoMarkJitCodeWritableForThread& writable,
-                             const LinkData& linkData,
-                             const CodeBlock* maybeSharedStubs);
+                             const LinkData& linkData, const Code* maybeCode);
 
  public:
   CodeSegment(UniqueCodeBytes bytes, uint32_t lengthBytes,
@@ -222,11 +221,10 @@ class CodeSegment : public ShareableBase<CodeSegment> {
   static RefPtr<CodeSegment> createEmpty(size_t capacityBytes);
   static RefPtr<CodeSegment> createFromMasm(jit::MacroAssembler& masm,
                                             const LinkData& linkData,
-                                            const CodeBlock* maybeSharedStubs);
+                                            const Code* maybeCode);
   static RefPtr<CodeSegment> createFromBytes(const uint8_t* unlinkedBytes,
                                              size_t unlinkedBytesLength,
-                                             const LinkData& linkData,
-                                             const CodeBlock* maybeSharedStubs);
+                                             const LinkData& linkData);
 
   void setCode(const Code& code) { code_ = &code; }
 
@@ -269,8 +267,20 @@ extern UniqueCodeBytes AllocateCodeBytes(
     uint32_t codeLength);
 extern bool StaticallyLink(jit::AutoMarkJitCodeWritableForThread& writable,
                            uint8_t* base, const LinkData& linkData,
-                           const CodeBlock* maybeSharedStubs);
+                           const Code* maybeCode);
 extern void StaticallyUnlink(uint8_t* base, const LinkData& linkData);
+
+enum class TierUpState : uint32_t {
+  NotRequested,
+  Requested,
+  Finished,
+};
+
+struct FuncState {
+  Atomic<const CodeBlock*> bestTier;
+  Atomic<TierUpState> tierUpState;
+};
+using FuncStatesPointer = mozilla::UniquePtr<FuncState[], JS::FreePolicy>;
 
 // LazyFuncExport helps to efficiently lookup a CodeRange from a given function
 // index. It is inserted in a vector sorted by function index, to perform
@@ -793,6 +803,9 @@ class Code : public ShareableBase<Code> {
   // true.
   mutable const CodeBlock* completeTier2_;
   mutable Atomic<bool> hasCompleteTier2_;
+  // State for every defined function (not imported) in this module. This is
+  // only needed if we're doing partial tiering.
+  mutable FuncStatesPointer funcStates_;
 
   FuncImportVector funcImports_;
   ExclusiveData<CacheableCharsVector> profilingLabels_;
@@ -804,11 +817,14 @@ class Code : public ShareableBase<Code> {
   // The bytecode for a module. Only available for debuggable modules, or if
   // doing lazy tiering.
   const SharedBytes bytecode_;
+  const SharedCompileArgs compileArgs_;
 
   // Methods for getting complete tiers, private while we're moving to partial
   // tiering.
   Tiers completeTiers() const;
 
+  [[nodiscard]] const LazyFuncExport* lookupLazyFuncExport(const WriteGuard& guard,
+                                                           uint32_t funcIndex) const;
   // Returns a pointer to the raw interpreter entry of a given function for
   // which stubs have been lazily generated.
   [[nodiscard]] void* lookupLazyInterpEntry(const WriteGuard& guard,
@@ -835,7 +851,8 @@ class Code : public ShareableBase<Code> {
  public:
   Code(CompileMode mode, const CodeMetadata& codeMeta,
        const CodeMetadataForAsmJS* codeMetaForAsmJS,
-       const ShareableBytes* maybeBytecode);
+       const ShareableBytes* maybeBytecode,
+       const CompileArgs* maybeCompileArgs);
   bool initialized() const {
     return !!completeTier1_ && completeTier1_->initialized();
   }
@@ -844,12 +861,14 @@ class Code : public ShareableBase<Code> {
                                 UniqueCodeBlock sharedStubs,
                                 const LinkData& sharedStubsLinkData,
                                 UniqueCodeBlock tier1CodeBlock);
-  [[nodiscard]] bool finishCompleteTier2(const LinkData& linkData,
-                                         UniqueCodeBlock tier2Code) const;
+  [[nodiscard]] bool finishTier2(const LinkData& linkData,
+                                 UniqueCodeBlock tier2Code) const;
 
   [[nodiscard]] bool getOrCreateInterpEntry(uint32_t funcIndex,
                                             const FuncExport** funcExport,
                                             void** interpEntry) const;
+
+  bool requestTierUp(uint32_t funcIndex, uint32_t funcBytecodeOffset) const;
 
   CompileMode mode() const { return mode_; }
 
@@ -898,6 +917,9 @@ class Code : public ShareableBase<Code> {
   const CodeBlock& funcCodeBlock(uint32_t funcIndex) const {
     if (funcIndex < funcImports_.length()) {
       return *sharedStubs_;
+    }
+    if (mode_ == CompileMode::LazyTiering) {
+      return *funcStates_.get()[funcIndex - codeMeta_->numFuncImports].bestTier;
     }
     return completeTierCodeBlock(bestCompleteTier());
   }

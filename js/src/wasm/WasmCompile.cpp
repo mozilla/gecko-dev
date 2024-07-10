@@ -197,8 +197,9 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
   // is open.
   bool debug = cx->realm() && cx->realm()->debuggerObservesWasm();
 
-  bool forceTiering =
-      cx->options().testWasmAwaitTier2() || JitOptions.wasmDelayTier2;
+  bool forceTiering = cx->options().testWasmAwaitTier2() ||
+                      JitOptions.wasmDelayTier2 ||
+                      wasm::ExperimentalCompilePipelineAvailable(cx);
 
   // The <Compiler>Available() predicates should ensure no failure here, but
   // when we're fuzzing we allow inconsistent switches and the check may thus
@@ -724,7 +725,9 @@ void CompilerEnvironment::computeParameters(Decoder& d) {
   if (baselineEnabled && hasSecondTier &&
       (TieringBeneficial(codeSectionSize) || forceTiering) &&
       PlatformCanTier()) {
-    mode_ = CompileMode::EagerTiering;
+    mode_ = args_->features.experimentalCompilePipeline
+                ? CompileMode::LazyTiering
+                : CompileMode::EagerTiering;
     tier_ = Tier::Baseline;
   } else {
     mode_ = CompileMode::Once;
@@ -816,7 +819,7 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
 
   ModuleGenerator mg(args, codeMeta, &compilerEnv, compilerEnv.initialState(),
                      nullptr, error, warnings);
-  if (!mg.init(nullptr)) {
+  if (!mg.initializeCompleteTier()) {
     return nullptr;
   }
 
@@ -831,9 +834,10 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
   return mg.finishModule(bytecode, moduleMeta, listener);
 }
 
-bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
-                        const Module& module, UniqueChars* error,
-                        UniqueCharsVector* warnings, Atomic<bool>* cancelled) {
+bool wasm::CompileCompleteTier2(const CompileArgs& args, const Bytes& bytecode,
+                                const Module& module, UniqueChars* error,
+                                UniqueCharsVector* warnings,
+                                Atomic<bool>* cancelled) {
   Decoder d(bytecode, 0, error);
 
   // FIXME this shouldn't be needed!  (nullptr should be OK)
@@ -852,7 +856,7 @@ bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
 
   ModuleGenerator mg(args, codeMeta, &compilerEnv, CompileState::EagerTier2,
                      cancelled, error, warnings);
-  if (!mg.init(nullptr)) {
+  if (!mg.initializeCompleteTier()) {
     return false;
   }
 
@@ -865,6 +869,59 @@ bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
   }
 
   return mg.finishTier2(module);
+}
+
+class PartialTierModuleGenerator {
+ private:
+  ModuleGenerator& mg_;
+  uint32_t targetFuncIndex_;
+
+ public:
+  PartialTierModuleGenerator(ModuleGenerator& mg, uint32_t targetFuncIndex)
+      : mg_(mg), targetFuncIndex_(targetFuncIndex) {}
+
+  bool finishFuncDefs() { return mg_.finishFuncDefs(); }
+  bool compileFuncDef(uint32_t funcIndex, uint32_t lineOrBytecode,
+                      const uint8_t* begin, const uint8_t* end) {
+    if (funcIndex != targetFuncIndex_) {
+      return true;
+    }
+
+    return mg_.compileFuncDef(funcIndex, lineOrBytecode, begin, end);
+  }
+};
+
+bool wasm::CompilePartialTier2(const CompileArgs& args, const Bytes& bytecode,
+                               uint32_t funcIndex, uint32_t funcBytecodeOffset,
+                               const Code& code, UniqueChars* error,
+                               UniqueCharsVector* warnings,
+                               Atomic<bool>* cancelled) {
+  Decoder d(bytecode, 0, error);
+
+  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
+  if (!moduleMeta) {
+    return false;
+  }
+  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(args.features);
+  if (!codeMeta || !codeMeta->init() ||
+      !DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
+    return false;
+  }
+  CompilerEnvironment compilerEnv(CompileMode::LazyTiering, Tier::Optimized,
+                                  DebugEnabled::False);
+  compilerEnv.computeParameters(d);
+
+  ModuleGenerator mg(args, codeMeta, &compilerEnv, CompileState::LazyTier2,
+                     cancelled, error, warnings);
+  if (!mg.initializePartialTier(code, funcIndex)) {
+    return false;
+  }
+  PartialTierModuleGenerator pmg(mg, funcIndex);
+  if (!DecodeCodeSection(*codeMeta, d, pmg)) {
+    return false;
+  }
+
+  return mg.finishPartialTier2(code);
 }
 
 class StreamingDecoder {
@@ -977,7 +1034,7 @@ SharedModule wasm::CompileStreaming(
 
   ModuleGenerator mg(args, codeMeta, &compilerEnv, compilerEnv.initialState(),
                      &cancelled, error, warnings);
-  if (!mg.init(nullptr)) {
+  if (!mg.initializeCompleteTier()) {
     return nullptr;
   }
 

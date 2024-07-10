@@ -29,6 +29,8 @@ class OptimizedEncodingListener;
 namespace js {
 namespace wasm {
 
+class Code;
+
 // Return a uint32_t which captures the observed properties of the CPU that
 // affect compilation. If code compiled now is to be serialized and executed
 // later, the ObservedCPUFeatures() must be ensured to be the same.
@@ -53,9 +55,16 @@ SharedModule CompileBuffer(const CompileArgs& args,
 
 // Attempt to compile the second tier of the given wasm::Module.
 
-bool CompileTier2(const CompileArgs& args, const Bytes& bytecode,
-                  const Module& module, UniqueChars* error,
-                  UniqueCharsVector* warnings, Atomic<bool>* cancelled);
+bool CompileCompleteTier2(const CompileArgs& args, const Bytes& bytecode,
+                          const Module& module, UniqueChars* error,
+                          UniqueCharsVector* warnings, Atomic<bool>* cancelled);
+
+// Attempt to compile the second tier for the given functions of a wasm::Module.
+
+bool CompilePartialTier2(const CompileArgs& args, const Bytes& bytecode,
+                         uint32_t funcIndex, uint32_t funcBytecodeOffset,
+                         const Code& code, UniqueChars* error,
+                         UniqueCharsVector* warnings, Atomic<bool>* cancelled);
 
 // Compile the given WebAssembly module which has been broken into three
 // partitions:

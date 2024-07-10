@@ -816,15 +816,34 @@ static void* WasmHandleThrow(jit::ResumeFromException* rfe) {
 }
 
 // Has the same return-value convention as HandleTrap().
-static void* CheckHotness(JSContext* cx, JitActivation* activation) {
+static void* RequestTierUp(JSContext* cx, JitActivation* activation) {
   void* resumePC = activation->wasmTrapData().resumePC;
   const CodeRange* codeRange;
   const CodeBlock* codeBlock = LookupCodeBlock(resumePC, &codeRange);
   MOZ_RELEASE_ASSERT(codeBlock && codeRange);
 
-  // Reset the hotness counter for this func.
+  uint32_t funcIndex = codeRange->funcIndex();
+
+  // Function `funcIndex` is requesting tier-up.  This can go one of three ways:
+  // - the request is a duplicate -- ignore
+  // - tier-up compilation succeeds -- we hope
+  // - tier-up compilation fails (eg, OOMs).  We're in a signal handler (!) and
+  //   have no feasible way to recover.
+
+  // Regardless of the outcome, we want to defer duplicate requests as long as
+  // possible.  So set the counter to "infinity" right now.
+
   wasm::Instance* instance = activation->wasmExitInstance();
-  instance->resetHotnessCounter(codeRange->funcIndex());
+  instance->resetHotnessCounter(funcIndex);
+
+  // Try to Ion-compile it.  Note that `ok == true` signifies either
+  // "duplicate request" or "not a duplicate, and compilation succeeded".
+  bool ok = codeBlock->code->requestTierUp(funcIndex,
+                                           codeRange->funcLineOrBytecode());
+  // If compilation failed, there's no feasible way to recover.
+  if (!ok) {
+    wasm::Log(cx, "Failed to tier-up function=%d in instance=%p.", funcIndex, instance);
+  }
 
   activation->finishWasmTrap();
   return resumePC;
@@ -894,8 +913,8 @@ static void* WasmHandleTrap() {
       ReportTrapError(cx, JSMSG_WASM_UNALIGNED_ACCESS);
       return nullptr;
     }
-    case Trap::CheckHotness:
-      return CheckHotness(cx, activation);
+    case Trap::RequestTierUp:
+      return RequestTierUp(cx, activation);
     case Trap::CheckInterrupt:
       return CheckInterrupt(cx, activation);
     case Trap::StackOverflow: {

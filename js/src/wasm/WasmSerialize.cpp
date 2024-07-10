@@ -979,8 +979,7 @@ CoderResult CodeLinkData(Coder<mode>& coder,
 
 CoderResult CodeCodeSegment(Coder<MODE_DECODE>& coder,
                             wasm::SharedCodeSegment* item,
-                            const wasm::LinkData& linkData,
-                            wasm::CodeBlock* maybeSharedStubs) {
+                            const wasm::LinkData& linkData) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeSegment, 40);
   // Assert we're decoding a CodeSegment
   MOZ_TRY(Magic(coder, Marker::CodeSegment));
@@ -994,8 +993,7 @@ CoderResult CodeCodeSegment(Coder<MODE_DECODE>& coder,
   MOZ_TRY(coder.readBytesRef(length, &codeBytes));
 
   // Initialize the CodeSegment
-  *item = CodeSegment::createFromBytes(codeBytes, length, linkData,
-                                       maybeSharedStubs);
+  *item = CodeSegment::createFromBytes(codeBytes, length, linkData);
   if (!*item) {
     return Err(OutOfMemory());
   }
@@ -1138,8 +1136,7 @@ CoderResult CodeFuncToCodeRangeMap(
 
 CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
                           wasm::UniqueCodeBlock* item,
-                          const wasm::LinkData& linkData,
-                          wasm::CodeBlock* maybeSharedStubs) {
+                          const wasm::LinkData& linkData) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 936);
   *item = js::MakeUnique<CodeBlock>(CodeBlock::kindFromTier(Tier::Serialized));
   if (!*item) {
@@ -1147,7 +1144,7 @@ CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
   }
   MOZ_TRY(Magic(coder, Marker::CodeBlock));
   SharedCodeSegment codeSegment;
-  MOZ_TRY(CodeCodeSegment(coder, &codeSegment, linkData, maybeSharedStubs));
+  MOZ_TRY(CodeCodeSegment(coder, &codeSegment, linkData));
   (*item)->segment = codeSegment;
   (*item)->codeBase = codeSegment->base();
   (*item)->codeLength = codeSegment->lengthBytes();
@@ -1188,7 +1185,7 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
 CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
                            const wasm::LinkData& sharedStubsLinkData,
                            const wasm::LinkData& optimizedLinkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 712);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 728);
   MutableCodeMetadata codeMeta;
   UniqueCodeBlock sharedStubs;
   UniqueCodeBlock optimizedCode;
@@ -1196,14 +1193,13 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
   MOZ_TRY((CodeRefPtr<MODE_DECODE, CodeMetadata, &CodeCodeMetadata>(
       coder, &codeMeta)));
   MOZ_TRY(CodePodVector(coder, &funcImports));
-  MOZ_TRY(CodeCodeBlock(coder, &sharedStubs, sharedStubsLinkData, nullptr));
-  MOZ_TRY(CodeCodeBlock(coder, &optimizedCode, optimizedLinkData,
-                        sharedStubs.get()));
+  MOZ_TRY(CodeCodeBlock(coder, &sharedStubs, sharedStubsLinkData));
+  MOZ_TRY(CodeCodeBlock(coder, &optimizedCode, optimizedLinkData));
 
   // Create and initialize the code
   MutableCode code =
     js_new<Code>(CompileMode::Once, *codeMeta, /*codeMetaForAsmJS=*/nullptr,
-                 /*maybeBytecode=*/nullptr);
+                 /*maybeBytecode=*/nullptr, /*maybeCompileArgs=*/nullptr);
   if (!code ||
       !code->initialize(std::move(funcImports), std::move(sharedStubs),
                         sharedStubsLinkData, std::move(optimizedCode))) {
@@ -1218,7 +1214,7 @@ CoderResult CodeSharedCode(Coder<mode>& coder,
                            CoderArg<mode, wasm::SharedCode> item,
                            const wasm::LinkData& sharedStubsLinkData,
                            const wasm::LinkData& optimizedLinkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 712);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 728);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY((CodeRefPtr<mode, const CodeMetadata, &CodeCodeMetadata>(
       coder, &(*item)->codeMeta_)));

@@ -4138,7 +4138,7 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
 
   ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv,
                      compilerEnv.initialState(), nullptr, nullptr, nullptr);
-  if (!mg.init(nullptr)) {
+  if (!mg.initializeCompleteTier()) {
     return nullptr;
   }
   // We're not compiling any function definitions.

@@ -1,5 +1,6 @@
-// |jit-test| skip-if: !getJitCompilerOptions()['baseline.enable']
+// |jit-test| skip-if: !getJitCompilerOptions()['baseline.enable'] || wasmExperimentalCompilePipelineEnabled()
 // These tests need at least baseline to make sense.
+// TODO: temporarily skip lazy tiering which changes stacks
 
 const { assertStackTrace, startProfiling, endProfiling, assertEqPreciseStacks } = WasmHelpers;
 

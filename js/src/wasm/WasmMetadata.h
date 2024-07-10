@@ -274,6 +274,7 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
         features(),
         numFuncImports(0),
         numGlobalImports(0),
+        funcDefsOffsetStart(UINT32_MAX),
         funcImportsOffsetStart(UINT32_MAX),
         typeDefsOffsetStart(UINT32_MAX),
         memoriesOffsetStart(UINT32_MAX),

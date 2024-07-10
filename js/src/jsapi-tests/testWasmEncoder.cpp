@@ -72,7 +72,7 @@ BEGIN_TEST(testWasmEncodeBasic) {
 
   ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv,
                      compilerEnv.initialState(), nullptr, nullptr, nullptr);
-  MOZ_ALWAYS_TRUE(mg.init(nullptr));
+  MOZ_ALWAYS_TRUE(mg.initializeCompleteTier());
 
   // Build function and keep bytecode around until the end.
   Bytes bytecode;

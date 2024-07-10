@@ -278,6 +278,7 @@ class GlobalHelperThreadState {
       case wasm::CompileState::LazyTier1:
         return wasmWorklist_tier1_;
       case wasm::CompileState::EagerTier2:
+      case wasm::CompileState::LazyTier2:
         return wasmWorklist_tier2_;
       default:
         MOZ_CRASH();
