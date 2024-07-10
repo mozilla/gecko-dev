@@ -21,7 +21,6 @@ ${helpers.predefined_type(
     "BoxShadow",
     None,
     engines="gecko servo",
-    servo_pref="layout.legacy_layout",
     vector=True,
     simple_vector_bindings=True,
     animation_value_type="AnimatedBoxShadowList",

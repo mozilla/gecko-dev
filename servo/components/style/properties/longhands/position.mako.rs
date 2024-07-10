@@ -497,7 +497,6 @@ ${helpers.predefined_type(
     "AspectRatio",
     "computed::AspectRatio::auto()",
     engines="gecko servo",
-    servo_pref="layout.legacy_layout",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-sizing-4/#aspect-ratio",
     servo_restyle_damage="reflow",

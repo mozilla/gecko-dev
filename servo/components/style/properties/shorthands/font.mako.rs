@@ -322,7 +322,6 @@
 
 <%helpers:shorthand name="font-variant"
                     engines="gecko servo"
-                    servo_pref="layout.legacy_layout",
                     sub_properties="font-variant-caps
                                     ${'font-variant-alternates' if engine == 'gecko' else ''}
                                     ${'font-variant-east-asian' if engine == 'gecko' else ''}

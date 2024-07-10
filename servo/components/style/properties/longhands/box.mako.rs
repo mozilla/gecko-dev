@@ -139,7 +139,6 @@ ${helpers.single_keyword(
     "-servo-overflow-clip-box",
     "padding-box content-box",
     engines="servo",
-    servo_pref="layout.legacy_layout",
     animation_value_type="none",
     enabled_in="ua",
     spec="Internal, not web-exposed, \

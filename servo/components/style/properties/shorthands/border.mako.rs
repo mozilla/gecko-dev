@@ -279,7 +279,6 @@ pub fn parse_border<'i, 't>(
 <%helpers:shorthand
     name="border-image"
     engines="gecko servo"
-    servo_pref="layout.legacy_layout",
     sub_properties="border-image-outset
         border-image-repeat border-image-slice border-image-source border-image-width"
     extra_prefixes="moz:layout.css.prefixes.border-image webkit"
