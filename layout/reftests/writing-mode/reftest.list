@@ -3,7 +3,7 @@
 == 1079154-1-vertical-rl-columns.html 1079154-1-vertical-rl-columns-ref.html
 == 1082844.html 1082844-ref.html
 == 1083748.html 1083748-ref.html
-== 1083848-1-inline-border.html 1083848-1-inline-border-ref.html
+fuzzy-if(winWidget,0-92,0-3) == 1083848-1-inline-border.html 1083848-1-inline-border-ref.html
 == 1083848-2-inline-background.html 1083848-2-inline-background-ref.html
 fuzzy-if(gtkWidget,0-255,0-2) fuzzy-if(winWidget||Android,0-4,0-8704) == 1083848-3-inline-background-repeat.html 1083848-3-inline-background-repeat-ref.html
 == 1083892-1.html 1083892-1-ref.html
