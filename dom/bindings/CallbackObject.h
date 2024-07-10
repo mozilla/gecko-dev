@@ -264,10 +264,7 @@ class CallbackObject : public nsISupports {
   // this point. This should only be called if the object is known not to be
   // used again, and no handles (e.g. those returned by CallbackPreserveColor)
   // are in use.
-  void Reset() {
-    ClearJSReferences();
-    mozilla::DropJSObjects(this);
-  }
+  void Reset() { ClearJSReferences(); }
   friend class mozilla::PromiseJobRunnable;
 
   inline void ClearJSReferences() {
