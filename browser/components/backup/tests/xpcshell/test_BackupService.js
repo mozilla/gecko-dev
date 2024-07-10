@@ -87,6 +87,11 @@ async function testCreateBackupHelper(sandbox, taskFn) {
   let totalBackupSizeHistogram = TelemetryTestUtils.getAndClearHistogram(
     "BROWSER_BACKUP_TOTAL_BACKUP_SIZE"
   );
+  // Handle for the metric for total time taking by profile backup
+  let backupTimerHistogram = TelemetryTestUtils.getAndClearHistogram(
+    "BROWSER_BACKUP_TOTAL_BACKUP_TIME_MS"
+  );
+
   const EXPECTED_CLIENT_ID = await ClientID.getClientID();
 
   let fake1ManifestEntry = { fake1: "hello from 1" };
@@ -133,6 +138,16 @@ async function testCreateBackupHelper(sandbox, taskFn) {
     profilePath: fakeProfilePath,
   });
   Assert.ok(bs.state.lastBackupDate, "The backup date was recorded.");
+
+  // Validate total backup time metrics were recorded
+  assertSingleTimeMeasurement(
+    Glean.browserBackup.totalBackupTime.testGetValue()
+  );
+  assertHistogramMeasurementQuantity(
+    backupTimerHistogram,
+    1,
+    "Should have collected a single measurement for total backup time"
+  );
 
   Assert.ok(await IOUtils.exists(backupFilePath), "The backup file exists");
 
@@ -348,6 +363,202 @@ add_task(async function test_createBackup_signed_in() {
     );
   });
 
+  sandbox.restore();
+});
+
+/**
+ * Tests that any internal file system errors in BackupService.createBackup
+ * do not bubble up any errors.
+ */
+add_task(
+  {
+    // Bug 1905724 - Need to find a way to deny write access to backup directory on Windows
+    skip_if: () => AppConstants.platform == "win",
+  },
+  async function test_createBackup_robustToFileSystemErrors() {
+    let sandbox = sinon.createSandbox();
+    Services.fog.testResetFOG();
+    // Handle for the metric for total time taking by profile backup
+    let backupTimerHistogram = TelemetryTestUtils.getAndClearHistogram(
+      "BROWSER_BACKUP_TOTAL_BACKUP_TIME_MS"
+    );
+
+    const TEST_UID = "ThisIsMyTestUID";
+    const TEST_EMAIL = "foxy@mozilla.org";
+
+    sandbox.stub(UIState, "get").returns({
+      status: UIState.STATUS_SIGNED_IN,
+      uid: TEST_UID,
+      email: TEST_EMAIL,
+    });
+
+    // Create a read-only fake profile folder to which the backup service
+    // won't be able to make writes
+    let inaccessibleProfilePath = await IOUtils.createUniqueDirectory(
+      PathUtils.tempDir,
+      "createBackupErrorInaccessible"
+    );
+    IOUtils.setPermissions(inaccessibleProfilePath, 0o444);
+
+    const bs = new BackupService({});
+
+    await bs
+      .createBackup({ profilePath: inaccessibleProfilePath })
+      .then(result => {
+        Assert.equal(result, null, "Should return null on error");
+
+        // Validate total backup time metrics were recorded
+        const totalBackupTime =
+          Glean.browserBackup.totalBackupTime.testGetValue();
+        Assert.equal(
+          totalBackupTime,
+          null,
+          "Should not have measured total backup time for failed backup"
+        );
+        assertHistogramMeasurementQuantity(backupTimerHistogram, 0);
+      })
+      .catch(() => {
+        // Trigger failure if there was an uncaught error
+        Assert.ok(false, "Should not have bubbled up an error");
+      })
+      .finally(async () => {
+        await IOUtils.remove(inaccessibleProfilePath, { recursive: true });
+        sandbox.restore();
+      });
+  }
+);
+
+/**
+ * Creates a directory that looks a lot like a decompressed backup archive,
+ * and then tests that BackupService.recoverFromSnapshotFolder can create a new
+ * profile and recover into it.
+ */
+add_task(async function test_recoverFromSnapshotFolder() {
+  let sandbox = sinon.createSandbox();
+  let fakeEntryMap = new Map();
+  let backupResourceClasses = [
+    FakeBackupResource1,
+    FakeBackupResource2,
+    FakeBackupResource3,
+  ];
+
+  let i = 1;
+  for (let backupResourceClass of backupResourceClasses) {
+    let fakeManifestEntry = { [`fake${i}`]: `hello from backup - ${i}` };
+    sandbox
+      .stub(backupResourceClass.prototype, "backup")
+      .resolves(fakeManifestEntry);
+
+    let fakePostRecoveryEntry = { [`fake${i}`]: `hello from recover - ${i}` };
+    sandbox
+      .stub(backupResourceClass.prototype, "recover")
+      .resolves(fakePostRecoveryEntry);
+
+    fakeEntryMap.set(backupResourceClass, {
+      manifestEntry: fakeManifestEntry,
+      postRecoveryEntry: fakePostRecoveryEntry,
+    });
+
+    ++i;
+  }
+
+  let bs = new BackupService({
+    FakeBackupResource1,
+    FakeBackupResource2,
+    FakeBackupResource3,
+  });
+
+  let oldProfilePath = await IOUtils.createUniqueDirectory(
+    PathUtils.tempDir,
+    "recoverFromSnapshotFolderTest"
+  );
+  let newProfileRootPath = await IOUtils.createUniqueDirectory(
+    PathUtils.tempDir,
+    "recoverFromSnapshotFolderTest-newProfileRoot"
+  );
+
+  let { stagingPath } = await bs.createBackup({ profilePath: oldProfilePath });
+
+  // Ensure that the appName in the written manifest matches the current
+  // MOZ_APP_NAME.
+  let manifest = await IOUtils.readJSON(
+    PathUtils.join(stagingPath, BackupService.MANIFEST_FILE_NAME)
+  );
+  Assert.equal(
+    manifest.meta.appName,
+    AppConstants.MOZ_APP_NAME,
+    "appName matches MOZ_APP_NAME"
+  );
+  // And that appVersion matches MOZ_APP_VERSION
+  Assert.equal(
+    manifest.meta.appVersion,
+    AppConstants.MOZ_APP_VERSION,
+    "appVersion matches MOZ_APP_VERSION"
+  );
+
+  let testTelemetryStateObject = {
+    clientID: "ed209123-04a1-04a1-04a1-c0ffeec0ffee",
+  };
+  await IOUtils.writeJSON(
+    PathUtils.join(PathUtils.profileDir, "datareporting", "state.json"),
+    testTelemetryStateObject
+  );
+
+  let profile = await bs.recoverFromSnapshotFolder(
+    stagingPath,
+    false /* shouldLaunch */,
+    newProfileRootPath,
+    null /* encState */
+  );
+  Assert.ok(profile, "An nsIToolkitProfile was created.");
+  let newProfilePath = profile.rootDir.path;
+
+  let postRecoveryFilePath = PathUtils.join(
+    newProfilePath,
+    "post-recovery.json"
+  );
+  let postRecovery = await IOUtils.readJSON(postRecoveryFilePath);
+
+  for (let backupResourceClass of backupResourceClasses) {
+    let expectedResourceFolder = PathUtils.join(
+      stagingPath,
+      backupResourceClass.key
+    );
+
+    let { manifestEntry, postRecoveryEntry } =
+      fakeEntryMap.get(backupResourceClass);
+
+    Assert.ok(
+      backupResourceClass.prototype.recover.calledOnce,
+      `Recover was called for ${backupResourceClass.key}`
+    );
+    Assert.ok(
+      backupResourceClass.prototype.recover.calledWith(
+        manifestEntry,
+        expectedResourceFolder,
+        newProfilePath
+      ),
+      `Recover was passed the right arguments for ${backupResourceClass.key}`
+    );
+    Assert.deepEqual(
+      postRecoveryEntry,
+      postRecovery[backupResourceClass.key],
+      "The post recovery data is as expected"
+    );
+  }
+
+  let newProfileTelemetryStateObject = await IOUtils.readJSON(
+    PathUtils.join(newProfileRootPath, "datareporting", "state.json")
+  );
+  Assert.deepEqual(
+    testTelemetryStateObject,
+    newProfileTelemetryStateObject,
+    "Recovered profile inherited telemetry state from the profile that " +
+      "initiated recovery"
+  );
+
+  await IOUtils.remove(oldProfilePath, { recursive: true });
+  await IOUtils.remove(newProfileRootPath, { recursive: true });
   sandbox.restore();
 });
 
