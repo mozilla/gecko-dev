@@ -44,7 +44,7 @@ TestArray.addTest(
 
 // -----------------------------------------------------------------------------
 TestArray.addTest(
-  "Derive four bits with HKDF, no salt or info given",
+  "Derive eight bits with HKDF, no salt or info given",
   function() {
     var that = this;
     var key = util.hex2abv("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b");
@@ -57,9 +57,8 @@ TestArray.addTest(
     };
 
     crypto.subtle.importKey("raw", key, "HKDF", false, ["deriveBits"])
-      .then(x => crypto.subtle.deriveBits(alg, x, 4))
-      // The last 4 bits should be zeroes (1000 1101 => 1000 0000).
-      .then(memcmp_complete(that, new Uint8Array([0x80])))
+      .then(x => crypto.subtle.deriveBits(alg, x, 8))
+      .then(memcmp_complete(that, new Uint8Array([0x8d])))
       .catch(error(that));
   }
 );
@@ -107,7 +106,7 @@ TestArray.addTest(
     };
 
     function deriveBits(x) {
-      return crypto.subtle.deriveBits(alg, x, 4);
+      return crypto.subtle.deriveBits(alg, x, 8);
     }
 
     crypto.subtle.importKey("raw", key, "HKDF", false, ["deriveBits"])
@@ -130,7 +129,7 @@ TestArray.addTest(
     };
 
     function deriveBits(x) {
-      return crypto.subtle.deriveBits(alg, x, 4);
+      return crypto.subtle.deriveBits(alg, x, 8);
     }
 
     var ecAlg = {name: "ECDH", namedCurve: "P-256"};
@@ -224,10 +223,10 @@ TestArray.addTest(
             hash: "SHA-256",
             salt: new Uint8Array(),
             info: new Uint8Array(),
-          }, rawKey, 4);
+          }, rawKey, 8);
         })
         .then(derivedBits => {
-          if (!util.memcmp(derivedBits, new Uint8Array([0x80]))) {
+          if (!util.memcmp(derivedBits, new Uint8Array([0x8d]))) {
             throw new Error("deriving bits failed");
           }
 

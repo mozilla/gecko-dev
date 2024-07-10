@@ -2687,8 +2687,8 @@ class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
       return;
     }
 
-    // length must be greater than zero.
-    if (aLength == 0) {
+    // length must be greater than zero and multiple of eight.
+    if (aLength == 0 || aLength % 8 != 0) {
       mEarlyRv = NS_ERROR_DOM_OPERATION_ERR;
       return;
     }
@@ -2791,12 +2791,6 @@ class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
 
     if (!mResult.SetLength(mLengthInBytes, fallible)) {
       return NS_ERROR_DOM_UNKNOWN_ERR;
-    }
-
-    // If the number of bits to derive is not a multiple of 8 we need to
-    // zero out the remaining bits that were derived but not requested.
-    if (mLengthInBits % 8) {
-      mResult[mResult.Length() - 1] &= 0xff << (mLengthInBits % 8);
     }
 
     return NS_OK;
@@ -2977,15 +2971,15 @@ class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
  public:
   DeriveEcdhBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
                      CryptoKey& aKey, uint32_t aLength)
-      : mLength(Some(aLength)), mPrivKey(aKey.GetPrivateKey()) {
+      : mLengthInBits(Some(aLength)), mPrivKey(aKey.GetPrivateKey()) {
     Init(aCx, aAlgorithm, aKey);
   }
 
   DeriveEcdhBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
                      CryptoKey& aKey, const ObjectOrString& aTargetAlgorithm)
       : mPrivKey(aKey.GetPrivateKey()) {
-    mEarlyRv =
-        GetKeyLengthForAlgorithmIfSpecified(aCx, aTargetAlgorithm, mLength);
+    mEarlyRv = GetKeyLengthForAlgorithmIfSpecified(aCx, aTargetAlgorithm,
+                                                   mLengthInBits);
     if (NS_SUCCEEDED(mEarlyRv)) {
       Init(aCx, aAlgorithm, aKey);
     }
@@ -3001,14 +2995,13 @@ class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
       return;
     }
 
-    // If specified, length must be a multiple of 8 bigger than zero
+    // If specified, length must be bigger than zero
     // (otherwise, the full output of the key derivation is used).
-    if (mLength) {
-      if (*mLength == 0 || *mLength % 8) {
+    if (mLengthInBits) {
+      if (*mLengthInBits == 0) {
         mEarlyRv = NS_ERROR_DOM_DATA_ERR;
         return;
       }
-      *mLength = *mLength >> 3;  // bits to bytes
     }
 
     // Retrieve the peer's public key.
@@ -3039,7 +3032,7 @@ class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
   }
 
  private:
-  Maybe<size_t> mLength;
+  Maybe<size_t> mLengthInBits;
   UniqueSECKEYPrivateKey mPrivKey;
   UniqueSECKEYPublicKey mPubKey;
 
@@ -3065,12 +3058,21 @@ class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
     // data, so mResult manages one copy, while symKey manages another.
     ATTEMPT_BUFFER_ASSIGN(mResult, PK11_GetKeyData(symKey.get()));
 
-    if (mLength) {
-      if (*mLength > mResult.Length()) {
+    if (mLengthInBits) {
+      size_t mLengthInBytes =
+          ceil((double)*mLengthInBits / 8);  // bits to bytes
+      if (mLengthInBytes > mResult.Length()) {
         return NS_ERROR_DOM_OPERATION_ERR;
       }
-      if (!mResult.SetLength(*mLength, fallible)) {
+
+      if (!mResult.SetLength(mLengthInBytes, fallible)) {
         return NS_ERROR_DOM_UNKNOWN_ERR;
+      }
+
+      // If the number of bits to derive is not a multiple of 8 we need to
+      // zero out the remaining bits that were derived but not requested.
+      if (*mLengthInBits % 8) {
+        mResult[mResult.Length() - 1] &= 0xff << (8 - (*mLengthInBits % 8));
       }
     }
 
