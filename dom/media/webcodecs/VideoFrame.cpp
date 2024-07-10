@@ -399,7 +399,7 @@ static Result<Ok, nsCString> VerifyRectOffsetAlignment(
 }
 
 // https://w3c.github.io/webcodecs/#videoframe-parse-visible-rect
-static Result<gfx::IntRect, nsCString> ParseVisibleRect(
+static Result<gfx::IntRect, MediaResult> ParseVisibleRect(
     const gfx::IntRect& aDefaultRect, const Maybe<gfx::IntRect>& aOverrideRect,
     const gfx::IntSize& aCodedSize, const VideoFrame::Format& aFormat) {
   MOZ_ASSERT(ValidateVisibility(aDefaultRect, aCodedSize).isOk());
@@ -409,11 +409,17 @@ static Result<gfx::IntRect, nsCString> ParseVisibleRect(
     // Skip checking overrideRect's width and height here. They should be
     // checked before reaching here, and ValidateVisibility will assert it.
 
-    MOZ_TRY(ValidateVisibility(aOverrideRect.ref(), aCodedSize));
+    MOZ_TRY(ValidateVisibility(aOverrideRect.ref(), aCodedSize)
+                .mapErr([](const nsCString& error) {
+                  return MediaResult(NS_ERROR_INVALID_ARG, error);
+                }));
     rect = *aOverrideRect;
   }
 
-  MOZ_TRY(VerifyRectOffsetAlignment(Some(aFormat), rect));
+  MOZ_TRY(VerifyRectOffsetAlignment(Some(aFormat), rect)
+              .mapErr([](const nsCString& error) {
+                return MediaResult(NS_ERROR_INVALID_ARG, error);
+              }));
 
   return rect;
 }
@@ -446,13 +452,14 @@ struct CombinedBufferLayout {
 };
 
 // https://w3c.github.io/webcodecs/#videoframe-compute-layout-and-allocation-size
-static Result<CombinedBufferLayout, nsCString> ComputeLayoutAndAllocationSize(
+static Result<CombinedBufferLayout, MediaResult> ComputeLayoutAndAllocationSize(
     const gfx::IntRect& aRect, const VideoFrame::Format& aFormat,
     const Sequence<PlaneLayout>* aPlaneLayouts) {
   nsTArray<VideoFrame::Format::Plane> planes = aFormat.Planes();
 
   if (aPlaneLayouts && aPlaneLayouts->Length() != planes.Length()) {
-    return Err("Mismatch between format and layout"_ns);
+    return Err(MediaResult(NS_ERROR_INVALID_ARG,
+                           "Mismatch between format and layout"_ns));
   }
 
   uint32_t minAllocationSize = 0;
@@ -480,9 +487,11 @@ static Result<CombinedBufferLayout, nsCString> ComputeLayoutAndAllocationSize(
     MOZ_RELEASE_ASSERT(sourceLeftBytes.isValid());
     sourceLeftBytes *= aFormat.SampleBytes(p);
     if (!sourceLeftBytes.isValid()) {
-      return Err(nsPrintfCString(
-          "The parsed-rect's x-offset is too large for %s plane",
-          aFormat.PlaneName(p)));
+      return Err(MediaResult(
+          NS_ERROR_INVALID_ARG,
+          nsPrintfCString(
+              "The parsed-rect's x-offset is too large for %s plane",
+              aFormat.PlaneName(p))));
     }
 
     CheckedUint32 sourceWidthBytes(aRect.Width());
@@ -490,9 +499,10 @@ static Result<CombinedBufferLayout, nsCString> ComputeLayoutAndAllocationSize(
     MOZ_RELEASE_ASSERT(sourceWidthBytes.isValid());
     sourceWidthBytes *= aFormat.SampleBytes(p);
     if (!sourceWidthBytes.isValid()) {
-      return Err(
+      return Err(MediaResult(
+          NS_ERROR_INVALID_ARG,
           nsPrintfCString("The parsed-rect's width is too large for %s plane",
-                          aFormat.PlaneName(p)));
+                          aFormat.PlaneName(p))));
     }
 
     // TODO: Spec here is wrong so we do differently:
@@ -507,8 +517,10 @@ static Result<CombinedBufferLayout, nsCString> ComputeLayoutAndAllocationSize(
     if (aPlaneLayouts) {
       const PlaneLayout& planeLayout = aPlaneLayouts->ElementAt(i);
       if (planeLayout.mStride < layout.mSourceWidthBytes) {
-        return Err(nsPrintfCString("The stride in %s plane is too small",
-                                   aFormat.PlaneName(p)));
+        return Err(
+            MediaResult(NS_ERROR_INVALID_ARG,
+                        nsPrintfCString("The stride in %s plane is too small",
+                                        aFormat.PlaneName(p))));
       }
       layout.mDestinationOffset = planeLayout.mOffset;
       layout.mDestinationStride = planeLayout.mStride;
@@ -520,11 +532,14 @@ static Result<CombinedBufferLayout, nsCString> ComputeLayoutAndAllocationSize(
     const CheckedInt<uint32_t> planeSize =
         CheckedInt<uint32_t>(layout.mDestinationStride) * layout.mSourceHeight;
     if (!planeSize.isValid()) {
-      return Err("Invalid layout with an over-sized plane"_ns);
+      return Err(MediaResult(NS_ERROR_INVALID_ARG,
+                             "Invalid layout with an over-sized plane"_ns));
     }
     const CheckedInt<uint32_t> planeEnd = planeSize + layout.mDestinationOffset;
     if (!planeEnd.isValid()) {
-      return Err("Invalid layout with the out-out-bound offset"_ns);
+      return Err(
+          MediaResult(NS_ERROR_INVALID_ARG,
+                      "Invalid layout with the out-out-bound offset"_ns));
     }
     endOffsets.AppendElement(planeEnd.value());
 
@@ -537,7 +552,8 @@ static Result<CombinedBufferLayout, nsCString> ComputeLayoutAndAllocationSize(
       // one's head, then they do not overlap. Otherwise, they do.
       if (endOffsets[i] > earlier.mDestinationOffset &&
           endOffsets[j] > layout.mDestinationOffset) {
-        return Err("Invalid layout with the overlapped planes"_ns);
+        return Err(MediaResult(NS_ERROR_INVALID_ARG,
+                               "Invalid layout with the overlapped planes"_ns));
       }
     }
     layouts.AppendElement(layout);
@@ -547,23 +563,25 @@ static Result<CombinedBufferLayout, nsCString> ComputeLayoutAndAllocationSize(
 }
 
 // https://w3c.github.io/webcodecs/#videoframe-verify-rect-size-alignment
-static Result<Ok, nsCString> VerifyRectSizeAlignment(
-    const VideoFrame::Format& aFormat, const gfx::IntRect& aRect) {
+static MediaResult VerifyRectSizeAlignment(const VideoFrame::Format& aFormat,
+                                           const gfx::IntRect& aRect) {
   for (const VideoFrame::Format::Plane& p : aFormat.Planes()) {
     const gfx::IntSize sample = aFormat.SampleSize(p);
     if (aRect.Width() % sample.Width() != 0) {
-      return Err("Mismatch between format and given rect's width"_ns);
+      return MediaResult(NS_ERROR_INVALID_ARG,
+                         "Mismatch between format and given rect's width"_ns);
     }
 
     if (aRect.Height() % sample.Height() != 0) {
-      return Err("Mismatch between format and given rect's height"_ns);
+      return MediaResult(NS_ERROR_INVALID_ARG,
+                         "Mismatch between format and given rect's height"_ns);
     }
   }
-  return Ok();
+  return MediaResult(NS_OK);
 }
 
 // https://w3c.github.io/webcodecs/#videoframe-parse-videoframecopytooptions
-static Result<CombinedBufferLayout, nsCString> ParseVideoFrameCopyToOptions(
+static Result<CombinedBufferLayout, MediaResult> ParseVideoFrameCopyToOptions(
     const VideoFrameCopyToOptions& aOptions, const gfx::IntRect& aVisibleRect,
     const gfx::IntSize& aCodedSize, const VideoFrame::Format& aFormat) {
   Maybe<gfx::IntRect> overrideRect;
@@ -575,10 +593,13 @@ static Result<CombinedBufferLayout, nsCString> ParseVideoFrameCopyToOptions(
     MOZ_TRY_VAR(overrideRect.ref(),
                 ToIntRect(aOptions.mRect.Value()).mapErr([](nsCString error) {
                   error.Insert("rect's ", 0);
-                  return error;
+                  return MediaResult(NS_ERROR_INVALID_ARG, error);
                 }));
 
-    MOZ_TRY(VerifyRectSizeAlignment(aFormat, overrideRect.ref()));
+    MediaResult r = VerifyRectSizeAlignment(aFormat, overrideRect.ref());
+    if (NS_FAILED(r.Code())) {
+      return Err(r);
+    }
   }
 
   gfx::IntRect parsedRect;
@@ -976,19 +997,13 @@ static Result<RefPtr<VideoFrame>, MediaResult> CreateVideoFrameFromBuffer(
 
   gfx::IntRect parsedRect;
   MOZ_TRY_VAR(parsedRect, ParseVisibleRect(gfx::IntRect({0, 0}, codedSize),
-                                           visibleRect, codedSize, format)
-                              .mapErr([](nsCString error) {
-                                return MediaResult(NS_ERROR_INVALID_ARG, error);
-                              }));
+                                           visibleRect, codedSize, format));
 
   const Sequence<PlaneLayout>* optLayout = OptionalToPointer(aInit.mLayout);
 
   CombinedBufferLayout combinedLayout;
   MOZ_TRY_VAR(combinedLayout,
-              ComputeLayoutAndAllocationSize(parsedRect, format, optLayout)
-                  .mapErr([](nsCString error) {
-                    return MediaResult(NS_ERROR_INVALID_ARG, error);
-                  }));
+              ComputeLayoutAndAllocationSize(parsedRect, format, optLayout));
 
   Maybe<uint64_t> duration = OptionalToMaybe(aInit.mDuration);
 
@@ -1729,7 +1744,7 @@ uint32_t VideoFrame::AllocationSize(const VideoFrameCopyToOptions& aOptions,
   auto r = ParseVideoFrameCopyToOptions(aOptions, mVisibleRect, mCodedSize,
                                         mResource->mFormat.ref());
   if (r.isErr()) {
-    aRv.ThrowTypeError(r.unwrapErr());
+    aRv.ThrowTypeError(r.unwrapErr().Message());
     return 0;
   }
   CombinedBufferLayout layout = r.unwrap();
@@ -1761,7 +1776,7 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
   auto r = ParseVideoFrameCopyToOptions(aOptions, mVisibleRect, mCodedSize,
                                         mResource->mFormat.ref());
   if (r.isErr()) {
-    p->MaybeRejectWithTypeError(r.unwrapErr());
+    p->MaybeRejectWithTypeError(r.unwrapErr().Message());
     return p.forget();
   }
   CombinedBufferLayout layout = r.unwrap();
