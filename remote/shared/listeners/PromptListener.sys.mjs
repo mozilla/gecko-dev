@@ -185,7 +185,10 @@ export class PromptListener {
 
       case "geckoview-prompt-show":
         for (let win of Services.wm.getEnumerator(null)) {
-          const prompt = win.prompts().find(item => item.id == subject.id);
+          const subjectObject = subject.wrappedJSObject;
+          const prompt = win
+            .prompts()
+            .find(item => item.getPromptId() == subjectObject.id);
           if (prompt) {
             const tabBrowser = lazy.TabManager.getTabBrowser(win);
             // Since on Android we always have only one tab we can just check
