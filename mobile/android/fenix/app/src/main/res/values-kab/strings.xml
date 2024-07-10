@@ -476,6 +476,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="preferences_category_about">Ɣef</string>
     <!-- Preference category for settings related to changing the default search engine -->
     <string name="preferences_category_select_default_search_engine">Fren yiwen</string>
+    <!-- Preference for settings related to managing search shortcuts for the quick search menu -->
+    <string name="preferences_manage_search_shortcuts_2">Sefrek imseddayen n unadi niḍen</string>
     <!-- Summary for preference for settings related to managing search shortcuts for the quick search menu -->
     <string name="preferences_manage_search_shortcuts_summary">Ffer imseddayen i d-ibanen deg wumuɣ n unadi</string>
     <!-- Preference category for settings related to managing search shortcuts for the quick search menu -->
@@ -553,6 +555,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Sens ma d %1$s ad yesfeḍ inagan n tuqqna sakin ad yales asali n usmel-a. Atagi ad ak-isuffeɣ neɣ ad isilem tikarḍiwin-ik n tiɣin.</string>
 
+    <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
+    <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">Rmed-it syen %1$s ad yeɛreḍ ad yagi s wudem awurman akk iɣarracen n yinagan n tuqqna ɣef usmel-a.</string>
     <!--Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name -->
     <string name="cookie_banner_cfr_title">%1$s yugi inagan n tuqqna i kečč</string>
 
@@ -682,6 +686,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
     <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Sireg  meṛṛa ismal</string>
 
+    <!-- The subtitle for the allow for all sites preference toggle -->
+    <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">Ma yella tumneḍ asiɣzef-a, tzemreḍ ad as-tmuddeḍ tisirag i yal asmel web.</string>
     <!-- The text shown when an extension does not require permissions -->
     <string name="addons_does_not_require_permissions">Asiɣzef ur yesri kra n tsiregt.</string>
 
@@ -2271,6 +2277,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="review_quality_check_grade_title">D acu-tt tneflest n yilɣa-a?</string>
     <!-- Title for when the rating has been updated by the review checker -->
     <string name="review_quality_check_adjusted_rating_title">Aktazal yettwaseɣta</string>
+    <!-- Description for a product's adjusted star rating. The text presents that the product's reviews which were evaluated as unreliable were removed from the adjusted rating. -->
+    <string name="review_quality_check_adjusted_rating_description_2">Deg taffa n yiwenniten yettwamanen</string>
     <!-- Title for list of highlights from a product's review emphasizing a product's important traits. -->
     <string name="review_quality_check_highlights_title">Tamuɣli s wazal-is seg yilɣa imaynuten</string>
     <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
@@ -2303,6 +2311,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">Senqed tura</string>
     <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
     <string name="review_quality_check_no_reviews_warning_title">Ulac ddeqs n tamiwin akka tura</string>
+    <!-- Text for body of warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_body">Mi ara yilin aṭas n yiwenniten ɣef ufaris-a, taɣara-s ad tettwaktazel.</string>
     <!-- Title for warning card informing the user that the current product is currently not available. -->
     <string name="review_quality_check_product_availability_warning_title">Afaris ulac-it</string>
     <!-- Clickable text for warning card informing the user that the current product is currently not available. Clicking this should inform the server that the product is available. -->
@@ -2313,22 +2323,30 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="review_quality_check_analysis_in_progress_warning_body">Aya yezmer ad yeṭṭef 60 tsinin.</string>
     <!-- Title for info card displayed after the user reports a product is back in stock. -->
     <string name="review_quality_check_analysis_requested_info_title">Tanemmirt ɣef tuzna n uneqqis!</string>
+    <!-- Text for body of info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_body">Ilaq ad nwali talɣut ɣef tamiwin yerzan afaris-a sya ɣer 24 yisragen. Ttxil-k·m uɣal-d ticki.</string>
     <!-- Title for info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
     <string name="review_quality_check_not_analyzable_info_title">Ur nezmir ara ad nsenqed tamawin-a</string>
     <!-- Title for info card displayed when another user reported the displayed product is back in stock. -->
     <string name="review_quality_check_analysis_requested_other_user_info_title" tools:ignore="UnusedResources">Talɣut i d-iteddun</string>
+    <!-- Text for body of info card displayed when another user reported the displayed product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_other_user_info_body" tools:ignore="UnusedResources">Ilaq ad nwali talɣut ɣef tamiwin yerzan afaris-a sya ɣer 24 yisragen. Ttxil-k·m uɣal-d ticki.</string>
     <!-- Title for info card displayed to the user when analysis finished updating. -->
     <string name="review_quality_check_analysis_updated_confirmation_title" tools:ignore="UnusedResources">Aslaḍ yezga</string>
     <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
     <string name="review_quality_check_analysis_updated_confirmation_action" tools:ignore="UnusedResources">Awi-t</string>
     <!-- Title for error card displayed to the user when an error occurred. -->
     <string name="review_quality_check_generic_error_title">Ulac talɣut i yellan akka tura</string>
+    <!-- Text for body of error card displayed to the user when an error occurred. -->
+    <string name="review_quality_check_generic_error_body">Aql-aɣ nettmuqul ad nefru ugur. Ttxil-k·m ɛreḍ ticki.</string>
     <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
     <string name="review_quality_check_no_connection_title">Ulac tuqqna ɣer uzeṭṭa</string>
     <!-- Text for body of error card displayed to the user when the device is disconnected from the network. -->
     <string name="review_quality_check_no_connection_body">Senqed tuqqna ɣer uzeṭṭa syen ɛreḍ asali n usebter i tikkelt niḍen.</string>
     <!-- Title for card displayed to the user for products whose reviews were not analyzed yet. -->
     <string name="review_quality_check_no_analysis_title">Ulac talɣut ɣef yilɣa-a akka ar tura</string>
+    <!-- Text for the body of card displayed to the user for products whose reviews were not analyzed yet. -->
+    <string name="review_quality_check_no_analysis_body">I wakken ad twaliḍ iceggiren ɣef ufaris-a ara yettwamanen, senqed taɣara-s. Aya ad yeṭṭef kan 60 tsinin.</string>
     <!-- Text for button from body of card displayed to the user for products whose reviews were not analyzed yet. Clicking this should trigger a product analysis. -->
     <string name="review_quality_check_no_analysis_link">Senqed tɣara n yilɣa</string>
     <!-- Headline for review quality check contextual onboarding card. -->
@@ -2347,6 +2365,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="review_quality_check_first_cfr_message">Senqed ma ad tamneḍ tamawin ɣef ufaris-a — send ad t-taɣeḍ.</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Ɛreḍ amsenqad n tamawt</string>
+    <!-- Text for the second CFR presenting the review quality check feature. -->
+    <string name="review_quality_check_second_cfr_message">Iceggiren-a ṣeḥḥan? Senqed-it tura i wakken ad twaliḍ afmiḍi yettwaseɣtan.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Ldi amsenqad n tamawt</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
@@ -2417,6 +2437,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="translations_bottom_sheet_translate_from">Suqqel seg</string>
     <!-- Label for the dropdown to select which language to translate to on the translations dialog. Usually the translate to language selected will be the user's preferred language. -->
     <string name="translations_bottom_sheet_translate_to">Suqqel ɣer</string>
+    <!-- Label for the dropdown to select which language to translate from on the translations dialog when the page language is not supported. This selection is to allow the user to select another language, in case we automatically detected the page language incorrectly. -->
+    <string name="translations_bottom_sheet_translate_from_unsupported_language">Ɛreḍ tutlayt taɣbalut niḍen </string>
     <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
     <string name="translations_bottom_sheet_negative_button">Mačči tura</string>
     <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->
@@ -2442,6 +2464,13 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
 
     <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
     <string name="translation_in_progress_snackbar">Asuqqel…</string>
+
+
+    <!-- Title for the data saving mode warning dialog used in the translation request dialog.
+    This dialog will be presented when the user attempts to perform
+    a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
+    The first parameter is the size in kilobytes or megabytes of the language file. -->
+    <string name="translations_download_language_file_dialog_title">Sader tutlayt deg uskar n uḥraz n yisefka (%1$s)?</string>
 
 
     <!-- Translations options dialog -->
@@ -2492,6 +2521,9 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
     <string name="automatic_translation_header_preference">Fren tutlayt i usefrek n yiɣewwaren ”suqqel yal tikkelt “ akked ”ur ssuqul ara“.</string>
 
+    <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
+    <string name="automatic_translation_error_warning_text">Ggumant ad d-alint tutlayin. Ttxil-k·m ɛreḍ tikkelt niḍen.</string>
+
     <!-- Automatic translation options preference screen -->
     <!-- Preference option for offering to translate. Radio button title text.-->
     <string name="automatic_translation_option_offer_to_translate_title_preference">Sumer tasuqqilt (s umezwer)</string>
@@ -2506,6 +2538,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
              The first parameter is web site url (for example:"wikipedia.com") -->
     <string name="never_translate_site_item_list_content_description_preference">Kkes %1$s</string>
+    <!-- The title of the warning card informs the user that an error has occurred at the never translate sites list. -->
+    <string name="never_translate_site_error_warning_text">Ggumant ad d-alin yismal. Ttxil-k·m ɛreḍ tikkelt niḍen.</string>
     <!-- The Delete site dialogue title will appear when the user clicks on a list item.
              The first parameter is web site url (for example:"wikipedia.com") -->
     <string name="never_translate_site_dialog_title_preference">Kkes %1$s?</string>
@@ -2542,6 +2576,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
     <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">Yettwafran</string>
 
+    <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
+    <string name="download_languages_fetch_error_warning_text">Ggumant ad d-alint tutlayin. Ttxil-k·m ɛreḍ tikkelt niḍen.</string>
     <!-- The title of the warning card informs the user that an error has occurred at downloading a language.
       The first parameter is the language name, for example, "Spanish". -->
     <string name="download_languages_error_warning_text"><![CDATA[Ur ssadar ara <b>%1$s</b>. Ttxil-k ɛreḍ tikkelt niḍen.]]></string>
@@ -2553,10 +2589,14 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     The dialog will be presented when the user requests deletion of a language.
     The first parameter is the name of the language, for example, "Spanish" and the second parameter is the size in kilobytes or megabytes of the language file. -->
     <string name="delete_language_file_dialog_title">Kkes %1$s (%2$s)?</string>
+    <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. The first parameter is the name of the application, for example, "Fenix". -->
+    <string name="delete_language_file_dialog_message">Ma yella tekkseḍ tutlayt-a, %1$s ad tt-id-isader s wudem abruyan deg tuffirt-ik yal mi ara tessutreḍ asuqqel.</string>
     <!-- Title for the dialog used by the translations feature to confirm deleting all languages file.
     The dialog will be presented when the user requests deletion of all languages file.
     The first parameter is the size in kilobytes or megabytes of the language file. -->
     <string name="delete_language_all_languages_file_dialog_title">Kkes akk tutlayin (%1$s)?</string>
+    <!-- Additional information for the dialog used by the translations feature to confirm deleting all languages file. The first parameter is the name of the application, for example, "Fenix". -->
+    <string name="delete_language_all_languages_file_dialog_message">Ma yella tekkseḍ akk tutlayin-a, %1$s ad tt-id-isader s wudem abruyan deg tuffirt-ik yal mi ara tessutreḍ asuqqel.</string>
     <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
     <string name="delete_language_file_dialog_positive_button_text">Kkes</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
@@ -2567,6 +2607,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
     The first parameter is the size in kilobytes or megabytes of the language file.-->
     <string name="download_language_file_dialog_title">Sader deg uskar n uḥraz n yisefka (%1$s)?</string>
+    <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
+    <string name="download_language_file_dialog_checkbox_text">Sader yal tikkelt deg uskar n usekles n yisefka</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
     <string name="download_language_file_dialog_positive_button_text">Sader</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file and perform a translation. -->
@@ -2614,11 +2656,17 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
 
     <!-- Micro survey -->
 
+    <!-- Microsurvey -->
+    <!-- Prompt view -->
+    <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
+    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Ԑawen-aɣ ad nesnerni Firefox ugar. Aya ad yeṭṭef cwiṭ n wakud.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Kemmel</string>
     <!-- Survey view -->
     <!-- The survey header -->
     <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Smed aḥedqis-a</string>
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header_2">Ttxil-k smed aḥedqis</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Tasertit n tbaḍnit</string>
     <!-- The privacy notice link -->
@@ -2645,6 +2693,12 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Ur t-sseqdaceɣ ara</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Tumreḍ s usebtar-ik agejdan n Firefox?</string>
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Ɛawen-aɣ ad nesnerni asiggez deg Firefox. Aya ad yeṭṭef cwiṭ kan n wakud</string>
+    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Tumreḍ s usiggez deg Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description">Alugu Firefox</string>
