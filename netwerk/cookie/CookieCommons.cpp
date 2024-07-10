@@ -347,6 +347,18 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
     return nullptr;
   }
 
+  // If the set-cookie-string contains a %x00-08 / %x0A-1F / %x7F character (CTL
+  // characters excluding HTAB): Abort these steps and ignore the
+  // set-cookie-string entirely.
+  for (auto iter = aCookieString.BeginReading(),
+            end = aCookieString.EndReading();
+       iter < end; ++iter) {
+    if ((*iter >= 0x00 && *iter <= 0x08) || (*iter >= 0x0A && *iter <= 0x1F) ||
+        *iter == 0x7F) {
+      return nullptr;
+    }
+  }
+
   nsAutoCString baseDomain;
   bool requireHostMatch = false;
   nsresult rv = CookieCommons::GetBaseDomain(

@@ -35,7 +35,7 @@ SpecialPowers.pushPrefEnv({
   is(document.cookie, "a=bar", "Can't read stored cookie!");
 
   document.cookie = "a2=bar\na3=bar";
-  is(document.cookie, "a=bar; a2=bar", "Wrong cookie value");
+  is(document.cookie, "a=bar", "Wrong cookie value");
 
   document.cookie = "a2=baz; a3=bar";
   is(document.cookie, "a=bar; a2=baz", "Wrong cookie value");

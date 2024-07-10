@@ -37,7 +37,7 @@ add_task(async () => {
     "http://example.net/"
   );
 
-  expected = "foo=bar";
+  expected = "";
   Assert.equal(actual, expected);
   Services.prefs.clearUserPref("dom.security.https_first");
 });
