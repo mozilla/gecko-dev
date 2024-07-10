@@ -3837,15 +3837,14 @@ bool PresShell::ScrollFrameIntoView(
 
     MaybeSkipPaddingSides(container);
 
-    nsIFrame* parent;
-    if (container->IsTransformed()) {
-      container->GetTransformMatrix(ViewportType::Layout, RelativeTo{nullptr},
-                                    &parent);
+    nsIFrame* parent = container->GetParent();
+    NS_ASSERTION(parent || !container->IsTransformed(),
+                 "viewport shouldnt be transformed");
+    if (parent && container->IsTransformed()) {
       rect =
           nsLayoutUtils::TransformFrameRectToAncestor(container, rect, parent);
     } else {
       rect += container->GetPosition();
-      parent = container->GetParent();
     }
     if (!parent && !(aScrollFlags & ScrollFlags::ScrollNoParentFrames)) {
       nsPoint extraOffset(0, 0);
