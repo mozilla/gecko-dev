@@ -1093,8 +1093,7 @@ PersistNodeFixup::FixupNode(nsINode* aNodeIn, bool* aSerializeCloneKids,
       // Update element node attributes with user-entered form state
       RefPtr<dom::HTMLInputElement> outElt =
           dom::HTMLInputElement::FromNode((*aNodeOut)->AsContent());
-      nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(*aNodeOut);
-      switch (formControl->ControlType()) {
+      switch (nsIFormControl::FromNode(*aNodeOut)->ControlType()) {
         case FormControlType::InputEmail:
         case FormControlType::InputSearch:
         case FormControlType::InputText:

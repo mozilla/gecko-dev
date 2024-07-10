@@ -92,7 +92,7 @@ class HTMLFormControlsCollection final : public nsIHTMLCollection,
   }
 
  public:
-  static bool ShouldBeInElements(nsIFormControl* aFormControl);
+  static bool ShouldBeInElements(const nsIFormControl* aFormControl);
 
   HTMLFormElement* mForm;  // WEAK - the form owns me
 

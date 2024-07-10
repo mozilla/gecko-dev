@@ -447,7 +447,7 @@ bool nsGenericHTMLElement::Spellcheck() {
   }
 
   // Anything else that's not a form control is not spellchecked by default
-  nsCOMPtr<nsIFormControl> formControl = do_QueryObject(this);
+  const nsIFormControl* formControl = GetAsFormControl();
   if (!formControl) {
     return false;  // Not spellchecked by default
   }

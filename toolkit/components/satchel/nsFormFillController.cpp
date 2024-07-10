@@ -828,7 +828,7 @@ void nsFormFillController::RemoveForDocument(Document* aDoc) {
 }
 
 bool nsFormFillController::IsTextControl(nsINode* aNode) {
-  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aNode);
+  const auto* formControl = nsIFormControl::FromNodeOrNull(aNode);
   return formControl && formControl->IsSingleLineTextControl(false);
 }
 

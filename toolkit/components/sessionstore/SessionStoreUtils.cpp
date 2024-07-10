@@ -658,9 +658,8 @@ static uint32_t CollectInputElement(Document* aDocument,
   uint32_t length = inputlist->Length();
   for (uint32_t i = 0; i < length; ++i) {
     MOZ_ASSERT(inputlist->Item(i), "null item in node list!");
-    nsCOMPtr<nsIFormControl> formControl =
-        do_QueryInterface(inputlist->Item(i));
-    if (formControl) {
+    if (const auto* formControl =
+            nsIFormControl::FromNodeOrNull(inputlist->Item(i))) {
       auto controlType = formControl->ControlType();
       if (controlType == FormControlType::InputPassword ||
           controlType == FormControlType::InputHidden ||
@@ -916,9 +915,8 @@ void SessionStoreUtils::CollectFromInputElement(Document& aDocument,
   uint32_t length = inputlist->Length(true);
   for (uint32_t i = 0; i < length; ++i) {
     MOZ_ASSERT(inputlist->Item(i), "null item in node list!");
-    nsCOMPtr<nsIFormControl> formControl =
-        do_QueryInterface(inputlist->Item(i));
-    if (formControl) {
+    if (const auto* formControl =
+            nsIFormControl::FromNodeOrNull(inputlist->Item(i))) {
       auto controlType = formControl->ControlType();
       if (controlType == FormControlType::InputPassword ||
           controlType == FormControlType::InputHidden ||

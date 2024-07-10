@@ -463,7 +463,7 @@ nsresult DragDataProducer::Produce(DataTransfer* aDataTransfer, bool* aCanDrag,
     nsCOMPtr<nsIContent> findFormNode = mSelectionTargetNode;
     nsIContent* findFormParent = findFormNode->GetParent();
     while (findFormParent) {
-      nsCOMPtr<nsIFormControl> form(do_QueryInterface(findFormParent));
+      const auto* form = nsIFormControl::FromNode(findFormParent);
       if (form && !form->AllowDraggableChildren()) {
         return NS_OK;
       }
@@ -499,25 +499,22 @@ nsresult DragDataProducer::Produce(DataTransfer* aDataTransfer, bool* aCanDrag,
 
     bool haveSelectedContent = false;
 
-    // possible parent link node
-    nsCOMPtr<nsIContent> parentLink;
-    nsCOMPtr<nsIContent> draggedNode;
+    // only drag form elements by using the alt key,
+    // otherwise buttons and select widgets are hard to use
 
-    {
-      // only drag form elements by using the alt key,
-      // otherwise buttons and select widgets are hard to use
-
-      // Note that while <object> elements implement nsIFormControl, we should
-      // really allow dragging them if they happen to be images.
-      nsCOMPtr<nsIFormControl> form(do_QueryInterface(mTarget));
-      if (form && !mIsAltKeyPressed &&
-          form->ControlType() != FormControlType::Object) {
+    // Note that while <object> elements implement nsIFormControl, we should
+    // really allow dragging them if they happen to be images.
+    if (!mIsAltKeyPressed) {
+      const auto* form = nsIFormControl::FromNodeOrNull(mTarget);
+      if (form && form->ControlType() != FormControlType::Object) {
         *aCanDrag = false;
         return NS_OK;
       }
-
-      draggedNode = FindDragTarget(mTarget);
     }
+
+    // possible parent link node
+    nsCOMPtr<nsIContent> parentLink;
+    nsCOMPtr<nsIContent> draggedNode = FindDragTarget(mTarget);
 
     nsCOMPtr<nsIImageLoadingContent> image;
 

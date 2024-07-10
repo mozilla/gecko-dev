@@ -312,7 +312,7 @@ already_AddRefed<FormData> FormData::Constructor(
   if (aFormElement.WasPassed()) {
     // 1.1. If submitter is non-null, then:
     if (aSubmitter) {
-      nsCOMPtr<nsIFormControl> fc = do_QueryObject(aSubmitter);
+      const nsIFormControl* fc = nsIFormControl::FromNode(aSubmitter);
 
       // 1.1.1. If submitter is not a submit button, then throw a TypeError.
       if (!fc || !fc->IsSubmitControl()) {

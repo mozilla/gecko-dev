@@ -1195,8 +1195,8 @@ bool EditorEventListener::IsFileControlTextBox() {
   if (!parent || !parent->IsHTMLElement(nsGkAtoms::input)) {
     return false;
   }
-  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(parent);
-  return formControl->ControlType() == FormControlType::InputFile;
+  return nsIFormControl::FromNode(parent)->ControlType() ==
+         FormControlType::InputFile;
 }
 
 bool EditorEventListener::ShouldHandleNativeKeyBindings(

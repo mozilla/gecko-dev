@@ -90,8 +90,7 @@ void HTMLFieldSetElement::GetType(nsAString& aType) const {
 bool HTMLFieldSetElement::MatchListedElements(Element* aElement,
                                               int32_t aNamespaceID,
                                               nsAtom* aAtom, void* aData) {
-  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aElement);
-  return formControl;
+  return nsIFormControl::FromNodeOrNull(aElement) != nullptr;
 }
 
 nsIHTMLCollection* HTMLFieldSetElement::Elements() {

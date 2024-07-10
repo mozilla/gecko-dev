@@ -2271,9 +2271,8 @@ void EventStateManager::FireContextClick() {
         }
       }
     } else if (mGestureDownContent->IsHTMLElement()) {
-      nsCOMPtr<nsIFormControl> formCtrl(do_QueryInterface(mGestureDownContent));
-
-      if (formCtrl) {
+      if (const auto* formCtrl =
+              nsIFormControl::FromNode(mGestureDownContent)) {
         allowedToDispatch =
             formCtrl->IsTextControl(/*aExcludePassword*/ false) ||
             formCtrl->ControlType() == FormControlType::InputFile;

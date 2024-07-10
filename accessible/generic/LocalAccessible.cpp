@@ -2390,8 +2390,7 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
     case RelationType::DEFAULT_BUTTON: {
       if (mContent->IsHTMLElement()) {
         // HTML form controls implements nsIFormControl interface.
-        nsCOMPtr<nsIFormControl> control(do_QueryInterface(mContent));
-        if (control) {
+        if (auto* control = nsIFormControl::FromNode(mContent)) {
           if (dom::HTMLFormElement* form = control->GetForm()) {
             return Relation(mDoc, form->GetDefaultSubmitElement());
           }

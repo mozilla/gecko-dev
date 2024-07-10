@@ -630,7 +630,7 @@ void nsHtml5TreeOperation::SetFormElement(nsIContent* aNode,
   RefPtr formElement = HTMLFormElement::FromNodeOrNull(aParent);
   NS_ASSERTION(formElement,
                "The form element doesn't implement HTMLFormElement.");
-  nsCOMPtr<nsIFormControl> formControl(do_QueryInterface(aNode));
+  nsCOMPtr<nsIFormControl> formControl = nsIFormControl::FromNodeOrNull(aNode);
   if (formControl &&
       formControl->ControlType() !=
           FormControlType::FormAssociatedCustomElement &&

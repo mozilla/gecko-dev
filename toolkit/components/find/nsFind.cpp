@@ -164,7 +164,7 @@ static bool ShouldFindAnonymousContent(const nsIContent& aContent) {
   MOZ_ASSERT(aContent.IsInNativeAnonymousSubtree());
 
   nsIContent& host = AnonymousSubtreeRootParentOrHost(aContent);
-  if (nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(&host)) {
+  if (const auto* formControl = nsIFormControl::FromNode(&host)) {
     if (formControl->IsTextControl(/* aExcludePassword = */ true)) {
       // Only editable NAC in textfields should be findable. That is, we want to
       // find "bar" in `<input value="bar">`, but not in `<input

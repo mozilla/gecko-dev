@@ -1617,7 +1617,7 @@ MOZ_CAN_RUN_SCRIPT static bool IsNextFocusableElementTextControl(
     return false;
   }
   nextContent = nextContent->FindFirstNonChromeOnlyAccessContent();
-  nsCOMPtr<nsIFormControl> nextControl = do_QueryInterface(nextContent);
+  const auto* nextControl = nsIFormControl::FromNode(nextContent);
   if (!nextControl || !nextControl->IsTextControl(false)) {
     return false;
   }

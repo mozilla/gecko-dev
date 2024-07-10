@@ -128,7 +128,7 @@ HTMLLegendElement::LegendAlignValue HTMLLegendElement::LogicalAlign(
 }
 
 HTMLFormElement* HTMLLegendElement::GetForm() const {
-  nsCOMPtr<nsIFormControl> fieldsetControl = do_QueryInterface(GetFieldSet());
+  const auto* fieldsetControl = nsIFormControl::FromNodeOrNull(GetFieldSet());
   return fieldsetControl ? fieldsetControl->GetForm() : nullptr;
 }
 
