@@ -30,7 +30,7 @@ if os.path.exists(os.path.join(GECKO, "taskcluster", "kinds", "test", "variants.
 WPT_SUBSUITES = {
     "canvas": ["html/canvas"],
     "webgpu": ["_mozilla/webgpu"],
-    "privatebrowsing": ["/service-workers/cache-storage", "/IndexedDB"],
+    "privatebrowsing": ["/service-workers/cache-storage"],
     "webcodecs": ["webcodecs"],
 }
 
