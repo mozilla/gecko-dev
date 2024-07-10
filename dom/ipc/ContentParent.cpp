@@ -5317,6 +5317,7 @@ mozilla::ipc::IPCResult ContentParent::CommonCreateWindow(
 
   MOZ_ASSERT(aOpenLocation == nsIBrowserDOMWindow::OPEN_NEWTAB ||
              aOpenLocation == nsIBrowserDOMWindow::OPEN_NEWTAB_BACKGROUND ||
+             aOpenLocation == nsIBrowserDOMWindow::OPEN_NEWTAB_FOREGROUND ||
              aOpenLocation == nsIBrowserDOMWindow::OPEN_NEWWINDOW ||
              aOpenLocation == nsIBrowserDOMWindow::OPEN_PRINT_BROWSER);
 
@@ -5327,6 +5328,7 @@ mozilla::ipc::IPCResult ContentParent::CommonCreateWindow(
 
   if (aOpenLocation == nsIBrowserDOMWindow::OPEN_NEWTAB ||
       aOpenLocation == nsIBrowserDOMWindow::OPEN_NEWTAB_BACKGROUND ||
+      aOpenLocation == nsIBrowserDOMWindow::OPEN_NEWTAB_FOREGROUND ||
       aOpenLocation == nsIBrowserDOMWindow::OPEN_PRINT_BROWSER) {
     RefPtr<Element> openerElement = do_QueryObject(frame);
 
@@ -5558,7 +5560,8 @@ mozilla::ipc::IPCResult ContentParent::RecvCreateWindow(
   // do this work.
   MOZ_ALWAYS_SUCCEEDS(newBC->SetHasSiblings(
       openLocation == nsIBrowserDOMWindow::OPEN_NEWTAB ||
-      openLocation == nsIBrowserDOMWindow::OPEN_NEWTAB_BACKGROUND));
+      openLocation == nsIBrowserDOMWindow::OPEN_NEWTAB_BACKGROUND ||
+      openLocation == nsIBrowserDOMWindow::OPEN_NEWTAB_FOREGROUND));
 
   newTab->SwapFrameScriptsFrom(cwi.frameScripts());
   newTab->MaybeShowFrame();

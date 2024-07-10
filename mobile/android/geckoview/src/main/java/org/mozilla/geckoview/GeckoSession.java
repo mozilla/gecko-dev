@@ -650,7 +650,7 @@ public class GeckoSession {
             case 0: // OPEN_DEFAULTWINDOW
             case 1: // OPEN_CURRENTWINDOW
               return NavigationDelegate.TARGET_WINDOW_CURRENT;
-            default: // OPEN_NEWWINDOW, OPEN_NEWTAB, OPEN_NEWTAB_BACKGROUND
+            default: // OPEN_NEWWINDOW, OPEN_NEWTAB, OPEN_NEWTAB_BACKGROUND, OPEN_NEWTAB_FOREGROUND
               return NavigationDelegate.TARGET_WINDOW_NEW;
           }
         }
@@ -5027,7 +5027,7 @@ public class GeckoSession {
           case 0: // OPEN_DEFAULTWINDOW
           case 1: // OPEN_CURRENTWINDOW
             return TARGET_WINDOW_CURRENT;
-          default: // OPEN_NEWWINDOW, OPEN_NEWTAB, OPEN_NEWTAB_BACKGROUND
+          default: // OPEN_NEWWINDOW, OPEN_NEWTAB, OPEN_NEWTAB_BACKGROUND, OPEN_NEWTAB_FOREGROUND
             return TARGET_WINDOW_NEW;
         }
       }
