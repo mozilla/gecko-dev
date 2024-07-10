@@ -407,8 +407,12 @@ int64_t TimeUnit::ToCommonUnit(int64_t aRatio) const {
 // Reduce a TimeUnit to the smallest possible ticks and base. This is useful
 // to comparison with big time values that can otherwise overflow.
 TimeUnit TimeUnit::Reduced() const {
-  int64_t gcd = GCD(mTicks.value(), mBase);
-  return TimeUnit(mTicks.value() / gcd, mBase / gcd);
+  int64_t posTicks = abs(mTicks.value());
+  bool wasNeg = mTicks.value() < 0;
+  int64_t gcd = GCD(posTicks, mBase);
+  int64_t signedTicks = wasNeg ? -posTicks : posTicks;
+  signedTicks /= gcd;
+  return TimeUnit(signedTicks, mBase / gcd);
 }
 
 double RoundToMicrosecondResolution(double aSeconds) {
