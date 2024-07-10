@@ -5,6 +5,7 @@
 package org.mozilla.fenix.tabstray
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -12,13 +13,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.tabstray.inactivetabs.InactiveTabsList
 
 /**
  * UI for displaying the Normal Tabs Page in the Tabs Tray.
  *
- * @param tabsTrayStore [TabsTrayStore] used to listen for changes to [TabsTrayState].
+ * @param normalTabs The list of active tabs to display.
+ * @param inactiveTabs The list of inactive tabs to display.
+ * @param selectedTabId The ID of the currently selected tab.
+ * @param selectionMode [TabsTrayState.Mode] indicating whether the Tabs Tray is in single selection.
+ * @param inactiveTabsExpanded Whether the Inactive Tabs section is expanded.
  * @param displayTabsInGrid Whether the normal and private tabs should be displayed in a grid.
  * @param onTabClose Invoked when the user clicks to close a tab.
  * @param onTabMediaClick Invoked when the user interacts with a tab's media controls.
@@ -40,11 +44,16 @@ import org.mozilla.fenix.tabstray.inactivetabs.InactiveTabsList
  * @param onInactiveTabsCFRShown Invoked when the inactive tabs CFR is displayed.
  * @param onInactiveTabsCFRClick Invoked when the inactive tabs CFR is clicked.
  * @param onInactiveTabsCFRDismiss Invoked when the inactive tabs CFR is dismissed.
+ * @param onTabDragStart Invoked when a tab drag has been started.
  */
 @Composable
 @Suppress("LongParameterList")
 internal fun NormalTabsPage(
-    tabsTrayStore: TabsTrayStore,
+    normalTabs: List<TabSessionState>,
+    inactiveTabs: List<TabSessionState>,
+    selectedTabId: String?,
+    selectionMode: TabsTrayState.Mode,
+    inactiveTabsExpanded: Boolean,
     displayTabsInGrid: Boolean,
     onTabClose: (TabSessionState) -> Unit,
     onTabMediaClick: (TabSessionState) -> Unit,
@@ -63,26 +72,15 @@ internal fun NormalTabsPage(
     onInactiveTabsCFRShown: () -> Unit,
     onInactiveTabsCFRClick: () -> Unit,
     onInactiveTabsCFRDismiss: () -> Unit,
+    onTabDragStart: () -> Unit,
 ) {
-    val inactiveTabsExpanded by tabsTrayStore.observeAsState(
-        initialValue = tabsTrayStore.state.inactiveTabsExpanded,
-    ) { state -> state.inactiveTabsExpanded }
-    val selectedTabId by tabsTrayStore.observeAsState(
-        initialValue = tabsTrayStore.state.selectedTabId,
-    ) { state -> state.selectedTabId }
-    val normalTabs by tabsTrayStore.observeAsState(
-        initialValue = tabsTrayStore.state.normalTabs,
-    ) { state -> state.normalTabs }
-    val inactiveTabs by tabsTrayStore.observeAsState(
-        initialValue = tabsTrayStore.state.inactiveTabs,
-    ) { state -> state.inactiveTabs }
-    val selectionMode by tabsTrayStore.observeAsState(
-        initialValue = tabsTrayStore.state.mode,
-    ) { state -> state.mode }
-
     if (normalTabs.isNotEmpty() || inactiveTabs.isNotEmpty()) {
-        val showInactiveTabsAutoCloseDialog =
-            shouldShowInactiveTabsAutoCloseDialog(inactiveTabs.size)
+        val showInactiveTabsAutoCloseDialog by remember(inactiveTabs) {
+            derivedStateOf {
+                shouldShowInactiveTabsAutoCloseDialog(inactiveTabs.size)
+            }
+        }
+
         var showAutoCloseDialog by remember { mutableStateOf(showInactiveTabsAutoCloseDialog) }
 
         val optionalInactiveTabsHeader: (@Composable () -> Unit)? = if (inactiveTabs.isEmpty()) {
@@ -128,7 +126,7 @@ internal fun NormalTabsPage(
             onTabClick = onTabClick,
             onTabLongClick = onTabLongClick,
             header = optionalInactiveTabsHeader,
-            onTabDragStart = { tabsTrayStore.dispatch(TabsTrayAction.ExitSelectMode) },
+            onTabDragStart = onTabDragStart,
             onMove = onMove,
         )
     } else {

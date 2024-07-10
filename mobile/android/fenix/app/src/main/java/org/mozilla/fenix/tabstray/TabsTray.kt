@@ -16,6 +16,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -131,25 +132,24 @@ fun TabsTray(
     onInactiveTabsCFRClick: () -> Unit,
     onInactiveTabsCFRDismiss: () -> Unit,
 ) {
-    val multiselectMode by tabsTrayStore.observeAsState(
-        initialValue = tabsTrayStore.state.mode,
-    ) { state -> state.mode }
-    val selectedPage by tabsTrayStore.observeAsState(
-        initialValue = tabsTrayStore.state.selectedPage,
-    ) { state -> state.selectedPage }
-
-    val pagerState =
-        rememberPagerState(initialPage = selectedPage.ordinal, pageCount = { Page.values().size })
-    val isInMultiSelectMode = multiselectMode is TabsTrayState.Mode.Select
-
+    val tabsTrayState by tabsTrayStore.observeAsState(initialValue = tabsTrayStore.state) { it }
+    val pagerState = rememberPagerState(
+        initialPage = tabsTrayState.selectedPage.ordinal,
+        pageCount = { Page.entries.size },
+    )
+    val isInMultiSelectMode by remember(tabsTrayState.mode) {
+        derivedStateOf {
+            tabsTrayState.mode is TabsTrayState.Mode.Select
+        }
+    }
     val shapeModifier = if (isInMultiSelectMode) {
         Modifier
     } else {
         Modifier.clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
     }
 
-    LaunchedEffect(selectedPage) {
-        pagerState.animateScrollToPage(selectedPage.ordinal)
+    LaunchedEffect(tabsTrayState.selectedPage) {
+        pagerState.animateScrollToPage(tabsTrayState.selectedPage.ordinal)
     }
 
     Column(
@@ -161,7 +161,10 @@ fun TabsTray(
     ) {
         Box(modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection())) {
             TabsTrayBanner(
-                tabsTrayStore = tabsTrayStore,
+                selectedPage = tabsTrayState.selectedPage,
+                normalTabCount = tabsTrayState.normalTabs.size + tabsTrayState.inactiveTabs.size,
+                privateTabCount = tabsTrayState.privateTabs.size,
+                selectionMode = tabsTrayState.mode,
                 isInDebugMode = isInDebugMode,
                 shouldShowTabAutoCloseBanner = shouldShowTabAutoCloseBanner,
                 onTabPageIndicatorClicked = onTabPageClick,
@@ -179,6 +182,12 @@ fun TabsTray(
                 onTabAutoCloseBannerViewOptionsClick = onTabAutoCloseBannerViewOptionsClick,
                 onTabAutoCloseBannerDismiss = onTabAutoCloseBannerDismiss,
                 onTabAutoCloseBannerShown = onTabAutoCloseBannerShown,
+                onEnterMultiselectModeClick = {
+                    tabsTrayStore.dispatch(TabsTrayAction.EnterSelectMode)
+                },
+                onExitSelectModeClick = {
+                    tabsTrayStore.dispatch(TabsTrayAction.ExitSelectMode)
+                },
             )
         }
 
@@ -194,7 +203,11 @@ fun TabsTray(
                 when (Page.positionToPage(position)) {
                     Page.NormalTabs -> {
                         NormalTabsPage(
-                            tabsTrayStore = tabsTrayStore,
+                            normalTabs = tabsTrayState.normalTabs,
+                            inactiveTabs = tabsTrayState.inactiveTabs,
+                            selectedTabId = tabsTrayState.selectedTabId,
+                            selectionMode = tabsTrayState.mode,
+                            inactiveTabsExpanded = tabsTrayState.inactiveTabsExpanded,
                             displayTabsInGrid = displayTabsInGrid,
                             onTabClose = onTabClose,
                             onTabMediaClick = onTabMediaClick,
@@ -213,12 +226,17 @@ fun TabsTray(
                             onInactiveTabsCFRShown = onInactiveTabsCFRShown,
                             onInactiveTabsCFRClick = onInactiveTabsCFRClick,
                             onInactiveTabsCFRDismiss = onInactiveTabsCFRDismiss,
+                            onTabDragStart = {
+                                tabsTrayStore.dispatch(TabsTrayAction.ExitSelectMode)
+                            },
                         )
                     }
 
                     Page.PrivateTabs -> {
                         PrivateTabsPage(
-                            tabsTrayStore = tabsTrayStore,
+                            privateTabs = tabsTrayState.privateTabs,
+                            selectedTabId = tabsTrayState.selectedTabId,
+                            selectionMode = tabsTrayState.mode,
                             displayTabsInGrid = displayTabsInGrid,
                             onTabClose = onTabClose,
                             onTabMediaClick = onTabMediaClick,
@@ -230,7 +248,7 @@ fun TabsTray(
 
                     Page.SyncedTabs -> {
                         SyncedTabsPage(
-                            tabsTrayStore = tabsTrayStore,
+                            syncedTabs = tabsTrayState.syncedTabs,
                             onTabClick = onSyncedTabClick,
                             onTabClose = onSyncedTabClose,
                         )

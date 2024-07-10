@@ -5,29 +5,24 @@
 package org.mozilla.fenix.tabstray
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.tabstray.syncedtabs.SyncedTabsList
+import org.mozilla.fenix.tabstray.syncedtabs.SyncedTabsListItem
 import org.mozilla.fenix.tabstray.syncedtabs.OnTabClick as OnSyncedTabClick
 import org.mozilla.fenix.tabstray.syncedtabs.OnTabCloseClick as OnSyncedTabClose
 
 /**
  * UI for displaying the Synced Tabs Page in the Tabs Tray.
  *
- * @param tabsTrayStore [TabsTrayStore] used to listen for changes to [TabsTrayState].
+ * @param syncedTabs The list of [SyncedTabsListItem] to display.
  * @param onTabClick Invoked when the user clicks on a tab.
  * @param onTabClose Invoked when the user clicks to close a tab.
  */
 @Composable
 internal fun SyncedTabsPage(
-    tabsTrayStore: TabsTrayStore,
+    syncedTabs: List<SyncedTabsListItem>,
     onTabClick: OnSyncedTabClick,
     onTabClose: OnSyncedTabClose,
 ) {
-    val syncedTabs by tabsTrayStore.observeAsState(
-        initialValue = tabsTrayStore.state.syncedTabs,
-    ) { state -> state.syncedTabs }
-
     SyncedTabsList(
         syncedTabs = syncedTabs,
         onTabClick = onTabClick,
