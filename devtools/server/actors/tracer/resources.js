@@ -313,7 +313,10 @@ class ResourcesTracingListener {
       this.#throttledTraces.push([
         "event",
         prefix,
+        null,
         ChromeUtils.dateNow(),
+        // Events are parent of any subsequent JS call, which has a 0 depth.
+        -1,
         currentDOMEvent,
       ]);
     }

@@ -493,7 +493,7 @@ function transformTraceResource(traceResource) {
       });
     }
     case "event": {
-      const [, prefix, timeStamp, eventName] = traceResource;
+      const [, prefix, , timeStamp, , eventName] = traceResource;
       return new ConsoleMessage({
         targetFront,
         source: MESSAGE_SOURCE.JSTRACER,
