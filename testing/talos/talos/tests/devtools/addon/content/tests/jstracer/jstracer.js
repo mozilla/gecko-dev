@@ -47,7 +47,7 @@ module.exports = async function () {
   const { promise, resolve } = Promise.withResolvers();
   function onAvailable(resources) {
     const tracedLastFunctionCall = resources.some(resource => {
-      const type = resource.shift();
+      const type = resource[TRACER_FIELDS_INDEXES.TYPE];
       return (
         type == "frame" && resource[TRACER_FIELDS_INDEXES.FRAME_NAME] == "λ c"
       );
