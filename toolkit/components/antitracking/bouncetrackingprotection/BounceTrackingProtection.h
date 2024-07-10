@@ -7,8 +7,11 @@
 #include "mozilla/Logging.h"
 #include "mozilla/MozPromise.h"
 #include "nsIBounceTrackingProtection.h"
+#include "nsIBTPRemoteExceptionList.h"
 #include "mozilla/Maybe.h"
 #include "nsIObserver.h"
+#include "nsWeakReference.h"
+#include "nsTHashSet.h"
 
 class nsIPrincipal;
 class nsITimer;
@@ -30,8 +33,9 @@ using ClearDataMozPromise = MozPromise<nsCString, uint32_t, true>;
 
 extern LazyLogModule gBounceTrackingProtectionLog;
 
-class BounceTrackingProtection final : public nsIObserver,
-                                       public nsIBounceTrackingProtection {
+class BounceTrackingProtection final : public nsIBounceTrackingProtection,
+                                       public nsIObserver,
+                                       public nsSupportsWeakReference {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIBOUNCETRACKINGPROTECTION
@@ -84,6 +88,12 @@ class BounceTrackingProtection final : public nsIObserver,
 
   // Storage for user agent globals.
   RefPtr<BounceTrackingProtectionStorage> mStorage;
+
+  // Interface to remote settings exception list.
+  nsCOMPtr<nsIBTPRemoteExceptionList> mRemoteExceptionList;
+
+  // In-memory copy of the remote settings exception list.
+  nsTHashSet<nsCStringHashKey> mRemoteSiteHostExceptions;
 
   // Clear state for classified bounce trackers. To be called on an interval.
   using PurgeBounceTrackersMozPromise =

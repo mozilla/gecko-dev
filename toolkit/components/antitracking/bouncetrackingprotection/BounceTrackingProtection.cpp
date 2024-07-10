@@ -27,6 +27,7 @@
 #include "nsIPermissionManager.h"
 #include "nsIPrincipal.h"
 #include "nsISupports.h"
+#include "nsISupportsPrimitives.h"
 #include "nsServiceManagerUtils.h"
 #include "nscore.h"
 #include "prtime.h"
@@ -44,7 +45,7 @@
 namespace mozilla {
 
 NS_IMPL_ISUPPORTS(BounceTrackingProtection, nsIObserver,
-                  nsIBounceTrackingProtection);
+                  nsISupportsWeakReference, nsIBounceTrackingProtection);
 
 LazyLogModule gBounceTrackingProtectionLog("BounceTrackingProtection");
 
@@ -103,7 +104,10 @@ BounceTrackingProtection::GetSingleton() {
   // Feature is enabled, lazily create singleton instance.
   if (!sBounceTrackingProtection) {
     sBounceTrackingProtection = new BounceTrackingProtection();
-    RunOnShutdown([] { sBounceTrackingProtection = nullptr; });
+    RunOnShutdown([] {
+      Unused << sBounceTrackingProtection->mRemoteExceptionList->Shutdown();
+      sBounceTrackingProtection = nullptr;
+    });
 
     nsresult rv = sBounceTrackingProtection->Init();
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -146,6 +150,12 @@ nsresult BounceTrackingProtection::Init() {
     MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Error,
             ("user activation permission migration failed"));
   }
+
+  mRemoteExceptionList =
+      do_CreateInstance(NS_NSIBTPEXCEPTIONLISTSERVICE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mRemoteExceptionList->Init(this);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   // Schedule timer for tracker purging. The timer interval is determined by
   // pref.
@@ -460,6 +470,38 @@ BounceTrackingProtection::ClearByOriginAttributesPattern(
 }
 
 NS_IMETHODIMP
+BounceTrackingProtection::AddSiteHostExceptions(
+    const nsTArray<nsCString>& aSiteHosts) {
+  for (const auto& host : aSiteHosts) {
+    mRemoteSiteHostExceptions.Insert(host);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+BounceTrackingProtection::RemoveSiteHostExceptions(
+    const nsTArray<nsCString>& aSiteHosts) {
+  for (const auto& host : aSiteHosts) {
+    mRemoteSiteHostExceptions.Remove(host);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+BounceTrackingProtection::TestGetSiteHostExceptions(
+    nsTArray<nsCString>& aSiteHostExceptions) {
+  aSiteHostExceptions.Clear();
+
+  for (const auto& host : mRemoteSiteHostExceptions) {
+    aSiteHostExceptions.AppendElement(host);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 BounceTrackingProtection::TestRunPurgeBounceTrackers(
     JSContext* aCx, mozilla::dom::Promise** aPromise) {
   NS_ENSURE_ARG_POINTER(aCx);
@@ -713,20 +755,24 @@ nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(
       continue;
     }
 
-    // Gecko specific: If the host is on the content blocking allow-list,
-    // continue.
-    bool isAllowListed = false;
-    rv = aBounceTrackingAllowList.CheckForBaseDomain(
-        host, aStateGlobal->OriginAttributesRef(), isAllowListed);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      continue;
+    // Gecko specific: If the host is on the content blocking allow-list or
+    // allow-listed via RemoteSettings continue.
+    bool isAllowListed = mRemoteSiteHostExceptions.Contains(host);
+    // If remote settings doesn't allowlist also check the content blocking
+    // allow-list.
+    if (!isAllowListed) {
+      rv = aBounceTrackingAllowList.CheckForBaseDomain(
+          host, aStateGlobal->OriginAttributesRef(), isAllowListed);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        continue;
+      }
     }
     if (isAllowListed) {
       if (MOZ_LOG_TEST(gBounceTrackingProtectionLog, LogLevel::Debug)) {
         nsAutoCString originAttributeSuffix;
         aStateGlobal->OriginAttributesRef().CreateSuffix(originAttributeSuffix);
         MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
-                ("%s: Skip host on the content blocking allow-list: host: %s, "
+                ("%s: Skip allow-listed: host: %s, "
                  "originAttributes: %s",
                  __FUNCTION__, PromiseFlatCString(host).get(),
                  originAttributeSuffix.get()));
