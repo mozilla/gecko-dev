@@ -285,10 +285,10 @@ async function testCreateBackupHelper(sandbox, taskFn) {
 
   taskFn(manifest);
 
-  await IOUtils.remove(backupFilePath);
-  await IOUtils.remove(fakeProfilePath, { recursive: true });
-  await IOUtils.remove(recoveredProfilePath, { recursive: true });
-  await IOUtils.remove(EXPECTED_ARCHIVE_PATH);
+  await maybeRemovePath(backupFilePath);
+  await maybeRemovePath(fakeProfilePath);
+  await maybeRemovePath(recoveredProfilePath);
+  await maybeRemovePath(EXPECTED_ARCHIVE_PATH);
 }
 
 /**
