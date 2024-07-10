@@ -8,11 +8,11 @@
 #include "ImageContainer.h"
 #include "libyuv/convert.h"
 #include "libyuv/convert_from_argb.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/Result.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/ImageUtils.h"
 #include "mozilla/gfx/Point.h"
-#include "mozilla/RefPtr.h"
-#include "mozilla/Result.h"
 #include "nsThreadUtils.h"
 
 using mozilla::ImageFormat;
