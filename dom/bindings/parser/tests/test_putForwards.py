@@ -120,3 +120,29 @@ def WebIDLTest(parser, harness):
         threw = True
 
     harness.ok(threw, "Should have thrown.")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse(
+            """
+            interface I {
+              [PutForwards=B] readonly attribute K A;
+            };
+            interface J {
+              readonly attribute long B;
+            };
+            interface K : J {
+            };
+        """
+        )
+
+        parser.finish()
+    except WebIDL.WebIDLError:
+        threw = True
+
+    harness.ok(
+        not threw,
+        "PutForwards should be able to forward to an attribute on an "
+        "inherited interface.",
+    )

@@ -1670,26 +1670,32 @@ class IDLInterfaceOrNamespace(IDLInterfaceOrInterfaceMixinOrNamespace):
                     )
 
                 while putForwards is not None:
-                    forwardIface = attr.type.unroll().inner
-                    fowardAttr = None
 
-                    for forwardedMember in forwardIface.members:
-                        if (
-                            not forwardedMember.isAttr()
-                            or forwardedMember.identifier.name != putForwards[0]
-                        ):
-                            continue
-                        if forwardedMember == member:
-                            raise WebIDLError(
-                                "Cycle detected in forwarded "
-                                "assignments for attribute %s on "
-                                "%s" % (member.identifier.name, self),
-                                [member.location],
-                            )
-                        fowardAttr = forwardedMember
-                        break
+                    def findForwardedAttr(iface):
+                        while iface:
+                            for m in iface.members:
+                                if (
+                                    not m.isAttr()
+                                    or m.identifier.name != putForwards[0]
+                                ):
+                                    continue
+                                if m == member:
+                                    raise WebIDLError(
+                                        "Cycle detected in forwarded "
+                                        "assignments for attribute %s on "
+                                        "%s" % (member.identifier.name, self),
+                                        [member.location],
+                                    )
+                                return (iface, m)
 
-                    if fowardAttr is None:
+                            iface = iface.parent
+
+                        return (None, None)
+
+                    (forwardIface, forwardAttr) = findForwardedAttr(
+                        attr.type.unroll().inner
+                    )
+                    if forwardAttr is None:
                         raise WebIDLError(
                             "Attribute %s on %s forwards to "
                             "missing attribute %s"
@@ -1698,7 +1704,7 @@ class IDLInterfaceOrNamespace(IDLInterfaceOrInterfaceMixinOrNamespace):
                         )
 
                     iface = forwardIface
-                    attr = fowardAttr
+                    attr = forwardAttr
                     putForwards = attr.getExtendedAttribute("PutForwards")
 
             # Check that the name of an [Alias] doesn't conflict with an
