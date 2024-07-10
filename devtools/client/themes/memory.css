@@ -393,7 +393,7 @@ html, body, #app, #memory-tool {
   cursor: default;
 }
 
-.tree-node-odd {
+.tree > :nth-child(2n of .tree-node):not(.focused) {
   background-color: var(--row-alt-background-color);
 }
 
