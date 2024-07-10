@@ -63,6 +63,7 @@ pref_groups = [
     "mathml",
     "media",
     "memory",
+    "middlemouse",
     "midi",
     "mousewheel",
     "mozilla",
