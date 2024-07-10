@@ -12,6 +12,14 @@ interface nsIIncrementalStreamLoader;
 interface nsIIncrementalStreamLoaderObserver : nsISupports
 {
     /**
+     * Same as nsIRequestObserver.onStartRequest.
+     * Called when the loader observes onStartRequest.
+     *
+     * @param aRequest request being observed
+     */
+    void onStartRequest(in nsIRequest aRequest);
+
+    /**
      * Called when new data has arrived on the stream.
      *
      * @param loader the stream loader that loaded the stream.

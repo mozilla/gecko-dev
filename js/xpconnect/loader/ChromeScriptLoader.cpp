@@ -437,6 +437,9 @@ void AsyncScriptCompiler::Reject(JSContext* aCx, const char* aMsg) {
 }
 
 NS_IMETHODIMP
+AsyncScriptCompiler::OnStartRequest(nsIRequest* aRequest) { return NS_OK; }
+
+NS_IMETHODIMP
 AsyncScriptCompiler::OnIncrementalData(nsIIncrementalStreamLoader* aLoader,
                                        nsISupports* aContext,
                                        uint32_t aDataLength,

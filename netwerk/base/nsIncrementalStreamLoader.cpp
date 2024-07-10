@@ -44,6 +44,11 @@ nsIncrementalStreamLoader::GetRequest(nsIRequest** aRequest) {
 
 NS_IMETHODIMP
 nsIncrementalStreamLoader::OnStartRequest(nsIRequest* request) {
+  nsresult rv = mObserver->OnStartRequest(request);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   nsCOMPtr<nsIChannel> chan(do_QueryInterface(request));
   if (chan) {
     int64_t contentLength = -1;

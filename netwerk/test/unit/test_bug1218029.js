@@ -67,14 +67,28 @@ function execute_test(test) {
   );
   stream.data = test.data;
 
+  let contentTypeCalled = 0;
+
   let channel = {
     contentLength: -1,
     QueryInterface: ChromeUtils.generateQI(["nsIChannel"]),
+    get contentType() {
+      contentTypeCalled++;
+      return "application/test";
+    },
   };
 
   let chunkIndex = 0;
 
   let observer = {
+    onStartRequest(request) {
+      const chan = request.QueryInterface(Ci.nsIChannel);
+      const before = contentTypeCalled;
+      const type = chan.contentType;
+      const after = contentTypeCalled;
+      equal(type, "application/test");
+      equal(after, before + 1);
+    },
     onStreamComplete(loader, context, status, length, data) {
       equal(chunkIndex, test.dataChunks.length - 1);
       var expectedChunk = test.dataChunks[chunkIndex];
