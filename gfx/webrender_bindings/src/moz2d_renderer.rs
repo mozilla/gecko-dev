@@ -9,10 +9,9 @@
 //! it also handles merging "partial" blob images (see `merge_blob_images`) and
 //! registering fonts found in the blob (see `prepare_request`).
 
-use bindings::{
-    gecko_profiler_end_marker, gecko_profiler_start_marker, wr_moz2d_render_cb, ArcVecU8, ByteSlice, MutByteSlice,
-};
+use bindings::{wr_moz2d_render_cb, ArcVecU8, ByteSlice, MutByteSlice};
 use gecko_profiler::gecko_profiler_label;
+use gecko_profiler::{auto_profiler_marker_tracing, gecko_profiler_category};
 use rayon::prelude::*;
 use rayon::ThreadPool;
 use webrender::api::units::{BlobDirtyRect, BlobToDeviceTranslation, DeviceIntRect};
@@ -498,23 +497,6 @@ struct Moz2dBlobRasterizer {
     enable_multithreading: bool,
 }
 
-struct GeckoProfilerMarker {
-    name: &'static str,
-}
-
-impl GeckoProfilerMarker {
-    pub fn new(name: &'static str) -> GeckoProfilerMarker {
-        gecko_profiler_start_marker(name);
-        GeckoProfilerMarker { name }
-    }
-}
-
-impl Drop for GeckoProfilerMarker {
-    fn drop(&mut self) {
-        gecko_profiler_end_marker(self.name);
-    }
-}
-
 impl AsyncBlobImageRasterizer for Moz2dBlobRasterizer {
     fn rasterize(
         &mut self,
@@ -523,7 +505,12 @@ impl AsyncBlobImageRasterizer for Moz2dBlobRasterizer {
     ) -> Vec<(BlobImageRequest, BlobImageResult)> {
         // All we do here is spin up our workers to callback into gecko to replay the drawing commands.
         gecko_profiler_label!(Graphics, Rasterization);
-        let _marker = GeckoProfilerMarker::new("BlobRasterization");
+        auto_profiler_marker_tracing!(
+            "BlobRasterization",
+            gecko_profiler_category!(Graphics),
+            Default::default(),
+            "Webrender".to_string()
+        );
 
         let requests: Vec<Job> = requests
             .iter()

@@ -136,3 +136,33 @@ pub struct MarkerOptions {
     pub timing: MarkerTiming,
     pub stack: MarkerStack,
 }
+
+impl MarkerOptions {
+    /// Given an existing marker option, update the timing member and return a
+    /// new MarkerOptions. This is a helper method to allow:
+    /// `
+    ///     add_marker(
+    ///         name,
+    ///         category,
+    ///         options_from_elsewhere.with_timing(new_timings),
+    ///         payload,
+    ///     );
+    /// `
+    /// rather than the more verbose:
+    /// `
+    ///     let new_options = options_from_elsewhere;
+    ///     new_options.timing = new_timings;
+    ///     add_marker(
+    ///         name,
+    ///         category,
+    ///         new_options,
+    ///         payload,
+    ///     );
+    /// `
+    pub fn with_timing(&self, timing: MarkerTiming) -> Self {
+        MarkerOptions {
+            timing,
+            stack: self.stack,
+        }
+    }
+}

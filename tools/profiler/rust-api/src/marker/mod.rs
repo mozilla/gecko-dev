@@ -127,6 +127,7 @@ pub use schema::MarkerSchema;
 use crate::gecko_bindings::{bindings, profiling_categories::ProfilingCategoryPair};
 use crate::json_writer::JSONWriter;
 use crate::marker::deserializer_tags_state::get_or_insert_deserializer_tag;
+use crate::ProfilerTime;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::os::raw::c_char;
 
@@ -173,6 +174,88 @@ pub fn add_text_marker(
             text.len(),
         )
     }
+}
+
+/// RAII-style scoped text marker
+/// This is a Rust-style equivalent of the C++ AUTO_PROFILER_MARKER_TEXT
+/// Profiler markers are emitted at when an AutoProfilerTextMarker is
+/// created, and when it is dropped (destroyed).
+pub struct AutoProfilerTextMarker<'a> {
+    name: &'a str,
+    category: ProfilingCategoryPair,
+    options: MarkerOptions,
+    text: &'a str,
+    // We store the start time separately from the MarkerTiming inside
+    // MarkerOptions, as once we have "put it in" a marker timing, there's
+    // currently no API way to "get it out" again.
+    start: ProfilerTime,
+}
+
+impl<'a> AutoProfilerTextMarker<'a> {
+    /// Construct an AutoProfilerTextMarker, if the profiler is accepting markers.
+    pub fn new(
+        name: &'a str,
+        category: ProfilingCategoryPair,
+        options: MarkerOptions,
+        text: &'a str,
+    ) -> Option<AutoProfilerTextMarker<'a>> {
+        if !crate::profiler_state::can_accept_markers() {
+            return None;
+        }
+        let start = ProfilerTime::now();
+        Some(AutoProfilerTextMarker {
+            name,
+            category,
+            options,
+            text,
+            start,
+        })
+    }
+}
+
+impl<'a> Drop for AutoProfilerTextMarker<'a> {
+    fn drop(&mut self) {
+        add_text_marker(
+            self.name,
+            self.category,
+            self.options
+                .with_timing(MarkerTiming::interval_until_now_from(self.start.clone())),
+            self.text,
+        );
+    }
+}
+
+/// Create an RAII-style text marker. See AutoProfilerTextMarker for more
+/// details.
+///
+/// The arguments to this macro correspond exactly to the
+/// AutoProfilerTextMarker::new constructor.
+///
+/// Example usage:
+/// ```rust
+/// auto_profiler_marker_text!(
+///     "BlobRasterization",
+///     gecko_profiler_category!(Graphics),
+///     Default::default(),
+///     "Webrender".to_string()
+/// );
+/// ```
+///
+#[cfg(feature = "enabled")]
+#[macro_export]
+macro_rules! auto_profiler_marker_text {
+    ($name:expr, $category:expr,$options:expr, $text:expr) => {
+        let _macro_created_rust_text_marker =
+            $crate::AutoProfilerTextMarker::new($name, $category, $options, $text);
+    };
+}
+
+#[cfg(not(feature = "enabled"))]
+#[macro_export]
+macro_rules! auto_profiler_marker_text {
+    ($name:expr, $category:expr,$options:expr, $text:expr) => {
+        // Do nothing if the profiler is not enabled
+    };
 }
 
 /// Trait that every profiler marker payload struct needs to implement.
@@ -280,4 +363,95 @@ impl ProfilerMarker for Tracing {
         schema.add_key_label_format("category", "Type", Format::String);
         schema
     }
+}
+
+/// RAII-style scoped tracing marker for Rust code.
+/// This is a Rust-style equivalent of the C++ AUTO_PROFILER_TRACING_MARKER
+/// Profiler markers are emitted at when an AutoProfilerTracingMarker is
+/// created, and when it is dropped (destroyed).
+pub struct AutoProfilerTracingMarker<'a> {
+    name: &'a str,
+    category: ProfilingCategoryPair,
+    options: MarkerOptions,
+    payload: String,
+}
+
+impl<'a> AutoProfilerTracingMarker<'a> {
+    pub fn new(
+        name: &'a str,
+        category: ProfilingCategoryPair,
+        options: MarkerOptions,
+        payload: String,
+    ) -> Option<AutoProfilerTracingMarker<'a>> {
+        if !crate::profiler_state::can_accept_markers() {
+            return None;
+        }
+        // Record our starting marker.
+        add_marker(
+            name,
+            category,
+            options.with_timing(MarkerTiming::interval_start(ProfilerTime::now())),
+            Tracing(payload.clone()),
+        );
+        Some(AutoProfilerTracingMarker {
+            name,
+            category,
+            options,
+            payload,
+        })
+    }
+}
+
+impl<'a> Drop for AutoProfilerTracingMarker<'a> {
+    fn drop(&mut self) {
+        // If we have an AutoProfilerTracingMarker object, then the profiler was
+        // running + accepting markers when it was *created*. We have no
+        // guarantee that it's still running though, so check again! If the
+        // profiler has stopped, then there's no point recording the second of a
+        // pair of markers.
+        if !crate::profiler_state::can_accept_markers() {
+            return;
+        }
+        // record the ending marker
+        add_marker(
+            self.name,
+            self.category,
+            self.options
+                .with_timing(MarkerTiming::interval_end(ProfilerTime::now())),
+            Tracing(self.payload.clone()),
+        );
+    }
+}
+
+/// Create an RAII-style tracing marker. See AutoProfilerTracingMarker for more
+/// details.
+///
+/// The arguments to this macro correspond exactly to the
+/// AutoProfilerTracingMarker::new constructor.
+///
+/// Example usage:
+/// ```rust
+/// auto_profiler_marker_tracing!(
+///     "BlobRasterization",
+///     gecko_profiler_category!(Graphics),
+///     Default::default(),
+///     "Webrender".to_string()
+/// );
+/// ```
+///
+#[cfg(feature = "enabled")]
+#[macro_export]
+macro_rules! auto_profiler_marker_tracing {
+    ($name:expr, $category:expr,$options:expr, $payload:expr) => {
+        let _macro_created_rust_tracing_marker =
+            $crate::AutoProfilerTracingMarker::new($name, $category, $options, $payload);
+    };
+}
+
+#[cfg(not(feature = "enabled"))]
+#[macro_export]
+macro_rules! auto_profiler_marker_tracing {
+    ($name:expr, $category:expr,$options:expr, $payload:expr) => {
+        // Do nothing if the profiler is not enabled
+    };
 }
