@@ -1898,8 +1898,6 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
   }
   CombinedBufferLayout layout = r.unwrap();
 
-  // TODO: shortcut - skip if mResource->mFormat->PixelFormat() is equal to
-  // aOptions.mFormat.Value() and mColorSpace is same as aOptions.mColorSpace.
   if (aOptions.mFormat.WasPassed() &&
       (aOptions.mFormat.Value() == VideoPixelFormat::RGBA ||
        aOptions.mFormat.Value() == VideoPixelFormat::RGBX ||
@@ -1912,24 +1910,27 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
                                           ? aOptions.mColorSpace.Value()
                                           : PredefinedColorSpace::Srgb;
 
-    AutoJSAPI jsapi;
-    if (!jsapi.Init(mParent.get())) {
-      p->MaybeRejectWithTypeError("Failed to get JS context");
-      return p.forget();
-    }
+    if (mResource->mFormat->PixelFormat() != aOptions.mFormat.Value() ||
+        !IsSameColorSpace(ConvertToColorSpace(colorSpace), mColorSpace)) {
+      AutoJSAPI jsapi;
+      if (!jsapi.Init(mParent.get())) {
+        p->MaybeRejectWithTypeError("Failed to get JS context");
+        return p.forget();
+      }
 
-    RootedDictionary<VideoFrameCopyToOptions> options(jsapi.cx());
-    CloneConfiguration(options, aOptions);
-    options.mFormat.Reset();
+      RootedDictionary<VideoFrameCopyToOptions> options(jsapi.cx());
+      CloneConfiguration(options, aOptions);
+      options.mFormat.Reset();
 
-    RefPtr<VideoFrame> rgbFrame =
-        ConvertToRGBFrame(aOptions.mFormat.Value(), colorSpace);
-    if (!rgbFrame) {
-      p->MaybeRejectWithTypeError(
-          "Failed to convert videoframe in the defined format");
-      return p.forget();
+      RefPtr<VideoFrame> rgbFrame =
+          ConvertToRGBFrame(aOptions.mFormat.Value(), colorSpace);
+      if (!rgbFrame) {
+        p->MaybeRejectWithTypeError(
+            "Failed to convert videoframe in the defined format");
+        return p.forget();
+      }
+      return rgbFrame->CopyTo(aDestination, options, aRv);
     }
-    return rgbFrame->CopyTo(aDestination, options, aRv);
   }
 
   return ProcessTypedArraysFixed(aDestination, [&](const Span<uint8_t>& aData) {

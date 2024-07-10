@@ -48,6 +48,9 @@ nsTArray<nsCString> GuessContainers(const nsAString& aCodec);
 
 Maybe<nsString> ParseCodecString(const nsAString& aCodec);
 
+bool IsSameColorSpace(const VideoColorSpaceInit& aLhs,
+                      const VideoColorSpaceInit& aRhs);
+
 /*
  * Below are helpers for conversion among Maybe, Optional, and Nullable.
  */

@@ -94,6 +94,12 @@ Maybe<nsString> ParseCodecString(const nsAString& aCodec) {
   return Some(codecs[0]);
 }
 
+bool IsSameColorSpace(const VideoColorSpaceInit& aLhs,
+                      const VideoColorSpaceInit& aRhs) {
+  return aLhs.mFullRange == aRhs.mFullRange && aLhs.mMatrix == aRhs.mMatrix &&
+         aLhs.mPrimaries == aRhs.mPrimaries && aLhs.mTransfer == aRhs.mTransfer;
+}
+
 /*
  * The below are helpers to operate ArrayBuffer or ArrayBufferView.
  */
