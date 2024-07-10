@@ -53,6 +53,7 @@ internal fun ToolsSubmenu(
 
                 TranslationMenuItem(
                     isTranslated = isTranslated,
+                    isReaderViewActive = isReaderViewActive,
                     translatedLanguage = translatedLanguage,
                     onClick = onTranslatePageMenuClick,
                 )
@@ -109,6 +110,7 @@ private fun ReaderViewMenuItem(
 @Composable
 private fun TranslationMenuItem(
     isTranslated: Boolean,
+    isReaderViewActive: Boolean,
     translatedLanguage: String,
     onClick: () -> Unit,
 ) {
@@ -119,13 +121,14 @@ private fun TranslationMenuItem(
                 translatedLanguage,
             ),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_translate_24),
-            state = MenuItemState.ACTIVE,
+            state = if (isReaderViewActive) MenuItemState.DISABLED else MenuItemState.ENABLED,
             onClick = onClick,
         )
     } else {
         MenuItem(
             label = stringResource(id = R.string.browser_menu_translate_page),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_translate_24),
+            state = if (isReaderViewActive) MenuItemState.DISABLED else MenuItemState.ENABLED,
             onClick = onClick,
         )
     }
