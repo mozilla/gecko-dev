@@ -125,7 +125,9 @@ class SettingsPrivacyTest {
         searchScreen {
         }.loadPage(crossSiteCookiesURL) {
             progressBar.waitUntilGone(waitingTime)
-            if (mActivityTestRule.activity.components.engine.version.releaseChannel !== EngineReleaseChannel.NIGHTLY) {
+            if (mActivityTestRule.activity.components.engine.version.releaseChannel !== EngineReleaseChannel.NIGHTLY &&
+                mActivityTestRule.activity.components.engine.version.releaseChannel !== EngineReleaseChannel.UNKNOWN
+            ) {
                 verifyCookiesEnabled("PARTITIONED")
             } else {
                 verifyCookiesEnabled("BLOCKED")
