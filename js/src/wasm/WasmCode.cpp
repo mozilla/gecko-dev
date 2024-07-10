@@ -133,6 +133,18 @@ bool wasm::StaticallyLink(jit::AutoMarkJitCodeWritableForThread& writable,
     Assembler::Bind(base, label);
   }
 
+  for (CallFarJump far : linkData.callFarJumps) {
+    MOZ_ASSERT(maybeSharedStubs);
+    MOZ_ASSERT(maybeSharedStubs->funcToCodeRange[far.targetFuncIndex] !=
+               BAD_CODE_RANGE);
+    uint32_t stubRangeIndex =
+        maybeSharedStubs->funcToCodeRange[far.targetFuncIndex];
+    const CodeRange& stubRange = maybeSharedStubs->codeRanges[stubRangeIndex];
+    uint8_t* stubBase = maybeSharedStubs->segment->base();
+    MacroAssembler::patchFarJump(base + far.jumpOffset,
+                                 stubBase + stubRange.funcUncheckedCallEntry());
+  }
+
   for (auto imm : MakeEnumeratedRange(SymbolicAddress::Limit)) {
     const Uint32Vector& offsets = linkData.symbolicLinks[imm];
     if (offsets.empty()) {

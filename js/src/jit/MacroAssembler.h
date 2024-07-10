@@ -664,6 +664,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // simple CodeOffset instead of a CodeOffsetJump).
   CodeOffset farJumpWithPatch() PER_SHARED_ARCH;
   void patchFarJump(CodeOffset farJump, uint32_t targetOffset) PER_SHARED_ARCH;
+  static void patchFarJump(uint8_t* farJump, uint8_t* target)
+      DEFINED_ON(arm, arm64, x86_shared);
 
   // Emit a nop that can be patched to and from a nop and a call with int32
   // relative displacement.

@@ -969,9 +969,10 @@ CoderResult CodeLinkData(Coder<mode>& coder,
   // SymbolicLinkArray depends on SymbolicAddress::Limit, which is changed
   // often. Exclude symbolicLinks field from trip wire value calculation.
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(
-      wasm::LinkData, 48 + sizeof(wasm::LinkData::SymbolicLinkArray));
+      wasm::LinkData, 88 + sizeof(wasm::LinkData::SymbolicLinkArray));
   MOZ_TRY(CodePod(coder, &item->pod()));
   MOZ_TRY(CodePodVector(coder, &item->internalLinks));
+  MOZ_TRY(CodePodVector(coder, &item->callFarJumps));
   MOZ_TRY(CodeSymbolicLinkArray(coder, &item->symbolicLinks));
   return Ok();
 }

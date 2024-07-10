@@ -713,6 +713,10 @@ void MacroAssembler::patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
   Assembler::patchFarJump(farJump, targetOffset);
 }
 
+void MacroAssembler::patchFarJump(uint8_t* farJump, uint8_t* target) {
+  Assembler::patchFarJump(farJump, target);
+}
+
 CodeOffset MacroAssembler::nopPatchableToCall() {
   masm.nop_five();
   return CodeOffset(currentOffset());

@@ -17,6 +17,7 @@
 #include "jit/BaselineFrame.h"
 #include "jit/JitRuntime.h"
 #include "jit/MacroAssembler.h"
+#include "jit/ProcessExecutableMemory.h"
 #include "util/Memory.h"
 #include "vm/BigIntType.h"
 #include "vm/JitActivation.h"  // js::jit::JitActivation
@@ -1411,6 +1412,21 @@ void MacroAssembler::patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
   Instruction* inst2 = getInstructionAt(BufferOffset(farJump.offset() + 8));
 
   int64_t distance = (int64_t)targetOffset - (int64_t)farJump.offset();
+
+  MOZ_ASSERT(inst1->InstructionBits() == UINT32_MAX);
+  MOZ_ASSERT(inst2->InstructionBits() == UINT32_MAX);
+
+  inst1->SetInstructionBits((uint32_t)distance);
+  inst2->SetInstructionBits((uint32_t)(distance >> 32));
+}
+
+void MacroAssembler::patchFarJump(uint8_t* farJump, uint8_t* target) {
+  Instruction* inst1 = (Instruction*)(farJump + 4);
+  Instruction* inst2 = (Instruction*)(farJump + 8);
+
+  int64_t distance = (int64_t)target - (int64_t)farJump;
+  MOZ_RELEASE_ASSERT(mozilla::Abs(distance) <=
+                     (intptr_t)jit::MaxCodeBytesPerProcess);
 
   MOZ_ASSERT(inst1->InstructionBits() == UINT32_MAX);
   MOZ_ASSERT(inst2->InstructionBits() == UINT32_MAX);

@@ -138,13 +138,16 @@ struct LinkData : LinkDataCacheablePod {
   };
 
   InternalLinkVector internalLinks;
+  CallFarJumpVector callFarJumps;
   SymbolicLinkArray symbolicLinks;
 
   bool isEmpty() const {
-    return internalLinks.length() == 0 && symbolicLinks.isEmpty();
+    return internalLinks.length() == 0 && callFarJumps.length() == 0 &&
+           symbolicLinks.isEmpty();
   }
   void clear() {
     internalLinks.clear();
+    callFarJumps.clear();
     symbolicLinks.clear();
   }
 

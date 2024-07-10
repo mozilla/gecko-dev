@@ -854,9 +854,13 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
   }
 
   for (CallFarJump far : callFarJumps_) {
-    masm_->patchFarJump(
-        jit::CodeOffset(far.jumpOffset),
-        funcCodeRangeInBlock(far.targetFuncIndex).funcUncheckedCallEntry());
+    if (funcIsCompiledInBlock(far.targetFuncIndex)) {
+      masm_->patchFarJump(
+          jit::CodeOffset(far.jumpOffset),
+          funcCodeRangeInBlock(far.targetFuncIndex).funcUncheckedCallEntry());
+    } else if (!linkData_->callFarJumps.append(far)) {
+      return nullptr;
+    }
   }
 
   codeBlock_->debugTrapOffset = debugTrapCodeOffset_;

@@ -7,6 +7,8 @@
 #ifndef jit_x86_shared_Assembler_x86_shared_h
 #define jit_x86_shared_Assembler_x86_shared_h
 
+#include "mozilla/MathAlgorithms.h"
+
 #include <cstddef>
 
 #include "jit/shared/Assembler-shared.h"
@@ -19,6 +21,7 @@
 #  error "Unknown architecture!"
 #endif
 #include "jit/CompactBuffer.h"
+#include "jit/ProcessExecutableMemory.h"
 #include "wasm/WasmTypeDecls.h"
 
 namespace js {
@@ -1140,6 +1143,11 @@ class AssemblerX86Shared : public AssemblerShared {
   void patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
     unsigned char* code = masm.data();
     X86Encoding::SetRel32(code + farJump.offset(), code + targetOffset);
+  }
+  static void patchFarJump(uint8_t* farJump, uint8_t* target) {
+    MOZ_RELEASE_ASSERT(mozilla::Abs(target - farJump) <=
+                       (intptr_t)jit::MaxCodeBytesPerProcess);
+    X86Encoding::SetRel32(farJump, target);
   }
 
   // This is for patching during code generation, not after.

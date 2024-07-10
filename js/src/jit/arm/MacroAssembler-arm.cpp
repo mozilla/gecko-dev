@@ -22,6 +22,7 @@
 #include "jit/JitRuntime.h"
 #include "jit/MacroAssembler.h"
 #include "jit/MoveEmitter.h"
+#include "jit/ProcessExecutableMemory.h"
 #include "js/ScalarType.h"  // js::Scalar::Type
 #include "util/Memory.h"
 #include "vm/BigIntType.h"
@@ -4380,6 +4381,22 @@ void MacroAssembler::patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
   // When pc is read as the operand of the add, its value is the address of
   // the add instruction + 8.
   *u32 = (targetOffset - addOffset) - 8;
+}
+
+void MacroAssembler::patchFarJump(uint8_t* farJump, uint8_t* target) {
+  uint32_t* u32 = reinterpret_cast<uint32_t*>(farJump);
+  MOZ_ASSERT(*u32 == UINT32_MAX);
+
+  uint8_t* addPtr = reinterpret_cast<uint8_t*>(u32) - 4;
+  MOZ_ASSERT(reinterpret_cast<Instruction*>(addPtr)->is<InstALU>());
+
+  int32_t distance = target - addPtr;
+  MOZ_RELEASE_ASSERT(mozilla::Abs(distance) <=
+                     (intptr_t)jit::MaxCodeBytesPerProcess);
+
+  // When pc is read as the operand of the add, its value is the address of
+  // the add instruction + 8.
+  *u32 = distance - 8;
 }
 
 CodeOffset MacroAssembler::nopPatchableToCall() {
