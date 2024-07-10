@@ -478,12 +478,12 @@ constexpr ptrdiff_t ProxyReservedSlots::offsetOfPrivateSlot() {
          offsetof(ProxyValueArray, privateSlot);
 }
 
-// All proxies share the same data layout. Following the object's shape and
-// type, the proxy has a ProxyDataLayout structure with a pointer to an array
-// of values and the proxy's handler. This is designed both so that proxies can
-// be easily swapped with other objects (via RemapWrapper) and to mimic the
-// layout of other objects (proxies and other objects have the same size) so
-// that common code can access either type of object.
+// All proxies share the same data layout. Following the object's shape, the
+// proxy has a ProxyDataLayout structure with a pointer to an array of values
+// and the proxy's handler. This is designed both so that proxies can be easily
+// swapped with other objects (via RemapWrapper) and to mimic the layout of
+// other objects (proxies and other objects have the same size) so that common
+// code can access either type of object.
 //
 // See GetReservedOrProxyPrivateSlot below.
 struct ProxyDataLayout {
