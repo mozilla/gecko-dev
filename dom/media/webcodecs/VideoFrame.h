@@ -46,6 +46,7 @@ class SVGImageElement;
 class StructuredCloneHolder;
 class VideoColorSpace;
 class VideoFrame;
+enum class PredefinedColorSpace : uint8_t;
 enum class VideoPixelFormat : uint8_t;
 struct VideoFrameBufferInit;
 struct VideoFrameCopyToOptions;
@@ -216,6 +217,9 @@ class VideoFrame final : public nsISupports, public nsWrapperCache {
  private:
   // VideoFrame can run on either main thread or worker thread.
   void AssertIsOnOwningThread() const { NS_ASSERT_OWNINGTHREAD(VideoFrame); }
+
+  already_AddRefed<VideoFrame> ConvertToRGBFrame(
+      const VideoPixelFormat& aFormat, const PredefinedColorSpace& aColorSpace);
 
   VideoFrameData GetVideoFrameData() const;
 

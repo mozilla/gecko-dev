@@ -1191,6 +1191,26 @@ InitializeFrameFromOtherFrame(nsIGlobalObject* aGlobal, VideoFrameData&& aData,
       aData.mColorSpace);
 }
 
+static void CloneConfiguration(RootedDictionary<VideoFrameCopyToOptions>& aDest,
+                               const VideoFrameCopyToOptions& aSrc) {
+  // TODO
+}
+
+// Convert the aImage to an image with aColorSpace color space in aFormat
+// format.
+static Result<RefPtr<layers::Image>, MediaResult> ConvertToRGBAImage(
+    const RefPtr<layers::Image>& aImage, const VideoPixelFormat& aFormat,
+    const PredefinedColorSpace& aColorSpace) {
+  // TODO
+  return Err(MediaResult(NS_ERROR_NOT_IMPLEMENTED));
+}
+
+static VideoColorSpaceInit ConvertToColorSpace(
+    const PredefinedColorSpace& aColorSpace) {
+  // TODO
+  return VideoColorSpaceInit{};
+}
+
 /*
  * Helper classes carrying VideoFrame data
  */
@@ -1804,7 +1824,43 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
   }
   CombinedBufferLayout layout = r.unwrap();
 
+  // TODO: shortcut - skip if mResource->mFormat->PixelFormat() is equal to
+  // aOptions.mFormat.Value() and mColorSpace is same as aOptions.mColorSpace.
+  if (aOptions.mFormat.WasPassed() &&
+      (aOptions.mFormat.Value() == VideoPixelFormat::RGBA ||
+       aOptions.mFormat.Value() == VideoPixelFormat::RGBX ||
+       aOptions.mFormat.Value() == VideoPixelFormat::BGRA ||
+       aOptions.mFormat.Value() == VideoPixelFormat::BGRX)) {
+    // By [1], if color space is not set, use "srgb".
+    // [1]:
+    // https://w3c.github.io/webcodecs/#dom-videoframecopytooptions-colorspace
+    PredefinedColorSpace colorSpace = aOptions.mColorSpace.WasPassed()
+                                          ? aOptions.mColorSpace.Value()
+                                          : PredefinedColorSpace::Srgb;
+
+    AutoJSAPI jsapi;
+    if (!jsapi.Init(mParent.get())) {
+      p->MaybeRejectWithTypeError("Failed to get JS context");
+      return p.forget();
+    }
+
+    RootedDictionary<VideoFrameCopyToOptions> options(jsapi.cx());
+    CloneConfiguration(options, aOptions);
+    options.mFormat.Reset();
+
+    RefPtr<VideoFrame> rgbFrame =
+        ConvertToRGBFrame(aOptions.mFormat.Value(), colorSpace);
+    if (!rgbFrame) {
+      p->MaybeRejectWithTypeError(
+          "Failed to convert videoframe in the defined format");
+      return p.forget();
+    }
+    return rgbFrame->CopyTo(aDestination, options, aRv);
+  }
+
   return ProcessTypedArraysFixed(aDestination, [&](const Span<uint8_t>& aData) {
+    MOZ_ASSERT(!aRv.Failed());
+
     if (aData.size_bytes() < layout.mAllocationSize) {
       p->MaybeRejectWithTypeError("Destination buffer is too small");
       return p.forget();
@@ -1980,6 +2036,32 @@ VideoFrameData VideoFrame::GetVideoFrameData() const {
   return VideoFrameData(mResource->mImage.get(), mResource->TryPixelFormat(),
                         mVisibleRect, mDisplaySize, mDuration, mTimestamp,
                         mColorSpace);
+}
+
+already_AddRefed<VideoFrame> VideoFrame::ConvertToRGBFrame(
+    const VideoPixelFormat& aFormat, const PredefinedColorSpace& aColorSpace) {
+  MOZ_ASSERT(
+      aFormat == VideoPixelFormat::RGBA || aFormat == VideoPixelFormat::RGBX ||
+      aFormat == VideoPixelFormat::BGRA || aFormat == VideoPixelFormat::BGRX);
+  MOZ_ASSERT(mResource);
+
+  auto r = ConvertToRGBAImage(mResource->mImage, aFormat, aColorSpace);
+  if (r.isErr()) {
+    MediaResult err = r.unwrapErr();
+    LOGE("VideoFrame %p, failed to convert image into %s format: %s", this,
+         dom::GetEnumString(aFormat).get(), err.Description().get());
+    return nullptr;
+  }
+  const RefPtr<layers::Image> img = r.unwrap();
+
+  // TODO: https://github.com/w3c/webcodecs/issues/817
+  // spec doesn't mention how the display size is set. Use the original one for
+  // now.
+
+  return MakeAndAddRef<VideoFrame>(
+      mParent.get(), img, Some(aFormat), mVisibleRect.Size(),
+      gfx::IntRect{{0, 0}, mVisibleRect.Size()}, mDisplaySize, mDuration,
+      mTimestamp, ConvertToColorSpace(aColorSpace));
 }
 
 void VideoFrame::StartAutoClose() {
