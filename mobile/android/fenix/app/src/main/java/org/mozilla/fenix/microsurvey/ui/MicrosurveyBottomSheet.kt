@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
@@ -117,6 +118,10 @@ fun MicrosurveyBottomSheet(
 
 @PreviewScreenSizes
 @LightDarkPreview
+@Preview(
+    name = "Large Font",
+    fontScale = 2.0f,
+)
 @Composable
 private fun MicroSurveyBottomSheetPreview() {
     FirefoxTheme {
