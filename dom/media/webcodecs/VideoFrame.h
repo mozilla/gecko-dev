@@ -48,8 +48,8 @@ class VideoColorSpace;
 class VideoFrame;
 enum class VideoPixelFormat : uint8_t;
 struct VideoFrameBufferInit;
-struct VideoFrameInit;
 struct VideoFrameCopyToOptions;
+struct VideoFrameInit;
 
 }  // namespace dom
 }  // namespace mozilla
