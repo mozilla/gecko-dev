@@ -41,7 +41,6 @@ class HomeScreenWithNavbarTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-        }.goToHomescreen {
             verifyTabCounter("1")
         }
     }

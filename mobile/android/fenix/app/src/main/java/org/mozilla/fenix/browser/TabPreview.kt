@@ -22,7 +22,6 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.thumbnails.loader.ThumbnailLoader
 import mozilla.components.concept.base.images.ImageLoadRequest
 import mozilla.components.ui.tabcounter.TabCounterMenu
-import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
@@ -83,7 +82,6 @@ class TabPreview @JvmOverloads constructor(
                             BrowserNavBar(
                                 isPrivateMode = browserStore.state.selectedTab?.content?.private ?: false,
                                 isFeltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
-                                showNewTabButton = FeatureFlags.navigationToolbarNewTabButtonEnabled,
                                 browserStore = browserStore,
                                 menuButton = MenuButton(context),
                                 tabsCounterMenu = TabCounterMenu(context, onItemTapped = {}),
@@ -97,9 +95,6 @@ class TabPreview @JvmOverloads constructor(
                                     // no-op
                                 },
                                 onForwardButtonLongPress = {
-                                    // no-op
-                                },
-                                onHomeButtonClick = {
                                     // no-op
                                 },
                                 onNewTabButtonClick = {

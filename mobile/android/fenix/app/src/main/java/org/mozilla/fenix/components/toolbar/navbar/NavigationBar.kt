@@ -52,7 +52,6 @@ import org.mozilla.fenix.theme.ThemeManager
  *
  * @param isPrivateMode If browsing in [BrowsingMode.Private].
  * @param isFeltPrivateBrowsingEnabled Whether the felt private browsing feature is enabled.
- * @param showNewTabButton Whether or not to show the new tab button instead of the home button.
  * @param browserStore The [BrowserStore] instance used to observe tabs state.
  * @param menuButton A [MenuButton] to be used as an [AndroidView]. The view implementation
  * contains the builder for the menu, so for the time being we are not implementing it as a composable.
@@ -62,7 +61,6 @@ import org.mozilla.fenix.theme.ThemeManager
  * @param onBackButtonLongPress Invoked when the user long-presses the back button in the navigation bar.
  * @param onForwardButtonClick Invoked when the user clicks on the forward button in the navigation bar.
  * @param onForwardButtonLongPress Invoked when the user long-presses the forward button in the navigation bar.
- * @param onHomeButtonClick Invoked when the user clicks on the home button in the navigation bar.
  * @param onNewTabButtonClick Invoked when the user click on the new tab button in the navigation bar.
  * @param onTabsButtonClick Invoked when the user clicks on the tabs button in the navigation bar.
  * @param onTabsButtonLongPress Invoked when the user long-presses the tabs button in the navigation bar.
@@ -74,7 +72,6 @@ import org.mozilla.fenix.theme.ThemeManager
 fun BrowserNavBar(
     isPrivateMode: Boolean,
     isFeltPrivateBrowsingEnabled: Boolean,
-    showNewTabButton: Boolean,
     browserStore: BrowserStore,
     menuButton: MenuButton,
     tabsCounterMenu: TabCounterMenu,
@@ -82,7 +79,6 @@ fun BrowserNavBar(
     onBackButtonLongPress: () -> Unit,
     onForwardButtonClick: () -> Unit,
     onForwardButtonLongPress: () -> Unit,
-    onHomeButtonClick: () -> Unit,
     onNewTabButtonClick: () -> Unit,
     onTabsButtonClick: () -> Unit,
     onTabsButtonLongPress: () -> Unit,
@@ -114,15 +110,9 @@ fun BrowserNavBar(
             enabled = canGoForward,
         )
 
-        if (showNewTabButton) {
-            NewTabButton(
-                onClick = onNewTabButtonClick,
-            )
-        } else {
-            HomeButton(
-                onHomeButtonClick = onHomeButtonClick,
-            )
-        }
+        NewTabButton(
+            onClick = onNewTabButtonClick,
+        )
 
         ToolbarTabCounterButton(
             tabCount = tabCount,
@@ -344,22 +334,6 @@ private fun ForwardButton(
 }
 
 @Composable
-private fun HomeButton(
-    onHomeButtonClick: () -> Unit,
-) {
-    IconButton(
-        onClick = onHomeButtonClick,
-        modifier = Modifier.size(48.dp),
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.mozac_ic_home_24),
-            stringResource(id = R.string.browser_toolbar_home),
-            tint = FirefoxTheme.colors.iconPrimary,
-        )
-    }
-}
-
-@Composable
 private fun NewTabButton(
     onClick: () -> Unit,
 ) {
@@ -488,7 +462,6 @@ private fun OpenTabNavBarNavBarPreviewRoot(isPrivateMode: Boolean) {
     BrowserNavBar(
         isPrivateMode = false,
         isFeltPrivateBrowsingEnabled = false,
-        showNewTabButton = false,
         browserStore = BrowserStore(),
         menuButton = menuButton,
         tabsCounterMenu = tabsCounterMenu,
@@ -496,7 +469,6 @@ private fun OpenTabNavBarNavBarPreviewRoot(isPrivateMode: Boolean) {
         onBackButtonLongPress = {},
         onForwardButtonClick = {},
         onForwardButtonLongPress = {},
-        onHomeButtonClick = {},
         onNewTabButtonClick = {},
         onTabsButtonClick = {},
         onTabsButtonLongPress = {},

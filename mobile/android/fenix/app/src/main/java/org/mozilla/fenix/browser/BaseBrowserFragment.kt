@@ -1448,7 +1448,6 @@ abstract class BaseBrowserFragment :
                         BrowserNavBar(
                             isPrivateMode = activity.browsingModeManager.mode.isPrivate,
                             isFeltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
-                            showNewTabButton = FeatureFlags.navigationToolbarNewTabButtonEnabled,
                             browserStore = context.components.core.store,
                             menuButton = menuButton,
                             tabsCounterMenu = FenixTabCounterMenu(
@@ -1488,14 +1487,6 @@ abstract class BaseBrowserFragment :
                                 browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
                                     ToolbarMenu.Item.Forward(viewHistory = true),
                                 )
-                            },
-                            onHomeButtonClick = {
-                                NavigationBar.browserHomeTapped.record(NoExtras())
-                                browserAnimator.captureEngineViewAndDrawStatically {
-                                    findNavController().navigate(
-                                        BrowserFragmentDirections.actionGlobalHome(),
-                                    )
-                                }
                             },
                             onNewTabButtonClick = {
                                 browserToolbarInteractor.onNewTabButtonClicked()
