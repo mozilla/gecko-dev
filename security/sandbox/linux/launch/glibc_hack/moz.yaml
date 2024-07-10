@@ -1,0 +1,37 @@
+schema: 1
+
+bugzilla:
+  product: "Core"
+  component: "Security: Process Sandboxing"
+
+origin:
+  name: chromium
+  description: Hack around glibc bug thread id cache
+
+  url: https://chromium.googlesource.com/chromium
+
+  release: a07ca9487c0ec9515f88a780f1073873fb191212 (Wed Jun 26 07:52:11 2024).
+  revision: a07ca9487c0ec9515f88a780f1073873fb191212
+
+  license: BSD-3-Clause
+
+vendoring:
+  url: https://chromium.googlesource.com/chromium/src/
+  source-hosting: googlesource
+  tracking: commit
+
+  exclude:
+    - "*"
+    - "**"
+
+  include:
+    - sandbox/linux/services/namespace_sandbox.cc
+
+  keep:
+    - extract-sandbox.py
+    - LICENSE
+
+  update-actions:
+    - action: run-script
+      script: '{yaml_dir}/extract-sandbox.py'
+      cwd: '{yaml_dir}'
