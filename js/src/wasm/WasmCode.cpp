@@ -646,16 +646,16 @@ bool Code::createTier2LazyEntryStubs(const WriteGuard& guard,
 
 bool Code::finishCompleteTier2(const LinkData& linkData,
                                UniqueCodeBlock tier2Code) const {
-  MOZ_RELEASE_ASSERT(bestTier() == Tier::Baseline &&
+  MOZ_RELEASE_ASSERT(hasCompleteTier2_ == false &&
                      tier2Code->tier() == Tier::Optimized);
   // Acquire the write guard before we start mutating anything. We hold this
   // for the minimum amount of time necessary.
   {
     auto guard = data_.writeLock();
 
-    // Grab the tier2 pointer before moving it into the block vector. This
-    // ensures we maintain the invariant that tier2_ is never read if hasTier2_
-    // is false.
+    // Borrow the tier2 pointer before moving it into the block vector. This
+    // ensures we maintain the invariant that completeTier2_ is never read if
+    // hasCompleteTier2_ is false.
     CodeBlock* tier2CodePointer = tier2Code.get();
 
     // Publish this code to the process wide map.
@@ -685,9 +685,8 @@ bool Code::finishCompleteTier2(const LinkData& linkData,
     jit::FlushExecutionContextForAllThreads();
 
     // Now that we can't fail or otherwise abort tier2, make it live.
-    tier2_ = tier2CodePointer;
-    hasTier2_ = true;
-    MOZ_ASSERT(hasTier2());
+    completeTier2_ = tier2CodePointer;
+    hasCompleteTier2_ = true;
 
     // Update jump vectors with pointers to tier-2 lazy entry stubs, if any.
     if (stub2Index) {
@@ -974,8 +973,8 @@ Code::Code(CompileMode mode, const CodeMetadata& codeMeta,
       data_(mutexid::WasmCodeProtected),
       codeMeta_(&codeMeta),
       codeMetaForAsmJS_(codeMetaForAsmJS),
-      tier1_(nullptr),
-      tier2_(nullptr),
+      completeTier1_(nullptr),
+      completeTier2_(nullptr),
       profilingLabels_(mutexid::WasmCodeProfilingLabels,
                        CacheableCharsVector()),
       trapCode_(nullptr),
@@ -997,14 +996,14 @@ bool Code::initialize(FuncImportVector&& funcImports,
   CodeBlock* tier1CodePointer = tierCodeBlock.get();
 
   sharedStubs_ = sharedStubs.get();
-  tier1_ = tierCodeBlock.get();
+  completeTier1_ = tierCodeBlock.get();
   trapCode_ = sharedStubs_->segment->base() + sharedStubsLinkData.trapOffset;
-  if (!jumpTables_.initialize(mode_, *sharedStubs_, *tier1_) ||
+  if (!jumpTables_.initialize(mode_, *sharedStubs_, *completeTier1_) ||
       !guard->blocks.append(std::move(sharedStubs)) ||
       !guard->blocks.append(std::move(tierCodeBlock)) ||
-      !blockMap_.insert(sharedStubs_) || !blockMap_.insert(tier1_)) {
+      !blockMap_.insert(sharedStubs_) || !blockMap_.insert(completeTier1_)) {
     // Reset the tier1 pointer to maintain the initialization invariant
-    tier1_ = nullptr;
+    completeTier1_ = nullptr;
     MOZ_ASSERT(!initialized());
     return false;
   }
@@ -1014,7 +1013,7 @@ bool Code::initialize(FuncImportVector&& funcImports,
   if (!tier1CodePointer->initialize(*this) ||
       !sharedStubsCodePointer->initialize(*this)) {
     // Reset the tier1 pointer to maintain the initialization invariant
-    tier1_ = nullptr;
+    completeTier1_ = nullptr;
     MOZ_ASSERT(!initialized());
     return false;
   }
@@ -1031,49 +1030,49 @@ uint32_t Code::getFuncIndex(JSFunction* fun) const {
   return jumpTables_.funcIndexFromJitEntry(fun->wasmJitEntry());
 }
 
-Tiers Code::tiers() const {
-  if (hasTier2()) {
-    return Tiers(tier1_->tier(), tier2_->tier());
+Tiers Code::completeTiers() const {
+  if (hasCompleteTier2_) {
+    return Tiers(completeTier1_->tier(), completeTier2_->tier());
   }
-  return Tiers(tier1_->tier());
+  return Tiers(completeTier1_->tier());
 }
 
-bool Code::hasTier(Tier t) const {
-  if (hasTier2() && tier2_->tier() == t) {
+bool Code::hasCompleteTier(Tier t) const {
+  if (hasCompleteTier2_ && completeTier2_->tier() == t) {
     return true;
   }
-  return tier1_->tier() == t;
+  return completeTier1_->tier() == t;
 }
 
-Tier Code::stableTier() const { return tier1_->tier(); }
+Tier Code::stableCompleteTier() const { return completeTier1_->tier(); }
 
-Tier Code::bestTier() const {
-  if (hasTier2()) {
-    return tier2_->tier();
+Tier Code::bestCompleteTier() const {
+  if (hasCompleteTier2_) {
+    return completeTier2_->tier();
   }
-  return tier1_->tier();
+  return completeTier1_->tier();
 }
 
-const CodeBlock& Code::codeBlock(Tier tier) const {
+const CodeBlock& Code::completeTierCodeBlock(Tier tier) const {
   switch (tier) {
     case Tier::Baseline:
-      if (tier1_->tier() == Tier::Baseline) {
-        MOZ_ASSERT(tier1_->initialized());
-        return *tier1_;
+      if (completeTier1_->tier() == Tier::Baseline) {
+        MOZ_ASSERT(completeTier1_->initialized());
+        return *completeTier1_;
       }
       MOZ_CRASH("No code segment at this tier");
     case Tier::Optimized:
-      if (tier1_->tier() == Tier::Optimized) {
-        MOZ_ASSERT(tier1_->initialized());
-        return *tier1_;
+      if (completeTier1_->tier() == Tier::Optimized) {
+        MOZ_ASSERT(completeTier1_->initialized());
+        return *completeTier1_;
       }
       // It is incorrect to ask for the optimized tier without there being such
       // a tier and the tier having been committed.  The guard here could
-      // instead be `if (hasTier2()) ... ` but codeBlock(t) should not be called
-      // in contexts where that test is necessary.
-      MOZ_RELEASE_ASSERT(hasTier2());
-      MOZ_ASSERT(tier2_->initialized());
-      return *tier2_;
+      // instead be `if (hasCompleteTier2_) ... ` but codeBlock(t) should not be
+      // called in contexts where that test is necessary.
+      MOZ_RELEASE_ASSERT(hasCompleteTier2_);
+      MOZ_ASSERT(completeTier2_->initialized());
+      return *completeTier2_;
   }
   MOZ_CRASH();
 }
@@ -1083,7 +1082,7 @@ bool Code::lookupFunctionTier(const CodeRange* codeRange, Tier* tier) const {
   // exists in metadata and not a lazy stub tier. Generalizing to access lazy
   // stubs would require taking a lock, which is undesirable for the profiler.
   MOZ_ASSERT(codeRange->isFunction());
-  for (Tier t : tiers()) {
+  for (Tier t : completeTiers()) {
     const CodeBlock& code = completeTierCodeBlock(t);
     if (codeRange >= code.codeRanges.begin() &&
         codeRange < code.codeRanges.end()) {
@@ -1113,7 +1112,7 @@ void Code::ensureProfilingLabels(bool profilingEnabled) const {
   // Any tier will do, we only need tier-invariant data that are incidentally
   // stored with the code ranges.
   const CodeBlock& sharedStubsCodeBlock = sharedStubs();
-  const CodeBlock& tier1CodeBlock = completeTierCodeBlock(stableTier());
+  const CodeBlock& tier1CodeBlock = completeTierCodeBlock(stableCompleteTier());
 
   // Ignore any OOM failures, nothing we can do about it
   (void)appendProfilingLabels(labels, sharedStubsCodeBlock);
@@ -1214,7 +1213,7 @@ void Code::addSizeOfMiscIfNotSeen(
   }
 
   sharedStubs().addSizeOfMisc(mallocSizeOf, code, data);
-  for (auto t : tiers()) {
+  for (auto t : completeTiers()) {
     completeTierCodeBlock(t).addSizeOfMisc(mallocSizeOf, code, data);
   }
 }
@@ -1294,7 +1293,7 @@ MetadataAnalysisHashMap Code::metadataAnalysis(JSContext* cx) const {
     return hashmap;
   }
 
-  for (auto t : tiers()) {
+  for (auto t : completeTiers()) {
     const CodeBlock& codeBlock = completeTierCodeBlock(t);
     size_t length = codeBlock.funcToCodeRange.numEntries();
     length += codeBlock.codeRanges.length();

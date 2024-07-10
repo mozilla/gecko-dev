@@ -1664,9 +1664,9 @@ static bool ConvertToTier(JSContext* cx, HandleValue value,
   }
 
   if (stableTier) {
-    *tier = code.stableTier();
+    *tier = code.stableCompleteTier();
   } else if (bestTier) {
-    *tier = code.bestTier();
+    *tier = code.bestCompleteTier();
   } else if (baselineTier) {
     *tier = wasm::Tier::Baseline;
   } else if (ionTier) {
@@ -1699,7 +1699,7 @@ static bool WasmExtractCode(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  wasm::Tier tier = module->module().code().stableTier();
+  wasm::Tier tier = module->module().code().stableCompleteTier();
   if (args.length() > 1 &&
       !ConvertToTier(cx, args[1], module->module().code(), &tier)) {
     args.rval().setNull();
@@ -1876,7 +1876,7 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
 
 static bool ComputeTier(JSContext* cx, const wasm::Code& code,
                         HandleValue tierSelection, wasm::Tier* tier) {
-  *tier = code.stableTier();
+  *tier = code.stableCompleteTier();
   if (!tierSelection.isUndefined() &&
       !ConvertToTier(cx, tierSelection, code, tier)) {
     JS_ReportErrorASCII(cx, "invalid tier");
