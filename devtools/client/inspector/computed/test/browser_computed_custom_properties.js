@@ -84,8 +84,8 @@ add_task(async function () {
     },
     {
       name: "--registered-color-secondary",
-      value: "1em",
-      invalidAtComputedValueTime: true,
+      value: "rgb(200, 100, 0)",
+      invalidAtComputedValueTime: false,
       syntax: "<color>",
       matchedRules: [
         {
