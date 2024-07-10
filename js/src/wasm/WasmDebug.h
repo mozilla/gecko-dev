@@ -102,7 +102,7 @@ class DebugState {
   void trace(JSTracer* trc);
   void finalize(JS::GCContext* gcx);
 
-  const Bytes& bytecode() const { return module_->debugBytecode(); }
+  const Bytes& bytecode() const { return module_->bytecode(); }
 
   [[nodiscard]] bool getLineOffsets(size_t lineno, Vector<uint32_t>* offsets);
   [[nodiscard]] bool getAllColumnOffsets(Vector<ExprLoc>* offsets);

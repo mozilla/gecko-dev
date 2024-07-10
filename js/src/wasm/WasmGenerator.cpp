@@ -1181,24 +1181,22 @@ SharedModule ModuleGenerator::finishModule(
     return nullptr;
   }
 
-  MutableCode code = js_new<Code>(mode(), *codeMeta_, codeMetaForAsmJS_);
+  // We keep the bytecode alive for debuggable modules, or if we're doing
+  // partial tiering.
+  bool keepBytecode = compilerEnv_->debugEnabled() ||
+                      compilerEnv_->mode() == CompileMode::LazyTiering;
+  MutableCode code = js_new<Code>(mode(), *codeMeta_, codeMetaForAsmJS_,
+                                  keepBytecode ? &bytecode : nullptr);
   if (!code || !code->initialize(std::move(funcImports_),
                                  std::move(sharedStubsCodeBlock_),
                                  *sharedStubsLinkData_, std::move(tier1Code))) {
     return nullptr;
   }
 
-  const ShareableBytes* debugBytecode = nullptr;
-  if (compilerEnv_->debugEnabled()) {
-    MOZ_ASSERT(mode() == CompileMode::Once);
-    MOZ_ASSERT(tier() == Tier::Debug);
-    debugBytecode = &bytecode;
-  }
-
   // All the components are finished, so create the complete Module and start
   // tier-2 compilation if requested.
 
-  MutableModule module = js_new<Module>(*moduleMeta, *code, debugBytecode);
+  MutableModule module = js_new<Module>(*moduleMeta, *code);
   if (!module) {
     return nullptr;
   }

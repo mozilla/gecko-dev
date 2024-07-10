@@ -86,10 +86,6 @@ class Module : public JS::WasmModule {
   // This contains all compilation artifacts for the module.
   const SharedCode code_;
 
-  // This field is only meaningful when code_->codeMeta().debugEnabled.
-
-  const SharedBytes debugBytecode_;
-
   // This field is set during tier-2 compilation and cleared on success or
   // failure. These happen on different threads and are serialized by the
   // control flow of helper tasks.
@@ -134,11 +130,9 @@ class Module : public JS::WasmModule {
 
  public:
   Module(const ModuleMetadata& moduleMeta, const Code& code,
-         const ShareableBytes* debugBytecode = nullptr,
          bool loggingDeserialized = false)
       : moduleMeta_(&moduleMeta),
         code_(&code),
-        debugBytecode_(debugBytecode),
         loggingDeserialized_(loggingDeserialized),
         testingTier2Active_(false) {
     initGCMallocBytesExcludingCode();
@@ -151,7 +145,7 @@ class Module : public JS::WasmModule {
   const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
     return code_->codeMetaForAsmJS();
   }
-  const Bytes& debugBytecode() const { return debugBytecode_->bytes; }
+  const Bytes& bytecode() const { return code().bytecode(); }
   uint32_t tier1CodeMemoryUsed() const { return code_->tier1CodeMemoryUsed(); }
 
   // Instantiate this module with the given imports:

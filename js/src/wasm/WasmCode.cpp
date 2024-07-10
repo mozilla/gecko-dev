@@ -968,7 +968,8 @@ bool JumpTables::initialize(CompileMode mode, const CodeBlock& sharedStubs,
 }
 
 Code::Code(CompileMode mode, const CodeMetadata& codeMeta,
-           const CodeMetadataForAsmJS* codeMetaForAsmJS)
+           const CodeMetadataForAsmJS* codeMetaForAsmJS,
+           const ShareableBytes* maybeBytecode)
     : mode_(mode),
       data_(mutexid::WasmCodeProtected),
       codeMeta_(&codeMeta),
@@ -977,7 +978,8 @@ Code::Code(CompileMode mode, const CodeMetadata& codeMeta,
       tier2_(nullptr),
       profilingLabels_(mutexid::WasmCodeProfilingLabels,
                        CacheableCharsVector()),
-      trapCode_(nullptr) {}
+      trapCode_(nullptr),
+      bytecode_(maybeBytecode) {}
 
 bool Code::initialize(FuncImportVector&& funcImports,
                       UniqueCodeBlock sharedStubs,

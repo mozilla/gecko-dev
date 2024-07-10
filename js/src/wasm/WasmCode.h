@@ -796,6 +796,10 @@ class Code : public ShareableBase<Code> {
   // Where to redirect PC to for handling traps from the signal handler.
   uint8_t* trapCode_;
 
+  // The bytecode for a module. Only available for debuggable modules, or if
+  // doing lazy tiering.
+  const SharedBytes bytecode_;
+
   // Methods for getting complete tiers, private while we're moving to partial
   // tiering.
   bool hasTier2() const { return hasTier2_; }
@@ -828,7 +832,8 @@ class Code : public ShareableBase<Code> {
 
  public:
   Code(CompileMode mode, const CodeMetadata& codeMeta,
-       const CodeMetadataForAsmJS* codeMetaForAsmJS);
+       const CodeMetadataForAsmJS* codeMetaForAsmJS,
+       const ShareableBytes* maybeBytecode);
   bool initialized() const { return !!tier1_ && tier1_->initialized(); }
 
   [[nodiscard]] bool initialize(FuncImportVector&& funcImports,
@@ -853,6 +858,11 @@ class Code : public ShareableBase<Code> {
   uint32_t getFuncIndex(JSFunction* fun) const;
 
   uint8_t* trapCode() const { return trapCode_; }
+
+  const Bytes& bytecode() const {
+    MOZ_ASSERT(codeMeta().debugEnabled || mode_ == CompileMode::LazyTiering);
+    return bytecode_->bytes;
+  }
 
   const FuncImport& funcImport(uint32_t funcIndex) const {
     return funcImports_[funcIndex];

@@ -1187,7 +1187,7 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
 CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
                            const wasm::LinkData& sharedStubsLinkData,
                            const wasm::LinkData& optimizedLinkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 704);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 712);
   MutableCodeMetadata codeMeta;
   UniqueCodeBlock sharedStubs;
   UniqueCodeBlock optimizedCode;
@@ -1201,7 +1201,8 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
 
   // Create and initialize the code
   MutableCode code =
-      js_new<Code>(CompileMode::Once, *codeMeta, /*codeMetaForAsmJS=*/nullptr);
+    js_new<Code>(CompileMode::Once, *codeMeta, /*codeMetaForAsmJS=*/nullptr,
+                 /*maybeBytecode=*/nullptr);
   if (!code ||
       !code->initialize(std::move(funcImports), std::move(sharedStubs),
                         sharedStubsLinkData, std::move(optimizedCode))) {
@@ -1216,7 +1217,7 @@ CoderResult CodeSharedCode(Coder<mode>& coder,
                            CoderArg<mode, wasm::SharedCode> item,
                            const wasm::LinkData& sharedStubsLinkData,
                            const wasm::LinkData& optimizedLinkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 704);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 712);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY((CodeRefPtr<mode, const CodeMetadata, &CodeCodeMetadata>(
       coder, &(*item)->codeMeta_)));
@@ -1231,7 +1232,7 @@ CoderResult CodeSharedCode(Coder<mode>& coder,
 // WasmModule.h
 
 CoderResult CodeModule(Coder<MODE_DECODE>& coder, MutableModule* item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Module, 64);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Module, 56);
   JS::BuildIdCharVector currentBuildId;
   if (!GetOptimizedEncodingBuildId(&currentBuildId)) {
     return Err(OutOfMemory());
@@ -1267,7 +1268,7 @@ CoderResult CodeModule(Coder<MODE_DECODE>& coder, MutableModule* item) {
     MOZ_RELEASE_ASSERT(code->codeMeta().funcNames.empty());
   }
 
-  *item = js_new<Module>(*moduleMeta, *code, nullptr,
+  *item = js_new<Module>(*moduleMeta, *code,
                          /* loggingDeserialized = */ true);
   return Ok();
 }
@@ -1276,7 +1277,7 @@ template <CoderMode mode>
 CoderResult CodeModule(Coder<mode>& coder, CoderArg<mode, Module> item,
                        const wasm::LinkData& sharedStubsLinkData,
                        const wasm::LinkData& optimizedLinkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Module, 64);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Module, 56);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_RELEASE_ASSERT(!item->codeMeta().debugEnabled);
   MOZ_RELEASE_ASSERT(item->code_->hasCompleteTier(Tier::Serialized));
