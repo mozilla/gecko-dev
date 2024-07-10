@@ -2855,6 +2855,35 @@ impl CascadeData {
         }
     }
 
+    pub(crate) fn find_scope_proximity_if_matching<E: TElement>(
+        &self,
+        rule: &Rule,
+        stylist: &Stylist,
+        element: E,
+        context: &mut MatchingContext<E::Impl>,
+    ) -> ScopeProximity {
+        let candidates = self.scope_condition_matches(
+            rule.scope_condition_id,
+            stylist,
+            element,
+            context,
+        );
+        for candidate in candidates {
+            if context.nest_for_scope(Some(candidate.root), |context| {
+                matches_selector(
+                    &rule.selector,
+                    0,
+                    Some(&rule.hashes),
+                    &element,
+                    context,
+                )
+            }) {
+                return candidate.proximity;
+            }
+        }
+        ScopeProximity::infinity()
+    }
+
     pub(crate) fn scope_condition_matches<E>(
         &self,
         id: ScopeConditionId,

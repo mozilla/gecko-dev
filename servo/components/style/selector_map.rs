@@ -330,26 +330,29 @@ impl SelectorMap<Rule> {
     ) where
         E: TElement,
     {
-        fn add_rule_if_matching<E: TElement>(
-            element: E,
-            scope_proximity: ScopeProximity,
-            rule: &Rule,
-            matching_rules: &mut ApplicableDeclarationList,
-            matching_context: &mut MatchingContext<E::Impl>,
-            cascade_level: CascadeLevel,
-            cascade_data: &CascadeData,
-            stylist: &Stylist,
-            include_starting_style: bool,
-        ) {
-            if !matches_selector(
-                &rule.selector,
-                0,
-                Some(&rule.hashes),
-                &element,
-                matching_context,
-            ) {
-                return;
-            }
+        use selectors::matching::IncludeStartingStyle;
+
+        let include_starting_style =
+            matches!(matching_context.include_starting_style, IncludeStartingStyle::Yes);
+        for rule in rules {
+            let scope_proximity = if rule.scope_condition_id == ScopeConditionId::none() {
+                if !matches_selector(
+                    &rule.selector,
+                    0,
+                    Some(&rule.hashes),
+                    &element,
+                    matching_context,
+                ) {
+                    continue;
+                }
+                ScopeProximity::infinity()
+            } else {
+                let result = cascade_data.find_scope_proximity_if_matching(rule, stylist, element, matching_context);
+                if result == ScopeProximity::infinity() {
+                    continue;
+                }
+                result
+            };
 
             if rule.container_condition_id != ContainerConditionId::none() {
                 if !cascade_data.container_condition_matches(
@@ -358,7 +361,7 @@ impl SelectorMap<Rule> {
                     element,
                     matching_context,
                 ) {
-                    return;
+                    continue;
                 }
             }
 
@@ -369,7 +372,7 @@ impl SelectorMap<Rule> {
                 matching_context.has_starting_style = true;
 
                 if !include_starting_style {
-                    return;
+                    continue;
                 }
             }
 
@@ -378,58 +381,6 @@ impl SelectorMap<Rule> {
                 cascade_data,
                 scope_proximity,
             ));
-        }
-
-        use selectors::matching::IncludeStartingStyle;
-
-        let include_starting_style = matches!(
-            matching_context.include_starting_style,
-            IncludeStartingStyle::Yes
-        );
-        for rule in rules {
-            if rule.scope_condition_id == ScopeConditionId::none() {
-                add_rule_if_matching(
-                    element,
-                    ScopeProximity::infinity(),
-                    rule,
-                    matching_rules,
-                    matching_context,
-                    cascade_level,
-                    cascade_data,
-                    stylist,
-                    include_starting_style,
-                );
-            } else {
-                // First element contains the closest matching scope, but the selector may match
-                // a scope root that is further out (e.g. `.foo > .foo .bar > .baz` for `scope-start`
-                // selector `.foo` and inner selector `.bar .baz`). This requires returning all
-                // potential scopes.
-                let scopes = cascade_data.scope_condition_matches(
-                    rule.scope_condition_id,
-                    stylist,
-                    element,
-                    matching_context,
-                );
-
-                // We had to gather scope roots first, since the scope element must change before the rule's
-                // selector is tested. Candidates are sorted in proximity.
-                for candidate in scopes {
-                    matching_context.nest_for_scope(Some(candidate.root), |context| {
-                        add_rule_if_matching(
-                            element,
-                            candidate.proximity,
-                            rule,
-                            matching_rules,
-                            context,
-                            cascade_level,
-                            cascade_data,
-                            stylist,
-                            include_starting_style,
-                        )
-                    });
-                    // Given rule may match with a scope root of further proximity - Can't just break here.
-                }
-            }
         }
     }
 }
