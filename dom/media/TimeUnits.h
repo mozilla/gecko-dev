@@ -169,6 +169,13 @@ class TimeUnit final {
     }
   };
 
+  struct FloorPolicy {
+    template <typename T>
+    static T policy(T& aValue) {
+      return std::floor(aValue);
+    }
+  };
+
   struct RoundPolicy {
     template <typename T>
     static T policy(T& aValue) {
