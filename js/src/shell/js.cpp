@@ -12921,7 +12921,8 @@ bool SetContextWasmOptions(JSContext* cx, const OptionParser& op) {
       .setWasm(enableWasm)
       .setWasmForTrustedPrinciples(enableWasm)
       .setWasmBaseline(enableWasmBaseline)
-      .setWasmIon(enableWasmOptimizing);
+      .setWasmIon(enableWasmOptimizing)
+      .setTestWasmAwaitTier2(enableTestWasmAwaitTier2);
 
 #ifndef __wasi__
   // This must be set before self-hosted code is initialized, as self-hosted
