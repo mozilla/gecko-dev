@@ -61,10 +61,9 @@
     fill: var(--theme-icon-dimmed-color);
     rotate: -90deg;
     transition: rotate 180ms var(--animation-curve);
-
-    &:dir(rtl) {
-      rotate: 90deg;
-    }
+  }
+  &:dir(rtl)::before {
+    rotate: 90deg;
   }
 
   &[aria-expanded="true"]::before {
