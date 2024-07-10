@@ -107,6 +107,8 @@ dictionary VideoFrameBufferInit {
 dictionary VideoFrameCopyToOptions {
   DOMRectInit rect;
   sequence<PlaneLayout> layout;
+  VideoPixelFormat format;
+  PredefinedColorSpace colorSpace;
 };
 
 dictionary PlaneLayout {
