@@ -1385,6 +1385,20 @@ var gProtectionsHandler = {
       }
 
       this._protectionsPopup.addEventListener("command", this);
+
+      function openTooltip(event) {
+        document.getElementById(event.target.tooltip).openPopup(event.target);
+      }
+      function closeTooltip(event) {
+        document.getElementById(event.target.tooltip).hidePopup();
+      }
+      let notBlockingWhy = document.getElementById(
+        "protections-popup-not-blocking-section-why"
+      );
+      notBlockingWhy.addEventListener("mouseover", openTooltip);
+      notBlockingWhy.addEventListener("focus", openTooltip);
+      notBlockingWhy.addEventListener("mouseout", closeTooltip);
+      notBlockingWhy.addEventListener("blur", closeTooltip);
     }
   },
 
