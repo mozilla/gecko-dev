@@ -881,9 +881,14 @@ class SearchAdImpression {
     let elementRect =
       element.ownerGlobal.windowUtils.getBoundsWithoutFlushing(element);
 
-    // If the element lacks a dimension, assume all ads that
-    // were contained within it are hidden.
-    if (elementRect.width == 0 || elementRect.height == 0) {
+    // If the parent element is not visible, assume all ads within are
+    // also not visible.
+    if (
+      !element.checkVisibility({
+        visibilityProperty: true,
+        opacityProperty: true,
+      })
+    ) {
       return {
         adsVisible: 0,
         adsHidden: adsLoaded,
@@ -921,15 +926,18 @@ class SearchAdImpression {
     let adsVisible = 0;
     let adsHidden = 0;
     for (let child of childElements) {
-      let itemRect =
-        child.ownerGlobal.windowUtils.getBoundsWithoutFlushing(child);
-
-      // If the child element we're inspecting has no dimension, it is hidden.
-      if (itemRect.height == 0 || itemRect.width == 0) {
+      if (
+        !child.checkVisibility({
+          visibilityProperty: true,
+          opacityProperty: true,
+        })
+      ) {
         adsHidden += 1;
         continue;
       }
 
+      let itemRect =
+        child.ownerGlobal.windowUtils.getBoundsWithoutFlushing(child);
       // If the child element is to the right of the containing element and
       // can't be viewed, skip it. We do this check because some elements like
       // carousels can hide additional content horizontally. We don't apply the
