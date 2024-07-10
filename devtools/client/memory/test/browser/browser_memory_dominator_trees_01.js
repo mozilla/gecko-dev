@@ -95,7 +95,9 @@ this.test = makeMemoryTest(TEST_URL, async function ({ panel }) {
     state => state.snapshots[0].dominatorTree.focused.nodeId === deepest.nodeId
   );
   ok(
-    doc.querySelector(`.node-${deepest.nodeId}`).classList.contains("focused"),
+    doc
+      .querySelector(`.node-${deepest.nodeId}`)
+      .parentElement.classList.contains("focused"),
     "The deepest node should be focused now"
   );
 
@@ -112,7 +114,9 @@ this.test = makeMemoryTest(TEST_URL, async function ({ panel }) {
     "Expanding the deepest node should start an incremental fetch of its subtree"
   );
   ok(
-    doc.querySelector(`.node-${deepest.nodeId}`).classList.contains("focused"),
+    doc
+      .querySelector(`.node-${deepest.nodeId}`)
+      .parentElement.classList.contains("focused"),
     "The deepest node should still be focused after expansion"
   );
 
@@ -125,7 +129,9 @@ this.test = makeMemoryTest(TEST_URL, async function ({ panel }) {
   );
   ok(true, "And the incremental fetch completes.");
   ok(
-    doc.querySelector(`.node-${deepest.nodeId}`).classList.contains("focused"),
+    doc
+      .querySelector(`.node-${deepest.nodeId}`)
+      .parentElement.classList.contains("focused"),
     "The deepest node should still be focused after we have loaded its children"
   );
 
@@ -172,7 +178,7 @@ this.test = makeMemoryTest(TEST_URL, async function ({ panel }) {
   ok(
     doc
       .querySelector(`.node-${firstChild.nodeId}`)
-      .classList.contains("focused"),
+      .parentElement.classList.contains("focused"),
     "The first child should now be focused"
   );
 });

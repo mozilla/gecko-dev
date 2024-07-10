@@ -1001,6 +1001,9 @@ class TreeNodeClass extends Component {
     if (this.props.active) {
       classList.push("tree-node-active");
     }
+    if (this.props.focused) {
+      classList.push("focused");
+    }
 
     let ariaExpanded;
     if (this.props.hasChildren) {

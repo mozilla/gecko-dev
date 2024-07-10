@@ -40,25 +40,19 @@ class DominatorTreeSubtreeFetchingClass extends Component {
   static get propTypes() {
     return {
       depth: PropTypes.number.isRequired,
-      focused: PropTypes.bool.isRequired,
     };
   }
 
   shouldComponentUpdate(nextProps) {
-    return (
-      this.props.depth !== nextProps.depth ||
-      this.props.focused !== nextProps.focused
-    );
+    return this.props.depth !== nextProps.depth;
   }
 
   render() {
-    const { depth, focused } = this.props;
+    const { depth } = this.props;
 
     return dom.div(
       {
-        className: `heap-tree-item subtree-fetching ${
-          focused ? "focused" : ""
-        }`,
+        className: "heap-tree-item subtree-fetching",
       },
       dom.span({ className: "heap-tree-item-field heap-tree-item-bytes" }),
       dom.span({ className: "heap-tree-item-field heap-tree-item-bytes" }),
@@ -78,25 +72,21 @@ class DominatorTreeSiblingLinkClass extends Component {
   static get propTypes() {
     return {
       depth: PropTypes.number.isRequired,
-      focused: PropTypes.bool.isRequired,
       item: PropTypes.instanceOf(DominatorTreeLazyChildren).isRequired,
       onLoadMoreSiblings: PropTypes.func.isRequired,
     };
   }
 
   shouldComponentUpdate(nextProps) {
-    return (
-      this.props.depth !== nextProps.depth ||
-      this.props.focused !== nextProps.focused
-    );
+    return this.props.depth !== nextProps.depth;
   }
 
   render() {
-    const { depth, focused, item, onLoadMoreSiblings } = this.props;
+    const { depth, item, onLoadMoreSiblings } = this.props;
 
     return dom.div(
       {
-        className: `heap-tree-item more-children ${focused ? "focused" : ""}`,
+        className: `heap-tree-item more-children`,
       },
       dom.span({ className: "heap-tree-item-field heap-tree-item-bytes" }),
       dom.span({ className: "heap-tree-item-field heap-tree-item-bytes" }),
@@ -218,7 +208,6 @@ class DominatorTree extends Component {
             key: item.key(),
             item,
             depth,
-            focused,
             onLoadMoreSiblings,
           });
         }
@@ -226,7 +215,6 @@ class DominatorTree extends Component {
         return DominatorTreeItem({
           item,
           depth,
-          focused,
           arrow,
           expanded,
           getPercentSize: size =>

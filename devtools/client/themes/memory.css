@@ -393,6 +393,18 @@ html, body, #app, #memory-tool {
   cursor: default;
 }
 
+.tree-node-odd {
+  background-color: var(--row-alt-background-color);
+}
+
+/**
+ * Override Tree.css rule as the .tree-node-odd background are of the same color
+ * as the default hovered background.
+ */
+.tree .tree-node:not(.focused):hover {
+  background-color: var(--row-hover-background-color);
+}
+
 .children-pointer {
   display: inline-block;
   /* We use transform to reverse the icon in RTL,
@@ -415,24 +427,6 @@ html, body, #app, #memory-tool {
    * the last one needs to flex to fill out all remaining horizontal space.
    */
   display: flex;
-}
-
-.tree-node-odd {
-  background-color: var(--row-alt-background-color);
-}
-
-.tree-node:hover {
-  background-color: var(--row-hover-background-color);
-}
-
-.heap-tree-item.focused {
-  background-color: var(--theme-selection-background);
-  color: var(--theme-selection-color);
-}
-
-.heap-tree-item.focused ::-moz-selection {
-  background-color: var(--theme-selection-color);
-  color: var(--theme-selection-background);
 }
 
 .heap-tree-item-individuals,
@@ -518,8 +512,7 @@ html, body, #app, #memory-tool {
   width: 4ch;
 }
 
-.heap-tree-item.focused .heap-tree-number,
-.heap-tree-item.focused .heap-tree-percent {
+.tree-node.focused :is(.heap-tree-number, .heap-tree-percent) {
   color: inherit;
 }
 
