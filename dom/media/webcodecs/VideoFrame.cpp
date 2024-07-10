@@ -1215,8 +1215,52 @@ static void CloneConfiguration(RootedDictionary<VideoFrameCopyToOptions>& aDest,
 static Result<RefPtr<layers::Image>, MediaResult> ConvertToRGBAImage(
     const RefPtr<layers::Image>& aImage, const VideoPixelFormat& aFormat,
     const PredefinedColorSpace& aColorSpace) {
-  // TODO
-  return Err(MediaResult(NS_ERROR_NOT_IMPLEMENTED));
+  MOZ_ASSERT(aImage);
+
+  if (aFormat != VideoPixelFormat::RGBA && aFormat != VideoPixelFormat::RGBX &&
+      aFormat != VideoPixelFormat::BGRA && aFormat != VideoPixelFormat::BGRX) {
+    return Err(MediaResult(
+        NS_ERROR_INVALID_ARG,
+        nsPrintfCString("Image conversion into %s format is invalid",
+                        dom::GetEnumString(aFormat).get())));
+  }
+
+  CheckedInt32 stride(aImage->GetSize().Width());
+  stride *= 4;
+  if (!stride.isValid()) {
+    return Err(
+        MediaResult(NS_ERROR_INVALID_ARG, "The image width is too big"_ns));
+  }
+
+  CheckedInt<size_t> size(stride.value());
+  size *= aImage->GetSize().Height();
+  if (!size.isValid()) {
+    return Err(
+        MediaResult(NS_ERROR_INVALID_ARG, "The image size is too big"_ns));
+  }
+
+  UniquePtr<uint8_t[]> buffer(new uint8_t[size.value()]);
+  if (!buffer) {
+    return Err(MediaResult(NS_ERROR_OUT_OF_MEMORY,
+                           "Failed to allocate buffer for converted image"_ns));
+  }
+
+  VideoFrame::Format format(aFormat);
+  gfx::SurfaceFormat surfaceFormat = format.ToSurfaceFormat();
+
+  // TODO: Take aColorSpace into account (bug 1904471)
+  nsresult r =
+      ConvertToRGBA(aImage.get(), surfaceFormat, buffer.get(), stride.value(),
+                    aImage->GetSize().Width(), aImage->GetSize().Height());
+  if (NS_FAILED(r)) {
+    return Err(
+        MediaResult(r, nsPrintfCString("Failed to convert into %s image",
+                                       dom::GetEnumString(aFormat).get())));
+  }
+
+  Span<uint8_t> data(buffer.get(), size.value());
+  return CreateImageFromRawData(aImage->GetSize(), stride.value(),
+                                surfaceFormat, data);
 }
 
 static VideoColorSpaceInit ConvertToColorSpace(

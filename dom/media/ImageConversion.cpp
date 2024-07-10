@@ -204,4 +204,10 @@ nsresult ConvertToNV12(layers::Image* aImage, uint8_t* aDestY, int aDestStrideY,
                          aImage->GetSize().width, aImage->GetSize().height));
 }
 
+nsresult ConvertToRGBA(Image* aImage, const SurfaceFormat& aDestFormat,
+                       uint8_t* aDestBuffer, int aDestStride, int aWidth,
+                       int aHeight) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 }  // namespace mozilla
