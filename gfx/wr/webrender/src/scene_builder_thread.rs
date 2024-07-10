@@ -13,7 +13,7 @@ use crate::box_shadow::BoxShadow;
 #[cfg(feature = "capture")]
 use crate::capture::CaptureConfig;
 use crate::frame_builder::FrameBuilderConfig;
-use crate::scene_building::SceneBuilder;
+use crate::scene_building::{SceneBuilder, SceneRecycler};
 use crate::clip::{ClipIntern, PolygonIntern};
 use crate::filterdata::FilterDataIntern;
 use glyph_rasterizer::SharedFontResources;
@@ -30,7 +30,7 @@ use crate::prim_store::text_run::TextRun;
 use crate::profiler::{self, TransactionProfile};
 use crate::render_backend::SceneView;
 use crate::renderer::{FullFrameStats, PipelineInfo};
-use crate::scene::{Scene, BuiltScene, SceneStats};
+use crate::scene::{BuiltScene, Scene, SceneStats};
 use crate::spatial_tree::{SceneSpatialTree, SpatialTreeUpdates};
 use crate::telemetry::Telemetry;
 use crate::SceneBuilderHooks;
@@ -243,6 +243,7 @@ pub struct SceneBuilderThread {
     #[cfg(feature = "capture")]
     capture_config: Option<CaptureConfig>,
     debug_flags: DebugFlags,
+    recycler: SceneRecycler,
 }
 
 pub struct SceneBuilderThreadChannels {
@@ -288,6 +289,7 @@ impl SceneBuilderThread {
             #[cfg(feature = "capture")]
             capture_config: None,
             debug_flags: DebugFlags::default(),
+            recycler: SceneRecycler::new(),
         }
     }
 
@@ -326,6 +328,9 @@ impl SceneBuilderThread {
                         _ => {},
                     }
                     self.forward_built_transactions(built_txns);
+
+                    // Now that we off the critical path, do some memory bookkeeping.
+                    self.recycler.recycle_built_scene();
                 }
                 Ok(SceneBuilderRequest::AddDocument(document_id, initial_size)) => {
                     let old = self.documents.insert(document_id, Document::new(
@@ -605,6 +610,7 @@ impl SceneBuilderThread {
                 &self.config,
                 &mut doc.interners,
                 &mut doc.spatial_tree,
+                &mut self.recycler,
                 &doc.stats,
                 self.debug_flags,
             );
