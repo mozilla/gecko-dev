@@ -12,17 +12,21 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -66,6 +70,40 @@ fun DownloadIconIndicator(
         contentDescription = contentDescription,
         tint = tint,
     )
+}
+
+/**
+ * Icon for Download In Progress indicator.
+ *
+ * @param modifier [Modifier] to be applied to the icon layout.
+ * @param icon [Painter] used to be displayed.
+ * @param tint Tint [Color] to be applied to the icon.
+ * @param contentDescription Optional content description for the icon.
+ */
+@Composable
+fun DownloadInProgressIndicator(
+    modifier: Modifier = Modifier,
+    icon: Painter = painterResource(id = R.drawable.mozac_ic_stop_8),
+    tint: Color = FirefoxTheme.colors.iconPrimary,
+    contentDescription: String? = null,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            modifier = modifier.size(8.dp),
+            painter = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+        )
+        CircularProgressIndicator(
+            modifier = modifier.size(30.dp),
+            color = FirefoxTheme.colors.layerAccent,
+            backgroundColor = FirefoxTheme.colors.actionTertiary,
+            strokeWidth = 2.dp,
+            strokeCap = StrokeCap.Butt,
+        )
+    }
 }
 
 /**
@@ -128,6 +166,25 @@ private fun DownloadIconIndicatorPreview() {
         ) {
             DownloadIconIndicator(
                 icon = painterResource(id = R.drawable.mozac_ic_sync_24),
+                contentDescription = stringResource(
+                    id = R.string.translations_bottom_sheet_translating_in_progress,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+@LightDarkPreview
+private fun DownloadInProgressIndicatorPreview() {
+    FirefoxTheme {
+        Column(
+            modifier = Modifier
+                .background(FirefoxTheme.colors.layer1)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            DownloadInProgressIndicator(
                 contentDescription = stringResource(
                     id = R.string.translations_bottom_sheet_translating_in_progress,
                 ),

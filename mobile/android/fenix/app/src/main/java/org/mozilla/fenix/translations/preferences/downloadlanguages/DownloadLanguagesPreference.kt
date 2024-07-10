@@ -529,7 +529,7 @@ private fun TextListItemInlineDescription(
             enabled = enabled,
             modifier = Modifier
                 .padding(end = 16.dp)
-                .size(24.dp)
+                .size(30.dp)
                 .clearAndSetSemantics {},
         ) {
             icon()
