@@ -15,8 +15,6 @@
 #include <type_traits>
 #include <limits>
 #include <cmath>
-#include <string>
-#include <sstream>
 
 namespace mozilla {
 
@@ -78,37 +76,6 @@ template <typename T>
 constexpr uint64_t safe_integer_unsigned() {
   static_assert(std::is_floating_point_v<T>);
   return std::pow(2, std::numeric_limits<T>::digits);
-}
-
-template <typename T>
-const char* TypeToString();
-
-#define T2S(type)                                     \
-  template <>                                         \
-  inline constexpr const char* TypeToString<type>() { \
-    return #type;                                     \
-  }
-
-T2S(uint8_t);
-T2S(uint16_t);
-T2S(uint32_t);
-T2S(uint64_t);
-T2S(int8_t);
-T2S(int16_t);
-T2S(int32_t);
-T2S(int64_t);
-T2S(char16_t);
-T2S(float);
-T2S(double);
-
-#undef T2S
-
-template <typename In, typename Out>
-inline std::string DiagnosticMessage(In aIn) {
-  std::stringstream ss;
-  ss << "Cannot cast " << +aIn << " from " << TypeToString<In>() << " to "
-     << TypeToString<Out>() << ": out of range.";
-  return ss.str();
 }
 
 // This is working around https://gcc.gnu.org/bugzilla/show_bug.cgi?id=81676,
@@ -213,13 +180,7 @@ bool IsInBounds(In aIn) {
 template <typename To, typename From>
 inline To AssertedCast(const From aFrom) {
   static_assert(std::is_arithmetic_v<To> && std::is_arithmetic_v<From>);
-#ifdef DEBUG
-  if (!detail::IsInBounds<From, To>(aFrom)) {
-    fprintf(stderr, "AssertedCast error: %s\n",
-            detail::DiagnosticMessage<From, To>(aFrom).c_str());
-    MOZ_CRASH();
-  }
-#endif
+  MOZ_ASSERT((detail::IsInBounds<From, To>(aFrom)));
   return static_cast<To>(aFrom);
 }
 
