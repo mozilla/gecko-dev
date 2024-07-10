@@ -794,10 +794,6 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
    */
   GraphTime mProcessedTime = 0;
   /**
-   * The end of the current iteration. Only access on the graph thread.
-   */
-  GraphTime mIterationEndTime = 0;
-  /**
    * The graph should stop processing at this time.
    */
   GraphTime mEndTime;

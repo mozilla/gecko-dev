@@ -250,11 +250,6 @@ TrackTime MediaTrackGraphImpl::GraphTimeToTrackTimeWithBlocking(
       0, std::min(aTime, aTrack->mStartBlocking) - aTrack->mStartTime);
 }
 
-GraphTime MediaTrackGraphImpl::IterationEnd() const {
-  MOZ_ASSERT(OnGraphThread());
-  return mIterationEndTime;
-}
-
 void MediaTrackGraphImpl::UpdateCurrentTimeForTracks(
     GraphTime aPrevCurrentTime) {
   MOZ_ASSERT(OnGraphThread());
@@ -1627,8 +1622,6 @@ auto MediaTrackGraphImpl::OneIterationImpl(
     GraphTime aStateTime, GraphTime aIterationEnd,
     MixerCallbackReceiver* aMixerReceiver) -> IterationResult {
   TRACE("MTG::OneIterationImpl");
-
-  mIterationEndTime = aIterationEnd;
 
   if (SoftRealTimeLimitReached()) {
     TRACE("MTG::Demoting real-time thread!");
