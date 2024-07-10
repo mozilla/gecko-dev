@@ -40,7 +40,7 @@ Finding something to work on
 Find a bug we've identified as a good fit for new contributors.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With more than a million bugs filed in Bugzilla, it can be hard to know
+With millions bugs filed in Bugzilla, it can be hard to know
 where to start, so we've created these bug categories to make getting
 involved a little easier:
 
