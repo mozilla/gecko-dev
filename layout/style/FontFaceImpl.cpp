@@ -72,10 +72,18 @@ void FontFaceImpl::AssertIsOnOwningThread() const {
 }
 #endif
 
+void FontFaceImpl::StopKeepingOwnerAlive() {
+  if (mKeepingOwnerAlive) {
+    mKeepingOwnerAlive = false;
+    MOZ_ASSERT(mOwner);
+    mOwner->Release();
+  }
+}
+
 void FontFaceImpl::Destroy() {
-  MOZ_DIAGNOSTIC_ASSERT(!mKeepingOwnerAlive);
   mInFontFaceSet = false;
   SetUserFontEntry(nullptr);
+  StopKeepingOwnerAlive();
   mOwner = nullptr;
 }
 

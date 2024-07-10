@@ -90,6 +90,8 @@ class FontFaceImpl final {
     return mOwner;
   }
 
+  void StopKeepingOwnerAlive();
+
   static already_AddRefed<FontFaceImpl> CreateForRule(
       FontFace* aOwner, FontFaceSetImpl* aFontFaceSet,
       StyleLockedFontFaceRule* aRule);
