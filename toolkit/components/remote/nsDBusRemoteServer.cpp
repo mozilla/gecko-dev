@@ -75,9 +75,15 @@ static void HandleMethodCall(GDBusConnection* aConnection, const gchar* aSender,
     return;
   }
 
-  gsize len;
-  const auto* commandLine = (const char*)g_variant_get_fixed_array(
-      g_variant_get_child_value(aParameters, 0), &len, sizeof(char));
+  gsize len = 0;
+  const char* commandLine = nullptr;
+
+  RefPtr<GVariant> variant =
+      dont_AddRef(g_variant_get_child_value(aParameters, 0));
+  if (variant) {
+    commandLine =
+        (const char*)g_variant_get_fixed_array(variant, &len, sizeof(char));
+  }
   if (!commandLine || !len) {
     g_warning(
         "nsDBusRemoteServer: HandleMethodCall: failed to get url string!");
