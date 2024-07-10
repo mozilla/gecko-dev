@@ -2382,19 +2382,7 @@ nsIPrincipal* Loader::PartitionedPrincipal() const {
 }
 
 bool Loader::ShouldBypassCache() const {
-  if (!mDocument) {
-    return false;
-  }
-  RefPtr<nsILoadGroup> lg = mDocument->GetDocumentLoadGroup();
-  if (!lg) {
-    return false;
-  }
-  nsLoadFlags flags;
-  if (NS_FAILED(lg->GetLoadFlags(&flags))) {
-    return false;
-  }
-  return flags & (nsIRequest::LOAD_BYPASS_CACHE |
-                  nsICachingChannel::LOAD_BYPASS_LOCAL_CACHE);
+  return mDocument && nsContentUtils::ShouldBypassSubResourceCache(mDocument);
 }
 
 void Loader::BlockOnload() {
