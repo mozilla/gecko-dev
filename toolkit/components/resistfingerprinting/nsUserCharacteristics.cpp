@@ -58,22 +58,11 @@
 #  include "WinUtils.h"
 #  include "mozilla/gfx/DisplayConfigWindows.h"
 #  include "gfxWindowsPlatform.h"
-#  include <winuser.h>
 #elif defined(MOZ_WIDGET_ANDROID)
 #  include "mozilla/java/GeckoAppShellWrappers.h"
 #elif defined(XP_MACOSX)
-#  include <Carbon/Carbon.h>
 #  include "nsMacUtilsImpl.h"
 #  include <CoreFoundation/CoreFoundation.h>
-#elif defined(XP_LINUX)
-#  include "mozilla/WidgetUtilsGtk.h"
-#  include <gtk/gtk.h>
-#  ifdef MOZ_X11
-#    include <X11/XKBlib.h>
-#  endif
-#  ifdef MOZ_WAYLAND
-#    include <xkbcommon/xkbcommon.h>
-#  endif
 #endif
 
 using namespace mozilla;
@@ -306,78 +295,10 @@ void PopulatePrefs() {
 
 void PopulateKeyboardLayout() {
   nsAutoCString layoutName;
-#if defined(XP_WIN)
-  char layout[KL_NAMELENGTH];
-  if (!::GetKeyboardLayoutNameA(layout)) {
-    return;
-  }
-  layoutName.Assign(layout);
 
-#elif defined(XP_MACOSX)
-  TISInputSourceRef source = TISCopyCurrentKeyboardInputSource();
-  char layout[128];
+  nsresult rv = LookAndFeel::GetKeyboardLayout(layoutName);
 
-  CFStringRef layoutID = static_cast<CFStringRef>(
-      TISGetInputSourceProperty(source, kTISPropertyInputSourceID));
-  CFStringGetCString(layoutID, layout, sizeof(layout), kCFStringEncodingUTF8);
-  layoutName.Assign(layout);
-#elif defined(XP_LINUX) && !defined(ANDROID)
-  if (mozilla::widget::GdkIsX11Display()) {
-#  if defined(MOZ_X11)
-    Display* display = XOpenDisplay(nullptr);
-    if (!display) {
-      return;
-    }
-    XkbDescRec* kbdDesc = XkbAllocKeyboard();
-    if (!kbdDesc) {
-      XCloseDisplay(display);
-      return;
-    }
-
-    XkbStateRec state;
-    XkbGetState(display, XkbUseCoreKbd, &state);
-    uint32_t group = state.group;
-
-    XkbGetNames(display, XkbGroupNamesMask, kbdDesc);
-
-    if (!kbdDesc->names || !kbdDesc->names->groups[group]) {
-      return;
-    }
-
-    char* layout = XGetAtomName(display, kbdDesc->names->groups[group]);
-
-    XkbFreeKeyboard(kbdDesc, 0, True);
-    XCloseDisplay(display);
-
-    layoutName.Assign(layout);
-#  endif
-  } else {
-#  if defined(MOZ_WAYLAND)
-    struct xkb_context* context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    if (!context) {
-      return;
-    }
-
-    struct xkb_keymap* keymap = xkb_keymap_new_from_names(
-        context, nullptr, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    if (!keymap) {
-      xkb_context_unref(context);
-      return;
-    }
-
-    const char* layout = xkb_keymap_layout_get_name(keymap, 0);
-
-    if (layout) {
-      layoutName.Assign(layout);
-    }
-
-    xkb_keymap_unref(keymap);
-    xkb_context_unref(context);
-#  endif
-  }
-#endif
-
-  if (layoutName.IsEmpty()) {
+  if (NS_FAILED(rv) || layoutName.IsEmpty()) {
     return;
   }
 
