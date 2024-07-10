@@ -68,33 +68,28 @@
           <vbox id="protections-popup-content" flex="1">
             <vbox id="protections-popup-category-list">
               <toolbarbutton id="protections-popup-category-trackers"
-                             oncommand="gProtectionsHandler.showTrackersSubview(event); gProtectionsHandler.recordClick('trackers');"
                              class="protections-popup-category subviewbutton subviewbutton-iconic" align="center">
                 <image class="toolbarbutton-icon protections-popup-category-icon trackers-icon"/>
                 <label flex="1" class="toolbarbutton-text protections-popup-category-label" data-l10n-id="protections-panel-content-blocking-tracking-protection"></label>
               </toolbarbutton>
               <toolbarbutton id="protections-popup-category-socialblock"
-                             oncommand="gProtectionsHandler.showSocialblockerSubview(event); gProtectionsHandler.recordClick('social');"
                              class="protections-popup-category subviewbutton subviewbutton-iconic" align="center">
                 <image class="toolbarbutton-icon protections-popup-category-icon socialblock-icon"/>
                 <label flex="1"
                        class="toolbarbutton-text protections-popup-category-label" data-l10n-id="protections-panel-content-blocking-socialblock"></label>
               </toolbarbutton>
               <toolbarbutton id="protections-popup-category-cookies"
-                             oncommand="gProtectionsHandler.showCookiesSubview(event); gProtectionsHandler.recordClick('cookies');"
                              class="protections-popup-category subviewbutton subviewbutton-iconic" align="center">
                 <image class="toolbarbutton-icon protections-popup-category-icon thirdpartycookies-icon"/>
                 <label flex="1" id="protections-popup-cookies-category-label"
                        class="toolbarbutton-text protections-popup-category-label"/>
               </toolbarbutton>
               <toolbarbutton id="protections-popup-category-cryptominers"
-                             oncommand="gProtectionsHandler.showCryptominersSubview(event); gProtectionsHandler.recordClick('cryptominers');"
                              class="protections-popup-category subviewbutton subviewbutton-iconic" align="center">
                 <image class="toolbarbutton-icon protections-popup-category-icon cryptominers-icon"/>
                 <label flex="1" class="toolbarbutton-text protections-popup-category-label" data-l10n-id="protections-panel-content-blocking-cryptominers-label"></label>
               </toolbarbutton>
               <toolbarbutton id="protections-popup-category-fingerprinters"
-                             oncommand="gProtectionsHandler.showFingerprintersSubview(event); gProtectionsHandler.recordClick('fingerprinters');"
                              class="protections-popup-category subviewbutton subviewbutton-iconic" align="center">
                 <image class="toolbarbutton-icon protections-popup-category-icon fingerprinters-icon"/>
                 <label flex="1" class="toolbarbutton-text protections-popup-category-label" data-l10n-id="protections-panel-content-blocking-fingerprinters-label"></label>
@@ -123,16 +118,14 @@
       <toolbarseparator></toolbarseparator>
       <vbox id="protections-popup-footer" class="panel-subview-footer-button">
         <toolbarbutton id="protections-popup-settings-button"
-                       class="subviewbutton protections-popup-footer-button"
-                       oncommand="gProtectionsHandler.openPreferences(); gProtectionsHandler.recordClick('settings');">
+                       class="subviewbutton protections-popup-footer-button">
           <image class="protections-popup-footer-icon protections-popup-settings-icon"/>
           <label class="toolbarbutton-text protections-popup-footer-button-label" flex="1" data-l10n-id="protections-panel-settings-label"></label>
           <label id="protections-popup-footer-protection-type-label" class="toolbarbutton-text"></label>
         </toolbarbutton>
         <stack id="protections-popup-show-report-stack">
           <toolbarbutton id="protections-popup-show-report-button"
-                         class="subviewbutton protections-popup-footer-button"
-                         oncommand="gProtectionsHandler.openProtections(true); gProtectionsHandler.recordClick('full_report');">
+                         class="subviewbutton protections-popup-footer-button">
             <image class="protections-popup-footer-icon protections-popup-show-report-icon"/>
             <label class="toolbarbutton-text protections-popup-footer-button-label" flex="1" data-l10n-id="protections-panel-protectionsdashboard-label"></label>
           </toolbarbutton>
@@ -147,8 +140,7 @@
         <hbox id="protections-popup-milestones" class="protections-popup-section">
           <toolbarbutton id="protections-popup-milestones-content"
                          class="subviewbutton"
-                         flex="1"
-                         oncommand="gProtectionsHandler.openProtections(true); gProtectionsHandler.recordClick('milestone_message');">
+                         flex="1">
             <label id="protections-popup-milestones-text" flex="1"
                    role="heading" aria-level="2"/>
             <image id="protections-popup-milestones-illustration"/>
@@ -198,8 +190,7 @@
         <toolbarseparator></toolbarseparator>
         <toolbarbutton id="protections-popup-trackersView-settings-button"
                 data-l10n-id="protections-panel-content-blocking-manage-settings"
-                class="subviewbutton panel-subview-footer-button"
-                oncommand="gProtectionsHandler.openPreferences(); gProtectionsHandler.recordClick('subview_settings', 'trackers');"/>
+                class="subviewbutton panel-subview-footer-button"/>
     </panelview>
 
     <!-- Social Block SubView -->
@@ -228,8 +219,7 @@
         <toolbarseparator></toolbarseparator>
         <toolbarbutton id="protections-popup-socialblockView-settings-button"
                 data-l10n-id="protections-panel-content-blocking-manage-settings"
-                class="subviewbutton panel-subview-footer-button"
-                oncommand="gProtectionsHandler.openPreferences(); gProtectionsHandler.recordClick('subview_settings', 'social');"/>
+                class="subviewbutton panel-subview-footer-button"/>
     </panelview>
 
     <!-- Cookies SubView -->
@@ -245,8 +235,7 @@
         <toolbarseparator></toolbarseparator>
         <toolbarbutton id="protections-popup-cookiesView-settings-button"
                   data-l10n-id="protections-panel-content-blocking-manage-settings"
-                  class="subviewbutton panel-subview-footer-button"
-                  oncommand="gProtectionsHandler.openPreferences(); gProtectionsHandler.recordClick('subview_settings', 'cookies');"/>
+                  class="subviewbutton panel-subview-footer-button"/>
     </panelview>
 
     <!-- Fingerprinters SubView -->
@@ -275,8 +264,7 @@
         <toolbarseparator></toolbarseparator>
         <toolbarbutton id="protections-popup-fingerprintersView-settings-button"
                   data-l10n-id="protections-panel-content-blocking-manage-settings"
-                  class="subviewbutton panel-subview-footer-button"
-                  oncommand="gProtectionsHandler.openPreferences(); gProtectionsHandler.recordClick('subview_settings', 'fingerprinters');"/>
+                  class="subviewbutton panel-subview-footer-button"/>
     </panelview>
 
     <!-- Cryptominers SubView -->
@@ -305,8 +293,7 @@
         <toolbarseparator></toolbarseparator>
         <toolbarbutton id="protections-popup-cryptominersView-settings-button"
                   data-l10n-id="protections-panel-content-blocking-manage-settings"
-                  class="subviewbutton panel-subview-footer-button"
-                  oncommand="gProtectionsHandler.openPreferences(); gProtectionsHandler.recordClick('subview_settings', 'cryptominers');"/>
+                  class="subviewbutton panel-subview-footer-button"/>
     </panelview>
 
     <!-- Cookie Banner SubView -->
@@ -324,16 +311,13 @@
         <html:moz-button-group class="panel-footer protections-popup-cookieBannerView-footer">
           <button id="protections-popup-cookieBannerView-cancel"
                     data-l10n-id="protections-panel-cookie-banner-view-cancel-label"
-                    oncommand="gProtectionsHandler._protectionsPopupMultiView.goBack();"
                     class="footer-button" />
           <button id="protections-popup-cookieBannerView-enable-button"
                     data-l10n-id="protections-panel-cookie-banner-view-turn-on-label"
-                    oncommand="gProtectionsHandler.onCookieBannerToggleCommand()"
                     default="true"
                     class="footer-button" />
           <button id="protections-popup-cookieBannerView-disable-button"
                     data-l10n-id="protections-panel-cookie-banner-view-turn-off-label"
-                    oncommand="gProtectionsHandler.onCookieBannerToggleCommand()"
                     default="true"
                     class="footer-button" />
         </html:moz-button-group>

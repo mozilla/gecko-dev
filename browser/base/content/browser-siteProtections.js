@@ -1383,6 +1383,8 @@ var gProtectionsHandler = {
       for (let blocker of Object.values(this.blockers)) {
         blocker.updateCategoryItem();
       }
+
+      this._protectionsPopup.addEventListener("command", this);
     }
   },
 
@@ -2019,9 +2021,76 @@ var gProtectionsHandler = {
     this.reportBlockingEventTelemetry(event, isSimulated, previousState);
   },
 
+  onCommand(event) {
+    switch (event.target.id) {
+      case "protections-popup-category-trackers":
+        gProtectionsHandler.showTrackersSubview(event);
+        gProtectionsHandler.recordClick("trackers");
+        break;
+      case "protections-popup-category-socialblock":
+        gProtectionsHandler.showSocialblockerSubview(event);
+        gProtectionsHandler.recordClick("social");
+        break;
+      case "protections-popup-category-cookies":
+        gProtectionsHandler.showCookiesSubview(event);
+        gProtectionsHandler.recordClick("cookies");
+        break;
+      case "protections-popup-category-cryptominers":
+        gProtectionsHandler.showCryptominersSubview(event);
+        gProtectionsHandler.recordClick("cryptominers");
+        return;
+      case "protections-popup-category-fingerprinters":
+        gProtectionsHandler.showFingerprintersSubview(event);
+        gProtectionsHandler.recordClick("fingerprinters");
+        break;
+      case "protections-popup-settings-button":
+        gProtectionsHandler.openPreferences();
+        gProtectionsHandler.recordClick("settings");
+        break;
+      case "protections-popup-show-report-button":
+        gProtectionsHandler.openProtections(true);
+        gProtectionsHandler.recordClick("full_report");
+        break;
+      case "protections-popup-milestones-content":
+        gProtectionsHandler.openProtections(true);
+        gProtectionsHandler.recordClick("milestone_message");
+        break;
+      case "protections-popup-trackersView-settings-button":
+        gProtectionsHandler.openPreferences();
+        gProtectionsHandler.recordClick("subview_settings", "trackers");
+        break;
+      case "protections-popup-socialblockView-settings-button":
+        gProtectionsHandler.openPreferences();
+        gProtectionsHandler.recordClick("subview_settings", "social");
+        break;
+      case "protections-popup-cookiesView-settings-button":
+        gProtectionsHandler.openPreferences();
+        gProtectionsHandler.recordClick("subview_settings", "cookies");
+        break;
+      case "protections-popup-fingerprintersView-settings-button":
+        gProtectionsHandler.openPreferences();
+        gProtectionsHandler.recordClick("subview_settings", "fingerprinters");
+        break;
+      case "protections-popup-cryptominersView-settings-button":
+        gProtectionsHandler.openPreferences();
+        gProtectionsHandler.recordClick("subview_settings", "cryptominers");
+        break;
+      case "protections-popup-cookieBannerView-cancel":
+        gProtectionsHandler._protectionsPopupMultiView.goBack();
+        break;
+      case "protections-popup-cookieBannerView-enable-button":
+      case "protections-popup-cookieBannerView-disable-button":
+        gProtectionsHandler.onCookieBannerToggleCommand();
+        break;
+    }
+  },
+
   // We handle focus here when the panel is shown.
   handleEvent(event) {
     switch (event.type) {
+      case "command":
+        this.onCommand(event);
+        break;
       case "focus": {
         let elem = document.activeElement;
         let position = elem.compareDocumentPosition(this._protectionsPopup);
