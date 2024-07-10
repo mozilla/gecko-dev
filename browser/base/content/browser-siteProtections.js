@@ -1385,6 +1385,8 @@ var gProtectionsHandler = {
       }
 
       this._protectionsPopup.addEventListener("command", this);
+      this._protectionsPopup.addEventListener("popupshown", this);
+      this._protectionsPopup.addEventListener("popuphidden", this);
 
       function openTooltip(event) {
         document.getElementById(event.target.tooltip).openPopup(event.target);
@@ -1757,6 +1759,8 @@ var gProtectionsHandler = {
           "protections_popup"
         );
       }
+
+      ReportBrokenSite.updateParentMenu(event);
     }
   },
 
@@ -2124,6 +2128,12 @@ var gProtectionsHandler = {
         }
         break;
       }
+      case "popupshown":
+        this.onPopupShown(event);
+        break;
+      case "popuphidden":
+        this.onPopupHidden(event);
+        break;
       case "toggle": {
         this.onTPSwitchCommand(event);
         break;
