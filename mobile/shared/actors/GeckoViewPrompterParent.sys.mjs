@@ -63,6 +63,9 @@ export class GeckoViewPrompterParent extends GeckoViewActorParent {
             promptType: prompt.type,
             isDialog: prompt.isDialog,
           },
+          getPromptId() {
+            return prompt.id;
+          },
           setInputText(text) {
             prompt.inputText = text;
             prompt.setInputText(text);
