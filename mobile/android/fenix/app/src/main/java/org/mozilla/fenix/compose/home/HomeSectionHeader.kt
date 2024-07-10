@@ -127,8 +127,8 @@ private fun HomeSectionHeaderContent(
 private fun HomeSectionsHeaderPreview() {
     FirefoxTheme {
         HomeSectionHeader(
-            headerText = stringResource(R.string.recently_saved_title),
-            description = stringResource(R.string.recently_saved_show_all_content_description_2),
+            headerText = stringResource(R.string.home_bookmarks_title),
+            description = stringResource(R.string.home_bookmarks_show_all_content_description),
             onShowAllClick = {},
         )
     }

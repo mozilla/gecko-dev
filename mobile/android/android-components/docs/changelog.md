@@ -4,7 +4,9 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 129.0 (In Development)
+# 130.0 (In Development)
+
+# 129.0
 
 * **browser-engine-gecko**
     * Added `WebExtensionInstallException.AdminInstallOnly` to handle the `ERROR_ADMIN_INSTALL_ONLY` error returned by Gecko when the add-on can only be installed via Enterprise Policies.
