@@ -56,7 +56,7 @@ window.onload = async function() {
     ok(accessible, "Should be able to mount Accessible instances");
     let relationsNode = document.getElementById("/relations");
     ok(relationsNode, "Relations are rendered when supported.");
-    let arrow = relationsNode.querySelector(".arrow.theme-twisty");
+    let arrow = relationsNode.querySelector(".theme-twisty");
     is(arrow.style.visibility, "hidden", "Relations are empty.");
 
     info("Render accessible object with relations.");
@@ -76,7 +76,7 @@ window.onload = async function() {
     await mockStore.dispatch({ type: "update", ...state });
     relationsNode = document.getElementById("/relations");
     ok(relationsNode, "Relations are rendered when supported.");
-    arrow = relationsNode.querySelector(".arrow.theme-twisty");
+    arrow = relationsNode.querySelector(".theme-twisty");
     ok(!arrow.style.visibility,
       "There is at least one relation for the current accessible object.");
 

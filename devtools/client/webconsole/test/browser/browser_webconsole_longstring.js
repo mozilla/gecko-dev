@@ -26,7 +26,7 @@ add_task(async function () {
   });
 
   const { node } = await onMessage;
-  const arrow = node.querySelector(".arrow");
+  const arrow = node.querySelector(".theme-twisty");
   ok(arrow, "longString expand arrow is shown");
 
   info("wait for long string expansion");

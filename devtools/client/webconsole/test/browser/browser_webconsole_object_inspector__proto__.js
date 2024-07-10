@@ -29,7 +29,7 @@ add_task(async function () {
     "Object is displayed as expected"
   );
 
-  objectInspector.querySelector(".arrow").click();
+  objectInspector.querySelector(".theme-twisty").click();
   await waitFor(() => node.querySelectorAll(".tree-node").length === 2);
 
   const __proto__Node = node.querySelector(".tree-node:last-of-type");

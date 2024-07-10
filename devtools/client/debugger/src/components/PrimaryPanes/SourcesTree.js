@@ -236,9 +236,10 @@ class SourcesTree extends Component {
     );
   }
 
-  renderItem = (item, depth, focused, _, expanded) => {
+  renderItem = (item, depth, focused, arrow, expanded) => {
     const { mainThreadHost } = this.props;
     return React.createElement(SourcesTreeItem, {
+      arrow,
       item,
       depth,
       focused,

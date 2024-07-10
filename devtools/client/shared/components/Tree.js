@@ -58,11 +58,11 @@ class ArrowExpander extends Component {
   render() {
     const { expanded } = this.props;
 
-    const classNames = ["arrow"];
+    const classNames = ["theme-twisty"];
     const title = expanded ? COLLAPSE_LABEL : EXPAND_LABEL;
 
     if (expanded) {
-      classNames.push("expanded");
+      classNames.push("open");
     }
     return dom.button({
       className: classNames.join(" "),

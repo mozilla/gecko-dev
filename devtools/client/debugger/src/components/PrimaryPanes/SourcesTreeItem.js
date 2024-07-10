@@ -37,6 +37,7 @@ class SourceTreeItem extends Component {
       getParent: PropTypes.func.isRequired,
       isOverridden: PropTypes.bool,
       hideIgnoredSources: PropTypes.bool,
+      arrow: PropTypes.object,
     };
   }
 
@@ -67,19 +68,6 @@ class SourceTreeItem extends Component {
       this.renderItemName()
     );
   };
-
-  renderItemArrow() {
-    const { item, expanded } = this.props;
-    return item.type != "source"
-      ? React.createElement(AccessibleImage, {
-          className: classnames("arrow", {
-            expanded,
-          }),
-        })
-      : span({
-          className: "img no-arrow",
-        });
-  }
 
   renderIcon(item) {
     if (item.type == "thread") {
@@ -204,7 +192,7 @@ class SourceTreeItem extends Component {
         onContextMenu: this.onContextMenu,
         title: this.renderItemTooltip(),
       },
-      this.renderItemArrow(),
+      this.props.arrow,
       this.renderIcon(item),
       span(
         {

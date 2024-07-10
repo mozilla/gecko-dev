@@ -104,11 +104,11 @@ add_task(async function () {
   const onOiExpanded = waitFor(() => {
     return oi.querySelectorAll(".node").length === 3;
   });
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onOiExpanded;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "Object expanded"
   );
 

@@ -328,7 +328,7 @@ add_task(async function () {
     "Object"
   );
   // Expand the object
-  result.node.querySelector(".arrow").click();
+  result.node.querySelector(".theme-twisty").click();
   // Wait until we have 102 nodes (the root node, 100 properties + <prototype>)
   await waitFor(() => result.node.querySelectorAll(".node").length === 102);
   // wait for a bit to give time to the resize observer callback to be triggered

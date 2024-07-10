@@ -23,10 +23,6 @@
   display: flex;
 }
 
-.tree .tree-node:not(.focused):hover {
-  background-color: var(--theme-selection-background-hover);
-}
-
 .tree-indent {
   display: inline-block;
   width: 12px;
@@ -48,39 +44,46 @@
   cursor: default;
 }
 
-.tree-node button.arrow {
-  mask: url("chrome://devtools/content/debugger/images/arrow.svg") no-repeat center;
-  mask-size: 10px;
-  vertical-align: -1px;
-  width: 10px;
-  height: 10px;
-  border: 0;
-  padding: 0;
-  margin-inline-end: 4px;
-  transform-origin: center center;
-  transition: transform 125ms var(--animation-curve);
-  background-color: var(--theme-icon-dimmed-color);
+/* add a grey background when hovering any line of the tree */
+.tree .tree-node:not(.focused):hover {
+  background-color: var(--theme-toolbar-background-hover);
 }
 
-.tree-node button.arrow:not(.expanded) {
-  transform: rotate(-90deg);
+/* In the webconsole object inspector, it is styled as a button */
+.tree .theme-twisty {
+  background-color: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
 }
 
-html[dir="rtl"] .tree-node button.arrow:not(.expanded) {
-  transform: rotate(90deg);
+/* avoid distinct background when hovering the arrow*/
+.tree .theme-twisty:hover {
+  background-color: var(--theme-toolbar-background-hover);
 }
 
 .tree .tree-node.focused {
   color: var(--theme-selection-color);
   background-color: var(--theme-selection-background);
-}
 
-/* Invert text selection color in selected rows */
-.tree .tree-node.focused ::selection {
-  color: var(--theme-selection-background);
-  background-color: var(--theme-selection-color);
-}
+  /* Make folder/file icons white on dark focused background */
+  .img {
+    background-color: white;
+    fill: white;
+  }
+  /* also toggle the color of the expand arrows */
+  .theme-twisty {
+    fill: white;
 
-.tree-node.focused button.arrow {
-  background-color: currentColor;
+    /* avoid distinct background when hovering the arrow */
+    &:hover {
+      background-color: var(--theme-selection-background);
+    }
+  }
+
+  /* Invert text selection color in selected rows */
+  ::selection {
+    color: var(--theme-selection-background);
+    background-color: var(--theme-selection-color);
+  }
 }

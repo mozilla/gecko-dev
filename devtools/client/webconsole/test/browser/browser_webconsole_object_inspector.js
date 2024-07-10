@@ -30,7 +30,7 @@ add_task(async function () {
 
   const [arrayOi, objectOi] = objectInspectors;
 
-  let arrayOiArrowButton = arrayOi.querySelector(".arrow");
+  let arrayOiArrowButton = arrayOi.querySelector(".theme-twisty");
   is(
     arrayOiArrowButton.getAttribute("title"),
     "Expand",
@@ -45,9 +45,9 @@ add_task(async function () {
   arrayOiArrowButton.click();
   await onArrayOiMutation;
 
-  arrayOiArrowButton = arrayOi.querySelector(".arrow");
+  arrayOiArrowButton = arrayOi.querySelector(".theme-twisty");
   ok(
-    arrayOi.querySelector(".arrow").classList.contains("expanded"),
+    arrayOi.querySelector(".theme-twisty").classList.contains("open"),
     "Toggle button of the root node of the tree is expanded after clicking on it"
   );
   is(
@@ -77,11 +77,13 @@ add_task(async function () {
     childList: true,
   });
 
-  arrayOiNestedObject.querySelector(".arrow").click();
+  arrayOiNestedObject.querySelector(".theme-twisty").click();
   await onArrayOiMutation;
 
   ok(
-    arrayOiNestedObject.querySelector(".arrow").classList.contains("expanded"),
+    arrayOiNestedObject
+      .querySelector(".theme-twisty")
+      .classList.contains("open"),
     "The arrow of the root node of the tree is expanded after clicking on it"
   );
 
@@ -107,10 +109,10 @@ add_task(async function () {
   onArrayOiMutation = waitForNodeMutation(arrayOi, {
     childList: true,
   });
-  arrayOi.querySelector(".arrow").click();
+  arrayOi.querySelector(".theme-twisty").click();
 
   is(
-    arrayOi.querySelector(".arrow").classList.contains("expanded"),
+    arrayOi.querySelector(".theme-twisty").classList.contains("open"),
     false,
     "The arrow of the root node of the tree is collapsed after clicking on it"
   );
@@ -122,17 +124,19 @@ add_task(async function () {
   onArrayOiMutation = waitForNodeMutation(arrayOi, {
     childList: true,
   });
-  arrayOi.querySelector(".arrow").click();
+  arrayOi.querySelector(".theme-twisty").click();
 
   ok(
-    arrayOi.querySelector(".arrow").classList.contains("expanded"),
+    arrayOi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the root node of the tree is expanded again after clicking on it"
   );
 
   arrayOiNodes = arrayOi.querySelectorAll(".node");
   arrayOiNestedObject = arrayOiNodes[3];
   ok(
-    arrayOiNestedObject.querySelector(".arrow").classList.contains("expanded"),
+    arrayOiNestedObject
+      .querySelector(".theme-twisty")
+      .classList.contains("open"),
     "The object tree is still expanded"
   );
 
@@ -146,11 +150,11 @@ add_task(async function () {
     childList: true,
   });
 
-  objectOi.querySelector(".arrow").click();
+  objectOi.querySelector(".theme-twisty").click();
   await onObjectOiMutation;
 
   ok(
-    objectOi.querySelector(".arrow").classList.contains("expanded"),
+    objectOi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the root node of the tree is expanded after clicking on it"
   );
 

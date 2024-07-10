@@ -108,7 +108,7 @@
   background-color: var(--search-overlays-semitransparent);
 }
 
-.tree .tree-node:not(.focused):hover {
+.expression-container .tree .tree-node:not(.focused):hover {
   background-color: transparent;
 }
 

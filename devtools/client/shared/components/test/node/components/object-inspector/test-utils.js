@@ -59,10 +59,10 @@ function formatObjectInspector(wrapper) {
       const indentStr = "|  ".repeat((node.prop("aria-level") || 1) - 1);
       // Need to target .arrow or Enzyme will also match the ArrowExpander
       // component.
-      const arrow = node.find(".arrow");
+      const arrow = node.find(".theme-twisty");
       let arrowStr = "  ";
       if (arrow.exists()) {
-        arrowStr = arrow.hasClass("expanded") ? "▼ " : "▶︎ ";
+        arrowStr = arrow.hasClass("open") ? "▼ " : "▶︎ ";
       } else {
         arrowStr = "  ";
       }

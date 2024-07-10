@@ -749,9 +749,9 @@ describe("Tree", () => {
 
     getTreeNodes(wrapper).forEach(n => {
       if ("ABECDMN".split("").includes(getSanitizedNodeText(n))) {
-        expect(n.find(".arrow.expanded").exists()).toBe(true);
+        expect(n.find(`.theme-twisty.open`).exists()).toBe(true);
       } else {
-        expect(n.find(".arrow").exists()).toBe(false);
+        expect(n.find(".theme-twisty").exists()).toBe(false);
       }
     });
   });
@@ -761,9 +761,9 @@ describe("Tree", () => {
     expect(formatTree(wrapper)).toMatchSnapshot();
 
     getTreeNodes(wrapper).forEach(n => {
-      const arrow = n.find(".arrow");
+      const arrow = n.find(".theme-twisty");
       expect(arrow.exists()).toBe(true);
-      expect(arrow.hasClass("expanded")).toBe(false);
+      expect(arrow.hasClass("open")).toBe(false);
     });
   });
 
@@ -836,10 +836,10 @@ function formatTree(wrapper) {
     .map(node => {
       const level = (node.prop("aria-level") || 1) - 1;
       const indentStr = "|  ".repeat(level);
-      const arrow = node.find(".arrow");
+      const arrow = node.find(".theme-twisty");
       let arrowStr = "  ";
       if (arrow.exists()) {
-        arrowStr = arrow.hasClass("expanded") ? "▼ " : "▶︎ ";
+        arrowStr = arrow.hasClass("open") ? "▼ " : "▶︎ ";
       }
 
       return `${indentStr}${arrowStr}${getSanitizedNodeText(node)}`;

@@ -42,11 +42,11 @@ async function expandOiAndCheckPrimitiveValue(oi, expectedPrimitiveValue) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 

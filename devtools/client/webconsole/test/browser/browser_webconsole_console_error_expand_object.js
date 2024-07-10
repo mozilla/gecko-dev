@@ -27,7 +27,7 @@ add_task(async function () {
     "There is the expected number of object inspectors"
   );
   const [oi] = objectInspectors;
-  oi.querySelector(".node .arrow").click();
+  oi.querySelector(".node .theme-twisty").click();
   await waitFor(() => oi.querySelectorAll(".node").length > 1);
   ok(true, "The object can be expanded");
 });

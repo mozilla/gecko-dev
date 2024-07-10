@@ -120,7 +120,7 @@ async function testKeyOrder(hud, command, expectedKeys) {
   const onOiExpanded = waitFor(() => {
     return oi.querySelectorAll(".node").length >= expectedKeys.length;
   });
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onOiExpanded;
 
   const labelNodes = oi.querySelectorAll(".object-label");

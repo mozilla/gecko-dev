@@ -20,8 +20,9 @@ add_task(async function () {
   info(`Select the "Array" text`);
   selectNode(hud, node.querySelector(".objectTitle"));
 
+  const objectInspector = node.querySelector(".tree");
   info("Click on the arrow to expand the object");
-  node.querySelector(".arrow").click();
+  objectInspector.querySelector(".theme-twisty").click();
   await waitFor(() => node.querySelectorAll(".tree-node").length > 1);
   ok(true, "The array was expanded as expected");
 });

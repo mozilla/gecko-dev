@@ -101,7 +101,7 @@ add_task(async function () {
   );
   const nodes = popupEl.querySelectorAll(".preview-popup .node");
   const initialNodesLength = nodes.length;
-  nodes[1].querySelector(".arrow").click();
+  nodes[1].querySelector(".theme-twisty").click();
   await waitFor(
     () =>
       popupEl.querySelectorAll(".preview-popup .node").length >

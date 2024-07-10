@@ -71,9 +71,9 @@ add_task(async function testSourceTreeNamesForWebExtensions() {
       // Find the root node for extensions and expand it if needed
       if (
         !!rootNodeForExtensions &&
-        !rootNodeForExtensions.querySelector(".arrow.expanded")
+        !rootNodeForExtensions.querySelector(".theme-twisty.open")
       ) {
-        rootNodeForExtensions.querySelector(".arrow").click();
+        rootNodeForExtensions.querySelector(".theme-twisty").click();
       }
 
       // Assert that extensions are displayed in the source tree

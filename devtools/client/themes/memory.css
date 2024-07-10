@@ -481,7 +481,7 @@ html, body, #app, #memory-tool {
   text-overflow: ellipsis;
 }
 
-.heap-tree-item-name .arrow {
+.heap-tree-item-name .theme-twisty {
   display: inline-block;
   vertical-align: middle;
 }

@@ -152,11 +152,11 @@ async function testSmallMap(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -175,7 +175,7 @@ async function testSmallMap(oi) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -186,7 +186,7 @@ async function testSmallMap(oi) {
   onMapOiMutation = waitForNodeMutation(oi, {
     childList: true,
   });
-  oiNodes[3].querySelector(".arrow").click();
+  oiNodes[3].querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -206,7 +206,7 @@ async function testSmallMap(oi) {
   onMapOiMutation = waitForNodeMutation(oi, {
     childList: true,
   });
-  oiNodes[4].querySelector(".arrow").click();
+  oiNodes[4].querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -228,7 +228,7 @@ async function testSmallMap(oi) {
   onMapOiMutation = waitForNodeMutation(oi, {
     childList: true,
   });
-  oiNodes[7].querySelector(".arrow").click();
+  oiNodes[7].querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -241,11 +241,11 @@ async function testMap(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -264,7 +264,7 @@ async function testMap(oi) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -278,11 +278,11 @@ async function testLargeMap(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -301,7 +301,7 @@ async function testLargeMap(oi) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -319,11 +319,11 @@ async function testSmallSet(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -342,7 +342,7 @@ async function testSmallSet(oi) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -353,7 +353,7 @@ async function testSmallSet(oi) {
   onMapOiMutation = waitForNodeMutation(oi, {
     childList: true,
   });
-  oiNodes[3].querySelector(".arrow").click();
+  oiNodes[3].querySelector(".theme-twisty").click();
   await onMapOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -376,11 +376,11 @@ async function testSet(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onSetOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -399,7 +399,7 @@ async function testSet(oi) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onSetOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -413,11 +413,11 @@ async function testLargeSet(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onSetOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -436,7 +436,7 @@ async function testLargeSet(oi) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onSetOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -459,11 +459,11 @@ async function testUrlSearchParams(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -483,7 +483,7 @@ async function testUrlSearchParams(oi) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -534,11 +534,11 @@ async function testHeaders(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -558,7 +558,7 @@ async function testHeaders(oi) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -586,11 +586,11 @@ async function testFormData(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -610,7 +610,7 @@ async function testFormData(oi) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -647,11 +647,11 @@ async function testMidiInputs(oi, midiInputs) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -671,7 +671,7 @@ async function testMidiInputs(oi, midiInputs) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -697,11 +697,11 @@ async function testMidiOutputs(oi, midiOutputs) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -721,7 +721,7 @@ async function testMidiOutputs(oi, midiOutputs) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -757,11 +757,11 @@ async function testHighlightsRegistry(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -781,7 +781,7 @@ async function testHighlightsRegistry(oi) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -808,7 +808,7 @@ async function testHighlightsRegistry(oi) {
   onOiMutation = waitForNodeMutation(oi, {
     childList: true,
   });
-  oiNodes[5].querySelector(".arrow").click();
+  oiNodes[5].querySelector(".theme-twisty").click();
   await onOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -825,7 +825,7 @@ async function testHighlightsRegistry(oi) {
   onOiMutation = waitForNodeMutation(oi, {
     childList: true,
   });
-  oiNodes[7].querySelector(".arrow").click();
+  oiNodes[7].querySelector(".theme-twisty").click();
   await onOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");
@@ -851,11 +851,11 @@ async function testCustomStateSet(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   await onCustomStateSetOiMutation;
 
   ok(
-    oi.querySelector(".arrow").classList.contains("expanded"),
+    oi.querySelector(".theme-twisty").classList.contains("open"),
     "The arrow of the node has the expected class after clicking on it"
   );
 
@@ -874,7 +874,7 @@ async function testCustomStateSet(oi) {
     childList: true,
   });
 
-  entriesNode.querySelector(".arrow").click();
+  entriesNode.querySelector(".theme-twisty").click();
   await onCustomStateSetOiMutation;
 
   oiNodes = oi.querySelectorAll(".node");

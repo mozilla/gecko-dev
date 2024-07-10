@@ -140,12 +140,12 @@ async function testObjectInspectorPropertiesAreSet(objInspector) {
     childList: true,
   });
 
-  const arrow = objInspector.querySelector(".arrow");
+  const arrow = objInspector.querySelector(".theme-twisty");
   arrow.click();
   await onMutation;
 
   ok(
-    arrow.classList.contains("expanded"),
+    arrow.classList.contains("open"),
     "The arrow of the root node of the tree is expanded after clicking on it"
   );
 

@@ -63,7 +63,7 @@ add_task(async function () {
   is(nodeFront.displayName, "h1", "The expected node was selected");
 
   is(
-    msg.querySelector(".arrow").classList.contains("expanded"),
+    msg.querySelector(".theme-twisty").classList.contains("open"),
     false,
     "The object inspector wasn't expanded"
   );

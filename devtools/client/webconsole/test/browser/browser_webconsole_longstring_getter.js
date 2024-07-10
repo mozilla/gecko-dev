@@ -23,9 +23,9 @@ add_task(async function () {
   );
 
   // Wait until the SVGAnimatedString is expanded.
-  await waitFor(() => message.querySelectorAll(".arrow").length > 1);
+  await waitFor(() => message.querySelectorAll(".theme-twisty").length > 1);
 
-  const arrow = message.querySelectorAll(".arrow")[1];
+  const arrow = message.querySelectorAll(".theme-twisty")[1];
   ok(arrow, "longString expand arrow is shown");
 
   info("wait for long string expansion");

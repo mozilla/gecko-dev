@@ -33,7 +33,7 @@ add_task(async function () {
   );
 
   is(
-    customFormattedElement.querySelector(".arrow"),
+    customFormattedElement.querySelector(".theme-twisty"),
     null,
     "The expression is not expandable…"
   );

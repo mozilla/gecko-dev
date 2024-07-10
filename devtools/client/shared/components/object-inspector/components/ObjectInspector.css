@@ -40,7 +40,7 @@
   white-space: pre-wrap;
 }
 
-.object-inspector .tree-node .arrow {
+.object-inspector .tree-node .theme-twisty {
   display: inline-block;
   vertical-align: middle;
   margin-inline-start: -1px;

@@ -206,7 +206,7 @@ class ObjectInspectorItem extends Component {
         if (
           e.target &&
           Utils.selection.documentHasSelection(e.target.ownerDocument) &&
-          !(e.target.matches && e.target.matches(".arrow"))
+          !(e.target.matches && e.target.matches(".theme-twisty"))
         ) {
           e.stopPropagation();
         }

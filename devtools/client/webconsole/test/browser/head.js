@@ -1285,7 +1285,7 @@ function expandObjectInspectorNode(node) {
  * @return {HTMLElement|null} the arrow element
  */
 function getObjectInspectorNodeArrow(node) {
-  return node.querySelector(".arrow");
+  return node.querySelector(".theme-twisty");
 }
 
 /**

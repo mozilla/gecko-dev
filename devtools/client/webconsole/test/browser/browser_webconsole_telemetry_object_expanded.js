@@ -26,11 +26,11 @@ add_task(async function () {
   );
 
   info("Click on the arrow icon to expand the node");
-  const arrowIcon = message.querySelector(".arrow");
+  const arrowIcon = message.querySelector(".theme-twisty");
   arrowIcon.click();
 
   // let's wait until we have 2 arrows (i.e. the object was expanded)
-  await waitFor(() => message.querySelectorAll(".arrow").length === 2);
+  await waitFor(() => message.querySelectorAll(".theme-twisty").length === 2);
 
   let events = getObjectExpandedEventsExtra();
   is(events.length, 1, "There was 1 event logged");
@@ -42,11 +42,11 @@ add_task(async function () {
   );
 
   info("Click on the second arrow icon to expand the prototype node");
-  const secondArrowIcon = message.querySelectorAll(".arrow")[1];
+  const secondArrowIcon = message.querySelectorAll(".theme-twisty")[1];
   secondArrowIcon.click();
   // let's wait until we have more than 2 arrows displayed, i.e. the prototype node was
   // expanded.
-  await waitFor(() => message.querySelectorAll(".arrow").length > 2);
+  await waitFor(() => message.querySelectorAll(".theme-twisty").length > 2);
 
   events = getObjectExpandedEventsExtra();
   is(events.length, 1, "There was an event logged when expanding a child node");
@@ -54,7 +54,7 @@ add_task(async function () {
   info("Click the first arrow to collapse the object");
   arrowIcon.click();
   // Let's wait until there's only one arrow visible, i.e. the node is collapsed.
-  await waitFor(() => message.querySelectorAll(".arrow").length === 1);
+  await waitFor(() => message.querySelectorAll(".theme-twisty").length === 1);
 
   ok(!snapshot.parent, "There was no event logged when collapsing the node");
 });

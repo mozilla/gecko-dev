@@ -129,6 +129,6 @@ function expandObjectInspector(oi) {
     childList: true,
   });
 
-  oi.querySelector(".arrow").click();
+  oi.querySelector(".theme-twisty").click();
   return onMutation;
 }

@@ -339,7 +339,7 @@ exports[`ObjectInspector - dimTopLevelWindow renders collapsed top-level window 
                       }
                     >
                       <button
-                        className="arrow"
+                        className="theme-twisty"
                         title="Expand"
                       />
                     </ArrowExpander>
@@ -852,7 +852,7 @@ exports[`ObjectInspector - dimTopLevelWindow renders sub-level window 1`] = `
                       }
                     >
                       <button
-                        className="arrow expanded"
+                        className="theme-twisty open"
                         title="Collapse"
                       />
                     </ArrowExpander>
@@ -1079,7 +1079,7 @@ exports[`ObjectInspector - dimTopLevelWindow renders sub-level window 1`] = `
                       }
                     >
                       <button
-                        className="arrow"
+                        className="theme-twisty"
                         title="Expand"
                       />
                     </ArrowExpander>
@@ -1459,7 +1459,7 @@ exports[`ObjectInspector - dimTopLevelWindow renders window as expected when dim
                       }
                     >
                       <button
-                        className="arrow"
+                        className="theme-twisty"
                         title="Expand"
                       />
                     </ArrowExpander>
@@ -1881,7 +1881,7 @@ exports[`ObjectInspector - dimTopLevelWindow renders window as expected when dim
                       }
                     >
                       <button
-                        className="arrow expanded"
+                        className="theme-twisty open"
                         title="Collapse"
                       />
                     </ArrowExpander>

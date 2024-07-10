@@ -116,23 +116,11 @@
   padding-inline: 6px 8px;
 }
 
-.sources-list .tree .tree-node:not(.focused):hover {
-  background: var(--theme-toolbar-background-hover);
-}
-
-.sources-list .tree button {
-  display: block;
-}
-
 .sources-list .tree .node {
   padding: 2px 3px;
   position: relative;
 }
 
-.sources-list .tree .node.focused {
-  color: var(--theme-selection-color);
-  background-color: var(--theme-selection-background);
-}
 
 html:not([dir="rtl"]) .sources-list .tree .node > div {
   margin-left: 10px;
@@ -142,24 +130,8 @@ html[dir="rtl"] .sources-list .tree .node > div {
   margin-right: 10px;
 }
 
-.sources-list .tree-node button {
-  position: fixed;
-}
-
 .sources-list .img {
   margin-inline-end: 4px;
-}
-
-.sources-list .tree .focused .img {
-  --icon-color: #ffffff;
-  background-color: var(--icon-color);
-  fill: var(--icon-color);
-}
-
-/* Use the same width as .img.arrow */
-.sources-list .tree .img.no-arrow {
-  width: 10px;
-  visibility: hidden;
 }
 
 .sources-list .tree .label .suffix {
@@ -170,10 +142,6 @@ html[dir="rtl"] .sources-list .tree .node > div {
 
 .sources-list .tree .focused .label .suffix {
   color: inherit;
-}
-
-.theme-dark .source-list .node.focused {
-  background-color: var(--theme-tab-toolbar-background);
 }
 
 .sources-list .tree .blackboxed {

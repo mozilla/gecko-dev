@@ -113,7 +113,7 @@ const tests = [
       });
       EventUtils.sendMouseEvent(
         { type: "click" },
-        relations.querySelector(".arrow"),
+        relations.querySelector(".theme-twisty"),
         win
       );
       AccessibilityUtils.resetEnv();

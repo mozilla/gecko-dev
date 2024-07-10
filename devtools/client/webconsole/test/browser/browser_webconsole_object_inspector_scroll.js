@@ -25,7 +25,7 @@ add_task(async function () {
   });
 
   info("Expanding the object inspector");
-  objectInspector.querySelector(".arrow").click();
+  objectInspector.querySelector(".theme-twisty").click();
   await onOiMutation;
 
   const nodes = objectInspector.querySelectorAll(".node");

@@ -73,22 +73,22 @@ describe("ObjectInspector - renders", () => {
     const renderRep = mode => Rep({ object: stub, mode });
 
     const tinyOi = renderObjectInspector(MODE.TINY);
-    expect(tinyOi.find(".arrow").exists()).toBeTruthy();
+    expect(tinyOi.find(".theme-twisty").exists()).toBeTruthy();
     expect(tinyOi.contains(renderRep(MODE.TINY))).toBeTruthy();
     expect(formatObjectInspector(tinyOi)).toMatchSnapshot();
 
     const shortOi = renderObjectInspector(MODE.SHORT);
-    expect(shortOi.find(".arrow").exists()).toBeTruthy();
+    expect(shortOi.find(".theme-twisty").exists()).toBeTruthy();
     expect(shortOi.contains(renderRep(MODE.SHORT))).toBeTruthy();
     expect(formatObjectInspector(shortOi)).toMatchSnapshot();
 
     const longOi = renderObjectInspector(MODE.LONG);
-    expect(longOi.find(".arrow").exists()).toBeTruthy();
+    expect(longOi.find(".theme-twisty").exists()).toBeTruthy();
     expect(longOi.contains(renderRep(MODE.LONG))).toBeTruthy();
     expect(formatObjectInspector(longOi)).toMatchSnapshot();
 
     const oi = renderObjectInspector();
-    expect(oi.find(".arrow").exists()).toBeTruthy();
+    expect(oi.find(".theme-twisty").exists()).toBeTruthy();
     // When no mode is provided, it defaults to TINY mode to render the Rep.
     expect(oi.contains(renderRep(MODE.TINY))).toBeTruthy();
     expect(formatObjectInspector(oi)).toMatchSnapshot();
@@ -113,19 +113,19 @@ describe("ObjectInspector - renders", () => {
     const renderRep = mode => mount(Rep({ object, mode }));
 
     const tinyOi = renderObjectInspector(MODE.TINY);
-    expect(tinyOi.find(".arrow").exists()).toBeFalsy();
+    expect(tinyOi.find(".theme-twisty").exists()).toBeFalsy();
     expect(tinyOi.html()).toEqual(renderRep(MODE.TINY).html());
 
     const shortOi = renderObjectInspector(MODE.SHORT);
-    expect(shortOi.find(".arrow").exists()).toBeFalsy();
+    expect(shortOi.find(".theme-twisty").exists()).toBeFalsy();
     expect(shortOi.html()).toEqual(renderRep(MODE.SHORT).html());
 
     const longOi = renderObjectInspector(MODE.LONG);
-    expect(longOi.find(".arrow").exists()).toBeFalsy();
+    expect(longOi.find(".theme-twisty").exists()).toBeFalsy();
     expect(longOi.html()).toEqual(renderRep(MODE.LONG).html());
 
     const oi = renderObjectInspector();
-    expect(oi.find(".arrow").exists()).toBeFalsy();
+    expect(oi.find(".theme-twisty").exists()).toBeFalsy();
     // When no mode is provided, it defaults to TINY mode to render the Rep.
     expect(oi.html()).toEqual(renderRep(MODE.TINY).html());
   });

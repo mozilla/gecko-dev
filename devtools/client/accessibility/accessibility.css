@@ -620,10 +620,6 @@ body {
   fill: var(--grey-40);
 }
 
-.accessible .tree .arrow {
-  flex-shrink: 0;
-}
-
 .accessible .tree .object-value {
   overflow: hidden;
   text-overflow: ellipsis;
