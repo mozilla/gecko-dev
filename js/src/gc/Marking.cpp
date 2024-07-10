@@ -2806,7 +2806,6 @@ void UnmarkGrayTracer::unmark(JS::GCCellPtr cell) {
 
 bool js::gc::UnmarkGrayGCThingUnchecked(GCMarker* marker, JS::GCCellPtr thing) {
   MOZ_ASSERT(thing);
-  MOZ_ASSERT(thing.asCell()->isMarkedGray());
 
   mozilla::Maybe<AutoGeckoProfilerEntry> profilingStackFrame;
   if (JSContext* cx = TlsContext.get()) {
@@ -2829,6 +2828,7 @@ JS_PUBLIC_API bool JS::UnmarkGrayGCThingRecursively(JS::GCCellPtr thing) {
     return false;
   }
 
+  MOZ_ASSERT(thing.asCell()->isMarkedGray());
   return UnmarkGrayGCThingUnchecked(&rt->gc.marker(), thing);
 }
 
