@@ -1202,10 +1202,33 @@ static constexpr size_t SuspendableStackPlusRedZoneSize =
 
 static const unsigned MaxVarU32DecodedBytes = 5;
 
-// The CompileMode controls how compilation of a module is performed (notably,
-// how many times we compile it).
+// The CompileMode controls how compilation of a module is performed.
+enum class CompileMode {
+  // Compile the module just once using a given tier.
+  Once,
+  // Compile the module first with baseline, then eagerly launch an ion
+  // background compile to compile the module again.
+  EagerTiering,
+  // Compile the module first with baseline, then lazily compile functions with
+  // ion when they trigger a hotness threshold.
+  LazyTiering,
+};
 
-enum class CompileMode { Once, Tier1, Tier2 };
+// CompileState tracks where in the compilation process we are for a module.
+enum class CompileState {
+  // We're compiling the module using the 'once' mode.
+  Once,
+  // We're compiling the module using the eager tiering mode. We're
+  // currently compiling the first tier. The second tier task will be launched
+  // once we're done compiling the first tier.
+  EagerTier1,
+  // We're compiling the module using the eager tiering mode. We're now
+  // compiling the second tier.
+  EagerTier2,
+  // We're compiling the module eagerly using the lazy tiering mode. We're
+  // compiling the first tier.
+  LazyTier1
+};
 
 // Typed enum for whether debugging is enabled.
 

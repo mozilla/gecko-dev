@@ -717,7 +717,7 @@ class JumpTables {
   void setTieringEntry(size_t i, void* target) const {
     MOZ_ASSERT(i < numFuncs_);
     // See comment in wasm::Module::finishTier2.
-    if (mode_ == CompileMode::Tier1) {
+    if (mode_ != CompileMode::Once) {
       tiering_.get()[i] = target;
     }
   }

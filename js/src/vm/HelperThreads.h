@@ -123,13 +123,14 @@ size_t GetMaxWasmCompilationThreads();
 bool SetFakeCPUCount(size_t count);
 
 // Enqueues a wasm compilation task.
-bool StartOffThreadWasmCompile(wasm::CompileTask* task, wasm::CompileMode mode);
+bool StartOffThreadWasmCompile(wasm::CompileTask* task,
+                               wasm::CompileState state);
 
 // Remove any pending wasm compilation tasks queued with
 // StartOffThreadWasmCompile that match the arguments. Return the number
 // removed.
 size_t RemovePendingWasmCompileTasks(const wasm::CompileTaskState& taskState,
-                                     wasm::CompileMode mode,
+                                     wasm::CompileState state,
                                      const AutoLockHelperThreadState& lock);
 
 // Enqueues a wasm compilation task.

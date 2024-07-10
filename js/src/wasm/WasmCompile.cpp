@@ -724,7 +724,7 @@ void CompilerEnvironment::computeParameters(Decoder& d) {
   if (baselineEnabled && hasSecondTier &&
       (TieringBeneficial(codeSectionSize) || forceTiering) &&
       PlatformCanTier()) {
-    mode_ = CompileMode::Tier1;
+    mode_ = CompileMode::EagerTiering;
     tier_ = Tier::Baseline;
   } else {
     mode_ = CompileMode::Once;
@@ -814,7 +814,8 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
   CompilerEnvironment compilerEnv(args);
   compilerEnv.computeParameters(d);
 
-  ModuleGenerator mg(args, codeMeta, &compilerEnv, nullptr, error, warnings);
+  ModuleGenerator mg(args, codeMeta, &compilerEnv, compilerEnv.initialState(),
+                     nullptr, error, warnings);
   if (!mg.init(nullptr)) {
     return nullptr;
   }
@@ -845,11 +846,12 @@ bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
       !DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
     return false;
   }
-  CompilerEnvironment compilerEnv(CompileMode::Tier2, Tier::Optimized,
+  CompilerEnvironment compilerEnv(CompileMode::EagerTiering, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters(d);
 
-  ModuleGenerator mg(args, codeMeta, &compilerEnv, cancelled, error, warnings);
+  ModuleGenerator mg(args, codeMeta, &compilerEnv, CompileState::EagerTier2,
+                     cancelled, error, warnings);
   if (!mg.init(nullptr)) {
     return false;
   }
@@ -973,7 +975,8 @@ SharedModule wasm::CompileStreaming(
     MOZ_RELEASE_ASSERT(d.done());
   }
 
-  ModuleGenerator mg(args, codeMeta, &compilerEnv, &cancelled, error, warnings);
+  ModuleGenerator mg(args, codeMeta, &compilerEnv, compilerEnv.initialState(),
+                     &cancelled, error, warnings);
   if (!mg.init(nullptr)) {
     return nullptr;
   }

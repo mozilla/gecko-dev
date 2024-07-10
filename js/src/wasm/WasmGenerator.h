@@ -138,6 +138,7 @@ struct CompileTaskState {
 struct CompileTask : public HelperThreadTask {
   const CodeMetadata& codeMeta;
   const CompilerEnvironment& compilerEnv;
+  const CompileState compileState;
 
   CompileTaskState& state;
   LifoAlloc lifo;
@@ -145,10 +146,11 @@ struct CompileTask : public HelperThreadTask {
   CompiledCode output;
 
   CompileTask(const CodeMetadata& codeMeta,
-              const CompilerEnvironment& compilerEnv, CompileTaskState& state,
-              size_t defaultChunkSize)
+              const CompilerEnvironment& compilerEnv, CompileState compileState,
+              CompileTaskState& state, size_t defaultChunkSize)
       : codeMeta(codeMeta),
         compilerEnv(compilerEnv),
+        compileState(compileState),
         state(state),
         lifo(defaultChunkSize) {}
 
@@ -182,6 +184,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
 
   // Constant parameters
   SharedCompileArgs const compileArgs_;
+  const CompileState compileState_;
   UniqueChars* const error_;
   UniqueCharsVector* const warnings_;
   const Atomic<bool>* const cancelled_;
@@ -260,7 +263,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
 
  public:
   ModuleGenerator(const CompileArgs& args, CodeMetadata* codeMeta,
-                  CompilerEnvironment* compilerEnv,
+                  CompilerEnvironment* compilerEnv, CompileState compilerState,
                   const Atomic<bool>* cancelled, UniqueChars* error,
                   UniqueCharsVector* warnings);
   ~ModuleGenerator();

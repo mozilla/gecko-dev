@@ -282,6 +282,18 @@ struct CompilerEnvironment {
     MOZ_ASSERT(isComputed());
     return mode_;
   }
+  CompileState initialState() const {
+    switch (mode()) {
+      case CompileMode::Once:
+        return CompileState::Once;
+      case CompileMode::EagerTiering:
+        return CompileState::EagerTier1;
+      case CompileMode::LazyTiering:
+        return CompileState::LazyTier1;
+      default:
+        MOZ_CRASH();
+    }
+  }
   Tier tier() const {
     MOZ_ASSERT(isComputed());
     return tier_;

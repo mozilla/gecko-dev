@@ -47,7 +47,7 @@
 #include "vm/JSScript.h"                     // ScriptSource
 #include "vm/Runtime.h"                      // JSRuntime
 #include "vm/SharedImmutableStringsCache.h"  // SharedImmutableString
-#include "wasm/WasmConstants.h"              // wasm::CompileMode
+#include "wasm/WasmConstants.h"              // wasm::CompileState
 
 class JSTracer;
 
@@ -271,12 +271,13 @@ class GlobalHelperThreadState {
   }
 
   wasm::CompileTaskPtrFifo& wasmWorklist(const AutoLockHelperThreadState&,
-                                         wasm::CompileMode m) {
-    switch (m) {
-      case wasm::CompileMode::Once:
-      case wasm::CompileMode::Tier1:
+                                         wasm::CompileState state) {
+    switch (state) {
+      case wasm::CompileState::Once:
+      case wasm::CompileState::EagerTier1:
+      case wasm::CompileState::LazyTier1:
         return wasmWorklist_tier1_;
-      case wasm::CompileMode::Tier2:
+      case wasm::CompileState::EagerTier2:
         return wasmWorklist_tier2_;
       default:
         MOZ_CRASH();
@@ -333,7 +334,7 @@ class GlobalHelperThreadState {
   }
 
   bool canStartWasmCompile(const AutoLockHelperThreadState& lock,
-                           wasm::CompileMode mode);
+                           wasm::CompileState state);
 
   bool canStartWasmTier1CompileTask(const AutoLockHelperThreadState& lock);
   bool canStartWasmTier2CompileTask(const AutoLockHelperThreadState& lock);
@@ -347,7 +348,7 @@ class GlobalHelperThreadState {
   bool canStartGCParallelTask(const AutoLockHelperThreadState& lock);
 
   HelperThreadTask* maybeGetWasmCompile(const AutoLockHelperThreadState& lock,
-                                        wasm::CompileMode mode);
+                                        wasm::CompileState state);
 
   HelperThreadTask* maybeGetWasmTier1CompileTask(
       const AutoLockHelperThreadState& lock);
@@ -420,7 +421,7 @@ class GlobalHelperThreadState {
   void triggerFreeUnusedMemory();
 
   bool submitTask(wasm::UniqueTier2GeneratorTask task);
-  bool submitTask(wasm::CompileTask* task, wasm::CompileMode mode);
+  bool submitTask(wasm::CompileTask* task, wasm::CompileState state);
   bool submitTask(UniquePtr<jit::IonFreeTask>&& task,
                   const AutoLockHelperThreadState& lock);
   bool submitTask(jit::IonCompileTask* task,

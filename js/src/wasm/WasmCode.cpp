@@ -931,7 +931,7 @@ bool JumpTables::initialize(CompileMode mode, const CodeBlock& sharedStubs,
 
   numFuncs_ = numFuncs;
 
-  if (mode_ == CompileMode::Tier1) {
+  if (mode_ != CompileMode::Once) {
     tiering_ = TablePointer(js_pod_calloc<void*>(numFuncs));
     if (!tiering_) {
       return false;

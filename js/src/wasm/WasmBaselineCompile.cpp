@@ -404,7 +404,7 @@ bool BaseCompiler::beginFunction() {
 
   GenerateFunctionPrologue(
       masm, CallIndirectId::forFunc(codeMeta_, func_.index),
-      compilerEnv_.mode() == CompileMode::Tier1 ? Some(func_.index) : Nothing(),
+      compilerEnv_.mode() != CompileMode::Once ? Some(func_.index) : Nothing(),
       &offsets_);
 
   // GenerateFunctionPrologue pushes exactly one wasm::Frame's worth of

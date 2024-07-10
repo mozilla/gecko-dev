@@ -74,10 +74,12 @@ ModuleGenerator::MacroAssemblerScope::MacroAssemblerScope(LifoAlloc& lifo)
 ModuleGenerator::ModuleGenerator(const CompileArgs& args,
                                  CodeMetadata* codeMeta,
                                  CompilerEnvironment* compilerEnv,
+                                 CompileState compileState,
                                  const Atomic<bool>* cancelled,
                                  UniqueChars* error,
                                  UniqueCharsVector* warnings)
     : compileArgs_(&args),
+      compileState_(compileState),
       error_(error),
       warnings_(warnings),
       cancelled_(cancelled),
@@ -105,7 +107,8 @@ ModuleGenerator::~ModuleGenerator() {
       AutoLockHelperThreadState lock;
 
       // Remove any pending compilation tasks from the worklist.
-      size_t removed = RemovePendingWasmCompileTasks(taskState_, mode(), lock);
+      size_t removed =
+          RemovePendingWasmCompileTasks(taskState_, compileState_, lock);
       MOZ_ASSERT(outstanding_ >= removed);
       outstanding_ -= removed;
 
@@ -557,11 +560,12 @@ void CompileTask::runHelperThreadTask(AutoLockHelperThreadState& lock) {
 }
 
 ThreadType CompileTask::threadType() {
-  switch (compilerEnv.mode()) {
-    case CompileMode::Once:
-    case CompileMode::Tier1:
+  switch (compileState) {
+    case CompileState::Once:
+    case CompileState::EagerTier1:
+    case CompileState::LazyTier1:
       return ThreadType::THREAD_TYPE_WASM_COMPILE_TIER1;
-    case CompileMode::Tier2:
+    case CompileState::EagerTier2:
       return ThreadType::THREAD_TYPE_WASM_COMPILE_TIER2;
     default:
       MOZ_CRASH();
@@ -586,7 +590,8 @@ bool ModuleGenerator::initTasks() {
     return false;
   }
   for (size_t i = 0; i < numTasks; i++) {
-    tasks_.infallibleEmplaceBack(*codeMeta_, *compilerEnv_, taskState_,
+    tasks_.infallibleEmplaceBack(*codeMeta_, *compilerEnv_, compileState_,
+                                 taskState_,
                                  COMPILATION_LIFO_DEFAULT_CHUNK_SIZE);
   }
 
@@ -640,7 +645,7 @@ bool ModuleGenerator::launchBatchCompile() {
     return locallyCompileCurrentTask();
   }
 
-  if (!StartOffThreadWasmCompile(currentTask_, mode())) {
+  if (!StartOffThreadWasmCompile(currentTask_, compileState_)) {
     return false;
   }
   outstanding_++;
@@ -1074,7 +1079,7 @@ bool ModuleGenerator::finishCodeMetadata(const Bytes& bytecode) {
   // FIXME: this comment seems wrong.
   // Finish initialization of Metadata, which is only needed for constructing
   // the initial Module, not for tier-2 compilation.
-  MOZ_ASSERT(mode() != CompileMode::Tier2);
+  MOZ_ASSERT(compileState_ != CompileState::EagerTier2);
 
   // Copy over additional debug information.
 
@@ -1111,7 +1116,9 @@ bool ModuleGenerator::finishCodeMetadata(const Bytes& bytecode) {
 SharedModule ModuleGenerator::finishModule(
     const ShareableBytes& bytecode, MutableModuleMetadata moduleMeta,
     JS::OptimizedEncodingListener* maybeTier2Listener) {
-  MOZ_ASSERT(mode() == CompileMode::Once || mode() == CompileMode::Tier1);
+  MOZ_ASSERT(compileState_ == CompileState::Once ||
+             compileState_ == CompileState::EagerTier1 ||
+             compileState_ == CompileState::LazyTier1);
 
   UniqueLinkData tier1LinkData;
   UniqueCodeBlock tier1Code = finishCompleteTier(&tier1LinkData);
@@ -1222,7 +1229,7 @@ SharedModule ModuleGenerator::finishModule(
     }
   }
 
-  if (mode() == CompileMode::Tier1) {
+  if (compileState_ == CompileState::EagerTier1) {
     module->startTier2(*compileArgs_, bytecode, maybeTier2Listener);
   } else if (tier() == Tier::Serialized && maybeTier2Listener) {
     Bytes bytes;
@@ -1237,7 +1244,7 @@ SharedModule ModuleGenerator::finishModule(
 // Complete all tier-2 construction.  This merely augments the existing Code
 // and does not require moduleMeta_.
 bool ModuleGenerator::finishTier2(const Module& module) {
-  MOZ_ASSERT(mode() == CompileMode::Tier2);
+  MOZ_ASSERT(compileState_ == CompileState::EagerTier2);
   MOZ_ASSERT(tier() == Tier::Optimized);
   MOZ_ASSERT(!compilerEnv_->debugEnabled());
 

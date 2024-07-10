@@ -988,8 +988,8 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
 
-    ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv, nullptr, nullptr,
-                       nullptr);
+    ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv,
+                       compilerEnv.initialState(), nullptr, nullptr, nullptr);
     if (!mg.init(nullptr)) {
       return nullptr;
     }
@@ -1489,8 +1489,8 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
 
-    ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv, nullptr, nullptr,
-                       nullptr);
+    ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv,
+                       compilerEnv.initialState(), nullptr, nullptr, nullptr);
     if (!mg.init(nullptr)) {
       return nullptr;
     }

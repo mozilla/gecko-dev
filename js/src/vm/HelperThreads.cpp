@@ -140,14 +140,14 @@ void GlobalHelperThreadState::setDispatchTaskCallback(
 }
 
 bool js::StartOffThreadWasmCompile(wasm::CompileTask* task,
-                                   wasm::CompileMode mode) {
-  return HelperThreadState().submitTask(task, mode);
+                                   wasm::CompileState state) {
+  return HelperThreadState().submitTask(task, state);
 }
 
 bool GlobalHelperThreadState::submitTask(wasm::CompileTask* task,
-                                         wasm::CompileMode mode) {
+                                         wasm::CompileState state) {
   AutoLockHelperThreadState lock;
-  if (!wasmWorklist(lock, mode).pushBack(task)) {
+  if (!wasmWorklist(lock, state).pushBack(task)) {
     return false;
   }
 
@@ -156,10 +156,10 @@ bool GlobalHelperThreadState::submitTask(wasm::CompileTask* task,
 }
 
 size_t js::RemovePendingWasmCompileTasks(
-    const wasm::CompileTaskState& taskState, wasm::CompileMode mode,
+    const wasm::CompileTaskState& taskState, wasm::CompileState state,
     const AutoLockHelperThreadState& lock) {
   wasm::CompileTaskPtrFifo& worklist =
-      HelperThreadState().wasmWorklist(lock, mode);
+      HelperThreadState().wasmWorklist(lock, state);
   return worklist.eraseIf([&taskState](wasm::CompileTask* task) {
     return &task->state == &taskState;
   });
@@ -941,11 +941,11 @@ void GlobalHelperThreadState::waitForAllTasksLocked(
   MOZ_ASSERT(tasksPending_ == 0);
   MOZ_ASSERT(gcParallelWorklist().isEmpty(lock));
   MOZ_ASSERT(ionWorklist(lock).empty());
-  MOZ_ASSERT(wasmWorklist(lock, wasm::CompileMode::Tier1).empty());
+  MOZ_ASSERT(wasmWorklist(lock, wasm::CompileState::EagerTier1).empty());
   MOZ_ASSERT(promiseHelperTasks(lock).empty());
   MOZ_ASSERT(compressionWorklist(lock).empty());
   MOZ_ASSERT(ionFreeList(lock).empty());
-  MOZ_ASSERT(wasmWorklist(lock, wasm::CompileMode::Tier2).empty());
+  MOZ_ASSERT(wasmWorklist(lock, wasm::CompileState::EagerTier2).empty());
   MOZ_ASSERT(wasmTier2GeneratorWorklist(lock).empty());
   MOZ_ASSERT(!tasksPending_);
   MOZ_ASSERT(!hasActiveThreads(lock));
@@ -1113,36 +1113,36 @@ size_t GlobalHelperThreadState::maxGCParallelThreads() const {
 
 HelperThreadTask* GlobalHelperThreadState::maybeGetWasmTier1CompileTask(
     const AutoLockHelperThreadState& lock) {
-  return maybeGetWasmCompile(lock, wasm::CompileMode::Tier1);
+  return maybeGetWasmCompile(lock, wasm::CompileState::EagerTier1);
 }
 
 HelperThreadTask* GlobalHelperThreadState::maybeGetWasmTier2CompileTask(
     const AutoLockHelperThreadState& lock) {
-  return maybeGetWasmCompile(lock, wasm::CompileMode::Tier2);
+  return maybeGetWasmCompile(lock, wasm::CompileState::EagerTier2);
 }
 
 HelperThreadTask* GlobalHelperThreadState::maybeGetWasmCompile(
-    const AutoLockHelperThreadState& lock, wasm::CompileMode mode) {
-  if (!canStartWasmCompile(lock, mode)) {
+    const AutoLockHelperThreadState& lock, wasm::CompileState state) {
+  if (!canStartWasmCompile(lock, state)) {
     return nullptr;
   }
 
-  return wasmWorklist(lock, mode).popCopyFront();
+  return wasmWorklist(lock, state).popCopyFront();
 }
 
 bool GlobalHelperThreadState::canStartWasmTier1CompileTask(
     const AutoLockHelperThreadState& lock) {
-  return canStartWasmCompile(lock, wasm::CompileMode::Tier1);
+  return canStartWasmCompile(lock, wasm::CompileState::EagerTier1);
 }
 
 bool GlobalHelperThreadState::canStartWasmTier2CompileTask(
     const AutoLockHelperThreadState& lock) {
-  return canStartWasmCompile(lock, wasm::CompileMode::Tier2);
+  return canStartWasmCompile(lock, wasm::CompileState::EagerTier2);
 }
 
 bool GlobalHelperThreadState::canStartWasmCompile(
-    const AutoLockHelperThreadState& lock, wasm::CompileMode mode) {
-  if (wasmWorklist(lock, mode).empty()) {
+    const AutoLockHelperThreadState& lock, wasm::CompileState state) {
+  if (wasmWorklist(lock, state).empty()) {
     return false;
   }
 
@@ -1171,7 +1171,7 @@ bool GlobalHelperThreadState::canStartWasmCompile(
 
   size_t threads;
   ThreadType threadType;
-  if (mode == wasm::CompileMode::Tier2) {
+  if (state == wasm::CompileState::EagerTier2) {
     if (tier2oversubscribed) {
       threads = maxWasmCompilationThreads();
     } else {
