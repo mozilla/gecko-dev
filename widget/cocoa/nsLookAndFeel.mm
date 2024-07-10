@@ -18,8 +18,10 @@
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/widget/WidgetMessageUtils.h"
+#include "mozilla/MacStringHelpers.h"
 
 #import <Cocoa/Cocoa.h>
+#import <Carbon/Carbon.h>
 #import <AppKit/NSColor.h>
 
 // This must be included last:
@@ -579,6 +581,19 @@ void nsLookAndFeel::RecordAccessibilityTelemetry() {
         [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldInvertColors];
     Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_INVERT_COLORS, val);
   }
+}
+
+nsresult nsLookAndFeel::GetKeyboardLayoutImpl(nsACString& aLayout) {
+  TISInputSourceRef source = ::TISCopyCurrentKeyboardInputSource();
+  nsAutoString layout;
+
+  CFStringRef layoutName = static_cast<CFStringRef>(
+      ::TISGetInputSourceProperty(source, kTISPropertyLocalizedName));
+  CopyNSStringToXPCOMString((const NSString*)layoutName, layout);
+  aLayout.Assign(NS_ConvertUTF16toUTF8(layout));
+
+  ::CFRelease(source);
+  return NS_OK;
 }
 
 @implementation MOZLookAndFeelDynamicChangeObserver
