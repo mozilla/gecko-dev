@@ -45,10 +45,12 @@
 #include "ProfilerStackWalk.h"
 #include "ProfilerRustBindings.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/Likely.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MozPromise.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
+#include "nsISupports.h"
 #include "nsXPCOM.h"
 #include "shared-libraries.h"
 #include "VTuneProfiler.h"
@@ -115,6 +117,7 @@
 #include <sstream>
 #include <string_view>
 #include <type_traits>
+#include <pthread.h>
 
 // To simplify other code in this file, define a helper definition to avoid
 // repeating the same preprocessor checks.
@@ -764,6 +767,7 @@ class AsyncSignalControlThread {
 };
 
 static void* AsyncSignalControlThreadEntry(void* aArg) {
+  NS_SetCurrentThreadName("AsyncSignalControlThread");
   auto* thread = static_cast<AsyncSignalControlThread*>(aArg);
   thread->Watch();
   return nullptr;
@@ -5694,39 +5698,113 @@ Maybe<nsAutoCString> profiler_find_dump_path() {
 #endif
 }
 
-void profiler_dump_and_stop() {
-  // Do nothing unless we're the parent process, as we're sandboxed and can't
-  // write anyway.
-  if (XRE_IsParentProcess()) {
-    // pause the profiler until we are done dumping
-    profiler_pause();
-
-    // Try to save the profile to a file
-    if (auto path = profiler_find_dump_path()) {
-      profiler_save_profile_to_file(path.value().get());
-    } else {
-      LOG("Failed to dump profile to disk");
-    }
-
-    // Stop the profiler
-    profiler_stop();
-  }
-}
-
 void profiler_start_from_signal() {
   // Do nothing unless we're the parent process, as we're sandboxed and can't
   // write any data that we gather anyway.
   if (XRE_IsParentProcess()) {
     // Start the profiler here directly, as we're on a background thread.
     // set of preferences, configuration of them is TODO, see Bug 1866007
+    // Enabling the JS feature leaks an 8-byte object during testing, but is too
+    // useful to disable. See Bug 1904897, Bug 1699681, and browser.toml for
+    // more details.
     uint32_t features = ProfilerFeature::JS | ProfilerFeature::StackWalk |
                         ProfilerFeature::CPUUtilization;
     // as we often don't know what threads we'll care about, tell the
     // profiler to profile all threads.
     const char* filters[] = {"*"};
-    profiler_start(PROFILER_DEFAULT_SIGHANDLE_ENTRIES,
-                   PROFILER_DEFAULT_INTERVAL, features, filters,
-                   MOZ_ARRAY_LENGTH(filters), 0);
+    if (MOZ_UNLIKELY(NS_IsMainThread())) {
+      // We are on the main thread here, so `NotifyProfilerStarted` will
+      // start the profiler in content/child processes.
+      profiler_start(PROFILER_DEFAULT_SIGHANDLE_ENTRIES,
+                     PROFILER_DEFAULT_INTERVAL, features, filters,
+                     MOZ_ARRAY_LENGTH(filters), 0);
+    } else {
+      // Directly start the profiler on this thread. We know we're not the main
+      // thread here, so this will not start the profiler in child processes,
+      // but we want to make sure that we do it here in case the main thread is
+      // stuck.
+      profiler_start(PROFILER_DEFAULT_SIGHANDLE_ENTRIES,
+                     PROFILER_DEFAULT_INTERVAL, features, filters,
+                     MOZ_ARRAY_LENGTH(filters), 0);
+      // Now also try and start the profiler from the main thread, so that the
+      // ParentProfiler will start child threads.
+      NS_DispatchToMainThread(
+          NS_NewRunnableFunction("StartProfilerInChildProcesses", [=] {
+            Unused << NotifyProfilerStarted(PROFILER_DEFAULT_SIGHANDLE_ENTRIES,
+                                            Nothing(),
+                                            PROFILER_DEFAULT_INTERVAL, features,
+                                            const_cast<const char**>(filters),
+                                            MOZ_ARRAY_LENGTH(filters), 0);
+          }));
+    }
+  }
+}
+
+void profiler_dump_and_stop() {
+  // Do nothing unless we're the parent process, as we're sandboxed and can't
+  // open a file handle anyway.
+  if (!XRE_IsParentProcess()) {
+    return;
+  }
+
+  // pause the profiler until we are done dumping
+  profiler_pause();
+
+  // Try to save the profile to a file
+  auto path = profiler_find_dump_path();
+
+  // Exit quickly if we can't find the path, while stopping the profiler
+  if (!path) {
+    LOG("Failed to find a valid dump path to write profile to disk");
+    profiler_stop();
+    return;
+  }
+
+  // Dump the profile of this process first, in case the multi-process
+  // gathering is unsuccessful (e.g. due to a blocked main threaed).
+  profiler_save_profile_to_file(path.value().get());
+
+  // We are probably not the main thread, but check anyway, and dispatch
+  // directly.
+  if (NS_IsMainThread()) {
+    nsCOMPtr<nsIProfiler> nsProfiler(
+        do_GetService("@mozilla.org/tools/profiler;1"));
+    nsProfiler->DumpProfileToFileAsyncNoJs(path.value(), 0)
+        ->Then(
+            GetMainThreadSerialEventTarget(), __func__,
+            [](void_t ok) {
+              LOG("Stopping profiler after dumping profile to disk");
+              profiler_stop();
+            },
+            [](nsresult aRv) {
+              LOG("Dumping to disk failed with error \"%s\", stopping "
+                  "profiler.",
+                  GetStaticErrorName(aRv));
+              profiler_stop();
+            });
+  } else {
+    // Dispatch a runnable, as nsProfiler classes are currently main-thread
+    // only. We also stop the profiler within the runnable, as otherwise we
+    // may find ourselves stopping the profiler before the runnable has
+    // gathered all the profile data.
+    NS_DispatchToMainThread(
+        NS_NewRunnableFunction("WriteProfileDataToFile", [=] {
+          nsCOMPtr<nsIProfiler> nsProfiler(
+              do_GetService("@mozilla.org/tools/profiler;1"));
+          nsProfiler->DumpProfileToFileAsyncNoJs(path.value(), 0)
+              ->Then(
+                  GetMainThreadSerialEventTarget(), __func__,
+                  [](void_t ok) {
+                    LOG("Stopping profiler after dumping profile to disk");
+                    profiler_stop();
+                  },
+                  [](nsresult aRv) {
+                    LOG("Dumping to disk failed with error \"%s\", stopping "
+                        "profiler.",
+                        GetStaticErrorName(aRv));
+                    profiler_stop();
+                  });
+        }));
   }
 }
 

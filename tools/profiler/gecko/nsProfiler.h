@@ -7,6 +7,7 @@
 #ifndef nsProfiler_h
 #define nsProfiler_h
 
+#include "ErrorList.h"
 #include "base/process.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
@@ -16,6 +17,7 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Vector.h"
+#include "mozilla/ipc/IPCCore.h"
 #include "nsIProfiler.h"
 #include "nsITimer.h"
 #include "nsServiceManagerUtils.h"
@@ -46,6 +48,8 @@ class nsProfiler final : public nsIProfiler {
 
   using GatheringPromiseAndroid =
       mozilla::MozPromise<FallibleTArray<uint8_t>, nsresult, true>;
+  using GatheringPromiseFileDump =
+      mozilla::MozPromise<mozilla::void_t, nsresult, true>;
   using GatheringPromise =
       mozilla::MozPromise<mozilla::ProfileAndAdditionalInformation, nsresult,
                           false>;

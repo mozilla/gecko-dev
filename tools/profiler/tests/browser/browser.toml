@@ -11,6 +11,20 @@ support-files = ["simple.html"]
 ["browser_test_feature_jsallocations.js"]
 support-files = ["do_work_500ms.html"]
 
+["browser_test_feature_multiprocess_capture_with_signal.js"]
+support-files = ["do_work_500ms.html"]
+skip-if = [
+  # Enabling the JS feature leaks an 8-byte object. This causes failures when
+  # the leak checker is enabled, and run with test-verify (i.e. with both
+  # "debug" and "verify"). Having JS support for this feature is more important
+  # than these tests, so we're disabling them for now. See Bug 1904897.
+  "verify && debug",
+  "tsan",            # We have intermittent timeout issues in TSan, see Bug 1889828
+  "ccov",            # The signals for the profiler conflict with the ccov signals
+  "os == 'win'",     # Not yet supported on windows - Bug 1867328
+  "os == 'android'", # Not yet supported on android - Bug 1904639
+]
+
 ["browser_test_feature_nostacksampling.js"]
 support-files = ["do_work_500ms.html"]
 

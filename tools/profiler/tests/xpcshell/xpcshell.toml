@@ -51,8 +51,8 @@ skip-if = [
 skip-if = [
   "tsan", # We have intermittent timeout issues in TSan, see Bug 1889828
   "ccov", # The signals for the profiler conflict with the ccov signals
-  "os == 'win'", # Not yet supported on windows
-  "os == 'android'", # Not yet supported on android
+  "os == 'win'", # Not yet supported on windows - Bug 1867328
+  "os == 'android'", # Not yet supported on android - Bug 1904639
 ]
 
 # Native stackwalking is somewhat unreliable depending on the platform.
