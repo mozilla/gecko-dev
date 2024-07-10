@@ -759,7 +759,7 @@ bool Code::finishTier2(const LinkData& linkData,
 }
 
 const LazyFuncExport* Code::lookupLazyFuncExport(const WriteGuard& guard,
-                            uint32_t funcIndex) const {
+                                                 uint32_t funcIndex) const {
   size_t match;
   if (!BinarySearchIf(
           guard->lazyExports, 0, guard->lazyExports.length(),

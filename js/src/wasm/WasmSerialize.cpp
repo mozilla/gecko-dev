@@ -1198,8 +1198,8 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
 
   // Create and initialize the code
   MutableCode code =
-    js_new<Code>(CompileMode::Once, *codeMeta, /*codeMetaForAsmJS=*/nullptr,
-                 /*maybeBytecode=*/nullptr, /*maybeCompileArgs=*/nullptr);
+      js_new<Code>(CompileMode::Once, *codeMeta, /*codeMetaForAsmJS=*/nullptr,
+                   /*maybeBytecode=*/nullptr, /*maybeCompileArgs=*/nullptr);
   if (!code ||
       !code->initialize(std::move(funcImports), std::move(sharedStubs),
                         sharedStubsLinkData, std::move(optimizedCode))) {

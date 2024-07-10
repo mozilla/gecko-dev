@@ -135,9 +135,9 @@ bool CodeMetadata::initInstanceLayout(CompileMode mode) {
 
   // Allocate space for function counters, if we have them
   if (mode == CompileMode::LazyTiering) {
-    if (!allocateInstanceDataBytesN(
-            sizeof(FuncDefInstanceData), alignof(FuncDefInstanceData),
-            numFuncDefs(), &funcDefsOffsetStart)) {
+    if (!allocateInstanceDataBytesN(sizeof(FuncDefInstanceData),
+                                    alignof(FuncDefInstanceData), numFuncDefs(),
+                                    &funcDefsOffsetStart)) {
       return false;
     }
   }

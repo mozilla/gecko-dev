@@ -823,8 +823,8 @@ class Code : public ShareableBase<Code> {
   // tiering.
   Tiers completeTiers() const;
 
-  [[nodiscard]] const LazyFuncExport* lookupLazyFuncExport(const WriteGuard& guard,
-                                                           uint32_t funcIndex) const;
+  [[nodiscard]] const LazyFuncExport* lookupLazyFuncExport(
+      const WriteGuard& guard, uint32_t funcIndex) const;
   // Returns a pointer to the raw interpreter entry of a given function for
   // which stubs have been lazily generated.
   [[nodiscard]] void* lookupLazyInterpEntry(const WriteGuard& guard,
