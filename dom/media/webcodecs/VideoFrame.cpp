@@ -1221,8 +1221,24 @@ static Result<RefPtr<layers::Image>, MediaResult> ConvertToRGBAImage(
 
 static VideoColorSpaceInit ConvertToColorSpace(
     const PredefinedColorSpace& aColorSpace) {
-  // TODO
-  return VideoColorSpaceInit{};
+  VideoColorSpaceInit colorSpace;
+  switch (aColorSpace) {
+    case PredefinedColorSpace::Srgb:
+      // https://w3c.github.io/webcodecs/#srgb-color-space
+      colorSpace.mFullRange.SetValue(true);
+      colorSpace.mMatrix.SetValue(VideoMatrixCoefficients::Rgb);
+      colorSpace.mPrimaries.SetValue(VideoColorPrimaries::Bt709);
+      colorSpace.mTransfer.SetValue(VideoTransferCharacteristics::Iec61966_2_1);
+      break;
+    case PredefinedColorSpace::Display_p3:
+      colorSpace.mFullRange.SetValue(true);
+      colorSpace.mMatrix.SetValue(VideoMatrixCoefficients::Rgb);
+      colorSpace.mPrimaries.SetValue(VideoColorPrimaries::Smpte432);
+      colorSpace.mTransfer.SetValue(VideoTransferCharacteristics::Iec61966_2_1);
+      break;
+  }
+  MOZ_ASSERT(!colorSpace.mFullRange.IsNull());
+  return colorSpace;
 }
 
 /*
