@@ -6,6 +6,7 @@
 #include "ImageConversion.h"
 
 #include "ImageContainer.h"
+#include "YCbCrUtils.h"
 #include "libyuv/convert.h"
 #include "libyuv/convert_from_argb.h"
 #include "mozilla/RefPtr.h"
@@ -13,12 +14,14 @@
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/ImageUtils.h"
 #include "mozilla/gfx/Point.h"
+#include "mozilla/gfx/Swizzle.h"
 #include "nsThreadUtils.h"
 
 using mozilla::ImageFormat;
 using mozilla::dom::ImageBitmapFormat;
 using mozilla::dom::ImageUtils;
 using mozilla::gfx::DataSourceSurface;
+using mozilla::gfx::IntSize;
 using mozilla::gfx::SourceSurface;
 using mozilla::gfx::SurfaceFormat;
 using mozilla::layers::Image;
@@ -204,10 +207,136 @@ nsresult ConvertToNV12(layers::Image* aImage, uint8_t* aDestY, int aDestStrideY,
                          aImage->GetSize().width, aImage->GetSize().height));
 }
 
+static bool IsRGBX(const SurfaceFormat& aFormat) {
+  return aFormat == SurfaceFormat::B8G8R8A8 ||
+         aFormat == SurfaceFormat::B8G8R8X8 ||
+         aFormat == SurfaceFormat::R8G8B8A8 ||
+         aFormat == SurfaceFormat::R8G8B8X8 ||
+         aFormat == SurfaceFormat::X8R8G8B8 ||
+         aFormat == SurfaceFormat::A8R8G8B8;
+}
+
+static bool HasAlpha(const SurfaceFormat& aFormat) {
+  return aFormat == SurfaceFormat::B8G8R8A8 ||
+         aFormat == SurfaceFormat::R8G8B8A8 ||
+         aFormat == SurfaceFormat::A8R8G8B8;
+}
+
+static nsresult SwapRGBA(DataSourceSurface* aSurface,
+                         const SurfaceFormat& aDestFormat) {
+  if (!aSurface || !IsRGBX(aSurface->GetFormat()) || !IsRGBX(aDestFormat)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  if (aSurface->GetFormat() == aDestFormat) {
+    return NS_OK;
+  }
+
+  DataSourceSurface::ScopedMap map(aSurface, DataSourceSurface::READ_WRITE);
+  if (!map.IsMapped()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  gfx::SwizzleData(map.GetData(), map.GetStride(), aSurface->GetFormat(),
+                   map.GetData(), map.GetStride(), aDestFormat,
+                   aSurface->GetSize());
+
+  return NS_OK;
+}
+
 nsresult ConvertToRGBA(Image* aImage, const SurfaceFormat& aDestFormat,
                        uint8_t* aDestBuffer, int aDestStride, int aWidth,
                        int aHeight) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  IntSize destSize(aWidth, aHeight);
+
+  if (!aImage || !aImage->IsValid() || !aDestBuffer || !IsRGBX(aDestFormat) ||
+      aDestStride <= 0 || destSize.IsEmpty()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  // Read YUV image to the given buffer in required RGBA format.
+  if (const PlanarYCbCrData* data = GetPlanarYCbCrData(aImage)) {
+    SurfaceFormat convertedFormat;
+    if (data->mAlpha && HasAlpha(aDestFormat)) {
+      convertedFormat = SurfaceFormat::B8G8R8A8;
+
+      gfx::PremultFunc premultOp = nullptr;
+      if (data->mAlpha->mPremultiplied) {
+        premultOp = libyuv::ARGBUnattenuate;
+      }
+
+      ConvertYCbCrAToARGB(*data, data->mAlpha.ref(), convertedFormat, destSize,
+                          aDestBuffer, AssertedCast<int32_t>(aDestStride),
+                          premultOp);
+    } else {
+      convertedFormat = SurfaceFormat::B8G8R8X8;
+      ConvertYCbCrToRGB(*data, convertedFormat, destSize, aDestBuffer,
+                        AssertedCast<int32_t>(aDestStride));
+    }
+
+    if (convertedFormat == aDestFormat) {
+      return NS_OK;
+    }
+
+    // Since format of the converted data returned from ConvertYCbCrToRGB or
+    // ConvertYCbCrAToARGB is BRGX or BRGA, we need swap the RGBA channels to
+    // the required format.
+
+    RefPtr<DataSourceSurface> surf =
+        gfx::Factory::CreateWrappingDataSourceSurface(
+            aDestBuffer, aDestStride, destSize, convertedFormat);
+
+    if (!surf) {
+      return NS_ERROR_FAILURE;
+    }
+
+    return SwapRGBA(surf.get(), aDestFormat);
+  }
+
+  // Read RGBA image to the given buffer in required RGBA format.
+
+  RefPtr<SourceSurface> surf = GetSourceSurface(aImage);
+  if (!surf) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (!IsRGBX(surf->GetFormat())) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  if (surf->GetSize() != destSize) {
+    // TODO: crop or scale the image.
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  RefPtr<DataSourceSurface> src = surf->GetDataSurface();
+  if (!src) {
+    return NS_ERROR_FAILURE;
+  }
+
+  DataSourceSurface::ScopedMap srcMap(src, DataSourceSurface::READ);
+  if (!srcMap.IsMapped()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  RefPtr<DataSourceSurface> dest =
+      gfx::Factory::CreateWrappingDataSourceSurface(aDestBuffer, aDestStride,
+                                                    destSize, aDestFormat);
+
+  if (!dest) {
+    return NS_ERROR_FAILURE;
+  }
+
+  DataSourceSurface::ScopedMap destMap(dest, gfx::DataSourceSurface::WRITE);
+  if (!destMap.IsMapped()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  gfx::SwizzleData(srcMap.GetData(), srcMap.GetStride(), src->GetFormat(),
+                   destMap.GetData(), destMap.GetStride(), dest->GetFormat(),
+                   dest->GetSize());
+
+  return NS_OK;
 }
 
 }  // namespace mozilla
