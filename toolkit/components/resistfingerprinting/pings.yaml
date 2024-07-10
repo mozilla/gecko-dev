@@ -12,6 +12,7 @@ user-characteristics:
   include_client_id: false
   metadata:
     include_info_sections: false
+    use_ohttp: true
   bugs:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1879154
