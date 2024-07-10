@@ -216,6 +216,29 @@ function WrapForValidIteratorReturn() {
   return callContentFunction(returnMethod, iterator);
 }
 
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+/**
+ * Explicit Resource Management Proposal
+ * 27.1.2.1 %IteratorPrototype% [ @@dispose ] ( )
+ * https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-%25iteratorprototype%25-%40%40dispose
+ */
+function IteratorDispose() {
+  // Step 1. Let O be the this value.
+  var O = this;
+
+  // Step 2. Let return be ? GetMethod(O, "return").
+  var returnMethod = GetMethod(O, "return");
+
+  // Step 3. If return is not undefined, then
+  if (returnMethod !== undefined) {
+    // Step 3.a. Perform ? Call(return, O, « »).
+    callContentFunction(returnMethod, O);
+  }
+
+  // Step 4. Return NormalCompletion(empty). (implicit)
+}
+#endif
+
 /**
  * %IteratorHelperPrototype%.next ( )
  *

@@ -1914,6 +1914,9 @@ void js::AssertDenseElementsNotIterated(NativeObject* obj) {
 
 static const JSFunctionSpec iterator_methods[] = {
     JS_SELF_HOSTED_SYM_FN(iterator, "IteratorIdentity", 0, 0),
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    JS_SELF_HOSTED_SYM_FN(dispose, "IteratorDispose", 0, 0),
+#endif
     JS_FS_END,
 };
 
@@ -1937,6 +1940,9 @@ static const JSFunctionSpec iterator_methods_with_helpers[] = {
     JS_SELF_HOSTED_FN("every", "IteratorEvery", 1, 0),
     JS_SELF_HOSTED_FN("find", "IteratorFind", 1, 0),
     JS_SELF_HOSTED_SYM_FN(iterator, "IteratorIdentity", 0, 0),
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    JS_SELF_HOSTED_SYM_FN(dispose, "IteratorDispose", 0, 0),
+#endif
     JS_FS_END,
 };
 
