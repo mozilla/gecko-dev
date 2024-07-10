@@ -1036,6 +1036,11 @@ struct BaseCompiler final {
   //
   // Sundry low-level code generators.
 
+  // Decrement the per-instance function hotness counter, and possibly request
+  // optimized compilation for this function if it crosses the hotness
+  // threshold.
+  [[nodiscard]] bool addHotnessCheck();
+
   // Check the interrupt flag, trap if it is set.
   [[nodiscard]] bool addInterruptCheck();
 

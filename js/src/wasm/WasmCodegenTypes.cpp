@@ -70,6 +70,8 @@ const char* js::wasm::NameOfTrap(Trap trap) {
       return "BadCast";
     case Trap::StackOverflow:
       return "StackOverflow";
+    case Trap::CheckHotness:
+      return "CheckHotness";
     case Trap::CheckInterrupt:
       return "CheckInterrupt";
     case Trap::ThrowReported:

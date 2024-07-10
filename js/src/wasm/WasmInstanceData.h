@@ -104,6 +104,12 @@ struct TypeDefInstanceData {
   }
 };
 
+// FuncDefInstanceData maintains the per-instance hotness state for a locally
+// defined wasm function.
+struct FuncDefInstanceData {
+  uint32_t hotnessCounter;
+};
+
 // FuncImportInstanceData describes the region of wasm global memory allocated
 // in the instance's thread-local storage for a function import. This is
 // accessed directly from JIT code and mutated by Instance as exits become

@@ -190,6 +190,9 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
 
   // ==== Fields relating to Instance layout
   //
+  // The start offset of the FuncDefInstanceData[] section of the instance
+  // data. There is one entry for every function definition.
+  uint32_t funcDefsOffsetStart;
   // The start offset of the FuncImportInstanceData[] section of the instance
   // data. There is one entry for every imported function.
   uint32_t funcImportsOffsetStart;
@@ -377,7 +380,12 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // `funcImportsOffsetStart`, `memoriesOffsetStart`, `tablesOffsetStart`,
   // `tagsOffsetStart`, and, for each global, its `GlobalDesc::offset_`.  The
   // total data length is also recorded in `instanceDataLength`.
-  [[nodiscard]] bool initInstanceLayout();
+  [[nodiscard]] bool initInstanceLayout(CompileMode mode);
+
+  uint32_t offsetOfFuncDefInstanceData(uint32_t funcIndex) const {
+    MOZ_ASSERT(funcIndex >= numFuncImports && funcIndex < numFuncs());
+    return funcDefsOffsetStart + (funcIndex - numFuncImports) * sizeof(FuncDefInstanceData);
+  }
 
   uint32_t offsetOfFuncImportInstanceData(uint32_t funcIndex) const {
     MOZ_ASSERT(funcIndex < numFuncImports);

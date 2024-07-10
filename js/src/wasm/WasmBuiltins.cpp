@@ -816,6 +816,21 @@ static void* WasmHandleThrow(jit::ResumeFromException* rfe) {
 }
 
 // Has the same return-value convention as HandleTrap().
+static void* CheckHotness(JSContext* cx, JitActivation* activation) {
+  void* resumePC = activation->wasmTrapData().resumePC;
+  const CodeRange* codeRange;
+  const CodeBlock* codeBlock = LookupCodeBlock(resumePC, &codeRange);
+  MOZ_RELEASE_ASSERT(codeBlock && codeRange);
+
+  // Reset the hotness counter for this func.
+  wasm::Instance* instance = activation->wasmExitInstance();
+  instance->resetHotnessCounter(codeRange->funcIndex());
+
+  activation->finishWasmTrap();
+  return resumePC;
+}
+
+// Has the same return-value convention as HandleTrap().
 static void* CheckInterrupt(JSContext* cx, JitActivation* activation) {
   ResetInterruptState(cx);
 
@@ -879,6 +894,8 @@ static void* WasmHandleTrap() {
       ReportTrapError(cx, JSMSG_WASM_UNALIGNED_ACCESS);
       return nullptr;
     }
+    case Trap::CheckHotness:
+      return CheckHotness(cx, activation);
     case Trap::CheckInterrupt:
       return CheckInterrupt(cx, activation);
     case Trap::StackOverflow: {

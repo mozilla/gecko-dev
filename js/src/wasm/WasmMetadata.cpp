@@ -130,8 +130,17 @@ bool CodeMetadata::allocateInstanceDataBytesN(uint32_t bytes, uint32_t align,
   return allocateInstanceDataBytes(totalBytes.value(), align, assignedOffset);
 }
 
-bool CodeMetadata::initInstanceLayout() {
+bool CodeMetadata::initInstanceLayout(CompileMode mode) {
   instanceDataLength = 0;
+
+  // Allocate space for function counters, if we have them
+  if (mode == CompileMode::LazyTiering) {
+    if (!allocateInstanceDataBytesN(
+            sizeof(FuncDefInstanceData), alignof(FuncDefInstanceData),
+            numFuncDefs(), &funcDefsOffsetStart)) {
+      return false;
+    }
+  }
 
   // Allocate space for type definitions
   if (!allocateInstanceDataBytesN(sizeof(TypeDefInstanceData),

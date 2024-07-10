@@ -52,6 +52,7 @@ namespace wasm {
 
 using mozilla::Atomic;
 
+struct FuncDefInstanceData;
 class FuncImport;
 struct FuncImportInstanceData;
 struct MemoryDesc;
@@ -210,6 +211,7 @@ class alignas(16) Instance {
   MOZ_ALIGNED_DECL(16, char data_);
 
   // Internal helpers:
+  FuncDefInstanceData* funcDefInstanceData(uint32_t funcIndex) const;
   TypeDefInstanceData* typeDefInstanceData(uint32_t typeIndex) const;
   const void* addressOfGlobalCell(const GlobalDesc& globalDesc) const;
   FuncImportInstanceData& funcImportInstanceData(const FuncImport& fi);
@@ -359,6 +361,8 @@ class alignas(16) Instance {
 
   void setTemporaryStackLimit(JS::NativeStackLimit limit);
   void resetTemporaryStackLimit(JSContext* cx);
+
+  void resetHotnessCounter(uint32_t funcIndex);
 
   bool debugFilter(uint32_t funcIndex) const;
   void setDebugFilter(uint32_t funcIndex, bool value);

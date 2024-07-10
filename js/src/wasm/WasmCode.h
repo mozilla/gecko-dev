@@ -851,6 +851,8 @@ class Code : public ShareableBase<Code> {
                                             const FuncExport** funcExport,
                                             void** interpEntry) const;
 
+  CompileMode mode() const { return mode_; }
+
   void** tieringJumpTable() const { return jumpTables_.tiering(); }
 
   void setJitEntryIfNull(size_t i, void* target) const {

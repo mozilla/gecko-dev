@@ -156,6 +156,41 @@ bool BaseCompiler::generateOutOfLineCode() {
 //
 // Sundry code generation.
 
+bool BaseCompiler::addHotnessCheck() {
+  if (compilerEnv_.mode() != CompileMode::LazyTiering) {
+    return true;
+  }
+
+#ifdef RABALDR_PIN_INSTANCE
+  Register tmp(InstanceReg);
+#else
+  ScratchI32 tmp(*this);
+  fr.loadInstancePtr(tmp);
+#endif
+  Label isHot;
+  Label rejoin;
+  RegI32 scratch = needI32();
+  Address addressOfCounter =
+      Address(tmp, wasm::Instance::offsetInData(
+                       codeMeta_.offsetOfFuncDefInstanceData(func_.index)));
+  masm.load32(addressOfCounter, scratch);
+  masm.branchSub32(Assembler::Signed, Imm32(1), scratch, &isHot);
+  masm.store32(scratch, addressOfCounter);
+  masm.jump(&rejoin);
+
+  masm.bind(&isHot);
+  masm.wasmTrap(wasm::Trap::CheckHotness, bytecodeOffset());
+  if (!createStackMap("addHotnessCheck")) {
+    freeI32(scratch);
+    return false;
+  }
+
+  masm.bind(&rejoin);
+  freeI32(scratch);
+
+  return true;
+}
+
 bool BaseCompiler::addInterruptCheck() {
 #ifdef RABALDR_PIN_INSTANCE
   Register tmp(InstanceReg);
@@ -547,7 +582,7 @@ bool BaseCompiler::beginFunction() {
   MOZ_ASSERT(stackMapGenerator_.framePushedAtEntryToBody.isNothing());
   stackMapGenerator_.framePushedAtEntryToBody.emplace(masm.framePushed());
 
-  return true;
+  return addHotnessCheck();
 }
 
 bool BaseCompiler::endFunction() {
@@ -3555,7 +3590,7 @@ bool BaseCompiler::emitLoop() {
     masm.bind(&controlItem(0).label);
     // The interrupt check barfs if there are live registers.
     sync();
-    if (!addInterruptCheck()) {
+    if (!addInterruptCheck() || !addHotnessCheck()) {
       return false;
     }
   }
