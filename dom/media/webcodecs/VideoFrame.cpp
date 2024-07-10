@@ -1193,7 +1193,21 @@ InitializeFrameFromOtherFrame(nsIGlobalObject* aGlobal, VideoFrameData&& aData,
 
 static void CloneConfiguration(RootedDictionary<VideoFrameCopyToOptions>& aDest,
                                const VideoFrameCopyToOptions& aSrc) {
-  // TODO
+  if (aSrc.mColorSpace.WasPassed()) {
+    aDest.mColorSpace.Construct(aSrc.mColorSpace.Value());
+  }
+
+  if (aSrc.mFormat.WasPassed()) {
+    aDest.mFormat.Construct(aSrc.mFormat.Value());
+  }
+
+  if (aSrc.mLayout.WasPassed()) {
+    aDest.mLayout.Construct(aSrc.mLayout.Value());
+  }
+
+  if (aSrc.mRect.WasPassed()) {
+    aDest.mRect.Construct(aSrc.mRect.Value());
+  }
 }
 
 // Convert the aImage to an image with aColorSpace color space in aFormat
