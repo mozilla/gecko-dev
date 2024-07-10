@@ -1266,3 +1266,18 @@ networking:
       - necko@mozilla.com
       - kershaw@mozilla.com
     expires: never
+
+  os_socket_limit_reached:
+    type: counter
+    description: >
+      Counts the number of times the os socket limit was reached. i.e. CanAttachSocket() returned false.
+    bugs:
+      - https://bugzilla.mozilla.org/1901855
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901855#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - acreskey@mozilla.com
+    expires: never

@@ -7,6 +7,7 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/ChaosMode.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Likely.h"
 #include "mozilla/PodOperations.h"
@@ -406,6 +407,18 @@ bool nsSocketTransportService::CanAttachSocket() {
   MOZ_ASSERT(!mShuttingDown);
   uint32_t total = mActiveList.Length() + mIdleList.Length();
   bool rv = total < gMaxCount;
+
+  if (!rv) {
+    static bool reported_socket_limit_reached = false;
+    if (!reported_socket_limit_reached) {
+      mozilla::glean::networking::os_socket_limit_reached.Add(1);
+      reported_socket_limit_reached = true;
+    }
+    SOCKET_LOG(
+        ("nsSocketTransportService::CanAttachSocket failed -  total: %d, "
+         "maxCount: %d\n",
+         total, gMaxCount));
+  }
 
   MOZ_ASSERT(mInitialized);
   return rv;
