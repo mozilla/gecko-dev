@@ -12,10 +12,6 @@ const { BackupResource } = ChromeUtils.importESModule(
   "resource:///modules/backup/BackupResource.sys.mjs"
 );
 
-const { MeasurementUtils } = ChromeUtils.importESModule(
-  "resource:///modules/backup/MeasurementUtils.sys.mjs"
-);
-
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
@@ -287,57 +283,4 @@ function assertUint8ArraysSimilarity(uint8ArrayA, uint8ArrayB, expectSimilar) {
   } else {
     Assert.ok(foundDifference, "Arrays contain different bytes.");
   }
-}
-
-/**
- * Returns the total number of measurements taken for this histogram, regardless
- * of the values of the measurements themselves.
- *
- * @param {object} histogram
- *   Telemetry histogram object, like from `getHistogramById`
- * @returns {number}
- *   Number of measurements in the latest snapshot of the histogram
- */
-function countHistogramMeasurements(histogram) {
-  const snapshot = histogram.snapshot();
-  const countsPerBucket = Object.values(snapshot.values);
-  return countsPerBucket.reduce((sum, count) => sum + count, 0);
-}
-
-/**
- * Asserts that a histogram received a certain number of measurements, regardless
- * of the values of the measurements themselves.
- *
- * @param {object} histogram
- *   Telemetry histogram object, like from `getHistogramById`
- * @param {number} expected
- *   Expected number of measurements to have been taken
- * @param {string?} message
- *   Optional message for test report
- * @returns {void}
- *   No return value; only runs assertions
- */
-function assertHistogramMeasurementQuantity(
-  histogram,
-  expected,
-  message = "Should have taken a specific number of measurements in the histogram"
-) {
-  const totalCount = countHistogramMeasurements(histogram);
-  Assert.equal(totalCount, expected, message);
-}
-
-/**
- * @param {GleanDistributionData?} timerTestValue
- *   Glean timer from `testGetValue`
- * @returns {void}
- *   No return value; only runs assertions
- */
-function assertSingleTimeMeasurement(timerTestValue) {
-  Assert.notEqual(timerTestValue, null, "Timer should have something recorded");
-  Assert.equal(
-    timerTestValue.count,
-    1,
-    "Timer should have a single measurement"
-  );
-  Assert.greater(timerTestValue.sum, 0, "Timer measurement should be non-zero");
 }

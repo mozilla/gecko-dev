@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BackupResource } from "resource:///modules/backup/BackupResource.sys.mjs";
-import { MeasurementUtils } from "resource:///modules/backup/MeasurementUtils.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
@@ -73,21 +72,14 @@ export class PlacesBackupResource extends BackupResource {
     // want them to get out of sync with one another.
     //
     // [1]: https://www.sqlite.org/lang_attach.html
-    let timedCopies = [
-      MeasurementUtils.measure(
-        Glean.browserBackup.placesTime,
-        BackupResource.copySqliteDatabases(profilePath, stagingPath, [
-          "places.sqlite",
-        ])
-      ),
-      MeasurementUtils.measure(
-        Glean.browserBackup.faviconsTime,
-        BackupResource.copySqliteDatabases(profilePath, stagingPath, [
-          "favicons.sqlite",
-        ])
-      ),
-    ];
-    await Promise.all(timedCopies);
+    await Promise.all([
+      BackupResource.copySqliteDatabases(profilePath, stagingPath, [
+        "places.sqlite",
+      ]),
+      BackupResource.copySqliteDatabases(profilePath, stagingPath, [
+        "favicons.sqlite",
+      ]),
+    ]);
 
     return null;
   }
