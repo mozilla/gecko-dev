@@ -1418,7 +1418,6 @@ security/manager/tools/log_list.json
 security/nss/
 security/sandbox/chromium/
 security/sandbox/chromium-shim/
-security/sandbox/linux/launch/glibc_hack/sandbox/linux/services/namespace_sandbox.cc
 services/common/kinto-http-client.sys.mjs
 services/common/kinto-offline-client.sys.mjs
 testing/gtest/gmock/

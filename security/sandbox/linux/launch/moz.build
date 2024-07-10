@@ -13,23 +13,14 @@ UNIFIED_SOURCES += [
     "SandboxLaunch.cpp",
 ]
 
-SOURCES += [
-    "../../chromium-shim/base/logging.cpp",
-    "../../chromium/sandbox/linux/services/syscall_wrappers.cc",
-]
+include("/ipc/chromium/chromium-config.mozbuild")
 
-# The include of chromium-config.mozbuild will add include path of the other
-# chromium headers living within ipc/chromium where base/compiler_specific.h
-# exists but is not the right version used in syscall_wrappers.cc
 LOCAL_INCLUDES += [
     # Need this for safe_sprintf.h used by SandboxLogging.h,
     # but it has to be after ipc/chromium/src.
     "/security/sandbox/chromium",
-    "/security/sandbox/chromium-shim",
     "/security/sandbox/linux",
 ]
-
-include("/ipc/chromium/chromium-config.mozbuild")
 
 USE_LIBS += [
     "mozsandbox",
