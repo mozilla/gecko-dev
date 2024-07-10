@@ -431,6 +431,14 @@ ElementInternals* HTMLElement::GetElementInternals() const {
   return data->GetElementInternals();
 }
 
+nsIFormControl* HTMLElement::GetAsFormControl() {
+  return GetElementInternals();
+}
+
+const nsIFormControl* HTMLElement::GetAsFormControl() const {
+  return GetElementInternals();
+}
+
 void HTMLElement::UpdateBarredFromConstraintValidation() {
   CustomElementData* data = GetCustomElementData();
   if (data && data->IsFormAssociated()) {

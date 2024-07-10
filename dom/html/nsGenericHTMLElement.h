@@ -1176,6 +1176,11 @@ class nsGenericHTMLFormControlElement : public nsGenericHTMLFormElement,
   NS_IMPL_FROMNODE_HELPER(nsGenericHTMLFormControlElement,
                           IsHTMLFormControlElement())
 
+  [[nodiscard]] nsIFormControl* GetAsFormControl() final { return this; }
+  [[nodiscard]] const nsIFormControl* GetAsFormControl() const final {
+    return this;
+  }
+
   // nsINode
   nsINode* GetScopeChainParent() const override;
   bool IsHTMLFormControlElement() const final { return true; }

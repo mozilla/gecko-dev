@@ -3777,3 +3777,57 @@ void nsGenericHTMLElement::GetPopover(nsString& aPopover) const {
     aPopover.Assign(NS_ConvertUTF8toUTF16(kPopoverAttributeValueAuto));
   }
 }
+
+/******************************************************************************
+ *  nsIFormControl
+ *****************************************************************************/
+
+// static
+nsIFormControl* nsIFormControl::FromEventTarget(
+    mozilla::dom::EventTarget* aTarget) {
+  MOZ_ASSERT(aTarget);
+  return aTarget->IsNode() ? aTarget->AsNode()->GetAsFormControl() : nullptr;
+}
+
+// static
+nsIFormControl* nsIFormControl::FromEventTargetOrNull(
+    mozilla::dom::EventTarget* aTarget) {
+  return aTarget && aTarget->IsNode() ? aTarget->AsNode()->GetAsFormControl()
+                                      : nullptr;
+}
+
+// static
+const nsIFormControl* nsIFormControl::FromEventTarget(
+    const mozilla::dom::EventTarget* aTarget) {
+  MOZ_ASSERT(aTarget);
+  return aTarget->IsNode() ? aTarget->AsNode()->GetAsFormControl() : nullptr;
+}
+
+// static
+const nsIFormControl* nsIFormControl::FromEventTargetOrNull(
+    const mozilla::dom::EventTarget* aTarget) {
+  return aTarget && aTarget->IsNode() ? aTarget->AsNode()->GetAsFormControl()
+                                      : nullptr;
+}
+
+// static
+nsIFormControl* nsIFormControl::FromNode(nsINode* aNode) {
+  MOZ_ASSERT(aNode);
+  return aNode->GetAsFormControl();
+}
+
+// static
+nsIFormControl* nsIFormControl::FromNodeOrNull(nsINode* aNode) {
+  return aNode ? aNode->GetAsFormControl() : nullptr;
+}
+
+// static
+const nsIFormControl* nsIFormControl::FromNode(const nsINode* aNode) {
+  MOZ_ASSERT(aNode);
+  return aNode->GetAsFormControl();
+}
+
+// static
+const nsIFormControl* nsIFormControl::FromNodeOrNull(const nsINode* aNode) {
+  return aNode ? aNode->GetAsFormControl() : nullptr;
+}

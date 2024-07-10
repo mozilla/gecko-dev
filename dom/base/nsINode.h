@@ -45,6 +45,7 @@ class nsIAnimationObserver;
 class nsIContent;
 class nsIContentSecurityPolicy;
 class nsIFrame;
+class nsIFormControl;
 class nsIHTMLCollection;
 class nsMultiMutationObserver;
 class nsINode;
@@ -626,6 +627,16 @@ class nsINode : public mozilla::dom::EventTarget {
    */
   inline mozilla::dom::Text* AsText();
   inline const mozilla::dom::Text* AsText() const;
+
+  /**
+   * Return this node if the instance type inherits nsIFormControl, or an
+   * nsIFormControl instance which ia associated with this node.  Otherwise,
+   * returns nullptr.
+   */
+  [[nodiscard]] virtual nsIFormControl* GetAsFormControl() { return nullptr; }
+  [[nodiscard]] virtual const nsIFormControl* GetAsFormControl() const {
+    return nullptr;
+  }
 
   /*
    * Return whether the node is a ProcessingInstruction node.

@@ -21,6 +21,9 @@ class HTMLElement final : public nsGenericHTMLFormElement {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLElement,
                                            nsGenericHTMLFormElement)
 
+  [[nodiscard]] nsIFormControl* GetAsFormControl() final;
+  [[nodiscard]] const nsIFormControl* GetAsFormControl() const final;
+
   // EventTarget
   void GetEventTargetParent(EventChainPreVisitor& aVisitor) override;
 

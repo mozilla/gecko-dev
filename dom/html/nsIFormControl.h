@@ -10,10 +10,12 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "nsISupports.h"
 
+class nsINode;
 namespace mozilla {
 class PresState;
 namespace dom {
 class Element;
+class EventTarget;
 class FormData;
 class HTMLFieldSetElement;
 class HTMLFormElement;
@@ -92,6 +94,19 @@ class nsIFormControl : public nsISupports {
   nsIFormControl(FormControlType aType) : mType(aType) {}
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IFORMCONTROL_IID)
+
+  static nsIFormControl* FromEventTarget(mozilla::dom::EventTarget* aTarget);
+  static nsIFormControl* FromEventTargetOrNull(
+      mozilla::dom::EventTarget* aTarget);
+  static const nsIFormControl* FromEventTarget(
+      const mozilla::dom::EventTarget* aTarget);
+  static const nsIFormControl* FromEventTargetOrNull(
+      const mozilla::dom::EventTarget* aTarget);
+
+  static nsIFormControl* FromNode(nsINode* aNode);
+  static nsIFormControl* FromNodeOrNull(nsINode* aNode);
+  static const nsIFormControl* FromNode(const nsINode* aNode);
+  static const nsIFormControl* FromNodeOrNull(const nsINode* aNode);
 
   /**
    * Get the fieldset for this form control.
