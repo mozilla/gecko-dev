@@ -902,26 +902,29 @@ pub struct CustomPropertiesBuilder<'a, 'b: 'a> {
     references_from_non_custom_properties: NonCustomReferenceMap<Vec<Name>>,
 }
 
-fn has_non_custom_dependency(
+fn find_non_custom_references(
     registration: &PropertyRegistrationData,
     value: &VariableValue,
     may_have_color_scheme: bool,
     is_root_element: bool,
-) -> bool {
+    include_universal: bool,
+) -> Option<NonCustomReferences> {
     let dependent_types = registration.syntax.dependent_types();
-    if dependent_types.is_empty() {
-        return false;
-    }
-    if dependent_types.intersects(DependentDataTypes::COLOR) && may_have_color_scheme {
-        return true;
-    }
-    if dependent_types.intersects(DependentDataTypes::LENGTH) {
+    let may_reference_length = dependent_types.intersects(DependentDataTypes::LENGTH) ||
+        (include_universal && registration.syntax.is_universal());
+    if may_reference_length {
         let value_dependencies = value.references.non_custom_references(is_root_element);
         if !value_dependencies.is_empty() {
-            return true;
+            return Some(value_dependencies);
         }
     }
-    false
+    if dependent_types.intersects(DependentDataTypes::COLOR) && may_have_color_scheme {
+        // NOTE(emilio): We might want to add a NonCustomReferences::COLOR_SCHEME or something but
+        // it's not really needed for correctness, so for now we use an Option for that to signal
+        // that there might be a dependencies.
+        return Some(NonCustomReferences::empty());
+    }
+    None
 }
 
 impl<'a, 'b: 'a> CustomPropertiesBuilder<'a, 'b> {
@@ -1003,12 +1006,14 @@ impl<'a, 'b: 'a> CustomPropertiesBuilder<'a, 'b> {
                 // Non-custom dependency is really relevant for registered custom properties
                 // that require computed value of such dependencies.
                 let has_dependency = unparsed_value.references.any_var ||
-                    has_non_custom_dependency(
+                    find_non_custom_references(
                         registration,
                         unparsed_value,
                         may_have_color_scheme,
                         self.computed_context.is_root_element(),
-                    );
+                        /* include_unregistered = */ false,
+                    )
+                    .is_some();
                 // If the variable value has no references to other properties, perform
                 // substitution here instead of forcing a full traversal in `substitute_all`
                 // afterwards.
@@ -1429,18 +1434,17 @@ fn substitute_all(
                 let registration = context.stylist.get_custom_property_registration(name);
                 let value = context.map.get(registration, name)?.as_universal()?;
                 let is_root = context.computed_context.is_root_element();
-                // We need to keep track of (potential) non-custom-references even on unregistered
+                // We need to keep track of potential non-custom-references even on unregistered
                 // properties for cycle-detection purposes.
-                let value_non_custom_references = value.references.non_custom_references(is_root);
-                context.non_custom_references |= value_non_custom_references;
-                let has_dependency = value.references.any_var ||
-                    !value_non_custom_references.is_empty() ||
-                    has_non_custom_dependency(
-                        registration,
-                        value,
-                        context.has_color_scheme,
-                        is_root,
-                    );
+                let non_custom_refs = find_non_custom_references(
+                    registration,
+                    value,
+                    context.has_color_scheme,
+                    is_root,
+                    /* include_unregistered = */ true,
+                );
+                context.non_custom_references |= non_custom_refs.unwrap_or_default();
+                let has_dependency = value.references.any_var || non_custom_refs.is_some();
                 // Nothing to resolve.
                 if !has_dependency {
                     debug_assert!(!value.references.any_env, "Should've been handled earlier");
@@ -1651,13 +1655,15 @@ fn substitute_all(
             if let Some(ref mut deferred) = context.deferred_properties {
                 // We need to defer this property if it has a non-custom property dependency, or
                 // any variable that it references is already deferred.
-                defer =
-                    has_non_custom_dependency(
-                        registration,
-                        v,
-                        context.has_color_scheme,
-                        context.computed_context.is_root_element(),
-                    ) || v.references.refs.iter().any(|reference| {
+                defer = find_non_custom_references(
+                    registration,
+                    v,
+                    context.has_color_scheme,
+                    context.computed_context.is_root_element(),
+                    /* include_unregistered = */ false,
+                )
+                .is_some() ||
+                    v.references.refs.iter().any(|reference| {
                         reference.is_var && deferred.get(&reference.name).is_some()
                     });
 
