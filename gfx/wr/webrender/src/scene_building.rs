@@ -46,16 +46,15 @@ use api::{APZScrollGeneration, HasScrollLinkedEffect, Shadow, SpatialId, StickyF
 use api::{ClipMode, PrimitiveKeyKind, TransformStyle, YuvColorSpace, ColorRange, YuvData, TempFilterData};
 use api::{ReferenceTransformBinding, Rotation, FillRule, SpatialTreeItem, ReferenceFrameDescriptor};
 use api::FilterOpGraphPictureBufferId;
-use api::channel::{unbounded_channel, Receiver, Sender};
 use api::units::*;
 use crate::image_tiling::simplify_repeated_primitive;
 use crate::box_shadow::BLUR_SAMPLE_SCALE;
-use crate::clip::{ClipIntern, ClipItemKey, ClipItemKeyKind, ClipStore};
+use crate::clip::{ClipItemKey, ClipStore, ClipItemKeyKind, ClipIntern};
 use crate::clip::{ClipInternData, ClipNodeId, ClipLeafId};
 use crate::clip::{PolygonDataHandle, ClipTreeBuilder};
 use crate::segment::EdgeAaSegmentMask;
 use crate::spatial_tree::{SceneSpatialTree, SpatialNodeContainer, SpatialNodeIndex, get_external_scroll_offset};
-use crate::frame_builder::FrameBuilderConfig;
+use crate::frame_builder::{FrameBuilderConfig};
 use glyph_rasterizer::{FontInstance, SharedFontResources};
 use crate::hit_test::HitTestingScene;
 use crate::intern::Interner;
@@ -63,10 +62,10 @@ use crate::internal_types::{FastHashMap, LayoutPrimitiveInfo, Filter, FilterGrap
 use crate::picture::{Picture3DContext, PictureCompositeMode, PicturePrimitive};
 use crate::picture::{BlitReason, OrderedPictureChild, PrimitiveList, SurfaceInfo, PictureFlags};
 use crate::picture_graph::PictureGraph;
-use crate::prim_store::{PrimitiveInstance, PrimitiveStoreStats};
+use crate::prim_store::{PrimitiveInstance};
 use crate::prim_store::{PrimitiveInstanceKind, NinePatchDescriptor, PrimitiveStore};
 use crate::prim_store::{InternablePrimitive, PictureIndex};
-use crate::prim_store::PolygonKey;
+use crate::prim_store::{PolygonKey};
 use crate::prim_store::backdrop::{BackdropCapture, BackdropRender};
 use crate::prim_store::borders::{ImageBorder, NormalBorderPrim};
 use crate::prim_store::gradient::{
@@ -80,7 +79,7 @@ use crate::prim_store::picture::{Picture, PictureCompositeKey, PictureKey};
 use crate::prim_store::text_run::TextRun;
 use crate::render_backend::SceneView;
 use crate::resource_cache::ImageRequest;
-use crate::scene::{BuiltScene, Scene, ScenePipeline, SceneStats, StackingContextHelpers};
+use crate::scene::{Scene, ScenePipeline, BuiltScene, SceneStats, StackingContextHelpers};
 use crate::scene_builder_thread::Interners;
 use crate::space::SpaceSnapper;
 use crate::spatial_node::{
@@ -540,7 +539,6 @@ impl<'a> SceneBuilder<'a> {
         frame_builder_config: &FrameBuilderConfig,
         interners: &mut Interners,
         spatial_tree: &mut SceneSpatialTree,
-        recycler: &mut SceneRecycler,
         stats: &SceneStats,
         debug_flags: DebugFlags,
     ) -> BuiltScene {
@@ -562,17 +560,17 @@ impl<'a> SceneBuilder<'a> {
             spatial_tree,
             fonts,
             config: *frame_builder_config,
-            id_to_index_mapper_stack: mem::take(&mut recycler.id_to_index_mapper_stack),
-            hit_testing_scene: recycler.hit_testing_scene.take().unwrap_or_else(|| HitTestingScene::new(&stats.hit_test_stats)),
-            pending_shadow_items: mem::take(&mut recycler.pending_shadow_items),
-            sc_stack: mem::take(&mut recycler.sc_stack),
-            containing_block_stack: mem::take(&mut recycler.containing_block_stack),
-            raster_space_stack: mem::take(&mut recycler.raster_space_stack),
-            prim_store: mem::take(&mut recycler.prim_store),
-            clip_store: mem::take(&mut recycler.clip_store),
+            id_to_index_mapper_stack: Vec::new(),
+            hit_testing_scene: HitTestingScene::new(&stats.hit_test_stats),
+            pending_shadow_items: VecDeque::new(),
+            sc_stack: Vec::new(),
+            containing_block_stack: Vec::new(),
+            raster_space_stack: vec![RasterSpace::Screen],
+            prim_store: PrimitiveStore::new(&stats.prim_store_stats),
+            clip_store: ClipStore::new(),
             interners,
             external_scroll_mapper: ScrollOffsetMapper::new(),
-            iframe_size: mem::take(&mut recycler.iframe_size),
+            iframe_size: Vec::new(),
             root_iframe_clip: None,
             quality_settings: view.quality_settings,
             tile_cache_builder: TileCacheBuilder::new(
@@ -581,31 +579,13 @@ impl<'a> SceneBuilder<'a> {
                 debug_flags,
             ),
             snap_to_device,
-            picture_graph: mem::take(&mut recycler.picture_graph),
+            picture_graph: PictureGraph::new(),
             next_plane_splitter_index: 0,
-            prim_instances: mem::take(&mut recycler.prim_instances),
+            prim_instances: Vec::new(),
             pipeline_instance_ids: FastHashMap::default(),
-            surfaces: mem::take(&mut recycler.surfaces),
-            clip_tree_builder: recycler.clip_tree_builder.take().unwrap_or_else(|| ClipTreeBuilder::new()),
+            surfaces: Vec::new(),
+            clip_tree_builder: ClipTreeBuilder::new(),
         };
-
-        // Reset
-        builder.hit_testing_scene.reset();
-        builder.prim_store.reset();
-        builder.clip_store.reset();
-        builder.picture_graph.reset();
-        builder.prim_instances.clear();
-        builder.surfaces.clear();
-        builder.sc_stack.clear();
-        builder.containing_block_stack.clear();
-        builder.id_to_index_mapper_stack.clear();
-        builder.pending_shadow_items.clear();
-        builder.iframe_size.clear();
-
-        builder.raster_space_stack.clear();
-        builder.raster_space_stack.push(RasterSpace::Screen);
-
-        builder.clip_tree_builder.begin();
 
         builder.build_all(
             root_pipeline_id,
@@ -637,14 +617,6 @@ impl<'a> SceneBuilder<'a> {
 
         let clip_tree = builder.clip_tree_builder.finalize();
 
-        recycler.clip_tree_builder = Some(builder.clip_tree_builder);
-        recycler.sc_stack = builder.sc_stack;
-        recycler.id_to_index_mapper_stack = builder.id_to_index_mapper_stack;
-        recycler.containing_block_stack = builder.containing_block_stack;
-        recycler.raster_space_stack = builder.raster_space_stack;
-        recycler.pending_shadow_items = builder.pending_shadow_items;
-        recycler.iframe_size = builder.iframe_size;
-
         BuiltScene {
             has_root_pipeline: scene.has_root_pipeline(),
             pipeline_epochs: scene.pipeline_epochs.clone(),
@@ -660,7 +632,6 @@ impl<'a> SceneBuilder<'a> {
             prim_instances: builder.prim_instances,
             surfaces: builder.surfaces,
             clip_tree,
-            recycler_tx: Some(recycler.tx.clone()),
         }
     }
 
@@ -4750,95 +4721,4 @@ fn read_gradient_stops(stops: ItemRange<GradientStop>) -> Vec<GradientStopKey> {
             color: stop.color.into(),
         }
     }).collect()
-}
-
-/// A helper for reusing the scene builder's memory allocations and dropping
-/// scene allocations on the scene builder thread to avoid lock contention in
-/// jemalloc. 
-pub struct SceneRecycler {
-    pub tx: Sender<BuiltScene>,
-    rx: Receiver<BuiltScene>,
-
-    // Allocations recycled from BuiltScene:
-
-    pub prim_store: PrimitiveStore,
-    pub clip_store: ClipStore,
-    pub picture_graph: PictureGraph,
-    pub prim_instances: Vec<PrimitiveInstance>,
-    pub surfaces: Vec<SurfaceInfo>,
-    pub hit_testing_scene: Option<HitTestingScene>,
-    pub clip_tree_builder: Option<ClipTreeBuilder>,
-    //Could also attempt to recycle the following:
-    //pub tile_cache_config: TileCacheConfig,
-    //pub pipeline_epochs: FastHashMap<PipelineId, Epoch>,
-    //pub tile_cache_pictures: Vec<PictureIndex>,
-
-
-    // Allocations recycled from SceneBuilder
-
-    id_to_index_mapper_stack: Vec<NodeIdToIndexMapper>,
-    sc_stack: Vec<FlattenedStackingContext>,
-    containing_block_stack: Vec<SpatialNodeIndex>,
-    raster_space_stack: Vec<RasterSpace>,
-    pending_shadow_items: VecDeque<ShadowItem>,
-    iframe_size: Vec<LayoutSize>,
-}
-
-impl SceneRecycler {
-    pub fn new() -> Self {
-        let (tx, rx) = unbounded_channel();
-        SceneRecycler {
-            tx,
-            rx,
-
-            prim_instances: Vec::new(),
-            surfaces: Vec::new(),
-            prim_store: PrimitiveStore::new(&PrimitiveStoreStats::empty()),
-            clip_store: ClipStore::new(),
-            picture_graph: PictureGraph::new(),
-            hit_testing_scene: None,
-            clip_tree_builder: None,
-
-            id_to_index_mapper_stack: Vec::new(),
-            sc_stack: Vec::new(),
-            containing_block_stack: Vec::new(),
-            raster_space_stack: Vec::new(),
-            pending_shadow_items: VecDeque::new(),
-            iframe_size: Vec::new(),
-        }
-    }
-
-    /// Do some bookkeeping of past memory allocations, retaining some of them for
-    /// reuse and dropping the rest.
-    ///
-    /// Should be called once between scene builds, ideally outside of the critical
-    /// path since deallocations can take some time.
-    #[inline(never)]
-    pub fn recycle_built_scene(&mut self) {
-        let Ok(scene) = self.rx.try_recv() else {
-            return;
-        };
-
-        self.prim_store = scene.prim_store;
-        self.clip_store = scene.clip_store;
-        // We currently retain top-level allocations but don't attempt to retain leaf
-        // allocations in the prim store and clip store. We don't have to reset it here
-        // but doing so avoids dropping the leaf allocations in the 
-        self.prim_store.reset();
-        self.clip_store.reset();
-        self.hit_testing_scene = Arc::try_unwrap(scene.hit_testing_scene).ok();
-        self.picture_graph = scene.picture_graph;
-        self.prim_instances = scene.prim_instances;
-        self.surfaces = scene.surfaces;
-        if let Some(clip_tree_builder) = &mut self.clip_tree_builder {
-            clip_tree_builder.recycle_tree(scene.clip_tree);
-        }
-
-        while let Ok(_) = self.rx.try_recv() {
-            // If for some reason more than one scene accumulated in the queue, drop
-            // the rest.
-        }
-
-        // Note: fields of the scene we don't recycle get dropped here.
-    }
 }

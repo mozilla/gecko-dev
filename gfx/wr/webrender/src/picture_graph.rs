@@ -16,7 +16,6 @@ pub struct PictureInfo {
     pub parent: Option<PictureIndex>,
 }
 
-#[derive(Default)]
 /// A graph of picture dependencies, allowing updates to be processed without recursion
 /// by building a list of passes.
 pub struct PictureGraph {
@@ -27,13 +26,11 @@ pub struct PictureGraph {
 
 impl PictureGraph {
     pub fn new() -> Self {
-        PictureGraph::default()
-    }
-
-    pub fn reset(&mut self) {
-        self.roots.clear();
-        self.pic_info.clear();
-        self.update_passes.clear();
+        PictureGraph {
+            roots: Vec::new(),
+            pic_info: Vec::new(),
+            update_passes: Vec::new(),
+        }
     }
 
     /// Add a root picture to the graph

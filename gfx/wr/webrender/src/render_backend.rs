@@ -667,10 +667,7 @@ impl Document {
             resource_cache,
         );
 
-
-        let old_scene = std::mem::replace(&mut self.scene, built_scene);
-        old_scene.recycle();
-
+        self.scene = built_scene;
         self.scratch.recycle(recycler);
     }
 }
