@@ -25,7 +25,7 @@ internal const val TOOLS_MENU_ROUTE = "tools_menu"
 internal fun ToolsSubmenu(
     isReaderViewActive: Boolean,
     isTranslated: Boolean,
-    isTranslationSupported: Boolean?,
+    isTranslationSupported: Boolean,
     translatedLanguage: String,
     onBackButtonClick: () -> Unit,
     onReaderViewMenuClick: () -> Unit,
@@ -48,7 +48,7 @@ internal fun ToolsSubmenu(
                 onClick = onReaderViewMenuClick,
             )
 
-            if (isTranslationSupported == true) {
+            if (isTranslationSupported) {
                 Divider(color = FirefoxTheme.colors.borderSecondary)
 
                 TranslationMenuItem(

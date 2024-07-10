@@ -52,6 +52,7 @@ import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.deletebrowsingdata.deleteAndQuit
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -114,7 +115,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val printContentUseCase = components.useCases.sessionUseCases.printContent
                     val saveToPdfUseCase = components.useCases.sessionUseCases.saveToPdf
                     val selectedTab = browserStore.state.selectedTab
-                    val isTranslationSupported = browserStore.state.translationEngine.isEngineSupported
+                    val isTranslationSupported = browserStore.state.translationEngine.isEngineSupported ?: false
                     val settings = components.settings
                     val topSitesMaxLimit = settings.topSitesMaxLimit
                     val supportedLanguages = components.core.store.state.translationEngine.supportedLanguages
@@ -262,7 +263,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             ToolsSubmenu(
                                 isReaderViewActive = false,
                                 isTranslated = selectedTab?.translationsState?.isTranslated ?: false,
-                                isTranslationSupported = isTranslationSupported,
+                                isTranslationSupported = isTranslationSupported &&
+                                    FxNimbus.features.translations.value().mainFlowBrowserMenuEnabled,
                                 translatedLanguage = if (translateLanguageCode != null && supportedLanguages != null) {
                                     TranslationSupport(
                                         fromLanguages = supportedLanguages.fromLanguages,
