@@ -117,7 +117,7 @@
 
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_title">Yeni navigasyon çubuğuyla daha hızlı dolaşın</string>
+    <string name="navbar_cfr_title">Yeni gezinti çubuğuyla daha hızlı dolaşın</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message">Aşağı kaydırdığınızda bu çubuk gizlenerek daha fazla gezinti alanı sağlar.</string>
 
