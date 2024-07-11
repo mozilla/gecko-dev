@@ -583,7 +583,7 @@ def host_cflags(base_cflags, compilation_flags):
 
 @depends("HOST_CXXFLAGS", compilation_flags)
 @imports(_from="mozbuild.shellutil", _import="split")
-def host_cflags(base_cxxflags, compilation_flags):
+def host_cxxflags(base_cxxflags, compilation_flags):
     flags = list(compilation_flags.host_cxxflags)
     flags += split(base_cxxflags[0])
     return flags
@@ -637,7 +637,7 @@ add_old_configure_assignment("_COMPILATION_CXXFLAGS", compilation_flags.cxxflags
 
 set_config("HOST_CPPFLAGS", host_cppflags)
 set_config("HOST_CFLAGS", host_cflags)
-set_config("HOST_CXXFLAGS", host_cflags)
+set_config("HOST_CXXFLAGS", host_cxxflags)
 set_config("HOST_LDFLAGS", host_ldflags)
 set_config("OS_CPPFLAGS", os_cppflags)
 set_config("ASFLAGS", os_asflags)
