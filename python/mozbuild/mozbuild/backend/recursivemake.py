@@ -1389,7 +1389,7 @@ class RecursiveMakeBackend(MakeBackend):
 
     def _process_rust_library(self, libdef, backend_file):
         backend_file.write_once(
-            "%s := %s\n" % (libdef.LIB_FILE_VAR, libdef.import_path)
+            "%s := %s\n" % (libdef.LIB_FILE_VAR, libdef.import_path.full_path)
         )
         backend_file.write_once("CARGO_FILE := $(srcdir)/Cargo.toml\n")
         # Need to normalize the path so Cargo sees the same paths from all
@@ -1403,7 +1403,9 @@ class RecursiveMakeBackend(MakeBackend):
                 "%s := %s\n" % (libdef.FEATURES_VAR, " ".join(libdef.features))
             )
         if libdef.output_category:
-            self._process_non_default_target(libdef, libdef.import_path, backend_file)
+            self._process_non_default_target(
+                libdef, libdef.import_path.full_path, backend_file
+            )
 
     def _process_host_shared_library(self, libdef, backend_file):
         backend_file.write("HOST_SHARED_LIBRARY = %s\n" % libdef.lib_name)
@@ -1479,7 +1481,7 @@ class RecursiveMakeBackend(MakeBackend):
         for lib in shared_libs:
             assert obj.KIND != "host" and obj.KIND != "wasm"
             backend_file.write_once(
-                "SHARED_LIBS += %s\n" % pretty_relpath(lib.import_path)
+                "SHARED_LIBS += %s\n" % pretty_relpath(lib.import_path.full_path)
             )
 
         # We have to link any Rust libraries after all intermediate static
@@ -1491,7 +1493,7 @@ class RecursiveMakeBackend(MakeBackend):
             (l for l in static_libs if isinstance(l, BaseRustLibrary)),
         ):
             backend_file.write_once(
-                "%s += %s\n" % (var, pretty_relpath(lib.import_path))
+                "%s += %s\n" % (var, pretty_relpath(lib.import_path.full_path))
             )
 
         for lib in os_libs:
