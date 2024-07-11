@@ -8,6 +8,7 @@
 #define mozilla_dom_notification_h__
 
 #include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/GlobalFreezeObserver.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/NotificationBinding.h"
 #include "mozilla/dom/WorkerPrivate.h"
@@ -81,9 +82,7 @@ class StrongWorkerRef;
  * dispatch a control runnable instead.
  *
  */
-class Notification : public DOMEventTargetHelper,
-                     public nsIObserver,
-                     public nsSupportsWeakReference {
+class Notification : public DOMEventTargetHelper, public GlobalFreezeObserver {
   friend class CloseNotificationRunnable;
   friend class NotificationTask;
   friend class NotificationPermissionRequest;
@@ -102,7 +101,6 @@ class Notification : public DOMEventTargetHelper,
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(Notification,
                                                          DOMEventTargetHelper)
-  NS_DECL_NSIOBSERVER
 
   static bool PrefEnabled(JSContext* aCx, JSObject* aObj);
 
@@ -244,11 +242,14 @@ class Notification : public DOMEventTargetHelper,
       nsIGlobalObject* aGlobal, const nsAString& aID, const nsAString& aTitle,
       const NotificationOptions& aOptions, ErrorResult& aRv);
 
-  // Triggers CloseInternal for non-persistent notifications if window goes away
-  nsresult MaybeObserveWindowFrozenOrDestroyed();
+  // Triggers CloseInternal for non-persistent notifications if window freezes
+  nsresult MaybeObserveWindowFrozen();
   bool IsInPrivateBrowsing();
   void ShowInternal();
   void CloseInternal(bool aContextClosed = false);
+
+  void DisconnectFromOwner() override;
+  void FrozenCallback(nsIGlobalObject* aOwner) override;
 
   static NotificationPermission GetPermissionInternal(
       nsPIDOMWindowInner* aWindow, ErrorResult& rv);

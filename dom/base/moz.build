@@ -128,6 +128,7 @@ EXPORTS.mozilla += [
     "FlushType.h",
     "FocusModel.h",
     "FullscreenChange.h",
+    "GlobalFreezeObserver.h",
     "GlobalTeardownObserver.h",
     "IdentifierMapEntry.h",
     "PointerLockManager.h",

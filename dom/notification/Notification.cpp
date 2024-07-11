@@ -720,21 +720,14 @@ Notification::Notification(nsIGlobalObject* aGlobal, const nsAString& aID,
   }
 }
 
-nsresult Notification::MaybeObserveWindowFrozenOrDestroyed() {
+nsresult Notification::MaybeObserveWindowFrozen() {
   // NOTE: Non-persistent notifications can also be opened from workers, but we
   // don't care and nobody else cares. And it's not clear whether we even should
   // do this for window at all, see
   // https://github.com/whatwg/notifications/issues/204.
-  // TODO: Somehow extend GlobalTeardownObserver to deal with FROZEN_TOPIC?
+  // NOTE: Also GlobalFreezeObserver is only supported for window now.
   if (!mWorkerPrivate) {
-    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-    NS_ENSURE_TRUE(obs, NS_ERROR_FAILURE);
-
-    nsresult rv = obs->AddObserver(this, DOM_WINDOW_DESTROYED_TOPIC, true);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = obs->AddObserver(this, DOM_WINDOW_FROZEN_TOPIC, true);
-    NS_ENSURE_SUCCESS(rv, rv);
+    GlobalFreezeObserver::BindToOwner(GetOwnerGlobal());
   }
 
   return NS_OK;
@@ -787,8 +780,7 @@ already_AddRefed<Notification> Notification::Constructor(
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
-  if (NS_WARN_IF(
-          NS_FAILED(notification->MaybeObserveWindowFrozenOrDestroyed()))) {
+  if (NS_WARN_IF(NS_FAILED(notification->MaybeObserveWindowFrozen()))) {
     return nullptr;
   }
 
@@ -958,7 +950,6 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(Notification)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(Notification,
                                                 DOMEventTargetHelper)
   tmp->mData.setUndefined();
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(Notification,
@@ -974,8 +965,6 @@ NS_IMPL_ADDREF_INHERITED(Notification, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(Notification, DOMEventTargetHelper)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Notification)
-  NS_INTERFACE_MAP_ENTRY(nsIObserver)
-  NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 nsIPrincipal* Notification::GetPrincipal() {
@@ -2333,24 +2322,19 @@ nsresult Notification::OpenSettings(nsIPrincipal* aPrincipal) {
   return NS_OK;
 }
 
-NS_IMETHODIMP
-Notification::Observe(nsISupports* aSubject, const char* aTopic,
-                      const char16_t* aData) {
-  AssertIsOnMainThread();
-
-  if (!strcmp(aTopic, DOM_WINDOW_DESTROYED_TOPIC) ||
-      !strcmp(aTopic, DOM_WINDOW_FROZEN_TOPIC)) {
-    if (SameCOMIdentity(aSubject, ToSupports(GetOwnerWindow()))) {
-      if (nsCOMPtr<nsIObserverService> obs = services::GetObserverService()) {
-        obs->RemoveObserver(this, DOM_WINDOW_DESTROYED_TOPIC);
-        obs->RemoveObserver(this, DOM_WINDOW_FROZEN_TOPIC);
-      }
-
-      CloseInternal(true);
-    }
+void Notification::DisconnectFromOwner() {
+  // Unregister the backend handler if it's non-persistent.
+  // XXX(krosylight): CloseInternal currently assumes main thread, will be
+  // fixed by IPC migration (bug 1891807)
+  if (NS_IsMainThread() && mScope.IsEmpty()) {
+    CloseInternal(true);
   }
+  DOMEventTargetHelper::DisconnectFromOwner();
+}
 
-  return NS_OK;
+void Notification::FrozenCallback(nsIGlobalObject* aOwner) {
+  CloseInternal(true);
+  DisconnectFreezeObserver();
 }
 
 nsresult Notification::DispatchToMainThread(

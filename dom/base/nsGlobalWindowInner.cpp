@@ -5706,6 +5706,7 @@ void nsGlobalWindowInner::FreezeInternal(bool aIncludeSubWindows) {
   }
 
   NotifyDOMWindowFrozen(this);
+  NotifyGlobalFrozen();
 }
 
 void nsGlobalWindowInner::Thaw(bool aIncludeSubWindows) {
@@ -5744,6 +5745,7 @@ void nsGlobalWindowInner::ThawInternal(bool aIncludeSubWindows) {
   }
 
   NotifyDOMWindowThawed(this);
+  NotifyGlobalThawed();
 }
 
 bool nsGlobalWindowInner::IsFrozen() const {
