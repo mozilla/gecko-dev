@@ -396,6 +396,21 @@ const uint32_t kDeleteTimeoutMs = 1000;
 const int32_t kDEBUGThreadPriority = nsISupportsPriority::PRIORITY_NORMAL;
 const uint32_t kDEBUGThreadSleepMS = 0;
 
+// Set to a non-zero number to enable debugging of transaction event targets.
+// It will cause sleeping after every transaction runnable!
+//
+// This can be useful for discovering race conditions related to switching to
+// another thread. Such races are usually avoided by using MozPromise or
+// RunAfterProcessingCurrentEvent. Chaos mode doesn't always help with
+// uncovering these issues, and only a precisely targeted sleep call can
+// simulate the problem.
+const uint32_t kDEBUGTransactionThreadSleepMS = 0;
+
+// Make sure that we notice if we ever accidentally check in a non-zero value.
+#  ifdef MOZILLA_OFFICIAL
+static_assert(kDEBUGTransactionThreadSleepMS == 0);
+#  endif
+
 #endif
 
 /*******************************************************************************
@@ -1325,6 +1340,9 @@ class ConnectionPool final {
   class FinishCallbackWrapper;
   class IdleConnectionRunnable;
 
+#ifdef DEBUG
+  class TransactionRunnable;
+#endif
   class TransactionInfo;
   struct TransactionInfoPair;
 
@@ -1572,6 +1590,8 @@ struct ConnectionPool::DatabaseInfo final {
     return mReadTransactionCount + mWriteTransactionCount;
   }
 
+  nsresult Dispatch(already_AddRefed<nsIRunnable> aRunnable);
+
  private:
   ~DatabaseInfo();
 
@@ -1626,6 +1646,20 @@ class ConnectionPool::FinishCallbackWrapper final : public Runnable {
 
   NS_DECL_NSIRUNNABLE
 };
+
+#ifdef DEBUG
+
+class ConnectionPool::TransactionRunnable final : public Runnable {
+ public:
+  explicit TransactionRunnable(nsCOMPtr<nsIRunnable> aRunnable);
+
+ private:
+  NS_DECL_NSIRUNNABLE
+
+  nsCOMPtr<nsIRunnable> mRunnable;
+};
+
+#endif
 
 class ConnectionPool::TransactionInfo final {
   friend class mozilla::DefaultDelete<TransactionInfo>;
@@ -7889,8 +7923,7 @@ void ConnectionPool::Dispatch(uint64_t aTransactionId, nsIRunnable* aRunnable) {
         dbInfo.mRunningWriteTransaction &&
             dbInfo.mRunningWriteTransaction.refEquals(*transactionInfo));
 
-    MOZ_ALWAYS_SUCCEEDS(
-        dbInfo.mEventTarget->Dispatch(aRunnable, NS_DISPATCH_NORMAL));
+    MOZ_ALWAYS_SUCCEEDS(dbInfo.Dispatch(do_AddRef(aRunnable)));
   } else {
     transactionInfo->mQueuedRunnables.AppendElement(aRunnable);
   }
@@ -8153,8 +8186,7 @@ bool ConnectionPool::ScheduleTransaction(TransactionInfo& aTransactionInfo,
 
   if (!queuedRunnables.IsEmpty()) {
     for (auto& queuedRunnable : queuedRunnables) {
-      MOZ_ALWAYS_SUCCEEDS(
-          dbInfo.mEventTarget->Dispatch(queuedRunnable.forget()));
+      MOZ_ALWAYS_SUCCEEDS(dbInfo.Dispatch(queuedRunnable.forget()));
     }
 
     queuedRunnables.Clear();
@@ -8392,9 +8424,8 @@ void ConnectionPool::CloseDatabase(DatabaseInfo& aDatabaseInfo) const {
   aDatabaseInfo.mNeedsCheckpoint = false;
   aDatabaseInfo.mClosing = true;
 
-  MOZ_ALWAYS_SUCCEEDS(aDatabaseInfo.mEventTarget->Dispatch(
-      MakeAndAddRef<CloseConnectionRunnable>(aDatabaseInfo),
-      NS_DISPATCH_NORMAL));
+  MOZ_ALWAYS_SUCCEEDS(aDatabaseInfo.Dispatch(
+      MakeAndAddRef<CloseConnectionRunnable>(aDatabaseInfo)));
 }
 
 bool ConnectionPool::CloseDatabaseWhenIdleInternal(
@@ -8538,6 +8569,19 @@ ConnectionPool::DatabaseInfo::~DatabaseInfo() {
   MOZ_COUNT_DTOR(ConnectionPool::DatabaseInfo);
 }
 
+nsresult ConnectionPool::DatabaseInfo::Dispatch(
+    already_AddRefed<nsIRunnable> aRunnable) {
+  nsCOMPtr<nsIRunnable> runnable = aRunnable;
+
+#ifdef DEBUG
+  if (kDEBUGTransactionThreadSleepMS) {
+    runnable = MakeRefPtr<TransactionRunnable>(std::move(runnable));
+  }
+#endif
+
+  return mEventTarget->Dispatch(runnable.forget(), NS_DISPATCH_NORMAL);
+}
+
 ConnectionPool::DatabaseCompleteCallback::DatabaseCompleteCallback(
     const nsCString& aDatabaseId, nsIRunnable* aCallback)
     : mDatabaseId(aDatabaseId), mCallback(aCallback) {
@@ -8609,6 +8653,29 @@ nsresult ConnectionPool::FinishCallbackWrapper::Run() {
 }
 
 uint32_t ConnectionPool::sSerialNumber = 0u;
+
+#ifdef DEBUG
+
+ConnectionPool::TransactionRunnable::TransactionRunnable(
+    nsCOMPtr<nsIRunnable> aRunnable)
+    : Runnable("dom::indexedDB::ConnectionPool::TransactionRunnable"),
+      mRunnable(std::move(aRunnable)) {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(kDEBUGTransactionThreadSleepMS);
+}
+
+nsresult ConnectionPool::TransactionRunnable::Run() {
+  MOZ_ASSERT(!IsOnBackgroundThread());
+
+  QM_TRY(MOZ_TO_RESULT(mRunnable->Run()));
+
+  MOZ_ALWAYS_TRUE(PR_Sleep(PR_MillisecondsToInterval(
+                      kDEBUGTransactionThreadSleepMS)) == PR_SUCCESS);
+
+  return NS_OK;
+}
+
+#endif
 
 ConnectionPool::IdleResource::IdleResource(const TimeStamp& aIdleTime)
     : mIdleTime(aIdleTime) {
