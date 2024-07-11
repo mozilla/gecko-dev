@@ -47,6 +47,23 @@ browser.backup:
     expires: never
     telemetry_mirror: BROWSER_BACKUP_TOTAL_BACKUP_SIZE
 
+  total_backup_time:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Total time elapsed, in milliseconds, between the start and end
+      of the profile backup creation process
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1891146
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1891146
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_BACKUP_TOTAL_BACKUP_TIME_MS
+
   places_size:
     type: quantity
     unit: kilobyte
@@ -64,6 +81,23 @@ browser.backup:
     expires: never
     telemetry_mirror: BROWSER_BACKUP_PLACES_SIZE
 
+  places_time:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Total time, in milliseconds, required to back up a profile's places
+      database.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1891146
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1891146
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_BACKUP_PLACES_TIME_MS
+
   favicons_size:
     type: quantity
     unit: kilobyte
@@ -78,6 +112,23 @@ browser.backup:
       - mconley@mozilla.com
     expires: never
     telemetry_mirror: BROWSER_BACKUP_FAVICONS_SIZE
+
+  favicons_time:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Total time, in milliseconds, required to back up a profile's favicons
+      database.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1891146
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1891146
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_BACKUP_FAVICONS_TIME_MS
 
   credentials_data_size:
     type: quantity

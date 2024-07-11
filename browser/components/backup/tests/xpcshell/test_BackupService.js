@@ -92,6 +92,11 @@ async function testCreateBackupHelper(sandbox, taskFn) {
   let totalBackupSizeHistogram = TelemetryTestUtils.getAndClearHistogram(
     "BROWSER_BACKUP_TOTAL_BACKUP_SIZE"
   );
+  // Handle for the metric for total time taking by profile backup
+  let backupTimerHistogram = TelemetryTestUtils.getAndClearHistogram(
+    "BROWSER_BACKUP_TOTAL_BACKUP_TIME_MS"
+  );
+
   const EXPECTED_CLIENT_ID = await ClientID.getClientID();
 
   let fake1ManifestEntry = { fake1: "hello from 1" };
@@ -138,6 +143,16 @@ async function testCreateBackupHelper(sandbox, taskFn) {
     profilePath: fakeProfilePath,
   });
   Assert.ok(bs.state.lastBackupDate, "The backup date was recorded.");
+
+  // Validate total backup time metrics were recorded
+  assertSingleTimeMeasurement(
+    Glean.browserBackup.totalBackupTime.testGetValue()
+  );
+  assertHistogramMeasurementQuantity(
+    backupTimerHistogram,
+    1,
+    "Should have collected a single measurement for total backup time"
+  );
 
   Assert.ok(await IOUtils.exists(backupFilePath), "The backup file exists");
 
@@ -444,6 +459,68 @@ add_task(async function test_createBackup_signed_in() {
 
   sandbox.restore();
 });
+
+/**
+ * Tests that any internal file system errors in BackupService.createBackup
+ * do not bubble up any errors.
+ */
+add_task(
+  {
+    // Bug 1905724 - Need to find a way to deny write access to backup directory on Windows
+    skip_if: () => AppConstants.platform == "win",
+  },
+  async function test_createBackup_robustToFileSystemErrors() {
+    let sandbox = sinon.createSandbox();
+    Services.fog.testResetFOG();
+    // Handle for the metric for total time taking by profile backup
+    let backupTimerHistogram = TelemetryTestUtils.getAndClearHistogram(
+      "BROWSER_BACKUP_TOTAL_BACKUP_TIME_MS"
+    );
+
+    const TEST_UID = "ThisIsMyTestUID";
+    const TEST_EMAIL = "foxy@mozilla.org";
+
+    sandbox.stub(UIState, "get").returns({
+      status: UIState.STATUS_SIGNED_IN,
+      uid: TEST_UID,
+      email: TEST_EMAIL,
+    });
+
+    // Create a read-only fake profile folder to which the backup service
+    // won't be able to make writes
+    let inaccessibleProfilePath = await IOUtils.createUniqueDirectory(
+      PathUtils.tempDir,
+      "createBackupErrorInaccessible"
+    );
+    IOUtils.setPermissions(inaccessibleProfilePath, 0o444);
+
+    const bs = new BackupService({});
+
+    await bs
+      .createBackup({ profilePath: inaccessibleProfilePath })
+      .then(result => {
+        Assert.equal(result, null, "Should return null on error");
+
+        // Validate total backup time metrics were recorded
+        const totalBackupTime =
+          Glean.browserBackup.totalBackupTime.testGetValue();
+        Assert.equal(
+          totalBackupTime,
+          null,
+          "Should not have measured total backup time for failed backup"
+        );
+        assertHistogramMeasurementQuantity(backupTimerHistogram, 0);
+      })
+      .catch(() => {
+        // Trigger failure if there was an uncaught error
+        Assert.ok(false, "Should not have bubbled up an error");
+      })
+      .finally(async () => {
+        await IOUtils.remove(inaccessibleProfilePath, { recursive: true });
+        sandbox.restore();
+      });
+  }
+);
 
 /**
  * Tests that if there's a post-recovery.json file in the profile directory
