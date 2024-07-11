@@ -9,7 +9,6 @@ import androidx.test.espresso.Espresso.pressBack
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -28,6 +27,7 @@ import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.restartApp
 import org.mozilla.fenix.helpers.TestHelper.verifySnackBarText
 import org.mozilla.fenix.helpers.TestSetup
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.ui.robots.EngineShortcut
 import org.mozilla.fenix.ui.robots.homeScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
@@ -124,25 +124,83 @@ class SettingsSearchTest : TestSetup() {
     }
 
     // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/233586
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1905976")
     @Test
-    fun verifyUrlAutocompleteToggleTest() {
-        homeScreen {
-        }.openSearch {
-            typeSearch("mo")
-            verifyTypedToolbarText("monster.com")
-            typeSearch("moz")
-            verifyTypedToolbarText("mozilla.org")
-        }.dismissSearchBar {
-        }.openThreeDotMenu {
-        }.openSettings {
-        }.openSearchSubMenu {
-            toggleAutocomplete()
-        }.goBack {
-        }.goBack {
-        }.openSearch {
-            typeSearch("moz")
-            verifyTypedToolbarText("moz")
+    fun verifyEnabledUrlAutocompleteToggleTest() {
+        // Currently part of an experiment https://bugzilla.mozilla.org/show_bug.cgi?id=1842106
+        // Check if "Top domain" suggestions for the address bar's autocomplete are enabled
+        if (FxNimbus.features.suggestShippedDomains.value().enabled) {
+            // If true it will use the hardcoded list of "top domain" suggestions for the address bar's autocomplete suggestions
+            homeScreen {
+            }.openSearch {
+                typeSearch("mo")
+                verifyTypedToolbarText("monster.com", exists = true)
+                typeSearch("moz")
+                verifyTypedToolbarText("mozilla.org", exists = true)
+            }
+        } else {
+            // The suggestions for the address bar's autocomplete will take use of the user's local browsing history and bookmarks
+            createHistoryItem("https://github.com/mozilla-mobile/fenix")
+            createBookmarkItem("https://github.com/mozilla-mobile/focus-android", "focus-android", 1u)
+
+            homeScreen {
+            }.openSearch {
+                typeSearch("moz")
+                // "Top domain" suggestions from the address bar's autocomplete are disabled, "moz" shouldn't autocomplete to mozilla.org
+                verifyTypedToolbarText("mozilla.org", exists = false)
+                // The address bar's autocomplete should take use of the browsing history
+                // Autocomplete with the history items url
+                typeSearch("github.com/mozilla-mobile/f")
+                verifyTypedToolbarText("github.com/mozilla-mobile/fenix", exists = true)
+                // The address bar's autocomplete should also take use of the saved bookmarks
+                // Autocomplete with the bookmarked items url
+                typeSearch("github.com/mozilla-mobile/fo")
+                verifyTypedToolbarText("github.com/mozilla-mobile/focus-android", exists = true)
+                // It should not autocomplete with links that are not part of browsing history or bookmarks
+                typeSearch("github.com/mozilla-mobile/fi")
+                verifyTypedToolbarText("github.com/mozilla-mobile/firefox-android", exists = false)
+            }
+        }
+    }
+
+    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2660692
+    @Test
+    fun verifyDisabledUrlAutocompleteToggleTest() {
+        // Currently part of an experiment https://bugzilla.mozilla.org/show_bug.cgi?id=1842106
+        // Check if "Top domain" suggestions for the address bar's autocomplete are enabled
+        if (FxNimbus.features.suggestShippedDomains.value().enabled) {
+            // If true it will use the hardcoded list of "top domain" suggestions for the address bar's autocomplete suggestions
+            homeScreen {
+            }.openThreeDotMenu {
+            }.openSettings {
+            }.openSearchSubMenu {
+                toggleAutocomplete()
+            }.goBack {
+            }.goBack {
+            }.openSearch {
+                typeSearch("moz")
+                verifyTypedToolbarText("moz", exists = true)
+                verifyTypedToolbarText("mozilla.org", exists = false)
+            }
+        } else {
+            // The suggestions for the address bar's autocomplete will take use of the user's local browsing history and bookmarks
+            createHistoryItem("https://github.com/mozilla-mobile/fenix")
+            createBookmarkItem("https://github.com/mozilla-mobile/focus-android", "focus-android", 1u)
+
+            homeScreen {
+            }.openThreeDotMenu {
+            }.openSettings {
+            }.openSearchSubMenu {
+                toggleAutocomplete()
+            }.goBack {
+            }.goBack {
+            }.openSearch {
+                // Having the setting disabled, it should not autocomplete anymore with the history items url
+                typeSearch("github.com/mozilla-mobile/f")
+                verifyTypedToolbarText("github.com/mozilla-mobile/fenix", exists = false)
+                // Having the setting disabled, it should not autocomplete anymore with the bookmarked items url
+                typeSearch("github.com/mozilla-mobile/fo")
+                verifyTypedToolbarText("github.com/mozilla-mobile/focus-android", exists = false)
+            }
         }
     }
 

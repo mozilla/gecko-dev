@@ -19,17 +19,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.PositionAssertions
-import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.matcher.IntentMatchers
-import androidx.test.espresso.matcher.ViewMatchers
-import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiScrollable
 import androidx.test.uiautomator.UiSelector
-import org.hamcrest.CoreMatchers.allOf
 import org.junit.Assert.assertTrue
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.AppAndSystemHelper.grantSystemPermission
@@ -47,6 +42,7 @@ import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectIsGone
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.SessionLoadedIdlingResource
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
@@ -336,23 +332,11 @@ class SearchRobot {
     fun verifyTranslatedFocusedNavigationToolbar(toolbarHintString: String) =
         assertItemTextContains(browserToolbarEditView(), itemText = toolbarHintString)
 
-    fun verifyTypedToolbarText(expectedText: String) {
-        Log.i(TAG, "verifyTypedToolbarText: Waiting for $waitingTime ms for the toolbar to exist")
-        mDevice.findObject(UiSelector().resourceId("$packageName:id/toolbar"))
-            .waitForExists(waitingTime)
-        Log.i(TAG, "verifyTypedToolbarText: Waited for $waitingTime ms for the toolbar to exist")
-        Log.i(TAG, "verifyTypedToolbarText: Waiting for $waitingTime ms for the edit mode toolbar to exist")
-        browserToolbarEditView().waitForExists(waitingTime)
-        Log.i(TAG, "verifyTypedToolbarText: Waited for $waitingTime ms for the edit mode toolbar to exist")
-        Log.i(TAG, "verifyTypedToolbarText: Trying to verify that $expectedText is visible in the toolbar")
-        onView(
-            allOf(
-                withText(expectedText),
-                withId(R.id.mozac_browser_toolbar_edit_url_view),
-            ),
-        ).check(matches(withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)))
-        Log.i(TAG, "verifyTypedToolbarText: Verified that $expectedText is visible in the toolbar")
-    }
+    fun verifyTypedToolbarText(expectedText: String, exists: Boolean) =
+        assertUIObjectExists(
+            itemWithResIdAndText("$packageName:id/mozac_browser_toolbar_edit_url_view", expectedText),
+            exists = exists,
+        )
 
     fun verifySearchBarPosition(bottomPosition: Boolean) {
         Log.i(TAG, "verifySearchBarPosition: Trying to verify that the search bar is set to bottom: $bottomPosition")

@@ -56,7 +56,7 @@ class TextSelectionTest : TestSetup() {
             clickPasteText()
             // With Select all, white spaces are copied
             // Potential bug https://bugzilla.mozilla.org/show_bug.cgi?id=1821310
-            verifyTypedToolbarText("  Page content: 1 ")
+            verifyTypedToolbarText("  Page content: 1 ", exists = true)
         }
     }
 
@@ -77,7 +77,7 @@ class TextSelectionTest : TestSetup() {
             clickClearButton()
             longClickToolbar()
             clickPasteText()
-            verifyTypedToolbarText("content")
+            verifyTypedToolbarText("content", exists = true)
         }
     }
 
@@ -148,7 +148,10 @@ class TextSelectionTest : TestSetup() {
             clickClearButton()
             longClickToolbar()
             clickPasteText()
-            verifyTypedToolbarText("Washington Crossing the Delaware Wikipedia linkName: Android")
+            verifyTypedToolbarText(
+                "Washington Crossing the Delaware Wikipedia linkName: Android",
+                exists = true,
+            )
         }
     }
 
@@ -172,7 +175,7 @@ class TextSelectionTest : TestSetup() {
             clickClearButton()
             longClickToolbar()
             clickPasteText()
-            verifyTypedToolbarText("Crossing")
+            verifyTypedToolbarText("Crossing", exists = true)
         }
     }
 
@@ -309,7 +312,7 @@ class TextSelectionTest : TestSetup() {
             clickContextMenuItem("Paste")
         }
         searchScreen {
-            verifyTypedToolbarText(firstWebsite.url.toString())
+            verifyTypedToolbarText(firstWebsite.url.toString(), exists = true)
         }.dismissSearchBar {
         }
         browserScreen {

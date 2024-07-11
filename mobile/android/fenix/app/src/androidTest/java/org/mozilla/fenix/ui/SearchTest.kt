@@ -703,7 +703,7 @@ class SearchTest : TestSetup() {
             verifySuggestionsAreNotDisplayed(rule = activityTestRule, "Mozilla")
             clickClearButton()
             typeSearch(searchTerm = "generic")
-            verifyTypedToolbarText("generic")
+            verifyTypedToolbarText("generic", exists = true)
             verifySearchEngineSuggestionResults(
                 rule = activityTestRule,
                 searchSuggestions = arrayOf(
@@ -763,7 +763,7 @@ class SearchTest : TestSetup() {
             verifySuggestionsAreNotDisplayed(rule = activityTestRule, "Mozilla")
             clickClearButton()
             typeSearch(searchTerm = "generic")
-            verifyTypedToolbarText("generic")
+            verifyTypedToolbarText("generic", exists = true)
             verifySearchEngineSuggestionResults(
                 rule = activityTestRule,
                 searchSuggestions = arrayOf(
