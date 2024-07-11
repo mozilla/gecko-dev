@@ -15,6 +15,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/EventQueue.h"
+#include "mozilla/UniquePtr.h"
 #include "nsISupportsImpl.h"
 
 #include <atomic>
@@ -31,6 +32,7 @@ class Task;
 class TaskController;
 class PerformanceCounter;
 class PerformanceCounterState;
+struct PoolThread;
 
 const EventQueuePriority kDefaultPriorityValue = EventQueuePriority::Normal;
 
@@ -251,14 +253,6 @@ class Task {
   mozilla::TimeStamp mInsertionTime;
 };
 
-struct PoolThread {
-  PRThread* mThread;
-  RefPtr<Task> mCurrentTask;
-  // This may be higher than mCurrentTask's priority due to priority
-  // propagation. This is -only- valid when mCurrentTask != nullptr.
-  uint32_t mEffectiveTaskPriority;
-};
-
 // A task manager implementation for priority levels that should only
 // run during idle periods.
 class IdleTaskManager : public TaskManager {
@@ -387,7 +381,8 @@ class TaskController {
 
   void ShutdownThreadPoolInternal();
 
-  void RunPoolThread();
+  void RunPoolThread(PoolThread* aThread);
+  friend struct PoolThread;
 
   // This protects access to the task graph.
   Mutex mGraphMutex MOZ_UNANNOTATED;
@@ -397,11 +392,12 @@ class TaskController {
   // the main thread that need to be handled.
   Mutex mPoolInitializationMutex =
       Mutex("TaskController::mPoolInitializationMutex");
+
   // Created under the PoolInitialization mutex, then never extended, and
-  // only freed when the object is freed.  mThread is set at creation time;
+  // only freed when the object is freed. mThread is set at creation time;
   // mCurrentTask and mEffectiveTaskPriority are only accessed from the
   // thread, so no locking is needed to access this.
-  std::vector<PoolThread> mPoolThreads;
+  std::vector<UniquePtr<PoolThread>> mPoolThreads;
 
   CondVar mThreadPoolCV;
   CondVar mMainThreadCV;
