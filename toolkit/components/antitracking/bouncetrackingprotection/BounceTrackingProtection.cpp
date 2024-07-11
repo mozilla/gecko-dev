@@ -105,7 +105,10 @@ BounceTrackingProtection::GetSingleton() {
   if (!sBounceTrackingProtection) {
     sBounceTrackingProtection = new BounceTrackingProtection();
     RunOnShutdown([] {
-      Unused << sBounceTrackingProtection->mRemoteExceptionList->Shutdown();
+      if (sBounceTrackingProtection &&
+          sBounceTrackingProtection->mRemoteExceptionList) {
+        Unused << sBounceTrackingProtection->mRemoteExceptionList->Shutdown();
+      }
       sBounceTrackingProtection = nullptr;
     });
 
