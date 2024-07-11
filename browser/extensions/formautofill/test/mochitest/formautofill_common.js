@@ -386,6 +386,22 @@ async function canTestOSKeyStoreLogin() {
  * See the comment in `waitForOSKeyStoreLogin` for more details.
  */
 async function waitForOSKeyStoreLoginTestSetupComplete() {
+  if (
+    !(await SpecialPowers.spawnChrome([], () => {
+      // Need to re-import this because we're running in the parent.
+      // eslint-disable-next-line no-shadow
+      const { FormAutofillUtils } = ChromeUtils.importESModule(
+        "resource://gre/modules/shared/FormAutofillUtils.sys.mjs"
+      );
+
+      return FormAutofillUtils.getOSAuthEnabled(
+        FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
+      );
+    }))
+  ) {
+    return;
+  }
+
   await SimpleTest.promiseWaitForCondition(async () => {
     return await SpecialPowers.spawnChrome([], () => {
       const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
@@ -416,20 +432,23 @@ async function waitForOSKeyStoreLoginTestSetupComplete() {
  */
 async function waitForOSKeyStoreLogin(login = false) {
   // Need to fetch this from the parent in order for it to be correct.
-  let isOSAuthEnabled = await SpecialPowers.spawnChrome([], () => {
-    // Need to re-import this because we're running in the parent.
-    // eslint-disable-next-line no-shadow
-    const { FormAutofillUtils } = ChromeUtils.importESModule(
-      "resource://gre/modules/shared/FormAutofillUtils.sys.mjs"
-    );
+  if (
+    !(await SpecialPowers.spawnChrome([], () => {
+      // Need to re-import this because we're running in the parent.
+      // eslint-disable-next-line no-shadow
+      const { FormAutofillUtils } = ChromeUtils.importESModule(
+        "resource://gre/modules/shared/FormAutofillUtils.sys.mjs"
+      );
 
-    return FormAutofillUtils.getOSAuthEnabled(
-      FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
-    );
-  });
-  if (isOSAuthEnabled) {
-    await invokeAsyncChromeTask("FormAutofillTest:OSKeyStoreLogin", { login });
+      return FormAutofillUtils.getOSAuthEnabled(
+        FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
+      );
+    }))
+  ) {
+    return;
   }
+
+  await invokeAsyncChromeTask("FormAutofillTest:OSKeyStoreLogin", { login });
 }
 
 function patchRecordCCNumber(record) {
