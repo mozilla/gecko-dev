@@ -587,8 +587,6 @@ cbindgen-types = [
     { gecko = "StylePageOrientation", servo = "crate::values::generics::page::PageOrientation" },
     { gecko = "StylePageSize", servo = "crate::values::computed::page::PageSize" },
     { gecko = "StyleDProperty", servo = "crate::values::specified::svg::DProperty" },
-    { gecko = "StyleVectorEffectType", servo = "crate::values::specified::svg::VectorEffectType" },
-    { gecko = "StyleCoordinateSpace", servo = "crate::values::specified::svg::CoordinateSpace" },
     { gecko = "StyleVectorEffect", servo = "crate::values::specified::svg::VectorEffect" },
     { gecko = "StyleImageRendering", servo = "crate::values::computed::ImageRendering" },
     { gecko = "StylePrintColorAdjust", servo = "crate::values::computed::PrintColorAdjust" },
