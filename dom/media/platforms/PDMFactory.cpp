@@ -256,11 +256,11 @@ class SupportChecker {
       RefPtr<MediaByteBuffer> extraData =
           aTrackConfig.GetAsVideoInfo()->mExtraData;
       AddToCheckList([mimeType, extraData]() {
+#if defined(XP_WIN) || defined(XP_DARWIN)
         if (MP4Decoder::IsH264(mimeType)) {
           SPSData spsdata;
           // WMF H.264 Video Decoder and Apple ATDecoder
           // do not support YUV444 format.
-          // For consistency, all decoders should be checked.
           if (H264::DecodeSPSFromExtraData(extraData, spsdata) &&
               (spsdata.profile_idc == 244 /* Hi444PP */ ||
                spsdata.chroma_format_idc == PDMFactory::kYUV444)) {
@@ -273,6 +273,7 @@ class SupportChecker {
                                   "with YUV444 chroma subsampling.")));
           }
         }
+#endif
         return CheckResult(SupportChecker::Reason::kSupported);
       });
     }
