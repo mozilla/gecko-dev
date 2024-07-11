@@ -16,6 +16,7 @@
 #include "DecoderTraits.h"
 #include "MediaInfo.h"
 #include "MediaRecorder.h"
+#include "MP4Decoder.h"
 #include "PDMFactory.h"
 #include "VPXDecoder.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -420,6 +421,22 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
           }));
       continue;
     }
+
+// Early return for non-encrypted HEVC if the pref is off.
+#ifdef MOZ_WMF
+    if (MP4Decoder::IsHEVC(config->mMimeType) &&
+        StaticPrefs::media_wmf_hevc_enabled() != 1) {
+      MediaCapabilitiesDecodingInfo info;
+      info.mSupported = false;
+      info.mSmooth = false;
+      info.mPowerEfficient = false;
+      LOG("Pref is disabled : %s -> %s",
+          MediaDecodingConfigurationToStr(aConfiguration).get(),
+          MediaCapabilitiesInfoToStr(info).get());
+      aPromise->MaybeResolve(std::move(info));
+      return;
+    }
+#endif
 
     // On Windows, the MediaDataDecoder expects to be created on a thread
     // supporting MTA, which the main thread doesn't. So we use our task queue
