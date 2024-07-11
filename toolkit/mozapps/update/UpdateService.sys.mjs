@@ -110,7 +110,6 @@ const DIR_UPDATE_DOWNLOADING = "downloading";
 const FILE_ACTIVE_UPDATE_XML = "active-update.xml";
 const FILE_BACKUP_UPDATE_LOG = "backup-update.log";
 const FILE_BACKUP_UPDATE_ELEVATED_LOG = "backup-update-elevated.log";
-const FILE_BT_RESULT = "bt.result";
 const FILE_LAST_UPDATE_LOG = "last-update.log";
 const FILE_LAST_UPDATE_ELEVATED_LOG = "last-update-elevated.log";
 const FILE_UPDATES_XML = "updates.xml";
@@ -1167,33 +1166,6 @@ function readStatusFile(dir) {
 }
 
 /**
- * Reads the binary transparency result file from the given directory.
- * Removes the file if it is present (so don't call this twice and expect a
- * result the second time).
- * @param   dir
- *          The dir to look for an update.bt file in
- * @return  A error code from verifying binary transparency information or null
- *          if the file was not present (indicating there was no error).
- */
-function readBinaryTransparencyResult(dir) {
-  let binaryTransparencyResultFile = dir.clone();
-  binaryTransparencyResultFile.append(FILE_BT_RESULT);
-  let result = readStringFromFile(binaryTransparencyResultFile);
-  LOG(
-    "readBinaryTransparencyResult - result: " +
-      result +
-      ", path: " +
-      binaryTransparencyResultFile.path
-  );
-  // If result is non-null, the file exists. We should remove it to avoid
-  // double-reporting this result.
-  if (result) {
-    binaryTransparencyResultFile.remove(false);
-  }
-  return result;
-}
-
-/**
  * Writes the current update operation/state to a file in the patch
  * directory, indicating to the patching system that operations need
  * to be performed.
@@ -1924,15 +1896,6 @@ function pingStateAndStatusCodes(aUpdate, aStartup, aStatus) {
       }
       AUSTLMY.pingStatusErrorCode(suffix, statusErrorCode);
     }
-  }
-  let binaryTransparencyResult = readBinaryTransparencyResult(
-    getReadyUpdateDir()
-  );
-  if (binaryTransparencyResult) {
-    AUSTLMY.pingBinaryTransparencyResult(
-      suffix,
-      parseInt(binaryTransparencyResult)
-    );
   }
   AUSTLMY.pingStateCode(suffix, stateCode);
 }

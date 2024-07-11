@@ -5371,27 +5371,6 @@ memoryreporter:
       - 'content'
 
 update:
-  binarytransparencyresult:
-    bug_numbers:
-      - 1501889
-    description: >
-      If the binary transparency information for an update does not verify
-      successfully, this probe will contain an error code from
-      toolkit/mozapps/update/common/updatererrors.h indicating why.
-    expires: "73"
-    kind: uint
-    keyed: true
-    notification_emails:
-      - application-update-telemetry-alerts@mozilla.com
-      - seceng-telemetry@mozilla.com
-      - dkeeler@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - main
-
   bitshresult:
     bug_numbers:
       - 1343669

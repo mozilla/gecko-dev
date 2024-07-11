@@ -279,30 +279,6 @@ export var AUSTLMY = {
   },
 
   /**
-   * Submit a telemetry ping for a failing binary transparency result.
-   *
-   * @param  aSuffix
-   *         Key to use on the update.binarytransparencyresult collection.
-   *         Must be one of "COMPLETE_STARTUP", "PARTIAL_STARTUP",
-   *         "UNKNOWN_STARTUP", "COMPLETE_STAGE", "PARTIAL_STAGE",
-   *         "UNKNOWN_STAGE".
-   * @param  aCode
-   *         An integer value for the error code from the update.bt file.
-   */
-  pingBinaryTransparencyResult: function UT_pingBinaryTransparencyResult(
-    aSuffix,
-    aCode
-  ) {
-    try {
-      let id = "update.binarytransparencyresult";
-      let key = aSuffix.toLowerCase().replace("_", "-");
-      Services.telemetry.keyedScalarSet(id, key, aCode);
-    } catch (e) {
-      console.error(e);
-    }
-  },
-
-  /**
    * Records a failed BITS update download using Telemetry.
    * In addition to the BITS Result histogram, this also sends an
    * update.bitshresult scalar value.

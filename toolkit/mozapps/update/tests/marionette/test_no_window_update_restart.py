@@ -216,7 +216,6 @@ class TestNoWindowUpdateRestart(MarionetteTestCase):
 
             addFileToRemove(rootUpdateDir, "active-update.xml");
             addFileToRemove(rootUpdateDir, "updates.xml");
-            addFileToRemove(patchDir, "bt.result");
             addFileToRemove(patchDir, "update.status");
             addFileToRemove(patchDir, "update.version");
             addFileToRemove(patchDir, "update.mar");
