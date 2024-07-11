@@ -2280,10 +2280,10 @@ nsChangeHint nsStyleDisplay::CalcDifference(
   auto newAppearance = aNewData.EffectiveAppearance();
   if (oldAppearance != newAppearance) {
     // Changes to the mDefaultAppearance values handled in
-    // AppearanceValueAffectsFrames reconstruct on their via other means. E.g.
-    // switching the <input> type attribute reframes via GetAttributeChangeHint.
-    // Thus, it doesn't matter whether we pick mDefaultAppearance or
-    // aNewData.mDefaultAppearance for the check below.
+    // AppearanceValueAffectsFrames reconstruct their frames via other means.
+    // E.g. switching the <input> type attribute reframes via
+    // GetAttributeChangeHint. Thus, it doesn't matter whether we pick
+    // mDefaultAppearance or aNewData.mDefaultAppearance for the check below.
     if (AppearanceValueAffectsFrames(oldAppearance, mDefaultAppearance) ||
         AppearanceValueAffectsFrames(newAppearance, mDefaultAppearance)) {
       return nsChangeHint_ReconstructFrame;
