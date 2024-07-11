@@ -1661,12 +1661,18 @@ pref("intl.hyphenation-alias.no-*", "nb");
 pref("intl.hyphenation-alias.nb-*", "nb");
 pref("intl.hyphenation-alias.nn-*", "nn");
 
-// In German and Finnish, we allow hyphenation of capitalized words; otherwise not.
-// (Should this be extended to other languages? Should the default be changed?)
+// In German, where all proper nouns are capitalized, we allow hyphenation of
+// capitalized words.
 pref("intl.hyphenate-capitalized.de-1996", true);
 pref("intl.hyphenate-capitalized.de-1901", true);
 pref("intl.hyphenate-capitalized.de-CH", true);
+
+// Also allow hyphenation of capitalized words in some languages that tend to
+// have a a lot of long compound words.
+// (Should this be extended to other languages? Should the default be changed?)
+pref("intl.hyphenate-capitalized.af", true);
 pref("intl.hyphenate-capitalized.fi", true);
+pref("intl.hyphenate-capitalized.nl", true);
 
 // All prefs of default font should be "auto".
 pref("font.name.serif.ar", "");
