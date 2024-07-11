@@ -610,9 +610,25 @@ def os_cppflags(env_cppflags):
     return flags
 
 
-@depends("ASFLAGS", asm_flags, android_flags, all_arm_flags)
+@depends(
+    "ASFLAGS",
+    asm_flags,
+    android_flags,
+    all_arm_flags,
+    defines_cpp_flags,
+    c_compiler,
+    build_project,
+)
 @imports(_from="mozbuild.shellutil", _import="split")
-def os_asflags(env_asflags, asm_flags, android_flags, all_arm_flags):
+def os_asflags(
+    env_asflags,
+    asm_flags,
+    android_flags,
+    all_arm_flags,
+    defines_cpp_flags,
+    c_compiler,
+    build_project,
+):
     flags = []
     if android_flags:
         flags.extend(android_flags.asflags)
@@ -620,6 +636,8 @@ def os_asflags(env_asflags, asm_flags, android_flags, all_arm_flags):
     if all_arm_flags:
         flags.extend(all_arm_flags)
     flags.extend(asm_flags.asflags)
+    if build_project != "js" and c_compiler.type != "clang-cl":
+        flags.extend(defines_cpp_flags)
     flags.extend(split(env_asflags[0]))
     return flags
 

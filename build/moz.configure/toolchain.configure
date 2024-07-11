@@ -3306,8 +3306,8 @@ add_flag(
 
 # Always included configuration file
 # ==============================================================
-@depends(c_compiler, asm_flags, build_environment, build_project)
-def defines_cpp_flags(c_compiler, asm_flags, build_environment, build_project):
+@depends(c_compiler, build_environment, build_project)
+def defines_cpp_flags(c_compiler, build_environment, build_project):
     if build_project == "js":
         config_h = "js/src/js-confdefs.h"
     else:
@@ -3318,12 +3318,7 @@ def defines_cpp_flags(c_compiler, asm_flags, build_environment, build_project):
     else:
         flag = "-include"
 
-    flags = ["-DMOZILLA_CLIENT", flag, f"{build_environment.topobjdir}/{config_h}"]
-
-    if build_project != "js" and c_compiler.type != "clang-cl":
-        asm_flags.asflags.extend(flags)
-
-    return flags
+    return ["-DMOZILLA_CLIENT", flag, f"{build_environment.topobjdir}/{config_h}"]
 
 
 set_config("OS_COMPILE_CFLAGS", defines_cpp_flags)
