@@ -530,3 +530,14 @@ TEST(TestStandardURL, CoalescePath)
   testCoalescing("/foo/bar/foo/bar/foo/bar/foo/bar/foo?query#frag",
                  "/foo/bar/foo/bar/foo/bar/foo/bar/foo?query#frag", 32, 36);
 }
+
+TEST(TestStandardURL, bug1904582)
+{
+  auto spec = "x:///%2e%2e"_ns;
+
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = NS_MutateURI(NS_STANDARDURLMUTATOR_CONTRACTID)
+                    .SetSpec(spec)
+                    .Finalize(uri);
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+}

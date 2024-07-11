@@ -665,19 +665,27 @@ void nsStandardURL::CoalescePath(netCoalesceFlags coalesceFlag, char* path) {
   auto resultCoalesceDirs = net_CoalesceDirs(coalesceFlag, path);
   int32_t newLen = strlen(path);
   if (newLen < mPath.mLen && resultCoalesceDirs) {
-    // Obtain indicies for the last slash and end of basename
+    // Obtain indices for the last slash and the end of the basename
     uint32_t lastSlash = resultCoalesceDirs->first();
     uint32_t endOfBasename = resultCoalesceDirs->second();
 
     int32_t diff = newLen - mPath.mLen;
     mPath.mLen = newLen;
-    // directory length is until and upto the last slash
+
+    // The directory length includes all characters up to and
+    // including the last slash
     mDirectory.mLen = static_cast<int32_t>(lastSlash) + 1;
-    // basename length includes everything after the last slash until hash,
-    // query, or the null char
+
+    // basename length includes everything after the last slash
+    // until hash, query, or the null char
     mBasename.mLen = static_cast<int32_t>(endOfBasename - mDirectory.mLen);
+    mBasename.mPos = mDirectory.mPos + mDirectory.mLen;
+
+    // Adjust the positions of extension, query, and ref as needed
+    // This is possible because net_CoalesceDirs does not modify their lengths
+    ShiftFromExtension(diff);
+
     mFilepath.mLen += diff;
-    ShiftFromBasename(diff);
   }
 }
 
