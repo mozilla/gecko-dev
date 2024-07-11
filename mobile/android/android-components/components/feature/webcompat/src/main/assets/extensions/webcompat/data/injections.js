@@ -1097,6 +1097,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1901780",
+    platform: "all",
+    domain: "vanbreda-health.be",
+    bug: "1901780",
+    contentScripts: {
+      matches: ["*://www.vanbreda-health.be/*"],
+      js: [
+        {
+          file: "injections/js/bug1881922-disable-legacy-mutation-events.js",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
