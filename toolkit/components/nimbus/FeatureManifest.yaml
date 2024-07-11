@@ -2203,6 +2203,19 @@ fxaButtonVisibility:
         branch: user
         pref: identity.fxaccounts.toolbar.pxiToolbarEnabled.vpnEnabled
 
+fxaClientAssociation:
+  description: Prefs to control the client association ping.
+  owner: mconley@mozilla.com
+  hasExposure: false
+  variables:
+    pingEnabled:
+      description: >-
+        True if the client association ping should be sent.
+      type: boolean
+      setPref:
+        branch: user
+        pref: identity.fxaccounts.telemetry.clientAssociationPing.enabled
+
 legacyHeartbeat:
   description: Normandy Heartbeat exposed to Nimbus
   owner: barret@mozilla.com
