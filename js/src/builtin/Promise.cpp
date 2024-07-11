@@ -107,31 +107,35 @@ enum ReactionJobSlots {
   ReactionJobSlot_ReactionRecord = 0,
 };
 
-// Extended function slots used to pass arguments through to either
-// PromiseResolveThenableJob, or PromiseResolveBuiltinThenableJob when calling
-// the built-in `then`.
 enum ThenableJobSlots {
-  // The Promise to resolve using the given thenable.
-  //
-  // This can be a CCW when used for PromiseResolveThenableJob, otherwise it is
-  // guaranteed not to be.
-  ThenableJobSlot_Promise = 0,
+  // The handler to use as the Promise reaction. It is a callable object
+  // that's guaranteed to be from the same compartment as the
+  // PromiseReactionJob.
+  ThenableJobSlot_Handler = 0,
 
-  // The thenable to use as the receiver when calling the `then` function.
-  //
-  // This can be a CCW when used for PromiseResolveThenableJob, otherwise it is
-  // guaranteed not to be.
-  ThenableJobSlot_Thenable,
-
-  // The handler to use as the Promise reaction, when not calling the built-in
-  // `then`. It is a callable object that's guaranteed to be from the same
-  // compartment as the PromiseReactionJob.
-  ThenableJobSlot_Handler,
-
-  ThenableJobSlot_Count
+  // JobData - a, potentially CCW-wrapped, dense list containing data
+  // required for proper execution of the reaction.
+  ThenableJobSlot_JobData,
 };
 
-static_assert(ThenableJobSlot_Count <= FunctionExtended::SlotCount);
+enum ThenableJobDataIndices {
+  // The Promise to resolve using the given thenable.
+  ThenableJobDataIndex_Promise = 0,
+
+  // The thenable to use as the receiver when calling the `then` function.
+  ThenableJobDataIndex_Thenable,
+
+  ThenableJobDataLength,
+};
+
+enum BuiltinThenableJobSlots {
+  // The Promise to resolve using the given thenable.
+  BuiltinThenableJobSlot_Promise = 0,
+
+  // The thenable to use as the receiver when calling the built-in `then`
+  // function.
+  BuiltinThenableJobSlot_Thenable,
+};
 
 struct PromiseCapability {
   JSObject* promise = nullptr;
@@ -2283,11 +2287,17 @@ static bool PromiseResolveThenableJob(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   RootedFunction job(cx, &args.callee().as<JSFunction>());
-  RootedObject promise(
-      cx, &job->getExtendedSlot(ThenableJobSlot_Promise).toObject());
-  RootedValue thenable(cx, job->getExtendedSlot(ThenableJobSlot_Thenable));
   RootedValue then(cx, job->getExtendedSlot(ThenableJobSlot_Handler));
   MOZ_ASSERT(then.isObject());
+  Rooted<NativeObject*> jobArgs(cx,
+                                &job->getExtendedSlot(ThenableJobSlot_JobData)
+                                     .toObject()
+                                     .as<NativeObject>());
+
+  RootedObject promise(
+      cx, &jobArgs->getDenseElement(ThenableJobDataIndex_Promise).toObject());
+  RootedValue thenable(cx,
+                       jobArgs->getDenseElement(ThenableJobDataIndex_Thenable));
 
   // Step 1.a. Let resolvingFunctions be
   //           CreateResolvingFunctions(promiseToResolve).
@@ -2347,8 +2357,8 @@ static bool PromiseResolveThenableJob(JSContext* cx, unsigned argc, Value* vp) {
  * extended JSFunction object, with all information required for the job's
  * execution stored in the function's extended slots.
  *
- * Usage of the function's extended slots is described in the ThenableJobSlots
- * enum.
+ * Usage of the function's extended slots is described in the
+ * BuiltinThenableJobSlots enum.
  */
 static bool PromiseResolveBuiltinThenableJob(JSContext* cx, unsigned argc,
                                              Value* vp) {
@@ -2356,11 +2366,9 @@ static bool PromiseResolveBuiltinThenableJob(JSContext* cx, unsigned argc,
 
   RootedFunction job(cx, &args.callee().as<JSFunction>());
   RootedObject promise(
-      cx, &job->getExtendedSlot(ThenableJobSlot_Promise).toObject());
+      cx, &job->getExtendedSlot(BuiltinThenableJobSlot_Promise).toObject());
   RootedObject thenable(
-      cx, &job->getExtendedSlot(ThenableJobSlot_Thenable).toObject());
-  // The handler slot is not used for builtin `then`.
-  MOZ_ASSERT(job->getExtendedSlot(ThenableJobSlot_Handler).isUndefined());
+      cx, &job->getExtendedSlot(BuiltinThenableJobSlot_Thenable).toObject());
 
   cx->check(promise, thenable);
   MOZ_ASSERT(promise->is<PromiseObject>());
@@ -2475,11 +2483,25 @@ static bool PromiseResolveBuiltinThenableJob(JSContext* cx, unsigned argc,
     return false;
   }
 
-  // Set the `promiseToResolve`, `thenable` and `then` arguments on the
-  // callback.
-  job->setExtendedSlot(ThenableJobSlot_Promise, promiseToResolve);
-  job->setExtendedSlot(ThenableJobSlot_Thenable, thenable);
+  // Store the `then` function on the callback.
   job->setExtendedSlot(ThenableJobSlot_Handler, ObjectValue(*then));
+
+  // Create a dense array to hold the data needed for the reaction job to
+  // work.
+  // The layout is described in the ThenableJobDataIndices enum.
+  Rooted<ArrayObject*> data(
+      cx, NewDenseFullyAllocatedArray(cx, ThenableJobDataLength));
+  if (!data) {
+    return false;
+  }
+
+  // Set the `promiseToResolve` and `thenable` arguments.
+  data->setDenseInitializedLength(ThenableJobDataLength);
+  data->initDenseElement(ThenableJobDataIndex_Promise, promiseToResolve);
+  data->initDenseElement(ThenableJobDataIndex_Thenable, thenable);
+
+  // Store the data array on the reaction job.
+  job->setExtendedSlot(ThenableJobSlot_JobData, ObjectValue(*data));
 
   // At this point the promise is guaranteed to be wrapped into the job's
   // compartment.
@@ -2528,8 +2550,9 @@ static bool PromiseResolveBuiltinThenableJob(JSContext* cx, unsigned argc,
   // thus `thenRealm` is also current realm, and we have nothing to do here.
 
   // Store the promise and the thenable on the reaction job.
-  job->setExtendedSlot(ThenableJobSlot_Promise, ObjectValue(*promiseToResolve));
-  job->setExtendedSlot(ThenableJobSlot_Thenable, ObjectValue(*thenable));
+  job->setExtendedSlot(BuiltinThenableJobSlot_Promise,
+                       ObjectValue(*promiseToResolve));
+  job->setExtendedSlot(BuiltinThenableJobSlot_Thenable, ObjectValue(*thenable));
 
   Rooted<GlobalObject*> incumbentGlobal(cx,
                                         cx->runtime()->getIncumbentGlobal(cx));
