@@ -372,8 +372,18 @@ class TaskController {
       const MutexAutoLock& aProofOfLock);
 
   Task* GetFinalDependency(Task* aTask);
-  void MaybeInterruptTask(Task* aTask);
+  void MaybeInterruptTask(Task* aTask, const MutexAutoLock& aProofOfLock);
   Task* GetHighestPriorityMTTask();
+
+  void DispatchThreadableTasks(const MutexAutoLock& aProofOfLock);
+  bool MaybeDispatchOneThreadableTask(const MutexAutoLock& aProofOfLock);
+  PoolThread* SelectThread(const MutexAutoLock& aProofOfLock);
+
+  struct TaskToRun {
+    RefPtr<Task> mTask;
+    uint32_t mEffectiveTaskPriority = 0;
+  };
+  TaskToRun TakeThreadableTaskToRun(const MutexAutoLock& aProofOfLock);
 
   void EnsureMainThreadTasksScheduled();
 
@@ -399,7 +409,6 @@ class TaskController {
   // thread, so no locking is needed to access this.
   std::vector<UniquePtr<PoolThread>> mPoolThreads;
 
-  CondVar mThreadPoolCV;
   CondVar mMainThreadCV;
 
   // Variables below are protected by mGraphMutex.
@@ -413,6 +422,9 @@ class TaskController {
   // TaskManagers currently active.
   // We can use a raw pointer since tasks always hold on to their TaskManager.
   std::set<TaskManager*> mTaskManagers;
+
+  // Number of pool threads that are currently idle.
+  size_t mIdleThreadCount = 0;
 
   // This ensures we keep running the main thread if we processed a task there.
   bool mMayHaveMainThreadTask = true;
