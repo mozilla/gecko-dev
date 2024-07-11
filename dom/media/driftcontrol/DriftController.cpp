@@ -81,6 +81,23 @@ uint32_t DriftController::GetCorrectedSourceRate() const {
   return std::lround(mCorrectedSourceRate);
 }
 
+int64_t DriftController::NearThreshold() const {
+  // mDesiredBuffering is divided by this to calculate a maximum error that
+  // would be considered "near" desired buffering. A denominator of 5
+  // corresponds to an error of +/- 20% of the desired buffering.
+  static constexpr uint32_t kNearDenominator = 5;  // +/- 20%
+
+  // +/- 10ms band maximum half-width.
+  const media::TimeUnit nearCap = media::TimeUnit::FromSeconds(0.01);
+
+  // For the minimum desired buffering of 10ms we have a "near" error band
+  // of +/- 2ms (20%). This goes up to +/- 10ms (clamped) at most for when the
+  // desired buffering is 50 ms or higher. AudioDriftCorrection uses this
+  // threshold when deciding whether to reduce buffering.
+  return std::min(nearCap, mDesiredBuffering / kNearDenominator)
+      .ToTicksAtRate(mSourceRate);
+}
+
 void DriftController::UpdateClock(media::TimeUnit aSourceDuration,
                                   media::TimeUnit aTargetDuration,
                                   uint32_t aBufferedFrames,
@@ -176,6 +193,17 @@ void DriftController::UpdateClock(media::TimeUnit aSourceDuration,
     mStage1Buffered = mAvgBufferedFramesEst;
   }
 
+  uint32_t desiredBufferedFrames = mDesiredBuffering.ToTicksAtRate(mSourceRate);
+  int32_t error =
+      (CheckedInt32(aBufferedFrames) - desiredBufferedFrames).value();
+  if (std::abs(error) > NearThreshold()) {
+    // The error is outside a threshold boundary.
+    mDurationNearDesired = media::TimeUnit::Zero();
+  } else {
+    // The error is within the "near" threshold boundaries.
+    mDurationNearDesired += mTargetClock;
+  };
+
   if (mTargetClock >= mAdjustmentInterval) {
     // The adjustment interval has passed. Recalculate.
     CalculateCorrection(aBufferedFrames, aBufferSize);
@@ -194,34 +222,8 @@ void DriftController::CalculateCorrection(uint32_t aBufferedFrames,
   // Use nominal (not corrected) source rate when interpreting desired
   // buffering so that the set point is independent of the control value.
   uint32_t desiredBufferedFrames = mDesiredBuffering.ToTicksAtRate(mSourceRate);
-  int32_t error =
-      (CheckedInt32(aBufferedFrames) - desiredBufferedFrames).value();
   float avgError = static_cast<float>(mAvgBufferedFramesEst) -
                    static_cast<float>(desiredBufferedFrames);
-
-  // mDesiredBuffering is divided by this to calculate a maximum error that
-  // would be considered "near" desired buffering. A denominator of 5
-  // corresponds to an error of +/- 20% of the desired buffering.
-  static constexpr uint32_t kNearDenominator = 5;  // +/- 20%
-
-  // +/- 10ms band maximum half-width.
-  const media::TimeUnit nearCap = media::TimeUnit::FromSeconds(0.01);
-
-  // For the minimum desired buffering of 10ms we have a "near" error band
-  // of +/- 2ms (20%). This goes up to +/- 10ms (clamped) at most for when the
-  // desired buffering is 50 ms or higher. AudioDriftCorrection uses this
-  // threshold when deciding whether to reduce buffering.
-  const auto nearThreshold =
-      std::min(nearCap, mDesiredBuffering / kNearDenominator)
-          .ToTicksAtRate(mSourceRate);
-
-  if (std::abs(error) > nearThreshold) {
-    // The error is outside a threshold boundary.
-    mDurationNearDesired = media::TimeUnit::Zero();
-  } else {
-    // The error is within the "near" threshold boundaries.
-    mDurationNearDesired += mTargetClock;
-  };
 
   // rateError is positive when pushing the buffering towards the desired level.
   float rateError =
@@ -258,8 +260,11 @@ void DriftController::CalculateCorrection(uint32_t aBufferedFrames,
           "%.2fms), buffering: %.2fms, desired buffering: %.2fms",
           mSourceRate, mTargetRate, cappedRate, mTargetRate,
           cappedRate - mCorrectedSourceRate,
-          media::TimeUnit(error, mSourceRate).ToSeconds() * 1000.0,
-          media::TimeUnit(nearThreshold, mSourceRate).ToSeconds() * 1000.0,
+          media::TimeUnit(CheckedInt64(aBufferedFrames) - desiredBufferedFrames,
+                          mSourceRate)
+                  .ToSeconds() *
+              1000.0,
+          media::TimeUnit(NearThreshold(), mSourceRate).ToSeconds() * 1000.0,
           media::TimeUnit(aBufferedFrames, mSourceRate).ToSeconds() * 1000.0,
           mDesiredBuffering.ToSeconds() * 1000.0);
 
@@ -275,7 +280,7 @@ void DriftController::CalculateCorrection(uint32_t aBufferedFrames,
       aBufferSize, mMeasuredSourceLatency.mean().ToTicksAtRate(mSourceRate),
       mMeasuredTargetLatency.mean().ToTicksAtRate(mTargetRate),
       mInputDurationAvg * mSourceRate, mOutputDurationAvg * mTargetRate,
-      mSourceRate, mTargetRate, steadyStateRate, nearThreshold, correctedRate,
+      mSourceRate, mTargetRate, steadyStateRate, NearThreshold(), correctedRate,
       hysteresisCorrectedRate, std::lround(mCorrectedSourceRate));
 
   // Reset the counters to prepare for the next period.

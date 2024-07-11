@@ -97,6 +97,7 @@ class DriftController final {
                    uint32_t aBufferSize);
 
  private:
+  int64_t NearThreshold() const;
   // Adjust mCorrectedSourceRate for the current values of mDriftEstimate and
   // mAvgBufferedFramesEst - mDesiredBuffering.ToTicksAtRate(mSourceRate).
   //
