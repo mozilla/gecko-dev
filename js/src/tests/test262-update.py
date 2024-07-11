@@ -27,6 +27,9 @@ UNSUPPORTED_FEATURES = set(
         "explicit-resource-management",  # Bug 1569081
         "regexp-modifiers",
         "promise-try",
+        "source-phase-imports",
+        "source-phase-imports-module-source",
+        "Math.sumPrecise",
     ]
 )
 FEATURE_CHECK_NEEDED = {
