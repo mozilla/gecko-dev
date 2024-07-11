@@ -184,7 +184,8 @@ FFmpegDataEncoder<LIBAV_VER>::ProcessReconfigure(
           if (!strcmp(mCodecContext->codec->name, "libx264")) {
             MOZ_ASSERT(aChange.get().ref() != 0);
             mConfig.mBitrate = aChange.get().ref();
-            mCodecContext->bit_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
+            mCodecContext->bit_rate =
+                static_cast<FFmpegBitRate>(mConfig.mBitrate);
             return true;
           }
           return false;
