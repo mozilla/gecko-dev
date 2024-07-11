@@ -44,6 +44,7 @@
 #  define AV_PIX_FMT_YUV422P PIX_FMT_YUV422P
 #  define AV_PIX_FMT_YUV422P10LE PIX_FMT_YUV422P10LE
 #  define AV_PIX_FMT_YUV444P PIX_FMT_YUV444P
+#  define AV_PIX_FMT_YUVJ444P PIX_FMT_YUVJ444P
 #  define AV_PIX_FMT_YUV444P10LE PIX_FMT_YUV444P10LE
 #  define AV_PIX_FMT_GBRP PIX_FMT_GBRP
 #  define AV_PIX_FMT_GBRP10LE PIX_FMT_GBRP10LE
@@ -95,8 +96,9 @@ using media::TimeUnit;
 /**
  * FFmpeg calls back to this function with a list of pixel formats it supports.
  * We choose a pixel format that we support and return it.
- * For now, we just look for YUV420P, YUVJ420P and YUV444 as those are the only
- * only non-HW accelerated format supported by FFmpeg's H264 and VP9 decoder.
+ * For now, we just look for YUV420P, YUVJ420P, YUV444 and YUVJ444 as
+ * those are the only non-HW accelerated format supported by FFmpeg's H264 and
+ * VP9 decoder.
  */
 static AVPixelFormat ChoosePixelFormat(AVCodecContext* aCodecContext,
                                        const AVPixelFormat* aFormats) {
@@ -121,6 +123,9 @@ static AVPixelFormat ChoosePixelFormat(AVCodecContext* aCodecContext,
       case AV_PIX_FMT_YUV444P:
         FFMPEGV_LOG("Requesting pixel format YUV444P.");
         return AV_PIX_FMT_YUV444P;
+      case AV_PIX_FMT_YUVJ444P:
+        FFMPEGV_LOG("Requesting pixel format YUVJ444P.");
+        return AV_PIX_FMT_YUVJ444P;
       case AV_PIX_FMT_YUV444P10LE:
         FFMPEGV_LOG("Requesting pixel format YUV444P10LE.");
         return AV_PIX_FMT_YUV444P10LE;
@@ -613,6 +618,7 @@ static gfx::ColorDepth GetColorDepth(const AVPixelFormat& aFormat) {
     case AV_PIX_FMT_YUVJ420P:
     case AV_PIX_FMT_YUV422P:
     case AV_PIX_FMT_YUV444P:
+    case AV_PIX_FMT_YUVJ444P:
       return gfx::ColorDepth::COLOR_8;
     case AV_PIX_FMT_YUV420P10LE:
     case AV_PIX_FMT_YUV422P10LE:
@@ -685,14 +691,16 @@ static bool IsColorFormatSupportedForUsingCustomizedBuffer(
   // use the shmem texture for 10 bit+ videos which would be uploaded by the
   // web render. See Bug 1751498.
   return aFormat == AV_PIX_FMT_YUV420P || aFormat == AV_PIX_FMT_YUVJ420P ||
-         aFormat == AV_PIX_FMT_YUV444P;
+         aFormat == AV_PIX_FMT_YUV444P || aFormat == AV_PIX_FMT_YUVJ444P;
 #  else
-  // For now, we only support for YUV420P, YUVJ420P and YUV444 which are the
-  // only non-HW accelerated format supported by FFmpeg's H264 and VP9 decoder.
+  // For now, we only support for YUV420P, YUVJ420P, YUV444P and YUVJ444P which
+  // are the only non-HW accelerated format supported by FFmpeg's H264 and VP9
+  // decoder.
   return aFormat == AV_PIX_FMT_YUV420P || aFormat == AV_PIX_FMT_YUVJ420P ||
          aFormat == AV_PIX_FMT_YUV420P10LE ||
          aFormat == AV_PIX_FMT_YUV420P12LE || aFormat == AV_PIX_FMT_YUV444P ||
-         aFormat == AV_PIX_FMT_YUV444P10LE || aFormat == AV_PIX_FMT_YUV444P12LE;
+         aFormat == AV_PIX_FMT_YUVJ444P || aFormat == AV_PIX_FMT_YUV444P10LE ||
+         aFormat == AV_PIX_FMT_YUV444P12LE;
 #  endif
 }
 
@@ -1209,6 +1217,7 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
 #  endif
             return Some(DecodeStage::YUV422P);
           case AV_PIX_FMT_YUV444P:
+          case AV_PIX_FMT_YUVJ444P:
           case AV_PIX_FMT_YUV444P10LE:
 #  if LIBAVCODEC_VERSION_MAJOR >= 57
           case AV_PIX_FMT_YUV444P12LE:
@@ -1316,6 +1325,7 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
 #  endif
             return Some(DecodeStage::YUV422P);
           case AV_PIX_FMT_YUV444P:
+          case AV_PIX_FMT_YUVJ444P:
           case AV_PIX_FMT_YUV444P10LE:
 #  if LIBAVCODEC_VERSION_MAJOR >= 57
           case AV_PIX_FMT_YUV444P12LE:
