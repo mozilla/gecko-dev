@@ -22,7 +22,7 @@ use malloc_size_of::{
 };
 use selectors::context::MatchingContext;
 use selectors::matching::matches_selector;
-use selectors::parser::{AncestorHashes, ParseRelative, Selector, SelectorList};
+use selectors::parser::{ParseRelative, Selector, SelectorList};
 use selectors::OpaqueElement;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
@@ -199,7 +199,7 @@ impl ImplicitScopeRoot {
 /// Target of this scope.
 pub enum ScopeTarget<'a> {
     /// Target matches an element matching the specified selector list.
-    Selector(&'a SelectorList<SelectorImpl>, &'a [AncestorHashes]),
+    Selector(&'a SelectorList<SelectorImpl>),
     /// Target matches only the specified element.
     Element(OpaqueElement),
 }
@@ -213,10 +213,10 @@ impl<'a> ScopeTarget<'a> {
         context: &mut MatchingContext<E::Impl>,
     ) -> bool {
         match self {
-            Self::Selector(list, hashes_list) => {
+            Self::Selector(list) => {
                 context.nest_for_scope_condition(scope, |context| {
-                    for (selector, hashes) in list.slice().iter().zip(hashes_list.iter()) {
-                        if matches_selector(selector, 0, Some(hashes), &element, context) {
+                    for selector in list.slice().iter() {
+                        if matches_selector(selector, 0, None, &element, context) {
                             return true;
                         }
                     }
@@ -279,7 +279,6 @@ where
 /// That is, check if any ancestor to the root matches the scope-end selector.
 pub fn element_is_outside_of_scope<E>(
     selector: &Selector<E::Impl>,
-    hashes: &AncestorHashes,
     element: E,
     root: OpaqueElement,
     context: &mut MatchingContext<E::Impl>,
@@ -291,7 +290,7 @@ where
     let mut parent = Some(element);
     context.nest_for_scope_condition(Some(root), |context| {
         while let Some(p) = parent {
-            if matches_selector(selector, 0, Some(hashes), &p, context) {
+            if matches_selector(selector, 0, None, &p, context) {
                 return true;
             }
             if p.opaque() == root {
