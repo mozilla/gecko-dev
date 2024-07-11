@@ -57,6 +57,8 @@ support-files = [
 
 ["browser_ime_composition.js"]
 
+["browser_oneOff.js"]
+
 ["browser_oneOffContextMenu.js"]
 
 ["browser_oneOffContextMenu_setDefault.js"]
@@ -99,6 +101,8 @@ skip-if = [
 ["browser_searchbar_smallpanel_keyboard_navigation.js"]
 
 ["browser_searchbar_widths.js"]
+
+["browser_searchPanelHeader.js"]
 
 ["browser_tooManyEnginesOffered.js"]
 
