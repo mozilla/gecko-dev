@@ -1056,14 +1056,12 @@ class NetworkModule extends Module {
    *     An enum value to set the network cache behavior.
    * @param {Array<string>=} options.contexts
    *     The list of browsing context ids where the network cache
-   *     should be bypassed.
+   *     behavior should be updated.
    *
    * @throws {InvalidArgumentError}
    *     Raised if an argument is of an invalid type or value.
    * @throws {NoSuchFrameError}
    *     If the browsing context cannot be found.
-   * @throws {UnsupportedOperationError}
-   *     If unsupported configuration is passed.
    */
   setCacheBehavior(options = {}) {
     const { cacheBehavior: behavior, contexts: contextIds = null } = options;

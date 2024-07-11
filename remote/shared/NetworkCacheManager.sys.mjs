@@ -7,7 +7,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowsingContextListener:
     "chrome://remote/content/shared/listeners/BrowsingContextListener.sys.mjs",
-  error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
 });
 
@@ -70,10 +69,6 @@ class NetworkCacheManager {
   };
 
   #setDefaultCacheBehavior(behavior) {
-    if (this.#defaultCacheBehavior === behavior) {
-      return;
-    }
-
     this.#defaultCacheBehavior = behavior;
     this.#navigableCacheBehaviorMap = new WeakMap();
 
@@ -85,7 +80,7 @@ class NetworkCacheManager {
     }
 
     // In case the cache is globally disabled we have to listen to all
-    // newly attached contexts and disable cache for them.
+    // newly attached contexts and update the cache behavior for them.
     if (this.#defaultCacheBehavior === CacheBehavior.Bypass) {
       this.#contextListener.startListening();
     } else {
@@ -100,7 +95,7 @@ class NetworkCacheManager {
   }
 
   /**
-   * Reset network cache bypassing logic.
+   * Reset network cache behavior to the default.
    */
   cleanup() {
     this.#setDefaultCacheBehavior(CacheBehavior.Default);
@@ -124,39 +119,19 @@ class NetworkCacheManager {
   }
 
   /**
-   * Set network cache bypassing logic to a provided value
+   * Update network cache behavior to a provided value
    * and optionally specified contexts.
    *
    * @param {CacheBehavior} behavior
    *     An enum value to set the network cache behavior.
    * @param {Array<BrowsingContext>=} contexts
    *     The list of browsing contexts where the network cache
-   *     should be bypassed.
-   *
-   * @throws {UnsupportedOperationError}
-   *     If unsupported configuration is passed.
+   *     behaviour should be updated.
    */
   updateCacheBehavior(behavior, contexts = null) {
     if (contexts === null) {
-      // TODO: Bug 1905307. Add support for such case.
-      if (this.#getWeakMapSize(this.#navigableCacheBehaviorMap) > 0) {
-        throw new lazy.error.UnsupportedOperationError(
-          "Updating the cache behavior globally when the cache behavior" +
-            " is already set for individual contexts is not supported yet"
-        );
-      }
-
       this.#setDefaultCacheBehavior(behavior);
-      this.#navigableCacheBehaviorMap = new WeakMap();
       return;
-    }
-
-    // TODO: Bug 1905307. Add support for such case.
-    if (this.#defaultCacheBehavior === CacheBehavior.Bypass) {
-      throw new lazy.error.UnsupportedOperationError(
-        "Updating the cache behavior for individual contexts when it's" +
-          " already set globally is not supported yet"
-      );
     }
 
     const loadFlags = this.#getLoadFlags(behavior);
