@@ -21,6 +21,7 @@ const DUMMY_RESULT = {
   rating: 4.8,
   totalReviews: 1234567,
   fakespotGrade: "A",
+  productId: "amazon-0",
 };
 
 const HELP_URL =

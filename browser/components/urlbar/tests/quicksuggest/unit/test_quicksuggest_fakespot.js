@@ -17,7 +17,7 @@ const DUMMY_SUGGESTIONS = [
     rating: 4.6,
     fakespotGrade: "A",
     totalReviews: 167,
-    productId: "fakespot-0",
+    productId: "amazon-0",
     score: 0.68416834,
     is_sponsored: true,
   },
@@ -29,7 +29,7 @@ const DUMMY_SUGGESTIONS = [
     rating: 3.5,
     fakespotGrade: "B",
     totalReviews: 100,
-    productId: "fakespot-1",
+    productId: "amazon-1",
     score: 0.5,
     is_sponsored: true,
   },
@@ -58,13 +58,30 @@ add_setup(async function () {
 });
 
 add_task(async function telemetryType() {
-  Assert.equal(
-    QuickSuggest.getFeature("FakespotSuggestions").getSuggestionTelemetryType(
-      {}
-    ),
-    "fakespot",
-    "Telemetry type should be 'fakespot'"
-  );
+  let tests = [
+    { productId: "amazon-123", expected: "fakespot_amazon" },
+    { productId: "bestbuy-345", expected: "fakespot_bestbuy" },
+    { productId: "walmart-789", expected: "fakespot_walmart" },
+    { productId: "bogus-123", expected: "fakespot_other" },
+    // We should maybe record "other" for this but "amazon" is just as fine.
+    { productId: "amazon", expected: "fakespot_amazon" },
+    // productId values below don't follow the expected `{provider}-{id}` format
+    // and should therefore be recorded as "other".
+    { productId: "amazon123", expected: "fakespot_other" },
+    { productId: "", expected: "fakespot_other" },
+    { productId: null, expected: "fakespot_other" },
+    { productId: undefined, expected: "fakespot_other" },
+    { expected: "fakespot_other" },
+  ];
+  for (let { productId, expected } of tests) {
+    Assert.equal(
+      QuickSuggest.getFeature("FakespotSuggestions").getSuggestionTelemetryType(
+        { productId }
+      ),
+      expected,
+      "Telemetry type should be correct for productId: " + productId
+    );
+  }
 });
 
 // When sponsored suggestions are disabled, Fakespot suggestions should be
@@ -671,6 +688,7 @@ function makeExpectedResult({
   isSuggestedIndexRelativeToGroup = true,
   originalUrl = undefined,
   displayUrl = undefined,
+  telemetryType = "fakespot_amazon",
   rating = DUMMY_SUGGESTIONS[0].rating,
   totalReviews = DUMMY_SUGGESTIONS[0].totalReviews,
   fakespotGrade = DUMMY_SUGGESTIONS[0].fakespotGrade,
@@ -695,7 +713,7 @@ function makeExpectedResult({
     payload: {
       source: "rust",
       provider: "Fakespot",
-      telemetryType: "fakespot",
+      telemetryType,
       url,
       originalUrl,
       title,

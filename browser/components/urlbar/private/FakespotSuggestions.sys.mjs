@@ -22,6 +22,9 @@ const RESULT_MENU_COMMAND = {
   SHOW_LESS_FREQUENTLY: "show_less_frequently",
 };
 
+const KNOWN_SUGGESTION_PROVIDERS = new Set(["amazon", "bestbuy", "walmart"]);
+const UNKNOWN_SUGGESTION_PROVIDER = "other";
+
 const VIEW_TEMPLATE = {
   attributes: {
     selectable: true,
@@ -110,8 +113,17 @@ export class FakespotSuggestions extends BaseFeature {
     return !cap || this.showLessFrequentlyCount < cap;
   }
 
-  getSuggestionTelemetryType() {
-    return "fakespot";
+  getSuggestionTelemetryType(suggestion) {
+    // The Fakespot provider is encoded in the `productId` like this:
+    // `{provider}-{id}`. To avoid recording unexpected values in telemetry that
+    // might be dangerous or impact the user's privacy, we look up the parsed
+    // provider in the `KNOWN_SUGGESTION_PROVIDERS` safe list and record it as
+    // `UNKNOWN_SUGGESTION_PROVIDER` if it's absent.
+    let provider = suggestion.productId?.split("-")[0];
+    if (!KNOWN_SUGGESTION_PROVIDERS.has(provider)) {
+      provider = UNKNOWN_SUGGESTION_PROVIDER;
+    }
+    return `fakespot_${provider}`;
   }
 
   makeResult(queryContext, suggestion, searchString) {
