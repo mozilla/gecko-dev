@@ -1,0 +1,2 @@
+# example UNEXPECTED-PASS
+fuzzy-if(winWidget,0-177,0-1) == 23605-5.html 23605-5-ref.html

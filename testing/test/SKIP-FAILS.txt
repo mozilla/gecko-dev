@@ -1,0 +1,124 @@
+Design Specification for ./mach manifest skip-fails
+===================================================
+
+The first of the mach manifest subcommands is skip-fails. This command
+can be used to automatically edit manifests to skip tests that are
+failing as well as file the corresponding bugs for the failures. This
+is particularly useful when “greening up” a new platform.
+
+The user documentation for skip-fails is here:
+https://firefox-source-docs.mozilla.org/mozbase/manifestparser.html#using-mach-manifest-skip-fails
+
+The skip-fails command knows how to manage failures for TOML, WPT
+and REFTEST manifests. Additional developer design notes are included here.
+
+
+Running skip-fails for TOML
+---------------------------
+
+The user documentation for TOML manifests is:
+https://firefox-source-docs.mozilla.org/mozbase/manifestparser.html
+
+1. Classify the failure based on the following:
+   a. If less than 3 runs, classify "unknown"
+   b. If zero failures, classify "success"
+   c. If the ratio of failed runs / total runs is less than 40%
+      classify "intermittent"
+   d. Else edit the manifest to skip this failure
+
+As design changes for skip-fails / TOML, notes will be added here.
+
+Running skip-fails for WPT
+---------------------------
+
+The user documentation for WPT manifests is:
+https://firefox-source-docs.mozilla.org/web-platform/index.html
+
+1. Classify the failure based on the following:
+   a. If less than 3 runs, classify "unknown"
+   b. If zero failures, classify "success"
+   c. If the ratio of failed runs / total runs is less than 40%
+      classify "intermittent"
+   d. Else edit the manifest to skip this failure
+
+As design changes for skip-fails / WPT, notes will be added here.
+
+
+Running skip-fails for REFTEST
+------------------------------
+
+The user documentation for REFTEST manifests is:
+https://firefox-source-docs.mozilla.org/layout/Reftest.html
+
+Current Design notes for skip-fails / REFTEST:
+
+As skip-fails for REFTEST finds a failure it will take the following actions:
+
+1. Classify the failure based on the following:
+   a. If less than 3 runs, classify "unknown"
+   b. If zero failures, classify "success"
+   c. If the ratio of failed runs / total runs is less than 40%
+      classify "low frequency intermittent" (INTERMITTENT)
+   c. If the ratio of failed runs / total runs is less than 80%
+      classify "high frequency intermittent" (DISABLE_INTERMITTENT)
+   d. If the ratio is <= 100%, classify "failure" (DISABLE_FAILURE)
+
+2. Propose a new range (differences, pixels)
+   a. For "low frequency intermittent" errors do nothing
+   b. For "high frequency intermittent" set the range 0-Y (i.e. always
+      start at zero to avoid UNEXPECTED PASS)
+   c. For "failure" set the range X-Y (i.e. the range as reported in
+      reftest_errorsummary.log). If the failure is UNEXPECTED PASS
+      then set the range to 0-Y.
+   d. NOTE: The maximum for differences and pixels will be increased
+      by 5% over the reported values in reftest_errorsummary.log
+   e. NOTE: If for whatever reason the range is calculated to be 0-0 then
+      remove the fuzzy-if entirely
+
+3. Merge with an existing fuzzy-if for this OS platform if the other
+   criteria differ in only one dimension. Current dimensions include:
+
+   OS: gtkWidget, winWidget, cocoaWidget, Android
+   build_type: optimized, isDebugBuild, isCoverageBuild, AddressSanitizer, ThreadSanitizer
+   is64Bit
+   fission
+   useDrawSnapshot
+   swgl
+   <OTHER>
+
+4. Based on a command line switch choose do use implicit variables (or not).
+   a. The following variables can implicit values:
+      is64Bit: true
+      fission: true
+      useDrawSnapshot: false
+      swgl: false
+      If the value of an implicit variable matches it's default then it may be
+      elided from the conditional expression.
+      If the value of an implicit variable is the oppposite of it's default
+      value then it may be specified in the condition, e.g. !is64Bit
+      When merging an existing condition with a new failure condition where
+      the one dimension of difference is an implicit variable then the
+      condition must include the disjunction of the variable, e.g. (is64Bit&&!is64Bit)
+      That is essential so that the reftest sandbox does not add the implicit
+      variable and cover only one of the two possible values.
+   b. When implicit variables are not used then the following heuristics apply:
+      The variable is64Bit will be elided for all platforms except for winWidget.
+      The variable useDrawSnapshot will be elided for all platforms except gtkWidget.
+
+5. Position of fuzzy-if conditions
+   In reftest manifest the rightmost applicable condition is used.
+
+   a. First sorting criterion is based on OS in this order:
+      OSES = ["Android", "cocoaWidget", "appleSilicon", "gtkWidget", "winWidget"]
+      This is because appleSilicon is a narrower specification than
+      cocoaWidget and would be ignored if not to the right of cocoaWidget.
+
+   b. The second sorting criterion is the number of dimensions that participate
+      in the expression (including implicits) from least dimensions to
+      greatest dimensions.
+
+   The last fuzzy-if will be placed on the line immediately to the left of the
+   "type" (e.g. == or !=) (or to the left of an optional "HTTP" expression, if present).
+   Non fuzzy-if statements will appear before the fuzzy-if statements.
+   In this way the more generic conditions will only be superceded by very specific
+   conditions.

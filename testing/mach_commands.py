@@ -1297,6 +1297,12 @@ def manifest(_command_context):
     action="store_true",
     help="Determine manifest changes, but do not write them",
 )
+@CommandArgument(
+    "-I",
+    "--implicit-vars",
+    action="store_true",
+    help="Use implicit variables in reftest manifests",
+)
 def skipfails(
     command_context,
     try_url,
@@ -1310,6 +1316,7 @@ def skipfails(
     max_failures=-1,
     verbose=False,
     dry_run=False,
+    implicit_vars=False,
 ):
     from skipfails import Skipfails
 
@@ -1327,7 +1334,9 @@ def skipfails(
     else:
         max_failures = -1
 
-    Skipfails(command_context, try_url, verbose, bugzilla, dry_run, turbo).run(
+    Skipfails(
+        command_context, try_url, verbose, bugzilla, dry_run, turbo, implicit_vars
+    ).run(
         meta_bug_id,
         save_tasks,
         use_tasks,

@@ -1,0 +1,2 @@
+# example with fuzzy-if without an OS
+fuzzy(16-51,5234-5622) fuzzy-if(swgl,32-38,1600-91746) fuzzy-if(useDrawSnapshot,16-16,11600-11600) fuzzy-if(Android&&isDebugBuild&&!fission&&swgl,0-33,0-1848) fuzzy-if(cocoaWidget,16-73,5212-5622) == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.yuv420p.av1.webm ../reftest_img.html?src=color_quads/720p.png # Bug TBD

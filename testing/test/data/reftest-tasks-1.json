@@ -1,0 +1,175 @@
+[
+  {
+    "duration": 2270169,
+    "errors": null,
+    "extra": {
+      "arch": "x86_64",
+      "bits": "64",
+      "build": "2009",
+      "build_types": ["debug"],
+      "debug": true,
+      "display": null,
+      "opt": false,
+      "os": "win",
+      "os_version": "11",
+      "runtimes": []
+    },
+    "failure_types": {
+      "dom/media/test/reftest/reftest.list": [
+        [
+          "dom/media/test/reftest/frame_order_mp4.html == dom/media/test/reftest/frame_order_mp4-ref.html",
+          "generic"
+        ]
+      ]
+    },
+    "id": "BnhWFqM8SPq-256sAKlZRw",
+    "label": "test-windows11-64-2009-qr/debug-reftest-2",
+    "result": "failed",
+    "results": [
+      {
+        "duration": 32853,
+        "group": "dom/media/test/reftest/reftest.list",
+        "ok": false
+      }
+    ],
+    "state": "completed",
+    "tags": {
+      "createdForUser": "ci@mozilla.com",
+      "kind": "test",
+      "label": "test-windows11-64-2009-qr/debug-reftest-2",
+      "os": "windows",
+      "retrigger": "true",
+      "test-type": "reftest",
+      "worker-implementation": "generic-worker"
+    },
+    "tier": 1
+  },
+  {
+    "duration": 2141327,
+    "errors": null,
+    "extra": {
+      "arch": "x86_64",
+      "bits": "64",
+      "build": "2009",
+      "build_types": ["debug"],
+      "debug": true,
+      "display": null,
+      "opt": false,
+      "os": "win",
+      "os_version": "11",
+      "runtimes": []
+    },
+    "failure_types": {
+      "dom/media/test/reftest/reftest.list": [
+        [
+          "dom/media/test/reftest/frame_order_mp4.html == dom/media/test/reftest/frame_order_mp4-ref.html",
+          "generic"
+        ]
+      ]
+    },
+    "id": "EAQWtG15TtmH_eoHifV5mA",
+    "label": "test-windows11-64-2009-qr/debug-reftest-2",
+    "result": "failed",
+    "results": [
+      {
+        "duration": 31340,
+        "group": "dom/media/test/reftest/reftest.list",
+        "ok": false
+      }
+    ],
+    "state": "completed",
+    "tags": {
+      "createdForUser": "ci@mozilla.com",
+      "kind": "test",
+      "label": "test-windows11-64-2009-qr/debug-reftest-2",
+      "os": "windows",
+      "retrigger": "true",
+      "test-type": "reftest",
+      "worker-implementation": "generic-worker"
+    },
+    "tier": 1
+  },
+  {
+    "duration": 2256525,
+    "errors": null,
+    "extra": {
+      "arch": "x86_64",
+      "bits": "64",
+      "build": "2009",
+      "build_types": ["debug"],
+      "debug": true,
+      "display": null,
+      "opt": false,
+      "os": "win",
+      "os_version": "11",
+      "runtimes": []
+    },
+    "failure_types": {
+      "dom/media/test/reftest/reftest.list": [
+        [
+          "dom/media/test/reftest/frame_order_mp4.html == dom/media/test/reftest/frame_order_mp4-ref.html",
+          "generic"
+        ]
+      ]
+    },
+    "id": "EgXVKbhrSuOijI2FG8pwrg",
+    "label": "test-windows11-64-2009-qr/debug-reftest-2",
+    "result": "failed",
+    "results": [
+      {
+        "duration": 32815,
+        "group": "dom/media/test/reftest/reftest.list",
+        "ok": false
+      }
+    ],
+    "state": "completed",
+    "tags": {
+      "createdForUser": "ci@mozilla.com",
+      "kind": "test",
+      "label": "test-windows11-64-2009-qr/debug-reftest-2",
+      "os": "windows",
+      "retrigger": "true",
+      "test-type": "reftest",
+      "worker-implementation": "generic-worker"
+    },
+    "tier": 1
+  },
+  {
+    "duration": 3329069,
+    "errors": null,
+    "extra": {
+      "arch": "x86_64",
+      "bits": "64",
+      "build": "2009",
+      "build_types": ["debug"],
+      "debug": true,
+      "display": null,
+      "opt": false,
+      "os": "win",
+      "os_version": "11",
+      "runtimes": []
+    },
+    "failure_types": {},
+    "id": "NHVtrK9-QE2gGMEZtjPerQ",
+    "label": "test-windows11-64-2009-qr/debug-reftest-2",
+    "result": "passed",
+    "results": [
+      {
+        "duration": 32819,
+        "group": "dom/media/test/reftest/reftest.list",
+        "ok": true
+      }
+    ],
+    "state": "completed",
+    "tags": {
+      "createdForUser": "ci@mozilla.com",
+      "kind": "test",
+      "label": "test-windows11-64-2009-qr/debug-reftest-2",
+      "os": "windows",
+      "retrigger": "true",
+      "test-type": "reftest",
+      "worker-implementation": "generic-worker"
+    },
+    "tier": 1
+  }
+]

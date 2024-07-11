@@ -1,5 +1,6 @@
 {
   "testing/web-platform/meta/css/mediaqueries": {
+    "kind": "wpt",
     "label": {
       "test-linux1804-32-shippable-qr/opt-web-platform-tests-10": {
         "duration_median": 7359.0,
@@ -33,16 +34,9 @@
           }
         },
         "sum_by_label": {
-          "disable_manifest": 0,
-          "disable_recommended": 1,
-          "disable_too_long": 0,
-          "intermittent": 0,
-          "secondary": 0,
-          "success": 0,
-          "unknown": 0
+          "disable_recommended": 1
         }
       }
-    },
-    "wpt": true
+    }
   }
 }

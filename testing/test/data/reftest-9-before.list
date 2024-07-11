@@ -1,0 +1,2 @@
+# advanced merge
+fuzzy(0-201,0-1486) fuzzy-if(Android&&(fission||!fission),201-267,42-1560) fuzzy-if(Android&&!fission&&(swgl||!swgl),201-267,40-1560) fuzzy-if(Android&&isDebugBuild&&!fission&&swgl,198-207,1439-1510) fuzzy-if(cocoaWidget&&isDebugBuild&&swgl,198-267,40-1510) fuzzy-if(gtkWidget&&swgl,198-267,40-1510) fuzzy-if(gtkWidget&&!fission&&swgl,0-267,0-1510) fuzzy-if(gtkWidget&&!fission&&(swgl||!swgl),201-267,40-1560) == element-paint-transform-02.html element-paint-transform-02-ref.html # bug 587133, Bug TBD

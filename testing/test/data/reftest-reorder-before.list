@@ -1,0 +1,2 @@
+# demonstrate reordering conditions
+fuzzy-if(cocoaWidget,0-80,0-76800) fuzzy-if(appleSilicon,0-80,0-76800) skip-if(Android) fuzzy-if(winWidget,0-63,0-76799) fuzzy-if(gtkWidget,0-70,0-2032) HTTP(..) == short.mp4.firstframe.html short.mp4.firstframe-ref.html

@@ -1,0 +1,2 @@
+# example reftest.list
+fuzzy(0-11,0-7155) fuzzy-if(gtkWidget,9-13,7000-8400) HTTP(..) == blur-inside-clipPath.svg blur-inside-clipPath-ref.svg # Existing comment, Bug TBD

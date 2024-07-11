@@ -1,5 +1,6 @@
 {
   "toolkit/components/pdfjs/test/browser.toml": {
+    "kind": "toml",
     "label": {
       "test-linux2204-64-wayland/debug-mochitest-browser-chrome-swr-1": {
         "duration_median": 390469,
@@ -29,16 +30,9 @@
           }
         },
         "sum_by_label": {
-          "disable_manifest": 1,
-          "disable_recommended": 0,
-          "disable_too_long": 0,
-          "intermittent": 0,
-          "secondary": 0,
-          "success": 0,
-          "unknown": 0
+          "disable_manifest": 1
         }
       }
-    },
-    "wpt": false
+    }
   }
 }

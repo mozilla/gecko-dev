@@ -1,0 +1,49 @@
+{
+  "dom/media/test/reftest/reftest.list": {
+    "kind": "list",
+    "label": {
+      "test-windows11-64-2009-qr/debug-reftest-2": {
+        "duration_median": 32817.0,
+        "duration_total": 129827,
+        "durations": {
+          "BnhWFqM8SPq-256sAKlZRw": 32853,
+          "EAQWtG15TtmH_eoHifV5mA": 31340,
+          "EgXVKbhrSuOijI2FG8pwrg": 32815,
+          "NHVtrK9-QE2gGMEZtjPerQ": 32819
+        },
+        "opt": false,
+        "path": {
+          "skip-if(Android) pref(media.dormant-on-pause-timeout-ms,-1) fuzzy(0-20,0-500) == dom/media/test/reftest/frame_order_mp4.html dom/media/test/reftest/frame_order_mp4-ref.html": {
+            "classification": "disable_intermittent",
+            "lineno": 13,
+            "runs": {
+              "BnhWFqM8SPq-256sAKlZRw": {
+                "difference": 1,
+                "pixels": 35,
+                "result": false
+              },
+              "EAQWtG15TtmH_eoHifV5mA": {
+                "difference": 2,
+                "pixels": 36,
+                "result": false
+              },
+              "EgXVKbhrSuOijI2FG8pwrg": {
+                "difference": 3,
+                "pixels": 37,
+                "result": false
+              },
+              "NHVtrK9-QE2gGMEZtjPerQ": {
+                "result": true
+              }
+            },
+            "runs_failed": 3,
+            "runs_total": 4
+          }
+        },
+        "sum_by_label": {
+          "disable_intermittent": 1
+        }
+      }
+    }
+  }
+}

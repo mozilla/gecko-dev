@@ -1,0 +1,25 @@
+{
+  "dom/media/test/reftest/reftest.list": {
+    "skip-if(Android) pref(media.dormant-on-pause-timeout-ms,-1) fuzzy(0-20,0-500) == dom/media/test/reftest/frame_order_mp4.html dom/media/test/reftest/frame_order_mp4-ref.html": {
+      "lineno": 13,
+      "test": "dom/media/test/reftest/frame_order_mp4.html == dom/media/test/reftest/frame_order_mp4-ref.html",
+      "runs": {
+        "BnhWFqM8SPq-256sAKlZRw": {
+          "difference": 1,
+          "error": "image comparison, max difference: 1, number of differing pixels: 35",
+          "pixels": 35
+        },
+        "EAQWtG15TtmH_eoHifV5mA": {
+          "difference": 2,
+          "error": "image comparison, max difference: 2, number of differing pixels: 36",
+          "pixels": 36
+        },
+        "EgXVKbhrSuOijI2FG8pwrg": {
+          "difference": 3,
+          "error": "image comparison, max difference: 3, number of differing pixels: 37",
+          "pixels": 37
+        }
+      }
+    }
+  }
+}

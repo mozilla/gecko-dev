@@ -1,0 +1,2 @@
+# appleSilicon test
+skip-if(winWidget&&isCoverageBuild) fuzzy(0-16,75-1941) fuzzy-if(Android,28-255,273680-359920) fuzzy-if(cocoaWidget,0-32,0-187407) fuzzy-if(appleSilicon,30-48,1835-187409) == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.yuv420p.h264.mp4 ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.yuv420p.av1.webm # Bug TBD

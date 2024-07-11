@@ -1,5 +1,6 @@
 {
   "browser/components/places/tests/browser/browser.toml": {
+    "kind": "toml",
     "label": {
       "test-linux2204-64-wayland/opt-mochitest-browser-chrome-swr-3": {
         "duration_median": 1407021,
@@ -45,16 +46,10 @@
           }
         },
         "sum_by_label": {
-          "disable_manifest": 0,
           "disable_recommended": 1,
-          "disable_too_long": 0,
-          "intermittent": 0,
-          "secondary": 1,
-          "success": 0,
-          "unknown": 0
+          "secondary": 1
         }
       }
-    },
-    "wpt": false
+    }
   }
 }

@@ -1,0 +1,22 @@
+{
+  "EgXVKbhrSuOijI2FG8pwrg": {
+    "expires": "2024-05-15T20:00:16.587Z",
+    "extra": {
+      "suite": "reftest",
+      "test-setting": {
+        "build": {
+          "type": "debug"
+        },
+        "runtime": {},
+        "platform": {
+          "os": {
+            "name": "windows",
+            "build": "2009",
+            "version": "11"
+          },
+          "arch": "64"
+        }
+      }
+    }
+  }
+}

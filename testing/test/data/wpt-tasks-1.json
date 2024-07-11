@@ -109,7 +109,7 @@
       {
         "duration": 7350,
         "group": "testing/web-platform/tests/css/mediaqueries",
-        "ok": true
+        "ok": false
       }
     ],
     "state": "completed",
