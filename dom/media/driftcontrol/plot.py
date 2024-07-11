@@ -63,16 +63,11 @@ MOZ_LOG_FILE=/tmp/driftcontrol.csv       \
         outframesavg = df["outframesavg"]
         inrate = df["inrate"]
         outrate = df["outrate"]
-        driftestimate = df["driftestimate"]
-        hysteresisthreshold = df["hysteresisthreshold"]
+        steadystaterate = df["steadystaterate"]
+        nearthreshold = df["nearthreshold"]
         corrected = df["corrected"]
         hysteresiscorrected = df["hysteresiscorrected"]
         configured = df["configured"]
-        p = df["p"]
-        d = df["d"]
-        kpp = df["kpp"]
-        kdd = df["kdd"]
-        control = df["control"]
 
         output_file("plot.html")
 
@@ -97,19 +92,41 @@ MOZ_LOG_FILE=/tmp/driftcontrol.csv       \
         fig1.line(t, buffersize, color="seagreen", legend_label="Buffer size")
         fig1.varea(
             t,
-            [d - h for (d, h) in zip(desired, hysteresisthreshold)],
-            [d + h for (d, h) in zip(desired, hysteresisthreshold)],
+            [d - h for (d, h) in zip(desired, nearthreshold)],
+            [d + h for (d, h) in zip(desired, nearthreshold)],
             alpha=0.2,
             color="goldenrod",
-            legend_label="Hysteresis Threshold (won't correct in rate within area)",
+            legend_label='"Near" band (won\'t reduce desired buffering outside)',
+        )
+
+        slowConvergenceSecs = 30
+        adjustmentInterval = 1
+        slowHysteresis = 1
+        avgError = avgbuffered - desired
+        absAvgError = [abs(e) for e in avgError]
+        slow_offset = [e / slowConvergenceSecs - slowHysteresis for e in absAvgError]
+        fast_offset = [e / adjustmentInterval for e in absAvgError]
+        low_offset, high_offset = zip(
+            *[
+                (s, f) if e >= 0 else (-f, -s)
+                for (e, s, f) in zip(avgError, slow_offset, fast_offset)
+            ]
         )
 
         fig2 = figure(x_range=fig1.x_range)
+        fig2.varea(
+            t,
+            steadystaterate + low_offset,
+            steadystaterate + high_offset,
+            alpha=0.2,
+            color="goldenrod",
+            legend_label="Deadband (won't change in rate within)",
+        )
         fig2.line(t, inrate, color="hotpink", legend_label="Nominal in sample rate")
         fig2.line(t, outrate, color="firebrick", legend_label="Nominal out sample rate")
         fig2.line(
             t,
-            driftestimate * inrate,
+            steadystaterate,
             color="orangered",
             legend_label="Estimated in rate with drift",
         )
@@ -126,26 +143,13 @@ MOZ_LOG_FILE=/tmp/driftcontrol.csv       \
             t, configured, color="goldenrod", legend_label="Configured in sample rate"
         )
 
-        fig3 = figure(x_range=fig1.x_range)
-        fig3.line(t, p, color="goldenrod", legend_label="P")
-        fig3.line(t, d, color="seagreen", legend_label="D")
-
-        fig4 = figure(x_range=fig1.x_range)
-        fig4.line(t, kpp, color="goldenrod", legend_label="KpP")
-        fig4.line(t, kdd, color="seagreen", legend_label="KdD")
-        fig4.line(t, control, color="hotpink", legend_label="Control Signal")
-
         fig1.legend.location = "top_left"
         fig2.legend.location = "top_right"
-        fig3.legend.location = "bottom_left"
-        fig4.legend.location = "bottom_right"
-        for fig in (fig1, fig2, fig3, fig4):
+        for fig in (fig1, fig2):
             fig.legend.background_fill_alpha = 0.6
             fig.legend.click_policy = "hide"
 
-        tabs.append(
-            TabPanel(child=gridplot([[fig1, fig2], [fig3, fig4]]), title=str(id))
-        )
+        tabs.append(TabPanel(child=gridplot([[fig1, fig2]]), title=str(id)))
 
     show(Tabs(tabs=tabs))
 

@@ -47,8 +47,7 @@ class DriftController final {
   void SetDesiredBuffering(media::TimeUnit aDesiredBuffering);
 
   /**
-   * Reset internal PID-controller state in a way that is suitable for handling
-   * an underrun.
+   * Reset internal state in a way that is suitable for handling an underrun.
    */
   void ResetAfterUnderrun();
 
@@ -98,38 +97,22 @@ class DriftController final {
                    uint32_t aBufferSize);
 
  private:
-  // This implements a simple PD controller with feedback.
-  // Set point:     SP = mDesiredBuffering.
-  // Process value: PV(t) = mAvgBufferedFramesEst. This includes the feedback.
-  // Error:         e(t) = mAvgBufferedFramesEst - mDesiredBuffering.
-  //                Error is positive when the process value is high, which is
-  //                the opposite of conventional PID controllers because this
-  //                is a reverse-acting system.
-  // Control value: CV(t) = the value to add to the estimated source rate with
-  //                drift as measured by the output clock, i.e.
-  //                the corrected source rate = estimated source rate + CV(t).
+  // Adjust mCorrectedSourceRate for the current values of mDriftEstimate and
+  // mAvgBufferedFramesEst - mDesiredBuffering.ToTicksAtRate(mSourceRate).
   //
-  // Controller:
-  // Proportional part: The error, p(t) = e(t), multiplied by a gain factor, Kp.
-  // Derivative part:   The error's rate of change, d(t+1) = (e(t+1)-e(t))/1,
-  //                    multiplied by a gain factor, Kd.
-  // Control signal:    The sum of the parts' output,
-  //                    u(t) = Kp*p(t) + Kd*d(t).
+  // mCorrectedSourceRate is not changed if it is not expected to cause an
+  // overshoot during the next mAdjustmentInterval and is expected to bring
+  // mAvgBufferedFramesEst to the desired level within 30s or is within
+  // 1 frame/sec of a rate which would converge within 30s.
   //
-  // Control action: Converting the control signal to a source sample rate.
-  //                 Simplified, a positive control signal means the buffer is
-  //                 higher than desired (because the error is positive),
-  //                 so the source sample rate must be increased in order to
-  //                 consume input data faster.
-  //                 We calculate the corrected source rate by simply adding
-  //                 the control signal, u(t), to the nominal source rate.
+  // Otherwise, mCorrectedSourceRate is set so as to aim to have
+  // mAvgBufferedFramesEst converge to the desired value in 15s.
+  // If the buffering level is higher than desired, then mCorrectedSourceRate
+  // must be higher than expected from mDriftEstimate to consume input
+  // data faster.
   //
-  // Hysteresis: As long as the error is within a threshold of 20% of the set
-  //             point (desired buffering level) (up to 10ms for >50ms desired
-  //             buffering), we call this the hysteresis threshold, the control
-  //             signal does not influence the corrected target rate at all.
-  //             This is to reduce the frequency at which we need to reconfigure
-  //             the resampler, as it causes some allocations.
+  // Changes to mCorrectedSourceRate are capped at mSourceRate/1000 to avoid
+  // rapid changes.
   void CalculateCorrection(uint32_t aBufferedFrames, uint32_t aBufferSize);
 
  public:
@@ -140,10 +123,7 @@ class DriftController final {
 
  private:
   media::TimeUnit mDesiredBuffering;
-  float mPreviousError = 0.f;
   float mCorrectedSourceRate;
-  Maybe<int32_t> mLastHysteresisBoundaryCorrection;
-  media::TimeUnit mDurationWithinHysteresis;
   media::TimeUnit mDurationNearDesired;
   uint32_t mNumCorrectionChanges = 0;
   // Moving averages of input and output durations, used in a ratio to

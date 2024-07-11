@@ -348,13 +348,14 @@ TEST(TestAudioDriftCorrection, DynamicInputBufferSizeChanges)
   produceSomeData(transmitterBlockSize1, 5 * sampleRate);
   EXPECT_EQ(ad.BufferSize(), 4800U);
   // No input is provided for the first transmitterBlockSize1 of output
-  // requested, but hysteresis keeps the corrected rate the same.
-  EXPECT_LE(ad.NumCorrectionChanges(), 0U);
+  // requested.  This causes a lower input rate estimate, so there are some
+  // initial corrections.
+  EXPECT_GT(ad.NumCorrectionChanges(), 0U);
   EXPECT_EQ(ad.NumUnderruns(), 0U);
 
   // Increase input latency. We expect this to underrun, but only once as the
   // drift correction adapts its buffer size and desired buffering level.
-  produceSomeData(transmitterBlockSize2, 10 * sampleRate);
+  produceSomeData(transmitterBlockSize2, 25 * sampleRate);
   auto numCorrectionChanges = ad.NumCorrectionChanges();
   EXPECT_EQ(ad.NumUnderruns(), 1U);
 
@@ -373,7 +374,7 @@ TEST(TestAudioDriftCorrection, DynamicInputBufferSizeChanges)
   EXPECT_EQ(ad.BufferSize(), 9600U);
   // Adjustments to the desired buffering level continue.
   produceSomeData(transmitterBlockSize1, 20 * sampleRate);
-  EXPECT_LE(ad.NumCorrectionChanges(), numCorrectionChanges + 9);
+  EXPECT_LE(ad.NumCorrectionChanges(), numCorrectionChanges + 2);
   EXPECT_EQ(ad.NumUnderruns(), 1U);
 
   EXPECT_NEAR(inToneVerifier.EstimatedFreq(), tone.mFrequency, 1.0f);

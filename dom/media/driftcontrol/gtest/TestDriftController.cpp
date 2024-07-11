@@ -69,17 +69,17 @@ TEST(TestDriftController, Basic)
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, bufferedLow);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 47952u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47957u);
 
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, bufferedHigh);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 47983u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47957u);
 
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, bufferedHigh);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 48031u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 48005u);
 }
 
 TEST(TestDriftController, BasicResampler)
@@ -107,19 +107,19 @@ TEST(TestDriftController, BasicResampler)
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, bufferedLow);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 47952u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47957u);
 
   // high
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, bufferedHigh);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 47983u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47957u);
 
   // high
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, bufferedHigh);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 48031u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 48005u);
 }
 
 TEST(TestDriftController, BufferedInput)
@@ -146,23 +146,23 @@ TEST(TestDriftController, BufferedInput)
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, 0);
   }
-  // Hysteresis keeps the corrected rate the same.
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 48000u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47990u);
 
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, bufferedLow);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 47959u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47971u);
 
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, buffered);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 47954u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47960u);
 
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, bufferedHigh);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 47961u);
+  // Hysteresis keeps the corrected rate the same.
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47960u);
 }
 
 TEST(TestDriftController, BufferedInputWithResampling)
@@ -191,23 +191,23 @@ TEST(TestDriftController, BufferedInputWithResampling)
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, 0);
   }
-  // Hysteresis keeps the corrected rate the same.
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 48000u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47990u);
 
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, bufferedLow);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 47959u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47971u);
 
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, buffered);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 47954u);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47960u);
 
   for (uint32_t i = 0; i < stepsPerSec; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, stepDuration, bufferedHigh);
   }
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 47961u);
+  // Hysteresis keeps the corrected rate the same.
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47960u);
 }
 
 TEST(TestDriftController, SmallError)
@@ -260,7 +260,7 @@ TEST(TestDriftController, SmallBufferedFrames)
   }
   EXPECT_EQ(c.GetCorrectedSourceRate(), 48000U);
   c.UpdateClock(stepDuration, stepDuration, bufferedLow, 0);
-  EXPECT_EQ(c.GetCorrectedSourceRate(), 47989U);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), 47996U);
 }
 
 TEST(TestDriftController, VerySmallBufferedFrames)
@@ -274,9 +274,9 @@ TEST(TestDriftController, VerySmallBufferedFrames)
   TimeUnit currentBuffered(bufferedLow, 48000);
   media::TimeUnit hundredMillis = media::TimeUnit(100, 1000);
   uint32_t previousCorrected = nominalRate;
-  // Perform enough steps (1020 seconds) that the corrected rate can
+  // Perform enough steps (1500 seconds) that the corrected rate can
   // get to its lower bound, without underflowing zero.
-  for (uint32_t i = 0; i < 10200; ++i) {
+  for (uint32_t i = 0; i < 15000; ++i) {
     // The input packet size is reduced each iteration by as much as possible
     // without completely draining the buffer.
     AdvanceByOutputDuration(&currentBuffered, &c, hundredMillis, bufferedLow);
@@ -285,16 +285,53 @@ TEST(TestDriftController, VerySmallBufferedFrames)
     EXPECT_GT(correctedRate, 0u) << "for i=" << i;
     previousCorrected = correctedRate;
   }
+  // Check that the corrected rate has reached, does not go beyond, and does
+  // not bounce off its lower bound.
   EXPECT_EQ(previousCorrected, 1u);
-  for (uint32_t i = 10200; i < 10210; ++i) {
+  for (uint32_t i = 15000; i < 15010; ++i) {
     AdvanceByOutputDuration(&currentBuffered, &c, hundredMillis, bufferedLow);
-    EXPECT_LT(c.GetCorrectedSourceRate(), 50u) << "for i=" << i;
-    // TODO: The frequency of input packets is very low, so the average
-    // buffered estimate is updated less frequently.  This causes variations
-    // in the average buffer level estimate, which are picked up by the
-    // controller's derivative term and cause oscillations in the corrected
-    // rate to above 1 and back.  Bug 1890467.
-    // EXPECT_EQ(c.GetCorrectedSourceRate(), 1u) << "for i=" << i;
+    EXPECT_EQ(c.GetCorrectedSourceRate(), 1u) << "for i=" << i;
+  }
+}
+
+TEST(TestDriftController, SmallStepResponse)
+{
+  // The DriftController is configured with nominal source rate a little less
+  // than the actual rate.
+  uint32_t nominalTargetRate = 48000;
+  uint32_t nominalSourceRate = 48000;
+  uint32_t actualSourceRate = 48000 * 1001 / 1000;  // +0.1% drift
+
+  TimeUnit desiredBuffered = TimeUnit::FromSeconds(0.05);  // 50 ms
+  DriftController c(nominalSourceRate, nominalTargetRate, desiredBuffered);
+  EXPECT_EQ(c.GetCorrectedSourceRate(), nominalSourceRate);
+
+  uint32_t stepsPerSec = 25;
+  // Initial buffer level == desired.  Choose a base to exactly track
+  // fractions of frames buffered in the resampler.
+  TimeUnit buffered = desiredBuffered.ToBase(nominalSourceRate * stepsPerSec);
+  media::TimeUnit inputStepDuration(actualSourceRate,
+                                    stepsPerSec * nominalSourceRate);
+  media::TimeUnit outputStepDuration(nominalTargetRate,
+                                     stepsPerSec * nominalTargetRate);
+
+  // Perform enough steps to observe convergence.
+  uint32_t iterationCount = 200 /*seconds*/ * stepsPerSec;
+  for (uint32_t i = 0; i < iterationCount; ++i) {
+    uint32_t correctedRate = c.GetCorrectedSourceRate();
+    buffered += TimeUnit(CheckedInt64(actualSourceRate) - correctedRate,
+                         stepsPerSec * nominalSourceRate);
+    // The buffer size is not used in the controller logic.
+    c.UpdateClock(inputStepDuration, outputStepDuration,
+                  buffered.ToTicksAtRate(nominalSourceRate), 0);
+    if (outputStepDuration * i > TimeUnit::FromSeconds(50) &&
+        /* Corrections are performed only once per second. */
+        i % stepsPerSec == 0) {
+      EXPECT_EQ(c.GetCorrectedSourceRate(), actualSourceRate) << "for i=" << i;
+      EXPECT_NEAR(buffered.ToTicksAtRate(nominalSourceRate),
+                  desiredBuffered.ToTicksAtRate(nominalSourceRate), 10)
+          << "for i=" << i;
+    }
   }
 }
 
@@ -326,11 +363,11 @@ TEST(TestDriftController, LargeStepResponse)
   // Changes in the corrected rate are limited to nominalRate/1000 per second.
   // Perform enough steps to get from nominal to actual source rate and then
   // observe convergence.
-  uint32_t iterationCount = 7 * stepsPerSec * 1000 *
+  uint32_t iterationCount = 8 * stepsPerSec * 1000 *
                             (actualSourceRate - nominalSourceRate) /
                             nominalSourceRate;
   EXPECT_GT(outputStepDuration * (iterationCount - 1),
-            TimeUnit::FromSeconds(820));
+            TimeUnit::FromSeconds(1020));
   for (uint32_t i = 0; i < iterationCount; ++i) {
     uint32_t correctedRate = c.GetCorrectedSourceRate();
     buffered += TimeUnit(CheckedInt64(actualSourceRate) - correctedRate,
@@ -338,15 +375,12 @@ TEST(TestDriftController, LargeStepResponse)
     // The buffer size is not used in the controller logic.
     c.UpdateClock(inputStepDuration, outputStepDuration,
                   buffered.ToTicksAtRate(nominalSourceRate), 0);
-    if (outputStepDuration * i > TimeUnit::FromSeconds(820) &&
+    if (outputStepDuration * i > TimeUnit::FromSeconds(1020) &&
         /* Corrections are performed only once per second. */
         i % stepsPerSec == 0) {
-      EXPECT_NEAR(c.GetCorrectedSourceRate(), actualSourceRate, 5)
-          << "for i=" << i;
+      EXPECT_EQ(c.GetCorrectedSourceRate(), actualSourceRate) << "for i=" << i;
       EXPECT_NEAR(buffered.ToTicksAtRate(nominalSourceRate),
-                  desiredBuffered.ToTicksAtRate(nominalSourceRate),
-                  /* slightly more than the 1ms hysteresis */
-                  nominalSourceRate * 11 / 10000)
+                  desiredBuffered.ToTicksAtRate(nominalSourceRate), 10)
           << "for i=" << i;
     }
   }
