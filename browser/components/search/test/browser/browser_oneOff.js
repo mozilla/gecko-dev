@@ -27,6 +27,14 @@ add_setup(async function () {
 
   registerCleanupFunction(async () => {
     await BrowserTestUtils.closeWindow(win);
+    // This is necessary to prevent leaking the window.
+    // TODO: Why does this lead to a leak?
+    searchBar = undefined;
+    searchIcon = undefined;
+    searchPopup = undefined;
+    oneOffInstance = undefined;
+    oneOffButtons = undefined;
+    win = undefined;
     gCUITestUtils.removeSearchBar();
   });
 
