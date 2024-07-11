@@ -22,9 +22,6 @@ import mozilla.components.support.utils.Browsers
 import mozilla.components.support.utils.BrowsersCache
 import mozilla.components.support.utils.ext.queryIntentActivitiesCompat
 import mozilla.components.support.utils.ext.resolveActivityCompat
-import java.lang.Exception
-import java.lang.NullPointerException
-import java.lang.NumberFormatException
 import java.net.URISyntaxException
 
 @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -119,6 +116,10 @@ class AppLinksUseCases(
                 installedBrowsers.isInstalled(packageName)
             } ?: false
 
+            val appName = redirectData.resolveInfo?.let { resolveInfo ->
+                getAppNameFromResolveInfo(context, resolveInfo)
+            } ?: ""
+
             val fallbackUrl = when {
                 redirectData.fallbackIntent?.data?.isHttpOrHttps == true ->
                     redirectData.fallbackIntent.dataString
@@ -134,9 +135,15 @@ class AppLinksUseCases(
             }
 
             // no need to check marketplace intent since it is only set if a package is set in the intent
-            val appLinkRedirect = AppLinkRedirect(appIntent, fallbackUrl, redirectData.marketplaceIntent)
+            val appLinkRedirect = AppLinkRedirect(appIntent, appName, fallbackUrl, redirectData.marketplaceIntent)
             redirectCache = AppLinkRedirectCache(currentTimeStamp, urlHash, appLinkRedirect)
             return appLinkRedirect
+        }
+
+        private fun getAppNameFromResolveInfo(context: Context, resolveInfo: ResolveInfo): String {
+            val packageManager: PackageManager = context.packageManager
+            val applicationInfo = resolveInfo.activityInfo.applicationInfo
+            return packageManager.getApplicationLabel(applicationInfo).toString()
         }
 
         private fun createBrowsableIntents(url: String): RedirectData {

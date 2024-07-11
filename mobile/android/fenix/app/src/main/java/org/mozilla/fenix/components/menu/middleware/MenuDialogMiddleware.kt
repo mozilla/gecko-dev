@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.menu.middleware
 
+import android.content.Intent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -13,6 +14,7 @@ import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.addons.AddonManagerException
+import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesUseCases
@@ -27,6 +29,7 @@ import org.mozilla.fenix.components.bookmarks.BookmarksUseCase
 import org.mozilla.fenix.components.menu.store.BookmarkState
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
+import org.mozilla.fenix.utils.Settings
 
 /**
  * [Middleware] implementation for handling [MenuAction] and managing the [MenuState] for the menu
@@ -45,6 +48,8 @@ import org.mozilla.fenix.components.menu.store.MenuState
  * @param removePinnedSitesUseCase The [TopSitesUseCases.RemoveTopSiteUseCase] for removing the
  * selected tab from pinned shortcuts.
  * @param topSitesMaxLimit The maximum number of top sites the user can have.
+ * @param appLinksUseCases The [AppLinksUseCases] for opening a site in an external app.
+ * @param settings Used to set value in [Settings] when a site has been opened in an external app.
  * @param onDeleteAndQuit Callback invoked to delete browsing data and quit the browser.
  * @param onDismiss Callback invoked to dismiss the menu dialog.
  * @param scope [CoroutineScope] used to launch coroutines.
@@ -59,6 +64,8 @@ class MenuDialogMiddleware(
     private val addPinnedSiteUseCase: TopSitesUseCases.AddPinnedSiteUseCase,
     private val removePinnedSitesUseCase: TopSitesUseCases.RemoveTopSiteUseCase,
     private val topSitesMaxLimit: Int,
+    private val appLinksUseCases: AppLinksUseCases,
+    private val settings: Settings,
     private val onDeleteAndQuit: () -> Unit,
     private val onDismiss: suspend () -> Unit,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
@@ -77,6 +84,7 @@ class MenuDialogMiddleware(
             is MenuAction.AddShortcut -> addShortcut(context.store)
             is MenuAction.RemoveShortcut -> removeShortcut(context.store)
             is MenuAction.DeleteBrowsingDataAndQuit -> deleteBrowsingDataAndQuit()
+            is MenuAction.OpenInApp -> openInApp(context.store)
             is MenuAction.InstallAddon -> installAddon(action.addon)
             else -> Unit
         }
@@ -217,6 +225,23 @@ class MenuDialogMiddleware(
         appStore.dispatch(AppAction.DeleteAndQuitStarted)
         onDeleteAndQuit()
         onDismiss()
+    }
+
+    private fun openInApp(
+        store: Store<MenuState, MenuAction>,
+    ) = scope.launch {
+        val url = store.state.browserMenuState?.selectedTab?.content?.url ?: return@launch
+        val redirect = appLinksUseCases.appLinkRedirect.invoke(url)
+
+        if (!redirect.hasExternalApp()) {
+            return@launch
+        }
+
+        settings.openInAppOpened = true
+
+        redirect.appIntent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+
+        appLinksUseCases.openAppLink.invoke(redirect.appIntent)
     }
 
     private fun installAddon(

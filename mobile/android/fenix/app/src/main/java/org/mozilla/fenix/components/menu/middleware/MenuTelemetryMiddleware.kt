@@ -104,6 +104,12 @@ class MenuTelemetryMiddleware(
                 ),
             )
 
+            MenuAction.OpenInApp -> Events.browserMenuAction.record(
+                Events.BrowserMenuActionExtra(
+                    item = "open_in_app",
+                ),
+            )
+
             MenuAction.Navigate.Passwords -> Events.browserMenuAction.record(
                 Events.BrowserMenuActionExtra(
                     item = "passwords",

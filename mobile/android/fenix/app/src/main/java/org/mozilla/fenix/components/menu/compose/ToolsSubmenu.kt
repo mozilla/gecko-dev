@@ -26,6 +26,8 @@ internal fun ToolsSubmenu(
     isReaderViewActive: Boolean,
     isTranslated: Boolean,
     isTranslationSupported: Boolean,
+    hasExternalApp: Boolean,
+    externalAppName: String,
     translatedLanguage: String,
     onBackButtonClick: () -> Unit,
     onReaderViewMenuClick: () -> Unit,
@@ -77,11 +79,24 @@ internal fun ToolsSubmenu(
 
             Divider(color = FirefoxTheme.colors.borderSecondary)
 
-            MenuItem(
-                label = stringResource(id = R.string.browser_menu_open_app_link),
-                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_more_grid_24),
-                onClick = onOpenInAppMenuClick,
-            )
+            if (hasExternalApp) {
+                MenuItem(
+                    label = if (externalAppName != "") {
+                        stringResource(id = R.string.browser_menu_open_in_fenix, externalAppName)
+                    } else {
+                        stringResource(id = R.string.browser_menu_open_app_link)
+                    },
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_more_grid_24),
+                    state = MenuItemState.ENABLED,
+                    onClick = onOpenInAppMenuClick,
+                )
+            } else {
+                MenuItem(
+                    label = stringResource(id = R.string.browser_menu_open_app_link),
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_more_grid_24),
+                    state = MenuItemState.DISABLED,
+                )
+            }
         }
     }
 }
@@ -145,6 +160,8 @@ private fun ToolsSubmenuPreview() {
                 isReaderViewActive = false,
                 isTranslated = false,
                 isTranslationSupported = false,
+                hasExternalApp = true,
+                externalAppName = "Pocket",
                 translatedLanguage = "",
                 onBackButtonClick = {},
                 onReaderViewMenuClick = {},
@@ -168,6 +185,8 @@ private fun ToolsSubmenuPrivatePreview() {
                 isReaderViewActive = false,
                 isTranslated = false,
                 isTranslationSupported = true,
+                hasExternalApp = true,
+                externalAppName = "Pocket",
                 translatedLanguage = "",
                 onBackButtonClick = {},
                 onReaderViewMenuClick = {},

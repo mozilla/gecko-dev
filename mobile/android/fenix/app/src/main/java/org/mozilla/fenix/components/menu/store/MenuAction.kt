@@ -57,6 +57,11 @@ sealed class MenuAction : Action {
     data object DeleteBrowsingDataAndQuit : MenuAction()
 
     /**
+     * [MenuAction] dispatched when a site is to be opened in an external app.
+     */
+    data object OpenInApp : MenuAction()
+
+    /**
      * [MenuAction] dispatched when the extension state is updated.
      *
      * @property recommendedAddons The recommended [Addon]s to suggest.

@@ -4,12 +4,16 @@
 
 package org.mozilla.fenix.components.menu
 
+import android.content.Intent
+import kotlinx.coroutines.runBlocking
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.webextension.InstallationMethod
 import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
+import mozilla.components.feature.app.links.AppLinkRedirect
+import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesUseCases
@@ -39,6 +43,7 @@ import org.mozilla.fenix.components.menu.store.BrowserMenuState
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
+import org.mozilla.fenix.utils.Settings
 
 class MenuDialogMiddlewareTest {
 
@@ -56,6 +61,8 @@ class MenuDialogMiddlewareTest {
     private lateinit var pinnedSiteStorage: PinnedSiteStorage
     private lateinit var addPinnedSiteUseCase: TopSitesUseCases.AddPinnedSiteUseCase
     private lateinit var removePinnedSiteUseCase: TopSitesUseCases.RemoveTopSiteUseCase
+    private lateinit var appLinksUseCases: AppLinksUseCases
+    private lateinit var settings: Settings
 
     companion object {
         const val TOP_SITES_MAX_COUNT = 16
@@ -66,6 +73,13 @@ class MenuDialogMiddlewareTest {
         pinnedSiteStorage = mock()
         addPinnedSiteUseCase = mock()
         removePinnedSiteUseCase = mock()
+        appLinksUseCases = mock()
+        settings = mock()
+
+        runBlocking {
+            whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(emptyList())
+            whenever(addonManager.getAddons()).thenReturn(emptyList())
+        }
     }
 
     @Test
@@ -167,13 +181,9 @@ class MenuDialogMiddlewareTest {
 
     @Test
     fun `WHEN add bookmark action is dispatched for a selected tab THEN bookmark is added`() = runTestOnMain {
-        whenever(addonManager.getAddons()).thenReturn(emptyList())
-
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
         var dismissWasCalled = false
-
-        whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(emptyList())
 
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
@@ -204,13 +214,9 @@ class MenuDialogMiddlewareTest {
 
     @Test
     fun `GIVEN selected tab is bookmarked WHEN add bookmark action is dispatched THEN add bookmark use case is never called`() = runTestOnMain {
-        whenever(addonManager.getAddons()).thenReturn(emptyList())
-
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
         var dismissWasCalled = false
-
-        whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(emptyList())
 
         val guid = bookmarksStorage.addItem(
             parentGuid = BookmarkRoot.Mobile.id,
@@ -297,8 +303,6 @@ class MenuDialogMiddlewareTest {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
 
-        whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(emptyList())
-
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
                 url = url,
@@ -323,9 +327,6 @@ class MenuDialogMiddlewareTest {
     fun `WHEN add to shortcuts action is dispatched for a selected tab THEN the site is pinned`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
-
-        whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(emptyList())
-        whenever(addonManager.getAddons()).thenReturn(emptyList())
 
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
@@ -397,8 +398,6 @@ class MenuDialogMiddlewareTest {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
 
-        whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(emptyList())
-
         val topSite = TopSite.Pinned(
             id = 0,
             title = title,
@@ -440,7 +439,6 @@ class MenuDialogMiddlewareTest {
         )
 
         whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(listOf(topSite))
-        whenever(addonManager.getAddons()).thenReturn(emptyList())
 
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
@@ -516,7 +514,6 @@ class MenuDialogMiddlewareTest {
 
     @Test
     fun `WHEN delete browsing data and quit action is dispatched THEN onDeleteAndQuit is invoked`() = runTestOnMain {
-        whenever(addonManager.getAddons()).thenReturn(emptyList())
         var dismissWasCalled = false
 
         val appStore = spy(AppStore())
@@ -536,9 +533,74 @@ class MenuDialogMiddlewareTest {
     }
 
     @Test
-    fun `WHEN install addon action is dispatched THEN addon is installed`() = runTestOnMain {
-        whenever(addonManager.getAddons()).thenReturn(emptyList())
+    fun `GIVEN selected tab has external app WHEN open in app action is dispatched THEN the site is opened in app`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+            ),
+        )
+        val store = createStore(
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+        )
 
+        val getRedirect: AppLinksUseCases.GetAppLinkRedirect = mock()
+        whenever(appLinksUseCases.appLinkRedirect).thenReturn(getRedirect)
+
+        val redirect: AppLinkRedirect = mock()
+        whenever(getRedirect.invoke(url)).thenReturn(redirect)
+        whenever(redirect.hasExternalApp()).thenReturn(true)
+
+        val intent: Intent = mock()
+        whenever(redirect.appIntent).thenReturn(intent)
+
+        val openAppLinkRedirect: AppLinksUseCases.OpenAppLinkRedirect = mock()
+        whenever(appLinksUseCases.openAppLink).thenReturn(openAppLinkRedirect)
+
+        store.dispatch(MenuAction.OpenInApp)
+        store.waitUntilIdle()
+
+        verify(openAppLinkRedirect).invoke(appIntent = intent)
+    }
+
+    @Test
+    fun `GIVEN selected tab does not have external app WHEN open in app action is dispatched THEN the site is not opened in app`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+            ),
+        )
+        val store = createStore(
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+        )
+
+        val getRedirect: AppLinksUseCases.GetAppLinkRedirect = mock()
+        whenever(appLinksUseCases.appLinkRedirect).thenReturn(getRedirect)
+
+        val redirect: AppLinkRedirect = mock()
+        whenever(getRedirect.invoke(url)).thenReturn(redirect)
+        whenever(redirect.hasExternalApp()).thenReturn(false)
+
+        val intent: Intent = mock()
+        val openAppLinkRedirect: AppLinksUseCases.OpenAppLinkRedirect = mock()
+
+        store.dispatch(MenuAction.OpenInApp)
+        store.waitUntilIdle()
+
+        verify(openAppLinkRedirect, never()).invoke(appIntent = intent)
+    }
+
+    @Test
+    fun `WHEN install addon action is dispatched THEN addon is installed`() = runTestOnMain {
         val addon = Addon(id = "ext1", downloadUrl = "downloadUrl")
         val store = createStore()
 
@@ -569,6 +631,8 @@ class MenuDialogMiddlewareTest {
                 addPinnedSiteUseCase = addPinnedSiteUseCase,
                 removePinnedSitesUseCase = removePinnedSiteUseCase,
                 topSitesMaxLimit = TOP_SITES_MAX_COUNT,
+                appLinksUseCases = appLinksUseCases,
+                settings = settings,
                 onDeleteAndQuit = onDeleteAndQuit,
                 onDismiss = onDismiss,
                 scope = scope,

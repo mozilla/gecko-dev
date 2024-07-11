@@ -1600,15 +1600,15 @@ class ContextMenuCandidateTest {
         val getAppLinkRedirectMock: AppLinksUseCases.GetAppLinkRedirect = mock()
 
         doReturn(
-            AppLinkRedirect(mock(), null, null),
+            AppLinkRedirect(mock(), "", null, null),
         ).`when`(getAppLinkRedirectMock).invoke(eq("https://www.example.com"))
 
         doReturn(
-            AppLinkRedirect(null, null, mock()),
+            AppLinkRedirect(null, "", null, mock()),
         ).`when`(getAppLinkRedirectMock).invoke(eq("intent:www.example.com#Intent;scheme=https;package=org.mozilla.fenix;end"))
 
         doReturn(
-            AppLinkRedirect(null, null, null),
+            AppLinkRedirect(null, "", null, null),
         ).`when`(getAppLinkRedirectMock).invoke(eq("https://www.otherexample.com"))
 
         // This mock exists only to verify that it was called
@@ -1699,10 +1699,10 @@ class ContextMenuCandidateTest {
         val tab = createTab("https://www.mozilla.org")
         val getAppLinkRedirectMock: AppLinksUseCases.GetAppLinkRedirect = mock()
         doReturn(
-            AppLinkRedirect(mock(), null, null),
+            AppLinkRedirect(mock(), "", null, null),
         ).`when`(getAppLinkRedirectMock).invoke(eq("https://www.example.com"))
         doReturn(
-            AppLinkRedirect(null, null, mock()),
+            AppLinkRedirect(null, "", null, mock()),
         ).`when`(getAppLinkRedirectMock).invoke(eq("intent:www.example.com#Intent;scheme=https;package=org.mozilla.fenix;end"))
         val openAppLinkRedirectMock: AppLinksUseCases.OpenAppLinkRedirect = mock()
         val appLinksUseCasesMock: AppLinksUseCases = mock()

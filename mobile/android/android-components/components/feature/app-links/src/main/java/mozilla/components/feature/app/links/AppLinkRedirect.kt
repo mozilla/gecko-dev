@@ -11,6 +11,7 @@ import android.content.Intent
  */
 data class AppLinkRedirect(
     val appIntent: Intent?,
+    val appName: String,
     val fallbackUrl: String?,
     val marketplaceIntent: Intent?,
 ) {

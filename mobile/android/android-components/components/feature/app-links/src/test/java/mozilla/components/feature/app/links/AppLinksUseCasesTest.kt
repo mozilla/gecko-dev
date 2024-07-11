@@ -352,7 +352,8 @@ class AppLinksUseCasesTest {
     fun `An openAppLink use case starts an activity`() {
         val context = createContext()
         val appIntent = Intent()
-        val redirect = AppLinkRedirect(appIntent, appUrl, null)
+        val appName = ""
+        val redirect = AppLinkRedirect(appIntent, appName, appUrl, null)
         val subject = AppLinksUseCases(context, { true })
 
         subject.openAppLink(redirect.appIntent)
@@ -364,8 +365,9 @@ class AppLinksUseCasesTest {
     fun `Start activity fails will perform failure action`() {
         val context = createContext()
         val appIntent = Intent()
+        val appName = ""
         appIntent.putExtra(EXTRA_BROWSER_FALLBACK_URL, appUrl)
-        val redirect = AppLinkRedirect(appIntent, appUrl, null)
+        val redirect = AppLinkRedirect(appIntent, appName, appUrl, null)
         val subject = AppLinksUseCases(context, { true })
 
         var failedToLaunch: String? = null
@@ -381,8 +383,9 @@ class AppLinksUseCasesTest {
     fun `Security exception perform failure action`() {
         val context = createContext()
         val appIntent = Intent()
+        val appName = ""
         appIntent.putExtra(EXTRA_BROWSER_FALLBACK_URL, appUrl)
-        val redirect = AppLinkRedirect(appIntent, appUrl, null)
+        val redirect = AppLinkRedirect(appIntent, appName, appUrl, null)
         val subject = AppLinksUseCases(context, { true })
 
         var failedToLaunch: String? = null
@@ -398,8 +401,9 @@ class AppLinksUseCasesTest {
     fun `Null pointer exception perform failure action`() {
         val context = createContext()
         val appIntent = Intent()
+        val appName = ""
         appIntent.putExtra(EXTRA_BROWSER_FALLBACK_URL, appUrl)
-        val redirect = AppLinkRedirect(appIntent, appUrl, null)
+        val redirect = AppLinkRedirect(appIntent, appName, appUrl, null)
         val subject = AppLinksUseCases(context, { true })
 
         var failedToLaunch: String? = null

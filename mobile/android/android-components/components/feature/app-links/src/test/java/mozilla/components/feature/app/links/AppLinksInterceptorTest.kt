@@ -58,11 +58,11 @@ class AppLinksInterceptorTest {
         userDoNotInterceptCache.clear()
         lastApplinksPackageWithTimestamp = Pair(null, -APP_LINKS_DO_NOT_INTERCEPT_INTERVAL)
 
-        val webRedirect = AppLinkRedirect(null, webUrl, null)
-        val appRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), null, null)
-        val appRedirectFromWebUrl = AppLinkRedirect(Intent.parseUri(webUrlWithAppLink, 0), null, null)
-        val fallbackRedirect = AppLinkRedirect(null, fallbackUrl, null)
-        val marketRedirect = AppLinkRedirect(null, null, Intent.parseUri(marketplaceUrl, 0))
+        val webRedirect = AppLinkRedirect(null, "", webUrl, null)
+        val appRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), "", null, null)
+        val appRedirectFromWebUrl = AppLinkRedirect(Intent.parseUri(webUrlWithAppLink, 0), "", null, null)
+        val fallbackRedirect = AppLinkRedirect(null, "", fallbackUrl, null)
+        val marketRedirect = AppLinkRedirect(null, "", null, Intent.parseUri(marketplaceUrl, 0))
 
         whenever(mockGetRedirect.invoke(webUrl)).thenReturn(webRedirect)
         whenever(mockGetRedirect.invoke(intentUrl)).thenReturn(appRedirect)
@@ -210,7 +210,7 @@ class AppLinksInterceptorTest {
         )
 
         val blocklistedUrl = "$blocklistedScheme://example.com"
-        val blocklistedRedirect = AppLinkRedirect(Intent.parseUri(blocklistedUrl, 0), blocklistedUrl, null)
+        val blocklistedRedirect = AppLinkRedirect(Intent.parseUri(blocklistedUrl, 0), "", blocklistedUrl, null)
         whenever(mockGetRedirect.invoke(blocklistedUrl)).thenReturn(blocklistedRedirect)
         var response = feature.onLoadRequest(engineSession, blocklistedUrl, null, true, false, false, false, false)
         assertEquals(null, response)
@@ -229,7 +229,7 @@ class AppLinksInterceptorTest {
         )
 
         val supportedUrl = "$supportedScheme://example.com"
-        val supportedRedirect = AppLinkRedirect(Intent.parseUri(supportedUrl, 0), null, null)
+        val supportedRedirect = AppLinkRedirect(Intent.parseUri(supportedUrl, 0), "", null, null)
         whenever(mockGetRedirect.invoke(supportedUrl)).thenReturn(supportedRedirect)
         val response = feature.onLoadRequest(engineSession, supportedUrl, null, true, false, false, false, false)
         assertEquals(null, response)
@@ -248,7 +248,7 @@ class AppLinksInterceptorTest {
         )
 
         val supportedUrl = "$supportedScheme://example.com"
-        val supportedRedirect = AppLinkRedirect(Intent.parseUri(supportedUrl, 0), null, null)
+        val supportedRedirect = AppLinkRedirect(Intent.parseUri(supportedUrl, 0), "", null, null)
         whenever(mockGetRedirect.invoke(supportedUrl)).thenReturn(supportedRedirect)
         val response = feature.onLoadRequest(engineSession, supportedUrl, null, true, false, false, false, false)
         assertEquals(null, response)
@@ -267,7 +267,7 @@ class AppLinksInterceptorTest {
         )
 
         val supportedUrl = "$supportedScheme://example.com"
-        val supportedRedirect = AppLinkRedirect(Intent.parseUri(supportedUrl, 0), null, null)
+        val supportedRedirect = AppLinkRedirect(Intent.parseUri(supportedUrl, 0), "", null, null)
         whenever(mockGetRedirect.invoke(supportedUrl)).thenReturn(supportedRedirect)
         val response = feature.onLoadRequest(engineSession, supportedUrl, null, false, false, false, false, false)
         assertEquals(null, response)
@@ -289,7 +289,7 @@ class AppLinksInterceptorTest {
         )
 
         val notSupportedUrl = "$notSupportedScheme://example.com"
-        val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), null, null)
+        val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), "", null, null)
         whenever(mockGetRedirect.invoke(notSupportedUrl)).thenReturn(notSupportedRedirect)
         val response = feature.onLoadRequest(engineSession, notSupportedUrl, null, false, false, false, false, false)
         assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
@@ -310,7 +310,7 @@ class AppLinksInterceptorTest {
         )
 
         val notSupportedUrl = "$notSupportedScheme://example.com"
-        val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), null, null)
+        val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), "", null, null)
         whenever(mockGetRedirect.invoke(notSupportedUrl)).thenReturn(notSupportedRedirect)
         val response = feature.onLoadRequest(engineSession, notSupportedUrl, null, false, false, false, false, false)
         assertEquals(null, response)
@@ -332,7 +332,7 @@ class AppLinksInterceptorTest {
         )
 
         val notSupportedUrl = "$notSupportedScheme://example.com"
-        val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), fallbackUrl, null)
+        val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), "", fallbackUrl, null)
         whenever(mockGetRedirect.invoke(notSupportedUrl)).thenReturn(notSupportedRedirect)
         val response = feature.onLoadRequest(engineSession, notSupportedUrl, null, false, false, false, false, false)
         assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
@@ -355,7 +355,7 @@ class AppLinksInterceptorTest {
 
         val notSupportedUrl = "$notSupportedScheme://example.com"
         val fallbackUrl = "https://example.com"
-        val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), fallbackUrl, null)
+        val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), "", fallbackUrl, null)
         whenever(mockGetRedirect.invoke(notSupportedUrl)).thenReturn(notSupportedRedirect)
         val response = feature.onLoadRequest(engineSession, notSupportedUrl, null, true, false, false, false, false)
         assert(response is RequestInterceptor.InterceptionResponse.Url)
@@ -378,7 +378,7 @@ class AppLinksInterceptorTest {
 
         val notSupportedUrl = "$notSupportedScheme://example.com"
         val fallbackUrl = "https://example.com"
-        val notSupportedRedirect = AppLinkRedirect(null, fallbackUrl, Intent.parseUri(marketplaceUrl, 0))
+        val notSupportedRedirect = AppLinkRedirect(null, "", fallbackUrl, Intent.parseUri(marketplaceUrl, 0))
         whenever(mockGetRedirect.invoke(notSupportedUrl)).thenReturn(notSupportedRedirect)
         val response = feature.onLoadRequest(engineSession, notSupportedUrl, null, true, false, false, false, false)
         assert(response is RequestInterceptor.InterceptionResponse.Url)
@@ -395,7 +395,7 @@ class AppLinksInterceptorTest {
         )
 
         val intentUrl = "intent://example.com"
-        val intentRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), null, null)
+        val intentRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), "", null, null)
         whenever(mockGetRedirect.invoke(intentUrl)).thenReturn(intentRedirect)
         val response = feature.onLoadRequest(engineSession, intentUrl, null, true, false, false, false, false)
         assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
@@ -413,7 +413,7 @@ class AppLinksInterceptorTest {
 
         val intentUrl = "intent://example.com"
         val fallbackUrl = "https://example.com"
-        val intentRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), fallbackUrl, null)
+        val intentRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), "", fallbackUrl, null)
         whenever(mockGetRedirect.invoke(intentUrl)).thenReturn(intentRedirect)
         val response = feature.onLoadRequest(engineSession, intentUrl, null, true, false, false, false, false)
         assert(response is RequestInterceptor.InterceptionResponse.Url)
@@ -423,7 +423,7 @@ class AppLinksInterceptorTest {
     fun `request is not intercepted for URLs with javascript scheme`() {
         val javascriptUri = "javascript:;"
 
-        val appRedirect = AppLinkRedirect(Intent.parseUri(javascriptUri, 0), null, null)
+        val appRedirect = AppLinkRedirect(Intent.parseUri(javascriptUri, 0), "", null, null)
         whenever(mockGetRedirect.invoke(javascriptUri)).thenReturn(appRedirect)
 
         val response = appLinksInterceptor.onLoadRequest(mockEngineSession, javascriptUri, null, true, true, false, false, false)
@@ -467,7 +467,7 @@ class AppLinksInterceptorTest {
             launchFromInterceptor = true,
         )
 
-        val testRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), fallbackUrl, null)
+        val testRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), "", fallbackUrl, null)
         val response = appLinksInterceptor.handleRedirect(testRedirect, intentUrl, true)
         assert(response is RequestInterceptor.InterceptionResponse.Url)
     }
@@ -497,7 +497,7 @@ class AppLinksInterceptorTest {
             launchFromInterceptor = true,
         )
 
-        val testRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), fallbackUrl, null)
+        val testRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), "", fallbackUrl, null)
         val response = appLinksInterceptor.handleRedirect(testRedirect, intentUrl, true)
         assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
     }
@@ -512,7 +512,7 @@ class AppLinksInterceptorTest {
             launchFromInterceptor = true,
         )
 
-        val testRedirect = AppLinkRedirect(null, fallbackUrl, Intent.parseUri(marketplaceUrl, 0))
+        val testRedirect = AppLinkRedirect(null, "", fallbackUrl, Intent.parseUri(marketplaceUrl, 0))
         val response = appLinksInterceptor.handleRedirect(testRedirect, webUrl, true)
         assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
     }
@@ -527,7 +527,7 @@ class AppLinksInterceptorTest {
             launchFromInterceptor = true,
         )
 
-        val testRedirect = AppLinkRedirect(null, fallbackUrl, null)
+        val testRedirect = AppLinkRedirect(null, "", fallbackUrl, null)
         val response = appLinksInterceptor.handleRedirect(testRedirect, webUrl, true)
         assert(response is RequestInterceptor.InterceptionResponse.Url)
     }
@@ -577,7 +577,7 @@ class AppLinksInterceptorTest {
         )
 
         addUserDoNotIntercept(intentUrl, null)
-        val testRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), fallbackUrl, null)
+        val testRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), "", fallbackUrl, null)
         val response = appLinksInterceptor.handleRedirect(testRedirect, intentUrl, true)
         assert(response is RequestInterceptor.InterceptionResponse.Url)
     }
@@ -599,7 +599,7 @@ class AppLinksInterceptorTest {
 
         val notSupportedUrl = "$notSupportedScheme://example.com"
         addUserDoNotIntercept(notSupportedUrl, null)
-        val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), null, null)
+        val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), "", null, null)
         whenever(mockGetRedirect.invoke(notSupportedUrl)).thenReturn(notSupportedRedirect)
         val response = feature.onLoadRequest(engineSession, notSupportedUrl, null, false, false, false, false, false)
         assert(response is RequestInterceptor.InterceptionResponse.AppIntent)

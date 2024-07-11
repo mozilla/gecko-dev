@@ -83,9 +83,9 @@ class AppLinksFeatureTest {
         `when`(mockUseCases.interceptedAppLinkRedirect).thenReturn(mockGetRedirect)
         `when`(mockUseCases.openAppLink).thenReturn(mockOpenRedirect)
 
-        val webRedirect = AppLinkRedirect(null, webUrl, null)
-        val appRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), null, null)
-        val appRedirectFromWebUrl = AppLinkRedirect(Intent.parseUri(webUrlWithAppLink, 0), null, null)
+        val webRedirect = AppLinkRedirect(null, "", webUrl, null)
+        val appRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), "", null, null)
+        val appRedirectFromWebUrl = AppLinkRedirect(Intent.parseUri(webUrlWithAppLink, 0), "", null, null)
 
         `when`(mockGetRedirect.invoke(webUrl)).thenReturn(webRedirect)
         `when`(mockGetRedirect.invoke(intentUrl)).thenReturn(appRedirect)

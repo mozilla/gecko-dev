@@ -90,7 +90,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
             }
         }
 
-    @Suppress("LongMethod")
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -111,13 +111,14 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val addBookmarkUseCase = components.useCases.bookmarksUseCases.addBookmark
                     val addPinnedSiteUseCase = components.useCases.topSitesUseCase.addPinnedSites
                     val removePinnedSiteUseCase = components.useCases.topSitesUseCase.removeTopSites
+                    val topSitesMaxLimit = components.settings.topSitesMaxLimit
+                    val appLinksUseCases = components.useCases.appLinksUseCases
                     val webAppUseCases = components.useCases.webAppUseCases
                     val printContentUseCase = components.useCases.sessionUseCases.printContent
                     val saveToPdfUseCase = components.useCases.sessionUseCases.saveToPdf
                     val selectedTab = browserStore.state.selectedTab
                     val isTranslationSupported = browserStore.state.translationEngine.isEngineSupported ?: false
                     val settings = components.settings
-                    val topSitesMaxLimit = settings.topSitesMaxLimit
                     val supportedLanguages = components.core.store.state.translationEngine.supportedLanguages
                     val translateLanguageCode = selectedTab?.translationsState?.translationEngineState
                         ?.requestedTranslationPair?.toLanguage
@@ -143,6 +144,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     addPinnedSiteUseCase = addPinnedSiteUseCase,
                                     removePinnedSitesUseCase = removePinnedSiteUseCase,
                                     topSitesMaxLimit = topSitesMaxLimit,
+                                    appLinksUseCases = appLinksUseCases,
+                                    settings = settings,
                                     onDeleteAndQuit = {
                                         deleteAndQuit(
                                             activity = activity as HomeActivity,
@@ -260,8 +263,16 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         }
 
                         composable(route = TOOLS_MENU_ROUTE) {
+                            val appLinksRedirect = if (selectedTab?.content?.url != null) {
+                                appLinksUseCases.appLinkRedirect(selectedTab.content.url)
+                            } else {
+                                null
+                            }
+
                             ToolsSubmenu(
                                 isReaderViewActive = false,
+                                hasExternalApp = appLinksRedirect?.hasExternalApp() ?: false,
+                                externalAppName = appLinksRedirect?.appName ?: "",
                                 isTranslated = selectedTab?.translationsState?.isTranslated ?: false,
                                 isTranslationSupported = isTranslationSupported &&
                                     FxNimbus.features.translations.value().mainFlowBrowserMenuEnabled,
@@ -291,7 +302,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         store.dispatch(MenuAction.Navigate.Share)
                                     }
                                 },
-                                onOpenInAppMenuClick = {},
+                                onOpenInAppMenuClick = {
+                                    store.dispatch(MenuAction.OpenInApp)
+                                },
                             )
                         }
 

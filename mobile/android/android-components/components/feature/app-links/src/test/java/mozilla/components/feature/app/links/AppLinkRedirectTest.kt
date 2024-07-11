@@ -16,38 +16,38 @@ class AppLinkRedirectTest {
 
     @Test
     fun hasExternalApp() {
-        var appLink = AppLinkRedirect(appIntent = mock(), fallbackUrl = null, marketplaceIntent = null)
+        var appLink = AppLinkRedirect(appIntent = mock(), appName = "", fallbackUrl = null, marketplaceIntent = null)
         assertTrue(appLink.hasExternalApp())
         assertTrue(appLink.isRedirect())
 
-        appLink = AppLinkRedirect(appIntent = null, fallbackUrl = null, marketplaceIntent = null)
+        appLink = AppLinkRedirect(appIntent = null, appName = "", fallbackUrl = null, marketplaceIntent = null)
         assertFalse(appLink.hasExternalApp())
         assertFalse(appLink.isRedirect())
     }
 
     @Test
     fun hasFallback() {
-        var appLink = AppLinkRedirect(appIntent = mock(), fallbackUrl = null, marketplaceIntent = null)
+        var appLink = AppLinkRedirect(appIntent = mock(), appName = "", fallbackUrl = null, marketplaceIntent = null)
         assertFalse(appLink.hasFallback())
         assertTrue(appLink.isRedirect())
 
-        appLink = AppLinkRedirect(appIntent = mock(), fallbackUrl = "https://example.com", marketplaceIntent = null)
+        appLink = AppLinkRedirect(appIntent = mock(), appName = "", fallbackUrl = "https://example.com", marketplaceIntent = null)
         assertTrue(appLink.hasFallback())
         assertTrue(appLink.isRedirect())
     }
 
     @Test
     fun isRedirect() {
-        var appLink = AppLinkRedirect(appIntent = null, fallbackUrl = null, marketplaceIntent = null)
+        var appLink = AppLinkRedirect(appIntent = null, appName = "", fallbackUrl = null, marketplaceIntent = null)
         assertFalse(appLink.isRedirect())
 
-        appLink = AppLinkRedirect(appIntent = mock(), fallbackUrl = null, marketplaceIntent = null)
+        appLink = AppLinkRedirect(appIntent = mock(), appName = "", fallbackUrl = null, marketplaceIntent = null)
         assertTrue(appLink.isRedirect())
 
-        appLink = AppLinkRedirect(appIntent = null, fallbackUrl = "https://example.com", marketplaceIntent = null)
+        appLink = AppLinkRedirect(appIntent = null, appName = "", fallbackUrl = "https://example.com", marketplaceIntent = null)
         assertTrue(appLink.isRedirect())
 
-        appLink = AppLinkRedirect(appIntent = mock(), fallbackUrl = "https://example.com", marketplaceIntent = null)
+        appLink = AppLinkRedirect(appIntent = mock(), appName = "", fallbackUrl = "https://example.com", marketplaceIntent = null)
         assertTrue(appLink.isRedirect())
     }
 
@@ -58,18 +58,18 @@ class AppLinkRedirectTest {
         `when`(intent.data).thenReturn(uri)
         `when`(uri.scheme).thenReturn("market")
 
-        var appLink = AppLinkRedirect(appIntent = null, fallbackUrl = "https://example.com", marketplaceIntent = null)
+        var appLink = AppLinkRedirect(appIntent = null, appName = "", fallbackUrl = "https://example.com", marketplaceIntent = null)
         assertFalse(appLink.isInstallable())
         assertTrue(appLink.isRedirect())
 
-        appLink = AppLinkRedirect(appIntent = intent, fallbackUrl = "https://example.com", marketplaceIntent = null)
+        appLink = AppLinkRedirect(appIntent = intent, appName = "", fallbackUrl = "https://example.com", marketplaceIntent = null)
         assertTrue(appLink.isInstallable())
         assertTrue(appLink.isRedirect())
     }
 
     @Test
     fun hasMarketplaceIntent() {
-        var appLink = AppLinkRedirect(appIntent = null, fallbackUrl = null, marketplaceIntent = mock())
+        var appLink = AppLinkRedirect(appIntent = null, appName = "", fallbackUrl = null, marketplaceIntent = mock())
         assertTrue(appLink.hasMarketplaceIntent())
         assertTrue(appLink.isRedirect())
         assertTrue(appLink.hasMarketplaceIntent())

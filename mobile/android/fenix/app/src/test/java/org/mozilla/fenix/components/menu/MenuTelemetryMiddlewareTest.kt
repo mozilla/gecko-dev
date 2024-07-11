@@ -171,6 +171,16 @@ class MenuTelemetryMiddlewareTest {
     }
 
     @Test
+    fun `WHEN opening a site in app THEN record the open in app menu telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.OpenInApp).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "open_in_app")
+    }
+
+    @Test
     fun `WHEN navigating to passwords THEN record the passwords browser menu telemetry`() {
         val store = createStore()
         assertNull(Events.browserMenuAction.testGetValue())
