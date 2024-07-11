@@ -279,6 +279,8 @@ class ImageBitmap final : public nsISupports, public nsWrapperCache {
   bool mWriteOnly;
 };
 
+size_t BindingJSObjectMallocBytes(ImageBitmap* aBitmap);
+
 }  // namespace dom
 }  // namespace mozilla
 
