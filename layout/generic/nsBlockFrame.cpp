@@ -7376,10 +7376,23 @@ void nsBlockFrame::ReflowPushedFloats(BlockReflowState& aState,
     nsIFrame* prevContinuation = f->GetPrevContinuation();
     if (prevContinuation && prevContinuation->GetParent() == f->GetParent()) {
       floats->RemoveFrame(f);
-      aState.AppendPushedFloatChain(f);
       if (floats->IsEmpty()) {
         StealFloats()->Delete(PresShell());
         floats = nullptr;
+      }
+      aState.AppendPushedFloatChain(f);
+      if (!floats) {
+        // The floats list becomes empty after removing |f|. Bail out.
+        f = prev = nullptr;
+        break;
+      }
+      // Even if we think |floats| is valid, AppendPushedFloatChain() can also
+      // push |f|'s next-in-flows in our floats list to our pushed floats list.
+      // If all the floats in the floats list are pushed, the floats list will
+      // be deleted, and |floats| will be stale and poisoned. Therefore, we need
+      // to get the floats list again to check its validity.
+      floats = GetFloats();
+      if (!floats) {
         f = prev = nullptr;
         break;
       }
