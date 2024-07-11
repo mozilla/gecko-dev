@@ -3,7 +3,7 @@ Machine Learning
 
 This component is an experimental machine learning local inference engine based on
 `Transformers.js <https://huggingface.co/docs/transformers.js/index>`_ and
-the `ONNX runtime <https://onnxruntime.ai/>`.
+the `ONNX runtime <https://onnxruntime.ai/>`_.
 
 You can use the component to leverage the inference runtime in the context
 of the browser. To try out some inference tasks, you can refer to the
@@ -17,8 +17,8 @@ Running the pipeline API
 You can use the Transformer.js `pipeline` API directly to perform inference, as long
 as the model is in our model hub.
 
-The `Transformers.js documentation <https://huggingface.co/tasks
->`_ provides a lot of examples that you can slightly adapt when running in Firefox.
+The `Transformers.js documentation <https://huggingface.co/tasks>`_ provides a lot
+of examples that you can slightly adapt when running in Firefox.
 
 In the example below, a text summarization task is performed using the `summarization` task:
 
