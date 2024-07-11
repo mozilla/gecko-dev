@@ -3531,27 +3531,30 @@ struct BoxToRect : public nsLayoutUtils::BoxCallback {
         r = aFrame->GetRectRelativeToSelf();
       }
     }
-    if (mFlags.contains(
-            nsLayoutUtils::GetAllInFlowRectsFlag::AccountForTransforms)) {
-      const bool isAncestorKnown = [&] {
-        if (mRelativeToIsRoot) {
-          return true;
+    if (outer != mRelativeTo) {
+      if (mFlags.contains(
+              nsLayoutUtils::GetAllInFlowRectsFlag::AccountForTransforms)) {
+        const bool isAncestorKnown = [&] {
+          if (mRelativeToIsRoot) {
+            return true;
+          }
+          if (mRelativeToIsTarget && !mInTargetContinuation) {
+            return !usingSVGOuterFrame;
+          }
+          return false;
+        }();
+        if (isAncestorKnown) {
+          r = nsLayoutUtils::TransformFrameRectToAncestor(outer, r,
+                                                          mRelativeTo);
+        } else {
+          nsLayoutUtils::TransformRect(outer, mRelativeTo, r);
         }
-        if (mRelativeToIsTarget && !mInTargetContinuation) {
-          return !usingSVGOuterFrame;
+      } else {
+        if (aFrame->PresContext() != mRelativeTo->PresContext()) {
+          r += outer->GetOffsetToCrossDoc(mRelativeTo);
+        } else {
+          r += outer->GetOffsetTo(mRelativeTo);
         }
-        return false;
-      }();
-      if (isAncestorKnown) {
-        r = nsLayoutUtils::TransformFrameRectToAncestor(outer, r, mRelativeTo);
-      } else {
-        nsLayoutUtils::TransformRect(outer, mRelativeTo, r);
-      }
-    } else {
-      if (aFrame->PresContext() != mRelativeTo->PresContext()) {
-        r += outer->GetOffsetToCrossDoc(mRelativeTo);
-      } else {
-        r += outer->GetOffsetTo(mRelativeTo);
       }
     }
     mCallback->AddRect(r);
