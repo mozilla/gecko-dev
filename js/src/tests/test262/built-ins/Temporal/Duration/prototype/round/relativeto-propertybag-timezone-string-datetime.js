@@ -4,7 +4,7 @@
 
 /*---
 esid: sec-temporal.duration.prototype.round
-description: Conversion of ISO date-time strings to Temporal.TimeZone instances
+description: Conversion of ISO date-time strings to time zone IDs
 features: [Temporal]
 ---*/
 

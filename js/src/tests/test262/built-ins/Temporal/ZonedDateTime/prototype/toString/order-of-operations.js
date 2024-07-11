@@ -28,18 +28,10 @@ const expected = [
   "get options.timeZoneName",
   "get options.timeZoneName.toString",
   "call options.timeZoneName.toString",
-  "get this.timeZone.getOffsetNanosecondsFor",
-  "call this.timeZone.getOffsetNanosecondsFor",
-  "get this.timeZone.id",
-  "get this.calendar.id",
 ];
 const actual = [];
 
-const timeZone = TemporalHelpers.timeZoneObserver(actual, "this.timeZone");
-const calendar = TemporalHelpers.calendarObserver(actual, "this.calendar");
-const instance = new Temporal.ZonedDateTime(0n, timeZone, calendar);
-// clear observable operations that occurred during the constructor call
-actual.splice(0);
+const instance = new Temporal.ZonedDateTime(0n, "UTC");
 
 instance.toString(
   TemporalHelpers.propertyBagObserver(actual, {
@@ -72,10 +64,6 @@ const expectedForFractionalSecondDigits = [
   "get options.timeZoneName",
   "get options.timeZoneName.toString",
   "call options.timeZoneName.toString",
-  "get this.timeZone.getOffsetNanosecondsFor",
-  "call this.timeZone.getOffsetNanosecondsFor",
-  "get this.timeZone.id",
-  "get this.calendar.id",
 ];
 
 instance.toString(

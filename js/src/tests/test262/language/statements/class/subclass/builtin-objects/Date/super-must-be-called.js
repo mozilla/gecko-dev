@@ -23,15 +23,15 @@ class D extends Date {
 }
 
 assert.throws(ReferenceError, function() {
-  new D();
+  new D(0);
 });
 
 class D2 extends Date {
-  constructor() {
-    super();
+  constructor(d) {
+    super(d);
   }
 }
 
-new D2();
+new D2(0);
 
 reportCompare(0, 0);

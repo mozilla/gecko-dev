@@ -4,7 +4,7 @@
 
 /*---
 esid: sec-temporal.now.zoneddatetimeiso
-description: Conversion of ISO date-time strings to Temporal.TimeZone instances (with IANA time zones)
+description: Conversion of ISO date-time strings to time zone IDs (with IANA time zones)
 features: [Temporal]
 ---*/
 

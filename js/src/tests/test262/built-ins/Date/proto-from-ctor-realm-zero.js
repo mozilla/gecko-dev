@@ -25,7 +25,7 @@ var other = $262.createRealm().global;
 var C = new other.Function();
 C.prototype = null;
 
-var o = Reflect.construct(Date, [], C);
+var o = Reflect.construct(Date, [0], C);
 
 assert.sameValue(Object.getPrototypeOf(o), other.Date.prototype);
 

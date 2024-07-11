@@ -22,7 +22,7 @@ features: [Temporal]
 ---*/
 
 TemporalHelpers.checkToTemporalCalendarFastPath((temporalObject) => {
-  const yearmonth = new Temporal.PlainYearMonth(2000, 5, temporalObject);
+  const yearmonth = new Temporal.PlainYearMonth(2000, 5);
   yearmonth.until({ year: 2005, month: 6, calendar: temporalObject });
 });
 

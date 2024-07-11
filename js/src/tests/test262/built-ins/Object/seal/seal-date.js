@@ -33,6 +33,6 @@ info: |
 
 ---*/
 
-Object.seal(new Date());
+Object.seal(new Date(0));
 
 reportCompare(0, 0);

@@ -20,7 +20,7 @@ features: [Reflect.construct]
 ---*/
 
 assert.sameValue(isConstructor(Date), true, 'isConstructor(Date) must return true');
-new Date();
+new Date(0);
   
 
 reportCompare(0, 0);
