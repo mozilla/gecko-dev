@@ -10,10 +10,20 @@
  * This test is used to check we can get correct HEVC support information from
  * `canPlayType` and mediaCapabilities API on different platforms.
  */
+const contentType = 'video/mp4; codecs="hev1.1.6.L93.B0"';
+const videoConfiguration = {
+  type: "file",
+  video: {
+    contentType,
+    width: 1920,
+    height: 1080,
+    bitrate: 1000000,
+    framerate: 30,
+  },
+};
+
 add_task(async function testHEVCSupport() {
   const os = SpecialPowers.Services.appinfo.OS;
-
-  const contentType = 'video/mp4; codecs="hev1.1.6.L93.B0"';
   const canPlay = document.createElement('video').canPlayType(contentType);
   if (os == "WINNT") {
     ok(canPlay != "", `HEVC is supported`);
@@ -21,16 +31,6 @@ add_task(async function testHEVCSupport() {
     ok(canPlay == "", "HEVC is not supported on current platform");
   }
 
-  const videoConfiguration = {
-    type: "file",
-    video: {
-      contentType,
-      width: 1920,
-      height: 1080,
-      bitrate: 1000000,
-      framerate: 30,
-    },
-  };
   const capability = await navigator.mediaCapabilities.decodingInfo(videoConfiguration);
   if (os == "WINNT") {
     ok(capability.supported, `HEVC is supported`);
@@ -38,6 +38,42 @@ add_task(async function testHEVCSupport() {
   } else {
     ok(!capability.supported, "HEVC is not supported on current platform");
   }
+});
+
+add_task(async function testHEVCPrefSupportOnWindows() {
+  if (SpecialPowers.Services.appinfo.OS != "WINNT") {
+    ok(true, "No need to run this task");
+    return;
+  }
+
+  // Enable HEVC for normal playback and media engine playback
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["media.wmf.hevc.enabled", 1],
+    ],
+  });
+  let capability = await navigator.mediaCapabilities.decodingInfo(videoConfiguration);
+  ok(capability.supported, `HEVC is supported`);
+
+  // Enable HEVC for only media engine encrypted playback, which makes
+  // non-encrypted HEVC unsupported, but encrypted HEVC is still supported.
+  info(`Turn off HEVC for normal non-encrypted playback`);
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["media.wmf.hevc.enabled", 2],
+      ["media.wmf.media-engine.enabled", 2],
+    ],
+  });
+  capability = await navigator.mediaCapabilities.decodingInfo(videoConfiguration);
+  ok(!capability.supported, "Non-encrypted HEVC is not supported");
+
+  info(`Encrypted HEVC should still be supported via the media engine`);
+  const videoEncryptedConfig = {...videoConfiguration};
+  videoEncryptedConfig.keySystemConfiguration = {
+    keySystem: "com.microsoft.playready.recommendation",
+  };
+  capability = await navigator.mediaCapabilities.decodingInfo(videoEncryptedConfig);
+  ok(capability.supported, `Encrypted HEVC is supported`);
 });
 
 </script>
