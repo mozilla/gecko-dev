@@ -13,16 +13,68 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 // TODO: Replace with proper remote settings data once the Fakespot Rust feature
 // is vendored in to mozilla-central.
-const DUMMY_RESULT = {
-  source: "rust",
-  provider: "Fakespot",
-  url: "https://example.com/maybe-good-item",
-  title: "Maybe Good Item",
-  rating: 4.8,
-  totalReviews: 1234567,
-  fakespotGrade: "A",
-  productId: "amazon-0",
-};
+const DUMMY_RESULT = [
+  {
+    source: "rust",
+    provider: "Fakespot",
+    url: "https://example.com/maybe-good-item",
+    title: "Maybe Good Item",
+    rating: 4.8,
+    totalReviews: 1234567,
+    fakespotGrade: "A",
+    productId: "amazon-0",
+  },
+  {
+    source: "rust",
+    provider: "Fakespot",
+    url: "https://example.com/1-review-item",
+    title: "1 review item",
+    rating: 5,
+    totalReviews: 1,
+    fakespotGrade: "A",
+    productId: "amazon-1",
+  },
+  {
+    source: "rust",
+    provider: "Fakespot",
+    url: "https://example.com/2-reviews-item",
+    title: "2 reviews item",
+    rating: 4,
+    totalReviews: 2,
+    fakespotGrade: "A",
+    productId: "amazon-2",
+  },
+  {
+    source: "rust",
+    provider: "Fakespot",
+    url: "https://example.com/1000-reviews-item",
+    title: "1000 reviews item",
+    rating: 3,
+    totalReviews: 1000,
+    fakespotGrade: "A",
+    productId: "amazon-3",
+  },
+  {
+    source: "rust",
+    provider: "Fakespot",
+    url: "https://example.com/99999-reviews-item",
+    title: "99999 reviews item",
+    rating: 2,
+    totalReviews: 99999,
+    fakespotGrade: "A",
+    productId: "amazon-4",
+  },
+  {
+    source: "rust",
+    provider: "Fakespot",
+    url: "https://example.com/100000-reviews-item",
+    title: "100000 reviews item",
+    rating: 1,
+    totalReviews: 100000,
+    fakespotGrade: "A",
+    productId: "amazon-5",
+  },
+];
 
 const HELP_URL =
   Services.urlFormatter.formatURLPref("app.support.baseURL") +
@@ -32,7 +84,11 @@ add_setup(async function () {
   const sandbox = lazy.sinon.createSandbox();
   sandbox
     .stub(lazy.QuickSuggest.rustBackend, "query")
-    .callsFake(async _searchString => [DUMMY_RESULT]);
+    .callsFake(async searchString =>
+      DUMMY_RESULT.filter(r =>
+        r.title.toLowerCase().startsWith(searchString.toLowerCase())
+      )
+    );
 
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -437,4 +493,33 @@ add_task(async function resultMenu_help() {
     "The loaded URL should be the help URL"
   );
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
+});
+
+// Test the label for rating and total reviews.
+add_task(async function ratingAndTotalReviewsLabel() {
+  const testData = [
+    { input: "1 review", expected: "5 · (1 review)" },
+    { input: "2 reviews", expected: "4 · (2 reviews)" },
+    { input: "1000 reviews", expected: "3 · (1,000 reviews)" },
+    { input: "99999 reviews", expected: "2 · (99,999 reviews)" },
+    { input: "100000 reviews", expected: "1 · (99,999+ reviews)" },
+  ];
+
+  for (const { input, expected } of testData) {
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: input,
+    });
+    Assert.equal(UrlbarTestUtils.getResultCount(window), 2);
+
+    const { element } = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
+    Assert.equal(
+      element.row.querySelector(
+        ".urlbarView-dynamic-fakespot-rating-and-total-reviews"
+      ).textContent,
+      expected
+    );
+
+    await UrlbarTestUtils.promisePopupClose(window);
+  }
 });
