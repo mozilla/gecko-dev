@@ -207,6 +207,11 @@ export const GenAI = {
         try {
           // Prompts can be JSON with label, value, targeting and other keys
           Object.assign(promptObj, JSON.parse(promptObj.label));
+
+          // Ignore provided id (if any) for modified prefs
+          if (Services.prefs.prefHasUserValue(pref)) {
+            promptObj.id = null;
+          }
         } catch (ex) {}
         messages.push(promptObj);
       } catch (ex) {

@@ -105,3 +105,29 @@ add_task(async function test_open_sidebar() {
   Assert.equal(events[0].extra.provider, "localhost", "With localhost");
   Assert.equal(events[0].extra.selection, "0", "No selection");
 });
+
+/**
+ * Check modified prompts record as custom
+ */
+add_task(async function test_custom_prompt() {
+  Services.fog.testResetFOG();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.chat.prompts.0", JSON.stringify({ id: "prompt" })],
+      ["browser.ml.chat.provider", "http://localhost:8080"],
+      ["browser.ml.chat.sidebar", true],
+    ],
+  });
+  await BrowserTestUtils.withNewTab("about:blank", async () => {
+    await openContextMenu();
+    document.getElementById("context-ask-chat").getItemAtIndex(0).click();
+    await hideContextMenu();
+    SidebarController.hide();
+  });
+
+  Assert.equal(
+    Glean.genaiChatbot.contextmenuPromptClick.testGetValue()[0].extra.prompt,
+    "custom",
+    "Custom id replaced with 'custom'"
+  );
+});
