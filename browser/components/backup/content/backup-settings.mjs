@@ -42,6 +42,7 @@ export default class BackupSettings extends MozLitElement {
       turnOffScheduledBackupsDialogEl: "#turn-off-scheduled-backups-dialog",
       restoreFromBackupEl: "restore-from-backup",
       restoreFromBackupButtonEl: "#backup-toggle-restore-button",
+      restoreFromBackupDescriptionEl: "#backup-restore-description",
       restoreFromBackupDialogEl: "#restore-from-backup-dialog",
       sensitiveDataCheckboxInputEl: "#backup-sensitive-data-checkbox-input",
       passwordControlsEl: "#backup-password-controls",
@@ -50,6 +51,7 @@ export default class BackupSettings extends MozLitElement {
       lastBackupDateEl: "#last-backup-date",
       backupLocationShowButtonEl: "#backup-location-show",
       backupLocationEditButtonEl: "#backup-location-edit",
+      scheduledBackupsDescriptionEl: "#scheduled-backups-description",
     };
   }
 
@@ -247,6 +249,22 @@ export default class BackupSettings extends MozLitElement {
     }
   }
 
+  scheduledBackupsDescriptionTemplate() {
+    return html`
+      <div
+        id="scheduled-backups-description"
+        data-l10n-id="settings-data-backup-scheduled-backups-description"
+      >
+        <!--TODO: finalize support page links (bug 1900467)-->
+        <a
+          is="moz-support-link"
+          support-page="todo-backup"
+          data-l10n-name="support-link"
+        ></a>
+      </div>
+    `;
+  }
+
   turnOnScheduledBackupsDialogTemplate() {
     let { fileName, path, iconURL } = this.backupServiceState.defaultParent;
     return html`<dialog id="turn-on-scheduled-backups-dialog">
@@ -277,15 +295,33 @@ export default class BackupSettings extends MozLitElement {
   }
 
   restoreFromBackupTemplate() {
-    return html`<div id="restore-from-backup">
-      ${this.restoreFromBackupDialogTemplate()}
+    let descriptionL10nID = this.backupServiceState.scheduledBackupsEnabled
+      ? "settings-data-backup-scheduled-backups-on-restore-description"
+      : "settings-data-backup-scheduled-backups-off-restore-description";
 
-      <moz-button
-        id="backup-toggle-restore-button"
-        @click=${this.handleShowRestoreDialog}
-        data-l10n-id="settings-data-backup-restore-choose"
-      ></moz-button>
-    </div>`;
+    let restoreButtonL10nID = this.backupServiceState.scheduledBackupsEnabled
+      ? "settings-data-backup-scheduled-backups-on-restore-choose"
+      : "settings-data-backup-scheduled-backups-off-restore-choose";
+
+    return html`<section id="restore-from-backup"">
+      ${this.restoreFromBackupDialogTemplate()}
+      <div class="backups-control">
+        <span
+          id="restore-header"
+          data-l10n-id="settings-data-backup-restore-header"
+          class="heading-medium"
+        ></span>
+        <moz-button
+          id="backup-toggle-restore-button"
+          @click=${this.handleShowRestoreDialog}
+          data-l10n-id="${restoreButtonL10nID}"
+        ></moz-button>
+        <div
+          id="backup-restore-description"
+          data-l10n-id="${descriptionL10nID}"
+        ></div>
+      </div>
+    </section>`;
   }
 
   handleShowRestoreDialog() {
@@ -382,7 +418,7 @@ export default class BackupSettings extends MozLitElement {
   }
 
   sensitiveDataTemplate() {
-    return html` <div id="backup-password-controls">
+    return html`<section id="backup-password-controls">
       <!-- TODO: we can use the moz-checkbox reusable component once it is ready (bug 1901635)-->
       <div id="backup-sensitive-data-checkbox">
         <label
@@ -424,7 +460,7 @@ export default class BackupSettings extends MozLitElement {
             data-l10n-id="settings-data-change-password"
           ></moz-button>`
         : null}
-    </div>`;
+    </section>`;
   }
 
   updated() {
@@ -452,8 +488,8 @@ export default class BackupSettings extends MozLitElement {
       ${this.enableBackupEncryptionDialogTemplate()}
       ${this.disableBackupEncryptionDialogTemplate()}
 
-      <div id="scheduled-backups">
-        <div id="scheduled-backups-control">
+      <section id="scheduled-backups">
+        <div class="backups-control">
           <span
             id="scheduled-backups-enabled"
             data-l10n-id="${scheduledBackupsEnabledL10nID}"
@@ -465,6 +501,10 @@ export default class BackupSettings extends MozLitElement {
             @click=${this.handleShowScheduledBackups}
             data-l10n-id="settings-data-backup-toggle"
           ></moz-button>
+
+          ${this.backupServiceState.scheduledBackupsEnabled
+            ? null
+            : this.scheduledBackupsDescriptionTemplate()}
         </div>
 
         ${this.backupServiceState.lastBackupDate
@@ -476,8 +516,9 @@ export default class BackupSettings extends MozLitElement {
         ${this.backupServiceState.scheduledBackupsEnabled
           ? this.sensitiveDataTemplate()
           : null}
-        ${this.restoreFromBackupTemplate()}
-      </div>`;
+      </section>
+
+      ${this.restoreFromBackupTemplate()} `;
   }
 }
 

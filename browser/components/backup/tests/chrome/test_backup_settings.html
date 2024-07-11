@@ -344,6 +344,70 @@
         "Change password button should be found"
       );
     });
+
+    /**
+     * Tests that the right content is displayed if scheduled automatic backups
+     * are disabled.
+     */
+    add_task(async function test_content_when_scheduled_backups_disabled() {
+      let settings = document.getElementById("test-backup-settings");
+
+      settings.backupServiceState = {
+        defaultParent: {
+          path: PathUtils.join(PathUtils.tempDir, testDefaultName),
+          fileName: testDefaultName,
+        },
+        scheduledBackupsEnabled: false,
+      }
+      await settings.updateComplete;
+
+      ok(
+        settings.scheduledBackupsDescriptionEl,
+        "Scheduled backups description should be in the DOM"
+      );
+
+      is(
+        settings.restoreFromBackupButtonEl.getAttribute("data-l10n-id"),
+        "settings-data-backup-scheduled-backups-off-restore-choose"
+      );
+
+      is(
+        settings.restoreFromBackupDescriptionEl.getAttribute("data-l10n-id"),
+        "settings-data-backup-scheduled-backups-off-restore-description"
+      );
+    });
+
+    /**
+     * Tests that the right content is displayed if scheduled automatic backups
+     * are enabled.
+     */
+     add_task(async function test_content_when_scheduled_backups_enabled() {
+      let settings = document.getElementById("test-backup-settings");
+
+      settings.backupServiceState = {
+        defaultParent: {
+          path: PathUtils.join(PathUtils.tempDir, testDefaultName),
+          fileName: testDefaultName,
+        },
+        scheduledBackupsEnabled: true,
+      }
+      await settings.updateComplete;
+
+      ok(
+        !settings.scheduledBackupsDescriptionEl,
+        "Scheduled backups description should not be in the DOM"
+      );
+
+      is(
+        settings.restoreFromBackupButtonEl.getAttribute("data-l10n-id"),
+        "settings-data-backup-scheduled-backups-on-restore-choose"
+      );
+
+      is(
+        settings.restoreFromBackupDescriptionEl.getAttribute("data-l10n-id"),
+        "settings-data-backup-scheduled-backups-on-restore-description"
+      );
+    });
   </script>
 </head>
 <body>

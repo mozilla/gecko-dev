@@ -25,6 +25,7 @@ settings-data-backup-header = Backup
 settings-data-backup-toggle = Manage backup
 settings-data-backup-scheduled-backups-on = Backup: ON
 settings-data-backup-scheduled-backups-off = Backup: OFF
+settings-data-backup-scheduled-backups-description = Automatically protect your bookmarks, history, and other data. <a data-l10n-name="support-link">Learn more</a>
 settings-data-backup-last-backup-date = Last backup: { DATETIME($date, timeStyle: "short") }, { DATETIME($date, dateStyle: "short") }
 # "Location" refers to the folder where backups are being written to.
 settings-data-backup-last-backup-location = Location
@@ -36,8 +37,16 @@ settings-data-backup-last-backup-location-edit = Edit…
 settings-data-backup-last-backup-filename = Filename: { $fileName }
 
 settings-data-backup-restore-header = Restore your data
-settings-data-backup-restore-description = Use a { -brand-short-name } backup from another device to restore your data.
-settings-data-backup-restore-choose = Choose backup file…
+
+## These strings are shown under the header if scheduled backups are disabled.
+
+settings-data-backup-scheduled-backups-off-restore-description = Use a { -brand-product-name } backup from another device to restore your data.
+settings-data-backup-scheduled-backups-off-restore-choose = Choose backup file…
+
+## These strings are shown under the header if scheduled backups are enabled.
+
+settings-data-backup-scheduled-backups-on-restore-description = Recover your { -brand-product-name } data back from the last time it was backed up.
+settings-data-backup-scheduled-backups-on-restore-choose = Restore…
 
 settings-data-toggle-encryption-label = Back up your sensitive data
 settings-data-toggle-encryption-description = Back up your passwords, payment methods, and cookies with encryption.

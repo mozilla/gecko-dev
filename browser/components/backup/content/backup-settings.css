@@ -40,13 +40,19 @@
   margin-inline-start: var(--margin-inline-start-checkbox-content);
 }
 
-#scheduled-backups-control {
-  display: flex;
+.backups-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "header button"
+    "description .";
+  grid-gap: 0 12px;
+  align-items: center;
 }
 
-#scheduled-backups-enabled {
-  flex: 1;
-  align-content: center;
+section {
+  margin-block-start: 24px;
 }
 
 #last-backup-info {
