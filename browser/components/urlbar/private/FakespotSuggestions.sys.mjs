@@ -7,11 +7,20 @@ import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
   UrlbarView: "resource:///modules/UrlbarView.sys.mjs",
 });
+
+const RESULT_MENU_COMMAND = {
+  HELP: "help",
+  MANAGE: "manage",
+  NOT_INTERESTED: "not_interested",
+  NOT_RELEVANT: "not_relevant",
+  SHOW_LESS_FREQUENTLY: "show_less_frequently",
+};
 
 const VIEW_TEMPLATE = {
   attributes: {
@@ -88,17 +97,31 @@ export class FakespotSuggestions extends BaseFeature {
     return ["Fakespot"];
   }
 
+  get showLessFrequentlyCount() {
+    let count = lazy.UrlbarPrefs.get("fakespot.showLessFrequentlyCount") || 0;
+    return Math.max(count, 0);
+  }
+
+  get canShowLessFrequently() {
+    let cap =
+      lazy.UrlbarPrefs.get("fakespotShowLessFrequentlyCap") ||
+      lazy.QuickSuggest.backend.config?.showLessFrequentlyCap ||
+      0;
+    return !cap || this.showLessFrequentlyCount < cap;
+  }
+
   getSuggestionTelemetryType() {
     return "fakespot";
   }
 
-  makeResult(queryContext, suggestion, _searchString) {
-    if (!this.isEnabled) {
+  makeResult(queryContext, suggestion, searchString) {
+    if (!this.isEnabled || searchString.length < this.#minKeywordLength) {
       return null;
     }
 
     const payload = {
       url: suggestion.url,
+      originalUrl: suggestion.url,
       title: [suggestion.title, lazy.UrlbarUtils.HIGHLIGHT.TYPED],
       rating: Number(suggestion.rating),
       totalReviews: Number(suggestion.totalReviews),
@@ -163,5 +186,109 @@ export class FakespotSuggestions extends BaseFeature {
         },
       },
     };
+  }
+
+  getResultCommands() {
+    let commands = [];
+
+    if (this.canShowLessFrequently) {
+      commands.push({
+        name: RESULT_MENU_COMMAND.SHOW_LESS_FREQUENTLY,
+        l10n: {
+          id: "firefox-suggest-command-show-less-frequently",
+        },
+      });
+    }
+
+    commands.push(
+      {
+        l10n: {
+          id: "firefox-suggest-command-manage-fakespot",
+        },
+        children: [
+          {
+            name: RESULT_MENU_COMMAND.NOT_RELEVANT,
+            l10n: {
+              id: "firefox-suggest-command-dont-show-this-suggestion",
+            },
+          },
+          {
+            name: RESULT_MENU_COMMAND.NOT_INTERESTED,
+            l10n: {
+              id: "firefox-suggest-command-dont-show-any-suggestions",
+            },
+          },
+        ],
+      },
+      { name: "separator" },
+      {
+        name: RESULT_MENU_COMMAND.MANAGE,
+        l10n: {
+          id: "urlbar-result-menu-manage-firefox-suggest",
+        },
+      },
+      {
+        name: RESULT_MENU_COMMAND.HELP,
+        l10n: {
+          id: "urlbar-result-menu-learn-more-about-firefox-suggest",
+        },
+      }
+    );
+
+    return commands;
+  }
+
+  handleCommand(view, result, selType, searchString) {
+    switch (selType) {
+      case RESULT_MENU_COMMAND.HELP:
+      case RESULT_MENU_COMMAND.MANAGE:
+        // "help" and "manage" are handled by UrlbarInput, no need to do
+        // anything here.
+        break;
+      // selType == "dismiss" when the user presses the dismiss key shortcut.
+      case "dismiss":
+      case RESULT_MENU_COMMAND.NOT_RELEVANT:
+        lazy.QuickSuggest.blockedSuggestions.add(result.payload.originalUrl);
+        result.acknowledgeDismissalL10n = {
+          id: "firefox-suggest-dismissal-acknowledgment-one-fakespot",
+        };
+        view.controller.removeResult(result);
+        break;
+      case RESULT_MENU_COMMAND.NOT_INTERESTED:
+        lazy.UrlbarPrefs.set("suggest.fakespot", false);
+        result.acknowledgeDismissalL10n = {
+          id: "firefox-suggest-dismissal-acknowledgment-all-fakespot",
+        };
+        view.controller.removeResult(result);
+        break;
+      case RESULT_MENU_COMMAND.SHOW_LESS_FREQUENTLY:
+        view.acknowledgeFeedback(result);
+        this.incrementShowLessFrequentlyCount();
+        if (!this.canShowLessFrequently) {
+          view.invalidateResultMenuCommands();
+        }
+        lazy.UrlbarPrefs.set(
+          "fakespot.minKeywordLength",
+          searchString.length + 1
+        );
+        break;
+    }
+  }
+
+  incrementShowLessFrequentlyCount() {
+    if (this.canShowLessFrequently) {
+      lazy.UrlbarPrefs.set(
+        "fakespot.showLessFrequentlyCount",
+        this.showLessFrequentlyCount + 1
+      );
+    }
+  }
+
+  get #minKeywordLength() {
+    let minLength =
+      lazy.UrlbarPrefs.get("fakespot.minKeywordLength") ||
+      lazy.UrlbarPrefs.get("fakespotMinKeywordLength") ||
+      0;
+    return Math.max(minLength, 0);
   }
 }

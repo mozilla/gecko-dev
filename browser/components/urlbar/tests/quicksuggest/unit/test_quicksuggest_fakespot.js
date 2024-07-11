@@ -1,0 +1,710 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+// Tests Fakespot suggestions.
+
+"use strict";
+
+// TODO: Replace with proper remote settings data once the Fakespot Rust feature
+// is vendored in to mozilla-central.
+const DUMMY_SUGGESTIONS = [
+  {
+    source: "rust",
+    provider: "Fakespot",
+    url: "https://example.com/fakespot-0",
+    title: "Example Fakespot suggestion",
+    rating: 4.6,
+    fakespotGrade: "A",
+    totalReviews: 167,
+    productId: "fakespot-0",
+    score: 0.68416834,
+    is_sponsored: true,
+  },
+  {
+    source: "rust",
+    provider: "Fakespot",
+    url: "https://example.com/fakespot-1",
+    title: "Another Fakespot suggestion",
+    rating: 3.5,
+    fakespotGrade: "B",
+    totalReviews: 100,
+    productId: "fakespot-1",
+    score: 0.5,
+    is_sponsored: true,
+  },
+];
+
+const PRIMARY_SEARCH_STRING = "example";
+const PRIMARY_TITLE = DUMMY_SUGGESTIONS[0].title;
+const PRIMARY_URL = DUMMY_SUGGESTIONS[0].url;
+
+add_setup(async function () {
+  Services.prefs.setBoolPref("browser.search.suggest.enabled", false);
+
+  await QuickSuggestTestUtils.ensureQuickSuggestInit({
+    remoteSettingsRecords: [],
+    prefs: [
+      ["suggest.quicksuggest.sponsored", true],
+      ["suggest.fakespot", true],
+      ["fakespot.featureGate", true],
+    ],
+  });
+
+  let sandbox = sinon.createSandbox();
+  sandbox
+    .stub(QuickSuggest.rustBackend, "query")
+    .callsFake(async () => DUMMY_SUGGESTIONS);
+});
+
+add_task(async function telemetryType() {
+  Assert.equal(
+    QuickSuggest.getFeature("FakespotSuggestions").getSuggestionTelemetryType(
+      {}
+    ),
+    "fakespot",
+    "Telemetry type should be 'fakespot'"
+  );
+});
+
+// When sponsored suggestions are disabled, Fakespot suggestions should be
+// disabled.
+add_task(async function sponsoredDisabled() {
+  UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", false);
+
+  // First make sure the suggestion is added when sponsored suggestions are
+  // enabled, if the rust is enabled.
+  await check_results({
+    context: createContext(PRIMARY_SEARCH_STRING, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [makeExpectedResult()],
+  });
+
+  // Now disable the pref.
+  UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
+  Assert.ok(
+    !QuickSuggest.getFeature("FakespotSuggestions").isEnabled,
+    "Fakespot should be disabled"
+  );
+  await check_results({
+    context: createContext(PRIMARY_SEARCH_STRING, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [],
+  });
+
+  UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
+  UrlbarPrefs.clear("suggest.quicksuggest.nonsponsored");
+  await QuickSuggestTestUtils.forceSync();
+
+  // Make sure Fakespot is enabled again.
+  Assert.ok(
+    QuickSuggest.getFeature("FakespotSuggestions").isEnabled,
+    "Fakespot should be re-enabled"
+  );
+  await check_results({
+    context: createContext(PRIMARY_SEARCH_STRING, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [makeExpectedResult()],
+  });
+});
+
+// When Fakespot-specific preferences are disabled, suggestions should not be
+// added.
+add_task(async function fakespotSpecificPrefsDisabled() {
+  const prefs = ["suggest.fakespot", "fakespot.featureGate"];
+  for (const pref of prefs) {
+    // First make sure the suggestion is added.
+    await check_results({
+      context: createContext(PRIMARY_SEARCH_STRING, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [makeExpectedResult()],
+    });
+
+    // Now disable the pref.
+    UrlbarPrefs.set(pref, false);
+    Assert.ok(
+      !QuickSuggest.getFeature("FakespotSuggestions").isEnabled,
+      "Fakespot should be disabled"
+    );
+    await check_results({
+      context: createContext(PRIMARY_SEARCH_STRING, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [],
+    });
+
+    // Revert.
+    UrlbarPrefs.set(pref, true);
+    await QuickSuggestTestUtils.forceSync();
+
+    // Make sure Fakespot is enabled again.
+    Assert.ok(
+      QuickSuggest.getFeature("FakespotSuggestions").isEnabled,
+      "Fakespot should be re-enabled"
+    );
+    await check_results({
+      context: createContext(PRIMARY_SEARCH_STRING, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [makeExpectedResult()],
+    });
+  }
+});
+
+// Check whether suggestions will be shown by the setup of Nimbus variable.
+add_task(async function featureGate() {
+  // Disable the feature gate.
+  UrlbarPrefs.set("fakespot.featureGate", false);
+  await check_results({
+    context: createContext(PRIMARY_SEARCH_STRING, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [],
+  });
+
+  // Enable by Nimbus.
+  const cleanUpNimbusEnable = await UrlbarTestUtils.initNimbusFeature({
+    fakespotFeatureGate: true,
+  });
+  await QuickSuggestTestUtils.forceSync();
+  await check_results({
+    context: createContext(PRIMARY_SEARCH_STRING, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [makeExpectedResult()],
+  });
+  await cleanUpNimbusEnable();
+
+  // Enable locally.
+  UrlbarPrefs.set("fakespot.featureGate", true);
+  await QuickSuggestTestUtils.forceSync();
+
+  // Disable by Nimbus.
+  const cleanUpNimbusDisable = await UrlbarTestUtils.initNimbusFeature({
+    fakespotFeatureGate: false,
+  });
+  await check_results({
+    context: createContext(PRIMARY_SEARCH_STRING, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [],
+  });
+  await cleanUpNimbusDisable();
+
+  // Revert.
+  UrlbarPrefs.set("fakespot.featureGate", true);
+  await QuickSuggestTestUtils.forceSync();
+});
+
+// Tests the "Not relevant" command: a dismissed suggestion shouldn't be added.
+add_task(async function notRelevant() {
+  let result = makeExpectedResult();
+
+  info("Triggering the 'Not relevant' command");
+  QuickSuggest.getFeature("FakespotSuggestions").handleCommand(
+    {
+      controller: { removeResult() {} },
+    },
+    result,
+    "not_relevant"
+  );
+  await QuickSuggest.blockedSuggestions._test_readyPromise;
+
+  Assert.ok(
+    await QuickSuggest.blockedSuggestions.has(result.payload.originalUrl),
+    "The result's URL should be blocked"
+  );
+
+  // Do a search that matches both suggestions. The non-blocked suggestion
+  // should be returned.
+  info("Doing search for blocked suggestion");
+  await check_results({
+    context: createContext("fakespot", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [
+      makeExpectedResult({
+        url: DUMMY_SUGGESTIONS[1].url,
+        title: DUMMY_SUGGESTIONS[1].title,
+        rating: DUMMY_SUGGESTIONS[1].rating,
+        totalReviews: DUMMY_SUGGESTIONS[1].totalReviews,
+        fakespotGrade: DUMMY_SUGGESTIONS[1].fakespotGrade,
+      }),
+    ],
+  });
+
+  info("Clearing blocked suggestions");
+  await QuickSuggest.blockedSuggestions.clear();
+
+  // Do another search that matches both suggestions. The now-unblocked
+  // suggestion should be returned since it has a higher score.
+  info("Doing search for unblocked suggestion");
+  await check_results({
+    context: createContext(PRIMARY_SEARCH_STRING, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [result],
+  });
+});
+
+// Tests the "Not interested" command: all suggestions should be disabled and
+// not added anymore.
+add_task(async function notInterested() {
+  let result = makeExpectedResult();
+
+  info("Triggering the 'Not interested' command");
+  QuickSuggest.getFeature("FakespotSuggestions").handleCommand(
+    {
+      controller: { removeResult() {} },
+    },
+    result,
+    "not_interested"
+  );
+
+  Assert.ok(
+    !UrlbarPrefs.get("suggest.fakespot"),
+    "Fakespot suggestions should be disabled"
+  );
+
+  info("Doing search for the suggestion the command was used on");
+  await check_results({
+    context: createContext(PRIMARY_SEARCH_STRING, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [],
+  });
+
+  info("Doing search for another Fakespot suggestion");
+  await check_results({
+    context: createContext("another", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [],
+  });
+
+  UrlbarPrefs.clear("suggest.fakespot");
+  await QuickSuggestTestUtils.forceSync();
+});
+
+// Tests the "show less frequently" behavior.
+add_task(async function showLessFrequently() {
+  UrlbarPrefs.clear("fakespot.showLessFrequentlyCount");
+  UrlbarPrefs.clear("fakespot.minKeywordLength");
+
+  let cleanUpNimbus = await UrlbarTestUtils.initNimbusFeature({
+    fakespotMinKeywordLength: 0,
+    fakespotShowLessFrequentlyCap: 3,
+  });
+
+  let result = makeExpectedResult();
+
+  const testData = [
+    {
+      input: "example",
+      before: {
+        canShowLessFrequently: true,
+        showLessFrequentlyCount: 0,
+        minKeywordLength: 0,
+      },
+      after: {
+        canShowLessFrequently: true,
+        showLessFrequentlyCount: 1,
+        minKeywordLength: 8,
+      },
+    },
+    {
+      input: "example f",
+      before: {
+        canShowLessFrequently: true,
+        showLessFrequentlyCount: 1,
+        minKeywordLength: 8,
+      },
+      after: {
+        canShowLessFrequently: true,
+        showLessFrequentlyCount: 2,
+        minKeywordLength: 10,
+      },
+    },
+    {
+      input: "example fa",
+      before: {
+        canShowLessFrequently: true,
+        showLessFrequentlyCount: 2,
+        minKeywordLength: 10,
+      },
+      after: {
+        canShowLessFrequently: false,
+        showLessFrequentlyCount: 3,
+        minKeywordLength: 11,
+      },
+    },
+    {
+      input: "example fak",
+      before: {
+        canShowLessFrequently: false,
+        showLessFrequentlyCount: 3,
+        minKeywordLength: 11,
+      },
+      after: {
+        canShowLessFrequently: false,
+        showLessFrequentlyCount: 3,
+        minKeywordLength: 12,
+      },
+    },
+  ];
+
+  for (let { input, before, after } of testData) {
+    let feature = QuickSuggest.getFeature("FakespotSuggestions");
+
+    await check_results({
+      context: createContext(input, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [result],
+    });
+
+    Assert.equal(
+      UrlbarPrefs.get("fakespot.minKeywordLength"),
+      before.minKeywordLength
+    );
+    Assert.equal(feature.canShowLessFrequently, before.canShowLessFrequently);
+    Assert.equal(
+      feature.showLessFrequentlyCount,
+      before.showLessFrequentlyCount
+    );
+
+    feature.handleCommand(
+      {
+        acknowledgeFeedback: () => {},
+        invalidateResultMenuCommands: () => {},
+      },
+      result,
+      "show_less_frequently",
+      input
+    );
+
+    Assert.equal(
+      UrlbarPrefs.get("fakespot.minKeywordLength"),
+      after.minKeywordLength
+    );
+    Assert.equal(feature.canShowLessFrequently, after.canShowLessFrequently);
+    Assert.equal(
+      feature.showLessFrequentlyCount,
+      after.showLessFrequentlyCount
+    );
+
+    await check_results({
+      context: createContext(input, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [],
+    });
+  }
+
+  await cleanUpNimbus();
+  UrlbarPrefs.clear("fakespot.showLessFrequentlyCount");
+  UrlbarPrefs.clear("fakespot.minKeywordLength");
+});
+
+add_task(async function minKeywordLength_noPrefValue() {
+  await doMinKeywordLengthTest({
+    // expected min length: 5 (Nimbus value)
+    prefValue: null,
+    nimbusValue: 5,
+    tests: [
+      {
+        query: "ex",
+        expected: null,
+      },
+      {
+        query: "exa",
+        expected: null,
+      },
+      {
+        query: "exam",
+        expected: null,
+      },
+      {
+        query: "examp",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+      {
+        query: "example",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+      {
+        query: "example f",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+    ],
+  });
+});
+
+add_task(async function minKeywordLength_smallerPrefValue() {
+  await doMinKeywordLengthTest({
+    // expected min length: 4 (pref value)
+    prefValue: 4,
+    nimbusValue: 5,
+    tests: [
+      {
+        query: "ex",
+        expected: null,
+      },
+      {
+        query: "exa",
+        expected: null,
+      },
+      {
+        query: "exam",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+      {
+        query: "examp",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+      {
+        query: "example f",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+    ],
+  });
+});
+
+add_task(async function minKeywordLength_largerPrefValue() {
+  await doMinKeywordLengthTest({
+    // expected min length: 6 (pref value)
+    prefValue: 6,
+    nimbusValue: 5,
+    tests: [
+      {
+        query: "ex",
+        expected: null,
+      },
+      {
+        query: "exa",
+        expected: null,
+      },
+      {
+        query: "exam",
+        expected: null,
+      },
+      {
+        query: "examp",
+        expected: null,
+      },
+      {
+        query: "exampl",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+      {
+        query: "example f",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+    ],
+  });
+});
+
+add_task(async function minKeywordLength_onlyPrefValue() {
+  await doMinKeywordLengthTest({
+    // expected min length: 5 (pref value)
+    prefValue: 5,
+    nimbusValue: null,
+    tests: [
+      {
+        query: "ex",
+        expected: null,
+      },
+      {
+        query: "exa",
+        expected: null,
+      },
+      {
+        query: "exam",
+        expected: null,
+      },
+      {
+        query: "examp",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+      {
+        query: "example f",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+    ],
+  });
+});
+
+// When no min length is defined in Nimbus or the pref, we should fall back to
+// the hardcoded value of 2.
+add_task(async function minKeywordLength_noNimbusOrPrefValue() {
+  await doMinKeywordLengthTest({
+    // expected min length: 2 (hardcoded)
+    prefValue: null,
+    nimbusValue: null,
+    tests: [
+      {
+        query: "ex",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+      {
+        query: "exa",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+      {
+        query: "exam",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+      {
+        query: "example f",
+        expected: {
+          url: PRIMARY_URL,
+          title: PRIMARY_TITLE,
+        },
+      },
+    ],
+  });
+});
+
+async function doMinKeywordLengthTest({ prefValue, nimbusValue, tests }) {
+  // Set or clear the pref.
+  let originalPrefValue = Services.prefs.prefHasUserValue(
+    "browser.urlbar.fakespot.minKeywordLength"
+  )
+    ? UrlbarPrefs.get("fakespot.minKeywordLength")
+    : null;
+  if (typeof prefValue == "number") {
+    UrlbarPrefs.set("fakespot.minKeywordLength", prefValue);
+  } else {
+    UrlbarPrefs.clear("fakespot.minKeywordLength");
+  }
+
+  // Set up Nimbus.
+  let cleanUpNimbus;
+  if (typeof nimbusValue == "number") {
+    cleanUpNimbus = await UrlbarTestUtils.initNimbusFeature({
+      fakespotMinKeywordLength: nimbusValue,
+    });
+  }
+
+  for (let { query, expected } of tests) {
+    info("Running min keyword length test with query: " + query);
+    await check_results({
+      context: createContext(query, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: expected ? [makeExpectedResult(expected)] : [],
+    });
+  }
+
+  await cleanUpNimbus?.();
+
+  if (originalPrefValue === null) {
+    UrlbarPrefs.clear("fakespot.minKeywordLength");
+  } else {
+    UrlbarPrefs.set("fakespot.minKeywordLength", originalPrefValue);
+  }
+}
+
+function makeExpectedResult({
+  url = PRIMARY_URL,
+  title = PRIMARY_TITLE,
+  suggestedIndex = 0,
+  isSuggestedIndexRelativeToGroup = true,
+  originalUrl = undefined,
+  displayUrl = undefined,
+  rating = DUMMY_SUGGESTIONS[0].rating,
+  totalReviews = DUMMY_SUGGESTIONS[0].totalReviews,
+  fakespotGrade = DUMMY_SUGGESTIONS[0].fakespotGrade,
+} = {}) {
+  originalUrl ??= url;
+
+  displayUrl =
+    displayUrl ??
+    url
+      .replace(/^https:\/\//, "")
+      .replace(/^www[.]/, "")
+      .replace("%20", " ")
+      .replace("%2C", ",");
+
+  return {
+    type: UrlbarUtils.RESULT_TYPE.DYNAMIC,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
+    isBestMatch: false,
+    suggestedIndex,
+    isSuggestedIndexRelativeToGroup,
+    heuristic: false,
+    payload: {
+      source: "rust",
+      provider: "Fakespot",
+      telemetryType: "fakespot",
+      url,
+      originalUrl,
+      title,
+      displayUrl,
+      rating,
+      totalReviews,
+      fakespotGrade,
+      shouldNavigate: true,
+      dynamicType: "fakespot",
+    },
+  };
+}

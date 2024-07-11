@@ -650,6 +650,17 @@ pref("browser.urlbar.yelp.priority", false);
 // Yelp suggestions are turned on.
 pref("browser.urlbar.suggest.yelp", true);
 
+// Feature gate pref for Fakespot suggestions in the urlbar.
+pref("browser.urlbar.fakespot.featureGate", false);
+
+// The minimum prefix length of a Fakespot keyword the user must type to trigger
+// the suggestion. 0 means the min length should be taken from Nimbus.
+pref("browser.urlbar.fakespot.minKeywordLength", 0);
+
+// If `browser.urlbar.fakespot.featureGate` is true, this controls whether
+// Fakespot suggestions are turned on.
+pref("browser.urlbar.suggest.fakespot", true);
+
 // The minimum prefix length of addons keyword the user must type to trigger
 // the suggestion. 0 means the min length should be taken from Nimbus.
 pref("browser.urlbar.addons.minKeywordLength", 0);

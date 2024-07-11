@@ -223,6 +223,19 @@ urlbar:
       description: >-
         Feature gate that controls whether all aspects of the Fakespot suggestion
         feature are exposed to the user.
+    fakespotMinKeywordLength:
+      type: int
+      description: >-
+        The minimum prefix length of a Fakespot keyword the user must type to
+        trigger the suggestion.
+    fakespotShowLessFrequentlyCap:
+      type: int
+      fallbackPref: browser.urlbar.fakespot.showLessFrequentlyCap
+      description: >-
+        If defined and non-zero, this is the maximum number of times the user
+        will be able to click the "Show less frequently" command for Fakespot
+        suggestions. If undefined or zero, the user will be able to click the
+        command without any limit.
     mdnFeatureGate:
       type: boolean
       setPref:
