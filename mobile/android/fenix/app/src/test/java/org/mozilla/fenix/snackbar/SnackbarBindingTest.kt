@@ -207,6 +207,64 @@ class SnackbarBindingTest {
     }
 
     @Test
+    fun `WHEN the shortcut added state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
+        val appStore = AppStore()
+        val binding = SnackbarBinding(
+            browserStore = mock(),
+            appStore = appStore,
+            snackbarDelegate = snackbarDelegate,
+            navController = navController,
+            customTabSessionId = null,
+        )
+
+        binding.start()
+
+        appStore.dispatch(
+            AppAction.ShortcutAction.ShortcutAdded,
+        )
+
+        // Wait for ShortcutAction.ShortcutAdded,
+        appStore.waitUntilIdle()
+        // Wait for SnackbarAction.SnackbarShown
+        appStore.waitUntilIdle()
+
+        assertEquals(SnackbarState.None, appStore.state.snackbarState)
+        verify(snackbarDelegate).show(
+            text = R.string.snackbar_added_to_shortcuts,
+            duration = FenixSnackbar.LENGTH_LONG,
+        )
+    }
+
+    @Test
+    fun `WHEN the shortcut removed state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
+        val appStore = AppStore()
+        val binding = SnackbarBinding(
+            browserStore = mock(),
+            appStore = appStore,
+            snackbarDelegate = snackbarDelegate,
+            navController = navController,
+            customTabSessionId = null,
+        )
+
+        binding.start()
+
+        appStore.dispatch(
+            AppAction.ShortcutAction.ShortcutRemoved,
+        )
+
+        // Wait for ShortcutAction.ShortcutRemoved,
+        appStore.waitUntilIdle()
+        // Wait for SnackbarAction.SnackbarShown
+        appStore.waitUntilIdle()
+
+        assertEquals(SnackbarState.None, appStore.state.snackbarState)
+        verify(snackbarDelegate).show(
+            text = R.string.snackbar_top_site_removed,
+            duration = FenixSnackbar.LENGTH_LONG,
+        )
+    }
+
+    @Test
     fun `WHEN the delete and quit selected state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
         val appStore = AppStore()
         val binding = SnackbarBinding(

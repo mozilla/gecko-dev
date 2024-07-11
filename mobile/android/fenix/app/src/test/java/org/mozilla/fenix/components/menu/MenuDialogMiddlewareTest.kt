@@ -35,6 +35,7 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.bookmarks.BookmarksUseCase.AddBookmarksUseCase
 import org.mozilla.fenix.components.menu.fake.FakeBookmarksStorage
@@ -327,6 +328,7 @@ class MenuDialogMiddlewareTest {
     fun `WHEN add to shortcuts action is dispatched for a selected tab THEN the site is pinned`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
+        var dismissedWasCalled = false
 
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
@@ -334,22 +336,30 @@ class MenuDialogMiddlewareTest {
                 title = title,
             ),
         )
+        val appStore = spy(AppStore())
         val store = createStore(
+            appStore = appStore,
             menuState = MenuState(
                 browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissedWasCalled = true },
         )
 
         store.dispatch(MenuAction.AddShortcut)
         store.waitUntilIdle()
 
         verify(addPinnedSiteUseCase).invoke(url = url, title = title)
+        verify(appStore).dispatch(
+            AppAction.ShortcutAction.ShortcutAdded,
+        )
+        assertTrue(dismissedWasCalled)
     }
 
     @Test
     fun `GIVEN selected tab is pinned WHEN add to shortcuts action is dispatched THEN add pinned site use case is never called`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
+        var dismissedWasCalled = false
 
         whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(
             listOf(
@@ -373,10 +383,13 @@ class MenuDialogMiddlewareTest {
                 title = title,
             ),
         )
+        val appStore = spy(AppStore())
         val store = createStore(
+            appStore = appStore,
             menuState = MenuState(
                 browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissedWasCalled = true },
         )
 
         // Wait for InitAction and middleware
@@ -391,12 +404,17 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(addPinnedSiteUseCase, never()).invoke(url = url, title = title)
+        verify(appStore, never()).dispatch(
+            AppAction.ShortcutAction.ShortcutAdded,
+        )
+        assertFalse(dismissedWasCalled)
     }
 
     @Test
     fun `WHEN remove from shortcuts action is dispatched for a selected tab THEN remove pinned site use case is never called`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
+        var dismissedWasCalled = false
 
         val topSite = TopSite.Pinned(
             id = 0,
@@ -410,10 +428,13 @@ class MenuDialogMiddlewareTest {
                 title = title,
             ),
         )
+        val appStore = spy(AppStore())
         val store = createStore(
+            appStore = appStore,
             menuState = MenuState(
                 browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissedWasCalled = true },
         )
 
         // Wait for InitAction and middleware
@@ -425,6 +446,10 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(removePinnedSiteUseCase, never()).invoke(topSite = topSite)
+        verify(appStore, never()).dispatch(
+            AppAction.ShortcutAction.ShortcutRemoved,
+        )
+        assertFalse(dismissedWasCalled)
     }
 
     @Test
@@ -437,6 +462,7 @@ class MenuDialogMiddlewareTest {
             url = url,
             createdAt = 0,
         )
+        var dismissedWasCalled = false
 
         whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(listOf(topSite))
 
@@ -446,10 +472,13 @@ class MenuDialogMiddlewareTest {
                 title = title,
             ),
         )
+        val appStore = spy(AppStore())
         val store = createStore(
+            appStore = appStore,
             menuState = MenuState(
                 browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissedWasCalled = true },
         )
 
         // Wait for InitAction and middleware
@@ -464,12 +493,17 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(removePinnedSiteUseCase).invoke(topSite = topSite)
+        verify(appStore).dispatch(
+            AppAction.ShortcutAction.ShortcutRemoved,
+        )
+        assertTrue(dismissedWasCalled)
     }
 
     @Test
     fun `GIVEN maximum number of top sites is reached WHEN add to shortcuts action is dispatched THEN add pinned site use case is never called`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
+        var dismissedWasCalled = false
 
         val pinnedSitesList = mutableListOf<TopSite>()
 
@@ -492,10 +526,13 @@ class MenuDialogMiddlewareTest {
                 title = title,
             ),
         )
+        val appStore = spy(AppStore())
         val store = createStore(
+            appStore = appStore,
             menuState = MenuState(
                 browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissedWasCalled = true },
         )
 
         // Wait for InitAction and middleware
@@ -510,6 +547,10 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(addPinnedSiteUseCase, never()).invoke(url = url, title = title)
+        verify(appStore, never()).dispatch(
+            AppAction.ShortcutAction.ShortcutAdded,
+        )
+        assertFalse(dismissedWasCalled)
     }
 
     @Test

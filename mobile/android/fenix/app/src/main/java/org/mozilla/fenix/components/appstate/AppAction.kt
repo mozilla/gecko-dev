@@ -378,6 +378,21 @@ sealed class AppAction : Action {
     }
 
     /**
+     * [AppAction]s related to shortcuts.
+     */
+    sealed class ShortcutAction : AppAction() {
+        /**
+         * [ShortcutAction] dispatched when a shortcut is added.
+         */
+        data object ShortcutAdded : ShortcutAction()
+
+        /**
+         * [ShortcutAction] dispatched when a shortcut is removed.
+         */
+        data object ShortcutRemoved : ShortcutAction()
+    }
+
+    /**
      * [AppAction]s related to the snackbar.
      */
     sealed class SnackbarAction : AppAction() {

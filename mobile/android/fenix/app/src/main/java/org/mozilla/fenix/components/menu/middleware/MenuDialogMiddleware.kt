@@ -202,6 +202,12 @@ class MenuDialogMiddleware(
             title = selectedTab.content.title,
             url = url,
         )
+
+        appStore.dispatch(
+            AppAction.ShortcutAction.ShortcutAdded,
+        )
+
+        onDismiss()
     }
 
     private fun removeShortcut(
@@ -219,6 +225,12 @@ class MenuDialogMiddleware(
             .firstOrNull { it.url == url } ?: return@launch
 
         removePinnedSitesUseCase(topSite = topSite)
+
+        appStore.dispatch(
+            AppAction.ShortcutAction.ShortcutRemoved,
+        )
+
+        onDismiss()
     }
 
     private fun deleteBrowsingDataAndQuit() = scope.launch {

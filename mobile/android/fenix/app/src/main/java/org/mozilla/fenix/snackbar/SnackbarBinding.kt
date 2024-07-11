@@ -75,6 +75,22 @@ class SnackbarBinding(
                         appStore.dispatch(SnackbarAction.SnackbarShown)
                     }
 
+                    is SnackbarState.ShortcutAdded -> {
+                        snackbarDelegate.show(
+                            text = R.string.snackbar_added_to_shortcuts,
+                            duration = FenixSnackbar.LENGTH_LONG,
+                        )
+                        appStore.dispatch(SnackbarAction.SnackbarShown)
+                    }
+
+                    is SnackbarState.ShortcutRemoved -> {
+                        snackbarDelegate.show(
+                            text = R.string.snackbar_top_site_removed,
+                            duration = FenixSnackbar.LENGTH_LONG,
+                        )
+                        appStore.dispatch(SnackbarAction.SnackbarShown)
+                    }
+
                     is SnackbarState.DeletingBrowserDataInProgress -> {
                         snackbarDelegate.show(
                             text = R.string.deleting_browsing_data_in_progress,

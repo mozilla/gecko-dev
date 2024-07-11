@@ -115,7 +115,11 @@ private fun ShortcutsMenuItem(
         } else {
             stringResource(id = R.string.browser_menu_add_to_shortcuts)
         },
-        beforeIconPainter = painterResource(id = R.drawable.mozac_ic_pin_slash_fill_24),
+        beforeIconPainter = if (isPinned) {
+            painterResource(id = R.drawable.mozac_ic_pin_slash_fill_24)
+        } else {
+            painterResource(id = R.drawable.mozac_ic_pin_24)
+        },
         state = if (isPinned) {
             MenuItemState.ACTIVE
         } else {

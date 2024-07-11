@@ -260,6 +260,7 @@ internal object AppStoreReducer {
             state.copy(snackbarState = SnackbarState.DeletingBrowserDataInProgress)
         }
 
+        is AppAction.ShortcutAction -> ShortcutStateReducer.reduce(state, action)
         is AppAction.ShoppingAction -> ShoppingStateReducer.reduce(state, action)
         is AppAction.SnackbarAction -> SnackbarStateReducer.reduce(state, action)
     }
