@@ -43,8 +43,6 @@ tags = "overflowable-toolbar"
 # MacOS builds in browser_876926_customize_mode_wrapping.js
 skip-if = ["os == 'mac' && debug"]
 
-["browser_1880230_hideInNonPrivateBrowsing.js"]
-
 ["browser_694291_searchbar_preference.js"]
 
 ["browser_873501_handle_specials.js"]

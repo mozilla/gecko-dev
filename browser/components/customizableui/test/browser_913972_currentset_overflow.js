@@ -20,8 +20,6 @@ add_task(async function () {
   ok(CustomizableUI.inDefaultState, "Should start in default state.");
   let navbarTarget = CustomizableUI.getCustomizationTarget(navbar);
   let oldChildCount = navbarTarget.childElementCount;
-  let placements = [...navbarTarget.children].map(node => node.id);
-
   window.resizeTo(kForceOverflowWidthPx, window.outerHeight);
   await TestUtils.waitForCondition(
     () => navbar.hasAttribute("overflowing"),
@@ -53,6 +51,9 @@ add_task(async function () {
 
   // Verify actual physical placements match those of the placement array:
   let placementCounter = 0;
+  let placements = CustomizableUI.getWidgetIdsInArea(
+    CustomizableUI.AREA_NAVBAR
+  );
   for (let node of navbarTarget.children) {
     if (node.getAttribute("skipintoolbarset") == "true") {
       continue;
