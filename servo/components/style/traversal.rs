@@ -621,7 +621,6 @@ where
 
                     context.thread_local.sharing_cache.insert_if_possible(
                         &element,
-                        &new_styles.primary,
                         Some(&mut target),
                         traversal_data.current_dom_depth,
                         &context.shared,
@@ -682,7 +681,6 @@ where
             if !new_styles.primary.reused_via_rule_node {
                 context.thread_local.sharing_cache.insert_if_possible(
                     &element,
-                    &new_styles.primary,
                     None,
                     traversal_data.current_dom_depth,
                     &context.shared,

@@ -236,6 +236,7 @@ where
             },
             parent_style,
             layout_parent_style,
+            include_starting_style,
             primary_results.has_starting_style,
         )
     }
@@ -245,6 +246,7 @@ where
         inputs: CascadeInputs,
         parent_style: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValues>,
+        include_starting_style: IncludeStartingStyle,
         may_have_starting_style: bool,
     ) -> PrimaryStyle {
         // Before doing the cascade, check the sharing cache and see if we can
@@ -252,6 +254,7 @@ where
         let may_reuse = self.element.matches_user_and_content_rules() &&
             parent_style.is_some() &&
             inputs.rules.is_some() &&
+            include_starting_style == IncludeStartingStyle::No &&
             // If this style was considered in any way for relative selector matching,
             // we do not want to lose that fact by sharing a style with something that
             // did not.
@@ -413,6 +416,7 @@ where
                 inputs.primary,
                 parent_style,
                 layout_parent_style,
+                IncludeStartingStyle::No,
                 may_have_starting_style,
             );
 
