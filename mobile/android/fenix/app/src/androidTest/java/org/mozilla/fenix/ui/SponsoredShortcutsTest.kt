@@ -118,7 +118,7 @@ class SponsoredShortcutsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(firstWebPage.url) {
             verifyPageContent(firstWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
         }.addToFirefoxHome {
         }.goToHomescreen {
             verifyExistingTopSitesTabs(firstWebPage.title)
@@ -126,7 +126,7 @@ class SponsoredShortcutsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(secondWebPage.url) {
             verifyPageContent(secondWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
         }.addToFirefoxHome {
         }.goToHomescreen {
             verifyExistingTopSitesTabs(secondWebPage.title)
@@ -134,7 +134,7 @@ class SponsoredShortcutsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(thirdWebPage.url) {
             verifyPageContent(thirdWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
         }.addToFirefoxHome {
         }.goToHomescreen {
             verifyExistingTopSitesTabs(thirdWebPage.title)
@@ -142,7 +142,7 @@ class SponsoredShortcutsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(fourthWebPage.url) {
             verifyPageContent(fourthWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
         }.addToFirefoxHome {
         }.goToHomescreen {
             verifySponsoredShortcutDetails(sponsoredShortcutTitle, 2)
@@ -170,7 +170,7 @@ class SponsoredShortcutsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(firstWebPage.url) {
             verifyPageContent(firstWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
         }.addToFirefoxHome {
         }.goToHomescreen {
             verifyExistingTopSitesTabs(firstWebPage.title)
@@ -178,7 +178,7 @@ class SponsoredShortcutsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(secondWebPage.url) {
             verifyPageContent(secondWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
         }.addToFirefoxHome {
         }.goToHomescreen {
             verifyExistingTopSitesTabs(secondWebPage.title)
@@ -186,7 +186,7 @@ class SponsoredShortcutsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(thirdWebPage.url) {
             verifyPageContent(thirdWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
         }.addToFirefoxHome {
         }.goToHomescreen {
             verifyExistingTopSitesTabs(thirdWebPage.title)
@@ -194,7 +194,7 @@ class SponsoredShortcutsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(fourthWebPage.url) {
             verifyPageContent(fourthWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
         }.addToFirefoxHome {
         }.goToHomescreen {
             verifyExistingTopSitesTabs(fourthWebPage.title)
@@ -202,7 +202,7 @@ class SponsoredShortcutsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(fifthWebPage.url) {
             verifyPageContent(fifthWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
         }.addToFirefoxHome {
         }.goToHomescreen {
             verifySponsoredShortcutDoesNotExist(sponsoredShortcutTitle, 2)

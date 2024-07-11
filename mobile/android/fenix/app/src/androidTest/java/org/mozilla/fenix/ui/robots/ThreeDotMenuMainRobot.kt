@@ -99,11 +99,15 @@ class ThreeDotMenuMainRobot {
     }
 
     fun verifyQuitButtonExists() {
-        // Need to double swipe the menu, to make this button visible.
+        expandMenuFully()
+        assertUIObjectExists(itemWithText("Quit"))
+    }
+
+    fun expandMenuFully() {
+        // Need to double swipe the menu, to make some buttons.
         // In case it reaches the end, the second swipe is no-op.
         expandMenu()
         expandMenu()
-        assertUIObjectExists(itemWithText("Quit"))
     }
 
     fun expandMenu() {

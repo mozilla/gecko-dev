@@ -48,7 +48,7 @@ class TopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             verifyPageContent(defaultWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(shouldExist = true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
@@ -70,7 +70,7 @@ class TopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             verifyPageContent(defaultWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(shouldExist = true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
@@ -102,7 +102,7 @@ class TopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             verifyPageContent(defaultWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(shouldExist = true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
@@ -129,7 +129,7 @@ class TopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             waitForPageToLoad()
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(shouldExist = true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
@@ -156,7 +156,7 @@ class TopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             verifyPageContent(defaultWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(shouldExist = true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
@@ -187,7 +187,7 @@ class TopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             verifyPageContent(defaultWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(shouldExist = true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))

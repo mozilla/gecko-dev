@@ -54,7 +54,7 @@ class ComposeTopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             verifyPageContent(defaultWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
@@ -76,7 +76,7 @@ class ComposeTopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             verifyPageContent(defaultWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
@@ -108,7 +108,7 @@ class ComposeTopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             verifyPageContent(defaultWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
@@ -135,7 +135,7 @@ class ComposeTopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             waitForPageToLoad()
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
@@ -162,7 +162,7 @@ class ComposeTopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             verifyPageContent(defaultWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
@@ -193,7 +193,7 @@ class ComposeTopSitesTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             verifyPageContent(defaultWebPage.content)
         }.openThreeDotMenu {
-            expandMenu()
+            expandMenuFully()
             verifyAddToShortcutsButton(true)
         }.addToFirefoxHome {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
