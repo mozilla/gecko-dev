@@ -16,6 +16,11 @@ const { ClientID } = ChromeUtils.importESModule(
   "resource://gre/modules/ClientID.sys.mjs"
 );
 
+const LAST_BACKUP_TIMESTAMP_PREF_NAME =
+  "browser.backup.scheduled.last-backup-timestamp";
+const LAST_BACKUP_FILE_NAME_PREF_NAME =
+  "browser.backup.scheduled.last-backup-file";
+
 /** @type {nsIToolkitProfile} */
 let currentProfile;
 
@@ -76,7 +81,7 @@ add_setup(function () {
  * @param {object} sandbox
  *   The Sinon sandbox to be used stubs and mocks. The test using this helper
  *   is responsible for creating and resetting this sandbox.
- * @param {function(BackupManifest): void} taskFn
+ * @param {function(BackupService, BackupManifest): void} taskFn
  *   A function that is run once all default checks are done.
  *   After this function returns, all resources will be cleaned up.
  * @returns {Promise<undefined>}
@@ -283,12 +288,101 @@ async function testCreateBackupHelper(sandbox, taskFn) {
       "initiated recovery"
   );
 
-  taskFn(manifest);
+  taskFn(bs, manifest);
 
   await maybeRemovePath(backupFilePath);
   await maybeRemovePath(fakeProfilePath);
   await maybeRemovePath(recoveredProfilePath);
   await maybeRemovePath(EXPECTED_ARCHIVE_PATH);
+}
+
+/**
+ * A utility function for testing BackupService.deleteLastBackup. This helper
+ * function:
+ *
+ * 1. Clears any pre-existing cached preference values for the last backup
+ *    date and file name.
+ * 2. Uses testCreateBackupHelper to create a backup file.
+ * 3. Ensures that the state has been updated to reflect the created backup,
+ *    and that the backup date and file name are cached to preferences.
+ * 4. Runs an optional async taskFn
+ * 5. Calls deleteLastBackup on the testCreateBackupHelper BackupService
+ *    instance.
+ * 6. Checks that the BackupService state for the last backup date and file name
+ *    have been cleared, and that the preferences caches of those values have
+ *    also been cleared.
+ *
+ * @param {function(string): Promise<void>|null} taskFn
+ *   An optional function that is run after we've created a backup, but just
+ *   before calling deleteLastBackup(). It is passed the path to the created
+ *   backup file.
+ * @returns {Promise<undefined>}
+ */
+async function testDeleteLastBackupHelper(taskFn) {
+  let sandbox = sinon.createSandbox();
+
+  // Clear any last backup filenames and timestamps that might be lingering
+  // from prior tests.
+  Services.prefs.clearUserPref(LAST_BACKUP_TIMESTAMP_PREF_NAME);
+  Services.prefs.clearUserPref(LAST_BACKUP_FILE_NAME_PREF_NAME);
+
+  await testCreateBackupHelper(sandbox, async (bs, _manifest) => {
+    Assert.ok(
+      bs.state.lastBackupDate,
+      "Should have a last backup date recorded."
+    );
+    Assert.ok(
+      bs.state.lastBackupFileName,
+      "Should have a last backup file name recorded."
+    );
+    Assert.ok(
+      Services.prefs.prefHasUserValue(LAST_BACKUP_TIMESTAMP_PREF_NAME),
+      "Last backup date was cached in preferences."
+    );
+    Assert.ok(
+      Services.prefs.prefHasUserValue(LAST_BACKUP_FILE_NAME_PREF_NAME),
+      "Last backup file name was cached in preferences."
+    );
+    const LAST_BACKUP_FILE_PATH = PathUtils.join(
+      bs.state.backupDirPath,
+      bs.state.lastBackupFileName
+    );
+    Assert.ok(
+      await IOUtils.exists(LAST_BACKUP_FILE_PATH),
+      "The backup file was created and is still on the disk."
+    );
+
+    if (taskFn) {
+      await taskFn(LAST_BACKUP_FILE_PATH);
+    }
+
+    await bs.deleteLastBackup();
+
+    Assert.equal(
+      bs.state.lastBackupDate,
+      null,
+      "Should have cleared the last backup date"
+    );
+    Assert.equal(
+      bs.state.lastBackupFileName,
+      "",
+      "Should have cleared the last backup file name"
+    );
+    Assert.ok(
+      !Services.prefs.prefHasUserValue(LAST_BACKUP_TIMESTAMP_PREF_NAME),
+      "Last backup date was cleared in preferences."
+    );
+    Assert.ok(
+      !Services.prefs.prefHasUserValue(LAST_BACKUP_FILE_NAME_PREF_NAME),
+      "Last backup file name was cleared in preferences."
+    );
+    Assert.ok(
+      !(await IOUtils.exists(LAST_BACKUP_FILE_PATH)),
+      "The backup file was deleted."
+    );
+  });
+
+  sandbox.restore();
 }
 
 /**
@@ -302,7 +396,7 @@ add_task(async function test_createBackup_signed_out() {
   sandbox
     .stub(UIState, "get")
     .returns({ status: UIState.STATUS_NOT_CONFIGURED });
-  await testCreateBackupHelper(sandbox, manifest => {
+  await testCreateBackupHelper(sandbox, (_bs, manifest) => {
     Assert.equal(
       manifest.meta.accountID,
       undefined,
@@ -335,7 +429,7 @@ add_task(async function test_createBackup_signed_in() {
     email: TEST_EMAIL,
   });
 
-  await testCreateBackupHelper(sandbox, manifest => {
+  await testCreateBackupHelper(sandbox, (_bs, manifest) => {
     Assert.equal(
       manifest.meta.accountID,
       TEST_UID,
@@ -452,4 +546,26 @@ add_task(async function test_getBackupFileInfo() {
   );
 
   sandbox.restore();
+});
+
+/**
+ * Tests that deleting the last backup will delete the last known backup file if
+ * it exists, and will clear the last backup timestamp and filename state
+ * properties and preferences.
+ */
+add_task(async function test_deleteLastBackup_file_exists() {
+  await testDeleteLastBackupHelper();
+});
+
+/**
+ * Tests that deleting the last backup does not reject if the last backup file
+ * does not exist, and will still clear the last backup timestamp and filename
+ * state properties and preferences.
+ */
+add_task(async function test__deleteLastBackup_file_does_not_exist() {
+  // Now delete the file ourselves before we call deleteLastBackup,
+  // so that it's missing from the disk.
+  await testDeleteLastBackupHelper(async lastBackupFilePath => {
+    await IOUtils.remove(lastBackupFilePath);
+  });
 });

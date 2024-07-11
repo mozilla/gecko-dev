@@ -3166,7 +3166,11 @@ export class BackupService extends EventTarget {
       await IOUtils.remove(backupFilePath, { ignoreAbsent: true });
 
       this.#_state.lastBackupDate = null;
+      Services.prefs.clearUserPref(LAST_BACKUP_TIMESTAMP_PREF_NAME);
+
       this.#_state.lastBackupFileName = "";
+      Services.prefs.clearUserPref(LAST_BACKUP_FILE_NAME_PREF_NAME);
+
       this.stateUpdate();
     } else {
       lazy.logConsole.log(
