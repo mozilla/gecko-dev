@@ -523,12 +523,13 @@ button:disabled {
     font-size: var(--font-size-large);
     font-weight: var(--font-weight-bold);
     color: var(--popup-foreground);
-    margin-block: var(--space-large);
+    margin-block: var(--space-small);
   }
 
   hr {
     width: 100%;
-    margin: 0;
+    display: inline-block;
+    margin-block: var(--space-small);
     border: none;
     border-top: 1px solid var(--popup-line);
   }
@@ -707,7 +708,7 @@ body.hcm .color-scheme-buttons {
   display: flex;
   flex-direction: column;
   width: 340px;
-  padding: 0 var(--space-large);
+  padding: var(--space-small) var(--space-large);
   max-height: calc(100vh - 7em);
   overflow-y: auto;
   font-size: 15px;
@@ -718,7 +719,7 @@ body.hcm .color-scheme-buttons {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-block-end: var(--space-large);
+  padding-block: var(--space-small);
 }
 
 .text-size-buttons {
@@ -757,7 +758,7 @@ body.hcm .color-scheme-buttons {
   display: flex;
   justify-content: space-between;
   gap: var(--space-medium);
-  padding-block-end: var(--space-large);
+  padding-block: var(--space-small);
 }
 
 .dropdown-selector {
@@ -835,13 +836,17 @@ body.hcm .color-scheme-buttons {
 }
 
 .slider-container {
-  padding-block-end: var(--space-large);
+  padding-block: var(--space-small);
+}
+
+label[for="text-alignment-buttons"] {
+  display: block;
+  padding-block-start: var(--space-small);
 }
 
 .text-alignment-buttons {
   gap: var(--space-xxsmall);
-  padding-block-end: var(--space-large);
-  margin-block-start: var(--space-small);
+  padding-block: var(--space-small);
 
   > label {
     display: flex;
@@ -901,7 +906,7 @@ body.hcm .color-scheme-buttons {
 /* Separate colors menu popup */
 
 #color-controls {
-  padding-block-end: var(--space-large);
+  padding-block: var(--space-small);
   width: 400px;
 }
 
@@ -912,6 +917,7 @@ body.hcm .color-scheme-buttons {
 button-group {
   display: flex;
   font-size: var(--font-size-small);
+  padding-block: var(--space-small);
 }
 
 button[is="named-deck-button"] {
@@ -928,11 +934,15 @@ button[is="named-deck-button"] {
   }
 }
 
+div[name="customtheme"] {
+  padding-inline: var(--space-large);
+}
+
 .custom-colors-selection {
   display: flex;
   flex-direction: column;
   gap: var(--space-small);
-  padding: var(--space-large);
+  padding: var(--space-small) 0;
   list-style-type: none;
   font-size: 15px;
   color: var(--popup-button-foreground);
@@ -940,7 +950,7 @@ button[is="named-deck-button"] {
 
 .colors-menu-color-scheme-buttons {
   flex-wrap: wrap;
-  margin-block-start: var(--space-small);
+  padding-block: var(--space-xsmall) var(--space-small);
 }
 
 .colors-menu-color-scheme-buttons > label {
@@ -1000,16 +1010,11 @@ button[is="named-deck-button"] {
   color: var(--primary-color);
   text-decoration: underline;
   font-size: 15px;
+  padding-block: var(--space-small);
   cursor: pointer;
 
   &.text-layout-reset-button {
     float: inline-end;
-    padding: 0;
-    padding-block-end: var(--space-large);
-  }
-
-  &.custom-colors-reset-button {
-    padding: 0 var(--space-large);
   }
 }
 

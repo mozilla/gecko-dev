@@ -83,7 +83,7 @@ body.hcm .narrate-word-highlight {
 }
 
 .narrate-dropdown > .dropdown-popup {
-  padding: 0 var(--space-large);
+  padding: var(--space-small) var(--space-large);
 
   button:enabled:hover {
     background-color: var(--popup-button-background-hover);
@@ -112,7 +112,7 @@ body.hcm .narrate-word-highlight {
 .narrate-row {
   display: flex;
   align-items: center;
-  padding-block-end: var(--space-large);
+  padding-block: var(--space-small);
 
   &:not(.narrate-voices) {
     direction: ltr;
