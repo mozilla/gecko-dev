@@ -108,9 +108,9 @@ RefPtr<MediaDataEncoder::EncodePromise> FFmpegDataEncoder<LIBAV_VER>::Encode(
 RefPtr<MediaDataEncoder::ReconfigurationPromise>
 FFmpegDataEncoder<LIBAV_VER>::Reconfigure(
     const RefPtr<const EncoderConfigurationChangeList>& aConfigurationChanges) {
-  return InvokeAsync<const RefPtr<const EncoderConfigurationChangeList>>(
-      mTaskQueue, this, __func__,
-      &FFmpegDataEncoder<LIBAV_VER>::ProcessReconfigure, aConfigurationChanges);
+  return InvokeAsync(mTaskQueue, this, __func__,
+                     &FFmpegDataEncoder<LIBAV_VER>::ProcessReconfigure,
+                     aConfigurationChanges);
 }
 
 RefPtr<MediaDataEncoder::EncodePromise> FFmpegDataEncoder<LIBAV_VER>::Drain() {
@@ -169,10 +169,37 @@ FFmpegDataEncoder<LIBAV_VER>::ProcessReconfigure(
 
   FFMPEG_LOG("ProcessReconfigure");
 
-  // Tracked in bug 1869583 -- for now this encoder always reports it cannot be
-  // reconfigured on the fly
-  return MediaDataEncoder::ReconfigurationPromise::CreateAndReject(
-      NS_ERROR_NOT_IMPLEMENTED, __func__);
+  bool ok = false;
+  for (const auto& confChange : aConfigurationChanges->mChanges) {
+    // A reconfiguration on the fly succeeds if all changes can be applied
+    // successfuly. In case of failure, the encoder will be drained and
+    // recreated.
+    ok &= confChange.match(
+        // Not supported yet
+        [&](const DimensionsChange& aChange) -> bool { return false; },
+        [&](const DisplayDimensionsChange& aChange) -> bool { return false; },
+        [&](const BitrateModeChange& aChange) -> bool { return false; },
+        [&](const BitrateChange& aChange) -> bool {
+          // Verified on x264
+          if (!strcmp(mCodecContext->codec->name, "libx264")) {
+            MOZ_ASSERT(aChange.get().ref() != 0);
+            mConfig.mBitrate = aChange.get().ref();
+            mCodecContext->bit_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
+            return true;
+          }
+          return false;
+        },
+        [&](const FramerateChange& aChange) -> bool { return false; },
+        [&](const UsageChange& aChange) -> bool { return false; },
+        [&](const ContentHintChange& aChange) -> bool { return false; },
+        [&](const SampleRateChange& aChange) -> bool { return false; },
+        [&](const NumberOfChannelsChange& aChange) -> bool { return false; });
+  };
+  using P = MediaDataEncoder::ReconfigurationPromise;
+  if (ok) {
+    return P::CreateAndResolve(true, __func__);
+  }
+  return P::CreateAndReject(NS_ERROR_DOM_MEDIA_FATAL_ERR, __func__);
 }
 
 RefPtr<MediaDataEncoder::EncodePromise>
