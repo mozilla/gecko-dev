@@ -27,8 +27,6 @@ support-files = [
 
 ["browser_bouncetracking_purge.js"]
 
-["browser_bouncetracking_remoteExceptions.js"]
-
 ["browser_bouncetracking_schemes.js"]
 
 ["browser_bouncetracking_simple.js"]
