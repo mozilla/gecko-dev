@@ -63,6 +63,14 @@ class WithCommonStyles extends MozLitElement {
     :host {
       font-size: var(--font-size-root);
     }
+
+    :host([theme="light"]) {
+      color-scheme: light;
+    }
+
+    :host([theme="dark"]) {
+      color-scheme: dark;
+    }
   `;
 
   static properties = {
@@ -97,13 +105,16 @@ customElements.define("with-common-styles", WithCommonStyles);
 // Wrap all stories in `with-common-styles`.
 export default {
   decorators: [
-    (story, context) =>
-      html`
+    (story, context) => {
+      const theme = context.globals.theme;
+      return html`
         <with-common-styles
           .story=${story}
           .context=${context}
+          theme=${theme}
         ></with-common-styles>
-      `,
+      `;
+    },
     withActions,
   ],
   parameters: {
@@ -116,6 +127,32 @@ export default {
       },
     },
     options: { showPanel: true },
+  },
+  globalTypes: {
+    theme: {
+      description: "Global theme",
+      defaultValue: (() => {
+        return window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      })(),
+      toolbar: {
+        title: "Theme toggle",
+        items: [
+          {
+            value: "light",
+            title: "Light",
+            icon: "circlehollow",
+          },
+          {
+            value: "dark",
+            title: "Dark",
+            icon: "circle",
+          },
+        ],
+        dynamicTitle: true,
+      },
+    },
   },
 };
 
