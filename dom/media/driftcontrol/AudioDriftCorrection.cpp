@@ -109,12 +109,11 @@ AudioSegment AudioDriftCorrection::RequestFrames(const AudioSegment& aInput,
     }
   }
 
-  if (mDriftController->DurationWithinHysteresis() >
-          mLatencyReductionTimeLimit &&
+  if (mDriftController->DurationNearDesired() > mLatencyReductionTimeLimit &&
       mDriftController->DurationSinceDesiredBufferingChange() >
           mLatencyReductionTimeLimit) {
-    // We have been stable within hysteresis for a while. Let's reduce the
-    // desired buffering if we can.
+    // We have been stable for a while.
+    // Let's reduce the desired buffering if we can.
     const media::TimeUnit sourceLatency =
         mDriftController->MeasuredSourceLatency();
     // We target 30% over the measured source latency, a bit higher than how we
