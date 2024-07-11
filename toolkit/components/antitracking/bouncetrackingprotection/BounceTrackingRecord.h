@@ -32,9 +32,9 @@ class BounceTrackingRecord final {
 
   void AddStorageAccessHost(const nsACString& aHost);
 
-  const nsTHashSet<nsCStringHashKey>& GetBounceHosts() const;
+  const nsTHashSet<nsCString>& GetBounceHosts() const;
 
-  const nsTHashSet<nsCStringHashKey>& GetStorageAccessHosts() const;
+  const nsTHashSet<nsCString>& GetStorageAccessHosts() const;
 
   // Create a string that describes this record. Used for logging.
   nsCString Describe();
@@ -49,15 +49,15 @@ class BounceTrackingRecord final {
 
   // A set of sites' hosts. All server-side and client-side redirects hit during
   // this extended navigation.
-  nsTHashSet<nsCStringHashKey> mBounceHosts;
+  nsTHashSet<nsCString> mBounceHosts;
 
   // A set of sites' hosts. All sites which accessed storage during this
   // extended navigation.
-  nsTHashSet<nsCStringHashKey> mStorageAccessHosts;
+  nsTHashSet<nsCString> mStorageAccessHosts;
 
   // Create a comma-delimited string that describes a string set. Used for
   // logging.
-  static nsCString DescribeSet(const nsTHashSet<nsCStringHashKey>& set);
+  static nsCString DescribeSet(const nsTHashSet<nsCString>& set);
 };
 
 }  // namespace mozilla

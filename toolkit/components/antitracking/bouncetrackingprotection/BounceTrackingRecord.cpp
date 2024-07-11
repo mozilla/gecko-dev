@@ -37,8 +37,7 @@ void BounceTrackingRecord::AddBounceHost(const nsACString& aHost) {
 }
 
 // static
-nsCString BounceTrackingRecord::DescribeSet(
-    const nsTHashSet<nsCStringHashKey>& set) {
+nsCString BounceTrackingRecord::DescribeSet(const nsTHashSet<nsCString>& set) {
   nsAutoCString setStr;
 
   setStr.AppendLiteral("[");
@@ -62,13 +61,12 @@ void BounceTrackingRecord::AddStorageAccessHost(const nsACString& aHost) {
   mStorageAccessHosts.Insert(aHost);
 }
 
-const nsTHashSet<nsCStringHashKey>& BounceTrackingRecord::GetBounceHosts()
-    const {
+const nsTHashSet<nsCString>& BounceTrackingRecord::GetBounceHosts() const {
   return mBounceHosts;
 }
 
-const nsTHashSet<nsCStringHashKey>&
-BounceTrackingRecord::GetStorageAccessHosts() const {
+const nsTHashSet<nsCString>& BounceTrackingRecord::GetStorageAccessHosts()
+    const {
   return mStorageAccessHosts;
 }
 
