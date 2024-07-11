@@ -1200,10 +1200,11 @@ IncrementalProgress GCRuntime::endMarkingSweepGroup(JS::GCContext* gcx,
 // Causes the given WeakCache to be swept when run.
 class ImmediateSweepWeakCacheTask : public GCParallelTask {
   Zone* zone;
-  WeakCacheBase& cache;
+  JS::detail::WeakCacheBase& cache;
 
  public:
-  ImmediateSweepWeakCacheTask(GCRuntime* gc, Zone* zone, WeakCacheBase& wc)
+  ImmediateSweepWeakCacheTask(GCRuntime* gc, Zone* zone,
+                              JS::detail::WeakCacheBase& wc)
       : GCParallelTask(gc, gcstats::PhaseKind::SWEEP_WEAK_CACHES),
         zone(zone),
         cache(wc) {}
@@ -1219,7 +1220,7 @@ class ImmediateSweepWeakCacheTask : public GCParallelTask {
     AutoUnlockHelperThreadState unlock(lock);
     AutoSetThreadIsSweeping threadIsSweeping(zone);
     SweepingTracer trc(gc->rt);
-    cache.traceWeak(&trc, WeakCacheBase::LockStoreBuffer);
+    cache.traceWeak(&trc, JS::detail::WeakCacheBase::LockStoreBuffer);
   }
 };
 
@@ -1444,14 +1445,14 @@ using WeakCacheTaskVector =
 template <typename Functor>
 static inline bool IterateWeakCaches(JSRuntime* rt, Functor f) {
   for (SweepGroupZonesIter zone(rt); !zone.done(); zone.next()) {
-    for (WeakCacheBase* cache : zone->weakCaches()) {
+    for (JS::detail::WeakCacheBase* cache : zone->weakCaches()) {
       if (!f(cache, zone.get())) {
         return false;
       }
     }
   }
 
-  for (WeakCacheBase* cache : rt->weakCaches()) {
+  for (JS::detail::WeakCacheBase* cache : rt->weakCaches()) {
     if (!f(cache, nullptr)) {
       return false;
     }
@@ -1468,18 +1469,19 @@ static bool PrepareWeakCacheTasks(JSRuntime* rt,
   MOZ_ASSERT(immediateTasks->empty());
 
   GCRuntime* gc = &rt->gc;
-  bool ok = IterateWeakCaches(rt, [&](WeakCacheBase* cache, Zone* zone) {
-    if (cache->empty()) {
-      return true;
-    }
+  bool ok =
+      IterateWeakCaches(rt, [&](JS::detail::WeakCacheBase* cache, Zone* zone) {
+        if (cache->empty()) {
+          return true;
+        }
 
-    // Caches that support incremental sweeping will be swept later.
-    if (zone && cache->setIncrementalBarrierTracer(&gc->sweepingTracer)) {
-      return true;
-    }
+        // Caches that support incremental sweeping will be swept later.
+        if (zone && cache->setIncrementalBarrierTracer(&gc->sweepingTracer)) {
+          return true;
+        }
 
-    return immediateTasks->emplaceBack(gc, zone, *cache);
-  });
+        return immediateTasks->emplaceBack(gc, zone, *cache);
+      });
 
   if (!ok) {
     immediateTasks->clearAndFree();
@@ -1492,11 +1494,11 @@ static void SweepAllWeakCachesOnMainThread(JSRuntime* rt) {
   // If we ran out of memory, do all the work on the main thread.
   gcstats::AutoPhase ap(rt->gc.stats(), gcstats::PhaseKind::SWEEP_WEAK_CACHES);
   SweepingTracer trc(rt);
-  IterateWeakCaches(rt, [&](WeakCacheBase* cache, Zone* zone) {
+  IterateWeakCaches(rt, [&](JS::detail::WeakCacheBase* cache, Zone* zone) {
     if (cache->needsIncrementalBarrier()) {
       cache->setIncrementalBarrierTracer(nullptr);
     }
-    cache->traceWeak(&trc, WeakCacheBase::LockStoreBuffer);
+    cache->traceWeak(&trc, JS::detail::WeakCacheBase::LockStoreBuffer);
     return true;
   });
 }
@@ -1899,11 +1901,12 @@ static size_t IncrementalSweepWeakCache(GCRuntime* gc,
                                         const WeakCacheToSweep& item) {
   AutoSetThreadIsSweeping threadIsSweeping(item.zone);
 
-  WeakCacheBase* cache = item.cache;
+  JS::detail::WeakCacheBase* cache = item.cache;
   MOZ_ASSERT(cache->needsIncrementalBarrier());
 
   SweepingTracer trc(gc->rt);
-  size_t steps = cache->traceWeak(&trc, WeakCacheBase::LockStoreBuffer);
+  size_t steps =
+      cache->traceWeak(&trc, JS::detail::WeakCacheBase::LockStoreBuffer);
   cache->setIncrementalBarrierTracer(nullptr);
 
   return steps;
