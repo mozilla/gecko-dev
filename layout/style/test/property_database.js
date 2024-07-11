@@ -9787,18 +9787,8 @@ var gCSSProperties = {
     applies_to_first_letter: true,
     applies_to_first_line: true,
     initial_values: ["none"],
-    other_values: [
-      "non-scaling-stroke",
-      "non-scaling-stroke viewport",
-      "non-scaling-stroke screen",
-    ],
-    invalid_values: [
-      "none non-scaling-stroke",
-      "non-scaling-stroke viewport screen",
-      "none viewport",
-      "none screen",
-      "viewport non-scaling-stroke",
-    ],
+    other_values: ["non-scaling-stroke"],
+    invalid_values: ["none non-scaling-stroke"],
   },
   "-moz-window-dragging": {
     domProp: "MozWindowDragging",

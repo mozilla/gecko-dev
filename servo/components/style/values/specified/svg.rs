@@ -420,11 +420,10 @@ impl Parse for DProperty {
 )]
 #[css(bitflags(single = "none", mixed = "non-scaling-stroke"))]
 #[repr(C)]
-/// Values for vector-effect:
 /// https://svgwg.org/svg2-draft/coords.html#VectorEffects
-pub struct VectorEffectType(u8);
+pub struct VectorEffect(u8);
 bitflags! {
-    impl VectorEffectType: u8 {
+    impl VectorEffect: u8 {
         /// `none`
         const NONE = 0;
         /// `non-scaling-stroke`
@@ -432,92 +431,10 @@ bitflags! {
     }
 }
 
-#[allow(missing_docs)]
-impl VectorEffectType {
-    pub fn is_none(&self) -> bool {
-        *self == VectorEffectType::NONE
-    }
-}
-
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(C)]
-/// co-ordinate space for vector-effect:
-/// https://svgwg.org/svg2-draft/coords.html#VectorEffects
-pub enum CoordinateSpace {
-    #[default]
-    /// `viewport`
-    Viewport,
-    /// `screen`
-    Screen,
-}
-
-#[allow(missing_docs)]
-impl CoordinateSpace {
-    pub fn is_viewport(&self) -> bool {
-        *self == Self::Viewport
-    }
-}
-
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToCss,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(C)]
-/// Specified value for the vector-effect property.
-/// (The spec grammar gives
-/// `none | [ non-scaling-stroke | non-scaling-size | non-rotation | fixed-position ]+ [ viewport | screen ]?`.)
-/// https://svgwg.org/svg2-draft/coords.html#VectorEffects
-pub struct VectorEffect {
-    /// none or non-scaling-stroke
-    pub effect_type: VectorEffectType,
-    /// screen or viewport
-    #[css(skip_if = "CoordinateSpace::is_viewport")]
-    pub coordinate_space: CoordinateSpace,
-}
-
-#[allow(missing_docs)]
 impl VectorEffect {
+    /// Returns the initial value of vector-effect
     #[inline]
     pub fn none() -> Self {
-        Self {
-            effect_type: VectorEffectType::NONE,
-            coordinate_space: CoordinateSpace::Viewport,
-        }
-    }
-}
-
-impl Parse for VectorEffect {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        let effect_type = VectorEffectType::parse(context, input)?;
-        if effect_type.is_none() {
-            return Ok(Self::none());
-        }
-        let coordinate_space = input.try_parse(CoordinateSpace::parse).unwrap_or(CoordinateSpace::Viewport);
-        Ok(Self { effect_type, coordinate_space })
+        Self::NONE
     }
 }

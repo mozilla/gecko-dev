@@ -557,12 +557,7 @@ renaming_overrides_prefixing = true
 """
 
 "VectorEffect" = """
-  StyleVectorEffect()
-    : effect_type(StyleVectorEffectType::NONE),
-      coordinate_space(StyleCoordinateSpace::Viewport) {}
-
-  bool HasNonScalingStroke() const { return bool(effect_type & StyleVectorEffectType::NON_SCALING_STROKE); }
-  bool IsScreen() const { return coordinate_space == StyleCoordinateSpace::Screen; }
+  bool HasNonScalingStroke() const { return bool(*this & StyleVectorEffect::NON_SCALING_STROKE); }
 """
 
 # TODO(emilio): Add hooks to cbindgen to be able to generate [[nodiscard]]
