@@ -684,6 +684,16 @@ skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/yield-next-rej
 skip script test262/language/global-code/script-decl-lex-var-declared-via-eval.js
 skip script test262/annexB/language/eval-code/direct/script-decl-lex-no-collision.js
 
+# Unicode Minus Sign no longer allowed in offset strings.
+skip script test262/intl402/DateTimeFormat/offset-timezone-no-unicode-minus-sign.js
+
+# https://github.com/tc39/proposal-arraybuffer-base64/pull/58
+skip script test262/built-ins/Uint8Array/prototype/setFromBase64/writes-up-to-error.js
+skip script test262/built-ins/Uint8Array/prototype/setFromHex/writes-up-to-error.js
+
+# https://github.com/tc39/proposal-arraybuffer-base64/pull/60
+skip script test262/built-ins/Uint8Array/prototype/toBase64/omit-padding.js
+
 
 ###########################################################
 # Tests disabled due to issues in test262 importer script #
@@ -709,41 +719,17 @@ skip-if(!xulRuntime.shell) script test262/language/module-code/top-level-await/a
 # Tests disabled due to invalid test expectations  #
 ####################################################
 
-# https://github.com/tc39/test262/pull/3958
-skip script test262/intl402/DateTimeFormat/prototype/resolvedOptions/hourCycle-default.js
-
 # Array.prototype.concat currently doesn't support spreading tuples. The spec
 # for records and tuples is undergoing major (design) changes, so disable the
 # test for now.
 skip script non262/Tuple/prototype/concat/concat-with-array.js
 
-# Time zone offsets with sub-minute precision no longer allowed.
-skip script test262/staging/Temporal/Regex/old/instant.js
-skip script test262/staging/Temporal/Regex/old/timezone.js
-
 # These tests seem incorrect, see https://github.com/tc39/test262/pull/3907
 skip script test262/language/statements/class/decorator/syntax/class-valid/decorator-member-expr-private-identifier.js
 skip script test262/language/expressions/class/decorator/syntax/class-valid/decorator-member-expr-private-identifier.js
 
-# These don't expect Float16Array to be enabled, see https://github.com/tc39/test262/issues/4029
-skip script test262/harness/testTypedArray.js
-skip script test262/harness/testTypedArray-conversions.js
-
-# https://github.com/tc39/test262/pull/4114
-skip script test262/built-ins/Temporal/Duration/prototype/subtract/balance-negative-time-units.js
-
-# https://github.com/tc39/proposal-temporal/issues/2881
-skip script test262/built-ins/Temporal/Duration/prototype/round/order-of-operations.js
-skip script test262/built-ins/Temporal/Duration/prototype/round/calendar-dateadd-called-with-options-undefined.js
-
 # https://github.com/tc39/test262/pull/4099
-skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/reference-day-chinese.js
-
-# https://github.com/tc39/test262/pull/4098
-skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/reference-day-gregory.js
-skip script test262/intl402/Temporal/Calendar/prototype/yearMonthFromFields/order-of-operations.js
-skip script test262/intl402/Temporal/Calendar/prototype/dateFromFields/order-of-operations.js
-skip script test262/intl402/Temporal/PlainYearMonth/from/argument-object.js
+skip script test262/intl402/Temporal/PlainYearMonth/from/reference-day-chinese.js
 
 
 ##############################################
@@ -1121,6 +1107,105 @@ skip script test262/built-ins/Temporal/PlainDate/prototype/until/wrapping-at-end
 skip script test262/built-ins/Temporal/PlainDateTime/prototype/since/wrapping-at-end-of-month.js
 skip script test262/built-ins/Temporal/PlainDateTime/prototype/until/wrapping-at-end-of-month.js
 
+# Temporal.Calendar and Temporal.TimeZone removal
+skip script test262/staging/Temporal/removed-methods.js
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/transition-at-instant-boundaries.js
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/specific-tzdb-values.js
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/subtract-second-and-nanosecond-from-last-transition.js
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/result-type.js
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/nanoseconds-subtracted-or-added-at-dst-transition.js
+skip script test262/built-ins/Temporal/PlainMonthDay/calendar-iso-string.js
+skip script test262/built-ins/Temporal/PlainMonthDay/from/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainMonthDay/from/observable-get-overflow-argument-string-invalid.js
+skip script test262/built-ins/Temporal/PlainMonthDay/from/observable-get-overflow-argument-primitive.js
+skip script test262/built-ins/Temporal/PlainMonthDay/prototype/with/order-of-operations.js
+skip script test262/built-ins/Temporal/ZonedDateTime/timezone-iso-string.js
+skip script test262/built-ins/Temporal/ZonedDateTime/calendar-iso-string.js
+skip script test262/built-ins/Temporal/ZonedDateTime/from/observable-get-overflow-argument-string-invalid.js
+skip script test262/built-ins/Temporal/ZonedDateTime/from/order-of-operations.js
+skip script test262/built-ins/Temporal/ZonedDateTime/from/observable-get-overflow-argument-primitive.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/wrong-string.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/utc-no-transitions.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/length.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/prop-desc.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/not-a-constructor.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/offset-timezone-no-transitions.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/direction-undefined.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/branding.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/direction-wrong-type.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/builtin.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/name.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/order-of-operations.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/with/order-of-operations.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainDate/calendar-iso-string.js
+skip script test262/built-ins/Temporal/PlainDate/from/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainDate/from/observable-get-overflow-argument-string-invalid.js
+skip script test262/built-ins/Temporal/PlainDate/from/observable-get-overflow-argument-primitive.js
+skip script test262/built-ins/Temporal/PlainDate/prototype/since/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainDate/prototype/with/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainDate/prototype/until/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainTime/prototype/since/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainTime/prototype/until/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainDateTime/calendar-iso-string.js
+skip script test262/built-ins/Temporal/PlainDateTime/from/observable-get-overflow-argument-string-invalid.js
+skip script test262/built-ins/Temporal/PlainDateTime/from/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainDateTime/from/observable-get-overflow-argument-primitive.js
+skip script test262/built-ins/Temporal/PlainDateTime/prototype/since/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainDateTime/prototype/with/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainDateTime/prototype/until/order-of-operations.js
+skip script test262/built-ins/Temporal/Instant/prototype/since/order-of-operations.js
+skip script test262/built-ins/Temporal/Instant/prototype/until/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainYearMonth/calendar-iso-string.js
+skip script test262/built-ins/Temporal/PlainYearMonth/from/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainYearMonth/from/observable-get-overflow-argument-string-invalid.js
+skip script test262/built-ins/Temporal/PlainYearMonth/from/observable-get-overflow-argument-primitive.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/add/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/add/overflow-wrong-type.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/since/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/with/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/subtract/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/subtract/overflow-wrong-type.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/until/order-of-operations.js
+
+# Unicode Minus Sign no longer allowed in offset strings.
+skip script test262/built-ins/Temporal/Instant/from/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/Instant/compare/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/Instant/prototype/equals/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/Instant/prototype/since/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/Instant/prototype/until/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDate/from/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDate/compare/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDate/prototype/equals/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDate/prototype/toPlainDateTime/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDate/prototype/since/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDate/prototype/until/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDate/prototype/toZonedDateTime/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDateTime/from/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDateTime/compare/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDateTime/prototype/withPlainTime/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDateTime/prototype/equals/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDateTime/prototype/since/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainDateTime/prototype/until/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainMonthDay/from/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainMonthDay/prototype/equals/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainTime/from/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainTime/compare/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainTime/prototype/equals/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainTime/prototype/since/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainTime/prototype/until/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainYearMonth/from/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainYearMonth/compare/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/equals/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/since/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/until/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/ZonedDateTime/from/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/ZonedDateTime/compare/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/withPlainTime/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/equals/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/argument-string-minus-sign.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/argument-string-minus-sign.js
+
 
 ##############################################
 # Temporal Intl tests                        #
@@ -1196,12 +1281,12 @@ skip script test262/staging/Intl402/Temporal/old/instant-toLocaleString.js
 
 # Test assumes CalendarMonthDayToISOReferenceDate modifies input |day| when no |monthCode| is given.
 # This case should be clarified more clearly in the spec.
-skip script test262/intl402/Temporal/Calendar/prototype/monthDayFromFields/reference-year-1972.js
+skip script test262/intl402/Temporal/PlainMonthDay/from/reference-year-1972.js
 
 # Calendar arithmetic not yet supported in ICU4X.
 #
 # https://github.com/unicode-org/icu4x/issues/3147
-skip script test262/intl402/Temporal/Calendar/prototype/dateUntil/until-across-lunisolar-leap-months.js
+skip script test262/intl402/Temporal/PlainDate/prototype/until/until-across-lunisolar-leap-months.js
 
 # Tailored to the Temporal polyfill. Not necessarily applicable for other implementations.
 skip script test262/staging/Intl402/Temporal/old/addition-across-lunisolar-leap-months.js
@@ -1211,17 +1296,18 @@ skip script test262/staging/Intl402/Temporal/old/islamic-calendars.js
 # Time zone identifier canonicalization.
 skip script test262/intl402/Temporal/ZonedDateTime/from/do-not-canonicalize-iana-identifiers.js
 skip script test262/intl402/Temporal/ZonedDateTime/from/timezone-case-insensitive.js
-skip script test262/intl402/Temporal/TimeZone/links-europe.js
-skip script test262/intl402/Temporal/TimeZone/links-etcetera.js
-skip script test262/intl402/Temporal/TimeZone/links-backzone.js
-skip script test262/intl402/Temporal/TimeZone/links-northamerica.js
-skip script test262/intl402/Temporal/TimeZone/links-backward.js
-skip script test262/intl402/Temporal/TimeZone/etc-timezone.js
-skip script test262/intl402/Temporal/TimeZone/iana-legacy-names.js
-skip script test262/intl402/Temporal/TimeZone/basic.js
-skip script test262/intl402/Temporal/TimeZone/links-asia.js
-skip script test262/intl402/Temporal/TimeZone/non-canonical-utc.js
-skip script test262/intl402/Temporal/TimeZone/from/iana-legacy-names.js
-skip script test262/intl402/Temporal/TimeZone/from/etc-timezone.js
-skip script test262/intl402/Temporal/TimeZone/from/argument-valid.js
-skip script test262/intl402/Temporal/TimeZone/from/timezone-case-insensitive.js
+skip script test262/intl402/Temporal/ZonedDateTime/from/argument-valid.js
+skip script test262/intl402/Temporal/ZonedDateTime/from/etc-timezone.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-europe.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-etcetera.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-backzone.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-northamerica.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-backward.js
+skip script test262/intl402/Temporal/ZonedDateTime/etc-timezone.js
+skip script test262/intl402/Temporal/ZonedDateTime/iana-legacy-names.js
+skip script test262/intl402/Temporal/ZonedDateTime/timezone-ids-basic.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-asia.js
+skip script test262/intl402/Temporal/ZonedDateTime/non-canonical-utc.js
+skip script test262/intl402/Temporal/ZonedDateTime/iana-legacy-names.js
+skip script test262/intl402/Temporal/ZonedDateTime/timezone-case-insensitive.js
+skip script test262/intl402/Temporal/ZonedDateTime/timezone-ids-basic.js
