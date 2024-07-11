@@ -39,6 +39,11 @@ static void RemoveExcludedAccessiblesFromRange(TextLeafRange& aRange) {
     return;
   }
   if (end.mOffset != 0) {
+    // It is theoretically possible for start to be at the exclusive end of a
+    // previous Accessible (i.e. mOffset is its length), so the range doesn't
+    // really encompass that Accessible's text and we should thus exclude that
+    // Accessible. However, that hasn't been seen in practice yet. If it does
+    // occur and cause problems, we should adjust the start point here.
     return;
   }
   // end is at the start of its Accessible. This can happen because we always

@@ -83,24 +83,24 @@ const Accessible* Accessible::GetClosestCommonInclusiveAncestor(
   }
 
   // Build the chain of parents.
-  const Accessible* thisP = this;
-  const Accessible* otherP = aAcc;
-  AutoTArray<const Accessible*, 30> thisParents, otherParents;
+  const Accessible* thisAnc = this;
+  const Accessible* otherAnc = aAcc;
+  AutoTArray<const Accessible*, 30> thisAncs, otherAncs;
   do {
-    thisParents.AppendElement(thisP);
-    thisP = thisP->Parent();
-  } while (thisP);
+    thisAncs.AppendElement(thisAnc);
+    thisAnc = thisAnc->Parent();
+  } while (thisAnc);
   do {
-    otherParents.AppendElement(otherP);
-    otherP = otherP->Parent();
-  } while (otherP);
+    otherAncs.AppendElement(otherAnc);
+    otherAnc = otherAnc->Parent();
+  } while (otherAnc);
 
   // Find where the parent chain differs.
-  uint32_t thisPos = thisParents.Length(), otherPos = otherParents.Length();
+  size_t thisPos = thisAncs.Length(), otherPos = otherAncs.Length();
   const Accessible* common = nullptr;
-  for (uint32_t len = std::min(thisPos, otherPos); len > 0; --len) {
-    const Accessible* thisChild = thisParents.ElementAt(--thisPos);
-    const Accessible* otherChild = otherParents.ElementAt(--otherPos);
+  for (size_t len = std::min(thisPos, otherPos); len > 0; --len) {
+    const Accessible* thisChild = thisAncs.ElementAt(--thisPos);
+    const Accessible* otherChild = otherAncs.ElementAt(--otherPos);
     if (thisChild != otherChild) {
       break;
     }
