@@ -304,6 +304,14 @@ bool AudioEncoderTraits::Validate(const AudioEncoderConfig& aConfig,
     return false;
   }
 
+  // https://github.com/w3c/webcodecs/issues/816
+  if ((aConfig.mBitrate.WasPassed() && aConfig.mBitrate.Value() == 0)) {
+    aErrorMessage.AssignLiteral(
+        "Invalid AudioEncoderConfig: bitrate equal to 0");
+    LOGE("%s", aErrorMessage.get());
+    return false;
+  }
+
   if (codec->EqualsLiteral("opus")) {
     // This comes from
     // https://w3c.github.io/webcodecs/opus_codec_registration.html#opus-encoder-config
