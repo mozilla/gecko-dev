@@ -139,14 +139,12 @@ export const DAPTelemetrySender = new (class {
   async sendDAPMeasurement(task, measurement, timeout, reason) {
     task.leader_endpoint = lazy.LEADER;
     if (!task.leader_endpoint) {
-      lazy.logConsole.error('Preference "' + PREF_LEADER + '" not set');
-      return;
+      throw new Error(`Preference ${PREF_LEADER} not set`);
     }
 
     task.helper_endpoint = lazy.HELPER;
     if (!task.helper_endpoint) {
-      lazy.logConsole.error('Preference "' + PREF_HELPER + '" not set');
-      return;
+      throw new Error(`Preference ${PREF_HELPER} not set`);
     }
 
     try {
@@ -173,6 +171,8 @@ export const DAPTelemetrySender = new (class {
         Glean.dap.reportGenerationStatus.failure.add(1);
         lazy.logConsole.error("DAP report generation failed: " + e);
       }
+
+      throw e;
     }
   }
 
@@ -307,13 +307,13 @@ export const DAPTelemetrySender = new (class {
         if (content_type && content_type === "application/json") {
           // A JSON error from the DAP server.
           let error = await response.json();
-          lazy.logConsole.error(
+          throw new Error(
             `Sending failed. HTTP response: ${response.status} ${response.statusText}. Error: ${error.type} ${error.title}`
           );
         } else {
           // A different error, e.g. from a load-balancer.
           let error = await response.text();
-          lazy.logConsole.error(
+          throw new Error(
             `Sending failed. HTTP response: ${response.status} ${response.statusText}. Error: ${error}`
           );
         }
@@ -335,6 +335,8 @@ export const DAPTelemetrySender = new (class {
         lazy.logConsole.error("Failed to send report: ", err);
         Glean.dap.uploadStatus.failure.add(1);
       }
+
+      throw err;
     }
   }
 })();

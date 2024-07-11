@@ -139,10 +139,19 @@ add_task(async function testNetworkError() {
   Services.fog.testResetFOG();
   let before = Glean.dap.reportGenerationStatus.failure.testGetValue() ?? 0;
   Services.prefs.setStringPref(PREF_LEADER, server_addr + "/invalid-endpoint");
-  await lazy.DAPTelemetrySender.sendTestReports(tasks, 5000);
+
+  let thrownErr;
+  try {
+    await lazy.DAPTelemetrySender.sendTestReports(tasks, 5000);
+  } catch (e) {
+    thrownErr = e;
+  }
+
+  Assert.equal("HPKE config download failed.", thrownErr.message);
+
   let after = Glean.dap.reportGenerationStatus.failure.testGetValue() ?? 0;
   Assert.equal(
-    before + 2,
+    before + 1,
     after,
     "Failed report generation should be counted."
   );

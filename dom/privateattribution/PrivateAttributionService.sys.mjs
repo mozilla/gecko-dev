@@ -14,12 +14,17 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const MAX_CONVERSIONS = 2;
 const DAY_IN_MILLI = 1000 * 60 * 60 * 24;
 const CONVERSION_RESET_MILLI = 7 * DAY_IN_MILLI;
+const DAP_TIMEOUT_MILLI = 30000;
 
 /**
  *
  */
 export class PrivateAttributionService {
-  constructor() {
+  constructor({ dapTelemetrySender, dateProvider, testForceEnabled } = {}) {
+    this._dapTelemetrySender = dapTelemetrySender;
+    this._dateProvider = dateProvider ?? Date;
+    this._testForceEnabled = testForceEnabled;
+
     this.dbName = "PrivateAttribution";
     this.impressionStoreName = "impressions";
     this.budgetStoreName = "budgets";
@@ -32,10 +37,20 @@ export class PrivateAttributionService {
     };
   }
 
+  get dapTelemetrySender() {
+    return this._dapTelemetrySender || lazy.DAPTelemetrySender;
+  }
+
+  now() {
+    return this._dateProvider.now();
+  }
+
   async onAttributionEvent(sourceHost, type, index, ad, targetHost) {
     if (!this.isEnabled()) {
       return;
     }
+
+    const now = this.now();
 
     try {
       const impressionStore = await this.getImpressionStore();
@@ -48,8 +63,8 @@ export class PrivateAttributionService {
 
       const prop = this.getModelProp(type);
       impression.index = index;
-      impression.lastImpression = Date.now();
-      impression[prop] = Date.now();
+      impression.lastImpression = now;
+      impression[prop] = now;
       Glean.privateAttribution.saveImpression[prop].add(1);
 
       await this.updateImpression(impressionStore, ad, impression);
@@ -61,10 +76,10 @@ export class PrivateAttributionService {
   }
 
   async onAttributionConversion(
-    sourceHost,
+    targetHost,
     task,
     histogramSize,
-    loopbackDays,
+    lookbackDays,
     impressionType,
     ads,
     sourceHosts
@@ -73,15 +88,18 @@ export class PrivateAttributionService {
       return;
     }
 
+    const now = this.now();
+
     try {
-      const budget = await this.getBudget(sourceHost);
+      const budget = await this.getBudget(targetHost, now);
       const impression = await this.findImpression(
         ads,
-        sourceHost,
+        targetHost,
         sourceHosts,
         impressionType,
-        loopbackDays,
-        histogramSize
+        lookbackDays,
+        histogramSize,
+        now
       );
 
       let index = 0;
@@ -91,7 +109,7 @@ export class PrivateAttributionService {
         value = 1;
       }
 
-      await this.updateBudget(budget, value, sourceHost);
+      await this.updateBudget(budget, value, targetHost);
       await this.sendDapReport(task, index, histogramSize, value);
       Glean.privateAttribution.measureConversion.success.add(1);
     } catch (e) {
@@ -100,7 +118,7 @@ export class PrivateAttributionService {
     }
   }
 
-  async findImpression(ads, target, sources, model, days, histogramSize) {
+  async findImpression(ads, target, sources, model, days, histogramSize, now) {
     let impressions = [];
 
     const impressionStore = await this.getImpressionStore();
@@ -121,7 +139,7 @@ export class PrivateAttributionService {
     Glean.privateAttribution.measureConversion[prop].add(1);
 
     // Find the most relevant impression
-    const lookbackWindow = Date.now() - days * DAY_IN_MILLI;
+    const lookbackWindow = now - days * DAY_IN_MILLI;
     return (
       impressions
         // Filter by target, sources, and lookback days
@@ -167,14 +185,14 @@ export class PrivateAttributionService {
     return cur.source === impression.source && cur.target === impression.target;
   }
 
-  async getBudget(target) {
+  async getBudget(target, now) {
     const budgetStore = await this.getBudgetStore();
     const budget = await budgetStore.get(target);
 
-    if (!budget || Date.now() > budget.nextReset) {
+    if (!budget || now > budget.nextReset) {
       return {
         conversions: 0,
-        nextReset: Date.now() + CONVERSION_RESET_MILLI,
+        nextReset: now + CONVERSION_RESET_MILLI,
       };
     }
 
@@ -233,11 +251,11 @@ export class PrivateAttributionService {
     const measurement = new Array(size).fill(0);
     measurement[index] = value;
 
-    await lazy.DAPTelemetrySender.sendDAPMeasurement(
+    await this.dapTelemetrySender.sendDAPMeasurement(
       task,
       measurement,
-      30000,
-      "periodic"
+      DAP_TIMEOUT_MILLI,
+      "conversion"
     );
   }
 
@@ -246,7 +264,7 @@ export class PrivateAttributionService {
   }
 
   isEnabled() {
-    return lazy.TelemetryUtils.isTelemetryEnabled;
+    return this._testForceEnabled || lazy.TelemetryUtils.isTelemetryEnabled;
   }
 
   QueryInterface = ChromeUtils.generateQI([Ci.nsIPrivateAttributionService]);
