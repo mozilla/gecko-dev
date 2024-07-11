@@ -423,6 +423,34 @@ features:
           'global-settings-enabled' must also be enabled for users to access this feature.
         type: Boolean
         default: false
+    defaults:
+      - channel: developer
+        value:
+          main-flow-toolbar-enabled: true
+          main-flow-browser-menu-enabled: true
+          page-settings-enabled: true
+          global-settings-enabled: true
+          global-lang-settings-enabled: true
+          global-site-settings-enabled: true
+          downloads-enabled: true
+      - channel: nightly
+        value:
+          main-flow-toolbar-enabled: true
+          main-flow-browser-menu-enabled: true
+          page-settings-enabled: true
+          global-settings-enabled: true
+          global-lang-settings-enabled: true
+          global-site-settings-enabled: true
+          downloads-enabled: true
+      - channel: beta
+        value:
+          main-flow-toolbar-enabled: true
+          main-flow-browser-menu-enabled: true
+          page-settings-enabled: true
+          global-settings-enabled: true
+          global-lang-settings-enabled: true
+          global-site-settings-enabled: true
+          downloads-enabled: true
 
   navigation-toolbar:
     description: Feature for navigation toolbar.
