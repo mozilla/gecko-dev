@@ -231,7 +231,7 @@ class Editor extends PureComponent {
       codeMirrorWrapper.tabIndex = 0;
       codeMirrorWrapper.addEventListener("keydown", e => this.onKeyDown(e));
       codeMirrorWrapper.addEventListener("click", e => this.onClick(e));
-      codeMirrorWrapper.addEventListener("mouseover", onMouseOver(codeMirror));
+      codeMirrorWrapper.addEventListener("mouseover", onMouseOver(editor));
       codeMirrorWrapper.addEventListener("contextmenu", event =>
         this.openMenu(event)
       );

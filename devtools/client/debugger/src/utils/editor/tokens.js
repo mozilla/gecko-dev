@@ -83,15 +83,11 @@ function _isInvalidTarget(target) {
   return false;
 }
 
-function _dispatch(codeMirrorOrSourceEditor, eventName, data) {
+function _dispatch(editor, eventName, data) {
   if (features.codemirrorNext) {
-    codeMirrorOrSourceEditor.emit(eventName, data);
+    editor.emit(eventName, data);
   } else {
-    codeMirrorOrSourceEditor.constructor.signal(
-      codeMirrorOrSourceEditor,
-      eventName,
-      data
-    );
+    editor.codeMirror.constructor.signal(editor.codeMirror, eventName, data);
   }
 }
 
@@ -105,10 +101,10 @@ function _invalidLeaveTarget(target) {
 
 /**
  * Wraps the codemirror mouse events  to generate token events
- * @param {Object} codeMirrorOrSourceEditor
+ * @param {Object} editor
  * @returns {Function}
  */
-export function onMouseOver(codeMirrorOrEditor) {
+export function onMouseOver(editor) {
   let prevTokenPos = null;
 
   function onMouseLeave(event) {
@@ -118,7 +114,7 @@ export function onMouseOver(codeMirrorOrEditor) {
     }
 
     prevTokenPos = null;
-    _dispatch(codeMirrorOrEditor, "tokenleave", event);
+    _dispatch(editor, "tokenleave", event);
   }
 
   function addMouseLeave(target) {
@@ -128,19 +124,13 @@ export function onMouseOver(codeMirrorOrEditor) {
     });
   }
 
-  return (enterEvent, cm, cursorLine, cursorColumn, eventLine, eventColumn) => {
+  return enterEvent => {
     const { target } = enterEvent;
 
     if (_isInvalidTarget(target)) {
       return;
     }
-    let tokenPos;
-    if (features.codemirrorNext) {
-      // using the line and column on hover
-      tokenPos = { line: eventLine, column: eventColumn };
-    } else {
-      tokenPos = getTokenLocation(codeMirrorOrEditor, target);
-    }
+    const tokenPos = getTokenLocation(editor, target);
 
     if (
       prevTokenPos?.line !== tokenPos?.line ||
@@ -148,7 +138,7 @@ export function onMouseOver(codeMirrorOrEditor) {
     ) {
       addMouseLeave(target);
 
-      _dispatch(codeMirrorOrEditor, "tokenenter", {
+      _dispatch(editor, "tokenenter", {
         event: enterEvent,
         target,
         tokenPos,
@@ -179,11 +169,11 @@ export function getTokenEnd(codeMirror, line, column) {
 /**
  * Given the dom element related to the token, this gets its line and column.
  *
- * @param {*} codeMirror
+ * @param {*} editor
  * @param {*} tokenEl
  * @returns {Object} An object of the form { line, column }
  */
-export function getTokenLocation(codeMirror, tokenEl) {
+export function getTokenLocation(editor, tokenEl) {
   // Get the quad (and not the bounding rect), as the span could wrap on multiple lines
   // and the middle of the bounding rect may not be over the token:
   // +───────────────────────+
@@ -193,19 +183,5 @@ export function getTokenLocation(codeMirror, tokenEl) {
   const { p1, p2, p3 } = tokenEl.getBoxQuads()[0];
   const left = p1.x + (p2.x - p1.x) / 2;
   const top = p1.y + (p3.y - p1.y) / 2;
-  const { line, ch } = codeMirror.coordsChar(
-    {
-      left,
-      top,
-    },
-    // Use the "window" context where the coordinates are relative to the top-left corner
-    // of the currently visible (scrolled) window.
-    // This enables codemirror also correctly handle wrappped lines in the editor.
-    "window"
-  );
-
-  return {
-    line: line + 1,
-    column: ch,
-  };
+  return editor.getPositionAtScreenCoords(left, top);
 }
