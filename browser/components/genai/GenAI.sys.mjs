@@ -53,6 +53,21 @@ export const GenAI = {
     // Until bug 1903900 to better handle max length issues, track in comments
     // ~14k max length uri before 431
     [
+      "https://claude.ai/new",
+      {
+        id: "claude",
+        link1:
+          "https://www.anthropic.com/legal/archive/6370fb23-12ed-41d9-a4a2-28866dee3105",
+        link2:
+          "https://www.anthropic.com/legal/archive/7197103a-5e27-4ee4-93b1-f2d4c39ba1e7",
+        link3:
+          "https://www.anthropic.com/legal/archive/628feec9-7df9-4d38-bc69-fbf104df47b0",
+        linksId: "genai-settings-chat-claude-links",
+        name: "Anthropic Claude",
+      },
+    ],
+    // ~14k max length uri before 431
+    [
       "https://chatgpt.com",
       {
         id: "chatgpt",

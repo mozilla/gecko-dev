@@ -37,8 +37,8 @@ add_task(async function test_sidebar_providers() {
   const origCount = countVisible();
   Assert.equal(
     origCount,
-    5,
-    "Rendered expected number of provider options (4 + custom)"
+    6,
+    "Rendered expected number of provider options (5 + custom)"
   );
 
   SidebarController.hide();
