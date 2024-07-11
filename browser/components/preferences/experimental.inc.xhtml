@@ -35,8 +35,10 @@
 <html:template id="template-genai-chat">
     <html:div>
         <label class="indent"
-                    data-l10n-id="genai-settings-chat-choose"/>
-        <menulist class="indent"
+               control="genai-chat-provider"
+               data-l10n-id="genai-settings-chat-choose"/>
+        <menulist aria-describedby="genai-chat-links"
+                  class="indent"
                   id="genai-chat-provider"
                   preference="browser.ml.chat.provider">
             <menupopup>
