@@ -48,6 +48,7 @@ export const ResetPBMPanel = {
       onViewHiding(aEvent) {
         ResetPBMPanel.onViewHiding(aEvent);
       },
+      hideInNonPrivateBrowsing: true,
     };
 
     if (this._enabled) {
