@@ -11,6 +11,7 @@ const { TestUtils } = ChromeUtils.importESModule(
 const PREF_MAX_READ = "webextensions.native-messaging.max-input-message-bytes";
 const PREF_MAX_WRITE =
   "webextensions.native-messaging.max-output-message-bytes";
+const PREF_ASYNC_STACKS = "javascript.options.asyncstack_capture_debuggee_only";
 
 AddonTestUtils.init(this);
 AddonTestUtils.overrideCertDB();
@@ -453,27 +454,35 @@ add_task(async function test_absolute_path_dotdot() {
   return simpleTest("dotdot.echo");
 });
 
-add_task(async function test_error_name_mismatch() {
-  await testBrokenApp({
-    appname: "renamed.echo",
-    expectedError: "No such native application renamed.echo",
-    expectedConsoleMessages: [
-      /Native manifest .+ has name property renamed_name_mismatch \(expected renamed\.echo\)/,
-      /No such native application renamed\.echo/,
-    ],
-  });
-});
+add_task(
+  // TODO: Bug 1907190 - Fix testBrokenApp() to handle logs with async stacks.
+  { pref_set: [[PREF_ASYNC_STACKS, true]] },
+  async function test_error_name_mismatch() {
+    await testBrokenApp({
+      appname: "renamed.echo",
+      expectedError: "No such native application renamed.echo",
+      expectedConsoleMessages: [
+        /Native manifest .+ has name property renamed_name_mismatch \(expected renamed\.echo\)/,
+        /No such native application renamed\.echo/,
+      ],
+    });
+  }
+);
 
-add_task(async function test_invalid_manifest_type_not_stdio() {
-  await testBrokenApp({
-    appname: "nonstdio.echo",
-    expectedError: "No such native application nonstdio.echo",
-    expectedConsoleMessages: [
-      /Native manifest .+ has type property pkcs11 \(expected stdio\)/,
-      /No such native application nonstdio\.echo/,
-    ],
-  });
-});
+add_task(
+  // TODO: Bug 1907190 - Fix testBrokenApp() to handle logs with async stacks.
+  { pref_set: [[PREF_ASYNC_STACKS, true]] },
+  async function test_invalid_manifest_type_not_stdio() {
+    await testBrokenApp({
+      appname: "nonstdio.echo",
+      expectedError: "No such native application nonstdio.echo",
+      expectedConsoleMessages: [
+        /Native manifest .+ has type property pkcs11 \(expected stdio\)/,
+        /No such native application nonstdio\.echo/,
+      ],
+    });
+  }
+);
 
 add_task(async function test_forward_slashes_in_path_works() {
   await simpleTest("forwardslash.echo");
@@ -728,17 +737,21 @@ add_task(async function test_ext_permission() {
 
 // Test that an extension that is not listed in allowed_extensions for
 // a native application cannot use that application.
-add_task(async function test_app_permission() {
-  await testBrokenApp({
-    extensionId: "@id-that-is-not-in-the-allowed_extensions-list",
-    appname: "echo",
-    expectedError: "No such native application echo",
-    expectedConsoleMessages: [
-      /This extension does not have permission to use native manifest .+echo\.json/,
-      /No such native application echo/,
-    ],
-  });
-});
+add_task(
+  // TODO: Bug 1907190 - Fix testBrokenApp() to handle logs with async stacks.
+  { pref_set: [[PREF_ASYNC_STACKS, true]] },
+  async function test_app_permission() {
+    await testBrokenApp({
+      extensionId: "@id-that-is-not-in-the-allowed_extensions-list",
+      appname: "echo",
+      expectedError: "No such native application echo",
+      expectedConsoleMessages: [
+        /This extension does not have permission to use native manifest .+echo\.json/,
+        /No such native application echo/,
+      ],
+    });
+  }
+);
 
 // Test that the command-line arguments and working directory for the
 // native application are as expected.
