@@ -2639,7 +2639,7 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Delete login with username %s</string>
 
-    <!-- Debug drawer CFR tools -->
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">CFR Tools</string>
     <!-- The title of the reset CFR section in CFR Tools -->
